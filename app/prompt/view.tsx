@@ -23,6 +23,7 @@ import {
 import type {
   Attribution,
   Conviction,
+  Statement,
   Influence,
   Instance,
   PromptsData,
@@ -650,6 +651,47 @@ function PromptItem({
 }
 
 /**
+ * One sentence of a conviction. Borrowed words are set as a quote with
+ * their attribution under them; mine are set as a statement. The head of a
+ * chorus is set at full size and the voices after it a half step down —
+ * still whole sentences, visibly not the head.
+ */
+function StatementLine({
+  statement,
+  head,
+}: {
+  statement: Statement;
+  head: boolean;
+}) {
+  const size = head ? "text-xl sm:text-2xl" : "text-lg sm:text-xl";
+  const quoted = statement.quotedFrom;
+
+  return (
+    <div className={cn(!head && "mt-5")}>
+      {quoted ? (
+        <>
+          <blockquote
+            className={cn(
+              "font-serif text-foreground leading-relaxed italic",
+              size,
+            )}
+          >
+            &ldquo;{statement.text}&rdquo;
+          </blockquote>
+          <p className="mt-2 text-sm">
+            <AttributionText attribution={quoted} />
+          </p>
+        </>
+      ) : (
+        <p className={cn("font-serif text-foreground leading-relaxed", size)}>
+          {statement.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
  * A conviction. `quotedFrom` decides the typography: borrowed words are set
  * as a quote with their attribution on the surface; my own words are set as
  * a statement. Provenance is the only thing that varies — the belief is
@@ -668,21 +710,23 @@ function ConvictionItem({
   /** Short label for an id an instance points at. */
   labelOf: (id: string) => string | undefined;
 }) {
-  const quoted = conviction.quotedFrom;
-  // `id` and `on` only. Whose words they are is printed under the statement
-  // where it is read; repeating it up here made the row long and said the
-  // same thing twice.
-  // The id is the entry's outline word — the one word this belief would be
-  // filed under — which is why it is worth showing rather than hiding: in
+  // `id`, `type`, `on`. The id is the entry's outline word — the one word
+  // this belief would be filed under — which is why it is worth showing: in
   // 修身 and 行事 that word is already the statement (成为, 演示), and in
   // 天行 the statements are sentences the culture handed me, so the id is
-  // the only place my own name for them appears. It is also the hash, so
-  // the row doubles as "what you get when you click the #".
-  // `on` is space-separated, the way a `class` attribute holds several.
+  // the only place my own name for them appears. It is also the hash.
+  //
+  // `type` is the shelf and `on` is what the sentences are about — the
+  // facets of a chorus, space-separated the way a `class` holds several.
+  // A single-voiced entry has nothing to say there and so says nothing.
+  const facets = conviction.statements
+    .map((statement) => statement.facet)
+    .filter((facet): facet is string => Boolean(facet));
   const attributes: Record<string, string> = {
     id: conviction.anchor,
-    on: topics.join(" "),
+    type: topics.join(" "),
   };
+  if (facets.length > 0) attributes.on = facets.join(" ");
 
   return (
     <PromptItem
@@ -728,26 +772,24 @@ function ConvictionItem({
         </>
       }
     >
-      {quoted ? (
-        <>
-          <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed italic">
-            &ldquo;{conviction.statement}&rdquo;
-          </blockquote>
-          <p className="mt-2 text-sm">
-            <AttributionText attribution={quoted} />
-          </p>
-        </>
-      ) : (
-        <p className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed">
-          {conviction.statement}
-        </p>
-      )}
+      {conviction.statements.map((statement, i) => (
+        <StatementLine key={i} statement={statement} head={i === 0} />
+      ))}
 
       {/* My own way of saying it — the aside voice /works uses for a note in
           the margin, so a proverb and the line I actually say can share a
           row without competing. */}
       {conviction.commentary && (
-        <p className={cn(TYPE.aside, "mt-4")}>
+        // One aside for the whole entry, so with a chorus above it, it has
+        // to stand further off than the voices stand from each other —
+        // otherwise it reads as a note on the last line rather than on the
+        // belief.
+        <p
+          className={cn(
+            TYPE.aside,
+            conviction.statements.length > 1 ? "mt-7" : "mt-4",
+          )}
+        >
           &ldquo;{conviction.commentary}&rdquo;
         </p>
       )}
@@ -815,9 +857,11 @@ function InfluenceItem({
   const { goTo, anchorFor } = useNav();
   // Back-links are computed, never authored — the same relation read from
   // the other end.
+  // Any voice in the chorus counts: quoting someone in the third sentence
+  // of a belief is still that person shaping the belief.
   const shaped = convictions.filter(
     (c) =>
-      c.quotedFrom?.ref === influence.id ||
+      c.statements.some((st) => st.quotedFrom?.ref === influence.id) ||
       c.shapedBy?.some((s) => s.ref === influence.id),
   );
 
@@ -854,7 +898,7 @@ function InfluenceItem({
                     onClick={(e) => handleAnchorClick(e, conviction.id, goTo)}
                     className={cn("text-muted-foreground", linkClass)}
                   >
-                    {conviction.statement}
+                    {conviction.statements[0].text}
                   </a>
                 </span>
               ))}
@@ -1104,7 +1148,7 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   const labelOf = useCallback(
     (id: string) => {
       const label =
-        data.convictions.find((c) => c.id === id)?.statement ??
+        data.convictions.find((c) => c.id === id)?.statements[0].text ??
         data.influences.find((i) => i.id === id)?.name;
       // A pointer is a signpost, not a second copy of the sentence.
       return label && label.length > 36

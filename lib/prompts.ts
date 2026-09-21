@@ -71,6 +71,23 @@ type InfluenceKind = "person" | "team" | "book" | "paper" | "field";
  * absent means the words are mine (rendered as a statement). Either way the
  * belief is mine — a quote nobody lives by does not belong on this page.
  */
+/**
+ * One sentence of a conviction, with the provenance that belongs to it:
+ * `quotedFrom` present means these are someone's words (set as a quote),
+ * absent means they are mine (set as a statement). Provenance is per
+ * sentence, so a chorus can mix my voice with borrowed ones.
+ */
+interface RawStatement {
+  /**
+   * What this sentence answers for — correctness, behaviour, abstraction.
+   * It does not print beside the sentence; it rides in the tag row as
+   * `on="…"`, because it is the kind of thing that row is for.
+   */
+  facet?: BilingualText;
+  text: BilingualText;
+  quotedFrom?: RawAttribution;
+}
+
 interface RawConviction {
   /**
    * The canonical key: what `ref` points at, and the same in every locale.
@@ -92,8 +109,24 @@ interface RawConviction {
    *  two modes is usually two beliefs, or one belief plus an instance that
    *  links to the other. */
   topics: PromptTopic[];
-  statement: BilingualText;
-  quotedFrom?: RawAttribution;
+  /**
+   * One belief, in as many sentences as it has voices.
+   *
+   * Most entries hold one. A few hold a chorus: the same conviction as it
+   * is said in different traditions — Curry–Howard says it about
+   * correctness, Jobs about behaviour, Mies about abstraction, and none of
+   * the three is a rephrasing of the others. They share an anchor, a
+   * commentary and one expand, because they are one belief.
+   *
+   * `statements[0]` is the head: the sentence the widget shows, the label a
+   * `ref` prints, and the one the entry is named by. The rest are set a
+   * half step down — still whole sentences, visibly not the head.
+   *
+   * The discipline is three at most, and each must answer a different
+   * `facet`, or be from a different tradition. A chorus that agrees with
+   * itself is an instance list that has climbed onto the front page.
+   */
+  statements: RawStatement[];
   shapedBy?: RawAttribution[];
   /**
    * My own rephrasing of the statement, in my voice. A shared saying is the
@@ -162,13 +195,19 @@ export interface Instance {
   ref?: string;
 }
 
+export interface Statement {
+  facet?: string;
+  text: string;
+  quotedFrom?: Attribution;
+}
+
 export interface Conviction {
   id: string;
   /** This locale's anchor; falls back to `id`. */
   anchor: string;
   topics: PromptTopic[];
-  statement: string;
-  quotedFrom?: Attribution;
+  /** Never empty; `statements[0]` is the head. */
+  statements: Statement[];
   shapedBy?: Attribution[];
   commentary?: string;
   instances?: Instance[];
@@ -279,10 +318,13 @@ export function getPromptsData(locale: Locale = "en"): PromptsData {
       id: c.id,
       anchor: c.anchor ? resolveText(c.anchor, locale) : c.id,
       topics: c.topics,
-      statement: resolveText(c.statement, locale),
-      quotedFrom: c.quotedFrom
-        ? resolveAttribution(c.quotedFrom, locale)
-        : undefined,
+      statements: c.statements.map((st) => ({
+        facet: resolveOptionalText(st.facet, locale),
+        text: resolveText(st.text, locale),
+        quotedFrom: st.quotedFrom
+          ? resolveAttribution(st.quotedFrom, locale)
+          : undefined,
+      })),
       shapedBy: c.shapedBy?.map((s) => resolveAttribution(s, locale)),
       commentary: resolveOptionalText(c.commentary, locale),
       instances: c.instances?.map((i) => ({
