@@ -375,7 +375,7 @@ function Instances({
               {instance.text}
               {instance.from && (
                 <span className="text-tertiary-foreground">
-                  {" — "}
+                  <span className="text-quaternary-foreground">{" — "}</span>
                   <AttributionText attribution={instance.from} />
                 </span>
               )}
@@ -695,7 +695,7 @@ function StatementLine({
           // sans is provenance, and provenance that goes italic because it
           // is inline would be the layout talking over the meaning.
           <span className={VOICE_META}>
-            {" — "}
+            <span className="text-quaternary-foreground">{" — "}</span>
             <AttributionText attribution={quoted} />
           </span>
         )}
