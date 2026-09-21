@@ -218,6 +218,54 @@ function LinkRow({
 }
 
 /**
+ * Inline marks inside a line of content. Two of them, and each is the mark
+ * a script makes for itself:
+ *
+ *   `**bold**`   weight — the emphasis Chinese has always used
+ *   `*italic*`   slope — a work's title, a term as a term, a Latin aside
+ *
+ * Italic is the one mark this site's two alphabets do not share. Newsreader
+ * and Inter both ship a drawn italic; Noto Serif SC ships upright only, so a
+ * browser asked to slant a Chinese glyph shears the upright one into a shape
+ * Chinese typography has never had. `font-synthesis-style: none` refuses the
+ * forgery, and that refusal is what lets one mark mean the right thing in
+ * both: a title is *The Gay Science* in English and 《快乐的科学》 in Chinese,
+ * and the same `*…*` produces each.
+ *
+ * Which is also why the mark is worth having at all. Chinese already says
+ * "this is a work" with 《》; the Latin half of every citation on this page
+ * was saying it with nothing.
+ */
+const MARKS = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+
+function Marks({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(MARKS).map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**"))
+          return (
+            <strong key={i} className="font-semibold">
+              {part.slice(2, -2)}
+            </strong>
+          );
+        if (part.length > 2 && part.startsWith("*") && part.endsWith("*"))
+          return (
+            <em key={i} className="[font-synthesis-style:none]">
+              {part.slice(1, -1)}
+            </em>
+          );
+        return part;
+      })}
+    </>
+  );
+}
+
+/** The same string with its marks taken off, for an alt text or a match. */
+function plain(text: string) {
+  return text.replace(MARKS, (m) => m.replace(/\*/g, ""));
+}
+
+/**
  * An attribution renders as an anchor when it points at an entry in
  * `influences`, and as plain text when it doesn't — most of what shaped a
  * belief never gets an entry of its own.
@@ -236,10 +284,12 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
       onClick={(e) => handleAnchorClick(e, attribution.ref!, goTo)}
       className={cn("text-muted-foreground", linkClass)}
     >
-      {attribution.name}
+      <Marks text={attribution.name} />
     </a>
   ) : (
-    <span className="text-muted-foreground">{attribution.name}</span>
+    <span className="text-muted-foreground">
+      <Marks text={attribution.name} />
+    </span>
   );
 
   return (
@@ -256,11 +306,11 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
               onClick={(e) => e.stopPropagation()}
               className={cn("text-tertiary-foreground", linkClass)}
             >
-              {attribution.source}
+              <Marks text={attribution.source} />
             </a>
           ) : (
             <span className="text-tertiary-foreground">
-              {attribution.source}
+              <Marks text={attribution.source} />
             </span>
           )}
         </>
@@ -306,7 +356,9 @@ function Body({ text }: { text: string }) {
                 transition={{ delay: i * 0.05, duration: 0.2 }}
               >
                 <span className="text-quaternary-foreground">·</span>
-                <span>{line.slice(2)}</span>
+                <span>
+                  <Marks text={line.slice(2)} />
+                </span>
               </motion.li>
             ))}
           </ul>
@@ -317,7 +369,7 @@ function Body({ text }: { text: string }) {
                 key={i}
                 className="text-sm text-muted-foreground leading-relaxed"
               >
-                {line}
+                <Marks text={line} />
               </p>
             ))}
           </div>
@@ -353,7 +405,7 @@ function Instances({
         // carries the link — printing the label would say it twice.
         const echo =
           label !== undefined &&
-          instance.text.includes(label.replace(/…$/, "").trim());
+          plain(instance.text).includes(label.replace(/…$/, "").trim());
         return (
           <motion.li
             key={i}
@@ -368,11 +420,11 @@ function Instances({
                   words, a discipline, a chapter of a career. */}
               {instance.title && (
                 <span className="text-foreground">
-                  {instance.title}
+                  <Marks text={instance.title} />
                   <span className="text-quaternary-foreground">{" — "}</span>
                 </span>
               )}
-              {instance.text}
+              <Marks text={instance.text} />
               {instance.from && (
                 <span className="text-tertiary-foreground">
                   <span className="text-quaternary-foreground">{" — "}</span>
@@ -686,7 +738,15 @@ function StatementLine({
   if (!head)
     return (
       <p className={cn(TYPE.voice, "mt-3")}>
-        {quoted ? <>&ldquo;{statement.text}&rdquo;</> : statement.text}
+        {quoted ? (
+          <>
+            &ldquo;
+            <Marks text={statement.text} />
+            &rdquo;
+          </>
+        ) : (
+          <Marks text={statement.text} />
+        )}
         {quoted && (
           // Trailing rather than stacked: a witness's papers belong on the
           // same line as the testimony, the way an instance's do — but in
@@ -707,7 +767,9 @@ function StatementLine({
       {quoted ? (
         <>
           <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed">
-            &ldquo;{statement.text}&rdquo;
+            &ldquo;
+            <Marks text={statement.text} />
+            &rdquo;
           </blockquote>
           <p className={cn(VOICE_META, "mt-2")}>
             <AttributionText attribution={quoted} />
@@ -715,7 +777,7 @@ function StatementLine({
         </>
       ) : (
         <p className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed">
-          {statement.text}
+          <Marks text={statement.text} />
         </p>
       )}
     </div>
@@ -743,7 +805,7 @@ function ConvictionItem({
 }) {
   // `id`, `type`, `on`. The id is the entry's outline word — the one word
   // this belief would be filed under — which is why it is worth showing: in
-  // 修身 and 行事 that word is already the statement (成为, 演示), and in
+  // 修身 and 行事 that word opens the statement (成己, 演示), and in
   // 天行 the statements are sentences the culture handed me, so the id is
   // the only place my own name for them appears. It is also the hash.
   //
@@ -923,7 +985,7 @@ function InfluenceItem({
               <SlidesPill
                 media={influence.media}
                 entryId={influence.id}
-                entryName={influence.name}
+                entryName={plain(influence.name)}
                 label={slidesLabel}
               />
             </div>
@@ -940,11 +1002,11 @@ function InfluenceItem({
       }
     >
       <p className="font-serif text-xl sm:text-2xl text-foreground">
-        {influence.name}
+        <Marks text={influence.name} />
       </p>
       {influence.context && (
         <p className="mt-1 text-sm text-muted-foreground">
-          {influence.context}
+          <Marks text={influence.context} />
         </p>
       )}
     </PromptItem>

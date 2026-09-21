@@ -32,9 +32,13 @@ import {
 } from "next/font/google";
 import "./globals.css";
 
+// Italic is loaded, not synthesized. The site marks Latin work titles with
+// it (`*The Gay Science*`), and a slanted-by-the-browser Inter is a sheared
+// roman, not Inter Italic — which is drawn, with its own `a` and `f`.
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -52,9 +56,11 @@ const notoSerifSC = Noto_Serif_SC({
   display: "swap",
 });
 
+// Same reason as Inter: a work title keeps its italic in the machine row too.
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 

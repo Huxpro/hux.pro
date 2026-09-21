@@ -3,7 +3,12 @@ import path from "path";
 import type { Locale } from "@/lib/i18n";
 import type { PromptTopic } from "@/lib/prompt-view";
 
-// Bilingual text type
+/**
+ * Bilingual text. Every string in this file may carry two inline marks,
+ * rendered by `Marks` in `app/prompt/view`: `**bold**` for emphasis, and
+ * `*italic*` for a work's title — `*The Gay Science* §270`. The Chinese
+ * half never needs the second one, because it already has 《》.
+ */
 type BilingualText = {
   en: string;
   zh: string;
