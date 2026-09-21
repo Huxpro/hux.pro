@@ -2291,55 +2291,51 @@
           "quotedFrom": {
             "name": {
               "en": "The rule of three",
-              "zh": "网络流行语"
+              "zh": "三的法则"
             },
             "source": {
               "en": "",
-              "zh": "2015 年十大网络用语"
+              "zh": ""
             }
           },
           "facet": {
-            "en": "the rule of three",
-            "zh": "三遍"
+            "en": "how often",
+            "zh": "频次"
           }
         },
         {
           "facet": {
-            "en": "what to take",
-            "zh": "取舍"
+            "en": "renewal",
+            "zh": "日新"
           },
           "text": {
-            "en": "Observe widely and take sparingly; accumulate deeply and release thinly.",
-            "zh": "博观而约取，厚积而薄发。"
+            "en": "Daily renewal is called abundant virtue; generation upon generation is what change means.",
+            "zh": "日新之谓盛德，生生之谓易。"
           },
           "quotedFrom": {
             "name": {
-              "en": "Su Shi",
-              "zh": "苏轼"
-            },
-            "source": {
-              "en": "*On Farming*",
-              "zh": "《稼说送张琥》"
+              "en": "*I Ching*, Great Commentary",
+              "zh": "《周易·系辞上》"
             }
           }
         },
         {
           "facet": {
-            "en": "holding period",
-            "zh": "持有"
+            "en": "the sum",
+            "zh": "积"
           },
           "text": {
-            "en": "Our favorite holding period is forever.",
-            "zh": "我们最喜欢的持有期限，是永远。"
+            "en": "Without piling up half-steps there is no thousand li; without the small streams there is no river or sea.",
+            "zh": "不积跬步，无以至千里；不积小流，无以成江海。"
           },
           "quotedFrom": {
             "name": {
-              "en": "Warren Buffett",
-              "zh": "巴菲特"
+              "en": "Xunzi",
+              "zh": "荀子"
             },
             "source": {
-              "en": "Berkshire Hathaway letter, 1988",
-              "zh": "伯克希尔致股东信，1988"
+              "en": "*Encouraging Learning*",
+              "zh": "《劝学》"
             }
           }
         }
@@ -2368,26 +2364,6 @@
         "zh": "一件事没有发生，第一假设应该是你说得还不够多，而不是你说错了。推动一个社区、在一个大组织里推动一次改变、推动你自己，算的是同一笔账。\n这一条和前面几条不同，它不是一个阶段，而是架在它们全部之上的乘子 —— 而且乘在两个轴上。横着乘在人上：一个想象、一个 demo、一条原则、一个平台，衰减的速度是一样的，而唯一能对着这个衰减复利的东西就是重复。竖着乘在年上：这个循环跑任何单独一圈几乎都不产出，它全部的回报都在「对着同一件事跑得足够久」上 —— 这一圈的产出，成为下一圈的输入。\n于是稀缺的那个输入是时间，而真正难的决定不是开始做什么，是继续持有什么。指数跑赢系数，所以大部分工作是不去打断它：不为重写的快感而重写，不为新鲜而换一套技术栈，不做把基数清零的转向。厚积而薄发 —— 薄发不是谦虚，薄发是为了让存量还在。\n它也是五条里最不显形的一条。正在重复的那一天，看上去一点都不像进展；证据是很多年之后一次性到达的，然后被人当成运气。"
       },
       "instances": [
-        {
-          "title": {
-            "en": "Step by step",
-            "zh": "不积跬步，无以至千里"
-          },
-          "text": {
-            "en": "“Without piling up half-steps there is no thousand li; without the small streams there is no river or sea.” The multiplier is made of things too small to notice.",
-            "zh": "「不积跬步，无以至千里；不积小流，无以成江海。」乘子是由小到看不见的东西攒出来的。"
-          },
-          "from": {
-            "name": {
-              "en": "Xunzi",
-              "zh": "荀子"
-            },
-            "source": {
-              "en": "*Encouraging Learning*",
-              "zh": "《劝学》"
-            }
-          }
-        },
         {
           "title": {
             "en": "Accumulate the imperceptible",
