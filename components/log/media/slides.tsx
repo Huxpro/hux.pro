@@ -13,6 +13,7 @@
  */
 
 import { Presentation } from "lucide-react";
+import { COVER_WASH_TINTED } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import type { SlidesMedia } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
@@ -106,7 +107,7 @@ export function Slides({
         className={cn(
           "relative w-full aspect-video rounded-lg overflow-hidden",
           "bg-muted/20 border border-border/50",
-          "group cursor-pointer text-left",
+          "group/thumb pressable cursor-pointer text-left",
           sizeClasses[size],
           className,
         )}
@@ -126,7 +127,7 @@ export function Slides({
           </div>
         )}
 
-        <div className="absolute inset-0 bg-black/15 transition-colors group-hover:bg-black/25" />
+        <div className={COVER_WASH_TINTED} />
         {/* The `Slides` chip: the one vocabulary every cover speaks
             (media-mark.tsx). */}
         <MediaMark mark={SLIDES_MARK} size={size === "compact" ? "compact" : "default"} />

@@ -37,3 +37,41 @@ export const ARTWORK_CHIP =
  */
 export const ARTWORK_CHIP_REST =
   "bg-black/20 text-white/85 ring-1 ring-white/10";
+
+/**
+ * iOS cover press — Photos / Music / Home Screen icons.
+ *
+ * A dark wash over the art on touch-down. Scale is for chrome buttons
+ * (orbs, FAB); on a 16:9 cover it reads as the whole card shrinking,
+ * captions included. The wash lives on the artwork so a title under
+ * the thumb stays put.
+ *
+ * The enclosing control must be `group/thumb pressable` — a named
+ * group, so a press on a sibling cover or the /works row cannot
+ * dim every thumbnail (the same leak AlbumTabs used to have).
+ *
+ * Clear rest: widget thumbs, the contact strip, attachment covers.
+ * Tinted rest: inline players, where a light wash already holds the chip.
+ *
+ * When a feed caption is the rest of the same control (`footer` on
+ * AttachmentTile), `COPY_WASH` dims that copy on the same `group/thumb`
+ * so a finger on the title is not a dead-looking tap while only the
+ * art darkens. Opacity, not a background: the row's fold wash is a
+ * muted fill, and mixing the two would make "open the attachment"
+ * and "fold the commit" feel like the same press.
+ */
+export const COVER_WASH =
+  "pointer-events-none absolute inset-0 transition-colors duration-200 " +
+  "bg-black/0 group-hover/thumb:bg-black/10 " +
+  "group-active/thumb:bg-black/25 group-active/thumb:duration-0";
+
+export const COVER_WASH_TINTED =
+  "pointer-events-none absolute inset-0 transition-colors duration-200 " +
+  "bg-black/10 group-hover/thumb:bg-black/20 " +
+  "group-active/thumb:bg-black/25 group-active/thumb:duration-0";
+
+/** Press dim for copy that opens the attachment — see COVER_WASH. */
+export const COPY_WASH =
+  "block min-w-0 transition-opacity duration-200 " +
+  "group-hover/thumb:opacity-75 " +
+  "group-active/thumb:opacity-40 group-active/thumb:duration-0";

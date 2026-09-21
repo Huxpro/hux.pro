@@ -1484,7 +1484,7 @@
           "kind": "slides",
           "url": "https://huxpro.github.io/js-module-7day/",
           "title": "JavaScript Modularization Journey",
-          "present": "pill"
+          "thumbnail": "/img/post-bg-js-version.jpg"
         }
       ],
       "tags": [
@@ -1516,7 +1516,7 @@
           "kind": "slides",
           "url": "https://huxpro.github.io/css-sucks-2015/",
           "title": "CSS Still Sucks 2015",
-          "present": "pill"
+          "thumbnail": "/img/post-bg-css.jpg"
         }
       ],
       "tags": [
@@ -1548,7 +1548,7 @@
           "kind": "slides",
           "url": "https://huxpro.github.io/pwa-in-my-pov/",
           "title": "Progressive Web App, in my points of view",
-          "present": "pill"
+          "thumbnail": "/img/post-bg-nextgen-web-pwa.jpg"
         }
       ],
       "tags": [

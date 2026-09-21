@@ -69,29 +69,11 @@ export type CommitType =
 export type MediaKind = "link" | "social-embed" | "video" | "slides" | "image";
 
 /**
- * How an attachment dresses. Two presentations, one data shape — the
- * explicit acknowledgement that a "card" and a "pill" are the same URL with
- * different dressings (this used to be split across `link` vs non-native
- * `embed`).
- *
- *  - `"card"` (the default for anything with a cover): the full treatment —
- *    a tile in the strip and the feed grid, a peek, a page in the commit's
- *    attachment sheet.
- *  - `"pill"`: the rail alone. An icon and a label beside the date, and
- *    nothing else: no tile, no peek, not in the attachment set. It is a
- *    button, not an object.
- *
- * Links have always had this. It is on every kind now because "reachable
- * but not shown" is not a link's private problem: a reveal.js deck carries
- * no OG tags, so it has no cover to tile, and drawing it as a coverless
- * card was how it used to end up in the leftover renderer. As a pill it
- * keeps its button and stops pretending to be an object.
- *
- * `LinkPresent` is the old name, kept so link-specific call sites still
- * read as being about links.
+ * How a `link` renders. Two presentations, one data shape — the explicit
+ * acknowledgement that a "card" and a "pill" are the same URL with different
+ * dressings (this used to be split across `link` vs non-native `embed`).
  */
-export type MediaPresent = "pill" | "card";
-export type LinkPresent = MediaPresent;
+export type LinkPresent = "pill" | "card";
 
 /** Video platforms with native iframe support. */
 export type VideoPlatform = "youtube" | "bilibili" | "vimeo";
@@ -163,15 +145,7 @@ export interface MediaPreview {
  * The hover peek view excludes pinned items — they're already on screen so
  * peeking adds nothing. See `getCommitPeekItems`.
  */
-interface MediaFlags {
-  pinned?: true;
-  /**
-   * How the attachment dresses — see {@link MediaPresent}. Absent is
-   * `"card"`, so every existing item is unaffected. `LinkMedia` requires
-   * it; the other kinds take it when they have no cover to tile.
-   */
-  present?: MediaPresent;
-}
+type Pinned = { pinned?: true };
 
 /**
  * Link media — a URL with two presentations:
@@ -194,7 +168,7 @@ export interface InternalLinkMeta {
   urls: LocaleUrls;
 }
 
-export interface LinkMedia extends MediaFlags {
+export interface LinkMedia extends Pinned {
   kind: "link";
   url: string;
   /**
@@ -231,7 +205,7 @@ export interface LinkMedia extends MediaFlags {
  * from `link` because it's a live mini-app, not an OG card; it doesn't go
  * through the card pipeline.
  */
-export interface SocialEmbedMedia extends MediaFlags {
+export interface SocialEmbedMedia extends Pinned {
   kind: "social-embed";
   url: string;
   /** Platform hint; auto-detected from URL when omitted. */
@@ -239,7 +213,7 @@ export interface SocialEmbedMedia extends MediaFlags {
 }
 
 /** Video player — YouTube / Bilibili / Vimeo iframe with cover thumbnail. */
-export interface VideoMedia extends MediaFlags {
+export interface VideoMedia extends Pinned {
   kind: "video";
   url: string;
   platform: VideoPlatform;
@@ -251,7 +225,7 @@ export interface VideoMedia extends MediaFlags {
  * Renders as a cover with a play affordance; opening it puts the deck on the
  * theater's stage beside the videos, so visitors never leave the page.
  */
-export interface SlidesMedia extends MediaFlags {
+export interface SlidesMedia extends Pinned {
   kind: "slides";
   /** Direct URL of the playable deck (not the wrapping blog/keynote page). */
   url: string;
@@ -262,7 +236,7 @@ export interface SlidesMedia extends MediaFlags {
 }
 
 /** Static image asset. */
-export interface ImageMedia extends MediaFlags {
+export interface ImageMedia extends Pinned {
   kind: "image";
   url: string;
   alt?: string;
@@ -1782,16 +1756,6 @@ export function isPinnedMedia(media: Media): boolean {
   return media.pinned === true;
 }
 
-/**
- * True when the attachment is the rail alone — a button, not an object.
- * The generalisation of {@link isLinkPill} to every kind: it is what the
- * strip, the grid, the peek and the attachment set all exclude, and what
- * the cover invariant stops asking for a picture.
- */
-export function isMediaPill(media: Media): boolean {
-  return media.present === "pill";
-}
-
 // =============================================================================
 // Thumbnail Derivation
 // =============================================================================
@@ -1820,6 +1784,25 @@ function extractYouTubeId(url: string): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * The still image an attachment paints at runtime — same resolver the
+ * contact strip, feed tiles, and the og-snapshot completeness check use.
+ *
+ * Pills and live social widgets return null (they are not covers). Cards
+ * prefer the viewer's locale snapshot entry, then the shared `preview`.
+ * Everything else goes through {@link getMediaThumbnail}.
+ */
+export function getAttachmentImage(
+  media: Media,
+  locale: Locale,
+): string | null {
+  if (isLinkPill(media) || isSocialEmbedMedia(media)) return null;
+  if (isLinkMedia(media)) {
+    return (media.previews?.[locale] ?? media.preview)?.image ?? null;
+  }
+  return getMediaThumbnail(media);
 }
 
 /**
@@ -1920,7 +1903,6 @@ export type PeekItem =
 export function getCommitPeekItems(commit: Commit): PeekItem[] {
   const out: PeekItem[] = [];
   for (const m of commit.media ?? []) {
-    if (isMediaPill(m)) continue; // a button, not an object — nothing to peek
     if (isPinnedMedia(m)) continue; // already visible inline; nothing to peek
     if (isLinkMedia(m) && m.present === "card") {
       if (m.preview?.image) out.push({ kind: "card", media: m });
@@ -1970,10 +1952,7 @@ export function getMediaStripItems(
 ): StripItem[] {
   const out: StripItem[] = [];
   for (const m of media) {
-    if (isMediaPill(m)) continue;
-    const image = isLinkMedia(m)
-      ? (m.previews?.[locale] ?? m.preview)?.image ?? null
-      : getMediaThumbnail(m);
+    const image = getAttachmentImage(m, locale);
     if (image) out.push({ media: m, image });
   }
   return out;
@@ -1986,7 +1965,7 @@ export function getMediaStripItems(
 export function getCommitPrimaryMedia(commit: Commit): Media | null {
   const media = commit.media ?? [];
   if (commit.type === "project") {
-    return media.find((m) => !isMediaPill(m)) ?? media[0] ?? null;
+    return media.find((m) => !isLinkPill(m)) ?? media[0] ?? null;
   }
   return media[0] ?? null;
 }

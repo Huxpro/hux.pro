@@ -4,6 +4,7 @@ import { ExternalImage } from "@/components/log/media/external-image";
 import { SocialEmbed } from "@/components/log/media/embed";
 import { mediaKindOf } from "@/components/log/media/media-mark";
 import { PeekCover } from "@/components/log/media/peek-cover";
+import { COVER_WASH } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import {
@@ -95,7 +96,7 @@ function Cover({
           <Presentation className="h-10 w-10 text-tertiary-foreground" />
         </span>
       )}
-      <span className="absolute inset-0 bg-black/0 transition-colors group-hover/thumb:bg-black/10" />
+      <span className={COVER_WASH} />
     </button>
   );
 }

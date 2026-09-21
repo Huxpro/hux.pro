@@ -19,8 +19,8 @@
  *
  *   ┌────────┐ ┌────────┐      a pair — two tiles, each captioned under:
  *   │        │ │        │      where it is from, what it is, and its blurb.
- *   └────────┘ └────────┘
- *    SOURCE      SOURCE
+ *   └────────┘ └────────┘      Cover and caption are one control: the same
+ *    SOURCE      SOURCE        `<a>`, so hovering the title washes the art.
  *    Title       Title
  *    Blurb…      Blurb…
  *
@@ -34,12 +34,14 @@
  *
  * Phone — a feed: one thing under the next, each running edge to edge like
  * Instagram's or a landscape video on YouTube's, with the text back in the
- * column under it. A recording or a deck plays in place, and the bar under
- * it — there from the start, so pressing play moves nothing — names it and
- * offers the stage (`PiP`) for whoever wants to keep scrolling. A card goes
- * straight to its native home (the in-app browser). Nothing here opens the
- * attachment sheet, which would be a drawer opening on what is already on
- * screen.
+ * column under it. Cover and caption are still one `<a>`: the bleed wraps
+ * only the crop (`PHONE_BLEED` is a wrapper, not a class on the `w-full`
+ * picture), so a tap on the title under a card is the same door as the
+ * artwork, and the copy stays on the column. A recording or a deck plays
+ * in place, and the bar under it — there from the start, so pressing play
+ * moves nothing — names it and offers the stage (`PiP`) for whoever wants
+ * to keep scrolling. Nothing here opens the attachment sheet, which would
+ * be a drawer opening on what is already on screen.
  */
 
 import { Fragment, useMemo, useState, type ReactNode } from "react";
@@ -98,13 +100,18 @@ function SourceLine({ slot, locale }: { slot: TileSlot; locale: Locale }) {
   );
 }
 
-/** Source, title, blurb — the caption in its three places. */
+/** Source, title, blurb — the caption in its three places.
+ *
+ *  Always a child of the tile's `<a>` (`footer`), never its own click
+ *  target. A press dims this copy (`COPY_WASH`) and the artwork together,
+ *  which is how it reads as the open-attachment door — not the row's
+ *  fold wash.
+ */
 function Caption({
   slot,
   locale,
   lines,
   strong = false,
-  onClick,
   className,
 }: {
   slot: TileSlot;
@@ -112,15 +119,11 @@ function Caption({
   /** How many lines the blurb may take. */
   lines: 2 | 3 | 4;
   strong?: boolean;
-  onClick?: () => void;
   className?: string;
 }) {
   const { caption } = slot;
   return (
-    <div
-      className={cn("min-w-0 space-y-0.5", onClick && "cursor-pointer", className)}
-      onClick={onClick}
-    >
+    <div className={cn("min-w-0 space-y-0.5", className)}>
       <SourceLine slot={slot} locale={locale} />
       {caption.title ? (
         <div className={cn(TITLE, "line-clamp-2", strong && "font-medium")}>
@@ -177,7 +180,19 @@ export function AttachmentGrid({
 
   const compact = compactProp ?? attachments?.compact ?? false;
 
-  const tileOf = (slot: TileSlot, flush = false) => (
+  // Main's tile, wrapped in the editor's handle. The wrapper is transparent
+  // outside inspect mode (it returns its children), so the feed's own
+  // composition — the footer inside the same anchor, the bleed wrapper — is
+  // untouched.
+  const tileOf = (
+    slot: TileSlot,
+    extra?: {
+      flush?: boolean;
+      footer?: ReactNode;
+      className?: string;
+      imageClassName?: string;
+    },
+  ) => (
     <InspectableMedia
       media={slot.media}
       inspecting={inspecting}
@@ -194,16 +209,13 @@ export function AttachmentGrid({
         // The glyph on what plays — a recording, a deck, a talks-host card —
         // and nothing on a page: the caption has said what it is.
         chip={slot.mark ? "mini" : "none"}
-        flush={flush}
+        flush={extra?.flush}
+        footer={extra?.footer}
+        className={extra?.className}
+        imageClassName={extra?.imageClassName}
       />
     </InspectableMedia>
   );
-
-  /** What pressing the caption does: the same door as the tile. */
-  const actOf = (slot: TileSlot) =>
-    slot.index >= 0 && set && attachments
-      ? () => attachments.act(set, slot.index)
-      : undefined;
 
   // ---------------------------------------------------------------------
   // Phone: the stack.
@@ -229,15 +241,19 @@ export function AttachmentGrid({
             </InspectableMedia>
           ) : (
             <div key={`${slot.media.url}-${i}`} className="min-w-0">
-              <div className={PHONE_BLEED}>{tileOf(slot, true)}</div>
-              <Caption
-                slot={slot}
-                locale={locale}
-                lines={3}
-                strong
-                onClick={actOf(slot)}
-                className="mt-2"
-              />
+              {tileOf(slot, {
+                flush: true,
+                imageClassName: PHONE_BLEED,
+                footer: (
+                  <Caption
+                    slot={slot}
+                    locale={locale}
+                    lines={3}
+                    strong
+                    className="mt-2"
+                  />
+                ),
+              })}
             </div>
           ),
         )}
@@ -252,15 +268,22 @@ export function AttachmentGrid({
     <div className={cn("grid grid-cols-2 gap-x-2.5 gap-y-4", className)}>
       {slots.map((slot, i) => {
         const { media } = slot;
-        const tile = tileOf(slot);
         const lone = i % 2 === 0 && i === slots.length - 1;
 
         if (!lone) {
           return (
-            <figure key={`${media.url}-${i}`} className="min-w-0">
-              {tile}
-              <Caption slot={slot} locale={locale} lines={2} className="mt-1.5" />
-            </figure>
+            <div key={`${media.url}-${i}`} className="min-w-0">
+              {tileOf(slot, {
+                footer: (
+                  <Caption
+                    slot={slot}
+                    locale={locale}
+                    lines={2}
+                    className="mt-1.5"
+                  />
+                ),
+              })}
+            </div>
           );
         }
 
@@ -268,27 +291,32 @@ export function AttachmentGrid({
         // under it, a recording is named by the row.
         if (isVideoMedia(media) || isSlidesMedia(media)) {
           return (
-            <figure key={`${media.url}-${i}`} className="col-span-2 min-w-0">
-              {tile}
-              {isSlidesMedia(media) && slot.caption.title && (
-                <PlayableLine slot={slot} className="mt-1.5" />
-              )}
-            </figure>
+            <div key={`${media.url}-${i}`} className="col-span-2 min-w-0">
+              {tileOf(slot, {
+                footer:
+                  isSlidesMedia(media) && slot.caption.title ? (
+                    <PlayableLine slot={slot} className="mt-1.5" />
+                  ) : undefined,
+              })}
+            </div>
           );
         }
 
         // A lone card: the caption beside it, with the room to say more.
         return (
           <Fragment key={`${media.url}-${i}`}>
-            <div className="min-w-0">{tile}</div>
-            <Caption
-              slot={slot}
-              locale={locale}
-              lines={4}
-              strong
-              onClick={actOf(slot)}
-              className="self-center space-y-1"
-            />
+            {tileOf(slot, {
+              className: "col-span-2 grid grid-cols-2 gap-x-2.5 items-center",
+              footer: (
+                <Caption
+                  slot={slot}
+                  locale={locale}
+                  lines={4}
+                  strong
+                  className="self-center space-y-1"
+                />
+              ),
+            })}
           </Fragment>
         );
       })}

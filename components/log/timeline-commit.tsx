@@ -228,11 +228,15 @@ export function TimelineCommit({
   const rowOpensIdentity =
     data.type === "role" && !!byline && !!identityCard && !magneticPreviewEnabled;
 
+  // The feed is already every row open. Folding one commit among a column
+  // of open ones is the same click as opening a caption, and nothing
+  // painted the difference. Leave feed via the toolbar; a hand-opened row
+  // in covers / index still folds from its title line.
   const rowOnClick = inspecting
     ? onInspectCommit
     : rowOpensIdentity
       ? openIdentity
-      : hasExpandableContent
+      : form !== "feed" && hasExpandableContent
         ? handleToggleExpanded
         : undefined;
 
@@ -733,9 +737,11 @@ export function TimelineCommit({
         // `data-row-body` marks content that is inside the row but is not
         // the row's fold/unfold trigger, so the row's hover background can
         // suppress itself while the cursor is in there (see the `not-has-`
-        // clause on the outer row). The expanded body and the contact strip
-        // both carry it; the line the strip leaves empty deliberately does
-        // not, because that stretch IS the trigger.
+        // clause on the outer row). The expanded body also stops the click:
+        // the description, the notes and the captions are for reading (or
+        // for opening an attachment), not for folding the commit. The
+        // contact strip still carries the attribute for the hover gate
+        // only — the empty stretch beside a cover is still the row's.
         // No enter animation. It used to `fade-in slide-in-from-top-1`, which
         // put a 4px transform and an opacity ramp on a block whose first line
         // is 12px mono — and a transformed/composited layer re-rasterizes
@@ -747,13 +753,16 @@ export function TimelineCommit({
         // not the text inside it.
         <div
           data-row-body
+          onClick={(e) => e.stopPropagation()}
           // `min-w-0` for the same reason the strip line carries it: the
           // content track is `1fr`, whose automatic minimum is its content,
           // and a caption line that does not wrap would set it. The covers
           // bleed past this box on a phone and paint there: nothing on this
           // row contains paint, which is what the body being skippable used
           // to cost (see the note on the row's clip-path).
-          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-1.5"
+          // `cursor-default` wins over the row's pointer so the body does
+          // not look like a fold handle; tiles set their own cursor.
+          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-1.5 cursor-default"
         >
           {/* The message: what it is, the thing itself, the note on it.
               Topics and stats are authored but deliberately unprinted — a row
@@ -868,11 +877,10 @@ export function TimelineCommit({
           // `overflow-x: visible`), so on iOS every cover stopped at the
           // row's box, 12px in from each edge. The inset clips top and
           // bottom at the border box and leaves the sides a screen's width
-          // of room, in every engine. Nothing in the row is
-          // `position: fixed` (the cursor preview is the row's sibling), so
-          // a clip-path clips nothing an overflow clip would not.
+          // of room, in every engine. Cursor previews portal to `document.body`
+          // (see MagneticPreview), so a clip-path here cannot trap them.
           className={cn(
-            "group pressable relative -mx-3 px-3 rounded-lg transition-colors duration-150 [clip-path:inset(0_-100vw)]",
+            "group relative -mx-3 px-3 rounded-lg transition-colors duration-150 [clip-path:inset(0_-100vw)]",
             // The gutter as marginalia (see the hash cell): pulled left by the
             // gutter's width so the content column is the page column. The
             // hover wash follows, which is right — the hash and the rail are
@@ -881,7 +889,7 @@ export function TimelineCommit({
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
             isQuiet ? "py-1" : "py-2.5",
-            rowOnClick ? "cursor-pointer" : "cursor-default",
+            rowOnClick ? "pressable cursor-pointer" : "cursor-default",
             "@container",
             // Hover/active highlight is tied to the fold/unfold trigger
             // only — when the cursor moves into the expanded body
@@ -889,8 +897,9 @@ export function TimelineCommit({
             // LinkCard / Video / Description doesn't drag the entire
             // commit's background with it. `:has()` raises specificity
             // enough that the negated form wins over the simple `:hover`.
-            "[&:hover:not(:has([data-row-body]:hover))]:bg-muted/20",
-            "[&:active:not(:has([data-row-body]:active))]:bg-muted/30",
+            // In the feed there is no fold, so there is no wash either.
+            rowOnClick && "[&:hover:not(:has([data-row-body]:hover))]:bg-muted/20",
+            rowOnClick && "[&:active:not(:has([data-row-body]:active))]:bg-muted/30",
             inspecting && "hover:ring-1 hover:ring-inset hover:ring-sky-500/35",
             isUnlisted && "opacity-55",
             isSelected &&

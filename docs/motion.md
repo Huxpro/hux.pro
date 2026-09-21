@@ -99,7 +99,8 @@ The palette uses a single container that morphs its dimensions and content:
 
 ### Hover States
 Hover effects are designed to be "weighty" but responsive.
-- **Buttons**: Slight scale down (`active:scale-[0.98]`) on press to mimic physical resistance.
+- **Buttons** (chrome — orbs, FAB, window pills): slight scale down on press to mimic physical resistance.
+- **Media covers**: a dark wash over the art (`COVER_WASH`), the iOS Photos / Home Screen dim — never a scale of the card.
 - **Links**: Opacity changes or subtle underlines.
 
 ### Page Transitions

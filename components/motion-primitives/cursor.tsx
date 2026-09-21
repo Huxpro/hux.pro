@@ -19,6 +19,11 @@ export type CursorProps = {
   /** Pixel offset from pointer to avoid covering hovered text/content */
   offset?: { x: number; y: number };
   attachToParent?: boolean;
+  /**
+   * Host whose hover shows the panel. Required when the cursor is portaled
+   * away from the trigger; otherwise the idle span's parent is used.
+   */
+  attachHost?: React.RefObject<HTMLElement | null>;
   transition?: Transition;
   variants?: {
     initial: Variant;
@@ -34,6 +39,7 @@ export function Cursor({
   springConfig,
   offset = { x: 16, y: 16 },
   attachToParent,
+  attachHost,
   variants,
   transition,
   onPositionChange,
@@ -123,29 +129,29 @@ export function Cursor({
   const handleMouseLeave = useCallback(() => setIsHovering(false), []);
 
   useEffect(() => {
-    if (!attachToParent || !cursorRef.current) return;
+    if (!attachToParent) return;
 
-    const parent = cursorRef.current.parentElement;
-    if (!parent) return;
+    const host = attachHost?.current ?? cursorRef.current?.parentElement;
+    if (!host) return;
 
-    // Check if mouse is already inside the parent (e.g. after re-mount or prop change)
-    const isInside = parent.matches(":hover");
+    // Check if mouse is already inside the host (e.g. after re-mount or prop change)
+    const isInside = host.matches(":hover");
     let rafId: number | null = null;
     if (isInside) {
       rafId = window.requestAnimationFrame(() => setIsHovering(true));
     }
 
-    parent.addEventListener("mouseenter", handleMouseEnter);
-    parent.addEventListener("mouseleave", handleMouseLeave);
+    host.addEventListener("mouseenter", handleMouseEnter);
+    host.addEventListener("mouseleave", handleMouseLeave);
 
     return () => {
       if (rafId !== null) {
         window.cancelAnimationFrame(rafId);
       }
-      parent.removeEventListener("mouseenter", handleMouseEnter);
-      parent.removeEventListener("mouseleave", handleMouseLeave);
+      host.removeEventListener("mouseenter", handleMouseEnter);
+      host.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, [attachToParent, handleMouseEnter, handleMouseLeave]);
+  }, [attachToParent, attachHost, handleMouseEnter, handleMouseLeave]);
 
   const isVisible = attachToParent ? isHovering : true;
 

@@ -1,8 +1,10 @@
 /**
  * Build-time card snapshot generator.
  *
- *   node scripts/og-snapshot.ts          # crawl + write content/og-snapshot.json
- *   node scripts/og-snapshot.ts --check  # CI: re-crawl, diff, exit 1 on drift
+ *   node scripts/og-snapshot.ts             # crawl + write content/og-snapshot.json
+ *   node scripts/og-snapshot.ts --complete  # CI: no network; every cover-bearing
+ *                                           # attachment has a runtime image
+ *   node scripts/og-snapshot.ts --check     # completeness, then re-crawl + diff
  *
  * Reuses the exact crawl/parse core the runtime Server Action uses
  * (lib/og-core.ts), so the snapshot equals what the server would fetch.
@@ -17,6 +19,10 @@
  *    (the recovery path for crawl-blocked sites like Medium).
  *  - Deterministic, timestamp-free output → no flaky churn.
  *  - Report exactly what changed.
+ *  - Completeness (`--complete`) is filesystem-only and is what GitHub CI
+ *    runs: after the same enrichment production uses, every media
+ *    attachment that paints a cover has an image (and site-local files
+ *    exist on disk). Live social widgets are not covers.
  */
 
 import fs from "fs";
@@ -32,14 +38,16 @@ import {
   type SnapshotEntry,
 } from "../lib/og-core.ts";
 import {
-  getMediaStripItems,
-  isMediaPill,
+  getAttachmentImage,
+  isLinkMedia,
   isSocialEmbedMedia,
+  isLinkPill,
   normalizeLogData,
   type Media,
   type RawLogData,
 } from "../lib/log.ts";
-import { enrichLogDataWithPreviews, type OGSnapshot } from "../lib/og-enrich.ts";
+import type { Locale } from "../lib/i18n.ts";
+import { enrichLogDataWithPreviews } from "../lib/og-enrich.ts";
 
 type Snapshot = Record<string, SnapshotEntry>;
 
@@ -53,6 +61,7 @@ const LOG_PATH = path.join(ROOT, "content", "log.json");
 const SNAPSHOT_PATH = path.join(ROOT, "content", "og-snapshot.json");
 
 const CHECK = process.argv.includes("--check");
+const COMPLETE = process.argv.includes("--complete");
 
 // --- Collect every URL that renders as a card or needs a video cover --------
 
@@ -84,8 +93,6 @@ function collectTargets(): Target[] {
   };
   for (const commit of log.commits ?? []) {
     for (const media of (commit.media ?? []) as PreviewableMedia[]) {
-      // A pill is a button, not an object: it has no cover to crawl for.
-      if (isMediaPill(media as unknown as Media)) continue;
       if (mediaIsCardTarget(media)) {
         // Primary URL always crawled.
         upsert({
@@ -147,8 +154,101 @@ function serialize(snap: Snapshot): string {
   return JSON.stringify(ordered, null, 2) + "\n";
 }
 
+/** A snapshot entry is only a cover if it actually has an image. Title-only
+ *  OG is not enough — the strip, tiles, and attachment page would paint
+ *  a blank. Recover with a manual `preview.image` / `thumbnail`. */
 function entryUsable(e: SnapshotEntry): boolean {
-  return !!(e.title || e.image);
+  return !!e.image;
+}
+
+// --- Completeness (filesystem-only; the GitHub CI gate) ----------------------
+
+/** Site-local `/img/…` (or any public path) → path under `public/`. */
+function localPublicPath(url: string): string | null {
+  if (!url.startsWith("/") || url.startsWith("//")) return null;
+  const clean = url.split(/[?#]/)[0] ?? url;
+  return path.join(ROOT, "public", clean.replace(/^\//, ""));
+}
+
+function localesFor(media: Media): Locale[] {
+  if (isLinkMedia(media) && media.urls) {
+    const locales = (["en", "zh"] as const).filter((l) => media.urls?.[l]);
+    return locales.length ? [...locales] : ["en"];
+  }
+  return ["en"];
+}
+
+function recoverHint(media: Media): string {
+  if (isLinkMedia(media)) {
+    return 'add preview.image or run `pnpm og:snapshot`';
+  }
+  if (media.kind === "slides" || media.kind === "video") {
+    return "add a thumbnail on the media item";
+  }
+  return "give the media an image URL that exists at runtime";
+}
+
+/**
+ * After the same enrichment `/works` uses, every cover-bearing attachment
+ * must resolve an image. Pills are not attachments; live social widgets
+ * paint themselves and are skipped. Site-local paths must exist on disk.
+ *
+ * Exits 1 on any gap. No network.
+ */
+function checkCompleteness(): void {
+  const log = (s: string) => process.stdout.write(s + "\n");
+  const raw = JSON.parse(fs.readFileSync(LOG_PATH, "utf8")) as RawLogData;
+  let snapshot: Record<string, SnapshotEntry> = {};
+  try {
+    snapshot = JSON.parse(fs.readFileSync(SNAPSHOT_PATH, "utf8"));
+  } catch {
+    // Missing snapshot: every card then depends on a manual preview.
+  }
+  const data = enrichLogDataWithPreviews(normalizeLogData(raw), snapshot);
+
+  const problems: string[] = [];
+  let checked = 0;
+  let skippedWidgets = 0;
+
+  for (const commit of data.commits) {
+    for (const media of (commit.media ?? []) as Media[]) {
+      if (isLinkPill(media)) continue;
+      if (isSocialEmbedMedia(media)) {
+        skippedWidgets += 1;
+        continue;
+      }
+      for (const locale of localesFor(media)) {
+        const image = getAttachmentImage(media, locale);
+        const where = media.urls?.[locale] ?? media.url;
+        const tag = media.urls ? ` [${locale}]` : "";
+        const label = `${commit.id} · ${media.kind} · ${where}${tag}`;
+        if (!image) {
+          problems.push(`${label} — no runtime image (${recoverHint(media)})`);
+          continue;
+        }
+        const local = localPublicPath(image);
+        if (local && !fs.existsSync(local)) {
+          problems.push(`${label} — missing file ${image}`);
+          continue;
+        }
+        checked += 1;
+      }
+    }
+  }
+
+  log("");
+  log("OG snapshot (complete)");
+  log("─".repeat(48));
+  log(`  checked: ${checked} attachment cover(s)`);
+  if (skippedWidgets) log(`  skipped — social widgets: ${skippedWidgets}`);
+  if (problems.length) {
+    log(`  ✗ MISSING IMAGE (${problems.length}):`);
+    for (const p of problems) log(`    • ${p}`);
+    log("");
+    log("✗ A media attachment would paint without an image at runtime.");
+    process.exit(1);
+  }
+  log("✓ every media attachment has a runtime image.");
 }
 
 // --- Main --------------------------------------------------------------------
@@ -201,6 +301,13 @@ async function mapWithLimit<T, R>(
 }
 
 async function main() {
+  // Completeness is free of the network and is the CI gate. `--check`
+  // runs it first so a missing cover fails before a long re-crawl.
+  if (COMPLETE || CHECK) {
+    checkCompleteness();
+    if (COMPLETE) return;
+  }
+
   const targets = collectTargets();
   // Read the existing artifact once: parsed for lookups, raw kept for the diff.
   let prevStr = "";
@@ -248,13 +355,19 @@ async function main() {
 
     if (ok) {
       // "Never overwrite good data" has to cover the crawl that *succeeds*
-      // and comes back thinner, not just the one that fails. A site
+      // and comes back thinner, not only the one that fails. A site
       // redesign that drops its `og:image` still answers 200 with a title,
       // which `entryUsable` calls a success — and the cover we already had
-      // would go with it, silently, taking the commit's tile off /works.
-      // The image we recorded once is kept until a crawl offers another.
+      // would go with it, silently, taking the commit's tile off /works and
+      // failing `og:complete` for a picture that is still live.
+      // ticketingbusinessforum is the one in the log today: its entry's
+      // image 200s, but the page stopped advertising it, so the next crawl
+      // would drop it. The image we recorded once is kept until a crawl
+      // offers another.
       const merged =
-        !entry.image && prev?.image ? pickEntry({ ...entry, image: prev.image }) : entry;
+        !entry.image && prev?.image
+          ? pickEntry({ ...entry, image: prev.image })
+          : entry;
       if (merged !== entry) keptImage.push(`${t.url} (page no longer advertises one)`);
       next[t.url] = merged;
       if (!prev) added.push(t.url);
@@ -326,60 +439,9 @@ async function main() {
     log("✓ No changes — snapshot already current.");
   }
 
-  // --- The invariant: every attachment has a cover --------------------------
-  //
-  // The snapshot's idea of success is "the crawl returned something"; the
-  // page's requirement is "there is an image". Those two drifted apart and
-  // nothing noticed, because the render layer degrades *plausibly*: an
-  // attachment with no cover is dropped from `getMediaStripItems`, so it
-  // vanishes from the strip (a sparse row looks deliberate) and falls to
-  // the leftover `MediaRenderer` in the feed (a bordered card next to a
-  // full-bleed tile looks like a variant). Nothing is ever drawn broken,
-  // so only a count finds it.
-  //
-  // So this asks the production question, through the production function,
-  // against the snapshot we just wrote: does every attachment the page will
-  // try to tile actually resolve an image? Pills are exempt — they are not
-  // covers and never were. A social widget is exempt too: a live embed has
-  // no still to stand in for it, which is the one honest reason to have
-  // none, and it is why `MediaRenderer` still exists on /works.
-  const enriched = enrichLogDataWithPreviews(
-    normalizeLogData(JSON.parse(fs.readFileSync(LOG_PATH, "utf8")) as RawLogData),
-    next as OGSnapshot,
-  );
-  const uncovered: { commit: string; kind: string; url: string }[] = [];
-  for (const commit of enriched.commits ?? []) {
-    const tileable = (commit.media ?? []).filter(
-      (m) => !isMediaPill(m) && !isSocialEmbedMedia(m),
-    );
-    if (tileable.length === 0) continue;
-    const tiles = getMediaStripItems(tileable, "en");
-    for (const m of tileable) {
-      if (!tiles.some((t) => t.media === m))
-        uncovered.push({ commit: commit.id, kind: m.kind, url: m.url });
-    }
-  }
-  if (uncovered.length) {
-    log(`  ✗ NO COVER (${uncovered.length}) — these draw nothing on /works:`);
-    for (const u of uncovered)
-      log(`    • ${u.commit} — ${u.kind} — ${u.url}`);
-    log("");
-  }
-
   // --- Decide exit code -----------------------------------------------------
   // A target that can't be crawled and has no manual preview is a hard error:
   // the author must add a `preview` to recover. Surfaced loudly, non-zero.
-  // An attachment with no cover is as broken as a card that can't be
-  // crawled, and for the author the recovery is the same shape: say where
-  // the picture is. A deck is the common case — a reveal.js export carries
-  // no OG tags at all, so its cover can only ever be authored.
-  if (uncovered.length) {
-    log(`✗ ${uncovered.length} attachment(s) have no cover.`);
-    log(`  A deck needs "thumbnail": "…"; a card needs "preview": { "image": "…" }.`);
-    log(`  Add it to that media item in content/log.json.`);
-    process.exit(1);
-  }
-
   if (missing.length) {
     log(
       `✗ ${missing.length} card(s) can't be crawled and have no manual preview.`,

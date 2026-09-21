@@ -18,7 +18,7 @@
 | **Ambient / Wallpaper** | [docs/system-ambient.md](./docs/system-ambient.md) (Weather + Apple wallpaper pairs, `pnpm wallpapers:encode` / `pnpm wallpapers:check` / `pnpm wallpapers:profile`) |
 | **Architecture** | [docs/architecture.md](./docs/architecture.md) (Implementation details) |
 | **OG Images (ours)** | [docs/og-images.md](./docs/og-images.md) (Social cards we publish for our pages) |
-| **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards) |
+| **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards; `pnpm og:complete` in GitHub CI) |
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + `/editor/icon` studio) |
 | **App Folder** | [docs/app-shelf.md](./docs/app-shelf.md) (Home-screen snap-paged app folder) |
 | **Attachments** | [docs/system-attachments.md](./docs/system-attachments.md) (Where a commit's media opens: sheet on a phone, with the in-app browser stacked on it; theater / in-app window / router elsewhere; the chip every cover wears; the `/editor/attachments` lab — every render path) |

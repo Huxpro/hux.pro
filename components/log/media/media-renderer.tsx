@@ -23,7 +23,6 @@ import {
   isLinkMedia,
   isLinkCard,
   isLinkPill,
-  isMediaPill,
   isImageMedia,
   isSlidesMedia,
 } from "@/lib/log";
@@ -346,14 +345,13 @@ export function MediaRenderer({
   // wrote them.
   const rich = media.filter(
     (m) =>
-      !isMediaPill(m) &&
-      (isVideoMedia(m) ||
+      isVideoMedia(m) ||
       isSlidesMedia(m) ||
       isImageMedia(m) ||
       isLinkCard(m) ||
-      isSocialEmbedMedia(m)),
+      isSocialEmbedMedia(m),
   );
-  const pills = media.filter((m) => isLinkPill(m) || isMediaPill(m));
+  const pills = media.filter(isLinkPill);
 
   // Pill-only renderings: inline chip row, no surrounding layout box.
   if (rich.length === 0 && pills.length > 0) {

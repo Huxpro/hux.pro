@@ -99,41 +99,21 @@ interface AttachmentSet {
 }
 ```
 
-The set, the strip and the grid are now the *same* collection — 39 items,
-39 tiles, 39 set entries — so the sheet's `2 / 3` can no longer count a
-page the row never showed. They used to disagree: the set took every
-non-pill attachment, while the strip took only the ones with a cover, and
-the five without one fell through to `MediaRenderer` looking like a
-deliberate variant. Two things keep them equal now.
+Set and tiles are the same collection: every non-pill attachment resolves
+a cover, so nothing is dropped from the strip on its way to the grid and
+the sheet's `2 / 3` cannot count a page the row never showed. That is a
+build-time invariant, not a hope — `pnpm og:complete` fails when an
+attachment cannot resolve a runtime image, and CI runs it
+(`.github/workflows/ci.yml`). A deck has no OG tags of its own, so its
+cover is authored (`thumbnail`); a card's comes from the snapshot.
 
-A cover is a build-time invariant: `pnpm og:check` fails when an
-attachment that will be tiled cannot resolve an image (see below). And an
-attachment that has no cover says so, by dressing as a **pill**:
-
-```jsonc
-{ "kind": "slides", "url": "…", "title": "…", "present": "pill" }
-```
-
-`present` is no longer a link's private field. It is on every kind, with
-the same two values it always had — `card` is the full treatment (a tile
-in the strip and the grid, a peek, a page in the sheet), `pill` is the
-rail alone: an icon and a label beside the date, and nothing else. A pill
-is **a button, not an object**. It is not in the set, so nothing tiles or
-peeks it, and the cover invariant stops asking it for a picture.
-
-That is the honest shape for an attachment you can reach but cannot show.
-A reveal.js deck carries no OG tags at all — it crawls 200 and returns
-nothing — so its cover can only ever be a screenshot someone takes. Drawn
-as a coverless card it used to land in the leftover renderer, a bordered
-box beside a full-bleed tile. As a pill it keeps its button and stops
-pretending to be an object. The three 2015–16 decks are held this way,
-their rows folded to the `aside` voice, until someone takes the
-screenshot; then it is one field back to `card`.
-
-A pill's rail entry is a plain link, as every pill's is — so a pill deck
-opens in a tab rather than on the stage. The deck is still in the
-theater's Slides library either way (`buildSlidesAlbum` reads every deck
-in the log), so it is one card away from any other deck there.
+One thing the crawl must not do is take a cover back. A site that
+redesigns and stops advertising `og:image` still answers 200 with a
+title, which `entryUsable` reads as success — so the entry would be
+rewritten without its image, the tile would vanish, and `og:complete`
+would fail over a picture that is still live. A recorded image is
+therefore kept until a crawl offers another one, and the run says so
+("kept the cover we already had").
 
 A cover in the contact strip (`MediaStrip`), a player or card in the expanded
 body (`MediaRenderer`), and an icon in the folded rail (`TimelineCommit`)
@@ -239,7 +219,7 @@ parse, as aliases.
 |---|---|---|---|---|---|
 | `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
 | `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
-| `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet |
+| `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
 ### The attachment object
 
@@ -272,6 +252,20 @@ click is the item's native action (`act`: the stage, the in-app browser,
 the page), never the attachment sheet, which would be a drawer opening on
 what is already on screen.
 
+Cover and caption are one control (`AttachmentTile`'s `footer`): the same
+`<a>`, so a press on the title washes the artwork and dims the copy
+(`COPY_WASH` — opacity, the cover-press language). The caption is not a
+second click target that happens to do the same thing, and it is not the
+row's fold handle. Folding is a muted fill on the title line; opening an
+attachment is a dim. Mixing the two would make the presses feel the same. A hand-opened row in
+`covers` / `index` still folds from its title line; the expanded body
+(`data-row-body`) stops that click and wears a default cursor, so
+description, notes and captions do not look like fold targets. The feed
+itself does not fold per row — every commit is already open, and leaving
+is a form change on the toolbar. On a phone, a recording or a deck is
+the exception: the cover plays in place and the bar under it (`PiP`)
+hands playback to the stage, so that line is a label, not a second door.
+
 - On a desk, the unit is half the column whatever the count — the rule the
   feeds this borrows from (X, LinkedIn) agree on: media has a footprint,
   and the count changes how it is tiled, never how big the post is. A pair
@@ -280,14 +274,16 @@ what is already on screen.
   which has nothing to say beside itself, takes the column as a video post
   does.
 - On a phone, the feed is a feed: one thing under the next, each running
-  edge to edge over the page gutter and the rail column (`PHONE_BLEED`),
-  the text back in the column under it. A recording or a deck plays in
-  place (`InlinePlayable`: a 16:9 cover swapped for the platform's player
-  or the deck itself), and the bar under it — there from the start, so
-  pressing play moves nothing — names the item and carries one control,
-  `PiP`, which hands playback to the stage (`act`) for whoever wants to
-  keep scrolling and stops the inline player so the two never play at
-  once. While the item is on the stage its place in the feed says so (a
+  edge to edge over the page gutter and the rail column (`PHONE_BLEED` wraps
+  the crop, not the caption — negative margins on the `w-full` picture
+  would only shift a column-width cover). Cover and caption are still one
+  control; a tap on the title under a card is the same door as the artwork.
+  A recording or a deck plays in place (`InlinePlayable`: a 16:9 cover
+  swapped for the platform's player or the deck itself), and the bar under
+  it — there from the start, so pressing play moves nothing — names the
+  item and carries one control, `PiP`, which hands playback to the stage
+  (`act`) for whoever wants to keep scrolling and stops the inline player
+  so the two never play at once. While the item is on the stage its place in the feed says so (a
   wash and the PiP mark over the cover, read off `useOptionalTheaterStage`
   — the stage's occupant and its doors, without the ticking clock that the
   full theater context carries), and pressing it brings playback back. A
