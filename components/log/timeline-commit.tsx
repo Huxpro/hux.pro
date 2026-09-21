@@ -357,9 +357,13 @@ export function TimelineCommit({
   const isRoleAnchor = isRole && rail !== "";
   // Distance from icon center where the line stops. Members: icon is
   // 12px (h-3) so 6px radius + 1px breathing room. Role: ring is 16px
-  // (h-4) so 8px radius + 2px breathing room. Events: tiny 3px dot
-  // sits close to the line for visual continuity.
-  const iconGapPx = isEvent || isAside ? 3 : isRoleAnchor ? 10 : 7;
+  // (h-4) so 8px radius + 2px breathing room. A row in the quiet voice:
+  // tiny 3px dot, so the line sits close for visual continuity.
+  //
+  // `isQuiet`, not `isAside` — the gap has to follow whatever the gutter
+  // is actually drawing, and an open aside draws the 12px icon. Kept at 3
+  // it would run the rail under the mark.
+  const iconGapPx = isQuiet ? 3 : isRoleAnchor ? 10 : 7;
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
@@ -446,11 +450,18 @@ export function TimelineCommit({
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}
-        {isEvent || isAside ? (
-          // Events and folded asides get a tiny CSS dot, quieter
-          // than any lucide icon and reads as "node on the rail" rather
-          // than "category icon". Asides keep the dot when open so the
-          // rail does not jump.
+        {isQuiet ? (
+          // A row in the quiet voice gets a tiny CSS dot, quieter than any
+          // lucide icon and reading as "node on the rail" rather than
+          // "category icon". That is every event, and an aside while it is
+          // folded — the same `isQuiet` the title and the container height
+          // already read, so the three cannot disagree about which voice
+          // the row is in.
+          //
+          // Opening an aside gives the icon back: the row is printing its
+          // real title and its media by then, and the gutter saying `talk`
+          // is part of that. Nothing jumps — the container is already `h-5`
+          // once `isQuiet` is false, which is the height the icon wants.
           <span
             aria-hidden
             className="block w-[3px] h-[3px] rounded-full bg-muted-foreground/30"
@@ -477,7 +488,15 @@ export function TimelineCommit({
             <CommitIcon
               type={data.type}
               override={data.iconOverride}
-              className="w-3 h-3 text-tertiary-foreground"
+              className={cn(
+                "w-3 h-3",
+                // An open aside wears its type mark a tier quieter than an
+                // ordinary row's. It is the same ladder the aside's title
+                // already steps down (`text-tertiary-foreground` on a row
+                // that is otherwise `rowTitle`), so the gutter says what the
+                // row says: this is a work, and it is a minor one.
+                isAside ? "text-quaternary-foreground" : "text-tertiary-foreground",
+              )}
             />
           </span>
         )}
