@@ -145,7 +145,17 @@ interface RawConviction {
    * onto the front page.
    */
   statements: RawStatement[];
-  shapedBy?: RawAttribution[];
+  /**
+   * What did the training, written as influence ids and nothing else.
+   *
+   * The row is an index into `influences`, so the name it prints is that
+   * entry's own name and the two cannot drift; every item is a link the
+   * reader can follow. Which also makes the row a test: a shaper worth
+   * naming here is worth an entry of its own, and anything that cannot
+   * carry one — a habit, a phase, a pair of people bundled together —
+   * belongs in the body instead.
+   */
+  shapedBy?: string[];
   /** The other ways this belief has shown up. */
   instances?: RawInstance[];
   /** Markdown-lite: all-"- " lines become a list, anything else is prose. */
@@ -335,7 +345,14 @@ export function getPromptsData(locale: Locale = "en"): PromptsData {
           ? resolveAttribution(st.quotedFrom, locale)
           : undefined,
       })),
-      shapedBy: c.shapedBy?.map((s) => resolveAttribution(s, locale)),
+      shapedBy: c.shapedBy?.map((id) => {
+        const influence = raw.influences.find((i) => i.id === id);
+        if (!influence)
+          throw new Error(
+            `prompts: shapedBy "${id}" on "${c.id}" is not an influence id`,
+          );
+        return { name: resolveName(influence.name, locale), ref: id };
+      }),
       instances: c.instances?.map((i) => ({
         title: resolveOptionalText(i.title, locale),
         text: resolveText(i.text, locale),

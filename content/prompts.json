@@ -442,18 +442,7 @@
           }
         }
       ],
-      "shapedBy": [
-        {
-          "name": "Karl Popper",
-          "ref": "scientific-method",
-          "source": "*Conjectures and Refutations*, 1963"
-        },
-        {
-          "name": "Ray Dalio",
-          "ref": "principles-dalio",
-          "source": "*Principles*"
-        }
-      ],
+      "shapedBy": ["scientific-method", "principles-dalio"],
       "body": {
         "en": "This rung is my half of the shelf: everything that is mine to do. No model ever closes on the world, and reality keeps the right to refute whatever I hold — so the work is to guess well, check hard, and take the inch. The line is welded from two: 尽人事 is the old proverb's first half, and the rest is Hu Shih's.\nThe scientific, experimental, evolutionary mode is my top-level model of how anything gets better — a person, a framework, a species. Its two halves only work together: a conjecture nobody could refute is a wish, and a test with nothing bold to test is bookkeeping. Wishful thinking is the one bug this model cannot report about itself, which is why the boldness has to be paid for with a referee.\nBoth of Hu Shih's lines live on this shelf. He wrote the Science Society's anthem in 1929, Zhao Yuanren set it, and it was first sung at the society's fifteenth anniversary in 1930: “We sing that heaven's course is constant, we sing of reaching knowledge by exhausting principle. What is there to fear in an inexhaustible truth — every inch gained is an inch of joy.” The shelf is named 天行 after Xunzi, and Hu Shih had already sung it into the anthem of Chinese science; 致知穷理 is Zhu Xi's line, a few rows down.",
         "zh": "这一级是天人之分里「人」的那一半：所有该我做的事。没有一个模型能把世界收完，现实随时保留推翻我的权利 —— 所以能做的就是猜得好一点、验得狠一点，然后把那一寸拿到手。这句话是焊起来的：「尽人事」是那句老话的前半，后半是胡适的。\n科学的、实验的、进化的思维方式，是我关于「一个东西如何变好」最顶层的模型 —— 无论那个东西是一个人、一个框架还是一个物种。它的两半只有合在一起才成立：一个没人能推翻的假设只是愿望，而一场没有大胆假设可检的求证只是记账。wishful thinking 是这个模型唯一不会自己报出来的 bug，所以大胆必须用一个裁判来偿付。\n胡适的两句话都在这一格里。社歌是 1929 年写的，赵元任谱曲，1930 年中国科学社十五周年年会首唱：「我们唱天行有常，我们唱致知穷理。不怕他真理无穷，进一寸有一寸的欢喜。」这一格叫「天行」是从荀子《天论》来的，而胡适早就把它唱进了中国科学社的社歌；「致知穷理」就是下面朱熹那条。（流传最广的版本把第一句写作「怕什么真理无穷」，这里用的是原词。）"
@@ -771,15 +760,7 @@
           "ref": "models"
         }
       ],
-      "shapedBy": [
-        {
-          "name": {
-            "en": "my parents",
-            "zh": "父母"
-          },
-          "ref": "my-parents"
-        }
-      ]
+      "shapedBy": ["my-parents"]
     },
     {
       "id": "becoming",
@@ -787,18 +768,7 @@
         "en": "becoming",
         "zh": "成己"
       },
-      "shapedBy": [
-        {
-          "name": "Steve Jobs",
-          "ref": "steve-jobs"
-        },
-        {
-          "name": {
-            "en": "Personal storytelling across three year career cycles",
-            "zh": "以三年为周期的个人叙事"
-          }
-        }
-      ],
+      "shapedBy": ["steve-jobs"],
       "body": {
         "en": "Identity is not a title you freeze. Each era — consumer, producer, architect — is a rewrite, not a reveal.\nThe line comes out of narrative identity: the self is not found and then described, it is constituted in the telling. I got it from Liu Qing's lectures on modern Western thought, and behind those is Ricoeur. Which is why the imperative is not “find yourself” but “become who you are” — you are always becoming, and narration is how the question “who?” gets answered at all.\nNietzsche's imperative is Pindar's line before it: become such as you are.\n成己, completing yourself, comes from the *Doctrine of the Mean*, where it arrives already paired: completing yourself is benevolence, completing things is knowledge. The other shelf on this page is the second half of that sentence.",
         "zh": "身份不是冻结的头衔。每个时代 —— 消费者、生产者、架构师 —— 都是一次重写，而不是一次揭晓。\n这句话的来路是「叙事性自我」：自我不是先被找到、再被讲出来的，而是在讲述中才被构成。我是听刘擎讲西方现代思想时接上这条线的，他背后是利科。所以这里的祈使句不是「找到自己」，而是「成为你自己」—— 人永远都在 Becoming，而叙事就是「你是谁」这个问题唯一能被回答的方式。\n尼采那句祈使的祖宗是品达：成为你所是的那个人。\n「成己」出自《中庸》，而它在那里本来就是成对的 ——「成己，仁也；成物，知也。」这一页的另一格，是这句话的下半句。"
@@ -987,32 +957,12 @@
             "source": {
               "en": "*In the World of Men*",
               "zh": "《人间世》"
-            }
+            },
+            "ref": "zhuangzi"
           }
         }
       ],
-      "shapedBy": [
-        {
-          "name": {
-            "en": "Zhuangzi",
-            "zh": "庄子"
-          },
-          "source": {
-            "en": "*Free and Easy Wandering*",
-            "zh": "《庄子·逍遥游》"
-          }
-        },
-        {
-          "name": {
-            "en": "Soft Lipa",
-            "zh": "蛋堡"
-          },
-          "source": {
-            "en": "“Process”, *Moonlight*, 2010",
-            "zh": "《过程》，《月光》，2010"
-          }
-        }
-      ],
+      "shapedBy": ["zhuangzi"],
       "body": {
         "en": "The other three are about getting better at being me; this one is the ground they stand on, and it says that not every life should be an optimisation problem. Some roads because I wanted to walk them, some people because I wanted to know them, some fields entered without knowing whether they were any use. The value of those can only be assigned looking backwards, which is why they can never be argued for in advance — and why they have to stay useless on purpose.\nDrifting means having no route; 浪 means allowing myself off the route. Density over duration: count the thickness of a life, not its length.\n游 was always play as well as travel — Confucius rests in it, Zhuangzi journeys by it. The same character carries the wandering and the game.",
         "zh": "前面三条都在说我如何变得更好，这一条是它们脚下的地面：不是所有的人生都该是一道最优化题。有些路因为想走而走，有些人因为想认识而认识，有些领域不知道有没有用也进去看看。这些东西的价值只有回望的时候才能被赋予，所以它们事先无法被论证 —— 这正是它们必须保持「没用」的原因。\n漫是没有路线，浪是允许自己偏离路线。过程 > 结果，厚度 > 长度。\n而「游」这个字本来就同时是走和玩：孔子「游于艺」，庄子「逍遥游」—— 浪游和游戏，本来就是同一个字。"
@@ -1055,7 +1005,8 @@
             "source": {
               "en": "tr. Burton Watson",
               "zh": "《庄子·逍遥游》"
-            }
+            },
+            "ref": "zhuangzi"
           }
         },
         {
@@ -1163,16 +1114,7 @@
           }
         }
       ],
-      "shapedBy": [
-        {
-          "name": "Steve Jobs",
-          "ref": "steve-jobs"
-        },
-        {
-          "name": "Paul Graham",
-          "ref": "hackers-and-painters"
-        }
-      ],
+      "shapedBy": ["steve-jobs", "hackers-and-painters"],
       "body": {
         "en": "There must be such an intersection; there are just too few people willing to go and look. Every boundary I have been handed turned out to be an artifact of some moment's division of labour rather than a fact about the work — in culture too, East and West, the local and the world — which is exactly why the unclaimed things are found on the seam.\nA vessel is a thing with one use. The artifact I am building should become one — from the rule, the instrument — and the person building it should not. Make vessels; don't be one.",
         "zh": "这样一个 intersection 一定存在，只是愿意去探索的人太少。别人交到我手上的每一条边界，后来都被证明只是某个时代社会分工的产物，而不是这件事本身的性质 —— 文化上也一样，东方与西方、民族与世界 —— 正因如此，没人认领的东西都在接缝上。\n器是只有一种用途的东西。我做出来的东西应该成器 ——「以法成器」—— 而做这件事的人不该成器。**做出来的要成器，做事的人不要成器。**"
@@ -1442,13 +1384,7 @@
           }
         }
       ],
-      "shapedBy": [
-        {
-          "name": "Ray Dalio",
-          "ref": "principles-dalio",
-          "source": "*Principles*"
-        }
-      ]
+      "shapedBy": ["principles-dalio"]
     },
     {
       "id": "imagining",
@@ -1641,18 +1577,7 @@
         "en": "demoing",
         "zh": "演示"
       },
-      "shapedBy": [
-        {
-          "name": "Dan Abramov",
-          "ref": "react-team"
-        },
-        {
-          "name": {
-            "en": "Lynx team culture",
-            "zh": "Lynx 团队文化"
-          }
-        }
-      ],
+      "shapedBy": ["react-team"],
       "body": {
         "en": "Specs describe what you think you want; demos reveal what you actually need. People are visual animals — a thing that runs persuades in five seconds what five pages cannot, and it persuades the person who built it first.\nMaking makes it visible, demoing makes it testable, and earning buys the time to go on. What a demo buys is not agreement, it is time — and evidence is the only currency it pays in.\nDemo or die was set against the university's own standing order, publish or perish: what counts as evidence in that building is a thing that runs in front of you.\n“For the things we have to learn before we can do them, we learn by doing them: people become builders by building, and lyre-players by playing the lyre.” That is Aristotle, fifteen centuries before Lu You and twenty-two before Dewey — who did write the phrase down, in a book about schools he wrote with his daughter.",
         "zh": "规格描述你以为你想要的，演示揭示你真正需要的。人是视觉动物 —— 一个跑起来的东西五秒钟能说服的事，五页文档说不动；而它第一个说服的人，是做它的那个人。\n立象使它可见，示形使它可验，取信使它得以继续。演示换来的不是同意，是时间；而它唯一付得出的货币是证据。\n「不演示，毋宁死」是 MIT 媒体实验室对着大学那句 publish or perish 立的规矩：在那栋楼里算数的证据，是一个当着你的面跑起来的东西。\n「那些我们必须先学会才能做的事，我们是通过做它们来学会的 —— 人通过造房子成为建筑师，通过弹琴成为琴师。」这是亚里士多德，比陆游早一千五百年，比杜威早两千二百年 —— 而杜威确实把这个词组写下来了，写在他和女儿合著的那本谈学校的书里。"
@@ -1912,21 +1837,7 @@
           }
         }
       ],
-      "shapedBy": [
-        {
-          "name": {
-            "en": "*Types and Programming Languages*",
-            "zh": "类型与编程语言"
-          },
-          "ref": "types-and-languages"
-        },
-        {
-          "name": {
-            "en": "Elm community",
-            "zh": "Elm 社区"
-          }
-        }
-      ],
+      "shapedBy": ["types-and-languages"],
       "body": {
         "en": "What this step owes the next one is reproducibility: a demo that works in my hands has to become something anyone can run twice — a framework, a standard, a definition that doesn't need me in the room. Theory is not decoration on top of that work, it is the floor under it: it tells you what is impossible before you spend a year finding out, and the constraints it hands you are the cheapest ones you will ever buy.\nFormal methods are the weapon I reach for. Distil the theory out of what worked, state it where something other than me can check it — a type, a test, a spec, a doc — then write the program that is the proof, and let that program become the infrastructure. What other people hold together with process and good intentions, I would rather have a machine hold.\nFrom the thing, the principle; from the principle, the rule; from the rule, the instrument. Once the instrument exists, it can go to everyone.",
         "zh": "这一步欠下一步的东西是「可复现」：一个在我手里能跑的 demo，要变成别人能再跑一遍的东西 —— 一个框架、一份标准、一个不需要我在场的定义。理论不是这件事上面的装饰，而是它下面的地板：它在你花一年去试出来之前，就告诉你什么是不可能的；而它交给你的约束，是你能买到的最便宜的约束。\n形式化是我惯用的武器。把跑通了的东西里的理提炼出来，写成一种我以外的东西能检查的形式 —— 一个类型、一个测试、一份规范、一份文档 —— 然后把证明写成程序，再让这个程序长成基础设施。别人靠流程和善意守住的东西，我更愿意交给机器来守。\n由物求理，以理成法，以法成器。器成，则可普及。"
@@ -2235,19 +2146,7 @@
           }
         }
       ],
-      "shapedBy": [
-        {
-          "name": {
-            "en": "World Wide Web Community",
-            "zh": "万维网社区"
-          },
-          "ref": "web-community"
-        },
-        {
-          "name": "React Team",
-          "ref": "react-team"
-        }
-      ]
+      "shapedBy": ["web-community", "react-team"]
     },
     {
       "id": "repeating",
@@ -2324,25 +2223,7 @@
           }
         }
       ],
-      "shapedBy": [
-        {
-          "name": "React Team",
-          "ref": "react-team"
-        },
-        {
-          "name": {
-            "en": "my mother",
-            "zh": "母亲"
-          },
-          "ref": "my-parents"
-        },
-        {
-          "name": {
-            "en": "Warren Buffett and Charlie Munger",
-            "zh": "巴菲特与芒格"
-          }
-        }
-      ],
+      "shapedBy": ["react-team", "my-parents"],
       "body": {
         "en": "When something doesn't land, the first assumption should be that you didn't say it enough — not that you were wrong. Pushing a community, pushing a change through a large organization, pushing yourself: the arithmetic is the same.\nThis one is not a stage like the others, it is a multiplier over all of them, and it runs on two axes. Across people, because an imagination, a demo, a principle and a platform all decay at the same rate, and repetition is the only thing that compounds against it. Across years, because the loop returns almost nothing on any single turn — the whole return is in running it on the same thing long enough that the output of one turn becomes the input of the next.\nWhich makes the scarce input time, and the hard decision not what to start but what to keep holding. The exponent beats the coefficient, so most of the work is refusing to interrupt it: no rewrite for the pleasure of rewriting, no new stack to feel new, no turn that resets the base to zero. Deep accumulation, thin release — the thin release is not modesty, it is what leaves the stock intact.\nAnd it is the least visible of the five. Nothing about the day you are repeating yourself looks like progress; the proof arrives all at once, years later, and gets mistaken for luck.",
         "zh": "一件事没有发生，第一假设应该是你说得还不够多，而不是你说错了。推动一个社区、在一个大组织里推动一次改变、推动你自己，算的是同一笔账。\n这一条和前面几条不同，它不是一个阶段，而是架在它们全部之上的乘子 —— 而且乘在两个轴上。横着乘在人上：一个想象、一个 demo、一条原则、一个平台，衰减的速度是一样的，而唯一能对着这个衰减复利的东西就是重复。竖着乘在年上：这个循环跑任何单独一圈几乎都不产出，它全部的回报都在「对着同一件事跑得足够久」上 —— 这一圈的产出，成为下一圈的输入。\n于是稀缺的那个输入是时间，而真正难的决定不是开始做什么，是继续持有什么。指数跑赢系数，所以大部分工作是不去打断它：不为重写的快感而重写，不为新鲜而换一套技术栈，不做把基数清零的转向。厚积而薄发 —— 薄发不是谦虚，薄发是为了让存量还在。\n它也是五条里最不显形的一条。正在重复的那一天，看上去一点都不像进展；证据是很多年之后一次性到达的，然后被人当成运气。"
@@ -2558,6 +2439,26 @@
           "url": "https://web.archive.org/web/20230315043556/http://phonegap.com/blog/2012/05/09/phonegap-beliefs-goals-and-philosophy/"
         }
       ]
+    },
+    {
+      "id": "zhuangzi",
+      "anchor": {
+        "en": "zhuangzi",
+        "zh": "庄子"
+      },
+      "kind": "book",
+      "name": {
+        "en": "*Zhuangzi*",
+        "zh": "《庄子》"
+      },
+      "context": {
+        "en": "Free and easy wandering, and the use of the useless",
+        "zh": "逍遥游，以及无用之用"
+      },
+      "body": {
+        "en": "- 游 is a journey with no purpose at all, and what 逍遥游 goes after is our definition of usefulness itself\n- Everyone knows the use of the useful; nobody knows the use of the useless\n- The same character carries the wandering and the game",
+        "zh": "- 「游」指的是一场彻底无目的的旅程，而《逍遥游》真正要拆的，是「有用」这个定义本身\n- 人皆知有用之用，而莫知无用之用也\n- 浪游和游戏，本来就是同一个字"
+      }
     },
     {
       "id": "hackers-and-painters",
