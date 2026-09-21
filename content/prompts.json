@@ -166,15 +166,15 @@
             "en": "Motion is not noise: it has polarity, period and reversal. That is the next one, not this one.",
             "zh": "动不是噪声：它有极性、有周期、有反转。那是下一条，不是这一条。"
           },
-          "ref": "sublation"
+          "ref": "polarity"
         }
       ]
     },
     {
-      "id": "sublation",
+      "id": "polarity",
       "anchor": {
-        "en": "sublation",
-        "zh": "扬弃"
+        "en": "polarity",
+        "zh": "阴阳"
       },
       "topics": ["worlding"],
       "statements": [
@@ -246,8 +246,8 @@
         }
       ],
       "body": {
-        "en": "The oldest model I hold, and the one I reach for first: a thing carries its opposite, and past a certain point turns into it. It is a lens rather than a law — what it buys you is patience at the top and nerve at the bottom.\nA reversal is not a return: what comes back has been negated, carried and raised — it comes back one turn up. That is the whole of Hegel's word, and it is the reason the third clause is there.",
-        "zh": "我手上最老的一个模型，也是我最先拿出来用的那个：一个东西内部就含着它的反面，过了某个点就会转过去。它是透镜而不是定律 —— 它给你的，是在顶点时的耐心和在低谷时的胆量。\n反转不是回到原点：旧的东西被否定、被保留、被提升，回来时已经上了一圈。黑格尔那个词一个词同时是这三件事，第三句就是为它而写的。"
+        "en": "The oldest model I hold, and the one I reach for first: a thing carries its opposite, and past a certain point turns into it. It is a lens rather than a law — what it buys you is patience at the top and nerve at the bottom.\nA reversal is not a return: what comes back has been negated, carried and raised — it comes back one turn up, which is the whole of Hegel's word at once. But sublation is the mechanism inside this entry, not the entry itself: the name is polarity, because there have to be two poles before anything can come back a turn higher.",
+        "zh": "我手上最老的一个模型，也是我最先拿出来用的那个：一个东西内部就含着它的反面，过了某个点就会转过去。它是透镜而不是定律 —— 它给你的，是在顶点时的耐心和在低谷时的胆量。\n反转不是回到原点：旧的东西被否定、被保留、被提升，回来时已经上了一圈 —— 黑格尔那个词一个词同时是这三件事。但扬弃是这一格里的机关，不是这一格本身：它叫阴阳，因为得先有那两极，才谈得上升一圈。"
       },
       "instances": [
         {
@@ -261,10 +261,6 @@
           }
         },
         {
-          "title": {
-            "en": "Unity of opposites",
-            "zh": "对立统一"
-          },
           "text": {
             "en": "In dialectics: contradiction is the engine of how things develop, not a defect in them.",
             "zh": "在辩证法里：矛盾是事物发展的动力，而不是事物的缺陷。"
@@ -305,8 +301,8 @@
             "zh": "出处"
           },
           "text": {
-            "en": "“Extremes meet” is Pascal's, by way of the French proverb; the oldest Chinese form of the second half is 「物极则反」 in the Heguanzi. The pairing is mine — neither half is a quotation as it stands here.",
-            "zh": "「物极必反」最早的形态是《鹖冠子·环流》的「物极则反」；「阴阳相生」是同一件事的另一半。把两半并在一起是我自己的说法，所以这里两句都不算引文。"
+            "en": "“Opposites generate each other” is how the *I Ching* and Laozi put it; “the unity of opposites” is the dialectician's phrase. Welding the halves is mine, so neither is a quotation as it stands here. The oldest Chinese form of the reversal is 「物极则反」 in the *Heguanzi*.",
+            "zh": "「阴阳相生」是易和老子那一路的说法，「对立统一」是辩证法的译名；把两半焊在一起是我自己的，所以这里两句都不算引文。至于「物极必反」，最早的形态是《鹖冠子·环流》的「物极则反」。"
           }
         },
         {
@@ -571,7 +567,7 @@
             "en": "Each theory that replaces mine does not delete it: it cancels what was wrong, keeps what held, and lifts both into something that can say more. Progress is a spiral, not a queue.",
             "zh": "后一个理论不是把前一个删掉：它否定错的、保留对的，再把两者抬进一个能说得更多的东西里。进步是螺旋，不是排队。"
           },
-          "ref": "sublation"
+          "ref": "polarity"
         },
         {
           "title": {
@@ -733,7 +729,7 @@
             "en": "The result is not settled because the situation is still turning. This is what the swing looks like from inside a life.",
             "zh": "结果没有结算，是因为局面还在翻转。这就是物极必反落到一个人身上的样子。"
           },
-          "ref": "sublation"
+          "ref": "polarity"
         },
         {
           "title": {
@@ -878,7 +874,7 @@
             "en": "Ricoeur splits identity in two: idem, staying the same, and ipse, being the one who came through the change. Which is why I am and am not the person I was ten years ago.",
             "zh": "利科把同一性切成两半：idem 是保持相同，ipse 是穿过变化之后仍然是我。所以 —— 我既是、也不是十年前的那个人。"
           },
-          "ref": "sublation"
+          "ref": "polarity"
         },
         {
           "title": {
