@@ -783,8 +783,8 @@
       "statements": [
         {
           "text": {
-            "en": "Becoming. Narrating. Rewriting.",
-            "zh": "成己。叙事。重写。"
+            "en": "Becoming. Narrating.",
+            "zh": "叙事。成己。"
           }
         },
         {
@@ -902,8 +902,8 @@
       "statements": [
         {
           "text": {
-            "en": "Wandering. Straying. Lingering.",
-            "zh": "浪游。偏航。流连。"
+            "en": "Wandering. Playing.",
+            "zh": "浪游。游戏。"
           }
         },
         {
@@ -990,8 +990,8 @@
         }
       ],
       "body": {
-        "en": "The other three are about getting better at being me; this one is the ground they stand on, and it says that not every life should be an optimisation problem. Some roads because I wanted to walk them, some people because I wanted to know them, some fields entered without knowing whether they were any use. The value of those can only be assigned looking backwards, which is why they can never be argued for in advance — and why they have to stay useless on purpose.\nDrifting means having no route; 浪 means allowing myself off the route. Density over duration: count the thickness of a life, not its length.",
-        "zh": "前面三条都在说我如何变得更好，这一条是它们脚下的地面：不是所有的人生都该是一道最优化题。有些路因为想走而走，有些人因为想认识而认识，有些领域不知道有没有用也进去看看。这些东西的价值只有回望的时候才能被赋予，所以它们事先无法被论证 —— 这正是它们必须保持「没用」的原因。\n漫是没有路线，浪是允许自己偏离路线。过程 > 结果，厚度 > 长度。"
+        "en": "The other three are about getting better at being me; this one is the ground they stand on, and it says that not every life should be an optimisation problem. Some roads because I wanted to walk them, some people because I wanted to know them, some fields entered without knowing whether they were any use. The value of those can only be assigned looking backwards, which is why they can never be argued for in advance — and why they have to stay useless on purpose.\nDrifting means having no route; 浪 means allowing myself off the route. Density over duration: count the thickness of a life, not its length.\n游 was always play as well as travel — Confucius rests in it, Zhuangzi journeys by it. The same character carries the wandering and the game.",
+        "zh": "前面三条都在说我如何变得更好，这一条是它们脚下的地面：不是所有的人生都该是一道最优化题。有些路因为想走而走，有些人因为想认识而认识，有些领域不知道有没有用也进去看看。这些东西的价值只有回望的时候才能被赋予，所以它们事先无法被论证 —— 这正是它们必须保持「没用」的原因。\n漫是没有路线，浪是允许自己偏离路线。过程 > 结果，厚度 > 长度。\n而「游」这个字本来就同时是走和玩：孔子「游于艺」，庄子「逍遥游」—— 浪游和游戏，本来就是同一个字。"
       },
       "instances": [
         {
@@ -1088,8 +1088,8 @@
       "statements": [
         {
           "text": {
-            "en": "Interfacing. Translating. Crossing.",
-            "zh": "会通。翻译。越界。"
+            "en": "Interfacing. Crossing.",
+            "zh": "会通。越界。"
           }
         },
         {
@@ -1259,8 +1259,8 @@
       "statements": [
         {
           "text": {
-            "en": "Evolving. Renewing. Reducing entropy.",
-            "zh": "不息。日新。熵减。"
+            "en": "Negentropy. Evolving.",
+            "zh": "熵减。不息。"
           }
         },
         {

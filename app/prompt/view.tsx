@@ -805,7 +805,7 @@ function ConvictionItem({
 }) {
   // `id`, `type`, `on`. The id is the entry's outline word — the one word
   // this belief would be filed under — and it is worth showing because it
-  // is not always in the sentence: 修身 and 行事 open with it (成己, 演示),
+  // is not always in the sentence: 修身 and 行事 carry it (成己, 演示),
   // while a 天行 statement is a claim about the world and the id is my name
   // for the claim (自然, 天命). It is also the hash.
   //
