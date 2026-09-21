@@ -1202,7 +1202,10 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
           />
         }
       >
-        <div className="relative -mt-4">
+        {/* The column says which language it is in: screen readers need it,
+            and so does the optical correction in `TYPE.voice`, which only
+            applies to Latin. */}
+        <div className="relative -mt-4" lang={locale}>
           <div className="pb-4 space-y-2">
             {/* What I hold */}
             {convictions.map((conviction) => (

@@ -81,12 +81,21 @@ export const TYPE = {
    * already use: the front of an entry and the notes behind it differ by
    * face and by rung, not by scale.
    *
+   * Latin gets a step of optical correction, the same +6.25% the article
+   * prose makes: Newsreader's x-height is 44/100 against Inter's 54.6, so
+   * serif set at the sans size reads small beside it — and in this band a
+   * quotation and its source sit on the same line, which is exactly where
+   * that shows. Matching the x-heights outright would take +24% and blow
+   * the serif's cap height past the sans; the correction is a taste, not a
+   * calculation. Chinese takes none: Noto Serif SC and Inter already meet.
+   *
    * So a source keeps the same face whether it sits on its own line or
    * inside a sentence. That is what makes the site's two alphabets legible
    * without a legend: serif is somebody's thinking, sans and mono are the
    * system talking about it.
    */
-  voice: "font-serif text-sm text-muted-foreground leading-relaxed",
+  voice:
+    "font-serif text-sm [&:lang(en)]:text-[0.9375rem] text-muted-foreground leading-relaxed",
   /** Body-sized secondary copy: a widget's description, an empty state. */
   body: "text-sm text-muted-foreground leading-relaxed",
 
