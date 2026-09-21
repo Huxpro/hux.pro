@@ -2231,8 +2231,8 @@
       "statements": [
         {
           "text": {
-            "en": "Repeating. Reinforcing.",
-            "zh": "重复。强化。"
+            "en": "Repeating. Reinforcing. Compounding.",
+            "zh": "重复。强化。积累。"
           }
         },
         {
@@ -2249,111 +2249,10 @@
               "en": "",
               "zh": "2015 年十大网络用语"
             }
-          }
-        }
-      ],
-      "shapedBy": [
-        {
-          "name": "React Team",
-          "ref": "react-team"
-        },
-        {
-          "name": {
-            "en": "my mother",
-            "zh": "母亲"
           },
-          "ref": "my-parents"
-        }
-      ],
-      "body": {
-        "en": "When something doesn't land, the first assumption should be that you didn't say it enough — not that you were wrong. Pushing a community, pushing a change through a large organization, pushing yourself: the arithmetic is the same. And this one is not a stage like the others, it is a multiplier over all of them — an imagination, a demo, a principle and a platform all decay at the same rate, and repetition is the only thing that compounds against it. That multiplier runs across people; the one after it runs across years.",
-        "zh": "一件事没有发生，第一假设应该是你说得还不够多，而不是你说错了。推动一个社区、在一个大组织里推动一次改变、推动你自己，算的是同一笔账。而这一条和前面几条不同，它不是一个阶段，而是架在它们全部之上的乘子 —— 一个想象、一个 demo、一条原则、一个平台，衰减的速度是一样的，而唯一能对着这个衰减复利的东西，就是重复。这个乘子是横着乘的，乘在人上；下一条那个是竖着乘的，乘在年上。"
-      },
-      "instances": [
-        {
-          "title": {
-            "en": "Step by step",
-            "zh": "不积跬步，无以至千里"
-          },
-          "text": {
-            "en": "“Without piling up half-steps there is no thousand li; without the small streams there is no river or sea.” The multiplier is made of things too small to notice.",
-            "zh": "「不积跬步，无以至千里；不积小流，无以成江海。」乘子是由小到看不见的东西攒出来的。"
-          },
-          "from": {
-            "name": {
-              "en": "Xunzi",
-              "zh": "荀子"
-            },
-            "source": {
-              "en": "*Encouraging Learning*",
-              "zh": "《劝学》"
-            }
-          }
-        },
-        {
-          "title": {
-            "en": "Dripping water",
-            "zh": "水滴石穿"
-          },
-          "text": {
-            "en": "Gutta cavat lapidem, non vi sed saepe cadendo — dripping water hollows the stone, not by force but by falling again and again.",
-            "zh": "水滴石穿 —— 拉丁文那句说得更清楚：不是靠力气，是靠一再落下。"
-          },
-          "from": {
-            "name": {
-              "en": "Ovid",
-              "zh": "奥维德"
-            },
-            "source": {
-              "en": "*Ex Ponto* 4.10",
-              "zh": "《黑海书简》4.10"
-            }
-          }
-        },
-        {
-          "text": {
-            "en": "Propose the value and the method; the rest of the job is repeating it. The repeating is the work, not the overhead.",
-            "zh": "提出价值观和方法论之后，剩下的工作就是重复。重复本身是工作，不是损耗。"
-          }
-        },
-        {
-          "text": {
-            "en": "When you are tired of saying it, people are starting to hear it.",
-            "zh": "当你自己都说烦了的时候，别人才刚开始听见。"
-          },
-          "from": {
-            "name": {
-              "en": "Jeff Weiner, also credited to John Doerr",
-              "zh": "Jeff Weiner，也有人记在 John Doerr 名下"
-            }
-          }
-        },
-        {
-          "text": {
-            "en": "A conviction that failed twice hasn't been falsified. It has been tried twice.",
-            "zh": "一个试了两次没成的信念，不叫被证伪，只叫试了两次。"
-          }
-        }
-      ],
-      "links": [
-        {
-          "label": "Say it three times",
-          "url": "https://saintcyrtraining.com/2019/09/30/say-it-three-times-if-you-want-them-to-remember/"
-        }
-      ]
-    },
-    {
-      "id": "compounding",
-      "anchor": {
-        "en": "compounding",
-        "zh": "积累"
-      },
-      "topics": ["doing"],
-      "statements": [
-        {
-          "text": {
-            "en": "Accumulating. Compounding. Outlasting.",
-            "zh": "厚积。复利。薄发。"
+          "facet": {
+            "en": "the rule of three",
+            "zh": "三遍"
           }
         },
         {
@@ -2399,10 +2298,15 @@
       ],
       "shapedBy": [
         {
+          "name": "React Team",
+          "ref": "react-team"
+        },
+        {
           "name": {
-            "en": "Staying on one question",
-            "zh": "守在同一个问题上"
-          }
+            "en": "my mother",
+            "zh": "母亲"
+          },
+          "ref": "my-parents"
         },
         {
           "name": {
@@ -2412,10 +2316,30 @@
         }
       ],
       "body": {
-        "en": "The loop — imagine, demo, systematize, scale, repeat — returns almost nothing on any single turn. The whole return is in running it on the same thing long enough that the output of one turn becomes the input of the next, and the scarce input is therefore time. Which makes the hard decision not what to start but what to keep holding.\nSo the exponent beats the coefficient, and most of the work here is refusing to interrupt it: no rewrite for the pleasure of rewriting, no new stack to feel new, no turn that resets the base to zero. Deep accumulation, thin release — the thin release is not modesty, it is what leaves the stock intact.\nAnd it is the least visible of the six. Nothing about the day you are accumulating looks like progress; the proof arrives all at once, years later, and gets mistaken for luck.",
-        "zh": "这个循环 —— 想象、演示、体系化、普及、重复 —— 跑任何单独一圈，几乎什么都不产出。它全部的回报都在「对着同一件事跑得足够久」上：这一圈的产出成为下一圈的输入，于是稀缺的那个输入是时间。所以真正难的决定不是开始做什么，是继续持有什么。\n指数跑赢系数，而这一条的大部分工作，是不去打断它：不为重写的快感而重写，不为新鲜而换一套技术栈，不做把基数清零的转向。厚积而薄发 —— 薄发不是谦虚，薄发是为了让存量还在。\n它也是六条里最不显形的一条。正在积累的那一天，看上去一点都不像进展；证据是很多年之后一次性到达的，然后被人当成运气。"
+        "en": "When something doesn't land, the first assumption should be that you didn't say it enough — not that you were wrong. Pushing a community, pushing a change through a large organization, pushing yourself: the arithmetic is the same.\nThis one is not a stage like the others, it is a multiplier over all of them, and it runs on two axes. Across people, because an imagination, a demo, a principle and a platform all decay at the same rate, and repetition is the only thing that compounds against it. Across years, because the loop returns almost nothing on any single turn — the whole return is in running it on the same thing long enough that the output of one turn becomes the input of the next.\nWhich makes the scarce input time, and the hard decision not what to start but what to keep holding. The exponent beats the coefficient, so most of the work is refusing to interrupt it: no rewrite for the pleasure of rewriting, no new stack to feel new, no turn that resets the base to zero. Deep accumulation, thin release — the thin release is not modesty, it is what leaves the stock intact.\nAnd it is the least visible of the five. Nothing about the day you are repeating yourself looks like progress; the proof arrives all at once, years later, and gets mistaken for luck.",
+        "zh": "一件事没有发生，第一假设应该是你说得还不够多，而不是你说错了。推动一个社区、在一个大组织里推动一次改变、推动你自己，算的是同一笔账。\n这一条和前面几条不同，它不是一个阶段，而是架在它们全部之上的乘子 —— 而且乘在两个轴上。横着乘在人上：一个想象、一个 demo、一条原则、一个平台，衰减的速度是一样的，而唯一能对着这个衰减复利的东西就是重复。竖着乘在年上：这个循环跑任何单独一圈几乎都不产出，它全部的回报都在「对着同一件事跑得足够久」上 —— 这一圈的产出，成为下一圈的输入。\n于是稀缺的那个输入是时间，而真正难的决定不是开始做什么，是继续持有什么。指数跑赢系数，所以大部分工作是不去打断它：不为重写的快感而重写，不为新鲜而换一套技术栈，不做把基数清零的转向。厚积而薄发 —— 薄发不是谦虚，薄发是为了让存量还在。\n它也是五条里最不显形的一条。正在重复的那一天，看上去一点都不像进展；证据是很多年之后一次性到达的，然后被人当成运气。"
       },
       "instances": [
+        {
+          "title": {
+            "en": "Step by step",
+            "zh": "不积跬步，无以至千里"
+          },
+          "text": {
+            "en": "“Without piling up half-steps there is no thousand li; without the small streams there is no river or sea.” The multiplier is made of things too small to notice.",
+            "zh": "「不积跬步，无以至千里；不积小流，无以成江海。」乘子是由小到看不见的东西攒出来的。"
+          },
+          "from": {
+            "name": {
+              "en": "Xunzi",
+              "zh": "荀子"
+            },
+            "source": {
+              "en": "*Encouraging Learning*",
+              "zh": "《劝学》"
+            }
+          }
+        },
         {
           "title": {
             "en": "Ten years to grind one sword",
@@ -2434,6 +2358,36 @@
               "en": "*The Swordsman*",
               "zh": "《剑客》"
             }
+          }
+        },
+        {
+          "title": {
+            "en": "Dripping water",
+            "zh": "水滴石穿"
+          },
+          "text": {
+            "en": "Gutta cavat lapidem, non vi sed saepe cadendo — dripping water hollows the stone, not by force but by falling again and again.",
+            "zh": "水滴石穿 —— 拉丁文那句说得更清楚：不是靠力气，是靠一再落下。"
+          },
+          "from": {
+            "name": {
+              "en": "Ovid",
+              "zh": "奥维德"
+            },
+            "source": {
+              "en": "*Ex Ponto* 4.10",
+              "zh": "《黑海书简》4.10"
+            }
+          }
+        },
+        {
+          "text": {
+            "en": "A repeated thing is only worth repeating if it is the same thing. Repetition without accumulation is just noise at a steady rate.",
+            "zh": "重复只有在重复的是同一件事时才算数。没有积累的重复，只是稳定频率的噪声。"
+          },
+          "title": {
+            "en": "Only if it is the same thing",
+            "zh": "重复的得是同一件事"
           }
         },
         {
@@ -2464,16 +2418,39 @@
         },
         {
           "text": {
-            "en": "Writing in public is the cheapest compounding asset I know: this site is the only thing I own that gets better while I sleep.",
-            "zh": "公开写作是我知道的最便宜的复利资产：这个站是我唯一一个在我睡觉时还在变好的东西。"
+            "en": "Propose the value and the method; the rest of the job is repeating it. The repeating is the work, not the overhead.",
+            "zh": "提出价值观和方法论之后，剩下的工作就是重复。重复本身是工作，不是损耗。"
           }
         },
         {
           "text": {
-            "en": "A repeated thing is only worth repeating if it is the same thing. Repetition without accumulation is just noise at a steady rate.",
-            "zh": "重复只有在重复的是同一件事时才算数。没有积累的重复，只是稳定频率的噪声。"
+            "en": "When you are tired of saying it, people are starting to hear it.",
+            "zh": "当你自己都说烦了的时候，别人才刚开始听见。"
           },
-          "ref": "repeating"
+          "from": {
+            "name": {
+              "en": "Jeff Weiner, also credited to John Doerr",
+              "zh": "Jeff Weiner，也有人记在 John Doerr 名下"
+            }
+          }
+        },
+        {
+          "text": {
+            "en": "A conviction that failed twice hasn't been falsified. It has been tried twice.",
+            "zh": "一个试了两次没成的信念，不叫被证伪，只叫试了两次。"
+          }
+        },
+        {
+          "text": {
+            "en": "Writing in public is the cheapest compounding asset I know: this site is the only thing I own that gets better while I sleep.",
+            "zh": "公开写作是我知道的最便宜的复利资产：这个站是我唯一一个在我睡觉时还在变好的东西。"
+          }
+        }
+      ],
+      "links": [
+        {
+          "label": "Say it three times",
+          "url": "https://saintcyrtraining.com/2019/09/30/say-it-three-times-if-you-want-them-to-remember/"
         }
       ]
     }
