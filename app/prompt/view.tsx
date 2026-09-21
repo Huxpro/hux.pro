@@ -663,7 +663,7 @@ function PromptItem({
  * that has fallen into the middle of a line, and at one size the whole
  * thing reads as one citation sentence.
  */
-const VOICE_META = "font-sans not-italic text-sm sm:text-base leading-relaxed";
+const VOICE_META = "font-sans not-italic text-sm leading-relaxed";
 
 function StatementLine({
   statement,

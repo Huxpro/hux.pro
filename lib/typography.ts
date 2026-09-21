@@ -68,17 +68,20 @@ export const TYPE = {
    * the role, never to the position:
    *
    *   a conviction   serif, large
-   *   a voice        serif italic, smaller
-   *   provenance     sans, smaller, muted — under a statement, trailing a
+   *   a voice        serif italic, 14px
+   *   provenance     sans, 14px, muted — under a statement, trailing a
    *                  voice, after a title, anywhere
+   *
+   * One size for the whole second level, and it is the size the instances
+   * already use: the front of an entry and the notes behind it differ by
+   * face and by rung, not by scale.
    *
    * So a source keeps the same face whether it sits on its own line or
    * inside a sentence. That is what makes the site's two alphabets legible
    * without a legend: serif is somebody's thinking, sans and mono are the
    * system talking about it.
    */
-  voice:
-    "font-serif italic text-sm sm:text-base text-muted-foreground leading-relaxed",
+  voice: "font-serif italic text-sm text-muted-foreground leading-relaxed",
   /** Body-sized secondary copy: a widget's description, an empty state. */
   body: "text-sm text-muted-foreground leading-relaxed",
 
