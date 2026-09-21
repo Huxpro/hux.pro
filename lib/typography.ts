@@ -68,12 +68,13 @@ export const TYPE = {
    * the role, never to the position:
    *
    *   a conviction   serif, large
-   *   a voice        serif, 14px — italic only when the words are mine,
-   *                  because a quotation already has its marks and its
-   *                  papers, and a second signal for the same fact costs
-   *                  a script that has no italic at all (the CJK serif
-   *                  carries no oblique; the browser makes one by shearing
-   *                  the glyphs, which Chinese typography has never done)
+   *   a voice        serif, 14px — upright, whoever said it. A quotation
+   *                  already carries its marks and its papers, and a line
+   *                  without either is mine; italic would be a third signal
+   *                  for a fact already twice stated. It would also be a
+   *                  signal one of this page's two scripts cannot make:
+   *                  the CJK serif has no oblique, so the browser shears
+   *                  the glyphs, which Chinese typography has never done.
    *   provenance     sans, 14px, muted — under a statement, trailing a
    *                  voice, after a title, anywhere
    *

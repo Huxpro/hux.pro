@@ -685,14 +685,14 @@ function StatementLine({
   // entry's own aside also lives. Different forms, one visual band.
   if (!head)
     return (
-      <p className={cn(TYPE.voice, !quoted && "italic", "mt-3")}>
+      <p className={cn(TYPE.voice, "mt-3")}>
         {quoted ? <>&ldquo;{statement.text}&rdquo;</> : statement.text}
         {quoted && (
           // Trailing rather than stacked: a witness's papers belong on the
           // same line as the testimony, the way an instance's do — but in
           // the metadata face, not the sentence's. A face says what kind of
           // thing this is, not where it happens to sit: serif is a voice,
-          // sans is provenance, and provenance that goes italic because it
+          // sans is provenance, and provenance that changed face because it
           // is inline would be the layout talking over the meaning.
           <span className={VOICE_META}>
             <span className="text-quaternary-foreground">{" — "}</span>

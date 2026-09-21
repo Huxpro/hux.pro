@@ -129,7 +129,7 @@ function QuoteDisplay({
 }) {
   return (
     <div>
-      <blockquote className="font-serif text-base text-foreground leading-relaxed italic line-clamp-3">
+      <blockquote className="font-serif text-base text-foreground leading-relaxed line-clamp-3">
         &ldquo;{item.text}&rdquo;
       </blockquote>
       <p className={cn("mt-2", TYPE.caption)}>
