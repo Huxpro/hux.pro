@@ -656,6 +656,15 @@ function PromptItem({
  * chorus is set at full size and the voices after it a half step down —
  * still whole sentences, visibly not the head.
  */
+/**
+ * Provenance inside the voice band. Sans and upright, because a face says
+ * what kind of thing this is — but the same size and leading as the
+ * sentence it belongs to: a source set a step smaller reads as a footnote
+ * that has fallen into the middle of a line, and at one size the whole
+ * thing reads as one citation sentence.
+ */
+const VOICE_META = "font-sans not-italic text-sm sm:text-base leading-relaxed";
+
 function StatementLine({
   statement,
   head,
@@ -679,7 +688,7 @@ function StatementLine({
           // thing this is, not where it happens to sit: serif is a voice,
           // sans is provenance, and provenance that goes italic because it
           // is inline would be the layout talking over the meaning.
-          <span className="font-sans text-sm not-italic">
+          <span className={VOICE_META}>
             {" — "}
             <AttributionText attribution={quoted} />
           </span>
@@ -694,7 +703,7 @@ function StatementLine({
           <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed italic">
             &ldquo;{statement.text}&rdquo;
           </blockquote>
-          <p className="mt-2 text-sm">
+          <p className={cn(VOICE_META, "mt-2")}>
             <AttributionText attribution={quoted} />
           </p>
         </>
