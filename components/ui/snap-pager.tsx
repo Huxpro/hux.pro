@@ -131,11 +131,14 @@ export function PagerDots({
             aria-label={label(i + 1)}
             onClick={() => onSelect(i)}
             className={cn(
-              "pressable",
-              shape,
-              !active && "hover:bg-foreground/40 active:bg-foreground/55",
+              // The well is 24px (WCAG 2.5.8); `-m-[9px]` cancels the extra
+              // so the row still reads as 6px dots with a 6px gap.
+              "pressable relative -m-[9px] inline-flex size-6 items-center justify-center rounded-full outline-none",
+              "hover:bg-foreground/10 focus-visible:bg-foreground/10 active:bg-foreground/15",
             )}
-          />
+          >
+            <span className={shape} aria-hidden />
+          </button>
         ) : (
           <span key={i} className={shape} />
         );

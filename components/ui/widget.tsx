@@ -6,7 +6,7 @@ import { isIOSBrowser } from "@/systems/ambient/lib/platform";
 import { useOptionalWallpaper } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
-import { useCallback, useState, type MouseEvent } from "react";
+import { useCallback, useState, type MouseEvent, type ReactNode } from "react";
 import { landsOnOwnAction } from "./widget-surface";
 
 import { TYPE } from "@/lib/typography";
@@ -276,6 +276,23 @@ export function WidgetScrollBody({
 }
 
 /**
+ * Hit area for a 12px glyph in a widget header. The glyph stays 12px; the
+ * control is 28px (`size-7`) and bleeds into the header padding (`-m-2`) so
+ * the title row does not grow. Hover and press wash the well — colour-only
+ * `hover:` never reaches a finger, and a 12px icon is not a target.
+ *
+ * Shared by the header arrow (`WidgetLink`) and in-header actions
+ * (`WidgetIconButton`), so the two chromes next to each other feel the same.
+ */
+export const WIDGET_ICON_HIT = cn(
+  "pressable -m-2 inline-flex size-7 shrink-0 items-center justify-center rounded-md outline-none",
+  "text-muted-foreground transition-colors duration-200",
+  "hover:bg-muted/20 hover:text-foreground",
+  "focus-visible:bg-muted/20 focus-visible:text-foreground",
+  "active:bg-muted/30 active:text-foreground",
+);
+
+/**
  * WidgetLink - Navigation arrow link for header
  */
 export function WidgetLink({
@@ -288,19 +305,40 @@ export function WidgetLink({
   variant?: "icon" | "text";
 }) {
   return (
-    <Link
-      href={href}
-      aria-label={label}
-      // A comfortable touch target (the glyph is 12px) that bleeds into the
-      // header padding instead of shifting the layout; brightens on press.
-      className={cn(
-        "pressable -m-2 flex items-center rounded-md p-2 outline-none",
-        TYPE.nav,
-        "focus-visible:text-foreground active:bg-muted/30 active:text-foreground",
-      )}
-    >
+    <Link href={href} aria-label={label} className={WIDGET_ICON_HIT}>
       {variant === "icon" ? <ArrowRight className="h-3 w-3" /> : "→"}
     </Link>
+  );
+}
+
+/**
+ * An icon action in a widget header — refresh, etc. Same hit and press as
+ * `WidgetLink`. `type="button"` so it never submits; the shell already
+ * treats `button` as its own action (`landsOnOwnAction`).
+ */
+export function WidgetIconButton({
+  label,
+  onClick,
+  className,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={cn(WIDGET_ICON_HIT, className)}
+    >
+      {children}
+    </button>
   );
 }
 

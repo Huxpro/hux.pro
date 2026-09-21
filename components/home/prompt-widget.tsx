@@ -3,6 +3,7 @@
 import {
   WidgetBody,
   WidgetHeader,
+  WidgetIconButton,
   WidgetLink,
   WidgetShell,
   WidgetTitle,
@@ -250,16 +251,15 @@ export function PromptWidget() {
       <WidgetHeader>
         <div className="flex items-center gap-2">
           <WidgetTitle>{t(locale, "widgetPrompt")}</WidgetTitle>
-          <button
+          <WidgetIconButton
+            label={t(locale, "widgetPromptNext")}
             onClick={handleNext}
-            className={cn(
-              "pressable text-muted-foreground hover:text-foreground active:text-foreground text-xs",
-              "transition-colors duration-200 select-none",
-            )}
-            aria-label="Next prompt"
           >
-            <RefreshCw className="h-3 w-3" />
-          </button>
+            <RefreshCw
+              className="h-3 w-3 transition-transform duration-300"
+              style={{ transform: `rotate(${spinKey * 90}deg)` }}
+            />
+          </WidgetIconButton>
         </div>
         <WidgetLink href="/prompt" label="View prompts" />
       </WidgetHeader>
