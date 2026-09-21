@@ -170,18 +170,31 @@ export function TimelineCommit({
     byline
   );
 
+  // An aside does not follow the page's form.
+  //
+  // The three forms are a statement about the ordinary commits — how much
+  // of a work to print — and an aside has already said it is not one of
+  // them: it is a talk that folded itself down to the conference's name.
+  // `feed` meaning "open everything" would open those too, and the reading
+  // it exists for (everything at once, nothing behind a hover) is not
+  // improved by three 2015 talks unfolding into it. So the form passes
+  // them by, in both directions: entering `feed` does not open an aside,
+  // and leaving it does not close one the reader opened by hand.
+  const followsForm = !isAside;
+
   // Seeded from `expandAll`, not just `defaultExpanded`: the reconciliation
   // below only fires when the prop *changes*, so a row mounting with
   // `expandAll` already true (someone opened `/works?view=feed` directly, or
   // navigated in) would otherwise sit collapsed with no flip ever coming.
   const [isExpandedState, setIsExpanded] = useState(
-    defaultExpanded || (expandAll === true && hasExpandableContent),
+    defaultExpanded || (expandAll === true && hasExpandableContent && followsForm),
   );
   // Inspect selects; it does not invent a layout. A selected row opens so
-  // its media can take a handle. The page's form still applies: `feed`
-  // keeps every row open, `index` / `covers` leave the others folded.
+  // its media can take a handle. The page's form still applies, for the
+  // rows that follow it: `feed` keeps them open, `index` / `covers` leave
+  // them folded. Selecting an aside still opens it — that is a press.
   const isExpanded = inspecting
-    ? isSelected || (expandAll === true && hasExpandableContent)
+    ? isSelected || (expandAll === true && hasExpandableContent && followsForm)
     : isExpandedState;
 
   // Pinned items render once in a stable spot beneath the row (visible
@@ -200,7 +213,11 @@ export function TimelineCommit({
   const [lastExpandAll, setLastExpandAll] = useState(expandAll);
   if (expandAll !== lastExpandAll) {
     setLastExpandAll(expandAll);
-    if (expandAll !== undefined) {
+    // `followsForm`: an aside keeps whatever state it is in across a form
+    // change, so a reader who opened one does not lose it by switching to
+    // the feed, and switching back does not leave three asides hanging
+    // open behind them.
+    if (expandAll !== undefined && followsForm) {
       setIsExpanded(expandAll && hasExpandableContent);
     }
   }
@@ -232,11 +249,17 @@ export function TimelineCommit({
   // of open ones is the same click as opening a caption, and nothing
   // painted the difference. Leave feed via the toolbar; a hand-opened row
   // in covers / index still folds from its title line.
+  //
+  // Except for the rows the feed passes by. "Already open" is the whole
+  // premise, and it is not true of an aside (`followsForm`) — so in the
+  // feed an aside would be a closed row with no way to open it, which is
+  // the one thing this rule was never meant to make. It keeps its press.
+  const rowFolds = form !== "feed" || !followsForm;
   const rowOnClick = inspecting
     ? onInspectCommit
     : rowOpensIdentity
       ? openIdentity
-      : form !== "feed" && hasExpandableContent
+      : rowFolds && hasExpandableContent
         ? handleToggleExpanded
         : undefined;
 
