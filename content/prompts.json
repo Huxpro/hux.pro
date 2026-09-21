@@ -45,7 +45,7 @@
               "zh": "荀子"
             },
             "source": {
-              "en": "Discourse on Heaven",
+              "en": "*Discourse on Heaven*",
               "zh": "《荀子·天论》"
             }
           }
@@ -65,7 +65,7 @@
               "zh": "老子"
             },
             "source": {
-              "en": "Tao Te Ching 25",
+              "en": "*Tao Te Ching* 25",
               "zh": "《道德经》第二十五章"
             }
           }
@@ -81,7 +81,7 @@
           },
           "from": {
             "name": {
-              "en": "I Ching, Great Commentary",
+              "en": "*I Ching*, Great Commentary",
               "zh": "《周易·系辞下》"
             }
           }
@@ -101,7 +101,7 @@
               "zh": "郑玄"
             },
             "source": {
-              "en": "after the Qian Zuo Du",
+              "en": "after the *Qian Zuo Du*",
               "zh": "《易纬·乾凿度》语"
             }
           }
@@ -140,7 +140,7 @@
           "from": {
             "name": "Ray Dalio",
             "ref": "principles-dalio",
-            "source": "Principles"
+            "source": "*Principles*"
           }
         },
         {
@@ -195,7 +195,7 @@
               "zh": "《鹖冠子·环流》"
             },
             "source": {
-              "en": "The Marriage of Heaven and Hell, 1790",
+              "en": "*The Marriage of Heaven and Hell*, 1790",
               "zh": ""
             }
           }
@@ -349,7 +349,7 @@
               "zh": "李汝珍 × 胡适"
             },
             "source": {
-              "en": "Robustness in the Strategy of Scientific Model Building, 1978",
+              "en": "*Robustness in the Strategy of Scientific Model Building*, 1978",
               "zh": "《镜花缘》× 中国科学社社歌"
             }
           }
@@ -359,12 +359,12 @@
         {
           "name": "Karl Popper",
           "ref": "scientific-method",
-          "source": "Conjectures and Refutations, 1963"
+          "source": "*Conjectures and Refutations*, 1963"
         },
         {
           "name": "Ray Dalio",
           "ref": "principles-dalio",
-          "source": "Principles"
+          "source": "*Principles*"
         }
       ],
       "body": {
@@ -423,7 +423,7 @@
               "zh": "爱因斯坦"
             },
             "source": {
-              "en": "Geometry and Experience, 1921",
+              "en": "*Geometry and Experience*, 1921",
               "zh": "《几何学与经验》，1921"
             }
           }
@@ -453,7 +453,7 @@
               "zh": "朱熹"
             },
             "source": {
-              "en": "Commentary on the Great Learning",
+              "en": "*Commentary on the Great Learning*",
               "zh": "《大学章句》"
             }
           }
@@ -470,7 +470,7 @@
           "from": {
             "name": "Karl Popper",
             "ref": "scientific-method",
-            "source": "Conjectures and Refutations, 1963"
+            "source": "*Conjectures and Refutations*, 1963"
           }
         },
         {
@@ -577,7 +577,7 @@
               "zh": "李汝珍 × 胡适"
             },
             "source": {
-              "en": "Enchiridion, c. 125",
+              "en": "*Enchiridion*, c. 125",
               "zh": "《镜花缘》× 中国科学社社歌"
             }
           }
@@ -599,7 +599,7 @@
           },
           "from": {
             "name": {
-              "en": "Huainanzi, 2nd c. BCE",
+              "en": "*Huainanzi*, 2nd c. BCE",
               "zh": "《淮南子·人间训》"
             },
             "source": {
@@ -634,7 +634,7 @@
               "zh": "荀子"
             },
             "source": {
-              "en": "Discourse on Heaven",
+              "en": "*Discourse on Heaven*",
               "zh": "《荀子·天论》"
             }
           }
@@ -723,7 +723,7 @@
       "id": "becoming",
       "anchor": {
         "en": "becoming",
-        "zh": "成为"
+        "zh": "成己"
       },
       "shapedBy": [
         {
@@ -738,12 +738,22 @@
         }
       ],
       "body": {
-        "en": "Identity is not a title you freeze. Each era — consumer, producer, architect — is a rewrite, not a reveal.\nThe line comes out of narrative identity: the self is not found and then described, it is constituted in the telling. I got it from Liu Qing's lectures on modern Western thought, and behind those is Ricoeur. Which is why the imperative is not “find yourself” but “become who you are” — you are always becoming, and narration is how the question “who?” gets answered at all.\nNietzsche's imperative is Pindar's line before it: become such as you are.",
-        "zh": "身份不是冻结的头衔。每个时代 —— 消费者、生产者、架构师 —— 都是一次重写，而不是一次揭晓。\n这句话的来路是「叙事性自我」：自我不是先被找到、再被讲出来的，而是在讲述中才被构成。我是听刘擎讲西方现代思想时接上这条线的，他背后是利科。所以这里的祈使句不是「找到自己」，而是「成为你自己」—— 人永远都在 Becoming，而叙事就是「你是谁」这个问题唯一能被回答的方式。\n尼采那句祈使的祖宗是品达：成为你所是的那个人。"
+        "en": "Identity is not a title you freeze. Each era — consumer, producer, architect — is a rewrite, not a reveal.\nThe line comes out of narrative identity: the self is not found and then described, it is constituted in the telling. I got it from Liu Qing's lectures on modern Western thought, and behind those is Ricoeur. Which is why the imperative is not “find yourself” but “become who you are” — you are always becoming, and narration is how the question “who?” gets answered at all.\nNietzsche's imperative is Pindar's line before it: become such as you are.\n成己, completing yourself, comes from the *Doctrine of the Mean*, where it arrives already paired: completing yourself is benevolence, completing things is knowledge. The other shelf on this page is the second half of that sentence.",
+        "zh": "身份不是冻结的头衔。每个时代 —— 消费者、生产者、架构师 —— 都是一次重写，而不是一次揭晓。\n这句话的来路是「叙事性自我」：自我不是先被找到、再被讲出来的，而是在讲述中才被构成。我是听刘擎讲西方现代思想时接上这条线的，他背后是利科。所以这里的祈使句不是「找到自己」，而是「成为你自己」—— 人永远都在 Becoming，而叙事就是「你是谁」这个问题唯一能被回答的方式。\n尼采那句祈使的祖宗是品达：成为你所是的那个人。\n「成己」出自《中庸》，而它在那里本来就是成对的 ——「成己，仁也；成物，知也。」这一页的另一格，是这句话的下半句。"
       },
       "topics": ["being"],
       "statements": [
         {
+          "text": {
+            "en": "Becoming. Narrating. Rewriting.",
+            "zh": "成己。叙事。重写。"
+          }
+        },
+        {
+          "facet": {
+            "en": "imperative",
+            "zh": "祈使"
+          },
           "text": {
             "en": "Become who you are.",
             "zh": "成为你自己。"
@@ -754,15 +764,49 @@
               "zh": "尼采"
             },
             "source": {
-              "en": "The Gay Science §270",
+              "en": "*The Gay Science* §270",
               "zh": "《快乐的科学》§270"
             }
           }
         },
         {
+          "facet": {
+            "en": "essence",
+            "zh": "本质"
+          },
           "text": {
-            "en": "Self is authored.",
-            "zh": "自我是被写出来的。"
+            "en": "Existence precedes essence.",
+            "zh": "存在先于本质。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Sartre",
+              "zh": "萨特"
+            },
+            "source": {
+              "en": "*Existentialism Is a Humanism*, 1946",
+              "zh": "《存在主义是一种人道主义》，1946"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "and the world",
+            "zh": "成物"
+          },
+          "text": {
+            "en": "Completing yourself is benevolence; completing things is knowledge.",
+            "zh": "成己，仁也；成物，知也。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "*Doctrine of the Mean*",
+              "zh": "《中庸》"
+            },
+            "source": {
+              "en": "ch. 25",
+              "zh": "第二十五章"
+            }
           }
         }
       ],
@@ -782,7 +826,7 @@
               "zh": "保罗·利科"
             },
             "source": {
-              "en": "Oneself as Another, 1990",
+              "en": "*Oneself as Another*, 1990",
               "zh": "《作为一个他者的自身》，1990"
             }
           }
@@ -820,6 +864,16 @@
       "statements": [
         {
           "text": {
+            "en": "Wandering. Straying. Lingering.",
+            "zh": "浪游。偏航。流连。"
+          }
+        },
+        {
+          "facet": {
+            "en": "backwards",
+            "zh": "回望"
+          },
+          "text": {
             "en": "You can't connect the dots looking forward; you can only connect them looking backwards.",
             "zh": "离开世界之前，一切都是过程。"
           },
@@ -835,9 +889,43 @@
           }
         },
         {
+          "facet": {
+            "en": "lost",
+            "zh": "迷途"
+          },
           "text": {
-            "en": "Density over duration. Life is a journey.",
-            "zh": "过程 > 结果，厚度 > 长度。"
+            "en": "Not all those who wander are lost.",
+            "zh": "浪游的人，未必都迷了路。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "J. R. R. Tolkien",
+              "zh": "托尔金"
+            },
+            "source": {
+              "en": "*The Fellowship of the Ring*, 1954",
+              "zh": "《魔戒：魔戒同盟》，1954"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "uselessness",
+            "zh": "无用"
+          },
+          "text": {
+            "en": "Everyone knows the use of the useful; nobody knows the use of the useless.",
+            "zh": "人皆知有用之用，而莫知无用之用也。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Zhuangzi",
+              "zh": "庄子"
+            },
+            "source": {
+              "en": "*In the World of Men*",
+              "zh": "《人间世》"
+            }
           }
         }
       ],
@@ -848,7 +936,7 @@
             "zh": "庄子"
           },
           "source": {
-            "en": "Free and Easy Wandering",
+            "en": "*Free and Easy Wandering*",
             "zh": "《庄子·逍遥游》"
           }
         },
@@ -858,14 +946,14 @@
             "zh": "蛋堡"
           },
           "source": {
-            "en": "“Process”, Moonlight, 2010",
+            "en": "“Process”, *Moonlight*, 2010",
             "zh": "《过程》，《月光》，2010"
           }
         }
       ],
       "body": {
-        "en": "The other three are about getting better at being me; this one is the ground they stand on, and it says that not every life should be an optimisation problem. Some roads because I wanted to walk them, some people because I wanted to know them, some fields entered without knowing whether they were any use. The value of those can only be assigned looking backwards, which is why they can never be argued for in advance — and why they have to stay useless on purpose.\nDrifting means having no route; 浪 means allowing myself off the route.",
-        "zh": "前面三条都在说我如何变得更好，这一条是它们脚下的地面：不是所有的人生都该是一道最优化题。有些路因为想走而走，有些人因为想认识而认识，有些领域不知道有没有用也进去看看。这些东西的价值只有回望的时候才能被赋予，所以它们事先无法被论证 —— 这正是它们必须保持「没用」的原因。\n漫是没有路线，浪是允许自己偏离路线。"
+        "en": "The other three are about getting better at being me; this one is the ground they stand on, and it says that not every life should be an optimisation problem. Some roads because I wanted to walk them, some people because I wanted to know them, some fields entered without knowing whether they were any use. The value of those can only be assigned looking backwards, which is why they can never be argued for in advance — and why they have to stay useless on purpose.\nDrifting means having no route; 浪 means allowing myself off the route. Density over duration: count the thickness of a life, not its length.",
+        "zh": "前面三条都在说我如何变得更好，这一条是它们脚下的地面：不是所有的人生都该是一道最优化题。有些路因为想走而走，有些人因为想认识而认识，有些领域不知道有没有用也进去看看。这些东西的价值只有回望的时候才能被赋予，所以它们事先无法被论证 —— 这正是它们必须保持「没用」的原因。\n漫是没有路线，浪是允许自己偏离路线。过程 > 结果，厚度 > 长度。"
       },
       "instances": [
         {
@@ -883,7 +971,7 @@
               "zh": "孔子"
             },
             "source": {
-              "en": "Analects VII",
+              "en": "*Analects* VII",
               "zh": "《论语·述而》"
             }
           }
@@ -923,7 +1011,7 @@
               "zh": "蛋堡"
             },
             "source": {
-              "en": "“Process”, Moonlight, 2010",
+              "en": "“Process”, *Moonlight*, 2010",
               "zh": "《过程》，《月光》，2010"
             }
           }
@@ -962,6 +1050,16 @@
       "statements": [
         {
           "text": {
+            "en": "Interfacing. Translating. Crossing.",
+            "zh": "会通。翻译。越界。"
+          }
+        },
+        {
+          "facet": {
+            "en": "intersection",
+            "zh": "十字路口"
+          },
+          "text": {
             "en": "Technology alone is not enough — it's technology married with the liberal arts, married with the humanities.",
             "zh": "君子不器，观其会通。"
           },
@@ -973,6 +1071,26 @@
             "source": {
               "en": "iPad 2 keynote, 2011",
               "zh": ""
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "east and west",
+            "zh": "东西"
+          },
+          "text": {
+            "en": "East sea, west sea — the mind runs the same; southern learning, northern learning — the Way was never split.",
+            "zh": "东海西海，心理攸同；南学北学，道术未裂。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Qian Zhongshu",
+              "zh": "钱锺书"
+            },
+            "source": {
+              "en": "preface to *Discourses on Art*, 1942",
+              "zh": "《谈艺录》序，1942"
             }
           }
         },
@@ -1013,7 +1131,7 @@
               "zh": "朱熹"
             },
             "source": {
-              "en": "Commentary on the Analects",
+              "en": "*Commentary on the Analects*",
               "zh": "《论语集注》"
             }
           }
@@ -1049,7 +1167,7 @@
           },
           "from": {
             "name": {
-              "en": "I Ching, Great Commentary",
+              "en": "*I Ching*, Great Commentary",
               "zh": "《周易·系辞上》"
             }
           }
@@ -1069,7 +1187,7 @@
               "zh": "孔子"
             },
             "source": {
-              "en": "Analects XIII",
+              "en": "*Analects* XIII",
               "zh": "《论语·子路》"
             }
           }
@@ -1103,6 +1221,16 @@
       "statements": [
         {
           "text": {
+            "en": "Evolving. Renewing. Reducing entropy.",
+            "zh": "不息。日新。熵减。"
+          }
+        },
+        {
+          "facet": {
+            "en": "physics",
+            "zh": "物理"
+          },
+          "text": {
             "en": "What an organism feeds upon is negative entropy.",
             "zh": "取法乎上，负熵为生。"
           },
@@ -1112,16 +1240,45 @@
               "zh": "薛定谔"
             },
             "source": {
-              "en": "What Is Life?, 1944",
+              "en": "*What Is Life?*, 1944",
               "zh": "《生命是什么》，1944"
             },
             "url": "https://en.wikipedia.org/wiki/Entropy_and_life"
           }
         },
         {
+          "facet": {
+            "en": "renewal",
+            "zh": "日新"
+          },
+          "text": {
+            "en": "If you can renew yourself for one day, renew yourself every day, and then renew yourself again.",
+            "zh": "苟日新，日日新，又日新。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Inscription on Tang's washbasin",
+              "zh": "汤之盘铭"
+            },
+            "source": {
+              "en": "*The Great Learning*",
+              "zh": "《大学》引"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "method",
+            "zh": "方法"
+          },
           "text": {
             "en": "Pain + Reflection = Progress.",
             "zh": "痛苦 + 反思 = 进步。"
+          },
+          "quotedFrom": {
+            "name": "Ray Dalio",
+            "ref": "principles-dalio",
+            "source": "*Principles*"
           }
         }
       ],
@@ -1141,7 +1298,7 @@
           },
           "from": {
             "name": {
-              "en": "I Ching, Image of Qian",
+              "en": "*I Ching*, Image of Qian",
               "zh": "《周易·乾·象》"
             }
           },
@@ -1158,7 +1315,7 @@
           },
           "from": {
             "name": {
-              "en": "I Ching, Great Commentary",
+              "en": "*I Ching*, Great Commentary",
               "zh": "《周易·系辞上》"
             }
           }
@@ -1198,7 +1355,7 @@
           },
           "from": {
             "name": "Matt Might",
-            "source": "The illustrated guide to a Ph.D.",
+            "source": "*The illustrated guide to a Ph.D.*",
             "url": "https://matt.might.net/articles/phd-school-in-pictures/"
           }
         },
@@ -1224,7 +1381,7 @@
           "from": {
             "name": "Ray Dalio",
             "ref": "principles-dalio",
-            "source": "Principles"
+            "source": "*Principles*"
           }
         },
         {
@@ -1239,7 +1396,7 @@
           "from": {
             "name": "Ray Dalio",
             "ref": "principles-dalio",
-            "source": "Principles"
+            "source": "*Principles*"
           }
         }
       ],
@@ -1247,7 +1404,7 @@
         {
           "name": "Ray Dalio",
           "ref": "principles-dalio",
-          "source": "Principles"
+          "source": "*Principles*"
         }
       ]
     },
@@ -1540,7 +1697,7 @@
           },
           "from": {
             "name": {
-              "en": "I Ching, Great Commentary",
+              "en": "*I Ching*, Great Commentary",
               "zh": "《周易·系辞上》"
             }
           }
@@ -1612,7 +1769,7 @@
               "zh": "陆游"
             },
             "source": {
-              "en": "Nicomachean Ethics × Schools of Tomorrow",
+              "en": "*Nicomachean Ethics* × *Schools of Tomorrow*",
               "zh": "《冬夜读书示子聿》"
             }
           }
@@ -1667,7 +1824,7 @@
             "name": "Steve Jobs",
             "ref": "steve-jobs",
             "source": {
-              "en": "The New York Times Magazine, 2003",
+              "en": "*The New York Times Magazine*, 2003",
               "zh": "《纽约时报杂志》，2003"
             }
           }
@@ -1692,7 +1849,7 @@
       "shapedBy": [
         {
           "name": {
-            "en": "Types and Programming Languages",
+            "en": "*Types and Programming Languages*",
             "zh": "类型与编程语言"
           },
           "ref": "types-and-languages"
@@ -1734,7 +1891,7 @@
               "zh": "孔子"
             },
             "source": {
-              "en": "Analects XV",
+              "en": "*Analects* XV",
               "zh": "《论语·卫灵公》"
             }
           }
@@ -1750,7 +1907,7 @@
           },
           "from": {
             "name": {
-              "en": "I Ching, Great Commentary",
+              "en": "*I Ching*, Great Commentary",
               "zh": "《周易·系辞上》"
             }
           }
@@ -1855,7 +2012,7 @@
               "zh": "孔子"
             },
             "source": {
-              "en": "Analects XV",
+              "en": "*Analects* XV",
               "zh": "《论语·卫灵公》"
             }
           }
@@ -2071,8 +2228,8 @@
         }
       ],
       "body": {
-        "en": "When something doesn't land, the first assumption should be that you didn't say it enough — not that you were wrong. Pushing a community, pushing a change through a large organization, pushing yourself: the arithmetic is the same. And this one is not a stage like the others, it is a multiplier over all of them — an imagination, a demo, a principle and a platform all decay at the same rate, and repetition is the only thing that compounds against it.",
-        "zh": "一件事没有发生，第一假设应该是你说得还不够多，而不是你说错了。推动一个社区、在一个大组织里推动一次改变、推动你自己，算的是同一笔账。而这一条和前面几条不同，它不是一个阶段，而是架在它们全部之上的乘子 —— 一个想象、一个 demo、一条原则、一个平台，衰减的速度是一样的，而唯一能对着这个衰减复利的东西，就是重复。"
+        "en": "When something doesn't land, the first assumption should be that you didn't say it enough — not that you were wrong. Pushing a community, pushing a change through a large organization, pushing yourself: the arithmetic is the same. And this one is not a stage like the others, it is a multiplier over all of them — an imagination, a demo, a principle and a platform all decay at the same rate, and repetition is the only thing that compounds against it. That multiplier runs across people; the one after it runs across years.",
+        "zh": "一件事没有发生，第一假设应该是你说得还不够多，而不是你说错了。推动一个社区、在一个大组织里推动一次改变、推动你自己，算的是同一笔账。而这一条和前面几条不同，它不是一个阶段，而是架在它们全部之上的乘子 —— 一个想象、一个 demo、一条原则、一个平台，衰减的速度是一样的，而唯一能对着这个衰减复利的东西，就是重复。这个乘子是横着乘的，乘在人上；下一条那个是竖着乘的，乘在年上。"
       },
       "instances": [
         {
@@ -2090,7 +2247,7 @@
               "zh": "荀子"
             },
             "source": {
-              "en": "Encouraging Learning",
+              "en": "*Encouraging Learning*",
               "zh": "《劝学》"
             }
           }
@@ -2110,7 +2267,7 @@
               "zh": "奥维德"
             },
             "source": {
-              "en": "Ex Ponto 4.10",
+              "en": "*Ex Ponto* 4.10",
               "zh": "《黑海书简》4.10"
             }
           }
@@ -2144,6 +2301,141 @@
         {
           "label": "Say it three times",
           "url": "https://saintcyrtraining.com/2019/09/30/say-it-three-times-if-you-want-them-to-remember/"
+        }
+      ]
+    },
+    {
+      "id": "compounding",
+      "anchor": {
+        "en": "compounding",
+        "zh": "积累"
+      },
+      "topics": ["doing"],
+      "statements": [
+        {
+          "text": {
+            "en": "Accumulating. Compounding. Outlasting.",
+            "zh": "厚积。复利。薄发。"
+          }
+        },
+        {
+          "facet": {
+            "en": "what to take",
+            "zh": "取舍"
+          },
+          "text": {
+            "en": "Observe widely and take sparingly; accumulate deeply and release thinly.",
+            "zh": "博观而约取，厚积而薄发。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Su Shi",
+              "zh": "苏轼"
+            },
+            "source": {
+              "en": "*On Farming*",
+              "zh": "《稼说送张琥》"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "holding period",
+            "zh": "持有"
+          },
+          "text": {
+            "en": "Our favorite holding period is forever.",
+            "zh": "我们最喜欢的持有期限，是永远。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Warren Buffett",
+              "zh": "巴菲特"
+            },
+            "source": {
+              "en": "Berkshire Hathaway letter, 1988",
+              "zh": "伯克希尔致股东信，1988"
+            }
+          }
+        }
+      ],
+      "shapedBy": [
+        {
+          "name": {
+            "en": "Staying on one question",
+            "zh": "守在同一个问题上"
+          }
+        },
+        {
+          "name": {
+            "en": "Warren Buffett and Charlie Munger",
+            "zh": "巴菲特与芒格"
+          }
+        }
+      ],
+      "body": {
+        "en": "The loop — imagine, demo, systematize, scale, repeat — returns almost nothing on any single turn. The whole return is in running it on the same thing long enough that the output of one turn becomes the input of the next, and the scarce input is therefore time. Which makes the hard decision not what to start but what to keep holding.\nSo the exponent beats the coefficient, and most of the work here is refusing to interrupt it: no rewrite for the pleasure of rewriting, no new stack to feel new, no turn that resets the base to zero. Deep accumulation, thin release — the thin release is not modesty, it is what leaves the stock intact.\nAnd it is the least visible of the six. Nothing about the day you are accumulating looks like progress; the proof arrives all at once, years later, and gets mistaken for luck.",
+        "zh": "这个循环 —— 想象、演示、体系化、普及、重复 —— 跑任何单独一圈，几乎什么都不产出。它全部的回报都在「对着同一件事跑得足够久」上：这一圈的产出成为下一圈的输入，于是稀缺的那个输入是时间。所以真正难的决定不是开始做什么，是继续持有什么。\n指数跑赢系数，而这一条的大部分工作，是不去打断它：不为重写的快感而重写，不为新鲜而换一套技术栈，不做把基数清零的转向。厚积而薄发 —— 薄发不是谦虚，薄发是为了让存量还在。\n它也是六条里最不显形的一条。正在积累的那一天，看上去一点都不像进展；证据是很多年之后一次性到达的，然后被人当成运气。"
+      },
+      "instances": [
+        {
+          "title": {
+            "en": "Ten years to grind one sword",
+            "zh": "十年磨一剑"
+          },
+          "text": {
+            "en": "“Ten years grinding one sword; the frosted blade has never been tried.” Not one of those ten years looked like a sword.",
+            "zh": "「十年磨一剑，霜刃未曾试。」那十年里，没有哪一年看上去像一把剑。"
+          },
+          "from": {
+            "name": {
+              "en": "Jia Dao",
+              "zh": "贾岛"
+            },
+            "source": {
+              "en": "*The Swordsman*",
+              "zh": "《剑客》"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Never interrupt it unnecessarily",
+            "zh": "不要不必要地打断它"
+          },
+          "text": {
+            "en": "The first rule of compounding. Every rewrite, every migration, every pivot is a withdrawal — sometimes worth it, never free.",
+            "zh": "复利的第一条规则。每一次重写、每一次迁移、每一次转向，都是一次支取 —— 有时候值得，但从来不免费。"
+          },
+          "from": {
+            "name": {
+              "en": "Charlie Munger",
+              "zh": "查理·芒格"
+            },
+            "source": {
+              "en": "widely attributed",
+              "zh": "广为流传"
+            }
+          }
+        },
+        {
+          "text": {
+            "en": "The exponent beats the coefficient. Being twice as fast for a year loses to being slightly better for ten.",
+            "zh": "指数跑赢系数。一年里快一倍，赢不过十年里每年好一点。"
+          }
+        },
+        {
+          "text": {
+            "en": "Writing in public is the cheapest compounding asset I know: this site is the only thing I own that gets better while I sleep.",
+            "zh": "公开写作是我知道的最便宜的复利资产：这个站是我唯一一个在我睡觉时还在变好的东西。"
+          }
+        },
+        {
+          "text": {
+            "en": "A repeated thing is only worth repeating if it is the same thing. Repetition without accumulation is just noise at a steady rate.",
+            "zh": "重复只有在重复的是同一件事时才算数。没有积累的重复，只是稳定频率的噪声。"
+          },
+          "ref": "repeating"
         }
       ]
     }
@@ -2232,7 +2524,7 @@
       },
       "kind": "book",
       "name": {
-        "en": "Hackers & Painters",
+        "en": "*Hackers & Painters*",
         "zh": "《黑客与画家》"
       },
       "context": {
@@ -2258,7 +2550,7 @@
       },
       "kind": "book",
       "name": {
-        "en": "Principles",
+        "en": "*Principles*",
         "zh": "《原则》"
       },
       "context": {
@@ -2310,7 +2602,7 @@
       },
       "kind": "field",
       "name": {
-        "en": "Types and Programming Languages",
+        "en": "*Types and Programming Languages*",
         "zh": "类型与编程语言"
       },
       "context": {
