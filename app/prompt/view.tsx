@@ -224,16 +224,19 @@ function LinkRow({
  */
 function AttributionText({ attribution }: { attribution: Attribution }) {
   const { goTo, anchorFor } = useNav();
+  // Provenance annotates a sentence, so it sits on the annotating rung —
+  // both halves of it, the author and the work. What separates them carries
+  // nothing, so it sits below both.
   const name = attribution.ref ? (
     <a
       href={`#${anchorFor(attribution.ref)}`}
       onClick={(e) => handleAnchorClick(e, attribution.ref!, goTo)}
-      className={cn("text-muted-foreground", linkClass)}
+      className={cn("text-tertiary-foreground", linkClass)}
     >
       {attribution.name}
     </a>
   ) : (
-    <span className="text-muted-foreground">{attribution.name}</span>
+    <span className="text-tertiary-foreground">{attribution.name}</span>
   );
 
   return (
@@ -241,7 +244,7 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
       {name}
       {attribution.source && (
         <>
-          <span className="text-tertiary-foreground"> · </span>
+          <span className="text-quaternary-foreground"> · </span>
           {attribution.url ? (
             <a
               href={attribution.url}
@@ -801,22 +804,6 @@ function ConvictionItem({
       {/* My own way of saying it — the aside voice /works uses for a note in
           the margin, so a proverb and the line I actually say can share a
           row without competing. */}
-      {conviction.commentary && (
-        // The same band as a voice, one rung quieter and without the
-        // quotation marks: those two differences are the whole difference
-        // between "someone said this" and "this is how I say it". With a
-        // chorus above it, it stands further off than the voices stand from
-        // each other, or it reads as a note on the last line.
-        <p
-          className={cn(
-            TYPE.voice,
-            "text-tertiary-foreground",
-            conviction.statements.length > 1 ? "mt-6" : "mt-4",
-          )}
-        >
-          {conviction.commentary}
-        </p>
-      )}
     </PromptItem>
   );
 }

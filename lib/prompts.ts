@@ -72,10 +72,14 @@ type InfluenceKind = "person" | "team" | "book" | "paper" | "field";
  * belief is mine — a quote nobody lives by does not belong on this page.
  */
 /**
- * One sentence of a conviction, with the provenance that belongs to it:
- * `quotedFrom` present means these are someone's words (set as a quote),
- * absent means they are mine (set as a statement). Provenance is per
- * sentence, so a chorus can mix my voice with borrowed ones.
+ * One sentence of a conviction, with the provenance that belongs to it.
+ *
+ * `quotedFrom` present means these are someone's words; absent means they
+ * are mine. That is the whole difference, and it is also the whole reason
+ * there is no separate `commentary` field any more: my own line under a
+ * borrowed one was never a different kind of thing, it was a voice without
+ * papers. So the page prints a voice with quotation marks and an
+ * attribution, or without either.
  */
 interface RawStatement {
   /**
@@ -123,6 +127,8 @@ interface RawConviction {
    * `ref` prints, and the one the entry is named by. The rest are set a
    * half step down — still whole sentences, visibly not the head.
    *
+   * A voice can be mine — what used to be the `commentary` — or borrowed.
+   *
    * On 行事 the head is mine and the voices under it are the witnesses:
    * that shelf is the one where I am the one acting, so the big type is my
    * line and the borrowed sentences testify to it. On 天行 it is the other
@@ -135,13 +141,6 @@ interface RawConviction {
    */
   statements: RawStatement[];
   shapedBy?: RawAttribution[];
-  /**
-   * My own rephrasing of the statement, in my voice. A shared saying is the
-   * essence but it can also be the corniest way to put it, and the line I
-   * actually say is usually the one worth reading — so it rides at rest
-   * under the statement rather than waiting inside the notes.
-   */
-  commentary?: BilingualText;
   /** The other ways this belief has shown up. */
   instances?: RawInstance[];
   /** Markdown-lite: all-"- " lines become a list, anything else is prose. */
@@ -216,7 +215,6 @@ export interface Conviction {
   /** Never empty; `statements[0]` is the head. */
   statements: Statement[];
   shapedBy?: Attribution[];
-  commentary?: string;
   instances?: Instance[];
   body?: string;
   links?: PromptLink[];
@@ -333,7 +331,6 @@ export function getPromptsData(locale: Locale = "en"): PromptsData {
           : undefined,
       })),
       shapedBy: c.shapedBy?.map((s) => resolveAttribution(s, locale)),
-      commentary: resolveOptionalText(c.commentary, locale),
       instances: c.instances?.map((i) => ({
         title: resolveOptionalText(i.title, locale),
         text: resolveText(i.text, locale),

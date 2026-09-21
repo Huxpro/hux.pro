@@ -758,12 +758,14 @@
               "zh": "《快乐的科学》§270"
             }
           }
+        },
+        {
+          "text": {
+            "en": "Self is authored.",
+            "zh": "自我是被写出来的。"
+          }
         }
       ],
-      "commentary": {
-        "en": "Self is authored.",
-        "zh": "自我是被写出来的。"
-      },
       "instances": [
         {
           "title": {
@@ -831,12 +833,14 @@
               "zh": "《过程》·《月光》，2010"
             }
           }
+        },
+        {
+          "text": {
+            "en": "Density over duration. Life is a journey.",
+            "zh": "过程 > 结果，厚度 > 长度。"
+          }
         }
       ],
-      "commentary": {
-        "en": "Density over duration. Life is a journey.",
-        "zh": "过程 > 结果，厚度 > 长度。"
-      },
       "shapedBy": [
         {
           "name": {
@@ -971,12 +975,14 @@
               "zh": ""
             }
           }
+        },
+        {
+          "text": {
+            "en": "A romantic geek, for life.",
+            "zh": "一生想做浪漫极客。"
+          }
         }
       ],
-      "commentary": {
-        "en": "A romantic geek, for life.",
-        "zh": "一生想做浪漫极客。"
-      },
       "shapedBy": [
         {
           "name": "Steve Jobs",
@@ -1111,12 +1117,14 @@
             },
             "url": "https://en.wikipedia.org/wiki/Entropy_and_life"
           }
+        },
+        {
+          "text": {
+            "en": "Pain + Reflection = Progress.",
+            "zh": "痛苦 + 反思 = 进步。"
+          }
         }
       ],
-      "commentary": {
-        "en": "Pain + Reflection = Progress.",
-        "zh": "痛苦 + 反思 = 进步。"
-      },
       "body": {
         "en": "Everything in nature runs toward maximum entropy, which for a living thing is death; staying alive means continually drawing order back out of the environment. It is the most compact statement I know of what living, working and building all are.\n(The Chinese half borrows 取法于上 — aim at the highest and you land in the middle — and puts Schrödinger where the highest is.)",
         "zh": "自然里的一切都朝着最大熵去，而对生命来说，最大熵就是死亡；活着，就是不断从环境里把秩序取回来。这是我见过对「活着、工作、创造」最凝练的一句描述。\n（中文那半句化自「取法于上，仅得乎中」，而把「上」换成了薛定谔。）"
