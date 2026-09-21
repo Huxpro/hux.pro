@@ -1256,6 +1256,43 @@
             "en": "Imagining. Envisioning.",
             "zh": "想象。立意。"
           }
+        },
+        {
+          "facet": {
+            "en": "invention",
+            "zh": "发明"
+          },
+          "text": {
+            "en": "The best way to predict the future is to invent it.",
+            "zh": "预测未来的最好方法，就是创造它。"
+          },
+          "quotedFrom": {
+            "name": "Alan Kay",
+            "source": {
+              "en": "PARC, 1971",
+              "zh": "PARC，1971"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "commitment",
+            "zh": "先信"
+          },
+          "text": {
+            "en": "Fake it till you make it.",
+            "zh": "弄假成真。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "English saying",
+              "zh": "元曲《隔江斗智》"
+            },
+            "source": {
+              "en": "in print by 1973",
+              "zh": "「那一个掌亲的，怎知道弄假成真？」"
+            }
+          }
         }
       ],
       "body": {
@@ -1290,19 +1327,6 @@
             "source": {
               "en": "1929",
               "zh": "1929"
-            }
-          }
-        },
-        {
-          "text": {
-            "en": "The best way to predict the future is to invent it.",
-            "zh": "预测未来的最好方法就是创造它。"
-          },
-          "from": {
-            "name": "Alan Kay",
-            "source": {
-              "en": "PARC, 1971",
-              "zh": "PARC，1971"
             }
           }
         },
@@ -2011,7 +2035,17 @@
         {
           "text": {
             "en": "Say it three times.",
-            "zh": "说三遍。"
+            "zh": "重要的事情说三遍。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "The rule of three",
+              "zh": "网络流行语"
+            },
+            "source": {
+              "en": "",
+              "zh": "2015 年十大网络用语"
+            }
           }
         }
       ],
