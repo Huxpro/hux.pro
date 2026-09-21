@@ -123,9 +123,15 @@ interface RawConviction {
    * `ref` prints, and the one the entry is named by. The rest are set a
    * half step down — still whole sentences, visibly not the head.
    *
-   * The discipline is three at most, and each must answer a different
-   * `facet`, or be from a different tradition. A chorus that agrees with
-   * itself is an instance list that has climbed onto the front page.
+   * On 行事 the head is mine and the voices under it are the witnesses:
+   * that shelf is the one where I am the one acting, so the big type is my
+   * line and the borrowed sentences testify to it. On 天行 it is the other
+   * way round, because nothing there is mine to say.
+   *
+   * The discipline is three voices at most under the head, and each must
+   * answer a different `facet`, or come from a different tradition. A
+   * chorus that agrees with itself is an instance list that has climbed
+   * onto the front page.
    */
   statements: RawStatement[];
   shapedBy?: RawAttribution[];

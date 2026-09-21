@@ -1253,15 +1253,11 @@
       "statements": [
         {
           "text": {
-            "en": "Mind first.",
-            "zh": "意在形先。"
+            "en": "Imagining. Envisioning.",
+            "zh": "想象。立意。"
           }
         }
       ],
-      "commentary": {
-        "en": "Imagine it. Envision it.",
-        "zh": "想象。立意。"
-      },
       "body": {
         "en": "Imagination is the bottleneck, and the only way to widen it is from inside the next room. You cannot reason your way into a room you cannot see into; you can only act your way in — so stop forecasting, say the thing before it is true, take the position before you are ready, and let the new data arrive as a consequence of having moved. Creating is what this looks like from the outside.",
         "zh": "瓶颈是想象力，而拓宽它的唯一办法，是站到下一个房间里面去。你没法靠推理走进一个你看不进去的房间，只能靠行动走进去 —— 所以别再预测了：在它还不成立的时候先把它说出口，在你还没准备好的时候先站上那个位置，让新的数据作为「你已经动了」的结果到来。从外面看，这件事就叫创造。"
@@ -1569,6 +1565,12 @@
       "statements": [
         {
           "text": {
+            "en": "Demoing. Iterating.",
+            "zh": "边做。边改。"
+          }
+        },
+        {
+          "text": {
             "en": "Learning by doing.",
             "zh": "纸上得来终觉浅，绝知此事要躬行。"
           },
@@ -1583,11 +1585,7 @@
             }
           }
         }
-      ],
-      "commentary": {
-        "en": "Demo it. Iterate it.",
-        "zh": "边做。边改。"
-      }
+      ]
     },
     {
       "id": "systematizing",
@@ -1597,6 +1595,12 @@
       },
       "topics": ["doing"],
       "statements": [
+        {
+          "text": {
+            "en": "Systematizing. Formalizing. Mechanizing.",
+            "zh": "成理。成法。成器。"
+          }
+        },
         {
           "text": {
             "en": "Types as propositions, programs as proofs.",
@@ -1653,10 +1657,6 @@
           }
         }
       ],
-      "commentary": {
-        "en": "Systematize it. Formalize it. Mechanize it.",
-        "zh": "成理。成法。成器。"
-      },
       "shapedBy": [
         {
           "name": {
@@ -1802,10 +1802,6 @@
       "anchor": {
         "en": "scale",
         "zh": "普及"
-      },
-      "commentary": {
-        "en": "Generalize it. Democratize it. Diversify it. Scale it.",
-        "zh": "愈通，愈广，愈异。"
       },
       "body": {
         "en": "Scale is a generalization–diversity flywheel: the more general a thing becomes the wider it reaches, the wider it reaches the stranger the uses it meets, and the stranger the uses the more general it is forced to become.\nInterfaces are what I am here for, and what I want is for the power running through them to reach everyone. Mouse and keyboard to touch screens, then programming languages and the theory under them — it was always HCI. Open web standards for access, JavaScript and React for creation, then Lynx: the same move at three scales.",
@@ -1963,6 +1959,12 @@
       "statements": [
         {
           "text": {
+            "en": "Generalizing. Democratizing. Diversifying. Scaling.",
+            "zh": "愈通，愈广，愈异。"
+          }
+        },
+        {
+          "text": {
             "en": "This is for everyone.",
             "zh": "民咸用之。"
           },
@@ -2002,15 +2004,17 @@
       "statements": [
         {
           "text": {
+            "en": "Repeating. Reinforcing.",
+            "zh": "重复。强化。"
+          }
+        },
+        {
+          "text": {
             "en": "Say it three times.",
             "zh": "说三遍。"
           }
         }
       ],
-      "commentary": {
-        "en": "Repeat it. Reinforce it.",
-        "zh": "重复。强化。"
-      },
       "shapedBy": [
         {
           "name": "React Team",
