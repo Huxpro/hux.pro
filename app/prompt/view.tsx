@@ -224,19 +224,22 @@ function LinkRow({
  */
 function AttributionText({ attribution }: { attribution: Attribution }) {
   const { goTo, anchorFor } = useNav();
-  // Provenance annotates a sentence, so it sits on the annotating rung —
-  // both halves of it, the author and the work. What separates them carries
-  // nothing, so it sits below both.
+  // Provenance has two halves and they are not the same kind of thing: who
+  // said it is a name you might go and look up — several of them are links
+  // to an entry further down the page — and where they said it annotates
+  // the name. So the author stays on the sentence's own rung and the work
+  // drops one, which is the only place in a citation where the ladder
+  // steps. What separates them carries nothing and sits below both.
   const name = attribution.ref ? (
     <a
       href={`#${anchorFor(attribution.ref)}`}
       onClick={(e) => handleAnchorClick(e, attribution.ref!, goTo)}
-      className={cn("text-tertiary-foreground", linkClass)}
+      className={cn("text-muted-foreground", linkClass)}
     >
       {attribution.name}
     </a>
   ) : (
-    <span className="text-tertiary-foreground">{attribution.name}</span>
+    <span className="text-muted-foreground">{attribution.name}</span>
   );
 
   return (
