@@ -496,6 +496,26 @@
         },
         {
           "title": {
+            "en": "If it serves the state",
+            "zh": "苟利国家生死以"
+          },
+          "text": {
+            "en": "“If it serves the state I will give my life to it; I will not seek it or avoid it for fortune or misfortune.” Lin Zexu wrote it at Xi'an, saying goodbye to his family on the road into exile. A hundred and forty-eight years later, one year into the job, Jiang Zemin wrote the couplet out at Lin's old house in Humen — the same two lines, once on the way down and once on the way up. Doing your part is not conditional on how the result lands.",
+            "zh": "「苟利国家生死以，岂因祸福避趋之。」林则徐被发配伊犁，途经西安与家人道别时写的。一百四十八年后，江泽民就任总书记刚满一周年，在虎门林则徐故居把这两句写成了一副对联 —— 同一句话，一次在被贬的路上，一次在上任的路上。尽人事不以祸福为条件。"
+          },
+          "from": {
+            "name": {
+              "en": "Lin Zexu",
+              "zh": "林则徐"
+            },
+            "source": {
+              "en": "*Written on Setting Out for Exile*, 1842",
+              "zh": "《赴戍登程口占示家人》，1842"
+            }
+          }
+        },
+        {
+          "title": {
             "en": "Investigating things",
             "zh": "格物致知"
           },
@@ -697,6 +717,62 @@
             "source": {
               "en": "“a blessing in disguise”, James Hervey, 1746",
               "zh": "西汉·刘安"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "The course of history",
+            "zh": "历史的行程"
+          },
+          "text": {
+            "en": "“A person's fate depends on self-struggle, of course — but you also have to take the course of history into account.” It has been a meme for twenty years, and it is also 天人之分 in plain modern Chinese: the struggle is mine, the course is not.",
+            "zh": "「一个人的命运，当然要靠自我奋斗，但是也要考虑到历史的行程。」这句话当了二十年的梗，但它说的就是天人之分：自我奋斗是人事，历史的行程是天命。"
+          },
+          "from": {
+            "name": {
+              "en": "Jiang Zemin",
+              "zh": "江泽民"
+            },
+            "source": {
+              "en": "Japan National Press Club, 1998",
+              "zh": "日本记者俱乐部，1998"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "A little bit of work",
+            "zh": "做了一点微小的工作"
+          },
+          "text": {
+            "en": "“I'm embarrassed — I only did a little bit of work.” Under the modesty is an accurate measurement: the distance one person moves inside an era really is a short one, and saying so is not false humility.",
+            "zh": "「很惭愧，就做了一点微小的工作。」谦辞底下是一个准确的测量：一个人在一个时代里能挪动的距离，确实只有很短一段。说出来不是谦虚。"
+          },
+          "from": {
+            "name": {
+              "en": "Jiang Zemin",
+              "zh": "江泽民"
+            },
+            "source": {
+              "en": "2009",
+              "zh": "2009"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Push-ups in a rising elevator",
+            "zh": "电梯里做俯卧撑"
+          },
+          "text": {
+            "en": "Three people ride an elevator to the top floor: one jogs in place, one does push-ups, one bangs his head against the wall. Asked at the top how they got up there, each credits his own method. The elevator was an era's economy — and telling which part of an outcome was the elevator is the whole of this entry.",
+            "zh": "三个人坐电梯上顶楼：一个原地跑步，一个做俯卧撑，一个用头撞墙。到了顶楼被问是怎么上来的，各说各的方法。电梯是那个时代的经济 —— 而认出一个结果里哪一部分是电梯，就是这一条的全部内容。"
+          },
+          "from": {
+            "name": {
+              "en": "a business parable",
+              "zh": "商界寓言"
             }
           }
         },
