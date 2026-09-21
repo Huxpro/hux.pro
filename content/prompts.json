@@ -450,26 +450,6 @@
         },
         {
           "title": {
-            "en": "Knowing takes doing",
-            "zh": "绝知此事要躬行"
-          },
-          "text": {
-            "en": "“What you get off the page stays shallow; to really know a thing you have to go and do it.”",
-            "zh": "「纸上得来终觉浅，绝知此事要躬行。」"
-          },
-          "from": {
-            "name": {
-              "en": "Lu You",
-              "zh": "陆游"
-            },
-            "source": {
-              "en": "to his son, Song dynasty",
-              "zh": "《冬夜读书示子聿》"
-            }
-          }
-        },
-        {
-          "title": {
             "en": "Falsification",
             "zh": "证伪"
           },
@@ -1255,18 +1235,48 @@
       },
       "topics": ["doing"],
       "statement": {
-        "en": "Imagining.",
-        "zh": "想象。"
+        "en": "Mind first.",
+        "zh": "意识先行。"
       },
       "commentary": {
-        "en": "You can't imagine what you can't imagine.",
-        "zh": "你想象不到你想象不到的。"
+        "en": "Imagine it. Envision it.",
+        "zh": "想象。立意。"
       },
       "body": {
         "en": "Imagination is the bottleneck, and the only way to widen it is from inside the next room. You cannot reason your way into a room you cannot see into; you can only act your way in — so stop forecasting, say the thing before it is true, take the position before you are ready, and let the new data arrive as a consequence of having moved. Creating is what this looks like from the outside.",
         "zh": "瓶颈是想象力，而拓宽它的唯一办法，是站到下一个房间里面去。你没法靠推理走进一个你看不进去的房间，只能靠行动走进去 —— 所以别再预测了：在它还不成立的时候先把它说出口，在你还没准备好的时候先站上那个位置，让新的数据作为「你已经动了」的结果到来。从外面看，这件事就叫创造。"
       },
       "instances": [
+        {
+          "title": {
+            "en": "You cannot imagine what you cannot imagine",
+            "zh": "你想象不到你想象不到的"
+          },
+          "text": {
+            "en": "The bottleneck is not effort; it is that the room you have never stood in does not appear in your head as a room you are missing.",
+            "zh": "瓶颈不是努力，是那个你没站进去过的房间，根本不会作为「我缺一个房间」出现在你脑子里。"
+          }
+        },
+        {
+          "title": {
+            "en": "Imagination over knowledge",
+            "zh": "想象力比知识更重要"
+          },
+          "text": {
+            "en": "“Imagination is more important than knowledge. Knowledge is limited; imagination encircles the world.”",
+            "zh": "「想象力比知识更重要。知识是有限的，而想象力环绕着整个世界。」"
+          },
+          "from": {
+            "name": {
+              "en": "Einstein",
+              "zh": "爱因斯坦"
+            },
+            "source": {
+              "en": "1929",
+              "zh": "1929"
+            }
+          }
+        },
         {
           "text": {
             "en": "The best way to predict the future is to invent it.",
@@ -1351,6 +1361,16 @@
         },
         {
           "title": {
+            "en": "Blog-driven development",
+            "zh": "博客驱动开发"
+          },
+          "text": {
+            "en": "Write the post you would want to publish first. If it isn't worth reading, it isn't worth building — and if it is, you now have the goal, the vision and the demo's script in one document.",
+            "zh": "先把你希望发出去的那篇博客写了。如果它不值得读，它就不值得做；如果值得，你手上已经同时有了目标、愿景，和这个 demo 的脚本。"
+          }
+        },
+        {
+          "title": {
             "en": "Then show it",
             "zh": "然后把它演出来"
           },
@@ -1375,8 +1395,8 @@
         "zh": "演示"
       },
       "statement": {
-        "en": "Demoing.",
-        "zh": "演示。"
+        "en": "Learning by doing.",
+        "zh": "纸上得来终觉浅，绝知此事要躬行。"
       },
       "shapedBy": [
         {
@@ -1395,6 +1415,66 @@
         "zh": "规格描述你以为你想要的，演示揭示你真正需要的。人是视觉动物 —— 一个跑起来的东西五秒钟能说服的事，五页文档说不动；而它第一个说服的人，是做它的那个人。"
       },
       "instances": [
+        {
+          "title": {
+            "en": "So set up the image",
+            "zh": "所以立象"
+          },
+          "text": {
+            "en": "A spec cannot carry a vision, so you show it running.",
+            "zh": "言（spec）载不动意（vision），所以立象（demo）。"
+          }
+        },
+        {
+          "title": {
+            "en": "Demo or die",
+            "zh": "Demo or Die"
+          },
+          "text": {
+            "en": "The Media Lab's standing order, set against the university's own — publish or perish. What counts as evidence there is a thing that runs in front of you.",
+            "zh": "MIT Media Lab 的规矩，对着大学那句 publish or perish 立的。在那里算数的证据，是一个当着你的面跑起来的东西。"
+          },
+          "from": {
+            "name": {
+              "en": "MIT Media Lab",
+              "zh": "MIT 媒体实验室"
+            },
+            "source": {
+              "en": "",
+              "zh": ""
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Doing is the beginning of knowing",
+            "zh": "行是知之始"
+          },
+          "text": {
+            "en": "“Doing is where knowing starts; knowing is where doing arrives.” He renamed himself after the idea — 知行 reversed to 行知.",
+            "zh": "「行是知之始，知是行之成。」他为了这件事把自己的名字从「知行」改成了「行知」。"
+          },
+          "from": {
+            "name": {
+              "en": "Tao Xingzhi",
+              "zh": "陶行知"
+            },
+            "source": {
+              "en": "",
+              "zh": ""
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Ten thousand miles",
+            "zh": "行万里路"
+          },
+          "text": {
+            "en": "Read ten thousand books; walk ten thousand miles. The second half was never decoration on the first.",
+            "zh": "读万卷书，行万里路 —— 后半句从来不是前半句的装饰。"
+          }
+        },
         {
           "title": {
             "en": "Demo-driven",
@@ -1429,16 +1509,6 @@
           "text": {
             "en": "A fast feedback loop solves everything — iteration speed solves most problems that arrive disguised as other problems, and a demo is the shortest loop there is.",
             "zh": "快速的反馈循环能解决一切 —— 迭代速度能解决大部分伪装成别的问题的问题，而 demo 是最短的那个循环。"
-          }
-        },
-        {
-          "title": {
-            "en": "Blog-driven development",
-            "zh": "博客驱动开发"
-          },
-          "text": {
-            "en": "Write the post you would want to publish first. If it isn't worth reading, it isn't worth building — and if it is, you now have the goal, the vision and the demo's script in one document.",
-            "zh": "先把你希望发出去的那篇博客写了。如果它不值得读，它就不值得做；如果值得，你手上已经同时有了目标、愿景，和这个 demo 的脚本。"
           }
         },
         {
@@ -1481,8 +1551,18 @@
       ],
       "topics": ["doing"],
       "commentary": {
-        "en": "A spec cannot carry a vision, so you show it running.",
-        "zh": "言（spec）载不动意（vision），所以立象（demo）。"
+        "en": "Demo it. Iterate it.",
+        "zh": "边做。边改。"
+      },
+      "quotedFrom": {
+        "name": {
+          "en": "John Dewey",
+          "zh": "陆游"
+        },
+        "source": {
+          "en": "",
+          "zh": "《冬夜读书示子聿》"
+        }
       }
     },
     {
@@ -1493,12 +1573,12 @@
       },
       "topics": ["doing"],
       "statement": {
-        "en": "Systematizing.",
-        "zh": "体系化。"
+        "en": "Types as propositions, programs as proofs.",
+        "zh": "类型即命题，程序即证明。"
       },
       "commentary": {
-        "en": "If there is no test it doesn't work. If there is no doc it doesn't exist.",
-        "zh": "没有测试就是不工作，没有文档就是不存在。"
+        "en": "Systematize it. Formalize it. Mechanize it.",
+        "zh": "成理。成法。成器。"
       },
       "shapedBy": [
         {
@@ -1520,6 +1600,36 @@
         "zh": "这一步欠下一步的东西是「可复现」：一个在我手里能跑的 demo，要变成别人能再跑一遍的东西 —— 一个框架、一份标准、一个不需要我在场的定义。理论不是这件事上面的装饰，而是它下面的地板：它在你花一年去试出来之前，就告诉你什么是不可能的；而它交给你的约束，是你能买到的最便宜的约束。\n形式化是我惯用的武器。把跑通了的东西里的理提炼出来，写成一种我以外的东西能检查的形式 —— 一个类型、一个测试、一份规范、一份文档 —— 然后把证明写成程序，再让这个程序长成基础设施。别人靠流程和善意守住的东西，我更愿意交给机器来守。\n由物求理，以理成法，以法成器。器成，则可普及。"
       },
       "instances": [
+        {
+          "title": {
+            "en": "No test, no work. No doc, no thing.",
+            "zh": "没有测试就是不工作，没有文档就是不存在"
+          },
+          "text": {
+            "en": "Two ways of saying the same thing: a claim nothing can check is not yet a claim.",
+            "zh": "同一件事的两种说法：一个没有东西能检查的主张，还不是一个主张。"
+          }
+        },
+        {
+          "title": {
+            "en": "Sharpen the tools first",
+            "zh": "工欲善其事，必先利其器"
+          },
+          "text": {
+            "en": "The word for tool here is 器 — the same 器 that this station's whole job is to produce.",
+            "zh": "这里的「器」，正是这一站要造出来的那个器。"
+          },
+          "from": {
+            "name": {
+              "en": "Confucius",
+              "zh": "孔子"
+            },
+            "source": {
+              "en": "Analects XV",
+              "zh": "《论语·卫灵公》"
+            }
+          }
+        },
         {
           "title": {
             "en": "Image, vessel, method",
@@ -1556,17 +1666,6 @@
             "en": "Respect it as a constraint before you treat it as an inspiration. Most of what a field already proved impossible, you will otherwise rediscover the expensive way.",
             "zh": "先把它当约束尊重，再把它当灵感使用。一个领域早已证明不可能的事，你不这样做就会用很贵的方式重新发现一遍。"
           }
-        },
-        {
-          "title": {
-            "en": "Programs are proofs",
-            "zh": "程序即证明"
-          },
-          "text": {
-            "en": "The Curry–Howard correspondence: a type is a proposition and a program is its proof. Once you have seen it, writing code and doing mathematics stop being two activities.",
-            "zh": "Curry–Howard 对应：类型是命题，程序是它的证明。看见这件事之后，写代码和做数学就不再是两件事了。"
-          },
-          "ref": "types-and-languages"
         },
         {
           "title": {
@@ -1607,7 +1706,7 @@
             "en": "Once it is stated in a form that checks itself, other people can carry it without me in the room.",
             "zh": "一旦它被写成一种能自己检查自己的形式，别人就可以在我不在场的情况下把它带走。"
           },
-          "ref": "democratizing"
+          "ref": "scale"
         }
       ],
       "links": [
@@ -1619,41 +1718,66 @@
           "label": "Curry–Howard correspondence",
           "url": "https://en.wikipedia.org/wiki/Curry%E2%80%93Howard_correspondence"
         }
-      ]
+      ],
+      "quotedFrom": {
+        "name": {
+          "en": "The Curry–Howard correspondence",
+          "zh": "Curry–Howard 对应"
+        },
+        "ref": "types-and-languages",
+        "source": {
+          "en": "Curry 1934, Howard 1969",
+          "zh": "1934 / 1969"
+        }
+      }
     },
     {
-      "id": "democratizing",
+      "id": "scale",
       "anchor": {
-        "en": "democratizing",
+        "en": "scale",
         "zh": "普及"
       },
       "statement": {
-        "en": "Democratizing.",
-        "zh": "普及。"
+        "en": "This is for everyone.",
+        "zh": "民咸用之。"
       },
       "commentary": {
-        "en": "Scale and democratize is how I define success.",
-        "zh": "普及与平权，是我定义成功的方式。"
+        "en": "Generalize it. Democratize it. Diversify it. Scale it.",
+        "zh": "愈通，愈广，愈异。"
       },
       "body": {
-        "en": "Interfaces are what I am here for, and what I want is for the power running through them to reach everyone. Mouse and keyboard to touch screens, then programming languages and the theory under them — it was always HCI. Open web standards for access, JavaScript and React for creation, then Lynx: the same move at three scales.",
-        "zh": "界面是我为之而来的东西，而我想要的是让穿过界面的那份能力抵达所有人。从鼠标键盘到触摸屏，再到编程语言和它们底下的理论 —— 一直都是 HCI。用开放的 Web 标准解决获取，用 JavaScript 和 React 解决创造，然后是 Lynx：同一个动作的三个尺度。"
+        "en": "Scale is a generalization–diversity flywheel: the more general a thing becomes the wider it reaches, the wider it reaches the stranger the uses it meets, and the stranger the uses the more general it is forced to become.\nInterfaces are what I am here for, and what I want is for the power running through them to reach everyone. Mouse and keyboard to touch screens, then programming languages and the theory under them — it was always HCI. Open web standards for access, JavaScript and React for creation, then Lynx: the same move at three scales.",
+        "zh": "规模是一个「通用—多样」的飞轮：**愈通则愈广，愈广则愈异，愈异则愈通。**\n界面是我为之而来的东西，而我想要的是让穿过界面的那份能力抵达所有人。从鼠标键盘到触摸屏，再到编程语言和它们底下的理论 —— 一直都是 HCI。用开放的 Web 标准解决获取，用 JavaScript 和 React 解决创造，然后是 Lynx：同一个动作的三个尺度。"
       },
       "instances": [
         {
           "title": {
-            "en": "When everyone uses it",
-            "zh": "民咸用之"
+            "en": "Teaching without classes",
+            "zh": "有教无类"
           },
           "text": {
-            "en": "“What is used coming in and going out, what all the people use — that is called divine.” The word is defined as everyone being able to use it, not as brilliance.",
-            "zh": "「利用出入，民咸用之，谓之神。」—— 「神」被定义成所有人都用得上，而不是厉害。"
+            "en": "“In teaching there should be no division into classes.” Four characters, twenty-five centuries before anyone said democratize.",
+            "zh": "「有教无类。」四个字，比任何人说 democratize 早了两千五百年。"
           },
           "from": {
             "name": {
-              "en": "I Ching, Great Commentary",
-              "zh": "《周易·系辞上》"
+              "en": "Confucius",
+              "zh": "孔子"
+            },
+            "source": {
+              "en": "Analects XV",
+              "zh": "《论语·卫灵公》"
             }
+          }
+        },
+        {
+          "title": {
+            "en": "How I define success",
+            "zh": "我定义成功的方式"
+          },
+          "text": {
+            "en": "Scale and democratize is how I define success.",
+            "zh": "普及与平权，是我定义成功的方式。"
           }
         },
         {
@@ -1786,7 +1910,17 @@
           "name": "React Team",
           "ref": "react-team"
         }
-      ]
+      ],
+      "quotedFrom": {
+        "name": {
+          "en": "Tim Berners-Lee",
+          "zh": "《周易·系辞上》"
+        },
+        "source": {
+          "en": "London, 2012",
+          "zh": ""
+        }
+      }
     },
     {
       "id": "repeating",
@@ -1796,12 +1930,12 @@
       },
       "topics": ["doing"],
       "statement": {
-        "en": "Repeating.",
-        "zh": "重复。"
+        "en": "Say it three times.",
+        "zh": "说三遍。"
       },
       "commentary": {
-        "en": "Say it three times.",
-        "zh": "重要的话说三遍。"
+        "en": "Repeat it. Reinforce it.",
+        "zh": "重复。强化。"
       },
       "shapedBy": [
         {
@@ -1821,6 +1955,46 @@
         "zh": "一件事没有发生，第一假设应该是你说得还不够多，而不是你说错了。推动一个社区、在一个大组织里推动一次改变、推动你自己，算的是同一笔账。而这一条和前面几条不同，它不是一个阶段，而是架在它们全部之上的乘子 —— 一个想象、一个 demo、一条原则、一个平台，衰减的速度是一样的，而唯一能对着这个衰减复利的东西，就是重复。"
       },
       "instances": [
+        {
+          "title": {
+            "en": "Step by step",
+            "zh": "不积跬步，无以至千里"
+          },
+          "text": {
+            "en": "“Without piling up half-steps there is no thousand li; without the small streams there is no river or sea.” The multiplier is made of things too small to notice.",
+            "zh": "「不积跬步，无以至千里；不积小流，无以成江海。」乘子是由小到看不见的东西攒出来的。"
+          },
+          "from": {
+            "name": {
+              "en": "Xunzi",
+              "zh": "荀子"
+            },
+            "source": {
+              "en": "Encouraging Learning",
+              "zh": "《劝学》"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Dripping water",
+            "zh": "水滴石穿"
+          },
+          "text": {
+            "en": "Gutta cavat lapidem, non vi sed saepe cadendo — dripping water hollows the stone, not by force but by falling again and again.",
+            "zh": "水滴石穿 —— 拉丁文那句说得更清楚：不是靠力气，是靠一再落下。"
+          },
+          "from": {
+            "name": {
+              "en": "Ovid",
+              "zh": "奥维德"
+            },
+            "source": {
+              "en": "Ex Ponto 4.10",
+              "zh": "《黑海书简》4.10"
+            }
+          }
+        },
         {
           "text": {
             "en": "Propose the value and the method; the rest of the job is repeating it. The repeating is the work, not the overhead.",
@@ -1844,6 +2018,12 @@
             "en": "A conviction that failed twice hasn't been falsified. It has been tried twice.",
             "zh": "一个试了两次没成的信念，不叫被证伪，只叫试了两次。"
           }
+        }
+      ],
+      "links": [
+        {
+          "label": "Say it three times",
+          "url": "https://saintcyrtraining.com/2019/09/30/say-it-three-times-if-you-want-them-to-remember/"
         }
       ]
     }
