@@ -226,12 +226,12 @@
         },
         {
           "facet": {
-            "en": "negation",
-            "zh": "否定"
+            "en": "movement",
+            "zh": "动因"
           },
           "text": {
-            "en": "To cancel, to keep, to lift — one word, all three at once.",
-            "zh": "否定、保留、提升 —— 一个词同时是这三件事。"
+            "en": "Contradiction is the root of all movement and vitality.",
+            "zh": "矛盾是一切运动和生命力的根源。"
           },
           "quotedFrom": {
             "name": {
@@ -239,15 +239,15 @@
               "zh": "黑格尔"
             },
             "source": {
-              "en": "*aufheben*",
-              "zh": "扬弃（aufheben）"
+              "en": "*Science of Logic*, 1813",
+              "zh": "《逻辑学·本质论》，1813"
             }
           }
         }
       ],
       "body": {
-        "en": "The oldest model I hold, and the one I reach for first: a thing carries its opposite, and past a certain point turns into it. It is a lens rather than a law — what it buys you is patience at the top and nerve at the bottom.\nA reversal is not a return: what comes back has been negated, carried and raised — it comes back one turn up, which is the whole of Hegel's word at once. But sublation is the mechanism inside this entry, not the entry itself: the name is polarity, because there have to be two poles before anything can come back a turn higher.",
-        "zh": "我手上最老的一个模型，也是我最先拿出来用的那个：一个东西内部就含着它的反面，过了某个点就会转过去。它是透镜而不是定律 —— 它给你的，是在顶点时的耐心和在低谷时的胆量。\n反转不是回到原点：旧的东西被否定、被保留、被提升，回来时已经上了一圈 —— 黑格尔那个词一个词同时是这三件事。但扬弃是这一格里的机关，不是这一格本身：它叫阴阳，因为得先有那两极，才谈得上升一圈。"
+        "en": "The oldest model I hold, and the one I reach for first: a thing carries its opposite, and past a certain point turns into it. It is a lens rather than a law — what it buys you is patience at the top and nerve at the bottom.\nA reversal is not a return: what comes back has been negated, carried and raised — it comes back one turn up, which is the whole of Hegel's *aufheben* at once. But sublation is the mechanism inside this entry, not the entry itself: the name is polarity, because there have to be two poles before anything can come back a turn higher.",
+        "zh": "我手上最老的一个模型，也是我最先拿出来用的那个：一个东西内部就含着它的反面，过了某个点就会转过去。它是透镜而不是定律 —— 它给你的，是在顶点时的耐心和在低谷时的胆量。\n反转不是回到原点：旧的东西被否定、被保留、被提升，回来时已经上了一圈 —— 黑格尔那个词（aufheben，中译「扬弃」）一个词同时是这三件事。但扬弃是这一格里的机关，不是这一格本身：它叫阴阳，因为得先有那两极，才谈得上升一圈。"
       },
       "instances": [
         {
@@ -262,14 +262,22 @@
         },
         {
           "text": {
-            "en": "In dialectics: contradiction is the engine of how things develop, not a defect in them.",
-            "zh": "在辩证法里：矛盾是事物发展的动力，而不是事物的缺陷。"
+            "en": "“In the positive understanding of what exists, dialectic includes at the same time the understanding of its negation, of its inevitable passing away.” What Marx added was not the contradiction — that is Hegel's — but the inversion.",
+            "zh": "「辩证法在对现存事物的肯定的理解中，同时包含着对它的否定的理解，即对它必然灭亡的理解。」马克思添的不是矛盾 —— 矛盾是黑格尔的；他添的是把它倒过来。"
           },
           "from": {
             "name": {
               "en": "Marx",
               "zh": "马克思"
+            },
+            "source": {
+              "en": "*Capital*, afterword to the second edition, 1873",
+              "zh": "《资本论》第二版跋，1873"
             }
+          },
+          "title": {
+            "en": "Stand it on its feet",
+            "zh": "把它倒过来"
           }
         },
         {
