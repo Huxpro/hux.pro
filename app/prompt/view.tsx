@@ -663,11 +663,14 @@ function StatementLine({
   statement: Statement;
   head: boolean;
 }) {
-  const size = head ? "text-xl sm:text-2xl" : "text-lg sm:text-xl";
+  // A voice is a witness, not a second thesis: it drops two steps under
+  // the head rather than one, which puts it above the instances (text-sm)
+  // and well under the line it is testifying to.
+  const size = head ? "text-xl sm:text-2xl" : "text-base sm:text-lg";
   const quoted = statement.quotedFrom;
 
   return (
-    <div className={cn(!head && "mt-5")}>
+    <div className={cn(!head && "mt-4")}>
       {quoted ? (
         <>
           <blockquote
@@ -678,7 +681,7 @@ function StatementLine({
           >
             &ldquo;{statement.text}&rdquo;
           </blockquote>
-          <p className="mt-2 text-sm">
+          <p className={cn("text-sm", head ? "mt-2" : "mt-1.5")}>
             <AttributionText attribution={quoted} />
           </p>
         </>
