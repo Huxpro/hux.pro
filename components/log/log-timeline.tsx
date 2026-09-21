@@ -56,8 +56,6 @@ interface LogTimelineProps {
     commits: CommitData[];
   }[];
   locale: Locale;
-  /** When toggled, every commit row syncs its expanded state to this value. */
-  expandAll?: boolean;
   /**
    * Global identities map (handle + company + accent per identity id).
    * Used to hydrate the `<handle>` byline and the expanded author
@@ -96,7 +94,6 @@ interface LogTimelineProps {
 export function LogTimeline({
   data,
   locale,
-  expandAll,
   identities,
   form = DEFAULT_FORM,
   activeTypes = NO_TYPES,
@@ -112,7 +109,6 @@ export function LogTimeline({
           commits={commits}
           tagIndex={tagIndex}
           locale={locale}
-          expandAll={expandAll}
           identities={identities}
           form={form}
           activeTypes={activeTypes}
@@ -129,7 +125,6 @@ interface TagBlockProps {
   commits: CommitData[];
   tagIndex: number;
   locale: Locale;
-  expandAll?: boolean;
   identities?: Record<string, Identity>;
   form: LogForm;
   activeTypes: FilterableCommitType[];
@@ -142,7 +137,6 @@ function TagBlock({
   commits,
   tagIndex,
   locale,
-  expandAll,
   identities,
   form,
   activeTypes,
@@ -342,7 +336,6 @@ function TagBlock({
                 commit={commits[i]}
                 locale={locale}
                 variant="timeline"
-                expandAll={expandAll}
                 hideDate={tag.hideDate || commits[i].hideDate}
                 rail={railInfo[i].rail}
                 segmentId={railInfo[i].segmentId}

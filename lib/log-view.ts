@@ -39,12 +39,15 @@ import {
 //    you can recognise a slide or a screenshot at. Still one row per commit,
 //    so the overview survives, but the work is on screen rather than behind
 //    a hover a phone cannot perform.
-//  - `feed`   — every row open: the whole description, the attachment grid
-//    with its captions written out, the notes and the author fields. All the
-//    information is right there, so nothing in it peeks or opens a sheet: a
-//    video plays where it is, a card goes to its page. Rows do not fold
-//    one-by-one — cover and caption are one door, and leaving the feed is
-//    a form change.
+//  - `feed`   — the grid, at half a column, with its captions written out,
+//    and the prose and notes printed whole to match. All the information is
+//    right there, so nothing in it peeks or opens a sheet: a video plays
+//    where it is, a card goes to its page.
+//
+// A form sets all four atoms, but it only *owns* two of them: the picture
+// is the page's (`media`, `peek`), the prose is each row's (`description`,
+// `notes` — see `rowFormFor`). Pressing a row's text relieves or clamps it
+// against whatever the form printed; the picture holds still.
 //
 // The page borrowed git's vocabulary for these once (`--oneline`, `--stat`,
 // `-p`); those names still parse, as aliases, so old links keep working.
@@ -80,16 +83,33 @@ export const ROW_FORM: Record<LogForm, RowForm> = {
 };
 
 /**
- * The feed is the form with every row open, and an open row is the feed at
- * row scale: one rule, read from both ends. The page asks whether a form
- * opens its rows; a row asks what its atoms are given whether it is open.
+ * Which atoms the form owns, and which the row's own press owns.
+ *
+ * The form owns the **picture**: `media` and the `peek` that stands in for
+ * it. That is the expensive atom — it decides the page's scroll length and
+ * what every frame costs (see "What the page costs to scroll" in
+ * docs/system-attachments.md) — and it is the one a reader wants to set
+ * once for the whole page rather than row by row.
+ *
+ * A row's press owns the **prose**: `description`, and the `notes` that are
+ * notes on it. That is the cheap atom, and the one whose right answer
+ * differs per row: "this description is clamped and I want the rest" is a
+ * different want from "show me the work bigger", and until now they were
+ * the same gesture.
+ *
+ * So a press relieves the text, or clamps it back where the form had
+ * already printed it whole. The picture does not move. That is also what
+ * lets a row keep its press inside the feed: folding a commit and opening
+ * a caption used to be the same click with nothing painting the
+ * difference, and now they are not the same click at all — one changes the
+ * prose, the other opens the attachment.
  */
-export function formOpensRows(form: LogForm): boolean {
-  return form === "feed";
-}
-
-export function rowFormFor(form: LogForm, open: boolean): RowForm {
-  return ROW_FORM[open ? "feed" : form];
+export function rowFormFor(form: LogForm, textRelieved: boolean): RowForm {
+  const base = ROW_FORM[form];
+  if (!textRelieved) return base;
+  return base.description === "full"
+    ? { ...base, description: "clamp", notes: false }
+    : { ...base, description: "full", notes: true };
 }
 
 /** The git flags the forms were first named after — old links carry them. */

@@ -20,7 +20,7 @@ import {
   type InspectMode,
 } from "@/components/log/timeline-edit-context";
 import { t, useLocale } from "@/services";
-import { DEFAULT_FORM, formOpensRows, type LogForm } from "@/lib/log-view";
+import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { toast } from "sonner";
 import { MousePointer2 } from "lucide-react";
 import { EditorToolbar } from "./toolbar";
@@ -318,7 +318,6 @@ export function EditorView({ initialData }: EditorViewProps) {
                 locale={locale}
                 identities={data.identities}
                 form={form}
-                expandAll={formOpensRows(form)}
               />
             </TimelineEditProvider>
             <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">
