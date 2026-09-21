@@ -134,6 +134,26 @@
         },
         {
           "title": {
+            "en": "Evolution is not for anyone's good",
+            "zh": "进化不为谁的福祉"
+          },
+          "text": {
+            "en": "“No design, no purpose, no evil, no good, nothing but pitiless indifference.” Evolution optimises for persistence, not for welfare — pain, ageing and competition are not bugs in it, they are implementation details. Development is the same: it promises no direction. The hard part is that the approving tone inside the word progress is something we put there.",
+            "zh": "「没有设计，没有目的，没有恶也没有善，只有无情的冷漠。」演化优化的是「留下来」，不是「过得好」—— 痛苦、衰老、竞争不是它的 bug，是它的实现细节。发展也一样：它不承诺方向。这一条最难的地方是，连「进化」这个词里的褒义，都是我们自己加上去的。"
+          },
+          "from": {
+            "name": {
+              "en": "Richard Dawkins",
+              "zh": "道金斯"
+            },
+            "source": {
+              "en": "*River Out of Eden*, 1995",
+              "zh": "《伊甸园之河》，1995"
+            }
+          }
+        },
+        {
+          "title": {
             "en": "Reality gets the last word",
             "zh": "极度现实"
           },
@@ -258,6 +278,26 @@
           "text": {
             "en": "In economics: the further a number runs from its average, the harder the average pulls.",
             "zh": "在经济学里：一个数离均值跑得越远，均值把它拽回来的力就越大。"
+          }
+        },
+        {
+          "title": {
+            "en": "Technology is not neutral",
+            "zh": "技术不是中性的"
+          },
+          "text": {
+            "en": "“Technology is neither good nor bad; nor is it neutral.” The third clause is the blade: the two faces do not cancel — the thing will change something, just not necessarily in the direction you chose. Oppenheimer said the maker's half of it, under oath: when you see something that is technically sweet, you go ahead and do it, and you argue about what to do about it only after you have had your technical success. That is the way it was with the atomic bomb.",
+            "zh": "「技术既不好也不坏；但它也不是中性的。」第三句才是刀口：两面不会互相抵消 —— 它一定会改变些什么，只是不一定朝你选的方向。而做技术的人那一半，奥本海默在听证会上说完了：「当你看到一个技术上甜美的东西，你就会去做它；等到技术上成功了，才开始争论该拿它怎么办。原子弹就是这样。」"
+          },
+          "from": {
+            "name": {
+              "en": "Melvin Kranzberg",
+              "zh": "克兰兹伯格"
+            },
+            "source": {
+              "en": "*Technology and History: Kranzberg's Laws*, 1986",
+              "zh": "《技术与历史：克兰兹伯格定律》，1986"
+            }
           }
         },
         {
