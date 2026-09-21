@@ -663,30 +663,39 @@ function StatementLine({
   statement: Statement;
   head: boolean;
 }) {
-  // A voice is a witness, not a second thesis: it drops two steps under
-  // the head rather than one, which puts it above the instances (text-sm)
-  // and well under the line it is testifying to.
-  const size = head ? "text-xl sm:text-2xl" : "text-base sm:text-lg";
   const quoted = statement.quotedFrom;
 
+  // The head is the thesis and gets the display size and the ink; a voice
+  // is a witness and joins the second register (`TYPE.voice`), where the
+  // entry's own aside also lives. Different forms, one visual band.
+  if (!head)
+    return (
+      <p className={cn(TYPE.voice, "mt-3")}>
+        {quoted ? <>&ldquo;{statement.text}&rdquo;</> : statement.text}
+        {quoted && (
+          // Trailing rather than stacked: a witness's papers belong on the
+          // same line as the testimony, the way an instance's do.
+          <span className="text-tertiary-foreground">
+            {" — "}
+            <AttributionText attribution={quoted} />
+          </span>
+        )}
+      </p>
+    );
+
   return (
-    <div className={cn(!head && "mt-4")}>
+    <div>
       {quoted ? (
         <>
-          <blockquote
-            className={cn(
-              "font-serif text-foreground leading-relaxed italic",
-              size,
-            )}
-          >
+          <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed italic">
             &ldquo;{statement.text}&rdquo;
           </blockquote>
-          <p className={cn("text-sm", head ? "mt-2" : "mt-1.5")}>
+          <p className="mt-2 text-sm">
             <AttributionText attribution={quoted} />
           </p>
         </>
       ) : (
-        <p className={cn("font-serif text-foreground leading-relaxed", size)}>
+        <p className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed">
           {statement.text}
         </p>
       )}
@@ -780,17 +789,19 @@ function ConvictionItem({
           the margin, so a proverb and the line I actually say can share a
           row without competing. */}
       {conviction.commentary && (
-        // One aside for the whole entry, so with a chorus above it, it has
-        // to stand further off than the voices stand from each other —
-        // otherwise it reads as a note on the last line rather than on the
-        // belief.
+        // The same band as a voice, one rung quieter and without the
+        // quotation marks: those two differences are the whole difference
+        // between "someone said this" and "this is how I say it". With a
+        // chorus above it, it stands further off than the voices stand from
+        // each other, or it reads as a note on the last line.
         <p
           className={cn(
-            TYPE.aside,
-            conviction.statements.length > 1 ? "mt-7" : "mt-4",
+            TYPE.voice,
+            "text-tertiary-foreground",
+            conviction.statements.length > 1 ? "mt-6" : "mt-4",
           )}
         >
-          &ldquo;{conviction.commentary}&rdquo;
+          {conviction.commentary}
         </p>
       )}
     </PromptItem>

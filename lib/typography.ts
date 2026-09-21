@@ -32,7 +32,8 @@ export const TYPE = {
   /** Section / widget label: WIDGET titles, the weather condition, WRITING. */
   label: "font-mono text-xs uppercase tracking-wider text-muted-foreground",
   /** The dense version: caption strips in peeks and cards, tag rows. */
-  labelSm: "font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground",
+  labelSm:
+    "font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground",
   /** A subtitle under a media title: talks captions (`REACT UNIVERSE CONF`). */
   labelWide: "font-mono text-xs uppercase tracking-wide text-muted-foreground",
 
@@ -55,6 +56,16 @@ export const TYPE = {
   captionQuiet: "text-xs text-tertiary-foreground leading-relaxed",
   /** An aside: commentary, a life event in the timeline, "featured". */
   aside: "text-xs italic font-serif text-tertiary-foreground leading-relaxed",
+  /**
+   * A second voice under a statement: the witnesses in a /prompt chorus and
+   * my own aside beside them. One role for both, because the difference
+   * between "someone else said this" and "this is how I say it" should be
+   * carried by the quotation marks and one rung of ink, not by a different
+   * size and a different family. Borrowed words sit on this rung; mine
+   * override to tertiary at the call site.
+   */
+  voice:
+    "font-serif italic text-sm sm:text-base text-muted-foreground leading-relaxed",
   /** Body-sized secondary copy: a widget's description, an empty state. */
   body: "text-sm text-muted-foreground leading-relaxed",
 
