@@ -2280,7 +2280,7 @@
         {
           "text": {
             "en": "Repeating. Reinforcing. Compounding.",
-            "zh": "重复。强化。积累。"
+            "zh": "重复。成势。积微。"
           }
         },
         {
@@ -2385,6 +2385,26 @@
             "source": {
               "en": "*Encouraging Learning*",
               "zh": "《劝学》"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Accumulate the imperceptible",
+            "zh": "积微者速成"
+          },
+          "text": {
+            "en": "“The month does not beat the day, the season does not beat the month, the year does not beat the season… the one who can accumulate the imperceptible arrives soonest.” The day wins because the day comes round more often — which is the whole argument for repeating, made in the chapter Xunzi called 积微.",
+            "zh": "「月不胜日，时不胜月，岁不胜时……能积微者速成。」日胜过月，是因为日来得更密 —— 这就是重复的全部论证，而荀子那一段的名字就叫「积微」。"
+          },
+          "from": {
+            "name": {
+              "en": "Xunzi",
+              "zh": "荀子"
+            },
+            "source": {
+              "en": "*On Strengthening the State*",
+              "zh": "《荀子·强国》"
             }
           }
         },
