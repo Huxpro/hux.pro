@@ -41,6 +41,16 @@ import { TYPE } from "@/lib/typography";
 /** How many of the newest posts are always kept, featured or not. */
 const LATEST_COUNT = 3;
 
+/**
+ * Rows that fit the pointer's port without it having to scroll: six at 36px
+ * inside a 256px max, once the fade's 28px is taken out. Below this the port
+ * is not worn at all, because a list that cannot overflow must not reserve
+ * room under its last row for a fade that will never run — which is how the
+ * card ended up with 28px of nothing under it on a desktop and 12px on a
+ * phone.
+ */
+const PORT_ROWS = 6;
+
 /** Rows a finger sees. The rest are still rendered — they are what the
  *  pointer's port scrolls through — and hidden by a media query. */
 const TOUCH_ROWS = 5;
@@ -91,7 +101,9 @@ export function WritingWidget({ posts }: { posts: BlogPostSummary[] }) {
         <WidgetLink href="/writing" />
       </WidgetHeader>
 
-      <WidgetScrollBody port="pointer-fine:max-h-64">
+      <WidgetScrollBody
+        port={rows.length > PORT_ROWS ? "pointer-fine:max-h-64" : undefined}
+      >
         {rows.map(({ post, marker }, i) => (
           <PostRow
             key={post.slug}
