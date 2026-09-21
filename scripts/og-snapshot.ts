@@ -217,10 +217,15 @@ function checkCompleteness(): void {
         skippedWidgets += 1;
         continue;
       }
+      // `urls` is a link's — the other kinds carry a single `url`, and the
+      // guards above only narrow pills and widgets away, so the union still
+      // holds video / slides / image here. (`localesFor` already asks this
+      // way; this is the same question, asked the same way.)
+      const urls = isLinkMedia(media) ? media.urls : undefined;
       for (const locale of localesFor(media)) {
         const image = getAttachmentImage(media, locale);
-        const where = media.urls?.[locale] ?? media.url;
-        const tag = media.urls ? ` [${locale}]` : "";
+        const where = urls?.[locale] ?? media.url;
+        const tag = urls ? ` [${locale}]` : "";
         const label = `${commit.id} · ${media.kind} · ${where}${tag}`;
         if (!image) {
           problems.push(`${label} — no runtime image (${recoverHint(media)})`);
