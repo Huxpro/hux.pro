@@ -10,36 +10,40 @@
       "statements": [
         {
           "text": {
-            "en": "Nature cannot be fooled.",
+            "en": "The world runs its own course. The course is change.",
             "zh": "天行有常，变就是常。"
+          }
+        },
+        {
+          "facet": {
+            "en": "physics",
+            "zh": "物理"
+          },
+          "text": {
+            "en": "Nature cannot be fooled.",
+            "zh": "自然不可欺。"
           },
           "quotedFrom": {
             "name": {
               "en": "Richard Feynman",
-              "zh": "荀子"
+              "zh": "费曼"
             },
             "source": {
               "en": "Rogers Commission, Appendix F, 1986",
-              "zh": "《天论》"
+              "zh": "罗杰斯委员会报告附录 F，1986"
             }
           }
-        }
-      ],
-      "body": {
-        "en": "This is the floor; there is nothing under it. The world runs to its own course and is not organised around anyone's wishes — which is where my allergy to wishful thinking comes from. But “constant” is the word that gets misread: the most stable fact about the world is that it keeps moving. And the reverse misreading is just as bad — motion is not noise. It has polarity, period, feedback, reversal, and that is why it can be known at all.\nChinese settled this contradiction inside a single character a long time ago: 易 means both 变易 and 不易 — changing, and unchanging.\nFeynman wrote his half of it into the appendix he was allowed to add to the Challenger report, alone, after the commission would not print it in the body: for a successful technology, reality must take precedence over public relations.",
-        "zh": "这是地板，底下没有别的了：世界按它自己的方式运行，不围着谁的愿望转 —— 我对 wishful thinking 的过敏就是从这里来的。但「有常」是最容易被读错的那个词：世界最稳定的那件事，恰恰是它一直在动。反过来读错也一样糟 —— 动不是噪声，它有极性、有周期、有反馈、有反转，正因如此它才可能被认识。\n中文很早就把这对矛盾解在了一个字里：「易」同时是变易和不易。\n「天行有常」是荀子的，下半句是我接的。英文那半是费曼的：挑战者号事故报告不肯把他的结论放进正文，他就要来一个附录，一个人写完 —— 一项技术要成功，现实必须优先于公关，因为自然不可欺。"
-      },
-      "instances": [
+        },
         {
-          "title": {
-            "en": "Heaven's course",
-            "zh": "天行有常"
+          "facet": {
+            "en": "tradition",
+            "zh": "传统"
           },
           "text": {
             "en": "Heaven's course is constant: it did not endure because of Yao, nor perish because of Jie.",
             "zh": "天行有常，不为尧存，不为桀亡。"
           },
-          "from": {
+          "quotedFrom": {
             "name": {
               "en": "Xunzi",
               "zh": "荀子"
@@ -50,6 +54,28 @@
             }
           }
         },
+        {
+          "facet": {
+            "en": "change",
+            "zh": "变"
+          },
+          "text": {
+            "en": "You cannot step into the same river twice.",
+            "zh": "人不能两次踏进同一条河流。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Heraclitus",
+              "zh": "赫拉克利特"
+            }
+          }
+        }
+      ],
+      "body": {
+        "en": "This is the floor; there is nothing under it. The world runs to its own course and is not organised around anyone's wishes — which is where my allergy to wishful thinking comes from. But “constant” is the word that gets misread: the most stable fact about the world is that it keeps moving. And the reverse misreading is just as bad — motion is not noise. It has polarity, period, feedback, reversal, and that is why it can be known at all.\nChinese settled this contradiction inside a single character a long time ago: 易 means both 变易 and 不易 — changing, and unchanging.\nThe first half of the Chinese line is Xunzi's and the second is mine. Feynman's comes out of Challenger: the commission would not print his conclusion in the body of the report, so he wrote it alone into an appendix — for a successful technology, reality must take precedence over public relations.",
+        "zh": "这是地板，底下没有别的了：世界按它自己的方式运行，不围着谁的愿望转 —— 我对 wishful thinking 的过敏就是从这里来的。但「有常」是最容易被读错的那个词：世界最稳定的那件事，恰恰是它一直在动。反过来读错也一样糟 —— 动不是噪声，它有极性、有周期、有反馈、有反转，正因如此它才可能被认识。\n中文很早就把这对矛盾解在了一个字里：「易」同时是变易和不易。\n「天行有常」是荀子的，下半句是我接的。费曼那句的来路是挑战者号：事故报告不肯把他的结论放进正文，他就要来一个附录，一个人写完 —— 一项技术要成功，现实必须优先于公关，因为自然不可欺。"
+      },
+      "instances": [
         {
           "title": {
             "en": "The Way follows what is so of itself",
@@ -107,18 +133,6 @@
           }
         },
         {
-          "text": {
-            "en": "You cannot step into the same river twice.",
-            "zh": "人不能两次踏进同一条河流。"
-          },
-          "from": {
-            "name": {
-              "en": "Heraclitus",
-              "zh": "赫拉克利特"
-            }
-          }
-        },
-        {
           "title": {
             "en": "Reality gets the last word",
             "zh": "极度现实"
@@ -145,26 +159,6 @@
         },
         {
           "title": {
-            "en": "Nature cannot be fooled",
-            "zh": "自然不可欺"
-          },
-          "text": {
-            "en": "“For a successful technology, reality must take precedence over public relations, for nature cannot be fooled.” From the appendix he wrote alone, after Challenger.",
-            "zh": "「一项技术要成功，现实必须优先于公关，因为自然不可欺。」出自挑战者号事故报告里他一个人写的那份附录。"
-          },
-          "from": {
-            "name": {
-              "en": "Richard Feynman",
-              "zh": "费曼"
-            },
-            "source": {
-              "en": "Rogers Commission, Appendix F, 1986",
-              "zh": "罗杰斯委员会报告附录 F，1986"
-            }
-          }
-        },
-        {
-          "title": {
             "en": "Then how it turns",
             "zh": "那它怎么变"
           },
@@ -186,42 +180,76 @@
       "statements": [
         {
           "text": {
-            "en": "Without contraries is no progression.",
+            "en": "Opposites make each other. What peaks reverses, one turn up.",
             "zh": "阴阳相生，物极必反；扬弃而新。"
+          }
+        },
+        {
+          "facet": {
+            "en": "contraries",
+            "zh": "对立"
+          },
+          "text": {
+            "en": "Without contraries is no progression.",
+            "zh": "没有对立，就没有进步。"
           },
           "quotedFrom": {
             "name": {
               "en": "William Blake",
-              "zh": "《鹖冠子·环流》"
+              "zh": "布莱克"
             },
             "source": {
               "en": "*The Marriage of Heaven and Hell*, 1790",
-              "zh": ""
+              "zh": "《天堂与地狱的婚姻》，1790"
             }
           }
-        }
-      ],
-      "body": {
-        "en": "The oldest model I hold, and the one I reach for first: a thing carries its opposite, and past a certain point turns into it. It is a lens rather than a law — what it buys you is patience at the top and nerve at the bottom.",
-        "zh": "我手上最老的一个模型，也是我最先拿出来用的那个：一个东西内部就含着它的反面，过了某个点就会转过去。它是透镜而不是定律 —— 它给你的，是在顶点时的耐心和在低谷时的胆量。"
-      },
-      "instances": [
+        },
         {
-          "title": {
-            "en": "Yin and yang",
+          "facet": {
+            "en": "yin and yang",
             "zh": "阴阳"
           },
           "text": {
             "en": "Misfortune is what fortune leans on; fortune is where misfortune hides.",
             "zh": "祸兮福之所倚，福兮祸之所伏。"
           },
-          "from": {
+          "quotedFrom": {
             "name": {
               "en": "Laozi",
               "zh": "老子"
+            },
+            "source": {
+              "en": "*Tao Te Ching* 58",
+              "zh": "《道德经》第五十八章"
             }
           }
         },
+        {
+          "facet": {
+            "en": "negation",
+            "zh": "否定"
+          },
+          "text": {
+            "en": "To cancel, to keep, to lift — one word, all three at once.",
+            "zh": "否定、保留、提升 —— 一个词同时是这三件事。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Hegel",
+              "zh": "黑格尔"
+            },
+            "source": {
+              "en": "*aufheben*",
+              "zh": "扬弃（aufheben）"
+            }
+          }
+        }
+      ],
+      "body": {
+        "en": "The oldest model I hold, and the one I reach for first: a thing carries its opposite, and past a certain point turns into it. It is a lens rather than a law — what it buys you is patience at the top and nerve at the bottom.\nA reversal is not a return: what comes back has been negated, carried and raised — it comes back one turn up. That is the whole of Hegel's word, and it is the reason the third clause is there.",
+        "zh": "我手上最老的一个模型，也是我最先拿出来用的那个：一个东西内部就含着它的反面，过了某个点就会转过去。它是透镜而不是定律 —— 它给你的，是在顶点时的耐心和在低谷时的胆量。\n反转不是回到原点：旧的东西被否定、被保留、被提升，回来时已经上了一圈。黑格尔那个词一个词同时是这三件事，第三句就是为它而写的。"
+      },
+      "instances": [
         {
           "title": {
             "en": "Mean reversion",
@@ -283,22 +311,6 @@
         },
         {
           "title": {
-            "en": "Aufheben, three senses at once",
-            "zh": "扬弃"
-          },
-          "text": {
-            "en": "To cancel, to keep, to lift — Hegel's aufheben is all three at once, which is why a reversal is not a return. What comes back has been negated, carried and raised: it comes back one turn up.",
-            "zh": "否定、保留、提升 —— 黑格尔那个词（aufheben）一个词同时是这三件事。所以反转不是回到原点：旧的东西被否定、被保留、被提升，回来时已经上了一圈。"
-          },
-          "from": {
-            "name": {
-              "en": "Hegel",
-              "zh": "黑格尔"
-            }
-          }
-        },
-        {
-          "title": {
             "en": "Contraria sunt complementa",
             "zh": "对立即互补"
           },
@@ -340,17 +352,68 @@
       "statements": [
         {
           "text": {
-            "en": "All models are wrong, but some are useful.",
+            "en": "Every model is wrong. An inch gained is still an inch.",
             "zh": "尽人事，进一寸有一寸的欢喜。"
+          }
+        },
+        {
+          "facet": {
+            "en": "models",
+            "zh": "模型"
+          },
+          "text": {
+            "en": "All models are wrong, but some are useful.",
+            "zh": "所有模型都是错的，但有些是有用的。"
           },
           "quotedFrom": {
             "name": {
               "en": "George Box",
-              "zh": "李汝珍 × 胡适"
+              "zh": "乔治·博克斯"
             },
             "source": {
               "en": "*Robustness in the Strategy of Scientific Model Building*, 1978",
-              "zh": "《镜花缘》× 中国科学社社歌"
+              "zh": "《科学建模策略中的稳健性》，1978"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "method",
+            "zh": "方法"
+          },
+          "text": {
+            "en": "Be bold in your hypotheses; be meticulous in seeking proof.",
+            "zh": "大胆假设，小心求证。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Hu Shih",
+              "zh": "胡适"
+            },
+            "source": {
+              "en": "after Dewey's experimentalism",
+              "zh": "述杜威实验主义"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "falsifiability",
+            "zh": "证伪"
+          },
+          "text": {
+            "en": "A theory is scientific only if it can say what would refute it.",
+            "zh": "一个理论只有能说出什么会推翻它，才算科学。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Karl Popper",
+              "zh": "波普尔"
+            },
+            "ref": "scientific-method",
+            "source": {
+              "en": "*Conjectures and Refutations*, 1963",
+              "zh": "《猜想与反驳》，1963"
             }
           }
         }
@@ -372,26 +435,6 @@
         "zh": "这一级是天人之分里「人」的那一半：所有该我做的事。没有一个模型能把世界收完，现实随时保留推翻我的权利 —— 所以能做的就是猜得好一点、验得狠一点，然后把那一寸拿到手。这句话是焊起来的：「尽人事」是那句老话的前半，后半是胡适的。\n科学的、实验的、进化的思维方式，是我关于「一个东西如何变好」最顶层的模型 —— 无论那个东西是一个人、一个框架还是一个物种。它的两半只有合在一起才成立：一个没人能推翻的假设只是愿望，而一场没有大胆假设可检的求证只是记账。wishful thinking 是这个模型唯一不会自己报出来的 bug，所以大胆必须用一个裁判来偿付。\n胡适的两句话都在这一格里。社歌是 1929 年写的，赵元任谱曲，1930 年中国科学社十五周年年会首唱：「我们唱天行有常，我们唱致知穷理。不怕他真理无穷，进一寸有一寸的欢喜。」这一格叫「天行」是从荀子《天论》来的，而胡适早就把它唱进了中国科学社的社歌；「致知穷理」就是下面朱熹那条。（流传最广的版本把第一句写作「怕什么真理无穷」，这里用的是原词。）"
       },
       "instances": [
-        {
-          "title": {
-            "en": "Bold conjectures, severe tests",
-            "zh": "大胆假设，小心求证"
-          },
-          "text": {
-            "en": "The method is a corollary of the claim: if the truth is inexhaustible, all you can do is guess boldly and check severely.",
-            "zh": "「大胆假设，小心求证。」方法是那句断言的推论：既然真理无穷，能做的就是猜得大胆一点，验得小心一点。"
-          },
-          "from": {
-            "name": {
-              "en": "Hu Shih",
-              "zh": "胡适"
-            },
-            "source": {
-              "en": "after Dewey's experimentalism",
-              "zh": "「大胆的假设，小心的求证」"
-            }
-          }
-        },
         {
           "title": {
             "en": "What can be said is not the thing",
@@ -456,21 +499,6 @@
               "en": "*Commentary on the Great Learning*",
               "zh": "《大学章句》"
             }
-          }
-        },
-        {
-          "title": {
-            "en": "Falsification",
-            "zh": "证伪"
-          },
-          "text": {
-            "en": "A theory is scientific only if it can say what would refute it.",
-            "zh": "一个理论只有能说出什么会推翻它，才算科学。"
-          },
-          "from": {
-            "name": "Karl Popper",
-            "ref": "scientific-method",
-            "source": "*Conjectures and Refutations*, 1963"
           }
         },
         {
@@ -568,17 +596,68 @@
       "statements": [
         {
           "text": {
-            "en": "Some things are up to us and some are not.",
+            "en": "Past a certain line nothing is mine. Endless truth is fine.",
             "zh": "听天命，不怕他真理无穷。"
+          }
+        },
+        {
+          "facet": {
+            "en": "what is ours",
+            "zh": "分界"
+          },
+          "text": {
+            "en": "Some things are up to us and some are not.",
+            "zh": "有些事由得了我们，有些事由不得。"
           },
           "quotedFrom": {
             "name": {
               "en": "Epictetus",
-              "zh": "李汝珍 × 胡适"
+              "zh": "爱比克泰德"
             },
             "source": {
               "en": "*Enchiridion*, c. 125",
-              "zh": "《镜花缘》× 中国科学社社歌"
+              "zh": "《手册》，约 125"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "heaven and man",
+            "zh": "天人"
+          },
+          "text": {
+            "en": "To be clear on the division between what is heaven's and what is man's — that is the utmost.",
+            "zh": "明于天人之分，则可谓至人矣。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Xunzi",
+              "zh": "荀子"
+            },
+            "source": {
+              "en": "*Discourse on Heaven*",
+              "zh": "《荀子·天论》"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "incompleteness",
+            "zh": "不完备"
+          },
+          "text": {
+            "en": "No system strong enough to do arithmetic can prove its own consistency from the inside.",
+            "zh": "任何足够强的一致系统，都无法在自身内部证明自己一致。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Gödel",
+              "zh": "哥德尔"
+            },
+            "ref": "types-and-languages",
+            "source": {
+              "en": "Incompleteness, 1931",
+              "zh": "不完备性定理，1931"
             }
           }
         }
@@ -618,26 +697,6 @@
             "zh": "丢掉 React 那个位置，才逼我想清楚我真正要的是什么 —— 原来是一个更大的舞台，以及舞台上有我的人。Dots are connected again。"
           },
           "ref": "becoming"
-        },
-        {
-          "title": {
-            "en": "Heaven's part, and mine",
-            "zh": "天人之分"
-          },
-          "text": {
-            "en": "Heaven's course is constant: it did not endure because of Yao, nor perish because of Jie… To be clear on the division between what is heaven's and what is man's — that is the utmost.",
-            "zh": "天行有常，不为尧存，不为桀亡……故明于天人之分，则可谓至人矣。"
-          },
-          "from": {
-            "name": {
-              "en": "Xunzi",
-              "zh": "荀子"
-            },
-            "source": {
-              "en": "*Discourse on Heaven*",
-              "zh": "《荀子·天论》"
-            }
-          }
         },
         {
           "title": {
@@ -686,27 +745,6 @@
             "zh": "尽人事是我这边能做的变异，听天命是我这边做不了的选择。两条合起来，才是一次进化。"
           },
           "ref": "models"
-        },
-        {
-          "title": {
-            "en": "No system closes on itself",
-            "zh": "没有系统能自己兜住自己"
-          },
-          "text": {
-            "en": "No consistent system strong enough to do arithmetic can prove its own consistency from the inside. That the map never closes is not a suspicion — it is a theorem.",
-            "zh": "任何足够强的一致系统，都无法在自身内部证明自己一致。「地图永远合不拢」不是一种怀疑，它是一条定理。"
-          },
-          "from": {
-            "name": {
-              "en": "Gödel",
-              "zh": "哥德尔"
-            },
-            "source": {
-              "en": "Incompleteness, 1931",
-              "zh": "不完备性定理，1931"
-            }
-          },
-          "ref": "types-and-languages"
         }
       ],
       "shapedBy": [

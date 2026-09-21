@@ -804,10 +804,10 @@ function ConvictionItem({
   labelOf: (id: string) => string | undefined;
 }) {
   // `id`, `type`, `on`. The id is the entry's outline word — the one word
-  // this belief would be filed under — which is why it is worth showing: in
-  // 修身 and 行事 that word opens the statement (成己, 演示), and in
-  // 天行 the statements are sentences the culture handed me, so the id is
-  // the only place my own name for them appears. It is also the hash.
+  // this belief would be filed under — and it is worth showing because it
+  // is not always in the sentence: 修身 and 行事 open with it (成己, 演示),
+  // while a 天行 statement is a claim about the world and the id is my name
+  // for the claim (自然, 天命). It is also the hash.
   //
   // `on` is the shelf, space-separated the way a `class` attribute holds
   // several. A statement's `facet` is authored but not printed — the row
