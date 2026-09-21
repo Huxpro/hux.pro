@@ -186,26 +186,6 @@
         },
         {
           "facet": {
-            "en": "contraries",
-            "zh": "对立"
-          },
-          "text": {
-            "en": "Without contraries is no progression.",
-            "zh": "没有对立，就没有进步。"
-          },
-          "quotedFrom": {
-            "name": {
-              "en": "William Blake",
-              "zh": "布莱克"
-            },
-            "source": {
-              "en": "*The Marriage of Heaven and Hell*, 1790",
-              "zh": "《天堂与地狱的婚姻》，1790"
-            }
-          }
-        },
-        {
-          "facet": {
             "en": "yin and yang",
             "zh": "阴阳"
           },
@@ -243,11 +223,31 @@
               "zh": "《逻辑学·本质论》，1813"
             }
           }
+        },
+        {
+          "facet": {
+            "en": "negation",
+            "zh": "否定"
+          },
+          "text": {
+            "en": "To cancel, to keep, to lift — one word, all three at once.",
+            "zh": "否定、保留、提升 —— 一个词同时是这三件事。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Hegel",
+              "zh": "黑格尔"
+            },
+            "source": {
+              "en": "*aufheben*",
+              "zh": "扬弃（aufheben）"
+            }
+          }
         }
       ],
       "body": {
-        "en": "The oldest model I hold, and the one I reach for first: a thing carries its opposite, and past a certain point turns into it. It is a lens rather than a law — what it buys you is patience at the top and nerve at the bottom.\nA reversal is not a return: what comes back has been negated, carried and raised — it comes back one turn up, which is the whole of Hegel's *aufheben* at once. But sublation is the mechanism inside this entry, not the entry itself: the name is polarity, because there have to be two poles before anything can come back a turn higher.",
-        "zh": "我手上最老的一个模型，也是我最先拿出来用的那个：一个东西内部就含着它的反面，过了某个点就会转过去。它是透镜而不是定律 —— 它给你的，是在顶点时的耐心和在低谷时的胆量。\n反转不是回到原点：旧的东西被否定、被保留、被提升，回来时已经上了一圈 —— 黑格尔那个词（aufheben，中译「扬弃」）一个词同时是这三件事。但扬弃是这一格里的机关，不是这一格本身：它叫阴阳，因为得先有那两极，才谈得上升一圈。"
+        "en": "The oldest model I hold, and the one I reach for first: a thing carries its opposite, and past a certain point turns into it. It is a lens rather than a law — what it buys you is patience at the top and nerve at the bottom.\nA reversal is not a return: what comes back has been negated, carried and raised — it comes back one turn up. But sublation is the mechanism inside this entry, not the entry itself: the name is polarity, because there have to be two poles before anything can come back a turn higher.",
+        "zh": "我手上最老的一个模型，也是我最先拿出来用的那个：一个东西内部就含着它的反面，过了某个点就会转过去。它是透镜而不是定律 —— 它给你的，是在顶点时的耐心和在低谷时的胆量。\n反转不是回到原点：旧的东西被否定、被保留、被提升，回来时已经上了一圈。但扬弃是这一格里的机关，不是这一格本身：它叫阴阳，因为得先有那两极，才谈得上升一圈。"
       },
       "instances": [
         {
@@ -289,6 +289,26 @@
             "name": {
               "en": "Heraclitus",
               "zh": "赫拉克利特"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Before the system",
+            "zh": "在体系之前"
+          },
+          "text": {
+            "en": "“Without Contraries is no progression. Attraction and Repulsion, Reason and Energy, Love and Hate, are necessary to Human existence.” Seventeen years before the *Phenomenology*, and not as a system — as a refusal to read the two halves as good and evil.",
+            "zh": "「没有对立就没有进步。吸引与排斥、理性与能量、爱与恨，都是人之存在所必需。」比《精神现象学》早十七年，而且不是作为一套体系 —— 是拒绝把那两半读成善与恶。"
+          },
+          "from": {
+            "name": {
+              "en": "William Blake",
+              "zh": "威廉·布莱克"
+            },
+            "source": {
+              "en": "*The Marriage of Heaven and Hell*, 1790",
+              "zh": "《天堂与地狱的婚姻》，1790"
             }
           }
         },
