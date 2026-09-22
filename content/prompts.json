@@ -1232,8 +1232,8 @@
       ],
       "shapedBy": ["steve-jobs", "hackers-and-painters"],
       "body": {
-        "en": "An interface first: two unlike worlds get a surface where they can see and address each other. Then 会通, which is not contact but understanding, connection and fusion — an intersection that actually grows. Then crossing: going over for real, and breaking the category when the category is the thing in the way.\nThere must be such an intersection; there are just too few people willing to go and look. Every boundary I have been handed turned out to be an artifact of some moment's division of labour rather than a fact about the work — in culture too, East and West, the local and the world — which is exactly why the unclaimed things are found on the seam.\nA vessel is a thing with one use. The artifact I am building should become one — from the rule, the instrument — and the person building it should not. Make vessels; don't be one.",
-        "zh": "介面，是异质的两边先有一个接触面，彼此可见、可交流；会通，是不止于接触，而是理解、连接、融会，长出真正的 intersection；越界，是最后真的跨过去，必要时把原有的分类和惯例打破。\n这样一个 intersection 一定存在，只是愿意去探索的人太少。别人交到我手上的每一条边界，后来都被证明只是某个时代社会分工的产物，而不是这件事本身的性质 —— 文化上也一样，东方与西方、民族与世界 —— 正因如此，没人认领的东西都在接缝上。\n器是只有一种用途的东西。我做出来的东西应该成器 ——「以法成器」—— 而做这件事的人不该成器。**做出来的要成器，做事的人不要成器。**"
+        "en": "An interface first: two unlike worlds get a surface where they can see and address each other. Then 会通, which is not contact but understanding, connection and fusion — an intersection that actually grows. Then crossing: going over for real, and breaking the category when the category is the thing in the way. (The Chinese here is 介面 rather than the usual 界面 — the same word for interface, except 介 also means being between the two.)\nThere must be such an intersection; there are just too few people willing to go and look. Every boundary I have been handed turned out to be an artifact of some moment's division of labour rather than a fact about the work — in culture too, East and West, the local and the world — which is exactly why the unclaimed things are found on the seam.\nA vessel is a thing with one use. The artifact I am building should become one — from the rule, the instrument — and the person building it should not. Make vessels; don't be one.",
+        "zh": "介面，是异质的两边先有一个接触面，彼此可见、可交流；会通，是不止于接触，而是理解、连接、融会，长出真正的 intersection；越界，是最后真的跨过去，必要时把原有的分类和惯例打破。（写「介面」而不是「界面」：同一个 interface，但「介」多带一层「介于两者之间」。）\n这样一个 intersection 一定存在，只是愿意去探索的人太少。别人交到我手上的每一条边界，后来都被证明只是某个时代社会分工的产物，而不是这件事本身的性质 —— 文化上也一样，东方与西方、民族与世界 —— 正因如此，没人认领的东西都在接缝上。\n器是只有一种用途的东西。我做出来的东西应该成器 ——「以法成器」—— 而做这件事的人不该成器。**做出来的要成器，做事的人不要成器。**"
       },
       "instances": [
         {
@@ -2087,7 +2087,7 @@
       },
       "body": {
         "en": "Scale is a generalization–diversity flywheel: the more general a thing becomes the wider it reaches, the wider it reaches the stranger the uses it meets, and the stranger the uses the more general it is forced to become.\nInterfaces are what I am here for, and what I want is for the power running through them to reach everyone. Mouse and keyboard to touch screens, then programming languages and the theory under them — it was always HCI. Open web standards for access, JavaScript and React for creation, then Lynx: the same move at three scales.",
-        "zh": "规模是一个「通用—多样」的飞轮：**愈通则愈广，愈广则愈异，愈异则愈通。**\n界面是我为之而来的东西，而我想要的是让穿过界面的那份能力抵达所有人。从鼠标键盘到触摸屏，再到编程语言和它们底下的理论 —— 一直都是 HCI。用开放的 Web 标准解决获取，用 JavaScript 和 React 解决创造，然后是 Lynx：同一个动作的三个尺度。"
+        "zh": "规模是一个「通用—多样」的飞轮：**愈通则愈广，愈广则愈异，愈异则愈通。**\n介面是我为之而来的东西，而我想要的是让穿过介面的那份能力抵达所有人。从鼠标键盘到触摸屏，再到编程语言和它们底下的理论 —— 一直都是 HCI。用开放的 Web 标准解决获取，用 JavaScript 和 React 解决创造，然后是 Lynx：同一个动作的三个尺度。"
       },
       "instances": [
         {
