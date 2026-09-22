@@ -80,9 +80,11 @@ export interface NormalizedCommit {
   // Core content
   title: string;
   /**
-   * The one line an aside row prints while folded. For a talk this is
-   * the conference name; other types fall back to their meta or title.
-   * Absent when the row is not an aside.
+   * The one line an aside row prints while folded: its venue and its
+   * title, `venue · title` — the conference, publication or platform,
+   * then what it was. The venue alone when the two would say the same
+   * thing, and the title alone for a type with no venue. Absent when the
+   * row is not an aside.
    */
   foldedTitle?: string;
   description: string;
@@ -227,6 +229,12 @@ export function extractMediaLinks(
   return links;
 }
 
+/** Whether two labels would print as the same line — case and surrounding
+ *  space are not a difference worth repeating a venue over. */
+function sameLine(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
 // =============================================================================
 // Platform Icon Helper
 // =============================================================================
@@ -297,15 +305,36 @@ export function normalizeCommit(
   const hash = computeCommitHash(commit.id);
   const thumbnail = deriveThumbnail(media);
   const languageBadge = getCommitLanguageBadge(commit, locale);
+  // The venue an aside prints while folded: the conference, the
+  // publication, the platform — where the work happened, since the aside
+  // voice is the event voice and an event is a dateline.
+  const foldedVenue =
+    commit.type === "talk"
+      ? commit.conference.name
+      : commit.type === "post"
+        ? commit.publication.name
+        : commit.type === "press"
+          ? commit.platform
+          : undefined;
+
+  // `venue · title`, and the venue alone when the two would say the same
+  // thing. Sparse, the way every other repeated field on this row is: the
+  // handle prints once per author run, the team chip blanks when it
+  // repeats. A talk whose `conference.name` IS its title — which is how
+  // two of the three asides in the log are authored — would otherwise
+  // read "CSS Still Sucks 2015 · CSS Still Sucks 2015".
+  //
+  // The venue leads because that is what the voice is for: folded, an
+  // aside is answering "when and where", and the title is the detail it
+  // offers if you have room for it. Opening the row gives the title its
+  // own line at full weight.
   const foldedTitle =
     commit.present === "aside"
-      ? commit.type === "talk"
-        ? commit.conference.name
-        : commit.type === "post"
-          ? commit.publication.name
-          : commit.type === "press"
-            ? commit.platform
-            : title
+      ? foldedVenue
+        ? sameLine(foldedVenue, title)
+          ? foldedVenue
+          : `${foldedVenue} · ${title}`
+        : title
       : undefined;
 
   // Identity fields shared by every branch's return.

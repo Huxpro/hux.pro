@@ -44,7 +44,7 @@
  * be a drawer opening on what is already on screen.
  */
 
-import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { PictureInPicture2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
@@ -303,10 +303,18 @@ export function AttachmentGrid({
         }
 
         // A lone card: the caption beside it, with the room to say more.
+        //
+        // The span goes on a wrapper, like every other branch here, not on
+        // the tile. `tileOf` may put the editor's inspect handle between the
+        // grid and the tile (`InspectableMedia`), and that wrapper is then
+        // the grid item — leaving `col-span-2` on the anchor inside it,
+        // where nothing reads it, and the card at half the column. The inner
+        // `grid grid-cols-2` is the card's own composition (cover beside
+        // copy) and stays on the tile, which is what it describes.
         return (
-          <Fragment key={`${media.url}-${i}`}>
+          <div key={`${media.url}-${i}`} className="col-span-2 min-w-0">
             {tileOf(slot, {
-              className: "col-span-2 grid grid-cols-2 gap-x-2.5 items-center",
+              className: "grid grid-cols-2 gap-x-2.5 items-center",
               footer: (
                 <Caption
                   slot={slot}
@@ -317,7 +325,7 @@ export function AttachmentGrid({
                 />
               ),
             })}
-          </Fragment>
+          </div>
         );
       })}
     </div>
