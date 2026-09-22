@@ -177,8 +177,34 @@ export function squashHeadline(
   resolved: ResolvedSquash,
   locale: Locale,
 ): string {
+  return resolveHeadline(resolved, locale).text;
+}
+
+/** Where a headline came from — see {@link resolveHeadline}. */
+export type HeadlineSource =
+  /** {@link Squash.title}, as written. */
+  | "authored"
+  /** The field the axis says the members share, and they do. */
+  | "shared"
+  /** The lead's own title, because neither of the above was available. */
+  | "fallback";
+
+/**
+ * The headline, and where it came from.
+ *
+ * The source is not decoration. `"fallback"` means the author claimed a
+ * shared field the data does not have — an axis is a claim, and this is
+ * the page quietly declining to print it. On /works that degradation is
+ * the right behaviour and should stay silent; in the editor it is the one
+ * thing worth saying out loud, which is why the two share this function
+ * instead of the editor guessing at the same conditions.
+ */
+export function resolveHeadline(
+  resolved: ResolvedSquash,
+  locale: Locale,
+): { text: string; source: HeadlineSource } {
   const authored = localizeOptional(resolved.squash.title, locale);
-  if (authored) return authored;
+  if (authored) return { text: authored, source: "authored" };
 
   const { axis, members, lead } = resolved;
   const derived =
@@ -188,7 +214,43 @@ export function squashHeadline(
         ? common(members.map((m) => localize(m.title, locale)))
         : null;
 
-  return derived ?? localize(lead.title, locale);
+  return derived
+    ? { text: derived, source: "shared" }
+    : { text: localize(lead.title, locale), source: "fallback" };
+}
+
+/**
+ * What is wrong with this squash, in one sentence, or null.
+ *
+ * Only the editor asks. The page never complains — it prints the most
+ * truthful thing it can and moves on — so this is where "truthful but not
+ * what you asked for" becomes visible to the person who asked.
+ */
+export function squashWarning(
+  resolved: ResolvedSquash,
+  locale: Locale,
+): string | null {
+  const { axis, members } = resolved;
+  const { source } = resolveHeadline(resolved, locale);
+
+  if (axis === "venue-title" && source !== "authored") {
+    return "These commits share nothing to build a headline from, so the row is wearing the lead's title. Write one.";
+  }
+  if (source === "fallback") {
+    return axis === "title"
+      ? "These commits are not all at the same venue, so there is no shared venue to head the row — it is wearing the lead's title instead."
+      : "These commits do not all have the same title, so there is nothing shared to head the row — it is wearing the lead's title instead.";
+  }
+  // Every line the same is the other axis's job, and the likelier slip:
+  // "same venue, different talks" typed in as "venues".
+  const labels = squashLines(resolved, locale, () => "").map((l) => l.label);
+  if (labels.length > 1 && new Set(labels).size === 1) {
+    return `Every line reads "${labels[0]}". The other axis is probably the one you want.`;
+  }
+  if (members.some((m) => !commitVenue(m)) && axis !== "none") {
+    return "Some of these have no venue — a project or an event — so their line falls back to their title.";
+  }
+  return null;
 }
 
 /** One member, as its line prints. */

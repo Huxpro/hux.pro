@@ -162,6 +162,7 @@ export function TimelineCommit({
   const { magneticPreviewEnabled } = useInputCapability();
   const isEvent = data.type === "event";
   const isAside = data.present === "aside";
+  const isSquashed = data.members.length > 0;
   // Folded asides borrow the event voice: muted italic line, rail
   // dot, no hash. Opening one reveals the real title and media; the
   // type is unchanged, so filters still find it.
@@ -392,7 +393,28 @@ export function TimelineCommit({
         A git log prints the graph and the hash before the subject too; what
         it never did was push the subject off the margin to make room.
       */}
-      {isQuiet || !onSelectHash ? (
+      {isSquashed ? (
+        // A squashed row is not one commit, so it has no one address to
+        // print here — its members carry theirs on their own lines, which
+        // is where a reader would look for them anyway. The cell still
+        // occupies its width so the headline stays on the same left edge
+        // as every other row's title, and the row keeps `id={data.hash}`
+        // below, so a permalink written before the squash existed still
+        // lands on the row that now prints that commit.
+        <span
+          aria-hidden
+          className={cn(
+            "hidden @sm:inline-block leading-5",
+            HASH_CELL,
+            // After TYPE.hash, not before: tailwind-merge keeps the LAST
+            // class in a conflicting group, and the role sets a colour.
+            TYPE.hash,
+            "text-transparent",
+          )}
+        >
+          {data.hash}
+        </span>
+      ) : isQuiet || !onSelectHash ? (
         <span
           className={cn(
             "hidden @sm:inline-block select-all",
@@ -670,13 +692,40 @@ export function TimelineCommit({
                   }
                 : {})}
             >
-              {/* The member's own address. A squash in git destroys the
+              {/* The member's own address, and the row's permalinks now
+                  that the gutter has none. A squash in git destroys the
                   commits it folds; this one does not, and the hashes are
-                  where that shows — they are still here, still resolvable,
-                  still what the permalink and the editor key on. */}
-              <span className={cn("shrink-0 hidden @sm:inline", TYPE.hash)}>
-                {m.hash}
-              </span>
+                  where that shows — still here, still resolvable, still
+                  what the editor keys on.
+
+                  The hash is the target, not the line: pressing the LINE
+                  has to keep doing what pressing the title does, since it
+                  is inside the row's own control and two arm's-lengths
+                  from it. Which is exactly the rule the gutter hash has
+                  always followed — it stops the press it takes. */}
+              {onSelectHash ? (
+                <a
+                  href={`#${m.hash}`}
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSelectHash(m.hash);
+                  }}
+                  aria-label={`Link to commit ${m.hash}`}
+                  className={cn(
+                    "shrink-0 hidden @sm:inline",
+                    TYPE.hash,
+                    "transition-colors hover:text-muted-foreground",
+                  )}
+                >
+                  {m.hash}
+                </a>
+              ) : (
+                <span className={cn("shrink-0 hidden @sm:inline select-all", TYPE.hash)}>
+                  {m.hash}
+                </span>
+              )}
               <span className={cn("min-w-0 flex-1 truncate", TYPE.rowMeta)}>
                 {m.label}
               </span>
