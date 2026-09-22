@@ -331,7 +331,9 @@ export function normalizeCommit(
   const foldedTitle =
     commit.present === "aside"
       ? foldedVenue
-        ? sameLine(foldedVenue, title)
+        ? // The author's choice, and a floor under it: even asked for both,
+          // print the venue alone when the two would say the same thing.
+          commit.asideLine === "venue" || sameLine(foldedVenue, title)
           ? foldedVenue
           : `${foldedVenue} · ${title}`
         : title

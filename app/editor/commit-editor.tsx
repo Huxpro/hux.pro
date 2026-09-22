@@ -13,6 +13,7 @@ import type {
   SocialEmbedPlatform,
   Identity,
   RoleCommit,
+  AsideLine,
 } from "@/lib/log";
 import { resolveIdentity, sortCommitsByDate } from "@/lib/log";
 import { X, Trash2, Plus, Unlink, GitBranch, AlertTriangle } from "lucide-react";
@@ -512,6 +513,24 @@ function FormFields({
         checked={commit.present === "aside"}
         onChange={(v) => onUpdate({ present: v ? "aside" : undefined })}
       />
+      {/* Only an aside has a folded line to compose, so the control only
+          exists once the row is one — the same way a talk's conference
+          fields only appear for a talk. `venue · title` is the default and
+          is written as the absence of the field, so the common case adds
+          nothing to log.json. */}
+      {commit.present === "aside" && (
+        <ChoiceField<AsideLine>
+          label="Aside line"
+          value={commit.asideLine ?? "venue-title"}
+          options={[
+            { value: "venue-title", label: "venue · title" },
+            { value: "venue", label: "venue" },
+          ]}
+          onChange={(v) =>
+            onUpdate({ asideLine: v === "venue-title" ? undefined : v })
+          }
+        />
+      )}
       <ChoiceField<"" | "en" | "zh" | "both">
         label="Language"
         value={commit.language ?? ""}
