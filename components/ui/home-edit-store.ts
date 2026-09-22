@@ -6,10 +6,12 @@ import { useSyncExternalStore } from "react";
 // Home edit-mode store
 //
 // The widget grid owns jiggle edit mode, but the bottom of the home screen is
-// shared with the command bar (systems/command/fab.tsx). On phones the bar
-// fades out while the grid is being edited so the edit controls can sit at
-// the bottom, so the two surfaces need one bit of shared state. A module
-// store keeps it out of the provider tree — the masonry writes, the bar reads.
+// shared with the command bar (systems/command/fab.tsx) — or, when the DevTool
+// liquid-tab switch is on, the phone tab bar (systems/tabbar). On phones the
+// chrome fades out while the grid is being edited so the edit controls can
+// sit at the bottom, so the two surfaces need one bit of shared state. A
+// module store keeps it out of the provider tree — the masonry writes, the
+// bar reads.
 // =============================================================================
 
 let editing = false;

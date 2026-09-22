@@ -39,7 +39,7 @@ const FAB_RADIUS = 24;
 
 export function FloatingActionButton() {
   const { toggle } = useCommand();
-  const { summon: summonDevtool } = useDevtool();
+  const { summon: summonDevtool, liquidTabBar } = useDevtool();
   const pathname = usePathname();
   const { locale } = useLocale();
   const [mounted, setMounted] = useState(false);
@@ -111,11 +111,13 @@ export function FloatingActionButton() {
     setMounted(true);
   }, []);
 
+  // Phone + DevTool switch: the liquid tab bar owns this slot. Desktop keeps
+  // the Search FAB either way.
+  if (!mounted || (liquidTabBar && compact)) return null;
+
   const isHomepage = pathname === "/";
   const isDraggable = drag.isEnabled && !isHomepage;
   const yielding = isHomepage && homeEditing && compact;
-
-  if (!mounted) return null;
 
   const fab = (
     <div

@@ -14,6 +14,7 @@ import { IdentityCard } from "@/systems/identity";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
 import { Dock } from "@/systems/dock";
+import { LiquidTabBar } from "@/systems/tabbar";
 import { MusicActivity, MusicPlaylistSheet } from "@/systems/music";
 import {
   TheaterActivity,
@@ -148,6 +149,7 @@ export default function RootLayout({
             <IdentityCard />
             <CommandPalette />
             <FloatingActionButton />
+            <LiquidTabBar />
           </Providers>
         </body>
       </html>

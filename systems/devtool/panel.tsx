@@ -67,6 +67,7 @@ import {
   DRAGGABLE_INSTANCES,
   DRAGGABLE_DEFAULTS,
   PHONE_PALETTE_DEFAULT,
+  LIQUID_TAB_BAR_DEFAULT,
   type PhonePalette,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
@@ -2313,7 +2314,8 @@ function MusicModule() {
 function CommandModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { phonePalette, setPhonePalette } = useDevtool();
+  const { phonePalette, setPhonePalette, liquidTabBar, setLiquidTabBar } =
+    useDevtool();
   const options: { value: PhonePalette; label: string; title: string }[] = [
     {
       value: "sheet",
@@ -2335,19 +2337,46 @@ function CommandModule() {
       compact
       defaultCollapsed
     >
-      <PanelRow
-        label={zh ? "手机面板" : "Phone palette"}
-        star={
-          phonePalette !== PHONE_PALETTE_DEFAULT ? (
-            <PanelStar
-              source="saved"
-              onReset={() => setPhonePalette(PHONE_PALETTE_DEFAULT)}
-            />
-          ) : undefined
-        }
-      >
-        <PanelSegmented value={phonePalette} options={options} onChange={setPhonePalette} />
-      </PanelRow>
+      <div className="space-y-3">
+        <PanelRow
+          label={zh ? "手机面板" : "Phone palette"}
+          star={
+            phonePalette !== PHONE_PALETTE_DEFAULT ? (
+              <PanelStar
+                source="saved"
+                onReset={() => setPhonePalette(PHONE_PALETTE_DEFAULT)}
+              />
+            ) : undefined
+          }
+        >
+          <PanelSegmented
+            value={phonePalette}
+            options={options}
+            onChange={setPhonePalette}
+          />
+        </PanelRow>
+        <PanelRow
+          label={zh ? "液态标签栏" : "Liquid tabs"}
+          star={
+            liquidTabBar !== LIQUID_TAB_BAR_DEFAULT ? (
+              <PanelStar
+                source="saved"
+                onReset={() => setLiquidTabBar(LIQUID_TAB_BAR_DEFAULT)}
+              />
+            ) : undefined
+          }
+        >
+          <PanelToggle
+            on={liquidTabBar}
+            onClick={() => setLiquidTabBar(!liquidTabBar)}
+            label={
+              zh
+                ? "手机端用液态玻璃标签栏替换搜索按钮"
+                : "Replace the phone Search button with a liquid-glass tab bar"
+            }
+          />
+        </PanelRow>
+      </div>
     </DebugSection>
   );
 }

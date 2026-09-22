@@ -130,6 +130,11 @@ interface DevtoolSettings {
   phonePalette: PhonePalette;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
+  /**
+   * Phone-only: replace the Search FAB with a five-tab liquid-glass bar
+   * (Home / Writing / Search / Works / Prompts). Off by default.
+   */
+  liquidTabBar: boolean;
 }
 
 const SETTINGS_DEFAULTS: DevtoolSettings = {
@@ -138,7 +143,11 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   collapsed: {},
   phonePalette: PHONE_PALETTE_DEFAULT,
   detached: false,
+  liquidTabBar: false,
 };
+
+/** Default for the liquid tab bar — also the star's "reset" target. */
+export const LIQUID_TAB_BAR_DEFAULT = SETTINGS_DEFAULTS.liquidTabBar;
 
 function getDevtoolSettings(): DevtoolSettings {
   if (typeof window === "undefined") return SETTINGS_DEFAULTS;
@@ -164,6 +173,7 @@ function getDevtoolSettings(): DevtoolSettings {
         phonePalette:
           parsed.phonePalette === "popover" ? "popover" : PHONE_PALETTE_DEFAULT,
         detached: parsed.detached === true,
+        liquidTabBar: parsed.liquidTabBar === true,
       };
     }
   } catch {
@@ -246,6 +256,12 @@ interface DevtoolContextType {
   phonePalette: PhonePalette;
   setPhonePalette: (shape: PhonePalette) => void;
   /**
+   * Phone-only: replace the Search FAB with a liquid-glass tab bar
+   * (Home / Writing / Search / Works / Prompts). Desktop is unchanged.
+   */
+  liquidTabBar: boolean;
+  setLiquidTabBar: (on: boolean) => void;
+  /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
    */
@@ -312,6 +328,9 @@ export function DevtoolProvider({
   >({});
   const [phonePalette, setPhonePaletteState] =
     useState<PhonePalette>(PHONE_PALETTE_DEFAULT);
+  const [liquidTabBar, setLiquidTabBarState] = useState(
+    SETTINGS_DEFAULTS.liquidTabBar
+  );
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -329,6 +348,7 @@ export function DevtoolProvider({
     setCollapsedSections(settings.collapsed);
     setPhonePaletteState(settings.phonePalette);
     setIsDetached(settings.detached);
+    setLiquidTabBarState(settings.liquidTabBar);
   }, []);
 
   const setEnabled = useCallback((enabled: boolean) => {
@@ -458,6 +478,11 @@ export function DevtoolProvider({
     setDevtoolSettings({ phonePalette: shape });
   }, []);
 
+  const setLiquidTabBar = useCallback((on: boolean) => {
+    setLiquidTabBarState(on);
+    setDevtoolSettings({ liquidTabBar: on });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -510,6 +535,8 @@ export function DevtoolProvider({
         setSectionCollapsed,
         phonePalette,
         setPhonePalette,
+        liquidTabBar,
+        setLiquidTabBar,
         heroExitOverride,
         setHeroExitOverride,
       }}
