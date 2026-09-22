@@ -1465,6 +1465,26 @@
             "ref": "principles-dalio",
             "source": "*Principles*"
           }
+        },
+        {
+          "title": {
+            "en": "The blade's edge comes from grinding",
+            "zh": "宝剑锋从磨砺出"
+          },
+          "text": {
+            "en": "“A sword's edge comes from grinding; the plum's scent comes from the bitter cold.” Drawing order back out of the environment is not free, and the price has these two names.",
+            "zh": "「宝剑锋从磨砺出，梅花香自苦寒来。」从环境里把秩序取回来是要付价钱的，而那个价钱的两个名字，一个叫磨，一个叫寒。"
+          },
+          "from": {
+            "name": {
+              "en": "Anonymous",
+              "zh": "佚名"
+            },
+            "source": {
+              "en": "*Jingshi Xianwen*",
+              "zh": "《警世贤文·勤奋篇》"
+            }
+          }
         }
       ],
       "shapedBy": ["principles-dalio"]
@@ -1905,25 +1925,29 @@
         },
         {
           "facet": {
-            "en": "abstraction",
-            "zh": "抽象"
+            "en": "parsimony",
+            "zh": "精简"
           },
           "text": {
-            "en": "Less is more.",
-            "zh": "少即是多。"
+            "en": "Entities must not be multiplied beyond necessity.",
+            "zh": "如无必要，勿增实体。"
           },
           "quotedFrom": {
             "name": {
-              "en": "Mies van der Rohe",
-              "zh": "密斯·凡德罗"
+              "en": "Ockham's razor",
+              "zh": "奥卡姆剃刀"
+            },
+            "source": {
+              "en": "in this Latin form, 1639",
+              "zh": "这个拉丁形式，1639"
             }
           }
         }
       ],
       "shapedBy": ["types-and-languages"],
       "body": {
-        "en": "What this step owes the next one is reproducibility: a demo that works in my hands has to become something anyone can run twice — a framework, a standard, a definition that doesn't need me in the room. Theory is not decoration on top of that work, it is the floor under it: it tells you what is impossible before you spend a year finding out, and the constraints it hands you are the cheapest ones you will ever buy.\nFormal methods are the weapon I reach for. Distil the theory out of what worked, state it where something other than me can check it — a type, a test, a spec, a doc — then write the program that is the proof, and let that program become the infrastructure. What other people hold together with process and good intentions, I would rather have a machine hold.\nFrom the thing, the principle; from the principle, the rule; from the rule, the instrument. Once the instrument exists, it can go to everyone.",
-        "zh": "这一步欠下一步的东西是「可复现」：一个在我手里能跑的 demo，要变成别人能再跑一遍的东西 —— 一个框架、一份标准、一个不需要我在场的定义。理论不是这件事上面的装饰，而是它下面的地板：它在你花一年去试出来之前，就告诉你什么是不可能的；而它交给你的约束，是你能买到的最便宜的约束。\n形式化是我惯用的武器。把跑通了的东西里的理提炼出来，写成一种我以外的东西能检查的形式 —— 一个类型、一个测试、一份规范、一份文档 —— 然后把证明写成程序，再让这个程序长成基础设施。别人靠流程和善意守住的东西，我更愿意交给机器来守。\n由物求理，以理成法，以法成器。器成，则可普及。"
+        "en": "What this step owes the next one is reproducibility: a demo that works in my hands has to become something anyone can run twice — a framework, a standard, a definition that doesn't need me in the room. Theory is not decoration on top of that work, it is the floor under it: it tells you what is impossible before you spend a year finding out, and the constraints it hands you are the cheapest ones you will ever buy.\nFormal methods are the weapon I reach for. Distil the theory out of what worked, state it where something other than me can check it — a type, a test, a spec, a doc — then write the program that is the proof, and let that program become the infrastructure. What other people hold together with process and good intentions, I would rather have a machine hold.\nFirst principles and the razor are the two ends of one instruction: **find the smallest causal model that explains the most**. And generalisation is compression — a thing is general because it has squeezed many cases into one.\nFrom the thing, the principle; from the principle, the rule; from the rule, the instrument. Once the instrument exists, it can go to everyone.",
+        "zh": "这一步欠下一步的东西是「可复现」：一个在我手里能跑的 demo，要变成别人能再跑一遍的东西 —— 一个框架、一份标准、一个不需要我在场的定义。理论不是这件事上面的装饰，而是它下面的地板：它在你花一年去试出来之前，就告诉你什么是不可能的；而它交给你的约束，是你能买到的最便宜的约束。\n形式化是我惯用的武器。把跑通了的东西里的理提炼出来，写成一种我以外的东西能检查的形式 —— 一个类型、一个测试、一份规范、一份文档 —— 然后把证明写成程序，再让这个程序长成基础设施。别人靠流程和善意守住的东西，我更愿意交给机器来守。\n第一性原理和奥卡姆剃刀说的是同一件事的两头：**找到那个最小的、能解释最多的因果模型。** 而 generalization 本质上是一种 compression —— 一个东西之所以通用，是因为它把很多情况压到了一条里。\n由物求理，以理成法，以法成器。器成，则可普及。"
       },
       "instances": [
         {
@@ -1969,6 +1993,72 @@
             "name": {
               "en": "*I Ching*, Great Commentary",
               "zh": "《周易·系辞上》"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "The same causes",
+            "zh": "同因同果"
+          },
+          "text": {
+            "en": "“To the same natural effects we must, as far as possible, assign the same causes.” Rule II of the Rules of Reasoning in Philosophy — generality is not ambition, it is method.",
+            "zh": "「对于相同的自然结果，必须尽可能归于相同的原因。」《原理》里「哲学中的推理规则」第二条 —— 通用不是野心，是方法。"
+          },
+          "from": {
+            "name": {
+              "en": "Isaac Newton",
+              "zh": "牛顿"
+            },
+            "source": {
+              "en": "*Principia*, Rule II, 1687",
+              "zh": "《自然哲学的数学原理》推理规则 II，1687"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Principles that sweep across the laws",
+            "zh": "横扫所有定律的原理"
+          },
+          "text": {
+            "en": "“So we have these wide principles which sweep across all the different laws.” The more kinds of phenomena a principle sweeps across, the closer it is to being a principle at all.",
+            "zh": "「我们有这样一些宽泛的原理，它们横扫所有不同的定律。」一条原理能横扫的现象越多，它离「理」就越近。"
+          },
+          "from": {
+            "name": {
+              "en": "Richard Feynman",
+              "zh": "费曼"
+            },
+            "source": {
+              "en": "*The Character of Physical Law*, 1965",
+              "zh": "《物理定律的本性》，1965"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Deep-to-meta",
+            "zh": "Deep-to-meta"
+          },
+          "text": {
+            "en": "Look at how the thing actually runs underneath, then go find the general solution.",
+            "zh": "先看事物运转的底层逻辑，再去寻找通用的解决方案。"
+          }
+        },
+        {
+          "title": {
+            "en": "Less is more",
+            "zh": "少即是多"
+          },
+          "text": {
+            "en": "“Less is more.” The razor, said by an architect.",
+            "zh": "「少即是多。」剃刀，由一个建筑师说出来。"
+          },
+          "from": {
+            "name": {
+              "en": "Mies van der Rohe",
+              "zh": "密斯·凡德罗"
             }
           }
         },
@@ -2154,16 +2244,6 @@
         },
         {
           "title": {
-            "en": "Deep-to-meta",
-            "zh": "Deep-to-meta"
-          },
-          "text": {
-            "en": "Look at how the thing actually runs underneath, then go find the general solution.",
-            "zh": "先看事物运转的底层逻辑，再去寻找通用的解决方案。"
-          }
-        },
-        {
-          "title": {
             "en": "The local and the world",
             "zh": "民族与世界"
           },
@@ -2225,6 +2305,30 @@
             "source": {
               "en": "London, 2012",
               "zh": ""
+            }
+          },
+          "facet": {
+            "en": "everyone",
+            "zh": "人人"
+          }
+        },
+        {
+          "facet": {
+            "en": "emergence",
+            "zh": "涌现"
+          },
+          "text": {
+            "en": "More is different.",
+            "zh": "多者异也。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Philip W. Anderson",
+              "zh": "菲利普·安德森"
+            },
+            "source": {
+              "en": "*Science* 177, 1972",
+              "zh": "《科学》177 期，1972"
             }
           }
         }
