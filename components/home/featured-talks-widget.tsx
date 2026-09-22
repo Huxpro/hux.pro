@@ -79,6 +79,7 @@ export function FeaturedTalksWidget() {
           {album.tracks.map((track, i) => (
             <button
               key={track.id}
+              type="button"
               data-pager-card
               onClick={() =>
                 open({ albums, albumIndex: activeAlbum, trackIndex: i })
@@ -105,6 +106,7 @@ export function FeaturedTalksWidget() {
         <PagerDots
           count={album.tracks.length}
           index={activeCard}
+          onSelect={scrollTo}
           className="pt-3"
         />
       </div>

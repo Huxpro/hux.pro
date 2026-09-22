@@ -152,10 +152,17 @@ export function WeatherNow() {
         <div className={TYPE.meta}>{error}</div>
       )}
       <button
+        type="button"
         onClick={() => refresh()}
-        className={TYPE.nav}
+        className={cn(
+          "pressable -mx-2 inline-flex min-h-7 items-center rounded-md px-2 outline-none",
+          TYPE.nav,
+          "hover:bg-foreground/[0.06] hover:text-foreground",
+          "focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",
+          "active:bg-foreground/[0.10] active:text-foreground",
+        )}
       >
-        retry
+        {t(locale, "weatherRetry")}
       </button>
     </div>
   );
