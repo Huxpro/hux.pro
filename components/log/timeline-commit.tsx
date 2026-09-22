@@ -670,7 +670,7 @@ export function TimelineCommit({
           nothing of its own: it is inside the row's press target, and a
           press near the title should do what a press on the title does. */}
       {!isQuiet && data.members.length > 0 && (
-        <ul className="col-start-2 @sm:col-start-3 mt-1 space-y-0.5">
+        <ul className="col-start-2 @sm:col-start-3 mt-1 min-w-0 space-y-0.5">
           {data.members.map((m) => (
             <li
               key={m.commitId}
@@ -726,7 +726,15 @@ export function TimelineCommit({
                   {m.hash}
                 </span>
               )}
-              <span className={cn("min-w-0 flex-1 truncate", TYPE.rowMeta)}>
+              {/* Wraps, and does not truncate. These are titles — the row's
+                  own title wraps, the description wraps, and the one thing
+                  on this row that clips is the venue line, which is a
+                  proper noun three words long. A `venue · title` line is
+                  as long as a title, and an ellipsis through it on a phone
+                  can leave two members reading the same. `items-baseline`
+                  keeps the date on the first line while it wraps, so the
+                  date column holds. */}
+              <span className={cn("min-w-0 flex-1", TYPE.rowMeta)}>
                 {m.label}
               </span>
               {/* Printed only where the members differ on it — see
