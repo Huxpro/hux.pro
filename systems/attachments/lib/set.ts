@@ -7,7 +7,7 @@ import {
   localizeOptional,
   type Commit,
 } from "@/lib/log";
-import type { AttachmentSet } from "./types";
+import type { AttachmentCredit, AttachmentSet } from "./types";
 
 // =============================================================================
 // Attachments — building a set from a commit
@@ -47,7 +47,12 @@ function subtitleFor(commit: Commit, locale: Locale): string | undefined {
 export function attachmentSetFor(
   commit: Commit,
   locale: Locale,
-  as?: { media?: Media[]; title?: string; subtitle?: string },
+  as?: {
+    media?: Media[];
+    title?: string;
+    subtitle?: string;
+    credits?: ReadonlyMap<Media, AttachmentCredit>;
+  },
 ): AttachmentSet | null {
   const items = (as?.media ?? commit.media ?? []).filter((m) => !isLinkPill(m));
   if (items.length === 0) return null;
@@ -58,5 +63,6 @@ export function attachmentSetFor(
     subtitle: as?.subtitle ?? subtitleFor(commit, locale),
     href: `/works#${hash}`,
     items,
+    credits: as?.credits,
   };
 }

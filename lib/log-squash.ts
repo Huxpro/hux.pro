@@ -23,6 +23,7 @@
 // those three would know about.
 // =============================================================================
 
+import type { Media } from "./log";
 import {
   commitVenue,
   formatCommitDate,
@@ -331,6 +332,68 @@ export function squashDate(
   const latest = months.reduce((a, b) => (a > b ? a : b));
   if (earliest === latest) return formatCommitDate(lead, locale);
   return formatDateRange(earliest, latest, locale);
+}
+
+/**
+ * Which commit each of the row's attachments actually belongs to.
+ *
+ * The counterpart to {@link squashMedia}, and the reason merging the media
+ * is safe: the array downstream is flat, but every item in it can still be
+ * traced back to the commit that attached it, so the theater, the surface
+ * and the feed's captions can name a recording after the talk it is of
+ * rather than after the row it is sitting on.
+ *
+ * This is the part of the git analogy that deliberately does not hold. A
+ * real squash destroys the commits it folds and there is nothing left to
+ * credit; here they are all still in the log, so refusing to answer would
+ * be a choice rather than a limitation.
+ *
+ * Keyed by the media object, which is the identity rule the whole
+ * attachment layer already runs on (`items.indexOf(media)`).
+ */
+export function squashCredits(
+  resolved: ResolvedSquash,
+  locale: Locale,
+  hashOf: (id: string) => string,
+): Map<Media, { title: string; subtitle?: string; href: string; line: string }> {
+  const headline = squashHeadline(resolved, locale);
+  const credits = new Map<
+    Media,
+    { title: string; subtitle?: string; href: string; line: string }
+  >();
+
+  // The one-line form is the member's OWN line, as the row prints it — the
+  // axis has already decided what a member says here, and a caption that
+  // decided again would be a second spelling that can disagree with the
+  // lines directly above it. `"none"` prints no lines, so it falls back to
+  // the full `venue · title`.
+  const lineOf = new Map(
+    squashLines(resolved, locale, () => "").map((l) => [l.commitId, l.label]),
+  );
+
+  for (const m of resolved.members) {
+    const title = localize(m.title, locale);
+    const venue = commitVenue(m);
+    const full = venue && !sameLine(venue, title) ? `${venue} · ${title}` : title;
+    const credit = {
+      // Structured fields stay the commit's real ones: the theater's bar
+      // and the surface's header have two slots and should use them.
+      title,
+      subtitle: venue,
+      href: `/works#${hashOf(m.id)}`,
+      // Sparse, the way every repeated field on this page is. A credit
+      // that restates the headline is the caption saying what the row
+      // already said one line up — true, and noise. The lead under
+      // `"none"` is exactly that case: the row IS its title.
+      line: sameLine(lineOf.get(m.id) ?? full, headline) ? "" : (lineOf.get(m.id) ?? full),
+    };
+    for (const item of m.media ?? []) {
+      // First member wins, matching `squashMedia`'s dedup: a recording two
+      // members both attach is one item, credited to the one that leads.
+      if (!credits.has(item)) credits.set(item, credit);
+    }
+  }
+  return credits;
 }
 
 /**

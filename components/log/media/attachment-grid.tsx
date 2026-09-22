@@ -125,6 +125,7 @@ function Caption({
   return (
     <div className={cn("min-w-0 space-y-0.5", className)}>
       <SourceLine slot={slot} locale={locale} />
+      <CreditLine caption={caption} />
       {caption.title ? (
         <div className={cn(TITLE, "line-clamp-2", strong && "font-medium")}>
           {caption.title}
@@ -144,17 +145,38 @@ function Caption({
   );
 }
 
-/** A recording's or a deck's one line: the source, and a deck's title. */
+/**
+ * Whose commit this attachment is, printed only where the tile is sitting
+ * on a row that stands for more than one (see {@link TileCaption.credit}).
+ * Quiet, and in the row's own `venue · title` words, so a cover and the
+ * member line above it are recognisably naming the same thing.
+ */
+function CreditLine({ caption }: { caption: TileSlot["caption"] }) {
+  if (!caption.credit) return null;
+  return (
+    <div className={cn(TYPE.captionQuiet, "truncate normal-case tracking-normal")}>
+      {caption.credit}
+    </div>
+  );
+}
+
+/** A recording's or a deck's one line: the source, and a deck's title.
+ *  Two lines on a squashed row, where the second says which talk it is a
+ *  recording OF — without it, two members' recordings are two tiles that
+ *  both read `YOUTUBE`. */
 function PlayableLine({ slot, className }: { slot: TileSlot; className?: string }) {
   const { media, caption } = slot;
   return (
-    <div className={cn(SOURCE, className)}>
-      <span className="shrink-0">{caption.source}</span>
-      {isSlidesMedia(media) && caption.title && (
-        <span className={cn("min-w-0 truncate normal-case tracking-normal", TITLE)}>
-          {caption.title}
-        </span>
-      )}
+    <div className={cn("min-w-0", className)}>
+      <div className={SOURCE}>
+        <span className="shrink-0">{caption.source}</span>
+        {isSlidesMedia(media) && caption.title && (
+          <span className={cn("min-w-0 truncate normal-case tracking-normal", TITLE)}>
+            {caption.title}
+          </span>
+        )}
+      </div>
+      <CreditLine caption={caption} />
     </div>
   );
 }

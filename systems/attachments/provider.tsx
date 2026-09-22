@@ -23,6 +23,7 @@ import {
   nativeHomeFor,
   type HomeContext,
 } from "./lib/policy";
+import { creditFor } from "./lib/types";
 import type { AttachmentHome, AttachmentSet } from "./lib/types";
 
 // =============================================================================
@@ -120,18 +121,24 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           if (media.kind !== "video" && media.kind !== "slides") return;
           // The stage picks the library: a recording lands among the talks,
           // a deck among the decks.
+          // The item's own credit, not the set's: on a squashed row the
+          // stage would otherwise announce a talk's recording under the
+          // project row's headline and the lead's venue.
+          const credit = creditFor(set, index);
           openMedia(media, {
             id: `${set.id}#${index}`,
-            title: set.title,
-            subtitle: set.subtitle,
-            href: set.href,
+            title: credit.title,
+            subtitle: credit.subtitle,
+            href: credit.href,
           });
           setIsOpen(false);
           return;
         }
         case "window": {
           if (!openUrl) return;
-          openUrl(linkTarget(media, locale), { title: set.title });
+          openUrl(linkTarget(media, locale), {
+            title: creditFor(set, index).title,
+          });
           // On a phone the window is a sheet, and it stacks on the attachment
           // sheet: putting the page away lands back on the commit's
           // attachments, the way a mobile app's in-app browser returns to

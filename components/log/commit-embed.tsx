@@ -13,7 +13,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
-import { getCommitPeekItems, localize } from "@/lib/log";
+import { computeCommitHash, getCommitPeekItems, localize } from "@/lib/log";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
 import { attachmentSetFor, leavesSite } from "@/systems/attachments";
@@ -24,6 +24,7 @@ import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
 import {
+  squashCredits,
   squashHeadline,
   squashMedia,
   type ResolvedSquash,
@@ -120,7 +121,15 @@ export function Commit({
             // name a deck after whichever member happened to lead, and
             // paging through the set would stop at the lead's own items.
             squash
-              ? { media: squashMedia(squash), title: squashHeadline(squash, locale) }
+              ? {
+                  media: squashMedia(squash),
+                  title: squashHeadline(squash, locale),
+                  // Merging the media is only safe because each item can
+                  // still name the commit it came from — see
+                  // `squashCredits`. Without this the stage would announce
+                  // a talk's recording under the project row's headline.
+                  credits: squashCredits(squash, locale, computeCommitHash),
+                }
               : undefined,
           ),
     [commit, locale, inspecting, squash],

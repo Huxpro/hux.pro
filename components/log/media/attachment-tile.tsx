@@ -79,6 +79,14 @@ export interface TileCaption {
   title: string;
   /** A page's blurb. */
   description?: string;
+  /**
+   * The commit this attachment belongs to, `venue · title`, when that is
+   * not the row it is sitting on — i.e. on a squashed row, and nowhere
+   * else. Two talks' recordings in one grid are otherwise two tiles both
+   * captioned `YOUTUBE / Recording`, which is the exact information a
+   * squashed row is at risk of eating.
+   */
+  credit?: string;
   /** The tile's one name — its tooltip and accessible name. */
   label: string;
 }
@@ -88,13 +96,32 @@ export interface TileCaption {
  * prints none of it (the chip is enough at that size); the feed prints it;
  * both name the tile by it.
  */
-export function tileCaption(media: Media, locale: Locale): TileCaption {
-  const named = (source: string, title: string, description?: string) => ({
-    source,
-    title,
-    description,
-    label: title || source,
-  });
+export function tileCaption(
+  media: Media,
+  locale: Locale,
+  /** See {@link TileCaption.credit}. */
+  credit?: string,
+): TileCaption {
+  const named = (source: string, title: string, description?: string) => {
+    // Sparse, like every repeated field on this page. Under an axis whose
+    // lines are titles, a talk's credit and its recording page's own title
+    // are frequently the same sentence, and printing it twice under one
+    // cover is the caption arguing with itself.
+    const shown =
+      credit && (!title || credit.trim().toLowerCase() !== title.trim().toLowerCase())
+        ? credit
+        : undefined;
+    return {
+      source,
+      title,
+      description,
+      credit: shown,
+      // The credit joins the accessible name too: the strip prints no
+      // caption at all, so a cover's tooltip is the only thing that can
+      // say which talk it is of down there.
+      label: [title || source, shown].filter(Boolean).join(" — "),
+    };
+  };
   if (isVideoMedia(media)) {
     return named(VIDEO_PLATFORM_LABEL[media.platform], t(locale, "logRecording"));
   }
@@ -154,7 +181,10 @@ export function resolveTile(
     index,
     leaves,
     mark: leaves ? newTabMark(locale) : markFor(item.media, locale),
-    caption: tileCaption(item.media, locale),
+    // By the media object, not by `index`: the index is -1 whenever there
+    // is no attachments provider (the editor's inspect mode), and a tile
+    // being uneditable is no reason for it to stop saying what it is of.
+    caption: tileCaption(item.media, locale, set?.credits?.get(item.media)?.line),
   };
 }
 

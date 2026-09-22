@@ -39,4 +39,9 @@ export {
   leavesSite,
 } from "./lib/policy";
 export type { HomeContext } from "./lib/policy";
-export type { AttachmentHome, AttachmentSet } from "./lib/types";
+export { creditFor } from "./lib/types";
+export type {
+  AttachmentCredit,
+  AttachmentHome,
+  AttachmentSet,
+} from "./lib/types";
