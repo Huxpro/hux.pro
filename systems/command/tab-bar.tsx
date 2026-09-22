@@ -10,6 +10,7 @@ import {
   useReducedMotion,
   useSpring,
   useTransform,
+  useVelocity,
 } from "framer-motion";
 import { FileText, GitCommit, Home, Search, Sparkles } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
@@ -58,15 +59,34 @@ import { useDevtoolHold } from "./use-devtool-hold";
 const EASE = [0.32, 0.72, 0, 1] as const;
 
 /**
- * The pill's travel. Nearly critically damped (ζ ≈ 0.97): it arrives fast and
- * settles without a wobble when a tab is tapped, and under a dragging finger
- * the same spring is what keeps the pill feeling attached to it rather than
- * nailed to it.
+ * The pill's travel. Underdamped on purpose (ζ ≈ 0.79): it arrives fast and
+ * gives back a few percent before settling, which is the difference between a
+ * pill that is *moved* to a tab and one that lands on it. Under a dragging
+ * finger the same spring is re-aimed on every pointer event, so the give is
+ * what keeps the pill feeling attached to the finger rather than nailed to it.
  */
-const PILL_SPRING = { stiffness: 520, damping: 42, mass: 0.9 } as const;
+const PILL_SPRING = { stiffness: 520, damping: 34, mass: 0.9 } as const;
+
+/** Picking it up and putting it down, springy to match the travel. */
+const PILL_LIFT_SPRING = { type: "spring", stiffness: 520, damping: 26 } as const;
 
 /** How much the pill lifts while it is being dragged. */
 const PILL_LIFT = 1.06;
+
+/**
+ * Squash and stretch. A pill moving fast elongates along its travel and pays
+ * it back across its height — the oldest trick in animation, and the one that
+ * makes a shape read as having some give in it rather than being slid.
+ * Driven by the spring's own velocity, so a flick across the bar stretches
+ * hard and a nudge to the next tab barely does.
+ */
+const PILL_STRETCH_MAX = 0.16;
+
+/** Speed (in pill widths ×100 per second) at which the stretch is maxed out. */
+const PILL_STRETCH_SPEED = 900;
+
+/** How much of the stretch the pill gives back across its height. */
+const PILL_SQUASH_K = 0.55;
 
 /** Sideways travel that turns a press into a scrub. */
 const DRAG_SLOP_PX = 8;
@@ -221,9 +241,9 @@ function useScrollShrink(enabled: boolean, mode: BezelScroll): boolean {
  * So for the length of the transition the bar gets an opaque floor: a page-
  * ground fill *under* its glass, which the glass then sits on instead of on
  * the page. The material itself never changes, and that is the point —
- * raising the fill to 100% instead would flatten the bar and the pill into
- * one colour, since both are the same base at different strengths and all of
- * the pill's contrast comes from how much page each of them lets through.
+ * raising the fill to 100% instead would take the bar to its own base, which
+ * in the light theme is the same white the selected pill is made of, so the
+ * pill would vanish exactly while the selection is changing.
  *
  * The floor is the page's ground and not the wallpaper's colour, because
  * nothing here knows the wallpaper's colour: `--tint` is deliberately clamped
@@ -292,6 +312,16 @@ export function CommandTabBar() {
   const target = useMotionValue(activeIndex * 100);
   const travel = useSpring(target, PILL_SPRING);
   const x = useTransform(travel, (v) => `${v}%`);
+  // The give, taken off the spring rather than off the pointer: the pill
+  // stretches for exactly as long as it is actually moving, which includes
+  // the overshoot it makes after the finger has stopped.
+  const speed = useVelocity(travel);
+  const stretch = useTransform(speed, (v) =>
+    reduceMotion
+      ? 1
+      : 1 + Math.min(Math.abs(v) / PILL_STRETCH_SPEED, 1) * PILL_STRETCH_MAX
+  );
+  const squash = useTransform(stretch, (v) => 1 - (v - 1) * PILL_SQUASH_K);
 
   const place = useCallback(
     (value: number) => {
@@ -469,12 +499,13 @@ export function CommandTabBar() {
             aria-hidden
             className={cn(
               "pointer-events-none absolute inset-0 rounded-full",
-              // Panel fill, not the button's: this is a full-width surface
-              // lying over the text of the page, and at the button's 50% the
-              // paragraph behind it reads straight through the bar in dark
-              // mode. Live Activity's panels are the same job at the same
-              // strength.
-              "bg-glass-overlay backdrop-blur-xl"
+              // The same fill the floating button wears — this bar *is* that
+              // button, re-laid-out, and a tab bar has no business being more
+              // opaque than the chrome it replaced. It can be this thin
+              // because the pill no longer borrows the material (see
+              // `bg-selected` above): the selected tab stays the lighter
+              // thing however much page comes through the track.
+              "bg-glass backdrop-blur-xl"
             )}
           />
 
@@ -489,13 +520,26 @@ export function CommandTabBar() {
               data-tab-pill
               className={cn(
                 "absolute inset-y-0 left-0 rounded-full",
-                // The site's selected-pill recipe — the lifted fill the
-                // album tabs and the theater switch use (`GLASS_PILL`,
+                // The site's selected-pill recipe (`GLASS_PILL`,
                 // systems/theater/lib/chrome.ts), written out rather than
-                // imported across systems.
-                "bg-glass-sheet shadow-sm ring-1 ring-border/50"
+                // imported across systems — and minus its `backdrop-blur`,
+                // which this one must not have: it sits on the bar's own
+                // blurred layer, and a filter on something that moves under a
+                // finger is a re-blur on every frame of the drag.
+                //
+                // `bg-selected`, not a glass role: selection is a
+                // relationship, not a material. It stays the lighter thing in
+                // both themes and at any track fill, which is what lets the
+                // bar below be as thin as it is. See Selection in
+                // docs/system-glass.md.
+                "bg-selected shadow-sm ring-1 ring-border/50"
               )}
-              style={{ width: `${100 / TABS.length}%`, x }}
+              style={{
+                width: `${100 / TABS.length}%`,
+                x,
+                scaleX: stretch,
+                scaleY: squash,
+              }}
               initial={false}
               animate={{
                 opacity: active || scrubbing ? 1 : 0,
@@ -504,7 +548,7 @@ export function CommandTabBar() {
               transition={
                 reduceMotion
                   ? { duration: 0 }
-                  : { type: "tween", duration: 0.22, ease: EASE }
+                  : { ...PILL_LIFT_SPRING, opacity: { duration: 0.22, ease: EASE } }
               }
             />
           </span>

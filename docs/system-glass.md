@@ -108,6 +108,11 @@ Two things these tokens deliberately do **not** do and one they do:
   fill — the dimming a busy wallpaper needs — so it pushes the chip the way
   selection already wants to go; the second is colour, not contrast.
 
+The phone tab bar's pill is the third caller, and the one that shows why the
+rule is worth a token of its own: its track is `bg-glass` at 50%, thinner than
+any other track on the site, and the pill stays legible through it in both
+themes without the track having to thicken to hold it.
+
 **Adding a control:** a selected chip must not reach for `--card`, `bg-black/*`,
 or any other fill that sinks. If it needs a fourth depth, add a fourth
 `--select-fill-*` rather than borrowing a glass role.

@@ -191,9 +191,18 @@ phone browser cannot fire.
 
 Three things the gesture rests on, each of them a bug found by trying it:
 
-- The pill's travel is a spring (`PILL_SPRING`, ζ ≈ 0.97) fed by one motion
+- The pill's travel is a spring (`PILL_SPRING`, ζ ≈ 0.79) fed by one motion
   value. A tap and a scrub write the same value, so there is no second code
-  path for "moving because dragged", and no re-render per pointer event.
+  path for "moving because dragged", and no re-render per pointer event. The
+  spring is underdamped on purpose: it gives back a few percent before
+  settling, which is the difference between a pill that is *moved* to a tab
+  and one that lands on it.
+- It also squashes and stretches. The pill elongates along its travel and pays
+  it back across its height, driven by the spring's own velocity — so a flick
+  across the bar stretches hard (capped at `PILL_STRETCH_MAX`), a nudge to the
+  next tab barely does, and the stretch keeps running through the overshoot
+  after the finger has stopped. Velocity off the spring rather than off the
+  pointer is what makes that last part true.
 - Position is read as a *fraction* of the tabs' live rect, never as remembered
   pixels: the bar may be mid-shrink under the finger, and a fraction is the
   same number at any scale.
@@ -212,6 +221,15 @@ transition, never scroll-linked — a scale that follows the finger re-blurs a
 the shrink costs no layout, and it is anchored `bottom center`, so the gap
 under the bar stays the gap. `prefers-reduced-motion` turns it off; the state
 is published as `data-shrunk` for the inspector and for tests.
+
+**The material** is the floating button's own fill (`bg-glass`) — this bar *is*
+that button, re-laid-out, and a tab bar has no business being more opaque than
+the chrome it replaced. It can be that thin because the pill does not borrow
+the material: it paints with `bg-selected` (see [Glass](./system-glass.md) →
+Selection), which stays the lighter thing in both themes however much page
+comes through the track. The pill is also the one selected chip on the site
+without `backdrop-blur`: it moves under a finger, and a filter on something
+that moves is a re-blur on every frame of the drag.
 
 **Solid while the page changes.** A `backdrop-filter` is not repainted in the
 same frame as the element that owns it: on iOS Safari a route change lands the
