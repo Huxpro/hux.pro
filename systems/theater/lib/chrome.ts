@@ -9,6 +9,15 @@ import { cn } from "@/lib/utils";
 // is one system. Theater chrome follows the site theme (same as PiP); the
 // video stage stays black. On-dark tokens remain for forced-dark contexts
 // (editor mocks, optional `tone="onDark"`).
+//
+// TRACK AND PILL ARE A PAIR, AND THE PILL IS ALWAYS THE LIGHTER ONE. That is
+// the rule iOS keeps in its segmented control and its tab bar, in both themes,
+// and it is the reason the pills paint with `bg-selected*` (globals.css,
+// "Selection") rather than with a glass role. A glass role is built from
+// `--card`, and `--card` is darker than the page in dark mode, so a pill that
+// borrowed one came out darker than the track it was supposed to sit on — the
+// selected segment read as a hole. Whatever else changes here, a selected chip
+// must not reach for `--card`, `bg-black/*`, or any other fill that sinks.
 // =============================================================================
 
 /**
@@ -30,9 +39,18 @@ export const GLASS_TRACK = cn(
   "backdrop-blur-xl",
 );
 
-/** Theme-aware selected / control pill. */
+/**
+ * Theme-aware selected / control pill.
+ *
+ * Lighter than its track, in both themes — the one rule iOS's segmented
+ * control and its tab bar share. `bg-selected` is white at a per-theme alpha
+ * (globals.css, "Selection"), which is what makes that true in dark mode as
+ * well: the fill used to be `bg-glass-sheet`, and `--card` under this theme is
+ * darker than the page, so the chosen segment came out as the darkest thing in
+ * the control.
+ */
 export const GLASS_PILL = cn(
-  "bg-glass-sheet shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
+  "bg-selected shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
 );
 
 /** Theme-aware clustered toolbar (PiP + Live Activity). Same capsule as theater. */
@@ -72,23 +90,28 @@ export const GLASS_CLUSTER_FLAT = cn(
 );
 
 /**
- * Selected pill: light lift in light mode; dark stamp in dark mode.
+ * Selected pill on the flat track: a lift in both themes, and a brighter lift
+ * while the track is hovered or pressed.
+ *
+ * It used to be a light lift in light mode and a *dark stamp* in dark mode,
+ * which is the inversion `bg-selected*` exists to end: a pill that reaches for
+ * `bg-card` on hover gets darker in dark mode, so pointing at the control made
+ * the selection harder to see rather than easier. Both states now climb the
+ * same ladder, so one `dark:` variant covers what four used to.
+ *
  * Follows the enclosing `group/glass` track — not the parent widget.
  */
 export const GLASS_PILL_FLAT = cn(
-  "pressable bg-glass-overlay ring-1 ring-border/30",
-  "dark:bg-glass-strong-hover dark:ring-transparent dark:shadow-none",
+  "pressable bg-selected-flat ring-1 ring-border/30",
   "backdrop-blur-xl",
   "transition-[background-color,box-shadow,ring-color] duration-200",
   "group-active/glass:duration-0",
-  "hover:bg-card hover:shadow-sm hover:ring-border/50",
-  "group-hover/glass:bg-card group-hover/glass:shadow-sm group-hover/glass:ring-border/50",
-  "active:bg-card active:shadow-sm active:ring-border/50",
-  "group-active/glass:bg-card group-active/glass:shadow-sm group-active/glass:ring-border/50",
-  "dark:hover:bg-card dark:hover:ring-white/[0.06]",
-  "dark:group-hover/glass:bg-card dark:group-hover/glass:ring-white/[0.06]",
-  "dark:active:bg-card dark:active:ring-white/[0.06]",
-  "dark:group-active/glass:bg-card dark:group-active/glass:ring-white/[0.06]",
+  "hover:bg-selected-lit hover:shadow-sm hover:ring-border/50",
+  "group-hover/glass:bg-selected-lit group-hover/glass:shadow-sm group-hover/glass:ring-border/50",
+  "active:bg-selected-lit active:shadow-sm active:ring-border/50",
+  "group-active/glass:bg-selected-lit group-active/glass:shadow-sm group-active/glass:ring-border/50",
+  "dark:shadow-none dark:hover:shadow-none dark:group-hover/glass:shadow-none",
+  "dark:active:shadow-none dark:group-active/glass:shadow-none",
 );
 
 /**
@@ -168,14 +191,20 @@ export const GLASS_ON_DARK_ORB = cn(
 
 /**
  * Always-dark theater album tabs — same language as dark-mode widget tabs
- * (dim / frameless track + dark stamp). Not the brighter window-toolbar glass.
+ * (dim / frameless track, with the selected chip lifted off it). Not the
+ * brighter window-toolbar glass.
  */
 export const GLASS_ON_DARK_TRACK = cn(
   "border border-transparent bg-white/[0.02] backdrop-blur-xl",
   "hover:border-white/[0.06] hover:bg-white/[0.05]",
 );
 
-/** Always-dark theater: dark selected stamp, not a white chip. */
+/**
+ * Always-dark theater: a grey chip lifted off the track — the same rule the
+ * themed pill follows, since this surface is dark mode by force rather than by
+ * setting. It was a black stamp, which over a black stage meant the selected
+ * segment was the one you could not see.
+ */
 export const GLASS_ON_DARK_PILL = cn(
-  "bg-black/55 shadow-sm ring-1 ring-transparent backdrop-blur-xl",
+  "bg-white/[0.16] shadow-sm ring-1 ring-white/[0.08] backdrop-blur-xl",
 );

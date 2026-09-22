@@ -60,6 +60,58 @@ token follows along for free:
 with the fill, and under an image wallpaper the relief text-shadow lands on
 `bg-glass*` surfaces at the material's strength (`--glass-relief-k`).
 
+## Selection
+
+The one surface that is *not* made of this material: the chip that says "this
+one" — the lifted pill in a segmented control, the lit button in a transport
+cluster.
+
+iOS keeps a single rule in its segmented control and its tab bar, and keeps it
+in both themes: **the selected thing is the lighter thing.** White pill on a
+grey track in light; grey pill on a near-black track in dark. Nothing else in
+either control carries the state — no accent colour, no outline — so the moment
+the chip goes the other way, the control is lying about which one you picked.
+
+Ours did, in dark mode, everywhere: the album tabs on the Talks widget, the
+play button in the music widget and its Live Activity, the surface switch in
+the theater and PiP. The cause was upstream of any one of them. A glass role is
+built from `--card`, and in this theme `--card` (0.19) is *darker* than the page
+(0.2178), so the chip came out as the darkest thing in a control whose track was
+`white/8%` — a hole punched in the track rather than a tile lifted off it.
+
+So selection gets its own three tokens, and they are built from white in both
+themes:
+
+| Token | For |
+|-------|-----|
+| `bg-selected` | The pill on a raised track (theater, PiP, Live Activity) |
+| `bg-selected-flat` | The pill on a flat track (home widgets), at rest |
+| `bg-selected-lit` | The same pill while its track is hovered or pressed |
+
+`--select-fill` / `-flat` / `-lit` are the per-theme numbers (globals.css). In
+light they are the sheet / panel / card fills the chips already painted with, so
+light mode did not move; in dark they drop to alphas, because white at 85% over
+a dark track is a slab, not a lift. White at 22% over the raised track lands at
+`#5a5a5a` against its `#2c2c2c`, which is within a point or two of iOS's own
+dark pair.
+
+Two things these tokens deliberately do **not** do and one they do:
+
+- They do not thin out with Clear. Selection is a relationship, not a material:
+  the pair (track, chip) has to keep its contrast step whatever the setting is.
+  The tracks are fixed alphas already (`GLASS_TRACK` in
+  `systems/theater/lib/chrome.ts`), so a chip that thinned would only drift
+  toward its track and blur the answer.
+- They do not follow the ink ladder into a flipped zone. Like every other
+  surface here, the lift direction is toward light in both themes.
+- They do take `--glass-add` and `--tint-glass`. The first only ever *adds*
+  fill — the dimming a busy wallpaper needs — so it pushes the chip the way
+  selection already wants to go; the second is colour, not contrast.
+
+**Adding a control:** a selected chip must not reach for `--card`, `bg-black/*`,
+or any other fill that sinks. If it needs a fourth depth, add a fourth
+`--select-fill-*` rather than borrowing a glass role.
+
 **Adding a surface:** use a glass token instead of `bg-card/NN`. That is the
 whole contract — a surface that hardcodes its own alpha simply won't respond to
 the setting, which is the bug this system exists to prevent.
