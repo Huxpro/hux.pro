@@ -4,11 +4,17 @@ import { cn } from "@/lib/utils";
 // Theater / talks glass chrome — one material system
 //
 // Matches AlbumTabs (Featured Talks widget): frosted track + lifted pill, not
-// inverted black stamps or four lonely discs. Shared by talks (widget, theater,
-// PiP, Live Activity) and music (widget + Live Activity) so playback chrome
-// is one system. Theater chrome follows the site theme (same as PiP); the
-// video stage stays black. On-dark tokens remain for forced-dark contexts
-// (editor mocks, optional `tone="onDark"`).
+// four lonely discs. Shared by talks (widget, theater, PiP, Live Activity) and
+// music (widget + Live Activity) so playback chrome is one system. Theater
+// chrome follows the site theme (same as PiP); the video stage stays black.
+// On-dark tokens remain for forced-dark contexts (editor mocks, optional
+// `tone="onDark"`).
+//
+// Selection follows the iOS segmented control and tab bar: the chosen segment
+// is the lighter fill in both appearances. A white thumb on the gray track in
+// light; a lighter gray thumb on the dim track in dark. The thumb is not a
+// glass-fill token — those mix toward the card, and in dark the card is darker
+// than the track, which is how the old stamp landed upside down.
 // =============================================================================
 
 /**
@@ -24,15 +30,28 @@ import { cn } from "@/lib/utils";
  */
 export const THEATER_BACKDROP = cn("bg-glass/80 backdrop-blur-xl");
 
-/** Theme-aware track (homepage widget + AlbumTabs). */
+/**
+ * Theme-aware track (homepage widget + AlbumTabs + Live Activity clusters).
+ * Recessed: a gray wash in light, a dim wash in dark. Always darker than the
+ * selected pill.
+ */
 export const GLASS_TRACK = cn(
   "border border-border/50 bg-foreground/[0.06] dark:bg-white/[0.08]",
   "backdrop-blur-xl",
 );
 
-/** Theme-aware selected / control pill. */
+/**
+ * Theme-aware selected / control pill. Lighter than `GLASS_TRACK` in both
+ * themes: opaque background in light, a stronger white wash in dark.
+ * `hover:` / `active:` repeat the fill so a cluster button's own wash
+ * (`GLASS_BTN`) cannot darken the thumb while the pointer is on it.
+ */
 export const GLASS_PILL = cn(
-  "bg-glass-sheet shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
+  "bg-background shadow-sm ring-1 ring-black/[0.05]",
+  "hover:bg-background active:bg-background",
+  "dark:bg-white/[0.22] dark:shadow-none dark:ring-white/15",
+  "dark:hover:bg-white/[0.28] dark:active:bg-white/[0.28]",
+  "backdrop-blur-xl",
 );
 
 /** Theme-aware clustered toolbar (PiP + Live Activity). Same capsule as theater. */
@@ -42,11 +61,9 @@ export const GLASS_CLUSTER = cn(
 );
 
 /**
- * Widget rest vs hover — inverted per theme, opacity so gradient cards show through.
- *
- * Light: a hairline frame at rest, ink deepens on hover.
- * Dark: no visible border at rest (fill only); hover brings a whisper of
- * edge + wash, never brighter than raised `GLASS_TRACK` (`white/08`).
+ * Widget rest vs hover. The track deepens under the pointer but stays darker
+ * than the selected pill — light tops out at `foreground/8`, dark at `white/8`,
+ * which is the raised track. The pill sits above both.
  *
  * This control is its own named group (`group/glass`). It must not follow
  * the parent widget's hover/press — WidgetShell is `:active` whenever a
@@ -56,14 +73,14 @@ export const GLASS_CLUSTER = cn(
  * pill follows via `group-hover/glass` / `group-active/glass`.
  */
 export const GLASS_TRACK_FLAT = cn(
-  "group/glass pressable border border-border/30 bg-foreground/[0.03]",
-  "dark:border-transparent dark:bg-white/[0.02]",
+  "group/glass pressable border border-border/30 bg-foreground/[0.04]",
+  "dark:border-transparent dark:bg-white/[0.04]",
   "backdrop-blur-xl",
   "transition-[background-color,border-color,box-shadow] duration-200",
   "hover:border-border/50 hover:bg-foreground/[0.08]",
   "active:border-border/50 active:bg-foreground/[0.08]",
-  "dark:hover:border-white/[0.06] dark:hover:bg-white/[0.05]",
-  "dark:active:border-white/[0.06] dark:active:bg-white/[0.05]",
+  "dark:hover:border-white/[0.08] dark:hover:bg-white/[0.08]",
+  "dark:active:border-white/[0.08] dark:active:bg-white/[0.08]",
 );
 
 export const GLASS_CLUSTER_FLAT = cn(
@@ -72,23 +89,22 @@ export const GLASS_CLUSTER_FLAT = cn(
 );
 
 /**
- * Selected pill: light lift in light mode; dark stamp in dark mode.
+ * Selected pill on the flat track. Same lightness rule as `GLASS_PILL`:
+ * white thumb in light, a lighter wash in dark. When the track deepens, the
+ * dark thumb steps up (`white/20` → `white/28`) so it stays the light one.
  * Follows the enclosing `group/glass` track — not the parent widget.
  */
 export const GLASS_PILL_FLAT = cn(
-  "pressable bg-glass-overlay ring-1 ring-border/30",
-  "dark:bg-glass-strong-hover dark:ring-transparent dark:shadow-none",
+  "pressable bg-background shadow-sm ring-1 ring-black/[0.05]",
+  "dark:bg-white/[0.2] dark:shadow-none dark:ring-white/15",
   "backdrop-blur-xl",
   "transition-[background-color,box-shadow,ring-color] duration-200",
   "group-active/glass:duration-0",
-  "hover:bg-card hover:shadow-sm hover:ring-border/50",
-  "group-hover/glass:bg-card group-hover/glass:shadow-sm group-hover/glass:ring-border/50",
-  "active:bg-card active:shadow-sm active:ring-border/50",
-  "group-active/glass:bg-card group-active/glass:shadow-sm group-active/glass:ring-border/50",
-  "dark:hover:bg-card dark:hover:ring-white/[0.06]",
-  "dark:group-hover/glass:bg-card dark:group-hover/glass:ring-white/[0.06]",
-  "dark:active:bg-card dark:active:ring-white/[0.06]",
-  "dark:group-active/glass:bg-card dark:group-active/glass:ring-white/[0.06]",
+  "hover:bg-background active:bg-background",
+  "group-hover/glass:bg-background group-active/glass:bg-background",
+  "dark:hover:bg-white/[0.28] dark:active:bg-white/[0.28]",
+  "dark:group-hover/glass:bg-white/[0.28] dark:group-hover/glass:ring-white/20",
+  "dark:group-active/glass:bg-white/[0.28] dark:group-active/glass:ring-white/20",
 );
 
 /**
@@ -167,15 +183,17 @@ export const GLASS_ON_DARK_ORB = cn(
 );
 
 /**
- * Always-dark theater album tabs — same language as dark-mode widget tabs
- * (dim / frameless track + dark stamp). Not the brighter window-toolbar glass.
+ * Always-dark theater album tabs. A dim capsule, and a selected thumb that
+ * is lighter than the capsule — including while the track is hovered
+ * (`white/12` under `white/24`).
  */
 export const GLASS_ON_DARK_TRACK = cn(
-  "border border-transparent bg-white/[0.02] backdrop-blur-xl",
-  "hover:border-white/[0.06] hover:bg-white/[0.05]",
+  "border border-white/10 bg-white/[0.08] backdrop-blur-xl",
+  "transition-[background-color,border-color] duration-200",
+  "hover:border-white/15 hover:bg-white/[0.12]",
 );
 
-/** Always-dark theater: dark selected stamp, not a white chip. */
+/** Always-dark theater: lighter selected thumb, not a dark stamp. */
 export const GLASS_ON_DARK_PILL = cn(
-  "bg-black/55 shadow-sm ring-1 ring-transparent backdrop-blur-xl",
+  "bg-white/[0.24] shadow-sm ring-1 ring-white/20 backdrop-blur-xl",
 );
