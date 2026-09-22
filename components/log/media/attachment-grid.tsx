@@ -44,7 +44,7 @@
  * be a drawer opening on what is already on screen.
  */
 
-import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { PictureInPicture2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
@@ -56,9 +56,10 @@ import {
   type AttachmentsApi,
 } from "@/systems/attachments";
 import { mediaToTrack, useOptionalTheaterStage } from "@/systems/theater";
-import { isSlidesMedia, isVideoMedia, type StripItem } from "@/lib/log";
+import { isSlidesMedia, isVideoMedia, type Media, type StripItem } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
 import { AttachmentTile, resolveTile, type TileSlot } from "./attachment-tile";
+import { InspectableMedia } from "./inspectable";
 import { MediaMark, newTabMark, SURFACE_CHIP } from "./media-mark";
 import { videoEmbedUrl } from "./video";
 
@@ -67,6 +68,14 @@ export interface AttachmentGridProps {
   items: StripItem[];
   set?: AttachmentSet | null;
   className?: string;
+  /**
+   * Pin the phone stack regardless of the live viewport. The attachments
+   * lab uses this so both layouts sit on one page.
+   */
+  compact?: boolean;
+  inspecting?: boolean;
+  onInspect?: (media: Media) => void;
+  selectedMedia?: Media | null;
 }
 
 /**
@@ -150,7 +159,15 @@ function PlayableLine({ slot, className }: { slot: TileSlot; className?: string 
   );
 }
 
-export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
+export function AttachmentGrid({
+  items,
+  set,
+  className,
+  compact: compactProp,
+  inspecting = false,
+  onInspect,
+  selectedMedia = null,
+}: AttachmentGridProps) {
   const attachments = useOptionalAttachments();
   const { locale } = useLocale();
   // Once per item, not once per tile per render: the set lookup, the policy
@@ -161,8 +178,12 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
   );
   if (slots.length === 0) return null;
 
-  const compact = attachments?.compact ?? false;
+  const compact = compactProp ?? attachments?.compact ?? false;
 
+  // Main's tile, wrapped in the editor's handle. The wrapper is transparent
+  // outside inspect mode (it returns its children), so the feed's own
+  // composition — the footer inside the same anchor, the bleed wrapper — is
+  // untouched.
   const tileOf = (
     slot: TileSlot,
     extra?: {
@@ -172,21 +193,28 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
       imageClassName?: string;
     },
   ) => (
-    <AttachmentTile
-      slot={slot}
-      size="cell"
-      locale={locale}
-      set={set}
-      attachments={attachments}
-      mode="act"
-      // The glyph on what plays — a recording, a deck, a talks-host card —
-      // and nothing on a page: the caption has said what it is.
-      chip={slot.mark ? "mini" : "none"}
-      flush={extra?.flush}
-      footer={extra?.footer}
-      className={extra?.className}
-      imageClassName={extra?.imageClassName}
-    />
+    <InspectableMedia
+      media={slot.media}
+      inspecting={inspecting}
+      selected={selectedMedia === slot.media}
+      onInspect={onInspect}
+    >
+      <AttachmentTile
+        slot={slot}
+        size="cell"
+        locale={locale}
+        set={set}
+        attachments={attachments}
+        mode="act"
+        // The glyph on what plays — a recording, a deck, a talks-host card —
+        // and nothing on a page: the caption has said what it is.
+        chip={slot.mark ? "mini" : "none"}
+        flush={extra?.flush}
+        footer={extra?.footer}
+        className={extra?.className}
+        imageClassName={extra?.imageClassName}
+      />
+    </InspectableMedia>
   );
 
   // ---------------------------------------------------------------------
@@ -197,13 +225,20 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
       <div className={cn("space-y-4", className)}>
         {slots.map((slot, i) =>
           isVideoMedia(slot.media) || isSlidesMedia(slot.media) ? (
-            <InlinePlayable
+            <InspectableMedia
               key={`${slot.media.url}-${i}`}
-              slot={slot}
-              set={set}
-              attachments={attachments}
-              locale={locale}
-            />
+              media={slot.media}
+              inspecting={inspecting}
+              selected={selectedMedia === slot.media}
+              onInspect={onInspect}
+            >
+              <InlinePlayable
+                slot={slot}
+                set={set}
+                attachments={attachments}
+                locale={locale}
+              />
+            </InspectableMedia>
           ) : (
             <div key={`${slot.media.url}-${i}`} className="min-w-0">
               {tileOf(slot, {
@@ -268,10 +303,18 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
         }
 
         // A lone card: the caption beside it, with the room to say more.
+        //
+        // The span goes on a wrapper, like every other branch here, not on
+        // the tile. `tileOf` may put the editor's inspect handle between the
+        // grid and the tile (`InspectableMedia`), and that wrapper is then
+        // the grid item — leaving `col-span-2` on the anchor inside it,
+        // where nothing reads it, and the card at half the column. The inner
+        // `grid grid-cols-2` is the card's own composition (cover beside
+        // copy) and stays on the tile, which is what it describes.
         return (
-          <Fragment key={`${media.url}-${i}`}>
+          <div key={`${media.url}-${i}`} className="col-span-2 min-w-0">
             {tileOf(slot, {
-              className: "col-span-2 grid grid-cols-2 gap-x-2.5 items-center",
+              className: "grid grid-cols-2 gap-x-2.5 items-center",
               footer: (
                 <Caption
                   slot={slot}
@@ -282,7 +325,7 @@ export function AttachmentGrid({ items, set, className }: AttachmentGridProps) {
                 />
               ),
             })}
-          </Fragment>
+          </div>
         );
       })}
     </div>

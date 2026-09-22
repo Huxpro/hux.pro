@@ -361,10 +361,29 @@ interface BaseCommit {
    *    into the real title, description, and media.
    */
   present?: CommitPresent;
+  /**
+   * How much an aside's folded line says (see {@link AsideLine}). Absent
+   * is `"venue-title"`. Meaningless on a row that is not an aside, and on
+   * a type with no venue — a project has none, and prints its title.
+   */
+  asideLine?: AsideLine;
 }
 
 /** Timeline row dressing. Orthogonal to {@link CommitType}. */
 export type CommitPresent = "aside";
+
+/**
+ * What an aside's folded line prints — see {@link BaseCommit.asideLine}.
+ *
+ *  - `"venue-title"` (default): `WePiao Internal Tech Talk · JavaScript
+ *    模块化七日谈`. The venue leads, because folded an aside is answering
+ *    "when and where"; the title is the detail it offers after that.
+ *  - `"venue"`: the venue alone, the way the event rows above it read.
+ *    For a talk whose venue already says what the talk was — a deck
+ *    whose `conference.name` is its own name, or the same title in the
+ *    other locale — where printing both is saying it twice.
+ */
+export type AsideLine = "venue" | "venue-title";
 
 /**
  * The language of a work or its visibility scope.

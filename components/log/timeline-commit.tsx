@@ -64,10 +64,6 @@ interface TimelineCommitProps {
   /** Extra class for the cursor-preview panel (e.g. flush poster framing). */
   cursorPreviewPanelClassName?: string;
   defaultExpanded?: boolean;
-  /** Page-level "expand/collapse all" command. When its value flips, the
-   *  row syncs its expanded state to it; undefined leaves the row
-   *  self-controlled (card / bare contexts). */
-  expandAll?: boolean;
   className?: string;
   hideDate?: boolean;
   /** Git-graph rail char to draw on the right (`┐`, `│`, `┘` or empty). */
@@ -131,7 +127,6 @@ export function TimelineCommit({
   cursorPreview,
   cursorPreviewPanelClassName,
   defaultExpanded = false,
-  expandAll,
   className,
   hideDate = false,
   rail,
@@ -170,14 +165,31 @@ export function TimelineCommit({
     byline
   );
 
-  // Seeded from `expandAll`, not just `defaultExpanded`: the reconciliation
-  // below only fires when the prop *changes*, so a row mounting with
-  // `expandAll` already true (someone opened `/works?view=feed` directly, or
-  // navigated in) would otherwise sit collapsed with no flip ever coming.
-  const [isExpandedState, setIsExpanded] = useState(
-    defaultExpanded || (expandAll === true && hasExpandableContent),
-  );
-  const isExpanded = inspecting ? isSelected : isExpandedState;
+  // The row's own state is one bit, and it is about the prose only: has the
+  // reader pressed this row's text? The form printed a density
+  // (`rowFormFor`), and this flips it — relieved where the form clamped,
+  // clamped back where the form had already printed it whole. The picture
+  // never moves, which is the whole point of the split.
+  const [textRelieved, setTextRelieved] = useState(defaultExpanded);
+
+  // A form change is a new default, so the deviation is spent. Reconciled
+  // during render rather than in an effect (React's "adjusting state when a
+  // prop changes"), so the row never paints at the old density first.
+  //
+  // An aside is the exception, in both directions: the forms are a
+  // statement about the ordinary commits, and a talk that folded itself
+  // down to the conference's name has said it is not one. Entering `feed`
+  // does not open it, and leaving does not close one the reader opened.
+  const followsForm = !isAside;
+  const [lastForm, setLastForm] = useState(form);
+  if (form !== lastForm) {
+    setLastForm(form);
+    if (followsForm) setTextRelieved(false);
+  }
+
+  // Inspect selects; it does not invent a layout. A selected row shows its
+  // prose whole so the fields being edited are on screen.
+  const textOpen = inspecting ? isSelected : textRelieved;
 
   // Pinned items render once in a stable spot beneath the row (visible
   // folded *and* expanded), so toggling never remounts them. The expanded
@@ -186,23 +198,9 @@ export function TimelineCommit({
   const pinnedMedia = data.pinnedMedia as Media[];
   const expandedMedia = data.expandedMedia;
 
-  // Sync to the page-level "expand/collapse all" command without an effect:
-  // store the last seen value and reconcile during render when it flips, so
-  // a row toggled by hand stays put until the *next* global command. Rows
-  // with nothing to expand are left collapsed — expanding them shows nothing
-  // yet would suppress their hover peek (see `showCursorPreview`).
-  // (React's "adjusting state when a prop changes" pattern.)
-  const [lastExpandAll, setLastExpandAll] = useState(expandAll);
-  if (expandAll !== lastExpandAll) {
-    setLastExpandAll(expandAll);
-    if (expandAll !== undefined) {
-      setIsExpanded(expandAll && hasExpandableContent);
-    }
-  }
-
   const handleToggleExpanded = useCallback(() => {
     if (!hasExpandableContent) return;
-    setIsExpanded((prev) => !prev);
+    setTextRelieved((prev) => !prev);
   }, [hasExpandableContent]);
 
   // A role row is nothing but its identity, so with a pointer its hover peek
@@ -223,15 +221,16 @@ export function TimelineCommit({
   const rowOpensIdentity =
     data.type === "role" && !!byline && !!identityCard && !magneticPreviewEnabled;
 
-  // The feed is already every row open. Folding one commit among a column
-  // of open ones is the same click as opening a caption, and nothing
-  // painted the difference. Leave feed via the toolbar; a hand-opened row
-  // in covers / index still folds from its title line.
+  // Every row keeps its press, in every form. The feed used to drop it
+  // because "the feed is already every row open" — folding one commit among
+  // a column of open ones was the same click as opening a caption, and
+  // nothing painted the difference. They are not the same click any more:
+  // this one changes the prose, the cover's opens the attachment.
   const rowOnClick = inspecting
     ? onInspectCommit
     : rowOpensIdentity
       ? openIdentity
-      : form !== "feed" && hasExpandableContent
+      : hasExpandableContent
         ? handleToggleExpanded
         : undefined;
 
@@ -241,7 +240,7 @@ export function TimelineCommit({
   // row scale). Everything below reads those atoms and nothing reads the
   // form's name, or `isExpanded` again: the feed's atoms already say
   // "no strip, no clamp, no peek".
-  const rowForm = rowFormFor(form, isExpanded);
+  const rowForm = rowFormFor(form, textOpen);
 
   // What the folded form adds under the title line: the description at two
   // lines, and the strip of covers. Both or either — a commit with no media
@@ -256,7 +255,7 @@ export function TimelineCommit({
   // The strip is the folded form's own: while the row is open the feed's
   // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
-  const isQuiet = isEvent || (isAside && !isExpanded);
+  const isQuiet = isEvent || (isAside && !textOpen);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
   const showStrip =
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
@@ -277,8 +276,9 @@ export function TimelineCommit({
     rowForm.peek &&
     (data.type === "role" || (!showStrip && !showStatDescription));
   // The feed's covers are the row's own strip items; what has no cover (a
-  // live widget) stacks under the grid. The editor's inspect mode keeps the
-  // classic renderer for everything, since its handles live there.
+  // live widget) stacks under the grid. Inspect mode keeps this layout —
+  // the handle lives on the tile (InspectableMedia), not on a different
+  // renderer — so the editor stays the page it is editing.
   const tiled = new Set(data.stripItems.map((item) => item.media));
   const stacked = expandedMedia.filter((m) => !tiled.has(m));
 
@@ -326,14 +326,14 @@ export function TimelineCommit({
 
   useEffect(() => {
     if (!participatesInSegment || !beamSpec) return;
-    if (isHovered || isExpanded) {
+    if (isHovered || textOpen) {
       onBeamSet?.(beamSpec);
     } else {
       // Pass our own spec so the parent can guard against a stale clear
       // (a sibling's later effect overwriting a fresh set on another row).
       onBeamClear?.(beamSpec);
     }
-  }, [participatesInSegment, beamSpec, isHovered, isExpanded, onBeamSet, onBeamClear]);
+  }, [participatesInSegment, beamSpec, isHovered, textOpen, onBeamSet, onBeamClear]);
 
   // Git-graph rail drawn THROUGH the icon column as two separate
   // absolutely-positioned segments — one above the icon, one below —
@@ -351,9 +351,13 @@ export function TimelineCommit({
   const isRoleAnchor = isRole && rail !== "";
   // Distance from icon center where the line stops. Members: icon is
   // 12px (h-3) so 6px radius + 1px breathing room. Role: ring is 16px
-  // (h-4) so 8px radius + 2px breathing room. Events: tiny 3px dot
-  // sits close to the line for visual continuity.
-  const iconGapPx = isEvent || isAside ? 3 : isRoleAnchor ? 10 : 7;
+  // (h-4) so 8px radius + 2px breathing room. A row in the quiet voice:
+  // tiny 3px dot, so the line sits close for visual continuity.
+  //
+  // `isQuiet`, not `isAside` — the gap has to follow whatever the gutter
+  // is actually drawing, and an open aside draws the 12px icon. Kept at 3
+  // it would run the rail under the mark.
+  const iconGapPx = isQuiet ? 3 : isRoleAnchor ? 10 : 7;
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
@@ -440,11 +444,18 @@ export function TimelineCommit({
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}
-        {isEvent || isAside ? (
-          // Events and folded asides get a tiny CSS dot, quieter
-          // than any lucide icon and reads as "node on the rail" rather
-          // than "category icon". Asides keep the dot when open so the
-          // rail does not jump.
+        {isQuiet ? (
+          // A row in the quiet voice gets a tiny CSS dot, quieter than any
+          // lucide icon and reading as "node on the rail" rather than
+          // "category icon". That is every event, and an aside while it is
+          // folded — the same `isQuiet` the title and the container height
+          // already read, so the three cannot disagree about which voice
+          // the row is in.
+          //
+          // Opening an aside gives the icon back: the row is printing its
+          // real title and its media by then, and the gutter saying `talk`
+          // is part of that. Nothing jumps — the container is already `h-5`
+          // once `isQuiet` is false, which is the height the icon wants.
           <span
             aria-hidden
             className="block w-[3px] h-[3px] rounded-full bg-muted-foreground/30"
@@ -471,7 +482,15 @@ export function TimelineCommit({
             <CommitIcon
               type={data.type}
               override={data.iconOverride}
-              className="w-3 h-3 text-tertiary-foreground"
+              className={cn(
+                "w-3 h-3",
+                // An open aside wears its type mark a tier quieter than an
+                // ordinary row's. It is the same ladder the aside's title
+                // already steps down (`text-tertiary-foreground` on a row
+                // that is otherwise `rowTitle`), so the gutter says what the
+                // row says: this is a work, and it is a minor one.
+                isAside ? "text-quaternary-foreground" : "text-tertiary-foreground",
+              )}
             />
           </span>
         )}
@@ -509,7 +528,7 @@ export function TimelineCommit({
             "flex items-center shrink-0",
             // Widen the gap only where the labels appear (@sm); on mobile the
             // labels stay hidden, so keep the icons tight even when expanded.
-            isExpanded ? "gap-1.5 @sm:gap-3" : "gap-1.5",
+            textOpen ? "gap-1.5 @sm:gap-3" : "gap-1.5",
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -530,22 +549,41 @@ export function TimelineCommit({
                 ? attachmentSet.items.indexOf(link.media)
                 : -1;
 
+            // Inspecting, the rail selects like everything else on the row.
+            // It is the only affordance a pill has — no cover, no tile — so
+            // without this a pill is uneditable except by scrolling the
+            // inspector, and the icon would follow its href out of the
+            // editor besides (there is no set while inspecting, so the
+            // branch above cannot take the press).
+            const onPress =
+              inspecting && link.media
+                ? (e: React.MouseEvent) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                    e.preventDefault();
+                    onInspectMedia?.(link.media!);
+                  }
+                : attachmentIndex >= 0
+                  ? (e: React.MouseEvent) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                      e.preventDefault();
+                      attachments!.open(attachmentSet!, attachmentIndex);
+                    }
+                  : undefined;
+
             return (
               <a
                 key={`link-${i}`}
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={
-                  attachmentIndex >= 0
-                    ? (e) => {
-                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                        e.preventDefault();
-                        attachments!.open(attachmentSet!, attachmentIndex);
-                      }
-                    : undefined
-                }
-                className={className}
+                onClick={onPress}
+                className={cn(
+                  className,
+                  inspecting &&
+                    link.media &&
+                    selectedMedia === link.media &&
+                    "text-sky-600 dark:text-sky-400",
+                )}
               >
                 <LinkIcon icon={link.icon} />
                 {label}
@@ -626,8 +664,21 @@ export function TimelineCommit({
               slot holds only the line's height — not a second, invisible
               handle with a peek of its own — so the line beneath never
               moves and the same handle is never mounted twice. */}
-          {isExpanded || signsOnMediaLine ? (
-            <span aria-hidden className="h-4 shrink-0" />
+          {textOpen || signsOnMediaLine ? (
+            // `self-center`, and it is load-bearing. This line is
+            // `items-baseline`, and an EMPTY inline box has no text to take a
+            // baseline from — CSS puts it on the box's bottom margin edge. So
+            // baseline alignment dropped the placeholder ~4px to sit its
+            // bottom on the meta text's baseline and grew the line from 16px
+            // to 20px, in exactly the states where the handle signs somewhere
+            // else. The slot meant to hold the line still was the one thing
+            // moving it: `index` and the feed measured 16px with the handle
+            // here and 20px without it, and `covers` sat at 20px whenever a
+            // single cover took the signature. Aligning centre keeps the
+            // placeholder out of the baseline pass, so it contributes its
+            // height and nothing else, and every state is the 16px line its
+            // own type sets.
+            <span aria-hidden className="h-4 shrink-0 self-center" />
           ) : (
             <Handle byline={byline} className="text-tertiary-foreground" />
           )}
@@ -653,148 +704,128 @@ export function TimelineCommit({
         </div>
       )}
 
-      {/* Contact strip — the `covers` form's. Sits below the
-          pinned block so the two read as one column of "what this commit
-          contains", largest first: a pinned cover at full width, then the
-          rest as thumbnails.
+      {/* ── The message ────────────────────────────────────────────────
+          The prose, at whatever density this row is at: the form's, or its
+          opposite once the reader pressed it. One element either way — it
+          used to be printed twice, clamped in the folded block and whole in
+          the expanded body, which is why pressing the text had to swap
+          layouts and take the picture with it.
 
-          No handler on this cell: the strip is sized to its covers and stops
-          its own clicks, so the line it sits on stays the row's — the empty
-          stretch beside a single cover folds and unfolds the commit like any
-          other part of it. */}
-      {(showStrip || showStatDescription) && (
-        // `min-w-0` for the same reason the title row carries it: the content
-        // track is `1fr`, whose automatic minimum is its content, and the
-        // strip is `w-max`.
-        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 space-y-2">
-          {/* Reads down the same left edge the title and the meta do, and
-              that the feed will start it on when the row opens. */}
-          {showStatDescription && <Description text={data.description} />}
+          Deliberately NOT `data-row-body`: this is the press target. The
+          text is what the row's own control acts on, so it has to stay part
+          of the trigger at both densities. */}
+      {!isQuiet && rowForm.description !== "none" && !!data.description && (
+        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+          <Description
+            text={data.description}
+            isExpanded={rowForm.description === "full"}
+          />
+        </div>
+      )}
 
-          {/*
-            The covers get a line of their own, always. One cover used to tuck
-            up beside the text and two or more dropped below it, so a row
-            changed shape with its cargo — and a column of twenty-five of them
-            changed shape twenty-five times. One arrangement is worth more
-            here than the vertical it saves.
-          */}
-          {showStrip && (
-            <div className="flex items-end justify-between gap-4">
-              <MediaStrip
-                items={data.stripItems}
-                set={attachmentSet}
-                peek={rowForm.peek && magneticPreviewEnabled}
-                className="min-w-0"
-              />
+      {/* ── The attachment object ──────────────────────────────────────
+          The form's, never the row's. A press on the text leaves this
+          exactly where it was, which is what lets the press survive inside
+          the feed: it can no longer be mistaken for opening a caption.
 
-              {/*
-                And the room the covers leave takes the letterhead. The handle
-                signs the bottom-right of the row, which is where a letterhead
-                goes and which is a better use of the space than nothing was.
-                The meta line gives it up while this line exists, so it is
-                still printed exactly once — and with the same sparseness it
-                has always had: at rest, only the head of an author's run
-                wears it. A full strip leaves no room, and the handle stays on
-                the meta line (`signsOnMediaLine`).
-              */}
-              {signsOnMediaLine && (
-                <Handle byline={byline} className={TYPE.rowMeta} />
-              )}
-            </div>
+          `covers` — the contact strip. No handler on this cell: the strip is
+          sized to its covers and stops its own clicks, so the line it sits
+          on stays the row's; the empty stretch beside a single cover presses
+          the row like any other part of it. */}
+      {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
+        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+          {/* The covers get a line of their own, always. One cover used to
+              tuck up beside the text and two or more dropped below it, so a
+              row changed shape with its cargo — and a column of twenty-five
+              of them changed shape twenty-five times. */}
+          <div className="flex items-end justify-between gap-4">
+            <MediaStrip
+              items={data.stripItems}
+              set={attachmentSet}
+              peek={rowForm.peek && magneticPreviewEnabled}
+              className="min-w-0"
+              inspecting={inspecting}
+              onInspect={onInspectMedia}
+              selectedMedia={selectedMedia}
+            />
+
+            {/* And the room the covers leave takes the letterhead — where a
+                letterhead goes, and a better use of the space than nothing.
+                The meta line gives it up while this line exists, so the
+                handle is still printed exactly once (`signsOnMediaLine`). */}
+            {signsOnMediaLine && (
+              <Handle byline={byline} className={TYPE.rowMeta} />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* `grid` — the feed's object: half-column tiles on a desk, the
+          edge-to-edge stack on a phone, captions written out, and every
+          click its native one. `data-row-body` and its own click guard: a
+          caption is for opening the attachment, not for pressing the row. */}
+      {!isQuiet && rowForm.media === "grid" && expandedMedia.length > 0 && (
+        <div
+          data-row-body
+          onClick={(e) => e.stopPropagation()}
+          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
+        >
+          <AttachmentGrid
+            items={data.stripItems}
+            set={attachmentSet}
+            inspecting={inspecting}
+            onInspect={onInspectMedia}
+            selectedMedia={selectedMedia}
+          />
+          {stacked.length > 0 && (
+            <MediaRenderer
+              media={stacked}
+              layout="stack"
+              size="default"
+              inspecting={inspecting}
+              onInspect={onInspectMedia}
+              selectedMedia={selectedMedia}
+              set={attachmentSet}
+            />
           )}
         </div>
       )}
 
-      {isExpanded && (
-        // `data-row-body` marks content that is inside the row but is not
-        // the row's fold/unfold trigger, so the row's hover background can
-        // suppress itself while the cursor is in there (see the `not-has-`
-        // clause on the outer row). The expanded body also stops the click:
-        // the description, the notes and the captions are for reading (or
-        // for opening an attachment), not for folding the commit. The
-        // contact strip still carries the attribute for the hover gate
-        // only — the empty stretch beside a cover is still the row's.
-        // No enter animation. It used to `fade-in slide-in-from-top-1`, which
-        // put a 4px transform and an opacity ramp on a block whose first line
-        // is 12px mono — and a transformed/composited layer re-rasterizes
-        // small text, so the field stack shimmered and settled by a pixel
-        // every time a row opened. The row's own box snaps to its new height
-        // regardless, so the animation was moving content around inside an
-        // already-final frame: all of the artifact, none of the unfold. If
-        // this ever wants motion, it is the row's height that should animate,
-        // not the text inside it.
+      {/* ── The notes ──────────────────────────────────────────────────
+          Notes on the prose, so they ride with it: the same press that
+          relieves the description prints these, and clamping it takes them
+          away again. They come after the thing they are notes on.
+
+          No enter animation. It used to `fade-in slide-in-from-top-1`,
+          which put a 4px transform and an opacity ramp on a block whose
+          first line is 12px mono — a transformed layer re-rasterizes small
+          text, so the field stack shimmered and settled by a pixel every
+          time. The row's box snaps to its new height regardless. If this
+          ever wants motion, it is the height that should animate. */}
+      {!isQuiet && rowForm.notes && (data.commentary || showAuthorBlock) && (
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
-          // `min-w-0` for the same reason the strip line carries it: the
-          // content track is `1fr`, whose automatic minimum is its content,
-          // and a caption line that does not wrap would set it. The covers
-          // bleed past this box on a phone and paint there: nothing on this
-          // row contains paint, which is what the body being skippable used
-          // to cost (see the note on the row's clip-path).
-          // `cursor-default` wins over the row's pointer so the body does
-          // not look like a fold handle; tiles set their own cursor.
-          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-1.5 cursor-default"
+          className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
         >
-          {/* The message: what it is, the thing itself, the note on it.
-              Topics and stats are authored but deliberately unprinted — a row
-              of uppercase keywords and a star count were decoration here. */}
-          <Description text={data.description} isExpanded />
+          {data.commentary && <Commentary text={data.commentary} />}
 
-          {/* The attachment object in the feed (AttachmentGrid): the grid on
-              a desk, the edge-to-edge stack on a phone, captions written
-              out, and every click its native one. */}
-          {expandedMedia.length > 0 && (
-            <div onClick={(e) => e.stopPropagation()} className="space-y-4">
-              {inspecting ? (
-                <MediaRenderer
-                  media={expandedMedia}
-                  layout="stack"
-                  size="default"
-                  inspecting
-                  onInspect={onInspectMedia}
-                  selectedMedia={selectedMedia}
-                  set={attachmentSet}
-                />
-              ) : (
-                <>
-                  <AttachmentGrid items={data.stripItems} set={attachmentSet} />
-                  {stacked.length > 0 && (
-                    <MediaRenderer
-                      media={stacked}
-                      layout="stack"
-                      size="default"
-                      set={attachmentSet}
-                    />
-                  )}
-                </>
-              )}
-            </div>
-          )}
+          {/* The author fields, as `git log --pretty=fuller` writes them.
+              They sit at the foot because the folded row already carries
+              this horizontally — the handle on the meta line, under the
+              date — and the press transposes that one compact mark into the
+              vertical stack.
 
-          {/* Liner notes come after the thing they are notes on. */}
-          {rowForm.notes && data.commentary && <Commentary text={data.commentary} />}
-
-          {/*
-            The author fields, as `git log --pretty=fuller` writes them (see
-            `AuthorFields`). They sit at the foot because the folded row
-            already carries this information horizontally — the handle on the
-            meta line, under the date — and opening the row transposes that
-            one compact mark into the vertical stack.
-
-            The labels hold their column at every width — a field stack whose
-            keys vanish on a phone is not `--pretty=fuller` any more, it is
-            three unlabelled lines, and the wrap that costs is cheaper than
-            the form it was buying.
-          */}
-          {rowForm.notes && showAuthorBlock && (
+              The labels hold their column at every width: a field stack
+              whose keys vanish on a phone is not `--pretty=fuller` any
+              more, it is three unlabelled lines. */}
+          {showAuthorBlock && (
             <AuthorFields
               byline={byline}
               // Below `@sm` the gutter hash column is hidden, so the row has
-              // no permalink at all down there; above it, the gutter already
-              // is one and a second would be a duplicate. `onSelect` rather
-              // than an href: this page is already /works, so the field makes
-              // the row the address in place instead of navigating to itself.
+              // no permalink down there; above it the gutter already is one.
+              // `onSelect` rather than an href: this page is already /works,
+              // so the field makes the row the address in place.
               commit={
                 onSelectHash
                   ? {
@@ -809,6 +840,7 @@ export function TimelineCommit({
           )}
         </div>
       )}
+
 
     </div>
   );
@@ -839,7 +871,7 @@ export function TimelineCommit({
           // `data-expanded` lets the tenure wrapper's group-has variant
           // brighten the rail while the row is open — mobile-friendly,
           // survives losing focus after a tap-to-expand.
-          data-expanded={isExpanded ? "" : undefined}
+          data-expanded={textOpen ? "" : undefined}
           // The row's painted box — the one that carries the hover wash, a
           // gutter wider than the row's layout box on each side. The commit
           // permalink's arrival mark paints here too, so "found" and

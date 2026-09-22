@@ -1,14 +1,26 @@
 "use client";
 
-import { Check, MousePointer2, Plus, RotateCcw, Save } from "lucide-react";
+import { Check, GalleryVertical, LayoutList, List, MousePointer2, Plus, RotateCcw, Save } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { InspectMode } from "@/components/log/timeline-edit-context";
+import { Segmented } from "@/components/ui/controls";
+import { LOG_FORMS, type LogForm } from "@/lib/log-view";
+import { EditorNav } from "./nav";
+
+const FORM_CHIP: Record<LogForm, { icon: LucideIcon; label: string }> = {
+  index: { icon: List, label: "index" },
+  covers: { icon: LayoutList, label: "covers" },
+  feed: { icon: GalleryVertical, label: "feed" },
+};
 
 interface EditorToolbarProps {
   isDirty: boolean;
   saving: boolean;
   mode: InspectMode;
   inspectDisabled: boolean;
+  form: LogForm;
+  onFormChange: (form: LogForm) => void;
   onModeChange: (mode: InspectMode) => void;
   onSave: () => void;
   onReset: () => void;
@@ -20,6 +32,8 @@ export function EditorToolbar({
   saving,
   mode,
   inspectDisabled,
+  form,
+  onFormChange,
   onModeChange,
   onSave,
   onReset,
@@ -30,9 +44,7 @@ export function EditorToolbar({
   return (
     <div className="h-12 shrink-0 border-b border-border flex items-center justify-between px-4 bg-muted/5">
       <div className="flex items-center gap-3">
-        <span className="font-mono text-sm font-medium tracking-wide">
-          log.json
-        </span>
+        <EditorNav />
         {isDirty && (
           <span className="text-[10px] font-mono uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
             unsaved
@@ -69,6 +81,20 @@ export function EditorToolbar({
             </button>
           )}
         </div>
+        <Segmented
+          tone="bare"
+          value={form}
+          onChange={onFormChange}
+          options={LOG_FORMS.map((id) => {
+            const { icon: Icon, label } = FORM_CHIP[id];
+            return {
+              value: id,
+              label: <Icon className="h-3.5 w-3.5" />,
+              title: label,
+              ariaLabel: label,
+            };
+          })}
+        />
       </div>
 
       <div className="flex items-center gap-2">

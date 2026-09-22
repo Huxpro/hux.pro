@@ -19,7 +19,8 @@ import {
   TimelineEditProvider,
   type InspectMode,
 } from "@/components/log/timeline-edit-context";
-import { useLocale } from "@/services";
+import { t, useLocale } from "@/services";
+import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { toast } from "sonner";
 import { MousePointer2 } from "lucide-react";
 import { EditorToolbar } from "./toolbar";
@@ -48,6 +49,7 @@ export function EditorView({ initialData }: EditorViewProps) {
   );
   const [inspectDisabled, setInspectDisabled] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<LogForm>(DEFAULT_FORM);
   const { locale } = useLocale();
 
   // Reference equality is enough: every edit clones the slice it touches,
@@ -295,31 +297,31 @@ export function EditorView({ initialData }: EditorViewProps) {
         saving={saving}
         mode={effectiveMode}
         inspectDisabled={inspectDisabled}
+        form={form}
+        onFormChange={setForm}
         onModeChange={handleModeChange}
         onSave={handleSave}
         onReset={handleReset}
         onAddTag={handleAddTag}
       />
 
-      {/* Preview canvas + optional inspector */}
+      {/* Preview canvas + optional inspector. The column is /works'
+          (`--page-col` / `--page-gutter`); the extra left pad on `lg`
+          is the gutter the row pulls into (`GUTTER_PULL`), so the hash
+          and the rail hang in a real margin instead of clipping. */}
       <div className="flex-1 flex min-h-0">
-        <div className="flex-1 overflow-y-auto p-8" onClick={handleCanvasClick}>
-          <div className="max-w-2xl mx-auto">
+        <div className="flex-1 overflow-y-auto" onClick={handleCanvasClick}>
+          <div className="mx-auto w-full max-w-[calc(var(--page-col)+6.5rem)] px-[var(--page-gutter)] py-8 lg:pl-[calc(var(--page-gutter)+6.5rem)]">
             <TimelineEditProvider value={editContext}>
               <LogTimeline
                 data={previewData}
                 locale={locale}
                 identities={data.identities}
+                form={form}
               />
             </TimelineEditProvider>
-            {/* Footer marker, matching works page */}
-            <div className="mt-16 flex items-center gap-4">
-              <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />
-              </div>
-              <span className="font-mono text-xs text-quaternary-foreground tracking-wide">
-                {locale === "zh" ? "git init" : "git init"}
-              </span>
+            <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">
+              {t(locale, "logInit")}
             </div>
           </div>
         </div>

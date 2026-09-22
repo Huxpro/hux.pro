@@ -18,7 +18,6 @@ import {
 import {
   parseViewState,
   serializeViewState,
-  formOpensRows,
   toggleType,
   type LogForm,
 } from "@/lib/log-view";
@@ -175,11 +174,6 @@ export function WorksView({ logData }: WorksViewProps) {
       <LogTimeline
         data={data}
         locale={locale}
-        // `feed` is the page-level "expand all" command the toolbar used to
-        // own as a button. Passing the boolean (rather than a bumped counter)
-        // means index ⇄ covers leaves hand-opened rows alone: only entering
-        // or leaving `feed` re-syncs every row.
-        expandAll={formOpensRows(view.form)}
         identities={logData.identities}
         form={view.form}
         activeTypes={view.types}

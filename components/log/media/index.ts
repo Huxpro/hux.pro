@@ -23,7 +23,6 @@
 
 export { MediaRenderer, type MediaRendererProps } from "./media-renderer";
 export { Media, type MediaProps } from "./media";
-export { MediaThumbnail, type MediaThumbnailProps } from "./thumbnail";
 
 // =============================================================================
 // Router Components (dispatch to platform-specific implementations)

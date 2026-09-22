@@ -326,6 +326,7 @@ async function main() {
   const updated: string[] = [];
   const unchanged: string[] = [];
   const keptOnFailure: string[] = [];
+  const keptImage: string[] = [];
   const manualSkipped: string[] = [];
   const missing: { url: string; reason: string }[] = [];
 
@@ -356,9 +357,24 @@ async function main() {
     const prev = existing[t.url];
 
     if (ok) {
-      next[t.url] = entry;
+      // "Never overwrite good data" has to cover the crawl that *succeeds*
+      // and comes back thinner, not only the one that fails. A site
+      // redesign that drops its `og:image` still answers 200 with a title,
+      // which `entryUsable` calls a success — and the cover we already had
+      // would go with it, silently, taking the commit's tile off /works and
+      // failing `og:complete` for a picture that is still live.
+      // ticketingbusinessforum is the one in the log today: its entry's
+      // image 200s, but the page stopped advertising it, so the next crawl
+      // would drop it. The image we recorded once is kept until a crawl
+      // offers another.
+      const merged =
+        !entry.image && prev?.image
+          ? pickEntry({ ...entry, image: prev.image })
+          : entry;
+      if (merged !== entry) keptImage.push(`${t.url} (page no longer advertises one)`);
+      next[t.url] = merged;
       if (!prev) added.push(t.url);
-      else if (JSON.stringify(pickEntry(prev)) !== JSON.stringify(entry))
+      else if (JSON.stringify(pickEntry(prev)) !== JSON.stringify(merged))
         updated.push(t.url);
       else unchanged.push(t.url);
     } else {
@@ -407,6 +423,7 @@ async function main() {
   line("added", added);
   line("updated", updated);
   line("kept on crawl failure", keptOnFailure);
+  line("kept the cover we already had", keptImage);
   line("skipped — manual preview", manualSkipped);
   if (unchanged.length) log(`  unchanged: ${unchanged.length}`);
   if (missing.length) {

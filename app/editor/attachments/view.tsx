@@ -29,7 +29,8 @@
 // =============================================================================
 
 import { Field, Section, Segmented, Toggle } from "@/app/editor/icon/controls";
-import { LinkCardFromMedia } from "@/components/log/media/link";
+import { EditorNav } from "@/app/editor/nav";
+import { LinkCardFromMedia, LinkFromMedia } from "@/components/log/media/link";
 import {
   markFor,
   MediaMark,
@@ -37,9 +38,13 @@ import {
   type MediaMarkSize,
   type MediaMarkSpec,
 } from "@/components/log/media/media-mark";
+import { Media } from "@/components/log/media/media";
+import { MediaRenderer } from "@/components/log/media/media-renderer";
 import { MediaStrip } from "@/components/log/media/media-strip";
 import { AttachmentGrid } from "@/components/log/media/attachment-grid";
+import { mediaPeek } from "@/components/log/media/media-peek";
 import { SlidesFromMedia } from "@/components/log/media/slides";
+import { VideoFromMedia } from "@/components/log/media/video";
 import { ExternalImage } from "@/components/log/media/external-image";
 import { cn } from "@/lib/utils";
 import {
@@ -47,7 +52,7 @@ import {
   getMediaThumbnail,
   type ImageMedia,
   type LinkMedia,
-  type Media,
+  type Media as MediaData,
   type SlidesMedia,
   type SocialEmbedMedia,
   type VideoMedia,
@@ -75,6 +80,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
+import { RENDER_PATHS } from "./paths";
 
 // -----------------------------------------------------------------------------
 // Samples
@@ -83,6 +89,9 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 /** One of each kind the log has; a kind the log lacks is simply absent. */
 export interface LabSamples {
   video?: VideoMedia;
+  youtube?: VideoMedia;
+  bilibili?: VideoMedia;
+  vimeo?: VideoMedia;
   slides?: SlidesMedia;
   /**
    * A recording that lives on a page — a GitNation talk. The special case:
@@ -96,11 +105,53 @@ export interface LabSamples {
   denied?: LinkMedia;
   /** A link to one of this site's own posts. */
   post?: LinkMedia;
+  /** A rail pill — not in the attachment set. */
+  pill?: LinkMedia;
   image?: ImageMedia;
   social?: SocialEmbedMedia;
+  twitter?: SocialEmbedMedia;
+  instagram?: SocialEmbedMedia;
+  tiktok?: SocialEmbedMedia;
 }
 
 const SAMPLE_ORDER: readonly (keyof LabSamples)[] = [
+  "video",
+  "youtube",
+  "bilibili",
+  "vimeo",
+  "slides",
+  "talkPage",
+  "web",
+  "denied",
+  "post",
+  "pill",
+  "image",
+  "social",
+  "twitter",
+  "instagram",
+  "tiktok",
+];
+
+const SAMPLE_LABEL: Record<keyof LabSamples, string> = {
+  video: "video",
+  youtube: "YouTube",
+  bilibili: "bilibili",
+  vimeo: "Vimeo",
+  slides: "slides",
+  talkPage: "recording on a page",
+  web: "page",
+  denied: "page · refuses framing",
+  post: "post",
+  pill: "pill",
+  image: "image",
+  social: "social widget",
+  twitter: "X",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+};
+
+/** Kinds that open through the attachment set (not pills, not platform dupes). */
+const SET_KEYS: readonly (keyof LabSamples)[] = [
   "video",
   "slides",
   "talkPage",
@@ -110,17 +161,6 @@ const SAMPLE_ORDER: readonly (keyof LabSamples)[] = [
   "image",
   "social",
 ];
-
-const SAMPLE_LABEL: Record<keyof LabSamples, string> = {
-  video: "video",
-  slides: "slides",
-  talkPage: "recording on a page",
-  web: "page",
-  denied: "page · refuses framing",
-  post: "post",
-  image: "image",
-  social: "social widget",
-};
 
 /** The vocabulary, one tile each: the sample that shows it, and what it says. */
 const VOCABULARY: readonly { key: keyof LabSamples | "leaves"; title: string; meaning: string }[] = [
@@ -256,7 +296,11 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
   const pinned = Object.keys(override).length > 0;
 
   const items = useMemo(
-    () => SAMPLE_ORDER.map((key) => samples[key]).filter((m): m is Media => !!m),
+    () => SET_KEYS.map((key) => samples[key]).filter((m): m is MediaData => !!m),
+    [samples],
+  );
+  const allKindItems = useMemo(
+    () => SAMPLE_ORDER.map((key) => samples[key]).filter((m): m is MediaData => !!m),
     [samples],
   );
   const set: AttachmentSet = useMemo(
@@ -291,7 +335,9 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
             <Link href="/" className="font-mono text-xs tracking-wide text-muted-foreground hover:text-foreground">
               λhux
             </Link>
-            <h1 className="mt-1 font-serif text-2xl tracking-tight text-foreground">Attachments Lab</h1>
+            <div className="mt-1">
+              <EditorNav appearance="page" />
+            </div>
           </div>
           <div className="font-mono text-[11px] text-muted-foreground">
             {mounted && (
@@ -340,6 +386,42 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
           </div>
         </section>
 
+        {/* Paths ------------------------------------------------------------ */}
+        <section>
+          <Label>Render paths — every surface that draws a commit&rsquo;s media</Label>
+          <div className="overflow-hidden rounded-xl border border-border/50">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-muted/20 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 font-normal">surface</th>
+                  <th className="px-3 py-2 font-normal">prints</th>
+                  <th className="px-3 py-2 font-normal">click</th>
+                  <th className="hidden px-3 py-2 font-normal md:table-cell">file</th>
+                </tr>
+              </thead>
+              <tbody>
+                {RENDER_PATHS.map((p) => (
+                  <tr key={p.id} className="border-t border-border/40 align-top">
+                    <td className="px-3 py-2 font-mono text-[11px] text-foreground">{p.surface}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{p.context}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{p.click}</td>
+                    <td className="hidden px-3 py-2 font-mono text-[10px] text-tertiary-foreground md:table-cell">
+                      {p.file}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4">
+            <Note>
+              One map, the lab&rsquo;s. A new kind gets a row here and a specimen
+              below; a new surface gets both. Policy (where the tap lands) is the
+              table under Homes — this one is only how it is drawn.
+            </Note>
+          </div>
+        </section>
+
         {/* Homes ----------------------------------------------------------- */}
         <section>
           <Label>Homes — where a tap lands, and where the sheet&rsquo;s button sends it</Label>
@@ -354,7 +436,7 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
                 </tr>
               </thead>
               <tbody>
-                {SAMPLE_ORDER.map((key) => {
+                {([...SET_KEYS, "pill"] as const).map((key) => {
                   const m = samples[key];
                   if (!m) return null;
                   return (
@@ -392,22 +474,59 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
         <section className="space-y-8">
           <div>
             <Label>The contact strip — MediaStrip, the `covers` form</Label>
-            {/* The strip and the pages read the policy, which reads the
-                viewport; they render once the client has one. */}
             {mounted && <MediaStrip items={stripItems} set={set} />}
           </div>
           <div>
-            <Label>The attachment object in the `feed` — AttachmentGrid</Label>
-            {/* Half-column tiles whatever the count on a desk: a pair with
-                captions under each, then a lone one. On a phone, the stack.
-                The column is /works' (632px), so the tiles are the row's
-                size. */}
+            <Label>The attachment object in the `feed` — AttachmentGrid (desk)</Label>
             {mounted && stripItems.length > 0 && (
               <div className="@container max-w-[632px] space-y-6">
-                <AttachmentGrid items={stripItems.slice(0, 2)} set={set} />
-                <AttachmentGrid items={stripItems.slice(0, 1)} set={set} />
+                <AttachmentGrid items={stripItems.slice(0, 2)} set={set} compact={false} />
+                <AttachmentGrid items={stripItems.slice(0, 1)} set={set} compact={false} />
               </div>
             )}
+          </div>
+          <div>
+            <Label>The phone feed — AttachmentGrid compact + InlinePlayable</Label>
+            {mounted && stripItems.length > 0 && (
+              <div className="max-w-[390px] overflow-hidden rounded-xl border border-border/50 bg-background p-4">
+                <AttachmentGrid items={stripItems.slice(0, 3)} set={set} compact />
+              </div>
+            )}
+          </div>
+          <div>
+            <Label>MediaRenderer — leftover widgets, pinned covers, MDX</Label>
+            {mounted && allKindItems.length > 0 && (
+              <div className="space-y-6">
+                <MediaRenderer media={allKindItems.slice(0, 1)} layout="stack" />
+                {allKindItems.length >= 2 && (
+                  <MediaRenderer media={allKindItems.slice(0, 3)} layout="stack" />
+                )}
+              </div>
+            )}
+          </div>
+          {samples.pill && (
+            <div>
+              <Label>Link pills — not in the attachment set</Label>
+              <div className="flex flex-wrap gap-3">
+                <LinkFromMedia media={samples.pill} />
+                <MediaRenderer media={[samples.pill]} />
+              </div>
+            </div>
+          )}
+          <div>
+            <Label>Hover peeks — PeekCard / PeekThumb</Label>
+            <div className="flex flex-wrap gap-6">
+              {items.map((m) => {
+                const spec = mediaPeek(m, locale, {
+                  leaves: mounted ? nativeHomeFor(m, ctx) === "tab" : false,
+                });
+                return spec ? (
+                  <div key={m.url} className="w-[22rem]">
+                    {spec.node}
+                  </div>
+                ) : null;
+              })}
+            </div>
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             {samples.web && (
@@ -423,6 +542,23 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
               </div>
             )}
           </div>
+          {(samples.youtube || samples.bilibili || samples.vimeo) && (
+            <div>
+              <Label>Inline players — Video (MDX / leftover path)</Label>
+              <div className="grid gap-6 md:grid-cols-3">
+                {[samples.youtube, samples.bilibili, samples.vimeo]
+                  .filter((m): m is VideoMedia => !!m)
+                  .map((m) => (
+                    <div key={m.url}>
+                      <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground">
+                        {m.platform}
+                      </div>
+                      <VideoFromMedia media={m} size="compact" />
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
           {(samples.video || samples.slides) && (
             <div>
               <Label>The theater&rsquo;s rail — TrackThumb</Label>
@@ -435,6 +571,43 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
                       <TrackThumb key={track.id} track={track} className="w-40" />
                     ) : null;
                   })}
+              </div>
+            </div>
+          )}
+          <div>
+            <Label>MDX &lt;Media /&gt; — URL in, kind detected</Label>
+            <div className="grid gap-6 md:grid-cols-2">
+              {samples.web && <Media url={samples.web.url} as="link" present="card" />}
+              {samples.pill && (
+                <Media url={samples.pill.url} as="link" present="pill" title={samples.pill.label} />
+              )}
+            </div>
+          </div>
+          {(samples.video || samples.slides) && (
+            <div>
+              <Label>
+                Home Featured Talks — the same TrackThumb, in the widget&rsquo;s
+                snap-pager
+              </Label>
+              <div className="max-w-sm overflow-hidden rounded-2xl border border-border/50 bg-glass-sheet shadow-overlay backdrop-blur-xl">
+                <div className="px-5 pt-4 text-sm font-medium text-foreground">Featured Talks</div>
+                <div className="flex gap-3 overflow-x-auto px-5 pb-5 pt-3 no-scrollbar snap-x snap-mandatory">
+                  {[samples.video, samples.slides]
+                    .filter((m): m is VideoMedia | SlidesMedia => !!m)
+                    .map((m) => {
+                      const track = mediaToTrack(m, {
+                        id: `lab:widget:${m.url}`,
+                        title: "Attachments Lab",
+                      });
+                      return track ? (
+                        <TrackThumb
+                          key={track.id}
+                          track={track}
+                          className="w-56 shrink-0 snap-start"
+                        />
+                      ) : null;
+                    })}
+                </div>
               </div>
             </div>
           )}

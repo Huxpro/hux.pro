@@ -76,7 +76,6 @@ export function Commit({
   locale = "en",
   variant = "card",
   defaultExpanded = false,
-  expandAll,
   className,
   hideDate = false,
   rail,
@@ -155,7 +154,6 @@ export function Commit({
           cursorPreview={preview?.node ?? null}
           cursorPreviewPanelClassName={preview?.panelClassName}
           defaultExpanded={defaultExpanded}
-          expandAll={expandAll}
           className={className}
           hideDate={hideDate}
           rail={rail}

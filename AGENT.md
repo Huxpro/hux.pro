@@ -21,7 +21,8 @@
 | **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards; `pnpm og:complete` in GitHub CI) |
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + `/editor/icon` studio) |
 | **App Folder** | [docs/app-shelf.md](./docs/app-shelf.md) (Home-screen snap-paged app folder) |
-| **Attachments** | [docs/system-attachments.md](./docs/system-attachments.md) (Where a commit's media opens: sheet on a phone, with the in-app browser stacked on it; theater / in-app window / router elsewhere; the chip every cover wears; the `/editor/attachments` lab) |
+| **Attachments** | [docs/system-attachments.md](./docs/system-attachments.md) (Where a commit's media opens: sheet on a phone, with the in-app browser stacked on it; theater / in-app window / router elsewhere; the chip every cover wears; the `/editor/attachments` lab — every render path) |
+| **Editor family** | [app/editor/catalog.ts](./app/editor/catalog.ts) (`e` opens `log.json`; the top-left dropdown reaches attachments / icon / legibility / theater. The prefix stays `/editor`; most pages are labs.) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (Who signed a commit — the profile card behind `<handle>` and `Role:`) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (A widget's list body scrolls under a pointer, holds still under a finger — and why) |
 

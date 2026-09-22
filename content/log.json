@@ -3,12 +3,12 @@
     {
       "id": "lynx-era",
       "title": {
-        "en": "Lynx Era",
-        "zh": "Lynx 时代"
+        "en": "HEAD",
+        "zh": "HEAD"
       },
       "tagline": {
-        "en": "Cross-Platform at Scale",
-        "zh": "大规模跨平台"
+        "en": "",
+        "zh": ""
       },
       "narrative": {
         "en": "Architect of Lynx at ByteDance, an open source, cross platform framework powering TikTok and CapCut. Making interfaces better for more users, more developers, and more machines, and exploring what app frameworks should look like in the age of AI.",
@@ -28,12 +28,12 @@
     {
       "id": "react-era",
       "title": {
-        "en": "React + PL Era",
-        "zh": "React + PL 时代"
+        "en": "React",
+        "zh": "React"
       },
       "tagline": {
-        "en": "Compilers, Runtimes, and React",
-        "zh": "编译器、运行时与 React"
+        "en": "",
+        "zh": ""
       },
       "narrative": {
         "en": "From RIT's programming languages lab to Meta's React org. Built Hermes for iOS, co-founded React Forget as tech lead of the auto-memoization compiler, and shipped to billions through React Native.",
@@ -54,12 +54,12 @@
     {
       "id": "pwa-era",
       "title": {
-        "en": "PWA Era",
-        "zh": "PWA 时代"
+        "en": "China",
+        "zh": "china"
       },
       "tagline": {
-        "en": "China's PWA Pioneer",
-        "zh": "中国 PWA 先驱"
+        "en": "",
+        "zh": ""
       },
       "narrative": {
         "en": "From a CUC student building first web apps to leading mobile web teams. Consulted on China's first influential PWA at Ele.me, championed Progressive Web Apps through conference talks across China.",
@@ -190,7 +190,6 @@
         "en": "ByteDance",
         "zh": "字节跳动"
       },
-      "tagId": "lynx-era",
       "ranges": [
         {
           "id": "tech-lead-lynx",
@@ -212,7 +211,8 @@
           "tags": [
             "Leadership",
             "Architecture"
-          ]
+          ],
+          "tagId": "lynx-era"
         }
       ]
     },
@@ -222,7 +222,6 @@
         "en": "Meta",
         "zh": "Meta"
       },
-      "tagId": "react-era",
       "ranges": [
         {
           "id": "meta-engineer",
@@ -242,7 +241,8 @@
             "React",
             "Compiler",
             "JavaScript Engine"
-          ]
+          ],
+          "tagId": "react-era"
         },
         {
           "id": "meta-intern-xros",
@@ -262,7 +262,8 @@
             "Operating System",
             "Research",
             "Internship"
-          ]
+          ],
+          "tagId": "react-era"
         },
         {
           "id": "meta-intern-reasonml",
@@ -282,7 +283,8 @@
             "OCaml",
             "Messenger",
             "Internship"
-          ]
+          ],
+          "tagId": "react-era"
         }
       ]
     },
@@ -292,7 +294,6 @@
         "en": "Rochester Institute of Technology",
         "zh": "罗切斯特理工学院"
       },
-      "tagId": "react-era",
       "ranges": [
         {
           "id": "rit-ms",
@@ -313,7 +314,8 @@
             "PLT",
             "Compiler"
           ],
-          "location": "New York, USA"
+          "location": "New York, USA",
+          "tagId": "react-era"
         }
       ]
     },
@@ -323,7 +325,6 @@
         "en": "Ele.me",
         "zh": "饿了么"
       },
-      "tagId": "pwa-era",
       "ranges": [
         {
           "id": "eleme-visiting",
@@ -345,7 +346,8 @@
           "tags": [
             "PWA",
             "Consulting"
-          ]
+          ],
+          "tagId": "pwa-era"
         }
       ]
     },
@@ -355,7 +357,6 @@
         "en": "Beijing Weiying (WePiao)",
         "zh": "北京微影时代（微票儿）"
       },
-      "tagId": "pwa-era",
       "ranges": [
         {
           "id": "wepiao-lead",
@@ -372,7 +373,8 @@
           "hideRow": true,
           "tags": [
             "Leadership"
-          ]
+          ],
+          "tagId": "pwa-era"
         }
       ]
     },
@@ -382,7 +384,6 @@
         "en": "Alibaba",
         "zh": "阿里巴巴"
       },
-      "tagId": "pwa-era",
       "ranges": [
         {
           "id": "alitrip-engineer",
@@ -400,7 +401,8 @@
           "tags": [
             "Web",
             "Mobile"
-          ]
+          ],
+          "tagId": "pwa-era"
         }
       ]
     },
@@ -410,7 +412,6 @@
         "en": "Communication University of China",
         "zh": "中国传媒大学"
       },
-      "tagId": "pwa-era",
       "ranges": [
         {
           "id": "cuc-ba",
@@ -432,7 +433,8 @@
             "Design",
             "Art"
           ],
-          "location": "Beijing, China"
+          "location": "Beijing, China",
+          "tagId": "pwa-era"
         }
       ]
     }
@@ -1492,7 +1494,8 @@
         "Modules",
         "Frontend"
       ],
-      "language": "zh"
+      "language": "zh",
+      "present": "aside"
     },
     {
       "id": "css-sucks-2015",
@@ -1523,7 +1526,8 @@
         "Frontend",
         "Design"
       ],
-      "language": "zh"
+      "language": "zh",
+      "present": "aside"
     },
     {
       "id": "pwa-in-my-pov-2016",
@@ -1554,7 +1558,8 @@
         "Service Worker",
         "Mobile Web"
       ],
-      "language": "zh"
+      "language": "zh",
+      "present": "aside"
     },
     {
       "id": "qcon-shanghai-2016",

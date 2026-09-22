@@ -99,6 +99,22 @@ interface AttachmentSet {
 }
 ```
 
+Set and tiles are the same collection: every non-pill attachment resolves
+a cover, so nothing is dropped from the strip on its way to the grid and
+the sheet's `2 / 3` cannot count a page the row never showed. That is a
+build-time invariant, not a hope — `pnpm og:complete` fails when an
+attachment cannot resolve a runtime image, and CI runs it
+(`.github/workflows/ci.yml`). A deck has no OG tags of its own, so its
+cover is authored (`thumbnail`); a card's comes from the snapshot.
+
+One thing the crawl must not do is take a cover back. A site that
+redesigns and stops advertising `og:image` still answers 200 with a
+title, which `entryUsable` reads as success — so the entry would be
+rewritten without its image, the tile would vanish, and `og:complete`
+would fail over a picture that is still live. A recorded image is
+therefore kept until a crawl offers another one, and the run says so
+("kept the cover we already had").
+
 A cover in the contact strip (`MediaStrip`), a player or card in the expanded
 body (`MediaRenderer`), and an icon in the folded rail (`TimelineCommit`)
 each find their own item by reference (`set.items.indexOf(media)`) and call
@@ -330,15 +346,19 @@ wallpaper's canvas, which every page pays alike.
 ## The lab
 
 **`/editor/attachments`** — hidden, `noindex` — is the devtool for this system, the
-way `/editor/legibility` is for reading surfaces: the chips at every size
-on the log's own covers, in the `/works` tier and the peek's, the GitNation
-case among them; the policy as a
-table, read live from `homeFor` / `nativeHomeFor` for a context you can pin
-(phone or not, a window manager); the same media rendered by the production strip,
-card, deck cover, rail thumb and attachment page; and buttons that go through
+way `/editor/legibility` is for reading surfaces. The lab prints every render
+path (`app/editor/attachments/paths.ts`) next to live specimens: the chips at
+every size on the log's own covers, in the `/works` tier and the peek's, the
+GitNation case among them; the policy as a table, read live from `homeFor` /
+`nativeHomeFor` for a context you can pin (phone or not, a window manager);
+and the production surfaces themselves — the strip, the desk grid, the phone
+feed (`InlinePlayable`), `MediaRenderer` (single and rail), pills, peeks,
+inline players, the MDX `<Media />`, the home featured stack, `MediaThumbnail`,
+the theater rail thumb, and the attachment page — plus buttons that go through
 the real providers, with a readout of the surface stack and the open windows
-as they stand. On a phone it is where to watch `Visit` stack the browser over
-the attachment sheet.
+as they stand. `/editor/attachment` redirects here. On a phone it is where to
+watch `Visit` stack the browser over the attachment sheet. The top-left title
+is the editor-family dropdown (`app/editor/catalog.ts`).
 
 ## Hovering a cover
 
