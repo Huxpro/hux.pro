@@ -22,10 +22,18 @@ import {
 import { t, useLocale } from "@/services";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { toast } from "sonner";
-import { MousePointer2 } from "lucide-react";
 import { EditorToolbar } from "./toolbar";
 import { CommitEditor } from "./commit-editor";
 import { TagEditor } from "./tag-editor";
+import {
+  PresentationEditor,
+  PresentationList,
+} from "./presentation-editor";
+import type { Presentation } from "@/lib/log";
+import {
+  presentationsForCommit,
+  presentationWarnings,
+} from "@/lib/presentation";
 
 // Static-import the snapshot so the editor preview can resolve previews and
 // video covers client-side — the same merging /works does server-side. URLs
@@ -43,6 +51,7 @@ export function EditorView({ initialData }: EditorViewProps) {
   const [savedData, setSavedData] = useState<LogData>(initialData);
   const [mode, setMode] = useState<InspectMode>("preview");
   const [selectedCommitId, setSelectedCommitId] = useState<string | null>(null);
+  const [selectedPresentationId, setSelectedPresentationId] = useState<string | null>(null);
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(
     null,
@@ -85,12 +94,21 @@ export function EditorView({ initialData }: EditorViewProps) {
 
   const clearSelection = useCallback(() => {
     setSelectedCommitId(null);
+    setSelectedPresentationId(null);
     setEditingTag(null);
     setSelectedMediaIndex(null);
   }, []);
 
   const selectCommit = useCallback((id: string) => {
     setSelectedCommitId(id);
+    setSelectedPresentationId(null);
+    setEditingTag(null);
+    setSelectedMediaIndex(null);
+  }, []);
+
+  const selectPresentation = useCallback((id: string) => {
+    setSelectedPresentationId(id);
+    setSelectedCommitId(null);
     setEditingTag(null);
     setSelectedMediaIndex(null);
   }, []);
@@ -104,6 +122,7 @@ export function EditorView({ initialData }: EditorViewProps) {
   const selectTag = useCallback((id: string) => {
     setEditingTag(id);
     setSelectedCommitId(null);
+    setSelectedPresentationId(null);
     setSelectedMediaIndex(null);
   }, []);
 
@@ -246,9 +265,11 @@ export function EditorView({ initialData }: EditorViewProps) {
     () => ({
       mode: effectiveMode,
       selectedCommitId,
+      selectedPresentationId,
       editingTagId: editingTag,
       selectedMediaIndex,
       onSelectCommit: selectCommit,
+      onSelectPresentation: selectPresentation,
       onSelectTag: selectTag,
       onSelectMedia: selectMedia,
       onAddCommit: handleAddCommit,
@@ -256,14 +277,76 @@ export function EditorView({ initialData }: EditorViewProps) {
     [
       effectiveMode,
       selectedCommitId,
+      selectedPresentationId,
       editingTag,
       selectedMediaIndex,
       selectCommit,
+      selectPresentation,
       selectTag,
       selectMedia,
       handleAddCommit,
     ],
   );
+
+  const presentations = useMemo(
+    () => data.presentations ?? [],
+    [data.presentations],
+  );
+  const selectedPresentation =
+    presentations.find((p) => p.id === selectedPresentationId) ?? null;
+  const warnings = useMemo(
+    () => presentationWarnings(presentations, data.commits),
+    [presentations, data.commits],
+  );
+  const memberships = useMemo(
+    () =>
+      selectedCommit
+        ? presentationsForCommit(presentations, selectedCommit.id)
+        : [],
+    [presentations, selectedCommit],
+  );
+
+  const updatePresentation = useCallback((updated: Presentation) => {
+    setData((prev) => ({
+      ...prev,
+      presentations: (prev.presentations ?? []).map((p) =>
+        p.id === selectedPresentationId ? updated : p,
+      ),
+    }));
+    if (updated.id !== selectedPresentationId) {
+      setSelectedPresentationId(updated.id);
+    }
+  }, [selectedPresentationId]);
+
+  const togglePresentation = useCallback((presentation: Presentation) => {
+    setData((prev) => ({
+      ...prev,
+      presentations: (prev.presentations ?? []).map((p) =>
+        p.id === presentation.id
+          ? { ...p, enabled: p.enabled === false }
+          : p,
+      ),
+    }));
+  }, []);
+
+  const deletePresentation = useCallback((id: string) => {
+    setData((prev) => ({
+      ...prev,
+      presentations: (prev.presentations ?? []).filter((p) => p.id !== id),
+    }));
+    setSelectedPresentationId(null);
+  }, []);
+
+  const createPresentation = useCallback(() => {
+    const id = `presentation-${Date.now()}`;
+    const created: Presentation = { id, enabled: true, members: [] };
+    setData((prev) => ({
+      ...prev,
+      presentations: [...(prev.presentations ?? []), created],
+    }));
+    setMode("inspect");
+    selectPresentation(id);
+  }, [selectPresentation]);
 
   const handleCanvasClick = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
@@ -318,6 +401,7 @@ export function EditorView({ initialData }: EditorViewProps) {
                 locale={locale}
                 identities={data.identities}
                 form={form}
+                presentations={data.presentations}
               />
             </TimelineEditProvider>
             <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">
@@ -328,18 +412,55 @@ export function EditorView({ initialData }: EditorViewProps) {
 
         {inspecting && (
           <aside className="w-[480px] shrink-0 border-l border-border flex flex-col min-h-0 animate-in slide-in-from-right-4 fade-in duration-200">
-            {selectedCommit ? (
-              <CommitEditor
-                commit={selectedCommit}
-                tags={data.tags}
+            {selectedPresentation ? (
+              <PresentationEditor
+                presentation={selectedPresentation}
+                presentations={presentations}
                 commits={data.commits}
-                identities={data.identities ?? {}}
-                onUpdate={handleUpdateCommit}
-                onDelete={() => handleDeleteCommit(selectedCommit.id)}
+                warnings={warnings}
+                onUpdate={updatePresentation}
+                onDelete={() => deletePresentation(selectedPresentation.id)}
                 onClose={clearSelection}
-                focusMediaIndex={selectedMediaIndex}
-                onFocusMediaIndexChange={setSelectedMediaIndex}
               />
+            ) : selectedCommit ? (
+              <div className="flex-1 flex flex-col min-h-0">
+                {memberships.length > 0 && (
+                  <div className="shrink-0 border-b border-border px-4 py-2 space-y-1">
+                    <div className="font-mono text-[10px] uppercase tracking-wider text-quaternary-foreground">
+                      Presentations
+                    </div>
+                    {memberships.map((p) => (
+                      <div key={p.id} className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => togglePresentation(p)}
+                          className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground hover:text-foreground"
+                        >
+                          {p.enabled === false ? "Off" : "On"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => selectPresentation(p.id)}
+                          className="min-w-0 flex-1 text-left text-xs truncate hover:text-foreground"
+                        >
+                          {p.title ? p.title[locale] || p.id : p.id}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <CommitEditor
+                  commit={selectedCommit}
+                  tags={data.tags}
+                  commits={data.commits}
+                  identities={data.identities ?? {}}
+                  onUpdate={handleUpdateCommit}
+                  onDelete={() => handleDeleteCommit(selectedCommit.id)}
+                  onClose={clearSelection}
+                  focusMediaIndex={selectedMediaIndex}
+                  onFocusMediaIndexChange={setSelectedMediaIndex}
+                />
+              </div>
             ) : editingTagObj ? (
               <div className="flex-1 overflow-y-auto">
                 <TagEditor
@@ -349,7 +470,13 @@ export function EditorView({ initialData }: EditorViewProps) {
                 />
               </div>
             ) : (
-              <EmptyInspector />
+              <PresentationList
+                presentations={presentations}
+                commits={data.commits}
+                onToggle={togglePresentation}
+                onSelect={selectPresentation}
+                onCreate={createPresentation}
+              />
             )}
           </aside>
         )}
@@ -358,14 +485,3 @@ export function EditorView({ initialData }: EditorViewProps) {
   );
 }
 
-function EmptyInspector() {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-2">
-      <MousePointer2 className="w-6 h-6 text-quaternary-foreground" />
-      <div className="font-mono text-[10px] uppercase tracking-wider text-quaternary-foreground">
-        Inspect mode
-      </div>
-      <div className="text-sm text-tertiary-foreground">No selection</div>
-    </div>
-  );
-}

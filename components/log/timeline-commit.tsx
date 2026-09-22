@@ -120,6 +120,17 @@ interface TimelineCommitProps {
   onInspectCommit?: () => void;
   onInspectMedia?: (media: Media) => void;
   selectedMedia?: Media | null;
+  /**
+   * The members of a presentation, in the description slot. `open` is the
+   * prose, not the picture: folded, a line or two; pressed, each member's
+   * own text. Absent on an ordinary commit.
+   */
+  roster?: (open: boolean) => ReactNode;
+  /**
+   * Hashes of the commits this row stands for, besides its own. A link to
+   * one of them still lands here — the commit did not move, the row did.
+   */
+  memberHashes?: string[];
 }
 
 export function TimelineCommit({
@@ -144,6 +155,8 @@ export function TimelineCommit({
   onInspectCommit,
   onInspectMedia,
   selectedMedia = null,
+  roster,
+  memberHashes,
 }: TimelineCommitProps) {
   const attachments = useOptionalAttachments();
   const identityCard = useOptionalIdentityCard();
@@ -162,7 +175,8 @@ export function TimelineCommit({
     data.commentary ||
     data.expandedMedia.length > 0 ||
     data.pinnedMedia.length > 0 ||
-    byline
+    byline ||
+    roster
   );
 
   // The row's own state is one bit, and it is about the prose only: has the
@@ -723,6 +737,16 @@ export function TimelineCommit({
         </div>
       )}
 
+      {/* A presentation's members. Folded they are an index — the blurb,
+          when the row has no paragraph of its own, or one quiet line under
+          one that does. Opened they are each commit's own text. The picture
+          stays where the form put it; this is prose. */}
+      {!isQuiet && rowForm.description !== "none" && roster && (
+        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+          {roster(rowForm.description === "full")}
+        </div>
+      )}
+
       {/* ── The attachment object ──────────────────────────────────────
           The form's, never the row's. A press on the text leaves this
           exactly where it was, which is what lets the press survive inside
@@ -849,6 +873,7 @@ export function TimelineCommit({
     <div
       id={data.hash}
       data-rail-row
+      data-member-hash={memberHashes?.join(" ") || undefined}
       data-role-row={isRoleAnchor ? "" : undefined}
       className={className}
     >

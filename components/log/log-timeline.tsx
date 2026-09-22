@@ -13,13 +13,16 @@ import {
   getLocalizedTagTitle,
   type Identity,
   isRowVisible,
+  type Presentation,
   type Tag,
 } from "@/lib/log";
+import { planWorks, worksRowFor, type WorksRow } from "@/lib/presentation";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
+import { PresentationRow } from "./presentation-row";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
 import { useTimelineEdit } from "./timeline-edit-context";
@@ -79,6 +82,12 @@ interface LogTimelineProps {
   /** Wires each row's hash as its permalink. Omit and it is plain text. */
   onSelectHash?: (hash: string) => void;
   /**
+   * Works-page folds. Absent — the home widgets, anything that is not
+   * /works — and every commit is its own row, which is what those
+   * surfaces are for.
+   */
+  presentations?: Presentation[];
+  /**
    * The page pins a bar that wears the current chapter (/works). Each
    * chapter's marker then stays in the flow as a divider and hands its pill
    * to the bar as it scrolls under it, instead of sticking on its own —
@@ -98,8 +107,17 @@ export function LogTimeline({
   form = DEFAULT_FORM,
   activeTypes = NO_TYPES,
   onSelectHash,
+  presentations,
   pinnedChapters = false,
 }: LogTimelineProps) {
+  // One plan for the whole page. A fold's anchor and its other members
+  // can sit in different chapters; claiming has to see all of them, or
+  // the member left behind in the other chapter would print twice.
+  const plan = useMemo(() => {
+    const commits = data.flatMap((d) => d.commits);
+    return planWorks(commits, presentations, activeTypes, locale);
+  }, [data, presentations, activeTypes, locale]);
+
   return (
     <div className="space-y-0">
       {data.map(({ tag, commits }, tagIndex) => (
@@ -112,6 +130,7 @@ export function LogTimeline({
           identities={identities}
           form={form}
           activeTypes={activeTypes}
+          plan={plan}
           onSelectHash={onSelectHash}
           pinned={pinnedChapters}
         />
@@ -128,6 +147,7 @@ interface TagBlockProps {
   identities?: Record<string, Identity>;
   form: LogForm;
   activeTypes: FilterableCommitType[];
+  plan: Map<string, WorksRow>;
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
 }
@@ -140,6 +160,7 @@ function TagBlock({
   identities,
   form,
   activeTypes,
+  plan,
   onSelectHash,
   pinned,
 }: TagBlockProps) {
@@ -191,7 +212,11 @@ function TagBlock({
     // loop below skips the rest, and the block prints nothing if none are
     // left. It is `isRowVisible` negated — the same question /works asks
     // for its chip counts and its empty state.
-    const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
+    // A folded member is hidden the way a `hideRow` role is: still in the
+    // array, so the rail and the bylines resolve, but not a row of its own.
+    // The anchor is the row, and it is not hidden.
+    const hidden = (c: CommitData) =>
+      worksRowFor(plan, c.id).kind === "hide" || !isRowVisible(c, activeTypes);
 
     const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
     const allBeams = [
@@ -239,7 +264,7 @@ function TagBlock({
       isHidden: hidden,
       hasVisible: commits.some((c) => !hidden(c)),
     };
-  }, [commits, identities, locale, activeTypes]);
+  }, [commits, identities, locale, activeTypes, plan]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
@@ -330,27 +355,42 @@ function TagBlock({
             }
           }
           return runs.map((run, runIdx) => {
-            const rows = run.indices.map((i) => (
-              <Commit
-                key={commits[i].id}
-                commit={commits[i]}
-                locale={locale}
-                variant="timeline"
-                hideDate={tag.hideDate || commits[i].hideDate}
-                rail={railInfo[i].rail}
-                segmentId={railInfo[i].segmentId}
-                isSegmentActive={
+            const rows = run.indices.map((i) => {
+              const commit = commits[i];
+              const row = worksRowFor(plan, commit.id);
+              const shared = {
+                locale,
+                hideDate: tag.hideDate || commit.hideDate,
+                rail: railInfo[i].rail,
+                segmentId: railInfo[i].segmentId,
+                isSegmentActive:
                   railInfo[i].segmentId !== null &&
-                  railInfo[i].segmentId === activeBeam?.roleId
-                }
-                beamSpec={beamSpecs[i]}
-                onBeamSet={handleBeamSet}
-                onBeamClear={handleBeamClear}
-                byline={bylines[i]}
-                form={form}
-                onSelectHash={onSelectHash}
-              />
-            ));
+                  railInfo[i].segmentId === activeBeam?.roleId,
+                beamSpec: beamSpecs[i],
+                onBeamSet: handleBeamSet,
+                onBeamClear: handleBeamClear,
+                byline: bylines[i],
+                form,
+                onSelectHash,
+              };
+              if (row.kind === "presentation") {
+                return (
+                  <PresentationRow
+                    key={row.presentation.id}
+                    presentation={row.presentation}
+                    {...shared}
+                  />
+                );
+              }
+              return (
+                <Commit
+                  key={commit.id}
+                  commit={commit}
+                  variant="timeline"
+                  {...shared}
+                />
+              );
+            });
             return run.kind === "cluster" ? (
               <div key={`cluster-${run.segmentId}`} className="group/tenure">
                 {rows}

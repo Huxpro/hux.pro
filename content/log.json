@@ -183,6 +183,155 @@
       ]
     }
   ],
+  "presentations": [
+    {
+      "id": "react-advanced-london-2025",
+      "enabled": true,
+      "members": [
+        { "commitId": "react-advanced-2025-lynx-ui" },
+        { "commitId": "react-advanced-2025-panel" }
+      ]
+    },
+    {
+      "id": "two-threads",
+      "enabled": true,
+      "title": { "en": "React for Two Threads", "zh": "双线程的 React" },
+      "description": {
+        "en": "The same talk. Once in English, once in Chinese.",
+        "zh": "同一场演讲。一场英文，一场中文。"
+      },
+      "anchor": "react-universe-2025-two-threads",
+      "members": [
+        {
+          "commitId": "react-universe-2025-two-threads",
+          "caption": { "en": "React Universe Conf", "zh": "React Universe Conf" }
+        },
+        {
+          "commitId": "see-conf-2025-two-threads",
+          "caption": { "en": "SEE Conf · in Chinese", "zh": "SEE Conf · 中文版" }
+        }
+      ]
+    },
+    {
+      "id": "react-universe-2025",
+      "enabled": true,
+      "title": { "en": "React Universe Conf", "zh": "React Universe Conf" },
+      "anchor": "react-universe-2025-two-threads",
+      "members": [
+        { "presentationId": "two-threads" },
+        { "commitId": "react-universe-2025-two-threads" },
+        {
+          "commitId": "react-universe-2025-interview",
+          "caption": { "en": "Interview", "zh": "访谈" }
+        }
+      ]
+    },
+    {
+      "id": "lynx-open-source",
+      "enabled": true,
+      "title": { "en": "Lynx, open sourced", "zh": "Lynx 开源" },
+      "description": {
+        "en": "The first time the framework was shown in the open. Abroad, then at home.",
+        "zh": "框架第一次被公开讲出来。先是海外，然后是国内。"
+      },
+      "anchor": "react-summit-2025-unlock-native",
+      "members": [
+        {
+          "commitId": "react-summit-2025-unlock-native",
+          "caption": {
+            "en": "React Summit · abroad",
+            "zh": "React Summit · 海外"
+          }
+        },
+        {
+          "commitId": "d2-2025-lynx",
+          "caption": {
+            "en": "D2 · at home",
+            "zh": "D2 · 国内"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lynx-and-moments",
+      "enabled": false,
+      "title": { "en": "Lynx", "zh": "Lynx" },
+      "description": {
+        "en": "The framework, and the two talks that opened it.",
+        "zh": "框架本身，以及把它公开的那两场演讲。"
+      },
+      "anchor": "lynx-framework",
+      "members": [
+        {
+          "commitId": "lynx-framework",
+          "caption": { "en": "The framework", "zh": "框架" }
+        },
+        { "presentationId": "lynx-open-source" }
+      ]
+    },
+    {
+      "id": "react-compiler",
+      "enabled": true,
+      "anchor": "react-core",
+      "members": [
+        { "commitId": "react-core" },
+        {
+          "commitId": "reactconf-2021-memo",
+          "caption": {
+            "en": "React Conf 2021 · React without memo",
+            "zh": "React Conf 2021 · React without memo"
+          }
+        }
+      ]
+    },
+    {
+      "id": "frontend-worldview",
+      "enabled": true,
+      "title": {
+        "en": "Frontend is Dead, Long Live Frontend",
+        "zh": "前端已死，前端永生"
+      },
+      "description": {
+        "en": "A worldview, then the telling that took its place.",
+        "zh": "先是那套世界观，然后是取代它的那一版。"
+      },
+      "anchor": "juejin-talk-2023",
+      "members": [
+        {
+          "commitId": "juejin-talk-2023",
+          "caption": { "en": "The later telling", "zh": "升级版" }
+        },
+        {
+          "commitId": "feday-2023",
+          "caption": { "en": "My Frontend Worldview", "zh": "我的大前端世界观" }
+        }
+      ]
+    },
+    {
+      "id": "china-react",
+      "enabled": true,
+      "title": { "en": "React, as China saw it", "zh": "中国看见的那个 React" },
+      "description": {
+        "en": "One season of recognition: a pioneer list, a state of the union, a cover.",
+        "zh": "同一个季节里的三份承认：一份先锋榜，一篇国情咨文，一个封面。"
+      },
+      "anchor": "opensrc-pioneer-2022",
+      "members": [
+        {
+          "commitId": "opensrc-pioneer-2022",
+          "caption": { "en": "SegmentFault · Pioneer 33", "zh": "SegmentFault · 开源先锋" }
+        },
+        {
+          "commitId": "coscon-2022",
+          "caption": { "en": "COSCon · State of the Union", "zh": "COSCon · 国情咨文" }
+        },
+        {
+          "commitId": "gitee-cover-2022",
+          "caption": { "en": "Gitee · cover", "zh": "Gitee · 封面" }
+        }
+      ]
+    }
+  ],
   "identities": {
     "bytedance": {
       "handle": "@bytedance",

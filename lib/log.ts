@@ -614,6 +614,62 @@ export interface GroupByQuery extends GroupBase {
 export type Group = GroupByIds | GroupByQuery;
 
 // =============================================================================
+// Presentations (one works-page row over many commits)
+// =============================================================================
+
+/**
+ * A slot in a presentation. Either a data commit, or another presentation
+ * composed inline. The commit is never rewritten: widgets, post embeds and
+ * a filter that asks for the commit by type still see the original.
+ *
+ * `caption` is the description-space escape hatch for the slot. It is free
+ * text, not a relation enum — "中文版", "国内首个开源时刻", "升级前" —
+ * because the relationships worth grouping do not share a vocabulary.
+ */
+export interface PresentationCommitSlot {
+  commitId: string;
+  caption?: LocalizedString;
+  presentationId?: never;
+}
+
+export interface PresentationGroupSlot {
+  presentationId: string;
+  caption?: LocalizedString;
+  commitId?: never;
+}
+
+export type PresentationSlot = PresentationCommitSlot | PresentationGroupSlot;
+
+/**
+ * A presentation folds several commits into one row on /works, and nowhere
+ * else. It is a view: disabling it (`enabled: false`) puts every member
+ * back on the timeline as itself, and the association stays authored so it
+ * can be switched on again.
+ *
+ * Composition is the other half. A slot may name another presentation; when
+ * that one is enabled it renders inside this row, and when it is not, the
+ * slot contributes nothing and those commits stay free. The two switches
+ * are how "these two talks are one conference" and "one of them is also the
+ * Chinese telling of another talk" coexist without becoming one blob.
+ *
+ * `title` and `description` are the row-level escape hatch. Absent, the row
+ * borrows a shared venue, or the anchor commit's own title and description.
+ */
+export interface Presentation {
+  id: string;
+  /** Off, and the works timeline does not fold. Defaults to on. */
+  enabled?: boolean;
+  title?: LocalizedString;
+  description?: LocalizedString;
+  /**
+   * Which member the row wears: its date, its tag, its type icon, and
+   * where on the timeline the row sits. Absent, the latest member.
+   */
+  anchor?: string;
+  members: PresentationSlot[];
+}
+
+// =============================================================================
 // Identity Types
 // =============================================================================
 
@@ -680,6 +736,8 @@ export interface RawRoleRange
 export interface RawLogData {
   tags: Tag[];
   groups?: Group[];
+  /** Works-page folds. Not commits — see {@link Presentation}. */
+  presentations?: Presentation[];
   /**
    * Nested identities keyed by short stable id (`meta`, `bytedance`,
    * `rit`). Each identity carries its role ranges inline for
@@ -700,6 +758,7 @@ export interface RawLogData {
 export interface LogData {
   tags: Tag[];
   groups?: Group[];
+  presentations?: Presentation[];
   identities?: Record<string, Identity>;
   commits: Commit[];
 }
@@ -754,6 +813,7 @@ export function normalizeLogData(raw: RawLogData | LogData): LogData {
   return {
     tags: raw.tags,
     groups: raw.groups,
+    presentations: raw.presentations,
     identities: Object.keys(identityMeta).length ? identityMeta : undefined,
     commits: [...raw.commits, ...extraRoles],
   };
@@ -814,6 +874,7 @@ export function denormalizeLogData(flat: LogData): RawLogData {
   return {
     tags: flat.tags,
     groups: flat.groups,
+    presentations: flat.presentations,
     identities: Object.keys(identities).length ? identities : undefined,
     commits: restCommits,
   };

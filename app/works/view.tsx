@@ -10,11 +10,11 @@ import { t, useLocale } from "@/services";
 import {
   buildTimelineData,
   FILTERABLE_COMMIT_TYPES,
-  isFilterableCommitType,
   isRowVisible,
   type FilterableCommitType,
   type LogData,
 } from "@/lib/log";
+import { planWorks, worksRowFor } from "@/lib/presentation";
 import {
   parseViewState,
   serializeViewState,
@@ -99,23 +99,43 @@ export function WorksView({ logData }: WorksViewProps) {
   // timeline renders — locale filtered and grouped under a tag that exists.
   // A count derived from a different array is a count that can disagree with
   // the rows under it.
+  const commits = useMemo(
+    () => data.flatMap((chapter) => chapter.commits),
+    [data],
+  );
+
   const facets = useMemo<TypeFacet[]>(() => {
     // Per type: how many rows, and every distinct `icon` override they carry.
     // One override and the chip can wear it; more than one (or none) and it
     // falls back to the type's own mark.
+    //
+    // Counted after presentations fold, and against that type's own filter,
+    // so the number is "how many rows does tapping this chip print?". A
+    // conference of two talks is one talk row. A project folded with its
+    // talk comes apart under either chip — the filter asked for the commit.
     const seen = new Map<
       FilterableCommitType,
       { count: number; icons: Set<string | undefined> }
     >();
 
-    for (const { commits } of data) {
+    for (const type of FILTERABLE_COMMIT_TYPES) {
+      const plan = planWorks(commits, logData.presentations, [type], locale);
       for (const c of commits) {
-        if (!isFilterableCommitType(c.type)) continue;
-        if (!isRowVisible(c, [c.type])) continue;
-        const entry = seen.get(c.type) ?? { count: 0, icons: new Set() };
+        const row = worksRowFor(plan, c.id);
+        if (row.kind === "hide") continue;
+        if (row.kind === "presentation") {
+          if (row.presentation.anchor.id !== c.id) continue;
+          const entry = seen.get(type) ?? { count: 0, icons: new Set() };
+          entry.count += 1;
+          entry.icons.add(row.presentation.anchor.icon);
+          seen.set(type, entry);
+          continue;
+        }
+        if (!isRowVisible(c, [type])) continue;
+        const entry = seen.get(type) ?? { count: 0, icons: new Set() };
         entry.count += 1;
         entry.icons.add(c.icon);
-        seen.set(c.type, entry);
+        seen.set(type, entry);
       }
     }
 
@@ -127,7 +147,7 @@ export function WorksView({ logData }: WorksViewProps) {
         iconOverride: icons.size === 1 ? [...icons][0] : undefined,
       };
     });
-  }, [data]);
+  }, [commits, logData.presentations, locale]);
 
   // The chapters, as the pinned bar names them when it wears one.
   const chapters = useMemo(
@@ -144,13 +164,15 @@ export function WorksView({ logData }: WorksViewProps) {
   // and the rows can never disagree. (They used to: this check knew about the
   // filter but not about `hideRow`, so a filter matching only suppressed rows
   // printed `git init` over an empty page.)
-  const hasMatches = useMemo(
-    () =>
-      data.some(({ commits }) =>
-        commits.some((c) => isRowVisible(c, view.types)),
-      ),
-    [data, view.types],
-  );
+  const hasMatches = useMemo(() => {
+    const plan = planWorks(commits, logData.presentations, view.types, locale);
+    return commits.some((c) => {
+      const row = worksRowFor(plan, c.id);
+      if (row.kind === "hide") return false;
+      if (row.kind === "presentation") return row.presentation.anchor.id === c.id;
+      return isRowVisible(c, view.types);
+    });
+  }, [commits, logData.presentations, view.types, locale]);
 
   return (
     <PageLayout
@@ -177,6 +199,7 @@ export function WorksView({ logData }: WorksViewProps) {
         identities={logData.identities}
         form={view.form}
         activeTypes={view.types}
+        presentations={logData.presentations}
         onSelectHash={selectHash}
         pinnedChapters
       />

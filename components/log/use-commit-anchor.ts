@@ -63,8 +63,15 @@ function mark(el: HTMLElement) {
 function rowFor(hash: string): HTMLElement | null {
   const id = hash.replace(/^#/, "");
   if (!/^[0-9a-f]{7}$/.test(id)) return null;
-  const el = document.getElementById(id);
-  return el?.hasAttribute("data-rail-row") ? (el as HTMLElement) : null;
+  const byId = document.getElementById(id);
+  if (byId?.hasAttribute("data-rail-row")) return byId as HTMLElement;
+  // A folded commit keeps its hash. The presentation row wears it as
+  // `data-member-hash`, so a link to the commit lands on the row that
+  // is currently speaking for it.
+  const host = document.querySelector<HTMLElement>(
+    `[data-member-hash~="${id}"]`,
+  );
+  return host?.hasAttribute("data-rail-row") ? host : null;
 }
 
 /**
