@@ -886,8 +886,8 @@
       },
       "shapedBy": ["steve-jobs"],
       "body": {
-        "en": "Identity is not a title you freeze. Each era — consumer, producer, architect — is a rewrite, not a reveal.\nThe line comes out of narrative identity: the self is not found and then described, it is constituted in the telling. I got it from Liu Qing's lectures on modern Western thought, and behind those is Ricoeur. Which is why the imperative is not “find yourself” but “become who you are” — you are always becoming, and narration is how the question “who?” gets answered at all.\nNietzsche's imperative is Pindar's line before it: become such as you are.\n成己, completing yourself, comes from the *Doctrine of the Mean*, where it arrives already paired: completing yourself is benevolence, completing things is knowledge. The other shelf on this page is the second half of that sentence.",
-        "zh": "身份不是冻结的头衔。每个时代 —— 消费者、生产者、架构师 —— 都是一次重写，而不是一次揭晓。\n这句话的来路是「叙事性自我」：自我不是先被找到、再被讲出来的，而是在讲述中才被构成。我是听刘擎讲西方现代思想时接上这条线的，他背后是利科。所以这里的祈使句不是「找到自己」，而是「成为你自己」—— 人永远都在 Becoming，而叙事就是「你是谁」这个问题唯一能被回答的方式。\n尼采那句祈使的祖宗是品达：成为你所是的那个人。\n「成己」出自《中庸》，而它在那里本来就是成对的 ——「成己，仁也；成物，知也。」这一页的另一格，是这句话的下半句。"
+        "en": "Identity is not a title you freeze. Each era is a rewrite, not a reveal.\nThe line comes out of narrative identity: the self is not found and then described, it is constituted in the telling. I got it from Liu Qing's lectures on modern Western thought, and behind those is Ricoeur. Which is why the imperative is not “find yourself” but “become who you are” — you are always becoming, and narration is how the question “who?” gets answered at all.\nNietzsche's imperative is Pindar's line before it: become such as you are.\n成己, completing yourself, comes from the *Doctrine of the Mean*, where it arrives already paired: completing yourself is benevolence, completing things is knowledge. The other shelf on this page is the second half of that sentence.",
+        "zh": "身份不是冻结的头衔。每一段都是一次重写，而不是一次揭晓。\n这句话的来路是「叙事性自我」：自我不是先被找到、再被讲出来的，而是在讲述中才被构成。我是听刘擎讲西方现代思想时接上这条线的，他背后是利科。所以这里的祈使句不是「找到自己」，而是「成为你自己」—— 人永远都在 Becoming，而叙事就是「你是谁」这个问题唯一能被回答的方式。\n尼采那句祈使的祖宗是品达：成为你所是的那个人。\n「成己」出自《中庸》，而它在那里本来就是成对的 ——「成己，仁也；成物，知也。」这一页的另一格，是这句话的下半句。"
       },
       "topics": ["being"],
       "statements": [
@@ -989,16 +989,6 @@
             "zh": "利科把同一性切成两半：idem 是保持相同，ipse 是穿过变化之后仍然是我。所以 —— 我既是、也不是十年前的那个人。"
           },
           "ref": "polarity"
-        },
-        {
-          "title": {
-            "en": "Three-year cycles",
-            "zh": "以三年为周期"
-          },
-          "text": {
-            "en": "Each era — consumer, producer, architect — is a rewrite, not a reveal. Identity is not a title you freeze.",
-            "zh": "每一个阶段 —— 消费者、生产者、架构师 —— 都是一次重写，而不是一次揭晓。身份不是冻结的头衔。"
-          }
         }
       ]
     },
@@ -1033,26 +1023,6 @@
             "source": {
               "en": "Stanford, 2005",
               "zh": "《过程》·《月光》，2010"
-            }
-          }
-        },
-        {
-          "facet": {
-            "en": "lost",
-            "zh": "迷途"
-          },
-          "text": {
-            "en": "Not all those who wander are lost.",
-            "zh": "浪游的人，未必都迷了路。"
-          },
-          "quotedFrom": {
-            "name": {
-              "en": "J. R. R. Tolkien",
-              "zh": "托尔金"
-            },
-            "source": {
-              "en": "*The Fellowship of the Ring*, 1954",
-              "zh": "《魔戒：魔戒同盟》，1954"
             }
           }
         },
@@ -1182,17 +1152,17 @@
         },
         {
           "facet": {
-            "en": "intersection",
-            "zh": "十字路口"
+            "en": "not a vessel",
+            "zh": "不器"
           },
           "text": {
             "en": "Technology alone is not enough — it's technology married with the liberal arts, married with the humanities.",
-            "zh": "君子不器，观其会通。"
+            "zh": "君子不器。"
           },
           "quotedFrom": {
             "name": {
               "en": "Steve Jobs",
-              "zh": "《论语》×《周易》"
+              "zh": "《论语·为政》"
             },
             "source": {
               "en": "iPad 2 keynote, 2011",
@@ -1202,21 +1172,17 @@
         },
         {
           "facet": {
-            "en": "east and west",
-            "zh": "东西"
+            "en": "gather and flow",
+            "zh": "会通"
           },
           "text": {
-            "en": "East sea, west sea — the mind runs the same; southern learning, northern learning — the Way was never split.",
-            "zh": "东海西海，心理攸同；南学北学，道术未裂。"
+            "en": "The sage sees how the world moves, and watches where it gathers and flows.",
+            "zh": "圣人有以见天下之动，而观其会通。"
           },
           "quotedFrom": {
             "name": {
-              "en": "Qian Zhongshu",
-              "zh": "钱锺书"
-            },
-            "source": {
-              "en": "preface to *Discourses on Art*, 1942",
-              "zh": "《谈艺录》序，1942"
+              "en": "*I Ching*, Great Commentary",
+              "zh": "《周易·系辞上》"
             }
           }
         },
@@ -1229,8 +1195,8 @@
       ],
       "shapedBy": ["steve-jobs", "hackers-and-painters"],
       "body": {
-        "en": "An interface first: two unlike worlds get a surface where they can see and address each other. Then 会通, which is not contact but understanding, connection and fusion — an intersection that actually grows. Then crossing: going over for real, and breaking the category when the category is the thing in the way. (The Chinese here is 介面 rather than the usual 界面 — the same word for interface, except 介 also means being between the two.)\nThere must be such an intersection; there are just too few people willing to go and look. Every boundary I have been handed turned out to be an artifact of some moment's division of labour rather than a fact about the work — in culture too, East and West, the local and the world — which is exactly why the unclaimed things are found on the seam.\nA vessel is a thing with one use. The artifact I am building should become one — from the rule, the instrument — and the person building it should not. Make vessels; don't be one.",
-        "zh": "介面，是异质的两边先有一个接触面，彼此可见、可交流；会通，是不止于接触，而是理解、连接、融会，长出真正的 intersection；越界，是最后真的跨过去，必要时把原有的分类和惯例打破。（写「介面」而不是「界面」：同一个 interface，但「介」多带一层「介于两者之间」。）\n这样一个 intersection 一定存在，只是愿意去探索的人太少。别人交到我手上的每一条边界，后来都被证明只是某个时代社会分工的产物，而不是这件事本身的性质 —— 文化上也一样，东方与西方、民族与世界 —— 正因如此，没人认领的东西都在接缝上。\n器是只有一种用途的东西。我做出来的东西应该成器 ——「以法成器」—— 而做这件事的人不该成器。**做出来的要成器，做事的人不要成器。**"
+        "en": "An interface first: two unlike worlds get a surface where they can see and address each other. Then 会通 — 会 is where things gather, 通 is where they flow through — which is not contact but understanding, connection and fusion — an intersection that actually grows. Then crossing: going over for real, and breaking the category when the category is the thing in the way. (The Chinese here is 介面 rather than the usual 界面 — the same word for interface, except 介 also means being between the two.)\nThere must be such an intersection; there are just too few people willing to go and look. Every boundary I have been handed turned out to be an artifact of some moment's division of labour rather than a fact about the work — in culture too, East and West, the local and the world — which is exactly why the unclaimed things are found on the seam.\nA vessel is a thing with one use. The artifact I am building should become one — from the rule, the instrument — and the person building it should not. Make vessels; don't be one.",
+        "zh": "介面，是异质的两边先有一个接触面，彼此可见、可交流；会通，是不止于接触 —— 会是汇聚，通是贯通 —— 而是理解、连接、融会，长出真正的 intersection；越界，是最后真的跨过去，必要时把原有的分类和惯例打破。（写「介面」而不是「界面」：同一个 interface，但「介」多带一层「介于两者之间」。）\n这样一个 intersection 一定存在，只是愿意去探索的人太少。别人交到我手上的每一条边界，后来都被证明只是某个时代社会分工的产物，而不是这件事本身的性质 —— 文化上也一样，东方与西方、民族与世界 —— 正因如此，没人认领的东西都在接缝上。\n器是只有一种用途的东西。我做出来的东西应该成器 ——「以法成器」—— 而做这件事的人不该成器。**做出来的要成器，做事的人不要成器。**"
       },
       "instances": [
         {
@@ -1270,22 +1236,6 @@
             "source": {
               "en": "on the Chongzhen calendar reform, late Ming",
               "zh": "《历书总目表》，明末"
-            }
-          }
-        },
-        {
-          "title": {
-            "en": "Where things gather and flow",
-            "zh": "观其会通"
-          },
-          "text": {
-            "en": "Hui is where things gather, tong is where they flow through — “the sage sees how the world moves, and watches where it gathers and flows.”",
-            "zh": "会是汇聚，通是贯通 ——「圣人有以见天下之动，而观其会通」。"
-          },
-          "from": {
-            "name": {
-              "en": "*I Ching*, Great Commentary",
-              "zh": "《周易·系辞上》"
             }
           }
         },
@@ -1349,7 +1299,7 @@
           },
           "text": {
             "en": "What an organism feeds upon is negative entropy.",
-            "zh": "取法乎上，负熵为生。"
+            "zh": "生命以负熵为食。"
           },
           "quotedFrom": {
             "name": {
@@ -1365,17 +1315,21 @@
         },
         {
           "facet": {
-            "en": "generation",
-            "zh": "生生"
+            "en": "aim",
+            "zh": "取法"
           },
           "text": {
-            "en": "Daily renewal is called abundant virtue; generation upon generation is what change means.",
-            "zh": "日新之谓盛德，生生之谓易。"
+            "en": "Take the highest as your model and you reach only the middle; take the middle and you end at the bottom.",
+            "zh": "取法于上，仅得为中；取法于中，故为其下。"
           },
           "quotedFrom": {
             "name": {
-              "en": "*I Ching*, Great Commentary",
-              "zh": "《周易·系辞上》"
+              "en": "Emperor Taizong of Tang",
+              "zh": "唐太宗"
+            },
+            "source": {
+              "en": "*Di Fan*, 648",
+              "zh": "《帝范》卷四，648"
             }
           }
         },
@@ -1396,8 +1350,8 @@
         }
       ],
       "body": {
-        "en": "Everything in nature runs toward maximum entropy, which for a living thing is death; staying alive means continually drawing order back out of the environment. It is the most compact statement I know of what living, working and building all are.\n(The Chinese half borrows 取法于上 — aim at the highest and you land in the middle — and puts Schrödinger where the highest is.)\nThe classical Chinese word for what a living thing does is not adaptation but 生生 — generating, and generating again: the same claim as the physics, three thousand years earlier and without the thermodynamics.",
-        "zh": "自然里的一切都朝着最大熵去，而对生命来说，最大熵就是死亡；活着，就是不断从环境里把秩序取回来。这是我见过对「活着、工作、创造」最凝练的一句描述。\n（中文那半句化自「取法于上，仅得乎中」，而把「上」换成了薛定谔。）\n中文给「活着」找的词不是适应，是生生 —— 生了又生。和那句物理说的是同一件事，只是早了几千年，也还没有热力学。"
+        "en": "Everything in nature runs toward maximum entropy, which for a living thing is death; staying alive means continually drawing order back out of the environment. It is the most compact statement I know of what living, working and building all are.\nThe two lines have nothing to do with each other: one is a standard a Tang emperor set for his son, the other is a definition of life. Welding them into 取法乎上，负熵为生 is mine — and where the highest should be, I put Schrödinger.\nThe classical Chinese word for what a living thing does is not adaptation but 生生 — generating, and generating again: the same claim as the physics, three thousand years earlier and without the thermodynamics.",
+        "zh": "自然里的一切都朝着最大熵去，而对生命来说，最大熵就是死亡；活着，就是不断从环境里把秩序取回来。这是我见过对「活着、工作、创造」最凝练的一句描述。\n这两句原本无关：一句是唐太宗写给儿子的标准，一句是薛定谔给生命下的定义。把它们焊成「取法乎上，负熵为生」是我自己的话 —— 那个「上」，我放的是薛定谔。\n中文给「活着」找的词不是适应，是生生 —— 生了又生。和那句物理说的是同一件事，只是早了几千年，也还没有热力学。"
       },
       "instances": [
         {
@@ -1416,6 +1370,22 @@
             }
           },
           "ref": "reality"
+        },
+        {
+          "title": {
+            "en": "Renewal and generation",
+            "zh": "日新与生生"
+          },
+          "text": {
+            "en": "“Daily renewal is called abundant virtue; generation upon generation is what change means.” The Great Commentary puts the two in one sentence because they are one thing.",
+            "zh": "「日新之谓盛德，生生之谓易。」日新是每天翻新，生生是生了又生 ——《系辞》把这两件事写进同一句，因为它们本来就是一件事。"
+          },
+          "from": {
+            "name": {
+              "en": "*I Ching*, Great Commentary",
+              "zh": "《周易·系辞上》"
+            }
+          }
         },
         {
           "title": {
@@ -1549,11 +1519,29 @@
               "zh": "「那一个掌亲的，怎知道弄假成真？」"
             }
           }
+        },
+        {
+          "facet": {
+            "en": "the other side",
+            "zh": "生产者"
+          },
+          "text": {
+            "en": "Welcome to the producer side.",
+            "zh": "欢迎来到生产者这一侧。"
+          },
+          "quotedFrom": {
+            "name": "Cheng Lou",
+            "ref": "react-team",
+            "source": {
+              "en": "Reason / React, via 「程序员中的梦想家」",
+              "zh": "Reason / React，出自「程序员中的梦想家」"
+            }
+          }
         }
       ],
       "body": {
-        "en": "Imagination is the bottleneck, and the only way to widen it is from inside the next room. You cannot reason your way into a room you cannot see into; you can only act your way in — so stop forecasting, say the thing before it is true, take the position before you are ready, and let the new data arrive as a consequence of having moved. Creating is what this looks like from the outside.",
-        "zh": "瓶颈是想象力，而拓宽它的唯一办法，是站到下一个房间里面去。你没法靠推理走进一个你看不进去的房间，只能靠行动走进去 —— 所以别再预测了：在它还不成立的时候先把它说出口，在你还没准备好的时候先站上那个位置，让新的数据作为「你已经动了」的结果到来。从外面看，这件事就叫创造。"
+        "en": "Imagination is the bottleneck, and the only way to widen it is from inside the next room. You cannot reason your way into a room you cannot see into; you can only act your way in — so stop forecasting, say the thing before it is true, take the position before you are ready, and let the new data arrive as a consequence of having moved. Creating is what this looks like from the outside.\nThe tools look messy while they are being invented. Visionaries get underestimated on the way up and mythologized after. If you are in the pit with them — that's the job.",
+        "zh": "瓶颈是想象力，而拓宽它的唯一办法，是站到下一个房间里面去。你没法靠推理走进一个你看不进去的房间，只能靠行动走进去 —— 所以别再预测了：在它还不成立的时候先把它说出口，在你还没准备好的时候先站上那个位置，让新的数据作为「你已经动了」的结果到来。从外面看，这件事就叫创造。\n东西在被发明的时候看起来都很糟。梦想家在过程中被低估，流行之后又被神化。如果你正在坑里跟他们一起填 —— 那就是这份工作。"
       },
       "instances": [
         {
@@ -1614,24 +1602,6 @@
           "text": {
             "en": "Every level turns out to hold problems that were invisible one level down — not harder versions of the same problem, different problems.",
             "zh": "每一层都装着下一层根本看不见的问题 —— 不是同一个问题的更难版本，而是另一类问题。"
-          }
-        },
-        {
-          "title": {
-            "en": "Welcome to the producer side",
-            "zh": "Welcome to the producer side"
-          },
-          "text": {
-            "en": "The tools look messy while they are being invented. Visionaries get underestimated on the way up and mythologized after. If you are in the pit with them — that's the job.",
-            "zh": "东西在被发明的时候看起来都很糟。梦想家在过程中被低估，流行之后又被神化。如果你正在坑里跟他们一起填 —— 那就是这份工作。"
-          },
-          "from": {
-            "name": "Cheng Lou",
-            "ref": "react-team",
-            "source": {
-              "en": "Reason / React, via 「程序员中的梦想家」",
-              "zh": "Reason / React，出自「程序员中的梦想家」"
-            }
           }
         },
         {
