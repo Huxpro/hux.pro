@@ -195,14 +195,15 @@ is a preset of a few independent atoms rather than a layout of its own
 `clamp` · `full`), which attachment object (`none` · `covers` · `grid`),
 whether the notes print (commentary, the author fields, the link labels),
 and whether anything peeks on hover. The toolbar's control resets every
-row to a preset; a row the reader opens by hand takes the `feed` preset
-for itself. Old links with git's names (`oneline`, `stat`, `patch`) still
-parse, as aliases.
+row to a preset — those three stops are the media layer (`none` / strip /
+grid). A row the reader opens by hand keeps that layer and only relieves
+the text: full description, notes, author. Old links with git's names
+(`oneline`, `stat`, `patch`) still parse, as aliases.
 
 | form | description | media | notes | peek | the reading |
 |---|---|---|---|---|---|
-| `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
-| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
+| `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens. Open a row and the description / notes come out; covers do not. |
+| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit. Open a row and the same strip stays; the text unclamps in place above it. |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
 ### The attachment object
@@ -242,8 +243,9 @@ Cover and caption are one control (`AttachmentTile`'s `footer`): the same
 second click target that happens to do the same thing, and it is not the
 row's fold handle. Folding is a muted fill on the title line; opening an
 attachment is a dim. Mixing the two would make the presses feel the same. A hand-opened row in
-`covers` / `index` still folds from its title line; the expanded body
-(`data-row-body`) stops that click and wears a default cursor, so
+`covers` / `index` still folds from its title line and does not become
+the feed: `covers` keeps the strip, `index` keeps no media. The expanded
+body (`data-row-body`) stops that click and wears a default cursor, so
 description, notes and captions do not look like fold targets. The feed
 itself does not fold per row — every commit is already open, and leaving
 is a form change on the toolbar. On a phone, a recording or a deck is

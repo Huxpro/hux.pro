@@ -235,33 +235,38 @@ export function TimelineCommit({
         ? handleToggleExpanded
         : undefined;
 
-  // The row's form: the page's, unless the reader opened this row, in which
-  // case it is the feed for itself (`rowFormFor`, lib/log-view.ts — a form
-  // is a preset of the row's atoms, and an open row is the same preset at
-  // row scale). Everything below reads those atoms and nothing reads the
-  // form's name, or `isExpanded` again: the feed's atoms already say
-  // "no strip, no clamp, no peek".
+  // The row's form: the page's atoms, with text and notes relieved if the
+  // reader opened this row (`rowFormFor`, lib/log-view.ts). Opening does
+  // not change the attachment object — the toolbar's three stops are that
+  // layer. Everything below reads those atoms and nothing reads the form's
+  // name for what to print: the feed's atoms already say "grid, no clamp,
+  // no peek".
   const rowForm = rowFormFor(form, isExpanded);
 
-  // What the folded form adds under the title line: the description at two
-  // lines, and the strip of covers. Both or either — a commit with no media
-  // still gets its description, so a form is "title, what, and what it
-  // looks like" rather than "title, and covers if any".
+  // What sits under the title line besides the open body: the description
+  // at two lines, and the strip of covers. Both or either — a commit with
+  // no media still gets its description, so a form is "title, what, and
+  // what it looks like" rather than "title, and covers if any".
   //
   // Events and folded asides are out. Events are datelines between
   // commits, not works; asides borrow that voice until opened. Giving
   // either a caption while folded would promote a quiet line to a
   // paragraph.
   //
-  // The strip is the folded form's own: while the row is open the feed's
-  // grid shows the real thing, and a row of miniatures of what is directly
-  // below it is noise.
+  // The strip is the covers form's own, folded or open. Opening unclamps
+  // the description in place above it; it does not swap the strip for the
+  // feed's grid.
   const isQuiet = isEvent || (isAside && !isExpanded);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
   const showStrip =
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
   const showStatDescription =
     !isQuiet && rowForm.description === "clamp" && !!data.description;
+  // Covers+open: the full message stays in this column, above the strip,
+  // rather than dropping into the body under it. Index / feed still print
+  // the full message in the body — they have no strip to sit under.
+  const showOpenDescriptionWithStrip =
+    showStrip && rowForm.description === "full" && !!data.description;
   // Where the handle signs: the bottom-right of the row, which is the media
   // line when a single cover leaves it the room — on any viewport — and the
   // meta line when there is more than one, since two covers may already be
@@ -662,7 +667,7 @@ export function TimelineCommit({
           its own clicks, so the line it sits on stays the row's — the empty
           stretch beside a single cover folds and unfolds the commit like any
           other part of it. */}
-      {(showStrip || showStatDescription) && (
+      {(showStrip || showStatDescription || showOpenDescriptionWithStrip) && (
         // `min-w-0` for the same reason the title row carries it: the content
         // track is `1fr`, whose automatic minimum is its content, and the
         // strip is `w-max`.
@@ -670,6 +675,15 @@ export function TimelineCommit({
           {/* Reads down the same left edge the title and the meta do, and
               that the feed will start it on when the row opens. */}
           {showStatDescription && <Description text={data.description} />}
+          {showOpenDescriptionWithStrip && (
+            <div
+              data-row-body
+              onClick={(e) => e.stopPropagation()}
+              className="cursor-default"
+            >
+              <Description text={data.description} isExpanded />
+            </div>
+          )}
 
           {/*
             The covers get a line of their own, always. One cover used to tuck
@@ -697,7 +711,7 @@ export function TimelineCommit({
                 wears it. A full strip leaves no room, and the handle stays on
                 the meta line (`signsOnMediaLine`).
               */}
-              {signsOnMediaLine && (
+              {signsOnMediaLine && !rowForm.notes && (
                 <Handle byline={byline} className={TYPE.rowMeta} />
               )}
             </div>
@@ -739,12 +753,15 @@ export function TimelineCommit({
           {/* The message: what it is, the thing itself, the note on it.
               Topics and stats are authored but deliberately unprinted — a row
               of uppercase keywords and a star count were decoration here. */}
-          <Description text={data.description} isExpanded />
+          {rowForm.description === "full" && !showOpenDescriptionWithStrip && (
+            <Description text={data.description} isExpanded />
+          )}
 
           {/* The attachment object in the feed (AttachmentGrid): the grid on
               a desk, the edge-to-edge stack on a phone, captions written
-              out, and every click its native one. */}
-          {expandedMedia.length > 0 && (
+              out, and every click its native one. Opening a covers / index
+              row does not borrow this — those keep `none` or the strip. */}
+          {rowForm.media === "grid" && expandedMedia.length > 0 && (
             <div onClick={(e) => e.stopPropagation()} className="space-y-4">
               {inspecting ? (
                 <MediaRenderer

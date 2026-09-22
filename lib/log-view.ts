@@ -28,17 +28,20 @@ import {
 // peeks on hover. Each part has its own small set of states (`RowForm`), and
 // a *form* is one preset of all of them — so the three readings of the page
 // are compositions of the same atoms, and switching form is resetting every
-// row to a preset rather than four hand-made layouts. A row the reader opens
-// by hand is the same thing at a smaller scale: it takes the `feed` preset
-// for itself (see TimelineCommit).
+// row to a preset rather than four hand-made layouts. The toolbar's three
+// stops are the media layer (`none` / strip / grid). A row the reader opens
+// by hand keeps that layer and only relieves the text: full description,
+// notes, author (see TimelineCommit).
 //
 //  - `index`  — the title line only. The overview: one row per commit, the
-//    whole career in two screens. Rich media is reachable but not shown
-//    (hover peek on a pointer device, or open the row).
+//    whole career in two screens. Rich media is reachable via hover peek
+//    on a pointer device. Opening a row unclamps the description and notes;
+//    it does not print covers.
 //  - `covers` — the default: the title, two lines, and the covers at a size
 //    you can recognise a slide or a screenshot at. Still one row per commit,
 //    so the overview survives, but the work is on screen rather than behind
-//    a hover a phone cannot perform.
+//    a hover a phone cannot perform. Opening a row unclamps the description
+//    and notes in place above the same strip.
 //  - `feed`   — every row open: the whole description, the attachment grid
 //    with its captions written out, the notes and the author fields. All the
 //    information is right there, so nothing in it peeks or opens a sheet: a
@@ -80,16 +83,26 @@ export const ROW_FORM: Record<LogForm, RowForm> = {
 };
 
 /**
- * The feed is the form with every row open, and an open row is the feed at
- * row scale: one rule, read from both ends. The page asks whether a form
- * opens its rows; a row asks what its atoms are given whether it is open.
+ * The feed is the form with every row open. Opening a row by hand is not
+ * the feed at row scale: it only relieves text and notes, and keeps the
+ * page form's attachment object. The page asks whether a form opens its
+ * rows; a row asks what its atoms are given whether it is open.
  */
 export function formOpensRows(form: LogForm): boolean {
   return form === "feed";
 }
 
 export function rowFormFor(form: LogForm, open: boolean): RowForm {
-  return ROW_FORM[open ? "feed" : form];
+  const base = ROW_FORM[form];
+  if (!open) return base;
+  return {
+    ...base,
+    description: "full",
+    notes: true,
+    // The index has nothing on the page to peek at once the text is out;
+    // the covers still peek from the strip. The feed never peeked.
+    peek: base.media === "covers",
+  };
 }
 
 /** The git flags the forms were first named after — old links carry them. */
