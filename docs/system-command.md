@@ -178,6 +178,32 @@ bar on every scroll, so the pill would trail it rather than sit in it. On an
 unlisted route (`/docs`, `/editor`) the pill parks under the palette and fades,
 rather than picking a tab that is not on.
 
+**The scrub** is the gesture iOS 26 gives its own tab bar: press anywhere on
+the bar and slide, and the pill comes with the finger while the icons light as
+it passes them. The page changes on release and never during — a tab bar that
+navigated mid-drag would load four pages on the way to the fifth — so
+`aria-current` does not move either, because nothing has happened yet. Let go
+more than `DRAG_CANCEL_Y_PX` above or below the bar and the scrub is called
+off; let go on Search and the palette opens, and the pill goes back to the page
+that is actually open, because the palette is a door and not a place. The one
+thing missing against the original is the haptic tick at each boundary, which a
+phone browser cannot fire.
+
+Three things the gesture rests on, each of them a bug found by trying it:
+
+- The pill's travel is a spring (`PILL_SPRING`, ζ ≈ 0.97) fed by one motion
+  value. A tap and a scrub write the same value, so there is no second code
+  path for "moving because dragged", and no re-render per pointer event.
+- Position is read as a *fraction* of the tabs' live rect, never as remembered
+  pixels: the bar may be mid-shrink under the finger, and a fraction is the
+  same number at any scale.
+- The tabs are links, and a link is draggable. The browser's own link-drag
+  fires `pointercancel` the moment a press on one starts to move — which is
+  the movement the scrub is made of — so the tabs set `draggable={false}`.
+  `touch-action: pan-y` draws the other line: sideways is the scrub, vertical
+  is the page being scrolled by a thumb that happens to be down here, and the
+  browser keeps that one.
+
 **The scroll shrink** is the bar stepping back from a page in motion, as iOS 26
 does with Safari's tab bar: scrolling down takes it to 0.86, and it comes back
 the moment the page settles (`SETTLE_MS`) or turns around. Two states with a
@@ -186,6 +212,17 @@ transition, never scroll-linked — a scale that follows the finger re-blurs a
 the shrink costs no layout, and it is anchored `bottom center`, so the gap
 under the bar stays the gap. `prefers-reduced-motion` turns it off; the state
 is published as `data-shrunk` for the inspector and for tests.
+
+**Solid while the page changes.** A `backdrop-filter` is not repainted in the
+same frame as the element that owns it: on iOS Safari a route change lands the
+bar's translucency one or more frames before its blur, and for those frames the
+new page is legible straight through a bar that is supposed to be frosted. So
+for `NAV_SOLID_MS` the bar gets an opaque floor — a page-ground fill *under* its
+glass — and the glass sits on that instead of on the page. See
+[Glass](./system-glass.md) → Solid while the page changes for why it is a floor
+and not simply a fill at 100%. It is written onto the element by a *layout*
+effect, not through state: it has to land in the same commit as the route, the
+one React flushes inside the view transition's update callback.
 
 Two things it keeps from the button it replaces: the home grid's jiggle mode
 still takes the bottom of the screen (the bar hands it over on `HANDOFF`), and
