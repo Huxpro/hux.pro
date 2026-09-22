@@ -108,6 +108,11 @@ Two things these tokens deliberately do **not** do and one they do:
   fill — the dimming a busy wallpaper needs — so it pushes the chip the way
   selection already wants to go; the second is colour, not contrast.
 
+The phone tab bar's pill is the third caller, and the one that shows why the
+rule is worth a token of its own: its track is `bg-glass` at 50%, thinner than
+any other track on the site, and the pill stays legible through it in both
+themes without the track having to thicken to hold it.
+
 **Adding a control:** a selected chip must not reach for `--card`, `bg-black/*`,
 or any other fill that sinks. If it needs a fourth depth, add a fourth
 `--select-fill-*` rather than borrowing a glass role.
@@ -122,6 +127,33 @@ for eleven of them — theater chrome, minimized windows, the app folder, the
 commit embed, the 404 card and more all stayed opaque slabs when you switched to
 Clear. Prose cannot notice the twelfth, so `no-restricted-syntax` in
 `eslint.config.mjs` bans `bg-card/` and `bg-popover/` outside `lib/glass.ts`.
+
+## Solid while the page changes
+
+A `backdrop-filter` is not repainted in the same frame as the element that owns
+it. On iOS Safari a route change lands a floating surface's *translucency* one
+or more frames before its blur, and for those frames the new page is legible
+straight through a surface that is supposed to be frosted — the one moment the
+material looks like a bug rather than a material.
+
+The fix is a **floor**, not a fill: an opaque page-ground layer painted *under*
+the glass for the length of the transition, which the glass then sits on
+instead of on the page. Raising the fill to 100% instead looks like the obvious
+move and is wrong, because the roles are one base colour at different
+strengths: a bar at `--glass-overlay` and its selected pill at `--glass-sheet`
+differ only in how much page each lets through, so at 100% they become the same
+colour and the pill disappears — exactly while the selection is changing.
+
+What a floor does cost is the wallpaper's colour, for a third of a second,
+under a crossfade. Nothing in the tokens knows that colour: `--tint` is the
+picture's hue clamped to a mid lightness *for mixing into a surface*, not the
+colour behind one. So the floor is the page's own ground, and it fades out
+rather than switching off, which reads as the bar settling onto the page.
+
+The phone tab bar is the surface that does this (`systems/command/tab-bar.tsx`,
+`useSolidWhilePageChanges`); it is the widest piece of glass that survives a
+navigation, so it is where the lag is most visible. Any chrome that outlives a
+route change can take the same two layers.
 
 ## Triggers
 

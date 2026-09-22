@@ -16,7 +16,10 @@ systems/command/
 ├── results.tsx        # cmdk results and the slash list, shared by both shells
 ├── apps-launcher.tsx  # Spotlight-style horizontal Apps strip
 ├── load-bundle-panel.tsx  # System UI OTA Lynx bundle form
+├── launcher.tsx       # Picks what stands at the bottom: button or tab bar
 ├── fab.tsx            # Floating action button trigger
+├── tab-bar.tsx        # The phone tab bar (devtool: Command → Phone nav)
+├── use-devtool-hold.tsx   # The hold on the search button that opens the devtool
 └── index.ts           # Barrel exports
 ```
 
@@ -151,6 +154,101 @@ palette does after it runs:
 `"search"` or `"slash"`; the shell supplies `leave(kind)` through
 `useCommandShell()`, and the lists never call `close` themselves.
 
+## The phone tab bar
+
+A second shape for the trigger, off by default and chosen in the devtool
+(Command → **Phone nav**: Button / Tabs). Below `md` it replaces the floating
+button with a capsule of five: **Home · Writing · Search · Works · Prompts**,
+the palette itself in the middle where a thumb already is. Tapping Search opens
+the same drawer the button always did — this changes what stands in front of
+the palette, not the palette. A desktop is untouched whatever the switch says.
+
+It is a proposal, which is why it is a devtool switch and not a setting: the
+palette is still how this site is navigated, and four tabs are a claim about
+which four places matter. The tabs carry the same glyphs as the palette's own
+navigation rows (`actions.tsx`), because a tab and its row are one destination
+and must not look like two.
+
+**The selected pill** is one absolutely-positioned span that animates `x` by
+whole multiples of its own width. Five `flex-1` tabs are exactly a fifth of the
+track each, so it needs no measuring, no `ResizeObserver` and no state — the
+active index *is* the animation. Not `layoutId`: a shared-element projection
+re-runs whenever anything else in the bar moves, and the shrink below moves the
+bar on every scroll, so the pill would trail it rather than sit in it. On an
+unlisted route (`/docs`, `/editor`) the pill parks under the palette and fades,
+rather than picking a tab that is not on.
+
+**The scrub** is the gesture iOS 26 gives its own tab bar: press anywhere on
+the bar and slide, and the pill comes with the finger while the icons light as
+it passes them. The page changes on release and never during — a tab bar that
+navigated mid-drag would load four pages on the way to the fifth — so
+`aria-current` does not move either, because nothing has happened yet. Let go
+more than `DRAG_CANCEL_Y_PX` above or below the bar and the scrub is called
+off; let go on Search and the palette opens, and the pill goes back to the page
+that is actually open, because the palette is a door and not a place. The one
+thing missing against the original is the haptic tick at each boundary, which a
+phone browser cannot fire.
+
+Three things the gesture rests on, each of them a bug found by trying it:
+
+- The pill's travel is a spring (`PILL_SPRING`, ζ ≈ 0.79) fed by one motion
+  value. A tap and a scrub write the same value, so there is no second code
+  path for "moving because dragged", and no re-render per pointer event. The
+  spring is underdamped on purpose: it gives back a few percent before
+  settling, which is the difference between a pill that is *moved* to a tab
+  and one that lands on it.
+- It also squashes and stretches. The pill elongates along its travel and pays
+  it back across its height, driven by the spring's own velocity — so a flick
+  across the bar stretches hard (capped at `PILL_STRETCH_MAX`), a nudge to the
+  next tab barely does, and the stretch keeps running through the overshoot
+  after the finger has stopped. Velocity off the spring rather than off the
+  pointer is what makes that last part true.
+- Position is read as a *fraction* of the tabs' live rect, never as remembered
+  pixels: the bar may be mid-shrink under the finger, and a fraction is the
+  same number at any scale.
+- The tabs are links, and a link is draggable. The browser's own link-drag
+  fires `pointercancel` the moment a press on one starts to move — which is
+  the movement the scrub is made of — so the tabs set `draggable={false}`.
+  `touch-action: pan-y` draws the other line: sideways is the scrub, vertical
+  is the page being scrolled by a thumb that happens to be down here, and the
+  browser keeps that one.
+
+**The scroll shrink** is the bar stepping back from a page in motion, as iOS 26
+does with Safari's tab bar: scrolling down takes it to 0.86, and it comes back
+the moment the page settles (`SETTLE_MS`) or turns around. Two states with a
+transition, never scroll-linked — a scale that follows the finger re-blurs a
+`backdrop-blur` surface on every frame. It is a transform on the whole bar, so
+the shrink costs no layout, and it is anchored `bottom center`, so the gap
+under the bar stays the gap. `prefers-reduced-motion` turns it off; the state
+is published as `data-shrunk` for the inspector and for tests.
+
+**The material** is the floating button's own fill (`bg-glass`) — this bar *is*
+that button, re-laid-out, and a tab bar has no business being more opaque than
+the chrome it replaced. It can be that thin because the pill does not borrow
+the material: it paints with `bg-selected` (see [Glass](./system-glass.md) →
+Selection), which stays the lighter thing in both themes however much page
+comes through the track. The pill is also the one selected chip on the site
+without `backdrop-blur`: it moves under a finger, and a filter on something
+that moves is a re-blur on every frame of the drag.
+
+**Solid while the page changes.** A `backdrop-filter` is not repainted in the
+same frame as the element that owns it: on iOS Safari a route change lands the
+bar's translucency one or more frames before its blur, and for those frames the
+new page is legible straight through a bar that is supposed to be frosted. So
+for `NAV_SOLID_MS` the bar gets an opaque floor — a page-ground fill *under* its
+glass — and the glass sits on that instead of on the page. See
+[Glass](./system-glass.md) → Solid while the page changes for why it is a floor
+and not simply a fill at 100%. It is written onto the element by a *layout*
+effect, not through state: it has to land in the same commit as the route, the
+one React flushes inside the view transition's update callback.
+
+Two things it keeps from the button it replaces: the home grid's jiggle mode
+still takes the bottom of the screen (the bar hands it over on `HANDOFF`), and
+holding Search for 1.2s still summons the devtool — the same hook, the same
+ring (see [Devtool](./system-devtool.md) → The hidden one). It is not
+draggable: `command-fab` is an instance for a floating button, and a bar that
+spans the width has nowhere to go.
+
 ## Key Features
 
 ### Dual Modes
@@ -217,13 +315,19 @@ Features:
 - Bilingual search (EN/中文 keywords)
 - Adaptive popover height: search `43dvh`, slash taller (viewport chrome only)
 
+### CommandLauncher
+
+What stands at the bottom of the screen and opens the palette. Mounted once in
+the root layout, and it picks one of two shapes the way `palette.tsx` picks a
+shell — the button, or (on a phone, behind the devtool switch) the tab bar.
+
+```tsx
+<CommandLauncher />
+```
+
 ### FloatingActionButton
 
 Context-aware FAB that morphs based on route:
-
-```tsx
-<FloatingActionButton />
-```
 
 - **Homepage**: Search bar with placeholder
 - **Other pages**: Compact command button

@@ -70,6 +70,18 @@ export const DRAGGABLE_INSTANCES = [
 export type PhonePalette = "sheet" | "popover";
 export const PHONE_PALETTE_DEFAULT: PhonePalette = "sheet";
 
+// =============================================================================
+// Phone nav
+// What stands at the bottom of a phone screen: the floating search button, or
+// the tab bar — the four places the palette is usually asked for, with the
+// palette itself in the middle. A proposal about navigation rather than a
+// setting, which is why it is in here and off by default; see
+// `systems/command/launcher.tsx`.
+// =============================================================================
+
+export type PhoneNav = "button" | "tabs";
+export const PHONE_NAV_DEFAULT: PhoneNav = "button";
+
 /**
  * How the hero leaves as the page scrolls. The platform picks a default;
  * the DevTool can pin either for the session. See `defaultHeroExit`.
@@ -128,6 +140,7 @@ interface DevtoolSettings {
   /** Per-section collapsed state, keyed by the section's stable id. */
   collapsed: Record<string, boolean>;
   phonePalette: PhonePalette;
+  phoneNav: PhoneNav;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
 }
@@ -137,6 +150,7 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   draggable: {},
   collapsed: {},
   phonePalette: PHONE_PALETTE_DEFAULT,
+  phoneNav: PHONE_NAV_DEFAULT,
   detached: false,
 };
 
@@ -163,6 +177,7 @@ function getDevtoolSettings(): DevtoolSettings {
         collapsed: parsed.collapsed ?? {},
         phonePalette:
           parsed.phonePalette === "popover" ? "popover" : PHONE_PALETTE_DEFAULT,
+        phoneNav: parsed.phoneNav === "tabs" ? "tabs" : PHONE_NAV_DEFAULT,
         detached: parsed.detached === true,
       };
     }
@@ -245,6 +260,9 @@ interface DevtoolContextType {
   /** The command palette's shape on a phone. A saved setting. */
   phonePalette: PhonePalette;
   setPhonePalette: (shape: PhonePalette) => void;
+  /** What opens the palette on a phone: the button, or the tab bar. Saved. */
+  phoneNav: PhoneNav;
+  setPhoneNav: (nav: PhoneNav) => void;
   /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
@@ -312,6 +330,7 @@ export function DevtoolProvider({
   >({});
   const [phonePalette, setPhonePaletteState] =
     useState<PhonePalette>(PHONE_PALETTE_DEFAULT);
+  const [phoneNav, setPhoneNavState] = useState<PhoneNav>(PHONE_NAV_DEFAULT);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -328,6 +347,7 @@ export function DevtoolProvider({
     // — no expand→collapse flash.
     setCollapsedSections(settings.collapsed);
     setPhonePaletteState(settings.phonePalette);
+    setPhoneNavState(settings.phoneNav);
     setIsDetached(settings.detached);
   }, []);
 
@@ -458,6 +478,11 @@ export function DevtoolProvider({
     setDevtoolSettings({ phonePalette: shape });
   }, []);
 
+  const setPhoneNav = useCallback((nav: PhoneNav) => {
+    setPhoneNavState(nav);
+    setDevtoolSettings({ phoneNav: nav });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -510,6 +535,8 @@ export function DevtoolProvider({
         setSectionCollapsed,
         phonePalette,
         setPhonePalette,
+        phoneNav,
+        setPhoneNav,
         heroExitOverride,
         setHeroExitOverride,
       }}

@@ -11,7 +11,7 @@ import {
 } from "@/systems/ambient";
 import { AttachmentSurface } from "@/systems/attachments";
 import { IdentityCard } from "@/systems/identity";
-import { CommandPalette, FloatingActionButton } from "@/systems/command";
+import { CommandLauncher, CommandPalette } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
 import { Dock } from "@/systems/dock";
 import { MusicActivity, MusicPlaylistSheet } from "@/systems/music";
@@ -147,7 +147,7 @@ export default function RootLayout({
             <AttachmentSurface />
             <IdentityCard />
             <CommandPalette />
-            <FloatingActionButton />
+            <CommandLauncher />
           </Providers>
         </body>
       </html>

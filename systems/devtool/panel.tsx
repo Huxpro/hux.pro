@@ -66,7 +66,9 @@ import {
   useDevtool,
   DRAGGABLE_INSTANCES,
   DRAGGABLE_DEFAULTS,
+  PHONE_NAV_DEFAULT,
   PHONE_PALETTE_DEFAULT,
+  type PhoneNav,
   type PhonePalette,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
@@ -2305,15 +2307,21 @@ function MusicModule() {
 
 // =============================================================================
 // Command Module
-// The palette's shape on a phone. "Sheet" is the palette as it is; "Popover"
-// is the desktop card at phone width — the palette as it was, kept whole so
-// the two can be compared on the same device. A saved setting (blue star).
+// The two phone shapes of the command system, both saved settings (blue star).
+//
+// Phone palette — what a press opens. "Sheet" is the palette as it is;
+// "Popover" is the desktop card at phone width — the palette as it was, kept
+// whole so the two can be compared on the same device.
+//
+// Phone nav — what does the pressing. "Button" is the floating search button;
+// "Tabs" is the tab bar that puts the four places beside it, with the palette
+// itself in the middle. Neither changes anything above `md`.
 // =============================================================================
 
 function CommandModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { phonePalette, setPhonePalette } = useDevtool();
+  const { phonePalette, setPhonePalette, phoneNav, setPhoneNav } = useDevtool();
   const options: { value: PhonePalette; label: string; title: string }[] = [
     {
       value: "sheet",
@@ -2326,6 +2334,20 @@ function CommandModule() {
       title: zh ? "桌面浮窗，手机宽度（以前）" : "Desktop card at phone width (previous)",
     },
   ];
+  const navOptions: { value: PhoneNav; label: string; title: string }[] = [
+    {
+      value: "button",
+      label: zh ? "按钮" : "Button",
+      title: zh ? "浮动搜索按钮（现在）" : "Floating search button (current)",
+    },
+    {
+      value: "tabs",
+      label: zh ? "标签栏" : "Tabs",
+      title: zh
+        ? "底部标签栏：首页 · 文字 · 搜索 · 工作 · 提示词"
+        : "Bottom tab bar: Home · Writing · Search · Works · Prompts",
+    },
+  ];
 
   return (
     <DebugSection
@@ -2335,6 +2357,7 @@ function CommandModule() {
       compact
       defaultCollapsed
     >
+      <div className="space-y-2">
       <PanelRow
         label={zh ? "手机面板" : "Phone palette"}
         star={
@@ -2348,6 +2371,17 @@ function CommandModule() {
       >
         <PanelSegmented value={phonePalette} options={options} onChange={setPhonePalette} />
       </PanelRow>
+      <PanelRow
+        label={zh ? "手机导航" : "Phone nav"}
+        star={
+          phoneNav !== PHONE_NAV_DEFAULT ? (
+            <PanelStar source="saved" onReset={() => setPhoneNav(PHONE_NAV_DEFAULT)} />
+          ) : undefined
+        }
+      >
+        <PanelSegmented value={phoneNav} options={navOptions} onChange={setPhoneNav} />
+      </PanelRow>
+      </div>
     </DebugSection>
   );
 }

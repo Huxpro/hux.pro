@@ -4,7 +4,9 @@
 
 export { CommandProvider, useCommand } from "./provider";
 export { CommandPalette } from "./palette";
+export { CommandLauncher } from "./launcher";
 export { FloatingActionButton } from "./fab";
+export { CommandTabBar } from "./tab-bar";
 export {
   CommandAppsStrip,
   CommandAppsGrid,
