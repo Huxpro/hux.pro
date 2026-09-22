@@ -614,6 +614,94 @@ export interface GroupByQuery extends GroupBase {
 export type Group = GroupByIds | GroupByQuery;
 
 // =============================================================================
+// Squashes — several commits, printed as one row.
+//
+// Two talks at the same conference, a project and the talk that presented
+// it, three awards that were all the same year saying the same thing: the
+// timeline has runs of commits that are one item of work wearing several
+// datelines. Printed a row each they read as repetition, and the page pays
+// three rows of scroll for one idea.
+//
+// A squash is a *reading*, not a rewrite. The commits stay exactly as they
+// are in the log — separately addressable, separately embeddable, still
+// their own rows in a home widget, a post embed, a group query. Only /works
+// is told to print them together. That is the whole constraint this shape
+// exists to honour: git squashes destroy the commits it folds, and this
+// deliberately does not, which is why the members keep their hashes and the
+// row anchors all of them.
+//
+// Membership is a list of ids rather than a pointer on each commit, for two
+// reasons. Something has to own the group-level fields — the axis, the
+// authored headline — and splitting them across a "lead" commit and its
+// pointers gives two places to look. And a squash with no natural lead (the
+// three award commits, which are peers) has nowhere to hang a pointer from.
+// A list is also the thing the editor can enumerate, which is what makes
+// these discoverable at all once a member has stopped rendering its own row.
+// =============================================================================
+
+/**
+ * What a squashed row's member lines print — and, by consequence, what its
+ * headline says, since the headline is whatever the members have in common.
+ *
+ * The axis is the one knob because every one of these groupings is the same
+ * sentence with a different subject: *these N commits share X and differ in
+ * Y*. Name Y — what the lines print — and X falls out of it.
+ *
+ *  - `"title"`   — the lines are titles, so the headline is the shared
+ *    venue. Two talks at one conference: `React Advanced London` over
+ *    `lynx-ui: Best Lynx in Components` and `Panel: Write Once, Render
+ *    Anywhere`.
+ *  - `"venue"`   — the lines are venues, so the headline is the shared
+ *    title. One talk given twice: `React for Two Threads` over `React
+ *    Universe Conf` and `SEE Conf 2025`.
+ *  - `"venue-title"` — the lines are both, so nothing is shared and the
+ *    headline has to be authored ({@link Squash.title}). The escape hatch:
+ *    three commits that are a group only because a person says they are.
+ *  - `"none"`    — no lines. One member is the row and the rest donate
+ *    their media to it: the project row that absorbs the talk announcing
+ *    it, where the talk was never a separate item of work.
+ *
+ * It is the same vocabulary {@link AsideLine} uses, for the same reason —
+ * a squashed member line and a folded aside are the same object, a commit
+ * reduced to one quiet line.
+ */
+export type SquashAxis = "title" | "venue" | "venue-title" | "none";
+
+/** A set of commits /works prints as one row. See the section comment. */
+export interface Squash {
+  id: string;
+  /**
+   * The members, by commit id. Order is authorial: it is the order the
+   * lines print in, and the first resolvable id is the lead unless
+   * {@link lead} names another.
+   *
+   * Ids that do not resolve — a typo, a deleted commit, a member the
+   * locale filter dropped — are skipped rather than fatal, the way
+   * `attachedTo` and `GroupByIds.commitIds` already degrade.
+   */
+  commitIds: string[];
+  /**
+   * Whose row this is: the type mark in the gutter, the icon, the prose,
+   * the byline, the position in the sort. Absent, the first member.
+   *
+   * A squash needs one even when its members are peers, because a row has
+   * exactly one of each of those things. It does not make that member more
+   * important — it makes it the one the row is written from.
+   */
+  lead?: string;
+  /** What the member lines print. Absent is `"title"`. */
+  axis?: SquashAxis;
+  /**
+   * The headline, authored. Wins over anything derived — and is *required*
+   * in practice under `"venue-title"`, where by definition the members
+   * share nothing to derive one from.
+   */
+  title?: LocalizedString;
+  /** The row's prose, authored. Absent, the lead's own description. */
+  description?: LocalizedString;
+}
+
+// =============================================================================
 // Identity Types
 // =============================================================================
 
@@ -680,6 +768,8 @@ export interface RawRoleRange
 export interface RawLogData {
   tags: Tag[];
   groups?: Group[];
+  /** Commits /works prints as one row. See {@link Squash}. */
+  squashes?: Squash[];
   /**
    * Nested identities keyed by short stable id (`meta`, `bytedance`,
    * `rit`). Each identity carries its role ranges inline for
@@ -700,6 +790,8 @@ export interface RawLogData {
 export interface LogData {
   tags: Tag[];
   groups?: Group[];
+  /** Commits /works prints as one row. See {@link Squash}. */
+  squashes?: Squash[];
   identities?: Record<string, Identity>;
   commits: Commit[];
 }
@@ -754,6 +846,7 @@ export function normalizeLogData(raw: RawLogData | LogData): LogData {
   return {
     tags: raw.tags,
     groups: raw.groups,
+    squashes: raw.squashes,
     identities: Object.keys(identityMeta).length ? identityMeta : undefined,
     commits: [...raw.commits, ...extraRoles],
   };
@@ -814,6 +907,7 @@ export function denormalizeLogData(flat: LogData): RawLogData {
   return {
     tags: flat.tags,
     groups: flat.groups,
+    squashes: flat.squashes,
     identities: Object.keys(identities).length ? identities : undefined,
     commits: restCommits,
   };
@@ -1061,6 +1155,33 @@ export function matchesTypeFilter(
 /**
  * Get the icon character for commit type (for minimal ASCII display)
  */
+
+/**
+ * Where the work happened: the conference, the publication, the platform.
+ *
+ * Not localized, and not a subtitle. These are proper nouns as authored —
+ * `React Universe Conf`, `第 19 届 D2 终端技术大会` — so there is nothing to
+ * pick a locale for. The types that have no venue (a project, a role, an
+ * event) return undefined rather than substituting something venue-shaped:
+ * a role's company and a project's team are a different fact that happens
+ * to sit on the same line, and callers that want those ask for those.
+ *
+ * Two places already needed this exact answer — a folded aside's line, and
+ * a squashed row's member line — and the second was about to be the third
+ * spelling of it on the page.
+ */
+export function commitVenue(commit: Commit): string | undefined {
+  switch (commit.type) {
+    case "talk":
+      return commit.conference.name;
+    case "post":
+      return commit.publication.name;
+    case "press":
+      return commit.platform;
+    default:
+      return undefined;
+  }
+}
 export function getCommitTypeIcon(type: CommitType): string {
   const icons: Record<CommitType, string> = {
     project: "●",

@@ -318,6 +318,7 @@ export function EditorView({ initialData }: EditorViewProps) {
                 locale={locale}
                 identities={data.identities}
                 form={form}
+                squashes={data.squashes}
               />
             </TimelineEditProvider>
             <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">

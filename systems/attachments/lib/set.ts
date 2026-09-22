@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n";
+import type { Media } from "@/lib/log";
 import {
   computeCommitHash,
   isLinkPill,
@@ -34,18 +35,27 @@ function subtitleFor(commit: Commit, locale: Locale): string | undefined {
  * A commit's attachments as one openable set, or null when it attaches
  * nothing but pills. The media objects are the commit's own, so an index
  * found by reference elsewhere (`set.items.indexOf(media)`) lands here.
+ *
+ * `as` is for a row that stands for more than one commit (a squash, see
+ * `lib/log-squash.ts`): the media is every member's, and the name on the
+ * surface is the row's headline rather than the lead's own title. The
+ * identity rule is unchanged and is the reason this takes the objects
+ * rather than rebuilding them — the members' media items are passed
+ * through by reference, so `indexOf` still finds them from a cover, a rail
+ * icon or a tile anywhere on the row.
  */
 export function attachmentSetFor(
   commit: Commit,
   locale: Locale,
+  as?: { media?: Media[]; title?: string; subtitle?: string },
 ): AttachmentSet | null {
-  const items = (commit.media ?? []).filter((m) => !isLinkPill(m));
+  const items = (as?.media ?? commit.media ?? []).filter((m) => !isLinkPill(m));
   if (items.length === 0) return null;
   const hash = computeCommitHash(commit.id);
   return {
     id: commit.id,
-    title: localize(commit.title, locale),
-    subtitle: subtitleFor(commit, locale),
+    title: as?.title ?? localize(commit.title, locale),
+    subtitle: as?.subtitle ?? subtitleFor(commit, locale),
     href: `/works#${hash}`,
     items,
   };
