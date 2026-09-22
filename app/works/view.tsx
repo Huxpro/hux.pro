@@ -176,6 +176,7 @@ export function WorksView({ logData }: WorksViewProps) {
         locale={locale}
         identities={logData.identities}
         form={view.form}
+        squashes={logData.squashes}
         activeTypes={view.types}
         onSelectHash={selectHash}
         pinnedChapters

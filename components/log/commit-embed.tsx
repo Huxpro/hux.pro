@@ -23,6 +23,11 @@ import { PeekCard, PeekThumb } from "./media/media-peek";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
+import {
+  squashHeadline,
+  squashMedia,
+  type ResolvedSquash,
+} from "@/lib/log-squash";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
@@ -65,6 +70,12 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
+  /**
+   * Timeline-only: this row stands for several commits, and `commit` is
+   * the lead (see `lib/log-squash.ts`). Resolved by the timeline, which is
+   * the only place that knows which members survived the reader's filter.
+   */
+  squash?: ResolvedSquash | null;
 }
 
 // =============================================================================
@@ -87,6 +98,7 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  squash = null,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -97,8 +109,21 @@ export function Commit({
   // row, and a set with a stable identity is what lets the strip, the
   // renderer and the row keep their own memo one day.
   const attachmentSet = useMemo(
-    () => (!commit || inspecting ? null : attachmentSetFor(commit, locale)),
-    [commit, locale, inspecting],
+    () =>
+      !commit || inspecting
+        ? null
+        : attachmentSetFor(
+            commit,
+            locale,
+            // A squashed row opens ONE set, carrying every member's media
+            // under the row's own headline — otherwise the theater would
+            // name a deck after whichever member happened to lead, and
+            // paging through the set would stop at the lead's own items.
+            squash
+              ? { media: squashMedia(squash), title: squashHeadline(squash, locale) }
+              : undefined,
+          ),
+    [commit, locale, inspecting, squash],
   );
   // The same for the row's normalised data and its hover peek: a timeline
   // render (a beam hover, a form change) touches every row, and neither of
@@ -106,8 +131,8 @@ export function Commit({
   // on it — a phone would build and discard one per row.
   const { magneticPreviewEnabled } = useInputCapability();
   const data = useMemo(
-    () => (commit ? normalizeCommit(commit, locale) : null),
-    [commit, locale],
+    () => (commit ? normalizeCommit(commit, locale, squash) : null),
+    [commit, locale, squash],
   );
   const preview = useMemo(
     () =>
@@ -131,19 +156,36 @@ export function Commit({
   }
 
   if (!data) return null;
+  // Every commit this row prints for: itself, or its squash's members.
+  // The editor selects commits, and a squashed row is the only place three
+  // of them are reachable, so each of these questions is asked of all of
+  // them rather than of `commit` alone.
+  const owners = squash ? squash.members : [commit];
   const isSelected = !!edit && edit.selectedCommitId === commit.id;
-  const selectedMedia =
-    inspecting && isSelected && edit && edit.selectedMediaIndex != null
-      ? commit.media?.[edit.selectedMediaIndex] ?? null
+  const selectedMemberId =
+    edit && squash && owners.some((o) => o.id === edit.selectedCommitId)
+      ? edit.selectedCommitId
       : null;
+  const selectedOwner =
+    inspecting && edit && edit.selectedMediaIndex != null
+      ? owners.find((o) => o.id === edit.selectedCommitId)
+      : undefined;
+  const selectedMedia =
+    selectedOwner?.media?.[edit!.selectedMediaIndex!] ?? null;
   const onInspectCommit =
     inspecting && edit ? () => edit.onSelectCommit(commit.id) : undefined;
   const onInspectMedia =
     inspecting && edit
       ? (media: Media) => {
-          const index = commit.media?.indexOf(media) ?? -1;
-          if (index >= 0) edit.onSelectMedia(commit.id, index);
+          for (const owner of owners) {
+            const index = owner.media?.indexOf(media) ?? -1;
+            if (index >= 0) return edit.onSelectMedia(owner.id, index);
+          }
         }
+      : undefined;
+  const onInspectMember =
+    inspecting && edit && squash
+      ? (commitId: string) => edit.onSelectCommit(commitId)
       : undefined;
 
   switch (variant) {
@@ -172,6 +214,8 @@ export function Commit({
           isUnlisted={commit.listed === false}
           onInspectCommit={onInspectCommit}
           onInspectMedia={onInspectMedia}
+          onInspectMember={onInspectMember}
+          selectedMemberId={selectedMemberId}
           selectedMedia={selectedMedia}
         />
       );

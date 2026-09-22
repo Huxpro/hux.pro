@@ -15,6 +15,7 @@ import type {
   StripItem,
 } from "@/lib/log";
 import {
+  commitVenue,
   localize,
   localizeOptional,
   formatCommitDate,
@@ -33,6 +34,14 @@ import {
   VIDEO_PLATFORM_LABEL,
 } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
+import {
+  squashDate,
+  squashHeadline,
+  squashLines,
+  squashMedia,
+  type ResolvedSquash,
+  type SquashLine,
+} from "@/lib/log-squash";
 import {
   detectSocialEmbedPlatform,
   getDomainLabel, SOCIAL_PLATFORM_LABEL } from "@/lib/og-core";
@@ -92,6 +101,17 @@ export interface NormalizedCommit {
 
   /** "EN" / "中文" when the work's language differs from the viewer's locale. */
   languageBadge: "EN" | "中文" | null;
+
+  /**
+   * When this row stands for several commits, the members it prints under
+   * its headline — each its own line, each its own anchor. Empty for an
+   * ordinary row, and for a squash on the `"none"` axis, whose members are
+   * present only in the media.
+   *
+   * The renderer is as type-agnostic about these as it is about everything
+   * else here: what each line says was decided by the axis, upstream.
+   */
+  members: SquashLine[];
 
   // Type-derived metadata
   meta?: string;
@@ -285,11 +305,56 @@ function deriveThumbnail(
 // Adapter
 // =============================================================================
 
+/**
+ * Normalize one commit into the shape every renderer consumes.
+ *
+ * `squash` is the row's *reading*, when it has one: several commits printed
+ * as a single row (see `lib/log-squash.ts`). It changes two things and
+ * deliberately nothing else — the media the row carries becomes every
+ * member's, and the headline, date and member lines come from the squash
+ * rather than the lead alone. Everything below still normalizes the lead,
+ * because a row has one type, one byline, one prose, and the lead is the
+ * member the row is written from.
+ */
 export function normalizeCommit(
   commit: Commit,
   locale: Locale,
+  squash?: ResolvedSquash | null,
 ): NormalizedCommit {
-  const media = commit.media ?? [];
+  const base = normalizeOne(
+    commit,
+    locale,
+    // The squash's media is the members' concatenated, so the strip, the
+    // grid, the rail pills and the attachment set all see one commit's
+    // worth of attachments that happens to be longer. Nothing downstream
+    // learns a new word.
+    squash ? squashMedia(squash) : (commit.media ?? []),
+  );
+  if (!squash) return base;
+
+  const members = squashLines(squash, locale, computeCommitHash);
+  return {
+    ...base,
+    title: squashHeadline(squash, locale),
+    date: squashDate(squash, locale),
+    description:
+      localizeOptional(squash.squash.description, locale) ?? base.description,
+    members,
+    // The venue moved. Under every axis that prints lines, what the lead's
+    // meta line used to say is now either the headline (`"title"`) or one
+    // of the lines (`"venue"`, `"venue-title"`) — so leaving it here prints
+    // it twice. `"none"` keeps it: that row is still the lead's own, and
+    // its subtitle is the only place its venue appears.
+    meta: members.length > 0 ? undefined : base.meta,
+    metaUrl: members.length > 0 ? undefined : base.metaUrl,
+  };
+}
+
+function normalizeOne(
+  commit: Commit,
+  locale: Locale,
+  media: Media[],
+): NormalizedCommit {
   const mediaLinks = extractMediaLinks(media, locale);
   // Rich media (everything except pills) is what flows into the expanded
   // block; folded-prominent items get hoisted above the row separately.
@@ -308,14 +373,7 @@ export function normalizeCommit(
   // The venue an aside prints while folded: the conference, the
   // publication, the platform — where the work happened, since the aside
   // voice is the event voice and an event is a dateline.
-  const foldedVenue =
-    commit.type === "talk"
-      ? commit.conference.name
-      : commit.type === "post"
-        ? commit.publication.name
-        : commit.type === "press"
-          ? commit.platform
-          : undefined;
+  const foldedVenue = commitVenue(commit);
 
   // `venue · title`, and the venue alone when the two would say the same
   // thing. Sparse, the way every other repeated field on this row is: the
@@ -346,6 +404,9 @@ export function normalizeCommit(
     iconOverride: commit.icon,
     present: commit.present,
     foldedTitle,
+    // An ordinary row stands for itself. The wrapper above fills these in
+    // for the rows that stand for more.
+    members: [] as SquashLine[],
   };
 
   // Type-specific extraction

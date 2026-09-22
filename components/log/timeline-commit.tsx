@@ -118,6 +118,16 @@ interface TimelineCommitProps {
   isSelected?: boolean;
   isUnlisted?: boolean;
   onInspectCommit?: () => void;
+  /**
+   * Inspect-mode only: select one of the commits this row was squashed
+   * from. A member that stopped printing its own row would otherwise be
+   * unreachable in the editor — the row you would click is the lead's —
+   * so its line is the handle, the same way a media tile is the handle
+   * for a media item.
+   */
+  onInspectMember?: (commitId: string) => void;
+  /** Inspect-mode only: which squashed member the inspector is editing. */
+  selectedMemberId?: string | null;
   onInspectMedia?: (media: Media) => void;
   selectedMedia?: Media | null;
 }
@@ -143,6 +153,8 @@ export function TimelineCommit({
   isUnlisted = false,
   onInspectCommit,
   onInspectMedia,
+  onInspectMember,
+  selectedMemberId = null,
   selectedMedia = null,
 }: TimelineCommitProps) {
   const attachments = useOptionalAttachments();
@@ -613,6 +625,70 @@ export function TimelineCommit({
         )}
       </div>
 
+
+      {/* ── The members ────────────────────────────────────────────────
+          The commits this row was squashed from (lib/log-squash.ts), one
+          line each. They print at every density, because they are the row's
+          SUBJECT and not its detail: a squash whose headline is a
+          conference and whose lines are the two talks given there is not a
+          row about a conference. The form governs how much of a commit
+          prints — its prose, its covers, its notes — and this is the part
+          that says which commits.
+
+          Cheaper than what they replace, besides: two members are two lines
+          where they used to be two whole rows.
+
+          The venue slot below is empty whenever these are here (see
+          `normalizeCommit`), so nothing on the row is said twice, and the
+          line's own type IS that slot's — a member line is a venue line
+          that happens to belong to a different commit.
+
+          Each line carries its member's `id`, so `#<hash>` still lands on
+          this row for a commit that no longer draws one. Pressing one does
+          nothing of its own: it is inside the row's press target, and a
+          press near the title should do what a press on the title does. */}
+      {!isQuiet && data.members.length > 0 && (
+        <ul className="col-start-2 @sm:col-start-3 mt-1 space-y-0.5">
+          {data.members.map((m) => (
+            <li
+              key={m.commitId}
+              id={m.hash}
+              className={cn(
+                "flex items-baseline gap-2",
+                onInspectMember &&
+                  "-mx-1 px-1 rounded cursor-pointer hover:bg-sky-500/[0.07]",
+                selectedMemberId === m.commitId &&
+                  "bg-sky-500/[0.08] ring-1 ring-inset ring-sky-500/60",
+              )}
+              {...(onInspectMember
+                ? {
+                    "data-editor-interactive": "",
+                    onClick: (e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      onInspectMember(m.commitId);
+                    },
+                  }
+                : {})}
+            >
+              {/* The member's own address. A squash in git destroys the
+                  commits it folds; this one does not, and the hashes are
+                  where that shows — they are still here, still resolvable,
+                  still what the permalink and the editor key on. */}
+              <span className={cn("shrink-0 hidden @sm:inline", TYPE.hash)}>
+                {m.hash}
+              </span>
+              <span className={cn("min-w-0 flex-1 truncate", TYPE.rowMeta)}>
+                {m.label}
+              </span>
+              {/* Printed only where the members differ on it — see
+                  `squashLines`. */}
+              {m.date && (
+                <span className={cn("shrink-0", TYPE.rowMeta)}>{m.date}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
       {/*
         Subtitle row: meta on the left, author byline right-aligned under
         the date column. The row is rendered whenever EITHER half exists
