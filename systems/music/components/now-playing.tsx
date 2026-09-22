@@ -72,11 +72,12 @@ function MusicTransport({
   return (
     <div className={raised ? GLASS_CLUSTER : GLASS_CLUSTER_FLAT}>
       {!idle && (
-        <button onClick={onPrevious} aria-label="Previous track" className={GLASS_CLUSTER_BTN}>
+        <button type="button" onClick={onPrevious} aria-label="Previous track" className={GLASS_CLUSTER_BTN}>
           <Rewind className="h-3.5 w-3.5" />
         </button>
       )}
       <button
+        type="button"
         onClick={onPlayPause}
         aria-label={isPlaying ? "Pause" : "Play"}
         className={cn(
@@ -92,7 +93,7 @@ function MusicTransport({
         )}
       </button>
       {!idle && (
-        <button onClick={onNext} aria-label="Next track" className={GLASS_CLUSTER_BTN}>
+        <button type="button" onClick={onNext} aria-label="Next track" className={GLASS_CLUSTER_BTN}>
           <FastForward className="h-3.5 w-3.5" />
         </button>
       )}
@@ -100,6 +101,7 @@ function MusicTransport({
           are in or out of, and a button that did nothing when you were already
           in it read as broken. */}
       <button
+        type="button"
         onClick={onPlaylist}
         aria-pressed={playlistOpen}
         aria-label={playlistLabel}

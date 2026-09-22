@@ -3,6 +3,7 @@
 import {
   WidgetBody,
   WidgetHeader,
+  WidgetIconButton,
   WidgetLink,
   WidgetShell,
   WidgetTitle,
@@ -47,14 +48,20 @@ function resolveItems(locale: Locale): PromptItem[] {
 
   // A conviction quoted from someone keeps their voice; one in my own words
   // reads as a statement. Same split as the /prompt page.
+  //
+  // A conviction can hold a chorus — the same belief as several traditions
+  // say it — and the card shows the head of it. The other voices are worth
+  // rotating through too, but a card that changed its mind mid-belief would
+  // just read as two cards.
   for (const c of promptsRaw.convictions) {
-    const quoted = "quotedFrom" in c ? c.quotedFrom : undefined;
+    const head = c.statements[0];
+    const quoted = "quotedFrom" in head ? head.quotedFrom : undefined;
     if (quoted) {
       items.push({
         kind: "quote",
         id: c.id,
         anchor: c.anchor?.[l] ?? c.id,
-        text: c.statement[l],
+        text: head.text[l],
         author: resolveName(quoted.name, l),
         // A saying can carry a different source in each language.
         source: quoted.source ? resolveName(quoted.source, l) : undefined,
@@ -64,7 +71,7 @@ function resolveItems(locale: Locale): PromptItem[] {
         kind: "belief",
         id: c.id,
         anchor: c.anchor?.[l] ?? c.id,
-        statement: c.statement[l],
+        statement: head.text[l],
         topic: (c.topics as PromptTopic[])[0],
       });
     }
@@ -123,7 +130,7 @@ function QuoteDisplay({
 }) {
   return (
     <div>
-      <blockquote className="font-serif text-base text-foreground leading-relaxed italic line-clamp-3">
+      <blockquote className="font-serif text-base text-foreground leading-relaxed line-clamp-3">
         &ldquo;{item.text}&rdquo;
       </blockquote>
       <p className={cn("mt-2", TYPE.caption)}>
@@ -244,16 +251,15 @@ export function PromptWidget() {
       <WidgetHeader>
         <div className="flex items-center gap-2">
           <WidgetTitle>{t(locale, "widgetPrompt")}</WidgetTitle>
-          <button
+          <WidgetIconButton
+            label={t(locale, "widgetPromptNext")}
             onClick={handleNext}
-            className={cn(
-              "pressable text-muted-foreground hover:text-foreground active:text-foreground text-xs",
-              "transition-colors duration-200 select-none",
-            )}
-            aria-label="Next prompt"
           >
-            <RefreshCw className="h-3 w-3" />
-          </button>
+            <RefreshCw
+              className="h-3 w-3 transition-transform duration-300"
+              style={{ transform: `rotate(${spinKey * 90}deg)` }}
+            />
+          </WidgetIconButton>
         </div>
         <WidgetLink href="/prompt" label="View prompts" />
       </WidgetHeader>

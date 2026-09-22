@@ -23,6 +23,7 @@ import {
 import type {
   Attribution,
   Conviction,
+  Statement,
   Influence,
   Instance,
   PromptsData,
@@ -217,22 +218,93 @@ function LinkRow({
 }
 
 /**
+ * Inline marks inside a line of content. Two of them, and each is the mark
+ * a script makes for itself:
+ *
+ *   `**bold**`   weight — the emphasis Chinese has always used
+ *   `*italic*`   slope — a work's title, a term as a term, a Latin aside
+ *
+ * Italic is the one mark this site's two alphabets do not share. Newsreader
+ * and Inter both ship a drawn italic; Noto Serif SC ships upright only, so a
+ * browser asked to slant a Chinese glyph shears the upright one into a shape
+ * Chinese typography has never had. `font-synthesis-style: none` refuses the
+ * forgery, and that refusal is what lets one mark mean the right thing in
+ * both: a title is *The Gay Science* in English and 《快乐的科学》 in Chinese,
+ * and the same `*…*` produces each.
+ *
+ * Which is also why the mark is worth having at all. Chinese already says
+ * "this is a work" with 《》; the Latin half of every citation on this page
+ * was saying it with nothing.
+ */
+const MARKS = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+
+function Marks({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(MARKS).map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**"))
+          return (
+            <strong key={i} className="font-semibold">
+              {part.slice(2, -2)}
+            </strong>
+          );
+        if (part.length > 2 && part.startsWith("*") && part.endsWith("*"))
+          return (
+            <em key={i} className="[font-synthesis-style:none]">
+              {part.slice(1, -1)}
+            </em>
+          );
+        return part;
+      })}
+    </>
+  );
+}
+
+/** The same string with its marks taken off, for an alt text or a match. */
+function plain(text: string) {
+  return text.replace(MARKS, (m) => m.replace(/\*/g, ""));
+}
+
+/**
  * An attribution renders as an anchor when it points at an entry in
  * `influences`, and as plain text when it doesn't — most of what shaped a
  * belief never gets an entry of its own.
  */
 function AttributionText({ attribution }: { attribution: Attribution }) {
   const { goTo, anchorFor } = useNav();
-  const name = attribution.ref ? (
+  // Provenance has two halves and they are not the same kind of thing: who
+  // said it is a name you might go and look up — several of them are links
+  // to an entry further down the page — and where they said it annotates
+  // the name. So the author stays on the sentence's own rung and the work
+  // drops one, which is the only place in a citation where the ladder
+  // steps. What separates them carries nothing and sits below both.
+  // `ref` links the name inward, `url` links the work outward — and when
+  // there is no work to hang it on, the url links the name instead, because
+  // a source that can be looked up should be reachable either way.
+  const nameHref = attribution.ref
+    ? `#${anchorFor(attribution.ref)}`
+    : !attribution.source && attribution.url
+      ? attribution.url
+      : undefined;
+
+  const name = nameHref ? (
     <a
-      href={`#${anchorFor(attribution.ref)}`}
-      onClick={(e) => handleAnchorClick(e, attribution.ref!, goTo)}
+      href={nameHref}
+      {...(attribution.ref
+        ? { onClick: (e) => handleAnchorClick(e, attribution.ref!, goTo) }
+        : {
+            target: "_blank",
+            rel: "noopener noreferrer",
+            onClick: (e: React.MouseEvent) => e.stopPropagation(),
+          })}
       className={cn("text-muted-foreground", linkClass)}
     >
-      {attribution.name}
+      <Marks text={attribution.name} />
     </a>
   ) : (
-    <span className="text-muted-foreground">{attribution.name}</span>
+    <span className="text-muted-foreground">
+      <Marks text={attribution.name} />
+    </span>
   );
 
   return (
@@ -240,7 +312,7 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
       {name}
       {attribution.source && (
         <>
-          <span className="text-tertiary-foreground"> · </span>
+          <span className="text-quaternary-foreground"> · </span>
           {attribution.url ? (
             <a
               href={attribution.url}
@@ -249,11 +321,11 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
               onClick={(e) => e.stopPropagation()}
               className={cn("text-tertiary-foreground", linkClass)}
             >
-              {attribution.source}
+              <Marks text={attribution.source} />
             </a>
           ) : (
             <span className="text-tertiary-foreground">
-              {attribution.source}
+              <Marks text={attribution.source} />
             </span>
           )}
         </>
@@ -299,7 +371,9 @@ function Body({ text }: { text: string }) {
                 transition={{ delay: i * 0.05, duration: 0.2 }}
               >
                 <span className="text-quaternary-foreground">·</span>
-                <span>{line.slice(2)}</span>
+                <span>
+                  <Marks text={line.slice(2)} />
+                </span>
               </motion.li>
             ))}
           </ul>
@@ -310,7 +384,7 @@ function Body({ text }: { text: string }) {
                 key={i}
                 className="text-sm text-muted-foreground leading-relaxed"
               >
-                {line}
+                <Marks text={line} />
               </p>
             ))}
           </div>
@@ -346,7 +420,7 @@ function Instances({
         // carries the link — printing the label would say it twice.
         const echo =
           label !== undefined &&
-          instance.text.includes(label.replace(/…$/, "").trim());
+          plain(instance.text).includes(label.replace(/…$/, "").trim());
         return (
           <motion.li
             key={i}
@@ -361,14 +435,14 @@ function Instances({
                   words, a discipline, a chapter of a career. */}
               {instance.title && (
                 <span className="text-foreground">
-                  {instance.title}
+                  <Marks text={instance.title} />
                   <span className="text-quaternary-foreground">{" — "}</span>
                 </span>
               )}
-              {instance.text}
+              <Marks text={instance.text} />
               {instance.from && (
                 <span className="text-tertiary-foreground">
-                  {" — "}
+                  <span className="text-quaternary-foreground">{" — "}</span>
                   <AttributionText attribution={instance.from} />
                 </span>
               )}
@@ -438,6 +512,11 @@ function useCopyLink(id: string) {
  * because a link that only announces itself on hover inside a row that is
  * itself only there on hover is a secret.
  *
+ * Under the pointer it grows a `#`, which is both the promise (this is an
+ * anchor) and the thing you are about to get (`#会通` is the link). The
+ * click turns that same glyph into a ✓ rather than adding one somewhere
+ * else, so the confirmation lands where the promise was made.
+ *
  * A previous version printed `#会通` at rest as a watermark. It made the
  * page's outline visible down the left margin and cost every entry a line
  * of permanent chrome; the chrome won.
@@ -475,13 +554,32 @@ function EntryTag({
         aria-label={`Link to ${anchor}`}
         tabIndex={open ? 0 : -1}
         className={cn(
-          "underline underline-offset-2 decoration-muted-foreground/40",
+          "group/id underline underline-offset-2 decoration-muted-foreground/40",
           "transition-colors duration-200 hover:text-foreground hover:decoration-foreground",
           copied ? "text-muted-foreground" : "text-tertiary-foreground",
         )}
       >
+        {/* The promise and the receipt, in front of the word: under the
+            pointer the value reads `#会通`, which is the fragment about to
+            land on the clipboard, and after the click a ✓ takes the same
+            place. Plain inline text that is simply not there until it is —
+            an inline-block with a clipped width sits on its own bottom
+            edge rather than on the line's baseline, which is what had the
+            `#` floating a pixel above the word it belongs to. */}
+        <span
+          aria-hidden
+          className={cn(
+            copied
+              ? "text-foreground"
+              : [
+                  "hidden text-muted-foreground",
+                  "group-hover/id:inline group-focus-visible/id:inline",
+                ],
+          )}
+        >
+          {copied ? "✓" : "#"}
+        </span>
         {anchor}
-        {copied && " ✓"}
       </button>
       &quot;
       {rest.map(([key, value]) => (
@@ -626,6 +724,82 @@ function PromptItem({
 }
 
 /**
+ * One sentence of a conviction. Borrowed words are set as a quote with
+ * their attribution under them; mine are set as a statement. The head of a
+ * chorus is set at full size and the voices after it a half step down —
+ * still whole sentences, visibly not the head.
+ */
+/**
+ * Provenance inside the voice band. Sans and upright, because a face says
+ * what kind of thing this is — but the same size and leading as the
+ * sentence it belongs to: a source set a step smaller reads as a footnote
+ * that has fallen into the middle of a line, and at one size the whole
+ * thing reads as one citation sentence.
+ */
+const VOICE_META = "font-sans text-sm leading-relaxed";
+
+function StatementLine({
+  statement,
+  head,
+}: {
+  statement: Statement;
+  head: boolean;
+}) {
+  const quoted = statement.quotedFrom;
+
+  // The head is the thesis and gets the display size and the ink; a voice
+  // is a witness and joins the second register (`TYPE.voice`), where the
+  // entry's own aside also lives. Different forms, one visual band.
+  if (!head)
+    return (
+      <p className={cn(TYPE.voice, "mt-3")}>
+        {quoted ? (
+          <>
+            &ldquo;
+            <Marks text={statement.text} />
+            &rdquo;
+          </>
+        ) : (
+          <Marks text={statement.text} />
+        )}
+        {quoted && (
+          // Trailing rather than stacked: a witness's papers belong on the
+          // same line as the testimony, the way an instance's do — but in
+          // the metadata face, not the sentence's. A face says what kind of
+          // thing this is, not where it happens to sit: serif is a voice,
+          // sans is provenance, and provenance that changed face because it
+          // is inline would be the layout talking over the meaning.
+          <span className={VOICE_META}>
+            <span className="text-quaternary-foreground">{" — "}</span>
+            <AttributionText attribution={quoted} />
+          </span>
+        )}
+      </p>
+    );
+
+  return (
+    <div>
+      {quoted ? (
+        <>
+          <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed">
+            &ldquo;
+            <Marks text={statement.text} />
+            &rdquo;
+          </blockquote>
+          <p className={cn(VOICE_META, "mt-2")}>
+            <AttributionText attribution={quoted} />
+          </p>
+        </>
+      ) : (
+        <p className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed">
+          <Marks text={statement.text} />
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
  * A conviction. `quotedFrom` decides the typography: borrowed words are set
  * as a quote with their attribution on the surface; my own words are set as
  * a statement. Provenance is the only thing that varies — the belief is
@@ -644,17 +818,16 @@ function ConvictionItem({
   /** Short label for an id an instance points at. */
   labelOf: (id: string) => string | undefined;
 }) {
-  const quoted = conviction.quotedFrom;
-  // `id` and `on` only. Whose words they are is printed under the statement
-  // where it is read; repeating it up here made the row long and said the
-  // same thing twice.
-  // The id is the entry's outline word — the one word this belief would be
-  // filed under — which is why it is worth showing rather than hiding: in
-  // 修身 and 行事 that word is already the statement (成为, 演示), and in
-  // 天行 the statements are sentences the culture handed me, so the id is
-  // the only place my own name for them appears. It is also the hash, so
-  // the row doubles as "what you get when you click the #".
-  // `on` is space-separated, the way a `class` attribute holds several.
+  // `id`, `type`, `on`. The id is the entry's outline word — the one word
+  // this belief would be filed under — and it is worth showing because it
+  // is not always in the sentence: 修身 and 行事 carry it (成己, 演示),
+  // while a 天行 statement is a claim about the world and the id is my name
+  // for the claim (自然, 天命). It is also the hash.
+  //
+  // `on` is the shelf, space-separated the way a `class` attribute holds
+  // several. A statement's `facet` is authored but not printed — the row
+  // was long enough with it, and the facets are what the voices answer,
+  // not what the entry is.
   const attributes: Record<string, string> = {
     id: conviction.anchor,
     on: topics.join(" "),
@@ -704,29 +877,13 @@ function ConvictionItem({
         </>
       }
     >
-      {quoted ? (
-        <>
-          <blockquote className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed italic">
-            &ldquo;{conviction.statement}&rdquo;
-          </blockquote>
-          <p className="mt-2 text-sm">
-            <AttributionText attribution={quoted} />
-          </p>
-        </>
-      ) : (
-        <p className="font-serif text-xl sm:text-2xl text-foreground leading-relaxed">
-          {conviction.statement}
-        </p>
-      )}
+      {conviction.statements.map((statement, i) => (
+        <StatementLine key={i} statement={statement} head={i === 0} />
+      ))}
 
       {/* My own way of saying it — the aside voice /works uses for a note in
           the margin, so a proverb and the line I actually say can share a
           row without competing. */}
-      {conviction.commentary && (
-        <p className={cn(TYPE.aside, "mt-4")}>
-          &ldquo;{conviction.commentary}&rdquo;
-        </p>
-      )}
     </PromptItem>
   );
 }
@@ -791,9 +948,11 @@ function InfluenceItem({
   const { goTo, anchorFor } = useNav();
   // Back-links are computed, never authored — the same relation read from
   // the other end.
+  // Any voice in the chorus counts: quoting someone in the third sentence
+  // of a belief is still that person shaping the belief.
   const shaped = convictions.filter(
     (c) =>
-      c.quotedFrom?.ref === influence.id ||
+      c.statements.some((st) => st.quotedFrom?.ref === influence.id) ||
       c.shapedBy?.some((s) => s.ref === influence.id),
   );
 
@@ -830,7 +989,7 @@ function InfluenceItem({
                     onClick={(e) => handleAnchorClick(e, conviction.id, goTo)}
                     className={cn("text-muted-foreground", linkClass)}
                   >
-                    {conviction.statement}
+                    {conviction.statements[0].text}
                   </a>
                 </span>
               ))}
@@ -841,7 +1000,7 @@ function InfluenceItem({
               <SlidesPill
                 media={influence.media}
                 entryId={influence.id}
-                entryName={influence.name}
+                entryName={plain(influence.name)}
                 label={slidesLabel}
               />
             </div>
@@ -858,11 +1017,11 @@ function InfluenceItem({
       }
     >
       <p className="font-serif text-xl sm:text-2xl text-foreground">
-        {influence.name}
+        <Marks text={influence.name} />
       </p>
       {influence.context && (
         <p className="mt-1 text-sm text-muted-foreground">
-          {influence.context}
+          <Marks text={influence.context} />
         </p>
       )}
     </PromptItem>
@@ -1080,7 +1239,7 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   const labelOf = useCallback(
     (id: string) => {
       const label =
-        data.convictions.find((c) => c.id === id)?.statement ??
+        data.convictions.find((c) => c.id === id)?.statements[0].text ??
         data.influences.find((i) => i.id === id)?.name;
       // A pointer is a signpost, not a second copy of the sentence.
       return label && label.length > 36
@@ -1120,7 +1279,10 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
           />
         }
       >
-        <div className="relative -mt-4">
+        {/* The column says which language it is in: screen readers need it,
+            and so does the optical correction in `TYPE.voice`, which only
+            applies to Latin. */}
+        <div className="relative -mt-4" lang={locale}>
           <div className="pb-4 space-y-2">
             {/* What I hold */}
             {convictions.map((conviction) => (

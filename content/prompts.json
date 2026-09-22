@@ -7,35 +7,75 @@
         "zh": "自然"
       },
       "topics": ["worlding"],
-      "statement": {
-        "en": "Nature cannot be fooled.",
-        "zh": "天行有常，变就是常。"
-      },
-      "body": {
-        "en": "This is the floor; there is nothing under it. The world runs to its own course and is not organised around anyone's wishes — which is where my allergy to wishful thinking comes from. But “constant” is the word that gets misread: the most stable fact about the world is that it keeps moving. And the reverse misreading is just as bad — motion is not noise. It has polarity, period, feedback, reversal, and that is why it can be known at all.\nChinese settled this contradiction inside a single character a long time ago: 易 means both 变易 and 不易 — changing, and unchanging.\nFeynman wrote his half of it into the appendix he was allowed to add to the Challenger report, alone, after the commission would not print it in the body: for a successful technology, reality must take precedence over public relations.",
-        "zh": "这是地板，底下没有别的了：世界按它自己的方式运行，不围着谁的愿望转 —— 我对 wishful thinking 的过敏就是从这里来的。但「有常」是最容易被读错的那个词：世界最稳定的那件事，恰恰是它一直在动。反过来读错也一样糟 —— 动不是噪声，它有极性、有周期、有反馈、有反转，正因如此它才可能被认识。\n中文很早就把这对矛盾解在了一个字里：「易」同时是变易和不易。\n「天行有常」是荀子的，下半句是我接的。英文那半是费曼的：挑战者号事故报告不肯把他的结论放进正文，他就要来一个附录，一个人写完 —— 一项技术要成功，现实必须优先于公关，因为自然不可欺。"
-      },
-      "instances": [
+      "statements": [
         {
-          "title": {
-            "en": "Heaven's course",
-            "zh": "天行有常"
+          "text": {
+            "en": "Constant Flux",
+            "zh": "天行有常，常在流变。"
+          }
+        },
+        {
+          "facet": {
+            "en": "physics",
+            "zh": "物理"
+          },
+          "text": {
+            "en": "Nature cannot be fooled.",
+            "zh": "自然不可欺。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Richard Feynman",
+              "zh": "费曼"
+            },
+            "source": {
+              "en": "Rogers Commission, Appendix F, 1986",
+              "zh": "罗杰斯委员会报告附录 F，1986"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "tradition",
+            "zh": "传统"
           },
           "text": {
             "en": "Heaven's course is constant: it did not endure because of Yao, nor perish because of Jie.",
             "zh": "天行有常，不为尧存，不为桀亡。"
           },
-          "from": {
+          "quotedFrom": {
             "name": {
               "en": "Xunzi",
               "zh": "荀子"
             },
             "source": {
-              "en": "Discourse on Heaven",
+              "en": "*Discourse on Heaven*",
               "zh": "《荀子·天论》"
             }
           }
         },
+        {
+          "facet": {
+            "en": "change",
+            "zh": "变"
+          },
+          "text": {
+            "en": "You cannot step into the same river twice.",
+            "zh": "人不能两次踏进同一条河流。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Heraclitus",
+              "zh": "赫拉克利特"
+            }
+          }
+        }
+      ],
+      "body": {
+        "en": "This is the floor; there is nothing under it. The world runs to its own course and is not organised around anyone's wishes — which is where my allergy to wishful thinking comes from. But “constant” is the word that gets misread: the most stable fact about the world is that it keeps moving. And the reverse misreading is just as bad — motion is not noise. It has polarity, period, feedback, reversal, and that is why it can be known at all.\nChinese settled this contradiction inside a single character a long time ago: 易 means both 变易 and 不易 — changing, and unchanging.\nThe first half of the Chinese line is Xunzi's and the second is mine. Feynman's comes out of Challenger: the commission would not print his conclusion in the body of the report, so he wrote it alone into an appendix — for a successful technology, reality must take precedence over public relations.",
+        "zh": "这是地板，底下没有别的了：世界按它自己的方式运行，不围着谁的愿望转 —— 我对 wishful thinking 的过敏就是从这里来的。但「有常」是最容易被读错的那个词：世界最稳定的那件事，恰恰是它一直在动。反过来读错也一样糟 —— 动不是噪声，它有极性、有周期、有反馈、有反转，正因如此它才可能被认识。\n中文很早就把这对矛盾解在了一个字里：「易」同时是变易和不易。\n「天行有常」是荀子的，下半句是我接的。费曼那句的来路是挑战者号：事故报告不肯把他的结论放进正文，他就要来一个附录，一个人写完 —— 一项技术要成功，现实必须优先于公关，因为自然不可欺。"
+      },
+      "instances": [
         {
           "title": {
             "en": "The Way follows what is so of itself",
@@ -51,7 +91,7 @@
               "zh": "老子"
             },
             "source": {
-              "en": "Tao Te Ching 25",
+              "en": "*Tao Te Ching* 25",
               "zh": "《道德经》第二十五章"
             }
           }
@@ -67,7 +107,7 @@
           },
           "from": {
             "name": {
-              "en": "I Ching, Great Commentary",
+              "en": "*I Ching*, Great Commentary",
               "zh": "《周易·系辞下》"
             }
           }
@@ -87,20 +127,28 @@
               "zh": "郑玄"
             },
             "source": {
-              "en": "after the Qian Zuo Du",
+              "en": "after the *Qian Zuo Du*",
               "zh": "《易纬·乾凿度》语"
             }
           }
         },
         {
+          "title": {
+            "en": "Evolution is not for anyone's good",
+            "zh": "进化不为谁的福祉"
+          },
           "text": {
-            "en": "You cannot step into the same river twice.",
-            "zh": "人不能两次踏进同一条河流。"
+            "en": "“No design, no purpose, no evil, no good, nothing but pitiless indifference.” Evolution optimises for persistence, not for welfare — pain, ageing and competition are not bugs in it, they are implementation details. Development is the same: it promises no direction. The hard part is that the approving tone inside the word progress is something we put there.",
+            "zh": "「没有设计，没有目的，没有恶也没有善，只有无情的冷漠。」演化优化的是「留下来」，不是「过得好」—— 痛苦、衰老、竞争不是它的 bug，是它的实现细节。发展也一样：它不承诺方向。这一条最难的地方是，连「进化」这个词里的褒义，都是我们自己加上去的。"
           },
           "from": {
             "name": {
-              "en": "Heraclitus",
-              "zh": "赫拉克利特"
+              "en": "Richard Dawkins",
+              "zh": "道金斯"
+            },
+            "source": {
+              "en": "*River Out of Eden*, 1995",
+              "zh": "《伊甸园之河》，1995"
             }
           }
         },
@@ -126,27 +174,7 @@
           "from": {
             "name": "Ray Dalio",
             "ref": "principles-dalio",
-            "source": "Principles"
-          }
-        },
-        {
-          "title": {
-            "en": "Nature cannot be fooled",
-            "zh": "自然不可欺"
-          },
-          "text": {
-            "en": "“For a successful technology, reality must take precedence over public relations, for nature cannot be fooled.” From the appendix he wrote alone, after Challenger.",
-            "zh": "「一项技术要成功，现实必须优先于公关，因为自然不可欺。」出自挑战者号事故报告里他一个人写的那份附录。"
-          },
-          "from": {
-            "name": {
-              "en": "Richard Feynman",
-              "zh": "费曼"
-            },
-            "source": {
-              "en": "Rogers Commission, Appendix F, 1986",
-              "zh": "罗杰斯委员会报告附录 F，1986"
-            }
+            "source": "*Principles*"
           }
         },
         {
@@ -158,52 +186,90 @@
             "en": "Motion is not noise: it has polarity, period and reversal. That is the next one, not this one.",
             "zh": "动不是噪声：它有极性、有周期、有反转。那是下一条，不是这一条。"
           },
-          "ref": "sublation"
+          "ref": "polarity"
         }
-      ],
-      "quotedFrom": {
-        "name": {
-          "en": "Richard Feynman",
-          "zh": "荀子"
-        },
-        "source": {
-          "en": "Rogers Commission, Appendix F, 1986",
-          "zh": "《天论》"
-        }
-      }
+      ]
     },
     {
-      "id": "sublation",
+      "id": "polarity",
       "anchor": {
-        "en": "sublation",
-        "zh": "扬弃"
+        "en": "polarity",
+        "zh": "阴阳"
       },
       "topics": ["worlding"],
-      "statement": {
-        "en": "Without contraries is no progression.",
-        "zh": "阴阳相生，物极必反；扬弃而新。"
-      },
-      "body": {
-        "en": "The oldest model I hold, and the one I reach for first: a thing carries its opposite, and past a certain point turns into it. It is a lens rather than a law — what it buys you is patience at the top and nerve at the bottom.",
-        "zh": "我手上最老的一个模型，也是我最先拿出来用的那个：一个东西内部就含着它的反面，过了某个点就会转过去。它是透镜而不是定律 —— 它给你的，是在顶点时的耐心和在低谷时的胆量。"
-      },
-      "instances": [
+      "statements": [
         {
-          "title": {
-            "en": "Yin and yang",
+          "text": {
+            "en": "Unity of Opposites",
+            "zh": "阴阳相生，对立统一。"
+          }
+        },
+        {
+          "facet": {
+            "en": "yin and yang",
             "zh": "阴阳"
           },
           "text": {
             "en": "Misfortune is what fortune leans on; fortune is where misfortune hides.",
             "zh": "祸兮福之所倚，福兮祸之所伏。"
           },
-          "from": {
+          "quotedFrom": {
             "name": {
               "en": "Laozi",
               "zh": "老子"
+            },
+            "source": {
+              "en": "*Tao Te Ching* 58",
+              "zh": "《道德经》第五十八章"
             }
           }
         },
+        {
+          "facet": {
+            "en": "movement",
+            "zh": "动因"
+          },
+          "text": {
+            "en": "Contradiction is the root of all movement and vitality.",
+            "zh": "矛盾是一切运动和生命力的根源。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Hegel",
+              "zh": "黑格尔"
+            },
+            "source": {
+              "en": "*Science of Logic*, 1813",
+              "zh": "《逻辑学·本质论》，1813"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "negation",
+            "zh": "否定"
+          },
+          "text": {
+            "en": "To cancel, to keep, to lift — one word, all three at once.",
+            "zh": "否定、保留、提升 —— 一个词同时是这三件事。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Hegel",
+              "zh": "黑格尔"
+            },
+            "source": {
+              "en": "*aufheben*",
+              "zh": "扬弃（aufheben）"
+            }
+          }
+        }
+      ],
+      "body": {
+        "en": "The oldest model I hold, and the one I reach for first: a thing carries its opposite, and past a certain point turns into it. It is a lens rather than a law — what it buys you is patience at the top and nerve at the bottom.\nA reversal is not a return: what comes back has been negated, carried and raised — it comes back one turn up. But sublation is the mechanism inside this entry, not the entry itself: the name is polarity, because there have to be two poles before anything can come back a turn higher.",
+        "zh": "我手上最老的一个模型，也是我最先拿出来用的那个：一个东西内部就含着它的反面，过了某个点就会转过去。它是透镜而不是定律 —— 它给你的，是在顶点时的耐心和在低谷时的胆量。\n反转不是回到原点：旧的东西被否定、被保留、被提升，回来时已经上了一圈。但扬弃是这一格里的机关，不是这一格本身：它叫阴阳，因为得先有那两极，才谈得上升一圈。"
+      },
+      "instances": [
         {
           "title": {
             "en": "Mean reversion",
@@ -216,18 +282,42 @@
         },
         {
           "title": {
-            "en": "Unity of opposites",
-            "zh": "对立统一"
+            "en": "Technology is not neutral",
+            "zh": "技术不是中性的"
           },
           "text": {
-            "en": "In dialectics: contradiction is the engine of how things develop, not a defect in them.",
-            "zh": "在辩证法里：矛盾是事物发展的动力，而不是事物的缺陷。"
+            "en": "“Technology is neither good nor bad; nor is it neutral.” The third clause is the blade: the two faces do not cancel — the thing will change something, just not necessarily in the direction you chose. Oppenheimer said the maker's half of it, under oath: when you see something that is technically sweet, you go ahead and do it, and you argue about what to do about it only after you have had your technical success. That is the way it was with the atomic bomb.",
+            "zh": "「技术既不好也不坏；但它也不是中性的。」第三句才是刀口：两面不会互相抵消 —— 它一定会改变些什么，只是不一定朝你选的方向。而做技术的人那一半，奥本海默在听证会上说完了：「当你看到一个技术上甜美的东西，你就会去做它；等到技术上成功了，才开始争论该拿它怎么办。原子弹就是这样。」"
+          },
+          "from": {
+            "name": {
+              "en": "Melvin Kranzberg",
+              "zh": "克兰兹伯格"
+            },
+            "source": {
+              "en": "*Technology and History: Kranzberg's Laws*, 1986",
+              "zh": "《技术与历史：克兰兹伯格定律》，1986"
+            }
+          }
+        },
+        {
+          "text": {
+            "en": "“In the positive understanding of what exists, dialectic includes at the same time the understanding of its negation, of its inevitable passing away.” What Marx added was not the contradiction — that is Hegel's — but the inversion.",
+            "zh": "「辩证法在对现存事物的肯定的理解中，同时包含着对它的否定的理解，即对它必然灭亡的理解。」马克思添的不是矛盾 —— 矛盾是黑格尔的；他添的是把它倒过来。"
           },
           "from": {
             "name": {
               "en": "Marx",
               "zh": "马克思"
+            },
+            "source": {
+              "en": "*Capital*, afterword to the second edition, 1873",
+              "zh": "《资本论》第二版跋，1873"
             }
+          },
+          "title": {
+            "en": "Stand it on its feet",
+            "zh": "把它倒过来"
           }
         },
         {
@@ -239,6 +329,26 @@
             "name": {
               "en": "Heraclitus",
               "zh": "赫拉克利特"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Before the system",
+            "zh": "在体系之前"
+          },
+          "text": {
+            "en": "“Without Contraries is no progression. Attraction and Repulsion, Reason and Energy, Love and Hate, are necessary to Human existence.” Seventeen years before the *Phenomenology*, and not as a system — as a refusal to read the two halves as good and evil.",
+            "zh": "「没有对立就没有进步。吸引与排斥、理性与能量、爱与恨，都是人之存在所必需。」比《精神现象学》早十七年，而且不是作为一套体系 —— 是拒绝把那两半读成善与恶。"
+          },
+          "from": {
+            "name": {
+              "en": "William Blake",
+              "zh": "威廉·布莱克"
+            },
+            "source": {
+              "en": "*The Marriage of Heaven and Hell*, 1790",
+              "zh": "《天堂与地狱的婚姻》，1790"
             }
           }
         },
@@ -259,24 +369,8 @@
             "zh": "出处"
           },
           "text": {
-            "en": "“Extremes meet” is Pascal's, by way of the French proverb; the oldest Chinese form of the second half is 「物极则反」 in the Heguanzi. The pairing is mine — neither half is a quotation as it stands here.",
-            "zh": "「物极必反」最早的形态是《鹖冠子·环流》的「物极则反」；「阴阳相生」是同一件事的另一半。把两半并在一起是我自己的说法，所以这里两句都不算引文。"
-          }
-        },
-        {
-          "title": {
-            "en": "Aufheben, three senses at once",
-            "zh": "扬弃"
-          },
-          "text": {
-            "en": "To cancel, to keep, to lift — Hegel's aufheben is all three at once, which is why a reversal is not a return. What comes back has been negated, carried and raised: it comes back one turn up.",
-            "zh": "否定、保留、提升 —— 黑格尔那个词（aufheben）一个词同时是这三件事。所以反转不是回到原点：旧的东西被否定、被保留、被提升，回来时已经上了一圈。"
-          },
-          "from": {
-            "name": {
-              "en": "Hegel",
-              "zh": "黑格尔"
-            }
+            "en": "“Opposites generate each other” is how the *I Ching* and Laozi put it; “the unity of opposites” is the dialectician's phrase. Welding the halves is mine, so neither is a quotation as it stands here. The oldest Chinese form of the reversal is 「物极则反」 in the *Heguanzi*.",
+            "zh": "「阴阳相生」是易和老子那一路的说法，「对立统一」是辩证法的译名；把两半焊在一起是我自己的，所以这里两句都不算引文。至于「物极必反」，最早的形态是《鹖冠子·环流》的「物极则反」。"
           }
         },
         {
@@ -310,17 +404,7 @@
           },
           "ref": "models"
         }
-      ],
-      "quotedFrom": {
-        "name": {
-          "en": "William Blake",
-          "zh": "《鹖冠子·环流》"
-        },
-        "source": {
-          "en": "The Marriage of Heaven and Hell, 1790",
-          "zh": ""
-        }
-      }
+      ]
     },
     {
       "id": "models",
@@ -329,47 +413,81 @@
         "zh": "人事"
       },
       "topics": ["worlding"],
-      "statement": {
-        "en": "All models are wrong, but some are useful.",
-        "zh": "尽人事，进一寸有一寸的欢喜。"
-      },
-      "shapedBy": [
+      "statements": [
         {
-          "name": "Karl Popper",
-          "ref": "scientific-method",
-          "source": "Conjectures and Refutations, 1963"
+          "text": {
+            "en": "Converging on Truth",
+            "zh": "尽人事，进一寸有一寸的欢喜。"
+          }
         },
         {
-          "name": "Ray Dalio",
-          "ref": "principles-dalio",
-          "source": "Principles"
-        }
-      ],
-      "body": {
-        "en": "This rung is my half of the shelf: everything that is mine to do. No model ever closes on the world, and reality keeps the right to refute whatever I hold — so the work is to guess well, check hard, and take the inch. The line is welded from two: 尽人事 is the old proverb's first half, and the rest is Hu Shih's.\nThe scientific, experimental, evolutionary mode is my top-level model of how anything gets better — a person, a framework, a species. Its two halves only work together: a conjecture nobody could refute is a wish, and a test with nothing bold to test is bookkeeping. Wishful thinking is the one bug this model cannot report about itself, which is why the boldness has to be paid for with a referee.\nBoth of Hu Shih's lines live on this shelf. He wrote the Science Society's anthem in 1929, Zhao Yuanren set it, and it was first sung at the society's fifteenth anniversary in 1930: “We sing that heaven's course is constant, we sing of reaching knowledge by exhausting principle. What is there to fear in an inexhaustible truth — every inch gained is an inch of joy.” The shelf is named 天行 after Xunzi, and Hu Shih had already sung it into the anthem of Chinese science; 致知穷理 is Zhu Xi's line, a few rows down.",
-        "zh": "这一级是天人之分里「人」的那一半：所有该我做的事。没有一个模型能把世界收完，现实随时保留推翻我的权利 —— 所以能做的就是猜得好一点、验得狠一点，然后把那一寸拿到手。这句话是焊起来的：「尽人事」是那句老话的前半，后半是胡适的。\n科学的、实验的、进化的思维方式，是我关于「一个东西如何变好」最顶层的模型 —— 无论那个东西是一个人、一个框架还是一个物种。它的两半只有合在一起才成立：一个没人能推翻的假设只是愿望，而一场没有大胆假设可检的求证只是记账。wishful thinking 是这个模型唯一不会自己报出来的 bug，所以大胆必须用一个裁判来偿付。\n胡适的两句话都在这一格里。社歌是 1929 年写的，赵元任谱曲，1930 年中国科学社十五周年年会首唱：「我们唱天行有常，我们唱致知穷理。不怕他真理无穷，进一寸有一寸的欢喜。」这一格叫「天行」是从荀子《天论》来的，而胡适早就把它唱进了中国科学社的社歌；「致知穷理」就是下面朱熹那条。（流传最广的版本把第一句写作「怕什么真理无穷」，这里用的是原词。）"
-      },
-      "instances": [
-        {
-          "title": {
-            "en": "Bold conjectures, severe tests",
-            "zh": "大胆假设，小心求证"
+          "facet": {
+            "en": "models",
+            "zh": "模型"
           },
           "text": {
-            "en": "The method is a corollary of the claim: if the truth is inexhaustible, all you can do is guess boldly and check severely.",
-            "zh": "「大胆假设，小心求证。」方法是那句断言的推论：既然真理无穷，能做的就是猜得大胆一点，验得小心一点。"
+            "en": "All models are wrong, but some are useful.",
+            "zh": "所有模型都是错的，但有些是有用的。"
           },
-          "from": {
+          "quotedFrom": {
+            "name": {
+              "en": "George Box",
+              "zh": "乔治·博克斯"
+            },
+            "source": {
+              "en": "*Robustness in the Strategy of Scientific Model Building*, 1978",
+              "zh": "《科学建模策略中的稳健性》，1978"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "method",
+            "zh": "方法"
+          },
+          "text": {
+            "en": "Be bold in your hypotheses; be meticulous in seeking proof.",
+            "zh": "大胆假设，小心求证。"
+          },
+          "quotedFrom": {
             "name": {
               "en": "Hu Shih",
               "zh": "胡适"
             },
             "source": {
               "en": "after Dewey's experimentalism",
-              "zh": "「大胆的假设，小心的求证」"
+              "zh": "述杜威实验主义"
             }
           }
         },
+        {
+          "facet": {
+            "en": "falsifiability",
+            "zh": "证伪"
+          },
+          "text": {
+            "en": "A theory is scientific only if it can say what would refute it.",
+            "zh": "一个理论只有能说出什么会推翻它，才算科学。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Karl Popper",
+              "zh": "波普尔"
+            },
+            "ref": "scientific-method",
+            "source": {
+              "en": "*Conjectures and Refutations*, 1963",
+              "zh": "《猜想与反驳》，1963"
+            }
+          }
+        }
+      ],
+      "shapedBy": ["scientific-method", "principles-dalio"],
+      "body": {
+        "en": "This rung is my half of the shelf: everything that is mine to do. No model ever closes on the world, and reality keeps the right to refute whatever I hold — so the work is to guess well, check hard, and take the inch. The line is welded from two: 尽人事 is the old proverb's first half, and the rest is Hu Shih's.\nThe scientific, experimental, evolutionary mode is my top-level model of how anything gets better — a person, a framework, a species. Its two halves only work together: a conjecture nobody could refute is a wish, and a test with nothing bold to test is bookkeeping. Wishful thinking is the one bug this model cannot report about itself, which is why the boldness has to be paid for with a referee.\nBoth of Hu Shih's lines live on this shelf. He wrote the Science Society's anthem in 1929, Zhao Yuanren set it, and it was first sung at the society's fifteenth anniversary in 1930: “We sing that heaven's course is constant, we sing of reaching knowledge by exhausting principle. What is there to fear in an inexhaustible truth — every inch gained is an inch of joy.” The shelf is named 天行 after Xunzi, and Hu Shih had already sung it into the anthem of Chinese science; 致知穷理 is Zhu Xi's line, a few rows down.",
+        "zh": "这一级是天人之分里「人」的那一半：所有该我做的事。没有一个模型能把世界收完，现实随时保留推翻我的权利 —— 所以能做的就是猜得好一点、验得狠一点，然后把那一寸拿到手。这句话是焊起来的：「尽人事」是那句老话的前半，后半是胡适的。\n科学的、实验的、进化的思维方式，是我关于「一个东西如何变好」最顶层的模型 —— 无论那个东西是一个人、一个框架还是一个物种。它的两半只有合在一起才成立：一个没人能推翻的假设只是愿望，而一场没有大胆假设可检的求证只是记账。wishful thinking 是这个模型唯一不会自己报出来的 bug，所以大胆必须用一个裁判来偿付。\n胡适的两句话都在这一格里。社歌是 1929 年写的，赵元任谱曲，1930 年中国科学社十五周年年会首唱：「我们唱天行有常，我们唱致知穷理。不怕他真理无穷，进一寸有一寸的欢喜。」这一格叫「天行」是从荀子《天论》来的，而胡适早就把它唱进了中国科学社的社歌；「致知穷理」就是下面朱熹那条。（流传最广的版本把第一句写作「怕什么真理无穷」，这里用的是原词。）"
+      },
+      "instances": [
         {
           "title": {
             "en": "What can be said is not the thing",
@@ -401,7 +519,7 @@
               "zh": "爱因斯坦"
             },
             "source": {
-              "en": "Geometry and Experience, 1921",
+              "en": "*Geometry and Experience*, 1921",
               "zh": "《几何学与经验》，1921"
             }
           }
@@ -414,6 +532,26 @@
           "text": {
             "en": "The title of the 1978 editorial that reopened a country's mind, and the line goes back to Marx's second thesis on Feuerbach: whether human thinking has objective truth is not a question for theory but for practice.",
             "zh": "1978 年那篇社论的标题，而它的来路是马克思《关于费尔巴哈的提纲》第二条：人的思维是否具有客观的真理性，不是一个理论的问题，而是一个实践的问题。"
+          }
+        },
+        {
+          "title": {
+            "en": "If it serves the state",
+            "zh": "苟利国家生死以"
+          },
+          "text": {
+            "en": "“If it serves the state I will give my life to it; I will not seek it or avoid it for fortune or misfortune.” Lin Zexu wrote it at Xi'an, saying goodbye to his family on the road into exile. A hundred and forty-eight years later, one year into the job, Jiang Zemin wrote the couplet out at Lin's old house in Humen — the same two lines, once on the way down and once on the way up. Doing your part is not conditional on how the result lands.",
+            "zh": "「苟利国家生死以，岂因祸福避趋之。」林则徐被发配伊犁，途经西安与家人道别时写的。一百四十八年后，江泽民就任总书记刚满一周年，在虎门林则徐故居把这两句写成了一副对联 —— 同一句话，一次在被贬的路上，一次在上任的路上。尽人事不以祸福为条件。"
+          },
+          "from": {
+            "name": {
+              "en": "Lin Zexu",
+              "zh": "林则徐"
+            },
+            "source": {
+              "en": "*Written on Setting Out for Exile*, 1842",
+              "zh": "《赴戍登程口占示家人》，1842"
+            }
           }
         },
         {
@@ -431,24 +569,9 @@
               "zh": "朱熹"
             },
             "source": {
-              "en": "Commentary on the Great Learning",
+              "en": "*Commentary on the Great Learning*",
               "zh": "《大学章句》"
             }
-          }
-        },
-        {
-          "title": {
-            "en": "Falsification",
-            "zh": "证伪"
-          },
-          "text": {
-            "en": "A theory is scientific only if it can say what would refute it.",
-            "zh": "一个理论只有能说出什么会推翻它，才算科学。"
-          },
-          "from": {
-            "name": "Karl Popper",
-            "ref": "scientific-method",
-            "source": "Conjectures and Refutations, 1963"
           }
         },
         {
@@ -521,7 +644,7 @@
             "en": "Each theory that replaces mine does not delete it: it cancels what was wrong, keeps what held, and lifts both into something that can say more. Progress is a spiral, not a queue.",
             "zh": "后一个理论不是把前一个删掉：它否定错的、保留对的，再把两者抬进一个能说得更多的东西里。进步是螺旋，不是排队。"
           },
-          "ref": "sublation"
+          "ref": "polarity"
         },
         {
           "title": {
@@ -534,17 +657,7 @@
           },
           "ref": "limits"
         }
-      ],
-      "quotedFrom": {
-        "name": {
-          "en": "George Box",
-          "zh": "李汝珍 × 胡适"
-        },
-        "source": {
-          "en": "Robustness in the Strategy of Scientific Model Building, 1978",
-          "zh": "《镜花缘》× 中国科学社社歌"
-        }
-      }
+      ]
     },
     {
       "id": "limits",
@@ -553,10 +666,75 @@
         "zh": "天命"
       },
       "topics": ["worlding"],
-      "statement": {
-        "en": "Some things are up to us and some are not.",
-        "zh": "听天命，不怕他真理无穷。"
-      },
+      "statements": [
+        {
+          "text": {
+            "en": "Accepting the Limits",
+            "zh": "听天命，不怕他真理无穷。"
+          }
+        },
+        {
+          "facet": {
+            "en": "what is ours",
+            "zh": "分界"
+          },
+          "text": {
+            "en": "Some things are up to us and some are not.",
+            "zh": "有些事由得了我们，有些事由不得。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Epictetus",
+              "zh": "爱比克泰德"
+            },
+            "source": {
+              "en": "*Enchiridion*, c. 125",
+              "zh": "《手册》，约 125"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "heaven and man",
+            "zh": "天人"
+          },
+          "text": {
+            "en": "To be clear on the division between what is heaven's and what is man's — that is the utmost.",
+            "zh": "明于天人之分，则可谓至人矣。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Xunzi",
+              "zh": "荀子"
+            },
+            "source": {
+              "en": "*Discourse on Heaven*",
+              "zh": "《荀子·天论》"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "incompleteness",
+            "zh": "不完备"
+          },
+          "text": {
+            "en": "No system strong enough to do arithmetic can prove its own consistency from the inside.",
+            "zh": "任何足够强的一致系统，都无法在自身内部证明自己一致。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Gödel",
+              "zh": "哥德尔"
+            },
+            "ref": "types-and-languages",
+            "source": {
+              "en": "Incompleteness, 1931",
+              "zh": "不完备性定理，1931"
+            }
+          }
+        }
+      ],
       "body": {
         "en": "Act fully. Judge slowly. Then wait longer.\nThis rung is the other half: everything that was never mine. Do everything that is yours to do, then let the outcome be the outcome. It isn't fatalism, it's aim: spend the attention on what you can actually change, and stop paying rent on what you can't. And when the outcome does land, you still cannot tell a loss from a gift at the moment of impact — only later, and usually only backwards.\nThe ceiling is not a mood either. Gödel proved that a system strong enough to be interesting cannot close on itself from the inside, which turns an old proverb about fate into a theorem about knowledge.",
         "zh": "事前尽人事，事后听天命，再往后，焉知非福。\n这一级是天人之分的另一半：所有从来就不归我的部分。把该你做的都做完，然后让结果就是结果。这不是宿命论，是瞄准：把注意力花在你真能改变的东西上，别再为你改变不了的付房租。而就算结果砸下来了，在它砸下来的那一刻，你也分不出那是损失还是礼物 —— 只能后来才知道，而且通常只能倒着看。\n那个上限也不是一种情绪。哥德尔证明了：一个强到有意思的系统，无法在自身内部兜住自己。于是一句关于命运的老话，变成了一条关于知识的定理。"
@@ -573,12 +751,68 @@
           },
           "from": {
             "name": {
-              "en": "Huainanzi, 2nd c. BCE",
+              "en": "*Huainanzi*, 2nd c. BCE",
               "zh": "《淮南子·人间训》"
             },
             "source": {
               "en": "“a blessing in disguise”, James Hervey, 1746",
               "zh": "西汉·刘安"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "The course of history",
+            "zh": "历史的行程"
+          },
+          "text": {
+            "en": "“A person's fate depends on self-struggle, of course — but you also have to take the course of history into account.” It has been a meme for twenty years, and it is also 天人之分 in plain modern Chinese: the struggle is mine, the course is not.",
+            "zh": "「一个人的命运，当然要靠自我奋斗，但是也要考虑到历史的行程。」这句话当了二十年的梗，但它说的就是天人之分：自我奋斗是人事，历史的行程是天命。"
+          },
+          "from": {
+            "name": {
+              "en": "Jiang Zemin",
+              "zh": "江泽民"
+            },
+            "source": {
+              "en": "Japan National Press Club, 1998",
+              "zh": "日本记者俱乐部，1998"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "A little bit of work",
+            "zh": "做了一点微小的工作"
+          },
+          "text": {
+            "en": "“I'm embarrassed — I only did a little bit of work.” Under the modesty is an accurate measurement: the distance one person moves inside an era really is a short one, and saying so is not false humility.",
+            "zh": "「很惭愧，就做了一点微小的工作。」谦辞底下是一个准确的测量：一个人在一个时代里能挪动的距离，确实只有很短一段。说出来不是谦虚。"
+          },
+          "from": {
+            "name": {
+              "en": "Jiang Zemin",
+              "zh": "江泽民"
+            },
+            "source": {
+              "en": "2009",
+              "zh": "2009"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Push-ups in a rising elevator",
+            "zh": "电梯里做俯卧撑"
+          },
+          "text": {
+            "en": "Three people ride an elevator to the top floor: one jogs in place, one does push-ups, one bangs his head against the wall. Asked at the top how they got up there, each credits his own method. The elevator was an era's economy — and telling which part of an outcome was the elevator is the whole of this entry.",
+            "zh": "三个人坐电梯上顶楼：一个原地跑步，一个做俯卧撑，一个用头撞墙。到了顶楼被问是怎么上来的，各说各的方法。电梯是那个时代的经济 —— 而认出一个结果里哪一部分是电梯，就是这一条的全部内容。"
+          },
+          "from": {
+            "name": {
+              "en": "a business parable",
+              "zh": "商界寓言"
             }
           }
         },
@@ -592,26 +826,6 @@
             "zh": "丢掉 React 那个位置，才逼我想清楚我真正要的是什么 —— 原来是一个更大的舞台，以及舞台上有我的人。Dots are connected again。"
           },
           "ref": "becoming"
-        },
-        {
-          "title": {
-            "en": "Heaven's part, and mine",
-            "zh": "天人之分"
-          },
-          "text": {
-            "en": "Heaven's course is constant: it did not endure because of Yao, nor perish because of Jie… To be clear on the division between what is heaven's and what is man's — that is the utmost.",
-            "zh": "天行有常，不为尧存，不为桀亡……故明于天人之分，则可谓至人矣。"
-          },
-          "from": {
-            "name": {
-              "en": "Xunzi",
-              "zh": "荀子"
-            },
-            "source": {
-              "en": "Discourse on Heaven",
-              "zh": "《荀子·天论》"
-            }
-          }
         },
         {
           "title": {
@@ -648,7 +862,7 @@
             "en": "The result is not settled because the situation is still turning. This is what the swing looks like from inside a life.",
             "zh": "结果没有结算，是因为局面还在翻转。这就是物极必反落到一个人身上的样子。"
           },
-          "ref": "sublation"
+          "ref": "polarity"
         },
         {
           "title": {
@@ -660,80 +874,90 @@
             "zh": "尽人事是我这边能做的变异，听天命是我这边做不了的选择。两条合起来，才是一次进化。"
           },
           "ref": "models"
-        },
-        {
-          "title": {
-            "en": "No system closes on itself",
-            "zh": "没有系统能自己兜住自己"
-          },
-          "text": {
-            "en": "No consistent system strong enough to do arithmetic can prove its own consistency from the inside. That the map never closes is not a suspicion — it is a theorem.",
-            "zh": "任何足够强的一致系统，都无法在自身内部证明自己一致。「地图永远合不拢」不是一种怀疑，它是一条定理。"
-          },
-          "from": {
-            "name": {
-              "en": "Gödel",
-              "zh": "哥德尔"
-            },
-            "source": {
-              "en": "Incompleteness, 1931",
-              "zh": "不完备性定理，1931"
-            }
-          },
-          "ref": "types-and-languages"
         }
       ],
-      "quotedFrom": {
-        "name": {
-          "en": "Epictetus",
-          "zh": "李汝珍 × 胡适"
-        },
-        "source": {
-          "en": "Enchiridion, c. 125",
-          "zh": "《镜花缘》× 中国科学社社歌"
-        }
-      },
-      "shapedBy": [
-        {
-          "name": {
-            "en": "my parents",
-            "zh": "父母"
-          },
-          "ref": "my-parents"
-        }
-      ]
+      "shapedBy": ["my-parents"]
     },
     {
       "id": "becoming",
       "anchor": {
         "en": "becoming",
-        "zh": "成为"
+        "zh": "成己"
       },
-      "statement": {
-        "en": "Become who you are.",
-        "zh": "成为你自己。"
+      "shapedBy": ["steve-jobs"],
+      "body": {
+        "en": "Identity is not a title you freeze. Each era is a rewrite, not a reveal.\nThe line comes out of narrative identity: the self is not found and then described, it is constituted in the telling. I got it from Liu Qing's lectures on modern Western thought, and behind those is Ricoeur. Which is why the imperative is not “find yourself” but “become who you are” — you are always becoming, and narration is how the question “who?” gets answered at all.\nNietzsche's imperative is Pindar's line before it: become such as you are.\n成己, completing yourself, comes from the *Doctrine of the Mean*, where it arrives already paired: completing yourself is benevolence, completing things is knowledge. The other shelf on this page is the second half of that sentence.",
+        "zh": "身份不是冻结的头衔。每一段都是一次重写，而不是一次揭晓。\n这句话的来路是「叙事性自我」：自我不是先被找到、再被讲出来的，而是在讲述中才被构成。我是听刘擎讲西方现代思想时接上这条线的，他背后是利科。所以这里的祈使句不是「找到自己」，而是「成为你自己」—— 人永远都在 Becoming，而叙事就是「你是谁」这个问题唯一能被回答的方式。\n尼采那句祈使的祖宗是品达：成为你所是的那个人。\n「成己」出自《中庸》，而它在那里本来就是成对的 ——「成己，仁也；成物，知也。」这一页的另一格，是这句话的下半句。"
       },
-      "shapedBy": [
+      "topics": ["being"],
+      "statements": [
         {
-          "name": "Steve Jobs",
-          "ref": "steve-jobs"
+          "text": {
+            "en": "Becoming. Narrating.",
+            "zh": "叙事。成己。"
+          }
         },
         {
-          "name": {
-            "en": "Personal storytelling across three year career cycles",
-            "zh": "以三年为周期的个人叙事"
+          "facet": {
+            "en": "imperative",
+            "zh": "祈使"
+          },
+          "text": {
+            "en": "Become who you are.",
+            "zh": "成为你自己。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Nietzsche",
+              "zh": "尼采"
+            },
+            "source": {
+              "en": "*The Gay Science* §270",
+              "zh": "《快乐的科学》§270"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "essence",
+            "zh": "本质"
+          },
+          "text": {
+            "en": "Existence precedes essence.",
+            "zh": "存在先于本质。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Sartre",
+              "zh": "萨特"
+            },
+            "source": {
+              "en": "*Existentialism Is a Humanism*, 1946",
+              "zh": "《存在主义是一种人道主义》，1946"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "and the world",
+            "zh": "成物"
+          },
+          "text": {
+            "en": "Completing yourself is benevolence; completing things is knowledge.",
+            "zh": "成己，仁也；成物，知也。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "*Doctrine of the Mean*",
+              "zh": "《中庸》"
+            },
+            "source": {
+              "en": "ch. 25",
+              "zh": "第二十五章"
+            }
           }
         }
       ],
-      "body": {
-        "en": "Identity is not a title you freeze. Each era — consumer, producer, architect — is a rewrite, not a reveal.\nThe line comes out of narrative identity: the self is not found and then described, it is constituted in the telling. I got it from Liu Qing's lectures on modern Western thought, and behind those is Ricoeur. Which is why the imperative is not “find yourself” but “become who you are” — you are always becoming, and narration is how the question “who?” gets answered at all.\nNietzsche's imperative is Pindar's line before it: become such as you are.",
-        "zh": "身份不是冻结的头衔。每个时代 —— 消费者、生产者、架构师 —— 都是一次重写，而不是一次揭晓。\n这句话的来路是「叙事性自我」：自我不是先被找到、再被讲出来的，而是在讲述中才被构成。我是听刘擎讲西方现代思想时接上这条线的，他背后是利科。所以这里的祈使句不是「找到自己」，而是「成为你自己」—— 人永远都在 Becoming，而叙事就是「你是谁」这个问题唯一能被回答的方式。\n尼采那句祈使的祖宗是品达：成为你所是的那个人。"
-      },
-      "topics": ["being"],
-      "commentary": {
-        "en": "Self is authored.",
-        "zh": "自我是被写出来的。"
-      },
       "instances": [
         {
           "title": {
@@ -750,7 +974,7 @@
               "zh": "保罗·利科"
             },
             "source": {
-              "en": "Oneself as Another, 1990",
+              "en": "*Oneself as Another*, 1990",
               "zh": "《作为一个他者的自身》，1990"
             }
           }
@@ -764,29 +988,9 @@
             "en": "Ricoeur splits identity in two: idem, staying the same, and ipse, being the one who came through the change. Which is why I am and am not the person I was ten years ago.",
             "zh": "利科把同一性切成两半：idem 是保持相同，ipse 是穿过变化之后仍然是我。所以 —— 我既是、也不是十年前的那个人。"
           },
-          "ref": "sublation"
-        },
-        {
-          "title": {
-            "en": "Three-year cycles",
-            "zh": "以三年为周期"
-          },
-          "text": {
-            "en": "Each era — consumer, producer, architect — is a rewrite, not a reveal. Identity is not a title you freeze.",
-            "zh": "每一个阶段 —— 消费者、生产者、架构师 —— 都是一次重写，而不是一次揭晓。身份不是冻结的头衔。"
-          }
+          "ref": "polarity"
         }
-      ],
-      "quotedFrom": {
-        "name": {
-          "en": "Nietzsche",
-          "zh": "尼采"
-        },
-        "source": {
-          "en": "The Gay Science §270",
-          "zh": "《快乐的科学》§270"
-        }
-      }
+      ]
     },
     {
       "id": "wandering",
@@ -795,39 +999,57 @@
         "zh": "浪游"
       },
       "topics": ["being"],
-      "statement": {
-        "en": "You can't connect the dots looking forward; you can only connect them looking backwards.",
-        "zh": "离开世界之前，一切都是过程。"
-      },
-      "commentary": {
-        "en": "Density over duration. Life is a journey.",
-        "zh": "过程 > 结果，厚度 > 长度。"
-      },
-      "shapedBy": [
+      "statements": [
         {
-          "name": {
-            "en": "Zhuangzi",
-            "zh": "庄子"
-          },
-          "source": {
-            "en": "Free and Easy Wandering",
-            "zh": "《庄子·逍遥游》"
+          "text": {
+            "en": "Wandering. Playing.",
+            "zh": "浪游。游戏。"
           }
         },
         {
-          "name": {
-            "en": "Soft Lipa",
-            "zh": "蛋堡"
+          "facet": {
+            "en": "backwards",
+            "zh": "回望"
           },
-          "source": {
-            "en": "“Process”, Moonlight, 2010",
-            "zh": "《过程》，《月光》，2010"
+          "text": {
+            "en": "You can't connect the dots looking forward; you can only connect them looking backwards.",
+            "zh": "离开世界之前，一切都是过程。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Steve Jobs",
+              "zh": "蛋堡"
+            },
+            "source": {
+              "en": "Stanford, 2005",
+              "zh": "《过程》·《月光》，2010"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "uselessness",
+            "zh": "无用"
+          },
+          "text": {
+            "en": "Everyone knows the use of the useful; nobody knows the use of the useless.",
+            "zh": "人皆知有用之用，而莫知无用之用也。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Zhuangzi",
+              "zh": "庄子"
+            },
+            "source": {
+              "en": "*In the World of Men*",
+              "zh": "《人间世》"
+            }
           }
         }
       ],
       "body": {
-        "en": "The other three are about getting better at being me; this one is the ground they stand on, and it says that not every life should be an optimisation problem. Some roads because I wanted to walk them, some people because I wanted to know them, some fields entered without knowing whether they were any use. The value of those can only be assigned looking backwards, which is why they can never be argued for in advance — and why they have to stay useless on purpose.\nDrifting means having no route; 浪 means allowing myself off the route.",
-        "zh": "前面三条都在说我如何变得更好，这一条是它们脚下的地面：不是所有的人生都该是一道最优化题。有些路因为想走而走，有些人因为想认识而认识，有些领域不知道有没有用也进去看看。这些东西的价值只有回望的时候才能被赋予，所以它们事先无法被论证 —— 这正是它们必须保持「没用」的原因。\n漫是没有路线，浪是允许自己偏离路线。"
+        "en": "The other three are about getting better at being me; this one is the ground they stand on, and it says that not every life should be an optimisation problem. Some roads because I wanted to walk them, some people because I wanted to know them, some fields entered without knowing whether they were any use. The value of those can only be assigned looking backwards, which is why they can never be argued for in advance — and why they have to stay useless on purpose.\nDrifting means having no route; 浪 means allowing myself off the route. Density over duration: count the thickness of a life, not its length.\n游 was always play as well as travel — Confucius rests in it, Zhuangzi journeys by it. The same character carries the wandering and the game.",
+        "zh": "前面三条都在说我如何变得更好，这一条是它们脚下的地面：不是所有的人生都该是一道最优化题。有些路因为想走而走，有些人因为想认识而认识，有些领域不知道有没有用也进去看看。这些东西的价值只有回望的时候才能被赋予，所以它们事先无法被论证 —— 这正是它们必须保持「没用」的原因。\n漫是没有路线，浪是允许自己偏离路线。过程 > 结果，厚度 > 长度。\n而「游」这个字本来就同时是走和玩：孔子「游于艺」，庄子「逍遥游」—— 浪游和游戏，本来就是同一个字。"
       },
       "instances": [
         {
@@ -845,7 +1067,7 @@
               "zh": "孔子"
             },
             "source": {
-              "en": "Analects VII",
+              "en": "*Analects* VII",
               "zh": "《论语·述而》"
             }
           }
@@ -885,7 +1107,7 @@
               "zh": "蛋堡"
             },
             "source": {
-              "en": "“Process”, Moonlight, 2010",
+              "en": "“Process”, *Moonlight*, 2010",
               "zh": "《过程》，《月光》，2010"
             }
           }
@@ -912,17 +1134,7 @@
           },
           "ref": "imagining"
         }
-      ],
-      "quotedFrom": {
-        "name": {
-          "en": "Steve Jobs",
-          "zh": "蛋堡"
-        },
-        "source": {
-          "en": "Stanford, 2005",
-          "zh": "《过程》·《月光》，2010"
-        }
-      }
+      ]
     },
     {
       "id": "interfacing",
@@ -931,27 +1143,60 @@
         "zh": "会通"
       },
       "topics": ["being"],
-      "statement": {
-        "en": "Technology alone is not enough — it's technology married with the liberal arts, married with the humanities.",
-        "zh": "君子不器，观其会通。"
-      },
-      "commentary": {
-        "en": "A romantic geek, for life.",
-        "zh": "一生想做浪漫极客。"
-      },
-      "shapedBy": [
+      "statements": [
         {
-          "name": "Steve Jobs",
-          "ref": "steve-jobs"
+          "text": {
+            "en": "Interfacing. Intersecting. Crossing.",
+            "zh": "介面。会通。越界。"
+          }
         },
         {
-          "name": "Paul Graham",
-          "ref": "hackers-and-painters"
+          "facet": {
+            "en": "not a vessel",
+            "zh": "不器"
+          },
+          "text": {
+            "en": "Technology alone is not enough — it's technology married with the liberal arts, married with the humanities.",
+            "zh": "君子不器。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Steve Jobs",
+              "zh": "《论语·为政》"
+            },
+            "source": {
+              "en": "iPad 2 keynote, 2011",
+              "zh": ""
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "gather and flow",
+            "zh": "会通"
+          },
+          "text": {
+            "en": "The sage sees how the world moves, and watches where it gathers and flows.",
+            "zh": "圣人有以见天下之动，而观其会通。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "*I Ching*, Great Commentary",
+              "zh": "《周易·系辞上》"
+            }
+          }
+        },
+        {
+          "text": {
+            "en": "A romantic geek, for life.",
+            "zh": "一生想做浪漫极客。"
+          }
         }
       ],
+      "shapedBy": ["steve-jobs", "hackers-and-painters"],
       "body": {
-        "en": "There must be such an intersection; there are just too few people willing to go and look. Every boundary I have been handed turned out to be an artifact of some moment's division of labour rather than a fact about the work — in culture too, East and West, the local and the world — which is exactly why the unclaimed things are found on the seam.\nA vessel is a thing with one use. The artifact I am building should become one — from the rule, the instrument — and the person building it should not. Make vessels; don't be one.",
-        "zh": "这样一个 intersection 一定存在，只是愿意去探索的人太少。别人交到我手上的每一条边界，后来都被证明只是某个时代社会分工的产物，而不是这件事本身的性质 —— 文化上也一样，东方与西方、民族与世界 —— 正因如此，没人认领的东西都在接缝上。\n器是只有一种用途的东西。我做出来的东西应该成器 ——「以法成器」—— 而做这件事的人不该成器。**做出来的要成器，做事的人不要成器。**"
+        "en": "An interface first: two unlike worlds get a surface where they can see and address each other. Then 会通 — 会 is where things gather, 通 is where they flow through — which is not contact but understanding, connection and fusion — an intersection that actually grows. Then crossing: going over for real, and breaking the category when the category is the thing in the way. (The Chinese here is 介面 rather than the usual 界面 — the same word for interface, except 介 also means being between the two.)\nThere must be such an intersection; there are just too few people willing to go and look. Every boundary I have been handed turned out to be an artifact of some moment's division of labour rather than a fact about the work — in culture too, East and West, the local and the world — which is exactly why the unclaimed things are found on the seam.\nA vessel is a thing with one use. The artifact I am building should become one — from the rule, the instrument — and the person building it should not. Make vessels; don't be one.",
+        "zh": "介面，是异质的两边先有一个接触面，彼此可见、可交流；会通，是不止于接触 —— 会是汇聚，通是贯通 —— 而是理解、连接、融会，长出真正的 intersection；越界，是最后真的跨过去，必要时把原有的分类和惯例打破。（写「介面」而不是「界面」：同一个 interface，但「介」多带一层「介于两者之间」。）\n这样一个 intersection 一定存在，只是愿意去探索的人太少。别人交到我手上的每一条边界，后来都被证明只是某个时代社会分工的产物，而不是这件事本身的性质 —— 文化上也一样，东方与西方、民族与世界 —— 正因如此，没人认领的东西都在接缝上。\n器是只有一种用途的东西。我做出来的东西应该成器 ——「以法成器」—— 而做这件事的人不该成器。**做出来的要成器，做事的人不要成器。**"
       },
       "instances": [
         {
@@ -969,7 +1214,7 @@
               "zh": "朱熹"
             },
             "source": {
-              "en": "Commentary on the Analects",
+              "en": "*Commentary on the Analects*",
               "zh": "《论语集注》"
             }
           }
@@ -996,22 +1241,6 @@
         },
         {
           "title": {
-            "en": "Where things gather and flow",
-            "zh": "观其会通"
-          },
-          "text": {
-            "en": "Hui is where things gather, tong is where they flow through — “the sage sees how the world moves, and watches where it gathers and flows.”",
-            "zh": "会是汇聚，通是贯通 ——「圣人有以见天下之动，而观其会通」。"
-          },
-          "from": {
-            "name": {
-              "en": "I Ching, Great Commentary",
-              "zh": "《周易·系辞上》"
-            }
-          }
-        },
-        {
-          "title": {
             "en": "Harmony without sameness",
             "zh": "和而不同"
           },
@@ -1025,7 +1254,7 @@
               "zh": "孔子"
             },
             "source": {
-              "en": "Analects XIII",
+              "en": "*Analects* XIII",
               "zh": "《论语·子路》"
             }
           }
@@ -1047,17 +1276,7 @@
           },
           "ref": "hackers-and-painters"
         }
-      ],
-      "quotedFrom": {
-        "name": {
-          "en": "Steve Jobs",
-          "zh": "《论语》×《周易》"
-        },
-        "source": {
-          "en": "iPad 2 keynote, 2011",
-          "zh": ""
-        }
-      }
+      ]
     },
     {
       "id": "evolving",
@@ -1066,17 +1285,73 @@
         "zh": "不息"
       },
       "topics": ["being"],
-      "statement": {
-        "en": "What an organism feeds upon is negative entropy.",
-        "zh": "取法乎上，负熵为生。"
-      },
-      "commentary": {
-        "en": "Pain + Reflection = Progress.",
-        "zh": "痛苦 + 反思 = 进步。"
-      },
+      "statements": [
+        {
+          "text": {
+            "en": "Negentropy. Evolving.",
+            "zh": "熵减。不息。"
+          }
+        },
+        {
+          "facet": {
+            "en": "physics",
+            "zh": "物理"
+          },
+          "text": {
+            "en": "What an organism feeds upon is negative entropy.",
+            "zh": "生命以负熵为食。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Erwin Schrödinger",
+              "zh": "薛定谔"
+            },
+            "source": {
+              "en": "*What Is Life?*, 1944",
+              "zh": "《生命是什么》，1944"
+            },
+            "url": "https://en.wikipedia.org/wiki/Entropy_and_life"
+          }
+        },
+        {
+          "facet": {
+            "en": "aim",
+            "zh": "取法"
+          },
+          "text": {
+            "en": "Take the highest as your model and you reach only the middle; take the middle and you end at the bottom.",
+            "zh": "取法于上，仅得为中；取法于中，故为其下。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Emperor Taizong of Tang",
+              "zh": "唐太宗"
+            },
+            "source": {
+              "en": "*Di Fan*, 648",
+              "zh": "《帝范》卷四，648"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "method",
+            "zh": "方法"
+          },
+          "text": {
+            "en": "Pain + Reflection = Progress.",
+            "zh": "痛苦 + 反思 = 进步。"
+          },
+          "quotedFrom": {
+            "name": "Ray Dalio",
+            "ref": "principles-dalio",
+            "source": "*Principles*"
+          }
+        }
+      ],
       "body": {
-        "en": "Everything in nature runs toward maximum entropy, which for a living thing is death; staying alive means continually drawing order back out of the environment. It is the most compact statement I know of what living, working and building all are.\n(The Chinese half borrows 取法于上 — aim at the highest and you land in the middle — and puts Schrödinger where the highest is.)",
-        "zh": "自然里的一切都朝着最大熵去，而对生命来说，最大熵就是死亡；活着，就是不断从环境里把秩序取回来。这是我见过对「活着、工作、创造」最凝练的一句描述。\n（中文那半句化自「取法于上，仅得乎中」，而把「上」换成了薛定谔。）"
+        "en": "Everything in nature runs toward maximum entropy, which for a living thing is death; staying alive means continually drawing order back out of the environment. It is the most compact statement I know of what living, working and building all are.\nThe two lines have nothing to do with each other: one is a standard a Tang emperor set for his son, the other is a definition of life. Welding them into 取法乎上，负熵为生 is mine — and where the highest should be, I put Schrödinger.\nThe classical Chinese word for what a living thing does is not adaptation but 生生 — generating, and generating again: the same claim as the physics, three thousand years earlier and without the thermodynamics.",
+        "zh": "自然里的一切都朝着最大熵去，而对生命来说，最大熵就是死亡；活着，就是不断从环境里把秩序取回来。这是我见过对「活着、工作、创造」最凝练的一句描述。\n这两句原本无关：一句是唐太宗写给儿子的标准，一句是薛定谔给生命下的定义。把它们焊成「取法乎上，负熵为生」是我自己的话 —— 那个「上」，我放的是薛定谔。\n中文给「活着」找的词不是适应，是生生 —— 生了又生。和那句物理说的是同一件事，只是早了几千年，也还没有热力学。"
       },
       "instances": [
         {
@@ -1090,7 +1365,7 @@
           },
           "from": {
             "name": {
-              "en": "I Ching, Image of Qian",
+              "en": "*I Ching*, Image of Qian",
               "zh": "《周易·乾·象》"
             }
           },
@@ -1098,16 +1373,16 @@
         },
         {
           "title": {
-            "en": "Generation upon generation",
-            "zh": "生生之谓易"
+            "en": "Renewal and generation",
+            "zh": "日新与生生"
           },
           "text": {
-            "en": "“Generation upon generation is what change means.” The classical Chinese word for what a living thing does is not adaptation but 生生 — generating, and generating again. Same claim as the physics, four thousand years earlier and without the thermodynamics.",
-            "zh": "「生生之谓易。」中文给「活着」找的词不是适应，是**生生** —— 生了又生。和那句物理说的是同一件事，只是早了几千年，也还没有热力学。"
+            "en": "“Daily renewal is called abundant virtue; generation upon generation is what change means.” The Great Commentary puts the two in one sentence because they are one thing.",
+            "zh": "「日新之谓盛德，生生之谓易。」日新是每天翻新，生生是生了又生 ——《系辞》把这两件事写进同一句，因为它们本来就是一件事。"
           },
           "from": {
             "name": {
-              "en": "I Ching, Great Commentary",
+              "en": "*I Ching*, Great Commentary",
               "zh": "《周易·系辞上》"
             }
           }
@@ -1147,7 +1422,7 @@
           },
           "from": {
             "name": "Matt Might",
-            "source": "The illustrated guide to a Ph.D.",
+            "source": "*The illustrated guide to a Ph.D.*",
             "url": "https://matt.might.net/articles/phd-school-in-pictures/"
           }
         },
@@ -1173,7 +1448,7 @@
           "from": {
             "name": "Ray Dalio",
             "ref": "principles-dalio",
-            "source": "Principles"
+            "source": "*Principles*"
           }
         },
         {
@@ -1188,28 +1463,31 @@
           "from": {
             "name": "Ray Dalio",
             "ref": "principles-dalio",
-            "source": "Principles"
+            "source": "*Principles*"
+          }
+        },
+        {
+          "title": {
+            "en": "The blade's edge comes from grinding",
+            "zh": "宝剑锋从磨砺出"
+          },
+          "text": {
+            "en": "“A sword's edge comes from grinding; the plum's scent comes from the bitter cold.” Drawing order back out of the environment is not free, and the price has these two names.",
+            "zh": "「宝剑锋从磨砺出，梅花香自苦寒来。」从环境里把秩序取回来是要付价钱的，而那个价钱的两个名字，一个叫磨，一个叫寒。"
+          },
+          "from": {
+            "name": {
+              "en": "Anonymous",
+              "zh": "佚名"
+            },
+            "source": {
+              "en": "*Jingshi Xianwen*",
+              "zh": "《警世贤文·勤奋篇》"
+            }
           }
         }
       ],
-      "shapedBy": [
-        {
-          "name": "Ray Dalio",
-          "ref": "principles-dalio",
-          "source": "Principles"
-        }
-      ],
-      "quotedFrom": {
-        "name": {
-          "en": "Erwin Schrödinger",
-          "zh": "薛定谔"
-        },
-        "source": {
-          "en": "What Is Life?, 1944",
-          "zh": "《生命是什么》，1944"
-        },
-        "url": "https://en.wikipedia.org/wiki/Entropy_and_life"
-      }
+      "shapedBy": ["principles-dalio"]
     },
     {
       "id": "imagining",
@@ -1218,17 +1496,72 @@
         "zh": "想象"
       },
       "topics": ["doing"],
-      "statement": {
-        "en": "Mind first.",
-        "zh": "意在形先。"
-      },
-      "commentary": {
-        "en": "Imagine it. Envision it.",
-        "zh": "想象。立意。"
-      },
+      "statements": [
+        {
+          "text": {
+            "en": "Imagining. Envisioning.",
+            "zh": "想象。立意。"
+          }
+        },
+        {
+          "facet": {
+            "en": "invention",
+            "zh": "发明"
+          },
+          "text": {
+            "en": "The best way to predict the future is to invent it.",
+            "zh": "预测未来的最好方法，就是创造它。"
+          },
+          "quotedFrom": {
+            "name": "Alan Kay",
+            "source": {
+              "en": "PARC, 1971",
+              "zh": "PARC，1971"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "commitment",
+            "zh": "先信"
+          },
+          "text": {
+            "en": "Fake it till you make it.",
+            "zh": "弄假成真。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "English saying",
+              "zh": "元曲《隔江斗智》"
+            },
+            "source": {
+              "en": "in print by 1973",
+              "zh": "「那一个掌亲的，怎知道弄假成真？」"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "the other side",
+            "zh": "生产者"
+          },
+          "text": {
+            "en": "Welcome to the producer side.",
+            "zh": "欢迎来到生产者这一侧。"
+          },
+          "quotedFrom": {
+            "name": "Cheng Lou",
+            "ref": "react-team",
+            "source": {
+              "en": "Reason / React, via 「程序员中的梦想家」",
+              "zh": "Reason / React，出自「程序员中的梦想家」"
+            }
+          }
+        }
+      ],
       "body": {
-        "en": "Imagination is the bottleneck, and the only way to widen it is from inside the next room. You cannot reason your way into a room you cannot see into; you can only act your way in — so stop forecasting, say the thing before it is true, take the position before you are ready, and let the new data arrive as a consequence of having moved. Creating is what this looks like from the outside.",
-        "zh": "瓶颈是想象力，而拓宽它的唯一办法，是站到下一个房间里面去。你没法靠推理走进一个你看不进去的房间，只能靠行动走进去 —— 所以别再预测了：在它还不成立的时候先把它说出口，在你还没准备好的时候先站上那个位置，让新的数据作为「你已经动了」的结果到来。从外面看，这件事就叫创造。"
+        "en": "Imagination is the bottleneck, and the only way to widen it is from inside the next room. You cannot reason your way into a room you cannot see into; you can only act your way in — so stop forecasting, say the thing before it is true, take the position before you are ready, and let the new data arrive as a consequence of having moved. Creating is what this looks like from the outside.\nThe tools look messy while they are being invented. Visionaries get underestimated on the way up and mythologized after. If you are in the pit with them — that's the job.",
+        "zh": "瓶颈是想象力，而拓宽它的唯一办法，是站到下一个房间里面去。你没法靠推理走进一个你看不进去的房间，只能靠行动走进去 —— 所以别再预测了：在它还不成立的时候先把它说出口，在你还没准备好的时候先站上那个位置，让新的数据作为「你已经动了」的结果到来。从外面看，这件事就叫创造。\n东西在被发明的时候看起来都很糟。梦想家在过程中被低估，流行之后又被神化。如果你正在坑里跟他们一起填 —— 那就是这份工作。"
       },
       "instances": [
         {
@@ -1262,19 +1595,6 @@
           }
         },
         {
-          "text": {
-            "en": "The best way to predict the future is to invent it.",
-            "zh": "预测未来的最好方法就是创造它。"
-          },
-          "from": {
-            "name": "Alan Kay",
-            "source": {
-              "en": "PARC, 1971",
-              "zh": "PARC，1971"
-            }
-          }
-        },
-        {
           "title": {
             "en": "Fake it till you make it",
             "zh": "装"
@@ -1302,24 +1622,6 @@
           "text": {
             "en": "Every level turns out to hold problems that were invisible one level down — not harder versions of the same problem, different problems.",
             "zh": "每一层都装着下一层根本看不见的问题 —— 不是同一个问题的更难版本，而是另一类问题。"
-          }
-        },
-        {
-          "title": {
-            "en": "Welcome to the producer side",
-            "zh": "Welcome to the producer side"
-          },
-          "text": {
-            "en": "The tools look messy while they are being invented. Visionaries get underestimated on the way up and mythologized after. If you are in the pit with them — that's the job.",
-            "zh": "东西在被发明的时候看起来都很糟。梦想家在过程中被低估，流行之后又被神化。如果你正在坑里跟他们一起填 —— 那就是这份工作。"
-          },
-          "from": {
-            "name": "Cheng Lou",
-            "ref": "react-team",
-            "source": {
-              "en": "Reason / React, via 「程序员中的梦想家」",
-              "zh": "Reason / React，出自「程序员中的梦想家」"
-            }
           }
         },
         {
@@ -1378,25 +1680,10 @@
         "en": "demoing",
         "zh": "演示"
       },
-      "statement": {
-        "en": "Learning by doing.",
-        "zh": "纸上得来终觉浅，绝知此事要躬行。"
-      },
-      "shapedBy": [
-        {
-          "name": "Dan Abramov",
-          "ref": "react-team"
-        },
-        {
-          "name": {
-            "en": "Lynx team culture",
-            "zh": "Lynx 团队文化"
-          }
-        }
-      ],
+      "shapedBy": ["react-team"],
       "body": {
-        "en": "Specs describe what you think you want; demos reveal what you actually need. People are visual animals — a thing that runs persuades in five seconds what five pages cannot, and it persuades the person who built it first.\n“For the things we have to learn before we can do them, we learn by doing them: people become builders by building, and lyre-players by playing the lyre.” That is Aristotle, fifteen centuries before Lu You and twenty-two before Dewey — who did write the phrase down, in a book about schools he wrote with his daughter.",
-        "zh": "规格描述你以为你想要的，演示揭示你真正需要的。人是视觉动物 —— 一个跑起来的东西五秒钟能说服的事，五页文档说不动；而它第一个说服的人，是做它的那个人。\n「那些我们必须先学会才能做的事，我们是通过做它们来学会的 —— 人通过造房子成为建筑师，通过弹琴成为琴师。」这是亚里士多德，比陆游早一千五百年，比杜威早两千二百年 —— 而杜威确实把这个词组写下来了，写在他和女儿合著的那本谈学校的书里。"
+        "en": "Specs describe what you think you want; demos reveal what you actually need. People are visual animals — a thing that runs persuades in five seconds what five pages cannot, and it persuades the person who built it first.\nMaking makes it visible, demoing makes it testable, and earning buys the time to go on. What a demo buys is not agreement, it is time — and evidence is the only currency it pays in.\nDemo or die was set against the university's own standing order, publish or perish: what counts as evidence in that building is a thing that runs in front of you.\n“For the things we have to learn before we can do them, we learn by doing them: people become builders by building, and lyre-players by playing the lyre.” That is Aristotle, fifteen centuries before Lu You and twenty-two before Dewey — who did write the phrase down, in a book about schools he wrote with his daughter.",
+        "zh": "规格描述你以为你想要的，演示揭示你真正需要的。人是视觉动物 —— 一个跑起来的东西五秒钟能说服的事，五页文档说不动；而它第一个说服的人，是做它的那个人。\n立象使它可见，示形使它可验，取信使它得以继续。演示换来的不是同意，是时间；而它唯一付得出的货币是证据。\n「不演示，毋宁死」是 MIT 媒体实验室对着大学那句 publish or perish 立的规矩：在那栋楼里算数的证据，是一个当着你的面跑起来的东西。\n「那些我们必须先学会才能做的事，我们是通过做它们来学会的 —— 人通过造房子成为建筑师，通过弹琴成为琴师。」这是亚里士多德，比陆游早一千五百年，比杜威早两千二百年 —— 而杜威确实把这个词组写下来了，写在他和女儿合著的那本谈学校的书里。"
       },
       "instances": [
         {
@@ -1407,26 +1694,6 @@
           "text": {
             "en": "A spec cannot carry a vision, so you show it running.",
             "zh": "言（spec）载不动意（vision），所以立象（demo）。"
-          }
-        },
-        {
-          "title": {
-            "en": "Demo or die",
-            "zh": "Demo or Die"
-          },
-          "text": {
-            "en": "The Media Lab's standing order, set against the university's own — publish or perish. What counts as evidence there is a thing that runs in front of you.",
-            "zh": "MIT Media Lab 的规矩，对着大学那句 publish or perish 立的。在那里算数的证据，是一个当着你的面跑起来的东西。"
-          },
-          "from": {
-            "name": {
-              "en": "MIT Media Lab",
-              "zh": "MIT 媒体实验室"
-            },
-            "source": {
-              "en": "",
-              "zh": ""
-            }
           }
         },
         {
@@ -1480,7 +1747,7 @@
           },
           "from": {
             "name": {
-              "en": "I Ching, Great Commentary",
+              "en": "*I Ching*, Great Commentary",
               "zh": "《周易·系辞上》"
             }
           }
@@ -1534,20 +1801,74 @@
         }
       ],
       "topics": ["doing"],
-      "commentary": {
-        "en": "Demo it. Iterate it.",
-        "zh": "边做。边改。"
-      },
-      "quotedFrom": {
-        "name": {
-          "en": "Aristotle × John Dewey",
-          "zh": "陆游"
+      "statements": [
+        {
+          "text": {
+            "en": "Making. Demoing. Earning.",
+            "zh": "立象。示形。取信。"
+          }
         },
-        "source": {
-          "en": "Nicomachean Ethics × Schools of Tomorrow",
-          "zh": "《冬夜读书示子聿》"
+        {
+          "facet": {
+            "en": "the eye",
+            "zh": "眼见"
+          },
+          "text": {
+            "en": "Seeing is believing.",
+            "zh": "百闻不如一见。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "English proverb",
+              "zh": "赵充国"
+            },
+            "source": {
+              "en": "in print by 1639",
+              "zh": "《汉书·赵充国传》"
+            }
+          }
+        },
+        {
+          "text": {
+            "en": "Learning by doing.",
+            "zh": "纸上得来终觉浅，绝知此事要躬行。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Aristotle × John Dewey",
+              "zh": "陆游"
+            },
+            "source": {
+              "en": "*Nicomachean Ethics* × *Schools of Tomorrow*",
+              "zh": "《冬夜读书示子聿》"
+            }
+          },
+          "facet": {
+            "en": "the hand",
+            "zh": "躬行"
+          }
+        },
+        {
+          "facet": {
+            "en": "evidence",
+            "zh": "证据"
+          },
+          "text": {
+            "en": "Demo or die.",
+            "zh": "不演示，毋宁死。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "MIT Media Lab",
+              "zh": "MIT 媒体实验室"
+            },
+            "source": {
+              "en": "Visible Language Workshop, 1985",
+              "zh": "Visible Language Workshop，1985"
+            }
+          }
         }
-      }
+      ]
     },
     {
       "id": "systematizing",
@@ -1556,32 +1877,77 @@
         "zh": "体系化"
       },
       "topics": ["doing"],
-      "statement": {
-        "en": "Types as propositions, programs as proofs.",
-        "zh": "类型即命题，程序即证明。"
-      },
-      "commentary": {
-        "en": "Systematize it. Formalize it. Mechanize it.",
-        "zh": "成理。成法。成器。"
-      },
-      "shapedBy": [
+      "statements": [
         {
-          "name": {
-            "en": "Types and Programming Languages",
-            "zh": "类型与编程语言"
-          },
-          "ref": "types-and-languages"
+          "text": {
+            "en": "Systematizing. Formalizing. Mechanizing.",
+            "zh": "成理。成法。成器。"
+          }
         },
         {
-          "name": {
-            "en": "Elm community",
-            "zh": "Elm 社区"
+          "text": {
+            "en": "Types as propositions, programs as proofs.",
+            "zh": "类型即命题，程序即证明。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "The Curry–Howard correspondence",
+              "zh": "Curry–Howard 对应"
+            },
+            "ref": "types-and-languages",
+            "source": {
+              "en": "Curry 1934, Howard 1969",
+              "zh": "1934 / 1969"
+            }
+          },
+          "facet": {
+            "en": "correctness",
+            "zh": "正确"
+          }
+        },
+        {
+          "facet": {
+            "en": "behaviour",
+            "zh": "行为"
+          },
+          "text": {
+            "en": "Design is how it works.",
+            "zh": "设计就是它如何运作。"
+          },
+          "quotedFrom": {
+            "name": "Steve Jobs",
+            "ref": "steve-jobs",
+            "source": {
+              "en": "*The New York Times Magazine*, 2003",
+              "zh": "《纽约时报杂志》，2003"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "parsimony",
+            "zh": "精简"
+          },
+          "text": {
+            "en": "Entities must not be multiplied beyond necessity.",
+            "zh": "如无必要，勿增实体。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Ockham's razor",
+              "zh": "奥卡姆剃刀"
+            },
+            "source": {
+              "en": "in this Latin form, 1639",
+              "zh": "这个拉丁形式，1639"
+            }
           }
         }
       ],
+      "shapedBy": ["types-and-languages"],
       "body": {
-        "en": "What this step owes the next one is reproducibility: a demo that works in my hands has to become something anyone can run twice — a framework, a standard, a definition that doesn't need me in the room. Theory is not decoration on top of that work, it is the floor under it: it tells you what is impossible before you spend a year finding out, and the constraints it hands you are the cheapest ones you will ever buy.\nFormal methods are the weapon I reach for. Distil the theory out of what worked, state it where something other than me can check it — a type, a test, a spec, a doc — then write the program that is the proof, and let that program become the infrastructure. What other people hold together with process and good intentions, I would rather have a machine hold.\nFrom the thing, the principle; from the principle, the rule; from the rule, the instrument. Once the instrument exists, it can go to everyone.",
-        "zh": "这一步欠下一步的东西是「可复现」：一个在我手里能跑的 demo，要变成别人能再跑一遍的东西 —— 一个框架、一份标准、一个不需要我在场的定义。理论不是这件事上面的装饰，而是它下面的地板：它在你花一年去试出来之前，就告诉你什么是不可能的；而它交给你的约束，是你能买到的最便宜的约束。\n形式化是我惯用的武器。把跑通了的东西里的理提炼出来，写成一种我以外的东西能检查的形式 —— 一个类型、一个测试、一份规范、一份文档 —— 然后把证明写成程序，再让这个程序长成基础设施。别人靠流程和善意守住的东西，我更愿意交给机器来守。\n由物求理，以理成法，以法成器。器成，则可普及。"
+        "en": "What this step owes the next one is reproducibility: a demo that works in my hands has to become something anyone can run twice — a framework, a standard, a definition that doesn't need me in the room. Theory is not decoration on top of that work, it is the floor under it: it tells you what is impossible before you spend a year finding out, and the constraints it hands you are the cheapest ones you will ever buy.\nFormal methods are the weapon I reach for. Distil the theory out of what worked, state it where something other than me can check it — a type, a test, a spec, a doc — then write the program that is the proof, and let that program become the infrastructure. What other people hold together with process and good intentions, I would rather have a machine hold.\nFirst principles and the razor are the two ends of one instruction: **find the smallest causal model that explains the most**. And generalisation is compression — a thing is general because it has squeezed many cases into one.\nFrom the thing, the principle; from the principle, the rule; from the rule, the instrument. Once the instrument exists, it can go to everyone.",
+        "zh": "这一步欠下一步的东西是「可复现」：一个在我手里能跑的 demo，要变成别人能再跑一遍的东西 —— 一个框架、一份标准、一个不需要我在场的定义。理论不是这件事上面的装饰，而是它下面的地板：它在你花一年去试出来之前，就告诉你什么是不可能的；而它交给你的约束，是你能买到的最便宜的约束。\n形式化是我惯用的武器。把跑通了的东西里的理提炼出来，写成一种我以外的东西能检查的形式 —— 一个类型、一个测试、一份规范、一份文档 —— 然后把证明写成程序，再让这个程序长成基础设施。别人靠流程和善意守住的东西，我更愿意交给机器来守。\n第一性原理和奥卡姆剃刀说的是同一件事的两头：**找到那个最小的、能解释最多的因果模型。** 而 generalization 本质上是一种 compression —— 一个东西之所以通用，是因为它把很多情况压到了一条里。\n由物求理，以理成法，以法成器。器成，则可普及。"
       },
       "instances": [
         {
@@ -1609,7 +1975,7 @@
               "zh": "孔子"
             },
             "source": {
-              "en": "Analects XV",
+              "en": "*Analects* XV",
               "zh": "《论语·卫灵公》"
             }
           }
@@ -1625,8 +1991,74 @@
           },
           "from": {
             "name": {
-              "en": "I Ching, Great Commentary",
+              "en": "*I Ching*, Great Commentary",
               "zh": "《周易·系辞上》"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "The same causes",
+            "zh": "同因同果"
+          },
+          "text": {
+            "en": "“To the same natural effects we must, as far as possible, assign the same causes.” Rule II of the Rules of Reasoning in Philosophy — generality is not ambition, it is method.",
+            "zh": "「对于相同的自然结果，必须尽可能归于相同的原因。」《原理》里「哲学中的推理规则」第二条 —— 通用不是野心，是方法。"
+          },
+          "from": {
+            "name": {
+              "en": "Isaac Newton",
+              "zh": "牛顿"
+            },
+            "source": {
+              "en": "*Principia*, Rule II, 1687",
+              "zh": "《自然哲学的数学原理》推理规则 II，1687"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Principles that sweep across the laws",
+            "zh": "横扫所有定律的原理"
+          },
+          "text": {
+            "en": "“So we have these wide principles which sweep across all the different laws.” The more kinds of phenomena a principle sweeps across, the closer it is to being a principle at all.",
+            "zh": "「我们有这样一些宽泛的原理，它们横扫所有不同的定律。」一条原理能横扫的现象越多，它离「理」就越近。"
+          },
+          "from": {
+            "name": {
+              "en": "Richard Feynman",
+              "zh": "费曼"
+            },
+            "source": {
+              "en": "*The Character of Physical Law*, 1965",
+              "zh": "《物理定律的本性》，1965"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Deep-to-meta",
+            "zh": "Deep-to-meta"
+          },
+          "text": {
+            "en": "Look at how the thing actually runs underneath, then go find the general solution.",
+            "zh": "先看事物运转的底层逻辑，再去寻找通用的解决方案。"
+          }
+        },
+        {
+          "title": {
+            "en": "Less is more",
+            "zh": "少即是多"
+          },
+          "text": {
+            "en": "“Less is more.” The razor, said by an architect.",
+            "zh": "「少即是多。」剃刀，由一个建筑师说出来。"
+          },
+          "from": {
+            "name": {
+              "en": "Mies van der Rohe",
+              "zh": "密斯·凡德罗"
             }
           }
         },
@@ -1702,18 +2134,7 @@
           "label": "Curry–Howard correspondence",
           "url": "https://en.wikipedia.org/wiki/Curry%E2%80%93Howard_correspondence"
         }
-      ],
-      "quotedFrom": {
-        "name": {
-          "en": "The Curry–Howard correspondence",
-          "zh": "Curry–Howard 对应"
-        },
-        "ref": "types-and-languages",
-        "source": {
-          "en": "Curry 1934, Howard 1969",
-          "zh": "1934 / 1969"
-        }
-      }
+      ]
     },
     {
       "id": "scale",
@@ -1721,17 +2142,9 @@
         "en": "scale",
         "zh": "普及"
       },
-      "statement": {
-        "en": "This is for everyone.",
-        "zh": "民咸用之。"
-      },
-      "commentary": {
-        "en": "Generalize it. Democratize it. Diversify it. Scale it.",
-        "zh": "愈通，愈广，愈异。"
-      },
       "body": {
         "en": "Scale is a generalization–diversity flywheel: the more general a thing becomes the wider it reaches, the wider it reaches the stranger the uses it meets, and the stranger the uses the more general it is forced to become.\nInterfaces are what I am here for, and what I want is for the power running through them to reach everyone. Mouse and keyboard to touch screens, then programming languages and the theory under them — it was always HCI. Open web standards for access, JavaScript and React for creation, then Lynx: the same move at three scales.",
-        "zh": "规模是一个「通用—多样」的飞轮：**愈通则愈广，愈广则愈异，愈异则愈通。**\n界面是我为之而来的东西，而我想要的是让穿过界面的那份能力抵达所有人。从鼠标键盘到触摸屏，再到编程语言和它们底下的理论 —— 一直都是 HCI。用开放的 Web 标准解决获取，用 JavaScript 和 React 解决创造，然后是 Lynx：同一个动作的三个尺度。"
+        "zh": "规模是一个「通用—多样」的飞轮：**愈通则愈广，愈广则愈异，愈异则愈通。**\n介面是我为之而来的东西，而我想要的是让穿过介面的那份能力抵达所有人。从鼠标键盘到触摸屏，再到编程语言和它们底下的理论 —— 一直都是 HCI。用开放的 Web 标准解决获取，用 JavaScript 和 React 解决创造，然后是 Lynx：同一个动作的三个尺度。"
       },
       "instances": [
         {
@@ -1749,7 +2162,7 @@
               "zh": "孔子"
             },
             "source": {
-              "en": "Analects XV",
+              "en": "*Analects* XV",
               "zh": "《论语·卫灵公》"
             }
           }
@@ -1831,16 +2244,6 @@
         },
         {
           "title": {
-            "en": "Deep-to-meta",
-            "zh": "Deep-to-meta"
-          },
-          "text": {
-            "en": "Look at how the thing actually runs underneath, then go find the general solution.",
-            "zh": "先看事物运转的底层逻辑，再去寻找通用的解决方案。"
-          }
-        },
-        {
-          "title": {
             "en": "The local and the world",
             "zh": "民族与世界"
           },
@@ -1882,29 +2285,55 @@
         }
       ],
       "topics": ["doing"],
-      "shapedBy": [
+      "statements": [
         {
-          "name": {
-            "en": "World Wide Web Community",
-            "zh": "万维网社区"
-          },
-          "ref": "web-community"
+          "text": {
+            "en": "Generalizing. Democratizing. Diversifying. Scaling.",
+            "zh": "愈通。愈广。愈异。"
+          }
         },
         {
-          "name": "React Team",
-          "ref": "react-team"
+          "text": {
+            "en": "This is for everyone.",
+            "zh": "民咸用之。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Tim Berners-Lee",
+              "zh": "《周易·系辞上》"
+            },
+            "source": {
+              "en": "London, 2012",
+              "zh": ""
+            }
+          },
+          "facet": {
+            "en": "everyone",
+            "zh": "人人"
+          }
+        },
+        {
+          "facet": {
+            "en": "emergence",
+            "zh": "涌现"
+          },
+          "text": {
+            "en": "More is different.",
+            "zh": "多者异也。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Philip W. Anderson",
+              "zh": "菲利普·安德森"
+            },
+            "source": {
+              "en": "*Science* 177, 1972",
+              "zh": "《科学》177 期，1972"
+            }
+          }
         }
       ],
-      "quotedFrom": {
-        "name": {
-          "en": "Tim Berners-Lee",
-          "zh": "《周易·系辞上》"
-        },
-        "source": {
-          "en": "London, 2012",
-          "zh": ""
-        }
-      }
+      "shapedBy": ["web-community", "react-team"]
     },
     {
       "id": "repeating",
@@ -1913,40 +2342,89 @@
         "zh": "重复"
       },
       "topics": ["doing"],
-      "statement": {
-        "en": "Say it three times.",
-        "zh": "说三遍。"
-      },
-      "commentary": {
-        "en": "Repeat it. Reinforce it.",
-        "zh": "重复。强化。"
-      },
-      "shapedBy": [
+      "statements": [
         {
-          "name": "React Team",
-          "ref": "react-team"
+          "text": {
+            "en": "Repeating. Reinforcing. Compounding.",
+            "zh": "重复。日新。月累。"
+          }
         },
         {
-          "name": {
-            "en": "my mother",
-            "zh": "母亲"
+          "text": {
+            "en": "Say it three times.",
+            "zh": "重要的事情说三遍。"
           },
-          "ref": "my-parents"
+          "quotedFrom": {
+            "name": {
+              "en": "The rule of three",
+              "zh": "三的法则"
+            },
+            "source": {
+              "en": "",
+              "zh": ""
+            },
+            "url": "https://en.wikipedia.org/wiki/Rule_of_three_(writing)"
+          },
+          "facet": {
+            "en": "how often",
+            "zh": "频次"
+          }
+        },
+        {
+          "facet": {
+            "en": "renewal",
+            "zh": "日新"
+          },
+          "text": {
+            "en": "If you can renew yourself for one day, renew yourself every day, and then renew yourself again.",
+            "zh": "苟日新，日日新，又日新。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Inscription on Tang's washbasin",
+              "zh": "汤之盘铭"
+            },
+            "source": {
+              "en": "*The Great Learning*",
+              "zh": "《大学》引"
+            }
+          }
+        },
+        {
+          "facet": {
+            "en": "the sum",
+            "zh": "积"
+          },
+          "text": {
+            "en": "Without piling up half-steps there is no thousand li; without the small streams there is no river or sea.",
+            "zh": "不积跬步，无以至千里；不积小流，无以成江海。"
+          },
+          "quotedFrom": {
+            "name": {
+              "en": "Xunzi",
+              "zh": "荀子"
+            },
+            "source": {
+              "en": "*Encouraging Learning*",
+              "zh": "《劝学》"
+            }
+          }
         }
       ],
+      "shapedBy": ["react-team", "my-parents"],
       "body": {
-        "en": "When something doesn't land, the first assumption should be that you didn't say it enough — not that you were wrong. Pushing a community, pushing a change through a large organization, pushing yourself: the arithmetic is the same. And this one is not a stage like the others, it is a multiplier over all of them — an imagination, a demo, a principle and a platform all decay at the same rate, and repetition is the only thing that compounds against it.",
-        "zh": "一件事没有发生，第一假设应该是你说得还不够多，而不是你说错了。推动一个社区、在一个大组织里推动一次改变、推动你自己，算的是同一笔账。而这一条和前面几条不同，它不是一个阶段，而是架在它们全部之上的乘子 —— 一个想象、一个 demo、一条原则、一个平台，衰减的速度是一样的，而唯一能对着这个衰减复利的东西，就是重复。"
+        "en": "When something doesn't land, the first assumption should be that you didn't say it enough — not that you were wrong. Pushing a community, pushing a change through a large organization, pushing yourself: the arithmetic is the same.\nThis one is not a stage like the others, it is a multiplier over all of them, and it runs on two axes. Across people, because an imagination, a demo, a principle and a platform all decay at the same rate, and repetition is the only thing that compounds against it. Across years, because the loop returns almost nothing on any single turn — the whole return is in running it on the same thing long enough that the output of one turn becomes the input of the next.\nWhich makes the scarce input time, and the hard decision not what to start but what to keep holding. The exponent beats the coefficient, so most of the work is refusing to interrupt it: no rewrite for the pleasure of rewriting, no new stack to feel new, no turn that resets the base to zero. Deep accumulation, thin release — the thin release is not modesty, it is what leaves the stock intact.\nAnd it is the least visible of the five. Nothing about the day you are repeating yourself looks like progress; the proof arrives all at once, years later, and gets mistaken for luck.",
+        "zh": "一件事没有发生，第一假设应该是你说得还不够多，而不是你说错了。推动一个社区、在一个大组织里推动一次改变、推动你自己，算的是同一笔账。\n这一条和前面几条不同，它不是一个阶段，而是架在它们全部之上的乘子 —— 而且乘在两个轴上。横着乘在人上：一个想象、一个 demo、一条原则、一个平台，衰减的速度是一样的，而唯一能对着这个衰减复利的东西就是重复。竖着乘在年上：这个循环跑任何单独一圈几乎都不产出，它全部的回报都在「对着同一件事跑得足够久」上 —— 这一圈的产出，成为下一圈的输入。\n于是稀缺的那个输入是时间，而真正难的决定不是开始做什么，是继续持有什么。指数跑赢系数，所以大部分工作是不去打断它：不为重写的快感而重写，不为新鲜而换一套技术栈，不做把基数清零的转向。厚积而薄发 —— 薄发不是谦虚，薄发是为了让存量还在。\n它也是五条里最不显形的一条。正在重复的那一天，看上去一点都不像进展；证据是很多年之后一次性到达的，然后被人当成运气。"
       },
       "instances": [
         {
           "title": {
-            "en": "Step by step",
-            "zh": "不积跬步，无以至千里"
+            "en": "Accumulate the imperceptible",
+            "zh": "积微者速成"
           },
           "text": {
-            "en": "“Without piling up half-steps there is no thousand li; without the small streams there is no river or sea.” The multiplier is made of things too small to notice.",
-            "zh": "「不积跬步，无以至千里；不积小流，无以成江海。」乘子是由小到看不见的东西攒出来的。"
+            "en": "“The month does not beat the day, the season does not beat the month, the year does not beat the season… the one who can accumulate the imperceptible arrives soonest.” The day wins because the day comes round more often — which is the whole argument for repeating, made in the chapter Xunzi called 积微.",
+            "zh": "「月不胜日，时不胜月，岁不胜时……能积微者速成。」日胜过月，是因为日来得更密 —— 这就是重复的全部论证，而荀子那一段的名字就叫「积微」。"
           },
           "from": {
             "name": {
@@ -1954,8 +2432,28 @@
               "zh": "荀子"
             },
             "source": {
-              "en": "Encouraging Learning",
-              "zh": "《劝学》"
+              "en": "*On Strengthening the State*",
+              "zh": "《荀子·强国》"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Ten years to grind one sword",
+            "zh": "十年磨一剑"
+          },
+          "text": {
+            "en": "“Ten years grinding one sword; the frosted blade has never been tried.” Not one of those ten years looked like a sword.",
+            "zh": "「十年磨一剑，霜刃未曾试。」那十年里，没有哪一年看上去像一把剑。"
+          },
+          "from": {
+            "name": {
+              "en": "Jia Dao",
+              "zh": "贾岛"
+            },
+            "source": {
+              "en": "*The Swordsman*",
+              "zh": "《剑客》"
             }
           }
         },
@@ -1974,9 +2472,45 @@
               "zh": "奥维德"
             },
             "source": {
-              "en": "Ex Ponto 4.10",
+              "en": "*Ex Ponto* 4.10",
               "zh": "《黑海书简》4.10"
             }
+          }
+        },
+        {
+          "text": {
+            "en": "A repeated thing is only worth repeating if it is the same thing. Repetition without accumulation is just noise at a steady rate.",
+            "zh": "重复只有在重复的是同一件事时才算数。没有积累的重复，只是稳定频率的噪声。"
+          },
+          "title": {
+            "en": "Only if it is the same thing",
+            "zh": "重复的得是同一件事"
+          }
+        },
+        {
+          "title": {
+            "en": "Never interrupt it unnecessarily",
+            "zh": "不要不必要地打断它"
+          },
+          "text": {
+            "en": "The first rule of compounding. Every rewrite, every migration, every pivot is a withdrawal — sometimes worth it, never free.",
+            "zh": "复利的第一条规则。每一次重写、每一次迁移、每一次转向，都是一次支取 —— 有时候值得，但从来不免费。"
+          },
+          "from": {
+            "name": {
+              "en": "Charlie Munger",
+              "zh": "查理·芒格"
+            },
+            "source": {
+              "en": "widely attributed",
+              "zh": "广为流传"
+            }
+          }
+        },
+        {
+          "text": {
+            "en": "The exponent beats the coefficient. Being twice as fast for a year loses to being slightly better for ten.",
+            "zh": "指数跑赢系数。一年里快一倍，赢不过十年里每年好一点。"
           }
         },
         {
@@ -2001,6 +2535,12 @@
           "text": {
             "en": "A conviction that failed twice hasn't been falsified. It has been tried twice.",
             "zh": "一个试了两次没成的信念，不叫被证伪，只叫试了两次。"
+          }
+        },
+        {
+          "text": {
+            "en": "Writing in public is the cheapest compounding asset I know: this site is the only thing I own that gets better while I sleep.",
+            "zh": "公开写作是我知道的最便宜的复利资产：这个站是我唯一一个在我睡觉时还在变好的东西。"
           }
         }
       ],
@@ -2096,7 +2636,7 @@
       },
       "kind": "book",
       "name": {
-        "en": "Hackers & Painters",
+        "en": "*Hackers & Painters*",
         "zh": "《黑客与画家》"
       },
       "context": {
@@ -2122,7 +2662,7 @@
       },
       "kind": "book",
       "name": {
-        "en": "Principles",
+        "en": "*Principles*",
         "zh": "《原则》"
       },
       "context": {
@@ -2174,7 +2714,7 @@
       },
       "kind": "field",
       "name": {
-        "en": "Types and Programming Languages",
+        "en": "*Types and Programming Languages*",
         "zh": "类型与编程语言"
       },
       "context": {

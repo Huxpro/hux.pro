@@ -3,7 +3,12 @@ import path from "path";
 import type { Locale } from "@/lib/i18n";
 import type { PromptTopic } from "@/lib/prompt-view";
 
-// Bilingual text type
+/**
+ * Bilingual text. Every string in this file may carry two inline marks,
+ * rendered by `Marks` in `app/prompt/view`: `**bold**` for emphasis, and
+ * `*italic*` for a work's title — `*The Gay Science* §270`. The Chinese
+ * half never needs the second one, because it already has 《》.
+ */
 type BilingualText = {
   en: string;
   zh: string;
@@ -71,6 +76,28 @@ type InfluenceKind = "person" | "team" | "book" | "paper" | "field";
  * absent means the words are mine (rendered as a statement). Either way the
  * belief is mine — a quote nobody lives by does not belong on this page.
  */
+/**
+ * One sentence of a conviction, with the provenance that belongs to it.
+ *
+ * `quotedFrom` present means these are someone's words; absent means they
+ * are mine. That is the whole difference, and it is also the whole reason
+ * there is no separate `commentary` field any more: my own line under a
+ * borrowed one was never a different kind of thing, it was a voice without
+ * papers. So the page prints a voice with quotation marks and an
+ * attribution, or without either.
+ */
+interface RawStatement {
+  /**
+   * What this sentence answers for — correctness, behaviour, abstraction.
+   * Authored, not printed: it is the editorial test for whether a voice
+   * belongs in a chorus (each must answer a different one), and the page
+   * has not yet found a place to say it that is worth the room.
+   */
+  facet?: BilingualText;
+  text: BilingualText;
+  quotedFrom?: RawAttribution;
+}
+
 interface RawConviction {
   /**
    * The canonical key: what `ref` points at, and the same in every locale.
@@ -92,16 +119,43 @@ interface RawConviction {
    *  two modes is usually two beliefs, or one belief plus an instance that
    *  links to the other. */
   topics: PromptTopic[];
-  statement: BilingualText;
-  quotedFrom?: RawAttribution;
-  shapedBy?: RawAttribution[];
   /**
-   * My own rephrasing of the statement, in my voice. A shared saying is the
-   * essence but it can also be the corniest way to put it, and the line I
-   * actually say is usually the one worth reading — so it rides at rest
-   * under the statement rather than waiting inside the notes.
+   * One belief, in as many sentences as it has voices.
+   *
+   * Most entries hold one. A few hold a chorus: the same conviction as it
+   * is said in different traditions — Curry–Howard says it about
+   * correctness, Jobs about behaviour, Mies about abstraction, and none of
+   * the three is a rephrasing of the others. They share an anchor, a
+   * commentary and one expand, because they are one belief.
+   *
+   * `statements[0]` is the head: the sentence the widget shows, the label a
+   * `ref` prints, and the one the entry is named by. The rest are set a
+   * half step down — still whole sentences, visibly not the head.
+   *
+   * A voice can be mine — what used to be the `commentary` — or borrowed.
+   *
+   * On 行事 the head is mine and the voices under it are the witnesses:
+   * that shelf is the one where I am the one acting, so the big type is my
+   * line and the borrowed sentences testify to it. On 天行 it is the other
+   * way round, because nothing there is mine to say.
+   *
+   * The discipline is three voices at most under the head, and each must
+   * answer a different `facet`, or come from a different tradition. A
+   * chorus that agrees with itself is an instance list that has climbed
+   * onto the front page.
    */
-  commentary?: BilingualText;
+  statements: RawStatement[];
+  /**
+   * What did the training, written as influence ids and nothing else.
+   *
+   * The row is an index into `influences`, so the name it prints is that
+   * entry's own name and the two cannot drift; every item is a link the
+   * reader can follow. Which also makes the row a test: a shaper worth
+   * naming here is worth an entry of its own, and anything that cannot
+   * carry one — a habit, a phase, a pair of people bundled together —
+   * belongs in the body instead.
+   */
+  shapedBy?: string[];
   /** The other ways this belief has shown up. */
   instances?: RawInstance[];
   /** Markdown-lite: all-"- " lines become a list, anything else is prose. */
@@ -162,15 +216,20 @@ export interface Instance {
   ref?: string;
 }
 
+export interface Statement {
+  facet?: string;
+  text: string;
+  quotedFrom?: Attribution;
+}
+
 export interface Conviction {
   id: string;
   /** This locale's anchor; falls back to `id`. */
   anchor: string;
   topics: PromptTopic[];
-  statement: string;
-  quotedFrom?: Attribution;
+  /** Never empty; `statements[0]` is the head. */
+  statements: Statement[];
   shapedBy?: Attribution[];
-  commentary?: string;
   instances?: Instance[];
   body?: string;
   links?: PromptLink[];
@@ -279,12 +338,21 @@ export function getPromptsData(locale: Locale = "en"): PromptsData {
       id: c.id,
       anchor: c.anchor ? resolveText(c.anchor, locale) : c.id,
       topics: c.topics,
-      statement: resolveText(c.statement, locale),
-      quotedFrom: c.quotedFrom
-        ? resolveAttribution(c.quotedFrom, locale)
-        : undefined,
-      shapedBy: c.shapedBy?.map((s) => resolveAttribution(s, locale)),
-      commentary: resolveOptionalText(c.commentary, locale),
+      statements: c.statements.map((st) => ({
+        facet: resolveOptionalText(st.facet, locale),
+        text: resolveText(st.text, locale),
+        quotedFrom: st.quotedFrom
+          ? resolveAttribution(st.quotedFrom, locale)
+          : undefined,
+      })),
+      shapedBy: c.shapedBy?.map((id) => {
+        const influence = raw.influences.find((i) => i.id === id);
+        if (!influence)
+          throw new Error(
+            `prompts: shapedBy "${id}" on "${c.id}" is not an influence id`,
+          );
+        return { name: resolveName(influence.name, locale), ref: id };
+      }),
       instances: c.instances?.map((i) => ({
         title: resolveOptionalText(i.title, locale),
         text: resolveText(i.text, locale),
