@@ -665,7 +665,20 @@ export function TimelineCommit({
               handle with a peek of its own — so the line beneath never
               moves and the same handle is never mounted twice. */}
           {textOpen || signsOnMediaLine ? (
-            <span aria-hidden className="h-4 shrink-0" />
+            // `self-center`, and it is load-bearing. This line is
+            // `items-baseline`, and an EMPTY inline box has no text to take a
+            // baseline from — CSS puts it on the box's bottom margin edge. So
+            // baseline alignment dropped the placeholder ~4px to sit its
+            // bottom on the meta text's baseline and grew the line from 16px
+            // to 20px, in exactly the states where the handle signs somewhere
+            // else. The slot meant to hold the line still was the one thing
+            // moving it: `index` and the feed measured 16px with the handle
+            // here and 20px without it, and `covers` sat at 20px whenever a
+            // single cover took the signature. Aligning centre keeps the
+            // placeholder out of the baseline pass, so it contributes its
+            // height and nothing else, and every state is the 16px line its
+            // own type sets.
+            <span aria-hidden className="h-4 shrink-0 self-center" />
           ) : (
             <Handle byline={byline} className="text-tertiary-foreground" />
           )}
