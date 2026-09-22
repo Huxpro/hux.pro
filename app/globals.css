@@ -1216,6 +1216,25 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* -----------------------------------------------------------------------------
+   Liquid tab bar — opaque stand-in while a view transition is running.
+   Safari's backdrop-filter trails the crossfade by a frame or more; an
+   opaque glass-base (tinted and clear share it) covers that gap. The
+   attribute is set from systems/tabbar/use-transition-solid.ts.
+   ----------------------------------------------------------------------------- */
+
+[data-liquid-tabs][data-tab-solid] {
+  background-color: var(--glass-base) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+[data-liquid-tabs][data-tab-solid] > span {
+  background-color: color-mix(in oklab, var(--foreground) 12%, var(--glass-base)) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* -----------------------------------------------------------------------------
    Reduced Motion
    ----------------------------------------------------------------------------- */
 

@@ -6,34 +6,39 @@ import { t, useLocale } from "@/services";
 import { useCommand } from "@/systems/command";
 import { useCompactViewport } from "@/systems/command/use-compact-viewport";
 import { useDevtool } from "@/systems/devtool";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from "framer-motion";
 import { FileText, GitCommit, Home, Search, Sparkles } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import { usePathname } from "next/navigation";
 import {
   useCallback,
   useEffect,
-  useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 import { useScrollShrunk } from "./use-scroll-shrunk";
+import { useTransitionSolid } from "./use-transition-solid";
 
 // =============================================================================
 // LiquidTabBar — phone-only five-tab glass dock behind a DevTool switch.
 //
 // Replaces the Search FAB on compact viewports when `liquidTabBar` is on.
 // Order is fixed: Home · Writing · Search · Works · Prompts. Search still
-// opens the command drawer; the other four navigate. The active stamp is a
-// single layoutId pill (same pattern as AlbumTabs) so the morph stays stable
-// across route changes. Scroll-down temporarily scales the whole dock —
-// transform on an outer wrapper, never a layout resize of the tabs — so the
-// pill's layout projection does not fight the shrink.
+// opens the command drawer; the other four navigate.
+//
+// The selection is one rounded rectangle — concentric with the bar (outer
+// radius minus the padding), the iOS 26 glass stamp rather than a circle.
+// It moves by transform only. A horizontal drag scrubs it 1:1 between tabs
+// (the liquid-glass finger-scrub: the stamp tracks the finger, icons light
+// up as it passes them, and the route changes on release, never mid-drag).
+// A tap still selects directly. Scroll-down scales the whole dock, also by
+// transform, so the stamp's translation stays in local pixels.
 // =============================================================================
 
-/** Matches AlbumTabs — a soft settle, not a spring that overshoots. */
-const EASE = [0.32, 0.72, 0, 1] as const;
+/** Release spring, nearly critically damped — settles, does not bounce. */
+const SPRING = { type: "spring" as const, stiffness: 520, damping: 42, mass: 0.8 };
 
 /** Hold the bar this long and the DevTool opens (same as the Search FAB). */
 const DEVTOOL_HOLD_MS = 1200;
@@ -41,12 +46,27 @@ const DEVTOOL_HOLD_REVEAL_MS = 700;
 const HOLD_SLOP_PX = 10;
 const HOLD_RING_OUTSET = 10;
 
-/** Outer capsule radius — fully pill; the hold ring sits outside it. */
-const BAR_RADIUS = 28;
+/**
+ * A horizontal move past this, larger than the vertical one, is a scrub
+ * rather than a tap or a scroll.
+ */
+const SCRUB_SLOP_PX = 8;
+
+/**
+ * Rounded rectangle, not a pill. 18px on a ~52px bar leaves flat top and
+ * bottom edges — the liquid-glass toolbar, not a circle.
+ * The stamp's radius is the outer radius minus the 4px padding, so the
+ * corners stay concentric.
+ */
+const BAR_RADIUS = 18;
+const STAMP_RADIUS = 14;
 
 /** Full size vs scroll-down temporary shrink. Applied as transform only. */
 const SCALE_FULL = 1;
 const SCALE_SHRUNK = 0.86;
+
+/** How far a fast scrub may stretch the stamp, as a fraction. */
+const STRETCH_MAX = 0.08;
 
 type TabId = "home" | "writing" | "search" | "works" | "prompt";
 
@@ -62,6 +82,13 @@ interface TabDef {
     | "searchMobile"
     | "worksTitle"
     | "promptsTitle";
+}
+
+interface Slot {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 const ICON = "h-5 w-5";
@@ -104,7 +131,7 @@ const TABS: TabDef[] = [
 
 function activeTabId(pathname: string, searchOpen: boolean): TabId | null {
   // While the drawer is open, Search owns the stamp — it is the action in
-  // progress, and morphing there then back is the liquid read.
+  // progress, and sliding there then back is the liquid read.
   if (searchOpen) return "search";
   for (const tab of TABS) {
     if (tab.match?.(pathname)) return tab.id;
@@ -122,21 +149,147 @@ export function LiquidTabBar() {
   const homeEditing = useHomeEditing();
   const shrunk = useScrollShrunk();
   const reduceMotion = useReducedMotion();
-  const pillId = useId();
+  const shown = liquidTabBar && compact;
+  const solid = useTransitionSolid(shown);
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration gate
-    setMounted(true);
+  const [dragging, setDragging] = useState(false);
+  const [preview, setPreview] = useState(0);
+
+  const routeId = activeTabId(pathname, searchOpen);
+  const routeIndex = TABS.findIndex((tab) => tab.id === routeId);
+
+  // Stamp geometry, in the bar's local pixels (immune to the scroll scale).
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const width = useMotionValue(0);
+  const height = useMotionValue(0);
+  const stretch = useMotionValue(1);
+  const stampOpacity = useMotionValue(0);
+
+  const trackRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const slotsRef = useRef<(Slot | null)[]>([]);
+  const draggingRef = useRef(false);
+  const previewRef = useRef(0);
+  const routeIndexRef = useRef(routeIndex);
+  const reduceRef = useRef(reduceMotion);
+  const animRef = useRef<Array<{ stop: () => void }>>([]);
+  const lastSample = useRef({ x: 0, t: 0 });
+  // Separate from the hold origin: cancelling the hold must not drop the scrub.
+  const gestureOrigin = useRef<{ x: number; y: number; pointerId: number } | null>(null);
+
+  const stopAnims = useCallback(() => {
+    for (const a of animRef.current) a.stop();
+    animRef.current = [];
   }, []);
 
-  // Hold-to-summon DevTool — same hidden gesture as the Search FAB, so phones
-  // without a D key keep a way in once the FAB is gone.
+  const glideTo = useCallback(
+    (index: number) => {
+      const slot = slotsRef.current[index];
+      if (!slot) return;
+      stopAnims();
+      if (reduceRef.current) {
+        x.set(slot.x);
+        y.set(slot.y);
+        width.set(slot.w);
+        height.set(slot.h);
+        stretch.set(1);
+        return;
+      }
+      animRef.current = [
+        animate(x, slot.x, SPRING),
+        animate(y, slot.y, SPRING),
+        animate(width, slot.w, SPRING),
+        animate(height, slot.h, SPRING),
+        animate(stretch, 1, SPRING),
+      ];
+    },
+    [stopAnims, x, y, width, height, stretch]
+  );
+
+  const measure = useCallback(() => {
+    slotsRef.current = tabRefs.current.map((el) =>
+      el
+        ? { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }
+        : null
+    );
+  }, []);
+
+  // Place (or re-place) the stamp on the route's tab. Skipped mid-scrub so
+  // a render cannot pull the stamp off the finger.
+  useLayoutEffect(() => {
+    routeIndexRef.current = routeIndex;
+    reduceRef.current = reduceMotion;
+    if (!shown) return;
+    measure();
+    if (draggingRef.current) return;
+    if (routeIndex < 0) {
+      stampOpacity.set(0);
+      return;
+    }
+    const slot = slotsRef.current[routeIndex];
+    if (!slot) return;
+    previewRef.current = routeIndex;
+    stampOpacity.set(1);
+    if (width.get() === 0) {
+      x.set(slot.x);
+      y.set(slot.y);
+      width.set(slot.w);
+      height.set(slot.h);
+      return;
+    }
+    glideTo(routeIndex);
+  }, [shown, routeIndex, reduceMotion, measure, glideTo, x, y, width, height, stampOpacity]);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || !shown) return;
+    const observer = new ResizeObserver(() => {
+      measure();
+      if (draggingRef.current) return;
+      const index = routeIndexRef.current;
+      const slot = index >= 0 ? slotsRef.current[index] : null;
+      if (!slot) return;
+      x.set(slot.x);
+      y.set(slot.y);
+      width.set(slot.w);
+      height.set(slot.h);
+    });
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [shown, measure, x, y, width, height]);
+
+  const localX = useCallback((clientX: number) => {
+    const track = trackRef.current;
+    if (!track) return 0;
+    const rect = track.getBoundingClientRect();
+    const scale = rect.width / track.offsetWidth || 1;
+    return (clientX - rect.left) / scale;
+  }, []);
+
+  // Nearest tab in viewport pixels, so a scaled bar and a device-mode
+  // viewport still agree about which icon the finger is on.
+  const indexAt = useCallback((clientX: number) => {
+    let best = 0;
+    let bestD = Infinity;
+    tabRefs.current.forEach((el, i) => {
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const d = Math.abs(clientX - (rect.left + rect.width / 2));
+      if (d < bestD) {
+        best = i;
+        bestD = d;
+      }
+    });
+    return best;
+  }, []);
+
+  // Hold-to-summon DevTool — same hidden gesture as the Search FAB.
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdOrigin = useRef<{ x: number; y: number } | null>(null);
   const heldRef = useRef(false);
-  const barRef = useRef<HTMLDivElement>(null);
+  const suppressClick = useRef(false);
   const [holdRing, setHoldRing] = useState<DOMRect | null>(null);
 
   const cancelHold = useCallback(() => {
@@ -147,11 +300,11 @@ export function LiquidTabBar() {
   }, []);
 
   const startHold = useCallback(
-    (e: React.PointerEvent) => {
+    (point: { clientX: number; clientY: number }) => {
       heldRef.current = false;
-      holdOrigin.current = { x: e.clientX, y: e.clientY };
+      holdOrigin.current = { x: point.clientX, y: point.clientY };
       revealTimer.current = setTimeout(() => {
-        setHoldRing(barRef.current?.getBoundingClientRect() ?? null);
+        setHoldRing(trackRef.current?.getBoundingClientRect() ?? null);
       }, DEVTOOL_HOLD_REVEAL_MS);
       holdTimer.current = setTimeout(() => {
         heldRef.current = true;
@@ -162,41 +315,187 @@ export function LiquidTabBar() {
     [summonDevtool]
   );
 
-  const trackHold = useCallback(
-    (e: React.PointerEvent) => {
-      const origin = holdOrigin.current;
-      if (!origin) return;
-      if (Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > HOLD_SLOP_PX) {
-        cancelHold();
-      }
-    },
-    [cancelHold]
-  );
-
   useEffect(() => cancelHold, [cancelHold]);
 
-  const handleTab = useCallback(
-    (tab: TabDef) => {
-      if (heldRef.current) {
-        heldRef.current = false;
-        return;
-      }
+  const commit = useCallback(
+    (index: number) => {
+      const tab = TABS[index];
+      if (!tab) return;
       if (tab.id === "search") {
-        toggle();
+        if (!searchOpen) toggle();
         return;
       }
       if (searchOpen) close();
-      if (tab.href && !tab.match?.(pathname)) {
-        router.push(tab.href);
-      }
+      if (tab.href && !tab.match?.(pathname)) router.push(tab.href);
     },
     [toggle, close, searchOpen, pathname, router]
   );
 
-  if (!mounted || !liquidTabBar || !compact) return null;
+  const followFinger = useCallback(
+    (clientX: number) => {
+      const lx = localX(clientX);
+      const slots = slotsRef.current.filter((s): s is Slot => s !== null);
+      if (!slots.length) return;
+      const w = width.get() || slots[0].w;
+      const min = slots[0].x;
+      const max = slots[slots.length - 1].x;
+      x.set(Math.min(max, Math.max(min, lx - w / 2)));
+
+      const now = performance.now();
+      const prev = lastSample.current;
+      const dt = Math.max(now - prev.t, 8);
+      const v = Math.abs(lx - prev.x) / dt;
+      lastSample.current = { x: lx, t: now };
+      stretch.set(1 + Math.min(v * 0.12, STRETCH_MAX));
+
+      const next = indexAt(clientX);
+      if (next !== previewRef.current) {
+        previewRef.current = next;
+        setPreview(next);
+      }
+    },
+    [localX, indexAt, x, width, stretch]
+  );
+
+  // Latest gesture callbacks for the window listeners. A scrub has to keep
+  // receiving moves after the finger leaves a tab button — element listeners
+  // drop that pointerup, and the click is cancelled with it, so the release
+  // selected nothing.
+  const gestureApi = useRef({
+    followFinger,
+    cancelHold,
+    stopAnims,
+    measure,
+    glideTo,
+    commit,
+    indexAt,
+    localX,
+  });
+  useLayoutEffect(() => {
+    gestureApi.current = {
+      followFinger,
+      cancelHold,
+      stopAnims,
+      measure,
+      glideTo,
+      commit,
+      indexAt,
+      localX,
+    };
+  }, [followFinger, cancelHold, stopAnims, measure, glideTo, commit, indexAt, localX]);
+
+  useEffect(() => {
+    const finish = (e: PointerEvent, commitRelease: boolean) => {
+      const origin = gestureOrigin.current;
+      if (!origin || e.pointerId !== origin.pointerId) return;
+      gestureOrigin.current = null;
+      const api = gestureApi.current;
+      api.cancelHold();
+      draggingRef.current = false;
+      setDragging(false);
+      if (!commitRelease || heldRef.current) {
+        heldRef.current = false;
+        if (routeIndexRef.current >= 0) api.glideTo(routeIndexRef.current);
+        return;
+      }
+      // Release point, not the last preview — the finger is the selection.
+      const index = api.indexAt(e.clientX);
+      api.glideTo(index);
+      api.commit(index);
+    };
+
+    const onMove = (e: PointerEvent) => {
+      const origin = gestureOrigin.current;
+      if (!origin || e.pointerId !== origin.pointerId) return;
+      const api = gestureApi.current;
+      if (draggingRef.current) {
+        api.followFinger(e.clientX);
+        return;
+      }
+      if (Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > HOLD_SLOP_PX) {
+        api.cancelHold();
+      }
+      if (Math.abs(e.clientX - origin.x) < SCRUB_SLOP_PX) return;
+      draggingRef.current = true;
+      api.cancelHold();
+      api.stopAnims();
+      api.measure();
+      const slot = slotsRef.current.find((s) => s !== null);
+      if (slot && width.get() === 0) {
+        y.set(slot.y);
+        width.set(slot.w);
+        height.set(slot.h);
+      }
+      stampOpacity.set(1);
+      setDragging(true);
+      api.followFinger(e.clientX);
+    };
+
+    // Mouse fallback for input paths that emit mousedown/move/up and no
+    // pointer events. Real pointers claim the gesture first (pointerdown
+    // fires before mousedown), so this does not double-fire on a finger.
+    const onMouseMove = (e: MouseEvent) => {
+      const origin = gestureOrigin.current;
+      if (!origin || origin.pointerId !== -1) return;
+      onMove({ ...e, pointerId: -1 } as PointerEvent);
+    };
+    const onMouseUp = (e: MouseEvent) => {
+      const origin = gestureOrigin.current;
+      if (!origin || origin.pointerId !== -1) return;
+      finish({ ...e, pointerId: -1 } as PointerEvent, true);
+    };
+
+    const onUp = (e: PointerEvent) => finish(e, true);
+    const onCancel = (e: PointerEvent) => finish(e, true);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [width, y, height, stampOpacity]);
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button !== 0) return;
+      gestureOrigin.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+      suppressClick.current = true;
+      measure();
+      startHold(e);
+      lastSample.current = { x: localX(e.clientX), t: performance.now() };
+    },
+    [startHold, localX, measure]
+  );
+
+  const onClickCapture = useCallback((e: React.MouseEvent) => {
+    if (!suppressClick.current && !heldRef.current) return;
+    suppressClick.current = false;
+    heldRef.current = false;
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleTab = useCallback(
+    (index: number) => {
+      if (heldRef.current) {
+        heldRef.current = false;
+        return;
+      }
+      commit(index);
+    },
+    [commit]
+  );
+
+  if (!shown) return null;
 
   const yielding = homeEditing;
-  const active = activeTabId(pathname, searchOpen);
+  const lit = dragging ? preview : routeIndex;
 
   return (
     <>
@@ -207,27 +506,36 @@ export function LiquidTabBar() {
         )}
       >
         <motion.div
-          ref={barRef}
+          ref={trackRef}
           role="tablist"
           aria-label={locale === "zh" ? "导航" : "Navigation"}
-          onPointerDown={startHold}
-          onPointerMove={trackHold}
-          onPointerUp={cancelHold}
-          onPointerCancel={cancelHold}
-          onPointerLeave={cancelHold}
+          data-liquid-tabs=""
+          data-tab-solid={solid ? "" : undefined}
+          onPointerDown={onPointerDown}
+          onMouseDown={(e) => {
+            if (e.button !== 0 || gestureOrigin.current) return;
+            gestureOrigin.current = { x: e.clientX, y: e.clientY, pointerId: -1 };
+            suppressClick.current = true;
+            measure();
+            startHold(e);
+            lastSample.current = { x: localX(e.clientX), t: performance.now() };
+          }}
+          onClickCapture={onClickCapture}
           className={cn(
-            "pointer-events-auto select-none",
-            "flex items-center gap-0.5 p-1",
-            "rounded-full",
-            "bg-glass backdrop-blur-xl",
-            "border border-border/50",
-            "shadow-raised",
-            yielding && "pointer-events-none"
+            "pointer-events-auto relative select-none",
+            "flex items-center gap-1 p-1",
+            "border border-border/50 shadow-raised",
+            // Touch owns the horizontal scrub; the page still scrolls around it.
+            "touch-none",
+            yielding && "pointer-events-none",
+            solid ? "bg-[var(--glass-base)]" : "bg-glass backdrop-blur-xl"
           )}
           style={{
             borderRadius: BAR_RADIUS,
-            // Shrink from the bottom centre so the dock stays planted.
             transformOrigin: "50% 100%",
+            ...(solid
+              ? { backdropFilter: "none", WebkitBackdropFilter: "none" }
+              : null),
           }}
           animate={{
             opacity: yielding ? 0 : 1,
@@ -239,46 +547,55 @@ export function LiquidTabBar() {
               : { duration: HANDOFF.in, delay: HANDOFF.delay },
             scale: reduceMotion
               ? { duration: 0 }
-              : { type: "tween", duration: 0.28, ease: EASE },
+              : { type: "tween", duration: 0.28, ease: [0.32, 0.72, 0, 1] },
           }}
         >
-          {TABS.map((tab) => {
-            const selected = active === tab.id;
+          <motion.span
+            aria-hidden
+            className={cn(
+              "absolute z-0 ring-1 ring-foreground/10",
+              solid
+                ? "bg-[color-mix(in_oklab,var(--foreground)_12%,var(--glass-base))]"
+                : "bg-glass-strong"
+            )}
+            style={{
+              borderRadius: STAMP_RADIUS,
+              left: 0,
+              top: 0,
+              x,
+              y,
+              width,
+              height,
+              scaleX: stretch,
+              opacity: stampOpacity,
+              ...(solid
+                ? { backdropFilter: "none", WebkitBackdropFilter: "none" }
+                : null),
+            }}
+          />
+          {TABS.map((tab, i) => {
+            const selected = lit === i;
             return (
               <button
                 key={tab.id}
+                ref={(el) => {
+                  tabRefs.current[i] = el;
+                }}
                 type="button"
                 role="tab"
-                aria-selected={selected}
+                aria-selected={routeIndex === i}
                 aria-label={t(locale, tab.labelKey)}
-                onClick={() => handleTab(tab)}
+                onClick={() => handleTab(i)}
                 className={cn(
-                  "relative isolate flex h-11 w-11 items-center justify-center",
-                  "pressable rounded-full outline-none",
-                  "transition-colors duration-200",
+                  "relative z-10 flex h-11 w-14 items-center justify-center",
+                  "outline-none transition-colors duration-150",
                   selected
                     ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground active:text-foreground"
+                    : "text-muted-foreground"
                 )}
+                style={{ borderRadius: STAMP_RADIUS }}
               >
-                {selected && (
-                  <motion.span
-                    layoutId={pillId}
-                    className={cn(
-                      "absolute inset-0.5 -z-10 rounded-full",
-                      // Lifted stamp inside the glass track — lighter than the
-                      // capsule, same language as AlbumTabs' selected pill.
-                      "bg-glass-strong shadow-sm ring-1 ring-border/40",
-                      "backdrop-blur-xl"
-                    )}
-                    transition={
-                      reduceMotion
-                        ? { duration: 0 }
-                        : { type: "tween", duration: 0.32, ease: EASE }
-                    }
-                  />
-                )}
-                <span className="relative z-10">{tab.icon}</span>
+                {tab.icon}
               </button>
             );
           })}
