@@ -23,8 +23,9 @@
 // those three would know about.
 // =============================================================================
 
-import type { Media } from "./log";
+import type { Attachment } from "./log";
 import {
+  attachmentsOf,
   commitVenue,
   formatCommitDate,
   formatDateRange,
@@ -335,86 +336,38 @@ export function squashDate(
 }
 
 /**
- * Which commit each of the row's attachments actually belongs to.
+ * Every member's attachments, in the order the lines print, deduplicated
+ * by url.
  *
- * The counterpart to {@link squashMedia}, and the reason merging the media
- * is safe: the array downstream is flat, but every item in it can still be
- * traced back to the commit that attached it, so the theater, the surface
- * and the feed's captions can name a recording after the talk it is of
- * rather than after the row it is sitting on.
+ * This is the whole of what the `"none"` axis does and most of what the
+ * others do — and it is safe precisely because an attachment is media WITH
+ * its origin (see {@link Attachment}). The array handed downstream is flat,
+ * but nothing in it has forgotten which commit attached it, so the strip,
+ * the grid, the stage and the sheet can each name a recording after the
+ * talk it is of rather than after the row it landed on.
  *
- * This is the part of the git analogy that deliberately does not hold. A
+ * That is the part of the git analogy that deliberately does not hold. A
  * real squash destroys the commits it folds and there is nothing left to
- * credit; here they are all still in the log, so refusing to answer would
- * be a choice rather than a limitation.
+ * credit; here they are all still in the log, so forgetting would be a
+ * choice rather than a limitation.
  *
- * Keyed by the media object, which is the identity rule the whole
- * attachment layer already runs on (`items.indexOf(media)`).
+ * Dedup by url because members genuinely do share artifacts — a conference
+ * posts one recording covering both slots — and the same cover printed
+ * twice in a strip reads as a bug. The first member to claim it keeps it,
+ * matching the order the lines print in.
  */
-export function squashCredits(
+export function squashAttachments(
   resolved: ResolvedSquash,
   locale: Locale,
-  hashOf: (id: string) => string,
-): Map<Media, { title: string; subtitle?: string; href: string; line: string }> {
-  const headline = squashHeadline(resolved, locale);
-  const credits = new Map<
-    Media,
-    { title: string; subtitle?: string; href: string; line: string }
-  >();
-
-  // The one-line form is the member's OWN line, as the row prints it — the
-  // axis has already decided what a member says here, and a caption that
-  // decided again would be a second spelling that can disagree with the
-  // lines directly above it. `"none"` prints no lines, so it falls back to
-  // the full `venue · title`.
-  const lineOf = new Map(
-    squashLines(resolved, locale, () => "").map((l) => [l.commitId, l.label]),
-  );
-
-  for (const m of resolved.members) {
-    const title = localize(m.title, locale);
-    const venue = commitVenue(m);
-    const full = venue && !sameLine(venue, title) ? `${venue} · ${title}` : title;
-    const credit = {
-      // Structured fields stay the commit's real ones: the theater's bar
-      // and the surface's header have two slots and should use them.
-      title,
-      subtitle: venue,
-      href: `/works#${hashOf(m.id)}`,
-      // Sparse, the way every repeated field on this page is. A credit
-      // that restates the headline is the caption saying what the row
-      // already said one line up — true, and noise. The lead under
-      // `"none"` is exactly that case: the row IS its title.
-      line: sameLine(lineOf.get(m.id) ?? full, headline) ? "" : (lineOf.get(m.id) ?? full),
-    };
-    for (const item of m.media ?? []) {
-      // First member wins, matching `squashMedia`'s dedup: a recording two
-      // members both attach is one item, credited to the one that leads.
-      if (!credits.has(item)) credits.set(item, credit);
-    }
-  }
-  return credits;
-}
-
-/**
- * Every member's media, in the order the lines print, deduplicated by url.
- *
- * This is the whole of what `"none"` does and most of what the others do:
- * the attachment layer downstream — the set, the strip, the grid, the
- * theater — takes a longer array and needs to know nothing about squashes.
- * Dedup by url because two members of a squash genuinely do share artifacts
- * (a conference posts one recording covering both slots), and the same
- * cover printed twice in a strip reads as a bug.
- */
-export function squashMedia(resolved: ResolvedSquash) {
+): Attachment[] {
   const seen = new Set<string>();
-  const media = [];
+  const out: Attachment[] = [];
   for (const m of resolved.members) {
-    for (const item of m.media ?? []) {
-      if (seen.has(item.url)) continue;
-      seen.add(item.url);
-      media.push(item);
+    for (const a of attachmentsOf(m, locale)) {
+      if (seen.has(a.media.url)) continue;
+      seen.add(a.media.url);
+      out.push(a);
     }
   }
-  return media;
+  return out;
 }

@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import type { Media, StripItem } from "@/lib/log";
-import { AttachmentTile, resolveTile } from "./attachment-tile";
+import { AttachmentTile, mixesOrigins, resolveTile } from "./attachment-tile";
 import { InspectableMedia } from "./inspectable";
 import { mediaPeek } from "./media-peek";
 
@@ -80,7 +80,13 @@ export function MediaStrip({
   const { locale } = useLocale();
   // Once per item, not once per tile per render (attachment-tile.tsx).
   const slots = useMemo(
-    () => items.map((item) => resolveTile(item, locale, set, attachments)),
+    () => {
+      // Whose is whose only needs saying where the list itself is mixed.
+      const credited = mixesOrigins(items);
+      return items.map((item) =>
+        resolveTile(item, locale, set, attachments, credited),
+      );
+    },
     [items, locale, set, attachments],
   );
 

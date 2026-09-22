@@ -23,7 +23,6 @@ import {
   nativeHomeFor,
   type HomeContext,
 } from "./lib/policy";
-import { creditFor } from "./lib/types";
 import type { AttachmentHome, AttachmentSet } from "./lib/types";
 
 // =============================================================================
@@ -113,32 +112,31 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
   /** Send an attachment to a non-surface home. */
   const send = useCallback(
     (home: AttachmentHome, set: AttachmentSet, index: number) => {
-      const media = set.items[index];
-      if (!media) return;
+      const item = set.items[index];
+      if (!item) return;
+      // The attachment's own commit, which on an ordinary set is the set's
+      // and on a squashed row is whichever member actually attached this.
+      // Nothing here has to ask the set for a name any more.
+      const { media, origin } = item;
       switch (home) {
         case "theater": {
           if (!openMedia) return;
           if (media.kind !== "video" && media.kind !== "slides") return;
           // The stage picks the library: a recording lands among the talks,
-          // a deck among the decks.
-          // The item's own credit, not the set's: on a squashed row the
-          // stage would otherwise announce a talk's recording under the
-          // project row's headline and the lead's venue.
-          const credit = creditFor(set, index);
+          // a deck among the decks — and it is announced as the commit it
+          // is of, not as the row it was sitting on.
           openMedia(media, {
             id: `${set.id}#${index}`,
-            title: credit.title,
-            subtitle: credit.subtitle,
-            href: credit.href,
+            title: origin.title,
+            subtitle: origin.venue,
+            href: origin.href,
           });
           setIsOpen(false);
           return;
         }
         case "window": {
           if (!openUrl) return;
-          openUrl(linkTarget(media, locale), {
-            title: creditFor(set, index).title,
-          });
+          openUrl(linkTarget(media, locale), { title: origin.title });
           // On a phone the window is a sheet, and it stacks on the attachment
           // sheet: putting the page away lands back on the commit's
           // attachments, the way a mobile app's in-app browser returns to
@@ -184,7 +182,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
 
   const open = useCallback(
     (set: AttachmentSet, index = 0) => {
-      const media = set.items[index];
+      const media = set.items[index]?.media;
       if (!media) return;
       const home = homeFor(media, ctx);
       if (home === "surface") {
@@ -199,7 +197,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
 
   const act = useCallback(
     (set: AttachmentSet, index: number) => {
-      const media = set.items[index];
+      const media = set.items[index]?.media;
       if (!media) return;
       send(nativeHomeFor(media, ctx), set, index);
     },
@@ -208,7 +206,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
 
   const homeOf = useCallback(
     (set: AttachmentSet, index: number) => {
-      const media = set.items[index];
+      const media = set.items[index]?.media;
       return media ? homeFor(media, ctx) : "surface";
     },
     [ctx],
@@ -216,7 +214,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
 
   const nativeHomeOf = useCallback(
     (set: AttachmentSet, index: number) => {
-      const media = set.items[index];
+      const media = set.items[index]?.media;
       return media ? nativeHomeFor(media, ctx) : "tab";
     },
     [ctx],

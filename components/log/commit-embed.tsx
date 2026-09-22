@@ -13,7 +13,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
-import { computeCommitHash, getCommitPeekItems, localize } from "@/lib/log";
+import { attachmentsOf, getCommitPeekItems, localize } from "@/lib/log";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
 import { attachmentSetFor, leavesSite } from "@/systems/attachments";
@@ -24,9 +24,8 @@ import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
 import {
-  squashCredits,
+  squashAttachments,
   squashHeadline,
-  squashMedia,
   type ResolvedSquash,
 } from "@/lib/log-squash";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
@@ -109,30 +108,31 @@ export function Commit({
   // holds: a hover flips the timeline's active beam and re-renders every
   // row, and a set with a stable identity is what lets the strip, the
   // renderer and the row keep their own memo one day.
+  // The row's attachments, built ONCE and shared with everything that
+  // needs them. Identity is the point: the set, the strip and the tiles all
+  // have to be looking at the same objects for a cover to find its own
+  // place in the set. Media with its origin, from here down (lib/log.ts).
+  const rowAttachments = useMemo(
+    () =>
+      !commit
+        ? []
+        : squash
+          ? squashAttachments(squash, locale)
+          : attachmentsOf(commit, locale),
+    [commit, locale, squash],
+  );
   const attachmentSet = useMemo(
     () =>
       !commit || inspecting
         ? null
-        : attachmentSetFor(
-            commit,
-            locale,
-            // A squashed row opens ONE set, carrying every member's media
-            // under the row's own headline — otherwise the theater would
-            // name a deck after whichever member happened to lead, and
-            // paging through the set would stop at the lead's own items.
-            squash
-              ? {
-                  media: squashMedia(squash),
-                  title: squashHeadline(squash, locale),
-                  // Merging the media is only safe because each item can
-                  // still name the commit it came from — see
-                  // `squashCredits`. Without this the stage would announce
-                  // a talk's recording under the project row's headline.
-                  credits: squashCredits(squash, locale, computeCommitHash),
-                }
-              : undefined,
-          ),
-    [commit, locale, inspecting, squash],
+        : attachmentSetFor(commit, locale, {
+            attachments: rowAttachments,
+            // The set's name is the ROW's, used only where the sheet or the
+            // stage is talking about the collection. What any one item IS,
+            // the item now says for itself.
+            title: squash ? squashHeadline(squash, locale) : undefined,
+          }),
+    [commit, locale, inspecting, squash, rowAttachments],
   );
   // The same for the row's normalised data and its hover peek: a timeline
   // render (a beam hover, a form change) touches every row, and neither of
@@ -140,8 +140,9 @@ export function Commit({
   // on it — a phone would build and discard one per row.
   const { magneticPreviewEnabled } = useInputCapability();
   const data = useMemo(
-    () => (commit ? normalizeCommit(commit, locale, squash) : null),
-    [commit, locale, squash],
+    () =>
+      commit ? normalizeCommit(commit, locale, squash, rowAttachments) : null,
+    [commit, locale, squash, rowAttachments],
   );
   const preview = useMemo(
     () =>

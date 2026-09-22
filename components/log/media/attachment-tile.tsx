@@ -52,6 +52,7 @@ import {
   VIDEO_PLATFORM_LABEL,
   type Media,
   type StripItem,
+  indexOfMedia,
 } from "@/lib/log";
 import type { AttachmentSet, AttachmentsApi } from "@/systems/attachments";
 import { ExternalImage } from "./external-image";
@@ -151,6 +152,27 @@ export function tileCaption(
   return named(getDomainLabel(media.url), isImageMedia(media) ? media.alt || "" : "");
 }
 
+/**
+ * Whether a LIST of tiles draws on more than one commit.
+ *
+ * Asked of the list being drawn, not of the set behind it, and that is the
+ * whole distinction: a squashed row whose covers are grouped under their
+ * own member lines hands each group one commit's items, so the grouping has
+ * already answered "whose?" and a credit under every tile would be the
+ * third time the row says it. A row that pools its covers — the `"none"`
+ * axis — hands over a mixed list, and there the credit is the only thing
+ * that can speak for the members at all.
+ */
+export function mixesOrigins(items: readonly StripItem[]): boolean {
+  const first = items[0]?.origin.commitId;
+  return items.some((a) => a.origin.commitId !== first);
+}
+
+/** Two labels that would print as the same line. */
+function sameLine(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
 /** Everything a tile needs, resolved once per item — see the note above. */
 export interface TileSlot {
   media: Media;
@@ -169,8 +191,11 @@ export function resolveTile(
   locale: Locale,
   set: AttachmentSet | null | undefined,
   attachments: AttachmentsApi | null | undefined,
+  /** Whether the list this tile is drawn in mixes commits — see
+   *  {@link mixesOrigins}. Only then does a tile name its own. */
+  credited = false,
 ): TileSlot {
-  const index = set && attachments ? set.items.indexOf(item.media) : -1;
+  const index = set && attachments ? indexOfMedia(set.items, item.media) : -1;
   const leaves =
     index >= 0 && set && attachments
       ? attachments.homeOf(set, index) === "tab"
@@ -181,10 +206,20 @@ export function resolveTile(
     index,
     leaves,
     mark: leaves ? newTabMark(locale) : markFor(item.media, locale),
-    // By the media object, not by `index`: the index is -1 whenever there
-    // is no attachments provider (the editor's inspect mode), and a tile
-    // being uneditable is no reason for it to stop saying what it is of.
-    caption: tileCaption(item.media, locale, set?.credits?.get(item.media)?.line),
+    // Off the item itself — it has carried its origin since it left the
+    // commit. Printed only where the row it is sitting on cannot already
+    // be answering the question: a set with one origin is one commit's, and
+    // the row above has just said whose it is.
+    // `set.title` is the row's headline, so an origin that would restate it
+    // prints nothing — the lead's own items under the `"none"` axis, where
+    // the row IS that commit.
+    caption: tileCaption(
+      item.media,
+      locale,
+      credited && (!set || !sameLine(item.origin.line, set.title))
+        ? item.origin.line
+        : undefined,
+    ),
   };
 }
 

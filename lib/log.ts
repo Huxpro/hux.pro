@@ -2064,8 +2064,102 @@ export function getCommitPeekItems(commit: Commit): PeekItem[] {
  * the discriminated union to pick, so we hand it over rather than
  * flattening to a URL the way `PeekItem` does.
  */
-export interface StripItem {
+// =============================================================================
+// Attachments — a piece of media, and the commit it came from.
+//
+// On disk, ownership is the nesting: `commit.media[]` IS the association,
+// and nothing else records it. Every derivation used to flatten that away
+// the moment it produced a list — a set, a strip, a grid — and hand the
+// renderers bare `Media` objects that could no longer answer "whose?".
+//
+// That was survivable only while a list was always exactly one commit's,
+// so the list's own name could stand in for every item's. A squashed row
+// (lib/log-squash.ts) breaks that assumption, and the first version of it
+// papered over the break with a lookup table bolted to the side of the set
+// — which is the shape a mismodelled thing takes when you patch it.
+//
+// So the unit is no longer the media. It is the media WITH its origin, from
+// the moment it leaves the commit, and every list downstream carries that
+// rather than reconstructing it. A cover on a strip, a tile in the feed, a
+// track on the theater's stage and a page in the attachment sheet can each
+// say which commit they belong to because none of them ever stopped
+// knowing.
+// =============================================================================
+
+/** The commit an attachment came from, as the places that print it need it. */
+export interface AttachmentOrigin {
+  commitId: string;
+  /** Its 7-char hash — the row's address, and the editor's key. */
+  hash: string;
+  /** Its title, localized. */
+  title: string;
+  /** Its venue: the conference, the publication, the platform. Absent for
+   *  the types that have none (see {@link commitVenue}). */
+  venue?: string;
+  /** Its address on /works. */
+  href: string;
+  /** `venue · title`, the one-line form, and the venue alone when the two
+   *  would say the same thing — the same sparse rule a folded aside's line
+   *  follows, so a credit and a member line are recognisably one vocabulary. */
+  line: string;
+}
+
+/** A piece of media and the commit that attached it. */
+export interface Attachment {
   media: Media;
+  origin: AttachmentOrigin;
+}
+
+/** The origin every one of a commit's attachments will carry. */
+export function originOf(commit: Commit, locale: Locale): AttachmentOrigin {
+  const title = localize(commit.title, locale);
+  const venue = commitVenue(commit);
+  const same =
+    venue && venue.trim().toLowerCase() === title.trim().toLowerCase();
+  return {
+    commitId: commit.id,
+    hash: computeCommitHash(commit.id),
+    title,
+    venue,
+    href: `/works#${computeCommitHash(commit.id)}`,
+    line: venue && !same ? `${venue} · ${title}` : title,
+  };
+}
+
+/**
+ * A commit's media as attachments — the one place a bare `Media` becomes
+ * something that knows where it is from. Everything downstream takes these.
+ */
+export function attachmentsOf(commit: Commit, locale: Locale): Attachment[] {
+  const origin = originOf(commit, locale);
+  return (commit.media ?? []).map((media) => ({ media, origin }));
+}
+
+/**
+ * An attachment with no commit behind it: a standalone deck in an MDX page,
+ * the editor's sample set. Not every piece of media on the site came from
+ * the log, and the ones that did not are the thing they are — so the origin
+ * is the item's own name rather than a fiction about a commit.
+ */
+export function looseAttachment(media: Media, title: string): Attachment {
+  return {
+    media,
+    origin: { commitId: media.url, hash: "", title, href: "", line: title },
+  };
+}
+
+/** Find an attachment by the media object it wraps. Identity is still the
+ *  media's — it is the commit's own object, and the thing every affordance
+ *  on a row holds a reference to. */
+export function indexOfMedia(
+  items: readonly Attachment[],
+  media: Media,
+): number {
+  return items.findIndex((a) => a.media === media);
+}
+
+export interface StripItem extends Attachment {
+  /** The cover to draw, resolved against the viewer's locale. */
   image: string;
 }
 
@@ -2087,13 +2181,13 @@ export interface StripItem {
  * not want a second, smaller copy of itself.
  */
 export function getMediaStripItems(
-  media: readonly Media[],
+  attachments: readonly Attachment[],
   locale: Locale,
 ): StripItem[] {
   const out: StripItem[] = [];
-  for (const m of media) {
-    const image = getAttachmentImage(m, locale);
-    if (image) out.push({ media: m, image });
+  for (const a of attachments) {
+    const image = getAttachmentImage(a.media, locale);
+    if (image) out.push({ ...a, image });
   }
   return out;
 }

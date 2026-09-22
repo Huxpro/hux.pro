@@ -8,6 +8,7 @@
 
 import type { Locale } from "@/lib/i18n";
 import type {
+  Attachment,
   Commit,
   CommitType,
   InternalLinkMeta,
@@ -15,6 +16,7 @@ import type {
   StripItem,
 } from "@/lib/log";
 import {
+  attachmentsOf,
   commitVenue,
   localize,
   localizeOptional,
@@ -35,10 +37,10 @@ import {
 } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import {
+  squashAttachments,
   squashDate,
   squashHeadline,
   squashLines,
-  squashMedia,
   type ResolvedSquash,
   type SquashLine,
 } from "@/lib/log-squash";
@@ -210,12 +212,12 @@ function linkCardToLink(
  * Every kind contributes a pill except images, which are silent.
  */
 export function extractMediaLinks(
-  media: Media[],
+  attachments: readonly Attachment[],
   locale: Locale,
 ): SimpleLink[] {
   const links: SimpleLink[] = [];
 
-  for (const m of media) {
+  for (const { media: m } of attachments) {
     if (isVideoMedia(m)) {
       links.push({
         url: m.url,
@@ -320,15 +322,20 @@ export function normalizeCommit(
   commit: Commit,
   locale: Locale,
   squash?: ResolvedSquash | null,
+  /**
+   * The row's attachments, when the caller has already built them — which
+   * it must whenever it also builds an `AttachmentSet`, so the two share
+   * object identity and a cover can find its own place in the set. Omit it
+   * and the commit's own are derived here (the home widgets' path, which
+   * has no set).
+   */
+  attachments?: Attachment[],
 ): NormalizedCommit {
   const base = normalizeOne(
     commit,
     locale,
-    // The squash's media is the members' concatenated, so the strip, the
-    // grid, the rail pills and the attachment set all see one commit's
-    // worth of attachments that happens to be longer. Nothing downstream
-    // learns a new word.
-    squash ? squashMedia(squash) : (commit.media ?? []),
+    attachments ??
+      (squash ? squashAttachments(squash, locale) : attachmentsOf(commit, locale)),
   );
   if (!squash) return base;
 
@@ -353,15 +360,24 @@ export function normalizeCommit(
 function normalizeOne(
   commit: Commit,
   locale: Locale,
-  media: Media[],
+  attachments: readonly Attachment[],
 ): NormalizedCommit {
-  const mediaLinks = extractMediaLinks(media, locale);
+  const media = attachments.map((a) => a.media);
+  const mediaLinks = extractMediaLinks(attachments, locale);
   // Rich media (everything except pills) is what flows into the expanded
   // block; folded-prominent items get hoisted above the row separately.
-  const richMedia = media.filter((m) => !isLinkPill(m));
-  const pinnedMedia = richMedia.filter(isPinnedMedia);
-  const expandedMedia = richMedia.filter((m) => !isPinnedMedia(m));
-  const stripItems = getMediaStripItems(expandedMedia, locale);
+  const rich = attachments.filter((a) => !isLinkPill(a.media));
+  const pinned = rich.filter((a) => isPinnedMedia(a.media));
+  const expanded = rich.filter((a) => !isPinnedMedia(a.media));
+  const pinnedMedia = pinned.map((a) => a.media);
+  const expandedMedia = expanded.map((a) => a.media);
+  // The strip keeps the whole attachment. A cover is the one affordance
+  // that has to say which commit it is of without opening anything, and on
+  // a squashed row that is not the row it is sitting on. Everything else
+  // here stays `Media[]`: the renderers key on the media object and read
+  // the origin back off the set, which is the same identity rule they
+  // already used to find an item's index.
+  const stripItems = getMediaStripItems(expanded, locale);
 
   const title = localize(commit.title, locale);
   const description = localize(commit.description, locale);
@@ -522,7 +538,7 @@ function normalizeOne(
           label: commit.platform,
           icon: getPlatformIcon(commit.platform),
         });
-        socialLinks.push(...extractMediaLinks(media.slice(1), locale));
+        socialLinks.push(...extractMediaLinks(attachments.slice(1), locale));
       } else {
         socialLinks.push(...mediaLinks);
       }

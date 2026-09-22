@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import type { Media } from "@/lib/log";
+import { indexOfMedia, type Media } from "@/lib/log";
 import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
@@ -269,6 +269,31 @@ export function TimelineCommit({
   // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
   const isQuiet = isEvent || (isAside && !textOpen);
+
+  /**
+   * A squashed row that prints member lines puts each member's covers on
+   * that member's line, rather than pooling them into one strip under the
+   * whole row.
+   *
+   * Pooling was the last place the row still lied. The lines said which
+   * commits this row stands for and the strip said what it carries, and
+   * nothing joined the two: with two talks and two covers, which cover was
+   * whose was simply unrecoverable — not merely unlabelled. Putting a
+   * member's covers under its own line makes the association spatial, which
+   * is the only form of it that survives having no captions at all (the
+   * `covers` density prints none by design).
+   *
+   * The compression the squash exists for is untouched: one headline, one
+   * date, one prose, one rail, one byline, one place in the chapter. The
+   * media was never the repetitive part.
+   *
+   * `"none"` prints no lines, so there is nothing to group under and the
+   * row keeps its single strip — there, the tile's own credit is what
+   * speaks for the members (attachment-tile.tsx).
+   */
+  const groupsMedia = isSquashed && !isQuiet;
+  const attachmentsOfMember = (commitId: string) =>
+    data.stripItems.filter((item) => item.origin.commitId === commitId);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
   const showStrip =
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
@@ -278,7 +303,8 @@ export function TimelineCommit({
   // line when a single cover leaves it the room — on any viewport — and the
   // meta line when there is more than one, since two covers may already be
   // the width of a phone and the strip then scrolls under the edge.
-  const signsOnMediaLine = showStrip && data.stripItems.length === 1;
+  const signsOnMediaLine =
+    showStrip && data.stripItems.length === 1 && !groupsMedia;
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
@@ -580,7 +606,7 @@ export function TimelineCommit({
             // anchor stays either way, for ⌘-click and "copy link address".
             const attachmentIndex =
               attachments && attachmentSet && link.media
-                ? attachmentSet.items.indexOf(link.media)
+                ? indexOfMedia(attachmentSet.items, link.media)
                 : -1;
 
             // Inspecting, the rail selects like everything else on the row.
@@ -670,11 +696,19 @@ export function TimelineCommit({
           nothing of its own: it is inside the row's press target, and a
           press near the title should do what a press on the title does. */}
       {!isQuiet && data.members.length > 0 && (
-        <ul className="col-start-2 @sm:col-start-3 mt-1 min-w-0 space-y-0.5">
-          {data.members.map((m) => (
-            <li
-              key={m.commitId}
-              id={m.hash}
+        <ul
+          className={cn(
+            "col-start-2 @sm:col-start-3 mt-1 min-w-0",
+            // Lines alone sit tight; lines that carry their own covers need
+            // the air, or two members read as one block of pictures.
+            groupsMedia && rowForm.media !== "none" ? "space-y-3" : "space-y-0.5",
+          )}
+        >
+          {data.members.map((m) => {
+            const mine = attachmentsOfMember(m.commitId);
+            return (
+            <li key={m.commitId} id={m.hash} className="min-w-0">
+            <div
               className={cn(
                 "flex items-baseline gap-2",
                 onInspectMember &&
@@ -742,8 +776,43 @@ export function TimelineCommit({
               {m.date && (
                 <span className={cn("shrink-0", TYPE.rowMeta)}>{m.date}</span>
               )}
+            </div>
+
+            {/* This member's own work, under its own line. The answer to
+                "which of these covers is which talk's" is that they are
+                not in the same place. Same components, same door, same
+                attachment set — only the list each one is given is the
+                member's rather than the row's. */}
+            {mine.length > 0 && rowForm.media !== "none" && (
+              <div
+                data-row-body
+                onClick={(e) => e.stopPropagation()}
+                className="mt-1.5 min-w-0 cursor-default"
+              >
+                {rowForm.media === "covers" ? (
+                  <MediaStrip
+                    items={mine}
+                    set={attachmentSet}
+                    peek={rowForm.peek && magneticPreviewEnabled}
+                    className="min-w-0"
+                    inspecting={inspecting}
+                    onInspect={onInspectMedia}
+                    selectedMedia={selectedMedia}
+                  />
+                ) : (
+                  <AttachmentGrid
+                    items={mine}
+                    set={attachmentSet}
+                    inspecting={inspecting}
+                    onInspect={onInspectMedia}
+                    selectedMedia={selectedMedia}
+                  />
+                )}
+              </div>
+            )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
       {/*
@@ -865,7 +934,7 @@ export function TimelineCommit({
           sized to its covers and stops its own clicks, so the line it sits
           on stays the row's; the empty stretch beside a single cover presses
           the row like any other part of it. */}
-      {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
+      {!isQuiet && !groupsMedia && rowForm.media === "covers" && data.stripItems.length > 0 && (
         <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
           {/* The covers get a line of their own, always. One cover used to
               tuck up beside the text and two or more dropped below it, so a
@@ -903,13 +972,19 @@ export function TimelineCommit({
           onClick={(e) => e.stopPropagation()}
           className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
         >
-          <AttachmentGrid
-            items={data.stripItems}
-            set={attachmentSet}
-            inspecting={inspecting}
-            onInspect={onInspectMedia}
-            selectedMedia={selectedMedia}
-          />
+          {/* The tiles, unless the member lines have already taken them.
+              What is left either way is the stack below: a live widget has
+              no cover, so it is not a strip item and no member line claimed
+              it. */}
+          {!groupsMedia && (
+            <AttachmentGrid
+              items={data.stripItems}
+              set={attachmentSet}
+              inspecting={inspecting}
+              onInspect={onInspectMedia}
+              selectedMedia={selectedMedia}
+            />
+          )}
           {stacked.length > 0 && (
             <MediaRenderer
               media={stacked}

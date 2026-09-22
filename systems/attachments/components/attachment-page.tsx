@@ -14,7 +14,7 @@ import {
   isSlidesMedia,
   isSocialEmbedMedia,
   isVideoMedia,
-  type Media,
+  type AttachmentOrigin,
 } from "@/lib/log";
 import { getDomainLabel } from "@/lib/og-core";
 import { TYPE } from "@/lib/typography";
@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { isInternalLink, linkTarget } from "../lib/policy";
-import { creditFor } from "../lib/types";
 import type { AttachmentHome, AttachmentSet } from "../lib/types";
 import { useAttachments } from "../provider";
 
@@ -155,14 +154,13 @@ function Actions({
  * through such a set walks through several commits, and the header is the
  * only thing that says which one you are on.
  */
-function Meta({ set, index }: { set: AttachmentSet; index: number }) {
-  const credit = creditFor(set, index);
+function Meta({ origin }: { origin: AttachmentOrigin }) {
   return (
     <div className="min-w-0">
-      <div className={cn("truncate", TYPE.mediaTitle)}>{credit.title}</div>
-      {credit.subtitle && (
+      <div className={cn("truncate", TYPE.mediaTitle)}>{origin.title}</div>
+      {origin.venue && (
         <div className={cn("mt-0.5 truncate", TYPE.labelWide)}>
-          {credit.subtitle}
+          {origin.venue}
         </div>
       )}
     </div>
@@ -172,8 +170,9 @@ function Meta({ set, index }: { set: AttachmentSet; index: number }) {
 export function AttachmentPage({ set, index }: AttachmentPageProps) {
   const { act, nativeHomeOf } = useAttachments();
   const { locale } = useLocale();
-  const media: Media | undefined = set.items[index];
-  if (!media) return null;
+  const item = set.items[index];
+  if (!item) return null;
+  const { media, origin } = item;
 
   const open = () => act(set, index);
   const home = nativeHomeOf(set, index);
@@ -185,7 +184,7 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
     return (
       <div className="space-y-4">
         <Cover image={getMediaThumbnail(media)} label={label} onOpen={open} />
-        <Meta set={set} index={index} />
+        <Meta origin={origin} />
         <Actions
           primary={{ label, icon: homeIcon(home, kind), onSelect: open }}
           href={media.url}

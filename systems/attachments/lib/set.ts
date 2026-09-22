@@ -1,13 +1,14 @@
 import type { Locale } from "@/lib/i18n";
-import type { Media } from "@/lib/log";
+import type { Attachment } from "@/lib/log";
 import {
+  attachmentsOf,
   computeCommitHash,
   isLinkPill,
   localize,
   localizeOptional,
   type Commit,
 } from "@/lib/log";
-import type { AttachmentCredit, AttachmentSet } from "./types";
+import type { AttachmentSet } from "./types";
 
 // =============================================================================
 // Attachments — building a set from a commit
@@ -47,22 +48,24 @@ function subtitleFor(commit: Commit, locale: Locale): string | undefined {
 export function attachmentSetFor(
   commit: Commit,
   locale: Locale,
-  as?: {
-    media?: Media[];
-    title?: string;
-    subtitle?: string;
-    credits?: ReadonlyMap<Media, AttachmentCredit>;
-  },
+  as?: { attachments?: Attachment[]; title?: string; subtitle?: string },
 ): AttachmentSet | null {
-  const items = (as?.media ?? commit.media ?? []).filter((m) => !isLinkPill(m));
+  // The attachments are passed in wherever the caller has already built
+  // them — a row builds its own once and hands the same array to the set
+  // and to its strip, so a cover and the set agree on object identity.
+  const items = (as?.attachments ?? attachmentsOf(commit, locale)).filter(
+    (a) => !isLinkPill(a.media),
+  );
   if (items.length === 0) return null;
   const hash = computeCommitHash(commit.id);
   return {
     id: commit.id,
+    // The set's own name is the ROW's, and it is only ever used where the
+    // sheet or the stage is talking about the collection rather than about
+    // one thing in it. What one thing is, each item now says for itself.
     title: as?.title ?? localize(commit.title, locale),
     subtitle: as?.subtitle ?? subtitleFor(commit, locale),
     href: `/works#${hash}`,
     items,
-    credits: as?.credits,
   };
 }

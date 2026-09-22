@@ -58,7 +58,12 @@ import {
 import { mediaToTrack, useOptionalTheaterStage } from "@/systems/theater";
 import { isSlidesMedia, isVideoMedia, type Media, type StripItem } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
-import { AttachmentTile, resolveTile, type TileSlot } from "./attachment-tile";
+import {
+  AttachmentTile,
+  mixesOrigins,
+  resolveTile,
+  type TileSlot,
+} from "./attachment-tile";
 import { InspectableMedia } from "./inspectable";
 import { MediaMark, newTabMark, SURFACE_CHIP } from "./media-mark";
 import { videoEmbedUrl } from "./video";
@@ -195,7 +200,13 @@ export function AttachmentGrid({
   // Once per item, not once per tile per render: the set lookup, the policy
   // question, the chip and the caption.
   const slots = useMemo(
-    () => items.map((item) => resolveTile(item, locale, set, attachments)),
+    () => {
+      // Whose is whose only needs saying where the list itself is mixed.
+      const credited = mixesOrigins(items);
+      return items.map((item) =>
+        resolveTile(item, locale, set, attachments, credited),
+      );
+    },
     [items, locale, set, attachments],
   );
   if (slots.length === 0) return null;
