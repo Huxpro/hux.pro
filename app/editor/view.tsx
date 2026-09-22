@@ -7,7 +7,7 @@ import {
   useCallback,
   type MouseEvent,
 } from "react";
-import type { LogData, Commit, Tag } from "@/lib/log";
+import type { LogData, Commit, Squash, Tag } from "@/lib/log";
 import { buildTimelineData } from "@/lib/log";
 import {
   enrichLogDataWithPreviews,
@@ -215,6 +215,16 @@ export function EditorView({ initialData }: EditorViewProps) {
     [inspectDisabled, selectCommit]
   );
 
+  // Squashes are the log's, not any commit's — which is exactly what keeps
+  // the commits untouched when one is formed. Dropping the key entirely at
+  // zero keeps `log.json` as it was before the feature existed.
+  const handleUpdateSquashes = useCallback((next: Squash[]) => {
+    setData((prev) => ({
+      ...prev,
+      squashes: next.length > 0 ? next : undefined,
+    }));
+  }, []);
+
   const handleUpdateTag = useCallback(
     (updated: Tag) => {
       setData((prev) => ({
@@ -340,6 +350,9 @@ export function EditorView({ initialData }: EditorViewProps) {
                 onClose={clearSelection}
                 focusMediaIndex={selectedMediaIndex}
                 onFocusMediaIndexChange={setSelectedMediaIndex}
+                squashes={data.squashes ?? []}
+                onUpdateSquashes={handleUpdateSquashes}
+                onSelectCommit={selectCommit}
               />
             ) : editingTagObj ? (
               <div className="flex-1 overflow-y-auto">
