@@ -24,8 +24,8 @@ import type { Album } from "../lib/types";
 // is motion, not a hard cut. Material tokens live in lib/chrome.ts so theater
 // window controls share the same frosted language.
 //
-// `tone="onDark"` is the dim dark-stamp language, forced for editor mocks
-// and any stage that cannot follow the site theme.
+// `tone="onDark"` forces the lighter-on-dark thumb for editor mocks and any
+// stage that cannot follow the site theme.
 // ---------------------------------------------------------------------------
 
 const EASE = [0.32, 0.72, 0, 1] as const;
