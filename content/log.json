@@ -439,6 +439,53 @@
       ]
     }
   },
+  "squashes": [
+    {
+      "id": "react-advanced-2025",
+      "commitIds": ["react-advanced-2025-lynx-ui", "react-advanced-2025-panel"],
+      "axis": "title"
+    },
+    {
+      "id": "two-threads",
+      "commitIds": ["react-universe-2025-two-threads", "see-conf-2025-two-threads"],
+      "lead": "react-universe-2025-two-threads",
+      "axis": "venue"
+    },
+    {
+      "id": "lynx-open-source",
+      "commitIds": ["d2-2025-lynx", "react-summit-2025-unlock-native"],
+      "axis": "venue-title",
+      "title": { "en": "Lynx goes open source", "zh": "Lynx 开源时刻" }
+    },
+    {
+      "id": "frontend-worldview",
+      "commitIds": ["juejin-talk-2023", "feday-2023"],
+      "axis": "venue-title",
+      "title": {
+        "en": "The frontend worldview talks",
+        "zh": "大前端世界观系列"
+      }
+    },
+    {
+      "id": "china-react",
+      "commitIds": ["opensrc-pioneer-2022", "coscon-2022", "gitee-cover-2022"],
+      "axis": "venue-title",
+      "title": {
+        "en": "What China made of the React years",
+        "zh": "中国对我 React 身份的认可"
+      },
+      "description": {
+        "en": "Five months in 2022: a cover story, a keynote, and a place on a list of 33.",
+        "zh": "2022 年的五个月：一次封面报道、一场主题演讲，和一份 33 人的名单。"
+      }
+    },
+    {
+      "id": "react-compiler",
+      "commitIds": ["react-core", "reactconf-2021-memo"],
+      "lead": "react-core",
+      "axis": "none"
+    }
+  ],
   "commits": [
     {
       "id": "wad-2026-lynx-workshop",
