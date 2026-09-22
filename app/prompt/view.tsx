@@ -278,10 +278,25 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
   // the name. So the author stays on the sentence's own rung and the work
   // drops one, which is the only place in a citation where the ladder
   // steps. What separates them carries nothing and sits below both.
-  const name = attribution.ref ? (
+  // `ref` links the name inward, `url` links the work outward — and when
+  // there is no work to hang it on, the url links the name instead, because
+  // a source that can be looked up should be reachable either way.
+  const nameHref = attribution.ref
+    ? `#${anchorFor(attribution.ref)}`
+    : !attribution.source && attribution.url
+      ? attribution.url
+      : undefined;
+
+  const name = nameHref ? (
     <a
-      href={`#${anchorFor(attribution.ref)}`}
-      onClick={(e) => handleAnchorClick(e, attribution.ref!, goTo)}
+      href={nameHref}
+      {...(attribution.ref
+        ? { onClick: (e) => handleAnchorClick(e, attribution.ref!, goTo) }
+        : {
+            target: "_blank",
+            rel: "noopener noreferrer",
+            onClick: (e: React.MouseEvent) => e.stopPropagation(),
+          })}
       className={cn("text-muted-foreground", linkClass)}
     >
       <Marks text={attribution.name} />
