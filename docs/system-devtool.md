@@ -180,8 +180,9 @@ The row's `kind` follows what the press will do — on opens a surface, so the
 palette stays behind it as a stack; off opens nothing, so it leaves like any
 other setting.
 
-**The hidden one.** Holding the search button — either shape, the homepage
-search bar or the round FAB — for `DEVTOOL_HOLD_MS` (1.2s) summons the devtool.
+**The hidden one.** Holding the search button — whichever shape it is wearing:
+the homepage search bar, the round FAB, or the tab bar's search tab — for
+`DEVTOOL_HOLD_MS` (1.2s) summons the devtool.
 The press that carried it does not also open the palette, and a slide of more
 than 10px is a drag or a scroll and cancels it.
 
@@ -194,9 +195,13 @@ to let go.
 
 The ring is drawn **outside** the button, at a measured `fixed` rect rather
 than inside it: a finger is on the button, so anything drawn there — a
-swapped icon, a fill — is under the fingertip and invisible. Both shapes of
-the button share a 24px radius, so one ring fits both. See
-`systems/command/fab.tsx`.
+swapped icon, a fill — is under the fingertip and invisible. A shape tells the
+gesture only how round it is and which element to measure, which is why one
+ring fits a bar, a disc and a tab alike.
+
+All of it — the timings, the slop, the ring — is one hook,
+`systems/command/use-devtool-hold.tsx`, and every shape of the button calls it.
+One copy per shape is how a fourth shape arrives without an entrance.
 
 ### Keyboard Shortcut
 
@@ -297,10 +302,16 @@ while the modules scroll. The modules:
 
    See `docs/system-ambient.md` → The Shooting Star for the two terms and why
    twelve degrees.
-4. **Command**: **Phone palette** — Sheet (the bottom sheet the palette is on a
-   phone) / Popover (the desktop card at phone width, the palette as it was).
-   A saved setting, so a blue `*` marks it and resets it. Lets the two be
-   compared on the same device; the popover code path is kept whole for it.
+4. **Command**: two phone shapes, both saved settings, so a blue `*` marks and
+   resets either.
+   **Phone palette** — what a press opens: Sheet (the bottom sheet the palette
+   is on a phone) / Popover (the desktop card at phone width, the palette as it
+   was). Lets the two be compared on the same device; the popover code path is
+   kept whole for it.
+   **Phone nav** — what does the pressing: Button (the floating search button)
+   / Tabs (the bottom tab bar — Home · Writing · Search · Works · Prompts, the
+   palette in the middle). Off by default, and nothing above `md` changes
+   either way. See `docs/system-command.md` → The phone tab bar.
 5. **Refetch**: Force re-fetch location/weather
 
 ## Controls
@@ -387,6 +398,7 @@ way to trace a wrong-looking background to a file.
 ## Persistence
 
 - **FAB enabled state**: Persisted to localStorage
+- **Phone palette / Phone nav**: Persisted to localStorage (blue `*`)
 - **Override states**: Ephemeral (reset on page refresh)
 - **Route preferences**: Persisted to localStorage
 

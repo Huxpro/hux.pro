@@ -6,40 +6,17 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Command, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
-import { useDevtool } from "@/systems/devtool";
 import { HANDOFF, useHomeEditing } from "@/components/ui/home-edit-store";
 import { useCompactViewport } from "./use-compact-viewport";
-
-/**
- * Hold the search button this long and the devtool opens. Undocumented on
- * purpose: a phone has no `D` key, and the palette's own Debug Panel row is the
- * way in that is meant to be found. This is the one for whoever already knows.
- */
-const DEVTOOL_HOLD_MS = 1200;
-
-/**
- * Nothing happens visibly before this. A tap is ~100ms and a hesitant one
- * rarely half that again, so no ordinary press ever sees the ring — which is
- * what keeps this hidden while still making the second half of the hold
- * legible. The feedback is also what makes a shorter hold safe: an accidental
- * one announces itself in time to let go.
- */
-const DEVTOOL_HOLD_REVEAL_MS = 700;
-
-/** A press that slides this far is a drag or a scroll, not a hold. */
-const HOLD_SLOP_PX = 10;
-
-/** How far outside the button the ring starts before closing onto it. */
-const HOLD_RING_OUTSET = 10;
+import { useDevtoolHold } from "./use-devtool-hold";
 
 /** Both shapes of this button are this round — the bar and the round FAB. */
 const FAB_RADIUS = 24;
 
 export function FloatingActionButton() {
   const { toggle } = useCommand();
-  const { summon: summonDevtool } = useDevtool();
   const pathname = usePathname();
   const { locale } = useLocale();
   const [mounted, setMounted] = useState(false);
@@ -54,57 +31,9 @@ export function FloatingActionButton() {
   // screen; above it the controls float over the bar.
   const compact = useCompactViewport();
 
-  // The hold that opens the devtool. Timers and the press live in refs — a
-  // state update mid-press would only fight the drag below — but the ring is
-  // state, because it has to render.
-  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const holdOrigin = useRef<{ x: number; y: number } | null>(null);
-  const heldRef = useRef(false);
+  // The hidden way into the devtool, shared with the tab bar's search tab.
   const buttonRef = useRef<HTMLButtonElement>(null);
-  // Measured once when the ring appears: a finger covers the button, so the
-  // feedback has to live outside it, and the button is not moving by then.
-  const [holdRing, setHoldRing] = useState<DOMRect | null>(null);
-
-  const cancelHold = useCallback(() => {
-    // `clearTimeout` on an expired or absent id is a no-op, so nothing here
-    // needs to track which timers are still live.
-    clearTimeout(holdTimer.current ?? undefined);
-    clearTimeout(revealTimer.current ?? undefined);
-    holdOrigin.current = null;
-    setHoldRing(null);
-  }, []);
-
-  const startHold = useCallback(
-    (e: React.PointerEvent) => {
-      heldRef.current = false;
-      holdOrigin.current = { x: e.clientX, y: e.clientY };
-      revealTimer.current = setTimeout(() => {
-        // The live box, so the ring wraps the button as it is drawn — which
-        // during a press includes its own `active:scale-95`.
-        setHoldRing(buttonRef.current?.getBoundingClientRect() ?? null);
-      }, DEVTOOL_HOLD_REVEAL_MS);
-      holdTimer.current = setTimeout(() => {
-        heldRef.current = true;
-        setHoldRing(null);
-        summonDevtool();
-      }, DEVTOOL_HOLD_MS);
-    },
-    [summonDevtool]
-  );
-
-  const trackHold = useCallback(
-    (e: React.PointerEvent) => {
-      const origin = holdOrigin.current;
-      if (!origin) return;
-      if (Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > HOLD_SLOP_PX) {
-        cancelHold();
-      }
-    },
-    [cancelHold]
-  );
-
-  useEffect(() => cancelHold, [cancelHold]);
+  const hold = useDevtoolHold(buttonRef, FAB_RADIUS);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -131,17 +60,10 @@ export function FloatingActionButton() {
         // The hold has already done something by the time the finger lifts,
         // so the press that carried it must not also open the palette.
         onClick={() => {
-          if (heldRef.current) {
-            heldRef.current = false;
-            return;
-          }
+          if (hold.consume()) return;
           toggle();
         }}
-        onPointerDown={startHold}
-        onPointerMove={trackHold}
-        onPointerUp={cancelHold}
-        onPointerCancel={cancelHold}
-        onPointerLeave={cancelHold}
+        {...hold.handlers}
         className={cn(
           "pressable pointer-events-auto select-none",
           "transition-[background-color,border-color,color,transform] duration-200",
@@ -252,46 +174,11 @@ export function FloatingActionButton() {
     </div>
   );
 
-  // The charge, drawn OUTSIDE the button, because a finger is on the button.
-  // A ring that starts wide and closes onto the button's own edge exactly as
-  // the hold completes: visible past a thumb from any direction, legible as
-  // "something is filling up" without a progress readout, and shape-agnostic —
-  // both shapes of this button share a radius.
-  const ring = (
-    <AnimatePresence>
-      {holdRing && (
-        <motion.span
-          aria-hidden
-          data-hold-ring
-          initial={{ scale: 1.3, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 1.08, opacity: 0, transition: { duration: 0.18 } }}
-          transition={{
-            duration: (DEVTOOL_HOLD_MS - DEVTOOL_HOLD_REVEAL_MS) / 1000,
-            ease: "linear",
-          }}
-          style={{
-            position: "fixed",
-            left: holdRing.x - HOLD_RING_OUTSET,
-            top: holdRing.y - HOLD_RING_OUTSET,
-            width: holdRing.width + HOLD_RING_OUTSET * 2,
-            height: holdRing.height + HOLD_RING_OUTSET * 2,
-            // Both shapes of this button share FAB_RADIUS; the ring sits
-            // outside them, so it takes the same curve plus its own outset.
-            borderRadius: FAB_RADIUS + HOLD_RING_OUTSET,
-            zIndex: 9998,
-          }}
-          className="pointer-events-none border-2 border-foreground/35"
-        />
-      )}
-    </AnimatePresence>
-  );
-
   if (!isDraggable)
     return (
       <>
         {fab}
-        {ring}
+        {hold.ring}
       </>
     );
 
@@ -321,7 +208,7 @@ export function FloatingActionButton() {
         {fab}
       </div>
     </motion.div>
-    {ring}
+    {hold.ring}
     </>
   );
 }

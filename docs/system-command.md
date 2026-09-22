@@ -16,7 +16,10 @@ systems/command/
 ├── results.tsx        # cmdk results and the slash list, shared by both shells
 ├── apps-launcher.tsx  # Spotlight-style horizontal Apps strip
 ├── load-bundle-panel.tsx  # System UI OTA Lynx bundle form
+├── launcher.tsx       # Picks what stands at the bottom: button or tab bar
 ├── fab.tsx            # Floating action button trigger
+├── tab-bar.tsx        # The phone tab bar (devtool: Command → Phone nav)
+├── use-devtool-hold.tsx   # The hold on the search button that opens the devtool
 └── index.ts           # Barrel exports
 ```
 
@@ -151,6 +154,46 @@ palette does after it runs:
 `"search"` or `"slash"`; the shell supplies `leave(kind)` through
 `useCommandShell()`, and the lists never call `close` themselves.
 
+## The phone tab bar
+
+A second shape for the trigger, off by default and chosen in the devtool
+(Command → **Phone nav**: Button / Tabs). Below `md` it replaces the floating
+button with a capsule of five: **Home · Writing · Search · Works · Prompts**,
+the palette itself in the middle where a thumb already is. Tapping Search opens
+the same drawer the button always did — this changes what stands in front of
+the palette, not the palette. A desktop is untouched whatever the switch says.
+
+It is a proposal, which is why it is a devtool switch and not a setting: the
+palette is still how this site is navigated, and four tabs are a claim about
+which four places matter. The tabs carry the same glyphs as the palette's own
+navigation rows (`actions.tsx`), because a tab and its row are one destination
+and must not look like two.
+
+**The selected pill** is one absolutely-positioned span that animates `x` by
+whole multiples of its own width. Five `flex-1` tabs are exactly a fifth of the
+track each, so it needs no measuring, no `ResizeObserver` and no state — the
+active index *is* the animation. Not `layoutId`: a shared-element projection
+re-runs whenever anything else in the bar moves, and the shrink below moves the
+bar on every scroll, so the pill would trail it rather than sit in it. On an
+unlisted route (`/docs`, `/editor`) the pill parks under the palette and fades,
+rather than picking a tab that is not on.
+
+**The scroll shrink** is the bar stepping back from a page in motion, as iOS 26
+does with Safari's tab bar: scrolling down takes it to 0.86, and it comes back
+the moment the page settles (`SETTLE_MS`) or turns around. Two states with a
+transition, never scroll-linked — a scale that follows the finger re-blurs a
+`backdrop-blur` surface on every frame. It is a transform on the whole bar, so
+the shrink costs no layout, and it is anchored `bottom center`, so the gap
+under the bar stays the gap. `prefers-reduced-motion` turns it off; the state
+is published as `data-shrunk` for the inspector and for tests.
+
+Two things it keeps from the button it replaces: the home grid's jiggle mode
+still takes the bottom of the screen (the bar hands it over on `HANDOFF`), and
+holding Search for 1.2s still summons the devtool — the same hook, the same
+ring (see [Devtool](./system-devtool.md) → The hidden one). It is not
+draggable: `command-fab` is an instance for a floating button, and a bar that
+spans the width has nowhere to go.
+
 ## Key Features
 
 ### Dual Modes
@@ -217,13 +260,19 @@ Features:
 - Bilingual search (EN/中文 keywords)
 - Adaptive popover height: search `43dvh`, slash taller (viewport chrome only)
 
+### CommandLauncher
+
+What stands at the bottom of the screen and opens the palette. Mounted once in
+the root layout, and it picks one of two shapes the way `palette.tsx` picks a
+shell — the button, or (on a phone, behind the devtool switch) the tab bar.
+
+```tsx
+<CommandLauncher />
+```
+
 ### FloatingActionButton
 
 Context-aware FAB that morphs based on route:
-
-```tsx
-<FloatingActionButton />
-```
 
 - **Homepage**: Search bar with placeholder
 - **Other pages**: Compact command button

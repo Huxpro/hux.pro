@@ -12,6 +12,11 @@ Mobile (non-home)     Desktop (non-home)      Homepage (any)
    FAB                   Pill                   Conversational Prompt
 ```
 
+On a phone the trigger has a second shape behind a devtool switch: a bottom
+**tab bar** (Home · Writing · Search · Works · Prompts) in place of the
+floating button, with the palette on the middle tab. Off by default — see
+[Command System](./system-command) → The phone tab bar.
+
 ### State Determination
 
 | Screen | Page | Variant | Position |
@@ -77,6 +82,7 @@ The command palette is the central navigation hub, inspired by Raycast, Spotligh
 | `/` (anywhere) | Anywhere | Open in **Slash Commands** |
 | Conversational prompt | Homepage | Open in Search Mode |
 | FAB button | Non-homepage pages | Open in Search Mode |
+| Search tab | Phones, with the tab bar on | Open in Search Mode |
 
 ### Homepage Entry Point
 
