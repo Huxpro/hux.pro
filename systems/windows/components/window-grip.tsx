@@ -29,20 +29,45 @@ import { PillTitle, pillShell, TrafficDots } from "./window-pill";
 // looking pressed — which is merely wrong, never missing. That is the bar
 // anything here has to clear.
 //
-// What used to fail it: the dots became the sheet's 36×4 grabber while it was
-// dragged — first interpolated on the live travel (which a sheet with detents
-// zeroes every time it lands on one, so it flickered), then latched by a phase
-// machine here (which has to know when the gesture ended, and cannot: Base UI
-// captures the pointer for everything but touch, and the release can then
-// reach nothing at all — no pointerup, no pointercancel, no lostpointercapture,
-// on window, document or the popup, not even for a listener installed before
-// the app), then driven by the sheet's own gesture state (better, and still one
-// flush of a nested drawer away from being stranded). Every version had the
-// same shape: something had to *clear* the interesting state, and whatever
-// clears it can be missed — and what it cleared was the controls themselves.
+// The shape follows the same bar, and this is the sixth version of it. Under a
+// drag the dots run together and stretch into a handle — 48×28.5 around three
+// 6px dots becomes 48×14 around a 36×4 line, which is `h-1 w-9`, the bar every
+// other sheet on the site is dragged by. It reads as something you are holding
+// rather than something you might tap, and it comes home on release. Two
+// states and one 140ms transition, the same however far the sheet is dragged —
+// globals.css has the shape of it, and why the segments overlap.
 //
-// If the morph comes back it has to be incapable of persisting: an animation
-// that always ends where it started, not a state someone has to clear.
+// It lives entirely in CSS, off a length. Base UI publishes the live drag, the
+// sheet re-publishes it as `--surface-travel`, and every dimension is a
+// `clamp()` away from rest — so there is no state to set and none to clear,
+// and a tap (no travel) never starts down the road to being a handle.
+//
+// A merged line is the one shape that does not read as a window's controls, so
+// unlike the tuck it does not get to rest on "stranded is merely wrong". Three
+// things carry it instead. It takes TWO independent signals to reach — Base
+// UI's `data-swiping` and its travel — and either one coming home on its own
+// undoes it; both are cleared by Base UI itself on release, on every path this
+// app has, the captured mouse release included. What cannot go anywhere either
+// way is the glass, its 36px of width, and the target (a fixed box in
+// globals.css, not an inset, so the tuck cannot take it along). And the dots
+// on a grip are an indicator, never three buttons — the whole pill is the one
+// control — so even fully merged, nothing here has stopped working: it is
+// still a handle you can drag and still a target that opens the menu.
+//
+// What used to fail: the dots *became* the 36×4 bar, and then had to be turned
+// back into dots. First interpolated on the live travel — under a note saying a
+// sheet with detents zeroes that at every landing, which this round finally
+// measured and found false; the real flicker was elsewhere. Then latched by a
+// phase machine here, which has to know when the gesture ended, and cannot:
+// Base UI captures the pointer for everything but touch, and the release can
+// then reach nothing at all — no pointerup, no pointercancel, no
+// lostpointercapture, on window, document or the popup, not even for a listener
+// installed before the app. Then driven by the sheet's own published gesture
+// state: better, and still one flush of a nested drawer away from stranding.
+// Every version had the same shape, and it was never really about the signal —
+// something had to *clear* a state, whatever clears it can be missed, and what
+// it cleared was the controls themselves. The fix was not a better signal. It
+// was a morph with nothing to hide.
 //
 // The tap is this component's one job, and it is the one thing that can be
 // lost harmlessly: no menu opens, nothing sticks, the next tap works. It
@@ -68,9 +93,13 @@ import { PillTitle, pillShell, TrafficDots } from "./window-pill";
 // =============================================================================
 
 /**
- * How long the pill stays lit when the release never comes back. Touch always
- * reports one; a captured mouse may not, and a pill lit a moment too long is
- * the harmless end of being wrong.
+ * How long the pill stays lit for a MOUSE press whose release never comes back
+ * — the popup captures the pointer and Chrome tells no one. Touch is not given
+ * this: its release always arrives (measured, with `lostpointercapture` and
+ * `touchend` alongside it), and a finger may rest on the handle as long as it
+ * likes. Arming it for touch meant a drag held past four seconds went dark
+ * under the thumb, which is exactly when the handle should be at its most
+ * present.
  */
 const PRESS_TIMEOUT = 4000;
 
@@ -110,7 +139,8 @@ export function WindowGrip({
       teardown.current = null;
       setPressed(false);
     };
-    const timer = window.setTimeout(done, PRESS_TIMEOUT);
+    const timer =
+      e.pointerType === "mouse" ? window.setTimeout(done, PRESS_TIMEOUT) : 0;
 
     // Capture phase, on the document: for touch the release arrives here, and
     // for a mouse Base UI may swallow it — in which case this press simply was

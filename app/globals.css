@@ -1633,6 +1633,12 @@ main[data-variant="reader"] .reader-masthead {
   transition:
     transform var(--surface-duration) var(--surface-easing),
     padding-bottom var(--surface-duration) var(--surface-easing);
+  /* The live drag, re-published so anything inside the sheet can read it.
+     Base UI registers its own `inherits: false` (item 2 at the top of
+     sheet.tsx), so a descendant cannot, and this is the only element the
+     original resolves on. Zero at rest and zero again on release — Base UI
+     clears it itself, for a captured mouse release as much as for a touch. */
+  --surface-travel: var(--drawer-swipe-movement-y, 0px);
 }
 
 /* Under the finger the sheet is direct: a transition here would chase every
@@ -1788,29 +1794,173 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   Window grip — the hit area
+   Window grip — the hit area, and the tuck
    The chrome of an app window on a phone (systems/windows/components/
    window-grip.tsx) is the window's own pill of traffic lights, floating over
    edge-to-edge content as it does on the desktop, doing double duty as the
    sheet's grabber. It looks exactly like the desktop pill, down to the padding
    (window-pill.tsx has all of it), and that pill is 48×28.5 — a fine target for
    a mouse and a small one for a thumb that also has to drag the sheet by it.
-   So the only thing said here is the thing the look cannot say: the glass is
-   the pill, and the target reaches past it — though no further up than the
-   shell's own edge, which clips. 72×44.5, from a pill of 48×28.5.
 
-   Keeping the two apart is also what a future morph needs: a pill that shrinks
-   into the site's 36×4 bar must not take its target down with it. There is no
-   shape change here today — the dots used to become that bar while the sheet
-   was dragged, keyed off one state or another, and every version of that state
-   could be stranded with the controls hidden inside it. The note at the top of
-   window-grip.tsx has the history.
+   THE TARGET IS NOT THE LOOK. The glass is the pill; the target is a fixed
+   72×44 centred on it — not an inset, so the tuck below cannot take it along —
+   though it reaches no further up than the shell's own edge, which clips. That
+   separation is what lets the pill change shape at all.
+
+   THE TUCK. Under a drag the dots run together and stretch into a handle:
+   48×28.5 of pill around three 6px dots becomes 48×14 around a 36×4 line —
+   `h-1 w-9`, the same bar every other sheet on the site is dragged by, wearing
+   the window's glass. It reads as something you are holding rather than
+   something you might tap, and it comes back on release.
+
+   TWO STATES AND A TRANSITION, not a value tracking the finger. Every version
+   of this that interpolated on the live drag was harder than it needed to be
+   and less steady than it looked: each one had to decide what the shape meant
+   at every pixel, and the answer was never more interesting than "held" or
+   "not". So the travel is read once, as a switch — Base UI does not publish
+   any travel until it has decided the press is a swipe, so a non-zero travel
+   already means a drag — and the morph is the same 140ms whether the sheet
+   moves 20px or 200. The switch, and the overlap that lets the transition run
+   unstaged, are just below.
+
+   Nothing here is a state of ours. Base UI publishes the live drag as
+   `--drawer-swipe-movement-y` on the popup, the surface block above
+   re-publishes it as `--surface-travel` (Base UI registers its own
+   `inherits: false`, so a descendant cannot read it), and every dimension is
+   one lerp off it. There is nothing to set and nothing to clear — which is
+   what killed the five versions before the tuck (the note at the top of
+   window-grip.tsx has them).
    ============================================================================= */
+
+/* Everything below is gated on BOTH `data-swiping` and a non-zero travel, and
+   that is on purpose. Under the tuck alone the grip could not be stranded into
+   anything worse than a squat pill, so one signal was enough. A merged line is
+   different: it is the one shape that does not read as a window's controls, so
+   it takes two independent signals to reach — Base UI's attribute AND its
+   length — and either one coming home on its own is enough to undo it. Both
+   are cleared by Base UI itself on release, measured on every path this app
+   has, including the captured mouse release we never see.
+
+   What cannot go away either way: the glass, its 36px of width, and the target
+   (::before, below — a fixed box, so the tuck can't take it along). The dots
+   on a grip are an indicator, never three buttons — the whole pill is the one
+   control — so even fully merged nothing here has stopped working. */
+/* ONE TRANSITION BETWEEN TWO STATES, not a value tracking the finger. One
+   duration, no stagger, nothing to sequence: the segments slide together and
+   grow at the same time, and because they OVERLAP rather than butt up against
+   each other, the shape is right at every instant of it. Two stadiums of the
+   same height and colour merge seamlessly wherever they meet — so the joins
+   never have to be squared off, and there is no moment mid-morph where the
+   corners have gone square but the gaps have not yet closed. (There was, when
+   this squared its own corners. At full speed it lasted two frames; slowed
+   fourteen times it was a bowtie.) The dots keep `rounded-full` throughout and
+   the browser clamps it to half their height as they thin, so the ends stay
+   stadium-round without being told to. */
+/* LETTING GO IS NOT THE MORPH IN REVERSE. Released, the glass and the ink go
+   first and the shape holds where it is, so what you see is a handle fading
+   out — not a handle re-forming into a pill that then fades. The shape comes
+   back underneath, once there is nothing left to see it in. The wait is on
+   these rules, which govern the RETURN; the `data-swiping` rules below zero it
+   so the way out stays immediate.
+
+   The title needs a length at both ends or there is nothing to interpolate:
+   reverting to `max-height: none` is a snap, and since this line box is what
+   sets the pill's height (see PillTitle), the pill popped back to full height
+   in a single frame with the glass still on it. 20px is above its natural
+   height, so it does not clip at rest.
+
+   The ink waits longest of all, and for a reason that only exists because the
+   segments overlap: three translucent shapes lapping over one another paint
+   their overlaps twice, so the moment the ink stops being opaque the joins
+   show as two dark pips. Held, the ink is at full strength and there is
+   nothing to see; so on the way back it stays there until the laps have
+   opened, and only then dims to the resting grey. */
+/* Written as the `transition` shorthand, one complete tuple per line, and not
+   as parallel `transition-property` / `-duration` / `-delay` lists. A shorthand
+   in a property list (`margin`, `padding`) expands to its longhands and shifts
+   every index after it, so the parallel lists silently slide out of step —
+   which is how the ink here ended up on the shape's timing and fading while
+   the laps were still closed. Per-item timing cannot misalign. */
+[data-window-grip] {
+  --grip-ease: cubic-bezier(0.2, 0, 0, 1);
+  transition:
+    padding 130ms var(--grip-ease) 70ms,
+    background-color 110ms var(--grip-ease),
+    border-color 110ms var(--grip-ease),
+    box-shadow 110ms var(--grip-ease),
+    backdrop-filter 110ms var(--grip-ease);
+}
+[data-window-grip] [data-window-control] {
+  transition:
+    margin 130ms var(--grip-ease) 70ms,
+    width 130ms var(--grip-ease) 70ms,
+    height 130ms var(--grip-ease) 70ms,
+    opacity 120ms var(--grip-ease) 130ms,
+    background-color 120ms var(--grip-ease),
+    transform 140ms var(--grip-ease);
+}
+[data-window-grip] [data-window-title] {
+  max-height: 20px;
+  transition: max-height 130ms var(--grip-ease) 70ms;
+}
+
+/* Spacing is a margin here, not the row's `gap`, because only a margin can go
+   negative — and going negative is the whole trick. */
+[data-window-grip] [data-window-dots] {
+  gap: 0;
+}
+[data-window-grip] [data-window-control]:not(:first-child) {
+  margin-inline-start: calc(5px - 8 * var(--held, 0px));
+}
+
+[data-surface-popup][data-swiping] [data-window-grip] {
+  /* Magnitude of the drag, either direction. `abs()` is too new to rely on. */
+  --grip-reach: max(var(--surface-travel, 0px), calc(-1 * var(--surface-travel, 0px)));
+  /* A SWITCH, NOT A SLIDER: 0px until there is any travel at all, 1px after.
+     Base UI does not publish travel until it has decided the press is a swipe
+     — it eats its own threshold first, ~16px, measured — so "travel is not
+     zero" already means "this is a drag", and the grip needs no threshold of
+     its own. Every dimension is then one lerp between two numbers, and the
+     transition carries it: the morph is the same 140ms whether the sheet moves
+     20px or 200. */
+  --held: clamp(0px, calc(var(--grip-reach) * 1000), 1px);
+
+  /* Ends at 36 + 2×6: the glass keeps a margin around the line rather than
+     shrink-wrapping it. */
+  padding-inline: calc(10px - 4 * var(--held));
+  padding-block: calc(6px - 1 * var(--held));
+  transition-delay: 0ms;
+}
+
+/* The three dots become the site's own grabber: three 14px segments lapping
+   3px over one another is 36 wide, and they thin to 4 tall — `h-1 w-9` in
+   sheet.tsx, the bar every other sheet is dragged by. */
+[data-surface-popup][data-swiping] [data-window-grip] [data-window-control] {
+  width: calc(6px + 8 * var(--held));
+  height: calc(6px - 2 * var(--held));
+  transition-delay: 0ms;
+}
+
+/* The pill is 28.5 tall because the title it never shows holds it open (see
+   PillTitle). A bar cannot be, so the line box comes down with it. Capped from
+   a number well above its natural height rather than from the height itself,
+   so nothing here has to know the font's metrics. */
+[data-surface-popup][data-swiping] [data-window-grip] [data-window-title] {
+  max-height: calc(20px - 16 * var(--held));
+  transition-delay: 0ms;
+}
 
 [data-window-grip]::before {
   content: "";
   position: absolute;
-  inset: -0.5rem -0.75rem;
+  /* A fixed box, centred on the pill — NOT an inset, which would let the tuck
+     take the target in with it. What you can hit does not move when what you
+     can see draws itself in; that is the whole reason the two are separate. */
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: 72px;
+  height: 44px;
 }
 
 /* =============================================================================

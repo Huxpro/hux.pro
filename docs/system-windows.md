@@ -215,26 +215,86 @@ when stranded**: lit is glass with bright dots, rest is the pill the desktop
 wears, and a press whose release goes missing leaves the pill looking pressed —
 wrong, never missing. That is the bar anything on this control has to clear.
 
-The one thing the phone pill does not borrow is its target. `::before` takes
-the hit area to 72×44.5 from a pill of 48×28.5 (`globals.css`), because this
-pill is also a handle. Target and look are deliberately separate — a pill that one
-day shrinks into the 36×4 bar must not take its target down with it.
+**The tuck.** Under a drag the dots run together and stretch into a handle:
+**48×28.5 around three 6px dots becomes 48×14 around a 36×4 line** — `h-1 w-9`,
+the same bar every other sheet on the site is dragged by, wearing the window's
+glass and keeping a margin around it. It reads as something you are holding
+rather than something you might tap, and it comes home on release.
 
-What failed that bar is worth keeping written down. The dots used to
-become the site's 36×4 grabber while the sheet was dragged: proportional to the
-live travel first (which a sheet with detents zeroes every time it lands on
-one, so it flickered), then a phase machine in the grip (which had to know when
+**Two states and a transition**, not a value tracking the finger. Every version
+of this that interpolated on the live drag was harder than it needed to be and
+less steady than it looked: each had to decide what the shape meant at every
+pixel, and the answer was never more interesting than *held* or *not*. So the
+travel is read once, as a switch, and the morph is the same 140ms whether the
+sheet moves 20px or 200.
+
+The switch is free, because **Base UI does not publish any travel until it has
+decided the press is a swipe** — it eats its own ~16px threshold first. A
+non-zero travel already means a drag, so the grip needs no threshold, no
+timer and no state of its own; a tap produces no travel and so never starts
+down the road to being a handle.
+
+The segments **overlap** rather than butting together — three 14px stadiums
+lapping 3px over one another is 36 wide — which is what lets the whole thing be
+one unstaged transition. Two stadiums of the same height and colour merge
+seamlessly wherever they meet, so the joins never have to be squared off and
+there is no moment mid-morph where the corners have gone square but the gaps
+have not yet closed. (There was, when this squared its own corners: two frames
+at full speed, a bowtie at a fourteenth of it.) The dots keep `rounded-full`
+throughout and the browser clamps it to half their height as they thin, so the
+ends stay stadium-round without being told to.
+
+It is not a state of ours. Base UI publishes the live drag as
+`--drawer-swipe-movement-y`; the sheet re-publishes it as `--surface-travel`
+(Base UI registers its own `inherits: false`), and every dimension is one lerp
+off it, in CSS. Nothing to set, nothing to clear.
+
+**Letting go is not the morph in reverse.** Released, the glass and then the
+shape, in that order: the background fades out with the handle still a handle,
+and the shape comes back underneath once there is nothing left to see it in.
+Going out is immediate; only the return is staged, which is why the delays live
+on the rest rules and the `data-swiping` rules zero them. Two details this
+needed: the title needs an explicit `max-height` at rest, because reverting to
+`none` is not interpolable and the pill's height — which is that line box —
+snapped back in a single frame with the glass still on it; and the ink holds at
+full strength until the laps have opened, because three translucent shapes
+lapping over one another paint their overlaps twice and the joins would show as
+two dark pips.
+
+A merged line is the one shape that does **not** read as a window's controls,
+so unlike a plain tuck it cannot rest on "stranded is merely wrong". Three
+things carry it instead:
+
+- It takes **two independent signals** to reach — `data-swiping` and a non-zero
+  travel — and either one coming home on its own undoes it. Both are cleared by
+  Base UI itself on release, on every path this app has, including the captured
+  mouse release that reaches none of our listeners.
+- The **glass, its 36px of width, and the target never go anywhere**. `::before`
+  is a fixed 72×44 box centred on the pill, not an inset, so the tuck cannot
+  take the target along.
+- The dots on a grip are an **indicator, never three buttons** — the whole pill
+  is the one control — so even fully merged, nothing has stopped working: still
+  a handle you can drag, still a target that opens the menu.
+
+The five that failed are worth keeping written down. The dots used to
+*become* the 36×4 grabber while the sheet was dragged, and then had to be
+turned back into dots: proportional to the live travel first, then a phase
+machine in the grip (which had to know when
 the gesture ended, and cannot — Base UI captures the pointer for everything
 except touch, and the release then reaches nothing at all, so the phase stuck
 and `keepMounted` carried it into the next time the app opened), then the
 sheet's own gesture state (better, and still one flush of a nested drawer away
 from being stranded). Every version had the same shape: something had to
 *clear* the interesting state, whatever clears it can be missed, and what it
-cleared was the controls themselves. Whatever a handle gains from changing
-shape does not outweigh a window whose controls are sometimes missing — so
-nothing changes shape, and if the morph returns it must be something that
-cannot persist: an animation that always ends where it started, not a state
-someone has to clear.
+cleared was the controls themselves.
+
+Two things came out of finally measuring those signals instead of reasoning
+about them. `--drawer-swipe-movement-y` is **monotonic from the start of the
+gesture and does not reset at a detent landing** — the note that said otherwise,
+and sent three of those versions hunting for a latch, was simply wrong. And
+both it and `data-swiping` are cleared by Base UI itself on release, including
+the captured mouse release our own listeners never see. The signal was never
+the problem. Morphing into something that is not a control was.
 
 The one thing the grip still owns is the tap, which is the one thing that can
 be lost harmlessly (no menu opens; the next tap works). It opens the menu

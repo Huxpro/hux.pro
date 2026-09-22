@@ -134,7 +134,10 @@ export function TrafficDots({
   onAction?: (action: DotAction) => void;
 }) {
   return (
-    <div className="flex items-center gap-[5px] [@media(hover:hover)]:gap-2">
+    <div
+      data-window-dots
+      className="flex items-center gap-[5px] transition-all duration-200 [@media(hover:hover)]:gap-2"
+    >
       {DOTS.map((dot) => (
         <Dot
           key={dot.label}
@@ -159,6 +162,7 @@ export function TrafficDots({
 export function PillTitle({ children }: { children: React.ReactNode }) {
   return (
     <span
+      data-window-title
       className={cn(
         "cursor-pointer overflow-hidden whitespace-nowrap text-[11px] font-medium",
         "text-foreground/70 transition-all duration-200 hover:text-foreground",
