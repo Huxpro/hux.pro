@@ -31,6 +31,7 @@ export {
   TiltPrimerSheet,
   WeatherIcon,
   WeatherWidget,
+  WeatherLine,
   WeatherNow,
   useDisplayWeather,
 } from "./components";
