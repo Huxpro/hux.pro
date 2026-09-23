@@ -154,7 +154,7 @@ function Meta({ set }: { set: AttachmentSet }) {
     <div className="min-w-0">
       <div className={cn("truncate", TYPE.mediaTitle)}>{set.title}</div>
       {set.subtitle && (
-        <div className={cn("mt-0.5 truncate", TYPE.labelWide)}>
+        <div className={cn("mt-0.5 truncate", TYPE.label)}>
           {set.subtitle}
         </div>
       )}

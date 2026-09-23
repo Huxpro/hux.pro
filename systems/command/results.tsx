@@ -31,7 +31,7 @@ import { useCommand } from "./provider";
 
 /** cmdk group headings, styled once for both shells (goes on the root). */
 export const GROUP_HEADINGS =
-  "[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider";
+  "[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground";
 
 const ROW = [
   "flex items-center gap-3 px-3 py-2.5 rounded-lg",

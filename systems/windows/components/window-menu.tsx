@@ -189,7 +189,7 @@ export function WindowMenuBody({
           <div className={cn("truncate font-medium text-foreground", sheet ? "text-[15px]" : "text-sm")}>
             {title}
           </div>
-          <div className="truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <div className="truncate font-mono text-[10px] text-muted-foreground">
             {kind}
           </div>
         </div>

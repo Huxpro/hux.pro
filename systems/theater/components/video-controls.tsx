@@ -108,7 +108,7 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
           ) : (
             // A deck has no transport of its own here — reveal.js takes the
             // arrow keys inside the frame — so the slot names what is up.
-            <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            <span className="px-2 text-[10px] font-mono text-muted-foreground">
               {track?.kind === "slides" ? "slides" : track?.platform}
             </span>
           )}

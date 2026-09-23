@@ -318,7 +318,7 @@ export function TheaterOverlay() {
                         {track.title}
                       </div>
                       {track.subtitle && (
-                        <div className="mt-0.5 truncate text-xs font-mono uppercase tracking-wide text-muted-foreground drop-shadow-sm">
+                        <div className="mt-0.5 truncate text-xs font-mono text-muted-foreground drop-shadow-sm">
                           {track.subtitle}
                         </div>
                       )}

@@ -121,7 +121,7 @@ export function Slides({
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-muted/40 to-muted/10">
             <Presentation className="h-10 w-10 text-tertiary-foreground" />
-            <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground">
+            <span className="font-mono text-[10px] text-tertiary-foreground">
               Slides
             </span>
           </div>

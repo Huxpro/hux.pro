@@ -428,7 +428,7 @@ function InlinePlayable({
             className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/55 text-white/90"
           >
             <PictureInPicture2 className="size-6" strokeWidth={1.75} />
-            <span className="font-mono text-[10px] uppercase tracking-wider">
+            <span className="font-mono text-[10px]">
               {t(locale, "theaterSurfacePip")}
             </span>
           </button>
@@ -447,7 +447,7 @@ function InlinePlayable({
             title={t(locale, "theaterReturnPip")}
             className={cn(
               "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5",
-              "font-mono text-[10px] uppercase tracking-wider leading-none",
+              "font-mono text-[10px] leading-none",
               SURFACE_CHIP,
               "transition-colors hover:text-foreground",
             )}

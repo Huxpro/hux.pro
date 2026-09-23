@@ -295,7 +295,26 @@ export const WIDGET_ICON_HIT = cn(
 );
 
 /**
- * WidgetLink - Navigation arrow link for header
+ * Chrome that says something the card already says, shown only when the
+ * card is being attended to.
+ *
+ * The header arrow and a strip's pager dots are signifiers, not functions of
+ * their own: the whole card is the tap target (`WidgetShell`) and the peek of
+ * the next cover is what says a strip scrolls. At rest they are a second way
+ * of saying it, seven times over on the home grid. So they wait for a pointer
+ * over the card or focus inside it, and under a finger — where the card's tap
+ * and the swipe are the whole interaction — they are never drawn. Still in
+ * the tree either way: a keyboard reaches the arrow and a screen reader reads
+ * it, and focusing either one shows it.
+ */
+export const WIDGET_REVEAL = cn(
+  "opacity-0 transition-opacity duration-200",
+  "group-hover/widget:opacity-100 group-focus-within/widget:opacity-100 focus-visible:opacity-100",
+);
+
+/**
+ * WidgetLink - Navigation arrow link for header. Revealed with the card
+ * (`WIDGET_REVEAL`): the card is the link; the arrow is its keyboard stop.
  */
 export function WidgetLink({
   href,
@@ -307,7 +326,15 @@ export function WidgetLink({
   variant?: "icon" | "text";
 }) {
   return (
-    <Link href={href} aria-label={label} className={WIDGET_ICON_HIT}>
+    <Link
+      href={href}
+      aria-label={label}
+      className={cn(
+        WIDGET_ICON_HIT,
+        WIDGET_REVEAL,
+        "transition-[color,background-color,opacity]",
+      )}
+    >
       {variant === "icon" ? <ArrowRight className="h-3 w-3" /> : "→"}
     </Link>
   );

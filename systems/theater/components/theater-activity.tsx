@@ -65,7 +65,7 @@ export function TheaterActivity() {
       title={
         <>
           {showEQ && <EQBars className="text-red-500" />}
-          <span className="truncate text-xs font-mono uppercase tracking-wider text-muted-foreground">
+          <span className="truncate text-xs font-mono text-muted-foreground">
             {t(locale, deck ? "theaterDeck" : "theaterWatching")}
           </span>
         </>
@@ -81,7 +81,7 @@ export function TheaterActivity() {
               {track.title}
             </div>
             {track.subtitle && (
-              <div className="mt-1 truncate text-xs font-mono uppercase leading-relaxed tracking-wide text-muted-foreground">
+              <div className="mt-1 truncate text-xs font-mono leading-relaxed text-muted-foreground">
                 {track.subtitle}
               </div>
             )}

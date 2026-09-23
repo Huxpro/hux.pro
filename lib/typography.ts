@@ -29,13 +29,20 @@ export const TYPE = {
   /** The system identifier (λhux) and other machine-layer marks. */
   identifier: "font-mono text-xs tracking-wider text-muted-foreground",
 
-  /** Section / widget label: WIDGET titles, the weather condition, WRITING. */
-  label: "font-mono text-xs uppercase tracking-wider text-muted-foreground",
+  /**
+   * Section / widget label: widget titles (`writing`), the weather
+   * condition, a talk's venue under its title, palette group headings.
+   *
+   * Set as written, not in capitals. The machine layer already speaks in
+   * lowercase mono everywhere else — `jul 2020`, `retry`, `cd ~`, `on Being`
+   * — and the strings were authored that way; `uppercase tracking-wider` was
+   * a second machine voice painted over them, louder than the content it
+   * labels. Mono is what marks a label as the system's; the capitals only
+   * repeated it. A proper name keeps its own case (`React Universe Conf`).
+   */
+  label: "font-mono text-xs text-muted-foreground",
   /** The dense version: caption strips in peeks and cards, tag rows. */
-  labelSm:
-    "font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground",
-  /** A subtitle under a media title: talks captions (`REACT UNIVERSE CONF`). */
-  labelWide: "font-mono text-xs uppercase tracking-wide text-muted-foreground",
+  labelSm: "font-mono text-[10px] text-tertiary-foreground",
 
   /** A row's title: a post in a list, a commit, a track. */
   rowTitle: "text-sm text-foreground",
@@ -110,8 +117,6 @@ export const TYPE = {
 
   /** A keyboard hint. */
   kbd: "rounded bg-muted/50 px-1.5 py-0.5 font-mono text-xs text-muted-foreground",
-  /** A small tag glued to a title: `featured`, `EN`. */
-  pill: "rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground",
 } as const;
 
 export type TypeRole = keyof typeof TYPE;
