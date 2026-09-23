@@ -281,6 +281,19 @@ export function TimelineCommit({
   // renderer — so the editor stays the page it is editing.
   const tiled = new Set(data.stripItems.map((item) => item.media));
   const stacked = expandedMedia.filter((m) => !tiled.has(m));
+  // A rail icon for something the row already shows as a cover is a second
+  // door to the same object, so while covers print (the strip, or the
+  // feed's grid) the rail keeps only what has no cover — a website, a repo,
+  // the press platform. The index form prints no covers; there the rail is
+  // the only way in and keeps everything.
+  const showsCovers =
+    showStrip ||
+    (!isQuiet && rowForm.media === "grid" && expandedMedia.length > 0);
+  const railLinks = isQuiet
+    ? []
+    : showsCovers
+      ? data.links.filter((link) => !link.media || !tiled.has(link.media))
+      : data.links;
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
@@ -532,7 +545,7 @@ export function TimelineCommit({
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {(!isQuiet ? data.links : []).map((link, i) => {
+          {railLinks.map((link, i) => {
             const className =
               cn("inline-flex items-center gap-1", TYPE.linkQuiet);
             // The label is one of the notes: the feed spells the rail out.
