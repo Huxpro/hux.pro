@@ -104,11 +104,14 @@ export function WidgetShell({
         // not inherit the card's `:hover` / `:active`. Widget-level hover
         // effects opt in with `group-hover/widget`.
         "group/widget relative rounded-2xl overflow-hidden",
-        "border border-border/50",
-        "transition-all duration-300",
+        // The fill is the object. A hairline on glass is a second outline
+        // saying the same thing, so it is drawn only when there is no fill
+        // to be the edge — a card that is a window onto the wallpaper.
+        // Hover answers with the fill, not with a darker line.
+        "border transition-colors duration-300",
         widgetEnabled
-          ? "bg-transparent backdrop-blur-sm hover:bg-ink/5"
-          : "bg-glass backdrop-blur-xl hover:border-border hover:bg-glass-hover",
+          ? "border-border/40 bg-transparent backdrop-blur-sm hover:bg-ink/5"
+          : "border-transparent bg-glass backdrop-blur-xl hover:bg-glass-hover",
         // Press wash for surface presses only (see `.widget-surface`).
         tappable && "widget-surface",
         className
@@ -166,8 +169,10 @@ export function WidgetHeader({
 /**
  * WidgetTitle - Consistent title typography.
  *
- * `signal` prefixes the pulsing status dot (see WidgetStatus) so any widget
+ * `signal` prefixes a still status dot (see WidgetStatus) so any widget
  * can flag itself as live / in-progress without composing the dot by hand.
+ * The dot is the mark. It does not pulse — a loop would keep asking for
+ * attention after the state has already been read.
  */
 export function WidgetTitle({
   className,
@@ -286,7 +291,7 @@ export function WidgetScrollBody({
  */
 export const WIDGET_ICON_HIT = cn(
   "pressable -m-2 inline-flex size-7 shrink-0 items-center justify-center rounded-md outline-none",
-  "text-muted-foreground transition-colors duration-200",
+  "text-muted-foreground transition-[color,background-color,opacity] duration-200",
   // `--muted` is already a 4–6% ink wash, so `bg-muted/20` is invisible.
   // Same foreground alphas as `GLASS_BTN` — a finger can see the well.
   "hover:bg-foreground/[0.06] hover:text-foreground",
@@ -307,7 +312,21 @@ export function WidgetLink({
   variant?: "icon" | "text";
 }) {
   return (
-    <Link href={href} aria-label={label} className={WIDGET_ICON_HIT}>
+    <Link
+      href={href}
+      aria-label={label}
+      className={cn(
+        WIDGET_ICON_HIT,
+        // The card is already the control. The arrow only confirms it, and
+        // only once a pointer is on the card. A finger has no hover, and on
+        // some cards the arrow is a second destination (this entry vs the
+        // index), so it stays put there. Invisible, it also stops taking
+        // the click the surface owns.
+        "pointer-fine:pointer-events-none pointer-fine:opacity-0",
+        "pointer-fine:group-hover/widget:pointer-events-auto pointer-fine:group-hover/widget:opacity-100",
+        "pointer-fine:focus-visible:pointer-events-auto pointer-fine:focus-visible:opacity-100",
+      )}
+    >
       {variant === "icon" ? <ArrowRight className="h-3 w-3" /> : "→"}
     </Link>
   );
@@ -345,13 +364,18 @@ export function WidgetIconButton({
 }
 
 /**
- * WidgetStatus - Pulsing status indicator (e.g., for "currently working at")
+ * WidgetStatus - A still mark for "this one is live". Ink, not a colour,
+ * and no loop: the palette has no accent, and a ping restates a fact the
+ * dot already said.
  */
 export function WidgetStatus({ className }: { className?: string }) {
   return (
-    <span className={cn("relative flex h-2 w-2", className)}>
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-    </span>
+    <span
+      aria-hidden
+      className={cn(
+        "inline-flex size-1.5 shrink-0 rounded-full bg-foreground/45",
+        className,
+      )}
+    />
   );
 }

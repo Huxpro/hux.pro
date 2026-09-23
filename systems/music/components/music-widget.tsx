@@ -35,7 +35,7 @@ export function MusicWidget() {
     <WidgetShell onOpen={openPlaylist}>
       <WidgetHeader className="pb-3">
         <div className="flex items-center gap-2 min-w-0">
-          {showEQ && <EQBars className="text-green-500" />}
+          {showEQ && <EQBars />}
           <WidgetTitle className="truncate">
             {t(locale, isPlaying || isLoading ? "widgetMusic" : "widgetMusicIdle")}
           </WidgetTitle>

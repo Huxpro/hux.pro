@@ -79,7 +79,7 @@ export function MusicPlaylistSheet() {
       scrollRef={listRef}
       title={
         <span className="flex items-center gap-2">
-          {isPlaying && <EQBars className="text-green-500" />}
+          {isPlaying && <EQBars />}
           <span className="truncate">{t(locale, "musicPlaylist")}</span>
           {playlist.length > 0 && (
             <span className="shrink-0 font-mono text-xs tabular-nums text-tertiary-foreground">
@@ -184,7 +184,7 @@ function TrackList({
                     {/* Position — index number, or EQ bars on the live row */}
                     <span className="w-5 shrink-0 flex justify-center text-[10px] font-mono text-muted-foreground tabular-nums">
                       {active && isPlaying ? (
-                        <EQBars className="text-green-500" />
+                        <EQBars />
                       ) : (
                         i + 1
                       )}

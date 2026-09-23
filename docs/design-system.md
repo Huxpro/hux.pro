@@ -350,23 +350,30 @@ import { SystemNav } from "@/components/ui/system-nav";
 
 ### Homepage Widgets
 
-Glassmorphic cards used on the homepage for content discovery:
+Glassmorphic cards used on the homepage for content discovery. The fill is the object: a hairline on top of glass is a second outline saying the same thing, so `WidgetShell` draws a border only when the card has no fill of its own — wallpaper placement `widget`, where the card is a window and the line is what keeps the shape. Hover answers with the fill (`hover:bg-glass-hover`), not a darker line.
+
+The header arrow confirms a tap the card already is. Under a fine pointer it stays hidden until the pointer is on the card (or the link itself is focused). Under a finger it stays, because there is no hover to reveal it and on some cards it is a second destination.
 
 ```css
-/* Base widget styling */
-p-5 rounded-2xl
-bg-card/50 backdrop-blur-xl
-border border-border/50
-transition-all duration-300
+/* Base widget styling — glass fill, no resting border */
+rounded-2xl overflow-hidden
+border border-transparent
+bg-glass backdrop-blur-xl
+transition-colors duration-300
 
 /* Hover state */
-hover:border-border hover:bg-card/70
+hover:bg-glass-hover
+
+/* Wallpaper-in-widget: the line is the edge */
+border-border/40 bg-transparent
 ```
 
 Widget headers use monospace uppercase labels:
 ```css
 text-xs font-mono uppercase tracking-wider text-muted-foreground
 ```
+
+A live mark (`WidgetStatus`, the music EQ) is ink and still, or ink and moving. The motion is the signal. A green pulse is a second voice the palette does not have.
 
 ### Conversational Prompt
 

@@ -21,7 +21,10 @@ import { TYPE } from "@/lib/typography";
 
 export function EQBars({ className }: { className?: string }) {
   return (
-    <div className={cn("flex items-end gap-px h-2", className)} aria-hidden>
+    <div
+      className={cn("flex items-end gap-px h-2 text-foreground", className)}
+      aria-hidden
+    >
       {[0, 1, 2].map((i) => (
         <span
           key={i}
