@@ -3,10 +3,9 @@
 import { PageLayout } from "@/components/ui/page-layout";
 import type { PostLanguage } from "@/lib/content";
 import type { Locale } from "@/lib/i18n";
-import { Info, Languages } from "lucide-react";
-import { t } from "@/services";
+import { Languages } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { Fragment, useEffect, useId, useState, type ReactNode } from "react";
+import { Fragment, useEffect, type ReactNode } from "react";
 import { ReadingSettings } from "./reading-sheet";
 import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
@@ -107,23 +106,10 @@ export function PostContent({
     displayLocale === "zh" && readingTimeZh ? readingTimeZh : readingTime;
   const displayOrigin =
     displayLocale === "zh" && originZh ? originZh : origin;
-  // Two kinds of thing were sharing one line. The date, the reading time and
-  // the language switch are handles — a word or two each, to scan and to
-  // press. Provenance is a sentence. A sentence set among chips reads as
-  // clutter however short it is, and the longest of them wrapped the row onto
-  // two lines at every width, stranding a "·" at the end of the first and
-  // leaving the "Aa" alone above an empty half-line.
-  //
-  // So the provenance folds away instead. It keeps the handles' face and its
-  // size exactly -- the two things tried before this, a serif aside and a
-  // point smaller, each bought quiet by making the header a place where two
-  // typographic systems meet, which is the crowding it was meant to fix. A
-  // an `(i)` is not a third voice: the row is one line until someone asks it
-  // not to be, and when they do the sentence arrives in the voice it always
-  // had, one ink rung down because that is what tertiary is for.
-  //
-  // Folded by default. Provenance is a thing a reader looks up once, if ever;
-  // the article is what they came for.
+  // Provenance is a sentence, and a thing a reader looks up once, if ever.
+  // Among the header's handles it read as clutter — and on a phone it had to
+  // fold behind an `(i)` to fit at all. It is a colophon: it closes the
+  // article instead of standing between the title and the text.
   /**
    * One row, joined by dots -- the shape the header had before any of this was
    * interactive, and the shape it keeps. That some of these now do something
@@ -134,8 +120,6 @@ export function PostContent({
    *
    * The order is the array's order, and the dots fall between whatever
    * survives the filter, so there is never one stranded at the end of a line.
-   * Only the last slot varies by width, and it always shows exactly one of its
-   * two children -- so no slot is ever empty and no dot is ever orphaned.
    */
   const items = [
     headerMeta,
@@ -149,9 +133,6 @@ export function PostContent({
     // Left with everything else. It was pushed to the far edge once, and that
     // is the one place on the page the ruler also wants.
     toc && <ReadingSettings />,
-    displayOrigin && (
-      <Provenance origin={displayOrigin} locale={displayLocale} />
-    ),
   ].filter(Boolean);
 
   // `relative z-[35]`: the row wraps, so any item can end up near the docked
@@ -189,51 +170,15 @@ export function PostContent({
       <div className="prose-article" lang={displayLocale}>
         {children}
       </div>
+      {displayOrigin && (
+        <p
+          lang={displayLocale}
+          className={cn("mt-[calc(var(--reading-size)*4)]", TYPE.meta)}
+        >
+          {renderMarkdownLinks(displayOrigin)}
+        </p>
+      )}
       {toc && <RulerToc />}
     </PageLayout>
-  );
-}
-
-/**
- * Where this text came from, last on the line either way.
- *
- * At `md` and up it is simply there. Below it, the `(i)` stands in its place
- * -- literally: the handle takes the slot the sentence would have had, so the
- * row does not rearrange itself between widths. Pressing it wraps the sentence
- * onto a second line as the row's last item.
- *
- * It owns its own open state so that pressing the `(i)` re-renders these two
- * nodes rather than the whole page shell -- which, up a level, meant
- * re-running `PageLayout` and remounting the nav's scramble on every press.
- */
-function Provenance({ origin, locale }: { origin: string; locale: Locale }) {
-  const id = useId();
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <HeaderAction
-        variant="action"
-        className="md:hidden"
-        active={open}
-        onClick={() => setOpen((v) => !v)}
-        expanded={open}
-        controls={id}
-        label={t(locale, "postOrigin")}
-        title={t(locale, "postOrigin")}
-      >
-        <Info className="h-3 w-3" />
-      </HeaderAction>
-      <span
-        id={id}
-        // One class, not a `hidden` + `md:inline` pair to keep in step: this
-        // is a disclosure that is forced open once the line has room.
-        className={cn(
-          !open && "max-md:hidden",
-          open && "animate-in fade-in duration-200",
-        )}
-      >
-        {renderMarkdownLinks(origin)}
-      </span>
-    </>
   );
 }

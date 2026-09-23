@@ -243,7 +243,6 @@ export const translations = {
     solarThemeNote: "Preference unchanged",
 
     // The article header's provenance line, folded behind an `(i)`.
-    postOrigin: "Where this was first published",
 
     // Reading settings (the article page's "Aa")
     readingSettings: "Reading settings",
@@ -606,7 +605,6 @@ export const translations = {
     solarThemeNote: "偏好未更改",
 
     // The article header's provenance line, folded behind an `(i)`.
-    postOrigin: "首发于何处",
 
     // Reading settings (the article page's "Aa")
     readingSettings: "阅读设置",

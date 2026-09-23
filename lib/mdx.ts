@@ -7,6 +7,16 @@ import type { BlogPost, Doc, PostLanguage } from "./content";
 const contentDirectory = path.join(process.cwd(), "content");
 
 /**
+ * "4 min" for English text, "4 分钟" for Chinese — the estimate is
+ * printed in the language of the text it measures, so a 中文 article's
+ * header does not carry the one English phrase on the page.
+ */
+function readingTimeText(body: string, lang: "en" | "zh"): string {
+  const minutes = Math.max(1, Math.ceil(readingTime(body).minutes));
+  return lang === "zh" ? `${minutes} 分钟` : `${minutes} min`;
+}
+
+/**
  * Find the first image URL referenced in the post body — used as the peek
  * preview's cover so the hover surfaces the visual vibe alongside the text.
  *
@@ -313,7 +323,7 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
     const parsed = matter(enContents);
     enData = parsed.data;
     content = parsed.content;
-    readingTimeEn = readingTime(content).text;
+    readingTimeEn = readingTimeText(content, "en");
   }
 
   // Read Chinese content
@@ -325,7 +335,7 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
     const parsed = matter(zhContents);
     zhData = parsed.data;
     contentZh = parsed.content;
-    readingTimeZh = readingTime(contentZh).text;
+    readingTimeZh = readingTimeText(contentZh, "zh");
   }
 
   // Merge frontmatter: prefer English, fallback to Chinese for Chinese-only posts
@@ -554,7 +564,6 @@ export function getDocBySlug(slug: string): DocWithContent | null {
     const { content } = matter(fileContents);
     const title = extractTitleFromMarkdown(content);
     const description = extractDescriptionFromMarkdown(content);
-    const stats = readingTime(content);
 
     return {
       slug,
@@ -562,7 +571,7 @@ export function getDocBySlug(slug: string): DocWithContent | null {
       title,
       description,
       content,
-      readingTime: stats.text,
+      readingTime: readingTimeText(content, "en"),
     };
   }
 
@@ -580,7 +589,7 @@ export function getDocBySlug(slug: string): DocWithContent | null {
     content = parsed.content;
     title = extractTitleFromMarkdown(content);
     description = extractDescriptionFromMarkdown(content);
-    readingTimeEn = readingTime(content).text;
+    readingTimeEn = readingTimeText(content, "en");
   }
 
   // Read Chinese content
@@ -594,7 +603,7 @@ export function getDocBySlug(slug: string): DocWithContent | null {
     contentZh = parsed.content;
     titleZh = extractTitleFromMarkdown(contentZh);
     descriptionZh = extractDescriptionFromMarkdown(contentZh);
-    readingTimeZh = readingTime(contentZh).text;
+    readingTimeZh = readingTimeText(contentZh, "zh");
   }
 
   // For Chinese-only docs, use Chinese as primary
