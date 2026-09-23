@@ -6,6 +6,7 @@ import {
   WidgetLink,
   WidgetShell,
   WidgetTitle,
+  WIDGET_REVEAL,
 } from "@/components/ui/widget";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
@@ -94,7 +95,7 @@ export function FeaturedTalksWidget() {
                 {track.title}
               </div>
               {track.subtitle && (
-                <div className={cn("mt-0.5 truncate", TYPE.labelWide)}>
+                <div className={cn("mt-0.5 truncate", TYPE.label)}>
                   {track.subtitle}
                 </div>
               )}
@@ -107,7 +108,10 @@ export function FeaturedTalksWidget() {
           count={album.tracks.length}
           index={activeCard}
           onSelect={scrollTo}
-          className="pt-3"
+          // A pointer's way to page the strip (a wheel cannot scroll it
+          // sideways), shown with the card; a finger swipes, and the peek
+          // of the next cover already says it can.
+          className={cn("pt-3 pointer-coarse:hidden", WIDGET_REVEAL)}
         />
       </div>
     </WidgetShell>

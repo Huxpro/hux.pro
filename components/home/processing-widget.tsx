@@ -30,8 +30,8 @@ import { useMemo } from "react";
 // curated the same way: the talks card reads its `featured-*-talks` groups,
 // this one reads `featured-projects`. A card is a preview, and a preview is
 // a choice about what to show — a truncated list is not one. Rows are dense
-// git-log lines with link pills and author bylines; attachments (cards,
-// videos, slides) are stripped for the footprint.
+// git-log lines with author bylines; link pills and attachments (cards,
+// videos, slides) are left to /works, where each row permalinks.
 //
 // Everything is derived from `content/log.json` through the same helpers
 // /works uses (`resolveGroupCommits`, `buildTimelineData`, `computeRail`,

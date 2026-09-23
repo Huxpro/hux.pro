@@ -6,6 +6,7 @@ import {
   WidgetLink,
   WidgetShell,
   WidgetTitle,
+  WIDGET_REVEAL,
 } from "@/components/ui/widget";
 import { PagerDots, useSnapPager } from "@/components/ui/snap-pager";
 import { cn } from "@/lib/utils";
@@ -92,13 +93,14 @@ export function HStackWidget({
           <div className="flex-shrink-0 w-5" aria-hidden="true" />
         </div>
 
-        {/* Dots */}
+        {/* Dots: a pointer's way to page the strip, shown with the card
+            (WIDGET_REVEAL). A finger swipes, and the peek says it can. */}
         <PagerDots
           count={items.length}
           index={index}
           onSelect={scrollTo}
           label={(page) => `Go to slide ${page}`}
-          className="pt-3"
+          className={cn("pt-3 pointer-coarse:hidden", WIDGET_REVEAL)}
         />
       </div>
     </StackShell>

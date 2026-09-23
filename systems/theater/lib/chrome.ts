@@ -126,7 +126,7 @@ export const GLASS_CLUSTER_BTN = cn(GLASS_BTN, "h-7 w-7");
  */
 export const GLASS_ACTION = cn(
   "inline-flex items-center justify-center gap-1.5 rounded-full",
-  "text-xs font-mono uppercase tracking-wider",
+  "text-xs font-mono",
   "pressable text-muted-foreground",
   "transition-[color,background-color,transform] duration-200",
   "outline-none focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",

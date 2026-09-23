@@ -192,7 +192,7 @@ export function TheaterPlaylistSheet() {
                   <span className="truncate">{track.title}</span>
                 </span>
                 {track.subtitle && (
-                  <span className="mt-0.5 block truncate text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
+                  <span className="mt-0.5 block truncate text-[10px] font-mono text-muted-foreground">
                     {track.subtitle}
                   </span>
                 )}

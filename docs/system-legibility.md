@@ -204,21 +204,20 @@ production components and the lab's specimens both import:
 | Role | String | Where |
 |---|---|---|
 | `identifier` | mono xs tracking-wider secondary | λhux |
-| `label` | mono xs uppercase tracking-wider secondary | widget titles, WEATHER, the sheet's section labels |
-| `labelSm` | mono 10px uppercase tracking-wider tertiary | caption strips in peeks, tag rows |
-| `labelWide` | mono xs uppercase tracking-wide secondary | a talk's venue under its title |
+| `label` | mono xs secondary, set as written | widget titles, the weather condition, a talk's venue, palette headings |
+| `labelSm` | mono 10px tertiary, set as written | caption strips in peeks, tag rows |
 | `rowTitle` | sm ink | a post, a commit, a track in a list |
 | `mediaTitle` | sm medium leading-snug ink | what is playing |
 | `rowMeta` | mono xs tertiary | the date beside a row title, a topic line |
 | `meta` | mono xs secondary | an article's header line, the artist, sun times |
 | `hash` | mono xs quaternary | the hash column — the one mono role on the quaternary rung |
 | `caption` / `captionQuiet` | xs secondary / tertiary, relaxed | a description under a title / an embed's blurb |
-| `aside` | xs italic serif tertiary | commentary, a life event, "featured" |
+| `aside` | xs italic serif tertiary | commentary, a life event |
 | `body` | sm secondary relaxed | a widget's description, an empty state |
 | `appLabel` | 11px leading-tight secondary | the label under an app icon |
 | `nav` | mono xs tracking-wide secondary → ink on hover | the back link, `retry` |
 | `linkQuiet` | tertiary → ink on hover | icon links that brighten on hover |
-| `kbd` / `pill` | mono xs on `bg-muted/50` / mono 10px on `bg-muted` | keyboard hints / `featured`, `EN` |
+| `kbd` | mono xs on `bg-muted/50` | keyboard hints |
 
 That is the alignment guarantee the lab rests on: the specimen's date and the
 writing widget's date are `TYPE.rowMeta`, one string, so the two cannot
@@ -250,7 +249,12 @@ information (`meta`, secondary). `metaQuiet` is gone.
 
 Settled: palette group headings use `TYPE.label` (mono, like every other
 section label); the works meta line and everything else informational left
-quaternary (above); pills unified on `bg-muted`.
+quaternary (above); labels set as written, not in capitals — lowercase mono
+is already the machine layer's voice (`jul 2020`, `retry`, `cd ~`), and the
+capitals were a second, louder one over it (the devtool keeps its own
+readout voice). The talks caption's `labelWide` went with them: without the
+tracking it was `label`. The `pill` role is gone — `/writing` prints
+provenance (译 / 知乎) as `rowMeta` words and no longer badges `featured`.
 
 Still open, and reproduced verbatim in the lab:
 
@@ -258,9 +262,6 @@ Still open, and reproduced verbatim in the lab:
    section labels are `text-[11px]`; caption strips and the sheet's capsule are
    `text-[10px]`. The roles keep two (`label`, `labelSm`); the 11px sheet
    labels are not migrated and could go either way.
-2. **The talks caption** is `tracking-wide`, widget labels `tracking-wider`.
-   Kept as `labelWide`; it is a subtitle rather than a section label, and a
-   hair tighter reads better under a title.
 
 ### 6. The reading treatment
 

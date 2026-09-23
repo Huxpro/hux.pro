@@ -313,7 +313,7 @@ export function CardFace({
         <div
           className={cn(
             "flex items-center gap-1.5",
-            "text-muted-foreground font-mono uppercase tracking-wide",
+            "text-muted-foreground font-mono",
             compact ? "text-[10px]" : "text-xs",
           )}
         >

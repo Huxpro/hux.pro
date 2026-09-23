@@ -74,7 +74,7 @@ import { WeatherWallpaper } from "./wallpaper";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-0.5 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+    <div className="px-0.5 text-[11px] font-mono text-muted-foreground">
       {children}
     </div>
   );
@@ -94,7 +94,7 @@ function CompactRow<T extends string>({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 px-0.5">
-      <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+      <span className="text-[11px] font-mono text-muted-foreground">
         {label}
       </span>
       <Segmented tone="system" value={value} options={options} onChange={onChange} />
@@ -360,7 +360,7 @@ function WeatherStyleTile({
           <span
             className={cn(
               "absolute bottom-2 left-2 flex items-center gap-1 rounded-full px-2 py-0.5",
-              "text-[10px] font-mono uppercase tracking-wider",
+              "text-[10px] font-mono",
               ARTWORK_CHIP
             )}
           >

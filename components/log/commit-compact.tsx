@@ -54,7 +54,7 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
           )}
         </div>
         {data.secondaryLine && data.secondaryLine !== data.description && (
-          <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide truncate">
+          <div className="text-xs font-mono text-muted-foreground truncate">
             {data.secondaryLine}
           </div>
         )}
@@ -65,7 +65,7 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
         )}
         {/* Date — shown separately when secondaryLine doesn't include it */}
         {data.secondaryLine === data.description && (
-          <div className="text-xs font-mono text-muted-foreground uppercase tracking-wide">
+          <div className="text-xs font-mono text-muted-foreground">
             {data.date}
           </div>
         )}

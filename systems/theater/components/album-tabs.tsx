@@ -84,7 +84,7 @@ export function AlbumTabs({
             aria-selected={active}
             onClick={() => onSelect(i)}
             className={cn(
-              "relative isolate font-mono uppercase tracking-wider",
+              "relative isolate font-mono",
               // `pressable`: the label brightens on the touch-down frame, not
               // only on hover, and eases back on release.
               "pressable outline-none transition-colors duration-200",

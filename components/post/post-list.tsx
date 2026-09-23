@@ -120,7 +120,6 @@ export function PostList<T extends Post>({
             // Doc / Note. Powers the devtool hover inspector.
             frontmatter?: Record<string, unknown>;
             frontmatterZh?: Record<string, unknown>;
-            featured?: boolean;
           };
           // Locale-aware pick with cross-language fallback: prefer the
           // viewer's locale, fall back to the other when missing. Otherwise a
@@ -142,14 +141,12 @@ export function PostList<T extends Post>({
           // the calm replacement for the old hardcoded 「译」 title prefix.
           // peekTags is already locale-filtered, so only decorators visible in
           // this locale surface here.
+          //
+          // `featured` is deliberately not among them. Curation does its work
+          // on the home card, where it decides which posts are shown; in the
+          // archive every post is already present, in date order, and a badge
+          // on three of them is a second hierarchy over the one the list has.
           const rowDecorators = peekTags?.filter(isDecoratorTag) ?? [];
-          // `featured` renders in the same badge as the provenance decorators:
-          // like 译 / 知乎 it is a fact about the piece (editorial, not
-          // viewer-relative), whereas the EN / 中文 tag below is a transient
-          // filter-state hint and deliberately stays plain and quiet.
-          const rowBadges = postExtras.featured
-            ? [...rowDecorators, t(locale, "writingFeatured")]
-            : rowDecorators;
 
           const preview = (
             <PostPreview
@@ -175,17 +172,16 @@ export function PostList<T extends Post>({
               <div className="flex-1 min-w-0">
                 <h2 className={cn(TYPE.rowTitle, "sm:text-base font-normal")}>
                   {getLocalizedTitle(post, locale)}
-                  {rowBadges.map((tag) => (
-                    // The leading NBSP + nowrap wrapper glue the badge to the
-                    // title's last word, so it wraps together with the title
-                    // instead of dropping onto a line by itself (the badge is
-                    // an inline-block, which otherwise has a break point before
-                    // it). The NBSP also supplies the gap — no left margin.
+                  {rowDecorators.map((tag) => (
+                    // Provenance (译 / 知乎) is a word after the title in the
+                    // row's metadata ink, not a box: the same register as the
+                    // EN / 中文 hint beside it and the date across from it, so
+                    // the row has one voice for everything that is not the
+                    // title. The leading NBSP + nowrap glue it to the title's
+                    // last word so it never wraps onto a line by itself.
                     <span key={tag} className="whitespace-nowrap">
                       {" "}
-                      <span className={cn("ml-0.5 inline-block align-[0.1em]", TYPE.pill)}>
-                        {tag}
-                      </span>
+                      <span className={cn("ml-1", TYPE.rowMeta)}>{tag}</span>
                     </span>
                   ))}
                   {showLangTag && (

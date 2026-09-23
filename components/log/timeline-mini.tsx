@@ -4,8 +4,8 @@
  * TimelineMini — Minimized git-log row for widget-sized timelines.
  *
  * A trimmed-down `TimelineCommit`: same icon column + tenure rail, same
- * title / link-pill / date summary line and `<handle>` byline — minus
- * everything that needs page-width real estate (hash column, cursor peek,
+ * title / date summary line and `<handle>` byline — minus everything that
+ * needs page-width real estate (hash column, link pills, cursor peek,
  * pinned/expanded media, inspect mode). Attachments never render here.
  *
  * Consumes NormalizedCommit — fully type-agnostic.
@@ -27,7 +27,6 @@ import { Link } from "next-view-transitions";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
-import { LinkIcon } from "./embeds/shared";
 
 import { TYPE } from "@/lib/typography";
 
@@ -60,13 +59,12 @@ export function TimelineMini({
   const displayTitle =
     isAside && data.foldedTitle ? data.foldedTitle : data.title;
 
-  // Attachments never render here, so the pills that merely proxy a link
-  // card (`redundantWhenExpanded`) go too — what's left are the commit's
-  // real outbound links (website / GitHub / platform), which keeps narrow
-  // rows from drowning the title in globes.
-  const links = isAside
-    ? []
-    : data.links.filter((l) => !l.redundantWhenExpanded);
+  // No outbound links on a mini row. They used to sit between the title and
+  // the date — a globe and a GitHub mark on nearly every project — and on a
+  // widget-width card they were paid for out of the title, which truncated
+  // to make room ("React Compiler (F…"). The row is already a permalink to
+  // its full entry on /works, where every link is one more tap away; the
+  // preview's job is to say what the thing is, in full.
 
   // Events are the log's punctuation — they have no page of their own to
   // open, so they stay plain text. Asides are real commits (a talk, a
@@ -130,7 +128,7 @@ export function TimelineMini({
         )}
       </span>
 
-      {/* Summary line: title · [link-icons] ··· date */}
+      {/* Summary line: title ··· date */}
       <div className="flex items-center gap-2 min-w-0">
         <span
           className={cn(
@@ -152,24 +150,6 @@ export function TimelineMini({
             </span>
           )}
         </span>
-
-        {links.length > 0 && (
-          <div className="flex items-center gap-1.5 shrink-0">
-            {links.map((link, i) => (
-              <a
-                key={`link-${i}`}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={link.label}
-                title={link.label}
-                className={cn("inline-flex items-center", TYPE.linkQuiet)}
-              >
-                <LinkIcon icon={link.icon} />
-              </a>
-            ))}
-          </div>
-        )}
 
         {hideDate ? (
           data.dateSlotOverride && (
@@ -243,7 +223,7 @@ export function TimelineMini({
     className,
   );
 
-  // Nested links (the outbound pills, the `meta` site) are why the row is a
+  // Nested links (the `meta` site) are why the row is a
   // grid with a link around it rather than an `<a>` with links inside it —
   // except an anchor can't legally contain one, so the row's own anchor is
   // a sibling laid over the row, under the pills in the stacking order.

@@ -71,7 +71,7 @@ export function BareSpecimen() {
 }
 
 /** A home widget: the shell, its label, rows with a title and a date, a tab
- *  capsule, a pill and a kbd — composed from the roles the way
+ *  capsule and a kbd — composed from the roles the way
  *  writing-widget.tsx and featured-talks-widget.tsx compose them. */
 export function WidgetSpecimen() {
   return (
@@ -110,12 +110,11 @@ export function WidgetSpecimen() {
             <span className="rounded-full px-3 py-1 text-xs text-tertiary-foreground">Lynx</span>
             <span className="rounded-full px-3 py-1 text-xs text-tertiary-foreground">Personal</span>
           </span>
-          <span className={TYPE.pill}>featured</span>
           <kbd className={TYPE.kbd}>⌘K</kbd>
         </div>
         <div className="pt-4">
           <div className={cn("truncate", TYPE.rowTitle)}>React for Two Threads</div>
-          <div className={cn("mt-0.5 truncate", TYPE.labelWide)}>React Universe Conf</div>
+          <div className={cn("mt-0.5 truncate", TYPE.label)}>React Universe Conf</div>
         </div>
       </WidgetBody>
     </WidgetShell>
@@ -256,25 +255,19 @@ export function ReadingSpecimen({ vars }: { vars: LegibilityVars }) {
         <span className={TYPE.nav}>λhux</span>
         <h2 className={cn("mt-6 mb-6", TITLE_POETIC, "text-foreground")}>Writing</h2>
 
-        {/* /writing rows: PostList's title, pill, language badge and date. */}
+        {/* /writing rows: PostList's title, language badge and date. */}
         <div className="mb-8">
           {[
-            ["Beyond Being a Frontend Engineer", "jul 2020", true],
-            ["React Is Not Vue, Obviously", "apr 2020", false],
-            ["Avoiding Success at All Cost", "sep 2018", false],
-          ].map(([title, date, featured]) => (
+            ["Beyond Being a Frontend Engineer", "jul 2020"],
+            ["React Is Not Vue, Obviously", "apr 2020"],
+            ["Avoiding Success at All Cost", "sep 2018"],
+          ].map(([title, date]) => (
             <div
               key={String(title)}
               className="-mx-4 flex items-baseline justify-between gap-4 rounded-lg px-4 py-3 hover:bg-muted/50"
             >
               <h3 className={cn(TYPE.rowTitle, "sm:text-base font-normal")}>
                 {String(title)}
-                {featured && (
-                  <span className="whitespace-nowrap">
-                    {" "}
-                    <span className={cn("ml-0.5 inline-block align-[0.1em]", TYPE.pill)}>featured</span>
-                  </span>
-                )}
                 <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>EN</span>
               </h3>
               <span className={cn("shrink-0", TYPE.rowMeta)}>{String(date)}</span>

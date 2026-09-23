@@ -64,7 +64,7 @@ export function PlaylistRail({
             {track.subtitle && (
               <div
                 className={cn(
-                  "truncate text-[10px] font-mono uppercase tracking-wide",
+                  "truncate text-[10px] font-mono",
                   subColor,
                 )}
               >

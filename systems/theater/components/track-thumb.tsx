@@ -70,7 +70,7 @@ export function TrackThumb({
             PLATFORM_TINT[sourceOf(track)],
           )}
         >
-          <span className="text-[10px] font-mono uppercase tracking-widest select-none">
+          <span className="text-[10px] font-mono select-none">
             {PLATFORM_LABEL[sourceOf(track)]}
           </span>
         </div>

@@ -135,6 +135,30 @@ Information is revealed on demand rather than overwhelming upfront:
 - **Command palette**: Search mode for browsing, slash commands for quick access
 - **Settings**: Integrated into command palette, not cluttering the main UI
 
+### 5. Less, but Better
+
+Design is how it works, so the test for a mark is what it *does*, not how it
+looks. Before adding a label, a badge, an arrow or an icon, ask whether the
+surface already says it. If it does, the mark is a second way of saying the
+same thing, and it goes, or it waits until someone is paying attention.
+
+- **One voice per layer.** The machine layer is lowercase mono (`jul 2020`,
+  `retry`, `cd ~`). Labels are set as written; capitals and letter-spacing
+  would be a second machine voice over the first.
+- **Signifiers wait for attention.** A widget is its own tap target and a
+  peeking cover says its strip scrolls. The header arrow and pager dots show
+  when a pointer or focus is on the card, and never under a finger.
+- **A preview previews.** A home card says what a thing is, in full, and its
+  row opens the full entry. Outbound links and attachments live on the page
+  the card leads to, not on the card at the title's expense.
+- **Curation acts, it doesn't annotate.** `featured` decides what the home
+  card surfaces. The archive is already complete and in date order, so it
+  shows no badge.
+
+Nothing here removes an experience: the wallpaper, the scramble, the peeks,
+the theater, music, the apps and the palette all stay. What goes is the chrome
+that repeated them.
+
 ## Inspirations
 
 - **Raycast**: Command palette UX, slash commands concept

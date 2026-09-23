@@ -68,7 +68,7 @@ The homepage uses a distinct hierarchy to create the AI-native OS feel:
 | System identifier (`λhux`) | Mono | sm | Muted, tracking-wider |
 | Time greeting | Serif | 3xl-4xl | Normal weight |
 | Contextual message | Sans + Serif italic | lg-xl | Mixed for emphasis |
-| Widget labels | Mono | xs | Uppercase, tracking-wider |
+| Widget labels | Mono | xs | As written (lowercase), no tracking |
 
 ## Color System
 
@@ -363,10 +363,15 @@ transition-all duration-300
 hover:border-border hover:bg-card/70
 ```
 
-Widget headers use monospace uppercase labels:
+Widget headers use monospace labels, set as written (`TYPE.label`):
 ```css
-text-xs font-mono uppercase tracking-wider text-muted-foreground
+text-xs font-mono text-muted-foreground
 ```
+
+The header arrow and a strip's pager dots are revealed with the card
+(`WIDGET_REVEAL` in `components/ui/widget.tsx`): hover or focus inside the
+card shows them, a finger never sees them. The card is the tap target and the
+peek of the next cover says a strip scrolls, so at rest they only repeated it.
 
 ### Conversational Prompt
 

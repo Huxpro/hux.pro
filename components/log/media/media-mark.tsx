@@ -215,7 +215,7 @@ export function MediaMark({
         aria-hidden
         className={cn(
           "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-px",
-          "font-mono text-[10px] uppercase tracking-wider whitespace-nowrap leading-none",
+          "font-mono text-[10px] whitespace-nowrap leading-none",
           SURFACE_CHIP,
           className,
         )}
@@ -234,7 +234,7 @@ export function MediaMark({
       aria-hidden
       className={cn(
         "pointer-events-none absolute z-10 flex items-center rounded-full",
-        "font-mono text-[10px] uppercase tracking-wider whitespace-nowrap",
+        "font-mono text-[10px] whitespace-nowrap",
         raised ? ARTWORK_CHIP : CHIP_REST,
         stop.box,
         className,

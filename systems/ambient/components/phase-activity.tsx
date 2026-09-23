@@ -55,7 +55,7 @@ export function AmbientPhaseActivity() {
         </>
       }
       title={
-        <span className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground min-w-0">
+        <span className="flex items-center gap-2 text-xs font-mono text-muted-foreground min-w-0">
           <Icon className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">{eventLabel}</span>
           {timeLabel && (
