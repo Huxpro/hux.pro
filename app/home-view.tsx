@@ -36,7 +36,8 @@ import { localize, normalizeLogData, resolveGroupCommits } from "@/lib/log";
 import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
 import ogSnapshotJson from "@/content/og-snapshot.json";
 import { useLocale } from "@/services";
-import { AmbientGreeting, WeatherWidget } from "@/systems/ambient";
+import { AmbientGreeting, WeatherLine, WeatherWidget } from "@/systems/ambient";
+import { HOME_WEATHER_DEFAULT, useOptionalDevtool } from "@/systems/devtool";
 import { MusicWidget } from "@/systems/music";
 import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
 
@@ -99,9 +100,11 @@ function GroupWidget({ group }: { group: Group }) {
 function WidgetGrid({
   posts,
   heroExit,
+  weatherWidget,
 }: {
   posts: BlogPostSummary[];
   heroExit: HeroExit;
+  weatherWidget: boolean;
 }) {
   const { locale } = useLocale();
 
@@ -128,7 +131,7 @@ function WidgetGrid({
 
   const items: SortableWidget[] = [
     { id: "apps", node: <AppFolder /> },
-    { id: "weather", node: <WeatherWidget /> },
+    ...(weatherWidget ? [{ id: "weather", node: <WeatherWidget /> }] : []),
     { id: "blog", node: <WritingWidget posts={posts} /> },
     { id: "music", node: <MusicWidget /> },
     // Keeps the legacy "status" id so visitors' persisted grid order survives
@@ -168,6 +171,10 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
   const heroFadeStyle = useHeroFade(heroExit === "fade");
   // iOS will otherwise expand a long-press into a full-page selection.
   useLockTextSelection();
+  // The weather is the grid card, or (devtool, Home › Weather) one line over
+  // the greeting that says only what the sky behind it can't.
+  const homeWeather =
+    useOptionalDevtool()?.homeWeather ?? HOME_WEATHER_DEFAULT;
 
   return (
     // The home screen is one composition (identifier → greeting → widget grid),
@@ -197,14 +204,20 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
               <ScrambleIdentifier />
             </div>
             <div className="flex-1 flex flex-col items-center justify-center pb-6 sm:pb-4">
-              <AmbientGreeting />
+              <AmbientGreeting
+                eyebrow={homeWeather === "line" ? <WeatherLine /> : undefined}
+              />
             </div>
           </HeaderZone>
         </div>
 
         {/* Widget grid — owns its own responsive width so column count and
             container width stay in step (see SortableMasonry's `gridScale`). */}
-        <WidgetGrid posts={posts} heroExit={heroExit} />
+        <WidgetGrid
+          posts={posts}
+          heroExit={heroExit}
+          weatherWidget={homeWeather === "widget"}
+        />
       </div>
     </main>
   );

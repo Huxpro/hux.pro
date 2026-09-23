@@ -7,7 +7,12 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { getAmbientGreetingKeyFromPhase } from "../lib/greeting";
 import { useAmbientTime } from "../provider";
 
-export function AmbientGreeting() {
+/**
+ * `eyebrow` is a line set over the greeting (the home screen's weather line).
+ * Like the context line under it, it is positioned out of flow, so the
+ * greeting holds the same place whether either is there or not.
+ */
+export function AmbientGreeting({ eyebrow }: { eyebrow?: ReactNode } = {}) {
   const { locale } = useLocale();
   const { lastVisited, isReturningVisitor, daysSinceLastVisit } = useVisitor();
   const { phase } = useAmbientTime();
@@ -66,6 +71,11 @@ export function AmbientGreeting() {
 
   return (
     <div className="relative w-full text-center system-voice cursor-default">
+      {eyebrow && (
+        <div className="absolute left-0 right-0 bottom-full mb-2">
+          {eyebrow}
+        </div>
+      )}
       <h1 className={`${TITLE_POETIC} text-foreground`}>
         {timeGreeting}
       </h1>

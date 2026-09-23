@@ -71,6 +71,16 @@ export const DRAGGABLE_INSTANCES = [
 export type PhonePalette = "sheet" | "popover";
 export const PHONE_PALETTE_DEFAULT: PhonePalette = "sheet";
 
+// =============================================================================
+// Home weather
+// Where the home screen says the weather: the grid card, or one line of date,
+// place and temperature over the greeting, the way a lock screen does it —
+// kept side by side so the two can be compared.
+// =============================================================================
+
+export type HomeWeather = "line" | "widget";
+export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
+
 /**
  * How the hero leaves as the page scrolls. The platform picks a default;
  * the DevTool can pin either for the session. See `defaultHeroExit`.
@@ -132,6 +142,7 @@ interface DevtoolSettings {
    */
   collapsed: Record<string, boolean>;
   phonePalette: PhonePalette;
+  homeWeather: HomeWeather;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
 }
@@ -141,6 +152,7 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   draggable: {},
   collapsed: {},
   phonePalette: PHONE_PALETTE_DEFAULT,
+  homeWeather: HOME_WEATHER_DEFAULT,
   detached: false,
 };
 
@@ -189,6 +201,10 @@ function getDevtoolSettings(): DevtoolSettings {
         collapsed: onlyFoldKeys(parsed.collapsed),
         phonePalette:
           parsed.phonePalette === "popover" ? "popover" : PHONE_PALETTE_DEFAULT,
+        homeWeather:
+          parsed.homeWeather === "widget" || parsed.homeWeather === "line"
+            ? parsed.homeWeather
+            : HOME_WEATHER_DEFAULT,
         detached: parsed.detached === true,
       };
     }
@@ -287,6 +303,9 @@ interface DevtoolContextType {
   /** The command palette's shape on a phone. A saved setting. */
   phonePalette: PhonePalette;
   setPhonePalette: (shape: PhonePalette) => void;
+  /** Where the home screen says the weather. A saved setting. */
+  homeWeather: HomeWeather;
+  setHomeWeather: (value: HomeWeather) => void;
   /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
@@ -356,6 +375,8 @@ export function DevtoolProvider({
   const [solo, setSolo] = useState<string | null>(null);
   const [phonePalette, setPhonePaletteState] =
     useState<PhonePalette>(PHONE_PALETTE_DEFAULT);
+  const [homeWeather, setHomeWeatherState] =
+    useState<HomeWeather>(HOME_WEATHER_DEFAULT);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -372,6 +393,7 @@ export function DevtoolProvider({
     // — no expand→collapse flash.
     setCollapsedSections(settings.collapsed);
     setPhonePaletteState(settings.phonePalette);
+    setHomeWeatherState(settings.homeWeather);
     setIsDetached(settings.detached);
   }, []);
 
@@ -529,6 +551,11 @@ export function DevtoolProvider({
     setDevtoolSettings({ phonePalette: shape });
   }, []);
 
+  const setHomeWeather = useCallback((value: HomeWeather) => {
+    setHomeWeatherState(value);
+    setDevtoolSettings({ homeWeather: value });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -584,6 +611,8 @@ export function DevtoolProvider({
         setRailFolds,
         phonePalette,
         setPhonePalette,
+        homeWeather,
+        setHomeWeather,
         heroExitOverride,
         setHeroExitOverride,
       }}

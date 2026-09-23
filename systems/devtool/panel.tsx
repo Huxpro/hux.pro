@@ -68,6 +68,8 @@ import {
   DRAGGABLE_INSTANCES,
   DRAGGABLE_DEFAULTS,
   PHONE_PALETTE_DEFAULT,
+  HOME_WEATHER_DEFAULT,
+  type HomeWeather,
   type PhonePalette,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
@@ -1886,6 +1888,7 @@ function SkyModule() {
   } = useAmbientTime();
   const { followSun, setFollowSun, sunTheme } = useSolarTheme();
   const { gyro, setGyroEnabled, effectiveStyle } = useWallpaper();
+  const { homeWeather, setHomeWeather } = useDevtool();
 
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
@@ -2125,7 +2128,9 @@ function SkyModule() {
       relevant={isHome || anythingForced}
       star={strongest(
         anythingForced ? "session" : null,
-        !followSun || !gyro.enabled ? "saved" : null
+        !followSun || !gyro.enabled || homeWeather !== HOME_WEATHER_DEFAULT
+          ? "saved"
+          : null
       )}
       action={
         anythingForced ? (
@@ -2170,6 +2175,37 @@ function SkyModule() {
             </span>
           </span>
         </div>
+
+        {/* How the home screen says the weather: the grid card, or one line
+            of date · place · temperature over the greeting. Saved. */}
+        <PanelRow
+          label={zh ? "主页天气" : "Home weather"}
+          star={
+            homeWeather !== HOME_WEATHER_DEFAULT ? (
+              <PanelStar
+                source="saved"
+                onReset={() => setHomeWeather(HOME_WEATHER_DEFAULT)}
+              />
+            ) : undefined
+          }
+        >
+          <PanelSegmented
+            value={homeWeather}
+            options={[
+              {
+                value: "widget",
+                label: zh ? "卡片" : "Widget",
+                title: zh ? "网格里的天气卡片" : "The weather card in the grid",
+              },
+              {
+                value: "line",
+                label: zh ? "一行" : "Line",
+                title: zh ? "问候语上方的一行" : "One line over the greeting",
+              },
+            ]}
+            onChange={(value: HomeWeather) => setHomeWeather(value)}
+          />
+        </PanelRow>
 
         {/* The day. Painted with the sky's own colours for this condition;
             sunrise and sunset ticked; the playhead is the clock. */}
