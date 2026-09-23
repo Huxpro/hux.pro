@@ -1168,12 +1168,11 @@ export function isCommitVisibleIn(commit: Commit, locale: Locale): boolean {
  * intrinsic language. Returns null when no badge should appear: no language
  * set, or language is "both".
  *
- * A talk is delivered in one language and can't be translated, so its badge
- * is always shown — the language is intrinsic information the viewer should
- * see regardless of their own locale. For translatable works (posts, whose
- * text has both an EN and a 中文 version), the badge only flags a *mismatch*
- * — i.e. "this piece isn't in your locale" — so it stays silent when the
- * language already matches the viewer.
+ * The badge only flags a *mismatch* — "this piece isn't in your locale" —
+ * so it stays silent when the language already matches the viewer. That
+ * holds for talks too: a talk can't be translated, but an EN talk on an EN
+ * page is the expected case, and nineteen identical badges down the log said
+ * nothing a reader needed.
  */
 export function getCommitLanguageBadge(
   commit: Commit,
@@ -1181,7 +1180,7 @@ export function getCommitLanguageBadge(
 ): "EN" | "中文" | null {
   const lang = commit.language;
   if (!lang || lang === "both") return null;
-  if (commit.type !== "talk" && lang === locale) return null;
+  if (lang === locale) return null;
   return lang === "en" ? "EN" : "中文";
 }
 
