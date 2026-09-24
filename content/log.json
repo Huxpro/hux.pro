@@ -136,7 +136,8 @@
       "commitIds": [
         "lynx-framework",
         "react-core",
-        "hermes-engine"
+        "hermes-engine",
+        "yanshuo-io"
       ]
     },
     {
@@ -1321,6 +1322,65 @@
         "PWA",
         "Mobile Web"
       ]
+    },
+    {
+      "id": "yanshuo-io",
+      "type": "project",
+      "tagId": "pwa-era",
+      "identityId": "cuc",
+      "attachedTo": "cuc-ba",
+      "title": {
+        "en": "Yanshuo.io (演说)",
+        "zh": "演说.io"
+      },
+      "description": {
+        "en": "My bachelor's graduation project: an online, full-featured WYSIWYG presentation tool, in the vein of Google Slides, for making Web-based slides that are linkable, sharable, cross-platform and free of delivery friction. Unlike PowerPoint and Keynote, it bet on the Web itself.",
+        "zh": "我的本科毕业设计：一款所见即所得、功能完整的在线演示文稿工具，类似 Google Slides，用来制作可链接、可分享、跨平台、无需分发的 Web 幻灯片。与 PowerPoint、Keynote 不同，它押注的是 Web 本身。"
+      },
+      "date": "2016-06",
+      "team": {
+        "en": "Graduation project @ CUC",
+        "zh": "毕业设计 @ 中国传媒大学"
+      },
+      "tags": [
+        "Web",
+        "Slides",
+        "WYSIWYG",
+        "Design"
+      ],
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://yanshuo.io",
+          "present": "card",
+          "preview": {
+            "title": "演说.io - 随时随地的在线展示文稿",
+            "description": "创作真正跨平台的 HTML5 展示文稿，让你的分享到达世界的任何一个角落",
+            "image": "/img/works/yanshuo-cover.png"
+          }
+        },
+        {
+          "kind": "link",
+          "url": "https://zhuanlan.zhihu.com/p/21280918",
+          "present": "pill",
+          "label": "Zhihu · 1",
+          "icon": "file",
+          "preview": {
+            "frame": "deny"
+          }
+        },
+        {
+          "kind": "link",
+          "url": "https://zhuanlan.zhihu.com/p/21361400",
+          "present": "pill",
+          "label": "Zhihu · 2",
+          "icon": "file",
+          "preview": {
+            "frame": "deny"
+          }
+        }
+      ],
+      "language": "zh"
     },
     {
       "id": "yupiaoer",
