@@ -3,6 +3,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { ArrowUpRight, Minus, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "vitre";
 import {
   TransformComponent,
   TransformWrapper,
@@ -46,6 +47,19 @@ import { useAttachments } from "../provider";
 const TOP = 64;
 const MARGIN = 24;
 const BELOW = 56;
+
+/**
+ * The lightbox's place in the stack: over the sheets (60s), the windows and
+ * the dock, but under the bezel (vitre draws it at 9999, the FAB's layer), so
+ * the page — and anything over the page — stops on the bezel's clean line
+ * and is rounded off inside it, the same as every other surface.
+ */
+const LAYER = 9990;
+
+/** The band the bezel draws top and bottom; 0 while it is off. */
+const BAND = "var(--bezel-band, 0px)";
+/** The sides the bezel keeps clear: the safe area (a notch in landscape). */
+const SIDES = "env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px)";
 
 /** Past the image's native pixels, how far the zoom may still go. */
 const OVERZOOM = 2;
@@ -122,18 +136,28 @@ export function ImageLightbox() {
       }}
     >
       <Dialog.Portal>
+        {/* Base UI portals into a wrapper of its own, so neither layer is a
+            `body > .fixed` the bezel would catch by itself: both are marked,
+            and in container scroll they turn absolute inside the fixed body
+            (the same box) instead of tinting Safari's chrome. */}
         <Dialog.Backdrop
+          {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
+          style={{ zIndex: LAYER }}
           className={cn(
-            "fixed inset-0 z-[10010]",
+            "fixed inset-0",
             THEATER_BACKDROP,
             "transition-opacity duration-200",
             "data-[starting-style]:opacity-0 data-[ending-style]:opacity-0",
           )}
         />
         <Dialog.Popup
+          {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
           initialFocus={closeRef}
+          // The chrome and the fitted image live in the box inside the bezel;
+          // the veil behind them runs to the edge and under it.
+          style={{ zIndex: LAYER + 1, ...BEZEL_INSET }}
           className={cn(
-            "fixed inset-0 z-[10011] outline-none",
+            "fixed outline-none",
             "transition-[opacity,transform] duration-200 ease-out",
             "data-[starting-style]:opacity-0 data-[starting-style]:scale-[0.98]",
             "data-[ending-style]:opacity-0 data-[ending-style]:scale-[0.98]",
@@ -169,8 +193,8 @@ export function ImageLightbox() {
                       ref.current?.centerView(1, 0);
                     }}
                     style={{
-                      maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
-                      maxHeight: `calc(100dvh - ${TOP + BELOW}px)`,
+                      maxWidth: `calc(100vw - (${SIDES}) - ${MARGIN * 2}px)`,
+                      maxHeight: `calc(100dvh - 2 * ${BAND} - ${TOP + BELOW}px)`,
                     }}
                     className="block h-auto w-auto select-none rounded-md shadow-2xl ring-1 ring-border/50"
                   />

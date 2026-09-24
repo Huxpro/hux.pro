@@ -1198,28 +1198,36 @@
         },
         {
           "kind": "link",
-          "url": "https://www.cs.rit.edu/~mtf/student-resources/20191_huang_mscourse.pdf",
-          "present": "pill",
-          "label": "Report",
-          "icon": "file"
-        },
-        {
-          "kind": "link",
-          "url": "https://www.semanticscholar.org/paper/A-Mechanized-Formalization-of-the-WebAssembly-in-Huang/2fde569f52c37fe8e45ebf05268e1b4341b58cbf",
-          "present": "pill",
-          "label": "Semantic Scholar"
-        },
-        {
-          "kind": "link",
           "url": "https://scholar.google.com/scholar?cites=13173623897259187056&as_sdt=2005&sciodt=0,5&hl=en",
           "present": "pill",
           "label": "Google Scholar"
+        },
+        {
+          "kind": "link",
+          "url": "https://www.cs.rit.edu/~mtf/student-resources/20191_huang_mscourse.pdf",
+          "present": "card",
+          "preview": {
+            "title": "A Mechanized Formalization of the WebAssembly Specification in Coq",
+            "description": "RIT Computer Science · Capstone Report · 2019. A mechanization of the W3C WebAssembly Core Specification 1.0 in Coq, with a machine-checked soundness proof.",
+            "image": "/img/works/wasmcert-report-cover.webp"
+          }
         },
         {
           "kind": "image",
           "url": "/img/works/wasmcert-poster.webp",
           "thumbnail": "/img/works/wasmcert-poster-cover.webp",
           "alt": "Capstone poster, RIT Computer Science, Fall 2019."
+        },
+        {
+          "kind": "link",
+          "url": "https://www.semanticscholar.org/paper/A-Mechanized-Formalization-of-the-WebAssembly-in-Huang/2fde569f52c37fe8e45ebf05268e1b4341b58cbf",
+          "present": "card",
+          "preview": {
+            "title": "A Mechanized Formalization of the WebAssembly Specification in Coq",
+            "description": "Xuan Huang · 2019 · on Semantic Scholar, with the papers that cite it.",
+            "image": "https://www.semanticscholar.org/img/semantic_scholar_og.png",
+            "frame": "deny"
+          }
         }
       ],
       "commentary": {
