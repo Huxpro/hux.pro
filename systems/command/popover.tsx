@@ -18,6 +18,7 @@ import {
 } from "./actions";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
+import { useCommandVoice, VoiceButton, VoiceGlow } from "./voice";
 import {
   CommandResults,
   CommandSlashList,
@@ -110,6 +111,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
   const { locale } = useLocale();
   const actions = useCommandActions();
   const field = useCommandField();
+  const voice = useCommandVoice(field.onChange);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const showHints = useShowKeyboardHints();
@@ -243,7 +245,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
             {/* Search / slash header — collapsed in load-bundle mode (panel owns chrome). */}
             <div
               className={cn(
-                "border-b border-border/50",
+                "relative border-b border-border/50",
                 isLoadBundleMode && "hidden"
               )}
               data-drag-handle
@@ -277,6 +279,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         )}
                       />
                     </div>
+                    <VoiceButton voice={voice} className="-mx-1" />
                     {/* One slot, two readings: a hint where there is a
                         keyboard, the way into slash mode where there is not. */}
                     {showHints ? (
@@ -314,6 +317,8 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                   </div>
                 </div>
               </div>
+              {/* Listening: the site's glow along the field's bottom edge. */}
+              <VoiceGlow voice={voice} />
             </div>
 
             <div className="relative">

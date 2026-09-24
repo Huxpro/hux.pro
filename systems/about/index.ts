@@ -16,5 +16,3 @@
 export { AboutProvider, useAbout, useOptionalAbout } from "./provider";
 export { AboutSurface } from "./components/about-surface";
 export type { AboutSurfaceProps } from "./components/about-surface";
-export { EdgeGlow } from "./components/edge-glow";
-export type { EdgeGlowProps } from "./components/edge-glow";

@@ -17,6 +17,13 @@ interface CommandContextType {
   setSlashCommandsMode: (mode: boolean) => void;
   openLoadBundle: () => void;
   setLoadBundleMode: (mode: boolean) => void;
+  /**
+   * Ask the palette's field to start listening (systems/voice). A counter,
+   * not a flag: the field starts a session each time it changes, so asking
+   * twice asks twice. The `/` `V` command sets it.
+   */
+  voiceRequest: number;
+  requestVoice: () => void;
 }
 
 const CommandContext = createContext<CommandContextType | undefined>(undefined);
@@ -31,6 +38,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSlashCommandsMode, setIsSlashCommandsMode] = useState(false);
   const [isLoadBundleMode, setIsLoadBundleMode] = useState(false);
+  const [voiceRequest, setVoiceRequest] = useState(0);
 
   const open = useCallback((slashCommandsMode = false) => {
     setIsOpen(true);
@@ -62,6 +70,14 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const setLoadBundleMode = useCallback((mode: boolean) => {
     setIsLoadBundleMode(mode);
     if (mode) setIsSlashCommandsMode(false);
+  }, []);
+
+  // Voice: back to search (the field is where the words go) and listen.
+  const requestVoice = useCallback(() => {
+    setIsOpen(true);
+    setIsSlashCommandsMode(false);
+    setIsLoadBundleMode(false);
+    setVoiceRequest((n) => n + 1);
   }, []);
 
   const openLoadBundle = useCallback(() => {
@@ -125,6 +141,8 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         setSlashCommandsMode,
         openLoadBundle,
         setLoadBundleMode,
+        voiceRequest,
+        requestVoice,
       }}
     >
       {children}

@@ -14,7 +14,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAbout } from "../provider";
-import { EdgeGlow } from "./edge-glow";
+import { Glow } from "@/systems/glow";
 
 // =============================================================================
 // AboutSurface — the About, floating over whatever page is underneath.
@@ -29,7 +29,7 @@ import { EdgeGlow } from "./edge-glow";
 //               content/about/<locale>.mdx (rendered on the server by
 //               AboutCopy and handed in as `en` / `zh`). Each block rises in
 //               turn (`.about-copy`, globals.css).
-//   the glow    the Siri ring on the screen's edge (EdgeGlow) — a shader,
+//   the glow    the Siri ring on the screen's edge (systems/glow) — a shader,
 //               always moving, above everything and taking no pointer.
 //
 // It leaves by a press anywhere outside the words, Escape, `O`, the button
@@ -145,9 +145,12 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
           </motion.div>
         )}
       </AnimatePresence>
-      <EdgeGlow
+      <Glow
         active={isOpen}
-        radius={bezel ? bezelRadius : undefined}
+        fixed
+        // The bezel's radius inside one; otherwise the screen's own — a
+        // phone's is rounded, a browser window's nearly square.
+        radius={bezel ? bezelRadius : hasFineHoverPointer ? 10 : 44}
         style={frame}
         layer={bezel}
         className={cn("z-[10021]", bezel && "overflow-hidden")}

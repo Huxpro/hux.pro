@@ -1,5 +1,6 @@
 "use client";
 
+import { Glow } from "@/systems/glow";
 import { ArrowUpRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -26,11 +27,14 @@ export function WebFrame({ url, title }: { url: string; title: string }) {
 
   return (
     <div className="relative h-full w-full bg-white dark:bg-neutral-900">
-      {!loaded && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
-          <span className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground/80" />
-        </div>
-      )}
+      {/* Loading: the site's glow working — the same travelling beam a field
+          shows while it settles what was said (systems/glow), along the top
+          of the page the way a browser's loading bar runs, over a blank
+          ground. It sweeps out as the page lands. */}
+      {!loaded && <div className="absolute inset-0 z-10 bg-background" />}
+      <div className="pointer-events-none absolute inset-0 z-10">
+        <Glow active={!loaded} shape="line" edge="top" processing reach={7} />
+      </div>
 
       <iframe
         ref={ref}

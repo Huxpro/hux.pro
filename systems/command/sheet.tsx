@@ -19,6 +19,7 @@ import {
   useShowKeyboardHints,
   type CommandShell,
 } from "./actions";
+import { useCommandVoice, VoiceButton, VoiceGlow } from "./voice";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 import {
@@ -168,6 +169,7 @@ function SheetBody({
   const { locale } = useLocale();
   const actions = useCommandActions();
   const field = useCommandField();
+  const voice = useCommandVoice(field.onChange);
   const showHints = useShowKeyboardHints();
 
   // The slash sheet stands level with the palette: as tall as the palette's
@@ -199,7 +201,9 @@ function SheetBody({
 
         {/* Header — the search field. It stays through both sub-modes: they
             are sheets stacked on this one, not a body swapped underneath. */}
-        <div className="flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
+        <div className="relative flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
+          {/* Listening: the site's glow along the field's bottom edge. */}
+          <VoiceGlow voice={voice} />
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <Command.Input
             ref={inputRef}
@@ -217,6 +221,7 @@ function SheetBody({
           {/* No keyboard to type "/" on: the field's trailing accessory
               opens the slash sheet, while the field is empty. Tucked in
               against the close button so the two read as one cluster. */}
+          <VoiceButton voice={voice} className="-mr-1" />
           {!showHints && field.value === "" && <SlashEntry className="-mr-2" />}
           <button
             type="button"
