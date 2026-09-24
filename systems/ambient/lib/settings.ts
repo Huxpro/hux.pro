@@ -93,9 +93,10 @@ export interface AmbientSettings {
   weatherGyroGranted: boolean;
   /**
    * The tilt has been offered once, on a rainy or snowy sky, and answered —
-   * taken or waved off. Only ever set, never cleared: the offer is a one-time
-   * introduction to something the visitor did not ask about, and a second one
-   * would be nagging. See lib/tilt-primer.ts.
+   * taken or waved off. The offer is a one-time introduction to something the
+   * visitor did not ask about, and a second one would be nagging — so this is
+   * cleared only when a grant it led to has lapsed, or the ask never reached a
+   * dialog. See lib/tilt-primer.ts.
    */
   weatherGyroPrimed: boolean;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
