@@ -97,9 +97,6 @@ export function mountEdgeGlow(
     stencil: false,
   });
   if (!gl || gl.isContextLost()) return { stop: () => {}, live: false };
-  if (gl.isContextLost()) {
-    return { stop: () => {} };
-  }
 
   const program = link(gl, VERT, FRAG);
   if (!program) {

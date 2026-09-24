@@ -2106,25 +2106,129 @@ main[data-variant="reader"] .reader-masthead {
   }
 }
 
-/* About edge light. The angle is what travels; the mask keeps it a rim.
-   The shader canvas, when it is up, paints the beams over this wash. */
+/* About edge light.
+   Three layers, the same construction as a border beam plus a voice bloom:
+   a crisp saturated stroke, a blurred band that rises in from the bezel,
+   and a hot head that travels the perimeter. The angle is one custom
+   property so the head and the spectrum stay locked. */
 @property --about-glow-angle {
   syntax: "<angle>";
-  inherits: false;
+  inherits: true;
   initial-value: 0deg;
 }
 
 .about-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  animation: about-glow-spin 7s linear infinite;
+}
+
+.about-glow-stroke,
+.about-glow-bloom,
+.about-glow-beam {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background: conic-gradient(
     from var(--about-glow-angle),
-    #ff608c,
-    #9650ff,
-    #388cff,
-    #28e6d2,
-    #ff963c,
-    #ff608c
+    rgb(255, 50, 100),
+    rgb(255, 120, 40),
+    rgb(255, 210, 60),
+    rgb(40, 220, 170),
+    rgb(40, 140, 255),
+    rgb(120, 60, 255),
+    rgb(255, 50, 100)
   );
-  animation: about-glow-spin 16s linear infinite;
+}
+
+/* The hairline. Bold because the colour is opaque, not a pastel wash. */
+.about-glow-stroke {
+  padding: 10px;
+  filter: saturate(1.7) brightness(1.12);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+/* Voice: the light climbs in from the edge instead of sitting on a 1px line. */
+.about-glow-bloom {
+  padding: 92px;
+  filter: blur(36px) saturate(1.85) brightness(1.2);
+  opacity: 0.95;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+/* The traveling head. A window of the ring, with a white core in the middle. */
+.about-glow-beam {
+  padding: 16px;
+  background:
+    conic-gradient(
+      from var(--about-glow-angle),
+      transparent 0%,
+      transparent 34%,
+      rgba(255, 255, 255, 0.15) 40%,
+      rgba(255, 255, 255, 0.85) 46%,
+      rgb(255, 255, 255) 49%,
+      rgba(255, 255, 255, 0.85) 52%,
+      rgba(255, 255, 255, 0.15) 58%,
+      transparent 64%,
+      transparent 100%
+    ),
+    conic-gradient(
+      from var(--about-glow-angle),
+      rgb(255, 50, 100),
+      rgb(255, 120, 40),
+      rgb(255, 210, 60),
+      rgb(40, 220, 170),
+      rgb(40, 140, 255),
+      rgb(120, 60, 255),
+      rgb(255, 50, 100)
+    );
+  filter: saturate(1.35) brightness(1.45);
+  -webkit-mask:
+    conic-gradient(
+      from var(--about-glow-angle),
+      transparent 0%,
+      transparent 22%,
+      rgba(255, 255, 255, 0.2) 30%,
+      #fff 40%,
+      #fff 62%,
+      rgba(255, 255, 255, 0.2) 70%,
+      transparent 78%,
+      transparent 100%
+    ),
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: source-in, xor;
+  mask:
+    conic-gradient(
+      from var(--about-glow-angle),
+      transparent 0%,
+      transparent 22%,
+      rgba(255, 255, 255, 0.2) 30%,
+      #fff 40%,
+      #fff 62%,
+      rgba(255, 255, 255, 0.2) 70%,
+      transparent 78%,
+      transparent 100%
+    ),
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: intersect, exclude;
 }
 
 @keyframes about-glow-spin {

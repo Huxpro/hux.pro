@@ -30,18 +30,11 @@ export function GlowBorder({ reducedMotion }: { reducedMotion: boolean }) {
 
   return (
     <>
-      <div
-        aria-hidden
-        className="about-glow pointer-events-none absolute inset-0 z-[1] blur-md"
-        style={{
-          padding: "64px",
-          WebkitMask:
-            "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-          WebkitMaskComposite: "xor",
-          mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-          maskComposite: "exclude",
-        }}
-      />
+      <div className="about-glow absolute inset-0 z-[1]" aria-hidden>
+        <div className="about-glow-bloom" />
+        <div className="about-glow-stroke" />
+        <div className="about-glow-beam" />
+      </div>
       {shader ? (
         <canvas
           ref={canvasRef}

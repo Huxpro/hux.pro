@@ -21,10 +21,12 @@ is the same command. Location, which used to own that letter, is `C`.
 
 ## The light
 
-The border is a fragment shader on a full-viewport canvas. Colour travels
-around the bezel: a soft band, plus a few brighter beams moving the other
-way. The centre of the frame is left clear. `prefers-reduced-motion` holds
-the beams still. Without WebGL2 the same edge is a static conic wash.
+The border is three layers, the way a border beam is built, with the inward
+rise of a voice glow: a saturated stroke on the bezel, a blurred band that
+climbs into the page, and a hot head that travels the perimeter. A fragment
+shader paints extra beams when a second WebGL context stays alive; a lost
+context hides its canvas so it cannot cover the CSS. `prefers-reduced-motion`
+holds the head still.
 
 ## Badge
 
