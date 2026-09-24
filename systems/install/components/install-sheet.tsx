@@ -185,12 +185,50 @@ function InstallIllustration({
 
 const ICON = "/icons/icon.svg";
 
+/**
+ * Evenly spaced positions for `count` items of `size` with `gap` between them,
+ * centred on `centre`. Every row of icons here goes through it, so nothing is
+ * placed by hand and nothing can sit a few units off the axis it is drawn on.
+ */
+function centredRow(count: number, size: number, gap: number, centre: number): number[] {
+  const span = count * size + (count - 1) * gap;
+  const start = centre - span / 2;
+  return Array.from({ length: count }, (_, i) => start + i * (size + gap));
+}
+
+/**
+ * The phone. Its screen is x 13–83, y 9–159 (centre x 48), and everything on
+ * it is laid out about that centre: a 4 × 4 page of icons under the notch,
+ * and a Dock whose icons stand in the page's columns — as on iOS — with its
+ * backing inset from the screen's edge by the same margin on all three sides.
+ */
+const PHONE = {
+  centre: 48,
+  icon: 10,
+  radius: 3,
+  /** Gap between icons, both ways, so the page is a square lattice. */
+  gap: 6,
+  /** Top of the first row: clear of the notch (y 13–17) by the same gap. */
+  top: 26,
+  /** How far the Dock's backing sits inside the screen, sides and bottom. */
+  dockInset: 3,
+  dockHeight: 18,
+  screen: { x: 13, y: 9, width: 70, height: 150 },
+} as const;
+
 function PhoneHome() {
-  // 4 × 4 grid of 12-unit icons on a 68-wide screen; the new one takes the
-  // third slot of the last row, where a fresh install actually lands.
-  const cols = [15, 31, 47, 63];
-  const rows = [24, 44, 64, 84];
+  const { centre, icon, radius, gap, top, dockInset, dockHeight, screen } = PHONE;
+  const cols = centredRow(4, icon, gap, centre);
+  const rows = Array.from({ length: 4 }, (_, i) => top + i * (icon + gap));
+  // The new one takes the third slot of the last row, where a fresh install
+  // actually lands: after the apps already there.
   const slot = { x: cols[2], y: rows[3] };
+  const dock = {
+    x: screen.x + dockInset,
+    width: screen.width - dockInset * 2,
+    y: screen.y + screen.height - dockInset - dockHeight,
+  };
+  const dockIconY = dock.y + (dockHeight - icon) / 2;
   return (
     <svg viewBox="0 0 96 168" width="80" height="140" fill="none">
       <rect
@@ -202,8 +240,8 @@ function PhoneHome() {
         className="fill-foreground/[0.04] stroke-foreground/25"
         strokeWidth="1.5"
       />
-      <rect x="13" y="9" width="70" height="150" rx="10" className="fill-foreground/[0.06]" />
-      <rect x="38" y="13" width="20" height="4" rx="2" className="fill-foreground/20" />
+      <rect {...screen} rx="10" className="fill-foreground/[0.06]" />
+      <rect x={centre - 10} y="13" width="20" height="4" rx="2" className="fill-foreground/20" />
       {rows.flatMap((y) =>
         cols.map((x) =>
           x === slot.x && y === slot.y ? null : (
@@ -211,37 +249,69 @@ function PhoneHome() {
               key={`${x}-${y}`}
               x={x}
               y={y}
-              width="12"
-              height="12"
-              rx="3.5"
+              width={icon}
+              height={icon}
+              rx={radius}
               className="fill-foreground/[0.12]"
             />
           )
         )
       )}
-      {/* The dock row, which stays as it is — a new app goes on the page. */}
+      {/* The Dock, which stays as it is — a new app goes on the page. */}
+      <rect
+        x={dock.x}
+        y={dock.y}
+        width={dock.width}
+        height={dockHeight}
+        rx="7"
+        className="fill-foreground/[0.04]"
+      />
       {cols.map((x) => (
         <rect
           key={`dock-${x}`}
           x={x}
-          y="136"
-          width="12"
-          height="12"
-          rx="3.5"
+          y={dockIconY}
+          width={icon}
+          height={icon}
+          rx={radius}
           className="fill-foreground/[0.12]"
         />
       ))}
-      <rect x="15" y="132" width="60" height="20" rx="7" className="fill-foreground/[0.04]" />
-      <InstallSlot x={slot.x} y={slot.y} size={12} radius={3.5} />
+      <InstallSlot x={slot.x} y={slot.y} size={icon} radius={radius} />
     </svg>
   );
 }
 
+/**
+ * The display. Its screen is x 17–183 (centre x 100); the Dock is centred on
+ * it with equal padding either side of its icons, and the new app lands at
+ * the Dock's trailing end, as it does on a Mac. The window above is centred
+ * too — anywhere else it reads as the picture being off, not the window.
+ */
+const DESK = {
+  centre: 100,
+  icon: 12,
+  radius: 3,
+  gap: 2,
+  /** Padding inside the Dock, around its icons, all four sides. */
+  pad: 4,
+  /** The Dock's bottom edge, clear of the screen's (y 103) by the pad. */
+  dockBottom: 99,
+} as const;
+
 function DesktopDock() {
-  const icons = [52, 66, 80, 94, 108];
-  const slot = { x: 122, y: 82 };
+  const { centre, icon, radius, gap, pad, dockBottom } = DESK;
+  const icons = centredRow(6, icon, gap, centre);
+  const slot = { x: icons[icons.length - 1], y: dockBottom - pad - icon };
+  const dock = {
+    x: icons[0] - pad,
+    width: icons[icons.length - 1] + icon + pad - (icons[0] - pad),
+    y: slot.y - pad,
+    height: icon + pad * 2,
+  };
+  const win = { width: 84, height: 50 };
   return (
-    <svg viewBox="0 0 200 128" width="220" height="141" fill="none">
+    <svg viewBox="0 0 200 126" width="220" height="139" fill="none">
       {/* The display and its stand. */}
       <rect
         x="12"
@@ -253,24 +323,42 @@ function DesktopDock() {
         strokeWidth="1.5"
       />
       <rect x="17" y="9" width="166" height="94" rx="4" className="fill-foreground/[0.06]" />
-      <path d="M86 108 L82 122 H118 L114 108" className="stroke-foreground/25" strokeWidth="1.5" />
+      <path
+        d={`M${centre - 14} 108 L${centre - 18} 122 H${centre + 18} L${centre + 14} 108`}
+        className="stroke-foreground/25"
+        strokeWidth="1.5"
+      />
       {/* A window, so it reads as a desktop and not as a blank screen. */}
-      <rect x="40" y="20" width="84" height="50" rx="4" className="fill-foreground/[0.08]" />
-      <rect x="40" y="20" width="84" height="8" rx="4" className="fill-foreground/[0.08]" />
+      <rect
+        x={centre - win.width / 2}
+        y="18"
+        width={win.width}
+        height={win.height}
+        rx="4"
+        className="fill-foreground/[0.08]"
+      />
+      <rect
+        x={centre - win.width / 2}
+        y="18"
+        width={win.width}
+        height="8"
+        rx="4"
+        className="fill-foreground/[0.08]"
+      />
       {/* The Dock. */}
-      <rect x="46" y="78" width="96" height="20" rx="6" className="fill-foreground/[0.08]" />
-      {icons.map((x) => (
+      <rect {...dock} rx="6" className="fill-foreground/[0.08]" />
+      {icons.slice(0, -1).map((x) => (
         <rect
           key={x}
           x={x}
           y={slot.y}
-          width="12"
-          height="12"
-          rx="3"
+          width={icon}
+          height={icon}
+          rx={radius}
           className="fill-foreground/[0.14]"
         />
       ))}
-      <InstallSlot x={slot.x} y={slot.y} size={12} radius={3} />
+      <InstallSlot x={slot.x} y={slot.y} size={icon} radius={radius} />
     </svg>
   );
 }
