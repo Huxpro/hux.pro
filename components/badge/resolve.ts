@@ -1,6 +1,9 @@
+import badgeIconsJson from "@/content/badge-icons.json";
+import badgeConfigJson from "@/content/badges.json";
 import ogSnapshotJson from "@/content/og-snapshot.json";
-import type { AppLink } from "@/lib/app-icon-core";
-import { APPS, APPS_BY_ID, APP_ICONS } from "@/lib/apps";
+import type { AppIconSnapshot, AppIconSnapshotEntry, AppLink } from "@/lib/app-icon-core";
+import { APPS_BY_ID, APP_ICONS } from "@/lib/apps";
+import { badgeSiteUrl, siteKey, type BadgeConfig } from "@/lib/badge-site";
 import type { Locale } from "@/lib/i18n";
 import {
   localize,
@@ -163,36 +166,35 @@ function kindOf(media: Media): BadgeKind {
   }
 }
 
+const BADGE_ICONS = badgeIconsJson as AppIconSnapshot;
+const BADGE_CONFIG = badgeConfigJson as BadgeConfig;
+
+/** This site's own icon — what a path on it wears (the generative app icon). */
+const SITE_ICON: BadgeIcon = { type: "image", src: "/icons/icon.svg", fill: true };
+
 /**
- * The home-screen icon of an app whose address is this URL's site — so a
- * badge for react.dev wears React, and one for lynxjs.org wears Lynx.
+ * An icon drawn for a home screen (a manifest icon, an apple-touch-icon, an
+ * app's own art) is opaque and fills its tile; a favicon is a glyph, often on
+ * nothing, and sits on a white plate — the way a home screen shows one.
  */
-function appIconForUrl(url: string): BadgeIcon | null {
-  const host = hostOf(url);
-  if (!host) return null;
-  for (const app of APPS) {
-    let appUrl: URL;
-    try {
-      appUrl = new URL(app.url);
-    } catch {
-      continue;
-    }
-    // Only an app that *is* the site: a game hosted on github.io is not
-    // every github.io page.
-    if (appUrl.pathname.replace(/\/$/, "") !== "") continue;
-    if (appUrl.hostname.replace(/^www\./, "") !== host) continue;
-    const icon = appIcon(app);
-    if (icon) return icon;
-  }
-  return null;
+function fromEntry(entry: AppIconSnapshotEntry | undefined): BadgeIcon | null {
+  if (!entry?.file) return null;
+  const homeScreen = entry.source === "manifest" || entry.source === "apple-touch-icon";
+  const big = !!entry.width && entry.width === entry.height && entry.width >= 160;
+  return { type: "image", src: entry.file, fill: homeScreen || big };
+}
+
+/** The official icon of the site a badge stands for (content/badge-icons.json). */
+function siteIcon(spec: BadgeSpec): BadgeIcon | null {
+  const url = badgeSiteUrl(spec, LOG.commits, BADGE_CONFIG);
+  const key = url && siteKey(url);
+  return key ? fromEntry(BADGE_ICONS[key]) : null;
 }
 
 function appIcon(app: AppLink): BadgeIcon | null {
   const entry = APP_ICONS[app.id];
-  const src = app.icon ?? entry?.file;
-  if (!src) return null;
-  const fill = !!entry?.width && entry.width === entry.height && entry.width >= 160;
-  return { type: "image", src, fill };
+  if (!entry) return app.icon ? { type: "image", src: app.icon, fill: true } : null;
+  return fromEntry({ ...entry, file: app.icon ?? entry.file });
 }
 
 function iconFromProp(icon: string | undefined): BadgeIcon | null {
@@ -260,11 +262,7 @@ export function resolveBadge(spec: BadgeSpec, locale: Locale): ResolvedBadge | n
     const media = commit.media?.[spec.item ?? 0];
     const label = spec.title ?? title;
     const icon =
-      iconFromProp(spec.icon) ??
-      (commit.media ?? [])
-        .map((m) => (m.kind === "link" ? appIconForUrl(m.url) : null))
-        .find(Boolean) ??
-      monogram(label, tagColor(commit));
+      iconFromProp(spec.icon) ?? siteIcon(spec) ?? monogram(label, tagColor(commit));
     if (!media) {
       return {
         target: null,
@@ -293,11 +291,12 @@ export function resolveBadge(spec: BadgeSpec, locale: Locale): ResolvedBadge | n
   if (spec.href) {
     const media = mediaFromHref(spec.href, spec.as, spec.title);
     const label = spec.title ?? labelFor(media, locale);
+    // A path on this site wears this site's icon, and an image wears itself.
     const icon =
       iconFromProp(spec.icon) ??
-      (media.kind === "link" ? appIconForUrl(media.url) : null) ?? {
-        type: "glyph" as const,
-      };
+      (media.url.startsWith("/") && media.kind !== "image" ? SITE_ICON : null) ??
+      (media.kind === "image" ? { type: "image" as const, src: media.url, fill: true } : null) ??
+      siteIcon(spec) ?? { type: "glyph" as const };
     return {
       target: {
         type: "media",

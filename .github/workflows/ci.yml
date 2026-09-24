@@ -33,3 +33,8 @@ jobs:
       # No `pnpm install` — the script is local TypeScript.
       - name: Check attachment images
         run: pnpm og:complete
+
+      # Filesystem-only: every <Badge> written in the MDX has its site's
+      # official icon committed (content/badge-icons.json, public/badge-icons).
+      - name: Check badge icons
+        run: pnpm badges:check

@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { BEZEL_LAYER_ATTRIBUTE } from "vitre";
 
 // =============================================================================
 // EdgeGlow — light that lives on the edge of the screen.
@@ -214,11 +215,28 @@ const SURGE_MS = 900;
 export interface EdgeGlowProps {
   /** On: the ring sweeps in and stays. Off: it sweeps out and the frame stops. */
   active: boolean;
+  /**
+   * The corner radius of the box the ring runs around, CSS px — the bezel's
+   * inner radius when the page sits inside one. Defaults to the screen's:
+   * rounded where the pointer is coarse (a phone), nearly square otherwise.
+   */
+  radius?: number;
+  /** Where the ring runs: the viewport by default; `BEZEL_INSET` in a bezel. */
+  style?: CSSProperties;
+  /** Mark it a bezel layer (vitre): absolute rather than fixed in container
+   *  scroll, so it can never tint Safari's chrome. */
+  layer?: boolean;
   className?: string;
 }
 
-export function EdgeGlow({ active, className }: EdgeGlowProps) {
+export function EdgeGlow({ active, radius, style, layer, className }: EdgeGlowProps) {
+  const layerProps = layer ? { [BEZEL_LAYER_ATTRIBUTE]: "" } : {};
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Read by the frame loop, which outlives renders.
+  const radiusRef = useRef(radius);
+  useEffect(() => {
+    radiusRef.current = radius;
+  }, [radius]);
   const glRef = useRef<GL | null | undefined>(undefined);
   const [fallback, setFallback] = useState(false);
   // Shown while arriving, on, or leaving; hidden (and idle) otherwise.
@@ -279,8 +297,6 @@ export function EdgeGlow({ active, className }: EdgeGlowProps) {
       gl.uniform1f(u.uScale, w / Math.max(1, canvas.clientWidth));
       const short = Math.min(canvas.clientWidth, canvas.clientHeight);
       gl.uniform1f(u.uWidth, Math.min(34, Math.max(16, short * 0.034)));
-      // A phone's screen is rounded; a browser window's is nearly square.
-      gl.uniform1f(u.uRadius, coarse.matches ? 44 : 10);
     };
 
     const draw = (now: number) => {
@@ -292,6 +308,9 @@ export function EdgeGlow({ active, className }: EdgeGlowProps) {
       const surge = Math.max(0, 1 - (now - s.surgeAt) / SURGE_MS);
 
       const time = reduced.matches ? 0 : (now - epoch) / 1000;
+      // A bezel's radius, live; otherwise the screen's: a phone's is
+      // rounded, a browser window's nearly square.
+      gl.uniform1f(u.uRadius, radiusRef.current ?? (coarse.matches ? 44 : 10));
       gl.uniform1f(u.uTime, time);
       gl.uniform1f(u.uReveal, s.reveal);
       gl.uniform1f(u.uSurge, surge * surge * s.target);
@@ -329,7 +348,10 @@ export function EdgeGlow({ active, className }: EdgeGlowProps) {
 
     resize();
     start();
-    window.addEventListener("resize", onResize);
+    // The box can change without the window resizing: a bezel's band or
+    // radius is a live setting.
+    const observer = new ResizeObserver(onResize);
+    observer.observe(canvas);
     document.addEventListener("visibilitychange", onVisibility);
     // The target can change while a reduced-motion ring holds still.
     const poke = window.setInterval(() => {
@@ -339,7 +361,7 @@ export function EdgeGlow({ active, className }: EdgeGlowProps) {
     return () => {
       stop();
       window.clearInterval(poke);
-      window.removeEventListener("resize", onResize);
+      observer.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [visible, fallback]);
@@ -353,19 +375,26 @@ export function EdgeGlow({ active, className }: EdgeGlowProps) {
           active ? "opacity-100" : "opacity-0",
           className,
         )}
+        style={{ borderRadius: radius, ...style }}
+        {...layerProps}
       />
     );
   }
 
+  // A canvas is a replaced element: positioned by its four edges it would
+  // keep its intrinsic size, so the box is a div and the canvas fills it.
   return (
-    <canvas
-      ref={canvasRef}
+    <div
       aria-hidden
       className={cn(
-        "pointer-events-none fixed inset-0 h-full w-full",
+        "pointer-events-none fixed inset-0",
         !visible && "invisible",
         className,
       )}
-    />
+      style={style}
+      {...layerProps}
+    >
+      <canvas ref={canvasRef} className="block h-full w-full" />
+    </div>
   );
 }
