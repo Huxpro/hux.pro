@@ -4,7 +4,7 @@
 // into the package source by path for the same reason.
 // =============================================================================
 
-import type { BezelScroll } from "../../vitre";
+import type { VitreScroll } from "../../vitre";
 import {
   BEZEL_BAND_MAX,
   BEZEL_BAND_MIN,
@@ -14,7 +14,7 @@ import {
 
 export type ColorMode = "black" | "dark" | "theme" | "custom";
 export type ThemeMode = "system" | "light" | "dark";
-export type ScrollMode = "auto" | BezelScroll;
+export type ScrollMode = "auto" | VitreScroll;
 export type Backdrop = "aurora" | "sunset" | "none";
 
 export interface DemoConfig {

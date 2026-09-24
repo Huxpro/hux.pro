@@ -103,7 +103,7 @@ function Phone({
         </button>
         <iframe
           ref={frameRef}
-          title="vitre demo"
+          title="Vitre demo"
           src={src}
           style={{ height: PHONE.height - PHONE.status - toolbar }}
         />

@@ -1,6 +1,6 @@
 "use client";
 
-import { onPageScroll, pageScrollTop, useBezel } from "vitre";
+import { onPageScroll, pageScrollTop, useVitre } from "vitre";
 import { useEffect, useState, type CSSProperties } from "react";
 
 /**
@@ -15,7 +15,7 @@ import { useEffect, useState, type CSSProperties } from "react";
  * when the CSS animation handles it natively.
  */
 export function useHeroFade(enabled = true): CSSProperties | undefined {
-  const { scroll } = useBezel();
+  const { scroll } = useVitre();
   const [needsFallback, setNeedsFallback] = useState(false);
   const [opacity, setOpacity] = useState(1);
 

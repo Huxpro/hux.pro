@@ -1,5 +1,5 @@
 import {
-  Bezel,
+  Vitre,
   BEZEL_INSET,
   BEZEL_LAYER_ATTRIBUTE,
   getScrollContainer,
@@ -7,7 +7,7 @@ import {
   pageScrollTop,
   pageViewportHeight,
   scrollPageTo,
-  useBezel,
+  useVitre,
   usePageScroll,
 } from "vitre";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
@@ -30,7 +30,7 @@ import { LangSwitch, useLang, useT, type Text } from "../i18n";
 import { SCENARIOS, type Scenario, type ScenarioName } from "../scenarios";
 
 // =============================================================================
-// The demo: a small mobile site inside <Bezel>, the way a host uses it.
+// The demo: a small mobile site inside <Vitre>, the way a host uses it.
 //
 // Standalone (a phone visiting the site) it saves its configuration and the
 // boot script paints the first frame from it. Inside the docs page's phone it
@@ -169,7 +169,7 @@ export function Demo() {
   const scroll = resolveScroll(config);
 
   return (
-    <Bezel
+    <Vitre
       enabled={config.enabled}
       color={color}
       band={config.band}
@@ -211,13 +211,13 @@ export function Demo() {
           onClose={() => setDevtoolOpen(false)}
         />
       )}
-    </Bezel>
+    </Vitre>
   );
 }
 
 /** Inside the docs page: tell the docs what the package resolved. */
 function Reporter({ theme }: { theme: "light" | "dark" }) {
-  const state = useBezel();
+  const state = useVitre();
   const last = useRef("");
   useUserInput();
   // Every scroll, straight away: the docs move the simulated toolbar with it.
@@ -284,14 +284,14 @@ function DemoPage({
     <main className="demo-page">
       <header className="demo-hero">
         <div className="demo-hero-top">
-          <p className="demo-kicker">vitre</p>
+          <p className="demo-kicker">{t({ en: "Vitre", zh: "窗玻璃" })}</p>
           {!isFramed() && <LangSwitch />}
         </div>
         <h1>{t({ en: "Safari's glass, in your colours", zh: "让 Safari 的玻璃，显示你的颜色" })}</h1>
         <p>
           {t({
-            en: "vitre tints Safari's toolbar and status bar live, draws a bezel around the page, and scrolls the page in a container so its edges hold still. Tap a card to watch one feature, or open the devtool.",
-            zh: "vitre 实时给 Safari 的工具栏和状态栏着色，在页面四周画一圈 bezel，并让页面在容器里滚动，边缘保持稳定。点一张卡片演示一个功能，或者打开 devtool。",
+            en: "Vitre tints Safari's toolbar and status bar live, draws a bezel around the page, and scrolls the page in a container so its edges hold still. Tap a card to watch one feature, or open the devtool.",
+            zh: "窗玻璃（Vitre）实时给 Safari 的工具栏和状态栏着色，在页面四周画一圈 bezel，并让页面在容器里滚动，边缘保持稳定。点一张卡片演示一个功能，或者打开 devtool。",
           })}
         </p>
       </header>

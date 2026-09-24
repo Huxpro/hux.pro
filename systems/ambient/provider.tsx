@@ -63,7 +63,7 @@ import {
 import {
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
-  type BezelScroll,
+  type VitreScroll,
 } from "vitre";
 import {
   EDGE_FADE_MASK,
@@ -241,7 +241,7 @@ export interface DevtoolWallpaperOverrides {
   /** Bezel on or off, for this session. */
   bezel?: boolean;
   /** Where the page scrolls, for this session, instead of the platform's choice. */
-  scroll?: BezelScroll;
+  scroll?: VitreScroll;
   /** Pretend WebGL2 is missing: the Sky paints its Gradient fallback. */
   noWebGL?: boolean;
   /**
@@ -374,10 +374,10 @@ interface WallpaperContextType {
   reading: boolean;
   /** Whether the bezel is drawn. Live. */
   bezel: boolean;
-  /** `bezel`, but `null` until settings and platform are known. For <Bezel>. */
+  /** `bezel`, but `null` until settings and platform are known. For <Vitre>. */
   bezelState: boolean | null;
   /** Where the page scrolls: in the bezel's container while the bezel is on, on iOS. */
-  bezelScroll: BezelScroll;
+  bezelScroll: VitreScroll;
   /**
    * Whether a chrome colour change has to be morphed onto the screen for the
    * browser to see it. iOS Safari only — see vitre. Everywhere else the
@@ -771,7 +771,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   // Container scroll on an iPhone with the bezel on: it is what lets a band
   // thinner than CHROME_SAMPLE_PX keep the chrome in the bezel colour, and
   // what stops the toolbar collapsing. The devtool can pick either.
-  const bezelScroll: BezelScroll =
+  const bezelScroll: VitreScroll =
     (isDevtoolEnabled ? devtoolOverrides.scroll : undefined) ??
     (bezel && isIOS === true ? "container" : "window");
   const bezelColor = resolveBezelTint(settings.bezelTint, chromeTheme);

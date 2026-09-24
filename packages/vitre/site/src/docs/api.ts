@@ -1,5 +1,5 @@
 import type * as Contract from "../../../vitre";
-import type { BezelBootState, BezelProps, BezelState, ChromeSyncOptions, ScrollPageOptions } from "vitre";
+import type { VitreBootState, VitreProps, VitreState, ChromeSyncOptions, ScrollPageOptions } from "vitre";
 import type { Text } from "../i18n";
 import type { ScenarioName } from "../scenarios";
 
@@ -21,27 +21,27 @@ export interface ExportDoc {
 }
 
 export const EXPORTS: { [K in keyof typeof Contract]: ExportDoc } = {
-  Bezel: {
+  Vitre: {
     kind: "component",
-    signature: "<Bezel enabled color band? radius? scroll? ground backdrop? className? style?>",
+    signature: "<Vitre enabled color band? radius? scroll? ground backdrop? className? style?>",
     summary: { en: "The bezel, the chrome colour and the page's scroll container, in one. Render it once, around the page.", zh: "bezel、浏览器 chrome 的颜色和页面的滚动容器，三合一。在页面外层渲染一次即可。" },
     section: "enabled",
   },
-  useBezel: {
+  useVitre: {
     kind: "hook",
-    signature: "useBezel(): BezelState",
-    summary: { en: "What the bezel is showing, resolved. A disabled default outside <Bezel>.", zh: "bezel 当前实际显示的状态。在 <Bezel> 之外返回一个关闭状态的默认值。" },
+    signature: "useVitre(): VitreState",
+    summary: { en: "What the bezel is showing, resolved. A disabled default outside <Vitre>.", zh: "bezel 当前实际显示的状态。在 <Vitre> 之外返回一个关闭状态的默认值。" },
     section: "state",
   },
-  bezelBootScript: {
+  vitreBootScript: {
     kind: "function",
-    signature: "bezelBootScript(resolver: string): string",
+    signature: "vitreBootScript(resolver: string): string",
     summary: { en: "An inline <head> script that paints the first frame from your settings before React runs.", zh: "放在 <head> 里的内联脚本，在 React 运行前按你的设置画出第一帧。" },
     section: "boot",
   },
-  readBezelBoot: {
+  readVitreBoot: {
     kind: "function",
-    signature: "readBezelBoot(): BezelBootState | null",
+    signature: "readVitreBoot(): VitreBootState | null",
     summary: { en: "The state the boot script applied, or null if none ran.", zh: "启动脚本应用的状态；没有运行过则为 null。" },
     section: "boot",
   },
@@ -171,7 +171,7 @@ export interface FieldDoc {
   summary: Text;
 }
 
-export const BEZEL_PROPS: { [K in keyof Required<BezelProps>]: FieldDoc } = {
+export const BEZEL_PROPS: { [K in keyof Required<VitreProps>]: FieldDoc } = {
   enabled: {
     type: "boolean | null",
     summary: { en: "Whether the bezel is drawn. Live. null holds what the boot script applied until the host knows.", zh: "是否绘制 bezel。实时生效。null 表示宿主还不确定，保持启动脚本应用的状态。" },
@@ -192,7 +192,7 @@ export const BEZEL_PROPS: { [K in keyof Required<BezelProps>]: FieldDoc } = {
   children: { type: "ReactNode", summary: { en: "The page.", zh: "页面内容。" } },
 };
 
-export const BEZEL_STATE: { [K in keyof BezelState]: FieldDoc } = {
+export const BEZEL_STATE: { [K in keyof VitreState]: FieldDoc } = {
   enabled: { type: "boolean", summary: { en: "Whether the bezel is drawn.", zh: "是否绘制 bezel。" } },
   color: { type: "string", summary: { en: "The bezel colour.", zh: "bezel 的颜色。" } },
   band: { type: "number", summary: { en: "Band thickness, px.", zh: "band 厚度（px）。" } },
@@ -201,7 +201,7 @@ export const BEZEL_STATE: { [K in keyof BezelState]: FieldDoc } = {
   ground: { type: "string", summary: { en: "The chrome colour while the bezel is off.", zh: "bezel 关闭时 chrome 的颜色。" } },
 };
 
-export const BOOT_STATE: { [K in keyof BezelBootState]: FieldDoc } = {
+export const BOOT_STATE: { [K in keyof VitreBootState]: FieldDoc } = {
   enabled: { type: "boolean", summary: { en: "Draw the bezel on the first frame.", zh: "第一帧是否绘制 bezel。" } },
   color: { type: "string", summary: { en: "Its colour.", zh: "它的颜色。" } },
   band: { type: "number", summary: { en: "Its band, px.", zh: "它的 band（px）。" } },

@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import {
-  Bezel,
+  Vitre,
   BEZEL_INSET,
   BEZEL_LAYER_ATTRIBUTE,
   getScrollContainer,
@@ -46,7 +46,7 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
     // wallpaper layers paint above the body's background (with the bezel on,
     // the body paints the bezel colour and would otherwise cover them).
     <div className="isolate">
-      <Bezel
+      <Vitre
         enabled={bezelState}
         color={bezelColor}
         band={bezelBand}
@@ -74,7 +74,7 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
         )}
       >
         {children}
-      </Bezel>
+      </Vitre>
     </div>
   );
 }

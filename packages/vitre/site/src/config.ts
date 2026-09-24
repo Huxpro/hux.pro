@@ -1,12 +1,12 @@
 // =============================================================================
-// Demo configuration: every knob vitre has, as one serialisable object.
+// Demo configuration: every knob Vitre has, as one serialisable object.
 //
-// The demo page renders <Bezel> from it, the devtool edits it, the docs page
+// The demo page renders <Vitre> from it, the devtool edits it, the docs page
 // drives it through postMessage, and the boot resolver reads the saved copy
 // before first paint. Nothing here knows about the hux.pro site.
 // =============================================================================
 
-import type { BezelScroll } from "vitre";
+import type { VitreScroll } from "vitre";
 import { DEFAULT_CONFIG, GROUND, STORAGE_KEY, type DemoConfig } from "./defaults";
 
 export {
@@ -36,7 +36,7 @@ export function resolveColor(config: DemoConfig, theme: "light" | "dark"): strin
  * Container scroll wherever the bezel is on: that is what keeps a band thinner
  * than CHROME_SAMPLE_PX in step with the chrome, and the toolbar still.
  */
-export function resolveScroll(config: DemoConfig): BezelScroll {
+export function resolveScroll(config: DemoConfig): VitreScroll {
   if (config.scroll !== "auto") return config.scroll;
   return config.enabled ? "container" : "window";
 }
@@ -96,7 +96,7 @@ export type ToPhone =
 export interface PhoneScroll {
   type: "bezel-demo:scroll";
   top: number;
-  scroll: BezelScroll;
+  scroll: VitreScroll;
   /** Whether the user scrolled, rather than the page scrolling itself. */
   user: boolean;
 }

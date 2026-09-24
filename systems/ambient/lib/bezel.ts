@@ -81,7 +81,7 @@ export function resolveBezelTint(tint: BezelTint, theme: "light" | "dark"): stri
 }
 
 /**
- * The boot resolver for `bezelBootScript`: the same decisions as the provider,
+ * The boot resolver for `vitreBootScript`: the same decisions as the provider,
  * from what is knowable before React runs. It cannot import, so every constant
  * is interpolated and the two cannot drift.
  */

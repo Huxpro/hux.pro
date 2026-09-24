@@ -1,13 +1,13 @@
-# vitre
+# Vitre
 
-Safari `theme-color` for iOS 26, and safe page edges. vitre draws a bezel around
+Safari `theme-color` for iOS 26, and safe page edges. Vitre draws a bezel around
 the page, tints Safari's glass toolbar and status bar live in the colour you
 choose, and scrolls the page in a container so the viewport and its edges hold
 still. For React.
 
 *Vitre* is French for a windowpane: the glass set in a frame. Safari on iOS 26
 draws its bars as glass over the edges of the page and tints them from what it
-finds there. vitre is the frame and the pane at those edges.
+finds there. Vitre is the frame and the pane at those edges.
 
 The public API is [`vitre.d.ts`](./vitre.d.ts). `src/contract.ts` fails the
 type check if the implementation drifts from it.
@@ -44,7 +44,7 @@ above, not a platform limit. `syncChrome(color, { band, radius })` shows Safari
 the new colour as a morph of the bezel: a fixed bezel in the new colour grows
 from the current band to 8px (160ms), holds (440ms), and eases back (280ms),
 with its corners riding the inner edge. It sets `theme-color` for iOS 18 too.
-`<Bezel>` calls it whenever the colour the chrome should show changes.
+`<Vitre>` calls it whenever the colour the chrome should show changes.
 
 Two details make it work, both measured:
 
@@ -75,7 +75,7 @@ holds for about 450ms, and the chrome stays black after it shrinks to 0px.
 
 ## What is live, and how
 
-Every prop of `<Bezel>` is live:
+Every prop of `<Vitre>` is live:
 
 | Change | Mechanism |
 |---|---|
@@ -88,13 +88,13 @@ Every prop of `<Bezel>` is live:
 ## Using it
 
 ```tsx
-import { Bezel, BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE, bezelBootScript } from "vitre";
+import { Vitre, BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE, vitreBootScript } from "vitre";
 
 // <head>: paint the first frame right, before React.
-<script dangerouslySetInnerHTML={{ __html: bezelBootScript(resolverSource) }} />
+<script dangerouslySetInnerHTML={{ __html: vitreBootScript(resolverSource) }} />
 
 // Around the page.
-<Bezel
+<Vitre
   enabled={on}          // null until the client knows; holds what the boot script applied
   color="#000000"
   band={0}
@@ -104,13 +104,13 @@ import { Bezel, BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE, bezelBootScript } from "vitr
   backdrop={<div {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }} style={{ position: "fixed", ...BEZEL_INSET }} />}
 >
   {page}
-</Bezel>
+</Vitre>
 ```
 
 ## Scroll
 
 `scroll` picks the page's scroller: the window, or a container inside the bezel
-with `<html>` and `<body>` held still. `<Bezel>` writes the choice to `<html>`
+with `<html>` and `<body>` held still. `<Vitre>` writes the choice to `<html>`
 (`data-bezel-scroll`), and everything else reads it from there. It is
 independent of `enabled`, `color` and `band`; container scroll is the one to use
 while the bezel is on.
@@ -136,11 +136,11 @@ Two layers, the second built on the first:
 - **The scroller.** `getScrollContainer()` returns the container in container
   scroll and `null` in window scroll, the platform's value for the viewport (as
   in an IntersectionObserver's `root`). Hand it to anything that takes a scroll
-  element, and bind again when `useBezel().scroll` changes.
+  element, and bind again when `useVitre().scroll` changes.
 - **The page.** `pageScrollTop`, `pageScrollHeight`, `pageViewportHeight`,
   `pageOffsetOf`, `scrollPageTo`, `onPageScroll`, `usePageScroll` and
   `emitPageScroll` read the mode at every call, so they work in both modes,
-  across a live switch, and outside React. Without `<Bezel>` they act on the
+  across a live switch, and outside React. Without `<Vitre>` they act on the
   window. `scrollPageTo(top, { behavior: "smooth" })` animates.
 
 | Your page | Use |
@@ -150,13 +150,13 @@ Two layers, the second built on the first:
 | Always container scroll | `getScrollContainer()`, as any scroll container |
 | Switches mode live, or a component that does not know the host's mode | The page helpers |
 | Scroll-driven CSS | `animation-timeline: --page-scroll` (`PAGE_SCROLL_TIMELINE`) |
-| A library that takes a scroll element | `getScrollContainer()`, bound again on `useBezel().scroll` |
+| A library that takes a scroll element | `getScrollContainer()`, bound again on `useVitre().scroll` |
 
 ```tsx
 usePageScroll(() => setProgress(pageScrollTop() / (pageScrollHeight() - pageViewportHeight())));
 scrollPageTo(pageOffsetOf(heading) - 96, { behavior: "smooth" });
 
-const { scroll } = useBezel();
+const { scroll } = useVitre();
 useEffect(() => {
   const target = getScrollContainer() ?? window;
   target.addEventListener("scroll", onScroll, { passive: true });
@@ -180,7 +180,7 @@ Measured in the iOS 26.5 simulator:
 `packages/vitre/site` is the package's own website, built with Vite and importing
 only `vitre`. It is served by hux.pro at `/vitre`.
 
-- **On a phone** it is the demo itself: a small site inside `<Bezel>`, with
+- **On a phone** it is the demo itself: a small site inside `<Vitre>`, with
   cards that each run one feature and a devtool that edits every prop and
   shows what the package resolved, wrote to `<html>` and set as `theme-color`.
   Settings are saved, and the boot script paints the next load from them, so

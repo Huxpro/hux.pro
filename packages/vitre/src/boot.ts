@@ -1,4 +1,4 @@
-import type { BezelBootState } from "../vitre";
+import type { VitreBootState } from "../vitre";
 import {
   BAND_VAR,
   BEZEL_ATTRIBUTE,
@@ -21,7 +21,7 @@ import { BEZEL_CSS } from "./css";
 // survives a failed hydration that strips <html>.
 // =============================================================================
 
-export function bezelBootScript(resolver: string): string {
+export function vitreBootScript(resolver: string): string {
   return `(function(){try{
 var s=(function(){${resolver}})();if(!s)return;
 var d=document,h=d.documentElement;
@@ -33,11 +33,11 @@ var m=d.createElement("meta");m.id=${JSON.stringify(THEME_COLOR_ID)};m.name="the
 }catch(e){}})()`;
 }
 
-export function readBezelBoot(): BezelBootState | null {
+export function readVitreBoot(): VitreBootState | null {
   if (typeof window === "undefined") return null;
   const value = (window as unknown as Record<string, unknown>)[BOOT_GLOBAL];
   if (!value || typeof value !== "object") return null;
-  const v = value as Partial<BezelBootState>;
+  const v = value as Partial<VitreBootState>;
   if (typeof v.color !== "string" || typeof v.ground !== "string") return null;
   return {
     enabled: v.enabled === true,

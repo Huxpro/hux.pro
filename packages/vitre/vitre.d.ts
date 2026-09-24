@@ -1,9 +1,9 @@
 // =============================================================================
-// vitre — public API. Safari theme-color for iOS 26, and safe page edges.
+// Vitre — public API. Safari theme-color for iOS 26, and safe page edges.
 //
 // Vitre is French for a windowpane: the glass set in a frame. Safari on iOS 26
 // draws its bars as glass over the edges of the page and tints them from what
-// it finds there; vitre is the frame and the pane at those edges.
+// it finds there; Vitre is the frame and the pane at those edges.
 //
 // This file is the contract. The implementation in ./src must match it exactly:
 // ./src/contract.ts fails to type-check if an export is missing, extra, or has
@@ -28,7 +28,7 @@ import type { CSSProperties, JSX, ReactNode } from "react";
 // -----------------------------------------------------------------------------
 
 /**
- * Where the page scrolls. `<Bezel>` writes it to <html>; the page scroll API
+ * Where the page scrolls. `<Vitre>` writes it to <html>; the page scroll API
  * reads it from there at every call.
  *
  *   window     the document scrolls. On iOS Safari the toolbar collapses and
@@ -48,10 +48,10 @@ import type { CSSProperties, JSX, ReactNode } from "react";
  *              scrolling it back to 0 is read as the tap. Nothing to call: it
  *              is on wherever container scroll is.
  */
-export type BezelScroll = "window" | "container";
+export type VitreScroll = "window" | "container";
 
-/** Everything the bezel is showing, resolved. What `useBezel()` returns. */
-export interface BezelState {
+/** Everything the bezel is showing, resolved. What `useVitre()` returns. */
+export interface VitreState {
   /** Whether the bezel is drawn. */
   enabled: boolean;
   /** The bezel colour. Any CSS colour. */
@@ -61,7 +61,7 @@ export interface BezelState {
   /** Inner corner radius, px. */
   radius: number;
   /** Where the page scrolls. */
-  scroll: BezelScroll;
+  scroll: VitreScroll;
   /** The colour the chrome takes while the bezel is off: the page's ground. */
   ground: string;
 }
@@ -70,7 +70,7 @@ export interface BezelState {
 // Component
 // -----------------------------------------------------------------------------
 
-export interface BezelProps {
+export interface VitreProps {
   /**
    * Whether the bezel is drawn. Live.
    *
@@ -87,7 +87,7 @@ export interface BezelProps {
   /** Inner corner radius, px. Default `DEFAULT_BEZEL_RADIUS`. Live. */
   radius?: number;
   /** Where the page scrolls. Default `"window"`. Live. */
-  scroll?: BezelScroll;
+  scroll?: VitreScroll;
   /** The chrome colour while the bezel is off — the page's ground. Live. */
   ground: string;
   /**
@@ -118,23 +118,23 @@ export interface BezelProps {
  * everything, writes the root attributes the stylesheet needs, keeps the
  * chrome in step whenever the colour it should show changes, and restores its
  * root attributes if something strips them (React 19 does, after a failed
- * hydration). It provides `useBezel()`.
+ * hydration). It provides `useVitre()`.
  */
-export declare function Bezel(props: BezelProps): JSX.Element;
+export declare function Vitre(props: VitreProps): JSX.Element;
 
-/** The bezel's resolved state. Outside `<Bezel>`, a disabled default. */
-export declare function useBezel(): BezelState;
+/** The bezel's resolved state. Outside `<Vitre>`, a disabled default. */
+export declare function useVitre(): VitreState;
 
 // -----------------------------------------------------------------------------
 // Boot
 // -----------------------------------------------------------------------------
 
 /** What a boot resolver returns: the first frame, before React runs. */
-export interface BezelBootState {
+export interface VitreBootState {
   enabled: boolean;
   color: string;
   band: number;
-  scroll: BezelScroll;
+  scroll: VitreScroll;
   ground: string;
 }
 
@@ -142,16 +142,16 @@ export interface BezelBootState {
  * An inline script for the document <head> that paints the first frame right.
  *
  * `resolver` is the BODY of a function, as source, that returns a
- * `BezelBootState` — read your settings from `localStorage` there. It runs
+ * `VitreBootState` — read your settings from `localStorage` there. It runs
  * before first paint, so it cannot import anything; interpolate constants into
  * it. The script installs the stylesheet, applies the state to <html>, creates
- * the `theme-color` meta, and records the state for `<Bezel>` and
- * `readBezelBoot()`.
+ * the `theme-color` meta, and records the state for `<Vitre>` and
+ * `readVitreBoot()`.
  */
-export declare function bezelBootScript(resolver: string): string;
+export declare function vitreBootScript(resolver: string): string;
 
 /** The state the boot script applied, or `null` if none ran. */
-export declare function readBezelBoot(): BezelBootState | null;
+export declare function readVitreBoot(): VitreBootState | null;
 
 // -----------------------------------------------------------------------------
 // Chrome
@@ -180,8 +180,8 @@ export interface ChromeSyncOptions {
  * fixed bezel in `color` grows from `band` to at least `CHROME_MORPH_PX`, holds
  * while Safari samples it, then eases back to `band` and is removed. A band
  * already that thick does not move. `theme-color` is set too, for iOS 18.
- * `<Bezel>` calls it whenever its chrome colour changes; call it yourself only
- * for a change `<Bezel>` cannot see. Pass `morph: false` where the platform
+ * `<Vitre>` calls it whenever its chrome colour changes; call it yourself only
+ * for a change `<Vitre>` cannot see. Pass `morph: false` where the platform
  * does not need the trick: `theme-color` is still set, and nothing is drawn.
  */
 export declare function syncChrome(color: string, options?: ChromeSyncOptions): void;
@@ -192,7 +192,7 @@ export declare function syncChrome(color: string, options?: ChromeSyncOptions): 
 // Two layers. The scroller, `getScrollContainer()`, is for anything that takes
 // a scroll element. The page helpers are built on it and read the mode at every
 // call, so they work in both modes, across a live switch, and outside React;
-// without <Bezel> they act on the window.
+// without <Vitre> they act on the window.
 // -----------------------------------------------------------------------------
 
 /** Run `listener` on page scroll, wherever it happens, while mounted. */
@@ -201,7 +201,7 @@ export declare function usePageScroll(listener: () => void): void;
 /**
  * The element the page scrolls in, or `null` when the window scrolls — the
  * platform's value for the viewport, as in an IntersectionObserver's `root`.
- * Bind again when `useBezel().scroll` changes.
+ * Bind again when `useVitre().scroll` changes.
  */
 export declare function getScrollContainer(): HTMLElement | null;
 /** How far the page is scrolled, px. */

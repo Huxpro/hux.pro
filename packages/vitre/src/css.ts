@@ -15,7 +15,7 @@ import {
 // The stylesheet.
 //
 // Shipped as a string, not a .css file, so the package needs no bundler
-// support and the boot script can install it before first paint. <Bezel>
+// support and the boot script can install it before first paint. <Vitre>
 // installs it too, for hosts without a boot script. It is unlayered on
 // purpose: it must beat a host's layered `body { background }`.
 //
