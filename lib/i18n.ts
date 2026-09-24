@@ -383,6 +383,12 @@ export const translations = {
     linkOpensInTab: "Opens in a new tab",
     linkNewTab: "New tab",
     linkFrameDenied: "{host} does not allow being shown in a window",
+    // About (see systems/about)
+    aboutTitle: "About",
+    aboutEnter: "Look around",
+    aboutClose: "Close",
+    aboutReopenHint: "Press {key} anytime to come back",
+    aboutReopenHintTouch: "Find it again in the command menu",
 
     // Prompts page
     promptsTitle: "System Prompts",
@@ -742,6 +748,12 @@ export const translations = {
     linkOpensInTab: "在新标签页打开",
     linkNewTab: "新标签页",
     linkFrameDenied: "{host} 不允许在窗口中显示",
+    // About (see systems/about)
+    aboutTitle: "关于",
+    aboutEnter: "随便看看",
+    aboutClose: "关闭",
+    aboutReopenHint: "随时按 {key} 回到这里",
+    aboutReopenHintTouch: "之后可在命令菜单中再次找到",
 
     // Prompts page
     promptsTitle: "系统提示词",

@@ -697,6 +697,12 @@ html.dragging * {
   margin-bottom: 0;
 }
 
+/* A badge (components/badge) is `.not-prose` to escape the prose link style,
+   but it is a word in a sentence, not a block: no block margin. */
+.prose-article .not-prose.badge-link {
+  margin-block: 0;
+}
+
 /* -----------------------------------------------------------------------------
    Block spacing, against the reading size.
 
@@ -2107,59 +2113,60 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   Install illustration — the site's icon dropping into an empty slot on a home
-   screen or a Dock (systems/install/components/install-sheet).
-
-   One animation on one group: it falls in from a little above, a size too
-   big, settles with a small overshoot the way a springboard icon does, holds
-   long enough to be looked at, and fades so the loop can start over on the
-   empty dashed slot. The hold is most of the cycle — the landed icon is the
-   promise; the fall is only how the eye gets drawn to it.
-
-   The transform origin is the slot's centre, set inline per slot: the group
-   is transformed in the SVG's own units (view-box), so px there are viewBox
-   units, not screen pixels.
+   About — `.about-copy` (systems/about)
+   The About's blocks rise in turn as it arrives: the greeting first, the
+   credits last. A little blur on the way up, the way a system sheet's text
+   resolves; none of it with reduced motion.
    ============================================================================= */
 
-.install-icon {
-  transform-box: view-box;
-  animation: install-drop 3.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+.about-copy > * {
+  animation: about-rise 720ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
+.about-copy > :nth-child(1) { animation-delay: 120ms; }
+.about-copy > :nth-child(2) { animation-delay: 190ms; }
+.about-copy > :nth-child(3) { animation-delay: 260ms; }
+.about-copy > :nth-child(4) { animation-delay: 330ms; }
+.about-copy > :nth-child(5) { animation-delay: 400ms; }
+.about-copy > :nth-child(6) { animation-delay: 470ms; }
+.about-copy > :nth-child(n + 7) { animation-delay: 540ms; }
 
-@keyframes install-drop {
-  0%,
-  8% {
+@keyframes about-rise {
+  from {
     opacity: 0;
-    transform: translateY(-14px) scale(1.5);
+    transform: translateY(10px);
+    filter: blur(6px);
   }
-  26% {
-    opacity: 1;
-    transform: translateY(0) scale(0.94);
-  }
-  34% {
-    transform: translateY(0) scale(1.03);
-  }
-  40%,
-  84% {
+  to {
     opacity: 1;
     transform: none;
+    filter: none;
   }
-  96%,
-  100% {
-    opacity: 0;
-    transform: none;
-  }
-}
-
-/* Landed — installed, or already running as the app: the icon in its place
-   and nothing more to show. Reduced motion gets the same frame, since the
-   landed icon is the one pose that says it without moving. */
-.install-landed .install-icon {
-  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .install-icon {
+  .about-copy > * {
     animation: none;
   }
+}
+
+/* The ring without WebGL: the same five colours as a conic gradient, masked
+   to a band on the screen's edge and softened. Still, but still Siri. */
+.about-glow-fallback {
+  padding: 6px;
+  background: conic-gradient(
+    from 180deg,
+    #4d85ff,
+    #b35cff,
+    #ff5aa8,
+    #ffa04d,
+    #42dbff,
+    #4d85ff
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  filter: blur(10px);
 }

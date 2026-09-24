@@ -10,6 +10,7 @@ import {
   useLocale,
   useTheme,
 } from "@/services";
+import { useAbout } from "@/systems/about";
 import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
 import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
@@ -28,6 +29,7 @@ import {
   MonitorDown,
   Moon,
   Music,
+  Orbit,
   Sparkles,
   SquarePlus,
   Sun,
@@ -108,7 +110,7 @@ export function useCommandActions(): CommandAction[] {
     play: musicPlay,
     pause: musicPause,
   } = useMusic();
-  const { guide: installGuide, open: openInstall } = useInstall();
+  const { open: openAbout } = useAbout();
   const router = useTransitionRouter();
 
   // Named for where it lands: a phone's home screen, a Mac's Dock, an app
@@ -203,6 +205,29 @@ export function useCommandActions(): CommandAction[] {
       ],
       run: () => router.push("/prompt"),
     },
+    {
+      // The About: who made this and what it is. `O` opens it from anywhere
+      // outside the palette too (systems/about).
+      id: "about",
+      key: "o",
+      kind: "surface",
+      section: "navigation",
+      label: t(locale, "aboutTitle"),
+      icon: <Orbit className={ROW_ICON} />,
+      keywords: [
+        "about",
+        "hux",
+        "who",
+        "bio",
+        "os",
+        "credits",
+        "关于",
+        "黄玄",
+        "简介",
+        "致谢",
+      ],
+      run: () => openAbout(),
+    },
     // Keyboard-only: reachable by letter from the slash list, never listed.
     {
       id: "docs",
@@ -252,7 +277,8 @@ export function useCommandActions(): CommandAction[] {
     },
     {
       id: "location",
-      key: "o",
+      // `o` went to the About; `c` for coordinates.
+      key: "c",
       kind: "toggle",
       section: "settings",
       label: `${t(locale, "settingsGeolocation")}: ${

@@ -9,7 +9,9 @@ import {
   TiltPrimerSheet,
   WallpaperSheet,
 } from "@/systems/ambient";
-import { AttachmentSurface, ImageLightbox } from "@/systems/attachments";
+import { AboutSurface } from "@/systems/about";
+import { AboutCopy } from "@/systems/about/components/about-copy";
+import { AttachmentSurface } from "@/systems/attachments";
 import { IdentityCard } from "@/systems/identity";
 import { InstallSheet } from "@/systems/install";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
@@ -149,6 +151,10 @@ export default function RootLayout({
             <AttachmentSurface />
             <ImageLightbox />
             <IdentityCard />
+            <AboutSurface
+              en={<AboutCopy locale="en" />}
+              zh={<AboutCopy locale="zh" />}
+            />
             <CommandPalette />
             <FloatingActionButton />
           </Providers>
