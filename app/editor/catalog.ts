@@ -12,9 +12,9 @@
  *     and would collide with Language (`l`) as a letter.
  *   - Routes stay under `/editor`. Bookmarks, docs, and the slash letter
  *     are muscle memory; renaming the URL is not worth it.
- *   - The dropdown is how you move between them. Search can find a lab
- *     by its own name; the slash list stays a lettered launcher, so `e`
- *     does not grow a submenu.
+ *   - The dropdown is how you move between them. The slash list stays
+ *     a lettered launcher, so `e` does not grow a submenu, and the
+ *     palette does not list the labs.
  */
 
 export type EditorId =
@@ -31,8 +31,6 @@ export interface EditorEntry {
   title: string;
   /** One-line what it is. */
   hint: string;
-  /** Search / slash row, when the command is listed. */
-  label: string;
 }
 
 export const EDITORS: readonly EditorEntry[] = [
@@ -41,35 +39,30 @@ export const EDITORS: readonly EditorEntry[] = [
     href: "/editor",
     title: "log.json",
     hint: "Works timeline, as it prints",
-    label: "log.json",
   },
   {
     id: "attachments",
     href: "/editor/attachments",
     title: "attachments",
     hint: "Every media render path",
-    label: "Attachments lab",
   },
   {
     id: "icon",
     href: "/editor/icon",
     title: "icon.json",
     hint: "App icon studio",
-    label: "Icon studio",
   },
   {
     id: "legibility",
     href: "/editor/legibility",
     title: "legibility",
     hint: "Ink, glass, wallpaper",
-    label: "Legibility lab",
   },
   {
     id: "theater",
     href: "/editor/theater-variants",
     title: "theater",
     hint: "Fullscreen chrome variants",
-    label: "Theater chrome",
   },
 ];
 
