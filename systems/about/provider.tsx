@@ -82,13 +82,19 @@ export function useOptionalAbout(): AboutContextValue | null {
 }
 
 export function AboutProvider({ children }: { children: React.ReactNode }) {
-  const { isOpen: isCommandOpen } = useCommand();
+  const { isOpen: isCommandOpen, close: closeCommand } = useCommand();
   const [isOpen, setIsOpen] = useState(false);
   // Assume met until storage says otherwise: the server render and the first
   // client render agree, and nobody is introduced twice by a hydration race.
   const [seen, setSeen] = useState(true);
 
-  const open = useCallback(() => setIsOpen(true), []);
+  // The palette leaves when the About arrives, from wherever it was asked
+  // for: the About is a whole-screen surface, and a palette left underneath
+  // shows through its veil as a dark slab.
+  const open = useCallback(() => {
+    closeCommand();
+    setIsOpen(true);
+  }, [closeCommand]);
 
   const close = useCallback(() => {
     setIsOpen(false);

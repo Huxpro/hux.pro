@@ -215,7 +215,9 @@ export function useCommandActions(): CommandAction[] {
       // outside the palette too (systems/about).
       id: "about",
       key: "o",
-      kind: "surface",
+      // `navigate`, not `surface`: the phone sheet must not stay behind the
+      // About as a stack — it would show through the veil.
+      kind: "navigate",
       section: "navigation",
       label: t(locale, "aboutTitle"),
       icon: <Orbit className={ROW_ICON} />,
