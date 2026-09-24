@@ -32,6 +32,7 @@
  * @see docs/mdx.md - Documentation on MDX rendering
  */
 
+import { BadgeLink } from "@/components/badge";
 import { CodeBlock } from "@/components/code-block";
 import { HeadingWithLink } from "@/components/heading-link";
 import { MdxImage } from "@/components/mdx-image";
@@ -185,6 +186,17 @@ const sharedComponents: MDXComponents = {
   LinkCard: withNotProse(LinkCard),
   Figure: withNotProse(Figure),
   MediaRenderer: withNotProse(MediaRenderer),
+
+  // ---------------------------------------------------------------------------
+  // Badge — a thing I made, inline in a sentence, opened where it lives on
+  // the site (in-app browser, stage, window, router). Inline, so it is not
+  // wrapped in `.not-prose` here; it carries the class itself.
+  //   <Badge commit="lynx-framework" />  <Badge app="lynx-flappy-bird" />
+  //   <Badge href="https://youtu.be/…">React without memo</Badge>
+  // @see components/badge
+  // ---------------------------------------------------------------------------
+  Badge: BadgeLink,
+  BadgeLink,
 
   // ---------------------------------------------------------------------------
   // Widget Primitives (shadcn-like composable building blocks)

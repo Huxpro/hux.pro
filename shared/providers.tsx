@@ -13,6 +13,7 @@ import {
 } from "@/services";
 
 import { SystemSonner } from "@/components/ui/system-sonner";
+import { AboutProvider } from "@/systems/about";
 import { AmbientProvider } from "@/systems/ambient";
 import { AttachmentProvider } from "@/systems/attachments";
 import { IdentityCardProvider } from "@/systems/identity";
@@ -68,10 +69,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
                         <WindowProvider>
                           <AttachmentProvider>
                             <IdentityCardProvider>
-                              <InstallProvider>
+                              <AboutProvider>
                                 {children}
                                 <SystemSonner />
-                              </InstallProvider>
+                              </AboutProvider>
                             </IdentityCardProvider>
                           </AttachmentProvider>
                         </WindowProvider>
