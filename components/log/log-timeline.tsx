@@ -352,7 +352,9 @@ function TagBlock({
               />
             ));
             return run.kind === "cluster" ? (
-              <div key={`cluster-${run.segmentId}`} className="group/tenure">
+              // An identity can cluster twice (Meta, then RIT, then Meta
+              // again), so the run is named by its first row, not its id.
+              <div key={`cluster-${commits[run.indices[0]].id}`} className="group/tenure">
                 {rows}
               </div>
             ) : (

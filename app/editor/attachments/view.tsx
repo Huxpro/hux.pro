@@ -77,6 +77,7 @@ import {
   Layers,
   PanelBottom,
   Play,
+  ZoomIn,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
@@ -181,6 +182,7 @@ const VOCABULARY: readonly { key: keyof LabSamples | "leaves"; title: string; me
 const HOME_ICON: Record<AttachmentHome, typeof Play> = {
   surface: PanelBottom,
   theater: Play,
+  lightbox: ZoomIn,
   window: Globe,
   route: BookOpen,
   tab: ArrowUpRight,
@@ -189,6 +191,7 @@ const HOME_ICON: Record<AttachmentHome, typeof Play> = {
 const HOME_LABEL: Record<AttachmentHome, string> = {
   surface: "sheet",
   theater: "theater",
+  lightbox: "lightbox",
   window: "window",
   route: "route",
   tab: "tab",

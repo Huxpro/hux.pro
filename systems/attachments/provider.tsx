@@ -32,8 +32,9 @@ import type { AttachmentHome, AttachmentSet } from "./lib/types";
 // in the expanded body, the icon in the folded rail — calls `open(set, index)`
 // and stops thinking. The provider applies the policy (lib/policy.ts): on a
 // phone the attachment surface comes up at that item; on a desktop the item
-// goes straight to its native home — the theater, an in-app browser window,
-// the router — and the surface only appears for the kinds that have none.
+// goes straight to its native home — the theater, the lightbox, an in-app
+// browser window, the router — and the surface only appears for the kinds
+// that have none.
 //
 // The surface itself (components/attachment-surface.tsx) is mounted once in
 // the root layout and reads `session` from here. Its pages call `act(index)`
@@ -46,6 +47,14 @@ export interface AttachmentSession {
   set: AttachmentSet;
   index: number;
   /** Bumped per open, so the surface's pager re-lands on `index`. */
+  key: number;
+}
+
+/** What the lightbox shows: one still, under its commit's name. */
+export interface LightboxSession {
+  set: AttachmentSet;
+  index: number;
+  /** Bumped per open, so the viewer lands back at fit. */
   key: number;
 }
 
@@ -62,6 +71,10 @@ export interface AttachmentsContextValue {
   /** The surface's current session; it stays through the close animation. */
   session: AttachmentSession | null;
   isOpen: boolean;
+  /** The lightbox's current still; it stays through the close animation. */
+  lightbox: LightboxSession | null;
+  lightboxOpen: boolean;
+  closeLightbox: () => void;
   /** A phone-sized viewport — the one fact of the policy's context a row
    *  lays itself out by (the feed plays a video where it is there). */
   compact: boolean;
@@ -107,7 +120,11 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
     [compact, hasWindows],
   );
 
+  const [lightbox, setLightbox] = useState<LightboxSession | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
   const close = useCallback(() => setIsOpen(false), []);
+  const closeLightbox = useCallback(() => setLightboxOpen(false), []);
 
   /** Send an attachment to a non-surface home. */
   const send = useCallback(
@@ -126,6 +143,16 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
             subtitle: set.subtitle,
             href: set.href,
           });
+          setIsOpen(false);
+          return;
+        }
+        case "lightbox": {
+          if (media.kind !== "image") return;
+          setLightbox((prev) => ({ set, index, key: (prev?.key ?? 0) + 1 }));
+          setLightboxOpen(true);
+          // The lightbox is a modal of its own; the sheet under it would
+          // hold focus and scroll-lock against it, so it steps aside the way
+          // it does for the stage.
           setIsOpen(false);
           return;
         }
@@ -216,8 +243,32 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
   );
 
   const value = useMemo<AttachmentsContextValue>(
-    () => ({ open, act, homeOf, nativeHomeOf, close, session, isOpen, compact }),
-    [open, act, homeOf, nativeHomeOf, close, session, isOpen, compact],
+    () => ({
+      open,
+      act,
+      homeOf,
+      nativeHomeOf,
+      close,
+      session,
+      isOpen,
+      lightbox,
+      lightboxOpen,
+      closeLightbox,
+      compact,
+    }),
+    [
+      open,
+      act,
+      homeOf,
+      nativeHomeOf,
+      close,
+      session,
+      isOpen,
+      lightbox,
+      lightboxOpen,
+      closeLightbox,
+      compact,
+    ],
   );
 
   return (

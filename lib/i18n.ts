@@ -363,10 +363,19 @@ export const translations = {
     logRead: "Read",
     logVisit: "Visit",
     logWatch: "Watch",
+    logView: "View",
     logSlides: "Slides",
     logRecording: "Recording",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "Close attachments",
+    // Image lightbox (see systems/attachments/components/image-lightbox.tsx)
+    lightboxZoomIn: "Zoom in",
+    lightboxZoomOut: "Zoom out",
+    lightboxFit: "Fit to screen",
+    lightboxOriginal: "Open original",
+    lightboxClose: "Close",
+    lightboxHint: "Scroll or pinch to zoom · double-click to toggle · drag to pan",
+    lightboxHintTouch: "Pinch to zoom · double-tap · drag to pan",
     // Identity card (see systems/identity)
     identityCardClose: "Close identity card",
     identityOtherRoles: "Also as this identity",
@@ -715,10 +724,18 @@ export const translations = {
     logRead: "阅读",
     logVisit: "访问",
     logWatch: "观看",
+    logView: "查看",
     logSlides: "幻灯片",
     logRecording: "录像",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "关闭附件",
+    lightboxZoomIn: "放大",
+    lightboxZoomOut: "缩小",
+    lightboxFit: "适应屏幕",
+    lightboxOriginal: "查看原图",
+    lightboxClose: "关闭",
+    lightboxHint: "滚动或双指缩放 · 双击切换 · 拖动平移",
+    lightboxHintTouch: "双指缩放 · 双击切换 · 拖动平移",
     // Identity card (see systems/identity)
     identityCardClose: "关闭身份卡片",
     identityOtherRoles: "同一身份下的其他职位",

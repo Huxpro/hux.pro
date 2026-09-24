@@ -235,10 +235,19 @@ export interface SlidesMedia extends Pinned {
   title?: string;
 }
 
-/** Static image asset. */
+/**
+ * Static image asset. Opens in the lightbox (systems/attachments), where it
+ * can be zoomed and panned — a poster, a figure, anything meant to be read.
+ */
 export interface ImageMedia extends Pinned {
   kind: "image";
+  /** The full-resolution image — what the lightbox zooms into. */
   url: string;
+  /**
+   * A lighter cover for the tiles, the inline figure and the peek, when
+   * `url` is too heavy to paint at a thumbnail's size.
+   */
+  thumbnail?: string;
   alt?: string;
 }
 
@@ -1831,7 +1840,7 @@ export function getAttachmentImage(
  * - VideoMedia:       explicit `thumbnail`, else YouTube's derived URL
  *                     (Bilibili / Vimeo: must be explicit — no public derivation).
  * - SlidesMedia:      explicit `thumbnail` (decks don't expose a public cover API).
- * - ImageMedia:       the image URL itself.
+ * - ImageMedia:       explicit `thumbnail`, else the image URL itself.
  * - LinkMedia (card): the resolved `preview.image` (card pipeline writes this
  *                     server-side from the OG snapshot + manual override).
  * - LinkMedia (pill): null — pills don't carry a thumbnail.
@@ -1851,7 +1860,7 @@ export function getMediaThumbnail(media: Media): string | null {
       return media.thumbnail ?? null;
 
     case "image":
-      return media.url;
+      return media.thumbnail ?? media.url;
 
     case "link":
       // Cards may have a baked-in preview.image (resolved server-side from

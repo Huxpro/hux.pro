@@ -9,7 +9,7 @@ import {
   TiltPrimerSheet,
   WallpaperSheet,
 } from "@/systems/ambient";
-import { AttachmentSurface } from "@/systems/attachments";
+import { AttachmentSurface, ImageLightbox } from "@/systems/attachments";
 import { IdentityCard } from "@/systems/identity";
 import { InstallSheet } from "@/systems/install";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
@@ -147,6 +147,7 @@ export default function RootLayout({
             <TheaterRegistrar />
             <TheaterSurfaces />
             <AttachmentSurface />
+            <ImageLightbox />
             <IdentityCard />
             <CommandPalette />
             <FloatingActionButton />
