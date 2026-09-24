@@ -193,7 +193,8 @@ When the Window system is mounted, ⌘K also launches apps from
 | `E` | Go to `/editor` (`log.json`). Other labs are the top-left dropdown, or search for Attachments / Icon / Legibility / Theater. The family keeps the `/editor` prefix; `e` stays the authoring door — see `app/editor/catalog.ts`. |
 | `A` | Toggle appearance |
 | `L` | Toggle language |
-| `G` | Toggle geolocation |
+| `O` | Open About. Also from anywhere while the palette is closed, the way `D` reaches the devtool. |
+| `C` | Toggle location (IP ↔ accurate) |
 | `W` | Open the Wallpaper picker |
 | `G` | Toggle Glass material |
 | `T` | Toggle glass Tint |

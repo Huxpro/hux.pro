@@ -19,6 +19,7 @@ import {
   Twitter,
   Youtube,
   FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import { TYPE } from "@/lib/typography";
@@ -50,6 +51,8 @@ export function LinkIcon({ icon }: { icon?: string }) {
       return <Presentation className="w-3 h-3" />;
     case "file":
       return <FileText className="w-3 h-3" />;
+    case "image":
+      return <ImageIcon className="w-3 h-3" />;
     default:
       return <ExternalLink className="w-3 h-3" />;
   }

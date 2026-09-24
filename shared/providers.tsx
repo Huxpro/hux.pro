@@ -16,6 +16,7 @@ import { SystemSonner } from "@/components/ui/system-sonner";
 import { AmbientProvider } from "@/systems/ambient";
 import { AttachmentProvider } from "@/systems/attachments";
 import { IdentityCardProvider } from "@/systems/identity";
+import { AboutProvider, AboutOverlay } from "@/systems/about";
 import { CommandProvider, useCommand } from "@/systems/command";
 import { DevtoolProvider } from "@/systems/devtool";
 import { MusicProvider } from "@/systems/music";
@@ -60,6 +61,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <LocaleProvider>
             <VisitorProvider>
               <CommandProvider>
+                <AboutProvider>
                 <DevtoolWrapper>
                   <AmbientWrapper>
                     <MusicProvider>
@@ -68,6 +70,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                           <AttachmentProvider>
                             <IdentityCardProvider>
                               {children}
+                              <AboutOverlay />
                               <SystemSonner />
                             </IdentityCardProvider>
                           </AttachmentProvider>
@@ -76,6 +79,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     </MusicProvider>
                   </AmbientWrapper>
                 </DevtoolWrapper>
+                </AboutProvider>
               </CommandProvider>
             </VisitorProvider>
           </LocaleProvider>

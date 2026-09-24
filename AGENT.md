@@ -24,6 +24,7 @@
 | **Attachments** | [docs/system-attachments.md](./docs/system-attachments.md) (Where a commit's media opens: sheet on a phone, with the in-app browser stacked on it; theater / in-app window / router elsewhere; the chip every cover wears; the `/editor/attachments` lab — every render path) |
 | **Editor family** | [app/editor/catalog.ts](./app/editor/catalog.ts) (`e` opens `log.json`; the top-left dropdown reaches attachments / icon / legibility / theater. The prefix stays `/editor`; most pages are labs.) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (Who signed a commit — the profile card behind `<handle>` and `Role:`) |
+| **About** | [docs/system-about.md](./docs/system-about.md) (The introduction over every page, and the badge that opens a project) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (A widget's list body scrolls under a pointer, holds still under a finger — and why) |
 
 ## 2. Quick Start Context

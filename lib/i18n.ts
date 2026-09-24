@@ -57,6 +57,18 @@ export const translations = {
     talksDesc: "Presentations & speaking",
     navigateHint: "to navigate anywhere",
 
+    // About overlay
+    about: "About",
+    aboutName: "Xuan Huang",
+    aboutLead:
+      "I design and build interfaces. I architect Lynx at ByteDance, the open-source framework behind TikTok and CapCut. Before that I worked on React at Meta — Hermes on iOS, and the Forget compiler.",
+    aboutBody:
+      "This site is an operating system I am sketching in public. Prose, work, and the tools around them, kept the way a machine would keep them. An OS design experiment.",
+    aboutCredits:
+      "Credits. The edge light is Siri’s. The rest borrows from Raycast, Linear, and the Mac.",
+    aboutContinue: "Continue",
+    aboutDismissHint: "O opens this again",
+
     // Homepage - AI-Native OS Voice
     greetingMorning: "Good Morning",
     greetingAfternoon: "Good Afternoon",
@@ -365,6 +377,17 @@ export const translations = {
     blogDesc: "写作与思考",
     talksDesc: "演讲与分享",
     navigateHint: "快速导航",
+
+    // About overlay
+    about: "关于",
+    aboutName: "黄玄",
+    aboutLead:
+      "我做界面，也做界面背后的框架。眼下在字节跳动做 Lynx 的架构，它是 TikTok 与剪映背后的开源跨平台框架。在那之前，我在 Meta 的 React 团队——把 Hermes 带到 iOS，并作为技术负责人参与 Forget 编译器。",
+    aboutBody:
+      "这个网站是我公开描画的一台操作系统。文字、作品，和围绕它们的工具，按一台机器会保存它们的方式放在一起。一次 OS 设计实验。",
+    aboutCredits: "Credits. 边缘的光来自 Siri。其余借自 Raycast、Linear 与 Mac。",
+    aboutContinue: "继续",
+    aboutDismissHint: "之后按 O 再打开",
 
     // Homepage - AI-Native OS Voice
     greetingMorning: "早上好",

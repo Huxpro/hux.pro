@@ -32,6 +32,7 @@
  * @see docs/mdx.md - Documentation on MDX rendering
  */
 
+import { BadgeLink } from "@/components/badge-link";
 import { CodeBlock } from "@/components/code-block";
 import { HeadingWithLink } from "@/components/heading-link";
 import { MdxImage } from "@/components/mdx-image";
@@ -75,6 +76,15 @@ import type { ComponentPropsWithoutRef, ComponentType, ReactNode } from "react";
  *
  * @see app/globals.css - .not-prose spacing rules
  */
+/** Inline escape: a div would break the paragraph a badge sits in. */
+function BadgeInline(props: ComponentPropsWithoutRef<typeof BadgeLink>) {
+  return (
+    <span className="not-prose mx-0.5 inline-block align-middle !my-0">
+      <BadgeLink {...props} />
+    </span>
+  );
+}
+
 function withNotProse<P extends object>(Component: ComponentType<P>) {
   function WrappedComponent(props: P) {
     return (
@@ -178,6 +188,10 @@ const sharedComponents: MDXComponents = {
   // - Figure: Static image display (uses Next.js Image)
   // - MediaRenderer: Orchestrates multiple media items
   // ---------------------------------------------------------------------------
+  // Badge: a project chip that stays inline in a paragraph. A click opens
+  // the in-app browser, the theater, or the attachment surface.
+  Badge: BadgeInline,
+  BadgeLink: BadgeInline,
   Media: withNotProse(Media),
   Video: withNotProse(Video),
   SocialEmbed: withNotProse(SocialEmbed),

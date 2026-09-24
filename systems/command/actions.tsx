@@ -12,10 +12,12 @@ import {
 } from "@/services";
 import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
 import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
+import { useAbout } from "@/systems/about";
 import { useDevtool } from "@/systems/devtool";
 import { useMusic } from "@/systems/music";
 import {
   Bug,
+  CircleUser,
   FileText,
   GitCommit,
   Home,
@@ -100,6 +102,7 @@ export function useCommandActions(): CommandAction[] {
   const { followSun, setFollowSun } = useSolarTheme();
   const { isShowing: isDevtoolShowing, toggleShowing: toggleDevtool } =
     useDevtool();
+  const { show: showAbout } = useAbout();
   const {
     playerState: musicPlayerState,
     play: musicPlay,
@@ -124,6 +127,16 @@ export function useCommandActions(): CommandAction[] {
     preference === "system" ? Monitor : theme === "light" ? Sun : Moon;
 
   return [
+    {
+      id: "about",
+      key: "o",
+      kind: "surface",
+      section: "navigation",
+      label: t(locale, "about"),
+      icon: <CircleUser className={ROW_ICON} />,
+      keywords: ["about", "who", "bio", "intro", "关于", "介绍"],
+      run: () => showAbout(),
+    },
     {
       id: "home",
       key: "h",
@@ -281,7 +294,7 @@ export function useCommandActions(): CommandAction[] {
     },
     {
       id: "location",
-      key: "o",
+      key: "c",
       kind: "toggle",
       section: "settings",
       label: `${t(locale, "settingsGeolocation")}: ${
