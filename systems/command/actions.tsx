@@ -16,6 +16,7 @@ import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient
 import { useDevtool } from "@/systems/devtool";
 import { installTarget, useInstall } from "@/systems/install";
 import { useMusic } from "@/systems/music";
+import { isVoiceSupported } from "@/systems/voice";
 import {
   Bug,
   FileText,
@@ -24,6 +25,7 @@ import {
   Image as ImageIcon,
   Layers2,
   Languages,
+  Mic,
   MapPin,
   Monitor,
   MonitorDown,
@@ -63,8 +65,10 @@ import { useCommand } from "./provider";
  *             closes, the phone sheet stays behind it as a stack.
  *   toggle    flips a setting; chosen from search the palette stays open so
  *             the new value can be read back, from the slash list it closes.
+ *   stay      changes what the palette itself is doing (voice: back to the
+ *             field, listening); the palette stays exactly where it is.
  */
-export type CommandKind = "navigate" | "surface" | "toggle";
+export type CommandKind = "navigate" | "surface" | "toggle" | "stay";
 
 export interface CommandAction {
   /** cmdk value and React key. */
@@ -111,6 +115,7 @@ export function useCommandActions(): CommandAction[] {
     pause: musicPause,
   } = useMusic();
   const { open: openAbout } = useAbout();
+  const { requestVoice } = useCommand();
   const router = useTransitionRouter();
 
   // Named for where it lands: a phone's home screen, a Mac's Dock, an app
@@ -228,6 +233,22 @@ export function useCommandActions(): CommandAction[] {
       ],
       run: () => openAbout(),
     },
+    // Speak instead of type: back to the field, listening (systems/voice).
+    // Only where the browser can recognise speech.
+    ...(isVoiceSupported()
+      ? [
+          {
+            id: "voice",
+            key: "v",
+            kind: "stay" as const,
+            section: "navigation" as const,
+            label: t(locale, "voiceSearch"),
+            icon: <Mic className={ROW_ICON} />,
+            keywords: ["voice", "speak", "dictate", "microphone", "mic", "语音", "说话", "麦克风"],
+            run: () => requestVoice(),
+          },
+        ]
+      : []),
     // Keyboard-only: reachable by letter from the slash list, never listed.
     {
       id: "docs",
@@ -246,6 +267,51 @@ export function useCommandActions(): CommandAction[] {
       // labs stay on the editor dropdown; the palette does not list them.
       keywords: [],
       run: () => router.push("/editor"),
+    },
+    {
+      id: "editor-attachments",
+      kind: "navigate",
+      section: "navigation",
+      label: "Attachments lab",
+      icon: <Layers2 className={ROW_ICON} />,
+      keywords: ["attachments", "media", "附件", "媒体"],
+      run: () => router.push("/editor/attachments"),
+    },
+    {
+      id: "editor-icon",
+      kind: "navigate",
+      section: "navigation",
+      label: "Icon studio",
+      icon: <ImageIcon className={ROW_ICON} />,
+      keywords: ["icon", "favicon", "studio", "图标"],
+      run: () => router.push("/editor/icon"),
+    },
+    {
+      id: "editor-legibility",
+      kind: "navigate",
+      section: "navigation",
+      label: "Legibility lab",
+      icon: <Layers2 className={ROW_ICON} />,
+      keywords: ["legibility", "glass", "ink", "wallpaper", "可读性"],
+      run: () => router.push("/editor/legibility"),
+    },
+    {
+      id: "editor-glow",
+      kind: "navigate",
+      section: "navigation",
+      label: "Glow lab",
+      icon: <Sparkles className={ROW_ICON} />,
+      keywords: ["glow", "siri", "light", "shader", "beam", "voice", "光晕", "光"],
+      run: () => router.push("/editor/glow"),
+    },
+    {
+      id: "editor-theater",
+      kind: "navigate",
+      section: "navigation",
+      label: "Theater chrome",
+      icon: <Monitor className={ROW_ICON} />,
+      keywords: ["theater", "chrome", "剧场"],
+      run: () => router.push("/editor/theater-variants"),
     },
     {
       id: "theme",
@@ -537,6 +603,7 @@ export function useRunCommand() {
   const { leave } = useCommandShell();
   return async (action: CommandAction, origin: CommandOrigin) => {
     await action.run();
+    if (action.kind === "stay") return;
     if (origin === "search" && action.kind === "toggle") return;
     leave(action.kind);
   };

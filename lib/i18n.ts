@@ -383,6 +383,12 @@ export const translations = {
     linkOpensInTab: "Opens in a new tab",
     linkNewTab: "New tab",
     linkFrameDenied: "{host} does not allow being shown in a window",
+    // Voice (see systems/voice)
+    voiceSearch: "Voice",
+    voiceListen: "Search by voice",
+    voiceStop: "Stop listening",
+    voiceListening: "Listening…",
+    voiceDenied: "Microphone blocked",
     // About (see systems/about)
     aboutTitle: "About",
     aboutEnter: "Look around",
@@ -748,6 +754,12 @@ export const translations = {
     linkOpensInTab: "在新标签页打开",
     linkNewTab: "新标签页",
     linkFrameDenied: "{host} 不允许在窗口中显示",
+    // Voice (see systems/voice)
+    voiceSearch: "语音",
+    voiceListen: "语音搜索",
+    voiceStop: "停止聆听",
+    voiceListening: "正在聆听…",
+    voiceDenied: "麦克风被禁用",
     // About (see systems/about)
     aboutTitle: "关于",
     aboutEnter: "随便看看",

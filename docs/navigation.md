@@ -131,6 +131,7 @@ When the search input is empty or unfocused:
 | `A` | Cycle Appearance (system → dark → light) |
 | `L` | Toggle Language |
 | `O` | Open the About (also `O` anywhere outside the palette — see [system-about.md](./system-about.md)) |
+| `V` | Voice: back to the field, listening ([system-glow.md](./system-glow.md)) |
 | `C` | Toggle geolocation, by Coordinates (IP ↔ accurate) |
 | `W` | Open the Wallpaper picker |
 | `G` | Toggle Glass material (Tinted ↔ Clear) |

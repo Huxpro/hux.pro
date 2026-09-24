@@ -2149,19 +2149,13 @@ main[data-variant="reader"] .reader-masthead {
   }
 }
 
-/* The ring without WebGL: the same five colours as a conic gradient, masked
-   to a band on the screen's edge and softened. Still, but still Siri. */
-.about-glow-fallback {
+/* The glow without WebGL (systems/glow): the same palette as a conic
+   gradient (`--glow-stops`, set from lib/palette.ts), masked to a band on the
+   host's edge and softened. Still, but the same light. A line keeps only the
+   bottom of the ring. */
+.glow-fallback {
   padding: 6px;
-  background: conic-gradient(
-    from 180deg,
-    #4d85ff,
-    #b35cff,
-    #ff5aa8,
-    #ffa04d,
-    #42dbff,
-    #4d85ff
-  );
+  background: conic-gradient(from 180deg, var(--glow-stops));
   -webkit-mask:
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);
@@ -2169,4 +2163,21 @@ main[data-variant="reader"] .reader-masthead {
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);
   filter: blur(10px);
+}
+.glow-fallback-line {
+  -webkit-mask: linear-gradient(to top, #000 0 8px, transparent 60%);
+  mask: linear-gradient(to top, #000 0 8px, transparent 60%);
+}
+
+/* The palette's microphone while it listens (systems/command/voice.tsx): a
+   slow breath, so the button says "on" even where the glow is out of sight. */
+.voice-mic-live {
+  animation: voice-mic-breathe 1.6s ease-in-out infinite;
+}
+@keyframes voice-mic-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-mic-live { animation: none; }
 }

@@ -6,9 +6,8 @@ The surface a newcomer meets, and the inline badge that names a thing I made.
 systems/about/
 ├── provider.tsx                 # AboutProvider, useAbout() — open / close / toggle, first visit, `O`
 └── components/
-    ├── about-surface.tsx        # the veil, the words, the glow (mounted once in the root layout)
-    ├── about-copy.tsx           # server: content/about/<locale>.mdx → the words
-    └── edge-glow.tsx            # the Siri ring — a WebGL shader on the screen's edge
+    ├── about-surface.tsx        # the veil, the words, the glow (systems/glow), mounted once in the root layout
+    └── about-copy.tsx           # server: content/about/<locale>.mdx → the words
 
 content/about/{en,zh}.mdx        # the copy
 content/badges.json              # authored: which site a commit badge stands for, vendored icons
@@ -69,36 +68,13 @@ outer few dozen pixels.
 
 ### The glow
 
-`EdgeGlow` is one fragment shader on a full-screen canvas. Each pixel knows
-how far in from the screen's rounded edge it sits (`sdRoundBox`) and where
-around the ring it is (the angle on the aspect-normalised square), and the
-rest is built from those two numbers:
-
-- **Beams** — four travelling waves around the ring, two each way, at
-  harmonics 2 · 3 · 5 · 7, so their crests never line up the same way twice.
-  A wave sets how far its light reaches in from the edge; sharpened crests
-  read as beams sweeping along it, and a slower swell makes each one breathe.
-- **Colour** — a cyclic Siri palette (blue · violet · pink · amber · cyan)
-  laid around the ring and drifting a little differently per beam, so colours
-  slide past each other. Averaging neighbouring hues greys them, so the result
-  is pushed back out from its luminance — further in the light theme, where a
-  pastel would vanish into the ground.
-- **Core** — a thin bright line on the edge itself, whiter in the dark.
-- **Arrival** — the ring sweeps in from the bottom centre up both sides to
-  meet at the top (1.1s), its front flaring on the way, with a surge in reach
-  as it lands that settles over 0.9s. Leaving is the same sweep backwards.
-
-Cost: the canvas is at most one pixel per CSS pixel (half the device ratio;
-the glow is soft and only the core needs the resolution), pixels deeper than
-nine beam-widths exit early, and the frame loop runs only while the ring is
-on screen and the tab is visible. With `prefers-reduced-motion` the ring still
-arrives and leaves, then holds still and the loop stops. Without WebGL it is a
-CSS conic gradient masked to the edge (`.about-glow-fallback`).
-
-Knobs, all in `edge-glow.tsx`: `uWidth` (a beam's base reach, 16–34px by the
-screen's short side), `uRadius` (the `radius` prop — the bezel's, when one is
-drawn — else 44px where the pointer is coarse, 10px otherwise), `IN_MS` / `OUT_MS` / `SURGE_MS`, and the
-palette in `ring()`.
+The ring is the site's one light — `<Glow fixed>` from `systems/glow`, the
+same shader and renderer every other glow uses (the palette listening, a
+badge under the pointer, a window loading). How it is built, its knobs and
+its cost are in [system-glow.md](./system-glow.md). Here it is the `ring`
+shape over the viewport, sized to the screen (16–38px deep), with the
+bezel's radius inside a bezel and otherwise the screen's own: 44px where
+the pointer is coarse, 10px otherwise.
 
 ### The copy
 
