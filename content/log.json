@@ -136,7 +136,8 @@
       "commitIds": [
         "lynx-framework",
         "react-core",
-        "hermes-engine"
+        "hermes-engine",
+        "wasmcert"
       ]
     },
     {
