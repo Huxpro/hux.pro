@@ -53,6 +53,10 @@ export function useAbout(): AboutContextValue {
   return ctx;
 }
 
+export function useOptionalAbout(): AboutContextValue | null {
+  return useContext(AboutContext);
+}
+
 export function AboutProvider({ children }: { children: React.ReactNode }) {
   const { isOpen: isCommandOpen } = useCommand();
   // Server snapshot is "already seen", so the overlay is not in the HTML.

@@ -23,19 +23,13 @@ uniform float uMotion;
 out vec4 fragColor;
 
 vec3 palette(float t) {
-  vec3 stops[5] = vec3[5](
-    vec3(1.00, 0.38, 0.55),
-    vec3(0.62, 0.32, 1.00),
-    vec3(0.22, 0.55, 1.00),
-    vec3(0.15, 0.92, 0.86),
-    vec3(1.00, 0.58, 0.22)
-  );
-  float x = fract(t) * 5.0;
-  int i = int(floor(x));
-  int j = i + 1;
-  if (j > 4) j = 0;
-  float f = smoothstep(0.0, 1.0, fract(x));
-  return mix(stops[i], stops[j], f);
+  t = fract(t) * 5.0;
+  float f = smoothstep(0.0, 1.0, fract(t));
+  if (t < 1.0) return mix(vec3(1.00, 0.32, 0.48), vec3(0.72, 0.28, 1.00), f);
+  if (t < 2.0) return mix(vec3(0.72, 0.28, 1.00), vec3(0.20, 0.48, 1.00), f);
+  if (t < 3.0) return mix(vec3(0.20, 0.48, 1.00), vec3(0.10, 0.92, 0.88), f);
+  if (t < 4.0) return mix(vec3(0.10, 0.92, 0.88), vec3(1.00, 0.55, 0.18), f);
+  return mix(vec3(1.00, 0.55, 0.18), vec3(1.00, 0.32, 0.48), f);
 }
 
 float ring(float angle, float centre, float sharpness) {
@@ -56,7 +50,7 @@ void main() {
   float sd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
   float inward = max(-sd, 0.0);
 
-  float band = 0.055 + 0.012 * sin(uTime * 0.7);
+  float band = 0.09 + 0.02 * sin(uTime * 0.7);
   float core = exp(-pow(inward / band, 2.0));
   float halo = exp(-pow(inward / (band * 2.6), 2.0));
 
@@ -76,9 +70,8 @@ void main() {
   vec3 colour = palette(hue);
   colour += palette(hue + 0.18) * beams * 0.85;
 
-  float alpha = core * (0.55 + 0.45 * flow) + halo * 0.22;
-  alpha += core * beams * 0.9;
-  alpha *= smoothstep(0.0, 0.004, inward);
+  float alpha = core * (0.85 + 0.15 * flow) + halo * 0.55;
+  alpha += core * beams * 1.15;
   alpha = clamp(alpha, 0.0, 1.0);
 
   fragColor = vec4(colour * alpha, alpha);
@@ -87,6 +80,8 @@ void main() {
 
 export interface EdgeGlowHandle {
   stop: () => void;
+  /** False when this browser would not keep a second WebGL context alive. */
+  live: boolean;
 }
 
 /** Paint the edge glow into `canvas`. Returns a handle that releases the context. */
@@ -101,14 +96,15 @@ export function mountEdgeGlow(
     depth: false,
     stencil: false,
   });
-  if (!gl) {
+  if (!gl || gl.isContextLost()) return { stop: () => {}, live: false };
+  if (gl.isContextLost()) {
     return { stop: () => {} };
   }
 
   const program = link(gl, VERT, FRAG);
   if (!program) {
     gl.getExtension("WEBGL_lose_context")?.loseContext();
-    return { stop: () => {} };
+    return { stop: () => {}, live: false };
   }
 
   const vao = gl.createVertexArray();
@@ -152,6 +148,7 @@ export function mountEdgeGlow(
   frame = requestAnimationFrame(draw);
 
   return {
+    live: true,
     stop: () => {
       stopped = true;
       cancelAnimationFrame(frame);

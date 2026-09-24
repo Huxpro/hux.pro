@@ -2105,3 +2105,36 @@ main[data-variant="reader"] .reader-masthead {
     animation-play-state: paused;
   }
 }
+
+/* About edge light. The angle is what travels; the mask keeps it a rim.
+   The shader canvas, when it is up, paints the beams over this wash. */
+@property --about-glow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.about-glow {
+  background: conic-gradient(
+    from var(--about-glow-angle),
+    #ff608c,
+    #9650ff,
+    #388cff,
+    #28e6d2,
+    #ff963c,
+    #ff608c
+  );
+  animation: about-glow-spin 16s linear infinite;
+}
+
+@keyframes about-glow-spin {
+  to {
+    --about-glow-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-glow {
+    animation: none;
+  }
+}

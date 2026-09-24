@@ -12,6 +12,7 @@
 import { LinkIcon } from "@/components/log/embeds/shared";
 import type { Media, SocialEmbedPlatform, VideoPlatform } from "@/lib/log";
 import { cn } from "@/lib/utils";
+import { useOptionalAbout } from "@/systems/about/provider";
 import { useOptionalAttachments } from "@/systems/attachments";
 import type { MouseEvent, ReactNode } from "react";
 
@@ -51,6 +52,7 @@ export function BadgeLink({
   className,
 }: BadgeLinkProps) {
   const attachments = useOptionalAttachments();
+  const about = useOptionalAbout();
   const target = url || href || "";
   const text = label || (typeof children === "string" ? children : "") || hostOf(target);
   const media = target ? mediaFromBadge({ url: target, kind, platform, thumbnail, title, alt }) : null;
@@ -62,6 +64,7 @@ export function BadgeLink({
       return;
     }
     event.preventDefault();
+    if (about?.open) about.dismiss();
     attachments.act(
       {
         id: `badge:${target}`,

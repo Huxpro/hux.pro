@@ -30,7 +30,7 @@ export function AboutOverlay() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[10040]" role="dialog" aria-modal="true" aria-labelledby="about-name">
+    <div className="fixed inset-0 z-[10040] overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="about-name">
       <button
         type="button"
         aria-label={t(locale, "aboutContinue")}
@@ -38,7 +38,7 @@ export function AboutOverlay() {
         onClick={dismiss}
       />
       <GlowBorder reducedMotion={reducedMotion} />
-      <div className="pointer-events-none relative flex h-full items-center justify-center px-6">
+      <div className="pointer-events-none relative z-10 flex h-full items-center justify-center px-6">
         <div className="pointer-events-auto w-full max-w-[34rem] text-center">
           <p className={TYPE.label}>{t(locale, "about")}</p>
           <h1
