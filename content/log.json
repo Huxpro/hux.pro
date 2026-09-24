@@ -1163,6 +1163,71 @@
       }
     },
     {
+      "id": "wasmcert",
+      "type": "project",
+      "tagId": "react-era",
+      "attachedTo": "rit-ms",
+      "title": {
+        "en": "WasmCert: WebAssembly in Coq",
+        "zh": "WasmCert：用 Coq 形式化 WebAssembly"
+      },
+      "description": {
+        "en": "Master's capstone and thesis, \"A Mechanized Formalization of the WebAssembly Specification in Coq\", advised by Prof. Matthew Fluet. A mechanization of the W3C WebAssembly Core Specification 1.0 in the Coq proof assistant, with a (nearly complete) machine-checked proof that the language is sound, implying both type safety and memory safety. Unlike prior work it follows the standard itself, which exposed issues in the spec and led to fixes.",
+        "zh": "硕士毕业设计与论文《A Mechanized Formalization of the WebAssembly Specification in Coq》，导师 Matthew Fluet 教授。在 Coq 证明助手中机械化 W3C WebAssembly Core Specification 1.0，并（基本）完成了语言可靠性（soundness）的机器验证证明，由此得出类型安全与内存安全。与先前工作不同，它紧贴标准本身，因此发现了规范中的问题并提出了修正。"
+      },
+      "date": "2019-08",
+      "endDate": "2019-12",
+      "team": {
+        "en": "M.S. Capstone @ RIT",
+        "zh": "硕士毕业设计 @ RIT"
+      },
+      "tags": [
+        "Coq",
+        "WebAssembly",
+        "Formal Verification",
+        "PLT",
+        "Research"
+      ],
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://github.com/Huxpro/WasmCert",
+          "present": "pill",
+          "label": "GitHub",
+          "icon": "github"
+        },
+        {
+          "kind": "link",
+          "url": "https://www.cs.rit.edu/~mtf/student-resources/20191_huang_mscourse.pdf",
+          "present": "pill",
+          "label": "Report",
+          "icon": "file"
+        },
+        {
+          "kind": "link",
+          "url": "https://www.semanticscholar.org/paper/A-Mechanized-Formalization-of-the-WebAssembly-in-Huang/2fde569f52c37fe8e45ebf05268e1b4341b58cbf",
+          "present": "pill",
+          "label": "Semantic Scholar"
+        },
+        {
+          "kind": "link",
+          "url": "https://scholar.google.com/scholar?cites=13173623897259187056&as_sdt=2005&sciodt=0,5&hl=en",
+          "present": "pill",
+          "label": "Google Scholar"
+        },
+        {
+          "kind": "image",
+          "url": "/img/works/wasmcert-poster.webp",
+          "thumbnail": "/img/works/wasmcert-poster-cover.webp",
+          "alt": "Capstone poster, RIT Computer Science, Fall 2019."
+        }
+      ],
+      "commentary": {
+        "en": "144 pages of W3C spec, about 5,000 lines of Coq. Applying formal verification, we show WebAssembly is safe.",
+        "zh": "144 页 W3C 规范，约 5000 行 Coq。用形式化验证，证明 WebAssembly 是安全的。"
+      }
+    },
+    {
       "id": "xros-reality-labs",
       "type": "project",
       "tagId": "react-era",

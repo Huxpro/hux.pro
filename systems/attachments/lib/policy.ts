@@ -1,5 +1,6 @@
 import type { Locale } from "@/lib/i18n";
 import {
+  isImageMedia,
   isLinkMedia,
   isSlidesMedia,
   isVideoMedia,
@@ -73,6 +74,9 @@ export function nativeHomeFor(media: Media, ctx: HomeContext): AttachmentHome {
   // The stage, whatever shape it takes here: the theater where it fits, a
   // PiP where it does not. A deck is no different from a recording in this.
   if (isVideoMedia(media) || isSlidesMedia(media)) return "theater";
+  // A still is read, not played: its home is the lightbox, where a poster
+  // can be zoomed until its footnotes are legible.
+  if (isImageMedia(media)) return "lightbox";
   if (isLinkMedia(media)) {
     if (isInternalLink(media)) return "route";
     // A page that refuses to be framed (X-Frame-Options, frame-ancestors —
@@ -87,13 +91,14 @@ export function nativeHomeFor(media: Media, ctx: HomeContext): AttachmentHome {
 /**
  * Where a click on the attachment lands. A phone opens the surface for
  * everything, and the surface's button sends the item on (`nativeHomeFor`);
- * elsewhere a video or a deck goes to the theater, a link to its window, and
- * the kinds with no native home of their own — an image, a social widget —
- * open the surface in its desktop shape.
+ * elsewhere a video or a deck goes to the theater, an image to the lightbox, a
+ * link to its window, and the kind with no native home of its own — a social
+ * widget — opens the surface in its desktop shape.
  */
 export function homeFor(media: Media, ctx: HomeContext): AttachmentHome {
   if (ctx.compact) return "surface";
   if (isLinkMedia(media)) return nativeHomeFor(media, ctx);
   if (isVideoMedia(media) || isSlidesMedia(media)) return "theater";
+  if (isImageMedia(media)) return "lightbox";
   return "surface";
 }

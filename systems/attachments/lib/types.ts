@@ -33,8 +33,16 @@ export interface AttachmentSet {
  *   surface  the attachment surface (systems/attachments): a bottom sheet on a
  *            phone, a panel on a tablet, a window on a desktop.
  *   theater  the theater's stage (a video, a deck) — PiP on a phone.
+ *   lightbox the image viewer: the still letterboxed on a veil, zoomable
+ *            and pannable (wheel, pinch, double-click), on every viewport.
  *   window   an in-app browser window (systems/windows).
  *   route    an in-site page, by the router.
  *   tab      the browser's own tab.
  */
-export type AttachmentHome = "surface" | "theater" | "window" | "route" | "tab";
+export type AttachmentHome =
+  | "surface"
+  | "theater"
+  | "lightbox"
+  | "window"
+  | "route"
+  | "tab";

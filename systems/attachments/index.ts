@@ -10,14 +10,14 @@
 //             through the commit's attachments, each with its native action.
 //   desktop   a video or a deck goes to the theater's stage; a link card to an
 //             in-app browser window (systems/windows), or a tab when the page
-//             refuses to be framed; an image or a social widget to the surface
-//             in its desktop shape.
+//             refuses to be framed; an image to the lightbox (zoom and pan);
+//             a social widget to the surface in its desktop shape.
 //
 //   const { open } = useAttachments();
 //   open(attachmentSetFor(commit, locale), items.indexOf(media));
 //
 // Mount <AttachmentProvider> inside the theater and window providers, and
-// <AttachmentSurface /> once in the root layout.
+// <AttachmentSurface /> and <ImageLightbox /> once in the root layout.
 // =============================================================================
 
 export {
@@ -27,9 +27,11 @@ export {
 } from "./provider";
 export type {
   AttachmentSession,
+  LightboxSession,
   AttachmentsContextValue as AttachmentsApi,
 } from "./provider";
 export { AttachmentSurface } from "./components/attachment-surface";
+export { ImageLightbox } from "./components/image-lightbox";
 export { attachmentSetFor } from "./lib/set";
 export {
   homeFor,
