@@ -40,8 +40,13 @@ const ROW = [
   "hover:bg-accent/25",
 ].join(" ");
 
-/** The palette's sections, in order; also the i18n keys of their headings. */
-const SECTIONS = ["navigation", "settings"] as const;
+/** The palette's sections, in order, and their headings. */
+const SECTIONS = ["navigation", "actions", "settings"] as const;
+const SECTION_HEADING = {
+  navigation: "navigation",
+  actions: "sectionActions",
+  settings: "settings",
+} as const;
 
 /** The slash letter beside a row. Only where a keyboard can press it. */
 function Letter({ letter }: { letter?: string }) {
@@ -119,7 +124,7 @@ export function CommandResults({
   const router = useTransitionRouter();
   const windows = useOptionalWindows();
 
-  const listed = actions.filter((a) => a.label);
+  const listed = actions.filter((a) => a.label && !a.slashOnly);
 
   return (
     <Command.List className={cn("overflow-y-auto p-2", className)}>
@@ -132,7 +137,7 @@ export function CommandResults({
       {windows && <CommandAppsStrip onLaunch={() => leave("navigate")} />}
 
       {SECTIONS.map((section) => (
-        <Command.Group key={section} heading={t(locale, section)}>
+        <Command.Group key={section} heading={t(locale, SECTION_HEADING[section])}>
           {listed
             .filter((a) => a.section === section)
             .map((a) => (
@@ -210,7 +215,7 @@ export function CommandSlashList({
       {SECTIONS.map((section, i) => (
         <Fragment key={section}>
           <div className={cn(i > 0 && "mt-2", "px-3 py-2", TYPE.label)}>
-            {t(locale, section)}
+            {t(locale, SECTION_HEADING[section])}
           </div>
           {listed
             .filter((a) => a.section === section)

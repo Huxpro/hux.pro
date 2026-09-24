@@ -383,6 +383,8 @@ export const translations = {
     linkOpensInTab: "Opens in a new tab",
     linkNewTab: "New tab",
     linkFrameDenied: "{host} does not allow being shown in a window",
+    // Command palette section: one-off actions (install, voice, music)
+    sectionActions: "Actions",
     // Voice (see systems/voice)
     voiceSearch: "Voice",
     voiceListen: "Search by voice",
@@ -754,6 +756,7 @@ export const translations = {
     linkOpensInTab: "在新标签页打开",
     linkNewTab: "新标签页",
     linkFrameDenied: "{host} 不允许在窗口中显示",
+    sectionActions: "动作",
     // Voice (see systems/voice)
     voiceSearch: "语音",
     voiceListen: "语音搜索",

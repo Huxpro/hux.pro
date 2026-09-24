@@ -19,7 +19,7 @@ import {
   useShowKeyboardHints,
   type CommandShell,
 } from "./actions";
-import { useCommandVoice, VoiceButton, VoiceGlow } from "./voice";
+import { useCommandVoice, useSpaceToTalk, VoiceButton, VoiceGlow } from "./voice";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 import {
@@ -170,6 +170,7 @@ function SheetBody({
   const actions = useCommandActions();
   const field = useCommandField();
   const voice = useCommandVoice(field.onChange);
+  const spaceToTalk = useSpaceToTalk(voice, field.value === "");
   const showHints = useShowKeyboardHints();
 
   // The slash sheet stands level with the palette: as tall as the palette's
@@ -211,6 +212,7 @@ function SheetBody({
             onValueChange={field.onChange}
             onClick={onFieldTap}
             placeholder={t(locale, "searchPlaceholder")}
+            {...spaceToTalk}
             enterKeyHint="go"
             className={cn(
               // 16px: below that iOS Safari zooms the page on focus.

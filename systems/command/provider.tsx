@@ -23,7 +23,10 @@ interface CommandContextType {
    * twice asks twice. The `/` `V` command sets it.
    */
   voiceRequest: number;
-  requestVoice: () => void;
+  /** The key that made the request, while it may still be held: the field
+   *  listens for its release (push-to-talk). Null for a press or a click. */
+  voiceHoldKey: string | null;
+  requestVoice: (holdKey?: string) => void;
 }
 
 const CommandContext = createContext<CommandContextType | undefined>(undefined);
@@ -39,6 +42,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [isSlashCommandsMode, setIsSlashCommandsMode] = useState(false);
   const [isLoadBundleMode, setIsLoadBundleMode] = useState(false);
   const [voiceRequest, setVoiceRequest] = useState(0);
+  const [voiceHoldKey, setVoiceHoldKey] = useState<string | null>(null);
 
   const open = useCallback((slashCommandsMode = false) => {
     setIsOpen(true);
@@ -73,7 +77,8 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Voice: back to search (the field is where the words go) and listen.
-  const requestVoice = useCallback(() => {
+  const requestVoice = useCallback((holdKey?: string) => {
+    setVoiceHoldKey(holdKey ?? null);
     setIsOpen(true);
     setIsSlashCommandsMode(false);
     setIsLoadBundleMode(false);
@@ -142,6 +147,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         openLoadBundle,
         setLoadBundleMode,
         voiceRequest,
+        voiceHoldKey,
         requestVoice,
       }}
     >
