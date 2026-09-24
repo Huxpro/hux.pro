@@ -13,6 +13,7 @@ import {
 import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
 import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
+import { installTarget, useInstall } from "@/systems/install";
 import { useMusic } from "@/systems/music";
 import {
   Bug,
@@ -24,9 +25,11 @@ import {
   Languages,
   MapPin,
   Monitor,
+  MonitorDown,
   Moon,
   Music,
   Sparkles,
+  SquarePlus,
   Sun,
   Sunrise,
 } from "lucide-react";
@@ -105,7 +108,12 @@ export function useCommandActions(): CommandAction[] {
     play: musicPlay,
     pause: musicPause,
   } = useMusic();
+  const { guide: installGuide, open: openInstall } = useInstall();
   const router = useTransitionRouter();
+
+  // Named for where it lands: a phone's home screen, a Mac's Dock, an app
+  // everywhere else. See systems/install/lib/platform.ts.
+  const installDestination = installTarget(installGuide);
 
   const wallpaperLabel =
     wallpaperKind === "image"
@@ -209,47 +217,10 @@ export function useCommandActions(): CommandAction[] {
       key: "e",
       kind: "navigate",
       section: "navigation",
-      // Keyboard-only on purpose: the slash list stays a lettered
-      // launcher. `e` opens log.json; the editor dropdown is how you
-      // reach the other labs. Search still finds those by name below.
+      // Keyboard-only, same as docs. `e` opens log.json. The other
+      // labs stay on the editor dropdown; the palette does not list them.
       keywords: [],
       run: () => router.push("/editor"),
-    },
-    {
-      id: "editor-attachments",
-      kind: "navigate",
-      section: "navigation",
-      label: "Attachments lab",
-      icon: <Layers2 className={ROW_ICON} />,
-      keywords: ["attachments", "media", "附件", "媒体"],
-      run: () => router.push("/editor/attachments"),
-    },
-    {
-      id: "editor-icon",
-      kind: "navigate",
-      section: "navigation",
-      label: "Icon studio",
-      icon: <ImageIcon className={ROW_ICON} />,
-      keywords: ["icon", "favicon", "studio", "图标"],
-      run: () => router.push("/editor/icon"),
-    },
-    {
-      id: "editor-legibility",
-      kind: "navigate",
-      section: "navigation",
-      label: "Legibility lab",
-      icon: <Layers2 className={ROW_ICON} />,
-      keywords: ["legibility", "glass", "ink", "wallpaper", "可读性"],
-      run: () => router.push("/editor/legibility"),
-    },
-    {
-      id: "editor-theater",
-      kind: "navigate",
-      section: "navigation",
-      label: "Theater chrome",
-      icon: <Monitor className={ROW_ICON} />,
-      keywords: ["theater", "chrome", "剧场"],
-      run: () => router.push("/editor/theater-variants"),
     },
     {
       id: "theme",
@@ -434,6 +405,49 @@ export function useCommandActions(): CommandAction[] {
         }
       },
     },
+    // Hidden once the site IS the app: from inside it there is nothing to add.
+    ...(installGuide === "installed"
+      ? []
+      : [
+          {
+            id: "install",
+            // Opens the directions, not the install: that press is the
+            // browser's (see systems/install).
+            kind: "surface",
+            section: "settings",
+            label: t(
+              locale,
+              installDestination === "dock"
+                ? "installCommandDock"
+                : installDestination === "app"
+                  ? "installCommandApp"
+                  : "installCommand"
+            ),
+            icon:
+              installDestination === "home-screen" ? (
+                <SquarePlus className={ROW_ICON} />
+              ) : (
+                <MonitorDown className={ROW_ICON} />
+              ),
+            keywords: [
+              "install",
+              "add to home screen",
+              "home screen",
+              "add to dock",
+              "dock",
+              "pwa",
+              "app",
+              "shortcut",
+              "安装",
+              "添加到主屏幕",
+              "主屏幕",
+              "桌面",
+              "程序坞",
+              "应用",
+            ],
+            run: openInstall,
+          } satisfies CommandAction,
+        ]),
     {
       id: "debug-panel",
       key: "d",

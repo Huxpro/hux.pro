@@ -190,7 +190,7 @@ When the Window system is mounted, ⌘K also launches apps from
 | `U` | Go to Writing |
 | `X` | Go to Works |
 | `I` | Go to Docs (internal) |
-| `E` | Go to `/editor` (`log.json`). Other labs are the top-left dropdown, or search for Attachments / Icon / Legibility / Theater. The family keeps the `/editor` prefix; `e` stays the authoring door — see `app/editor/catalog.ts`. |
+| `E` | Go to `/editor` (`log.json`). The other labs are the top-left dropdown on those pages. The family keeps the `/editor` prefix; `e` stays the authoring door — see `app/editor/catalog.ts`. |
 | `A` | Toggle appearance |
 | `L` | Toggle language |
 | `G` | Toggle geolocation |

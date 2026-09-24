@@ -42,6 +42,7 @@
 |---------|----------|
 | Global styles | `app/globals.css` |
 | Command palette | `systems/command/` (`palette.tsx` picks sheet vs popover) |
+| Add to Home Screen | `systems/install/` (per-browser directions sheet; Chromium's `beforeinstallprompt` when it offers one) |
 | Global state | `components/providers.tsx` |
 | Translations | `lib/i18n.ts` |
 | Blog posts | `content/blog/*.mdx` (at /writing) |

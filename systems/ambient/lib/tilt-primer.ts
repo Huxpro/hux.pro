@@ -17,8 +17,11 @@
 // spends the one chance.
 //
 // It is offered ONCE. `weatherGyroPrimed` is set as soon as the sheet is
-// answered either way, and nothing clears it. An introduction repeated is a
-// nag, and this one interrupts a page the visitor came to for something else.
+// answered either way. An introduction repeated is a nag, and this one
+// interrupts a page the visitor came to for something else. Two things re-arm
+// it, both cases where nothing was really answered: a remembered grant that
+// the browser has since dropped (the yes still stands; the tilt just went off
+// with no way back), and an ask the gate declined to even show a dialog for.
 //
 // -----------------------------------------------------------------------------
 // Where it sits among the easter eggs
@@ -158,10 +161,13 @@ export function attachTiltPrimer(onHold: () => void): () => void {
 
   const onDown = (event: PointerEvent) => {
     // A second finger is a pinch or a scroll starting over — not one hand
-    // resting on the sky.
+    // resting on the sky. But a new PRIMARY pointer means the last one is gone
+    // and its lift never reached us (swallowed on the way up, or lost with the
+    // page's focus); that press is stale, and this one is a fresh start rather
+    // than a second finger — without this, every such loss ate the next hold.
     if (id !== -1) {
       stand();
-      return;
+      if (!event.isPrimary) return;
     }
     if (event.pointerType === "mouse") return;
     if (!event.isPrimary || !isBackgroundPress(event)) return;
