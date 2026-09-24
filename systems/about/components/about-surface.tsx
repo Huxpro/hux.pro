@@ -4,7 +4,9 @@ import { BadgeLaunchProvider } from "@/components/badge";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useInputCapability, useLocale } from "@/services";
+import { useWallpaper } from "@/systems/ambient";
 import { AnimatePresence, motion } from "motion/react";
+import { BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "vitre";
 import {
   useEffect,
   useRef,
@@ -47,6 +49,13 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
   const { isOpen, close, seen } = useAbout();
   const { locale } = useLocale();
   const { hasFineHoverPointer } = useInputCapability();
+  // Inside the bezel, when one is drawn: the About is a surface on the page's
+  // screen, and the page's screen is the box within the bezel's bands, rounded
+  // at its radius. Nothing of the veil or the ring may reach the bezel.
+  const { bezel, bezelRadius } = useWallpaper();
+  const frame = bezel
+    ? { ...BEZEL_INSET, borderRadius: bezelRadius }
+    : undefined;
   const dialogRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
@@ -85,7 +94,9 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
             aria-modal="true"
             aria-label={t(locale, "aboutTitle")}
             tabIndex={-1}
-            className="fixed inset-0 z-[10020] outline-none"
+            {...(bezel ? { [BEZEL_LAYER_ATTRIBUTE]: "" } : {})}
+            className="fixed inset-0 z-[10020] overflow-hidden outline-none"
+            style={frame}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.28, ease: [0.4, 0, 1, 1] } }}
@@ -100,7 +111,15 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
               onClick={onBackdrop}
             >
               <div
-                className="flex min-h-full items-center justify-center px-6 py-[max(4.5rem,env(safe-area-inset-top))] sm:px-10"
+                className={cn(
+                  "flex min-h-full items-center justify-center",
+                  // The ring owns the outer few dozen pixels; the words keep
+                  // clear of it, and of the notch and home indicator.
+                  "px-[max(2.25rem,calc(env(safe-area-inset-left)+1.5rem))]",
+                  "pt-[max(6rem,calc(env(safe-area-inset-top)+4rem))]",
+                  "pb-[max(6rem,calc(env(safe-area-inset-bottom)+4rem))]",
+                  "sm:px-12 sm:py-24",
+                )}
                 onClick={onBackdrop}
               >
                 <motion.article
@@ -126,7 +145,13 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
           </motion.div>
         )}
       </AnimatePresence>
-      <EdgeGlow active={isOpen} className="z-[10021]" />
+      <EdgeGlow
+        active={isOpen}
+        radius={bezel ? bezelRadius : undefined}
+        style={frame}
+        layer={bezel}
+        className={cn("z-[10021]", bezel && "overflow-hidden")}
+      />
     </>
   );
 }

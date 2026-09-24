@@ -22,6 +22,8 @@
     "wallpapers:profile:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/wallpaper-profile.ts --check",
     "apps:snapshot": "node scripts/app-icon-snapshot.ts",
     "apps:check": "node scripts/app-icon-snapshot.ts --check",
+    "badges:snapshot": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/badge-icon-snapshot.ts",
+    "badges:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/badge-icon-snapshot.ts --check",
     "vitre:typecheck": "tsc -p packages/vitre",
     "vitre:site": "vite --config packages/vitre/site/vite.config.ts --host 0.0.0.0",
     "vitre:site:build": "vite build --config packages/vitre/site/vite.config.ts"

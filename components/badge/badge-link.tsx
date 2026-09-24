@@ -33,10 +33,14 @@ import { resolveBadge, type BadgeIcon, type BadgeKind } from "./resolve";
 //   Play <Badge app="lynx-flappy-bird" />, or watch
 //   <Badge href="https://youtu.be/lGEMwh32soc">React without memo</Badge>.
 //
-// A badge is a word in a sentence that wears its icon: the app's own icon
-// where the thing has one on the home screen, a monogram in its era's colour
-// where it is a commit without one, and otherwise the glyph of what it is —
-// the same glyphs a cover's chip wears (components/log/media/media-mark.tsx).
+// A badge is a word in a sentence that wears its official icon: an app's
+// home-screen icon, or the icon the thing's site declares for a home screen,
+// snapshotted by `pnpm badges:snapshot` (lib/badge-site.ts says which site).
+// A path on this site wears this site's icon, an image wears itself. Only a
+// badge nobody has snapshotted yet falls back — a commit to a monogram in its
+// era's colour, anything else to the glyph of what it is, the same glyphs a
+// cover's chip wears (components/log/media/media-mark.tsx) — and CI
+// (`pnpm badges:check`) keeps that from shipping.
 //
 // Pressing it opens the thing in the site's own home for it, never a tab the
 // site could have avoided (resolve.ts names the three ways to point at one):
@@ -131,7 +135,7 @@ function BadgeMark({ icon, kind }: { icon: BadgeIcon; kind: BadgeKind }) {
         draggable={false}
         className={cn(
           ICON_BOX,
-          icon.fill ? "object-cover" : "bg-background/60 object-contain p-[0.08em]",
+          icon.fill ? "object-cover" : "bg-white object-contain p-[0.1em]",
         )}
       />
     );
