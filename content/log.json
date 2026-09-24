@@ -1350,20 +1350,33 @@
       "media": [
         {
           "kind": "link",
-          "url": "https://zhuanlan.zhihu.com/p/21280918",
+          "url": "https://yanshuo.io",
           "present": "card",
           "preview": {
-            "title": "演说.io",
-            "description": "Online presentation software for Web-based slides: linkable, sharable, cross-platform, without delivery friction.",
+            "title": "演说.io - 随时随地的在线展示文稿",
+            "description": "创作真正跨平台的 HTML5 展示文稿，让你的分享到达世界的任何一个角落",
             "image": "/img/works/yanshuo-cover.png"
+          }
+        },
+        {
+          "kind": "link",
+          "url": "https://zhuanlan.zhihu.com/p/21280918",
+          "present": "pill",
+          "label": "Zhihu · 1",
+          "icon": "file",
+          "preview": {
+            "frame": "deny"
           }
         },
         {
           "kind": "link",
           "url": "https://zhuanlan.zhihu.com/p/21361400",
           "present": "pill",
-          "label": "Zhihu",
-          "icon": "globe"
+          "label": "Zhihu · 2",
+          "icon": "file",
+          "preview": {
+            "frame": "deny"
+          }
         }
       ],
       "language": "zh"
