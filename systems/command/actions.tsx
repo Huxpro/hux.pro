@@ -217,47 +217,10 @@ export function useCommandActions(): CommandAction[] {
       key: "e",
       kind: "navigate",
       section: "navigation",
-      // Keyboard-only on purpose: the slash list stays a lettered
-      // launcher. `e` opens log.json; the editor dropdown is how you
-      // reach the other labs. Search still finds those by name below.
+      // Keyboard-only, same as docs. `e` opens log.json. The other
+      // labs stay on the editor dropdown; the palette does not list them.
       keywords: [],
       run: () => router.push("/editor"),
-    },
-    {
-      id: "editor-attachments",
-      kind: "navigate",
-      section: "navigation",
-      label: "Attachments lab",
-      icon: <Layers2 className={ROW_ICON} />,
-      keywords: ["attachments", "media", "附件", "媒体"],
-      run: () => router.push("/editor/attachments"),
-    },
-    {
-      id: "editor-icon",
-      kind: "navigate",
-      section: "navigation",
-      label: "Icon studio",
-      icon: <ImageIcon className={ROW_ICON} />,
-      keywords: ["icon", "favicon", "studio", "图标"],
-      run: () => router.push("/editor/icon"),
-    },
-    {
-      id: "editor-legibility",
-      kind: "navigate",
-      section: "navigation",
-      label: "Legibility lab",
-      icon: <Layers2 className={ROW_ICON} />,
-      keywords: ["legibility", "glass", "ink", "wallpaper", "可读性"],
-      run: () => router.push("/editor/legibility"),
-    },
-    {
-      id: "editor-theater",
-      kind: "navigate",
-      section: "navigation",
-      label: "Theater chrome",
-      icon: <Monitor className={ROW_ICON} />,
-      keywords: ["theater", "chrome", "剧场"],
-      run: () => router.push("/editor/theater-variants"),
     },
     {
       id: "theme",
