@@ -854,7 +854,16 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       if (access === "granted" && !settings.weatherGyroGranted) {
         updateSettings({ weatherGyroGranted: true });
       } else if (access !== "granted" && settings.weatherGyroGranted) {
-        updateSettings({ weatherGyroGranted: false });
+        // The grant lapsed — a new Safari session, or its site data cleared —
+        // and the tilt is off again with nothing on screen to say why. The
+        // offer was spent on a yes, so making it again is not nagging: without
+        // this, the one gesture that can win the grant back is disarmed for
+        // good while the sky has gone back to falling straight down.
+        updateSettings(
+          access === "prompt"
+            ? { weatherGyroGranted: false, weatherGyroPrimed: false }
+            : { weatherGyroGranted: false }
+        );
       }
     });
     return () => {
@@ -900,7 +909,14 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     // Straight from the press, because that press IS the gesture WebKit's gate
     // wants. Anything deferred loses it. The sheet stays open on purpose: it is
     // the one thing on screen that can report how this went.
-    return setGyroEnabled(true);
+    return setGyroEnabled(true).then((access) => {
+      // "prompt" is the gate declining to ask at all — no dialog, no answer —
+      // so the offer is still standing, and must survive a visitor who walks
+      // away from the sheet now. Closing it is still an answer: that goes
+      // through `closeTiltPrimer`, which spends it.
+      if (access === "prompt") updateSettings({ weatherGyroPrimed: false });
+      return access;
+    });
   }, [setGyroEnabled, updateSettings]);
 
   const gyroActive = settings.weatherGyro && isGyroReachable(gyroAccess);
