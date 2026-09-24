@@ -13,6 +13,7 @@ import {
 import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
 import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
+import { installTarget, useInstall } from "@/systems/install";
 import { useMusic } from "@/systems/music";
 import {
   Bug,
@@ -24,9 +25,11 @@ import {
   Languages,
   MapPin,
   Monitor,
+  MonitorDown,
   Moon,
   Music,
   Sparkles,
+  SquarePlus,
   Sun,
   Sunrise,
 } from "lucide-react";
@@ -105,7 +108,12 @@ export function useCommandActions(): CommandAction[] {
     play: musicPlay,
     pause: musicPause,
   } = useMusic();
+  const { guide: installGuide, open: openInstall } = useInstall();
   const router = useTransitionRouter();
+
+  // Named for where it lands: a phone's home screen, a Mac's Dock, an app
+  // everywhere else. See systems/install/lib/platform.ts.
+  const installDestination = installTarget(installGuide);
 
   const wallpaperLabel =
     wallpaperKind === "image"
@@ -397,6 +405,49 @@ export function useCommandActions(): CommandAction[] {
         }
       },
     },
+    // Hidden once the site IS the app: from inside it there is nothing to add.
+    ...(installGuide === "installed"
+      ? []
+      : [
+          {
+            id: "install",
+            // Opens the directions, not the install: that press is the
+            // browser's (see systems/install).
+            kind: "surface",
+            section: "settings",
+            label: t(
+              locale,
+              installDestination === "dock"
+                ? "installCommandDock"
+                : installDestination === "app"
+                  ? "installCommandApp"
+                  : "installCommand"
+            ),
+            icon:
+              installDestination === "home-screen" ? (
+                <SquarePlus className={ROW_ICON} />
+              ) : (
+                <MonitorDown className={ROW_ICON} />
+              ),
+            keywords: [
+              "install",
+              "add to home screen",
+              "home screen",
+              "add to dock",
+              "dock",
+              "pwa",
+              "app",
+              "shortcut",
+              "安装",
+              "添加到主屏幕",
+              "主屏幕",
+              "桌面",
+              "程序坞",
+              "应用",
+            ],
+            run: openInstall,
+          } satisfies CommandAction,
+        ]),
     {
       id: "debug-panel",
       key: "d",
