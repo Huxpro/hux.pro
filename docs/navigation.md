@@ -120,6 +120,11 @@ When the search input is empty or unfocused:
 
 #### In Slash Commands
 
+Three sections, in order: **Navigation** (go somewhere), **Actions** (do one
+thing, now — voice, music, add to home screen) and **Settings** (a value that
+stays). An action whose control is already on screen (voice: the field's
+microphone) is `slashOnly` — in this list, never a search result.
+
 | Key | Action |
 |-----|--------|
 | `H` | Go to Home |
@@ -131,7 +136,7 @@ When the search input is empty or unfocused:
 | `A` | Cycle Appearance (system → dark → light) |
 | `L` | Toggle Language |
 | `O` | Open the About (also `O` anywhere outside the palette — see [system-about.md](./system-about.md)) |
-| `V` | Voice: back to the field, listening ([system-glow.md](./system-glow.md)) |
+| `V` | Voice — tap to listen, hold to talk and let go to send ([system-glow.md](./system-glow.md)) |
 | `C` | Toggle geolocation, by Coordinates (IP ↔ accurate) |
 | `W` | Open the Wallpaper picker |
 | `G` | Toggle Glass material (Tinted ↔ Clear) |

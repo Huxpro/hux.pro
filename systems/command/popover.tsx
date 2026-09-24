@@ -18,7 +18,7 @@ import {
 } from "./actions";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
-import { useCommandVoice, VoiceButton, VoiceGlow } from "./voice";
+import { useCommandVoice, useSpaceToTalk, VoiceButton, VoiceGlow } from "./voice";
 import {
   CommandResults,
   CommandSlashList,
@@ -112,6 +112,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
   const actions = useCommandActions();
   const field = useCommandField();
   const voice = useCommandVoice(field.onChange);
+  const spaceToTalk = useSpaceToTalk(voice, field.value === "");
 
   const inputRef = useRef<HTMLInputElement>(null);
   const showHints = useShowKeyboardHints();
@@ -271,6 +272,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         value={field.value}
                         onValueChange={field.onChange}
                         placeholder={t(locale, "searchPlaceholder")}
+                        {...spaceToTalk}
                         className={cn(
                           "w-full py-4 bg-transparent font-sans text-[16px] sm:text-sm",
                           "placeholder:text-tertiary-foreground",

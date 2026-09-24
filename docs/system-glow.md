@@ -135,13 +135,37 @@ syllable and settles between words. Three bands (80–300 Hz, 300–2000,
 ### In the palette
 
 A microphone in the field's trailing cluster, in both shells (the desktop
-popover, the phone sheet), and `/` `V` from the slash list (`kind: "stay"` —
-the palette stays and goes back to its field). While it listens the field
-wears the `line` glow on its bottom edge, rising and rippling with the voice;
-when the speaker pauses it gathers into the travelling beam until the phrase
-lands. What is said is read as a query, not a sentence: "go to the writing",
-"open works", "show me the wallpaper", "打开写作" arrive as `writing`, `works`,
+popover, the phone sheet). While it listens the field wears the `line` glow
+on its bottom edge, rising and rippling with the voice; when the speaker
+pauses it gathers into the travelling beam until the phrase lands. What is
+said is read as a query, not a sentence: "go to the writing", "open works",
+"show me the wallpaper", "打开写作" arrive as `writing`, `works`,
 `wallpaper`, `写作` (`toQuery`).
+
+Voice is an **action**, not a place and not a setting: the palette's third
+section (`actions` — do one thing, now) beside Music and Add to Home Screen.
+It is `slashOnly`: in the slash list as `V`, never a search result, since its
+control is already in the field.
+
+**Tap or hold, three ways in.** Dictation tools answer a tap and a hold —
+Wispr Flow's held Fn (push-to-talk), macOS's Globe pressed twice, Windows'
+Win+H, Superwhisper's ⌥Space — and the best of those keys are taken
+system-wide or invisible to a page (a browser never sees Fn / Globe; Win+H
+is the OS's; ⌥Space belongs to such tools and types a no-break space on a
+Mac). So the palette takes none of them and gives the same two gestures
+inside its own space:
+
+| way in | tap | hold (≥ 300 ms, `HOLD_MS`) |
+|---|---|---|
+| the microphone | start (or stop, while listening) | talk; let go to send |
+| `/` `V` | start | talk; let go to send |
+| Space in the empty field | nothing (a leading space means nothing to a search) | talk; let go to send |
+
+A tap's session ends when the speaker pauses; a hold's when the key or
+pointer is released. `/` `V` knows it was a key because a command's `run`
+receives the letter that ran it; a click on its slash row carries none, so a
+"v" typed later can never end a session. The held key's repeats are
+swallowed, so a hold never types into the field.
 
 ## Where it glows
 
