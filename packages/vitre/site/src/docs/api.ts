@@ -1,5 +1,5 @@
 import type * as Contract from "../../../vitre";
-import type { BezelBootState, BezelProps, BezelState, ChromeSyncOptions, ScrollPageOptions } from "vitre";
+import type { VitreBootState, VitreProps, VitreState, ChromeSyncOptions, ScrollPageOptions } from "vitre";
 import type { Text } from "../i18n";
 import type { ScenarioName } from "../scenarios";
 
@@ -21,34 +21,34 @@ export interface ExportDoc {
 }
 
 export const EXPORTS: { [K in keyof typeof Contract]: ExportDoc } = {
-  Bezel: {
+  Vitre: {
     kind: "component",
-    signature: "<Bezel enabled color band? radius? scroll? ground backdrop? className? style?>",
-    summary: { en: "The bezel, the chrome colour and the page's scroll container, in one. Render it once, around the page.", zh: "bezel、浏览器 chrome 的颜色和页面的滚动容器，三合一。在页面外层渲染一次即可。" },
+    signature: "<Vitre enabled color band? radius? scroll? ground backdrop? className? style?>",
+    summary: { en: "The bezel, the chrome colour and the page's scroll container in one component. Render it once, around the page.", zh: "bezel、chrome 的颜色和页面的滚动容器，一个组件全包。在页面最外层渲染一次。" },
     section: "enabled",
   },
-  useBezel: {
+  useVitre: {
     kind: "hook",
-    signature: "useBezel(): BezelState",
-    summary: { en: "What the bezel is showing, resolved. A disabled default outside <Bezel>.", zh: "bezel 当前实际显示的状态。在 <Bezel> 之外返回一个关闭状态的默认值。" },
+    signature: "useVitre(): VitreState",
+    summary: { en: "What Vitre is showing, resolved. A disabled default outside <Vitre>.", zh: "窗玻璃当前显示的状态。在 <Vitre> 外面返回一个关闭状态的默认值。" },
     section: "state",
   },
-  bezelBootScript: {
+  vitreBootScript: {
     kind: "function",
-    signature: "bezelBootScript(resolver: string): string",
+    signature: "vitreBootScript(resolver: string): string",
     summary: { en: "An inline <head> script that paints the first frame from your settings before React runs.", zh: "放在 <head> 里的内联脚本，在 React 运行前按你的设置画出第一帧。" },
     section: "boot",
   },
-  readBezelBoot: {
+  readVitreBoot: {
     kind: "function",
-    signature: "readBezelBoot(): BezelBootState | null",
-    summary: { en: "The state the boot script applied, or null if none ran.", zh: "启动脚本应用的状态；没有运行过则为 null。" },
+    signature: "readVitreBoot(): VitreBootState | null",
+    summary: { en: "The state the boot script applied, or null if none ran.", zh: "启动脚本应用的状态，没跑过则为 null。" },
     section: "boot",
   },
   syncChrome: {
     kind: "function",
     signature: "syncChrome(color: string, options?: ChromeSyncOptions): void",
-    summary: { en: "Make Safari's chrome show a colour now, by morphing a fixed bezel to 8px and back.", zh: "让 Safari 的 chrome 立刻显示某个颜色：把一个 fixed 的 bezel 变形到 8px 再收回。" },
+    summary: { en: "Make Safari's chrome show a colour now, by morphing a fixed bezel to 8px and back.", zh: "让 Safari 的 chrome 马上显示某个颜色：把一个 fixed 的 bezel 变形到 8px 再收回。" },
     section: "chrome",
   },
   usePageScroll: {
@@ -96,7 +96,7 @@ export const EXPORTS: { [K in keyof typeof Contract]: ExportDoc } = {
   onPageScroll: {
     kind: "function",
     signature: "onPageScroll(listener: () => void): () => void",
-    summary: { en: "Subscribe outside React. Survives a switch between scroll modes.", zh: "在 React 之外订阅滚动。切换滚动模式后依然有效。" },
+    summary: { en: "Subscribe outside React. Survives a switch between scroll modes.", zh: "在 React 之外订阅滚动。切换滚动模式后照样有效。" },
     section: "pageScroll",
   },
   emitPageScroll: {
@@ -108,18 +108,18 @@ export const EXPORTS: { [K in keyof typeof Contract]: ExportDoc } = {
   PAGE_SCROLL_TIMELINE: {
     kind: "constant",
     signature: 'PAGE_SCROLL_TIMELINE: "--page-scroll"',
-    summary: { en: "A named scroll timeline on whichever element scrolls the page. Bind scroll-driven CSS to it: animation-timeline: --page-scroll.", zh: "挂在实际滚动页面的元素上的具名滚动时间线。滚动驱动的 CSS 动画绑定它即可：animation-timeline: --page-scroll。" },
+    summary: { en: "A named scroll timeline on whichever element scrolls the page. Bind scroll-driven CSS to it: animation-timeline: --page-scroll.", zh: "一条具名滚动时间线，挂在真正滚动页面的元素上。滚动驱动的 CSS 绑定它就行：animation-timeline: --page-scroll。" },
     section: "pageScroll",
   },
   BEZEL_INSET: {
     kind: "constant",
     signature: "BEZEL_INSET: CSSProperties",
-    summary: { en: "The box inside the bezel, as inline style, for layers that must stop where it begins.", zh: "bezel 内侧的区域，以内联样式给出，用于需要停在 bezel 边缘的图层。" },
+    summary: { en: "The box inside the bezel, as inline style, for layers that must stop where it begins.", zh: "bezel 内侧的区域，写成内联样式，给要停在 bezel 边上的图层用。" },
     section: "backdrop",
   },
-  BEZEL_LAYER_ATTRIBUTE: {
+  VITRE_LAYER_ATTRIBUTE: {
     kind: "constant",
-    signature: 'BEZEL_LAYER_ATTRIBUTE: "data-bezel-layer"',
+    signature: 'VITRE_LAYER_ATTRIBUTE: "data-vitre-layer"',
     summary: { en: "Marks a full-screen fixed layer that must become absolute in container scroll.", zh: "标记一个全屏 fixed 图层，让它在 container 滚动时变为 absolute。" },
     section: "backdrop",
   },
@@ -171,10 +171,10 @@ export interface FieldDoc {
   summary: Text;
 }
 
-export const BEZEL_PROPS: { [K in keyof Required<BezelProps>]: FieldDoc } = {
+export const VITRE_PROPS: { [K in keyof Required<VitreProps>]: FieldDoc } = {
   enabled: {
     type: "boolean | null",
-    summary: { en: "Whether the bezel is drawn. Live. null holds what the boot script applied until the host knows.", zh: "是否绘制 bezel。实时生效。null 表示宿主还不确定，保持启动脚本应用的状态。" },
+    summary: { en: "Whether the bezel is drawn. Live. null holds what the boot script applied until the host knows.", zh: "是否绘制 bezel。实时生效。null 表示宿主还不知道，先保持启动脚本画好的样子。" },
   },
   color: { type: "string", summary: { en: "The bezel colour. Any CSS colour. Live; the chrome follows.", zh: "bezel 的颜色，任意 CSS 颜色。实时生效，chrome 会跟随。" } },
   band: { type: "number", default: "0", summary: { en: "Band thickness on the top and bottom edges, px. Live.", zh: "上下边缘 band 的厚度（px）。实时生效。" } },
@@ -184,15 +184,15 @@ export const BEZEL_PROPS: { [K in keyof Required<BezelProps>]: FieldDoc } = {
   chromeMorph: {
     type: "boolean",
     default: "true",
-    summary: { en: "Morph each chrome colour change onto the screen, for a chrome that samples the page (iOS Safari). false sets theme-color only, for Android Chrome, macOS Safari and desktops.", zh: "每次 chrome 颜色变化时用变形让它显示出来，适用于从页面取色的 chrome（iOS Safari）。设为 false 时只设置 theme-color，适用于 Android Chrome、macOS Safari 和桌面端。" },
+    summary: { en: "Morph each chrome colour change onto the screen, for a chrome that samples the page (iOS Safari). false sets theme-color only, for Android Chrome, macOS Safari and desktops.", zh: "chrome 每次变色都用变形显示出来，给从页面取色的 chrome 用（iOS Safari）。设为 false 只设置 theme-color，适合 Android Chrome、macOS Safari 和桌面端。" },
   },
-  backdrop: { type: "ReactNode", summary: { en: "Layers behind the page and inside the bezel.", zh: "位于页面之后、bezel 之内的图层。" } },
-  className: { type: "string", summary: { en: "Class for the scroll container, which wraps children.", zh: "滚动容器的 class，滚动容器包裹 children。" } },
-  style: { type: "CSSProperties", summary: { en: "Style for the scroll container, merged over its inset.", zh: "滚动容器的样式，会合并在它的内缩样式之上。" } },
+  backdrop: { type: "ReactNode", summary: { en: "Layers behind the page and inside the bezel.", zh: "页面后面、bezel 里面的图层。" } },
+  className: { type: "string", summary: { en: "Class for the scroll container, which wraps children.", zh: "滚动容器的 class，children 就在这个容器里。" } },
+  style: { type: "CSSProperties", summary: { en: "Style for the scroll container, merged over its inset.", zh: "滚动容器的样式，覆盖在它的 inset 样式上。" } },
   children: { type: "ReactNode", summary: { en: "The page.", zh: "页面内容。" } },
 };
 
-export const BEZEL_STATE: { [K in keyof BezelState]: FieldDoc } = {
+export const VITRE_STATE: { [K in keyof VitreState]: FieldDoc } = {
   enabled: { type: "boolean", summary: { en: "Whether the bezel is drawn.", zh: "是否绘制 bezel。" } },
   color: { type: "string", summary: { en: "The bezel colour.", zh: "bezel 的颜色。" } },
   band: { type: "number", summary: { en: "Band thickness, px.", zh: "band 厚度（px）。" } },
@@ -201,7 +201,7 @@ export const BEZEL_STATE: { [K in keyof BezelState]: FieldDoc } = {
   ground: { type: "string", summary: { en: "The chrome colour while the bezel is off.", zh: "bezel 关闭时 chrome 的颜色。" } },
 };
 
-export const BOOT_STATE: { [K in keyof BezelBootState]: FieldDoc } = {
+export const BOOT_STATE: { [K in keyof VitreBootState]: FieldDoc } = {
   enabled: { type: "boolean", summary: { en: "Draw the bezel on the first frame.", zh: "第一帧是否绘制 bezel。" } },
   color: { type: "string", summary: { en: "Its colour.", zh: "它的颜色。" } },
   band: { type: "number", summary: { en: "Its band, px.", zh: "它的 band（px）。" } },
@@ -210,9 +210,9 @@ export const BOOT_STATE: { [K in keyof BezelBootState]: FieldDoc } = {
 };
 
 export const CHROME_SYNC_OPTIONS: { [K in keyof Required<ChromeSyncOptions>]: FieldDoc } = {
-  band: { type: "number", default: "0", summary: { en: "The band showing now; the morph starts and ends here.", zh: "当前显示的 band，变形从这里开始、在这里结束。" } },
+  band: { type: "number", default: "0", summary: { en: "The band showing now; the morph starts and ends here.", zh: "当前显示的 band，变形从这里开始，也在这里结束。" } },
   radius: { type: "number", default: "0", summary: { en: "The corner radius showing now.", zh: "当前显示的圆角半径。" } },
-  morph: { type: "boolean", default: "true", summary: { en: "Morph the bezel so a chrome that samples the page sees the colour. false sets theme-color and draws nothing.", zh: "让 bezel 变形，使从页面取色的 chrome 能取到颜色。设为 false 时只设置 theme-color，不绘制任何东西。" } },
+  morph: { type: "boolean", default: "true", summary: { en: "Morph the bezel so a chrome that samples the page sees the colour. false sets theme-color and draws nothing.", zh: "让 bezel 变形，从页面取色的 chrome 才能取到颜色。设为 false 只设置 theme-color，什么都不画。" } },
 };
 
 export const SCROLL_PAGE_OPTIONS: { [K in keyof Required<ScrollPageOptions>]: FieldDoc } = {

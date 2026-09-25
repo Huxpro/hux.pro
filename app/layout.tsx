@@ -1,6 +1,6 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
 import { bezelBootResolver } from "@/systems/ambient/lib/bezel";
-import { bezelBootScript } from "vitre";
+import { vitreBootScript } from "vitre";
 import { Providers } from "@/shared/providers";
 import {
   AmbientPhaseActivity,
@@ -109,7 +109,7 @@ export const viewport: Viewport = {
  * this site's resolver (see @/systems/ambient/lib/bezel), which makes the same
  * decisions as the ambient provider from localStorage and the platform.
  */
-const BEZEL_BOOT = bezelBootScript(bezelBootResolver());
+const BEZEL_BOOT = vitreBootScript(bezelBootResolver());
 
 export default function RootLayout({
   children,

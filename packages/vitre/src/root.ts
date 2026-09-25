@@ -8,9 +8,9 @@ import {
 import { emitPageScroll } from "./scroll";
 
 // =============================================================================
-// Root — the bezel's state on <html>.
+// Root — Vitre's state on <html>.
 //
-// The bezel lives in a handful of attributes and properties on the root
+// Vitre lives in a handful of attributes and properties on the root
 // element, so the stylesheet can paint and lock the page before any component
 // renders. This module writes them, moves the scroll position when the scroll
 // mode changes, and keeps them in place.
@@ -18,7 +18,7 @@ import { emitPageScroll } from "./scroll";
 // "Keeps" because React owns <html>. When hydration fails — any text the
 // server rendered differently, React error #418 — React 19 renders the app
 // again on the client and strips every attribute off <html> first. Measured on
-// a Vercel preview on iOS 26.5: the bezel lost its colour, its scroll mode and
+// a Vercel preview on iOS 26.5: Vitre lost its colour, its scroll mode and
 // its corners. A mutation observer puts them back before the next paint.
 // =============================================================================
 

@@ -40,8 +40,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * Every in-page reference — an attribution anchor, a back-link, an item's own
  * `#` mark — travels the same way: put the id in the URL so the link can be
  * shared, then glide there instead of teleporting. `scrollIntoView` follows
- * whichever element actually scrolls, so this keeps working inside the
- * bezel's scroll container as well as the window.
+ * whichever element actually scrolls, so this keeps working inside
+ * Vitre's scroll container as well as the window.
  */
 function scrollToId(id: string) {
   const element = document.getElementById(id);

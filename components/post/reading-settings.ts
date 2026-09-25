@@ -175,7 +175,7 @@ export function ReadingRootSync() {
     };
 
     update();
-    // Page scroll: in container scroll the bezel's container scrolls, not the window.
+    // Page scroll: in container scroll Vitre's container scrolls, not the window.
     const offScroll = onPageScroll(schedule);
     window.addEventListener("resize", schedule);
 

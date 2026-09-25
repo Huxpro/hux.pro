@@ -1,12 +1,12 @@
 // =============================================================================
-// Demo configuration: every knob vitre has, as one serialisable object.
+// Demo configuration: every knob Vitre has, as one serialisable object.
 //
-// The demo page renders <Bezel> from it, the devtool edits it, the docs page
+// The demo page renders <Vitre> from it, the devtool edits it, the docs page
 // drives it through postMessage, and the boot resolver reads the saved copy
 // before first paint. Nothing here knows about the hux.pro site.
 // =============================================================================
 
-import type { BezelScroll } from "vitre";
+import type { VitreScroll } from "vitre";
 import { DEFAULT_CONFIG, GROUND, STORAGE_KEY, type DemoConfig } from "./defaults";
 
 export {
@@ -36,7 +36,7 @@ export function resolveColor(config: DemoConfig, theme: "light" | "dark"): strin
  * Container scroll wherever the bezel is on: that is what keeps a band thinner
  * than CHROME_SAMPLE_PX in step with the chrome, and the toolbar still.
  */
-export function resolveScroll(config: DemoConfig): BezelScroll {
+export function resolveScroll(config: DemoConfig): VitreScroll {
   if (config.scroll !== "auto") return config.scroll;
   return config.enabled ? "container" : "window";
 }
@@ -88,21 +88,21 @@ export function isDemoPage(): boolean {
 export type DemoAction = "scroll-top" | "scroll-middle" | "scroll-bottom" | "reset";
 
 export type ToPhone =
-  | { type: "bezel-demo:patch"; patch: Partial<DemoConfig> }
-  | { type: "bezel-demo:action"; action: DemoAction }
-  | { type: "bezel-demo:lang"; lang: "en" | "zh" };
+  | { type: "vitre-demo:patch"; patch: Partial<DemoConfig> }
+  | { type: "vitre-demo:action"; action: DemoAction }
+  | { type: "vitre-demo:lang"; lang: "en" | "zh" };
 
 /** Sent by the phone on every page scroll, so the docs can move its toolbar. */
 export interface PhoneScroll {
-  type: "bezel-demo:scroll";
+  type: "vitre-demo:scroll";
   top: number;
-  scroll: BezelScroll;
+  scroll: VitreScroll;
   /** Whether the user scrolled, rather than the page scrolling itself. */
   user: boolean;
 }
 
 export interface PhoneReport {
-  type: "bezel-demo:report";
+  type: "vitre-demo:report";
   theme: "light" | "dark";
   state: Record<string, unknown>;
   themeColor: string | null;

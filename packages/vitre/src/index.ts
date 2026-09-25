@@ -1,12 +1,11 @@
-// vitre — implementation entry. The contract is ../vitre.d.ts.
+// Vitre — implementation entry. The contract is ../vitre.d.ts.
 
-export { Bezel, BEZEL_INSET, useBezel } from "./bezel";
-export { bezelBootScript, readBezelBoot } from "./boot";
+export { Vitre, BEZEL_INSET, useVitre } from "./vitre";
+export { vitreBootScript, readVitreBoot } from "./boot";
 export { syncChrome } from "./chrome";
 export {
   BEZEL_BAND_MAX,
   BEZEL_BAND_MIN,
-  BEZEL_LAYER_ATTRIBUTE,
   BEZEL_RADIUS_MAX,
   BEZEL_RADIUS_MIN,
   CHROME_MORPH_PX,
@@ -16,6 +15,7 @@ export {
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
   PAGE_SCROLL_TIMELINE,
+  VITRE_LAYER_ATTRIBUTE,
 } from "./constants";
 export {
   emitPageScroll,
@@ -29,10 +29,10 @@ export {
   usePageScroll,
 } from "./scroll";
 export type {
-  BezelBootState,
-  BezelProps,
-  BezelScroll,
-  BezelState,
+  VitreBootState,
+  VitreProps,
+  VitreScroll,
+  VitreState,
   ChromeSyncOptions,
   ScrollPageOptions,
 } from "../vitre";

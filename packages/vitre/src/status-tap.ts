@@ -9,7 +9,7 @@ import { getScrollContainer, onPageScroll } from "./scroll";
 // iOS Safari's tap-the-status-bar-to-scroll-to-the-top talks to the main
 // WKScrollView only. WebKit sets `scrollsToTop = NO` on every overflow
 // UIScrollView it creates — bug 134456, filed 2014, still what
-// ScrollingTreeScrollingNodeDelegateIOS.mm does — so the bezel's scroll
+// ScrollingTreeScrollingNodeDelegateIOS.mm does — so Vitre's scroll
 // container can never be handed the gesture itself.
 //
 // The window can. <body> is fixed at inset 0, so the document has nothing to

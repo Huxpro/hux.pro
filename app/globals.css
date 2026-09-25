@@ -545,7 +545,7 @@ body,
   text-shadow: none;
 }
 
-/* The bezel's stylesheet (html[data-bezel], container scroll, fixed layers
+/* Vitre's stylesheet (html[data-bezel], container scroll, fixed layers
    made absolute) ships with vitre and is installed by its boot script. */
 
 @layer base {
@@ -1233,7 +1233,7 @@ main[data-variant="reader"] .reader-masthead {
    Uses CSS scroll-driven animations (animation-timeline: view()) to dim
    items near the viewport edges and spotlight the one near the center.
    `view()` follows the nearest scrollport, so it keeps working when the
-   page scrolls in the bezel's container rather than the window.
+   page scrolls in Vitre's scroll container rather than the window.
    Gracefully degrades to full opacity in unsupported browsers.
    ============================================================================= */
 
@@ -1283,14 +1283,14 @@ main[data-variant="reader"] .reader-masthead {
     animation-timing-function: linear;
     animation-fill-mode: both;
     /* Window scroll: the nearest scroller is the viewport. `scroll(root)`
-       is silent once the page moves into the bezel's container. */
+       is silent once the page moves into Vitre's scroll container. */
     animation-timeline: scroll(nearest block);
     /* Mobile header-zone default height (h-44 = 11rem) */
     animation-range: 0 11rem;
   }
 
-  html[data-bezel-scroll="container"] .hero-zone-fade {
-    /* The named timeline vitre publishes on #bezel-scroll. */
+  html[data-vitre-scroll="container"] .hero-zone-fade {
+    /* The named timeline vitre publishes on #vitre-scroll. */
     animation-timeline: --page-scroll;
   }
 

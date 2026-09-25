@@ -103,7 +103,7 @@ duration-300 (morphing transitions)
 ### Testing the Bezel
 
 The bezel is its own package, `packages/vitre` (`vitre`). Its API and the
-iOS Safari findings behind it are in `packages/vitre/bezel.d.ts` and
+iOS Safari findings behind it are in `packages/vitre/vitre.d.ts` and
 `packages/vitre/README.md`; read those before changing anything about the edge
 of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
 

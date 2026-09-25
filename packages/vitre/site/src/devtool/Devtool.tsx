@@ -1,7 +1,7 @@
 import {
   BEZEL_BAND_MAX,
   BEZEL_BAND_MIN,
-  BEZEL_LAYER_ATTRIBUTE,
+  VITRE_LAYER_ATTRIBUTE,
   BEZEL_RADIUS_MAX,
   BEZEL_RADIUS_MIN,
   CHROME_MORPH_PX,
@@ -12,9 +12,9 @@ import {
   pageScrollHeight,
   pageScrollTop,
   pageViewportHeight,
-  readBezelBoot,
+  readVitreBoot,
   syncChrome,
-  useBezel,
+  useVitre,
   usePageScroll,
 } from "vitre";
 import { useEffect, useState } from "react";
@@ -76,7 +76,7 @@ export function Devtool({
   onAction: (action: DemoAction) => void;
   onClose: () => void;
 }) {
-  const state = useBezel();
+  const state = useVitre();
   const t = useT();
   const [scrollTop, setScrollTop] = useState(0);
   const scroller = getScrollContainer();
@@ -91,10 +91,10 @@ export function Devtool({
   const color = resolveColor(config, theme);
 
   return (
-    <div className="dt-panel" role="dialog" aria-label="Bezel devtool">
+    <div className="dt-panel" role="dialog" aria-label="Vitre devtool">
       <div className="dt-head">
         <span className="dt-head-title">Devtool</span>
-        <span className="dt-badge">vitre</span>
+        <span className="dt-badge">Vitre</span>
         <button type="button" className="dt-close" onClick={onClose} aria-label="Close devtool">
           ×
         </button>
@@ -208,12 +208,12 @@ export function Devtool({
               onChange={(backdrop) => onPatch({ backdrop })}
             />
           </Row>
-          <Row label={BEZEL_LAYER_ATTRIBUTE}>
+          <Row label={VITRE_LAYER_ATTRIBUTE}>
             <span className="dt-mono">{t({ en: "on the backdrop", zh: "已加在背景层上" })}</span>
           </Row>
         </Section>
 
-        <Section title={t({ en: 'Chrome', zh: 'Chrome' })} badge={readThemeColor() ?? "—"}>
+        <Section title={t({ en: 'Chrome', zh: 'Chrome' })} badge={readThemeColor() ?? "none"}>
           <Row label="theme-color">
             <span className="dt-mono">{readThemeColor() ?? "none"}</span>
           </Row>
@@ -228,8 +228,8 @@ export function Devtool({
         </Section>
 
         <Section title={t({ en: 'Boot & <html>', zh: '启动与 <html>' })} defaultOpen={false}>
-          <Row label="readBezelBoot()" />
-          <Readout value={readBezelBoot()} />
+          <Row label="readVitreBoot()" />
+          <Readout value={readVitreBoot()} />
           <Row label={t({ en: "<html> now", zh: "当前 <html>" })} />
           <Readout value={readHtml()} />
           <div className="dt-actions">
@@ -237,7 +237,7 @@ export function Devtool({
           </div>
         </Section>
 
-        <Section title="useBezel()" defaultOpen={false}>
+        <Section title="useVitre()" defaultOpen={false}>
           <Readout value={state} />
         </Section>
 

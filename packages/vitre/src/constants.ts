@@ -4,14 +4,14 @@
 /** On <html> while the bezel is drawn. */
 export const BEZEL_ATTRIBUTE = "data-bezel";
 /** On <html> with value "container" while the page scrolls in the container. */
-export const SCROLL_ATTRIBUTE = "data-bezel-scroll";
+export const SCROLL_ATTRIBUTE = "data-vitre-scroll";
 /**
  * On <html> while container scroll is holding the window a few pixels down, so
  * that a status-bar tap has a main-frame scroll to perform. See status-tap.ts.
  */
-export const STATUS_TAP_ATTRIBUTE = "data-bezel-status-tap";
+export const STATUS_TAP_ATTRIBUTE = "data-vitre-status-tap";
 /** Marks a fixed layer that must become absolute in container scroll. */
-export const BEZEL_LAYER_ATTRIBUTE = "data-bezel-layer";
+export const VITRE_LAYER_ATTRIBUTE = "data-vitre-layer";
 
 /** Custom property carrying the bezel colour. */
 export const COLOR_VAR = "--bezel-color";
@@ -19,19 +19,19 @@ export const COLOR_VAR = "--bezel-color";
 export const BAND_VAR = "--bezel-band";
 
 /** The page's scroll container. */
-export const SCROLL_CONTAINER_ID = "bezel-scroll";
+export const SCROLL_CONTAINER_ID = "vitre-scroll";
 /**
  * Named scroll timeline on whichever element actually scrolls the page: the
- * root in window scroll, `#bezel-scroll` in container scroll. Host CSS that
+ * root in window scroll, `#vitre-scroll` in container scroll. Host CSS that
  * used `scroll(root)` goes silent in container scroll — bind to this instead.
  */
 export const PAGE_SCROLL_TIMELINE = "--page-scroll";
 /** The `theme-color` meta the package owns. */
-export const THEME_COLOR_ID = "bezel-theme-color";
+export const THEME_COLOR_ID = "vitre-theme-color";
 /** The <style> element carrying the stylesheet. */
-export const STYLE_ID = "bezel-style";
+export const STYLE_ID = "vitre-style";
 /** Property on `window` the boot script records its state under. */
-export const BOOT_GLOBAL = "__bezel";
+export const BOOT_GLOBAL = "__vitre";
 
 /**
  * How far down the window is parked while it is armed for a status-bar tap,

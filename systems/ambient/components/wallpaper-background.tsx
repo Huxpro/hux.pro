@@ -20,7 +20,7 @@ import { useHomeEditing } from "@/components/ui/home-edit-store";
 import { useWeather } from "../provider";
 import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
-import { BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "vitre";
+import { BEZEL_INSET, VITRE_LAYER_ATTRIBUTE } from "vitre";
 import { WeatherWallpaper } from "./wallpaper";
 
 // ---------------------------------------------------------------------------
@@ -209,8 +209,8 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       aria-hidden="true"
       // In container scroll this must not be `position: fixed`: Safari tints its
       // chrome from fixed content at the viewport edge, and a wallpaper there
-      // would win over the bezel colour. See BEZEL_LAYER_ATTRIBUTE in vitre.
-      {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
+      // would win over the bezel colour. See VITRE_LAYER_ATTRIBUTE in vitre.
+      {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
         "transition-opacity ease-in-out"

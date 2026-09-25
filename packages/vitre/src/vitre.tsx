@@ -11,22 +11,22 @@ import {
   type CSSProperties,
   type JSX,
 } from "react";
-import type { BezelProps, BezelScroll, BezelState } from "../vitre";
-import { readBezelBoot } from "./boot";
+import type { VitreProps, VitreScroll, VitreState } from "../vitre";
+import { readVitreBoot } from "./boot";
 import { syncChrome } from "./chrome";
 import {
   BAND_VAR,
-  BEZEL_LAYER_ATTRIBUTE,
+  VITRE_LAYER_ATTRIBUTE,
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
   SCROLL_CONTAINER_ID,
 } from "./constants";
-import { ensureBezelStyle } from "./css";
+import { ensureVitreStyle } from "./css";
 import { keepRoot, type RootState } from "./root";
 import { enableStatusTapToTop } from "./status-tap";
 
 // =============================================================================
-// <Bezel> — see ../vitre.d.ts for the contract.
+// <Vitre> — see ../vitre.d.ts for the contract.
 //
 // Four bands and four quarter-circles in the bezel colour, drawn above
 // everything so the page stops on a clean line and is rounded off inside
@@ -64,7 +64,7 @@ const fill = (style: CSSProperties): CSSProperties => ({
   ...style,
 });
 
-const DISABLED: BezelState = {
+const DISABLED: VitreState = {
   enabled: false,
   color: "#000",
   band: DEFAULT_BEZEL_BAND,
@@ -73,13 +73,13 @@ const DISABLED: BezelState = {
   ground: "#fff",
 };
 
-const BezelContext = createContext<BezelState>(DISABLED);
+const VitreContext = createContext<VitreState>(DISABLED);
 
-export function useBezel(): BezelState {
-  return useContext(BezelContext);
+export function useVitre(): VitreState {
+  return useContext(VitreContext);
 }
 
-export function Bezel({
+export function Vitre({
   enabled,
   color,
   band = DEFAULT_BEZEL_BAND,
@@ -91,14 +91,14 @@ export function Bezel({
   className,
   style,
   children,
-}: BezelProps): JSX.Element {
+}: VitreProps): JSX.Element {
   // The boot record is read after mount: the server cannot see it, and the
   // first client render must match the server's.
-  const [boot, setBoot] = useState<ReturnType<typeof readBezelBoot>>(null);
+  const [boot, setBoot] = useState<ReturnType<typeof readVitreBoot>>(null);
   useLayoutEffect(() => {
-    ensureBezelStyle();
+    ensureVitreStyle();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: reads the boot record
-    setBoot(readBezelBoot());
+    setBoot(readVitreBoot());
   }, []);
 
   // `null` holds whatever the boot script applied.
@@ -116,7 +116,7 @@ export function Bezel({
       enabled: on,
       color: c,
       band: b,
-      scroll: s as BezelScroll,
+      scroll: s as VitreScroll,
     });
   }, [on, c, b, s]);
 
@@ -154,7 +154,7 @@ export function Bezel({
     }
   }, [chrome, boot, chromeMorph]);
 
-  const state = useMemo<BezelState>(
+  const state = useMemo<VitreState>(
     () => ({
       enabled: target?.enabled ?? false,
       color: target?.color ?? color,
@@ -169,9 +169,9 @@ export function Bezel({
   const r = Math.max(0, radius);
 
   return (
-    <BezelContext.Provider value={state}>
+    <VitreContext.Provider value={state}>
       {state.enabled && (
-        <div aria-hidden="true" {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }} style={layer}>
+        <div aria-hidden="true" {...{ [VITRE_LAYER_ATTRIBUTE]: "" }} style={layer}>
           <div style={fill({ left: 0, right: 0, top: OUTSIDE, height: `calc(${OVERSHOOT} + ${BAND})` })} />
           <div style={fill({ left: 0, right: 0, bottom: OUTSIDE, height: `calc(${OVERSHOOT} + ${BAND})` })} />
           <div style={fill({ left: 0, top: OUTSIDE, bottom: OUTSIDE, width: SIDE_LEFT })} />
@@ -199,6 +199,6 @@ export function Bezel({
       <div id={SCROLL_CONTAINER_ID} className={className} style={{ ...BEZEL_INSET, ...style }}>
         {children}
       </div>
-    </BezelContext.Provider>
+    </VitreContext.Provider>
   );
 }
