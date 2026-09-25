@@ -30,7 +30,7 @@
 
 import { Field, Section, Segmented, Toggle } from "@/app/editor/icon/controls";
 import { EditorNav } from "@/app/editor/nav";
-import { LinkCardFromMedia, LinkFromMedia } from "@/components/log/media/link";
+import { LinkCardFromMedia } from "@/components/log/media/link";
 import {
   markFor,
   MediaMark,
@@ -106,8 +106,6 @@ export interface LabSamples {
   denied?: LinkMedia;
   /** A link to one of this site's own posts. */
   post?: LinkMedia;
-  /** A rail pill — not in the attachment set. */
-  pill?: LinkMedia;
   image?: ImageMedia;
   social?: SocialEmbedMedia;
   twitter?: SocialEmbedMedia;
@@ -125,7 +123,6 @@ const SAMPLE_ORDER: readonly (keyof LabSamples)[] = [
   "web",
   "denied",
   "post",
-  "pill",
   "image",
   "social",
   "twitter",
@@ -143,7 +140,6 @@ const SAMPLE_LABEL: Record<keyof LabSamples, string> = {
   web: "page",
   denied: "page · refuses framing",
   post: "post",
-  pill: "pill",
   image: "image",
   social: "social widget",
   twitter: "X",
@@ -151,7 +147,7 @@ const SAMPLE_LABEL: Record<keyof LabSamples, string> = {
   tiktok: "TikTok",
 };
 
-/** Kinds that open through the attachment set (not pills, not platform dupes). */
+/** Kinds that open through the attachment set (not platform dupes). */
 const SET_KEYS: readonly (keyof LabSamples)[] = [
   "video",
   "slides",
@@ -439,7 +435,7 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
                 </tr>
               </thead>
               <tbody>
-                {([...SET_KEYS, "pill"] as const).map((key) => {
+                {SET_KEYS.map((key) => {
                   const m = samples[key];
                   if (!m) return null;
                   return (
@@ -507,15 +503,6 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
               </div>
             )}
           </div>
-          {samples.pill && (
-            <div>
-              <Label>Link pills — not in the attachment set</Label>
-              <div className="flex flex-wrap gap-3">
-                <LinkFromMedia media={samples.pill} />
-                <MediaRenderer media={[samples.pill]} />
-              </div>
-            </div>
-          )}
           <div>
             <Label>Hover peeks — PeekCard / PeekThumb</Label>
             <div className="flex flex-wrap gap-6">
@@ -581,9 +568,8 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
             <Label>MDX &lt;Media /&gt; — URL in, kind detected</Label>
             <div className="grid gap-6 md:grid-cols-2">
               {samples.web && <Media url={samples.web.url} as="link" present="card" />}
-              {samples.pill && (
-                <Media url={samples.pill.url} as="link" present="pill" title={samples.pill.label} />
-              )}
+              {/* Prose keeps the inline pill; the log is card-only. */}
+              <Media url="https://github.com/Huxpro" as="link" present="pill" title="GitHub" />
             </div>
           </div>
           {(samples.video || samples.slides) && (

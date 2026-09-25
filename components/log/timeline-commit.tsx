@@ -3,8 +3,8 @@
 /**
  * TimelineCommit — Dense git-log style commit row for /works timeline.
  *
- * Summary: hash · icon · title · [link-icons] ··· date
- * Expanded: description, links, commentary, media, author fields
+ * Summary: hash · icon · title ··· [📎 n in the index] date
+ * Expanded: description, commentary, media, author fields
  *
  * 3-column grid: [hash | icon | content]. Hash column collapses on small containers.
  * Uses the same shared primitives as CommitCard to ensure visual sync.
@@ -19,16 +19,12 @@ import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
-import {
-  LinkIcon,
-  Description,
-  Commentary,
-  AuthorFields,
-} from "./embeds/shared";
+import { Description, Commentary, AuthorFields } from "./embeds/shared";
+import { Paperclip } from "lucide-react";
 import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
-import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
+import type { AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
 
@@ -109,8 +105,8 @@ interface TimelineCommitProps {
   onSelectHash?: (hash: string) => void;
   /**
    * The commit's attachments as one set (see systems/attachments). Every
-   * media affordance on the row — a strip cover, an expanded player or card,
-   * a rail icon — opens this set at its own item, so a phone gets the
+   * media affordance on the row — a strip cover, an expanded player or
+   * card — opens this set at its own item, so a phone gets the
    * attachment sheet and a desktop the theater or a window, from any of them.
    */
   attachmentSet?: AttachmentSet | null;
@@ -145,7 +141,6 @@ export function TimelineCommit({
   onInspectMedia,
   selectedMedia = null,
 }: TimelineCommitProps) {
-  const attachments = useOptionalAttachments();
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
   const isEvent = data.type === "event";
@@ -169,7 +164,8 @@ export function TimelineCommit({
   // reader pressed this row's text? The form printed a density
   // (`rowFormFor`), and this flips it — relieved where the form clamped,
   // clamped back where the form had already printed it whole. The picture
-  // never moves, which is the whole point of the split.
+  // stays the form's, except in the index, which prints none: there an
+  // open row brings its covers too (see `rowFormFor`).
   const [textRelieved, setTextRelieved] = useState(defaultExpanded);
 
   // A form change is a new default, so the deviation is spent. Reconciled
@@ -281,19 +277,12 @@ export function TimelineCommit({
   // renderer — so the editor stays the page it is editing.
   const tiled = new Set(data.stripItems.map((item) => item.media));
   const stacked = expandedMedia.filter((m) => !tiled.has(m));
-  // A rail icon for something the row already shows as a cover is a second
-  // door to the same object, so while covers print (the strip, or the
-  // feed's grid) the rail keeps only what has no cover — a website, a repo,
-  // the press platform. The index form prints no covers; there the rail is
-  // the only way in and keeps everything.
-  const showsCovers =
-    showStrip ||
-    (!isQuiet && rowForm.media === "grid" && expandedMedia.length > 0);
-  const railLinks = isQuiet
-    ? []
-    : showsCovers
-      ? data.links.filter((link) => !link.media || !tiled.has(link.media))
-      : data.links;
+  // Every link is an attachment with a cover, so the title line carries no
+  // way out of its own. Where the covers print, they are the doors; where
+  // they don't (the index, folded), the line counts them, and opening the
+  // row brings them.
+  const attachmentCount =
+    !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
@@ -536,74 +525,17 @@ export function TimelineCommit({
           )}
         </span>
 
-        <div
-          className={cn(
-            "flex items-center shrink-0",
-            // Widen the gap only where the labels appear (@sm); on mobile the
-            // labels stay hidden, so keep the icons tight even when expanded.
-            textOpen ? "gap-1.5 @sm:gap-3" : "gap-1.5",
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {railLinks.map((link, i) => {
-            const className =
-              cn("inline-flex items-center gap-1", TYPE.linkQuiet);
-            // The label is one of the notes: the feed spells the rail out.
-            const label = rowForm.notes && !link.redundantWhenExpanded && (
-              <span className="hidden @sm:inline text-xs">{link.label}</span>
-            );
-
-            // A rail icon that stands for one of the commit's attachments
-            // opens it through the attachment system, exactly as its cover
-            // does; a plain pill (a website, a repo) stays a plain link. The
-            // anchor stays either way, for ⌘-click and "copy link address".
-            const attachmentIndex =
-              attachments && attachmentSet && link.media
-                ? attachmentSet.items.indexOf(link.media)
-                : -1;
-
-            // Inspecting, the rail selects like everything else on the row.
-            // It is the only affordance a pill has — no cover, no tile — so
-            // without this a pill is uneditable except by scrolling the
-            // inspector, and the icon would follow its href out of the
-            // editor besides (there is no set while inspecting, so the
-            // branch above cannot take the press).
-            const onPress =
-              inspecting && link.media
-                ? (e: React.MouseEvent) => {
-                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                    e.preventDefault();
-                    onInspectMedia?.(link.media!);
-                  }
-                : attachmentIndex >= 0
-                  ? (e: React.MouseEvent) => {
-                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                      e.preventDefault();
-                      attachments!.open(attachmentSet!, attachmentIndex);
-                    }
-                  : undefined;
-
-            return (
-              <a
-                key={`link-${i}`}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={onPress}
-                className={cn(
-                  className,
-                  inspecting &&
-                    link.media &&
-                    selectedMedia === link.media &&
-                    "text-sky-600 dark:text-sky-400",
-                )}
-              >
-                <LinkIcon icon={link.icon} />
-                {label}
-              </a>
-            );
-          })}
-        </div>
+        {attachmentCount > 0 && (
+          <span
+            className={cn("inline-flex shrink-0 items-center gap-1", TYPE.rowMeta)}
+            aria-label={
+              attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
+            }
+          >
+            <Paperclip aria-hidden className="h-3 w-3" />
+            {attachmentCount}
+          </span>
+        )}
 
         {hideDate ? (
           data.dateSlotOverride && (

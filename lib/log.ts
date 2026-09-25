@@ -69,11 +69,15 @@ export type CommitType =
 export type MediaKind = "link" | "social-embed" | "video" | "slides" | "image";
 
 /**
- * How a `link` renders. Two presentations, one data shape — the explicit
- * acknowledgement that a "card" and a "pill" are the same URL with different
- * dressings (this used to be split across `link` vs non-native `embed`).
+ * How a `link` renders: always as a card, an attachment with a cover.
+ *
+ * There used to be a second presentation, the "pill" — an icon in the
+ * title line's rail. A glyph with no cover and no words said only "there is
+ * a link here" (a row of identical globes, in the index), so every link is a
+ * card now, and the title line keeps no way out of its own. The field stays
+ * so the data says what it is.
  */
-export type LinkPresent = "pill" | "card";
+export type LinkPresent = "card";
 
 /** Video platforms with native iframe support. */
 export type VideoPlatform = "youtube" | "bilibili" | "vimeo";
@@ -138,9 +142,9 @@ export interface MediaPreview {
  * the row even while the row is collapsed (and renders in the expanded view
  * too). Default is unpinned: only visible once the row is expanded.
  *
- * Meaningful for cards / videos / slides / images. No-op for `pill` (those
- * already live in the folded right rail) and `social-embed` (currently always
- * expanded-only); the field is kept on every kind for schema uniformity.
+ * Meaningful for cards / videos / slides / images. No-op for `social-embed`
+ * (currently always expanded-only); the field is kept on every kind for
+ * schema uniformity.
  *
  * The hover peek view excludes pinned items — they're already on screen so
  * peeking adds nothing. See `getCommitPeekItems`.
@@ -148,12 +152,9 @@ export interface MediaPreview {
 type Pinned = { pinned?: true };
 
 /**
- * Link media — a URL with two presentations:
- *  - `pill`: a compact corner indicator (icon + label) in the folded rail.
- *  - `card`: an OG-style preview card (the card pipeline supplies title /
- *    description / image; `preview` is the author-authoritative override).
- *
- * `label` / `icon` are pill-only display overrides; harmless on a card.
+ * Link media — a URL presented as an OG-style preview card (the card
+ * pipeline supplies title / description / image; `preview` is the
+ * author-authoritative override).
  */
 /** Per-locale URL map. Keys present are the locales a resource exists in. */
 export type LocaleUrls = Partial<Record<"en" | "zh", string>>;
@@ -192,10 +193,6 @@ export interface LinkMedia extends Pinned {
    * When absent (single-URL cards), the top-level `preview` is used.
    */
   previews?: Partial<Record<"en" | "zh", MediaPreview>>;
-  /** Pill-only: label override (defaults to domain). */
-  label?: string;
-  /** Pill-only: icon key (e.g. "github", "globe"). */
-  icon?: string;
   /** Resolved at enrichment time — see {@link InternalLinkMeta}. */
   internal?: InternalLinkMeta;
 }
@@ -1750,14 +1747,9 @@ export function isImageMedia(media: Media): media is ImageMedia {
   return media.kind === "image";
 }
 
-/** A link that presents as an OG-style card (vs. a pill). */
+/** A link card. Every link is one (see {@link LinkPresent}). */
 export function isLinkCard(media: Media): media is LinkMedia & { present: "card" } {
   return media.kind === "link" && media.present === "card";
-}
-
-/** A link that presents as a corner-rail pill (vs. a card). */
-export function isLinkPill(media: Media): media is LinkMedia & { present: "pill" } {
-  return media.kind === "link" && media.present === "pill";
 }
 
 /**
@@ -1817,7 +1809,7 @@ function extractYouTubeId(url: string): string | null {
  * The still image an attachment paints at runtime — same resolver the
  * contact strip, feed tiles, and the og-snapshot completeness check use.
  *
- * Pills and live social widgets return null (they are not covers). Cards
+ * Live social widgets return null (they are not covers). Cards
  * prefer the viewer's locale snapshot entry, then the shared `preview`.
  * Everything else goes through {@link getMediaThumbnail}.
  */
@@ -1825,7 +1817,7 @@ export function getAttachmentImage(
   media: Media,
   locale: Locale,
 ): string | null {
-  if (isLinkPill(media) || isSocialEmbedMedia(media)) return null;
+  if (isSocialEmbedMedia(media)) return null;
   if (isLinkMedia(media)) {
     return (media.previews?.[locale] ?? media.preview)?.image ?? null;
   }
@@ -1987,12 +1979,7 @@ export function getMediaStripItems(
 
 /**
  * Get the primary media item from a commit (for thumbnail display).
- * For projects, prefers richer media (video / image / card) over plain pills.
  */
 export function getCommitPrimaryMedia(commit: Commit): Media | null {
-  const media = commit.media ?? [];
-  if (commit.type === "project") {
-    return media.find((m) => !isLinkPill(m)) ?? media[0] ?? null;
-  }
-  return media[0] ?? null;
+  return commit.media?.[0] ?? null;
 }

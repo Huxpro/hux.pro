@@ -1,12 +1,14 @@
 "use client";
 
 /**
- * Link rendering — two presentations for the same data shape (kind:"link"):
+ * Link rendering:
  *
- * - Link:     a pill — icon + text + external-link glyph. Used as the folded
- *             rail indicator and as the inline chip in the expanded view.
  * - LinkCard: an OG-style card with image, title, and description. Backed by
  *             the card pipeline (manual preview > og-snapshot > live crawl).
+ *             The only way the log presents a link.
+ * - Link:     an inline pill — icon + text + external-link glyph — for MDX
+ *             prose (`<Media as="link" present="pill">`), where a card would
+ *             break the paragraph.
  */
 
 import { useState, useEffect } from "react";
@@ -75,11 +77,6 @@ export interface LinkCardProps {
   /** See {@link CardFaceProps.mark}. */
   mark?: MediaMarkSpec | null;
   /** Additional CSS classes */
-  className?: string;
-}
-
-export interface LinkPropsFromMedia {
-  media: LinkMedia;
   className?: string;
 }
 
@@ -537,15 +534,6 @@ export function LinkCard({
         )}
       />
     </a>
-  );
-}
-
-/**
- * Convenience wrapper for LinkMedia
- */
-export function LinkFromMedia({ media, className }: LinkPropsFromMedia) {
-  return (
-    <Link url={media.url} label={media.label} icon={media.icon} className={className} />
   );
 }
 

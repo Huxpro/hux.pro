@@ -197,10 +197,7 @@ The `Commit` component renders work items. It supports 5 types with a discrimina
       en: "A simple command-line utility for code scaffolding.",
       zh: "一个简单的代码脚手架命令行工具。"
     },
-    date: "2022-11",
-    media: [
-      { kind: "link", url: "https://example.com/cli", present: "pill", label: "Docs", icon: "file" }
-    ]
+    date: "2022-11"
   }}
   locale="en"
 />
@@ -215,10 +212,7 @@ The `Commit` component renders work items. It supports 5 types with a discrimina
       en: "A simple command-line utility for code scaffolding.",
       zh: "一个简单的代码脚手架命令行工具。"
     },
-    date: "2022-11",
-    media: [
-      { kind: "link", url: "https://example.com/cli", present: "pill", label: "Docs", icon: "file" }
-    ]
+    date: "2022-11"
   }}
   locale="en"
 />
@@ -407,8 +401,6 @@ Any commit type can compose with any media type via the `media` array.
     date: "2025-01",
     media: [
       { kind: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
-      { kind: "link", url: "https://lynxjs.org", present: "pill", label: "Website" },
-      { kind: "link", url: "https://github.com/nicify/nicify", present: "pill", label: "GitHub", icon: "github" }
     ]
   }}
   locale="en"
@@ -427,8 +419,6 @@ Any commit type can compose with any media type via the `media` array.
     date: "2025-01",
     media: [
       { kind: "video", url: "https://www.youtube.com/watch?v=lGEMwh32soc", platform: "youtube" },
-      { kind: "link", url: "https://lynxjs.org", present: "pill", label: "Website" },
-      { kind: "link", url: "https://github.com/nicify/nicify", present: "pill", label: "GitHub", icon: "github" }
     ]
   }}
   locale="en"
@@ -604,11 +594,7 @@ Commits with `commentary`, `techStack`, or `stats` show a chevron button next to
     commentary: {
       en: "This project taught me the importance of constraint-based design. The best systems aren't the most flexible—they're the ones that make the right thing easy.",
       zh: "这个项目让我学会了基于约束的设计的重要性。最好的系统不是最灵活的，而是让正确的事情变得容易的系统。"
-    },
-    media: [
-      { kind: "link", url: "#", present: "pill", label: "Docs", icon: "file" },
-      { kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }
-    ]
+    }
   }}
   locale="en"
 />
@@ -629,11 +615,7 @@ Commits with `commentary`, `techStack`, or `stats` show a chevron button next to
     commentary: {
       en: "This project taught me the importance of constraint-based design. The best systems aren't the most flexible—they're the ones that make the right thing easy.",
       zh: "这个项目让我学会了基于约束的设计的重要性。最好的系统不是最灵活的，而是让正确的事情变得容易的系统。"
-    },
-    media: [
-      { kind: "link", url: "#", present: "pill", label: "Docs", icon: "file" },
-      { kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }
-    ]
+    }
   }}
   locale="en"
 />
@@ -661,10 +643,7 @@ Use `defaultExpanded={true}` to start with content already expanded.
     commentary: {
       en: "Animation is the soul of interface design. This library aims to make motion feel as natural as breathing.",
       zh: "动画是界面设计的灵魂。这个库旨在让动效像呼吸一样自然。"
-    },
-    media: [
-      { kind: "link", url: "#", present: "pill", label: "Playground", icon: "globe" }
-    ]
+    }
   }}
   locale="en"
 />
@@ -685,10 +664,7 @@ Use `defaultExpanded={true}` to start with content already expanded.
     commentary: {
       en: "Animation is the soul of interface design. This library aims to make motion feel as natural as breathing.",
       zh: "动画是界面设计的灵魂。这个库旨在让动效像呼吸一样自然。"
-    },
-    media: [
-      { kind: "link", url: "#", present: "pill", label: "Playground", icon: "globe" }
-    ]
+    }
   }}
   locale="en"
 />
@@ -842,7 +818,6 @@ Displays commits in a vertical list. Uses `variant="bare"` for compact rendering
       title: { en: "Design Tokens", zh: "设计令牌" },
       description: { en: "Systematic design token architecture", zh: "系统化设计令牌架构" },
       date: "2024-01",
-      media: [{ kind: "link", url: "#", present: "pill", label: "View", icon: "globe" }]
     }}
     locale="en"
   />
@@ -855,7 +830,6 @@ Displays commits in a vertical list. Uses `variant="bare"` for compact rendering
       title: { en: "Component Library", zh: "组件库" },
       description: { en: "Accessible React components", zh: "无障碍 React 组件" },
       date: "2023-06",
-      media: [{ kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }]
     }}
     locale="en"
   />
@@ -871,7 +845,6 @@ Displays commits in a vertical list. Uses `variant="bare"` for compact rendering
       title: { en: "Design Tokens", zh: "设计令牌" },
       description: { en: "Systematic design token architecture", zh: "系统化设计令牌架构" },
       date: "2024-01",
-      media: [{ kind: "link", url: "#", present: "pill", label: "View", icon: "globe" }]
     }}
     locale="en"
   />
@@ -884,7 +857,6 @@ Displays commits in a vertical list. Uses `variant="bare"` for compact rendering
       title: { en: "Component Library", zh: "组件库" },
       description: { en: "Accessible React components", zh: "无障碍 React 组件" },
       date: "2023-06",
-      media: [{ kind: "link", url: "#", present: "pill", label: "GitHub", icon: "github" }]
     }}
     locale="en"
   />
@@ -970,7 +942,7 @@ Displays commits in a horizontal carousel with snap scrolling.
 
 | Kind | Properties | Description |
 |------|------------|-------------|
-| `link` | `url`, `present` (`pill` \| `card`), `preview?`, `label?`, `icon?` | URL as pill or OG card |
+| `link` | `url`, `present` (`card`), `preview?` | URL as an OG card (inline pills are MDX-only) |
 | `social-embed` | `url`, `platform?` | X / Instagram / TikTok native widgets |
 | `video` | `url`, `platform`, `thumbnail?` | YouTube / Bilibili / Vimeo player |
 | `image` | `url`, `alt?` | Static images (Figure component) |

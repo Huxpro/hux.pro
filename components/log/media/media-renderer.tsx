@@ -6,8 +6,7 @@
  * Orchestrates rendering of a commit's Media array. Each item routes to its
  * kind-specific component, then we layout by *pinned-ness* (pinned items
  * hoist above the row's expanded block) and by visual family (cards / widgets
- * tile two-up when there are multiple; players stack vertically; pills
- * collapse into a chip row at the end).
+ * tile two-up when there are multiple; players stack vertically).
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -22,13 +21,12 @@ import {
   isSocialEmbedMedia,
   isLinkMedia,
   isLinkCard,
-  isLinkPill,
   isImageMedia,
   isSlidesMedia,
 } from "@/lib/log";
 import { Video } from "./video";
 import { SocialEmbed } from "./embed";
-import { Link, LinkCard } from "./link";
+import { LinkCard } from "./link";
 import { newTabMark } from "./media-mark";
 import { Figure } from "./image";
 import { Slides } from "./slides";
@@ -158,29 +156,19 @@ function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaP
     // (populated by the enrichment pipeline from `urls`).
     const url = media.urls?.[locale] ?? media.url;
     const preview = media.previews?.[locale] ?? media.preview;
-    if (media.present === "card") {
-      return (
-        <LinkCard
-          url={url}
-          size={size}
-          dense={dense}
-          title={preview?.title}
-          description={preview?.description}
-          image={preview?.image}
-          internal={media.internal}
-          onOpen={openAttachment}
-          mark={leavesSite ? newTabMark(locale) : undefined}
-          fit={preview?.fit}
-          aspect={preview?.aspect}
-          className={className}
-        />
-      );
-    }
     return (
-      <Link
+      <LinkCard
         url={url}
-        label={media.label}
-        icon={media.icon}
+        size={size}
+        dense={dense}
+        title={preview?.title}
+        description={preview?.description}
+        image={preview?.image}
+        internal={media.internal}
+        onOpen={openAttachment}
+        mark={leavesSite ? newTabMark(locale) : undefined}
+        fit={preview?.fit}
+        aspect={preview?.aspect}
         className={className}
       />
     );
@@ -341,10 +329,9 @@ export function MediaRenderer({
     grid: "grid grid-cols-1 md:grid-cols-2 gap-4",
   };
 
-  // Partition into "rich" media (videos / slides / images / link-cards /
-  // social widgets — anything with a real cover) and pills. Rich items keep
-  // their authored order so a video + card interleave the way the author
-  // wrote them.
+  // "Rich" media: videos / slides / images / link cards / social widgets —
+  // anything with a real cover. Items keep their authored order so a video
+  // + card interleave the way the author wrote them.
   const rich = media.filter(
     (m) =>
       isVideoMedia(m) ||
@@ -353,23 +340,6 @@ export function MediaRenderer({
       isLinkCard(m) ||
       isSocialEmbedMedia(m),
   );
-  const pills = media.filter(isLinkPill);
-
-  // Pill-only renderings: inline chip row, no surrounding layout box.
-  if (rich.length === 0 && pills.length > 0) {
-    return (
-      <div className={cn("flex flex-wrap gap-3", className)}>
-        {pills.map((m, i) =>
-          wrap(
-            `pill-${i}`,
-            m,
-            <SingleMedia media={m} theme={theme} size={size} set={set} />,
-            true,
-          ),
-        )}
-      </div>
-    );
-  }
 
   // 2+ rich items — regardless of family — become a horizontal scroll-snap
   // rail rather than a vertical stack. Two videos, a video + a card, or three
@@ -425,19 +395,6 @@ export function MediaRenderer({
         )
       )}
 
-      {/* Pills at the end. */}
-      {pills.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          {pills.map((m, i) =>
-            wrap(
-              `pill-${i}`,
-              m,
-              <SingleMedia media={m} theme={theme} size={size} set={set} />,
-              true,
-            ),
-          )}
-        </div>
-      )}
     </div>
   );
 }

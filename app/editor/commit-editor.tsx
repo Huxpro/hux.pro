@@ -1120,8 +1120,6 @@ interface MediaDraft {
   present?: LinkPresent;
   preview?: { title?: string; description?: string; image?: string };
   urls?: { en?: string; zh?: string };
-  label?: string;
-  icon?: string;
   // social-embed
   socialPlatform?: SocialEmbedPlatform;
   // video
@@ -1145,8 +1143,6 @@ function mediaToDraft(m: Media): MediaDraft {
         present: m.present,
         preview: m.preview,
         urls: m.urls,
-        label: m.label,
-        icon: m.icon,
       };
     case "social-embed":
       return {
@@ -1183,7 +1179,7 @@ function draftToMedia(d: MediaDraft): Media {
       return {
         kind: "link",
         url: d.url,
-        present: d.present ?? "pill",
+        present: "card",
         ...(d.preview ? { preview: d.preview } : {}),
         ...(d.urls?.en || d.urls?.zh
           ? {
@@ -1193,8 +1189,6 @@ function draftToMedia(d: MediaDraft): Media {
               },
             }
           : {}),
-        ...(d.label ? { label: d.label } : {}),
-        ...(d.icon ? { icon: d.icon } : {}),
         ...pinned,
       };
     case "social-embed":
@@ -1231,7 +1225,7 @@ function draftToMedia(d: MediaDraft): Media {
 }
 
 function emptyDraft(): MediaDraft {
-  return { kind: "link", url: "", present: "pill" };
+  return { kind: "link", url: "", present: "card" };
 }
 
 function MediaSection({
@@ -1309,11 +1303,6 @@ function MediaSection({
   );
 }
 
-const presentOptions: { value: LinkPresent; label: string }[] = [
-  { value: "pill", label: "pill" },
-  { value: "card", label: "card" },
-];
-
 
 function MediaItemEditor({
   draft,
@@ -1348,7 +1337,6 @@ function MediaItemEditor({
       <div className="flex items-center justify-between">
         <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground">
           {draft.kind}
-          {draft.kind === "link" && draft.present ? ` · ${draft.present}` : ""}
         </span>
         <button
           type="button"
@@ -1377,87 +1365,65 @@ function MediaItemEditor({
           preserved across kind switches — only the active inputs are shown. */}
       {draft.kind === "link" && (
         <>
-          <ChoiceField<LinkPresent>
-            label="Present"
-            value={draft.present ?? "pill"}
-            options={presentOptions}
-            onChange={(v) => set({ present: v })}
+          <Field
+            label="URL EN"
+            value={draft.urls?.en ?? ""}
+            onChange={(v) =>
+              set({
+                urls: { ...draft.urls, en: v || undefined },
+              })
+            }
+            placeholder="Locale variant (optional)"
           />
           <Field
-            label="Label"
-            value={draft.label ?? ""}
-            onChange={(v) => set({ label: v || undefined })}
-            placeholder="Display text (pill)"
+            label="URL ZH"
+            value={draft.urls?.zh ?? ""}
+            onChange={(v) =>
+              set({
+                urls: { ...draft.urls, zh: v || undefined },
+              })
+            }
+            placeholder="Locale variant (optional)"
           />
           <Field
-            label="Icon"
-            value={draft.icon ?? ""}
-            onChange={(v) => set({ icon: v || undefined })}
-            placeholder="github, globe, slides... (pill)"
+            label="Preview title"
+            value={draft.preview?.title ?? ""}
+            onChange={(v) =>
+              set({
+                preview: {
+                  ...draft.preview,
+                  title: v || undefined,
+                },
+              })
+            }
+            placeholder="Card title override"
           />
-          {draft.present === "card" && (
-            <>
-              <Field
-                label="URL EN"
-                value={draft.urls?.en ?? ""}
-                onChange={(v) =>
-                  set({
-                    urls: { ...draft.urls, en: v || undefined },
-                  })
-                }
-                placeholder="Locale variant (optional)"
-              />
-              <Field
-                label="URL ZH"
-                value={draft.urls?.zh ?? ""}
-                onChange={(v) =>
-                  set({
-                    urls: { ...draft.urls, zh: v || undefined },
-                  })
-                }
-                placeholder="Locale variant (optional)"
-              />
-              <Field
-                label="Preview title"
-                value={draft.preview?.title ?? ""}
-                onChange={(v) =>
-                  set({
-                    preview: {
-                      ...draft.preview,
-                      title: v || undefined,
-                    },
-                  })
-                }
-                placeholder="Card title override"
-              />
-              <Field
-                label="Preview desc"
-                value={draft.preview?.description ?? ""}
-                onChange={(v) =>
-                  set({
-                    preview: {
-                      ...draft.preview,
-                      description: v || undefined,
-                    },
-                  })
-                }
-                placeholder="Card description override"
-              />
-              <Field
-                label="Preview image"
-                value={draft.preview?.image ?? ""}
-                onChange={(v) =>
-                  set({
-                    preview: {
-                      ...draft.preview,
-                      image: v || undefined,
-                    },
-                  })
-                }
-                placeholder="Card image URL override"
-              />
-            </>
-          )}
+          <Field
+            label="Preview desc"
+            value={draft.preview?.description ?? ""}
+            onChange={(v) =>
+              set({
+                preview: {
+                  ...draft.preview,
+                  description: v || undefined,
+                },
+              })
+            }
+            placeholder="Card description override"
+          />
+          <Field
+            label="Preview image"
+            value={draft.preview?.image ?? ""}
+            onChange={(v) =>
+              set({
+                preview: {
+                  ...draft.preview,
+                  image: v || undefined,
+                },
+              })
+            }
+            placeholder="Card image URL override"
+          />
         </>
       )}
 

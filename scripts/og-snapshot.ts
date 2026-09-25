@@ -9,8 +9,8 @@
  * Reuses the exact crawl/parse core the runtime Server Action uses
  * (lib/og-core.ts), so the snapshot equals what the server would fetch.
  *
- * Targets: every `kind:"link", present:"card"` media item in log.json. Pills,
- * social embeds, videos, and images do not pass through this pipeline.
+ * Targets: every `kind:"link"` media item (all cards) in log.json. Social
+ * embeds, videos, and images do not pass through this pipeline.
  *
  * Design goals (per request):
  *  - Same data as the live server crawl.
@@ -41,7 +41,6 @@ import {
   getAttachmentImage,
   isLinkMedia,
   isSocialEmbedMedia,
-  isLinkPill,
   normalizeLogData,
   type Media,
   type RawLogData,
@@ -190,8 +189,8 @@ function recoverHint(media: Media): string {
 
 /**
  * After the same enrichment `/works` uses, every cover-bearing attachment
- * must resolve an image. Pills are not attachments; live social widgets
- * paint themselves and are skipped. Site-local paths must exist on disk.
+ * must resolve an image. Live social widgets paint themselves and are
+ * skipped. Site-local paths must exist on disk.
  *
  * Exits 1 on any gap. No network.
  */
@@ -212,7 +211,6 @@ function checkCompleteness(): void {
 
   for (const commit of data.commits) {
     for (const media of (commit.media ?? []) as Media[]) {
-      if (isLinkPill(media)) continue;
       if (isSocialEmbedMedia(media)) {
         skippedWidgets += 1;
         continue;

@@ -1,7 +1,6 @@
 import type { Locale } from "@/lib/i18n";
 import {
   computeCommitHash,
-  isLinkPill,
   localize,
   localizeOptional,
   type Commit,
@@ -32,14 +31,14 @@ function subtitleFor(commit: Commit, locale: Locale): string | undefined {
 
 /**
  * A commit's attachments as one openable set, or null when it attaches
- * nothing but pills. The media objects are the commit's own, so an index
+ * nothing. The media objects are the commit's own, so an index
  * found by reference elsewhere (`set.items.indexOf(media)`) lands here.
  */
 export function attachmentSetFor(
   commit: Commit,
   locale: Locale,
 ): AttachmentSet | null {
-  const items = (commit.media ?? []).filter((m) => !isLinkPill(m));
+  const items = commit.media ?? [];
   if (items.length === 0) return null;
   const hash = computeCommitHash(commit.id);
   return {
