@@ -6,7 +6,7 @@ import { Glow, type GlowProps } from "./glow";
 // =============================================================================
 // <EdgeGlow> — the glow around a screen, ending where its content begins.
 //
-//   <EdgeGlow active={open} content={[wordsRef, footRef]} depth={{ x: 0.33, y: 1.3 }} />
+//   <EdgeGlow active={open} content={[wordsRef, footRef]} depth={1.3} />
 //
 // A screen-sized ring (the About's) has no natural depth: a fixed number of
 // px is a sliver on a desk and a flood on a phone, and a share of the screen
@@ -15,9 +15,15 @@ import { Glow, type GlowProps } from "./glow";
 //
 //   gutter.x   the narrower of the left and right gutters
 //   gutter.y   the narrower of the top and bottom gutters
-//   depth      where the light ends, as a share of the gutter, per axis:
-//              0.5 halfway in, 1 just touching the content, 1.5 its tail
-//              half a gutter over it
+//   depth      where the light ends, as a share of a gutter: 0.5 halfway
+//              in, 1 just touching the content, 1.5 its tail half a
+//              gutter over it.
+//
+//              a number   of the narrower of the two: the light stands as
+//                         high off every edge, and reaches the content
+//                         first where it is nearest — a ring's usual look
+//              { x, y }   per axis, x off the sides and y off the top and
+//                         bottom: the light follows the content's shape
 //
 // The content is the union of the given elements, each as far as it is
 // visible (clipped by any scrolling ancestor, so a long article in a scroll
@@ -37,8 +43,9 @@ export interface EdgeGlowProps
   extends Omit<GlowProps, "shape" | "edge" | "reach" | "extent" | "fixed" | "bleed" | "ref"> {
   /** The content the light frames: one element, or several (their union). */
   content: ContentRef | readonly ContentRef[];
-  /** Where the light ends, as a share of the gutter: one for both axes, or
-   *  `x` (off the sides) and `y` (off the top and bottom). 1 touches. */
+  /** Where the light ends, as a share of the gutter; 1 touches. A number
+   *  takes the narrower gutter and lights every edge alike; `{ x, y }` takes
+   *  each axis's own (x off the sides, y off the top and bottom). */
   depth: number | { x: number; y: number };
 }
 
@@ -117,14 +124,19 @@ export function EdgeGlow({ content, depth, active, ...glow }: EdgeGlowProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
-  const d = typeof depth === "number" ? { x: depth, y: depth } : depth;
+  const extent =
+    gutter === null
+      ? undefined
+      : typeof depth === "number"
+        ? { x: depth * Math.min(gutter.x, gutter.y), y: depth * Math.min(gutter.x, gutter.y) }
+        : { x: depth.x * gutter.x, y: depth.y * gutter.y };
   return (
     <Glow
       {...glow}
       ref={boxRef}
       active={active}
       fixed
-      extent={gutter ? { x: d.x * gutter.x, y: d.y * gutter.y } : undefined}
+      extent={extent}
     />
   );
 }

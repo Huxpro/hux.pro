@@ -68,7 +68,7 @@ bezel's mask (9999), so it cannot rely on the mask to trim it: both the
 surface and the glow take `BEZEL_INSET` and the bezel's radius
 (`useWallpaper().bezel` / `bezelRadius`, since the About mounts outside
 `<Bezel>` and `useBezel()` would read the disabled default), clip to it, and
-wear `BEZEL_LAYER_ATTRIBUTE` so container scroll makes them absolute. The
+wear `VITRE_LAYER_ATTRIBUTE` so container scroll makes them absolute. The
 ring's shader runs around that same rounded box. Without a bezel the ring
 follows the screen: 44px corners where the pointer is coarse, 10px otherwise.
 
@@ -83,10 +83,10 @@ same shader and renderer every other glow uses (the palette listening, a
 window loading). How it is built, its knobs and its cost are in
 [system-glow.md](./system-glow.md). Here it frames the words: its `content`
 is the article (as far as its scroll container shows it) and the way out
-under it, and its `depth` — where the light ends, as a share of the gutter
-to them, `x` off the sides and `y` off the top and bottom — comes from the
-devtool's Glow module, one pair per layout (a desk's centred group, a
-phone's whole screen). The defaults are the ring as it first shipped. It
+under it, and its `depth` — where the light ends, as a share of the
+narrower gutter to them, alike off every edge — comes from the devtool's
+Glow module, one per layout (a desk's centred group, a phone's whole
+screen): 130% on a desk, the ring as it first shipped, and 140% on a phone. It
 takes the bezel's radius inside a bezel and otherwise the screen's own:
 44px where the pointer is coarse, 10px otherwise.
 
