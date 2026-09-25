@@ -18,3 +18,10 @@ export { Glow } from "./components/glow";
 export type { GlowProps, GlowShape } from "./components/glow";
 export { GLOW_STOPS, GLOW_CSS_STOPS } from "./lib/palette";
 export { glowSupported } from "./lib/renderer";
+export {
+  GLOW_TUNING_DEFAULTS,
+  glowTuning,
+  setGlowTuning,
+  useGlowTuning,
+} from "./lib/tuning";
+export type { GlowTuning } from "./lib/tuning";

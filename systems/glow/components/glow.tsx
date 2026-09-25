@@ -17,6 +17,7 @@ import {
   type GlowInstance,
   type GlowUniforms,
 } from "../lib/renderer";
+import { glowTuning } from "../lib/tuning";
 
 // =============================================================================
 // <Glow> — the site's one light, on the edge of whatever it is placed in.
@@ -70,8 +71,10 @@ export interface GlowProps {
   bleed?: number;
   /** The host's corner radius, px. Read from the host when omitted. */
   radius?: number;
-  /** 0–1, the whole effect. */
+  /** 0–1, the whole effect. The devtool's site-wide strength multiplies it. */
   strength?: number;
+  /** Multiplies the reach, given or sized to the host. */
+  reachScale?: number;
   /** Over the viewport rather than the host. */
   fixed?: boolean;
   /** Mark it a vitre bezel layer (absolute rather than fixed in container
@@ -116,6 +119,7 @@ export function Glow({
   bleed = 0,
   radius,
   strength = 1,
+  reachScale = 1,
   fixed = false,
   layer = false,
   inDuration,
@@ -132,12 +136,12 @@ export function Glow({
   // a prop change must not restart the animation.
   const props = useRef({
     active, shape, edge, level, bands, processing, reach, bleed, radius, strength,
-    inDuration, outDuration, onDone,
+    reachScale, inDuration, outDuration, onDone,
   });
   useLayoutEffect(() => {
     props.current = {
       active, shape, edge, level, bands, processing, reach, bleed, radius, strength,
-      inDuration, outDuration, onDone,
+      reachScale, inDuration, outDuration, onDone,
     };
   });
 
@@ -240,10 +244,10 @@ export function Glow({
           reveal: m.reveal,
           surge,
           radius: p.radius ?? instance.hostRadius,
-          width: p.reach ?? defaultReach(p.shape, w, h, fixed),
+          width: (p.reach ?? defaultReach(p.shape, w, h, fixed)) * p.reachScale,
           bleed: p.bleed ?? 0,
           dark: document.documentElement.classList.contains("dark") ? 1 : 0,
-          strength: p.strength,
+          strength: p.strength * glowTuning().strength,
           level: Math.max(m.level, 0.55 * blend),
           bands: b,
           focus,

@@ -17,13 +17,14 @@ systems/voice/
 
 systems/command/voice.tsx   # the palette's microphone, field glow, `/` `V`
 app/editor/glow/            # the lab: every scale, one set of controls
+systems/glow/lib/tuning.ts  # the devtool's knobs: strength, the About's strength and depth
 ```
 
 ## One light
 
 The About rings the screen with Siri's glow. Once that existed, every other
 place the site wanted to say *something is alive here* — a field listening, a
-window loading, a thing I made under the pointer — would either reuse it or
+window loading — would either reuse it or
 invent a second light that almost matches. Two lights that almost match read
 as a mistake. So there is one:
 
@@ -87,6 +88,22 @@ rises as a dome — voice-glow's *bend*. `edge="top"` mirrors it.
 
 The glow is a `<span>` shown as a block, so it can sit inside a word (a badge
 in a paragraph) as well as a card.
+
+## Tuning
+
+The devtool's **Glow** module turns the light up or down, saved in
+localStorage (`hux_glow`, `lib/tuning.ts`):
+
+| knob | range | what |
+|---|---|---|
+| Strength · all | 0–150% | every glow on the site — the renderer reads it each frame, so a drag changes every lit glow at once |
+| About · strength | 0–150% | the About's ring, on top of the above |
+| About · depth | ×0.5–×2 | how far the About's ring reaches in (`reachScale`) |
+
+A blue `*` marks a knob off its default; pressing it resets. `Show About`
+brings the ring up to judge by eye. While the About is up the devtool rides
+over it (z 10030 — its pill, window and sheet; `zIndex` on `SurfaceWindow` /
+`SurfaceSheet`), still under the command palette.
 
 ## The renderer
 
@@ -176,7 +193,6 @@ swallowed, so a hold never types into the field.
 | The palette, listening | line, bottom, voice-driven | *I hear you* |
 | The palette, settling words | line, processing | *working on it* |
 | The in-app browser, loading | line, top, processing | *working on it* — replaces the spinner |
-| A badge under the pointer | ring, 2.5px reach, 6px halo | *this is something I made* |
 
 ### Candidates
 
@@ -189,7 +205,7 @@ working, running, now. Never decoration.
 | The home command bar while ⌘K listens | line | the voice, seen from the page |
 | An app tile whose window is open | ring, halo | running |
 | The dock's Live Activity while something works | ring, processing (comet) | working |
-| The About's "Look around" | ring, halo | the first press |
+| The About's "Reveal" | ring, halo | the first press |
 | The HEAD commit on /works | ring | now |
 | The identity card's photo while a talk plays | ring | speaking |
 

@@ -2,6 +2,7 @@
 
 import { BadgeLaunchProvider } from "@/components/badge";
 import { TYPE } from "@/lib/typography";
+import { GLASS_TRACK_FLAT } from "@/systems/theater/lib/chrome";
 import { cn } from "@/lib/utils";
 import { t, useInputCapability, useLocale } from "@/services";
 import { useWallpaper } from "@/systems/ambient";
@@ -14,7 +15,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAbout } from "../provider";
-import { Glow } from "@/systems/glow";
+import { Glow, useGlowTuning } from "@/systems/glow";
 
 // =============================================================================
 // AboutSurface — the About, floating over whatever page is underneath.
@@ -49,6 +50,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
   const { isOpen, close, seen } = useAbout();
   const { locale } = useLocale();
   const { hasFineHoverPointer } = useInputCapability();
+  const tuning = useGlowTuning();
   // Inside the bezel, when one is drawn: the About is a surface on the page's
   // screen, and the page's screen is the box within the bezel's bands, rounded
   // at its radius. Nothing of the veil or the ring may reach the bezel.
@@ -95,7 +97,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
             aria-label={t(locale, "aboutTitle")}
             tabIndex={-1}
             {...(bezel ? { [BEZEL_LAYER_ATTRIBUTE]: "" } : {})}
-            className="fixed inset-0 z-[10020] overflow-hidden outline-none"
+            className="fixed inset-0 z-[10020] flex flex-col overflow-hidden outline-none"
             style={frame}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -106,19 +108,20 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
               aria-hidden
               className="absolute inset-0 bg-glass/70 backdrop-blur-2xl backdrop-saturate-150"
             />
+            {/* The words scroll in their own container; the way out never
+                scrolls away with them. */}
             <div
-              className="absolute inset-0 overflow-y-auto overscroll-contain"
+              className="about-scroll relative min-h-0 flex-1 overflow-y-auto overscroll-contain"
               onClick={onBackdrop}
             >
               <div
                 className={cn(
                   "flex min-h-full items-center justify-center",
                   // The ring owns the outer few dozen pixels; the words keep
-                  // clear of it, and of the notch and home indicator.
+                  // clear of it, and of the notch.
                   "px-[max(2.25rem,calc(env(safe-area-inset-left)+1.5rem))]",
-                  "pt-[max(6rem,calc(env(safe-area-inset-top)+4rem))]",
-                  "pb-[max(6rem,calc(env(safe-area-inset-bottom)+4rem))]",
-                  "sm:px-12 sm:py-24",
+                  "pt-[max(5rem,calc(env(safe-area-inset-top)+3.5rem))] pb-8",
+                  "sm:px-12 sm:pt-20",
                 )}
                 onClick={onBackdrop}
               >
@@ -134,13 +137,22 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
                   <BadgeLaunchProvider onLaunch={close}>
                     {locale === "zh" ? zh : en}
                   </BadgeLaunchProvider>
-                  <AboutFoot
-                    firstTime={!seen}
-                    keyboard={hasFineHoverPointer}
-                    onDismiss={close}
-                  />
                 </motion.article>
               </div>
+            </div>
+            <div
+              className={cn(
+                "relative shrink-0",
+                "px-[max(2.25rem,calc(env(safe-area-inset-left)+1.5rem))] sm:px-12",
+                "pt-3 pb-[max(2.5rem,calc(env(safe-area-inset-bottom)+1.5rem))] sm:pb-12",
+              )}
+              onClick={onBackdrop}
+            >
+              <AboutFoot
+                firstTime={!seen}
+                keyboard={hasFineHoverPointer}
+                onDismiss={close}
+              />
             </div>
           </motion.div>
         )}
@@ -153,6 +165,9 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
         radius={bezel ? bezelRadius : hasFineHoverPointer ? 10 : 44}
         style={frame}
         layer={bezel}
+        // The devtool's Glow module: the About's own strength and depth.
+        strength={tuning.aboutStrength}
+        reachScale={tuning.aboutReach}
         className={cn("z-[10021]", bezel && "overflow-hidden")}
       />
     </>
@@ -171,13 +186,15 @@ function AboutFoot({
   const { locale } = useLocale();
   const [before, after] = t(locale, "aboutReopenHint").split("{key}");
   return (
-    <div className="system-chrome flex flex-wrap items-center gap-x-4 gap-y-3 pt-4">
+    <div className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-wrap items-center gap-x-4 gap-y-3">
+      {/* Glass, not a slab: the way out is part of the veil it sits on. */}
       <button
         type="button"
         onClick={onDismiss}
         className={cn(
-          "rounded-full bg-foreground px-4 py-1.5 text-[13px] font-medium text-background",
-          "transition-[opacity,transform] duration-200 hover:opacity-85 active:scale-[0.97] active:opacity-70",
+          "rounded-full px-5 py-2 text-[13px] font-medium text-foreground",
+          GLASS_TRACK_FLAT,
+          "active:scale-[0.97] active:duration-0",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         )}
       >
