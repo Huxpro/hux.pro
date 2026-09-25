@@ -51,6 +51,7 @@
     "radix-ui": "^1.4.3",
     "react": "19.3.0-canary-65eec428-20251218",
     "react-dom": "19.3.0-canary-65eec428-20251218",
+    "react-zoom-pan-pinch": "^4.2.0",
     "reading-time": "^1.5.0",
     "rehype-pretty-code": "^0.14.0",
     "remark-gfm": "^4.0.0",

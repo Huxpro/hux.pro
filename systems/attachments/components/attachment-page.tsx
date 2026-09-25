@@ -30,6 +30,7 @@ import {
   Image as ImageIcon,
   Play,
   Presentation,
+  ZoomIn,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { isInternalLink, linkTarget } from "../lib/policy";
@@ -107,6 +108,7 @@ function homeIcon(home: AttachmentHome, kind: ReturnType<typeof mediaKindOf>): R
   if (kind === "video") {
     return <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />;
   }
+  if (home === "lightbox") return <ZoomIn className="h-3.5 w-3.5" />;
   if (home === "route") return <BookOpen className="h-3.5 w-3.5" />;
   if (home === "window") return <Globe className="h-3.5 w-3.5" />;
   return <ArrowUpRight className="h-3.5 w-3.5" />;
@@ -238,25 +240,40 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
   }
 
   if (isImageMedia(media)) {
+    // The still is its own button: a tap takes it to the lightbox, where it
+    // can be read at its own resolution.
     return (
       <div className="space-y-4">
-        <figure className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
+        <button
+          type="button"
+          onClick={open}
+          aria-label={t(locale, "logView")}
+          className={cn(
+            "block w-full overflow-hidden rounded-xl border border-border/50 bg-muted/10",
+            "pressable outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
+          )}
+        >
           <ExternalImage
-            src={media.url}
+            src={media.thumbnail ?? media.url}
             alt={media.alt ?? ""}
             loading="eager"
             className="block h-auto w-full"
           />
-        </figure>
+        </button>
         {media.alt && <p className={TYPE.caption}>{media.alt}</p>}
         <Actions
           primary={{
-            label: t(locale, "logVisit"),
-            icon: <ArrowUpRight className="h-3.5 w-3.5" />,
+            label: t(locale, "logView"),
+            icon: <ZoomIn className="h-3.5 w-3.5" />,
             onSelect: open,
           }}
           href={media.url}
-          hrefLabel={getDomainLabel(media.url)}
+          hrefLabel={
+            // A file this site serves has no domain worth printing.
+            media.url.startsWith("/")
+              ? t(locale, "lightboxOriginal")
+              : getDomainLabel(media.url)
+          }
         />
       </div>
     );

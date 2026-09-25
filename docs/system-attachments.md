@@ -11,7 +11,8 @@ systems/attachments/
 │   └── set.ts                        # attachmentSetFor(commit, locale)
 └── components/
     ├── attachment-surface.tsx        # the paged sheet / panel / window (AdaptiveSurface)
-    └── attachment-page.tsx           # one attachment, large, with its native action
+    ├── attachment-page.tsx           # one attachment, large, with its native action
+    └── image-lightbox.tsx            # an image, letterboxed, zoomable (the `lightbox` home)
 ```
 
 ## The problem
@@ -41,7 +42,8 @@ places is usable.
 | slides | attachment sheet | theater (a PiP there, like a recording) | theater (a `slides` track — see below) |
 | link card, external | attachment sheet | **the in-app browser, as a sheet stacked on this one**; a tab if the page refuses to be framed | in-app browser window, or a tab if the page refuses to be framed |
 | link card, `/writing/…` | attachment sheet | the router | the router |
-| image, social widget | attachment sheet | a tab | attachment surface, in its desktop shape |
+| image | attachment sheet | the lightbox | the lightbox |
+| social widget | attachment sheet | a tab | attachment surface, in its desktop shape |
 
 `homeFor(media, ctx)` says where a click lands. `nativeHomeFor(media, ctx)` is
 the same question with the surface taken out of the picture — what the item
@@ -81,6 +83,20 @@ desktop, a one-line system toast names the site that would not be framed
 (`components/ui/system-toast.tsx`). Gitee, Medium, web.dev, The Verge and
 Meta are the ones in the log today; the rest open in a window — on every
 viewport.
+
+### The lightbox
+
+An image is usually attached to be read — a poster, a figure — and a sheet's
+width is a thumbnail for it. Its home is the lightbox
+(`components/image-lightbox.tsx`, mounted once in the root layout beside the
+surface): Base UI's Dialog for the modal (focus, Escape, scroll lock) under
+the theater's veil, the image fitted to the viewport with a margin all round,
+and `react-zoom-pan-pinch` for wheel / trackpad / pinch zoom, double-click to
+toggle, drag to pan, and `+` / `-` / `0`. Scale 1 is "fit"; the ceiling is
+twice the file's own pixels, so author the full-resolution file as `url` and a
+light cover as `thumbnail` (the tiles, the inline figure and the sheet paint
+the cover). On a phone the sheet's `View` button opens it, and the sheet
+steps aside rather than holding focus against a second modal.
 
 ## The set
 

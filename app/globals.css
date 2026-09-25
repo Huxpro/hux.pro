@@ -2105,3 +2105,61 @@ main[data-variant="reader"] .reader-masthead {
     animation-play-state: paused;
   }
 }
+
+/* =============================================================================
+   Install illustration — the site's icon dropping into an empty slot on a home
+   screen or a Dock (systems/install/components/install-sheet).
+
+   One animation on one group: it falls in from a little above, a size too
+   big, settles with a small overshoot the way a springboard icon does, holds
+   long enough to be looked at, and fades so the loop can start over on the
+   empty dashed slot. The hold is most of the cycle — the landed icon is the
+   promise; the fall is only how the eye gets drawn to it.
+
+   The transform origin is the slot's centre, set inline per slot: the group
+   is transformed in the SVG's own units (view-box), so px there are viewBox
+   units, not screen pixels.
+   ============================================================================= */
+
+.install-icon {
+  transform-box: view-box;
+  animation: install-drop 3.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+@keyframes install-drop {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translateY(-14px) scale(1.5);
+  }
+  26% {
+    opacity: 1;
+    transform: translateY(0) scale(0.94);
+  }
+  34% {
+    transform: translateY(0) scale(1.03);
+  }
+  40%,
+  84% {
+    opacity: 1;
+    transform: none;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* Landed — installed, or already running as the app: the icon in its place
+   and nothing more to show. Reduced motion gets the same frame, since the
+   landed icon is the one pose that says it without moving. */
+.install-landed .install-icon {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .install-icon {
+    animation: none;
+  }
+}

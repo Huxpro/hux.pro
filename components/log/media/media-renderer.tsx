@@ -188,10 +188,12 @@ function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaP
   }
 
   if (isImageMedia(media)) {
-    const figure = <Figure url={media.url} alt={media.alt} size={size} />;
+    const figure = (
+      <Figure url={media.thumbnail ?? media.url} alt={media.alt} size={size} />
+    );
     if (!openAttachment) return figure;
-    // A still opens large in the attachment surface; the figure is the
-    // button, with nothing drawn on it.
+    // A still opens large in the lightbox; the figure is the button, with
+    // nothing drawn on it.
     return (
       <button
         type="button"
