@@ -135,6 +135,8 @@ export const translations = {
     settingsLocation: "Location",
     settingsGeolocation: "Geolocation",
     settingsDebugPanel: "Debug Panel",
+    settingsUnifiedWindows: "Unified Windows",
+    commandShrinkToWindow: "Shrink to Window",
 
     // Wallpaper (background picker)
     settingsWallpaper: "Wallpaper",
@@ -499,6 +501,8 @@ export const translations = {
     settingsLocation: "位置",
     settingsGeolocation: "地理定位",
     settingsDebugPanel: "调试面板",
+    settingsUnifiedWindows: "统一窗口",
+    commandShrinkToWindow: "缩成窗口",
 
     // Wallpaper (background picker)
     settingsWallpaper: "壁纸",

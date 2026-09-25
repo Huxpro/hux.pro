@@ -1,3 +1,4 @@
+import { PAGE_FRAME_NAME } from "@/systems/windows/lib/embed";
 import {
   BEZEL_BAND_MAX,
   BEZEL_BAND_MIN,
@@ -101,6 +102,7 @@ var ground=dark?${JSON.stringify(PAGE_GROUND.dark)}:${JSON.stringify(PAGE_GROUND
 var color=tint==="black"?${JSON.stringify(BLACK)}:tint==="dark"?${JSON.stringify(PAGE_GROUND.dark)}:tint==="theme"?ground:tint;
 var band=s.bezelBand;
 band=typeof band==="number"&&isFinite(band)?Math.min(${BEZEL_BAND_MAX},Math.max(${BEZEL_BAND_MIN},Math.round(band))):${DEFAULT_BEZEL_BAND};
-var on=ios&&edges.bezel;
+var framed=window.top!==window&&(window.name||"").indexOf(${JSON.stringify(PAGE_FRAME_NAME)})===0;
+var on=ios&&edges.bezel&&!framed;
 return {enabled:on,color:color,band:band,scroll:on?"container":"window",ground:ground};`;
 }

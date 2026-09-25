@@ -17,5 +17,10 @@ export {
   MinimizedWindows,
   AppBadge,
   AppBadgeFor,
+  OsChrome,
+  SystemAppsProvider,
+  useExpandPage,
+  useShrinkPage,
 } from "./components";
+export type { SystemAppBodies } from "./components";
 export * from "./lib";

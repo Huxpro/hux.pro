@@ -6,6 +6,7 @@ import { useLocale } from "@/services";
 import { SURFACE_TRANSITION_MS, SurfaceSheet } from "@/systems/surface";
 import {
   Check,
+  Expand,
   ExternalLink,
   Maximize2,
   Minus,
@@ -19,6 +20,7 @@ import type { SizePreset } from "../lib/geometry";
 import type { WindowInstance } from "../lib/types";
 import { useWindows } from "../provider";
 import { AppIconPlate } from "./app-icon-plate";
+import { useExpandPage } from "./use-expand-page";
 
 // =============================================================================
 // The window menu — one list of actions, three containers
@@ -166,7 +168,11 @@ export function WindowMenuBody({
   const sheet = shape === "sheet";
   const title = appTitle(win.app, locale);
   const kind = runtimeLabel(win.app);
-  const isWeb = win.app.runtime !== "lynx";
+  const runtime = win.app.runtime ?? "web";
+  // A built-in has no page elsewhere to open, and a page's way out is to
+  // become the page again rather than a second tab of this site.
+  const isWeb = runtime === "web";
+  const expand = useExpandPage();
 
   return (
     // The sheet's own shell already clears the home indicator (the popup sits
@@ -222,6 +228,11 @@ export function WindowMenuBody({
       <MenuItem shape={shape} Icon={RotateCw} onSelect={() => run(() => reload(win.id))}>
         Reload
       </MenuItem>
+      {runtime === "page" && (
+        <MenuItem shape={shape} Icon={Expand} onSelect={() => run(() => expand(win))}>
+          Expand to page
+        </MenuItem>
+      )}
       {isWeb && win.app.url && (
         <MenuItem shape={shape} Icon={ExternalLink} href={win.app.url} onSelect={() => run()}>
           Open in browser

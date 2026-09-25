@@ -22,7 +22,9 @@ import {
   TheaterRegistrar,
   TheaterSurfaces,
 } from "@/systems/theater";
-import { MinimizedWindows, WindowLayer } from "@/systems/windows";
+import { DesktopWindows } from "@/components/apps/desktop-windows";
+import { MinimizedWindows, OsChrome } from "@/systems/windows";
+import { EMBED_BOOT_SCRIPT } from "@/systems/windows/lib/embed";
 import type { Metadata, Viewport } from "next";
 import { ViewTransitions } from "next-view-transitions";
 import {
@@ -122,6 +124,9 @@ export default function RootLayout({
         <head>
           {/* Before first paint: Safari picks its chrome colour at load, from
               the root background (iOS 26) or theme-color (iOS 18). */}
+          {/* First, so the bezel's resolver can already tell a page in a
+              window (systems/windows/lib/embed.ts) from the top document. */}
+          <script dangerouslySetInnerHTML={{ __html: EMBED_BOOT_SCRIPT }} />
           <script dangerouslySetInnerHTML={{ __html: BEZEL_BOOT }} />
         </head>
         <body
@@ -130,27 +135,38 @@ export default function RootLayout({
           <Providers>
             <ReadingRootSync />
             <SolarThemeSync />
-            <DevtoolFAB />
+            {/* OsChrome: what only the top document draws. A page shrunk into
+                a window draws none of it — the window's document already is
+                the OS around it (systems/windows, "Unified windows"). */}
+            <OsChrome>
+              <DevtoolFAB />
+            </OsChrome>
             <AmbientSurface>{children}</AmbientSurface>
-            <WindowLayer />
-            <Dock>
-              <AmbientPhaseActivity />
-              <MusicActivity />
-              <TheaterActivity />
-              <MinimizedWindows />
-            </Dock>
-            <MusicPlaylistSheet />
+            <OsChrome>
+              <DesktopWindows />
+              <Dock>
+                <AmbientPhaseActivity />
+                <MusicActivity />
+                <TheaterActivity />
+                <MinimizedWindows />
+              </Dock>
+              <MusicPlaylistSheet />
+            </OsChrome>
             <TheaterPlaylistSheet />
-            <WallpaperSheet />
-            <TiltPrimerSheet />
-            <InstallSheet />
+            <OsChrome>
+              <WallpaperSheet />
+              <TiltPrimerSheet />
+              <InstallSheet />
+            </OsChrome>
             <TheaterRegistrar />
             <TheaterSurfaces />
             <AttachmentSurface />
             <ImageLightbox />
             <IdentityCard />
-            <CommandPalette />
-            <FloatingActionButton />
+            <OsChrome>
+              <CommandPalette />
+              <FloatingActionButton />
+            </OsChrome>
           </Providers>
         </body>
       </html>

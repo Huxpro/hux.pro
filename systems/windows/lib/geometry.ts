@@ -1,3 +1,4 @@
+import type { AppRuntime } from "@/lib/app-icon-core";
 import { SURFACE_BREAKPOINTS } from "@/systems/surface";
 import type { Rect } from "./types";
 
@@ -106,7 +107,7 @@ export function presetRect(preset: SizePreset, vp: Viewport): Rect {
 }
 
 /** The size preset an app prefers by default (Lynx apps are mobile → portrait). */
-export function defaultPreset(runtime: "web" | "lynx" | undefined): SizePreset {
+export function defaultPreset(runtime: AppRuntime | undefined): SizePreset {
   return runtime === "lynx" ? "portrait" : "landscape";
 }
 

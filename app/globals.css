@@ -545,6 +545,22 @@ body,
   text-shadow: none;
 }
 
+/* A page shrunk into a window (systems/windows/lib/embed.ts). The top
+   document already draws the OS around the window — dock, palette, devtool,
+   wallpaper — so the page inside draws none of them, from the first frame:
+   the boot script sets the attribute before anything paints, and this hides
+   what the server rendered until React unmounts it. The page stands on its
+   own ground, as every other window's content does. */
+.os-chrome {
+  display: contents;
+}
+html[data-embedded="window"] .os-chrome {
+  display: none;
+}
+html[data-embedded="window"] body {
+  background: var(--background);
+}
+
 /* The bezel's stylesheet (html[data-bezel], container scroll, fixed layers
    made absolute) ships with vitre and is installed by its boot script. */
 

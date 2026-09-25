@@ -16,6 +16,11 @@ import { useDevtool } from "@/systems/devtool";
 import { installTarget, useInstall } from "@/systems/install";
 import { useMusic } from "@/systems/music";
 import {
+  setUnifiedWindows,
+  useShrinkPage,
+  useUnifiedWindows,
+} from "@/systems/windows";
+import {
   Bug,
   FileText,
   GitCommit,
@@ -28,6 +33,8 @@ import {
   MonitorDown,
   Moon,
   Music,
+  PanelsTopLeft,
+  Shrink,
   Sparkles,
   SquarePlus,
   Sun,
@@ -110,6 +117,8 @@ export function useCommandActions(): CommandAction[] {
   } = useMusic();
   const { guide: installGuide, open: openInstall } = useInstall();
   const router = useTransitionRouter();
+  const unifiedWindows = useUnifiedWindows();
+  const shrinkPage = useShrinkPage();
 
   // Named for where it lands: a phone's home screen, a Mac's Dock, an app
   // everywhere else. See systems/install/lib/platform.ts.
@@ -448,6 +457,50 @@ export function useCommandActions(): CommandAction[] {
             run: openInstall,
           } satisfies CommandAction,
         ]),
+    // The page on screen, as a window on the desktop (unified windows).
+    ...(unifiedWindows && shrinkPage
+      ? [
+          {
+            id: "shrink-to-window",
+            kind: "navigate",
+            section: "navigation",
+            label: t(locale, "commandShrinkToWindow"),
+            icon: <Shrink className={ROW_ICON} />,
+            keywords: [
+              "shrink",
+              "window",
+              "minimize",
+              "desktop",
+              "unfullscreen",
+              "缩小",
+              "窗口",
+            ],
+            run: shrinkPage,
+          } satisfies CommandAction,
+        ]
+      : []),
+    {
+      // A design direction under trial: every built-in opens in the window
+      // system (see systems/windows/lib/unified.ts).
+      id: "unified-windows",
+      kind: "toggle",
+      section: "settings",
+      label: `${t(locale, "settingsUnifiedWindows")}: ${
+        unifiedWindows ? t(locale, "stateOn") : t(locale, "stateOff")
+      }`,
+      icon: <PanelsTopLeft className={ROW_ICON} />,
+      keywords: [
+        "unified",
+        "windows",
+        "window",
+        "desktop",
+        "os",
+        "stage manager",
+        "统一",
+        "窗口",
+      ],
+      run: () => setUnifiedWindows(!unifiedWindows),
+    },
     {
       id: "debug-panel",
       key: "d",

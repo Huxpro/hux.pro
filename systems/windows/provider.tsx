@@ -23,7 +23,7 @@ import {
   type SizePreset,
   type Viewport,
 } from "./lib/geometry";
-import type { Rect, WindowInstance } from "./lib/types";
+import type { OpenAppOptions, Rect, WindowInstance } from "./lib/types";
 
 // =============================================================================
 // Window System — the "desktop" coordination layer
@@ -39,8 +39,11 @@ import type { Rect, WindowInstance } from "./lib/types";
 
 interface WindowContextType {
   windows: WindowInstance[];
-  /** Open `app` (or focus/restore it if already open). */
-  openApp: (app: AppLink) => void;
+  /**
+   * Open `app` (or focus/restore it if already open). An open page app handed
+   * a different `url` is sent there: one window per app, pointed where asked.
+   */
+  openApp: (app: AppLink, opts?: OpenAppOptions) => void;
   /** Open (or focus) an ad-hoc Lynx window for an arbitrary `.web.bundle` URL. */
   openBundleUrl: (url: string, opts?: { title?: string; flavor?: "react" | "vue" }) => void;
   /**
@@ -171,7 +174,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
   );
 
   const openApp = useCallback(
-    (app: AppLink) => {
+    (app: AppLink, opts?: OpenAppOptions) => {
       const z = nextZ();
       // Read the viewport here, not inside the updater: an updater is replayed
       // (twice over, in development), and `getViewport` forces layout.
@@ -181,7 +184,14 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
           return soloOnPhone(
             prev.map((w) =>
               w.id === app.id
-                ? { ...w, z, mode: w.mode === "minimized" ? "normal" : w.mode }
+                ? {
+                    ...w,
+                    // A page window asked for another route of its section
+                    // goes there; anything else keeps the app it opened with.
+                    app: app.runtime === "page" && app.url !== w.app.url ? app : w.app,
+                    z,
+                    mode: w.mode === "minimized" ? "normal" : w.mode,
+                  }
                 : w,
             ),
             app.id,
@@ -199,6 +209,7 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
           sizePreset: preset,
           z,
           generation: 0,
+          origin: opts?.origin,
         };
         return soloOnPhone([...prev, opened], app.id, phone);
       });

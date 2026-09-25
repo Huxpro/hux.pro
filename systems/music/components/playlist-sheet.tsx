@@ -7,8 +7,8 @@ import { useEffect, useRef } from "react";
 import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
-  useSurfaceContext,
 } from "@/systems/surface";
+import { useUnifiedWindows } from "@/systems/windows/lib/unified";
 import { PLAYLIST_ID } from "../lib/settings";
 import { useMusic } from "../provider";
 import { EQBars } from "./now-playing";
@@ -44,6 +44,9 @@ export function MusicPlaylistSheet() {
     openPlaylist,
     closePlaylist,
   } = useMusic();
+  // Unified windows: the playlist is the Music window's, not a surface of its
+  // own (DesktopWindows opens that window when the playlist is asked for).
+  const unified = useUnifiedWindows();
 
   // Center the active track when the sheet opens (not on every track change,
   // so browsing isn't yanked back to "now playing").
@@ -69,7 +72,7 @@ export function MusicPlaylistSheet() {
   return (
     <AdaptiveSurface
       id="surface-playlist"
-      open={isPlaylistOpen}
+      open={isPlaylistOpen && !unified}
       onOpenChange={(open) => (open ? openPlaylist() : closePlaylist())}
       presentation={ADAPTIVE_PRESENTATION}
       closeLabel={t(locale, "musicClosePlaylist")}
@@ -119,7 +122,7 @@ export function MusicPlaylistSheet() {
  * into columns like Music.app's "Latest Songs", so a 980px pane reads as a
  * board rather than one thin ribbon down the middle.
  */
-function TrackList({
+export function TrackList({
   playlist,
   playlistIndex,
   playAt,
@@ -135,15 +138,17 @@ function TrackList({
   activeRef: React.RefObject<HTMLButtonElement | null>;
 }) {
   const { locale } = useLocale();
-  const { isWindow } = useSurfaceContext();
 
   // Row-major rather than Music.app's column-major: the surface scrolls
   // vertically, and column-major would ask you to read up and back down again.
-  const grid = isWindow
-    ? "grid grid-cols-1 min-[720px]:grid-cols-2 min-[980px]:grid-cols-3 gap-x-2"
-    : "";
+  // Columns follow the room the list actually has — a container query, not
+  // the viewport or the shape — so a Music window dragged wide breaks into
+  // columns exactly as the desktop surface window does, and a narrow one
+  // stays a list.
+  const grid = "grid grid-cols-1 @min-[700px]:grid-cols-2 @min-[940px]:grid-cols-3 gap-x-2";
 
   return (
+    <div className="@container">
     <div className={grid}>
       {playlist.length === 0 ? (
               isError ? (
@@ -229,6 +234,7 @@ function TrackList({
                 );
         })
       )}
+    </div>
     </div>
   );
 }

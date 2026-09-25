@@ -13,7 +13,8 @@ frame hosts two runtimes:
   Worker) model Lynx uses on-device, reproduced in the browser.
 
 The chrome around them is identical; only the body differs. That's the whole
-idea — one window, two runtimes.
+idea — one window, whatever runs in it. Two more runtimes host the site's own
+features and pages; see *Unified windows* below.
 
 ## Overview
 
@@ -23,6 +24,9 @@ systems/windows/
 ├── lib/
 │   ├── types.ts                # WindowInstance, Rect, WindowMode
 │   ├── geometry.ts             # size presets, placement, clamps, working area
+│   ├── builtins.ts             # the system apps + page apps (unified windows)
+│   ├── unified.ts              # the unified-windows switch
+│   ├── embed.ts                # "this document is a page in a window"
 │   └── lynx-shadow-css.ts      # generated: flattened web-elements layout CSS
 ├── components/
 │   ├── window-layer.tsx        # <WindowLayer> — the fixed "desktop" surface
@@ -33,7 +37,11 @@ systems/windows/
 │   ├── window-chrome.tsx       # the control dots (top-left desktop / centre mobile)
 │   ├── window-menu.tsx         # the menu's rows + its sheet form (both shapes)
 │   ├── minimized-dock.tsx      # <MinimizedWindows> — dock pills (direct restore)
-│   ├── app-frame.tsx           # runtime switch: WebFrame vs LynxFrame
+│   ├── app-frame.tsx           # runtime switch: web / lynx / system / page
+│   ├── system-app-frame.tsx    # a built-in's body, rendered in this document
+│   ├── page-frame.tsx          # a route of this site, shrunk into a window
+│   ├── use-expand-page.ts      # shrink a page into a window ⇄ expand it back
+│   ├── os-chrome.tsx           # what only the top document draws
 │   ├── web-frame.tsx           # <iframe> + "won't embed" fallback
 │   ├── lynx-frame.tsx          # ssr:false boundary around the player
 │   ├── lynx-player.tsx         # <lynx-view> — the Lynx Player
@@ -48,7 +56,8 @@ Apps are authored in [`content/apps.json`](../content/apps.json) — the
 **built-in registry**. Fields that drive the window system (see `AppLink` in
 `lib/app-icon-core.ts`):
 
-- `runtime` — `"web"` (default, an iframe) or `"lynx"` (the Lynx Player).
+- `runtime` — `"web"` (default, an iframe), `"lynx"` (the Lynx Player),
+  `"system"` (a built-in, see below) or `"page"` (a route of this site).
 - `flavor` — for Lynx apps, `"react"` or `"vue"`. Cosmetic: it tints the badge.
 - `bundleUrl` — the Lynx `.web.bundle`. Two sources, unified:
   - an `http(s)://…` URL → **online**, fetched at open time (the current apps);
@@ -405,6 +414,108 @@ Three ways in, all routing through `useWindows()`:
   menu is the way out. The browser is an app with `runtime: "web"`; a second
   runtime for links — a reader, a different frame — would be another `AppLink`
   and another row in the attachments policy, nothing more.
+
+## Unified windows
+
+A design direction under trial, behind one switch: ⌘K → **Unified Windows**
+(`hux_windows_unified` in localStorage, `lib/unified.ts`). Off, nothing
+changes. On, every built-in the site opens lives in this window system rather
+than in a surface of its own, and a fullscreen page can shrink into a window
+too.
+
+The site had grown three window systems. Apps were windows. The music
+playlist and the wallpaper picker were `AdaptiveSurface`s whose desktop shape
+is a `SurfaceWindow` — floating, draggable, but not in the z-order, not in the
+dock, not minimizable. The theater had a modal and a PiP of its own. Three
+kinds of floating box, each with its own rules for moving, stacking and going
+away. The direction is one: everything is an app, and an app is a window.
+
+### Two more runtimes
+
+| Runtime | Body | What it is |
+|---------|------|-----------|
+| `system` | the feature's own component, in this document (`SystemAppFrame`) | Music, Wallpaper, Theater (`SYSTEM_APPS`) |
+| `page` | a same-origin frame of the route (`PageFrame`) | Writing, Prompt, Works — any route but home (`pageApp`) |
+
+Both are ordinary `AppLink`s with icons in `public/app-icons/`, so the ⌘K
+strip, the dock pill, the menu and the badge (a small window for system, a
+folded page for page) all speak them without special cases. With the switch
+on they lead the ⌘K Apps strip.
+
+**System apps render in this document**, which is the point: the music a
+window shows is the music the dock is playing, the wallpaper it picks is the
+one behind it. The window system does not import the features — the layout
+hands it their bodies (`components/apps/desktop-windows.tsx` →
+`SystemAppsProvider`), as it hands the dock its activities. Each body is given
+the surface context answering as a window, so content written for a surface
+(the track list, the picker grid) lands unchanged. Column counts now read the
+room they have — a container query in the track list, a `ResizeObserver` in
+the Wallpaper window — rather than the shape they were given, so a window
+dragged wide breaks into columns the way the old surface window did.
+
+**The switchboard.** Every existing way in still asks the feature: the dock's
+playlist button calls `openPlaylist`, ⌘K's Wallpaper row `openPicker`, a talk
+card `openVideo`. `DesktopWindows` turns the ask into the window, and the
+features only learn one thing — with the switch on, keep the old surface shut.
+
+- **Music / Wallpaper** are a yes/no, mirrored both ways: the feature asked to
+  open brings its window forward; the window put away tells the feature its
+  surface closed; the feature asked to close (the list button inside the Music
+  window) puts the window in the dock.
+- **Theater** has a mode, and `window` is now one of them. `open` resolves to
+  it; the stage stands down (not staged, not playing); every `open` bumps
+  `openRequest`, which brings the window forward even for the track already on
+  it. Closing the window ends the session. The window is its own player — the
+  track in a frame of its own — because the stage is a singleton positioned
+  over the page, and anything parked above every window paints over the one in
+  front. Persistence is the window system's promise instead: a minimized
+  Theater window stays mounted, so a talk keeps talking from the dock.
+
+### Shrinking a page
+
+⌘K → **Shrink to Window** on any page but home. The route opens in a page
+window that grows out of the whole viewport (`origin` on the window instance:
+the first frame is the full-screen rect, expressed about the centre, so the
+dock genie needs no special case), and the top document goes home — to the
+desktop the window now sits on. One window per section: shrinking another
+article while Writing is open sends that window there.
+
+Inside, the frame is a whole page of the site that knows it is one. It is
+named `hux-window`; a boot script in `<head>` (`EMBED_BOOT_SCRIPT`, before the
+bezel's) marks `<html data-embedded="window">` when a framed document carries
+that name, and then:
+
+- **`OsChrome`** — the dock, window layer, palette, FAB, devtool and the
+  sheets that belong to the OS — is hidden by CSS from the first frame and
+  unmounted once hydrated. Content surfaces (attachments, lightbox, identity
+  card, the theater) stay: they are the page's.
+- The wallpaper and the bezel stay off: the top document already draws them
+  around the window.
+- ⌘K and `/` are forwarded to the top document, so the one palette opens.
+
+The name rather than a query parameter, because a frame's name survives every
+navigation inside it: follow a link in the Writing window and the article it
+lands on still knows where it is.
+
+**Expand to page** (the window menu, page windows only) reads where the frame
+has got to — not where it started — sends the top document there and closes
+the window. Same origin is what makes that one line (`pageFrameLocation`).
+
+### Open questions
+
+- **The springboard.** The home app folder still lists only `content/apps.json`
+  apps: its saved order reconciles against that list, and would drop built-in
+  ids whenever the switch is off. Once the direction settles, built-ins belong
+  there — the site's own apps first.
+- **One activity or two.** A minimized Music window has a dock pill beside the
+  music Live Activity. The mirror keeps them consistent; whether the activity
+  *is* the minimized window is the next question.
+- **Media inside a page window** still opens in that page's own theater. It
+  could reach up to the top's, as ⌘K does.
+- **Theater transport.** The window's player is a plain embed, so the dock has
+  no play / pause for it the way the stage's IFrame API gave one.
+- **Cost.** A page window is a second copy of the app shell. Fine for one or
+  two; a desktop of ten would want the pages rendered in-document instead.
 
 ## DevTool inspector
 

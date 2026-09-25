@@ -5,7 +5,7 @@ import { APPS } from "@/lib/apps";
 import { appTitle, runtimeLabel } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { useOptionalWindows } from "@/systems/windows";
+import { BUILTIN_APPS, useOptionalWindows, useUnifiedWindows } from "@/systems/windows";
 import { Command } from "cmdk";
 import { Link2 } from "lucide-react";
 import { useCommand } from "./provider";
@@ -25,6 +25,9 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
   const { locale } = useLocale();
   const { openLoadBundle } = useCommand();
   const compact = useCompactViewport();
+  // Unified windows: the site's own features and pages are apps too, first.
+  const unified = useUnifiedWindows();
+  const apps = unified ? [...BUILTIN_APPS, ...APPS] : APPS;
   const itemClass = cn(
     "group/app shrink-0 rounded-xl",
     "flex flex-col items-center justify-center",
@@ -38,7 +41,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
     "text-foreground data-[selected=true]:bg-accent/50 data-[selected=true]:text-accent-foreground",
     "hover:bg-accent/25",
   );
-  if (!windows || APPS.length === 0) return null;
+  if (!windows || apps.length === 0) return null;
 
   return (
     <Command.Group>
@@ -48,7 +51,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
           "no-scrollbar flex gap-0.5 overflow-x-auto px-1.5 py-1.5",
         )}
       >
-        {APPS.map((app) => {
+        {apps.map((app) => {
           const kind = runtimeLabel(app);
           return (
             <Command.Item
