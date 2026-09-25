@@ -82,6 +82,11 @@ export function useSurfaceContext(): SurfaceContextValue {
   return ctx;
 }
 
+/** Same shape, for a body that can also render inside a native app window. */
+export function useOptionalSurfaceContext(): SurfaceContextValue | null {
+  return useContext(SurfaceContext);
+}
+
 export interface AdaptiveSurfaceProps {
   /**
    * Stable id. Doubles as the draggable instance key in window mode, so a

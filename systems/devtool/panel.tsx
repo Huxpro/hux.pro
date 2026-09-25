@@ -12,6 +12,8 @@ import {
   getTintLabel,
 } from "@/services";
 import { useAmbientTime, useLocation, useSolarTheme, useWallpaper, useWeather } from "@/systems/ambient";
+import { builtinApp } from "@/lib/builtin-apps";
+import { useOptionalWindows } from "@/systems/windows";
 import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "vitre";
 import {
   DEFAULT_BEZEL_TINT,
@@ -70,7 +72,6 @@ import {
   type PhonePalette,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
-import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
 import appsJson from "@/content/apps.json";
 import type { AppLink } from "@/lib/app-icon-core";
@@ -817,6 +818,7 @@ function GlassModule() {
 function WallpaperModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
+  const windows = useOptionalWindows();
   const {
     kind,
     setKind,
@@ -1046,7 +1048,11 @@ function WallpaperModule() {
           type="button"
           // The picker stacks on the devtool rather than replacing it: the
           // panel steps back a notch behind it and comes forward when it goes.
-          onClick={openPicker}
+          onClick={() => {
+            const app = builtinApp("wallpaper");
+            if (windows && app) windows.openApp(app);
+            else openPicker();
+          }}
           aria-label={zh ? "打开壁纸选择器" : "Open wallpaper picker"}
           className="flex w-full items-center gap-2 rounded-md border border-border/60 p-1 text-left transition-colors hover:bg-muted/40"
         >

@@ -30,6 +30,7 @@ export function PipOverlay() {
   const { locale } = useLocale();
   const {
     mode,
+    presentation,
     minimized,
     track,
     phase,
@@ -53,7 +54,7 @@ export function PipOverlay() {
     closePlaylist,
   } = useTheater();
 
-  const open = mode === "pip" && !minimized;
+  const open = presentation === "pip" && mode !== "closed" && !minimized;
   const isYouTube = track?.platform === "youtube" && !!track.videoId;
   const isPlaying = phase === "playing";
 

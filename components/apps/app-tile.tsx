@@ -6,6 +6,7 @@ import { appTitle, resolveAppIconSrc } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { AppBadgeFor } from "@/systems/windows";
+import { BuiltinMark } from "@/systems/windows/components/builtin-mark";
 
 import { TYPE } from "@/lib/typography";
 // =============================================================================
@@ -110,6 +111,13 @@ export function AppTile({
                   fills ? "object-cover" : cn("object-contain", PAD[size]),
                 )}
               />
+            ) : app.runtime === "native" && app.surface ? (
+              <span className="flex h-full w-full items-center justify-center">
+                <BuiltinMark
+                  surface={app.surface}
+                  className={size === "sm" ? "h-4 w-4" : "h-5 w-5"}
+                />
+              </span>
             ) : (
               <span
                 className="flex h-full w-full items-center justify-center font-mono text-neutral-400"

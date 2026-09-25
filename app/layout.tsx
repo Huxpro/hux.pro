@@ -1,4 +1,8 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
+import { toBlogPostSummaries } from "@/lib/content";
+import { getAllBlogPosts } from "@/lib/mdx";
+import { getPromptsData } from "@/lib/prompts";
+import { BuiltinCatalogProvider } from "@/systems/windows/components/builtin-catalog";
 import { bezelBootResolver } from "@/systems/ambient/lib/bezel";
 import { bezelBootScript } from "vitre";
 import { Providers } from "@/shared/providers";
@@ -116,6 +120,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const posts = toBlogPostSummaries(getAllBlogPosts());
+  const promptsEn = getPromptsData("en");
+  const promptsZh = getPromptsData("zh");
+
   return (
     <ViewTransitions>
       <html lang="en" suppressHydrationWarning>
@@ -128,6 +136,11 @@ export default function RootLayout({
           className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         >
           <Providers>
+            <BuiltinCatalogProvider
+              posts={posts}
+              promptsEn={promptsEn}
+              promptsZh={promptsZh}
+            >
             <ReadingRootSync />
             <SolarThemeSync />
             <DevtoolFAB />
@@ -151,6 +164,7 @@ export default function RootLayout({
             <IdentityCard />
             <CommandPalette />
             <FloatingActionButton />
+            </BuiltinCatalogProvider>
           </Providers>
         </body>
       </html>

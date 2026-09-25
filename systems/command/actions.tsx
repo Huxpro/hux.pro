@@ -14,7 +14,9 @@ import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
 import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
 import { installTarget, useInstall } from "@/systems/install";
+import { builtinApp } from "@/lib/builtin-apps";
 import { useMusic } from "@/systems/music";
+import { useOptionalWindows } from "@/systems/windows";
 import {
   Bug,
   FileText,
@@ -94,6 +96,7 @@ export function useCommandActions(): CommandAction[] {
     playAlbum: wallpaperPlayAlbum,
     openPicker: openWallpaperPicker,
   } = useWallpaper();
+  const windows = useOptionalWindows();
   const {
     material: glassMaterial,
     toggle: toggleGlass,
@@ -304,7 +307,11 @@ export function useCommandActions(): CommandAction[] {
         "随机",
         "循环",
       ],
-      run: () => openWallpaperPicker(),
+      run: () => {
+        const app = builtinApp("wallpaper");
+        if (windows && app) windows.openApp(app);
+        else openWallpaperPicker();
+      },
     },
     {
       id: "glass",

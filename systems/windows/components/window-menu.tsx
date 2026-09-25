@@ -166,7 +166,7 @@ export function WindowMenuBody({
   const sheet = shape === "sheet";
   const title = appTitle(win.app, locale);
   const kind = runtimeLabel(win.app);
-  const isWeb = win.app.runtime !== "lynx";
+  const isWeb = (win.app.runtime ?? "web") === "web";
 
   return (
     // The sheet's own shell already clears the home indicator (the popup sits

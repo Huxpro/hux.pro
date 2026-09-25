@@ -12,6 +12,7 @@ import {
   type TranslationKey,
 } from "@/lib/i18n";
 import { useLocale } from "@/services";
+import { ShrinkToWindow } from "@/systems/windows/components/shrink-control";
 import { useState, type ReactNode } from "react";
 import {
   heroContentClassName,
@@ -48,6 +49,11 @@ interface PageLayoutProps {
   pinnedActions?: ReactNode;
   /** Title typography variant */
   variant?: "poetic" | "reader";
+  /**
+   * When set, the nav row offers to shrink this fullscreen page into that
+   * built-in app's window and return to the desktop.
+   */
+  shrinkApp?: string;
   /** Additional className for the main element */
   className?: string;
   /** Page content */
@@ -79,6 +85,7 @@ export function PageLayout({
   backLabel = "λhux",
   headerActions,
   pinnedActions,
+  shrinkApp,
   variant = "poetic",
   className,
   children,
@@ -148,7 +155,10 @@ export function PageLayout({
               moves when the reader changes the type size -- not the body
               alone. The Tailwind sizes below stay as the fallback. */}
           <div className="reader-masthead mb-12 sm:mb-14">
-            <SystemNav href={backHref} path={backLabel} className="mb-8 sm:mb-12" />
+            <div className="mb-8 flex items-start justify-between gap-3 sm:mb-12">
+              <SystemNav href={backHref} path={backLabel} className="mb-0" />
+              {shrinkApp && <ShrinkToWindow appId={shrinkApp} />}
+            </div>
             {titleJsx}
             {headerActions && <div className="mt-4">{headerActions}</div>}
           </div>
@@ -161,8 +171,9 @@ export function PageLayout({
             className={heroZoneClassName(heroExit, !heroFadeStyle, "system-voice")}
             style={heroZoneStyle(heroExit, heroFadeStyle)}
           >
-            <div className="h-11 flex items-start">
+            <div className="flex h-11 items-start justify-between gap-3">
               <SystemNav href={backHref} path={backLabel} />
+              {shrinkApp && <ShrinkToWindow appId={shrinkApp} />}
             </div>
             <div
               className={cn(

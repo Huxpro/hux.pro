@@ -1,6 +1,7 @@
 "use client";
 
 import { AppTile } from "@/components/apps";
+import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { APPS } from "@/lib/apps";
 import { appTitle, runtimeLabel } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
@@ -38,7 +39,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
     "text-foreground data-[selected=true]:bg-accent/50 data-[selected=true]:text-accent-foreground",
     "hover:bg-accent/25",
   );
-  if (!windows || APPS.length === 0) return null;
+  if (!windows || (APPS.length === 0 && BUILTIN_APPS.length === 0)) return null;
 
   return (
     <Command.Group>
@@ -48,7 +49,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
           "no-scrollbar flex gap-0.5 overflow-x-auto px-1.5 py-1.5",
         )}
       >
-        {APPS.map((app) => {
+        {[...BUILTIN_APPS, ...APPS].map((app) => {
           const kind = runtimeLabel(app);
           return (
             <Command.Item

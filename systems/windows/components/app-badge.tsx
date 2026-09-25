@@ -67,6 +67,13 @@ interface BadgeSpec {
 }
 
 function specFor(runtime: AppRuntime, flavor?: AppFlavor): BadgeSpec {
+  if (runtime === "native") {
+    return {
+      bg: "bg-foreground",
+      glyph: <span className="h-1.5 w-1.5 rounded-full bg-background" />,
+      label: runtimeLabel({ runtime, flavor }),
+    };
+  }
   if (runtime === "lynx") {
     const vue = flavor === "vue";
     return {

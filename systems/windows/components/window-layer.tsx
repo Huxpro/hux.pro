@@ -2,6 +2,7 @@
 
 import { AnimatePresence } from "framer-motion";
 import { useWindows } from "../provider";
+import { WatchDock } from "./watch-dock";
 import { Window } from "./window";
 
 // =============================================================================
@@ -25,6 +26,7 @@ export function WindowLayer() {
       className="pointer-events-none fixed inset-0 z-40"
       aria-hidden={windows.length === 0}
     >
+      <WatchDock />
       <AnimatePresence>
         {windows.map((win) => (
           <Window key={win.id} win={win} />

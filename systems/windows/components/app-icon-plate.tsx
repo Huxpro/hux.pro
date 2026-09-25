@@ -4,6 +4,7 @@ import { appTitle, resolveAppIconSrc, type AppLink } from "@/lib/app-icon-core";
 import { APP_ICONS, iconFillsTile } from "@/lib/apps";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
+import { BuiltinMark } from "./builtin-mark";
 
 // =============================================================================
 // AppIconPlate — an app's icon at any size, with the site's one rule about it
@@ -31,6 +32,19 @@ export function AppIconPlate({
   const { locale } = useLocale();
   const src = resolveAppIconSrc(app, APP_ICONS);
   const fills = iconFillsTile(APP_ICONS[app.id]);
+
+  if (!src && app.runtime === "native" && app.surface) {
+    return (
+      <span
+        className={cn(
+          "flex items-center justify-center overflow-hidden rounded-[7px] bg-white",
+          className,
+        )}
+      >
+        <BuiltinMark surface={app.surface} className="h-[58%] w-[58%]" />
+      </span>
+    );
+  }
 
   if (!src) {
     return (

@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { embedUrlFor } from "../lib/player";
 import type { StageRect, Track } from "../lib/types";
 
@@ -31,6 +31,11 @@ interface StageProps {
   /** In PiP the control bar sits directly below, so the video is flat-bottomed
    *  and shares a continuous border with the bar (reads as one window). */
   pip: boolean;
+  /**
+   * When set, the stage node is moved into this element so it travels with
+   * the Watch window. The same DOM node — the YouTube player must not remount.
+   */
+  dockTarget?: HTMLElement | null;
 }
 
 export function Stage({
@@ -41,7 +46,19 @@ export function Stage({
   visible,
   dragging,
   pip,
+  dockTarget = null,
 }: StageProps) {
+  const nodeRef = useRef<HTMLDivElement>(null);
+  const homeRef = useRef<HTMLDivElement>(null);
+  const docked = !!dockTarget;
+
+  useLayoutEffect(() => {
+    const node = nodeRef.current;
+    const home = homeRef.current;
+    if (!node || !home) return;
+    const parent = dockTarget ?? home;
+    if (node.parentElement !== parent) parent.appendChild(node);
+  }, [dockTarget]);
   const isYouTube = track?.platform === "youtube" && !!track.videoId;
   // A deck is its own player: the stage frames the deck URL as it is. Videos
   // off YouTube get a platform embed URL built for autoplay.
@@ -52,15 +69,19 @@ export function Stage({
   }, [track, isYouTube]);
 
   return (
+    <div ref={homeRef} className="contents">
     <motion.div
+      ref={nodeRef}
       aria-hidden={!visible}
       className={cn(
-        "theater-stage fixed z-[10002] overflow-hidden bg-black",
+        "theater-stage overflow-hidden bg-black",
+        docked ? "absolute inset-0 z-0 rounded-none" : "fixed z-[10002]",
         // PiP: flat bottom + widget-matched 2xl so it joins the glass bar as
         // one window. Theater: fully rounded, hairline ring.
-        pip ? "rounded-t-2xl" : "rounded-2xl",
-        visible && "shadow-overlay pointer-events-auto",
-        visible && (pip ? "border border-b-0 border-border/50" : "ring-1 ring-white/15"),
+        !docked && (pip ? "rounded-t-2xl" : "rounded-2xl"),
+        visible && !docked && "shadow-overlay pointer-events-auto",
+        docked && visible && "pointer-events-auto",
+        visible && !docked && (pip ? "border border-b-0 border-border/50" : "ring-1 ring-white/15"),
         !visible && "pointer-events-none",
       )}
       style={{ transformOrigin: "center center" }}
@@ -72,14 +93,25 @@ export function Stage({
         return s === 1 ? "none" : generated;
       }}
       initial={false}
-      animate={{
-        top: rect.top,
-        left: rect.left,
-        width: rect.width,
-        height: rect.height,
-        opacity: visible ? 1 : 0,
-        scale: visible ? 1 : 0.96,
-      }}
+      animate={
+        docked
+          ? {
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              opacity: visible ? 1 : 0,
+              scale: 1,
+            }
+          : {
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
+              height: rect.height,
+              opacity: visible ? 1 : 0,
+              scale: visible ? 1 : 0.96,
+            }
+      }
       transition={
         dragging
           ? { duration: 0 }
@@ -137,5 +169,6 @@ export function Stage({
         </div>
       )}
     </motion.div>
+    </div>
   );
 }

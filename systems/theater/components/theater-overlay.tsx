@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Shrink,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -50,12 +51,14 @@ export function TheaterOverlay() {
     next,
     previous,
     toPip,
+    toWindow,
     minimize,
     close,
+    presentation,
     isCoarse,
   } = useTheater();
 
-  const open = mode === "theater" && !minimized;
+  const open = presentation === "immersive" && mode === "theater" && !minimized;
 
   const hasPrev = albumIndex > 0 || trackIndex > 0;
   const hasNext =
@@ -338,6 +341,14 @@ export function TheaterOverlay() {
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     )}
+                    <button
+                      type="button"
+                      aria-label="Shrink to window"
+                      onClick={toWindow}
+                      className={cn(GLASS_BTN, "h-8 w-8")}
+                    >
+                      <Shrink className="h-4 w-4" />
+                    </button>
                     <SurfaceSwitch
                       current="theater"
                       framed={false}

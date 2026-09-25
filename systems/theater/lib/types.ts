@@ -81,6 +81,14 @@ export interface Album {
  */
 export type TheaterMode = "closed" | "theater" | "pip";
 
+/**
+ * Where the one stage is shown:
+ *  - `window`    — inside the Watch app window (the default).
+ *  - `immersive` — the fullscreen theater.
+ *  - `pip`       — the floating picture-in-picture window.
+ */
+export type TheaterPresentation = "window" | "immersive" | "pip";
+
 /** Simplified player phase for the UI (mirrors the Music system's PlayerState). */
 export type PlayerPhase =
   | "idle"

@@ -138,6 +138,8 @@ const contentVariants = {
 interface PromptViewProps {
   dataEn: PromptsData;
   dataZh: PromptsData;
+  /** Render inside a window: local filters, no page chrome, no URL writes. */
+  embedded?: boolean;
 }
 
 // XML-style tag component
@@ -1062,7 +1064,7 @@ function PromptFooter({
   );
 }
 
-export function PromptView({ dataEn, dataZh }: PromptViewProps) {
+export function PromptView({ dataEn, dataZh, embedded = false }: PromptViewProps) {
   const { locale } = useLocale();
   const data = locale === "zh" ? dataZh : dataEn;
 
@@ -1122,6 +1124,7 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
     (next: Partial<PromptViewState>, hash?: string) => {
       const merged = { ...view, ...next };
       setView(merged);
+      if (embedded) return;
       const query = serializePromptView(
         merged,
         new URLSearchParams(searchParams.toString()),
@@ -1137,13 +1140,14 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
         { scroll: false },
       );
     },
-    [view, searchParams, router, pathname],
+    [view, searchParams, router, pathname, embedded],
   );
 
   // A shared link lands mid-page before the wallpaper and fonts settle, so
   // re-seat the target once after mount rather than trusting the browser's
   // initial jump.
   useEffect(() => {
+    if (embedded) return;
     const raw = window.location.hash.slice(1);
     if (!raw) return;
     const id = anchorFor(decodeURIComponent(raw));
@@ -1258,27 +1262,23 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
     model: t(locale, "promptModel"),
   };
 
-  return (
-    <GoToContext.Provider value={nav}>
-      <PageLayout
-        page="prompts"
-        pinnedActions={
-          <PromptToolbar
-            locale={locale}
-            kindFacets={kindFacets}
-            topicFacets={topicFacets}
-            activeKinds={view.kinds}
-            activeTopics={view.topics}
-            onToggleKind={(kind) =>
-              commit({ kinds: toggleKind(view.kinds, kind) })
-            }
-            onToggleTopic={(topic) =>
-              commit({ topics: toggleTopic(view.topics, topic) })
-            }
-            onClear={() => commit({ kinds: [], topics: [] })}
-          />
-        }
-      >
+  const toolbar = (
+    <PromptToolbar
+      locale={locale}
+      kindFacets={kindFacets}
+      topicFacets={topicFacets}
+      activeKinds={view.kinds}
+      activeTopics={view.topics}
+      onToggleKind={(kind) => commit({ kinds: toggleKind(view.kinds, kind) })}
+      onToggleTopic={(topic) =>
+        commit({ topics: toggleTopic(view.topics, topic) })
+      }
+      onClear={() => commit({ kinds: [], topics: [] })}
+    />
+  );
+
+  const entries = (
+    <>
         {/* The column says which language it is in: screen readers need it,
             and so does the optical correction in `TYPE.voice`, which only
             applies to Latin. */}
@@ -1319,6 +1319,30 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
         </div>
 
         <PromptFooter meta={data.meta} labels={footerLabels} />
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <GoToContext.Provider value={nav}>
+        <div className="px-4 pb-10 pt-3">
+          <div className="sticky top-0 z-10 -mx-4 mb-4 bg-background/85 px-4 py-2 backdrop-blur-md">
+            {toolbar}
+          </div>
+          {entries}
+        </div>
+      </GoToContext.Provider>
+    );
+  }
+
+  return (
+    <GoToContext.Provider value={nav}>
+      <PageLayout
+        page="prompts"
+        shrinkApp="prompt"
+        pinnedActions={toolbar}
+      >
+        {entries}
       </PageLayout>
     </GoToContext.Provider>
   );

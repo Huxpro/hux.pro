@@ -182,6 +182,7 @@ export function PostContent({
       title={displayTitle}
       backHref={backHref}
       backLabel={backLabel}
+      shrinkApp="writing"
       variant="reader"
       headerActions={headerActions}
       className="min-h-screen"

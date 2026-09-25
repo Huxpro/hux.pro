@@ -13,7 +13,14 @@ frame hosts two runtimes:
   Worker) model Lynx uses on-device, reproduced in the browser.
 
 The chrome around them is identical; only the body differs. That's the whole
-idea — one window, two runtimes.
+idea — one window, three runtimes. The third is **native**: an in-process
+surface (Watch, Music, Wallpaper, Writing, Prompt) defined in
+`lib/builtin-apps.ts`, not crawled from `content/apps.json`. Opening one is
+the same `openApp` a shelf icon uses. A fullscreen page of Writing or Prompt
+is that app maximized; its nav row shrinks it back into a window and returns
+to the desktop. Watch is the theater's stage reparented into the window —
+immersive and picture-in-picture borrow the same player, and shrinking the
+theater puts it back.
 
 ## Overview
 

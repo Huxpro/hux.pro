@@ -372,7 +372,13 @@ function ascii(buf: Uint8Array, start: number, end: number): string {
  *   - "lynx" — a Lynx app bundle (`.web.bundle`), rendered by `@lynx-js/web-core`'s
  *              `<lynx-view>` element (a "Lynx Player").
  */
-export type AppRuntime = "web" | "lynx";
+export type AppRuntime = "web" | "lynx" | "native";
+
+/**
+ * An in-process surface a native window fills. Web and Lynx windows load a
+ * document; a native window renders one of these, already part of the site.
+ */
+export type NativeSurface = "watch" | "music" | "wallpaper" | "writing" | "prompt";
 
 /**
  * The authoring framework behind a Lynx bundle. Purely cosmetic here — it tints
@@ -400,6 +406,11 @@ export interface AppLink {
    * `"lynx"` opens the Lynx Player pointed at {@link bundleUrl}.
    */
   runtime?: AppRuntime;
+  /**
+   * For `runtime: "native"`: which built-in surface fills the window. The
+   * chrome is the same one a web or Lynx app gets; only the body differs.
+   */
+  surface?: NativeSurface;
   /** Lynx authoring framework — badge tint only. See {@link AppFlavor}. */
   flavor?: AppFlavor;
   /**
@@ -467,9 +478,11 @@ export function appTitle(
 }
 
 export function runtimeLabel(app: Pick<AppLink, "runtime" | "flavor">): string {
-  if ((app.runtime ?? "web") === "lynx") {
+  const runtime = app.runtime ?? "web";
+  if (runtime === "lynx") {
     return app.flavor === "vue" ? "Lynx · Vue" : "Lynx · React";
   }
+  if (runtime === "native") return "Built-in";
   return "Web";
 }
 

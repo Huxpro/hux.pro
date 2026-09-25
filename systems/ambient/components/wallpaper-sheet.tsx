@@ -14,7 +14,7 @@ import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
   SHEET_DETENTS,
-  useSurfaceContext,
+  useOptionalSurfaceContext,
 } from "@/systems/surface";
 import { getWeatherStyleGradient } from "../lib/gradient";
 import type { WallpaperPlacement } from "../lib/settings";
@@ -544,7 +544,7 @@ const CATEGORY_LABEL: Record<WallpaperCategory, TranslationKey> = {
  * thing that genuinely differs: a desktop window is wide enough for three
  * columns of pair cards, a phone sheet is not.
  */
-function WallpaperPickerBody() {
+export function WallpaperPickerBody({ wide }: { wide?: boolean }) {
   const { locale } = useLocale();
   const {
     kind,
@@ -561,8 +561,8 @@ function WallpaperPickerBody() {
   } = useWallpaper();
   const { followSun, setFollowSun } = useSolarTheme();
   const isImage = kind === "image";
-  const { isWindow } = useSurfaceContext();
-  const columns = isWindow ? 3 : 2;
+  const surface = useOptionalSurfaceContext();
+  const columns = wide || surface?.isWindow ? 3 : 2;
 
   // Opens on the category of what is in use, so the check mark is on screen.
   const [category, setCategory] = useState<WallpaperCategory>(

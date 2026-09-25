@@ -33,6 +33,7 @@ import type {
   PlayerPhase,
   StageRect,
   TheaterMode,
+  TheaterPresentation,
   Track,
 } from "./lib/types";
 import { Stage } from "./components/stage";
@@ -83,6 +84,8 @@ interface TheaterContextValue {
   album: Album | null;
   track: Track | null;
   mode: TheaterMode;
+  /** Where the stage is drawn. `window` is the Watch app. */
+  presentation: TheaterPresentation;
   minimized: boolean;
   phase: PlayerPhase;
   currentTime: number;
@@ -126,6 +129,14 @@ interface TheaterContextValue {
   restore: () => void;
   toPip: () => void;
   toTheater: () => void;
+  /** Bring the stage back into the Watch window. */
+  toWindow: () => void;
+  /**
+   * The element the stage should fill while `presentation` is `window`.
+   * The Watch window registers its slot; null lets the stage sit in its
+   * own layer (immersive / picture-in-picture).
+   */
+  setStageHost: (el: HTMLElement | null) => void;
 
   play: () => void;
   pause: () => void;
@@ -203,6 +214,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const [albumIndex, setAlbumIndex] = useState(0);
   const [trackIndex, setTrackIndex] = useState(0);
   const [mode, setMode] = useState<TheaterMode>("closed");
+  const [presentation, setPresentation] = useState<TheaterPresentation>("window");
+  const [stageHost, setStageHostState] = useState<HTMLElement | null>(null);
   const [minimized, setMinimized] = useState(false);
   const [isPlaylistOpen, setPlaylistOpen] = useState(false);
 
@@ -258,6 +271,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     [geomMode, viewport, effectiveOffset],
   );
   const visible = mode !== "closed" && !minimized;
+  const docked = presentation === "window" && stageHost !== null && visible;
 
   // --- Viewport tracking (drives stage geometry) ---
   useEffect(() => {
@@ -431,13 +445,13 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
 
   // --- Body scroll lock while the theater modal owns the screen ---
   useEffect(() => {
-    if (effectiveMode !== "theater") return;
+    if (presentation !== "immersive" || effectiveMode !== "theater") return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [effectiveMode]);
+  }, [effectiveMode, presentation]);
 
   // Collapse to PiP (keep playing) on route change so the theater modal never
   // strands the user mid-navigation. The playlist goes with it: the page under
@@ -446,6 +460,9 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (prevPath.current !== pathname) {
       prevPath.current = pathname;
+      // A Watch window survives the route. Only an immersive takeover
+      // steps down, so navigating never leaves a modal over the new page.
+      setPresentation((p) => (p === "immersive" ? "window" : p));
       setMode((m) => (m === "theater" ? "pip" : m));
       setPlaylistOpen(false);
     }
@@ -487,6 +504,11 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       setTrackIndex(Math.min(Math.max(ti, 0), Math.max(tracks.length - 1, 0)));
       setMinimized(false);
       setPipOffset({ x: 0, y: 0 });
+      // Unspecified opens in the Watch window. An explicit theater or pip
+      // request still means those surfaces.
+      if (m === "pip") setPresentation("pip");
+      else if (m === "theater") setPresentation("immersive");
+      else setPresentation("window");
       setMode(resolveMode(m));
     },
     [resolveMode],
@@ -608,12 +630,27 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const toPip = useCallback(() => {
     setMinimized(false);
+    setPresentation("pip");
     setMode("pip");
   }, []);
   const toTheater = useCallback(() => {
     setMinimized(false);
-    setMode(theaterAvailable ? "theater" : "pip");
+    if (!theaterAvailable) {
+      setPresentation("pip");
+      setMode("pip");
+      return;
+    }
+    setPresentation("immersive");
+    setMode("theater");
   }, [theaterAvailable]);
+  const toWindow = useCallback(() => {
+    setMinimized(false);
+    setPresentation("window");
+    if (mode === "closed") setMode("theater");
+  }, [mode]);
+  const setStageHost = useCallback((el: HTMLElement | null) => {
+    setStageHostState(el);
+  }, []);
 
   const play = useCallback(() => {
     try {
@@ -687,11 +724,16 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (effectiveMode === "closed") return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape") {
+      // The Watch window owns Escape (it closes the window). Immersive
+      // and picture-in-picture are overlays, and Escape still ends them.
+      if (presentation === "window") return;
+      close();
+    }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [effectiveMode, close]);
+  }, [effectiveMode, close, presentation]);
 
   const stageValue = useMemo<TheaterStageValue>(
     () => ({ track, mode, close, openVideo, openMedia }),
@@ -706,6 +748,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     album,
     track,
     mode,
+    presentation,
     minimized,
     phase,
     currentTime,
@@ -728,6 +771,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     restore,
     toPip,
     toTheater,
+    toWindow,
+    setStageHost,
     play,
     pause,
     togglePlay,
@@ -752,9 +797,10 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
         rect={rect}
         track={track}
         active={mode !== "closed"}
-        visible={visible}
+        visible={visible && !(presentation === "window" && !stageHost)}
         dragging={dragging}
         pip={geomMode === "pip"}
+        dockTarget={docked ? stageHost : null}
       />
     </TheaterContext.Provider>
   );

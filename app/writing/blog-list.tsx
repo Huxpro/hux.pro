@@ -36,6 +36,7 @@ export function BlogPostList({ posts }: BlogPostListProps) {
   return (
     <PageLayout
       page="writing"
+      shrinkApp="writing"
       headerActions={
         <LanguageFilter
           includeOther={includeOther}
