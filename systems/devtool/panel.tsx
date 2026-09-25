@@ -74,7 +74,12 @@ import {
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
 import { useOptionalAbout } from "@/systems/about/provider";
-import { GLOW_TUNING_DEFAULTS, setGlowTuning, useGlowTuning } from "@/systems/glow";
+import {
+  GLOW_TUNING_DEFAULTS,
+  setGlowTuning,
+  useGlowTuning,
+  type GlowTuning,
+} from "@/systems/glow";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
 import type { AppLink } from "@/lib/app-icon-core";
@@ -165,6 +170,7 @@ const MODULE_ORDER = [
   "sky",
   "music",
   "command",
+  "glow",
   "draggable",
   "windows",
 ] as const;
@@ -2775,20 +2781,37 @@ function GlowModule() {
   const zh = locale === "zh";
   const tuning = useGlowTuning();
   const about = useOptionalAbout();
-  const star = (key: "strength" | "aboutStrength") =>
+  // The light is judged on the About: while it is up the module unfolds
+  // (`relevant`) and the panel brings it into view.
+  const aboutOpen = about?.isOpen ?? false;
+  const scrollTo = useContext(SectionsContext)?.scrollTo;
+  useEffect(() => {
+    if (!aboutOpen || !scrollTo) return;
+    // After the unfold has laid out.
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => scrollTo("glow")));
+    return () => cancelAnimationFrame(id);
+  }, [aboutOpen, scrollTo]);
+  const star = (key: keyof GlowTuning) =>
     tuning[key] !== GLOW_TUNING_DEFAULTS[key] ? (
       <PanelStar source="saved" onReset={() => setGlowTuning({ [key]: GLOW_TUNING_DEFAULTS[key] })} />
     ) : undefined;
-  const depthStar = (layout: "aboutDesk" | "aboutPhone", axis: "x" | "y") =>
-    tuning[layout][axis] !== GLOW_TUNING_DEFAULTS[layout][axis] ? (
-      <PanelStar
-        source="saved"
-        onReset={() =>
-          setGlowTuning({ [layout]: { ...tuning[layout], [axis]: GLOW_TUNING_DEFAULTS[layout][axis] } })
-        }
-      />
-    ) : undefined;
+  const changed = (Object.keys(GLOW_TUNING_DEFAULTS) as (keyof GlowTuning)[]).some(
+    (k) => tuning[k] !== GLOW_TUNING_DEFAULTS[k],
+  );
   const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const slider = (key: keyof GlowTuning, label: string, ariaLabel: string, min: number, max: number) => (
+    <PanelSlider
+      label={label}
+      ariaLabel={ariaLabel}
+      value={tuning[key]}
+      min={min}
+      max={max}
+      step={0.01}
+      format={pct}
+      star={star(key)}
+      onChange={(v) => setGlowTuning({ [key]: v })}
+    />
+  );
 
   return (
     <DebugSection
@@ -2796,7 +2819,8 @@ function GlowModule() {
       title={zh ? "光晕" : "Glow"}
       icon={<Sparkles className="h-4 w-4" />}
       compact
-      relevant={about?.isOpen ?? false}
+      relevant={aboutOpen}
+      star={changed ? "saved" : null}
       action={
         about ? (
           <button
@@ -2809,78 +2833,15 @@ function GlowModule() {
       }
     >
       <div className="space-y-3">
-        <PanelSlider
-          label={zh ? "全站强度" : "Strength · all"}
-          ariaLabel="Glow strength, site-wide"
-          value={tuning.strength}
-          min={0}
-          max={1.5}
-          step={0.05}
-          format={pct}
-          star={star("strength")}
-          onChange={(v) => setGlowTuning({ strength: v })}
-        />
-        <PanelSlider
-          label={zh ? "关于 · 强度" : "About · strength"}
-          ariaLabel="About glow strength"
-          value={tuning.aboutStrength}
-          min={0}
-          max={1.5}
-          step={0.05}
-          format={pct}
-          star={star("aboutStrength")}
-          onChange={(v) => setGlowTuning({ aboutStrength: v })}
-        />
-        {/* Where the ring's light ends, as a share of the gutter between
-            the screen's edge and the words (<EdgeGlow>'s `depth`): 100%
-            just touches them, past it the light's tail lies over them. A
-            pair per axis — a desk's side gutters are four times its top and
-            bottom — and per layout, the About having two. The defaults are
-            the ring as it first shipped (systems/glow/lib/tuning.ts). */}
-        <PanelSlider
-          label={zh ? "关于 · 桌面深度 · 左右" : "About · desk depth · sides"}
-          ariaLabel="About glow depth, desk, sides"
-          value={tuning.aboutDesk.x}
-          min={0.05}
-          max={2.5}
-          step={0.01}
-          format={pct}
-          star={depthStar("aboutDesk", "x")}
-          onChange={(v) => setGlowTuning({ aboutDesk: { ...tuning.aboutDesk, x: v } })}
-        />
-        <PanelSlider
-          label={zh ? "关于 · 桌面深度 · 上下" : "About · desk depth · top/bottom"}
-          ariaLabel="About glow depth, desk, top/bottom"
-          value={tuning.aboutDesk.y}
-          min={0.05}
-          max={2.5}
-          step={0.01}
-          format={pct}
-          star={depthStar("aboutDesk", "y")}
-          onChange={(v) => setGlowTuning({ aboutDesk: { ...tuning.aboutDesk, y: v } })}
-        />
-        <PanelSlider
-          label={zh ? "关于 · 手机深度 · 左右" : "About · phone depth · sides"}
-          ariaLabel="About glow depth, phone, sides"
-          value={tuning.aboutPhone.x}
-          min={0.05}
-          max={2.5}
-          step={0.01}
-          format={pct}
-          star={depthStar("aboutPhone", "x")}
-          onChange={(v) => setGlowTuning({ aboutPhone: { ...tuning.aboutPhone, x: v } })}
-        />
-        <PanelSlider
-          label={zh ? "关于 · 手机深度 · 上下" : "About · phone depth · top/bottom"}
-          ariaLabel="About glow depth, phone, top/bottom"
-          value={tuning.aboutPhone.y}
-          min={0.05}
-          max={2.5}
-          step={0.01}
-          format={pct}
-          star={depthStar("aboutPhone", "y")}
-          onChange={(v) => setGlowTuning({ aboutPhone: { ...tuning.aboutPhone, y: v } })}
-        />
+        {slider("strength", zh ? "全站强度" : "Strength · all", "Glow strength, site-wide", 0, 1.5)}
+        {slider("aboutStrength", zh ? "关于 · 强度" : "About · strength", "About glow strength", 0, 1.5)}
+        {/* Where the ring's light ends, as a share of the narrower gutter
+            between the screen's edge and the words (<EdgeGlow>'s `depth`):
+            100% just touches them, past it the light's tail lies over them.
+            The light stands as high off every edge. One per layout, the
+            About having two (systems/glow/lib/tuning.ts has the defaults). */}
+        {slider("aboutDesk", zh ? "关于 · 桌面深度" : "About · desk depth", "About glow depth, desk", 0.05, 2.5)}
+        {slider("aboutPhone", zh ? "关于 · 手机深度" : "About · phone depth", "About glow depth, phone", 0.05, 2.5)}
       </div>
     </DebugSection>
   );

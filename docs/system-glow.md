@@ -115,7 +115,7 @@ thickness or falloff and the constant must follow.
 <EdgeGlow
   active={open}
   content={[wordsRef, footRef]}   // what the light frames
-  depth={{ x: 0.33, y: 1.3 }}     // where it ends, as a share of the gutter
+  depth={1.3}                     // where it ends, as a share of the gutter
 />
 ```
 
@@ -128,12 +128,12 @@ between its edge and its content:
 |---|---|
 | `content` | a ref, or several (their union). Each counts as far as it is visible: clipped by any scrolling ancestor, so a long article counts only its window. |
 | gutter `x` / `y` | the narrower of the left and right gutters / of the top and bottom ones, from the glow's own box (the viewport, or what `style` insets it to — a bezel's screen). Measured live while on — resize, scroll — and kept for the way out. |
-| `depth` | a number, or `{ x, y }`: where the light ends, per axis. `0.5` halfway to the content, `1` just touching it, `1.5` its tail half a gutter over it. |
+| `depth` | where the light ends: `0.5` halfway to the content, `1` just touching it, `1.5` its tail half a gutter over it. **A number** is a share of the narrower gutter, and the light stands as high off every edge — a ring's usual look, reaching the content first where it is nearest. **`{ x, y }`** takes each axis's own gutter, so the light follows the content's shape (x off the sides, y off the top and bottom). |
 
 Everything else is `<Glow>`'s (`active`, `strength`, `radius`, `layer`,
 `style`, `className`, durations). It is always `fixed` and always a ring.
-Two axes because a desk's side gutters are four times its top and bottom;
-the extent eases from one to the other round each corner.
+With `{ x, y }` the extent eases from one axis's to the other's round each
+corner.
 
 ## Tuning
 
@@ -144,16 +144,20 @@ localStorage (`hux_glow`, `lib/tuning.ts`):
 |---|---|---|
 | Strength · all | 0–150% | every glow on the site — the renderer reads it each frame, so a drag changes every lit glow at once |
 | About · strength | 0–150% | the About's ring, on top of the above |
-| About · desk depth · sides / top-bottom | 5–250% of the gutter | the About's `<EdgeGlow depth>` on a desk (`sm` and up): default 33% / 130% |
-| About · phone depth · sides / top-bottom | 5–250% of the gutter | the same on a phone: default 220% / 220% |
+| About · desk depth | 5–250% of the narrower gutter | the About's `<EdgeGlow depth>` on a desk (`sm` and up): default 130% |
+| About · phone depth | 5–250% of the narrower gutter | the same on a phone: default 140% |
 
-The About's defaults are the ring as it first shipped — a reach of 3.8% of the
-screen's short side, clamped to 18–38px — restated in gutters. On a 1440×900
-desk a 34px reach ends 152px in: a third of the 456px side gutters, 1.3× the
-117px top and bottom ones. On a 393×659 phone the 18px floor ends 80px in:
-2.2× its 36px gutters, the tail lying faintly over the words. The restatement
-is exact at those sizes; elsewhere the ring now follows the words rather
-than the screen.
+The desk's default is the ring as it first shipped — a reach of 3.8% of the
+screen's short side, clamped to 18–38px — restated: on a 1440×900 desk a
+34px reach ends 152px in, 1.3× the narrower gutter (117px, top and bottom;
+the sides have 456px). The first phone ring (the 18px floor, ending 80px in)
+was 2.2× a 393×659 phone's 36px gutter, its tail well over the words; 140%
+(50px) keeps it off most of them. Elsewhere the ring follows the words
+rather than the screen.
+
+The module unfolds while the About is up (its `relevant`) and the panel scrolls
+to it (it has its place on the rail), where the light
+is judged.
 
 A blue `*` marks a knob off its default; pressing it resets. `Show About`
 brings the ring up to judge by eye. While the About is up the devtool rides

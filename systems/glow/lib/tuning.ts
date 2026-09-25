@@ -10,41 +10,36 @@ import { useSyncExternalStore } from "react";
 //
 //   strength       every glow on the site, × this — the light's overall volume
 //   aboutStrength  the About's ring, × this (on top of `strength`)
-//   aboutDesk      where the About's light ends, as a share of the gutter
-//   aboutPhone     between the screen's edge and the words (<EdgeGlow>'s
-//                  `depth`): `x` off the sides, `y` off the top and bottom;
-//                  1 just touches the words. One pair per layout, the About
-//                  having two (a centred group on a desk, the whole screen
-//                  on a phone — the `sm` breakpoint).
+//   aboutDesk      where the About's light ends, as a share of the narrower
+//   aboutPhone     gutter between the screen's edge and the words
+//                  (<EdgeGlow>'s `depth`, one number: the light stands as
+//                  high off every edge). 1 just touches the words. One per
+//                  layout, the About having two (a centred group on a desk,
+//                  the whole screen on a phone — the `sm` breakpoint).
 //
-// The defaults are the ring as it first shipped (a reach of 3.8% of the
-// screen's short side, 18–38px), restated in gutters at 1440×900 and at an
-// iPhone's 393×659: a 34px reach ends 152px in, a third of a desk's 456px
-// side gutter and 1.3× its 117px top one; an 18px reach ends 80px in, 2.2×
-// a phone's 36px gutters — its tail lies faintly over the words.
+// The desk's default is the ring as it first shipped (a reach of 3.8% of the
+// screen's short side, 18–38px), restated: at 1440×900 a 34px reach ends
+// 152px in, 1.3× the narrower gutter (117px, top and bottom). On a phone
+// the first ring (an 18px reach, ending 80px in) was 2.2× its 36px gutter,
+// its tail well over the words; 1.4 (50px) keeps it off most of them.
 //
 // The renderer reads `strength` from here every frame (`glowTuning()`), so a
 // slider drag changes every lit glow at once without re-rendering anything.
 // Components read the rest with `useGlowTuning()`.
 // =============================================================================
 
-export interface GlowDepth {
-  x: number;
-  y: number;
-}
-
 export interface GlowTuning {
   strength: number;
   aboutStrength: number;
-  aboutDesk: GlowDepth;
-  aboutPhone: GlowDepth;
+  aboutDesk: number;
+  aboutPhone: number;
 }
 
 export const GLOW_TUNING_DEFAULTS: GlowTuning = {
   strength: 1,
   aboutStrength: 1,
-  aboutDesk: { x: 0.33, y: 1.3 },
-  aboutPhone: { x: 2.2, y: 2.2 },
+  aboutDesk: 1.3,
+  aboutPhone: 1.4,
 };
 
 const KEY = "hux_glow";
@@ -59,14 +54,14 @@ function load() {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
-      const saved = JSON.parse(raw) as Partial<GlowTuning>;
-      const pick = (k: keyof GlowTuning) => (k in saved ? saved[k] : GLOW_TUNING_DEFAULTS[k]);
-      state = {
-        strength: pick("strength") as number,
-        aboutStrength: pick("aboutStrength") as number,
-        aboutDesk: { ...GLOW_TUNING_DEFAULTS.aboutDesk, ...(saved.aboutDesk ?? {}) },
-        aboutPhone: { ...GLOW_TUNING_DEFAULTS.aboutPhone, ...(saved.aboutPhone ?? {}) },
-      };
+      // Only numbers, and only the knobs there are: a shape saved by an
+      // older build (a depth pair) falls back to the default.
+      const saved = JSON.parse(raw) as Record<string, unknown>;
+      const next = { ...GLOW_TUNING_DEFAULTS };
+      for (const k of Object.keys(next) as (keyof GlowTuning)[]) {
+        if (typeof saved[k] === "number") next[k] = saved[k];
+      }
+      state = next;
     }
   } catch {
     /* storage blocked or malformed: defaults */
