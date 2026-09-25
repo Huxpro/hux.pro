@@ -73,8 +73,6 @@ export interface GlowProps {
   radius?: number;
   /** 0–1, the whole effect. The devtool's site-wide strength multiplies it. */
   strength?: number;
-  /** Multiplies the reach, given or sized to the host. */
-  reachScale?: number;
   /** Over the viewport rather than the host. */
   fixed?: boolean;
   /** Mark it a vitre bezel layer (absolute rather than fixed in container
@@ -119,7 +117,6 @@ export function Glow({
   bleed = 0,
   radius,
   strength = 1,
-  reachScale = 1,
   fixed = false,
   layer = false,
   inDuration,
@@ -136,12 +133,12 @@ export function Glow({
   // a prop change must not restart the animation.
   const props = useRef({
     active, shape, edge, level, bands, processing, reach, bleed, radius, strength,
-    reachScale, inDuration, outDuration, onDone,
+    inDuration, outDuration, onDone,
   });
   useLayoutEffect(() => {
     props.current = {
       active, shape, edge, level, bands, processing, reach, bleed, radius, strength,
-      reachScale, inDuration, outDuration, onDone,
+      inDuration, outDuration, onDone,
     };
   });
 
@@ -244,7 +241,7 @@ export function Glow({
           reveal: m.reveal,
           surge,
           radius: p.radius ?? instance.hostRadius,
-          width: (p.reach ?? defaultReach(p.shape, w, h, fixed)) * p.reachScale,
+          width: p.reach ?? defaultReach(p.shape, w, h, fixed),
           bleed: p.bleed ?? 0,
           dark: document.documentElement.classList.contains("dark") ? 1 : 0,
           strength: p.strength * glowTuning().strength,
