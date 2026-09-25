@@ -10,7 +10,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "vitre";
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
+  useState,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -59,6 +61,31 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
     ? { ...BEZEL_INSET, borderRadius: bezelRadius }
     : undefined;
   const dialogRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const articleRef = useRef<HTMLElement>(null);
+  // The gutter (screen edge → words, the narrower side) the ring's depth is a
+  // share of, and whether the words overflow their container. Measured while
+  // open; the gutter is kept after, for the ring's way out.
+  const [gutter, setGutter] = useState<number | null>(null);
+  const [overflowing, setOverflowing] = useState(false);
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const dialog = dialogRef.current;
+    const article = articleRef.current;
+    const scroll = scrollRef.current;
+    if (!dialog || !article || !scroll) return;
+    const measure = () => {
+      const a = article.getBoundingClientRect();
+      const f = dialog.getBoundingClientRect();
+      setGutter(Math.max(0, Math.min(a.left - f.left, f.right - a.right)));
+      setOverflowing(scroll.scrollHeight > scroll.clientHeight + 1);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(dialog);
+    ro.observe(article);
+    return () => ro.disconnect();
+  }, [isOpen]);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
   // Take focus while up, so Tab starts inside it and a screen reader lands
@@ -108,10 +135,18 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
               aria-hidden
               className="absolute inset-0 bg-glass/70 backdrop-blur-2xl backdrop-saturate-150"
             />
-            {/* The words scroll in their own container; the way out never
-                scrolls away with them. */}
+            {/* On a desk the words and the way out are one group, centred
+                on the screen — spacers above and below take what is left.
+                On a phone the words take every line the screen has and the
+                way out sits at its foot. Either way the words scroll in their
+                own container, and the way out never scrolls away with them. */}
+            <div aria-hidden className="hidden sm:block sm:flex-1" onClick={onBackdrop} />
             <div
-              className="about-scroll relative min-h-0 flex-1 overflow-y-auto overscroll-contain"
+              ref={scrollRef}
+              className={cn(
+                "relative min-h-0 flex-1 overflow-y-auto overscroll-contain sm:flex-initial",
+                overflowing && "about-scroll-fade",
+              )}
               onClick={onBackdrop}
             >
               <div
@@ -120,12 +155,13 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
                   // The ring owns the outer few dozen pixels; the words keep
                   // clear of it, and of the notch.
                   "px-[max(2.25rem,calc(env(safe-area-inset-left)+1.5rem))]",
-                  "pt-[max(5rem,calc(env(safe-area-inset-top)+3.5rem))] pb-8",
-                  "sm:px-12 sm:pt-20",
+                  "pt-[max(5rem,calc(env(safe-area-inset-top)+3.5rem))] pb-6",
+                  "sm:px-12 sm:pt-10 sm:pb-2",
                 )}
                 onClick={onBackdrop}
               >
                 <motion.article
+                  ref={articleRef}
                   lang={locale === "zh" ? "zh" : "en"}
                   className="about-copy w-full max-w-[33rem] space-y-5 text-[15px] leading-[1.8] text-muted-foreground [&:lang(zh)]:leading-[1.9]"
                   initial={{ y: 10, scale: 0.985 }}
@@ -144,7 +180,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
               className={cn(
                 "relative shrink-0",
                 "px-[max(2.25rem,calc(env(safe-area-inset-left)+1.5rem))] sm:px-12",
-                "pt-3 pb-[max(2.5rem,calc(env(safe-area-inset-bottom)+1.5rem))] sm:pb-12",
+                "pt-4 pb-[max(2.25rem,calc(env(safe-area-inset-bottom)+1.25rem))] sm:pt-8 sm:pb-10",
               )}
               onClick={onBackdrop}
             >
@@ -154,6 +190,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
                 onDismiss={close}
               />
             </div>
+            <div aria-hidden className="hidden sm:block sm:flex-1" onClick={onBackdrop} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -165,9 +202,13 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
         radius={bezel ? bezelRadius : hasFineHoverPointer ? 10 : 44}
         style={frame}
         layer={bezel}
-        // The devtool's Glow module: the About's own strength and depth.
+        // The devtool's Glow module: the About's own strength, and its depth
+        // as a share of the gutter — the room between the screen's edge and
+        // the words. The light reaches visibly about 2.5× its `reach`, so
+        // 20% of a desk's ~450px gutter is a ~36px reach, and a phone's
+        // ~36px gutter keeps it to a thin line (never under 8px).
         strength={tuning.aboutStrength}
-        reachScale={tuning.aboutReach}
+        reach={gutter === null ? undefined : Math.max(8, (tuning.aboutDepth * gutter) / 2.5)}
         className={cn("z-[10021]", bezel && "overflow-hidden")}
       />
     </>
@@ -186,7 +227,9 @@ function AboutFoot({
   const { locale } = useLocale();
   const [before, after] = t(locale, "aboutReopenHint").split("{key}");
   return (
-    <div className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-wrap items-center gap-x-4 gap-y-3">
+    // The button is the centre of weight; the hint sits under it, kept to
+    // about its width so the eye stays on the press.
+    <div className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-col items-center">
       {/* Glass, not a slab: the way out is part of the veil it sits on. */}
       <button
         type="button"
@@ -200,7 +243,7 @@ function AboutFoot({
       >
         {t(locale, firstTime ? "aboutEnter" : "aboutClose")}
       </button>
-      <span className="text-xs text-tertiary-foreground">
+      <span className="mt-3 max-w-[12.5rem] text-center text-[11px] leading-relaxed text-tertiary-foreground">
         {keyboard ? (
           <>
             {before}

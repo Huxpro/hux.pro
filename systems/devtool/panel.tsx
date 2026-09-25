@@ -2822,16 +2822,19 @@ function GlowModule() {
           star={star("aboutStrength")}
           onChange={(v) => setGlowTuning({ aboutStrength: v })}
         />
+        {/* A share of the room the ring has — the gutter from the screen's
+            edge to the words — so one setting reads alike on a wide desk
+            and a narrow phone. */}
         <PanelSlider
-          label={zh ? "关于 · 深度" : "About · depth"}
+          label={zh ? "关于 · 深度（留白）" : "About · depth (of gutter)"}
           ariaLabel="About glow depth"
-          value={tuning.aboutReach}
-          min={0.5}
-          max={2}
-          step={0.05}
-          format={(v) => `×${v.toFixed(2)}`}
-          star={star("aboutReach")}
-          onChange={(v) => setGlowTuning({ aboutReach: v })}
+          value={tuning.aboutDepth}
+          min={0.05}
+          max={0.6}
+          step={0.01}
+          format={pct}
+          star={star("aboutDepth")}
+          onChange={(v) => setGlowTuning({ aboutDepth: v })}
         />
       </div>
     </DebugSection>

@@ -98,7 +98,7 @@ localStorage (`hux_glow`, `lib/tuning.ts`):
 |---|---|---|
 | Strength · all | 0–150% | every glow on the site — the renderer reads it each frame, so a drag changes every lit glow at once |
 | About · strength | 0–150% | the About's ring, on top of the above |
-| About · depth | ×0.5–×2 | how far the About's ring reaches in (`reachScale`) |
+| About · depth | 5–60% of the gutter | how far the About's ring reaches in, as a share of the room it has — the gutter from the screen's edge to the words (the narrower side, measured live). The light shows about 2.5× its reach, so the default 20% is a ~36px reach on a desk's ~450px gutter and a thin line (never under 8px) on a phone's ~36px one. |
 
 A blue `*` marks a knob off its default; pressing it resets. `Show About`
 brings the ring up to judge by eye. While the About is up the devtool rides
