@@ -16,7 +16,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bug, PanelBottom } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOptionalAbout } from "@/systems/about/provider";
-import { DevtoolFooter, DevtoolModules, DevtoolTitle } from "./panel";
+import {
+  DevtoolFooter,
+  DevtoolModules,
+  DevtoolRail,
+  DevtoolSections,
+  DevtoolTitle,
+} from "./panel";
 import { useDevtool } from "./provider";
 
 // =============================================================================
@@ -298,6 +304,7 @@ export function DevtoolFAB() {
   const { isEnabled, isOpen, canDock, isFloating, close, detach, dock } =
     useDevtool();
   const z = useDevtoolZ(undefined);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   if (!isEnabled) return null;
 

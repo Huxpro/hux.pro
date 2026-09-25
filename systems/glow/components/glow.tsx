@@ -10,7 +10,7 @@ import {
   type CSSProperties,
   type Ref,
 } from "react";
-import { BEZEL_LAYER_ATTRIBUTE } from "vitre";
+import { VITRE_LAYER_ATTRIBUTE } from "vitre";
 import { GLOW_CSS_STOPS } from "../lib/palette";
 import {
   glowSupported,
@@ -318,7 +318,7 @@ export function Glow({
       <span
         ref={boxRef}
         aria-hidden
-        {...(layer ? { [BEZEL_LAYER_ATTRIBUTE]: "" } : {})}
+        {...(layer ? { [VITRE_LAYER_ATTRIBUTE]: "" } : {})}
         className={cn(
           "glow-fallback pointer-events-none block transition-opacity duration-500",
           fixed ? "fixed inset-0" : "absolute",
@@ -340,7 +340,7 @@ export function Glow({
     <span
       ref={boxRef}
       aria-hidden
-      {...(layer ? { [BEZEL_LAYER_ATTRIBUTE]: "" } : {})}
+      {...(layer ? { [VITRE_LAYER_ATTRIBUTE]: "" } : {})}
       className={cn("pointer-events-none block", fixed ? "fixed inset-0" : "absolute", className)}
       style={box}
     >

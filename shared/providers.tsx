@@ -69,10 +69,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
                         <WindowProvider>
                           <AttachmentProvider>
                             <IdentityCardProvider>
-                              <AboutProvider>
-                                {children}
-                                <SystemSonner />
-                              </AboutProvider>
+                              <InstallProvider>
+                                <AboutProvider>
+                                  {children}
+                                  <SystemSonner />
+                                </AboutProvider>
+                              </InstallProvider>
                             </IdentityCardProvider>
                           </AttachmentProvider>
                         </WindowProvider>

@@ -64,7 +64,6 @@ export const EDITORS: readonly EditorEntry[] = [
     href: "/editor/glow",
     title: "glow",
     hint: "The one light, at every scale",
-    label: "Glow lab",
   },
   {
     id: "theater",
