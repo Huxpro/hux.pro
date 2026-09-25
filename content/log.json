@@ -889,25 +889,16 @@
       "media": [
         {
           "kind": "link",
-          "url": "https://lynxjs.org",
-          "present": "pill",
-          "label": "Website",
-          "icon": "globe"
-        },
-        {
-          "kind": "link",
-          "url": "https://github.com/lynx-family/lynx",
-          "present": "pill",
-          "label": "GitHub",
-          "icon": "github"
-        },
-        {
-          "kind": "link",
           "url": "https://lynxjs.org/next/blog/lynx-unlock-native-for-more",
           "urls": {
             "en": "https://lynxjs.org/next/blog/lynx-unlock-native-for-more",
             "zh": "https://lynxjs.org/next/zh/blog/lynx-unlock-native-for-more.html"
           },
+          "present": "card"
+        },
+        {
+          "kind": "link",
+          "url": "https://github.com/lynx-family/lynx",
           "present": "card"
         }
       ],
@@ -1076,20 +1067,6 @@
       "media": [
         {
           "kind": "link",
-          "url": "https://hermesengine.dev",
-          "present": "pill",
-          "label": "Website",
-          "icon": "globe"
-        },
-        {
-          "kind": "link",
-          "url": "https://github.com/facebook/hermes",
-          "present": "pill",
-          "label": "GitHub",
-          "icon": "github"
-        },
-        {
-          "kind": "link",
           "url": "https://reactnative.dev/blog/2021/10/26/toward-hermes-being-the-default",
           "present": "card",
           "preview": {
@@ -1099,6 +1076,11 @@
         {
           "kind": "link",
           "url": "https://www.callstack.com/podcasts/react-native-0-64-with-hermes-for-ios-ep-5",
+          "present": "card"
+        },
+        {
+          "kind": "link",
+          "url": "https://github.com/facebook/hermes",
           "present": "card"
         }
       ]
@@ -1133,26 +1115,17 @@
       "media": [
         {
           "kind": "link",
-          "url": "https://react.dev",
-          "present": "pill",
-          "label": "Website",
-          "icon": "globe"
-        },
-        {
-          "kind": "link",
-          "url": "https://github.com/facebook/react",
-          "present": "pill",
-          "label": "GitHub",
-          "icon": "github"
-        },
-        {
-          "kind": "link",
           "url": "https://react.dev/blog/2022/06/15/react-labs-what-we-have-been-working-on-june-2022#react-compiler",
           "present": "card"
         },
         {
           "kind": "link",
           "url": "https://react.dev/learn/react-compiler",
+          "present": "card"
+        },
+        {
+          "kind": "link",
+          "url": "https://github.com/facebook/react",
           "present": "card"
         }
       ],
@@ -1193,19 +1166,6 @@
       "media": [
         {
           "kind": "link",
-          "url": "https://github.com/Huxpro/WasmCert",
-          "present": "pill",
-          "label": "GitHub",
-          "icon": "github"
-        },
-        {
-          "kind": "link",
-          "url": "https://scholar.google.com/scholar?cites=13173623897259187056&as_sdt=2005&sciodt=0,5&hl=en",
-          "present": "pill",
-          "label": "Google Scholar"
-        },
-        {
-          "kind": "link",
           "url": "https://www.cs.rit.edu/~mtf/student-resources/20191_huang_mscourse.pdf",
           "present": "card",
           "preview": {
@@ -1230,6 +1190,11 @@
             "image": "https://www.semanticscholar.org/img/semantic_scholar_og.png",
             "frame": "deny"
           }
+        },
+        {
+          "kind": "link",
+          "url": "https://github.com/Huxpro/WasmCert",
+          "present": "card"
         }
       ],
       "commentary": {
@@ -1432,26 +1397,6 @@
             "description": "创作真正跨平台的 HTML5 展示文稿，让你的分享到达世界的任何一个角落",
             "image": "/img/works/yanshuo-cover.png"
           }
-        },
-        {
-          "kind": "link",
-          "url": "https://zhuanlan.zhihu.com/p/21280918",
-          "present": "pill",
-          "label": "Zhihu · 1",
-          "icon": "file",
-          "preview": {
-            "frame": "deny"
-          }
-        },
-        {
-          "kind": "link",
-          "url": "https://zhuanlan.zhihu.com/p/21361400",
-          "present": "pill",
-          "label": "Zhihu · 2",
-          "icon": "file",
-          "preview": {
-            "frame": "deny"
-          }
         }
       ],
       "language": "zh"
@@ -1567,13 +1512,6 @@
         "Design"
       ],
       "media": [
-        {
-          "kind": "link",
-          "url": "https://huangxuan.me",
-          "present": "pill",
-          "label": "Website",
-          "icon": "globe"
-        },
         {
           "kind": "link",
           "url": "https://huxpro.github.io/2015/01/29/hello-2015/",
