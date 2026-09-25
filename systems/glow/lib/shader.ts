@@ -61,6 +61,17 @@ float sdRoundBox(vec2 p, vec2 b, float r) {
   return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
 }
 
+// Smooth minimum of four distances (log-sum-exp, stable), softness k.
+// A hard min of the edge distances makes the light's contours corner along
+// each diagonal — a crease from every corner, once the light reaches deeper
+// than the corner's radius. The smooth min keeps them round at every depth,
+// and where two edges meet their light adds up instead of folding.
+float smin4(vec4 d, float k) {
+  float m = min(min(d.x, d.y), min(d.z, d.w));
+  vec4 e = exp(-(d - m) / k);
+  return m - k * log(e.x + e.y + e.z + e.w);
+}
+
 ${glslRing()}
 
 void main() {
@@ -72,11 +83,31 @@ void main() {
   float sd = sdRoundBox(p, box, min(uRadius, min(box.x, box.y)));
   // Inward from the edge, CSS px — for a line, up from the bottom edge only,
   // so the light rises from one edge instead of lining all four.
-  float d = mix(max(-sd, 0.0), max(p.y + box.y, 0.0), uLine);
-  float out_ = max(sd, 0.0); // outward, into the bleed
+  float edge = max(-sd, 0.0);     // the true rounded outline: the core line
+  float out_ = max(sd, 0.0);      // outward, into the bleed
+  // Only a glow with room to bleed has an outside; without, the sliver
+  // between a rounded box and a square host (a desktop screen's corners) is
+  // the edge itself, lit as the edge.
+  bool outside = sd > 0.0 && uBleed > 0.0;
 
   float energy = 0.6 + 0.9 * uLevel;          // 1.0 at the resting 0.45
   float reach = uWidth * (1.0 + 1.4 * uSurge) * energy;
+
+  // The beams' depth: the smooth min of the four straight edges, so their
+  // light rounds each corner instead of creasing on its diagonal. Softness
+  // follows the reach — a screen's ring blends its corners broadly, a
+  // badge's barely. A line keeps its one edge.
+  // Blended once more with the true outline (and its ln 2 offset added back),
+  // so a round host — an avatar, a phone's 44px corners — keeps its light on
+  // the curve, where the straight edges alone would sit a few px inside it.
+  vec4 edges = vec4(p.x + box.x, box.x - p.x, p.y + box.y, box.y - p.y);
+  float kS = max(0.5, reach * 0.55);
+  float straight = smin4(max(edges, 0.0), kS);
+  float m2 = min(edge, straight);
+  float ringD = max(
+    m2 - kS * log(exp(-(edge - m2) / kS) + exp(-(straight - m2) / kS)) + kS * 0.6931,
+    0.0);
+  float d = mix(ringD, max(p.y + box.y, 0.0), uLine);
   if (d > reach * 9.0) { gl_FragColor = vec4(0.0); return; }
 
   float ring_s = atan(p.y / box.y, p.x / box.x) / TAU + 0.5;
@@ -121,13 +152,13 @@ void main() {
   col = clamp(mix(vec3(luma), col, mix(1.55, 1.3, uDark)), 0.0, 1.0);
   float a = 1.0 - exp(-glow * 1.15);
 
-  // The line on the edge itself.
-  float core = exp(-d / (2.2 + 3.0 * uSurge));
+  // The line on the edge itself — on the true outline, so it stays crisp.
+  float core = exp(-mix(edge, d, uLine) / (2.2 + 3.0 * uSurge));
   col = mix(col, vec3(1.0), core * mix(0.18, 0.6, uDark));
   a = max(a, core * 0.95);
 
   // Outside the box: the halo, softer and dimmer, fading over the bleed.
-  if (sd > 0.0) {
+  if (outside) {
     float halo = exp(-out_ / max(1.0, reach * 0.55)) * smoothstep(uBleed, uBleed * 0.4, out_);
     a = halo * mix(0.55, 0.75, uDark);
   }
@@ -141,7 +172,7 @@ void main() {
   float shown = smoothstep(front, front - 0.15 * span, from);
   float flare = exp(-abs(from - front + 0.06 * span) * 18.0 / span)
     * (1.0 - uReveal) * step(0.001, uReveal) * focus;
-  a = a * shown + flare * exp(-d / reach) * 0.8 * step(sd, 0.0);
+  a = a * shown + flare * exp(-d / reach) * 0.8 * (outside ? 0.0 : 1.0);
   col = mix(col, vec3(1.0), flare * 0.35);
 
   // Light adds up on a dark ground and tints a light one: a touch less of it
