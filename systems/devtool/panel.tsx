@@ -72,7 +72,6 @@ import {
 import { useHeroExit } from "@/components/ui/hero-exit";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
-import appsJson from "@/content/apps.json";
 import type { AppLink } from "@/lib/app-icon-core";
 import {
   setRulerSide,
@@ -152,7 +151,7 @@ export function DevtoolModules() {
       <MusicModule />
       <CommandModule />
       <DraggableModule />
-      <AppsModule />
+      <WindowsModule />
       <RefetchModule />
     </>
   );
@@ -199,7 +198,10 @@ export function DevtoolTitle() {
 }
 
 // =============================================================================
-// Apps Module — inspect app windows + registry, and load a bundle over-the-air
+// Windows Module
+// Inspects the app windows that are open, front-most first: what each one is
+// running and where it sits. Launching apps and loading a bundle by URL are
+// the command palette's job (⌘K → Apps), so they are not repeated here.
 // =============================================================================
 
 function MetaRow({ k, v }: { k: string; v: string }) {
@@ -211,127 +213,89 @@ function MetaRow({ k, v }: { k: string; v: string }) {
   );
 }
 
-function AppsModule() {
+/** Where a window's code comes from: the web, a bundle we ship, or one fetched. */
+function windowSource(app: AppLink): string {
+  if (app.runtime !== "lynx") return "web";
+  return app.bundleUrl?.startsWith("http") ? "online" : "built-in";
+}
+
+function WindowsModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
   const win = useOptionalWindows();
-  const apps = (appsJson as { apps: AppLink[] }).apps;
-  const [url, setUrl] = useState("");
   if (!win) return null;
 
-  const sourceOf = (app: AppLink) =>
-    app.runtime === "lynx"
-      ? app.bundleUrl?.startsWith("http")
-        ? "online"
-        : "built-in"
-      : "web";
-
-  const loadOta = () => {
-    const u = url.trim();
-    if (u) {
-      win.openBundleUrl(u);
-      setUrl("");
-    }
-  };
+  const windows = [...win.windows].sort((a, b) => b.z - a.z);
 
   return (
     <DebugSection
-      id="apps"
-      title="Apps"
-      icon={<AppWindow className="h-3 w-3" />}
+      id="windows"
+      title={zh ? "窗口" : "Windows"}
+      icon={<AppWindow className="h-4 w-4" />}
+      compact={!windows.length}
       defaultCollapsed
+      action={
+        windows.length ? (
+          <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
+            {windows.length}
+          </span>
+        ) : null
+      }
     >
-      <div className="space-y-3 px-4 py-3">
-        {/* Over-the-air bundle loader */}
-        <div className="space-y-1.5">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            Load bundle (OTA)
-          </div>
-          <div className="flex gap-1.5">
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && loadOta()}
-              placeholder="https://…/main.web.bundle"
-              spellCheck={false}
-              className="min-w-0 flex-1 rounded-md border border-border/60 bg-muted/30 px-2 py-1 text-[11px] font-mono text-foreground placeholder:text-tertiary-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-            <button
-              onClick={loadOta}
-              className="shrink-0 rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-[11px] font-mono text-foreground hover:bg-muted"
-            >
-              Load
-            </button>
-          </div>
+      {!windows.length ? (
+        <div className="text-[10px] font-mono text-tertiary-foreground">
+          {zh ? "没有打开的窗口" : "No open windows"}
         </div>
-
-        {/* Live windows */}
-        {win.windows.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-              Open windows ({win.windows.length})
-            </div>
-            {win.windows.map((w) => (
+      ) : (
+        <div className="space-y-2.5">
+          {windows.map((w, i) => {
+            const { app, rect } = w;
+            const location = app.runtime === "lynx" ? app.bundleUrl : app.url;
+            return (
               <div
                 key={w.id}
-                className="space-y-0.5 rounded-lg border border-border/50 bg-muted/20 p-2 text-[11px] font-mono"
+                className={cn("space-y-1.5", i > 0 && "border-t border-border/30 pt-2.5")}
               >
-                <div className="flex items-center justify-between">
-                  <span className="truncate text-foreground">{w.app.title}</span>
-                  <span className="text-muted-foreground">{w.mode}</span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="min-w-0 truncate text-xs font-mono text-foreground/90">
+                    {app.title}
+                  </span>
+                  {w.id === win.focusedId && (
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                      {zh ? "焦点" : "focused"}
+                    </span>
+                  )}
+                  {w.mode === "minimized" && (
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-tertiary-foreground px-1.5 py-0.5 border border-border/50 rounded">
+                      {zh ? "已最小化" : "minimized"}
+                    </span>
+                  )}
                 </div>
-                <MetaRow k="runtime" v={w.app.runtime ?? "web"} />
-                {w.app.flavor && <MetaRow k="flavor" v={w.app.flavor} />}
-                <MetaRow k="source" v={sourceOf(w.app)} />
-                <MetaRow k="size" v={w.sizePreset} />
-                <MetaRow
-                  k="rect"
-                  v={`${Math.round(w.rect.x)},${Math.round(w.rect.y)} · ${Math.round(w.rect.width)}×${Math.round(w.rect.height)}`}
-                />
-                {w.app.bundleUrl && <MetaRow k="bundle" v={w.app.bundleUrl} />}
-                {w.app.runtime !== "lynx" && <MetaRow k="url" v={w.app.url} />}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Registry */}
-        <div className="space-y-1.5">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            Registry ({apps.length})
-          </div>
-          {apps.map((app) => (
-            <div
-              key={app.id}
-              className="flex items-center gap-2 rounded-lg border border-border/40 px-2 py-1.5"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-xs text-foreground">{app.title}</div>
-                <div className="truncate text-[10px] font-mono text-muted-foreground">
-                  {sourceOf(app)} ·{" "}
-                  {app.runtime === "lynx" ? (app.flavor ?? "react") : "web"} ·{" "}
-                  {app.size ?? "auto"}
+                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] font-mono text-muted-foreground">
+                  <MetaRow
+                    k="runtime"
+                    v={app.runtime === "lynx" ? `lynx · ${app.flavor ?? "react"}` : "web"}
+                  />
+                  <MetaRow k="source" v={windowSource(app)} />
+                  <MetaRow k="size" v={w.sizePreset} />
+                  <MetaRow k="reloads" v={String(w.generation)} />
+                  <div className="col-span-2">
+                    <MetaRow
+                      k="rect"
+                      v={`${Math.round(rect.x)},${Math.round(rect.y)} · ${Math.round(rect.width)}×${Math.round(rect.height)}`}
+                    />
+                  </div>
                 </div>
+                {location && (
+                  <div className="text-[10px] font-mono text-tertiary-foreground break-all">
+                    {location}
+                  </div>
+                )}
               </div>
-              <button
-                onClick={() => win.openApp(app)}
-                className="shrink-0 rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-[10px] font-mono text-foreground hover:bg-muted"
-              >
-                Open
-              </button>
-              {app.runtime !== "lynx" && (
-                <a
-                  href={app.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground"
-                  aria-label={`Open ${app.title} externally`}
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
-      </div>
+      )}
     </DebugSection>
   );
 }

@@ -301,7 +301,11 @@ while the modules scroll. The modules:
    phone) / Popover (the desktop card at phone width, the palette as it was).
    A saved setting, so a blue `*` marks it and resets it. Lets the two be
    compared on the same device; the popover code path is kept whole for it.
-5. **Refetch**: Force re-fetch location/weather
+5. **Windows**: the open app windows, front-most first — focused / minimized,
+   runtime and flavor, source (web / built-in / online), size preset, reload
+   count, rect, and the bundle or page URL. Inspection only: apps launch, and
+   bundles load by URL, from ⌘K. The header shows how many are open.
+6. **Refetch**: Force re-fetch location/weather
 
 ## Controls
 
