@@ -130,7 +130,7 @@ When the search input is empty or unfocused:
 | `E` | Go to Editor |
 | `A` | Cycle Appearance (system → dark → light) |
 | `L` | Toggle Language |
-| `O` | Toggle geolOcation (IP ↔ accurate) |
+| `O` | Open About (also works directly from any page) |
 | `W` | Open the Wallpaper picker |
 | `G` | Toggle Glass material (Tinted ↔ Clear) |
 | `T` | Toggle glass Tint (Wallpaper ↔ Neutral) |

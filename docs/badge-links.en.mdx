@@ -1,0 +1,36 @@
+# Badge links
+
+Small, inline doors into the site's apps and media. They are available in every MDX document as `BadgeLink`, and in React from `@/components/badge-link`.
+
+Explore <BadgeLink appId="lynx" /> or <BadgeLink appId="vue-lynx" /> without leaving the site. Catalog apps keep their icon, window size, and runtime: <BadgeLink appId="cat-toy" /> opens the actual Lynx app.
+
+```tsx
+<BadgeLink appId="lynx" />
+<BadgeLink href="https://example.com" title="My project" icon="/my-icon.png" />
+```
+
+## Every attachment kind
+
+A recording: <BadgeLink href="https://youtu.be/lGEMwh32soc">React talk</BadgeLink>. A deck: <BadgeLink href="https://huxpro.github.io/jsconfcn2017/" as="slides">PWA slides</BadgeLink>. An image: <BadgeLink href="/img/works/upgrading-to-pwa-cover.png">PWA artwork</BadgeLink>. A social post: <BadgeLink href="https://x.com/Huxpro/status/1502483206569807874" as="social-embed">Social post</BadgeLink>. A page: <BadgeLink href="/writing">Writing</BadgeLink>.
+
+```tsx
+<BadgeLink href="https://youtu.be/lGEMwh32soc">React talk</BadgeLink>
+<BadgeLink href="https://huxpro.github.io/jsconfcn2017/" as="slides">PWA slides</BadgeLink>
+<BadgeLink href="/img/works/upgrading-to-pwa-cover.png">PWA artwork</BadgeLink>
+<BadgeLink href="https://x.com/Huxpro/status/1502483206569807874" as="social-embed">Social post</BadgeLink>
+<BadgeLink href="/writing">Writing</BadgeLink>
+```
+
+URL detection covers YouTube, Bilibili, Vimeo, supported social platforms, known slide URLs, and image extensions. Use `as` to override detection, and `platform` for a video platform hint. `title` supplies the launcher title; children supply the visible label. `thumbnail` supplies a video or slide cover.
+
+## Use existing media
+
+Passing the site's `Media` object preserves localized links, framing restrictions, thumbnails, and other attachment metadata:
+
+```tsx
+<BadgeLink media={commit.media[0]} title="My project" />
+```
+
+Desktop links open in the in-site browser, videos and slides in the theater, images in the zoomable lightbox, and social posts in the attachment viewer. Phones use the existing attachment sheet, with its native action. Pages marked `preview.frame: "deny"` open in a browser tab. Catalog apps go directly to their app window or mobile sheet.
+
+Badges remain real anchors: modified clicks, copy link, and opening in a new tab work normally. Without an attachment provider, the ordinary link still works. `onLaunch` is an optional React callback for dismissing a presenting surface before an in-site launch.

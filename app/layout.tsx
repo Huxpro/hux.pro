@@ -1,4 +1,5 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
+import { AboutSurface } from "@/systems/about/surface";
 import { bezelBootResolver } from "@/systems/ambient/lib/bezel";
 import { vitreBootScript } from "vitre";
 import { Providers } from "@/shared/providers";
@@ -151,6 +152,7 @@ export default function RootLayout({
             <IdentityCard />
             <CommandPalette />
             <FloatingActionButton />
+            <AboutSurface />
           </Providers>
         </body>
       </html>
