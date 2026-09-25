@@ -3,7 +3,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { ArrowUpRight, Minus, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "vitre";
+import { BEZEL_INSET, VITRE_LAYER_ATTRIBUTE } from "vitre";
 import {
   TransformComponent,
   TransformWrapper,
@@ -141,7 +141,7 @@ export function ImageLightbox() {
             and in container scroll they turn absolute inside the fixed body
             (the same box) instead of tinting Safari's chrome. */}
         <Dialog.Backdrop
-          {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
+          {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
           style={{ zIndex: LAYER }}
           className={cn(
             "fixed inset-0",
@@ -151,7 +151,7 @@ export function ImageLightbox() {
           )}
         />
         <Dialog.Popup
-          {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
+          {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
           initialFocus={closeRef}
           // The chrome and the fitted image live in the box inside the bezel;
           // the veil behind them runs to the edge and under it.
