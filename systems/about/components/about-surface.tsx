@@ -13,11 +13,13 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type MouseEvent,
+  type Ref,
   type ReactNode,
 } from "react";
 import { useAbout } from "../provider";
-import { Glow, useGlowTuning } from "@/systems/glow";
+import { EdgeGlow, useGlowTuning } from "@/systems/glow";
 
 // =============================================================================
 // AboutSurface — the About, floating over whatever page is underneath.
@@ -63,40 +65,21 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const articleRef = useRef<HTMLElement>(null);
-  // The gutters — screen edge → the words, across (x) and down (y), each the
-  // narrower of its two sides — that the ring's depth is a share of, and
-  // whether the words overflow their container. The words are the article,
-  // as far as the scroll container shows it, and the way out under it.
-  // Measured while open; kept after, for the ring's way out.
-  const [gutters, setGutters] = useState<{ x: number; y: number } | null>(null);
+  const footRef = useRef<HTMLDivElement>(null);
+  const desk = useDeskLayout();
+  // Whether the words overflow their container: the fade at its edges says
+  // there is more.
   const [overflowing, setOverflowing] = useState(false);
   useLayoutEffect(() => {
     if (!isOpen) return;
-    const dialog = dialogRef.current;
     const article = articleRef.current;
     const scroll = scrollRef.current;
-    const foot = dialog?.querySelector<HTMLElement>(".about-foot");
-    if (!dialog || !article || !scroll || !foot) return;
-    const measure = () => {
-      const f = dialog.getBoundingClientRect();
-      const a = article.getBoundingClientRect();
-      const s = scroll.getBoundingClientRect();
-      const b = foot.getBoundingClientRect();
-      const left = Math.min(a.left, b.left);
-      const right = Math.max(a.right, b.right);
-      const top = Math.max(a.top, s.top);
-      const bottom = Math.max(Math.min(a.bottom, s.bottom), b.bottom);
-      setGutters({
-        x: Math.max(0, Math.min(left - f.left, f.right - right)),
-        y: Math.max(0, Math.min(top - f.top, f.bottom - bottom)),
-      });
-      setOverflowing(scroll.scrollHeight > scroll.clientHeight + 1);
-    };
+    if (!article || !scroll) return;
+    const measure = () => setOverflowing(scroll.scrollHeight > scroll.clientHeight + 1);
     measure();
     const ro = new ResizeObserver(measure);
-    ro.observe(dialog);
+    ro.observe(scroll);
     ro.observe(article);
-    ro.observe(foot);
     return () => ro.disconnect();
   }, [isOpen]);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -198,6 +181,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
               onClick={onBackdrop}
             >
               <AboutFoot
+                ref={footRef}
                 firstTime={!seen}
                 keyboard={hasFineHoverPointer}
                 onDismiss={close}
@@ -207,30 +191,38 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
           </motion.div>
         )}
       </AnimatePresence>
-      <Glow
+      <EdgeGlow
         active={isOpen}
-        fixed
+        // The words, as far as their scroll container shows them, and the
+        // way out under them: the light ends a share of the way to them.
+        content={[articleRef, footRef]}
+        // The devtool's Glow module: the About's own strength, and its depth
+        // per layout (systems/glow/lib/tuning.ts).
+        depth={desk ? tuning.aboutDesk : tuning.aboutPhone}
+        strength={tuning.aboutStrength}
         // The bezel's radius inside one; otherwise the screen's own — a
         // phone's is rounded, a browser window's nearly square.
         radius={bezel ? bezelRadius : hasFineHoverPointer ? 10 : 44}
         style={frame}
         layer={bezel}
-        // The devtool's Glow module: the About's own strength, and its depth
-        // as a share of the gutters — the room between the screen's edge and
-        // the words, across for the sides and down for the top and bottom.
-        // The share is where the light ends: 100% touches the words.
-        strength={tuning.aboutStrength}
-        extent={
-          gutters === null
-            ? undefined
-            : {
-                x: Math.max(10, tuning.aboutDepth * gutters.x),
-                y: Math.max(10, tuning.aboutDepth * gutters.y),
-              }
-        }
         className={cn("z-[10021]", bezel && "overflow-hidden")}
       />
     </>
+  );
+}
+
+/** The About's two layouts: a centred group on a desk (`sm` and up), the
+ *  whole screen on a phone. */
+const DESK_QUERY = "(min-width: 640px)";
+function useDeskLayout(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(DESK_QUERY);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(DESK_QUERY).matches,
+    () => true,
   );
 }
 
@@ -238,17 +230,19 @@ function AboutFoot({
   firstTime,
   keyboard,
   onDismiss,
+  ref,
 }: {
   firstTime: boolean;
   keyboard: boolean;
   onDismiss: () => void;
+  ref?: Ref<HTMLDivElement>;
 }) {
   const { locale } = useLocale();
   const [before, after] = t(locale, "aboutReopenHint").split("{key}");
   return (
     // The button is the centre of weight; the hint sits under it, kept to
     // about its width so the eye stays on the press.
-    <div className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-col items-center">
+    <div ref={ref} className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-col items-center">
       {/* Glass, not a slab: the way out is part of the veil it sits on. */}
       <button
         type="button"

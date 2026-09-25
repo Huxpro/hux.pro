@@ -5,31 +5,46 @@ import { useSyncExternalStore } from "react";
 // =============================================================================
 // Glow tuning — the devtool's knobs on the light, saved.
 //
-// Three numbers, set from the devtool's Glow module and kept in localStorage
-// (`hux_glow`), so a taste decision survives reloads:
+// Set from the devtool's Glow module and kept in localStorage (`hux_glow`),
+// so a taste decision survives reloads:
 //
 //   strength       every glow on the site, × this — the light's overall volume
 //   aboutStrength  the About's ring, × this (on top of `strength`)
-//   aboutDepth     where the About's ring's light ends, as a fraction of the
-//                  room it has: the gutter between the screen's edge and the
-//                  words, per side (wide on a desk, a few dozen px on a
-//                  phone). 1 is light that just touches the words.
+//   aboutDesk      where the About's light ends, as a share of the gutter
+//   aboutPhone     between the screen's edge and the words (<EdgeGlow>'s
+//                  `depth`): `x` off the sides, `y` off the top and bottom;
+//                  1 just touches the words. One pair per layout, the About
+//                  having two (a centred group on a desk, the whole screen
+//                  on a phone — the `sm` breakpoint).
+//
+// The defaults are the ring as it first shipped (a reach of 3.8% of the
+// screen's short side, 18–38px), restated in gutters at 1440×900 and at an
+// iPhone's 393×659: a 34px reach ends 152px in, a third of a desk's 456px
+// side gutter and 1.3× its 117px top one; an 18px reach ends 80px in, 2.2×
+// a phone's 36px gutters — its tail lies faintly over the words.
 //
 // The renderer reads `strength` from here every frame (`glowTuning()`), so a
 // slider drag changes every lit glow at once without re-rendering anything.
-// Components read the About's pair with `useGlowTuning()`.
+// Components read the rest with `useGlowTuning()`.
 // =============================================================================
+
+export interface GlowDepth {
+  x: number;
+  y: number;
+}
 
 export interface GlowTuning {
   strength: number;
   aboutStrength: number;
-  aboutDepth: number;
+  aboutDesk: GlowDepth;
+  aboutPhone: GlowDepth;
 }
 
 export const GLOW_TUNING_DEFAULTS: GlowTuning = {
   strength: 1,
   aboutStrength: 1,
-  aboutDepth: 0.3,
+  aboutDesk: { x: 0.33, y: 1.3 },
+  aboutPhone: { x: 2.2, y: 2.2 },
 };
 
 const KEY = "hux_glow";
@@ -43,7 +58,16 @@ function load() {
   loaded = true;
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) state = { ...GLOW_TUNING_DEFAULTS, ...(JSON.parse(raw) as Partial<GlowTuning>) };
+    if (raw) {
+      const saved = JSON.parse(raw) as Partial<GlowTuning>;
+      const pick = (k: keyof GlowTuning) => (k in saved ? saved[k] : GLOW_TUNING_DEFAULTS[k]);
+      state = {
+        strength: pick("strength") as number,
+        aboutStrength: pick("aboutStrength") as number,
+        aboutDesk: { ...GLOW_TUNING_DEFAULTS.aboutDesk, ...(saved.aboutDesk ?? {}) },
+        aboutPhone: { ...GLOW_TUNING_DEFAULTS.aboutPhone, ...(saved.aboutPhone ?? {}) },
+      };
+    }
   } catch {
     /* storage blocked or malformed: defaults */
   }

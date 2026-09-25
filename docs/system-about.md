@@ -78,13 +78,17 @@ outer few dozen pixels.
 
 ### The glow
 
-The ring is the site's one light — `<Glow fixed>` from `systems/glow`, the
+The ring is the site's one light — `<EdgeGlow>` from `systems/glow`, the
 same shader and renderer every other glow uses (the palette listening, a
-badge under the pointer, a window loading). How it is built, its knobs and
-its cost are in [system-glow.md](./system-glow.md). Here it is the `ring`
-shape over the viewport, sized to the screen (16–38px deep), with the
-bezel's radius inside a bezel and otherwise the screen's own: 44px where
-the pointer is coarse, 10px otherwise.
+window loading). How it is built, its knobs and its cost are in
+[system-glow.md](./system-glow.md). Here it frames the words: its `content`
+is the article (as far as its scroll container shows it) and the way out
+under it, and its `depth` — where the light ends, as a share of the gutter
+to them, `x` off the sides and `y` off the top and bottom — comes from the
+devtool's Glow module, one pair per layout (a desk's centred group, a
+phone's whole screen). The defaults are the ring as it first shipped. It
+takes the bezel's radius inside a bezel and otherwise the screen's own:
+44px where the pointer is coarse, 10px otherwise.
 
 ### The copy
 

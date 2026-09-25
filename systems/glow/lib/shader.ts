@@ -29,6 +29,23 @@ import { glslRing } from "./palette";
 //             its front flaring, with a surge in reach as it lands.
 // =============================================================================
 
+/**
+ * How far past its `reach` the light visibly goes: the depth, in reaches, at
+ * which the brightest crest at rest — a beam at its full height, 1.7 reaches
+ * thick (`0.3 + 1.4`), energy 1 — falls to 2% opacity, below what an eye
+ * picks out on a blurred ground:
+ *
+ *   1 − exp(−1.15 · g) = 0.02  →  g = 0.01757
+ *   exp(−(d / 1.7)^1.45) = g   →  d = 1.7 · 4.041^(1/1.45) = 4.45
+ *
+ * It is what makes an extent (where the light ends, px) and a reach (the
+ * beams' scale) the same number in two units: a glow told to end at E has
+ * reach E / 4.45 and looks exactly like one given that reach — its own tail
+ * ends there — and the window that makes the end exact only trims the last
+ * few percent. Change the beams' thickness or falloff and this must follow.
+ */
+export const GLOW_EXTENT_PER_REACH = 4.45;
+
 export const GLOW_VERTEX = /* glsl */ `
 attribute vec2 aPos;
 void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
@@ -98,9 +115,9 @@ void main() {
   // An extent: the light must end at a given distance from each edge (the
   // About's ring ends where the words begin — a different distance off the
   // sides than off the top and bottom). The pixel's own extent blends the
-  // two by which edges are near, so a corner eases from one to the other,
-  // and the beams are sized to fill it: their natural tail lands inside it,
-  // and a window (below) takes the last of the light to zero at it exactly.
+  // two by which edges are near, so a corner eases from one to the other.
+  // The beams are sized so their own visible tail ends there
+  // (GLOW_EXTENT_PER_REACH), and a window (below) makes the end exact.
   float extent = 0.0;
   if (uExtent.x > 0.0) {
     float kE = max(8.0, min(uExtent.x, uExtent.y) * 0.5);
@@ -109,7 +126,7 @@ void main() {
     float wy = exp(-(edges.z - mE) / kE) + exp(-(edges.w - mE) / kE);
     extent = (wx * uExtent.x + wy * uExtent.y) / (wx + wy);
   }
-  float reach = (uExtent.x > 0.0 ? extent / 3.0 : uWidth) * (1.0 + 1.4 * uSurge) * energy;
+  float reach = (uExtent.x > 0.0 ? extent / ${GLOW_EXTENT_PER_REACH.toFixed(2)} : uWidth) * (1.0 + 1.4 * uSurge) * energy;
 
   // The beams' depth: the smooth min of the four straight edges, so their
   // light rounds each corner instead of creasing on its diagonal. Softness
@@ -180,9 +197,11 @@ void main() {
     a = halo * mix(0.55, 0.75, uDark);
   }
 
-  // The extent's window: fading from just past half of it to nothing at it.
+  // The extent's window: the last fifth of it, where the brightest crest is
+  // already under 6%, taken to nothing at it — the light's own tail, made
+  // exact. The arrival's surge carries past it for a moment.
   if (uExtent.x > 0.0) {
-    a *= 1.0 - smoothstep(extent * 0.5, extent * (1.0 + 0.4 * uSurge), d);
+    a *= 1.0 - smoothstep(extent * 0.8, extent * (1.0 + 0.4 * uSurge), d);
   }
 
   a *= focus;

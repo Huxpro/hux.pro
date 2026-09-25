@@ -10,12 +10,17 @@
 //   <Glow active shape="ring" />                      the whole edge
 //   <Glow active shape="line" level={voice.level} />  the bottom, following a voice
 //   <Glow active processing />                        a beam travelling: working
+//   <EdgeGlow active content={ref} depth={0.5} />     a screen's ring, ending
+//                                                     halfway to its content
 //
 // See docs/system-glow.md.
 // =============================================================================
 
 export { Glow } from "./components/glow";
 export type { GlowProps, GlowShape } from "./components/glow";
+export { EdgeGlow } from "./components/edge-glow";
+export type { EdgeGlowProps } from "./components/edge-glow";
+export { GLOW_EXTENT_PER_REACH } from "./lib/shader";
 export { GLOW_STOPS, GLOW_CSS_STOPS } from "./lib/palette";
 export { glowSupported } from "./lib/renderer";
 export {
@@ -24,4 +29,4 @@ export {
   setGlowTuning,
   useGlowTuning,
 } from "./lib/tuning";
-export type { GlowTuning } from "./lib/tuning";
+export type { GlowDepth, GlowTuning } from "./lib/tuning";

@@ -3,10 +3,12 @@
 import { cn } from "@/lib/utils";
 import {
   useEffect,
+  useImperativeHandle,
   useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
+  type Ref,
 } from "react";
 import { BEZEL_LAYER_ATTRIBUTE } from "vitre";
 import { GLOW_CSS_STOPS } from "../lib/palette";
@@ -68,10 +70,11 @@ export interface GlowProps {
    *  when omitted. */
   reach?: number;
   /**
-   * Where the light must end, px from the edge: `x` off the left and right
-   * edges, `y` off the top and bottom. The beams are sized to fill it and the
-   * light reaches zero exactly at it — so a ring can be told to stop where
-   * the content begins. Overrides `reach`.
+   * Where the light ends, px from the edge: `x` off the left and right
+   * edges, `y` off the top and bottom. The same scale as `reach` in another
+   * unit — the beams get the reach whose own visible tail ends there
+   * (`GLOW_EXTENT_PER_REACH`, 4.45 reaches) and the light is zero at it
+   * exactly. Overrides `reach`. <EdgeGlow> sets it from the content's gutter.
    */
   extent?: { x: number; y: number };
   /** Halo room past each side of the host, CSS px. 0 draws inside only. */
@@ -92,6 +95,8 @@ export interface GlowProps {
   style?: CSSProperties;
   /** Called when the light has fully left. */
   onDone?: () => void;
+  /** The glow's box — the rounded rectangle whose edge is lit. */
+  ref?: Ref<HTMLSpanElement>;
 }
 
 const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
@@ -133,8 +138,10 @@ export function Glow({
   className,
   style,
   onDone,
+  ref,
 }: GlowProps) {
   const boxRef = useRef<HTMLSpanElement>(null);
+  useImperativeHandle(ref, () => boxRef.current as HTMLSpanElement);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [fallback, setFallback] = useState(false);
 
