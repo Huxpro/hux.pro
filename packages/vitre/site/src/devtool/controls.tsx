@@ -32,7 +32,7 @@ export function Section({
 export function Star({ show, onReset }: { show: boolean; onReset: () => void }) {
   if (!show) return null;
   return (
-    <button type="button" className="dt-star" title="Not the default — reset" onClick={onReset}>
+    <button type="button" className="dt-star" title="Not the default. Click to reset" onClick={onReset}>
       *
     </button>
   );

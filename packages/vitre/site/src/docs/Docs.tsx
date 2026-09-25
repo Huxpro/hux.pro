@@ -319,7 +319,7 @@ export function Docs() {
         <footer className="docs-footer">
           {t({
             en: "Open this page on an iPhone to use the demo with Safari's real chrome.",
-            zh: "用 iPhone 打开这个页面，就能在真实的 Safari chrome 下使用这个 demo。",
+            zh: "用 iPhone 打开这页，就能在真的 Safari 里试这个 demo。",
           })}
         </footer>
       </article>

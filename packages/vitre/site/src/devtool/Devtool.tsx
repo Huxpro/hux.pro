@@ -213,7 +213,7 @@ export function Devtool({
           </Row>
         </Section>
 
-        <Section title={t({ en: 'Chrome', zh: 'Chrome' })} badge={readThemeColor() ?? "—"}>
+        <Section title={t({ en: 'Chrome', zh: 'Chrome' })} badge={readThemeColor() ?? "none"}>
           <Row label="theme-color">
             <span className="dt-mono">{readThemeColor() ?? "none"}</span>
           </Row>

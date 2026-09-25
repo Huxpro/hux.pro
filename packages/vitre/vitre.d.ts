@@ -1,5 +1,5 @@
 // =============================================================================
-// Vitre — public API. Safari theme-color for iOS 26, and safe page edges.
+// Vitre: the public API. Safari theme-color for iOS 26, and safe page edges.
 //
 // Vitre is French for a windowpane: the glass set in a frame. Safari on iOS 26
 // draws its bars as glass over the edges of the page and tints them from what
@@ -47,7 +47,7 @@ import type { CSSProperties, JSX, ReactNode } from "react";
  *              A tap on the status bar still takes the page to the top. WebKit
  *              will not give that gesture to an overflow scroller, so on iOS
  *              the window is parked a few pixels down while the page is
- *              scrolled — invisible, since <body> is fixed — and Safari
+ *              scrolled (invisible, since <body> is fixed), and Safari
  *              scrolling it back to 0 is read as the tap. Nothing to call: it
  *              is on wherever container scroll is.
  */
@@ -77,7 +77,7 @@ export interface VitreProps {
   /**
    * Whether the bezel is drawn. Live.
    *
-   * `null` means "not known yet" — typically before the host has read its
+   * `null` means "not known yet", usually because the host has not read its
    * settings on the client. The bezel then holds whatever the boot script
    * applied, so a page that loaded with a bezel keeps it until the host
    * decides. Without a boot script, `null` draws nothing.
@@ -91,14 +91,13 @@ export interface VitreProps {
   radius?: number;
   /** Where the page scrolls. Default `"window"`. Live. */
   scroll?: VitreScroll;
-  /** The chrome colour while the bezel is off — the page's ground. Live. */
+  /** The chrome colour while the bezel is off: the page's ground. Live. */
   ground: string;
   /**
    * Whether a chrome colour change is morphed onto the screen for a chrome
-   * that samples the page. Default `true`. Set it `false` where the platform
-   * does not need it — a chrome that follows `theme-color`, or none at all —
-   * and the colour is set without the morph. It is 880ms of bands at the
-   * viewport edges, and on a window nobody is sampling they are just bands.
+   * that samples the page. Default `true`. Set it `false` for a chrome that
+   * follows `theme-color`, or no chrome at all: the colour is set without the
+   * morph, which would otherwise be 880ms of bands at the viewport edges.
    */
   chromeMorph?: boolean;
   /**
@@ -145,7 +144,7 @@ export interface VitreBootState {
  * An inline script for the document <head> that paints the first frame right.
  *
  * `resolver` is the BODY of a function, as source, that returns a
- * `VitreBootState` — read your settings from `localStorage` there. It runs
+ * `VitreBootState`. Read your settings from `localStorage` there. It runs
  * before first paint, so it cannot import anything; interpolate constants into
  * it. The script installs the stylesheet, applies the state to <html>, creates
  * the `theme-color` meta, and records the state for `<Vitre>` and
@@ -168,8 +167,8 @@ export interface ChromeSyncOptions {
   radius?: number;
   /**
    * Morph the bezel so a chrome that samples the page can see the colour.
-   * Default `true`. `false` sets `theme-color` and stops there, which is all a
-   * chrome that follows it — or no chrome at all — ever needed.
+   * Default `true`. `false` only sets `theme-color`, which is all a chrome
+   * that follows it, or no chrome at all, needs.
    */
   morph?: boolean;
 }
@@ -202,8 +201,8 @@ export declare function syncChrome(color: string, options?: ChromeSyncOptions): 
 export declare function usePageScroll(listener: () => void): void;
 
 /**
- * The element the page scrolls in, or `null` when the window scrolls — the
- * platform's value for the viewport, as in an IntersectionObserver's `root`.
+ * The element the page scrolls in, or `null` when the window scrolls. `null` is
+ * the platform's value for the viewport, as in an IntersectionObserver's `root`.
  * Bind again when `useVitre().scroll` changes.
  */
 export declare function getScrollContainer(): HTMLElement | null;

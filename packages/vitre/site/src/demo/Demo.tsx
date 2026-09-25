@@ -258,9 +258,9 @@ const CARDS: { name: ScenarioName; title: string; body: Text }[] = [
   { name: "enabled", title: "enabled", body: { en: "Turn the bezel on and off, live. The chrome follows.", zh: "实时开关 bezel，chrome 会跟着变。" } },
   { name: "band", title: "band", body: { en: "The top and bottom band, from 0px up. The page stops inside it.", zh: "上下两条 band，从 0px 起。页面停在 band 里面。" } },
   { name: "radius", title: "radius", body: { en: "The inner corners that round the page off.", zh: "内侧圆角，把页面四角修圆。" } },
-  { name: "color", title: "color", body: { en: "Any CSS colour. Each change is shown to Safari's chrome.", zh: "任意 CSS 颜色，每次变化都会同步给 Safari 的 chrome。" } },
+  { name: "color", title: "color", body: { en: "Any CSS colour. Each change is shown to Safari's chrome.", zh: "任意 CSS 颜色，每次变色都会同步给 Safari 的 chrome。" } },
   { name: "theme", title: "theme & ground", body: { en: "A colour that follows light and dark, and the ground the chrome takes when the bezel is off.", zh: "跟随深浅色的颜色，以及 bezel 关闭时 chrome 显示的页面底色。" } },
-  { name: "scroll", title: "scroll", body: { en: "Window, or a container inside a locked window — ryOS's rule.", zh: "window 滚动，或者锁住 window、在容器里滚动（ryOS 的做法）。" } },
+  { name: "scroll", title: "scroll", body: { en: "The window, or a container while the window holds still, as ryOS does.", zh: "window 滚动，或者 window 不动、在容器里滚（ryOS 的做法）。" } },
   { name: "statusTap", title: "status-bar tap", body: { en: "Switches to container scroll and scrolls down. Tap the status bar to come back to the top.", zh: "切到 container 滚动并滚到下面。点一下状态栏，就会回到顶部。" } },
   { name: "backdrop", title: "backdrop", body: { en: "Layers painted behind the page and inside the bezel.", zh: "画在页面后面、bezel 里面的图层。" } },
   { name: "chrome", title: "syncChrome", body: { en: "The bezel morphs to 8px so Safari samples the new colour, then back.", zh: "bezel 变形到 8px 让 Safari 取到新颜色，再收回来。" } },
@@ -290,8 +290,8 @@ function DemoPage({
         <h1>{t({ en: "Safari's glass, in your colours", zh: "让 Safari 的玻璃，显示你的颜色" })}</h1>
         <p>
           {t({
-            en: "Vitre tints Safari's toolbar and status bar live, draws a bezel around the page, and scrolls the page in a container so its edges hold still. Tap a card to watch one feature, or open the devtool.",
-            zh: "窗玻璃（Vitre）实时给 Safari 的工具栏和状态栏着色，在页面四周画一圈 bezel，并让页面在容器里滚动，边缘保持稳定。点一张卡片演示一个功能，或者打开 devtool。",
+            en: "Vitre tints Safari's toolbar and status bar live, draws a bezel around the page, and scrolls the page in a container so the edges hold still. Tap a card to see one feature, or open the devtool.",
+            zh: "窗玻璃（Vitre）实时给 Safari 的工具栏和状态栏着色，给页面画一圈 bezel，再让页面在容器里滚动，边缘就稳住了。点一张卡片看一个功能，或者打开 devtool。",
           })}
         </p>
       </header>
