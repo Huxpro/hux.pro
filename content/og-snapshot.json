@@ -6,10 +6,34 @@
     "siteName": "Gitee",
     "frame": "deny"
   },
+  "https://github.com/Huxpro/WasmCert": {
+    "title": "GitHub - Huxpro/WasmCert",
+    "image": "https://opengraph.githubassets.com/1/Huxpro/WasmCert",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
   "https://github.com/Huxpro/huxpro.github.io": {
     "title": "GitHub - Huxpro/huxpro.github.io: My Blog / Jekyll Themes / PWA",
     "description": "My Blog / Jekyll Themes / PWA. Contribute to Huxpro/huxpro.github.io development by creating an account on GitHub.",
     "image": "https://opengraph.githubassets.com/3f62dd7161beee7f3de7de469071ee20bb807d46dcd4d978e9553cca01850966/Huxpro/huxpro.github.io",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
+  "https://github.com/facebook/hermes": {
+    "title": "GitHub - facebook/hermes",
+    "image": "https://opengraph.githubassets.com/1/facebook/hermes",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
+  "https://github.com/facebook/react": {
+    "title": "GitHub - facebook/react",
+    "image": "https://opengraph.githubassets.com/1/facebook/react",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
+  "https://github.com/lynx-family/lynx": {
+    "title": "GitHub - lynx-family/lynx",
+    "image": "https://opengraph.githubassets.com/1/lynx-family/lynx",
     "siteName": "GitHub",
     "frame": "deny"
   },
