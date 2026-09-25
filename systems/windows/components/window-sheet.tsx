@@ -147,8 +147,16 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
       // the glass is the pill floating on it.
       className={appGround(win.app)}
     >
-      {/* Edge-to-edge app, with the chrome floating over it. */}
+      {/* Edge-to-edge app, with the chrome floating over it. A drag in here
+          belongs to the app, not the sheet — a game that follows a finger
+          (逗猫棒) must not have the window slide out from under it — so the
+          grip is the only handle. An iframe got this for free, since its
+          touches never reach this document; a Lynx view is in the DOM, and so
+          is the loading spinner before either. The attribute is Base UI's
+          own opt-out: a touch starting under it never becomes a swipe, and
+          its moves are left alone rather than `preventDefault`ed. */}
       <div
+        data-base-ui-swipe-ignore=""
         className="min-h-0 flex-1 overflow-hidden"
         onPointerDownCapture={() => focus(win.id)}
       >

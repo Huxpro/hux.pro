@@ -338,7 +338,9 @@ clear.
 `Drawer.Content`. Without it a *mouse* press anywhere in a sheet starts a swipe,
 the drawer takes the pointer, and the click never reaches the row that was
 pressed. A touch drag still dismisses from anywhere; Base UI reads the scroll
-containers so a drag inside a list scrolls the list.
+containers so a drag inside a list scrolls the list. Content whose drags are
+its own (an app window's body) opts out with Base UI's
+`data-base-ui-swipe-ignore`, which leaves the grip as the only handle.
 
 **Focus on close.** A sheet returns focus to what opened it, unless
 `restoreFocus={false}`. A sheet stacked on one with a text field turns it off:

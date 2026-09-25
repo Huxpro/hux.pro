@@ -172,6 +172,13 @@ desktop mid-app is not a gesture anyone makes.
   stacks with nothing, and the menu over it is content-height.) Portrait and
   landscape are a windowing idea — on a phone they resolved to the same
   rectangle anyway — so the menu drops them there.
+- **The grip is the only handle.** Every other sheet drags from anywhere; a
+  window's body belongs to the app, because a game that follows a finger
+  (逗猫棒) would otherwise slide the window away under it. The body carries
+  Base UI's `data-base-ui-swipe-ignore`, so a touch starting there never
+  becomes a swipe. An iframe never needed it — its touches don't reach this
+  document — but a Lynx view lives in the DOM, and so does the loading
+  spinner before either runtime arrives.
 - **It comes back the size it lives at.** A flick down ends at the lowest
   detent by definition, so a window restored from the dock returns to the dock
   detent rather than arriving shrunk.
