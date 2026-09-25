@@ -2775,9 +2775,18 @@ function GlowModule() {
   const zh = locale === "zh";
   const tuning = useGlowTuning();
   const about = useOptionalAbout();
-  const star = (key: keyof typeof GLOW_TUNING_DEFAULTS) =>
+  const star = (key: "strength" | "aboutStrength") =>
     tuning[key] !== GLOW_TUNING_DEFAULTS[key] ? (
       <PanelStar source="saved" onReset={() => setGlowTuning({ [key]: GLOW_TUNING_DEFAULTS[key] })} />
+    ) : undefined;
+  const depthStar = (layout: "aboutDesk" | "aboutPhone", axis: "x" | "y") =>
+    tuning[layout][axis] !== GLOW_TUNING_DEFAULTS[layout][axis] ? (
+      <PanelStar
+        source="saved"
+        onReset={() =>
+          setGlowTuning({ [layout]: { ...tuning[layout], [axis]: GLOW_TUNING_DEFAULTS[layout][axis] } })
+        }
+      />
     ) : undefined;
   const pct = (v: number) => `${Math.round(v * 100)}%`;
 
@@ -2822,19 +2831,55 @@ function GlowModule() {
           star={star("aboutStrength")}
           onChange={(v) => setGlowTuning({ aboutStrength: v })}
         />
-        {/* Where the ring's light ends, as a share of the room it has — the
-            gutter from the screen's edge to the words — so one setting reads
-            alike on a wide desk and a narrow phone. 100% touches the words. */}
+        {/* Where the ring's light ends, as a share of the gutter between
+            the screen's edge and the words (<EdgeGlow>'s `depth`): 100%
+            just touches them, past it the light's tail lies over them. A
+            pair per axis — a desk's side gutters are four times its top and
+            bottom — and per layout, the About having two. The defaults are
+            the ring as it first shipped (systems/glow/lib/tuning.ts). */}
         <PanelSlider
-          label={zh ? "关于 · 深度（留白）" : "About · depth (of gutter)"}
-          ariaLabel="About glow depth"
-          value={tuning.aboutDepth}
+          label={zh ? "关于 · 桌面深度 · 左右" : "About · desk depth · sides"}
+          ariaLabel="About glow depth, desk, sides"
+          value={tuning.aboutDesk.x}
           min={0.05}
-          max={1}
+          max={2.5}
           step={0.01}
           format={pct}
-          star={star("aboutDepth")}
-          onChange={(v) => setGlowTuning({ aboutDepth: v })}
+          star={depthStar("aboutDesk", "x")}
+          onChange={(v) => setGlowTuning({ aboutDesk: { ...tuning.aboutDesk, x: v } })}
+        />
+        <PanelSlider
+          label={zh ? "关于 · 桌面深度 · 上下" : "About · desk depth · top/bottom"}
+          ariaLabel="About glow depth, desk, top/bottom"
+          value={tuning.aboutDesk.y}
+          min={0.05}
+          max={2.5}
+          step={0.01}
+          format={pct}
+          star={depthStar("aboutDesk", "y")}
+          onChange={(v) => setGlowTuning({ aboutDesk: { ...tuning.aboutDesk, y: v } })}
+        />
+        <PanelSlider
+          label={zh ? "关于 · 手机深度 · 左右" : "About · phone depth · sides"}
+          ariaLabel="About glow depth, phone, sides"
+          value={tuning.aboutPhone.x}
+          min={0.05}
+          max={2.5}
+          step={0.01}
+          format={pct}
+          star={depthStar("aboutPhone", "x")}
+          onChange={(v) => setGlowTuning({ aboutPhone: { ...tuning.aboutPhone, x: v } })}
+        />
+        <PanelSlider
+          label={zh ? "关于 · 手机深度 · 上下" : "About · phone depth · top/bottom"}
+          ariaLabel="About glow depth, phone, top/bottom"
+          value={tuning.aboutPhone.y}
+          min={0.05}
+          max={2.5}
+          step={0.01}
+          format={pct}
+          star={depthStar("aboutPhone", "y")}
+          onChange={(v) => setGlowTuning({ aboutPhone: { ...tuning.aboutPhone, y: v } })}
         />
       </div>
     </DebugSection>

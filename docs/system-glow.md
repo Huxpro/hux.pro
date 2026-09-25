@@ -9,7 +9,8 @@ systems/glow/
 │   ├── shader.ts       # the field of light on the edge of a rounded box
 │   └── renderer.ts     # one WebGL context, one rAF loop, every instance
 └── components/
-    └── glow.tsx        # <Glow> — shape, level, processing, reveal
+    ├── glow.tsx        # <Glow> — shape, level, processing, reveal
+    └── edge-glow.tsx   # <EdgeGlow> — a screen's ring, ending where its content begins
 
 systems/voice/
 ├── lib/meter.ts        # microphone → level + three bands (gate, knee, envelope)
@@ -81,7 +82,7 @@ rises as a dome — voice-glow's *bend*. `edge="top"` mirrors it.
 | `bands` | getter for low / mid / high, 0–1 each |
 | `processing` | gather into a travelling beam: along the edge and back for a line, a comet around a ring |
 | `reach` | px the light reaches in (its visible light runs ~3× further); sized to the host when omitted |
-| `extent` | `{ x, y }` px where the light ends, from the left/right and top/bottom edges; overrides `reach`, blended smoothly round the corners |
+| `extent` | `{ x, y }` px where the light ends, off the left/right and top/bottom edges — `reach` in another unit (below); overrides it, blended smoothly round the corners |
 | `bleed` | px of halo past each side |
 | `radius` | px; read from the host (or 0 when `fixed`) |
 | `strength` | 0–1 |
@@ -89,6 +90,50 @@ rises as a dome — voice-glow's *bend*. `edge="top"` mirrors it.
 
 The glow is a `<span>` shown as a block, so it can sit inside a word (a badge
 in a paragraph) as well as a card.
+
+### Reach and extent
+
+A glow's depth has two units. `reach` is the beams' scale: a beam at full
+height is 1.7 reaches thick, and its light falls off as
+`exp(-(d/thick)^1.45)`. `extent` is where the light visibly ends. They are
+the same number, related by `GLOW_EXTENT_PER_REACH` (lib/shader.ts) — the
+depth at which the brightest crest at rest falls to 2% opacity:
+
+```
+1 − exp(−1.15 · g) = 0.02   →  g = 0.01757
+exp(−(d / 1.7)^1.45) = g    →  d = 1.7 · 4.041^(1/1.45) = 4.45 reaches
+```
+
+So a glow told to end at 152px has a 34px reach and looks exactly like one
+given it; the window that makes the end exact (the last fifth of the extent,
+where the light is already under 6%) only trims the tail. Change the beams'
+thickness or falloff and the constant must follow.
+
+## `<EdgeGlow>`
+
+```tsx
+<EdgeGlow
+  active={open}
+  content={[wordsRef, footRef]}   // what the light frames
+  depth={{ x: 0.33, y: 1.3 }}     // where it ends, as a share of the gutter
+/>
+```
+
+A screen-sized ring has no natural depth: a fixed number of px is a sliver on
+a desk and a flood on a phone, and a share of the screen ignores what the
+ring is framing. An edge glow's depth is a share of the **gutter** — the room
+between its edge and its content:
+
+| | |
+|---|---|
+| `content` | a ref, or several (their union). Each counts as far as it is visible: clipped by any scrolling ancestor, so a long article counts only its window. |
+| gutter `x` / `y` | the narrower of the left and right gutters / of the top and bottom ones, from the glow's own box (the viewport, or what `style` insets it to — a bezel's screen). Measured live while on — resize, scroll — and kept for the way out. |
+| `depth` | a number, or `{ x, y }`: where the light ends, per axis. `0.5` halfway to the content, `1` just touching it, `1.5` its tail half a gutter over it. |
+
+Everything else is `<Glow>`'s (`active`, `strength`, `radius`, `layer`,
+`style`, `className`, durations). It is always `fixed` and always a ring.
+Two axes because a desk's side gutters are four times its top and bottom;
+the extent eases from one to the other round each corner.
 
 ## Tuning
 
@@ -99,7 +144,16 @@ localStorage (`hux_glow`, `lib/tuning.ts`):
 |---|---|---|
 | Strength · all | 0–150% | every glow on the site — the renderer reads it each frame, so a drag changes every lit glow at once |
 | About · strength | 0–150% | the About's ring, on top of the above |
-| About · depth | 5–100% of the gutter | where the About's light **ends**, as a share of the room it has — the gutter from the screen's edge to the words (the article as the scroll container shows it, plus the way out under it), measured live: across for the left and right edges, down for the top and bottom, each the narrower of its two sides. 100% just touches the words. The default 30% is ~135px in from a desk's sides and ~33px from its top and bottom; a phone's ~36px side gutter keeps it to a line (never under 10px). |
+| About · desk depth · sides / top-bottom | 5–250% of the gutter | the About's `<EdgeGlow depth>` on a desk (`sm` and up): default 33% / 130% |
+| About · phone depth · sides / top-bottom | 5–250% of the gutter | the same on a phone: default 220% / 220% |
+
+The About's defaults are the ring as it first shipped — a reach of 3.8% of the
+screen's short side, clamped to 18–38px — restated in gutters. On a 1440×900
+desk a 34px reach ends 152px in: a third of the 456px side gutters, 1.3× the
+117px top and bottom ones. On a 393×659 phone the 18px floor ends 80px in:
+2.2× its 36px gutters, the tail lying faintly over the words. The restatement
+is exact at those sizes; elsewhere the ring now follows the words rather
+than the screen.
 
 A blue `*` marks a knob off its default; pressing it resets. `Show About`
 brings the ring up to judge by eye. While the About is up the devtool rides
