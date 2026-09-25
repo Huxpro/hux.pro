@@ -408,9 +408,9 @@ Three ways in, all routing through `useWindows()`:
 
 ## DevTool inspector
 
-The DevTool panel (`systems/devtool/panel.tsx`) has an **Apps** section: an
-OTA bundle-URL input + Load, a live list of open windows with full metadata
-(runtime, flavor, source, size preset, rect, bundle/url), and the registry with
-Open / open-externally. Handy for inspecting *any* app's config and for loading
-a bundle you're iterating on.
+The DevTool panel (`systems/devtool/panel.tsx`) has a **Windows** section: the
+open windows, front-most first, each with its focused / minimized state and
+its metadata (runtime and flavor, source, size preset, reload count, rect, and
+the bundle or page URL). It only inspects; launching an app and loading a
+bundle by URL are the command palette's (⌘K → Apps → Load bundle).
 ```
