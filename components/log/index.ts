@@ -35,7 +35,7 @@ export type { Byline } from "./bylines";
 // =============================================================================
 
 export { normalizeCommit } from "./commit-data";
-export type { NormalizedCommit, SimpleLink } from "./commit-data";
+export type { NormalizedCommit } from "./commit-data";
 
 // =============================================================================
 // Media Components

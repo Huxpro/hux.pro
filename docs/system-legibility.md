@@ -216,7 +216,6 @@ production components and the lab's specimens both import:
 | `body` | sm secondary relaxed | a widget's description, an empty state |
 | `appLabel` | 11px leading-tight secondary | the label under an app icon |
 | `nav` | mono xs tracking-wide secondary → ink on hover | the back link, `retry` |
-| `linkQuiet` | tertiary → ink on hover | icon links that brighten on hover |
 | `kbd` | mono xs on `bg-muted/50` | keyboard hints |
 
 That is the alignment guarantee the lab rests on: the specimen's date and the

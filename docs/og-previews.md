@@ -65,7 +65,7 @@ GitHub CI runs `pnpm og:complete`. It loads `log.json`, enriches it the same way
 - **Link cards** — `preview.image` after snapshot + manual merge, including each locale URL in a `urls` map.
 - **Videos** — authored `thumbnail`, snapshot cover (Bilibili / Vimeo), or YouTube's derived poster.
 - **Slides / images** — authored `thumbnail` / `url`; a site-local `/img/…` path must exist under `public/`.
-- **Pills** are not attachments. **Social widgets** paint themselves and are skipped.
+- **Social widgets** paint themselves and are skipped. Every link is a card, so every link needs an image.
 
 This check does not crawl. A missing cover is a content bug (add a manual `preview` / `thumbnail`, or regenerate the snapshot), not a flaky third-party outage.
 
@@ -77,7 +77,7 @@ This check does not crawl. A missing cover is a content bug (add a manual `previ
 
 ## Scope
 
-Only **non-native embeds** are snapshotted — those are the items that render OG cards on the timeline. Plain `link` media are compact corner indicators (icon + label), not cards, so they're never crawled. Native embeds (X, Instagram, TikTok) use their own widgets.
+Only **non-native embeds** are snapshotted — every `link` media item, since the log presents a link only as a card. Native embeds (X, Instagram, TikTok) use their own widgets.
 
 ## Files
 

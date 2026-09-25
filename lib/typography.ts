@@ -112,8 +112,6 @@ export const TYPE = {
 
   /** System navigation: the back link, `retry`, `main`. */
   nav: "font-mono text-xs tracking-wide text-muted-foreground transition-colors duration-200 hover:text-foreground",
-  /** An icon or glyph link that brightens on hover. */
-  linkQuiet: "text-tertiary-foreground transition-colors hover:text-foreground",
 
   /** A keyboard hint. */
   kbd: "rounded bg-muted/50 px-1.5 py-0.5 font-mono text-xs text-muted-foreground",

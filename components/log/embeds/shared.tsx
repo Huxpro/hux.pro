@@ -9,52 +9,8 @@ import { Link } from "next-view-transitions";
 import { cn } from "@/lib/utils";
 import { IdentityHover } from "@/systems/identity";
 import type { Byline } from "../bylines";
-import {
-  ExternalLink,
-  Github,
-  Globe,
-  Instagram,
-  MessageCircle,
-  Presentation,
-  Twitter,
-  Youtube,
-  FileText,
-} from "lucide-react";
 
 import { TYPE } from "@/lib/typography";
-// =============================================================================
-// Link Icon
-// =============================================================================
-
-export function LinkIcon({ icon }: { icon?: string }) {
-  switch (icon?.toLowerCase()) {
-    case "github":
-      return <Github className="w-3 h-3" />;
-    case "globe":
-    case "website":
-      return <Globe className="w-3 h-3" />;
-    case "youtube":
-      return <Youtube className="w-3 h-3" />;
-    case "bilibili":
-    case "vimeo":
-    case "video":
-      return <Youtube className="w-3 h-3" />;
-    case "x":
-    case "twitter":
-      return <Twitter className="w-3 h-3" />;
-    case "instagram":
-      return <Instagram className="w-3 h-3" />;
-    case "tiktok":
-      return <MessageCircle className="w-3 h-3" />;
-    case "slides":
-      return <Presentation className="w-3 h-3" />;
-    case "file":
-      return <FileText className="w-3 h-3" />;
-    default:
-      return <ExternalLink className="w-3 h-3" />;
-  }
-}
-
 // =============================================================================
 // Description
 // =============================================================================

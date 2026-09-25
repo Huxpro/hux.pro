@@ -58,7 +58,6 @@ export {
 export {
   Link,
   LinkCard,
-  LinkFromMedia,
   LinkCardFromMedia,
   type LinkProps,
   type LinkCardProps,

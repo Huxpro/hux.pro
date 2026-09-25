@@ -14,12 +14,14 @@
  *   <Media url="https://example.com" as="link" present="pill" title="Site" />
  */
 
-import type {
-  MediaKind,
-  VideoPlatform,
-  SocialEmbedPlatform,
-  LinkPresent,
-} from "@/lib/log";
+import type { MediaKind, VideoPlatform, SocialEmbedPlatform } from "@/lib/log";
+
+/**
+ * Prose keeps both dressings for a link: an inline pill reads as part of a
+ * sentence's paragraph, where a card would break it. The log's schema is
+ * card-only (`LinkPresent`); this is the MDX component's own choice.
+ */
+type MediaPresent = "pill" | "card";
 import { Video, detectVideoPlatform } from "./video";
 import { SocialEmbed, detectSocialEmbedPlatform } from "./embed";
 import { Link, LinkCard } from "./link";
@@ -36,7 +38,7 @@ export interface MediaProps {
   /** Force a specific kind (auto-detected from URL if omitted). */
   as?: MediaKind;
   /** For `link` kind: pill (default) or card. */
-  present?: LinkPresent;
+  present?: MediaPresent;
   /** Label text for pill links. */
   title?: string;
   /** Theme for the social-embed kind. */

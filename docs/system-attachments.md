@@ -111,12 +111,12 @@ interface AttachmentSet {
   subtitle?: string;   // conference / publication / platform / company
   hash?: string;       // its 7-char address
   href?: string;       // /works#<hash>
-  items: readonly Media[];  // rich media in authored order — never pills
+  items: readonly Media[];  // every media item, in authored order
 }
 ```
 
-Set and tiles are the same collection: every non-pill attachment resolves
-a cover, so nothing is dropped from the strip on its way to the grid and
+Set and tiles are the same collection: every attachment resolves a cover
+(links included — the log presents a link only as a card), so nothing is dropped from the strip on its way to the grid and
 the sheet's `2 / 3` cannot count a page the row never showed. That is a
 build-time invariant, not a hope — `pnpm og:complete` fails when an
 attachment cannot resolve a runtime image, and CI runs it
@@ -131,12 +131,13 @@ would fail over a picture that is still live. A recorded image is
 therefore kept until a crawl offers another one, and the run says so
 ("kept the cover we already had").
 
-A cover in the contact strip (`MediaStrip`), a player or card in the expanded
-body (`MediaRenderer`), and an icon in the folded rail (`TimelineCommit`)
-each find their own item by reference (`set.items.indexOf(media)`) and call
-`open(set, index)`. Plain pills — a website, a repo — stay plain links; they
-are not in the set. Modified clicks (⌘, middle) are never taken: every
-affordance keeps a real `href` for them.
+A cover in the contact strip (`MediaStrip`) and a player or card in the
+expanded body (`MediaRenderer`) each find their own item by reference
+(`set.items.indexOf(media)`) and call `open(set, index)`. The title line has
+no door of its own: where covers print, they are the way in; in the index,
+which prints none, the line only counts them (`📎 3`) and opening the row
+brings the strip (`rowFormFor`). Modified clicks (⌘, middle) are never taken:
+every affordance keeps a real `href` for them.
 
 Outside the provider — an MDX `<Media />`, the editor's inspect mode, which
 passes no set — everything behaves as it did: players play inline, cards are
@@ -368,7 +369,7 @@ every size on the log's own covers, in the `/works` tier and the peek's, the
 GitNation case among them; the policy as a table, read live from `homeFor` /
 `nativeHomeFor` for a context you can pin (phone or not, a window manager);
 and the production surfaces themselves — the strip, the desk grid, the phone
-feed (`InlinePlayable`), `MediaRenderer` (single and rail), pills, peeks,
+feed (`InlinePlayable`), `MediaRenderer` (single and rail), peeks,
 inline players, the MDX `<Media />`, the home featured stack, `MediaThumbnail`,
 the theater rail thumb, and the attachment page — plus buttons that go through
 the real providers, with a readout of the surface stack and the open windows

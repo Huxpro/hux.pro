@@ -68,8 +68,7 @@ export interface RowForm {
    * feed's half-column tiles with their captions written out.
    */
   media: "none" | "covers" | "grid";
-  /** The notes under the message: commentary, the author fields, the link
-   *  labels beside the rail icons. */
+  /** The notes under the message: commentary and the author fields. */
   notes: boolean;
   /** Whether the row, or its covers, peek on hover. The feed does not: it
    *  has already printed everything a peek would show. */
@@ -86,7 +85,7 @@ export const ROW_FORM: Record<LogForm, RowForm> = {
  * Which atoms the form owns, and which the row's own press owns.
  *
  * The form owns the **picture**: `media` and the `peek` that stands in for
- * it. That is the expensive atom — it decides the page's scroll length and
+ * it — with one exception, at the end. That is the expensive atom — it decides the page's scroll length and
  * what every frame costs (see "What the page costs to scroll" in
  * docs/system-attachments.md) — and it is the one a reader wants to set
  * once for the whole page rather than row by row.
@@ -103,13 +102,25 @@ export const ROW_FORM: Record<LogForm, RowForm> = {
  * a caption used to be the same click with nothing painting the
  * difference, and now they are not the same click at all — one changes the
  * prose, the other opens the attachment.
+ *
+ * The exception is the index, the one form that prints no picture at all.
+ * There the title line only counts the attachments (`📎 3`), and the count
+ * is a promise the row has to keep: opening an index row brings its covers
+ * with its prose, so an open row is the whole commit whatever the form. The
+ * other forms already print the picture, so their press still owns the
+ * prose alone.
  */
 export function rowFormFor(form: LogForm, textRelieved: boolean): RowForm {
   const base = ROW_FORM[form];
   if (!textRelieved) return base;
   return base.description === "full"
     ? { ...base, description: "clamp", notes: false }
-    : { ...base, description: "full", notes: true };
+    : {
+        ...base,
+        description: "full",
+        notes: true,
+        media: base.media === "none" ? "covers" : base.media,
+      };
 }
 
 /** The git flags the forms were first named after — old links carry them. */
