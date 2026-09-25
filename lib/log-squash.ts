@@ -1,18 +1,17 @@
 // =============================================================================
 // Squash resolution — turning a list of ids into a row.
 //
-// `lib/log.ts` says what a squash *is*; this module answers the four
-// questions a renderer has to ask about one, and nothing else:
+// `lib/log.ts` says what a squash *is*; this module answers the questions a
+// renderer has to ask about one, and nothing else:
 //
-//   which commits are actually in it   (`planSquashes`)
-//   whose row is it                    (the lead)
-//   what does the headline say         (`squashHeadline`)
-//   what do the member lines say       (`squashLines`)
+//   which commits are actually in it          (`planSquashes`)
+//   whose row is it                           (the lead, and the parent)
+//   what do they share, and what varies       (`factorSquash`)
 //
 // Deliberately free of React and of any rendering vocabulary, the way
 // `lib/log-view.ts` is: the timeline, the editor's preview and any future
 // surface that wants to print a squash all derive it from here, so none of
-// them can invent a fifth answer.
+// them can invent a second answer.
 //
 // The absorbed members are reported as *hidden rows*, not removed from the
 // array. That is not a shortcut — it is what keeps the rail, the connectors
@@ -27,35 +26,30 @@ import type { Attachment } from "./log";
 import {
   attachmentsOf,
   commitVenue,
+  computeCommitHash,
   formatCommitDate,
   formatDateRange,
+  getCommitLanguageBadge,
   localize,
   localizeOptional,
   type Commit,
+  type CommitType,
   type Squash,
-  type SquashAxis,
 } from "./log";
 import type { Locale } from "./i18n";
-
-export const SQUASH_AXES: readonly SquashAxis[] = [
-  "title",
-  "venue",
-  "venue-title",
-  "none",
-];
-
-export const DEFAULT_SQUASH_AXIS: SquashAxis = "title";
 
 /** A squash with its ids resolved against the commits actually on the page. */
 export interface ResolvedSquash {
   squash: Squash;
-  axis: SquashAxis;
   /**
-   * Whose row this is — the gutter mark, the prose, the byline, the
-   * position in the sort. Always one of {@link members}.
+   * Where the row sits and whose gutter mark and byline it wears: the
+   * parent when there is one, otherwise the newest member. Always one of
+   * {@link members}.
    */
   lead: Commit;
-  /** Every surviving member, lead included, in the order the lines print. */
+  /** The member that IS the row (see `Squash.parent`), if it survived. */
+  parent: Commit | null;
+  /** Every surviving member, parent included, in authored order. */
   members: Commit[];
 }
 
@@ -120,13 +114,16 @@ export function planSquashes(
     // row it always had.
     if (members.length < 2) continue;
 
-    // Where the row lands. The author's `lead` when it survived; otherwise
+    // A parent the filter dropped is not a parent any more: the survivors
+    // are peers, and the row is built from what they share.
+    const parent =
+      (squash.parent && members.find((m) => m.id === squash.parent)) || null;
+    // Where the row lands. The parent's own place when there is one; else
     // the member that sorts highest, which on a reverse-chronological page
-    // is the most recent — a squash sits at its newest member, the way the
-    // work itself is "as of" then. `commitIds` order stays purely the order
-    // the lines print in.
+    // is the most recent — a group of peers sits at its newest member, the
+    // way the work itself is "as of" then.
     const lead =
-      (squash.lead && members.find((m) => m.id === squash.lead)) ||
+      parent ??
       members.reduce((best, m) =>
         order.get(m.id)! < order.get(best.id)! ? m : best,
       );
@@ -135,90 +132,231 @@ export function planSquashes(
       claimed.add(m.id);
       if (m.id !== lead.id) absorbed.add(m.id);
     }
-    byLead.set(lead.id, {
-      squash,
-      axis: squash.axis ?? DEFAULT_SQUASH_AXIS,
-      lead,
-      members,
-    });
+    byLead.set(lead.id, { squash, lead, parent, members });
   }
 
   return byLead.size === 0 ? EMPTY_PLAN : { byLead, absorbed };
 }
 
 // =============================================================================
-// What the row says
+// Factoring — what the members share, and what each one says for itself.
+//
+// Every field is asked the same question separately: does every member say
+// the same thing here, in this locale? If so it is said once, in the header.
+// If not, it is said per member, in the band. There is no field that one
+// member decides for the others.
+//
+// Per locale is not a refinement, it is the case that broke the previous
+// design. The two React for Two Threads talks share an English title and
+// not a Chinese one (《双线程的 React》 is the SEE Conf edition's own), so
+// "the title is shared" was true on /works in English and false on the same
+// page in Chinese. Asked per field and per locale, both pages are right.
 // =============================================================================
 
-/** Case- and space-insensitive equality — the test for "these two would
- *  print as the same line", which is the only kind of sameness the
- *  headline derivation cares about. */
+/** Case- and space-insensitive equality — "these would print as one line". */
 function sameLine(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
 /** The one value every member shares, or null if they do not all share it. */
-function common(values: (string | undefined)[]): string | null {
+function common<T extends string>(values: (T | null | undefined)[]): T | null {
   const first = values[0];
   if (!first) return null;
   return values.every((v) => v && sameLine(v, first)) ? first : null;
 }
 
+/** Where the headline came from. The editor reads this; the page does not. */
+export type HeadlineSource =
+  | "authored"
+  | "parent"
+  | "shared-title"
+  | "shared-venue"
+  /** Nothing to derive from: the lead's own title, standing in. */
+  | "fallback";
+
+/** One member, as the nested band prints it. */
+export interface SquashMemberFacts {
+  commit: Commit;
+  hash: string;
+  type: CommitType;
+  /** The members are of different types, so each wears its own mark. */
+  showType: boolean;
+  /**
+   * The fields that vary, as one line: the venue where venues differ, the
+   * title where titles differ, `venue · title` where both do. Never a field
+   * the header already said.
+   */
+  label: string;
+  /** Its own date, where the members' dates differ; null where shared. */
+  date: string | null;
+  /** Its own language badge, where the members' badges differ. */
+  languageBadge: "EN" | "中文" | null;
+  /** How it relates to the group — authored (`Squash.relations`). */
+  relation: string | null;
+  /** Its own prose. Never promoted to the header. */
+  description: string;
+  /** An aside among the members keeps its quiet voice in the band. */
+  quiet: boolean;
+}
+
+export interface SquashFacts {
+  /** `"parent"`: the header is one member's own row. `"peers"`: it is built
+   *  from what the members share. See `Squash.parent`. */
+  mode: "peers" | "parent";
+  headline: string;
+  headlineSource: HeadlineSource;
+  /**
+   * The line under the headline: whatever the members share that the
+   * headline is not already saying. Nothing shared goes unsaid — if the
+   * headline is authored and the members share a venue, the venue prints
+   * here rather than vanishing.
+   */
+  meta: string | null;
+  /** The header's date: the shared one, or the range the members span. */
+  date: string;
+  /** The header's language badge, when every member's is the same. */
+  languageBadge: "EN" | "中文" | null;
+  /** The header's type, when every member is one; else the lead's. */
+  type: CommitType;
+  /** The row's own prose — authored, or the parent's. Never a peer's. */
+  description: string;
+  /** Every member is an aside, so the row is one. */
+  quiet: boolean;
+  /** Which fields are shared — named, for the editor to show the author. */
+  shared: {
+    title: boolean;
+    venue: boolean;
+    date: boolean;
+    language: boolean;
+    type: boolean;
+  };
+  /**
+   * The nested level, in authored order. Under a parent, every member but
+   * the parent — the parent is the header, and its covers print bare at the
+   * head of the band.
+   */
+  members: SquashMemberFacts[];
+}
+
 /**
- * The row's headline: what the members have in common, under the axis that
- * says what they differ in.
+ * Factor a squash into a header and a band, for one locale.
  *
- * Authored wins, always — that is the escape hatch, and the only answer
- * available under `"venue-title"`. Otherwise the shared field, and where
- * the members turn out not to share it after all, the lead's own title.
- * The last one is the honest degradation: an axis is the author's claim
- * about the data, and a claim the data does not support should print
- * something true rather than the first member's value dressed as a group's.
+ * The comparison runs over EVERY member, the parent included: under a
+ * parent, a child that shares the parent's venue does not repeat it, for
+ * the same reason a peer does not.
  */
+export function factorSquash(
+  resolved: ResolvedSquash,
+  locale: Locale,
+): SquashFacts {
+  const { squash, members, lead, parent } = resolved;
+
+  const titles = members.map((m) => localize(m.title, locale));
+  const venues = members.map((m) => commitVenue(m));
+  const dates = members.map((m) => m.date);
+  const badges = members.map((m) => getCommitLanguageBadge(m, locale));
+
+  const sharedTitle = common(titles);
+  const sharedVenue = common(venues);
+  const sharedDate = common(dates);
+  // A badge is shared when every member would wear the same one — including
+  // every member wearing none, which is the common case in the reader's own
+  // language and is exactly as shared as two `EN`s.
+  const languageShared = badges.every((b) => b === badges[0]);
+  const typeShared = members.every((m) => m.type === members[0].type);
+
+  // The headline: the author's, then the parent's own, then whatever the
+  // members agree on, title before venue, since a title names the work
+  // and a venue names where it happened.
+  const authored = localizeOptional(squash.title, locale);
+  const [headline, headlineSource]: [string, HeadlineSource] = authored
+    ? [authored, "authored"]
+    : parent
+      ? [localize(parent.title, locale), "parent"]
+      : sharedTitle
+        ? [sharedTitle, "shared-title"]
+        : sharedVenue
+          ? [sharedVenue, "shared-venue"]
+          : [localize(lead.title, locale), "fallback"];
+
+  // Under a parent, the header line is the parent's own (commit-data prints
+  // its row as it always did); for peers, it is what is shared and not
+  // already the headline.
+  const meta = parent
+    ? null
+    : [sharedTitle, sharedVenue]
+        .filter((v): v is string => !!v && !sameLine(v, headline))
+        .join(" · ") || null;
+
+  const date = parent
+    ? formatCommitDate(parent, locale)
+    : sharedDate
+      ? formatCommitDate(lead, locale)
+      : squashDate(resolved, locale);
+
+  const relationOf = (id: string) =>
+    localizeOptional(squash.relations?.[id], locale) || null;
+
+  const band = parent ? members.filter((m) => m.id !== parent.id) : members;
+
+  return {
+    mode: parent ? "parent" : "peers",
+    headline,
+    headlineSource,
+    meta,
+    date,
+    languageBadge: languageShared ? badges[0] : null,
+    type: typeShared ? members[0].type : lead.type,
+    description:
+      localizeOptional(squash.description, locale) ||
+      (parent ? localize(parent.description, locale) : ""),
+    quiet: members.every((m) => m.present === "aside"),
+    shared: {
+      title: !!sharedTitle,
+      venue: !!sharedVenue,
+      date: !!sharedDate,
+      language: languageShared,
+      type: typeShared,
+    },
+    members: band.map((m) => {
+      const i = members.indexOf(m);
+      const title = titles[i];
+      const venue = venues[i];
+      // What varies, and nothing the header said. A member with no venue
+      // (a project among talks) simply has no venue to vary.
+      const parts = [
+        !sharedVenue ? venue : undefined,
+        !sharedTitle ? title : undefined,
+      ].filter((v): v is string => !!v);
+      const label =
+        parts.length === 2 && sameLine(parts[0], parts[1])
+          ? parts[0]
+          : parts.join(" · ") ||
+            // Everything shared: two commits the header describes in full.
+            // Say the title rather than print an empty caption.
+            title;
+      return {
+        commit: m,
+        hash: computeCommitHash(m.id),
+        type: m.type,
+        showType: !typeShared,
+        label,
+        date: sharedDate ? null : formatCommitDate(m, locale),
+        languageBadge: languageShared ? null : badges[i],
+        relation: relationOf(m.id),
+        description: localize(m.description, locale),
+        quiet: m.present === "aside",
+      };
+    }),
+  };
+}
+
+/** The headline alone — for the attachment set's name. */
 export function squashHeadline(
   resolved: ResolvedSquash,
   locale: Locale,
 ): string {
-  return resolveHeadline(resolved, locale).text;
-}
-
-/** Where a headline came from — see {@link resolveHeadline}. */
-export type HeadlineSource =
-  /** {@link Squash.title}, as written. */
-  | "authored"
-  /** The field the axis says the members share, and they do. */
-  | "shared"
-  /** The lead's own title, because neither of the above was available. */
-  | "fallback";
-
-/**
- * The headline, and where it came from.
- *
- * The source is not decoration. `"fallback"` means the author claimed a
- * shared field the data does not have — an axis is a claim, and this is
- * the page quietly declining to print it. On /works that degradation is
- * the right behaviour and should stay silent; in the editor it is the one
- * thing worth saying out loud, which is why the two share this function
- * instead of the editor guessing at the same conditions.
- */
-export function resolveHeadline(
-  resolved: ResolvedSquash,
-  locale: Locale,
-): { text: string; source: HeadlineSource } {
-  const authored = localizeOptional(resolved.squash.title, locale);
-  if (authored) return { text: authored, source: "authored" };
-
-  const { axis, members, lead } = resolved;
-  const derived =
-    axis === "title"
-      ? common(members.map((m) => commitVenue(m)))
-      : axis === "venue"
-        ? common(members.map((m) => localize(m.title, locale)))
-        : null;
-
-  return derived
-    ? { text: derived, source: "shared" }
-    : { text: localize(lead.title, locale), source: "fallback" };
+  return factorSquash(resolved, locale).headline;
 }
 
 /**
@@ -226,107 +364,27 @@ export function resolveHeadline(
  *
  * Only the editor asks. The page never complains — it prints the most
  * truthful thing it can and moves on — so this is where "truthful but not
- * what you asked for" becomes visible to the person who asked.
+ * what you meant" becomes visible to the person who meant it.
  */
 export function squashWarning(
   resolved: ResolvedSquash,
   locale: Locale,
 ): string | null {
-  const { axis, members } = resolved;
-  const { source } = resolveHeadline(resolved, locale);
-
-  if (axis === "venue-title" && source !== "authored") {
-    return "These commits share nothing to build a headline from, so the row is wearing the lead's title. Write one.";
-  }
-  if (source === "fallback") {
-    return axis === "title"
-      ? "These commits are not all at the same venue, so there is no shared venue to head the row — it is wearing the lead's title instead."
-      : "These commits do not all have the same title, so there is nothing shared to head the row — it is wearing the lead's title instead.";
-  }
-  // Every line the same is the other axis's job, and the likelier slip:
-  // "same venue, different talks" typed in as "venues".
-  const labels = squashLines(resolved, locale, () => "").map((l) => l.label);
-  if (labels.length > 1 && new Set(labels).size === 1) {
-    return `Every line reads "${labels[0]}". The other axis is probably the one you want.`;
-  }
-  if (members.some((m) => !commitVenue(m)) && axis !== "none") {
-    return "Some of these have no venue — a project or an event — so their line falls back to their title.";
+  const facts = factorSquash(resolved, locale);
+  if (facts.headlineSource === "fallback") {
+    return locale === "zh"
+      ? "这些条目在中文里没有共同的标题或场合，行首只能借用最新一条的标题。请写一个标题。"
+      : "These share neither a title nor a venue in English, so the row is borrowing its newest member's title. Write a headline.";
   }
   return null;
 }
 
-/** One member, as its line prints. */
-export interface SquashLine {
-  /** The member's own hash — the row anchors all of them. */
-  hash: string;
-  commitId: string;
-  /** What the line says, per the axis. */
-  label: string;
-  /** The member's own date, printed only where the members differ. */
-  date: string | null;
-}
-
 /**
- * The member lines, under the axis.
- *
- * `"none"` has none by definition: its members are in the row only to hand
- * over their media, which the attachment set already collected.
- *
- * The date prints per line only when the members actually differ on it.
- * Two talks at one conference on one day repeating `Nov 2025` twice under
- * a headline that already says `Nov 2025` is three statements of one fact;
- * the same talk given in September and November is a line where the date
- * is the whole point.
+ * The date a group of peers prints: one month when every member shares it
+ * (handled by the caller), and otherwise the span they cover — the
+ * vocabulary a role row already uses for "this went on for a while".
  */
-export function squashLines(
-  resolved: ResolvedSquash,
-  locale: Locale,
-  hashOf: (id: string) => string,
-): SquashLine[] {
-  const { axis, members } = resolved;
-  if (axis === "none") return [];
-
-  const dates = members.map((m) => formatCommitDate(m, locale));
-  const datesDiffer = new Set(dates).size > 1;
-
-  return members.map((m, i) => {
-    const title = localize(m.title, locale);
-    const venue = commitVenue(m);
-    const label =
-      axis === "venue"
-        ? // The venue is what differs, so it is the line. A member with no
-          // venue to print — a project among talks — falls back to its
-          // title rather than printing an empty line.
-          (venue ?? title)
-        : axis === "title"
-          ? title
-          : // "venue-title": both, joined the way a folded aside joins them,
-            // and the venue alone when the two would say the same thing.
-            venue && !sameLine(venue, title)
-            ? `${venue} · ${title}`
-            : (venue ?? title);
-
-    return {
-      hash: hashOf(m.id),
-      commitId: m.id,
-      label,
-      date: datesDiffer ? dates[i] : null,
-    };
-  });
-}
-
-/**
- * The date the squashed row prints.
- *
- * One month across every member and it is that month — the row is a single
- * occasion and says so. Spread over time and it is a range, which is the
- * vocabulary a role row already uses for "this went on for a while", and
- * the only honest thing to print over lines dated two months apart.
- */
-export function squashDate(
-  resolved: ResolvedSquash,
-  locale: Locale,
-): string {
+export function squashDate(resolved: ResolvedSquash, locale: Locale): string {
   const { members, lead } = resolved;
   const months = members.map((m) => m.date);
   const earliest = months.reduce((a, b) => (a < b ? a : b));
@@ -336,25 +394,16 @@ export function squashDate(
 }
 
 /**
- * Every member's attachments, in the order the lines print, deduplicated
- * by url.
+ * Every member's attachments, in authored order, deduplicated by url.
  *
- * This is the whole of what the `"none"` axis does and most of what the
- * others do — and it is safe precisely because an attachment is media WITH
- * its origin (see {@link Attachment}). The array handed downstream is flat,
- * but nothing in it has forgotten which commit attached it, so the strip,
- * the grid, the stage and the sheet can each name a recording after the
- * talk it is of rather than after the row it landed on.
- *
- * That is the part of the git analogy that deliberately does not hold. A
- * real squash destroys the commits it folds and there is nothing left to
- * credit; here they are all still in the log, so forgetting would be a
- * choice rather than a limitation.
+ * One flat array because the attachment set is one — the theater and the
+ * sheet page through the whole row — and safe to flatten because an
+ * attachment is media WITH its origin (lib/log.ts). The band splits it back
+ * by origin; the stage names each item after the commit it is of.
  *
  * Dedup by url because members genuinely do share artifacts — a conference
  * posts one recording covering both slots — and the same cover printed
- * twice in a strip reads as a bug. The first member to claim it keeps it,
- * matching the order the lines print in.
+ * twice reads as a bug. The first member to claim it keeps it.
  */
 export function squashAttachments(
   resolved: ResolvedSquash,

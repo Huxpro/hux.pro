@@ -28,6 +28,7 @@ import {
 import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
+import { SquashBand } from "./squash-band";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
@@ -162,7 +163,11 @@ export function TimelineCommit({
   const { magneticPreviewEnabled } = useInputCapability();
   const isEvent = data.type === "event";
   const isAside = data.present === "aside";
-  const isSquashed = data.members.length > 0;
+  // The level nested under this row, when it stands for several commits
+  // (lib/log-squash.ts). A group of peers has no single address of its own,
+  // so its gutter hash stands down; a parent's row keeps its own.
+  const squash = data.squash;
+  const isPeerGroup = squash?.mode === "peers";
   // Folded asides borrow the event voice: muted italic line, rail
   // dot, no hash. Opening one reveals the real title and media; the
   // type is unchanged, so filters still find it.
@@ -270,41 +275,36 @@ export function TimelineCommit({
   // below it is noise.
   const isQuiet = isEvent || (isAside && !textOpen);
 
-  /**
-   * A squashed row that prints member lines puts each member's covers on
-   * that member's line, rather than pooling them into one strip under the
-   * whole row.
-   *
-   * Pooling was the last place the row still lied. The lines said which
-   * commits this row stands for and the strip said what it carries, and
-   * nothing joined the two: with two talks and two covers, which cover was
-   * whose was simply unrecoverable — not merely unlabelled. Putting a
-   * member's covers under its own line makes the association spatial, which
-   * is the only form of it that survives having no captions at all (the
-   * `covers` density prints none by design).
-   *
-   * The compression the squash exists for is untouched: one headline, one
-   * date, one prose, one rail, one byline, one place in the chapter. The
-   * media was never the repetitive part.
-   *
-   * `"none"` prints no lines, so there is nothing to group under and the
-   * row keeps its single strip — there, the tile's own credit is what
-   * speaks for the members (attachment-tile.tsx).
-   */
-  const groupsMedia = isSquashed && !isQuiet;
-  const attachmentsOfMember = (commitId: string) =>
-    data.stripItems.filter((item) => item.origin.commitId === commitId);
+  // Whether this row draws a band of members under its header.
+  const showBand = !!squash && !isQuiet;
+  // The meta line holds the venue and the handle, and keeps its height even
+  // when only the handle is there — so an ordinary row's rhythm never
+  // shifts. A group of peers is the exception: it usually shares no venue,
+  // and a non-head handle is invisible until hover, so the line it reserves
+  // is a blank strip between the header and its band. There the line
+  // prints only when it has something to show.
+  const showMetaLine =
+    !isQuiet &&
+    !!(data.meta || byline) &&
+    !(isPeerGroup && !data.meta && (!byline?.isClusterHead || textOpen));
+  const bandHasCovers =
+    !!squash && squash.members.some((m) => m.stripItems.length > 0);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
+  // "Does the row print covers?" — its own, or its members' in the band.
+  // Either way the hover peek above them is redundant.
   const showStrip =
-    !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
+    !isQuiet &&
+    rowForm.media === "covers" &&
+    (data.stripItems.length > 0 || bandHasCovers);
   const showStatDescription =
     !isQuiet && rowForm.description === "clamp" && !!data.description;
   // Where the handle signs: the bottom-right of the row, which is the media
   // line when a single cover leaves it the room — on any viewport — and the
   // meta line when there is more than one, since two covers may already be
   // the width of a phone and the strip then scrolls under the edge.
-  const signsOnMediaLine =
-    showStrip && data.stripItems.length === 1 && !groupsMedia;
+  // Never on a band: its runs carry captions of their own, and a handle
+  // squeezed in beside them would read as one more member's.
+  const signsOnMediaLine = showStrip && !squash && data.stripItems.length === 1;
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
@@ -419,7 +419,7 @@ export function TimelineCommit({
         A git log prints the graph and the hash before the subject too; what
         it never did was push the subject off the margin to make room.
       */}
-      {isSquashed ? (
+      {isPeerGroup ? (
         // A squashed row is not one commit, so it has no one address to
         // print here — its members carry theirs on their own lines, which
         // is where a reader would look for them anyway. The cell still
@@ -674,147 +674,6 @@ export function TimelineCommit({
       </div>
 
 
-      {/* ── The members ────────────────────────────────────────────────
-          The commits this row was squashed from (lib/log-squash.ts), one
-          line each. They print at every density, because they are the row's
-          SUBJECT and not its detail: a squash whose headline is a
-          conference and whose lines are the two talks given there is not a
-          row about a conference. The form governs how much of a commit
-          prints — its prose, its covers, its notes — and this is the part
-          that says which commits.
-
-          Cheaper than what they replace, besides: two members are two lines
-          where they used to be two whole rows.
-
-          The venue slot below is empty whenever these are here (see
-          `normalizeCommit`), so nothing on the row is said twice, and the
-          line's own type IS that slot's — a member line is a venue line
-          that happens to belong to a different commit.
-
-          Each line carries its member's `id`, so `#<hash>` still lands on
-          this row for a commit that no longer draws one. Pressing one does
-          nothing of its own: it is inside the row's press target, and a
-          press near the title should do what a press on the title does. */}
-      {!isQuiet && data.members.length > 0 && (
-        <ul
-          className={cn(
-            "col-start-2 @sm:col-start-3 mt-1 min-w-0",
-            // Lines alone sit tight; lines that carry their own covers need
-            // the air, or two members read as one block of pictures.
-            groupsMedia && rowForm.media !== "none" ? "space-y-3" : "space-y-0.5",
-          )}
-        >
-          {data.members.map((m) => {
-            const mine = attachmentsOfMember(m.commitId);
-            return (
-            <li key={m.commitId} id={m.hash} className="min-w-0">
-            <div
-              className={cn(
-                "flex items-baseline gap-2",
-                onInspectMember &&
-                  "-mx-1 px-1 rounded cursor-pointer hover:bg-sky-500/[0.07]",
-                selectedMemberId === m.commitId &&
-                  "bg-sky-500/[0.08] ring-1 ring-inset ring-sky-500/60",
-              )}
-              {...(onInspectMember
-                ? {
-                    "data-editor-interactive": "",
-                    onClick: (e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      onInspectMember(m.commitId);
-                    },
-                  }
-                : {})}
-            >
-              {/* The member's own address, and the row's permalinks now
-                  that the gutter has none. A squash in git destroys the
-                  commits it folds; this one does not, and the hashes are
-                  where that shows — still here, still resolvable, still
-                  what the editor keys on.
-
-                  The hash is the target, not the line: pressing the LINE
-                  has to keep doing what pressing the title does, since it
-                  is inside the row's own control and two arm's-lengths
-                  from it. Which is exactly the rule the gutter hash has
-                  always followed — it stops the press it takes. */}
-              {onSelectHash ? (
-                <a
-                  href={`#${m.hash}`}
-                  onClick={(e) => {
-                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onSelectHash(m.hash);
-                  }}
-                  aria-label={`Link to commit ${m.hash}`}
-                  className={cn(
-                    "shrink-0 hidden @sm:inline",
-                    TYPE.hash,
-                    "transition-colors hover:text-muted-foreground",
-                  )}
-                >
-                  {m.hash}
-                </a>
-              ) : (
-                <span className={cn("shrink-0 hidden @sm:inline select-all", TYPE.hash)}>
-                  {m.hash}
-                </span>
-              )}
-              {/* Wraps, and does not truncate. These are titles — the row's
-                  own title wraps, the description wraps, and the one thing
-                  on this row that clips is the venue line, which is a
-                  proper noun three words long. A `venue · title` line is
-                  as long as a title, and an ellipsis through it on a phone
-                  can leave two members reading the same. `items-baseline`
-                  keeps the date on the first line while it wraps, so the
-                  date column holds. */}
-              <span className={cn("min-w-0 flex-1", TYPE.rowMeta)}>
-                {m.label}
-              </span>
-              {/* Printed only where the members differ on it — see
-                  `squashLines`. */}
-              {m.date && (
-                <span className={cn("shrink-0", TYPE.rowMeta)}>{m.date}</span>
-              )}
-            </div>
-
-            {/* This member's own work, under its own line. The answer to
-                "which of these covers is which talk's" is that they are
-                not in the same place. Same components, same door, same
-                attachment set — only the list each one is given is the
-                member's rather than the row's. */}
-            {mine.length > 0 && rowForm.media !== "none" && (
-              <div
-                data-row-body
-                onClick={(e) => e.stopPropagation()}
-                className="mt-1.5 min-w-0 cursor-default"
-              >
-                {rowForm.media === "covers" ? (
-                  <MediaStrip
-                    items={mine}
-                    set={attachmentSet}
-                    peek={rowForm.peek && magneticPreviewEnabled}
-                    className="min-w-0"
-                    inspecting={inspecting}
-                    onInspect={onInspectMedia}
-                    selectedMedia={selectedMedia}
-                  />
-                ) : (
-                  <AttachmentGrid
-                    items={mine}
-                    set={attachmentSet}
-                    inspecting={inspecting}
-                    onInspect={onInspectMedia}
-                    selectedMedia={selectedMedia}
-                  />
-                )}
-              </div>
-            )}
-            </li>
-            );
-          })}
-        </ul>
-      )}
       {/*
         Subtitle row: meta on the left, author byline right-aligned under
         the date column. The row is rendered whenever EITHER half exists
@@ -831,7 +690,7 @@ export function TimelineCommit({
         byline fully visible so the cluster's authorial context stays
         on-screen while you read.
       */}
-      {!isQuiet && (data.meta || byline) && (
+      {showMetaLine && (
         <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
             {data.meta ? (
@@ -934,7 +793,7 @@ export function TimelineCommit({
           sized to its covers and stops its own clicks, so the line it sits
           on stays the row's; the empty stretch beside a single cover presses
           the row like any other part of it. */}
-      {!isQuiet && !groupsMedia && rowForm.media === "covers" && data.stripItems.length > 0 && (
+      {!isQuiet && !squash && rowForm.media === "covers" && data.stripItems.length > 0 && (
         <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
           {/* The covers get a line of their own, always. One cover used to
               tuck up beside the text and two or more dropped below it, so a
@@ -972,19 +831,13 @@ export function TimelineCommit({
           onClick={(e) => e.stopPropagation()}
           className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
         >
-          {/* The tiles, unless the member lines have already taken them.
-              What is left either way is the stack below: a live widget has
-              no cover, so it is not a strip item and no member line claimed
-              it. */}
-          {!groupsMedia && (
-            <AttachmentGrid
-              items={data.stripItems}
-              set={attachmentSet}
-              inspecting={inspecting}
-              onInspect={onInspectMedia}
-              selectedMedia={selectedMedia}
-            />
-          )}
+          <AttachmentGrid
+            items={data.stripItems}
+            set={attachmentSet}
+            inspecting={inspecting}
+            onInspect={onInspectMedia}
+            selectedMedia={selectedMedia}
+          />
           {stacked.length > 0 && (
             <MediaRenderer
               media={stacked}
@@ -996,6 +849,36 @@ export function TimelineCommit({
               set={attachmentSet}
             />
           )}
+        </div>
+      )}
+
+      {/* ── The band ───────────────────────────────────────────────────
+          The level nested under a squashed row's header: its members, side
+          by side, each saying only what is its own (squash-band.tsx). It
+          takes the slot the row's own media would — the one line an
+          ordinary row's strip already occupies — so a group of commits costs
+          a row and a caption, not a row per member. Under a parent, the
+          feed's grid above has printed the parent's own tiles, and the
+          covers density folds them into the head of the band. */}
+      {showBand && (
+        <div className={cn(
+          "col-start-2 @sm:col-start-3 min-w-0",
+          rowForm.media === "none" ? "mt-1" : "mt-2",
+        )}>
+          <SquashBand
+            squash={squash!}
+            rowForm={rowForm}
+            rowHash={data.hash}
+            ownItems={rowForm.media === "covers" ? data.stripItems : []}
+            set={attachmentSet}
+            peek={rowForm.peek && magneticPreviewEnabled}
+            onSelectHash={onSelectHash}
+            inspecting={inspecting}
+            onInspectMedia={onInspectMedia}
+            onInspectMember={onInspectMember}
+            selectedMemberId={selectedMemberId}
+            selectedMedia={selectedMedia}
+          />
         </div>
       )}
 

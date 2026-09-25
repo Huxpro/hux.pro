@@ -80,14 +80,6 @@ export interface TileCaption {
   title: string;
   /** A page's blurb. */
   description?: string;
-  /**
-   * The commit this attachment belongs to, `venue · title`, when that is
-   * not the row it is sitting on — i.e. on a squashed row, and nowhere
-   * else. Two talks' recordings in one grid are otherwise two tiles both
-   * captioned `YOUTUBE / Recording`, which is the exact information a
-   * squashed row is at risk of eating.
-   */
-  credit?: string;
   /** The tile's one name — its tooltip and accessible name. */
   label: string;
 }
@@ -97,32 +89,13 @@ export interface TileCaption {
  * prints none of it (the chip is enough at that size); the feed prints it;
  * both name the tile by it.
  */
-export function tileCaption(
-  media: Media,
-  locale: Locale,
-  /** See {@link TileCaption.credit}. */
-  credit?: string,
-): TileCaption {
-  const named = (source: string, title: string, description?: string) => {
-    // Sparse, like every repeated field on this page. Under an axis whose
-    // lines are titles, a talk's credit and its recording page's own title
-    // are frequently the same sentence, and printing it twice under one
-    // cover is the caption arguing with itself.
-    const shown =
-      credit && (!title || credit.trim().toLowerCase() !== title.trim().toLowerCase())
-        ? credit
-        : undefined;
-    return {
-      source,
-      title,
-      description,
-      credit: shown,
-      // The credit joins the accessible name too: the strip prints no
-      // caption at all, so a cover's tooltip is the only thing that can
-      // say which talk it is of down there.
-      label: [title || source, shown].filter(Boolean).join(" — "),
-    };
-  };
+export function tileCaption(media: Media, locale: Locale): TileCaption {
+  const named = (source: string, title: string, description?: string) => ({
+    source,
+    title,
+    description,
+    label: title || source,
+  });
   if (isVideoMedia(media)) {
     return named(VIDEO_PLATFORM_LABEL[media.platform], t(locale, "logRecording"));
   }
@@ -152,27 +125,6 @@ export function tileCaption(
   return named(getDomainLabel(media.url), isImageMedia(media) ? media.alt || "" : "");
 }
 
-/**
- * Whether a LIST of tiles draws on more than one commit.
- *
- * Asked of the list being drawn, not of the set behind it, and that is the
- * whole distinction: a squashed row whose covers are grouped under their
- * own member lines hands each group one commit's items, so the grouping has
- * already answered "whose?" and a credit under every tile would be the
- * third time the row says it. A row that pools its covers — the `"none"`
- * axis — hands over a mixed list, and there the credit is the only thing
- * that can speak for the members at all.
- */
-export function mixesOrigins(items: readonly StripItem[]): boolean {
-  const first = items[0]?.origin.commitId;
-  return items.some((a) => a.origin.commitId !== first);
-}
-
-/** Two labels that would print as the same line. */
-function sameLine(a: string, b: string): boolean {
-  return a.trim().toLowerCase() === b.trim().toLowerCase();
-}
-
 /** Everything a tile needs, resolved once per item — see the note above. */
 export interface TileSlot {
   media: Media;
@@ -191,9 +143,6 @@ export function resolveTile(
   locale: Locale,
   set: AttachmentSet | null | undefined,
   attachments: AttachmentsApi | null | undefined,
-  /** Whether the list this tile is drawn in mixes commits — see
-   *  {@link mixesOrigins}. Only then does a tile name its own. */
-  credited = false,
 ): TileSlot {
   const index = set && attachments ? indexOfMedia(set.items, item.media) : -1;
   const leaves =
@@ -206,20 +155,7 @@ export function resolveTile(
     index,
     leaves,
     mark: leaves ? newTabMark(locale) : markFor(item.media, locale),
-    // Off the item itself — it has carried its origin since it left the
-    // commit. Printed only where the row it is sitting on cannot already
-    // be answering the question: a set with one origin is one commit's, and
-    // the row above has just said whose it is.
-    // `set.title` is the row's headline, so an origin that would restate it
-    // prints nothing — the lead's own items under the `"none"` axis, where
-    // the row IS that commit.
-    caption: tileCaption(
-      item.media,
-      locale,
-      credited && (!set || !sameLine(item.origin.line, set.title))
-        ? item.origin.line
-        : undefined,
-    ),
+    caption: tileCaption(item.media, locale),
   };
 }
 

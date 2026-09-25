@@ -640,7 +640,7 @@ export type Group = GroupByIds | GroupByQuery;
 // row anchors all of them.
 //
 // Membership is a list of ids rather than a pointer on each commit, for two
-// reasons. Something has to own the group-level fields — the axis, the
+// reasons. Something has to own the group-level fields — the parent, the
 // authored headline — and splitting them across a "lead" commit and its
 // pointers gives two places to look. And a squash with no natural lead (the
 // three award commits, which are peers) has nowhere to hang a pointer from.
@@ -649,40 +649,24 @@ export type Group = GroupByIds | GroupByQuery;
 // =============================================================================
 
 /**
- * What a squashed row's member lines print — and, by consequence, what its
- * headline says, since the headline is whatever the members have in common.
+ * A set of commits /works prints as one row. See the section comment.
  *
- * The axis is the one knob because every one of these groupings is the same
- * sentence with a different subject: *these N commits share X and differ in
- * Y*. Name Y — what the lines print — and X falls out of it.
- *
- *  - `"title"`   — the lines are titles, so the headline is the shared
- *    venue. Two talks at one conference: `React Advanced London` over
- *    `lynx-ui: Best Lynx in Components` and `Panel: Write Once, Render
- *    Anywhere`.
- *  - `"venue"`   — the lines are venues, so the headline is the shared
- *    title. One talk given twice: `React for Two Threads` over `React
- *    Universe Conf` and `SEE Conf 2025`.
- *  - `"venue-title"` — the lines are both, so nothing is shared and the
- *    headline has to be authored ({@link Squash.title}). The escape hatch:
- *    three commits that are a group only because a person says they are.
- *  - `"none"`    — no lines. One member is the row and the rest donate
- *    their media to it: the project row that absorbs the talk announcing
- *    it, where the talk was never a separate item of work.
- *
- * It is the same vocabulary {@link AsideLine} uses, for the same reason —
- * a squashed member line and a folded aside are the same object, a commit
- * reduced to one quiet line.
+ * The row is a *factorization*, not a merge. Whatever every member agrees
+ * on — a venue, a title, a date, a language — is said once, in the row's
+ * header. Whatever differs is said per member, in the nested band under it
+ * (lib/log-squash.ts computes which is which, per field and per locale).
+ * Nothing is chosen from one member and applied to the rest, which is the
+ * mistake a squash is most prone to: the SEE Conf edition of React for Two
+ * Threads shares its English title with the React Universe one and not its
+ * Chinese one, so no single "shared field" setting could ever have been
+ * right in both languages.
  */
-export type SquashAxis = "title" | "venue" | "venue-title" | "none";
-
-/** A set of commits /works prints as one row. See the section comment. */
 export interface Squash {
   id: string;
   /**
-   * The members, by commit id. Order is authorial: it is the order the
-   * lines print in, and the first resolvable id is the lead unless
-   * {@link lead} names another.
+   * The members, by commit id. Order is authorial — it is the order the
+   * band prints them in, left to right, which is reading order: an
+   * original before its sequel, a debut at home before the one abroad.
    *
    * Ids that do not resolve — a typo, a deleted commit, a member the
    * locale filter dropped — are skipped rather than fatal, the way
@@ -690,24 +674,39 @@ export interface Squash {
    */
   commitIds: string[];
   /**
-   * Whose row this is: the type mark in the gutter, the icon, the prose,
-   * the byline, the position in the sort. Absent, the first member.
+   * The member that IS the row, when one is.
    *
-   * A squash needs one even when its members are peers, because a row has
-   * exactly one of each of those things. It does not make that member more
-   * important — it makes it the one the row is written from.
+   * Two shapes of group want two shapes of row. Peers — two talks at one
+   * conference, three awards in one year — have no member the row belongs
+   * to, so the header is built from what they share and every member sits
+   * in the band. A parent — a project and the talk that introduced it — is
+   * already a row, and the others are nested *in* it: the header is the
+   * parent's own, its covers print bare at the head of the band, and only
+   * the children are bracketed and captioned.
    */
-  lead?: string;
-  /** What the member lines print. Absent is `"title"`. */
-  axis?: SquashAxis;
+  parent?: string;
   /**
-   * The headline, authored. Wins over anything derived — and is *required*
-   * in practice under `"venue-title"`, where by definition the members
-   * share nothing to derive one from.
+   * The headline, authored. Wins over anything derived, per locale — a
+   * locale left empty falls through to derivation, so a group can author
+   * only the language where its members stop agreeing. In practice
+   * required wherever the members share neither a title nor a venue.
    */
   title?: LocalizedString;
-  /** The row's prose, authored. Absent, the lead's own description. */
+  /**
+   * The row's own prose, authored. There is no derived fallback for peers
+   * on purpose: every member's description belongs to that member, and
+   * promoting one of them to speak for the group is the misattribution
+   * this whole shape exists to avoid. A parent's own description stands
+   * in when this is absent.
+   */
   description?: LocalizedString;
+  /**
+   * How each member relates to the group, by commit id — the thing a
+   * shared field cannot say: `中文版` beside the Chinese edition, `升级版`
+   * beside a talk's sequel, `国内首发` / `海外首发` beside the two debuts.
+   * Printed as a label on that member in the band.
+   */
+  relations?: Record<string, LocalizedString>;
 }
 
 // =============================================================================

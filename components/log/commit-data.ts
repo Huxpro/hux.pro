@@ -37,12 +37,10 @@ import {
 } from "@/lib/log";
 import { pickInternalLink } from "@/lib/og-enrich";
 import {
+  factorSquash,
   squashAttachments,
-  squashDate,
-  squashHeadline,
-  squashLines,
   type ResolvedSquash,
-  type SquashLine,
+  type SquashMemberFacts,
 } from "@/lib/log-squash";
 import {
   detectSocialEmbedPlatform,
@@ -76,6 +74,34 @@ export interface SimpleLink {
   media?: Media;
 }
 
+/**
+ * One member of a squashed row, as the band prints it: the fields that vary
+ * (`SquashMemberFacts`), and the member's own share of the row's media.
+ */
+export interface SquashMemberView extends SquashMemberFacts {
+  /** Its covers — the run of tiles its bracket spans. */
+  stripItems: StripItem[];
+  /** Its rich media with no cover to draw (a live widget). */
+  leftovers: Media[];
+  /** All of its links, as the row's rail would draw them. */
+  links: SimpleLink[];
+  /** The links that are not already one of its covers — its caption's rail. */
+  extraLinks: SimpleLink[];
+}
+
+/**
+ * The level nested under a squashed row's header.
+ *
+ * The row is not flattened: its header says what the members share, and
+ * this says what each of them is. Where the header is one member's own row
+ * (`"parent"`), `members` is everyone else, and the parent's covers are the
+ * row's ordinary `stripItems`.
+ */
+export interface SquashView {
+  mode: "peers" | "parent";
+  members: SquashMemberView[];
+}
+
 export interface NormalizedCommit {
   // Identity
   hash: string;
@@ -105,15 +131,10 @@ export interface NormalizedCommit {
   languageBadge: "EN" | "中文" | null;
 
   /**
-   * When this row stands for several commits, the members it prints under
-   * its headline — each its own line, each its own anchor. Empty for an
-   * ordinary row, and for a squash on the `"none"` axis, whose members are
-   * present only in the media.
-   *
-   * The renderer is as type-agnostic about these as it is about everything
-   * else here: what each line says was decided by the axis, upstream.
+   * When this row stands for several commits, the level nested under it —
+   * see {@link SquashView}. Absent for an ordinary row.
    */
-  members: SquashLine[];
+  squash?: SquashView;
 
   // Type-derived metadata
   meta?: string;
@@ -311,12 +332,11 @@ function deriveThumbnail(
  * Normalize one commit into the shape every renderer consumes.
  *
  * `squash` is the row's *reading*, when it has one: several commits printed
- * as a single row (see `lib/log-squash.ts`). It changes two things and
- * deliberately nothing else — the media the row carries becomes every
- * member's, and the headline, date and member lines come from the squash
- * rather than the lead alone. Everything below still normalizes the lead,
- * because a row has one type, one byline, one prose, and the lead is the
- * member the row is written from.
+ * as one row (see `lib/log-squash.ts`). The row is then two levels — a
+ * header, and a band nested under it — and this is where each field is
+ * sent to one level or the other. Nothing is taken from one member and
+ * applied to the others: what every member shares goes up, what varies
+ * stays with the member it belongs to, media included.
  */
 export function normalizeCommit(
   commit: Commit,
@@ -326,34 +346,74 @@ export function normalizeCommit(
    * The row's attachments, when the caller has already built them — which
    * it must whenever it also builds an `AttachmentSet`, so the two share
    * object identity and a cover can find its own place in the set. Omit it
-   * and the commit's own are derived here (the home widgets' path, which
-   * has no set).
+   * and they are derived here (the home widgets' path, which has no set).
    */
   attachments?: Attachment[],
 ): NormalizedCommit {
-  const base = normalizeOne(
-    commit,
-    locale,
+  const all =
     attachments ??
-      (squash ? squashAttachments(squash, locale) : attachmentsOf(commit, locale)),
-  );
-  if (!squash) return base;
+    (squash ? squashAttachments(squash, locale) : attachmentsOf(commit, locale));
+  if (!squash) return normalizeOne(commit, locale, all);
 
-  const members = squashLines(squash, locale, computeCommitHash);
+  const facts = factorSquash(squash, locale);
+  // Each attachment already knows whose it is (lib/log.ts), so splitting the
+  // row's one array back into its members is a filter, not a lookup table.
+  const ownedBy = (id: string) => all.filter((a) => a.origin.commitId === id);
+
+  const members: SquashMemberView[] = facts.members.map((f) => {
+    const mine = ownedBy(f.commit.id);
+    const rich = mine.filter((a) => !isLinkPill(a.media));
+    const stripItems = getMediaStripItems(rich, locale);
+    const covered = new Set(stripItems.map((s) => s.media));
+    const links = extractMediaLinks(mine, locale);
+    return {
+      ...f,
+      stripItems,
+      // What has no cover still belongs to someone: a live widget prints in
+      // its member's card, not loose at the bottom of the row.
+      leftovers: rich.filter((a) => !covered.has(a.media)).map((a) => a.media),
+      links,
+      // The caption's rail: a member's links that are not already one of its
+      // covers. A cover is the affordance; an icon beside it saying the same
+      // thing is the row's rail printed twice.
+      extraLinks: links.filter((l) => !l.media || !covered.has(l.media)),
+    };
+  });
+
+  if (facts.mode === "parent") {
+    // The parent IS the row: normalize it exactly as an ordinary row, on its
+    // own attachments only. Its covers print bare at the head of the band,
+    // the children nest after them.
+    const base = normalizeOne(squash.parent!, locale, ownedBy(squash.parent!.id));
+    return {
+      ...base,
+      title: facts.headline,
+      description: facts.description || base.description,
+      squash: { mode: "parent", members },
+    };
+  }
+
+  // Peers: the header is built from what is shared, so it owns no media and
+  // no rail of its own — every cover and every link is some member's, and
+  // prints with that member in the band.
+  const base = normalizeOne(squash.lead, locale, []);
   return {
     ...base,
-    title: squashHeadline(squash, locale),
-    date: squashDate(squash, locale),
-    description:
-      localizeOptional(squash.squash.description, locale) ?? base.description,
-    members,
-    // The venue moved. Under every axis that prints lines, what the lead's
-    // meta line used to say is now either the headline (`"title"`) or one
-    // of the lines (`"venue"`, `"venue-title"`) — so leaving it here prints
-    // it twice. `"none"` keeps it: that row is still the lead's own, and
-    // its subtitle is the only place its venue appears.
-    meta: members.length > 0 ? undefined : base.meta,
-    metaUrl: members.length > 0 ? undefined : base.metaUrl,
+    type: facts.type,
+    iconOverride: facts.type === squash.lead.type ? base.iconOverride : undefined,
+    title: facts.headline,
+    // A group of asides is an aside; a group with one aside in it is not.
+    present: facts.quiet ? "aside" : undefined,
+    foldedTitle: facts.quiet ? facts.headline : undefined,
+    date: facts.date,
+    description: facts.description,
+    // No peer's prose speaks for the group; the commentary is a peer's too.
+    commentary: undefined,
+    languageBadge: facts.languageBadge,
+    meta: facts.meta ?? undefined,
+    metaUrl: undefined,
+    dateSlotOverride: undefined,
+    squash: { mode: "peers", members },
   };
 }
 
@@ -420,9 +480,6 @@ function normalizeOne(
     iconOverride: commit.icon,
     present: commit.present,
     foldedTitle,
-    // An ordinary row stands for itself. The wrapper above fills these in
-    // for the rows that stand for more.
-    members: [] as SquashLine[],
   };
 
   // Type-specific extraction
