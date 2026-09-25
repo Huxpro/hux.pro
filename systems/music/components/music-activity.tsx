@@ -43,24 +43,24 @@ export function MusicActivity() {
       id="music"
       openLabel={t(locale, "musicOpenControls")}
       collapseLabel={t(locale, "musicCollapse")}
-      pill={
-        <>
-          {track ? (
-            <span className="relative h-6 w-6 rounded-full overflow-hidden shrink-0">
-              <img
-                src={track.thumbnailUrl}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            </span>
-          ) : (
-            <span className="h-6 w-6 rounded-full bg-muted/60 flex items-center justify-center shrink-0">
-              <Music className="h-3.5 w-3.5 text-muted-foreground" />
-            </span>
-          )}
-          {showEQ && <EQBars className="text-green-500" />}
-        </>
+      // Apple's compact split. The art identifies the activity and is all the
+      // minimal form gets; the EQ is the live bit and rides the island only.
+      lead={
+        track ? (
+          <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full">
+            <img
+              src={track.thumbnailUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          </span>
+        ) : (
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted/60">
+            <Music className="h-3.5 w-3.5 text-muted-foreground" />
+          </span>
+        )
       }
+      trail={showEQ ? <EQBars className="text-green-500" /> : undefined}
       title={
         <>
           {showEQ && <EQBars className="text-green-500" />}
