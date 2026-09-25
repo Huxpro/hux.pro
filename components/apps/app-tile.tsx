@@ -2,7 +2,7 @@
 
 import { APP_ICONS, iconFillsTile } from "@/lib/apps";
 import type { AppLink } from "@/lib/app-icon-core";
-import { appTitle, resolveAppIconSrc } from "@/lib/app-icon-core";
+import { appTitle, isBuiltinApp, resolveAppIconSrc } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { AppBadgeFor } from "@/systems/windows";
@@ -64,7 +64,7 @@ export function AppTile({
   const { locale } = useLocale();
   const label = appTitle(app, locale);
   const entry = APP_ICONS[app.id];
-  const fills = iconFillsTile(entry);
+  const fills = iconFillsTile(entry) || isBuiltinApp(app);
   const src = resolveAppIconSrc(app, APP_ICONS);
   const px = TILE_PX[size];
 

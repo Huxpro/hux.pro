@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 //   • web apps        → a globe (opens in an iframe window)
 //   • Lynx · React    → the Lynx head, tinted React blue
 //   • Lynx · Vue      → the Lynx head, tinted Vue green
+//   • System          → a window, for a built-in feature (music, wallpaper…)
+//   • Page            → a folded page, for a route of this site in a window
 //
 // The Lynx flavour is colour-only, so React-Lynx and Vue-Lynx apps read apart
 // at a glance without a second glyph.
@@ -59,6 +61,26 @@ function WebMark({ className }: { className?: string }) {
   );
 }
 
+/** A small window: a built-in feature, living in the window system. */
+function SystemMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
+      <path d="M3.5 9h17" />
+    </svg>
+  );
+}
+
+/** A folded page: a route of this site, shrunk into a window. */
+function PageMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinejoin="round" aria-hidden>
+      <path d="M6 3h8l4 4v14H6z" />
+      <path d="M14 3v4h4" />
+    </svg>
+  );
+}
+
 interface BadgeSpec {
   /** Chip fill colour. */
   bg: string;
@@ -73,6 +95,18 @@ function specFor(runtime: AppRuntime, flavor?: AppFlavor): BadgeSpec {
       // React blue vs Vue green — the whole point of the flavour tint.
       bg: vue ? "bg-[#42b883]" : "bg-[#149eca]",
       glyph: <LynxMark className="h-[70%] w-[70%] text-white" />,
+      label: runtimeLabel({ runtime, flavor }),
+    };
+  }
+  if (runtime === "system" || runtime === "page") {
+    return {
+      bg: "bg-zinc-900 dark:bg-zinc-700",
+      glyph:
+        runtime === "system" ? (
+          <SystemMark className="h-[58%] w-[58%] text-white" />
+        ) : (
+          <PageMark className="h-[58%] w-[58%] text-white" />
+        ),
       label: runtimeLabel({ runtime, flavor }),
     };
   }

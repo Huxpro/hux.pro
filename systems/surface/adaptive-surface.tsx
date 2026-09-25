@@ -82,6 +82,28 @@ export function useSurfaceContext(): SurfaceContextValue {
   return ctx;
 }
 
+/**
+ * A surface host that is not an `AdaptiveSurface` — an app window in the
+ * window system holding a built-in's content (systems/windows, "Unified
+ * windows"). The content asks the same question either way ("how much room
+ * am I in?"), so a window answers it the same way a surface window does.
+ */
+export function ProvideSurfaceContext({
+  mode,
+  close,
+  children,
+}: {
+  mode: SurfaceMode;
+  close: () => void;
+  children: React.ReactNode;
+}) {
+  const value = useMemo(
+    () => ({ mode, isWindow: mode === "window", close }),
+    [mode, close],
+  );
+  return <SurfaceContext.Provider value={value}>{children}</SurfaceContext.Provider>;
+}
+
 export interface AdaptiveSurfaceProps {
   /**
    * Stable id. Doubles as the draggable instance key in window mode, so a

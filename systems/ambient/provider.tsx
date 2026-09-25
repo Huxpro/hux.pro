@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { isEmbeddedWindow } from "@/systems/windows/lib/embed";
+import { useEmbeddedWindow } from "@/systems/windows/lib/use-embedded";
 import { getWeatherStyleGradient } from "./lib/gradient";
 import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "./lib/gradient";
 import {
@@ -736,9 +738,12 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   // come off for the one frame before the platform is known.
   const [isIOS, setIsIOS] = useState<boolean | null>(null);
   useEffect(() => {
+    // A page inside a window is not the thing at the edge of the screen: the
+    // top document owns the bezel (systems/windows/lib/embed.ts).
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: platform read
-    setIsIOS(isIOSBrowser());
+    setIsIOS(isIOSBrowser() && !isEmbeddedWindow());
   }, []);
+  const embedded = useEmbeddedWindow();
 
   const overridden = (
     key: "full" | "widget" | "softEdging" | "bezel",
@@ -748,7 +753,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const reading = isReadingSurface({ pathname });
   const isBlurred = reading && settings.wallpaperKind === "image" && settings.wallpaperReadingBlur;
 
-  const fullEnabled = overridden("full", settings.wallpaperPlacement === "full");
+  // Embedded, the wallpaper is already behind the window this page is in.
+  const fullEnabled =
+    !embedded && overridden("full", settings.wallpaperPlacement === "full");
   const widgetEnabled = overridden(
     "widget",
     settings.wallpaperPlacement === "widget"

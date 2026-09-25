@@ -21,6 +21,7 @@ export {
   TheaterRegistrar,
   AlbumTabs,
   TrackThumb,
+  TheaterWindow,
 } from "./components";
 export {
   buildTalkAlbums,

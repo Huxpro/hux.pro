@@ -36,6 +36,8 @@ import type {
   Track,
 } from "./lib/types";
 import { Stage } from "./components/stage";
+import { useUnifiedWindows } from "@/systems/windows/lib/unified";
+import { embeddedOS } from "@/systems/windows/lib/os";
 
 // =============================================================================
 // Theater Provider — the immersive video system's coordination layer.
@@ -46,6 +48,12 @@ import { Stage } from "./components/stage";
 // chrome reads to stay aligned. The visual surfaces (theater overlay, PiP
 // window, minimized Live Activity) are thin, state-bound consumers.
 // =============================================================================
+
+/** Where the stage stands while the theater is a window (see `setWindowSlot`). */
+export interface WindowSlot {
+  el: HTMLElement;
+  zIndex: number;
+}
 
 interface OpenOptions {
   albums: Album[];
@@ -99,6 +107,17 @@ interface TheaterContextValue {
   dragging: boolean;
   /** The playlist surface (albums + tracks) — the only browser PiP has. */
   isPlaylistOpen: boolean;
+  /**
+   * Bumped by every `open` — a request to bring the player forward, even for
+   * the track already on it. What the Theater window listens to, since in
+   * `window` mode a repeat open changes nothing else it could see.
+   */
+  openRequest: number;
+  /**
+   * The Theater window's hold on the stage: the element the stage stands over
+   * and the window's z-index. Null while no window is holding it.
+   */
+  setWindowSlot: (slot: WindowSlot | null) => void;
 
   /** Register the default albums (curated talk playlists) once. */
   registerAlbums: (albums: Album[]) => void;
@@ -194,6 +213,11 @@ function ytPhase(state: YT.PlayerState): PlayerPhase {
 export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const music = useOptionalMusic();
   const pathname = usePathname();
+  // Unified windows: on a screen with room for the theater, the Theater
+  // window takes the modal's place (mode "window") — the same stage, stood at
+  // the window's level over a slot the window keeps for it.
+  const unified = useUnifiedWindows();
+  const [windowSlot, setWindowSlot] = useState<WindowSlot | null>(null);
   const { primaryInput } = useInputCapability();
 
   // --- Playlist + mode state ---
@@ -205,6 +229,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<TheaterMode>("closed");
   const [minimized, setMinimized] = useState(false);
   const [isPlaylistOpen, setPlaylistOpen] = useState(false);
+  const [openRequest, setOpenRequest] = useState(0);
 
   // --- Player state ---
   const [phase, setPhase] = useState<PlayerPhase>("idle");
@@ -257,7 +282,10 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     () => stageRectFor(geomMode, viewport, effectiveOffset),
     [geomMode, viewport, effectiveOffset],
   );
-  const visible = mode !== "closed" && !minimized;
+  const staged = mode !== "closed";
+  // In a window the stage shows only while the window is holding its slot
+  // (a window in the dock or mid-close holds none).
+  const visible = staged && !minimized && (mode !== "window" || windowSlot !== null);
 
   // --- Viewport tracking (drives stage geometry) ---
   useEffect(() => {
@@ -338,7 +366,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
 
   // Load / stop the underlying player as the current track or mode changes.
   useEffect(() => {
-    if (effectiveMode === "closed" && mode === "closed") {
+    if (!staged) {
       // Fully closed: stop playback but keep the player instance for reuse.
       try {
         playerRef.current?.stopVideo();
@@ -373,7 +401,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       setPhase("idle");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track?.id, track?.platform, track?.videoId, mode, minimized, ensurePlayer]);
+  }, [track?.id, track?.platform, track?.videoId, mode, staged, minimized, ensurePlayer]);
 
   // Pause background music whenever a video starts playing.
   useEffect(() => {
@@ -454,14 +482,15 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   // The playlist belongs to PiP and the Live Activity. The theater has its own
   // album tabs and rail, and closing the player ends the session entirely.
   useEffect(() => {
-    if (mode === "theater" || mode === "closed") setPlaylistOpen(false);
+    // The window has the album tabs and the rail of its own, as the modal does.
+    if (mode === "theater" || mode === "closed" || mode === "window") setPlaylistOpen(false);
   }, [mode]);
 
   // Phone-sized (or short) viewports can't host theater chrome — drop to PiP
   // rather than rendering a crushed modal if the window is resized / rotated.
   useEffect(() => {
     if (!theaterAvailable) {
-      setMode((m) => (m === "theater" ? "pip" : m));
+      setMode((m) => (m === "theater" || m === "window" ? "pip" : m));
     }
   }, [theaterAvailable]);
 
@@ -471,11 +500,14 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
 
   const resolveMode = useCallback(
     (requested?: TheaterMode): TheaterMode => {
+      // Unified: the window is the theater. A phone has no room for either and
+      // keeps its PiP, as it always has.
+      if (unified && theaterAvailable && requested !== "pip") return "window";
       if (requested === "theater" && !theaterAvailable) return "pip";
       if (requested) return requested;
       return theaterAvailable ? "theater" : "pip";
     },
-    [theaterAvailable],
+    [theaterAvailable, unified],
   );
 
   const open = useCallback(
@@ -488,6 +520,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       setMinimized(false);
       setPipOffset({ x: 0, y: 0 });
       setMode(resolveMode(m));
+      setOpenRequest((n) => n + 1);
     },
     [resolveMode],
   );
@@ -515,6 +548,13 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
 
   const openVideo = useCallback(
     (input: OpenVideoInput) => {
+      // A page in a window plays nothing itself: there is one player, the
+      // top document's (systems/windows/lib/os.ts).
+      const os = embeddedOS();
+      if (os) {
+        os.openVideo(input);
+        return;
+      }
       const videoId = resolveVideoId(input.url, input.platform);
       // Try to locate the video inside the curated albums first, so a click on
       // /works lands inside the right playlist with full navigation context.
@@ -565,6 +605,11 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
 
   const openMedia = useCallback(
     (media: VideoMedia | SlidesMedia, meta: MediaMeta) => {
+      const os = embeddedOS();
+      if (os) {
+        os.openMedia(media, meta);
+        return;
+      }
       if (media.kind === "video") {
         openVideo({
           id: meta.id,
@@ -610,10 +655,12 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     setMinimized(false);
     setMode("pip");
   }, []);
+  // "Theater" is the big view, whichever that is here: the modal, or with
+  // unified windows the Theater window.
   const toTheater = useCallback(() => {
     setMinimized(false);
-    setMode(theaterAvailable ? "theater" : "pip");
-  }, [theaterAvailable]);
+    setMode(resolveMode("theater"));
+  }, [resolveMode]);
 
   const play = useCallback(() => {
     try {
@@ -684,8 +731,9 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   // Escape closes the player (a standard modal affordance). Track/album
   // navigation via keyboard and scroll is intentionally omitted on desktop —
   // clicking the album tabs / playlist rail / arrows is the single, clear path.
+  // A window's Escape is the window system's.
   useEffect(() => {
-    if (effectiveMode === "closed") return;
+    if (effectiveMode === "closed" || effectiveMode === "window") return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
@@ -717,6 +765,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     pipOffset: effectiveOffset,
     dragging,
     isPlaylistOpen,
+    openRequest,
+    setWindowSlot,
     registerAlbums,
     open,
     openTrack,
@@ -751,10 +801,11 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
         hostRef={hostRef}
         rect={rect}
         track={track}
-        active={mode !== "closed"}
+        active={staged}
         visible={visible}
         dragging={dragging}
         pip={geomMode === "pip"}
+        slot={mode === "window" ? windowSlot : null}
       />
     </TheaterContext.Provider>
   );

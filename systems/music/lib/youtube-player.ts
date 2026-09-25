@@ -145,6 +145,7 @@ declare global {
       getVideoData(): VideoData;
       getCurrentTime(): number;
       getDuration(): number;
+      seekTo(seconds: number, allowSeekAhead: boolean): void;
       setVolume(volume: number): void;
       getVolume(): number;
       mute(): void;

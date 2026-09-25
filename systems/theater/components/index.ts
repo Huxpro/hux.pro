@@ -10,3 +10,4 @@ export { VideoControls } from "./video-controls";
 export { SurfaceSwitch } from "./surface-switch";
 export { TheaterSurfaces } from "./surfaces";
 export { TheaterRegistrar } from "./registrar";
+export { TheaterWindow } from "./theater-window";

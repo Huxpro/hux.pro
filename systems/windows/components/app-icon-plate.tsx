@@ -1,6 +1,6 @@
 "use client";
 
-import { appTitle, resolveAppIconSrc, type AppLink } from "@/lib/app-icon-core";
+import { appTitle, isBuiltinApp, resolveAppIconSrc, type AppLink } from "@/lib/app-icon-core";
 import { APP_ICONS, iconFillsTile } from "@/lib/apps";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
@@ -30,7 +30,7 @@ export function AppIconPlate({
 }) {
   const { locale } = useLocale();
   const src = resolveAppIconSrc(app, APP_ICONS);
-  const fills = iconFillsTile(APP_ICONS[app.id]);
+  const fills = iconFillsTile(APP_ICONS[app.id]) || isBuiltinApp(app);
 
   if (!src) {
     return (

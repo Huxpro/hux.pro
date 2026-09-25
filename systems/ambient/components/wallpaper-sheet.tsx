@@ -1,5 +1,6 @@
 "use client";
 
+import { useUnifiedWindows } from "@/systems/windows/lib/unified";
 import {
   Segmented,
   type SegmentedOption,
@@ -512,11 +513,13 @@ function WeatherTiltRow() {
 export function WallpaperSheet() {
   const { locale } = useLocale();
   const { isPickerOpen, openPicker, closePicker } = useWallpaper();
+  // Unified windows: the picker is the Wallpaper window's instead.
+  const unified = useUnifiedWindows();
 
   return (
     <AdaptiveSurface
       id="surface-wallpaper"
-      open={isPickerOpen}
+      open={isPickerOpen && !unified}
       onOpenChange={(open) => (open ? openPicker() : closePicker())}
       presentation={ADAPTIVE_PRESENTATION}
       title={t(locale, "wallpaperTitle")}
@@ -544,7 +547,12 @@ const CATEGORY_LABEL: Record<WallpaperCategory, TranslationKey> = {
  * thing that genuinely differs: a desktop window is wide enough for three
  * columns of pair cards, a phone sheet is not.
  */
-function WallpaperPickerBody() {
+export function WallpaperPickerBody({
+  columns: columnsOverride,
+}: {
+  /** For a host that measures its own room (the Wallpaper window). */
+  columns?: number;
+} = {}) {
   const { locale } = useLocale();
   const {
     kind,
@@ -562,7 +570,7 @@ function WallpaperPickerBody() {
   const { followSun, setFollowSun } = useSolarTheme();
   const isImage = kind === "image";
   const { isWindow } = useSurfaceContext();
-  const columns = isWindow ? 3 : 2;
+  const columns = columnsOverride ?? (isWindow ? 3 : 2);
 
   // Opens on the category of what is in use, so the check mark is on screen.
   const [category, setCategory] = useState<WallpaperCategory>(

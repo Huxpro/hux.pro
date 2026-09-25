@@ -53,6 +53,8 @@ interface MusicContextType {
   pause: () => void;
   next: () => void;
   previous: () => void;
+  /** Jump within the current track (the Music window's scrubber). */
+  seek: (seconds: number) => void;
   /**
    * Offline mock backend (dev / headless verification — see lib/mock.ts).
    * Toggling hot-swaps the backend in place: the current player is torn
@@ -428,6 +430,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     playerRef.current?.pauseVideo();
   }, []);
 
+  const seek = useCallback((seconds: number) => {
+    setCurrentTime(seconds);
+    if (mockRef.current) return;
+    playerRef.current?.seekTo(seconds, true);
+  }, []);
+
   const mockJumpTo = useCallback((index: number) => {
     const entry = MOCK_PLAYLIST[index];
     if (!entry) return;
@@ -495,6 +503,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         pause,
         next,
         previous,
+        seek,
         isMockEnabled,
         setMockEnabled,
         playlist,

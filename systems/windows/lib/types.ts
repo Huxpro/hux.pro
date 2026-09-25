@@ -43,4 +43,16 @@ export interface WindowInstance {
   restoreRect?: Rect;
   /** Preset to return to when leaving "max". */
   restorePreset?: SizePreset;
+  /**
+   * Where the window grows from when it opens, if not from its own rect: the
+   * whole viewport, for a fullscreen page shrinking into a window. Cleared on
+   * nothing — it only matters to the first mount.
+   */
+  origin?: Rect;
+}
+
+/** Options for opening an app. */
+export interface OpenAppOptions {
+  /** Grow the window out of this rect rather than in place (see `origin`). */
+  origin?: Rect;
 }

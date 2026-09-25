@@ -4,7 +4,7 @@ import { appTitle } from "@/lib/app-icon-core";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { animate, motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWindows } from "../provider";
 import {
   MIN_SIZE,
@@ -16,6 +16,7 @@ import {
 import { armPointer } from "../lib/pointer";
 import type { Rect, WindowInstance } from "../lib/types";
 import { AppFrame, appGround } from "./app-frame";
+import { HostWindowProvider } from "./host-window";
 import { WindowChrome } from "./window-chrome";
 import { WindowSheet } from "./window-sheet";
 import { useSurfaceMode, type SurfacePresentation } from "@/systems/surface";
@@ -39,7 +40,7 @@ import { useSurfaceMode, type SurfacePresentation } from "@/systems/surface";
 /** A window is a sheet on a phone, a window from `sm` up. */
 const WINDOW_PRESENTATION: SurfacePresentation = { base: "sheet", sm: "window" };
 
-export function Window({ win }: { win: WindowInstance }) {
+export function Window({ win, zIndex }: { win: WindowInstance; zIndex: number }) {
   // Resolved on the first render, not in an effect: a window only ever appears
   // because somebody opened one, so there is no server render to agree with —
   // and starting in the phone shape would commit this app's iframe, fetch it,
@@ -47,7 +48,7 @@ export function Window({ win }: { win: WindowInstance }) {
   return useSurfaceMode(WINDOW_PRESENTATION, { immediate: true }) === "sheet" ? (
     <WindowSheet win={win} />
   ) : (
-    <DesktopWindow win={win} />
+    <DesktopWindow win={win} zIndex={zIndex} />
   );
 }
 
@@ -106,7 +107,24 @@ function resizeRect(dir: ResizeDir, base: Rect, dx: number, dy: number): Rect {
   return { x, y, width, height };
 }
 
-function DesktopWindow({ win }: { win: WindowInstance }) {
+/**
+ * The first frame of a window that grows out of somewhere — a fullscreen page
+ * shrinking into it. Expressed about the window's centre, the transform origin
+ * every other animation on it already uses, so the genie to the dock needs no
+ * special case afterwards.
+ */
+function fromOrigin(origin: Rect, rect: Rect) {
+  return {
+    opacity: 1,
+    scale: 1,
+    x: origin.x + origin.width / 2 - (rect.x + rect.width / 2),
+    y: origin.y + origin.height / 2 - (rect.y + rect.height / 2),
+    scaleX: origin.width / rect.width,
+    scaleY: origin.height / rect.height,
+  };
+}
+
+function DesktopWindow({ win, zIndex }: { win: WindowInstance; zIndex: number }) {
   const { focus, setRect, focusedId, toggleMaximize } = useWindows();
   const { locale } = useLocale();
   const ref = useRef<HTMLDivElement>(null);
@@ -115,6 +133,20 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
   const focused = focusedId === win.id;
   const maximized = win.sizePreset === "max";
   const minimized = win.mode === "minimized";
+  const host = useMemo(
+    () => ({ win, zIndex, shape: "window" as const }),
+    [win, zIndex],
+  );
+
+  // Anything painted over a window without being in it — the theater's stage
+  // at its window's level — must let a drag or a resize through, or the
+  // video frame under the pointer swallows the gesture (globals.css).
+  useEffect(() => {
+    if (!gesturing) return;
+    const root = document.documentElement;
+    root.classList.add("window-gesturing");
+    return () => root.classList.remove("window-gesturing");
+  }, [gesturing]);
 
   const paint = useCallback((rect: Rect) => {
     const el = ref.current;
@@ -223,16 +255,18 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
       aria-label={appTitle(win.app, locale)}
       aria-hidden={minimized || undefined}
       inert={minimized || undefined}
-      initial={{ opacity: 0, scale: 0.94 }}
+      initial={win.origin ? fromOrigin(win.origin, win.rect) : { opacity: 0, scale: 0.94 }}
       animate={
         minimized
           ? {
               opacity: 0,
               scale: 0.08,
+              scaleX: 1,
+              scaleY: 1,
               x: getViewport().width / 2 - (win.rect.x + win.rect.width / 2),
               y: 16 - win.rect.y,
             }
-          : { opacity: 1, scale: 1, x: 0, y: 0 }
+          : { opacity: 1, scale: 1, scaleX: 1, scaleY: 1, x: 0, y: 0 }
       }
       exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
       transition={
@@ -242,12 +276,12 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
       }
       onPointerDownCapture={() => focus(win.id)}
       style={{
-        position: "absolute",
+        position: "fixed",
         left: win.rect.x,
         top: win.rect.y,
         width: win.rect.width,
         height: win.rect.height,
-        zIndex: win.z,
+        zIndex,
         pointerEvents: minimized ? "none" : "auto",
         transition: gesturing
           ? "none"
@@ -268,7 +302,9 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
       {/* Edge-to-edge content. Keyed by generation: the menu's Reload is a
           remount (see `reload` in the provider). */}
       <div className="absolute inset-0">
-        <AppFrame key={win.generation} app={win.app} />
+        <HostWindowProvider value={host}>
+          <AppFrame key={win.generation} app={win.app} />
+        </HostWindowProvider>
       </div>
 
       {/* Top-edge drag tolerance — grab near the top border to move. Sits below

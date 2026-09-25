@@ -9,6 +9,7 @@ import { DOCK_BAND, getViewport, onViewportChange } from "../lib/geometry";
 import type { WindowInstance } from "../lib/types";
 import { useWindows } from "../provider";
 import { AppFrame, appGround } from "./app-frame";
+import { HostWindowProvider } from "./host-window";
 import { WindowGrip } from "./window-grip";
 import { WindowMenuSheet } from "./window-menu";
 
@@ -75,6 +76,7 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
   const [dock, setDock] = useState(dockDetent);
 
   const title = appTitle(win.app, locale);
+  const host = useMemo(() => ({ win, zIndex: 0, shape: "sheet" as const }), [win]);
   const minimized = win.mode === "minimized";
   const open = isPresent && !minimized;
   const id = `window-${win.id}`;
@@ -160,7 +162,9 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
         className="min-h-0 flex-1 overflow-hidden"
         onPointerDownCapture={() => focus(win.id)}
       >
-        <AppFrame key={win.generation} app={win.app} />
+        <HostWindowProvider value={host}>
+          <AppFrame key={win.generation} app={win.app} />
+        </HostWindowProvider>
       </div>
 
       {/* The menu, stacked on the window: a React child of this sheet, so Base

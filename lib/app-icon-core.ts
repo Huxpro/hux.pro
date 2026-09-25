@@ -368,11 +368,20 @@ function ascii(buf: Uint8Array, start: number, end: number): string {
 
 /**
  * How an app runs inside a chrome window:
- *   - "web"  — an ordinary web page, loaded in an `<iframe>`.
- *   - "lynx" — a Lynx app bundle (`.web.bundle`), rendered by `@lynx-js/web-core`'s
- *              `<lynx-view>` element (a "Lynx Player").
+ *   - "web"    — an ordinary web page, loaded in an `<iframe>`.
+ *   - "lynx"   — a Lynx app bundle (`.web.bundle`), rendered by `@lynx-js/web-core`'s
+ *                `<lynx-view>` element (a "Lynx Player").
+ *   - "system" — a built-in feature of this site (music, wallpaper, theater),
+ *                rendered in this document by the component registered for
+ *                {@link AppLink.system}. No frame: it shares the providers.
+ *   - "page"   — a route of this site ({@link AppLink.url} is its path), shrunk
+ *                from fullscreen into a window: a same-origin frame that knows
+ *                it is one and draws no OS chrome of its own.
  */
-export type AppRuntime = "web" | "lynx";
+export type AppRuntime = "web" | "lynx" | "system" | "page";
+
+/** The built-in features that can open as a window (`runtime: "system"`). */
+export type SystemAppId = "music" | "wallpaper" | "theater";
 
 /**
  * The authoring framework behind a Lynx bundle. Purely cosmetic here — it tints
@@ -402,6 +411,13 @@ export interface AppLink {
   runtime?: AppRuntime;
   /** Lynx authoring framework — badge tint only. See {@link AppFlavor}. */
   flavor?: AppFlavor;
+  /** For `runtime: "system"`: which built-in feature the window holds. */
+  system?: SystemAppId;
+  /**
+   * The app keeps a Live Activity of its own in the dock (the theater's "now
+   * watching"), so its window, minimized, takes no second pill there.
+   */
+  activity?: boolean;
   /**
    * For `runtime: "lynx"`: the `.web.bundle` the player loads.
    *   - a site-local `/…` path → a **built-in** (offline) bundle from /public
@@ -467,10 +483,22 @@ export function appTitle(
 }
 
 export function runtimeLabel(app: Pick<AppLink, "runtime" | "flavor">): string {
-  if ((app.runtime ?? "web") === "lynx") {
+  const runtime = app.runtime ?? "web";
+  if (runtime === "lynx") {
     return app.flavor === "vue" ? "Lynx · Vue" : "Lynx · React";
   }
+  if (runtime === "system") return "System";
+  if (runtime === "page") return "Page";
   return "Web";
+}
+
+/**
+ * A built-in: one of this site's own features or pages, rather than an app it
+ * links to. Its icon is drawn here to fill the tile, so it never gets the
+ * white plate a fetched favicon does.
+ */
+export function isBuiltinApp(app: Pick<AppLink, "runtime">): boolean {
+  return app.runtime === "system" || app.runtime === "page";
 }
 
 /**
