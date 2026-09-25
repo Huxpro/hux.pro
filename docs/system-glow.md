@@ -80,7 +80,8 @@ rises as a dome — voice-glow's *bend*. `edge="top"` mirrors it.
 | `level` | 0–1, a number or a getter read every frame |
 | `bands` | getter for low / mid / high, 0–1 each |
 | `processing` | gather into a travelling beam: along the edge and back for a line, a comet around a ring |
-| `reach` | px the light reaches in; sized to the host when omitted |
+| `reach` | px the light reaches in (its visible light runs ~3× further); sized to the host when omitted |
+| `extent` | `{ x, y }` px where the light ends, from the left/right and top/bottom edges; overrides `reach`, blended smoothly round the corners |
 | `bleed` | px of halo past each side |
 | `radius` | px; read from the host (or 0 when `fixed`) |
 | `strength` | 0–1 |
@@ -98,7 +99,7 @@ localStorage (`hux_glow`, `lib/tuning.ts`):
 |---|---|---|
 | Strength · all | 0–150% | every glow on the site — the renderer reads it each frame, so a drag changes every lit glow at once |
 | About · strength | 0–150% | the About's ring, on top of the above |
-| About · depth | 5–60% of the gutter | how far the About's ring reaches in, as a share of the room it has — the gutter from the screen's edge to the words (the narrower side, measured live). The light shows about 2.5× its reach, so the default 20% is a ~36px reach on a desk's ~450px gutter and a thin line (never under 8px) on a phone's ~36px one. |
+| About · depth | 5–100% of the gutter | where the About's light **ends**, as a share of the room it has — the gutter from the screen's edge to the words (the article as the scroll container shows it, plus the way out under it), measured live: across for the left and right edges, down for the top and bottom, each the narrower of its two sides. 100% just touches the words. The default 30% is ~135px in from a desk's sides and ~33px from its top and bottom; a phone's ~36px side gutter keeps it to a line (never under 10px). |
 
 A blue `*` marks a knob off its default; pressing it resets. `Show About`
 brings the ring up to judge by eye. While the About is up the devtool rides

@@ -10,9 +10,10 @@ import { useSyncExternalStore } from "react";
 //
 //   strength       every glow on the site, × this — the light's overall volume
 //   aboutStrength  the About's ring, × this (on top of `strength`)
-//   aboutDepth     how far the About's ring reaches in, as a fraction of the
+//   aboutDepth     where the About's ring's light ends, as a fraction of the
 //                  room it has: the gutter between the screen's edge and the
-//                  words (wide on a desk, a few dozen px on a phone)
+//                  words, per side (wide on a desk, a few dozen px on a
+//                  phone). 1 is light that just touches the words.
 //
 // The renderer reads `strength` from here every frame (`glowTuning()`), so a
 // slider drag changes every lit glow at once without re-rendering anything.
@@ -28,7 +29,7 @@ export interface GlowTuning {
 export const GLOW_TUNING_DEFAULTS: GlowTuning = {
   strength: 1,
   aboutStrength: 1,
-  aboutDepth: 0.2,
+  aboutDepth: 0.3,
 };
 
 const KEY = "hux_glow";
