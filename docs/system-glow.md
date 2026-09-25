@@ -48,6 +48,7 @@ numbers.
 | core | a thin bright line on the edge itself, whiter in the dark. |
 | halo | outside the box (`bleed`), a softer light spilling out — the bloom a small element needs. |
 | falloff | `exp(-(d/reach)^1.45)`: steeper than exponential, because a plain `exp`'s long tail sums, across a small element, into a wash over its face. |
+| corners | the beams' depth is a **smooth** minimum (log-sum-exp) of the four edges, blended once more with the true rounded outline. A hard minimum of the edge distances folds the light along each diagonal — a crease from every corner once the light reaches deeper than the corner's radius (a 10px screen corner under a 38px ring). The smooth one keeps the contours round at every depth, lets two edges' light add up at a corner, and still follows a round host's curve (an avatar, a phone's 44px corners). Softness follows the reach; the core line stays on the true outline, crisp. Without a `bleed`, the sliver between a rounded box and a square host is lit as the edge, not left dark. |
 | focus | the ring narrowed to an arc (`uFocus`, `uFocusAt`). A **line** is the ring focused on one edge; **processing** is that arc gathered small and moving. |
 | energy | `uLevel` (rest 0.45) lengthens every reach and brightens; `uBands` (low / mid / high) drive their own beams, so speech ripples rather than pumps. |
 | reveal | the light arrives from the focus centre and spreads both ways, its front flaring, with a surge in reach as it lands. |
