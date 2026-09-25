@@ -63,6 +63,7 @@ import {
   type WeatherCondition,
 } from "@/systems/ambient/lib/weather";
 import {
+  sectionFoldKey,
   useDevtool,
   DRAGGABLE_INSTANCES,
   DRAGGABLE_DEFAULTS,
@@ -125,9 +126,18 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Segmented, Switch } from "@/components/ui/controls";
 import { Slider } from "@/components/ui/slider";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 // =============================================================================
 // Devtool content — the modules, and nothing about where they are shown.
@@ -138,6 +148,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 // moves between them; here are the modules and the footer that go inside
 // whichever one is up.
 // =============================================================================
+
+/**
+ * The modules' ids, in the order they are rendered — so the rail reads in the
+ * same order as the list it indexes. Keep in step with `DevtoolModules`.
+ */
+const MODULE_ORDER = [
+  "frontmatter",
+  "reading",
+  "wallpaper",
+  "glass",
+  "sky",
+  "music",
+  "command",
+  "draggable",
+  "windows",
+] as const;
 
 /** The module list. Whatever is hosting it supplies the scroll area. */
 export function DevtoolModules() {
@@ -152,9 +178,218 @@ export function DevtoolModules() {
       <CommandModule />
       <DraggableModule />
       <WindowsModule />
-      <RefetchModule />
     </>
   );
+}
+
+// =============================================================================
+// Sections — what the modules tell the rail about themselves
+//
+// Every module knows two things about itself the panel as a whole cannot:
+// whether it matters here and now (`relevant`), and whether anything inside it
+// is off its default (`star`). Relevance decides the fold until one is chosen
+// by hand; the star says "look in here" while the module is folded. The rail
+// needs both for every module at once, so each <DebugSection> reports them
+// here as it renders — the modules stay the only place that knows.
+// =============================================================================
+
+/** Off its default: amber for this session only, sky for a saved setting. */
+type Star = "session" | "saved" | null;
+
+interface SectionEntry {
+  id: string;
+  title: string;
+  icon: React.ReactNode;
+  relevant: boolean;
+  star: Star;
+}
+
+interface SectionsApi {
+  register: (entry: SectionEntry) => void;
+  unregister: (id: string) => void;
+  setNode: (id: string, node: HTMLElement | null) => void;
+}
+
+interface SectionsState {
+  /** Registered sections, in {@link MODULE_ORDER}. */
+  entries: SectionEntry[];
+  /** Scroll the module list so this section's header is at the top. */
+  scrollTo: (id: string) => void;
+}
+
+// Two contexts so a section reporting itself does not re-render every other
+// section: they only hold the (stable) api; the rail reads the entries.
+const SectionsApiContext = createContext<SectionsApi | null>(null);
+const SectionsContext = createContext<SectionsState | null>(null);
+
+/**
+ * Wraps a shell's whole body — rail and modules both — so the two can meet.
+ * `scrollRef` is the shell's scroll area, which the rail scrolls.
+ */
+export function DevtoolSections({
+  scrollRef,
+  children,
+}: {
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  children: React.ReactNode;
+}) {
+  const [byId, setById] = useState<Record<string, SectionEntry>>({});
+  const nodes = useRef(new Map<string, HTMLElement>());
+
+  const api = useMemo<SectionsApi>(
+    () => ({
+      register: (entry) =>
+        setById((prev) => {
+          const old = prev[entry.id];
+          // The icon is a fresh element every render and never changes, so
+          // it is not a reason to re-render the rail.
+          if (
+            old &&
+            old.title === entry.title &&
+            old.relevant === entry.relevant &&
+            old.star === entry.star
+          ) {
+            return prev;
+          }
+          return { ...prev, [entry.id]: entry };
+        }),
+      unregister: (id) =>
+        setById((prev) => {
+          if (!(id in prev)) return prev;
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        }),
+      setNode: (id, node) => {
+        if (node) nodes.current.set(id, node);
+        else nodes.current.delete(id);
+      },
+    }),
+    []
+  );
+
+  const scrollTo = useCallback(
+    (id: string) => {
+      const container = scrollRef.current;
+      const node = nodes.current.get(id);
+      if (!container || !node) return;
+      const top =
+        node.getBoundingClientRect().top -
+        container.getBoundingClientRect().top +
+        container.scrollTop;
+      container.scrollTo({ top, behavior: "smooth" });
+    },
+    [scrollRef]
+  );
+
+  const state = useMemo<SectionsState>(
+    () => ({
+      entries: MODULE_ORDER.flatMap((id) => (byId[id] ? [byId[id]] : [])),
+      scrollTo,
+    }),
+    [byId, scrollTo]
+  );
+
+  return (
+    <SectionsApiContext.Provider value={api}>
+      <SectionsContext.Provider value={state}>{children}</SectionsContext.Provider>
+    </SectionsApiContext.Provider>
+  );
+}
+
+/**
+ * The rail: one icon per module, above the list. Three things at a glance —
+ * a dot under the ones that matter here, a star on the ones with something
+ * changed inside, a filled chip on the ones that are open.
+ *
+ * A tap is "show me this one": it opens that module, folds the rest, and
+ * scrolls to it. Tapping it again gives the folds back to relevance and your
+ * own choices. With Shift (or ⌘ / Ctrl / Alt) a tap opens the module without
+ * folding anything else. The rail's folds are for getting around, so they are
+ * never saved, and a new page starts without them.
+ */
+export function DevtoolRail() {
+  const sections = useContext(SectionsContext);
+  const { isSectionCollapsed, railFolds, solo, setRailFolds } = useDevtool();
+  if (!sections || sections.entries.length === 0) return null;
+  const { entries, scrollTo } = sections;
+
+  const pick = (e: React.MouseEvent, entry: SectionEntry) => {
+    const key = sectionFoldKey(entry.id, entry.relevant);
+    if (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) {
+      setRailFolds({ ...railFolds, [key]: false }, solo);
+    } else if (solo === entry.id) {
+      setRailFolds({}, null);
+    } else {
+      setRailFolds(
+        Object.fromEntries(
+          entries.map((x) => [sectionFoldKey(x.id, x.relevant), x.id !== entry.id])
+        ),
+        entry.id
+      );
+    }
+    // After the folds have rendered, so the offset is the one it will have.
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollTo(entry.id)));
+  };
+
+  return (
+    <div
+      role="toolbar"
+      aria-label="Devtool modules"
+      className="flex items-center justify-between gap-0.5 border-b border-border/40 px-3 pb-2"
+    >
+      {entries.map((entry) => {
+        const open = !isSectionCollapsed(
+          sectionFoldKey(entry.id, entry.relevant),
+          !entry.relevant
+        );
+        return (
+          <button
+            key={entry.id}
+            onClick={(e) => pick(e, entry)}
+            title={entry.title}
+            aria-label={entry.title}
+            aria-pressed={open}
+            className={cn(
+              "relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
+              "[&_svg]:h-3.5 [&_svg]:w-3.5",
+              open
+                ? "bg-muted/70 text-foreground"
+                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground/80",
+              solo === entry.id && "ring-1 ring-border"
+            )}
+          >
+            {entry.icon}
+            {entry.relevant && (
+              <span className="absolute bottom-0.5 left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full bg-current opacity-70" />
+            )}
+            {entry.star && (
+              <span
+                className={cn(
+                  "absolute right-0.5 top-0 font-mono text-[10px] leading-none",
+                  entry.star === "session" ? "text-amber-500/80" : "text-sky-500/80"
+                )}
+              >
+                *
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The wallpaper is the page: the ambient modules matter most here. */
+function useIsHome(): boolean {
+  return usePathname() === "/";
+}
+
+/** The strongest of several stars: a session override outranks a saved one. */
+function strongest(...stars: Star[]): Star {
+  if (stars.includes("session")) return "session";
+  if (stars.includes("saved")) return "saved";
+  return null;
 }
 
 /** The status line under the modules: how to toggle, and how to turn it off. */
@@ -233,7 +468,7 @@ function WindowsModule() {
       title={zh ? "窗口" : "Windows"}
       icon={<AppWindow className="h-4 w-4" />}
       compact={!windows.length}
-      defaultCollapsed
+      relevant={windows.length > 0}
       action={
         windows.length ? (
           <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
@@ -305,7 +540,7 @@ function WindowsModule() {
 // =============================================================================
 
 interface DebugSectionProps {
-  /** Stable id for persisting collapse state (locale-independent, unlike title). */
+  /** Stable id: the rail's, and the key its folds are saved under. */
   id: string;
   title: string;
   icon?: React.ReactNode;
@@ -313,8 +548,14 @@ interface DebugSectionProps {
   children: React.ReactNode;
   /** Tighter vertical padding for lightweight content (toggles, buttons) */
   compact?: boolean;
-  /** Collapsed state when the user hasn't set one yet. Default: expanded. */
-  defaultCollapsed?: boolean;
+  /**
+   * Whether this module matters here and now. Unfolded when it does, folded
+   * when it does not — until a fold is chosen by hand, which is remembered
+   * separately for each answer.
+   */
+  relevant: boolean;
+  /** Something inside is off its default. Shown beside the title, and on the rail. */
+  star?: Star;
 }
 
 function DebugSection({
@@ -324,21 +565,32 @@ function DebugSection({
   action,
   children,
   compact,
-  defaultCollapsed = false,
+  relevant,
+  star = null,
 }: DebugSectionProps) {
-  // Collapse state is persisted per-section in the devtool settings
-  // (localStorage), keyed by `id`, so folds survive reloads. The title is the
-  // natural click target; the `action` slot stays a separate sibling so its
-  // controls (toggles, copy) keep working without toggling the fold.
+  // The title is the natural click target; the `action` slot stays a separate
+  // sibling so its controls (toggles, copy) keep working without toggling the
+  // fold.
   const { isSectionCollapsed, setSectionCollapsed } = useDevtool();
-  const collapsed = isSectionCollapsed(id, defaultCollapsed);
+  const sections = useContext(SectionsApiContext);
+  const foldKey = sectionFoldKey(id, relevant);
+  const collapsed = isSectionCollapsed(foldKey, !relevant);
+
+  useEffect(() => {
+    sections?.register({ id, title, icon, relevant, star });
+  }, [sections, id, title, icon, relevant, star]);
+  useEffect(() => () => sections?.unregister(id), [sections, id]);
+  const setNode = useCallback(
+    (node: HTMLDivElement | null) => sections?.setNode(id, node),
+    [sections, id]
+  );
 
   return (
-    <div className="border-b border-border/30 last:border-b-0">
+    <div ref={setNode} className="border-b border-border/30 last:border-b-0">
       <div className="px-4 py-2 bg-muted/20">
         <div className="flex items-center justify-between gap-2">
           <button
-            onClick={() => setSectionCollapsed(id, !collapsed)}
+            onClick={() => setSectionCollapsed(foldKey, !collapsed)}
             className={cn(
               "flex items-center gap-2 flex-1 min-w-0",
               "text-xs font-mono text-muted-foreground uppercase tracking-wider",
@@ -355,6 +607,21 @@ function DebugSection({
             />
             {icon}
             <span className="truncate">{title}</span>
+            {star && (
+              <span
+                className={cn(
+                  "-ml-1.5 shrink-0",
+                  star === "session" ? "text-amber-500/80" : "text-sky-500/80"
+                )}
+                title={
+                  star === "session"
+                    ? "Something in here is overridden for this session"
+                    : "Something in here is off its default"
+                }
+              >
+                *
+              </span>
+            )}
           </button>
           {action && (
             <div className="flex items-center min-h-5 shrink-0">{action}</div>
@@ -411,6 +678,7 @@ function FrontmatterModule() {
       title={locale === "zh" ? "元信息" : "Frontmatter"}
       icon={<Braces className="h-4 w-4" />}
       compact={!pageMeta}
+      relevant={pageMeta !== null}
       action={
         pageMeta ? (
           <button
@@ -604,9 +872,29 @@ function PanelSegmented<T extends string>(
   return <Segmented tone="system" {...props} />;
 }
 
+/** The reading defaults, where the stores keep them. */
+const READING_DEFAULT = {
+  font: "sans",
+  size: "default",
+  measure: "default",
+  bleed: true,
+  focus: false,
+  side: "right",
+} as const;
+
+/** One letter per step, as the segmented controls label them. */
+const STEP_LETTER = {
+  small: "S",
+  narrow: "S",
+  default: "M",
+  large: "L",
+  wide: "L",
+} as const;
+
 function ReadingModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
+  const { pageMeta } = useDevtool();
   const font = useReadingFont();
   const size = useReadingSize();
   const measure = useReadingMeasure();
@@ -633,42 +921,88 @@ function ReadingModule() {
     { value: "right", label: zh ? "右" : "Right" },
   ];
 
+  // Every one of these is a saved setting, so a blue star where it is changed.
+  const saved = (changed: boolean, reset: () => void) =>
+    changed ? <PanelStar source="saved" onReset={reset} /> : null;
+  const changed =
+    font !== READING_DEFAULT.font ||
+    size !== READING_DEFAULT.size ||
+    measure !== READING_DEFAULT.measure ||
+    bleed !== READING_DEFAULT.bleed ||
+    focus !== READING_DEFAULT.focus ||
+    side !== READING_DEFAULT.side;
+
+  const summary = [
+    font,
+    `${STEP_LETTER[size]}/${STEP_LETTER[measure]}`,
+    focus && "focus",
+    !bleed && "no bleed",
+    side === "left" && "ruler L",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <DebugSection
       id="reading"
       title={zh ? "阅读" : "Reading"}
       icon={<BookOpen className="h-4 w-4" />}
       compact
+      relevant={pageMeta !== null}
+      star={changed ? "saved" : null}
+      action={
+        <span className="text-[10px] font-mono text-muted-foreground">{summary}</span>
+      }
     >
       <div className="space-y-3">
-        <PanelRow label={zh ? "字体" : "Typeface"}>
+        <PanelRow
+          label={zh ? "字体" : "Typeface"}
+          star={saved(font !== READING_DEFAULT.font, () => setReadingFont(READING_DEFAULT.font))}
+        >
           <PanelSegmented value={font} options={fonts} onChange={setReadingFont} />
         </PanelRow>
-        <PanelRow label={zh ? "字号" : "Size"}>
+        <PanelRow
+          label={zh ? "字号" : "Size"}
+          star={saved(size !== READING_DEFAULT.size, () => setReadingSize(READING_DEFAULT.size))}
+        >
           <PanelSegmented value={size} options={sizes} onChange={setReadingSize} />
         </PanelRow>
-        <PanelRow label={zh ? "宽度" : "Measure"}>
+        <PanelRow
+          label={zh ? "宽度" : "Measure"}
+          star={saved(measure !== READING_DEFAULT.measure, () =>
+            setReadingMeasure(READING_DEFAULT.measure)
+          )}
+        >
           <PanelSegmented
             value={measure}
             options={measures}
             onChange={setReadingMeasure}
           />
         </PanelRow>
-        <PanelRow label={zh ? "满溢出血" : "Media bleed"}>
+        <PanelRow
+          label={zh ? "满溢出血" : "Media bleed"}
+          star={saved(bleed !== READING_DEFAULT.bleed, () => setBleedEnabled(READING_DEFAULT.bleed))}
+        >
           <PanelToggle
             on={bleed}
             onClick={() => setBleedEnabled(!bleed)}
             label="Toggle media bleed"
           />
         </PanelRow>
-        <PanelRow label={zh ? "专注模式" : "Focus mode"}>
+        <PanelRow
+          label={zh ? "专注模式" : "Focus mode"}
+          star={saved(focus !== READING_DEFAULT.focus, () => setReadingFocus(READING_DEFAULT.focus))}
+        >
           <PanelToggle
             on={focus}
             onClick={() => setReadingFocus(!focus)}
             label="Toggle focus mode"
           />
         </PanelRow>
-        <PanelRow label={zh ? "标尺停靠" : "Ruler dock"}>
+        <PanelRow
+          label={zh ? "标尺停靠" : "Ruler dock"}
+          star={saved(side !== READING_DEFAULT.side, () => setRulerSide(READING_DEFAULT.side))}
+        >
           <PanelSegmented value={side} options={sides} onChange={setRulerSide} />
         </PanelRow>
       </div>
@@ -690,6 +1024,8 @@ function GlassModule() {
   const zh = locale === "zh";
   const glass = useGlass();
   const { legibility, legibilityOverride, labPolicy } = useWallpaper();
+  const isHome = useIsHome();
+  const star: Star = glass.tint !== "neutral" ? "saved" : null;
 
   const options = GLASS_MATERIALS.map((value) => ({
     value,
@@ -702,6 +1038,8 @@ function GlassModule() {
       title={t(locale, "settingsGlass")}
       icon={<Layers2 className="h-4 w-4" />}
       compact
+      relevant={isHome}
+      star={star}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
           {glass.material}
@@ -824,6 +1162,7 @@ function WallpaperModule() {
   } = useWallpaper();
   const { heroExitOverride, setHeroExitOverride } = useDevtool();
   const heroExit = useHeroExit();
+  const isHome = useIsHome();
   const { scene } = useWeather();
   const { phase } = useAmbientTime();
 
@@ -913,6 +1252,25 @@ function WallpaperModule() {
       <PanelStar onReset={() => clearFlag(key)} source="session" />
     ) : null;
 
+  // The rows' stars, summed for the header. Only the rows that are showing:
+  // the bezel's saved rows count while the bezel is on, the style while the
+  // kind is Weather — a star has to be findable once the module is open.
+  const sessionOverridden =
+    Object.values(devtoolOverrides).some((v) => v !== undefined) ||
+    heroExitOverride !== undefined;
+  const savedChanged =
+    (!isImage && weatherStyle !== "sky") ||
+    (bezel &&
+      (bezelTint !== DEFAULT_BEZEL_TINT ||
+        bezelBandSetting !== null ||
+        bezelRadiusSetting !== null)) ||
+    !readingBlur ||
+    !readingDim;
+  const star = strongest(
+    sessionOverridden ? "session" : null,
+    savedChanged ? "saved" : null
+  );
+
   // One line that answers "what am I actually looking at".
   const weatherName = getWeatherWallpaperName(locale, weatherStyle);
   const now = [
@@ -939,6 +1297,8 @@ function WallpaperModule() {
       title={t(locale, "settingsWallpaper")}
       icon={<ImageIcon className="h-4 w-4" />}
       compact
+      relevant={isHome || star === "session"}
+      star={star}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
           {isImage ? wallpaper.id : `weather · ${isShader ? "gl" : "css"}`}
@@ -1494,7 +1854,11 @@ function SkyModule() {
   const zh = locale === "zh";
   const lang = zh ? "zh" : "en";
   const { theme } = useTheme();
-  const { location } = useLocation();
+  const {
+    location,
+    refresh: refreshLocation,
+    isFetching: locationFetching,
+  } = useLocation();
   const {
     weather,
     scene,
@@ -1503,7 +1867,10 @@ function SkyModule() {
     setDebugOverride,
     sceneOverrides,
     setSceneOverrides,
+    refresh: refreshWeather,
+    isFetching: weatherFetching,
   } = useWeather();
+  const isHome = useIsHome();
   const {
     nowMs,
     realNowMs,
@@ -1524,6 +1891,7 @@ function SkyModule() {
   const isOverridden = debugOverride !== null;
   const isTuned = Object.keys(sceneOverrides).length > 0;
   const anythingForced = isTimeTravelActive || isOverridden || isTuned;
+  const refetching = locationFetching || weatherFetching;
 
   // --- The day ------------------------------------------------------------
   const dayStartMs = startOfLocalDay(nowMs);
@@ -1754,6 +2122,11 @@ function SkyModule() {
       id="sky"
       title={zh ? "天空" : "Sky"}
       icon={<Cloud className="h-4 w-4" />}
+      relevant={isHome || anythingForced}
+      star={strongest(
+        anythingForced ? "session" : null,
+        !followSun || !gyro.enabled ? "saved" : null
+      )}
       action={
         anythingForced ? (
           <button
@@ -2142,6 +2515,30 @@ function SkyModule() {
           </PanelRow>
         </div>
 
+        {/* Where the real sky comes from: fetch it again. Weather refetches
+            both, since the forecast is asked for at the location. */}
+        <PanelRow label={zh ? "重新请求" : "Refetch"}>
+          <span className={cn("flex items-center gap-1", refetching && "opacity-60")}>
+            <button
+              onClick={() => refreshLocation()}
+              className={cn(PANEL_CHIP, "border-border/60 text-muted-foreground hover:text-foreground")}
+              aria-label="Refetch location"
+            >
+              <RefreshCw className={cn("h-3 w-3", locationFetching && "animate-spin")} />
+              {zh ? "位置" : "Location"}
+            </button>
+            <button
+              onClick={() => refreshWeather()}
+              className={cn(PANEL_CHIP, "border-border/60 text-muted-foreground hover:text-foreground")}
+              aria-label="Refetch weather"
+              title={zh ? "天气刷新会同时刷新位置与天气" : "Refetches both location and weather"}
+            >
+              <RefreshCw className={cn("h-3 w-3", weatherFetching && "animate-spin")} />
+              {zh ? "天气" : "Weather"}
+            </button>
+          </span>
+        </PanelRow>
+
         {/* Fine-tune, folded: the derived numbers, each draggable. */}
         <div className="border-t border-border/30 pt-2">
           <button
@@ -2223,6 +2620,7 @@ function MusicModule() {
   const music = useOptionalMusic();
   const mock = music?.isMockEnabled ?? false;
   const toggleMock = () => music?.setMockEnabled(!mock);
+  const state = music?.playerState ?? "idle";
 
   return (
     <DebugSection
@@ -2230,17 +2628,21 @@ function MusicModule() {
       title={t(locale, "settingsMusic")}
       icon={<Music className="h-4 w-4" />}
       compact
-      defaultCollapsed
+      // A track in hand, not a player warming up (or failing to).
+      relevant={mock || state === "playing" || state === "paused"}
+      star={mock ? "saved" : null}
       action={
-        mock ? (
-          <span className="text-[10px] font-mono text-amber-500/70 uppercase">
-            mock
-          </span>
-        ) : null
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {mock && <span className="uppercase text-amber-500/70">mock · </span>}
+          {state}
+        </span>
       }
     >
       <div className="space-y-3">
-        <PanelRow label={zh ? "模拟播放器" : "Mock player"}>
+        <PanelRow
+          label={zh ? "模拟播放器" : "Mock player"}
+          star={mock ? <PanelStar source="saved" onReset={toggleMock} /> : null}
+        >
           <PanelToggle on={mock} onClick={toggleMock} label="Toggle music mock" />
         </PanelRow>
         <div className="text-[10px] font-mono text-muted-foreground">
@@ -2277,7 +2679,7 @@ function MusicModule() {
 function CommandModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { phonePalette, setPhonePalette } = useDevtool();
+  const { phonePalette, setPhonePalette, canDock } = useDevtool();
   const options: { value: PhonePalette; label: string; title: string }[] = [
     {
       value: "sheet",
@@ -2297,7 +2699,12 @@ function CommandModule() {
       title={zh ? "命令" : "Command"}
       icon={<CommandIcon className="h-4 w-4" />}
       compact
-      defaultCollapsed
+      // The one setting here is the palette's shape on a phone.
+      relevant={canDock}
+      star={phonePalette !== PHONE_PALETTE_DEFAULT ? "saved" : null}
+      action={
+        <span className="text-[10px] font-mono text-muted-foreground">{phonePalette}</span>
+      }
     >
       <PanelRow
         label={zh ? "手机面板" : "Phone palette"}
@@ -2323,13 +2730,29 @@ function CommandModule() {
 function DraggableModule() {
   const { locale } = useLocale();
   const { getDraggableConfig, setDraggableConfig } = useDevtool();
+  const configs = DRAGGABLE_INSTANCES.map((inst) => ({
+    config: getDraggableConfig(inst.id),
+    defaults: DRAGGABLE_DEFAULTS[inst.id] || { draggable: false, persist: false },
+  }));
+  const overridden = configs.some(
+    ({ config, defaults }) =>
+      config.draggable !== defaults.draggable || config.persist !== defaults.persist
+  );
+  const dragging = configs.filter(({ config }) => config.draggable).length;
 
   return (
     <DebugSection
       id="draggable"
       title={locale === "zh" ? "拖拽" : "Draggable"}
       icon={<GripVertical className="h-4 w-4" />}
-      defaultCollapsed
+      // Tooling for a handful of floating things, never what a page is about.
+      relevant={false}
+      star={overridden ? "saved" : null}
+      action={
+        <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
+          {dragging}/{DRAGGABLE_INSTANCES.length}
+        </span>
+      }
     >
       <div className="space-y-1.5">
         {DRAGGABLE_INSTANCES.map((inst) => {
@@ -2347,7 +2770,7 @@ function DraggableModule() {
                   {locale === "zh" ? inst.labelZh : inst.labelEn}
                 </span>
                 {(dragOverridden || persistOverridden) && (
-                  <span className="text-[9px] font-mono text-amber-500/70 uppercase">
+                  <span className="text-[9px] font-mono text-sky-500/80 uppercase">
                     *
                   </span>
                 )}
@@ -2363,7 +2786,7 @@ function DraggableModule() {
                       config.persist
                         ? "text-foreground bg-muted/60"
                         : "text-quaternary-foreground hover:text-muted-foreground",
-                      persistOverridden && "ring-1 ring-amber-500/40"
+                      persistOverridden && "ring-1 ring-sky-500/40"
                     )}
                     aria-label={`Toggle position save for ${inst.labelEn}`}
                     title={
@@ -2392,7 +2815,7 @@ function DraggableModule() {
                     config.draggable
                       ? "bg-green-500/90 border-green-500/70"
                       : "bg-muted/40 border-border/60",
-                    dragOverridden && "ring-1 ring-amber-500/40"
+                    dragOverridden && "ring-1 ring-sky-500/40"
                   )}
                   aria-pressed={config.draggable}
                   aria-label={`Toggle draggable for ${inst.labelEn}`}
@@ -2408,60 +2831,6 @@ function DraggableModule() {
             </div>
           );
         })}
-      </div>
-    </DebugSection>
-  );
-}
-
-// =============================================================================
-// Refetch Module
-// =============================================================================
-
-function RefetchModule() {
-  const { locale } = useLocale();
-  const { refresh: refreshLocation, isFetching: locationFetching } = useLocation();
-  const { refresh: refreshWeather, isFetching: weatherFetching } = useWeather();
-
-  const busy = locationFetching || weatherFetching;
-
-  return (
-    <DebugSection
-      id="refetch"
-      title={locale === "zh" ? "刷新" : "Refetch"}
-      icon={<RefreshCw className="h-4 w-4" />}
-      compact
-      defaultCollapsed
-    >
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => refreshLocation()}
-          className={cn(
-            "flex-1 rounded-lg border px-3 py-2",
-            "text-xs font-mono text-muted-foreground transition-colors",
-            "border-border/50 hover:border-border",
-            busy ? "opacity-60" : ""
-          )}
-          aria-label="Refetch location"
-        >
-          {locale === "zh" ? "重请求位置" : "Location"}
-        </button>
-        <button
-          onClick={() => refreshWeather()}
-          className={cn(
-            "flex-1 rounded-lg border px-3 py-2",
-            "text-xs font-mono text-muted-foreground transition-colors",
-            "border-border/50 hover:border-border",
-            busy ? "opacity-60" : ""
-          )}
-          aria-label="Refetch weather"
-        >
-          {locale === "zh" ? "重请求天气" : "Weather"}
-        </button>
-      </div>
-      <div className="mt-2 text-[10px] font-mono text-muted-foreground">
-        {locale === "zh"
-          ? "提示：天气刷新会同时刷新位置与天气。"
-          : "Note: Weather refresh invalidates both location and weather."}
       </div>
     </DebugSection>
   );

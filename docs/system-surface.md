@@ -8,7 +8,7 @@ systems/surface/
 ├── adaptive-surface.tsx  # <AdaptiveSurface> — the policy: viewport picks the shape
 ├── sheet.tsx             # <SurfaceSheet> — the one bottom sheet, detents, scrim
 ├── window.tsx            # <SurfaceWindow> — the one floating, draggable shell
-├── chrome.tsx            # <SurfaceBody> — the title bar, scroll area and footer
+├── chrome.tsx            # <SurfaceBody> — the title bar, toolbar, scroll area and footer
 ├── stack.ts              # which sheets are open, so a sheet *covered* by another recedes
 └── index.ts
 ```
@@ -194,6 +194,7 @@ the shell directly:
 
 | Prop | On | For |
 |------|----|-----|
+| `toolbar` | `SurfaceBody` | A strip between the header and the scroll area that does not scroll away — an index of the content. |
 | `footer` | `SurfaceBody` | A strip below the scroll area that does not scroll away. |
 | `placement` | `SurfaceWindow` | Where the window rests before a drag: `center` (default) or `top-right`. |
 | `onPullPastTop` | `SurfaceSheet` | The drag that lifts a sheet off the edge it is docked to. |
@@ -477,6 +478,6 @@ That keeps one owner per edge, and the two of them cannot disagree.
 | Attachments | `ADAPTIVE_PRESENTATION` | A commit's attachments, paged (`useSnapPager`). `fitContent`; a 560px window. On a phone it is where every attachment opens; elsewhere only the kinds with no native home reach it. See [Attachments System](./system-attachments.md) |
 | Identity card | `ANCHORED_PRESENTATION` | Who signed a commit: a profile card, for a finger — with a pointer the same profile is a magnetic hover peek and this never opens. `fitContent`; the popover hangs off whichever `<handle>` or `Role:` was tapped, the anchor kept in a ref by its provider. See [Identity System](./system-identity.md) |
 | Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight card, anchored to nothing, not the `popover` shape above |
-| Devtool panel | primitives, not `AdaptiveSurface` | `SurfaceSheet` docked / `SurfaceWindow` floating, and which one is the developer's call, not the viewport's — it is pulled off the edge by hand. `onPullPastTop`, `placement="top-right"`, a `footer` for its status line. See [Devtool System](./system-devtool.md) |
+| Devtool panel | primitives, not `AdaptiveSurface` | `SurfaceSheet` docked / `SurfaceWindow` floating, and which one is the developer's call, not the viewport's — it is pulled off the edge by hand. `onPullPastTop`, `placement="top-right"`, a `toolbar` for its module rail and a `footer` for its status line. See [Devtool System](./system-devtool.md) |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.

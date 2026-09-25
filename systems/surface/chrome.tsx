@@ -36,6 +36,11 @@ export interface SurfaceBodyProps {
   /** The scroll container, for content that needs to scroll a row into view. */
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   /**
+   * A fixed strip between the header and the scroll area — a way around the
+   * content, such as an index of its sections. It does not scroll away.
+   */
+  toolbar?: React.ReactNode;
+  /**
    * A fixed strip below the scroll area — a status line, a destructive action.
    * It does not scroll away with the content.
    */
@@ -87,6 +92,7 @@ export function SurfaceBody({
   titleAs,
   contentClassName,
   scrollRef,
+  toolbar,
   footer,
   children,
 }: SurfaceBodyProps) {
@@ -102,6 +108,7 @@ export function SurfaceBody({
         draggable={draggable}
         titleAs={titleAs}
       />
+      {toolbar && <div className="shrink-0">{toolbar}</div>}
       <div
         ref={scrollRef}
         className={cn(
