@@ -63,27 +63,40 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const articleRef = useRef<HTMLElement>(null);
-  // The gutter (screen edge → words, the narrower side) the ring's depth is a
-  // share of, and whether the words overflow their container. Measured while
-  // open; the gutter is kept after, for the ring's way out.
-  const [gutter, setGutter] = useState<number | null>(null);
+  // The gutters — screen edge → the words, across (x) and down (y), each the
+  // narrower of its two sides — that the ring's depth is a share of, and
+  // whether the words overflow their container. The words are the article,
+  // as far as the scroll container shows it, and the way out under it.
+  // Measured while open; kept after, for the ring's way out.
+  const [gutters, setGutters] = useState<{ x: number; y: number } | null>(null);
   const [overflowing, setOverflowing] = useState(false);
   useLayoutEffect(() => {
     if (!isOpen) return;
     const dialog = dialogRef.current;
     const article = articleRef.current;
     const scroll = scrollRef.current;
-    if (!dialog || !article || !scroll) return;
+    const foot = dialog?.querySelector<HTMLElement>(".about-foot");
+    if (!dialog || !article || !scroll || !foot) return;
     const measure = () => {
-      const a = article.getBoundingClientRect();
       const f = dialog.getBoundingClientRect();
-      setGutter(Math.max(0, Math.min(a.left - f.left, f.right - a.right)));
+      const a = article.getBoundingClientRect();
+      const s = scroll.getBoundingClientRect();
+      const b = foot.getBoundingClientRect();
+      const left = Math.min(a.left, b.left);
+      const right = Math.max(a.right, b.right);
+      const top = Math.max(a.top, s.top);
+      const bottom = Math.max(Math.min(a.bottom, s.bottom), b.bottom);
+      setGutters({
+        x: Math.max(0, Math.min(left - f.left, f.right - right)),
+        y: Math.max(0, Math.min(top - f.top, f.bottom - bottom)),
+      });
       setOverflowing(scroll.scrollHeight > scroll.clientHeight + 1);
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(dialog);
     ro.observe(article);
+    ro.observe(foot);
     return () => ro.disconnect();
   }, [isOpen]);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -203,12 +216,18 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
         style={frame}
         layer={bezel}
         // The devtool's Glow module: the About's own strength, and its depth
-        // as a share of the gutter — the room between the screen's edge and
-        // the words. The light reaches visibly about 2.5× its `reach`, so
-        // 20% of a desk's ~450px gutter is a ~36px reach, and a phone's
-        // ~36px gutter keeps it to a thin line (never under 8px).
+        // as a share of the gutters — the room between the screen's edge and
+        // the words, across for the sides and down for the top and bottom.
+        // The share is where the light ends: 100% touches the words.
         strength={tuning.aboutStrength}
-        reach={gutter === null ? undefined : Math.max(8, (tuning.aboutDepth * gutter) / 2.5)}
+        extent={
+          gutters === null
+            ? undefined
+            : {
+                x: Math.max(10, tuning.aboutDepth * gutters.x),
+                y: Math.max(10, tuning.aboutDepth * gutters.y),
+              }
+        }
         className={cn("z-[10021]", bezel && "overflow-hidden")}
       />
     </>

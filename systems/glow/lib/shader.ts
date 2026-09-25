@@ -53,6 +53,8 @@ uniform float uFocus;    // arc half-width in ring units; 0 = whole ring
 uniform float uFocusAt;  // arc centre in ring units; 0.25 = bottom
 uniform float uLine;     // 1: focus measured along the bottom edge (a line)
 uniform float uFlip;     // -1 mirrors the box top to bottom: a line on the top edge
+uniform vec2 uExtent;    // px where the light must end: x off the left / right
+                         // edges, y off the top / bottom; 0 = no limit
 
 #define TAU 6.28318530718
 
@@ -91,7 +93,23 @@ void main() {
   bool outside = sd > 0.0 && uBleed > 0.0;
 
   float energy = 0.6 + 0.9 * uLevel;          // 1.0 at the resting 0.45
-  float reach = uWidth * (1.0 + 1.4 * uSurge) * energy;
+  vec4 edges = vec4(p.x + box.x, box.x - p.x, p.y + box.y, box.y - p.y);
+
+  // An extent: the light must end at a given distance from each edge (the
+  // About's ring ends where the words begin — a different distance off the
+  // sides than off the top and bottom). The pixel's own extent blends the
+  // two by which edges are near, so a corner eases from one to the other,
+  // and the beams are sized to fill it: their natural tail lands inside it,
+  // and a window (below) takes the last of the light to zero at it exactly.
+  float extent = 0.0;
+  if (uExtent.x > 0.0) {
+    float kE = max(8.0, min(uExtent.x, uExtent.y) * 0.5);
+    float mE = min(min(edges.x, edges.y), min(edges.z, edges.w));
+    float wx = exp(-(edges.x - mE) / kE) + exp(-(edges.y - mE) / kE);
+    float wy = exp(-(edges.z - mE) / kE) + exp(-(edges.w - mE) / kE);
+    extent = (wx * uExtent.x + wy * uExtent.y) / (wx + wy);
+  }
+  float reach = (uExtent.x > 0.0 ? extent / 3.0 : uWidth) * (1.0 + 1.4 * uSurge) * energy;
 
   // The beams' depth: the smooth min of the four straight edges, so their
   // light rounds each corner instead of creasing on its diagonal. Softness
@@ -100,7 +118,6 @@ void main() {
   // Blended once more with the true outline (and its ln 2 offset added back),
   // so a round host — an avatar, a phone's 44px corners — keeps its light on
   // the curve, where the straight edges alone would sit a few px inside it.
-  vec4 edges = vec4(p.x + box.x, box.x - p.x, p.y + box.y, box.y - p.y);
   float kS = max(0.5, reach * 0.55);
   float straight = smin4(max(edges, 0.0), kS);
   float m2 = min(edge, straight);
@@ -161,6 +178,11 @@ void main() {
   if (outside) {
     float halo = exp(-out_ / max(1.0, reach * 0.55)) * smoothstep(uBleed, uBleed * 0.4, out_);
     a = halo * mix(0.55, 0.75, uDark);
+  }
+
+  // The extent's window: fading from just past half of it to nothing at it.
+  if (uExtent.x > 0.0) {
+    a *= 1.0 - smoothstep(extent * 0.5, extent * (1.0 + 0.4 * uSurge), d);
   }
 
   a *= focus;

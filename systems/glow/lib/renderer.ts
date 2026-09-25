@@ -39,6 +39,8 @@ export interface GlowUniforms {
   line: number;
   /** -1 to mirror top to bottom (a line along the top edge), else 1. */
   flip: number;
+  /** Where the light must end, px off the side / top-bottom edges; 0,0 = no limit. */
+  extent: readonly [number, number];
   /** Nothing is moving: once drawn, the frame can stand until this clears. */
   hold?: boolean;
 }
@@ -76,6 +78,7 @@ const UNIFORMS = [
   "uFocusAt",
   "uLine",
   "uFlip",
+  "uExtent",
 ] as const;
 
 type Uniform = (typeof UNIFORMS)[number];
@@ -193,6 +196,7 @@ function draw(c: Context, inst: GlowInstance, f: GlowUniforms) {
   gl.uniform1f(u.uFocusAt, f.focusAt);
   gl.uniform1f(u.uLine, f.line);
   gl.uniform1f(u.uFlip, f.flip);
+  gl.uniform2f(u.uExtent, f.extent[0], f.extent[1]);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 

@@ -67,6 +67,13 @@ export interface GlowProps {
   /** How far the light reaches in from the edge, CSS px. Sized to the host
    *  when omitted. */
   reach?: number;
+  /**
+   * Where the light must end, px from the edge: `x` off the left and right
+   * edges, `y` off the top and bottom. The beams are sized to fill it and the
+   * light reaches zero exactly at it — so a ring can be told to stop where
+   * the content begins. Overrides `reach`.
+   */
+  extent?: { x: number; y: number };
   /** Halo room past each side of the host, CSS px. 0 draws inside only. */
   bleed?: number;
   /** The host's corner radius, px. Read from the host when omitted. */
@@ -92,6 +99,7 @@ const easeInOut = (x: number) =>
   x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 const REST = 0.45;
 const REST_BANDS = [1, 1, 1] as const;
+const NO_EXTENT = [0, 0] as const;
 
 function follow(prev: number, target: number, dt: number, tau: number) {
   return prev + (target - prev) * (1 - Math.exp(-dt / Math.max(0.001, tau)));
@@ -114,6 +122,7 @@ export function Glow({
   bands,
   processing = false,
   reach,
+  extent,
   bleed = 0,
   radius,
   strength = 1,
@@ -132,12 +141,12 @@ export function Glow({
   // Everything the frame loop reads lives in a ref: it outlives renders, and
   // a prop change must not restart the animation.
   const props = useRef({
-    active, shape, edge, level, bands, processing, reach, bleed, radius, strength,
+    active, shape, edge, level, bands, processing, reach, extent, bleed, radius, strength,
     inDuration, outDuration, onDone,
   });
   useLayoutEffect(() => {
     props.current = {
-      active, shape, edge, level, bands, processing, reach, bleed, radius, strength,
+      active, shape, edge, level, bands, processing, reach, extent, bleed, radius, strength,
       inDuration, outDuration, onDone,
     };
   });
@@ -251,6 +260,7 @@ export function Glow({
           focusAt,
           line: p.shape === "line" ? 1 : 0,
           flip: p.edge === "top" ? -1 : 1,
+          extent: p.extent ? [Math.max(1, p.extent.x), Math.max(1, p.extent.y)] : NO_EXTENT,
           hold,
         } satisfies GlowUniforms;
       },
