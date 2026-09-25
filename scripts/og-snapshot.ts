@@ -361,10 +361,10 @@ async function main() {
       // which `entryUsable` calls a success — and the cover we already had
       // would go with it, silently, taking the commit's tile off /works and
       // failing `og:complete` for a picture that is still live.
-      // ticketingbusinessforum is the one in the log today: its entry's
-      // image 200s, but the page stopped advertising it, so the next crawl
-      // would drop it. The image we recorded once is kept until a crawl
-      // offers another.
+      // (ticketingbusinessforum was the case: its image still 200'd, but
+      // the page stopped advertising it. Its cover is now self-hosted with
+      // a manual preview, which is the durable fix.) The image we recorded
+      // once is kept until a crawl offers another.
       const merged =
         !entry.image && prev?.image
           ? pickEntry({ ...entry, image: prev.image })

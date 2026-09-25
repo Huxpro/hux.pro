@@ -1429,7 +1429,11 @@
         {
           "kind": "link",
           "url": "https://www.ticketingbusinessforum.com/awards-2017-shortlists-revealed/",
-          "present": "card"
+          "present": "card",
+          "preview": {
+            "title": "AWARDS: 2017 Shortlists Revealed – Ticketing Business Forum",
+            "image": "/img/works/yupiaoer-ttf-awards-2017-cover.webp"
+          }
         }
       ]
     },
