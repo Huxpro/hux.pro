@@ -14,11 +14,16 @@ type check if the implementation drifts from it.
 
 ## Words
 
-| Word | Means | Never used for |
+Vitre looks after three things, and each has its own name:
+
+| Word | Means | Named in the API |
 |---|---|---|
-| **bezel** | The border drawn around the page: a band on each edge, rounded inner corners, one colour. | — |
-| **chrome** | The browser's own UI: Safari's status bar and toolbar. | The bezel. |
-| **scroll** | Where the page scrolls: `window`, or `container` with the window locked. | — |
+| **bezel** | The border Vitre draws around the page: a band on each edge, rounded inner corners, one colour. | `BEZEL_*`, `clampBezel*`, `data-bezel`, `--bezel-color`, `--bezel-band` |
+| **chrome** | Safari's status bar and toolbar. Vitre gives it the bezel's colour while the bezel is on, and the page's ground while it is off. | `syncChrome`, `CHROME_*`, `chromeMorph` |
+| **scroll** | Where the page scrolls: `window`, or `container` with the window held still. | `scroll`, the page scroll API, `PAGE_SCROLL_TIMELINE` |
+
+What belongs to the whole library carries its name: `<Vitre>`, `useVitre`,
+`vitreBootScript`, `VITRE_LAYER_ATTRIBUTE`, `data-vitre-*`, `#vitre-scroll`.
 
 ## What iOS Safari does
 
@@ -81,14 +86,14 @@ Every prop of `<Vitre>` is live:
 |---|---|
 | `enabled`, `color`, `band` | Written to `<html>` (`data-bezel`, `--bezel-color`, `--bezel-band`, background) in a layout effect. The chrome colour is resynced. |
 | `radius` | Re-rendered corners. |
-| `scroll` | `data-bezel-scroll="container"` on `<html>`. The scroll position moves between the window and the container, and page scroll listeners fire. On iOS, a status-bar tap is forwarded to the container while the page is away from the top. |
+| `scroll` | `data-vitre-scroll="container"` on `<html>`. The scroll position moves between the window and the container, and page scroll listeners fire. On iOS, a status-bar tap is forwarded to the container while the page is away from the top. |
 | `ground` | The chrome colour is resynced while the bezel is off. |
 | Something strips `<html>` | A mutation observer re-applies the state before the next paint. |
 
 ## Using it
 
 ```tsx
-import { Vitre, BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE, vitreBootScript } from "vitre";
+import { Vitre, BEZEL_INSET, VITRE_LAYER_ATTRIBUTE, vitreBootScript } from "vitre";
 
 // <head>: paint the first frame right, before React.
 <script dangerouslySetInnerHTML={{ __html: vitreBootScript(resolverSource) }} />
@@ -101,7 +106,7 @@ import { Vitre, BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE, vitreBootScript } from "vitr
   radius={16}
   scroll={on && isIOS ? "container" : "window"}
   ground={theme === "dark" ? "#1a1a1a" : "#ffffff"}
-  backdrop={<div {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }} style={{ position: "fixed", ...BEZEL_INSET }} />}
+  backdrop={<div {...{ [VITRE_LAYER_ATTRIBUTE]: "" }} style={{ position: "fixed", ...BEZEL_INSET }} />}
 >
   {page}
 </Vitre>
@@ -111,7 +116,7 @@ import { Vitre, BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE, vitreBootScript } from "vitr
 
 `scroll` picks the page's scroller: the window, or a container inside the bezel
 with `<html>` and `<body>` held still. `<Vitre>` writes the choice to `<html>`
-(`data-bezel-scroll`), and everything else reads it from there. It is
+(`data-vitre-scroll`), and everything else reads it from there. It is
 independent of `enabled`, `color` and `band`; container scroll is the one to use
 while the bezel is on.
 
@@ -123,7 +128,7 @@ while the bezel is on.
 | `window.scrollY`, `scrollTo`, `scroll` event | The page | Not the page's scroll |
 | `animation-timeline: scroll(root)` | The page | Silent; use `--page-scroll` |
 | Tap on the status bar | Scrolls to the top | Scrolls to the top (on iOS; see [The status-bar tap](#the-status-bar-tap)) |
-| Full-screen fixed layers (`body > .fixed`, `BEZEL_LAYER_ATTRIBUTE`) | fixed | absolute |
+| Full-screen fixed layers (`body > .fixed`, `VITRE_LAYER_ATTRIBUTE`) | fixed | absolute |
 | `position: sticky`, IntersectionObserver, `scrollIntoView`, anchors | Work | Work |
 
 Switching carries the scroll position across and notifies page scroll
@@ -199,7 +204,7 @@ simulator or a phone on the same network.
 
 Scroll-driven CSS should not use `animation-timeline: scroll(root)`. The
 package names the live scroller `--page-scroll` (root in window scroll,
-`#bezel-scroll` in container scroll); bind to that, or to
+`#vitre-scroll` in container scroll); bind to that, or to
 `scroll(nearest)`.
 
 ## Testing
@@ -216,7 +221,7 @@ main `WKScrollView` alone: WebKit sets `scrollsToTop = NO` on every overflow
 
 The window can. `<body>` is fixed at inset 0, so the document has nothing to
 move and a few pixels of window scroll are invisible. While the page is away
-from the top, `<html>` gets `data-bezel-status-tap`, a few pixels of scroll
+from the top, `<html>` gets `data-vitre-status-tap`, a few pixels of scroll
 range, and a park inside it. Safari taking that back to 0, with no finger on
 the glass and no viewport change, is the gesture — and the container is eased
 to the top on the chrome morph's curve, 280–640ms by distance. Reduced motion
@@ -263,7 +268,7 @@ devtool, so the check is real rather than assumed.
 - iOS 18's expanded bottom toolbar follows neither `theme-color` nor the root
   background.
 - The stylesheet makes `body > .fixed` absolute in container scroll. `.fixed`
-  is Tailwind's class; other hosts mark such layers with `BEZEL_LAYER_ATTRIBUTE`.
+  is Tailwind's class; other hosts mark such layers with `VITRE_LAYER_ATTRIBUTE`.
 - Container scroll leaves the page looking scroll-locked to anyone who asks
   (`<html>` is `overflow: hidden`). A well-behaved overlay library sees that and
   stands down rather than locking on top of it — Base UI's dialogs do — so the

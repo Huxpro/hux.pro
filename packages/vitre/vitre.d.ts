@@ -9,16 +9,19 @@
 // ./src/contract.ts fails to type-check if an export is missing, extra, or has
 // a different shape. Read this file to use the package; read ./src to change it.
 //
-// Three words, each meaning one thing:
+// Vitre looks after three things, and names each one:
 //
-//   bezel   the border drawn around the page: a band on each edge and rounded
-//           inner corners, in one colour. Nothing else is called a frame or a
-//           letterbox.
-//   chrome  the BROWSER's own UI only — Safari's status bar and toolbar. The
-//           package keeps it in the bezel's colour, or the page's ground when
-//           the bezel is off.
+//   bezel   the border Vitre draws around the page: a band on each edge and
+//           rounded inner corners, in one colour. Its names carry `bezel`:
+//           `BEZEL_*`, `data-bezel`, `--bezel-color`, `--bezel-band`.
+//   chrome  Safari's status bar and toolbar. Vitre gives it the bezel's colour
+//           while the bezel is on, and the page's ground while it is off. Its
+//           names carry `chrome`: `syncChrome`, `CHROME_*`.
 //   scroll  where the page scrolls: the window, or a container inside a
-//           document that never scrolls (ryOS's rule).
+//           document that holds still (ryOS's rule).
+//
+// What belongs to the whole library carries its name: `<Vitre>`, `useVitre`,
+// `vitreBootScript`, `VITRE_LAYER_ATTRIBUTE`, `data-vitre-*`, `#vitre-scroll`.
 // =============================================================================
 
 import type { CSSProperties, JSX, ReactNode } from "react";
@@ -36,7 +39,7 @@ import type { CSSProperties, JSX, ReactNode } from "react";
  *   container  <html> and <body> hold still and the page scrolls in a container
  *              inside the bezel, so Safari's toolbar and chrome hold still too.
  *              Full-screen `position: fixed` children of <body>, and elements
- *              marked with `BEZEL_LAYER_ATTRIBUTE`, become absolute.
+ *              marked with `VITRE_LAYER_ATTRIBUTE`, become absolute.
  *              `window.scrollY` and `window.scrollTo` are not the page's
  *              scroll; `position: sticky`, IntersectionObserver,
  *              `scrollIntoView` and anchors work as in window scroll.
@@ -50,7 +53,7 @@ import type { CSSProperties, JSX, ReactNode } from "react";
  */
 export type VitreScroll = "window" | "container";
 
-/** Everything the bezel is showing, resolved. What `useVitre()` returns. */
+/** Everything Vitre is showing, resolved. What `useVitre()` returns. */
 export interface VitreState {
   /** Whether the bezel is drawn. */
   enabled: boolean;
@@ -100,7 +103,7 @@ export interface VitreProps {
   chromeMorph?: boolean;
   /**
    * Layers painted behind the page and inside the bezel: a background, a
-   * wallpaper. Give them `style={BEZEL_INSET}` and `BEZEL_LAYER_ATTRIBUTE`.
+   * wallpaper. Give them `style={BEZEL_INSET}` and `VITRE_LAYER_ATTRIBUTE`.
    */
   backdrop?: ReactNode;
   /** Class for the scroll container, which wraps `children`. */
@@ -122,7 +125,7 @@ export interface VitreProps {
  */
 export declare function Vitre(props: VitreProps): JSX.Element;
 
-/** The bezel's resolved state. Outside `<Vitre>`, a disabled default. */
+/** Vitre's resolved state. Outside `<Vitre>`, a disabled default. */
 export declare function useVitre(): VitreState;
 
 // -----------------------------------------------------------------------------
@@ -250,7 +253,7 @@ export declare const BEZEL_INSET: CSSProperties;
  * <body> with this attribute (any value). In `container` scroll it becomes
  * absolute, so it cannot tint the chrome.
  */
-export declare const BEZEL_LAYER_ATTRIBUTE: "data-bezel-layer";
+export declare const VITRE_LAYER_ATTRIBUTE: "data-vitre-layer";
 
 /** Thinnest fixed content, px, that iOS 26 Safari's chrome follows. */
 export declare const CHROME_SAMPLE_PX: 6;

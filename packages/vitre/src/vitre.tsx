@@ -16,12 +16,12 @@ import { readVitreBoot } from "./boot";
 import { syncChrome } from "./chrome";
 import {
   BAND_VAR,
-  BEZEL_LAYER_ATTRIBUTE,
+  VITRE_LAYER_ATTRIBUTE,
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
   SCROLL_CONTAINER_ID,
 } from "./constants";
-import { ensureBezelStyle } from "./css";
+import { ensureVitreStyle } from "./css";
 import { keepRoot, type RootState } from "./root";
 import { enableStatusTapToTop } from "./status-tap";
 
@@ -96,7 +96,7 @@ export function Vitre({
   // first client render must match the server's.
   const [boot, setBoot] = useState<ReturnType<typeof readVitreBoot>>(null);
   useLayoutEffect(() => {
-    ensureBezelStyle();
+    ensureVitreStyle();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: reads the boot record
     setBoot(readVitreBoot());
   }, []);
@@ -171,7 +171,7 @@ export function Vitre({
   return (
     <VitreContext.Provider value={state}>
       {state.enabled && (
-        <div aria-hidden="true" {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }} style={layer}>
+        <div aria-hidden="true" {...{ [VITRE_LAYER_ATTRIBUTE]: "" }} style={layer}>
           <div style={fill({ left: 0, right: 0, top: OUTSIDE, height: `calc(${OVERSHOOT} + ${BAND})` })} />
           <div style={fill({ left: 0, right: 0, bottom: OUTSIDE, height: `calc(${OVERSHOOT} + ${BAND})` })} />
           <div style={fill({ left: 0, top: OUTSIDE, bottom: OUTSIDE, width: SIDE_LEFT })} />

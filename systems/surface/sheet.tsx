@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Drawer } from "@base-ui/react/drawer";
-import { BEZEL_LAYER_ATTRIBUTE } from "vitre";
+import { VITRE_LAYER_ATTRIBUTE } from "vitre";
 import {
   SURFACE_EASING,
   SURFACE_RECEDE_EASING,
@@ -249,7 +249,7 @@ export function SurfaceViewport({
   if (layer >= 0 && layer !== held) setHeld(layer);
   return (
     <Drawer.Viewport
-      {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
+      {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
       className={cn("fixed inset-0", !modal && "pointer-events-none")}
       style={{ zIndex: 60 + held }}
     >

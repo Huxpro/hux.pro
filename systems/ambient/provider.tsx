@@ -376,7 +376,7 @@ interface WallpaperContextType {
   bezel: boolean;
   /** `bezel`, but `null` until settings and platform are known. For <Vitre>. */
   bezelState: boolean | null;
-  /** Where the page scrolls: in the bezel's container while the bezel is on, on iOS. */
+  /** Where the page scrolls: in Vitre's scroll container while the bezel is on, on iOS. */
   bezelScroll: VitreScroll;
   /**
    * Whether a chrome colour change has to be morphed onto the screen for the

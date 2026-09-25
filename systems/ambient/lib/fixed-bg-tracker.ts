@@ -113,7 +113,7 @@ class FixedBgTracker {
   private startListening() {
     this.listening = true;
     // Page scroll, not window scroll: in container scroll the page scrolls in
-    // the bezel's container and a window listener would never fire. See vitre.
+    // Vitre's scroll container and a window listener would never fire. See vitre.
     this.offPageScroll = onPageScroll(this.schedule);
     window.addEventListener("resize", this.schedule);
     window.visualViewport?.addEventListener("scroll", this.schedule);

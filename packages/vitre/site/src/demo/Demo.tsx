@@ -1,7 +1,7 @@
 import {
   Vitre,
   BEZEL_INSET,
-  BEZEL_LAYER_ATTRIBUTE,
+  VITRE_LAYER_ATTRIBUTE,
   getScrollContainer,
   pageScrollHeight,
   pageScrollTop,
@@ -149,12 +149,12 @@ export function Demo() {
     const onMessage = (event: MessageEvent<ToPhone>) => {
       if (event.origin !== location.origin) return;
       const data = event.data;
-      if (data?.type === "bezel-demo:patch") patch(data.patch);
-      else if (data?.type === "bezel-demo:action") action(data.action);
-      else if (data?.type === "bezel-demo:lang") setLang(data.lang);
+      if (data?.type === "vitre-demo:patch") patch(data.patch);
+      else if (data?.type === "vitre-demo:action") action(data.action);
+      else if (data?.type === "vitre-demo:lang") setLang(data.lang);
     };
     window.addEventListener("message", onMessage);
-    window.parent.postMessage({ type: "bezel-demo:ready" }, location.origin);
+    window.parent.postMessage({ type: "vitre-demo:ready" }, location.origin);
     return () => window.removeEventListener("message", onMessage);
   }, [patch, action, setLang]);
 
@@ -180,7 +180,7 @@ export function Demo() {
         config.backdrop !== "none" && (
           <div
             aria-hidden="true"
-            {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
+            {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
             style={{
               position: "fixed",
               zIndex: -1,
@@ -225,7 +225,7 @@ function Reporter({ theme }: { theme: "light" | "dark" }) {
     if (!isFramed()) return;
     const message: PhoneScroll = {
       user: isUserScroll(),
-      type: "bezel-demo:scroll",
+      type: "vitre-demo:scroll",
       top: Math.round(pageScrollTop()),
       // From the page, not from state: a mode switch scrolls before React re-renders.
       scroll: getScrollContainer() ? "container" : "window",
@@ -236,7 +236,7 @@ function Reporter({ theme }: { theme: "light" | "dark" }) {
     if (!isFramed()) return;
     const send = () => {
       const report: PhoneReport = {
-        type: "bezel-demo:report",
+        type: "vitre-demo:report",
         theme,
         state: state as unknown as Record<string, unknown>,
         themeColor: readThemeColor(),

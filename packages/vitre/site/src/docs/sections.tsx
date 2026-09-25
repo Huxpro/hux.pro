@@ -83,7 +83,7 @@ function ModeTable() {
         [{ en: <><code>window.scrollY</code>, <code>scrollTo</code>, <code>scroll</code> event</>, zh: <><code>window.scrollY</code>、<code>scrollTo</code>、<code>scroll</code> 事件</> }, { en: "The page", zh: "页面" }, { en: "Not the page's scroll", zh: "不是页面的滚动" }],
         [same(<code>animation-timeline: scroll(root)</code>), { en: "The page", zh: "页面" }, { en: "Silent; use --page-scroll", zh: "不生效，改用 --page-scroll" }],
         [{ en: "Tap on the status bar", zh: "点击状态栏" }, { en: "Back to the top", zh: "回到顶部" }, { en: "Back to the top, on iOS", zh: "回到顶部（iOS）" }],
-        [{ en: <>Full-screen fixed layers: <code>body &gt; .fixed</code>, <code>BEZEL_LAYER_ATTRIBUTE</code></>, zh: <>全屏 fixed 图层：<code>body &gt; .fixed</code>、<code>BEZEL_LAYER_ATTRIBUTE</code></> }, same("fixed"), same("absolute")],
+        [{ en: <>Full-screen fixed layers: <code>body &gt; .fixed</code>, <code>VITRE_LAYER_ATTRIBUTE</code></>, zh: <>全屏 fixed 图层：<code>body &gt; .fixed</code>、<code>VITRE_LAYER_ATTRIBUTE</code></> }, same("fixed"), same("absolute")],
         [{ en: <><code>position: sticky</code>, IntersectionObserver, <code>scrollIntoView</code>, anchors</>, zh: <><code>position: sticky</code>、IntersectionObserver、<code>scrollIntoView</code>、锚点</> }, { en: "Work", zh: "正常" }, { en: "Work", zh: "正常" }],
       ]}
     />
@@ -201,29 +201,31 @@ export const SECTIONS: DocSection[] = [
       en: (
         <>
           <p><em>Vitre</em> is French for a windowpane: the glass set in a frame. Safari on iOS 26 draws its bars as glass over the edges of the page and tints them from what it finds there. Vitre is the frame and the pane at those edges.</p>
-          <p>Three words, each meaning one thing:</p>
+          <p>Vitre looks after three things, and each has its own name:</p>
           <ul>
-            <li><strong>bezel</strong> — the border drawn around the page: a band on each edge and rounded inner corners, in one colour.</li>
-            <li><strong>chrome</strong> — only the browser&apos;s own UI: Safari&apos;s status bar and toolbar.</li>
-            <li><strong>scroll</strong> — where the page scrolls: the window, or a container inside a locked window.</li>
+            <li><strong>bezel</strong> — the border Vitre draws around the page: a band on each edge and rounded inner corners, in one colour.</li>
+            <li><strong>chrome</strong> — Safari&apos;s status bar and toolbar. Vitre gives it the bezel&apos;s colour while the bezel is on, and the page&apos;s ground while it is off.</li>
+            <li><strong>scroll</strong> — where the page scrolls: the window, or a container while the window holds still.</li>
           </ul>
+          <p>What belongs to the whole library carries its name: <code>&lt;Vitre&gt;</code>, <code>useVitre</code>, <code>data-vitre-*</code>.</p>
           <p>The phone&apos;s bars are simulated from <code>theme-color</code>. Open this page on an iPhone to see the real ones follow.</p>
         </>
       ),
       zh: (
         <>
           <p><em>Vitre</em> 是法语的“窗玻璃”，指镶在框里的那块玻璃。iOS 26 的 Safari 把状态栏和工具栏画成盖在页面边缘上的玻璃，并从边缘的内容里取色。窗玻璃就是这些边缘上的框和玻璃。</p>
-          <p>三个词，各自只有一个含义：</p>
+          <p>窗玻璃照看三样东西，每样都有自己的名字：</p>
           <ul>
-            <li><strong>bezel</strong>：画在页面四周的边框，每条边一条 band，内侧是圆角，统一一个颜色。</li>
-            <li><strong>chrome</strong>：只指浏览器自己的界面，也就是 Safari 的状态栏和工具栏。</li>
-            <li><strong>scroll</strong>：页面在哪里滚动，window，或者锁住 window 之后的一个容器。</li>
+            <li><strong>bezel</strong>：窗玻璃画在页面四周的边框，每条边一条 band，内侧是圆角，统一一个颜色。</li>
+            <li><strong>chrome</strong>：Safari 的状态栏和工具栏。bezel 开着时，窗玻璃让它显示 bezel 的颜色；关着时，显示页面的底色（ground）。</li>
+            <li><strong>scroll</strong>：页面在哪里滚动：window，或者 window 保持不动时的一个容器。</li>
           </ul>
+          <p>属于整个库的东西都用库的名字：<code>&lt;Vitre&gt;</code>、<code>useVitre</code>、<code>data-vitre-*</code>。</p>
           <p>左边手机的状态栏和工具栏是根据 <code>theme-color</code> 模拟的。用 iPhone 打开这个页面，可以看到真实的 Safari 跟着变色。</p>
         </>
       ),
     },
-    code: `import { Vitre, BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "vitre";
+    code: `import { Vitre, BEZEL_INSET, VITRE_LAYER_ATTRIBUTE } from "vitre";
 
 <Vitre
   enabled={on}
@@ -232,7 +234,7 @@ export const SECTIONS: DocSection[] = [
   radius={16}
   scroll={on ? "container" : "window"}
   ground={dark ? "#1a1a1a" : "#ffffff"}
-  backdrop={<Wallpaper {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }} style={BEZEL_INSET} />}
+  backdrop={<Wallpaper {...{ [VITRE_LAYER_ATTRIBUTE]: "" }} style={BEZEL_INSET} />}
 >
   {page}
 </Vitre>`,
@@ -390,15 +392,15 @@ export const SECTIONS: DocSection[] = [
   {
     id: "backdrop",
     nav: { en: "Backdrop", zh: "背景层" },
-    eyebrow: "backdrop · BEZEL_INSET · BEZEL_LAYER_ATTRIBUTE",
+    eyebrow: "backdrop · BEZEL_INSET · VITRE_LAYER_ATTRIBUTE",
     title: { en: "Layers inside the bezel", zh: "bezel 里的图层" },
     lede: {
-      en: "backdrop renders behind the page. Spread BEZEL_INSET so a layer stops where the bezel begins, and mark it with BEZEL_LAYER_ATTRIBUTE so container scroll makes it absolute.",
-      zh: "backdrop 渲染在页面后面。展开 BEZEL_INSET 让图层停在 bezel 的边缘，再加上 BEZEL_LAYER_ATTRIBUTE，container 滚动时它就会变成 absolute。",
+      en: "backdrop renders behind the page. Spread BEZEL_INSET so a layer stops where the bezel begins, and mark it with VITRE_LAYER_ATTRIBUTE so container scroll makes it absolute.",
+      zh: "backdrop 渲染在页面后面。展开 BEZEL_INSET 让图层停在 bezel 的边缘，再加上 VITRE_LAYER_ATTRIBUTE，container 滚动时它就会变成 absolute。",
     },
     code: `backdrop={
   <div
-    {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
+    {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
     style={{ position: "fixed", zIndex: -1, background: wallpaper, ...BEZEL_INSET }}
   />
 }`,

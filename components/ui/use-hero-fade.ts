@@ -8,7 +8,7 @@ import { useEffect, useState, type CSSProperties } from "react";
  *
  * Browsers that support `animation-timeline: scroll()` on the *root*
  * use the pure-CSS `.hero-zone-fade` animation. That timeline is silent
- * in the bezel's container scroll — the window never moves — so this
+ * in Vitre's container scroll — the window never moves — so this
  * hook also activates there, driving opacity from `pageScrollTop()`.
  *
  * Returns a style object to spread onto the hero element, or undefined
@@ -49,7 +49,7 @@ export function useHeroFade(enabled = true): CSSProperties | undefined {
       window.matchMedia("(min-width: 768px)").matches ? 144 : 176;
 
     // Page scroll, not window scroll: in container scroll the page scrolls in
-    // the bezel's container and the window never moves. See vitre.
+    // Vitre's scroll container and the window never moves. See vitre.
     const update = () => {
       setOpacity(1 - Math.min(pageScrollTop() / getFadeDistance(), 1));
     };

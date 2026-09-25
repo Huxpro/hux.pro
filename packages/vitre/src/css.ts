@@ -1,7 +1,7 @@
 import {
   BAND_VAR,
   BEZEL_ATTRIBUTE,
-  BEZEL_LAYER_ATTRIBUTE,
+  VITRE_LAYER_ATTRIBUTE,
   COLOR_VAR,
   PAGE_SCROLL_TIMELINE,
   SCROLL_ATTRIBUTE,
@@ -57,22 +57,22 @@ const contained = `${html}[${SCROLL_ATTRIBUTE}="container"]`;
 const armed = `${contained}[${STATUS_TAP_ATTRIBUTE}]`;
 const container = `#${SCROLL_CONTAINER_ID}`;
 
-export const BEZEL_CSS = `
+export const VITRE_CSS = `
 :root{${COLOR_VAR}:#000;${BAND_VAR}:0px;scroll-timeline-name:${PAGE_SCROLL_TIMELINE};scroll-timeline-axis:block}
 ${on},${on} body{background-color:var(${COLOR_VAR})}
 ${contained}{height:100%;overflow:hidden;overscroll-behavior:none}
 ${armed}{overflow-y:auto;min-height:calc(100% + ${STATUS_TAP_RANGE_PX}px);scrollbar-width:none}
 ${armed}::-webkit-scrollbar{display:none;width:0;height:0}
 ${contained} body{position:fixed;inset:0;overflow:clip;overscroll-behavior:none}
-${contained} body>.fixed,${contained} body>[style*="position:fixed"],${contained} body>[style*="position: fixed"],${contained} [${BEZEL_LAYER_ATTRIBUTE}]{position:absolute!important}
+${contained} body>.fixed,${contained} body>[style*="position:fixed"],${contained} body>[style*="position: fixed"],${contained} [${VITRE_LAYER_ATTRIBUTE}]{position:absolute!important}
 ${contained} ${container}{position:absolute;min-height:0;overflow-x:clip;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;scroll-timeline-name:${PAGE_SCROLL_TIMELINE};scroll-timeline-axis:block}
 `.trim();
 
 /** Install the stylesheet into `document`, once. */
-export function ensureBezelStyle(doc: Document = document): void {
+export function ensureVitreStyle(doc: Document = document): void {
   if (doc.getElementById(STYLE_ID)) return;
   const style = doc.createElement("style");
   style.id = STYLE_ID;
-  style.textContent = BEZEL_CSS;
+  style.textContent = VITRE_CSS;
   doc.head.appendChild(style);
 }

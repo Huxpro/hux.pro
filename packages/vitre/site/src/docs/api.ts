@@ -117,9 +117,9 @@ export const EXPORTS: { [K in keyof typeof Contract]: ExportDoc } = {
     summary: { en: "The box inside the bezel, as inline style, for layers that must stop where it begins.", zh: "bezel 内侧的区域，以内联样式给出，用于需要停在 bezel 边缘的图层。" },
     section: "backdrop",
   },
-  BEZEL_LAYER_ATTRIBUTE: {
+  VITRE_LAYER_ATTRIBUTE: {
     kind: "constant",
-    signature: 'BEZEL_LAYER_ATTRIBUTE: "data-bezel-layer"',
+    signature: 'VITRE_LAYER_ATTRIBUTE: "data-vitre-layer"',
     summary: { en: "Marks a full-screen fixed layer that must become absolute in container scroll.", zh: "标记一个全屏 fixed 图层，让它在 container 滚动时变为 absolute。" },
     section: "backdrop",
   },

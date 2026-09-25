@@ -88,13 +88,13 @@ export function isDemoPage(): boolean {
 export type DemoAction = "scroll-top" | "scroll-middle" | "scroll-bottom" | "reset";
 
 export type ToPhone =
-  | { type: "bezel-demo:patch"; patch: Partial<DemoConfig> }
-  | { type: "bezel-demo:action"; action: DemoAction }
-  | { type: "bezel-demo:lang"; lang: "en" | "zh" };
+  | { type: "vitre-demo:patch"; patch: Partial<DemoConfig> }
+  | { type: "vitre-demo:action"; action: DemoAction }
+  | { type: "vitre-demo:lang"; lang: "en" | "zh" };
 
 /** Sent by the phone on every page scroll, so the docs can move its toolbar. */
 export interface PhoneScroll {
-  type: "bezel-demo:scroll";
+  type: "vitre-demo:scroll";
   top: number;
   scroll: VitreScroll;
   /** Whether the user scrolled, rather than the page scrolling itself. */
@@ -102,7 +102,7 @@ export interface PhoneScroll {
 }
 
 export interface PhoneReport {
-  type: "bezel-demo:report";
+  type: "vitre-demo:report";
   theme: "light" | "dark";
   state: Record<string, unknown>;
   themeColor: string | null;

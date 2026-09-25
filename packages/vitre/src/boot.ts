@@ -8,7 +8,7 @@ import {
   STYLE_ID,
   THEME_COLOR_ID,
 } from "./constants";
-import { BEZEL_CSS } from "./css";
+import { VITRE_CSS } from "./css";
 
 // =============================================================================
 // Boot — the first frame, before React runs.
@@ -25,7 +25,7 @@ export function vitreBootScript(resolver: string): string {
   return `(function(){try{
 var s=(function(){${resolver}})();if(!s)return;
 var d=document,h=d.documentElement;
-if(!d.getElementById(${JSON.stringify(STYLE_ID)})){var st=d.createElement("style");st.id=${JSON.stringify(STYLE_ID)};st.textContent=${JSON.stringify(BEZEL_CSS)};d.head.appendChild(st);}
+if(!d.getElementById(${JSON.stringify(STYLE_ID)})){var st=d.createElement("style");st.id=${JSON.stringify(STYLE_ID)};st.textContent=${JSON.stringify(VITRE_CSS)};d.head.appendChild(st);}
 window[${JSON.stringify(BOOT_GLOBAL)}]={enabled:!!s.enabled,color:String(s.color),band:+s.band||0,scroll:s.scroll==="container"?"container":"window",ground:String(s.ground)};
 if(s.enabled){h.setAttribute(${JSON.stringify(BEZEL_ATTRIBUTE)},"");h.style.setProperty(${JSON.stringify(COLOR_VAR)},s.color);h.style.setProperty(${JSON.stringify(BAND_VAR)},(+s.band||0)+"px");h.style.backgroundColor=s.color;}
 if(s.scroll==="container")h.setAttribute(${JSON.stringify(SCROLL_ATTRIBUTE)},"container");

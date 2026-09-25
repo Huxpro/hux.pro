@@ -172,7 +172,7 @@ function useReadingProgress(
     let raf = 0;
 
     // Page geometry, not window geometry: in container scroll the page scrolls
-    // in the bezel's container, so the window's scrollY is always 0 there and
+    // in Vitre's scroll container, so the window's scrollY is always 0 there and
     // its height is not the height of what scrolls. See vitre.
     const measure = () => {
       tops = sections.map(({ el }) => pageOffsetOf(el));

@@ -193,7 +193,7 @@ export function Docs() {
   const send = useCallback((message: ToPhone) => {
     frameRef.current?.contentWindow?.postMessage(message, location.origin);
   }, []);
-  const sendAction = useCallback((action: DemoAction) => send({ type: "bezel-demo:action", action }), [send]);
+  const sendAction = useCallback((action: DemoAction) => send({ type: "vitre-demo:action", action }), [send]);
   // The phone's status bar: a tap flashes it, and takes the page to the top as
   // Safari's gesture does.
   const [taps, setTaps] = useState(0);
@@ -206,16 +206,16 @@ export function Docs() {
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== location.origin) return;
       const type = event.data?.type;
-      if (type === "bezel-demo:ready") setReady(true);
-      else if (type === "bezel-demo:report") setReport(event.data as PhoneReport);
-      else if (type === "bezel-demo:scroll") onPhoneScroll(event.data as PhoneScroll);
+      if (type === "vitre-demo:ready") setReady(true);
+      else if (type === "vitre-demo:report") setReport(event.data as PhoneReport);
+      else if (type === "vitre-demo:scroll") onPhoneScroll(event.data as PhoneScroll);
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, [onPhoneScroll]);
 
   useEffect(() => {
-    if (ready) send({ type: "bezel-demo:lang", lang });
+    if (ready) send({ type: "vitre-demo:lang", lang });
   }, [ready, lang, send]);
 
   // The section in the middle of the viewport is the active one — except while
@@ -250,10 +250,10 @@ export function Docs() {
   useEffect(() => {
     if (!ready) return;
     const scenario: Scenario = SCENARIOS[active];
-    send({ type: "bezel-demo:action", action: "reset" });
-    send({ type: "bezel-demo:patch", patch: scenario.base ?? {} });
+    send({ type: "vitre-demo:action", action: "reset" });
+    send({ type: "vitre-demo:patch", patch: scenario.base ?? {} });
     return scenario.run?.({
-      patch: (patch) => send({ type: "bezel-demo:patch", patch }),
+      patch: (patch) => send({ type: "vitre-demo:patch", patch }),
       action: sendAction,
       statusTap,
     });

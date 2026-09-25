@@ -1,7 +1,7 @@
 import {
   BEZEL_BAND_MAX,
   BEZEL_BAND_MIN,
-  BEZEL_LAYER_ATTRIBUTE,
+  VITRE_LAYER_ATTRIBUTE,
   BEZEL_RADIUS_MAX,
   BEZEL_RADIUS_MIN,
   CHROME_MORPH_PX,
@@ -208,7 +208,7 @@ export function Devtool({
               onChange={(backdrop) => onPatch({ backdrop })}
             />
           </Row>
-          <Row label={BEZEL_LAYER_ATTRIBUTE}>
+          <Row label={VITRE_LAYER_ATTRIBUTE}>
             <span className="dt-mono">{t({ en: "on the backdrop", zh: "已加在背景层上" })}</span>
           </Row>
         </Section>

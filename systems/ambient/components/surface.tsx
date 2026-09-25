@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   Vitre,
   BEZEL_INSET,
-  BEZEL_LAYER_ATTRIBUTE,
+  VITRE_LAYER_ATTRIBUTE,
   getScrollContainer,
   scrollPageTo,
 } from "vitre";
@@ -27,7 +27,7 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
   } = useWallpaper();
 
   // Next scrolls the WINDOW to the top on navigation. In container scroll the
-  // window cannot scroll and the page lives in the bezel's container, which
+  // window cannot scroll and the page lives in Vitre's scroll container, which
   // would otherwise keep the previous page's offset. A hash is left to the
   // browser, which scrolls the nearest scroll container to it on its own.
   const pathname = usePathname();
@@ -60,7 +60,7 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
             {bezel && (
               <div
                 aria-hidden="true"
-                {...{ [BEZEL_LAYER_ATTRIBUTE]: "" }}
+                {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
                 className="pointer-events-none fixed -z-20 bg-background"
                 style={BEZEL_INSET}
               />

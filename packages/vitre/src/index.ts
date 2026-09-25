@@ -6,7 +6,6 @@ export { syncChrome } from "./chrome";
 export {
   BEZEL_BAND_MAX,
   BEZEL_BAND_MIN,
-  BEZEL_LAYER_ATTRIBUTE,
   BEZEL_RADIUS_MAX,
   BEZEL_RADIUS_MIN,
   CHROME_MORPH_PX,
@@ -16,6 +15,7 @@ export {
   DEFAULT_BEZEL_BAND,
   DEFAULT_BEZEL_RADIUS,
   PAGE_SCROLL_TIMELINE,
+  VITRE_LAYER_ATTRIBUTE,
 } from "./constants";
 export {
   emitPageScroll,
