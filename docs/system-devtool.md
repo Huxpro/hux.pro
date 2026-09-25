@@ -223,9 +223,10 @@ the window was dragged to.
 ### DevtoolModules
 
 Header is the shared surface title bar (`Devtool Panel` · `DEV`, a dock button
-where there is an edge to dock to, close button); the footer — `Press D to
-toggle` and `Disable Devtool` — is the surface's `footer`, so it stays put
-while the modules scroll. The modules:
+where there is an edge to dock to, close button); under it, the **rail** — one
+icon per module, the surface's `toolbar` (see Folding and the rail below); the
+footer — `Press D to toggle` and `Disable Devtool` — is the surface's `footer`.
+Rail and footer stay put while the modules scroll. The modules:
 
 1. **Wallpaper**: the whole background system — a Weather / Image switch and
    one row showing the current picture and its resolution, which opens the
@@ -260,7 +261,9 @@ while the modules scroll. The modules:
    condition with a draggable playhead and ▶ play, phase names that jump the
    clock, the six conditions previewed at the effective hour (click again to
    return to live), the date slider that moves the moon, a **Gyro** row, and a
-   folded Tune row of scene sliders. **Now** resets everything (the Gyro row
+   folded Tune row of scene sliders, and a **Refetch** row (Location / Weather
+   — the real sky's inputs, fetched again; Weather refetches both). **Now**
+   resets everything (the Gyro row
    excepted — it is a saved setting, not a forced scene, and wears the blue
    star to say so).
 
@@ -305,7 +308,59 @@ while the modules scroll. The modules:
    runtime and flavor, source (web / built-in / online), size preset, reload
    count, rect, and the bundle or page URL. Inspection only: apps launch, and
    bundles load by URL, from ⌘K. The header shows how many are open.
-6. **Refetch**: Force re-fetch location/weather
+
+### Folding and the rail
+
+The panel has more modules than fit on a screen, so what is open is decided
+rather than hard-coded. Every module passes its `<DebugSection>` two things
+only it knows:
+
+- **`relevant`** — does it matter here and now? Relevant modules start open,
+  the rest start folded. The order never changes, so nothing moves under your
+  hand; what does not matter just waits folded.
+
+  | Module | Relevant when |
+  |---|---|
+  | Frontmatter, Reading | the page is a post (`pageMeta` is set) |
+  | Wallpaper, Sky | on home (the wallpaper is the page), or something is overridden for the session |
+  | Glass | on home |
+  | Music | a track is playing or paused, or the mock is on |
+  | Command | on a phone (`canDock`) — its one setting is the phone palette |
+  | Windows | a window is open |
+  | Draggable | never — it is tooling, not what a page is about |
+
+  A *session* override pulls a module open (you are in the middle of
+  something); a *saved* setting off its default does not (it is a
+  preference, and it would hold the module open everywhere, for good).
+
+- **`star`** — is anything inside off its default? The rows' `PanelStar`s,
+  summed: amber if any is a session override, blue if they are all saved. It
+  sits beside the title, so a folded module still says "look in here".
+
+Every folded header also carries a one-line status in its `action` slot
+(`sans · M/M`, `sheet`, `5/7`, the window count…), so folded is not blind.
+
+**Folds by hand are remembered per relevance.** A header click saves the fold
+under `id:relevant` or `id:idle` (`sectionFoldKey`), so "Frontmatter open on
+a post" and "Frontmatter out of the way elsewhere" are two answers, not one
+that the last page wins. Folds saved before this (keyed by the bare id) are
+dropped on load rather than guessed into a context.
+
+**The rail** is the index: one icon per module in `MODULE_ORDER`, a dot under
+the relevant ones, the module's star, a filled chip when it is open.
+
+- **Tap**: open that module, fold every other, scroll to it. Tap it again to
+  give the folds back to relevance and your own choices.
+- **Shift-tap** (or ⌘ / Ctrl / Alt): open it without folding anything else.
+
+The rail's folds are for getting around, not for keeping: they win over the
+saved ones while they stand, are never written to storage, and a new route
+starts without them. A header click on a module takes back the rail's fold
+for it and saves yours.
+
+Modules report themselves to the rail through `<DevtoolSections>`, which
+wraps the shell's whole body (rail and modules) in `dock.tsx`; the modules
+stay the only place that knows their own state.
 
 ## Controls
 

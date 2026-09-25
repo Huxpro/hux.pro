@@ -15,7 +15,13 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { Bug, PanelBottom } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DevtoolFooter, DevtoolModules, DevtoolTitle } from "./panel";
+import {
+  DevtoolFooter,
+  DevtoolModules,
+  DevtoolRail,
+  DevtoolSections,
+  DevtoolTitle,
+} from "./panel";
 import { useDevtool } from "./provider";
 
 // =============================================================================
@@ -282,31 +288,36 @@ export function DevtoolFAB() {
   // the same pair, and two places deciding it is two places to drift apart.
   const { isEnabled, isOpen, canDock, isFloating, close, detach, dock } =
     useDevtool();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   if (!isEnabled) return null;
 
   const body = (
-    <SurfaceBody
-      title={<DevtoolTitle />}
-      closeLabel={zh ? "关闭调试面板" : "Close devtool panel"}
-      onClose={close}
-      // The modules bring their own padding and full-bleed section rules.
-      contentClassName="pb-0"
-      footer={<DevtoolFooter />}
-      actions={
-        isFloating && canDock ? (
-          <button
-            onClick={dock}
-            aria-label={zh ? "停靠到底部" : "Dock to the bottom edge"}
-            className={HEADER_BUTTON}
-          >
-            <PanelBottom className="h-4 w-4" />
-          </button>
-        ) : undefined
-      }
-    >
-      <DevtoolModules />
-    </SurfaceBody>
+    <DevtoolSections scrollRef={scrollRef}>
+      <SurfaceBody
+        title={<DevtoolTitle />}
+        closeLabel={zh ? "关闭调试面板" : "Close devtool panel"}
+        onClose={close}
+        // The modules bring their own padding and full-bleed section rules.
+        contentClassName="pb-0"
+        scrollRef={scrollRef}
+        toolbar={<DevtoolRail />}
+        footer={<DevtoolFooter />}
+        actions={
+          isFloating && canDock ? (
+            <button
+              onClick={dock}
+              aria-label={zh ? "停靠到底部" : "Dock to the bottom edge"}
+              className={HEADER_BUTTON}
+            >
+              <PanelBottom className="h-4 w-4" />
+            </button>
+          ) : undefined
+        }
+      >
+        <DevtoolModules />
+      </SurfaceBody>
+    </DevtoolSections>
   );
 
   if (isFloating) {

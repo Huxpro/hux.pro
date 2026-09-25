@@ -7,6 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { usePathname } from "next/navigation";
 // Deep import on purpose: the surface barrel reaches back here through
 // `systems/draggable`, and presentation.ts depends on nothing but React.
 import { useBreakpointValue } from "@/systems/surface/presentation";
@@ -125,7 +126,10 @@ const CAN_DOCK = { base: true, sm: false };
 interface DevtoolSettings {
   fabEnabled: boolean;
   draggable: Record<string, Partial<DraggableInstanceConfig>>;
-  /** Per-section collapsed state, keyed by the section's stable id. */
+  /**
+   * The folds you chose by hand, keyed `id:relevant` or `id:idle` — see
+   * {@link sectionFoldKey}. Unset means the module's relevance decides.
+   */
   collapsed: Record<string, boolean>;
   phonePalette: PhonePalette;
   /** Pulled off the edge into a floating pill, and kept that way. */
@@ -139,6 +143,28 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   phonePalette: PHONE_PALETTE_DEFAULT,
   detached: false,
 };
+
+/**
+ * The key a section's hand-set fold is stored under. One per module per
+ * relevance, so "Frontmatter open on a post" and "Frontmatter out of the way
+ * everywhere else" are two answers rather than one that the last page wins.
+ */
+export function sectionFoldKey(id: string, relevant: boolean): string {
+  return `${id}:${relevant ? "relevant" : "idle"}`;
+}
+
+/**
+ * Folds saved before relevance existed were keyed by the bare id, and meant
+ * "on every page". They are dropped rather than guessed into a context.
+ */
+function onlyFoldKeys(raw: unknown): Record<string, boolean> {
+  if (!raw || typeof raw !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, unknown>).filter(
+      (e): e is [string, boolean] => e[0].includes(":") && typeof e[1] === "boolean"
+    )
+  );
+}
 
 function getDevtoolSettings(): DevtoolSettings {
   if (typeof window === "undefined") return SETTINGS_DEFAULTS;
@@ -154,13 +180,13 @@ function getDevtoolSettings(): DevtoolSettings {
           draggable: parsed.commandFabDraggable
             ? { "command-fab": { draggable: true } }
             : {},
-          collapsed: parsed.collapsed ?? {},
+          collapsed: onlyFoldKeys(parsed.collapsed),
         };
       }
       return {
         fabEnabled: parsed.fabEnabled ?? false,
         draggable: parsed.draggable ?? {},
-        collapsed: parsed.collapsed ?? {},
+        collapsed: onlyFoldKeys(parsed.collapsed),
         phonePalette:
           parsed.phonePalette === "popover" ? "popover" : PHONE_PALETTE_DEFAULT,
         detached: parsed.detached === true,
@@ -238,10 +264,26 @@ interface DevtoolContextType {
   pageMeta: DevtoolPageMeta | null;
   /** Register / clear the current route's frontmatter (called by DevtoolPageMeta). */
   setPageMeta: (meta: DevtoolPageMeta | null) => void;
-  /** Whether a panel section is collapsed. `fallback` applies when unset. */
-  isSectionCollapsed: (id: string, fallback?: boolean) => boolean;
-  /** Persist a section's collapsed state (survives reload). */
-  setSectionCollapsed: (id: string, collapsed: boolean) => void;
+  /**
+   * Whether a panel section is folded, by its {@link sectionFoldKey}. The
+   * rail's folds win, then the ones chosen by hand, then `fallback` — which
+   * the section passes as "not relevant here".
+   */
+  isSectionCollapsed: (key: string, fallback: boolean) => boolean;
+  /**
+   * Fold or unfold a section by hand. Saved (survives reload), and it takes
+   * back whatever the rail had done to that section.
+   */
+  setSectionCollapsed: (key: string, collapsed: boolean) => void;
+  /**
+   * The rail's folds: for getting around now, not for keeping. They win over
+   * the saved ones, are never written to storage, and are dropped when the
+   * route changes. `solo` is the module the rail last focused, if any.
+   */
+  railFolds: Record<string, boolean>;
+  solo: string | null;
+  /** Replace the rail's folds, e.g. with "only this one open". */
+  setRailFolds: (folds: Record<string, boolean>, solo: string | null) => void;
   /** The command palette's shape on a phone. A saved setting. */
   phonePalette: PhonePalette;
   setPhonePalette: (shape: PhonePalette) => void;
@@ -310,6 +352,8 @@ export function DevtoolProvider({
   const [collapsedSections, setCollapsedSections] = useState<
     Record<string, boolean>
   >({});
+  const [railFolds, setRailFoldsState] = useState<Record<string, boolean>>({});
+  const [solo, setSolo] = useState<string | null>(null);
   const [phonePalette, setPhonePaletteState] =
     useState<PhonePalette>(PHONE_PALETTE_DEFAULT);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
@@ -438,20 +482,47 @@ export function DevtoolProvider({
   }, []);
 
   const isSectionCollapsed = useCallback(
-    (id: string, fallback = false) => collapsedSections[id] ?? fallback,
-    [collapsedSections]
+    (key: string, fallback: boolean) =>
+      railFolds[key] ?? collapsedSections[key] ?? fallback,
+    [railFolds, collapsedSections]
   );
 
   const setSectionCollapsed = useCallback(
-    (id: string, collapsed: boolean) => {
+    (key: string, collapsed: boolean) => {
       setCollapsedSections((prev) => {
-        const next = { ...prev, [id]: collapsed };
+        const next = { ...prev, [key]: collapsed };
         setDevtoolSettings({ collapsed: next });
         return next;
       });
+      setRailFoldsState((prev) => {
+        if (!(key in prev)) return prev;
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      setSolo(null);
     },
     []
   );
+
+  const setRailFolds = useCallback(
+    (folds: Record<string, boolean>, nextSolo: string | null) => {
+      setRailFoldsState(folds);
+      setSolo(nextSolo);
+    },
+    []
+  );
+
+  // A new page is a new context: what the rail focused on the last one says
+  // nothing about this one, so relevance and the saved folds decide again.
+  // Reset while rendering, React's pattern for state that follows a value.
+  const pathname = usePathname();
+  const [railPath, setRailPath] = useState(pathname);
+  if (railPath !== pathname) {
+    setRailPath(pathname);
+    setRailFoldsState({});
+    setSolo(null);
+  }
 
   const setPhonePalette = useCallback((shape: PhonePalette) => {
     setPhonePaletteState(shape);
@@ -508,6 +579,9 @@ export function DevtoolProvider({
         setPageMeta,
         isSectionCollapsed,
         setSectionCollapsed,
+        railFolds,
+        solo,
+        setRailFolds,
         phonePalette,
         setPhonePalette,
         heroExitOverride,
