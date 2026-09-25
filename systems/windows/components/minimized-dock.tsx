@@ -39,7 +39,8 @@ function PillIcon({ win }: { win: WindowInstance }) {
 export function MinimizedWindows() {
   const { windows, restore } = useWindows();
   const { locale } = useLocale();
-  const minimized = windows.filter((w) => w.mode === "minimized");
+  // An app with a Live Activity of its own is already in the dock.
+  const minimized = windows.filter((w) => w.mode === "minimized" && !w.app.activity);
 
   return (
     <AnimatePresence>

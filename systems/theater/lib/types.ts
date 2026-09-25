@@ -78,8 +78,8 @@ export interface Album {
  *  - `theater` — the large immersive modal (tablet+ / desktop default).
  *  - `pip`     — the floating Picture-in-Picture window (phone default, or a
  *                fallback toggled from theater).
- *  - `window`  — an app window in the window system (unified windows). The
- *                window plays the track itself; the stage stands down.
+ *  - `window`  — the Theater window (unified windows, tablet+ / desktop): the
+ *                stage stands over the window's slot, at the window's z-index.
  */
 export type TheaterMode = "closed" | "theater" | "pip" | "window";
 

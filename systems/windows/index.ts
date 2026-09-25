@@ -21,6 +21,7 @@ export {
   SystemAppsProvider,
   useExpandPage,
   useShrinkPage,
+  useHostWindow,
 } from "./components";
-export type { SystemAppBodies } from "./components";
+export type { SystemAppBodies, HostWindow } from "./components";
 export * from "./lib";

@@ -23,6 +23,7 @@ import {
   type SizePreset,
   type Viewport,
 } from "./lib/geometry";
+import { embeddedOS } from "./lib/os";
 import type { OpenAppOptions, Rect, WindowInstance } from "./lib/types";
 
 // =============================================================================
@@ -175,6 +176,13 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
 
   const openApp = useCallback(
     (app: AppLink, opts?: OpenAppOptions) => {
+      // A page in a window has no desktop of its own to open windows on:
+      // the window goes to the top document's (lib/os.ts).
+      const os = embeddedOS();
+      if (os) {
+        os.openApp(app, opts);
+        return;
+      }
       const z = nextZ();
       // Read the viewport here, not inside the updater: an updater is replayed
       // (twice over, in development), and `getViewport` forces layout.

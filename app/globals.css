@@ -561,6 +561,13 @@ html[data-embedded="window"] body {
   background: var(--background);
 }
 
+/* A window drag or resize passes over the theater's stage, which stands at
+   its window's level rather than inside it (systems/windows/window-layer.tsx):
+   the video frame must not catch the pointer mid-gesture. */
+html.window-gesturing .theater-stage {
+  pointer-events: none;
+}
+
 /* The bezel's stylesheet (html[data-bezel], container scroll, fixed layers
    made absolute) ships with vitre and is installed by its boot script. */
 

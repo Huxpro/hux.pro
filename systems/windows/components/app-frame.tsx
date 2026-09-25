@@ -27,8 +27,9 @@ import { WebFrame } from "./web-frame";
  */
 export function appGround(app: AppLink): string {
   const runtime = app.runtime ?? "web";
-  // A stage is dark whatever the theme — a video letterboxes on black.
-  if (runtime === "lynx" || app.system === "theater") return "bg-black";
+  if (runtime === "lynx") return "bg-black";
+  // The theater window is the modal's frosted ground, gathered into a window.
+  if (app.system === "theater") return "bg-glass-strong backdrop-blur-2xl";
   return "bg-background";
 }
 

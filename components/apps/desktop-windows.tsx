@@ -3,12 +3,14 @@
 import { WallpaperWindow, useWallpaper } from "@/systems/ambient";
 import { MusicWindow, useMusic } from "@/systems/music";
 import { TheaterWindow, useTheater } from "@/systems/theater";
+import { useTransitionRouter } from "next-view-transitions";
 import {
   SYSTEM_APPS,
   SystemAppsProvider,
   WindowLayer,
   useUnifiedWindows,
   useWindows,
+  type HuxOS,
   type SystemAppBodies,
 } from "@/systems/windows";
 import { useEffect, useRef } from "react";
@@ -39,9 +41,46 @@ export function DesktopWindows() {
   return (
     <SystemAppsProvider bodies={BODIES}>
       <WindowLayer />
+      <OsBridge />
       <UnifiedSwitchboard />
     </SystemAppsProvider>
   );
+}
+
+/**
+ * What the pages in windows may ask of this document (systems/windows/lib/
+ * os.ts): anything past their own section. Published on `window` because the
+ * asker is another document; always current, since the ref is re-pointed on
+ * every render rather than the global re-published.
+ */
+function OsBridge() {
+  const router = useTransitionRouter();
+  const { openApp, openUrl, openBundleUrl } = useWindows();
+  const { openVideo, openMedia } = useTheater();
+  const latest = useRef({ router, openApp, openUrl, openBundleUrl, openVideo, openMedia });
+  latest.current = { router, openApp, openUrl, openBundleUrl, openVideo, openMedia };
+
+  useEffect(() => {
+    const os: HuxOS = {
+      navigate: (href) => latest.current.router.push(href),
+      openApp: (app, opts) => latest.current.openApp(app, opts),
+      openUrl: (url, opts) => latest.current.openUrl(url, opts),
+      openBundleUrl: (url, opts) => latest.current.openBundleUrl(url, opts),
+      openVideo: (input) =>
+        latest.current.openVideo(input as Parameters<typeof openVideo>[0]),
+      openMedia: (media, meta) =>
+        latest.current.openMedia(
+          media as Parameters<typeof openMedia>[0],
+          meta as Parameters<typeof openMedia>[1],
+        ),
+    };
+    window.__huxOS = os;
+    return () => {
+      if (window.__huxOS === os) delete window.__huxOS;
+    };
+  }, []);
+
+  return null;
 }
 
 function UnifiedSwitchboard() {
@@ -115,32 +154,67 @@ function WallpaperSwitch() {
 }
 
 /**
- * The theater is not a yes/no: it has a mode, and a window is one of them.
- * Every `open` (a cover's play button, a deck) brings the window forward;
- * closing the window ends the session; the window opened from a launcher with
- * nothing on the stage starts the curated albums, as the home widget would.
+ * The theater is not a yes/no: it has a mode, and on a desktop `window` is its
+ * big view. The window and the mode are kept in step, each side reacting only
+ * to its own change:
+ *
+ *   theater → window   every `open` in window mode brings the window forward;
+ *                      minimized (the switch's audio view) puts it in the dock;
+ *                      moved to PiP or closed, the window goes — handed off,
+ *                      not ended: the stage morphs on to where it is going.
+ *   window → theater   closed by hand ends the session; put in the dock by
+ *                      hand is the audio view; brought back is the window
+ *                      again; opened from a launcher with nothing on the stage
+ *                      starts the curated albums (and on a phone, where the
+ *                      theater is PiP, hands straight off to it).
  */
 function TheaterSwitch() {
-  const { openApp } = useWindows();
-  const { mode, openRequest, registeredAlbums, open, close } = useTheater();
+  const { openApp, minimize: minimizeWindow, close: closeWindow } = useWindows();
+  const theater = useTheater();
+  const { mode, minimized, openRequest, registeredAlbums } = theater;
   const id = SYSTEM_APPS.theater.id;
-  const { exists } = useShown(id);
+  const { exists, shown } = useShown(id);
+  const handedOff = useRef(false);
 
-  useEffect(() => {
-    if (openRequest > 0 && mode === "window") openApp(SYSTEM_APPS.theater);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openRequest]);
+  const windowRef = useRef({ exists, shown });
+  windowRef.current = { exists, shown };
+  const theaterRef = useRef(theater);
+  theaterRef.current = theater;
 
-  const existed = useRef(exists);
+  // The theater moved.
   useEffect(() => {
-    const was = existed.current;
-    existed.current = exists;
-    if (was && !exists && mode === "window") close();
-    if (!was && exists && mode === "closed" && registeredAlbums.length > 0) {
-      open({ albums: registeredAlbums });
+    const w = windowRef.current;
+    if (mode === "window") {
+      if (!minimized) openApp(SYSTEM_APPS.theater);
+      else if (w.shown) minimizeWindow(id);
+    } else if (w.exists) {
+      handedOff.current = true;
+      closeWindow(id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exists]);
+  }, [mode, minimized, openRequest]);
+
+  // The window moved.
+  const was = useRef({ exists, shown });
+  useEffect(() => {
+    const prev = was.current;
+    was.current = { exists, shown };
+    const t = theaterRef.current;
+    if (prev.exists && !exists) {
+      if (handedOff.current) handedOff.current = false;
+      else if (t.mode === "window") t.close();
+      return;
+    }
+    if (!prev.exists && exists) {
+      if (t.mode === "closed" && registeredAlbums.length > 0) t.open({ albums: registeredAlbums });
+      else if (t.mode !== "window") t.toTheater();
+      return;
+    }
+    if (t.mode !== "window") return;
+    if (prev.shown && !shown && !t.minimized) t.minimize();
+    if (!prev.shown && shown && t.minimized) t.restore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exists, shown]);
 
   return null;
 }

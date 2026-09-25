@@ -24,6 +24,19 @@ export const MARGIN = 12;
  */
 export const DOCK_BAND = 56;
 
+/**
+ * The z-index band windows paint in, in the root stacking context: above the
+ * page, below the dock (`z-50`) and the palette (`z-60`). A window's place in
+ * it is its rank in the window order; past ten windows the top ones share the
+ * last level and DOM order breaks the tie.
+ */
+export const WINDOW_Z_BASE = 40;
+export const WINDOW_Z_MAX = 49;
+
+export function windowZIndex(rank: number): number {
+  return Math.min(WINDOW_Z_MAX, WINDOW_Z_BASE + rank);
+}
+
 /** Height of the floating chrome pill, in px — shared with the window layout. */
 export const CHROME_H = 34;
 

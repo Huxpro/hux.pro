@@ -12,7 +12,7 @@
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
-| **Window System** | [docs/system-windows.md](./docs/system-windows.md) (App windows — web / Lynx / system / page runtimes; *Unified windows*: built-ins and shrunk pages as windows, behind ⌘K → Unified Windows) |
+| **Window System** | [docs/system-windows.md](./docs/system-windows.md) (App windows — web / Lynx / system / page runtimes; *Unified windows*: built-ins and section-scoped page windows, the theater stage at its window's z-index, behind ⌘K → Unified Windows) |
 | **Dock / Live Activities** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel) |
 | **Glass** | [docs/system-glass.md](./docs/system-glass.md) (Clear / Tinted material, reading surfaces) |
 | **Legibility** | [docs/system-legibility.md](./docs/system-legibility.md) (Ink-at-alpha tokens, wallpaper profiles, relief, tint, the `/editor/legibility` lab) |

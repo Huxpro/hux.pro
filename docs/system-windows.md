@@ -27,6 +27,7 @@ systems/windows/
 │   ├── builtins.ts             # the system apps + page apps (unified windows)
 │   ├── unified.ts              # the unified-windows switch
 │   ├── embed.ts                # "this document is a page in a window"
+│   ├── os.ts                   # the bridge a page window hands things out through
 │   └── lynx-shadow-css.ts      # generated: flattened web-elements layout CSS
 ├── components/
 │   ├── window-layer.tsx        # <WindowLayer> — the fixed "desktop" surface
@@ -41,7 +42,8 @@ systems/windows/
 │   ├── system-app-frame.tsx    # a built-in's body, rendered in this document
 │   ├── page-frame.tsx          # a route of this site, shrunk into a window
 │   ├── use-expand-page.ts      # shrink a page into a window ⇄ expand it back
-│   ├── os-chrome.tsx           # what only the top document draws
+│   ├── os-chrome.tsx           # what only the top document draws; scope in a page
+│   ├── host-window.tsx         # useHostWindow — the window a body is in
 │   ├── web-frame.tsx           # <iframe> + "won't embed" fallback
 │   ├── lynx-frame.tsx          # ssr:false boundary around the player
 │   ├── lynx-player.tsx         # <lynx-view> — the Lynx Player
@@ -313,12 +315,17 @@ Gesture handling in `window.tsx`:
 - A transparent **gesture shield** covers the body while dragging/resizing, so
   the iframe can't swallow the `pointermove` stream and freeze the drag.
 
-`WindowLayer` is a single `position: fixed; inset: 0` surface mounted once at
-the app root (in `app/layout.tsx`), `pointer-events: none` so it never steals
-page clicks. A phone window paints in the surface system's own layer instead
-(the sheet is portaled, at `z-60`), and holds `AnimatePresence` open through
-`usePresence` so its exit plays before the window is dropped. It sits at `z-40` — below the dock (`z-50`) and the command palette
-(`z-60`), so ⌘K always wins. `AnimatePresence` plays the open/close spring.
+`WindowLayer` is mounted once at the app root (in `app/layout.tsx`) and draws
+no box of its own: each window is `position: fixed` in the root stacking
+context, at a z-index from its **rank** in the window order (`windowZIndex`:
+40 + rank, capped at 49) — below the dock (`z-50`) and the command palette
+(`z-60`), so ⌘K always wins. Rank rather than the raw focus counter, because
+the band is ten levels wide. And one stacking context per window rather than
+one for the layer, so that something which is not a window can stand *between*
+two windows: the theater's stage (see *Unified windows*). A phone window paints
+in the surface system's own layer instead (the sheet is portaled, at `z-60`),
+and holds `AnimatePresence` open through `usePresence` so its exit plays before
+the window is dropped. `AnimatePresence` plays the open/close spring.
 
 ## The runtimes
 
@@ -435,7 +442,7 @@ away. The direction is one: everything is an app, and an app is a window.
 | Runtime | Body | What it is |
 |---------|------|-----------|
 | `system` | the feature's own component, in this document (`SystemAppFrame`) | Music, Wallpaper, Theater (`SYSTEM_APPS`) |
-| `page` | a same-origin frame of the route (`PageFrame`) | Writing, Prompt, Works — any route but home (`pageApp`) |
+| `page` | a same-origin frame of the route, scoped to its section (`PageFrame`) | Writing, Prompt, Works — any route but home (`pageApp`) |
 
 Both are ordinary `AppLink`s with icons in `public/app-icons/`, so the ⌘K
 strip, the dock pill, the menu and the badge (a small window for system, a
@@ -447,29 +454,64 @@ window shows is the music the dock is playing, the wallpaper it picks is the
 one behind it. The window system does not import the features — the layout
 hands it their bodies (`components/apps/desktop-windows.tsx` →
 `SystemAppsProvider`), as it hands the dock its activities. Each body is given
-the surface context answering as a window, so content written for a surface
-(the track list, the picker grid) lands unchanged. Column counts now read the
-room they have — a container query in the track list, a `ResizeObserver` in
-the Wallpaper window — rather than the shape they were given, so a window
-dragged wide breaks into columns the way the old surface window did.
+the surface context answering as a window (`sheet` on a phone), and the window
+it is in (`useHostWindow`: its instance, its shape, its z-index).
 
 **The switchboard.** Every existing way in still asks the feature: the dock's
 playlist button calls `openPlaylist`, ⌘K's Wallpaper row `openPicker`, a talk
 card `openVideo`. `DesktopWindows` turns the ask into the window, and the
 features only learn one thing — with the switch on, keep the old surface shut.
+Music and Wallpaper are a yes/no, mirrored both ways (the feature asked to open
+brings its window forward; the window put away closes the feature's surface).
 
-- **Music / Wallpaper** are a yes/no, mirrored both ways: the feature asked to
-  open brings its window forward; the window put away tells the feature its
-  surface closed; the feature asked to close (the list button inside the Music
-  window) puts the window in the dock.
-- **Theater** has a mode, and `window` is now one of them. `open` resolves to
-  it; the stage stands down (not staged, not playing); every `open` bumps
-  `openRequest`, which brings the window forward even for the track already on
-  it. Closing the window ends the session. The window is its own player — the
-  track in a frame of its own — because the stage is a singleton positioned
-  over the page, and anything parked above every window paints over the one in
-  front. Persistence is the window system's promise instead: a minimized
-  Theater window stays mounted, so a talk keeps talking from the dock.
+**An app with a Live Activity is its Live Activity in the dock.** Music and
+Theater carry `activity: true`: minimized, their window takes no pill of its
+own, because the music card / the "now watching" card already stands there, and
+brings the window back.
+
+### Music
+
+On a phone the window is a sheet, and it stays what the playlist sheet was: the
+now-playing card over the list. On a desktop it is an app, and gets to be one
+(`music-window.tsx`): the artwork blurred behind the whole window under a veil
+of the page ground, a scrubber you can drag (`seek` on the music provider), a
+transport sized for a pointer, and Music.app's three sizes, chosen from the
+window's own box — not the viewport's:
+
+| Layout | When | What |
+|--------|------|------|
+| wide | ≥ 620 × 380 (it opens `landscape`) | the now-playing pane beside the playlist |
+| compact | a portrait window | the player on top, the list under it |
+| mini | under 340 wide or 300 tall | the artwork is the window; title, scrubber and transport ride on it |
+
+The track list's columns read their container (a container query) rather than
+the shape they were given, so the list breaks into columns wherever it has the
+room.
+
+### Theater
+
+The window is the modal, gathered into a window — the same player, not a
+second one. On a screen with room for the theater, `open` resolves to mode
+`window` (a phone keeps its PiP, as it always has, and never gets the window).
+
+The stage is the provider's singleton — the element the YouTube player lives
+in, which is why playback survives every change of mode — and a window cannot
+hold it: moving it into the window's DOM would reload the video. So the window
+keeps a **slot** and hands it to the provider (`setWindowSlot`); the stage
+stands over the slot, every frame (`useFollow` in `stage.tsx` — windows drag and
+resize by writing their DOM, and open and genie with transforms, so the box is
+only known by measuring it), at **the window's own z-index**: above the Theater
+window, below any window in front of it. That is what the rank-based z-index
+above is for.
+
+Everything around the stage is the modal's: the title and the cluster (source
+link, the surface switch) above, the glass orbs either side, the album tabs and
+the rail below, on the modal's frosted ground. The close is the window's own.
+And the switch means what it always meant, so **window ⇄ PiP ⇄ audio** are the
+one player moving: PiP hands the stage to the PiP corner and the window goes
+(handed off, not ended); PiP's Theater brings the window back and the stage
+glides into its slot; Audio is the window in the dock, as the "now watching"
+Live Activity. Closing the window by hand ends the session.
 
 ### Shrinking a page
 
@@ -480,26 +522,38 @@ dock genie needs no special case), and the top document goes home — to the
 desktop the window now sits on. One window per section: shrinking another
 article while Writing is open sends that window there.
 
-Inside, the frame is a whole page of the site that knows it is one. It is
-named `hux-window`; a boot script in `<head>` (`EMBED_BOOT_SCRIPT`, before the
-bezel's) marks `<html data-embedded="window">` when a framed document carries
-that name, and then:
+**A page window holds a section, not the site.** A whole page of this site can
+do anything the site can — navigate anywhere, play videos, open windows — and
+left alone, a page window was a second copy of the site running inside the
+first: follow the right links and it held the home page. So the frame's name
+carries its scope (`hux-window|/writing`), and inside it (`EmbeddedPage` in
+`os-chrome.tsx`) everything past the section is handed to the top document —
+the OS — through the bridge the top publishes on `window.__huxOS`
+(`lib/os.ts`):
 
-- **`OsChrome`** — the dock, window layer, palette, FAB, devtool and the
-  sheets that belong to the OS — is hidden by CSS from the first frame and
-  unmounted once hydrated. Content surfaces (attachments, lightbox, identity
-  card, the theater) stay: they are the page's.
-- The wallpaper and the bezel stay off: the top document already draws them
-  around the window.
-- ⌘K and `/` are forwarded to the top document, so the one palette opens.
+| What leaves | How it is caught | Where it goes |
+|-------------|------------------|---------------|
+| a link to another section (or home) | a capture-phase click listener, ahead of the page's router — whatever the link's target | the top navigates there; the window stays |
+| a navigation without a link (a widget's `router.push`) | the pathname, on arrival | the top goes there; the window goes back to where it was |
+| a video, a deck | the theater provider's `openVideo` / `openMedia` | the top's theater — one player |
+| a window (the in-app browser a link card opens) | the window provider's `openApp` | the top's desktop |
+| ⌘K, `/` | a capture-phase key listener | the top's palette |
 
-The name rather than a query parameter, because a frame's name survives every
-navigation inside it: follow a link in the Writing window and the article it
-lands on still knows where it is.
+Files (`/img/…`, a poster a lightbox opens) are content, not places, and stay
+the page's. Inside its section the window browses freely: Writing goes from the
+list to an article and back.
+
+The frame also knows to draw none of the OS: a boot script in `<head>`
+(`EMBED_BOOT_SCRIPT`, before the bezel's) marks `<html data-embedded="window">`
+when a framed document carries the name, so `OsChrome` — dock, window layer,
+palette, FAB, devtool, the OS's sheets — is hidden by CSS from the first frame
+and unmounted once hydrated, and the wallpaper and the bezel stay off. The name
+rather than a query parameter, because a frame's name survives every
+navigation inside it.
 
 **Expand to page** (the window menu, page windows only) reads where the frame
 has got to — not where it started — sends the top document there and closes
-the window. Same origin is what makes that one line (`pageFrameLocation`).
+the window.
 
 ### Open questions
 
@@ -507,13 +561,11 @@ the window. Same origin is what makes that one line (`pageFrameLocation`).
   apps: its saved order reconciles against that list, and would drop built-in
   ids whenever the switch is off. Once the direction settles, built-ins belong
   there — the site's own apps first.
-- **One activity or two.** A minimized Music window has a dock pill beside the
-  music Live Activity. The mirror keeps them consistent; whether the activity
-  *is* the minimized window is the next question.
-- **Media inside a page window** still opens in that page's own theater. It
-  could reach up to the top's, as ⌘K does.
-- **Theater transport.** The window's player is a plain embed, so the dock has
-  no play / pause for it the way the stage's IFrame API gave one.
+- **A minimized Music app before anything played** has no Live Activity yet,
+  so no dock presence; it comes back from ⌘K or the home widget.
+- **The backstop shows the page it bounces.** A navigation without a link is
+  caught on arrival, so the window paints the other section for a moment
+  before going back. Links — nearly every way out — never get that far.
 - **Cost.** A page window is a second copy of the app shell. Fine for one or
   two; a desktop of ten would want the pages rendered in-document instead.
 

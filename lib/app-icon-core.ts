@@ -414,6 +414,11 @@ export interface AppLink {
   /** For `runtime: "system"`: which built-in feature the window holds. */
   system?: SystemAppId;
   /**
+   * The app keeps a Live Activity of its own in the dock (the theater's "now
+   * watching"), so its window, minimized, takes no second pill there.
+   */
+  activity?: boolean;
+  /**
    * For `runtime: "lynx"`: the `.web.bundle` the player loads.
    *   - a site-local `/…` path → a **built-in** (offline) bundle from /public
    *   - an `http(s)://…` URL   → an **online** bundle fetched at open time

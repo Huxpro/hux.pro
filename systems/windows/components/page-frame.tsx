@@ -2,14 +2,18 @@
 
 import type { AppLink } from "@/lib/app-icon-core";
 import { useEffect, useRef } from "react";
-import { PAGE_FRAME_NAME } from "../lib/embed";
+import { pageScope } from "../lib/builtins";
+import { pageFrameName } from "../lib/os";
 
 // =============================================================================
 // PageFrame — a route of this site, shrunk into a window (`runtime: "page"`)
 //
 // A same-origin frame, named so the document inside knows it is a page in a
-// window (lib/embed.ts) and draws none of the OS around itself. Links inside
-// navigate inside: the Writing window browses writing, the way a window does.
+// window (lib/embed.ts) and draws none of the OS around itself — and which
+// section it may move within (lib/os.ts). Inside the section it browses: the
+// Writing window goes from the list to an article and back. Anything past
+// the section is handed out to the top document, so the window never becomes
+// a second copy of the site.
 //
 // Same origin is what makes the way back cheap. Expanding reads where the
 // frame has got to — not where it started — and sends the top document there
@@ -50,7 +54,7 @@ export function PageFrame({ app }: { app: AppLink }) {
   return (
     <iframe
       ref={ref}
-      name={PAGE_FRAME_NAME}
+      name={pageFrameName(pageScope(app))}
       src={app.url}
       title={app.title}
       // Ours, same-origin, and a whole page: it needs its fullscreen for

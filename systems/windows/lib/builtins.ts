@@ -27,7 +27,10 @@ export const SYSTEM_APPS: Record<SystemAppId, AppLink> = {
     url: "/",
     runtime: "system",
     system: "music",
-    size: "portrait",
+    // Music.app's shape: the player beside the list (music-window.tsx).
+    size: "landscape",
+    // The music Live Activity is the minimized Music app.
+    activity: true,
     icon: "/app-icons/system-music.svg",
     keywords: ["music", "playlist", "song", "音乐", "歌单"],
   },
@@ -50,6 +53,7 @@ export const SYSTEM_APPS: Record<SystemAppId, AppLink> = {
     runtime: "system",
     system: "theater",
     size: "landscape",
+    activity: true,
     icon: "/app-icons/system-theater.svg",
     keywords: ["theater", "video", "talk", "slides", "deck", "影院", "视频", "演讲"],
   },
@@ -109,6 +113,11 @@ export function pageApp(path: string, title?: string, section = sectionOf(path))
     runtime: "page",
     size: "landscape",
   };
+}
+
+/** The section a page window is scoped to (`/writing`): see lib/os.ts. */
+export function pageScope(app: Pick<AppLink, "id">): string {
+  return app.id.replace(/^page:/, "");
 }
 
 /** Whether a route can shrink: anything but the desktop itself. */
