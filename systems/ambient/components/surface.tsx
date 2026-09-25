@@ -65,7 +65,7 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
                 style={BEZEL_INSET}
               />
             )}
-            <WallpaperBackground enabled={fullEnabled} />
+            {pathname !== "/editor/weather" && <WallpaperBackground enabled={fullEnabled} />}
           </>
         }
         className={cn(

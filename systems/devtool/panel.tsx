@@ -1362,7 +1362,9 @@ function WallpaperModule() {
 
   // What the weather layer is being drawn by, with the GL numbers when live.
   const fellBack = weatherStyle === "sky" && effectiveStyle !== "sky";
-  const engineLine = isShader
+  const engineLine = !isImage && renderer === "atmosphere"
+    ? "Atmosphere · WebGL + 2D"
+    : isShader
     ? `GL · ${glStats ?? "…"}`
     : `CSS · ${t(locale, WEATHER_STYLE_LABEL[effectiveStyle])}${
         fellBack ? ` (${zh ? "无 WebGL2，天空退回" : "no WebGL2, Sky fell back"})` : ""

@@ -6,8 +6,8 @@
 // so the provider can hold ONE background stack fed by exactly one kind at a
 // time:
 //
-//     wallpaperKind: "weather"  →  the live sky, in one of three styles
-//                                   (`weatherStyle`: Sky, Gradient, Classic)
+//     wallpaperKind: "weather"  →  the live sky, in one of four styles
+//                                   (`weatherStyle`: Sky, Atmosphere, Gradient, Classic)
 //                    "image"    →  a pair from this catalog, pinned or playing
 //                                   Shuffle / Loop over Apple or Nature
 //
@@ -28,8 +28,8 @@
 // Three categories. The first is the live one; the other two are Apple's
 // artwork:
 //
-//   weather the sky outside, right now, in three styles: Sky (a WebGL shader —
-//           sun, moon, clouds, rain, snow, fog, lightning, stars), Gradient
+//   weather the sky outside, right now, in four styles: Sky (a WebGL shader —
+//           sun, moon, clouds, rain, snow, fog, lightning, stars), Atmosphere (volumetric clouds and sharp precipitation), Gradient
 //           (the same scene as a CSS wash, live to the minute) and Classic
 //           (the six hand-tuned condition palettes the site started with).
 //           Sky falls back to Gradient where WebGL2 is missing.
@@ -95,12 +95,14 @@ export const WALLPAPER_CATEGORIES: readonly WallpaperCategory[] = [
 ];
 
 /**
- * The three weather wallpapers.
+ * The weather wallpapers.
  *
  *   sky       the WebGL shader — the whole `WeatherScene` (lib/scene.ts),
  *             animated, at full strength (its veil is painted inside the
  *             shader). Needs WebGL2; otherwise the page quietly paints the
  *             Gradient and the devtool says so.
+ *   atmosphere volumetric clouds with a separate sharp precipitation layer.
+ *             Uses WebGL1 with its own CSS fallback; independent of Sky.
  *   gradient  the same scene as a CSS gradient — the sky's colour at the real
  *             sun position, live to the minute, crossfaded on change. Sky's
  *             fallback, and what widget cards paint under Sky.
@@ -109,19 +111,21 @@ export const WALLPAPER_CATEGORIES: readonly WallpaperCategory[] = [
  *             and weather changes rather than following the clock. Chosen
  *             by hand only; nothing falls back to it.
  */
-export type WeatherStyle = "sky" | "gradient" | "classic";
+export type WeatherStyle = "sky" | "atmosphere" | "gradient" | "classic";
 
-export const WEATHER_STYLES: readonly WeatherStyle[] = ["sky", "gradient", "classic"];
+export const WEATHER_STYLES: readonly WeatherStyle[] = ["sky", "atmosphere", "gradient", "classic"];
 
 /** i18n keys for each style's name and its technical subtitle. */
 export const WEATHER_STYLE_LABEL = {
   sky: "wallpaperWeatherSky",
+  atmosphere: "wallpaperWeatherAtmosphere",
   gradient: "wallpaperWeatherGradient",
   classic: "wallpaperWeatherClassic",
 } as const satisfies Record<WeatherStyle, string>;
 
 export const WEATHER_STYLE_META = {
   sky: "wallpaperWeatherSkyMeta",
+  atmosphere: "wallpaperWeatherAtmosphereMeta",
   gradient: "wallpaperWeatherGradientMeta",
   classic: "wallpaperWeatherClassicMeta",
 } as const satisfies Record<WeatherStyle, string>;
@@ -146,11 +150,12 @@ export function getWallpaperPlayName(
 }
 
 /** Which engine paints the full-page layer: the canvas or the CSS stack. */
-export type WallpaperEngine = "shader" | "css";
+export type WallpaperEngine = "shader" | "atmosphere" | "css";
 
-/** Style → engine, one-to-one. The Sky is the canvas; everything else is CSS. */
+/** Style → engine. Sky and Atmosphere own separate canvases and fallbacks. */
 export const WEATHER_STYLE_ENGINE: Record<WeatherStyle, WallpaperEngine> = {
   sky: "shader",
+  atmosphere: "atmosphere",
   gradient: "css",
   classic: "css",
 };
@@ -272,6 +277,7 @@ export type WallpaperFamily = "picture" | "wash";
 
 export const WALLPAPER_LOOK_FAMILY: Record<WallpaperLook, WallpaperFamily> = {
   sky: "picture",
+  atmosphere: "picture",
   image: "picture",
   gradient: "wash",
   classic: "wash",

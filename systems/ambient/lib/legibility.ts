@@ -1,3 +1,4 @@
+import { toAtmosphereScene } from "./atmosphere/scene";
 // =============================================================================
 // Legibility — the policy that turns a wallpaper profile into CSS variables.
 //
@@ -311,7 +312,12 @@ export function profileFromScene(params: {
   opacity: number;
   theme: Theme;
 }): WallpaperProfile {
-  const { scene, style, opacity, theme } = params;
+  const { scene: source, style, opacity, theme } = params;
+  const atmosphere = style === "atmosphere" ? toAtmosphereScene(source) : null;
+  const scene = atmosphere ? {
+    ...source,
+    sky: { ...source.sky, zenith: atmosphere.zenith, horizon: atmosphere.horizon },
+  } : source;
   const veil = (c: RGB) =>
     mixRGB(scaleRGB(c, scene.flat.exposure), scene.veil.color, scene.veil.amount);
   const page = PAGE_RGB01[theme];
@@ -327,7 +333,7 @@ export function profileFromScene(params: {
   const lum = (lt.L + lm.L + lb.L) / 3;
   const contrast = Math.sqrt(((lt.L - lum) ** 2 + (lm.L - lum) ** 2 + (lb.L - lum) ** 2) / 3);
 
-  const shader = style === "sky";
+  const shader = style === "sky" || style === "atmosphere";
   const clouds = scene.clouds.cover * scene.clouds.density;
   const edges = shader
     ? 0.012 * clouds +

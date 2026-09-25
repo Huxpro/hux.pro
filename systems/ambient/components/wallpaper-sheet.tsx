@@ -39,6 +39,7 @@ import {
 } from "../lib/wallpaper";
 import { useAmbientTime, useWallpaper, useWeather } from "../provider";
 import { WeatherWallpaper } from "./wallpaper";
+import { LiveAtmosphere } from "./live-atmosphere";
 
 // ---------------------------------------------------------------------------
 // WallpaperSheet — the secondary window behind the Wallpaper command.
@@ -58,9 +59,10 @@ import { WeatherWallpaper } from "./wallpaper";
 // capsule the Featured Talks widget uses to switch albums — one group at a time
 // is the same choice in both places, so it looks the same.
 //
-// Weather is a category of its own, and the first: three tiles — Sky (the
+// Weather is a category of its own, and the first: four tiles — Sky (the
 // shader, previewed by a small live canvas), Gradient (the same scene as a
-// live CSS wash, previewed with the very gradient the page would paint) and
+// live CSS wash, previewed with the very gradient the page would paint),
+// Atmosphere (a separate volumetric cloud and precipitation engine), and
 // Classic (the original condition palettes). It used to be one tile leading
 // every grid; with styles to choose between it is a group, and the way back
 // to it is always the first tab.
@@ -322,7 +324,7 @@ function WeatherStyleTile({
   selected: boolean;
 }) {
   const { locale } = useLocale();
-  const { selectWeather, shaderSupported, gyro } = useWallpaper();
+  const { selectWeather, shaderSupported, gyro, isPickerOpen } = useWallpaper();
   const { scene } = useWeather();
   const { phase } = useAmbientTime();
 
@@ -332,7 +334,7 @@ function WeatherStyleTile({
   const realtime = style !== "classic";
   const name = t(locale, WEATHER_STYLE_LABEL[style]);
   const meta = t(locale, WEATHER_STYLE_META[style]);
-  const Glyph = style === "sky" ? Sparkles : style === "gradient" ? Cloud : Palette;
+  const Glyph = style === "sky" || style === "atmosphere" ? Sparkles : style === "gradient" ? Cloud : Palette;
 
   return (
     <div className="group min-w-0">
@@ -345,7 +347,9 @@ function WeatherStyleTile({
           title={style === "sky" && !shaderSupported ? t(locale, "wallpaperNoWebGL") : undefined}
           className="absolute inset-0"
         >
-          {animated ? (
+          {style === "atmosphere" ? (
+            <LiveAtmosphere scene={scene} active={isPickerOpen} tile />
+          ) : animated ? (
             <WeatherWallpaper
               scene={scene}
               active

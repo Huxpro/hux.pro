@@ -1,3 +1,4 @@
+import { atmosphereGradient } from "./atmosphere/scene";
 // =============================================================================
 // CSS gradient renderer for a WeatherScene.
 //
@@ -346,5 +347,6 @@ export function getWeatherStyleGradient(
   scene: WeatherScene,
   phase: AmbientPhase
 ): string {
+  if (style === "atmosphere") return atmosphereGradient(scene);
   return style === "classic" ? getClassicGradient(scene, phase) : sceneToCssGradient(scene);
 }

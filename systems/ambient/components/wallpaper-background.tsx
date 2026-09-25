@@ -36,6 +36,7 @@ import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
 import { BEZEL_INSET, VITRE_LAYER_ATTRIBUTE } from "vitre";
 import { WeatherWallpaper } from "./wallpaper";
+import { LiveAtmosphere } from "./live-atmosphere";
 
 /** What the sky's offers need from the browser: the tilt and the window. */
 const SKY_NEEDS: readonly PermissionKind[] = ["motion", "location"];
@@ -153,6 +154,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   // (lib/permissions.ts). The policies below decide what to do about it.
   const { status: permissions } = usePermissions(SKY_NEEDS);
 
+  const useAtmosphere = kind === "weather" && renderer === "atmosphere";
   const useShader = kind === "weather" && renderer === "shader";
 
   // The pokes, the Sky's alone: the ref is registered by <WeatherWallpaper />
@@ -334,7 +336,9 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         ...(bezel ? BEZEL_INSET : null),
       }}
     >
-      {useShader ? (
+      {useAtmosphere ? (
+        <LiveAtmosphere scene={scene} active={enabled} edgeMask={edgeMask} />
+      ) : useShader ? (
         <WeatherWallpaper
           scene={scene}
           active={enabled}
