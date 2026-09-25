@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { t, useInputCapability, useLocale } from "@/services";
 import { useWallpaper } from "@/systems/ambient";
 import { AnimatePresence, motion } from "motion/react";
-import { BEZEL_INSET, BEZEL_LAYER_ATTRIBUTE } from "vitre";
+import { BEZEL_INSET, VITRE_LAYER_ATTRIBUTE } from "vitre";
 import {
   useEffect,
   useLayoutEffect,
@@ -119,7 +119,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
             aria-modal="true"
             aria-label={t(locale, "aboutTitle")}
             tabIndex={-1}
-            {...(bezel ? { [BEZEL_LAYER_ATTRIBUTE]: "" } : {})}
+            {...(bezel ? { [VITRE_LAYER_ATTRIBUTE]: "" } : {})}
             className="fixed inset-0 z-[10020] flex flex-col overflow-hidden outline-none"
             style={frame}
             initial={{ opacity: 0 }}

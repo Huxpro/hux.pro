@@ -11,7 +11,7 @@ import {
 } from "@/systems/ambient";
 import { AboutSurface } from "@/systems/about";
 import { AboutCopy } from "@/systems/about/components/about-copy";
-import { AttachmentSurface } from "@/systems/attachments";
+import { AttachmentSurface, ImageLightbox } from "@/systems/attachments";
 import { IdentityCard } from "@/systems/identity";
 import { InstallSheet } from "@/systems/install";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";

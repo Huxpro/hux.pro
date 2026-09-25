@@ -126,6 +126,7 @@ export function useCommandActions(): CommandAction[] {
   } = useMusic();
   const { open: openAbout } = useAbout();
   const { requestVoice } = useCommand();
+  const { guide: installGuide, open: openInstall } = useInstall();
   const router = useTransitionRouter();
 
   // Named for where it lands: a phone's home screen, a Mac's Dock, an app
@@ -281,51 +282,6 @@ export function useCommandActions(): CommandAction[] {
       // labs stay on the editor dropdown; the palette does not list them.
       keywords: [],
       run: () => router.push("/editor"),
-    },
-    {
-      id: "editor-attachments",
-      kind: "navigate",
-      section: "navigation",
-      label: "Attachments lab",
-      icon: <Layers2 className={ROW_ICON} />,
-      keywords: ["attachments", "media", "附件", "媒体"],
-      run: () => router.push("/editor/attachments"),
-    },
-    {
-      id: "editor-icon",
-      kind: "navigate",
-      section: "navigation",
-      label: "Icon studio",
-      icon: <ImageIcon className={ROW_ICON} />,
-      keywords: ["icon", "favicon", "studio", "图标"],
-      run: () => router.push("/editor/icon"),
-    },
-    {
-      id: "editor-legibility",
-      kind: "navigate",
-      section: "navigation",
-      label: "Legibility lab",
-      icon: <Layers2 className={ROW_ICON} />,
-      keywords: ["legibility", "glass", "ink", "wallpaper", "可读性"],
-      run: () => router.push("/editor/legibility"),
-    },
-    {
-      id: "editor-glow",
-      kind: "navigate",
-      section: "navigation",
-      label: "Glow lab",
-      icon: <Sparkles className={ROW_ICON} />,
-      keywords: ["glow", "siri", "light", "shader", "beam", "voice", "光晕", "光"],
-      run: () => router.push("/editor/glow"),
-    },
-    {
-      id: "editor-theater",
-      kind: "navigate",
-      section: "navigation",
-      label: "Theater chrome",
-      icon: <Monitor className={ROW_ICON} />,
-      keywords: ["theater", "chrome", "剧场"],
-      run: () => router.push("/editor/theater-variants"),
     },
     {
       id: "theme",

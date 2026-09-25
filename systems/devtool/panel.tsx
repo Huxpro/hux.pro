@@ -2796,7 +2796,7 @@ function GlowModule() {
       title={zh ? "光晕" : "Glow"}
       icon={<Sparkles className="h-4 w-4" />}
       compact
-      defaultCollapsed
+      relevant={about?.isOpen ?? false}
       action={
         about ? (
           <button
