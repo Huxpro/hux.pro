@@ -2830,7 +2830,7 @@ function GlowModule() {
           ariaLabel="About glow depth"
           value={tuning.aboutDepth}
           min={0.05}
-          max={0.6}
+          max={1.5}
           step={0.01}
           format={pct}
           star={star("aboutDepth")}
