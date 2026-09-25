@@ -228,9 +228,13 @@ export const surfaceMotionVars = (exitClearance: string) =>
 export function SurfaceViewport({
   modal,
   layer = 0,
+  zBase = 60,
   children,
 }: {
   modal: boolean;
+  /** The paint layer the stack starts from; 60, level with the other
+   *  secondary surfaces, unless a surface must come up over a higher one. */
+  zBase?: number;
   /**
    * The surface's place in the stack (`useSurfaceStack().rank`, raw: −1
    * once it has left). Every viewport is a stacking context at the same
@@ -251,7 +255,7 @@ export function SurfaceViewport({
     <Drawer.Viewport
       {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
       className={cn("fixed inset-0", !modal && "pointer-events-none")}
-      style={{ zIndex: 60 + held }}
+      style={{ zIndex: zBase + held }}
     >
       {children}
     </Drawer.Viewport>
@@ -486,6 +490,10 @@ export interface SurfaceSheetProps {
    */
   label?: string;
   className?: string;
+  /** Paint layer the sheet's stack starts from (default 60). Raised for a
+   *  sheet that must come up over a higher layer (the devtool over the
+   *  About). */
+  zIndex?: number;
   children: React.ReactNode;
 }
 
@@ -507,6 +515,7 @@ export function SurfaceSheet({
   gripOverlay,
   onPullPastTop,
   label,
+  zIndex,
   className,
   children,
 }: SurfaceSheetProps) {
@@ -638,7 +647,7 @@ export function SurfaceSheet({
           rather than behind it. A sheet with no fields never notices. */}
       <Drawer.VirtualKeyboardProvider>
         <Drawer.Portal keepMounted={keepMounted}>
-          <SurfaceViewport modal={modal} layer={rank}>
+          <SurfaceViewport modal={modal} layer={rank} zBase={zIndex}>
             <Drawer.Popup
               ref={setPopup}
               finalFocus={restoreFocus ? undefined : false}

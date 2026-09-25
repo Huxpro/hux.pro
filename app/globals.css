@@ -2143,8 +2143,19 @@ main[data-variant="reader"] .reader-masthead {
   }
 }
 
+/* The way out rises last, with the credits; and the words fade as they
+   scroll under it, so the fixed foot never cuts a line in half. */
+.about-foot {
+  animation: about-rise 720ms cubic-bezier(0.2, 0.8, 0.2, 1) 560ms both;
+}
+.about-scroll {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .about-copy > * {
+  .about-copy > *,
+  .about-foot {
     animation: none;
   }
 }

@@ -44,7 +44,13 @@ over whatever page a visitor landed on.
 2. **The words** — one column, `33rem`, in the middle; brief. The greeting
    is serif (somebody talking), the rest sans. Each block rises in turn with a
    little blur resolving (`.about-copy` in `globals.css`), none of it under
-   reduced motion.
+   reduced motion. The words scroll in their own container, fading as they
+   pass under the foot, so however long the copy and however short the
+   screen, nothing pushes the way out off it.
+   **The foot** — pinned under the words, always on screen: a glass button
+   (`GLASS_TRACK_FLAT`, the theater's control glass — part of the veil, not
+   a slab on it) reading **Reveal** on a first visit and **Close** after,
+   and the hint to come back with `O`.
 3. **The glow** — the Siri ring, above everything, taking no pointer.
 
 Z-order: above the theater and windows (10000–10005), below the command

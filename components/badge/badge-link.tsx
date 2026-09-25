@@ -5,7 +5,6 @@ import type { MediaKind } from "@/lib/log";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useOptionalAttachments } from "@/systems/attachments";
-import { Glow } from "@/systems/glow";
 import { useOptionalWindows } from "@/systems/windows";
 import {
   AppWindow,
@@ -22,7 +21,6 @@ import {
   createContext,
   useContext,
   useMemo,
-  useState,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -114,7 +112,7 @@ const GLYPHS: Record<BadgeKind, LucideIcon> = {
 
 /** The pill. Sized in `em` so it sits in a sentence at whatever size. */
 const BADGE =
-  "not-prose badge-link group/badge relative inline whitespace-nowrap rounded-[0.4em] " +
+  "not-prose badge-link group/badge inline whitespace-nowrap rounded-[0.4em] " +
   "bg-muted px-[0.38em] py-[0.1em] box-decoration-clone " +
   "text-[0.94em] font-normal text-foreground no-underline " +
   "transition-[background-color,opacity] duration-200 hover:bg-accent " +
@@ -183,16 +181,6 @@ export function BadgeLink({
   const attachments = useOptionalAttachments();
   const windows = useOptionalWindows();
   const onLaunch = useContext(BadgeLaunchContext);
-  // Under the pointer (or keyboard focus) the badge wears the site's glow as
-  // a halo — the same light as the About's ring, at the scale of a word. It
-  // mounts on the first look, so a page of badges carries no canvases until
-  // one is looked at; a finger never lights it (a tap is already a press).
-  const [lit, setLit] = useState(false);
-  const [looked, setLooked] = useState(false);
-  const light = (on: boolean) => {
-    setLit(on);
-    if (on) setLooked(true);
-  };
 
   const badge = useMemo(
     () => resolveBadge({ commit, item, app, href, as, icon, title }, locale),
@@ -250,15 +238,10 @@ export function BadgeLink({
       title={tooltip}
       data-badge={badge.kind}
       onClick={onClick}
-      onPointerEnter={(e) => e.pointerType === "mouse" && light(true)}
-      onPointerLeave={() => light(false)}
-      onFocus={(e) => e.currentTarget.matches(":focus-visible") && light(true)}
-      onBlur={() => light(false)}
       className={cn(BADGE, className)}
     >
       <BadgeMark icon={badge.icon} kind={badge.kind} />
       {children ?? badge.label}
-      {looked && <Glow active={lit} shape="ring" reach={2.5} bleed={6} strength={0.9} />}
     </a>
   );
 }

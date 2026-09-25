@@ -73,6 +73,8 @@ import {
   type PhonePalette,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
+import { useOptionalAbout } from "@/systems/about/provider";
+import { GLOW_TUNING_DEFAULTS, setGlowTuning, useGlowTuning } from "@/systems/glow";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
 import type { AppLink } from "@/lib/app-icon-core";
@@ -178,6 +180,7 @@ export function DevtoolModules() {
       <SkyModule />
       <MusicModule />
       <CommandModule />
+      <GlowModule />
       <DraggableModule />
       <WindowsModule />
     </>
@@ -2755,6 +2758,82 @@ function CommandModule() {
       >
         <PanelSegmented value={phonePalette} options={options} onChange={setPhonePalette} />
       </PanelRow>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Glow Module — the light's volume (systems/glow), saved.
+// Site-wide strength multiplies every glow; the About's ring has its own
+// strength and depth on top. The devtool rides over the About while it is up
+// (dock.tsx), so these can be turned while the ring is on screen — `Show`
+// brings it up to look at.
+// =============================================================================
+
+function GlowModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const tuning = useGlowTuning();
+  const about = useOptionalAbout();
+  const star = (key: keyof typeof GLOW_TUNING_DEFAULTS) =>
+    tuning[key] !== GLOW_TUNING_DEFAULTS[key] ? (
+      <PanelStar source="saved" onReset={() => setGlowTuning({ [key]: GLOW_TUNING_DEFAULTS[key] })} />
+    ) : undefined;
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+
+  return (
+    <DebugSection
+      id="glow"
+      title={zh ? "光晕" : "Glow"}
+      icon={<Sparkles className="h-4 w-4" />}
+      compact
+      defaultCollapsed
+      action={
+        about ? (
+          <button
+            onClick={about.isOpen ? about.close : about.open}
+            className="rounded px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {about.isOpen ? (zh ? "收起关于" : "Hide About") : zh ? "显示关于" : "Show About"}
+          </button>
+        ) : undefined
+      }
+    >
+      <div className="space-y-3">
+        <PanelSlider
+          label={zh ? "全站强度" : "Strength · all"}
+          ariaLabel="Glow strength, site-wide"
+          value={tuning.strength}
+          min={0}
+          max={1.5}
+          step={0.05}
+          format={pct}
+          star={star("strength")}
+          onChange={(v) => setGlowTuning({ strength: v })}
+        />
+        <PanelSlider
+          label={zh ? "关于 · 强度" : "About · strength"}
+          ariaLabel="About glow strength"
+          value={tuning.aboutStrength}
+          min={0}
+          max={1.5}
+          step={0.05}
+          format={pct}
+          star={star("aboutStrength")}
+          onChange={(v) => setGlowTuning({ aboutStrength: v })}
+        />
+        <PanelSlider
+          label={zh ? "关于 · 深度" : "About · depth"}
+          ariaLabel="About glow depth"
+          value={tuning.aboutReach}
+          min={0.5}
+          max={2}
+          step={0.05}
+          format={(v) => `×${v.toFixed(2)}`}
+          star={star("aboutReach")}
+          onChange={(v) => setGlowTuning({ aboutReach: v })}
+        />
+      </div>
     </DebugSection>
   );
 }

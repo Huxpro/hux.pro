@@ -1,7 +1,6 @@
 "use client";
 
 import { EditorNav } from "@/app/editor/nav";
-import { BadgeLink } from "@/components/badge";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { Glow, type GlowProps } from "@/systems/glow";
@@ -184,15 +183,6 @@ export function GlowLabView() {
               </div>
             </Specimen>
 
-            <Specimen name="Word · halo" where="A badge under the pointer. Hover it — or all of them follow `on`.">
-              <p className="text-[15px] leading-loose text-muted-foreground">
-                Working on <BadgeLink commit="lynx-framework">Lynx</BadgeLink> — and{" "}
-                <span className="relative inline rounded-[0.4em] bg-muted px-[0.38em] py-[0.1em] text-foreground">
-                  a lit badge
-                  <Glow {...drive} shape="ring" reach={2.5} bleed={6} strength={0.9} />
-                </span>
-              </p>
-            </Specimen>
 
             <Specimen name="Window · loading" where="The in-app browser while its page arrives: a line on the top edge, processing.">
               <div className="relative h-32 w-full overflow-hidden rounded-xl border border-border/50 bg-background">
@@ -241,9 +231,9 @@ export function GlowLabView() {
               </div>
             </Specimen>
 
-            <Specimen name="Button · halo" where="A primary action inviting a first press (the About's “Look around”).">
+            <Specimen name="Button · halo" where="A primary action inviting a first press (the About's “Reveal”).">
               <span className="relative rounded-full bg-foreground px-4 py-1.5 text-[13px] font-medium text-background">
-                Look around
+                Reveal
                 <Glow {...drive} shape="ring" reach={3} bleed={10} />
               </span>
             </Specimen>
