@@ -93,6 +93,11 @@ duration-300 (morphing transitions)
   floating surface. Recurring recipes are roles in `lib/typography.ts`
   (`TYPE.label`, `TYPE.rowMeta`, `TYPE.kbd`, …); use them. Text sitting directly on the wallpaper goes in an
   `.ink-bare` zone.
+- The chip that marks a selection — a segmented control's pill, a cluster's lit
+  button — is **always lighter than its track, in both themes** (iOS's rule; see
+  `Selection` in `docs/system-glass.md`). Paint it with `bg-selected` /
+  `bg-selected-flat` / `bg-selected-lit`, never with a glass role: those are
+  built from `--card`, which in dark mode is darker than the page.
 - After adding a wallpaper: `pnpm wallpapers:profile` and commit the table.
 
 ### Testing the Music System Offline
