@@ -25,6 +25,7 @@ import {
   isLinkPill,
   isImageMedia,
   isSlidesMedia,
+  indexOfMedia,
 } from "@/lib/log";
 import { Video } from "./video";
 import { SocialEmbed } from "./embed";
@@ -93,7 +94,7 @@ function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaP
 
   // One door for the whole set (systems/attachments): the item's index in it,
   // when this media belongs to one and a provider is mounted to open it.
-  const index = set && attachments ? set.items.indexOf(media) : -1;
+  const index = set && attachments ? indexOfMedia(set.items, media) : -1;
   const openAttachment =
     index >= 0 && set && attachments
       ? () => attachments.open(set, index)

@@ -52,6 +52,7 @@ import {
   VIDEO_PLATFORM_LABEL,
   type Media,
   type StripItem,
+  indexOfMedia,
 } from "@/lib/log";
 import type { AttachmentSet, AttachmentsApi } from "@/systems/attachments";
 import { ExternalImage } from "./external-image";
@@ -143,7 +144,7 @@ export function resolveTile(
   set: AttachmentSet | null | undefined,
   attachments: AttachmentsApi | null | undefined,
 ): TileSlot {
-  const index = set && attachments ? set.items.indexOf(item.media) : -1;
+  const index = set && attachments ? indexOfMedia(set.items, item.media) : -1;
   const leaves =
     index >= 0 && set && attachments
       ? attachments.homeOf(set, index) === "tab"

@@ -14,7 +14,7 @@ import {
   isSlidesMedia,
   isSocialEmbedMedia,
   isVideoMedia,
-  type Media,
+  type AttachmentOrigin,
 } from "@/lib/log";
 import { getDomainLabel } from "@/lib/og-core";
 import { TYPE } from "@/lib/typography";
@@ -148,14 +148,21 @@ function Actions({
   );
 }
 
-/** The commit's title and venue, the way the theater's top bar prints them. */
-function Meta({ set }: { set: AttachmentSet }) {
+/**
+ * The commit's title and venue, the way the theater's top bar prints them.
+ *
+ * The *item's* commit, which on an ordinary set is the set's own and on a
+ * squashed row is whichever member actually attached this thing. Paging
+ * through such a set walks through several commits, and the header is the
+ * only thing that says which one you are on.
+ */
+function Meta({ origin }: { origin: AttachmentOrigin }) {
   return (
     <div className="min-w-0">
-      <div className={cn("truncate", TYPE.mediaTitle)}>{set.title}</div>
-      {set.subtitle && (
+      <div className={cn("truncate", TYPE.mediaTitle)}>{origin.title}</div>
+      {origin.venue && (
         <div className={cn("mt-0.5 truncate", TYPE.labelWide)}>
-          {set.subtitle}
+          {origin.venue}
         </div>
       )}
     </div>
@@ -165,8 +172,9 @@ function Meta({ set }: { set: AttachmentSet }) {
 export function AttachmentPage({ set, index }: AttachmentPageProps) {
   const { act, nativeHomeOf } = useAttachments();
   const { locale } = useLocale();
-  const media: Media | undefined = set.items[index];
-  if (!media) return null;
+  const item = set.items[index];
+  if (!item) return null;
+  const { media, origin } = item;
 
   const open = () => act(set, index);
   const home = nativeHomeOf(set, index);
@@ -178,7 +186,7 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
     return (
       <div className="space-y-4">
         <Cover image={getMediaThumbnail(media)} label={label} onOpen={open} />
-        <Meta set={set} />
+        <Meta origin={origin} />
         <Actions
           primary={{ label, icon: homeIcon(home, kind), onSelect: open }}
           href={media.url}

@@ -82,9 +82,9 @@ function Pager({ session }: { session: AttachmentSession }) {
           "snap-x snap-mandatory scroll-smooth no-scrollbar",
         )}
       >
-        {set.items.map((media, i) => (
+        {set.items.map((item, i) => (
           <div
-            key={`${media.url}-${i}`}
+            key={`${item.media.url}-${i}`}
             data-pager-card
             className="w-full shrink-0 snap-center"
             // Pages off screen are inert to the keyboard and the reader.

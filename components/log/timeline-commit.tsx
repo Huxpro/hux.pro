@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import type { Media } from "@/lib/log";
+import { indexOfMedia, type Media } from "@/lib/log";
 import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
@@ -28,6 +28,7 @@ import {
 import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
+import { SquashBand } from "./squash-band";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
@@ -118,6 +119,16 @@ interface TimelineCommitProps {
   isSelected?: boolean;
   isUnlisted?: boolean;
   onInspectCommit?: () => void;
+  /**
+   * Inspect-mode only: select one of the commits this row was squashed
+   * from. A member that stopped printing its own row would otherwise be
+   * unreachable in the editor — the row you would click is the lead's —
+   * so its line is the handle, the same way a media tile is the handle
+   * for a media item.
+   */
+  onInspectMember?: (commitId: string) => void;
+  /** Inspect-mode only: which squashed member the inspector is editing. */
+  selectedMemberId?: string | null;
   onInspectMedia?: (media: Media) => void;
   selectedMedia?: Media | null;
 }
@@ -143,6 +154,8 @@ export function TimelineCommit({
   isUnlisted = false,
   onInspectCommit,
   onInspectMedia,
+  onInspectMember,
+  selectedMemberId = null,
   selectedMedia = null,
 }: TimelineCommitProps) {
   const attachments = useOptionalAttachments();
@@ -150,6 +163,11 @@ export function TimelineCommit({
   const { magneticPreviewEnabled } = useInputCapability();
   const isEvent = data.type === "event";
   const isAside = data.present === "aside";
+  // The level nested under this row, when it stands for several commits
+  // (lib/log-squash.ts). A group of peers has no single address of its own,
+  // so its gutter hash stands down; a parent's row keeps its own.
+  const squash = data.squash;
+  const isPeerGroup = squash?.mode === "peers";
   // Folded asides borrow the event voice: muted italic line, rail
   // dot, no hash. Opening one reveals the real title and media; the
   // type is unchanged, so filters still find it.
@@ -256,16 +274,37 @@ export function TimelineCommit({
   // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
   const isQuiet = isEvent || (isAside && !textOpen);
+
+  // Whether this row draws a band of members under its header.
+  const showBand = !!squash && !isQuiet;
+  // The meta line holds the venue and the handle, and keeps its height even
+  // when only the handle is there — so an ordinary row's rhythm never
+  // shifts. A group of peers is the exception: it usually shares no venue,
+  // and a non-head handle is invisible until hover, so the line it reserves
+  // is a blank strip between the header and its band. There the line
+  // prints only when it has something to show.
+  const showMetaLine =
+    !isQuiet &&
+    !!(data.meta || byline) &&
+    !(isPeerGroup && !data.meta && (!byline?.isClusterHead || textOpen));
+  const bandHasCovers =
+    !!squash && squash.members.some((m) => m.stripItems.length > 0);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
+  // "Does the row print covers?" — its own, or its members' in the band.
+  // Either way the hover peek above them is redundant.
   const showStrip =
-    !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
+    !isQuiet &&
+    rowForm.media === "covers" &&
+    (data.stripItems.length > 0 || bandHasCovers);
   const showStatDescription =
     !isQuiet && rowForm.description === "clamp" && !!data.description;
   // Where the handle signs: the bottom-right of the row, which is the media
   // line when a single cover leaves it the room — on any viewport — and the
   // meta line when there is more than one, since two covers may already be
   // the width of a phone and the strip then scrolls under the edge.
-  const signsOnMediaLine = showStrip && data.stripItems.length === 1;
+  // Never on a band: its runs carry captions of their own, and a handle
+  // squeezed in beside them would read as one more member's.
+  const signsOnMediaLine = showStrip && !squash && data.stripItems.length === 1;
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
@@ -380,7 +419,28 @@ export function TimelineCommit({
         A git log prints the graph and the hash before the subject too; what
         it never did was push the subject off the margin to make room.
       */}
-      {isQuiet || !onSelectHash ? (
+      {isPeerGroup ? (
+        // A squashed row is not one commit, so it has no one address to
+        // print here — its members carry theirs on their own lines, which
+        // is where a reader would look for them anyway. The cell still
+        // occupies its width so the headline stays on the same left edge
+        // as every other row's title, and the row keeps `id={data.hash}`
+        // below, so a permalink written before the squash existed still
+        // lands on the row that now prints that commit.
+        <span
+          aria-hidden
+          className={cn(
+            "hidden @sm:inline-block leading-5",
+            HASH_CELL,
+            // After TYPE.hash, not before: tailwind-merge keeps the LAST
+            // class in a conflicting group, and the role sets a colour.
+            TYPE.hash,
+            "text-transparent",
+          )}
+        >
+          {data.hash}
+        </span>
+      ) : isQuiet || !onSelectHash ? (
         <span
           className={cn(
             "hidden @sm:inline-block select-all",
@@ -546,7 +606,7 @@ export function TimelineCommit({
             // anchor stays either way, for ⌘-click and "copy link address".
             const attachmentIndex =
               attachments && attachmentSet && link.media
-                ? attachmentSet.items.indexOf(link.media)
+                ? indexOfMedia(attachmentSet.items, link.media)
                 : -1;
 
             // Inspecting, the rail selects like everything else on the row.
@@ -613,6 +673,7 @@ export function TimelineCommit({
         )}
       </div>
 
+
       {/*
         Subtitle row: meta on the left, author byline right-aligned under
         the date column. The row is rendered whenever EITHER half exists
@@ -629,7 +690,7 @@ export function TimelineCommit({
         byline fully visible so the cluster's authorial context stays
         on-screen while you read.
       */}
-      {!isQuiet && (data.meta || byline) && (
+      {showMetaLine && (
         <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
             {data.meta ? (
@@ -732,7 +793,7 @@ export function TimelineCommit({
           sized to its covers and stops its own clicks, so the line it sits
           on stays the row's; the empty stretch beside a single cover presses
           the row like any other part of it. */}
-      {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
+      {!isQuiet && !squash && rowForm.media === "covers" && data.stripItems.length > 0 && (
         <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
           {/* The covers get a line of their own, always. One cover used to
               tuck up beside the text and two or more dropped below it, so a
@@ -788,6 +849,36 @@ export function TimelineCommit({
               set={attachmentSet}
             />
           )}
+        </div>
+      )}
+
+      {/* ── The band ───────────────────────────────────────────────────
+          The level nested under a squashed row's header: its members, side
+          by side, each saying only what is its own (squash-band.tsx). It
+          takes the slot the row's own media would — the one line an
+          ordinary row's strip already occupies — so a group of commits costs
+          a row and a caption, not a row per member. Under a parent, the
+          feed's grid above has printed the parent's own tiles, and the
+          covers density folds them into the head of the band. */}
+      {showBand && (
+        <div className={cn(
+          "col-start-2 @sm:col-start-3 min-w-0",
+          rowForm.media === "none" ? "mt-1" : "mt-2",
+        )}>
+          <SquashBand
+            squash={squash!}
+            rowForm={rowForm}
+            rowHash={data.hash}
+            ownItems={rowForm.media === "covers" ? data.stripItems : []}
+            set={attachmentSet}
+            peek={rowForm.peek && magneticPreviewEnabled}
+            onSelectHash={onSelectHash}
+            inspecting={inspecting}
+            onInspectMedia={onInspectMedia}
+            onInspectMember={onInspectMember}
+            selectedMemberId={selectedMemberId}
+            selectedMedia={selectedMedia}
+          />
         </div>
       )}
 

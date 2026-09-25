@@ -15,6 +15,8 @@ import {
   isRowVisible,
   type Tag,
 } from "@/lib/log";
+import type { Squash } from "@/lib/log";
+import { planSquashes } from "@/lib/log-squash";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -66,6 +68,12 @@ interface LogTimelineProps {
   /** How much of each commit to print. See `lib/log-view.ts`. */
   form?: LogForm;
   /**
+   * Commits to print as one row (see `lib/log-squash.ts`). Resolved per
+   * chapter, against the rows the filter left standing — so a squash never
+   * hides work the reader asked for, and never reaches across an era.
+   */
+  squashes?: Squash[];
+  /**
    * Selected commit types. Empty is "no filter"; anything else hides every
    * commit that doesn't match — events included, since they are the one
    * type that isn't selectable in the first place.
@@ -96,6 +104,7 @@ export function LogTimeline({
   locale,
   identities,
   form = DEFAULT_FORM,
+  squashes,
   activeTypes = NO_TYPES,
   onSelectHash,
   pinnedChapters = false,
@@ -111,6 +120,7 @@ export function LogTimeline({
           locale={locale}
           identities={identities}
           form={form}
+          squashes={squashes}
           activeTypes={activeTypes}
           onSelectHash={onSelectHash}
           pinned={pinnedChapters}
@@ -127,6 +137,7 @@ interface TagBlockProps {
   locale: Locale;
   identities?: Record<string, Identity>;
   form: LogForm;
+  squashes?: Squash[];
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
@@ -139,6 +150,7 @@ function TagBlock({
   locale,
   identities,
   form,
+  squashes,
   activeTypes,
   onSelectHash,
   pinned,
@@ -182,6 +194,7 @@ function TagBlock({
     attachments,
     bylines,
     isHidden,
+    squashByLead,
     hasVisible,
   } = useMemo(() => {
     const bylinesArr = computeBylines(commits, identities, locale);
@@ -191,7 +204,16 @@ function TagBlock({
     // loop below skips the rest, and the block prints nothing if none are
     // left. It is `isRowVisible` negated — the same question /works asks
     // for its chip counts and its empty state.
-    const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
+    const filtered = (c: CommitData) => !isRowVisible(c, activeTypes);
+
+    // Squashes resolve against the rows the FILTER left standing, and then
+    // widen that same predicate: a member absorbed into another row does
+    // not take one of its own, which is the identical fact the rail, the
+    // connectors and the loop below already know how to act on. Two rules,
+    // one question, still one place it is asked.
+    const plan = planSquashes(commits, squashes, filtered);
+    const hidden = (c: CommitData) =>
+      filtered(c) || plan.absorbed.has(c.id);
 
     const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
     const allBeams = [
@@ -237,9 +259,10 @@ function TagBlock({
       attachments: attachmentsWithGaps,
       bylines: bylinesArr,
       isHidden: hidden,
+      squashByLead: plan.byLead,
       hasVisible: commits.some((c) => !hidden(c)),
     };
-  }, [commits, identities, locale, activeTypes]);
+  }, [commits, identities, locale, activeTypes, squashes]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
@@ -348,6 +371,7 @@ function TagBlock({
                 onBeamClear={handleBeamClear}
                 byline={bylines[i]}
                 form={form}
+                squash={squashByLead.get(commits[i].id) ?? null}
                 onSelectHash={onSelectHash}
               />
             ));

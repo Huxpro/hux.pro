@@ -13,7 +13,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
-import { getCommitPeekItems, localize } from "@/lib/log";
+import { attachmentsOf, getCommitPeekItems, localize } from "@/lib/log";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
 import { attachmentSetFor, leavesSite } from "@/systems/attachments";
@@ -23,6 +23,11 @@ import { PeekCard, PeekThumb } from "./media/media-peek";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
+import {
+  squashAttachments,
+  squashHeadline,
+  type ResolvedSquash,
+} from "@/lib/log-squash";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
@@ -65,6 +70,12 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
+  /**
+   * Timeline-only: this row stands for several commits, and `commit` is
+   * the lead (see `lib/log-squash.ts`). Resolved by the timeline, which is
+   * the only place that knows which members survived the reader's filter.
+   */
+  squash?: ResolvedSquash | null;
 }
 
 // =============================================================================
@@ -87,6 +98,7 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  squash = null,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -96,9 +108,31 @@ export function Commit({
   // holds: a hover flips the timeline's active beam and re-renders every
   // row, and a set with a stable identity is what lets the strip, the
   // renderer and the row keep their own memo one day.
+  // The row's attachments, built ONCE and shared with everything that
+  // needs them. Identity is the point: the set, the strip and the tiles all
+  // have to be looking at the same objects for a cover to find its own
+  // place in the set. Media with its origin, from here down (lib/log.ts).
+  const rowAttachments = useMemo(
+    () =>
+      !commit
+        ? []
+        : squash
+          ? squashAttachments(squash, locale)
+          : attachmentsOf(commit, locale),
+    [commit, locale, squash],
+  );
   const attachmentSet = useMemo(
-    () => (!commit || inspecting ? null : attachmentSetFor(commit, locale)),
-    [commit, locale, inspecting],
+    () =>
+      !commit || inspecting
+        ? null
+        : attachmentSetFor(commit, locale, {
+            attachments: rowAttachments,
+            // The set's name is the ROW's, used only where the sheet or the
+            // stage is talking about the collection. What any one item IS,
+            // the item now says for itself.
+            title: squash ? squashHeadline(squash, locale) : undefined,
+          }),
+    [commit, locale, inspecting, squash, rowAttachments],
   );
   // The same for the row's normalised data and its hover peek: a timeline
   // render (a beam hover, a form change) touches every row, and neither of
@@ -106,8 +140,9 @@ export function Commit({
   // on it — a phone would build and discard one per row.
   const { magneticPreviewEnabled } = useInputCapability();
   const data = useMemo(
-    () => (commit ? normalizeCommit(commit, locale) : null),
-    [commit, locale],
+    () =>
+      commit ? normalizeCommit(commit, locale, squash, rowAttachments) : null,
+    [commit, locale, squash, rowAttachments],
   );
   const preview = useMemo(
     () =>
@@ -131,19 +166,36 @@ export function Commit({
   }
 
   if (!data) return null;
+  // Every commit this row prints for: itself, or its squash's members.
+  // The editor selects commits, and a squashed row is the only place three
+  // of them are reachable, so each of these questions is asked of all of
+  // them rather than of `commit` alone.
+  const owners = squash ? squash.members : [commit];
   const isSelected = !!edit && edit.selectedCommitId === commit.id;
-  const selectedMedia =
-    inspecting && isSelected && edit && edit.selectedMediaIndex != null
-      ? commit.media?.[edit.selectedMediaIndex] ?? null
+  const selectedMemberId =
+    edit && squash && owners.some((o) => o.id === edit.selectedCommitId)
+      ? edit.selectedCommitId
       : null;
+  const selectedOwner =
+    inspecting && edit && edit.selectedMediaIndex != null
+      ? owners.find((o) => o.id === edit.selectedCommitId)
+      : undefined;
+  const selectedMedia =
+    selectedOwner?.media?.[edit!.selectedMediaIndex!] ?? null;
   const onInspectCommit =
     inspecting && edit ? () => edit.onSelectCommit(commit.id) : undefined;
   const onInspectMedia =
     inspecting && edit
       ? (media: Media) => {
-          const index = commit.media?.indexOf(media) ?? -1;
-          if (index >= 0) edit.onSelectMedia(commit.id, index);
+          for (const owner of owners) {
+            const index = owner.media?.indexOf(media) ?? -1;
+            if (index >= 0) return edit.onSelectMedia(owner.id, index);
+          }
         }
+      : undefined;
+  const onInspectMember =
+    inspecting && edit && squash
+      ? (commitId: string) => edit.onSelectCommit(commitId)
       : undefined;
 
   switch (variant) {
@@ -172,6 +224,8 @@ export function Commit({
           isUnlisted={commit.listed === false}
           onInspectCommit={onInspectCommit}
           onInspectMedia={onInspectMedia}
+          onInspectMember={onInspectMember}
+          selectedMemberId={selectedMemberId}
           selectedMedia={selectedMedia}
         />
       );

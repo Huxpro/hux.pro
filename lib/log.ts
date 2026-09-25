@@ -623,6 +623,93 @@ export interface GroupByQuery extends GroupBase {
 export type Group = GroupByIds | GroupByQuery;
 
 // =============================================================================
+// Squashes — several commits, printed as one row.
+//
+// Two talks at the same conference, a project and the talk that presented
+// it, three awards that were all the same year saying the same thing: the
+// timeline has runs of commits that are one item of work wearing several
+// datelines. Printed a row each they read as repetition, and the page pays
+// three rows of scroll for one idea.
+//
+// A squash is a *reading*, not a rewrite. The commits stay exactly as they
+// are in the log — separately addressable, separately embeddable, still
+// their own rows in a home widget, a post embed, a group query. Only /works
+// is told to print them together. That is the whole constraint this shape
+// exists to honour: git squashes destroy the commits it folds, and this
+// deliberately does not, which is why the members keep their hashes and the
+// row anchors all of them.
+//
+// Membership is a list of ids rather than a pointer on each commit, for two
+// reasons. Something has to own the group-level fields — the parent, the
+// authored headline — and splitting them across a "lead" commit and its
+// pointers gives two places to look. And a squash with no natural lead (the
+// three award commits, which are peers) has nowhere to hang a pointer from.
+// A list is also the thing the editor can enumerate, which is what makes
+// these discoverable at all once a member has stopped rendering its own row.
+// =============================================================================
+
+/**
+ * A set of commits /works prints as one row. See the section comment.
+ *
+ * The row is a *factorization*, not a merge. Whatever every member agrees
+ * on — a venue, a title, a date, a language — is said once, in the row's
+ * header. Whatever differs is said per member, in the nested band under it
+ * (lib/log-squash.ts computes which is which, per field and per locale).
+ * Nothing is chosen from one member and applied to the rest, which is the
+ * mistake a squash is most prone to: the SEE Conf edition of React for Two
+ * Threads shares its English title with the React Universe one and not its
+ * Chinese one, so no single "shared field" setting could ever have been
+ * right in both languages.
+ */
+export interface Squash {
+  id: string;
+  /**
+   * The members, by commit id. Order is authorial — it is the order the
+   * band prints them in, left to right, which is reading order: an
+   * original before its sequel, a debut at home before the one abroad.
+   *
+   * Ids that do not resolve — a typo, a deleted commit, a member the
+   * locale filter dropped — are skipped rather than fatal, the way
+   * `attachedTo` and `GroupByIds.commitIds` already degrade.
+   */
+  commitIds: string[];
+  /**
+   * The member that IS the row, when one is.
+   *
+   * Two shapes of group want two shapes of row. Peers — two talks at one
+   * conference, three awards in one year — have no member the row belongs
+   * to, so the header is built from what they share and every member sits
+   * in the band. A parent — a project and the talk that introduced it — is
+   * already a row, and the others are nested *in* it: the header is the
+   * parent's own, its covers print bare at the head of the band, and only
+   * the children are bracketed and captioned.
+   */
+  parent?: string;
+  /**
+   * The headline, authored. Wins over anything derived, per locale — a
+   * locale left empty falls through to derivation, so a group can author
+   * only the language where its members stop agreeing. In practice
+   * required wherever the members share neither a title nor a venue.
+   */
+  title?: LocalizedString;
+  /**
+   * The row's own prose, authored. There is no derived fallback for peers
+   * on purpose: every member's description belongs to that member, and
+   * promoting one of them to speak for the group is the misattribution
+   * this whole shape exists to avoid. A parent's own description stands
+   * in when this is absent.
+   */
+  description?: LocalizedString;
+  /**
+   * How each member relates to the group, by commit id — the thing a
+   * shared field cannot say: `中文版` beside the Chinese edition, `升级版`
+   * beside a talk's sequel, `国内首发` / `海外首发` beside the two debuts.
+   * Printed as a label on that member in the band.
+   */
+  relations?: Record<string, LocalizedString>;
+}
+
+// =============================================================================
 // Identity Types
 // =============================================================================
 
@@ -689,6 +776,8 @@ export interface RawRoleRange
 export interface RawLogData {
   tags: Tag[];
   groups?: Group[];
+  /** Commits /works prints as one row. See {@link Squash}. */
+  squashes?: Squash[];
   /**
    * Nested identities keyed by short stable id (`meta`, `bytedance`,
    * `rit`). Each identity carries its role ranges inline for
@@ -709,6 +798,8 @@ export interface RawLogData {
 export interface LogData {
   tags: Tag[];
   groups?: Group[];
+  /** Commits /works prints as one row. See {@link Squash}. */
+  squashes?: Squash[];
   identities?: Record<string, Identity>;
   commits: Commit[];
 }
@@ -763,6 +854,7 @@ export function normalizeLogData(raw: RawLogData | LogData): LogData {
   return {
     tags: raw.tags,
     groups: raw.groups,
+    squashes: raw.squashes,
     identities: Object.keys(identityMeta).length ? identityMeta : undefined,
     commits: [...raw.commits, ...extraRoles],
   };
@@ -823,6 +915,7 @@ export function denormalizeLogData(flat: LogData): RawLogData {
   return {
     tags: flat.tags,
     groups: flat.groups,
+    squashes: flat.squashes,
     identities: Object.keys(identities).length ? identities : undefined,
     commits: restCommits,
   };
@@ -1070,6 +1163,33 @@ export function matchesTypeFilter(
 /**
  * Get the icon character for commit type (for minimal ASCII display)
  */
+
+/**
+ * Where the work happened: the conference, the publication, the platform.
+ *
+ * Not localized, and not a subtitle. These are proper nouns as authored —
+ * `React Universe Conf`, `第 19 届 D2 终端技术大会` — so there is nothing to
+ * pick a locale for. The types that have no venue (a project, a role, an
+ * event) return undefined rather than substituting something venue-shaped:
+ * a role's company and a project's team are a different fact that happens
+ * to sit on the same line, and callers that want those ask for those.
+ *
+ * Two places already needed this exact answer — a folded aside's line, and
+ * a squashed row's member line — and the second was about to be the third
+ * spelling of it on the page.
+ */
+export function commitVenue(commit: Commit): string | undefined {
+  switch (commit.type) {
+    case "talk":
+      return commit.conference.name;
+    case "post":
+      return commit.publication.name;
+    case "press":
+      return commit.platform;
+    default:
+      return undefined;
+  }
+}
 export function getCommitTypeIcon(type: CommitType): string {
   const icons: Record<CommitType, string> = {
     project: "●",
@@ -1952,8 +2072,102 @@ export function getCommitPeekItems(commit: Commit): PeekItem[] {
  * the discriminated union to pick, so we hand it over rather than
  * flattening to a URL the way `PeekItem` does.
  */
-export interface StripItem {
+// =============================================================================
+// Attachments — a piece of media, and the commit it came from.
+//
+// On disk, ownership is the nesting: `commit.media[]` IS the association,
+// and nothing else records it. Every derivation used to flatten that away
+// the moment it produced a list — a set, a strip, a grid — and hand the
+// renderers bare `Media` objects that could no longer answer "whose?".
+//
+// That was survivable only while a list was always exactly one commit's,
+// so the list's own name could stand in for every item's. A squashed row
+// (lib/log-squash.ts) breaks that assumption, and the first version of it
+// papered over the break with a lookup table bolted to the side of the set
+// — which is the shape a mismodelled thing takes when you patch it.
+//
+// So the unit is no longer the media. It is the media WITH its origin, from
+// the moment it leaves the commit, and every list downstream carries that
+// rather than reconstructing it. A cover on a strip, a tile in the feed, a
+// track on the theater's stage and a page in the attachment sheet can each
+// say which commit they belong to because none of them ever stopped
+// knowing.
+// =============================================================================
+
+/** The commit an attachment came from, as the places that print it need it. */
+export interface AttachmentOrigin {
+  commitId: string;
+  /** Its 7-char hash — the row's address, and the editor's key. */
+  hash: string;
+  /** Its title, localized. */
+  title: string;
+  /** Its venue: the conference, the publication, the platform. Absent for
+   *  the types that have none (see {@link commitVenue}). */
+  venue?: string;
+  /** Its address on /works. */
+  href: string;
+  /** `venue · title`, the one-line form, and the venue alone when the two
+   *  would say the same thing — the same sparse rule a folded aside's line
+   *  follows, so a credit and a member line are recognisably one vocabulary. */
+  line: string;
+}
+
+/** A piece of media and the commit that attached it. */
+export interface Attachment {
   media: Media;
+  origin: AttachmentOrigin;
+}
+
+/** The origin every one of a commit's attachments will carry. */
+export function originOf(commit: Commit, locale: Locale): AttachmentOrigin {
+  const title = localize(commit.title, locale);
+  const venue = commitVenue(commit);
+  const same =
+    venue && venue.trim().toLowerCase() === title.trim().toLowerCase();
+  return {
+    commitId: commit.id,
+    hash: computeCommitHash(commit.id),
+    title,
+    venue,
+    href: `/works#${computeCommitHash(commit.id)}`,
+    line: venue && !same ? `${venue} · ${title}` : title,
+  };
+}
+
+/**
+ * A commit's media as attachments — the one place a bare `Media` becomes
+ * something that knows where it is from. Everything downstream takes these.
+ */
+export function attachmentsOf(commit: Commit, locale: Locale): Attachment[] {
+  const origin = originOf(commit, locale);
+  return (commit.media ?? []).map((media) => ({ media, origin }));
+}
+
+/**
+ * An attachment with no commit behind it: a standalone deck in an MDX page,
+ * the editor's sample set. Not every piece of media on the site came from
+ * the log, and the ones that did not are the thing they are — so the origin
+ * is the item's own name rather than a fiction about a commit.
+ */
+export function looseAttachment(media: Media, title: string): Attachment {
+  return {
+    media,
+    origin: { commitId: media.url, hash: "", title, href: "", line: title },
+  };
+}
+
+/** Find an attachment by the media object it wraps. Identity is still the
+ *  media's — it is the commit's own object, and the thing every affordance
+ *  on a row holds a reference to. */
+export function indexOfMedia(
+  items: readonly Attachment[],
+  media: Media,
+): number {
+  return items.findIndex((a) => a.media === media);
+}
+
+export interface StripItem extends Attachment {
+  /** The cover to draw, resolved against the viewer's locale. */
   image: string;
 }
 
@@ -1975,13 +2189,13 @@ export interface StripItem {
  * not want a second, smaller copy of itself.
  */
 export function getMediaStripItems(
-  media: readonly Media[],
+  attachments: readonly Attachment[],
   locale: Locale,
 ): StripItem[] {
   const out: StripItem[] = [];
-  for (const m of media) {
-    const image = getAttachmentImage(m, locale);
-    if (image) out.push({ media: m, image });
+  for (const a of attachments) {
+    const image = getAttachmentImage(a.media, locale);
+    if (image) out.push({ ...a, image });
   }
   return out;
 }

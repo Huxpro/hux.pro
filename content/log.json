@@ -441,6 +441,100 @@
       ]
     }
   },
+  "squashes": [
+    {
+      "id": "react-advanced-2025",
+      "commitIds": [
+        "react-advanced-2025-lynx-ui",
+        "react-advanced-2025-panel"
+      ]
+    },
+    {
+      "id": "two-threads",
+      "commitIds": [
+        "react-universe-2025-two-threads",
+        "see-conf-2025-two-threads"
+      ],
+      "title": {
+        "en": "",
+        "zh": "双线程的 React"
+      },
+      "relations": {
+        "see-conf-2025-two-threads": {
+          "en": "Chinese edition",
+          "zh": "中文版"
+        }
+      }
+    },
+    {
+      "id": "lynx-open-source",
+      "commitIds": [
+        "d2-2025-lynx",
+        "react-summit-2025-unlock-native"
+      ],
+      "title": {
+        "en": "Lynx goes open source",
+        "zh": "Lynx 开源时刻"
+      },
+      "relations": {
+        "d2-2025-lynx": {
+          "en": "Debut in China",
+          "zh": "国内首发"
+        },
+        "react-summit-2025-unlock-native": {
+          "en": "Debut abroad",
+          "zh": "海外首发"
+        }
+      }
+    },
+    {
+      "id": "frontend-worldview",
+      "commitIds": [
+        "feday-2023",
+        "juejin-talk-2023"
+      ],
+      "title": {
+        "en": "The frontend worldview talks",
+        "zh": "大前端世界观系列"
+      },
+      "relations": {
+        "juejin-talk-2023": {
+          "en": "Sequel",
+          "zh": "升级版"
+        }
+      }
+    },
+    {
+      "id": "china-react",
+      "commitIds": [
+        "gitee-cover-2022",
+        "coscon-2022",
+        "opensrc-pioneer-2022"
+      ],
+      "title": {
+        "en": "What China made of the React years",
+        "zh": "中国对我 React 身份的认可"
+      },
+      "description": {
+        "en": "Five months in 2022: a cover story, a keynote, and a place on a list of 33.",
+        "zh": "2022 年的五个月：一次封面报道、一场主题演讲，和一份 33 人的名单。"
+      }
+    },
+    {
+      "id": "react-compiler",
+      "commitIds": [
+        "react-core",
+        "reactconf-2021-memo"
+      ],
+      "parent": "react-core",
+      "relations": {
+        "reactconf-2021-memo": {
+          "en": "Introduced at React Conf",
+          "zh": "React Conf 首次发布"
+        }
+      }
+    }
+  ],
   "commits": [
     {
       "id": "wad-2026-lynx-workshop",

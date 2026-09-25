@@ -56,6 +56,7 @@ import {
   type SlidesMedia,
   type SocialEmbedMedia,
   type VideoMedia,
+  looseAttachment,
 } from "@/lib/log";
 import { useLocale } from "@/services";
 import {
@@ -306,16 +307,25 @@ export function AttachmentsLabView({ samples }: { samples: LabSamples }) {
     () => SAMPLE_ORDER.map((key) => samples[key]).filter((m): m is MediaData => !!m),
     [samples],
   );
+  // The lab's samples are not a commit's, so they are loose attachments —
+  // each one standing for itself (see `looseAttachment`).
+  const attachmentItems = useMemo(
+    () => items.map((m) => looseAttachment(m, "Attachments Lab")),
+    [items],
+  );
   const set: AttachmentSet = useMemo(
     () => ({
       id: "editor-attachments",
       title: "Attachments Lab",
       subtitle: "/editor/attachments",
-      items,
+      items: attachmentItems,
     }),
-    [items],
+    [attachmentItems],
   );
-  const stripItems = useMemo(() => getMediaStripItems(items, locale), [items, locale]);
+  const stripItems = useMemo(
+    () => getMediaStripItems(attachmentItems, locale),
+    [attachmentItems, locale],
+  );
   const imageFor = (key: keyof LabSamples | "leaves"): string | null => {
     const m = samples[key === "leaves" ? "denied" : key] ?? samples.web;
     return withImage && m ? getMediaThumbnail(m) : null;

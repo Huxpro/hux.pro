@@ -15,7 +15,7 @@
 import { Presentation } from "lucide-react";
 import { COVER_WASH_TINTED } from "@/lib/glass";
 import { cn } from "@/lib/utils";
-import type { SlidesMedia } from "@/lib/log";
+import { looseAttachment, type SlidesMedia } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
 import { useOptionalAttachments } from "@/systems/attachments";
 import { useOptionalTheaterStage } from "@/systems/theater";
@@ -89,7 +89,10 @@ export function Slides({
     // stage directly, or the deck's own tab when there is none.
     const media: SlidesMedia = { kind: "slides", url, thumbnail, title };
     if (attachments) {
-      attachments.open({ id: url, title: label, items: [media] }, 0);
+      attachments.open(
+        { id: url, title: label, items: [looseAttachment(media, label)] },
+        0,
+      );
       return;
     }
     if (theater) {

@@ -1,4 +1,4 @@
-import type { Media } from "@/lib/log";
+import type { Attachment } from "@/lib/log";
 
 // =============================================================================
 // Attachments — types
@@ -22,9 +22,17 @@ export interface AttachmentSet {
   subtitle?: string;
   /** In-site address of the commit (`/works#<hash>`). */
   href?: string;
-  /** The attachments themselves. Object identity matters: callers find an
-   *  item's index by reference (`items.indexOf(media)`). */
-  items: readonly Media[];
+  /**
+   * The attachments themselves, each carrying the commit it came from
+   * (see {@link Attachment}). Media identity still matters — every
+   * affordance on a row holds a reference to the commit's own media object
+   * and finds its place here with {@link indexOfMedia}.
+   *
+   * On an ordinary set every item shares one origin, which is the set's
+   * own; on a squashed row they do not, and that is the entire reason the
+   * origin rides on the item rather than on the list.
+   */
+  items: readonly Attachment[];
 }
 
 /**

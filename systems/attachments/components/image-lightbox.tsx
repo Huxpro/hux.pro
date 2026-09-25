@@ -68,7 +68,9 @@ export function ImageLightbox() {
   const { lightbox, lightboxOpen, closeLightbox } = useAttachments();
   const { locale } = useLocale();
 
-  const media = lightbox ? lightbox.set.items[lightbox.index] : undefined;
+  // An attachment carries its media and its origin (lib/log.ts); the
+  // lightbox only needs the picture.
+  const media = lightbox ? lightbox.set.items[lightbox.index]?.media : undefined;
   const image = media && isImageMedia(media) ? media : null;
 
   const ref = useRef<ReactZoomPanPinchRef | null>(null);
