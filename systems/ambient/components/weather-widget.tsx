@@ -7,7 +7,7 @@ import {
   WidgetTitle,
 } from "@/components/ui/widget";
 import { t, useLocale } from "@/services";
-import { Loader2, Navigation } from "lucide-react";
+import { Loader2, LocateFixed, Navigation } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatLocationLabel } from "../lib";
 import { useLocation } from "../provider";
@@ -48,12 +48,13 @@ export function WeatherWidget() {
     setStaleCity(cityLabel);
   }, [cityLabel]);
   const displayCity = cityLabel ?? staleCity ?? t(locale, "widgetWeather");
-  // The network's guess disagrees with this device's clock, so the city is
-  // probably wrong: say so with a question mark, and make it the way to the
-  // location primer. Nothing else here offers the prompt — a visitor whose
-  // guess looks right is never nagged.
-  const doubtful =
-    mounted && location?.source === "ip" && location.timezoneMismatch === true;
+  // A city from the network is a guess, and the header says so: a small
+  // locate mark beside it, and the city itself is the way to the location
+  // primer. When the guess also disagrees with this device's clock it is
+  // probably wrong, and it reads "Dallas?". (The unprompted offer is
+  // LocationOffer; this is the one that is always there.)
+  const guessed = mounted && location?.source === "ip";
+  const doubtful = guessed && location.timezoneMismatch === true;
 
   const isReloading = locationLoading || locationFetching;
 
@@ -62,33 +63,40 @@ export function WeatherWidget() {
       {/* Header: City + location indicator left, weather icon right */}
       <WidgetHeader>
         <div className="flex items-center gap-1.5 min-w-0">
-          {doubtful ? (
+          {guessed ? (
             <button
               type="button"
               onClick={openLocationPrimer}
-              aria-label={t(locale, "locationDoubtful")}
-              title={t(locale, "locationDoubtful")}
-              className="min-w-0 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={t(locale, doubtful ? "locationDoubtful" : "locationGuessed")}
+              title={t(locale, doubtful ? "locationDoubtful" : "locationGuessed")}
+              className="flex min-w-0 items-center gap-1.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <WidgetTitle className="truncate">
                 {/* One child: the title is a flex row with a gap. */}
                 <span className="truncate">
                   {displayCity}
-                  <span className="text-muted-foreground">?</span>
+                  {doubtful && <span className="text-muted-foreground">?</span>}
                 </span>
               </WidgetTitle>
+              {isReloading ? (
+                <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
+              ) : (
+                <LocateFixed className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
+              )}
             </button>
           ) : (
-            <WidgetTitle className="truncate">{displayCity}</WidgetTitle>
+            <>
+              <WidgetTitle className="truncate">{displayCity}</WidgetTitle>
+              {isReloading ? (
+                <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
+              ) : mounted && location?.source === "geolocation" ? (
+                <Navigation
+                  className="h-3 w-3 shrink-0 text-muted-foreground"
+                  aria-label={t(locale, "locationAccurate")}
+                />
+              ) : null}
+            </>
           )}
-          {isReloading ? (
-            <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
-          ) : mounted && location?.source === "geolocation" ? (
-            <Navigation
-              className="h-3 w-3 shrink-0 text-muted-foreground"
-              aria-label={t(locale, "locationAccurate")}
-            />
-          ) : null}
         </div>
         {displayWeather && (
           <WeatherIcon

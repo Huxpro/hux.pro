@@ -4,6 +4,7 @@ export { WallpaperBackground } from "./wallpaper-background";
 export { WallpaperSheet } from "./wallpaper-sheet";
 export { TiltPrimerSheet } from "./tilt-primer-sheet";
 export { LocationPrimerSheet } from "./location-primer-sheet";
+export { LocationOffer } from "./location-offer";
 export { WeatherIcon } from "./weather-icon";
 export { WeatherWidget } from "./weather-widget";
 export { WeatherLine } from "./weather-line";

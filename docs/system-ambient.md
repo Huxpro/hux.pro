@@ -1836,10 +1836,20 @@ prompt by itself — not a load, not a focus, not a refetch:
   **location primer** (`LocationPrimerSheet`, the tilt primer's pattern — a
   sheet on a phone, a small window from `sm`), or the command palette's
   Geolocation row (a refusal there opens the primer to say where to undo it).
-- What offers the primer is a *reason*: when the IP location is flagged
-  `timezoneMismatch`, the weather widget's city reads "Dallas?" and tapping it
-  opens the primer, which names the guessed city. A visitor whose guess looks
-  right is never asked.
+- **An IP location is always marked as a guess.** The weather widget's city
+  carries a small locate mark and is itself the way to the primer; when the
+  guess is flagged `timezoneMismatch` it also reads "Dallas?".
+- **The site offers once, unprompted** (`LocationOffer`, policy in
+  `lib/location-offer.ts`). The timezone check only catches a guess a
+  timezone away — a Wi-Fi in San Jose placed in Los Angeles passes it — so it
+  cannot be the trigger. Instead, anyone on an IP location whose browser has
+  not been asked gets a notice on the home screen, four seconds after the
+  forecast paints: "Showing weather for {city}, guessed from your network",
+  with **Use my location** in it. That button raises the prompt directly —
+  the notice has already said why. Closing it, or letting it time out after
+  15 s, is a decline: quiet for 3 days, then 14, then never. At most once a
+  session. A `timezoneMismatch` skips the snooze (not the final decline).
+  Not offered once the permission is `granted` (IP was chosen) or `denied`.
 - The permission is followed live (`PermissionStatus` `change`). A grant made
   during the visit — in the site settings, say — switches to Accurate; one the
   page loads with does not, since IP was then chosen on purpose.

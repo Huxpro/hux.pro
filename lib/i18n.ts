@@ -148,6 +148,10 @@ export const translations = {
     locationPrimerDenied: "Location access was not allowed. You can turn it on in your browser's settings for this site.",
     locationPrimerUnavailable: "Couldn't get a location right now. The network's guess stays for now.",
     locationDoubtful: "Not here? Use your location",
+    locationGuessed: "Guessed from your network. Use your location",
+    locationOffer: "The weather here is for where your network is, which may not be where you are.",
+    locationOfferCity: "Showing weather for {city}, guessed from your network.",
+    locationOfferDoubtful: "Not in {city}? That's only your network's guess.",
 
     // Wallpaper (background picker)
     settingsWallpaper: "Wallpaper",
@@ -524,6 +528,10 @@ export const translations = {
     locationPrimerDenied: "定位权限没有开启。可以在浏览器的本站设置里打开。",
     locationPrimerUnavailable: "暂时无法获取位置，先继续使用网络定位。",
     locationDoubtful: "不在这里？使用你的位置",
+    locationGuessed: "按网络猜测的位置，点此使用你的位置",
+    locationOffer: "这里的天气按网络所在地显示，不一定是你所在的地方。",
+    locationOfferCity: "当前显示的是{city}的天气，位置由网络推测。",
+    locationOfferDoubtful: "不在{city}？这只是网络推测的位置。",
 
     // Wallpaper (background picker)
     settingsWallpaper: "壁纸",
