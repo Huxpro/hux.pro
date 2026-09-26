@@ -130,19 +130,28 @@ posts, docs, the About — and as `<BadgeLink>` from code.
 Through the attachment policy (`systems/attachments/lib/policy.ts`), so a
 badge never disagrees with a cover on `/works` about where a thing lives:
 
-| the thing | where it opens | how |
-|---|---|---|
-| a page | the in-app browser (a window; a sheet on a phone) — a tab if it refuses to be framed | `act` |
-| a recording, a deck | the stage (the theater; a PiP on a phone) | `act` |
-| a post, an in-site path | the router | `act` |
-| an app | a window, on its runtime (web or Lynx) | `openApp` |
-| an image, a social post | the attachment surface — their only in-site home | `open` |
+A badge calls `open`, exactly as a `/works` cover does: on a phone the
+attachment drawer first — the thing, its title and its way in, a thumb's
+reach from where you are — and on a desk its native home straight away:
 
-A badge goes straight to the native home even on a phone, skipping the
-attachment sheet a `/works` cover opens: a badge is one thing, with no set to
-page through. It keeps a real `href`, so ⌘-click, middle-click and a page
-without JavaScript still work, and a page that will leave for a tab says so in
-its tooltip.
+| the thing | on a desk | on a phone |
+|---|---|---|
+| a page | the in-app browser, a window — a tab if it refuses to be framed | the drawer |
+| a recording, a deck | the stage (the theater) | the drawer |
+| a post, an in-site path | the router | the drawer |
+| an image, a social post | the attachment surface | the drawer |
+| an app | a window, on its runtime (web or Lynx) — `openApp` | a sheet |
+
+It keeps a real `href`, so ⌘-click, middle-click and a page without
+JavaScript still work, and a page that will leave for a tab says so in its
+tooltip.
+
+A badge is a word in a sentence, so it copies as one: its icon is
+`select-none` (a monogram's letter would copy as "H Hux Blog"), and it is
+`draggable={false}`, so a drag across it selects text rather than carrying the
+link away. The About's words are a document over the home screen, whose
+selection lock (`useLockTextSelection`) would otherwise take them: the
+article is marked `data-text-document`, which the lock lets be.
 
 A surface that hosts badges and should step aside when one opens something
 wraps them in `<BadgeLaunchProvider onLaunch={…}>` — the About does.

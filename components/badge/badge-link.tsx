@@ -53,10 +53,16 @@ import { resolveBadge, type BadgeIcon, type BadgeKind } from "./resolve";
 //   an image, a post   the attachment surface, which is their only in-site
 //   on X / Instagram   home on every viewport
 //
-// A page, a recording and a deck go straight to their native home even on a
-// phone (`act`), skipping the attachment sheet a /works cover opens: a badge
-// is one thing, with no set to page through. The badge keeps a real `href`,
-// so ⌘-click, middle-click and a page without JavaScript still work.
+// It goes through the attachments' policy exactly as a /works cover does
+// (`open`): on a desk straight to that home, on a phone the attachment drawer
+// first — the thing, its title and its way in, a thumb's reach from where
+// you are — never a jump into a player or a page from a word. The badge
+// keeps a real `href`, so ⌘-click, middle-click and a page without
+// JavaScript still work.
+//
+// A badge is a word in a sentence, so it copies as one: its icon is not
+// selectable (a monogram's letter would otherwise copy as "H Hux Blog"), and
+// a drag across it selects text rather than dragging the link away.
 //
 // A surface that hosts badges and should step aside when one opens something
 // — the About, which floats over everything — wraps them in
@@ -120,7 +126,7 @@ const BADGE =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 const ICON_BOX =
-  "mr-[0.34em] inline-block size-[1.08em] shrink-0 rounded-[0.26em] align-[-0.2em]";
+  "mr-[0.34em] inline-block size-[1.08em] shrink-0 rounded-[0.26em] align-[-0.2em] select-none";
 
 function BadgeMark({ icon, kind }: { icon: BadgeIcon; kind: BadgeKind }) {
   if (icon.type === "image") {
@@ -198,7 +204,7 @@ export function BadgeLink({
   const { target } = badge;
   const home =
     target?.type === "media" && attachments
-      ? attachments.nativeHomeOf(target.set, 0)
+      ? attachments.homeOf(target.set, 0)
       : target?.type === "app"
         ? "window"
         : "route";
@@ -221,14 +227,9 @@ export function BadgeLink({
     if (!attachments) return;
     e.preventDefault();
     onLaunch?.();
-    const { media, set } = target;
-    // An image and a social post have no home but the surface; everything
-    // else goes straight where it lives.
-    if (media.kind === "image" || media.kind === "social-embed") {
-      attachments.open(set, 0);
-    } else {
-      attachments.act(set, 0);
-    }
+    // The attachments' policy, as a /works cover: the drawer on a phone,
+    // the thing's own home on a desk.
+    attachments.open(target.set, 0);
   };
 
   return (
@@ -237,6 +238,8 @@ export function BadgeLink({
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
       title={tooltip}
       data-badge={badge.kind}
+      // A drag across a word selects it; the link is still a click away.
+      draggable={false}
       onClick={onClick}
       className={cn(BADGE, className)}
     >

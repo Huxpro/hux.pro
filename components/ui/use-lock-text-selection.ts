@@ -2,7 +2,12 @@
 
 import { useEffect } from "react";
 
-const EDITABLE = "input, textarea, [contenteditable='true']";
+/**
+ * Where a selection is the reader's: a text field, and a document floating
+ * over the locked surface — the About's words over the home screen — which
+ * marks itself `data-text-document`.
+ */
+const EDITABLE = "input, textarea, [contenteditable='true'], [data-text-document]";
 
 function isEditable(node: EventTarget | Node | null) {
   if (!node) return false;
@@ -13,8 +18,9 @@ function isEditable(node: EventTarget | Node | null) {
 /**
  * iOS Safari will skip `user-select: none` nodes and expand a long-press into
  * a full-page selection (Copy / Find Selection across the whole viewport).
- * While this hook is mounted, a selection that is not inside a text field is
- * cancelled — CSS on `.system-surface` is the first line; this is the iOS one.
+ * While this hook is mounted, a selection that is not inside a text field (or
+ * a `data-text-document` zone) is cancelled — CSS on `.system-surface` is the
+ * first line; this is the iOS one.
  */
 export function useLockTextSelection() {
   useEffect(() => {
