@@ -6,6 +6,7 @@ import {
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
+import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { Loader2, Navigation } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -69,9 +70,16 @@ export function WeatherWidget() {
               onClick={openLocationPrimer}
               aria-label={t(locale, doubtful ? "locationDoubtful" : "locationGuessed")}
               title={t(locale, doubtful ? "locationDoubtful" : "locationGuessed")}
-              className="group/ip flex min-w-0 items-center gap-1.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              // `pressable` + `active:` — the city and its tag wash together on
+              // touch-down, as one control, and ease back on release; the
+              // negative margin keeps the text where the plain title sits.
+              className={cn(
+                "pressable group/ip -mx-1.5 -my-0.5 flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left outline-none",
+                "transition-colors duration-150",
+                "hover:bg-foreground/[0.06] focus-visible:bg-foreground/[0.08] active:bg-foreground/[0.10]"
+              )}
             >
-              <WidgetTitle className="truncate">
+              <WidgetTitle className="truncate transition-colors duration-150 group-hover/ip:text-foreground group-active/ip:text-foreground">
                 {/* One child: the title is a flex row with a gap. */}
                 <span className="truncate">
                   {displayCity}
@@ -83,7 +91,7 @@ export function WeatherWidget() {
               ) : (
                 <span
                   aria-hidden="true"
-                  className="shrink-0 rounded-[4px] bg-muted px-1 font-mono text-[10px] leading-[14px] text-tertiary-foreground transition-colors group-hover/ip:text-foreground"
+                  className="shrink-0 rounded-[4px] bg-muted px-1 font-mono text-[10px] leading-[14px] text-tertiary-foreground transition-colors duration-150 group-hover/ip:text-foreground group-active/ip:text-foreground"
                 >
                   ip
                 </span>
