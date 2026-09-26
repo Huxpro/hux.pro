@@ -218,6 +218,13 @@ for reasons no tuning could fix:
 | `pulse` | the whole ring in three soft lobes, each quarter breathing on its own cosine clock (1 · 1.23 · 0.89 · 1.37 × `period`, 2.3 s), the colour turning round in 14 s | *now*, *waiting for you* |
 | `pulse` + `inside={false}` + `bleed` | only the bloom past the edge — no opaque child needed, the shader draws nothing inside | *press me* — the About's Reveal on a first visit |
 
+Where the light must end (an `extent` — the About's depth), the layers
+honour it as the flow does: the inner glow is capped so its own tail has
+faded to 2% by the window's start (depth ≤ 0.232 × extent, a breath scaling
+within that), and the window only makes the end exact. Uncapped, a pulse
+was still at a tenth of its strength when the window reached it, and the
+light ended in a line across it rather than fading out.
+
 On a screen the layers' body grows with the box (× up to 2.4 for the inner
 glow): border-beam has no screen size to borrow from, and a card's strength
 is lost across a whole screen. A light gathered into the processing comet,

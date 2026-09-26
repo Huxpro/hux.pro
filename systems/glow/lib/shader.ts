@@ -164,6 +164,19 @@ vec4 layered(float sd, float s, vec4 wq, float dark, float reach, float extent, 
     depth *= b * 2.2;
   }
 
+  // Where the light must end (an extent — the About's depth), the inner
+  // glow must have faded out on its own by then, as the flow's beams do
+  // (GLOW_EXTENT_PER_REACH): the window below only makes the end exact, and
+  // a glow still bright when it gets there is cut, not ended — a line across
+  // the light. At the strongest inner glow (alpha ~1 on a screen) that is
+  // 2% by the window's start, 0.8 of the extent:
+  //   exp(-(0.8 E / depth)^1.1) = 0.02  ->  depth = 0.232 E
+  // at the deepest breath, and a breath scales within it.
+  if (uExtent.x > 0.0) {
+    float cap = extent * 0.232;
+    depth = rotate ? min(depth, cap) : min(depth, cap * clamp(dot(wq * wq, uBreath) / 1.08, 0.0, 1.0));
+  }
+
   // The layers, in CSS px. The stroke is a pixel's width, antialiased at the
   // canvas's own resolution.
   float stroke = clamp((1.15 - edge) * uScale, 0.0, 1.0);
