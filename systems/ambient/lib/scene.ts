@@ -12,6 +12,7 @@
 // can preview any state without a canvas.
 // =============================================================================
 
+import { oklabToRgb01, rgb01ToOklab } from "./color";
 import type { SolarPosition } from "./solar";
 import {
   clamp01,
@@ -263,6 +264,94 @@ const VEIL_DEFAULTS = {
   light: { color: hex("#ffffff"), amount: 0.3, exposure: 1.06 },
   dark: { color: hex("#1a1a1a"), amount: 0.26, exposure: 0.86 },
 } as const;
+
+// -----------------------------------------------------------------------------
+// Theme key — the sky the sun painted, in the theme's lightness
+//
+// The sun decides what is in the sky: its colour, the sun or the moon, the
+// stars. The theme decides how light it is. Those agree by day under the light
+// theme and by night under the dark one, and the veil above is all either
+// needs. They disagree by day under the dark theme and by night under the
+// light one, and a veil cannot settle that: it mixes toward the page colour,
+// so a noon sky under a dark veil is a grey-blue midtone the dark chrome sits
+// on like a sticker, and a night under a white one is slate. Neither is a
+// theme; each is the other one, dirtied.
+//
+// So the sky is re-keyed instead — the Apple light/dark wallpaper pairs, where
+// both halves are the same place and only the key differs. Each colour's OKLab
+// lightness is moved into the theme's range and its hue kept, so the day stays
+// the day and the night stays the night:
+//
+//   dark theme, day    the noon sky pressed down into the dark theme's range:
+//                      deep blue, clouds still lighter than the sky, the sun's
+//                      disc (the shader's, never keyed) and its half-keyed
+//                      glow still the brightest thing in it. Blue hour, held
+//                      all afternoon.
+//   light theme, night the night lifted into the light theme's range: pale
+//                      moonlit lavender, the brighter stars still showing, and
+//                      the moon dimmed to a day moon — at full strength it
+//                      would saturate to a white ball and read as the sun.
+//
+// The amount is zero through the twilight band on both sides — sunrise and
+// sunset are the in-between the sky already reads well under either theme —
+// and it is zero on both sides of the sun's own crossing, which is where the
+// theme changes hands when it follows the sun (lib/solar-theme.ts). So the
+// handover never has a re-key to fight: it only ever begins or ends where the
+// sky is already the theme's.
+// -----------------------------------------------------------------------------
+
+interface ThemeKeyCurve {
+  /** Where lightness lands: L' = floor + span · L^gamma (OKLab). */
+  floor: number;
+  span: number;
+  gamma: number;
+  /** Chroma gain at full key, so a pressed or lifted sky keeps its colour. */
+  chroma: number;
+  /** How much of the key the sun's glow takes, so the sun stays the sun. */
+  glow: number;
+  /** What is left of the veil at full key; the key has done most of its work. */
+  veil: number;
+  /** What is left of the moon at full key: a lifted night's moon is a day moon. */
+  moon: number;
+  /** Sun elevations (degrees) between which the key goes from 0 to full. */
+  from: number;
+  to: number;
+}
+
+const THEME_KEY: Record<"light" | "dark", ThemeKeyCurve> = {
+  // The day under the dark theme. Full from mid-morning; nothing at the horizon.
+  dark: {
+    floor: 0.1, span: 0.42, gamma: 1.5, chroma: 0.8,
+    glow: 0.45, veil: 0.5, moon: 1,
+    from: 0, to: 14,
+  },
+  // The night under the light theme. Full once civil twilight is over.
+  light: {
+    floor: 0.7, span: 0.26, gamma: 1, chroma: 0.85,
+    glow: 1, veil: 0.6, moon: 0.3,
+    from: -2, to: -10,
+  },
+};
+
+/** How far the sky is re-keyed toward `theme`, 0..1, at this sun elevation. */
+function themeKeyAmount(theme: "light" | "dark", elevation: number): number {
+  const curve = THEME_KEY[theme];
+  return smoothstep(curve.from, curve.to, elevation);
+}
+
+/** One colour of the sky, moved `amount` of the way into the theme's key. */
+function rekey(c: RGB, theme: "light" | "dark", amount: number): RGB {
+  if (amount <= 0) return c;
+  const curve = THEME_KEY[theme];
+  const lab = rgb01ToOklab(c);
+  const L = curve.floor + curve.span * Math.max(0, lab.L) ** curve.gamma;
+  const gain = lerp(1, curve.chroma, amount);
+  return oklabToRgb01({
+    L: lerp(lab.L, L, amount),
+    a: lab.a * gain,
+    b: lab.b * gain,
+  });
+}
 
 // -----------------------------------------------------------------------------
 // Derivation
@@ -550,6 +639,13 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const moonlitHorizon = mixRGB(horizon, hex("#2a3556"), moonLight * 0.35);
   const moonlitLit = mixRGB(lit, hex("#4a5578"), moonLight * (1 - smoothstep(-8, 4, elevation)) * 0.7);
 
+  // The theme's key, last, over every colour the sky is painted from — so the
+  // shader, the Gradient and the legibility profile all read the re-keyed sky
+  // and never have to know there was another.
+  const key = THEME_KEY[theme];
+  const keyAmount = themeKeyAmount(theme, elevation);
+  const keyed = (c: RGB) => rekey(c, theme, keyAmount);
+
   return {
     sun: { ...solar, screen: sunScreen, daylight, isDay: elevation > DAY_ELEVATION_DEG },
     moon: {
@@ -557,18 +653,23 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
       azimuth: lunar.azimuth,
       phase: moonPhase,
       illumination: moonIllum,
-      visible: moonVisible,
+      visible: moonVisible * lerp(1, key.moon, keyAmount),
       screen: moonScreen,
       size: moonSize,
     },
     hemisphere,
-    sky: { zenith: moonlitZenith, horizon: moonlitHorizon, glow, glowStrength },
+    sky: {
+      zenith: keyed(moonlitZenith),
+      horizon: keyed(moonlitHorizon),
+      glow: rekey(glow, theme, keyAmount * key.glow),
+      glowStrength,
+    },
     clouds: {
       cover,
       density: profile.density,
       darkness,
-      lit: moonlitLit,
-      shade,
+      lit: keyed(moonlitLit),
+      shade: keyed(shade),
       speed: 0.35 + windSpeed * 1.4,
     },
     precipitation: { type: precipType, intensity: precipIntensity },
@@ -578,7 +679,10 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     stars,
     clarity,
     behind,
-    veil: { color: veilDefaults.color, amount: ov.veilAmount ?? veilDefaults.amount },
+    veil: {
+      color: veilDefaults.color,
+      amount: ov.veilAmount ?? veilDefaults.amount * lerp(1, key.veil, keyAmount),
+    },
     exposure: veilDefaults.exposure,
     seed: params.seed ?? 0,
     condition,
