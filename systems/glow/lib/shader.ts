@@ -31,12 +31,10 @@ import { glslRing } from "./palette";
 //             is that arc gathered small and swept side to side.
 //   reveal    the ring arrives from the focus centre and spreads both ways,
 //             its front flaring, with a surge in reach as it lands.
-//   motion    how the light lives while on (the component drives it):
-//             flow — the beams travel (`uWave` is the clock); rotate — a
-//             broad arc of it turns round the ring, its colours carried with
-//             it (`uFocusAt`, `uHue`); pulse — the beams stand still and
-//             each quarter of the ring breathes on its own clock (`uBreath`).
-//             `uInside` 0 keeps only the halo past the edge.
+//   motion    how the light lives while on: flow is this field; rotate and
+//             pulse are built in layers instead (`layered`, below) — a crisp
+//             stroke, an inner glow, a bloom and, for a rotation, a spark —
+//             as Libraries.dev's border-beam builds them.
 // =============================================================================
 
 /**
@@ -83,11 +81,11 @@ uniform float uLine;     // 1: focus measured along the bottom edge (a line)
 uniform float uFlip;     // -1 mirrors the box top to bottom: a line on the top edge
 uniform vec2 uExtent;    // px where the light must end: x off the left / right
                          // edges, y off the top / bottom; 0 = no limit
-uniform float uWave;     // seconds the beams have travelled (held by a pulse)
-uniform float uHue;      // ring units the palette is turned by
-uniform vec4 uBreath;    // reach × this per quarter: right, bottom, left, top
+uniform float uMode;     // 0 flow · 1 rotate · 2 pulse
+uniform float uHead;     // a rotation's head, ring units
+uniform float uHue;      // ring units the colour field is turned by
+uniform vec4 uBreath;    // a pulse's breath per quarter, 0.62–1.08: right, bottom, left, top
 uniform float uInside;   // 0: only the halo past the edge
-uniform float uSwell;    // 1: the light deepens toward the focus centre (a rotation's arc)
 
 #define TAU 6.28318530718
 
@@ -109,6 +107,104 @@ float smin4(vec4 d, float k) {
 
 ${glslRing()}
 
+// -----------------------------------------------------------------------------
+// Rotate and pulse — a light built in layers, as border-beam builds it.
+//
+// Flow is a field: travelling beams whose one falloff does everything. A
+// rotation and a pulse are not fields but compositions, each layer with one
+// job, and that is what makes them read at any size:
+//
+//   colour   fixed on the box — the palette laid once round the ring and
+//            only drifting (uHue). A rotation sweeps a light over it, so the
+//            colour changes as the light travels; the colours do not ride
+//            along with it.
+//   stroke   a crisp 1px line on the outline — the definition, what a small
+//            element is recognised by.
+//   inner    a soft glow inward from it — the body.
+//   bloom    past the edge, in the bleed — the atmosphere.
+//   spark    a rotation's head: a narrow highlight a little ahead of the
+//            middle of the lit arc, white on a dark ground and ink on a
+//            light one, with a hot point of bloom just ahead of it.
+//
+// A pulse lights the whole ring and breathes it: each quarter deepens and
+// brightens on its own clock (uBreath) while the colour turns slowly round.
+// -----------------------------------------------------------------------------
+vec4 layered(float sd, float s, vec4 wq, float dark, float reach, float extent, vec2 box) {
+  bool rotate = uMode < 1.5;
+  float edge = max(-sd, 0.0);
+  float out_ = max(sd, 0.0);
+  bool outside = sd > 0.0 && uBleed > 0.0;
+
+  // The colour field, pushed back out from its luminance: harder on a light
+  // ground, where colour tints rather than adds.
+  vec3 c = ring(s - uHue);
+  float luma = dot(c, vec3(0.299, 0.587, 0.114));
+  c = clamp(mix(vec3(luma), c, mix(1.75, 1.3, dark)), 0.0, 1.0);
+  vec3 sparkCol = mix(vec3(0.08), vec3(1.0), dark);
+
+  // Where round the ring the light is.
+  float lit;
+  float spark = 0.0;
+  float hot = 0.0;
+  float depth = reach;
+  if (rotate) {
+    // u: ring units from the head, positive ahead of it. A long tail behind,
+    // a shorter fade ahead; the spark and its hot point near the front.
+    float u = fract(s - uHead + 0.5) - 0.5;
+    lit = smoothstep(-0.36, -0.06, u) * (1.0 - smoothstep(0.04, 0.17, u));
+    spark = exp(-pow((u - 0.015) / 0.04, 2.0));
+    hot = exp(-pow((u - 0.03) / 0.016, 2.0));
+  } else {
+    // A pulse is patches of colour, not a frame: three soft lobes round the
+    // ring, drifting apart and together, each quarter's breath lifting what
+    // is there.
+    float b = dot(wq * wq, uBreath);
+    float lobes = 0.5 + 0.5 * sin(TAU * (3.0 * s + 0.35 * sin(TAU * uHue * 2.0)));
+    lit = mix(0.12, 1.0, lobes * lobes) * mix(0.35, 1.0, clamp((b - 0.62) / 0.46, 0.0, 1.0));
+    depth *= b * 2.2;
+  }
+
+  // The layers, in CSS px. The stroke is a pixel's width, antialiased at the
+  // canvas's own resolution.
+  float stroke = clamp((1.15 - edge) * uScale, 0.0, 1.0);
+  float inner = exp(-pow(edge / max(depth, 0.75), 1.1));
+  float bloom = exp(-out_ / max(uBleed * 0.6, 1.0)) * smoothstep(uBleed, uBleed * 0.3, out_);
+
+  vec3 col;
+  float a;
+  if (outside) {
+    a = (lit + hot * 1.6) * bloom * mix(0.5, 0.42, dark);
+    col = mix(c, sparkCol, clamp(hot * 0.7, 0.0, 1.0));
+  } else {
+    // The stroke defines, the inner glow is a breath of colour: both kept
+    // low, as border-beam keeps them — a light on the edge, not a frame.
+    float strokeA = rotate ? mix(0.4, 0.6, dark) : mix(0.35, 0.55, dark);
+    float innerA = rotate ? mix(0.22, 0.34, dark) : mix(0.3, 0.42, dark);
+    // A screen is not a card: across a whole screen a glow that faint is
+    // lost, so the body of the light grows with the box (border-beam has no
+    // screen size to borrow from).
+    float big = smoothstep(120.0, 360.0, min(box.x, box.y));
+    innerA *= 1.0 + 1.4 * big;
+    strokeA *= 1.0 + 0.4 * big;
+    float body = lit * (strokeA * stroke + innerA * inner);
+    // Ink on a light ground is a shadow, not a light: half as strong.
+    float head = spark * (0.95 * stroke + 0.4 * inner) * mix(0.45, 1.0, dark);
+    a = max(body, head);
+    col = mix(c, sparkCol, clamp(head / max(a, 1e-4), 0.0, 1.0) * 0.85);
+    a *= uInside;
+  }
+
+  if (uExtent.x > 0.0) {
+    a *= 1.0 - smoothstep(extent * 0.8, extent * (1.0 + 0.4 * uSurge), edge);
+  }
+
+  // Arrives by fading up, the surge already in the reach; a voice's level
+  // and a busy picture firm it, as they do the flow.
+  float shown = smoothstep(0.0, 1.0, uReveal);
+  a = clamp(a * shown * uStrength * (0.8 + 0.45 * uLevel) * mix(0.85, 1.0, dark) * (1.0 + 0.3 * uBusy), 0.0, 1.0);
+  return vec4(col * a, a);
+}
+
 void main() {
   vec2 size = uRes / uScale;
   vec2 p = gl_FragCoord.xy / uScale - size * 0.5;
@@ -120,9 +216,8 @@ void main() {
   // so the light rises from one edge instead of lining all four.
   float edge = max(-sd, 0.0);     // the true rounded outline: the core line
   float out_ = max(sd, 0.0);      // outward, into the bleed
-  // Only a glow with room to bleed has an outside; without, the sliver
-  // between a rounded box and a square host (a desktop screen's corners) is
-  // the edge itself, lit as the edge.
+  // Only a glow with room to bleed has an outside; without one, nothing past
+  // the outline is drawn (cover, below).
   bool outside = sd > 0.0 && uBleed > 0.0;
 
   float energy = 0.6 + 0.9 * uLevel;          // 1.0 at the resting 0.45
@@ -142,19 +237,32 @@ void main() {
     float wy = exp(-(edges.z - mE) / kE) + exp(-(edges.w - mE) / kE);
     extent = (wx * uExtent.x + wy * uExtent.y) / (wx + wy);
   }
-  // Where round the ring the pixel is, 0–1 (0.25 the bottom), and a pulse's
-  // breath there: each quarter's clock weighted by cos² of the angle to it,
-  // which sums to one all the way round, so the quarters blend seamlessly.
+  // Where round the ring the pixel is, 0–1 (0.25 the bottom), and its weight
+  // toward each quarter (right, bottom, left, top): cos² of the angle to it,
+  // which sums to one all the way round, so per-quarter values blend
+  // seamlessly — a pulse's breath, the ground.
   float ring_s = atan(p.y / box.y, p.x / box.x) / TAU + 0.5;
   vec4 wq = max(cos(TAU * (ring_s - vec4(0.5, 0.25, 0.0, 0.75))), 0.0);
-  float breath = dot(wq * wq, uBreath);
   // The ground under this part of the ring (lib/ground.ts), blended round it
   // the same way, and how dark it is: the light adds up on a dark ground and
   // tints a light one, by degrees — the theme's page is the two ends, a veil
   // over a picture anywhere between.
   float dark = 1.0 - smoothstep(0.3, 0.75, dot(wq * wq, uGround));
 
-  float reach = breath * (uExtent.x > 0.0 ? extent / ${GLOW_EXTENT_PER_REACH.toFixed(2)} : uWidth) * (1.0 + 1.4 * uSurge) * energy;
+  float reach = (uExtent.x > 0.0 ? extent / ${GLOW_EXTENT_PER_REACH.toFixed(2)} : uWidth) * (1.0 + 1.4 * uSurge) * energy;
+
+  // The light stays on the box: without a bleed, nothing outside its rounded
+  // outline (antialiased at the canvas's resolution). A rounded host's
+  // corners are not lit past its curve; a square host round a rounded glow
+  // — a bezel's screen — is clipped by the host itself.
+  float cover = uBleed > 0.0 ? 1.0 : clamp(0.5 - sd * uScale, 0.0, 1.0);
+  if (cover <= 0.0) { gl_FragColor = vec4(0.0); return; }
+
+  // Rotate and pulse are built in layers (above); flow is the field below.
+  if (uMode > 0.5) {
+    gl_FragColor = layered(sd, ring_s, wq, dark, reach, extent, box) * cover;
+    return;
+  }
 
   // The beams' depth: the smooth min of the four straight edges, so their
   // light rounds each corner instead of creasing on its diagonal. Softness
@@ -187,9 +295,6 @@ void main() {
   // The reach swells toward the focus centre: the light rises as a dome
   // over the voice (voice-glow's bend).
   d /= mix(1.0, 0.45 + 0.55 * focus, uLine);
-  // A rotation's arc is a beam, not a window on the ring: it runs deeper
-  // and brighter at its centre and thins toward its ends.
-  d /= mix(1.0, 0.55 + 1.05 * focus, uSwell);
   // Past the edge the beams are measured outward, so the halo carries
   // their colours and their depth — a breath blooms, a beam spills — rather
   // than one grey average of the ring.
@@ -202,9 +307,9 @@ void main() {
     float dir = mod(fi, 2.0) < 0.5 ? 1.0 : -1.0;
     float k = fi < 0.5 ? 2.0 : fi < 1.5 ? 3.0 : fi < 2.5 ? 5.0 : 7.0;
     float speed = 0.16 + 0.07 * fi;
-    float wave = 0.5 + 0.5 * sin(TAU * (k * s + dir * speed * uWave) + fi * 1.9);
+    float wave = 0.5 + 0.5 * sin(TAU * (k * s + dir * speed * t) + fi * 1.9);
     wave = pow(wave, 2.0 + fi * 0.6);
-    float swell = 0.65 + 0.35 * sin(TAU * ((k - 1.0) * s - dir * 0.05 * uWave) + fi);
+    float swell = 0.65 + 0.35 * sin(TAU * ((k - 1.0) * s - dir * 0.05 * t) + fi);
     // Lows drive the long wave, mids the middle two, highs the fine one.
     float band = fi < 0.5 ? uBands.x : fi < 2.5 ? uBands.y : uBands.z;
     float thick = reach * (0.3 + 1.4 * wave * swell) * (0.45 + 0.55 * band);
@@ -212,7 +317,7 @@ void main() {
     // small element, into a wash over its whole face. This keeps the light
     // on the edge at every scale.
     float g = exp(-pow(d / thick, 1.45));
-    col += ring(s + dir * 0.025 * t + fi * 0.19 - uHue) * g;
+    col += ring(s + dir * 0.025 * t + fi * 0.19) * g;
     glow += g;
   }
   col /= max(glow, 1e-4);
@@ -255,8 +360,7 @@ void main() {
   // Light adds up on a dark ground and tints a light one: a touch less of it
   // on a light ground, so a small element's corners do not read as a wash,
   // and a touch more on a busy picture, whose texture eats a soft light.
-  // A breath brightens as it deepens.
-  a = clamp(a * mix(1.0, breath, 0.6) * mix(1.0, 0.6 + 0.9 * focus, uSwell) * uStrength * (0.8 + 0.45 * uLevel) * mix(0.8, 1.0, dark) * (1.0 + 0.3 * uBusy), 0.0, 1.0);
+  a = clamp(a * uStrength * (0.8 + 0.45 * uLevel) * mix(0.8, 1.0, dark) * (1.0 + 0.3 * uBusy), 0.0, 1.0) * cover;
   gl_FragColor = vec4(col * a, a);
 }
 `;
