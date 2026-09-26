@@ -169,6 +169,9 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
               >
                 <motion.article
                   ref={articleRef}
+                  // A document over the home screen, whose selection lock
+                  // (useLockTextSelection) would otherwise take its words.
+                  data-text-document=""
                   lang={locale === "zh" ? "zh" : "en"}
                   className="about-copy w-full max-w-[33rem] space-y-5 text-[15px] leading-[1.8] text-muted-foreground [&:lang(zh)]:leading-[1.9]"
                   initial={{ y: 10, scale: 0.985 }}
