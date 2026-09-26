@@ -50,7 +50,7 @@ numbers.
 | core | a thin bright line on the edge itself, whiter in the dark. |
 | halo | outside the box (`bleed`), a softer light spilling out — the bloom a small element needs. |
 | falloff | `exp(-(d/reach)^1.45)`: steeper than exponential, because a plain `exp`'s long tail sums, across a small element, into a wash over its face. |
-| corners | the beams' depth is a **smooth** minimum (log-sum-exp) of the four edges, blended once more with the true rounded outline. A hard minimum of the edge distances folds the light along each diagonal — a crease from every corner once the light reaches deeper than the corner's radius (a 10px screen corner under a 38px ring). The smooth one keeps the contours round at every depth, lets two edges' light add up at a corner, and still follows a round host's curve (an avatar, a phone's 44px corners). Softness follows the reach; the core line stays on the true outline, crisp. Without a `bleed`, the sliver between a rounded box and a square host is lit as the edge, not left dark. |
+| corners | the beams' depth is a **smooth** minimum (log-sum-exp) of the four edges, blended once more with the true rounded outline. A hard minimum of the edge distances folds the light along each diagonal — a crease from every corner once the light reaches deeper than the corner's radius (a 10px screen corner under a 38px ring). The smooth one keeps the contours round at every depth, lets two edges' light add up at a corner, and still follows a round host's curve (an avatar, a phone's 44px corners). Softness follows the reach; the core line stays on the true outline, crisp. Without a `bleed`, nothing past the rounded outline is drawn (antialiased at the canvas's resolution): a rounded host is not lit past its curve. |
 | focus | the ring narrowed to an arc (`uFocus`, `uFocusAt`). A **line** is the ring focused on one edge; **processing** is that arc gathered small and moving. |
 | energy | `uLevel` (rest 0.45) lengthens every reach and brightens; `uBands` (low / mid / high) drive their own beams, so speech ripples rather than pumps. |
 | reveal | the light arrives from the focus centre and spreads both ways, its front flaring, with a surge in reach as it lands. |
@@ -84,6 +84,7 @@ rises as a dome — voice-glow's *bend*. `edge="top"` mirrors it.
 | `motion` | how the light lives while on: `flow` (default), `rotate`, `pulse` — below |
 | `period` | seconds per turn (rotate, 6) or per breath (pulse, 2.3) |
 | `inside` | `false` draws only the halo past the edge — with a `bleed`, a light blooming out from behind the host |
+| `baseline` | *advanced* — the light kept where no wave, arc or lobe is, 0–1 of the peak. Each motion has its own (`GLOW_BASELINE`: flow 0.176, rotate 0, pulse 0.12), which is what to use; pass it only to override |
 | `reach` | px the light reaches in (its visible light runs ~3× further); sized to the host when omitted |
 | `extent` | `{ x, y }` px where the light ends, off the left/right and top/bottom edges — `reach` in another unit (below); overrides it, blended smoothly round the corners |
 | `bleed` | px of halo past each side |
@@ -140,26 +141,67 @@ corner.
 
 ## Motions
 
-How the light lives while it is on — Libraries.dev border-beam's two
-families (rotate, pulse), as this shader's light, beside the flow it already
-had:
+How the light lives while it is on. `flow` is the field this shader was
+built as; `rotate` and `pulse` are Libraries.dev border-beam's two families,
+and they are **built in layers** instead (`layered` in `lib/shader.ts`), as
+border-beam builds them — its CSS is in `/editor/glow` beside ours (the
+`border-beam` package, a lab-only dev dependency, MIT), each pair on the
+same host in the same theme.
 
-| motion | what moves | says | border-beam |
-|---|---|---|---|
-| `flow` | the four beams travel round the edge, two each way | *hello*, *I hear you* | — |
-| `rotate` | a broad arc of the light (focus 0.2 ring units) turns at an even pace (`period`, 6s a turn), its colours carried with it (`uHue`); the arc runs deeper and brighter at its centre and thins toward its ends (`uSwell`) — a beam, not a window on the ring | *running* | `sm` / `md` |
-| `pulse` | the beams ease to a standstill and the light breathes: each quarter of the ring (right, bottom, left, top) deepens and brightens on its own cosine clock between 0.62× and 1.08× its reach, the four periods and phases a little apart (1 · 1.23 · 0.89 · 1.37 × `period`, 2.3s), so the breath rolls round instead of pumping. The quarters blend by cos² of the angle, which sums to one all the way round (`uBreath`) | *now*, *waiting for you* | `pulse-inner` |
-| `pulse` + `inside={false}` + `bleed` | only the halo past the edge breathes — the light blooms out from behind the host | *press me* | `pulse-outside` |
+The first cut derived both from the flow — a window on the travelling
+beams, the beams frozen and breathing — and read worse than the reference
+for reasons no tuning could fix:
 
-Every motion takes `processing` (a rotation's arc gathers into the comet
-where it stands) and a voice's `level`. Under reduced motion a rotation
-stands still and a pulse holds a middling breath, drawn once.
+| | border-beam, and now ours | the first cut |
+|---|---|---|
+| what moves (rotate) | a lit arc sweeps a colour field that stays on the box — the colour changes as the light travels | the colours rode along with the arc: a lamp sliding, not light sweeping a rim |
+| its shape (rotate) | a long tail behind, a shorter fade ahead, a narrow **spark** near the front (white on a dark ground, ink on a light one) and a hot point of bloom | a symmetric window: no head, no direction |
+| layers | a crisp **1px stroke** (the definition — what a small element is recognised by), a soft **inner** glow (the body), a **bloom** past the edge (the atmosphere) | one falloff doing all three: muddy or invisible at a card's 3–4px |
+| pulse | soft patches of colour — three lobes round the ring — lifted by each quarter's breath while the colour turns round (14 s) | the flow's beams frozen mid-travel: lumpy blotches pumping |
+| strength | low and per theme: a light on the edge, not a frame | a saturated frame |
 
-The halo (`bleed`) now carries the beams' own light: past the edge each beam
-is measured outward from it, so the halo has their colours and follows their
-depth — a breath blooms, a beam spills — where it was one grey average of
-the ring. `pulse-outside` needs no opaque child, unlike border-beam's: the
-shader simply draws nothing inside.
+| motion | the light | says |
+|---|---|---|
+| `flow` | the field: four beams travelling, two each way | *hello*, *I hear you* |
+| `rotate` | a lit arc (~40% of the ring) sweeping a fixed colour field at an even pace (`period`, 2 s a turn — border-beam's 1.96), the colours swaying a little; the spark at its head | *running* |
+| `pulse` | the whole ring in three soft lobes, each quarter breathing on its own cosine clock (1 · 1.23 · 0.89 · 1.37 × `period`, 2.3 s), the colour turning round in 14 s | *now*, *waiting for you* |
+| `pulse` + `inside={false}` + `bleed` | only the bloom past the edge — no opaque child needed, the shader draws nothing inside | *press me* — the About's Reveal on a first visit |
+
+Where the light must end (an `extent` — the About's depth), the layers
+honour it as the flow does: the inner glow is capped so its own tail has
+faded to 2% by the window's start (depth ≤ 0.232 × extent, a breath scaling
+within that), and the window only makes the end exact. Uncapped, a pulse
+was still at a tenth of its strength when the window reached it, and the
+light ended in a line across it rather than fading out.
+
+On a screen the layers' body grows with the box (× up to 2.4 for the inner
+glow): border-beam has no screen size to borrow from, and a card's strength
+is lost across a whole screen. A light gathered into the processing comet,
+and a line, are always the flow. Under reduced motion a rotation stands
+still and a pulse holds a middling breath, drawn once.
+
+### Baseline
+
+What the light keeps where nothing is moving: under a flow's troughs,
+outside a rotation's arc, between a pulse's lobes. It is the difference
+between *a ring that is always there with activity on it* and *light only
+where the activity is*, and each motion has the one that suits it:
+
+| motion | baseline | what it means |
+|---|---|---|
+| flow | 0.176 | a beam's trough keeps 0.3 of the 1.7 reaches of its crest, and the core line rides on that: the solid rim under the waves |
+| rotate | 0 | nothing outside the arc — border-beam's rotation, which leans on the element's own border for a rim |
+| pulse | 0.12 | a little light between the lobes |
+
+`baseline` overrides it (0–1, one meaning across the three): a flow's
+beam floor (and its core line, which fades out below the default), the
+share of a rotation's stroke and glow kept outside its arc, the floor
+between a pulse's lobes. It is advanced on purpose — the defaults are the
+design; the knob is for judging it (the devtool's About · baseline, the
+lab's baseline override).
+
+Every glow is clipped to its rounded outline when it has no `bleed`: a
+rounded host is never lit past its curve.
 
 ## Tuning
 
@@ -172,6 +214,7 @@ localStorage (`hux_glow`, `lib/tuning.ts`):
 | About · strength | 0–150% | the About's ring, on top of the above |
 | About · desk depth | 5–250% of the narrower gutter | the About's `<EdgeGlow depth>` on a desk (`sm` and up): default 130% |
 | About · phone depth | 5–250% of the narrower gutter | the same on a phone: default 140% |
+| About · baseline | 0–100%, *(default)* until moved | advanced: overrides the motion's own baseline on the About's ring; the star gives it back |
 | About · motion | Flow / Rotate / Pulse | the About's ring's `motion` (below), to judge each on the ring that matters: default Flow |
 
 The desk's default is the ring as it first shipped — a reach of 3.8% of the
@@ -310,8 +353,8 @@ but took its structure from them:
 | border-beam / voice-glow drivers | one shared loop, paused off screen, adaptive half rate |
 | border-beam `strength`, `active` + fade | `strength`, `active` with an animated reveal and leave |
 | border-beam `pulse-outside` | the halo (`bleed`) — a small element's light spills out; with `motion="pulse"` and `inside={false}`, the whole of it |
-| border-beam's rotate family | `motion="rotate"` — a broad arc turning, colours carried round |
-| border-beam's pulse family + its shared oscillator driver | `motion="pulse"` — four quarters breathing on desynced cosine clocks, driven from the one renderer loop |
+| border-beam's rotate family | `motion="rotate"` — its layers (stroke, inner, bloom, spark) and its fixed colour field, in the shader |
+| border-beam's pulse family + its shared oscillator driver | `motion="pulse"` — lobes of colour, four quarters breathing on desynced cosine clocks, driven from the one renderer loop |
 | voice-glow's analysis | gate → soft knee → attack/release envelope; three voice bands on their own envelopes |
 | voice-glow's bands → lobes | bands drive separate beams, so a voice ripples |
 | voice-glow's `bend` | a line's reach swells into a dome at its centre |

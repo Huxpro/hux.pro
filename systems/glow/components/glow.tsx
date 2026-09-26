@@ -60,16 +60,33 @@ export type GlowShape = "ring" | "line";
  *
  *   flow    the beams travel round the edge, two each way — the default, and
  *           the About's ring
- *   rotate  a broad arc of the light turns round the ring at an even pace,
- *           its colours carried with it: running
- *   pulse   the beams stand still and the light breathes — each quarter of
- *           the ring deepening and brightening on its own slow clock, so the
- *           breath rolls round rather than pumping: now, alive, waiting
+ *   rotate  a lit arc sweeps round the ring at an even pace (2s a turn),
+ *           over colours that stay put, a spark at its head: running
+ *   pulse   the whole ring lit, each quarter deepening and brightening on
+ *           its own slow clock while the colour turns round: now, alive,
+ *           waiting
+ *
+ * Rotate and pulse are built in layers — a crisp 1px stroke, an inner glow,
+ * a bloom past the edge — as border-beam builds them (lib/shader.ts).
  *
  * `processing` gathers any of them into a travelling beam; a voice's `level`
  * drives any of them.
  */
 export type GlowMotion = "flow" | "rotate" | "pulse";
+
+/**
+ * Each motion's baseline — the light it keeps where no wave, arc or lobe is,
+ * as a share of the peak — when `baseline` is not given. Flow keeps a solid
+ * rim under its waves (a trough is 0.3 of the 1.7 reaches a crest is, and the
+ * core line rides on it): a ring that is always there. A rotation keeps
+ * nothing outside its arc: light only where it is running. A pulse keeps a
+ * little between its lobes.
+ */
+export const GLOW_BASELINE: Record<GlowMotion, number> = {
+  flow: 0.3 / 1.7,
+  rotate: 0,
+  pulse: 0.12,
+};
 
 export interface GlowProps {
   /** On: the light sweeps in and stays. Off: it sweeps out and stops. */
@@ -85,11 +102,18 @@ export interface GlowProps {
   processing?: boolean;
   /** How the light lives while on. `flow` when omitted. */
   motion?: GlowMotion;
-  /** Seconds per turn (rotate, 6 by default) or per breath (pulse, 2.3). */
+  /** Seconds per turn (rotate, 2 by default) or per breath (pulse, 2.3). */
   period?: number;
   /** False to draw only the halo past the edge — with a `bleed`, a light
    *  blooming out from behind the host (border-beam's `pulse-outside`). */
   inside?: boolean;
+  /**
+   * Advanced: the light kept where no wave, arc or lobe is, 0–1 of the
+   * peak. Each motion has its own (`GLOW_BASELINE`), which is what to use;
+   * pass this only to override it — 0 is light only where it moves, 1 a
+   * solid ring with the motion on top.
+   */
+  baseline?: number;
   /** How far the light reaches in from the edge, CSS px. Sized to the host
    *  when omitted. */
   reach?: number;
@@ -127,9 +151,6 @@ const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
 const easeInOut = (x: number) =>
   x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 const REST = 0.45;
-/** A rotation's arc: the focus half-width, in ring units — about half the
- *  ring lit, brightest at its centre. */
-const ROTATE_ARC = 0.2;
 const REST_BANDS = [1, 1, 1] as const;
 const STILL_BREATH = [1, 1, 1, 1] as const;
 
@@ -149,8 +170,6 @@ const BREATH = [
 const BREATH_LOW = 0.62;
 const BREATH_HIGH = 1.08;
 
-/** Where a pulse holds the beams: a moment where they sit well spread. */
-const PULSE_WAVE = 3.7;
 const NO_EXTENT = [0, 0] as const;
 
 function follow(prev: number, target: number, dt: number, tau: number) {
@@ -176,6 +195,7 @@ export function Glow({
   motion = "flow",
   period,
   inside = true,
+  baseline,
   reach,
   extent,
   bleed = 0,
@@ -198,13 +218,13 @@ export function Glow({
   // Everything the frame loop reads lives in a ref: it outlives renders, and
   // a prop change must not restart the animation.
   const props = useRef({
-    active, shape, edge, level, bands, processing, motion, period, inside, reach, extent, bleed,
-    radius, strength, inDuration, outDuration, onDone,
+    active, shape, edge, level, bands, processing, motion, period, inside, baseline, reach, extent,
+    bleed, radius, strength, inDuration, outDuration, onDone,
   });
   useLayoutEffect(() => {
     props.current = {
-      active, shape, edge, level, bands, processing, motion, period, inside, reach, extent, bleed,
-      radius, strength, inDuration, outDuration, onDone,
+      active, shape, edge, level, bands, processing, motion, period, inside, baseline, reach, extent,
+      bleed, radius, strength, inDuration, outDuration, onDone,
     };
   });
 
@@ -231,7 +251,6 @@ export function Glow({
       scanT: 0,
       level: REST,
       turn: 0, // a rotation's position, in turns
-      pulse: 0, // 0–1, how far into a pulse the light has settled
       pulseT: 0,
     };
 
@@ -282,18 +301,25 @@ export function Glow({
         const still = reduced.matches;
         const secs = still ? 0 : (now - epoch) / 1000;
 
-        // Rotate: a broad arc turning at an even pace, carrying its colours.
-        const rotating = p.motion === "rotate" && p.shape === "ring";
-        if (rotating && !still) m.turn += dt / Math.max(0.5, p.period ?? 6);
-        // Pulse: the beams settle where they stand and the quarters breathe.
-        m.pulse = follow(m.pulse, p.motion === "pulse" ? 1 : 0, dt, 0.4);
-        if (p.motion === "pulse" && !still) m.pulseT += dt;
+        // Rotate and pulse are rings built in layers (lib/shader.ts
+        // `layered`); a line, and any light gathered into the processing
+        // comet, is the flow.
+        const layeredOk = p.shape === "ring" && blend < 0.001;
+        const rotating = layeredOk && p.motion === "rotate";
+        const pulsing = layeredOk && p.motion === "pulse";
+        // Rotate: the lit arc's head goes round at an even pace, over a
+        // colour field that stays put and only sways a little.
+        if (rotating && !still) m.turn += dt / Math.max(0.3, p.period ?? 2);
+        // Pulse: each quarter breathes on its own clock; the colour turns
+        // slowly round, a full turn in 14s.
+        if (pulsing && !still) m.pulseT += dt;
         const breathPeriod = Math.max(0.5, p.period ?? 2.3);
         const breath = BREATH.map(({ period: k, delay }) => {
-          const phase = (m.pulseT / (breathPeriod * k)) + delay;
-          const deep = BREATH_LOW + (BREATH_HIGH - BREATH_LOW) * (1 - Math.cos(2 * Math.PI * phase)) / 2;
-          // A still pulse holds a middling breath; flow and rotate, none.
-          return 1 + ((still ? 0.9 : deep) - 1) * m.pulse;
+          const phase = m.pulseT / (breathPeriod * k) + delay;
+          // A still pulse holds a middling breath.
+          return still
+            ? 0.9
+            : BREATH_LOW + ((BREATH_HIGH - BREATH_LOW) * (1 - Math.cos(2 * Math.PI * phase))) / 2;
         }) as unknown as readonly [number, number, number, number];
 
         let focus = 0;
@@ -307,14 +333,10 @@ export function Glow({
           focus = rest + (0.045 - rest) * blend;
           focusAt = 0.25 + 0.085 * pass * blend;
         } else if (blend > 0.001) {
-          // A comet around the whole ring — from a rotation's arc, where it
+          // A comet around the whole ring — from a rotation, where its head
           // stands.
-          const from = rotating ? ROTATE_ARC : 0.5;
-          focus = from + (0.075 - from) * blend;
-          focusAt = 0.25 + (rotating ? m.turn : 0) + (still ? 0 : m.scanT * 0.45);
-        } else if (rotating) {
-          focus = ROTATE_ARC;
-          focusAt = 0.25 + m.turn;
+          focus = 0.5 + (0.075 - 0.5) * blend;
+          focusAt = 0.25 + (p.motion === "rotate" ? m.turn : 0) + (still ? 0 : m.scanT * 0.45);
         }
 
         const w = canvas.clientWidth - 2 * (p.bleed ?? 0);
@@ -322,21 +344,23 @@ export function Glow({
         const area = canvas.clientWidth * canvas.clientHeight;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const hold =
-          still && k >= 1 && surge === 0 && typeof p.level !== "function" && !p.bands && m.scan < 0.001 &&
-          (p.motion !== "pulse" || m.pulse > 0.999);
+          still && k >= 1 && surge === 0 && typeof p.level !== "function" && !p.bands && m.scan < 0.001;
         return {
           // A large glow is soft and costly: half the device ratio. A small
           // one needs every pixel for its core line.
           scale: area > 160_000 ? dpr * 0.5 : dpr,
           time: secs,
-          // A pulse eases its beams to a standstill rather than stopping dead.
-          wave: secs + (PULSE_WAVE - secs) * m.pulse,
-          hue: rotating ? m.turn : 0,
-          breath: m.pulse < 0.001 ? STILL_BREATH : breath,
+          mode: rotating ? 1 : pulsing ? 2 : 0,
+          head: 0.25 + m.turn,
+          // A rotation's colours sway a little (border-beam's ±30° hue);
+          // a pulse's turn slowly round.
+          hue: rotating ? 0.05 * Math.sin((2 * Math.PI * secs) / 6) : pulsing ? secs / 14 : 0,
+          breath: pulsing ? breath : STILL_BREATH,
           inside: p.inside ? 1 : 0,
-          // The arc swells while it rotates; a comet gathering from it keeps
-          // its own shape.
-          swell: rotating ? 1 - blend : 0,
+          // The motion drawn decides the default: a light gathered into the
+          // comet, or a line, is the flow.
+          baseline: Math.min(1, Math.max(0,
+            p.baseline ?? GLOW_BASELINE[rotating ? "rotate" : pulsing ? "pulse" : "flow"])),
           reveal: m.reveal,
           surge,
           radius: p.radius ?? instance.hostRadius,
@@ -402,7 +426,7 @@ export function Glow({
     if (!i) return;
     i.held = false;
     i.wake();
-  }, [radius, reach, extentX, extentY, bleed, strength, inside, period]);
+  }, [radius, reach, extentX, extentY, bleed, strength, inside, period, baseline]);
 
   const box: CSSProperties = fixed
     ? { ...style }

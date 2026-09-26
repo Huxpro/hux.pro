@@ -75,6 +75,7 @@ import {
 import { useHeroExit } from "@/components/ui/hero-exit";
 import { useOptionalAbout } from "@/systems/about/provider";
 import {
+  GLOW_BASELINE,
   GLOW_TUNING_DEFAULTS,
   setGlowTuning,
   useGlowTuning,
@@ -2823,7 +2824,7 @@ function GlowModule() {
     const id = requestAnimationFrame(() => requestAnimationFrame(() => scrollTo("glow")));
     return () => cancelAnimationFrame(id);
   }, [aboutOpen, scrollTo]);
-  type NumericKey = Exclude<keyof GlowTuning, "aboutMotion">;
+  type NumericKey = Exclude<keyof GlowTuning, "aboutMotion" | "aboutBaseline">;
   const star = (key: keyof GlowTuning) =>
     tuning[key] !== GLOW_TUNING_DEFAULTS[key] ? (
       <PanelStar source="saved" onReset={() => setGlowTuning({ [key]: GLOW_TUNING_DEFAULTS[key] })} />
@@ -2890,6 +2891,23 @@ function GlowModule() {
             label="About glow motion"
           />
         </PanelRow>
+        {/* Advanced: how much light the ring keeps where no wave, arc or
+            lobe is. Untouched, each motion keeps its own (GLOW_BASELINE);
+            a drag overrides it, the star gives it back. */}
+        <PanelSlider
+          label={
+            (zh ? "关于 · 底光" : "About · baseline") +
+            (tuning.aboutBaseline === null ? (zh ? "（默认）" : " (default)") : "")
+          }
+          ariaLabel="About glow baseline"
+          value={tuning.aboutBaseline ?? GLOW_BASELINE[tuning.aboutMotion]}
+          min={0}
+          max={1}
+          step={0.01}
+          format={pct}
+          star={star("aboutBaseline")}
+          onChange={(v) => setGlowTuning({ aboutBaseline: v })}
+        />
       </div>
     </DebugSection>
   );
