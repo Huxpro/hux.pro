@@ -78,16 +78,23 @@ function Pager({ session }: { session: AttachmentSession }) {
       <div
         ref={scrollRef}
         className={cn(
-          "flex gap-4 overflow-x-auto px-4 scroll-px-4",
-          // Held on the Y axis, the way the talks widget's strip is. An
-          // `overflow-x` scroller scrolls Y too the moment anything pokes out
-          // below it — here the 6px hit areas under the action pills did, by
-          // 3px — and iOS then pans the track in two dimensions and rubber-
-          // bands it vertically under a sideways swipe. It also stops Base UI
-          // from taking the track for the sheet's vertical scroller. The
-          // bottom padding (given back by the margin) keeps those hit areas
-          // whole inside the clip.
-          "overflow-y-hidden pb-1.5 -mb-1.5",
+          "relative flex gap-4 overflow-x-auto px-4 scroll-px-4",
+          // Held on the Y axis, the way the talks widget's strip is — by the
+          // browser, not by `overflow-y: hidden`. The track has to stay a
+          // vertical scroller as far as Base UI can tell: a touch that starts
+          // in one never begins a sheet swipe on press (useSwipeDismiss.js,
+          // `startSwipeAtPosition`), only once it drags down from the top.
+          // Clip Y and every sideways swipe starts one instead — the popup
+          // takes an inline transform on touchstart and gives it back on
+          // touchend, on the very frame the snap animation starts, and iOS
+          // leaves the pager stranded between pages. So the track keeps
+          // exactly one pixel of vertical overflow (the sentinel below) and
+          // `pan-x` keeps the browser from ever panning it vertically; a drag
+          // down on the cover still pulls the sheet, the way it always has.
+          // The bottom padding (given back by the margin) keeps the 6px hit
+          // areas under the action pills inside the track, so the sentinel is
+          // the only overflow there is.
+          "touch-pan-x touch-pinch-zoom pb-1.5 -mb-1.5",
           "snap-x snap-mandatory scroll-smooth no-scrollbar",
         )}
       >
@@ -103,6 +110,8 @@ function Pager({ session }: { session: AttachmentSession }) {
             <AttachmentPage set={set} index={i} />
           </div>
         ))}
+        {/* The track's one pixel of vertical overflow — see above. */}
+        <span aria-hidden className="pointer-events-none absolute bottom-[-1px] left-0 h-px w-px" />
       </div>
       {count > 1 && (
         <div className="flex items-center justify-center gap-3 pt-4">

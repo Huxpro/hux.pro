@@ -31,10 +31,12 @@ import {
 // A card marks itself with `data-pager-card`; the hook measures the first one
 // for the stride (its width plus the track's gap), so cards must be uniform.
 //
-// A track that can overflow vertically, even by a pixel, should also say
-// `overflow-y-hidden`. `overflow-x: auto` makes Y `auto` as well, and a track
-// that scrolls both ways drifts vertically under a sideways swipe on iOS (see
-// the attachment surface, where it did).
+// `overflow-x: auto` makes Y `auto` as well, so a track that overflows
+// vertically by even a pixel scrolls both ways and drifts under a sideways
+// swipe on iOS. On a page, `overflow-y-hidden` holds it. Inside a Base UI
+// sheet, don't: the track must stay a vertical scroller or every touch on it
+// starts a sheet swipe that restyles the popup mid-snap. Hold it with
+// `touch-pan-x` instead (see the attachment surface).
 // =============================================================================
 
 /** Marks one page of the track. The hook reads the first for the stride. */
