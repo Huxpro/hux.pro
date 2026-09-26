@@ -1773,8 +1773,27 @@ phase    → AmbientPhaseActivity → Dock Live Activity
 sunTheme → SolarThemeSync       → theme override (this session) + notice
 ```
 
-## Caching
+## Freshness
 
-- **Location**: 24 hours (IP doesn't change often)
-- **Weather**: 45 minutes (weather changes more frequently)
-- Persisted to localStorage via React Query
+The cache is persisted to localStorage and the provider lives as long as the
+tab, so a stale time on its own refreshes nothing — something has to ask.
+What asks is the world changing:
+
+| Data | Stale after | Asked again when |
+|------|-------------|------------------|
+| IP location | 30 min | mount, the tab coming back (`visibilitychange`), the network coming back, a back/forward-cache restore |
+| GPS location | 30 min | mount only — asking on focus could raise the permission prompt |
+| Weather | 15 min | all of the above, plus a poll timed to Open-Meteo's next model interval (`current.time + interval` + 2 min, clamped 5–60 min; visible tabs only), plus local midnight |
+| The clock | — | every minute boundary, and at once on `visibilitychange` / `pageshow` (timers do not run in a locked phone) |
+
+**A misplaced IP.** IP databases misplace whole carriers — a phone on cellular
+in San Jose can come back as Dallas, and so can Private Relay or a VPN. The
+browser's clock is a free second opinion: a provider that puts the address in
+a different UTC offset is doubted and the next one asked; if all of them
+disagree, the first answer is kept with `timezoneMismatch: true`. The devtool's
+Sky section shows who located you, how long ago, and `tz≠` when flagged.
+
+**Sun times are epoch seconds.** The forecast is requested with
+`timeformat=unixtime`. Open-Meteo's default ISO strings are the *location's*
+wall clock with no offset, which `new Date()` reads in the *browser's* zone —
+a location one timezone off moved sunrise by an hour.

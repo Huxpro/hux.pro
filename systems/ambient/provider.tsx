@@ -93,6 +93,7 @@ import {
 } from "./lib/wallpaper-profile";
 import { getImageProfile, getWeatherProfile } from "./lib/wallpaper-profiles";
 import { queryClient } from "@/lib/query";
+import { focusManager } from "@tanstack/react-query";
 import { useDevtool } from "@/systems/devtool";
 
 
@@ -1021,11 +1022,38 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     queryClient.invalidateQueries({ queryKey: ["weather"] });
   }, []);
 
-  // Update "now" every minute. The sky's sun arc and palette derive from this,
-  // so dawn and dusk progress continuously.
+  // Update "now" on each minute boundary. The sky's sun arc and palette derive
+  // from this, so dawn and dusk progress continuously. Timers do not run in a
+  // locked phone or a page parked in the back/forward cache, so coming back
+  // re-reads the clock at once instead of showing the time it was left at
+  // until the next tick — and re-arms the tick on the boundary.
   useEffect(() => {
-    const id = window.setInterval(() => setRealNowMs(Date.now()), 60_000);
-    return () => window.clearInterval(id);
+    let timer: number | undefined;
+    const arm = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50);
+    };
+    const tick = () => {
+      setRealNowMs(Date.now());
+      arm();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    // A page restored from the back/forward cache fires no visibilitychange on
+    // every browser, so React Query's focus refetch is nudged here too.
+    const onPageShow = (e: PageTransitionEvent) => {
+      tick();
+      if (e.persisted) focusManager.onFocus();
+    };
+    arm();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onPageShow);
+    };
   }, []);
 
   // Refetch weather when the local day rolls over. Open-Meteo returns a single
