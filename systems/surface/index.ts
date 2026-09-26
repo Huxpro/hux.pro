@@ -41,6 +41,7 @@
 
 export { AdaptiveSurface, useSurfaceContext } from "./adaptive-surface";
 export type { AdaptiveSurfaceProps } from "./adaptive-surface";
+export { useSheetAxisLock } from "./axis-lock";
 export { SurfaceBody } from "./chrome";
 export type { SurfaceBodyProps } from "./chrome";
 export {
