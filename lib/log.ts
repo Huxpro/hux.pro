@@ -363,14 +363,14 @@ interface BaseCommit {
    *
    *  - undefined (default): the ordinary row for this type.
    *  - `"aside"`: folded, the row borrows the event voice: one muted
-   *    italic line (for a talk, the conference name). Click to expand
-   *    into the real title, description, and media.
+   *    italic line (see `asideLine` — the venue, the title, or both).
+   *    Click to expand into the real title, description, and media.
    */
   present?: CommitPresent;
   /**
-   * How much an aside's folded line says (see {@link AsideLine}). Absent
-   * is `"venue-title"`. Meaningless on a row that is not an aside, and on
-   * a type with no venue — a project has none, and prints its title.
+   * Which part of an aside the folded line prints (see {@link AsideLine}).
+   * Absent is `"venue-title"`. Meaningless on a row that is not an aside,
+   * and on a type with no venue — a project has none, and prints its title.
    */
   asideLine?: AsideLine;
 }
@@ -384,12 +384,14 @@ export type CommitPresent = "aside";
  *  - `"venue-title"` (default): `WePiao Internal Tech Talk · JavaScript
  *    模块化七日谈`. The venue leads, because folded an aside is answering
  *    "when and where"; the title is the detail it offers after that.
- *  - `"venue"`: the venue alone, the way the event rows above it read.
- *    For a talk whose venue already says what the talk was — a deck
- *    whose `conference.name` is its own name, or the same title in the
- *    other locale — where printing both is saying it twice.
+ *  - `"venue"`: the venue alone — for a talk, the conference. The way the
+ *    event rows above it read. Also the floor under `"venue-title"` when
+ *    the two would say the same thing: a deck whose `conference.name` is
+ *    its own name, or the same title in the other locale.
+ *  - `"title"`: the title alone, when the work is the part to highlight
+ *    and the venue is only where it happened.
  */
-export type AsideLine = "venue" | "venue-title";
+export type AsideLine = "venue" | "title" | "venue-title";
 
 /**
  * The language of a work or its visibility scope.
