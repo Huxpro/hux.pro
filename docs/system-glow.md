@@ -86,6 +86,7 @@ rises as a dome — voice-glow's *bend*. `edge="top"` mirrors it.
 | `motion` | how the light lives while on: `flow` (default), `rotate`, `pulse` — below |
 | `period` | seconds per turn (rotate, 6) or per breath (pulse, 2.3) |
 | `inside` | `false` draws only the halo past the edge — with a `bleed`, a light blooming out from behind the host |
+| `baseline` | *advanced* — the light kept where no wave, arc or lobe is, 0–1 of the peak. Each motion has its own (`GLOW_BASELINE`: flow 0.176, rotate 0, pulse 0.12), which is what to use; pass it only to override |
 | `reach` | px the light reaches in (its visible light runs ~3× further); sized to the host when omitted |
 | `extent` | `{ x, y }` px where the light ends, off the left/right and top/bottom edges — `reach` in another unit (below); overrides it, blended smoothly round the corners |
 | `bleed` | px of halo past each side |
@@ -231,6 +232,26 @@ is lost across a whole screen. A light gathered into the processing comet,
 and a line, are always the flow. Under reduced motion a rotation stands
 still and a pulse holds a middling breath, drawn once.
 
+### Baseline
+
+What the light keeps where nothing is moving: under a flow's troughs,
+outside a rotation's arc, between a pulse's lobes. It is the difference
+between *a ring that is always there with activity on it* and *light only
+where the activity is*, and each motion has the one that suits it:
+
+| motion | baseline | what it means |
+|---|---|---|
+| flow | 0.176 | a beam's trough keeps 0.3 of the 1.7 reaches of its crest, and the core line rides on that: the solid rim under the waves |
+| rotate | 0 | nothing outside the arc — border-beam's rotation, which leans on the element's own border for a rim |
+| pulse | 0.12 | a little light between the lobes |
+
+`baseline` overrides it (0–1, one meaning across the three): a flow's
+beam floor (and its core line, which fades out below the default), the
+share of a rotation's stroke and glow kept outside its arc, the floor
+between a pulse's lobes. It is advanced on purpose — the defaults are the
+design; the knob is for judging it (the devtool's About · baseline, the
+lab's baseline override).
+
 Every glow is clipped to its rounded outline when it has no `bleed`: a
 rounded host is never lit past its curve.
 
@@ -245,6 +266,7 @@ localStorage (`hux_glow`, `lib/tuning.ts`):
 | About · strength | 0–150% | the About's ring, on top of the above |
 | About · desk depth | 5–250% of the narrower gutter | the About's `<EdgeGlow depth>` on a desk (`sm` and up): default 130% |
 | About · phone depth | 5–250% of the narrower gutter | the same on a phone: default 140% |
+| About · baseline | 0–100%, *(default)* until moved | advanced: overrides the motion's own baseline on the About's ring; the star gives it back |
 | About · motion | Flow / Rotate / Pulse | the About's ring's `motion` (below), to judge each on the ring that matters: default Flow |
 
 The desk's default is the ring as it first shipped — a reach of 3.8% of the

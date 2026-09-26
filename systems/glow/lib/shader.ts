@@ -86,6 +86,7 @@ uniform float uHead;     // a rotation's head, ring units
 uniform float uHue;      // ring units the colour field is turned by
 uniform vec4 uBreath;    // a pulse's breath per quarter, 0.62–1.08: right, bottom, left, top
 uniform float uInside;   // 0: only the halo past the edge
+uniform float uBaseline; // 0–1: the light kept where no wave, arc or lobe is, of the peak
 
 #define TAU 6.28318530718
 
@@ -151,7 +152,7 @@ vec4 layered(float sd, float s, vec4 wq, float dark, float reach, float extent, 
     // u: ring units from the head, positive ahead of it. A long tail behind,
     // a shorter fade ahead; the spark and its hot point near the front.
     float u = fract(s - uHead + 0.5) - 0.5;
-    lit = smoothstep(-0.36, -0.06, u) * (1.0 - smoothstep(0.04, 0.17, u));
+    lit = mix(uBaseline, 1.0, smoothstep(-0.36, -0.06, u) * (1.0 - smoothstep(0.04, 0.17, u)));
     spark = exp(-pow((u - 0.015) / 0.04, 2.0));
     hot = exp(-pow((u - 0.03) / 0.016, 2.0));
   } else {
@@ -160,7 +161,7 @@ vec4 layered(float sd, float s, vec4 wq, float dark, float reach, float extent, 
     // is there.
     float b = dot(wq * wq, uBreath);
     float lobes = 0.5 + 0.5 * sin(TAU * (3.0 * s + 0.35 * sin(TAU * uHue * 2.0)));
-    lit = mix(0.12, 1.0, lobes * lobes) * mix(0.35, 1.0, clamp((b - 0.62) / 0.46, 0.0, 1.0));
+    lit = mix(uBaseline, 1.0, lobes * lobes) * mix(0.35, 1.0, clamp((b - 0.62) / 0.46, 0.0, 1.0));
     depth *= b * 2.2;
   }
 
@@ -325,7 +326,9 @@ void main() {
     float swell = 0.65 + 0.35 * sin(TAU * ((k - 1.0) * s - dir * 0.05 * t) + fi);
     // Lows drive the long wave, mids the middle two, highs the fine one.
     float band = fi < 0.5 ? uBands.x : fi < 2.5 ? uBands.y : uBands.z;
-    float thick = reach * (0.3 + 1.4 * wave * swell) * (0.45 + 0.55 * band);
+    // The baseline is the beam's floor: at a wave's trough it keeps that
+    // share of its full 1.7 reaches (0.176 by default, 0.3 of them).
+    float thick = reach * 1.7 * (uBaseline + (1.0 - uBaseline) * wave * swell) * (0.45 + 0.55 * band);
     // Steeper than exponential: a plain exp's long tail sums, across a
     // small element, into a wash over its whole face. This keeps the light
     // on the edge at every scale.
@@ -348,7 +351,9 @@ void main() {
     // On a busy picture the core line is the light's relief — whiter and
     // firmer, as text there earns a shadow.
     col = mix(col, vec3(1.0), core * min(1.0, mix(0.18, 0.6, dark) + 0.25 * uBusy));
-    a = max(a, core * 0.95) * uInside;
+    // The core line is the baseline's too: full from the default floor up,
+    // fading out as the baseline goes to nothing.
+    a = max(a, core * 0.95 * clamp(uBaseline / 0.176, 0.0, 1.0)) * uInside;
   }
 
   // The extent's window: the last fifth of it, where the brightest crest is

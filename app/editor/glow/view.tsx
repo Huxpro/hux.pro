@@ -200,6 +200,8 @@ export function GlowLabView() {
   // The motions' period, as a share of each one's default (6s a turn, 2.3s
   // a breath): 0.5 is twice as fast.
   const [pace, setPace] = useState(0.5);
+  // Advanced: the baseline, overriding each motion's own while set.
+  const [baseline, setBaseline] = useState<number | null>(null);
   const speed = 0.25 + pace * 1.5;
   const { theme } = useTheme();
   // border-beam writes its styles for one theme; the server cannot know the
@@ -285,7 +287,17 @@ export function GlowLabView() {
                 drive ours.
               </p>
             </div>
-            <Slider label="period" value={pace} onChange={setPace} />
+            <div className="flex flex-col items-end gap-2">
+              <Slider label="period" value={pace} onChange={setPace} />
+              <div className="flex items-center gap-3">
+                <Slider label="baseline" value={baseline ?? 0} onChange={setBaseline} disabled={baseline === null} />
+                <Toggle
+                  label={baseline === null ? "each motion's own" : "override"}
+                  on={baseline !== null}
+                  onChange={(on) => setBaseline(on ? 0.2 : null)}
+                />
+              </div>
+            </div>
           </div>
           {/* Each motion beside Libraries.dev's border-beam — the reference
               they were rebuilt against — on the same host, in the same
@@ -317,6 +329,7 @@ export function GlowLabView() {
                       reach={pair.reach}
                       bleed={pair.bleed}
                       inside={pair.inside}
+                      baseline={baseline ?? undefined}
                     />
                   </div>
                 </Motion>
@@ -324,7 +337,7 @@ export function GlowLabView() {
             ))}
             <Motion name="flow · ours" where="The default: the beams travel round, two each way. The About. (border-beam has no flow.)">
               <div className="relative h-24 w-full rounded-2xl border border-border/50 bg-glass">
-                <Glow {...drive} motion="flow" reach={4} />
+                <Glow {...drive} motion="flow" reach={4} baseline={baseline ?? undefined} />
               </div>
             </Motion>
           </div>

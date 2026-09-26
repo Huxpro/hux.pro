@@ -54,6 +54,8 @@ export interface GlowUniforms {
   breath: readonly [number, number, number, number];
   /** 0 to draw only the halo past the edge (a pulse outside), else 1. */
   inside: number;
+  /** The light kept where no wave, arc or lobe is, as a share of the peak. */
+  baseline: number;
   /** Nothing is moving: once drawn, the frame can stand until this clears. */
   hold?: boolean;
 }
@@ -98,6 +100,7 @@ const UNIFORMS = [
   "uHue",
   "uBreath",
   "uInside",
+  "uBaseline",
 ] as const;
 
 type Uniform = (typeof UNIFORMS)[number];
@@ -222,6 +225,7 @@ function draw(c: Context, inst: GlowInstance, f: GlowUniforms) {
   gl.uniform1f(u.uHue, f.hue);
   gl.uniform4f(u.uBreath, f.breath[0], f.breath[1], f.breath[2], f.breath[3]);
   gl.uniform1f(u.uInside, f.inside);
+  gl.uniform1f(u.uBaseline, f.baseline);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 

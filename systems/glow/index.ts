@@ -16,7 +16,7 @@
 // See docs/system-glow.md.
 // =============================================================================
 
-export { Glow } from "./components/glow";
+export { GLOW_BASELINE, Glow } from "./components/glow";
 export type { GlowMotion, GlowProps, GlowShape } from "./components/glow";
 export { EdgeGlow } from "./components/edge-glow";
 export type { EdgeGlowProps } from "./components/edge-glow";

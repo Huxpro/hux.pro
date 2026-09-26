@@ -215,6 +215,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
         // per layout (systems/glow/lib/tuning.ts).
         depth={desk ? tuning.aboutDesk : tuning.aboutPhone}
         motion={tuning.aboutMotion}
+        baseline={tuning.aboutBaseline ?? undefined}
         strength={tuning.aboutStrength}
         radius={screenRadius}
         style={frame}

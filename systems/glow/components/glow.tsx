@@ -82,6 +82,20 @@ export type GlowShape = "ring" | "line";
  */
 export type GlowMotion = "flow" | "rotate" | "pulse";
 
+/**
+ * Each motion's baseline — the light it keeps where no wave, arc or lobe is,
+ * as a share of the peak — when `baseline` is not given. Flow keeps a solid
+ * rim under its waves (a trough is 0.3 of the 1.7 reaches a crest is, and the
+ * core line rides on it): a ring that is always there. A rotation keeps
+ * nothing outside its arc: light only where it is running. A pulse keeps a
+ * little between its lobes.
+ */
+export const GLOW_BASELINE: Record<GlowMotion, number> = {
+  flow: 0.3 / 1.7,
+  rotate: 0,
+  pulse: 0.12,
+};
+
 export interface GlowProps {
   /** On: the light sweeps in and stays. Off: it sweeps out and stops. */
   active: boolean;
@@ -101,6 +115,13 @@ export interface GlowProps {
   /** False to draw only the halo past the edge — with a `bleed`, a light
    *  blooming out from behind the host (border-beam's `pulse-outside`). */
   inside?: boolean;
+  /**
+   * Advanced: the light kept where no wave, arc or lobe is, 0–1 of the
+   * peak. Each motion has its own (`GLOW_BASELINE`), which is what to use;
+   * pass this only to override it — 0 is light only where it moves, 1 a
+   * solid ring with the motion on top.
+   */
+  baseline?: number;
   /** How far the light reaches in from the edge, CSS px. Sized to the host
    *  when omitted. */
   reach?: number;
@@ -189,6 +210,7 @@ export function Glow({
   motion = "flow",
   period,
   inside = true,
+  baseline,
   reach,
   extent,
   bleed = 0,
@@ -212,13 +234,13 @@ export function Glow({
   // Everything the frame loop reads lives in a ref: it outlives renders, and
   // a prop change must not restart the animation.
   const props = useRef({
-    active, shape, edge, level, bands, processing, motion, period, inside, reach, extent, bleed,
-    radius, strength, over, inDuration, outDuration, onDone,
+    active, shape, edge, level, bands, processing, motion, period, inside, baseline, reach, extent,
+    bleed, radius, strength, over, inDuration, outDuration, onDone,
   });
   useLayoutEffect(() => {
     props.current = {
-      active, shape, edge, level, bands, processing, motion, period, inside, reach, extent, bleed,
-      radius, strength, over, inDuration, outDuration, onDone,
+      active, shape, edge, level, bands, processing, motion, period, inside, baseline, reach, extent,
+      bleed, radius, strength, over, inDuration, outDuration, onDone,
     };
   });
 
@@ -368,6 +390,10 @@ export function Glow({
           hue: rotating ? 0.05 * Math.sin((2 * Math.PI * secs) / 6) : pulsing ? secs / 14 : 0,
           breath: pulsing ? breath : STILL_BREATH,
           inside: p.inside ? 1 : 0,
+          // The motion drawn decides the default: a light gathered into the
+          // comet, or a line, is the flow.
+          baseline: Math.min(1, Math.max(0,
+            p.baseline ?? GLOW_BASELINE[rotating ? "rotate" : pulsing ? "pulse" : "flow"])),
           reveal: m.reveal,
           surge,
           radius: p.radius ?? instance.hostRadius,
@@ -443,7 +469,7 @@ export function Glow({
     if (!i) return;
     i.held = false;
     i.wake();
-  }, [radius, reach, extentX, extentY, bleed, strength, inside, period]);
+  }, [radius, reach, extentX, extentY, bleed, strength, inside, period, baseline]);
 
   const box: CSSProperties = fixed
     ? { ...style }
