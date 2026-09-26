@@ -58,9 +58,12 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
   // Inside the bezel, when one is drawn: the About is a surface on the page's
   // screen, and the page's screen is the box within the bezel's bands, rounded
   // at its radius. Nothing of the veil or the ring may reach the bezel.
-  const { bezel, bezelRadius } = useWallpaper();
+  // One radius for the screen (`screenRadius`), the same number <Vitre>
+  // draws the bezel with: the veil and the ring follow it as the devtool
+  // drags it, and without a bezel it is 0.
+  const { bezel, screenRadius } = useWallpaper();
   const frame = bezel
-    ? { ...BEZEL_INSET, borderRadius: bezelRadius }
+    ? { ...BEZEL_INSET, borderRadius: screenRadius }
     : undefined;
   const dialogRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -200,9 +203,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
         // per layout (systems/glow/lib/tuning.ts).
         depth={desk ? tuning.aboutDesk : tuning.aboutPhone}
         strength={tuning.aboutStrength}
-        // The bezel's radius inside one; otherwise the screen's own — a
-        // phone's is rounded, a browser window's nearly square.
-        radius={bezel ? bezelRadius : hasFineHoverPointer ? 10 : 44}
+        radius={screenRadius}
         style={frame}
         layer={bezel}
         className={cn("z-[10021]", bezel && "overflow-hidden")}

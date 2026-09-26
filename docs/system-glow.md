@@ -70,7 +70,7 @@ rises as a dome — voice-glow's *bend*. `edge="top"` mirrors it.
   <Glow active={on} shape="line" level={voice.level} bands={voice.bands} />
   <Glow active={loading} shape="line" edge="top" processing />
 </div>
-<Glow active={open} fixed radius={44} />         {/* over the viewport */}
+<Glow active={open} fixed radius={screenRadius} />  {/* over the viewport */}
 ```
 
 | prop | |
@@ -84,7 +84,7 @@ rises as a dome — voice-glow's *bend*. `edge="top"` mirrors it.
 | `reach` | px the light reaches in (its visible light runs ~3× further); sized to the host when omitted |
 | `extent` | `{ x, y }` px where the light ends, off the left/right and top/bottom edges — `reach` in another unit (below); overrides it, blended smoothly round the corners |
 | `bleed` | px of halo past each side |
-| `radius` | px; read from the host (or 0 when `fixed`) |
+| `radius` | px; read from the host (or 0 when `fixed`). Drawn into the light, not masked — the corners' blend follows it — so a change redraws at once (a held frame too). Pass the same source of truth the box's own corners come from: over the page, `useWallpaper().screenRadius`, the number `<Vitre>` draws the bezel with. |
 | `strength` | 0–1 |
 | `fixed` / `layer` | over the viewport; a vitre bezel layer |
 
@@ -159,7 +159,9 @@ The module unfolds while the About is up (its `relevant`) and the panel scrolls
 to it (it has its place on the rail), where the light
 is judged.
 
-A blue `*` marks a knob off its default; pressing it resets. `Show About`
+A blue `*` marks a knob off its default; pressing it resets that knob. The
+module's own `*`, beside its title, resets all of them (a `DebugSection`
+given `onReset`). `Show About`
 brings the ring up to judge by eye. While the About is up the devtool rides
 over it (z 10030 — its pill, window and sheet; `zIndex` on `SurfaceWindow` /
 `SurfaceSheet`), still under the command palette.
