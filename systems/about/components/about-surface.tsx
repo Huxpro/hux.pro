@@ -241,28 +241,26 @@ function AboutFoot({
     // kept to about its width, so the eye stays on the press.
     <div ref={ref} className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-col items-center">
       {/* Glass, not a slab: the way out is part of the veil it sits on.
-          Where there is a keyboard it is longer and wears its key, Esc, on
-          the right — balanced by an empty column of the same width on the
-          left, so the word stays at the button's centre and the button at
-          the screen's. */}
+          Where there is a keyboard it reads like a menu item — the word at
+          the left, its key, Esc, at the right — so it needs no more width
+          than the two; the button itself stays at the screen's centre. */}
       <button
         type="button"
         onClick={onDismiss}
         className={cn(
           "rounded-full py-2 text-[13px] font-medium text-foreground",
           keyboard
-            ? "grid min-w-[12rem] grid-cols-[1fr_auto_1fr] items-center gap-3 pr-2 pl-2"
+            ? "flex min-w-[9rem] items-center justify-between gap-5 pr-2 pl-5"
             : "px-5",
           GLASS_TRACK_FLAT,
           "active:scale-[0.97] active:duration-0",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         )}
       >
-        {keyboard && <span aria-hidden />}
         {/* Reveal, every time: the veil lifts off the page underneath. */}
         <span>{t(locale, "aboutEnter")}</span>
         {keyboard && (
-          <kbd aria-hidden className={cn(TYPE.kbd, "justify-self-end px-1.5 py-0 text-[10px] leading-5")}>
+          <kbd aria-hidden className={cn(TYPE.kbd, "px-1.5 py-0 text-[10px] leading-5")}>
             esc
           </kbd>
         )}
