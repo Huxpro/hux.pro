@@ -222,8 +222,8 @@ export function useCommandActions(): CommandAction[] {
       run: () => router.push("/prompt"),
     },
     {
-      // The About: who made this and what it is. `O` opens it from anywhere
-      // outside the palette too (systems/about).
+      // The About: who made this and what it is. `/` `O` is its only
+      // shortcut — no bare `O` on the page (systems/about).
       id: "about",
       key: "o",
       // `navigate`, not `surface`: the phone sheet must not stay behind the

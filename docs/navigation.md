@@ -135,7 +135,7 @@ microphone) is `slashOnly` — in this list, never a search result.
 | `E` | Go to Editor |
 | `A` | Cycle Appearance (system → dark → light) |
 | `L` | Toggle Language |
-| `O` | Open the About (also `O` anywhere outside the palette — see [system-about.md](./system-about.md)) |
+| `O` | Open the About (its only shortcut — see [system-about.md](./system-about.md)) |
 | `V` | Voice — tap to listen, hold to talk and let go to send ([system-glow.md](./system-glow.md)) |
 | `C` | Toggle geolocation, by Coordinates (IP ↔ accurate) |
 | `W` | Open the Wallpaper picker |

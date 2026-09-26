@@ -4,7 +4,7 @@ The surface a newcomer meets, and the inline badge that names a thing I made.
 
 ```
 systems/about/
-├── provider.tsx                 # AboutProvider, useAbout() — open / close / toggle, first visit, `O`
+├── provider.tsx                 # AboutProvider, useAbout() — open / close / toggle, first visit, Escape
 └── components/
     ├── about-surface.tsx        # the veil, the words, the glow (systems/glow), mounted once in the root layout
     └── about-copy.tsx           # server: content/about/<locale>.mdx → the words
@@ -31,10 +31,10 @@ over whatever page a visitor landed on.
 | | |
 |---|---|
 | first visit | rises over the page 700ms after load, once there is something under it to blur. Dismissing it is what marks the visitor as met (`hux_about_seen` in localStorage); a reload before that shows it again. Not on `/editor*` and `/vitre`, which are tools. |
-| `O` | toggles it from any page — unless a field has the keyboard, a modifier is held, or the palette is open (its slash list owns the letters; `/` `O` is the same command there). |
-| ⌘K | `About` in search; `/` `O` in the slash list. Geolocation moved from `O` to `C`. |
+| `/` `O` | the palette's slash command, from any page — the About's only shortcut. There is no bare `O`: a single letter taken over every page fires by accident, and the About is not needed that often. |
+| ⌘K | `About` in search. Geolocation moved from `O` to `C`. |
 | `/about` | the address to share: the home screen with the About already up. Putting it away swaps the address to `/` in place (no navigation, no remount). |
-| leaving | Escape, `O`, a press outside the words, the button at the foot, or anything in the copy opening something — a badge or a link hands over to what it opened. |
+| leaving | Escape, `/` `O`, a press outside the words, the button at the foot, or anything in the copy opening something — a badge or a link hands over to what it opened. |
 
 ### Three layers
 
@@ -49,7 +49,8 @@ over whatever page a visitor landed on.
    screen, nothing pushes the way out off it.
    **The foot** — always on screen: a glass button, centred (`GLASS_TRACK_FLAT`,
    the theater's control glass — part of the veil, not a slab on it), reading
-   **Reveal** on a first visit and **Close** after, with the hint to come back
+   **Reveal** every time (the veil lifts off the page underneath), with the
+   hint to come back — `/` `O`, in the slash list's own key chips —
    on its own line beneath, kept to about the button's width so the weight
    stays on the press.
    **Where** — on a desk the words and the foot are one group, centred on the
