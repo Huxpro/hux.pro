@@ -22,10 +22,6 @@ import {
 } from "./lib/location";
 import { useGeolocationPermission, useLocationQuery, useWeatherQuery } from "./lib/queries";
 import {
-  declineLocationOffer as nextOfferAfterDecline,
-  type LocationOfferState,
-} from "./lib/location-offer";
-import {
   deriveWeatherScene,
   toSceneWeather,
   type SceneOverrides,
@@ -153,9 +149,6 @@ interface LocationContextType {
   isLocationPrimerOpen: boolean;
   openLocationPrimer: () => void;
   closeLocationPrimer: () => void;
-  /** The unprompted offer's back-off (LocationOffer, lib/location-offer.ts). */
-  locationOffer: LocationOfferState;
-  declineLocationOffer: () => void;
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
@@ -1062,21 +1055,6 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const openLocationPrimer = useCallback(() => setIsLocationPrimerOpen(true), []);
   const closeLocationPrimer = useCallback(() => setIsLocationPrimerOpen(false), []);
 
-  const locationOffer = useMemo<LocationOfferState>(
-    () => ({
-      declines: settings.locationOfferDeclines,
-      snoozedUntil: settings.locationOfferSnoozedUntil,
-    }),
-    [settings.locationOfferDeclines, settings.locationOfferSnoozedUntil]
-  );
-  const declineLocationOffer = useCallback(() => {
-    const next = nextOfferAfterDecline(locationOffer, Date.now());
-    updateSettings({
-      locationOfferDeclines: next.declines,
-      locationOfferSnoozedUntil: next.snoozedUntil,
-    });
-  }, [locationOffer, updateSettings]);
-
   const refreshLocation = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["location"] });
   }, []);
@@ -1464,12 +1442,8 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       isLocationPrimerOpen,
       openLocationPrimer,
       closeLocationPrimer,
-      locationOffer,
-      declineLocationOffer,
     }),
     [
-      locationOffer,
-      declineLocationOffer,
       settings.locationMode,
       locationQuery.data,
       geoPermission,

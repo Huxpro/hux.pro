@@ -1813,20 +1813,14 @@ prompt by itself — not a load, not a focus, not a refetch:
   **location primer** (`LocationPrimerSheet`, the tilt primer's pattern — a
   sheet on a phone, a small window from `sm`), or the command palette's
   Geolocation row (a refusal there opens the primer to say where to undo it).
-- **An IP location is always marked as a guess.** The weather widget's city
-  carries a small locate mark and is itself the way to the primer; when the
-  guess is flagged `timezoneMismatch` it also reads "Dallas?".
-- **The site offers once, unprompted** (`LocationOffer`, policy in
-  `lib/location-offer.ts`). The timezone check only catches a guess a
-  timezone away — a Wi-Fi in San Jose placed in Los Angeles passes it — so it
-  cannot be the trigger. Instead, anyone on an IP location whose browser has
-  not been asked gets a notice on the home screen, four seconds after the
-  forecast paints: `Showing weather for {city}, guessed from your network`,
-  with **Use my location** in it. That button raises the prompt directly —
-  the notice has already said why. Closing it, or letting it time out after
-  15 s, is a decline: quiet for 3 days, then 14, then never. At most once a
-  session. A `timezoneMismatch` skips the snooze (not the final decline).
-  Not offered once the permission is `granted` (IP was chosen) or `denied`.
+- **An IP location is always marked as a guess, in the weather card.** The
+  city carries an `ip` tag where a GPS fix shows its arrow, and the city and
+  tag are one button to the primer — so a visitor who sees the wrong city finds
+  the fix exactly where they are looking. When the guess is also flagged
+  `timezoneMismatch` the city reads "Dallas?". There is no unprompted notice:
+  the timezone check cannot see most misplacements (a San Jose Wi-Fi placed in
+  Los Angeles passes it), and a toast on every guessed visit would be louder
+  than the problem.
 - The permission is followed live (`PermissionStatus` `change`). A grant made
   during the visit — in the site settings, say — switches to Accurate; one the
   page loads with does not, since IP was then chosen on purpose.
