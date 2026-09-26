@@ -38,4 +38,4 @@ export {
   setGlowTuning,
   useGlowTuning,
 } from "./lib/tuning";
-export type { GlowEngine, GlowTuning } from "./lib/tuning";
+export type { GlowTuning } from "./lib/tuning";
