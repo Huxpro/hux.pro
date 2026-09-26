@@ -9,6 +9,7 @@ import {
   useState,
   type CSSProperties,
   type Ref,
+  type RefObject,
 } from "react";
 import { VITRE_LAYER_ATTRIBUTE } from "vitre";
 import { GLOW_CSS_STOPS } from "../lib/palette";
@@ -20,6 +21,13 @@ import {
   type GlowUniforms,
 } from "../lib/renderer";
 import { glowTuning } from "../lib/tuning";
+import {
+  formatGround,
+  measureGround,
+  sameGround,
+  subscribeGlowGround,
+  type GlowGround,
+} from "../lib/ground";
 
 // =============================================================================
 // <Glow> — the site's one light, on the edge of whatever it is placed in.
@@ -107,6 +115,13 @@ export interface GlowProps {
   radius?: number;
   /** 0–1, the whole effect. The devtool's site-wide strength multiplies it. */
   strength?: number;
+  /**
+   * The surface the light is laid on, when it is not the host — a fixed
+   * glow's veil. The light reads its ground from it and everything under it
+   * (lib/ground.ts): the host (the glow's parent) by default, or straight
+   * on the picture for a `fixed` glow without one.
+   */
+  over?: RefObject<HTMLElement | null>;
   /** Over the viewport rather than the host. */
   fixed?: boolean;
   /** Mark it a vitre bezel layer (absolute rather than fixed in container
@@ -181,6 +196,7 @@ export function Glow({
   bleed = 0,
   radius,
   strength = 1,
+  over,
   fixed = false,
   layer = false,
   inDuration,
@@ -199,16 +215,23 @@ export function Glow({
   // a prop change must not restart the animation.
   const props = useRef({
     active, shape, edge, level, bands, processing, motion, period, inside, reach, extent, bleed,
-    radius, strength, inDuration, outDuration, onDone,
+    radius, strength, over, inDuration, outDuration, onDone,
   });
   useLayoutEffect(() => {
     props.current = {
       active, shape, edge, level, bands, processing, motion, period, inside, reach, extent, bleed,
-      radius, strength, inDuration, outDuration, onDone,
+      radius, strength, over, inDuration, outDuration, onDone,
     };
   });
 
-  const inst = useRef<(GlowInstance & { hostRadius: number; wake: () => void }) | null>(null);
+  type Instance = GlowInstance & {
+    hostRadius: number;
+    ground: GlowGround;
+    wake: () => void;
+    /** Read the ground again; redraw if it moved. */
+    reground: () => void;
+  };
+  const inst = useRef<Instance | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -242,11 +265,21 @@ export function Glow({
       return Number.isFinite(r) ? r : 0;
     };
 
-    const instance: GlowInstance & { hostRadius: number; wake: () => void } = {
+    const surface = () => props.current.over?.current ?? (fixed ? null : box.parentElement);
+    const instance: Instance = {
       canvas,
       visible: true,
       hostRadius: readRadius(),
+      ground: measureGround(box, surface()),
       wake: () => wakeGlow(instance),
+      reground: () => {
+        const next = measureGround(box, surface());
+        if (sameGround(next, instance.ground)) return;
+        instance.ground = next;
+        box.dataset.glowGround = formatGround(next);
+        instance.held = false;
+        if (props.current.active) instance.wake();
+      },
       frame: (now, dt) => {
         const p = props.current;
         const target = p.active ? 1 : 0;
@@ -342,7 +375,8 @@ export function Glow({
           radius: p.radius ?? instance.hostRadius,
           width: p.reach ?? defaultReach(p.shape, w, h, fixed),
           bleed: p.bleed ?? 0,
-          dark: document.documentElement.classList.contains("dark") ? 1 : 0,
+          ground: instance.ground.edges,
+          busy: instance.ground.busy,
           strength: p.strength * glowTuning().strength,
           level: Math.max(m.level, 0.55 * blend),
           bands: b,
@@ -356,12 +390,17 @@ export function Glow({
       },
     };
     inst.current = instance;
+    // What the light is laid on, readable in the inspector and by scripts.
+    box.dataset.glowGround = formatGround(instance.ground);
     const unregister = registerGlow(instance);
 
     const resize = new ResizeObserver(() => {
       instance.hostRadius = readRadius();
       instance.held = false;
+      instance.reground();
     });
+    // The picture, the theme, the glass: read the ground again when any moves.
+    const unground = subscribeGlowGround(instance.reground);
     resize.observe(canvas);
     if (!fixed && box.parentElement) resize.observe(box.parentElement);
 
@@ -378,6 +417,7 @@ export function Glow({
     if (props.current.active) instance.wake();
     return () => {
       unregister();
+      unground();
       resize.disconnect();
       io?.disconnect();
       inst.current = null;
@@ -387,6 +427,9 @@ export function Glow({
   // Turning on (or a change of state while on) wakes the instance; the frame
   // loop takes it from there, including the way out.
   useEffect(() => {
+    // A surface given by ref may only exist once the host is up (a veil
+    // mounting with it): read the ground as the light arrives.
+    if (active) inst.current?.reground();
     inst.current?.wake();
   }, [active, processing, shape, motion]);
 

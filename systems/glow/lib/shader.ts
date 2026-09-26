@@ -17,6 +17,10 @@ import { glslRing } from "./palette";
 //             speech ripples rather than pumps.
 //   colour    the palette (lib/palette.ts) laid around the ring, drifting.
 //   core      a thin bright line on the edge itself.
+//   ground    what the light is laid on (lib/ground.ts): a lightness per
+//             edge, `uGround`, sets how it composites — added up on a dark
+//             ground, tinting a light one, by degrees — and a busy picture
+//             (`uBusy`) firms the core line and the light a little.
 //   halo      outside the box (`uBleed` px of canvas around it), a softer
 //             light spilling out — the bloom a small element needs, since a
 //             glow drawn only inside a 20px badge is no glow at all.
@@ -68,7 +72,8 @@ uniform float uSurge;    // 1 → 0, extra reach as the ring lands
 uniform float uRadius;   // the box's corner radius, CSS px
 uniform float uWidth;    // base reach of a beam, CSS px
 uniform float uBleed;    // canvas margin around the box, CSS px
-uniform float uDark;     // 1 in the dark theme
+uniform vec4 uGround;    // lightness under each edge, 0–1: right, bottom, left, top
+uniform float uBusy;     // how much of a busy picture reaches the light, 0–1
 uniform float uStrength; // 0–1, the whole effect
 uniform float uLevel;    // 0–1, energy: a voice, or the resting 0.45
 uniform vec3 uBands;     // 0–1 per band (low, mid, high); 1,1,1 at rest
@@ -143,6 +148,11 @@ void main() {
   float ring_s = atan(p.y / box.y, p.x / box.x) / TAU + 0.5;
   vec4 wq = max(cos(TAU * (ring_s - vec4(0.5, 0.25, 0.0, 0.75))), 0.0);
   float breath = dot(wq * wq, uBreath);
+  // The ground under this part of the ring (lib/ground.ts), blended round it
+  // the same way, and how dark it is: the light adds up on a dark ground and
+  // tints a light one, by degrees — the theme's page is the two ends, a veil
+  // over a picture anywhere between.
+  float dark = 1.0 - smoothstep(0.3, 0.75, dot(wq * wq, uGround));
 
   float reach = breath * (uExtent.x > 0.0 ? extent / ${GLOW_EXTENT_PER_REACH.toFixed(2)} : uWidth) * (1.0 + 1.4 * uSurge) * energy;
 
@@ -207,17 +217,19 @@ void main() {
   }
   col /= max(glow, 1e-4);
   float luma = dot(col, vec3(0.299, 0.587, 0.114));
-  col = clamp(mix(vec3(luma), col, mix(1.55, 1.3, uDark)), 0.0, 1.0);
+  col = clamp(mix(vec3(luma), col, mix(1.55, 1.3, dark)), 0.0, 1.0);
   float a = 1.0 - exp(-glow * 1.15);
 
   // Outside the box: the halo, the beams' own light fading over the bleed,
   // softer and dimmer. Inside: the line on the edge itself — on the true
   // outline, so it stays crisp.
   if (outside) {
-    a *= smoothstep(uBleed, uBleed * 0.4, out_) * mix(0.55, 0.75, uDark);
+    a *= smoothstep(uBleed, uBleed * 0.4, out_) * mix(0.55, 0.75, dark);
   } else {
     float core = exp(-mix(edge, d, uLine) / (2.2 + 3.0 * uSurge));
-    col = mix(col, vec3(1.0), core * mix(0.18, 0.6, uDark));
+    // On a busy picture the core line is the light's relief — whiter and
+    // firmer, as text there earns a shadow.
+    col = mix(col, vec3(1.0), core * min(1.0, mix(0.18, 0.6, dark) + 0.25 * uBusy));
     a = max(a, core * 0.95) * uInside;
   }
 
@@ -241,9 +253,10 @@ void main() {
   col = mix(col, vec3(1.0), flare * 0.35);
 
   // Light adds up on a dark ground and tints a light one: a touch less of it
-  // in the light theme, so a small element's corners do not read as a wash.
+  // on a light ground, so a small element's corners do not read as a wash,
+  // and a touch more on a busy picture, whose texture eats a soft light.
   // A breath brightens as it deepens.
-  a = clamp(a * mix(1.0, breath, 0.6) * mix(1.0, 0.6 + 0.9 * focus, uSwell) * uStrength * (0.8 + 0.45 * uLevel) * mix(0.8, 1.0, uDark), 0.0, 1.0);
+  a = clamp(a * mix(1.0, breath, 0.6) * mix(1.0, 0.6 + 0.9 * focus, uSwell) * uStrength * (0.8 + 0.45 * uLevel) * mix(0.8, 1.0, dark) * (1.0 + 0.3 * uBusy), 0.0, 1.0);
   gl_FragColor = vec4(col * a, a);
 }
 `;

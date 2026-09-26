@@ -21,6 +21,15 @@ export type { GlowMotion, GlowProps, GlowShape } from "./components/glow";
 export { EdgeGlow } from "./components/edge-glow";
 export type { EdgeGlowProps } from "./components/edge-glow";
 export { GLOW_EXTENT_PER_REACH } from "./lib/shader";
+export { GlowGroundBridge } from "./components/ground-bridge";
+export {
+  formatGround,
+  glowGroundSource,
+  measureGround,
+  setGlowGround,
+  useGlowGroundSource,
+} from "./lib/ground";
+export type { GlowGround, GlowGroundSource } from "./lib/ground";
 export { GLOW_STOPS, GLOW_CSS_STOPS } from "./lib/palette";
 export { glowSupported } from "./lib/renderer";
 export {

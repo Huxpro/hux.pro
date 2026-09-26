@@ -29,7 +29,10 @@ export interface GlowUniforms {
   radius: number;
   width: number;
   bleed: number;
-  dark: number;
+  /** Lightness under each edge, 0–1: right, bottom, left, top (lib/ground.ts). */
+  ground: readonly [number, number, number, number];
+  /** How much of a busy picture reaches the light, 0–1. */
+  busy: number;
   strength: number;
   level: number;
   bands: readonly [number, number, number];
@@ -80,7 +83,8 @@ const UNIFORMS = [
   "uRadius",
   "uWidth",
   "uBleed",
-  "uDark",
+  "uGround",
+  "uBusy",
   "uStrength",
   "uLevel",
   "uBands",
@@ -203,7 +207,8 @@ function draw(c: Context, inst: GlowInstance, f: GlowUniforms) {
   gl.uniform1f(u.uRadius, f.radius);
   gl.uniform1f(u.uWidth, f.width);
   gl.uniform1f(u.uBleed, f.bleed);
-  gl.uniform1f(u.uDark, f.dark);
+  gl.uniform4f(u.uGround, f.ground[0], f.ground[1], f.ground[2], f.ground[3]);
+  gl.uniform1f(u.uBusy, f.busy);
   gl.uniform1f(u.uStrength, f.strength);
   gl.uniform1f(u.uLevel, f.level);
   gl.uniform3f(u.uBands, f.bands[0], f.bands[1], f.bands[2]);

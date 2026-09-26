@@ -77,6 +77,7 @@ import { useOptionalAbout } from "@/systems/about/provider";
 import {
   GLOW_TUNING_DEFAULTS,
   setGlowTuning,
+  useGlowGroundSource,
   useGlowTuning,
   type GlowTuning,
 } from "@/systems/glow";
@@ -2807,6 +2808,24 @@ function CommandModule() {
 // brings it up to look at.
 // =============================================================================
 
+/**
+ * What the light is laid on (systems/glow/lib/ground.ts): the picture's
+ * lightness by third of the screen and its busyness, as the glow reads it.
+ * Each glow's own ground is on its box as `data-glow-ground`.
+ */
+function GlowGroundReadout({ zh }: { zh: boolean }) {
+  const ground = useGlowGroundSource();
+  if (!ground) return null;
+  const { top, mid, bottom } = ground.zones;
+  return (
+    <PanelRow label={zh ? "底色 · 上中下 · 繁杂" : "Ground · thirds · busy"}>
+      <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
+        {[top, mid, bottom].map((l) => l.toFixed(2)).join(" ")} · {ground.busy.toFixed(2)}
+      </span>
+    </PanelRow>
+  );
+}
+
 function GlowModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
@@ -2874,6 +2893,7 @@ function GlowModule() {
             About having two (systems/glow/lib/tuning.ts has the defaults). */}
         {slider("aboutDesk", zh ? "关于 · 桌面深度" : "About · desk depth", "About glow depth, desk", 0.05, 2.5)}
         {slider("aboutPhone", zh ? "关于 · 手机深度" : "About · phone depth", "About glow depth, phone", 0.05, 2.5)}
+        <GlowGroundReadout zh={zh} />
       </div>
     </DebugSection>
   );

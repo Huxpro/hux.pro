@@ -69,6 +69,8 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const articleRef = useRef<HTMLElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
+  // The veil the ring is laid on: its ground (systems/glow/lib/ground.ts).
+  const veilRef = useRef<HTMLDivElement>(null);
   const desk = useDeskLayout();
   // Whether the words overflow their container: the fade at its edges says
   // there is more.
@@ -131,6 +133,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
             transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
           >
             <div
+              ref={veilRef}
               aria-hidden
               className="absolute inset-0 bg-glass/70 backdrop-blur-2xl backdrop-saturate-150"
             />
@@ -198,6 +201,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
         // The words, as far as their scroll container shows them, and the
         // way out under them: the light ends a share of the way to them.
         content={[articleRef, footRef]}
+        over={veilRef}
         // The devtool's Glow module: the About's own strength, and its depth
         // per layout (systems/glow/lib/tuning.ts).
         depth={desk ? tuning.aboutDesk : tuning.aboutPhone}
