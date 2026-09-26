@@ -16,15 +16,17 @@ import {
 //
 // The About is the one thing on the site that speaks before it is asked: a
 // newcomer finds it floating over whatever page they landed on, says hello
-// to whoever made this, and dismisses it. From then on it is a key away —
-// `O`, from anywhere — and a row in the palette.
+// to whoever made this, and dismisses it. From then on it is a slash command
+// away — `/` `O`, from anywhere — and a row in the palette.
 //
 //   first visit   opens itself once the page has painted; dismissing it is
 //                 what marks the visitor as having met it (`hux_about_seen`),
 //                 so a reload before that shows it again.
-//   `O`           toggles it on any page, unless a field has the keyboard,
-//                 a modifier is held, or the palette is open (its slash list
-//                 owns the letters then — `/` `O` reaches the same command).
+//   `/` `O`       the palette's slash command (systems/command/actions.tsx).
+//                 Not a bare `O`: a single letter taken over every page is
+//                 one keystroke from firing by accident, and the About is
+//                 not something anyone needs that often.
+//   Esc           closes it.
 //   `/about`      the linkable address: the home screen with it already up.
 //
 // The surface itself (components/about-surface.tsx) is mounted once in the
@@ -82,7 +84,7 @@ export function useOptionalAbout(): AboutContextValue | null {
 }
 
 export function AboutProvider({ children }: { children: React.ReactNode }) {
-  const { isOpen: isCommandOpen, close: closeCommand } = useCommand();
+  const { close: closeCommand } = useCommand();
   const [isOpen, setIsOpen] = useState(false);
   // Assume met until storage says otherwise: the server render and the first
   // client render agree, and nobody is introduced twice by a hydration race.
@@ -129,23 +131,7 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
     if (e.key === "Escape" && isOpen) {
       e.preventDefault();
       close();
-      return;
     }
-    if (e.key !== "o" && e.key !== "O") return;
-    if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
-    if (e.defaultPrevented || isCommandOpen) return;
-    const target = e.target as HTMLElement | null;
-    if (
-      target &&
-      (target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.tagName === "SELECT" ||
-        target.isContentEditable)
-    ) {
-      return;
-    }
-    e.preventDefault();
-    toggle();
   });
 
   useEffect(() => {

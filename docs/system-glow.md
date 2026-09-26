@@ -126,8 +126,8 @@ between its edge and its content:
 
 | | |
 |---|---|
-| `content` | a ref, or several (their union). Each counts as far as it is visible: clipped by any scrolling ancestor, so a long article counts only its window. |
-| gutter `x` / `y` | the narrower of the left and right gutters / of the top and bottom ones, from the glow's own box (the viewport, or what `style` insets it to — a bezel's screen). Measured live while on — resize, scroll — and kept for the way out. |
+| `content` | a ref, or several (their union). Each counts as laid out at rest — every scrolling ancestor at its top — and clipped by it: a long article counts only the window it starts in, and scrolling it never changes the gutter (measured as it shows, an article scrolled up touches the screen's top and takes the light to nothing). |
+| gutter `x` / `y` | the narrower of the left and right gutters / of the top and bottom ones, from the glow's own box (the viewport, or what `style` insets it to — a bezel's screen). Measured while on, again whenever a size changes, and kept for the way out. |
 | `depth` | where the light ends: `0.5` halfway to the content, `1` just touching it, `1.5` its tail half a gutter over it. **A number** is a share of the narrower gutter, and the light stands as high off every edge — a ring's usual look, reaching the content first where it is nearest. **`{ x, y }`** takes each axis's own gutter, so the light follows the content's shape (x off the sides, y off the top and bottom). |
 
 Everything else is `<Glow>`'s (`active`, `strength`, `radius`, `layer`,

@@ -51,7 +51,7 @@ export interface AboutSurfaceProps {
 }
 
 export function AboutSurface({ en, zh }: AboutSurfaceProps) {
-  const { isOpen, close, seen } = useAbout();
+  const { isOpen, close } = useAbout();
   const { locale } = useLocale();
   const { hasFineHoverPointer } = useInputCapability();
   const tuning = useGlowTuning();
@@ -185,7 +185,6 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
             >
               <AboutFoot
                 ref={footRef}
-                firstTime={!seen}
                 keyboard={hasFineHoverPointer}
                 onDismiss={close}
               />
@@ -228,12 +227,10 @@ function useDeskLayout(): boolean {
 }
 
 function AboutFoot({
-  firstTime,
   keyboard,
   onDismiss,
   ref,
 }: {
-  firstTime: boolean;
   keyboard: boolean;
   onDismiss: () => void;
   ref?: Ref<HTMLDivElement>;
@@ -255,13 +252,19 @@ function AboutFoot({
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         )}
       >
-        {t(locale, firstTime ? "aboutEnter" : "aboutClose")}
+        {/* Reveal, every time: the veil lifts off the page underneath. */}
+        {t(locale, "aboutEnter")}
       </button>
       <span className="mt-3 max-w-[12.5rem] text-center text-[11px] leading-relaxed text-tertiary-foreground">
         {keyboard ? (
           <>
             {before}
-            <kbd className={cn(TYPE.kbd, "font-sans font-medium")}>O</kbd>
+            {/* The palette's slash command, in the chips its slash list
+                wears (systems/command/results.tsx). */}
+            <span className="inline-flex gap-1 align-[0.05em] whitespace-nowrap">
+              <kbd className={TYPE.kbd}>/</kbd>
+              <kbd className={TYPE.kbd}>O</kbd>
+            </span>
             {after}
           </>
         ) : (

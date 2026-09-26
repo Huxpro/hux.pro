@@ -25,9 +25,10 @@ import { Glow, type GlowProps } from "./glow";
 //              { x, y }   per axis, x off the sides and y off the top and
 //                         bottom: the light follows the content's shape
 //
-// The content is the union of the given elements, each as far as it is
-// visible (clipped by any scrolling ancestor, so a long article in a scroll
-// container counts only its window). The glow's edge is the glow's own box:
+// The content is the union of the given elements, each as laid out at rest
+// and clipped by any scrolling ancestor: a long article in a scroll
+// container counts only the window it starts in, and scrolling it never
+// changes the gutter. The glow's edge is the glow's own box:
 // the viewport, or whatever `style` insets it to (a bezel's screen). Both
 // are measured live while the glow is on and kept for its way out.
 //
@@ -56,33 +57,47 @@ interface Box {
   bottom: number;
 }
 
-/** The element's rect, clipped by every ancestor that clips it. */
-function visibleRect(el: HTMLElement): Box {
-  const r = el.getBoundingClientRect();
-  const box = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+/**
+ * The element's rect as laid out at rest — every scrolling ancestor at its
+ * top — clipped by every ancestor that clips it. Scrolling the content moves
+ * the words, not the room the ring has: measured as it currently shows, a
+ * long article scrolled up would touch the screen's top and take the gutter
+ * (and with it the light) to nothing.
+ */
+function restingRect(el: HTMLElement): Box {
+  const clips: HTMLElement[] = [];
   for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
     const cs = getComputedStyle(p);
-    if (cs.overflowX === "visible" && cs.overflowY === "visible") continue;
+    if (cs.overflowX !== "visible" || cs.overflowY !== "visible") clips.push(p);
+  }
+  // Undo every clip's scroll for the element; for each clip, the scroll of
+  // the clips around it.
+  const shift = (from: number) => {
+    let x = 0;
+    let y = 0;
+    for (let i = from; i < clips.length; i++) {
+      x += clips[i].scrollLeft;
+      y += clips[i].scrollTop;
+    }
+    return { x, y };
+  };
+  const r = el.getBoundingClientRect();
+  const s = shift(0);
+  const box = { left: r.left + s.x, top: r.top + s.y, right: r.right + s.x, bottom: r.bottom + s.y };
+  clips.forEach((p, i) => {
+    const cs = getComputedStyle(p);
     const c = p.getBoundingClientRect();
+    const o = shift(i + 1);
     if (cs.overflowX !== "visible") {
-      box.left = Math.max(box.left, c.left);
-      box.right = Math.min(box.right, c.right);
+      box.left = Math.max(box.left, c.left + o.x);
+      box.right = Math.min(box.right, c.right + o.x);
     }
     if (cs.overflowY !== "visible") {
-      box.top = Math.max(box.top, c.top);
-      box.bottom = Math.min(box.bottom, c.bottom);
+      box.top = Math.max(box.top, c.top + o.y);
+      box.bottom = Math.min(box.bottom, c.bottom + o.y);
     }
-  }
+  });
   return box;
-}
-
-function scrollers(el: HTMLElement): HTMLElement[] {
-  const out: HTMLElement[] = [];
-  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
-    const cs = getComputedStyle(p);
-    if (cs.overflowX !== "visible" || cs.overflowY !== "visible") out.push(p);
-  }
-  return out;
 }
 
 export function EdgeGlow({ content, depth, active, ...glow }: EdgeGlowProps) {
@@ -97,7 +112,7 @@ export function EdgeGlow({ content, depth, active, ...glow }: EdgeGlowProps) {
     if (!frame || els.length === 0) return;
     const measure = () => {
       const f = frame.getBoundingClientRect();
-      const u = els.map(visibleRect).reduce((a, b) => ({
+      const u = els.map(restingRect).reduce((a, b) => ({
         left: Math.min(a.left, b.left),
         top: Math.min(a.top, b.top),
         right: Math.max(a.right, b.right),
@@ -110,16 +125,9 @@ export function EdgeGlow({ content, depth, active, ...glow }: EdgeGlowProps) {
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(frame);
-    const scrolls = new Set<HTMLElement>();
-    for (const el of els) {
-      ro.observe(el);
-      scrollers(el).forEach((s) => scrolls.add(s));
-    }
-    scrolls.forEach((s) => s.addEventListener("scroll", measure, { passive: true }));
-    return () => {
-      ro.disconnect();
-      scrolls.forEach((s) => s.removeEventListener("scroll", measure));
-    };
+    // Resting geometry: only a change of size moves it, never a scroll.
+    els.forEach((el) => ro.observe(el));
+    return () => ro.disconnect();
     // The refs' targets are read when the glow turns on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
