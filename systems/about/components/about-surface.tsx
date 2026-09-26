@@ -214,6 +214,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
         // The devtool's Glow module: the About's own strength, and its depth
         // per layout (systems/glow/lib/tuning.ts).
         depth={desk ? tuning.aboutDesk : tuning.aboutPhone}
+        motion={tuning.aboutMotion}
         strength={tuning.aboutStrength}
         radius={screenRadius}
         style={frame}

@@ -79,6 +79,7 @@ import {
   setGlowTuning,
   useGlowGroundSource,
   useGlowTuning,
+  type GlowMotion,
   type GlowTuning,
 } from "@/systems/glow";
 import { useOptionalWindows } from "@/systems/windows";
@@ -2841,6 +2842,7 @@ function GlowModule() {
     const id = requestAnimationFrame(() => requestAnimationFrame(() => scrollTo("glow")));
     return () => cancelAnimationFrame(id);
   }, [aboutOpen, scrollTo]);
+  type NumericKey = Exclude<keyof GlowTuning, "aboutMotion">;
   const star = (key: keyof GlowTuning) =>
     tuning[key] !== GLOW_TUNING_DEFAULTS[key] ? (
       <PanelStar source="saved" onReset={() => setGlowTuning({ [key]: GLOW_TUNING_DEFAULTS[key] })} />
@@ -2849,7 +2851,7 @@ function GlowModule() {
     (k) => tuning[k] !== GLOW_TUNING_DEFAULTS[k],
   );
   const pct = (v: number) => `${Math.round(v * 100)}%`;
-  const slider = (key: keyof GlowTuning, label: string, ariaLabel: string, min: number, max: number) => (
+  const slider = (key: NumericKey, label: string, ariaLabel: string, min: number, max: number) => (
     <PanelSlider
       label={label}
       ariaLabel={ariaLabel}
@@ -2893,6 +2895,20 @@ function GlowModule() {
             About having two (systems/glow/lib/tuning.ts has the defaults). */}
         {slider("aboutDesk", zh ? "关于 · 桌面深度" : "About · desk depth", "About glow depth, desk", 0.05, 2.5)}
         {slider("aboutPhone", zh ? "关于 · 手机深度" : "About · phone depth", "About glow depth, phone", 0.05, 2.5)}
+        {/* How the About's ring lives while it is up: the motions of
+            <Glow motion>, judged on the ring that matters. */}
+        <PanelRow label={zh ? "关于 · 动效" : "About · motion"} star={star("aboutMotion")}>
+          <PanelSegmented<GlowMotion>
+            value={tuning.aboutMotion}
+            options={[
+              { value: "flow", label: zh ? "流动" : "Flow" },
+              { value: "rotate", label: zh ? "旋转" : "Rotate" },
+              { value: "pulse", label: zh ? "呼吸" : "Pulse" },
+            ]}
+            onChange={(v) => setGlowTuning({ aboutMotion: v })}
+            label="About glow motion"
+          />
+        </PanelRow>
         <GlowGroundReadout zh={zh} />
       </div>
     </DebugSection>

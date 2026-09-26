@@ -224,6 +224,7 @@ localStorage (`hux_glow`, `lib/tuning.ts`):
 | About · strength | 0–150% | the About's ring, on top of the above |
 | About · desk depth | 5–250% of the narrower gutter | the About's `<EdgeGlow depth>` on a desk (`sm` and up): default 130% |
 | About · phone depth | 5–250% of the narrower gutter | the same on a phone: default 140% |
+| About · motion | Flow / Rotate / Pulse | the About's ring's `motion` (below), to judge each on the ring that matters: default Flow |
 
 The desk's default is the ring as it first shipped — a reach of 3.8% of the
 screen's short side, clamped to 18–38px — restated: on a 1440×900 desk a

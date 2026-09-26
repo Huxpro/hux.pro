@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import type { GlowMotion } from "../components/glow";
 
 // =============================================================================
 // Glow tuning — the devtool's knobs on the light, saved.
@@ -16,6 +17,8 @@ import { useSyncExternalStore } from "react";
 //                  high off every edge). 1 just touches the words. One per
 //                  layout, the About having two (a centred group on a desk,
 //                  the whole screen on a phone — the `sm` breakpoint).
+//   aboutMotion    how the About's ring lives: flow (the default), rotate,
+//                  pulse — to judge the motions on the one ring that matters.
 //
 // The desk's default is the ring as it first shipped (a reach of 3.8% of the
 // screen's short side, 18–38px), restated: at 1440×900 a 34px reach ends
@@ -33,6 +36,8 @@ export interface GlowTuning {
   aboutStrength: number;
   aboutDesk: number;
   aboutPhone: number;
+  /** How the About's ring lives while it is up (<Glow motion>). */
+  aboutMotion: GlowMotion;
 }
 
 export const GLOW_TUNING_DEFAULTS: GlowTuning = {
@@ -40,7 +45,10 @@ export const GLOW_TUNING_DEFAULTS: GlowTuning = {
   aboutStrength: 1,
   aboutDesk: 1.3,
   aboutPhone: 1.4,
+  aboutMotion: "flow",
 };
+
+const MOTIONS: readonly GlowMotion[] = ["flow", "rotate", "pulse"];
 
 const KEY = "hux_glow";
 
@@ -54,12 +62,16 @@ function load() {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
-      // Only numbers, and only the knobs there are: a shape saved by an
+      // Only the knobs there are, each of its own type: a shape saved by an
       // older build (a depth pair) falls back to the default.
       const saved = JSON.parse(raw) as Record<string, unknown>;
       const next = { ...GLOW_TUNING_DEFAULTS };
-      for (const k of Object.keys(next) as (keyof GlowTuning)[]) {
-        if (typeof saved[k] === "number") next[k] = saved[k];
+      for (const k of ["strength", "aboutStrength", "aboutDesk", "aboutPhone"] as const) {
+        const v = saved[k];
+        if (typeof v === "number") next[k] = v;
+      }
+      if (MOTIONS.includes(saved.aboutMotion as GlowMotion)) {
+        next.aboutMotion = saved.aboutMotion as GlowMotion;
       }
       state = next;
     }

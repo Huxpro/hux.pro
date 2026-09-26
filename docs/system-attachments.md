@@ -75,6 +75,12 @@ entry (see [og-previews.md](./og-previews.md)), and enrichment carries it to
 says nothing about framing is not read as permission. Pages the crawl cannot
 reach at all can be told by hand (`preview: { frame: "deny" }`, as The Verge is).
 
+A **PDF** (a link whose path ends `.pdf`, `isPdfLink`) leaves for a tab the
+same way, whatever its headers say: the in-app browser is a sandboxed iframe,
+and neither engine reads a PDF there — WebKit paints the first page as a
+still image that will not scroll, Chrome will not run its viewer in a
+sandboxed frame. The system's own viewer, in a tab, is its only good home.
+
 A card that will leave for a tab says so **before** the click, not after:
 its cover wears the `New tab` chip — on the expanded card, on the strip
 cover and in the hover peek (the one chip vocabulary, below) — the cover's
