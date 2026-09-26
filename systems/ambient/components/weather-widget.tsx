@@ -7,7 +7,7 @@ import {
   WidgetTitle,
 } from "@/components/ui/widget";
 import { t, useLocale } from "@/services";
-import { Loader2, LocateFixed, Navigation } from "lucide-react";
+import { Loader2, Navigation } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatLocationLabel } from "../lib";
 import { useLocation } from "../provider";
@@ -48,11 +48,11 @@ export function WeatherWidget() {
     setStaleCity(cityLabel);
   }, [cityLabel]);
   const displayCity = cityLabel ?? staleCity ?? t(locale, "widgetWeather");
-  // A city from the network is a guess, and the header says so: a small
-  // locate mark beside it, and the city itself is the way to the location
-  // primer. When the guess also disagrees with this device's clock it is
-  // probably wrong, and it reads "Dallas?". (The unprompted offer is
-  // LocationOffer; this is the one that is always there.)
+  // A city from the network is a guess, and the header says so: an `ip` tag
+  // beside it, where the arrow sits for a GPS fix. Tag and city together are
+  // the way to the location primer — the one place a visitor who sees the
+  // wrong city goes looking. When the guess also disagrees with this device's
+  // clock it is probably wrong, and it reads "Dallas?".
   const guessed = mounted && location?.source === "ip";
   const doubtful = guessed && location.timezoneMismatch === true;
 
@@ -69,7 +69,7 @@ export function WeatherWidget() {
               onClick={openLocationPrimer}
               aria-label={t(locale, doubtful ? "locationDoubtful" : "locationGuessed")}
               title={t(locale, doubtful ? "locationDoubtful" : "locationGuessed")}
-              className="flex min-w-0 items-center gap-1.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="group/ip flex min-w-0 items-center gap-1.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <WidgetTitle className="truncate">
                 {/* One child: the title is a flex row with a gap. */}
@@ -81,7 +81,12 @@ export function WeatherWidget() {
               {isReloading ? (
                 <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
               ) : (
-                <LocateFixed className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 rounded-[4px] bg-muted px-1 font-mono text-[10px] leading-[14px] text-tertiary-foreground transition-colors group-hover/ip:text-foreground"
+                >
+                  ip
+                </span>
               )}
             </button>
           ) : (
