@@ -1844,6 +1844,14 @@ prompt by itself — not a load, not a focus, not a refetch:
   the timezone check cannot see most misplacements (a San Jose Wi-Fi placed in
   Los Angeles passes it), and a toast on every guessed visit would be louder
   than the problem.
+- **iOS Safari never reports the grant.** Under its default "Ask" site
+  setting the Permissions API keeps reading `prompt` after an Allow, so a
+  gate on `granted` alone left the switch to Accurate running on the IP. A
+  fix from the primer or the palette is therefore recorded
+  (`locationGrantedAt`) and counts as a grant for a day (`canTakeFix` in
+  `lib/queries.ts`); a refusal clears it, so a "Don't Allow" is not asked
+  again. Setting Safari's site setting to Allow reads `granted` and needs none
+  of this.
 - The permission is followed live (`PermissionStatus` `change`). A grant made
   during the visit — in the site settings, say — switches to Accurate; one the
   page loads with does not, since IP was then chosen on purpose.

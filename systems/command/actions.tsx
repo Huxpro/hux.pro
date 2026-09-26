@@ -85,18 +85,11 @@ export function useCommandActions(): CommandAction[] {
   const { theme, preference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const {
-    locationMode,
-    permission: locationPermission,
+    usingGps: locationAccurate,
     setLocationMode,
     requestAccurateLocation,
     openLocationPrimer,
   } = useLocation();
-  // Accurate only counts once the browser lets it happen: set to Accurate but
-  // not granted, the page is running on the IP (lib/queries.ts), and the row
-  // says so — choosing it then asks.
-  const locationAccurate =
-    locationMode === "accurate" &&
-    (locationPermission === "granted" || locationPermission === "unknown");
   const {
     kind: wallpaperKind,
     weatherStyle,

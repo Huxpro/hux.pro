@@ -99,6 +99,13 @@ export interface AmbientSettings {
    * dialog. See lib/tilt-primer.ts.
    */
   weatherGyroPrimed: boolean;
+  /**
+   * When the visitor last said yes to the location prompt (epoch ms; 0 for
+   * never). Safari's default "Ask" setting reads "prompt" through the
+   * Permissions API even after an Allow, so this is the evidence of a grant
+   * the API will not report. See `canTakeFix` in lib/queries.ts.
+   */
+  locationGrantedAt: number;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -120,6 +127,7 @@ export function getDefaultSettings(): AmbientSettings {
     weatherGyro: true,
     weatherGyroGranted: false,
     weatherGyroPrimed: false,
+    locationGrantedAt: 0,
     wallpaperId: DEFAULT_WALLPAPER_ID,
     wallpaperPlay: "off",
     wallpaperAlbum: null,
@@ -190,6 +198,9 @@ export function getAmbientSettings(): AmbientSettings {
       weatherGyro: parsed.weatherGyro !== false,
       weatherGyroGranted: parsed.weatherGyroGranted === true,
       weatherGyroPrimed: parsed.weatherGyroPrimed === true,
+      locationGrantedAt:
+        finiteOrNull(parsed.locationGrantedAt, (n) => Math.max(0, n)) ??
+        defaults.locationGrantedAt,
       wallpaperId,
       wallpaperPlay: play,
       wallpaperAlbum: play === "off" ? null : wallpaperAlbum,

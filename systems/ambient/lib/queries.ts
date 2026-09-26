@@ -7,6 +7,7 @@ import {
   type GeolocationPermission,
   type LocationMode,
   type ResolvedLocation,
+  classifyGeolocationError,
   fetchIpLocation,
   requestAccurateLocation,
   subscribeGeolocationPermission,
@@ -62,26 +63,60 @@ export function useGeolocationPermission(
 }
 
 /**
- * The visitor's location. In "accurate" mode a GPS fix is taken only when the
- * permission is already granted (or the browser cannot say — the old
- * behaviour); asked but not granted, the query *is* the IP one, same key and
+ * How long an explicit yes to the prompt counts as a grant when the
+ * Permissions API still reads "prompt". Safari remembers an Allow for about a
+ * day under its default "Ask" setting, and never reports it as "granted".
+ */
+export const GRANT_MEMORY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * May a fix be taken now without it being what raises the prompt?
+ *
+ * "granted" — yes. "unknown" (no Permissions API) — yes, the old behaviour.
+ * "denied" or not answered yet — no. "prompt" — only within a day of the
+ * visitor saying yes to it here: that is iOS Safari, whose default "Ask" site
+ * setting keeps reading "prompt" after an Allow, and without this the switch to
+ * Accurate never took. (A visitor who sets Safari's site setting to Allow reads
+ * "granted" and needs none of it.)
+ */
+export function canTakeFix(
+  permission: GeolocationPermission | null,
+  grantedAtMs: number,
+  nowMs: number
+): boolean {
+  if (permission === "granted" || permission === "unknown") return true;
+  if (permission !== "prompt") return false;
+  return grantedAtMs > 0 && nowMs - grantedAtMs < GRANT_MEMORY_MS;
+}
+
+/**
+ * The visitor's location. In "accurate" mode a GPS fix is taken only when
+ * `canTakeFix` allows it; otherwise the query *is* the IP one, same key and
  * same cache, so a revoked or reset permission degrades to the network's guess
  * instead of a prompt on page load or no weather at all. A fix that fails for
- * any other reason falls back to the IP too.
+ * any reason falls back to the IP too, and a refusal (the visitor answered a
+ * prompt Safari raised anyway) is reported through `onDenied` so it is not
+ * asked again.
  */
 export function useLocationQuery(
   mode: LocationMode,
-  permission: GeolocationPermission | null
+  permission: GeolocationPermission | null,
+  grant: { grantedAtMs: number; nowMs: number; onDenied: () => void }
 ) {
   const wantsGps = mode === "accurate";
-  const gps = wantsGps && (permission === "granted" || permission === "unknown");
+  const gps = wantsGps && canTakeFix(permission, grant.grantedAtMs, grant.nowMs);
+  const onDeniedRef = useRef(grant.onDenied);
+  useEffect(() => {
+    onDeniedRef.current = grant.onDenied;
+  });
   return useQuery<ResolvedLocation, Error>({
     queryKey: queryKeys.location(gps ? "accurate" : "ip"),
     queryFn: async () => {
       if (!gps) return fetchIpLocation();
       try {
         return await requestAccurateLocation();
-      } catch {
+      } catch (err) {
+        if (classifyGeolocationError(err) === "denied") onDeniedRef.current();
         return fetchIpLocation();
       }
     },
@@ -89,6 +124,8 @@ export function useLocationQuery(
     // pay for an IP lookup on every load.
     enabled: !wantsGps || permission !== null,
     staleTime: gps ? ACCURATE_LOCATION_STALE_TIME : IP_LOCATION_STALE_TIME,
+    // On focus only when the browser itself says granted: a remembered Safari
+    // grant is taken on load, not every time the tab comes back.
     refetchOnWindowFocus: !gps || permission === "granted",
     refetchOnReconnect: true,
     placeholderData: (previousData) => previousData,
