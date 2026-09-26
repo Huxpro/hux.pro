@@ -49,12 +49,14 @@ over whatever page a visitor landed on.
    screen, nothing pushes the way out off it.
    **The foot** — always on screen: a glass button, centred (`GLASS_TRACK_FLAT`,
    the theater's control glass — part of the veil, not a slab on it), reading
-   **Reveal** every time (the veil lifts off the page underneath). Where there
-   is a keyboard it reads like a menu item — the word at the left, `esc` at the
-   right — no wider than the two need; the button stays at the screen's
-   centre. Beneath it one quiet
-   line (quaternary) for every device — *Find it again in the command menu* —
-   kept to about the button's width so the weight stays on the press.
+   **Reveal** every time (the veil lifts off the page underneath), breathing
+   — the glow's `pulse`, only its halo (`inside={false}`), blooming out from
+   behind it: the one thing on the screen asking to be pressed. Where there
+   is a keyboard it wears `esc` after the word. Beneath it one quiet line
+   (quaternary) for every device — *Find it again in the command menu*. On a
+   phone the two are centred at the screen's foot; on a desk they hang from
+   the words' left edge, as their last line — centred under a ragged
+   paragraph they would line up with nothing.
    **Where** — on a desk the words and the foot are one group, centred on the
    screen (flexible space above and below). On a phone the words take every
    line the screen has and the foot sits at its bottom.
