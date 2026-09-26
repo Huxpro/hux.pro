@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { AdaptiveSurface } from "@/systems/surface";
+import { AdaptiveSurface, SurfaceMorph } from "@/systems/surface";
 import { useEffect, useState } from "react";
 import { useWallpaper } from "../provider";
 
@@ -247,59 +247,66 @@ export function TiltPrimerSheet() {
       <div className="space-y-4 pb-2">
         {/* A refusal gets the picture of what a refusal leaves you with. */}
         <TiltIllustration pose={phase === "denied" ? "flat" : "rocking"} />
-        {!settled && (
-          <p className="px-0.5 text-[15px] leading-relaxed text-secondary-foreground">
-            {t(locale, "tiltPrimerBody")}
-          </p>
-        )}
-        {settled ? (
-          <p
-            role="status"
-            className={cn(
-              "px-0.5 py-2 text-center text-[15px] leading-relaxed",
-              phase === "granted" ? "text-foreground" : "text-secondary-foreground"
-            )}
-          >
-            {t(locale, phase === "granted" ? "tiltPrimerGranted" : "tiltPrimerDenied")}
-          </p>
-        ) : (
-          <>
-            <div className="space-y-2">
-              <button
-                type="button"
-                // Straight from the press: `takeTilt()` reaches
-                // `requestPermission()` in the same task, which is the only
-                // thing that makes WebKit's dialog appear at all.
-                onClick={take}
-                disabled={phase === "asking"}
+        {/* The offer, then how it went, in the same sheet: the words
+            cross-fade and the sheet eases to its new height rather than
+            cutting to it (SurfaceMorph). The picture stays; its pose is its
+            own. */}
+        <SurfaceMorph
+          step={settled ? phase : "offer"}
+          render={(view) =>
+            view === "granted" || view === "denied" ? (
+              <p
+                role="status"
                 className={cn(
-                  BUTTON,
-                  "bg-foreground text-background hover:bg-foreground/90",
-                  "disabled:opacity-50"
+                  "px-0.5 py-2 text-center text-[15px] leading-relaxed",
+                  view === "granted" ? "text-foreground" : "text-secondary-foreground"
                 )}
               >
-                {t(locale, "tiltPrimerConfirm")}
-              </button>
-              <button
-                type="button"
-                onClick={closeTiltPrimer}
-                disabled={phase === "asking"}
-                className={cn(
-                  BUTTON,
-                  "bg-foreground/[0.06] hover:bg-foreground/10",
-                  "disabled:opacity-50"
-                )}
-              >
-                {t(locale, "tiltPrimerDismiss")}
-              </button>
-            </div>
-            <p className="px-0.5 text-center text-[11px] leading-snug text-tertiary-foreground">
-              {t(locale, "tiltPrimerAsk")}
-              <br />
-              {t(locale, "tiltPrimerAgain")}
-            </p>
-          </>
-        )}
+                {t(locale, view === "granted" ? "tiltPrimerGranted" : "tiltPrimerDenied")}
+              </p>
+            ) : (
+              <div className="space-y-4">
+                <p className="px-0.5 text-[15px] leading-relaxed text-secondary-foreground">
+                  {t(locale, "tiltPrimerBody")}
+                </p>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    // Straight from the press: `takeTilt()` reaches
+                    // `requestPermission()` in the same task, which is the only
+                    // thing that makes WebKit's dialog appear at all.
+                    onClick={take}
+                    disabled={phase === "asking"}
+                    className={cn(
+                      BUTTON,
+                      "bg-foreground text-background hover:bg-foreground/90",
+                      "disabled:opacity-50"
+                    )}
+                  >
+                    {t(locale, "tiltPrimerConfirm")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeTiltPrimer}
+                    disabled={phase === "asking"}
+                    className={cn(
+                      BUTTON,
+                      "bg-foreground/[0.06] hover:bg-foreground/10",
+                      "disabled:opacity-50"
+                    )}
+                  >
+                    {t(locale, "tiltPrimerDismiss")}
+                  </button>
+                </div>
+                <p className="px-0.5 text-center text-[11px] leading-snug text-tertiary-foreground">
+                  {t(locale, "tiltPrimerAsk")}
+                  <br />
+                  {t(locale, "tiltPrimerAgain")}
+                </p>
+              </div>
+            )
+          }
+        />
       </div>
     </AdaptiveSurface>
   );

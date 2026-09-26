@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { AdaptiveSurface } from "@/systems/surface";
+import { AdaptiveSurface, SurfaceMorph } from "@/systems/surface";
 import { LocateFixed, MapPinOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatLocationLabel } from "../lib/location";
@@ -78,7 +78,13 @@ export function LocationPrimerSheet() {
     setPhase(await requestAccurateLocation());
   };
 
-  const settled = phase !== "offer" && phase !== "asking";
+  // What the sheet shows: the offer (asking included — the browser's dialog
+  // is over it), or how it went.
+  const view: "offer" | keyof typeof OUTCOME_KEY = blocked
+    ? "denied"
+    : phase === "offer" || phase === "asking"
+      ? "offer"
+      : phase;
   const guessed =
     location?.source === "ip" ? formatLocationLabel(location) : null;
   const body = guessed
@@ -98,65 +104,73 @@ export function LocationPrimerSheet() {
       closeLabel={t(locale, "locationPrimerDismiss")}
       fitContent
     >
-      <div className="space-y-4 pb-2">
-        <div aria-hidden="true" className="flex justify-center pt-2">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-foreground/[0.06]">
-            {phase === "denied" || blocked ? (
-              <MapPinOff className="h-6 w-6 text-secondary-foreground" />
-            ) : (
-              <LocateFixed className="h-6 w-6 text-foreground" />
-            )}
-          </span>
-        </div>
-        {settled || blocked ? (
-          <p
-            role="status"
-            className={cn(
-              "px-0.5 py-2 text-center text-[15px] leading-relaxed",
-              phase === "granted" ? "text-foreground" : "text-secondary-foreground"
-            )}
-          >
-            {t(locale, OUTCOME_KEY[blocked ? "denied" : (phase as keyof typeof OUTCOME_KEY)])}
-          </p>
-        ) : (
-          <>
-            <p className="px-0.5 text-[15px] leading-relaxed text-secondary-foreground">
-              {body}
-            </p>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={take}
-                disabled={phase === "asking"}
-                className={cn(
-                  BUTTON,
-                  "bg-foreground text-background hover:bg-foreground/90",
-                  "disabled:opacity-50"
+      {/* The offer, then how it went, in the same sheet: the content
+          cross-fades and the sheet eases to its new height rather than
+          cutting to it (SurfaceMorph). */}
+      <SurfaceMorph
+        step={view}
+        render={(v) => (
+          <div className="space-y-4 pb-2">
+            <div aria-hidden="true" className="flex justify-center pt-2">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-foreground/[0.06]">
+                {v === "denied" ? (
+                  <MapPinOff className="h-6 w-6 text-secondary-foreground" />
+                ) : (
+                  <LocateFixed className="h-6 w-6 text-foreground" />
                 )}
-              >
-                {t(locale, "locationPrimerConfirm")}
-              </button>
-              <button
-                type="button"
-                onClick={closeLocationPrimer}
-                disabled={phase === "asking"}
-                className={cn(
-                  BUTTON,
-                  "bg-foreground/[0.06] hover:bg-foreground/10",
-                  "disabled:opacity-50"
-                )}
-              >
-                {t(locale, "locationPrimerDismiss")}
-              </button>
+              </span>
             </div>
-            <p className="px-0.5 text-center text-[11px] leading-snug text-tertiary-foreground">
-              {t(locale, "locationPrimerAsk")}
-              <br />
-              {t(locale, "locationPrimerAgain")}
-            </p>
-          </>
+            {v === "offer" ? (
+              <>
+                <p className="px-0.5 text-[15px] leading-relaxed text-secondary-foreground">
+                  {body}
+                </p>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={take}
+                    disabled={phase === "asking"}
+                    className={cn(
+                      BUTTON,
+                      "bg-foreground text-background hover:bg-foreground/90",
+                      "disabled:opacity-50"
+                    )}
+                  >
+                    {t(locale, "locationPrimerConfirm")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeLocationPrimer}
+                    disabled={phase === "asking"}
+                    className={cn(
+                      BUTTON,
+                      "bg-foreground/[0.06] hover:bg-foreground/10",
+                      "disabled:opacity-50"
+                    )}
+                  >
+                    {t(locale, "locationPrimerDismiss")}
+                  </button>
+                </div>
+                <p className="px-0.5 text-center text-[11px] leading-snug text-tertiary-foreground">
+                  {t(locale, "locationPrimerAsk")}
+                  <br />
+                  {t(locale, "locationPrimerAgain")}
+                </p>
+              </>
+            ) : (
+              <p
+                role="status"
+                className={cn(
+                  "px-0.5 py-2 text-center text-[15px] leading-relaxed",
+                  v === "granted" ? "text-foreground" : "text-secondary-foreground"
+                )}
+              >
+                {t(locale, OUTCOME_KEY[v])}
+              </p>
+            )}
+          </div>
         )}
-      </div>
+      />
     </AdaptiveSurface>
   );
 }

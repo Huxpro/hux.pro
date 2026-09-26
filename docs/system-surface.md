@@ -294,6 +294,17 @@ on it). The load-bundle sheet and the window menu on touch
 (`systems/windows/components/window-menu.tsx`) are the ones that do this; the
 keyboard pushes them up like any other sheet.
 
+**Changing what it says: `SurfaceMorph`.** A `fitContent` sheet that moves
+through steps — an offer, then how it went — must not cut between them: the
+text jumps and the sheet snaps to its new height in one frame. Wrap the part
+that changes in `<SurfaceMorph step={…} render={(step) => …} />`
+(`systems/surface/morph.tsx`): the leaving step stays over the top and fades
+out, the new one fades in a beat later, and the box eases between the two
+measured heights on `SURFACE_EASING`. The sheet is pinned at its bottom edge,
+so it grows or shrinks from the top, the way it opened. Reduced motion swaps
+at once. The two permission primers use it (the gyroscope's and the
+location's).
+
 **Modal.** The scrim is the viewport — `Drawer.Viewport` is already a
 transparent, full-screen box containing the popup, so when `modal` is on it
 takes the page away and a press on it dismisses; when it is off it is
