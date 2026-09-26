@@ -256,7 +256,8 @@ function AboutFoot({
   return (
     // On a phone the way out is centred at the screen's foot. On a desk it
     // hangs from the words' left edge, as their last line: centred under a
-    // ragged paragraph it lines up with nothing.
+    // ragged paragraph it lines up with nothing. How to come back is the
+    // words' own last sentence, not a line here.
     <div
       ref={ref}
       className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-col items-center sm:items-start"
@@ -286,10 +287,6 @@ function AboutFoot({
         )}
         <Glow active={firstTime} motion="pulse" inside={false} bleed={14} reach={3} strength={0.9} />
       </button>
-      {/* One quiet line for every device: the palette is where it lives. */}
-      <span className="mt-3 max-w-[12.5rem] text-center text-[11px] leading-relaxed text-quaternary-foreground sm:max-w-none sm:text-left">
-        {t(locale, "aboutReopenHintTouch")}
-      </span>
     </div>
   );
 }
