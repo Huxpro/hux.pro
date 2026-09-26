@@ -72,11 +72,21 @@ export type NormalizedWeather = {
   humidity?: number;
   sunriseMs?: number;
   sunsetMs?: number;
+  /** Start of the model interval the `current` block describes (epoch ms). */
+  observedAtMs?: number;
+  /** Length of that interval, seconds — 900 where Open-Meteo has 15-minutely data. */
+  intervalS?: number;
   updatedAt: number;
 };
 
+// Requested with `timeformat=unixtime`: every time is epoch seconds. The ISO
+// default is the *location's* wall clock with no offset, which `new Date()`
+// reads in the *browser's* zone — so a visitor whose IP lands a timezone away
+// got a sunrise hours off, and a sky, phase and greeting to match.
 type OpenMeteoResponse = {
   current?: {
+    time?: number;
+    interval?: number;
     temperature_2m?: number;
     apparent_temperature?: number;
     relative_humidity_2m?: number;
@@ -92,8 +102,8 @@ type OpenMeteoResponse = {
     wind_gusts_10m?: number;
   };
   daily?: {
-    sunrise?: string[];
-    sunset?: string[];
+    sunrise?: number[];
+    sunset?: number[];
   };
 };
 
@@ -238,6 +248,7 @@ export async function fetchCurrentWeather(
     url.searchParams.set("daily", "sunrise,sunset");
     url.searchParams.set("forecast_days", "1");
     url.searchParams.set("timezone", "auto");
+    url.searchParams.set("timeformat", "unixtime");
 
     const res = await fetch(url.toString(), {
       signal: controller.signal,
@@ -255,12 +266,9 @@ export async function fetchCurrentWeather(
     const condition = normalizeWeatherCode(weatherCode);
     const isDay = typeof cw?.is_day === "number" ? cw.is_day === 1 : undefined;
 
-    const sunriseRaw = data.daily?.sunrise?.[0];
-    const sunsetRaw = data.daily?.sunset?.[0];
-    const sunriseMs =
-      typeof sunriseRaw === "string" ? new Date(sunriseRaw).getTime() : undefined;
-    const sunsetMs =
-      typeof sunsetRaw === "string" ? new Date(sunsetRaw).getTime() : undefined;
+    const sunriseS = num(data.daily?.sunrise?.[0]);
+    const sunsetS = num(data.daily?.sunset?.[0]);
+    const observedS = num(cw?.time);
 
     const cloudCoverPct = num(cw?.cloud_cover);
     const precipitationMmH = num(cw?.precipitation);
@@ -293,8 +301,10 @@ export async function fetchCurrentWeather(
         humidityPct === undefined
           ? undefined
           : clamp01(humidityPct / 100),
-      sunriseMs: Number.isFinite(sunriseMs) ? sunriseMs : undefined,
-      sunsetMs: Number.isFinite(sunsetMs) ? sunsetMs : undefined,
+      sunriseMs: sunriseS === undefined ? undefined : sunriseS * 1000,
+      sunsetMs: sunsetS === undefined ? undefined : sunsetS * 1000,
+      observedAtMs: observedS === undefined ? undefined : observedS * 1000,
+      intervalS: num(cw?.interval),
       updatedAt: Date.now(),
     };
   } finally {

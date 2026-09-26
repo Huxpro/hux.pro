@@ -22,6 +22,7 @@ import {
 /** The named tints plus the segmented control's own "pick a colour". */
 type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
+import { formatLocationLabel } from "@/systems/ambient/lib/location";
 import { gravityTiltDegrees, readGravity } from "@/systems/ambient/lib/gyroscope";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
@@ -2550,6 +2551,29 @@ function SkyModule() {
             </span>
           </PanelRow>
         </div>
+
+        {/* Where the location came from and how old it is — the first thing to
+            look at when the city is wrong. "tz≠" means the IP provider put the
+            address in another UTC offset than this device's clock. */}
+        {location && (
+          <PanelRow label={zh ? "位置来源" : "Located by"}>
+            <span
+              className="truncate font-mono text-[10px] tabular-nums text-muted-foreground"
+              title={location.timezone}
+            >
+              {[
+                formatLocationLabel(location),
+                location.provider ?? location.source,
+                `${Math.max(0, Math.round((realNowMs - location.updatedAt) / 60_000))}m`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              {location.timezoneMismatch && (
+                <span className="text-amber-500/80"> · tz≠</span>
+              )}
+            </span>
+          </PanelRow>
+        )}
 
         {/* Where the real sky comes from: fetch it again. Weather refetches
             both, since the forecast is asked for at the location. */}

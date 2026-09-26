@@ -8,6 +8,17 @@ export type ResolvedLocation = {
   city?: string;
   region?: string;
   country?: string;
+  /** Which service answered (an IP provider, or "geolocation"). For the devtool. */
+  provider?: string;
+  /** IANA zone the IP provider placed the address in, when it says. */
+  timezone?: string;
+  /**
+   * The IP provider put this address in a different UTC offset from the
+   * browser's own clock — so the address is almost certainly placed in the
+   * wrong city (a carrier gateway, a relay, a VPN). The coordinates are still
+   * the best we have; this only says not to trust them much.
+   */
+  timezoneMismatch?: boolean;
   updatedAt: number;
 };
 
@@ -25,6 +36,8 @@ type IpLocationResponse = {
   lon?: number;
   country?: string;
   message?: string;
+  // ipapi.co: a string; ipwho.is: an object
+  timezone?: string | { id?: string };
 };
 
 type IpProvider = {
@@ -36,8 +49,15 @@ type IpProvider = {
     city?: string;
     region?: string;
     country?: string;
+    timezone?: string;
   };
 };
+
+function timezoneOf(data: IpLocationResponse): string | undefined {
+  const tz = data.timezone;
+  if (typeof tz === "string") return tz || undefined;
+  return typeof tz?.id === "string" && tz.id ? tz.id : undefined;
+}
 
 const IP_PROVIDERS: IpProvider[] = [
   {
@@ -50,7 +70,14 @@ const IP_PROVIDERS: IpProvider[] = [
       if (typeof lat !== "number" || typeof lon !== "number") {
         throw new Error("ipapi.co: missing coordinates");
       }
-      return { lat, lon, city: data.city, region: data.region, country: data.country_name };
+      return {
+        lat,
+        lon,
+        city: data.city,
+        region: data.region,
+        country: data.country_name,
+        timezone: timezoneOf(data),
+      };
     },
   },
   {
@@ -65,16 +92,87 @@ const IP_PROVIDERS: IpProvider[] = [
       if (typeof lat !== "number" || typeof lon !== "number") {
         throw new Error("ipwho.is: missing coordinates");
       }
-      return { lat, lon, city: data.city, region: data.region, country: data.country };
+      return {
+        lat,
+        lon,
+        city: data.city,
+        region: data.region,
+        country: data.country,
+        timezone: timezoneOf(data),
+      };
     },
   },
 ];
 
+/** Minutes east of UTC that `timeZone` is at `atMs`, or null for an unknown zone. */
+function utcOffsetMinutes(timeZone: string, atMs: number): number | null {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+    }).formatToParts(new Date(atMs));
+    const get = (type: string) =>
+      Number(parts.find((p) => p.type === type)?.value ?? NaN);
+    const asUtc = Date.UTC(
+      get("year"),
+      get("month") - 1,
+      get("day"),
+      get("hour"),
+      get("minute")
+    );
+    const minuteMs = Math.floor(atMs / 60_000) * 60_000;
+    const offset = Math.round((asUtc - minuteMs) / 60_000);
+    return Number.isFinite(offset) ? offset : null;
+  } catch {
+    return null;
+  }
+}
+
+function browserTimezone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Does the IP's zone disagree with the browser's clock? Offsets are compared,
+ * not names, so aliases (US/Pacific vs America/Los_Angeles) and neighbours in
+ * the same offset agree. Unknown on either side is not a disagreement.
+ */
+export function isTimezoneMismatch(
+  ipTimezone: string | undefined,
+  nowMs: number = Date.now(),
+  localTimezone: string | undefined = browserTimezone()
+): boolean {
+  if (!ipTimezone || !localTimezone) return false;
+  const a = utcOffsetMinutes(ipTimezone, nowMs);
+  const b = utcOffsetMinutes(localTimezone, nowMs);
+  return a !== null && b !== null && a !== b;
+}
+
+/**
+ * Where the IP address says the visitor is.
+ *
+ * IP databases misplace whole carriers: a phone on cellular in San Jose can
+ * come back as Dallas, and so can Private Relay or a VPN. The browser's own
+ * clock is a free second opinion — so a provider that puts the address in a
+ * different UTC offset is doubted and the next one asked. If every provider
+ * disagrees with the clock, the first answer is kept and flagged
+ * (`timezoneMismatch`); the permission prompt reads that as its cue.
+ */
 export async function fetchIpLocation(options?: {
   timeoutMs?: number;
 }): Promise<ResolvedLocation> {
   const timeoutMs = options?.timeoutMs ?? 8000;
   let lastError: Error | undefined;
+  let doubted: ResolvedLocation | undefined;
 
   for (const provider of IP_PROVIDERS) {
     const controller = new AbortController();
@@ -87,11 +185,14 @@ export async function fetchIpLocation(options?: {
       if (!res.ok) throw new Error(`${provider.name}: HTTP ${res.status}`);
       const data = (await res.json()) as IpLocationResponse;
       const parsed = provider.parse(data);
-      return {
+      const resolved: ResolvedLocation = {
         source: "ip",
         ...parsed,
+        provider: provider.name,
         updatedAt: Date.now(),
       };
+      if (!isTimezoneMismatch(parsed.timezone)) return resolved;
+      doubted ??= { ...resolved, timezoneMismatch: true };
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
     } finally {
@@ -99,6 +200,7 @@ export async function fetchIpLocation(options?: {
     }
   }
 
+  if (doubted) return doubted;
   throw lastError ?? new Error("All IP location providers failed");
 }
 
@@ -150,6 +252,7 @@ export async function requestAccurateLocation(options?: {
     lon: pos.coords.longitude,
     city,
     country,
+    provider: "geolocation",
     updatedAt: Date.now(),
   };
 }
