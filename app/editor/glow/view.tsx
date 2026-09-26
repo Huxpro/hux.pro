@@ -3,7 +3,14 @@
 import { EditorNav } from "@/app/editor/nav";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
-import { Glow, type GlowProps } from "@/systems/glow";
+import {
+  GLOW_HARMONIES,
+  Glow,
+  autoHarmony,
+  harmonyStops,
+  type GlowProps,
+} from "@/systems/glow";
+import PROFILES from "@/systems/ambient/lib/wallpaper-profiles.json";
 import { createMeter, primeAudio, type VoiceMeter } from "@/systems/voice";
 import { Mic, Music, Search } from "lucide-react";
 import { useTheme } from "@/services";
@@ -148,6 +155,44 @@ const PAIRS: {
     ours: "inside={false} with a bleed: only the halo.",
   },
 ];
+
+/** Wallpapers across the wheel, their dominant colours as measured
+ *  (systems/ambient/lib/wallpaper-profiles.json), for the colours section. */
+const PAINTINGS = ["ventura/light", "sonoma/light", "tahoe/dark", "monterey/light", "nature/aurora", "nature/zebra"] as const;
+
+function HarmonyRow({ name }: { name: (typeof PAINTINGS)[number] }) {
+  const tint = (PROFILES.images as Record<string, { tint: { h: number; c: number } | null; chroma: number }>)[name];
+  const source = tint?.tint && tint.chroma >= 0.03 ? { h: tint.tint.h, c: tint.tint.c } : null;
+  const dark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  return (
+    <div className="grid grid-cols-[9rem_repeat(6,minmax(0,1fr))] items-center gap-3">
+      <div className="flex items-center gap-2">
+        <span
+          className="size-4 shrink-0 rounded-full border border-border/50"
+          style={{ background: source ? `oklch(0.7 ${Math.min(source.c, 0.2)} ${source.h})` : "var(--muted)" }}
+        />
+        <span className={TYPE.rowMeta}>{name}</span>
+      </div>
+      {GLOW_HARMONIES.map((h) => {
+        const stops = harmonyStops(h, source, dark);
+        const rule = h === "auto" ? autoHarmony(source) : h;
+        return (
+          <div key={h} className="space-y-1">
+            <div
+              className="h-5 rounded-full"
+              style={{
+                background: `linear-gradient(to right, ${[...stops, stops[0]]
+                  .map(([r, g, b]) => `rgb(${r * 255} ${g * 255} ${b * 255})`)
+                  .join(", ")})`,
+              }}
+            />
+            {h === "auto" && <p className={cn(TYPE.labelSm, "text-center")}>→ {rule}</p>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function Motion({
   name,
@@ -340,6 +385,27 @@ export function GlowLabView() {
                 <Glow {...drive} motion="flow" reach={4} baseline={baseline ?? undefined} />
               </div>
             </Motion>
+          </div>
+        </section>
+
+        <section className="space-y-6">
+          <div className="space-y-1">
+            <h2 className={TYPE.label}>Colours</h2>
+            <p className={cn(TYPE.caption, "max-w-2xl")}>
+              The light&apos;s colours come from the wallpaper: its dominant colour sets a hue, and a
+              colour-wheel rule picks three from it (systems/glow/lib/harmony.ts). Auto gives a colourful
+              picture its analogous neighbours and a muted one a split complement; a grey picture keeps
+              Siri&apos;s palette. The devtool&apos;s Glow · Colours sets the rule for the whole site.
+            </p>
+          </div>
+          <div className="space-y-3 overflow-x-auto">
+            <div className="grid grid-cols-[9rem_repeat(6,minmax(0,1fr))] gap-3">
+              <span />
+              {GLOW_HARMONIES.map((h) => (
+                <span key={h} className={cn(TYPE.labelSm, "text-center")}>{h}</span>
+              ))}
+            </div>
+            {mounted && PAINTINGS.map((name) => <HarmonyRow key={name} name={name} />)}
           </div>
         </section>
 

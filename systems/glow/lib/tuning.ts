@@ -2,6 +2,18 @@
 
 import { useSyncExternalStore } from "react";
 import type { GlowMotion } from "../components/glow";
+import type { GlowHarmony } from "./harmony";
+
+// The rules, repeated here so this module needs nothing at runtime from
+// harmony.ts (which reads the tuning): kept in step with GLOW_HARMONIES.
+const GLOW_HARMONIES: readonly GlowHarmony[] = [
+  "auto",
+  "analogous",
+  "complementary",
+  "split",
+  "triadic",
+  "siri",
+];
 
 // =============================================================================
 // Glow tuning — the devtool's knobs on the light, saved.
@@ -19,6 +31,9 @@ import type { GlowMotion } from "../components/glow";
 //                  the whole screen on a phone — the `sm` breakpoint).
 //   aboutMotion    how the About's ring lives: flow (the default), rotate,
 //                  pulse — to judge the motions on the one ring that matters.
+//   harmony        where every glow's colours come from: the wallpaper's
+//                  dominant colour by a colour-wheel rule, or Siri's fixed
+//                  palette (lib/harmony.ts). Auto by default.
 //   aboutBaseline  advanced: the light the ring keeps where no wave, arc or
 //                  lobe is. Unset, each motion keeps its own (GLOW_BASELINE).
 //
@@ -42,6 +57,8 @@ export interface GlowTuning {
   aboutMotion: GlowMotion;
   /** Advanced: the About's baseline (<Glow baseline>); null is the motion's own. */
   aboutBaseline: number | null;
+  /** Where every glow's colours come from: the wallpaper, by a rule (lib/harmony.ts). */
+  harmony: GlowHarmony;
 }
 
 export const GLOW_TUNING_DEFAULTS: GlowTuning = {
@@ -51,6 +68,7 @@ export const GLOW_TUNING_DEFAULTS: GlowTuning = {
   aboutPhone: 1.4,
   aboutMotion: "flow",
   aboutBaseline: null,
+  harmony: "auto",
 };
 
 const MOTIONS: readonly GlowMotion[] = ["flow", "rotate", "pulse"];
@@ -76,6 +94,9 @@ function load() {
         if (typeof v === "number") next[k] = v;
       }
       if (typeof saved.aboutBaseline === "number") next.aboutBaseline = saved.aboutBaseline;
+      if (GLOW_HARMONIES.includes(saved.harmony as GlowHarmony)) {
+        next.harmony = saved.harmony as GlowHarmony;
+      }
       if (MOTIONS.includes(saved.aboutMotion as GlowMotion)) {
         next.aboutMotion = saved.aboutMotion as GlowMotion;
       }
@@ -101,6 +122,11 @@ export function setGlowTuning(patch: Partial<GlowTuning>) {
     /* storage blocked: the change still holds for this page */
   }
   listeners.forEach((l) => l());
+}
+
+/** Called whenever a knob moves. */
+export function subscribeGlowTuning(listener: () => void) {
+  return subscribe(listener);
 }
 
 function subscribe(listener: () => void) {

@@ -5,12 +5,14 @@ One light for the whole site, and the voice it can answer.
 ```
 systems/glow/
 ├── lib/
-│   ├── palette.ts      # the five stops — the only place a glow colour is written
+│   ├── palette.ts      # Siri's five stops, and the shader's ring() over uPal
+│   ├── harmony.ts      # the light's colours from the wallpaper, by a colour-wheel rule
 │   ├── shader.ts       # the field of light on the edge of a rounded box
 │   └── renderer.ts     # one WebGL context, one rAF loop, every instance
 └── components/
     ├── glow.tsx        # <Glow> — shape, level, processing, reveal
-    └── edge-glow.tsx   # <EdgeGlow> — a screen's ring, ending where its content begins
+    ├── edge-glow.tsx   # <EdgeGlow> — a screen's ring, ending where its content begins
+    └── palette-bridge.tsx  # publishes the wallpaper's dominant colour to harmony.ts
 
 systems/voice/
 ├── lib/meter.ts        # microphone → level + three bands (gate, knee, envelope)
@@ -29,10 +31,11 @@ window loading — would either reuse it or
 invent a second light that almost matches. Two lights that almost match read
 as a mistake. So there is one:
 
-- **one palette** (`lib/palette.ts`): blue · violet · pink · amber · cyan,
-  around a loop. The shader's `ring()` is generated from it and the CSS
-  fallback reads it as `--glow-stops`. A glow colour written anywhere else is
-  a bug.
+- **one palette at a time**: Siri's (`lib/palette.ts`: blue · violet · pink
+  · amber · cyan, around a loop), or three hues in harmony with the
+  wallpaper (`lib/harmony.ts`, below) — the same for every glow on the page.
+  The shader's `ring()` reads it from `uPal`; the CSS fallback keeps Siri's
+  as `--glow-stops`. A glow colour written anywhere else is a bug.
 - **one shader** (`lib/shader.ts`): a field of light on the edge of a rounded
   box. Every glow is this shader over some box.
 - **one renderer** (`lib/renderer.ts`): one WebGL context for the page.
@@ -139,6 +142,37 @@ Everything else is `<Glow>`'s (`active`, `strength`, `radius`, `layer`,
 With `{ x, y }` the extent eases from one axis's to the other's round each
 corner.
 
+## Colours
+
+The light was one fixed palette, Siri's. Over a wallpaper it now takes its
+colours from the picture (`lib/harmony.ts`): the picture's dominant colour —
+the ambient profile's `tint`, a photograph's measured once, the Sky's read
+off the live scene — sets a base hue, and a colour-wheel rule picks three
+hues from it, so the light belongs to the picture instead of sitting on it.
+
+| rule | hues (OKLCH, from the base) | reads as |
+|---|---|---|
+| analogous | −32°, 0°, +32° | the picture's own colour, lit — the calmest |
+| complementary | 0°, +24°, +180° | the picture's colour and its opposite — the strongest contrast |
+| split | 0°, +150°, +210° | the opposite's two neighbours — contrast without the clash |
+| triadic | 0°, +120°, +240° | evenly round the wheel — the liveliest |
+| **auto** (default) | a colourful picture (chroma ≥ 0.08) → analogous; a muted one → split; a grey one (chroma < 0.03, or the plain page) → siri | |
+| siri | Siri's five stops, whatever the wallpaper | |
+
+Every hue is drawn at one OKLCH lightness and chroma (0.74 / 0.16 in the
+dark theme, 0.68 in the light), the chroma lowered until it fits sRGB, so
+the three read as equals and none clips. They become the shader's five
+stops as a loop — a b c b′ a′, the returns a touch lighter and darker — in
+`uniform vec3 uPal[5]`, which `ring()` interpolates. The renderer reads the
+palette every frame; after a change of wallpaper or rule it eases there over
+1.5 s, held frames redrawn. Nothing re-renders. The wheel is OKLCH so that
+"32° apart" is 32° as the eye sees it.
+
+The rule is site-wide — one light — in the devtool's Glow module
+(`Colours`, with the wallpaper's hue and the five stops as swatches);
+`/editor/glow` lays each rule out for wallpapers across the wheel. The CSS
+fallback (no WebGL) keeps Siri's stops.
+
 ## Motions
 
 How the light lives while it is on. `flow` is the field this shader was
@@ -210,6 +244,7 @@ localStorage (`hux_glow`, `lib/tuning.ts`):
 
 | knob | range | what |
 |---|---|---|
+| Colours | Auto / Analog / Compl / Split / Triad / Siri | where every glow's colours come from (below): default Auto |
 | Strength · all | 0–150% | every glow on the site — the renderer reads it each frame, so a drag changes every lit glow at once |
 | About · strength | 0–150% | the About's ring, on top of the above |
 | About · desk depth | 5–250% of the narrower gutter | the About's `<EdgeGlow depth>` on a desk (`sm` and up): default 130% |
@@ -362,5 +397,6 @@ but took its structure from them:
 | voice-glow's `idle` | the rest level (0.45) — never dead while on |
 
 Not taken: per-instance generated stylesheets (one shader instead), the
-tuned per-size palettes (one palette, by design), and voice-glow's SVG
-displacement warp (costly on WebKit, and the shader's beams already move).
+tuned per-size palettes (one palette at a time, by design — from the
+wallpaper or Siri's), and voice-glow's SVG displacement warp (costly on
+WebKit, and the shader's beams already move).
