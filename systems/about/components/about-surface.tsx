@@ -19,7 +19,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAbout } from "../provider";
-import { EdgeGlow, useGlowTuning } from "@/systems/glow";
+import { EdgeGlow, Glow, useGlowTuning } from "@/systems/glow";
 
 // =============================================================================
 // AboutSurface — the About, floating over whatever page is underneath.
@@ -237,36 +237,39 @@ function AboutFoot({
 }) {
   const { locale } = useLocale();
   return (
-    // The button is the centre of weight; the hint sits under it, quiet and
-    // kept to about its width, so the eye stays on the press.
-    <div ref={ref} className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-col items-center">
-      {/* Glass, not a slab: the way out is part of the veil it sits on.
-          Where there is a keyboard it reads like a menu item — the word at
-          the left, its key, Esc, at the right — so it needs no more width
-          than the two; the button itself stays at the screen's centre. */}
+    // On a phone the way out is centred at the screen's foot. On a desk it
+    // hangs from the words' left edge, as their last line: centred under a
+    // ragged paragraph it lines up with nothing.
+    <div
+      ref={ref}
+      className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-col items-center sm:items-start"
+    >
+      {/* Glass, not a slab: the way out is part of the veil it sits on. It
+          breathes — the glow's pulse, blooming out from behind it — the one
+          thing on the screen asking to be pressed. Where there is a
+          keyboard it wears its key, Esc. */}
       <button
         type="button"
         onClick={onDismiss}
         className={cn(
-          "rounded-full py-2 text-[13px] font-medium text-foreground",
-          keyboard
-            ? "flex min-w-[9rem] items-center justify-between gap-5 pr-2 pl-5"
-            : "px-5",
+          "relative inline-flex items-center gap-2.5 rounded-full py-2 text-[13px] font-medium text-foreground",
+          keyboard ? "pr-2 pl-5" : "px-5",
           GLASS_TRACK_FLAT,
           "active:scale-[0.97] active:duration-0",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         )}
       >
         {/* Reveal, every time: the veil lifts off the page underneath. */}
-        <span>{t(locale, "aboutEnter")}</span>
+        {t(locale, "aboutEnter")}
         {keyboard && (
           <kbd aria-hidden className={cn(TYPE.kbd, "px-1.5 py-0 text-[10px] leading-5")}>
             esc
           </kbd>
         )}
+        <Glow active motion="pulse" inside={false} bleed={14} reach={3} strength={0.9} />
       </button>
-      {/* One line for every device: the palette is where it lives. */}
-      <span className="mt-3 max-w-[12.5rem] text-center text-[11px] leading-relaxed text-quaternary-foreground">
+      {/* One quiet line for every device: the palette is where it lives. */}
+      <span className="mt-3 max-w-[12.5rem] text-center text-[11px] leading-relaxed text-quaternary-foreground sm:max-w-none sm:text-left">
         {t(locale, "aboutReopenHintTouch")}
       </span>
     </div>
