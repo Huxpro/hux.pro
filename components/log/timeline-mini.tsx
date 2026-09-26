@@ -27,6 +27,7 @@ import { Link } from "next-view-transitions";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
+import { QuietLine } from "./quiet-line";
 
 import { TYPE } from "@/lib/typography";
 
@@ -130,26 +131,21 @@ export function TimelineMini({
 
       {/* Summary line: title ··· date */}
       <div className="flex items-center gap-2 min-w-0">
-        <span
-          className={cn(
-            "min-w-0 flex-1 truncate",
-            isEvent || isAside
-              ? cn(
-                  "text-xs text-tertiary-foreground",
-                  /[぀-ヿ一-鿿]/.test(displayTitle)
-                    ? "font-mono"
-                    : "italic font-serif",
-                )
-              : TYPE.rowTitle,
-          )}
-        >
-          {displayTitle}
-          {!(isEvent || isAside) && data.languageBadge && (
-            <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
-              {data.languageBadge}
-            </span>
-          )}
-        </span>
+        {isEvent || isAside ? (
+          <QuietLine
+            text={displayTitle}
+            className="min-w-0 flex-1 truncate text-xs text-tertiary-foreground"
+          />
+        ) : (
+          <span className={cn("min-w-0 flex-1 truncate", TYPE.rowTitle)}>
+            {displayTitle}
+            {data.languageBadge && (
+              <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
+                {data.languageBadge}
+              </span>
+            )}
+          </span>
+        )}
 
         {hideDate ? (
           data.dateSlotOverride && (

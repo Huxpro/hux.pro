@@ -1633,6 +1633,17 @@ main[data-variant="reader"] .reader-masthead {
   transition:
     transform var(--surface-duration) var(--surface-easing),
     padding-bottom var(--surface-duration) var(--surface-easing);
+  /* Composited for its whole life, not just while a finger is on it. Base UI
+     writes an inline `translate3d(…)` on every touchstart — even a touch that
+     turns out to be a sideways scroll inside the sheet — and removes it on
+     touchend, which drops the popup back to the 2D transform below. On
+     WebKit a 3D transform is a compositing layer and a 2D one is not, so
+     that release used to demote the popup and rebuild the layer tree around
+     any scroller inside it, on the very frame that scroller starts its snap:
+     the attachment pager, now and then, stopped between two pages. With the
+     layer permanent and the transforms below written in 3D too, the inline
+     one coming and going changes nothing but a value that is already equal. */
+  will-change: transform;
 }
 
 /* Under the finger the sheet is direct: a transition here would chase every
@@ -1649,8 +1660,10 @@ main[data-variant="reader"] .reader-masthead {
 /* A sheet follows the finger, and rests wherever its detent puts it. Base UI
    zeroes its own transform for a sheet with detents and expects this sum. */
 [data-surface-popup][data-swipe-direction="down"] {
-  transform: translateY(
-    calc(var(--drawer-snap-point-offset, 0px) + var(--drawer-swipe-movement-y, 0px))
+  transform: translate3d(
+    0,
+    calc(var(--drawer-snap-point-offset, 0px) + var(--drawer-swipe-movement-y, 0px)),
+    0
   );
 }
 
@@ -1672,7 +1685,7 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 [data-surface-popup][data-swipe-direction="right"] {
-  transform: translateX(var(--drawer-swipe-movement-x, 0px));
+  transform: translate3d(var(--drawer-swipe-movement-x, 0px), 0, 0);
 }
 
 /* Arriving, a kept-mounted sheet rises at the size it is going to be.

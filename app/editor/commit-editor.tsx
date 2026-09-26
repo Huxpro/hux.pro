@@ -525,6 +525,7 @@ function FormFields({
           options={[
             { value: "venue-title", label: "venue · title" },
             { value: "venue", label: "venue" },
+            { value: "title", label: "title" },
           ]}
           onChange={(v) =>
             onUpdate({ asideLine: v === "venue-title" ? undefined : v })

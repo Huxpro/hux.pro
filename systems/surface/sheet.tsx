@@ -116,6 +116,16 @@ import {
 //    the middle of a drag. And nothing up here may hold a state the end of a
 //    gesture has to clear, because that end can be missed entirely (see the
 //    note at the top of window-grip.tsx).
+// 10. A sideways scroller inside a sheet (the attachment pager) is touched by
+//    the sheet on every gesture, sideways ones included. Unless the scroller
+//    is itself a vertical scroller, every touchstart starts a swipe: the popup
+//    takes an inline `translate3d` and `data-swiping`, and loses both on
+//    touchend — the frame a snap begins. Three things keep the snap whole,
+//    each a stall on iOS when missing: the popup is `will-change: transform`
+//    for good (globals.css), so that release never re-layers it; the track
+//    uses `useSheetAxisLock` (axis-lock.ts), so a diagonal swipe moves the
+//    track or the sheet, never both; and nothing restyles the track's pages
+//    until it has settled (`useSnapPager().settled`).
 // -----------------------------------------------------------------------------
 
 /**

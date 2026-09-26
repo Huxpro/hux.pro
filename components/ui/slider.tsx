@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import type { CSSProperties } from "react";
+import { useRangeDrag } from "./use-range-drag";
 
 // =============================================================================
 // Slider — one range input for the icon studio, the Legibility Lab and the
@@ -16,10 +17,21 @@ import type { CSSProperties } from "react";
 // native knob is small and grey-ish on some engines, so desktop gets a white
 // 16px disc with a soft shadow; touch keeps native, which is what looked right
 // on iOS all along.
+//
+// The pointer is the wrapper's (useRangeDrag): a press anywhere on the track
+// moves the value, and a drag keeps it until release wherever the pointer
+// wanders. The wrapper reaches a few pixels past the 4px bar on each side so a
+// finger can find it, without taking any room in the layout.
 // =============================================================================
 
+/**
+ * The thumb's width for the press mapping: the desktop disc below, and near
+ * enough the native knob on touch, where a drag is relative anyway.
+ */
+const THUMB_PX = 16;
+
 const SLIDER_CLASS = cn(
-  "h-1 w-full cursor-pointer appearance-none rounded-full",
+  "pointer-events-none block h-1 w-full appearance-none rounded-full",
   "bg-foreground/15 [background-image:linear-gradient(var(--foreground),var(--foreground))]",
   "[background-size:var(--slider-fill)_100%] bg-no-repeat accent-white",
   "outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
@@ -55,18 +67,22 @@ export function Slider({
   "aria-valuetext"?: string;
 }) {
   const fill = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  const { inputRef, wrapperProps } = useRangeDrag({ value, min, max, step, onChange, thumb: THUMB_PX });
   return (
-    <input
-      type="range"
-      min={min}
-      max={max}
-      step={step}
-      value={value}
-      aria-label={ariaLabel}
-      aria-valuetext={ariaValueText}
-      onChange={(e) => onChange(Number(e.target.value))}
-      className={cn(SLIDER_CLASS, className)}
-      style={{ "--slider-fill": `${Math.min(100, Math.max(0, fill))}%` } as CSSProperties}
-    />
+    <div {...wrapperProps} className={cn("relative -my-2.5 w-full cursor-pointer py-2.5", className)}>
+      <input
+        ref={inputRef}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        aria-label={ariaLabel}
+        aria-valuetext={ariaValueText}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className={SLIDER_CLASS}
+        style={{ "--slider-fill": `${Math.min(100, Math.max(0, fill))}%` } as CSSProperties}
+      />
+    </div>
   );
 }
