@@ -10,9 +10,22 @@ import {
   subscribeGravity,
   type GyroAccess,
 } from "./lib/gyroscope";
-import type { LocationMode, ResolvedLocation } from "./lib/location";
-import { requestAccurateLocation as requestAccurateLocationFn } from "./lib/location";
-import { useLocationQuery, useWeatherQuery } from "./lib/queries";
+import type {
+  GeolocationFailure,
+  GeolocationPermission,
+  LocationMode,
+  ResolvedLocation,
+} from "./lib/location";
+import {
+  classifyGeolocationError,
+  requestAccurateLocation as requestAccurateLocationFn,
+} from "./lib/location";
+import {
+  canTakeFix,
+  useGeolocationPermission,
+  useLocationQuery,
+  useWeatherQuery,
+} from "./lib/queries";
 import {
   deriveWeatherScene,
   toSceneWeather,
@@ -92,7 +105,7 @@ import {
   type WallpaperProfile,
 } from "./lib/wallpaper-profile";
 import { getImageProfile, getWeatherProfile } from "./lib/wallpaper-profiles";
-import { queryClient } from "@/lib/query";
+import { queryClient, queryKeys } from "@/lib/query";
 import { focusManager } from "@tanstack/react-query";
 import { useDevtool } from "@/systems/devtool";
 
@@ -118,15 +131,35 @@ function formatGeolocationError(err: unknown): string {
 // Location Context
 // =============================================================================
 
+/** How a request for the visitor's position ended. */
+export type LocationRequestOutcome = "granted" | GeolocationFailure;
+
 interface LocationContextType {
   locationMode: LocationMode;
   location: ResolvedLocation | null;
+  /** The browser's geolocation permission, live; null until it answers. */
+  permission: GeolocationPermission | null;
+  /**
+   * Accurate is in effect: the mode asks for it and a fix may be taken
+   * (`canTakeFix` — including a remembered Safari grant). False while an
+   * Accurate wish is running on the IP.
+   */
+  usingGps: boolean;
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
   setLocationMode: (mode: LocationMode) => void;
-  requestAccurateLocation: () => Promise<boolean>;
+  /**
+   * Take a fix now and switch to Accurate. Raises the browser's prompt when
+   * the permission is unanswered, so call it only from a tap on something that
+   * says what it is for.
+   */
+  requestAccurateLocation: () => Promise<LocationRequestOutcome>;
   refresh: () => void;
+  /** The offer that comes before the prompt (LocationPrimerSheet). */
+  isLocationPrimerOpen: boolean;
+  openLocationPrimer: () => void;
+  closeLocationPrimer: () => void;
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
@@ -984,7 +1017,31 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   }, []);
 
   // Location (React Query)
-  const locationQuery = useLocationQuery(settings.locationMode);
+  // A grant made *during* the visit — in the browser's site settings, or a
+  // prompt answered elsewhere — is the visitor saying yes, so follow it. Only
+  // a change counts: a page that loads already granted but set to IP was set
+  // to IP on purpose. Nor does the grant our own request is waiting on: that
+  // request switches when its fix lands, with the fix in hand.
+  const requestingLocationRef = useRef(false);
+  const geoPermission = useGeolocationPermission((next) => {
+    if (requestingLocationRef.current) return;
+    if (next === "granted" && settings.locationMode === "ip") {
+      updateSettings({ locationMode: "accurate" });
+    }
+  });
+  const clearLocationGrant = useCallback(
+    () => updateSettings({ locationGrantedAt: 0 }),
+    [updateSettings]
+  );
+  const locationQuery = useLocationQuery(settings.locationMode, geoPermission, {
+    grantedAtMs: settings.locationGrantedAt,
+    nowMs: realNowMs,
+    onDenied: clearLocationGrant,
+  });
+  /** Whether the location in use is (meant to be) a GPS fix right now. */
+  const usingGps =
+    settings.locationMode === "accurate" &&
+    canTakeFix(geoPermission, settings.locationGrantedAt, realNowMs);
 
   const setLocationMode = useCallback(
     (mode: LocationMode) => {
@@ -994,21 +1051,39 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     [settings.locationMode, updateSettings]
   );
 
-  const requestAccurateLocationAction = useCallback(async (): Promise<boolean> => {
+  const requestAccurateLocationAction = useCallback(async (): Promise<LocationRequestOutcome> => {
+    requestingLocationRef.current = true;
     try {
-      await requestAccurateLocationFn();
-      updateSettings({ locationMode: "accurate" });
-      return true;
+      const fix = await requestAccurateLocationFn();
+      // The fix just taken is the answer the Accurate query would go and get:
+      // seed it, so switching modes does not take a second fix and a second
+      // reverse-geocode.
+      queryClient.setQueryData(queryKeys.location("accurate"), fix);
+      // A fix is the visitor's yes. Record it: iOS Safari keeps reporting
+      // "prompt" after an Allow, and the Accurate query reads this instead.
+      updateSettings({ locationMode: "accurate", locationGrantedAt: fix.updatedAt });
+      return "granted";
     } catch (err) {
       const reason = formatGeolocationError(err);
       console.error(
         `[ambient] Failed to switch Geolocation to Accurate; falling back to IP. Reason: ${reason}`,
         err
       );
-      updateSettings({ locationMode: "ip" });
-      return false;
+      const failure = classifyGeolocationError(err);
+      updateSettings(
+        failure === "denied"
+          ? { locationMode: "ip", locationGrantedAt: 0 }
+          : { locationMode: "ip" }
+      );
+      return failure;
+    } finally {
+      requestingLocationRef.current = false;
     }
   }, [updateSettings]);
+
+  const [isLocationPrimerOpen, setIsLocationPrimerOpen] = useState(false);
+  const openLocationPrimer = useCallback(() => setIsLocationPrimerOpen(true), []);
+  const closeLocationPrimer = useCallback(() => setIsLocationPrimerOpen(false), []);
 
   const refreshLocation = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["location"] });
@@ -1387,16 +1462,26 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     () => ({
       locationMode: settings.locationMode,
       location: locationQuery.data ?? null,
+      permission: geoPermission,
+      usingGps,
       isLoading: locationQuery.isLoading,
       isFetching: locationQuery.isFetching,
       error: locationQuery.error?.message ?? null,
       setLocationMode,
       requestAccurateLocation: requestAccurateLocationAction,
       refresh: refreshLocation,
+      isLocationPrimerOpen,
+      openLocationPrimer,
+      closeLocationPrimer,
     }),
     [
       settings.locationMode,
       locationQuery.data,
+      geoPermission,
+      usingGps,
+      isLocationPrimerOpen,
+      openLocationPrimer,
+      closeLocationPrimer,
       locationQuery.isLoading,
       locationQuery.isFetching,
       locationQuery.error,
