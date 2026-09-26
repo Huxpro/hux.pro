@@ -398,6 +398,14 @@ interface WallpaperContextType {
   bezelRadius: number;
   bezelRadiusSetting: number | null;
   setBezelRadius: (px: number | null) => void;
+  /**
+   * The corner radius of the page's screen, px: the box a surface over the
+   * whole page (the About, its glow) fills. Inside a bezel it is the bezel's
+   * — the same number <Vitre> is given, so the two move together when the
+   * devtool drags it — and 0 without one: a browser window's page is a plain
+   * rectangle, and a phone's own rounded glass is the hardware's to clip.
+   */
+  screenRadius: number;
   /** The page's ground in the current theme: the chrome colour while the bezel is off. */
   ground: string;
   /** The reading treatment flags, for the devtool. */
@@ -1492,6 +1500,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       bezelRadius,
       bezelRadiusSetting: settings.bezelRadius,
       setBezelRadius,
+      screenRadius: bezel ? bezelRadius : 0,
       ground,
       readingBlur: settings.wallpaperReadingBlur,
       setReadingBlur,

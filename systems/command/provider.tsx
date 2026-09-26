@@ -17,6 +17,16 @@ interface CommandContextType {
   setSlashCommandsMode: (mode: boolean) => void;
   openLoadBundle: () => void;
   setLoadBundleMode: (mode: boolean) => void;
+  /**
+   * Ask the palette's field to start listening (systems/voice). A counter,
+   * not a flag: the field starts a session each time it changes, so asking
+   * twice asks twice. The `/` `V` command sets it.
+   */
+  voiceRequest: number;
+  /** The key that made the request, while it may still be held: the field
+   *  listens for its release (push-to-talk). Null for a press or a click. */
+  voiceHoldKey: string | null;
+  requestVoice: (holdKey?: string) => void;
 }
 
 const CommandContext = createContext<CommandContextType | undefined>(undefined);
@@ -31,6 +41,8 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSlashCommandsMode, setIsSlashCommandsMode] = useState(false);
   const [isLoadBundleMode, setIsLoadBundleMode] = useState(false);
+  const [voiceRequest, setVoiceRequest] = useState(0);
+  const [voiceHoldKey, setVoiceHoldKey] = useState<string | null>(null);
 
   const open = useCallback((slashCommandsMode = false) => {
     setIsOpen(true);
@@ -62,6 +74,15 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const setLoadBundleMode = useCallback((mode: boolean) => {
     setIsLoadBundleMode(mode);
     if (mode) setIsSlashCommandsMode(false);
+  }, []);
+
+  // Voice: back to search (the field is where the words go) and listen.
+  const requestVoice = useCallback((holdKey?: string) => {
+    setVoiceHoldKey(holdKey ?? null);
+    setIsOpen(true);
+    setIsSlashCommandsMode(false);
+    setIsLoadBundleMode(false);
+    setVoiceRequest((n) => n + 1);
   }, []);
 
   const openLoadBundle = useCallback(() => {
@@ -125,6 +146,9 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         setSlashCommandsMode,
         openLoadBundle,
         setLoadBundleMode,
+        voiceRequest,
+        voiceHoldKey,
+        requestVoice,
       }}
     >
       {children}

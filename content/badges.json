@@ -1,0 +1,11 @@
+{
+  "commits": {
+    "alitrip-mobile-web": "https://www.fliggy.com",
+    "eleme-pwa": "https://h5.ele.me",
+    "hux-blog": "https://huxpro.github.io"
+  },
+  "icons": {
+    "h5.ele.me": "/img/badges/eleme.png",
+    "hermesengine.dev": "/img/badges/hermes.svg"
+  }
+}

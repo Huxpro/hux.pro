@@ -1,0 +1,86 @@
+{
+  "bilibili.com": {
+    "url": "https://www.bilibili.com",
+    "file": "/badge-icons/bilibili.com.png",
+    "source": "apple-touch-icon",
+    "iconUrl": "https://i0.hdslb.com/bfs/static/jinkela/long/images/512.png",
+    "width": 512,
+    "height": 512
+  },
+  "fliggy.com": {
+    "url": "https://www.fliggy.com",
+    "file": "/badge-icons/fliggy.com.ico",
+    "source": "icon",
+    "iconUrl": "https://img.alicdn.com/imgextra/i1/O1CN01XslwqW1rp2BOz0lt4_!!6000000005679-73-tps-64-64.ico",
+    "width": 64,
+    "height": 64
+  },
+  "gitee.com": {
+    "url": "https://gitee.com",
+    "file": "/badge-icons/gitee.com.ico",
+    "source": "favicon.ico",
+    "iconUrl": "https://gitee.com/favicon.ico",
+    "width": 64,
+    "height": 64
+  },
+  "h5.ele.me": {
+    "url": "https://h5.ele.me",
+    "file": "/img/badges/eleme.png",
+    "source": "manual",
+    "width": 192,
+    "height": 192
+  },
+  "hermesengine.dev": {
+    "url": "https://hermesengine.dev",
+    "file": "/img/badges/hermes.svg",
+    "source": "manual"
+  },
+  "huxpro.github.io": {
+    "url": "https://huxpro.github.io",
+    "file": "/badge-icons/huxpro.github.io.png",
+    "source": "manifest",
+    "iconUrl": "https://huxpro.github.io/pwa/icons/512.png",
+    "width": 512,
+    "height": 512
+  },
+  "lynxjs.org": {
+    "url": "https://lynxjs.org",
+    "file": "/badge-icons/lynxjs.org.png",
+    "source": "icon",
+    "iconUrl": "https://lynxjs.org/favicon.png",
+    "width": 80,
+    "height": 84
+  },
+  "react.dev": {
+    "url": "https://react.dev",
+    "file": "/badge-icons/react.dev.png",
+    "source": "manifest",
+    "iconUrl": "https://react.dev/android-chrome-384x384.png",
+    "width": 384,
+    "height": 384
+  },
+  "reasonml.github.io": {
+    "url": "https://reasonml.github.io",
+    "file": "/badge-icons/reasonml.github.io.png",
+    "source": "icon",
+    "iconUrl": "https://reasonml.github.io/img/icon_50.png",
+    "width": 100,
+    "height": 100
+  },
+  "x.com": {
+    "url": "https://x.com",
+    "file": "/badge-icons/x.com.png",
+    "source": "manifest",
+    "iconUrl": "https://x.com/apple-touch-icon.png",
+    "width": 1024,
+    "height": 1024
+  },
+  "youtube.com": {
+    "url": "https://youtu.be",
+    "file": "/badge-icons/youtube.com.png",
+    "source": "manifest",
+    "iconUrl": "https://www.gstatic.com/youtube/img/web/maskable/logo_512x512.png",
+    "width": 512,
+    "height": 512
+  }
+}

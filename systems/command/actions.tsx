@@ -10,11 +10,13 @@ import {
   useLocale,
   useTheme,
 } from "@/services";
+import { useAbout } from "@/systems/about";
 import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
 import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
 import { installTarget, useInstall } from "@/systems/install";
 import { useMusic } from "@/systems/music";
+import { isVoiceSupported } from "@/systems/voice";
 import {
   Bug,
   FileText,
@@ -23,11 +25,13 @@ import {
   Image as ImageIcon,
   Layers2,
   Languages,
+  Mic,
   MapPin,
   Monitor,
   MonitorDown,
   Moon,
   Music,
+  Orbit,
   Sparkles,
   SquarePlus,
   Sun,
@@ -61,8 +65,10 @@ import { useCommand } from "./provider";
  *             closes, the phone sheet stays behind it as a stack.
  *   toggle    flips a setting; chosen from search the palette stays open so
  *             the new value can be read back, from the slash list it closes.
+ *   stay      changes what the palette itself is doing (voice: back to the
+ *             field, listening); the palette stays exactly where it is.
  */
-export type CommandKind = "navigate" | "surface" | "toggle";
+export type CommandKind = "navigate" | "surface" | "toggle" | "stay";
 
 export interface CommandAction {
   /** cmdk value and React key. */
@@ -70,13 +76,23 @@ export interface CommandAction {
   /** Slash letter, when it has one. */
   key?: string;
   kind: CommandKind;
-  section: "navigation" | "settings";
+  /**
+   *   navigation  goes somewhere
+   *   actions     does one thing, now — install, speak, play
+   *   settings    a value that stays, read back in its row
+   */
+  section: "navigation" | "actions" | "settings";
+  /** In the slash list only, never a search result: a command whose control
+   *  is already on screen (voice: the field's microphone). */
+  slashOnly?: boolean;
   /** Search / slash row text. Keyboard-only commands (docs, editor) have none. */
   label?: string;
   icon?: React.ReactNode;
   /** cmdk search terms, both languages. */
   keywords: string[];
-  run: () => void | Promise<void>;
+  /** `key`: the slash letter that ran it, when a key did — a command that
+   *  can be held (voice) reads it to follow the key's release. */
+  run: (ctx?: { key?: string }) => void | Promise<void>;
 }
 
 const ROW_ICON = "h-4 w-4";
@@ -108,6 +124,8 @@ export function useCommandActions(): CommandAction[] {
     play: musicPlay,
     pause: musicPause,
   } = useMusic();
+  const { open: openAbout } = useAbout();
+  const { requestVoice } = useCommand();
   const { guide: installGuide, open: openInstall } = useInstall();
   const router = useTransitionRouter();
 
@@ -203,6 +221,49 @@ export function useCommandActions(): CommandAction[] {
       ],
       run: () => router.push("/prompt"),
     },
+    {
+      // The About: who made this and what it is. `/` `O` is its only
+      // shortcut — no bare `O` on the page (systems/about).
+      id: "about",
+      key: "o",
+      // `navigate`, not `surface`: the phone sheet must not stay behind the
+      // About as a stack — it would show through the veil.
+      kind: "navigate",
+      section: "navigation",
+      label: t(locale, "aboutTitle"),
+      icon: <Orbit className={ROW_ICON} />,
+      keywords: [
+        "about",
+        "hux",
+        "who",
+        "bio",
+        "os",
+        "credits",
+        "关于",
+        "黄玄",
+        "简介",
+        "致谢",
+      ],
+      run: () => openAbout(),
+    },
+    // Speak instead of type: back to the field, listening (systems/voice).
+    // Only where the browser can recognise speech.
+    ...(isVoiceSupported()
+      ? [
+          {
+            id: "voice",
+            key: "v",
+            kind: "stay" as const,
+            section: "actions" as const,
+            slashOnly: true,
+            label: t(locale, "voiceSearch"),
+            icon: <Mic className={ROW_ICON} />,
+            keywords: ["voice", "speak", "dictate", "microphone", "mic", "语音", "说话", "麦克风"],
+            // Tap `/` `V` to start; hold it to talk, and let go to send.
+            run: (ctx?: { key?: string }) => requestVoice(ctx?.key),
+          },
+        ]
+      : []),
     // Keyboard-only: reachable by letter from the slash list, never listed.
     {
       id: "docs",
@@ -252,7 +313,8 @@ export function useCommandActions(): CommandAction[] {
     },
     {
       id: "location",
-      key: "o",
+      // `o` went to the About; `c` for coordinates.
+      key: "c",
       kind: "toggle",
       section: "settings",
       label: `${t(locale, "settingsGeolocation")}: ${
@@ -380,7 +442,7 @@ export function useCommandActions(): CommandAction[] {
       id: "music",
       key: "m",
       kind: "toggle",
-      section: "settings",
+      section: "actions",
       label: `${t(locale, "settingsMusic")}: ${
         musicPlayerState === "playing"
           ? t(locale, "musicPause")
@@ -414,7 +476,7 @@ export function useCommandActions(): CommandAction[] {
             // Opens the directions, not the install: that press is the
             // browser's (see systems/install).
             kind: "surface",
-            section: "settings",
+            section: "actions",
             label: t(
               locale,
               installDestination === "dock"
@@ -509,8 +571,9 @@ export type CommandOrigin = "search" | "slash";
  */
 export function useRunCommand() {
   const { leave } = useCommandShell();
-  return async (action: CommandAction, origin: CommandOrigin) => {
-    await action.run();
+  return async (action: CommandAction, origin: CommandOrigin, key?: string) => {
+    await action.run({ key });
+    if (action.kind === "stay") return;
     if (origin === "search" && action.kind === "toggle") return;
     leave(action.kind);
   };
@@ -539,7 +602,7 @@ export function SlashShortcuts({ actions }: { actions: CommandAction[] }) {
       return;
     }
     const action = actions.find((a) => a.key === e.key.toLowerCase());
-    if (action) void run(action, "slash");
+    if (action) void run(action, "slash", e.key);
   });
 
   useEffect(() => {

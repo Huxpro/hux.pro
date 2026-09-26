@@ -179,6 +179,32 @@ Static image display (uses Next.js Image for optimization).
 
 ---
 
+### Badge
+
+A thing I made, named inline, opened where it lives on the site. Every kind of media lands in its own home: a page in the in-app browser, a recording or a deck on the stage, a post on its route, an app in a window, an image or a social post in the attachment surface.
+
+- Commit: <Badge commit="lynx-framework">Lynx</Badge>, <Badge commit="react-core">React Compiler</Badge>, <Badge commit="hermes-engine">Hermes</Badge>
+- Commit, second attachment: <Badge commit="hermes-engine" item={1}>Hermes on GitHub</Badge>
+- App: <Badge app="lynx-flappy-bird" />, <Badge app="busy-week" />
+- Web page: <Badge href="https://react.dev" />, <Badge href="https://lynxjs.org">lynxjs.org</Badge>
+- Page that refuses a frame (a tab): <Badge href="https://gitee.com/gitee-stars/30">Gitee cover story</Badge>
+- Recording: <Badge href="https://youtu.be/lGEMwh32soc">React without memo</Badge>, <Badge href="https://www.bilibili.com/video/BV1LY411Q7hC/">React State of the Union</Badge>
+- Deck: <Badge href="https://huxpro.github.io/pwa-qcon2016/">PWA, Make Web Great Again</Badge>
+- Post: <Badge href="/writing/the-open-web/en">The Open Web</Badge>
+- Image: <Badge href="/img/post-bg-2015.jpg">a picture</Badge>
+- Social post: <Badge href="https://x.com/Huxpro/status/1502483206569807874">a post on X</Badge>
+
+```mdx
+<Badge commit="lynx-framework">Lynx</Badge>       {/* a commit in log.json */}
+<Badge commit="hermes-engine" item={1} />         {/* its second attachment */}
+<Badge app="lynx-flappy-bird" />                  {/* an app in apps.json */}
+<Badge href="https://youtu.be/…">Talk</Badge>     {/* any URL; kind read off it */}
+<Badge href="/img/x.jpg" as="image" />           {/* force the kind */}
+<Badge href="…" icon="/app-icons/react.png" />    {/* choose the icon */}
+```
+
+---
+
 ## 2. Commit
 
 The `Commit` component renders work items. It supports 5 types with a discriminated union for type safety. (formerly `CommitEmbed`)

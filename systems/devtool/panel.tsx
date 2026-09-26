@@ -73,6 +73,14 @@ import {
   type PhonePalette,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
+import { useOptionalAbout } from "@/systems/about/provider";
+import {
+  GLOW_TUNING_DEFAULTS,
+  setGlowTuning,
+  useGlowTuning,
+  type GlowMotion,
+  type GlowTuning,
+} from "@/systems/glow";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
 import type { AppLink } from "@/lib/app-icon-core";
@@ -164,6 +172,7 @@ const MODULE_ORDER = [
   "sky",
   "music",
   "command",
+  "glow",
   "draggable",
   "windows",
 ] as const;
@@ -179,6 +188,7 @@ export function DevtoolModules() {
       <SkyModule />
       <MusicModule />
       <CommandModule />
+      <GlowModule />
       <DraggableModule />
       <WindowsModule />
     </>
@@ -559,6 +569,12 @@ interface DebugSectionProps {
   relevant: boolean;
   /** Something inside is off its default. Shown beside the title, and on the rail. */
   star?: Star;
+  /**
+   * Put everything in the module back to its default. With it, the title's
+   * star is a button: pressing it resets the whole module, as a row's star
+   * resets its row.
+   */
+  onReset?: () => void;
 }
 
 function DebugSection({
@@ -570,6 +586,7 @@ function DebugSection({
   compact,
   relevant,
   star = null,
+  onReset,
 }: DebugSectionProps) {
   // The title is the natural click target; the `action` slot stays a separate
   // sibling so its controls (toggles, copy) keep working without toggling the
@@ -592,40 +609,64 @@ function DebugSection({
     <div ref={setNode} className="border-b border-border/30 last:border-b-0">
       <div className="px-4 py-2 bg-muted/20">
         <div className="flex items-center justify-between gap-2">
-          <button
-            onClick={() => setSectionCollapsed(foldKey, !collapsed)}
-            className={cn(
-              "flex items-center gap-2 flex-1 min-w-0",
-              "text-xs font-mono text-muted-foreground uppercase tracking-wider",
-              "hover:text-foreground/80 transition-colors"
-            )}
-            aria-expanded={!collapsed}
-            aria-label={`Toggle ${title} section`}
-          >
-            <ChevronDown
+          <div className="flex flex-1 min-w-0 items-center">
+            <button
+              onClick={() => setSectionCollapsed(foldKey, !collapsed)}
               className={cn(
-                "h-3 w-3 shrink-0 transition-transform duration-200",
-                collapsed && "-rotate-90"
+                "flex items-center gap-2 min-w-0",
+                "text-xs font-mono text-muted-foreground uppercase tracking-wider",
+                "hover:text-foreground/80 transition-colors"
               )}
-            />
-            {icon}
-            <span className="truncate">{title}</span>
-            {star && (
-              <span
+              aria-expanded={!collapsed}
+              aria-label={`Toggle ${title} section`}
+            >
+              <ChevronDown
                 className={cn(
-                  "-ml-1.5 shrink-0",
-                  star === "session" ? "text-amber-500/80" : "text-sky-500/80"
+                  "h-3 w-3 shrink-0 transition-transform duration-200",
+                  collapsed && "-rotate-90"
                 )}
-                title={
-                  star === "session"
-                    ? "Something in here is overridden for this session"
-                    : "Something in here is off its default"
-                }
-              >
-                *
-              </span>
-            )}
-          </button>
+              />
+              {icon}
+              <span className="truncate">{title}</span>
+            </button>
+            {star &&
+              (onReset ? (
+                <button
+                  onClick={onReset}
+                  className={cn(
+                    "ml-0.5 shrink-0 text-xs font-mono transition-colors",
+                    star === "session"
+                      ? "text-amber-500/80 hover:text-amber-400"
+                      : "text-sky-500/80 hover:text-sky-400"
+                  )}
+                  title={`Reset ${title} to its defaults`}
+                  aria-label={`Reset ${title} to its defaults`}
+                >
+                  *
+                </button>
+              ) : (
+                <span
+                  className={cn(
+                    "ml-0.5 shrink-0 text-xs font-mono",
+                    star === "session" ? "text-amber-500/80" : "text-sky-500/80"
+                  )}
+                  title={
+                    star === "session"
+                      ? "Something in here is overridden for this session"
+                      : "Something in here is off its default"
+                  }
+                >
+                  *
+                </span>
+              ))}
+            {/* The rest of the title bar folds too, as it did when the title
+                button spanned it; the star is a button of its own beside it. */}
+            <div
+              aria-hidden
+              className="flex-1 self-stretch cursor-pointer"
+              onClick={() => setSectionCollapsed(foldKey, !collapsed)}
+            />
+          </div>
           {action && (
             <div className="flex items-center min-h-5 shrink-0">{action}</div>
           )}
@@ -2772,6 +2813,101 @@ function CommandModule() {
       >
         <PanelSegmented value={phonePalette} options={options} onChange={setPhonePalette} />
       </PanelRow>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Glow Module — the light's volume (systems/glow), saved.
+// Site-wide strength multiplies every glow; the About's ring has its own
+// strength and depth on top. The devtool rides over the About while it is up
+// (dock.tsx), so these can be turned while the ring is on screen — `Show`
+// brings it up to look at.
+// =============================================================================
+
+function GlowModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const tuning = useGlowTuning();
+  const about = useOptionalAbout();
+  // The light is judged on the About: while it is up the module unfolds
+  // (`relevant`) and the panel brings it into view.
+  const aboutOpen = about?.isOpen ?? false;
+  const scrollTo = useContext(SectionsContext)?.scrollTo;
+  useEffect(() => {
+    if (!aboutOpen || !scrollTo) return;
+    // After the unfold has laid out.
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => scrollTo("glow")));
+    return () => cancelAnimationFrame(id);
+  }, [aboutOpen, scrollTo]);
+  type NumericKey = Exclude<keyof GlowTuning, "aboutMotion">;
+  const star = (key: keyof GlowTuning) =>
+    tuning[key] !== GLOW_TUNING_DEFAULTS[key] ? (
+      <PanelStar source="saved" onReset={() => setGlowTuning({ [key]: GLOW_TUNING_DEFAULTS[key] })} />
+    ) : undefined;
+  const changed = (Object.keys(GLOW_TUNING_DEFAULTS) as (keyof GlowTuning)[]).some(
+    (k) => tuning[k] !== GLOW_TUNING_DEFAULTS[k],
+  );
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const slider = (key: NumericKey, label: string, ariaLabel: string, min: number, max: number) => (
+    <PanelSlider
+      label={label}
+      ariaLabel={ariaLabel}
+      value={tuning[key]}
+      min={min}
+      max={max}
+      step={0.01}
+      format={pct}
+      star={star(key)}
+      onChange={(v) => setGlowTuning({ [key]: v })}
+    />
+  );
+
+  return (
+    <DebugSection
+      id="glow"
+      title={zh ? "光晕" : "Glow"}
+      icon={<Sparkles className="h-4 w-4" />}
+      compact
+      relevant={aboutOpen}
+      star={changed ? "saved" : null}
+      onReset={() => setGlowTuning(GLOW_TUNING_DEFAULTS)}
+      action={
+        about ? (
+          <button
+            onClick={about.isOpen ? about.close : about.open}
+            className="rounded px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {about.isOpen ? (zh ? "收起关于" : "Hide About") : zh ? "显示关于" : "Show About"}
+          </button>
+        ) : undefined
+      }
+    >
+      <div className="space-y-3">
+        {slider("strength", zh ? "全站强度" : "Strength · all", "Glow strength, site-wide", 0, 1.5)}
+        {slider("aboutStrength", zh ? "关于 · 强度" : "About · strength", "About glow strength", 0, 1.5)}
+        {/* Where the ring's light ends, as a share of the narrower gutter
+            between the screen's edge and the words (<EdgeGlow>'s `depth`):
+            100% just touches them, past it the light's tail lies over them.
+            The light stands as high off every edge. One per layout, the
+            About having two (systems/glow/lib/tuning.ts has the defaults). */}
+        {slider("aboutDesk", zh ? "关于 · 桌面深度" : "About · desk depth", "About glow depth, desk", 0.05, 2.5)}
+        {slider("aboutPhone", zh ? "关于 · 手机深度" : "About · phone depth", "About glow depth, phone", 0.05, 2.5)}
+        {/* How the About's ring lives while it is up: the motions of
+            <Glow motion>, judged on the ring that matters. */}
+        <PanelRow label={zh ? "关于 · 动效" : "About · motion"} star={star("aboutMotion")}>
+          <PanelSegmented<GlowMotion>
+            value={tuning.aboutMotion}
+            options={[
+              { value: "flow", label: zh ? "流动" : "Flow" },
+              { value: "rotate", label: zh ? "旋转" : "Rotate" },
+              { value: "pulse", label: zh ? "呼吸" : "Pulse" },
+            ]}
+            onChange={(v) => setGlowTuning({ aboutMotion: v })}
+            label="About glow motion"
+          />
+        </PanelRow>
+      </div>
     </DebugSection>
   );
 }

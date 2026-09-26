@@ -697,6 +697,12 @@ html.dragging * {
   margin-bottom: 0;
 }
 
+/* A badge (components/badge) is `.not-prose` to escape the prose link style,
+   but it is a word in a sentence, not a block: no block margin. */
+.prose-article .not-prose.badge-link {
+  margin-block: 0;
+}
+
 /* -----------------------------------------------------------------------------
    Block spacing, against the reading size.
 
@@ -2175,4 +2181,85 @@ main[data-variant="reader"] .reader-masthead {
   .install-icon {
     animation: none;
   }
+}
+
+/* =============================================================================
+   About — `.about-copy` (systems/about)
+   The About's blocks rise in turn as it arrives: the greeting first, the
+   credits last. A little blur on the way up, the way a system sheet's text
+   resolves; none of it with reduced motion.
+   ============================================================================= */
+
+.about-copy > * {
+  animation: about-rise 720ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.about-copy > :nth-child(1) { animation-delay: 120ms; }
+.about-copy > :nth-child(2) { animation-delay: 190ms; }
+.about-copy > :nth-child(3) { animation-delay: 260ms; }
+.about-copy > :nth-child(4) { animation-delay: 330ms; }
+.about-copy > :nth-child(5) { animation-delay: 400ms; }
+.about-copy > :nth-child(6) { animation-delay: 470ms; }
+.about-copy > :nth-child(n + 7) { animation-delay: 540ms; }
+
+@keyframes about-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* The way out rises last, with the credits; and words that overflow their
+   container fade at its foot, so the way out never cuts a line in half. */
+.about-foot {
+  animation: about-rise 720ms cubic-bezier(0.2, 0.8, 0.2, 1) 560ms both;
+}
+.about-scroll-fade {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-copy > *,
+  .about-foot {
+    animation: none;
+  }
+}
+
+/* The glow without WebGL (systems/glow): the same palette as a conic
+   gradient (`--glow-stops`, set from lib/palette.ts), masked to a band on the
+   host's edge and softened. Still, but the same light. A line keeps only the
+   bottom of the ring. */
+.glow-fallback {
+  padding: 6px;
+  background: conic-gradient(from 180deg, var(--glow-stops));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  filter: blur(10px);
+}
+.glow-fallback-line {
+  -webkit-mask: linear-gradient(to top, #000 0 8px, transparent 60%);
+  mask: linear-gradient(to top, #000 0 8px, transparent 60%);
+}
+
+/* The palette's microphone while it listens (systems/command/voice.tsx): a
+   slow breath, so the button says "on" even where the glow is out of sight. */
+.voice-mic-live {
+  animation: voice-mic-breathe 1.6s ease-in-out infinite;
+}
+@keyframes voice-mic-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-mic-live { animation: none; }
 }

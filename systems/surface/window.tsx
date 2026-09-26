@@ -60,6 +60,10 @@ export interface SurfaceWindowProps {
    * `top-right` is for a surface that must not sit over the thing it is about.
    */
   placement?: "center" | "top-right";
+  /** Paint layer; 60 by default, level with the other secondary surfaces.
+   *  Raised for a surface that must come up over a higher layer (the
+   *  devtool over the About). */
+  zIndex?: number;
   className?: string;
   children: React.ReactNode;
 }
@@ -71,6 +75,7 @@ export function SurfaceWindow({
   width,
   maxHeight,
   placement = "center",
+  zIndex,
   className,
   children,
 }: SurfaceWindowProps) {
@@ -113,6 +118,7 @@ export function SurfaceWindow({
               ? "justify-end p-4"
               : "justify-center pt-[12vh]"
           )}
+          style={zIndex !== undefined ? { zIndex } : undefined}
         >
           <motion.div
             ref={contentRef as React.RefObject<HTMLDivElement>}
