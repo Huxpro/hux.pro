@@ -1,3 +1,4 @@
+import { glowPalette, subscribeGlowPalette } from "./harmony";
 import { GLOW_FRAGMENT, GLOW_VERTEX } from "./shader";
 
 // =============================================================================
@@ -97,6 +98,7 @@ const UNIFORMS = [
   "uBreath",
   "uInside",
   "uBaseline",
+  "uPal",
 ] as const;
 
 type Uniform = (typeof UNIFORMS)[number];
@@ -221,6 +223,7 @@ function draw(c: Context, inst: GlowInstance, f: GlowUniforms) {
   gl.uniform4f(u.uBreath, f.breath[0], f.breath[1], f.breath[2], f.breath[3]);
   gl.uniform1f(u.uInside, f.inside);
   gl.uniform1f(u.uBaseline, f.baseline);
+  gl.uniform3fv(u.uPal, pal[f.dark ? 1 : 0]);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -231,6 +234,9 @@ function draw(c: Context, inst: GlowInstance, f: GlowUniforms) {
   // shared canvas, which in image coordinates is its last `h` rows.
   out.drawImage(canvas, 0, canvas.height - h, w, h, 0, 0, w, h);
 }
+
+/** This frame's palettes: light theme, dark theme. */
+const pal: Float32Array[] = [new Float32Array(15), new Float32Array(15)];
 
 function clear(inst: GlowInstance) {
   inst.canvas.getContext("2d")?.clearRect(0, 0, inst.canvas.width, inst.canvas.height);
@@ -262,6 +268,13 @@ function tick(now: number) {
 
   if (ctx === undefined) ctx = create();
   const c = ctx;
+  // The palette for this frame (lib/harmony.ts): easing toward the
+  // wallpaper's colours after a change, when every frame is drawn afresh.
+  const light = glowPalette(now, false);
+  const darkPal = glowPalette(now, true);
+  pal[0] = light.stops;
+  pal[1] = darkPal.stops;
+  if (light.moving || darkPal.moving) for (const inst of live) inst.held = false;
   const dt = Math.min(0.05, (half ? gap * 2 : gap) / 1000);
   for (const inst of live) {
     const f = inst.frame(now, dt);
@@ -287,6 +300,11 @@ function kick() {
 
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", kick);
+  // New colours: every lit glow eases to them, held frames included.
+  subscribeGlowPalette(() => {
+    for (const inst of live) inst.held = false;
+    kick();
+  });
 }
 
 /** Register an instance; it starts idle. Returns the unregister function. */

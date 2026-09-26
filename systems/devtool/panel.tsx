@@ -77,7 +77,11 @@ import { useOptionalAbout } from "@/systems/about/provider";
 import {
   GLOW_BASELINE,
   GLOW_TUNING_DEFAULTS,
+  autoHarmony,
   setGlowTuning,
+  stopCss,
+  useGlowPaletteState,
+  type GlowHarmony,
   useGlowTuning,
   type GlowMotion,
   type GlowTuning,
@@ -2809,6 +2813,39 @@ function CommandModule() {
 // brings it up to look at.
 // =============================================================================
 
+/**
+ * The light's colours as they are now: the wallpaper's hue, the rule it
+ * gets, and the five stops (this theme's) the shader draws from.
+ */
+function GlowPaletteSwatches({ zh, harmony }: { zh: boolean; harmony: GlowHarmony }) {
+  const { source, to } = useGlowPaletteState();
+  const dark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  const stops = dark ? to.dark : to.light;
+  const rule = harmony === "auto" ? autoHarmony(source) : harmony;
+  return (
+    <PanelRow
+      label={
+        source
+          ? `${zh ? "壁纸" : "Wallpaper"} ${Math.round(source.h)}° · ${rule}`
+          : `${zh ? "壁纸无色" : "Grey wallpaper"} · ${rule === "siri" ? "siri" : rule}`
+      }
+    >
+      <span className="flex items-center gap-1">
+        {source && (
+          <span
+            className="mr-1 size-3 rounded-full border border-border/50"
+            style={{ background: `oklch(0.7 ${Math.min(source.c, 0.2)} ${source.h})` }}
+            title="The wallpaper's dominant colour"
+          />
+        )}
+        {[0, 1, 2, 3, 4].map((i) => (
+          <span key={i} className="size-3 rounded-sm" style={{ background: stopCss(stops, i) }} />
+        ))}
+      </span>
+    </PanelRow>
+  );
+}
+
 function GlowModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
@@ -2824,7 +2861,7 @@ function GlowModule() {
     const id = requestAnimationFrame(() => requestAnimationFrame(() => scrollTo("glow")));
     return () => cancelAnimationFrame(id);
   }, [aboutOpen, scrollTo]);
-  type NumericKey = Exclude<keyof GlowTuning, "aboutMotion" | "aboutBaseline">;
+  type NumericKey = Exclude<keyof GlowTuning, "aboutMotion" | "aboutBaseline" | "harmony">;
   const star = (key: keyof GlowTuning) =>
     tuning[key] !== GLOW_TUNING_DEFAULTS[key] ? (
       <PanelStar source="saved" onReset={() => setGlowTuning({ [key]: GLOW_TUNING_DEFAULTS[key] })} />
@@ -2868,6 +2905,25 @@ function GlowModule() {
       }
     >
       <div className="space-y-3">
+        {/* Where every glow's colours come from: the wallpaper's dominant
+            colour by a colour-wheel rule, or Siri's palette
+            (systems/glow/lib/harmony.ts). */}
+        <PanelRow label={zh ? "配色" : "Colours"} star={star("harmony")}>
+          <PanelSegmented<GlowHarmony>
+            value={tuning.harmony}
+            options={[
+              { value: "auto", label: zh ? "自动" : "Auto" },
+              { value: "analogous", label: zh ? "近似" : "Analog" },
+              { value: "complementary", label: zh ? "互补" : "Compl" },
+              { value: "split", label: zh ? "分裂" : "Split" },
+              { value: "triadic", label: zh ? "三角" : "Triad" },
+              { value: "siri", label: "Siri" },
+            ]}
+            onChange={(v) => setGlowTuning({ harmony: v })}
+            label="Glow colours"
+          />
+        </PanelRow>
+        <GlowPaletteSwatches zh={zh} harmony={tuning.harmony} />
         {slider("strength", zh ? "全站强度" : "Strength · all", "Glow strength, site-wide", 0, 1.5)}
         {slider("aboutStrength", zh ? "关于 · 强度" : "About · strength", "About glow strength", 0, 1.5)}
         {/* Where the ring's light ends, as a share of the narrower gutter

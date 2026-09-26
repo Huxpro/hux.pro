@@ -22,6 +22,16 @@ export { EdgeGlow } from "./components/edge-glow";
 export type { EdgeGlowProps } from "./components/edge-glow";
 export { GLOW_EXTENT_PER_REACH } from "./lib/shader";
 export { GLOW_STOPS, GLOW_CSS_STOPS } from "./lib/palette";
+export { GlowPaletteBridge } from "./components/palette-bridge";
+export {
+  GLOW_HARMONIES,
+  autoHarmony,
+  harmonyHues,
+  harmonyStops,
+  stopCss,
+  useGlowPaletteState,
+} from "./lib/harmony";
+export type { GlowHarmony, GlowSource } from "./lib/harmony";
 export { glowSupported } from "./lib/renderer";
 export {
   GLOW_TUNING_DEFAULTS,
