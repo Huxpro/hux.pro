@@ -99,6 +99,9 @@ export interface AmbientSettings {
    * dialog. See lib/tilt-primer.ts.
    */
   weatherGyroPrimed: boolean;
+  /** The unprompted location offer's back-off (lib/location-offer.ts). */
+  locationOfferDeclines: number;
+  locationOfferSnoozedUntil: number;
   /** Defocus the wallpaper on reading pages so prose stays the figure. */
   wallpaperReadingBlur: boolean;
   /** Veil the wallpaper on reading pages. */
@@ -120,6 +123,8 @@ export function getDefaultSettings(): AmbientSettings {
     weatherGyro: true,
     weatherGyroGranted: false,
     weatherGyroPrimed: false,
+    locationOfferDeclines: 0,
+    locationOfferSnoozedUntil: 0,
     wallpaperId: DEFAULT_WALLPAPER_ID,
     wallpaperPlay: "off",
     wallpaperAlbum: null,
@@ -190,6 +195,12 @@ export function getAmbientSettings(): AmbientSettings {
       weatherGyro: parsed.weatherGyro !== false,
       weatherGyroGranted: parsed.weatherGyroGranted === true,
       weatherGyroPrimed: parsed.weatherGyroPrimed === true,
+      locationOfferDeclines:
+        finiteOrNull(parsed.locationOfferDeclines, (n) => Math.max(0, Math.floor(n))) ??
+        defaults.locationOfferDeclines,
+      locationOfferSnoozedUntil:
+        finiteOrNull(parsed.locationOfferSnoozedUntil, (n) => n) ??
+        defaults.locationOfferSnoozedUntil,
       wallpaperId,
       wallpaperPlay: play,
       wallpaperAlbum: play === "off" ? null : wallpaperAlbum,

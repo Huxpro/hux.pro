@@ -5,6 +5,7 @@ import { Providers } from "@/shared/providers";
 import {
   AmbientPhaseActivity,
   AmbientSurface,
+  LocationOffer,
   LocationPrimerSheet,
   SolarThemeSync,
   TiltPrimerSheet,
@@ -145,6 +146,7 @@ export default function RootLayout({
             <WallpaperSheet />
             <TiltPrimerSheet />
             <LocationPrimerSheet />
+            <LocationOffer />
             <InstallSheet />
             <TheaterRegistrar />
             <TheaterSurfaces />
