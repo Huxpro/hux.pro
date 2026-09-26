@@ -394,7 +394,6 @@ export const translations = {
     // About (see systems/about)
     aboutTitle: "About",
     aboutEnter: "Reveal",
-    aboutReopenHint: "Press {key} anytime to come back",
     aboutReopenHintTouch: "Find it again in the command menu",
 
     // Prompts page
@@ -765,7 +764,6 @@ export const translations = {
     // About (see systems/about)
     aboutTitle: "关于",
     aboutEnter: "进入",
-    aboutReopenHint: "随时按 {key} 回到这里",
     aboutReopenHintTouch: "之后可在命令菜单中再次找到",
 
     // Prompts page

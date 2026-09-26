@@ -240,40 +240,40 @@ function AboutFoot({
   ref?: Ref<HTMLDivElement>;
 }) {
   const { locale } = useLocale();
-  const [before, after] = t(locale, "aboutReopenHint").split("{key}");
   return (
-    // The button is the centre of weight; the hint sits under it, kept to
-    // about its width so the eye stays on the press.
+    // The button is the centre of weight; the hint sits under it, quiet and
+    // kept to about its width, so the eye stays on the press.
     <div ref={ref} className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-col items-center">
-      {/* Glass, not a slab: the way out is part of the veil it sits on. */}
+      {/* Glass, not a slab: the way out is part of the veil it sits on.
+          Where there is a keyboard it is longer and wears its key, Esc, on
+          the right — balanced by an empty column of the same width on the
+          left, so the word stays at the button's centre and the button at
+          the screen's. */}
       <button
         type="button"
         onClick={onDismiss}
         className={cn(
-          "rounded-full px-5 py-2 text-[13px] font-medium text-foreground",
+          "rounded-full py-2 text-[13px] font-medium text-foreground",
+          keyboard
+            ? "grid min-w-[12rem] grid-cols-[1fr_auto_1fr] items-center gap-3 pr-2 pl-2"
+            : "px-5",
           GLASS_TRACK_FLAT,
           "active:scale-[0.97] active:duration-0",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         )}
       >
+        {keyboard && <span aria-hidden />}
         {/* Reveal, every time: the veil lifts off the page underneath. */}
-        {t(locale, "aboutEnter")}
-      </button>
-      <span className="mt-3 max-w-[12.5rem] text-center text-[11px] leading-relaxed text-tertiary-foreground">
-        {keyboard ? (
-          <>
-            {before}
-            {/* The palette's slash command, in the chips its slash list
-                wears (systems/command/results.tsx). */}
-            <span className="inline-flex gap-1 align-[0.05em] whitespace-nowrap">
-              <kbd className={TYPE.kbd}>/</kbd>
-              <kbd className={TYPE.kbd}>O</kbd>
-            </span>
-            {after}
-          </>
-        ) : (
-          t(locale, "aboutReopenHintTouch")
+        <span>{t(locale, "aboutEnter")}</span>
+        {keyboard && (
+          <kbd aria-hidden className={cn(TYPE.kbd, "justify-self-end px-1.5 py-0 text-[10px] leading-5")}>
+            esc
+          </kbd>
         )}
+      </button>
+      {/* One line for every device: the palette is where it lives. */}
+      <span className="mt-3 max-w-[12.5rem] text-center text-[11px] leading-relaxed text-quaternary-foreground">
+        {t(locale, "aboutReopenHintTouch")}
       </span>
     </div>
   );

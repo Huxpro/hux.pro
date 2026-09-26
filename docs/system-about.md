@@ -49,10 +49,12 @@ over whatever page a visitor landed on.
    screen, nothing pushes the way out off it.
    **The foot** — always on screen: a glass button, centred (`GLASS_TRACK_FLAT`,
    the theater's control glass — part of the veil, not a slab on it), reading
-   **Reveal** every time (the veil lifts off the page underneath), with the
-   hint to come back — `/` `O`, in the slash list's own key chips —
-   on its own line beneath, kept to about the button's width so the weight
-   stays on the press.
+   **Reveal** every time (the veil lifts off the page underneath). Where there
+   is a keyboard it is longer (12rem) and wears `esc` on its right, balanced
+   by an empty column of the same width on its left, so the word stays at
+   the button's centre and the button at the screen's. Beneath it one quiet
+   line (quaternary) for every device — *Find it again in the command menu* —
+   kept to about the button's width so the weight stays on the press.
    **Where** — on a desk the words and the foot are one group, centred on the
    screen (flexible space above and below). On a phone the words take every
    line the screen has and the foot sits at its bottom.
