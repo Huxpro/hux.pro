@@ -51,7 +51,12 @@ export interface AboutSurfaceProps {
 }
 
 export function AboutSurface({ en, zh }: AboutSurfaceProps) {
-  const { isOpen, close } = useAbout();
+  const { isOpen, close, seen } = useAbout();
+  // Whether this showing is the newcomer's first, held while it is up —
+  // dismissing marks the visitor as met at once, and the way out must not
+  // turn from Reveal to Close as it leaves.
+  const [firstTime, setFirstTime] = useState(!seen);
+  if (isOpen && firstTime !== !seen) setFirstTime(!seen);
   const { locale } = useLocale();
   const { hasFineHoverPointer } = useInputCapability();
   const tuning = useGlowTuning();
@@ -185,6 +190,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
             >
               <AboutFoot
                 ref={footRef}
+                firstTime={firstTime}
                 keyboard={hasFineHoverPointer}
                 onDismiss={close}
               />
@@ -227,10 +233,13 @@ function useDeskLayout(): boolean {
 }
 
 function AboutFoot({
+  firstTime,
   keyboard,
   onDismiss,
   ref,
 }: {
+  /** A newcomer's first meeting: until the About is first dismissed. */
+  firstTime: boolean;
   keyboard: boolean;
   onDismiss: () => void;
   ref?: Ref<HTMLDivElement>;
@@ -244,9 +253,11 @@ function AboutFoot({
       ref={ref}
       className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-col items-center sm:items-start"
     >
-      {/* Glass, not a slab: the way out is part of the veil it sits on. It
-          breathes — the glow's pulse, blooming out from behind it — the one
-          thing on the screen asking to be pressed. Where there is a
+      {/* Glass, not a slab: the way out is part of the veil it sits on.
+          On a first visit it is Reveal (the veil lifts off the page the
+          newcomer landed on) and it breathes — the glow's pulse, blooming
+          out from behind it — the one thing on the screen asking to be
+          pressed. After that it is a plain Close. Where there is a
           keyboard it wears its key, Esc. */}
       <button
         type="button"
@@ -259,14 +270,13 @@ function AboutFoot({
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         )}
       >
-        {/* Reveal, every time: the veil lifts off the page underneath. */}
-        {t(locale, "aboutEnter")}
+        {t(locale, firstTime ? "aboutEnter" : "aboutClose")}
         {keyboard && (
           <kbd aria-hidden className={cn(TYPE.kbd, "px-1.5 py-0 text-[10px] leading-5")}>
             esc
           </kbd>
         )}
-        <Glow active motion="pulse" inside={false} bleed={14} reach={3} strength={0.9} />
+        <Glow active={firstTime} motion="pulse" inside={false} bleed={14} reach={3} strength={0.9} />
       </button>
       {/* One quiet line for every device: the palette is where it lives. */}
       <span className="mt-3 max-w-[12.5rem] text-center text-[11px] leading-relaxed text-quaternary-foreground sm:max-w-none sm:text-left">

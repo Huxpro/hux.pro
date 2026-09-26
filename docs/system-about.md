@@ -49,9 +49,11 @@ over whatever page a visitor landed on.
    screen, nothing pushes the way out off it.
    **The foot** — always on screen: a glass button, centred (`GLASS_TRACK_FLAT`,
    the theater's control glass — part of the veil, not a slab on it), reading
-   **Reveal** every time (the veil lifts off the page underneath), breathing
-   — the glow's `pulse`, only its halo (`inside={false}`), blooming out from
-   behind it: the one thing on the screen asking to be pressed. Where there
+   **Reveal** on a first visit (the veil lifts off the page the newcomer
+   landed on), breathing — the glow's `pulse`, only its halo
+   (`inside={false}`), blooming out from behind it: the one thing on the
+   screen asking to be pressed. After the first dismissal it is a plain
+   **Close**, still. Where there
    is a keyboard it wears `esc` after the word. Beneath it one quiet line
    (quaternary) for every device — *Find it again in the command menu*. On a
    phone the two are centred at the screen's foot; on a desk they hang from
