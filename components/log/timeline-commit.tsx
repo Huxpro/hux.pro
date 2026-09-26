@@ -18,6 +18,7 @@ import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
+import { QuietLine } from "./quiet-line";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { Description, Commentary, AuthorFields } from "./embeds/shared";
 import { Paperclip } from "lucide-react";
@@ -499,31 +500,23 @@ export function TimelineCommit({
       </span>
 
       <div className="flex items-center gap-2 min-w-0">
-        <span
-          className={cn(
-            "min-w-0 flex-1",
-            // Events and folded asides drop a tier in hierarchy:
-            // secondary/meta style. Font per script: CJK uses mono
-            // (matches meta line, no italic — italic on CJK reads as
-            // emphasis). English uses serif italic (the traditional
-            // typographic aside).
-            isQuiet
-              ? cn(
-                  "text-xs text-tertiary-foreground",
-                  /[぀-ヿ一-鿿]/.test(displayTitle)
-                    ? "font-mono"
-                    : "italic font-serif",
-                )
-              : TYPE.rowTitle,
-          )}
-        >
-          {displayTitle}
-          {!isQuiet && data.languageBadge && (
-            <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
-              {data.languageBadge}
-            </span>
-          )}
-        </span>
+        {isQuiet ? (
+          // Events and folded asides drop a tier. Face is per script
+          // (see QuietLine): Latin serif italic, CJK upright mono.
+          <QuietLine
+            text={displayTitle}
+            className="min-w-0 flex-1 text-xs text-tertiary-foreground"
+          />
+        ) : (
+          <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
+            {displayTitle}
+            {data.languageBadge && (
+              <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
+                {data.languageBadge}
+              </span>
+            )}
+          </span>
+        )}
 
         {attachmentCount > 0 && (
           <span
