@@ -81,8 +81,12 @@ type NormalizedWeather = {
   condition: WeatherCondition;
   isDay?: boolean;
   cloudCover?: number;              // 0..1
+  cloudCoverLow?: number;           // 0..1 by layer (also Mid, High)
+  visibilityM?: number;
+  dewPointC?: number;
+  capeJkg?: number;
   precipitationIntensity?: number;  // 0..1, derived from mm/h (or cm/h snow) + WMO code
-  precipitationType?: "none" | "rain" | "snow";
+  precipitationType?: "none" | "rain" | "snow";  // from the measurements when any fall
   windSpeedKmh?: number;
   windDirectionDeg?: number;
   humidity?: number;
@@ -96,6 +100,25 @@ The six conditions stay coarse on purpose (they name the mood for icons and
 labels); the finer WMO distinctions survive as measurements. So a 40 %-cover
 "cloudy" and a 95 % overcast look different, drizzle is not a downpour, and the
 wind actually leans the rain.
+
+**Measurements first, profile second.** Each condition has a hand-tuned
+profile in `scene.ts` (`PROFILES`). It is now the *fallback*: every
+measurement the forecast carries replaces the profile value for what it
+describes, and a condition on its own (the devtool, the legibility gallery,
+the profiler) still paints exactly the profile — byte-identical scenes.
+
+| Scene value | From the forecast | Without it |
+|---|---|---|
+| precipitation type | `rain + showers` vs `snowfall` (7 cm snow ≈ 10 mm water), ≥ 0.1 mm/h; only a *cloudy* code is upgraded by a measurement (fog's drizzle is the fog; clear + rain is the model disagreeing with itself) | the condition |
+| cloud cover | measured cover; floor only when something falls (0.4 + 0.45 × intensity), fog keeps its profile floor | profile |
+| cloud density | cover by layer — low 0.95, mid 0.7, high 0.3 — plus precipitation and instability. 80 % cirrus is a thin veil, 80 % stratus a lid | profile |
+| cloud darkness | low and mid cover, precipitation, instability; halved for snow (bright-based), mostly lifted in fog | profile + precip |
+| fog | visibility on a log scale (10 km → 0, 200 m → 1), a fog code keeps ≥ 0.5, dew point within ~2 °C adds haze; held under `WIPE_MIN_FOG` while anything falls, so the wipe and the gust never co-arm | profile + humidity + precip |
+| lightning | 0.55–1: hail codes (96/99) at 1, otherwise CAPE (a thunder code counts as at least half-convective) | 1 |
+| wind | mean + ⅓ of the way to the gusts | mean |
+
+`current` also carries `cloud_cover_low/mid/high`, `visibility`,
+`dew_point_2m` and `cape` for this (all verified available globally).
 
 ### Solar & Lunar Geometry
 
