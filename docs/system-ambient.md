@@ -1844,7 +1844,7 @@ prompt by itself — not a load, not a focus, not a refetch:
   timezone away — a Wi-Fi in San Jose placed in Los Angeles passes it — so it
   cannot be the trigger. Instead, anyone on an IP location whose browser has
   not been asked gets a notice on the home screen, four seconds after the
-  forecast paints: "Showing weather for {city}, guessed from your network",
+  forecast paints: `Showing weather for {city}, guessed from your network`,
   with **Use my location** in it. That button raises the prompt directly —
   the notice has already said why. Closing it, or letting it time out after
   15 s, is a decline: quiet for 3 days, then 14, then never. At most once a
