@@ -15,11 +15,13 @@ import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient
 import { useDevtool } from "@/systems/devtool";
 import { installTarget, useInstall } from "@/systems/install";
 import { useMusic } from "@/systems/music";
+import { useAbout } from "@/systems/about/provider";
 import {
   Bug,
   FileText,
   GitCommit,
   Home,
+  Info,
   Image as ImageIcon,
   Layers2,
   Languages,
@@ -82,6 +84,7 @@ export interface CommandAction {
 const ROW_ICON = "h-4 w-4";
 
 export function useCommandActions(): CommandAction[] {
+  const about = useAbout();
   const { theme, preference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const { locationMode, setLocationMode, requestAccurateLocation } =
@@ -132,6 +135,16 @@ export function useCommandActions(): CommandAction[] {
     preference === "system" ? Monitor : theme === "light" ? Sun : Moon;
 
   return [
+    {
+      id: "about",
+      key: "o",
+      kind: "navigate",
+      section: "navigation",
+      label: locale === "zh" ? "关于" : "About",
+      icon: <Info className={ROW_ICON} />,
+      keywords: ["about", "hux", "bio", "introduction", "关于", "黄玄"],
+      run: about.open,
+    },
     {
       id: "home",
       key: "h",
@@ -252,7 +265,6 @@ export function useCommandActions(): CommandAction[] {
     },
     {
       id: "location",
-      key: "o",
       kind: "toggle",
       section: "settings",
       label: `${t(locale, "settingsGeolocation")}: ${

@@ -33,6 +33,7 @@
  */
 
 import { CodeBlock } from "@/components/code-block";
+import { BadgeLink } from "@/components/badge-link";
 import { HeadingWithLink } from "@/components/heading-link";
 import { MdxImage } from "@/components/mdx-image";
 import { HStackWidget, VStackWidget } from "@/components/home/featured-stack-widget";
@@ -179,6 +180,8 @@ const sharedComponents: MDXComponents = {
   // - MediaRenderer: Orchestrates multiple media items
   // ---------------------------------------------------------------------------
   Media: withNotProse(Media),
+  // An inline anchor: never wrap in the block-level withNotProse helper.
+  BadgeLink,
   Video: withNotProse(Video),
   SocialEmbed: withNotProse(SocialEmbed),
   Link: withNotProse(MediaLink),

@@ -1,0 +1,220 @@
+.about-surface {
+  position: fixed;
+  inset: var(--bezel-band, 0px);
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  color: var(--foreground);
+  background: transparent;
+  -webkit-backdrop-filter: blur(32px) saturate(0.65);
+  backdrop-filter: blur(32px) saturate(0.65);
+}
+.about-surface::backdrop {
+  background: var(--glass-overlay);
+}
+.about-surface[open] .about-copy {
+  animation: about-arrive 450ms ease-out both;
+}
+.about-scroll {
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  padding: max(88px, env(safe-area-inset-top))
+    max(32px, env(safe-area-inset-right)) max(60px, env(safe-area-inset-bottom))
+    max(32px, env(safe-area-inset-left));
+}
+.about-copy {
+  position: relative;
+  width: 100%;
+  max-width: 610px;
+  margin: auto;
+  padding: 24px 0;
+}
+.about-eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--muted-foreground);
+  margin-bottom: 28px;
+}
+.about-eyebrow span {
+  margin: 0 9px;
+  color: var(--tertiary-foreground);
+}
+.about-copy h1 {
+  font-family: var(--font-serif-latin), var(--font-serif-cjk), serif;
+  font-size: clamp(42px, 5vw, 60px);
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+  margin-bottom: 26px;
+}
+.about-copy h1:focus {
+  outline: none;
+}
+.about-narrative {
+  font-size: clamp(17px, 1.8vw, 20px);
+  line-height: 1.85;
+  color: var(--foreground);
+  text-wrap: pretty;
+}
+.about-narrative p + p {
+  margin-top: 23px;
+}
+.about-narrative em {
+  font-family: var(--font-serif-latin), var(--font-serif-cjk), serif;
+  font-size: 1.15em;
+}
+.about-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px 24px;
+  margin-top: 32px;
+}
+.about-enter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--glass-strong);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 160ms;
+}
+.about-enter:hover {
+  background: var(--glass-strong-hover);
+}
+.about-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.about-shortcut kbd {
+  display: inline-grid;
+  place-items: center;
+  height: 21px;
+  width: 21px;
+  font-family: var(--font-mono), monospace;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.about-credits {
+  margin-top: 44px;
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+}
+.about-credits a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border);
+}
+.about-close {
+  position: absolute;
+  top: max(22px, env(safe-area-inset-top));
+  right: max(22px, env(safe-area-inset-right));
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.about-close:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.about-surface button:focus-visible,
+.about-credits a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+.about-edge {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.about-edge canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+.about-edge canvas[data-ready] {
+  opacity: 1;
+}
+.about-edge-fallback {
+  position: absolute;
+  inset: 3px;
+  border: 2px solid transparent;
+  border-radius: 28px;
+  background: linear-gradient(
+      120deg,
+      #80baff,
+      #b198ff,
+      #f58dbc,
+      #ffb071,
+      #80baff
+    )
+    border-box;
+  mask:
+    linear-gradient(#fff 0 0) padding-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+.about-edge:has(canvas[data-ready]) .about-edge-fallback {
+  visibility: hidden;
+}
+@keyframes about-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 639px) {
+  .about-scroll {
+    padding-top: 76px;
+    padding-bottom: 38px;
+  }
+  .about-copy {
+    padding: 12px 0;
+  }
+  .about-eyebrow {
+    font-size: 9px;
+    margin-bottom: 24px;
+  }
+  .about-copy h1 {
+    margin-bottom: 22px;
+  }
+  .about-narrative {
+    line-height: 1.8;
+  }
+  .about-credits {
+    margin-top: 30px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .about-surface[open] .about-copy {
+    animation: none;
+  }
+}

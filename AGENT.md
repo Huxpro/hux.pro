@@ -11,6 +11,7 @@
 | **Design Philosophy** | [docs/design-philosophy.md](./docs/design-philosophy.md) (Core principles) |
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
+| **About / Badge links** | [docs/system-about.md](./docs/system-about.md) (First-visit introduction, `O`, shader rim) · [docs/badge-links.en.mdx](./docs/badge-links.en.mdx) (Inline app and media launchers) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
 | **Dock / Live Activities** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel) |
 | **Glass** | [docs/system-glass.md](./docs/system-glass.md) (Clear / Tinted material, reading surfaces) |
