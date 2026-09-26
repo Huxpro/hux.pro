@@ -79,6 +79,15 @@ function Pager({ session }: { session: AttachmentSession }) {
         ref={scrollRef}
         className={cn(
           "flex gap-4 overflow-x-auto px-4 scroll-px-4",
+          // Held on the Y axis, the way the talks widget's strip is. An
+          // `overflow-x` scroller scrolls Y too the moment anything pokes out
+          // below it — here the 6px hit areas under the action pills did, by
+          // 3px — and iOS then pans the track in two dimensions and rubber-
+          // bands it vertically under a sideways swipe. It also stops Base UI
+          // from taking the track for the sheet's vertical scroller. The
+          // bottom padding (given back by the margin) keeps those hit areas
+          // whole inside the clip.
+          "overflow-y-hidden pb-1.5 -mb-1.5",
           "snap-x snap-mandatory scroll-smooth no-scrollbar",
         )}
       >

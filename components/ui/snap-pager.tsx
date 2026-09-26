@@ -30,6 +30,11 @@ import {
 //
 // A card marks itself with `data-pager-card`; the hook measures the first one
 // for the stride (its width plus the track's gap), so cards must be uniform.
+//
+// A track that can overflow vertically, even by a pixel, should also say
+// `overflow-y-hidden`. `overflow-x: auto` makes Y `auto` as well, and a track
+// that scrolls both ways drifts vertically under a sideways swipe on iOS (see
+// the attachment surface, where it did).
 // =============================================================================
 
 /** Marks one page of the track. The hook reads the first for the stride. */
