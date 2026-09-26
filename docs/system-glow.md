@@ -7,12 +7,10 @@ systems/glow/
 ├── lib/
 │   ├── palette.ts      # the five stops — the only place a glow colour is written
 │   ├── shader.ts       # the field of light on the edge of a rounded box
-│   ├── renderer.ts     # one WebGL context, one rAF loop, every instance
-│   └── ground.ts       # what the light is laid on: the picture and the surfaces, measured
+│   └── renderer.ts     # one WebGL context, one rAF loop, every instance
 └── components/
-    ├── glow.tsx        # <Glow> — shape, motion, level, processing, reveal
-    ├── edge-glow.tsx   # <EdgeGlow> — a screen's ring, ending where its content begins
-    └── ground-bridge.tsx  # publishes the wallpaper's profile to ground.ts
+    ├── glow.tsx        # <Glow> — shape, level, processing, reveal
+    └── edge-glow.tsx   # <EdgeGlow> — a screen's ring, ending where its content begins
 
 systems/voice/
 ├── lib/meter.ts        # microphone → level + three bands (gate, knee, envelope)
@@ -48,8 +46,8 @@ numbers.
 | part | what it is |
 |---|---|
 | beams | four travelling waves around the ring, two each way, at harmonics 2 · 3 · 5 · 7, so their crests never line up the same way twice. A wave sets how far its light reaches in; the crests read as beams. |
-| colour | the palette laid around the ring, drifting per beam so colours slide past each other, pushed back out from its luminance after averaging (further on a light ground). |
-| core | a thin bright line on the edge itself, whiter on a dark ground and on a busy one. |
+| colour | the palette laid around the ring, drifting per beam so colours slide past each other, pushed back out from its luminance after averaging (further in the light theme). |
+| core | a thin bright line on the edge itself, whiter in the dark. |
 | halo | outside the box (`bleed`), a softer light spilling out — the bloom a small element needs. |
 | falloff | `exp(-(d/reach)^1.45)`: steeper than exponential, because a plain `exp`'s long tail sums, across a small element, into a wash over its face. |
 | corners | the beams' depth is a **smooth** minimum (log-sum-exp) of the four edges, blended once more with the true rounded outline. A hard minimum of the edge distances folds the light along each diagonal — a crease from every corner once the light reaches deeper than the corner's radius (a 10px screen corner under a 38px ring). The smooth one keeps the contours round at every depth, lets two edges' light add up at a corner, and still follows a round host's curve (an avatar, a phone's 44px corners). Softness follows the reach; the core line stays on the true outline, crisp. Without a `bleed`, nothing past the rounded outline is drawn (antialiased at the canvas's resolution): a rounded host is not lit past its curve. |
@@ -92,7 +90,6 @@ rises as a dome — voice-glow's *bend*. `edge="top"` mirrors it.
 | `bleed` | px of halo past each side |
 | `radius` | px; read from the host (or 0 when `fixed`). Drawn into the light, not masked — the corners' blend follows it — so a change redraws at once (a held frame too). Pass the same source of truth the box's own corners come from: over the page, `useWallpaper().screenRadius`, the number `<Vitre>` draws the bezel with. |
 | `strength` | 0–1 |
-| `over` | the surface the light is laid on, when it is not the host (a fixed glow's veil) — its ground is read from it (below) |
 | `fixed` / `layer` | over the viewport; a vitre bezel layer |
 
 The glow is a `<span>` shown as a block, so it can sit inside a word (a badge
@@ -141,55 +138,6 @@ Everything else is `<Glow>`'s (`active`, `strength`, `radius`, `layer`,
 `style`, `className`, durations). It is always `fixed` and always a ring.
 With `{ x, y }` the extent eases from one axis's to the other's round each
 corner.
-
-## Ground
-
-The light used to know one thing about what it is laid on: the theme
-(`uDark`, 0 or 1). But under a glow is the theme's page or a wallpaper, under
-whatever surfaces the host is — the About's veil at 70%, Clear glass at 20%,
-a card, a wallpaper tint — and the light has to read on that. The
-[legibility system](./system-legibility.md) answers the same question for
-text, in the same two halves, and the glow borrows both (`lib/ground.ts`):
-
-| half | what | from |
-|---|---|---|
-| the picture | lightness by third of the screen, and how busy it is | the ambient provider's profile — the wallpaper's, measured once, or the Sky's read off the scene, or the plain page's — and legibility's `busy`, published by `<GlowGroundBridge>` (`setGlowGround`) |
-| the surfaces | what the host is made of | every ancestor's **computed** background colour from `over` (or the host) up to the page, composited front to back until opaque — so Tinted and Clear glass, a tint, a veil, a card are measured, not listed. A backdrop blur on the way down calms the picture's texture (× 0.4). The body and `<html>` are not surfaces: they paint the bezel, or the page the profile already describes |
-
-A glow's ground is one lightness per edge (right, bottom, left, top): the
-surfaces' lightness over the picture's at that edge's height (the thirds'
-means as a line through their centres), by how much of it they cover; and
-the picture's busyness, by how much of it shows. `uGround` and `uBusy` in the
-shader:
-
-- **lightness → compositing**, by degrees: `dark = 1 − smoothstep(0.3, 0.75, ground)`
-  takes the place of the theme bit everywhere it was used — the colour push,
-  the core line's whiteness, the halo, the light's overall weight. The
-  theme's page is the two ends (white 1.0 → 0; `#1a1a1a` 0.22 → 1), so the
-  plain page draws exactly as before; a veil over a picture lands anywhere
-  between.
-- **busyness → relief**, as text on a busy picture earns a shadow: the core
-  line whiter (+0.25 × busy) and the light a touch heavier (+30% × busy).
-
-Measured when something changes — the picture, anything on `<html>` (the
-theme's class, the glass mode, legibility's variables: one
-`MutationObserver`), the host's size, the light arriving — never per frame;
-a change redraws a held frame. Each glow writes its ground on its box as
-`data-glow-ground` (`right bottom left top · busy`), and the devtool's Glow
-module shows the picture's thirds and busyness.
-
-For the About's ring (`over` = its veil), measured:
-
-| | ground (edges) | busy |
-|---|---|---|
-| Sky, dark, Tinted | 0.21 | 0.01 |
-| Sky, light, Tinted | 0.68 | 0.01 |
-| Sky, light, Clear | 0.59 — more of the sky shows, the light adds up more | 0.02 |
-| Zebra, light, Tinted | 0.66–0.71 | 0.23 |
-| Zebra, dark, Clear | 0.35–0.40 | 0.29 |
-
-The wallpaper's tint is not used: the palette is the light's identity, and a
-glow the colour of the wallpaper is no longer the site's one light.
 
 ## Motions
 
