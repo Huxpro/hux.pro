@@ -54,11 +54,12 @@ over whatever page a visitor landed on.
    (`inside={false}`), blooming out from behind it: the one thing on the
    screen asking to be pressed. After the first dismissal it is a plain
    **Close**, still. Where there
-   is a keyboard it wears `esc` after the word. Beneath it one quiet line
-   (quaternary) for every device — *Find it again in the command menu*. On a
-   phone the two are centred at the screen's foot; on a desk they hang from
+   is a keyboard it wears `esc` after the word. How to come back is the
+   copy's own last sentence (*you can find it again in the command menu*),
+   not a line under the button, to keep the foot to the one press. On a
+   phone the button is centred at the screen's foot; on a desk it hangs from
    the words' left edge, as their last line — centred under a ragged
-   paragraph they would line up with nothing.
+   paragraph it would line up with nothing.
    **Where** — on a desk the words and the foot are one group, centred on the
    screen (flexible space above and below). On a phone the words take every
    line the screen has and the foot sits at its bottom.

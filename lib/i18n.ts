@@ -395,7 +395,6 @@ export const translations = {
     aboutTitle: "About",
     aboutEnter: "Reveal",
     aboutClose: "Close",
-    aboutReopenHintTouch: "Find it again in the command menu",
 
     // Prompts page
     promptsTitle: "System Prompts",
@@ -766,7 +765,6 @@ export const translations = {
     aboutTitle: "关于",
     aboutEnter: "进入",
     aboutClose: "关闭",
-    aboutReopenHintTouch: "之后可在命令菜单中再次找到",
 
     // Prompts page
     promptsTitle: "系统提示词",
