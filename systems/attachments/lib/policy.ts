@@ -25,7 +25,7 @@ import type { AttachmentHome } from "./types";
 // has its home there — a window on a phone is a sheet (systems/windows), so
 // `Visit` stacks the in-app browser over the attachment sheet the way a link
 // in a mobile app opens in its own in-app browser, and only a page that
-// refuses to be framed leaves for a tab. Two rules, one function, so a cover
+// refuses to be framed, or a PDF, leaves for a tab. Two rules, one function, so a cover
 // on the contact strip and the player in the expanded body never disagree
 // about what a tap does.
 // =============================================================================
@@ -50,14 +50,33 @@ export function linkTarget(media: Media, locale: Locale): string {
 }
 
 /**
+ * A PDF: the in-app browser cannot show one. Its page is a sandboxed iframe,
+ * and neither engine reads a PDF there — WebKit paints the first page as a
+ * still image that will not scroll, Chrome will not run its viewer in a
+ * sandboxed frame. The system's own viewer, in a tab, is the only good home.
+ */
+export function isPdfLink(media: Media): boolean {
+  if (!isLinkMedia(media)) return false;
+  try {
+    return /\.pdf$/i.test(new URL(media.url, "https://x.invalid").pathname);
+  } catch {
+    return false;
+  }
+}
+
+/** A page the in-app browser cannot show: it refuses to be framed, or is a PDF. */
+function unframeable(media: Media): boolean {
+  return isLinkMedia(media) && (media.preview?.frame === "deny" || isPdfLink(media));
+}
+
+/**
  * True when a press on the media leaves the site for a tab wherever a window
- * manager is mounted: a page that refuses to be framed. The hover peek asks
- * this without a provider, since a peek only exists where windows do.
+ * manager is mounted: a page that refuses to be framed, or a PDF. The hover
+ * peek asks this without a provider, since a peek only exists where windows
+ * do.
  */
 export function leavesSite(media: Media): boolean {
-  return (
-    isLinkMedia(media) && !isInternalLink(media) && media.preview?.frame === "deny"
-  );
+  return isLinkMedia(media) && !isInternalLink(media) && unframeable(media);
 }
 
 /** True when the link points at one of this site's own pages. */
@@ -80,8 +99,9 @@ export function nativeHomeFor(media: Media, ctx: HomeContext): AttachmentHome {
   if (isLinkMedia(media)) {
     if (isInternalLink(media)) return "route";
     // A page that refuses to be framed (X-Frame-Options, frame-ancestors —
-    // read at snapshot time) would open a window showing a refusal.
-    if (media.preview?.frame === "deny") return "tab";
+    // read at snapshot time) would open a window showing a refusal; a PDF,
+    // one that will not scroll (`isPdfLink`).
+    if (unframeable(media)) return "tab";
     // The in-app browser, on every viewport: a window is a sheet on a phone.
     return ctx.windows ? "window" : "tab";
   }
