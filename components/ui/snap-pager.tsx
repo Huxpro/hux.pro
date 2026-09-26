@@ -45,15 +45,32 @@ export const PAGER_CARD_ATTR = "data-pager-card";
 export interface SnapPager {
   /** The scroll track. */
   scrollRef: RefObject<HTMLDivElement | null>;
-  /** The card currently in view. */
+  /** The card currently in view — live, for the dots and the counter. */
   index: number;
+  /**
+   * The card the track came to rest on. It moves only once scrolling has
+   * stopped, so anything that restyles the cards (inert, aria-hidden) waits
+   * for the snap to finish instead of landing in the middle of it.
+   */
+  settled: number;
   /** Smooth-scroll the track to a card. */
   scrollTo: (index: number, behavior?: ScrollBehavior) => void;
 }
 
-export function useSnapPager(count: number): SnapPager {
+/**
+ * Quiet time (ms) after the last scroll event, with no finger on the track,
+ * that counts as at rest. A finger that pauses mid-drag stops the scroll
+ * events too, and the snap has not started yet.
+ */
+const SETTLE_MS = 150;
+
+export function useSnapPager(count: number, initial = 0): SnapPager {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(initial);
+  const [settled, setSettled] = useState(initial);
+  const settleTimer = useRef<number | undefined>(undefined);
+  const touching = useRef(false);
+  const latest = useRef(initial);
 
   const getStride = useCallback((): number | null => {
     const el = scrollRef.current;
@@ -64,13 +81,24 @@ export function useSnapPager(count: number): SnapPager {
     return card.offsetWidth + (Number.isFinite(gap) ? gap : 0);
   }, []);
 
+  const armSettle = () => {
+    window.clearTimeout(settleTimer.current);
+    if (touching.current) return;
+    settleTimer.current = window.setTimeout(() => setSettled(latest.current), SETTLE_MS);
+  };
+
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     const stride = getStride();
     if (!stride) return;
-    const next = Math.round(el.scrollLeft / stride);
-    setIndex(Math.min(Math.max(next, 0), Math.max(count - 1, 0)));
+    const next = Math.min(
+      Math.max(Math.round(el.scrollLeft / stride), 0),
+      Math.max(count - 1, 0),
+    );
+    latest.current = next;
+    setIndex(next);
+    armSettle();
   }, [getStride, count]);
 
   const scrollTo = useCallback(
@@ -87,11 +115,28 @@ export function useSnapPager(count: number): SnapPager {
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    const down = (e: TouchEvent) => {
+      touching.current = e.touches.length > 0;
+      window.clearTimeout(settleTimer.current);
+    };
+    const up = (e: TouchEvent) => {
+      touching.current = e.touches.length > 0;
+      armSettle();
+    };
     el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => el.removeEventListener("scroll", handleScroll);
+    el.addEventListener("touchstart", down, { passive: true });
+    el.addEventListener("touchend", up, { passive: true });
+    el.addEventListener("touchcancel", up, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+      el.removeEventListener("touchstart", down);
+      el.removeEventListener("touchend", up);
+      el.removeEventListener("touchcancel", up);
+      window.clearTimeout(settleTimer.current);
+    };
   }, [handleScroll]);
 
-  return { scrollRef, index, scrollTo };
+  return { scrollRef, index, settled, scrollTo };
 }
 
 export interface PagerDotsProps {
