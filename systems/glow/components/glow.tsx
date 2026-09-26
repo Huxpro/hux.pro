@@ -54,6 +54,23 @@ import { glowTuning } from "../lib/tuning";
 
 export type GlowShape = "ring" | "line";
 
+/**
+ * How the light lives while it is on (Libraries.dev's border-beam families,
+ * as this shader's light):
+ *
+ *   flow    the beams travel round the edge, two each way — the default, and
+ *           the About's ring
+ *   rotate  a broad arc of the light turns round the ring at an even pace,
+ *           its colours carried with it: running
+ *   pulse   the beams stand still and the light breathes — each quarter of
+ *           the ring deepening and brightening on its own slow clock, so the
+ *           breath rolls round rather than pumping: now, alive, waiting
+ *
+ * `processing` gathers any of them into a travelling beam; a voice's `level`
+ * drives any of them.
+ */
+export type GlowMotion = "flow" | "rotate" | "pulse";
+
 export interface GlowProps {
   /** On: the light sweeps in and stays. Off: it sweeps out and stops. */
   active: boolean;
@@ -66,6 +83,13 @@ export interface GlowProps {
   bands?: () => readonly [number, number, number];
   /** Gather into a travelling beam (thinking, transcribing, loading). */
   processing?: boolean;
+  /** How the light lives while on. `flow` when omitted. */
+  motion?: GlowMotion;
+  /** Seconds per turn (rotate, 6 by default) or per breath (pulse, 2.3). */
+  period?: number;
+  /** False to draw only the halo past the edge — with a `bleed`, a light
+   *  blooming out from behind the host (border-beam's `pulse-outside`). */
+  inside?: boolean;
   /** How far the light reaches in from the edge, CSS px. Sized to the host
    *  when omitted. */
   reach?: number;
@@ -103,7 +127,30 @@ const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
 const easeInOut = (x: number) =>
   x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 const REST = 0.45;
+/** A rotation's arc: the focus half-width, in ring units — about half the
+ *  ring lit, brightest at its centre. */
+const ROTATE_ARC = 0.2;
 const REST_BANDS = [1, 1, 1] as const;
+const STILL_BREATH = [1, 1, 1, 1] as const;
+
+/**
+ * A pulse's four clocks — right, bottom, left, top — as border-beam's
+ * oscillators are: each ping-pongs between a shallow and a deep breath on a
+ * cosine, its period a little off the others' and its phase offset, so the
+ * quarters never breathe in step and the breath rolls round the ring.
+ * Multiples of the pulse's period.
+ */
+const BREATH = [
+  { period: 1, delay: 0 },
+  { period: 1.23, delay: 0.37 },
+  { period: 0.89, delay: 0.61 },
+  { period: 1.37, delay: 0.18 },
+] as const;
+const BREATH_LOW = 0.62;
+const BREATH_HIGH = 1.08;
+
+/** Where a pulse holds the beams: a moment where they sit well spread. */
+const PULSE_WAVE = 3.7;
 const NO_EXTENT = [0, 0] as const;
 
 function follow(prev: number, target: number, dt: number, tau: number) {
@@ -126,6 +173,9 @@ export function Glow({
   level,
   bands,
   processing = false,
+  motion = "flow",
+  period,
+  inside = true,
   reach,
   extent,
   bleed = 0,
@@ -148,13 +198,13 @@ export function Glow({
   // Everything the frame loop reads lives in a ref: it outlives renders, and
   // a prop change must not restart the animation.
   const props = useRef({
-    active, shape, edge, level, bands, processing, reach, extent, bleed, radius, strength,
-    inDuration, outDuration, onDone,
+    active, shape, edge, level, bands, processing, motion, period, inside, reach, extent, bleed,
+    radius, strength, inDuration, outDuration, onDone,
   });
   useLayoutEffect(() => {
     props.current = {
-      active, shape, edge, level, bands, processing, reach, extent, bleed, radius, strength,
-      inDuration, outDuration, onDone,
+      active, shape, edge, level, bands, processing, motion, period, inside, reach, extent, bleed,
+      radius, strength, inDuration, outDuration, onDone,
     };
   });
 
@@ -180,6 +230,9 @@ export function Glow({
       scan: 0, // processing blend, 0–1
       scanT: 0,
       level: REST,
+      turn: 0, // a rotation's position, in turns
+      pulse: 0, // 0–1, how far into a pulse the light has settled
+      pulseT: 0,
     };
 
     const readRadius = () => {
@@ -227,20 +280,41 @@ export function Glow({
         const blend = m.scan * m.scan * (3 - 2 * m.scan);
 
         const still = reduced.matches;
+        const secs = still ? 0 : (now - epoch) / 1000;
+
+        // Rotate: a broad arc turning at an even pace, carrying its colours.
+        const rotating = p.motion === "rotate" && p.shape === "ring";
+        if (rotating && !still) m.turn += dt / Math.max(0.5, p.period ?? 6);
+        // Pulse: the beams settle where they stand and the quarters breathe.
+        m.pulse = follow(m.pulse, p.motion === "pulse" ? 1 : 0, dt, 0.4);
+        if (p.motion === "pulse" && !still) m.pulseT += dt;
+        const breathPeriod = Math.max(0.5, p.period ?? 2.3);
+        const breath = BREATH.map(({ period: k, delay }) => {
+          const phase = (m.pulseT / (breathPeriod * k)) + delay;
+          const deep = BREATH_LOW + (BREATH_HIGH - BREATH_LOW) * (1 - Math.cos(2 * Math.PI * phase)) / 2;
+          // A still pulse holds a middling breath; flow and rotate, none.
+          return 1 + ((still ? 0.9 : deep) - 1) * m.pulse;
+        }) as unknown as readonly [number, number, number, number];
+
         let focus = 0;
         let focusAt = 0.25;
         if (p.shape === "line") {
           // The bottom arc, spreading with the voice.
           const rest = 0.085 + 0.07 * m.level;
-          const period = 1.1;
-          const u = (m.scanT / period) % 2;
+          const sweep = 1.1;
+          const u = (m.scanT / sweep) % 2;
           const pass = still ? 0 : u < 1 ? easeInOut(u) * 2 - 1 : 1 - easeInOut(u - 1) * 2;
           focus = rest + (0.045 - rest) * blend;
           focusAt = 0.25 + 0.085 * pass * blend;
         } else if (blend > 0.001) {
-          // A comet around the whole ring.
-          focus = 0.5 + (0.075 - 0.5) * blend;
-          focusAt = 0.25 + (still ? 0 : m.scanT * 0.45);
+          // A comet around the whole ring — from a rotation's arc, where it
+          // stands.
+          const from = rotating ? ROTATE_ARC : 0.5;
+          focus = from + (0.075 - from) * blend;
+          focusAt = 0.25 + (rotating ? m.turn : 0) + (still ? 0 : m.scanT * 0.45);
+        } else if (rotating) {
+          focus = ROTATE_ARC;
+          focusAt = 0.25 + m.turn;
         }
 
         const w = canvas.clientWidth - 2 * (p.bleed ?? 0);
@@ -248,12 +322,21 @@ export function Glow({
         const area = canvas.clientWidth * canvas.clientHeight;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const hold =
-          still && k >= 1 && surge === 0 && typeof p.level !== "function" && !p.bands && m.scan < 0.001;
+          still && k >= 1 && surge === 0 && typeof p.level !== "function" && !p.bands && m.scan < 0.001 &&
+          (p.motion !== "pulse" || m.pulse > 0.999);
         return {
           // A large glow is soft and costly: half the device ratio. A small
           // one needs every pixel for its core line.
           scale: area > 160_000 ? dpr * 0.5 : dpr,
-          time: still ? 0 : (now - epoch) / 1000,
+          time: secs,
+          // A pulse eases its beams to a standstill rather than stopping dead.
+          wave: secs + (PULSE_WAVE - secs) * m.pulse,
+          hue: rotating ? m.turn : 0,
+          breath: m.pulse < 0.001 ? STILL_BREATH : breath,
+          inside: p.inside ? 1 : 0,
+          // The arc swells while it rotates; a comet gathering from it keeps
+          // its own shape.
+          swell: rotating ? 1 - blend : 0,
           reveal: m.reveal,
           surge,
           radius: p.radius ?? instance.hostRadius,
@@ -305,7 +388,7 @@ export function Glow({
   // loop takes it from there, including the way out.
   useEffect(() => {
     inst.current?.wake();
-  }, [active, processing, shape]);
+  }, [active, processing, shape, motion]);
 
   // The box's geometry is drawn into the light (the corners' blend follows
   // the radius; the beams are sized to the reach), so a change to it is a
@@ -319,7 +402,7 @@ export function Glow({
     if (!i) return;
     i.held = false;
     i.wake();
-  }, [radius, reach, extentX, extentY, bleed, strength]);
+  }, [radius, reach, extentX, extentY, bleed, strength, inside, period]);
 
   const box: CSSProperties = fixed
     ? { ...style }

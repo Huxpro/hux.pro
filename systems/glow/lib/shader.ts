@@ -27,6 +27,12 @@ import { glslRing } from "./palette";
 //             is that arc gathered small and swept side to side.
 //   reveal    the ring arrives from the focus centre and spreads both ways,
 //             its front flaring, with a surge in reach as it lands.
+//   motion    how the light lives while on (the component drives it):
+//             flow — the beams travel (`uWave` is the clock); rotate — a
+//             broad arc of it turns round the ring, its colours carried with
+//             it (`uFocusAt`, `uHue`); pulse — the beams stand still and
+//             each quarter of the ring breathes on its own clock (`uBreath`).
+//             `uInside` 0 keeps only the halo past the edge.
 // =============================================================================
 
 /**
@@ -72,6 +78,11 @@ uniform float uLine;     // 1: focus measured along the bottom edge (a line)
 uniform float uFlip;     // -1 mirrors the box top to bottom: a line on the top edge
 uniform vec2 uExtent;    // px where the light must end: x off the left / right
                          // edges, y off the top / bottom; 0 = no limit
+uniform float uWave;     // seconds the beams have travelled (held by a pulse)
+uniform float uHue;      // ring units the palette is turned by
+uniform vec4 uBreath;    // reach × this per quarter: right, bottom, left, top
+uniform float uInside;   // 0: only the halo past the edge
+uniform float uSwell;    // 1: the light deepens toward the focus centre (a rotation's arc)
 
 #define TAU 6.28318530718
 
@@ -126,7 +137,14 @@ void main() {
     float wy = exp(-(edges.z - mE) / kE) + exp(-(edges.w - mE) / kE);
     extent = (wx * uExtent.x + wy * uExtent.y) / (wx + wy);
   }
-  float reach = (uExtent.x > 0.0 ? extent / ${GLOW_EXTENT_PER_REACH.toFixed(2)} : uWidth) * (1.0 + 1.4 * uSurge) * energy;
+  // Where round the ring the pixel is, 0–1 (0.25 the bottom), and a pulse's
+  // breath there: each quarter's clock weighted by cos² of the angle to it,
+  // which sums to one all the way round, so the quarters blend seamlessly.
+  float ring_s = atan(p.y / box.y, p.x / box.x) / TAU + 0.5;
+  vec4 wq = max(cos(TAU * (ring_s - vec4(0.5, 0.25, 0.0, 0.75))), 0.0);
+  float breath = dot(wq * wq, uBreath);
+
+  float reach = breath * (uExtent.x > 0.0 ? extent / ${GLOW_EXTENT_PER_REACH.toFixed(2)} : uWidth) * (1.0 + 1.4 * uSurge) * energy;
 
   // The beams' depth: the smooth min of the four straight edges, so their
   // light rounds each corner instead of creasing on its diagonal. Softness
@@ -144,7 +162,6 @@ void main() {
   float d = mix(ringD, max(p.y + box.y, 0.0), uLine);
   if (d > reach * 9.0) { gl_FragColor = vec4(0.0); return; }
 
-  float ring_s = atan(p.y / box.y, p.x / box.x) / TAU + 0.5;
   float t = uTime;
 
   // A line is laid along the bottom edge, not around the centre: an angle
@@ -160,6 +177,13 @@ void main() {
   // The reach swells toward the focus centre: the light rises as a dome
   // over the voice (voice-glow's bend).
   d /= mix(1.0, 0.45 + 0.55 * focus, uLine);
+  // A rotation's arc is a beam, not a window on the ring: it runs deeper
+  // and brighter at its centre and thins toward its ends.
+  d /= mix(1.0, 0.55 + 1.05 * focus, uSwell);
+  // Past the edge the beams are measured outward, so the halo carries
+  // their colours and their depth — a breath blooms, a beam spills — rather
+  // than one grey average of the ring.
+  if (outside) d = out_;
 
   vec3 col = vec3(0.0);
   float glow = 0.0;
@@ -168,9 +192,9 @@ void main() {
     float dir = mod(fi, 2.0) < 0.5 ? 1.0 : -1.0;
     float k = fi < 0.5 ? 2.0 : fi < 1.5 ? 3.0 : fi < 2.5 ? 5.0 : 7.0;
     float speed = 0.16 + 0.07 * fi;
-    float wave = 0.5 + 0.5 * sin(TAU * (k * s + dir * speed * t) + fi * 1.9);
+    float wave = 0.5 + 0.5 * sin(TAU * (k * s + dir * speed * uWave) + fi * 1.9);
     wave = pow(wave, 2.0 + fi * 0.6);
-    float swell = 0.65 + 0.35 * sin(TAU * ((k - 1.0) * s - dir * 0.05 * t) + fi);
+    float swell = 0.65 + 0.35 * sin(TAU * ((k - 1.0) * s - dir * 0.05 * uWave) + fi);
     // Lows drive the long wave, mids the middle two, highs the fine one.
     float band = fi < 0.5 ? uBands.x : fi < 2.5 ? uBands.y : uBands.z;
     float thick = reach * (0.3 + 1.4 * wave * swell) * (0.45 + 0.55 * band);
@@ -178,7 +202,7 @@ void main() {
     // small element, into a wash over its whole face. This keeps the light
     // on the edge at every scale.
     float g = exp(-pow(d / thick, 1.45));
-    col += ring(s + dir * 0.025 * t + fi * 0.19) * g;
+    col += ring(s + dir * 0.025 * t + fi * 0.19 - uHue) * g;
     glow += g;
   }
   col /= max(glow, 1e-4);
@@ -186,15 +210,15 @@ void main() {
   col = clamp(mix(vec3(luma), col, mix(1.55, 1.3, uDark)), 0.0, 1.0);
   float a = 1.0 - exp(-glow * 1.15);
 
-  // The line on the edge itself — on the true outline, so it stays crisp.
-  float core = exp(-mix(edge, d, uLine) / (2.2 + 3.0 * uSurge));
-  col = mix(col, vec3(1.0), core * mix(0.18, 0.6, uDark));
-  a = max(a, core * 0.95);
-
-  // Outside the box: the halo, softer and dimmer, fading over the bleed.
+  // Outside the box: the halo, the beams' own light fading over the bleed,
+  // softer and dimmer. Inside: the line on the edge itself — on the true
+  // outline, so it stays crisp.
   if (outside) {
-    float halo = exp(-out_ / max(1.0, reach * 0.55)) * smoothstep(uBleed, uBleed * 0.4, out_);
-    a = halo * mix(0.55, 0.75, uDark);
+    a *= smoothstep(uBleed, uBleed * 0.4, out_) * mix(0.55, 0.75, uDark);
+  } else {
+    float core = exp(-mix(edge, d, uLine) / (2.2 + 3.0 * uSurge));
+    col = mix(col, vec3(1.0), core * mix(0.18, 0.6, uDark));
+    a = max(a, core * 0.95) * uInside;
   }
 
   // The extent's window: the last fifth of it, where the brightest crest is
@@ -213,12 +237,13 @@ void main() {
   float shown = smoothstep(front, front - 0.15 * span, from);
   float flare = exp(-abs(from - front + 0.06 * span) * 18.0 / span)
     * (1.0 - uReveal) * step(0.001, uReveal) * focus;
-  a = a * shown + flare * exp(-d / reach) * 0.8 * (outside ? 0.0 : 1.0);
+  a = a * shown + flare * exp(-d / reach) * 0.8 * (outside ? 0.0 : uInside);
   col = mix(col, vec3(1.0), flare * 0.35);
 
   // Light adds up on a dark ground and tints a light one: a touch less of it
   // in the light theme, so a small element's corners do not read as a wash.
-  a = clamp(a * uStrength * (0.8 + 0.45 * uLevel) * mix(0.8, 1.0, uDark), 0.0, 1.0);
+  // A breath brightens as it deepens.
+  a = clamp(a * mix(1.0, breath, 0.6) * mix(1.0, 0.6 + 0.9 * focus, uSwell) * uStrength * (0.8 + 0.45 * uLevel) * mix(0.8, 1.0, uDark), 0.0, 1.0);
   gl_FragColor = vec4(col * a, a);
 }
 `;
