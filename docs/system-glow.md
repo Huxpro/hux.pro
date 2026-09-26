@@ -246,6 +246,7 @@ localStorage (`hux_glow`, `lib/tuning.ts`):
 | About · desk depth | 5–250% of the narrower gutter | the About's `<EdgeGlow depth>` on a desk (`sm` and up): default 130% |
 | About · phone depth | 5–250% of the narrower gutter | the same on a phone: default 140% |
 | About · motion | Flow / Rotate / Pulse | the About's ring's `motion` (below), to judge each on the ring that matters: default Flow |
+| About · engine | Ours / border-beam | what draws the About's ring. border-beam is the reference, through its own API only (`systems/about/components/about-beam.tsx`, loaded on demand): rotate → `md`, pulse → `pulse-inner` (flow shows as `md`), strength → `strength`, depth → `glowSize` (× 3, its blur radii), radius → `borderRadius`. Its colour blobs are fixed card-sized pixels, so across a screen it stays a thin line at the edge — depth scales only its blur, never how far the light reaches |
 
 The desk's default is the ring as it first shipped — a reach of 3.8% of the
 screen's short side, clamped to 18–38px — restated: on a 1440×900 desk a

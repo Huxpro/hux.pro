@@ -79,6 +79,7 @@ import {
   setGlowTuning,
   useGlowGroundSource,
   useGlowTuning,
+  type GlowEngine,
   type GlowMotion,
   type GlowTuning,
 } from "@/systems/glow";
@@ -2842,7 +2843,7 @@ function GlowModule() {
     const id = requestAnimationFrame(() => requestAnimationFrame(() => scrollTo("glow")));
     return () => cancelAnimationFrame(id);
   }, [aboutOpen, scrollTo]);
-  type NumericKey = Exclude<keyof GlowTuning, "aboutMotion">;
+  type NumericKey = Exclude<keyof GlowTuning, "aboutMotion" | "aboutEngine">;
   const star = (key: keyof GlowTuning) =>
     tuning[key] !== GLOW_TUNING_DEFAULTS[key] ? (
       <PanelStar source="saved" onReset={() => setGlowTuning({ [key]: GLOW_TUNING_DEFAULTS[key] })} />
@@ -2907,6 +2908,21 @@ function GlowModule() {
             ]}
             onChange={(v) => setGlowTuning({ aboutMotion: v })}
             label="About glow motion"
+          />
+        </PanelRow>
+        {/* What draws the About's ring: ours, or Libraries.dev's border-beam
+            through its own API — the reference, on the ring that matters.
+            Strength, depth (as its glowSize), motion and radius map onto it;
+            its colour blobs are card-sized, so depth is approximate. */}
+        <PanelRow label={zh ? "关于 · 引擎" : "About · engine"} star={star("aboutEngine")}>
+          <PanelSegmented<GlowEngine>
+            value={tuning.aboutEngine}
+            options={[
+              { value: "glow", label: zh ? "我们" : "Ours" },
+              { value: "border-beam", label: "border-beam" },
+            ]}
+            onChange={(v) => setGlowTuning({ aboutEngine: v })}
+            label="About glow engine"
           />
         </PanelRow>
         <GlowGroundReadout zh={zh} />

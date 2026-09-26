@@ -38,6 +38,9 @@ importers:
       '@tanstack/react-query-persist-client':
         specifier: ^5.90.18
         version: 5.90.18(@tanstack/react-query@5.90.16(react@19.3.0-canary-65eec428-20251218))(react@19.3.0-canary-65eec428-20251218)
+      border-beam:
+        specifier: 1.4.1
+        version: 1.4.1(react-dom@19.3.0-canary-65eec428-20251218(react@19.3.0-canary-65eec428-20251218))(react@19.3.0-canary-65eec428-20251218)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -126,9 +129,6 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.3(@types/react@19.2.8)
-      border-beam:
-        specifier: 1.4.1
-        version: 1.4.1(react-dom@19.3.0-canary-65eec428-20251218(react@19.3.0-canary-65eec428-20251218))(react@19.3.0-canary-65eec428-20251218)
       eslint:
         specifier: ^9
         version: 9.39.2(jiti@2.6.1)

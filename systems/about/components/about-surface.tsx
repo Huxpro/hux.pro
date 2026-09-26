@@ -20,6 +20,10 @@ import {
 } from "react";
 import { useAbout } from "../provider";
 import { EdgeGlow, Glow, useGlowTuning } from "@/systems/glow";
+import dynamic from "next/dynamic";
+
+/** border-beam, only when the devtool asks for it (see about-beam.tsx). */
+const AboutBeam = dynamic(() => import("./about-beam"), { ssr: false });
 
 // =============================================================================
 // AboutSurface — the About, floating over whatever page is underneath.
@@ -205,22 +209,36 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
           </motion.div>
         )}
       </AnimatePresence>
-      <EdgeGlow
-        active={isOpen}
-        // The words, as far as their scroll container shows them, and the
-        // way out under them: the light ends a share of the way to them.
-        content={[articleRef, footRef]}
-        over={veilRef}
-        // The devtool's Glow module: the About's own strength, and its depth
-        // per layout (systems/glow/lib/tuning.ts).
-        depth={desk ? tuning.aboutDesk : tuning.aboutPhone}
-        motion={tuning.aboutMotion}
-        strength={tuning.aboutStrength}
-        radius={screenRadius}
-        style={frame}
-        layer={bezel}
-        className={cn("z-[10021]", bezel && "overflow-hidden")}
-      />
+      {tuning.aboutEngine === "border-beam" ? (
+        // The devtool's reference engine: border-beam drawing the ring.
+        <AboutBeam
+          active={isOpen}
+          motion={tuning.aboutMotion}
+          strength={tuning.aboutStrength}
+          depth={desk ? tuning.aboutDesk : tuning.aboutPhone}
+          radius={screenRadius}
+          style={frame}
+          layer={bezel}
+          className={cn("z-[10021]", bezel && "overflow-hidden")}
+        />
+      ) : (
+        <EdgeGlow
+          active={isOpen}
+          // The words, as far as their scroll container shows them, and the
+          // way out under them: the light ends a share of the way to them.
+          content={[articleRef, footRef]}
+          over={veilRef}
+          // The devtool's Glow module: the About's own strength, and its depth
+          // per layout (systems/glow/lib/tuning.ts).
+          depth={desk ? tuning.aboutDesk : tuning.aboutPhone}
+          motion={tuning.aboutMotion}
+          strength={tuning.aboutStrength}
+          radius={screenRadius}
+          style={frame}
+          layer={bezel}
+          className={cn("z-[10021]", bezel && "overflow-hidden")}
+        />
+      )}
     </>
   );
 }

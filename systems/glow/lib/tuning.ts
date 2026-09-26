@@ -19,6 +19,8 @@ import type { GlowMotion } from "../components/glow";
 //                  the whole screen on a phone — the `sm` breakpoint).
 //   aboutMotion    how the About's ring lives: flow (the default), rotate,
 //                  pulse — to judge the motions on the one ring that matters.
+//   aboutEngine    what draws it: our light, or Libraries.dev's border-beam as
+//                  the reference (systems/about/components/about-beam.tsx).
 //
 // The desk's default is the ring as it first shipped (a reach of 3.8% of the
 // screen's short side, 18–38px), restated: at 1440×900 a 34px reach ends
@@ -38,7 +40,11 @@ export interface GlowTuning {
   aboutPhone: number;
   /** How the About's ring lives while it is up (<Glow motion>). */
   aboutMotion: GlowMotion;
+  /** What draws the About's ring: our light, or border-beam for reference. */
+  aboutEngine: GlowEngine;
 }
+
+export type GlowEngine = "glow" | "border-beam";
 
 export const GLOW_TUNING_DEFAULTS: GlowTuning = {
   strength: 1,
@@ -46,6 +52,7 @@ export const GLOW_TUNING_DEFAULTS: GlowTuning = {
   aboutDesk: 1.3,
   aboutPhone: 1.4,
   aboutMotion: "flow",
+  aboutEngine: "glow",
 };
 
 const MOTIONS: readonly GlowMotion[] = ["flow", "rotate", "pulse"];
@@ -72,6 +79,9 @@ function load() {
       }
       if (MOTIONS.includes(saved.aboutMotion as GlowMotion)) {
         next.aboutMotion = saved.aboutMotion as GlowMotion;
+      }
+      if (saved.aboutEngine === "glow" || saved.aboutEngine === "border-beam") {
+        next.aboutEngine = saved.aboutEngine;
       }
       state = next;
     }
