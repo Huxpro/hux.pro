@@ -132,6 +132,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Segmented, Switch } from "@/components/ui/controls";
 import { Slider } from "@/components/ui/slider";
+import { useRangeDrag } from "@/components/ui/use-range-drag";
 import {
   createContext,
   useCallback,
@@ -1840,9 +1841,12 @@ const PANEL_CHIP = cn(
   "text-[10px] font-mono uppercase tracking-wider transition-colors"
 );
 
-/** The timeline's playhead: a range input with an invisible track. */
+/**
+ * The timeline's playhead: a range input with an invisible track. The strip
+ * around it takes the pointer (useRangeDrag); the input keeps the keyboard.
+ */
 const PLAYHEAD_INPUT = cn(
-  "absolute inset-0 h-full w-full cursor-ew-resize appearance-none bg-transparent",
+  "pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent",
   "[&::-webkit-slider-runnable-track]:h-full [&::-webkit-slider-runnable-track]:bg-transparent",
   "[&::-webkit-slider-thumb]:h-10 [&::-webkit-slider-thumb]:w-[3px] [&::-webkit-slider-thumb]:appearance-none",
   "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white",
@@ -2044,6 +2048,17 @@ function SkyModule() {
     setPlayRate(0);
     setTimeScrubMinutes(minutes);
   };
+
+  // The whole strip takes the pointer, not the 3px playhead: press anywhere
+  // on the day and drag, and the drag holds until release.
+  const { inputRef: scrubInputRef, wrapperProps: scrubProps } = useRangeDrag({
+    value: clockMinutes,
+    min: 0,
+    max: DAY_MINUTES - 1,
+    step: 1,
+    onChange: jumpTo,
+    thumb: 3,
+  });
 
   const resetAll = () => {
     setPlayRate(0);
@@ -2252,8 +2267,9 @@ function SkyModule() {
             </span>
           </div>
           <div
-            className="relative h-10 overflow-hidden rounded-lg ring-1 ring-border/50"
-            style={{ backgroundImage: dayGradient }}
+            {...scrubProps}
+            className="relative h-10 cursor-ew-resize overflow-hidden rounded-lg ring-1 ring-border/50"
+            style={{ ...scrubProps.style, backgroundImage: dayGradient }}
           >
             {[sr, ss].map((m) => (
               <span
@@ -2296,6 +2312,7 @@ function SkyModule() {
               />
             )}
             <input
+              ref={scrubInputRef}
               type="range"
               min={0}
               max={DAY_MINUTES - 1}

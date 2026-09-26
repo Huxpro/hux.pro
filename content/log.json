@@ -446,6 +446,7 @@
       "id": "wad-2026-lynx-workshop",
       "type": "talk",
       "present": "aside",
+      "asideLine": "venue",
       "tagId": "lynx-era",
       "title": {
         "en": "Vibe³ Cross Platform Apps with Lynx: A TikTok Hackathon",
@@ -487,6 +488,7 @@
       "id": "gosim-2026-vibe-native",
       "type": "talk",
       "present": "aside",
+      "asideLine": "venue",
       "tagId": "lynx-era",
       "title": {
         "en": "Why AI Agents Deserve a Better App Framework",
@@ -528,6 +530,7 @@
       "id": "see-conf-2025-two-threads",
       "type": "talk",
       "present": "aside",
+      "asideLine": "venue",
       "tagId": "lynx-era",
       "title": {
         "en": "React for Two Threads",
@@ -562,6 +565,7 @@
       "id": "wad-2025-lynx-native",
       "type": "talk",
       "present": "aside",
+      "asideLine": "venue",
       "tagId": "lynx-era",
       "title": {
         "en": "Lynx: Native for More",
@@ -1571,7 +1575,8 @@
         "Frontend"
       ],
       "language": "zh",
-      "present": "aside"
+      "present": "aside",
+      "asideLine": "title"
     },
     {
       "id": "css-sucks-2015",
@@ -1603,7 +1608,8 @@
         "Design"
       ],
       "language": "zh",
-      "present": "aside"
+      "present": "aside",
+      "asideLine": "title"
     },
     {
       "id": "pwa-in-my-pov-2016",
@@ -1635,7 +1641,8 @@
         "Mobile Web"
       ],
       "language": "zh",
-      "present": "aside"
+      "present": "aside",
+      "asideLine": "title"
     },
     {
       "id": "qcon-shanghai-2016",

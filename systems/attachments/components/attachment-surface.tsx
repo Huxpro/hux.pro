@@ -3,7 +3,12 @@
 import { PagerDots, useSnapPager } from "@/components/ui/snap-pager";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { ADAPTIVE_PRESENTATION, AdaptiveSurface } from "@/systems/surface";
+import {
+  ADAPTIVE_PRESENTATION,
+  AdaptiveSurface,
+  useSheetAxisLock,
+  useSurfaceContext,
+} from "@/systems/surface";
 import { useLayoutEffect } from "react";
 import type { AttachmentSession } from "../provider";
 import { useAttachments } from "../provider";
@@ -65,7 +70,12 @@ export function AttachmentSurface() {
 function Pager({ session }: { session: AttachmentSession }) {
   const { set, index: initial } = session;
   const count = set.items.length;
-  const { scrollRef, index, scrollTo } = useSnapPager(count);
+  const { scrollRef, index, settled, scrollTo } = useSnapPager(count, initial);
+  // In a sheet, a swipe on the track is the track's or the sheet's, never
+  // both — a diagonal one otherwise moves the two together on iOS and the
+  // snap strands between pages (systems/surface/axis-lock.ts).
+  const { mode } = useSurfaceContext();
+  useSheetAxisLock(scrollRef, mode === "sheet");
 
   // Land on the item that was tapped before the first paint, not after: the
   // surface arrives already showing it.
@@ -79,7 +89,16 @@ function Pager({ session }: { session: AttachmentSession }) {
         ref={scrollRef}
         className={cn(
           "flex gap-4 overflow-x-auto px-4 scroll-px-4",
-          "snap-x snap-mandatory scroll-smooth no-scrollbar",
+          // X only, the way the talks widget's strip is. An `overflow-x`
+          // scroller scrolls Y too the moment anything pokes out below it —
+          // here the 6px hit areas under the action pills did, by 3px — and
+          // iOS then pans the track in two dimensions and rubber-bands it
+          // vertically under a sideways swipe. The bottom padding (given back
+          // by the margin) keeps those hit areas whole inside the clip.
+          "overflow-y-hidden pb-1.5 -mb-1.5",
+          // No `scroll-smooth`: the dots already ask for a smooth scroll by
+          // name, and on WebKit the property is one more hand on a snap.
+          "snap-x snap-mandatory no-scrollbar",
         )}
       >
         {set.items.map((media, i) => (
@@ -87,9 +106,12 @@ function Pager({ session }: { session: AttachmentSession }) {
             key={`${media.url}-${i}`}
             data-pager-card
             className="w-full shrink-0 snap-center"
-            // Pages off screen are inert to the keyboard and the reader.
-            inert={i !== index || undefined}
-            aria-hidden={i !== index || undefined}
+            // Pages off screen are inert to the keyboard and the reader —
+            // from the page the track settled on, not the one passing under
+            // the finger: flipping these mid-snap restyles the pages while
+            // WebKit is animating the snap between them.
+            inert={i !== settled || undefined}
+            aria-hidden={i !== settled || undefined}
           >
             <AttachmentPage set={set} index={i} />
           </div>

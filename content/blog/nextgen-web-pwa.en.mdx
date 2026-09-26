@@ -1,6 +1,6 @@
 ---
 title: "Progressive Web Apps"
-description: "The Next-Generation Application Model for the Web — Progressive Web App"
+description: "The Next-Generation Application Model for the Web: Progressive Web App"
 date: "2017-02-09"
 featured: true
 tags: ["Web", "PWA"]
@@ -11,54 +11,54 @@ origin: "AI-translated from the original"
 
 ## The Next-Generation Web Application?
 
-In recent years, web applications have shouldered an ever-increasing share of responsibility across the software and internet industry. As software complexity and maintenance costs have risen, web technology — especially client-side web technology — has experienced explosive growth.
+Over the last few years, web apps have taken on a bigger and bigger share of the work in software and on the internet. As software got more complex and more expensive to maintain, web technology, and client-side web technology above all, took off.
 
-This includes but is not limited to: Node.js-based frontend engineering solutions; bundlers like Webpack and Rollup; transpilers like Babel and PostCSS; languages that compile to JavaScript like TypeScript and Elm; modern frontend frameworks like React, Angular, and Vue along with their ecosystems. We've also seen architectures like [Isomorphic JavaScript][1] and [Universal JavaScript][2] that combine Server-side Rendering with the Single-page App model — a true blossoming of ideas.
+That includes front-end engineering built on Node.js; bundlers like Webpack and Rollup; transpilers like Babel and PostCSS; languages that compile to JavaScript like TypeScript and Elm; modern frameworks like React, Angular and Vue, and everything around them. There are also architectures like [Isomorphic JavaScript][1] and [Universal JavaScript][2] that mix server-side rendering with single-page apps. There has been no shortage of ideas.
 
-However, web applications in the mobile era have not achieved the same level of popularity they enjoy on desktop devices. The reason is that despite all these solutions making full use of existing JavaScript computing capabilities, CSS layout capabilities, HTTP caching, and browser APIs to bring engineering-level breakthroughs to modern web apps built on [Ajax][3] and [responsive design][4], we still cannot break through the web platform's inherent constraints on web applications without relying on native programs to assist the browser: **the network latency caused by client-side software (i.e. web pages) needing to be downloaded; and the experience problems caused by web applications depending on the browser as their entry point.**
+Yet on mobile, web apps never got as popular as they are on the desktop. All these tools squeeze everything they can out of JavaScript, CSS layout, HTTP caching and browser APIs, and they've pushed the engineering of modern web apps, built on [Ajax][3] and [responsive design][4], a long way. But without a native program helping the browser out, they still can't get past two limits the web platform puts on web apps: **the latency of downloading the client software (the web page) over the network, and the experience problems that come from needing a browser to get in.**
 
 ![](/img/in-post/post-nextgen-web-pwa/PWAR-007.jpeg)
 *Usage time comparison between web and native apps on mobile platforms [Image source: Google][i2]*
 
-On desktop devices, with stable network conditions, ample screen real estate, and a multi-tasking-oriented interaction model, the negative impact of these two issues is overshadowed by the advantages of web apps — no installation required, available on demand, and no updates needed. But in the mobile era, fragile network connections and entirely new interaction paradigms have amplified these two problems enormously, severely constraining the development of web applications on mobile platforms. In users' eyes, native apps never show a "white screen" and are all neatly arranged on the home screen; web applications, meanwhile, are apps within an app (the browser), inconvenient to use and slower to load than native apps.
+On the desktop, the network is stable, the screen is big, and people are used to juggling many windows. There, both problems are outweighed by what web apps do well: nothing to install, there when you need them, never needing an update. On mobile, shaky connections and a whole new way of interacting make both problems much worse, and they've held web apps back badly. To users, native apps never show a blank white screen and sit neatly on the home screen, while web apps are apps inside another app (the browser), awkward to use and slower to load.
 
-Progressive Web Apps (hereafter PWA) and the suite of key technologies behind them have finally given us a glimpse of hope for a fundamental solution to these two platform-level problems: Service Worker and Cache Storage, which can significantly improve app loading speed and even allow web apps to work offline; Web App Manifest, which describes web application metadata and enables web apps to be added to the home screen and run in full screen like native apps; and the Push API and Notification API, which further enhance the web application's integration with the operating system, enabling web apps to send push notifications even when not active.
+Progressive Web Apps (PWA from here on) and the technologies behind them finally give us some hope of fixing both problems at the platform level. Service Worker and Cache Storage make apps load much faster and can even let them work offline. The Web App Manifest describes a web app so it can be added to the home screen and run full screen like a native app. And the Push API and Notification API tie web apps more closely to the operating system, so they can send push notifications even when they aren't open.
 
-What happens when you combine these technologies? Flipkart — often called "India's Alibaba" — [shut down their mobile website][17] in 2015, only to launch what became the most talked-about PWA case study at the end of that year: *FlipKart Lite*, the world's first PWA to support large-scale business. A week after launch, it was showcased at [Chrome Dev Summit 2015][15], and I was blown away at the time. To make it easier for readers across different media, I've put together a few illustrations:
+What do you get when you put them together? Flipkart, often called "India's Alibaba," [shut down its mobile website][17] in 2015, and at the end of that year launched what became the most talked-about PWA of all: *Flipkart Lite*, the first PWA anywhere to run a business at scale. A week after launch it was on stage at [Chrome Dev Summit 2015][15], and it blew me away. Here are a few illustrations for readers who can't watch the video:
 
 ![](/img/in-post/post-nextgen-web-pwa/flipkart-1.jpeg)
 *Image source: Hux & [Medium.com][i3]*
 
-When the browser detects that a user [needs][16] Flipkart Lite, it prompts them: "Hey, you can add this to your home screen!" (users can also do this manually). This way, Flipkart Lite leaves a custom icon on the home screen as an entry point, just like a native app. Unlike a regular bookmark, tapping the icon opens Flipkart Lite directly in full screen, free from the browser's UI, complete with its own splash screen.
+When the browser sees that a user [could use][16] Flipkart Lite, it asks: "Hey, want to add this to your home screen?" (Users can also do it themselves.) Flipkart Lite then gets its own icon on the home screen, just like a native app. It's not a plain bookmark either. Tap the icon and Flipkart Lite opens full screen, with no browser UI and with its own splash screen.
 
 ![](/img/in-post/post-nextgen-web-pwa/flipkart-2.jpeg)
 *Image source: Hux & [Medium.com][i3]*
 
-Even more powerful: when the network is unavailable, Flipkart Lite can run just like a native app — it even stylishly turns black and white. Not only that, previously visited products are cached and remain accessible offline. When products go on sale or there are promotions, Flipkart Lite sends push notifications just like a native app, drawing users back.
+It gets better. With no network, Flipkart Lite still runs like a native app, and it even turns a stylish black and white. Products you've looked at before are cached and still work offline. When there's a sale or a promotion, Flipkart Lite sends a push notification, just like a native app, to bring you back.
 
-**No more worrying about network latency; with an independent entry point and independent keep-alive mechanism.** The simultaneous resolution of both problems heralds the rebirth of web applications on mobile devices: web apps that fulfill the PWA model will gradually become first-class citizens on mobile operating systems, launching a challenge and "revenge" against native apps.
+**No more worrying about network latency, and an entry point and a way to bring users back that are its own.** With both problems solved at once, web apps get a second life on mobile. Web apps that follow the PWA model will become first-class citizens on mobile operating systems and start taking the fight back to native apps.
 
-What's even more exciting is that at [Chrome Dev Summit 2016][18], Chrome's Engineering VP Darin Fisher introduced some experiments the Chrome team was working on: renaming "Add to Home Screen" to "Install," and making installed PWAs no longer appear merely as widgets on the desktop, but truly on par with native apps — housed in the App Drawer, showing up in system settings.
+Even more exciting, at [Chrome Dev Summit 2016][18] Chrome's VP of Engineering Darin Fisher showed some experiments the Chrome team was running: "Add to Home Screen" renamed to "Install," and installed PWAs that aren't just shortcuts on the home screen but stand level with native apps, in the app drawer and in system settings.
 
 ![](/img/in-post/post-nextgen-web-pwa/flipkart-3.jpeg)
 *Image source: Hux & [@adityapunjani][i4]*
 
-From left to right: a native-app-like installation UI; Flipkart Lite and Hux Blog housed in the App Drawer; the settings screen showing the native Flipkart app alongside Flipkart Lite PWA side by side (note the PWA's massive size advantage).
+From left to right: an install prompt that looks like a native app's; Flipkart Lite and Hux Blog in the app drawer; and the settings screen listing the native Flipkart app next to the Flipkart Lite PWA (look how much smaller the PWA is).
 
-**I believe the PWA model will spark the third fundamental revolution in the web application model — following Ajax roughly 20 years ago and responsive design roughly 10 years ago — ushering web applications into an entirely new era.**
+**I think PWA will be the third big revolution in how web apps work, after Ajax about 20 years ago and responsive design about 10 years ago, and it will take web apps into a whole new era.**
 
-## The Past and Present of Key PWA Technologies
+## Where the Key PWA Technologies Came From
 
 ### [Web App Manifest][spec1]
 
-Web App Manifest exposes a web application's metadata to the browser through a manifest file — including its name, icon URLs, and more — for the browser to use, such as exposing them to the operating system when adding to the home screen or sending push notifications, thereby enhancing the web app's integration with the OS.
+The Web App Manifest gives the browser a web app's metadata, such as its name and icon URLs, in a single manifest file. The browser uses it when the app is added to the home screen or sends a push notification, for example, so the app fits into the OS better.
 
-Attempts to make web applications feel more like native apps on mobile devices actually date back to [iOS 1.1.3 and iOS 2.1.0][q37] in 2008, which respectively added support for custom icons and full-screen launch.
+Trying to make web apps feel native on mobile goes back to 2008, when [iOS 1.1.3 and iOS 2.1.0][q37] added custom icons and full-screen launch.
 
 ![](/img/in-post/post-nextgen-web-pwa/ios2-a2hs.gif)
 *Image source: [appleinsider.com][i1]*
 
-But before long, as more and more proprietary platforms began cramming "extras" into web apps via `<meta>`/`<link>` tags, the `<head>` quickly became bloated:
+It didn't take long before more and more platforms started bolting their own extras onto web apps with `<meta>` and `<link>` tags, and the `<head>` got bloated fast:
 
 ```html
 
@@ -82,9 +82,9 @@ But before long, as more and more proprietary platforms began cramming "extras" 
 <link rel="shortcut icon" href="images/touch/touch-icon-57x57.png">
 ```
 
-Clearly, this approach was inelegant: scattered and redundant metadata definitions that were hard to keep in sync, and coupling them with HTML increased the cost of checking metadata changes in the future. Meanwhile, the community began exploring manifest-file-based approaches to centralize metadata, such as [Chrome Extension and Chrome Hosted Web Apps (2010)][12] and [Firefox OS App Manifest (2011)][13] using JSON; [Cordova][19] and [Windows Pinned Sites][20] using XML.
+Clearly not elegant. The metadata was scattered and duplicated and hard to keep in sync, and tying it to the HTML made every future change to it harder to review. Around the same time, people started putting metadata in one manifest file instead: [Chrome Extensions and Chrome Hosted Web Apps (2010)][12] and the [Firefox OS App Manifest (2011)][13] used JSON, while [Cordova][19] and [Windows Pinned Sites][20] used XML.
 
-In 2013, the W3C WebApps Working Group began standardizing a JSON-based Manifest, publishing their [first public Working Draft][14] by the end of that year, which gradually evolved into today's W3C Web App Manifest:
+In 2013 the W3C WebApps Working Group started standardizing a JSON manifest. It published a [First Public Working Draft][14] by the end of that year, and that draft grew into today's W3C Web App Manifest:
 
 ```json
 {
@@ -108,22 +108,22 @@ In 2013, the W3C WebApps Working Group began standardizing a JSON-based Manifest
 <link rel="manifest" href="/manifest.json">
 ```
 
-Fields like `name`, `icons`, and `display` are fairly familiar, while most of the new members bring a range of capabilities that web apps previously wanted but couldn't achieve (or could only hack their way to):
+You'll recognize `name`, `icons` and `display`. Most of the new fields give web apps things they always wanted and couldn't do (or could only hack together):
 
-- `scope`: Defines the browsing scope of the web app — URLs outside the scope will open in the browser rather than continuing within the PWA.
-- `start_url`: Defines a PWA's entry page. For instance, if you add any article from [Hux Blog][21] to your home screen, launching from the home screen will always take you to [Hux Blog][21]'s main page.
-- `orientation`: Finally, we can lock screen rotation (tears of joy...)
-- `theme_color`/`background_color`: Theme and background colors, used to configure customizable OS UI elements for a better user experience, such as Android's status bar and task bar.
+- `scope`: The range of URLs that belong to the web app. Links outside it open in the browser instead of staying in the PWA.
+- `start_url`: The page a PWA opens on. If you add any article from [Hux Blog][21] to your home screen, launching it from there always takes you to [Hux Blog][21]'s front page.
+- `orientation`: At last, we can lock the screen orientation (tears of joy...)
+- `theme_color`/`background_color`: The theme and background colors, used to style the parts of the OS UI that can be customized, like Android's status bar and task switcher.
 
-The manifest has many more members, such as `related_applications` for declaring "corresponding native apps," but I won't list them all here. As the PWA's "identity card," carrying the crucial responsibility of web application and OS integration, Web App Manifest will continue to expand to meet the rapidly evolving needs of web applications.
+There are plenty more fields, like `related_applications` for pointing to a matching native app, but I won't list them all. The Web App Manifest is a PWA's ID card, and it carries the job of fitting web apps into the OS, so it will keep growing as web apps need more.
 
 ### [Service Worker][spec2]
 
-Our entire existing web application model was built on the premise that "the user has internet access," which is why you end up playing the little dinosaur game the moment you go offline. In fact, Service Worker represents at least the web community's third attempt at "making web applications work offline."
+The whole web app model we have today assumes the user is online, which is why you end up playing the dinosaur game the moment your connection drops. Service Worker is the web's third attempt, at least, at making web apps work offline.
 
-The story traces back to [Google Gears][48] in 2007: to allow their own Gmail, YouTube, Google Reader and other web apps to store data locally and work offline, Google developed a browser extension to enhance web applications. Google Gears supported IE 6, Safari 3, Firefox 1.5 and other browsers — keep in mind, Chrome hadn't even been born yet that year.
+The story starts with [Google Gears][48] in 2007. Google wanted Gmail, YouTube, Google Reader and its other web apps to store data locally and work offline, so it built a browser extension that gave web apps more power. Gears supported IE 6, Safari 3, Firefox 1.5 and others. Remember, Chrome didn't exist yet.
 
-In the Gears API, we achieved offline support by submitting a cache file manifest to the LocalServer module:
+With the Gears API, you got offline support by handing a cache manifest to the LocalServer module:
 
 ```javascript
 // Somewhere in your javascript
@@ -143,7 +143,7 @@ store.manifestUrl = "manifest.json"
 }
 ```
 
-Looks familiar? Kind of like the Application Cache from the [HTML5 spec][spec11]?
+Look familiar? A bit like Application Cache in the [HTML5 spec][spec11]?
 
 ```html
 <html manifest="cache.appcache">
@@ -156,18 +156,18 @@ index.html
 main.js
 ```
 
-Yes — Gears' LocalServer was the precursor to what we now know as App Cache. Starting around [2008][spec10], the W3C began trying to standardize Gears. Beyond LocalServer, Gears' WorkerPool module (for parallel computation) and Database module (for local database and SQL support) were respectively the precursors to Web Workers and Web SQL Database (later deprecated).
+That's right. Gears' LocalServer became what we know as App Cache. Around [2008][spec10] the W3C started standardizing Gears. Besides LocalServer, its WorkerPool module (for parallel computation) became Web Workers, and its Database module (a local database with SQL) became Web SQL Database, which was later deprecated.
 
-HTML5 App Cache, as the second wave of "making web apps work offline," did indeed serve quite a few web applications, including Google Docs, Evan You's early project HTML5 Clear, and FT.com (Financial Times), which has always used web apps as their iOS applications. So what room was there left for Service Worker?
+HTML5 App Cache, the second attempt at offline web apps, did serve plenty of them, including Google Docs, Evan You's early project HTML5 Clear, and FT.com (the Financial Times), whose iOS apps have always been web apps. So what was left for Service Worker to do?
 
-Well, if App Cache hadn't been designed so [badly as to be completely unprogrammable, impossible to clear caches, virtually devoid of routing mechanisms, and utterly helpless when bugs arose][s12], there might truly have been no need for Service Worker. [App Cache was removed from the recently finalized HTML5.1 — the W3C really didn't hesitate to slap its own face to save the web...][s13]
+Well, if App Cache hadn't been [so badly designed that you couldn't program it, couldn't clear its cache, had next to no routing, and had nothing to reach for when things went wrong][s12], maybe we really wouldn't need Service Worker. [App Cache has been removed from the just-finalized HTML5.1. To save the web, the W3C didn't mind slapping its own face...][s13]
 
-Today, we've finally arrived at the dawn of Service Worker. Simply put, Service Worker is a programmable Web Worker that acts like a client-side proxy between the browser and the network, capable of intercepting, processing, and responding to HTTP requests flowing through it. Combined with the Cache Storage API introduced alongside it, you can freely manage HTTP request caching at the file level, enabling Service Worker to serve resources to your web application from cache — even in offline environments.
+Which brings us to Service Worker. Put simply, a Service Worker is a Web Worker you can program. It sits between the browser and the network like a proxy on the client, and it can intercept, handle and answer any HTTP request that passes through. Together with the Cache Storage API that came with it, you can manage caching file by file however you like, so a Service Worker can serve your web app's resources from cache, even offline.
 
 ![](/img/in-post/post-nextgen-web-pwa/sw-sw.png)
 *Service Worker acts like a proxy running on the client side*
 
-For example, we can register a Service Worker for a page `foo.html` that will hijack all HTTP requests initiated by `foo.html` and return a `Hello World!` without a `Content-Type` header:
+For example, we can register a Service Worker for a page `foo.html` that takes over every HTTP request `foo.html` makes and answers each one with `Hello World!` and no `Content-Type` header:
 
 ```javascript
 // sw.js
@@ -176,12 +176,12 @@ self.onfetch = (e) => {
 }
 ```
 
-Service Worker was first unveiled at Google I/O 2014 and is currently in W3C Working Draft status. Its design drew from the lessons of Application Cache's failure, giving you — the web application developer — complete control. It also borrowed from Chrome's years of design experience with Chrome Extensions (Chrome Background Pages and Chrome Event Pages), adopting an "event-driven" wake-up mechanism to dramatically reduce background computation power consumption. The `fetch` event above is actually one of the events that can wake up a Service Worker.
+Service Worker was first shown at Google I/O 2014 and is currently a W3C Working Draft. Its design learned from App Cache's failure and gives you, the developer, full control. It also borrowed from Chrome's years of experience with extensions (Background Pages and Event Pages): it only wakes up when an event arrives, which saves a lot of power compared with running in the background all the time. The `fetch` event above is one of the events that wake it.
 
 ![](/img/in-post/post-nextgen-web-pwa/sw-lifecycle.png)
 *The Service Worker lifecycle*
 
-Beyond functional events like `fetch`, Service Worker also provides a set of lifecycle events including installation, activation, and more. For example, during the Service Worker's "install" event, we can pre-download and cache all the resources our web application needs into Cache Storage:
+Besides functional events like `fetch`, Service Worker has lifecycle events such as install and activate. During install, for example, we can download everything our web app needs ahead of time and put it in Cache Storage:
 
 ```javascript
 // sw.js
@@ -197,7 +197,7 @@ self.oninstall = (e) => {
 });
 ```
 
-This way, when the user is offline and the network is inaccessible, we can launch our web application from cache:
+Then, when the user is offline and the network can't be reached, we can start the app from the cache:
 
 ```javascript
 //sw.js
@@ -211,24 +211,24 @@ self.onfetch = (e) => {
 }
 ```
 
-As you can see, Service Worker was designed as a relatively low-level, highly programmable API with many sub-concepts, making it exceptionally flexible and powerful — this article can only show the tip of the iceberg. For security reasons, registering a Service Worker requires your web application to be deployed over HTTPS, to prevent man-in-the-middle attacks exploiting Service Worker. I shared [Service Worker 101][b0] at GDG Beijing's DevFest this year, covering more complex caching strategies like "network first," "cache first," and "network vs. cache race," along with learning resources and [example code][29] for reference.
+Service Worker is a fairly low-level, very programmable API with a lot of moving parts, which makes it very flexible and powerful. This post only scratches the surface. For security, a Service Worker can only be registered by a site served over HTTPS, so nobody in the middle can abuse it. This year at GDG Beijing's DevFest I gave a talk, [Service Worker 101][b0], that goes into more involved caching strategies like network first, cache first, and racing the network against the cache, with learning resources and [example code][29].
 
 ![](/img/in-post/post-nextgen-web-pwa/sw-race.png)
 *One of Service Worker's caching strategies: racing network requests against cache reads*
 
-You can also try visiting my blog [Hux Blog][21] in a PWA-supporting browser to experience Service Worker in action: all previously visited pages are cached and remain accessible offline, while unvisited pages display a custom offline page.
+You can also visit my blog, [Hux Blog][21], in a browser that supports PWA to see a Service Worker at work. Every page you've visited is cached and works offline, and pages you haven't visited show a custom offline page.
 
-In my view, **Service Worker's importance to PWA is comparable to `XMLHTTPRequest`'s importance to Ajax and Media Query's importance to responsive design — it is the most critical technology underpinning PWA as "the next-generation web application model."** Since Service Worker can interact with most non-DOM APIs, including Indexed DB and Streams, its potential is virtually limitless. I can almost certainly predict that Service Worker will become a strategically contested frontier in web client-side engineering over the next decade, bringing about an "Offline-first" architectural revolution.
+As I see it, **Service Worker is to PWA what `XMLHttpRequest` was to Ajax and media queries were to responsive design. It's the key technology that makes PWA the next-generation web app model.** A Service Worker can talk to most non-DOM APIs, including IndexedDB and Streams, so there's almost no limit to what it can do. I'm close to certain that Service Worker will be one of the most fought-over parts of client-side web engineering for the next ten years, and that it will bring an offline-first revolution in architecture.
 
 ### Push Notification
 
-The "push" and "notification" in PWA push notifications actually use two different but complementary APIs:
+PWA push notifications use two separate APIs that work together, one for the push and one for the notification.
 
-The [Notification API][spec4] should be familiar to many — it handles everything related to notifications themselves: permission management, sending notifications to the OS, notification types and sounds, and providing callbacks for when notifications are clicked or dismissed. Major websites both in China and abroad (especially on desktop) already use it to some degree. The Notification API was first [proposed][spec7] around [2010][22] by Chromium as a `webkitNotifications` prefixed implementation. It entered standardization in 2011; gained support in Safari 6 (Mac OS X 10.8+) in 2012; became a [W3C Recommendation][spec8] in 2015; and with [Edge's support][23] in 2016, Web Notifications have achieved universal support across desktop browsers (Chrome, Edge, Firefox, Opera, Safari).
+Many people already know the [Notification API][spec4]. It handles everything about the notification itself: asking permission, handing notifications to the OS, notification types and sounds, and callbacks for when a notification is clicked or dismissed. Plenty of big sites in China and elsewhere already use it, mostly on the desktop. Chromium first [proposed][spec7] it around [2010][22] and shipped it with a `webkitNotifications` prefix. Standardization started in 2011. Safari 6 (Mac OS X 10.8+) supported it in 2012, it became a [W3C Recommendation][spec8] in 2015, and once [Edge added it][23] in 2016, every desktop browser (Chrome, Edge, Firefox, Opera, Safari) supported web notifications.
 
-The [Push API][spec3] gave push services the ability to push messages to web applications. It defines how web applications subscribe to push services, how they respond to push messages, and the authentication and encryption mechanisms between web applications, application servers, and push services. Since the Push API doesn't depend on the web application or browser UI being alive, push messages can be received via background processes and trigger notifications through the Notification API even when neither the web app nor the browser is open. It's worth noting that Mac OS X 10.9 Mavericks and Safari 7 shipped their own proprietary push support in 2013: [Safari Push Notifications][24] based on APNS.
+The [Push API][spec3] lets push services send messages to web apps. It defines how a web app subscribes to a push service, how it handles incoming messages, and how the web app, the app server and the push service authenticate and encrypt what they send each other. The Push API doesn't need the web app or the browser UI to be running, so a background process can receive a push message and show a notification through the Notification API even when neither is open. Worth noting: in 2013, Mac OS X 10.9 Mavericks and Safari 7 shipped Apple's own push support, [Safari Push Notifications][24], built on APNS.
 
-In a PWA, we leverage Service Worker's background computation capability combined with the Push API to respond to push events, and use the Notification API to create and handle notifications:
+In a PWA, a Service Worker runs in the background and responds to push events from the Push API, and uses the Notification API to create and handle notifications:
 
 ```javascript
 // sw.js
@@ -249,89 +249,89 @@ self.addEventListener('notificationclose', event => {
 });
 ```
 
-Regarding Push Notifications, I've consistently covered them a bit less in my talks — partly because the Push API is still in Editor's Draft status, and partly because browser-to-push-service protocol support isn't mature enough yet: Chrome (and other Blink-based browsers) before Chromium 52 only supported push notifications via Google's proprietary GCM/FCM service. The good news is that following Firefox 44, Chrome 52 and Opera 39 quickly followed suit in implementing the [Web Push Protocol][spec5], currently being standardized by the IETF.
+I've always said less about push notifications in my talks. Partly that's because the Push API is still an Editor's Draft, and partly it's because browser support for push service protocols isn't mature yet. Before Chromium 52, Chrome (and other Blink browsers) could only push through Google's own GCM/FCM. The good news is that after Firefox 44, Chrome 52 and Opera 39 quickly implemented the [Web Push Protocol][spec5], which the IETF is standardizing.
 
-If you're already using Google's cloud services (like Firebase) and primarily targeting overseas users, supporting GCM/FCM-based push notifications in your web app isn't particularly difficult. I recommend checking out Google Developers' [series of articles][25] — many international companies are already on board.
+If you already use Google's cloud services (like Firebase) and your users are mostly outside China, adding GCM/FCM push notifications to your web app isn't hard. Google Developers has a [series of articles][25] on it, and many companies outside China already use it.
 
-## From Hybrid to PWA, From Closed to Open
+## From Hybrid to PWA, from Closed to Open
 
-In 2008, as the mobile era arrived and [voices predicting the decline of the mobile web][q17] began to emerge while browsers couldn't keep up, Brian Leroux and others from Nitobi created [PhoneGap][10], hoping it would serve as a Polyfill to bridge the "gap" between browsers and mobile devices, thus inaugurating the era of [Hybrid Apps][26].
+In 2008 the mobile era arrived, [people started predicting the mobile web's decline][q17], and browsers couldn't keep up. Brian Leroux and others at Nitobi created [PhoneGap][10] as a polyfill to close the "gap" between browsers and phones, and the era of [hybrid apps][26] began.
 
-Over the following years, [Adobe AIR][5], [Windows Runtime Apps][6], [Chrome Apps][7], [Firefox OS][8], [WebOS][9], [Cordova/PhoneGap][10], [Electron][11], and domestically (in China) platforms like WeChat and Taobao — countless Hybrid solutions sprang up, allowing web developers to continue using web client-side technologies while doing things that only native apps could do: accessing device and OS APIs, giving users a more "appy" experience, and getting into App Stores.
+Over the next few years came [Adobe AIR][5], [Windows Runtime Apps][6], [Chrome Apps][7], [Firefox OS][8], [WebOS][9], [Cordova/PhoneGap][10], [Electron][11], and in China, WeChat and Taobao. Countless hybrid approaches let web developers keep using web technology while doing what only native apps could: calling device and OS APIs, feeling more like an app, and getting into the app stores.
 
 ![](/img/in-post/post-nextgen-web-pwa/qcon-hybridzation.png)
-*The many Hybrid approaches*
+*The many hybrid approaches*
 
-What makes PWA fundamentally different from these past attempts to enhance web apps through proprietary platform APIs, as an umbrella term, is this: every foundational technology that constitutes PWA has either already been, or is in the process of being, standardized by IETF, ECMA, W3C, or WHATWG. Barring surprises, they will all be incorporated into open web standards and gain support across all browsers and all platforms in the not-too-distant future. We can finally escape the walled garden of App Stores and return to the open, free territory that belongs to the web.
+PWA is an umbrella term, and what sets it apart from all those attempts to power up web apps with proprietary APIs is this: every technology it's built on has been standardized, or is being standardized, by the IETF, ECMA, W3C or WHATWG. Barring surprises, all of them will be open web standards, supported in every browser on every platform before long. We can finally leave the app stores' walled gardens and go back to the open, free land that belongs to the web.
 
-Interestingly, as you may have noticed from the discussion above, the drafts for each technology comprising PWA were directly contributed to or indirectly influenced by the browser vendors or developers behind those very proprietary solutions. In other words, behind PWA isn't any one or two companies — it's the entire web community and the entire web specification. **It is precisely this force of openness and decentralization that has enabled the World Wide Web to become the most cross-platform — and virtually the only — application platform with such cross-platform capability in the world today.**
+And as you may have noticed above, the drafts behind each PWA technology were contributed or influenced by the very browser vendors and developers who built those proprietary platforms. So PWA isn't backed by one or two companies. It's backed by the whole web community and the whole body of web standards. **That open, decentralized force is what made the World Wide Web the most cross-platform application platform there is, and very nearly the only one that works everywhere.**
 
-["We believe in the web, not just as software, a software platform, or pure technology, but because 'anyone, at any time, anywhere, can publish anything on the World Wide Web, and it can be accessed by anyone in the world.' And that is what is truly revolutionary about the web — it is nothing less than an evolution of our species."][27]
+["We believe in the web, not just as software, a software platform, or pure technology, but because 'anyone, at any time, anywhere, can publish anything on the World Wide Web, and it can be accessed by anyone in the world.' And that is what is truly revolutionary about the web. It is nothing less than an evolution of our species."][27]
 
-Without losing the web's open soul, without needing to rely on Hybrid approaches to put apps in the App Store, letting web apps progressively break free from browser tabs and become "apps" in users' eyes — this was Alex Russell's [original motivation][28] for proposing the PWA concept in 2015.
+Keep the web's open soul, skip the hybrid detour into the app store, and let web apps step out of browser tabs, a little at a time, until users see them as apps. That's what Alex Russell [set out to do][28] when he proposed PWA in 2015.
 
-And precisely because the web is a whole, the technologies PWA can leverage extend far beyond those listed above: Ajax, responsive design, JavaScript frameworks, ECMAScript Next, CSS Next, Houdini, Indexed DB, Device APIs, Web Bluetooth, Web Sockets, Web Payments, the [incubating][spec6] [Background Sync API][30], [Streams][spec9], WebVR... the 27 years of Open Web development and everything in its future are a perfect match for PWA.
+And because the web is one whole, PWA can use much more than what I've listed: Ajax, responsive design, JavaScript frameworks, ECMAScript Next, CSS Next, Houdini, IndexedDB, device APIs, Web Bluetooth, WebSockets, Web Payments, the [incubating][spec6] [Background Sync API][30], [Streams][spec9], WebVR... Everything from 27 years of the open web, and everything it builds next, fits PWA perfectly.
 
 ## Having Your Cake and Eating It Too
 
-After years of exploration, the internet industry seemed to have reached a consensus on the "web apps vs. native apps" question:
+After years of trying things, the industry seemed to settle the "web app vs. native app" question like this:
 
-- Web apps are the fish: fast iteration, low user acquisition cost; strong cross-platform but weak experience, low development cost. **Good for acquisition.**
-- Native apps are the bear paw (a Chinese delicacy): slow iteration, high user acquisition cost; weak cross-platform but strong experience, high development cost. **Good for retention.**
+- Web apps are the fish: fast to iterate, cheap to acquire users, very cross-platform, a weaker experience, cheap to build. **Good for acquisition.**
+- Native apps are the bear's paw (a Chinese delicacy): slow to iterate, expensive to acquire users, not very cross-platform, a better experience, expensive to build. **Good for retention.**
 
-Keep in mind that although users spend significantly more time on native apps than web apps, [80% of that time is spent in just the top five apps][31]. [Surveys show that half of U.S. smartphone users download zero new apps per month on average][32], while average monthly website visits number 100 — not to mention that [60% of apps on Google Play have never been downloaded][33]. As a result, the industry's product strategy has been uniformly about **"trading fish for bear paw"** — for example, my former employer Alibaba Travel (Fliggy), whose web app was spread across various Alibaba channels providing "an excellent first experience," and once you're hooked, they lure you into downloading the native app.
+Users do spend much more time in native apps than on the web, but [80% of that time goes to their top five apps][31]. [Half of U.S. smartphone users download no new apps in a typical month][32], while they visit around 100 websites a month, and [60% of the apps on Google Play have never been downloaded][33]. So the whole industry runs the same play: **trade the fish for the bear's paw.** Take my former employer, Alibaba Travel (Fliggy). Its web app lives in all sorts of Alibaba channels to give you a great first experience, and once you're hooked, it nudges you into downloading the native app.
 
 ![](/img/in-post/post-nextgen-web-pwa/PWAR-014+PWA.jpeg)
 *Native apps, contemporary Web, and PWA. Image source: Hux & [Google][i2]*
 
-But PWA makes it possible to have both fish and bear paw — it simultaneously possesses the advantages of both web and native applications, with its own unique strengths: "Browser → Add to Home Screen/Install → PWA with native app experience → Push Notifications → PWA with native app experience." PWA inherently contains the complete loop from acquisition to retention.
+PWA lets you have both the fish and the bear's paw. It has what's good about web apps and what's good about native apps, plus some strengths of its own: browser, then Add to Home Screen or Install, then a PWA that feels native, then push notifications that bring you back to it. The whole loop from acquisition to retention is built in.
 
-Beyond that, PWA inherits two other major advantages of web apps: **no need to pay the upfront cost of downloading and installing tens of megabytes before you can start using it**, and **no need to go through app store review to publish new versions.** So PWA can truly be called a "Streamable App" and an "Evergreen App."
+PWA also keeps two other big advantages of web apps: **you don't have to download and install tens of megabytes before you can use it**, and **you don't need app store review to ship a new version.** You could call PWAs streamable apps, or evergreen apps.
 
-## Has the Future Arrived?
+## Is the Future Here?
 
-In my experience sharing about PWA, the two questions I least want to answer are "Is PWA widely supported yet?" and "How does PWA compare to technologies ABCDEFG?" — but these are indeed two questions that can't be avoided.
+Whenever I talk about PWA, the two questions I least like answering are "Is PWA widely supported yet?" and "How does PWA compare to technologies A, B, C, D, E, F and G?" But there's no getting around them.
 
-### PWA Support Status?
+### How Well Is PWA Supported?
 
-When we talk about whether PWA is supported, what we're really asking is whether all the key technologies behind PWA are supported. By browser engine: Blink (Chrome, Opera, Samsung Internet, etc.) and Gecko (Firefox) have already implemented all the key technologies PWA requires, and have begun exploring further possibilities. EdgeHTML (Edge) [couldn't possibly be more eager][34] — all features are already in ["under development" status][35]. The biggest stumbling block remains Webkit (Safari), especially on iOS, where none of the four APIs mentioned above are supported, and due to platform restrictions, third-party browsers can't support them on iOS either. ([What's that? You said IE?][42])
+Asking whether PWA is supported really means asking whether its key technologies are. By engine: Blink (Chrome, Opera, Samsung Internet and others) and Gecko (Firefox) already implement everything PWA needs and are exploring what comes next. EdgeHTML (Edge) [could hardly be keener][34], with every feature already ["in development"][35]. The big holdout is WebKit (Safari), especially on iOS, which supports none of the four APIs above, and because of platform rules, third-party browsers on iOS can't support them either. ([What's that? IE, you say?][42])
 
-Still, don't be discouraged. Webkit not only mentioned Service Worker in its [2015 five-year plan][36] but has recently implemented the Request, Response, and Fetch APIs that Service Worker [depends on][41], and has listed both Service Worker and Web App Manifest as APIs ["under consideration"][37]. Bear in mind, Webkit straight-up listed HTML Imports from Web Components as ["not considering"][38]... (Firefox did too, actually.)
+Don't lose heart, though. WebKit's [five-year plan from 2015][36] mentions Service Worker, it recently implemented Request, Response and Fetch, which Service Worker [depends on][41], and it lists both Service Worker and the Web App Manifest as ["under consideration"][37]. For comparison, WebKit marked HTML Imports from Web Components as flat-out ["not considering"][38]... (So did Firefox, to be fair.)
 
-Moreover, thanks to the web community's longstanding pursuit of "progressive enhancement, graceful degradation," a PWA can of course run normally in an iOS environment. [In fact, after the Washington Post migrated to PWA, they found that engagement increased 5x not just on Android but on iOS too][39] (whether or not their previous site was just that bad). [Even if iOS doesn't support PWA yet, it won't really matter][40] — and we have every reason to believe PWA will arrive on iOS soon.
+And since the web has always believed in progressive enhancement and graceful degradation, a PWA still runs fine on iOS. [When the Washington Post moved to a PWA, engagement went up 5x, and not only on Android but on iOS too][39] (whether or not their old site was just that bad). [Even if iOS doesn't support PWA yet, it doesn't matter much][40], and there's every reason to think PWA will come to iOS soon.
 
-### PWA vs. Others
+### PWA vs. Everything Else
 
-Heshijun (a respected figure in the Chinese front-end community) once said: "Between pure Web and pure Native, there are many possible points along the spectrum." When considering technology choices for mobile applications, beyond Web and native apps, we have various degrees of Hybrid, plus the explosion of JS-to-Native solutions this year.
+He Shijun (a respected figure in China's front-end community) once said: "Between pure web and pure native, there are many points along the way." When choosing a technology for a mobile app, besides web and native there are hybrids of every degree, and this year, a flood of JS-to-native solutions.
 
-Although I used the word "revenge" earlier, from both technical and business perspectives, there's no need to pit web or PWA against Native. They certainly compete, but more often than not, web-only and app-only strategies are both imperfect — when company resources allow, we usually choose to develop both. [Of course, regardless of whether you compare it to native apps, the fact that PWA makes web applications better is beyond question.][43] "Talking about technology without context is nonsense." [We still need to make technology and platform decisions based on our own product and team circumstances — PWA just makes web apps stronger when facing these decisions.][44]
+I said "take the fight back" earlier, but neither the technology nor the business needs the web, or PWA, to go to war with native. They do compete, but going web-only or app-only is usually a compromise, and when a company can afford it, it builds both. [Whether or not you compare it to native, PWA clearly makes web apps better.][43] Talking about technology without context is meaningless. [You still have to choose your technology and platform based on your product and your team. PWA just gives web apps a stronger hand when you do.][44]
 
 ![](/img/in-post/post-nextgen-web-pwa/qcon-trend.png)
-*The many technology choices, and one of my predictions*
+*The many options, and one of my predictions*
 
-Let me make some irresponsible predictions: while [heavyweight Hybrid architectures and infrastructure][45] remain the optimal solution for many scenarios today, as mobile hardware performance improves and new technologies mature and spread, JS-to-Native and pure web apps led by PWA will squeeze the Hybrid ecosystem from two directions, absorbing the problems that Hybrid architectures primarily solve today. The former will gradually evolve into cross-platform native app development solutions similar to Xamarin; the latter will significantly reduce the container development and deployment costs of current Hybrid architectures, returning Hybrid to its essence as simple webview calls.
+Let me make a reckless prediction. [Heavy hybrid architectures and infrastructure][45] are still the best answer in a lot of cases today. But as phones get faster and new technology matures and spreads, JS-to-native on one side and pure web apps led by PWA on the other will squeeze hybrid from both directions and take over the problems hybrid mostly solves today. JS-to-native will grow into cross-platform native development in the style of Xamarin. PWA will make the containers that hybrid apps build and ship much cheaper, until hybrid goes back to what it really is: calling a webview.
 
-These predictions aren't groundless speculation. For the former, look at Alibaba Group's strategic migration to Weex and WeChat Mini Programs' roadmap; for the latter, see the enthusiastic response to PWA from the Cordova and Ionic Hybrid communities.
+This isn't a guess out of nowhere. For the first, look at Alibaba's strategic move to Weex and at where WeChat Mini Programs are headed. For the second, look at how warmly the Cordova and Ionic hybrid communities have taken to PWA.
 
 ### PWA in China
 
-Looking at the PWA [case studies][47] that Google officially promotes, FlipKart and Housing.com are from India; Lyft and the Washington Post are from North America; and the only one from China — AliExpress — mainly operates overseas.
+Among the PWA [case studies][47] Google promotes, Flipkart and Housing.com are from India, Lyft and the Washington Post are from North America, and the only one from China, AliExpress, mostly serves users outside China.
 
-Due to China's unique circumstances, I was admittedly [somewhat pessimistic][46] when I first talked about PWA:
+China is a special case, and when I first talked about PWA, I'll admit I was [a bit pessimistic][46]:
 
-- China prioritizes iOS, and iOS didn't support PWA at the time.
-- Android in China is effectively "Anzhuang" (a highly fragmented Android ecosystem) — it doesn't come with Chrome pre-installed, and there may be other compatibility issues.
-- Chinese device manufacturers may not be as interested in pushing their browsers to support PWA as Samsung has been.
-- Push notifications dependent on GCM are unusable, and no Chinese push service had implemented the Web Push Protocol yet.
-- China's webview environment is quite complex (e.g. WeChat), with many "black magic" hacks.
+- China cares about iOS first, and iOS didn't support PWA at the time.
+- Android in China is really "Anzhuang" (a badly fragmented Android). Chrome isn't preinstalled, and there may be other compatibility problems.
+- Chinese phone makers may not be as keen as Samsung to get their browsers to support PWA.
+- GCM doesn't work in China, so neither do push notifications that depend on it, and no Chinese push service had implemented the Web Push Protocol yet.
+- The webview landscape in China is complicated (WeChat, for one) and full of black-magic hacks.
 
-India, by contrast, has healthy Google services and an extremely high market share for Android phones with Chrome pre-installed, giving PWA a user reach rate approaching 100% — no wonder it's received so much praise and support. **I can only hope this article contributes something to improving the environment for PWA in China.** But regardless, spring for PWA in China will likely arrive a bit later.
+India, on the other hand, has working Google services, and most Android phones there come with Chrome, so PWAs can reach nearly 100% of users. No wonder they've been so well received there. **I can only hope this post does something to make China friendlier to PWA.** Either way, spring will probably come a little later for PWA in China.
 
 ## Conclusion
 
-["We believe in the Web, not just in terms of software, software platforms, and pure technology,][q97] but because ['anyone, at any time, anywhere, can publish anything on the World Wide Web, and it can be accessed by anyone in the world.' And that is what is truly revolutionary about the web — it is nothing less than an evolution of our species."][27]
+["We believe in the Web, not just in terms of software, software platforms, and pure technology,][q97] but because ['anyone, at any time, anywhere, can publish anything on the World Wide Web, and it can be accessed by anyone in the world.' And that is what is truly revolutionary about the web. It is nothing less than an evolution of our species."][27]
 
-Please don't let the web [continue to slip away from us][49]. Browser vendors have come back together, and the next leg of the relay is being passed to us — the web application developers. [Steve Jobs once believed that web apps were the future of mobile applications][50] — so let's prove it to the world with our code.
+Please don't let the web [keep slipping away from us][49]. The browser vendors are working together again, and they're handing the baton to us, the people who build web apps. [Steve Jobs once believed web apps were the future of mobile apps][50]. Let's prove it with our code.
 
 **Let our users love the web as much as we do.**
 
@@ -339,7 +339,7 @@ Hux, from Beijing in December.
 
 ---
 
-*Note: While this article was being written, Google announced the launch of the developers.google.cn domain at Google China Developers Days, making it easier for developers in China to access. For all references linking to developers.google.com in this article, equivalent pages should be available on the .cn site.*
+*Note: While I was writing this, Google announced developers.google.cn at Google Developer Days China, so developers in China can reach it more easily. Every developers.google.com page linked here should have a matching page on the .cn site.*
 
 [1]: http://nerds.airbnb.com/isomorphic-javascript-future-web-apps/ "Isomorphic JavaScript: The Future of Web Apps"
 
