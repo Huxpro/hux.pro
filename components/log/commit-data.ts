@@ -37,11 +37,11 @@ export interface NormalizedCommit {
   // Core content
   title: string;
   /**
-   * The one line an aside row prints while folded: its venue and its
-   * title, `venue · title` — the conference, publication or platform,
-   * then what it was. The venue alone when the two would say the same
-   * thing, and the title alone for a type with no venue. Absent when the
-   * row is not an aside.
+   * The one line an aside row prints while folded. `venue · title` by
+   * default — the conference, publication or platform, then what it was.
+   * `asideLine` can keep just the venue or just the title. The venue
+   * alone when the two would say the same thing, and the title alone for
+   * a type with no venue. Absent when the row is not an aside.
    */
   foldedTitle?: string;
   description: string;
@@ -160,26 +160,26 @@ export function normalizeCommit(
           ? commit.platform
           : undefined;
 
-  // `venue · title`, and the venue alone when the two would say the same
-  // thing. Sparse, the way every other repeated field on this row is: the
-  // handle prints once per author run, the team chip blanks when it
-  // repeats. A talk whose `conference.name` IS its title — which is how
-  // two of the three asides in the log are authored — would otherwise
-  // read "CSS Still Sucks 2015 · CSS Still Sucks 2015".
+  // Which half the folded line keeps. Absent is both, venue first: folded,
+  // an aside is answering "when and where", and the title is the detail it
+  // offers if there is room. `"venue"` is the conference (or publication,
+  // or platform) alone. `"title"` is the work alone, when that is the part
+  // worth the line. Opening the row gives the title its own line at full
+  // weight either way.
   //
-  // The venue leads because that is what the voice is for: folded, an
-  // aside is answering "when and where", and the title is the detail it
-  // offers if you have room for it. Opening the row gives the title its
-  // own line at full weight.
+  // A floor under "both": even asked for both, print the venue alone when
+  // the two would say the same thing. Sparse, the way every other repeated
+  // field on this row is. A talk whose `conference.name` IS its title would
+  // otherwise read "CSS Still Sucks 2015 · CSS Still Sucks 2015". A type
+  // with no venue prints its title, whichever half was asked for.
+  const line = commit.asideLine ?? "venue-title";
   const foldedTitle =
     commit.present === "aside"
-      ? foldedVenue
-        ? // The author's choice, and a floor under it: even asked for both,
-          // print the venue alone when the two would say the same thing.
-          commit.asideLine === "venue" || sameLine(foldedVenue, title)
+      ? !foldedVenue || line === "title"
+        ? title
+        : line === "venue" || sameLine(foldedVenue, title)
           ? foldedVenue
           : `${foldedVenue} · ${title}`
-        : title
       : undefined;
 
   // Identity fields shared by every branch's return.
