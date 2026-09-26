@@ -42,6 +42,8 @@
 export { AdaptiveSurface, useSurfaceContext } from "./adaptive-surface";
 export type { AdaptiveSurfaceProps } from "./adaptive-surface";
 export { SurfaceBody } from "./chrome";
+export { SurfaceMorph } from "./morph";
+export type { SurfaceMorphProps } from "./morph";
 export type { SurfaceBodyProps } from "./chrome";
 export {
   detentHeight,
