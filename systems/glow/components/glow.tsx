@@ -307,6 +307,20 @@ export function Glow({
     inst.current?.wake();
   }, [active, processing, shape]);
 
+  // The box's geometry is drawn into the light (the corners' blend follows
+  // the radius; the beams are sized to the reach), so a change to it is a
+  // redraw, not a mask: a held frame is dropped and a sleeping instance
+  // woken. In production these are constants and this never runs again;
+  // the devtool, dragging a bezel's radius, gets the ring following live.
+  const extentX = extent?.x;
+  const extentY = extent?.y;
+  useEffect(() => {
+    const i = inst.current;
+    if (!i) return;
+    i.held = false;
+    i.wake();
+  }, [radius, reach, extentX, extentY, bleed, strength]);
+
   const box: CSSProperties = fixed
     ? { ...style }
     : { inset: -bleed, ...style };

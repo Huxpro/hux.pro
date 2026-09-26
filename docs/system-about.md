@@ -65,12 +65,14 @@ surface, `z-[10021]` for the glow.
 the box within its bands, rounded at its radius — and the About is a surface
 on that screen, not on the glass around it. Its z-order puts it above the
 bezel's mask (9999), so it cannot rely on the mask to trim it: both the
-surface and the glow take `BEZEL_INSET` and the bezel's radius
-(`useWallpaper().bezel` / `bezelRadius`, since the About mounts outside
-`<Bezel>` and `useBezel()` would read the disabled default), clip to it, and
+surface and the glow take `BEZEL_INSET` and the screen's radius
+(`useWallpaper().screenRadius` — the bezel's radius, the very number
+`<Vitre>` is given, so a devtool drag moves the bezel, the veil and the ring
+together; the About mounts outside `<Vitre>`, where `useVitre()` would read
+the disabled default), clip to it, and
 wear `VITRE_LAYER_ATTRIBUTE` so container scroll makes them absolute. The
 ring's shader runs around that same rounded box. Without a bezel the ring
-follows the screen: 44px corners where the pointer is coarse, 10px otherwise.
+runs around the plain rectangle of the viewport.
 
 **Room.** On a phone the words keep 36px from each side (or the safe area plus
 24px) and 6rem top and bottom (or the safe area plus 4rem): the ring owns the
@@ -86,9 +88,10 @@ is the article (as far as its scroll container shows it) and the way out
 under it, and its `depth` — where the light ends, as a share of the
 narrower gutter to them, alike off every edge — comes from the devtool's
 Glow module, one per layout (a desk's centred group, a phone's whole
-screen): 130% on a desk, the ring as it first shipped, and 140% on a phone. It
-takes the bezel's radius inside a bezel and otherwise the screen's own:
-44px where the pointer is coarse, 10px otherwise.
+screen): 130% on a desk, the ring as it first shipped, and 140% on a phone. Its
+corners are `screenRadius`: the bezel's inside a bezel, 0 without one (a
+browser window's page is a rectangle; a phone's rounded glass is the
+hardware's to clip).
 
 ### The copy
 
