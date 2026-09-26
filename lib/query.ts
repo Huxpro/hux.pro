@@ -71,7 +71,8 @@ export const queryKeys = {
   // wallpaper engine landed; the version segment keeps persisted v1 entries
   // from being served as if they were complete. "v3": sun times are read as
   // epoch seconds; a persisted v2 entry may carry a sunrise parsed in the
-  // wrong timezone.
+  // wrong timezone. "v4": cloud layers, visibility, dew point and CAPE, and a
+  // precipitation type read from the measurements.
   weather: (lat: number, lon: number) =>
-    ["weather", "v3", lat.toFixed(2), lon.toFixed(2)] as const,
+    ["weather", "v4", lat.toFixed(2), lon.toFixed(2)] as const,
 } as const;

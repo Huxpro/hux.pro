@@ -15,10 +15,12 @@
 // same question.)
 //
 // They can never both be armed, so no arbitration code exists anywhere and none
-// is needed. From `deriveWeatherScene`: a fog scene carries `fog: 0.9` with no
-// precipitation and `lightning: 0`; a thunder scene carries `lightning: 1` with
-// `fog: 0.2`; a rain or snow scene carries precipitation with `fog` at most 0.3.
-// Each egg gates on its own scalar and the three sets do not meet.
+// is needed. From `deriveWeatherScene`: only a scene with nothing falling can
+// reach `WIPE_MIN_FOG` — fog follows the measured visibility, but under rain or
+// snow it is held just below the threshold, and a fog code never takes a
+// measured precipitation (weather.ts `derivePrecipitationType`). Lightning only
+// comes with a thunder code, which always carries rain. Each egg gates on its
+// own scalar and the three sets do not meet.
 //
 // This module is the part with no engine in it: how far a stroke reaches, how
 // fast it gives back, how quickly the hand that draws it runs out — and the

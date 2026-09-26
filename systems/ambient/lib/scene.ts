@@ -33,6 +33,7 @@ import type {
   WeatherCondition,
 } from "./weather";
 import { precipitationTypeForCondition } from "./weather";
+import { WIPE_MIN_FOG } from "./wipe";
 
 export type RGB = readonly [number, number, number];
 
@@ -268,13 +269,33 @@ const VEIL_DEFAULTS = {
 // Derivation
 // -----------------------------------------------------------------------------
 
+/**
+ * The weather as the scene reads it. Only `condition` is required: every
+ * measurement present replaces the condition's profile default for what it
+ * describes, and every one missing falls back to it — so a condition alone
+ * (the devtool, the legibility gallery, the profiler) paints exactly the
+ * hand-tuned profile, and a real forecast paints the sky it measured.
+ */
 export interface SceneWeatherInput {
   condition: WeatherCondition;
+  /** WMO code, for the thunderstorm's severity (96/99: with hail). */
+  weatherCode?: number;
   cloudCover?: number;
+  /** 0..1 cover by layer. All three, or the profile's density and darkness. */
+  cloudCoverLow?: number;
+  cloudCoverMid?: number;
+  cloudCoverHigh?: number;
+  /** What is actually falling (weather.ts derivePrecipitationType). */
+  precipitationType?: PrecipitationType;
   precipitationIntensity?: number;
   windSpeedKmh?: number;
+  windGustsKmh?: number;
   windDirectionDeg?: number;
   humidity?: number;
+  visibilityM?: number;
+  temperatureC?: number;
+  dewPointC?: number;
+  capeJkg?: number;
   sunriseMs?: number;
   sunsetMs?: number;
 }
@@ -422,6 +443,31 @@ function resolveLunar(params: DeriveSceneParams): SolarPosition & { phase: numbe
   return { ...natural, phase: getMoonPhase(nowMs) };
 }
 
+/**
+ * Instability, 0..1: 0 in stable air, 1 by ~2500 J/kg of CAPE — the towering,
+ * dark-based cumulonimbus of a real storm. A thunder code is convection
+ * whatever the CAPE reads this quarter-hour, so it never counts for less than
+ * half.
+ */
+function convectionOf(weather: SceneWeatherInput | null | undefined): number {
+  const cape = weather?.capeJkg;
+  const measured = typeof cape === "number" ? smoothstep(300, 2500, cape) : 0;
+  return weather?.condition === "thunder" ? Math.max(0.5, measured) : measured;
+}
+
+/**
+ * How hard a thunderstorm flashes, 0.55..1 — the shader scales the flash's
+ * brightness by it. A code with hail (96/99) is the severe end; otherwise the
+ * air's instability decides. A thunder scene is never 0: the strike egg
+ * (lib/poke.ts) arms on any lightning at all.
+ */
+function lightningFor(weather: SceneWeatherInput | null | undefined): number {
+  const code = weather?.weatherCode;
+  if (code === 96 || code === 99) return 1;
+  if (typeof weather?.capeJkg !== "number") return 1;
+  return 0.55 + 0.45 * convectionOf(weather);
+}
+
 export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const { theme } = params;
   const weather = params.weather;
@@ -442,16 +488,11 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     y: HORIZON_Y + Math.sin(elevation * (Math.PI / 180)) * 0.9,
   };
 
-  // --- Clouds -----------------------------------------------------------
-  const measuredCover = ov.cloudCover ?? weather?.cloudCover;
-  const cover = clamp01(
-    measuredCover === undefined
-      ? weather
-        ? profile.cover
-        : 0.3
-      : Math.max(profile.coverMin, measuredCover)
-  );
-  const precipType = precipitationTypeForCondition(condition);
+  // --- Precipitation ----------------------------------------------------
+  // What is falling comes from the measurements when there are any; the
+  // condition otherwise.
+  const precipType =
+    weather?.precipitationType ?? precipitationTypeForCondition(condition);
   const precipIntensity =
     precipType === "none"
       ? 0
@@ -460,6 +501,49 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
             weather?.precipitationIntensity ??
             profile.precip
         );
+
+  // --- Clouds -----------------------------------------------------------
+  // Cover is the measured cover. The only floor is physical: whatever is
+  // falling came out of a cloud, so the heavier it falls the more sky that
+  // cloud takes (a shower under a broken sky is real; a downpour from 20% is
+  // not). Fog keeps its profile floor — it is murk, not sky, but the murk is
+  // what tints the palette below.
+  const measuredCover = ov.cloudCover ?? weather?.cloudCover;
+  const coverFloor =
+    condition === "fog"
+      ? profile.coverMin
+      : precipType === "none"
+        ? 0
+        : 0.4 + 0.45 * precipIntensity;
+  const cover = clamp01(
+    measuredCover === undefined
+      ? weather
+        ? profile.cover
+        : 0.3
+      : Math.max(coverFloor, measuredCover)
+  );
+
+  const convective = convectionOf(weather);
+
+  // Which layers the cover is in decides what it looks like. Low stratus is
+  // thick and grey-based, mid-level cloud in between, high cirrus a thin
+  // bright veil — so "70% cloud" of cirrus and "70% cloud" of stratus are no
+  // longer the same sky. (The shader scales coverage by density, which is
+  // exactly the thin-cirrus effect.)
+  const low = weather?.cloudCoverLow;
+  const mid = weather?.cloudCoverMid;
+  const high = weather?.cloudCoverHigh;
+  const layered =
+    typeof low === "number" && typeof mid === "number" && typeof high === "number";
+  const layerSum = layered ? low + mid + high : 0;
+  // A fog's "low cloud" is the fog itself, which the fog layer draws.
+  const density = layered && layerSum > 0.05 && condition !== "fog"
+    ? clamp01(
+        (low * 0.95 + mid * 0.7 + high * 0.3) / layerSum +
+          precipIntensity * 0.2 +
+          convective * 0.2
+      )
+    : profile.density;
 
   // --- Sky palette ------------------------------------------------------
   const clearSky = sampleSky(elevation);
@@ -474,12 +558,22 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const horizon = mixRGB(clearSky.horizon, tint.horizon, tintAmount * 0.85);
   const glow = clearSky.glow;
   const glowStrength =
-    clearSky.strength * (1 - 0.75 * smoothstep(0.3, 0.95, cover) * profile.density);
+    clearSky.strength * (1 - 0.75 * smoothstep(0.3, 0.95, cover) * density);
 
   // --- Cloud lighting ---------------------------------------------------
-  const darkness = clamp01(
-    profile.darkness + precipIntensity * 0.25 + (cover - profile.cover) * 0.2
-  );
+  // With layers measured, how dark the undersides are is how much low and mid
+  // cloud there is, how hard it is falling, and how unstable the air is —
+  // calibrated so the typical day of each condition lands on its old profile
+  // value. Snow cloud is bright-based, and fog lifts everything.
+  const darkness = layered
+    ? clamp01(
+        (0.05 + 0.35 * low + 0.15 * mid + 0.4 * precipIntensity + 0.25 * convective) *
+          (precipType === "snow" ? 0.5 : 1) *
+          (condition === "fog" ? 0.35 : 1)
+      )
+    : clamp01(
+        profile.darkness + precipIntensity * 0.25 + (cover - profile.cover) * 0.2
+      );
   const litDay = mixRGB(hex("#ffffff"), glow, 0.55 + 0.45 * (1 - daylight));
   const litNight = hex("#2a3040");
   const lit = mixRGB(litNight, litDay, smoothstep(-8, 4, elevation));
@@ -488,7 +582,12 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const shade = mixRGB(shadeNight, shadeDay, smoothstep(-8, 6, elevation));
 
   // --- Wind -------------------------------------------------------------
-  const windKmh = ov.windSpeedKmh ?? weather?.windSpeedKmh ?? 8;
+  // Gusty air reads windier than its mean: a third of the way to the gusts.
+  const meanWind = weather?.windSpeedKmh ?? 8;
+  const gusts = weather?.windGustsKmh;
+  const windKmh =
+    ov.windSpeedKmh ??
+    (typeof gusts === "number" ? meanWind + Math.max(0, gusts - meanWind) / 3 : meanWind);
   const windSpeed = clamp01(windKmh / 50);
   const windFrom = ov.windDirectionDeg ?? weather?.windDirectionDeg ?? 270;
   const windTo = (windFrom + 180) % 360;
@@ -496,12 +595,35 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const wind = { x: windX, y: 0 };
 
   // --- Atmosphere -------------------------------------------------------
+  // Fog is visibility: nothing at 10 km, thick by 200 m (log scale — the eye
+  // reads visibility in orders of magnitude). A fog code keeps it at least
+  // half-thick, since model visibility is the least reliable number here. A
+  // dew point within a degree or two of the air temperature adds a haze.
+  // Without a visibility, the profile and the old humidity/precip terms.
   const humidity = weather?.humidity ?? 0.5;
-  const fog = clamp01(
-    profile.fog +
-      (condition === "cloudy" ? smoothstep(0.85, 1, humidity) * 0.15 : 0) +
-      (precipType !== "none" ? precipIntensity * 0.12 : 0)
+  const vis = weather?.visibilityM;
+  const haze =
+    typeof weather?.temperatureC === "number" && typeof weather?.dewPointC === "number"
+      ? smoothstep(2.5, 0.5, weather.temperatureC - weather.dewPointC) * 0.15
+      : condition === "cloudy"
+        ? smoothstep(0.85, 1, humidity) * 0.15
+        : 0;
+  const fogMeasured =
+    typeof vis === "number"
+      ? clamp01(Math.log10(10_000 / Math.max(vis, 1)) / Math.log10(10_000 / 200)) + haze
+      : undefined;
+  const fogRaw = clamp01(
+    fogMeasured === undefined
+      ? profile.fog +
+          (condition === "cloudy" ? smoothstep(0.85, 1, humidity) * 0.15 : 0) +
+          (precipType !== "none" ? precipIntensity * 0.12 : 0)
+      : condition === "fog"
+        ? Math.max(0.5, fogMeasured)
+        : fogMeasured
   );
+  // Falling rain or snow keeps the mist under the wipe's threshold: the fog
+  // wipe and the gust are never armed together (lib/wipe.ts).
+  const fog = precipType === "none" ? fogRaw : Math.min(fogRaw, WIPE_MIN_FOG - 0.05);
   const night = smoothstep(-4, -14, elevation);
 
   // --- Moon -------------------------------------------------------------
@@ -565,7 +687,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     sky: { zenith: moonlitZenith, horizon: moonlitHorizon, glow, glowStrength },
     clouds: {
       cover,
-      density: profile.density,
+      density,
       darkness,
       lit: moonlitLit,
       shade,
@@ -574,7 +696,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     precipitation: { type: precipType, intensity: precipIntensity },
     wind,
     fog,
-    lightning: condition === "thunder" ? 1 : 0,
+    lightning: condition === "thunder" ? lightningFor(weather) : 0,
     stars,
     clarity,
     behind,
@@ -602,18 +724,27 @@ export function toSceneWeather(
   if (!weather && !override) return null;
   const condition = override?.condition ?? (weather as NormalizedWeather).condition;
   const overrideChangesCondition = !!override && override.condition !== weather?.condition;
+  // Real measurements only make sense for the real condition; a forced
+  // condition falls back to its profile defaults. Wind is kept: it is the one
+  // measurement that reads the same under any sky.
+  const real = overrideChangesCondition ? undefined : weather ?? undefined;
   return {
     condition,
-    // Real measurements only make sense for the real condition; a forced
-    // condition falls back to its profile defaults. Wind is kept: it is the
-    // one measurement that reads the same under any sky.
-    cloudCover: overrideChangesCondition ? undefined : weather?.cloudCover,
-    precipitationIntensity: overrideChangesCondition
-      ? undefined
-      : weather?.precipitationIntensity,
+    weatherCode: real?.weatherCode,
+    cloudCover: real?.cloudCover,
+    cloudCoverLow: real?.cloudCoverLow,
+    cloudCoverMid: real?.cloudCoverMid,
+    cloudCoverHigh: real?.cloudCoverHigh,
+    precipitationType: real?.precipitationType,
+    precipitationIntensity: real?.precipitationIntensity,
     windSpeedKmh: weather?.windSpeedKmh,
+    windGustsKmh: weather?.windGustsKmh,
     windDirectionDeg: weather?.windDirectionDeg,
-    humidity: overrideChangesCondition ? undefined : weather?.humidity,
+    humidity: real?.humidity,
+    visibilityM: real?.visibilityM,
+    temperatureC: real?.temperatureC,
+    dewPointC: real?.dewPointC,
+    capeJkg: real?.capeJkg,
     sunriseMs: sunTimes ? sunTimes.sunriseMs : weather?.sunriseMs,
     sunsetMs: sunTimes ? sunTimes.sunsetMs : weather?.sunsetMs,
   };

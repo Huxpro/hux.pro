@@ -55,6 +55,18 @@ export type NormalizedWeather = {
   isDay?: boolean;
   /** 0..1 fraction of sky covered by cloud. */
   cloudCover?: number;
+  /** 0..1 cover by layer: low (fog–2 km), mid (2–6 km), high (above 6 km). */
+  cloudCoverLow?: number;
+  cloudCoverMid?: number;
+  cloudCoverHigh?: number;
+  /** Horizontal visibility, metres. */
+  visibilityM?: number;
+  /** Dew point at 2 m, °C. With the temperature, how close the air is to haze. */
+  dewPointC?: number;
+  /** Convective available potential energy, J/kg — how violently air can rise. */
+  capeJkg?: number;
+  /** Liquid precipitation rate, mm/h (rain + showers). */
+  rainMmH?: number;
   /** Precipitation rate, mm/h (rain + showers + melted snow). */
   precipitationMmH?: number;
   /** Snowfall rate, cm/h. */
@@ -88,6 +100,12 @@ type OpenMeteoResponse = {
     time?: number;
     interval?: number;
     temperature_2m?: number;
+    dew_point_2m?: number;
+    cloud_cover_low?: number;
+    cloud_cover_mid?: number;
+    cloud_cover_high?: number;
+    visibility?: number;
+    cape?: number;
     apparent_temperature?: number;
     relative_humidity_2m?: number;
     is_day?: number;
@@ -170,6 +188,44 @@ export function precipitationTypeForCondition(
   }
 }
 
+/** Below this, a measured rate is model noise rather than something falling. */
+const MEASURED_PRECIP_MIN_MMH = 0.1;
+
+/**
+ * What is actually falling. The WMO code names the mood, but the measurements
+ * say what reaches the ground: an "overcast" hour with 0.4 mm/h of rain in it
+ * is raining, and a sleety mix is drawn as whichever phase carries more water.
+ *
+ * The code keeps the last word in two places. A code that *says* rain or snow
+ * is believed even when the last 15-minute bucket read zero (showers are
+ * patchy). And only a "cloudy" code is upgraded by a measurement — not
+ * "clear", where it would be a model disagreeing with itself, and not "fog",
+ * whose drizzle is the fog itself (and a fog scene carrying precipitation would
+ * arm the rain's gust egg alongside the fog's wipe; see lib/wipe.ts).
+ */
+export function derivePrecipitationType(params: {
+  condition: WeatherCondition;
+  rainMmH?: number;
+  snowfallCmH?: number;
+  temperatureC?: number;
+}): PrecipitationType {
+  const { condition, rainMmH, snowfallCmH, temperatureC } = params;
+  const byCode = precipitationTypeForCondition(condition);
+  if (condition === "thunder") return "rain";
+  if (condition !== "cloudy" && byCode === "none") return "none";
+
+  // Open-Meteo: 7 cm of snow ≈ 10 mm of water.
+  const snowWater = Math.max(0, snowfallCmH ?? 0) * (10 / 7);
+  const rain = Math.max(0, rainMmH ?? 0);
+  if (rain + snowWater >= MEASURED_PRECIP_MIN_MMH) {
+    if (snowWater === rain) {
+      return typeof temperatureC === "number" && temperatureC <= 0.5 ? "snow" : "rain";
+    }
+    return snowWater > rain ? "snow" : "rain";
+  }
+  return byCode;
+}
+
 /**
  * Normalise a measured precipitation rate to 0..1. Roughly: drizzle ≈ 0.15,
  * 2.5 mm/h (moderate rain) ≈ 0.55, 8 mm/h+ ≈ 1. Snow is measured in cm/h and
@@ -180,9 +236,12 @@ export function derivePrecipIntensity(params: {
   weatherCode: number;
   precipitationMmH?: number;
   snowfallCmH?: number;
+  /** What is falling, when already derived from the measurements. */
+  type?: PrecipitationType;
 }): number {
   const { condition, weatherCode, precipitationMmH, snowfallCmH } = params;
-  const type = precipitationTypeForCondition(condition);
+  const byCode = precipitationTypeForCondition(condition);
+  const type = params.type ?? byCode;
   if (type === "none") return 0;
 
   const hint = precipIntensityFromCode(weatherCode);
@@ -195,6 +254,9 @@ export function derivePrecipIntensity(params: {
   }
 
   if (measured === undefined) return hint;
+  // Falling although the code did not say so (see derivePrecipitationType):
+  // the measurement is all there is to go on.
+  if (byCode === "none") return measured;
   // The code says it's raining even if the last 15-minute bucket read 0, so
   // never drop below a gentle floor (lower for drizzle codes); otherwise trust
   // the measurement.
@@ -213,11 +275,17 @@ export function getWeatherConditionLabel(
 
 const CURRENT_FIELDS = [
   "temperature_2m",
+  "dew_point_2m",
   "apparent_temperature",
   "relative_humidity_2m",
   "is_day",
   "weather_code",
   "cloud_cover",
+  "cloud_cover_low",
+  "cloud_cover_mid",
+  "cloud_cover_high",
+  "visibility",
+  "cape",
   "precipitation",
   "rain",
   "showers",
@@ -274,6 +342,20 @@ export async function fetchCurrentWeather(
     const precipitationMmH = num(cw?.precipitation);
     const snowfallCmH = num(cw?.snowfall);
     const humidityPct = num(cw?.relative_humidity_2m);
+    const rainPart = num(cw?.rain);
+    const showersPart = num(cw?.showers);
+    const rainMmH =
+      rainPart === undefined && showersPart === undefined
+        ? undefined
+        : (rainPart ?? 0) + (showersPart ?? 0);
+    const fraction = (pct: number | undefined) =>
+      pct === undefined ? undefined : clamp01(pct / 100);
+    const precipitationType = derivePrecipitationType({
+      condition,
+      rainMmH,
+      snowfallCmH,
+      temperatureC,
+    });
 
     return {
       temperatureC,
@@ -281,18 +363,23 @@ export async function fetchCurrentWeather(
       weatherCode,
       condition,
       isDay,
-      cloudCover:
-        cloudCoverPct === undefined
-          ? undefined
-          : clamp01(cloudCoverPct / 100),
+      cloudCover: fraction(cloudCoverPct),
+      cloudCoverLow: fraction(num(cw?.cloud_cover_low)),
+      cloudCoverMid: fraction(num(cw?.cloud_cover_mid)),
+      cloudCoverHigh: fraction(num(cw?.cloud_cover_high)),
+      visibilityM: num(cw?.visibility),
+      dewPointC: num(cw?.dew_point_2m),
+      capeJkg: num(cw?.cape),
       precipitationMmH,
+      rainMmH,
       snowfallCmH,
-      precipitationType: precipitationTypeForCondition(condition),
+      precipitationType,
       precipitationIntensity: derivePrecipIntensity({
         condition,
         weatherCode,
         precipitationMmH,
         snowfallCmH,
+        type: precipitationType,
       }),
       windSpeedKmh: num(cw?.wind_speed_10m),
       windGustsKmh: num(cw?.wind_gusts_10m),
