@@ -168,6 +168,10 @@ Like everything else in the Sky engine it is procedural: no texture is loaded.
 | `fog`, `lightning`, `stars` | 0..1 amounts |
 | `veil` | theme blend toward the page background (light: white, dark: `#1a1a1a`) |
 
+Every sky colour above has already been put in the theme's key — see
+[The theme's key](#the-themes-key) — so a day under the dark theme is a deep
+sky rather than a veiled bright one.
+
 Both renderers consume the same scene, so switching engines never changes the
 mood — only the fidelity. (The devtool condition thumbnails deliberately keep
 the older hand-tuned per-condition palettes so conditions stay distinguishable
@@ -1342,6 +1346,39 @@ too**: playing the day in the Sky module crosses sunrise and sunset for real,
 and the theme changes there exactly as it would on the real clock — or does
 not, if the setting is off. The Sky module carries the toggle beside that
 timeline for the same reason.
+
+### The theme's key
+
+The sun decides what is in the sky — its colour, the sun or the moon, the
+stars. The theme decides how light it is. By day under Light and by night
+under Dark those agree, and the veil is all either needs. The other two
+pairings are where a veil fails: it mixes toward the page colour, so a noon
+sky under Dark became a grey-blue midtone the dark chrome sat on like a
+sticker, and a night under Light became slate.
+
+So `deriveWeatherScene()` **re-keys** the sky instead, the way the Apple
+light/dark wallpaper pairs work — the same place, only the key differs. Each
+sky and cloud colour's OKLab lightness is moved into the theme's range with its
+hue kept (`THEME_KEY` in `lib/scene.ts`):
+
+| | What it becomes |
+|---|---|
+| Dark theme, day | the noon sky pressed into the dark range: deep blue, clouds still lighter than the sky, the sun's disc left bright and its glow only half keyed, so it still reads as the sun. Blue hour, held all afternoon. |
+| Light theme, night | the night lifted into the light range: pale moonlit lavender, the brighter stars still showing, and the moon dimmed to a day moon so its surface shows instead of a white ball that reads as the sun. |
+
+The veil is eased where the key has done its work, so it no longer greys
+what the key coloured.
+
+The amount runs on the sun's elevation and is **zero through twilight on both
+sides** — from the horizon to 14° for Dark, from −2° to −10° for Light. Dawn and
+dusk already read well under either theme, and more importantly the key is
+zero on both sides of the sun's own crossing, which is where the theme changes
+hands when it follows the sun. The handover never has a key to fight.
+
+Because the key is applied to the scene's colours, everything downstream reads
+the re-keyed sky without knowing: the shader, the Gradient, widget cards, the
+legibility profile (`profileFromScene`) and the devtool's day strip. Classic is
+a table of fixed palettes and is not keyed.
 
 ## Wallpaper
 
