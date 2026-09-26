@@ -81,6 +81,9 @@ rises as a dome — voice-glow's *bend*. `edge="top"` mirrors it.
 | `level` | 0–1, a number or a getter read every frame |
 | `bands` | getter for low / mid / high, 0–1 each |
 | `processing` | gather into a travelling beam: along the edge and back for a line, a comet around a ring |
+| `motion` | how the light lives while on: `flow` (default), `rotate`, `pulse` — below |
+| `period` | seconds per turn (rotate, 6) or per breath (pulse, 2.3) |
+| `inside` | `false` draws only the halo past the edge — with a `bleed`, a light blooming out from behind the host |
 | `reach` | px the light reaches in (its visible light runs ~3× further); sized to the host when omitted |
 | `extent` | `{ x, y }` px where the light ends, off the left/right and top/bottom edges — `reach` in another unit (below); overrides it, blended smoothly round the corners |
 | `bleed` | px of halo past each side |
@@ -134,6 +137,29 @@ Everything else is `<Glow>`'s (`active`, `strength`, `radius`, `layer`,
 `style`, `className`, durations). It is always `fixed` and always a ring.
 With `{ x, y }` the extent eases from one axis's to the other's round each
 corner.
+
+## Motions
+
+How the light lives while it is on — Libraries.dev border-beam's two
+families (rotate, pulse), as this shader's light, beside the flow it already
+had:
+
+| motion | what moves | says | border-beam |
+|---|---|---|---|
+| `flow` | the four beams travel round the edge, two each way | *hello*, *I hear you* | — |
+| `rotate` | a broad arc of the light (focus 0.2 ring units) turns at an even pace (`period`, 6s a turn), its colours carried with it (`uHue`); the arc runs deeper and brighter at its centre and thins toward its ends (`uSwell`) — a beam, not a window on the ring | *running* | `sm` / `md` |
+| `pulse` | the beams ease to a standstill and the light breathes: each quarter of the ring (right, bottom, left, top) deepens and brightens on its own cosine clock between 0.62× and 1.08× its reach, the four periods and phases a little apart (1 · 1.23 · 0.89 · 1.37 × `period`, 2.3s), so the breath rolls round instead of pumping. The quarters blend by cos² of the angle, which sums to one all the way round (`uBreath`) | *now*, *waiting for you* | `pulse-inner` |
+| `pulse` + `inside={false}` + `bleed` | only the halo past the edge breathes — the light blooms out from behind the host | *press me* | `pulse-outside` |
+
+Every motion takes `processing` (a rotation's arc gathers into the comet
+where it stands) and a voice's `level`. Under reduced motion a rotation
+stands still and a pulse holds a middling breath, drawn once.
+
+The halo (`bleed`) now carries the beams' own light: past the edge each beam
+is measured outward from it, so the halo has their colours and follows their
+depth — a breath blooms, a beam spills — where it was one grey average of
+the ring. `pulse-outside` needs no opaque child, unlike border-beam's: the
+shader simply draws nothing inside.
 
 ## Tuning
 
@@ -264,10 +290,10 @@ working, running, now. Never decoration.
 | where | shape | would say |
 |---|---|---|
 | The home command bar while ⌘K listens | line | the voice, seen from the page |
-| An app tile whose window is open | ring, halo | running |
+| An app tile whose window is open | ring, rotate | running |
 | The dock's Live Activity while something works | ring, processing (comet) | working |
-| The About's "Reveal" | ring, halo | the first press |
-| The HEAD commit on /works | ring | now |
+| The About's "Reveal" | ring, pulse outside | the first press |
+| The HEAD commit on /works | ring, pulse | now |
 | The identity card's photo while a talk plays | ring | speaking |
 
 ## From Libraries.dev
@@ -282,7 +308,9 @@ but took its structure from them:
 | border-beam's `line` type | the glow can live on one edge — the shape a field needs |
 | border-beam / voice-glow drivers | one shared loop, paused off screen, adaptive half rate |
 | border-beam `strength`, `active` + fade | `strength`, `active` with an animated reveal and leave |
-| border-beam `pulse-outside` | the halo (`bleed`) — a small element's light spills out |
+| border-beam `pulse-outside` | the halo (`bleed`) — a small element's light spills out; with `motion="pulse"` and `inside={false}`, the whole of it |
+| border-beam's rotate family | `motion="rotate"` — a broad arc turning, colours carried round |
+| border-beam's pulse family + its shared oscillator driver | `motion="pulse"` — four quarters breathing on desynced cosine clocks, driven from the one renderer loop |
 | voice-glow's analysis | gate → soft knee → attack/release envelope; three voice bands on their own envelopes |
 | voice-glow's bands → lobes | bands drive separate beams, so a voice ripples |
 | voice-glow's `bend` | a line's reach swells into a dome at its centre |

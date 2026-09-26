@@ -17,7 +17,7 @@
 // =============================================================================
 
 export { Glow } from "./components/glow";
-export type { GlowProps, GlowShape } from "./components/glow";
+export type { GlowMotion, GlowProps, GlowShape } from "./components/glow";
 export { EdgeGlow } from "./components/edge-glow";
 export type { EdgeGlowProps } from "./components/edge-glow";
 export { GLOW_EXTENT_PER_REACH } from "./lib/shader";

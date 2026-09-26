@@ -16,7 +16,9 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 // word. The first row is where the glow lives in production; the second is
 // where it could, drawn so the question "does this belong here?" can be
 // answered by looking. Nothing here is a mock of the glow: every specimen is
-// the production <Glow>, drawn by the one shared renderer.
+// the production <Glow>, drawn by the one shared renderer. Between them, the
+// three motions (flow, rotate, pulse — inside and out) side by side, with a
+// period to drag.
 // =============================================================================
 
 type Drive = Pick<GlowProps, "active" | "level" | "bands" | "processing">;
@@ -68,6 +70,28 @@ function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange:
   );
 }
 
+function Motion({
+  name,
+  where,
+  children,
+}: {
+  name: string;
+  where: string;
+  children: ReactNode;
+}) {
+  return (
+    <figure className="space-y-3">
+      <div className="flex min-h-36 items-center justify-center rounded-2xl bg-muted/40 p-8">
+        {children}
+      </div>
+      <figcaption className="space-y-0.5">
+        <p className={cn(TYPE.rowTitle, "font-mono")}>{name}</p>
+        <p className={TYPE.caption}>{where}</p>
+      </figcaption>
+    </figure>
+  );
+}
+
 function Specimen({
   name,
   where,
@@ -94,6 +118,10 @@ export function GlowLabView() {
   const [active, setActive] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [level, setLevel] = useState(0.45);
+  // The motions' period, as a share of each one's default (6s a turn, 2.3s
+  // a breath): 0.5 is twice as fast.
+  const [pace, setPace] = useState(0.5);
+  const speed = 0.25 + pace * 1.5;
   const [mic, setMic] = useState<"off" | "on" | "denied">("off");
   const meter = useRef<VoiceMeter | null>(null);
   const stream = useRef<MediaStream | null>(null);
@@ -161,6 +189,41 @@ export function GlowLabView() {
         </section>
 
         <section className="space-y-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className={TYPE.label}>Motions</h2>
+              <p className={cn(TYPE.caption, "max-w-2xl")}>
+                How the light lives while on — Libraries.dev border-beam&apos;s two families, as this
+                light. Processing and the level drive every one of them.
+              </p>
+            </div>
+            <Slider label="period" value={pace} onChange={setPace} />
+          </div>
+          <div className="grid gap-8 sm:grid-cols-4">
+            <Motion name="flow" where="The default: the beams travel round, two each way. The About.">
+              <div className="relative h-24 w-full rounded-2xl border border-border/50 bg-glass">
+                <Glow {...drive} motion="flow" reach={4} />
+              </div>
+            </Motion>
+            <Motion name="rotate" where="A broad arc turns at an even pace, carrying its colours. Running.">
+              <div className="relative h-24 w-full rounded-2xl border border-border/50 bg-glass">
+                <Glow {...drive} motion="rotate" period={6 * speed} reach={4} />
+              </div>
+            </Motion>
+            <Motion name="pulse" where="The beams stand still; each quarter breathes on its own clock. Now.">
+              <div className="relative h-24 w-full rounded-2xl border border-border/50 bg-glass">
+                <Glow {...drive} motion="pulse" period={2.3 * speed} reach={4} />
+              </div>
+            </Motion>
+            <Motion name="pulse · outside" where="Only the halo, blooming out from behind. A first press.">
+              <div className="relative h-24 w-full rounded-2xl border border-border/50 bg-background">
+                <Glow {...drive} motion="pulse" period={2.3 * speed} reach={4} bleed={16} inside={false} />
+              </div>
+            </Motion>
+          </div>
+        </section>
+
+        <section className="space-y-6">
           <h2 className={TYPE.label}>In production</h2>
           <div className="grid gap-8 sm:grid-cols-2">
             <Specimen name="Screen · ring" where="The About, over every page. Fixed, bezel-aware.">
@@ -215,11 +278,11 @@ export function GlowLabView() {
               </div>
             </Specimen>
 
-            <Specimen name="App tile · ring" where="An app whose window is open, on the home shelf.">
+            <Specimen name="App tile · rotate" where="An app whose window is open, on the home shelf: running.">
               <div className="relative size-16 rounded-[22%] bg-white shadow-raised">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/app-icons/lynx-flappy-bird.png" alt="" className="size-full rounded-[22%]" />
-                <Glow {...drive} shape="ring" reach={3} bleed={10} />
+                <Glow {...drive} motion="rotate" period={6 * speed} shape="ring" reach={3} bleed={10} />
               </div>
             </Specimen>
 
@@ -231,18 +294,18 @@ export function GlowLabView() {
               </div>
             </Specimen>
 
-            <Specimen name="Button · halo" where="A primary action inviting a first press (the About's “Reveal”).">
+            <Specimen name="Button · pulse outside" where="A primary action inviting a first press (the About's “Reveal”).">
               <span className="relative rounded-full bg-foreground px-4 py-1.5 text-[13px] font-medium text-background">
                 Reveal
-                <Glow {...drive} shape="ring" reach={3} bleed={10} />
+                <Glow {...drive} motion="pulse" period={2.3 * speed} inside={false} shape="ring" reach={3} bleed={12} />
               </span>
             </Specimen>
 
-            <Specimen name="Card · ring" where="The HEAD commit on /works — what I am doing now.">
+            <Specimen name="Card · pulse" where="The HEAD commit on /works — what I am doing now.">
               <div className="relative w-full rounded-2xl border border-border/50 bg-glass p-4">
                 <p className={TYPE.rowTitle}>Lynx Framework</p>
                 <p className={TYPE.rowMeta}>2023 — present</p>
-                <Glow {...drive} shape="ring" reach={4} bleed={12} strength={0.8} />
+                <Glow {...drive} motion="pulse" period={2.3 * speed} shape="ring" reach={4} bleed={12} strength={0.8} />
               </div>
             </Specimen>
 
