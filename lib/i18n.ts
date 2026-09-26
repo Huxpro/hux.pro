@@ -136,6 +136,19 @@ export const translations = {
     settingsGeolocation: "Geolocation",
     settingsDebugPanel: "Debug Panel",
 
+    // Location primer (the offer before the browser's location prompt)
+    locationPrimerTitle: "Show your local weather",
+    locationPrimerBody: "The sky and weather here follow where you are. Right now that is a guess from your network, and networks are often placed in the wrong city.",
+    locationPrimerBodyCity: "Your network places you in {city}. If that's not where you are, share your location and the sky and weather here will follow you instead.",
+    locationPrimerAsk: "Your browser will ask once. Your location is only used to look up the weather and the name of your city.",
+    locationPrimerConfirm: "Use my location",
+    locationPrimerDismiss: "Not now",
+    locationPrimerAgain: "Change it later under Geolocation in the command menu.",
+    locationPrimerGranted: "Got it. The weather follows you now.",
+    locationPrimerDenied: "Location access was not allowed. You can turn it on in your browser's settings for this site.",
+    locationPrimerUnavailable: "Couldn't get a location right now. The network's guess stays for now.",
+    locationDoubtful: "Not here? Use your location",
+
     // Wallpaper (background picker)
     settingsWallpaper: "Wallpaper",
     settingsGlass: "Glass",
@@ -498,6 +511,19 @@ export const translations = {
     settingsLocation: "位置",
     settingsGeolocation: "地理定位",
     settingsDebugPanel: "调试面板",
+
+    // Location primer (the offer before the browser's location prompt)
+    locationPrimerTitle: "显示你当地的天气",
+    locationPrimerBody: "这里的天空和天气会跟着你所在的地方变化。目前的位置是根据网络猜的，而网络经常被定位到别的城市。",
+    locationPrimerBodyCity: "网络定位显示你在{city}。如果你不在这里，共享位置后，这里的天空和天气就会跟着你走。",
+    locationPrimerAsk: "浏览器会询问一次。位置只用于查询天气和所在城市的名字。",
+    locationPrimerConfirm: "使用我的位置",
+    locationPrimerDismiss: "暂不",
+    locationPrimerAgain: "之后可在命令菜单的「地理定位」中更改。",
+    locationPrimerGranted: "好了，天气会跟着你走。",
+    locationPrimerDenied: "定位权限没有开启。可以在浏览器的本站设置里打开。",
+    locationPrimerUnavailable: "暂时无法获取位置，先继续使用网络定位。",
+    locationDoubtful: "不在这里？使用你的位置",
 
     // Wallpaper (background picker)
     settingsWallpaper: "壁纸",

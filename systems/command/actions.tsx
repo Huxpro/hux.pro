@@ -84,8 +84,19 @@ const ROW_ICON = "h-4 w-4";
 export function useCommandActions(): CommandAction[] {
   const { theme, preference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
-  const { locationMode, setLocationMode, requestAccurateLocation } =
-    useLocation();
+  const {
+    locationMode,
+    permission: locationPermission,
+    setLocationMode,
+    requestAccurateLocation,
+    openLocationPrimer,
+  } = useLocation();
+  // Accurate only counts once the browser lets it happen: set to Accurate but
+  // not granted, the page is running on the IP (lib/queries.ts), and the row
+  // says so — choosing it then asks.
+  const locationAccurate =
+    locationMode === "accurate" &&
+    (locationPermission === "granted" || locationPermission === "unknown");
   const {
     kind: wallpaperKind,
     weatherStyle,
@@ -256,7 +267,7 @@ export function useCommandActions(): CommandAction[] {
       kind: "toggle",
       section: "settings",
       label: `${t(locale, "settingsGeolocation")}: ${
-        locationMode === "accurate"
+        locationAccurate
           ? t(locale, "locationAccurate")
           : t(locale, "locationIp")
       }`,
@@ -272,8 +283,11 @@ export function useCommandActions(): CommandAction[] {
         "精确",
       ],
       run: async () => {
-        if (locationMode === "ip") {
-          await requestAccurateLocation();
+        if (!locationAccurate) {
+          // Choosing Accurate here is the explanation, so the prompt comes
+          // straight away. A refusal would otherwise leave the row silently
+          // back on IP: the primer says why, and where to undo it.
+          if ((await requestAccurateLocation()) === "denied") openLocationPrimer();
         } else {
           setLocationMode("ip");
         }

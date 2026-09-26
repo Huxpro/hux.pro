@@ -2,11 +2,14 @@
 
 import { queryKeys } from "@/lib/query";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import {
+  type GeolocationPermission,
   type LocationMode,
   type ResolvedLocation,
   fetchIpLocation,
   requestAccurateLocation,
+  subscribeGeolocationPermission,
 } from "./location";
 import { type NormalizedWeather, fetchCurrentWeather } from "./weather";
 
@@ -26,23 +29,67 @@ import { type NormalizedWeather, fetchCurrentWeather } from "./weather";
 // it — so it is worth asking again after half an hour, not a day. A day was
 // long enough for a misplaced answer to stick through every reload.
 const IP_LOCATION_STALE_TIME = 30 * 60 * 1000;
-// A GPS fix is re-taken on the same half-hour, but only on mount: asking on
-// focus could put the permission prompt in front of someone who just switched
-// tabs.
+// A GPS fix is re-taken on the same half-hour — on focus too, but only while
+// the permission is known to be granted, so a refetch can never be what raises
+// the prompt.
 const ACCURATE_LOCATION_STALE_TIME = 30 * 60 * 1000;
 
-export function useLocationQuery(mode: LocationMode) {
-  return useQuery<ResolvedLocation, Error>({
-    queryKey: queryKeys.location(mode),
-    queryFn: async () => {
-      if (mode === "accurate") {
-        return requestAccurateLocation();
+/**
+ * The live geolocation permission; null until the browser has answered. A
+ * grant or a revocation made in the site settings arrives here too, without a
+ * reload. `onChange` hears only changes *during* the visit — never the first
+ * answer — with the answer before it.
+ */
+export function useGeolocationPermission(
+  onChange?: (next: GeolocationPermission, previous: GeolocationPermission) => void
+): GeolocationPermission | null {
+  const [permission, setPermission] = useState<GeolocationPermission | null>(null);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
+  useEffect(() => {
+    let previous: GeolocationPermission | null = null;
+    return subscribeGeolocationPermission((next) => {
+      if (previous !== null && previous !== next) {
+        onChangeRef.current?.(next, previous);
       }
-      return fetchIpLocation();
+      previous = next;
+      setPermission(next);
+    });
+  }, []);
+  return permission;
+}
+
+/**
+ * The visitor's location. In "accurate" mode a GPS fix is taken only when the
+ * permission is already granted (or the browser cannot say — the old
+ * behaviour); asked but not granted, the query *is* the IP one, same key and
+ * same cache, so a revoked or reset permission degrades to the network's guess
+ * instead of a prompt on page load or no weather at all. A fix that fails for
+ * any other reason falls back to the IP too.
+ */
+export function useLocationQuery(
+  mode: LocationMode,
+  permission: GeolocationPermission | null
+) {
+  const wantsGps = mode === "accurate";
+  const gps = wantsGps && (permission === "granted" || permission === "unknown");
+  return useQuery<ResolvedLocation, Error>({
+    queryKey: queryKeys.location(gps ? "accurate" : "ip"),
+    queryFn: async () => {
+      if (!gps) return fetchIpLocation();
+      try {
+        return await requestAccurateLocation();
+      } catch {
+        return fetchIpLocation();
+      }
     },
-    staleTime:
-      mode === "accurate" ? ACCURATE_LOCATION_STALE_TIME : IP_LOCATION_STALE_TIME,
-    refetchOnWindowFocus: mode === "ip",
+    // Wait for the permission before choosing, or an accurate visitor would
+    // pay for an IP lookup on every load.
+    enabled: !wantsGps || permission !== null,
+    staleTime: gps ? ACCURATE_LOCATION_STALE_TIME : IP_LOCATION_STALE_TIME,
+    refetchOnWindowFocus: !gps || permission === "granted",
     refetchOnReconnect: true,
     placeholderData: (previousData) => previousData,
   });

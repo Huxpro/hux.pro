@@ -3,6 +3,7 @@ export { AmbientSurface } from "./surface";
 export { WallpaperBackground } from "./wallpaper-background";
 export { WallpaperSheet } from "./wallpaper-sheet";
 export { TiltPrimerSheet } from "./tilt-primer-sheet";
+export { LocationPrimerSheet } from "./location-primer-sheet";
 export { WeatherIcon } from "./weather-icon";
 export { WeatherWidget } from "./weather-widget";
 export { WeatherLine } from "./weather-line";

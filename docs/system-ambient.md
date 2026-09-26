@@ -22,6 +22,7 @@ systems/ambient/
 │   ├── weather-widget.tsx        # iOS-style weather widget (header + WeatherNow)
 │   ├── weather-now.tsx           # Shared weather body + useDisplayWeather()
 │   ├── phase-activity.tsx        # Sun-event notification (plugs into the Dock)
+│   ├── location-primer-sheet.tsx # The offer before the browser's location prompt
 │   └── index.ts                  # Component exports
 ├── lib/
 │   ├── weather.ts                # Open-Meteo integration + condition model
@@ -1623,14 +1624,18 @@ iOS-style weather widget with:
 
 ```typescript
 const {
-  locationMode,        // "ip" | "accurate"
-  location,            // ResolvedLocation | null
+  locationMode,        // "ip" | "accurate" — the visitor's wish
+  location,            // ResolvedLocation | null — what we have (source: "ip" | "geolocation")
+  permission,          // "granted" | "prompt" | "denied" | "unknown" | null (not answered yet), live
   isLoading,
   isFetching,
   error,
   setLocationMode,
-  requestAccurateLocation,
+  requestAccurateLocation, // () => Promise<"granted" | "denied" | "unavailable"> — may raise the prompt
   refresh,
+  isLocationPrimerOpen,
+  openLocationPrimer,
+  closeLocationPrimer,
 } = useLocation();
 ```
 
@@ -1782,7 +1787,7 @@ What asks is the world changing:
 | Data | Stale after | Asked again when |
 |------|-------------|------------------|
 | IP location | 30 min | mount, the tab coming back (`visibilitychange`), the network coming back, a back/forward-cache restore |
-| GPS location | 30 min | mount only — asking on focus could raise the permission prompt |
+| GPS location | 30 min | mount, and the tab coming back — only while the permission is already granted, so a refetch never raises the prompt |
 | Weather | 15 min | all of the above, plus a poll timed to Open-Meteo's next model interval (`current.time + interval` + 2 min, clamped 5–60 min; visible tabs only), plus local midnight |
 | The clock | — | every minute boundary, and at once on `visibilitychange` / `pageshow` (timers do not run in a locked phone) |
 
@@ -1792,6 +1797,31 @@ browser's clock is a free second opinion: a provider that puts the address in
 a different UTC offset is doubted and the next one asked; if all of them
 disagree, the first answer is kept with `timezoneMismatch: true`. The devtool's
 Sky section shows who located you, how long ago, and `tz≠` when flagged.
+
+**Asking for the real location.** Nothing raises the browser's location
+prompt by itself — not a load, not a focus, not a refetch:
+
+- `useLocationQuery` reads the Permissions API first. In Accurate mode it takes
+  a fix only when the permission is already `granted` (or the browser cannot
+  say); asked-but-not-granted *is* the IP query — same key, same cache — so a
+  permission Safari reset overnight degrades to the network's guess instead of a
+  prompt on load or no weather at all. A fix that fails falls back to IP too.
+- The fix is coarse (`enableHighAccuracy: false`, `maximumAge` 10 min):
+  weather is a city-sized question, a network fix is fast indoors, and it works
+  with iOS's Precise Location off.
+- The prompt is raised only by a tap on something that says why: the
+  **location primer** (`LocationPrimerSheet`, the tilt primer's pattern — a
+  sheet on a phone, a small window from `sm`), or the command palette's
+  Geolocation row (a refusal there opens the primer to say where to undo it).
+- What offers the primer is a *reason*: when the IP location is flagged
+  `timezoneMismatch`, the weather widget's city reads "Dallas?" and tapping it
+  opens the primer, which names the guessed city. A visitor whose guess looks
+  right is never asked.
+- The permission is followed live (`PermissionStatus` `change`). A grant made
+  during the visit — in the site settings, say — switches to Accurate; one the
+  page loads with does not, since IP was then chosen on purpose.
+- A grant from the primer seeds the Accurate query with the fix just taken, so
+  switching costs no second fix or reverse-geocode.
 
 **Sun times are epoch seconds.** The forecast is requested with
 `timeformat=unixtime`. Open-Meteo's default ISO strings are the *location's*

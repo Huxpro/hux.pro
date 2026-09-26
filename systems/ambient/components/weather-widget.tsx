@@ -28,10 +28,10 @@ export function WeatherWidget() {
   const [staleCity, setStaleCity] = useState<string | null>(null);
 
   const {
-    locationMode,
     location,
     isLoading: locationLoading,
     isFetching: locationFetching,
+    openLocationPrimer,
   } = useLocation();
 
   const { displayWeather, refresh } = useDisplayWeather();
@@ -48,6 +48,12 @@ export function WeatherWidget() {
     setStaleCity(cityLabel);
   }, [cityLabel]);
   const displayCity = cityLabel ?? staleCity ?? t(locale, "widgetWeather");
+  // The network's guess disagrees with this device's clock, so the city is
+  // probably wrong: say so with a question mark, and make it the way to the
+  // location primer. Nothing else here offers the prompt — a visitor whose
+  // guess looks right is never nagged.
+  const doubtful =
+    mounted && location?.source === "ip" && location.timezoneMismatch === true;
 
   const isReloading = locationLoading || locationFetching;
 
@@ -56,10 +62,28 @@ export function WeatherWidget() {
       {/* Header: City + location indicator left, weather icon right */}
       <WidgetHeader>
         <div className="flex items-center gap-1.5 min-w-0">
-          <WidgetTitle className="truncate">{displayCity}</WidgetTitle>
+          {doubtful ? (
+            <button
+              type="button"
+              onClick={openLocationPrimer}
+              aria-label={t(locale, "locationDoubtful")}
+              title={t(locale, "locationDoubtful")}
+              className="min-w-0 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <WidgetTitle className="truncate">
+                {/* One child: the title is a flex row with a gap. */}
+                <span className="truncate">
+                  {displayCity}
+                  <span className="text-muted-foreground">?</span>
+                </span>
+              </WidgetTitle>
+            </button>
+          ) : (
+            <WidgetTitle className="truncate">{displayCity}</WidgetTitle>
+          )}
           {isReloading ? (
             <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
-          ) : mounted && locationMode === "accurate" ? (
+          ) : mounted && location?.source === "geolocation" ? (
             <Navigation
               className="h-3 w-3 shrink-0 text-muted-foreground"
               aria-label={t(locale, "locationAccurate")}

@@ -29,6 +29,7 @@ export {
   WallpaperBackground,
   WallpaperSheet,
   TiltPrimerSheet,
+  LocationPrimerSheet,
   WeatherIcon,
   WeatherWidget,
   WeatherLine,

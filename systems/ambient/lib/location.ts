@@ -204,10 +204,83 @@ export async function fetchIpLocation(options?: {
   throw lastError ?? new Error("All IP location providers failed");
 }
 
+// -----------------------------------------------------------------------------
+// Permission
+//
+// The browser's prompt is only ever raised by a tap on something that says
+// what it is for (the location primer, the command palette's Geolocation
+// row). Everything else — mount, focus, a refetch — first asks the
+// Permissions API and takes a GPS fix only when the answer is already
+// "granted", so nothing on this site raises the prompt by itself.
+// -----------------------------------------------------------------------------
+
+/**
+ * "unknown": the Permissions API cannot say (old browsers). Treated like
+ * "granted" where only a *read* is at stake, since a fix there is what the
+ * visitor asked for — but never on focus.
+ */
+export type GeolocationPermission = "granted" | "prompt" | "denied" | "unknown";
+
+async function queryGeolocationStatus(): Promise<PermissionStatus | null> {
+  if (typeof navigator === "undefined" || !navigator.permissions?.query) {
+    return null;
+  }
+  try {
+    return await navigator.permissions.query({ name: "geolocation" });
+  } catch {
+    return null;
+  }
+}
+
+function toPermission(status: PermissionStatus | null): GeolocationPermission {
+  const state = status?.state;
+  return state === "granted" || state === "prompt" || state === "denied"
+    ? state
+    : "unknown";
+}
+
+/**
+ * Follow the geolocation permission: `onChange` gets the current answer as
+ * soon as it is known, then every change — a grant from the primer, or one
+ * made later in the browser's site settings. Returns the unsubscribe.
+ */
+export function subscribeGeolocationPermission(
+  onChange: (permission: GeolocationPermission) => void
+): () => void {
+  let status: PermissionStatus | null = null;
+  let cancelled = false;
+  const handle = () => onChange(toPermission(status));
+  void queryGeolocationStatus().then((s) => {
+    if (cancelled) return;
+    status = s;
+    handle();
+    s?.addEventListener("change", handle);
+  });
+  return () => {
+    cancelled = true;
+    status?.removeEventListener("change", handle);
+  };
+}
+
+/** Why a fix could not be had, in the terms the primer speaks. */
+export type GeolocationFailure = "denied" | "unavailable";
+
+export function classifyGeolocationError(err: unknown): GeolocationFailure {
+  // GeolocationPositionError.PERMISSION_DENIED
+  const code = (err as { code?: unknown } | null)?.code;
+  return code === 1 ? "denied" : "unavailable";
+}
+
+/**
+ * Take a GPS fix. Coarse on purpose: the weather is a city-sized question, and
+ * a network fix answers it in a fraction of the time a satellite fix takes
+ * indoors — and still works with iOS's "Precise Location" off. A fix up to ten
+ * minutes old is as good as a fresh one.
+ */
 export async function requestAccurateLocation(options?: {
   timeoutMs?: number;
 }): Promise<ResolvedLocation> {
-  const timeoutMs = options?.timeoutMs ?? 8000;
+  const timeoutMs = options?.timeoutMs ?? 10_000;
   if (typeof window === "undefined") {
     throw new Error("geolocation unavailable on server");
   }
@@ -219,7 +292,12 @@ export async function requestAccurateLocation(options?: {
   }
 
   const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("geolocation timeout")), timeoutMs);
+    // The browser's own timeout only starts once permission is given; this one
+    // bounds a prompt nobody answers.
+    const timeout = setTimeout(
+      () => reject(new Error("geolocation timeout")),
+      timeoutMs + 20_000
+    );
     navigator.geolocation.getCurrentPosition(
       (p) => {
         clearTimeout(timeout);
@@ -229,11 +307,12 @@ export async function requestAccurateLocation(options?: {
         clearTimeout(timeout);
         reject(e);
       },
-      { enableHighAccuracy: true, maximumAge: 10_000, timeout: timeoutMs }
+      { enableHighAccuracy: false, maximumAge: 10 * 60_000, timeout: timeoutMs }
     );
   });
 
   let city: string | undefined;
+  let region: string | undefined;
   let country: string | undefined;
   try {
     const result = await reverseGeocodeNominatim(
@@ -241,6 +320,7 @@ export async function requestAccurateLocation(options?: {
       pos.coords.longitude
     );
     city = result.city;
+    region = result.region;
     country = result.country;
   } catch {
     // ignore
@@ -251,6 +331,7 @@ export async function requestAccurateLocation(options?: {
     lat: pos.coords.latitude,
     lon: pos.coords.longitude,
     city,
+    region,
     country,
     provider: "geolocation",
     updatedAt: Date.now(),
@@ -259,6 +340,7 @@ export async function requestAccurateLocation(options?: {
 
 type ReverseGeocodeResult = {
   city?: string;
+  region?: string;
   country?: string;
 };
 
@@ -279,6 +361,7 @@ async function reverseGeocodeNominatim(
       city?: string;
       town?: string;
       village?: string;
+      state?: string;
       country?: string;
     };
   };
@@ -287,6 +370,7 @@ async function reverseGeocodeNominatim(
 
   return {
     city: address?.city || address?.town || address?.village,
+    region: address?.state,
     country: address?.country,
   };
 }
