@@ -40,8 +40,9 @@ export function Footnotes({ children }: { children: ReactNode }) {
   return (
     <footer
       className={cn(
+        // Its links keep the running-text underline in the notes' quieter
+        // ink (`.about-notes .prose-link`, globals.css).
         "about-notes mt-2 space-y-2 font-mono text-[11px] leading-relaxed text-tertiary-foreground",
-        "[&_a]:text-muted-foreground [&_a]:decoration-foreground/15",
       )}
     >
       {children}

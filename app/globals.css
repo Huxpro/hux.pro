@@ -161,6 +161,11 @@
   /* --- INPUTS: the two colours of the light theme --- */
   --ink: oklch(0.145 0 0);
   --ink-inverse: oklch(0.985 0 0);
+  /* A running-text link's underline at rest: the ink at 40%, written out
+     rather than mixed. Safari paints `color-mix()` in `color` but not in
+     `text-decoration-color`, where it left the line invisible until hover
+     (see `.prose-link`). */
+  --link-line: oklch(0.145 0 0 / 0.4);
   --ink-theme: var(--ink); /* the theme's own ink, kept for a zone that un-flips */
   /* The relief shape that goes with each ink: a white halo under dark ink,
      a dark drop under light ink (ryOS's numbers). `theme` is the pair for
@@ -264,6 +269,7 @@
      Exact oklch conversion: oklch(21.78% 0 0) */
   --ink: oklch(0.93 0 0); /* slightly softer than pure white */
   --ink-inverse: oklch(0.145 0 0);
+  --link-line: oklch(0.93 0 0 / 0.4);
   --ink-theme: var(--ink);
   --relief-theme-rgb: 0 0 0;
   --relief-theme-a1: var(--relief-drop-a1);
@@ -751,10 +757,26 @@ html.dragging * {
    rules below, so it names this one instead). The line at rest is an alpha
    of the ink itself, not of the already-muted secondary ink: at half of
    that (a third of the ink, all told) it read as no underline until hover
-   made it whole. */
+   made it whole. The colour is a token, not a mix: see --link-line. */
 .prose-article a:not(:where(.not-prose, .not-prose *)),
 .prose-link {
-  @apply text-foreground underline underline-offset-2 decoration-foreground/40 hover:decoration-foreground transition-colors;
+  @apply text-foreground underline underline-offset-2 transition-colors;
+  /* A colour Safari will paint as a decoration: not a `color-mix()`
+     (--link-line, :root). */
+  -webkit-text-decoration-color: var(--link-line);
+  text-decoration-color: var(--link-line);
+}
+/* In the About's notes (the annotation type), the same link in their
+   quieter ink. */
+.about-notes .prose-link {
+  color: var(--muted-foreground);
+}
+@media (hover: hover) {
+  .prose-article a:not(:where(.not-prose, .not-prose *)):hover,
+  .prose-link:hover {
+    -webkit-text-decoration-color: var(--foreground);
+    text-decoration-color: var(--foreground);
+  }
 }
 
 .prose-article strong:not(:where(.not-prose, .not-prose *)) {
