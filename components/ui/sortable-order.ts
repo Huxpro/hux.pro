@@ -123,7 +123,11 @@ export function loadLayouts(key: string): {
     const raw = localStorage.getItem(key);
     if (!raw) return empty;
     const parsed = JSON.parse(raw);
-    if (isIdArray(parsed)) return { byCount: {}, flat: parsed };
+    if (Array.isArray(parsed)) {
+      // Legacy v1: filter the way `loadOrder` always has, rather than
+      // dropping the visitor's whole sequence over one stray entry.
+      return { byCount: {}, flat: parsed.filter((v) => typeof v === "string") };
+    }
     if (parsed && typeof parsed === "object" && (parsed as StoredLayout).v === 2) {
       const cols = (parsed as StoredLayout).cols ?? {};
       const byCount: Record<number, ColumnLayout> = {};
@@ -146,19 +150,11 @@ export function saveLayouts(
 ): void {
   if (typeof window === "undefined") return;
   try {
-    const payload: StoredLayout = { v: 2, cols: {} };
-    for (const [count, layout] of Object.entries(byCount)) {
-      payload.cols[count] = layout;
-    }
+    const payload: StoredLayout = { v: 2, cols: byCount };
     localStorage.setItem(key, JSON.stringify(payload));
   } catch {
     // ignore
   }
-}
-
-/** Column-major read-out: column 1 top-to-bottom, then column 2, and so on. */
-export function flattenColumns(layout: ColumnLayout): string[] {
-  return layout.flat();
 }
 
 /**

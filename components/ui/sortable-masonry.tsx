@@ -22,6 +22,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -34,7 +35,6 @@ import {
   TOUCH_ACTIVATION,
   chunkIntoColumns,
   clearOrder,
-  flattenColumns,
   guardActivators,
   layoutsEqual,
   loadLayouts,
@@ -240,7 +240,11 @@ function locate(layout: ColumnLayout, id: string): [number, number] | null {
   return null;
 }
 
-/** Move `id` to `column` at `index`, returning a new layout. */
+/**
+ * Move `id` to `column`, ahead of the card at `index` among that column's
+ * *other* cards (so `index` never counts `id` itself) — the same frame of
+ * reference `placementAt` counts in. Returns a new layout.
+ */
 function place(
   layout: ColumnLayout,
   id: string,
@@ -252,13 +256,14 @@ function place(
 
   const next = layout.map((col) => [...col]);
   next[from[0]].splice(from[1], 1);
-  // Removing from the same column above the target shifts the target up by one.
-  const target = from[0] === column && from[1] < index ? index - 1 : index;
-  next[column].splice(Math.max(0, Math.min(target, next[column].length)), 0, id);
+  next[column].splice(Math.max(0, Math.min(index, next[column].length)), 0, id);
   return next;
 }
 
 interface Slot {
+  /** Column index — the card's horizontal position is derived from it in CSS. */
+  column: number;
+  /** Left edge in px, for pointer maths only; rendering never reads it. */
   x: number;
   y: number;
   height: number;
@@ -277,7 +282,7 @@ function computeSlots(
     let y = 0;
     for (const id of column) {
       const height = heights[id] ?? 0;
-      slots[id] = { x: index * (columnWidth + GAP), y, height };
+      slots[id] = { column: index, x: index * (columnWidth + GAP), y, height };
       // A widget that renders nothing (the music widget without a playlist,
       // a group whose commits are all filtered out) takes no space at all —
       // not even a gutter.
@@ -302,7 +307,7 @@ function MasonryItem({
   index,
   editing,
   slot,
-  columnWidth,
+  columns,
   animate,
   measure,
   children,
@@ -312,7 +317,7 @@ function MasonryItem({
   editing: boolean;
   /** Null until the grid has been measured — the item stays in normal flow. */
   slot: Slot | null;
-  columnWidth: number;
+  columns: number;
   animate: boolean;
   measure: (id: string, el: HTMLElement | null) => void;
   children: ReactNode;
@@ -338,13 +343,19 @@ function MasonryItem({
     [id, measure, setNodeRef],
   );
 
+  // Horizontal geometry is pure CSS, resolved against the grid's width every
+  // frame: a column is `(100% - gutters) / columns` wide, and a card steps one
+  // column per `100% + GAP` of its *own* width (a translate percentage is of
+  // the element). Only the column index and count come from JS, so resizing
+  // the window can never paint a card outside the grid while a measurement
+  // catches up — the vertical `y` is the only measured coordinate.
   const positioned: CSSProperties = slot
     ? {
         position: "absolute",
         top: 0,
         left: 0,
-        width: columnWidth,
-        transform: `translate3d(${slot.x}px, ${slot.y}px, 0)`,
+        width: `calc((100% - ${(columns - 1) * GAP}px) / ${columns})`,
+        transform: `translate3d(calc(${slot.column} * (100% + ${GAP}px)), ${slot.y}px, 0)`,
         transition: animate ? "transform 240ms cubic-bezier(0.2, 0, 0, 1)" : undefined,
       }
     : {};
@@ -463,6 +474,9 @@ export function SortableMasonry({
   // Every column count the visitor has arranged, so switching widths (or
   // rotating a phone) and coming back restores what they set up there.
   const storedRef = useRef<Record<number, ColumnLayout>>({});
+  // The layout when the current drag began: Escape puts it back, and a drop
+  // saves only if the drag actually changed it.
+  const dragStartLayoutRef = useRef<ColumnLayout | null>(null);
 
   const enterEdit = useCallback(() => setEditing(true), []);
   const registerSection = useCallback(
@@ -593,17 +607,19 @@ export function SortableMasonry({
   // Persistence
   // ---------------------------------------------------------------------------
 
-  // Restore the persisted layout on mount, and re-derive it whenever the column
-  // count or the widget set changes.
-  useEffect(() => {
+  // Restore the persisted layout on mount and whenever the column count
+  // changes. A *layout* effect, so the re-derived layout commits before the
+  // browser paints: otherwise the first frame at a new width would place a
+  // layout with the old number of columns.
+  useLayoutEffect(() => {
     if (!mounted) return;
     const stored = loadLayouts(storageKey);
     storedRef.current = stored.byCount;
 
     const exact = stored.byCount[columns];
-    // No arrangement for this width yet: carry over the nearest one the
-    // visitor *did* make (widest first) rather than snapping to the default.
-    const nearest = exact
+    // No arrangement for this width yet: carry over the widest one the
+    // visitor *did* make rather than snapping to the default.
+    const widest = exact
       ? undefined
       : Object.keys(stored.byCount)
           .map(Number)
@@ -612,15 +628,26 @@ export function SortableMasonry({
 
     const base = exact
       ? exact
-      : nearest
-        ? chunkIntoColumns(flattenColumns(nearest), columns)
+      : widest
+        ? chunkIntoColumns(widest.flat(), columns)
         : stored.flat
           ? // Legacy v1 payload: one flat sequence, chunked column-major.
             chunkIntoColumns(reconcile(stored.flat, ids), columns)
           : defaultLayout;
 
     setLayout(reconcileLayout(base, ids, columns));
-  }, [storageKey, idsKey, columns, mounted, defaultLayout]); // eslint-disable-line react-hooks/exhaustive-deps -- ids tracked via idsKey
+  }, [storageKey, columns, mounted]); // eslint-disable-line react-hooks/exhaustive-deps -- reads the ids/default of the render that changed width
+
+  // A widget appearing or disappearing reconciles the *live* layout — never a
+  // reload from storage, which mid-drag would throw away the placement the
+  // visitor is still holding.
+  useLayoutEffect(() => {
+    if (!mounted) return;
+    setLayout((prev) => {
+      const next = reconcileLayout(prev, ids, columns);
+      return layoutsEqual(next, prev) ? prev : next;
+    });
+  }, [idsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- ids tracked via idsKey
 
   const persist = useCallback(
     (next: ColumnLayout) => {
@@ -672,41 +699,61 @@ export function SortableMasonry({
   // depends on dnd-kit re-measuring a grid that is moving underneath it.
   // ---------------------------------------------------------------------------
 
-  // Arrow keys should move a held widget by a *slot*, the way dragging does.
-  // dnd-kit's default getter steps 25px, which would take a dozen presses to
-  // cross one column.
+  // Arrow keys move a held widget one *place* at a time, the way a drag does:
+  // sideways to the next column's centre, and vertically to just past the
+  // midpoint of the neighbour in that direction — the line `placementAt`
+  // swaps on. A fixed step can't do that in both directions: past a short
+  // neighbour it overshoots, and a card taller than its neighbour never
+  // crosses it at all. (dnd-kit's default steps 25px.)
   const keyboardCoordinates = useCallback<KeyboardCoordinateGetter>(
-    (event, { active, currentCoordinates }) => {
-      const geometry = geometryRef.current;
-      const id = String(active);
-      const at = locate(geometry.layout, id);
-      const column = at ? (geometry.layout[at[0]] ?? []) : [];
-      // Step over the neighbour in that direction; fall back to the held card's
-      // own height at the ends of a column.
-      const rowStep = (offset: number) => {
-        const neighbour = at ? column[at[1] + offset] : undefined;
-        const slot = (neighbour ? geometry.slots[neighbour] : undefined) ??
-          geometry.slots[id];
-        return (slot?.height ?? 0) + GAP;
-      };
-      const columnStep = geometry.columnWidth + GAP;
+    (event, { active, currentCoordinates, context }) => {
+      const { columnWidth: width, slots: at, layout: current } =
+        geometryRef.current;
+      const grid = containerRef.current;
+      const held = context.collisionRect;
+      if (!grid || !held || width <= 0) return undefined;
 
+      // Where the lifted card's centre is now, in grid coordinates.
+      const origin = grid.getBoundingClientRect();
+      const cx = held.left + held.width / 2 - origin.left;
+      const cy = held.top + held.height / 2 - origin.top;
+      const pitch = width + GAP;
+      const column = Math.min(
+        current.length - 1,
+        Math.max(0, Math.round((cx - width / 2) / pitch)),
+      );
+      // Midpoints of the other cards in the column it is over, top to bottom.
+      const mids = (current[column] ?? [])
+        .filter((other) => other !== String(active))
+        .map((other) => at[other])
+        .filter((slot): slot is Slot => slot !== undefined)
+        .map((slot) => slot.y + slot.height / 2);
+
+      let dx = 0;
+      let dy = 0;
       switch (event.code) {
         case "ArrowRight":
-          event.preventDefault();
-          return { ...currentCoordinates, x: currentCoordinates.x + columnStep };
-        case "ArrowLeft":
-          event.preventDefault();
-          return { ...currentCoordinates, x: currentCoordinates.x - columnStep };
-        case "ArrowDown":
-          event.preventDefault();
-          return { ...currentCoordinates, y: currentCoordinates.y + rowStep(1) };
-        case "ArrowUp":
-          event.preventDefault();
-          return { ...currentCoordinates, y: currentCoordinates.y - rowStep(-1) };
+        case "ArrowLeft": {
+          const to = column + (event.code === "ArrowRight" ? 1 : -1);
+          if (to >= 0 && to < current.length) dx = to * pitch + width / 2 - cx;
+          break;
+        }
+        case "ArrowDown": {
+          const below = mids.find((mid) => mid > cy);
+          if (below !== undefined) dy = below + 1 - cy;
+          break;
+        }
+        case "ArrowUp": {
+          const above = mids.filter((mid) => mid < cy).pop();
+          if (above !== undefined) dy = above - 1 - cy;
+          break;
+        }
         default:
           return undefined;
       }
+      // Claim the arrow even at an edge, so it never scrolls the page mid-drag.
+      event.preventDefault();
+      return { x: currentCoordinates.x + dx, y: currentCoordinates.y + dy };
     },
     [],
   );
@@ -719,10 +766,14 @@ export function SortableMasonry({
     useSensor(KeyboardSensor, { coordinateGetter: keyboardCoordinates }),
   );
 
-  // Track the pointer for the whole session: `onDragMove` then always has a
+  // Track the pointer while a drag is live: `onDragMove` then always has a
   // fresh, un-translated position to work from (dnd-kit's delta folds in scroll
   // offsets, which would double-count against a container rect read live).
+  // `handleDragStart` seeds it from the activator event, so nothing is lost
+  // between pickup and these listeners attaching.
+  const dragging = activeId !== null;
   useEffect(() => {
+    if (!dragging) return;
     const onPointer = (e: PointerEvent) => {
       pointerRef.current = { x: e.clientX, y: e.clientY };
     };
@@ -736,7 +787,7 @@ export function SortableMasonry({
       window.removeEventListener("pointermove", onPointer);
       window.removeEventListener("touchmove", onTouch);
     };
-  }, []);
+  }, [dragging]);
 
   /**
    * Where the held card should sit, given a point in client coordinates:
@@ -778,6 +829,7 @@ export function SortableMasonry({
   }
 
   function handleDragStart(e: DragStartEvent) {
+    dragStartLayoutRef.current = layout;
     setActiveId(String(e.active.id));
     setEditing(true);
     const activator = e.activatorEvent;
@@ -818,12 +870,21 @@ export function SortableMasonry({
   }
 
   function handleDragEnd() {
+    const start = dragStartLayoutRef.current;
+    dragStartLayoutRef.current = null;
     setActiveId(null);
-    persist(layout);
+    // A drag that ends where it began saves nothing: writing the default back
+    // would mark this width as "arranged" and change how it takes new widgets.
+    if (!start || !layoutsEqual(layout, start)) persist(layout);
   }
 
   function handleDragCancel() {
+    const start = dragStartLayoutRef.current;
+    dragStartLayoutRef.current = null;
     setActiveId(null);
+    // The layout follows the drag live, so a cancel has to put it back —
+    // reconciled, in case the width or the widget set moved mid-drag.
+    if (start) setLayout(reconcileLayout(start, ids, columns));
   }
 
   function handleReset() {
@@ -882,7 +943,7 @@ export function SortableMasonry({
               index={i}
               editing={editing}
               slot={positioned ? (slots[id] ?? null) : null}
-              columnWidth={columnWidth}
+              columns={columns}
               animate={animate}
               measure={measure}
             >

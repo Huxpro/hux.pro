@@ -104,12 +104,27 @@ not one flat sequence.
   `removeChild` / update-depth errors that took the page down.
 - Card heights come from a `ResizeObserver`, so a widget that grows (an image
   loading, weather arriving) just pushes the cards under it down.
+- Only `y` is measured. A card's width and horizontal position are `calc()`s
+  of the grid's width (`(100% - gutters) / columns` wide, stepping one column
+  per `100% + gap` of its own width), and JS supplies just the column index and
+  count — so resizing the window can never paint a card outside the grid while
+  a measurement catches up. A column-count change re-derives the layout in a
+  layout effect, before the browser paints.
 - Drop placement is computed from our own geometry — the pointer against the
   measured slots — not from dnd-kit droppables, so nothing about the drag
   depends on dnd-kit re-measuring a grid that is moving underneath it. Since
   the slots already include the held card's own slot, insertion is naturally
   hysteretic: a card changes places only once the pointer crosses a
   neighbour's midpoint, so the layout settles instead of flip-flopping.
+- The layout follows the drag live, so it is snapshotted at pickup: Escape
+  restores the snapshot, and a drop saves only if the layout actually changed
+  (writing the default back would mark that width "arranged").
+- Arrow keys move a held card one *place* per press: sideways to the next
+  column's centre, and vertically to just past the neighbour's midpoint. Known
+  limitation: dnd-kit's `KeyboardSensor` attaches its keydown listener in a
+  `setTimeout`, so on a page whose main thread is busy (the animated wallpaper
+  can delay a zero-delay timer by ~200ms) an arrow pressed immediately after
+  pickup can be missed.
 - dnd-kit still provides the sensors (mouse drags at once, touch needs a
   long-press so swipes still scroll), the activation constraints and the
   lifted `DragOverlay` clone. It must be told to measure draggables with
@@ -117,7 +132,7 @@ not one flat sequence.
   position is nothing but a transform, the default would put every card at the
   container's top-left and the lifted clone a whole slot away from the cursor.
 - Layouts persist per column count under `localStorage["hux_widget_order"]`
-  (`{ v: 2, cols: { "1" | "2" | "3": string[][] } }`; the legacy flat v1 array
+  (`{ v: 2, cols: { "1" | "2" | "3" | "4": string[][] } }`; the legacy flat v1 array
   is still read). An unvisited width inherits the widest arranged one rather
   than snapping back to the default.
 - A legacy v1 order is chunked into columns by *count*, while CSS multi-column
