@@ -899,12 +899,21 @@ export class WallpaperRenderer {
   setView(view: SkyView | null) {
     // A view that jumped is turned to, from wherever the window is showing
     // now — which may itself be halfway through an earlier turn.
+    //
+    // But a turn in progress is only started over when the SOURCE jumps again.
+    // During the turn the window lags the phone by design, so every live
+    // reading is far from what is on screen; measured against that alone, each
+    // one — sixty a second — restarted the turn at its motionless first frame,
+    // and the window never got there: stuck, spinner up, until the phone was
+    // swung round to where the window had frozen. A reading that follows the
+    // last one just moves where the turn is heading.
     const shown = this.shownView ?? this.currentView(this.current);
     if (
       view &&
       !this.opts.reducedMotion &&
       this.windowAmt > 0 &&
-      viewJumped(shown, view, VIEW_JUMP_DEG)
+      viewJumped(shown, view, VIEW_JUMP_DEG) &&
+      (!this.viewGlide || !this.view || viewJumped(this.view, view, VIEW_JUMP_DEG))
     ) {
       this.viewGlide = { from: shown, at: performance.now() };
       this.reportGlides();

@@ -268,8 +268,16 @@ export function attachSkyReturn(onReturn: () => void): () => void {
   let startX = 0;
   let startY = 0;
   let done = false;
+  /** Detached while a finger was still down: go once it lifts. */
+  let leaving = false;
 
   const onStart = (event: TouchEvent) => {
+    // Waiting for a lift that never reached us: this is a new gesture, and not
+    // this one's to cancel.
+    if (leaving) {
+      detach();
+      return;
+    }
     const touch = event.touches[0];
     if (event.touches.length !== 1 || !isBackgroundClick(event.target)) {
       id = null;
@@ -294,8 +302,16 @@ export function attachSkyReturn(onReturn: () => void): () => void {
     }
   };
 
+  const detach = () => {
+    document.removeEventListener("touchstart", onStart);
+    document.removeEventListener("touchmove", onMove);
+    document.removeEventListener("touchend", onEnd);
+    document.removeEventListener("touchcancel", onEnd);
+  };
+
   const onEnd = () => {
     id = null;
+    if (leaving) detach();
   };
 
   document.addEventListener("touchstart", onStart, { passive: true });
@@ -303,9 +319,11 @@ export function attachSkyReturn(onReturn: () => void): () => void {
   document.addEventListener("touchend", onEnd);
   document.addEventListener("touchcancel", onEnd);
   return () => {
-    document.removeEventListener("touchstart", onStart);
-    document.removeEventListener("touchmove", onMove);
-    document.removeEventListener("touchend", onEnd);
-    document.removeEventListener("touchcancel", onEnd);
+    // The swipe that closed the window is usually still going when the window
+    // closes and lets go of this — and the rest of that swipe is this
+    // gesture's, not a scroll of the page coming back under it. So a finger
+    // still down keeps being cancelled until it lifts.
+    if (id === null) detach();
+    else leaving = true;
   };
 }
