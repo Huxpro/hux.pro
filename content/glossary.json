@@ -1,0 +1,832 @@
+{
+  "scope": [
+    "avoiding-success-at-all-cost.zh",
+    "the-open-web.en",
+    "halting-problem.zh"
+  ],
+  "terms": [
+    {
+      "id": "haskell",
+      "forms": [
+        "Haskell"
+      ],
+      "senses": [
+        {
+          "id": "haskell",
+          "gloss": {
+            "zh": "一门纯函数式编程语言，诞生于学术界，以惰性求值和强大的类型系统著称。工业界用得少，但许多现代语言特性源自它。",
+            "en": "A purely functional programming language born in academia, known for lazy evaluation and a powerful type system. Rarely used in industry, yet the source of many features modern languages now share."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "spj",
+      "forms": [
+        "Simon Peyton Jones",
+        "SPJ"
+      ],
+      "senses": [
+        {
+          "id": "spj",
+          "gloss": {
+            "zh": "Simon Peyton Jones，Haskell 的主要设计者之一，也是 GHC 编译器的核心作者。",
+            "en": "Simon Peyton Jones, one of Haskell's principal designers and a lead author of the GHC compiler."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "lazy-evaluation",
+      "forms": [
+        "惰性求值",
+        "call-by-need",
+        "lazy evaluation"
+      ],
+      "senses": [
+        {
+          "id": "lazy-evaluation",
+          "gloss": {
+            "zh": "表达式在真正需要结果时才计算（call-by-need 是它的具体实现方式）。它让“无副作用”更容易保持，但也让性能和内存更难预测。",
+            "en": "Evaluating an expression only when its result is actually needed (call-by-need is the concrete strategy). It helps keep code free of side effects, but makes time and memory use harder to predict."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "monad",
+      "forms": [
+        "Monad",
+        "Monads",
+        "单子"
+      ],
+      "senses": [
+        {
+          "id": "monad",
+          "gloss": {
+            "zh": "一种把“带上下文的计算”（副作用、可能失败、异步等）按顺序串起来的抽象。Haskell 靠它在纯函数式语言里做 IO；JavaScript 的 Promise 链是同一思路。",
+            "en": "An abstraction for sequencing computations that carry context (side effects, failure, asynchrony). It is how Haskell does IO in a pure language; JavaScript's Promise chains follow the same idea."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "type-class",
+      "forms": [
+        "Type Class",
+        "type class",
+        "类型类"
+      ],
+      "senses": [
+        {
+          "id": "type-class",
+          "gloss": {
+            "zh": "Haskell 的一种多态机制：声明“某类型支持哪些操作”，再为具体类型分别实现。Rust 的 trait、Swift 的 protocol 都与之相近。",
+            "en": "Haskell's mechanism for ad-hoc polymorphism: declare which operations a type supports, then implement them per type. Rust traits and Swift protocols are close relatives."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "io",
+      "forms": [
+        "IO",
+        "I/O"
+      ],
+      "senses": [
+        {
+          "id": "io/input-output",
+          "gloss": {
+            "zh": "输入/输出：程序与外部世界（文件、网络、屏幕）的交互。对纯函数式语言来说，IO 就是最难处理的副作用。",
+            "en": "Input/output: a program's interaction with the outside world (files, network, screen). For a pure functional language, it is the hardest side effect to accommodate."
+          },
+          "proposed": true
+        },
+        {
+          "id": "io/google",
+          "gloss": {
+            "zh": "Google I/O，Google 每年的开发者大会，Chrome 和 Web 平台的新方向通常在这里发布。",
+            "en": "Google I/O, Google's annual developer conference, where new directions for Chrome and the web platform are usually announced."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "arc",
+      "forms": [
+        "ARC"
+      ],
+      "senses": [
+        {
+          "id": "arc",
+          "gloss": {
+            "zh": "自动引用计数（Automatic Reference Counting），Swift / Objective-C 的内存管理方式：编译器自动插入引用计数代码，而不是运行时做垃圾回收。",
+            "en": "Automatic Reference Counting, the memory management of Swift and Objective-C: the compiler inserts reference-counting code instead of a runtime garbage collector."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "tc39",
+      "forms": [
+        "TC39"
+      ],
+      "senses": [
+        {
+          "id": "tc39",
+          "gloss": {
+            "zh": "Ecma 国际下负责制定 JavaScript（ECMAScript）标准的技术委员会，成员包括各大浏览器厂商和科技公司。",
+            "en": "The Ecma International technical committee that standardises JavaScript (ECMAScript); its members include the browser vendors and major tech companies."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "ecmascript",
+      "forms": [
+        "ECMAScript"
+      ],
+      "senses": [
+        {
+          "id": "ecmascript",
+          "gloss": {
+            "zh": "JavaScript 的标准化名称。ES5、ES2015 等版本号都是指 ECMAScript 规范的版本。",
+            "en": "The standardised name of JavaScript. Version names like ES5 and ES2015 refer to editions of the ECMAScript specification."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "es4",
+      "forms": [
+        "ES4"
+      ],
+      "senses": [
+        {
+          "id": "es4",
+          "gloss": {
+            "zh": "ECMAScript 第 4 版提案，计划加入类、静态类型等大改动，因委员会分歧在 2008 年被放弃，从未发布。",
+            "en": "The proposed 4th edition of ECMAScript, with classes, optional static types and other large changes. It was abandoned in 2008 after the committee split, and never shipped."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "formal-semantics",
+      "forms": [
+        "形式化语义",
+        "formal semantics"
+      ],
+      "senses": [
+        {
+          "id": "formal-semantics",
+          "gloss": {
+            "zh": "用数学方式精确定义程序“是什么意思”，而不是用自然语言描述。SML 和 Scheme 的标准就是这样写成的。",
+            "en": "Defining what programs mean with mathematical precision instead of prose. The SML and Scheme standards are written this way."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "ocaml",
+      "forms": [
+        "OCaml"
+      ],
+      "senses": [
+        {
+          "id": "ocaml",
+          "gloss": {
+            "zh": "ML 家族的一门函数式语言，默认严格求值、允许副作用，比 Haskell 更务实，工业界（如金融、编译器）有不少应用。",
+            "en": "A functional language in the ML family: strict by default and allows side effects, more pragmatic than Haskell, and used in industry (finance, compilers)."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "adt",
+      "forms": [
+        "代数数据类型",
+        "ADT",
+        "algebraic data type"
+      ],
+      "senses": [
+        {
+          "id": "adt",
+          "gloss": {
+            "zh": "用“和”（几选一）与“积”（同时包含）组合出来的类型，例如“要么成功带结果、要么失败带错误”。配合模式匹配使用。",
+            "en": "Types built from sums (one of several cases) and products (several fields together), e.g. \"either a success with a value or a failure with an error\". Used together with pattern matching."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "discriminated-union",
+      "forms": [
+        "discriminated union"
+      ],
+      "senses": [
+        {
+          "id": "discriminated-union",
+          "gloss": {
+            "zh": "TypeScript 里用一个公共字段区分多个变体的联合类型，是代数数据类型在 TS 中的写法。",
+            "en": "A TypeScript union whose variants are told apart by a shared tag field — TypeScript's way of writing an algebraic data type."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "pattern-matching",
+      "forms": [
+        "模式匹配",
+        "pattern matching"
+      ],
+      "senses": [
+        {
+          "id": "pattern-matching",
+          "gloss": {
+            "zh": "按数据的“形状”分支并同时解构取值的语法，比一串 if/else 更安全，编译器还能检查是否漏掉了情况。",
+            "en": "Branching on the shape of data while destructuring it at the same time. Safer than chains of if/else, and the compiler can check that no case is missed."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "trait",
+      "forms": [
+        "trait"
+      ],
+      "senses": [
+        {
+          "id": "trait",
+          "gloss": {
+            "zh": "Rust 中描述“类型具备哪些行为”的机制，设计上直接借鉴了 Haskell 的 Type Class。",
+            "en": "Rust's way of describing what behaviour a type has, directly modelled on Haskell's type classes."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "jsx",
+      "forms": [
+        "JSX"
+      ],
+      "senses": [
+        {
+          "id": "jsx",
+          "gloss": {
+            "zh": "React 引入的 JavaScript 语法扩展，允许在 JS 中直接写类似 HTML 的标签。2013 年发布时因“把 HTML 写进 JS”备受嘲讽。",
+            "en": "React's syntax extension that lets you write HTML-like tags inside JavaScript. Widely mocked in 2013 for \"putting HTML in JS\"."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "react-hooks",
+      "forms": [
+        "Hooks",
+        "React Hooks"
+      ],
+      "senses": [
+        {
+          "id": "react-hooks",
+          "gloss": {
+            "zh": "React 16.8 引入的 API（useState、useEffect 等），让函数组件拥有状态和副作用，取代了大部分 class 组件的写法。",
+            "en": "The React 16.8 API (useState, useEffect, …) that gives function components state and effects, replacing most class components."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "concurrent-mode",
+      "forms": [
+        "Concurrent Mode"
+      ],
+      "senses": [
+        {
+          "id": "concurrent-mode",
+          "gloss": {
+            "zh": "React 的可中断渲染机制：渲染可以暂停、让出主线程再继续。为此放宽了一些旧的生命周期保证，后来以 Concurrent Features 的形式在 React 18 落地。",
+            "en": "React's interruptible rendering: work can pause, yield the main thread and resume. It relaxed some old lifecycle guarantees and later shipped in React 18 as concurrent features."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "mini-program",
+      "forms": [
+        "Mini Programs",
+        "Mini Program",
+        "小程序",
+        "微信小程序"
+      ],
+      "senses": [
+        {
+          "id": "mini-program",
+          "gloss": {
+            "zh": "运行在微信内部的轻量应用，用类 Web 技术开发，但跑在微信自己的封闭运行时里，不属于开放 Web。",
+            "en": "Lightweight apps that run inside WeChat. They are built with web-like technology but run on WeChat's own closed runtime, outside the open web."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "html5",
+      "forms": [
+        "HTML5",
+        "H5"
+      ],
+      "senses": [
+        {
+          "id": "html5",
+          "gloss": {
+            "zh": "HTML 标准的第五版，也泛指同期的一整套 Web 技术。国内常被简称为“H5”，并被滥用来指代任何移动端网页甚至非 Web 的容器。",
+            "en": "The fifth version of the HTML standard, and loosely the whole generation of web tech around it. In China it is shortened to \"H5\" and stretched to mean any mobile page — even non-web containers."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "world-wide-web",
+      "forms": [
+        "World Wide Web",
+        "WWW",
+        "万维网"
+      ],
+      "senses": [
+        {
+          "id": "world-wide-web",
+          "gloss": {
+            "zh": "万维网：以 URL 相互链接的超文本系统，由 Tim Berners-Lee 发明，运行在互联网（Internet）之上，但两者不是一回事。",
+            "en": "The system of hypertext documents linked by URLs, invented by Tim Berners-Lee. It runs on top of the Internet, but the two are not the same thing."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "open-web",
+      "forms": [
+        "Open Web",
+        "开放 Web",
+        "开放的 Web"
+      ],
+      "senses": [
+        {
+          "id": "open-web",
+          "gloss": {
+            "zh": "基于开放标准、任何人都能访问和链接、不被单一平台控制的 Web。本博客反复讨论的核心立场。",
+            "en": "The web built on open standards, which anyone can reach and link to and no single platform controls. A recurring stance of this blog."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "pwa",
+      "forms": [
+        "Progressive Web App",
+        "Progressive Web Apps",
+        "PWA",
+        "PWAs"
+      ],
+      "senses": [
+        {
+          "id": "pwa",
+          "gloss": {
+            "zh": "渐进式 Web 应用：Google 在 2015 年提出的一组技术（Service Worker、Web App Manifest 等），让网页具备离线、安装、推送等类原生应用能力，同时保留 URL。",
+            "en": "Progressive Web Apps: a set of technologies Google championed from 2015 (Service Worker, Web App Manifest, …) giving web pages app-like offline, install and push capabilities while keeping URLs."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "hybrid-app",
+      "forms": [
+        "Hybrid",
+        "混合应用"
+      ],
+      "senses": [
+        {
+          "id": "hybrid-app",
+          "gloss": {
+            "zh": "Hybrid 应用：原生 App 外壳里嵌入 WebView 来渲染网页内容。开发像 Web，但分发和运行依附于原生平台。",
+            "en": "Hybrid apps: a native app shell that renders web content in a WebView. Developed like the web, but distributed and run through a native platform."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "react-native",
+      "forms": [
+        "React Native",
+        "RN"
+      ],
+      "senses": [
+        {
+          "id": "react-native",
+          "gloss": {
+            "zh": "Facebook 2015 年推出的框架：用 React 和 JavaScript 写界面，但渲染成原生控件而不是网页，因此没有 URL。",
+            "en": "Facebook's 2015 framework: write UI in React and JavaScript, rendered as native widgets rather than web pages — so there are no URLs."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "weex",
+      "forms": [
+        "Weex"
+      ],
+      "senses": [
+        {
+          "id": "weex",
+          "gloss": {
+            "zh": "阿里巴巴开源的跨端框架，思路与 React Native 类似，但基于 Vue 语法。",
+            "en": "Alibaba's open-source cross-platform framework, similar in approach to React Native but using Vue syntax."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "wechat-js-sdk",
+      "forms": [
+        "JS-SDK"
+      ],
+      "senses": [
+        {
+          "id": "wechat-js-sdk",
+          "gloss": {
+            "zh": "微信 JS-SDK：让微信内的网页调用分享、支付、扫码等微信能力的接口，只在微信里有效。",
+            "en": "WeChat's JS-SDK: the API that lets pages inside WeChat call WeChat features (share, pay, scan). It only works inside WeChat."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "app-links",
+      "forms": [
+        "Universal Links",
+        "App Links"
+      ],
+      "senses": [
+        {
+          "id": "app-links",
+          "gloss": {
+            "zh": "iOS（Universal Links）和 Android（App Links）的机制：点击某个网址时直接打开对应的原生 App，而不是网页。",
+            "en": "iOS (Universal Links) and Android (App Links) mechanisms that open a native app instead of a web page when a matching URL is tapped."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "zhihu",
+      "forms": [
+        "Zhihu"
+      ],
+      "senses": [
+        {
+          "id": "zhihu",
+          "gloss": {
+            "zh": "知乎，中文互联网上最主要的问答社区。",
+            "en": "China's largest Q&A community, roughly comparable to Quora."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "halting-problem",
+      "forms": [
+        "停机问题",
+        "Halting Problem",
+        "halting problem"
+      ],
+      "senses": [
+        {
+          "id": "halting-problem",
+          "gloss": {
+            "zh": "判断任意程序在给定输入下会不会结束运行的问题。图灵在 1936 年证明不存在能解决它的通用算法。",
+            "en": "Deciding whether an arbitrary program halts on a given input. Turing proved in 1936 that no general algorithm can decide it."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "first-class-function",
+      "forms": [
+        "头等函数",
+        "first-class function",
+        "first-class functions"
+      ],
+      "senses": [
+        {
+          "id": "first-class-function",
+          "gloss": {
+            "zh": "函数可以像普通值一样被赋值、作为参数传入、作为返回值返回。本文正是靠它把“程序”当作“输入”。",
+            "en": "Functions that can be assigned, passed as arguments and returned like any other value. This post relies on it to pass a program as an input."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "self-reference",
+      "forms": [
+        "自我指涉",
+        "self-reference"
+      ],
+      "senses": [
+        {
+          "id": "self-reference",
+          "gloss": {
+            "zh": "一个对象（句子、程序）指向或作用于它自身，如“这句话是假的”。许多不可能性证明都从这里构造矛盾。",
+            "en": "Something (a sentence, a program) that refers to or acts on itself, as in \"this sentence is false\". Many impossibility proofs build their contradiction from it."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "proof-by-contradiction",
+      "forms": [
+        "反证法",
+        "反证",
+        "proof by contradiction"
+      ],
+      "senses": [
+        {
+          "id": "proof-by-contradiction",
+          "gloss": {
+            "zh": "先假设命题不成立，推出矛盾，从而证明原命题成立。本文假设“停机程序”存在，推出矛盾。",
+            "en": "Assume the opposite, derive a contradiction, and conclude the original claim. This post assumes a halting decider exists and derives a contradiction."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "undecidable",
+      "forms": [
+        "不可解",
+        "不可判定",
+        "undecidable",
+        "Undecidable"
+      ],
+      "senses": [
+        {
+          "id": "undecidable",
+          "gloss": {
+            "zh": "不可判定：不存在任何算法能对所有输入都给出正确的是/否答案。和“很难算”不同，是原理上算不了。",
+            "en": "Undecidable: no algorithm can give the correct yes/no answer for every input. Not merely hard to compute — impossible in principle."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "hilbert-tenth",
+      "forms": [
+        "Hilbert 第十问题",
+        "希尔伯特第十问题"
+      ],
+      "senses": [
+        {
+          "id": "hilbert-tenth",
+          "gloss": {
+            "zh": "希尔伯特 1900 年提出的问题：是否存在通用方法判断任意整系数多项式方程有没有整数解。1970 年被证明不可判定。",
+            "en": "Hilbert's 1900 question: is there a general method to decide whether any integer-coefficient polynomial equation has an integer solution? Proved undecidable in 1970."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "turing-machine",
+      "forms": [
+        "图灵机",
+        "Turing Machine",
+        "Turing Machines",
+        "Turing machine"
+      ],
+      "senses": [
+        {
+          "id": "turing-machine",
+          "gloss": {
+            "zh": "图灵在 1936 年提出的抽象计算模型：一条无限长纸带加一个读写头和有限的状态规则。它定义了“可计算”的边界。",
+            "en": "Turing's 1936 abstract model of computation: an infinite tape, a read/write head and a finite rule table. It defines the boundary of what is computable."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "church-turing-thesis",
+      "forms": [
+        "邱奇－图灵论题",
+        "邱奇-图灵论题",
+        "Church–Turing thesis"
+      ],
+      "senses": [
+        {
+          "id": "church-turing-thesis",
+          "gloss": {
+            "zh": "一个被普遍接受但无法证明的论断：任何“直观上可计算”的函数都能被图灵机计算。",
+            "en": "A widely accepted but unprovable claim: any function that is intuitively computable can be computed by a Turing machine."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "lambda-calculus",
+      "forms": [
+        "Lambda 算子",
+        "λ 演算",
+        "lambda calculus"
+      ],
+      "senses": [
+        {
+          "id": "lambda-calculus",
+          "gloss": {
+            "zh": "λ 演算：邱奇提出的、只用函数定义和函数调用来表达计算的模型，计算能力与图灵机等价，是函数式编程的理论基础。",
+            "en": "Church's model of computation built only from function definition and application. Equivalent in power to Turing machines, and the theoretical basis of functional programming."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "mu-recursive",
+      "forms": [
+        "μ-递归函数",
+        "μ-recursive function"
+      ],
+      "senses": [
+        {
+          "id": "mu-recursive",
+          "gloss": {
+            "zh": "从少数基本函数出发，用组合、原始递归和“最小化”（μ 算子）构造出的函数类，与图灵机等价。",
+            "en": "The functions built from a few basic ones by composition, primitive recursion and minimisation (the μ operator); equivalent to Turing machines."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "computable-function",
+      "forms": [
+        "可计算函数",
+        "computable function"
+      ],
+      "senses": [
+        {
+          "id": "computable-function",
+          "gloss": {
+            "zh": "存在某个算法（等价地，某台图灵机）能在有限步内算出结果的函数。",
+            "en": "A function for which some algorithm — equivalently, some Turing machine — produces the result in finitely many steps."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "context-free-grammar",
+      "forms": [
+        "上下文无关文法",
+        "context-free grammar"
+      ],
+      "senses": [
+        {
+          "id": "context-free-grammar",
+          "gloss": {
+            "zh": "比正则表达式表达力更强的一类文法，能描述括号嵌套这类结构，大多数编程语言的语法都用它定义。",
+            "en": "A class of grammars more expressive than regular expressions, able to describe nested structures like balanced brackets; most programming language syntaxes are defined with them."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    },
+    {
+      "id": "incompleteness",
+      "forms": [
+        "哥德尔的不完备性定理",
+        "不完备性定理",
+        "incompleteness theorem"
+      ],
+      "senses": [
+        {
+          "id": "incompleteness",
+          "gloss": {
+            "zh": "哥德尔 1931 年证明：任何足以表达算术的一致形式系统中，都存在既不能证明也不能证伪的命题。和停机问题一样，靠自我指涉构造出来。",
+            "en": "Gödel's 1931 result: any consistent formal system strong enough for arithmetic contains statements it can neither prove nor disprove. Like the halting problem, it is built on self-reference."
+          },
+          "proposed": true
+        }
+      ],
+      "proposed": true
+    }
+  ],
+  "ignored": [
+    {
+      "form": "Web",
+      "reason": "本博客的核心话题，读者都懂；且太常见，标注会满屏 / the blog's own subject, too common to annotate"
+    },
+    {
+      "form": "WeChat",
+      "reason": "英文文章里会当场解释，中文读者都知道 / explained inline in English posts, known to every Chinese reader"
+    },
+    {
+      "form": "微信",
+      "reason": "中文读者都知道 / known to every Chinese reader"
+    },
+    {
+      "form": "Web App",
+      "reason": "the-open-web 当场给出了定义 / defined on the spot where it matters"
+    },
+    {
+      "form": "BDFL",
+      "reason": "原文当场解释为「仁慈的终身独裁者」 / defined on the spot"
+    },
+    {
+      "form": "托管语言",
+      "reason": "原文括号里当场解释 / defined on the spot"
+    },
+    {
+      "form": "JavaScript",
+      "reason": "主流语言名，读者都懂 / mainstream language name"
+    },
+    {
+      "form": "Python",
+      "reason": "主流语言名，读者都懂 / mainstream language name"
+    }
+  ]
+}

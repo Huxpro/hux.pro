@@ -1,0 +1,244 @@
+{
+  "avoiding-success-at-all-cost.zh": {
+    "f66b10234f47": {
+      "Simon Peyton Jones": "spj",
+      "Haskell": "haskell"
+    },
+    "3b562978edc1": {},
+    "018dc3cd54bc": {
+      "Haskell": "haskell"
+    },
+    "38274662ddb4": {},
+    "a4e7e7fe63a3": {},
+    "44c97815745e": {
+      "ARC": "arc"
+    },
+    "69f36c2f3f19": {},
+    "d3909fc192c9": {
+      "Haskell": "haskell"
+    },
+    "93d2f376ecee": {},
+    "a8e58033ab60": {
+      "call-by-need": "lazy-evaluation",
+      "Type Class": "type-class",
+      "Haskell": "haskell",
+      "Monad": "monad",
+      "惰性求值": "lazy-evaluation",
+      "IO": "io/input-output"
+    },
+    "65446fdb4f12": {
+      "Haskell": "haskell",
+      "OCaml": "ocaml",
+      "SPJ": "spj"
+    },
+    "d9becffa9a4d": {},
+    "375ec25fb393": {
+      "形式化语义": "formal-semantics"
+    },
+    "a5c0a4aeb4f1": {},
+    "1283adb32e97": {},
+    "2ea7e7b8ec6d": {
+      "ECMAScript": "ecmascript",
+      "TC39": "tc39",
+      "ES4": "es4"
+    },
+    "3f7076a96df5": {
+      "形式化语义": "formal-semantics"
+    },
+    "18202d7c51a6": {
+      "Haskell": "haskell",
+      "OCaml": "ocaml"
+    },
+    "b0515ec1a072": {
+      "Haskell": "haskell"
+    },
+    "394402334430": {
+      "discriminated union": "discriminated-union",
+      "Type Class": "type-class",
+      "Haskell": "haskell",
+      "代数数据类型": "adt",
+      "Monad": "monad",
+      "trait": "trait",
+      "模式匹配": "pattern-matching",
+      "ADT": "adt"
+    },
+    "4d67c19842fc": {
+      "Haskell": "haskell"
+    },
+    "49fef3ea6b74": {
+      "Concurrent Mode": "concurrent-mode",
+      "Hooks": "react-hooks",
+      "JSX": "jsx"
+    },
+    "3d24c014791e": {
+      "Haskell": "haskell",
+      "SPJ": "spj"
+    },
+    "d9ee80249a38": {}
+  },
+  "the-open-web.en": {
+    "7fab67ca9261": {
+      "Mini Programs": "mini-program"
+    },
+    "0f015be9f9de": {
+      "Mini Programs": "mini-program"
+    },
+    "27ae27bd4802": {
+      "Mini Programs": "mini-program"
+    },
+    "2e1bf7591bd4": {},
+    "05b2c7d475ee": {
+      "World Wide Web": "world-wide-web"
+    },
+    "04d7f952649f": {
+      "HTML5": "html5",
+      "H5": "html5"
+    },
+    "3846a377bd33": {
+      "World Wide Web": "world-wide-web"
+    },
+    "aa0996968e39": {},
+    "22cfac3da118": {},
+    "84d472a461aa": {
+      "Zhihu": "zhihu"
+    },
+    "f96975844f3f": {
+      "World Wide Web": "world-wide-web"
+    },
+    "e5169d42536f": {
+      "Open Web": "open-web"
+    },
+    "e2bdeb7533e0": {},
+    "10b291d7e7a5": {
+      "World Wide Web": "world-wide-web"
+    },
+    "9d13a4e70285": {
+      "Progressive Web Apps": "pwa",
+      "Open Web": null
+    },
+    "fb1b60c79ac4": {},
+    "f29bdd97e901": {
+      "Progressive Web App": "pwa",
+      "PWA": "pwa"
+    },
+    "d60fd3ca0690": {
+      "React Native": "react-native",
+      "Hybrid": "hybrid-app",
+      "Weex": "weex"
+    },
+    "e70fbfe55bac": {},
+    "eb1556eac25a": {},
+    "44e2c432cdd6": {
+      "Open Web": "open-web"
+    },
+    "2078c75e79fe": {
+      "Universal Links": "app-links",
+      "App Links": "app-links",
+      "Weex": "weex",
+      "RN": "react-native"
+    },
+    "fe2d4e4588b2": {
+      "JS-SDK": "wechat-js-sdk"
+    },
+    "b3875ce4b206": {},
+    "6ebc88c4f40d": {
+      "PWA": "pwa"
+    },
+    "80836e14f181": {},
+    "c43a2a71e242": {
+      "Open Web": "open-web",
+      "Hybrid": "hybrid-app",
+      "PWA": "pwa"
+    },
+    "ece9ad6b902f": {},
+    "2ea790efb7b5": {
+      "HTML5": "html5"
+    },
+    "f5df2c0b7bab": {},
+    "8c94759bb7ca": {
+      "HTML5": "html5"
+    },
+    "15f8cb951764": {},
+    "fc2323af6eed": {},
+    "1fac69cbc818": {
+      "I/O": "io/google"
+    },
+    "0c878c5a74c9": {
+      "World Wide Web": "world-wide-web",
+      "WWW": "world-wide-web"
+    },
+    "c9082c7da99f": {
+      "Open Web": "open-web"
+    },
+    "00dcd0ea9fbb": {}
+  },
+  "halting-problem.zh": {
+    "86b418315d0d": {},
+    "61187b0ade54": {
+      "停机问题": "halting-problem"
+    },
+    "89e0674c1132": {},
+    "8e342c0d3815": {
+      "停机问题": "halting-problem"
+    },
+    "589873893e8c": {
+      "头等函数": "first-class-function"
+    },
+    "41e33dd3e84a": {},
+    "f8b140d264c6": {},
+    "c29322dc96b2": {},
+    "69e7db4e2915": {},
+    "77f5ca7abd34": {},
+    "07df262a4d26": {},
+    "f3914f3a4141": {},
+    "8ec7d722cd96": {},
+    "393caa2f9e47": {
+      "停机问题": "halting-problem"
+    },
+    "59804f97dfc6": {
+      "Hilbert 第十问题": "hilbert-tenth",
+      "undecidable": "undecidable",
+      "停机问题": "halting-problem",
+      "自我指涉": "self-reference",
+      "不可解": "undecidable",
+      "反证": "proof-by-contradiction"
+    },
+    "0cd5ebd22be1": {
+      "反证法": "proof-by-contradiction"
+    },
+    "7a39c4d8b8eb": {
+      "哥德尔的不完备性定理": "incompleteness",
+      "Lambda 算子": "lambda-calculus",
+      "邱奇－图灵论题": "church-turing-thesis",
+      "上下文无关文法": "context-free-grammar",
+      "μ-递归函数": "mu-recursive",
+      "可计算函数": "computable-function",
+      "停机问题": "halting-problem",
+      "不可解": "undecidable",
+      "图灵机": "turing-machine"
+    },
+    "c883e30ba28f": {},
+    "31fd385407f9": {
+      "Undecidable": null,
+      "不可解": null
+    },
+    "4c73df3dee37": {
+      "停机问题": null
+    },
+    "46cf666c20b9": {},
+    "df83c0f8879d": {
+      "Hilbert 第十问题": null
+    },
+    "613a9de69dfb": {},
+    "b0014156f92b": {},
+    "9e56f9691012": {
+      "Turing Machines": null
+    },
+    "b9a194712ce9": {
+      "Halting Problem": null
+    },
+    "b6fd7e163ed2": {
+      "Halting Problem": null
+    }
+  }
+}
