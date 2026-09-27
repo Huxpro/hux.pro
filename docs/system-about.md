@@ -36,6 +36,7 @@ over whatever page a visitor landed on.
 | ⌘K | `About` in search. Geolocation moved from `O` to `C`. |
 | λhux | the home screen's mark, the long way in: hover until it says its name (*The λHUX OS*) and the name is a door — click it; on a phone, hold it until the name is whole and the About rises (`components/home/scramble-identifier.tsx`). |
 | `/about` | the address to share: the home screen with the About already up. Putting it away swaps the address to `/` in place (no navigation, no remount). |
+| language | a chip in the top-right corner — the other language's name and the Languages glyph, the article header's own switch (`HeaderAction` in the meta row's mono) — so a visitor met in the language their browser guessed can turn to the one they read without leaving. |
 | leaving | Escape, `/` `O`, a press outside the words, the button at the foot, or anything in the copy opening something — a badge or a link hands over to what it opened. Not the attachment drawer: on a phone a badge opens it *over* the About (`OVER_ABOUT_Z`, 10025), the words still underneath; Escape puts the drawer away first. The About steps aside only when the drawer sends the thing somewhere below it — the stage, a window, another page, the lightbox (`onSend` on the attachments' context); a tab leaves it be. |
 
 ### Three layers

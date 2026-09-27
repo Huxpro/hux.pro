@@ -1,11 +1,13 @@
 "use client";
 
 import { MagicLinkHost } from "@/components/magic-link";
+import { HeaderAction } from "@/components/ui/controls";
 import { TYPE } from "@/lib/typography";
 import { GLASS_TRACK_FLAT } from "@/systems/theater/lib/chrome";
 import { cn } from "@/lib/utils";
 import { t, useInputCapability, useLocale } from "@/services";
 import { useWallpaper } from "@/systems/ambient";
+import { Languages } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { BEZEL_INSET, VITRE_LAYER_ATTRIBUTE } from "vitre";
 import {
@@ -57,7 +59,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
   // turn from Reveal to Close as it leaves.
   const [firstTime, setFirstTime] = useState(!seen);
   if (isOpen && firstTime !== !seen) setFirstTime(!seen);
-  const { locale } = useLocale();
+  const { locale, setLocale } = useLocale();
   const { hasFineHoverPointer } = useInputCapability();
   const tuning = useGlowTuning();
   // Inside the bezel, when one is drawn: the About is a surface on the page's
@@ -142,6 +144,31 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
               aria-hidden
               className="absolute inset-0 bg-glass/70 backdrop-blur-2xl backdrop-saturate-150"
             />
+            {/* The other language, in the corner. The About is the first
+                thing a visitor meets, often in the language their browser
+                guessed; one press puts it in the one they read. The
+                article's own switch (post-content.tsx): the meta row's
+                mono, the Languages glyph, a chip that only paints under a
+                pointer. On a phone its edge is the words' edge. */}
+            <div
+              className={cn(
+                "absolute z-10",
+                TYPE.meta,
+                "right-[max(2.25rem,calc(env(safe-area-inset-right)+1.5rem))] top-[max(2rem,calc(env(safe-area-inset-top)+1rem))]",
+                "sm:right-8 sm:top-6",
+              )}
+            >
+              <HeaderAction
+                variant="action"
+                onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+                label={locale === "zh" ? "Read in English" : "切换到中文"}
+              >
+                <Languages className="h-3 w-3" />
+                <span lang={locale === "zh" ? "en" : "zh"}>
+                  {locale === "zh" ? "English" : "中文"}
+                </span>
+              </HeaderAction>
+            </div>
             {/* On a desk the words and the way out are one group, centred
                 on the screen — spacers above and below take what is left.
                 On a phone the words take every line the screen has and the
