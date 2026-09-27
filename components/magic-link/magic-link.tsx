@@ -157,10 +157,11 @@ const GLYPHS: Record<BadgeKind, LucideIcon> = {
   social: AtSign,
 };
 
-/** A plain magic link: the prose link's underline, nothing else. */
+/** A plain magic link: the prose link's underline (`.prose-article a`,
+ *  globals.css), nothing else — it carries `.not-prose`, so it sets its own. */
 const PLAIN =
-  "not-prose text-foreground underline decoration-foreground/25 underline-offset-[0.2em] " +
-  "transition-colors hover:decoration-foreground/70 " +
+  "not-prose text-foreground underline underline-offset-2 decoration-muted-foreground/50 " +
+  "transition-colors hover:decoration-foreground " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 /** The pill. Sized in `em` so it sits in a sentence at whatever size. */

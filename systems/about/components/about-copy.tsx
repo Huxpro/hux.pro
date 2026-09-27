@@ -25,7 +25,7 @@ import remarkGfm from "remark-gfm";
 
 function AboutLink({ href = "", ...props }: ComponentPropsWithoutRef<"a">) {
   const className =
-    "text-foreground underline decoration-foreground/25 underline-offset-[0.2em] transition-colors hover:decoration-foreground/70";
+    "text-foreground underline underline-offset-2 decoration-muted-foreground/50 transition-colors hover:decoration-foreground";
   if (/^https?:/.test(href)) {
     return (
       <a

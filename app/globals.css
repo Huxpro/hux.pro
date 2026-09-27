@@ -765,6 +765,18 @@ html.dragging * {
   font-size: 1.0625em;
 }
 
+/* The About's words (systems/about) take the same optical adjustment as the
+   article: its italic *interface*, and the greeting where it is set at the
+   words' own size (a phone; on a desk it is a display size of its own). */
+.about-copy:lang(en) em {
+  font-size: 1.0625em;
+}
+@media (width < 40rem) {
+  .about-copy:lang(en) h1 {
+    font-size: 1.0625em;
+  }
+}
+
 /* Right spacing for Chinese italic to prevent overhang */
 .prose-article[lang="zh"] em:not(:where(.not-prose, .not-prose *)) {
   margin-right: 0.1em;
