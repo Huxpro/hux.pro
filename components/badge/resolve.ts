@@ -143,7 +143,7 @@ export function mediaFromHref(
       return {
         kind: "link",
         url,
-        present: "pill",
+        present: "card",
         ...(frame ? { preview: { frame } } : {}),
       };
     }
@@ -222,7 +222,6 @@ function labelFor(media: Media, locale: Locale): string {
   }
   if (media.kind === "link") {
     const preview = media.previews?.[locale] ?? media.preview;
-    if (media.label) return media.label;
     if (media.url.startsWith("/")) return preview?.title ?? media.url;
   }
   return getDomainLabel(media.url).replace(/^www\./, "");
