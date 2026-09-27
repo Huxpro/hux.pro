@@ -52,6 +52,15 @@ export interface AboutSurfaceProps {
   zh: ReactNode;
 }
 
+/**
+ * How far around the words (and the way out) a click still counts as a miss
+ * rather than a way out: a generous column margin, about the width of a
+ * hand's slip beside a line. Past it, towards the screen's edges, a click
+ * closes. Pointer only — see `onBackdrop`.
+ */
+const MISS_MARGIN_X = 96;
+const MISS_MARGIN_Y = 64;
+
 export function AboutSurface({ en, zh }: AboutSurfaceProps) {
   const { isOpen, close, seen } = useAbout();
   // Whether this showing is the newcomer's first, held while it is up —
@@ -105,8 +114,28 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
     };
   }, [isOpen]);
 
+  // Pressing outside the words puts the About away — but only where that is
+  // what the press meant. On a touch screen, never: a phone's About is the
+  // whole screen, every blank stretch of it is a thumb resting between
+  // lines, and the way out is the button at its foot. With a pointer, not
+  // near the words either: a click in the column's margin is a reader
+  // steadying a selection or missing a link, not leaving. Out towards the
+  // edges of the screen, well clear of the text, a click is a deliberate
+  // gesture — there it closes, as clicking beside a sheet does.
   const onBackdrop = (e: MouseEvent) => {
-    if (e.target === e.currentTarget) close();
+    if (e.target !== e.currentTarget) return;
+    if (!hasFineHoverPointer) return;
+    const near = [articleRef.current, footRef.current].some((el) => {
+      const r = el?.getBoundingClientRect();
+      if (!r) return false;
+      return (
+        e.clientX > r.left - MISS_MARGIN_X &&
+        e.clientX < r.right + MISS_MARGIN_X &&
+        e.clientY > r.top - MISS_MARGIN_Y &&
+        e.clientY < r.bottom + MISS_MARGIN_Y
+      );
+    });
+    if (!near) close();
   };
 
   // A plain link in the copy navigates; the About steps aside for it. Magic

@@ -22,6 +22,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* `decoration-ink-line`: the underline rung (--ink-line). Never
+     `decoration-<token>/NN` — that is a color-mix(), which Safari does not
+     paint as a decoration. */
+  --color-ink-line: var(--ink-line);
   --font-sans: var(--font-sans);
   --font-serif: var(--font-serif-latin), var(--font-serif-cjk), serif;
   --font-mono: var(--font-mono);
@@ -161,11 +165,15 @@
   /* --- INPUTS: the two colours of the light theme --- */
   --ink: oklch(0.145 0 0);
   --ink-inverse: oklch(0.985 0 0);
-  /* A running-text link's underline at rest: the ink at 40%, written out
-     rather than mixed. Safari paints `color-mix()` in `color` but not in
-     `text-decoration-color`, where it left the line invisible until hover
-     (see `.prose-link`). */
-  --link-line: oklch(0.145 0 0 / 0.4);
+  /* The line under text (a link's underline): the ink at 40%, and the only
+     rung written out rather than mixed — Safari paints `color-mix()` in
+     `color`, fills and borders, but not in `text-decoration-color`, where a
+     mixed rung is simply not drawn. So it is an input, one per ink, swapped
+     by a flipped zone exactly as `--ink` is. Keep the lightness in step
+     with the ink above. See docs/system-legibility.md. */
+  --ink-line-theme: oklch(0.145 0 0 / 0.4);
+  --ink-line-inverse: oklch(0.985 0 0 / 0.4);
+  --ink-line: var(--ink-line-theme);
   --ink-theme: var(--ink); /* the theme's own ink, kept for a zone that un-flips */
   /* The relief shape that goes with each ink: a white halo under dark ink,
      a dark drop under light ink (ryOS's numbers). `theme` is the pair for
@@ -269,7 +277,9 @@
      Exact oklch conversion: oklch(21.78% 0 0) */
   --ink: oklch(0.93 0 0); /* slightly softer than pure white */
   --ink-inverse: oklch(0.145 0 0);
-  --link-line: oklch(0.93 0 0 / 0.4);
+  --ink-line-theme: oklch(0.93 0 0 / 0.4);
+  --ink-line-inverse: oklch(0.145 0 0 / 0.4);
+  --ink-line: var(--ink-line-theme);
   --ink-theme: var(--ink);
   --relief-theme-rgb: 0 0 0;
   --relief-theme-a1: var(--relief-drop-a1);
@@ -477,6 +487,7 @@ html[data-wallpaper-flip] .ink-bare,
 html[data-wallpaper-flip-mid] .ink-bare-mid,
 .ink-flip {
   --ink: var(--ink-inverse);
+  --ink-line: var(--ink-line-inverse);
   --relief-rgb: var(--relief-inverse-rgb);
   --relief-a1: var(--relief-inverse-a1);
   --relief-a2: var(--relief-inverse-a2);
@@ -496,6 +507,7 @@ html[data-wallpaper-flip-mid] .ink-bare-mid,
    ink goes back to the theme's, shape and all. */
 html:not([data-wallpaper-flip-mid]) .ink-bare-mid {
   --ink: var(--ink-theme);
+  --ink-line: var(--ink-line-theme);
   --relief-rgb: var(--relief-theme-rgb);
   --relief-a1: var(--relief-theme-a1);
   --relief-a2: var(--relief-theme-a2);
@@ -507,6 +519,7 @@ html:not([data-wallpaper-flip-mid]) .ink-bare-mid {
   html[data-wallpaper-flip] .ink-bare.ink-bare-rest:hover,
   html[data-wallpaper-flip-mid] .ink-bare-mid.ink-bare-rest:hover {
     --ink: var(--ink-theme);
+    --ink-line: var(--ink-line-theme);
     --relief-rgb: var(--relief-theme-rgb);
     --relief-a1: var(--relief-theme-a1);
     --relief-a2: var(--relief-theme-a2);
@@ -757,14 +770,10 @@ html.dragging * {
    rules below, so it names this one instead). The line at rest is an alpha
    of the ink itself, not of the already-muted secondary ink: at half of
    that (a third of the ink, all told) it read as no underline until hover
-   made it whole. The colour is a token, not a mix: see --link-line. */
+   made it whole. The line is the ladder's underline rung, `--ink-line`. */
 .prose-article a:not(:where(.not-prose, .not-prose *)),
 .prose-link {
-  @apply text-foreground underline underline-offset-2 transition-colors;
-  /* A colour Safari will paint as a decoration: not a `color-mix()`
-     (--link-line, :root). */
-  -webkit-text-decoration-color: var(--link-line);
-  text-decoration-color: var(--link-line);
+  @apply text-foreground underline underline-offset-2 decoration-ink-line transition-colors;
 }
 /* In the About's notes (the annotation type), the same link in their
    quieter ink. */

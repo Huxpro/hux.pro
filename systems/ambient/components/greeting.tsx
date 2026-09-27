@@ -42,7 +42,7 @@ export function AmbientGreeting({ eyebrow }: { eyebrow?: ReactNode } = {}) {
       const title = lastVisited.href ? (
         <Link
           href={lastVisited.href}
-          className="font-serif italic text-foreground decoration-foreground/30 decoration-1 underline-offset-4 transition-colors hover:underline hover:text-foreground/70"
+          className="font-serif italic text-foreground decoration-ink-line decoration-1 underline-offset-4 transition-colors hover:underline hover:text-foreground/70"
         >
           {lastVisited.title}
         </Link>

@@ -186,7 +186,7 @@ function Divider() {
 }
 
 const linkClass =
-  "hover:text-foreground underline underline-offset-2 decoration-muted-foreground/30 hover:decoration-foreground transition-colors";
+  "hover:text-foreground underline underline-offset-2 decoration-ink-line hover:decoration-foreground transition-colors";
 
 /** External links, shared by convictions and influences. */
 function LinkRow({
@@ -554,7 +554,7 @@ function EntryTag({
         aria-label={`Link to ${anchor}`}
         tabIndex={open ? 0 : -1}
         className={cn(
-          "group/id underline underline-offset-2 decoration-muted-foreground/40",
+          "group/id underline underline-offset-2 decoration-ink-line",
           "transition-colors duration-200 hover:text-foreground hover:decoration-foreground",
           copied ? "text-muted-foreground" : "text-tertiary-foreground",
         )}
