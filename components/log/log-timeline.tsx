@@ -16,7 +16,14 @@ import {
   type Tag,
 } from "@/lib/log";
 import type { Squash } from "@/lib/log";
-import { planSquashes } from "@/lib/log-squash";
+import { planSquashes, sharedProjectIds } from "@/lib/log-squash";
+import { sparseMarks } from "@/lib/log-context";
+import { computeCommitHash } from "@/lib/log";
+import {
+  ProjectContextProvider,
+  useProjectContext,
+  type ProjectMarkSpec,
+} from "./project-context";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -109,7 +116,15 @@ export function LogTimeline({
   onSelectHash,
   pinnedChapters = false,
 }: LogTimelineProps) {
+  // Project context resolves across the whole log, not per chapter: React
+  // Compiler (2021) is the context of React for Two Threads (2025).
+  const allCommits = useMemo(() => data.flatMap((d) => d.commits), [data]);
   return (
+    <ProjectContextProvider
+      commits={allCommits}
+      locale={locale}
+      onSelectHash={onSelectHash}
+    >
     <div className="space-y-0">
       {data.map(({ tag, commits }, tagIndex) => (
         <TagBlock
@@ -127,6 +142,7 @@ export function LogTimeline({
         />
       ))}
     </div>
+    </ProjectContextProvider>
   );
 }
 
@@ -188,6 +204,7 @@ function TagBlock({
   const gapFor = (c: CommitData) =>
     c.type === "role" ? 10 : c.type === "event" || c.present === "aside" ? 3 : 7;
 
+  const projects = useProjectContext();
   const {
     railInfo,
     beamSpecs,
@@ -195,6 +212,7 @@ function TagBlock({
     bylines,
     isHidden,
     squashByLead,
+    projectMarks,
     hasVisible,
   } = useMemo(() => {
     const bylinesArr = computeBylines(commits, identities, locale);
@@ -216,15 +234,69 @@ function TagBlock({
       filtered(c) || plan.absorbed.has(c.id);
 
     const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
+
+    // ── Project context (lib/log-context.ts) ──────────────────────────
+    // Each row's context at row level: its own projects, or — for a
+    // squashed row — the ones every member shares; a member's own print on
+    // its caption instead. Only ids that resolve to a project count.
+    const rowIds = commits.map((c) => {
+      const sq = plan.byLead.get(c.id);
+      const raw = sq ? sharedProjectIds(sq.members) : (c.projects ?? []);
+      return raw.filter((id) => id !== c.id && !!projects?.ref(id));
+    });
+    const visible = commits.flatMap((c, i) => (hidden(c) ? [] : [i]));
+    const quietRow = (i: number) => {
+      const c = commits[i];
+      const sq = plan.byLead.get(c.id);
+      return (
+        c.type === "event" ||
+        (sq ? sq.members.every((m) => m.present === "aside") : c.present === "aside")
+      );
+    };
+    // Where each mark prints at rest: the head of a run only, as a handle
+    // does. Decided across the chapter, because a run is a chapter-level
+    // fact that no single row can see.
+    const heads = sparseMarks(
+      visible.map((i) => ({ ids: rowIds[i], quiet: quietRow(i) })),
+    );
+    const marks: ProjectMarkSpec[][] = commits.map(() => []);
+    visible.forEach((i, k) => {
+      marks[i] = rowIds[i].map((id) => ({ id, head: heads[k].has(id) }));
+    });
+    // The light: a connector from a row to its project's own row, when that
+    // row is in this chapter and on screen. Invisible at rest (see
+    // `hideWhenIdle` below) — the context costs nothing until asked for.
+    const indexOf = new Map(commits.map((c, i) => [c.id, i]));
+    const contextBeams = visible.flatMap((i) =>
+      rowIds[i].flatMap((id) => {
+        const j = indexOf.get(id);
+        if (j === undefined || j === i || hidden(commits[j])) return [];
+        return [
+          {
+            fromIdx: i,
+            toIdx: j,
+            fromHash: computeCommitHash(commits[i].id),
+            toHash: computeCommitHash(id),
+            roleId: id,
+            inferred: false,
+            context: true,
+          },
+        ];
+      }),
+    );
+
     const allBeams = [
       ...computeBeams(commits, hidden).map((b) => ({
         ...b,
         inferred: false,
+        context: false,
       })),
       ...computeInferredBeams(commits, rail).map((b) => ({
         ...b,
         inferred: true,
+        context: false,
       })),
+      ...contextBeams,
     ];
 
     const attachmentsWithGaps = allBeams.map((b) => ({
@@ -239,7 +311,9 @@ function TagBlock({
     // hovering the target activates every incoming connector.
     const specs: (BeamSpec | null)[] = commits.map(() => null);
     for (const b of allBeams) {
-      specs[b.fromIdx] = {
+      // A row's own `attachedTo` beam wins its hover over a context one: it
+      // is the more specific claim, and a row can only drive one spec.
+      if (!b.context || specs[b.fromIdx] === null) specs[b.fromIdx] = {
         fromHash: b.fromHash,
         toHash: b.toHash,
         roleId: b.roleId,
@@ -260,9 +334,10 @@ function TagBlock({
       bylines: bylinesArr,
       isHidden: hidden,
       squashByLead: plan.byLead,
+      projectMarks: marks,
       hasVisible: commits.some((c) => !hidden(c)),
     };
-  }, [commits, identities, locale, activeTypes, squashes]);
+  }, [commits, identities, locale, activeTypes, squashes, projects]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
@@ -372,6 +447,7 @@ function TagBlock({
                 byline={bylines[i]}
                 form={form}
                 squash={squashByLead.get(commits[i].id) ?? null}
+                projectMarks={projectMarks[i]}
                 onSelectHash={onSelectHash}
               />
             ));
@@ -400,7 +476,10 @@ function TagBlock({
             // Inferred beams piggyback on the visible tenure rail —
             // suppress their dim render so N converging connectors
             // don't darken the line via opacity stacking.
-            hideWhenIdle={a.inferred}
+            // Context connectors are invisible at rest too: a project's
+            // talks are many and far apart, and nine standing lines would
+            // be the noise the context exists to take away.
+            hideWhenIdle={a.inferred || a.context}
             isActive={
               !!activeBeam &&
               activeBeam.toHash === a.toHash &&

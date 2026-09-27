@@ -5,8 +5,12 @@
 // renderer has to ask about one, and nothing else:
 //
 //   which commits are actually in it          (`planSquashes`)
-//   whose row is it                           (the lead, and the parent)
+//   whose row is it                           (the lead)
 //   what do they share, and what varies       (`factorSquash`)
+//
+// A squash is for peers — one occasion wearing several datelines. A commit
+// that is *about* another (a talk about its project) is not a member of a
+// group but a row with a context, and that lives in `lib/log-context.ts`.
 //
 // Deliberately free of React and of any rendering vocabulary, the way
 // `lib/log-view.ts` is: the timeline, the editor's preview and any future
@@ -43,13 +47,11 @@ export interface ResolvedSquash {
   squash: Squash;
   /**
    * Where the row sits and whose gutter mark and byline it wears: the
-   * parent when there is one, otherwise the newest member. Always one of
+   * newest member — a group of peers is "as of" its latest. Always one of
    * {@link members}.
    */
   lead: Commit;
-  /** The member that IS the row (see `Squash.parent`), if it survived. */
-  parent: Commit | null;
-  /** Every surviving member, parent included, in authored order. */
+  /** Every surviving member, in authored order. */
   members: Commit[];
 }
 
@@ -114,25 +116,18 @@ export function planSquashes(
     // row it always had.
     if (members.length < 2) continue;
 
-    // A parent the filter dropped is not a parent any more: the survivors
-    // are peers, and the row is built from what they share.
-    const parent =
-      (squash.parent && members.find((m) => m.id === squash.parent)) || null;
-    // Where the row lands. The parent's own place when there is one; else
-    // the member that sorts highest, which on a reverse-chronological page
-    // is the most recent — a group of peers sits at its newest member, the
-    // way the work itself is "as of" then.
-    const lead =
-      parent ??
-      members.reduce((best, m) =>
-        order.get(m.id)! < order.get(best.id)! ? m : best,
-      );
+    // Where the row lands: the member that sorts highest, which on a
+    // reverse-chronological page is the most recent — a group of peers sits
+    // at its newest member, the way the work itself is "as of" then.
+    const lead = members.reduce((best, m) =>
+      order.get(m.id)! < order.get(best.id)! ? m : best,
+    );
 
     for (const m of members) {
       claimed.add(m.id);
       if (m.id !== lead.id) absorbed.add(m.id);
     }
-    byLead.set(lead.id, { squash, lead, parent, members });
+    byLead.set(lead.id, { squash, lead, members });
   }
 
   return byLead.size === 0 ? EMPTY_PLAN : { byLead, absorbed };
@@ -168,7 +163,6 @@ function common<T extends string>(values: (T | null | undefined)[]): T | null {
 /** Where the headline came from. The editor reads this; the page does not. */
 export type HeadlineSource =
   | "authored"
-  | "parent"
   | "shared-title"
   | "shared-venue"
   /** Nothing to derive from: the lead's own title, standing in. */
@@ -197,12 +191,14 @@ export interface SquashMemberFacts {
   description: string;
   /** An aside among the members keeps its quiet voice in the band. */
   quiet: boolean;
+  /**
+   * The projects this member is about that the others are not — its own
+   * context, printed on its caption. Ids, resolved by the renderer.
+   */
+  projectIds: string[];
 }
 
 export interface SquashFacts {
-  /** `"parent"`: the header is one member's own row. `"peers"`: it is built
-   *  from what the members share. See `Squash.parent`. */
-  mode: "peers" | "parent";
   headline: string;
   headlineSource: HeadlineSource;
   /**
@@ -218,7 +214,7 @@ export interface SquashFacts {
   languageBadge: "EN" | "中文" | null;
   /** The header's type, when every member is one; else the lead's. */
   type: CommitType;
-  /** The row's own prose — authored, or the parent's. Never a peer's. */
+  /** The row's own prose — authored, or nothing. Never a member's. */
   description: string;
   /** Every member is an aside, so the row is one. */
   quiet: boolean;
@@ -231,25 +227,24 @@ export interface SquashFacts {
     type: boolean;
   };
   /**
-   * The nested level, in authored order. Under a parent, every member but
-   * the parent — the parent is the header, and its covers print bare at the
-   * head of the band.
+   * The projects every member is about — the group's context, printed once
+   * on the header the way a single row's would be (lib/log-context.ts).
+   * Projects are one more field to factor, not a special case: shared goes
+   * up, the rest stays with its member.
    */
+  projectIds: string[];
+  /** The nested level, in authored order. */
   members: SquashMemberFacts[];
 }
 
 /**
  * Factor a squash into a header and a band, for one locale.
- *
- * The comparison runs over EVERY member, the parent included: under a
- * parent, a child that shares the parent's venue does not repeat it, for
- * the same reason a peer does not.
  */
 export function factorSquash(
   resolved: ResolvedSquash,
   locale: Locale,
 ): SquashFacts {
-  const { squash, members, lead, parent } = resolved;
+  const { squash, members, lead } = resolved;
 
   const titles = members.map((m) => localize(m.title, locale));
   const venues = members.map((m) => commitVenue(m));
@@ -265,51 +260,41 @@ export function factorSquash(
   const languageShared = badges.every((b) => b === badges[0]);
   const typeShared = members.every((m) => m.type === members[0].type);
 
-  // The headline: the author's, then the parent's own, then whatever the
-  // members agree on, title before venue, since a title names the work
-  // and a venue names where it happened.
+  const projectIds = sharedProjectIds(members);
+
+  // The headline: the author's, then whatever the members agree on, title
+  // before venue, since a title names the work and a venue names where it
+  // happened.
   const authored = localizeOptional(squash.title, locale);
   const [headline, headlineSource]: [string, HeadlineSource] = authored
     ? [authored, "authored"]
-    : parent
-      ? [localize(parent.title, locale), "parent"]
-      : sharedTitle
+    : sharedTitle
         ? [sharedTitle, "shared-title"]
         : sharedVenue
           ? [sharedVenue, "shared-venue"]
           : [localize(lead.title, locale), "fallback"];
 
-  // Under a parent, the header line is the parent's own (commit-data prints
-  // its row as it always did); for peers, it is what is shared and not
-  // already the headline.
-  const meta = parent
-    ? null
-    : [sharedTitle, sharedVenue]
-        .filter((v): v is string => !!v && !sameLine(v, headline))
-        .join(" · ") || null;
+  // The header's line: what is shared and not already the headline.
+  const meta =
+    [sharedTitle, sharedVenue]
+      .filter((v): v is string => !!v && !sameLine(v, headline))
+      .join(" · ") || null;
 
-  const date = parent
-    ? formatCommitDate(parent, locale)
-    : sharedDate
-      ? formatCommitDate(lead, locale)
-      : squashDate(resolved, locale);
+  const date = sharedDate
+    ? formatCommitDate(lead, locale)
+    : squashDate(resolved, locale);
 
   const relationOf = (id: string) =>
     localizeOptional(squash.relations?.[id], locale) || null;
 
-  const band = parent ? members.filter((m) => m.id !== parent.id) : members;
-
   return {
-    mode: parent ? "parent" : "peers",
     headline,
     headlineSource,
     meta,
     date,
     languageBadge: languageShared ? badges[0] : null,
     type: typeShared ? members[0].type : lead.type,
-    description:
-      localizeOptional(squash.description, locale) ||
-      (parent ? localize(parent.description, locale) : ""),
+    description: localizeOptional(squash.description, locale) || "",
     quiet: members.every((m) => m.present === "aside"),
     shared: {
       title: !!sharedTitle,
@@ -318,7 +303,8 @@ export function factorSquash(
       language: languageShared,
       type: typeShared,
     },
-    members: band.map((m) => {
+    projectIds,
+    members: members.map((m) => {
       const i = members.indexOf(m);
       const title = titles[i];
       const venue = venues[i];
@@ -346,9 +332,21 @@ export function factorSquash(
         relation: relationOf(m.id),
         description: localize(m.description, locale),
         quiet: m.present === "aside",
+        projectIds: (m.projects ?? []).filter((id) => !projectIds.includes(id)),
       };
     }),
   };
+}
+
+/**
+ * The projects every member names — a group's shared context. One
+ * definition, because the timeline needs it (to decide where the header's
+ * mark prints at rest) before this module is asked for anything else.
+ */
+export function sharedProjectIds(members: readonly Commit[]): string[] {
+  return (members[0]?.projects ?? []).filter((id) =>
+    members.every((m) => m.projects?.includes(id)),
+  );
 }
 
 /** The headline alone — for the attachment set's name. */

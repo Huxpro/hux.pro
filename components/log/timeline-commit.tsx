@@ -29,6 +29,15 @@ import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
 import { SquashBand } from "./squash-band";
+import {
+  ProjectMarks,
+  useContextEntries,
+  useProjectFields,
+  type ProjectMarkSpec,
+} from "./project-context";
+
+/** A stable empty list — a fresh `[]` default would re-render every row. */
+const NO_MARKS: ProjectMarkSpec[] = [];
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
@@ -129,6 +138,12 @@ interface TimelineCommitProps {
   onInspectMember?: (commitId: string) => void;
   /** Inspect-mode only: which squashed member the inspector is editing. */
   selectedMemberId?: string | null;
+  /**
+   * The projects this row is about, with which of them print at rest — the
+   * timeline decides that across the chapter, the way it decides where a
+   * handle signs (lib/log-context.ts).
+   */
+  projectMarks?: ProjectMarkSpec[];
   onInspectMedia?: (media: Media) => void;
   selectedMedia?: Media | null;
 }
@@ -157,6 +172,7 @@ export function TimelineCommit({
   onInspectMember,
   selectedMemberId = null,
   selectedMedia = null,
+  projectMarks: marksIn = NO_MARKS,
 }: TimelineCommitProps) {
   const attachments = useOptionalAttachments();
   const identityCard = useOptionalIdentityCard();
@@ -167,7 +183,7 @@ export function TimelineCommit({
   // (lib/log-squash.ts). A group of peers has no single address of its own,
   // so its gutter hash stands down; a parent's row keeps its own.
   const squash = data.squash;
-  const isPeerGroup = squash?.mode === "peers";
+  const isPeerGroup = !!squash;
   // Folded asides borrow the event voice: muted italic line, rail
   // dot, no hash. Opening one reveals the real title and media; the
   // type is unchanged, so filters still find it.
@@ -283,10 +299,30 @@ export function TimelineCommit({
   // and a non-head handle is invisible until hover, so the line it reserves
   // is a blank strip between the header and its band. There the line
   // prints only when it has something to show.
+  // The projects this row is about, and — on a project's own row — what is
+  // about it (lib/log-context.ts). Written out when the row is opened.
+  const projectFields = useProjectFields(data.projectIds);
+  const { entries: contextEntries, label: aboutLabel } = useContextEntries(
+    data.type === "project" ? data.commitId : null,
+  );
+  // A repeated mark waits for a hover, and a hover needs a line to land on.
+  // An ordinary row always has its meta line; a group's header prints one
+  // only when it has something to say — so there the marks are always
+  // said, or a group about Lynx under a Lynx talk would never say it at all.
+  const peerLineless = !!squash && !data.meta && !byline?.isClusterHead;
+  const projectMarks = peerLineless
+    ? marksIn.map((m) => (m.head ? m : { ...m, head: true }))
+    : marksIn;
+  const hasHeadMark = projectMarks.some((m) => m.head);
   const showMetaLine =
     !isQuiet &&
-    !!(data.meta || byline) &&
-    !(isPeerGroup && !data.meta && (!byline?.isClusterHead || textOpen));
+    !!(data.meta || byline || projectMarks.length > 0) &&
+    !(
+      isPeerGroup &&
+      !data.meta &&
+      !hasHeadMark &&
+      (!byline?.isClusterHead || textOpen)
+    );
   const bandHasCovers =
     !!squash && squash.members.some((m) => m.stripItems.length > 0);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
@@ -691,7 +727,14 @@ export function TimelineCommit({
         on-screen while you read.
       */}
       {showMetaLine && (
-        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
+        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex min-w-0 items-baseline justify-between gap-2", TYPE.rowMeta)}>
+          {/* Two items, not one truncating run: the venue truncates, as it
+              always has, and the project marks wrap under it when a phone
+              has no room — context that clips silently is context lost. */}
+          <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+          {/* Only when it has something to say: an empty item still takes a
+              flex slot, and the gap after it would push the marks right. */}
+          {(data.meta || byline?.subtitle) && (
           <span className="min-w-0 truncate">
             {data.meta ? (
               data.metaUrl ? (
@@ -715,6 +758,13 @@ export function TimelineCommit({
               // with the right-aligned byline.
               byline?.subtitle
             )}
+          </span>
+          )}
+            {/* The row's context, in passing: ◇ Lynx. After the venue,
+                because a venue is where it happened and a project is what
+                it was about — the second fact, never the first. Sparse by
+                the handle's rule (lib/log-context.ts). */}
+            {projectMarks.length > 0 && <ProjectMarks marks={projectMarks} />}
           </span>
           {/* The handle has three places it could sign and wears exactly
               one at a time. Folded with no covers under it, it is here: a
@@ -869,7 +919,6 @@ export function TimelineCommit({
             squash={squash!}
             rowForm={rowForm}
             rowHash={data.hash}
-            ownItems={rowForm.media === "covers" ? data.stripItems : []}
             set={attachmentSet}
             peek={rowForm.peek && magneticPreviewEnabled}
             onSelectHash={onSelectHash}
@@ -926,6 +975,9 @@ export function TimelineCommit({
                     }
                   : undefined
               }
+              projects={projectFields}
+              about={contextEntries}
+              aboutLabel={aboutLabel}
               className="mt-3"
             />
           )}

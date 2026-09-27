@@ -29,6 +29,7 @@ import {
   type ResolvedSquash,
 } from "@/lib/log-squash";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
+import type { ProjectMarkSpec } from "./project-context";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
 import { useInputCapability } from "@/services";
@@ -76,6 +77,9 @@ export interface CommitProps {
    * the only place that knows which members survived the reader's filter.
    */
   squash?: ResolvedSquash | null;
+  /** Timeline-only: the projects this row is about, and which print at
+   *  rest — decided across the chapter (log-timeline.tsx). */
+  projectMarks?: ProjectMarkSpec[];
 }
 
 // =============================================================================
@@ -99,6 +103,7 @@ export function Commit({
   form = DEFAULT_FORM,
   onSelectHash,
   squash = null,
+  projectMarks,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -226,6 +231,7 @@ export function Commit({
           onInspectMedia={onInspectMedia}
           onInspectMember={onInspectMember}
           selectedMemberId={selectedMemberId}
+          projectMarks={projectMarks}
           selectedMedia={selectedMedia}
         />
       );

@@ -93,17 +93,16 @@ export interface SquashMemberView extends SquashMemberFacts {
  * The level nested under a squashed row's header.
  *
  * The row is not flattened: its header says what the members share, and
- * this says what each of them is. Where the header is one member's own row
- * (`"parent"`), `members` is everyone else, and the parent's covers are the
- * row's ordinary `stripItems`.
+ * this says what each of them is.
  */
 export interface SquashView {
-  mode: "peers" | "parent";
   members: SquashMemberView[];
 }
 
 export interface NormalizedCommit {
   // Identity
+  /** The commit's id — the key project context is indexed by. */
+  commitId: string;
   hash: string;
   type: CommitType;
   /** Optional icon override key (e.g. "graduation-cap"). */
@@ -135,6 +134,12 @@ export interface NormalizedCommit {
    * see {@link SquashView}. Absent for an ordinary row.
    */
   squash?: SquashView;
+  /**
+   * The projects this row is about (lib/log-context.ts) — its context, as
+   * ids. A squashed row's are the ones every member shares; each member's
+   * own are on its caption. Resolved against the log by the renderer.
+   */
+  projectIds: string[];
 
   // Type-derived metadata
   meta?: string;
@@ -380,21 +385,8 @@ export function normalizeCommit(
     };
   });
 
-  if (facts.mode === "parent") {
-    // The parent IS the row: normalize it exactly as an ordinary row, on its
-    // own attachments only. Its covers print bare at the head of the band,
-    // the children nest after them.
-    const base = normalizeOne(squash.parent!, locale, ownedBy(squash.parent!.id));
-    return {
-      ...base,
-      title: facts.headline,
-      description: facts.description || base.description,
-      squash: { mode: "parent", members },
-    };
-  }
-
-  // Peers: the header is built from what is shared, so it owns no media and
-  // no rail of its own — every cover and every link is some member's, and
+  // The header is built from what is shared, so it owns no media and no
+  // rail of its own — every cover and every link is some member's, and
   // prints with that member in the band.
   const base = normalizeOne(squash.lead, locale, []);
   return {
@@ -413,7 +405,10 @@ export function normalizeCommit(
     meta: facts.meta ?? undefined,
     metaUrl: undefined,
     dateSlotOverride: undefined,
-    squash: { mode: "peers", members },
+    // The group's context is what every member is about; the rest is each
+    // member's own, on its caption.
+    projectIds: facts.projectIds,
+    squash: { members },
   };
 }
 
@@ -475,11 +470,13 @@ function normalizeOne(
 
   // Identity fields shared by every branch's return.
   const identity = {
+    commitId: commit.id,
     hash,
     type: commit.type,
     iconOverride: commit.icon,
     present: commit.present,
     foldedTitle,
+    projectIds: commit.projects ?? [],
   };
 
   // Type-specific extraction

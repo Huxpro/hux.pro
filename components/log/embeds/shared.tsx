@@ -175,6 +175,30 @@ interface AuthorFieldsProps {
     /** Applied to both cells, so the whole field hides together. */
     className?: string;
   };
+  /**
+   * The projects this row is about (lib/log-context.ts), one `Project:`
+   * field each — the written-out form of the ◇ mark on its meta line,
+   * the way `Role:` is of the handle.
+   */
+  projects?: {
+    label: string;
+    title: string;
+    hash: string;
+    onSelect?: (hash: string) => void;
+  }[];
+  /**
+   * On a project's own row: what is about it, newest first — the reverse
+   * of `projects`, and the only place the project side of the relation is
+   * printed. Nothing at rest; this is the row's detail.
+   */
+  about?: {
+    hash: string;
+    title: string;
+    date: string;
+    onSelect?: (hash: string) => void;
+  }[];
+  /** The label for `about` — the plural of what the entries are. */
+  aboutLabel?: string;
   className?: string;
 }
 
@@ -195,9 +219,41 @@ const FIELD_SUBGRID = "col-span-2 grid grid-cols-subgrid gap-y-0.5";
  * same thing: it carries state (the role disclosure) rather than only markup,
  * so a copy on each surface is a behaviour to keep in sync by hand.
  */
+/** A hash that makes its row the page's address — the field's one control. */
+function FieldLink({
+  hash,
+  onSelect,
+  children,
+  title,
+}: {
+  hash: string;
+  onSelect?: (hash: string) => void;
+  children: React.ReactNode;
+  title?: string;
+}) {
+  return (
+    <a
+      href={`#${hash}`}
+      title={title}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || !onSelect) return;
+        e.preventDefault();
+        onSelect(hash);
+      }}
+      className="transition-colors hover:text-foreground"
+    >
+      {children}
+    </a>
+  );
+}
+
 export function AuthorFields({
   byline,
   commit,
+  projects,
+  about,
+  aboutLabel,
   className,
 }: AuthorFieldsProps) {
   const role = byline?.expanded.title && (
@@ -310,6 +366,40 @@ export function AuthorFields({
           )}
         </>,
       )}
+
+      {projects?.map((p) => (
+        <FieldRow key={p.hash} label="Project:">
+          <FieldLink hash={p.hash} onSelect={p.onSelect} title={p.title}>
+            {p.label}
+          </FieldLink>
+        </FieldRow>
+      ))}
+
+      {about && about.length > 0 && (
+        <>
+          <span className="text-tertiary-foreground">{aboutLabel ?? "About it:"}</span>
+          <span className="space-y-0.5 text-tertiary-foreground">
+            {about.map((a) => (
+              <span key={a.hash} className="flex items-baseline gap-2">
+                <FieldLink hash={a.hash} onSelect={a.onSelect}>
+                  <span className="text-quaternary-foreground">{a.hash}</span>{" "}
+                  {a.title}
+                </FieldLink>
+                <span className="ml-auto shrink-0">{a.date}</span>
+              </span>
+            ))}
+          </span>
+        </>
+      )}
     </div>
+  );
+}
+
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <>
+      <span className="text-tertiary-foreground">{label}</span>
+      <span className="text-tertiary-foreground">{children}</span>
+    </>
   );
 }

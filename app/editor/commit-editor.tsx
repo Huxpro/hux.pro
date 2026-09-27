@@ -44,6 +44,71 @@ interface CommitEditorProps {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Context — the projects this commit is about (lib/log-context.ts).
+//
+// Many-to-many, so it is a set of toggles rather than a picker: a talk can be
+// about Lynx and React at once, and every project is one click either way.
+// Next to Identity & Rail because both answer the same question — what this
+// row is part of — one by tenure, one by subject.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ContextSection({
+  commit,
+  commits,
+  onUpdate,
+}: {
+  commit: Commit;
+  commits: Commit[];
+  onUpdate: (partial: Record<string, unknown>) => void;
+}) {
+  // A project can be the context of other commits, but not of itself; and
+  // a project that names another project is a question for another day.
+  if (commit.type === "project" || commit.type === "role" || commit.type === "event") {
+    return null;
+  }
+  const projects = sortCommitsByDate(commits.filter((c) => c.type === "project"));
+  const selected = new Set(commit.projects ?? []);
+  const toggle = (id: string) => {
+    const next = selected.has(id)
+      ? (commit.projects ?? []).filter((p) => p !== id)
+      : [...(commit.projects ?? []), id];
+    onUpdate({ projects: next.length ? next : undefined });
+  };
+  return (
+    <div className="space-y-1.5">
+      <SectionLabel>Projects</SectionLabel>
+      <p className="text-xs leading-relaxed text-tertiary-foreground">
+        What this is about. The row keeps its own place; the project becomes
+        its context — a mark on the meta line, a Project: field when opened.
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {projects.map((p) => {
+          const on = selected.has(p.id);
+          const label =
+            (p.type === "project" && p.short?.en) || p.title.en || p.id;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => toggle(p.id)}
+              title={p.title.en}
+              className={cn(
+                "rounded border px-2 py-0.5 font-mono text-[10px] transition-colors",
+                on
+                  ? "border-sky-500/60 bg-sky-500/10 text-foreground"
+                  : "border-border/50 text-tertiary-foreground hover:text-muted-foreground",
+              )}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // String-list section — repeatable add/remove rows for a string[] field,
 // styled to match the Media section so plural fields feel consistent.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -458,6 +523,8 @@ function FormFields({
           question — what this row belongs with. That one looks up the
           timeline to a tenure; this one looks across it to the other
           commits that are really the same piece of work. */}
+      <ContextSection commit={commit} commits={commits} onUpdate={onUpdate} />
+
       <SquashSection
         commit={commit}
         commits={commits}
@@ -806,6 +873,29 @@ function TypeSpecificFields({
       return (
         <>
           <SectionLabel>Project</SectionLabel>
+          {/* What the project is called where something else names it as
+              its context — the ◇ mark on a talk's meta line, its Project:
+              field. Empty falls back to the title. */}
+          <Field
+            label="Short"
+            value={commit.short?.en ?? ""}
+            placeholder={commit.title.en}
+            onChange={(v) =>
+              onUpdate({
+                short: v || commit.short?.zh ? { en: v, zh: commit.short?.zh ?? "" } : undefined,
+              })
+            }
+          />
+          <Field
+            label="简称"
+            value={commit.short?.zh ?? ""}
+            placeholder={commit.title.zh}
+            onChange={(v) =>
+              onUpdate({
+                short: v || commit.short?.en ? { en: commit.short?.en ?? "", zh: v } : undefined,
+              })
+            }
+          />
           <Field
             label="Stars"
             value={commit.stats?.stars?.toString() ?? ""}

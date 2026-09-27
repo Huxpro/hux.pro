@@ -13,8 +13,11 @@
 // There is nothing here to choose about WHICH fields are shared: that is
 // computed, per field and per locale (lib/log-squash.ts), and the panel only
 // shows the author the result. What the author does choose is what cannot
-// be derived — whether one member is the row (`parent`), a headline where
-// the members share none, and how each member relates to the group.
+// be derived — a headline where the members share none, and how each
+// member relates to the group.
+//
+// A squash is for peers. A talk that is *about* a project is not grouped
+// with it — it names the project as its context (the Projects field above).
 //
 // It is also the only way back. A member that has been absorbed no longer
 // draws its own row, so the member list here and the member's run in the
@@ -27,7 +30,6 @@ import type { Commit, LocalizedString, Squash } from "@/lib/log";
 import {
   computeCommitHash,
   localize,
-  originOf,
   sortCommitsByDate,
 } from "@/lib/log";
 import {
@@ -37,7 +39,7 @@ import {
   type SquashFacts,
 } from "@/lib/log-squash";
 import { cn } from "@/lib/utils";
-import { ChoiceField, Field, SectionLabel } from "./fields";
+import { Field, SectionLabel } from "./fields";
 
 const LOCALES = ["en", "zh"] as const;
 
@@ -129,7 +131,6 @@ export function SquashSection({
     replace({
       ...squash,
       commitIds: rest,
-      parent: squash.parent === id ? undefined : squash.parent,
       relations: Object.keys(relations).length ? relations : undefined,
     });
   };
@@ -231,25 +232,6 @@ export function SquashSection({
             ) : null,
           )}
 
-          <ChoiceField
-            label="Parent"
-            variant="dropdown"
-            value={squash.parent ?? ""}
-            options={[
-              { value: "", label: "none — peers, headed by what they share" },
-              ...squash.commitIds.map((id) => ({
-                value: id,
-                // `venue · title`, not the title: members of a group often
-                // share their title — that is frequently why they are one —
-                // and two identical options are no choice at all.
-                label: byId.get(id)
-                  ? `${originOf(byId.get(id)!, "en").line} is the row`
-                  : `${id} (missing)`,
-              })),
-            ]}
-            onChange={(parent) => replace({ ...squash, parent: parent || undefined })}
-          />
-
           <Field
             label="Headline"
             value={squash.title?.en ?? ""}
@@ -270,11 +252,7 @@ export function SquashSection({
             label="Prose"
             multiline
             value={squash.description?.en ?? ""}
-            placeholder={
-              squash.parent
-                ? "defaults to the parent's own description"
-                : "none — each member's prose stays its own"
-            }
+            placeholder="none — each member's prose stays its own"
             onChange={(v) =>
               replace({
                 ...squash,
@@ -286,7 +264,7 @@ export function SquashSection({
             label="正文"
             multiline
             value={squash.description?.zh ?? ""}
-            placeholder={squash.parent ? "默认使用 parent 的描述" : "无 — 各条目的描述留在各自的位置"}
+            placeholder="无 — 各条目的描述留在各自的位置"
             onChange={(v) =>
               replace({
                 ...squash,
@@ -303,7 +281,6 @@ export function SquashSection({
             {squash.commitIds.map((id) => {
               const member = byId.get(id);
               const line = preview?.en.facts.members.find((m) => m.commit.id === id);
-              const isParent = squash.parent === id;
               return (
                 <div key={id} className="group/member space-y-1 rounded px-1 -mx-1 hover:bg-muted/20">
                   <div className="flex items-center gap-2">
@@ -322,16 +299,9 @@ export function SquashSection({
                       )}
                       title={member ? "Inspect this commit" : "No such commit"}
                     >
-                      {isParent
-                        ? localize(member!.title, "en")
-                        : (line?.label ??
-                          (member ? localize(member.title, "en") : `${id} — missing`))}
+                      {line?.label ??
+                        (member ? localize(member.title, "en") : `${id} — missing`)}
                     </button>
-                    {isParent && (
-                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-quaternary-foreground">
-                        parent
-                      </span>
-                    )}
                     <button
                       type="button"
                       onClick={() => removeMember(id)}
@@ -341,9 +311,7 @@ export function SquashSection({
                       <X className="h-3 w-3" />
                     </button>
                   </div>
-                  {/* The parent is the row, not a member of the band, so it
-                      has no relation to label. */}
-                  {!isParent && (
+                  {(
                     <div className="flex gap-1.5 pl-16">
                       {LOCALES.map((l) => (
                         <input

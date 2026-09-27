@@ -35,7 +35,7 @@
 
 import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
-import { indexOfMedia, type Media, type StripItem } from "@/lib/log";
+import { indexOfMedia, type Media } from "@/lib/log";
 import type { RowForm } from "@/lib/log-view";
 import { useLocale } from "@/services";
 import {
@@ -49,13 +49,12 @@ import { MediaRenderer } from "./media";
 import { AttachmentTile, resolveTile } from "./media/attachment-tile";
 import { InspectableMedia } from "./media/inspectable";
 import { MediaStrip, type StripGroup } from "./media/media-strip";
+import { ProjectMarks } from "./project-context";
 
 export interface SquashBandProps {
   squash: SquashView;
   /** The row's density — which of the three bands to draw. */
   rowForm: RowForm;
-  /** Under a parent, the parent's own covers: the head of the band, bare. */
-  ownItems?: StripItem[];
   /**
    * The row's own address. A group of peers sits at its newest member, so
    * the row already carries that member's hash as its `id` — and the
@@ -230,6 +229,9 @@ function MemberCaption({
         <MemberHash hash={member.hash} onSelectHash={onSelectHash} />
         {member.date && <span className="shrink-0">{member.date}</span>}
         {member.languageBadge && <span className="shrink-0">{member.languageBadge}</span>}
+        {/* The member's own context — what it is about that the others are
+            not. The shared context is on the header, said once. */}
+        <ProjectMarks marks={member.projectIds.map((id) => ({ id, head: true }))} />
         <MemberLinks links={links} set={set} />
       </div>
       {showDescription && member.description && (
@@ -300,6 +302,7 @@ function Chips({ squash, set, onSelectHash, rowHash, ...rest }: SquashBandProps)
               </span>
               {m.date && <span className="shrink-0">{m.date}</span>}
               {m.languageBadge && <span className="shrink-0">{m.languageBadge}</span>}
+              <ProjectMarks marks={m.projectIds.map((id) => ({ id, head: true }))} />
               <span className="self-center">
                 <MemberLinks links={m.links} set={set} />
               </span>
@@ -319,7 +322,6 @@ function Runs(props: SquashBandProps) {
   const {
     squash,
     rowForm,
-    ownItems = [],
     set,
     peek,
     onSelectHash,
@@ -328,10 +330,7 @@ function Runs(props: SquashBandProps) {
     selectedMedia,
   } = props;
 
-  const groups: StripGroup[] = [
-    // A parent's own covers head the band, bare — they are the row's.
-    ...(ownItems.length > 0 ? [{ key: "own", items: ownItems }] : []),
-    ...squash.members.map((m): StripGroup => {
+  const groups: StripGroup[] = squash.members.map((m): StripGroup => {
       const { className, wrapperProps } = inspectProps(m.commit.id, props);
       return {
         key: m.commit.id,
@@ -353,8 +352,7 @@ function Runs(props: SquashBandProps) {
           />
         ),
       };
-    }),
-  ];
+  });
 
   return (
     <MediaStrip

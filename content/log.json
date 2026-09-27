@@ -519,20 +519,6 @@
         "en": "Five months in 2022: a cover story, a keynote, and a place on a list of 33.",
         "zh": "2022 年的五个月：一次封面报道、一场主题演讲，和一份 33 人的名单。"
       }
-    },
-    {
-      "id": "react-compiler",
-      "commitIds": [
-        "react-core",
-        "reactconf-2021-memo"
-      ],
-      "parent": "react-core",
-      "relations": {
-        "reactconf-2021-memo": {
-          "en": "Introduced at React Conf",
-          "zh": "React Conf 首次发布"
-        }
-      }
     }
   ],
   "commits": [
@@ -575,7 +561,10 @@
         "AI",
         "Cross Platform"
       ],
-      "language": "en"
+      "language": "en",
+      "projects": [
+        "lynx-framework"
+      ]
     },
     {
       "id": "gosim-2026-vibe-native",
@@ -616,7 +605,10 @@
         "Cross Platform",
         "Vue"
       ],
-      "language": "en"
+      "language": "en",
+      "projects": [
+        "lynx-framework"
+      ]
     },
     {
       "id": "see-conf-2025-two-threads",
@@ -650,7 +642,11 @@
         "Lynx",
         "Cross Platform"
       ],
-      "language": "zh"
+      "language": "zh",
+      "projects": [
+        "lynx-framework",
+        "react-core"
+      ]
     },
     {
       "id": "wad-2025-lynx-native",
@@ -690,7 +686,10 @@
         "Cross Platform",
         "Performance"
       ],
-      "language": "en"
+      "language": "en",
+      "projects": [
+        "lynx-framework"
+      ]
     },
     {
       "id": "d2-2025-lynx",
@@ -721,7 +720,10 @@
         "Open Source",
         "Lynx"
       ],
-      "language": "zh"
+      "language": "zh",
+      "projects": [
+        "lynx-framework"
+      ]
     },
     {
       "id": "react-summit-2025-unlock-native",
@@ -759,7 +761,10 @@
         "Performance",
         "Lynx"
       ],
-      "language": "en"
+      "language": "en",
+      "projects": [
+        "lynx-framework"
+      ]
     },
     {
       "id": "react-universe-2025-two-threads",
@@ -792,7 +797,11 @@
         "Cross-Platform",
         "Lynx"
       ],
-      "language": "en"
+      "language": "en",
+      "projects": [
+        "lynx-framework",
+        "react-core"
+      ]
     },
     {
       "id": "react-universe-2025-interview",
@@ -824,7 +833,11 @@
         "React",
         "Interview"
       ],
-      "language": "en"
+      "language": "en",
+      "projects": [
+        "lynx-framework",
+        "react-core"
+      ]
     },
     {
       "id": "react-advanced-2025-lynx-ui",
@@ -857,7 +870,10 @@
         "React",
         "Lynx"
       ],
-      "language": "en"
+      "language": "en",
+      "projects": [
+        "lynx-framework"
+      ]
     },
     {
       "id": "react-advanced-2025-panel",
@@ -967,6 +983,10 @@
         "en": "Lynx Framework",
         "zh": "Lynx 框架"
       },
+      "short": {
+        "en": "Lynx",
+        "zh": "Lynx"
+      },
       "description": {
         "en": "Open-source cross-platform UI framework behind TikTok, Douyin, and CapCut. Familiar React and CSS, native rendering, dual-threaded architecture — instant launch and main-thread interactivity. Open-sourced in March 2025.",
         "zh": "支撑 TikTok、抖音、CapCut 的开源跨平台 UI 框架。熟悉的 React 与 CSS、原生渲染、双线程架构——瞬时启动与主线程交互。2025 年 3 月开源。"
@@ -1071,7 +1091,10 @@
         "React",
         "Open Source"
       ],
-      "language": "zh"
+      "language": "zh",
+      "projects": [
+        "react-core"
+      ]
     },
     {
       "id": "gitee-cover-2022",
@@ -1109,7 +1132,6 @@
       "id": "reactconf-2021-memo",
       "type": "talk",
       "tagId": "react-era",
-      "attachedTo": "react-core",
       "title": {
         "en": "React without memo",
         "zh": "React without memo"
@@ -1141,7 +1163,10 @@
         "Compiler",
         "Performance"
       ],
-      "language": "en"
+      "language": "en",
+      "projects": [
+        "react-core"
+      ]
     },
     {
       "id": "hermes-engine",
@@ -1204,6 +1229,10 @@
       "title": {
         "en": "React Compiler (Forget)",
         "zh": "React Compiler（Forget）"
+      },
+      "short": {
+        "en": "React",
+        "zh": "React"
       },
       "description": {
         "en": "Founding engineer of the React Compiler (formerly Forget), the auto-memoization compiler that reshapes React's authoring model.",

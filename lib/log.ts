@@ -376,6 +376,22 @@ interface BaseCommit {
    * a type with no venue — a project has none, and prints its title.
    */
   asideLine?: AsideLine;
+  /**
+   * The projects this commit is about, by commit id — its *context*, the
+   * way a role is the context of the work done under it.
+   *
+   * Many-to-many on purpose. A talk can be about two things (React for Two
+   * Threads is Lynx's dual-threaded design AND React), and a project is the
+   * subject of many talks spread over years (Lynx Framework, 2023, and nine
+   * talks through 2026). That is not a group — the talks keep their own
+   * rows, in their own months — and it is not `attachedTo`, which is one
+   * pointer and already means "the role or event this sits under".
+   *
+   * The context is shown the way a role's is: sparsely on the row, lit on
+   * hover, and written out as `Project:` fields when the row is opened
+   * (lib/log-context.ts). Ids that are not project commits are ignored.
+   */
+  projects?: string[];
 }
 
 /** Timeline row dressing. Orthogonal to {@link CommitType}. */
@@ -408,6 +424,13 @@ export type CommitLanguage = "en" | "zh" | "both";
 
 export interface ProjectCommit extends BaseCommit {
   type: "project";
+  /**
+   * What this project is called in passing — `Lynx`, `React` — where
+   * something else is naming it as its context (a talk's meta line, its
+   * `Project:` field). The row's own title is written for the row; this is
+   * written for a mention. Absent, the title stands in.
+   */
+  short?: LocalizedString;
   stats?: {
     stars?: number;
     downloads?: string;
@@ -640,7 +663,7 @@ export type Group = GroupByIds | GroupByQuery;
 // row anchors all of them.
 //
 // Membership is a list of ids rather than a pointer on each commit, for two
-// reasons. Something has to own the group-level fields — the parent, the
+// reasons. Something has to own the group-level fields — the relations, the
 // authored headline — and splitting them across a "lead" commit and its
 // pointers gives two places to look. And a squash with no natural lead (the
 // three award commits, which are peers) has nowhere to hang a pointer from.
@@ -674,18 +697,6 @@ export interface Squash {
    */
   commitIds: string[];
   /**
-   * The member that IS the row, when one is.
-   *
-   * Two shapes of group want two shapes of row. Peers — two talks at one
-   * conference, three awards in one year — have no member the row belongs
-   * to, so the header is built from what they share and every member sits
-   * in the band. A parent — a project and the talk that introduced it — is
-   * already a row, and the others are nested *in* it: the header is the
-   * parent's own, its covers print bare at the head of the band, and only
-   * the children are bracketed and captioned.
-   */
-  parent?: string;
-  /**
    * The headline, authored. Wins over anything derived, per locale — a
    * locale left empty falls through to derivation, so a group can author
    * only the language where its members stop agreeing. In practice
@@ -696,8 +707,7 @@ export interface Squash {
    * The row's own prose, authored. There is no derived fallback for peers
    * on purpose: every member's description belongs to that member, and
    * promoting one of them to speak for the group is the misattribution
-   * this whole shape exists to avoid. A parent's own description stands
-   * in when this is absent.
+   * this whole shape exists to avoid.
    */
   description?: LocalizedString;
   /**
