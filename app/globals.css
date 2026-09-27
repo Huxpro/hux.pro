@@ -635,7 +635,10 @@ html.dragging * {
    own; fading in is the point of arrival, so that side is instant. The 2s is
    the mark's whole life — `useCommitAnchor` takes the attribute off on
    `animationend` rather than keeping a timer that agrees with this one. */
-[data-commit-target] [data-row-trigger] {
+/* The target's own trigger, not the rows nested inside it (an original's
+   editions): landing on the original marks the original. */
+[data-commit-target]
+  [data-row-trigger]:not([data-commit-target] [data-rail-row] [data-row-trigger]) {
   animation: commit-target-wash 2s ease-out forwards;
 }
 
@@ -652,7 +655,8 @@ html.dragging * {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-commit-target] [data-row-trigger] {
+  [data-commit-target]
+    [data-row-trigger]:not([data-commit-target] [data-rail-row] [data-row-trigger]) {
     animation-duration: 0.01ms;
   }
 }

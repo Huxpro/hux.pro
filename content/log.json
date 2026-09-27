@@ -649,6 +649,11 @@
         "zh": "《React for Two Threads》的中文场。讲 Lynx 的双线程 React、瞬时首帧渲染，以及当 UI 线程成为一等公民之后会涌现什么。与甄子琦、王浩阳一起。"
       },
       "date": "2025-11",
+      "editionOf": "react-universe-2025-two-threads",
+      "edition": {
+        "en": "Chinese edition",
+        "zh": "中文版"
+      },
       "conference": {
         "name": "SEE Conf 2025",
         "city": "Hangzhou, China",
@@ -684,6 +689,11 @@
         "zh": "TikTok 投入生产的 UI 框架 Lynx，用来消解单线程瓶颈。用标准 JavaScript 与 CSS 渲染丝滑、真正原生的移动端原语，而不是套一层迟滞的 WebView。"
       },
       "date": "2025-07",
+      "editionOf": "react-summit-2025-unlock-native",
+      "edition": {
+        "en": "Re-run",
+        "zh": "重讲"
+      },
       "conference": {
         "name": "WeAreDevelopers World Congress",
         "city": "Berlin, Germany",
@@ -754,6 +764,11 @@
         "zh": "Lynx 是 TikTok 应用采用的全新跨平台技术栈，让团队用 CSS、React 等既有的 Web 技能，从同一套代码交付面向移动端与 Web 的真正原生 UI，并已于近期开源。本次演讲将探讨 Lynx 为何既熟悉又与众不同，深入其双线程架构，看它如何带来瞬时启动与丝滑交互，并预告 Lynx 的下一步。"
       },
       "date": "2025-06",
+      "editionOf": "d2-2025-lynx",
+      "edition": {
+        "en": "Debut abroad",
+        "zh": "海外首发"
+      },
       "conference": {
         "name": "React Summit",
         "city": "Amsterdam, Netherlands",
@@ -927,6 +942,11 @@
         "zh": "作为岗位的前端或许会消亡，但作为人机交互纽带的前端不会。"
       },
       "date": "2024-01",
+      "editionOf": "feday-2023",
+      "edition": {
+        "en": "Revised",
+        "zh": "升级版"
+      },
       "conference": {
         "name": "掘金年度技术演讲 2023",
         "city": "Shenzhen, China",

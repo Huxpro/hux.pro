@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
   adjustRailForHidden,
   computeBeams,
   computeInferredBeams,
+  computeCommitHash,
   computeRail,
   type FilterableCommitType,
   formatTagDateRange,
@@ -15,6 +17,12 @@ import {
   isRowVisible,
   type Tag,
 } from "@/lib/log";
+import {
+  buildEditionThreads,
+  editionCountLabel,
+  editionLine,
+  type EditionThreads,
+} from "@/lib/log-editions";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +31,7 @@ import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
 import { useTimelineEdit } from "./timeline-edit-context";
+import { registerCommitRevealer } from "./use-commit-anchor";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
  *  per-tag memo below on every render for callers that never filter
@@ -100,6 +109,44 @@ export function LogTimeline({
   onSelectHash,
   pinnedChapters = false,
 }: LogTimelineProps) {
+  // Editions are resolved over the whole log, not per chapter: an original
+  // and its edition can sit on either side of a chapter marker, and the
+  // line at the edition's date still has to know where to send you.
+  const threads = useMemo(() => {
+    const all = data.flatMap((d) => d.commits);
+    const t = buildEditionThreads(all, (c) => isRowVisible(c, activeTypes));
+    const order = new Map(all.map((c, i) => [c.id, i]));
+    return { ...t, order };
+  }, [data, activeTypes]);
+
+  // Which edition was last asked for, and a counter so asking for the same
+  // one twice still opens it (the reader may have closed it in between).
+  const [reveal, setReveal] = useState<Reveal | null>(null);
+
+  // Synchronous on purpose: the caller measures the row it asked for on
+  // the very next line, so it has to be in the DOM when this returns.
+  const revealEdition = useCallback(
+    (editionId: string) => {
+      const root = threads.rootOf.get(editionId);
+      if (!root) return false;
+      flushSync(() =>
+        setReveal((r) => ({ root, edition: editionId, n: (r?.n ?? 0) + 1 })),
+      );
+      return true;
+    },
+    [threads],
+  );
+
+  // `/works#<edition hash>` lands inside the original, opened.
+  useEffect(
+    () =>
+      registerCommitRevealer((hash) => {
+        const id = threads.byHash.get(hash);
+        return id ? revealEdition(id) : false;
+      }),
+    [threads, revealEdition],
+  );
+
   return (
     <div className="space-y-0">
       {data.map(({ tag, commits }, tagIndex) => (
@@ -114,6 +161,9 @@ export function LogTimeline({
           activeTypes={activeTypes}
           onSelectHash={onSelectHash}
           pinned={pinnedChapters}
+          threads={threads}
+          reveal={reveal}
+          onRevealEdition={revealEdition}
         />
       ))}
     </div>
@@ -130,6 +180,17 @@ interface TagBlockProps {
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
+  threads: EditionThreads & { order: Map<string, number> };
+  reveal: Reveal | null;
+  onRevealEdition: (editionId: string) => boolean;
+}
+
+interface Reveal {
+  /** The original to open. */
+  root: string;
+  /** The edition inside it to open. */
+  edition: string;
+  n: number;
 }
 
 function TagBlock({
@@ -142,6 +203,9 @@ function TagBlock({
   activeTypes,
   onSelectHash,
   pinned,
+  threads,
+  reveal,
+  onRevealEdition,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -330,27 +394,82 @@ function TagBlock({
             }
           }
           return runs.map((run, runIdx) => {
-            const rows = run.indices.map((i) => (
-              <Commit
-                key={commits[i].id}
-                commit={commits[i]}
-                locale={locale}
-                variant="timeline"
-                hideDate={tag.hideDate || commits[i].hideDate}
-                rail={railInfo[i].rail}
-                segmentId={railInfo[i].segmentId}
-                isSegmentActive={
+            const rows = run.indices.map((i) => {
+              const c = commits[i];
+              const shared = {
+                commit: c,
+                locale,
+                variant: "timeline" as const,
+                hideDate: tag.hideDate || c.hideDate,
+                rail: railInfo[i].rail,
+                segmentId: railInfo[i].segmentId,
+                isSegmentActive:
                   railInfo[i].segmentId !== null &&
-                  railInfo[i].segmentId === activeBeam?.roleId
-                }
-                beamSpec={beamSpecs[i]}
-                onBeamSet={handleBeamSet}
-                onBeamClear={handleBeamClear}
-                byline={bylines[i]}
-                form={form}
-                onSelectHash={onSelectHash}
-              />
-            ));
+                  railInfo[i].segmentId === activeBeam?.roleId,
+                beamSpec: beamSpecs[i],
+                onBeamSet: handleBeamSet,
+                onBeamClear: handleBeamClear,
+                byline: bylines[i],
+                form,
+                onSelectHash,
+              };
+
+              // An edition, at its own date: one quiet line that takes you
+              // to where it is printed in full, inside its original.
+              const root = threads.rootOf.get(c.id);
+              if (root) {
+                const down =
+                  (threads.order.get(root) ?? 0) > (threads.order.get(c.id) ?? 0);
+                return (
+                  <Commit
+                    key={c.id}
+                    {...shared}
+                    foldedLine={editionLine(c, locale)}
+                    pointer={down ? "down" : "up"}
+                    anchorId={null}
+                    onPress={() => {
+                      if (!onRevealEdition(c.id)) return;
+                      onSelectHash?.(computeCommitHash(c.id));
+                    }}
+                  />
+                );
+              }
+
+              // An original: its editions nest under it.
+              const editions = threads.editionsOf.get(c.id);
+              if (editions) {
+                return (
+                  <Commit
+                    key={c.id}
+                    {...shared}
+                    childrenLabel={editionCountLabel(editions.length, locale)}
+                    reveal={reveal?.root === c.id ? reveal.n : 0}
+                  >
+                    {editions.map((e, k) => (
+                      <Commit
+                        key={e.id}
+                        commit={e}
+                        locale={locale}
+                        variant="timeline"
+                        nested
+                        hideDate={tag.hideDate || e.hideDate}
+                        foldedLine={editionLine(e, locale)}
+                        // One thread line, drawn the way the tenure rail
+                        // is: it hangs from the top of the list, where the
+                        // original's own content ends, and stops at the
+                        // last edition.
+                        rail={k === editions.length - 1 ? "┘" : "│"}
+                        form={form}
+                        onSelectHash={onSelectHash}
+                        reveal={reveal?.edition === e.id ? reveal.n : 0}
+                      />
+                    ))}
+                  </Commit>
+                );
+              }
+
+              return <Commit key={c.id} {...shared} />;
+            });
             return run.kind === "cluster" ? (
               // An identity can cluster twice (Meta, then RIT, then Meta
               // again), so the run is named by its first row, not its id.

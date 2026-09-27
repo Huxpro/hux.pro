@@ -9,6 +9,7 @@
 import type { Locale } from "@/lib/i18n";
 import type { Commit, CommitType, Media, StripItem } from "@/lib/log";
 import {
+  commitVenue,
   localize,
   localizeOptional,
   formatCommitDate,
@@ -151,14 +152,7 @@ export function normalizeCommit(
   // The venue an aside prints while folded: the conference, the
   // publication, the platform — where the work happened, since the aside
   // voice is the event voice and an event is a dateline.
-  const foldedVenue =
-    commit.type === "talk"
-      ? commit.conference.name
-      : commit.type === "post"
-        ? commit.publication.name
-        : commit.type === "press"
-          ? commit.platform
-          : undefined;
+  const foldedVenue = commitVenue(commit);
 
   // Which half the folded line keeps. Absent is both, venue first: folded,
   // an aside is answering "when and where", and the title is the detail it

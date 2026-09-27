@@ -173,6 +173,73 @@ function CheckField({
   );
 }
 
+/**
+ * Which commit this one is another telling of, and what to call this
+ * telling (lib/log-editions.ts). The label only matters once there is an
+ * original, so its fields only appear then. Picking an original that is
+ * itself an edition is fine: the page follows the chain to its end.
+ */
+function EditionSection({
+  commit,
+  commits,
+  onUpdate,
+}: {
+  commit: Commit;
+  commits: Commit[];
+  onUpdate: (partial: Record<string, unknown>) => void;
+}) {
+  const candidates = useMemo(
+    () =>
+      sortCommitsByDate(
+        commits.filter(
+          (c) => c.id !== commit.id && c.type !== "role" && c.type !== "event",
+        ),
+      ),
+    [commits, commit.id],
+  );
+  const label = commit.edition ?? { en: "", zh: "" };
+  const setLabel = (next: { en: string; zh: string }) =>
+    onUpdate({ edition: next.en || next.zh ? next : undefined });
+
+  return (
+    <>
+      <ChoiceField<string>
+        label="Edition of"
+        variant="dropdown"
+        value={commit.editionOf ?? ""}
+        options={[
+          { value: "", label: "— (an original)" },
+          ...candidates.map((c) => ({
+            value: c.id,
+            label: `${c.date} · ${c.title.en || c.title.zh}`,
+          })),
+        ]}
+        onChange={(v) =>
+          onUpdate(
+            v ? { editionOf: v } : { editionOf: undefined, edition: undefined },
+          )
+        }
+      />
+      {commit.editionOf && (
+        <>
+          <Field
+            label="Edition EN"
+            value={label.en}
+            onChange={(v) => setLabel({ ...label, en: v })}
+            placeholder="Chinese edition, Re-run…"
+          />
+          <Field
+            label="Edition ZH"
+            value={label.zh}
+            onChange={(v) => setLabel({ ...label, zh: v })}
+            placeholder="中文版、重讲…"
+          />
+        </>
+      )}
+    </>
+  );
+}
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="font-mono text-[10px] uppercase tracking-wider text-quaternary-foreground pt-2">
@@ -580,6 +647,8 @@ function FormFields({
         identities={identities}
         onUpdate={onUpdate}
       />
+
+      <EditionSection commit={commit} commits={commits} onUpdate={onUpdate} />
 
       <SectionLabel>Title</SectionLabel>
       <Field

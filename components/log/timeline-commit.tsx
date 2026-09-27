@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
-import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
+import { DEFAULT_FORM, ROW_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
@@ -117,6 +117,33 @@ interface TimelineCommitProps {
   onInspectCommit?: () => void;
   onInspectMedia?: (media: Media) => void;
   selectedMedia?: Media | null;
+  /**
+   * The row sits inside another row (an edition inside its original). It
+   * keeps its own gutter but does not hang it in the page margin, and it
+   * does not sign: the row around it already did.
+   */
+  nested?: boolean;
+  /**
+   * The row stands for a commit that is printed somewhere else on the page,
+   * and pressing it goes there (`onPress`). The arrow says which way.
+   */
+  pointer?: "up" | "down";
+  /** Replaces what pressing the row does (see `pointer`). */
+  onPress?: () => void;
+  /**
+   * The element id the row answers to. Defaults to its hash; `null` gives
+   * it none, for a row that is not the commit's address (a pointer).
+   */
+  anchorId?: string | null;
+  /** Rows nested under this one: its editions. Printed while the row is open. */
+  children?: ReactNode;
+  /** `+1 edition`, on the meta line, so a closed row says it holds more. */
+  childrenLabel?: string;
+  /**
+   * Bumped from outside to open the row, the way a press would. A counter
+   * rather than a boolean so asking twice opens it twice.
+   */
+  reveal?: number;
 }
 
 export function TimelineCommit({
@@ -141,6 +168,13 @@ export function TimelineCommit({
   onInspectCommit,
   onInspectMedia,
   selectedMedia = null,
+  nested = false,
+  pointer,
+  onPress,
+  anchorId,
+  children,
+  childrenLabel,
+  reveal = 0,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
@@ -158,7 +192,8 @@ export function TimelineCommit({
     data.commentary ||
     data.expandedMedia.length > 0 ||
     data.pinnedMedia.length > 0 ||
-    byline
+    byline ||
+    children
   );
 
   // The row's own state is one bit, and it is about the prose only: has the
@@ -182,6 +217,20 @@ export function TimelineCommit({
   if (form !== lastForm) {
     setLastForm(form);
     if (followsForm) setTextRelieved(false);
+  }
+
+  // Opened from outside (an edition's line elsewhere on the page was
+  // pressed). Open means the prose is whole: relieve it where the form
+  // clamps, leave it where the form already prints it whole. An aside
+  // ignores the form, so for it open is simply relieved.
+  // Starts at 0, not at `reveal`: an edition only mounts once its original
+  // has opened, so it can arrive already asked for, and that counts.
+  const [lastReveal, setLastReveal] = useState(0);
+  if (reveal !== lastReveal) {
+    setLastReveal(reveal);
+    if (reveal) {
+      setTextRelieved(isAside || ROW_FORM[form].description !== "full");
+    }
   }
 
   // Inspect selects; it does not invent a layout. A selected row shows its
@@ -225,11 +274,13 @@ export function TimelineCommit({
   // this one changes the prose, the cover's opens the attachment.
   const rowOnClick = inspecting
     ? onInspectCommit
-    : rowOpensIdentity
-      ? openIdentity
-      : hasExpandableContent
-        ? handleToggleExpanded
-        : undefined;
+    : onPress
+      ? onPress
+      : rowOpensIdentity
+        ? openIdentity
+        : hasExpandableContent
+          ? handleToggleExpanded
+          : undefined;
 
   // The row's form: the page's, unless the reader opened this row, in which
   // case it is the feed for itself (`rowFormFor`, lib/log-view.ts — a form
@@ -288,7 +339,8 @@ export function TimelineCommit({
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
-  const showAuthorBlock = data.type !== "role" && data.type !== "event";
+  const showAuthorBlock =
+    !nested && data.type !== "role" && data.type !== "event";
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -504,10 +556,16 @@ export function TimelineCommit({
         {isQuiet ? (
           // Events and folded asides drop a tier. Face is per script
           // (see QuietLine): Latin serif italic, CJK upright mono.
-          <QuietLine
-            text={displayTitle}
-            className="min-w-0 flex-1 text-xs text-tertiary-foreground"
-          />
+          <span className="min-w-0 flex-1 text-xs text-tertiary-foreground">
+            <QuietLine text={displayTitle} />
+            {pointer && (
+              // The same mark the meta line's links wear (`↗` leaves the
+              // site); this one stays on the page and says which way.
+              <span aria-hidden className="ml-1.5 font-mono text-[0.7rem]">
+                {pointer === "down" ? "↓" : "↑"}
+              </span>
+            )}
+          </span>
         ) : (
           <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
             {displayTitle}
@@ -568,30 +626,44 @@ export function TimelineCommit({
         byline fully visible so the cluster's authorial context stays
         on-screen while you read.
       */}
-      {!isQuiet && (data.meta || byline) && (
-        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
-          <span className="min-w-0 truncate">
-            {data.meta ? (
-              data.metaUrl ? (
-                <a
-                  href={data.metaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  {data.meta}
-                  <span aria-hidden className="text-[0.7rem]">↗</span>
-                </a>
+      {!isQuiet && (data.meta || byline || childrenLabel) && (
+        // `min-w-0`: the line never wraps, so without it a long venue sets
+        // the column's minimum width and pushes the date off a phone.
+        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex min-w-0 items-baseline justify-between gap-2", TYPE.rowMeta)}>
+          <span className="flex min-w-0 items-baseline">
+            <span className="min-w-0 truncate">
+              {data.meta ? (
+                data.metaUrl ? (
+                  <a
+                    href={data.metaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                  >
+                    {data.meta}
+                    <span aria-hidden className="text-[0.7rem]">↗</span>
+                  </a>
+                ) : (
+                  data.meta
+                )
               ) : (
-                data.meta
-              )
-            ) : (
-              // Project subtitle fallback — set only on the first row
-              // of a same-team run so repeats stay blank (sparse). The
-              // left cell still exists to preserve baseline alignment
-              // with the right-aligned byline.
-              byline?.subtitle
+                // Project subtitle fallback — set only on the first row
+                // of a same-team run so repeats stay blank (sparse). The
+                // left cell still exists to preserve baseline alignment
+                // with the right-aligned byline.
+                byline?.subtitle
+              )}
+            </span>
+            {/* Kept whole while the venue gives way: it is the only sign
+                a closed row holds more. */}
+            {childrenLabel && (
+              <span className="shrink-0 whitespace-pre">
+                {(data.meta || byline?.subtitle) && (
+                  <span className="text-quaternary-foreground"> · </span>
+                )}
+                {childrenLabel}
+              </span>
             )}
           </span>
           {/* The handle has three places it could sign and wears exactly
@@ -730,6 +802,22 @@ export function TimelineCommit({
         </div>
       )}
 
+      {/* ── The editions ───────────────────────────────────────────────
+          Other tellings of this work, nested one level in. They print when
+          the prose does (the same press, or the feed), because they are
+          part of what an open row says about itself; closed, the meta line
+          only counts them. Their own presses are theirs, so the block
+          stops clicks and hover from reaching this row. */}
+      {!isQuiet && rowForm.notes && children && (
+        <div
+          data-row-body
+          onClick={(e) => e.stopPropagation()}
+          className="col-start-2 @sm:col-start-3 mt-2 min-w-0"
+        >
+          {children}
+        </div>
+      )}
+
       {/* ── The notes ──────────────────────────────────────────────────
           Notes on the prose, so they ride with it: the same press that
           relieves the description prints these, and clamping it takes them
@@ -784,10 +872,13 @@ export function TimelineCommit({
     </div>
   );
 
+  // A pointer is not the commit's address; the row it leads to is.
+  const rowId = anchorId === undefined ? data.hash : (anchorId ?? undefined);
+
   return (
     <div
-      id={data.hash}
-      data-rail-row
+      id={rowId}
+      data-rail-row={rowId ? "" : undefined}
       data-role-row={isRoleAnchor ? "" : undefined}
       className={className}
     >
@@ -833,7 +924,8 @@ export function TimelineCommit({
             // gutter's width so the content column is the page column. The
             // hover wash follows, which is right — the hash and the rail are
             // the row's, not the margin's.
-            GUTTER_PULL,
+            // A nested row keeps its gutter inside the row it sits in.
+            !nested && GUTTER_PULL,
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
             isQuiet ? "py-1" : "py-2.5",
