@@ -1998,6 +1998,128 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
+   The sky pull (systems/ambient/lib/sky-pull.ts) — pull the home down to look
+   up, and the sky window opens.
+
+   `[data-sky-exits]` marks what steps out of the frame for the window: the home
+   composition and the search button under it. Everything on the home already
+   sits low, so the way out is the way the pull was already taking it — down,
+   and out of the bottom — and the way back is up from there.
+
+   The transform is only ever applied in the four states that need one. At rest
+   there is none at all, because a transform on <main> would make it the
+   containing block of anything fixed inside it and a stacking context of its
+   own — a cost for every visit, paid for a gesture most never make.
+
+     pulling    follows the finger exactly (no transition), fading a touch
+     returning  eases back to rest after a pull let go short, or the window
+                closing — the one state with a transition home
+     window     on its way out of the bottom, then gone and untouchable
+   ============================================================================= */
+
+html[data-sky-pulling] [data-sky-exits],
+html[data-sky-returning] [data-sky-exits] {
+  transform: translate3d(0, var(--sky-pull, 0px), 0);
+  opacity: calc(1 - 0.25 * var(--sky-pull-progress, 0));
+}
+
+html[data-sky-returning] [data-sky-exits] {
+  transition:
+    transform 450ms cubic-bezier(0.2, 0.9, 0.25, 1),
+    opacity 350ms ease-out;
+}
+
+html[data-sky-window] [data-sky-exits] {
+  transform: translate3d(0, 110svh, 0);
+  opacity: 0;
+  pointer-events: none;
+  /* Accelerating away — it was already moving down under the finger. */
+  transition:
+    transform 560ms cubic-bezier(0.5, 0, 0.75, 0),
+    opacity 420ms ease-in 140ms;
+}
+
+/* The cue at the top: comes down with the pull from above the edge, grows and
+   brightens as it comes — light, not a gauge — and says "let go" when letting
+   go will open the window. */
+.sky-pull-cue {
+  padding-top: calc(env(safe-area-inset-top) + 12px);
+  opacity: min(1, calc(var(--sky-pull-progress, 0) * 1.6));
+  transform: translate3d(0, calc(var(--sky-pull, 0px) * 0.45 - 44px), 0);
+  transition:
+    opacity 300ms ease-out,
+    transform 450ms cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+
+html[data-sky-pulling] .sky-pull-cue {
+  transition: none;
+}
+
+html[data-sky-window] .sky-pull-cue {
+  opacity: 0;
+}
+
+.sky-pull-cue-bubble {
+  transform: scale(calc(0.72 + 0.28 * var(--sky-pull-progress, 0)));
+  transition: transform 450ms cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+
+html[data-sky-pulling] .sky-pull-cue-bubble,
+html[data-sky-pulling] .sky-pull-cue-bloom {
+  transition: none;
+}
+
+/* The body brightens as it comes into view — a body rising, not a bar filling —
+   with a glow of its own, and the faintest shade under it so it still reads
+   against a bright noon. */
+.sky-pull-cue-glyph {
+  opacity: calc(0.35 + 0.65 * var(--sky-pull-progress, 0));
+  filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.7)) drop-shadow(0 1px 3px rgb(0 0 0 / 0.18));
+}
+
+/* The light behind the glass: a soft bloom that widens with the pull and opens
+   out at the point of no return. White light, added — on a dark sky it glows,
+   on a bright one it is barely there, which is what light does. */
+.sky-pull-cue-bloom {
+  background: radial-gradient(circle, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 68%);
+  mix-blend-mode: plus-lighter;
+  opacity: calc(0.25 + 0.5 * var(--sky-pull-progress, 0));
+  transform: scale(calc(1.2 + 1.3 * var(--sky-pull-progress, 0)));
+  transition:
+    transform 450ms cubic-bezier(0.2, 0.9, 0.25, 1),
+    opacity 450ms ease-out;
+}
+
+/* No state of its own at the point of no return: the light is one continuous
+   function of how far the pull has come, so nothing about it jumps — neither
+   crossing the line nor letting go on either side of it. Only the words say
+   the line has been crossed. */
+
+.sky-pull-cue-more,
+.sky-pull-cue-go {
+  transition: opacity 150ms ease-out;
+}
+
+.sky-pull-cue-go,
+html[data-sky-armed] .sky-pull-cue-more {
+  opacity: 0;
+}
+
+html[data-sky-armed] .sky-pull-cue-go {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-sky-returning] [data-sky-exits],
+  html[data-sky-window] [data-sky-exits],
+  .sky-pull-cue,
+  .sky-pull-cue-bubble,
+  .sky-pull-cue-bloom {
+    transition: none;
+  }
+}
+
+/* =============================================================================
    Tilt primer illustration — a phone tilting one way while the rain inside it
    tilts the other (systems/ambient/components/tilt-primer-sheet).
 
@@ -2115,6 +2237,74 @@ main[data-variant="reader"] .reader-masthead {
   .tilt-primer-phone,
   .tilt-primer-level,
   .tilt-primer-fall {
+    animation-play-state: paused;
+  }
+}
+
+/* =============================================================================
+   Sky primer illustration — a phone panning across a sky that holds still
+   (systems/ambient/components/sky-window-sheet).
+
+   The sky window's whole idea is that the sky does NOT move: the phone moves
+   over it, and the sun comes into the window and goes out again. So this
+   picture is drawn from the world's frame — the one the tilt primer's rain
+   picture above has to avoid, because there the thing to notice is the rain
+   swinging inside the phone, and from the world's frame the rain never moves.
+   Here the thing to notice is exactly that something holds still, and a phone
+   sliding over a fixed sky is what says it.
+
+   The world inside the phone is NESTED in the phone and undoes its travel, the
+   same arrangement as the rain's counter-rotation, and CSS for the same
+   reasons: two declarative animations of one duration cannot drift apart, and
+   this plays over a live WebGL sky with the main thread already spoken for.
+   ============================================================================= */
+
+.sky-primer-phone,
+.sky-primer-world {
+  transform-box: view-box;
+}
+
+@keyframes sky-primer-pan {
+  0%,
+  100% {
+    transform: translateX(-54px);
+  }
+  50% {
+    transform: translateX(56px);
+  }
+}
+
+@keyframes sky-primer-unpan {
+  0%,
+  100% {
+    transform: translateX(54px);
+  }
+  50% {
+    transform: translateX(-56px);
+  }
+}
+
+.sky-primer-phone {
+  animation: sky-primer-pan 5.2s ease-in-out infinite;
+}
+
+.sky-primer-world {
+  animation: sky-primer-unpan 5.2s ease-in-out infinite;
+}
+
+/* Refused: parked between the sun and the moon, framing neither — a window
+   that cannot turn, which is what a refusal leaves you with. */
+.sky-primer-still .sky-primer-phone,
+.sky-primer-still .sky-primer-world {
+  animation: none;
+  transform: none;
+}
+
+/* Held: paused at 0%, which is the phone framing the sun — the still frame IS
+   the animation, not a second drawing to keep in step. */
+@media (prefers-reduced-motion: reduce) {
+  .sky-primer-phone,
+  .sky-primer-world {
     animation-play-state: paused;
   }
 }

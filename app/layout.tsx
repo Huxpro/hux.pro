@@ -6,7 +6,11 @@ import {
   AmbientPhaseActivity,
   AmbientSurface,
   LocationPrimerSheet,
+  SettleSpinner,
+  SkyPullCue,
+  SkyBodyHints,
   SolarThemeSync,
+  SkyWindowSheet,
   TiltPrimerSheet,
   WallpaperSheet,
 } from "@/systems/ambient";
@@ -144,7 +148,11 @@ export default function RootLayout({
             <TheaterPlaylistSheet />
             <WallpaperSheet />
             <TiltPrimerSheet />
+            <SkyWindowSheet />
             <LocationPrimerSheet />
+            <SettleSpinner />
+            <SkyPullCue />
+            <SkyBodyHints />
             <InstallSheet />
             <TheaterRegistrar />
             <TheaterSurfaces />

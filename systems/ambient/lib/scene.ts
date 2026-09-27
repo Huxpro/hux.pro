@@ -23,6 +23,7 @@ import {
   getMoonIllumination,
   getMoonPhase,
   getSolarPosition,
+  localSiderealDeg,
   smoothstep,
   startOfLocalDay,
   DAY_MINUTES,
@@ -89,6 +90,21 @@ export interface WeatherScene {
   };
   /** Screen-space wind: x < 0 blows left. |wind| ∈ 0..1. */
   wind: { x: number; y: number };
+  /**
+   * The same wind in the world: where it blows TO, as east and north
+   * components of the same 0..1 strength. The stage only ever sees the part of
+   * it across its southward view (`wind.x`); the sky window turns, so it needs
+   * the whole of it to find the part across wherever you are facing.
+   */
+  windWorld: { east: number; north: number };
+  /**
+   * Where the observer stands under the stars: the latitude sets the pole's
+   * height, and the local sidereal time how far the sphere has turned. Only
+   * the sky window reads it — the stage's stars are a picture, the window's
+   * are a sky. A guess of 40° (mirrored south) and Greenwich without
+   * coordinates, which turns the right way at the right rate all the same.
+   */
+  celestial: { latitude: number; siderealDeg: number };
   fog: number;
   lightning: number;
   stars: number;
@@ -425,7 +441,12 @@ function coordsOf(params: DeriveSceneParams): { lat: number; lon: number } | nul
     : null;
 }
 
-const HORIZON_Y = 0.1;
+/**
+ * Where the horizon sits on the stage, in screen heights from the bottom — and
+ * so where the sky window's horizon maps to in the shader's sky gradient
+ * (`WINDOW_HORIZON_Y` in wallpaper/shader.ts is this, interpolated).
+ */
+export const HORIZON_Y = 0.1;
 
 // -----------------------------------------------------------------------------
 // Staging the moon
@@ -465,7 +486,7 @@ const MOON_STAGE = {
   xMax: 0.88,
 } as const;
 
-function stageMoon(
+export function stageMoon(
   lunar: SolarPosition,
   hemisphere: 1 | -1
 ): { screen: ScreenPoint; size: number } {
@@ -481,6 +502,18 @@ function stageMoon(
   // The moon illusion: up to 30% larger near the horizon.
   const size = 1 + 0.3 * (1 - smoothstep(0, 35, lunar.elevation));
   return { screen: { x, y }, size };
+}
+
+/**
+ * Where the stage draws the sun: across by its azimuth, up by the sine of its
+ * elevation from the horizon line. Exported for the renderer, which re-stages a
+ * sun that is gliding along the sky after a jump of the clock or the place.
+ */
+export function stageSun(solar: SolarPosition, hemisphere: 1 | -1): ScreenPoint {
+  return {
+    x: azimuthToScreenX(solar.azimuth, hemisphere),
+    y: HORIZON_Y + Math.sin(solar.elevation * (Math.PI / 180)) * 0.9,
+  };
 }
 
 /** Map a compass azimuth to a screen x. Northern hemisphere looks south, so
@@ -511,25 +544,27 @@ function resolveLunar(params: DeriveSceneParams): SolarPosition & { phase: numbe
   const coords = coordsOf(params);
   if (coords) return getLunarPosition(params.nowMs, coords.lat, coords.lon);
 
+  // No ephemeris without a place, but the phase needs none — and the phase IS
+  // where the moon is relative to the sun: it runs behind the sun by its
+  // phase's share of a day. New, it crosses the sky with the sun (and is lost
+  // in it); first quarter, it is highest at dusk; full, it rises as the sun
+  // sets and is highest at midnight; last quarter, it rises at midnight. So
+  // its arc is the sun's own estimated arc, that far behind. Anything else
+  // (a fixed night arc, as this once was) draws a crescent high at midnight
+  // and leaves the moon deaf to the calendar — to the devtool's date too.
   const { nowMs } = params;
-  const { sunrise: sr, sunset: ss } = sunTimesOrDefault(
+  const phase = getMoonPhase(nowMs);
+  const { sunrise, sunset } = sunTimesOrDefault(
     nowMs,
     params.weather?.sunriseMs,
     params.weather?.sunsetMs
   );
-  let np: number;
-  if (nowMs >= ss) {
-    np = clamp01((nowMs - ss) / Math.max(1, sr + 86_400_000 - ss));
-  } else if (nowMs <= sr) {
-    np = clamp01((nowMs - (ss - 86_400_000)) / Math.max(1, sr - (ss - 86_400_000)));
-  } else {
-    np = -1; // daytime: below the horizon
-  }
-  const natural: SolarPosition =
-    np < 0
-      ? { elevation: -30, azimuth: 0 }
-      : { elevation: Math.sin(np * Math.PI) * 55, azimuth: 90 + np * 180 };
-  return { ...natural, phase: getMoonPhase(nowMs) };
+  const natural = estimateSolarPosition({
+    nowMs: nowMs - phase * 86_400_000,
+    sunriseMs: sunrise,
+    sunsetMs: sunset,
+  });
+  return { ...natural, phase };
 }
 
 /**
@@ -572,10 +607,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const solar = resolveSolar(params);
   const elevation = solar.elevation;
   const daylight = daylightFactor(elevation);
-  const sunScreen: ScreenPoint = {
-    x: azimuthToScreenX(solar.azimuth, hemisphere),
-    y: HORIZON_Y + Math.sin(elevation * (Math.PI / 180)) * 0.9,
-  };
+  const sunScreen = stageSun(solar, hemisphere);
 
   // --- Precipitation ----------------------------------------------------
   // What is falling comes from the measurements when there are any; the
@@ -682,6 +714,10 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const windTo = (windFrom + 180) % 360;
   const windX = -Math.sin(windTo * (Math.PI / 180)) * hemisphere * windSpeed;
   const wind = { x: windX, y: 0 };
+  const windWorld = {
+    east: Math.sin(windTo * (Math.PI / 180)) * windSpeed,
+    north: Math.cos(windTo * (Math.PI / 180)) * windSpeed,
+  };
 
   // --- Atmosphere -------------------------------------------------------
   // Fog is visibility: nothing at 10 km, thick by 200 m (log scale — the eye
@@ -796,6 +832,11 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     },
     precipitation: { type: precipType, intensity: precipIntensity },
     wind,
+    windWorld,
+    celestial: {
+      latitude: coordsOf(params)?.lat ?? 40 * hemisphere,
+      siderealDeg: localSiderealDeg(params.nowMs, coordsOf(params)?.lon ?? 0),
+    },
     fog,
     lightning: condition === "thunder" ? lightningFor(weather) : 0,
     stars,

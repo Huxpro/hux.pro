@@ -89,6 +89,13 @@ import { deriveAmbientPhase } from "./lib/phase";
 import { solarThemeAt, SOLAR_HANDOVER, type SolarTheme } from "./lib/solar-theme";
 import type { WallpaperStats } from "./lib/wallpaper/renderer";
 import { supportsWebGL2 } from "./lib/wallpaper/support";
+import {
+  distanceKm,
+  holdSettle,
+  SETTLE_EASE_MS,
+  SETTLE_MOVE_KM,
+  settleFor,
+} from "./lib/settle";
 import { usePathname } from "next/navigation";
 import { isReadingSurface } from "./lib/reading-surface";
 import { sameProfile } from "./lib/wallpaper-profile";
@@ -312,6 +319,12 @@ export interface GyroState {
   gated: boolean;
   /** Motion was refused for this site; only the browser's own settings undo it. */
   denied: boolean;
+  /**
+   * Readings can flow right now, whatever the saved wish — the browser hands
+   * them over freely, or WebKit's gate has been passed. What the sky window
+   * needs: it listens to the sensor whether or not the tilt is wished on.
+   */
+  reachable: boolean;
   /** There is a `DeviceOrientationEvent` here at all. */
   supported: boolean;
 }
@@ -346,6 +359,25 @@ interface WallpaperContextType {
    * motion gate, so call it from a real user gesture.
    */
   setGyroEnabled: (on: boolean) => void;
+  /**
+   * The sky window: the phone as a window onto the real sky — its heading and
+   * pitch aim a camera at the sun and moon where they really are (see
+   * lib/sky-window.ts). Found by pulling the home down, in any weather.
+   * Session-only on purpose: an easter egg you found is not a setting you
+   * made, and nobody should come back tomorrow to a sky that follows their
+   * hand without knowing why.
+   */
+  skyWindow: boolean;
+  setSkyWindow: (on: boolean) => void;
+  /**
+   * The window would open onto a guessed place: precise location is not in
+   * effect, the browser has not refused it, and the sheet has not already
+   * offered it this session. Then a hold that would open the window goes
+   * through the sheet instead, which asks for motion and location in one
+   * breath — a window that turns true to north onto the sky over the wrong
+   * city is the one thing it must not be.
+   */
+  skyWantsLocation: boolean;
   /** Selected built-in pair (meaningful when kind === "image"). */
   wallpaper: Wallpaper;
   wallpapers: Wallpaper[];
@@ -478,6 +510,22 @@ interface WallpaperContextType {
    * whoever showed the outcome closes it.
    */
   takeTilt: () => Promise<GyroAccess>;
+  /**
+   * The sky window's own offer — what pulling the home down brings up while
+   * WebKit's motion gate still stands, or while the place is only a guess
+   * (lib/sky-pull.ts, SkyWindowSheet). Not the tilt primer: that one is the
+   * rain-and-snow egg's, offered once on a long press; this one is the pull's,
+   * in any weather.
+   */
+  isSkyOfferOpen: boolean;
+  openSkyOffer: () => void;
+  closeSkyOffer: () => void;
+  /**
+   * Ask for motion and, if it is given, open the window — reporting how it
+   * went so the sheet can say so. Must be called straight from the press. It
+   * does NOT close the sheet — whoever showed the outcome closes it.
+   */
+  takeSkyWindow: () => Promise<GyroAccess>;
 }
 
 const WallpaperContext = createContext<WallpaperContextType | undefined>(undefined);
@@ -953,6 +1001,33 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     });
   }, [setGyroEnabled, updateSettings]);
 
+  // The sky window. Session state, never saved — see `skyWindow` above.
+  const [skyWindow, setSkyWindow] = useState(false);
+
+  // The window's own offer (SkyWindowSheet) — the pull's, not the rain's.
+  const [isSkyOfferOpen, setIsSkyOfferOpen] = useState(false);
+  const openSkyOffer = useCallback(() => setIsSkyOfferOpen(true), []);
+  // Whether that sheet has made its location offer this session. Session-only
+  // like the window: a no today is not a no for ever, but asking on every pull
+  // would be.
+  const [skyAskedLocation, setSkyAskedLocation] = useState(false);
+  const closeSkyOffer = useCallback(() => {
+    setIsSkyOfferOpen(false);
+    setSkyAskedLocation(true);
+  }, []);
+
+  const takeSkyWindow = useCallback(() => {
+    // Straight from the press, for the same reason as `takeTilt`. The tilt's
+    // wish is turned on with it — the window lets the rain fall along gravity
+    // anyway, and a grant that left the tilt off on the next rainy day would be
+    // a yes only half taken. That grant also answers the tilt primer's
+    // question, so the long press on a rainy day has nothing left to offer.
+    return setGyroEnabled(true).then((access) => {
+      if (isGyroReachable(access)) setSkyWindow(true);
+      return access;
+    });
+  }, [setGyroEnabled]);
+
   const gyroActive = settings.weatherGyro && isGyroReachable(gyroAccess);
 
   // Is anything actually coming through? Nothing else can tell: the event type
@@ -985,6 +1060,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       readings: gyroActive ? gyroReadings : "silent",
       gated: gyroAccess === "prompt",
       denied: gyroAccess === "denied",
+      reachable: isGyroReachable(gyroAccess),
       supported: gyroAccess !== "unsupported",
     }),
     [settings.weatherGyro, gyroAccess, gyroActive, gyroReadings]
@@ -1042,6 +1118,12 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const usingGps =
     settings.locationMode === "accurate" &&
     canTakeFix(geoPermission, settings.locationGrantedAt, realNowMs);
+  const skyWantsLocation =
+    !usingGps &&
+    geoPermission !== "denied" &&
+    !skyAskedLocation &&
+    typeof navigator !== "undefined" &&
+    "geolocation" in navigator;
 
   const setLocationMode = useCallback(
     (mode: LocationMode) => {
@@ -1053,6 +1135,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
 
   const requestAccurateLocationAction = useCallback(async (): Promise<LocationRequestOutcome> => {
     requestingLocationRef.current = true;
+    // A fix on request is a change of place on its way — the settle spinner
+    // stands until it lands (and the sky that follows it takes over from there).
+    holdSettle("location", true);
     try {
       const fix = await requestAccurateLocationFn();
       // The fix just taken is the answer the Accurate query would go and get:
@@ -1078,6 +1163,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       return failure;
     } finally {
       requestingLocationRef.current = false;
+      holdSettle("location", false);
     }
   }, [updateSettings]);
 
@@ -1091,6 +1177,44 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
 
   // Weather (React Query)
   const weatherQuery = useWeatherQuery(locationQuery.data);
+
+  // --- Settling (lib/settle.ts) ---------------------------------------------
+  // A poll that comes back with more or less the same answer is routine and
+  // says nothing. One that moves you — a fix a city away — or turns the sky
+  // over — clear to rain, a clear sky clouding over — is a change the sky will
+  // spend a couple of seconds rolling into, and the spinner stands for that:
+  // while the relocated forecast is fetched, then for the scene's own easing
+  // (the decks and the precipitation take ~2.5 s to arrive).
+  const settledPlaceRef = useRef<{ lat: number; lon: number } | null>(null);
+  const [awaitingForecast, setAwaitingForecast] = useState(false);
+  useEffect(() => {
+    const place = locationQuery.data;
+    if (!place) return;
+    const last = settledPlaceRef.current;
+    settledPlaceRef.current = { lat: place.lat, lon: place.lon };
+    if (last && distanceKm(last, place) > SETTLE_MOVE_KM) {
+      setAwaitingForecast(true);
+      settleFor("location", SETTLE_EASE_MS);
+    }
+  }, [locationQuery.data]);
+  useEffect(() => {
+    holdSettle("weather", awaitingForecast && weatherQuery.isFetching);
+    if (awaitingForecast && !weatherQuery.isFetching) {
+      setAwaitingForecast(false);
+      settleFor("weather", SETTLE_EASE_MS);
+    }
+  }, [awaitingForecast, weatherQuery.isFetching]);
+  const settledSkyRef = useRef<{ condition: string; cover: number } | null>(null);
+  useEffect(() => {
+    const w = weatherQuery.data;
+    if (!w) return;
+    const last = settledSkyRef.current;
+    const cover = w.cloudCover ?? 0;
+    settledSkyRef.current = { condition: w.condition, cover };
+    if (last && (last.condition !== w.condition || Math.abs(last.cover - cover) > 0.3)) {
+      settleFor("weather", SETTLE_EASE_MS);
+    }
+  }, [weatherQuery.data]);
 
   const refreshWeather = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["location"] });
@@ -1568,6 +1692,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       statsRef,
       gyro,
       setGyroEnabled,
+      skyWindow,
+      setSkyWindow,
+      skyWantsLocation,
       wallpaper: activeWallpaper,
       wallpapers: BUILT_IN_WALLPAPERS,
       selectWallpaper,
@@ -1625,6 +1752,10 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       offerTilt,
       closeTiltPrimer,
       takeTilt,
+      isSkyOfferOpen,
+      openSkyOffer,
+      closeSkyOffer,
+      takeSkyWindow,
     }),
     [
       settings.wallpaperKind,
@@ -1648,6 +1779,8 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       reportShaderFallback,
       gyro,
       setGyroEnabled,
+      skyWindow,
+      skyWantsLocation,
       activeWallpaper,
       selectWallpaper,
       wallpaperTheme,
@@ -1691,6 +1824,10 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       offerTilt,
       closeTiltPrimer,
       takeTilt,
+      isSkyOfferOpen,
+      openSkyOffer,
+      closeSkyOffer,
+      takeSkyWindow,
     ]
   );
 

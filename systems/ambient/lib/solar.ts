@@ -19,7 +19,8 @@ export interface SolarPosition {
 }
 
 const DEG = Math.PI / 180;
-const rev = (deg: number) => ((deg % 360) + 360) % 360;
+/** An angle in degrees, wrapped to 0..360 — a bearing. */
+export const rev = (deg: number) => ((deg % 360) + 360) % 360;
 const J2000_MS = 946728000000; // 2000-01-01T12:00:00Z
 
 function daysSinceJ2000(ms: number): number {
@@ -43,6 +44,15 @@ export function getSolarPosition(
 
   const h = equatorialToHorizontal(ms, lat, lon, ra, dec);
   return { elevation: h.elevationRad / DEG, azimuth: h.azimuth };
+}
+
+/**
+ * Local sidereal time in degrees — how far the celestial sphere has turned
+ * over a longitude. The same clock `equatorialToHorizontal` places the sun and
+ * moon by, so the sky window's stars turn with them (lib/sky-window.ts).
+ */
+export function localSiderealDeg(ms: number, lonDeg: number): number {
+  return rev((18.697374558 + 24.06570982441908 * daysSinceJ2000(ms)) * 15 + lonDeg);
 }
 
 /**
@@ -81,10 +91,15 @@ export function estimateSolarPosition(params: {
   sunriseMs?: number;
   sunsetMs?: number;
 }): SolarPosition {
-  const { nowMs } = params;
   /** Peak elevation at solar noon (deg). */
   const peak = 55;
-  const { sunrise, sunset } = sunTimesOrDefault(nowMs, params.sunriseMs, params.sunsetMs);
+  const { sunrise, sunset } = sunTimesOrDefault(params.nowMs, params.sunriseMs, params.sunsetMs);
+  // Periodic by construction: any time is folded into the one day the arc is
+  // written for — from the previous sunset to this one — so a caller asking
+  // about another day (the moon, running behind the sun by its phase) gets the
+  // same arc rather than falling off the end of it.
+  const from = sunset - 86_400_000;
+  const nowMs = from + ((((params.nowMs - from) % 86_400_000) + 86_400_000) % 86_400_000);
 
   const dayLen = Math.max(1, sunset - sunrise);
   const nightLen = Math.max(1, 86_400_000 - dayLen);
@@ -104,7 +119,7 @@ export function estimateSolarPosition(params: {
   const t = clamp01(sinceSunset / nightLen);
   return {
     elevation: -Math.sin(t * Math.PI) * Math.min(peak, 40),
-    azimuth: 270 + t * 180,
+    azimuth: rev(270 + t * 180),
   };
 }
 
