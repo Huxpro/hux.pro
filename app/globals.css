@@ -1998,6 +1998,102 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
+   The sky pull (systems/ambient/lib/sky-pull.ts) — pull the home down to look
+   up, and the sky window opens.
+
+   `[data-sky-exits]` marks what steps out of the frame for the window: the home
+   composition and the search button under it. Everything on the home already
+   sits low, so the way out is the way the pull was already taking it — down,
+   and out of the bottom — and the way back is up from there.
+
+   The transform is only ever applied in the four states that need one. At rest
+   there is none at all, because a transform on <main> would make it the
+   containing block of anything fixed inside it and a stacking context of its
+   own — a cost for every visit, paid for a gesture most never make.
+
+     pulling    follows the finger exactly (no transition), fading a touch
+     returning  eases back to rest after a pull let go short, or the window
+                closing — the one state with a transition home
+     window     on its way out of the bottom, then gone and untouchable
+   ============================================================================= */
+
+html[data-sky-pulling] [data-sky-exits],
+html[data-sky-returning] [data-sky-exits] {
+  transform: translate3d(0, var(--sky-pull, 0px), 0);
+  opacity: calc(1 - 0.25 * var(--sky-pull-progress, 0));
+}
+
+html[data-sky-returning] [data-sky-exits] {
+  transition:
+    transform 450ms cubic-bezier(0.2, 0.9, 0.25, 1),
+    opacity 350ms ease-out;
+}
+
+html[data-sky-window] [data-sky-exits] {
+  transform: translate3d(0, 110svh, 0);
+  opacity: 0;
+  pointer-events: none;
+  /* Accelerating away — it was already moving down under the finger. */
+  transition:
+    transform 560ms cubic-bezier(0.5, 0, 0.75, 0),
+    opacity 420ms ease-in 140ms;
+}
+
+/* The cue at the top: comes down with the pull, fills, and says "let go". */
+.sky-pull-cue {
+  padding-top: calc(env(safe-area-inset-top) + 10px);
+  opacity: var(--sky-pull-progress, 0);
+  transform: translate3d(0, calc(var(--sky-pull, 0px) * 0.4 - 28px), 0);
+  transition:
+    opacity 300ms ease-out,
+    transform 450ms cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+
+html[data-sky-pulling] .sky-pull-cue {
+  transition: none;
+}
+
+html[data-sky-window] .sky-pull-cue {
+  opacity: 0;
+}
+
+.sky-pull-cue-fill {
+  stroke-dashoffset: calc(var(--sky-pull-ring) * 1px * (1 - var(--sky-pull-progress, 0)));
+}
+
+.sky-pull-cue-body {
+  transform: scale(0.85);
+  transition: transform 200ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+html[data-sky-armed] .sky-pull-cue-body {
+  transform: scale(1.15);
+}
+
+.sky-pull-cue-more,
+.sky-pull-cue-go {
+  transition: opacity 150ms ease-out;
+}
+
+.sky-pull-cue-go,
+html[data-sky-armed] .sky-pull-cue-more {
+  opacity: 0;
+}
+
+html[data-sky-armed] .sky-pull-cue-go {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-sky-returning] [data-sky-exits],
+  html[data-sky-window] [data-sky-exits],
+  .sky-pull-cue,
+  .sky-pull-cue-body {
+    transition: none;
+  }
+}
+
+/* =============================================================================
    Sky primer illustration — a phone panning across a sky that holds still
    (systems/ambient/components/tilt-primer-sheet).
 

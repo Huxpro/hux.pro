@@ -10,11 +10,11 @@ import { useLocation, useWallpaper } from "../provider";
 // ---------------------------------------------------------------------------
 // TiltPrimerSheet — the offer that comes before the motion prompt.
 //
-// Summoned by a finger resting on the home sky while WebKit's motion gate still
-// stands (lib/tilt-primer.ts), mounted in the layout beside the wallpaper
-// picker. What it offers is the sky window (lib/sky-window.ts): the phone as a
-// window onto the real sky. Two presses reach the browser's dialog, and the
-// first one is why the second gets a yes: a permission prompt with no idea what
+// Summoned by pulling the home down while WebKit's motion gate still stands,
+// or while the place is only a guess (lib/sky-pull.ts), and mounted in the
+// layout beside the wallpaper picker. What it offers is the sky window
+// (lib/sky-window.ts): the phone as a window onto the real sky. Two gestures
+// reach the browser's dialog, and the first is why the second gets a yes: a permission prompt with no idea what
 // it is for gets refused, and a refusal is final everywhere.
 //
 // A sheet at every width rather than the usual sheet → panel → window. The

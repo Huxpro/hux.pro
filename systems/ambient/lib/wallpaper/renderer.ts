@@ -30,6 +30,7 @@ import {
   starFrame,
   vec3,
   viewAngle,
+  viewFacing,
   viewScale,
   type SkyView,
   type Vec3,
@@ -145,6 +146,17 @@ const HEMISPHERE_OFFSET = OFFSET.uHemisphere;
  * where it really is — that is the reveal — and no longer.
  */
 const WINDOW_TAU = 0.45;
+
+/**
+ * The pull's preview (lib/sky-pull.ts): as the home is pulled down, the sky
+ * starts to become the window — up to this share of it, looking up by up to
+ * `PREVIEW_LOOK_DEG` more than the stage does — so there is visibly something
+ * up there before the finger lets go. It follows the finger closely
+ * (`PREVIEW_TAU`) and falls back at the window's own pace.
+ */
+const PREVIEW_MAX = 0.35;
+const PREVIEW_LOOK_DEG = 30;
+const PREVIEW_TAU = 0.1;
 
 // -----------------------------------------------------------------------------
 // Gliding across a jump
@@ -587,6 +599,8 @@ export class WallpaperRenderer {
   private windowOn = false;
   /** …and how far it has got there: 0 the stage, 1 the window. Eased. */
   private windowAmt = 0;
+  /** How far a pull on the home has got, 0..1 — see `previewWindow`. */
+  private preview = 0;
   /** Where the window looks. The stage's own view until a reading arrives. */
   private view: SkyView | null = null;
   /** What the window is actually showing: `view`, or on the way to it. */
@@ -755,10 +769,21 @@ export class WallpaperRenderer {
   setSkyWindow(on: boolean) {
     if (this.windowOn === on) return;
     this.windowOn = on;
+    this.preview = 0;
     if (this.opts.reducedMotion) {
       this.windowAmt = on ? 1 : 0;
       this.settle();
     }
+  }
+
+  /**
+   * A pull on the home is `amount` (0..1) of the way to opening the window:
+   * lift the sky toward it, a little. Ignored under reduced motion, where the
+   * sky does not follow hands.
+   */
+  previewWindow(amount: number) {
+    if (this.opts.reducedMotion) return;
+    this.preview = Math.max(0, Math.min(1, amount));
   }
 
   /**
@@ -1331,7 +1356,7 @@ export class WallpaperRenderer {
       this.current[body.screen + 1] = screen.y;
     }
 
-    const target = this.view ?? stageView(hemisphere);
+    const target = this.view ?? this.previewView(hemisphere);
     if (this.viewGlide) {
       const t = (now - this.viewGlide.at) / 1000 / VIEW_GLIDE_SEC;
       if (t >= 1) {
@@ -1344,6 +1369,16 @@ export class WallpaperRenderer {
       this.shownView = target;
     }
     this.reportGlides();
+  }
+
+  /**
+   * Where the window looks before any reading: the stage's heading, tipped up
+   * as far as a pull has got — the eyes lifting with the page going down.
+   */
+  private previewView(hemisphere: 1 | -1): SkyView {
+    if (this.preview <= 0) return stageView(hemisphere);
+    const base = headingPitchOf(stageView(hemisphere).forward);
+    return viewFacing(base.heading, base.pitch + PREVIEW_LOOK_DEG * this.preview);
   }
 
   /** Land every glide where it was going. */
@@ -1396,8 +1431,9 @@ export class WallpaperRenderer {
     this.celestial[0] += (this.target[CELESTIAL_OFFSET] - this.celestial[0]) * kc;
     const lstGap = ((this.target[CELESTIAL_OFFSET + 1] - this.celestial[1]) % 360 + 540) % 360 - 180;
     this.celestial[1] = (this.celestial[1] + lstGap * kc + 360) % 360;
-    const kw = 1 - Math.exp(-dtSec / WINDOW_TAU);
-    const aimAt = this.windowOn ? 1 : 0;
+    const aimAt = this.windowOn ? 1 : this.preview * PREVIEW_MAX;
+    const kw =
+      1 - Math.exp(-dtSec / (!this.windowOn && aimAt > this.windowAmt ? PREVIEW_TAU : WINDOW_TAU));
     this.windowAmt += (aimAt - this.windowAmt) * kw;
     if (Math.abs(aimAt - this.windowAmt) < 1e-3) this.windowAmt = aimAt;
     // Advect drift from the smoothed wind so direction changes glide. Both
@@ -1505,7 +1541,7 @@ export class WallpaperRenderer {
 
   /** The view the window is looking along, or the stage's when none has come. */
   private currentView(src: Float32Array): SkyView {
-    return this.shownView ?? this.view ?? stageView(src[HEMISPHERE_OFFSET] < 0 ? -1 : 1);
+    return this.shownView ?? this.view ?? this.previewView(src[HEMISPHERE_OFFSET] < 0 ? -1 : 1);
   }
 
   /**

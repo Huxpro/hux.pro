@@ -362,7 +362,7 @@ interface WallpaperContextType {
   /**
    * The sky window: the phone as a window onto the real sky — its heading and
    * pitch aim a camera at the sun and moon where they really are (see
-   * lib/sky-window.ts). Found by a long press on the home sky, in any weather.
+   * lib/sky-window.ts). Found by pulling the home down, in any weather.
    * Session-only on purpose: an easter egg you found is not a setting you
    * made, and nobody should come back tomorrow to a sky that follows their
    * hand without knowing why.
@@ -493,9 +493,9 @@ interface WallpaperContextType {
   openPicker: () => void;
   closePicker: () => void;
   /**
-   * The tilt primer — what a long press on the sky brings up while WebKit's
+   * The tilt primer — what pulling the home down brings up while WebKit's
    * motion gate still stands between the visitor and the sky window. See
-   * lib/tilt-primer.ts. Open state lives here rather than in the background
+   * lib/sky-pull.ts. Open state lives here rather than in the background
    * component because the sheet is mounted in the layout, beside the picker,
    * and not inside a `pointer-events-none` wallpaper layer.
    */

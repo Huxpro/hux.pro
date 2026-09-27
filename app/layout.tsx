@@ -7,6 +7,7 @@ import {
   AmbientSurface,
   LocationPrimerSheet,
   SettleSpinner,
+  SkyPullCue,
   SolarThemeSync,
   TiltPrimerSheet,
   WallpaperSheet,
@@ -147,6 +148,7 @@ export default function RootLayout({
             <TiltPrimerSheet />
             <LocationPrimerSheet />
             <SettleSpinner />
+            <SkyPullCue />
             <InstallSheet />
             <TheaterRegistrar />
             <TheaterSurfaces />

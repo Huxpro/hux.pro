@@ -77,6 +77,11 @@ interface WeatherWallpaperProps {
    */
   wipeRef?: React.MutableRefObject<WipeHandle | null>;
   /**
+   * Handed the renderer's pull preview — how far a pull on the home has got
+   * toward opening the sky window, 0..1 (lib/sky-pull.ts).
+   */
+  previewRef?: React.MutableRefObject<((amount: number) => void) | null>;
+  /**
    * Override the device quality profile — for a small preview (the picker's
    * CG tile) that should cost a fraction of the full-page layer.
    */
@@ -101,6 +106,7 @@ export function WeatherWallpaper({
   statsRef,
   pokeRef,
   wipeRef,
+  previewRef,
   quality,
   themeEaseMs = null,
 }: WeatherWallpaperProps) {
@@ -131,6 +137,7 @@ export function WeatherWallpaper({
     // The devtool pulls stats on its own schedule; nothing is copied until it asks.
     if (statsRef) statsRef.current = () => renderer.getStats();
     if (pokeRef) pokeRef.current = (kind, x, y) => renderer.poke(kind, x, y);
+    if (previewRef) previewRef.current = (amount) => renderer.previewWindow(amount);
     if (wipeRef) {
       wipeRef.current = {
         wipe: (x, y) => renderer.wipe(x, y),
@@ -141,6 +148,7 @@ export function WeatherWallpaper({
     return () => {
       if (statsRef) statsRef.current = null;
       if (pokeRef) pokeRef.current = null;
+      if (previewRef) previewRef.current = null;
       if (wipeRef) wipeRef.current = null;
       renderer.destroy();
       rendererRef.current = null;
