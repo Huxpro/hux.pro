@@ -1377,8 +1377,15 @@ hands when it follows the sun. The handover never has a key to fight.
 
 Because the key is applied to the scene's colours, everything downstream reads
 the re-keyed sky without knowing: the shader, the Gradient, widget cards, the
-legibility profile (`profileFromScene`) and the devtool's day strip. Classic is
-a table of fixed palettes and is not keyed.
+legibility profile (`profileFromScene`) and the devtool's day strip. Classic
+never had the problem and is not keyed: its table is hand-tuned per condition
+for all four of day/night × light/dark, so its dark day is already a deep blue
+and its light night already a pale one.
+
+On a change of theme the Sky's keyed colours (sky, glow, clouds, the moon's
+strength — `keyed` in `wallpaper/renderer.ts`) ease on the theme's clock
+instead of their own 1.8s, so the re-keyed sky lands with the veil rather than
+seconds behind the chrome.
 
 ## Wallpaper
 
