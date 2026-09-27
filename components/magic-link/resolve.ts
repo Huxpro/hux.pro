@@ -22,6 +22,7 @@ import {
 import { isPlayableSlidesUrl } from "@/lib/slides";
 import type { AttachmentSet } from "@/systems/attachments/lib/types";
 import { isInternalLink } from "@/systems/attachments/lib/policy";
+import { attachmentSetFor } from "@/systems/attachments/lib/set";
 
 // =============================================================================
 // Magic-link resolution — from what an author writes to what a link summons.
@@ -30,10 +31,12 @@ import { isInternalLink } from "@/systems/attachments/lib/policy";
 // (what it shows under the pointer) and a drawer (what stands in for the peek
 // on a phone), the same ones wherever it is summoned from. What it names:
 //
-//   commit="lynx-framework"   one of a commit's media (`item`, the first by
-//                             default) — a /works cover: its peek, the
-//                             attachment drawer, and its home (the in-app
-//                             browser, the stage, the router).
+//   commit="lynx-framework"   a commit, whole — a /works row: its peek, and
+//                             the attachment drawer paging through all of
+//                             its media; a press goes to its row on /works.
+//   commit="…" item={1}       one of its media alone — a /works cover: its
+//                             peek, a drawer of just it, and its home (the
+//                             in-app browser, the stage, the router).
 //   role="alitrip-engineer"   a role — a range under an identity in
 //   identity="alibaba"        content/log.json — as a /works role row: the
 //                             identity's profile as the peek, its card as
@@ -70,7 +73,19 @@ export type BadgeKind =
   | "social";
 
 export type BadgeTarget =
-  | { type: "media"; set: AttachmentSet; media: Media }
+  | {
+      type: "media";
+      set: AttachmentSet;
+      media: Media;
+      /** Where in the set it opens. */
+      index: number;
+      /**
+       * The whole commit, when the link names one (`commit=` without
+       * `item`): it peeks as its /works row and its drawer pages through
+       * every attachment. Absent for a single media item.
+       */
+      commit?: Commit;
+    }
   | { type: "identity"; identityId: string; roleId?: string }
   | { type: "app"; app: AppLink };
 
@@ -160,7 +175,7 @@ export function mediaFromHref(
       // the hrefs written in magic links too): its title, description and
       // image for the peek, and whether it lets itself be framed — a page
       // that refuses goes to a tab rather than a window of refusal.
-      const snap = SNAPSHOT[url];
+      const snap = BADGE_CONFIG.previews?.[url] ?? SNAPSHOT[url];
       return {
         kind: "link",
         url,
@@ -278,6 +293,7 @@ export function resolveBadge(spec: BadgeSpec, locale: Locale): ResolvedBadge | n
       target: {
         type: "media",
         media,
+        index: 0,
         set: { id: `magic:${media.url}`, title, items: [media] },
       },
       kind: kindOf(media),
@@ -327,21 +343,24 @@ export function resolveBadge(spec: BadgeSpec, locale: Locale): ResolvedBadge | n
     };
   }
 
-  // A commit, by id: one of its media.
+  // A commit, by id: the whole commit — a project, a talk — or, with
+  // `item`, one of its media alone.
   if (spec.commit) {
     const commit = LOG.commits.find((c) => c.id === spec.commit);
     if (!commit) return null;
     const title = localize(commit.title, locale);
-    const media = commit.media?.[spec.item ?? 0];
     const label = spec.title ?? title;
     const icon =
       iconFromProp(spec.icon) ?? siteIcon(spec) ?? monogram(label, tagColor(commit));
+    const whole = spec.item === undefined;
+    const set = whole ? attachmentSetFor(commit, locale) : null;
+    const media = commit.media?.[spec.item ?? 0];
     if (!media) {
       return {
         target: null,
         kind: "route",
         label,
-        href: "/works",
+        href: `/works#${computeCommitHash(commit.id)}`,
         icon,
         title,
       };
@@ -350,11 +369,15 @@ export function resolveBadge(spec: BadgeSpec, locale: Locale): ResolvedBadge | n
       target: {
         type: "media",
         media,
-        set: { id: `badge:${commit.id}`, title, items: [media] },
+        index: 0,
+        // The commit's own set, so the drawer pages through all of it, as
+        // a /works cover's does; one item stands alone.
+        set: set ?? { id: `magic:${commit.id}#${spec.item}`, title, items: [media] },
+        ...(whole ? { commit } : {}),
       },
       kind: kindOf(media),
       label,
-      href: hrefFor(media, locale),
+      href: whole ? `/works#${computeCommitHash(commit.id)}` : hrefFor(media, locale),
       icon,
       title,
     };
@@ -374,6 +397,7 @@ export function resolveBadge(spec: BadgeSpec, locale: Locale): ResolvedBadge | n
       target: {
         type: "media",
         media,
+        index: 0,
         set: { id: `badge:${spec.href}`, title: label, items: [media] },
       },
       kind: kindOf(media),

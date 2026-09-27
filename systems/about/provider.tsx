@@ -3,6 +3,7 @@
 import { useOptionalAttachments } from "@/systems/attachments/provider";
 import { useOptionalIdentityCard } from "@/systems/identity/provider";
 import { useCommand } from "@/systems/command/provider";
+import { usePathname } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -10,6 +11,7 @@ import {
   useEffect,
   useEffectEvent,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -169,6 +171,20 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
     if (isOpen && home !== "tab") close({ navigating: home === "route" });
   });
   useEffect(() => onSend?.((home) => onAttachmentSent(home)), [onSend]);
+
+  // Any page change while it is up — a drawer's Visit, a card's row, a link
+  // it did not see — takes the screen from it: the About is over a page,
+  // not a page. Coming to `/about` is the one arrival that keeps it.
+  const pathname = usePathname();
+  const lastPathRef = useRef(pathname);
+  const onPathChange = useEffectEvent((path: string) => {
+    if (isOpen && path !== "/about") close({ navigating: true });
+  });
+  useEffect(() => {
+    if (pathname === lastPathRef.current) return;
+    lastPathRef.current = pathname;
+    onPathChange(pathname);
+  }, [pathname]);
 
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
     // The drawer over it takes this Escape; the next one is the About's.

@@ -155,13 +155,20 @@ function mdxFiles(dir: string): string[] {
 
 /** Every external page a `<MagicLink href>` or `<Badge href>` names. */
 function magicLinkHrefs(): string[] {
+  // A page given its card by hand (content/badges.json `previews`) is not
+  // crawled: it has no card to crawl.
+  const manual = (
+    JSON.parse(fs.readFileSync(path.join(ROOT, "content", "badges.json"), "utf8")) as {
+      previews?: Record<string, unknown>;
+    }
+  ).previews ?? {};
   const tag = /<(?:MagicLink|Badge)\b([^>]*?)\/?>/g;
   const urls = new Set<string>();
   for (const file of [path.join(ROOT, "content"), path.join(ROOT, "docs")].flatMap(mdxFiles)) {
     for (const m of fs.readFileSync(file, "utf8").matchAll(tag)) {
       const href = m[1].match(/\bhref="(https?:[^"]+)"/)?.[1];
       // A code sample documenting the syntax is not a link.
-      if (!href || href.includes("…")) continue;
+      if (!href || href.includes("…") || href in manual) continue;
       // Recordings, decks, images and social posts have their own peeks.
       if (/youtu\.?be|bilibili\.com|vimeo\.com|\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(href)) continue;
       if (detectSocialEmbedPlatform(href) || isPlayableSlidesUrl(href)) continue;

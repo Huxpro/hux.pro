@@ -44,7 +44,10 @@ const components: MDXComponents = {
   h1: ({ className, ...props }) => (
     <h1
       className={cn(
-        "font-serif text-[1.75rem] leading-tight tracking-tight text-foreground sm:text-[2rem]",
+        // On a phone the greeting is set at the words' own size — one voice,
+        // the serif marking it — so the screen goes to what is said; a desk
+        // has the room for it to stand as a title.
+        "font-serif text-[1em] leading-[inherit] text-foreground sm:text-[2rem] sm:leading-tight sm:tracking-tight",
         className,
       )}
       {...props}

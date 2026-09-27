@@ -393,6 +393,7 @@ export const translations = {
     identityCardClose: "Close identity card",
     identityOtherRoles: "Also as this identity",
     identityCommits: "commits signed",
+    identityRoleCommits: "Work in this role",
     // Links that leave the site (see systems/attachments)
     linkOpensInTab: "Opens in a new tab",
     linkNewTab: "New tab",
@@ -778,6 +779,7 @@ export const translations = {
     identityCardClose: "关闭身份卡片",
     identityOtherRoles: "同一身份下的其他职位",
     identityCommits: "条署名提交",
+    identityRoleCommits: "这段经历里的作品",
     // Links that leave the site (see systems/attachments)
     linkOpensInTab: "在新标签页打开",
     linkNewTab: "新标签页",

@@ -17,5 +17,14 @@
     "h5.ele.me": "/img/badges/eleme.png",
     "hermesengine.dev": "/img/badges/hermes.svg",
     "wepiao.com": "/img/badges/wepiao.webp"
+  },
+  "previews": {
+    "https://www.cs.rit.edu/~mtf/": {
+      "title": "Matthew Fluet",
+      "description": "Associate Professor and Graduate Program Director, Department of Computer Science, Rochester Institute of Technology. Programming languages: functional programming, concurrency, and type systems.",
+      "image": "/img/works/fluet-cover.webp",
+      "siteName": "RIT Computer Science",
+      "frame": "deny"
+    }
   }
 }

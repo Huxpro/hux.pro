@@ -33,6 +33,15 @@ export interface BadgeConfig {
   identities?: Record<string, string>;
   /** Site key → an icon URL to use instead of discovering one. */
   icons?: Record<string, string>;
+  /**
+   * URL → the card a magic link to it shows, for a page whose own card
+   * cannot be crawled (no OG tags). Used instead of the snapshot, and never
+   * crawled (scripts/og-snapshot.ts skips it).
+   */
+  previews?: Record<
+    string,
+    { title?: string; description?: string; image?: string; siteName?: string; frame?: "deny" }
+  >;
 }
 
 /** What a badge names, as far as its icon is concerned. */

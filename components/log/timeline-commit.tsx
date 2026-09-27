@@ -266,12 +266,13 @@ export function TimelineCommit({
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
-  // would show. A role row is the exception: its peek is the identity card,
-  // which no form prints.
+  // would show. A role row follows the same rule, though its peek is the
+  // identity card, which no form prints: once the row has opened into its
+  // prose and covers, the whole block lighting a card under the pointer
+  // gets in the way of reading them. The one-liner peeks; an open row's
+  // handle still does (IdentityHover).
   const showCursorPreview =
-    !!cursorPreview &&
-    rowForm.peek &&
-    (data.type === "role" || (!showStrip && !showStatDescription));
+    !!cursorPreview && rowForm.peek && !showStrip && !showStatDescription;
   // The feed's covers are the row's own strip items; what has no cover (a
   // live widget) stacks under the grid. Inspect mode keeps this layout —
   // the handle lives on the tile (InspectableMedia), not on a different

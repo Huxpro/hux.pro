@@ -1284,6 +1284,12 @@
       ],
       "media": [
         {
+          "kind": "image",
+          "url": "/img/works/wasmcert-poster.webp",
+          "thumbnail": "/img/works/wasmcert-poster-cover.webp",
+          "alt": "Capstone poster, RIT Computer Science, Fall 2019."
+        },
+        {
           "kind": "link",
           "url": "https://www.cs.rit.edu/~mtf/student-resources/20191_huang_mscourse.pdf",
           "present": "card",
@@ -1292,12 +1298,6 @@
             "description": "RIT Computer Science · Capstone Report · 2019. A mechanization of the W3C WebAssembly Core Specification 1.0 in Coq, with a machine-checked soundness proof.",
             "image": "/img/works/wasmcert-report-cover.webp"
           }
-        },
-        {
-          "kind": "image",
-          "url": "/img/works/wasmcert-poster.webp",
-          "thumbnail": "/img/works/wasmcert-poster-cover.webp",
-          "alt": "Capstone poster, RIT Computer Science, Fall 2019."
         },
         {
           "kind": "link",

@@ -128,6 +128,18 @@ function sectionMedia(href: string): LinkMedia | null {
 
 /** The props a server-rendered MagicLink hands the client one. */
 function resolveOnServer({ post, href, ...props }: MagicLinkProps): MagicLinkProps {
+  // One media item of a commit that is a post on this site is the post.
+  if (props.commit && props.item !== undefined) {
+    const item = LOG.commits.find((c) => c.id === props.commit)?.media?.[props.item];
+    const slug =
+      item?.kind === "link" ? (item.internal?.slug ?? postSlugOf(item.url)) : undefined;
+    const media = slug ? postMedia(slug) : null;
+    if (media) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { commit, item: _item, ...rest } = props;
+      return { ...rest, media };
+    }
+  }
   const slug = post ?? postSlugOf(href);
   const media =
     (slug && postMedia(slug)) ||

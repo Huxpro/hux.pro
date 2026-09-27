@@ -1,27 +1,91 @@
 "use client";
 
+import { CommitIcon } from "@/components/log/icons";
+import { LOG } from "@/lib/log-client";
+import { TYPE } from "@/lib/typography";
+import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { OVER_ABOUT_Z, useOptionalAbout } from "@/systems/about/provider";
+import { useOptionalAttachments } from "@/systems/attachments/provider";
+import { attachmentSetFor } from "@/systems/attachments/lib/set";
 import { ANCHORED_PRESENTATION, AdaptiveSurface } from "@/systems/surface";
+import {
+  GLASS_ACTION,
+  GLASS_CLUSTER,
+  GLASS_PILL,
+} from "@/systems/theater/lib/chrome";
+import { ChevronRight, CornerDownRight } from "lucide-react";
+import { useTransitionRouter } from "next-view-transitions";
 import { useIdentityCard } from "../provider";
+import type { ProfileCommit } from "../lib/profile";
 import { IdentityProfileView } from "./identity-profile";
 
 // =============================================================================
-// IdentityCard — the profile as a surface, for a finger.
+// IdentityCard — a role, as a surface, for a finger.
 //
 // On a desktop the profile is a hover peek off the handle (identity-hover.tsx)
-// and this never opens. On a phone the same mark is tapped and the profile
-// comes up as a sheet; on a touch tablet, as a popover hanging off the mark
+// and this never opens. On a phone the same mark is tapped and the role comes
+// up as a sheet; on a touch tablet, as a popover hanging off the mark
 // (`ANCHORED_PRESENTATION`). The header names the handle, nothing more — a
 // profile's name is its title.
+//
+// Where the peek only answers "who was I then?", the drawer is somewhere to
+// go from: the profile, then what was made under the role — each commit a
+// row that opens its attachments in their own drawer, stacked over this one
+// the iOS way — and Visit, to the role's row on /works.
 // =============================================================================
+
+function CommitRow({
+  commit,
+  onOpen,
+}: {
+  commit: ProfileCommit;
+  onOpen: (commit: ProfileCommit) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(commit)}
+      className={cn(
+        "pressable -mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-lg px-2 py-2 text-left",
+        "transition-colors hover:bg-accent/40 active:bg-accent/60",
+        "outline-none focus-visible:bg-accent/40",
+      )}
+    >
+      <CommitIcon type={commit.type} className="h-3.5 w-3.5 shrink-0 text-tertiary-foreground" />
+      <span className={cn("min-w-0 flex-1 truncate", TYPE.rowTitle)}>{commit.title}</span>
+      <span className={cn("shrink-0", TYPE.rowMeta)}>{commit.date}</span>
+      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-quaternary-foreground" />
+    </button>
+  );
+}
 
 export function IdentityCard() {
   const { locale } = useLocale();
   const { isOpen, close, profile, anchorRef } = useIdentityCard();
+  const attachments = useOptionalAttachments();
+  const router = useTransitionRouter();
   // Opened from the About's copy (a magic link naming a role), it floats
   // over the About rather than taking its place.
   const aboutOpen = useOptionalAbout()?.isOpen ?? false;
+
+  const go = (href: string) => {
+    close();
+    router.push(href);
+  };
+
+  // A commit with attachments opens them in the drawer, over this one, as
+  // its /works cover would on a phone; anywhere the drawer is not the way
+  // (or with nothing to open) the commit's row on /works is.
+  const openCommit = (item: ProfileCommit) => {
+    const commit = LOG.commits.find((c) => c.id === item.id);
+    const set = commit && attachmentSetFor(commit, locale);
+    if (set && attachments && attachments.homeOf(set, 0) === "surface") {
+      attachments.open(set, 0);
+      return;
+    }
+    go(item.href);
+  };
 
   return (
     <AdaptiveSurface
@@ -39,8 +103,30 @@ export function IdentityCard() {
       zIndex={aboutOpen ? OVER_ABOUT_Z : undefined}
     >
       {profile && (
-        <div className="pt-1">
+        <div className="space-y-4 pt-1">
           <IdentityProfileView profile={profile} />
+
+          {profile.roleCommits.length > 0 && (
+            <div className="border-t border-border/40 pt-3">
+              <div className={cn(TYPE.labelSm, "mb-1")}>
+                {t(locale, "identityRoleCommits")}
+              </div>
+              {profile.roleCommits.map((c) => (
+                <CommitRow key={c.id} commit={c} onOpen={openCommit} />
+              ))}
+            </div>
+          )}
+
+          <div className={cn(GLASS_CLUSTER, "system-chrome")}>
+            <button
+              type="button"
+              onClick={() => go(profile.roleHref)}
+              className={cn(GLASS_ACTION, GLASS_PILL, "h-8 px-3.5 text-foreground")}
+            >
+              <CornerDownRight className="h-3.5 w-3.5" />
+              {t(locale, "logVisit")}
+            </button>
+          </div>
         </div>
       )}
     </AdaptiveSurface>

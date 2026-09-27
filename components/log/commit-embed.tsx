@@ -232,7 +232,7 @@ const BARE_PANEL_CHROME =
  * items are already visible inline, so the peek excludes them — see
  * `getCommitPeekItems` for the exact filter rationale.
  */
-function buildCommitPreview(
+export function buildCommitPreview(
   commit: CommitData,
   locale: Locale,
 ): CommitPreview | null {

@@ -1,5 +1,6 @@
 "use client";
 
+import { buildCommitPreview } from "@/components/log/commit-embed";
 import { mediaPeek, type MediaPeekSpec } from "@/components/log/media/media-peek";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { t } from "@/lib/i18n";
@@ -232,6 +233,11 @@ function peekOf(
     };
   }
   if (target.type === "media") {
+    // A whole commit peeks as its /works row does.
+    if (target.commit) {
+      const row = buildCommitPreview(target.commit, locale);
+      return row ? { node: row.node, panelClassName: row.panelClassName ?? "" } : null;
+    }
     const media = target.media;
     // A page nobody has a card for yet has nothing to show but its name,
     // which the link already prints.
@@ -301,7 +307,7 @@ export function MagicLink({
   const { target } = badge;
   const home =
     target?.type === "media" && attachments
-      ? attachments.homeOf(target.set, 0)
+      ? attachments.homeOf(target.set, target.index)
       : target?.type === "app"
         ? "window"
         : "route";
@@ -351,11 +357,18 @@ export function MagicLink({
     }
     if (!attachments) return;
     e.preventDefault();
+    // A whole commit off a phone goes to its row on /works: the row is the
+    // commit, as a role's row is the role.
+    if (target.commit && home !== "surface") {
+      onLaunch?.({ navigating: true });
+      router.push(badge.href);
+      return;
+    }
     // The attachments' policy, as a /works cover: the drawer on a phone,
     // the thing's own home on a desk. The drawer floats over whatever
     // hosts the link, so the host stays; anything else takes its place.
     if (home !== "surface") onLaunch?.({ navigating: home === "route" });
-    attachments.open(target.set, 0);
+    attachments.open(target.set, target.index);
   };
 
   const link = (

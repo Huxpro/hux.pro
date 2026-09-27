@@ -132,16 +132,20 @@ as:
 | it names | with a pointer (hover) | on a phone (tap) | a press, with a pointer |
 |---|---|---|---|
 | `post="dreamer"` | the /writing row's peek (`PostPeekView`) | the drawer: that peek, and Read | the post |
-| `commit=… item=…` | the /works cover's peek (`mediaPeek`) | the attachment drawer | its home: the stage, the in-app browser, the router |
-| `role="alitrip-engineer"` | the /works role row's peek: the identity's profile | the identity card (a popover on a touch tablet) | its row on /works |
+| `commit="lynx-framework"` — a commit, whole | the /works row's peek (`buildCommitPreview`: the stacked covers) | the attachment drawer, paging through all of its media | its row on /works |
+| `commit=… item={n}` — one media | the /works cover's peek (`mediaPeek`); a post on this site peeks as the post | a drawer of just it | its home: the stage, the in-app browser, the router |
+| `role="meta-engineer"` | the /works role row's peek: the identity's profile | the role drawer (the identity card): the profile, the work signed under the role — each opens its own attachment drawer over this one — and Visit, to the role's row | its row on /works |
 | `href="/works?type=talk"` | the section's card (its share image, a count) | the drawer: the card, Visit | the page |
-| `href="https://…"` | the page's card (`pnpm og:snapshot` crawls these) | the drawer | the in-app browser, or a tab |
+| `href="https://…"` | the page's card (`pnpm og:snapshot` crawls these; `content/badges.json` `previews` for a page with no card to crawl) | the drawer | the in-app browser, or a tab |
 | `app="…"` | — | a sheet | a window |
 
 A post's peek is its body (excerpt, cover), which only the server can read,
 so MDX maps rendered on the server (the About, posts, docs) use
 `server.tsx`: it reads the post, or counts a section, and hands the client
 link a `media` carrying it (`InternalLinkMeta.peek`).
+
+Any page change while the About is up puts it away (the provider watches
+the path), so a drawer's Visit or a card's row leaves it behind too.
 
 The peek follows the input (`magneticPreviewEnabled`), as every peek does;
 the drawer follows the viewport (the attachments' policy). Inside the About
