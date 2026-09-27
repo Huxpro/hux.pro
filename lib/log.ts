@@ -382,6 +382,34 @@ interface BaseCommit {
    * and on a type with no venue — a project has none, and prints its title.
    */
   asideLine?: AsideLine;
+  /**
+   * Another version of the same work: the Chinese edition of a talk, the
+   * same talk given again at another conference, a revised version a few
+   * months later. Points at any other version; the versions a chain of
+   * these pointers connects are one work.
+   *
+   * Versions are alternatives, not a hierarchy. On /works a work with
+   * several versions is one row, at its lead version's date, with a badge
+   * per version to choose between them (lib/log-editions.ts). Everywhere
+   * else each version is an ordinary commit: it can still be featured,
+   * embedded and linked on its own.
+   */
+  editionOf?: string;
+  /**
+   * What this version is: `中文版`, `海外首发`, `升级版`. Printed next to
+   * its venue wherever the version is named. Optional; without it the
+   * venue says enough.
+   */
+  edition?: LocalizedString;
+  /**
+   * This version leads its work's row: the row sits at its date and shows
+   * it first. `true` always; `"en"` or `"zh"` only on the page in that
+   * language (a talk given in both languages leads with the one the reader
+   * reads). Without any, the version the pointers end at leads.
+   *
+   * A version with `present: "aside"` comes last among the row's badges.
+   */
+  lead?: true | "en" | "zh";
 }
 
 /** Timeline row dressing. Orthogonal to {@link CommitType}. */
@@ -1073,6 +1101,23 @@ export function matchesTypeFilter(
     isFilterableCommitType(commit.type) &&
     active.includes(commit.type)
   );
+}
+
+/**
+ * Where the work happened: the conference, the publication, the platform.
+ * A project, a role and an event have no venue.
+ */
+export function commitVenue(commit: Commit): string | undefined {
+  switch (commit.type) {
+    case "talk":
+      return commit.conference.name;
+    case "post":
+      return commit.publication.name;
+    case "press":
+      return commit.platform;
+    default:
+      return undefined;
+  }
 }
 
 /**

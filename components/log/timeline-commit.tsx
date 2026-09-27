@@ -117,6 +117,24 @@ interface TimelineCommitProps {
   onInspectCommit?: () => void;
   onInspectMedia?: (media: Media) => void;
   selectedMedia?: Media | null;
+  /**
+   * The row stands for a commit that is printed somewhere else on the page,
+   * and pressing it goes there (`onPress`). The arrow says which way.
+   */
+  pointer?: "up" | "down";
+  /** Replaces what pressing the row does (see `pointer`). */
+  onPress?: () => void;
+  /**
+   * The element id the row answers to. Defaults to its hash; `null` gives
+   * it none, for a row that is not the commit's address (a pointer).
+   */
+  anchorId?: string | null;
+  /**
+   * The row is one work in several versions (lib/log-editions.ts): a badge
+   * per version on the title line, where the language badge would be, and
+   * how a reader picks one. The rest of the row is the chosen version.
+   */
+  versions?: ReactNode;
 }
 
 export function TimelineCommit({
@@ -141,6 +159,10 @@ export function TimelineCommit({
   onInspectCommit,
   onInspectMedia,
   selectedMedia = null,
+  pointer,
+  onPress,
+  anchorId,
+  versions,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
@@ -225,11 +247,13 @@ export function TimelineCommit({
   // this one changes the prose, the cover's opens the attachment.
   const rowOnClick = inspecting
     ? onInspectCommit
-    : rowOpensIdentity
-      ? openIdentity
-      : hasExpandableContent
-        ? handleToggleExpanded
-        : undefined;
+    : onPress
+      ? onPress
+      : rowOpensIdentity
+        ? openIdentity
+        : hasExpandableContent
+          ? handleToggleExpanded
+          : undefined;
 
   // The row's form: the page's, unless the reader opened this row, in which
   // case it is the feed for itself (`rowFormFor`, lib/log-view.ts — a form
@@ -504,18 +528,26 @@ export function TimelineCommit({
         {isQuiet ? (
           // Events and folded asides drop a tier. Face is per script
           // (see QuietLine): Latin serif italic, CJK upright mono.
-          <QuietLine
-            text={displayTitle}
-            className="min-w-0 flex-1 text-xs text-tertiary-foreground"
-          />
+          <span className="min-w-0 flex-1 text-xs text-tertiary-foreground">
+            <QuietLine text={displayTitle} />
+            {pointer && (
+              // The same mark the meta line's links wear (`↗` leaves the
+              // site); this one stays on the page and says which way.
+              <span aria-hidden className="ml-1.5 font-mono text-[0.7rem]">
+                {pointer === "down" ? "↓" : "↑"}
+              </span>
+            )}
+          </span>
         ) : (
           <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
             {displayTitle}
-            {data.languageBadge && (
-              <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
-                {data.languageBadge}
-              </span>
-            )}
+            {versions
+              ? versions
+              : data.languageBadge && (
+                  <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
+                    {data.languageBadge}
+                  </span>
+                )}
           </span>
         )}
 
@@ -569,7 +601,9 @@ export function TimelineCommit({
         on-screen while you read.
       */}
       {!isQuiet && (data.meta || byline) && (
-        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
+        // `min-w-0`: the line never wraps, so without it a long venue sets
+        // the column's minimum width and pushes the date off a phone.
+        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex min-w-0 items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
             {data.meta ? (
               data.metaUrl ? (
@@ -784,10 +818,13 @@ export function TimelineCommit({
     </div>
   );
 
+  // A pointer is not the commit's address; the row it leads to is.
+  const rowId = anchorId === undefined ? data.hash : (anchorId ?? undefined);
+
   return (
     <div
-      id={data.hash}
-      data-rail-row
+      id={rowId}
+      data-rail-row={rowId ? "" : undefined}
       data-role-row={isRoleAnchor ? "" : undefined}
       className={className}
     >

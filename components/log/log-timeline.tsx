@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
   adjustRailForHidden,
   computeBeams,
   computeInferredBeams,
+  computeCommitHash,
   computeRail,
   type FilterableCommitType,
   formatTagDateRange,
@@ -15,6 +17,12 @@ import {
   isRowVisible,
   type Tag,
 } from "@/lib/log";
+import {
+  buildEditions,
+  editionLine,
+  withinRange,
+  type Editions,
+} from "@/lib/log-editions";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +31,7 @@ import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
 import { useTimelineEdit } from "./timeline-edit-context";
+import { registerCommitRevealer } from "./use-commit-anchor";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
  *  per-tag memo below on every render for callers that never filter
@@ -100,6 +109,38 @@ export function LogTimeline({
   onSelectHash,
   pinnedChapters = false,
 }: LogTimelineProps) {
+  // Works in several versions, over the whole log rather than per chapter:
+  // a version can sit on the other side of a chapter marker from its lead,
+  // and its line still has to know where to send you.
+  const editions = useMemo(() => {
+    const all = data.flatMap((d) => d.commits);
+    const e = buildEditions(all, (c) => isRowVisible(c, activeTypes), locale);
+    const order = new Map(all.map((c, i) => [c.id, i]));
+    return { ...e, order };
+  }, [data, activeTypes, locale]);
+
+  // Which version each work's row is showing, by work id. Unset is the lead.
+  const [chosen, setChosen] = useState<Record<string, string>>({});
+  const choose = useCallback(
+    (work: string, version: string) =>
+      setChosen((c) => (c[work] === version ? c : { ...c, [work]: version })),
+    [],
+  );
+
+  // `/works#<version hash>` lands on its work's row, showing that version.
+  // Synchronous, because the caller measures the row on the next line.
+  useEffect(
+    () =>
+      registerCommitRevealer((hash) => {
+        const id = editions.byHash.get(hash);
+        const group = id ? editions.groupOf.get(id) : undefined;
+        if (!id || !group) return null;
+        flushSync(() => choose(group.id, id));
+        return document.getElementById(computeCommitHash(group.lead.id));
+      }),
+    [editions, choose],
+  );
+
   return (
     <div className="space-y-0">
       {data.map(({ tag, commits }, tagIndex) => (
@@ -114,6 +155,9 @@ export function LogTimeline({
           activeTypes={activeTypes}
           onSelectHash={onSelectHash}
           pinned={pinnedChapters}
+          editions={editions}
+          chosen={chosen}
+          onChoose={choose}
         />
       ))}
     </div>
@@ -130,6 +174,9 @@ interface TagBlockProps {
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
+  editions: Editions & { order: Map<string, number> };
+  chosen: Record<string, string>;
+  onChoose: (work: string, version: string) => void;
 }
 
 function TagBlock({
@@ -142,6 +189,9 @@ function TagBlock({
   activeTypes,
   onSelectHash,
   pinned,
+  editions,
+  chosen,
+  onChoose,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -330,27 +380,65 @@ function TagBlock({
             }
           }
           return runs.map((run, runIdx) => {
-            const rows = run.indices.map((i) => (
-              <Commit
-                key={commits[i].id}
-                commit={commits[i]}
-                locale={locale}
-                variant="timeline"
-                hideDate={tag.hideDate || commits[i].hideDate}
-                rail={railInfo[i].rail}
-                segmentId={railInfo[i].segmentId}
-                isSegmentActive={
+            const rows = run.indices.map((i) => {
+              const c = commits[i];
+              const shared = {
+                commit: c,
+                locale,
+                variant: "timeline" as const,
+                hideDate: tag.hideDate || c.hideDate,
+                rail: railInfo[i].rail,
+                segmentId: railInfo[i].segmentId,
+                isSegmentActive:
                   railInfo[i].segmentId !== null &&
-                  railInfo[i].segmentId === activeBeam?.roleId
-                }
-                beamSpec={beamSpecs[i]}
-                onBeamSet={handleBeamSet}
-                onBeamClear={handleBeamClear}
-                byline={bylines[i]}
-                form={form}
-                onSelectHash={onSelectHash}
-              />
-            ));
+                  railInfo[i].segmentId === activeBeam?.roleId,
+                beamSpec: beamSpecs[i],
+                onBeamSet: handleBeamSet,
+                onBeamClear: handleBeamClear,
+                byline: bylines[i],
+                form,
+                onSelectHash,
+              };
+
+              const group = editions.groupOf.get(c.id);
+              if (!group) return <Commit key={c.id} {...shared} />;
+
+              // The work's row, at its lead's date, with every version in it.
+              if (group.lead === c) {
+                return (
+                  <Commit
+                    key={c.id}
+                    {...shared}
+                    versions={group.versions}
+                    selectedVersion={chosen[group.id] ?? c.id}
+                    onSelectVersion={(id) => onChoose(group.id, id)}
+                  />
+                );
+              }
+
+              // Another version, at its own date. If the work's row already
+              // covers that time, the row is where a reader looks for it and
+              // this line would only repeat it.
+              if (withinRange(c, group.lead)) return null;
+              const down =
+                (editions.order.get(group.lead.id) ?? 0) >
+                (editions.order.get(c.id) ?? 0);
+              const hash = computeCommitHash(c.id);
+              return (
+                <Commit
+                  key={c.id}
+                  {...shared}
+                  foldedLine={editionLine(c, locale)}
+                  pointer={down ? "down" : "up"}
+                  anchorId={null}
+                  onPress={() =>
+                    onSelectHash
+                      ? onSelectHash(hash)
+                      : onChoose(group.id, c.id)
+                  }
+                />
+              );
+            });
             return run.kind === "cluster" ? (
               // An identity can cluster twice (Meta, then RIT, then Meta
               // again), so the run is named by its first row, not its id.
