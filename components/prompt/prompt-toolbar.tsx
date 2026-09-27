@@ -17,8 +17,21 @@
  *
  * The ref slot holds `system`, because that is the element this whole page
  * is the body of, and because the slot is what makes the row read as a
- * header rather than as a widget. /works animates a chapter into the slot as
- * the log scrolls; this page has no chapters, so the slot is static.
+ * header rather than as a widget. It stays static: /works animates a
+ * chapter into its slot as the log scrolls, but the chapters of this page
+ * are already on the bar. The topics are its reading order (`lib/prompt-
+ * view`) — 天行, then 修身, then 行事, and then the people behind them — so
+ * the chip for the one you are in is the place to say where you are.
+ *
+ *   <system> │ ◆ 13  ◇ 8 │ 天行 4  修身 4  行事 5
+ *                                  ‾‾‾‾‾‾
+ *
+ * It goes to full ink and wears a hairline under it, and the hairline
+ * travels to the next chip as the next chapter reaches the middle of the
+ * view, where the spotlight is (`useReadingChapter`). Past the last shelf it
+ * travels on to ◇, because the influences are the page's fourth run even
+ * though they sit on no shelf. The mark is not the filter's: a selected
+ * chip fills, a read one is underlined, and a chip can be both.
  *
  * Rest state is quiet, the way it is on /works: nothing selected is
  * "everything", drawn as plain text rather than a row of filled chips. The
@@ -33,8 +46,8 @@
  * ground to stay legible.
  */
 
-import { useRef } from "react";
-import { motion, useTransform } from "motion/react";
+import { useEffect, useRef } from "react";
+import { motion, useReducedMotion, useTransform } from "motion/react";
 import { Diamond, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t, type Locale } from "@/lib/i18n";
@@ -46,6 +59,7 @@ import {
 } from "@/lib/prompt-view";
 import { usePageLift } from "@/components/ui/use-page-lift";
 import { useScrollEdges } from "@/components/ui/use-scroll-edges";
+import { useReadingChapter, type PromptChapter } from "./use-reading-chapter";
 
 export interface KindFacet {
   kind: PromptKind;
@@ -78,6 +92,10 @@ const PANEL = cn(
 /** How much scroll it takes the capsule to grow in. */
 const LIFT_PX = 32;
 
+/** The reading mark moving from one chip to the next — the /works ref's
+ *  handover spring, so the two bars settle the same way. */
+const SETTLE = { type: "spring", duration: 0.4, bounce: 0.12 } as const;
+
 /**
  * A conviction is filled, an influence is hollow: the same mark at two
  * weights, because the two are the same kind of thing seen from either end
@@ -108,18 +126,57 @@ export function PromptToolbar({
   const more = useScrollEdges(topicsRef);
   const lift = usePageLift(LIFT_PX);
   const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
+  const reduced = useReducedMotion() ?? false;
+  const reading = useReadingChapter();
 
-  /** One chip, at the three states the row has: selected, receding while
-   *  something else is selected, and at rest. */
-  const chipClass = (selected: boolean) =>
+  // Squeezed on a phone, the topics scroll inside their group, and the one
+  // being read may be the one cut off at the edge. Bring it in — the group
+  // only, by hand, since `scrollIntoView` would also move the page.
+  useEffect(() => {
+    const group = topicsRef.current;
+    const chip = group?.querySelector<HTMLElement>("[aria-current]");
+    if (!group || !chip) return;
+    const start = chip.offsetLeft - group.offsetLeft;
+    const end = start + chip.offsetWidth;
+    const fade = 24; // the mask's width: a chip under it reads as cut
+    const left =
+      start - fade < group.scrollLeft
+        ? start - fade
+        : end + fade > group.scrollLeft + group.clientWidth
+          ? end + fade - group.clientWidth
+          : null;
+    if (left !== null)
+      group.scrollTo({
+        left: Math.max(0, left),
+        behavior: reduced ? "auto" : "smooth",
+      });
+  }, [reading, reduced]);
+
+  /** One chip, at the states the row has: selected, receding while
+   *  something else is selected, at rest — and, on top of any of them,
+   *  being read. */
+  const chipClass = (selected: boolean, current: boolean) =>
     cn(
-      "inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-1",
+      "relative inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-1",
       "transition-colors duration-200",
       selected
         ? "bg-muted text-foreground"
-        : filtering
-          ? "text-quaternary-foreground hover:text-muted-foreground"
-          : "text-tertiary-foreground hover:text-foreground",
+        : current
+          ? "text-foreground"
+          : filtering
+            ? "text-quaternary-foreground hover:text-muted-foreground"
+            : "text-tertiary-foreground hover:text-foreground",
+    );
+
+  /** Where the reader is: one hairline under one chip, travelling. */
+  const readingMark = (chapter: PromptChapter) =>
+    reading === chapter && (
+      <motion.span
+        aria-hidden
+        layoutId="prompt-reading"
+        transition={reduced ? { duration: 0 } : SETTLE}
+        className="absolute inset-x-1.5 bottom-0 h-px rounded-full bg-foreground"
+      />
     );
 
   return (
@@ -146,6 +203,9 @@ export function PromptToolbar({
             const facet = kindFacets.find((f) => f.kind === kind);
             if (!facet) return null;
             const selected = activeKinds.includes(kind);
+            // Only the influences are a chapter; the convictions are read
+            // through their topics, one group over.
+            const current = kind === "influence" && reading === "influence";
             const label = t(locale, KIND_LABEL[kind]);
             return (
               <button
@@ -153,13 +213,15 @@ export function PromptToolbar({
                 type="button"
                 onClick={() => onToggleKind(kind)}
                 aria-pressed={selected}
+                aria-current={current ? "location" : undefined}
                 aria-label={`${label} (${facet.count})`}
                 title={label}
-                className={chipClass(selected)}
+                className={chipClass(selected, current)}
               >
                 <Diamond className={cn("h-3 w-3 shrink-0", KIND_MARK[kind])} />
                 <span className="hidden sm:inline">{label}</span>
                 <span className="tabular-nums">{facet.count}</span>
+                {kind === "influence" && readingMark("influence")}
               </button>
             );
           })}
@@ -169,8 +231,11 @@ export function PromptToolbar({
 
         {/* Topics. Wordmarks rather than icons — six shelves would need six
             glyphs nobody has learned, and the words are the point. */}
-        <div
+        <motion.div
           ref={topicsRef}
+          // The mark travels in and out of a group that scrolls sideways;
+          // this is what lets it measure through that scroll.
+          layoutScroll
           role="group"
           aria-label={t(locale, "promptTopicLabel")}
           className={cn(
@@ -187,6 +252,7 @@ export function PromptToolbar({
         >
           {topicFacets.map(({ topic, count }) => {
             const selected = activeTopics.includes(topic);
+            const current = reading === topic;
             const label = topicLabel(topic, locale);
             return (
               <button
@@ -194,12 +260,14 @@ export function PromptToolbar({
                 type="button"
                 onClick={() => onToggleTopic(topic)}
                 aria-pressed={selected}
+                aria-current={current ? "location" : undefined}
                 aria-label={`${label} (${count})`}
                 title={label}
-                className={chipClass(selected)}
+                className={chipClass(selected, current)}
               >
                 <span>{label}</span>
                 <span className="tabular-nums">{count}</span>
+                {readingMark(topic)}
               </button>
             );
           })}
@@ -216,7 +284,7 @@ export function PromptToolbar({
               <X className="h-3 w-3" />
             </button>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );
