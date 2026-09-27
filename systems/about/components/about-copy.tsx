@@ -1,4 +1,5 @@
-import { BadgeLink } from "@/components/badge";
+import { BadgeLink, type BadgeLinkProps } from "@/components/badge";
+import { Fn, Footnote, Footnotes } from "./footnote";
 import type { Locale } from "@/lib/i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
@@ -52,15 +53,18 @@ const components: MDXComponents = {
   p: ({ className, ...props }) => <p className={className} {...props} />,
   a: AboutLink,
   strong: (props) => <strong className="font-medium text-foreground" {...props} />,
+  // *interface* — the one word the words are about.
+  em: (props) => <em className="font-serif italic text-foreground/90" {...props} />,
   Badge: BadgeLink,
   BadgeLink,
+  // A word that points somewhere without naming a thing I made: opens its
+  // thing as a badge does, dressed as a plain link.
+  Ref: (props: BadgeLinkProps) => <BadgeLink plain {...props} />,
+  Fn,
+  Footnotes,
+  Footnote,
   Kbd: ({ children }: { children: React.ReactNode }) => (
     <kbd className={cn(TYPE.kbd, "text-[0.8em]")}>{children}</kbd>
-  ),
-  Credits: ({ children }: { children: React.ReactNode }) => (
-    <footer className="about-credits mt-2 font-mono text-[11px] leading-relaxed text-tertiary-foreground [&_a]:text-muted-foreground [&_a]:decoration-foreground/15">
-      {children}
-    </footer>
   ),
 };
 

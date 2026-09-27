@@ -101,6 +101,12 @@ export interface BadgeLinkProps {
   icon?: string;
   /** The label, when there are no children; the window's or stage's title. */
   title?: string;
+  /**
+   * A word, not a badge: no pill and no icon — a quiet underlined link that
+   * opens its thing exactly as a badge would (MDX: `<Ref>`). For the words
+   * in a sentence that point somewhere without naming a thing I made.
+   */
+  plain?: boolean;
   className?: string;
   children?: ReactNode;
 }
@@ -115,6 +121,12 @@ const GLYPHS: Record<BadgeKind, LucideIcon> = {
   image: ImageIcon,
   social: AtSign,
 };
+
+/** A plain reference: the prose link's underline, nothing else. */
+const PLAIN =
+  "not-prose text-foreground underline decoration-foreground/25 underline-offset-[0.2em] " +
+  "transition-colors hover:decoration-foreground/70 " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 /** The pill. Sized in `em` so it sits in a sentence at whatever size. */
 const BADGE =
@@ -180,6 +192,7 @@ export function BadgeLink({
   as,
   icon,
   title,
+  plain = false,
   className,
   children,
 }: BadgeLinkProps) {
@@ -241,9 +254,9 @@ export function BadgeLink({
       // A drag across a word selects it; the link is still a click away.
       draggable={false}
       onClick={onClick}
-      className={cn(BADGE, className)}
+      className={cn(plain ? PLAIN : BADGE, className)}
     >
-      <BadgeMark icon={badge.icon} kind={badge.kind} />
+      {!plain && <BadgeMark icon={badge.icon} kind={badge.kind} />}
       {children ?? badge.label}
     </a>
   );

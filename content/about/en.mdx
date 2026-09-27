@@ -3,23 +3,26 @@
   back from anywhere. Keep it short: a greeting, who I am, what this is, and
   the credits last.
 
-  <Badge> names a thing I made and opens it where it lives on this site —
-  commit="<id in content/log.json>", app="<id in content/apps.json>", or
-  href="<any url>". See components/badge.
+  <Badge> names a thing I made — a company, a project — and opens it where
+  it lives on this site: commit="<id in content/log.json>", app="<id in
+  content/apps.json>", or href="<any url>". See components/badge.
+  <Ref> takes the same, for a word that points somewhere without naming a
+  thing I made: a plain link that opens as a badge does.
+  *interface* is set in italics. <Fn n="1" /> marks a note;
+  <Footnote n="1"> in <Footnotes> is the note, in the annotation type.
 */}
 
 # Hey, I'm Hux.
 
-I build the layer between people and machines: languages, frameworks, and the interfaces on top of them. I've been doing it on the web for over a decade, with a detour through <Badge commit="wasmcert" item={3} icon="/img/works/wasmcert-poster.webp">Programming Languages Theory</Badge>.
+I <Ref href="/writing/dreamer/en">dream</Ref> of making the *interfaces* between humans and computers better: the ones we use, and the ones we use to build them.
 
-Working on <Badge commit="lynx-framework" item={2}>Lynx</Badge> at ByteDance, the framework behind TikTok\
-Previously <Badge commit="reactconf-2021-memo" icon="/badge-icons/react.dev.png">React Compiler</Badge> <Badge commit="hermes-engine" item={2}>Hermes</Badge> <Badge commit="reasonml">ReasonML</Badge> at Meta\
-Before that <Badge commit="eleme-pwa" item={0}>Ele.me PWA</Badge> <Badge commit="alitrip-mobile-web">Alitrip</Badge> in China
+I started making <Ref href="/writing/farewell-flash/en">Flash</Ref> games at 10, earned my first few bucks on motion graphics, spent the 2010s crafting web and mobile apps for <Badge commit="alitrip-mobile-web">Alibaba</Badge>, <Badge commit="yupiaoer" icon="/img/works/yupiaoer-ttf-awards-2017-cover.webp">Wepiao</Badge>, and <Badge commit="eleme-pwa" item={0}>Ele.me</Badge>, then joined <Badge href="https://www.meta.com">Meta</Badge> to engineer compilers for the <Badge commit="reasonml">Web</Badge>, <Badge commit="xros-reality-labs">XR</Badge>, <Badge commit="hermes-engine" item={2}>React Native</Badge>, and <Badge commit="reactconf-2021-memo" icon="/badge-icons/react.dev.png">React</Badge>. I'm currently at <Badge href="https://www.bytedance.com">ByteDance</Badge>, architecting <Badge commit="lynx-framework" item={2}>Lynx</Badge>, a new universal *interface* for building apps across platforms.
 
-I give [talks](/works?type=talk) and write [posts](/writing) about the web, React, and what app frameworks should become in the age of AI. Watch <Badge href="https://youtu.be/lGEMwh32soc">React without memo</Badge>, flip through <Badge href="https://huxpro.github.io/pwa-qcon2016/">PWA, 2016</Badge>, or play a round of <Badge app="lynx-flappy-bird" /> in a window. It all started with <Badge commit="hux-blog">Hux Blog</Badge> in 2015.
+It turns out the kid animating in Flash and the grad student<Fn n="1" /> staring at <Ref commit="wasmcert" item={3}>type theory</Ref> wanted the same thing all along: *interfaces*.
 
-This site is an experiment in designing a personal website as an operating system. There is no navbar: press <Kbd>⌘K</Kbd> and ask it. Talks play on a stage, links open in an in-app browser, apps run in windows, and the wallpaper follows your sky. Everything here is a surface, and this is one of them: you can find it again in the command menu.
+This site is an experiment in modeling a public *interface* to my mind, with a personal-OS aesthetic<Fn n="2" />: the <Ref href="/works?type=talk">talks</Ref> I've given, the <Ref href="/writing">posts</Ref> I've written, the <Ref href="/works?type=project">projects</Ref> I've built, and even how I <Ref href="/prompt">prompt</Ref> myself.
 
-<Credits>
-Inspired by Siri's glow, Liquid Glass, Raycast, and the homepages of [Anthony Fu](https://antfu.me) and [Shu Ding](https://shud.in). Built with Next.js, Base UI, Motion and Lynx.
-</Credits>
+<Footnotes>
+<Footnote n="1">I did go to school. I hold a BA in Digital Media Art from <Ref href="https://www.cuc.edu.cn">Communication University of China</Ref>, and an MS in Computer Science from <Ref href="https://www.rit.edu">Rochester Institute of Technology</Ref>, focusing on <Ref commit="wasmcert" item={2}>programming languages</Ref> and advised primarily by <Ref href="https://www.cs.rit.edu/~mtf/">Prof. Matthew Fluet</Ref>.</Footnote>
+<Footnote n="2">Inspired by <Ref href="https://www.mercuryos.com">Mercury OS</Ref>, <Ref href="https://os.ryo.lu">ryOS</Ref>, and <Ref href="https://developer.apple.com/design/human-interface-guidelines">Apple</Ref>.</Footnote>
+</Footnotes>

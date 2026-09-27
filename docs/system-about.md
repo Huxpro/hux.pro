@@ -105,11 +105,21 @@ hardware's to clip).
 
 `content/about/en.mdx` and `zh.mdx`. The root layout renders both at build
 time with `AboutCopy` (a server component, so it is imported by path, not from
-the system's index) and the surface shows the reader's. Components available:
-`Badge` / `BadgeLink`, `Kbd`, `Credits` (the tiny line at the foot), plain
-links (internal ones use the router; external ones open a tab).
+the system's index) and the surface shows the reader's. What is available:
 
-Keep it short: a greeting, who I am, what the site is, credits last.
+| | |
+|---|---|
+| `<Badge>` | a thing I made — a company, a project — with its icon, opening where it lives |
+| `<Ref>` | a word that points somewhere without naming a thing I made (a post, a talk list, a school): the same targets as `<Badge>` and the same way of opening, dressed as a plain underlined link (`BadgeLink plain`). Its own tag, so the badge-icon check does not ask it for an icon |
+| `*…*` | italics, in the serif — the word the copy is about, *interface* |
+| `<Fn n="1" />` | a note's mark: a superscript number that scrolls the note into view inside the About (the address is left alone) |
+| `<Footnotes>` / `<Footnote n="1">` | the notes, at the end, in the About's annotation type — the tiny mono line; a note's number scrolls back to its mark |
+| `<Kbd>`, plain links | a key; a link (internal ones use the router, external ones open a tab) |
+
+Every keyword links somewhere: companies and projects as badges (each wears
+its site's icon — `pnpm badges:snapshot`, `content/badges.json` naming the
+site where a commit's first link is not its home), everything else as a
+`<Ref>`.
 
 ## Badges
 
