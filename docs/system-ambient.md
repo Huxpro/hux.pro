@@ -22,6 +22,7 @@ systems/ambient/
 │   ├── weather-widget.tsx        # iOS-style weather widget (header + WeatherNow)
 │   ├── weather-now.tsx           # Shared weather body + useDisplayWeather()
 │   ├── phase-activity.tsx        # Sun-event notification (plugs into the Dock)
+│   ├── permission-sheet.tsx      # The shape the three offers below share: phases, sheet, outcome
 │   ├── location-primer-sheet.tsx # The offer before the browser's location prompt
 │   ├── tilt-primer-sheet.tsx     # The tilt's offer before WebKit's motion prompt (rain and snow)
 │   ├── sky-window-sheet.tsx      # The sky window's offer: motion, and the place with it

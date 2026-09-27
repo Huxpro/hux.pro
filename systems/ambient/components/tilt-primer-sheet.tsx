@@ -2,9 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { AdaptiveSurface, SurfaceMorph } from "@/systems/surface";
-import { useEffect, useState } from "react";
 import { useWallpaper } from "../provider";
+import { OFFER_DWELL, PermissionSheet, usePermissionOffer } from "./permission-sheet";
 
 // ---------------------------------------------------------------------------
 // TiltPrimerSheet — the offer that comes before the motion prompt.
@@ -32,6 +31,8 @@ import { useWallpaper } from "../provider";
 // one thing that never changes. The camera follows the device part of the way
 // instead, so the cause and the effect are both on screen with the angle
 // between them still exactly the device's. See the block in globals.css.
+//
+// The sheet's shape is shared with the other offers (permission-sheet.tsx).
 //
 // It stays up through the browser's dialog and says how it went, because it is
 // the only thing on screen that can. A refusal especially: the sky simply goes
@@ -166,148 +167,41 @@ function TiltIllustration({ pose }: { pose: Pose }) {
   );
 }
 
-/**
- * The phases of one press. `asking` is the browser's own dialog, which covers
- * the page — nobody really sees that state, it just has to not offer the button
- * twice.
- */
-type Phase = "offer" | "asking" | "granted" | "denied";
-
-/**
- * How long the outcome stays up before the sheet closes itself, ms. Long enough
- * to read once and no longer; a refusal gets more because it carries the way
- * back, and because it is the one nobody was expecting.
- */
-const DWELL: Record<"granted" | "denied", number> = {
-  granted: 1400,
-  denied: 3000,
-};
-
-const BUTTON =
-  "w-full rounded-2xl px-4 py-3 text-[15px] font-medium transition-colors " +
-  "active:scale-[0.99] motion-reduce:active:scale-100";
-
 export function TiltPrimerSheet() {
   const { locale } = useLocale();
   const { isTiltPrimerOpen, closeTiltPrimer, takeTilt } = useWallpaper();
-  const [phase, setPhase] = useState<Phase>("offer");
+  const { phase, view, ask } = usePermissionOffer<"granted" | "denied">({
+    open: isTiltPrimerOpen,
+    close: closeTiltPrimer,
+    dwell: (outcome) => OFFER_DWELL[outcome],
+  });
 
-  // The outcome shows, and then the sheet lets itself out.
-  useEffect(() => {
-    if (phase !== "granted" && phase !== "denied") return;
-    const timer = window.setTimeout(closeTiltPrimer, DWELL[phase]);
-    return () => window.clearTimeout(timer);
-  }, [phase, closeTiltPrimer]);
-
-  // Back to the offer for the next time there is one. There is no next time
-  // today — the offer is spent — but the component outlives the sheet, and a
-  // sheet that reopened already answered would be a puzzle.
-  //
-  // On the way IN rather than on the way out, and during the render that opens
-  // it rather than after: swapping the content back while the sheet is still
-  // animating away would show the offer flashing behind the outcome.
-  const [wasOpen, setWasOpen] = useState(isTiltPrimerOpen);
-  if (wasOpen !== isTiltPrimerOpen) {
-    setWasOpen(isTiltPrimerOpen);
-    if (isTiltPrimerOpen) setPhase("offer");
-  }
-
-  const take = async () => {
-    setPhase("asking");
-    const access = await takeTilt();
-    // "prompt" is the gate refusing to even consider it — no dialog was shown
-    // and nothing was answered, so the offer is simply still standing.
-    setPhase(
-      access === "denied"
-        ? "denied"
-        : access === "prompt"
-          ? "offer"
-          : "granted"
-    );
-  };
-
-  const settled = phase === "granted" || phase === "denied";
+  // "prompt" is the gate refusing to even consider it — no dialog was shown
+  // and nothing was answered, so the offer is simply still standing.
+  const take = () =>
+    ask(async () => {
+      const access = await takeTilt();
+      return access === "denied" ? "denied" : access === "prompt" ? "offer" : "granted";
+    });
 
   return (
-    <AdaptiveSurface
+    <PermissionSheet
       id="surface-tilt-primer"
       open={isTiltPrimerOpen}
-      // Any other way out is the same as "not now": nothing is granted, and
-      // the offer is spent either way.
-      onOpenChange={(open) => {
-        if (!open) closeTiltPrimer();
-      }}
-      presentation={{ base: "sheet" }}
+      close={closeTiltPrimer}
       title={t(locale, "tiltPrimerTitle")}
-      closeLabel={t(locale, "tiltPrimerDismiss")}
-      // No detents: a picture, a paragraph and two buttons is a form sheet, not
-      // a list, so it stands as tall as it is and no taller.
-      fitContent
-    >
-      <div className="space-y-4 pb-2">
-        {/* A refusal gets the picture of what a refusal leaves you with. */}
-        <TiltIllustration pose={phase === "denied" ? "flat" : "rocking"} />
-        {/* The offer, then how it went, in the same sheet: the words
-            cross-fade and the sheet eases to its new height rather than
-            cutting to it (SurfaceMorph). The picture stays; its pose is its
-            own. */}
-        <SurfaceMorph
-          step={settled ? phase : "offer"}
-          render={(view) =>
-            view === "granted" || view === "denied" ? (
-              <p
-                role="status"
-                className={cn(
-                  "px-0.5 py-2 text-center text-[15px] leading-relaxed",
-                  view === "granted" ? "text-foreground" : "text-secondary-foreground"
-                )}
-              >
-                {t(locale, view === "granted" ? "tiltPrimerGranted" : "tiltPrimerDenied")}
-              </p>
-            ) : (
-              <div className="space-y-4">
-                <p className="px-0.5 text-[15px] leading-relaxed text-secondary-foreground">
-                  {t(locale, "tiltPrimerBody")}
-                </p>
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    // Straight from the press: `takeTilt()` reaches
-                    // `requestPermission()` in the same task, which is the only
-                    // thing that makes WebKit's dialog appear at all.
-                    onClick={take}
-                    disabled={phase === "asking"}
-                    className={cn(
-                      BUTTON,
-                      "bg-foreground text-background hover:bg-foreground/90",
-                      "disabled:opacity-50"
-                    )}
-                  >
-                    {t(locale, "tiltPrimerConfirm")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={closeTiltPrimer}
-                    disabled={phase === "asking"}
-                    className={cn(
-                      BUTTON,
-                      "bg-foreground/[0.06] hover:bg-foreground/10",
-                      "disabled:opacity-50"
-                    )}
-                  >
-                    {t(locale, "tiltPrimerDismiss")}
-                  </button>
-                </div>
-                <p className="px-0.5 text-center text-[11px] leading-snug text-tertiary-foreground">
-                  {t(locale, "tiltPrimerAsk")}
-                  <br />
-                  {t(locale, "tiltPrimerAgain")}
-                </p>
-              </div>
-            )
-          }
-        />
-      </div>
-    </AdaptiveSurface>
+      // A refusal gets the picture of what a refusal leaves you with.
+      picture={<TiltIllustration pose={phase === "denied" ? "flat" : "rocking"} />}
+      view={view}
+      busy={phase === "asking"}
+      status={(outcome) =>
+        t(locale, outcome === "granted" ? "tiltPrimerGranted" : "tiltPrimerDenied")
+      }
+      body={t(locale, "tiltPrimerBody")}
+      // `takeTilt()` reaches `requestPermission()` in the tap's own task.
+      confirm={{ label: t(locale, "tiltPrimerConfirm"), onClick: take }}
+      dismiss={{ label: t(locale, "tiltPrimerDismiss"), onClick: closeTiltPrimer }}
+      note={[t(locale, "tiltPrimerAsk"), t(locale, "tiltPrimerAgain")]}
+    />
   );
 }
