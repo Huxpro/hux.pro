@@ -173,7 +173,11 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
                   // (useLockTextSelection) would otherwise take its words.
                   data-text-document=""
                   lang={locale === "zh" ? "zh" : "en"}
-                  className="about-copy w-full max-w-[33rem] space-y-5 text-[15px] leading-[1.8] text-muted-foreground [&:lang(zh)]:leading-[1.9]"
+                  // Set as an article is (`.prose-article`, globals.css):
+                  // the reader's size, 1.75 lines, the article's ink, a
+                  // paragraph and a half apart — so the About reads as the
+                  // site's prose, not a type of its own.
+                  className="about-copy w-full max-w-[33rem] space-y-[calc(var(--reading-size)*1.5)] text-[length:var(--reading-size)] leading-[1.75] text-foreground/85"
                   initial={{ y: 10, scale: 0.985 }}
                   animate={{ y: 0, scale: 1 }}
                   exit={{ y: 6, scale: 0.99 }}

@@ -746,55 +746,48 @@ html.dragging * {
   margin-bottom: var(--reading-size);
 }
 
-.prose-article a:not(:where(.not-prose, .not-prose *)) {
-  @apply text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground transition-colors;
+/* A link in running text: the article's, and every plain magic link's
+   (`.prose-link`, components/magic-link — `.not-prose` to keep out of the
+   rules below, so it names this one instead). The line at rest is an alpha
+   of the ink itself, not of the already-muted secondary ink: at half of
+   that (a third of the ink, all told) it read as no underline until hover
+   made it whole. */
+.prose-article a:not(:where(.not-prose, .not-prose *)),
+.prose-link {
+  @apply text-foreground underline underline-offset-2 decoration-foreground/40 hover:decoration-foreground transition-colors;
 }
 
 .prose-article strong:not(:where(.not-prose, .not-prose *)) {
   @apply font-semibold;
 }
 
-.prose-article em:not(:where(.not-prose, .not-prose *)) {
+/* Emphasis is the serif — in the article, and in the About's words
+   (systems/about), which set their prose by these same rules. */
+.prose-article em:not(:where(.not-prose, .not-prose *)),
+.about-copy em {
   @apply font-serif italic;
 }
 
 /* Optical adjustment for Latin: Newsreader has smaller x-height than Inter.
    An em of the body, like every other size in here, so the correction keeps
    its proportion at every reading size instead of standing still. */
-.prose-article[lang="en"] em:not(:where(.not-prose, .not-prose *)) {
-  font-size: 1.0625em;
-}
-
-/* The About's words (systems/about) take the same optical adjustment as the
-   article: its italic *interface*, and the greeting where it is set at the
-   words' own size (a phone; on a desk it is a display size of its own). */
+.prose-article[lang="en"] em:not(:where(.not-prose, .not-prose *)),
 .about-copy:lang(en) em {
   font-size: 1.0625em;
 }
+/* The About's greeting takes it too where it is set at the words' own size
+   (a phone; on a desk it is a display size of its own). */
 @media (width < 40rem) {
   .about-copy:lang(en) h1 {
     font-size: 1.0625em;
   }
 }
-/* Chinese has no italic: the word is set in the serif, upright. */
+
+/* Chinese has no italic — a browser can only slant the glyphs, which reads
+   as a rendering fault — so Chinese emphasis is the serif, upright. */
+.prose-article[lang="zh"] em:not(:where(.not-prose, .not-prose *)),
 .about-copy:lang(zh) em {
   font-style: normal;
-}
-/* A plain link's underline is the article's, in shape; its ink is not. The
-   article's line (muted, at half) sits on a page; the About's words sit on a
-   frosted veil over the wallpaper, where that line all but disappears. So
-   the line here is an alpha of the ink itself, strong enough to read as a
-   link at a glance, and whole on hover. */
-.about-copy a:not(.badge-link) {
-  text-decoration-color: color-mix(in oklab, currentColor 45%, transparent);
-}
-.about-copy a:not(.badge-link):hover {
-  text-decoration-color: currentColor;
-}
-
-/* Right spacing for Chinese italic to prevent overhang */
-.prose-article[lang="zh"] em:not(:where(.not-prose, .not-prose *)) {
-  margin-right: 0.1em;
 }
 
 /* Blockquote - Editorial hanging quotation marks style */

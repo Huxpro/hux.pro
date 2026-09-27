@@ -25,7 +25,8 @@ import remarkGfm from "remark-gfm";
 
 function AboutLink({ href = "", ...props }: ComponentPropsWithoutRef<"a">) {
   const className =
-    "text-foreground underline underline-offset-2 decoration-muted-foreground/50 transition-colors hover:decoration-foreground";
+    // The running-text link, the article's (globals.css).
+    "prose-link";
   if (/^https?:/.test(href)) {
     return (
       <a
@@ -57,7 +58,9 @@ const components: MDXComponents = {
   a: AboutLink,
   strong: (props) => <strong className="font-medium text-foreground" {...props} />,
   // *interface* — the one word the words are about.
-  em: (props) => <em className="font-serif italic text-foreground/90" {...props} />,
+  // The serif, as in an article (`.about-copy em`, globals.css): italic in
+  // English, upright in Chinese.
+  em: (props) => <em {...props} />,
   // Every keyword summons something (components/magic-link): a badge names
   // a thing I made and wears its icon; a magic link is the word alone. Both
   // peek under the pointer and open the drawer on a phone.

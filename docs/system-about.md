@@ -106,6 +106,11 @@ hardware's to clip).
 
 ### The copy
 
+The words are set as an article is: the reader's size (`--reading-size`),
+1.75 lines, the article's ink, a paragraph and a half apart; links and
+emphasis share the article's rules (`.prose-link`, `.about-copy em`), so the
+About cannot drift from the site's prose.
+
 `content/about/en.mdx` and `zh.mdx`. The root layout renders both at build
 time with `AboutCopy` (a server component, so it is imported by path, not from
 the system's index) and the surface shows the reader's. What is available:
@@ -114,7 +119,7 @@ the system's index) and the surface shows the reader's. What is available:
 |---|---|
 | `<MagicLink>` | a word that summons something — a post, a work, a role, a page (below) |
 | `<Badge>` | the same link dressed as a pill wearing the thing's icon: a company, a project |
-| `*…*` | italics, in the serif — the word the copy is about, *interface* (in Chinese, which has no italic, 界面 is the serif upright). Latin serif is set 1.0625em, the article's optical adjustment for Newsreader's smaller x-height (`.about-copy:lang(en)` in globals.css) |
+| `*…*` | italics, in the serif — the word the copy is about, *interface* (in Chinese, which has no italic, 界面 is the serif upright). Latin serif is set 1.0625em, the article's optical adjustment for Newsreader's smaller x-height — the same rule as the article's (`.about-copy em` beside `.prose-article em`, globals.css) |
 | `<Fn n="1" />` | a note's mark: a superscript number that scrolls the note into view inside the About (the address is left alone) |
 | `<Footnotes>` / `<Footnote n="1">` | the notes, at the end, in the About's annotation type — the tiny mono line; a note's number scrolls back to its mark |
 | `<Kbd>`, plain links | a key; a link (internal ones use the router, external ones open a tab) |
