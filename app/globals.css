@@ -37,6 +37,11 @@
   --color-glass-overlay: var(--glass-overlay);
   --color-glass-sheet: var(--glass-sheet);
   --color-glass-popover: var(--glass-popover);
+  /* Selection. Not a glass material: a relationship between two surfaces.
+     See `Selection` below and docs/system-glass.md. */
+  --color-selected: var(--selected);
+  --color-selected-flat: var(--selected-flat);
+  --color-selected-lit: var(--selected-lit);
   /* The ink every text colour is an alpha of, and the wallpaper's tint (see
      docs/system-legibility.md). `bg-ink/5` is a wash; `text-tint` is colour. */
   --color-ink: var(--ink);
@@ -238,6 +243,17 @@
   --glass-hover-step: 20%;
   --glass-dark-add: 0%;
 
+  /* --- INPUTS: selection fills — how much of the lift survives on the chip
+     that says "this one". iOS's rule, in its segmented control and its tab
+     bar alike: the selected thing is the *lighter* thing. So the chip is
+     white in both themes and only these numbers change — nearly a solid card
+     against a light track, a grey lift off a near-black one. Light's are the
+     sheet / panel / card fills the chip already painted with, so light mode
+     is unchanged. --- */
+  --select-fill: 85%;       /* raised track (theater, PiP, Live Activity) */
+  --select-fill-flat: 70%;  /* flat track (home widgets), at rest */
+  --select-fill-lit: 100%;  /* flat track, hovered or pressed */
+
   /* --- Unchanged: primary / destructive / charts / layout --- */
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
@@ -289,6 +305,17 @@
   --wash-alpha-muted: 6%;
   --wash-alpha-accent: 10%;
   --wash-alpha-border: 10%;
+
+  /* Selection lifts *toward light* in both themes, so here the white chip is
+     an alpha rather than a slab: white at 22% over the raised track lands at
+     #5a5a5a against its #2c2c2c, which is iOS's own dark pair (systemGray2 on
+     tertiarySystemFill) within a point or two. This is the whole fix — the
+     chip used to be built from `--card`, which in this theme is *darker* than
+     the page (0.19 vs 0.2178), so every selected segment on the site read as
+     a hole punched in its track instead of a tile lifted off it. */
+  --select-fill: 22%;
+  --select-fill-flat: 12%;
+  --select-fill-lit: 18%;
 
   --primary: oklch(0.87 0 0);
   --primary-foreground: oklch(0.205 0 0);
@@ -433,6 +460,39 @@ html[data-tint="wallpaper"] {
     transparent
   );
 
+  /* --- Selection: the chip that says "this one" — the lifted pill in a
+     segmented control, the lit button in a transport cluster.
+     Two things set it apart from the glass roles above.
+     First, its base is *white*, not `--card`: "selected is lighter" is the
+     one rule iOS's segmented control and tab bar share, and it has to hold in
+     both themes, where `--card` only holds in light.
+     Second, it does not thin out with Tinted / Clear. Selection is not a
+     material, it is a relationship: the pair (track, chip) has to keep its
+     contrast step whatever the glass setting is, or the control stops saying
+     which one you picked. The track it sits on is a fixed alpha for the same
+     reason (`GLASS_TRACK` in systems/theater/lib/chrome.ts), so a chip that
+     thinned would only drift toward it. It does take `--glass-add` and
+     `--tint-glass`, which are the other two inputs: the first only ever adds
+     fill — the dimming a busy wallpaper needs — so it pushes the chip the way
+     selection already wants to go, and the second is colour rather than
+     contrast. --- */
+  --select-base: color-mix(in oklab, oklch(1 0 0), var(--tint) var(--tint-glass));
+  --selected: color-mix(
+    in oklab,
+    var(--select-base) calc(var(--select-fill) + var(--glass-add)),
+    transparent
+  );
+  --selected-flat: color-mix(
+    in oklab,
+    var(--select-base) calc(var(--select-fill-flat) + var(--glass-add)),
+    transparent
+  );
+  --selected-lit: color-mix(
+    in oklab,
+    var(--select-base) calc(var(--select-fill-lit) + var(--glass-add)),
+    transparent
+  );
+
   /* --- Relief: the shape that goes with this element's ink, at bare / glass /
      solid strength. The primitives (`--relief-rgb`, the alphas, the offsets)
      follow the ink: the theme's pair at rest, the inverse pair in a flipped
@@ -537,7 +597,10 @@ body,
 }
 .bg-glass-overlay,
 .bg-glass-sheet,
-.bg-glass-popover {
+.bg-glass-popover,
+.bg-selected,
+.bg-selected-flat,
+.bg-selected-lit {
   text-shadow: var(--text-relief-solid);
 }
 /* Anything that must never carry relief: an inverted chip, a code block. */
