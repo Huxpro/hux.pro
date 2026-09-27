@@ -57,8 +57,6 @@ export interface ProfileCommit {
   title: string;
   /** `Oct 2021` — the row's own date. */
   date: string;
-  /** Whether it has attachments to open in a drawer. */
-  hasMedia: boolean;
   /** Its row on /works. */
   href: string;
 }
@@ -79,8 +77,6 @@ export interface IdentityProfile {
   /** Commits signed as this identity, by type, most numerous first. */
   counts: ProfileCount[];
   total: number;
-  /** The address of the latest commit signed as this identity. */
-  latestHref?: string;
   /** The role's own row on /works. */
   roleHref: string;
   /** The commits signed as this identity — what `counts` counts — latest
@@ -137,7 +133,6 @@ export function buildIdentityProfile(
     type: c.type,
     title: localize(c.title, locale),
     date: formatCommitDate(c, locale),
-    hasMedia: (c.media?.length ?? 0) > 0,
     href: `/works#${computeCommitHash(c.id)}`,
   }));
   const byType = new Map<CommitType, number>();
@@ -169,7 +164,6 @@ export function buildIdentityProfile(
       : undefined,
     counts,
     total: signed.length,
-    latestHref: signed[0] ? `/works#${computeCommitHash(signed[0].id)}` : undefined,
     roleHref: `/works#${computeCommitHash(role.id)}`,
     commits,
   };

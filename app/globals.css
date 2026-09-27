@@ -716,12 +716,6 @@ html.dragging * {
   margin-bottom: 0;
 }
 
-/* A badge (components/badge) is `.not-prose` to escape the prose link style,
-   but it is a word in a sentence, not a block: no block margin. */
-.prose-article .not-prose.badge-link {
-  margin-block: 0;
-}
-
 /* -----------------------------------------------------------------------------
    Block spacing, against the reading size.
 

@@ -24,6 +24,7 @@
 // =============================================================================
 
 import type { Commit } from "./log";
+import { IMAGE_EXTENSIONS } from "./media-kind";
 
 /** content/badges.json — authored. */
 export interface BadgeConfig {
@@ -62,7 +63,6 @@ const ALIASES: Record<string, string> = {
   "m.bilibili.com": "bilibili.com",
 };
 
-const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i;
 
 /** A URL's site: its host without `www.`, aliases folded. */
 export function siteKey(url: string): string | null {

@@ -6,7 +6,7 @@
 // itself once for a first-time visitor; after that it is `O` from anywhere,
 // `/` `O` in the palette, or the `/about` address.
 //
-//   const { open, close, toggle, isOpen } = useAbout();
+//   const { open, dismiss, isOpen } = useAbout();
 //
 // Mount <AboutProvider> inside the command provider, and <AboutSurface>
 // once in the root layout with the copy rendered by AboutCopy

@@ -1,3 +1,4 @@
+import { detectMediaKind, detectVideoPlatform } from "@/lib/media-kind";
 import badgeIconsJson from "@/content/badge-icons.json";
 import badgeConfigJson from "@/content/badges.json";
 import ogSnapshotJson from "@/content/og-snapshot.json";
@@ -19,9 +20,9 @@ import {
   getDomainLabel,
   SOCIAL_PLATFORM_LABEL,
 } from "@/lib/og-core";
-import { isPlayableSlidesUrl } from "@/lib/slides";
 import type { AttachmentSet } from "@/systems/attachments/lib/types";
 import { isInternalLink } from "@/systems/attachments/lib/policy";
+import { isWritingLink } from "@/components/log/media/media-mark";
 import { attachmentSetFor } from "@/systems/attachments/lib/set";
 
 // =============================================================================
@@ -61,7 +62,7 @@ import { attachmentSetFor } from "@/systems/attachments/lib/set";
 type Snapshot = Record<string, MediaPreview & { siteName?: string }>;
 const SNAPSHOT = ogSnapshotJson as unknown as Snapshot;
 
-export type BadgeKind =
+export type MagicLinkKind =
   | "identity"
   | "app"
   | "web"
@@ -72,13 +73,11 @@ export type BadgeKind =
   | "image"
   | "social";
 
-export type BadgeTarget =
+export type MagicLinkTarget =
   | {
       type: "media";
       set: AttachmentSet;
       media: Media;
-      /** Where in the set it opens. */
-      index: number;
       /**
        * The whole commit, when the link names one (`commit=` without
        * `item`): it peeks as its /works row and its drawer pages through
@@ -94,9 +93,9 @@ export type BadgeIcon =
   | { type: "monogram"; letter: string; color?: string }
   | { type: "glyph" };
 
-export interface ResolvedBadge {
-  target: BadgeTarget | null;
-  kind: BadgeKind;
+export interface ResolvedMagicLink {
+  target: MagicLinkTarget | null;
+  kind: MagicLinkKind;
   label: string;
   /** The real address — what a modified click and a crawler follow. */
   href: string;
@@ -105,7 +104,7 @@ export interface ResolvedBadge {
   title: string;
 }
 
-export interface BadgeSpec {
+export interface MagicLinkSpec {
   commit?: string;
   item?: number;
   /** A role: a range id under `identities` in content/log.json. */
@@ -121,45 +120,14 @@ export interface BadgeSpec {
   title?: string;
 }
 
-const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i;
-const VIDEO_HOSTS: [RegExp, "youtube" | "bilibili" | "vimeo"][] = [
-  [/(^|\.)youtube\.com$|(^|\.)youtu\.be$/, "youtube"],
-  [/(^|\.)bilibili\.com$/, "bilibili"],
-  [/(^|\.)vimeo\.com$/, "vimeo"],
-];
-
-function hostOf(url: string): string | null {
-  try {
-    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
-  } catch {
-    return null;
-  }
-}
-
-function videoPlatformOf(url: string) {
-  const host = hostOf(url);
-  if (!host) return null;
-  return VIDEO_HOSTS.find(([re]) => re.test(host))?.[1] ?? null;
-}
-
 /** An href as a media item, the way <Media /> reads a URL. */
 export function mediaFromHref(
   url: string,
   as?: MediaKind,
   title?: string,
 ): Media {
-  const platform = videoPlatformOf(url);
-  const kind: MediaKind =
-    as ??
-    (platform
-      ? "video"
-      : detectSocialEmbedPlatform(url)
-        ? "social-embed"
-        : isPlayableSlidesUrl(url)
-          ? "slides"
-          : IMAGE_EXTENSIONS.test(url)
-            ? "image"
-            : "link");
+  const platform = detectVideoPlatform(url);
+  const kind: MediaKind = as ?? detectMediaKind(url);
   switch (kind) {
     case "video":
       return { kind, url, platform: platform ?? "youtube" };
@@ -195,7 +163,7 @@ export function mediaFromHref(
   }
 }
 
-function kindOf(media: Media): BadgeKind {
+function kindOf(media: Media): MagicLinkKind {
   switch (media.kind) {
     case "video":
       return "video";
@@ -206,7 +174,7 @@ function kindOf(media: Media): BadgeKind {
     case "social-embed":
       return "social";
     case "link":
-      if (media.internal || media.url.startsWith("/writing")) return "writing";
+      if (isWritingLink(media)) return "writing";
       return isInternalLink(media) ? "route" : "web";
   }
 }
@@ -230,7 +198,7 @@ function fromEntry(entry: AppIconSnapshotEntry | undefined): BadgeIcon | null {
 }
 
 /** The official icon of the site a badge stands for (content/badge-icons.json). */
-function siteIcon(spec: BadgeSpec): BadgeIcon | null {
+function siteIcon(spec: MagicLinkSpec): BadgeIcon | null {
   const url = badgeSiteUrl(spec, LOG.commits, BADGE_CONFIG);
   const key = url && siteKey(url);
   return key ? fromEntry(BADGE_ICONS[key]) : null;
@@ -281,7 +249,7 @@ function hrefFor(media: Media, locale: Locale): string {
   return media.url;
 }
 
-export function resolveBadge(spec: BadgeSpec, locale: Locale): ResolvedBadge | null {
+export function resolveMagicLink(spec: MagicLinkSpec, locale: Locale): ResolvedMagicLink | null {
   // Something the server resolved: a post, a section of this site.
   if (spec.media) {
     const media = spec.media;
@@ -293,7 +261,6 @@ export function resolveBadge(spec: BadgeSpec, locale: Locale): ResolvedBadge | n
       target: {
         type: "media",
         media,
-        index: 0,
         set: { id: `magic:${media.url}`, title, items: [media] },
       },
       kind: kindOf(media),
@@ -369,7 +336,6 @@ export function resolveBadge(spec: BadgeSpec, locale: Locale): ResolvedBadge | n
       target: {
         type: "media",
         media,
-        index: 0,
         // The commit's own set, so the drawer pages through all of it, as
         // a /works cover's does; one item stands alone.
         set: set ?? { id: `magic:${commit.id}#${spec.item}`, title, items: [media] },
@@ -397,8 +363,7 @@ export function resolveBadge(spec: BadgeSpec, locale: Locale): ResolvedBadge | n
       target: {
         type: "media",
         media,
-        index: 0,
-        set: { id: `badge:${spec.href}`, title: label, items: [media] },
+        set: { id: `magic:${spec.href}`, title: label, items: [media] },
       },
       kind: kindOf(media),
       label,

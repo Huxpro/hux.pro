@@ -1,14 +1,13 @@
 import { ServerBadge, ServerMagicLink } from "@/components/magic-link/server";
+import { SmartLink } from "@/components/mdx-components";
 import { Fn, Footnote, Footnotes } from "./footnote";
 import type { Locale } from "@/lib/i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import type { MDXComponents } from "mdx/types";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import Link from "next/link";
 import fs from "node:fs";
 import path from "node:path";
-import type { ComponentPropsWithoutRef } from "react";
 import remarkGfm from "remark-gfm";
 
 // =============================================================================
@@ -23,24 +22,6 @@ import remarkGfm from "remark-gfm";
 // index is imported by client code.
 // =============================================================================
 
-function AboutLink({ href = "", ...props }: ComponentPropsWithoutRef<"a">) {
-  const className =
-    // The running-text link, the article's (globals.css).
-    "prose-link";
-  if (/^https?:/.test(href)) {
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={className}
-        {...props}
-      />
-    );
-  }
-  return <Link href={href} className={className} {...props} />;
-}
-
 const components: MDXComponents = {
   h1: ({ className, ...props }) => (
     <h1
@@ -54,13 +35,10 @@ const components: MDXComponents = {
       {...props}
     />
   ),
-  p: ({ className, ...props }) => <p className={className} {...props} />,
-  a: AboutLink,
+  // The running-text link, the article's (`.prose-link`, globals.css).
+  a: (props) => <SmartLink className="prose-link" {...props} />,
   strong: (props) => <strong className="font-medium text-foreground" {...props} />,
   // *interface* — the one word the words are about.
-  // The serif, as in an article (`.about-copy em`, globals.css): italic in
-  // English, upright in Chinese.
-  em: (props) => <em {...props} />,
   // Every keyword summons something (components/magic-link): a badge names
   // a thing I made and wears its icon; a magic link is the word alone. Both
   // peek under the pointer and open the drawer on a phone.

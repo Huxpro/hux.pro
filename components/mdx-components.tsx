@@ -108,7 +108,7 @@ function InlineCode({ children, ...props }: ComponentPropsWithoutRef<"code">) {
  * Link component with external link detection
  * External links open in new tab with security attributes
  */
-function SmartLink({
+export function SmartLink({
   href,
   children,
   ...props

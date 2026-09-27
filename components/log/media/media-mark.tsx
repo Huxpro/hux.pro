@@ -84,7 +84,7 @@ export type MediaKind = "video" | "slides" | "web" | "post" | "image" | "social"
 
 /** The kind a media item stands for — what pressing its cover opens. */
 /** A post on this site: `/writing/…`, or a link enrichment resolved to one. */
-function isWritingLink(media: Media): boolean {
+export function isWritingLink(media: Media): boolean {
   return isLinkMedia(media) && (!!media.internal || media.url.startsWith("/writing"));
 }
 

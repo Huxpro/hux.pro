@@ -34,7 +34,12 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { resolveBadge, type BadgeIcon, type BadgeKind, type BadgeTarget } from "./resolve";
+import {
+  resolveMagicLink,
+  type BadgeIcon,
+  type MagicLinkKind,
+  type MagicLinkTarget,
+} from "./resolve";
 
 // =============================================================================
 // MagicLink — a word that summons something.
@@ -87,8 +92,7 @@ import { resolveBadge, type BadgeIcon, type BadgeKind, type BadgeTarget } from "
 // =============================================================================
 
 interface MagicLinkHostValue {
-  /** `navigating`: the link is leaving for another page by the router. */
-  onLaunch: (how: { navigating: boolean }) => void;
+  onLaunch: () => void;
   layer?: number;
 }
 
@@ -122,12 +126,9 @@ export interface MagicLinkProps {
   role?: string;
   /** An identity id, as a whole. */
   identity?: string;
-  /**
-   * A post's slug. Resolved on the server (server.tsx) into `media`; a
-   * client that renders a MagicLink directly passes `href` instead.
-   */
-  post?: string;
-  /** Resolved on the server: a post with its peek, a section of the site. */
+  /** Resolved on the server (server.tsx): a post with its peek, a section
+   *  of the site. MDX names a post by `post=` there; here it is `media`,
+   *  or `href` for a client that renders a MagicLink directly. */
   media?: Media;
   /** An app id in content/apps.json — opens in a window. */
   app?: string;
@@ -145,7 +146,7 @@ export interface MagicLinkProps {
   children?: ReactNode;
 }
 
-const GLYPHS: Record<BadgeKind, LucideIcon> = {
+const GLYPHS: Record<MagicLinkKind, LucideIcon> = {
   identity: Building2,
   app: AppWindow,
   web: Globe,
@@ -176,7 +177,7 @@ const BADGE =
 const ICON_BOX =
   "mr-[0.34em] inline-block size-[1.08em] shrink-0 rounded-[0.26em] align-[-0.2em] select-none";
 
-function BadgeMark({ icon, kind }: { icon: BadgeIcon; kind: BadgeKind }) {
+function BadgeMark({ icon, kind }: { icon: BadgeIcon; kind: MagicLinkKind }) {
   if (icon.type === "image") {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- a 1em glyph; next/image would only add a wrapper
@@ -222,7 +223,7 @@ function BadgeMark({ icon, kind }: { icon: BadgeIcon; kind: BadgeKind }) {
 
 /** What a target shows under the pointer, or null when it has nothing. */
 function peekOf(
-  target: BadgeTarget | null,
+  target: MagicLinkTarget | null,
   locale: "en" | "zh",
   leaves: boolean,
 ): MediaPeekSpec | null {
@@ -256,7 +257,6 @@ export function MagicLink({
   item,
   role,
   identity,
-  post,
   media,
   app,
   href,
@@ -276,9 +276,9 @@ export function MagicLink({
   const host = useContext(MagicLinkHostContext);
   const onLaunch = host?.onLaunch;
 
-  const badge = useMemo(
+  const link = useMemo(
     () =>
-      resolveBadge(
+      resolveMagicLink(
         {
           commit,
           item,
@@ -286,56 +286,56 @@ export function MagicLink({
           identity,
           media,
           app,
-          // A post the server did not resolve is still its address.
-          href: href ?? (post ? `/writing/${post}` : undefined),
+          href,
           as,
           icon,
           title,
         },
         locale,
       ),
-    [commit, item, role, identity, media, post, app, href, as, icon, title, locale],
+    [commit, item, role, identity, media, app, href, as, icon, title, locale],
   );
 
-  if (!badge) {
+  if (!link) {
     // A link pointing at nothing still reads as the word it was.
     if (process.env.NODE_ENV !== "production") {
-      console.warn("[MagicLink] nothing resolves for", { commit, role, app, href, post });
+      console.warn("[MagicLink] nothing resolves for", { commit, role, app, href });
     }
     return <span className={className}>{children ?? title}</span>;
   }
 
-  const { target } = badge;
+  const { target } = link;
   const home =
     target?.type === "media" && attachments
-      ? attachments.homeOf(target.set, target.index)
+      ? attachments.homeOf(target.set, 0)
       : target?.type === "app"
         ? "window"
         : "route";
-  const external = /^https?:/.test(badge.href);
+  const external = /^https?:/.test(link.href);
   const peek = magneticPreviewEnabled ? peekOf(target, locale, home === "tab") : null;
   // With a peek the thing has already said what it is; without, the
   // tooltip names it (and says when it will leave for a tab).
   const tooltip = peek
     ? undefined
     : home === "tab"
-      ? `${badge.title} · ${t(locale, "linkOpensInTab")}`
-      : badge.title;
+      ? `${link.title} · ${t(locale, "linkOpensInTab")}`
+      : link.title;
 
   const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
     // Modified and middle clicks are the browser's: a new tab, a download.
     if (e.defaultPrevented || e.button !== 0) return;
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     // Nothing to open but its fallback page: the browser follows the link,
-    // and the host steps aside for it as it would for anything else.
+    // and the host steps aside for it — unless it leaves for a tab, which
+    // takes nothing from the host.
     if (!target) {
-      onLaunch?.({ navigating: !external });
+      if (!external) onLaunch?.();
       return;
     }
     if (target.type === "app") {
       if (!windows) return;
       e.preventDefault();
-      onLaunch?.({ navigating: false });
+      onLaunch?.();
       windows.openApp(target.app);
       return;
     }
@@ -352,8 +352,8 @@ export function MagicLink({
         });
         return;
       }
-      onLaunch?.({ navigating: true });
-      router.push(badge.href);
+      onLaunch?.();
+      router.push(link.href);
       return;
     }
     if (!attachments) return;
@@ -361,34 +361,34 @@ export function MagicLink({
     // A whole commit off a phone goes to its row on /works: the row is the
     // commit, as a role's row is the role.
     if (target.commit && home !== "surface") {
-      onLaunch?.({ navigating: true });
-      router.push(badge.href);
+      onLaunch?.();
+      router.push(link.href);
       return;
     }
     // The attachments' policy, as a /works cover: the drawer on a phone,
-    // the thing's own home on a desk. The drawer floats over whatever
-    // hosts the link, so the host stays; anything else takes its place.
-    if (home !== "surface") onLaunch?.({ navigating: home === "route" });
-    attachments.open(target.set, target.index);
+    // the thing's own home on a desk. The drawer floats over whatever hosts
+    // the link; a host that should step aside for anything else hears it
+    // from the attachments themselves (`onSend`), as the About does.
+    attachments.open(target.set, 0);
   };
 
-  const link = (
+  const anchor = (
     <a
-      href={badge.href}
+      href={link.href}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
       title={tooltip}
-      data-magic-link={badge.kind}
+      data-magic-link={link.kind}
       // A drag across a word selects it; the link is still a click away.
       draggable={false}
       onClick={onClick}
       className={cn(dressed ? BADGE : PLAIN, className)}
     >
-      {dressed && <BadgeMark icon={badge.icon} kind={badge.kind} />}
-      {children ?? badge.label}
+      {dressed && <BadgeMark icon={link.icon} kind={link.kind} />}
+      {children ?? link.label}
     </a>
   );
 
-  if (!peek) return link;
+  if (!peek) return anchor;
   return (
     <MagneticPreview
       as="span"
@@ -396,12 +396,8 @@ export function MagicLink({
       panelClassName={peek.panelClassName}
       zIndex={host?.layer}
     >
-      {link}
+      {anchor}
     </MagneticPreview>
   );
 }
 
-/** A magic link dressed as a badge — MDX `<Badge>`. */
-export function Badge(props: Omit<MagicLinkProps, "badge">) {
-  return <MagicLink {...props} badge />;
-}

@@ -4,7 +4,7 @@
  *   node scripts/badge-icon-snapshot.ts          # crawl + write icons + snapshot
  *   node scripts/badge-icon-snapshot.ts --check  # CI: every badge has an icon, no network
  *
- * Targets: every `<Badge>` written in the site's MDX
+ * Targets: every `<Badge>` written in the site's MDX (scripts/magic-link-tags.ts)
  * (content/**, docs/**). Each resolves to a site (lib/badge-site.ts — the same
  * rule the component uses); for each site we take the icon the site declares
  * for a home screen (manifest → apple-touch-icon → favicon, lib/app-icon-core),
@@ -34,49 +34,28 @@ import {
   type BadgeSiteSpec,
 } from "../lib/badge-site.ts";
 import { normalizeLogData, type RawLogData } from "../lib/log.ts";
+import { collectMagicLinkTags } from "./magic-link-tags.ts";
 
 const ROOT = process.cwd();
 const SNAPSHOT_PATH = path.join(ROOT, "content", "badge-icons.json");
 const CONFIG_PATH = path.join(ROOT, "content", "badges.json");
 const LOG_PATH = path.join(ROOT, "content", "log.json");
 const ICONS_DIR = path.join(ROOT, "public", "badge-icons");
-const SOURCES = [path.join(ROOT, "content"), path.join(ROOT, "docs")];
 
 const CHECK = process.argv.includes("--check");
 
 // --- Collecting the badges ---------------------------------------------------
-
-function mdxFiles(dir: string): string[] {
-  if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
-    const p = path.join(dir, e.name);
-    if (e.isDirectory()) return mdxFiles(p);
-    return /\.mdx?$/.test(e.name) ? [p] : [];
-  });
-}
 
 interface Usage {
   spec: BadgeSiteSpec;
   where: string;
 }
 
-/** Every `<Badge …>` in the MDX, with the attributes that pick its icon. */
+/** Every `<Badge …>` in the MDX — the pill, which wears an icon. */
 function collectUsages(): Usage[] {
-  const usages: Usage[] = [];
-  const tag = /<Badge(?:Link)?\b([^>]*?)\/?>/g;
-  const attr = /(\w+)=(?:"([^"]*)"|\{"([^"]*)"\})/g;
-  for (const file of SOURCES.flatMap(mdxFiles)) {
-    const text = fs.readFileSync(file, "utf8");
-    for (const m of text.matchAll(tag)) {
-      const spec: Record<string, string> = {};
-      for (const a of m[1].matchAll(attr)) spec[a[1]] = a[2] ?? a[3];
-      // A code sample documenting the syntax is not a badge.
-      if (Object.values(spec).some((v) => v.includes("…"))) continue;
-      const line = text.slice(0, m.index).split("\n").length;
-      usages.push({ spec, where: `${path.relative(ROOT, file)}:${line}` });
-    }
-  }
-  return usages;
+  return collectMagicLinkTags()
+    .filter((t) => t.tag === "Badge")
+    .map(({ attrs, where }) => ({ spec: attrs, where }));
 }
 
 interface Site {

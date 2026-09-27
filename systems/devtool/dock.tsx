@@ -15,7 +15,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { Bug, PanelBottom } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useOptionalAbout } from "@/systems/about/provider";
+import { DEVTOOL_OVER_ABOUT_Z, useOverAboutZ } from "@/systems/about/provider";
 import {
   DevtoolFooter,
   DevtoolModules,
@@ -88,17 +88,10 @@ const DWELL_MS = 550;
  */
 const PILL_Z = 9999;
 
-/**
- * The devtool's layer while the About is up (z 10020, its glow 10021): above
- * it, so the About's own knobs (the Glow module) can be turned while it is on
- * screen, and still under the command palette (10050).
- */
-const OVER_ABOUT_Z = 10030;
-
-/** The devtool's z for the moment: raised over the About while it shows. */
+/** The devtool's z for the moment: raised over the About while it shows
+ *  (DEVTOOL_OVER_ABOUT_Z), so the About's own knobs can be turned. */
 function useDevtoolZ(base: number | undefined) {
-  const about = useOptionalAbout();
-  return about?.isOpen ? OVER_ABOUT_Z : base;
+  return useOverAboutZ(DEVTOOL_OVER_ABOUT_Z) ?? base;
 }
 
 /**

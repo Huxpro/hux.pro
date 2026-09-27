@@ -173,11 +173,10 @@ function PeekPoster({
   );
 }
 
-/** The post peek a writing link carries, in the reader's language or the other. */
+/** The post peek a writing link carries, in the reader's language. */
 export function postPeekFor(media: LinkMedia, locale: Locale): PostPeek | null {
-  const peek = media.internal?.peek;
-  if (!peek) return null;
-  return peek[locale] ?? peek[locale === "zh" ? "en" : "zh"] ?? null;
+  // Both languages are filled on the server, each falling back to the other.
+  return media.internal?.peek?.[locale] ?? null;
 }
 
 export interface MediaPeekSpec {

@@ -3,7 +3,7 @@
 import { PagerDots, useSnapPager } from "@/components/ui/snap-pager";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { OVER_ABOUT_Z, useOptionalAbout } from "@/systems/about/provider";
+import { useOverAboutZ } from "@/systems/about/provider";
 import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
@@ -46,7 +46,7 @@ export function AttachmentSurface() {
   const { session, isOpen, close } = useAttachments();
   // Opened from the About's copy, it floats over the About rather than
   // taking its place (systems/about/provider.tsx).
-  const aboutOpen = useOptionalAbout()?.isOpen ?? false;
+  const overAboutZ = useOverAboutZ();
 
   return (
     <AdaptiveSurface
@@ -61,7 +61,7 @@ export function AttachmentSurface() {
       windowWidth={WINDOW_WIDTH}
       maxHeight={MAX_HEIGHT}
       fitContent
-      zIndex={aboutOpen ? OVER_ABOUT_Z : undefined}
+      zIndex={overAboutZ}
       // The track bleeds to the surface's edges so a page is exactly the
       // surface wide, and the next one starts past the edge rather than
       // peeking through the padding.

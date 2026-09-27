@@ -1,7 +1,6 @@
 "use client";
 
 import { useOptionalAttachments } from "@/systems/attachments/provider";
-import { useOptionalIdentityCard } from "@/systems/identity/provider";
 import { useCommand } from "@/systems/command/provider";
 import { usePathname } from "next/navigation";
 import {
@@ -30,8 +29,8 @@ import {
 //                 Not a bare `O`: a single letter taken over every page is
 //                 one keystroke from firing by accident, and the About is
 //                 not something anyone needs that often.
-//   Esc           closes it — or, with the attachment drawer up over it,
-//                 leaves that press to the drawer.
+//   Esc           closes it — unless something over it (a drawer, a card,
+//                 the palette) has taken that press.
 //   the drawer    on a phone a magic link in the copy opens the attachment
 //                 drawer or the identity card over the About (OVER_ABOUT_Z),
 //                 not in its place:
@@ -71,35 +70,44 @@ function writeSeen(seen: boolean) {
   }
 }
 
-/** Why the About is being put away, when that matters. */
-export interface AboutCloseOptions {
-  /**
-   * A navigation is taking over (a magic link to another page): `/about`
-   * is left by the router, so it must not be swapped to `/` under it — the
-   * swap would cancel the push. See app/about/about-route.tsx.
-   */
-  navigating?: boolean;
-}
-
 interface AboutContextValue {
   isOpen: boolean;
   open: () => void;
-  close: (options?: AboutCloseOptions) => void;
-  /** The last close was a navigation's (see AboutCloseOptions). */
-  leftByNavigation: boolean;
-  toggle: () => void;
+  /**
+   * The visitor puts it away — the button at its foot, Escape, a click well
+   * clear of the words. The one close that also leaves `/about` for `/`
+   * (app/about/about-route.tsx).
+   */
+  dismiss: () => void;
+  /**
+   * Something else takes the screen from it — a link to another page, the
+   * stage, a window. Leaves the address alone: a navigation is leaving
+   * `/about` already, and swapping it under the router's push would cancel
+   * the push.
+   */
+  close: () => void;
+  /** The last put-away was the visitor's (`dismiss`), not a hand-over. */
+  dismissed: boolean;
   /** Whether this visitor has dismissed the About at least once. */
   seen: boolean;
-  /** Forget the visitor has met it, so the next load introduces it again. */
-  resetSeen: () => void;
 }
 
 /**
- * The paint layer for what floats over the About (z 10020, its glow 10021):
- * the attachment drawer and the identity card a magic link in its copy opens. Under the devtool raised
- * over it (10030) and the command palette (10050).
+ * The About's layers, in one place. Above the theater and windows
+ * (10000–10005), under the command palette (10050), which can still be
+ * summoned over it.
+ *
+ *   ABOUT_Z                the veil and the words
+ *   ABOUT_GLOW_Z           the ring, over them
+ *   OVER_ABOUT_Z           what a magic link in its copy opens over it: the
+ *                          attachment drawer, the identity card, a peek
+ *   DEVTOOL_OVER_ABOUT_Z   the devtool, so the About's own knobs (the Glow
+ *                          module) can be turned while it is up
  */
+export const ABOUT_Z = 10020;
+export const ABOUT_GLOW_Z = 10021;
 export const OVER_ABOUT_Z = 10025;
+export const DEVTOOL_OVER_ABOUT_Z = 10030;
 
 const AboutContext = createContext<AboutContextValue | null>(null);
 
@@ -129,24 +137,15 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
     setIsOpen(true);
   }, [closeCommand]);
 
-  const [leftByNavigation, setLeftByNavigation] = useState(false);
-  const close = useCallback((options?: AboutCloseOptions) => {
-    // `=== true`: close is also an onClick handler, handed an event.
-    setLeftByNavigation(options?.navigating === true);
+  const [dismissed, setDismissed] = useState(false);
+  const putAway = useCallback((byVisitor: boolean) => {
+    setDismissed(byVisitor);
     setIsOpen(false);
     setSeen(true);
     writeSeen(true);
   }, []);
-
-  const toggle = useCallback(() => {
-    if (isOpen) close();
-    else open();
-  }, [isOpen, open, close]);
-
-  const resetSeen = useCallback(() => {
-    setSeen(false);
-    writeSeen(false);
-  }, []);
+  const dismiss = useCallback(() => putAway(true), [putAway]);
+  const close = useCallback(() => putAway(false), [putAway]);
 
   // First visit: rise once the page underneath has had a moment to paint, so
   // the blur has something to blur and the visitor sees where they are.
@@ -162,13 +161,11 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // A thing opened from the About's drawer that lands under the About — on
-  // the stage, in a window, on another page — takes the screen from it.
-  const attachments = useOptionalAttachments();
-  const onSend = attachments?.onSend;
-  const identityCard = useOptionalIdentityCard();
-  const drawerOpen = (attachments?.isOpen ?? false) || (identityCard?.isOpen ?? false);
+  // the stage, in a window, on another page — takes the screen from it. A
+  // tab leaves the site, and finds it as it was on the way back.
+  const onSend = useOptionalAttachments()?.onSend;
   const onAttachmentSent = useEffectEvent((home: string) => {
-    if (isOpen && home !== "tab") close({ navigating: home === "route" });
+    if (isOpen && home !== "tab") close();
   });
   useEffect(() => onSend?.((home) => onAttachmentSent(home)), [onSend]);
 
@@ -178,7 +175,7 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const lastPathRef = useRef(pathname);
   const onPathChange = useEffectEvent((path: string) => {
-    if (isOpen && path !== "/about") close({ navigating: true });
+    if (isOpen && path !== "/about") close();
   });
   useEffect(() => {
     if (pathname === lastPathRef.current) return;
@@ -186,24 +183,35 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
     onPathChange(pathname);
   }, [pathname]);
 
+  // Escape is the About's only once nothing above it has claimed it. On the
+  // window, in the bubble phase — after every surface's own listener — and
+  // not if one of them handled it (a drawer, a card, a window, the palette
+  // over the About each mark theirs `defaultPrevented`).
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
-    // The drawer over it takes this Escape; the next one is the About's.
-    if (e.key === "Escape" && isOpen && !drawerOpen) {
-      e.preventDefault();
-      close();
-    }
+    if (e.key !== "Escape" || !isOpen || e.defaultPrevented) return;
+    e.preventDefault();
+    dismiss();
   });
 
   useEffect(() => {
     const listener = (e: KeyboardEvent) => onKeyDown(e);
-    document.addEventListener("keydown", listener);
-    return () => document.removeEventListener("keydown", listener);
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
   }, []);
 
   const value = useMemo<AboutContextValue>(
-    () => ({ isOpen, open, close, leftByNavigation, toggle, seen, resetSeen }),
-    [isOpen, open, close, leftByNavigation, toggle, seen, resetSeen],
+    () => ({ isOpen, open, dismiss, close, dismissed, seen }),
+    [isOpen, open, dismiss, close, dismissed, seen],
   );
 
   return <AboutContext.Provider value={value}>{children}</AboutContext.Provider>;
+}
+
+/**
+ * A surface's paint layer while the About is up — `z` (OVER_ABOUT_Z by
+ * default) — and `undefined` (its own) otherwise. For whatever must come up
+ * over the About rather than under it.
+ */
+export function useOverAboutZ(z: number = OVER_ABOUT_Z): number | undefined {
+  return useOptionalAbout()?.isOpen ? z : undefined;
 }

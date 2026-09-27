@@ -29,9 +29,9 @@
 
 import fs from "fs";
 import path from "path";
-import { isPlayableSlidesUrl } from "../lib/slides.ts";
+import { detectMediaKind } from "../lib/media-kind.ts";
+import { collectMagicLinkTags } from "./magic-link-tags.ts";
 import {
-  detectSocialEmbedPlatform,
   fetchOG,
   fetchVideoCover,
   mediaIsCardTarget,
@@ -144,15 +144,6 @@ function collectTargets(): Target[] {
   return [...byUrl.values()];
 }
 
-function mdxFiles(dir: string): string[] {
-  if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
-    const p = path.join(dir, e.name);
-    if (e.isDirectory()) return mdxFiles(p);
-    return /\.mdx?$/.test(e.name) ? [p] : [];
-  });
-}
-
 /** Every external page a `<MagicLink href>` or `<Badge href>` names. */
 function magicLinkHrefs(): string[] {
   // A page given its card by hand (content/badges.json `previews`) is not
@@ -162,18 +153,13 @@ function magicLinkHrefs(): string[] {
       previews?: Record<string, unknown>;
     }
   ).previews ?? {};
-  const tag = /<(?:MagicLink|Badge)\b([^>]*?)\/?>/g;
   const urls = new Set<string>();
-  for (const file of [path.join(ROOT, "content"), path.join(ROOT, "docs")].flatMap(mdxFiles)) {
-    for (const m of fs.readFileSync(file, "utf8").matchAll(tag)) {
-      const href = m[1].match(/\bhref="(https?:[^"]+)"/)?.[1];
-      // A code sample documenting the syntax is not a link.
-      if (!href || href.includes("…") || href in manual) continue;
-      // Recordings, decks, images and social posts have their own peeks.
-      if (/youtu\.?be|bilibili\.com|vimeo\.com|\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(href)) continue;
-      if (detectSocialEmbedPlatform(href) || isPlayableSlidesUrl(href)) continue;
-      urls.add(href);
-    }
+  for (const { attrs } of collectMagicLinkTags()) {
+    const href = attrs.href;
+    if (!href || !/^https?:/.test(href) || href in manual) continue;
+    // Recordings, decks, images and social posts have their own peeks.
+    if (detectMediaKind(href) !== "link") continue;
+    urls.add(href);
   }
   return [...urls];
 }

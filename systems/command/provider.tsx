@@ -125,6 +125,8 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
           setIsLoadBundleMode(false);
           return;
         }
+        // Handled: a surface under the palette (the About) leaves this one.
+        e.preventDefault();
         close();
         return;
       }

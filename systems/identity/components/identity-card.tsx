@@ -5,15 +5,11 @@ import { LOG } from "@/lib/log-client";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { OVER_ABOUT_Z, useOptionalAbout } from "@/systems/about/provider";
+import { useOverAboutZ } from "@/systems/about/provider";
 import { useOptionalAttachments } from "@/systems/attachments/provider";
+import { Actions } from "@/systems/attachments/components/attachment-page";
 import { attachmentSetFor } from "@/systems/attachments/lib/set";
 import { ANCHORED_PRESENTATION, AdaptiveSurface } from "@/systems/surface";
-import {
-  GLASS_ACTION,
-  GLASS_CLUSTER,
-  GLASS_PILL,
-} from "@/systems/theater/lib/chrome";
 import { ChevronRight, CornerDownRight } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import { useIdentityCard } from "../provider";
@@ -76,7 +72,7 @@ export function IdentityCard() {
   const router = useTransitionRouter();
   // Opened from the About's copy (a magic link naming a role), it floats
   // over the About rather than taking its place.
-  const aboutOpen = useOptionalAbout()?.isOpen ?? false;
+  const overAboutZ = useOverAboutZ();
 
   const go = (href: string) => {
     close();
@@ -109,7 +105,7 @@ export function IdentityCard() {
       popover={{ anchor: anchorRef, width: "min(92vw, 380px)" }}
       maxHeight="min(80dvh, 640px)"
       fitContent
-      zIndex={aboutOpen ? OVER_ABOUT_Z : undefined}
+      zIndex={overAboutZ}
     >
       {profile && (
         <div className="space-y-4 pt-1">
@@ -120,16 +116,13 @@ export function IdentityCard() {
             ))}
           />
 
-          <div className={cn(GLASS_CLUSTER, "system-chrome")}>
-            <button
-              type="button"
-              onClick={() => go(profile.roleHref)}
-              className={cn(GLASS_ACTION, GLASS_PILL, "h-8 px-3.5 text-foreground")}
-            >
-              <CornerDownRight className="h-3.5 w-3.5" />
-              {t(locale, "logVisit")}
-            </button>
-          </div>
+          <Actions
+            primary={{
+              label: t(locale, "logVisit"),
+              icon: <CornerDownRight className="h-3.5 w-3.5" />,
+              onSelect: () => go(profile.roleHref),
+            }}
+          />
         </div>
       )}
     </AdaptiveSurface>

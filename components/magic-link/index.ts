@@ -1,4 +1,3 @@
-export { Badge, MagicLink, MagicLinkHost } from "./magic-link";
-export type { MagicLinkProps } from "./magic-link";
-export { resolveBadge, mediaFromHref } from "./resolve";
-export type { BadgeKind, BadgeSpec, ResolvedBadge } from "./resolve";
+// Client code needs only the host; MDX renders magic links through
+// ./server (ServerMagicLink, ServerBadge), which reads what they name.
+export { MagicLinkHost } from "./magic-link";

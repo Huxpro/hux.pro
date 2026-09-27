@@ -3,10 +3,11 @@ import {
   postPeekOf,
   type PostPeekSource,
 } from "@/lib/content";
-import type { Locale } from "@/lib/i18n";
+import { locales, type Locale } from "@/lib/i18n";
 import type { LinkMedia, LocaleUrls, MediaPreview } from "@/lib/log";
 import { LOG } from "@/lib/log-client";
 import { getAllBlogPosts, getBlogPostBySlug } from "@/lib/mdx";
+import { cache } from "react";
 import { MagicLink, type MagicLinkProps } from "./magic-link";
 
 // =============================================================================
@@ -26,7 +27,11 @@ import { MagicLink, type MagicLinkProps } from "./magic-link";
 // imported by client code.
 // =============================================================================
 
-const LOCALES: Locale[] = ["en", "zh"];
+// Read once per render, however many links name a post or /writing: the
+// root layout renders both languages' copy on every page, and each read is
+// every post parsed from disk.
+const readPost = cache(getBlogPostBySlug);
+const readAllPosts = cache(getAllBlogPosts);
 
 /** `/writing/<slug>` or `/writing/<slug>/<lang>` → the slug. */
 function postSlugOf(href: string | undefined): string | null {
@@ -36,24 +41,21 @@ function postSlugOf(href: string | undefined): string | null {
 
 /** A post as a writing link carrying its peek — see InternalLinkMeta. */
 function postMedia(slug: string): LinkMedia | null {
-  const full = getBlogPostBySlug(slug);
+  const full = readPost(slug);
   if (!full) return null;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { content, contentZh, ...post } = full;
   const languages: Locale[] =
-    post.language === "both" ? LOCALES : [post.language as Locale];
+    post.language === "both" ? [...locales] : [post.language as Locale];
   const urls: LocaleUrls = {};
   for (const l of languages) urls[l] = `/writing/${slug}/${l}`;
   const peek: Partial<Record<Locale, ReturnType<typeof postPeekOf>>> = {};
   const previews: Partial<Record<Locale, MediaPreview>> = {};
-  for (const l of LOCALES) {
-    const p = postPeekOf(post as PostPeekSource, l);
-    peek[l] = p;
-    previews[l] = {
-      title: getLocalizedTitle(post, l),
-      description: p.description,
-      image: p.cover,
-    };
+  for (const l of locales) {
+    peek[l] = postPeekOf(post as PostPeekSource, l);
+    // The title only: the peek carries the rest, and is what a post's peek
+    // and drawer read.
+    previews[l] = { title: getLocalizedTitle(post, l) };
   }
   return {
     kind: "link",
@@ -75,7 +77,7 @@ type SectionCopy = Record<Locale, { title: string; description: string }>;
 function sectionCopy(path: string, query: URLSearchParams): SectionCopy | null {
   const count = (type: string) => LOG.commits.filter((c) => c.type === type).length;
   if (path === "/writing") {
-    const posts = getAllBlogPosts();
+    const posts = readAllPosts();
     const since = posts.at(-1)?.date.slice(0, 4) ?? "";
     return {
       en: { title: "Writing", description: `${posts.length} posts, since ${since}.` },
@@ -127,7 +129,10 @@ function sectionMedia(href: string): LinkMedia | null {
 }
 
 /** The props a server-rendered MagicLink hands the client one. */
-function resolveOnServer({ post, href, ...props }: MagicLinkProps): MagicLinkProps {
+/** What MDX may write: a MagicLink's props, and a post by its slug. */
+type ServerMagicLinkProps = MagicLinkProps & { post?: string };
+
+function resolveOnServer({ post, href, ...props }: ServerMagicLinkProps): MagicLinkProps {
   // One media item of a commit that is a post on this site is the post.
   if (props.commit && props.item !== undefined) {
     const item = LOG.commits.find((c) => c.id === props.commit)?.media?.[props.item];
@@ -144,15 +149,18 @@ function resolveOnServer({ post, href, ...props }: MagicLinkProps): MagicLinkPro
   const media =
     (slug && postMedia(slug)) ||
     (href?.startsWith("/") ? sectionMedia(href) : null);
-  return media ? { ...props, media } : { ...props, post, href };
+  // Nothing to resolve (a post not found): the link is still its address.
+  return media
+    ? { ...props, media }
+    : { ...props, href: href ?? (post ? `/writing/${post}` : undefined) };
 }
 
 /** MDX `<MagicLink>`, on the server. */
-export function ServerMagicLink(props: MagicLinkProps) {
+export function ServerMagicLink(props: ServerMagicLinkProps) {
   return <MagicLink {...resolveOnServer(props)} />;
 }
 
 /** MDX `<Badge>`, on the server. */
-export function ServerBadge(props: Omit<MagicLinkProps, "badge">) {
+export function ServerBadge(props: Omit<ServerMagicLinkProps, "badge">) {
   return <MagicLink {...resolveOnServer(props)} badge />;
 }

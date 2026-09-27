@@ -69,9 +69,11 @@ over whatever page a visitor landed on.
 3. **The glow** — the Siri ring, above everything, taking no pointer.
 
 Z-order: above the theater and windows (10000–10005), below the command
-palette (10050), which can still be summoned over it: `z-[10020]` for the
-surface, `z-[10021]` for the glow, 10025 for the attachment drawer opened
-from its copy, 10030 for the devtool while it is up.
+palette (10050), which can still be summoned over it. The layers are one
+table in `systems/about/provider.tsx`: `ABOUT_Z` (10020) for the surface,
+`ABOUT_GLOW_Z` (10021) for the ring, `OVER_ABOUT_Z` (10025) for what its
+copy opens over it, `DEVTOOL_OVER_ABOUT_Z` (10030) for the devtool. A
+surface that must come up over the About asks `useOverAboutZ()`.
 
 **Inside the bezel.** With the vitre bezel drawn (iOS), the page's screen is
 the box within its bands, rounded at its radius — and the About is a surface
@@ -156,10 +158,15 @@ the path), so a drawer's Visit or a card's row leaves it behind too.
 The peek follows the input (`magneticPreviewEnabled`), as every peek does;
 the drawer follows the viewport (the attachments' policy). Inside the About
 the peeks, the drawer and the identity card all come up over it
-(`MagicLinkHost layer`, `OVER_ABOUT_Z`), and the About steps aside only
-when something leaves for a home beneath it. A link to another page tells
-the About it is navigating (`close({ navigating })`), so `/about` is left
-by the router rather than swapped to `/` under its push.
+(`MagicLinkHost layer`, `useOverAboutZ`), and the About steps aside only
+when something leaves for a home beneath it — told by the attachments
+(`onSend`), by a page change, or by a link that navigates or opens an app
+(`MagicLinkHost onLaunch`); a tab takes nothing from it. Two verbs put it
+away: `dismiss()` is the visitor's (the button, Escape, a click well clear
+of the words) and is the only one that swaps `/about` for `/`; `close()` is
+a hand-over and leaves the address to whatever is taking it, so the swap
+never lands under the router's push. Escape is the About's only once
+nothing over it (a drawer, a card, the palette) has marked it handled.
 
 ## Badges
 

@@ -5,8 +5,9 @@ import { HeaderAction } from "@/components/ui/controls";
 import { TYPE } from "@/lib/typography";
 import { GLASS_TRACK_FLAT } from "@/systems/theater/lib/chrome";
 import { cn } from "@/lib/utils";
-import { t, useInputCapability, useLocale } from "@/services";
+import { localeNames, t, useInputCapability, useLocale } from "@/services";
 import { useWallpaper } from "@/systems/ambient";
+import { useBreakpointValue } from "@/systems/surface";
 import { Languages } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { BEZEL_INSET, VITRE_LAYER_ATTRIBUTE } from "vitre";
@@ -15,12 +16,11 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  useSyncExternalStore,
   type MouseEvent,
   type Ref,
   type ReactNode,
 } from "react";
-import { OVER_ABOUT_Z, useAbout } from "../provider";
+import { ABOUT_GLOW_Z, ABOUT_Z, OVER_ABOUT_Z, useAbout } from "../provider";
 import { EdgeGlow, Glow, useGlowTuning } from "@/systems/glow";
 
 // =============================================================================
@@ -62,7 +62,7 @@ const MISS_MARGIN_X = 96;
 const MISS_MARGIN_Y = 64;
 
 export function AboutSurface({ en, zh }: AboutSurfaceProps) {
-  const { isOpen, close, seen } = useAbout();
+  const { isOpen, dismiss, close, seen } = useAbout();
   // Whether this showing is the newcomer's first, held while it is up —
   // dismissing marks the visitor as met at once, and the way out must not
   // turn from Reveal to Close as it leaves.
@@ -135,7 +135,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
         e.clientY < r.bottom + MISS_MARGIN_Y
       );
     });
-    if (!near) close();
+    if (!near) dismiss();
   };
 
   // A plain link in the copy navigates; the About steps aside for it. Magic
@@ -145,9 +145,9 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
     const anchor = (e.target as Element).closest("a");
     if (!anchor || anchor.dataset.magicLink) return;
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-    // A path on this site is the router's to leave by; a page elsewhere
-    // opens a tab and leaves the About's address to be swapped.
-    close({ navigating: anchor.getAttribute("href")?.startsWith("/") ?? false });
+    // A path on this site takes the screen; a page elsewhere opens a tab,
+    // and the About is here as it was on the way back.
+    if (anchor.getAttribute("href")?.startsWith("/")) close();
   };
 
   return (
@@ -162,8 +162,8 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
             aria-label={t(locale, "aboutTitle")}
             tabIndex={-1}
             {...(bezel ? { [VITRE_LAYER_ATTRIBUTE]: "" } : {})}
-            className="fixed inset-0 z-[10020] flex flex-col overflow-hidden outline-none"
-            style={frame}
+            className="fixed inset-0 flex flex-col overflow-hidden outline-none"
+            style={{ ...frame, zIndex: ABOUT_Z }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.28, ease: [0.4, 0, 1, 1] } }}
@@ -194,7 +194,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
               >
                 <Languages className="h-3 w-3" />
                 <span lang={locale === "zh" ? "en" : "zh"}>
-                  {locale === "zh" ? "English" : "中文"}
+                  {localeNames[locale === "zh" ? "en" : "zh"]}
                 </span>
               </HeaderAction>
             </div>
@@ -258,7 +258,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
                 ref={footRef}
                 firstTime={firstTime}
                 keyboard={hasFineHoverPointer}
-                onDismiss={close}
+                onDismiss={dismiss}
               />
             </div>
             <div aria-hidden className="hidden sm:block sm:flex-1" onClick={onBackdrop} />
@@ -276,27 +276,20 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
         motion={tuning.aboutMotion}
         strength={tuning.aboutStrength}
         radius={screenRadius}
-        style={frame}
+        style={{ ...frame, zIndex: ABOUT_GLOW_Z }}
         layer={bezel}
-        className={cn("z-[10021]", bezel && "overflow-hidden")}
+        className={cn(bezel && "overflow-hidden")}
       />
     </>
   );
 }
 
 /** The About's two layouts: a centred group on a desk (`sm` and up), the
- *  whole screen on a phone. */
-const DESK_QUERY = "(min-width: 640px)";
+ *  whole screen on a phone. Read at once, not after an effect: the About
+ *  only ever renders on the client, once it has been opened. */
+const DESK = { base: false, sm: true } as const;
 function useDeskLayout(): boolean {
-  return useSyncExternalStore(
-    (onChange) => {
-      const mq = window.matchMedia(DESK_QUERY);
-      mq.addEventListener("change", onChange);
-      return () => mq.removeEventListener("change", onChange);
-    },
-    () => window.matchMedia(DESK_QUERY).matches,
-    () => true,
-  );
+  return useBreakpointValue(DESK, { immediate: true });
 }
 
 function AboutFoot({
