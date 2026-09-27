@@ -73,7 +73,11 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
           fullEnabled || bezel ? "bg-transparent" : "bg-background"
         )}
       >
-        {children}
+        {/* What steps out of the frame when the page is pulled down for the
+            sky window — every page's content, and nothing that paints the sky
+            (the backdrop is Vitre's, beside this). Unstyled, and untransformed
+            at rest: see "The sky pull" in globals.css. */}
+        <div data-sky-exits="page">{children}</div>
       </Vitre>
     </div>
   );

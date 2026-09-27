@@ -23,6 +23,7 @@ import { SystemToast } from "@/components/ui/system-toast";
 import { t, useLocale } from "@/services";
 import { Compass } from "lucide-react";
 import { useHomeEditing } from "@/components/ui/home-edit-store";
+import { SKY_PULL_DEFAULT, useOptionalDevtool } from "@/systems/devtool";
 import { useWeather } from "../provider";
 import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
@@ -223,13 +224,17 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   // home down from the top and past a point it opens — or, where WebKit's gate
   // still stands or the place is only a guess, the sheet that asks comes up.
   // Swipe up and it closes. It belongs to the home: anywhere else the window
-  // pauses (the stage comes back) until the home does.
+  // pauses (the stage comes back) until the home does — unless the devtool has
+  // the pull on every page (`skyPull`), a trial, where it belongs wherever it
+  // was opened and stays open across a navigation, the new page stepping out
+  // of the frame as it arrives.
   const { locale } = useLocale();
   const pathname = usePathname();
-  const onHome = pathname === "/";
-  const shown = skyWindow && onHome && sky;
+  const everywhere = (useOptionalDevtool()?.skyPull ?? SKY_PULL_DEFAULT) === "everywhere";
+  const pullHere = everywhere || pathname === "/";
+  const shown = skyWindow && pullHere && sky;
   const openAction = skyOpenAction({
-    sky: sky && onHome,
+    sky: sky && pullHere,
     reachable: gyro.reachable,
     gated: gyro.gated,
     denied: gyro.denied,
@@ -240,6 +245,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   useEffect(() => {
     if (!openAction || skyWindow) return;
     return attachSkyPull({
+      everywhere,
       onProgress: (amount) => previewRef.current?.(amount),
       onPulled: () => {
         if (openAction === "offer") {
@@ -265,7 +271,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         );
       },
     });
-  }, [openAction, skyWindow, openSkyOffer, setSkyWindow, locale]);
+  }, [openAction, skyWindow, openSkyOffer, setSkyWindow, locale, everywhere]);
 
   useEffect(() => {
     if (!shown) return;
@@ -331,7 +337,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           // Paused, not closed, away from the home: every other page sits on
           // the wallpaper as its ground, and a ground that swung with the hand
           // would be the opposite of that. Back home, it is a window again.
-          skyWindow={skyWindow && onHome}
+          skyWindow={skyWindow && pullHere}
           edgeMask={edgeMask}
           // This is the one sky a hand can reach: a drag across the page
           // background stirs up a gust.

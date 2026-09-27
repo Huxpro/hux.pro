@@ -81,6 +81,7 @@ import {
   PHONE_PALETTE_DEFAULT,
   HOME_WEATHER_DEFAULT,
   type HomeWeather,
+  SKY_PULL_DEFAULT,
   type PhonePalette,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
@@ -1871,7 +1872,7 @@ function SkyModule() {
   } = useAmbientTime();
   const { followSun, setFollowSun, sunTheme } = useSolarTheme();
   const { gyro, setGyroEnabled, effectiveStyle, skyWindow, setSkyWindow } = useWallpaper();
-  const { homeWeather, setHomeWeather } = useDevtool();
+  const { homeWeather, setHomeWeather, skyPull, setSkyPull } = useDevtool();
 
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
@@ -2195,7 +2196,10 @@ function SkyModule() {
       relevant={isHome || anythingForced}
       star={strongest(
         anythingForced ? "session" : null,
-        !followSun || !gyro.enabled || homeWeather !== HOME_WEATHER_DEFAULT
+        !followSun ||
+          !gyro.enabled ||
+          homeWeather !== HOME_WEATHER_DEFAULT ||
+          skyPull !== SKY_PULL_DEFAULT
           ? "saved"
           : null
       )}
@@ -2619,9 +2623,10 @@ function SkyModule() {
             </span>
           </PanelRow>
           {/* The sky window: the phone as a window onto the real sky. A
-              session state, like the easter egg that opens it (a long press on
-              the home sky). The readout is where it looks — heading · pitch,
-              with a ~ when there is no compass and north is a guess. */}
+              session state, like the easter egg that opens it (pulling the
+              page down from the top). The readout is where it looks —
+              heading · pitch, with a ~ when there is no compass and north is a
+              guess. */}
           <PanelRow
             label={zh ? "天空之窗" : "Window"}
             star={
@@ -2645,6 +2650,36 @@ function SkyModule() {
                 label="Toggle sky window"
               />
             </span>
+          </PanelRow>
+          {/* Where the pull down opens it: the home only, or every page as a
+              trial — on a document it takes the top-of-page pull from the
+              reader and from the browser's pull-to-refresh. Saved. */}
+          <PanelRow
+            label={zh ? "下拉看天" : "Pull"}
+            star={
+              skyPull !== SKY_PULL_DEFAULT ? (
+                <PanelStar source="saved" onReset={() => setSkyPull(SKY_PULL_DEFAULT)} />
+              ) : undefined
+            }
+          >
+            <PanelSegmented
+              value={skyPull}
+              options={[
+                {
+                  value: "home",
+                  label: zh ? "主页" : "Home",
+                  title: zh ? "只在主页下拉看天" : "Only the home opens the window",
+                },
+                {
+                  value: "everywhere",
+                  label: zh ? "所有页面" : "All pages",
+                  title: zh
+                    ? "每一页顶部下拉都会看天（会接管浏览器的下拉刷新）"
+                    : "Any page pulled down from the top (takes over pull-to-refresh)",
+                },
+              ]}
+              onChange={setSkyPull}
+            />
           </PanelRow>
           {skyWindow && (
             <div className="space-y-2 pt-2">

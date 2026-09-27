@@ -186,11 +186,11 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
     // Auto margins (rather than `justify-center`) are what make that safe: an
     // overflowing composition still starts at the top edge instead of being
     // clipped above it.
-    // `data-sky-exits`: pulled down from the top, the whole composition sinks
-    // and, past a point, leaves out of the bottom for the sky window
-    // (systems/ambient/lib/sky-pull.ts; globals.css, "The sky pull").
+    // Pulled down from the top, the whole composition sinks and, past a point,
+    // leaves out of the bottom for the sky window — as every page's content
+    // does, from AmbientSurface (systems/ambient/lib/sky-pull.ts; globals.css,
+    // "The sky pull").
     <main
-      data-sky-exits=""
       className="system-surface mx-auto flex min-h-svh w-full flex-col px-6 pt-16 sm:pt-24 pb-32 sm:pb-40"
     >
       <div className="my-auto w-full">

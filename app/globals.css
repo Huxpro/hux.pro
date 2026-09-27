@@ -2001,10 +2001,11 @@ main[data-variant="reader"] .reader-masthead {
    The sky pull (systems/ambient/lib/sky-pull.ts) — pull the home down to look
    up, and the sky window opens.
 
-   `[data-sky-exits]` marks what steps out of the frame for the window: the home
-   composition and the search button under it. Everything on the home already
-   sits low, so the way out is the way the pull was already taking it — down,
-   and out of the bottom — and the way back is up from there.
+   `[data-sky-exits]` marks what steps out of the frame for the window: the
+   page's content (AmbientSurface wraps every page in one) and the search
+   button. Everything on the home already sits low, so the way out is the way
+   the pull was already taking it — down, and out of the bottom — and the way
+   back is up from there.
 
    The transform is only ever applied in the four states that need one. At rest
    there is none at all, because a transform on <main> would make it the
