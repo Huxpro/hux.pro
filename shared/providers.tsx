@@ -12,6 +12,7 @@ import {
   VisitorProvider,
 } from "@/services";
 
+import { LanguagePrompt } from "@/components/ui/language-prompt";
 import { SystemSonner } from "@/components/ui/system-sonner";
 import { AboutProvider } from "@/systems/about";
 import { AmbientProvider } from "@/systems/ambient";
@@ -73,6 +74,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                                 <AboutProvider>
                                   {children}
                                   <SystemSonner />
+                                  <LanguagePrompt />
                                 </AboutProvider>
                               </InstallProvider>
                             </IdentityCardProvider>

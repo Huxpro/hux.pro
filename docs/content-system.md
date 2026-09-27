@@ -67,6 +67,7 @@ Each language version has its own statically generated route:
 
 **Key infrastructure:**
 - `middleware.ts` — redirects bare URLs by reading the `locale` cookie (synced from localStorage by the locale service); falls back to `defaultLocale` ("en")
+- First visit: the locale service guesses from `navigator.language` (and says so, `useLocale().guessed`); `components/ui/language-prompt.tsx` then asks once, from the bottom — "What language do you prefer? / 你更习惯哪种语言？", the guess as the primary answer — in the language-conflict toast's shell. Marked asked (`hux_locale_asked`) when shown; not on a post (its own conflict notice covers a shared link) or the tools.
 - `getPostHref()` — all internal links must use this helper, which returns `/{locale}` for bilingual posts and `/{post.language}` for single-language posts
 - `usePostLanguage()` — manages conflict/switch toasts; uses `hydrated` flag from `LocaleProvider` to wait for real system locale, and `sessionStorage` to distinguish intentional switches from shared-link conflicts across route navigations
 
