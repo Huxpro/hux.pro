@@ -34,6 +34,7 @@ over whatever page a visitor landed on.
 | first visit | rises over the page 700ms after load, once there is something under it to blur. Dismissing it is what marks the visitor as met (`hux_about_seen` in localStorage); a reload before that shows it again. Not on `/editor*` and `/vitre`, which are tools. |
 | `/` `O` | the palette's slash command, from any page — the About's only shortcut. There is no bare `O`: a single letter taken over every page fires by accident, and the About is not needed that often. |
 | ⌘K | `About` in search. Geolocation moved from `O` to `C`. |
+| λhux | the home screen's mark, the long way in: hover until it says its name (*The λHUX OS*) and the name is a door — click it; on a phone, hold it until the name is whole and the About rises (`components/home/scramble-identifier.tsx`). |
 | `/about` | the address to share: the home screen with the About already up. Putting it away swaps the address to `/` in place (no navigation, no remount). |
 | leaving | Escape, `/` `O`, a press outside the words, the button at the foot, or anything in the copy opening something — a badge or a link hands over to what it opened. Not the attachment drawer: on a phone a badge opens it *over* the About (`OVER_ABOUT_Z`, 10025), the words still underneath; Escape puts the drawer away first. The About steps aside only when the drawer sends the thing somewhere below it — the stage, a window, another page, the lightbox (`onSend` on the attachments' context); a tab leaves it be. |
 
