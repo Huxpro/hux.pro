@@ -30,6 +30,11 @@ import type { Commit } from "./log";
 export interface GraphLane {
   /** The project this lane belongs to. */
   id: string;
+  /**
+   * The lane's name, as a git branch: `lynx`, `lynx/ui`. A sub-project's
+   * name starts with its parent's, so the name says where it branched.
+   */
+  name: string;
   /** Column, 1-based: column 0 is the main line. */
   col: number;
   /** The column it forks from: its parent project's, or the main line. */
@@ -124,6 +129,7 @@ export function layoutGraph(
 
   const lanes: GraphLane[] = [];
   const colOfLane = new Map<string, number>();
+  const nameOfLane = new Map<string, string>();
   for (const id of ids) {
     const rows = [...members.get(id)!, index.get(id)!];
     const top = Math.min(...rows);
@@ -138,7 +144,11 @@ export function layoutGraph(
       col += 1;
     }
     colOfLane.set(id, col);
-    lanes.push({ id, col, from, top, bottom });
+    const segment = branchSegment(byId.get(id)!);
+    const parentName = parent ? nameOfLane.get(parent) : undefined;
+    const name = parentName ? `${parentName}/${segment}` : segment;
+    nameOfLane.set(id, name);
+    lanes.push({ id, name, col, from, top, bottom });
   }
 
   const colOf = new Map<string, number>();
@@ -158,4 +168,19 @@ export function layoutGraph(
     lanes,
     cols: Math.max(1, ...lanes.map((l) => l.col + 1)),
   };
+}
+
+/** A project's own segment of its branch name: authored, or its English
+ *  title as a slug (`Hermes JavaScript Engine` → `hermes-javascript-engine`). */
+function branchSegment(project: Commit): string {
+  if (project.type === "project" && project.branch?.trim()) {
+    return project.branch.trim();
+  }
+  return (
+    project.title.en
+      .toLowerCase()
+      .replace(/\(.*?\)/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || project.id
+  );
 }

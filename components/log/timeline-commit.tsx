@@ -159,6 +159,12 @@ interface TimelineCommitProps {
    * gutter widens to hold them; the lines are drawn by GraphLanes.
    */
   graph?: { col: number; cols: number };
+  /**
+   * The graph's branch name, on the newest row of its lane, the way
+   * `git log --decorate` prints `(lynx)` on a branch's tip. `active` while
+   * the lane is hovered.
+   */
+  decoration?: { name: string; active: boolean };
 }
 
 export function TimelineCommit({
@@ -192,6 +198,7 @@ export function TimelineCommit({
   childrenLabel,
   reveal = 0,
   graph,
+  decoration,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
@@ -433,6 +440,18 @@ export function TimelineCommit({
   // it would run the rail under the mark.
   const iconGapPx = isQuiet ? 3 : isRoleAnchor ? 10 : 7;
 
+  // `(lynx/ui)`, after the title, in the badge's voice.
+  const ref = decoration && (
+    <span
+      className={cn(
+        "ml-2 whitespace-nowrap align-baseline font-mono text-xs transition-colors duration-200",
+        decoration.active ? "text-muted-foreground" : "text-tertiary-foreground",
+      )}
+    >
+      ({decoration.name})
+    </span>
+  );
+
   const rowContent = (
     <div
       className={cn(
@@ -613,6 +632,7 @@ export function TimelineCommit({
                 {pointer === "down" ? "↓" : "↑"}
               </span>
             )}
+            {ref}
           </span>
         ) : (
           <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
@@ -622,6 +642,7 @@ export function TimelineCommit({
                 {data.languageBadge}
               </span>
             )}
+            {ref}
           </span>
         )}
 

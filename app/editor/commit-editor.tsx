@@ -699,6 +699,15 @@ function FormFields({
         onChange={(v) => onUpdate({ icon: v === "" ? undefined : v })}
       />
 
+      {commit.type === "project" && (
+        <Field
+          label="Branch"
+          value={commit.branch ?? ""}
+          onChange={(v) => onUpdate({ branch: v.trim() ? v : undefined })}
+          placeholder="lynx, ui… (the graph's lane name)"
+        />
+      )}
+
       <IdentityRailSection
         commit={commit}
         commits={commits}

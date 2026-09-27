@@ -13,7 +13,6 @@ import {
   type FilterableCommitType,
   formatTagDateRange,
   getLocalizedTagTitle,
-  localize,
   type Identity,
   isRowVisible,
   type Tag,
@@ -361,14 +360,8 @@ function TagBlock({
       layout.lanes.find(
         (l) => l.col === col && l.top <= index && index <= l.bottom,
       )?.id ?? null;
-    const names = new Map(
-      layout.lanes.map((l) => {
-        const project = commits.find((c) => c.id === l.id);
-        return [l.id, project ? localize(project.title, locale) : l.id];
-      }),
-    );
-    return { ...layout, rows, laneAt, names };
-  }, [graph, commits, isHidden, locale]);
+    return { ...layout, rows, laneAt };
+  }, [graph, commits, isHidden]);
 
   const openFor = (id: string) =>
     reveal && reveal.path.includes(id) ? reveal.n : 0;
@@ -551,6 +544,11 @@ function TagBlock({
               if (graphLayout) {
                 const col = graphLayout.colOf.get(c.id) ?? 0;
                 const lane = graphLayout.laneAt(i, col);
+                // The branch's name goes on its newest row, where git
+                // decorates a branch's tip.
+                const tip = graphLayout.lanes.find(
+                  (l) => l.col === col && l.top === i,
+                );
                 return (
                   <div
                     key={c.id}
@@ -567,6 +565,11 @@ function TagBlock({
                         c.editionOf ? editionLine(c, locale) : undefined
                       }
                       graph={{ col, cols: graphCols }}
+                      decoration={
+                        tip
+                          ? { name: tip.name, active: activeLane === tip.id }
+                          : undefined
+                      }
                     />
                   </div>
                 );
@@ -625,7 +628,6 @@ function TagBlock({
             containerRef={commitsRef}
             rows={graphLayout.rows}
             lanes={graphLayout.lanes}
-            names={graphLayout.names}
             activeLane={activeLane}
           />
         )}

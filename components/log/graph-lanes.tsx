@@ -44,30 +44,20 @@ interface Path {
   lane?: string;
 }
 
-/** Where a lane's name goes: just above and left of its newest mark. */
-interface Label {
-  lane: string;
-  x: number;
-  y: number;
-}
 
 export function GraphLanes({
   containerRef,
   rows,
   lanes,
-  names,
   activeLane,
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   rows: readonly GraphRow[];
   lanes: readonly GraphLane[];
-  /** Each lane's project, by name, printed at the lane's top. */
-  names: ReadonlyMap<string, string>;
   /** The lane being hovered, drawn a rung brighter. */
   activeLane?: string | null;
 }) {
   const [paths, setPaths] = useState<Path[]>([]);
-  const [labels, setLabels] = useState<Label[]>([]);
 
   // A passive effect, not a layout one: this sits inside the container it
   // measures, and a child's layout effect runs before its parent's ref is
@@ -108,7 +98,6 @@ export function GraphLanes({
       };
 
       const next: Path[] = [];
-      const nextLabels: Label[] = [];
       const main = marks.filter((m) => m.col === 0);
       if (main.length > 1) next.push({ d: through(main) });
 
@@ -123,7 +112,6 @@ export function GraphLanes({
         );
         if (own.length === 0) continue;
         xOf.set(lane.col, own[0].x);
-        nextLabels.push({ lane: lane.id, x: own[0].x, y: own[0].y - own[0].gap });
         let d = through(own);
 
         const bottom = own[own.length - 1];
@@ -140,7 +128,6 @@ export function GraphLanes({
         next.push({ d, lane: lane.id });
       }
       setPaths(next);
-      setLabels(nextLabels);
     };
 
     measure();
@@ -152,7 +139,6 @@ export function GraphLanes({
 
   if (paths.length === 0) return null;
   return (
-    <>
     <svg
       aria-hidden
       className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
@@ -175,26 +161,5 @@ export function GraphLanes({
         />
       ))}
     </svg>
-    {/* A lane's name, where the lane begins at the top, the way git
-        decorates the tip of a branch. Only where the gutter hangs in the
-        page margin (`lg`): below that the name would sit on the text. */}
-    {labels.map((l) => (
-      <span
-        key={l.lane}
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute hidden lg:block whitespace-nowrap",
-          "-translate-x-full -translate-y-full pr-1.5 pb-0.5",
-          "font-mono text-[10px] leading-none transition-colors duration-200",
-          activeLane === l.lane
-            ? "text-muted-foreground"
-            : "text-quaternary-foreground",
-        )}
-        style={{ left: l.x, top: l.y }}
-      >
-        {names.get(l.lane)}
-      </span>
-    ))}
-    </>
   );
 }

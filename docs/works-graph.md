@@ -39,12 +39,27 @@ tenure rail.
 
 - Hovering any row on a lane brightens that lane and its name.
 - From `lg` up the whole gutter hangs in the page margin, so the content
-  column doesn't move and the tree has room. Each lane's name is printed at
-  its top, where git would decorate a branch tip.
+  column doesn't move and the tree has room.
 - Below `lg` the gutter is inside the column. A lane is 16px from `@sm` up
-  and 10px on a phone, so three columns cost 40px there. Names are left out
-  on narrow screens; the project's own row at the bottom of the lane says
-  it.
+  and 10px on a phone, so three columns cost 40px there.
+
+## Branch names
+
+Each lane is named the way git names a branch, and printed the way
+`git log --decorate` prints it: `(lynx)` after the title of the lane's
+newest row, in the same mono voice as the language badge. It is part of the
+row, so it shows at every width and never sits on another lane's line.
+
+- The name is the project's `branch` field (`lynx`, `open-source`, `ui`),
+  or its English title as a slug when there is none.
+- A project that is about another project gets its parent's name in front,
+  the way git namespaces branches: `lynx/open-source`, `lynx/ui`. The name
+  says where the lane branched from, even when the fork is a screen below.
+- The project's own row, at the bottom of the lane, is not decorated: it
+  already says its name, and in git a branch is named at its tip, not where
+  it started.
+
+The editor has a **Branch** field on projects.
 
 ## Families
 

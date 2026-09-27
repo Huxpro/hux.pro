@@ -445,6 +445,13 @@ export type CommitLanguage = "en" | "zh" | "both";
 
 export interface ProjectCommit extends BaseCommit {
   type: "project";
+  /**
+   * What the graph view calls this project's lane, as a git branch:
+   * `lynx`, `open-source`, `ui`. Only the last segment; a project that is
+   * about another one gets its parent's name in front (`lynx/ui`). Absent,
+   * it is made from the English title.
+   */
+  branch?: string;
   stats?: {
     stars?: number;
     downloads?: string;

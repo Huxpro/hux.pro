@@ -1027,6 +1027,7 @@
         "en": "Lynx goes open source",
         "zh": "Lynx 开源"
       },
+      "branch": "open-source",
       "description": {
         "en": "Lynx opened its source in March 2025. These are the talks that introduced it, in China first and then abroad.",
         "zh": "2025 年 3 月，Lynx 开源。下面是介绍它的几场演讲，先在国内，再到海外。"
@@ -1060,6 +1061,7 @@
         "en": "lynx-ui",
         "zh": "lynx-ui"
       },
+      "branch": "ui",
       "description": {
         "en": "Ready-to-use components for Lynx, the newest member of the family.",
         "zh": "Lynx 的开箱即用组件库，家族里最新的成员。"
@@ -1082,6 +1084,7 @@
         "en": "Lynx Framework",
         "zh": "Lynx 框架"
       },
+      "branch": "lynx",
       "description": {
         "en": "Open-source cross-platform UI framework behind TikTok, Douyin, and CapCut. Familiar React and CSS, native rendering, dual-threaded architecture — instant launch and main-thread interactivity. Open-sourced in March 2025.",
         "zh": "支撑 TikTok、抖音、CapCut 的开源跨平台 UI 框架。熟悉的 React 与 CSS、原生渲染、双线程架构——瞬时启动与主线程交互。2025 年 3 月开源。"
@@ -1304,6 +1307,7 @@
         "en": "React Compiler (Forget)",
         "zh": "React Compiler（Forget）"
       },
+      "branch": "react-compiler",
       "description": {
         "en": "Founding engineer of the React Compiler (formerly Forget), the auto-memoization compiler that reshapes React's authoring model.",
         "zh": "React Compiler（原名 Forget）的联合创始工程师 —— 重塑 React 编写模型的自动记忆化编译器。"

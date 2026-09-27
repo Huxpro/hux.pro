@@ -81,6 +81,7 @@ export interface CommitProps {
   childrenLabel?: string;
   reveal?: number;
   graph?: { col: number; cols: number };
+  decoration?: { name: string; active: boolean };
 }
 
 // =============================================================================
@@ -113,6 +114,7 @@ export function Commit({
   childrenLabel,
   reveal,
   graph,
+  decoration,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -210,6 +212,7 @@ export function Commit({
           childrenLabel={childrenLabel}
           reveal={reveal}
           graph={graph}
+          decoration={decoration}
         >
           {children}
         </TimelineCommit>
