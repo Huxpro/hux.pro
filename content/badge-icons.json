@@ -79,6 +79,11 @@
     "width": 100,
     "height": 100
   },
+  "wepiao.com": {
+    "url": "https://www.wepiao.com",
+    "file": "/img/badges/wepiao.webp",
+    "source": "manual"
+  },
   "x.com": {
     "url": "https://x.com",
     "file": "/badge-icons/x.com.png",

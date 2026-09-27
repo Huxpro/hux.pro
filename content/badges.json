@@ -3,10 +3,12 @@
     "alitrip-mobile-web": "https://www.alibabagroup.com",
     "eleme-pwa": "https://h5.ele.me",
     "hermes-engine": "https://hermesengine.dev",
-    "hux-blog": "https://huxpro.github.io"
+    "hux-blog": "https://huxpro.github.io",
+    "yupiaoer": "https://www.wepiao.com"
   },
   "icons": {
     "h5.ele.me": "/img/badges/eleme.png",
-    "hermesengine.dev": "/img/badges/hermes.svg"
+    "hermesengine.dev": "/img/badges/hermes.svg",
+    "wepiao.com": "/img/badges/wepiao.webp"
   }
 }
