@@ -16,6 +16,12 @@ import {
   shouldOfferTilt,
   TILT_PRIMER_MIN_PRECIP,
 } from "../lib/tilt-primer";
+import { attachSkyPull, attachSkyReturn, settlePull, skyOpenAction } from "../lib/sky-pull";
+import { usePathname } from "next/navigation";
+import { showCustomToast } from "@/components/ui/system-sonner";
+import { SystemToast } from "@/components/ui/system-toast";
+import { t, useLocale } from "@/services";
+import { Compass } from "lucide-react";
 import { useHomeEditing } from "@/components/ui/home-edit-store";
 import { useWeather } from "../provider";
 import { useWallpaper } from "../provider";
@@ -54,6 +60,11 @@ import { WeatherWallpaper } from "./wallpaper";
 // The rain-and-snow egg — a drag stirs up a gust — is armed inside
 // <WeatherWallpaper /> instead, for the same reason one layer down: only the
 // Sky has particles for a wind to blow.
+//
+// And the one egg every weather has: pull the home screen down and the sky
+// window opens, where the phone's compass and tilt aim a camera at the real sky
+// (see lib/sky-window.ts and lib/sky-pull.ts). Only the Sky has a world to look
+// around in, so it is armed on the same terms as the others.
 //
 // An image wallpaper paints at FULL STRENGTH. On the home screen that is the
 // whole treatment: the picture is the content, sharp and untinted, with the
@@ -117,8 +128,12 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     blurred,
     bezel,
     gyro,
+    skyWindow,
+    setSkyWindow,
+    skyWantsLocation,
     gyroPrimed,
     offerTilt,
+    openSkyOffer,
     reportShaderFallback,
     statsRef,
   } = useWallpaper();
@@ -187,6 +202,9 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   // Not an egg — the feature introducing itself. A finger resting on a rainy
   // or snowy sky brings up what the tilt does, once ever, and only where there
   // is a permission standing between the visitor and it. See lib/tilt-primer.ts.
+  // It shares the hold with the fog wipe, and never collides with it: a scene
+  // with rain or snow keeps its mist under the wipe's threshold (lib/scene.ts),
+  // so the two are never armed on the same sky.
   const offering = shouldOfferTilt({
     primed: gyroPrimed,
     gated: gyro.gated,
@@ -200,6 +218,86 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     if (!offering) return;
     return attachTiltPrimer(offerTilt);
   }, [offering, offerTilt]);
+
+  // The sky window, and the pull that opens it (lib/sky-pull.ts). Pull the
+  // home down from the top and past a point it opens — or, where WebKit's gate
+  // still stands or the place is only a guess, the sheet that asks comes up.
+  // Swipe up and it closes. It belongs to the home: anywhere else the window
+  // pauses (the stage comes back) until the home does.
+  const { locale } = useLocale();
+  const pathname = usePathname();
+  const onHome = pathname === "/";
+  const shown = skyWindow && onHome && sky;
+  const openAction = skyOpenAction({
+    sky: sky && onHome,
+    reachable: gyro.reachable,
+    gated: gyro.gated,
+    denied: gyro.denied,
+    wantsLocation: skyWantsLocation,
+  });
+  const previewRef = useRef<((amount: number) => void) | null>(null);
+
+  useEffect(() => {
+    if (!openAction || skyWindow) return;
+    return attachSkyPull({
+      onProgress: (amount) => previewRef.current?.(amount),
+      onPulled: () => {
+        if (openAction === "offer") {
+          previewRef.current?.(0);
+          settlePull();
+          openSkyOffer();
+          return;
+        }
+        // Straight on from where the finger left the page: the attribute goes
+        // on now rather than a render later, so the content keeps going down
+        // instead of starting back up first.
+        document.documentElement.setAttribute("data-sky-window", "");
+        setSkyWindow(true);
+        // The sky answering is most of the feedback; this is the rest — what
+        // just happened, and how to undo it.
+        showCustomToast(
+          <SystemToast
+            icon={Compass}
+            title={t(locale, "skyWindowOn")}
+            note={t(locale, "skyWindowOnNote")}
+          />,
+          { id: "sky-window", duration: 3200 }
+        );
+      },
+    });
+  }, [openAction, skyWindow, openSkyOffer, setSkyWindow, locale]);
+
+  useEffect(() => {
+    if (!shown) return;
+    return attachSkyReturn(() => {
+      setSkyWindow(false);
+      showCustomToast(<SystemToast icon={Compass} title={t(locale, "skyWindowOff")} />, {
+        id: "sky-window",
+        duration: 1600,
+      });
+    });
+  }, [shown, setSkyWindow, locale]);
+
+  // The home steps out of the frame while the window is showing, and back in
+  // after (globals.css, "The sky pull"). Whatever opened or closed it — the
+  // pull, the sheet, the swipe, the devtool — this is the one place the page
+  // hears about it.
+  useEffect(() => {
+    const el = document.documentElement;
+    if (shown) {
+      el.setAttribute("data-sky-window", "");
+      el.removeAttribute("data-sky-returning");
+    } else if (el.hasAttribute("data-sky-window")) {
+      el.removeAttribute("data-sky-window");
+      settlePull();
+    }
+  }, [shown]);
+  useEffect(
+    () => () => {
+      document.documentElement.removeAttribute("data-sky-window");
+    },
+    []
+  );
 
   if (!useShader && layers.length === 0) return null;
 
@@ -230,6 +328,10 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           active={enabled}
           themeEaseMs={skyThemeEaseMs}
           gyro={gyro.active}
+          // Paused, not closed, away from the home: every other page sits on
+          // the wallpaper as its ground, and a ground that swung with the hand
+          // would be the opposite of that. Back home, it is a window again.
+          skyWindow={skyWindow && onHome}
           edgeMask={edgeMask}
           // This is the one sky a hand can reach: a drag across the page
           // background stirs up a gust.
@@ -238,6 +340,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           statsRef={statsRef}
           pokeRef={pokeRef}
           wipeRef={wipeRef}
+          previewRef={previewRef}
         />
       ) : (
         /* Full-page background is already viewport-fixed, so the edge mask is

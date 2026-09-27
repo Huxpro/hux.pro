@@ -19,7 +19,25 @@
 // =============================================================================
 
 import { UPRIGHT_GRAVITY, type GravityVector } from "../gyroscope";
-import type { WeatherScene } from "../scene";
+import { stageMoon, stageSun, type WeatherScene } from "../scene";
+import {
+  directionOf,
+  headingPitchOf,
+  moonLitAngle,
+  normalize,
+  projectToScreen,
+  slerpDir,
+  slerpView,
+  stageView,
+  starFrame,
+  vec3,
+  viewJumped,
+  viewScale,
+  wrapPi,
+  type SkyView,
+  type Vec3,
+} from "../sky-window";
+import { clamp01 } from "../solar";
 import { POKE_KIND_CODE, POKE_MS, type PokeKind } from "../poke";
 import {
   WIPE_JUMP,
@@ -40,6 +58,12 @@ interface UniformSpec {
   size: 1 | 2 | 3;
   /** Smoothing time constant in seconds (0 = snap). */
   tau: number;
+  /**
+   * Moved by the theme's key as well as by the sky (THEME_KEY in ../scene.ts):
+   * while a change of theme is landing, it eases on the theme's clock instead
+   * of its own, so the sky arrives with the veil rather than seconds after.
+   */
+  keyed?: true;
 }
 
 // Where a body is drawn tracks the clock it was given (`TRACK`); what the sky
@@ -49,31 +73,33 @@ interface UniformSpec {
 // feel attached to the slider, not towed behind it.
 const TRACK = 0.25;
 
-// What the theme changes, and all it changes: the veil's colour and amount and
-// the exposure (VEIL_DEFAULTS in ../scene.ts). Named so `setThemeEase` can
-// stretch this one group — the sun's handover takes as long over the sky as it
-// does over the page — without the weather slowing down with it.
+// What the theme changes: the veil's colour and amount and the exposure
+// (VEIL_DEFAULTS in ../scene.ts) — and, in the two pairings the theme re-keys,
+// the `keyed` colours, which borrow this clock while a change of theme lands.
+// Named so `setThemeEase` can stretch this one group — the sun's handover takes
+// as long over the sky as it does over the page — without the weather slowing
+// down with it.
 const THEME = 0.5;
 
 const UNIFORMS: UniformSpec[] = [
   { name: "uSun", size: 2, tau: TRACK },
   { name: "uSunElevation", size: 1, tau: TRACK },
   { name: "uDaylight", size: 1, tau: 1.6 },
-  { name: "uZenith", size: 3, tau: 1.8 },
-  { name: "uHorizon", size: 3, tau: 1.8 },
-  { name: "uGlow", size: 3, tau: 1.8 },
+  { name: "uZenith", size: 3, tau: 1.8, keyed: true },
+  { name: "uHorizon", size: 3, tau: 1.8, keyed: true },
+  { name: "uGlow", size: 3, tau: 1.8, keyed: true },
   { name: "uGlowStrength", size: 1, tau: 1.8 },
   { name: "uMoon", size: 2, tau: TRACK },
   { name: "uMoonPhase", size: 1, tau: 0 },
-  { name: "uMoonVisible", size: 1, tau: 1.8 },
+  { name: "uMoonVisible", size: 1, tau: 1.8, keyed: true },
   { name: "uMoonSize", size: 1, tau: TRACK },
   { name: "uHemisphere", size: 1, tau: 0 },
   { name: "uCloudCover", size: 1, tau: 2.6 },
   { name: "uCloudDensity", size: 1, tau: 2.6 },
   { name: "uCloudDarkness", size: 1, tau: 2.6 },
   { name: "uCloudSpeed", size: 1, tau: 2.0 },
-  { name: "uCloudLit", size: 3, tau: 1.8 },
-  { name: "uCloudShade", size: 3, tau: 1.8 },
+  { name: "uCloudLit", size: 3, tau: 1.8, keyed: true },
+  { name: "uCloudShade", size: 3, tau: 1.8, keyed: true },
   { name: "uRain", size: 1, tau: 2.4 },
   { name: "uSnow", size: 1, tau: 2.4 },
   { name: "uWind", size: 2, tau: 3.0 },
@@ -85,6 +111,12 @@ const UNIFORMS: UniformSpec[] = [
   { name: "uVeilColor", size: 3, tau: THEME },
   { name: "uVeilAmount", size: 1, tau: THEME },
   { name: "uExposure", size: 1, tau: THEME },
+  // The sky window's (see ../sky-window.ts). The world wind never reaches the
+  // shader as itself — the renderer turns it into a lean across the view — so
+  // its location is simply null, the way uWind's always has been.
+  { name: "uWindWorld", size: 2, tau: 3.0 },
+  { name: "uSunWorld", size: 3, tau: TRACK },
+  { name: "uMoonWorld", size: 3, tau: TRACK },
 ];
 
 const FLOAT_COUNT = UNIFORMS.reduce((n, u) => n + u.size, 0);
@@ -101,13 +133,160 @@ const META = UNIFORMS.map((u, i) => {
   OFFSET[u.name] = offset;
   let tauIndex = TAUS.indexOf(u.tau);
   if (tauIndex < 0) tauIndex = TAUS.push(u.tau) - 1;
-  return { offset, size: u.size, tauIndex };
+  return { offset, size: u.size, tauIndex, keyed: u.keyed === true };
 });
 /** Which of `TAUS` is the theme's, for `setThemeEase` to override. */
 const THEME_TAU_INDEX = TAUS.indexOf(THEME);
 const WIND_OFFSET = OFFSET.uWind;
 const CLOUD_SPEED_OFFSET = OFFSET.uCloudSpeed;
 const SNOW_OFFSET = OFFSET.uSnow;
+const WIND_WORLD_OFFSET = OFFSET.uWindWorld;
+const SUN_WORLD_OFFSET = OFFSET.uSunWorld;
+const MOON_WORLD_OFFSET = OFFSET.uMoonWorld;
+const SUN_INDEX = UNIFORMS.findIndex((u) => u.name === "uSun");
+const MOON_INDEX = UNIFORMS.findIndex((u) => u.name === "uMoon");
+const MOON_PHASE_OFFSET = OFFSET.uMoonPhase;
+const HEMISPHERE_OFFSET = OFFSET.uHemisphere;
+const MOON_BEHIND_OFFSET = OFFSET.uMoonBehind;
+
+/** Which hemisphere a packed scene is in: its south mirrors the stage. */
+const hemisphereOf = (src: Float32Array): 1 | -1 => (src[HEMISPHERE_OFFSET] < 0 ? -1 : 1);
+
+/** A body is "up" for the edge hints when it is above the horizon by this, as sin(elevation). */
+const HORIZON_Z = Math.sin(-1 * (Math.PI / 180));
+
+/**
+ * The sun and the moon, as the glides see them: which uniforms hold where each
+ * is drawn and where it is, and how the stage places it. One table for both,
+ * so the two can never be moved by different rules.
+ */
+const BODIES = [
+  {
+    screen: "uSun",
+    world: "uSunWorld",
+    stage: (at: { azimuth: number; elevation: number }, h: 1 | -1) => stageSun(at, h),
+  },
+  {
+    screen: "uMoon",
+    world: "uMoonWorld",
+    stage: (at: { azimuth: number; elevation: number }, h: 1 | -1) => stageMoon(at, h).screen,
+  },
+] as const;
+
+/** Where the sun and the moon are through the window, for the edge hints. */
+export interface WindowBodies {
+  /** The window is fully open and the bodies have landed: hints may show. */
+  settled: boolean;
+  /** Screen 0..1, y up — off the glass when outside it; `ahead` < 0 behind you. */
+  sun: { x: number; y: number; ahead: number; up: boolean };
+  moon: { x: number; y: number; ahead: number; up: boolean };
+}
+
+/**
+ * A point `t` of the way from (ax, ay) to (bx, by) in screen space, bowed off
+ * the straight line by BODY_FLY_BOW — upward, so a body flies over rather than
+ * sliding across. Measured in the shader's own space (x stretched by the
+ * aspect), so the bow is the same on a tall screen as a wide one.
+ */
+function flyAlong(ax: number, ay: number, bx: number, by: number, t: number, aspect: number) {
+  if (t <= 0) return { x: ax, y: ay };
+  if (t >= 1) return { x: bx, y: by };
+  const dx = (bx - ax) * aspect;
+  const dy = by - ay;
+  const len = Math.hypot(dx, dy);
+  // The normal that points up (or right, for a flight straight up or down).
+  let nx = -dy / (len || 1);
+  let ny = dx / (len || 1);
+  if (ny < 0) {
+    nx = -nx;
+    ny = -ny;
+  }
+  const bow = 4 * t * (1 - t) * BODY_FLY_BOW * len;
+  return {
+    x: ax + (bx - ax) * t + (nx * bow) / aspect,
+    y: ay + (by - ay) * t + ny * bow,
+  };
+}
+
+/**
+ * How long the sky takes to become a window, and to go back to being a stage.
+ * Long enough to watch the horizon drop into place and the sun slide round to
+ * where it really is — that is the reveal — and no longer.
+ */
+const WINDOW_TAU = 0.45;
+
+/**
+ * The pull's preview (lib/sky-pull.ts): as the home is pulled down, the sky's
+ * gradient lifts — by up to this many screen heights, so the zenith's colour
+ * reaches further down and the stars come lower — as if the eyes were rising
+ * with the page going down. ONLY the gradient: the sun and the moon hold still
+ * under a pull, and so do the clouds and the stars, so that nothing is already
+ * on its way before the window has opened (see `BODY_FLY_SEC`). It follows the
+ * finger closely (`PREVIEW_TAU`) and falls back at the window's own pace.
+ */
+const LIFT_MAX = 0.16;
+const PREVIEW_TAU = 0.1;
+
+/**
+ * Once the window opens, the sun and the moon fly from where the stage had
+ * them to where they really are — after the sky has had a beat to become the
+ * window (`BODY_FLY_DELAY`), along a slight arc, easing in and out. It is the
+ * guide: a moon that is really behind you flies off the edge it would take to
+ * turn and find it. Back to the stage, the same flight the other way.
+ */
+const BODY_FLY_SEC = 1.2;
+const BODY_FLY_DELAY = 0.25;
+/** How far the flight bows off the straight line, as a share of its length. */
+const BODY_FLY_BOW = 0.18;
+
+// -----------------------------------------------------------------------------
+// Gliding across a jump
+//
+// Easing is for the minute-by-minute drift of a live clock and a hand on a
+// slider. A JUMP — a location fix that lands a hundred kilometres away, a
+// refetch after hours asleep, a preset on the devtool's clock — used to snap,
+// because easing a screen position flew the disc across the screen in a
+// straight line, which is not a way the sun has ever moved. Snapping was the
+// honest answer to that, and it read as a cut.
+//
+// So a jump now GLIDES: quickly, but along the sky rather than across the
+// glass. What is interpolated is the body's direction in the world — the
+// shortest way round the celestial sphere — and every frame of it is staged
+// the way the stage stages a real position (`stageSun` / `stageMoon`), or
+// projected through the window. The disc arcs over rather than sliding under.
+//
+// The window's camera does the same when the view it is given jumps — the
+// first reading after the window opens, a compass that arrives late, the
+// devtool's slider let go somewhere else: it turns to the new view along the
+// shortest rotation instead of cutting to it. A real hand, after the sensor's
+// own smoothing, never turns `VIEW_JUMP_DEG` between two readings, so this
+// never adds lag to one.
+// -----------------------------------------------------------------------------
+
+/** How long a body takes to glide to where a jump put it, seconds. */
+const GLIDE_SEC = 0.9;
+/** A target that moved this far on screen in one scene is a jump, not a drift. */
+const JUMP_SCREEN = 0.2;
+/** The camera's glide, seconds, and what counts as a jump of the view. */
+const VIEW_GLIDE_SEC = 0.6;
+const VIEW_JUMP_DEG = 20;
+/**
+ * The star sphere's own ease: a new latitude tips the pole, a new longitude
+ * turns the sphere, and neither should do it in a frame.
+ */
+const CELESTIAL_TAU = 0.35;
+
+/** Ease-in-out, cubic: leaves gently and arrives gently, fast in between. */
+function easeInOut(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+interface BodyGlide {
+  /** Where the body was, in the world, when the jump arrived. */
+  from: Vec3;
+  /** performance.now() at the jump. */
+  at: number;
+}
 
 /** A fixed, pleasant moment on the shader clock for a still frame. */
 const STILL_FRAME_SEC = 37;
@@ -309,8 +488,19 @@ function packScene(scene: WeatherScene, out: Float32Array) {
   out[39] = veil.color[0]; out[40] = veil.color[1]; out[41] = veil.color[2];
   out[42] = veil.amount;
   out[43] = scene.exposure;
+  out[44] = scene.windWorld.east; out[45] = scene.windWorld.north;
+  packDirection(sun.azimuth, sun.elevation, out, 46);
+  packDirection(moon.azimuth, moon.elevation, out, 49);
 }
-if (FLOAT_COUNT !== 44) throw new Error("packScene is out of step with UNIFORMS");
+if (FLOAT_COUNT !== 52) throw new Error("packScene is out of step with UNIFORMS");
+
+/** An azimuth and elevation, as an East-North-Up unit vector, into `out`. */
+function packDirection(azimuthDeg: number, elevationDeg: number, out: Float32Array, at: number) {
+  const d = directionOf(azimuthDeg, elevationDeg);
+  out[at] = d.x;
+  out[at + 1] = d.y;
+  out[at + 2] = d.z;
+}
 
 export interface WallpaperRendererOptions {
   /** Render a single still frame and re-render only on scene/size changes. */
@@ -322,6 +512,11 @@ export interface WallpaperRendererOptions {
   onFallback?: (reason: string) => void;
   /** Called once, after the first frame has been painted. */
   onFirstFrame?: () => void;
+  /**
+   * Called when a glide starts, and when the last one ends: the sky is between
+   * two states after a jump (see "Gliding across a jump"). The settle spinner.
+   */
+  onSettle?: (settling: boolean) => void;
 }
 
 interface ResolvedOptions {
@@ -330,6 +525,7 @@ interface ResolvedOptions {
   maxFps: number;
   onFallback?: (reason: string) => void;
   onFirstFrame?: () => void;
+  onSettle?: (settling: boolean) => void;
 }
 
 export interface WallpaperStats {
@@ -364,6 +560,13 @@ export class WallpaperRenderer {
   private locWipeBox: WebGLUniformLocation | null = null;
   private locWipeBlow: WebGLUniformLocation | null = null;
   private locFrameSec: WebGLUniformLocation | null = null;
+  private locWindow: WebGLUniformLocation | null = null;
+  private locViewRight: WebGLUniformLocation | null = null;
+  private locViewUp: WebGLUniformLocation | null = null;
+  private locViewFwd: WebGLUniformLocation | null = null;
+  private locViewScale: WebGLUniformLocation | null = null;
+  private locStarFrame: WebGLUniformLocation | null = null;
+  private locMoonAxis: WebGLUniformLocation | null = null;
   /** Per-frame easing factors, one per distinct tau. */
   private ks = new Float64Array(TAUS.length);
   private vao: WebGLVertexArrayObject | null = null;
@@ -371,6 +574,10 @@ export class WallpaperRenderer {
   private target = new Float32Array(FLOAT_COUNT);
   /** Seconds, or null for each uniform's own tau. See setThemeEase. */
   private themeTau: number | null = null;
+  /** The theme of the last scene, to tell a change of theme from a change of sky. */
+  private theme: WeatherScene["theme"] | null = null;
+  /** Seconds left in which the `keyed` uniforms ease on the theme's clock. */
+  private keyLead = 0;
   private current = new Float32Array(FLOAT_COUNT);
   private hasScene = false;
   private seed = 0;
@@ -452,6 +659,46 @@ export class WallpaperRenderer {
   /** The hand. It tires across strokes, not within one — lifting gives nothing back. */
   private hand = freshHand();
 
+  // --- The sky window (see ../sky-window.ts) ---------------------------------
+  /** Whether the sky is being looked at through the phone, as asked. */
+  private windowOn = false;
+  /** …and how far it has got there: 0 the stage, 1 the window. Eased. */
+  private windowAmt = 0;
+  /** How far a pull on the home has got, 0..1 — see `previewWindow`. */
+  private preview = 0;
+  /** …and how far the gradient has lifted for it, screen heights. Eased. */
+  private lift = 0;
+  /** Where the sun and moon are between staged (0) and real (1): see BODY_FLY_SEC. */
+  private bodyAmt = 0;
+  private bodyFly: { from: number; to: number; at: number } | null = null;
+  private locLift: WebGLUniformLocation | null = null;
+  /** Hears where the sun and moon are through the window, every frame (edge hints). */
+  private bodyListener: ((bodies: WindowBodies | null) => void) | null = null;
+  private bodiesPublished = false;
+  /** Where the window looks. The stage's own view until a reading arrives. */
+  private view: SkyView | null = null;
+  /** What the window is actually showing: `view`, or on the way to it. */
+  private shownView: SkyView | null = null;
+  private viewGlide: { from: SkyView; at: number } | null = null;
+  private starMat = new Float32Array(9);
+  /** Latitude and sidereal time: where the scene has them, and eased (the latter the short way round). */
+  private celestialTarget = new Float64Array(2);
+  private celestial = new Float64Array(2);
+  /** The celestial frame the star matrix was last built for. */
+  private starFrameAt = new Float64Array([NaN, NaN]);
+  /** Reused every frame for the edge hints' listener, rather than rebuilt. */
+  private bodies: WindowBodies = {
+    settled: false,
+    sun: { x: 0, y: 0, ahead: 0, up: false },
+    moon: { x: 0, y: 0, ahead: 0, up: false },
+  };
+
+  // --- Glides across a jump ---------------------------------------------------
+  /** One per body in BODIES: the sun's, then the moon's. */
+  private glides: (BodyGlide | null)[] = [null, null];
+  /** Whether any glide is running, as last reported to `onSettle`. */
+  private gliding = false;
+
   private dpr = 1;
   private baseScale = 1;
   private scale = 1;
@@ -478,6 +725,7 @@ export class WallpaperRenderer {
       maxFps: options.maxFps ?? 60,
       onFallback: options.onFallback,
       onFirstFrame: options.onFirstFrame,
+      onSettle: options.onSettle,
     };
     this.startAt = performance.now();
     this.lastFrameAt = this.startAt;
@@ -500,10 +748,20 @@ export class WallpaperRenderer {
   setScene(scene: WeatherScene) {
     // Where every uniform was aimed before this scene arrived.
     const prevTarget = this.target.slice();
+    const first = !this.hasScene;
     packScene(scene, this.target);
+    this.celestialTarget[0] = scene.celestial.latitude;
+    this.celestialTarget[1] = scene.celestial.siderealDeg;
     this.seed = scene.seed;
+    // A change of theme re-keys the sky in the pairings the key covers; that
+    // part of the sky lands with the veil, over the theme's settle (3 taus).
+    if (this.theme !== null && scene.theme !== this.theme) {
+      this.keyLead = 3 * (this.themeTau ?? THEME);
+    }
+    this.theme = scene.theme;
     if (!this.hasScene) {
       this.current.set(this.target);
+      this.celestial.set(this.celestialTarget);
       // Start both fields already leaning into the scene's wind. Coming up
       // from nothing would mean the first seconds of a page had the weather
       // falling straight down through a gale.
@@ -513,14 +771,16 @@ export class WallpaperRenderer {
     // The phase is cyclic; never interpolate it.
     this.snap("uMoonPhase");
     // Easing is for the minute-by-minute drift of a live clock, and for a hand
-    // on a devtool slider. A jump of the clock (a phase preset, a refetch after
-    // hours asleep) would otherwise fly the sun or moon across the screen in a
-    // straight line, which reads as a wrong trajectory — so it snaps instead.
-    // The jump that matters is between one target and the next: measuring
-    // against the eased position instead would read a run of small steps — a
-    // scrub — as one big jump, and teleport the disc mid-drag.
-    this.snapIfJumped("uSun", prevTarget, 0.2);
-    this.snapIfJumped("uMoon", prevTarget, 0.2, ["uMoonVisible"]);
+    // on a devtool slider; a jump glides along the sky instead (see "Gliding
+    // across a jump"). The jump that matters is between one target and the
+    // next: measuring against the eased position instead would read a run of
+    // small steps — a scrub — as one big jump, and glide the disc mid-drag.
+    if (!first) {
+      BODIES.forEach((body, i) => {
+        this.glides[i] = this.glideIfJumped(body, prevTarget) ?? this.glides[i];
+      });
+      this.reportGlides();
+    }
     if (this.opts.reducedMotion) {
       this.settle();
     } else if (!this.running) {
@@ -588,6 +848,71 @@ export class WallpaperRenderer {
     }
     if (this.opts.reducedMotion) {
       this.settle();
+    }
+  }
+
+  /**
+   * Look at the sky through the phone, or go back to the stage. The window
+   * eases in and out (`WINDOW_TAU`) — the horizon dropping into place and the
+   * sun sliding round to where it really is are the reveal — except under
+   * reduced motion, where it simply is one or the other.
+   */
+  setSkyWindow(on: boolean) {
+    if (this.windowOn === on) return;
+    this.windowOn = on;
+    this.preview = 0;
+    this.bodyFly = {
+      from: this.bodyAmt,
+      to: on ? 1 : 0,
+      at: performance.now() + (on ? BODY_FLY_DELAY * 1000 : 0),
+    };
+    if (this.opts.reducedMotion) {
+      this.windowAmt = on ? 1 : 0;
+      this.settle();
+    }
+  }
+
+  /**
+   * Hear where the sun and the moon are through the window, once a frame while
+   * it is open, and a null when it closes — for the edge hints that point at a
+   * body off the glass (<SkyBodyHints />).
+   */
+  onWindowBodies(listener: ((bodies: WindowBodies | null) => void) | null) {
+    this.bodyListener = listener;
+  }
+
+  /**
+   * A pull on the home is `amount` (0..1) of the way to opening the window:
+   * lift the sky toward it, a little. Ignored under reduced motion, where the
+   * sky does not follow hands.
+   */
+  previewWindow(amount: number) {
+    if (this.opts.reducedMotion) return;
+    this.preview = clamp01(amount);
+  }
+
+  /**
+   * Where the window looks — the sensor's view, straight from
+   * `subscribeView`. Null goes back to the stage's own heading, which is also
+   * where the window opens before the first reading arrives.
+   */
+  setView(view: SkyView | null) {
+    // A view that jumped is turned to, from wherever the window is showing
+    // now — which may itself be halfway through an earlier turn.
+    const shown = this.shownView ?? this.currentView(this.current);
+    if (
+      view &&
+      !this.opts.reducedMotion &&
+      this.windowAmt > 0 &&
+      viewJumped(shown, view, VIEW_JUMP_DEG)
+    ) {
+      this.viewGlide = { from: shown, at: performance.now() };
+      this.reportGlides();
+    }
+    this.view = view;
+    if (this.opts.reducedMotion && this.windowOn) {
+      this.shownView = view;
+      this.renderOnce();
     }
   }
 
@@ -715,6 +1040,9 @@ export class WallpaperRenderer {
 
   stop() {
     this.running = false;
+    // Nothing will advance a glide while stopped, and a glide resumed hours
+    // later would be flying toward a target that has long since moved on.
+    this.finishGlides();
     // Every egg is measured in wall-clock time; a paused renderer would resume
     // one hours later, mid-flash — or with a hole in the fog that never healed.
     this.pokeAt = 0;
@@ -805,6 +1133,16 @@ export class WallpaperRenderer {
     this.locWipeBox = gl.getUniformLocation(program, "uWipeBox");
     this.locWipeBlow = gl.getUniformLocation(program, "uWipeBlow");
     this.locFrameSec = gl.getUniformLocation(program, "uFrameSec");
+    this.locWindow = gl.getUniformLocation(program, "uWindow");
+    this.locViewRight = gl.getUniformLocation(program, "uViewRight");
+    this.locViewUp = gl.getUniformLocation(program, "uViewUp");
+    this.locViewFwd = gl.getUniformLocation(program, "uViewFwd");
+    this.locViewScale = gl.getUniformLocation(program, "uViewScale");
+    this.locStarFrame = gl.getUniformLocation(program, "uStarFrame");
+    this.locMoonAxis = gl.getUniformLocation(program, "uMoonAxis");
+    this.locLift = gl.getUniformLocation(program, "uLift");
+    // A new program has no star frame yet.
+    this.starFrameAt.fill(NaN);
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     return true;
@@ -1077,20 +1415,102 @@ export class WallpaperRenderer {
     else this.wipeStart = (this.wipeStart + 1) % WIPE_MAX_POINTS;
   }
 
-  /** Snap a vec2 uniform (and companions) when a new scene jumped its target. */
-  private snapIfJumped(
-    name: string,
-    from: Float32Array,
-    threshold: number,
-    companions: string[] = []
-  ) {
-    const offset = OFFSET[name];
+  /**
+   * A glide from where the body is now, when a new scene jumped its staged
+   * position past `JUMP_SCREEN`; null when it only drifted. Under reduced motion
+   * there is no glide — the still frame simply is the new sky.
+   */
+  private glideIfJumped(body: (typeof BODIES)[number], from: Float32Array): BodyGlide | null {
+    if (this.opts.reducedMotion) return null;
+    const offset = OFFSET[body.screen];
     const dx = this.target[offset] - from[offset];
     const dy = this.target[offset + 1] - from[offset + 1];
-    if (Math.hypot(dx, dy) > threshold) {
-      this.snap(name);
-      for (const c of companions) this.snap(c);
+    if (Math.hypot(dx, dy) <= JUMP_SCREEN) return null;
+    return { from: worldAt(this.current, OFFSET[body.world]), at: performance.now() };
+  }
+
+  /**
+   * Walk each glide one frame on: the body's world direction slerped toward
+   * its target and staged as the stage would stage it, the camera slerped
+   * toward the view. Written into `current`, over whatever the plain easing
+   * put there this frame.
+   */
+  private advanceGlides() {
+    // Nothing gliding and no window to aim: the plain sky has nothing to do
+    // here, and this runs every frame of it.
+    if (!this.glides[0] && !this.glides[1] && !this.viewGlide && this.windowAmt <= 0) return;
+    const now = performance.now();
+    const hemisphere = hemisphereOf(this.target);
+    for (let i = 0; i < BODIES.length; i++) {
+      const glide = this.glides[i];
+      if (!glide) continue;
+      const body = BODIES[i];
+      const world = OFFSET[body.world];
+      const t = (now - glide.at) / 1000 / GLIDE_SEC;
+      if (t >= 1) {
+        this.glides[i] = null;
+        this.snap(body.screen);
+        this.snap(body.world);
+        continue;
+      }
+      const dir = slerpDir(glide.from, worldAt(this.target, world), easeInOut(t));
+      this.current[world] = dir.x;
+      this.current[world + 1] = dir.y;
+      this.current[world + 2] = dir.z;
+      const { heading, pitch } = headingPitchOf(dir);
+      const screen = body.stage({ azimuth: heading, elevation: pitch }, hemisphere);
+      this.current[OFFSET[body.screen]] = screen.x;
+      this.current[OFFSET[body.screen] + 1] = screen.y;
     }
+
+    const target = this.view ?? stageView(hemisphere);
+    if (this.viewGlide) {
+      const t = (now - this.viewGlide.at) / 1000 / VIEW_GLIDE_SEC;
+      if (t >= 1) {
+        this.viewGlide = null;
+        this.shownView = target;
+      } else {
+        this.shownView = slerpView(this.viewGlide.from, target, easeInOut(t));
+      }
+    } else {
+      this.shownView = target;
+    }
+    this.reportGlides();
+  }
+
+  /** One frame of the sun and moon's flight between staged and real. */
+  private advanceBodyFly() {
+    const fly = this.bodyFly;
+    if (!fly) return;
+    const t = (performance.now() - fly.at) / 1000 / BODY_FLY_SEC;
+    if (t <= 0) return;
+    if (t >= 1) {
+      this.bodyAmt = fly.to;
+      this.bodyFly = null;
+      return;
+    }
+    this.bodyAmt = fly.from + (fly.to - fly.from) * easeInOut(t);
+  }
+
+  /** Land every glide where it was going. */
+  private finishGlides() {
+    BODIES.forEach((body, i) => {
+      if (!this.glides[i]) return;
+      this.snap(body.screen);
+      this.snap(body.world);
+      this.glides[i] = null;
+    });
+    this.viewGlide = null;
+    this.shownView = this.view;
+    this.reportGlides();
+  }
+
+  /** Tell `onSettle` when the answer to "is anything gliding?" changes. */
+  private reportGlides() {
+    const gliding = !!(this.glides[0] || this.glides[1] || this.viewGlide);
+    if (gliding === this.gliding) return;
+    this.gliding = gliding;
+    this.opts.onSettle?.(gliding);
   }
 
   private snap(name: string) {
@@ -1105,14 +1525,30 @@ export class WallpaperRenderer {
         t === THEME_TAU_INDEX && this.themeTau !== null ? this.themeTau : TAUS[t];
       this.ks[t] = tau <= 0 ? 1 : 1 - Math.exp(-dtSec / tau);
     }
+    const leading = this.keyLead > 0;
+    this.keyLead = Math.max(0, this.keyLead - dtSec);
     for (const m of META) {
-      const k = this.ks[m.tauIndex];
+      const k = leading && m.keyed ? this.ks[THEME_TAU_INDEX] : this.ks[m.tauIndex];
       for (let j = 0; j < m.size; j++) {
         const idx = m.offset + j;
         this.current[idx] += (this.target[idx] - this.current[idx]) * k;
       }
     }
     this.advanceGust(dtSec);
+    this.advanceGlides();
+    const kc = 1 - Math.exp(-dtSec / CELESTIAL_TAU);
+    this.celestial[0] += (this.celestialTarget[0] - this.celestial[0]) * kc;
+    const lstGap = ((this.celestialTarget[1] - this.celestial[1]) % 360 + 540) % 360 - 180;
+    this.celestial[1] = (this.celestial[1] + lstGap * kc + 360) % 360;
+    const aimLift = this.windowOn ? 0 : this.preview * LIFT_MAX;
+    const kl = 1 - Math.exp(-dtSec / (aimLift > this.lift ? PREVIEW_TAU : WINDOW_TAU));
+    this.lift += (aimLift - this.lift) * kl;
+    if (Math.abs(aimLift - this.lift) < 1e-4) this.lift = aimLift;
+    this.advanceBodyFly();
+    const aimAt = this.windowOn ? 1 : 0;
+    const kw = 1 - Math.exp(-dtSec / WINDOW_TAU);
+    this.windowAmt += (aimAt - this.windowAmt) * kw;
+    if (Math.abs(aimAt - this.windowAmt) < 1e-3) this.windowAmt = aimAt;
     // Advect drift from the smoothed wind so direction changes glide. Both
     // drifts are travels, positive to the right, like the wind that feeds them.
     const windX = this.current[WIND_OFFSET];
@@ -1169,7 +1605,7 @@ export class WallpaperRenderer {
   private aimRain(src: Float32Array, gust: number) {
     // 1, because the rain's own fall speed is the shader's business: it varies
     // per depth layer and never leaves the loop that uses it.
-    this.fallFor(1, (src[WIND_OFFSET] + gust) * RAIN_LEAN);
+    this.fallFor(1, (this.windAcross(src) + gust) * RAIN_LEAN);
   }
 
   private aimSnow(src: Float32Array, gust: number) {
@@ -1178,7 +1614,47 @@ export class WallpaperRenderer {
     // times the time, whatever the flake is doing vertically. Which is why the
     // snow's lean goes shallower as the snow gets heavier, and why it takes no
     // division to arrange.
-    this.fallFor(snowFallRate(src[SNOW_OFFSET]), (src[WIND_OFFSET] + gust) * SNOW_LEAN);
+    this.fallFor(snowFallRate(src[SNOW_OFFSET]), (this.windAcross(src) + gust) * SNOW_LEAN);
+  }
+
+  /**
+   * The wind across the screen, −1..1, positive blowing right.
+   *
+   * On the stage that is the scene's own `wind.x` — the part of the wind across
+   * a view that always faces south. Through the window it is the part across
+   * wherever the phone is facing: the world wind against the screen's right
+   * edge. Face into the wind and the rain comes straight down at you; turn side
+   * on and it lays over. The two are blended through the transition, so the
+   * lean comes round with the sky rather than snapping.
+   */
+  private windAcross(src: Float32Array): number {
+    const stage = src[WIND_OFFSET];
+    const w = this.windowAmt;
+    if (w <= 0) return stage;
+    const view = this.currentView(src);
+    // Level and square to where you look — forward × up-in-the-world — and not
+    // the screen's own right edge, which tips with the phone's roll. The lean
+    // is laid across gravity on screen already (`fallFor`); what it needs from
+    // here is only how much of the wind is crossing your line of sight. Looking
+    // straight up there is no line of sight across the ground, and the
+    // screen's right, levelled, takes over.
+    const f = view.forward;
+    const levelLen = Math.hypot(f.x, f.y);
+    const byLook = clamp01((levelLen - 0.1) / 0.2);
+    const rLen = Math.hypot(view.right.x, view.right.y) || 1;
+    let hx = (view.right.x / rLen) * (1 - byLook);
+    let hy = (view.right.y / rLen) * (1 - byLook);
+    if (levelLen > 1e-6) {
+      hx += (f.y / levelLen) * byLook;
+      hy += (-f.x / levelLen) * byLook;
+    }
+    const across = src[WIND_WORLD_OFFSET] * hx + src[WIND_WORLD_OFFSET + 1] * hy;
+    return stage + (across - stage) * w;
+  }
+
+  /** The view the window is looking along, or the stage's when none has come. */
+  private currentView(src: Float32Array): SkyView {
+    return this.shownView ?? this.view ?? stageView(hemisphereOf(src));
   }
 
   /**
@@ -1233,6 +1709,12 @@ export class WallpaperRenderer {
    */
   private settle() {
     this.current.set(this.target);
+    this.bodyFly = null;
+    this.bodyAmt = this.windowOn ? 1 : 0;
+    this.lift = 0;
+    this.celestial.set(this.celestialTarget);
+    this.finishGlides();
+    this.windowAmt = this.windowOn ? 1 : 0;
     this.snapFall();
     this.renderOnce();
   }
@@ -1298,6 +1780,93 @@ export class WallpaperRenderer {
     else gl.uniform2f(loc, dir[0] / len, dir[1] / len);
   }
 
+  /**
+   * The sky window's uniforms, and the two it overrides.
+   *
+   * `uWindow` of 0 is the stage, and the shader's stage path is untouched by
+   * everything else here — the window's code sits behind that one uniform, so
+   * a sky nobody has turned into a window renders exactly as it always has.
+   *
+   * The sun and the moon are the overrides: where the stage stages them and
+   * where the window projects them are both known here, and the disc is drawn
+   * at the blend — so through the transition it slides from one to the other,
+   * and every line of the shader that draws a disc, a glow or a halo keeps
+   * working in screen space unchanged.
+   */
+  private drawWindow(gl: WebGL2RenderingContext, c: Float32Array) {
+    const w = this.windowAmt;
+    gl.uniform1f(this.locWindow, w);
+    gl.uniform1f(this.locLift, this.lift);
+    if (w <= 0) {
+      if (this.bodiesPublished) {
+        this.bodiesPublished = false;
+        this.bodyListener?.(null);
+      }
+      return;
+    }
+
+    const view = this.currentView(c);
+    const aspect = this.canvas.height > 0 ? this.canvas.width / this.canvas.height : 1;
+    gl.uniform3f(this.locViewRight, view.right.x, view.right.y, view.right.z);
+    gl.uniform3f(this.locViewUp, view.up.x, view.up.y, view.up.z);
+    gl.uniform3f(this.locViewFwd, view.forward.x, view.forward.y, view.forward.z);
+    const k = viewScale(aspect);
+    gl.uniform1f(this.locViewScale, k);
+    // The star frame only moves when the celestial frame does — a new place,
+    // or the clock — so it is rebuilt and sent then, not every frame.
+    if (this.celestial[0] !== this.starFrameAt[0] || this.celestial[1] !== this.starFrameAt[1]) {
+      this.starFrameAt.set(this.celestial);
+      gl.uniformMatrix3fv(
+        this.locStarFrame,
+        false,
+        starFrame(this.celestial[0], this.celestial[1], this.starMat)
+      );
+    }
+
+    const sunW = worldAt(c, SUN_WORLD_OFFSET);
+    const moonW = worldAt(c, MOON_WORLD_OFFSET);
+    const sun = projectToScreen(sunW, view, aspect, k);
+    const moon = projectToScreen(moonW, view, aspect, k);
+    // Held where the stage has them until the flight starts, then flown along
+    // a slight arc to where they really are — not blended with the sky's own
+    // ease, so a pull and the first beat of the window leave them still.
+    const b = this.bodyAmt;
+    const so = OFFSET.uSun;
+    const mo = OFFSET.uMoon;
+    const sunAt = flyAlong(c[so], c[so + 1], sun.x, sun.y, b, aspect);
+    const moonAt = flyAlong(c[mo], c[mo + 1], moon.x, moon.y, b, aspect);
+    gl.uniform2f(this.locs[SUN_INDEX], sunAt.x, sunAt.y);
+    gl.uniform2f(this.locs[MOON_INDEX], moonAt.x, moonAt.y);
+
+    if (this.bodyListener) {
+      const out = this.bodies;
+      out.settled = w >= 0.999 && b >= 0.999;
+      out.sun.x = sun.x;
+      out.sun.y = sun.y;
+      out.sun.ahead = sun.ahead;
+      out.sun.up = sunW.z > HORIZON_Z;
+      out.moon.x = moon.x;
+      out.moon.y = moon.y;
+      out.moon.ahead = moon.ahead;
+      // Worth finding: above the horizon and not lost in the daylight — the
+      // moon the sky would show with nothing in front of it.
+      out.moon.up = moonW.z > HORIZON_Z && c[MOON_BEHIND_OFFSET] > 0.04;
+      this.bodiesPublished = true;
+      this.bodyListener(out);
+    }
+
+    // The crescent faces the sun. In the shader's moon frame the lit limb is +x
+    // while waxing and −x while waning, and x is mirrored by the hemisphere
+    // after this turn — so the axis is the sun's way, signed by both. Turned by
+    // the blend's share of the angle, so the stage's upright crescent swings
+    // round rather than passing through a degenerate zero.
+    const waxing = c[MOON_PHASE_OFFSET] < 0.5 ? 1 : -1;
+    let angle = moonLitAngle(moonW, sunW, view);
+    if (hemisphereOf(c) * waxing < 0) angle += Math.PI;
+    angle = wrapPi(angle) * b;
+    gl.uniform2f(this.locMoonAxis, Math.cos(angle), Math.sin(angle));
+  }
+
   private draw(timeSec: number) {
     const gl = this.gl;
     if (!gl || !this.program) return;
@@ -1348,10 +1917,14 @@ export class WallpaperRenderer {
     for (let i = 0; i < META.length; i++) {
       const { offset, size } = META[i];
       const loc = this.locs[i];
+      // uWind and uWindWorld are packed for the renderer's own use and are no
+      // uniform of the shader's: there is nothing to send them to.
+      if (!loc) continue;
       if (size === 1) gl.uniform1f(loc, c[offset]);
       else if (size === 2) gl.uniform2f(loc, c[offset], c[offset + 1]);
       else gl.uniform3f(loc, c[offset], c[offset + 1], c[offset + 2]);
     }
+    this.drawWindow(gl, c);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -1360,4 +1933,9 @@ export class WallpaperRenderer {
       this.opts.onFirstFrame?.();
     }
   }
+}
+
+/** An eased world direction out of the packed uniforms, made unit again. */
+function worldAt(c: Float32Array, at: number): Vec3 {
+  return normalize(vec3(c[at], c[at + 1], c[at + 2]));
 }

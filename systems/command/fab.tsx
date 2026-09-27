@@ -119,6 +119,8 @@ export function FloatingActionButton() {
 
   const fab = (
     <div
+      // Leaves with the home for the sky window (globals.css, "The sky pull").
+      data-sky-exits=""
       className={cn(
         "system-chrome fixed bottom-6 left-0 right-0 z-50 px-6",
         "flex pointer-events-none",

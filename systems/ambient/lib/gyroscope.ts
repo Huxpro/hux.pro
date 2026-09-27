@@ -181,7 +181,8 @@ export function gravityTiltDegrees(g: GravityVector): number {
   return Math.atan2(g.x, -g.y) / DEG;
 }
 
-function readScreenAngle(): number {
+/** How far the layout is turned out of the device's natural orientation, degrees. */
+export function readScreenAngle(): number {
   if (typeof window === "undefined") return 0;
   const angle = window.screen?.orientation?.angle;
   if (typeof angle === "number" && Number.isFinite(angle)) return angle;

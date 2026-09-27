@@ -24,6 +24,16 @@ type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
 import { formatLocationLabel } from "@/systems/ambient/lib/location";
 import { gravityTiltDegrees, readGravity } from "@/systems/ambient/lib/gyroscope";
+import {
+  headingPitchOf,
+  readMotionDiagnostics,
+  readView,
+  simulateView,
+  viewFacing,
+  type MotionDiagnostics,
+} from "@/systems/ambient/lib/sky-window";
+import { settleReasons, type SettleReason } from "@/systems/ambient/lib/settle";
+import { MoonGlyph } from "@/systems/ambient/components/body-glyph";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import {
@@ -129,6 +139,7 @@ import {
   Play,
   RefreshCw,
   RotateCcw,
+  Compass,
   SlidersHorizontal,
   Sparkles,
   Sun,
@@ -1666,9 +1677,8 @@ function PanelSlider({
 }
 
 // =============================================================================
-// Moon phase glyph — the lit part of the disc for a phase in [0, 1).
-// Terminator is an ellipse of half-width |cos(2πp)|; waxing lights the right
-// limb (northern hemisphere), and `mirror` flips it for the south.
+// Glyphs. The moon's phase glyph is shared with the sky window's hints:
+// MoonGlyph in systems/ambient/components/body-glyph.tsx.
 // =============================================================================
 
 /**
@@ -1704,38 +1714,6 @@ function MeteorMark({ className }: { className?: string }) {
   );
 }
 
-function MoonPhaseIcon({
-  phase,
-  mirror = false,
-  className,
-}: {
-  phase: number;
-  mirror?: boolean;
-  className?: string;
-}) {
-  const r = 6;
-  const p = ((phase % 1) + 1) % 1;
-  const k = Math.cos(p * 2 * Math.PI);
-  const rx = Math.max(0.01, Math.abs(k) * r);
-  const waxing = p < 0.5;
-  // Outer limb: right semicircle when waxing, left when waning (top → bottom).
-  const limb = waxing ? `A ${r} ${r} 0 0 1 0 ${r}` : `A ${r} ${r} 0 0 0 0 ${r}`;
-  // Return along the terminator ellipse (bottom → top). Crescent (k > 0)
-  // curves back on the same side as the limb; gibbous (k < 0) bulges across.
-  const sweep = waxing ? (k > 0 ? 0 : 1) : k > 0 ? 1 : 0;
-  const terminator = `A ${rx} ${r} 0 0 ${sweep} 0 ${-r}`;
-  return (
-    <svg
-      viewBox="-7 -7 14 14"
-      className={cn("h-3.5 w-3.5 shrink-0", className)}
-      aria-hidden
-      style={mirror ? { transform: "scaleX(-1)" } : undefined}
-    >
-      <circle r={r} className="fill-muted-foreground/25" />
-      <path d={`M 0 ${-r} ${limb} ${terminator} Z`} className="fill-foreground/85" />
-    </svg>
-  );
-}
 
 // =============================================================================
 // Sky Module — weather and time as one thing
@@ -1933,7 +1911,7 @@ function SkyModule() {
     resetTimeTravel,
   } = useAmbientTime();
   const { followSun, setFollowSun, sunTheme } = useSolarTheme();
-  const { gyro, setGyroEnabled, effectiveStyle } = useWallpaper();
+  const { gyro, setGyroEnabled, effectiveStyle, skyWindow, setSkyWindow } = useWallpaper();
   const { homeWeather, setHomeWeather } = useDevtool();
 
   const isDayNow = scene.sun.isDay;
@@ -2136,6 +2114,79 @@ function SkyModule() {
     return zh ? "无数据" : "no readings";
   })();
 
+  // --- Sky window ----------------------------------------------------------
+  // Where the window is looking, polled like the tilt. And a hand on it: a
+  // desktop has no sensor to turn, so the heading and pitch can be driven from
+  // here instead — the sensor is ignored until the star hands it back.
+  const [look, setLook] = useState<{ heading: number; pitch: number; compass: boolean } | null>(null);
+  const [aim, setAim] = useState<{ heading: number; pitch: number } | null>(null);
+  useEffect(() => {
+    if (!skyWindow) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: clear a stale readout
+      setLook(null);
+      return;
+    }
+    const tick = () => {
+      const view = readView();
+      if (!view) return setLook(null);
+      const { heading, pitch } = headingPitchOf(view.forward);
+      setLook({ heading: Math.round(heading), pitch: Math.round(pitch), compass: view.compass });
+    };
+    tick();
+    const id = window.setInterval(tick, 500);
+    return () => window.clearInterval(id);
+  }, [skyWindow]);
+  useEffect(() => {
+    simulateView(aim ? viewFacing(aim.heading, aim.pitch) : null);
+  }, [aim]);
+  // Handed back when the panel goes, so a closed devtool never leaves the sky
+  // pinned to a heading nobody can see the control for.
+  useEffect(() => () => simulateView(null), []);
+  const lookAt = aim ?? look ?? { heading: scene.hemisphere === 1 ? 180 : 0, pitch: 12 };
+  const windowReadout = !skyWindow
+    ? zh ? "关" : "off"
+    : look
+      ? `${look.heading}°${aim ? "" : look.compass ? "" : "~"} · ${look.pitch}°`
+      : zh ? "等待方向" : "no heading";
+
+  // --- Motion fold ---------------------------------------------------------
+  // What the sensor is actually saying, for when the window looks the wrong
+  // way: where north came from, the raw Euler angles, WebKit's own compass and
+  // how far the estimate has had to turn it, how fast readings arrive, and why
+  // the settle spinner is up. Polled only while the fold is open.
+  const [motionOpen, setMotionOpen] = useState(false);
+  const [motion, setMotion] = useState<{
+    diag: MotionDiagnostics;
+    view: { heading: number; pitch: number; roll: number } | null;
+    tilt: number;
+    settle: SettleReason[];
+  } | null>(null);
+  useEffect(() => {
+    if (!motionOpen) return;
+    const tick = () => {
+      const view = readView();
+      let look: { heading: number; pitch: number; roll: number } | null = null;
+      if (view) {
+        const { heading, pitch } = headingPitchOf(view.forward);
+        // Roll: how far the screen's top has turned off the vertical plane,
+        // clockwise positive — 0 held level.
+        const roll = (Math.atan2(-view.right.z, view.up.z) * 180) / Math.PI;
+        look = { heading, pitch, roll };
+      }
+      setMotion({
+        diag: readMotionDiagnostics(),
+        view: look,
+        tilt: gravityTiltDegrees(readGravity()),
+        settle: settleReasons(),
+      });
+    };
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, [motionOpen]);
+  const deg = (v: number | null | undefined, digits = 0) =>
+    v === null || v === undefined || !Number.isFinite(v) ? "—" : `${v.toFixed(digits)}°`;
+
   // --- Tune fold -----------------------------------------------------------
   const [tuneOpen, setTuneOpen] = useState(false);
   const setTune = (patch: Partial<typeof sceneOverrides>) =>
@@ -2227,7 +2278,7 @@ function SkyModule() {
               className="inline-flex items-center gap-1"
               title={`${MOON_NAME[lang][moonName]} · ${moonUpLabel}`}
             >
-              <MoonPhaseIcon phase={scene.moon.phase} mirror={scene.hemisphere === -1} className="h-3 w-3" />
+              <MoonGlyph phase={scene.moon.phase} mirror={scene.hemisphere === -1} className="h-3 w-3" />
               {Math.round(scene.moon.illumination * 100)}%
             </span>
           </span>
@@ -2548,7 +2599,7 @@ function SkyModule() {
               )}
             </span>
             <span className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
-              <MoonPhaseIcon phase={scene.moon.phase} mirror={scene.hemisphere === -1} />
+              <MoonGlyph phase={scene.moon.phase} mirror={scene.hemisphere === -1} />
               <span className="text-foreground/80">{MOON_NAME[lang][moonName]}</span>
             </span>
           </div>
@@ -2608,6 +2659,107 @@ function SkyModule() {
               />
             </span>
           </PanelRow>
+          {/* The sky window: the phone as a window onto the real sky. A
+              session state, like the easter egg that opens it (a long press on
+              the home sky). The readout is where it looks — heading · pitch,
+              with a ~ when there is no compass and north is a guess. */}
+          <PanelRow
+            label={zh ? "天空之窗" : "Window"}
+            star={
+              aim ? (
+                <PanelStar
+                  onReset={() => setAim(null)}
+                  source="session"
+                  label={zh ? "交还传感器" : "Back to the sensor"}
+                />
+              ) : null
+            }
+          >
+            <span className="flex items-center gap-2">
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {windowReadout}
+              </span>
+              <PanelToggle
+                on={skyWindow}
+                disabled={effectiveStyle !== "sky"}
+                onClick={() => setSkyWindow(!skyWindow)}
+                label="Toggle sky window"
+              />
+            </span>
+          </PanelRow>
+          {skyWindow && (
+            <div className="space-y-2 pt-2">
+              <PanelSlider
+                label={zh ? "朝向" : "Heading"}
+                ariaLabel="Window heading"
+                value={lookAt.heading}
+                min={0}
+                max={359}
+                step={1}
+                format={(v) => `${v}° ${compassPoint(v)}`}
+                onChange={(v) => setAim({ heading: v, pitch: lookAt.pitch })}
+              />
+              <PanelSlider
+                label={zh ? "仰角" : "Pitch"}
+                ariaLabel="Window pitch"
+                value={lookAt.pitch}
+                min={-30}
+                max={90}
+                step={1}
+                format={(v) => `${v}°`}
+                onChange={(v) => setAim({ heading: lookAt.heading, pitch: v })}
+              />
+            </div>
+          )}
+
+          {/* Motion, folded: the sensor's own numbers behind the two rows
+              above. The window only listens for a compass while it is open,
+              so the source reads "none" until then. */}
+          <button
+            onClick={() => setMotionOpen((v) => !v)}
+            aria-expanded={motionOpen}
+            aria-label="Toggle motion details"
+            className="mt-2 flex w-full items-center justify-between gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground/80"
+          >
+            <span className="flex items-center gap-1.5">
+              <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", !motionOpen && "-rotate-90")} />
+              <Compass className="h-3 w-3" />
+              {zh ? "动作" : "Motion"}
+            </span>
+          </button>
+          {motionOpen && motion && (
+            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] font-mono tabular-nums text-muted-foreground">
+              <MetaRow k={zh ? "来源" : "north"} v={motion.diag.source} />
+              <MetaRow k={zh ? "频率" : "rate"} v={`${motion.diag.rateHz.toFixed(0)} Hz`} />
+              <MetaRow k="α" v={deg(motion.diag.alpha, 1)} />
+              <MetaRow k="β" v={deg(motion.diag.beta, 1)} />
+              <MetaRow k="γ" v={deg(motion.diag.gamma, 1)} />
+              <MetaRow k={zh ? "屏幕" : "screen"} v={deg(motion.diag.screenAngle)} />
+              <MetaRow k={zh ? "罗盘" : "compass"} v={deg(motion.diag.compassHeading, 1)} />
+              <MetaRow
+                k={zh ? "精度" : "±acc"}
+                v={
+                  motion.diag.compassAccuracy === null
+                    ? "—"
+                    : motion.diag.compassAccuracy < 0
+                      ? zh ? "需校准" : "calibrate"
+                      : `±${motion.diag.compassAccuracy.toFixed(0)}°`
+                }
+              />
+              <MetaRow k={zh ? "偏移" : "offset"} v={deg(motion.diag.offsetDeg, 1)} />
+              <MetaRow k={zh ? "校准中" : "aiming"} v={motion.diag.calibrating ? "yes" : "no"} />
+              <MetaRow k={zh ? "朝向" : "heading"} v={deg(motion.view?.heading, 1)} />
+              <MetaRow k={zh ? "仰角" : "pitch"} v={deg(motion.view?.pitch, 1)} />
+              <MetaRow k={zh ? "横滚" : "roll"} v={deg(motion.view?.roll, 1)} />
+              <MetaRow k={zh ? "重力" : "gravity"} v={deg(motion.tilt, 1)} />
+              <div className="col-span-2">
+                <MetaRow
+                  k={zh ? "稳定中" : "settling"}
+                  v={motion.settle.length ? motion.settle.join(" · ") : zh ? "否" : "—"}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Where the location came from and how old it is — the first thing to

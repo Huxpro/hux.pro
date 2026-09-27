@@ -12,6 +12,7 @@
 // can preview any state without a canvas.
 // =============================================================================
 
+import { oklabToRgb01, rgb01ToOklab } from "./color";
 import type { SolarPosition } from "./solar";
 import {
   clamp01,
@@ -22,6 +23,7 @@ import {
   getMoonIllumination,
   getMoonPhase,
   getSolarPosition,
+  localSiderealDeg,
   smoothstep,
   startOfLocalDay,
   DAY_MINUTES,
@@ -88,6 +90,21 @@ export interface WeatherScene {
   };
   /** Screen-space wind: x < 0 blows left. |wind| ∈ 0..1. */
   wind: { x: number; y: number };
+  /**
+   * The same wind in the world: where it blows TO, as east and north
+   * components of the same 0..1 strength. The stage only ever sees the part of
+   * it across its southward view (`wind.x`); the sky window turns, so it needs
+   * the whole of it to find the part across wherever you are facing.
+   */
+  windWorld: { east: number; north: number };
+  /**
+   * Where the observer stands under the stars: the latitude sets the pole's
+   * height, and the local sidereal time how far the sphere has turned. Only
+   * the sky window reads it — the stage's stars are a picture, the window's
+   * are a sky. A guess of 40° (mirrored south) and Greenwich without
+   * coordinates, which turns the right way at the right rate all the same.
+   */
+  celestial: { latitude: number; siderealDeg: number };
   fog: number;
   lightning: number;
   stars: number;
@@ -266,6 +283,94 @@ const VEIL_DEFAULTS = {
 } as const;
 
 // -----------------------------------------------------------------------------
+// Theme key — the sky the sun painted, in the theme's lightness
+//
+// The sun decides what is in the sky: its colour, the sun or the moon, the
+// stars. The theme decides how light it is. Those agree by day under the light
+// theme and by night under the dark one, and the veil above is all either
+// needs. They disagree by day under the dark theme and by night under the
+// light one, and a veil cannot settle that: it mixes toward the page colour,
+// so a noon sky under a dark veil is a grey-blue midtone the dark chrome sits
+// on like a sticker, and a night under a white one is slate. Neither is a
+// theme; each is the other one, dirtied.
+//
+// So the sky is re-keyed instead — the Apple light/dark wallpaper pairs, where
+// both halves are the same place and only the key differs. Each colour's OKLab
+// lightness is moved into the theme's range and its hue kept, so the day stays
+// the day and the night stays the night:
+//
+//   dark theme, day    the noon sky pressed down into the dark theme's range:
+//                      deep blue, clouds still lighter than the sky, the sun's
+//                      disc (the shader's, never keyed) and its half-keyed
+//                      glow still the brightest thing in it. Blue hour, held
+//                      all afternoon.
+//   light theme, night the night lifted into the light theme's range: pale
+//                      moonlit lavender, the brighter stars still showing, and
+//                      the moon dimmed to a day moon — at full strength it
+//                      would saturate to a white ball and read as the sun.
+//
+// The amount is zero through the twilight band on both sides — sunrise and
+// sunset are the in-between the sky already reads well under either theme —
+// and it is zero on both sides of the sun's own crossing, which is where the
+// theme changes hands when it follows the sun (lib/solar-theme.ts). So the
+// handover never has a re-key to fight: it only ever begins or ends where the
+// sky is already the theme's.
+// -----------------------------------------------------------------------------
+
+interface ThemeKeyCurve {
+  /** Where lightness lands: L' = floor + span · L^gamma (OKLab). */
+  floor: number;
+  span: number;
+  gamma: number;
+  /** Chroma gain at full key, so a pressed or lifted sky keeps its colour. */
+  chroma: number;
+  /** How much of the key the sun's glow takes, so the sun stays the sun. */
+  glow: number;
+  /** What is left of the veil at full key; the key has done most of its work. */
+  veil: number;
+  /** What is left of the moon at full key: a lifted night's moon is a day moon. */
+  moon: number;
+  /** Sun elevations (degrees) between which the key goes from 0 to full. */
+  from: number;
+  to: number;
+}
+
+const THEME_KEY: Record<"light" | "dark", ThemeKeyCurve> = {
+  // The day under the dark theme. Full from mid-morning; nothing at the horizon.
+  dark: {
+    floor: 0.1, span: 0.42, gamma: 1.5, chroma: 0.8,
+    glow: 0.45, veil: 0.5, moon: 1,
+    from: 0, to: 14,
+  },
+  // The night under the light theme. Full once civil twilight is over.
+  light: {
+    floor: 0.7, span: 0.26, gamma: 1, chroma: 0.85,
+    glow: 1, veil: 0.6, moon: 0.3,
+    from: -2, to: -10,
+  },
+};
+
+/** How far the sky is re-keyed toward `theme`, 0..1, at this sun elevation. */
+function themeKeyAmount(theme: "light" | "dark", elevation: number): number {
+  const curve = THEME_KEY[theme];
+  return smoothstep(curve.from, curve.to, elevation);
+}
+
+/** One colour of the sky, moved `amount` of the way into the theme's key. */
+function rekey(c: RGB, theme: "light" | "dark", amount: number): RGB {
+  if (amount <= 0) return c;
+  const curve = THEME_KEY[theme];
+  const lab = rgb01ToOklab(c);
+  const L = curve.floor + curve.span * Math.max(0, lab.L) ** curve.gamma;
+  const gain = lerp(1, curve.chroma, amount);
+  return oklabToRgb01({
+    L: lerp(lab.L, L, amount),
+    a: lab.a * gain,
+    b: lab.b * gain,
+  });
+}
+
+// -----------------------------------------------------------------------------
 // Derivation
 // -----------------------------------------------------------------------------
 
@@ -336,7 +441,12 @@ function coordsOf(params: DeriveSceneParams): { lat: number; lon: number } | nul
     : null;
 }
 
-const HORIZON_Y = 0.1;
+/**
+ * Where the horizon sits on the stage, in screen heights from the bottom — and
+ * so where the sky window's horizon maps to in the shader's sky gradient
+ * (`WINDOW_HORIZON_Y` in wallpaper/shader.ts is this, interpolated).
+ */
+export const HORIZON_Y = 0.1;
 
 // -----------------------------------------------------------------------------
 // Staging the moon
@@ -376,7 +486,7 @@ const MOON_STAGE = {
   xMax: 0.88,
 } as const;
 
-function stageMoon(
+export function stageMoon(
   lunar: SolarPosition,
   hemisphere: 1 | -1
 ): { screen: ScreenPoint; size: number } {
@@ -392,6 +502,18 @@ function stageMoon(
   // The moon illusion: up to 30% larger near the horizon.
   const size = 1 + 0.3 * (1 - smoothstep(0, 35, lunar.elevation));
   return { screen: { x, y }, size };
+}
+
+/**
+ * Where the stage draws the sun: across by its azimuth, up by the sine of its
+ * elevation from the horizon line. Exported for the renderer, which re-stages a
+ * sun that is gliding along the sky after a jump of the clock or the place.
+ */
+export function stageSun(solar: SolarPosition, hemisphere: 1 | -1): ScreenPoint {
+  return {
+    x: azimuthToScreenX(solar.azimuth, hemisphere),
+    y: HORIZON_Y + Math.sin(solar.elevation * (Math.PI / 180)) * 0.9,
+  };
 }
 
 /** Map a compass azimuth to a screen x. Northern hemisphere looks south, so
@@ -422,25 +544,27 @@ function resolveLunar(params: DeriveSceneParams): SolarPosition & { phase: numbe
   const coords = coordsOf(params);
   if (coords) return getLunarPosition(params.nowMs, coords.lat, coords.lon);
 
+  // No ephemeris without a place, but the phase needs none — and the phase IS
+  // where the moon is relative to the sun: it runs behind the sun by its
+  // phase's share of a day. New, it crosses the sky with the sun (and is lost
+  // in it); first quarter, it is highest at dusk; full, it rises as the sun
+  // sets and is highest at midnight; last quarter, it rises at midnight. So
+  // its arc is the sun's own estimated arc, that far behind. Anything else
+  // (a fixed night arc, as this once was) draws a crescent high at midnight
+  // and leaves the moon deaf to the calendar — to the devtool's date too.
   const { nowMs } = params;
-  const { sunrise: sr, sunset: ss } = sunTimesOrDefault(
+  const phase = getMoonPhase(nowMs);
+  const { sunrise, sunset } = sunTimesOrDefault(
     nowMs,
     params.weather?.sunriseMs,
     params.weather?.sunsetMs
   );
-  let np: number;
-  if (nowMs >= ss) {
-    np = clamp01((nowMs - ss) / Math.max(1, sr + 86_400_000 - ss));
-  } else if (nowMs <= sr) {
-    np = clamp01((nowMs - (ss - 86_400_000)) / Math.max(1, sr - (ss - 86_400_000)));
-  } else {
-    np = -1; // daytime: below the horizon
-  }
-  const natural: SolarPosition =
-    np < 0
-      ? { elevation: -30, azimuth: 0 }
-      : { elevation: Math.sin(np * Math.PI) * 55, azimuth: 90 + np * 180 };
-  return { ...natural, phase: getMoonPhase(nowMs) };
+  const natural = estimateSolarPosition({
+    nowMs: nowMs - phase * 86_400_000,
+    sunriseMs: sunrise,
+    sunsetMs: sunset,
+  });
+  return { ...natural, phase };
 }
 
 /**
@@ -483,10 +607,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const solar = resolveSolar(params);
   const elevation = solar.elevation;
   const daylight = daylightFactor(elevation);
-  const sunScreen: ScreenPoint = {
-    x: azimuthToScreenX(solar.azimuth, hemisphere),
-    y: HORIZON_Y + Math.sin(elevation * (Math.PI / 180)) * 0.9,
-  };
+  const sunScreen = stageSun(solar, hemisphere);
 
   // --- Precipitation ----------------------------------------------------
   // What is falling comes from the measurements when there are any; the
@@ -593,6 +714,10 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const windTo = (windFrom + 180) % 360;
   const windX = -Math.sin(windTo * (Math.PI / 180)) * hemisphere * windSpeed;
   const wind = { x: windX, y: 0 };
+  const windWorld = {
+    east: Math.sin(windTo * (Math.PI / 180)) * windSpeed,
+    north: Math.cos(windTo * (Math.PI / 180)) * windSpeed,
+  };
 
   // --- Atmosphere -------------------------------------------------------
   // Fog is visibility: nothing at 10 km, thick by 200 m (log scale — the eye
@@ -672,6 +797,13 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const moonlitHorizon = mixRGB(horizon, hex("#2a3556"), moonLight * 0.35);
   const moonlitLit = mixRGB(lit, hex("#4a5578"), moonLight * (1 - smoothstep(-8, 4, elevation)) * 0.7);
 
+  // The theme's key, last, over every colour the sky is painted from — so the
+  // shader, the Gradient and the legibility profile all read the re-keyed sky
+  // and never have to know there was another.
+  const key = THEME_KEY[theme];
+  const keyAmount = themeKeyAmount(theme, elevation);
+  const keyed = (c: RGB) => rekey(c, theme, keyAmount);
+
   return {
     sun: { ...solar, screen: sunScreen, daylight, isDay: elevation > DAY_ELEVATION_DEG },
     moon: {
@@ -679,28 +811,41 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
       azimuth: lunar.azimuth,
       phase: moonPhase,
       illumination: moonIllum,
-      visible: moonVisible,
+      visible: moonVisible * lerp(1, key.moon, keyAmount),
       screen: moonScreen,
       size: moonSize,
     },
     hemisphere,
-    sky: { zenith: moonlitZenith, horizon: moonlitHorizon, glow, glowStrength },
+    sky: {
+      zenith: keyed(moonlitZenith),
+      horizon: keyed(moonlitHorizon),
+      glow: rekey(glow, theme, keyAmount * key.glow),
+      glowStrength,
+    },
     clouds: {
       cover,
       density,
       darkness,
-      lit: moonlitLit,
-      shade,
+      lit: keyed(moonlitLit),
+      shade: keyed(shade),
       speed: 0.35 + windSpeed * 1.4,
     },
     precipitation: { type: precipType, intensity: precipIntensity },
     wind,
+    windWorld,
+    celestial: {
+      latitude: coordsOf(params)?.lat ?? 40 * hemisphere,
+      siderealDeg: localSiderealDeg(params.nowMs, coordsOf(params)?.lon ?? 0),
+    },
     fog,
     lightning: condition === "thunder" ? lightningFor(weather) : 0,
     stars,
     clarity,
     behind,
-    veil: { color: veilDefaults.color, amount: ov.veilAmount ?? veilDefaults.amount },
+    veil: {
+      color: veilDefaults.color,
+      amount: ov.veilAmount ?? veilDefaults.amount * lerp(1, key.veil, keyAmount),
+    },
     exposure: veilDefaults.exposure,
     seed: params.seed ?? 0,
     condition,

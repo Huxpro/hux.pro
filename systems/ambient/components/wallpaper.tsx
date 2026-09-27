@@ -4,6 +4,9 @@ import { cn } from "@/lib/utils";
 import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { subscribeGravity } from "../lib/gyroscope";
+import { holdSettle } from "../lib/settle";
+import { publishWindowBodies } from "../lib/sky-bodies";
+import { subscribeView } from "../lib/sky-window";
 import type { PokeKind } from "../lib/poke";
 import type { WipeHandle } from "../lib/wipe";
 import type { WeatherScene } from "../lib/scene";
@@ -41,6 +44,14 @@ interface WeatherWallpaperProps {
    * (`gyro.active`); reduced motion turns it off here regardless.
    */
   gyro?: boolean;
+  /**
+   * Look at the sky through the phone: its heading, pitch and roll aim a
+   * camera into the real sky (lib/sky-window.ts). The view streams from the
+   * sensor to the renderer like the gravity does. A window has a world in it,
+   * and in a world things fall along real gravity — so this follows the
+   * gravity too, whatever `gyro` says. Reduced motion turns it off here.
+   */
+  skyWindow?: boolean;
   /** Optional CSS mask (iOS soft-edging). */
   edgeMask?: string | null;
   /**
@@ -67,6 +78,11 @@ interface WeatherWallpaperProps {
    */
   wipeRef?: React.MutableRefObject<WipeHandle | null>;
   /**
+   * Handed the renderer's pull preview — how far a pull on the home has got
+   * toward opening the sky window, 0..1 (lib/sky-pull.ts).
+   */
+  previewRef?: React.MutableRefObject<((amount: number) => void) | null>;
+  /**
    * Override the device quality profile — for a small preview (the picker's
    * CG tile) that should cost a fraction of the full-page layer.
    */
@@ -83,6 +99,7 @@ export function WeatherWallpaper({
   scene,
   active,
   gyro = false,
+  skyWindow = false,
   edgeMask,
   interactive = false,
   className,
@@ -90,6 +107,7 @@ export function WeatherWallpaper({
   statsRef,
   pokeRef,
   wipeRef,
+  previewRef,
   quality,
   themeEaseMs = null,
 }: WeatherWallpaperProps) {
@@ -112,11 +130,17 @@ export function WeatherWallpaper({
       maxFps: quality?.maxFps ?? profile.maxFps,
       onFallback: (reason) => onFallbackRef.current?.(reason),
       onFirstFrame: () => setPainted(true),
+      // Only the full-page sky speaks for "the sky is settling"; a preview
+      // tile gliding in the picker is not the page changing state.
+      onSettle: interactive ? (settling) => holdSettle("sky", settling) : undefined,
     });
     rendererRef.current = renderer;
     // The devtool pulls stats on its own schedule; nothing is copied until it asks.
     if (statsRef) statsRef.current = () => renderer.getStats();
     if (pokeRef) pokeRef.current = (kind, x, y) => renderer.poke(kind, x, y);
+    if (previewRef) previewRef.current = (amount) => renderer.previewWindow(amount);
+    // The full-page sky is the one whose bodies the edge hints point at.
+    if (interactive) renderer.onWindowBodies(publishWindowBodies);
     if (wipeRef) {
       wipeRef.current = {
         wipe: (x, y) => renderer.wipe(x, y),
@@ -127,9 +151,14 @@ export function WeatherWallpaper({
     return () => {
       if (statsRef) statsRef.current = null;
       if (pokeRef) pokeRef.current = null;
+      if (previewRef) previewRef.current = null;
       if (wipeRef) wipeRef.current = null;
       renderer.destroy();
       rendererRef.current = null;
+      if (interactive) {
+        holdSettle("sky", false);
+        publishWindowBodies(null);
+      }
     };
     // The renderer is created once per canvas; scenes stream in below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,8 +194,10 @@ export function WeatherWallpaper({
 
   // Under reduced motion the wallpaper is one still frame; a sky that answered
   // every wobble of the hand would be the opposite of what that asks for.
+  const window3d = skyWindow && !reducedMotion;
+  const falling = gyro || window3d;
   useEffect(() => {
-    if (!gyro || reducedMotion) {
+    if (!falling || reducedMotion) {
       rendererRef.current?.setGravity(null);
       return;
     }
@@ -175,7 +206,26 @@ export function WeatherWallpaper({
       stop();
       rendererRef.current?.setGravity(null);
     };
-  }, [gyro, reducedMotion]);
+  }, [falling, reducedMotion]);
+
+  // The window: where the phone is looking, straight to the renderer. Opening
+  // it before the first reading is fine — the renderer looks where the stage
+  // did until one arrives. `scene.hemisphere` only says which way that is, and
+  // it cannot change under a visitor's feet mid-window.
+  const hemisphere = scene.hemisphere;
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    renderer.setSkyWindow(window3d);
+    if (!window3d) return;
+    const stop = subscribeView(
+      (view) => rendererRef.current?.setView(view),
+      hemisphere === 1 ? 180 : 0
+    );
+    // The last view is kept, not cleared: the window closes FROM where the
+    // phone was pointing, rather than snapping to the stage's heading first.
+    return stop;
+  }, [window3d, hemisphere]);
 
   const style: React.CSSProperties = {};
   if (edgeMask) {
