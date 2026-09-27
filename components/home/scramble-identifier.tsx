@@ -4,7 +4,8 @@ import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { motion, useReducedMotion } from "motion/react";
+import { HoldRing } from "@/components/ui/hold-ring";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useTransitionRouter } from "next-view-transitions";
 import {
   useCallback,
@@ -14,9 +15,17 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 
 /** Pause after engage before the OS name exposes around the stable λHUX mark. */
 const WING_DWELL_MS = 780;
+/**
+ * When, into a hold, the ring that says "keep holding" appears
+ * (components/ui/hold-ring.tsx): late enough that a tap never sees it, early
+ * enough to have most of the hold to close in. A finger covers the mark, so
+ * the ring is the one thing a phone shows of the hold's progress.
+ */
+const HOLD_RING_REVEAL_MS = 200;
 /** Finger travel that means "this is a scroll", not a long-press. */
 const TOUCH_CANCEL_PX = 12;
 /** Ignore compatibility mouse pointer events after a touch. */
@@ -86,7 +95,10 @@ function IdentifierWing({
  * `/about`, where the OS introduces itself. Leave reverses.
  *
  * Touch: the same beats on press-and-hold, and holding until the name is
- * whole opens `/about` there and then — the hold is the press. A flick or
+ * whole opens `/about` there and then — the hold is the press. A finger
+ * covers the mark, so a ring round it (HoldRing, the search button's hold's
+ * own) closes as the hold goes on: the one sign on a phone that holding is
+ * doing something. A flick or
  * quick tap cancels — we never use mouseenter, which iOS would stick.
  */
 export function ScrambleIdentifier() {
@@ -95,6 +107,12 @@ export function ScrambleIdentifier() {
   const router = useTransitionRouter();
   const enterAbout = useCallback(() => router.push(ABOUT_HREF), [router]);
   const rootRef = useRef<HTMLSpanElement>(null);
+  const markRef = useRef<HTMLSpanElement>(null);
+  // The hold's ring, measured round the mark when it appears.
+  const [holdRing, setHoldRing] = useState<DOMRect | null>(null);
+  // The ring's layer on <body>, made on the first touch hold rather than at
+  // hydration, which a portal would upset.
+  const [ringLayer, setRingLayer] = useState(false);
   const revealedRef = useRef(false);
   const suppressHoverUntilRef = useRef(0);
   const touchTeardownRef = useRef<(() => void) | null>(null);
@@ -145,6 +163,14 @@ export function ScrambleIdentifier() {
       id: e.pointerId,
     };
     setEngaged(true);
+    setRingLayer(true);
+    // The finger is on the mark: the ring round it, outside the finger,
+    // closes as the hold goes on — the hint that holding does something.
+    const reveal = reduced
+      ? undefined
+      : window.setTimeout(() => {
+          setHoldRing(markRef.current?.getBoundingClientRect() ?? null);
+        }, HOLD_RING_REVEAL_MS);
     // Held until the name is whole: that is the press. The wings arrive
     // on the same clock (the engaged effect), so the name is on screen as
     // the About rises over it.
@@ -185,7 +211,9 @@ export function ScrambleIdentifier() {
     };
 
     const teardown = () => {
+      window.clearTimeout(reveal);
       window.clearTimeout(held);
+      setHoldRing(null);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
@@ -248,6 +276,7 @@ export function ScrambleIdentifier() {
             {left}
           </IdentifierWing>
           <span
+            ref={markRef}
             data-view-transition="site-identifier"
             className="relative inline-block"
           >
@@ -267,6 +296,22 @@ export function ScrambleIdentifier() {
           </IdentifierWing>
         </span>
       </span>
+      {/* On <body>: the home's animated ancestors would otherwise be the
+          fixed ring's containing block. */}
+      {ringLayer &&
+        createPortal(
+          <AnimatePresence>
+            {holdRing && (
+              <HoldRing
+                rect={holdRing}
+                // A pill round the word.
+                radius={holdRing.height / 2}
+                durationMs={WING_DWELL_MS - HOLD_RING_REVEAL_MS}
+              />
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
     </div>
   );
 }
