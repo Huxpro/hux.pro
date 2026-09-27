@@ -35,8 +35,9 @@ Optional fields on any commit (`lib/log.ts`):
 - `about` lists the projects a commit is about. The first one is where it
   belongs. There is no release type: a release is a project that other work
   points at. Only work (talks, posts, press) is threaded under a project;
-  a project that is about another project is a branch, and that is the tree
-  view's job.
+  a project that is about another project is a branch, and that is the
+  graph view's job (docs/works-graph.md). Work about a family (a project
+  other projects are about, like Lynx Framework) is not folded either.
 
 An edition goes wherever its original goes. The D2 talk belongs to "Lynx
 goes open source", so its two editions sit inside it too, three levels deep.

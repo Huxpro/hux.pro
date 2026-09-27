@@ -388,6 +388,7 @@ export const translations = {
     logHead: "HEAD",
     logCurrent: "Current",
     logInit: "git init",
+    logGraph: "Graph: projects as branches",
     // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "Filter by type",
     logFilterClear: "Clear filter",
@@ -790,6 +791,7 @@ export const translations = {
     logHead: "HEAD",
     logCurrent: "当前",
     logInit: "git init",
+    logGraph: "图：项目作为分支",
     // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "按类型筛选",
     logFilterClear: "清除筛选",

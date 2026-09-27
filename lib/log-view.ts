@@ -147,6 +147,12 @@ export interface LogViewState {
    */
   types: FilterableCommitType[];
   form: LogForm;
+  /**
+   * `git log --graph`: every project with work about it drawn as a lane
+   * beside the main line (lib/log-graph.ts). Orthogonal to the form, the
+   * way `--graph` combines with `--oneline`.
+   */
+  graph: boolean;
 }
 
 /**
@@ -169,6 +175,7 @@ export function toggleType(
 
 export const TYPE_PARAM = "type";
 export const FORM_PARAM = "view";
+export const GRAPH_PARAM = "graph";
 
 /**
  * Read view state out of a query string.
@@ -195,6 +202,7 @@ export function parseViewState(params: URLSearchParams): LogViewState {
   return {
     types,
     form: parseLogForm(params.get(FORM_PARAM)) ?? DEFAULT_FORM,
+    graph: params.has(GRAPH_PARAM) && params.get(GRAPH_PARAM) !== "0",
   };
 }
 
@@ -222,6 +230,12 @@ export function serializeViewState(
     params.set(FORM_PARAM, state.form);
   } else {
     params.delete(FORM_PARAM);
+  }
+
+  if (state.graph) {
+    params.set(GRAPH_PARAM, "1");
+  } else {
+    params.delete(GRAPH_PARAM);
   }
 
   return params.toString();

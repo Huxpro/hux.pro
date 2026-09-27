@@ -44,6 +44,9 @@ import { TYPE } from "@/lib/typography";
  */
 const HASH_CELL = "lg:w-14 lg:text-right";
 const GUTTER_PULL = "lg:-ml-[6.5rem]";
+/** The same pull, plus the graph's extra lanes (16px each at `lg`), set on
+ *  the row as `--graph-extra`. */
+const GRAPH_PULL = "lg:-ml-[calc(6.5rem+var(--graph-extra))]";
 
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
@@ -150,6 +153,12 @@ interface TimelineCommitProps {
    * rather than a boolean so asking twice opens it twice.
    */
   reveal?: number;
+  /**
+   * The graph view (lib/log-graph.ts): how many lane columns the chapter
+   * has, and which one this row's dot sits in (0 is the main line). The
+   * gutter widens to hold them; the lines are drawn by GraphLanes.
+   */
+  graph?: { col: number; cols: number };
 }
 
 export function TimelineCommit({
@@ -182,6 +191,7 @@ export function TimelineCommit({
   evidence,
   childrenLabel,
   reveal = 0,
+  graph,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
@@ -431,6 +441,9 @@ export function TimelineCommit({
         // icon column shrinks to the icon and the gap tightens. From `@sm`
         // up the row has room, and the full gutter makes the nesting read.
         nested && "gap-x-1.5 @sm:gap-x-2",
+        // One lane in the graph: narrow on a phone, where every pixel of
+        // gutter comes out of the text; roomier from `@sm` up.
+        graph && "[--lane:10px] @sm:[--lane:16px]",
       )}
     >
       {/*
@@ -488,9 +501,15 @@ export function TimelineCommit({
         // data-rail-icon lets cross-row attachment lines measure this
         // span's center to anchor their geometry (see TimelineConnector).
         data-rail-icon
+        style={
+          graph
+            ? { width: `calc(1.25rem + ${graph.cols - 1} * var(--lane))` }
+            : undefined
+        }
         className={cn(
-          "relative inline-flex items-center justify-center",
-          nested ? "w-3 @sm:w-5" : "w-5",
+          "relative inline-flex items-center",
+          graph ? "justify-start" : "justify-center",
+          graph ? undefined : nested ? "w-3 @sm:w-5" : "w-5",
           // Match the icon-span HEIGHT to the title row's line-height
           // so the dot/icon sits on the title's vertical center.
           // text-sm has line-height 20px (h-5); text-xs has 16px (h-4).
@@ -517,57 +536,68 @@ export function TimelineCommit({
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}
-        {isQuiet ? (
-          // A row in the quiet voice gets a tiny CSS dot, quieter than any
-          // lucide icon and reading as "node on the rail" rather than
-          // "category icon". That is every event, and an aside while it is
-          // folded — the same `isQuiet` the title and the container height
-          // already read, so the three cannot disagree about which voice
-          // the row is in.
-          //
-          // Opening an aside gives the icon back: the row is printing its
-          // real title and its media by then, and the gutter saying `talk`
-          // is part of that. Nothing jumps — the container is already `h-5`
-          // once `isQuiet` is false, which is the height the icon wants.
-          <span
-            aria-hidden
-            className="block w-[3px] h-[3px] rounded-full bg-muted-foreground/30"
-          />
-        ) : (
-          // All icons live in the same-size invisible wrapper (w-5 h-5)
-          // so positions stay identical; the role's `ring-inset` draws a
-          // thin circle INSIDE the wrapper, keeping bounding boxes equal
-          // and signalling ownership purely through the ring. The 20px
-          // wrapper gives the ring node 3px clearance from the 12px icon
-          // so it reads as a distinct circle rather than a tight outline.
-          <span
-            className={cn(
-              "inline-flex items-center justify-center h-5 rounded-full transition-[box-shadow] duration-200",
-              nested ? "w-3 @sm:w-5" : "w-5",
-              isRoleAnchor && [
-                "ring-1 ring-inset",
-                "ring-muted-foreground/15",
-                "group-hover/tenure:ring-muted-foreground/40",
-                "group-focus-within/tenure:ring-muted-foreground/40",
-                "group-has-[[data-expanded]]/tenure:ring-muted-foreground/40",
-              ],
-            )}
-          >
-            <CommitIcon
-              type={data.type}
-              override={data.iconOverride}
-              className={cn(
-                "w-3 h-3",
-                // An open aside wears its type mark a tier quieter than an
-                // ordinary row's. It is the same ladder the aside's title
-                // already steps down (`text-tertiary-foreground` on a row
-                // that is otherwise `rowTitle`), so the gutter says what the
-                // row says: this is a work, and it is a minor one.
-                isAside ? "text-quaternary-foreground" : "text-tertiary-foreground",
-              )}
+        <span
+          // In the graph the mark moves to its lane. GraphLanes finds it here
+          // to draw the lines through it.
+          data-graph-dot={graph ? "" : undefined}
+          className={cn(
+            graph && "absolute inset-y-0 flex w-5 items-center justify-center",
+            !graph && "contents",
+          )}
+          style={graph ? { left: `calc(${graph.col} * var(--lane))` } : undefined}
+        >
+          {isQuiet ? (
+            // A row in the quiet voice gets a tiny CSS dot, quieter than any
+            // lucide icon and reading as "node on the rail" rather than
+            // "category icon". That is every event, and an aside while it is
+            // folded — the same `isQuiet` the title and the container height
+            // already read, so the three cannot disagree about which voice
+            // the row is in.
+            //
+            // Opening an aside gives the icon back: the row is printing its
+            // real title and its media by then, and the gutter saying `talk`
+            // is part of that. Nothing jumps — the container is already `h-5`
+            // once `isQuiet` is false, which is the height the icon wants.
+            <span
+              aria-hidden
+              className="block w-[3px] h-[3px] rounded-full bg-muted-foreground/30"
             />
-          </span>
-        )}
+          ) : (
+            // All icons live in the same-size invisible wrapper (w-5 h-5)
+            // so positions stay identical; the role's `ring-inset` draws a
+            // thin circle INSIDE the wrapper, keeping bounding boxes equal
+            // and signalling ownership purely through the ring. The 20px
+            // wrapper gives the ring node 3px clearance from the 12px icon
+            // so it reads as a distinct circle rather than a tight outline.
+            <span
+              className={cn(
+                "inline-flex items-center justify-center h-5 rounded-full transition-[box-shadow] duration-200",
+                nested ? "w-3 @sm:w-5" : "w-5",
+                isRoleAnchor && [
+                  "ring-1 ring-inset",
+                  "ring-muted-foreground/15",
+                  "group-hover/tenure:ring-muted-foreground/40",
+                  "group-focus-within/tenure:ring-muted-foreground/40",
+                  "group-has-[[data-expanded]]/tenure:ring-muted-foreground/40",
+                ],
+              )}
+            >
+              <CommitIcon
+                type={data.type}
+                override={data.iconOverride}
+                className={cn(
+                  "w-3 h-3",
+                  // An open aside wears its type mark a tier quieter than an
+                  // ordinary row's. It is the same ladder the aside's title
+                  // already steps down (`text-tertiary-foreground` on a row
+                  // that is otherwise `rowTitle`), so the gutter says what the
+                  // row says: this is a work, and it is a minor one.
+                  isAside ? "text-quaternary-foreground" : "text-tertiary-foreground",
+                )}
+              />
+            </span>
+          )}
+        </span>
       </span>
 
       <div className="flex items-center gap-2 min-w-0">
@@ -939,6 +969,13 @@ export function TimelineCommit({
           // permalink's arrival mark paints here too, so "found" and
           // "hovered" are the same shape (see globals.css).
           data-row-trigger
+          style={
+            graph
+              ? ({
+                  "--graph-extra": `${(graph.cols - 1) * 16}px`,
+                } as React.CSSProperties)
+              : undefined
+          }
           // Clip the rail segments vertically so they can't leak past the
           // tenure cluster's last row — but only on the block axis. The
           // inline axis stays open so the covers can bleed past the row: the
@@ -956,8 +993,11 @@ export function TimelineCommit({
             // gutter's width so the content column is the page column. The
             // hover wash follows, which is right — the hash and the rail are
             // the row's, not the margin's.
-            // A nested row keeps its gutter inside the row it sits in.
-            !nested && GUTTER_PULL,
+            // A nested row keeps its gutter inside the row it sits in. In the
+            // graph the gutter is wider by the extra lanes, and hangs in the
+            // margin all the same.
+            !nested && !graph && GUTTER_PULL,
+            !nested && graph && GRAPH_PULL,
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
             isQuiet ? "py-1" : "py-2.5",

@@ -80,6 +80,7 @@ export interface CommitProps {
   evidence?: ReactNode;
   childrenLabel?: string;
   reveal?: number;
+  graph?: { col: number; cols: number };
 }
 
 // =============================================================================
@@ -111,6 +112,7 @@ export function Commit({
   evidence,
   childrenLabel,
   reveal,
+  graph,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -207,6 +209,7 @@ export function Commit({
           evidence={evidence}
           childrenLabel={childrenLabel}
           reveal={reveal}
+          graph={graph}
         >
           {children}
         </TimelineCommit>

@@ -101,6 +101,18 @@ export function buildThreads(
     map.set(parent, list);
   };
 
+  // A project other projects are about is a family (Lynx, with its
+  // releases under it). Work about the family itself is not folded into it:
+  // the family's row sits where it began, years below that work, and would
+  // turn the whole chapter into a column of pointers. That work stays on
+  // the main line here, and the graph view draws it on the family's lane.
+  const families = new Set<string>();
+  for (const c of commits) {
+    if (c.type === "project" && c.about?.[0] && isVisible(c)) {
+      families.add(c.about[0]);
+    }
+  }
+
   for (const c of commits) {
     if (!isVisible(c)) continue;
 
@@ -114,7 +126,12 @@ export function buildThreads(
       continue;
     }
     const project = c.about?.[0] ? byId.get(c.about[0]) : undefined;
-    if (project && project.type === "project" && isVisible(project)) {
+    if (
+      project &&
+      project.type === "project" &&
+      !families.has(project.id) &&
+      isVisible(project)
+    ) {
       add(evidenceOf, project.id, c, "evidence");
     }
   }

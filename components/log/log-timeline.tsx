@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { Locale } from "@/lib/i18n";
 import {
@@ -13,6 +13,7 @@ import {
   type FilterableCommitType,
   formatTagDateRange,
   getLocalizedTagTitle,
+  localize,
   type Identity,
   isRowVisible,
   type Tag,
@@ -27,11 +28,13 @@ import {
   threadPath,
   type CommitThreads,
 } from "@/lib/log-threads";
+import { layoutGraph } from "@/lib/log-graph";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
+import { GraphLanes, type GraphRow } from "./graph-lanes";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
 import { useTimelineEdit } from "./timeline-edit-context";
@@ -79,6 +82,12 @@ interface LogTimelineProps {
   /** How much of each commit to print. See `lib/log-view.ts`. */
   form?: LogForm;
   /**
+   * `git log --graph`: projects as lanes beside the main line
+   * (lib/log-graph.ts). Every commit gets its own row at its own date, on
+   * its project's lane; nothing is nested or folded into a pointer.
+   */
+  graph?: boolean;
+  /**
    * Selected commit types. Empty is "no filter"; anything else hides every
    * commit that doesn't match — events included, since they are the one
    * type that isn't selectable in the first place.
@@ -109,6 +118,7 @@ export function LogTimeline({
   locale,
   identities,
   form = DEFAULT_FORM,
+  graph = false,
   activeTypes = NO_TYPES,
   onSelectHash,
   pinnedChapters = false,
@@ -125,6 +135,22 @@ export function LogTimeline({
     return { ...t, order, byId };
   }, [data, activeTypes]);
 
+  // The graph's width is the page's, not each chapter's: the main line sits
+  // in the same column all the way down, whatever each chapter branches.
+  const graphCols = useMemo(
+    () =>
+      graph
+        ? Math.max(
+            1,
+            ...data.map(
+              ({ commits }) =>
+                layoutGraph(commits, (c) => !isRowVisible(c, activeTypes)).cols,
+            ),
+          )
+        : 1,
+    [graph, data, activeTypes],
+  );
+
   // The last row asked for, with every row it sits inside, and a counter so
   // asking for the same one twice still opens it (it may have been closed).
   const [reveal, setReveal] = useState<Reveal | null>(null);
@@ -133,12 +159,12 @@ export function LogTimeline({
   // the very next line, so it has to be in the DOM when this returns.
   const revealCommit = useCallback(
     (id: string) => {
-      if (!threads.parentOf.has(id)) return false;
+      if (graph || !threads.parentOf.has(id)) return false;
       const path = threadPath(threads, id);
       flushSync(() => setReveal((r) => ({ path, n: (r?.n ?? 0) + 1 })));
       return true;
     },
-    [threads],
+    [threads, graph],
   );
 
   // `/works#<hash>` of a nested commit lands inside its parent, opened.
@@ -168,6 +194,8 @@ export function LogTimeline({
           threads={threads}
           reveal={reveal}
           onReveal={revealCommit}
+          graph={graph}
+          graphCols={graphCols}
         />
       ))}
     </div>
@@ -190,6 +218,8 @@ interface TagBlockProps {
   };
   reveal: Reveal | null;
   onReveal: (id: string) => boolean;
+  graph: boolean;
+  graphCols: number;
 }
 
 interface Reveal {
@@ -211,6 +241,8 @@ function TagBlock({
   threads,
   reveal,
   onReveal,
+  graph,
+  graphCols,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -309,6 +341,34 @@ function TagBlock({
       hasVisible: commits.some((c) => !hidden(c)),
     };
   }, [commits, identities, locale, activeTypes]);
+
+  // The graph: which lane each row's mark sits in, and the lanes to draw.
+  const commitsRef = useRef<HTMLDivElement>(null);
+  const [activeLane, setActiveLane] = useState<string | null>(null);
+  const graphLayout = useMemo(() => {
+    if (!graph) return null;
+    const layout = layoutGraph(commits, isHidden);
+    const rows: GraphRow[] = [];
+    commits.forEach((c, index) => {
+      if (isHidden(c)) return;
+      rows.push({
+        index,
+        hash: computeCommitHash(c.id),
+        col: layout.colOf.get(c.id) ?? 0,
+      });
+    });
+    const laneAt = (index: number, col: number) =>
+      layout.lanes.find(
+        (l) => l.col === col && l.top <= index && index <= l.bottom,
+      )?.id ?? null;
+    const names = new Map(
+      layout.lanes.map((l) => {
+        const project = commits.find((c) => c.id === l.id);
+        return [l.id, project ? localize(project.title, locale) : l.id];
+      }),
+    );
+    return { ...layout, rows, laneAt, names };
+  }, [graph, commits, isHidden, locale]);
 
   const openFor = (id: string) =>
     reveal && reveal.path.includes(id) ? reveal.n : 0;
@@ -439,7 +499,7 @@ function TagBlock({
        *  Consecutive commits sharing a tenure segmentId are wrapped in
        *  a `group/tenure` div so hovering/focusing/expanding ANY row in
        *  the cluster brightens the rail and the role's ring. */}
-      <div className="relative space-y-0">
+      <div ref={commitsRef} className="relative space-y-0">
         {(() => {
           // Hidden-role rows (roles with `hideRow: true`) are kept in the
           // commits array so `computeRail` and `resolveAuthor` can use
@@ -485,6 +545,32 @@ function TagBlock({
                 form,
                 onSelectHash,
               };
+
+              // The graph: every commit is its own row, on its lane. An
+              // edition keeps its quiet line, sitting on its original's lane.
+              if (graphLayout) {
+                const col = graphLayout.colOf.get(c.id) ?? 0;
+                const lane = graphLayout.laneAt(i, col);
+                return (
+                  <div
+                    key={c.id}
+                    onPointerEnter={() => setActiveLane(lane)}
+                    onPointerLeave={() =>
+                      setActiveLane((a) => (a === lane ? null : a))
+                    }
+                  >
+                    <Commit
+                      {...shared}
+                      rail=""
+                      beamSpec={null}
+                      foldedLine={
+                        c.editionOf ? editionLine(c, locale) : undefined
+                      }
+                      graph={{ col, cols: graphCols }}
+                    />
+                  </div>
+                );
+              }
 
               // A commit printed inside another one, at its own date: one
               // quiet line that takes you there. Not when its row is right
@@ -534,7 +620,16 @@ function TagBlock({
          *  attachedTo. They run through the icon column (same visual
          *  vocabulary as the tenure rail), dimmed by default and
          *  brightened when EITHER endpoint is the activeBeam. */}
-        {attachments.map((a) => (
+        {graphLayout && (
+          <GraphLanes
+            containerRef={commitsRef}
+            rows={graphLayout.rows}
+            lanes={graphLayout.lanes}
+            names={graphLayout.names}
+            activeLane={activeLane}
+          />
+        )}
+        {!graphLayout && attachments.map((a) => (
           <TimelineConnector
             key={`${a.fromHash}->${a.toHash}`}
             fromHash={a.fromHash}

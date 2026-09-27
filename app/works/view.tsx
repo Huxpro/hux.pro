@@ -45,7 +45,7 @@ export function WorksView({ logData }: WorksViewProps) {
     () => parseViewState(new URLSearchParams(searchParams.toString())),
     [searchParams],
   );
-  // Canonical form of just the two params we own, so an unrelated query
+  // Canonical form of just the params we own, so an unrelated query
   // param can't make every comparison below look like a change.
   const urlKey = serializeViewState(urlView);
 
@@ -68,7 +68,11 @@ export function WorksView({ logData }: WorksViewProps) {
   const selectHash = useCommitAnchor();
 
   const commit = useCallback(
-    (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
+    (next: {
+      types?: FilterableCommitType[];
+      form?: LogForm;
+      graph?: boolean;
+    }) => {
       const merged = { ...view, ...next };
       setView(merged);
       const query = serializeViewState(
@@ -166,6 +170,8 @@ export function WorksView({ logData }: WorksViewProps) {
           onClearTypes={() => commit({ types: [] })}
           form={view.form}
           onFormChange={(form) => commit({ form })}
+          graph={view.graph}
+          onGraphChange={(graph) => commit({ graph })}
           chapters={chapters}
         />
       }
@@ -176,6 +182,7 @@ export function WorksView({ logData }: WorksViewProps) {
         locale={locale}
         identities={logData.identities}
         form={view.form}
+        graph={view.graph}
         activeTypes={view.types}
         onSelectHash={selectHash}
         pinnedChapters

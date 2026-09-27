@@ -566,6 +566,9 @@
         "zh": "WeAreDevelopers World Congress 上的动手工作坊与黑客松。用 Lynx 一次 vibe code，把同一套应用带到 Web、移动端和桌面；并讨论 AI 原生应用基建：对 AI 友好、对 token 经济、对意图表达。"
       },
       "date": "2026-07",
+      "about": [
+        "lynx-framework"
+      ],
       "conference": {
         "name": "WeAreDevelopers World Congress",
         "city": "Berlin, Germany",
@@ -606,6 +609,9 @@
         "zh": "AI 正在改变应用如何被构建，却还没改变它们构建在什么之上。没有跨平台框架，Agent 就得为每个平台分别生成、验证和维护代码。这次演讲介绍 Lynx，以及 AI 原生应用基建的三条原则：对 AI 友好、对 token 经济、对意图表达，并以两周 vibe code 出的 vue-lynx 作为演示。"
       },
       "date": "2026-05",
+      "about": [
+        "lynx-framework"
+      ],
       "conference": {
         "name": "GOSIM Paris 2026",
         "city": "Paris, France",
@@ -809,6 +815,10 @@
         "zh": "十多年来，我们身处这样一个宇宙：在客户端用 React 编写 UI，从事件处理到渲染，始终由单一 JavaScript 线程主宰。但如果 React 生来不同呢？如果从第一天起，它就被设计为彻底拥抱两个线程呢？这会解锁哪些收益？我们又会面临什么挑战？会涌现出哪些新特性、抽象与范式？而这一切如果不只是想象，而是今天已然存在的现实呢？"
       },
       "date": "2025-09",
+      "about": [
+        "lynx-framework",
+        "react-core"
+      ],
       "conference": {
         "name": "React Universe Conf",
         "city": "Wrocław, Poland",
@@ -842,6 +852,10 @@
         "zh": "在 React Universe 大会接受 Callstack 的访谈，聊 React Native 之外的 Lynx：可以直接从 Web 搬过来的原生 CSS；让原生 UI 与 React 视图保持同步、并能在主线程上交互的双线程模型（BTS/MTS）；作为一种规范的 React；社区把 Vue 和 Svelte 带到 Lynx 上；以及 Lynx 在字节支撑的小程序生态。"
       },
       "date": "2025-09",
+      "about": [
+        "lynx-framework",
+        "react-core"
+      ],
       "conference": {
         "name": "React Universe Conf",
         "city": "Wrocław, Poland",
@@ -910,6 +924,9 @@
         "zh": "React Advanced London 上的圆桌讨论，探讨跨平台 UI 的愿景与现实——一次编写，在各端原生渲染。"
       },
       "date": "2025-11",
+      "about": [
+        "lynx-framework"
+      ],
       "conference": {
         "name": "React Advanced London",
         "city": "London, UK",
@@ -1015,6 +1032,9 @@
         "zh": "2025 年 3 月，Lynx 开源。下面是介绍它的几场演讲，先在国内，再到海外。"
       },
       "date": "2025-03",
+      "about": [
+        "lynx-framework"
+      ],
       "media": [
         {
           "kind": "link",
@@ -1045,6 +1065,9 @@
         "zh": "Lynx 的开箱即用组件库，家族里最新的成员。"
       },
       "date": "2025-11",
+      "about": [
+        "lynx-framework"
+      ],
       "tags": [
         "Lynx",
         "Design System",
