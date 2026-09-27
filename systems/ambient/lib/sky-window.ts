@@ -36,6 +36,7 @@
 // — so it opens onto the same sky it left.
 // =============================================================================
 
+import { holdSettle } from "./settle";
 import { smoothstep } from "./solar";
 
 export interface Vec3 {
@@ -231,6 +232,90 @@ export function moonLitAngle(moon: Vec3, sun: Vec3, view: SkyView): number {
 }
 
 // -----------------------------------------------------------------------------
+// Gliding between two views
+//
+// A view that jumps — the first reading after the window opens, a compass that
+// arrives late, the devtool's slider let go somewhere else — is turned to, not
+// cut to. Interpolating the three vectors on their own would shear the frame
+// on the way (and pass through zero for a half turn), so the turn is a slerp of
+// the rotation itself: the shortest way round, at an even speed, square the
+// whole way.
+// -----------------------------------------------------------------------------
+
+type Quat = [number, number, number, number];
+
+/** The rotation whose columns are right, up and back (−forward): right-handed. */
+function quatOf(v: SkyView): Quat {
+  const m00 = v.right.x, m01 = v.up.x, m02 = -v.forward.x;
+  const m10 = v.right.y, m11 = v.up.y, m12 = -v.forward.y;
+  const m20 = v.right.z, m21 = v.up.z, m22 = -v.forward.z;
+  const tr = m00 + m11 + m22;
+  let q: Quat;
+  if (tr > 0) {
+    const s = Math.sqrt(tr + 1) * 2;
+    q = [s / 4, (m21 - m12) / s, (m02 - m20) / s, (m10 - m01) / s];
+  } else if (m00 > m11 && m00 > m22) {
+    const s = Math.sqrt(1 + m00 - m11 - m22) * 2;
+    q = [(m21 - m12) / s, s / 4, (m01 + m10) / s, (m02 + m20) / s];
+  } else if (m11 > m22) {
+    const s = Math.sqrt(1 + m11 - m00 - m22) * 2;
+    q = [(m02 - m20) / s, (m01 + m10) / s, s / 4, (m12 + m21) / s];
+  } else {
+    const s = Math.sqrt(1 + m22 - m00 - m11) * 2;
+    q = [(m10 - m01) / s, (m02 + m20) / s, (m12 + m21) / s, s / 4];
+  }
+  const n = Math.hypot(...q);
+  return [q[0] / n, q[1] / n, q[2] / n, q[3] / n];
+}
+
+function viewOfQuat([w, x, y, z]: Quat, compass: boolean): SkyView {
+  const right = vec3(1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y));
+  const up = vec3(2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x));
+  const back = vec3(2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y));
+  return { right, up, forward: vec3(-back.x, -back.y, -back.z), compass };
+}
+
+/** The view `t` of the way from `a` to `b`, turning the shortest way round. */
+export function slerpView(a: SkyView, b: SkyView, t: number): SkyView {
+  if (t <= 0) return a;
+  if (t >= 1) return b;
+  const qa = quatOf(a);
+  let qb = quatOf(b);
+  let d = qa[0] * qb[0] + qa[1] * qb[1] + qa[2] * qb[2] + qa[3] * qb[3];
+  if (d < 0) {
+    qb = [-qb[0], -qb[1], -qb[2], -qb[3]];
+    d = -d;
+  }
+  let wa: number;
+  let wb: number;
+  if (d > 0.9995) {
+    wa = 1 - t;
+    wb = t;
+  } else {
+    const th = Math.acos(d);
+    const sin = Math.sin(th);
+    wa = Math.sin((1 - t) * th) / sin;
+    wb = Math.sin(t * th) / sin;
+  }
+  const q: Quat = [
+    qa[0] * wa + qb[0] * wb,
+    qa[1] * wa + qb[1] * wb,
+    qa[2] * wa + qb[2] * wb,
+    qa[3] * wa + qb[3] * wb,
+  ];
+  const n = Math.hypot(...q);
+  return viewOfQuat([q[0] / n, q[1] / n, q[2] / n, q[3] / n], b.compass);
+}
+
+/** How far apart two views are, as the angle of the turn between them, degrees. */
+export function viewAngle(a: SkyView, b: SkyView): number {
+  const qa = quatOf(a);
+  const qb = quatOf(b);
+  const d = Math.abs(qa[0] * qb[0] + qa[1] * qb[1] + qa[2] * qb[2] + qa[3] * qb[3]);
+  return (2 * Math.acos(Math.min(1, d))) / DEG;
+}
+
+// -----------------------------------------------------------------------------
 // The sky's own frame: the stars
 //
 // The star field is fixed to the celestial sphere and the sphere turns about
@@ -291,6 +376,16 @@ const ABSOLUTE_FRESH_MS = 600;
  */
 const COMPASS_LEVEL_MIN = 0.35;
 
+/**
+ * A compass correction bigger than this is not jitter: the sky is being
+ * re-aimed, and the settle spinner says so until it is back within
+ * `CALIBRATED_DEG`.
+ */
+const CALIBRATING_DEG = 6;
+const CALIBRATED_DEG = 2;
+/** How long the window waits for a first reading before it stops saying so. */
+const FIRST_READING_MS = 1500;
+
 const listeners = new Set<ViewListener>();
 let attached = false;
 let latest: SkyView | null = null;
@@ -302,6 +397,80 @@ let compassOffset = NaN;
 let anchorOffset = NaN;
 let anchorHeading = 180;
 let simulated: SkyView | null = null;
+
+/** Where north came from, for the devtool. */
+export type ViewSource =
+  | "absolute"   // Chrome's deviceorientationabsolute
+  | "flagged"    // deviceorientation with absolute: true (Firefox)
+  | "webkit"     // relative alpha + webkitCompassHeading
+  | "anchored"   // no compass: the first reading anchored to the stage
+  | "simulated"  // the devtool's hand
+  | "none";
+
+/** What the sensor has been saying, raw — the devtool's Motion fold. */
+export interface MotionDiagnostics {
+  source: ViewSource;
+  alpha: number | null;
+  beta: number | null;
+  gamma: number | null;
+  /** WebKit's own heading and its accuracy (± degrees; −1 when uncalibrated). */
+  compassHeading: number | null;
+  compassAccuracy: number | null;
+  /** The rotation applied to alpha to reach north (WebKit, or the anchor), degrees. */
+  offsetDeg: number | null;
+  /** Events per second, smoothed. */
+  rateHz: number;
+  screenAngle: number;
+  /** A correction is in flight (see CALIBRATING_DEG), or no reading has come yet. */
+  calibrating: boolean;
+}
+
+const diag: MotionDiagnostics = {
+  source: "none",
+  alpha: null,
+  beta: null,
+  gamma: null,
+  compassHeading: null,
+  compassAccuracy: null,
+  offsetDeg: null,
+  rateHz: 0,
+  screenAngle: 0,
+  calibrating: false,
+};
+let eventAt = 0;
+let firstReadingTimer = 0;
+
+function setCalibrating(on: boolean) {
+  if (diag.calibrating === on) return;
+  diag.calibrating = on;
+  holdSettle("compass", on);
+}
+
+/** Note an event: its angles, its source, and the rate they arrive at. */
+function note(
+  source: ViewSource,
+  angles: { alpha: number; beta: number; gamma: number },
+  screenAngle: number
+) {
+  const t = performance.now();
+  if (eventAt > 0) {
+    const dt = Math.max(1, t - eventAt);
+    diag.rateHz += (1000 / dt - diag.rateHz) * 0.1;
+  }
+  eventAt = t;
+  diag.source = source;
+  diag.alpha = angles.alpha;
+  diag.beta = angles.beta;
+  diag.gamma = angles.gamma;
+  diag.screenAngle = screenAngle;
+  // A reading has come: the wait for one is over. A WebKit correction below
+  // may raise it again.
+  if (firstReadingTimer) {
+    window.clearTimeout(firstReadingTimer);
+    firstReadingTimer = 0;
+    if (source !== "webkit") setCalibrating(false);
+  }
+}
 
 function readScreenAngle(): number {
   if (typeof window === "undefined") return 0;
@@ -364,7 +533,9 @@ function onAbsolute(event: DeviceOrientationEvent) {
   const angles = readAngles(event);
   if (!angles) return;
   absoluteAt = performance.now();
-  publish(viewFromOrientation(angles.alpha, angles.beta, angles.gamma, readScreenAngle(), true));
+  const screenAngle = readScreenAngle();
+  note("absolute", angles, screenAngle);
+  publish(viewFromOrientation(angles.alpha, angles.beta, angles.gamma, screenAngle, true));
 }
 
 function onRelative(event: DeviceOrientationEvent) {
@@ -376,6 +547,7 @@ function onRelative(event: DeviceOrientationEvent) {
   const screenAngle = readScreenAngle();
 
   if (event.absolute) {
+    note("flagged", angles, screenAngle);
     publish(viewFromOrientation(angles.alpha, angles.beta, angles.gamma, screenAngle, true));
     return;
   }
@@ -383,6 +555,9 @@ function onRelative(event: DeviceOrientationEvent) {
   const heading = (event as CompassEvent).webkitCompassHeading;
   const accuracy = (event as CompassEvent).webkitCompassAccuracy;
   if (typeof heading === "number" && Number.isFinite(heading) && (accuracy ?? 0) >= 0) {
+    note("webkit", angles, screenAngle);
+    diag.compassHeading = heading;
+    diag.compassAccuracy = typeof accuracy === "number" ? accuracy : null;
     // Where the top edge points by the relative alpha, against where the
     // compass says it points: the difference is the rotation between WebKit's
     // arbitrary frame and north. It only means something while the top edge
@@ -402,7 +577,13 @@ function onRelative(event: DeviceOrientationEvent) {
         const k = (1 - Math.exp(-dt / OFFSET_TAU)) * weight;
         compassOffset = wrapPi(compassOffset + wrapPi(measured - compassOffset) * k);
       }
+      // How far the offset still has to go: a big gap is the sky being
+      // re-aimed, and that is worth the spinner until it has closed.
+      const gap = Math.abs(wrapPi(measured - compassOffset)) / DEG;
+      if (gap > CALIBRATING_DEG) setCalibrating(true);
+      else if (gap < CALIBRATED_DEG) setCalibrating(false);
     }
+    diag.offsetDeg = compassOffset / DEG;
     publish(
       viewFromOrientation(
         angles.alpha + compassOffset / DEG,
@@ -416,11 +597,13 @@ function onRelative(event: DeviceOrientationEvent) {
   }
 
   // No compass: anchor the first reading onto the stage's heading.
+  note("anchored", angles, screenAngle);
   const rel = viewFromOrientation(angles.alpha, angles.beta, angles.gamma, screenAngle, false);
   if (Number.isNaN(anchorOffset)) {
     const relHeading = Math.atan2(rel.forward.x, rel.forward.y);
     anchorOffset = wrapPi(relHeading - anchorHeading * DEG);
   }
+  diag.offsetDeg = anchorOffset / DEG;
   publish(
     viewFromOrientation(
       angles.alpha + anchorOffset / DEG,
@@ -448,6 +631,16 @@ export function subscribeView(listener: ViewListener, stageHeading = 180): () =>
     });
     window.addEventListener("deviceorientation", onRelative, { passive: true });
     attached = true;
+    // Until the first reading, the window is looking where the stage did and
+    // is about to turn: say so — but not for ever, on a device that has no
+    // sensor to send one.
+    if (!simulated) {
+      setCalibrating(true);
+      firstReadingTimer = window.setTimeout(() => {
+        firstReadingTimer = 0;
+        setCalibrating(false);
+      }, FIRST_READING_MS);
+    }
   }
   return () => {
     listeners.delete(listener);
@@ -460,8 +653,27 @@ export function subscribeView(listener: ViewListener, stageHeading = 180): () =>
       absoluteAt = 0;
       compassOffset = NaN;
       anchorOffset = NaN;
+      window.clearTimeout(firstReadingTimer);
+      firstReadingTimer = 0;
+      setCalibrating(false);
+      eventAt = 0;
+      Object.assign(diag, {
+        source: "none",
+        alpha: null,
+        beta: null,
+        gamma: null,
+        compassHeading: null,
+        compassAccuracy: null,
+        offsetDeg: null,
+        rateHz: 0,
+      });
     }
   };
+}
+
+/** The sensor's own story, for the devtool. A copy; poll it. */
+export function readMotionDiagnostics(): MotionDiagnostics {
+  return { ...diag, source: simulated ? "simulated" : diag.source };
 }
 
 /** The last view, for a readout that polls. Null until a reading arrives. */
@@ -475,5 +687,8 @@ export function readView(): SkyView | null {
  */
 export function simulateView(view: SkyView | null) {
   simulated = view;
-  if (view) for (const listener of listeners) listener(view);
+  if (view) {
+    setCalibrating(false);
+    for (const listener of listeners) listener(view);
+  }
 }

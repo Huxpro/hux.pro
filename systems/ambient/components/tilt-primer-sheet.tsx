@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AdaptiveSurface, SurfaceMorph } from "@/systems/surface";
 import { useEffect, useState } from "react";
-import { useWallpaper } from "../provider";
+import { isGyroReachable } from "../lib/gyroscope";
+import { useLocation, useWallpaper } from "../provider";
 
 // ---------------------------------------------------------------------------
 // TiltPrimerSheet — the offer that comes before the motion prompt.
@@ -136,6 +137,12 @@ function WindowIllustration({ pose }: { pose: Pose }) {
 }
 
 /**
+ * How the place went, when the sheet asked for it too: shared, not (refused,
+ * or no fix to be had), or never asked.
+ */
+type Place = "shared" | "guessed" | null;
+
+/**
  * The phases of one press. `asking` is the browser's own dialog, which covers
  * the page — nobody really sees that state, it just has to not offer the button
  * twice.
@@ -151,6 +158,8 @@ const DWELL: Record<"granted" | "denied", number> = {
   granted: 1400,
   denied: 3000,
 };
+/** A grant that also has to say how the place went reads a line longer. */
+const DWELL_WITH_PLACE = 2200;
 
 const BUTTON =
   "w-full rounded-2xl px-4 py-3 text-[15px] font-medium transition-colors " +
@@ -158,15 +167,32 @@ const BUTTON =
 
 export function TiltPrimerSheet() {
   const { locale } = useLocale();
-  const { isTiltPrimerOpen, closeTiltPrimer, takeTilt, gyro } = useWallpaper();
+  const {
+    isTiltPrimerOpen,
+    closeTiltPrimer,
+    takeTilt,
+    gyro,
+    skyWantsLocation,
+    setSkyWindow,
+  } = useWallpaper();
+  const { requestAccurateLocation } = useLocation();
   const [phase, setPhase] = useState<Phase>("offer");
+  const [place, setPlace] = useState<Place>(null);
+  // Whether this opening asks for the place too — decided as it opens and held
+  // for the life of the sheet, so a fix landing halfway through does not
+  // rewrite the offer under the visitor's thumb.
+  const [askPlace, setAskPlace] = useState(false);
+  // Motion already flows (Chrome, Android, a past grant): the sheet is only
+  // here for the place, so it says that, and lets the window open without it.
+  const [motionOpen, setMotionOpen] = useState(false);
 
   // The outcome shows, and then the sheet lets itself out.
   useEffect(() => {
     if (phase !== "granted" && phase !== "denied") return;
-    const timer = window.setTimeout(closeTiltPrimer, DWELL[phase]);
+    const dwell = phase === "granted" && place ? DWELL_WITH_PLACE : DWELL[phase];
+    const timer = window.setTimeout(closeTiltPrimer, dwell);
     return () => window.clearTimeout(timer);
-  }, [phase, closeTiltPrimer]);
+  }, [phase, place, closeTiltPrimer]);
 
   // Back to the offer for the next time there is one — or straight to the
   // refusal, when that is what stands: the component outlives the sheet, and a
@@ -178,21 +204,40 @@ export function TiltPrimerSheet() {
   const [wasOpen, setWasOpen] = useState(isTiltPrimerOpen);
   if (wasOpen !== isTiltPrimerOpen) {
     setWasOpen(isTiltPrimerOpen);
-    if (isTiltPrimerOpen) setPhase(gyro.denied ? "denied" : "offer");
+    if (isTiltPrimerOpen) {
+      setPhase(gyro.denied ? "denied" : "offer");
+      setPlace(null);
+      setAskPlace(skyWantsLocation);
+      setMotionOpen(gyro.reachable);
+    }
   }
 
   const take = async () => {
     setPhase("asking");
+    // Motion FIRST: WebKit's gate only opens from inside the tap's own task,
+    // and the location prompt needs no such thing — so the place is asked for
+    // once motion has had its answer, which also keeps the two dialogs from
+    // arriving on top of each other.
     const access = await takeTilt();
     // "prompt" is the gate refusing to even consider it — no dialog was shown
     // and nothing was answered, so the offer is simply still standing.
-    setPhase(
-      access === "denied"
-        ? "denied"
-        : access === "prompt"
-          ? "offer"
-          : "granted"
-    );
+    if (access === "prompt") {
+      setPhase("offer");
+      return;
+    }
+    // The place is worth having whatever motion said: without the window the
+    // stage's sun and moon are still placed by it.
+    if (askPlace) {
+      const outcome = await requestAccurateLocation();
+      setPlace(outcome === "granted" ? "shared" : "guessed");
+    }
+    setPhase(isGyroReachable(access) ? "granted" : "denied");
+  };
+
+  // Motion was never the question: open the window on the network's guess.
+  const skipPlace = () => {
+    setSkyWindow(true);
+    closeTiltPrimer();
   };
 
   const settled = phase === "granted" || phase === "denied";
@@ -231,12 +276,19 @@ export function TiltPrimerSheet() {
                   view === "granted" ? "text-foreground" : "text-secondary-foreground"
                 )}
               >
-                {t(locale, view === "granted" ? "tiltPrimerGranted" : "tiltPrimerDenied")}
+                {view === "denied"
+                  ? t(locale, "tiltPrimerDenied")
+                  : place === "shared"
+                    ? t(locale, "tiltPrimerGrantedPlace")
+                    : place === "guessed"
+                      ? t(locale, "tiltPrimerGrantedGuess")
+                      : t(locale, "tiltPrimerGranted")}
               </p>
             ) : (
               <div className="space-y-4">
                 <p className="px-0.5 text-[15px] leading-relaxed text-secondary-foreground">
-                  {t(locale, "tiltPrimerBody")}
+                  {t(locale, motionOpen && askPlace ? "tiltPrimerBodyPlace" : "tiltPrimerBody")}
+                  {askPlace && !motionOpen && <> {t(locale, "tiltPrimerAlsoPlace")}</>}
                 </p>
                 <div className="space-y-2">
                   <button
@@ -256,7 +308,7 @@ export function TiltPrimerSheet() {
                   </button>
                   <button
                     type="button"
-                    onClick={closeTiltPrimer}
+                    onClick={motionOpen && askPlace ? skipPlace : closeTiltPrimer}
                     disabled={phase === "asking"}
                     className={cn(
                       BUTTON,
@@ -264,11 +316,21 @@ export function TiltPrimerSheet() {
                       "disabled:opacity-50"
                     )}
                   >
-                    {t(locale, "tiltPrimerDismiss")}
+                    {t(
+                      locale,
+                      motionOpen && askPlace ? "tiltPrimerSkipPlace" : "tiltPrimerDismiss"
+                    )}
                   </button>
                 </div>
                 <p className="px-0.5 text-center text-[11px] leading-snug text-tertiary-foreground">
-                  {t(locale, "tiltPrimerAsk")}
+                  {t(
+                    locale,
+                    !askPlace
+                      ? "tiltPrimerAsk"
+                      : motionOpen
+                        ? "tiltPrimerAskPlace"
+                        : "tiltPrimerAskBoth"
+                  )}
                   <br />
                   {t(locale, "tiltPrimerAgain")}
                 </p>

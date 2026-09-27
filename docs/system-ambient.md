@@ -25,11 +25,13 @@ systems/ambient/
 │   ├── location-primer-sheet.tsx # The offer before the browser's location prompt
 │   ├── tilt-primer-sheet.tsx     # The offer before WebKit's motion prompt (the sky window)
 │   ├── sky-window-toast.tsx      # "Sky window" / "Back to the wallpaper" pill
+│   ├── settle-spinner.tsx        # The tiny top-right ring while the sky settles
 │   └── index.ts                  # Component exports
 ├── lib/
 │   ├── weather.ts                # Open-Meteo integration + condition model
 │   ├── gyroscope.ts              # Screen-space gravity from `deviceorientation` + motion access
 │   ├── sky-window.ts             # The phone as a window: view from the compass, projection, stars
+│   ├── settle.ts                 # Named reasons the sky is between two states (the spinner)
 │   ├── solar.ts                  # Sun elevation/azimuth, lunar ephemeris, moon phase
 │   ├── scene.ts                  # weather × sun × moon × theme → WeatherScene
 │   ├── gradient.ts               # WeatherScene → CSS gradient + crossfade types
@@ -215,9 +217,10 @@ The Sky engine (`WallpaperRenderer`):
   live clock moves them a thousandth of a screen a minute, so that easing is
   only ever felt when a hand drives the clock — the devtool's date and time
   sliders — and there the disc should feel attached to the slider. A real jump
-  of the clock still snaps, measured between one **target** and the next: a
-  large gap between the target and where the disc has eased to is only lag, and
-  snapping on that teleports the disc mid-drag;
+  — of the clock, or of the place — **glides**, measured between one **target**
+  and the next (a large gap between the target and where the disc has eased to
+  is only lag, and gliding on that would restart the disc mid-drag). See
+  [Gliding across a jump](#gliding-across-a-jump);
 - accumulates cloud/snow **drift in JS** from the smoothed wind, so a wind change
   glides instead of teleporting the sky — and the snow takes that wind *slowly*,
   see [Stirring the wind](#stirring-the-wind-rain-and-snow-easter-egg);
@@ -609,9 +612,71 @@ the wallpaper and a background that swung with the hand would be the opposite of
 receding, and it is off under `prefers-reduced-motion`. The picker's Sky tile
 never follows it.
 
+**Asking for the place in the same breath.** A window that turns true to north
+onto the sky over the wrong city is the one thing it must not be — and the IP
+guess is often a city off. So while precise location is not in effect (and the
+browser has not refused it), a hold that would open the window goes through the
+sheet first, which says it will ask for the location too. One tap then asks for
+motion (inside the tap, where WebKit's gate needs it) and then for the location
+(which needs no gesture, and so waits its turn rather than stacking a second
+dialog on the first). Where motion already flows, the sheet is only there for
+the place: it says so, and its second button opens the window without it. The
+offer is made once a session (`skyWantsLocation` in the provider); after that a
+hold is just the window. The outcome line says which it got — the sky over where
+you are, or still on the network's guess.
+
 **Devtool.** Sky → Window toggles it (on a desktop too) and reads out heading ·
 pitch. While it is on, Heading and Pitch sliders drive the view by hand — the
-sensor is ignored until the row's star hands it back.
+sensor is ignored until the row's star hands it back. The **Motion** fold under
+it shows what the sensor is actually saying: where north came from (`absolute`,
+`flagged`, `webkit`, `anchored`, `simulated`), the event rate, raw α β γ, the
+screen angle, WebKit's compass heading and accuracy, the offset applied to
+reach north, whether a correction is in flight, the view's heading, pitch and
+roll, the gravity tilt, and which settle reasons stand.
+
+### Gliding across a jump
+
+Easing is for drift: the clock moving the sun a thousandth of a screen, a hand on
+a slider. A **jump** — a location fix a city away, a refetch after hours asleep,
+a preset on the devtool's clock — used to snap, because easing a screen position
+flies the disc across the glass in a straight line, a way the sun has never
+moved. Now it glides (`GLIDE_SEC`, 0.9 s, ease-in-out): what is interpolated is
+the body's **direction in the world**, the short way round the sphere, and every
+frame is staged the way the stage stages a real position (`stageSun` /
+`stageMoon`, exported from `lib/scene.ts`) or projected through the window. The
+disc arcs over instead of sliding under.
+
+The window's camera does the same when the view it is handed jumps by more than
+`VIEW_JUMP_DEG` (20°) in one update — the first reading after the window opens,
+a compass arriving late, the devtool's slider let go somewhere else: it turns
+the shortest rotation (a quaternion slerp, `slerpView`) over `VIEW_GLIDE_SEC`
+(0.6 s) toward a target that may still be moving. After the sensor's own
+smoothing no hand turns 20° between two readings, so this never lags one. The
+star sphere eases its latitude and sidereal angle (the latter the short way
+round 360°), so a new place tips and turns the sky rather than cutting it. A
+stopped renderer lands every glide where it was going; reduced motion never
+starts one.
+
+### Settling (the spinner)
+
+Some of what the ambient system does is routine and must stay silent — the sun
+drifting, a poll that returns the same city, a compass wandering a degree. Some
+of it is not, and the sky then spends a second or two getting from one state to
+another. For that second a very small ring stands in the top-right corner
+(`<SettleSpinner />`), fed by `lib/settle.ts`: each source holds a named reason,
+or stands one for a known easing, and the ring shows while any stands.
+
+| reason | stands while |
+|---|---|
+| `sky` | the full-page renderer has a glide running (sun, moon or camera) |
+| `compass` | the window waits for its first reading (up to 1.5 s), or WebKit's compass offset is correcting by more than 6° (until it is within 2°) |
+| `location` | a location fix asked for is in flight; and for 2.6 s after the place moves more than `SETTLE_MOVE_KM` (30 km) |
+| `weather` | the forecast for a relocated place is being fetched, then 2.6 s while the scene rolls in; and 2.6 s after a forecast that changes the condition, or the cloud cover by more than 30 points |
+
+It waits 150 ms before appearing, so a change that settles at once never flashes
+it, and holds 700 ms once up, so two reasons back to back read as one wait. It
+never takes a pointer, sits on the wallpaper as `--ink`, and is still (not
+spinning) under reduced motion.
 
 ### Gradient Crossfade (Gradient engine)
 

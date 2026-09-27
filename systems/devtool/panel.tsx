@@ -26,10 +26,13 @@ import { formatLocationLabel } from "@/systems/ambient/lib/location";
 import { gravityTiltDegrees, readGravity } from "@/systems/ambient/lib/gyroscope";
 import {
   headingPitchOf,
+  readMotionDiagnostics,
   readView,
   simulateView,
   viewFacing,
+  type MotionDiagnostics,
 } from "@/systems/ambient/lib/sky-window";
+import { settleReasons, type SettleReason } from "@/systems/ambient/lib/settle";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import {
@@ -127,6 +130,7 @@ import {
   Play,
   RefreshCw,
   RotateCcw,
+  Compass,
   SlidersHorizontal,
   Sparkles,
   Sun,
@@ -2136,6 +2140,44 @@ function SkyModule() {
       ? `${look.heading}°${aim ? "" : look.compass ? "" : "~"} · ${look.pitch}°`
       : zh ? "等待方向" : "no heading";
 
+  // --- Motion fold ---------------------------------------------------------
+  // What the sensor is actually saying, for when the window looks the wrong
+  // way: where north came from, the raw Euler angles, WebKit's own compass and
+  // how far the estimate has had to turn it, how fast readings arrive, and why
+  // the settle spinner is up. Polled only while the fold is open.
+  const [motionOpen, setMotionOpen] = useState(false);
+  const [motion, setMotion] = useState<{
+    diag: MotionDiagnostics;
+    view: { heading: number; pitch: number; roll: number } | null;
+    tilt: number;
+    settle: SettleReason[];
+  } | null>(null);
+  useEffect(() => {
+    if (!motionOpen) return;
+    const tick = () => {
+      const view = readView();
+      let look: { heading: number; pitch: number; roll: number } | null = null;
+      if (view) {
+        const { heading, pitch } = headingPitchOf(view.forward);
+        // Roll: how far the screen's top has turned off the vertical plane,
+        // clockwise positive — 0 held level.
+        const roll = (Math.atan2(-view.right.z, view.up.z) * 180) / Math.PI;
+        look = { heading, pitch, roll };
+      }
+      setMotion({
+        diag: readMotionDiagnostics(),
+        view: look,
+        tilt: gravityTiltDegrees(readGravity()),
+        settle: settleReasons(),
+      });
+    };
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, [motionOpen]);
+  const deg = (v: number | null | undefined, digits = 0) =>
+    v === null || v === undefined || !Number.isFinite(v) ? "—" : `${v.toFixed(digits)}°`;
+
   // --- Tune fold -----------------------------------------------------------
   const [tuneOpen, setTuneOpen] = useState(false);
   const setTune = (patch: Partial<typeof sceneOverrides>) =>
@@ -2658,6 +2700,60 @@ function SkyModule() {
                 format={(v) => `${v}°`}
                 onChange={(v) => setAim({ heading: lookAt.heading, pitch: v })}
               />
+            </div>
+          )}
+
+          {/* Motion, folded: the sensor's own numbers behind the two rows
+              above. The window only listens for a compass while it is open,
+              so the source reads "none" until then. */}
+          <button
+            onClick={() => setMotionOpen((v) => !v)}
+            aria-expanded={motionOpen}
+            aria-label="Toggle motion details"
+            className="mt-2 flex w-full items-center justify-between gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground/80"
+          >
+            <span className="flex items-center gap-1.5">
+              <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", !motionOpen && "-rotate-90")} />
+              <Compass className="h-3 w-3" />
+              {zh ? "动作" : "Motion"}
+            </span>
+            <span className="normal-case tracking-normal tabular-nums text-muted-foreground/70">
+              {motion && motionOpen
+                ? `${motion.diag.source} · ${Math.round(motion.diag.rateHz)} Hz`
+                : ""}
+            </span>
+          </button>
+          {motionOpen && motion && (
+            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] font-mono tabular-nums text-muted-foreground">
+              <MetaRow k={zh ? "来源" : "north"} v={motion.diag.source} />
+              <MetaRow k={zh ? "频率" : "rate"} v={`${motion.diag.rateHz.toFixed(0)} Hz`} />
+              <MetaRow k="α" v={deg(motion.diag.alpha, 1)} />
+              <MetaRow k="β" v={deg(motion.diag.beta, 1)} />
+              <MetaRow k="γ" v={deg(motion.diag.gamma, 1)} />
+              <MetaRow k={zh ? "屏幕" : "screen"} v={deg(motion.diag.screenAngle)} />
+              <MetaRow k={zh ? "罗盘" : "compass"} v={deg(motion.diag.compassHeading, 1)} />
+              <MetaRow
+                k={zh ? "精度" : "±acc"}
+                v={
+                  motion.diag.compassAccuracy === null
+                    ? "—"
+                    : motion.diag.compassAccuracy < 0
+                      ? zh ? "需校准" : "calibrate"
+                      : `±${motion.diag.compassAccuracy.toFixed(0)}°`
+                }
+              />
+              <MetaRow k={zh ? "偏移" : "offset"} v={deg(motion.diag.offsetDeg, 1)} />
+              <MetaRow k={zh ? "校准中" : "aiming"} v={motion.diag.calibrating ? "yes" : "no"} />
+              <MetaRow k={zh ? "朝向" : "heading"} v={deg(motion.view?.heading, 1)} />
+              <MetaRow k={zh ? "仰角" : "pitch"} v={deg(motion.view?.pitch, 1)} />
+              <MetaRow k={zh ? "横滚" : "roll"} v={deg(motion.view?.roll, 1)} />
+              <MetaRow k={zh ? "重力" : "gravity"} v={deg(motion.tilt, 1)} />
+              <div className="col-span-2">
+                <MetaRow
+                  k={zh ? "稳定中" : "settling"}
+                  v={motion.settle.length ? motion.settle.join(" · ") : zh ? "否" : "—"}
+                />
+              </div>
             </div>
           )}
         </div>

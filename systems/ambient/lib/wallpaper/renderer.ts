@@ -19,14 +19,17 @@
 // =============================================================================
 
 import { UPRIGHT_GRAVITY, type GravityVector } from "../gyroscope";
-import type { WeatherScene } from "../scene";
+import { stageMoon, stageSun, type WeatherScene } from "../scene";
 import {
+  headingPitchOf,
   moonLitAngle,
   normalize,
   projectToScreen,
+  slerpView,
   stageView,
   starFrame,
   vec3,
+  viewAngle,
   viewScale,
   type SkyView,
   type Vec3,
@@ -142,6 +145,73 @@ const HEMISPHERE_OFFSET = OFFSET.uHemisphere;
  * where it really is — that is the reveal — and no longer.
  */
 const WINDOW_TAU = 0.45;
+
+// -----------------------------------------------------------------------------
+// Gliding across a jump
+//
+// Easing is for the minute-by-minute drift of a live clock and a hand on a
+// slider. A JUMP — a location fix that lands a hundred kilometres away, a
+// refetch after hours asleep, a preset on the devtool's clock — used to snap,
+// because easing a screen position flew the disc across the screen in a
+// straight line, which is not a way the sun has ever moved. Snapping was the
+// honest answer to that, and it read as a cut.
+//
+// So a jump now GLIDES: quickly, but along the sky rather than across the
+// glass. What is interpolated is the body's direction in the world — the
+// shortest way round the celestial sphere — and every frame of it is staged
+// the way the stage stages a real position (`stageSun` / `stageMoon`), or
+// projected through the window. The disc arcs over rather than sliding under.
+//
+// The window's camera does the same when the view it is given jumps — the
+// first reading after the window opens, a compass that arrives late, the
+// devtool's slider let go somewhere else: it turns to the new view along the
+// shortest rotation instead of cutting to it. A real hand, after the sensor's
+// own smoothing, never turns `VIEW_JUMP_DEG` between two readings, so this
+// never adds lag to one.
+// -----------------------------------------------------------------------------
+
+/** How long a body takes to glide to where a jump put it, seconds. */
+const GLIDE_SEC = 0.9;
+/** A target that moved this far on screen in one scene is a jump, not a drift. */
+const JUMP_SCREEN = 0.2;
+/** The camera's glide, seconds, and what counts as a jump of the view. */
+const VIEW_GLIDE_SEC = 0.6;
+const VIEW_JUMP_DEG = 20;
+/**
+ * The star sphere's own ease: a new latitude tips the pole, a new longitude
+ * turns the sphere, and neither should do it in a frame.
+ */
+const CELESTIAL_TAU = 0.35;
+
+/** Ease-in-out, cubic: leaves gently and arrives gently, fast in between. */
+function easeInOut(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+/** The unit direction `t` of the way from `a` to `b`, along the great circle. */
+function slerpDir(a: Vec3, b: Vec3, t: number): Vec3 {
+  const d = Math.max(-1, Math.min(1, a.x * b.x + a.y * b.y + a.z * b.z));
+  if (d > 0.9995) {
+    return normalize(vec3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t));
+  }
+  if (d < -0.9995) {
+    // Dead opposite: any great circle will do; go over the top.
+    const mid = normalize(vec3(-a.y, a.x, 0.5));
+    return t < 0.5 ? slerpDir(a, mid, t * 2) : slerpDir(mid, b, t * 2 - 1);
+  }
+  const th = Math.acos(d);
+  const sin = Math.sin(th);
+  const wa = Math.sin((1 - t) * th) / sin;
+  const wb = Math.sin(t * th) / sin;
+  return vec3(a.x * wa + b.x * wb, a.y * wa + b.y * wb, a.z * wa + b.z * wb);
+}
+
+interface BodyGlide {
+  /** Where the body was, in the world, when the jump arrived. */
+  from: Vec3;
+  /** performance.now() at the jump. */
+  at: number;
+}
 
 /** A fixed, pleasant moment on the shader clock for a still frame. */
 const STILL_FRAME_SEC = 37;
@@ -369,6 +439,11 @@ export interface WallpaperRendererOptions {
   onFallback?: (reason: string) => void;
   /** Called once, after the first frame has been painted. */
   onFirstFrame?: () => void;
+  /**
+   * Called when a glide starts, and when the last one ends: the sky is between
+   * two states after a jump (see "Gliding across a jump"). The settle spinner.
+   */
+  onSettle?: (settling: boolean) => void;
 }
 
 interface ResolvedOptions {
@@ -377,6 +452,7 @@ interface ResolvedOptions {
   maxFps: number;
   onFallback?: (reason: string) => void;
   onFirstFrame?: () => void;
+  onSettle?: (settling: boolean) => void;
 }
 
 export interface WallpaperStats {
@@ -513,7 +589,18 @@ export class WallpaperRenderer {
   private windowAmt = 0;
   /** Where the window looks. The stage's own view until a reading arrives. */
   private view: SkyView | null = null;
+  /** What the window is actually showing: `view`, or on the way to it. */
+  private shownView: SkyView | null = null;
+  private viewGlide: { from: SkyView; at: number } | null = null;
   private starMat = new Float32Array(9);
+  /** Latitude and sidereal time, eased (the latter the short way round). */
+  private celestial = new Float64Array(2);
+
+  // --- Glides across a jump ---------------------------------------------------
+  private sunGlide: BodyGlide | null = null;
+  private moonGlide: BodyGlide | null = null;
+  /** Whether any glide is running, as last reported to `onSettle`. */
+  private gliding = false;
 
   private dpr = 1;
   private baseScale = 1;
@@ -541,6 +628,7 @@ export class WallpaperRenderer {
       maxFps: options.maxFps ?? 60,
       onFallback: options.onFallback,
       onFirstFrame: options.onFirstFrame,
+      onSettle: options.onSettle,
     };
     this.startAt = performance.now();
     this.lastFrameAt = this.startAt;
@@ -563,10 +651,13 @@ export class WallpaperRenderer {
   setScene(scene: WeatherScene) {
     // Where every uniform was aimed before this scene arrived.
     const prevTarget = this.target.slice();
+    const first = !this.hasScene;
     packScene(scene, this.target);
     this.seed = scene.seed;
     if (!this.hasScene) {
       this.current.set(this.target);
+      this.celestial[0] = this.target[CELESTIAL_OFFSET];
+      this.celestial[1] = this.target[CELESTIAL_OFFSET + 1];
       // Start both fields already leaning into the scene's wind. Coming up
       // from nothing would mean the first seconds of a page had the weather
       // falling straight down through a gale.
@@ -576,14 +667,15 @@ export class WallpaperRenderer {
     // The phase is cyclic; never interpolate it.
     this.snap("uMoonPhase");
     // Easing is for the minute-by-minute drift of a live clock, and for a hand
-    // on a devtool slider. A jump of the clock (a phase preset, a refetch after
-    // hours asleep) would otherwise fly the sun or moon across the screen in a
-    // straight line, which reads as a wrong trajectory — so it snaps instead.
-    // The jump that matters is between one target and the next: measuring
-    // against the eased position instead would read a run of small steps — a
-    // scrub — as one big jump, and teleport the disc mid-drag.
-    this.snapIfJumped("uSun", prevTarget, 0.2, ["uSunWorld"]);
-    this.snapIfJumped("uMoon", prevTarget, 0.2, ["uMoonVisible", "uMoonWorld"]);
+    // on a devtool slider; a jump glides along the sky instead (see "Gliding
+    // across a jump"). The jump that matters is between one target and the
+    // next: measuring against the eased position instead would read a run of
+    // small steps — a scrub — as one big jump, and glide the disc mid-drag.
+    if (!first) {
+      this.sunGlide = this.glideIfJumped("uSun", SUN_WORLD_OFFSET, prevTarget) ?? this.sunGlide;
+      this.moonGlide = this.glideIfJumped("uMoon", MOON_WORLD_OFFSET, prevTarget) ?? this.moonGlide;
+      this.reportGlides();
+    }
     if (this.opts.reducedMotion) {
       this.settle();
     } else if (!this.running) {
@@ -675,8 +767,23 @@ export class WallpaperRenderer {
    * where the window opens before the first reading arrives.
    */
   setView(view: SkyView | null) {
+    // A view that jumped is turned to, from wherever the window is showing
+    // now — which may itself be halfway through an earlier turn.
+    const shown = this.shownView ?? this.currentView(this.current);
+    if (
+      view &&
+      !this.opts.reducedMotion &&
+      this.windowAmt > 0 &&
+      viewAngle(shown, view) > VIEW_JUMP_DEG
+    ) {
+      this.viewGlide = { from: shown, at: performance.now() };
+      this.reportGlides();
+    }
     this.view = view;
-    if (this.opts.reducedMotion && this.windowOn) this.renderOnce();
+    if (this.opts.reducedMotion && this.windowOn) {
+      this.shownView = view;
+      this.renderOnce();
+    }
   }
 
   /**
@@ -803,6 +910,9 @@ export class WallpaperRenderer {
 
   stop() {
     this.running = false;
+    // Nothing will advance a glide while stopped, and a glide resumed hours
+    // later would be flying toward a target that has long since moved on.
+    this.finishGlides();
     // Every egg is measured in wall-clock time; a paused renderer would resume
     // one hours later, mid-flash — or with a hole in the fog that never healed.
     this.pokeAt = 0;
@@ -1172,20 +1282,93 @@ export class WallpaperRenderer {
     else this.wipeStart = (this.wipeStart + 1) % WIPE_MAX_POINTS;
   }
 
-  /** Snap a vec2 uniform (and companions) when a new scene jumped its target. */
-  private snapIfJumped(
-    name: string,
-    from: Float32Array,
-    threshold: number,
-    companions: string[] = []
-  ) {
+  /**
+   * A glide from where the body is now, when a new scene jumped its staged
+   * position past `JUMP_SCREEN`; null when it only drifted. Under reduced motion
+   * there is no glide — the still frame simply is the new sky.
+   */
+  private glideIfJumped(name: string, worldOffset: number, from: Float32Array): BodyGlide | null {
+    if (this.opts.reducedMotion) return null;
     const offset = OFFSET[name];
     const dx = this.target[offset] - from[offset];
     const dy = this.target[offset + 1] - from[offset + 1];
-    if (Math.hypot(dx, dy) > threshold) {
-      this.snap(name);
-      for (const c of companions) this.snap(c);
+    if (Math.hypot(dx, dy) <= JUMP_SCREEN) return null;
+    return { from: worldAt(this.current, worldOffset), at: performance.now() };
+  }
+
+  /**
+   * Walk each glide one frame on: the body's world direction slerped toward
+   * its target and staged as the stage would stage it, the camera slerped
+   * toward the view. Written into `current`, over whatever the plain easing
+   * put there this frame.
+   */
+  private advanceGlides() {
+    const now = performance.now();
+    const hemisphere = this.target[HEMISPHERE_OFFSET] < 0 ? -1 : 1;
+    const bodies = [
+      { glide: this.sunGlide, world: SUN_WORLD_OFFSET, screen: OFFSET.uSun, sun: true },
+      { glide: this.moonGlide, world: MOON_WORLD_OFFSET, screen: OFFSET.uMoon, sun: false },
+    ];
+    for (const body of bodies) {
+      const glide = body.glide;
+      if (!glide) continue;
+      const t = (now - glide.at) / 1000 / GLIDE_SEC;
+      if (t >= 1) {
+        if (body.sun) this.sunGlide = null;
+        else this.moonGlide = null;
+        this.snap(body.sun ? "uSun" : "uMoon");
+        this.snap(body.sun ? "uSunWorld" : "uMoonWorld");
+        continue;
+      }
+      const dir = slerpDir(glide.from, worldAt(this.target, body.world), easeInOut(t));
+      this.current[body.world] = dir.x;
+      this.current[body.world + 1] = dir.y;
+      this.current[body.world + 2] = dir.z;
+      const { heading, pitch } = headingPitchOf(dir);
+      const at = { azimuth: heading, elevation: pitch };
+      const screen = body.sun ? stageSun(at, hemisphere) : stageMoon(at, hemisphere).screen;
+      this.current[body.screen] = screen.x;
+      this.current[body.screen + 1] = screen.y;
     }
+
+    const target = this.view ?? stageView(hemisphere);
+    if (this.viewGlide) {
+      const t = (now - this.viewGlide.at) / 1000 / VIEW_GLIDE_SEC;
+      if (t >= 1) {
+        this.viewGlide = null;
+        this.shownView = target;
+      } else {
+        this.shownView = slerpView(this.viewGlide.from, target, easeInOut(t));
+      }
+    } else {
+      this.shownView = target;
+    }
+    this.reportGlides();
+  }
+
+  /** Land every glide where it was going. */
+  private finishGlides() {
+    if (this.sunGlide) {
+      this.snap("uSun");
+      this.snap("uSunWorld");
+    }
+    if (this.moonGlide) {
+      this.snap("uMoon");
+      this.snap("uMoonWorld");
+    }
+    this.sunGlide = null;
+    this.moonGlide = null;
+    this.viewGlide = null;
+    this.shownView = this.view;
+    this.reportGlides();
+  }
+
+  /** Tell `onSettle` when the answer to "is anything gliding?" changes. */
+  private reportGlides() {
+    const gliding = !!(this.sunGlide || this.moonGlide || this.viewGlide);
+    if (gliding === this.gliding) return;
+    this.gliding = gliding;
+    this.opts.onSettle?.(gliding);
   }
 
   private snap(name: string) {
@@ -1208,6 +1391,11 @@ export class WallpaperRenderer {
       }
     }
     this.advanceGust(dtSec);
+    this.advanceGlides();
+    const kc = 1 - Math.exp(-dtSec / CELESTIAL_TAU);
+    this.celestial[0] += (this.target[CELESTIAL_OFFSET] - this.celestial[0]) * kc;
+    const lstGap = ((this.target[CELESTIAL_OFFSET + 1] - this.celestial[1]) % 360 + 540) % 360 - 180;
+    this.celestial[1] = (this.celestial[1] + lstGap * kc + 360) % 360;
     const kw = 1 - Math.exp(-dtSec / WINDOW_TAU);
     const aimAt = this.windowOn ? 1 : 0;
     this.windowAmt += (aimAt - this.windowAmt) * kw;
@@ -1317,7 +1505,7 @@ export class WallpaperRenderer {
 
   /** The view the window is looking along, or the stage's when none has come. */
   private currentView(src: Float32Array): SkyView {
-    return this.view ?? stageView(src[HEMISPHERE_OFFSET] < 0 ? -1 : 1);
+    return this.shownView ?? this.view ?? stageView(src[HEMISPHERE_OFFSET] < 0 ? -1 : 1);
   }
 
   /**
@@ -1372,6 +1560,9 @@ export class WallpaperRenderer {
    */
   private settle() {
     this.current.set(this.target);
+    this.celestial[0] = this.target[CELESTIAL_OFFSET];
+    this.celestial[1] = this.target[CELESTIAL_OFFSET + 1];
+    this.finishGlides();
     this.windowAmt = this.windowOn ? 1 : 0;
     this.snapFall();
     this.renderOnce();
@@ -1465,7 +1656,7 @@ export class WallpaperRenderer {
     gl.uniformMatrix3fv(
       this.locStarFrame,
       false,
-      starFrame(c[CELESTIAL_OFFSET], c[CELESTIAL_OFFSET + 1], this.starMat)
+      starFrame(this.celestial[0], this.celestial[1], this.starMat)
     );
 
     const sunW = worldAt(c, SUN_WORLD_OFFSET);

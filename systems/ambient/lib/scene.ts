@@ -397,7 +397,7 @@ const MOON_STAGE = {
   xMax: 0.88,
 } as const;
 
-function stageMoon(
+export function stageMoon(
   lunar: SolarPosition,
   hemisphere: 1 | -1
 ): { screen: ScreenPoint; size: number } {
@@ -413,6 +413,18 @@ function stageMoon(
   // The moon illusion: up to 30% larger near the horizon.
   const size = 1 + 0.3 * (1 - smoothstep(0, 35, lunar.elevation));
   return { screen: { x, y }, size };
+}
+
+/**
+ * Where the stage draws the sun: across by its azimuth, up by the sine of its
+ * elevation from the horizon line. Exported for the renderer, which re-stages a
+ * sun that is gliding along the sky after a jump of the clock or the place.
+ */
+export function stageSun(solar: SolarPosition, hemisphere: 1 | -1): ScreenPoint {
+  return {
+    x: azimuthToScreenX(solar.azimuth, hemisphere),
+    y: HORIZON_Y + Math.sin(solar.elevation * (Math.PI / 180)) * 0.9,
+  };
 }
 
 /** Map a compass azimuth to a screen x. Northern hemisphere looks south, so
@@ -504,10 +516,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const solar = resolveSolar(params);
   const elevation = solar.elevation;
   const daylight = daylightFactor(elevation);
-  const sunScreen: ScreenPoint = {
-    x: azimuthToScreenX(solar.azimuth, hemisphere),
-    y: HORIZON_Y + Math.sin(elevation * (Math.PI / 180)) * 0.9,
-  };
+  const sunScreen = stageSun(solar, hemisphere);
 
   // --- Precipitation ----------------------------------------------------
   // What is falling comes from the measurements when there are any; the

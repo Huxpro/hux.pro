@@ -99,7 +99,10 @@ export const SKY_HOLD_FOG_MS = 1000;
  *
  *   · `window` — readings can flow: open (or close) the window.
  *   · `offer`  — WebKit's gate stands, unanswered or refused: the sheet, which
- *                asks (or says it was refused and where to undo it).
+ *                asks (or says it was refused and where to undo it). Also the
+ *                answer, on the way IN, when the window would open onto a
+ *                guessed place (`wantsLocation`): the sheet asks for the
+ *                location in the same breath. Closing never goes through it.
  *
  * Every reason for null is a reason there is no window to open: the Sky is not
  * what paints (no other engine has a sky to look around), or there is no
@@ -111,9 +114,13 @@ export function skyHoldAction(state: {
   reachable: boolean;
   gated: boolean;
   denied: boolean;
+  /** The window is open now; a hold closes it, whatever else is true. */
+  open: boolean;
+  wantsLocation: boolean;
 }): "window" | "offer" | null {
   if (!state.sky) return null;
-  if (state.reachable) return "window";
+  if (state.open) return "window";
+  if (state.reachable) return state.wantsLocation ? "offer" : "window";
   if (state.gated || state.denied) return "offer";
   return null;
 }

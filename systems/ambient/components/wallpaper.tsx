@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { subscribeGravity } from "../lib/gyroscope";
+import { holdSettle } from "../lib/settle";
 import { subscribeView } from "../lib/sky-window";
 import type { PokeKind } from "../lib/poke";
 import type { WipeHandle } from "../lib/wipe";
@@ -122,6 +123,9 @@ export function WeatherWallpaper({
       maxFps: quality?.maxFps ?? profile.maxFps,
       onFallback: (reason) => onFallbackRef.current?.(reason),
       onFirstFrame: () => setPainted(true),
+      // Only the full-page sky speaks for "the sky is settling"; a preview
+      // tile gliding in the picker is not the page changing state.
+      onSettle: interactive ? (settling) => holdSettle("sky", settling) : undefined,
     });
     rendererRef.current = renderer;
     // The devtool pulls stats on its own schedule; nothing is copied until it asks.
@@ -140,6 +144,7 @@ export function WeatherWallpaper({
       if (wipeRef) wipeRef.current = null;
       renderer.destroy();
       rendererRef.current = null;
+      if (interactive) holdSettle("sky", false);
     };
     // The renderer is created once per canvas; scenes stream in below.
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -6,6 +6,7 @@ import {
   AmbientPhaseActivity,
   AmbientSurface,
   LocationPrimerSheet,
+  SettleSpinner,
   SolarThemeSync,
   TiltPrimerSheet,
   WallpaperSheet,
@@ -145,6 +146,7 @@ export default function RootLayout({
             <WallpaperSheet />
             <TiltPrimerSheet />
             <LocationPrimerSheet />
+            <SettleSpinner />
             <InstallSheet />
             <TheaterRegistrar />
             <TheaterSurfaces />

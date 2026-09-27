@@ -30,6 +30,7 @@ export {
   WallpaperSheet,
   TiltPrimerSheet,
   LocationPrimerSheet,
+  SettleSpinner,
   WeatherIcon,
   WeatherWidget,
   WeatherLine,

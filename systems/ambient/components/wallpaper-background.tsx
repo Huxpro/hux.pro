@@ -122,6 +122,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     gyro,
     skyWindow,
     setSkyWindow,
+    skyWantsLocation,
     reading,
     offerTilt,
     reportShaderFallback,
@@ -198,6 +199,8 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     reachable: gyro.reachable,
     gated: gyro.gated,
     denied: gyro.denied,
+    open: skyWindow,
+    wantsLocation: skyWantsLocation,
   });
   const holdMs = wiping ? SKY_HOLD_FOG_MS : SKY_HOLD_MS;
   const windowRef = useRef(skyWindow);
