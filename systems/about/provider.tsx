@@ -1,5 +1,6 @@
 "use client";
 
+import { useOptionalAttachments } from "@/systems/attachments/provider";
 import { useCommand } from "@/systems/command/provider";
 import {
   createContext,
@@ -26,7 +27,14 @@ import {
 //                 Not a bare `O`: a single letter taken over every page is
 //                 one keystroke from firing by accident, and the About is
 //                 not something anyone needs that often.
-//   Esc           closes it.
+//   Esc           closes it — or, with the attachment drawer up over it,
+//                 leaves that press to the drawer.
+//   the drawer    on a phone a badge in the copy opens the attachment
+//                 drawer over the About (OVER_ABOUT_Z), not in its place:
+//                 the words stay underneath. The About steps aside only once
+//                 something leaves for a home below it — the stage, a
+//                 window, the router, the lightbox; a tab leaves the site
+//                 and finds it as it was on the way back.
 //   `/about`      the linkable address: the home screen with it already up.
 //
 // The surface itself (components/about-surface.tsx) is mounted once in the
@@ -69,6 +77,13 @@ interface AboutContextValue {
   /** Forget the visitor has met it, so the next load introduces it again. */
   resetSeen: () => void;
 }
+
+/**
+ * The paint layer for what floats over the About (z 10020, its glow 10021):
+ * the attachment drawer a badge in its copy opens. Under the devtool raised
+ * over it (10030) and the command palette (10050).
+ */
+export const OVER_ABOUT_Z = 10025;
 
 const AboutContext = createContext<AboutContextValue | null>(null);
 
@@ -127,8 +142,19 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(id);
   }, []);
 
+  // A thing opened from the About's drawer that lands under the About — on
+  // the stage, in a window, on another page — takes the screen from it.
+  const attachments = useOptionalAttachments();
+  const onSend = attachments?.onSend;
+  const drawerOpen = attachments?.isOpen ?? false;
+  const onAttachmentSent = useEffectEvent((home: string) => {
+    if (isOpen && home !== "tab") close();
+  });
+  useEffect(() => onSend?.((home) => onAttachmentSent(home)), [onSend]);
+
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
-    if (e.key === "Escape" && isOpen) {
+    // The drawer over it takes this Escape; the next one is the About's.
+    if (e.key === "Escape" && isOpen && !drawerOpen) {
       e.preventDefault();
       close();
     }

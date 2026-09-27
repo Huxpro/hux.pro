@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useTransitionRouter } from "next-view-transitions";
@@ -67,6 +68,13 @@ export interface AttachmentsContextValue {
   homeOf: (set: AttachmentSet, index: number) => AttachmentHome;
   /** Where `act` would send it — its native home, from any surface. */
   nativeHomeOf: (set: AttachmentSet, index: number) => AttachmentHome;
+  /**
+   * Hear every attachment leaving for a home that is not the surface — the
+   * stage, a window, the router, a tab. For a layer the surface can float
+   * over (the About) that should step aside once the thing opens somewhere
+   * underneath it. Returns the unsubscribe.
+   */
+  onSend: (listener: (home: AttachmentHome) => void) => () => void;
   close: () => void;
   /** The surface's current session; it stays through the close animation. */
   session: AttachmentSession | null;
@@ -124,6 +132,13 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const close = useCallback(() => setIsOpen(false), []);
+  const sendListeners = useRef(new Set<(home: AttachmentHome) => void>());
+  const onSend = useCallback((listener: (home: AttachmentHome) => void) => {
+    sendListeners.current.add(listener);
+    return () => {
+      sendListeners.current.delete(listener);
+    };
+  }, []);
   const closeLightbox = useCallback(() => setLightboxOpen(false), []);
 
   /** Send an attachment to a non-surface home. */
@@ -131,6 +146,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
     (home: AttachmentHome, set: AttachmentSet, index: number) => {
       const media = set.items[index];
       if (!media) return;
+      for (const listener of sendListeners.current) listener(home);
       switch (home) {
         case "theater": {
           if (!openMedia) return;
@@ -248,6 +264,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
       act,
       homeOf,
       nativeHomeOf,
+      onSend,
       close,
       session,
       isOpen,
@@ -261,6 +278,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
       act,
       homeOf,
       nativeHomeOf,
+      onSend,
       close,
       session,
       isOpen,

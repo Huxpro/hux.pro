@@ -66,12 +66,14 @@ import { resolveBadge, type BadgeIcon, type BadgeKind } from "./resolve";
 //
 // A surface that hosts badges and should step aside when one opens something
 // — the About, which floats over everything — wraps them in
-// <BadgeLaunchProvider onLaunch={…}>.
+// <BadgeLaunchProvider onLaunch={…}>. Not for the attachment drawer: that
+// floats over its host (the About raises it, OVER_ABOUT_Z), so a badge that
+// opens the drawer leaves the host where it is.
 // =============================================================================
 
 const BadgeLaunchContext = createContext<(() => void) | null>(null);
 
-/** Called just before a badge inside it opens its thing. */
+/** Called just before a badge inside it opens its thing — anywhere but the drawer. */
 export function BadgeLaunchProvider({
   onLaunch,
   children,
@@ -229,7 +231,12 @@ export function BadgeLink({
     // Modified and middle clicks are the browser's: a new tab, a download.
     if (e.defaultPrevented || e.button !== 0) return;
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    if (!target) return;
+    // Nothing to open but its fallback page: the browser follows the link,
+    // and the host steps aside for it as it would for anything else.
+    if (!target) {
+      onLaunch?.();
+      return;
+    }
     if (target.type === "app") {
       if (!windows) return;
       e.preventDefault();
@@ -239,9 +246,10 @@ export function BadgeLink({
     }
     if (!attachments) return;
     e.preventDefault();
-    onLaunch?.();
     // The attachments' policy, as a /works cover: the drawer on a phone,
-    // the thing's own home on a desk.
+    // the thing's own home on a desk. The drawer floats over whatever
+    // hosts the badge, so the host stays; anything else takes its place.
+    if (home !== "surface") onLaunch?.();
     attachments.open(target.set, 0);
   };
 

@@ -134,6 +134,13 @@ export interface AdaptiveSurfaceProps {
    * `maxHeight` there; the other shapes ignore it.
    */
   snapPoints?: number[];
+  /**
+   * The paint layer, for a surface that must come up over something higher
+   * than the other secondary surfaces (60) — the attachment drawer over the
+   * About. The window, panel and sheet shapes take it; a popover hangs off
+   * its button, in that button's layer.
+   */
+  zIndex?: number;
   /** Padding on the scroll area, for content that wants to bleed wider. */
   contentClassName?: string;
   /** The scroll container, for content that needs to scroll a row into view. */
@@ -222,8 +229,9 @@ function SurfacePopoverShape({
 function SurfacePanel({
   open,
   onOpenChange,
+  zIndex,
   children,
-}: Pick<AdaptiveSurfaceProps, "open" | "onOpenChange" | "children">) {
+}: Pick<AdaptiveSurfaceProps, "open" | "onOpenChange" | "zIndex" | "children">) {
   return (
     <Drawer.Root
       open={open}
@@ -235,7 +243,7 @@ function SurfacePanel({
       disablePointerDismissal
     >
       <Drawer.Portal>
-        <SurfaceViewport modal={false}>
+        <SurfaceViewport modal={false} zBase={zIndex}>
           <Drawer.Popup
             data-surface-popup=""
             style={surfaceMotionVars(EDGE_GAP)}
@@ -270,6 +278,7 @@ export function AdaptiveSurface({
   maxHeight,
   fitContent,
   snapPoints,
+  zIndex,
   contentClassName,
   scrollRef,
   children,
@@ -312,11 +321,12 @@ export function AdaptiveSurface({
           onOpenChange={onOpenChange}
           width={windowWidth}
           maxHeight={maxHeight}
+          zIndex={zIndex}
         >
           {body}
         </SurfaceWindow>
       ) : mode === "panel" ? (
-        <SurfacePanel open={open} onOpenChange={onOpenChange}>
+        <SurfacePanel open={open} onOpenChange={onOpenChange} zIndex={zIndex}>
           {body}
         </SurfacePanel>
       ) : mode === "popover" ? (
@@ -336,6 +346,7 @@ export function AdaptiveSurface({
           height={maxHeight}
           fitContent={fitContent}
           snapPoints={snapPoints}
+          zIndex={zIndex}
         >
           {body}
         </SurfaceSheet>

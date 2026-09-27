@@ -34,7 +34,7 @@ over whatever page a visitor landed on.
 | `/` `O` | the palette's slash command, from any page — the About's only shortcut. There is no bare `O`: a single letter taken over every page fires by accident, and the About is not needed that often. |
 | ⌘K | `About` in search. Geolocation moved from `O` to `C`. |
 | `/about` | the address to share: the home screen with the About already up. Putting it away swaps the address to `/` in place (no navigation, no remount). |
-| leaving | Escape, `/` `O`, a press outside the words, the button at the foot, or anything in the copy opening something — a badge or a link hands over to what it opened. |
+| leaving | Escape, `/` `O`, a press outside the words, the button at the foot, or anything in the copy opening something — a badge or a link hands over to what it opened. Not the attachment drawer: on a phone a badge opens it *over* the About (`OVER_ABOUT_Z`, 10025), the words still underneath; Escape puts the drawer away first. The About steps aside only when the drawer sends the thing somewhere below it — the stage, a window, another page, the lightbox (`onSend` on the attachments' context); a tab leaves it be. |
 
 ### Three layers
 
@@ -67,7 +67,8 @@ over whatever page a visitor landed on.
 
 Z-order: above the theater and windows (10000–10005), below the command
 palette (10050), which can still be summoned over it: `z-[10020]` for the
-surface, `z-[10021]` for the glow.
+surface, `z-[10021]` for the glow, 10025 for the attachment drawer opened
+from its copy, 10030 for the devtool while it is up.
 
 **Inside the bezel.** With the vitre bezel drawn (iOS), the page's screen is
 the box within its bands, rounded at its radius — and the About is a surface
@@ -165,7 +166,10 @@ selection lock (`useLockTextSelection`) would otherwise take them: the
 article is marked `data-text-document`, which the lock lets be.
 
 A surface that hosts badges and should step aside when one opens something
-wraps them in `<BadgeLaunchProvider onLaunch={…}>` — the About does.
+wraps them in `<BadgeLaunchProvider onLaunch={…}>` — the About does. A badge
+that opens the attachment drawer does not call it: the drawer floats over
+its host, which raises it (`AdaptiveSurface`'s `zIndex`) and hears where the
+drawer sends things next (`useAttachments().onSend`).
 
 ### What it wears
 
