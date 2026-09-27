@@ -30,11 +30,18 @@ import { IdentityProfileView } from "./identity-profile";
 // profile's name is its title.
 //
 // Where the peek only answers "who was I then?", the drawer is somewhere to
-// go from: the profile, then what was made under the role — each commit a
-// row that opens its attachments in their own drawer, stacked over this one
-// the iOS way — and Visit, to the role's row on /works.
+// go from: the profile, whose count of signed commits heads the commits
+// themselves — each a row that opens its attachments in their own drawer,
+// stacked over this one the iOS way — and Visit, to the role's row on
+// /works.
 // =============================================================================
 
+/**
+ * A signed commit, as a line of the card: the same lead as a role line (its
+ * type's glyph in the small ring, identity-profile.tsx), so the card's
+ * items hang from one column; the title, the date on the right, a chevron
+ * for somewhere to go.
+ */
 function CommitRow({
   commit,
   onOpen,
@@ -47,15 +54,17 @@ function CommitRow({
       type="button"
       onClick={() => onOpen(commit)}
       className={cn(
-        "pressable -mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-lg px-2 py-2 text-left",
+        "pressable -mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-lg px-2 py-1.5 text-left",
         "transition-colors hover:bg-accent/40 active:bg-accent/60",
         "outline-none focus-visible:bg-accent/40",
       )}
     >
-      <CommitIcon type={commit.type} className="h-3.5 w-3.5 shrink-0 text-tertiary-foreground" />
+      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ring-1 ring-inset ring-border/50">
+        <CommitIcon type={commit.type} className="h-3 w-3 text-tertiary-foreground" />
+      </span>
       <span className={cn("min-w-0 flex-1 truncate", TYPE.rowTitle)}>{commit.title}</span>
-      <span className={cn("shrink-0", TYPE.rowMeta)}>{commit.date}</span>
-      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-quaternary-foreground" />
+      <span className={cn("shrink-0 tabular-nums", TYPE.rowMeta)}>{commit.date}</span>
+      <ChevronRight className="-mr-0.5 h-3.5 w-3.5 shrink-0 text-quaternary-foreground" />
     </button>
   );
 }
@@ -104,18 +113,12 @@ export function IdentityCard() {
     >
       {profile && (
         <div className="space-y-4 pt-1">
-          <IdentityProfileView profile={profile} />
-
-          {profile.roleCommits.length > 0 && (
-            <div className="border-t border-border/40 pt-3">
-              <div className={cn(TYPE.labelSm, "mb-1")}>
-                {t(locale, "identityRoleCommits")}
-              </div>
-              {profile.roleCommits.map((c) => (
-                <CommitRow key={c.id} commit={c} onOpen={openCommit} />
-              ))}
-            </div>
-          )}
+          <IdentityProfileView
+            profile={profile}
+            contributions={profile.commits.map((c) => (
+              <CommitRow key={c.id} commit={c} onOpen={openCommit} />
+            ))}
+          />
 
           <div className={cn(GLASS_CLUSTER, "system-chrome")}>
             <button

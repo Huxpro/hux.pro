@@ -114,7 +114,7 @@ the system's index) and the surface shows the reader's. What is available:
 |---|---|
 | `<MagicLink>` | a word that summons something — a post, a work, a role, a page (below) |
 | `<Badge>` | the same link dressed as a pill wearing the thing's icon: a company, a project |
-| `*…*` | italics, in the serif — the word the copy is about, *interface* (English only: Chinese has no italic, so 界面 stays upright). Latin serif is set 1.0625em, the article's optical adjustment for Newsreader's smaller x-height (`.about-copy:lang(en)` in globals.css) |
+| `*…*` | italics, in the serif — the word the copy is about, *interface* (in Chinese, which has no italic, 界面 is the serif upright). Latin serif is set 1.0625em, the article's optical adjustment for Newsreader's smaller x-height (`.about-copy:lang(en)` in globals.css) |
 | `<Fn n="1" />` | a note's mark: a superscript number that scrolls the note into view inside the About (the address is left alone) |
 | `<Footnotes>` / `<Footnote n="1">` | the notes, at the end, in the About's annotation type — the tiny mono line; a note's number scrolls back to its mark |
 | `<Kbd>`, plain links | a key; a link (internal ones use the router, external ones open a tab) |
@@ -134,7 +134,7 @@ as:
 | `post="dreamer"` | the /writing row's peek (`PostPeekView`) | the drawer: that peek, and Read | the post |
 | `commit="lynx-framework"` — a commit, whole | the /works row's peek (`buildCommitPreview`: the stacked covers) | the attachment drawer, paging through all of its media | its row on /works |
 | `commit=… item={n}` — one media | the /works cover's peek (`mediaPeek`); a post on this site peeks as the post | a drawer of just it | its home: the stage, the in-app browser, the router |
-| `role="meta-engineer"` | the /works role row's peek: the identity's profile | the role drawer (the identity card): the profile, the work signed under the role — each opens its own attachment drawer over this one — and Visit, to the role's row | its row on /works |
+| `role="meta-engineer"` | the /works role row's peek: the identity's profile | the role drawer (the identity card): the profile, its count of signed commits heading the commits themselves — each opens its own attachment drawer over this one — and Visit, to the role's row | its row on /works |
 | `href="/works?type=talk"` | the section's card (its share image, a count) | the drawer: the card, Visit | the page |
 | `href="https://…"` | the page's card (`pnpm og:snapshot` crawls these; `content/badges.json` `previews` for a page with no card to crawl) | the drawer | the in-app browser, or a tab |
 | `app="…"` | — | a sheet | a window |

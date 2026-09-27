@@ -776,6 +776,21 @@ html.dragging * {
     font-size: 1.0625em;
   }
 }
+/* Chinese has no italic: the word is set in the serif, upright. */
+.about-copy:lang(zh) em {
+  font-style: normal;
+}
+/* A plain link's underline is the article's, in shape; its ink is not. The
+   article's line (muted, at half) sits on a page; the About's words sit on a
+   frosted veil over the wallpaper, where that line all but disappears. So
+   the line here is an alpha of the ink itself, strong enough to read as a
+   link at a glance, and whole on hover. */
+.about-copy a:not(.badge-link) {
+  text-decoration-color: color-mix(in oklab, currentColor 45%, transparent);
+}
+.about-copy a:not(.badge-link):hover {
+  text-decoration-color: currentColor;
+}
 
 /* Right spacing for Chinese italic to prevent overhang */
 .prose-article[lang="zh"] em:not(:where(.not-prose, .not-prose *)) {

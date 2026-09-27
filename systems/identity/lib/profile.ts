@@ -50,7 +50,7 @@ export interface ProfileCount {
   count: number;
 }
 
-/** A commit signed under the role, as the role's drawer lists it. */
+/** A commit signed as the identity, as the card lists it. */
 export interface ProfileCommit {
   id: string;
   type: CommitType;
@@ -83,8 +83,9 @@ export interface IdentityProfile {
   latestHref?: string;
   /** The role's own row on /works. */
   roleHref: string;
-  /** The commits signed under the role the card was opened at, latest first. */
-  roleCommits: ProfileCommit[];
+  /** The commits signed as this identity — what `counts` counts — latest
+   *  first, for the card to list under its count. */
+  commits: ProfileCommit[];
 }
 
 function toProfileRole(role: RoleCommit, locale: Locale): ProfileRole {
@@ -131,16 +132,14 @@ export function buildIdentityProfile(
         resolveIdentity(c, log.commits)?.identityId === identityId,
     ),
   );
-  const roleCommits: ProfileCommit[] = signed
-    .filter((c) => resolveIdentity(c, log.commits)?.role?.id === role.id)
-    .map((c) => ({
-      id: c.id,
-      type: c.type,
-      title: localize(c.title, locale),
-      date: formatCommitDate(c, locale),
-      hasMedia: (c.media?.length ?? 0) > 0,
-      href: `/works#${computeCommitHash(c.id)}`,
-    }));
+  const commits: ProfileCommit[] = signed.map((c) => ({
+    id: c.id,
+    type: c.type,
+    title: localize(c.title, locale),
+    date: formatCommitDate(c, locale),
+    hasMedia: (c.media?.length ?? 0) > 0,
+    href: `/works#${computeCommitHash(c.id)}`,
+  }));
   const byType = new Map<CommitType, number>();
   for (const c of signed) byType.set(c.type, (byType.get(c.type) ?? 0) + 1);
   const counts: ProfileCount[] = [...byType.entries()]
@@ -172,6 +171,6 @@ export function buildIdentityProfile(
     total: signed.length,
     latestHref: signed[0] ? `/works#${computeCommitHash(signed[0].id)}` : undefined,
     roleHref: `/works#${computeCommitHash(role.id)}`,
-    roleCommits,
+    commits,
   };
 }
