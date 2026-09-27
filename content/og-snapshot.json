@@ -1,4 +1,10 @@
 {
+  "https://developer.apple.com/design/human-interface-guidelines": {
+    "title": "Human Interface Guidelines | Apple Developer Documentation",
+    "description": "The HIG contains guidance and best practices that can help you design a great experience for any Apple platform.",
+    "image": "https://developer.apple.com/tutorials/developer-og.jpg",
+    "siteName": "Apple Developer Documentation"
+  },
   "https://gitee.com/gitee-stars/30": {
     "title": "Gitee 封面人物:React 黄玄",
     "description": "React 黄玄：不懂艺术的 B-Boy 不是 Swag 的程序员",
@@ -55,6 +61,12 @@
     "image": "https://gn-portal-og-images.vercel.app/panel-discussion-3239?v3-1765261277756",
     "siteName": "gitnation.com"
   },
+  "https://lynxjs.org": {
+    "title": "Lynx",
+    "description": "Lynx Fundamentals",
+    "image": "https://lynxjs.org/og/covers/en/guide.png",
+    "siteName": "Lynx"
+  },
   "https://lynxjs.org/next/blog/lynx-unlock-native-for-more": {
     "title": "Lynx: Unlock Native for More - Lynx",
     "description": "Today, we",
@@ -69,6 +81,18 @@
   },
   "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509": {
     "frame": "deny"
+  },
+  "https://os.ryo.lu": {
+    "title": "ryOS",
+    "description": "An AI OS experience, made with Cursor",
+    "image": "https://os.ryo.lu/icons/mac-512.png",
+    "siteName": "ryOS"
+  },
+  "https://react.dev": {
+    "title": "React",
+    "description": "React is the library for web and native user interfaces. Build user interfaces out of individual pieces called components written in JavaScript. React is designed to let you seamlessly combine components written by independent people, teams, and organizations.",
+    "image": "https://react.dev/images/og-home.png",
+    "siteName": "react.dev"
   },
   "https://react.dev/blog/2021/12/17/react-conf-2021-recap": {
     "title": "React Conf 2021 Recap – React",
@@ -144,6 +168,12 @@
     "description": "Discover how Hermes boosts React Native performance on iOS and macOS, with insights into AOT, bytecode precompilation, and the future of Hermes support.",
     "image": "https://cdn.prod.website-files.com/67e6c26f2d676c1963e098b9/682103eaf00515a9eae18e5c_682103e8998d91364e05e9c1_67eacbc61b4543c0d8ba01eb.webp",
     "siteName": "callstack.com"
+  },
+  "https://www.mercuryos.com": {
+    "title": "MercuryOS",
+    "description": "Mercury is a reimaging of the operating system as a fluid modeless experience drive by human intent.",
+    "image": "https://www.mercuryos.com/preview.jpg",
+    "siteName": "mercuryos.com"
   },
   "https://www.meta.com/emerging-tech/orion/": {
     "title": "Orion AI Glasses: The Future of AR Glasses Technology",

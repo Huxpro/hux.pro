@@ -22,6 +22,7 @@ export type EditorId =
   | "attachments"
   | "icon"
   | "legibility"
+  | "glow"
   | "theater";
 
 export interface EditorEntry {
@@ -59,6 +60,12 @@ export const EDITORS: readonly EditorEntry[] = [
     hint: "Ink, glass, wallpaper",
   },
   {
+    id: "glow",
+    href: "/editor/glow",
+    title: "glow",
+    hint: "The one light, at every scale",
+  },
+  {
     id: "theater",
     href: "/editor/theater-variants",
     title: "theater",
@@ -78,6 +85,9 @@ export function editorFromPath(pathname: string): EditorEntry {
   }
   if (pathname.startsWith("/editor/legibility")) {
     return EDITORS.find((e) => e.id === "legibility")!;
+  }
+  if (pathname.startsWith("/editor/glow")) {
+    return EDITORS.find((e) => e.id === "glow")!;
   }
   if (pathname.startsWith("/editor/theater")) {
     return EDITORS.find((e) => e.id === "theater")!;

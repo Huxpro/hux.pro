@@ -32,6 +32,7 @@
  * @see docs/mdx.md - Documentation on MDX rendering
  */
 
+import { ServerBadge, ServerMagicLink } from "@/components/magic-link/server";
 import { CodeBlock } from "@/components/code-block";
 import { HeadingWithLink } from "@/components/heading-link";
 import { MdxImage } from "@/components/mdx-image";
@@ -107,7 +108,7 @@ function InlineCode({ children, ...props }: ComponentPropsWithoutRef<"code">) {
  * Link component with external link detection
  * External links open in new tab with security attributes
  */
-function SmartLink({
+export function SmartLink({
   href,
   children,
   ...props
@@ -185,6 +186,19 @@ const sharedComponents: MDXComponents = {
   LinkCard: withNotProse(LinkCard),
   Figure: withNotProse(Figure),
   MediaRenderer: withNotProse(MediaRenderer),
+
+  // ---------------------------------------------------------------------------
+  // MagicLink / Badge — a word that summons something: a post, a work, a
+  // role, a page, an app. Peeks under the pointer as the thing does on
+  // /writing and /works; opens the drawer on a phone. A Badge is the same
+  // link dressed as a pill with the thing's icon. Inline, so not wrapped in
+  // `.not-prose` here; they carry the class themselves.
+  //   <MagicLink post="dreamer">dream</MagicLink>
+  //   <Badge commit="lynx-framework" />  <Badge role="alitrip-engineer">Alibaba</Badge>
+  // @see components/magic-link
+  // ---------------------------------------------------------------------------
+  Badge: ServerBadge,
+  MagicLink: ServerMagicLink,
 
   // ---------------------------------------------------------------------------
   // Widget Primitives (shadcn-like composable building blocks)

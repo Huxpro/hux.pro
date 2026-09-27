@@ -31,11 +31,14 @@ export type CursorProps = {
     exit: Variant;
   };
   onPositionChange?: (x: number, y: number) => void;
+  /** Paint layer, over `z-50`, for a cursor above a higher surface. */
+  zIndex?: number;
 };
 
 export function Cursor({
   children,
   className,
+  zIndex,
   springConfig,
   offset = { x: 16, y: 16 },
   attachToParent,
@@ -182,6 +185,7 @@ export function Cursor({
         y: cursorYSpring,
         translateX,
         translateY,
+        ...(zIndex !== undefined ? { zIndex } : {}),
       }}
     >
       <AnimatePresence onExitComplete={() => setPresent(false)}>

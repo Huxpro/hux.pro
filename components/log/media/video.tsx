@@ -12,6 +12,7 @@
  * - ./vimeo.tsx
  */
 
+import { detectVideoPlatform } from "@/lib/media-kind";
 import { cn } from "@/lib/utils";
 import { Play } from "lucide-react";
 import type { VideoMedia, VideoPlatform } from "@/lib/log";
@@ -57,28 +58,8 @@ export interface VideoPropsFromMedia {
 // Platform Detection
 // =============================================================================
 
-/**
- * Detect video platform from URL
- */
-export function detectVideoPlatform(url: string): VideoPlatform | null {
-  try {
-    const hostname = new URL(url).hostname.toLowerCase();
-
-    if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) {
-      return "youtube";
-    }
-    if (hostname.includes("bilibili.com")) {
-      return "bilibili";
-    }
-    if (hostname.includes("vimeo.com")) {
-      return "vimeo";
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
+// Platform detection lives with the other URL readings (lib/media-kind.ts).
+export { detectVideoPlatform };
 
 /**
  * Extract video ID for any supported platform

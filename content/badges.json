@@ -1,0 +1,30 @@
+{
+  "commits": {
+    "alitrip-mobile-web": "https://www.alibabagroup.com",
+    "eleme-pwa": "https://h5.ele.me",
+    "hermes-engine": "https://hermesengine.dev",
+    "hux-blog": "https://huxpro.github.io",
+    "yupiaoer": "https://www.wepiao.com"
+  },
+  "identities": {
+    "alibaba": "https://www.alibabagroup.com",
+    "bytedance": "https://www.bytedance.com",
+    "eleme": "https://h5.ele.me",
+    "meta": "https://www.meta.com",
+    "wepiao": "https://www.wepiao.com"
+  },
+  "icons": {
+    "h5.ele.me": "/img/badges/eleme.png",
+    "hermesengine.dev": "/img/badges/hermes.svg",
+    "wepiao.com": "/img/badges/wepiao.webp"
+  },
+  "previews": {
+    "https://www.cs.rit.edu/~mtf/": {
+      "title": "Matthew Fluet",
+      "description": "Associate Professor and Graduate Program Director, Department of Computer Science, Rochester Institute of Technology. Programming languages: functional programming, concurrency, and type systems.",
+      "image": "/img/works/fluet-cover.webp",
+      "siteName": "RIT Computer Science",
+      "frame": "deny"
+    }
+  }
+}

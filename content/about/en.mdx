@@ -1,0 +1,31 @@
+{/*
+  The About — the surface a newcomer meets (systems/about). `O` brings it
+  back from anywhere. Keep it short: a greeting, who I am, what this is, and
+  the credits last.
+
+  Every keyword is a magic link (components/magic-link): it summons a
+  thing — peeks under the pointer the way it does on /writing and /works,
+  and opens the drawer on a phone. <MagicLink> is the word alone; <Badge>
+  is the same link wearing the thing's icon, for a company or a project.
+  What it names: post="<slug>", role="<range id in content/log.json>",
+  commit="<id>" item={n}, app="<id in content/apps.json>", or href="<url>"
+  (this site's sections get a card of their own).
+  *interface* is set in italics. <Fn n="1" /> marks a note;
+  <Footnote n="1">Inspired by <MagicLink href="https://www.mercuryos.com">Mercury OS</MagicLink>, <MagicLink href="https://os.ryo.lu">ryOS</MagicLink>, and <MagicLink href="https://developer.apple.com/design/human-interface-guidelines">Apple</MagicLink>.</Footnote>
+<Footnote n="2"> in <Footnotes> is the note, in the annotation type.
+*/}
+
+# Hey, I'm Hux.
+
+I <MagicLink post="dreamer">dream</MagicLink> of better *interfaces*: the ones we use, and the ones we use to build them.
+
+I started making <MagicLink commit="indie-flash" item={0}>Flash</MagicLink> games <MagicLink commit="indie-flash" item={1}>at 10</MagicLink>, earned my first few bucks on <MagicLink commit="lxu-intern" item={0}>motion graphics</MagicLink>, spent the 2010s crafting web and mobile apps for <Badge commit="alitrip-mobile-web">Alibaba</Badge>, <Badge commit="yupiaoer">Wepiao</Badge>, and <Badge commit="eleme-pwa">Ele.me</Badge>, then joined <Badge role="meta-engineer">Meta</Badge> to engineer compilers for the <Badge commit="reasonml">Web</Badge>, <Badge commit="xros-reality-labs">XR</Badge>, <Badge commit="hermes-engine">React Native</Badge>, and <Badge commit="reactconf-2021-memo" icon="/badge-icons/react.dev.png">React</Badge>. I'm now at <Badge role="tech-lead-lynx">ByteDance</Badge> architecting <Badge commit="lynx-framework">Lynx</Badge>, a universal framework for building apps across platforms.
+
+This site is an experiment in modeling myself as an OS<Fn n="1" />: the <MagicLink href="/works?type=talk">talks</MagicLink> I've given, the <MagicLink href="/writing">posts</MagicLink> I've written, the <MagicLink href="/works?type=project">projects</MagicLink> I've built, and even how I <MagicLink href="/prompt">prompt</MagicLink> myself.
+
+The kid rendering in Flash and the grad student<Fn n="2" /> proving in <MagicLink commit="wasmcert">type theory</MagicLink> wanted the same thing: *interfaces*.
+
+<Footnotes>
+<Footnote n="1">Inspired by <MagicLink href="https://www.mercuryos.com">Mercury OS</MagicLink>, <MagicLink href="https://os.ryo.lu">ryOS</MagicLink>, and <MagicLink href="https://developer.apple.com/design/human-interface-guidelines">Apple</MagicLink>.</Footnote>
+<Footnote n="2">I did go to school. I hold a BA in Digital Media Art from <MagicLink role="cuc-ba">Communication University of China</MagicLink>, and an MS in Computer Science from <MagicLink role="rit-ms">Rochester Institute of Technology</MagicLink>, focusing on programming languages and advised primarily by <MagicLink href="https://www.cs.rit.edu/~mtf/">Prof. Matthew Fluet</MagicLink>.</Footnote>
+</Footnotes>

@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
 import { useDevtool } from "@/systems/devtool";
+import { HoldRing } from "@/components/ui/hold-ring";
 import { HANDOFF, useHomeEditing } from "@/components/ui/home-edit-store";
 import { useCompactViewport } from "./use-compact-viewport";
 
@@ -30,9 +31,6 @@ const DEVTOOL_HOLD_REVEAL_MS = 700;
 
 /** A press that slides this far is a drag or a scroll, not a hold. */
 const HOLD_SLOP_PX = 10;
-
-/** How far outside the button the ring starts before closing onto it. */
-const HOLD_RING_OUTSET = 10;
 
 /** Both shapes of this button are this round — the bar and the round FAB. */
 const FAB_RADIUS = 24;
@@ -254,36 +252,16 @@ export function FloatingActionButton() {
     </div>
   );
 
-  // The charge, drawn OUTSIDE the button, because a finger is on the button.
-  // A ring that starts wide and closes onto the button's own edge exactly as
-  // the hold completes: visible past a thumb from any direction, legible as
-  // "something is filling up" without a progress readout, and shape-agnostic —
-  // both shapes of this button share a radius.
+  // The charge, drawn outside the button, because a finger is on it
+  // (components/ui/hold-ring.tsx).
   const ring = (
     <AnimatePresence>
       {holdRing && (
-        <motion.span
-          aria-hidden
-          data-hold-ring
-          initial={{ scale: 1.3, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 1.08, opacity: 0, transition: { duration: 0.18 } }}
-          transition={{
-            duration: (DEVTOOL_HOLD_MS - DEVTOOL_HOLD_REVEAL_MS) / 1000,
-            ease: "linear",
-          }}
-          style={{
-            position: "fixed",
-            left: holdRing.x - HOLD_RING_OUTSET,
-            top: holdRing.y - HOLD_RING_OUTSET,
-            width: holdRing.width + HOLD_RING_OUTSET * 2,
-            height: holdRing.height + HOLD_RING_OUTSET * 2,
-            // Both shapes of this button share FAB_RADIUS; the ring sits
-            // outside them, so it takes the same curve plus its own outset.
-            borderRadius: FAB_RADIUS + HOLD_RING_OUTSET,
-            zIndex: 9998,
-          }}
-          className="pointer-events-none border-2 border-foreground/35"
+        <HoldRing
+          rect={holdRing}
+          // Both shapes of this button share FAB_RADIUS.
+          radius={FAB_RADIUS}
+          durationMs={DEVTOOL_HOLD_MS - DEVTOOL_HOLD_REVEAL_MS}
         />
       )}
     </AnimatePresence>

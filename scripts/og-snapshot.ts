@@ -9,8 +9,10 @@
  * Reuses the exact crawl/parse core the runtime Server Action uses
  * (lib/og-core.ts), so the snapshot equals what the server would fetch.
  *
- * Targets: every `kind:"link"` media item (all cards) in log.json. Social
- * embeds, videos, and images do not pass through this pipeline.
+ * Targets: every `kind:"link"` media item (all cards) in log.json, and every
+ * external `href` a magic link or a badge names in the site's MDX (content/,
+ * docs/) — its peek is the page's card. Social embeds, videos, and images do
+ * not pass through this pipeline.
  *
  * Design goals (per request):
  *  - Same data as the live server crawl.
@@ -27,6 +29,8 @@
 
 import fs from "fs";
 import path from "path";
+import { detectMediaKind } from "../lib/media-kind.ts";
+import { collectMagicLinkTags } from "./magic-link-tags.ts";
 import {
   fetchOG,
   fetchVideoCover,
@@ -128,7 +132,36 @@ function collectTargets(): Target[] {
       }
     }
   }
+  // A magic link's page peeks as its card (components/magic-link).
+  for (const url of magicLinkHrefs()) {
+    upsert({
+      url,
+      kind: "card",
+      needsCrawl: true,
+      media: { kind: "link", url, present: "card" } as PreviewableMedia,
+    });
+  }
   return [...byUrl.values()];
+}
+
+/** Every external page a `<MagicLink href>` or `<Badge href>` names. */
+function magicLinkHrefs(): string[] {
+  // A page given its card by hand (content/badges.json `previews`) is not
+  // crawled: it has no card to crawl.
+  const manual = (
+    JSON.parse(fs.readFileSync(path.join(ROOT, "content", "badges.json"), "utf8")) as {
+      previews?: Record<string, unknown>;
+    }
+  ).previews ?? {};
+  const urls = new Set<string>();
+  for (const { attrs } of collectMagicLinkTags()) {
+    const href = attrs.href;
+    if (!href || !/^https?:/.test(href) || href in manual) continue;
+    // Recordings, decks, images and social posts have their own peeks.
+    if (detectMediaKind(href) !== "link") continue;
+    urls.add(href);
+  }
+  return [...urls];
 }
 
 // --- Serialization (deterministic) -------------------------------------------

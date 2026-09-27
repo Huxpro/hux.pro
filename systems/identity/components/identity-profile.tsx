@@ -70,7 +70,19 @@ function RoleLine({ role, lead }: { role: ProfileRole; lead?: React.ReactNode })
   );
 }
 
-export function IdentityProfileView({ profile }: { profile: IdentityProfile }) {
+export function IdentityProfileView({
+  profile,
+  contributions,
+}: {
+  profile: IdentityProfile;
+  /**
+   * What the count line heads, where there is room to list it: the card
+   * (identity-card.tsx) hangs the signed commits here, as the count's
+   * body — no rule and no label between them, since the count already
+   * says what they are. The peek, a glance, has only the count.
+   */
+  contributions?: React.ReactNode;
+}) {
   const { locale } = useLocale();
   const { role } = profile;
 
@@ -96,20 +108,24 @@ export function IdentityProfileView({ profile }: { profile: IdentityProfile }) {
         </div>
       )}
 
-      {/* Contributions: what was signed with this handle. */}
+      {/* Contributions: what was signed with this handle — the count, and
+          under it, where the card has room, the commits it counts. */}
       {profile.total > 0 && (
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-border/40 pt-3">
-          <span className={cn(TYPE.rowMeta, "tabular-nums")}>{profile.total}</span>
-          <span className={TYPE.rowMeta}>{t(locale, "identityCommits")}</span>
-          <span className={cn(TYPE.rowMeta, "flex flex-wrap items-baseline gap-x-2")}>
-            {profile.counts.map((c) => (
-              <span key={c.type} className="inline-flex items-baseline gap-1">
-                <span className="text-quaternary-foreground">·</span>
-                <span className="tabular-nums">{c.count}</span>
-                <span className="lowercase">{c.label}</span>
-              </span>
-            ))}
-          </span>
+        <div className="border-t border-border/40 pt-3">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className={cn(TYPE.rowMeta, "tabular-nums")}>{profile.total}</span>
+            <span className={TYPE.rowMeta}>{t(locale, "identityCommits")}</span>
+            <span className={cn(TYPE.rowMeta, "flex flex-wrap items-baseline gap-x-2")}>
+              {profile.counts.map((c) => (
+                <span key={c.type} className="inline-flex items-baseline gap-1">
+                  <span className="text-quaternary-foreground">·</span>
+                  <span className="tabular-nums">{c.count}</span>
+                  <span className="lowercase">{c.label}</span>
+                </span>
+              ))}
+            </span>
+          </div>
+          {contributions && <div className="mt-2">{contributions}</div>}
         </div>
       )}
     </div>

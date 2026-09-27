@@ -72,6 +72,28 @@
       "startDate": "2012-09",
       "endDate": "2017-07",
       "accentColor": "oklch(0.6 0.1 300)"
+    },
+    {
+      "id": "early-days",
+      "title": {
+        "en": "Early days",
+        "zh": "早年"
+      },
+      "tagline": {
+        "en": "",
+        "zh": ""
+      },
+      "narrative": {
+        "en": "Flash games and animations from the age of ten, award-winning through high school and college, and the first few bucks earned on motion graphics — the kid who wanted to make interfaces before knowing the word.",
+        "zh": "十岁开始做 Flash 游戏和动画，高中到大学拿过一些奖，也靠动态图形赚到了第一笔钱——那个还不知道“界面”这个词、就已经想做界面的孩子。"
+      },
+      "keywords": {
+        "en": "Flash, Animation, Motion Graphics",
+        "zh": "Flash, 动画, 动态图形"
+      },
+      "startDate": "2004-06",
+      "endDate": "2012-08",
+      "accentColor": "oklch(0.72 0.14 60)"
     }
   ],
   "groups": [
@@ -437,6 +459,99 @@
           ],
           "location": "Beijing, China",
           "tagId": "pwa-era"
+        }
+      ]
+    },
+    "indie": {
+      "handle": "@huxpro",
+      "company": {
+        "en": "Self-employed",
+        "zh": "独立"
+      },
+      "ranges": [
+        {
+          "id": "indie-flash",
+          "sortBy": "date",
+          "title": {
+            "en": "Award-winning Indie Flash Developer & Designer",
+            "zh": "独立 Flash 开发者与设计师"
+          },
+          "description": {
+            "en": "Flash games and animations, made alone from the age of ten. A national and a provincial animation award and a national interactive multimedia award in high school; a national game and motion graphic award in college.",
+            "zh": "十岁起独自做 Flash 游戏和动画。高中获全国与省级动画奖、全国交互多媒体奖；大学获全国游戏与动态图形奖。"
+          },
+          "date": "2004-06",
+          "endDate": "2014-06",
+          "location": "China",
+          "tags": [
+            "Flash",
+            "Animation",
+            "Game Design"
+          ],
+          "tagId": "early-days",
+          "media": [
+            {
+              "kind": "link",
+              "url": "/writing/farewell-flash/zh",
+              "urls": {
+                "en": "/writing/farewell-flash/en",
+                "zh": "/writing/farewell-flash/zh"
+              },
+              "present": "card",
+              "preview": {
+                "title": "Farewell, Flash. 感谢你，但这一次是真正的永别。",
+                "description": "So long, and thanks for all the Flash",
+                "image": "/img/post-bg-farewell-flash.jpg"
+              }
+            },
+            {
+              "kind": "link",
+              "url": "https://gitee.com/gitee-stars/30",
+              "present": "card"
+            }
+          ]
+        }
+      ]
+    },
+    "lxu": {
+      "handle": "lxustudio",
+      "company": {
+        "en": "LxU",
+        "zh": "以乘 LxU"
+      },
+      "ranges": [
+        {
+          "id": "lxu-intern",
+          "title": {
+            "en": "Motion Graphic Designer (Intern)",
+            "zh": "动态图形设计师（实习）"
+          },
+          "description": {
+            "en": "A summer at LxU, one of China's first studios for motion graphics and information visualization — the first few bucks I earned on motion graphics.",
+            "zh": "在以乘 LxU 的一个夏天。它是国内最早专注动态图形与信息可视化的工作室之一——我靠动态图形赚到的第一笔钱。"
+          },
+          "date": "2013-05",
+          "endDate": "2013-08",
+          "location": "Beijing, China",
+          "tags": [
+            "Motion Graphics",
+            "Design"
+          ],
+          "tagId": "pwa-era",
+          "media": [
+            {
+              "kind": "link",
+              "url": "https://www.behance.net/lxustudio",
+              "present": "card",
+              "preview": {
+                "title": "LxU Studio - An Innovative Company of Content Marketing and Design in Beijing, China",
+                "description": "One of the first studios in China for information visualization and motion graphics, founded in 2011 by Levi Li and Una Wei.",
+                "siteName": "Behance",
+                "image": "/img/works/lxu-cover.webp",
+                "frame": "deny"
+              }
+            }
+          ]
         }
       ]
     }
@@ -1169,6 +1284,12 @@
       ],
       "media": [
         {
+          "kind": "image",
+          "url": "/img/works/wasmcert-poster.webp",
+          "thumbnail": "/img/works/wasmcert-poster-cover.webp",
+          "alt": "Capstone poster, RIT Computer Science, Fall 2019."
+        },
+        {
           "kind": "link",
           "url": "https://www.cs.rit.edu/~mtf/student-resources/20191_huang_mscourse.pdf",
           "present": "card",
@@ -1177,12 +1298,6 @@
             "description": "RIT Computer Science · Capstone Report · 2019. A mechanization of the W3C WebAssembly Core Specification 1.0 in Coq, with a machine-checked soundness proof.",
             "image": "/img/works/wasmcert-report-cover.webp"
           }
-        },
-        {
-          "kind": "image",
-          "url": "/img/works/wasmcert-poster.webp",
-          "thumbnail": "/img/works/wasmcert-poster-cover.webp",
-          "alt": "Capstone poster, RIT Computer Science, Fall 2019."
         },
         {
           "kind": "link",

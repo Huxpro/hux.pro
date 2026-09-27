@@ -3,7 +3,9 @@
 import { ExternalImage } from "@/components/log/media/external-image";
 import { SocialEmbed } from "@/components/log/media/embed";
 import { mediaKindOf } from "@/components/log/media/media-mark";
+import { postPeekFor } from "@/components/log/media/media-peek";
 import { PeekCover } from "@/components/log/media/peek-cover";
+import { PostPeekView } from "@/components/post/post-peek";
 import { COVER_WASH } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
@@ -26,6 +28,7 @@ import {
 import {
   ArrowUpRight,
   BookOpen,
+  CornerDownRight,
   Globe,
   Image as ImageIcon,
   Play,
@@ -33,7 +36,7 @@ import {
   ZoomIn,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { isInternalLink, linkTarget } from "../lib/policy";
+import { linkTarget, siteSectionLabel } from "../lib/policy";
 import type { AttachmentHome, AttachmentSet } from "../lib/types";
 import { useAttachments } from "../provider";
 
@@ -109,21 +112,31 @@ function homeIcon(home: AttachmentHome, kind: ReturnType<typeof mediaKindOf>): R
     return <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />;
   }
   if (home === "lightbox") return <ZoomIn className="h-3.5 w-3.5" />;
-  if (home === "route") return <BookOpen className="h-3.5 w-3.5" />;
+  if (home === "route") {
+    return kind === "post" ? (
+      <BookOpen className="h-3.5 w-3.5" />
+    ) : (
+      <CornerDownRight className="h-3.5 w-3.5" />
+    );
+  }
   if (home === "window") return <Globe className="h-3.5 w-3.5" />;
   return <ArrowUpRight className="h-3.5 w-3.5" />;
 }
 
-/** The action row: the primary action on the pill, the way out beside it. */
-function Actions({
+/**
+ * The action row: the primary action on the pill, the way out beside it.
+ * Also the identity card's (systems/identity), whose one action is Visit
+ * and which has no page of its own to link out to.
+ */
+export function Actions({
   primary,
   href,
   hrefLabel,
 }: {
   primary: { label: string; icon: ReactNode; onSelect: () => void };
-  /** The attachment's own address — a real link, for the browser's gestures. */
-  href: string;
-  hrefLabel: string;
+  /** The thing's own address — a real link, for the browser's gestures. */
+  href?: string;
+  hrefLabel?: string;
 }) {
   return (
     <div className={cn(GLASS_CLUSTER, "system-chrome")}>
@@ -135,15 +148,17 @@ function Actions({
         {primary.icon}
         {primary.label}
       </button>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={cn(GLASS_ACTION, "h-8 px-3")}
-      >
-        <span className="max-w-[10rem] truncate">{hrefLabel}</span>
-        <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
-      </a>
+      {href && (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(GLASS_ACTION, "h-8 px-3")}
+        >
+          <span className="max-w-[10rem] truncate">{hrefLabel}</span>
+          <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
+        </a>
+      )}
     </div>
   );
 }
@@ -190,38 +205,51 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
 
   if (isLinkMedia(media)) {
     const url = linkTarget(media, locale);
-    const internal = isInternalLink(media);
     const preview = media.previews?.[locale] ?? media.preview;
-    const domain = internal ? "/writing" : getDomainLabel(url);
+    // A path on this site prints as its section (`/writing`, `/works`), not
+    // as a domain.
+    const domain = siteSectionLabel(media) ?? getDomainLabel(url);
     const label = t(
       locale,
       kind === "post" ? "logRead" : kind === "video" ? "logWatch" : "logVisit",
     );
+    const post = postPeekFor(media, locale);
     return (
       <div className="space-y-4">
-        {preview?.image ? (
-          <div className="relative overflow-hidden rounded-xl border border-border/50 bg-muted/20">
-            <PeekCover
-              src={preview.image}
-              fit={preview.fit ?? "natural"}
-              aspect={preview.aspect}
-              className="rounded-none border-0"
-            />
+        {post ? (
+          // A post summoned with its peek: the page is the peek, whole —
+          // the same card its /writing row shows under the pointer, where a
+          // phone has no pointer. The title is the surface's header.
+          <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
+            <PostPeekView peek={post} className="w-full" />
           </div>
         ) : (
-          <div className="flex aspect-[2/1] items-center justify-center rounded-xl border border-border/50 bg-muted/10">
-            <ImageIcon className="h-8 w-8 text-quaternary-foreground" />
-          </div>
+          <>
+            {preview?.image ? (
+              <div className="relative overflow-hidden rounded-xl border border-border/50 bg-muted/20">
+                <PeekCover
+                  src={preview.image}
+                  fit={preview.fit ?? "natural"}
+                  aspect={preview.aspect}
+                  className="rounded-none border-0"
+                />
+              </div>
+            ) : (
+              <div className="flex aspect-[2/1] items-center justify-center rounded-xl border border-border/50 bg-muted/10">
+                <ImageIcon className="h-8 w-8 text-quaternary-foreground" />
+              </div>
+            )}
+            <div className="min-w-0 space-y-1">
+              <div className={TYPE.labelSm}>{domain}</div>
+              <div className={TYPE.mediaTitle}>{preview?.title || domain}</div>
+              {preview?.description && (
+                <p className={cn(TYPE.caption, "line-clamp-4")}>
+                  {preview.description}
+                </p>
+              )}
+            </div>
+          </>
         )}
-        <div className="min-w-0 space-y-1">
-          <div className={TYPE.labelSm}>{domain}</div>
-          <div className={TYPE.mediaTitle}>{preview?.title || domain}</div>
-          {preview?.description && (
-            <p className={cn(TYPE.caption, "line-clamp-4")}>
-              {preview.description}
-            </p>
-          )}
-        </div>
         <Actions
           primary={{ label, icon: homeIcon(home, kind), onSelect: open }}
           href={url}

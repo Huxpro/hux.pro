@@ -44,7 +44,7 @@ export function BareSpecimen() {
       <h1 className={cn(TITLE_POETIC, "text-foreground")}>good evening.</h1>
       <p className="text-sm sm:text-base leading-relaxed">
         <span className="text-muted-foreground">you were reading </span>
-        <span className="font-serif italic text-foreground underline decoration-foreground/30 decoration-1 underline-offset-4">
+        <span className="font-serif italic text-foreground underline decoration-ink-line decoration-1 underline-offset-4">
           Building Design Systems
         </span>
         <span className="text-muted-foreground">.</span>

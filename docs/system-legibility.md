@@ -65,6 +65,7 @@ Every text and wash token is now `--ink` at a percentage:
 | `--accent` | ink at `--wash-alpha-accent` (+ tint) | 7 % | 10 % |
 | `--border`, `--input` | ink at `--wash-alpha-border` | 9 % | 10 % |
 | `--ring` | ink at `--ink-alpha-ring` (+ tint) | 45 % | 45 % |
+| `--ink-line` | the line under text — a link's underline; an input, written out (below) | 40 % | 40 % |
 
 `text-muted-foreground`, `bg-muted/50`, `border-border/50` and
 `hover:bg-accent/25` all still work, and Tailwind's `/NN` modifier now
@@ -80,6 +81,18 @@ page, so the site looks the same where it used to be right — and follows the
 backdrop everywhere it used to be wrong. Two new utilities complete Apple's
 ladder: `text-tertiary-foreground` (captions, timestamps) and
 `text-quaternary-foreground` (watermarks). `bg-ink/5` is a wash on anything.
+
+**Lines under text are the one rung that is not mixed.** Every other token is
+a `color-mix()` of the ink, and Safari paints those in `color`, fills and
+borders — but not in `text-decoration-color`, where a mixed colour is simply
+not drawn: every underline written as `decoration-<token>/NN` (a mix) was
+invisible on an iPhone, and on a desk until hover swapped in a plain
+`var()`. So `--ink-line` is an input, the ink at 40 % written out per theme
+(`--ink-line-theme` / `--ink-line-inverse`), swapped by a flipped zone the
+way `--ink` is, and `decoration-ink-line` is how an underline is written —
+the article's links, a magic link (`.prose-link`), the greeting, the prompt
+page. Never `decoration-<token>/NN`. Being written out, it takes no
+wallpaper boost: a line under text is decoration on the text's own rung.
 
 The tokens are derived in one block — "THE LADDER" in `globals.css` —
 declared on `:root`, on a flipped `.ink-bare` zone and on a lab tile

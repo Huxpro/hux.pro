@@ -18,6 +18,15 @@ export interface MagneticPreviewProps {
   panelClassName?: string;
   /** Additional class for the wrapper div. */
   className?: string;
+  /**
+   * The wrapper's element. `span` for a peek inside a sentence (a magic
+   * link, components/magic-link): a `<div>` cannot sit in a `<p>`, and an
+   * inline host lets a two-word link wrap across lines like any other.
+   */
+  as?: "div" | "span";
+  /** Paint layer of the panel, for a peek over a surface above `z-50` (the
+   *  About's magic links). */
+  zIndex?: number;
   children: React.ReactNode;
 }
 
@@ -62,6 +71,8 @@ export function MagneticPreview({
   hideNativeCursor = false,
   panelClassName,
   className,
+  as: Host = "div",
+  zIndex,
   children,
 }: MagneticPreviewProps) {
   const { magneticPreviewEnabled } = useInputCapability();
@@ -71,12 +82,13 @@ export function MagneticPreview({
   // update — a hundred instances on a page used to schedule a hundred.
   const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
   const showPreview = hydrated && enabled && magneticPreviewEnabled;
-  const hostRef = useRef<HTMLDivElement>(null);
+  const hostRef = useRef<HTMLElement>(null);
 
   const panel = showPreview ? (
     <Cursor
       attachToParent
       attachHost={hostRef}
+      zIndex={zIndex}
       variants={defaultVariants}
       transition={defaultTransition}
       springConfig={defaultSpringConfig}
@@ -110,8 +122,8 @@ export function MagneticPreview({
   ) : null;
 
   return (
-    <div
-      ref={hostRef}
+    <Host
+      ref={hostRef as React.RefObject<HTMLDivElement & HTMLSpanElement>}
       className={cn(
         showPreview && hideNativeCursor && "[&:hover]:cursor-none",
         className,
@@ -127,6 +139,6 @@ export function MagneticPreview({
         wrapper (`attachHost`); the panel is `pointer-events-none`.
       */}
       {panel && createPortal(panel, document.body)}
-    </div>
+    </Host>
   );
 }

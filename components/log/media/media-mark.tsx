@@ -83,11 +83,18 @@ import { isInternalLink } from "@/systems/attachments/lib/policy";
 export type MediaKind = "video" | "slides" | "web" | "post" | "image" | "social";
 
 /** The kind a media item stands for — what pressing its cover opens. */
+/** A post on this site: `/writing/…`, or a link enrichment resolved to one. */
+export function isWritingLink(media: Media): boolean {
+  return isLinkMedia(media) && (!!media.internal || media.url.startsWith("/writing"));
+}
+
 export function mediaKindOf(media: Media): MediaKind {
   if (isVideoMedia(media)) return "video";
   if (isSlidesMedia(media)) return "slides";
   if (isLinkMedia(media)) {
-    if (isInternalLink(media)) return "post";
+    if (isWritingLink(media)) return "post";
+    // Another of this site's pages (a section: /works, /prompt) is a page.
+    if (isInternalLink(media)) return "web";
     return isVideoLinkHost(media.url) ? "video" : "web";
   }
   if (isImageMedia(media)) return "image";
@@ -141,9 +148,11 @@ export function markFor(
   if (talks) return talks;
   if (!opts.all) return null;
   if (isLinkMedia(media)) {
-    return isInternalLink(media)
-      ? { icon: BookOpen, label: "Writing" }
-      : { icon: Globe, label: "Web" };
+    if (isWritingLink(media)) return { icon: BookOpen, label: "Writing" };
+    // A section of this site wears its own name on its card; "Web" would
+    // say it leaves.
+    if (isInternalLink(media)) return null;
+    return { icon: Globe, label: "Web" };
   }
   if (isImageMedia(media)) return { icon: ImageIcon, label: "Image" };
   if (isSocialEmbedMedia(media)) {

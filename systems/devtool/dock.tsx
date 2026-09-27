@@ -15,6 +15,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { Bug, PanelBottom } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DEVTOOL_OVER_ABOUT_Z, useOverAboutZ } from "@/systems/about/provider";
 import {
   DevtoolFooter,
   DevtoolModules,
@@ -87,6 +88,12 @@ const DWELL_MS = 550;
  */
 const PILL_Z = 9999;
 
+/** The devtool's z for the moment: raised over the About while it shows
+ *  (DEVTOOL_OVER_ABOUT_Z), so the About's own knobs can be turned. */
+function useDevtoolZ(base: number | undefined) {
+  return useOverAboutZ(DEVTOOL_OVER_ABOUT_Z) ?? base;
+}
+
 /**
  * Where a release would put the sheet back. Only up while a pill is in hand.
  *
@@ -138,6 +145,7 @@ type PadState = "idle" | "over" | "armed";
 function DevtoolPill() {
   const { locale } = useLocale();
   const { open, canDock, dock } = useDevtool();
+  const z = useDevtoolZ(PILL_Z);
   // Destructured up front: reading `drag.*` inside the JSX trips the
   // react-hooks/refs rule, since the same object also carries `contentRef`.
   const {
@@ -254,7 +262,7 @@ function DevtoolPill() {
       animate={{ opacity: 1, scale: 1 }}
       // The window's own curve: the pill is that window collapsed.
       transition={WINDOW_SPRING}
-      style={{ ...(isDraggable ? motionStyle : {}), zIndex: PILL_Z }}
+      style={{ ...(isDraggable ? motionStyle : {}), zIndex: z }}
       className="system-chrome pointer-events-none fixed top-4 right-4 origin-top-right"
     >
       <button
@@ -288,6 +296,7 @@ export function DevtoolFAB() {
   // the same pair, and two places deciding it is two places to drift apart.
   const { isEnabled, isOpen, canDock, isFloating, close, detach, dock } =
     useDevtool();
+  const z = useDevtoolZ(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   if (!isEnabled) return null;
@@ -335,6 +344,7 @@ export function DevtoolFAB() {
           // Where the devtool has always lived, and where it must stay:
           // centred, it would cover the page it is there to watch.
           placement="top-right"
+          zIndex={z}
         >
           {body}
         </SurfaceWindow>
@@ -351,6 +361,7 @@ export function DevtoolFAB() {
       snapPoints={SHEET_DETENTS}
       // Past the top edge and let go: the devtool comes off the bottom edge.
       onPullPastTop={detach}
+      zIndex={z}
     >
       {body}
     </SurfaceSheet>

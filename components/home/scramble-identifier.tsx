@@ -4,21 +4,34 @@ import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { motion, useReducedMotion } from "motion/react";
+import { HoldRing } from "@/components/ui/hold-ring";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useTransitionRouter } from "next-view-transitions";
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 
 /** Pause after engage before the OS name exposes around the stable λHUX mark. */
 const WING_DWELL_MS = 780;
+/**
+ * When, into a hold, the ring that says "keep holding" appears
+ * (components/ui/hold-ring.tsx): late enough that a tap never sees it, early
+ * enough to have most of the hold to close in. A finger covers the mark, so
+ * the ring is the one thing a phone shows of the hold's progress.
+ */
+const HOLD_RING_REVEAL_MS = 200;
 /** Finger travel that means "this is a scroll", not a long-press. */
 const TOUCH_CANCEL_PX = 12;
 /** Ignore compatibility mouse pointer events after a touch. */
 const HOVER_SUPPRESS_MS = 900;
+/** Where the named OS introduces itself: the home screen with the About up. */
+const ABOUT_HREF = "/about";
 
 const WING_EASE_IN = [0.22, 1, 0.36, 1] as const;
 const WING_EASE_OUT = [0.4, 0, 1, 1] as const;
@@ -74,33 +87,41 @@ function IdentifierWing({
 }
 
 /**
- * Homepage system identifier.
+ * Homepage system identifier — and the long way into the About.
  *
  * Desktop (mouse / pen): hover scrambles `λhux` → `λHUX`; dwelling exposes
- * "The" / "操作" and "OS" / "系统" from the void. Leave reverses.
+ * "The" / "操作" and "OS" / "系统" from the void. Once the OS has said its
+ * name, the name is a door: the mark turns clickable, and a click opens
+ * `/about`, where the OS introduces itself. Leave reverses.
  *
- * Touch: the same two beats, but on press-and-hold. Releasing after the
- * dwell *latches* the expanded name so the phrase is readable (the finger
- * was covering it). Tap the mark or anywhere else to dismiss. A flick or
+ * Touch: the same beats on press-and-hold, and holding until the name is
+ * whole opens `/about` there and then — the hold is the press. A finger
+ * covers the mark, so a ring round it (HoldRing, the search button's hold's
+ * own) closes as the hold goes on: the one sign on a phone that holding is
+ * doing something. A flick or
  * quick tap cancels — we never use mouseenter, which iOS would stick.
  */
 export function ScrambleIdentifier() {
   const { locale } = useLocale();
   const reduced = useReducedMotion() ?? false;
+  const router = useTransitionRouter();
+  const enterAbout = useCallback(() => router.push(ABOUT_HREF), [router]);
   const rootRef = useRef<HTMLSpanElement>(null);
-  const latchedRef = useRef(false);
+  const markRef = useRef<HTMLSpanElement>(null);
+  // The hold's ring, measured round the mark when it appears.
+  const [holdRing, setHoldRing] = useState<DOMRect | null>(null);
+  // The ring's layer on <body>, made on the first touch hold rather than at
+  // hydration, which a portal would upset.
+  const [ringLayer, setRingLayer] = useState(false);
   const revealedRef = useRef(false);
   const suppressHoverUntilRef = useRef(0);
   const touchTeardownRef = useRef<(() => void) | null>(null);
   const [engaged, setEngaged] = useState(false);
   const [wingsVisible, setWingsVisible] = useState(false);
-  const [latched, setLatched] = useState(false);
 
   const collapse = useCallback(() => {
     setEngaged(false);
     setWingsVisible(false);
-    setLatched(false);
-    latchedRef.current = false;
     revealedRef.current = false;
   }, []);
 
@@ -116,27 +137,10 @@ export function ScrambleIdentifier() {
   }, [engaged, reduced]);
 
   useEffect(() => {
-    latchedRef.current = latched;
-  }, [latched]);
-
-  useEffect(() => {
     revealedRef.current = wingsVisible;
   }, [wingsVisible]);
 
   useEffect(() => () => touchTeardownRef.current?.(), []);
-
-  // Latched touch reveal: dismiss on a press outside the mark.
-  useEffect(() => {
-    if (!latched) return;
-
-    const onDocPointerDown = (e: PointerEvent) => {
-      if (rootRef.current?.contains(e.target as Node)) return;
-      collapse();
-    };
-
-    document.addEventListener("pointerdown", onDocPointerDown);
-    return () => document.removeEventListener("pointerdown", onDocPointerDown);
-  }, [latched, collapse]);
 
   const onPointerEnter = (e: ReactPointerEvent<HTMLSpanElement>) => {
     if (!isHoverPointer(e)) return;
@@ -146,7 +150,6 @@ export function ScrambleIdentifier() {
 
   const onPointerLeave = (e: ReactPointerEvent<HTMLSpanElement>) => {
     if (!isHoverPointer(e)) return;
-    if (latchedRef.current) return;
     if (performance.now() < suppressHoverUntilRef.current) return;
     collapse();
   };
@@ -154,20 +157,34 @@ export function ScrambleIdentifier() {
   const onPointerDown = (e: ReactPointerEvent<HTMLSpanElement>) => {
     if (e.pointerType !== "touch") return;
 
-    // Second tap on the mark dismisses a latched reveal.
-    if (latchedRef.current) {
-      collapse();
-      suppressHoverUntilRef.current = performance.now() + HOVER_SUPPRESS_MS;
-      return;
-    }
-
     const start = {
       x: e.clientX,
       y: e.clientY,
-      t: performance.now(),
       id: e.pointerId,
     };
     setEngaged(true);
+    setRingLayer(true);
+    // The finger is on the mark: the ring round it, outside the finger,
+    // closes as the hold goes on — the hint that holding does something.
+    const reveal = reduced
+      ? undefined
+      : window.setTimeout(() => {
+          setHoldRing(markRef.current?.getBoundingClientRect() ?? null);
+        }, HOLD_RING_REVEAL_MS);
+    // Held until the name is whole: that is the press. The wings arrive
+    // on the same clock (the engaged effect), so the name is on screen as
+    // the About rises over it.
+    const held = window.setTimeout(
+      () => {
+        teardown();
+        suppressHoverUntilRef.current = performance.now() + HOVER_SUPPRESS_MS;
+        navigator.vibrate?.(8);
+        enterAbout();
+        // Put the mark back once the About is over it.
+        window.setTimeout(collapse, 600);
+      },
+      reduced ? 0 : WING_DWELL_MS,
+    );
 
     const onMove = (ev: PointerEvent) => {
       if (ev.pointerId !== start.id) return;
@@ -178,21 +195,12 @@ export function ScrambleIdentifier() {
       collapse();
     };
 
+    // Let go before the name was whole: a tap, not a press.
     const onUp = (ev: PointerEvent) => {
       if (ev.pointerId !== start.id) return;
       teardown();
       suppressHoverUntilRef.current = performance.now() + HOVER_SUPPRESS_MS;
-      const held = performance.now() - start.t;
-      // Hold duration is the source of truth. The dwell timer may lag a
-      // frame; still latch so the phrase stays after the finger lifts.
-      if (held >= WING_DWELL_MS) {
-        setWingsVisible(true);
-        revealedRef.current = true;
-        setLatched(true);
-        latchedRef.current = true;
-      } else {
-        collapse();
-      }
+      collapse();
     };
 
     const onCancel = (ev: PointerEvent) => {
@@ -203,6 +211,9 @@ export function ScrambleIdentifier() {
     };
 
     const teardown = () => {
+      window.clearTimeout(reveal);
+      window.clearTimeout(held);
+      setHoldRing(null);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
@@ -213,6 +224,19 @@ export function ScrambleIdentifier() {
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onCancel);
     touchTeardownRef.current = teardown;
+  };
+
+  // With a pointer, the name once whole is a door to the About. (A touch's
+  // own click, after its hold already went, is ignored.)
+  const onClick = () => {
+    if (!wingsVisible) return;
+    if (performance.now() < suppressHoverUntilRef.current) return;
+    enterAbout();
+  };
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLSpanElement>) => {
+    if (!wingsVisible || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    enterAbout();
   };
 
   const core = engaged ? "λHUX" : "λhux";
@@ -226,7 +250,8 @@ export function ScrambleIdentifier() {
         className={cn(
           "inline-flex items-center justify-center",
           TYPE.identifier,
-          "cursor-default select-none",
+          "select-none",
+          wingsVisible ? "cursor-pointer" : "cursor-default",
           "touch-manipulation [-webkit-touch-callout:none]",
           // Padding enlarges the hit target so the pointer can sit on the
           // wings without leaving. It must NOT be the positioning containing
@@ -238,6 +263,11 @@ export function ScrambleIdentifier() {
         onPointerEnter={onPointerEnter}
         onPointerLeave={onPointerLeave}
         onPointerDown={onPointerDown}
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        // Only a door once it has a name to open on.
+        role={wingsVisible ? "link" : undefined}
+        tabIndex={wingsVisible ? 0 : undefined}
         onContextMenu={(e) => e.preventDefault()}
         aria-label={wingsVisible ? t(locale, "identifierExpanded") : "λhux"}
       >
@@ -246,6 +276,7 @@ export function ScrambleIdentifier() {
             {left}
           </IdentifierWing>
           <span
+            ref={markRef}
             data-view-transition="site-identifier"
             className="relative inline-block"
           >
@@ -265,6 +296,22 @@ export function ScrambleIdentifier() {
           </IdentifierWing>
         </span>
       </span>
+      {/* On <body>: the home's animated ancestors would otherwise be the
+          fixed ring's containing block. */}
+      {ringLayer &&
+        createPortal(
+          <AnimatePresence>
+            {holdRing && (
+              <HoldRing
+                rect={holdRing}
+                // A pill round the word.
+                radius={holdRing.height / 2}
+                durationMs={WING_DWELL_MS - HOLD_RING_REVEAL_MS}
+              />
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
     </div>
   );
 }

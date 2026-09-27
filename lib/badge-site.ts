@@ -1,0 +1,116 @@
+// =============================================================================
+// Badge sites — which site's icon a badge wears.
+//
+// A badge wears the official icon of the thing it names, and a thing's icon is
+// its site's: the icon the site itself declares for a home screen (manifest →
+// apple-touch-icon → favicon), downloaded once by `pnpm badges:snapshot` into
+// public/badge-icons/ and recorded in content/badge-icons.json, keyed by site.
+//
+// This module is the one rule for "which site", shared by the component
+// (components/magic-link/resolve.ts) and the snapshot script, so the script fetches
+// exactly the icons the page will ask for. Plain TypeScript, no React, no
+// aliases the Node loader cannot follow.
+//
+//   role=     the site content/badges.json names for the role's identity
+//   identity= (`identities`): a company's own site.
+//   commit=   the site in content/badges.json `commits` when one is named there
+//             (a project whose first link is an article about it, not its
+//             home — Ele.me's PWA is a Medium post, Alitrip is now Fliggy);
+//             otherwise the host of its first external attachment.
+//   href=     the URL's host. youtu.be is YouTube, twitter.com is X.
+//   neither   an app wears its home-screen icon (content/app-icons.json), a
+//             path on this site wears this site's icon, and an image wears
+//             itself. None of those needs a site.
+// =============================================================================
+
+import type { Commit } from "./log";
+import { IMAGE_EXTENSIONS } from "./media-kind";
+
+/** content/badges.json — authored. */
+export interface BadgeConfig {
+  /** Commit id → the URL of the site that stands for it. */
+  commits?: Record<string, string>;
+  /** Identity id → the URL of the site that stands for it (a company's). */
+  identities?: Record<string, string>;
+  /** Site key → an icon URL to use instead of discovering one. */
+  icons?: Record<string, string>;
+  /**
+   * URL → the card a magic link to it shows, for a page whose own card
+   * cannot be crawled (no OG tags). Used instead of the snapshot, and never
+   * crawled (scripts/og-snapshot.ts skips it).
+   */
+  previews?: Record<
+    string,
+    { title?: string; description?: string; image?: string; siteName?: string; frame?: "deny" }
+  >;
+}
+
+/** What a badge names, as far as its icon is concerned. */
+export interface BadgeSiteSpec {
+  commit?: string;
+  role?: string;
+  identity?: string;
+  app?: string;
+  href?: string;
+  icon?: string;
+}
+
+const ALIASES: Record<string, string> = {
+  "youtu.be": "youtube.com",
+  "m.youtube.com": "youtube.com",
+  "twitter.com": "x.com",
+  "b23.tv": "bilibili.com",
+  "m.bilibili.com": "bilibili.com",
+};
+
+
+/** A URL's site: its host without `www.`, aliases folded. */
+export function siteKey(url: string): string | null {
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  host = host.replace(/^www\./, "");
+  return ALIASES[host] ?? host;
+}
+
+/** The address the snapshot crawls for a site: the URL's origin. */
+export function siteOrigin(url: string): string | null {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The URL whose site a badge wears, or null when the badge needs no site
+ * icon (an app, an explicit `icon`, a path on this site, an image).
+ */
+export function badgeSiteUrl(
+  spec: BadgeSiteSpec,
+  commits: readonly Commit[],
+  config: BadgeConfig,
+): string | null {
+  if (spec.icon || spec.app) return null;
+  if (spec.role || spec.identity) {
+    const identityId =
+      commits.find((c) => c.id === spec.role)?.identityId ?? spec.identity;
+    return (identityId && config.identities?.[identityId]) || null;
+  }
+  if (spec.commit) {
+    const named = config.commits?.[spec.commit];
+    if (named) return named;
+    const commit = commits.find((c) => c.id === spec.commit);
+    const external = commit?.media?.find((m) => /^https?:/.test(m.url));
+    return external?.url ?? null;
+  }
+  if (spec.href) {
+    if (!/^https?:/.test(spec.href)) return null;
+    if (IMAGE_EXTENSIONS.test(spec.href)) return null;
+    return spec.href;
+  }
+  return null;
+}

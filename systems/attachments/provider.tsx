@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useTransitionRouter } from "next-view-transitions";
@@ -67,6 +68,13 @@ export interface AttachmentsContextValue {
   homeOf: (set: AttachmentSet, index: number) => AttachmentHome;
   /** Where `act` would send it — its native home, from any surface. */
   nativeHomeOf: (set: AttachmentSet, index: number) => AttachmentHome;
+  /**
+   * Hear every attachment leaving for a home that is not the surface — the
+   * stage, a window, the router, a tab. For a layer the surface can float
+   * over (the About) that should step aside once the thing opens somewhere
+   * underneath it. Returns the unsubscribe.
+   */
+  onSend: (listener: (home: AttachmentHome) => void) => () => void;
   close: () => void;
   /** The surface's current session; it stays through the close animation. */
   session: AttachmentSession | null;
@@ -124,6 +132,13 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const close = useCallback(() => setIsOpen(false), []);
+  const sendListeners = useRef(new Set<(home: AttachmentHome) => void>());
+  const onSend = useCallback((listener: (home: AttachmentHome) => void) => {
+    sendListeners.current.add(listener);
+    return () => {
+      sendListeners.current.delete(listener);
+    };
+  }, []);
   const closeLightbox = useCallback(() => setLightboxOpen(false), []);
 
   /** Send an attachment to a non-surface home. */
@@ -131,6 +146,11 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
     (home: AttachmentHome, set: AttachmentSet, index: number) => {
       const media = set.items[index];
       if (!media) return;
+      // Heard once the thing has actually gone somewhere — after each case's
+      // own guards, so a host is never told of an open that did not happen.
+      const sent = () => {
+        for (const listener of sendListeners.current) listener(home);
+      };
       switch (home) {
         case "theater": {
           if (!openMedia) return;
@@ -143,6 +163,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
             subtitle: set.subtitle,
             href: set.href,
           });
+          sent();
           setIsOpen(false);
           return;
         }
@@ -150,6 +171,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           if (media.kind !== "image") return;
           setLightbox((prev) => ({ set, index, key: (prev?.key ?? 0) + 1 }));
           setLightboxOpen(true);
+          sent();
           // The lightbox is a modal of its own; the sheet under it would
           // hold focus and scroll-lock against it, so it steps aside the way
           // it does for the stage.
@@ -159,6 +181,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
         case "window": {
           if (!openUrl) return;
           openUrl(linkTarget(media, locale), { title: set.title });
+          sent();
           // On a phone the window is a sheet, and it stacks on the attachment
           // sheet: putting the page away lands back on the commit's
           // attachments, the way a mobile app's in-app browser returns to
@@ -169,6 +192,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
         }
         case "route": {
           router.push(linkTarget(media, locale));
+          sent();
           setIsOpen(false);
           return;
         }
@@ -178,6 +202,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           // The surface stays: coming back from the tab finds the page as it
           // was left, which is the point of an in-app sheet.
           window.open(url, "_blank", "noopener,noreferrer");
+          sent();
           // A page that could have had a window but refused to be framed
           // says why it left: the reader asked the site to open something
           // and the browser took it, which reads as a glitch unless named.
@@ -248,6 +273,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
       act,
       homeOf,
       nativeHomeOf,
+      onSend,
       close,
       session,
       isOpen,
@@ -261,6 +287,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
       act,
       homeOf,
       nativeHomeOf,
+      onSend,
       close,
       session,
       isOpen,

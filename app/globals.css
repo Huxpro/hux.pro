@@ -22,6 +22,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* `decoration-ink-line`: the underline rung (--ink-line). Never
+     `decoration-<token>/NN` — that is a color-mix(), which Safari does not
+     paint as a decoration. */
+  --color-ink-line: var(--ink-line);
   --font-sans: var(--font-sans);
   --font-serif: var(--font-serif-latin), var(--font-serif-cjk), serif;
   --font-mono: var(--font-mono);
@@ -161,6 +165,15 @@
   /* --- INPUTS: the two colours of the light theme --- */
   --ink: oklch(0.145 0 0);
   --ink-inverse: oklch(0.985 0 0);
+  /* The line under text (a link's underline): the ink at 40%, and the only
+     rung written out rather than mixed — Safari paints `color-mix()` in
+     `color`, fills and borders, but not in `text-decoration-color`, where a
+     mixed rung is simply not drawn. So it is an input, one per ink, swapped
+     by a flipped zone exactly as `--ink` is. Keep the lightness in step
+     with the ink above. See docs/system-legibility.md. */
+  --ink-line-theme: oklch(0.145 0 0 / 0.4);
+  --ink-line-inverse: oklch(0.985 0 0 / 0.4);
+  --ink-line: var(--ink-line-theme);
   --ink-theme: var(--ink); /* the theme's own ink, kept for a zone that un-flips */
   /* The relief shape that goes with each ink: a white halo under dark ink,
      a dark drop under light ink (ryOS's numbers). `theme` is the pair for
@@ -264,6 +277,9 @@
      Exact oklch conversion: oklch(21.78% 0 0) */
   --ink: oklch(0.93 0 0); /* slightly softer than pure white */
   --ink-inverse: oklch(0.145 0 0);
+  --ink-line-theme: oklch(0.93 0 0 / 0.4);
+  --ink-line-inverse: oklch(0.145 0 0 / 0.4);
+  --ink-line: var(--ink-line-theme);
   --ink-theme: var(--ink);
   --relief-theme-rgb: 0 0 0;
   --relief-theme-a1: var(--relief-drop-a1);
@@ -471,6 +487,7 @@ html[data-wallpaper-flip] .ink-bare,
 html[data-wallpaper-flip-mid] .ink-bare-mid,
 .ink-flip {
   --ink: var(--ink-inverse);
+  --ink-line: var(--ink-line-inverse);
   --relief-rgb: var(--relief-inverse-rgb);
   --relief-a1: var(--relief-inverse-a1);
   --relief-a2: var(--relief-inverse-a2);
@@ -490,6 +507,7 @@ html[data-wallpaper-flip-mid] .ink-bare-mid,
    ink goes back to the theme's, shape and all. */
 html:not([data-wallpaper-flip-mid]) .ink-bare-mid {
   --ink: var(--ink-theme);
+  --ink-line: var(--ink-line-theme);
   --relief-rgb: var(--relief-theme-rgb);
   --relief-a1: var(--relief-theme-a1);
   --relief-a2: var(--relief-theme-a2);
@@ -501,6 +519,7 @@ html:not([data-wallpaper-flip-mid]) .ink-bare-mid {
   html[data-wallpaper-flip] .ink-bare.ink-bare-rest:hover,
   html[data-wallpaper-flip-mid] .ink-bare-mid.ink-bare-rest:hover {
     --ink: var(--ink-theme);
+    --ink-line: var(--ink-line-theme);
     --relief-rgb: var(--relief-theme-rgb);
     --relief-a1: var(--relief-theme-a1);
     --relief-a2: var(--relief-theme-a2);
@@ -740,28 +759,60 @@ html.dragging * {
   margin-bottom: var(--reading-size);
 }
 
-.prose-article a:not(:where(.not-prose, .not-prose *)) {
-  @apply text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground transition-colors;
+/* A link in running text: the article's, and every plain magic link's
+   (`.prose-link`, components/magic-link — `.not-prose` to keep out of the
+   rules below, so it names this one instead). The line at rest is an alpha
+   of the ink itself, not of the already-muted secondary ink: at half of
+   that (a third of the ink, all told) it read as no underline until hover
+   made it whole. The line is the ladder's underline rung, `--ink-line`. */
+.prose-article a:not(:where(.not-prose, .not-prose *)),
+.prose-link {
+  @apply text-foreground underline underline-offset-2 decoration-ink-line transition-colors;
+}
+/* In the About's notes (the annotation type), the same link in their
+   quieter ink. */
+.about-notes .prose-link {
+  color: var(--muted-foreground);
+}
+@media (hover: hover) {
+  .prose-article a:not(:where(.not-prose, .not-prose *)):hover,
+  .prose-link:hover {
+    -webkit-text-decoration-color: var(--foreground);
+    text-decoration-color: var(--foreground);
+  }
 }
 
 .prose-article strong:not(:where(.not-prose, .not-prose *)) {
   @apply font-semibold;
 }
 
-.prose-article em:not(:where(.not-prose, .not-prose *)) {
+/* Emphasis is the serif — in the article, and in the About's words
+   (systems/about), which set their prose by these same rules. */
+.prose-article em:not(:where(.not-prose, .not-prose *)),
+.about-copy em {
   @apply font-serif italic;
 }
 
 /* Optical adjustment for Latin: Newsreader has smaller x-height than Inter.
    An em of the body, like every other size in here, so the correction keeps
    its proportion at every reading size instead of standing still. */
-.prose-article[lang="en"] em:not(:where(.not-prose, .not-prose *)) {
+.prose-article[lang="en"] em:not(:where(.not-prose, .not-prose *)),
+.about-copy:lang(en) em {
   font-size: 1.0625em;
 }
+/* The About's greeting takes it too where it is set at the words' own size
+   (a phone; on a desk it is a display size of its own). */
+@media (width < 40rem) {
+  .about-copy:lang(en) h1 {
+    font-size: 1.0625em;
+  }
+}
 
-/* Right spacing for Chinese italic to prevent overhang */
-.prose-article[lang="zh"] em:not(:where(.not-prose, .not-prose *)) {
-  margin-right: 0.1em;
+/* Chinese has no italic — a browser can only slant the glyphs, which reads
+   as a rendering fault — so Chinese emphasis is the serif, upright. */
+.prose-article[lang="zh"] em:not(:where(.not-prose, .not-prose *)),
+.about-copy:lang(zh) em {
+  font-style: normal;
 }
 
 /* Blockquote - Editorial hanging quotation marks style */
@@ -2365,4 +2416,85 @@ html[data-sky-armed] .sky-pull-cue-go {
   .install-icon {
     animation: none;
   }
+}
+
+/* =============================================================================
+   About — `.about-copy` (systems/about)
+   The About's blocks rise in turn as it arrives: the greeting first, the
+   credits last. A little blur on the way up, the way a system sheet's text
+   resolves; none of it with reduced motion.
+   ============================================================================= */
+
+.about-copy > * {
+  animation: about-rise 720ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.about-copy > :nth-child(1) { animation-delay: 120ms; }
+.about-copy > :nth-child(2) { animation-delay: 190ms; }
+.about-copy > :nth-child(3) { animation-delay: 260ms; }
+.about-copy > :nth-child(4) { animation-delay: 330ms; }
+.about-copy > :nth-child(5) { animation-delay: 400ms; }
+.about-copy > :nth-child(6) { animation-delay: 470ms; }
+.about-copy > :nth-child(n + 7) { animation-delay: 540ms; }
+
+@keyframes about-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* The way out rises last, with the credits; and words that overflow their
+   container fade at its foot, so the way out never cuts a line in half. */
+.about-foot {
+  animation: about-rise 720ms cubic-bezier(0.2, 0.8, 0.2, 1) 560ms both;
+}
+.about-scroll-fade {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-copy > *,
+  .about-foot {
+    animation: none;
+  }
+}
+
+/* The glow without WebGL (systems/glow): the same palette as a conic
+   gradient (`--glow-stops`, set from lib/palette.ts), masked to a band on the
+   host's edge and softened. Still, but the same light. A line keeps only the
+   bottom of the ring. */
+.glow-fallback {
+  padding: 6px;
+  background: conic-gradient(from 180deg, var(--glow-stops));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  filter: blur(10px);
+}
+.glow-fallback-line {
+  -webkit-mask: linear-gradient(to top, #000 0 8px, transparent 60%);
+  mask: linear-gradient(to top, #000 0 8px, transparent 60%);
+}
+
+/* The palette's microphone while it listens (systems/command/voice.tsx): a
+   slow breath, so the button says "on" even where the glow is out of sight. */
+.voice-mic-live {
+  animation: voice-mic-breathe 1.6s ease-in-out infinite;
+}
+@keyframes voice-mic-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-mic-live { animation: none; }
 }
