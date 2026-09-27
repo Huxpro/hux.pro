@@ -41,16 +41,18 @@ export interface GlowUniforms {
   flip: number;
   /** Where the light must end, px off the side / top-bottom edges; 0,0 = no limit. */
   extent: readonly [number, number];
-  /** Seconds the beams have travelled — `time` while they flow, held while a pulse breathes. */
-  wave: number;
-  /** Ring units the palette is turned by (a rotation carries its colours round). */
+  /** 0 flow · 1 rotate · 2 pulse — which light the shader builds. */
+  mode: number;
+  /** A rotation's head, ring units. */
+  head: number;
+  /** Ring units a rotation's or a pulse's colour field is turned by. */
   hue: number;
-  /** Reach × this in each quarter of the ring (right, bottom, left, top): a pulse's breath. */
+  /** A pulse's breath in each quarter (right, bottom, left, top), 0.62–1.08. */
   breath: readonly [number, number, number, number];
   /** 0 to draw only the halo past the edge (a pulse outside), else 1. */
   inside: number;
-  /** 1: the light deepens toward the focus centre (a rotation's arc). */
-  swell: number;
+  /** The light kept where no wave, arc or lobe is, as a share of the peak. */
+  baseline: number;
   /** Nothing is moving: once drawn, the frame can stand until this clears. */
   hold?: boolean;
 }
@@ -89,11 +91,12 @@ const UNIFORMS = [
   "uLine",
   "uFlip",
   "uExtent",
-  "uWave",
+  "uMode",
+  "uHead",
   "uHue",
   "uBreath",
   "uInside",
-  "uSwell",
+  "uBaseline",
 ] as const;
 
 type Uniform = (typeof UNIFORMS)[number];
@@ -212,11 +215,12 @@ function draw(c: Context, inst: GlowInstance, f: GlowUniforms) {
   gl.uniform1f(u.uLine, f.line);
   gl.uniform1f(u.uFlip, f.flip);
   gl.uniform2f(u.uExtent, f.extent[0], f.extent[1]);
-  gl.uniform1f(u.uWave, f.wave);
+  gl.uniform1f(u.uMode, f.mode);
+  gl.uniform1f(u.uHead, f.head);
   gl.uniform1f(u.uHue, f.hue);
   gl.uniform4f(u.uBreath, f.breath[0], f.breath[1], f.breath[2], f.breath[3]);
   gl.uniform1f(u.uInside, f.inside);
-  gl.uniform1f(u.uSwell, f.swell);
+  gl.uniform1f(u.uBaseline, f.baseline);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 
