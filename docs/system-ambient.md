@@ -827,9 +827,12 @@ cue and the search button are moved by CSS ("The sky pull" in `globals.css`):
 | `[data-sky-window]` | accelerates away out of the bottom and becomes untouchable |
 | `[data-sky-returning]` | eases back to rest — after a short pull, or the window closing |
 
-At rest there is no transform at all: one on `<main>` would make it the
-containing block of anything fixed inside it and a stacking context of its own,
-a cost paid on every visit for a gesture most never make.
+What moves is `[data-sky-exits]`: the search button, and one unstyled wrapper
+round every page's content in `AmbientSurface` (`data-sky-exits="page"`) — the
+wallpaper is Vitre's backdrop beside it, so the sky stays where it is. At rest
+there is no transform at all: one there would make the wrapper the containing
+block of anything fixed inside the page and a stacking context of its own, a
+cost paid on every visit for a gesture most never make.
 
 **It claims the touch on its first move**, because a browser that has begun
 scrolling will not let a `touchmove` be cancelled afterwards — and cancelling is
@@ -847,6 +850,16 @@ than a document (see "System chrome / System surface" in
 `docs/design-system.md`). A pull at the top of an article is the reader's, and
 the browser's. Away from the home the window pauses — the stage comes back —
 until the home does.
+
+**On every page, as a trial.** The devtool's Sky section has a saved **Pull**
+setting (`skyPull`): Home, the default, or All pages. With All pages a pull may
+start anywhere in a page's content (`[data-sky-exits="page"]`) except a control
+with touches of its own — a field, an editor, a slider — and the window stays
+open across a navigation, the new page stepping out of the frame as it arrives.
+It costs nothing at run time beyond the cancelling listener at the top of the
+page. What keeps it off by default is the gesture: at the top of a document the
+pull belongs to the reader, and to the browser's pull-to-refresh, which the pull
+has to cancel to work at all.
 
 **In the window**, every move over the sky is cancelled (the page underneath is
 out of the frame and must not scroll), and a swipe up of `RETURN_SWIPE_PX`

@@ -81,6 +81,18 @@ export const PHONE_PALETTE_DEFAULT: PhonePalette = "sheet";
 export type HomeWeather = "line" | "widget";
 export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
 
+// =============================================================================
+// Sky pull
+// Where pulling the page down from the top opens the sky window: only on the
+// home, the one page that is not a document — or on every page, as a trial. On
+// a document the pull at the top belongs to the reader, and to the browser's
+// own pull-to-refresh, which the pull has to cancel to work at all; so it
+// stays on the home unless chosen here (systems/ambient/lib/sky-pull.ts).
+// =============================================================================
+
+export type SkyPullScope = "home" | "everywhere";
+export const SKY_PULL_DEFAULT: SkyPullScope = "home";
+
 /**
  * How the hero leaves as the page scrolls. The platform picks a default;
  * the DevTool can pin either for the session. See `defaultHeroExit`.
@@ -143,6 +155,7 @@ interface DevtoolSettings {
   collapsed: Record<string, boolean>;
   phonePalette: PhonePalette;
   homeWeather: HomeWeather;
+  skyPull: SkyPullScope;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
 }
@@ -153,6 +166,7 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   collapsed: {},
   phonePalette: PHONE_PALETTE_DEFAULT,
   homeWeather: HOME_WEATHER_DEFAULT,
+  skyPull: SKY_PULL_DEFAULT,
   detached: false,
 };
 
@@ -205,6 +219,7 @@ function getDevtoolSettings(): DevtoolSettings {
           parsed.homeWeather === "widget" || parsed.homeWeather === "line"
             ? parsed.homeWeather
             : HOME_WEATHER_DEFAULT,
+        skyPull: parsed.skyPull === "everywhere" ? "everywhere" : SKY_PULL_DEFAULT,
         detached: parsed.detached === true,
       };
     }
@@ -306,6 +321,9 @@ interface DevtoolContextType {
   /** Where the home screen says the weather. A saved setting. */
   homeWeather: HomeWeather;
   setHomeWeather: (value: HomeWeather) => void;
+  /** Where the pull down opens the sky window. A saved setting. */
+  skyPull: SkyPullScope;
+  setSkyPull: (value: SkyPullScope) => void;
   /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
@@ -377,6 +395,7 @@ export function DevtoolProvider({
     useState<PhonePalette>(PHONE_PALETTE_DEFAULT);
   const [homeWeather, setHomeWeatherState] =
     useState<HomeWeather>(HOME_WEATHER_DEFAULT);
+  const [skyPull, setSkyPullState] = useState<SkyPullScope>(SKY_PULL_DEFAULT);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -394,6 +413,7 @@ export function DevtoolProvider({
     setCollapsedSections(settings.collapsed);
     setPhonePaletteState(settings.phonePalette);
     setHomeWeatherState(settings.homeWeather);
+    setSkyPullState(settings.skyPull);
     setIsDetached(settings.detached);
   }, []);
 
@@ -556,6 +576,11 @@ export function DevtoolProvider({
     setDevtoolSettings({ homeWeather: value });
   }, []);
 
+  const setSkyPull = useCallback((value: SkyPullScope) => {
+    setSkyPullState(value);
+    setDevtoolSettings({ skyPull: value });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -613,6 +638,8 @@ export function DevtoolProvider({
         setPhonePalette,
         homeWeather,
         setHomeWeather,
+        skyPull,
+        setSkyPull,
         heroExitOverride,
         setHeroExitOverride,
       }}

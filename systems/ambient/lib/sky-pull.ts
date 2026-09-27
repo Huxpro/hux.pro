@@ -37,7 +37,10 @@
 //   [data-sky-armed]     far enough: letting go opens the window
 //
 // Touch only, and only on the system surface (see SYSTEM_SURFACE): a pull at
-// the top of an article is the reader's, and the browser's.
+// the top of an article is the reader's, and the browser's. The devtool can put
+// it on every page as a trial (`everywhere`): then a pull may start anywhere in
+// a page's content except a control that keeps its own touches — and it takes
+// the browser's pull-to-refresh with it, which is the price of trying.
 //
 // It has to claim the touch on its FIRST move, because a browser that has
 // begun scrolling will not let a touchmove be cancelled after the fact — and
@@ -92,6 +95,22 @@ export function skyOpenAction(state: {
   return null;
 }
 
+/** What in a page keeps its own touches, even at the top: fields, editors, sliders. */
+const OWN_TOUCHES =
+  "input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='slider']";
+
+/**
+ * Can a pull start on `target`? On the home's system surface, always. Elsewhere
+ * only when the pull is `everywhere`, and only in the page's own content (the
+ * sheets, the dock and the rest of the chrome over it are not the page) and off
+ * anything with touches of its own.
+ */
+function pullableFrom(target: EventTarget | null, everywhere: boolean): boolean {
+  if (onSystemSurface(target)) return true;
+  if (!everywhere || !(target instanceof Element)) return false;
+  return !!target.closest('[data-sky-exits="page"]') && !target.closest(OWN_TOUCHES);
+}
+
 /** The rubber band: the page follows less and less as the pull goes on. */
 function follow(dy: number): number {
   return PULL_REACH * (1 - Math.exp(-Math.max(0, dy) / PULL_REACH));
@@ -144,6 +163,8 @@ export function settlePull() {
 }
 
 export interface SkyPullHandlers {
+  /** On every page, not only the home's system surface — the devtool's trial. */
+  everywhere?: boolean;
   /** Every move, with the fraction of the way to far enough — the sky's preview. */
   onProgress: (progress: number) => void;
   /** Let go past far enough. The page is left pulled; the caller decides what next. */
@@ -177,7 +198,7 @@ export function attachSkyPull(handlers: SkyPullHandlers): () => void {
       return;
     }
     const touch = event.touches[0];
-    if (!onSystemSurface(event.target)) return;
+    if (!pullableFrom(event.target, handlers.everywhere === true)) return;
     if (pageScrollTop() > 0) return;
     id = touch.identifier;
     startX = touch.clientX;
