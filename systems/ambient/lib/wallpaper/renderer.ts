@@ -58,6 +58,12 @@ interface UniformSpec {
   size: 1 | 2 | 3;
   /** Smoothing time constant in seconds (0 = snap). */
   tau: number;
+  /**
+   * Moved by the theme's key as well as by the sky (THEME_KEY in ../scene.ts):
+   * while a change of theme is landing, it eases on the theme's clock instead
+   * of its own, so the sky arrives with the veil rather than seconds after.
+   */
+  keyed?: true;
 }
 
 // Where a body is drawn tracks the clock it was given (`TRACK`); what the sky
@@ -67,31 +73,33 @@ interface UniformSpec {
 // feel attached to the slider, not towed behind it.
 const TRACK = 0.25;
 
-// What the theme changes, and all it changes: the veil's colour and amount and
-// the exposure (VEIL_DEFAULTS in ../scene.ts). Named so `setThemeEase` can
-// stretch this one group — the sun's handover takes as long over the sky as it
-// does over the page — without the weather slowing down with it.
+// What the theme changes: the veil's colour and amount and the exposure
+// (VEIL_DEFAULTS in ../scene.ts) — and, in the two pairings the theme re-keys,
+// the `keyed` colours, which borrow this clock while a change of theme lands.
+// Named so `setThemeEase` can stretch this one group — the sun's handover takes
+// as long over the sky as it does over the page — without the weather slowing
+// down with it.
 const THEME = 0.5;
 
 const UNIFORMS: UniformSpec[] = [
   { name: "uSun", size: 2, tau: TRACK },
   { name: "uSunElevation", size: 1, tau: TRACK },
   { name: "uDaylight", size: 1, tau: 1.6 },
-  { name: "uZenith", size: 3, tau: 1.8 },
-  { name: "uHorizon", size: 3, tau: 1.8 },
-  { name: "uGlow", size: 3, tau: 1.8 },
+  { name: "uZenith", size: 3, tau: 1.8, keyed: true },
+  { name: "uHorizon", size: 3, tau: 1.8, keyed: true },
+  { name: "uGlow", size: 3, tau: 1.8, keyed: true },
   { name: "uGlowStrength", size: 1, tau: 1.8 },
   { name: "uMoon", size: 2, tau: TRACK },
   { name: "uMoonPhase", size: 1, tau: 0 },
-  { name: "uMoonVisible", size: 1, tau: 1.8 },
+  { name: "uMoonVisible", size: 1, tau: 1.8, keyed: true },
   { name: "uMoonSize", size: 1, tau: TRACK },
   { name: "uHemisphere", size: 1, tau: 0 },
   { name: "uCloudCover", size: 1, tau: 2.6 },
   { name: "uCloudDensity", size: 1, tau: 2.6 },
   { name: "uCloudDarkness", size: 1, tau: 2.6 },
   { name: "uCloudSpeed", size: 1, tau: 2.0 },
-  { name: "uCloudLit", size: 3, tau: 1.8 },
-  { name: "uCloudShade", size: 3, tau: 1.8 },
+  { name: "uCloudLit", size: 3, tau: 1.8, keyed: true },
+  { name: "uCloudShade", size: 3, tau: 1.8, keyed: true },
   { name: "uRain", size: 1, tau: 2.4 },
   { name: "uSnow", size: 1, tau: 2.4 },
   { name: "uWind", size: 2, tau: 3.0 },
@@ -125,7 +133,7 @@ const META = UNIFORMS.map((u, i) => {
   OFFSET[u.name] = offset;
   let tauIndex = TAUS.indexOf(u.tau);
   if (tauIndex < 0) tauIndex = TAUS.push(u.tau) - 1;
-  return { offset, size: u.size, tauIndex };
+  return { offset, size: u.size, tauIndex, keyed: u.keyed === true };
 });
 /** Which of `TAUS` is the theme's, for `setThemeEase` to override. */
 const THEME_TAU_INDEX = TAUS.indexOf(THEME);
@@ -566,6 +574,10 @@ export class WallpaperRenderer {
   private target = new Float32Array(FLOAT_COUNT);
   /** Seconds, or null for each uniform's own tau. See setThemeEase. */
   private themeTau: number | null = null;
+  /** The theme of the last scene, to tell a change of theme from a change of sky. */
+  private theme: WeatherScene["theme"] | null = null;
+  /** Seconds left in which the `keyed` uniforms ease on the theme's clock. */
+  private keyLead = 0;
   private current = new Float32Array(FLOAT_COUNT);
   private hasScene = false;
   private seed = 0;
@@ -741,6 +753,12 @@ export class WallpaperRenderer {
     this.celestialTarget[0] = scene.celestial.latitude;
     this.celestialTarget[1] = scene.celestial.siderealDeg;
     this.seed = scene.seed;
+    // A change of theme re-keys the sky in the pairings the key covers; that
+    // part of the sky lands with the veil, over the theme's settle (3 taus).
+    if (this.theme !== null && scene.theme !== this.theme) {
+      this.keyLead = 3 * (this.themeTau ?? THEME);
+    }
+    this.theme = scene.theme;
     if (!this.hasScene) {
       this.current.set(this.target);
       this.celestial.set(this.celestialTarget);
@@ -1507,8 +1525,10 @@ export class WallpaperRenderer {
         t === THEME_TAU_INDEX && this.themeTau !== null ? this.themeTau : TAUS[t];
       this.ks[t] = tau <= 0 ? 1 : 1 - Math.exp(-dtSec / tau);
     }
+    const leading = this.keyLead > 0;
+    this.keyLead = Math.max(0, this.keyLead - dtSec);
     for (const m of META) {
-      const k = this.ks[m.tauIndex];
+      const k = leading && m.keyed ? this.ks[THEME_TAU_INDEX] : this.ks[m.tauIndex];
       for (let j = 0; j < m.size; j++) {
         const idx = m.offset + j;
         this.current[idx] += (this.target[idx] - this.current[idx]) * k;
