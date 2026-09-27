@@ -19,6 +19,8 @@ import type { GlowMotion } from "../components/glow";
 //                  the whole screen on a phone — the `sm` breakpoint).
 //   aboutMotion    how the About's ring lives: flow (the default), rotate,
 //                  pulse — to judge the motions on the one ring that matters.
+//   aboutBaseline  advanced: the light the ring keeps where no wave, arc or
+//                  lobe is. Unset, each motion keeps its own (GLOW_BASELINE).
 //
 // The desk's default is the ring as it first shipped (a reach of 3.8% of the
 // screen's short side, 18–38px), restated: at 1440×900 a 34px reach ends
@@ -38,6 +40,8 @@ export interface GlowTuning {
   aboutPhone: number;
   /** How the About's ring lives while it is up (<Glow motion>). */
   aboutMotion: GlowMotion;
+  /** Advanced: the About's baseline (<Glow baseline>); null is the motion's own. */
+  aboutBaseline: number | null;
 }
 
 export const GLOW_TUNING_DEFAULTS: GlowTuning = {
@@ -46,6 +50,7 @@ export const GLOW_TUNING_DEFAULTS: GlowTuning = {
   aboutDesk: 1.3,
   aboutPhone: 1.4,
   aboutMotion: "flow",
+  aboutBaseline: null,
 };
 
 const MOTIONS: readonly GlowMotion[] = ["flow", "rotate", "pulse"];
@@ -70,6 +75,7 @@ function load() {
         const v = saved[k];
         if (typeof v === "number") next[k] = v;
       }
+      if (typeof saved.aboutBaseline === "number") next.aboutBaseline = saved.aboutBaseline;
       if (MOTIONS.includes(saved.aboutMotion as GlowMotion)) {
         next.aboutMotion = saved.aboutMotion as GlowMotion;
       }

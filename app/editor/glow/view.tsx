@@ -6,7 +6,17 @@ import { cn } from "@/lib/utils";
 import { Glow, type GlowProps } from "@/systems/glow";
 import { createMeter, primeAudio, type VoiceMeter } from "@/systems/voice";
 import { Mic, Music, Search } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useTheme } from "@/services";
+import { BorderBeam } from "border-beam";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 // =============================================================================
 // /editor/glow — the site's one light, at every scale.
@@ -70,6 +80,75 @@ function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange:
   );
 }
 
+/** The motions, each paired with the border-beam type it answers to. */
+const PAIRS: {
+  name: string;
+  beam: "md" | "sm" | "pulse-inner" | "pulse-outside";
+  motion: "rotate" | "pulse";
+  period: number;
+  radius: number;
+  reach: number;
+  bleed?: number;
+  inside?: boolean;
+  hostClass: string;
+  inner: string;
+  label?: string;
+  theirs: string;
+  ours: string;
+}[] = [
+  {
+    name: "rotate · card",
+    beam: "md",
+    motion: "rotate",
+    period: 1.96,
+    radius: 16,
+    reach: 6,
+    hostClass: "h-24 w-full",
+    inner: "rounded-2xl border border-border/50 bg-glass",
+    theirs: "md: a lit arc sweeping a fixed colour field, a white spark at its head.",
+    ours: "motion=\"rotate\": the same, as layers in the shader.",
+  },
+  {
+    name: "rotate · button",
+    beam: "sm",
+    motion: "rotate",
+    period: 1.96,
+    radius: 999,
+    reach: 3,
+    hostClass: "h-9 w-36",
+    inner: "flex items-center justify-center rounded-full border border-border/50 bg-glass text-[13px] text-foreground",
+    label: "Running",
+    theirs: "sm: the button-sized preset.",
+    ours: "At 3px of reach — the stroke carries it.",
+  },
+  {
+    name: "pulse · inner",
+    beam: "pulse-inner",
+    motion: "pulse",
+    period: 2.3,
+    radius: 16,
+    reach: 7,
+    hostClass: "h-24 w-full",
+    inner: "rounded-2xl border border-border/50 bg-glass",
+    theirs: "pulse-inner: the whole edge breathing, contained.",
+    ours: "motion=\"pulse\": four quarters on their own clocks, the colour turning.",
+  },
+  {
+    name: "pulse · outside",
+    beam: "pulse-outside",
+    motion: "pulse",
+    period: 2.3,
+    radius: 16,
+    reach: 5,
+    bleed: 18,
+    inside: false,
+    hostClass: "h-24 w-full",
+    inner: "rounded-2xl border border-border/50 bg-background",
+    theirs: "pulse-outside: blooming out from behind an opaque host.",
+    ours: "inside={false} with a bleed: only the halo.",
+  },
+];
+
 function Motion({
   name,
   where,
@@ -121,7 +200,17 @@ export function GlowLabView() {
   // The motions' period, as a share of each one's default (6s a turn, 2.3s
   // a breath): 0.5 is twice as fast.
   const [pace, setPace] = useState(0.5);
+  // Advanced: the baseline, overriding each motion's own while set.
+  const [baseline, setBaseline] = useState<number | null>(null);
   const speed = 0.25 + pace * 1.5;
+  const { theme } = useTheme();
+  // border-beam writes its styles for one theme; the server cannot know the
+  // reader's, so the reference draws once on the client.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [mic, setMic] = useState<"off" | "on" | "denied">("off");
   const meter = useRef<VoiceMeter | null>(null);
   const stream = useRef<MediaStream | null>(null);
@@ -193,31 +282,62 @@ export function GlowLabView() {
             <div className="space-y-1">
               <h2 className={TYPE.label}>Motions</h2>
               <p className={cn(TYPE.caption, "max-w-2xl")}>
-                How the light lives while on — Libraries.dev border-beam&apos;s two families, as this
-                light. Processing and the level drive every one of them.
+                How the light lives while on. Rotate and pulse are Libraries.dev border-beam&apos;s two
+                families, rebuilt as this light — each beside the original. Processing and the level
+                drive ours.
               </p>
             </div>
-            <Slider label="period" value={pace} onChange={setPace} />
+            <div className="flex flex-col items-end gap-2">
+              <Slider label="period" value={pace} onChange={setPace} />
+              <div className="flex items-center gap-3">
+                <Slider label="baseline" value={baseline ?? 0} onChange={setBaseline} disabled={baseline === null} />
+                <Toggle
+                  label={baseline === null ? "each motion's own" : "override"}
+                  on={baseline !== null}
+                  onChange={(on) => setBaseline(on ? 0.2 : null)}
+                />
+              </div>
+            </div>
           </div>
-          <div className="grid gap-8 sm:grid-cols-4">
-            <Motion name="flow" where="The default: the beams travel round, two each way. The About.">
+          {/* Each motion beside Libraries.dev's border-beam — the reference
+              they were rebuilt against — on the same host, in the same
+              theme: left is theirs, right is ours. */}
+          <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+            <p className={cn(TYPE.label, "hidden sm:block")}>border-beam (reference)</p>
+            <p className={cn(TYPE.label, "hidden sm:block")}>ours</p>
+            {PAIRS.map((pair) => (
+              <Fragment key={pair.name}>
+                <Motion name={`${pair.name} · border-beam`} where={pair.theirs}>
+                  {mounted && <BorderBeam
+                    size={pair.beam}
+                    theme={theme}
+                    active={drive.active}
+                    borderRadius={pair.radius}
+                    duration={pair.period * speed}
+                    className={pair.hostClass}
+                  >
+                    <div className={cn(pair.hostClass, pair.inner)}>{pair.label}</div>
+                  </BorderBeam>}
+                </Motion>
+                <Motion name={`${pair.name} · ours`} where={pair.ours}>
+                  <div className={cn("relative", pair.hostClass, pair.inner)} style={{ borderRadius: pair.radius }}>
+                    {pair.label}
+                    <Glow
+                      {...drive}
+                      motion={pair.motion}
+                      period={pair.period * speed}
+                      reach={pair.reach}
+                      bleed={pair.bleed}
+                      inside={pair.inside}
+                      baseline={baseline ?? undefined}
+                    />
+                  </div>
+                </Motion>
+              </Fragment>
+            ))}
+            <Motion name="flow · ours" where="The default: the beams travel round, two each way. The About. (border-beam has no flow.)">
               <div className="relative h-24 w-full rounded-2xl border border-border/50 bg-glass">
-                <Glow {...drive} motion="flow" reach={4} />
-              </div>
-            </Motion>
-            <Motion name="rotate" where="A broad arc turns at an even pace, carrying its colours. Running.">
-              <div className="relative h-24 w-full rounded-2xl border border-border/50 bg-glass">
-                <Glow {...drive} motion="rotate" period={6 * speed} reach={4} />
-              </div>
-            </Motion>
-            <Motion name="pulse" where="The beams stand still; each quarter breathes on its own clock. Now.">
-              <div className="relative h-24 w-full rounded-2xl border border-border/50 bg-glass">
-                <Glow {...drive} motion="pulse" period={2.3 * speed} reach={4} />
-              </div>
-            </Motion>
-            <Motion name="pulse · outside" where="Only the halo, blooming out from behind. A first press.">
-              <div className="relative h-24 w-full rounded-2xl border border-border/50 bg-background">
-                <Glow {...drive} motion="pulse" period={2.3 * speed} reach={4} bleed={16} inside={false} />
+                <Glow {...drive} motion="flow" reach={4} baseline={baseline ?? undefined} />
               </div>
             </Motion>
           </div>
@@ -282,7 +402,7 @@ export function GlowLabView() {
               <div className="relative size-16 rounded-[22%] bg-white shadow-raised">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/app-icons/lynx-flappy-bird.png" alt="" className="size-full rounded-[22%]" />
-                <Glow {...drive} motion="rotate" period={6 * speed} shape="ring" reach={3} bleed={10} />
+                <Glow {...drive} motion="rotate" period={2 * speed} shape="ring" reach={3} bleed={10} />
               </div>
             </Specimen>
 
