@@ -137,7 +137,13 @@ interface TimelineCommitProps {
   anchorId?: string | null;
   /** Rows nested under this one: its editions. Printed while the row is open. */
   children?: ReactNode;
-  /** `+1 edition`, on the meta line, so a closed row says it holds more. */
+  /**
+   * Rows nested under this one: the work about it, when it is a project.
+   * Printed wherever the row prints its picture, because for a release they
+   * are the picture: what it was, where it was shown.
+   */
+  evidence?: ReactNode;
+  /** `+1 edition`, `3 talks`, on the meta line: what the row holds. */
   childrenLabel?: string;
   /**
    * Bumped from outside to open the row, the way a press would. A counter
@@ -173,6 +179,7 @@ export function TimelineCommit({
   onPress,
   anchorId,
   children,
+  evidence,
   childrenLabel,
   reveal = 0,
 }: TimelineCommitProps) {
@@ -193,7 +200,8 @@ export function TimelineCommit({
     data.expandedMedia.length > 0 ||
     data.pinnedMedia.length > 0 ||
     byline ||
-    children
+    children ||
+    evidence
   );
 
   // The row's own state is one bit, and it is about the prose only: has the
@@ -416,7 +424,15 @@ export function TimelineCommit({
   const iconGapPx = isQuiet ? 3 : isRoleAnchor ? 10 : 7;
 
   const rowContent = (
-    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+    <div
+      className={cn(
+        "grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start",
+        // Nested on a phone, each level costs as little as it can: the
+        // icon column shrinks to the icon and the gap tightens. From `@sm`
+        // up the row has room, and the full gutter makes the nesting read.
+        nested && "gap-x-1.5 @sm:gap-x-2",
+      )}
+    >
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked
@@ -473,7 +489,8 @@ export function TimelineCommit({
         // span's center to anchor their geometry (see TimelineConnector).
         data-rail-icon
         className={cn(
-          "relative inline-flex items-center justify-center w-5",
+          "relative inline-flex items-center justify-center",
+          nested ? "w-3 @sm:w-5" : "w-5",
           // Match the icon-span HEIGHT to the title row's line-height
           // so the dot/icon sits on the title's vertical center.
           // text-sm has line-height 20px (h-5); text-xs has 16px (h-4).
@@ -525,7 +542,8 @@ export function TimelineCommit({
           // so it reads as a distinct circle rather than a tight outline.
           <span
             className={cn(
-              "inline-flex items-center justify-center w-5 h-5 rounded-full transition-[box-shadow] duration-200",
+              "inline-flex items-center justify-center h-5 rounded-full transition-[box-shadow] duration-200",
+              nested ? "w-3 @sm:w-5" : "w-5",
               isRoleAnchor && [
                 "ring-1 ring-inset",
                 "ring-muted-foreground/15",
@@ -799,6 +817,20 @@ export function TimelineCommit({
               set={attachmentSet}
             />
           )}
+        </div>
+      )}
+
+      {/* ── The work about it ──────────────────────────────────────────
+          A project's talks, posts and press, one nested row each, as the
+          index prints them. They come with the picture (covers, feed, or an
+          index row opened) because a release is mostly them. */}
+      {!isQuiet && rowForm.media !== "none" && evidence && (
+        <div
+          data-row-body
+          onClick={(e) => e.stopPropagation()}
+          className="col-start-2 @sm:col-start-3 mt-2 min-w-0"
+        >
+          {evidence}
         </div>
       )}
 

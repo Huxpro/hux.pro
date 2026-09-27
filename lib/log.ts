@@ -389,7 +389,7 @@ interface BaseCommit {
    *
    * On /works the original row holds its editions, and each edition keeps
    * a quiet line at its own date that takes you there
-   * (lib/log-editions.ts). Everywhere else an edition is an ordinary
+   * (lib/log-threads.ts). Everywhere else an edition is an ordinary
    * commit: it can still be featured, embedded and linked on its own.
    */
   editionOf?: string;
@@ -399,6 +399,18 @@ interface BaseCommit {
    * Optional; without it the venue says enough.
    */
   edition?: LocalizedString;
+  /**
+   * The projects this commit is about, by id. The first one is where it
+   * belongs: the talk that introduced a release, the post that explained a
+   * project. Any others are projects it also touches (React for Two
+   * Threads is about Lynx first, and React too).
+   *
+   * A project that other work points at is how a release looks: there is
+   * no release type. On /works the project holds that work and each piece
+   * keeps a quiet line at its own date (lib/log-threads.ts). Everywhere
+   * else the work is an ordinary commit, featured and embedded on its own.
+   */
+  about?: string[];
 }
 
 /** Timeline row dressing. Orthogonal to {@link CommitType}. */

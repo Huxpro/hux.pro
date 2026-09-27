@@ -175,7 +175,7 @@ function CheckField({
 
 /**
  * Which commit this one is another telling of, and what to call this
- * telling (lib/log-editions.ts). The label only matters once there is an
+ * telling (lib/log-threads.ts). The label only matters once there is an
  * original, so its fields only appear then. Picking an original that is
  * itself an edition is fine: the page follows the chain to its end.
  */
@@ -236,6 +236,64 @@ function EditionSection({
           />
         </>
       )}
+    </>
+  );
+}
+
+/**
+ * The projects this commit is about (lib/log-threads.ts). The first is where
+ * it belongs: /works prints it inside that project. Any others are projects
+ * it also touches. One dropdown per entry, and one more to add.
+ */
+function AboutSection({
+  commit,
+  commits,
+  onUpdate,
+}: {
+  commit: Commit;
+  commits: Commit[];
+  onUpdate: (partial: Record<string, unknown>) => void;
+}) {
+  const projects = useMemo(
+    () =>
+      sortCommitsByDate(
+        commits.filter((c) => c.type === "project" && c.id !== commit.id),
+      ),
+    [commits, commit.id],
+  );
+  if (commit.type === "role" || commit.type === "event") return null;
+
+  const about = commit.about ?? [];
+  const set = (next: string[]) =>
+    onUpdate({ about: next.length ? next : undefined });
+  const options = (keep?: string) => [
+    { value: "", label: keep ? "— remove" : "—" },
+    ...projects
+      .filter((p) => p.id === keep || !about.includes(p.id))
+      .map((p) => ({ value: p.id, label: `${p.date} · ${p.title.en}` })),
+  ];
+
+  return (
+    <>
+      {about.map((id, i) => (
+        <ChoiceField<string>
+          key={id}
+          label={i === 0 ? "About" : "Also about"}
+          variant="dropdown"
+          value={id}
+          options={options(id)}
+          onChange={(v) =>
+            set(v ? about.map((x, k) => (k === i ? v : x)) : about.filter((_, k) => k !== i))
+          }
+        />
+      ))}
+      <ChoiceField<string>
+        label={about.length ? "Add about" : "About"}
+        variant="dropdown"
+        value=""
+        options={options()}
+        onChange={(v) => v && set([...about, v])}
+      />
     </>
   );
 }
@@ -649,6 +707,7 @@ function FormFields({
       />
 
       <EditionSection commit={commit} commits={commits} onUpdate={onUpdate} />
+      <AboutSection commit={commit} commits={commits} onUpdate={onUpdate} />
 
       <SectionLabel>Title</SectionLabel>
       <Field

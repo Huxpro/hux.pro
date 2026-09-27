@@ -18,11 +18,15 @@ import {
   type Tag,
 } from "@/lib/log";
 import {
-  buildEditionThreads,
+  buildThreads,
   editionCountLabel,
   editionLine,
-  type EditionThreads,
-} from "@/lib/log-editions";
+  evidenceCountLabel,
+  evidenceLine,
+  monthOf,
+  threadPath,
+  type CommitThreads,
+} from "@/lib/log-threads";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -109,42 +113,42 @@ export function LogTimeline({
   onSelectHash,
   pinnedChapters = false,
 }: LogTimelineProps) {
-  // Editions are resolved over the whole log, not per chapter: an original
-  // and its edition can sit on either side of a chapter marker, and the
-  // line at the edition's date still has to know where to send you.
+  // Threads are resolved over the whole log, not per chapter: a parent and
+  // its child can sit on either side of a chapter marker (React Compiler in
+  // 2021 and a talk about it in 2022), and the line at the child's date
+  // still has to know where to send you.
   const threads = useMemo(() => {
     const all = data.flatMap((d) => d.commits);
-    const t = buildEditionThreads(all, (c) => isRowVisible(c, activeTypes));
+    const t = buildThreads(all, (c) => isRowVisible(c, activeTypes));
     const order = new Map(all.map((c, i) => [c.id, i]));
-    return { ...t, order };
+    const byId = new Map(all.map((c) => [c.id, c]));
+    return { ...t, order, byId };
   }, [data, activeTypes]);
 
-  // Which edition was last asked for, and a counter so asking for the same
-  // one twice still opens it (the reader may have closed it in between).
+  // The last row asked for, with every row it sits inside, and a counter so
+  // asking for the same one twice still opens it (it may have been closed).
   const [reveal, setReveal] = useState<Reveal | null>(null);
 
   // Synchronous on purpose: the caller measures the row it asked for on
   // the very next line, so it has to be in the DOM when this returns.
-  const revealEdition = useCallback(
-    (editionId: string) => {
-      const root = threads.rootOf.get(editionId);
-      if (!root) return false;
-      flushSync(() =>
-        setReveal((r) => ({ root, edition: editionId, n: (r?.n ?? 0) + 1 })),
-      );
+  const revealCommit = useCallback(
+    (id: string) => {
+      if (!threads.parentOf.has(id)) return false;
+      const path = threadPath(threads, id);
+      flushSync(() => setReveal((r) => ({ path, n: (r?.n ?? 0) + 1 })));
       return true;
     },
     [threads],
   );
 
-  // `/works#<edition hash>` lands inside the original, opened.
+  // `/works#<hash>` of a nested commit lands inside its parent, opened.
   useEffect(
     () =>
       registerCommitRevealer((hash) => {
         const id = threads.byHash.get(hash);
-        return id ? revealEdition(id) : false;
+        return id ? revealCommit(id) : false;
       }),
-    [threads, revealEdition],
+    [threads, revealCommit],
   );
 
   return (
@@ -163,7 +167,7 @@ export function LogTimeline({
           pinned={pinnedChapters}
           threads={threads}
           reveal={reveal}
-          onRevealEdition={revealEdition}
+          onReveal={revealCommit}
         />
       ))}
     </div>
@@ -180,16 +184,17 @@ interface TagBlockProps {
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
-  threads: EditionThreads & { order: Map<string, number> };
+  threads: CommitThreads & {
+    order: Map<string, number>;
+    byId: Map<string, CommitData>;
+  };
   reveal: Reveal | null;
-  onRevealEdition: (editionId: string) => boolean;
+  onReveal: (id: string) => boolean;
 }
 
 interface Reveal {
-  /** The original to open. */
-  root: string;
-  /** The edition inside it to open. */
-  edition: string;
+  /** The row on the main timeline, down to the one asked for. All open. */
+  path: string[];
   n: number;
 }
 
@@ -205,7 +210,7 @@ function TagBlock({
   pinned,
   threads,
   reveal,
-  onRevealEdition,
+  onReveal,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -304,6 +309,73 @@ function TagBlock({
       hasVisible: commits.some((c) => !hidden(c)),
     };
   }, [commits, identities, locale, activeTypes]);
+
+  const openFor = (id: string) =>
+    reveal && reveal.path.includes(id) ? reveal.n : 0;
+
+  /**
+   * A row with whatever it holds nested under it: a project's work, a
+   * talk's editions, the editions of that work. Each level keeps its own
+   * gutter; a thin line hangs from the top of each list to its last row.
+   *
+   * The work under a project prints as the index does, because a release
+   * is a list of what was shown; the feed prints everything, so there it
+   * follows the feed. Editions are the same work again, so they fold to
+   * one line each, like an aside.
+   */
+  const nest = (
+    c: CommitData,
+    props: Partial<React.ComponentProps<typeof Commit>>,
+  ): React.ReactNode => {
+    const editions = threads.editionsOf.get(c.id);
+    const evidence = threads.evidenceOf.get(c.id);
+    const labels = [
+      // Counted with their editions: a talk given three times is three
+      // talks, even though it takes one row here.
+      evidence &&
+        evidenceCountLabel(
+          evidence.flatMap((e) => [e, ...(threads.editionsOf.get(e.id) ?? [])]),
+          locale,
+        ),
+      editions && editionCountLabel(editions.length, locale),
+    ].filter(Boolean);
+    const child = (
+      e: CommitData,
+      k: number,
+      list: CommitData[],
+      extra: Partial<React.ComponentProps<typeof Commit>>,
+    ) =>
+      nest(
+        e,
+        {
+          locale,
+          variant: "timeline",
+          nested: true,
+          hideDate: tag.hideDate || e.hideDate,
+          rail: k === list.length - 1 ? "┘" : "│",
+          onSelectHash,
+          ...extra,
+        },
+      );
+
+    return (
+      <Commit
+        key={c.id}
+        commit={c}
+        form={form}
+        {...props}
+        childrenLabel={labels.length ? labels.join(" · ") : undefined}
+        reveal={openFor(c.id)}
+        evidence={evidence?.map((e, k, list) =>
+          child(e, k, list, { form: form === "feed" ? "feed" : "index" }),
+        )}
+      >
+        {editions?.map((e, k, list) =>
+          child(e, k, list, { form, foldedLine: editionLine(e, locale) }),
+        )}
+      </Commit>
+    );
+  };
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
@@ -414,61 +486,38 @@ function TagBlock({
                 onSelectHash,
               };
 
-              // An edition, at its own date: one quiet line that takes you
-              // to where it is printed in full, inside its original.
-              const root = threads.rootOf.get(c.id);
-              if (root) {
+              // A commit printed inside another one, at its own date: one
+              // quiet line that takes you there. Not when its row is right
+              // here anyway: a talk in the same month as the release it
+              // belongs to sits next to it already.
+              const parent = threads.parentOf.get(c.id);
+              if (parent) {
+                const path = threadPath(threads, c.id);
+                const top = threads.byId.get(path[0]);
+                if (top && monthOf(top) === monthOf(c)) return null;
                 const down =
-                  (threads.order.get(root) ?? 0) > (threads.order.get(c.id) ?? 0);
+                  (threads.order.get(path[0]) ?? 0) >
+                  (threads.order.get(c.id) ?? 0);
                 return (
                   <Commit
                     key={c.id}
                     {...shared}
-                    foldedLine={editionLine(c, locale)}
+                    foldedLine={
+                      parent.relation === "edition"
+                        ? editionLine(c, locale)
+                        : evidenceLine(c, locale)
+                    }
                     pointer={down ? "down" : "up"}
                     anchorId={null}
                     onPress={() => {
-                      if (!onRevealEdition(c.id)) return;
+                      if (!onReveal(c.id)) return;
                       onSelectHash?.(computeCommitHash(c.id));
                     }}
                   />
                 );
               }
 
-              // An original: its editions nest under it.
-              const editions = threads.editionsOf.get(c.id);
-              if (editions) {
-                return (
-                  <Commit
-                    key={c.id}
-                    {...shared}
-                    childrenLabel={editionCountLabel(editions.length, locale)}
-                    reveal={reveal?.root === c.id ? reveal.n : 0}
-                  >
-                    {editions.map((e, k) => (
-                      <Commit
-                        key={e.id}
-                        commit={e}
-                        locale={locale}
-                        variant="timeline"
-                        nested
-                        hideDate={tag.hideDate || e.hideDate}
-                        foldedLine={editionLine(e, locale)}
-                        // One thread line, drawn the way the tenure rail
-                        // is: it hangs from the top of the list, where the
-                        // original's own content ends, and stops at the
-                        // last edition.
-                        rail={k === editions.length - 1 ? "┘" : "│"}
-                        form={form}
-                        onSelectHash={onSelectHash}
-                        reveal={reveal?.edition === e.id ? reveal.n : 0}
-                      />
-                    ))}
-                  </Commit>
-                );
-              }
-
-              return <Commit key={c.id} {...shared} />;
+              return nest(c, shared);
             });
             return run.kind === "cluster" ? (
               // An identity can cluster twice (Meta, then RIT, then Meta

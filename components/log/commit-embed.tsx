@@ -77,6 +77,7 @@ export interface CommitProps {
   onPress?: () => void;
   anchorId?: string | null;
   children?: ReactNode;
+  evidence?: ReactNode;
   childrenLabel?: string;
   reveal?: number;
 }
@@ -107,6 +108,7 @@ export function Commit({
   onPress,
   anchorId,
   children,
+  evidence,
   childrenLabel,
   reveal,
 }: CommitProps) {
@@ -202,6 +204,7 @@ export function Commit({
           pointer={pointer}
           onPress={onPress}
           anchorId={anchorId}
+          evidence={evidence}
           childrenLabel={childrenLabel}
           reveal={reveal}
         >

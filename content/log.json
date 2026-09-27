@@ -188,8 +188,7 @@
       "commitIds": [
         "react-universe-2025-two-threads",
         "react-universe-2025-interview",
-        "react-summit-2025-unlock-native",
-        "d2-2025-lynx"
+        "lynx-open-source"
       ]
     },
     {
@@ -733,6 +732,9 @@
         "zh": "伴随终端业务的成熟和碎片化，跨端已成为众多开发者和企业的首选。但同时，UI 框架的创新在收敛，跨端思路大同小异，市场格局趋于固化。在这个背景下，字节孕育多年的跨端技术 —— Lynx，为何决定走向开源？本演讲将揭开 Lynx 的“神秘面纱”，与你一同探寻跨端的洞见与未来。"
       },
       "date": "2025-03",
+      "about": [
+        "lynx-open-source"
+      ],
       "conference": {
         "name": "第 19 届 D2 终端技术大会",
         "url": "https://d2.alibabatech.com/"
@@ -872,6 +874,9 @@
         "zh": "开箱即用的组件对于高速、规模化地交付用户界面至关重要。让我们隆重介绍 lynx-ui —— TikTok 背后 Lynx 跨平台技术家族的最新成员。借助 Lynx 的双线程架构，它带来高性能与原生级的交互体验。一起来了解我们如何构建它，以及它如何让 Lynx 更快地扩展到海量产品之中。"
       },
       "date": "2025-11",
+      "about": [
+        "lynx-ui"
+      ],
       "conference": {
         "name": "React Advanced London",
         "city": "London, UK",
@@ -996,6 +1001,55 @@
         "Opinion"
       ],
       "language": "zh"
+    },
+    {
+      "id": "lynx-open-source",
+      "type": "project",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "Lynx goes open source",
+        "zh": "Lynx 开源"
+      },
+      "description": {
+        "en": "Lynx opened its source in March 2025. These are the talks that introduced it, in China first and then abroad.",
+        "zh": "2025 年 3 月，Lynx 开源。下面是介绍它的几场演讲，先在国内，再到海外。"
+      },
+      "date": "2025-03",
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://lynxjs.org/next/blog/lynx-unlock-native-for-more",
+          "urls": {
+            "en": "https://lynxjs.org/next/blog/lynx-unlock-native-for-more",
+            "zh": "https://lynxjs.org/next/zh/blog/lynx-unlock-native-for-more.html"
+          },
+          "present": "card"
+        }
+      ],
+      "tags": [
+        "Lynx",
+        "Open Source",
+        "Cross-Platform"
+      ]
+    },
+    {
+      "id": "lynx-ui",
+      "type": "project",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "lynx-ui",
+        "zh": "lynx-ui"
+      },
+      "description": {
+        "en": "Ready-to-use components for Lynx, the newest member of the family.",
+        "zh": "Lynx 的开箱即用组件库，家族里最新的成员。"
+      },
+      "date": "2025-11",
+      "tags": [
+        "Lynx",
+        "Design System",
+        "Components"
+      ]
     },
     {
       "id": "lynx-framework",
@@ -1138,7 +1192,6 @@
       "id": "reactconf-2021-memo",
       "type": "talk",
       "tagId": "react-era",
-      "attachedTo": "react-core",
       "title": {
         "en": "React without memo",
         "zh": "React without memo"
@@ -1148,6 +1201,9 @@
         "zh": "React Forget（现 React Compiler）的首次公开演讲：一个自动记忆化编译器，让你可以不用手写 memo、useMemo 和 useCallback。"
       },
       "date": "2021-09",
+      "about": [
+        "react-core"
+      ],
       "conference": {
         "name": "React Conf 2021",
         "city": "Online",
