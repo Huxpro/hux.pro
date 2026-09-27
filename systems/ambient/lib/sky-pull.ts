@@ -8,7 +8,7 @@
 // sky, and the home steps out of the frame the way it was already going, out
 // of the bottom. Swipe up and it comes back, which is looking down again.
 //
-// Why a pull, and not the press-and-hold this replaced:
+// Why a pull, and not a press-and-hold (which it was, briefly):
 //
 //   · It is the gesture's own metaphor. Down on the page is up with the eyes;
 //     nothing has to be explained for the next step to make sense.
@@ -17,10 +17,12 @@
 //     home screen are met with something that answers.
 //   · It shares nothing with the sky's other eggs. Those are all hands ON the
 //     wallpaper — a tap for the strike or the meteor, a drag for the gust, a
-//     hold for the fog wipe — and this is the page itself moving. The hold goes
-//     back to being the wipe's alone.
+//     hold for the fog wipe or, on a rainy or snowy day, for the tilt's offer
+//     (lib/tilt-primer.ts; the two holds are never armed on the same sky) —
+//     and this is the page itself moving.
 //   · Detecting it needs no permission, so the ask (on WebKit) comes after the
-//     visitor has already shown they want in, from the sheet.
+//     visitor has already shown they want in, from the window's own sheet
+//     (SkyWindowSheet — not the tilt primer, which is the rain's).
 //
 // While the finger pulls, the page follows it (with resistance) and a cue at
 // the top says there is something up there and how far is far enough (see

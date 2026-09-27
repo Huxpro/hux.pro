@@ -29,6 +29,7 @@ export {
   WallpaperBackground,
   WallpaperSheet,
   TiltPrimerSheet,
+  SkyWindowSheet,
   LocationPrimerSheet,
   SettleSpinner,
   SkyPullCue,

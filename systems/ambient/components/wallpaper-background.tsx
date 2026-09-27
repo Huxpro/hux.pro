@@ -11,6 +11,11 @@ import {
   type PokeKind,
 } from "../lib/poke";
 import { attachWipeDrag, WIPE_MIN_FOG, type WipeHandle } from "../lib/wipe";
+import {
+  attachTiltPrimer,
+  shouldOfferTilt,
+  TILT_PRIMER_MIN_PRECIP,
+} from "../lib/tilt-primer";
 import { attachSkyPull, attachSkyReturn, settlePull, skyOpenAction } from "../lib/sky-pull";
 import { usePathname } from "next/navigation";
 import { showCustomToast } from "@/components/ui/system-sonner";
@@ -124,7 +129,9 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     skyWindow,
     setSkyWindow,
     skyWantsLocation,
+    gyroPrimed,
     offerTilt,
+    openSkyOffer,
     reportShaderFallback,
     statsRef,
   } = useWallpaper();
@@ -190,6 +197,26 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     });
   }, [wiping]);
 
+  // Not an egg — the feature introducing itself. A finger resting on a rainy
+  // or snowy sky brings up what the tilt does, once ever, and only where there
+  // is a permission standing between the visitor and it. See lib/tilt-primer.ts.
+  // It shares the hold with the fog wipe, and never collides with it: a scene
+  // with rain or snow keeps its mist under the wipe's threshold (lib/scene.ts),
+  // so the two are never armed on the same sky.
+  const offering = shouldOfferTilt({
+    primed: gyroPrimed,
+    gated: gyro.gated,
+    wished: gyro.enabled,
+    falling:
+      scene.precipitation.type !== "none" &&
+      scene.precipitation.intensity > TILT_PRIMER_MIN_PRECIP,
+    sky,
+  });
+  useEffect(() => {
+    if (!offering) return;
+    return attachTiltPrimer(offerTilt);
+  }, [offering, offerTilt]);
+
   // The sky window, and the pull that opens it (lib/sky-pull.ts). Pull the
   // home down from the top and past a point it opens — or, where WebKit's gate
   // still stands or the place is only a guess, the sheet that asks comes up.
@@ -216,7 +243,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         if (openAction === "offer") {
           previewRef.current?.(0);
           settlePull();
-          offerTilt();
+          openSkyOffer();
           return;
         }
         // Straight on from where the finger left the page: the attribute goes
@@ -227,7 +254,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         showCustomToast(<SkyWindowToast on />, { id: "sky-window", duration: 3200 });
       },
     });
-  }, [openAction, skyWindow, offerTilt, setSkyWindow]);
+  }, [openAction, skyWindow, openSkyOffer, setSkyWindow]);
 
   useEffect(() => {
     if (!shown) return;

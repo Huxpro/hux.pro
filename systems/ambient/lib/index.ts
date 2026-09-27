@@ -15,6 +15,7 @@ export * from "./solar";
 export * from "./solar-theme";
 export * from "./settings";
 export * from "./poke";
+export * from "./tilt-primer";
 export * from "./sky-pull";
 export * from "./sun";
 export * from "./weather";

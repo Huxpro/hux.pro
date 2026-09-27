@@ -23,7 +23,8 @@ systems/ambient/
 │   ├── weather-now.tsx           # Shared weather body + useDisplayWeather()
 │   ├── phase-activity.tsx        # Sun-event notification (plugs into the Dock)
 │   ├── location-primer-sheet.tsx # The offer before the browser's location prompt
-│   ├── tilt-primer-sheet.tsx     # The offer before WebKit's motion prompt (the sky window)
+│   ├── tilt-primer-sheet.tsx     # The tilt's offer before WebKit's motion prompt (rain and snow)
+│   ├── sky-window-sheet.tsx      # The sky window's offer: motion, and the place with it
 │   ├── sky-pull-cue.tsx          # The body of light at the top while the home is pulled down
 │   ├── sky-body-hints.tsx        # Edge hints toward an off-screen sun or moon in the window
 │   ├── body-glyph.tsx            # Solid sun and moon-phase glyphs (devtool, hints, cue)
@@ -47,7 +48,8 @@ systems/ambient/
 │   ├── poke.ts                   # The two tapped eggs: which weather, when it is
 │   │                             #   dark enough, and "is this the sky?" — for all of them
 │   ├── wipe.ts                   # The foggy-day wipe: the stroke, the hand, the gesture
-│   ├── sky-pull.ts               # Pull the home down to look up: the window, or the offer first
+│   ├── tilt-primer.ts            # The press-and-hold that offers the gyroscope
+│   ├── sky-pull.ts               # Pull the home down to look up: the window, or its offer first
 │   ├── greeting.ts               # Time-of-day helpers
 │   ├── location.ts               # IP/GPS location resolution
 │   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
@@ -311,142 +313,172 @@ the screen is too flat to have a direction (a phone on a table).
   they go from the sensor to `WallpaperRenderer.setGravity()` — one shared
   `deviceorientation` listener, however many surfaces are drawing.
 
-#### Asking for it
+#### Asking for it, on a rainy day
 
 WebKit puts `deviceorientation` behind
 `DeviceOrientationEvent.requestPermission()`, which needs a user gesture — so
-on an iPhone both the tilt and [the sky
-window](#the-sky-window-any-weather-easter-egg) wait for one tap. The picker's
-Weather tab has a switch for it, three taps from the page, offering something
-the visitor has never seen.
+on an iPhone the whole feature above waits for one tap. Until this, the only
+place to make it was the wallpaper picker's Weather tab: three taps from the
+page, offering a switch for something the visitor has never seen.
 
-So **pulling the home down, in any weather, brings up what the window does,
-and a button under it asks** — while the gate still stands (see [The
-pull](#the-pull)). Two gestures to reach the browser's dialog, and the first is
-why the second gets a yes — a permission prompt that arrives with no idea what
-it is for gets refused, and a refusal is final everywhere: there is no second
-prompt, only the site settings nobody opens. The pull buys the explanation; the
-tap spends the one chance. Once the gate is passed (or where there never was
-one), the pull simply opens the window.
+So on a rainy or snowy sky, **resting a finger on the background brings up what
+the tilt does, and a button under it asks.** Two presses to reach the browser's
+dialog, and the first is why the second gets a yes — a permission prompt that
+arrives with no idea what it is for gets refused, and a refusal is final
+everywhere: there is no second prompt, only the site settings nobody opens.
+The first press buys the explanation; the second spends the one chance.
 
-(This used to be the tilt's own introduction, offered once, on a rainy or snowy
-sky only, on a press-and-hold. The window is a reason to ask on every sky —
-every sky has a sun or a moon in it somewhere — and a pull past the point of no
-return is deliberate enough that answering it every time is not a nag, so the
-once-only record is gone with it.)
+The picture is the argument. A phone tilts one way and the rain inside it tilts
+the other — the same relationship the shader draws at full size, at a size that
+fits above a paragraph. Saying "the rain leans" is the part nobody reads.
 
-The picture is the argument: a phone pans across a faint sky, and inside the
-phone the same sky is drawn in full, holding still while the phone moves over
-it. The sun comes into the window and goes out of it again. It is drawn from
-the world's frame — the frame the tilt's old picture (a phone rocking, the rain
-inside it swinging the other way) had to avoid, because there the thing to
-notice was the rain moving, and from the world's frame the rain never moved.
-Here the thing to notice is that something holds still. The world inside the
-phone is nested in the phone and undoes its travel, and it is CSS for the same
-reasons the rain's counter-rotation was: two declarative animations of one
-duration cannot drift apart, and this plays over a live WebGL sky. Under
-`prefers-reduced-motion` both are paused at 0%, which is the phone framing the
-sun.
+**Where the camera stands is the whole legibility of it**, and the first
+version got that wrong. Drawn in the WORLD's frame — rain fixed, phone turning
+— the rain never changes on screen, so the one thing the viewer is meant to
+notice is the one thing that never moves. But nobody watches their phone from
+the world's frame: it is in your hand, so the screen is what holds still and
+the rain is what swings.
+
+So the camera follows the device part of the way. With a device tilt of θ the
+phone is drawn at `c·θ` and the rain at `(c − 1)·θ`, with c = 0.45 and θ = 24°:
+
+| | drawn at | what it does |
+|---|---|---|
+| the phone | c·θ = ±10.8° | tilts, so the cause is on screen |
+| the rain | (c − 1)·θ = ∓13.2° | tilts the other way, so the effect is too |
+| between them | θ = **24°** | the device's own angle, exactly, at every instant |
+
+Nothing is exaggerated to get that: the two are simply both moving, where at
+c = 1 only one of them was. The rain's group is nested in the phone's, so its
+own rotation stays −θ whatever the camera does and only the phone's amplitude
+carries c — which also means the refusal pose (both still, rain straight down
+the screen) now differs from the rocking one in two ways rather than one.
+
+Two more things make the picture hold up, and both are the kind of bug that
+only shows at an angle:
+
+- **The rain field is sized by the screen's half-diagonal, not by the screen.**
+  It turns under the phone, so a field only as wide as the screen swings out
+  from under its own corners — and what you then see cutting the shower off is
+  the field's edge, not the phone. 79.2 units about the rock's centre covers
+  every corner at every angle, so θ can change without touching it. (The
+  viewBox has the same problem from the other side and does *not* get that for
+  free: it has to hold the phone at the angle the phone is **drawn** at, c·θ —
+  107 × 164 — or the SVG viewport cuts a straight line through the corner.)
+- **It is CSS, not a JS animator.** The rain is level only for as long as the
+  phone's rotation and the rain's counter-rotation stay exactly opposite, and
+  two declarative animations of one duration cannot drift where a dozen
+  independently started JS springs can — over a live WebGL sky, on a main
+  thread already spoken for. Three animations drive the whole thing whatever
+  the drop count, because the rain is a seamless tile stamped three times and
+  slid by exactly one tile, rather than an animation per drop. Under
+  `prefers-reduced-motion` they are simply paused at 0%, which is a tilted
+  phone with level rain — the still frame IS the animation, not a second
+  drawing to keep in step.
+
+And it is **a diagram, not a downpour**: eleven strokes evenly spaced, one
+length and one weight, about five on screen. It has exactly one thing to say,
+and every drop past the few it takes to read as rain competes with it. Even
+spacing for the same reason — scattered drops read as a simulation, and a
+window showing only two fifths of the field turns scatter into clumps as the
+field rotates through it. The fall is slow, because the rocking is the thing to
+watch.
 
 **And it stays up to say how it went.** The sheet is the only thing on screen
-that can. A refusal especially: the sky simply stays a wallpaper, and without a
-word here there is no explanation anywhere. So it says it once, with where to
-undo it, and lets itself out. A grant gets a word too, shorter, because the
-window is already opening behind the sheet.
+that can. A refusal especially: the sky simply goes on falling straight down,
+and without a word here the only explanation lives three taps away in the
+picker's Weather tab — which is the very problem this sheet exists to fix. So
+it says it once, with where to undo it, and lets itself out. A grant gets a
+word too, shorter, because the phone in your hand is about to do the thing and
+the sheet is in front of it.
 
 | outcome | the sheet says | the picture | gone after |
 |---|---|---|---|
-| granted | hold the phone up and turn around — the window opens | keeps panning | 1.4 s |
-| refused | motion access was refused, and where to allow it again | **parked between the sun and the moon** — a window that cannot turn | 3.0 s |
-| neither | nothing; the offer is still standing | keeps panning | — |
+| granted | tilt is on, lean the device | keeps rocking — it is real now | 1.4 s |
+| refused | motion access was refused, and where to allow it again | **upright, rain straight down** — what a refusal actually leaves you with | 3.0 s |
+| neither | nothing; the offer is still standing | keeps rocking | — |
 
 "Neither" is WebKit's gate declining to even consider the request (no user
 gesture): no dialog was shown and nothing was answered, so the buttons simply
-come back. A hold after an earlier refusal opens straight onto the refusal,
-because it is the only thing still true.
+come back.
 
 That the outcome is reportable at all is why `setGyroEnabled` **hands the
 access back** rather than only storing it. A toggle can afford to ignore how it
-went; a sheet that has to speak cannot. A grant also turns the tilt's saved
-wish on: the window lets things fall along gravity anyway, and a yes that left
-the tilt off on the next rainy day would be a yes only half taken.
+went; a sheet that has to speak cannot.
 
-#### The pull
+**It is offered once.** `weatherGyroPrimed` is written the moment the sheet is
+answered, either way, and nothing clears it — including a close or a swipe,
+which mean the same thing as *Not now*. It is written **before** the asking,
+not after: a prompt that is refused, and no browser asks twice, must not leave
+the offer armed for the next rainy day, and neither must a visitor who walks
+away with the dialog still up. An introduction repeated is a nag, and
+this one interrupts a page the visitor came to for something else. It is also
+armed by the *absence* of things, so every one of them is a reason to stay
+quiet (`shouldOfferTilt` in `lib/tilt-primer.ts`): the offer is spent, or there
+is no permission to ask for (everywhere but WebKit the sky is already tilting,
+and a refusal already counts as answered), or the visitor went to the picker
+and turned tilt off, or nothing is falling, or the Sky is not what paints.
 
-The home composition sits on the ground — identifier, greeting, widgets, all in
-the lower part of the screen, the sky above them. **Pull it down from the top
-and it sinks: the eyes lift.** Past a point, letting go opens the window and the
-home keeps going the way it was already going, out of the bottom of the frame
-(with the search button under it). **Swipe up** in the window and it rises back
-into place — looking down again. `lib/sky-pull.ts`.
+**And it has to sit on iOS's own press first.** A finger resting on the page
+starts a ~500 ms clock in WebKit; when that fires, WebKit's gesture recognizer
+takes the touch, stops sending pointer events and fires `pointercancel` —
+landing right on top of a 400 ms hold and killing it before it can. The fog
+wipe has suppressed `-webkit-touch-callout` on `pointerdown` since it shipped,
+which is why its hold works on a phone; the primer did not, which is why its
+did not. Both now go through `holdCallout()` in `lib/poke.ts`, along with
+`TOUCH_HOLD_MS` / `TOUCH_HOLD_SLOP_PX` — one hold, one definition, instead of
+two copies of 400/10 and three comments promising they agreed.
 
-Why a pull, and not the press-and-hold it replaced:
+The suppression covers the **whole press**, not just the hold: handing it back
+the moment the sheet opens would let iOS's own clock run out underneath and put
+the callout up over it. It is saved and restored rather than cleared, because
+the page sets the property for its own reasons (`.system-surface` does).
 
-- It is the gesture's own metaphor: down on the page is up with the eyes.
-- It is found the way an egg should be. Everybody pulls the top of a page down
-  out of habit — pull-to-refresh — and on the home screen that is now met.
-- It shares nothing with the sky's other eggs, which are all hands *on* the
-  wallpaper: a tap for the strike and the meteor, a drag for the gust, a hold
-  for the fog wipe. This is the page itself moving. The hold is the wipe's alone
-  again (a fog day no longer has to make the window wait a second for it).
-- Detecting it needs no permission; the ask comes after the visitor has shown
-  they want in.
+> Not verifiable in Chromium, and worth knowing before trusting a test here:
+> `-webkit-touch-callout` is WebKit-only and Chromium's CSSOM **drops it
+> silently** — `CSS.supports` is false and `setProperty` is a no-op. A harness
+> that reads the property back always sees nothing, whatever the code did. What
+> can be checked headlessly is that the calls happen at the right moments, by
+> spying on `setProperty` / `removeProperty`.
 
-**Something is up there.** A pull with no answer stops halfway. So as the page
-comes down, something comes down from above the top edge (`<SkyPullCue />`):
-whichever of the sun and the moon is above the horizon — the moon at its real
-phase — drawn as **light**, not ink: a white body with a soft bloom round it
-that descends, grows and brightens with the pull, over "keep pulling to look
-up". At the point of no return only the words change — "let go to look up" —
-with a tick where the platform has one (`navigator.vibrate`): the light is one
-continuous function of the pull, so it never jumps, crossing the line or
-letting go on either side of it. (The first version drew progress as a stroked
-ring round an outline icon, and read as a control; a second put an ink glyph in
-a glass bubble, and read as a button. Progress is brightness now.)
+**And only on the system surface.** Those five are about the scene; this last
+one is about where the finger landed, so it lives in the recognizer instead:
+the press must be inside `.system-surface` — the page that has declared itself
+one OS composition rather than a document (see "System chrome / System surface"
+in `docs/design-system.md`). The wallpaper is full-page on *every* route, so
+without this an article is fair game too — and `isBackgroundPress` cannot tell
+the difference, because it asks whether anything **paints** over the wallpaper
+and a paragraph paints nothing. On an article the whole column answers
+"background", so a finger resting in the margin, or on the prose itself, would
+put a permission sheet over what somebody is reading. A long press on a
+document belongs to the reader. Keying off the class rather than a list of
+routes also means any surface that later opts into being system UI gets this
+for free, and no route knowledge lives in the ambient system.
 
-And the sky's gradient lifts under it — `uLift`, up to 0.16 of a screen height,
-so the zenith's colour reaches further down and the stars come lower, as if the
-eyes were rising with the page. **Only the gradient**: the sun and the moon hold
-still under a pull, and so do the clouds and the stars' places, so nothing is
-already on its way before the window has opened. Let go short and it eases
-back.
+**Not a fourth easter egg**, whatever the sheet's own copy says. The eggs are
+rewards for poking at a sky that owes you nothing; this is a feature explaining
+itself, and it stops existing once it has been. (The copy greets it as a find
+because that is honestly how it arrives for the visitor. The distinction is
+about lifecycle, not about how it feels to meet.) But it shares a background with [the gust](#stirring-the-wind-rain-and-snow-easter-egg),
+which on a rainy day is armed on that same background — and they cannot
+collide, because **a gust is travel and this is stillness**:
 
-**No React per frame.** The recognizer writes two CSS variables and three
-attributes on `<html>` and calls the renderer's `previewWindow`; the page, the
-cue and the search button are moved by CSS ("The sky pull" in `globals.css`):
-
-| state | what the home does |
+| the hand | what it is |
 |---|---|
-| `[data-sky-pulling]` | follows the finger exactly (`--sky-pull`, with rubber-band resistance), fading a little |
-| `[data-sky-armed]` | far enough (`PULL_ARM_PX`): the cue says "let go" |
-| `[data-sky-window]` | accelerates away out of the bottom and becomes untouchable |
-| `[data-sky-returning]` | eases back to rest — after a short pull, or the window closing |
+| rests 400 ms, going nowhere | the offer |
+| moves at all before that | the gust's, or the scroller's — this stands down for the rest of the press |
+| lifts early | nothing |
 
-At rest there is no transform at all: one on `<main>` would make it the
-containing block of anything fixed inside it and a stacking context of its own,
-a cost paid on every visit for a gesture most never make.
+A hold that has gone nowhere has reported no speed to `attachWindStir`, so
+there is no gust to take away. And like the gust, this recognizer never calls
+`preventDefault` and never touches a style: a press that turns out to be a
+scroll scrolls, on the browser's own fast path. The 400 ms is
+`TOUCH_ACTIVATION`'s, the same beat as the widget grid and the fog wipe, so a
+visitor who has learned one hold has learned all of them.
 
-**It claims the touch on its first move**, because a browser that has begun
-scrolling will not let a `touchmove` be cancelled afterwards — and cancelling is
-the only way to keep iOS's rubber band and Chrome's pull-to-refresh from running
-underneath. So the claim is narrow: at the top of the page, moving down more
-than sideways, on the system surface, and within `CLAIM_BEFORE_MS` of the finger
-landing — measured on the events' own timestamps, not when a busy main thread
-got round to them — because a finger that rested first is picking up a widget
-(`TOUCH_ACTIVATION`'s hold). A move up, a move sideways (the app folder's pages),
-or a page already scrolled is left entirely alone.
-
-**Only on the system surface**, and only on the home: the press must land inside
-`.system-surface` — the page that has declared itself one OS composition rather
-than a document (see "System chrome / System surface" in
-`docs/design-system.md`). A pull at the top of an article is the reader's, and
-the browser's. Away from the home the window pauses — the stage comes back —
-until the home does.
-
-**In the window**, every move over the sky is cancelled (the page underneath is
-out of the frame and must not scroll), and a swipe up of `RETURN_SWIPE_PX`
-closes it. Only over the sky: a sheet or the dock over it keeps its own touches.
-Taps on the sky still reach the strike and the meteor.
+The sheet opens from a `setTimeout`, which is *not* a user gesture — and that
+is fine, because the gesture WebKit wants is the button inside it, which
+reaches `requestPermission()` in the same task as the press.
 
 #### Across gravity, not across the page
 
@@ -539,7 +571,7 @@ gesture. So:
 | | Behaviour |
 |---|---|
 | Chrome / Firefox / Android | The saved wish (`weatherGyro`, **on** by default) is honoured on load; the sky tilts by itself. |
-| iOS / iPadOS | The wish waits for one tap — the **Tilt** row in the picker's Weather tab, the devtool's Sky → Gyro row, or the offer that pulling the home down brings up ([Asking for it](#asking-for-it)). Turning it on *is* the gesture that asks. |
+| iOS / iPadOS | The wish waits for one tap — the **Tilt** row in the picker's Weather tab, or the devtool's Sky → Gyro row. The sky window's own offer asks too ([Asking for the window](#asking-for-the-window)). Turning it on *is* the gesture that asks. |
 | Granted before | `weatherGyroGranted` records it, and access is re-taken silently on the next load. That record is the only reason `requestPermission()` is ever called without a gesture, so a visitor who has never answered is never prompted out of nowhere. |
 | No sensor (desktop) | `DeviceOrientationEvent` exists in every desktop browser and fires in none, so "on" is not "working": the provider watches for a first reading and the Tilt row says *no motion readings* rather than pretending. |
 
@@ -550,7 +582,7 @@ far up you look, its roll which way is level. The sun and the moon are where the
 ephemeris puts them: turn round and they are behind you, look up and the zenith
 is overhead, tip the phone down and there is a horizon with ground under it.
 Swipe up and it goes back to being a wallpaper. On WebKit the first pull brings
-up [the offer](#asking-for-it) instead, because motion is behind a permission.
+up [its offer](#asking-for-the-window) instead, because motion is behind a permission.
 See [The pull](#the-pull) for the gesture.
 
 It is the other reading of the gyroscope that [Gyroscope
@@ -678,6 +710,145 @@ it shows what the sensor is actually saying: where north came from (`absolute`,
 screen angle, WebKit's compass heading and accuracy, the offset applied to
 reach north, whether a correction is in flight, the view's heading, pitch and
 roll, the gravity tilt, and which settle reasons stand.
+
+#### Asking for the window
+
+WebKit puts `deviceorientation` behind
+`DeviceOrientationEvent.requestPermission()`, which needs a user gesture — so
+on an iPhone both the tilt and [the sky
+window](#the-sky-window-any-weather-easter-egg) wait for one tap. The picker's
+Weather tab has a switch for it, three taps from the page, offering something
+the visitor has never seen.
+
+So **pulling the home down, in any weather, brings up what the window does,
+and a button under it asks** — while the gate still stands (see [The
+pull](#the-pull)). Two gestures to reach the browser's dialog, and the first is
+why the second gets a yes — a permission prompt that arrives with no idea what
+it is for gets refused, and a refusal is final everywhere: there is no second
+prompt, only the site settings nobody opens. The pull buys the explanation; the
+tap spends the one chance. Once the gate is passed (or where there never was
+one), the pull simply opens the window.
+
+It is the window's own sheet (`SkyWindowSheet`), not the tilt's: [the tilt
+primer](#asking-for-it-on-a-rainy-day) is the rain-and-snow egg's long press,
+offered once, for the weather that falls; this one is the pull's, in any
+weather, for the window — and it is made every time the gate still stands,
+because a pull past the point of no return is deliberate enough that answering
+it is not a nag. A yes here also turns the tilt on, which answers the tilt
+primer's question, so a rainy day has nothing left to offer after it.
+
+The picture is the argument: a phone pans across a faint sky, and inside the
+phone the same sky is drawn in full, holding still while the phone moves over
+it. The sun comes into the window and goes out of it again. It is drawn from
+the world's frame — the frame the tilt's old picture (a phone rocking, the rain
+inside it swinging the other way) had to avoid, because there the thing to
+notice was the rain moving, and from the world's frame the rain never moved.
+Here the thing to notice is that something holds still. The world inside the
+phone is nested in the phone and undoes its travel, and it is CSS for the same
+reasons the rain's counter-rotation was: two declarative animations of one
+duration cannot drift apart, and this plays over a live WebGL sky. Under
+`prefers-reduced-motion` both are paused at 0%, which is the phone framing the
+sun.
+
+**And it stays up to say how it went.** The sheet is the only thing on screen
+that can. A refusal especially: the sky simply stays a wallpaper, and without a
+word here there is no explanation anywhere. So it says it once, with where to
+undo it, and lets itself out. A grant gets a word too, shorter, because the
+window is already opening behind the sheet.
+
+| outcome | the sheet says | the picture | gone after |
+|---|---|---|---|
+| granted | hold the phone up and turn around — the window opens | keeps panning | 1.4 s |
+| refused | motion access was refused, and where to allow it again | **parked between the sun and the moon** — a window that cannot turn | 3.0 s |
+| neither | nothing; the offer is still standing | keeps panning | — |
+
+"Neither" is WebKit's gate declining to even consider the request (no user
+gesture): no dialog was shown and nothing was answered, so the buttons simply
+come back. A hold after an earlier refusal opens straight onto the refusal,
+because it is the only thing still true.
+
+That the outcome is reportable at all is why `setGyroEnabled` **hands the
+access back** rather than only storing it. A toggle can afford to ignore how it
+went; a sheet that has to speak cannot. A grant also turns the tilt's saved
+wish on: the window lets things fall along gravity anyway, and a yes that left
+the tilt off on the next rainy day would be a yes only half taken.
+
+#### The pull
+
+The home composition sits on the ground — identifier, greeting, widgets, all in
+the lower part of the screen, the sky above them. **Pull it down from the top
+and it sinks: the eyes lift.** Past a point, letting go opens the window and the
+home keeps going the way it was already going, out of the bottom of the frame
+(with the search button under it). **Swipe up** in the window and it rises back
+into place — looking down again. `lib/sky-pull.ts`.
+
+Why a pull, and not the press-and-hold it replaced:
+
+- It is the gesture's own metaphor: down on the page is up with the eyes.
+- It is found the way an egg should be. Everybody pulls the top of a page down
+  out of habit — pull-to-refresh — and on the home screen that is now met.
+- It shares nothing with the sky's other eggs, which are all hands *on* the
+  wallpaper: a tap for the strike and the meteor, a drag for the gust, a hold
+  for the fog wipe — or, on a rainy or snowy day, for the tilt's offer (the two
+  holds are never armed on the same sky). This is the page itself moving.
+- Detecting it needs no permission; the ask comes after the visitor has shown
+  they want in.
+
+**Something is up there.** A pull with no answer stops halfway. So as the page
+comes down, something comes down from above the top edge (`<SkyPullCue />`):
+whichever of the sun and the moon is above the horizon — the moon at its real
+phase — drawn as **light**, not ink: a white body with a soft bloom round it
+that descends, grows and brightens with the pull, over "keep pulling to look
+up". At the point of no return only the words change — "let go to look up" —
+with a tick where the platform has one (`navigator.vibrate`): the light is one
+continuous function of the pull, so it never jumps, crossing the line or
+letting go on either side of it. (The first version drew progress as a stroked
+ring round an outline icon, and read as a control; a second put an ink glyph in
+a glass bubble, and read as a button. Progress is brightness now.)
+
+And the sky's gradient lifts under it — `uLift`, up to 0.16 of a screen height,
+so the zenith's colour reaches further down and the stars come lower, as if the
+eyes were rising with the page. **Only the gradient**: the sun and the moon hold
+still under a pull, and so do the clouds and the stars' places, so nothing is
+already on its way before the window has opened. Let go short and it eases
+back.
+
+**No React per frame.** The recognizer writes two CSS variables and three
+attributes on `<html>` and calls the renderer's `previewWindow`; the page, the
+cue and the search button are moved by CSS ("The sky pull" in `globals.css`):
+
+| state | what the home does |
+|---|---|
+| `[data-sky-pulling]` | follows the finger exactly (`--sky-pull`, with rubber-band resistance), fading a little |
+| `[data-sky-armed]` | far enough (`PULL_ARM_PX`): the cue says "let go" |
+| `[data-sky-window]` | accelerates away out of the bottom and becomes untouchable |
+| `[data-sky-returning]` | eases back to rest — after a short pull, or the window closing |
+
+At rest there is no transform at all: one on `<main>` would make it the
+containing block of anything fixed inside it and a stacking context of its own,
+a cost paid on every visit for a gesture most never make.
+
+**It claims the touch on its first move**, because a browser that has begun
+scrolling will not let a `touchmove` be cancelled afterwards — and cancelling is
+the only way to keep iOS's rubber band and Chrome's pull-to-refresh from running
+underneath. So the claim is narrow: at the top of the page, moving down more
+than sideways, on the system surface, and within `CLAIM_BEFORE_MS` of the finger
+landing — measured on the events' own timestamps, not when a busy main thread
+got round to them — because a finger that rested first is picking up a widget
+(`TOUCH_ACTIVATION`'s hold). A move up, a move sideways (the app folder's pages),
+or a page already scrolled is left entirely alone.
+
+**Only on the system surface**, and only on the home: the press must land inside
+`.system-surface` — the page that has declared itself one OS composition rather
+than a document (see "System chrome / System surface" in
+`docs/design-system.md`). A pull at the top of an article is the reader's, and
+the browser's. Away from the home the window pauses — the stage comes back —
+until the home does.
+
+**In the window**, every move over the sky is cancelled (the page underneath is
+out of the frame and must not scroll), and a swipe up of `RETURN_SWIPE_PX`
+closes it. Only over the sky: a sheet or the dock over it keeps its own touches.
+Taps on the sky still reach the strike and the meteor.
 
 ### Gliding across a jump
 
