@@ -1028,6 +1028,126 @@ function InfluenceItem({
   );
 }
 
+/**
+ * A run of the page that sits on one shelf, and the shelf's name set behind
+ * it as a watermark.
+ *
+ * The convictions arrive in the shelves' own order — four of 天行, four of
+ * 修身, five of 行事, then the people — and that order is an argument
+ * (`lib/prompt-view`), but nothing on the page said so. The shelf is printed
+ * in each entry's `on=""`, which is the one line of chrome that is invisible
+ * at rest, so a reader scrolling past saw thirteen sentences in a row and
+ * no seams. The seams were the point.
+ *
+ * A heading would have fixed that and cost the page its voice: this column
+ * is a system prompt, and a prompt has no `<h2>`. So the name goes where a
+ * book puts it when it does not want to interrupt the text — on the edge of
+ * the page, as the thumb index of a dictionary does, or behind it, as a
+ * watermark in the paper does. It is set large enough to be read without
+ * being looked at, and faint enough that it is only ever read that way: the
+ * ink at a few percent, under the lowest rung of the ladder, because this
+ * is the one piece of text on the site that is meant to be seen and not
+ * read.
+ *
+ * Where it sits depends on whether there is room beside the column.
+ *
+ *   - On a desk, the margin: the word runs down the middle of the empty
+ *     space right of the column, clear of every line. With nothing to
+ *     compete with, it can afford a little more ink.
+ *   - On a phone there is no margin, so it goes behind the text, flush to
+ *     the screen's edge where the lines are ragged, at an alpha low enough
+ *     that a sentence crossing it does not notice.
+ *
+ * It is written vertically in both languages. Chinese has always been able
+ * to stand a word on its end — 天行 down the edge of the page is how a
+ * chapter title sits on a thread-bound book's fold — and Latin gets the
+ * spine's version of the same thing, turned on its side and reading down.
+ * One gesture, each script doing it the way it already knows how.
+ *
+ * All of it is CSS. The word is `sticky` inside a layer as tall as its
+ * chapter, so it rides with the chapter while the chapter is on screen and
+ * is carried off by the chapter's own end — the next chapter's word comes
+ * up from below and the two never overlap, with no scroll listener to ask
+ * where the reader is. That matters here more than most places: this page
+ * scrolls in the window on a desk and in Vitre's container on an iPhone,
+ * and `sticky` is the one thing that already follows whichever it is.
+ * Nothing animates, so there is nothing for reduced motion to turn off.
+ *
+ * The section is `isolate` so the layer's `-z-10` puts it behind this
+ * chapter's text and not behind the wallpaper. The word is `aria-hidden`
+ * because the section already carries it as its label — a screen reader
+ * gets the chapter as a region, which is the structure a sighted reader is
+ * getting from the watermark.
+ */
+function Chapter({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  /** The shelf's name in the reader's language; none prints no mark. */
+  label?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      data-chapter={id}
+      aria-label={label}
+      className="relative isolate space-y-2"
+    >
+      {label && (
+        <div
+          aria-hidden
+          className={cn(
+            "ink-flat pointer-events-none select-none absolute -z-10",
+            // Short of the chapter's foot by a few lines, so the word on
+            // its way out has left a gap before the next one comes in and
+            // the two never read as one ("…ng Being").
+            "top-0 bottom-12",
+            // A phone: behind the text, flush to the screen's edge.
+            "-right-[var(--page-gutter)]",
+            // A desk: the middle of the margin. `--page-bleed` runs from
+            // the column's text edge to the viewport's, so the layer spans
+            // exactly the empty space and the word centres in it.
+            "lg:right-auto lg:left-full lg:w-[var(--page-bleed)]",
+          )}
+        >
+          {/* Two boxes because centring is physical and the word is not:
+              inside `vertical-rl`, `margin-inline` is top and bottom, so
+              the box that gets placed has to be one still written across. */}
+          <div
+            className={cn(
+              "sticky w-fit ml-auto lg:mr-auto",
+              // Under the pinned toolbar, which rests a rem from the top
+              // (or under the Dock's pills) and stands about three rem.
+              "top-[calc(max(1rem,calc(var(--dock-clear)+0.5rem))+3.5rem)]",
+            )}
+          >
+            <span
+              className={cn(
+                "block font-serif font-normal leading-none whitespace-nowrap",
+                "[writing-mode:vertical-rl]",
+                // Sized to the room it has: fixed on a phone, where it is
+                // behind the text anyway; on a desk, a quarter of the
+                // margin's width, so it grows into a wide screen and never
+                // outgrows a narrow one.
+                "text-[6.5rem] lg:text-[clamp(4.5rem,calc((100vw-var(--page-col))/4),9rem)]",
+                // Ink, never a grey (`docs/system-legibility.md`) — just far
+                // below the ladder. Behind text it is a watermark in the
+                // paper; in the margin it can be a shade more present.
+                "text-ink/[0.04] lg:text-ink/[0.07]",
+              )}
+            >
+              {label}
+            </span>
+          </div>
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
 // Footer meta component
 interface FooterLabels {
   tokens: string;
@@ -1203,6 +1323,19 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   );
   const hasMatches = convictions.length > 0 || influences.length > 0;
 
+  // The convictions in runs of one shelf each, in the order they are
+  // authored — which is the shelves' order, so this is three runs, but it
+  // is the file that decides that and not this loop: a chapter starts
+  // wherever the shelf changes, nothing is re-sorted and nothing can be
+  // dropped. A filter that hides a shelf simply leaves no run for it.
+  const shelves: { topic?: PromptTopic; convictions: Conviction[] }[] = [];
+  for (const conviction of convictions) {
+    const topic = conviction.topics[0];
+    const last = shelves[shelves.length - 1];
+    if (last && last.topic === topic) last.convictions.push(conviction);
+    else shelves.push({ topic, convictions: [conviction] });
+  }
+
   // A reference outranks a reading: following one into something the filter
   // is currently hiding clears the filter and then goes there, rather than
   // silently doing nothing. Two renders — the entry has to exist before it
@@ -1284,27 +1417,42 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
             applies to Latin. */}
         <div className="relative -mt-4" lang={locale}>
           <div className="pb-4 space-y-2">
-            {/* What I hold */}
-            {convictions.map((conviction) => (
-              <ConvictionItem
-                key={conviction.id}
-                conviction={conviction}
-                topics={conviction.topics.map((t) => topicLabel(t, locale))}
-                shapedByLabel={shapedByLabel}
-                labelOf={labelOf}
-              />
+            {/* What I hold, a chapter per shelf */}
+            {shelves.map((shelf, i) => (
+              <Chapter
+                key={`${shelf.topic ?? "none"}-${i}`}
+                id={shelf.topic ?? "none"}
+                label={shelf.topic && topicLabel(shelf.topic, locale)}
+              >
+                {shelf.convictions.map((conviction) => (
+                  <ConvictionItem
+                    key={conviction.id}
+                    conviction={conviction}
+                    topics={conviction.topics.map((t) => topicLabel(t, locale))}
+                    shapedByLabel={shapedByLabel}
+                    labelOf={labelOf}
+                  />
+                ))}
+              </Chapter>
             ))}
 
             {/* Who trained it */}
-            {influences.map((influence) => (
-              <InfluenceItem
-                key={influence.id}
-                influence={influence}
-                shapedLabel={shapedLabel}
-                slidesLabel={slidesLabel}
-                convictions={data.convictions}
-              />
-            ))}
+            {influences.length > 0 && (
+              <Chapter
+                id="influences"
+                label={t(locale, "promptKindInfluences")}
+              >
+                {influences.map((influence) => (
+                  <InfluenceItem
+                    key={influence.id}
+                    influence={influence}
+                    shapedLabel={shapedLabel}
+                    slidesLabel={slidesLabel}
+                    convictions={data.convictions}
+                  />
+                ))}
+              </Chapter>
+            )}
           </div>
 
           {/* A filter that matched nothing says so in the page's own voice,
