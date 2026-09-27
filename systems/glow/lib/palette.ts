@@ -9,7 +9,9 @@
 // drawn in CSS take the same stops from `GLOW_CSS_STOPS`.
 //
 // Change a colour here and it changes everywhere; do not write a glow colour
-// anywhere else.
+// anywhere else. Over a wallpaper the light takes colours in harmony with it
+// instead (lib/harmony.ts); these are the palette it falls back to, and the
+// one the `siri` rule keeps.
 // =============================================================================
 
 /** The stops, linear 0–1 RGB, in order around the ring. */
@@ -30,16 +32,20 @@ const hex = ([r, g, b]: readonly [number, number, number]) =>
 /** The stops as CSS colours, closed into a loop — for a conic gradient. */
 export const GLOW_CSS_STOPS = [...GLOW_STOPS, GLOW_STOPS[0]].map(hex).join(", ");
 
-/** GLSL for `vec3 ring(float t)`: the palette as a smooth cyclic ramp. */
+/**
+ * GLSL for `vec3 ring(float t)`: the palette as a smooth cyclic ramp, over
+ * the five stops in `uPal` — Siri's (these) or the wallpaper's, per frame
+ * (lib/harmony.ts).
+ */
 export function glslRing(): string {
   const n = GLOW_STOPS.length;
-  const v = (c: readonly number[]) => `vec3(${c.map((x) => x.toFixed(3)).join(", ")})`;
-  const lines = GLOW_STOPS.map((c, i) => {
-    const next = GLOW_STOPS[(i + 1) % n];
+  const lines = GLOW_STOPS.map((_, i) => {
     const test = i < n - 1 ? `if (x < ${(i + 1).toFixed(1)}) ` : "";
-    return `  ${test}return mix(${v(c)}, ${v(next)}, f);`;
+    return `  ${test}return mix(uPal[${i}], uPal[${(i + 1) % n}], f);`;
   });
-  return `vec3 ring(float t) {
+  return `uniform vec3 uPal[${n}];
+
+vec3 ring(float t) {
   float x = fract(t) * ${n.toFixed(1)};
   float f = fract(x);
   f = f * f * (3.0 - 2.0 * f);
