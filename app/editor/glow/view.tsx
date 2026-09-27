@@ -100,6 +100,7 @@ const PAIRS: {
     name: "rotate · card",
     beam: "md",
     motion: "rotate",
+    // border-beam's own rotation time, so the pair turns together.
     period: 1.96,
     radius: 16,
     reach: 6,
@@ -197,7 +198,7 @@ export function GlowLabView() {
   const [active, setActive] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [level, setLevel] = useState(0.45);
-  // The motions' period, as a share of each one's default (6s a turn, 2.3s
+  // The motions' period, as a share of each one's default (2s a turn, 2.3s
   // a breath): 0.5 is twice as fast.
   const [pace, setPace] = useState(0.5);
   // Advanced: the baseline, overriding each motion's own while set.

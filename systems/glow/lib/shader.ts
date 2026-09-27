@@ -50,6 +50,14 @@ import { glslRing } from "./palette";
  */
 export const GLOW_EXTENT_PER_REACH = 4.45;
 
+/**
+ * A flow's trough, as a share of its crest: the resting beam is 0.3 of the
+ * 1.7 reaches a crest swells to. The flow's default baseline, and the point
+ * from which a baseline keeps the core line (and a layered rim) at full
+ * brightness. One number for the shader and GLOW_BASELINE.
+ */
+export const GLOW_FLOW_TROUGH = 0.3 / 1.7;
+
 export const GLOW_VERTEX = /* glsl */ `
 attribute vec2 aPos;
 void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
@@ -66,7 +74,7 @@ uniform float uSurge;    // 1 → 0, extra reach as the ring lands
 uniform float uRadius;   // the box's corner radius, CSS px
 uniform float uWidth;    // base reach of a beam, CSS px
 uniform float uBleed;    // canvas margin around the box, CSS px
-uniform float uDark;     // 1 in the dark theme
+uniform float uDark;     // 1 in the dark theme: light adds up on a dark ground and tints a light one
 uniform float uStrength; // 0–1, the whole effect
 uniform float uLevel;    // 0–1, energy: a voice, or the resting 0.45
 uniform vec3 uBands;     // 0–1 per band (low, mid, high); 1,1,1 at rest
@@ -125,25 +133,26 @@ ${glslRing()}
 // A pulse lights the whole ring and breathes it: each quarter deepens and
 // brightens on its own clock (uBreath) while the colour turns slowly round.
 // -----------------------------------------------------------------------------
-vec4 layered(float sd, float s, vec4 wq, float dark, float reach, float extent, vec2 box) {
+vec4 layered(float edge, float out_, bool outside, float s, vec4 wq, float reach, float extent, vec2 box) {
   bool rotate = uMode < 1.5;
-  float edge = max(-sd, 0.0);
-  float out_ = max(sd, 0.0);
-  bool outside = sd > 0.0 && uBleed > 0.0;
+  // With no inside to light (inside={false}), a pixel inside is nothing.
+  if (!outside && uInside < 0.5) return vec4(0.0);
+  // How deep each quarter breathes, for a pulse.
+  float b = dot(wq * wq, uBreath);
 
   // The colour field, pushed back out from its luminance: harder on a light
   // ground, where colour tints rather than adds.
   vec3 c = ring(s - uHue);
   float luma = dot(c, vec3(0.299, 0.587, 0.114));
-  c = clamp(mix(vec3(luma), c, mix(1.75, 1.3, dark)), 0.0, 1.0);
-  vec3 sparkCol = mix(vec3(0.08), vec3(1.0), dark);
+  c = clamp(mix(vec3(luma), c, mix(1.75, 1.3, uDark)), 0.0, 1.0);
+  vec3 sparkCol = mix(vec3(0.08), vec3(1.0), uDark);
 
   // Where round the ring the light is. raw: 0 where nothing moves, 1 at the
   // arc's or a lobe's height. The baseline is the trough's depth as a share
   // of the peak's, as a flow's trough is a share of its crest: the rim keeps
   // that much depth where nothing moves and deepens where the motion is.
   // Its brightness follows the flow's core line: full from the flow's
-  // default trough (0.176) up, fading toward light only where the motion is
+  // default trough (GLOW_FLOW_TROUGH) up, fading toward light only where the motion is
   // as the baseline goes to nothing.
   float raw;
   float spark = 0.0;
@@ -161,14 +170,13 @@ vec4 layered(float sd, float s, vec4 wq, float dark, float reach, float extent, 
     // A pulse is patches of colour on its rim: three soft lobes round the
     // ring, drifting apart and together, each quarter's breath lifting what
     // is there.
-    float b = dot(wq * wq, uBreath);
     float lobes = 0.5 + 0.5 * sin(TAU * (3.0 * s + 0.35 * sin(TAU * uHue * 2.0)));
     raw = lobes * lobes;
     breathLift = mix(0.35, 1.0, clamp((b - 0.62) / 0.46, 0.0, 1.0));
     depth *= b * 2.2;
   }
   depth *= mix(uBaseline, 1.0, raw);
-  float lit = mix(raw, 1.0, clamp(uBaseline / 0.176, 0.0, 1.0)) * breathLift;
+  float lit = mix(raw, 1.0, clamp(uBaseline / ${GLOW_FLOW_TROUGH.toFixed(3)}, 0.0, 1.0)) * breathLift;
   // Past the edge the rim's light is a share of the peak's, not a depth.
   float litOut = mix(raw, 1.0, uBaseline) * breathLift;
 
@@ -182,8 +190,13 @@ vec4 layered(float sd, float s, vec4 wq, float dark, float reach, float extent, 
   // at the deepest breath, and a breath scales within it.
   if (uExtent.x > 0.0) {
     float cap = extent * 0.232;
-    depth = rotate ? min(depth, cap) : min(depth, cap * clamp(dot(wq * wq, uBreath) / 1.08, 0.0, 1.0));
+    depth = rotate ? min(depth, cap) : min(depth, cap * clamp(b / 1.08, 0.0, 1.0));
   }
+
+  // Deep inside, past where the inner glow has faded (e^-7 at six depths)
+  // and the stroke is long gone, there is nothing to light: most of a
+  // screen's pixels, every frame.
+  if (!outside && edge > max(max(depth, 0.75) * 6.0, 2.0)) return vec4(0.0);
 
   // The layers, in CSS px. The stroke is a pixel's width, antialiased at the
   // canvas's own resolution.
@@ -194,13 +207,13 @@ vec4 layered(float sd, float s, vec4 wq, float dark, float reach, float extent, 
   vec3 col;
   float a;
   if (outside) {
-    a = (litOut + hot * 1.6) * bloom * mix(0.5, 0.42, dark);
+    a = (litOut + hot * 1.6) * bloom * mix(0.5, 0.42, uDark);
     col = mix(c, sparkCol, clamp(hot * 0.7, 0.0, 1.0));
   } else {
     // The stroke defines, the inner glow is a breath of colour: both kept
     // low, as border-beam keeps them — a light on the edge, not a frame.
-    float strokeA = rotate ? mix(0.4, 0.6, dark) : mix(0.35, 0.55, dark);
-    float innerA = rotate ? mix(0.22, 0.34, dark) : mix(0.3, 0.42, dark);
+    float strokeA = rotate ? mix(0.4, 0.6, uDark) : mix(0.35, 0.55, uDark);
+    float innerA = rotate ? mix(0.22, 0.34, uDark) : mix(0.3, 0.42, uDark);
     // A screen is not a card: across a whole screen a glow that faint is
     // lost, so the body of the light grows with the box (border-beam has no
     // screen size to borrow from).
@@ -209,7 +222,7 @@ vec4 layered(float sd, float s, vec4 wq, float dark, float reach, float extent, 
     strokeA *= 1.0 + 0.4 * big;
     float body = lit * (strokeA * stroke + innerA * inner);
     // Ink on a light ground is a shadow, not a light: half as strong.
-    float head = spark * (0.95 * stroke + 0.4 * inner) * mix(0.45, 1.0, dark);
+    float head = spark * (0.95 * stroke + 0.4 * inner) * mix(0.45, 1.0, uDark);
     a = max(body, head);
     col = mix(c, sparkCol, clamp(head / max(a, 1e-4), 0.0, 1.0) * 0.85);
     a *= uInside;
@@ -222,7 +235,7 @@ vec4 layered(float sd, float s, vec4 wq, float dark, float reach, float extent, 
   // Arrives by fading up, the surge already in the reach; a voice's level
   // firms it, as it does the flow.
   float shown = smoothstep(0.0, 1.0, uReveal);
-  a = clamp(a * shown * uStrength * (0.8 + 0.45 * uLevel) * mix(0.85, 1.0, dark), 0.0, 1.0);
+  a = clamp(a * shown * uStrength * (0.8 + 0.45 * uLevel) * mix(0.85, 1.0, uDark), 0.0, 1.0);
   return vec4(col * a, a);
 }
 
@@ -264,9 +277,6 @@ void main() {
   // seamlessly — a pulse's breath.
   float ring_s = atan(p.y / box.y, p.x / box.x) / TAU + 0.5;
   vec4 wq = max(cos(TAU * (ring_s - vec4(0.5, 0.25, 0.0, 0.75))), 0.0);
-  // 1 in the dark theme: the light adds up on a dark ground and tints a
-  // light one.
-  float dark = uDark;
 
   float reach = (uExtent.x > 0.0 ? extent / ${GLOW_EXTENT_PER_REACH.toFixed(2)} : uWidth) * (1.0 + 1.4 * uSurge) * energy;
 
@@ -279,7 +289,7 @@ void main() {
 
   // Rotate and pulse are built in layers (above); flow is the field below.
   if (uMode > 0.5) {
-    gl_FragColor = layered(sd, ring_s, wq, dark, reach, extent, box) * cover;
+    gl_FragColor = layered(edge, out_, outside, ring_s, wq, reach, extent, box) * cover;
     return;
   }
 
@@ -332,7 +342,7 @@ void main() {
     // Lows drive the long wave, mids the middle two, highs the fine one.
     float band = fi < 0.5 ? uBands.x : fi < 2.5 ? uBands.y : uBands.z;
     // The baseline is the beam's floor: at a wave's trough it keeps that
-    // share of its full 1.7 reaches (0.176 by default, 0.3 of them).
+    // share of its full 1.7 reaches (GLOW_FLOW_TROUGH by default, 0.3 of them).
     float thick = reach * 1.7 * (uBaseline + (1.0 - uBaseline) * wave * swell) * (0.45 + 0.55 * band);
     // Steeper than exponential: a plain exp's long tail sums, across a
     // small element, into a wash over its whole face. This keeps the light
@@ -353,10 +363,10 @@ void main() {
     a *= smoothstep(uBleed, uBleed * 0.4, out_) * mix(0.55, 0.75, uDark);
   } else {
     float core = exp(-mix(edge, d, uLine) / (2.2 + 3.0 * uSurge));
-    col = mix(col, vec3(1.0), core * mix(0.18, 0.6, dark));
+    col = mix(col, vec3(1.0), core * mix(0.18, 0.6, uDark));
     // The core line is the baseline's too: full from the default floor up,
     // fading out as the baseline goes to nothing.
-    a = max(a, core * 0.95 * clamp(uBaseline / 0.176, 0.0, 1.0)) * uInside;
+    a = max(a, core * 0.95 * clamp(uBaseline / ${GLOW_FLOW_TROUGH.toFixed(3)}, 0.0, 1.0)) * uInside;
   }
 
   // The extent's window: the last fifth of it, where the brightest crest is
@@ -380,7 +390,7 @@ void main() {
 
   // Light adds up on a dark ground and tints a light one: a touch less of it
   // in the light theme, so a small element's corners do not read as a wash.
-  a = clamp(a * uStrength * (0.8 + 0.45 * uLevel) * mix(0.8, 1.0, dark), 0.0, 1.0) * cover;
+  a = clamp(a * uStrength * (0.8 + 0.45 * uLevel) * mix(0.8, 1.0, uDark), 0.0, 1.0) * cover;
   gl_FragColor = vec4(col * a, a);
 }
 `;

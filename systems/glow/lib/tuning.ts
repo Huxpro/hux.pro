@@ -71,11 +71,10 @@ function load() {
       // older build (a depth pair) falls back to the default.
       const saved = JSON.parse(raw) as Record<string, unknown>;
       const next = { ...GLOW_TUNING_DEFAULTS };
-      for (const k of ["strength", "aboutStrength", "aboutDesk", "aboutPhone"] as const) {
+      for (const k of ["strength", "aboutStrength", "aboutDesk", "aboutPhone", "aboutBaseline"] as const) {
         const v = saved[k];
         if (typeof v === "number") next[k] = v;
       }
-      if (typeof saved.aboutBaseline === "number") next.aboutBaseline = saved.aboutBaseline;
       if (MOTIONS.includes(saved.aboutMotion as GlowMotion)) {
         next.aboutMotion = saved.aboutMotion as GlowMotion;
       }

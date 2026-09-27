@@ -1,5 +1,6 @@
 "use client";
 
+import { GLOW_FLOW_TROUGH } from "../lib/shader";
 import { cn } from "@/lib/utils";
 import {
   useEffect,
@@ -88,7 +89,7 @@ export type GlowMotion = "flow" | "rotate" | "pulse";
  *   pulse   0.3    a rim all round, the three lobes breathing it deeper
  */
 export const GLOW_BASELINE: Record<GlowMotion, number> = {
-  flow: 0.3 / 1.7,
+  flow: GLOW_FLOW_TROUGH,
   rotate: 0.12,
   pulse: 0.3,
 };
@@ -318,14 +319,18 @@ export function Glow({
         // Pulse: each quarter breathes on its own clock; the colour turns
         // slowly round, a full turn in 14s.
         if (pulsing && !still) m.pulseT += dt;
+        // Each quarter's breath — only a pulse has one; anything else is
+        // handed the still breath below.
         const breathPeriod = Math.max(0.5, p.period ?? 2.3);
-        const breath = BREATH.map(({ period: k, delay }) => {
-          const phase = m.pulseT / (breathPeriod * k) + delay;
-          // A still pulse holds a middling breath.
-          return still
-            ? 0.9
-            : BREATH_LOW + ((BREATH_HIGH - BREATH_LOW) * (1 - Math.cos(2 * Math.PI * phase))) / 2;
-        }) as unknown as readonly [number, number, number, number];
+        const breath = pulsing
+          ? (BREATH.map(({ period: k, delay }) => {
+              const phase = m.pulseT / (breathPeriod * k) + delay;
+              // A still pulse holds a middling breath.
+              return still
+                ? 0.9
+                : BREATH_LOW + ((BREATH_HIGH - BREATH_LOW) * (1 - Math.cos(2 * Math.PI * phase))) / 2;
+            }) as unknown as readonly [number, number, number, number])
+          : STILL_BREATH;
 
         let focus = 0;
         let focusAt = 0.25;
@@ -360,7 +365,7 @@ export function Glow({
           // A rotation's colours sway a little (border-beam's ±30° hue);
           // a pulse's turn slowly round.
           hue: rotating ? 0.05 * Math.sin((2 * Math.PI * secs) / 6) : pulsing ? secs / 14 : 0,
-          breath: pulsing ? breath : STILL_BREATH,
+          breath,
           inside: p.inside ? 1 : 0,
           // The motion drawn decides the default: a light gathered into the
           // comet, or a line, is the flow.
