@@ -36,8 +36,9 @@
 // — so it opens onto the same sky it left.
 // =============================================================================
 
+import { readScreenAngle } from "./gyroscope";
 import { holdSettle } from "./settle";
-import { smoothstep } from "./solar";
+import { rev, smoothstep } from "./solar";
 
 export interface Vec3 {
   x: number;
@@ -63,7 +64,7 @@ export interface SkyView {
  * apart can share it held in landscape, narrow enough that finding one is a
  * turn of the body rather than a flick of the wrist — which is the whole fun.
  */
-export const WINDOW_FOV_DEG = 80;
+const WINDOW_FOV_DEG = 80;
 
 /**
  * Past this, in screen heights from the centre, a body is simply off screen —
@@ -105,7 +106,7 @@ export function directionOf(azimuthDeg: number, elevationDeg: number): Vec3 {
 
 /** Heading (clockwise from north) and pitch (up from level) of a direction, degrees. */
 export function headingPitchOf(v: Vec3): { heading: number; pitch: number } {
-  const heading = (Math.atan2(v.x, v.y) / DEG + 360) % 360;
+  const heading = rev(Math.atan2(v.x, v.y) / DEG);
   const pitch = Math.asin(Math.max(-1, Math.min(1, v.z))) / DEG;
   return { heading, pitch };
 }
@@ -114,11 +115,14 @@ export function headingPitchOf(v: Vec3): { heading: number; pitch: number } {
  * A level view facing `headingDeg`, tipped up by `pitchDeg` — what the devtool
  * drives on a desktop, and the view before the first reading arrives.
  */
-export function viewFacing(headingDeg: number, pitchDeg: number, compass = false): SkyView {
+export function viewFacing(headingDeg: number, pitchDeg: number): SkyView {
   const forward = directionOf(headingDeg, pitchDeg);
   const up = directionOf(headingDeg, pitchDeg + 90);
-  return { forward, up, right: cross(forward, up), compass };
+  return { forward, up, right: cross(forward, up), compass: false };
 }
+
+/** The two stage views, built once: they depend on nothing but the hemisphere. */
+const STAGE_VIEW = { north: viewFacing(180, 12), south: viewFacing(0, 12) };
 
 /**
  * Where the stage looks: south in the north, north in the south, level. The
@@ -126,7 +130,7 @@ export function viewFacing(headingDeg: number, pitchDeg: number, compass = false
  * is the same sky the stage was showing, only now with a horizon.
  */
 export function stageView(hemisphere: 1 | -1): SkyView {
-  return viewFacing(hemisphere === 1 ? 180 : 0, 12);
+  return hemisphere === 1 ? STAGE_VIEW.north : STAGE_VIEW.south;
 }
 
 /**
@@ -193,12 +197,13 @@ export function viewScale(aspect: number): number {
 export function projectToScreen(
   dir: Vec3,
   view: SkyView,
-  aspect: number
+  aspect: number,
+  /** `viewScale(aspect)`, when the caller already has it. */
+  k = viewScale(aspect)
 ): { x: number; y: number; ahead: number } {
   const cx = dot(dir, view.right);
   const cy = dot(dir, view.up);
   const cz = dot(dir, view.forward);
-  const k = viewScale(aspect);
   let px: number;
   let py: number;
   const side = Math.hypot(cx, cy);
@@ -307,13 +312,34 @@ export function slerpView(a: SkyView, b: SkyView, t: number): SkyView {
   return viewOfQuat([q[0] / n, q[1] / n, q[2] / n, q[3] / n], b.compass);
 }
 
-/** How far apart two views are, as the angle of the turn between them, degrees. */
-export function viewAngle(a: SkyView, b: SkyView): number {
-  const qa = quatOf(a);
-  const qb = quatOf(b);
-  const d = Math.abs(qa[0] * qb[0] + qa[1] * qb[1] + qa[2] * qb[2] + qa[3] * qb[3]);
-  return (2 * Math.acos(Math.min(1, d))) / DEG;
+/** The unit direction `t` of the way from `a` to `b`, along the great circle. */
+export function slerpDir(a: Vec3, b: Vec3, t: number): Vec3 {
+  const d = Math.max(-1, Math.min(1, dot(a, b)));
+  if (d > 0.9995) {
+    return normalize(vec3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t));
+  }
+  if (d < -0.9995) {
+    // Dead opposite: any great circle will do; go over the top.
+    const mid = normalize(vec3(-a.y, a.x, 0.5));
+    return t < 0.5 ? slerpDir(a, mid, t * 2) : slerpDir(mid, b, t * 2 - 1);
+  }
+  const th = Math.acos(d);
+  const sin = Math.sin(th);
+  const wa = Math.sin((1 - t) * th) / sin;
+  const wb = Math.sin(t * th) / sin;
+  return vec3(a.x * wa + b.x * wb, a.y * wa + b.y * wb, a.z * wa + b.z * wb);
 }
+
+/**
+ * Has the view jumped by more than `deg` between two readings? A cheap test —
+ * how far the forward and the up edge each turned — for the renderer to run on
+ * every sensor event, where the exact angle of the turn is not needed.
+ */
+export function viewJumped(a: SkyView, b: SkyView, deg: number): boolean {
+  const c = Math.cos(deg * DEG);
+  return dot(a.forward, b.forward) < c || dot(a.up, b.up) < c;
+}
+
 
 // -----------------------------------------------------------------------------
 // The sky's own frame: the stars
@@ -324,13 +350,6 @@ export function viewAngle(a: SkyView, b: SkyView): number {
 // whole field wheels. The stars themselves are hashed, not catalogued: this is
 // a sky, not a planetarium.
 // -----------------------------------------------------------------------------
-
-/** Local sidereal time in degrees, from a clock and a longitude. */
-export function localSiderealDeg(nowMs: number, lonDeg: number): number {
-  const jd = nowMs / 86_400_000 + 2440587.5;
-  const gmst = 280.46061837 + 360.98564736629 * (jd - 2451545.0);
-  return (((gmst + lonDeg) % 360) + 360) % 360;
-}
 
 /**
  * ENU → the turning equatorial frame, as a column-major mat3 for GLSL. The
@@ -425,18 +444,22 @@ export interface MotionDiagnostics {
   calibrating: boolean;
 }
 
-const diag: MotionDiagnostics = {
-  source: "none",
-  alpha: null,
-  beta: null,
-  gamma: null,
-  compassHeading: null,
-  compassAccuracy: null,
-  offsetDeg: null,
-  rateHz: 0,
-  screenAngle: 0,
-  calibrating: false,
-};
+function freshDiag(): MotionDiagnostics {
+  return {
+    source: "none",
+    alpha: null,
+    beta: null,
+    gamma: null,
+    compassHeading: null,
+    compassAccuracy: null,
+    offsetDeg: null,
+    rateHz: 0,
+    screenAngle: 0,
+    calibrating: false,
+  };
+}
+
+const diag = freshDiag();
 let eventAt = 0;
 let firstReadingTimer = 0;
 
@@ -472,23 +495,16 @@ function note(
   }
 }
 
-function readScreenAngle(): number {
-  if (typeof window === "undefined") return 0;
-  const angle = window.screen?.orientation?.angle;
-  if (typeof angle === "number" && Number.isFinite(angle)) return angle;
-  const legacy = (window as { orientation?: unknown }).orientation;
-  return typeof legacy === "number" && Number.isFinite(legacy) ? (legacy + 360) % 360 : 0;
-}
-
-function wrapPi(a: number): number {
+/** An angle in radians, wrapped to −π..π. */
+export function wrapPi(a: number): number {
   return Math.atan2(Math.sin(a), Math.cos(a));
 }
 
 function publish(raw: SkyView) {
   const now = performance.now();
-  const dt = lastAt === 0 || !latest ? Infinity : Math.min((now - lastAt) / 1000, 1);
+  const dt = Math.min((now - lastAt) / 1000, 1);
   lastAt = now;
-  if (!latest || !Number.isFinite(dt)) {
+  if (!latest) {
     latest = raw;
   } else {
     const k = 1 - Math.exp(-dt / VIEW_TAU);
@@ -562,11 +578,15 @@ function onRelative(event: DeviceOrientationEvent) {
     // compass says it points: the difference is the rotation between WebKit's
     // arbitrary frame and north. It only means something while the top edge
     // lies level enough to point anywhere.
-    const rel = viewFromOrientation(angles.alpha, angles.beta, angles.gamma, 0, false);
-    const top = rel.up; // screen angle 0: the device's own top edge
-    const level = Math.hypot(top.x, top.y);
+    // The device's own top edge in the relative frame is R's second column,
+    // (−sin α·cos β, cos α·cos β, sin β): its level part is all this needs.
+    const a = angles.alpha * DEG;
+    const cb = Math.cos(angles.beta * DEG);
+    const topX = -Math.sin(a) * cb;
+    const topY = Math.cos(a) * cb;
+    const level = Math.hypot(topX, topY);
     if (level > COMPASS_LEVEL_MIN || Number.isNaN(compassOffset)) {
-      const relHeading = Math.atan2(top.x, top.y);
+      const relHeading = Math.atan2(topX, topY);
       const measured = wrapPi(relHeading - heading * DEG);
       if (Number.isNaN(compassOffset)) {
         compassOffset = measured;
@@ -598,8 +618,8 @@ function onRelative(event: DeviceOrientationEvent) {
 
   // No compass: anchor the first reading onto the stage's heading.
   note("anchored", angles, screenAngle);
-  const rel = viewFromOrientation(angles.alpha, angles.beta, angles.gamma, screenAngle, false);
   if (Number.isNaN(anchorOffset)) {
+    const rel = viewFromOrientation(angles.alpha, angles.beta, angles.gamma, screenAngle, false);
     const relHeading = Math.atan2(rel.forward.x, rel.forward.y);
     anchorOffset = wrapPi(relHeading - anchorHeading * DEG);
   }
@@ -657,16 +677,7 @@ export function subscribeView(listener: ViewListener, stageHeading = 180): () =>
       firstReadingTimer = 0;
       setCalibrating(false);
       eventAt = 0;
-      Object.assign(diag, {
-        source: "none",
-        alpha: null,
-        beta: null,
-        gamma: null,
-        compassHeading: null,
-        compassAccuracy: null,
-        offsetDeg: null,
-        rateHz: 0,
-      });
+      Object.assign(diag, freshDiag());
     }
   };
 }

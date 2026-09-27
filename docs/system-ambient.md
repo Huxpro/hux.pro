@@ -28,7 +28,6 @@ systems/ambient/
 │   ├── sky-pull-cue.tsx          # The body of light at the top while the home is pulled down
 │   ├── sky-body-hints.tsx        # Edge hints toward an off-screen sun or moon in the window
 │   ├── body-glyph.tsx            # Solid sun and moon-phase glyphs (devtool, hints, cue)
-│   ├── sky-window-toast.tsx      # "Sky window" / "Back to the wallpaper" pill
 │   ├── settle-spinner.tsx        # The tiny top-right ring while the sky settles
 │   └── index.ts                  # Component exports
 ├── lib/

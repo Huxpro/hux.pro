@@ -19,7 +19,9 @@ import {
 import { attachSkyPull, attachSkyReturn, settlePull, skyOpenAction } from "../lib/sky-pull";
 import { usePathname } from "next/navigation";
 import { showCustomToast } from "@/components/ui/system-sonner";
-import { SkyWindowToast } from "./sky-window-toast";
+import { SystemToast } from "@/components/ui/system-toast";
+import { t, useLocale } from "@/services";
+import { Compass } from "lucide-react";
 import { useHomeEditing } from "@/components/ui/home-edit-store";
 import { useWeather } from "../provider";
 import { useWallpaper } from "../provider";
@@ -222,6 +224,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   // still stands or the place is only a guess, the sheet that asks comes up.
   // Swipe up and it closes. It belongs to the home: anywhere else the window
   // pauses (the stage comes back) until the home does.
+  const { locale } = useLocale();
   const pathname = usePathname();
   const onHome = pathname === "/";
   const shown = skyWindow && onHome && sky;
@@ -237,7 +240,6 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   useEffect(() => {
     if (!openAction || skyWindow) return;
     return attachSkyPull({
-      canPull: () => true,
       onProgress: (amount) => previewRef.current?.(amount),
       onPulled: () => {
         if (openAction === "offer") {
@@ -251,34 +253,44 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         // instead of starting back up first.
         document.documentElement.setAttribute("data-sky-window", "");
         setSkyWindow(true);
-        showCustomToast(<SkyWindowToast on />, { id: "sky-window", duration: 3200 });
+        // The sky answering is most of the feedback; this is the rest — what
+        // just happened, and how to undo it.
+        showCustomToast(
+          <SystemToast
+            icon={Compass}
+            title={t(locale, "skyWindowOn")}
+            note={t(locale, "skyWindowOnNote")}
+          />,
+          { id: "sky-window", duration: 3200 }
+        );
       },
     });
-  }, [openAction, skyWindow, openSkyOffer, setSkyWindow]);
+  }, [openAction, skyWindow, openSkyOffer, setSkyWindow, locale]);
 
   useEffect(() => {
     if (!shown) return;
     return attachSkyReturn(() => {
       setSkyWindow(false);
-      showCustomToast(<SkyWindowToast on={false} />, { id: "sky-window", duration: 1600 });
+      showCustomToast(<SystemToast icon={Compass} title={t(locale, "skyWindowOff")} />, {
+        id: "sky-window",
+        duration: 1600,
+      });
     });
-  }, [shown, setSkyWindow]);
+  }, [shown, setSkyWindow, locale]);
 
   // The home steps out of the frame while the window is showing, and back in
   // after (globals.css, "The sky pull"). Whatever opened or closed it — the
   // pull, the sheet, the swipe, the devtool — this is the one place the page
   // hears about it.
-  const wasShown = useRef(false);
   useEffect(() => {
     const el = document.documentElement;
     if (shown) {
       el.setAttribute("data-sky-window", "");
       el.removeAttribute("data-sky-returning");
-    } else if (wasShown.current || el.hasAttribute("data-sky-window")) {
+    } else if (el.hasAttribute("data-sky-window")) {
       el.removeAttribute("data-sky-window");
       settlePull();
     }
-    wasShown.current = shown;
   }, [shown]);
   useEffect(
     () => () => {

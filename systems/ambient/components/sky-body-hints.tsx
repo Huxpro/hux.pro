@@ -35,22 +35,45 @@ const HINT_OPACITY = 0.6;
 
 type Body = WindowBodies["sun"];
 
-function place(el: HTMLElement | null, body: Body | null, settled: boolean) {
-  if (!el) return;
-  const W = window.innerWidth;
-  const H = window.innerHeight;
-  const show = settled && !!body?.up;
-  if (!show || !body) {
-    el.style.opacity = "0";
-    return;
-  }
+/** The viewport, measured on resize rather than read sixty times a second. */
+const viewport = { w: 0, h: 0 };
+
+/**
+ * One hint's element and what was last written to it, so a frame that would
+ * write the same position, angle or opacity again writes nothing.
+ */
+interface Placed {
+  el: HTMLElement;
+  chevron: HTMLElement | null;
+  transform: string;
+  chevronTransform: string;
+  opacity: string;
+}
+
+function placed(el: HTMLElement): Placed {
+  return {
+    el,
+    chevron: el.querySelector<HTMLElement>("[data-chevron]"),
+    transform: "",
+    chevronTransform: "",
+    opacity: "0",
+  };
+}
+
+function setOpacity(hint: Placed, opacity: string) {
+  if (hint.opacity === opacity) return;
+  hint.opacity = opacity;
+  hint.el.style.opacity = opacity;
+}
+
+function place(hint: Placed | null, body: Body | null, settled: boolean) {
+  if (!hint) return;
+  const { w: W, h: H } = viewport;
+  if (!settled || !body?.up) return setOpacity(hint, "0");
   const px = body.x * W;
   const py = (1 - body.y) * H;
   // On the glass already: the body is its own hint.
-  if (body.ahead > 0 && px >= 0 && px <= W && py >= 0 && py <= H) {
-    el.style.opacity = "0";
-    return;
-  }
+  if (body.ahead > 0 && px >= 0 && px <= W && py >= 0 && py <= H) return setOpacity(hint, "0");
   const cx = W / 2;
   const cy = H / 2;
   const dx = px - cx;
@@ -61,16 +84,21 @@ function place(el: HTMLElement | null, body: Body | null, settled: boolean) {
       ? (dy < 0 ? H / 2 - EDGE.top : H / 2 - EDGE.bottom) / Math.abs(dy)
       : Infinity;
   const t = Math.min(reachX, reachY);
-  const x = cx + dx * t;
-  const y = cy + dy * t;
-  const angle = Math.atan2(dy, dx);
-  el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
-  el.style.opacity = String(HINT_OPACITY);
-  const chevron = el.querySelector<HTMLElement>("[data-chevron]");
-  if (chevron) {
-    const ox = Math.cos(angle) * CHEVRON_OFFSET;
-    const oy = Math.sin(angle) * CHEVRON_OFFSET;
-    chevron.style.transform = `translate(${ox.toFixed(1)}px, ${oy.toFixed(1)}px) rotate(${angle}rad)`;
+  const transform = `translate3d(${(cx + dx * t).toFixed(1)}px, ${(cy + dy * t).toFixed(1)}px, 0)`;
+  if (transform !== hint.transform) {
+    hint.transform = transform;
+    hint.el.style.transform = transform;
+  }
+  setOpacity(hint, String(HINT_OPACITY));
+  if (hint.chevron) {
+    const angle = Math.atan2(dy, dx);
+    const ox = (Math.cos(angle) * CHEVRON_OFFSET).toFixed(1);
+    const oy = (Math.sin(angle) * CHEVRON_OFFSET).toFixed(1);
+    const chevronTransform = `translate(${ox}px, ${oy}px) rotate(${angle.toFixed(3)}rad)`;
+    if (chevronTransform !== hint.chevronTransform) {
+      hint.chevronTransform = chevronTransform;
+      hint.chevron.style.transform = chevronTransform;
+    }
   }
 }
 
@@ -107,14 +135,24 @@ export function SkyBodyHints() {
   const sunRef = useRef<HTMLDivElement | null>(null);
   const moonRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(
-    () =>
-      subscribeWindowBodies((bodies) => {
-        place(sunRef.current, bodies?.sun ?? null, !!bodies?.settled);
-        place(moonRef.current, bodies?.moon ?? null, !!bodies?.settled);
-      }),
-    []
-  );
+  useEffect(() => {
+    const measure = () => {
+      viewport.w = window.innerWidth;
+      viewport.h = window.innerHeight;
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    const sun = sunRef.current ? placed(sunRef.current) : null;
+    const moon = moonRef.current ? placed(moonRef.current) : null;
+    const stop = subscribeWindowBodies((bodies) => {
+      place(sun, bodies?.sun ?? null, !!bodies?.settled);
+      place(moon, bodies?.moon ?? null, !!bodies?.settled);
+    });
+    return () => {
+      stop();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
 
   return (
     <div aria-hidden="true" className="ink-bare pointer-events-none fixed inset-0 z-30">

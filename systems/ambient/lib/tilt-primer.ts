@@ -80,7 +80,8 @@ import {
  */
 const SYSTEM_SURFACE = ".system-surface";
 
-function onSystemSurface(target: EventTarget | null): boolean {
+/** Is this press on the system surface? Shared with the sky pull (lib/sky-pull.ts). */
+export function onSystemSurface(target: EventTarget | null): boolean {
   return target instanceof Element && !!target.closest(SYSTEM_SURFACE);
 }
 

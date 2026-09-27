@@ -30,6 +30,7 @@
 // note is here — it has cost three round trips already.
 // =============================================================================
 
+import { HORIZON_Y } from "../scene";
 import {
   WIPE_DECAY,
   WIPE_MAX_POINTS,
@@ -277,7 +278,9 @@ float stars(vec2 p, vec2 uv, float amount) {
 // than a pixel then pops in and out as it crosses. So each is drawn at least a
 // pixel wide and dimmed by the area it gained: the same light, spread.
 float starsSphere(vec3 dir, float skyY, float amount) {
-  if (amount < 0.002) return 0.0;
+  // Below where the horizon fade reaches zero (the ground, through the window)
+  // the lattice would be worked out and multiplied away.
+  if (amount < 0.002 || skyY <= 0.05) return 0.0;
   vec3 c3 = uStarFrame * dir;
   float s = 0.0;
   for (int i = 0; i < 2; i++) {
@@ -1406,10 +1409,11 @@ vec3 meteor(vec2 p, float aspect) {
 // ---------------------------------------------------------------------------
 
 // Where the window's horizon falls in the sky gradient: the stage's own
-// horizon (HORIZON_Y in lib/scene.ts), and elevation mapped the way the stage
-// maps the sun's — so a colour at some height on the stage is the colour at
-// that elevation in the window, and the two agree about the sky.
-const float WINDOW_HORIZON_Y = 0.1;
+// horizon (HORIZON_Y in lib/scene.ts, interpolated here so the two cannot
+// drift), and elevation mapped the way the stage maps the sun's — so a colour
+// at some height on the stage is the colour at that elevation in the window,
+// and the two agree about the sky.
+const float WINDOW_HORIZON_Y = ${HORIZON_Y.toFixed(3)};
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution;

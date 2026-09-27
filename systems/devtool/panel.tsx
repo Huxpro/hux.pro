@@ -2685,11 +2685,6 @@ function SkyModule() {
               <Compass className="h-3 w-3" />
               {zh ? "动作" : "Motion"}
             </span>
-            <span className="normal-case tracking-normal tabular-nums text-muted-foreground/70">
-              {motion && motionOpen
-                ? `${motion.diag.source} · ${Math.round(motion.diag.rateHz)} Hz`
-                : ""}
-            </span>
           </button>
           {motionOpen && motion && (
             <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] font-mono tabular-nums text-muted-foreground">

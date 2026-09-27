@@ -22,6 +22,7 @@ import {
   getMoonIllumination,
   getMoonPhase,
   getSolarPosition,
+  localSiderealDeg,
   smoothstep,
   startOfLocalDay,
   DAY_MINUTES,
@@ -34,7 +35,6 @@ import type {
 } from "./weather";
 import { precipitationTypeForCondition } from "./weather";
 import { WIPE_MIN_FOG } from "./wipe";
-import { localSiderealDeg } from "./sky-window";
 
 export type RGB = readonly [number, number, number];
 
@@ -354,8 +354,8 @@ function coordsOf(params: DeriveSceneParams): { lat: number; lon: number } | nul
 
 /**
  * Where the horizon sits on the stage, in screen heights from the bottom — and
- * so where the sky window's horizon maps to in the shader's sky gradient (see
- * `WINDOW_HORIZON_Y` in wallpaper/shader.ts, which must agree).
+ * so where the sky window's horizon maps to in the shader's sky gradient
+ * (`WINDOW_HORIZON_Y` in wallpaper/shader.ts is this, interpolated).
  */
 export const HORIZON_Y = 0.1;
 
@@ -470,15 +470,12 @@ function resolveLunar(params: DeriveSceneParams): SolarPosition & { phase: numbe
     params.weather?.sunriseMs,
     params.weather?.sunsetMs
   );
-  const DAY = 86_400_000;
-  // Into the one day the solar estimate is written for: from the previous
-  // sunset to this one, where its night and day branches both hold.
-  const from = sunset - DAY;
-  const behind = nowMs - phase * DAY;
-  const lagged = from + ((((behind - from) % DAY) + DAY) % DAY);
-  const natural = estimateSolarPosition({ nowMs: lagged, sunriseMs: sunrise, sunsetMs: sunset });
-  // The estimate's night arc runs its azimuth on past 360; a bearing is 0..360.
-  return { ...natural, azimuth: ((natural.azimuth % 360) + 360) % 360, phase };
+  const natural = estimateSolarPosition({
+    nowMs: nowMs - phase * 86_400_000,
+    sunriseMs: sunrise,
+    sunsetMs: sunset,
+  });
+  return { ...natural, phase };
 }
 
 /**

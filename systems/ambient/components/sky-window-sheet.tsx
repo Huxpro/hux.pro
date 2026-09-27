@@ -258,8 +258,8 @@ export function SkyWindowSheet() {
         if (!open) close();
       }}
       presentation={{ base: "sheet" }}
-      title={t(locale, "skySheetTitle")}
-      closeLabel={t(locale, "skySheetDismiss")}
+      title={t(locale, "tiltPrimerTitle")}
+      closeLabel={t(locale, "tiltPrimerDismiss")}
       // No detents: a picture, a paragraph and two buttons is a form sheet, not
       // a list, so it stands as tall as it is and no taller.
       fitContent
@@ -283,7 +283,7 @@ export function SkyWindowSheet() {
                 )}
               >
                 {view === "denied"
-                  ? t(locale, "skySheetDenied")
+                  ? t(locale, "tiltPrimerDenied")
                   : place === "shared"
                     ? t(locale, "skySheetGrantedPlace")
                     : place === "guessed"
@@ -324,7 +324,7 @@ export function SkyWindowSheet() {
                   >
                     {t(
                       locale,
-                      motionOpen && askPlace ? "skySheetSkipPlace" : "skySheetDismiss"
+                      motionOpen && askPlace ? "skySheetSkipPlace" : "tiltPrimerDismiss"
                     )}
                   </button>
                 </div>
@@ -332,7 +332,7 @@ export function SkyWindowSheet() {
                   {t(
                     locale,
                     !askPlace
-                      ? "skySheetAsk"
+                      ? "tiltPrimerAsk"
                       : motionOpen
                         ? "skySheetAskPlace"
                         : "skySheetAskBoth"

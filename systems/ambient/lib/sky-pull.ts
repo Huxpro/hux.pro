@@ -50,14 +50,12 @@
 
 import { pageScrollTop } from "vitre";
 import { isBackgroundClick } from "./poke";
-
-/** The page that has declared itself one OS composition (see docs/design-system.md). */
-const SYSTEM_SURFACE = ".system-surface";
+import { onSystemSurface } from "./tilt-primer";
 
 /** How far the page follows at most, px — the rubber band's reach. */
 const PULL_REACH = 220;
 /** Followed this far, letting go opens the window, px. */
-export const PULL_ARM_PX = 92;
+const PULL_ARM_PX = 92;
 /**
  * A move that starts later than this after the finger landed belongs to the
  * widget grid's press-and-hold (400 ms), not to a pull.
@@ -66,7 +64,7 @@ const CLAIM_BEFORE_MS = 320;
 /** A swipe up this long, in the window, is looking back down, px. */
 const RETURN_SWIPE_PX = 56;
 /** How long the page takes to come back to rest after a pull, ms (globals.css). */
-export const PULL_RETURN_MS = 450;
+const PULL_RETURN_MS = 450;
 
 /**
  * What opening the window takes, or null for "there is no window to open":
@@ -99,17 +97,36 @@ function follow(dy: number): number {
   return PULL_REACH * (1 - Math.exp(-Math.max(0, dy) / PULL_REACH));
 }
 
-function onSystemSurface(target: EventTarget | null): boolean {
-  return target instanceof Element && !!target.closest(SYSTEM_SURFACE);
-}
-
 const root = () => document.documentElement;
 
-function paint(px: number) {
-  const style = root().style;
-  style.setProperty("--sky-pull", `${px.toFixed(1)}px`);
-  style.setProperty("--sky-pull-progress", Math.min(1, px / PULL_ARM_PX).toFixed(3));
+/** The touch this recognizer is following, out of a list, or null. */
+function touchOf(list: TouchList, id: number | null): Touch | null {
+  for (let i = 0; i < list.length; i++) if (list[i].identifier === id) return list[i];
+  return null;
 }
+
+/**
+ * What reads the pull's variables: the home content and the search button
+ * (`[data-sky-exits]`) and the cue. The variables are written on these and not
+ * on <html>, so a move repaints what follows the finger instead of restyling
+ * the whole document through inheritance.
+ */
+let painted: HTMLElement[] = [];
+
+function paint(px: number) {
+  const progress = Math.min(1, px / PULL_ARM_PX).toFixed(3);
+  for (const el of painted) {
+    el.style.setProperty("--sky-pull", `${px.toFixed(1)}px`);
+    el.style.setProperty("--sky-pull-progress", progress);
+  }
+}
+
+function claimPaint() {
+  painted = [...document.querySelectorAll<HTMLElement>("[data-sky-exits], .sky-pull-cue")];
+}
+
+/** The one timer that ends a return; a new transition cancels a pending one. */
+let returnTimer = 0;
 
 /**
  * Let the page come back to rest: the pull's variables are cleared under a
@@ -120,13 +137,13 @@ export function settlePull() {
   el.removeAttribute("data-sky-pulling");
   el.removeAttribute("data-sky-armed");
   el.setAttribute("data-sky-returning", "");
+  claimPaint();
   paint(0);
-  window.setTimeout(() => el.removeAttribute("data-sky-returning"), PULL_RETURN_MS);
+  window.clearTimeout(returnTimer);
+  returnTimer = window.setTimeout(() => el.removeAttribute("data-sky-returning"), PULL_RETURN_MS);
 }
 
 export interface SkyPullHandlers {
-  /** May a pull start right now? (The home is showing, not in edit mode, …) */
-  canPull: () => boolean;
   /** Every move, with the fraction of the way to far enough — the sky's preview. */
   onProgress: (progress: number) => void;
   /** Let go past far enough. The page is left pulled; the caller decides what next. */
@@ -160,7 +177,7 @@ export function attachSkyPull(handlers: SkyPullHandlers): () => void {
       return;
     }
     const touch = event.touches[0];
-    if (!onSystemSurface(event.target) || !handlers.canPull()) return;
+    if (!onSystemSurface(event.target)) return;
     if (pageScrollTop() > 0) return;
     id = touch.identifier;
     startX = touch.clientX;
@@ -175,7 +192,7 @@ export function attachSkyPull(handlers: SkyPullHandlers): () => void {
 
   const onMove = (event: TouchEvent) => {
     if (id === null) return;
-    const touch = [...event.changedTouches].find((t) => t.identifier === id);
+    const touch = touchOf(event.changedTouches, id);
     if (!touch) return;
     const dx = touch.clientX - startX;
     const dy = touch.clientY - startY;
@@ -188,8 +205,10 @@ export function attachSkyPull(handlers: SkyPullHandlers): () => void {
         reset();
         return;
       }
+      window.clearTimeout(returnTimer);
       root().removeAttribute("data-sky-returning");
       root().setAttribute("data-sky-pulling", "");
+      claimPaint();
     }
     if (!claimed) return;
     if (event.cancelable) event.preventDefault();
@@ -208,7 +227,7 @@ export function attachSkyPull(handlers: SkyPullHandlers): () => void {
 
   const onEnd = (event: TouchEvent) => {
     if (id === null) return;
-    if (![...event.changedTouches].some((t) => t.identifier === id)) return;
+    if (!touchOf(event.changedTouches, id)) return;
     const wasClaimed = claimed;
     const wasArmed = armed;
     reset();
@@ -264,7 +283,7 @@ export function attachSkyReturn(onReturn: () => void): () => void {
 
   const onMove = (event: TouchEvent) => {
     if (id === null) return;
-    const touch = [...event.changedTouches].find((t) => t.identifier === id);
+    const touch = touchOf(event.changedTouches, id);
     if (!touch) return;
     if (event.cancelable) event.preventDefault();
     const dx = touch.clientX - startX;

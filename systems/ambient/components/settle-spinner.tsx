@@ -57,7 +57,12 @@ export function SettleSpinner() {
         height="14"
         fill="none"
         aria-hidden="true"
-        className="animate-spin text-tertiary-foreground motion-reduce:animate-none"
+        // Spinning only while it shows: an endless animation at opacity 0 would
+        // keep the compositor producing frames on every page, for nothing.
+        className={cn(
+          "text-tertiary-foreground motion-reduce:animate-none",
+          shown && "animate-spin"
+        )}
         style={{ animationDuration: "0.9s" }}
       >
         <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.6" opacity={0.3} />

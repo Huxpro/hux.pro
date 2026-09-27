@@ -21,19 +21,23 @@
 import { UPRIGHT_GRAVITY, type GravityVector } from "../gyroscope";
 import { stageMoon, stageSun, type WeatherScene } from "../scene";
 import {
+  directionOf,
   headingPitchOf,
   moonLitAngle,
   normalize,
   projectToScreen,
+  slerpDir,
   slerpView,
   stageView,
   starFrame,
   vec3,
-  viewAngle,
+  viewJumped,
   viewScale,
+  wrapPi,
   type SkyView,
   type Vec3,
 } from "../sky-window";
+import { clamp01 } from "../solar";
 import { POKE_KIND_CODE, POKE_MS, type PokeKind } from "../poke";
 import {
   WIPE_JUMP,
@@ -99,14 +103,12 @@ const UNIFORMS: UniformSpec[] = [
   { name: "uVeilColor", size: 3, tau: THEME },
   { name: "uVeilAmount", size: 1, tau: THEME },
   { name: "uExposure", size: 1, tau: THEME },
-  // The sky window's (see ../sky-window.ts). The wind and the celestial frame
-  // never reach the shader as themselves — the renderer turns them into a lean
-  // across the view and a star frame — so their locations are simply null, the
-  // way uWind's always has been.
+  // The sky window's (see ../sky-window.ts). The world wind never reaches the
+  // shader as itself — the renderer turns it into a lean across the view — so
+  // its location is simply null, the way uWind's always has been.
   { name: "uWindWorld", size: 2, tau: 3.0 },
   { name: "uSunWorld", size: 3, tau: TRACK },
   { name: "uMoonWorld", size: 3, tau: TRACK },
-  { name: "uCelestial", size: 2, tau: 0 },
 ];
 
 const FLOAT_COUNT = UNIFORMS.reduce((n, u) => n + u.size, 0);
@@ -133,12 +135,35 @@ const SNOW_OFFSET = OFFSET.uSnow;
 const WIND_WORLD_OFFSET = OFFSET.uWindWorld;
 const SUN_WORLD_OFFSET = OFFSET.uSunWorld;
 const MOON_WORLD_OFFSET = OFFSET.uMoonWorld;
-const CELESTIAL_OFFSET = OFFSET.uCelestial;
 const SUN_INDEX = UNIFORMS.findIndex((u) => u.name === "uSun");
 const MOON_INDEX = UNIFORMS.findIndex((u) => u.name === "uMoon");
 const MOON_PHASE_OFFSET = OFFSET.uMoonPhase;
 const HEMISPHERE_OFFSET = OFFSET.uHemisphere;
 const MOON_BEHIND_OFFSET = OFFSET.uMoonBehind;
+
+/** Which hemisphere a packed scene is in: its south mirrors the stage. */
+const hemisphereOf = (src: Float32Array): 1 | -1 => (src[HEMISPHERE_OFFSET] < 0 ? -1 : 1);
+
+/** A body is "up" for the edge hints when it is above the horizon by this, as sin(elevation). */
+const HORIZON_Z = Math.sin(-1 * (Math.PI / 180));
+
+/**
+ * The sun and the moon, as the glides see them: which uniforms hold where each
+ * is drawn and where it is, and how the stage places it. One table for both,
+ * so the two can never be moved by different rules.
+ */
+const BODIES = [
+  {
+    screen: "uSun",
+    world: "uSunWorld",
+    stage: (at: { azimuth: number; elevation: number }, h: 1 | -1) => stageSun(at, h),
+  },
+  {
+    screen: "uMoon",
+    world: "uMoonWorld",
+    stage: (at: { azimuth: number; elevation: number }, h: 1 | -1) => stageMoon(at, h).screen,
+  },
+] as const;
 
 /** Where the sun and the moon are through the window, for the edge hints. */
 export interface WindowBodies {
@@ -147,8 +172,6 @@ export interface WindowBodies {
   /** Screen 0..1, y up — off the glass when outside it; `ahead` < 0 behind you. */
   sun: { x: number; y: number; ahead: number; up: boolean };
   moon: { x: number; y: number; ahead: number; up: boolean };
-  phase: number;
-  hemisphere: 1 | -1;
 }
 
 /**
@@ -248,24 +271,6 @@ const CELESTIAL_TAU = 0.35;
 /** Ease-in-out, cubic: leaves gently and arrives gently, fast in between. */
 function easeInOut(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-/** The unit direction `t` of the way from `a` to `b`, along the great circle. */
-function slerpDir(a: Vec3, b: Vec3, t: number): Vec3 {
-  const d = Math.max(-1, Math.min(1, a.x * b.x + a.y * b.y + a.z * b.z));
-  if (d > 0.9995) {
-    return normalize(vec3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t));
-  }
-  if (d < -0.9995) {
-    // Dead opposite: any great circle will do; go over the top.
-    const mid = normalize(vec3(-a.y, a.x, 0.5));
-    return t < 0.5 ? slerpDir(a, mid, t * 2) : slerpDir(mid, b, t * 2 - 1);
-  }
-  const th = Math.acos(d);
-  const sin = Math.sin(th);
-  const wa = Math.sin((1 - t) * th) / sin;
-  const wb = Math.sin(t * th) / sin;
-  return vec3(a.x * wa + b.x * wb, a.y * wa + b.y * wb, a.z * wa + b.z * wb);
 }
 
 interface BodyGlide {
@@ -478,17 +483,15 @@ function packScene(scene: WeatherScene, out: Float32Array) {
   out[44] = scene.windWorld.east; out[45] = scene.windWorld.north;
   packDirection(sun.azimuth, sun.elevation, out, 46);
   packDirection(moon.azimuth, moon.elevation, out, 49);
-  out[52] = scene.celestial.latitude; out[53] = scene.celestial.siderealDeg;
 }
-if (FLOAT_COUNT !== 54) throw new Error("packScene is out of step with UNIFORMS");
+if (FLOAT_COUNT !== 52) throw new Error("packScene is out of step with UNIFORMS");
 
 /** An azimuth and elevation, as an East-North-Up unit vector, into `out`. */
 function packDirection(azimuthDeg: number, elevationDeg: number, out: Float32Array, at: number) {
-  const az = (azimuthDeg * Math.PI) / 180;
-  const el = (elevationDeg * Math.PI) / 180;
-  out[at] = Math.sin(az) * Math.cos(el);
-  out[at + 1] = Math.cos(az) * Math.cos(el);
-  out[at + 2] = Math.sin(el);
+  const d = directionOf(azimuthDeg, elevationDeg);
+  out[at] = d.x;
+  out[at + 1] = d.y;
+  out[at + 2] = d.z;
 }
 
 export interface WallpaperRendererOptions {
@@ -666,12 +669,21 @@ export class WallpaperRenderer {
   private shownView: SkyView | null = null;
   private viewGlide: { from: SkyView; at: number } | null = null;
   private starMat = new Float32Array(9);
-  /** Latitude and sidereal time, eased (the latter the short way round). */
+  /** Latitude and sidereal time: where the scene has them, and eased (the latter the short way round). */
+  private celestialTarget = new Float64Array(2);
   private celestial = new Float64Array(2);
+  /** The celestial frame the star matrix was last built for. */
+  private starFrameAt = new Float64Array([NaN, NaN]);
+  /** Reused every frame for the edge hints' listener, rather than rebuilt. */
+  private bodies: WindowBodies = {
+    settled: false,
+    sun: { x: 0, y: 0, ahead: 0, up: false },
+    moon: { x: 0, y: 0, ahead: 0, up: false },
+  };
 
   // --- Glides across a jump ---------------------------------------------------
-  private sunGlide: BodyGlide | null = null;
-  private moonGlide: BodyGlide | null = null;
+  /** One per body in BODIES: the sun's, then the moon's. */
+  private glides: (BodyGlide | null)[] = [null, null];
   /** Whether any glide is running, as last reported to `onSettle`. */
   private gliding = false;
 
@@ -726,11 +738,12 @@ export class WallpaperRenderer {
     const prevTarget = this.target.slice();
     const first = !this.hasScene;
     packScene(scene, this.target);
+    this.celestialTarget[0] = scene.celestial.latitude;
+    this.celestialTarget[1] = scene.celestial.siderealDeg;
     this.seed = scene.seed;
     if (!this.hasScene) {
       this.current.set(this.target);
-      this.celestial[0] = this.target[CELESTIAL_OFFSET];
-      this.celestial[1] = this.target[CELESTIAL_OFFSET + 1];
+      this.celestial.set(this.celestialTarget);
       // Start both fields already leaning into the scene's wind. Coming up
       // from nothing would mean the first seconds of a page had the weather
       // falling straight down through a gale.
@@ -745,8 +758,9 @@ export class WallpaperRenderer {
     // next: measuring against the eased position instead would read a run of
     // small steps — a scrub — as one big jump, and glide the disc mid-drag.
     if (!first) {
-      this.sunGlide = this.glideIfJumped("uSun", SUN_WORLD_OFFSET, prevTarget) ?? this.sunGlide;
-      this.moonGlide = this.glideIfJumped("uMoon", MOON_WORLD_OFFSET, prevTarget) ?? this.moonGlide;
+      BODIES.forEach((body, i) => {
+        this.glides[i] = this.glideIfJumped(body, prevTarget) ?? this.glides[i];
+      });
       this.reportGlides();
     }
     if (this.opts.reducedMotion) {
@@ -856,7 +870,7 @@ export class WallpaperRenderer {
    */
   previewWindow(amount: number) {
     if (this.opts.reducedMotion) return;
-    this.preview = Math.max(0, Math.min(1, amount));
+    this.preview = clamp01(amount);
   }
 
   /**
@@ -872,7 +886,7 @@ export class WallpaperRenderer {
       view &&
       !this.opts.reducedMotion &&
       this.windowAmt > 0 &&
-      viewAngle(shown, view) > VIEW_JUMP_DEG
+      viewJumped(shown, view, VIEW_JUMP_DEG)
     ) {
       this.viewGlide = { from: shown, at: performance.now() };
       this.reportGlides();
@@ -1109,6 +1123,8 @@ export class WallpaperRenderer {
     this.locStarFrame = gl.getUniformLocation(program, "uStarFrame");
     this.locMoonAxis = gl.getUniformLocation(program, "uMoonAxis");
     this.locLift = gl.getUniformLocation(program, "uLift");
+    // A new program has no star frame yet.
+    this.starFrameAt.fill(NaN);
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     return true;
@@ -1386,13 +1402,13 @@ export class WallpaperRenderer {
    * position past `JUMP_SCREEN`; null when it only drifted. Under reduced motion
    * there is no glide — the still frame simply is the new sky.
    */
-  private glideIfJumped(name: string, worldOffset: number, from: Float32Array): BodyGlide | null {
+  private glideIfJumped(body: (typeof BODIES)[number], from: Float32Array): BodyGlide | null {
     if (this.opts.reducedMotion) return null;
-    const offset = OFFSET[name];
+    const offset = OFFSET[body.screen];
     const dx = this.target[offset] - from[offset];
     const dy = this.target[offset + 1] - from[offset + 1];
     if (Math.hypot(dx, dy) <= JUMP_SCREEN) return null;
-    return { from: worldAt(this.current, worldOffset), at: performance.now() };
+    return { from: worldAt(this.current, OFFSET[body.world]), at: performance.now() };
   }
 
   /**
@@ -1402,32 +1418,31 @@ export class WallpaperRenderer {
    * put there this frame.
    */
   private advanceGlides() {
+    // Nothing gliding and no window to aim: the plain sky has nothing to do
+    // here, and this runs every frame of it.
+    if (!this.glides[0] && !this.glides[1] && !this.viewGlide && this.windowAmt <= 0) return;
     const now = performance.now();
-    const hemisphere = this.target[HEMISPHERE_OFFSET] < 0 ? -1 : 1;
-    const bodies = [
-      { glide: this.sunGlide, world: SUN_WORLD_OFFSET, screen: OFFSET.uSun, sun: true },
-      { glide: this.moonGlide, world: MOON_WORLD_OFFSET, screen: OFFSET.uMoon, sun: false },
-    ];
-    for (const body of bodies) {
-      const glide = body.glide;
+    const hemisphere = hemisphereOf(this.target);
+    for (let i = 0; i < BODIES.length; i++) {
+      const glide = this.glides[i];
       if (!glide) continue;
+      const body = BODIES[i];
+      const world = OFFSET[body.world];
       const t = (now - glide.at) / 1000 / GLIDE_SEC;
       if (t >= 1) {
-        if (body.sun) this.sunGlide = null;
-        else this.moonGlide = null;
-        this.snap(body.sun ? "uSun" : "uMoon");
-        this.snap(body.sun ? "uSunWorld" : "uMoonWorld");
+        this.glides[i] = null;
+        this.snap(body.screen);
+        this.snap(body.world);
         continue;
       }
-      const dir = slerpDir(glide.from, worldAt(this.target, body.world), easeInOut(t));
-      this.current[body.world] = dir.x;
-      this.current[body.world + 1] = dir.y;
-      this.current[body.world + 2] = dir.z;
+      const dir = slerpDir(glide.from, worldAt(this.target, world), easeInOut(t));
+      this.current[world] = dir.x;
+      this.current[world + 1] = dir.y;
+      this.current[world + 2] = dir.z;
       const { heading, pitch } = headingPitchOf(dir);
-      const at = { azimuth: heading, elevation: pitch };
-      const screen = body.sun ? stageSun(at, hemisphere) : stageMoon(at, hemisphere).screen;
-      this.current[body.screen] = screen.x;
-      this.current[body.screen + 1] = screen.y;
+      const screen = body.stage({ azimuth: heading, elevation: pitch }, hemisphere);
+      this.current[OFFSET[body.screen]] = screen.x;
+      this.current[OFFSET[body.screen] + 1] = screen.y;
     }
 
     const target = this.view ?? stageView(hemisphere);
@@ -1461,16 +1476,12 @@ export class WallpaperRenderer {
 
   /** Land every glide where it was going. */
   private finishGlides() {
-    if (this.sunGlide) {
-      this.snap("uSun");
-      this.snap("uSunWorld");
-    }
-    if (this.moonGlide) {
-      this.snap("uMoon");
-      this.snap("uMoonWorld");
-    }
-    this.sunGlide = null;
-    this.moonGlide = null;
+    BODIES.forEach((body, i) => {
+      if (!this.glides[i]) return;
+      this.snap(body.screen);
+      this.snap(body.world);
+      this.glides[i] = null;
+    });
     this.viewGlide = null;
     this.shownView = this.view;
     this.reportGlides();
@@ -1478,7 +1489,7 @@ export class WallpaperRenderer {
 
   /** Tell `onSettle` when the answer to "is anything gliding?" changes. */
   private reportGlides() {
-    const gliding = !!(this.sunGlide || this.moonGlide || this.viewGlide);
+    const gliding = !!(this.glides[0] || this.glides[1] || this.viewGlide);
     if (gliding === this.gliding) return;
     this.gliding = gliding;
     this.opts.onSettle?.(gliding);
@@ -1506,8 +1517,8 @@ export class WallpaperRenderer {
     this.advanceGust(dtSec);
     this.advanceGlides();
     const kc = 1 - Math.exp(-dtSec / CELESTIAL_TAU);
-    this.celestial[0] += (this.target[CELESTIAL_OFFSET] - this.celestial[0]) * kc;
-    const lstGap = ((this.target[CELESTIAL_OFFSET + 1] - this.celestial[1]) % 360 + 540) % 360 - 180;
+    this.celestial[0] += (this.celestialTarget[0] - this.celestial[0]) * kc;
+    const lstGap = ((this.celestialTarget[1] - this.celestial[1]) % 360 + 540) % 360 - 180;
     this.celestial[1] = (this.celestial[1] + lstGap * kc + 360) % 360;
     const aimLift = this.windowOn ? 0 : this.preview * LIFT_MAX;
     const kl = 1 - Math.exp(-dtSec / (aimLift > this.lift ? PREVIEW_TAU : WINDOW_TAU));
@@ -1609,7 +1620,7 @@ export class WallpaperRenderer {
     // screen's right, levelled, takes over.
     const f = view.forward;
     const levelLen = Math.hypot(f.x, f.y);
-    const byLook = Math.min(1, Math.max(0, (levelLen - 0.1) / 0.2));
+    const byLook = clamp01((levelLen - 0.1) / 0.2);
     const rLen = Math.hypot(view.right.x, view.right.y) || 1;
     let hx = (view.right.x / rLen) * (1 - byLook);
     let hy = (view.right.y / rLen) * (1 - byLook);
@@ -1623,7 +1634,7 @@ export class WallpaperRenderer {
 
   /** The view the window is looking along, or the stage's when none has come. */
   private currentView(src: Float32Array): SkyView {
-    return this.shownView ?? this.view ?? stageView(src[HEMISPHERE_OFFSET] < 0 ? -1 : 1);
+    return this.shownView ?? this.view ?? stageView(hemisphereOf(src));
   }
 
   /**
@@ -1681,8 +1692,7 @@ export class WallpaperRenderer {
     this.bodyFly = null;
     this.bodyAmt = this.windowOn ? 1 : 0;
     this.lift = 0;
-    this.celestial[0] = this.target[CELESTIAL_OFFSET];
-    this.celestial[1] = this.target[CELESTIAL_OFFSET + 1];
+    this.celestial.set(this.celestialTarget);
     this.finishGlides();
     this.windowAmt = this.windowOn ? 1 : 0;
     this.snapFall();
@@ -1780,17 +1790,23 @@ export class WallpaperRenderer {
     gl.uniform3f(this.locViewRight, view.right.x, view.right.y, view.right.z);
     gl.uniform3f(this.locViewUp, view.up.x, view.up.y, view.up.z);
     gl.uniform3f(this.locViewFwd, view.forward.x, view.forward.y, view.forward.z);
-    gl.uniform1f(this.locViewScale, viewScale(aspect));
-    gl.uniformMatrix3fv(
-      this.locStarFrame,
-      false,
-      starFrame(this.celestial[0], this.celestial[1], this.starMat)
-    );
+    const k = viewScale(aspect);
+    gl.uniform1f(this.locViewScale, k);
+    // The star frame only moves when the celestial frame does — a new place,
+    // or the clock — so it is rebuilt and sent then, not every frame.
+    if (this.celestial[0] !== this.starFrameAt[0] || this.celestial[1] !== this.starFrameAt[1]) {
+      this.starFrameAt.set(this.celestial);
+      gl.uniformMatrix3fv(
+        this.locStarFrame,
+        false,
+        starFrame(this.celestial[0], this.celestial[1], this.starMat)
+      );
+    }
 
     const sunW = worldAt(c, SUN_WORLD_OFFSET);
     const moonW = worldAt(c, MOON_WORLD_OFFSET);
-    const sun = projectToScreen(sunW, view, aspect);
-    const moon = projectToScreen(moonW, view, aspect);
+    const sun = projectToScreen(sunW, view, aspect, k);
+    const moon = projectToScreen(moonW, view, aspect, k);
     // Held where the stage has them until the flight starts, then flown along
     // a slight arc to where they really are — not blended with the sky's own
     // ease, so a pull and the first beat of the window leave them still.
@@ -1803,21 +1819,20 @@ export class WallpaperRenderer {
     gl.uniform2f(this.locs[MOON_INDEX], moonAt.x, moonAt.y);
 
     if (this.bodyListener) {
+      const out = this.bodies;
+      out.settled = w >= 0.999 && b >= 0.999;
+      out.sun.x = sun.x;
+      out.sun.y = sun.y;
+      out.sun.ahead = sun.ahead;
+      out.sun.up = sunW.z > HORIZON_Z;
+      out.moon.x = moon.x;
+      out.moon.y = moon.y;
+      out.moon.ahead = moon.ahead;
+      // Worth finding: above the horizon and not lost in the daylight — the
+      // moon the sky would show with nothing in front of it.
+      out.moon.up = moonW.z > HORIZON_Z && c[MOON_BEHIND_OFFSET] > 0.04;
       this.bodiesPublished = true;
-      this.bodyListener({
-        settled: w >= 0.999 && b >= 0.999,
-        sun: { x: sun.x, y: sun.y, ahead: sun.ahead, up: sunW.z > Math.sin(-1 * (Math.PI / 180)) },
-        moon: {
-          x: moon.x,
-          y: moon.y,
-          ahead: moon.ahead,
-          // Worth finding: above the horizon and not lost in the daylight —
-          // the moon the sky would show with nothing in front of it.
-          up: moonW.z > Math.sin(-1 * (Math.PI / 180)) && c[MOON_BEHIND_OFFSET] > 0.04,
-        },
-        phase: c[MOON_PHASE_OFFSET],
-        hemisphere: c[HEMISPHERE_OFFSET] < 0 ? -1 : 1,
-      });
+      this.bodyListener(out);
     }
 
     // The crescent faces the sun. In the shader's moon frame the lit limb is +x
@@ -1825,11 +1840,10 @@ export class WallpaperRenderer {
     // after this turn — so the axis is the sun's way, signed by both. Turned by
     // the blend's share of the angle, so the stage's upright crescent swings
     // round rather than passing through a degenerate zero.
-    const hemisphere = c[HEMISPHERE_OFFSET] < 0 ? -1 : 1;
     const waxing = c[MOON_PHASE_OFFSET] < 0.5 ? 1 : -1;
     let angle = moonLitAngle(moonW, sunW, view);
-    if (hemisphere * waxing < 0) angle += Math.PI;
-    angle = Math.atan2(Math.sin(angle), Math.cos(angle)) * b;
+    if (hemisphereOf(c) * waxing < 0) angle += Math.PI;
+    angle = wrapPi(angle) * b;
     gl.uniform2f(this.locMoonAxis, Math.cos(angle), Math.sin(angle));
   }
 
@@ -1883,6 +1897,9 @@ export class WallpaperRenderer {
     for (let i = 0; i < META.length; i++) {
       const { offset, size } = META[i];
       const loc = this.locs[i];
+      // uWind and uWindWorld are packed for the renderer's own use and are no
+      // uniform of the shader's: there is nothing to send them to.
+      if (!loc) continue;
       if (size === 1) gl.uniform1f(loc, c[offset]);
       else if (size === 2) gl.uniform2f(loc, c[offset], c[offset + 1]);
       else gl.uniform3f(loc, c[offset], c[offset + 1], c[offset + 2]);
