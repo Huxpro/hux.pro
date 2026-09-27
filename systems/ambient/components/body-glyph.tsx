@@ -56,12 +56,31 @@ export function MoonGlyph({
   );
 }
 
-/** The sun: the moon's family, all lit — a solid disc in a faint one. */
+/** Eight short rays round the sun's disc, as solid as the disc. */
+const RAYS = Array.from({ length: 8 }, (_, i) => (i * 360) / 8);
+
+/**
+ * The sun: the moon's family — solid, the same size — but with rays. A plain
+ * lit disc is what a FULL moon looks like, and the two must never be taken for
+ * each other: a full moon read as the sun is a phase nobody can see.
+ */
 export function SunGlyph({ className, light = false }: { className?: string; light?: boolean }) {
+  const fill = light ? "fill-white" : "fill-foreground/85";
   return (
     <svg viewBox="-7 -7 14 14" className={cn("h-3.5 w-3.5 shrink-0", className)} aria-hidden>
-      <circle r={6.5} className={light ? "fill-white/25" : "fill-muted-foreground/25"} />
-      <circle r={4.5} className={light ? "fill-white" : "fill-foreground/85"} />
+      <circle r={3.4} className={fill} />
+      {RAYS.map((deg) => (
+        <rect
+          key={deg}
+          x={-0.65}
+          y={-6.6}
+          width={1.3}
+          height={1.9}
+          rx={0.65}
+          transform={`rotate(${deg})`}
+          className={fill}
+        />
+      ))}
     </svg>
   );
 }

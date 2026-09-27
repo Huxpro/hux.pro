@@ -13,9 +13,10 @@ import { MoonGlyph, SunGlyph } from "./body-glyph";
 // whichever of the sun and the moon is up right now — the moon at its real
 // phase — drawn as light, with a soft bloom round it. The further the pull, the
 // lower it comes, the larger it grows and the brighter it gets, as if it were
-// rising into view; at the point where letting go opens the window it settles
-// with a small pop, the light blooms, and the line under it changes to "let
-// go". Under it, the sky's gradient is
+// rising into view. At the point where letting go opens the window only the
+// words change, to "let go": the light has no state of its own there, so it
+// never jumps — not crossing the line, and not letting go on either side of
+// it. Under it, the sky's gradient is
 // already lifting (the renderer's pull preview), so the cue and the sky say the
 // same thing.
 //

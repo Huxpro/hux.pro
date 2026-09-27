@@ -455,25 +455,30 @@ function resolveLunar(params: DeriveSceneParams): SolarPosition & { phase: numbe
   const coords = coordsOf(params);
   if (coords) return getLunarPosition(params.nowMs, coords.lat, coords.lon);
 
+  // No ephemeris without a place, but the phase needs none — and the phase IS
+  // where the moon is relative to the sun: it runs behind the sun by its
+  // phase's share of a day. New, it crosses the sky with the sun (and is lost
+  // in it); first quarter, it is highest at dusk; full, it rises as the sun
+  // sets and is highest at midnight; last quarter, it rises at midnight. So
+  // its arc is the sun's own estimated arc, that far behind. Anything else
+  // (a fixed night arc, as this once was) draws a crescent high at midnight
+  // and leaves the moon deaf to the calendar — to the devtool's date too.
   const { nowMs } = params;
-  const { sunrise: sr, sunset: ss } = sunTimesOrDefault(
+  const phase = getMoonPhase(nowMs);
+  const { sunrise, sunset } = sunTimesOrDefault(
     nowMs,
     params.weather?.sunriseMs,
     params.weather?.sunsetMs
   );
-  let np: number;
-  if (nowMs >= ss) {
-    np = clamp01((nowMs - ss) / Math.max(1, sr + 86_400_000 - ss));
-  } else if (nowMs <= sr) {
-    np = clamp01((nowMs - (ss - 86_400_000)) / Math.max(1, sr - (ss - 86_400_000)));
-  } else {
-    np = -1; // daytime: below the horizon
-  }
-  const natural: SolarPosition =
-    np < 0
-      ? { elevation: -30, azimuth: 0 }
-      : { elevation: Math.sin(np * Math.PI) * 55, azimuth: 90 + np * 180 };
-  return { ...natural, phase: getMoonPhase(nowMs) };
+  const DAY = 86_400_000;
+  // Into the one day the solar estimate is written for: from the previous
+  // sunset to this one, where its night and day branches both hold.
+  const from = sunset - DAY;
+  const behind = nowMs - phase * DAY;
+  const lagged = from + ((((behind - from) % DAY) + DAY) % DAY);
+  const natural = estimateSolarPosition({ nowMs: lagged, sunriseMs: sunrise, sunsetMs: sunset });
+  // The estimate's night arc runs its azimuth on past 360; a bearing is 0..360.
+  return { ...natural, azimuth: ((natural.azimuth % 360) + 360) % 360, phase };
 }
 
 /**

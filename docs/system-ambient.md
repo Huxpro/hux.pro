@@ -148,6 +148,14 @@ is modelled too: a bright, high moon lifts the night sky and cloud tops and
 washes out the fainter stars; cloud cover and fog occlude it. In the southern
 hemisphere the crescent is mirrored.
 
+Without coordinates there is no ephemeris, but the phase needs none — and the
+phase *is* where the moon stands relative to the sun: it runs behind the sun by
+its phase's share of a day. So the fallback moon is the sun's own estimated arc,
+that far behind: new, it crosses with the sun; first quarter, highest at dusk;
+full, rising at sunset; last quarter, rising at midnight. (It used to ride a
+fixed night arc whatever the phase — a crescent high at midnight, and a moon
+that did not move when the devtool changed the date.)
+
 **Staging the moon.** Where the moon *is* comes from the ephemeris and is never
 bent. Where it is *drawn* is a composition decision (`stageMoon` in
 `lib/scene.ts`), made on purpose:
@@ -389,9 +397,10 @@ comes down, something comes down from above the top edge (`<SkyPullCue />`):
 whichever of the sun and the moon is above the horizon — the moon at its real
 phase — drawn as **light**, not ink: a white body with a soft bloom round it
 that descends, grows and brightens with the pull, over "keep pulling to look
-up". At the point of no return it settles with a small pop, the bloom opens,
-the line becomes "let go to look up", and there is a tick where the platform
-has one (`navigator.vibrate`). (The first version drew progress as a stroked
+up". At the point of no return only the words change — "let go to look up" —
+with a tick where the platform has one (`navigator.vibrate`): the light is one
+continuous function of the pull, so it never jumps, crossing the line or
+letting go on either side of it. (The first version drew progress as a stroked
 ring round an outline icon, and read as a control; a second put an ink glyph in
 a glass bubble, and read as a button. Progress is brightness now.)
 
@@ -609,7 +618,10 @@ Through the window:
   every frame (`lib/sky-bodies.ts`); the hints move their own elements, with no
   React render per frame. The glyphs are the devtool's — `MoonGlyph` at the
   real phase and a `SunGlyph` of the same family, now shared in
-  `components/body-glyph.tsx`.
+  `components/body-glyph.tsx`. The sun has rays and the moon never does: a
+  plain lit disc is a full moon, and the two must never be taken for each
+  other. Every one of them reads `scene.moon.phase` — the effective clock's,
+  so the devtool's date and time move them all together with the sky.
 - **The crescent faces the sun.** The stage can say "waxing is lit on the
   right"; a sky you can turn around in cannot. The lit limb is turned toward the
   sun along the great circle between them, whatever the phone's roll.
