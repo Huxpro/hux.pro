@@ -24,7 +24,9 @@ systems/ambient/
 │   ├── phase-activity.tsx        # Sun-event notification (plugs into the Dock)
 │   ├── location-primer-sheet.tsx # The offer before the browser's location prompt
 │   ├── tilt-primer-sheet.tsx     # The offer before WebKit's motion prompt (the sky window)
-│   ├── sky-pull-cue.tsx          # The ring at the top while the home is pulled down
+│   ├── sky-pull-cue.tsx          # The body of light at the top while the home is pulled down
+│   ├── sky-body-hints.tsx        # Edge hints toward an off-screen sun or moon in the window
+│   ├── body-glyph.tsx            # Solid sun and moon-phase glyphs (devtool, hints, cue)
 │   ├── sky-window-toast.tsx      # "Sky window" / "Back to the wallpaper" pill
 │   ├── settle-spinner.tsx        # The tiny top-right ring while the sky settles
 │   └── index.ts                  # Component exports
@@ -33,6 +35,7 @@ systems/ambient/
 │   ├── gyroscope.ts              # Screen-space gravity from `deviceorientation` + motion access
 │   ├── sky-window.ts             # The phone as a window: view from the compass, projection, stars
 │   ├── settle.ts                 # Named reasons the sky is between two states (the spinner)
+│   ├── sky-bodies.ts             # Per-frame channel: where the sun and moon are in the window
 │   ├── solar.ts                  # Sun elevation/azimuth, lunar ephemeris, moon phase
 │   ├── scene.ts                  # weather × sun × moon × theme → WeatherScene
 │   ├── gradient.ts               # WeatherScene → CSS gradient + crossfade types
@@ -382,14 +385,22 @@ Why a pull, and not the press-and-hold it replaced:
   they want in.
 
 **Something is up there.** A pull with no answer stops halfway. So as the page
-comes down, a cue comes down from the top edge (`<SkyPullCue />`): whichever of
-the sun and the moon is up right now, in a ring that fills with the pull, over
-"keep pulling to look up" — which becomes "let go to look up" at the point of
-no return, with a tick where the platform has one (`navigator.vibrate`). And the
-sky itself starts to lift: the renderer's pull preview blends up to a third of
-the way into the window, looking up by up to 30° more than the stage does, so
-the horizon drops away under the pull and the sun or moon starts toward where it
-really is. Let go short and all of it eases back.
+comes down, something comes down from above the top edge (`<SkyPullCue />`):
+whichever of the sun and the moon is above the horizon — the moon at its real
+phase — drawn as **light**, not ink: a white body with a soft bloom round it
+that descends, grows and brightens with the pull, over "keep pulling to look
+up". At the point of no return it settles with a small pop, the bloom opens,
+the line becomes "let go to look up", and there is a tick where the platform
+has one (`navigator.vibrate`). (The first version drew progress as a stroked
+ring round an outline icon, and read as a control; a second put an ink glyph in
+a glass bubble, and read as a button. Progress is brightness now.)
+
+And the sky's gradient lifts under it — `uLift`, up to 0.16 of a screen height,
+so the zenith's colour reaches further down and the stars come lower, as if the
+eyes were rising with the page. **Only the gradient**: the sun and the moon hold
+still under a pull, and so do the clouds and the stars' places, so nothing is
+already on its way before the window has opened. Let go short and it eases
+back.
 
 **No React per frame.** The recognizer writes two CSS variables and three
 attributes on `<html>` and calls the renderer's `previewWindow`; the page, the
@@ -577,11 +588,28 @@ Through the window:
   low-down thickening read the same value.
 - **The sun and moon are projected, not staged.** The renderer projects their
   directions (a pinhole, `WINDOW_FOV_DEG` = 80° along the longer side of the
-  screen) and hands the shader a screen position, blended with the stage's
-  through the transition — so every line that draws a disc, a glow or a halo
-  works in screen space unchanged, and the disc slides from where the stage had
-  it to where it really is. A body behind you is parked off screen in the
-  direction it lies, so its glow falls away continuously as it swings round.
+  screen) and hands the shader a screen position — so every line that draws a
+  disc, a glow or a halo works in screen space unchanged. A body behind you is
+  parked off screen in the direction it lies, so its glow falls away
+  continuously as it swings round.
+- **They fly there, and that is the first hint.** The bodies do not ride the
+  sky's own ease: they hold where the stage had them while the window opens,
+  and after a beat (`BODY_FLY_DELAY`, 0.25 s) fly to where they really are over
+  `BODY_FLY_SEC` (1.2 s), ease-in-out, on a slight upward arc. A moon that is
+  really behind you flies off the edge you would have to turn toward. Closing
+  flies them back the same way.
+- **An edge hint for a body off the glass** (`<SkyBodyHints />`). Once the
+  bodies have landed, one that is up but not on screen — to a side, overhead,
+  behind you — gets its solid glyph and a small chevron at the edge of the
+  screen, on the line from the centre toward it; turn that way and it comes
+  into the window and the hint lets go. Faint (60 %), no label, clear of the
+  settle spinner's corner. The moon counts as up only when the sky would show
+  it with nothing in front of it (so not a daytime moon lost in the light), and
+  a clouded body on screen gets no hint. The renderer publishes the bodies
+  every frame (`lib/sky-bodies.ts`); the hints move their own elements, with no
+  React render per frame. The glyphs are the devtool's — `MoonGlyph` at the
+  real phase and a `SunGlyph` of the same family, now shared in
+  `components/body-glyph.tsx`.
 - **The crescent faces the sun.** The stage can say "waxing is lit on the
   right"; a sky you can turn around in cannot. The lit limb is turned toward the
   sun along the great circle between them, whatever the phone's roll.

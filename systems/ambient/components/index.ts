@@ -6,6 +6,7 @@ export { TiltPrimerSheet } from "./tilt-primer-sheet";
 export { LocationPrimerSheet } from "./location-primer-sheet";
 export { SettleSpinner } from "./settle-spinner";
 export { SkyPullCue } from "./sky-pull-cue";
+export { SkyBodyHints } from "./sky-body-hints";
 export { WeatherIcon } from "./weather-icon";
 export { WeatherWidget } from "./weather-widget";
 export { WeatherLine } from "./weather-line";

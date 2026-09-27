@@ -33,6 +33,7 @@ import {
   type MotionDiagnostics,
 } from "@/systems/ambient/lib/sky-window";
 import { settleReasons, type SettleReason } from "@/systems/ambient/lib/settle";
+import { MoonGlyph } from "@/systems/ambient/components/body-glyph";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import {
@@ -1635,9 +1636,8 @@ function PanelSlider({
 }
 
 // =============================================================================
-// Moon phase glyph — the lit part of the disc for a phase in [0, 1).
-// Terminator is an ellipse of half-width |cos(2πp)|; waxing lights the right
-// limb (northern hemisphere), and `mirror` flips it for the south.
+// Glyphs. The moon's phase glyph is shared with the sky window's hints:
+// MoonGlyph in systems/ambient/components/body-glyph.tsx.
 // =============================================================================
 
 /**
@@ -1673,38 +1673,6 @@ function MeteorMark({ className }: { className?: string }) {
   );
 }
 
-function MoonPhaseIcon({
-  phase,
-  mirror = false,
-  className,
-}: {
-  phase: number;
-  mirror?: boolean;
-  className?: string;
-}) {
-  const r = 6;
-  const p = ((phase % 1) + 1) % 1;
-  const k = Math.cos(p * 2 * Math.PI);
-  const rx = Math.max(0.01, Math.abs(k) * r);
-  const waxing = p < 0.5;
-  // Outer limb: right semicircle when waxing, left when waning (top → bottom).
-  const limb = waxing ? `A ${r} ${r} 0 0 1 0 ${r}` : `A ${r} ${r} 0 0 0 0 ${r}`;
-  // Return along the terminator ellipse (bottom → top). Crescent (k > 0)
-  // curves back on the same side as the limb; gibbous (k < 0) bulges across.
-  const sweep = waxing ? (k > 0 ? 0 : 1) : k > 0 ? 1 : 0;
-  const terminator = `A ${rx} ${r} 0 0 ${sweep} 0 ${-r}`;
-  return (
-    <svg
-      viewBox="-7 -7 14 14"
-      className={cn("h-3.5 w-3.5 shrink-0", className)}
-      aria-hidden
-      style={mirror ? { transform: "scaleX(-1)" } : undefined}
-    >
-      <circle r={r} className="fill-muted-foreground/25" />
-      <path d={`M 0 ${-r} ${limb} ${terminator} Z`} className="fill-foreground/85" />
-    </svg>
-  );
-}
 
 // =============================================================================
 // Sky Module — weather and time as one thing
@@ -2269,7 +2237,7 @@ function SkyModule() {
               className="inline-flex items-center gap-1"
               title={`${MOON_NAME[lang][moonName]} · ${moonUpLabel}`}
             >
-              <MoonPhaseIcon phase={scene.moon.phase} mirror={scene.hemisphere === -1} className="h-3 w-3" />
+              <MoonGlyph phase={scene.moon.phase} mirror={scene.hemisphere === -1} className="h-3 w-3" />
               {Math.round(scene.moon.illumination * 100)}%
             </span>
           </span>
@@ -2590,7 +2558,7 @@ function SkyModule() {
               )}
             </span>
             <span className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
-              <MoonPhaseIcon phase={scene.moon.phase} mirror={scene.hemisphere === -1} />
+              <MoonGlyph phase={scene.moon.phase} mirror={scene.hemisphere === -1} />
               <span className="text-foreground/80">{MOON_NAME[lang][moonName]}</span>
             </span>
           </div>

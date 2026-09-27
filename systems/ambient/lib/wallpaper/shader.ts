@@ -148,6 +148,10 @@ uniform float uViewScale;     // screen heights per unit of tan, at the centre
 uniform vec3  uSunWorld;      // the sun's direction, ENU
 uniform mat3  uStarFrame;     // ENU -> the turning celestial sphere
 uniform vec2  uMoonAxis;      // the moon frame's +x on screen: toward the sun
+// A pull on the home lifts the gradient by this many screen heights — the eyes
+// rising before the window opens (lib/sky-pull.ts). Only the gradient reads
+// it: the sun, the moon, the clouds and the stars' places hold still.
+uniform float uLift;
 
 /**
  * Square. Worth a name because the alternative, a pow() of two, is both
@@ -1431,6 +1435,7 @@ void main() {
     vec2 sunFlat = vec2(-uHemisphere * uSunWorld.x, uSunWorld.y);
     sunDir = normalize(mix(sunDir, normalize(sunFlat + vec2(0.0001)), uWindow) + vec2(0.0001));
   }
+  if (uLift > 0.0) skyY += uLift;
 
   // The wipe is worked out first, because what it uncovers is composited here,
   // at the very back of the frame — long before the fog it is clearing.

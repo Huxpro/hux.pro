@@ -5,6 +5,7 @@ import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { subscribeGravity } from "../lib/gyroscope";
 import { holdSettle } from "../lib/settle";
+import { publishWindowBodies } from "../lib/sky-bodies";
 import { subscribeView } from "../lib/sky-window";
 import type { PokeKind } from "../lib/poke";
 import type { WipeHandle } from "../lib/wipe";
@@ -138,6 +139,8 @@ export function WeatherWallpaper({
     if (statsRef) statsRef.current = () => renderer.getStats();
     if (pokeRef) pokeRef.current = (kind, x, y) => renderer.poke(kind, x, y);
     if (previewRef) previewRef.current = (amount) => renderer.previewWindow(amount);
+    // The full-page sky is the one whose bodies the edge hints point at.
+    if (interactive) renderer.onWindowBodies(publishWindowBodies);
     if (wipeRef) {
       wipeRef.current = {
         wipe: (x, y) => renderer.wipe(x, y),
@@ -152,7 +155,10 @@ export function WeatherWallpaper({
       if (wipeRef) wipeRef.current = null;
       renderer.destroy();
       rendererRef.current = null;
-      if (interactive) holdSettle("sky", false);
+      if (interactive) {
+        holdSettle("sky", false);
+        publishWindowBodies(null);
+      }
     };
     // The renderer is created once per canvas; scenes stream in below.
     // eslint-disable-next-line react-hooks/exhaustive-deps

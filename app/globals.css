@@ -2039,11 +2039,13 @@ html[data-sky-window] [data-sky-exits] {
     opacity 420ms ease-in 140ms;
 }
 
-/* The cue at the top: comes down with the pull, fills, and says "let go". */
+/* The cue at the top: comes down with the pull from above the edge, grows and
+   brightens as it comes — light, not a gauge — and says "let go" when letting
+   go will open the window. */
 .sky-pull-cue {
-  padding-top: calc(env(safe-area-inset-top) + 10px);
-  opacity: var(--sky-pull-progress, 0);
-  transform: translate3d(0, calc(var(--sky-pull, 0px) * 0.4 - 28px), 0);
+  padding-top: calc(env(safe-area-inset-top) + 12px);
+  opacity: min(1, calc(var(--sky-pull-progress, 0) * 1.6));
+  transform: translate3d(0, calc(var(--sky-pull, 0px) * 0.45 - 44px), 0);
   transition:
     opacity 300ms ease-out,
     transform 450ms cubic-bezier(0.2, 0.9, 0.25, 1);
@@ -2057,17 +2059,43 @@ html[data-sky-window] .sky-pull-cue {
   opacity: 0;
 }
 
-.sky-pull-cue-fill {
-  stroke-dashoffset: calc(var(--sky-pull-ring) * 1px * (1 - var(--sky-pull-progress, 0)));
+.sky-pull-cue-bubble {
+  transform: scale(calc(0.72 + 0.28 * var(--sky-pull-progress, 0)));
+  transition: transform 260ms cubic-bezier(0.3, 1.6, 0.5, 1);
 }
 
-.sky-pull-cue-body {
-  transform: scale(0.85);
-  transition: transform 200ms cubic-bezier(0.3, 1.6, 0.5, 1);
+html[data-sky-pulling] .sky-pull-cue-bubble {
+  transition: transform 260ms cubic-bezier(0.3, 1.6, 0.5, 1);
 }
 
-html[data-sky-armed] .sky-pull-cue-body {
-  transform: scale(1.15);
+html[data-sky-armed] .sky-pull-cue-bubble {
+  transform: scale(1.08);
+}
+
+/* The body brightens as it comes into view — a body rising, not a bar filling —
+   with a glow of its own, and the faintest shade under it so it still reads
+   against a bright noon. */
+.sky-pull-cue-glyph {
+  opacity: calc(0.35 + 0.65 * var(--sky-pull-progress, 0));
+  filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.7)) drop-shadow(0 1px 3px rgb(0 0 0 / 0.18));
+}
+
+/* The light behind the glass: a soft bloom that widens with the pull and opens
+   out at the point of no return. White light, added — on a dark sky it glows,
+   on a bright one it is barely there, which is what light does. */
+.sky-pull-cue-bloom {
+  background: radial-gradient(circle, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 68%);
+  mix-blend-mode: plus-lighter;
+  opacity: calc(0.25 + 0.5 * var(--sky-pull-progress, 0));
+  transform: scale(calc(1.2 + 1.3 * var(--sky-pull-progress, 0)));
+  transition:
+    transform 320ms cubic-bezier(0.2, 0.9, 0.25, 1),
+    opacity 320ms ease-out;
+}
+
+html[data-sky-armed] .sky-pull-cue-bloom {
+  opacity: 1;
+  transform: scale(3.4);
 }
 
 .sky-pull-cue-more,
@@ -2088,7 +2116,8 @@ html[data-sky-armed] .sky-pull-cue-go {
   html[data-sky-returning] [data-sky-exits],
   html[data-sky-window] [data-sky-exits],
   .sky-pull-cue,
-  .sky-pull-cue-body {
+  .sky-pull-cue-bubble,
+  .sky-pull-cue-bloom {
     transition: none;
   }
 }

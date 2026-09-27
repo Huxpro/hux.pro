@@ -24,9 +24,10 @@
 //
 // While the finger pulls, the page follows it (with resistance) and a cue at
 // the top says there is something up there and how far is far enough (see
-// <SkyPullCue />); the sky itself starts to lift toward the window as a
-// preview. Both are driven from here without React: two CSS variables and two
-// attributes on <html>, and a callback for the renderer.
+// <SkyPullCue />); the sky's gradient lifts under it as a preview, while the
+// sun and the moon hold still until the window has actually opened. All of it
+// is driven from here without React: two CSS variables and three attributes on
+// <html>, and a callback for the renderer.
 //
 //   --sky-pull           px the page has followed the finger down
 //   --sky-pull-progress  0..1 of the way to far enough

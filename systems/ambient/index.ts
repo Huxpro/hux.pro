@@ -32,6 +32,7 @@ export {
   LocationPrimerSheet,
   SettleSpinner,
   SkyPullCue,
+  SkyBodyHints,
   WeatherIcon,
   WeatherWidget,
   WeatherLine,

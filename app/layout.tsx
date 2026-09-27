@@ -8,6 +8,7 @@ import {
   LocationPrimerSheet,
   SettleSpinner,
   SkyPullCue,
+  SkyBodyHints,
   SolarThemeSync,
   TiltPrimerSheet,
   WallpaperSheet,
@@ -149,6 +150,7 @@ export default function RootLayout({
             <LocationPrimerSheet />
             <SettleSpinner />
             <SkyPullCue />
+            <SkyBodyHints />
             <InstallSheet />
             <TheaterRegistrar />
             <TheaterSurfaces />
