@@ -92,14 +92,6 @@ export interface AmbientSettings {
    */
   weatherGyroGranted: boolean;
   /**
-   * The tilt has been offered once, on a rainy or snowy sky, and answered —
-   * taken or waved off. The offer is a one-time introduction to something the
-   * visitor did not ask about, and a second one would be nagging — so this is
-   * cleared only when a grant it led to has lapsed, or the ask never reached a
-   * dialog. See lib/tilt-primer.ts.
-   */
-  weatherGyroPrimed: boolean;
-  /**
    * When the visitor last said yes to the location prompt (epoch ms; 0 for
    * never). Safari's default "Ask" setting reads "prompt" through the
    * Permissions API even after an Allow, so this is the evidence of a grant
@@ -126,7 +118,6 @@ export function getDefaultSettings(): AmbientSettings {
     weatherStyle: "sky",
     weatherGyro: true,
     weatherGyroGranted: false,
-    weatherGyroPrimed: false,
     locationGrantedAt: 0,
     wallpaperId: DEFAULT_WALLPAPER_ID,
     wallpaperPlay: "off",
@@ -197,7 +188,6 @@ export function getAmbientSettings(): AmbientSettings {
       weatherStyle: readWeatherStyle(parsed.weatherStyle),
       weatherGyro: parsed.weatherGyro !== false,
       weatherGyroGranted: parsed.weatherGyroGranted === true,
-      weatherGyroPrimed: parsed.weatherGyroPrimed === true,
       locationGrantedAt:
         finiteOrNull(parsed.locationGrantedAt, (n) => Math.max(0, n)) ??
         defaults.locationGrantedAt,

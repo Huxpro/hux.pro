@@ -136,6 +136,19 @@ uniform vec3  uVeilColor;
 uniform float uVeilAmount;
 uniform float uExposure;
 
+// The sky window (see lib/sky-window.ts): the phone as a window onto the real
+// sky. uWindow is 0 on the stage and 1 through the window, and eases between
+// them; every line that reads the rest of these sits behind a test of it, so a
+// sky that is not a window renders exactly as it did before there was one.
+uniform float uWindow;
+uniform vec3  uViewRight;     // East-North-Up, unit: the screen's right edge
+uniform vec3  uViewUp;        // ...its top edge
+uniform vec3  uViewFwd;       // ...and where it looks, out of the back
+uniform float uViewScale;     // screen heights per unit of tan, at the centre
+uniform vec3  uSunWorld;      // the sun's direction, ENU
+uniform mat3  uStarFrame;     // ENU -> the turning celestial sphere
+uniform vec2  uMoonAxis;      // the moon frame's +x on screen: toward the sun
+
 /**
  * Square. Worth a name because the alternative, a pow() of two, is both
  * slower -- it compiles to exp2(2 * log2(x)) -- and wrong: GLSL leaves pow()
@@ -249,6 +262,41 @@ float stars(vec2 p, vec2 uv, float amount) {
   return s * amount * smoothstep(0.05, 0.45, uv.y);
 }
 
+// The window's stars: the same two fields, fixed to a sphere that turns with
+// the sidereal clock rather than to the glass. A 3D lattice of cells, one
+// candidate star jittered inside each; the sphere of directions slices through
+// the lattice, and a star shows where the slice passes near its point — nearer
+// is brighter, which is the spread of magnitudes for free. The jitter keeps
+// every star inside its own cell, so one cell is all a pixel has to ask.
+//
+// A turning window moves every star across the pixel grid, and a star smaller
+// than a pixel then pops in and out as it crosses. So each is drawn at least a
+// pixel wide and dimmed by the area it gained: the same light, spread.
+float starsSphere(vec3 dir, float skyY, float amount) {
+  if (amount < 0.002) return 0.0;
+  vec3 c3 = uStarFrame * dir;
+  float s = 0.0;
+  for (int i = 0; i < 2; i++) {
+    float scale = i == 0 ? 70.0 : 150.0;
+    vec3 sp = c3 * scale + uSeed * 3.1 + float(i) * 91.0;
+    vec3 cell = floor(sp);
+    vec3 f = fract(sp);
+    vec2 key = cell.xy + cell.z * vec2(17.31, 5.77);
+    vec2 rnd = hash2(key);
+    float rz = hash1(key + 11.7);
+    float present = step(i == 0 ? 0.925 : 0.9, hash1(key + 5.3));
+    float dist = length(f - (0.25 + vec3(rnd, rz) * 0.5));
+    float size = i == 0 ? 0.2 : 0.12;
+    float pixel = 1.2 * scale / max(uViewScale * uResolution.y, 1.0);
+    float drawn = max(size, pixel);
+    float star = smoothstep(drawn, 0.0, dist) * sq(size / drawn)
+               * present * (0.6 + 0.4 * rnd.x);
+    float twinkle = 0.55 + 0.45 * sin(uTime * (1.2 + rnd.x * 2.0) + rnd.y * 6.2831);
+    s += star * twinkle * (i == 0 ? 0.85 : 0.4);
+  }
+  return s * amount * smoothstep(0.05, 0.45, skyY);
+}
+
 // One crater per cell: a bowl with a raised rim, jittered inside its cell, so a
 // whole field costs a single hash. Returns a height, negative in the floor and
 // positive on the rim. The bowl stays inside its cell; the rim is a Gaussian,
@@ -283,6 +331,12 @@ vec3 moon(vec2 p, vec2 moonP, float visible) {
   if (visible < 0.002) return vec3(0.0);
   float r = DISC_R * uMoonSize;
   vec2 d = (p - moonP) / r;
+  // Through the window the crescent faces the sun wherever the camera is
+  // rolled; on the stage it is upright, lit on the waxing side.
+  if (uWindow > 0.0) {
+    vec2 ax = uMoonAxis;
+    d = vec2(dot(d, ax), dot(d, vec2(-ax.y, ax.x)));
+  }
   d.x *= uHemisphere;
   float md = length(d);
 
@@ -438,6 +492,24 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
   s.cov = cov * clamp(uCloudDensity + 0.1, 0.0, 1.0);
   s.thick = thick;
   s.col = base;
+  return s;
+}
+
+// Through the window the decks are planes overhead, and a plane seen at a
+// grazing angle has more detail in a pixel than any noise can hold: toward the
+// horizon it would boil. So there the deck gives way to what it averages to —
+// the cover it has, in the colour it is on the whole — which is also what a
+// real overcast does at the horizon: it closes into one grey. Below the
+// horizon there is no deck at all.
+CloudSample deckTowardHorizon(CloudSample s, float toAverage, float fade, float coverBias) {
+  float cover = clamp(uCloudCover + coverBias, 0.0, 1.0);
+  float avgCov = smoothstep(0.1, 0.9, cover) * clamp(uCloudDensity + 0.1, 0.0, 1.0);
+  vec3 avgCol = mix(uCloudLit, uCloudShade, 0.5 * (0.35 + 0.65 * uCloudDarkness))
+              + uGlow * uGlowStrength * 0.06;
+  vec3 own = s.cov > 0.0 ? s.col : avgCol;
+  s.col = mix(own, avgCol, toAverage);
+  s.thick = mix(s.thick, 0.5 * cover, toAverage);
+  s.cov = mix(s.cov, avgCov, toAverage) * fade;
   return s;
 }
 
@@ -1329,6 +1401,12 @@ vec3 meteor(vec2 p, float aspect) {
 // Main
 // ---------------------------------------------------------------------------
 
+// Where the window's horizon falls in the sky gradient: the stage's own
+// horizon (HORIZON_Y in lib/scene.ts), and elevation mapped the way the stage
+// maps the sun's — so a colour at some height on the stage is the colour at
+// that elevation in the window, and the two agree about the sky.
+const float WINDOW_HORIZON_Y = 0.1;
+
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution;
   float aspect = uResolution.x / uResolution.y;
@@ -1336,6 +1414,23 @@ void main() {
   vec2 sunP = vec2(uSun.x * aspect, uSun.y);
   vec2 moonP = vec2(uMoon.x * aspect, uMoon.y);
   vec2 sunDir = normalize(sunP - vec2(aspect * 0.5, 0.35) + vec2(0.0001));
+
+  // Through the window every pixel is a direction in the world, and the sky is
+  // coloured by that direction's elevation rather than by the pixel's height.
+  // On the stage the two are the same thing and nothing here runs.
+  float skyY = uv.y;
+  vec3 ray = vec3(0.0, 0.0, 1.0);
+  if (uWindow > 0.0) {
+    ray = normalize(
+      uViewFwd
+      + uViewRight * ((p.x - 0.5 * aspect) / uViewScale)
+      + uViewUp * ((p.y - 0.5) / uViewScale)
+    );
+    skyY = mix(uv.y, WINDOW_HORIZON_Y + 0.9 * ray.z, uWindow);
+    // The decks light toward the sun's bearing on the plane they lie in.
+    vec2 sunFlat = vec2(-uHemisphere * uSunWorld.x, uSunWorld.y);
+    sunDir = normalize(mix(sunDir, normalize(sunFlat + vec2(0.0001)), uWindow) + vec2(0.0001));
+  }
 
   // The wipe is worked out first, because what it uncovers is composited here,
   // at the very back of the frame — long before the fog it is clearing.
@@ -1349,8 +1444,12 @@ void main() {
   float starAmt = mix(uStars, max(uStars, uStarsBehind), cleared);
   float moonAmt = mix(uMoonVisible, max(uMoonVisible, uMoonBehind), cleared);
 
-  vec3 col = skyBase(uv, p, sunP, aspect);
-  col += vec3(0.9, 0.93, 1.0) * stars(p, uv, starAmt);
+  vec3 col = skyBase(vec2(uv.x, skyY), p, sunP, aspect);
+  float starLight;
+  if (uWindow <= 0.0) starLight = stars(p, uv, starAmt);
+  else if (uWindow >= 1.0) starLight = starsSphere(ray, skyY, starAmt);
+  else starLight = mix(stars(p, uv, starAmt), starsSphere(ray, skyY, starAmt), uWindow);
+  col += vec3(0.9, 0.93, 1.0) * starLight;
   col += moon(p, moonP, moonAmt);
 
   // The meteor, over the field it belongs to and under the decks that should
@@ -1360,8 +1459,37 @@ void main() {
 
   // Far deck: large, slow, flattened by perspective. Near deck: smaller,
   // faster, a touch heavier.
-  CloudSample far = cloudLayer(p, sunDir, 1.35, 0.014, 0.75, -0.05);
-  CloudSample near = cloudLayer(p + vec2(3.1, 1.7), sunDir, 2.6, 0.03, 1.0, 0.0);
+  //
+  // Through the window both are planes overhead instead, the near one lower —
+  // so they converge on the horizon, and as the phone turns the near deck
+  // slides past the far one. The plane's x is the stage's (west in the north,
+  // east in the south), so the drift the wind has banked carries on along it.
+  vec2 farP = p;
+  vec2 nearP = p + vec2(3.1, 1.7);
+  float farSquash = 0.75;
+  float toAverage = 0.0;
+  float deckFade = 1.0;
+  if (uWindow > 0.0) {
+    vec2 plane = vec2(-uHemisphere * ray.x, ray.y) / max(ray.z, 0.03);
+    farP = mix(farP, plane * 0.9, uWindow);
+    nearP = mix(nearP, plane * 0.55 + vec2(3.1, 1.7), uWindow);
+    farSquash = mix(0.75, 1.0, uWindow);
+    toAverage = uWindow * (1.0 - smoothstep(0.06, 0.3, ray.z));
+    deckFade = mix(1.0, smoothstep(-0.03, 0.02, ray.z), uWindow);
+  }
+  // A pixel that will only ever show the average — at the horizon, or on the
+  // ground — skips the noise, which is most of what a deck costs.
+  // (An if, not a ternary: WebGL allows no ?: over a struct.)
+  CloudSample far = CloudSample(0.0, 0.0, vec3(0.0));
+  CloudSample near = far;
+  if (toAverage < 0.999 && deckFade > 0.0) {
+    far = cloudLayer(farP, sunDir, 1.35, 0.014, farSquash, -0.05);
+    near = cloudLayer(nearP, sunDir, 2.6, 0.03, 1.0, 0.0);
+  }
+  if (uWindow > 0.0) {
+    far = deckTowardHorizon(far, toAverage, deckFade, -0.05);
+    near = deckTowardHorizon(near, toAverage, deckFade, 0.0);
+  }
 
   // Clouds sit over the sky; the near deck also shades the far one a little.
   // What the sky looks like underneath them is kept, for the fog wipe below.
@@ -1382,6 +1510,19 @@ void main() {
   col += vec3(0.86, 0.9, 1.0) * sf * (0.25 + 0.75 * cloudMask) * 0.65;
   col += vec3(0.95, 0.97, 1.0) * bolt * 1.25;
 
+  // Through the window, looking down: the ground. Nothing is drawn on it — it
+  // is the dark under the horizon that makes a horizon read as one, a shade of
+  // the horizon's own colour so it belongs to the same hour.
+  // It darkens away from the horizon the way a real one does — the far ground
+  // is lit by the same haze as the sky above it, the near ground is not.
+  if (uWindow > 0.0) {
+    float below = smoothstep(0.005, -0.05, ray.z) * uWindow;
+    float near = smoothstep(-0.02, -0.7, ray.z);
+    vec3 ground = mix(uHorizon, uCloudShade, 0.35) * mix(0.3, 0.55, uDaylight);
+    ground = mix(mix(uHorizon, ground, 0.7), ground * 0.62, near);
+    col = mix(col, ground, below * 0.9);
+  }
+
   // Fog / haze: drifting low-frequency veil, denser toward the bottom.
   //
   // The wipe thins it rather than cutting a hole in the frame: 'fa' is the only
@@ -1392,7 +1533,7 @@ void main() {
   if (uFog > 0.002) {
     vec3 fogCol = mix(uHorizon, uCloudLit, 0.35);
     float fn = 0.7 + 0.3 * fbm3(p * 1.8 + vec2(uTime * 0.02, 0.0) + uSeed);
-    float fa = uFog * (0.45 + 0.55 * (1.0 - uv.y)) * fn;
+    float fa = uFog * (0.45 + 0.55 * (1.0 - skyY)) * fn;
     fa *= 1.0 - cleared;
     col = mix(col, fogCol, clamp(fa, 0.0, 0.95));
     // And the deck goes with it, because on a fog day the deck IS the murk: the

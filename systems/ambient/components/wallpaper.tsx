@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { subscribeGravity } from "../lib/gyroscope";
+import { subscribeView } from "../lib/sky-window";
 import type { PokeKind } from "../lib/poke";
 import type { WipeHandle } from "../lib/wipe";
 import type { WeatherScene } from "../lib/scene";
@@ -41,6 +42,14 @@ interface WeatherWallpaperProps {
    * (`gyro.active`); reduced motion turns it off here regardless.
    */
   gyro?: boolean;
+  /**
+   * Look at the sky through the phone: its heading, pitch and roll aim a
+   * camera into the real sky (lib/sky-window.ts). The view streams from the
+   * sensor to the renderer like the gravity does. A window has a world in it,
+   * and in a world things fall along real gravity — so this follows the
+   * gravity too, whatever `gyro` says. Reduced motion turns it off here.
+   */
+  skyWindow?: boolean;
   /** Optional CSS mask (iOS soft-edging). */
   edgeMask?: string | null;
   /**
@@ -83,6 +92,7 @@ export function WeatherWallpaper({
   scene,
   active,
   gyro = false,
+  skyWindow = false,
   edgeMask,
   interactive = false,
   className,
@@ -165,8 +175,10 @@ export function WeatherWallpaper({
 
   // Under reduced motion the wallpaper is one still frame; a sky that answered
   // every wobble of the hand would be the opposite of what that asks for.
+  const window3d = skyWindow && !reducedMotion;
+  const falling = gyro || window3d;
   useEffect(() => {
-    if (!gyro || reducedMotion) {
+    if (!falling || reducedMotion) {
       rendererRef.current?.setGravity(null);
       return;
     }
@@ -175,7 +187,26 @@ export function WeatherWallpaper({
       stop();
       rendererRef.current?.setGravity(null);
     };
-  }, [gyro, reducedMotion]);
+  }, [falling, reducedMotion]);
+
+  // The window: where the phone is looking, straight to the renderer. Opening
+  // it before the first reading is fine — the renderer looks where the stage
+  // did until one arrives. `scene.hemisphere` only says which way that is, and
+  // it cannot change under a visitor's feet mid-window.
+  const hemisphere = scene.hemisphere;
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    renderer.setSkyWindow(window3d);
+    if (!window3d) return;
+    const stop = subscribeView(
+      (view) => rendererRef.current?.setView(view),
+      hemisphere === 1 ? 180 : 0
+    );
+    // The last view is kept, not cleared: the window closes FROM where the
+    // phone was pointing, rather than snapping to the stage's heading first.
+    return stop;
+  }, [window3d, hemisphere]);
 
   const style: React.CSSProperties = {};
   if (edgeMask) {

@@ -34,6 +34,7 @@ import type {
 } from "./weather";
 import { precipitationTypeForCondition } from "./weather";
 import { WIPE_MIN_FOG } from "./wipe";
+import { localSiderealDeg } from "./sky-window";
 
 export type RGB = readonly [number, number, number];
 
@@ -88,6 +89,21 @@ export interface WeatherScene {
   };
   /** Screen-space wind: x < 0 blows left. |wind| ∈ 0..1. */
   wind: { x: number; y: number };
+  /**
+   * The same wind in the world: where it blows TO, as east and north
+   * components of the same 0..1 strength. The stage only ever sees the part of
+   * it across its southward view (`wind.x`); the sky window turns, so it needs
+   * the whole of it to find the part across wherever you are facing.
+   */
+  windWorld: { east: number; north: number };
+  /**
+   * Where the observer stands under the stars: the latitude sets the pole's
+   * height, and the local sidereal time how far the sphere has turned. Only
+   * the sky window reads it — the stage's stars are a picture, the window's
+   * are a sky. A guess of 40° (mirrored south) and Greenwich without
+   * coordinates, which turns the right way at the right rate all the same.
+   */
+  celestial: { latitude: number; siderealDeg: number };
   fog: number;
   lightning: number;
   stars: number;
@@ -336,7 +352,12 @@ function coordsOf(params: DeriveSceneParams): { lat: number; lon: number } | nul
     : null;
 }
 
-const HORIZON_Y = 0.1;
+/**
+ * Where the horizon sits on the stage, in screen heights from the bottom — and
+ * so where the sky window's horizon maps to in the shader's sky gradient (see
+ * `WINDOW_HORIZON_Y` in wallpaper/shader.ts, which must agree).
+ */
+export const HORIZON_Y = 0.1;
 
 // -----------------------------------------------------------------------------
 // Staging the moon
@@ -593,6 +614,10 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const windTo = (windFrom + 180) % 360;
   const windX = -Math.sin(windTo * (Math.PI / 180)) * hemisphere * windSpeed;
   const wind = { x: windX, y: 0 };
+  const windWorld = {
+    east: Math.sin(windTo * (Math.PI / 180)) * windSpeed,
+    north: Math.cos(windTo * (Math.PI / 180)) * windSpeed,
+  };
 
   // --- Atmosphere -------------------------------------------------------
   // Fog is visibility: nothing at 10 km, thick by 200 m (log scale — the eye
@@ -695,6 +720,11 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     },
     precipitation: { type: precipType, intensity: precipIntensity },
     wind,
+    windWorld,
+    celestial: {
+      latitude: coordsOf(params)?.lat ?? 40 * hemisphere,
+      siderealDeg: localSiderealDeg(params.nowMs, coordsOf(params)?.lon ?? 0),
+    },
     fog,
     lightning: condition === "thunder" ? lightningFor(weather) : 0,
     stars,

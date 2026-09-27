@@ -1,6 +1,6 @@
 # Ambient System
 
-The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg) and on a clear night with [a shooting star](#the-shooting-star-clear-night-easter-egg); while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg), and on a foggy one a drag [wipes the mist clear](#the-fog-wipe-foggy-day-easter-egg).
+The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg) and on a clear night with [a shooting star](#the-shooting-star-clear-night-easter-egg); while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg), and on a foggy one a drag [wipes the mist clear](#the-fog-wipe-foggy-day-easter-egg). In any weather, a finger resting on the home sky opens [the sky window](#the-sky-window-any-weather-easter-egg): the phone's compass and tilt aim a camera into the real sky, with the sun and moon where they really are.
 
 It also owns the page background — the **wallpaper**. Weather is not a separate
 background feature; it is the one wallpaper that changes on its own. See
@@ -23,10 +23,13 @@ systems/ambient/
 │   ├── weather-now.tsx           # Shared weather body + useDisplayWeather()
 │   ├── phase-activity.tsx        # Sun-event notification (plugs into the Dock)
 │   ├── location-primer-sheet.tsx # The offer before the browser's location prompt
+│   ├── tilt-primer-sheet.tsx     # The offer before WebKit's motion prompt (the sky window)
+│   ├── sky-window-toast.tsx      # "Sky window" / "Back to the wallpaper" pill
 │   └── index.ts                  # Component exports
 ├── lib/
 │   ├── weather.ts                # Open-Meteo integration + condition model
 │   ├── gyroscope.ts              # Screen-space gravity from `deviceorientation` + motion access
+│   ├── sky-window.ts             # The phone as a window: view from the compass, projection, stars
 │   ├── solar.ts                  # Sun elevation/azimuth, lunar ephemeris, moon phase
 │   ├── scene.ts                  # weather × sun × moon × theme → WeatherScene
 │   ├── gradient.ts               # WeatherScene → CSS gradient + crossfade types
@@ -38,7 +41,7 @@ systems/ambient/
 │   ├── poke.ts                   # The two tapped eggs: which weather, when it is
 │   │                             #   dark enough, and "is this the sky?" — for all of them
 │   ├── wipe.ts                   # The foggy-day wipe: the stroke, the hand, the gesture
-│   ├── tilt-primer.ts            # The press-and-hold that offers the gyroscope
+│   ├── tilt-primer.ts            # The press-and-hold on the sky: the window, or the offer first
 │   ├── greeting.ts               # Time-of-day helpers
 │   ├── location.ts               # IP/GPS location resolution
 │   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
@@ -189,6 +192,7 @@ Like everything else in the Sky engine it is procedural: no texture is loaded.
 | `clouds` | cover, density, storminess, lit/shade colours, drift speed |
 | `precipitation` | type + intensity |
 | `wind` | screen-space direction × strength |
+| `windWorld`, `celestial` | the same wind as east/north components, and latitude + local sidereal time — for [the sky window](#the-sky-window-any-weather-easter-egg), which turns |
 | `fog`, `lightning`, `stars` | 0..1 amounts |
 | `veil` | theme blend toward the page background (light: white, dark: `#1a1a1a`) |
 
@@ -268,11 +272,12 @@ across it. Tilting the device does not turn any of that — it tells that world
 which way is down, and only the things that FALL answer.
 
 The other reading, where the device is a window and the view counter-rotates,
-is a different feature: if the view turns then the sky gradient, the sun, the
-moon, the stars, the clouds and the fog all have to turn with it, and it stops
-being about rain and snow at all. It would also leave nothing for the weight of
-a flake to mean, since gravity in a world seen through a turning window never
-moved.
+is a different feature — and it now exists as one: [the sky
+window](#the-sky-window-any-weather-easter-egg). There the view turns, so the
+sky gradient, the sun, the moon, the stars, the clouds and the fog all turn
+with it, and it is no longer about rain and snow at all. The two are kept apart
+on purpose: the stage stays a composition with a gravity in it, and the window
+is a place.
 
 `lib/gyroscope.ts` turns a `deviceorientation` reading into one unit vector —
 where *down* is, in the page's frame:
@@ -291,111 +296,64 @@ the screen is too flat to have a direction (a phone on a table).
   they go from the sensor to `WallpaperRenderer.setGravity()` — one shared
   `deviceorientation` listener, however many surfaces are drawing.
 
-#### Asking for it, on a rainy day
+#### Asking for it
 
 WebKit puts `deviceorientation` behind
 `DeviceOrientationEvent.requestPermission()`, which needs a user gesture — so
-on an iPhone the whole feature above waits for one tap. Until this, the only
-place to make it was the wallpaper picker's Weather tab: three taps from the
-page, offering a switch for something the visitor has never seen.
+on an iPhone both the tilt and [the sky
+window](#the-sky-window-any-weather-easter-egg) wait for one tap. The picker's
+Weather tab has a switch for it, three taps from the page, offering something
+the visitor has never seen.
 
-So on a rainy or snowy sky, **resting a finger on the background brings up what
-the tilt does, and a button under it asks.** Two presses to reach the browser's
-dialog, and the first is why the second gets a yes — a permission prompt that
-arrives with no idea what it is for gets refused, and a refusal is final
-everywhere: there is no second prompt, only the site settings nobody opens.
-The first press buys the explanation; the second spends the one chance.
+So **resting a finger on the home sky, in any weather, brings up what the
+window does, and a button under it asks** — while the gate still stands. Two
+presses to reach the browser's dialog, and the first is why the second gets a
+yes — a permission prompt that arrives with no idea what it is for gets
+refused, and a refusal is final everywhere: there is no second prompt, only the
+site settings nobody opens. The first press buys the explanation; the second
+spends the one chance. Once the gate is passed (or where there never was one),
+the same hold simply opens the window, and closes it again.
 
-The picture is the argument. A phone tilts one way and the rain inside it tilts
-the other — the same relationship the shader draws at full size, at a size that
-fits above a paragraph. Saying "the rain leans" is the part nobody reads.
+(This used to be the tilt's own introduction, offered once, on a rainy or snowy
+sky only. The window is a reason to ask on every sky — every sky has a sun or a
+moon in it somewhere — and a long press is deliberate enough that answering it
+every time is not a nag, so the once-only record is gone with it.)
 
-**Where the camera stands is the whole legibility of it**, and the first
-version got that wrong. Drawn in the WORLD's frame — rain fixed, phone turning
-— the rain never changes on screen, so the one thing the viewer is meant to
-notice is the one thing that never moves. But nobody watches their phone from
-the world's frame: it is in your hand, so the screen is what holds still and
-the rain is what swings.
-
-So the camera follows the device part of the way. With a device tilt of θ the
-phone is drawn at `c·θ` and the rain at `(c − 1)·θ`, with c = 0.45 and θ = 24°:
-
-| | drawn at | what it does |
-|---|---|---|
-| the phone | c·θ = ±10.8° | tilts, so the cause is on screen |
-| the rain | (c − 1)·θ = ∓13.2° | tilts the other way, so the effect is too |
-| between them | θ = **24°** | the device's own angle, exactly, at every instant |
-
-Nothing is exaggerated to get that: the two are simply both moving, where at
-c = 1 only one of them was. The rain's group is nested in the phone's, so its
-own rotation stays −θ whatever the camera does and only the phone's amplitude
-carries c — which also means the refusal pose (both still, rain straight down
-the screen) now differs from the rocking one in two ways rather than one.
-
-Two more things make the picture hold up, and both are the kind of bug that
-only shows at an angle:
-
-- **The rain field is sized by the screen's half-diagonal, not by the screen.**
-  It turns under the phone, so a field only as wide as the screen swings out
-  from under its own corners — and what you then see cutting the shower off is
-  the field's edge, not the phone. 79.2 units about the rock's centre covers
-  every corner at every angle, so θ can change without touching it. (The
-  viewBox has the same problem from the other side and does *not* get that for
-  free: it has to hold the phone at the angle the phone is **drawn** at, c·θ —
-  107 × 164 — or the SVG viewport cuts a straight line through the corner.)
-- **It is CSS, not a JS animator.** The rain is level only for as long as the
-  phone's rotation and the rain's counter-rotation stay exactly opposite, and
-  two declarative animations of one duration cannot drift where a dozen
-  independently started JS springs can — over a live WebGL sky, on a main
-  thread already spoken for. Three animations drive the whole thing whatever
-  the drop count, because the rain is a seamless tile stamped three times and
-  slid by exactly one tile, rather than an animation per drop. Under
-  `prefers-reduced-motion` they are simply paused at 0%, which is a tilted
-  phone with level rain — the still frame IS the animation, not a second
-  drawing to keep in step.
-
-And it is **a diagram, not a downpour**: eleven strokes evenly spaced, one
-length and one weight, about five on screen. It has exactly one thing to say,
-and every drop past the few it takes to read as rain competes with it. Even
-spacing for the same reason — scattered drops read as a simulation, and a
-window showing only two fifths of the field turns scatter into clumps as the
-field rotates through it. The fall is slow, because the rocking is the thing to
-watch.
+The picture is the argument: a phone pans across a faint sky, and inside the
+phone the same sky is drawn in full, holding still while the phone moves over
+it. The sun comes into the window and goes out of it again. It is drawn from
+the world's frame — the frame the tilt's old picture (a phone rocking, the rain
+inside it swinging the other way) had to avoid, because there the thing to
+notice was the rain moving, and from the world's frame the rain never moved.
+Here the thing to notice is that something holds still. The world inside the
+phone is nested in the phone and undoes its travel, and it is CSS for the same
+reasons the rain's counter-rotation was: two declarative animations of one
+duration cannot drift apart, and this plays over a live WebGL sky. Under
+`prefers-reduced-motion` both are paused at 0%, which is the phone framing the
+sun.
 
 **And it stays up to say how it went.** The sheet is the only thing on screen
-that can. A refusal especially: the sky simply goes on falling straight down,
-and without a word here the only explanation lives three taps away in the
-picker's Weather tab — which is the very problem this sheet exists to fix. So
-it says it once, with where to undo it, and lets itself out. A grant gets a
-word too, shorter, because the phone in your hand is about to do the thing and
-the sheet is in front of it.
+that can. A refusal especially: the sky simply stays a wallpaper, and without a
+word here there is no explanation anywhere. So it says it once, with where to
+undo it, and lets itself out. A grant gets a word too, shorter, because the
+window is already opening behind the sheet.
 
 | outcome | the sheet says | the picture | gone after |
 |---|---|---|---|
-| granted | tilt is on, lean the device | keeps rocking — it is real now | 1.4 s |
-| refused | motion access was refused, and where to allow it again | **upright, rain straight down** — what a refusal actually leaves you with | 3.0 s |
-| neither | nothing; the offer is still standing | keeps rocking | — |
+| granted | hold the phone up and turn around — the window opens | keeps panning | 1.4 s |
+| refused | motion access was refused, and where to allow it again | **parked between the sun and the moon** — a window that cannot turn | 3.0 s |
+| neither | nothing; the offer is still standing | keeps panning | — |
 
 "Neither" is WebKit's gate declining to even consider the request (no user
 gesture): no dialog was shown and nothing was answered, so the buttons simply
-come back.
+come back. A hold after an earlier refusal opens straight onto the refusal,
+because it is the only thing still true.
 
 That the outcome is reportable at all is why `setGyroEnabled` **hands the
 access back** rather than only storing it. A toggle can afford to ignore how it
-went; a sheet that has to speak cannot.
-
-**It is offered once.** `weatherGyroPrimed` is written the moment the sheet is
-answered, either way, and nothing clears it — including a close or a swipe,
-which mean the same thing as *Not now*. It is written **before** the asking,
-not after: a prompt that is refused, and no browser asks twice, must not leave
-the offer armed for the next rainy day, and neither must a visitor who walks
-away with the dialog still up. An introduction repeated is a nag, and
-this one interrupts a page the visitor came to for something else. It is also
-armed by the *absence* of things, so every one of them is a reason to stay
-quiet (`shouldOfferTilt` in `lib/tilt-primer.ts`): the offer is spent, or there
-is no permission to ask for (everywhere but WebKit the sky is already tilting,
-and a refusal already counts as answered), or the visitor went to the picker
-and turned tilt off, or nothing is falling, or the Sky is not what paints.
+went; a sheet that has to speak cannot. A grant also turns the tilt's saved
+wish on: the window lets things fall along gravity anyway, and a yes that left
+the tilt off on the next rainy day would be a yes only half taken.
 
 **And it has to sit on iOS's own press first.** A finger resting on the page
 starts a ~500 ms clock in WebKit; when that fires, WebKit's gesture recognizer
@@ -419,8 +377,10 @@ the page sets the property for its own reasons (`.system-surface` does).
 > can be checked headlessly is that the calls happen at the right moments, by
 > spying on `setProperty` / `removeProperty`.
 
-**And only on the system surface.** Those five are about the scene; this last
-one is about where the finger landed, so it lives in the recognizer instead:
+**And only on the system surface.** Whether there is a window to open is about
+the scene (`skyHoldAction`: the Sky is painting, and there is a motion sensor
+to ask); this is about where the finger landed, so it lives in the recognizer
+instead:
 the press must be inside `.system-surface` — the page that has declared itself
 one OS composition rather than a document (see "System chrome / System surface"
 in `docs/design-system.md`). The wallpaper is full-page on *every* route, so
@@ -428,24 +388,25 @@ without this an article is fair game too — and `isBackgroundPress` cannot tell
 the difference, because it asks whether anything **paints** over the wallpaper
 and a paragraph paints nothing. On an article the whole column answers
 "background", so a finger resting in the margin, or on the prose itself, would
-put a permission sheet over what somebody is reading. A long press on a
+put a permission sheet — or a sky that swings with the hand — behind what
+somebody is reading. A long press on a
 document belongs to the reader. Keying off the class rather than a list of
 routes also means any surface that later opts into being system UI gets this
 for free, and no route knowledge lives in the ambient system.
 
-**Not a fourth easter egg**, whatever the sheet's own copy says. The eggs are
-rewards for poking at a sky that owes you nothing; this is a feature explaining
-itself, and it stops existing once it has been. (The copy greets it as a find
-because that is honestly how it arrives for the visitor. The distinction is
-about lifecycle, not about how it feels to meet.) But it shares a background with [the gust](#stirring-the-wind-rain-and-snow-easter-egg),
+It shares a background with [the gust](#stirring-the-wind-rain-and-snow-easter-egg),
 which on a rainy day is armed on that same background — and they cannot
 collide, because **a gust is travel and this is stillness**:
 
 | the hand | what it is |
 |---|---|
-| rests 400 ms, going nowhere | the offer |
+| rests 400 ms, going nowhere | the window (or the offer) |
 | moves at all before that | the gust's, or the scroller's — this stands down for the rest of the press |
 | lifts early | nothing |
+
+On a fog day the wipe arms on that same 400 ms hold — a resting finger clears a
+patch — so there the window waits for `SKY_HOLD_FOG_MS` (a second): a finger
+still resting well after the mist has answered it meant something else.
 
 A hold that has gone nowhere has reported no speed to `attachWindStir`, so
 there is no gust to take away. And like the gust, this recognizer never calls
@@ -549,9 +510,108 @@ gesture. So:
 | | Behaviour |
 |---|---|
 | Chrome / Firefox / Android | The saved wish (`weatherGyro`, **on** by default) is honoured on load; the sky tilts by itself. |
-| iOS / iPadOS | The wish waits for one tap — the **Tilt** row in the picker's Weather tab, or the devtool's Sky → Gyro row. Turning it on *is* the gesture that asks. |
+| iOS / iPadOS | The wish waits for one tap — the **Tilt** row in the picker's Weather tab, the devtool's Sky → Gyro row, or the offer a long press on the home sky brings up ([Asking for it](#asking-for-it)). Turning it on *is* the gesture that asks. |
 | Granted before | `weatherGyroGranted` records it, and access is re-taken silently on the next load. That record is the only reason `requestPermission()` is ever called without a gesture, so a visitor who has never answered is never prompted out of nowhere. |
 | No sensor (desktop) | `DeviceOrientationEvent` exists in every desktop browser and fires in none, so "on" is not "working": the provider watches for a first reading and the Tilt row says *no motion readings* rather than pretending. |
+
+### The Sky Window (any-weather easter egg)
+
+Rest a finger on the home sky — any weather — and the stage becomes a
+**window**: the phone's compass heading says which way you face, its pitch how
+far up you look, its roll which way is level. The sun and the moon are where the
+ephemeris puts them: turn round and they are behind you, look up and the zenith
+is overhead, tip the phone down and there is a horizon with ground under it.
+Rest a finger again and it goes back to being a wallpaper. On WebKit the first
+hold brings up [the offer](#asking-for-it) instead, because motion is behind a
+permission.
+
+It is the other reading of the gyroscope that [Gyroscope
+Tilt](#gyroscope-tilt-sky-engine) deliberately is not, and it lives in its own
+module, `lib/sky-window.ts`.
+
+**Frames.** The world is East-North-Up — the frame `deviceorientation` is
+defined in — and azimuths are clockwise from north, as `lib/solar.ts` gives
+them. A view is three unit vectors in it: the screen's right, its top, and where
+it looks (out of the back of the phone). The W3C angles are intrinsic Z-X'-Y'',
+`R = Rz(α)·Rx(β)·Ry(γ)`; the screen's axes are the device's turned by
+`screen.orientation.angle`, the same turn `gyroscope.ts` applies to gravity. The
+two agree numerically: gravity read off the window's view matches
+`gravityFromOrientation` to 1e-16 over twenty thousand random poses in all four
+screen rotations, so the window's horizon and the rain's fall can never
+disagree about which way is down.
+
+**The compass is not where you would expect it.** Alpha is only a heading
+where the browser says so:
+
+| browser | where north comes from |
+|---|---|
+| Chrome / Android | a separate `deviceorientationabsolute` event; while it is streaming, the relative one is ignored |
+| Firefox | `deviceorientation` with `absolute: true` |
+| Safari / iOS | alpha is relative to wherever the phone was when listening started; `webkitCompassHeading` rides beside it. The offset between the two is estimated — but only while the phone's top edge lies level enough to point anywhere (the compass heading is a heading of the top edge, which a phone held straight up does not have), and slowly after the first measurement. Simulated against a known offset, the recovered heading is within 0.1° held upright, tilted back past vertical and rolled. |
+| no compass at all | the first reading is anchored onto the stage's own heading (south; north in the south), so the window opens onto the sky it left. The devtool readout marks the heading with `~`. |
+
+Magnetic north is taken as north; declination is a few degrees almost
+everywhere people live, and nothing here is a navigation aid.
+
+**The renderer does the geometry, the shader the pixels.** `uWindow` eases
+0 → 1 over `WINDOW_TAU` and back, and every line of the shader that reads the
+window's uniforms sits behind a test of it. Checked the strong way: the new
+shader and the previous one compiled side by side, fed the same randomized
+uniforms (rain, snow, fog, strikes, meteors, wipes) with `uWindow = 0`, render
+**bit-identical** frames — the stage did not move by a single 8-bit step.
+
+Through the window:
+
+- **The sky is coloured by elevation, not by height on the page.** Each pixel is
+  a ray; the gradient reads `HORIZON_Y + 0.9·sin(elevation)`, the same mapping
+  the stage uses to place the sun, so a colour at some height on the stage is
+  the colour at that elevation in the window. The star fade and the fog's
+  low-down thickening read the same value.
+- **The sun and moon are projected, not staged.** The renderer projects their
+  directions (a pinhole, `WINDOW_FOV_DEG` = 80° along the longer side of the
+  screen) and hands the shader a screen position, blended with the stage's
+  through the transition — so every line that draws a disc, a glow or a halo
+  works in screen space unchanged, and the disc slides from where the stage had
+  it to where it really is. A body behind you is parked off screen in the
+  direction it lies, so its glow falls away continuously as it swings round.
+- **The crescent faces the sun.** The stage can say "waxing is lit on the
+  right"; a sky you can turn around in cannot. The lit limb is turned toward the
+  sun along the great circle between them, whatever the phone's roll.
+- **The decks are planes overhead**, the near one lower, so they converge on the
+  horizon and slide past each other as you turn. A plane at a grazing angle has
+  more detail per pixel than noise can hold, so toward the horizon each deck
+  gives way to what it averages to — its cover, in its overall colour — which
+  is what a real overcast does there anyway, and skips the noise where only the
+  average shows. The plane's x is the stage's, so the drift the wind has banked
+  carries on along it.
+- **The stars sit on a sphere that turns with the sidereal clock**
+  (`celestial` on the scene: latitude and local sidereal time), so they rise in
+  the east and the pole stands at the latitude's height. A 3D lattice, one
+  candidate per cell; a star smaller than a pixel would pop as the view moves
+  across the pixel grid, so each is drawn at least a pixel wide and dimmed by
+  the area it gained.
+- **Below the horizon is ground** — nothing drawn on it, a shade of the
+  horizon's own colour, darker toward your feet.
+- **The rain leans by the wind across your line of sight** (`windWorld` on the
+  scene, against the level direction square to where you look). Face into the
+  wind and it comes straight down at you; turn side on and it lays over. It
+  still falls along real gravity — the window follows the gravity whatever the
+  tilt's own switch says, because a window has a world in it.
+
+What stays in screen space: the rain and snow fields themselves, lightning,
+the strike, the meteor and the fog wipe. They are things in front of the glass
+or answers to a finger on it.
+
+**Session-only.** An easter egg you found is not a setting you made; nobody
+should come back tomorrow to a sky that follows their hand without knowing why.
+It pauses (eases back to the stage) on a reading page, where the page recedes
+the wallpaper and a background that swung with the hand would be the opposite of
+receding, and it is off under `prefers-reduced-motion`. The picker's Sky tile
+never follows it.
+
+**Devtool.** Sky → Window toggles it (on a desktop too) and reads out heading ·
+pitch. While it is on, Heading and Pitch sliders drive the view by hand — the
+sensor is ignored until the row's star hands it back.
 
 ### Gradient Crossfade (Gradient engine)
 

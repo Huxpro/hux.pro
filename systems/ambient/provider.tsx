@@ -312,6 +312,12 @@ export interface GyroState {
   gated: boolean;
   /** Motion was refused for this site; only the browser's own settings undo it. */
   denied: boolean;
+  /**
+   * Readings can flow right now, whatever the saved wish — the browser hands
+   * them over freely, or WebKit's gate has been passed. What the sky window
+   * needs: it listens to the sensor whether or not the tilt is wished on.
+   */
+  reachable: boolean;
   /** There is a `DeviceOrientationEvent` here at all. */
   supported: boolean;
 }
@@ -346,6 +352,16 @@ interface WallpaperContextType {
    * motion gate, so call it from a real user gesture.
    */
   setGyroEnabled: (on: boolean) => void;
+  /**
+   * The sky window: the phone as a window onto the real sky — its heading and
+   * pitch aim a camera at the sun and moon where they really are (see
+   * lib/sky-window.ts). Found by a long press on the home sky, in any weather.
+   * Session-only on purpose: an easter egg you found is not a setting you
+   * made, and nobody should come back tomorrow to a sky that follows their
+   * hand without knowing why.
+   */
+  skyWindow: boolean;
+  setSkyWindow: (on: boolean) => void;
   /** Selected built-in pair (meaningful when kind === "image"). */
   wallpaper: Wallpaper;
   wallpapers: Wallpaper[];
@@ -461,21 +477,19 @@ interface WallpaperContextType {
   openPicker: () => void;
   closePicker: () => void;
   /**
-   * The tilt primer — the one-time offer that comes before WebKit's motion
-   * prompt. See lib/tilt-primer.ts. Open state lives here rather than in the
-   * background component because the sheet is mounted in the layout, beside
-   * the picker, and not inside a `pointer-events-none` wallpaper layer.
+   * The tilt primer — what a long press on the sky brings up while WebKit's
+   * motion gate still stands between the visitor and the sky window. See
+   * lib/tilt-primer.ts. Open state lives here rather than in the background
+   * component because the sheet is mounted in the layout, beside the picker,
+   * and not inside a `pointer-events-none` wallpaper layer.
    */
   isTiltPrimerOpen: boolean;
-  /** The offer has been made and answered; it is never made again. */
-  gyroPrimed: boolean;
   offerTilt: () => void;
-  /** Close it, and never offer again — the answer was "no" or was given. */
   closeTiltPrimer: () => void;
   /**
-   * Turn the tilt on and ask, reporting how it went so the sheet can say so.
-   * Must be called straight from the press. It does NOT close the sheet —
-   * whoever showed the outcome closes it.
+   * Ask for motion and, if it is given, open the window — reporting how it
+   * went so the sheet can say so. Must be called straight from the press. It
+   * does NOT close the sheet — whoever showed the outcome closes it.
    */
   takeTilt: () => Promise<GyroAccess>;
 }
@@ -884,20 +898,12 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       if (!alive) return;
       setGyroAccess(access);
       // A grant that no longer holds (Safari's site settings were reset)
-      // should stop being re-taken; a fresh one should start being.
+      // should stop being re-taken; a fresh one should start being. A lapsed
+      // one is won back the way it was won: a long press on the sky.
       if (access === "granted" && !settings.weatherGyroGranted) {
         updateSettings({ weatherGyroGranted: true });
       } else if (access !== "granted" && settings.weatherGyroGranted) {
-        // The grant lapsed — a new Safari session, or its site data cleared —
-        // and the tilt is off again with nothing on screen to say why. The
-        // offer was spent on a yes, so making it again is not nagging: without
-        // this, the one gesture that can win the grant back is disarmed for
-        // good while the sky has gone back to falling straight down.
-        updateSettings(
-          access === "prompt"
-            ? { weatherGyroGranted: false, weatherGyroPrimed: false }
-            : { weatherGyroGranted: false }
-        );
+        updateSettings({ weatherGyroGranted: false });
       }
     });
     return () => {
@@ -929,29 +935,23 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     [gyroAccess, updateSettings]
   );
 
-  const closeTiltPrimer = useCallback(() => {
-    setIsTiltPrimerOpen(false);
-    // Whichever way it ended, the offer is spent.
-    updateSettings({ weatherGyroPrimed: true });
-  }, [updateSettings]);
+  const closeTiltPrimer = useCallback(() => setIsTiltPrimerOpen(false), []);
+
+  // The sky window. Session state, never saved — see `skyWindow` above.
+  const [skyWindow, setSkyWindow] = useState(false);
 
   const takeTilt = useCallback(() => {
-    // Written before the asking, not after: a prompt that is refused — and no
-    // browser asks twice — must not leave the offer armed for the next rainy
-    // day, and neither must a visitor who walks away with the dialog still up.
-    updateSettings({ weatherGyroPrimed: true });
     // Straight from the press, because that press IS the gesture WebKit's gate
     // wants. Anything deferred loses it. The sheet stays open on purpose: it is
-    // the one thing on screen that can report how this went.
+    // the one thing on screen that can report how this went. The tilt's wish
+    // is turned on with it — the window lets the rain fall along gravity
+    // anyway, and a grant that left the tilt off on the next rainy day would be
+    // a yes only half taken.
     return setGyroEnabled(true).then((access) => {
-      // "prompt" is the gate declining to ask at all — no dialog, no answer —
-      // so the offer is still standing, and must survive a visitor who walks
-      // away from the sheet now. Closing it is still an answer: that goes
-      // through `closeTiltPrimer`, which spends it.
-      if (access === "prompt") updateSettings({ weatherGyroPrimed: false });
+      if (isGyroReachable(access)) setSkyWindow(true);
       return access;
     });
-  }, [setGyroEnabled, updateSettings]);
+  }, [setGyroEnabled]);
 
   const gyroActive = settings.weatherGyro && isGyroReachable(gyroAccess);
 
@@ -985,6 +985,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       readings: gyroActive ? gyroReadings : "silent",
       gated: gyroAccess === "prompt",
       denied: gyroAccess === "denied",
+      reachable: isGyroReachable(gyroAccess),
       supported: gyroAccess !== "unsupported",
     }),
     [settings.weatherGyro, gyroAccess, gyroActive, gyroReadings]
@@ -1568,6 +1569,8 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       statsRef,
       gyro,
       setGyroEnabled,
+      skyWindow,
+      setSkyWindow,
       wallpaper: activeWallpaper,
       wallpapers: BUILT_IN_WALLPAPERS,
       selectWallpaper,
@@ -1621,7 +1624,6 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       openPicker,
       closePicker,
       isTiltPrimerOpen,
-      gyroPrimed: settings.weatherGyroPrimed,
       offerTilt,
       closeTiltPrimer,
       takeTilt,
@@ -1648,6 +1650,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       reportShaderFallback,
       gyro,
       setGyroEnabled,
+      skyWindow,
       activeWallpaper,
       selectWallpaper,
       wallpaperTheme,
@@ -1687,7 +1690,6 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       openPicker,
       closePicker,
       isTiltPrimerOpen,
-      settings.weatherGyroPrimed,
       offerTilt,
       closeTiltPrimer,
       takeTilt,

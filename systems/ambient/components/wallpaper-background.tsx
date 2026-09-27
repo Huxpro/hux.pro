@@ -11,11 +11,9 @@ import {
   type PokeKind,
 } from "../lib/poke";
 import { attachWipeDrag, WIPE_MIN_FOG, type WipeHandle } from "../lib/wipe";
-import {
-  attachTiltPrimer,
-  shouldOfferTilt,
-  TILT_PRIMER_MIN_PRECIP,
-} from "../lib/tilt-primer";
+import { attachSkyHold, SKY_HOLD_FOG_MS, SKY_HOLD_MS, skyHoldAction } from "../lib/tilt-primer";
+import { showCustomToast } from "@/components/ui/system-sonner";
+import { SkyWindowToast } from "./sky-window-toast";
 import { useHomeEditing } from "@/components/ui/home-edit-store";
 import { useWeather } from "../provider";
 import { useWallpaper } from "../provider";
@@ -54,6 +52,11 @@ import { WeatherWallpaper } from "./wallpaper";
 // The rain-and-snow egg — a drag stirs up a gust — is armed inside
 // <WeatherWallpaper /> instead, for the same reason one layer down: only the
 // Sky has particles for a wind to blow.
+//
+// And the one egg every weather has: a finger resting on the sky opens the sky
+// window, where the phone's compass and tilt aim a camera at the real sky (see
+// lib/sky-window.ts and lib/tilt-primer.ts). Only the Sky has a world to look
+// around in, so it is armed on the same terms as the others.
 //
 // An image wallpaper paints at FULL STRENGTH. On the home screen that is the
 // whole treatment: the picture is the content, sharp and untinted, with the
@@ -117,7 +120,9 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     blurred,
     bezel,
     gyro,
-    gyroPrimed,
+    skyWindow,
+    setSkyWindow,
+    reading,
     offerTilt,
     reportShaderFallback,
     statsRef,
@@ -184,22 +189,38 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     });
   }, [wiping]);
 
-  // Not an egg — the feature introducing itself. A finger resting on a rainy
-  // or snowy sky brings up what the tilt does, once ever, and only where there
-  // is a permission standing between the visitor and it. See lib/tilt-primer.ts.
-  const offering = shouldOfferTilt({
-    primed: gyroPrimed,
-    gated: gyro.gated,
-    wished: gyro.enabled,
-    falling:
-      scene.precipitation.type !== "none" &&
-      scene.precipitation.intensity > TILT_PRIMER_MIN_PRECIP,
+  // The sky window. A finger resting on the sky opens it — or, where WebKit's
+  // motion gate still stands, brings up the sheet that asks — and a second
+  // hold closes it. See lib/tilt-primer.ts. On a fog day the wipe owns the
+  // first beat of a resting finger, so the window waits for a longer one.
+  const holdAction = skyHoldAction({
     sky,
+    reachable: gyro.reachable,
+    gated: gyro.gated,
+    denied: gyro.denied,
+  });
+  const holdMs = wiping ? SKY_HOLD_FOG_MS : SKY_HOLD_MS;
+  const windowRef = useRef(skyWindow);
+  useEffect(() => {
+    windowRef.current = skyWindow;
   });
   useEffect(() => {
-    if (!offering) return;
-    return attachTiltPrimer(offerTilt);
-  }, [offering, offerTilt]);
+    if (!holdAction) return;
+    return attachSkyHold(() => {
+      if (holdAction === "offer") {
+        offerTilt();
+        return;
+      }
+      const next = !windowRef.current;
+      setSkyWindow(next);
+      // The sky answering is most of the feedback; this is the rest — what
+      // just happened, and how to undo it.
+      showCustomToast(<SkyWindowToast on={next} />, {
+        id: "sky-window",
+        duration: next ? 3200 : 1600,
+      });
+    }, holdMs);
+  }, [holdAction, holdMs, offerTilt, setSkyWindow]);
 
   if (!useShader && layers.length === 0) return null;
 
@@ -230,6 +251,10 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
           active={enabled}
           themeEaseMs={skyThemeEaseMs}
           gyro={gyro.active}
+          // Paused, not closed, on a reading page: the page recedes the
+          // wallpaper there, and a background that swung with the hand would
+          // be the opposite of receding. Back home, it is a window again.
+          skyWindow={skyWindow && !reading}
           edgeMask={edgeMask}
           // This is the one sky a hand can reach: a drag across the page
           // background stirs up a gust.

@@ -24,6 +24,12 @@ type TintChoice = "black" | "dark" | "theme" | "custom";
 import { formatClockTime } from "@/systems/ambient/lib/format";
 import { formatLocationLabel } from "@/systems/ambient/lib/location";
 import { gravityTiltDegrees, readGravity } from "@/systems/ambient/lib/gyroscope";
+import {
+  headingPitchOf,
+  readView,
+  simulateView,
+  viewFacing,
+} from "@/systems/ambient/lib/sky-window";
 import { getWeatherGradient, getWeatherStyleGradient } from "@/systems/ambient/lib/gradient";
 import type { AmbientPhase } from "@/systems/ambient/lib/phase";
 import {
@@ -1892,7 +1898,7 @@ function SkyModule() {
     resetTimeTravel,
   } = useAmbientTime();
   const { followSun, setFollowSun, sunTheme } = useSolarTheme();
-  const { gyro, setGyroEnabled, effectiveStyle } = useWallpaper();
+  const { gyro, setGyroEnabled, effectiveStyle, skyWindow, setSkyWindow } = useWallpaper();
   const { homeWeather, setHomeWeather } = useDevtool();
 
   const isDayNow = scene.sun.isDay;
@@ -2094,6 +2100,41 @@ function SkyModule() {
     if (gyro.readings === "waiting") return "…";
     return zh ? "无数据" : "no readings";
   })();
+
+  // --- Sky window ----------------------------------------------------------
+  // Where the window is looking, polled like the tilt. And a hand on it: a
+  // desktop has no sensor to turn, so the heading and pitch can be driven from
+  // here instead — the sensor is ignored until the star hands it back.
+  const [look, setLook] = useState<{ heading: number; pitch: number; compass: boolean } | null>(null);
+  const [aim, setAim] = useState<{ heading: number; pitch: number } | null>(null);
+  useEffect(() => {
+    if (!skyWindow) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: clear a stale readout
+      setLook(null);
+      return;
+    }
+    const tick = () => {
+      const view = readView();
+      if (!view) return setLook(null);
+      const { heading, pitch } = headingPitchOf(view.forward);
+      setLook({ heading: Math.round(heading), pitch: Math.round(pitch), compass: view.compass });
+    };
+    tick();
+    const id = window.setInterval(tick, 500);
+    return () => window.clearInterval(id);
+  }, [skyWindow]);
+  useEffect(() => {
+    simulateView(aim ? viewFacing(aim.heading, aim.pitch) : null);
+  }, [aim]);
+  // Handed back when the panel goes, so a closed devtool never leaves the sky
+  // pinned to a heading nobody can see the control for.
+  useEffect(() => () => simulateView(null), []);
+  const lookAt = aim ?? look ?? { heading: scene.hemisphere === 1 ? 180 : 0, pitch: 12 };
+  const windowReadout = !skyWindow
+    ? zh ? "关" : "off"
+    : look
+      ? `${look.heading}°${aim ? "" : look.compass ? "" : "~"} · ${look.pitch}°`
+      : zh ? "等待方向" : "no heading";
 
   // --- Tune fold -----------------------------------------------------------
   const [tuneOpen, setTuneOpen] = useState(false);
@@ -2567,6 +2608,58 @@ function SkyModule() {
               />
             </span>
           </PanelRow>
+          {/* The sky window: the phone as a window onto the real sky. A
+              session state, like the easter egg that opens it (a long press on
+              the home sky). The readout is where it looks — heading · pitch,
+              with a ~ when there is no compass and north is a guess. */}
+          <PanelRow
+            label={zh ? "天空之窗" : "Window"}
+            star={
+              aim ? (
+                <PanelStar
+                  onReset={() => setAim(null)}
+                  source="session"
+                  label={zh ? "交还传感器" : "Back to the sensor"}
+                />
+              ) : null
+            }
+          >
+            <span className="flex items-center gap-2">
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {windowReadout}
+              </span>
+              <PanelToggle
+                on={skyWindow}
+                disabled={effectiveStyle !== "sky"}
+                onClick={() => setSkyWindow(!skyWindow)}
+                label="Toggle sky window"
+              />
+            </span>
+          </PanelRow>
+          {skyWindow && (
+            <div className="space-y-2 pt-2">
+              <PanelSlider
+                label={zh ? "朝向" : "Heading"}
+                ariaLabel="Window heading"
+                value={lookAt.heading}
+                min={0}
+                max={359}
+                step={1}
+                format={(v) => `${v}° ${compassPoint(v)}`}
+                onChange={(v) => setAim({ heading: v, pitch: lookAt.pitch })}
+              />
+              <PanelSlider
+                label={zh ? "仰角" : "Pitch"}
+                ariaLabel="Window pitch"
+                value={lookAt.pitch}
+                min={-30}
+                max={90}
+                step={1}
+                format={(v) => `${v}°`}
+                onChange={(v) => setAim({ heading: lookAt.heading, pitch: v })}
+              />
+            </div>
+          )}
         </div>
 
         {/* Where the location came from and how old it is — the first thing to

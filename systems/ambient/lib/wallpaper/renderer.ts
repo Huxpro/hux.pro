@@ -20,6 +20,17 @@
 
 import { UPRIGHT_GRAVITY, type GravityVector } from "../gyroscope";
 import type { WeatherScene } from "../scene";
+import {
+  moonLitAngle,
+  normalize,
+  projectToScreen,
+  stageView,
+  starFrame,
+  vec3,
+  viewScale,
+  type SkyView,
+  type Vec3,
+} from "../sky-window";
 import { POKE_KIND_CODE, POKE_MS, type PokeKind } from "../poke";
 import {
   WIPE_JUMP,
@@ -85,6 +96,14 @@ const UNIFORMS: UniformSpec[] = [
   { name: "uVeilColor", size: 3, tau: THEME },
   { name: "uVeilAmount", size: 1, tau: THEME },
   { name: "uExposure", size: 1, tau: THEME },
+  // The sky window's (see ../sky-window.ts). The wind and the celestial frame
+  // never reach the shader as themselves — the renderer turns them into a lean
+  // across the view and a star frame — so their locations are simply null, the
+  // way uWind's always has been.
+  { name: "uWindWorld", size: 2, tau: 3.0 },
+  { name: "uSunWorld", size: 3, tau: TRACK },
+  { name: "uMoonWorld", size: 3, tau: TRACK },
+  { name: "uCelestial", size: 2, tau: 0 },
 ];
 
 const FLOAT_COUNT = UNIFORMS.reduce((n, u) => n + u.size, 0);
@@ -108,6 +127,21 @@ const THEME_TAU_INDEX = TAUS.indexOf(THEME);
 const WIND_OFFSET = OFFSET.uWind;
 const CLOUD_SPEED_OFFSET = OFFSET.uCloudSpeed;
 const SNOW_OFFSET = OFFSET.uSnow;
+const WIND_WORLD_OFFSET = OFFSET.uWindWorld;
+const SUN_WORLD_OFFSET = OFFSET.uSunWorld;
+const MOON_WORLD_OFFSET = OFFSET.uMoonWorld;
+const CELESTIAL_OFFSET = OFFSET.uCelestial;
+const SUN_INDEX = UNIFORMS.findIndex((u) => u.name === "uSun");
+const MOON_INDEX = UNIFORMS.findIndex((u) => u.name === "uMoon");
+const MOON_PHASE_OFFSET = OFFSET.uMoonPhase;
+const HEMISPHERE_OFFSET = OFFSET.uHemisphere;
+
+/**
+ * How long the sky takes to become a window, and to go back to being a stage.
+ * Long enough to watch the horizon drop into place and the sun slide round to
+ * where it really is — that is the reveal — and no longer.
+ */
+const WINDOW_TAU = 0.45;
 
 /** A fixed, pleasant moment on the shader clock for a still frame. */
 const STILL_FRAME_SEC = 37;
@@ -309,8 +343,21 @@ function packScene(scene: WeatherScene, out: Float32Array) {
   out[39] = veil.color[0]; out[40] = veil.color[1]; out[41] = veil.color[2];
   out[42] = veil.amount;
   out[43] = scene.exposure;
+  out[44] = scene.windWorld.east; out[45] = scene.windWorld.north;
+  packDirection(sun.azimuth, sun.elevation, out, 46);
+  packDirection(moon.azimuth, moon.elevation, out, 49);
+  out[52] = scene.celestial.latitude; out[53] = scene.celestial.siderealDeg;
 }
-if (FLOAT_COUNT !== 44) throw new Error("packScene is out of step with UNIFORMS");
+if (FLOAT_COUNT !== 54) throw new Error("packScene is out of step with UNIFORMS");
+
+/** An azimuth and elevation, as an East-North-Up unit vector, into `out`. */
+function packDirection(azimuthDeg: number, elevationDeg: number, out: Float32Array, at: number) {
+  const az = (azimuthDeg * Math.PI) / 180;
+  const el = (elevationDeg * Math.PI) / 180;
+  out[at] = Math.sin(az) * Math.cos(el);
+  out[at + 1] = Math.cos(az) * Math.cos(el);
+  out[at + 2] = Math.sin(el);
+}
 
 export interface WallpaperRendererOptions {
   /** Render a single still frame and re-render only on scene/size changes. */
@@ -364,6 +411,13 @@ export class WallpaperRenderer {
   private locWipeBox: WebGLUniformLocation | null = null;
   private locWipeBlow: WebGLUniformLocation | null = null;
   private locFrameSec: WebGLUniformLocation | null = null;
+  private locWindow: WebGLUniformLocation | null = null;
+  private locViewRight: WebGLUniformLocation | null = null;
+  private locViewUp: WebGLUniformLocation | null = null;
+  private locViewFwd: WebGLUniformLocation | null = null;
+  private locViewScale: WebGLUniformLocation | null = null;
+  private locStarFrame: WebGLUniformLocation | null = null;
+  private locMoonAxis: WebGLUniformLocation | null = null;
   /** Per-frame easing factors, one per distinct tau. */
   private ks = new Float64Array(TAUS.length);
   private vao: WebGLVertexArrayObject | null = null;
@@ -452,6 +506,15 @@ export class WallpaperRenderer {
   /** The hand. It tires across strokes, not within one — lifting gives nothing back. */
   private hand = freshHand();
 
+  // --- The sky window (see ../sky-window.ts) ---------------------------------
+  /** Whether the sky is being looked at through the phone, as asked. */
+  private windowOn = false;
+  /** …and how far it has got there: 0 the stage, 1 the window. Eased. */
+  private windowAmt = 0;
+  /** Where the window looks. The stage's own view until a reading arrives. */
+  private view: SkyView | null = null;
+  private starMat = new Float32Array(9);
+
   private dpr = 1;
   private baseScale = 1;
   private scale = 1;
@@ -519,8 +582,8 @@ export class WallpaperRenderer {
     // The jump that matters is between one target and the next: measuring
     // against the eased position instead would read a run of small steps — a
     // scrub — as one big jump, and teleport the disc mid-drag.
-    this.snapIfJumped("uSun", prevTarget, 0.2);
-    this.snapIfJumped("uMoon", prevTarget, 0.2, ["uMoonVisible"]);
+    this.snapIfJumped("uSun", prevTarget, 0.2, ["uSunWorld"]);
+    this.snapIfJumped("uMoon", prevTarget, 0.2, ["uMoonVisible", "uMoonWorld"]);
     if (this.opts.reducedMotion) {
       this.settle();
     } else if (!this.running) {
@@ -589,6 +652,31 @@ export class WallpaperRenderer {
     if (this.opts.reducedMotion) {
       this.settle();
     }
+  }
+
+  /**
+   * Look at the sky through the phone, or go back to the stage. The window
+   * eases in and out (`WINDOW_TAU`) — the horizon dropping into place and the
+   * sun sliding round to where it really is are the reveal — except under
+   * reduced motion, where it simply is one or the other.
+   */
+  setSkyWindow(on: boolean) {
+    if (this.windowOn === on) return;
+    this.windowOn = on;
+    if (this.opts.reducedMotion) {
+      this.windowAmt = on ? 1 : 0;
+      this.settle();
+    }
+  }
+
+  /**
+   * Where the window looks — the sensor's view, straight from
+   * `subscribeView`. Null goes back to the stage's own heading, which is also
+   * where the window opens before the first reading arrives.
+   */
+  setView(view: SkyView | null) {
+    this.view = view;
+    if (this.opts.reducedMotion && this.windowOn) this.renderOnce();
   }
 
   /**
@@ -805,6 +893,13 @@ export class WallpaperRenderer {
     this.locWipeBox = gl.getUniformLocation(program, "uWipeBox");
     this.locWipeBlow = gl.getUniformLocation(program, "uWipeBlow");
     this.locFrameSec = gl.getUniformLocation(program, "uFrameSec");
+    this.locWindow = gl.getUniformLocation(program, "uWindow");
+    this.locViewRight = gl.getUniformLocation(program, "uViewRight");
+    this.locViewUp = gl.getUniformLocation(program, "uViewUp");
+    this.locViewFwd = gl.getUniformLocation(program, "uViewFwd");
+    this.locViewScale = gl.getUniformLocation(program, "uViewScale");
+    this.locStarFrame = gl.getUniformLocation(program, "uStarFrame");
+    this.locMoonAxis = gl.getUniformLocation(program, "uMoonAxis");
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     return true;
@@ -1113,6 +1208,10 @@ export class WallpaperRenderer {
       }
     }
     this.advanceGust(dtSec);
+    const kw = 1 - Math.exp(-dtSec / WINDOW_TAU);
+    const aimAt = this.windowOn ? 1 : 0;
+    this.windowAmt += (aimAt - this.windowAmt) * kw;
+    if (Math.abs(aimAt - this.windowAmt) < 1e-3) this.windowAmt = aimAt;
     // Advect drift from the smoothed wind so direction changes glide. Both
     // drifts are travels, positive to the right, like the wind that feeds them.
     const windX = this.current[WIND_OFFSET];
@@ -1169,7 +1268,7 @@ export class WallpaperRenderer {
   private aimRain(src: Float32Array, gust: number) {
     // 1, because the rain's own fall speed is the shader's business: it varies
     // per depth layer and never leaves the loop that uses it.
-    this.fallFor(1, (src[WIND_OFFSET] + gust) * RAIN_LEAN);
+    this.fallFor(1, (this.windAcross(src) + gust) * RAIN_LEAN);
   }
 
   private aimSnow(src: Float32Array, gust: number) {
@@ -1178,7 +1277,47 @@ export class WallpaperRenderer {
     // times the time, whatever the flake is doing vertically. Which is why the
     // snow's lean goes shallower as the snow gets heavier, and why it takes no
     // division to arrange.
-    this.fallFor(snowFallRate(src[SNOW_OFFSET]), (src[WIND_OFFSET] + gust) * SNOW_LEAN);
+    this.fallFor(snowFallRate(src[SNOW_OFFSET]), (this.windAcross(src) + gust) * SNOW_LEAN);
+  }
+
+  /**
+   * The wind across the screen, −1..1, positive blowing right.
+   *
+   * On the stage that is the scene's own `wind.x` — the part of the wind across
+   * a view that always faces south. Through the window it is the part across
+   * wherever the phone is facing: the world wind against the screen's right
+   * edge. Face into the wind and the rain comes straight down at you; turn side
+   * on and it lays over. The two are blended through the transition, so the
+   * lean comes round with the sky rather than snapping.
+   */
+  private windAcross(src: Float32Array): number {
+    const stage = src[WIND_OFFSET];
+    const w = this.windowAmt;
+    if (w <= 0) return stage;
+    const view = this.currentView(src);
+    // Level and square to where you look — forward × up-in-the-world — and not
+    // the screen's own right edge, which tips with the phone's roll. The lean
+    // is laid across gravity on screen already (`fallFor`); what it needs from
+    // here is only how much of the wind is crossing your line of sight. Looking
+    // straight up there is no line of sight across the ground, and the
+    // screen's right, levelled, takes over.
+    const f = view.forward;
+    const levelLen = Math.hypot(f.x, f.y);
+    const byLook = Math.min(1, Math.max(0, (levelLen - 0.1) / 0.2));
+    const rLen = Math.hypot(view.right.x, view.right.y) || 1;
+    let hx = (view.right.x / rLen) * (1 - byLook);
+    let hy = (view.right.y / rLen) * (1 - byLook);
+    if (levelLen > 1e-6) {
+      hx += (f.y / levelLen) * byLook;
+      hy += (-f.x / levelLen) * byLook;
+    }
+    const across = src[WIND_WORLD_OFFSET] * hx + src[WIND_WORLD_OFFSET + 1] * hy;
+    return stage + (across - stage) * w;
+  }
+
+  /** The view the window is looking along, or the stage's when none has come. */
+  private currentView(src: Float32Array): SkyView {
+    return this.view ?? stageView(src[HEMISPHERE_OFFSET] < 0 ? -1 : 1);
   }
 
   /**
@@ -1233,6 +1372,7 @@ export class WallpaperRenderer {
    */
   private settle() {
     this.current.set(this.target);
+    this.windowAmt = this.windowOn ? 1 : 0;
     this.snapFall();
     this.renderOnce();
   }
@@ -1298,6 +1438,66 @@ export class WallpaperRenderer {
     else gl.uniform2f(loc, dir[0] / len, dir[1] / len);
   }
 
+  /**
+   * The sky window's uniforms, and the two it overrides.
+   *
+   * `uWindow` of 0 is the stage, and the shader's stage path is untouched by
+   * everything else here — the window's code sits behind that one uniform, so
+   * a sky nobody has turned into a window renders exactly as it always has.
+   *
+   * The sun and the moon are the overrides: where the stage stages them and
+   * where the window projects them are both known here, and the disc is drawn
+   * at the blend — so through the transition it slides from one to the other,
+   * and every line of the shader that draws a disc, a glow or a halo keeps
+   * working in screen space unchanged.
+   */
+  private drawWindow(gl: WebGL2RenderingContext, c: Float32Array) {
+    const w = this.windowAmt;
+    gl.uniform1f(this.locWindow, w);
+    if (w <= 0) return;
+
+    const view = this.currentView(c);
+    const aspect = this.canvas.height > 0 ? this.canvas.width / this.canvas.height : 1;
+    gl.uniform3f(this.locViewRight, view.right.x, view.right.y, view.right.z);
+    gl.uniform3f(this.locViewUp, view.up.x, view.up.y, view.up.z);
+    gl.uniform3f(this.locViewFwd, view.forward.x, view.forward.y, view.forward.z);
+    gl.uniform1f(this.locViewScale, viewScale(aspect));
+    gl.uniformMatrix3fv(
+      this.locStarFrame,
+      false,
+      starFrame(c[CELESTIAL_OFFSET], c[CELESTIAL_OFFSET + 1], this.starMat)
+    );
+
+    const sunW = worldAt(c, SUN_WORLD_OFFSET);
+    const moonW = worldAt(c, MOON_WORLD_OFFSET);
+    const sun = projectToScreen(sunW, view, aspect);
+    const moon = projectToScreen(moonW, view, aspect);
+    const so = OFFSET.uSun;
+    const mo = OFFSET.uMoon;
+    gl.uniform2f(
+      this.locs[SUN_INDEX],
+      c[so] + (sun.x - c[so]) * w,
+      c[so + 1] + (sun.y - c[so + 1]) * w
+    );
+    gl.uniform2f(
+      this.locs[MOON_INDEX],
+      c[mo] + (moon.x - c[mo]) * w,
+      c[mo + 1] + (moon.y - c[mo + 1]) * w
+    );
+
+    // The crescent faces the sun. In the shader's moon frame the lit limb is +x
+    // while waxing and −x while waning, and x is mirrored by the hemisphere
+    // after this turn — so the axis is the sun's way, signed by both. Turned by
+    // the blend's share of the angle, so the stage's upright crescent swings
+    // round rather than passing through a degenerate zero.
+    const hemisphere = c[HEMISPHERE_OFFSET] < 0 ? -1 : 1;
+    const waxing = c[MOON_PHASE_OFFSET] < 0.5 ? 1 : -1;
+    let angle = moonLitAngle(moonW, sunW, view);
+    if (hemisphere * waxing < 0) angle += Math.PI;
+    angle = Math.atan2(Math.sin(angle), Math.cos(angle)) * w;
+    gl.uniform2f(this.locMoonAxis, Math.cos(angle), Math.sin(angle));
+  }
+
   private draw(timeSec: number) {
     const gl = this.gl;
     if (!gl || !this.program) return;
@@ -1352,6 +1552,7 @@ export class WallpaperRenderer {
       else if (size === 2) gl.uniform2f(loc, c[offset], c[offset + 1]);
       else gl.uniform3f(loc, c[offset], c[offset + 1], c[offset + 2]);
     }
+    this.drawWindow(gl, c);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -1360,4 +1561,9 @@ export class WallpaperRenderer {
       this.opts.onFirstFrame?.();
     }
   }
+}
+
+/** An eased world direction out of the packed uniforms, made unit again. */
+function worldAt(c: Float32Array, at: number): Vec3 {
+  return normalize(vec3(c[at], c[at + 1], c[at + 2]));
 }

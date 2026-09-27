@@ -1,49 +1,44 @@
 // =============================================================================
-// The tilt primer — the offer that comes before the permission prompt.
+// The sky hold — a finger resting on the home sky, in any weather.
 //
-// Rain and snow on the Sky fall along real gravity, so a leaned phone leans the
-// weather (lib/gyroscope.ts, and "Where the weather falls" in the docs). On
-// WebKit that needs `DeviceOrientationEvent.requestPermission()`, which needs a
-// user gesture — and today the only place to make that gesture is the wallpaper
-// picker's Weather tab, three taps from the page, describing a feature nobody
-// has seen yet.
+// It opens the sky window (lib/sky-window.ts): the phone becomes a window onto
+// the real sky, aimed by its compass and its tilt, with the sun and the moon
+// where they really are. A second hold closes it again. That is the egg, and
+// like the others it is a reward for poking at a sky that owes you nothing —
+// unlike them it is not tied to a weather, because every sky has a sun or a
+// moon somewhere in it, and the window is how you go and find them.
 //
-// So: hold a finger on a rainy or snowy background and a sheet comes up showing
-// what the tilt does, with a button that then asks. Two presses, not one —
-// which is the whole point and not an extra step. A permission dialog that
-// arrives with no idea what it is for gets refused, and in every browser a
-// refusal is final: there is no second prompt, only the site settings the
-// visitor will never open. The first press buys the explanation; the second
-// spends the one chance.
+// On WebKit it has a gate to pass first: motion is behind
+// `DeviceOrientationEvent.requestPermission()`, which needs a user gesture —
+// so there the hold brings up a sheet showing what the window does, with a
+// button under it that asks. Two presses, not one, and that is the whole point
+// rather than an extra step: a permission dialog that arrives with no idea what
+// it is for gets refused, and in every browser a refusal is final — there is
+// no second prompt, only the site settings the visitor will never open. The
+// first press buys the explanation; the second spends the one chance. Once the
+// gate is passed, a hold is just the window, both ways.
 //
-// It is offered ONCE. `weatherGyroPrimed` is set as soon as the sheet is
-// answered either way. An introduction repeated is a nag, and this one
-// interrupts a page the visitor came to for something else. Two things re-arm
-// it, both cases where nothing was really answered: a remembered grant that
-// the browser has since dropped (the yes still stands; the tilt just went off
-// with no way back), and an ask the gate declined to even show a dialog for.
+// A hold where the gate has already been refused brings up the same sheet,
+// saying so and where to undo it — a hold that silently did nothing would be
+// the one answer that explains nothing.
 //
 // -----------------------------------------------------------------------------
-// Where it sits among the easter eggs
+// Where it sits among the other gestures on the sky
 //
-// This is not a fourth egg, whatever the sheet's own copy says. The eggs are
-// rewards for poking at a sky that owes you nothing (see "The easter eggs");
-// this is a feature explaining itself, and it is *armed by the absence* of
-// something rather than by the presence of it — it exists only until it has
-// been answered, and then never again. The copy greets it as a find because
-// that is honestly how it arrives for the visitor, who went looking for
-// nothing and got something; the distinction here is about lifecycle, not
-// about how it feels to meet.
+// It shares the background with the gust (rain and snow) and the fog wipe, and
+// does not collide with either, because a gust is travel and this is stillness:
 //
-// But it shares the same page, and on a rainy day the gust egg is armed on that
-// same background. They do not collide, because a gust is travel and this is
-// stillness:
+//   · A hold that does not move past the slop, for the hold's length, is this.
+//     The finger has gone nowhere, so `attachWindStir` has reported nothing and
+//     there is no gust to take away.
+//   · Any drift before that is the gust's (or the scroller's, or the wipe's),
+//     and this one stands down for the rest of the press without having taken
+//     anything.
 //
-//   · A hold that does not move past WIPE-sized slop, for TOUCH_ACTIVATION's
-//     400 ms, is this. The finger has gone nowhere, so `attachWindStir` has
-//     reported nothing and there is no gust to take away.
-//   · Any drift before that is the gust's (or the scroller's), and this one
-//     stands down for the rest of the press without having taken anything.
+// The wipe arms on a hold of its own — the same TOUCH_HOLD_MS — so on a fog day
+// this one waits longer (`SKY_HOLD_FOG_MS`): a finger that rests on the mist
+// wipes a patch of it at 400 ms, and one that is STILL resting a second later
+// meant something else.
 //
 // Nothing here ever calls `preventDefault`: a press that turns out to be a
 // scroll must scroll, and the page's own fast path is not this module's to slow
@@ -53,8 +48,8 @@
 // `setTimeout`, which is not a user gesture — that is fine, because the gesture
 // WebKit wants is the button inside the sheet.
 //
-// Touch only. A mouse cannot tilt anything, and the gate this exists to open is
-// WebKit's, which is a phone's. And the system surface only — see
+// Touch only. A mouse cannot point a phone at the sky (the devtool's Sky module
+// drives the window by hand instead). And the system surface only — see
 // SYSTEM_SURFACE below: a long press on a document is the reader's.
 // =============================================================================
 
@@ -69,12 +64,12 @@ import {
  * The page that has declared itself one OS composition rather than a document
  * — the home screen (`app/globals.css`, "System surface"; `app/home-view.tsx`).
  *
- * The offer is only made there, and this is why. `isBackgroundPress` asks
+ * The hold is only answered there, and this is why. `isBackgroundPress` asks
  * whether anything PAINTS over the wallpaper, which is the right question for
  * an easter egg and the wrong one here: a paragraph paints nothing, so on an
  * article the whole column answers "background" and a finger resting in the
- * margin — or on the prose — would put a permission sheet over what somebody
- * is reading. A long press on a document belongs to the reader; the system
+ * margin — or on the prose — would put a permission sheet, or a sky that
+ * swings with the hand, behind what somebody is reading. A long press on a document belongs to the reader; the system
  * surface is where a long press belongs to the system, and that is a property
  * the page states about itself rather than a list of routes kept in here.
  */
@@ -85,59 +80,57 @@ function onSystemSurface(target: EventTarget | null): boolean {
 }
 
 /**
- * How long the finger rests before the offer comes up, and how far it may drift
+ * How long the finger rests before the window opens, and how far it may drift
  * while it does — `TOUCH_HOLD_*`, the same hold the fog wipe arms on and the
  * same beat as the widget grid's `TOUCH_ACTIVATION`, from one definition rather
  * than from three comments promising they agree.
  */
-export const TILT_PRIMER_HOLD_MS = TOUCH_HOLD_MS;
-export const TILT_PRIMER_SLOP_PX = TOUCH_HOLD_SLOP_PX;
+export const SKY_HOLD_MS = TOUCH_HOLD_MS;
+export const SKY_HOLD_SLOP_PX = TOUCH_HOLD_SLOP_PX;
 
 /**
- * How much precipitation counts as "there is weather to lean". The same test
- * `<WeatherWallpaper />` uses to arm the gust, and for the same reason: with
- * nothing falling there is nothing for gravity to angle.
+ * On a fog day the wipe owns the first 400 ms of a resting finger, so the
+ * window waits until the finger has plainly stayed put past it.
  */
-export const TILT_PRIMER_MIN_PRECIP = 0.02;
+export const SKY_HOLD_FOG_MS = 1000;
 
 /**
- * Should the offer be made at all? Every reason is a reason not to:
+ * What a hold on the sky does, or null for nothing at all:
  *
- *   · `primed` — it has been made once, and once is the whole design.
- *   · `gated` — there is no permission to ask for. Everywhere but WebKit the
- *     event fires freely and the sky is already tilting, so an offer would be
- *     explaining something that is not missing. (Refused counts as answered:
- *     `gated` is false once the browser has said no.)
- *   · `wished` — `weatherGyro` is off, i.e. the visitor has been to the picker
- *     and turned it off. Offering it back is arguing.
- *   · `falling` — no rain or snow, nothing to lean.
- *   · `sky` — the Sky is what paints; no other engine has drops.
+ *   · `window` — readings can flow: open (or close) the window.
+ *   · `offer`  — WebKit's gate stands, unanswered or refused: the sheet, which
+ *                asks (or says it was refused and where to undo it).
  *
- * Reduced motion is the caller's to add, and it does: under it the wallpaper is
- * one still frame with no weather falling in it at all.
+ * Every reason for null is a reason there is no window to open: the Sky is not
+ * what paints (no other engine has a sky to look around), or there is no
+ * motion sensor here at all. Reduced motion is the caller's to add, and it
+ * does — through `sky`: a window that follows the hand is motion.
  */
-export function shouldOfferTilt(state: {
-  primed: boolean;
-  gated: boolean;
-  wished: boolean;
-  falling: boolean;
+export function skyHoldAction(state: {
   sky: boolean;
-}): boolean {
-  return (
-    !state.primed && state.gated && state.wished && state.falling && state.sky
-  );
+  reachable: boolean;
+  gated: boolean;
+  denied: boolean;
+}): "window" | "offer" | null {
+  if (!state.sky) return null;
+  if (state.reachable) return "window";
+  if (state.gated || state.denied) return "offer";
+  return null;
 }
 
 /**
  * Hold a finger still on the background and `onHold` fires, once per press.
  * Returns the detach, the same shape `attachWindStir` and `attachWipeDrag` have.
  */
-export function attachTiltPrimer(onHold: () => void): () => void {
+export function attachSkyHold(
+  onHold: () => void,
+  holdMs: number = SKY_HOLD_MS
+): () => void {
   let id = -1;
   let startX = 0;
   let startY = 0;
   let timer = 0;
-  /** This press has already made its offer; it does not get to make another. */
+  /** This press has already been answered; it does not get another. */
   let spent = false;
   /** Undoes the callout suppression put up on the way down. */
   let freeCallout: (() => void) | null = null;
@@ -185,7 +178,7 @@ export function attachTiltPrimer(onHold: () => void): () => void {
     // not.
     freeCallout = holdCallout();
     timer = window.setTimeout(() => {
-      // The offer is made, but the PRESS is not over — the finger is still
+      // The hold is answered, but the PRESS is not over — the finger is still
       // down, and iOS's own clock has not run out yet. Standing down here would
       // hand the callout back at 400 ms and let it come up over the sheet at
       // 500. So the suppression, and the listeners that undo it, stay until the
@@ -193,7 +186,7 @@ export function attachTiltPrimer(onHold: () => void): () => void {
       timer = 0;
       spent = true;
       onHold();
-    }, TILT_PRIMER_HOLD_MS);
+    }, holdMs);
   };
 
   const onMove = (event: PointerEvent) => {
@@ -201,7 +194,7 @@ export function attachTiltPrimer(onHold: () => void): () => void {
     const travelled = Math.hypot(event.clientX - startX, event.clientY - startY);
     // It went somewhere: a scroll, or a hand stirring up a gust. Either way it
     // is not a rest, and nothing was taken that has to be given back.
-    if (travelled > TILT_PRIMER_SLOP_PX) stand();
+    if (travelled > SKY_HOLD_SLOP_PX) stand();
   };
 
   const onEnd = (event: PointerEvent) => {
