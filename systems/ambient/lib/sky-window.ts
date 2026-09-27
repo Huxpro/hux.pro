@@ -570,7 +570,28 @@ function onRelative(event: DeviceOrientationEvent) {
 
   const heading = (event as CompassEvent).webkitCompassHeading;
   const accuracy = (event as CompassEvent).webkitCompassAccuracy;
-  if (typeof heading === "number" && Number.isFinite(heading) && (accuracy ?? 0) >= 0) {
+  const compassed = typeof heading === "number" && Number.isFinite(heading);
+  // An accuracy of −1 is WebKit's compass saying it has lost its calibration —
+  // common in the first seconds after the sensor starts, and near metal. Once
+  // there is an offset, such a reading keeps it rather than falling back to the
+  // anchor: the two can be half the sky apart, and a stream that flickered
+  // between them made the window turn back and forth without ever arriving.
+  if (compassed && (accuracy ?? 0) < 0 && !Number.isNaN(compassOffset)) {
+    note("webkit", angles, screenAngle);
+    diag.compassHeading = heading;
+    diag.compassAccuracy = accuracy ?? null;
+    publish(
+      viewFromOrientation(
+        angles.alpha + compassOffset / DEG,
+        angles.beta,
+        angles.gamma,
+        screenAngle,
+        true
+      )
+    );
+    return;
+  }
+  if (compassed && (accuracy ?? 0) >= 0) {
     note("webkit", angles, screenAngle);
     diag.compassHeading = heading;
     diag.compassAccuracy = typeof accuracy === "number" ? accuracy : null;
@@ -602,6 +623,12 @@ function onRelative(event: DeviceOrientationEvent) {
       const gap = Math.abs(wrapPi(measured - compassOffset)) / DEG;
       if (gap > CALIBRATING_DEG) setCalibrating(true);
       else if (gap < CALIBRATED_DEG) setCalibrating(false);
+    } else {
+      // Held too steeply to measure — the phone raised to the sky, which is
+      // what the window is for. No correction can land until it comes back
+      // down, so there is nothing to wait for; a spinner held up here would
+      // spin for as long as the visitor kept looking.
+      setCalibrating(false);
     }
     diag.offsetDeg = compassOffset / DEG;
     publish(
