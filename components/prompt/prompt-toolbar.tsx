@@ -18,7 +18,9 @@
  * The ref slot holds `system`, because that is the element this whole page
  * is the body of, and because the slot is what makes the row read as a
  * header rather than as a widget. /works animates a chapter into the slot as
- * the log scrolls; this page has no chapters, so the slot is static.
+ * the log scrolls; this page prints its chapters in the flow instead, as
+ * elements of their own (`<worlding>` … `</worlding>`, app/prompt/view), so
+ * the slot stays static and holds only the root.
  *
  * Rest state is quiet, the way it is on /works: nothing selected is
  * "everything", drawn as plain text rather than a row of filled chips. The

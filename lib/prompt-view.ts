@@ -80,6 +80,35 @@ export function topicLabel(
   return TOPIC_LABEL[topic][locale];
 }
 
+/**
+ * What each shelf is, in one line — the three sentences in the comment
+ * above, said to the reader instead of to the next person editing this file.
+ * The page prints them as the comment inside each chapter's opening tag
+ * (`app/prompt/view`), because a label alone does not teach anyone what
+ * 天行 is for, and the whole cut is only useful once it has been read once.
+ */
+const TOPIC_GLOSS: Record<PromptTopic, { en: string; zh: string }> = {
+  worlding: {
+    en: "how the world runs, and where my part in it ends",
+    zh: "世界如何运转，我的那一份止于何处",
+  },
+  being: {
+    en: "who I am when no one is watching",
+    zh: "无人看见时，我是谁",
+  },
+  doing: {
+    en: "how the work is made, and what it owes the people in it",
+    zh: "作品如何做成，又欠其中的人什么",
+  },
+};
+
+export function topicGloss(
+  topic: PromptTopic,
+  locale: "en" | "zh" = "en",
+): string {
+  return TOPIC_GLOSS[topic][locale];
+}
+
 export function isPromptTopic(value: string): value is PromptTopic {
   return (PROMPT_TOPICS as readonly string[]).includes(value);
 }

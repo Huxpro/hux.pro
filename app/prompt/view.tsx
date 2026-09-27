@@ -15,6 +15,7 @@ import {
   serializePromptView,
   toggleKind,
   toggleTopic,
+  topicGloss,
   topicLabel,
   type PromptKind,
   type PromptTopic,
@@ -1028,6 +1029,139 @@ function InfluenceItem({
   );
 }
 
+/**
+ * The chapter tags are literal markup and must print as typed. JetBrains
+ * Mono's ligatures would turn `-->` into an arrow and fuse `<!--` and `</`
+ * into glyphs that read as decoration rather than as a comment and a close.
+ */
+const CHAPTER_TAG =
+  "font-mono text-xs select-none [font-variant-ligatures:none]";
+
+/**
+ * A chapter of the prompt, printed as what it is: an element.
+ *
+ *   <worlding>
+ *   ┆ <!-- how the world runs, and where my part in it ends -->
+ *   ┆ …four convictions…
+ *   </worlding>
+ *
+ * The page already speaks XML — `<system>` opens it in the toolbar, every
+ * entry turns into `<conviction id="…" on="天行">` under the pointer, and
+ * `</system>` closes it — so a chapter does not get a heading, it gets a
+ * tag. A heading would be a second voice on a page that has one; a tag is
+ * the same voice saying where you are. And it answers the question the
+ * page could not: scrolling it, nothing told you the first four were about
+ * the world and the next four about me, because the only thing that said so
+ * was an attribute you had to hover to see.
+ *
+ * Unlike an entry's tag, this one is there at rest. An entry's tag is
+ * metadata about one sentence and would cost every entry a line of chrome;
+ * a chapter's tag is the outline itself, printed four times on the whole
+ * page, and a landmark you have to hover to find is not one.
+ *
+ * The element name is the canonical topic id in both languages, as
+ * `<conviction>` is — the markup is the machine's, the contents are mine.
+ * The localized name rides as a `title` only where it says something the
+ * name does not: `<worlding title="天行">` on the Chinese page, bare
+ * `<worlding>` on the English one, where printing `title="Worlding"` would
+ * say it twice. The one-line gloss is a comment, because that is what a
+ * comment is for — the note to the reader that the machine skips — and
+ * because on a first read the shelf's name alone does not teach anyone what
+ * 天行 is for.
+ *
+ * The rungs follow the mono rule in `lib/typography`: metadata standing
+ * alone is the information and sits on secondary, metadata beside something
+ * annotates it and sits on tertiary. The element name stands alone — it is
+ * the landmark — so it is one rung above `<system>` in the toolbar, which
+ * sits beside the chips; its brackets and the attribute key carry nothing
+ * and drop to quaternary. The comment annotates the name, so tertiary. The
+ * closing tag is only the fold's end and says nothing the opening did not,
+ * so the whole of it is quaternary.
+ *
+ * The break above a chapter is 80px, against the ~110px an entry already
+ * spends between its neighbours on hidden tag rows and padding: together
+ * with the tags standing in it, the gap between chapters reads as twice the
+ * gap inside one, which is the whole of what a chapter break has to say.
+ *
+ * The children are indented one step with a hairline guide running down
+ * from the opening tag, the fold guide an editor draws, so a chapter reads
+ * as nested even halfway down it with neither tag on screen. The step is
+ * 16px on a phone and 20px from `sm`: enough to read as nesting and little
+ * enough that the display sentences keep their measure at 390px.
+ *
+ * The tags are not spotlit (`.prompt-item` in globals.css): the entries
+ * dim toward the edges of the viewport and the outline stays where it is,
+ * which is what an outline is for.
+ */
+function Chapter({
+  tag,
+  title,
+  gloss,
+  children,
+}: {
+  /** The canonical id: the element name in every language. */
+  tag: string;
+  /** The chapter's name in the reader's language. */
+  title: string;
+  gloss: string;
+  children: React.ReactNode;
+}) {
+  const named = title.toLowerCase() !== tag;
+
+  return (
+    <section
+      data-chapter={tag}
+      aria-label={`${title} — ${gloss}`}
+      className="pt-20 first:pt-6"
+    >
+      <div
+        aria-hidden
+        className={cn(CHAPTER_TAG, "text-quaternary-foreground")}
+      >
+        &lt;<span className="text-muted-foreground">{tag}</span>
+        {named && (
+          <>
+            {" "}
+            title=&quot;
+            <span className="text-muted-foreground">{title}</span>
+            &quot;
+          </>
+        )}
+        &gt;
+      </div>
+
+      {/* The guide sits in the step's first few pixels, under the opening
+          tag's `<`, and the entries' hover box (`-mx-4 px-4`) opens out
+          over it rather than beside it — a 2% wash does not hide a line. */}
+      <div className="relative mt-1 pl-4 sm:pl-5">
+        <span
+          aria-hidden
+          className="absolute left-[3px] top-0 bottom-0 w-px bg-border"
+        />
+        <p
+          aria-hidden
+          className={cn(
+            CHAPTER_TAG,
+            "pt-1 pb-2 leading-relaxed text-tertiary-foreground",
+          )}
+        >
+          <span className="text-quaternary-foreground">&lt;!-- </span>
+          {gloss}
+          <span className="text-quaternary-foreground"> --&gt;</span>
+        </p>
+        <div className="space-y-2">{children}</div>
+      </div>
+
+      <div
+        aria-hidden
+        className={cn(CHAPTER_TAG, "mt-1 text-quaternary-foreground")}
+      >
+        &lt;/{tag}&gt;
+      </div>
+    </section>
+  );
+}
+
 // Footer meta component
 interface FooterLabels {
   tokens: string;
@@ -1203,6 +1337,18 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   );
   const hasMatches = convictions.length > 0 || influences.length > 0;
 
+  // The chapters, in shelf order. A conviction is printed once, under its
+  // first topic — the shelf it is filed on; a second is where it can also be
+  // found, not a second copy (`lib/prompt-view`). Grouping happens after the
+  // filter, so a chapter the reading emptied has nothing to print and prints
+  // nothing: no `<being></being>` standing guard over an empty shelf. A
+  // reading of one shelf keeps its tags — it is a subtree of the same
+  // document, and the tag is what tells you which one.
+  const chapters = PROMPT_TOPICS.map((topic) => ({
+    topic,
+    entries: convictions.filter((c) => c.topics[0] === topic),
+  })).filter((chapter) => chapter.entries.length > 0);
+
   // A reference outranks a reading: following one into something the filter
   // is currently hiding clears the filter and then goes there, rather than
   // silently doing nothing. Two renders — the entry has to exist before it
@@ -1283,28 +1429,46 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
             and so does the optical correction in `TYPE.voice`, which only
             applies to Latin. */}
         <div className="relative -mt-4" lang={locale}>
-          <div className="pb-4 space-y-2">
-            {/* What I hold */}
-            {convictions.map((conviction) => (
-              <ConvictionItem
-                key={conviction.id}
-                conviction={conviction}
-                topics={conviction.topics.map((t) => topicLabel(t, locale))}
-                shapedByLabel={shapedByLabel}
-                labelOf={labelOf}
-              />
+          <div className="pb-4">
+            {/* What I hold, shelf by shelf */}
+            {chapters.map(({ topic, entries }) => (
+              <Chapter
+                key={topic}
+                tag={topic}
+                title={topicLabel(topic, locale)}
+                gloss={topicGloss(topic, locale)}
+              >
+                {entries.map((conviction) => (
+                  <ConvictionItem
+                    key={conviction.id}
+                    conviction={conviction}
+                    topics={conviction.topics.map((t) => topicLabel(t, locale))}
+                    shapedByLabel={shapedByLabel}
+                    labelOf={labelOf}
+                  />
+                ))}
+              </Chapter>
             ))}
 
-            {/* Who trained it */}
-            {influences.map((influence) => (
-              <InfluenceItem
-                key={influence.id}
-                influence={influence}
-                shapedLabel={shapedLabel}
-                slidesLabel={slidesLabel}
-                convictions={data.convictions}
-              />
-            ))}
+            {/* Who trained it — on no shelf, so the chapter is named for the
+                kind rather than a topic. */}
+            {influences.length > 0 && (
+              <Chapter
+                tag="influences"
+                title={t(locale, "promptKindInfluences")}
+                gloss={t(locale, "promptInfluencesGloss")}
+              >
+                {influences.map((influence) => (
+                  <InfluenceItem
+                    key={influence.id}
+                    influence={influence}
+                    shapedLabel={shapedLabel}
+                    slidesLabel={slidesLabel}
+                    convictions={data.convictions}
+                  />
+                ))}
+              </Chapter>
+            )}
           </div>
 
           {/* A filter that matched nothing says so in the page's own voice,
