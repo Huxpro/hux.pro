@@ -1,6 +1,7 @@
 "use client";
 
 import { t, useLocale } from "@/services";
+import { OVER_ABOUT_Z, useOptionalAbout } from "@/systems/about/provider";
 import { ANCHORED_PRESENTATION, AdaptiveSurface } from "@/systems/surface";
 import { useIdentityCard } from "../provider";
 import { IdentityProfileView } from "./identity-profile";
@@ -18,6 +19,9 @@ import { IdentityProfileView } from "./identity-profile";
 export function IdentityCard() {
   const { locale } = useLocale();
   const { isOpen, close, profile, anchorRef } = useIdentityCard();
+  // Opened from the About's copy (a magic link naming a role), it floats
+  // over the About rather than taking its place.
+  const aboutOpen = useOptionalAbout()?.isOpen ?? false;
 
   return (
     <AdaptiveSurface
@@ -32,6 +36,7 @@ export function IdentityCard() {
       popover={{ anchor: anchorRef, width: "min(92vw, 380px)" }}
       maxHeight="min(80dvh, 640px)"
       fitContent
+      zIndex={aboutOpen ? OVER_ABOUT_Z : undefined}
     >
       {profile && (
         <div className="pt-1">

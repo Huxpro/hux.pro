@@ -15,9 +15,10 @@ content/badge-icons.json         # generated: each site's official icon (pnpm ba
 lib/badge-site.ts                # the rule for "which site", shared by component and script
 scripts/badge-icon-snapshot.ts   # pnpm badges:snapshot / badges:check
 
-components/badge/
-├── resolve.ts                   # props → target, label, icon, href (data only)
-└── badge-link.tsx               # <BadgeLink /> — `Badge` in MDX
+components/magic-link/
+├── resolve.ts                   # props → summonable, label, icon, href (data only)
+├── magic-link.tsx               # <MagicLink /> (and <Badge />): peek, drawer, home
+└── server.tsx                   # MDX on the server: posts and site sections resolved
 app/about/                       # `/about`: the home screen with the About up
 ```
 
@@ -110,26 +111,54 @@ the system's index) and the surface shows the reader's. What is available:
 
 | | |
 |---|---|
-| `<Badge>` | a thing I made — a company, a project — with its icon, opening where it lives |
-| `<Ref>` | a word that points somewhere without naming a thing I made (a post, a talk list, a school): the same targets as `<Badge>` and the same way of opening, dressed as a plain underlined link (`BadgeLink plain`). Its own tag, so the badge-icon check does not ask it for an icon |
+| `<MagicLink>` | a word that summons something — a post, a work, a role, a page (below) |
+| `<Badge>` | the same link dressed as a pill wearing the thing's icon: a company, a project |
 | `*…*` | italics, in the serif — the word the copy is about, *interface* |
 | `<Fn n="1" />` | a note's mark: a superscript number that scrolls the note into view inside the About (the address is left alone) |
 | `<Footnotes>` / `<Footnote n="1">` | the notes, at the end, in the About's annotation type — the tiny mono line; a note's number scrolls back to its mark |
 | `<Kbd>`, plain links | a key; a link (internal ones use the router, external ones open a tab) |
 
-Every keyword links somewhere: companies and projects as badges (each wears
-its site's icon — `pnpm badges:snapshot`, `content/badges.json` naming the
-site where a commit's first link is not its home), everything else as a
-`<Ref>`.
+Every keyword is a magic link: companies and projects as badges (each wears
+its site's icon — `pnpm badges:snapshot`; `content/badges.json` names the
+site for a commit or an identity), everything else as the word alone.
+
+## Magic links
+
+A magic link names a *summonable*, and summons it the way the site
+summons that thing everywhere else — one semantics, whatever it is dressed
+as:
+
+| it names | with a pointer (hover) | on a phone (tap) | a press, with a pointer |
+|---|---|---|---|
+| `post="dreamer"` | the /writing row's peek (`PostPeekView`) | the drawer: that peek, and Read | the post |
+| `commit=… item=…` | the /works cover's peek (`mediaPeek`) | the attachment drawer | its home: the stage, the in-app browser, the router |
+| `role="alitrip-engineer"` | the /works role row's peek: the identity's profile | the identity card (a popover on a touch tablet) | its row on /works |
+| `href="/works?type=talk"` | the section's card (its share image, a count) | the drawer: the card, Visit | the page |
+| `href="https://…"` | the page's card (`pnpm og:snapshot` crawls these) | the drawer | the in-app browser, or a tab |
+| `app="…"` | — | a sheet | a window |
+
+A post's peek is its body (excerpt, cover), which only the server can read,
+so MDX maps rendered on the server (the About, posts, docs) use
+`server.tsx`: it reads the post, or counts a section, and hands the client
+link a `media` carrying it (`InternalLinkMeta.peek`).
+
+The peek follows the input (`magneticPreviewEnabled`), as every peek does;
+the drawer follows the viewport (the attachments' policy). Inside the About
+the peeks, the drawer and the identity card all come up over it
+(`MagicLinkHost layer`, `OVER_ABOUT_Z`), and the About steps aside only
+when something leaves for a home beneath it. A link to another page tells
+the About it is navigating (`close({ navigating })`), so `/about` is left
+by the router rather than swapped to `/` under its push.
 
 ## Badges
 
-`<Badge>` is a thing I made, named inline in a sentence, wearing its icon, and
+`<Badge>` is a magic link for a thing I made, named inline in a sentence, wearing its icon, and
 one press from where it lives on the site. It works anywhere MDX renders —
-posts, docs, the About — and as `<BadgeLink>` from code.
+posts, docs, the About — and as `<MagicLink badge>` from code.
 
 ```mdx
 <Badge commit="lynx-framework">Lynx</Badge>       {/* a commit in content/log.json */}
+<Badge role="alitrip-engineer">Alibaba</Badge>   {/* a role: the identity's profile */}
 <Badge commit="hermes-engine" item={1} />         {/* its second attachment */}
 <Badge app="lynx-flappy-bird" />                  {/* an app in content/apps.json */}
 <Badge href="https://youtu.be/…">Talk</Badge>     {/* any URL; the kind is read off it */}
@@ -165,11 +194,11 @@ link away. The About's words are a document over the home screen, whose
 selection lock (`useLockTextSelection`) would otherwise take them: the
 article is marked `data-text-document`, which the lock lets be.
 
-A surface that hosts badges and should step aside when one opens something
-wraps them in `<BadgeLaunchProvider onLaunch={…}>` — the About does. A badge
-that opens the attachment drawer does not call it: the drawer floats over
-its host, which raises it (`AdaptiveSurface`'s `zIndex`) and hears where the
-drawer sends things next (`useAttachments().onSend`).
+A surface that hosts magic links and should step aside when one opens
+something wraps them in `<MagicLinkHost onLaunch={…}>` — the About does. A
+link that opens the drawer or the identity card does not call it: those float
+over their host, which raises them (`AdaptiveSurface`'s `zIndex`) and hears
+where the drawer sends things next (`useAttachments().onSend`).
 
 ### What it wears
 

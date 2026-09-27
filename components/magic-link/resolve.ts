@@ -6,6 +6,7 @@ import { APPS_BY_ID, APP_ICONS } from "@/lib/apps";
 import { badgeSiteUrl, siteKey, type BadgeConfig } from "@/lib/badge-site";
 import type { Locale } from "@/lib/i18n";
 import {
+  computeCommitHash,
   localize,
   type Commit,
   type Media,
@@ -23,31 +24,42 @@ import type { AttachmentSet } from "@/systems/attachments/lib/types";
 import { isInternalLink } from "@/systems/attachments/lib/policy";
 
 // =============================================================================
-// Badge resolution — from what an author writes to what a badge opens.
+// Magic-link resolution — from what an author writes to what a link summons.
 //
-// A badge names a thing three ways, and all three land on the site's own
-// homes for it, through the attachment policy (systems/attachments):
+// A magic link names a *summonable*: a thing on this site that has a peek
+// (what it shows under the pointer) and a drawer (what stands in for the peek
+// on a phone), the same ones wherever it is summoned from. What it names:
 //
-//   commit="lynx-framework"   a commit in content/log.json; opens its media
-//                             (`item`, the first by default) — a page in the
-//                             in-app browser, a recording or a deck on the
-//                             stage, a post on its route.
+//   commit="lynx-framework"   one of a commit's media (`item`, the first by
+//                             default) — a /works cover: its peek, the
+//                             attachment drawer, and its home (the in-app
+//                             browser, the stage, the router).
+//   role="alitrip-engineer"   a role — a range under an identity in
+//   identity="alibaba"        content/log.json — as a /works role row: the
+//                             identity's profile as the peek, its card as
+//                             the drawer, its row on /works as its home.
+//   post="dreamer"            a post, as its /writing row: its peek, and the
+//                             same in the drawer. Resolved on the server
+//                             (server.tsx), which alone can read the post;
+//                             it arrives here as `media`.
 //   app="lynx-flappy-bird"    an app in content/apps.json; opens in a window,
 //                             Lynx runtime or web, as the home screen does.
 //   href="…"                  any URL; its kind is read off it the way
 //                             <Media /> reads it (`as` forces one): a video,
 //                             a deck, an image, a social post, a page, or one
-//                             of this site's own paths.
+//                             of this site's own paths (server.tsx gives the
+//                             site's sections a card of their own).
 //
 // This module is data only: it resolves props to a target, a label, an icon
 // and a real href (for ⌘-click, middle-click and no JavaScript). The
-// component (badge-link.tsx) does the opening.
+// component (magic-link.tsx) does the peeking and the opening.
 // =============================================================================
 
 type Snapshot = Record<string, MediaPreview & { siteName?: string }>;
 const SNAPSHOT = ogSnapshotJson as unknown as Snapshot;
 
 export type BadgeKind =
+  | "identity"
   | "app"
   | "web"
   | "writing"
@@ -59,6 +71,7 @@ export type BadgeKind =
 
 export type BadgeTarget =
   | { type: "media"; set: AttachmentSet; media: Media }
+  | { type: "identity"; identityId: string; roleId?: string }
   | { type: "app"; app: AppLink };
 
 export type BadgeIcon =
@@ -80,6 +93,12 @@ export interface ResolvedBadge {
 export interface BadgeSpec {
   commit?: string;
   item?: number;
+  /** A role: a range id under `identities` in content/log.json. */
+  role?: string;
+  /** An identity id, for the identity as a whole (its latest role leads). */
+  identity?: string;
+  /** Resolved on the server (server.tsx): a post, a section of this site. */
+  media?: Media;
   app?: string;
   href?: string;
   as?: MediaKind;
@@ -137,14 +156,25 @@ export function mediaFromHref(
       return { kind, url };
     case "link":
     default: {
-      // Whether the page lets itself be framed was read at snapshot time; a
-      // page that refuses goes to a tab rather than a window of refusal.
-      const frame = SNAPSHOT[url]?.frame;
+      // The page's card, as the snapshot read it (`pnpm og:snapshot` crawls
+      // the hrefs written in magic links too): its title, description and
+      // image for the peek, and whether it lets itself be framed — a page
+      // that refuses goes to a tab rather than a window of refusal.
+      const snap = SNAPSHOT[url];
       return {
         kind: "link",
         url,
         present: "card",
-        ...(frame ? { preview: { frame } } : {}),
+        ...(snap
+          ? {
+              preview: {
+                title: snap.title,
+                description: snap.description,
+                image: snap.image,
+                frame: snap.frame,
+              },
+            }
+          : {}),
       };
     }
   }
@@ -237,6 +267,50 @@ function hrefFor(media: Media, locale: Locale): string {
 }
 
 export function resolveBadge(spec: BadgeSpec, locale: Locale): ResolvedBadge | null {
+  // Something the server resolved: a post, a section of this site.
+  if (spec.media) {
+    const media = spec.media;
+    const preview =
+      media.kind === "link" ? (media.previews?.[locale] ?? media.preview) : undefined;
+    const label = spec.title ?? preview?.title ?? labelFor(media, locale);
+    const title = preview?.title ?? label;
+    return {
+      target: {
+        type: "media",
+        media,
+        set: { id: `magic:${media.url}`, title, items: [media] },
+      },
+      kind: kindOf(media),
+      label,
+      href: hrefFor(media, locale),
+      icon: iconFromProp(spec.icon) ?? SITE_ICON,
+      title,
+    };
+  }
+
+  // A role, or an identity: the /works role row's peek and card.
+  if (spec.role || spec.identity) {
+    const role = spec.role
+      ? LOG.commits.find((c) => c.id === spec.role && c.type === "role")
+      : undefined;
+    const identityId = role?.identityId ?? spec.identity;
+    const identity = identityId ? LOG.identities?.[identityId] : undefined;
+    if (!identityId || !identity) return null;
+    const label = spec.title ?? localize(identity.company, locale);
+    return {
+      target: { type: "identity", identityId, roleId: role?.id },
+      kind: "identity",
+      label,
+      // Its home is its row on /works; the identity as a whole, the page.
+      href: role ? `/works#${computeCommitHash(role.id)}` : "/works",
+      icon:
+        iconFromProp(spec.icon) ??
+        siteIcon(spec) ??
+        monogram(label, identity.accentColor ?? (role && tagColor(role))),
+      title: label,
+    };
+  }
+
   // An app, by id.
   if (spec.app) {
     const app = APPS_BY_ID.get(spec.app);

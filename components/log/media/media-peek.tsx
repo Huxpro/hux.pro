@@ -1,7 +1,10 @@
 "use client";
 
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
+import { POST_PEEK_PANEL, PostPeekView } from "@/components/post/post-peek";
 import { GLASS_PANEL } from "@/lib/glass";
+import type { PostPeek } from "@/lib/content";
+import { siteSectionLabel } from "@/systems/attachments/lib/policy";
 import type { Locale } from "@/lib/i18n";
 import {
   getMediaThumbnail,
@@ -106,7 +109,7 @@ export function PeekCard({
   // it. Peek is purely visual — the click goes through the row's anchor —
   // so the caption is all that is localized here, not the URL.
   const preview = media.previews?.[locale] ?? media.preview;
-  const domainLabel = media.internal ? "/writing" : undefined;
+  const domainLabel = siteSectionLabel(media) ?? undefined;
   return (
     <CardFace
       url={media.url}
@@ -170,6 +173,13 @@ function PeekPoster({
   );
 }
 
+/** The post peek a writing link carries, in the reader's language or the other. */
+export function postPeekFor(media: LinkMedia, locale: Locale): PostPeek | null {
+  const peek = media.internal?.peek;
+  if (!peek) return null;
+  return peek[locale] ?? peek[locale === "zh" ? "en" : "zh"] ?? null;
+}
+
 export interface MediaPeekSpec {
   node: ReactNode;
   /** Merged into the cursor-preview panel — see MagneticPreview. */
@@ -191,6 +201,13 @@ export function mediaPeek(
   locale: Locale,
   opts: { leaves?: boolean } = {},
 ): MediaPeekSpec | null {
+  // A post summoned with its peek (a magic link, components/magic-link)
+  // peeks as its /writing row does, not as a card about it.
+  const post = isLinkMedia(media) ? postPeekFor(media, locale) : null;
+  if (post) {
+    return { panelClassName: POST_PEEK_PANEL, node: <PostPeekView peek={post} /> };
+  }
+
   const mark = markFor(media, locale, { all: true, leaves: opts.leaves });
   if (isLinkMedia(media)) {
     return {

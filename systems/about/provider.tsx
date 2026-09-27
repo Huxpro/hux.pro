@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptionalAttachments } from "@/systems/attachments/provider";
+import { useOptionalIdentityCard } from "@/systems/identity/provider";
 import { useCommand } from "@/systems/command/provider";
 import {
   createContext,
@@ -29,8 +30,9 @@ import {
 //                 not something anyone needs that often.
 //   Esc           closes it — or, with the attachment drawer up over it,
 //                 leaves that press to the drawer.
-//   the drawer    on a phone a badge in the copy opens the attachment
-//                 drawer over the About (OVER_ABOUT_Z), not in its place:
+//   the drawer    on a phone a magic link in the copy opens the attachment
+//                 drawer or the identity card over the About (OVER_ABOUT_Z),
+//                 not in its place:
 //                 the words stay underneath. The About steps aside only once
 //                 something leaves for a home below it — the stage, a
 //                 window, the router, the lightbox; a tab leaves the site
@@ -67,10 +69,22 @@ function writeSeen(seen: boolean) {
   }
 }
 
+/** Why the About is being put away, when that matters. */
+export interface AboutCloseOptions {
+  /**
+   * A navigation is taking over (a magic link to another page): `/about`
+   * is left by the router, so it must not be swapped to `/` under it — the
+   * swap would cancel the push. See app/about/about-route.tsx.
+   */
+  navigating?: boolean;
+}
+
 interface AboutContextValue {
   isOpen: boolean;
   open: () => void;
-  close: () => void;
+  close: (options?: AboutCloseOptions) => void;
+  /** The last close was a navigation's (see AboutCloseOptions). */
+  leftByNavigation: boolean;
   toggle: () => void;
   /** Whether this visitor has dismissed the About at least once. */
   seen: boolean;
@@ -80,7 +94,7 @@ interface AboutContextValue {
 
 /**
  * The paint layer for what floats over the About (z 10020, its glow 10021):
- * the attachment drawer a badge in its copy opens. Under the devtool raised
+ * the attachment drawer and the identity card a magic link in its copy opens. Under the devtool raised
  * over it (10030) and the command palette (10050).
  */
 export const OVER_ABOUT_Z = 10025;
@@ -113,7 +127,10 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
     setIsOpen(true);
   }, [closeCommand]);
 
-  const close = useCallback(() => {
+  const [leftByNavigation, setLeftByNavigation] = useState(false);
+  const close = useCallback((options?: AboutCloseOptions) => {
+    // `=== true`: close is also an onClick handler, handed an event.
+    setLeftByNavigation(options?.navigating === true);
     setIsOpen(false);
     setSeen(true);
     writeSeen(true);
@@ -146,9 +163,10 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
   // the stage, in a window, on another page — takes the screen from it.
   const attachments = useOptionalAttachments();
   const onSend = attachments?.onSend;
-  const drawerOpen = attachments?.isOpen ?? false;
+  const identityCard = useOptionalIdentityCard();
+  const drawerOpen = (attachments?.isOpen ?? false) || (identityCard?.isOpen ?? false);
   const onAttachmentSent = useEffectEvent((home: string) => {
-    if (isOpen && home !== "tab") close();
+    if (isOpen && home !== "tab") close({ navigating: home === "route" });
   });
   useEffect(() => onSend?.((home) => onAttachmentSent(home)), [onSend]);
 
@@ -167,8 +185,8 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AboutContextValue>(
-    () => ({ isOpen, open, close, toggle, seen, resetSeen }),
-    [isOpen, open, close, toggle, seen, resetSeen],
+    () => ({ isOpen, open, close, leftByNavigation, toggle, seen, resetSeen }),
+    [isOpen, open, close, leftByNavigation, toggle, seen, resetSeen],
   );
 
   return <AboutContext.Provider value={value}>{children}</AboutContext.Provider>;

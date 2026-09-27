@@ -4,7 +4,7 @@
  *   node scripts/badge-icon-snapshot.ts          # crawl + write icons + snapshot
  *   node scripts/badge-icon-snapshot.ts --check  # CI: every badge has an icon, no network
  *
- * Targets: every `<Badge>` / `<BadgeLink>` written in the site's MDX
+ * Targets: every `<Badge>` written in the site's MDX
  * (content/**, docs/**). Each resolves to a site (lib/badge-site.ts — the same
  * rule the component uses); for each site we take the icon the site declares
  * for a home screen (manifest → apple-touch-icon → favicon, lib/app-icon-core),
@@ -96,6 +96,10 @@ function collectSites(config: BadgeConfig): { sites: Site[]; unresolved: string[
   for (const { spec, where } of collectUsages()) {
     if (spec.commit && !commits.some((c) => c.id === spec.commit)) {
       unresolved.push(`${where}: no commit "${spec.commit}"`);
+      continue;
+    }
+    if (spec.role && !commits.some((c) => c.id === spec.role && c.type === "role")) {
+      unresolved.push(`${where}: no role "${spec.role}"`);
       continue;
     }
     const url = badgeSiteUrl(spec, commits, config);

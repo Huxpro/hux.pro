@@ -137,8 +137,7 @@ export interface AdaptiveSurfaceProps {
   /**
    * The paint layer, for a surface that must come up over something higher
    * than the other secondary surfaces (60) — the attachment drawer over the
-   * About. The window, panel and sheet shapes take it; a popover hangs off
-   * its button, in that button's layer.
+   * About, the identity card over it. Every shape takes it.
    */
   zIndex?: number;
   /** Padding on the scroll area, for content that wants to bleed wider. */
@@ -165,10 +164,11 @@ function SurfacePopoverShape({
   onOpenChange,
   popover,
   maxHeight,
+  zIndex,
   children,
 }: Pick<
   AdaptiveSurfaceProps,
-  "open" | "onOpenChange" | "popover" | "maxHeight" | "children"
+  "open" | "onOpenChange" | "popover" | "maxHeight" | "zIndex" | "children"
 >) {
   const anchor = popover?.anchor;
   return (
@@ -198,6 +198,7 @@ function SurfacePopoverShape({
           sideOffset={8}
           collisionPadding={12}
           className="z-[60]"
+          style={zIndex !== undefined ? { zIndex } : undefined}
         >
           <Popover.Popup
             // Focus goes back to the button that opened it, which is the
@@ -335,6 +336,7 @@ export function AdaptiveSurface({
           onOpenChange={onOpenChange}
           popover={popover}
           maxHeight={maxHeight}
+          zIndex={zIndex}
         >
           {body}
         </SurfacePopoverShape>

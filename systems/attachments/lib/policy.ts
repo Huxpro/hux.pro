@@ -85,6 +85,18 @@ export function isInternalLink(media: Media): boolean {
 }
 
 /**
+ * What a link to this site prints where a card prints a domain: its section
+ * (`/writing`, `/works`) — a path has no domain worth printing, and a query
+ * string is not a name. Null for a link elsewhere.
+ */
+export function siteSectionLabel(media: Media): string | null {
+  if (!isLinkMedia(media)) return null;
+  if (media.internal) return "/writing";
+  if (!media.url.startsWith("/")) return null;
+  return `/${media.url.split(/[/?#]/)[1] ?? ""}`;
+}
+
+/**
  * The attachment's native home — what its primary action does, whatever
  * surface the action is offered from. This is also where a desktop click
  * lands directly for the kinds that have one.

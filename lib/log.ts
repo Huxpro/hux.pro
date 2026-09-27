@@ -3,6 +3,7 @@
 // History as git history: commits (work items) organized by tags (context/eras)
 // =============================================================================
 
+import type { PostPeek } from "./content";
 import type { Locale } from "./i18n";
 
 // =============================================================================
@@ -167,6 +168,14 @@ export interface InternalLinkMeta {
   kind: "writing";
   slug: string;
   urls: LocaleUrls;
+  /**
+   * The post's peek per locale — what its /writing row shows under the
+   * pointer. Set where a post is summoned from prose (a magic link,
+   * components/magic-link), so its peek and its drawer page are the post's
+   * own rather than a link card's. Absent on /works, whose covers keep
+   * their card.
+   */
+  peek?: Partial<Record<Locale, PostPeek>>;
 }
 
 export interface LinkMedia extends Pinned {

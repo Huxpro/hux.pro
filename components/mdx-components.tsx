@@ -32,7 +32,7 @@
  * @see docs/mdx.md - Documentation on MDX rendering
  */
 
-import { BadgeLink } from "@/components/badge";
+import { ServerBadge, ServerMagicLink } from "@/components/magic-link/server";
 import { CodeBlock } from "@/components/code-block";
 import { HeadingWithLink } from "@/components/heading-link";
 import { MdxImage } from "@/components/mdx-image";
@@ -188,15 +188,17 @@ const sharedComponents: MDXComponents = {
   MediaRenderer: withNotProse(MediaRenderer),
 
   // ---------------------------------------------------------------------------
-  // Badge — a thing I made, inline in a sentence, opened where it lives on
-  // the site (in-app browser, stage, window, router). Inline, so it is not
-  // wrapped in `.not-prose` here; it carries the class itself.
-  //   <Badge commit="lynx-framework" />  <Badge app="lynx-flappy-bird" />
-  //   <Badge href="https://youtu.be/…">React without memo</Badge>
-  // @see components/badge
+  // MagicLink / Badge — a word that summons something: a post, a work, a
+  // role, a page, an app. Peeks under the pointer as the thing does on
+  // /writing and /works; opens the drawer on a phone. A Badge is the same
+  // link dressed as a pill with the thing's icon. Inline, so not wrapped in
+  // `.not-prose` here; they carry the class themselves.
+  //   <MagicLink post="dreamer">dream</MagicLink>
+  //   <Badge commit="lynx-framework" />  <Badge role="alitrip-engineer">Alibaba</Badge>
+  // @see components/magic-link
   // ---------------------------------------------------------------------------
-  Badge: BadgeLink,
-  BadgeLink,
+  Badge: ServerBadge,
+  MagicLink: ServerMagicLink,
 
   // ---------------------------------------------------------------------------
   // Widget Primitives (shadcn-like composable building blocks)

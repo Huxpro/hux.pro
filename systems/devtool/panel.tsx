@@ -2899,7 +2899,7 @@ function GlowModule() {
       action={
         about ? (
           <button
-            onClick={about.isOpen ? about.close : about.open}
+            onClick={() => (about.isOpen ? about.close() : about.open())}
             className="rounded px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             {about.isOpen ? (zh ? "收起关于" : "Hide About") : zh ? "显示关于" : "Show About"}

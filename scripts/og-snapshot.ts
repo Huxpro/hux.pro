@@ -9,8 +9,10 @@
  * Reuses the exact crawl/parse core the runtime Server Action uses
  * (lib/og-core.ts), so the snapshot equals what the server would fetch.
  *
- * Targets: every `kind:"link"` media item (all cards) in log.json. Social
- * embeds, videos, and images do not pass through this pipeline.
+ * Targets: every `kind:"link"` media item (all cards) in log.json, and every
+ * external `href` a magic link or a badge names in the site's MDX (content/,
+ * docs/) — its peek is the page's card. Social embeds, videos, and images do
+ * not pass through this pipeline.
  *
  * Design goals (per request):
  *  - Same data as the live server crawl.
@@ -27,7 +29,9 @@
 
 import fs from "fs";
 import path from "path";
+import { isPlayableSlidesUrl } from "../lib/slides.ts";
 import {
+  detectSocialEmbedPlatform,
   fetchOG,
   fetchVideoCover,
   mediaIsCardTarget,
@@ -128,7 +132,43 @@ function collectTargets(): Target[] {
       }
     }
   }
+  // A magic link's page peeks as its card (components/magic-link).
+  for (const url of magicLinkHrefs()) {
+    upsert({
+      url,
+      kind: "card",
+      needsCrawl: true,
+      media: { kind: "link", url, present: "card" } as PreviewableMedia,
+    });
+  }
   return [...byUrl.values()];
+}
+
+function mdxFiles(dir: string): string[] {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) return mdxFiles(p);
+    return /\.mdx?$/.test(e.name) ? [p] : [];
+  });
+}
+
+/** Every external page a `<MagicLink href>` or `<Badge href>` names. */
+function magicLinkHrefs(): string[] {
+  const tag = /<(?:MagicLink|Badge)\b([^>]*?)\/?>/g;
+  const urls = new Set<string>();
+  for (const file of [path.join(ROOT, "content"), path.join(ROOT, "docs")].flatMap(mdxFiles)) {
+    for (const m of fs.readFileSync(file, "utf8").matchAll(tag)) {
+      const href = m[1].match(/\bhref="(https?:[^"]+)"/)?.[1];
+      // A code sample documenting the syntax is not a link.
+      if (!href || href.includes("…")) continue;
+      // Recordings, decks, images and social posts have their own peeks.
+      if (/youtu\.?be|bilibili\.com|vimeo\.com|\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(href)) continue;
+      if (detectSocialEmbedPlatform(href) || isPlayableSlidesUrl(href)) continue;
+      urls.add(href);
+    }
+  }
+  return [...urls];
 }
 
 // --- Serialization (deterministic) -------------------------------------------

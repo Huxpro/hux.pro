@@ -1,4 +1,4 @@
-import { BadgeLink, type BadgeLinkProps } from "@/components/badge";
+import { ServerBadge, ServerMagicLink } from "@/components/magic-link/server";
 import { Fn, Footnote, Footnotes } from "./footnote";
 import type { Locale } from "@/lib/i18n";
 import { TYPE } from "@/lib/typography";
@@ -16,7 +16,7 @@ import remarkGfm from "remark-gfm";
 //
 // A server component: the root layout renders both languages once, at build
 // time, and hands them to the client surface, which shows the reader's. The
-// copy is MDX so a line can carry a <Badge> — the same component a post can
+// copy is MDX so a line can carry a <MagicLink> or a <Badge> — the same component a post can
 // use — and so editing it is editing a file, not a component.
 //
 // Not exported from the system's index: it reads the file system, and the
@@ -55,11 +55,11 @@ const components: MDXComponents = {
   strong: (props) => <strong className="font-medium text-foreground" {...props} />,
   // *interface* — the one word the words are about.
   em: (props) => <em className="font-serif italic text-foreground/90" {...props} />,
-  Badge: BadgeLink,
-  BadgeLink,
-  // A word that points somewhere without naming a thing I made: opens its
-  // thing as a badge does, dressed as a plain link.
-  Ref: (props: BadgeLinkProps) => <BadgeLink plain {...props} />,
+  // Every keyword summons something (components/magic-link): a badge names
+  // a thing I made and wears its icon; a magic link is the word alone. Both
+  // peek under the pointer and open the drawer on a phone.
+  Badge: ServerBadge,
+  MagicLink: ServerMagicLink,
   Fn,
   Footnotes,
   Footnote,

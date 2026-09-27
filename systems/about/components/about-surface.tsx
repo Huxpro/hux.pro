@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeLaunchProvider } from "@/components/badge";
+import { MagicLinkHost } from "@/components/magic-link";
 import { TYPE } from "@/lib/typography";
 import { GLASS_TRACK_FLAT } from "@/systems/theater/lib/chrome";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ import {
   type Ref,
   type ReactNode,
 } from "react";
-import { useAbout } from "../provider";
+import { OVER_ABOUT_Z, useAbout } from "../provider";
 import { EdgeGlow, Glow, useGlowTuning } from "@/systems/glow";
 
 // =============================================================================
@@ -39,7 +39,7 @@ import { EdgeGlow, Glow, useGlowTuning } from "@/systems/glow";
 //
 // It leaves by a press anywhere outside the words, Escape, `O`, the button
 // at the foot, or by anything in it opening something: a badge or a link
-// hands the stage to what it opened (BadgeLaunchProvider).
+// hands the stage to what it opened (MagicLinkHost).
 //
 // It sits above the theater and windows (z 10000–10005) and below the
 // command palette (10050), which can still be summoned over it.
@@ -107,13 +107,16 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
     if (e.target === e.currentTarget) close();
   };
 
-  // A plain link in the copy navigates; the About steps aside for it. Badges
-  // do the same through BadgeLaunchProvider, since they may open no page.
+  // A plain link in the copy navigates; the About steps aside for it. Magic
+  // links do the same through MagicLinkHost, since they may open no page —
+  // or a drawer, which floats over the About instead.
   const onCopyClick = (e: MouseEvent) => {
     const anchor = (e.target as Element).closest("a");
-    if (!anchor || anchor.dataset.badge) return;
+    if (!anchor || anchor.dataset.magicLink) return;
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-    close();
+    // A path on this site is the router's to leave by; a page elsewhere
+    // opens a tab and leaves the About's address to be swapped.
+    close({ navigating: anchor.getAttribute("href")?.startsWith("/") ?? false });
   };
 
   return (
@@ -177,9 +180,9 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
                   transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
                   onClickCapture={onCopyClick}
                 >
-                  <BadgeLaunchProvider onLaunch={close}>
+                  <MagicLinkHost onLaunch={close} layer={OVER_ABOUT_Z}>
                     {locale === "zh" ? zh : en}
-                  </BadgeLaunchProvider>
+                  </MagicLinkHost>
                 </motion.article>
               </div>
             </div>

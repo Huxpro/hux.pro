@@ -6,6 +6,13 @@
     "hux-blog": "https://huxpro.github.io",
     "yupiaoer": "https://www.wepiao.com"
   },
+  "identities": {
+    "alibaba": "https://www.alibabagroup.com",
+    "bytedance": "https://www.bytedance.com",
+    "eleme": "https://h5.ele.me",
+    "meta": "https://www.meta.com",
+    "wepiao": "https://www.wepiao.com"
+  },
   "icons": {
     "h5.ele.me": "/img/badges/eleme.png",
     "hermesengine.dev": "/img/badges/hermes.svg",

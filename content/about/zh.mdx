@@ -2,25 +2,28 @@
   关于 —— 新访客看到的第一个界面（systems/about）。任何地方按 `O` 都能回来。
   保持简短：问候、我是谁、这是什么，最后是致谢。
 
-  <Badge> 标出我做过的东西（公司、项目），并在站内它该待的地方打开 ——
-  commit="<content/log.json 中的 id>"、app="<content/apps.json 中的 id>"
-  或 href="<任意 URL>"。见 components/badge。
-  <Ref> 参数相同，用于指向某处、但不是我做的东西的词：外观是普通链接，
-  打开方式和徽章一样。*界面* 用斜体。<Fn n="1" /> 是脚注标记，
-  <Footnotes> 里的 <Footnote n="1"> 是脚注本身，用备注字体。
+  每个关键词都是魔法链接（components/magic-link）：它召唤一样东西——
+  鼠标悬停时像在 /writing 与 /works 里一样浮出预览，在手机上打开抽屉。
+  <MagicLink> 只是词本身；<Badge> 是同一个链接戴上图标，用于公司或项目。
+  可以指向：post="<slug>"、role="<content/log.json 中的 range id>"、
+  commit="<id>" item={n}、app="<content/apps.json 中的 id>" 或
+  href="<URL>"（站内栏目有自己的卡片）。
+  *界面* 用斜体。<Fn n="1" /> 是脚注标记，
+  <Footnotes> 里的 <Footnote n="1">灵感来自 <MagicLink href="https://www.mercuryos.com">Mercury OS</MagicLink>、<MagicLink href="https://os.ryo.lu">ryOS</MagicLink> 与 <MagicLink href="https://developer.apple.com/design/human-interface-guidelines">Apple</MagicLink>。</Footnote>
+<Footnote n="2"> 是脚注本身，用备注字体。
 */}
 
 # 你好，我是黄玄。
 
-我<Ref href="/writing/dreamer/zh">梦想</Ref>让人与计算机之间的*界面*变得更好：我们使用的那些，以及我们用来构建它们的那些。
+我<MagicLink post="dreamer">梦想</MagicLink>更好的*界面*：我们使用的那些，以及我们用来构建它们的那些。
 
-我十岁开始做 <Ref commit="indie-flash">Flash</Ref> 游戏，靠<Ref commit="lxu-intern">动态图形</Ref>赚到了第一笔钱；2010 年代在<Badge commit="alitrip-mobile-web">阿里巴巴</Badge>、<Badge commit="yupiaoer" icon="/img/works/yupiaoer-ttf-awards-2017-cover.webp">微票</Badge>和<Badge commit="eleme-pwa" item={0}>饿了么</Badge>打磨 Web 与移动应用，之后加入 <Badge href="https://www.meta.com">Meta</Badge>，为 <Badge commit="reasonml">Web</Badge>、<Badge commit="xros-reality-labs">XR</Badge>、<Badge commit="hermes-engine" item={2}>React Native</Badge> 和 <Badge commit="reactconf-2021-memo" icon="/badge-icons/react.dev.png">React</Badge> 做编译器。现在在<Badge href="https://www.bytedance.com">字节跳动</Badge>主导 <Badge commit="lynx-framework">Lynx</Badge> 的架构——一个跨平台构建应用的全新通用*界面*。
+我十岁开始做 <MagicLink role="indie-flash">Flash</MagicLink> 游戏，靠<MagicLink role="lxu-intern">动态图形</MagicLink>赚到了第一笔钱；2010 年代在<Badge role="alitrip-engineer">阿里巴巴</Badge>、<Badge role="wepiao-lead">微票</Badge>和<Badge role="eleme-visiting">饿了么</Badge>打磨 Web 与移动应用，之后加入 <Badge role="meta-engineer">Meta</Badge>，为 <Badge commit="reasonml">Web</Badge>、<Badge commit="xros-reality-labs">XR</Badge>、<Badge commit="hermes-engine" item={2}>React Native</Badge> 和 <Badge commit="reactconf-2021-memo" icon="/badge-icons/react.dev.png">React</Badge> 做编译器。现在在<Badge role="tech-lead-lynx">字节跳动</Badge>主导 <Badge commit="lynx-framework">Lynx</Badge> 的架构——一个跨平台构建应用的通用框架。
 
-原来那个做 Flash 动画的孩子，和那个盯着<Ref commit="wasmcert" item={3}>类型论</Ref>的研究生<Fn n="1" />，一直想要的是同一样东西：*界面*。
+这个网站是一个实验：把我的思想建模成一个公开的*界面*，一个个人操作系统<Fn n="1" />——我讲过的<MagicLink href="/works?type=talk">演讲</MagicLink>、写过的<MagicLink href="/writing">文章</MagicLink>、做过的<MagicLink href="/works?type=project">项目</MagicLink>，甚至我如何<MagicLink href="/prompt">提示</MagicLink>我自己。
 
-这个网站是一个实验：以个人操作系统的美学<Fn n="2" />，为我的思想建模一个公开的*界面*——我讲过的<Ref href="/works?type=talk">演讲</Ref>、写过的<Ref href="/writing">文章</Ref>、做过的<Ref href="/works?type=project">项目</Ref>，甚至我如何<Ref href="/prompt">提示</Ref>我自己。
+那个在 Flash 里渲染动画的孩子，和那个在<MagicLink commit="wasmcert" item={3}>类型论</MagicLink>里做证明的研究生<Fn n="2" />，想要的是同一样东西：*界面*。
 
 <Footnotes>
-<Footnote n="1">我确实上过学：本科毕业于<Ref href="https://www.cuc.edu.cn">中国传媒大学</Ref>数字媒体艺术专业，硕士毕业于<Ref href="https://www.rit.edu">罗切斯特理工学院</Ref>计算机科学专业，研究方向是<Ref commit="wasmcert" item={2}>编程语言</Ref>，主要导师是 <Ref href="https://www.cs.rit.edu/~mtf/">Matthew Fluet 教授</Ref>。</Footnote>
-<Footnote n="2">灵感来自 <Ref href="https://www.mercuryos.com">Mercury OS</Ref>、<Ref href="https://os.ryo.lu">ryOS</Ref> 与 <Ref href="https://developer.apple.com/design/human-interface-guidelines">Apple</Ref>。</Footnote>
+<Footnote n="1">灵感来自 <MagicLink href="https://www.mercuryos.com">Mercury OS</MagicLink>、<MagicLink href="https://os.ryo.lu">ryOS</MagicLink> 与 <MagicLink href="https://developer.apple.com/design/human-interface-guidelines">Apple</MagicLink>。</Footnote>
+<Footnote n="2">我确实上过学：本科毕业于<MagicLink role="cuc-ba">中国传媒大学</MagicLink>数字媒体艺术专业，硕士毕业于<MagicLink role="rit-ms">罗切斯特理工学院</MagicLink>计算机科学专业，研究方向是<MagicLink commit="wasmcert" item={2}>编程语言</MagicLink>，主要导师是 <MagicLink href="https://www.cs.rit.edu/~mtf/">Matthew Fluet 教授</MagicLink>。</Footnote>
 </Footnotes>

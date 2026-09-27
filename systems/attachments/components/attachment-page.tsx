@@ -3,7 +3,9 @@
 import { ExternalImage } from "@/components/log/media/external-image";
 import { SocialEmbed } from "@/components/log/media/embed";
 import { mediaKindOf } from "@/components/log/media/media-mark";
+import { postPeekFor } from "@/components/log/media/media-peek";
 import { PeekCover } from "@/components/log/media/peek-cover";
+import { PostPeekView } from "@/components/post/post-peek";
 import { COVER_WASH } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
@@ -26,6 +28,7 @@ import {
 import {
   ArrowUpRight,
   BookOpen,
+  CornerDownRight,
   Globe,
   Image as ImageIcon,
   Play,
@@ -33,7 +36,7 @@ import {
   ZoomIn,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { isInternalLink, linkTarget } from "../lib/policy";
+import { linkTarget, siteSectionLabel } from "../lib/policy";
 import type { AttachmentHome, AttachmentSet } from "../lib/types";
 import { useAttachments } from "../provider";
 
@@ -109,7 +112,13 @@ function homeIcon(home: AttachmentHome, kind: ReturnType<typeof mediaKindOf>): R
     return <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />;
   }
   if (home === "lightbox") return <ZoomIn className="h-3.5 w-3.5" />;
-  if (home === "route") return <BookOpen className="h-3.5 w-3.5" />;
+  if (home === "route") {
+    return kind === "post" ? (
+      <BookOpen className="h-3.5 w-3.5" />
+    ) : (
+      <CornerDownRight className="h-3.5 w-3.5" />
+    );
+  }
   if (home === "window") return <Globe className="h-3.5 w-3.5" />;
   return <ArrowUpRight className="h-3.5 w-3.5" />;
 }
@@ -190,13 +199,32 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
 
   if (isLinkMedia(media)) {
     const url = linkTarget(media, locale);
-    const internal = isInternalLink(media);
     const preview = media.previews?.[locale] ?? media.preview;
-    const domain = internal ? "/writing" : getDomainLabel(url);
+    // A path on this site prints as its section (`/writing`, `/works`), not
+    // as a domain.
+    const domain = siteSectionLabel(media) ?? getDomainLabel(url);
     const label = t(
       locale,
       kind === "post" ? "logRead" : kind === "video" ? "logWatch" : "logVisit",
     );
+    const post = postPeekFor(media, locale);
+    if (post) {
+      // A post summoned with its peek: the page is the peek, whole — the
+      // same card its /writing row shows under the pointer, where a phone
+      // has no pointer. The title is the surface's header.
+      return (
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
+            <PostPeekView peek={post} className="w-full" />
+          </div>
+          <Actions
+            primary={{ label, icon: homeIcon(home, kind), onSelect: open }}
+            href={url}
+            hrefLabel={domain}
+          />
+        </div>
+      );
+    }
     return (
       <div className="space-y-4">
         {preview?.image ? (

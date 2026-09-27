@@ -7,10 +7,12 @@
 // public/badge-icons/ and recorded in content/badge-icons.json, keyed by site.
 //
 // This module is the one rule for "which site", shared by the component
-// (components/badge/resolve.ts) and the snapshot script, so the script fetches
+// (components/magic-link/resolve.ts) and the snapshot script, so the script fetches
 // exactly the icons the page will ask for. Plain TypeScript, no React, no
 // aliases the Node loader cannot follow.
 //
+//   role=     the site content/badges.json names for the role's identity
+//   identity= (`identities`): a company's own site.
 //   commit=   the site in content/badges.json `commits` when one is named there
 //             (a project whose first link is an article about it, not its
 //             home — Ele.me's PWA is a Medium post, Alitrip is now Fliggy);
@@ -27,6 +29,8 @@ import type { Commit } from "./log";
 export interface BadgeConfig {
   /** Commit id → the URL of the site that stands for it. */
   commits?: Record<string, string>;
+  /** Identity id → the URL of the site that stands for it (a company's). */
+  identities?: Record<string, string>;
   /** Site key → an icon URL to use instead of discovering one. */
   icons?: Record<string, string>;
 }
@@ -34,6 +38,8 @@ export interface BadgeConfig {
 /** What a badge names, as far as its icon is concerned. */
 export interface BadgeSiteSpec {
   commit?: string;
+  role?: string;
+  identity?: string;
   app?: string;
   href?: string;
   icon?: string;
@@ -80,6 +86,11 @@ export function badgeSiteUrl(
   config: BadgeConfig,
 ): string | null {
   if (spec.icon || spec.app) return null;
+  if (spec.role || spec.identity) {
+    const identityId =
+      commits.find((c) => c.id === spec.role)?.identityId ?? spec.identity;
+    return (identityId && config.identities?.[identityId]) || null;
+  }
   if (spec.commit) {
     const named = config.commits?.[spec.commit];
     if (named) return named;

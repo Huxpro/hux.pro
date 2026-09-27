@@ -296,3 +296,73 @@ export function getPostHref<T extends LocalizedContent>(
   // Single-language posts: link directly to the post's language
   return `${base}/${post.language}`;
 }
+
+// ===== The post peek =====
+
+/**
+ * What a post shows under the pointer — the /writing row's peek — resolved
+ * for one locale: the post's "inner page" bits the row does not print.
+ * Title and date are left out; they are on whatever was hovered.
+ *
+ * One shape for every surface that summons a post: the /writing list, a
+ * magic link in prose (components/magic-link), and the attachment drawer
+ * that stands in for the peek on a phone.
+ */
+export interface PostPeek {
+  language: PostLanguage;
+  readingTime: string;
+  /** Curated frontmatter summary — the dek. */
+  description?: string;
+  /** Provenance, as authored (markdown links are flattened when shown). */
+  origin?: string;
+  /** Opening paragraphs of the body, plain text. */
+  excerpt?: string;
+  cover?: string;
+  coverFit?: CoverFit;
+  coverAspect?: string;
+  /** Tags visible in this locale. */
+  tags?: string[];
+}
+
+/** The blog-only extras a peek reads; Doc / Note simply leave them unset. */
+export type PostPeekSource = Post &
+  Partial<
+    Pick<
+      BlogPost,
+      | "tags"
+      | "origin"
+      | "originZh"
+      | "excerpt"
+      | "excerptZh"
+      | "cover"
+      | "coverZh"
+      | "coverFit"
+      | "coverAspect"
+    >
+  >;
+
+/**
+ * A post's peek for `locale`, preferring that locale's bits and falling back
+ * to the other language's — a single-language post (js-20yrs-preface is
+ * zh-only) still peeks for a reader in the other locale.
+ */
+export function postPeekOf(post: PostPeekSource, locale: Locale): PostPeek {
+  const pick = <T>(zh: T | undefined, en: T | undefined) =>
+    locale === "zh" ? (zh ?? en) : (en ?? zh);
+  return {
+    language: post.language,
+    readingTime: getLocalizedReadingTime(post, locale),
+    description: getLocalizedDescription(post, locale) || undefined,
+    origin: pick(post.originZh, post.origin),
+    excerpt: pick(post.excerptZh, post.excerpt),
+    cover: pick(post.coverZh, post.cover),
+    coverFit: post.coverFit,
+    coverAspect: post.coverAspect,
+    tags: post.tags ? getVisibleTags(post.tags, locale) : undefined,
+  };
+}
+
+/** Whether a peek has anything the row does not already say. */
+export function postPeekHasContent(peek: PostPeek): boolean {
+  return !!peek.description || !!peek.excerpt || !!peek.cover;
+}
