@@ -9,6 +9,10 @@ import {
   type TopicFacet,
 } from "@/components/prompt/prompt-toolbar";
 import {
+  PromptOutline,
+  type OutlineChapter,
+} from "@/components/prompt/prompt-outline";
+import {
   matchesView,
   parsePromptView,
   PROMPT_TOPICS,
@@ -1203,6 +1207,33 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   );
   const hasMatches = convictions.length > 0 || influences.length > 0;
 
+  // The margin outline (components/prompt/prompt-outline), built from the
+  // same filtered lists the column prints, so it can only ever describe
+  // what is on the page. A chapter is a *run* of one shelf, not a bucket:
+  // the convictions are authored in shelf order, and grouping by run keeps
+  // the ticks in the column's order even if that ever slips — a shelf
+  // printed twice in the margin is the page telling the truth about itself.
+  // A conviction's shelf is its first topic (`topics[0]`); the influences
+  // sit on none and close the page as a chapter of their own.
+  const outline: OutlineChapter[] = [];
+  for (const conviction of convictions) {
+    const shelf = conviction.topics[0];
+    const last = outline[outline.length - 1];
+    if (last?.key === shelf) last.entries.push({ anchor: conviction.anchor });
+    else
+      outline.push({
+        key: shelf,
+        label: topicLabel(shelf, locale),
+        entries: [{ anchor: conviction.anchor }],
+      });
+  }
+  if (influences.length > 0)
+    outline.push({
+      key: "influences",
+      label: t(locale, "promptKindInfluences"),
+      entries: influences.map((influence) => ({ anchor: influence.anchor })),
+    });
+
   // A reference outranks a reading: following one into something the filter
   // is currently hiding clears the filter and then goes there, rather than
   // silently doing nothing. Two renders — the entry has to exist before it
@@ -1283,6 +1314,15 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
             and so does the optical correction in `TYPE.voice`, which only
             applies to Latin. */}
         <div className="relative -mt-4" lang={locale}>
+          {/* In the margin, a desk only. An entry takes the page's own
+              travel — into the URL, then a glide; a chapter only glides,
+              because a shelf is a place on the page and not an address. */}
+          <PromptOutline
+            chapters={outline}
+            label={t(locale, "promptOutline")}
+            onEntry={goTo}
+            onChapter={scrollToId}
+          />
           <div className="pb-4 space-y-2">
             {/* What I hold */}
             {convictions.map((conviction) => (
