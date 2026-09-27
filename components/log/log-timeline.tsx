@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import type { Locale } from "@/lib/i18n";
 import {
@@ -17,12 +17,15 @@ import {
   isRowVisible,
   type Tag,
 } from "@/lib/log";
+import { buildEditions, editionLine, type Editions } from "@/lib/log-editions";
 import {
-  buildEditions,
-  editionLine,
-  withinRange,
-  type Editions,
-} from "@/lib/log-editions";
+  buildScopes,
+  heldLine,
+  holdersOf,
+  needsPointer,
+  scopeEntries,
+  type Scopes,
+} from "@/lib/log-scopes";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -114,9 +117,12 @@ export function LogTimeline({
   // and its line still has to know where to send you.
   const editions = useMemo(() => {
     const all = data.flatMap((d) => d.commits);
-    const e = buildEditions(all, (c) => isRowVisible(c, activeTypes), locale);
+    const visible = (c: CommitData) => isRowVisible(c, activeTypes);
+    const e = buildEditions(all, visible, locale);
+    const scopes = buildScopes(all, visible, e);
     const order = new Map(all.map((c, i) => [c.id, i]));
-    return { ...e, order };
+    const byId = new Map(all.map((c) => [c.id, c]));
+    return { ...e, scopes, order, byId };
   }, [data, activeTypes, locale]);
 
   // Which version each work's row is showing, by work id. Unset is the lead.
@@ -174,7 +180,11 @@ interface TagBlockProps {
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
-  editions: Editions & { order: Map<string, number> };
+  editions: Editions & {
+    scopes: Scopes;
+    order: Map<string, number>;
+    byId: Map<string, CommitData>;
+  };
   chosen: Record<string, string>;
   onChoose: (work: string, version: string) => void;
 }
@@ -291,6 +301,83 @@ function TagBlock({
     };
   }, [commits, identities, locale, activeTypes]);
 
+  // A work in several versions prints as one row with its versions.
+  const versionProps = (c: CommitData) => {
+    const group = editions.groupOf.get(c.id);
+    return group
+      ? {
+          versions: group.versions,
+          selectedVersion: chosen[group.id] ?? c.id,
+          onSelectVersion: (id: string) => onChoose(group.id, id),
+        }
+      : {};
+  };
+
+  /**
+   * A row as it prints. A project that holds other work forks a branch in
+   * the gutter, and what it holds follows it as rows of their own on that
+   * branch, in the order it happened: the talks (a step quieter than the
+   * page, pressable on their own) and the project's own attachments, a
+   * strip per run. The text column never moves; on a phone the nesting
+   * costs nothing but the icon's step to the right.
+   */
+  const renderRow = (
+    c: CommitData,
+    props: Omit<React.ComponentProps<typeof Commit>, "commit">,
+  ): React.ReactNode => {
+    const held = editions.scopes.childrenOf.get(c.id);
+    if (!held) {
+      return <Commit key={c.id} {...props} commit={c} {...versionProps(c)} />;
+    }
+    // The index prints no pictures, so there the attachments stay on the
+    // project's row, counted on its title line.
+    const withMedia = form !== "index";
+    const entries = scopeEntries(c, held, editions, withMedia);
+    // The rail runs on past the branch when it runs on past the project.
+    const rail = props.rail === "│" || props.rail === "┐" ? "│" : "";
+    return (
+      <Fragment key={c.id}>
+        <Commit
+          {...props}
+          commit={c}
+          {...versionProps(c)}
+          branch="fork"
+          mediaElsewhere={withMedia}
+        />
+        {entries.map((entry, k) => {
+          const common = {
+            locale,
+            variant: "timeline" as const,
+            form,
+            rail,
+            segmentId: props.segmentId,
+            onSelectHash,
+            branch: k === entries.length - 1 ? ("last" as const) : ("entry" as const),
+          };
+          return entry.kind === "row" ? (
+            <Commit
+              key={entry.commit.id}
+              {...common}
+              commit={entry.commit}
+              {...versionProps(entry.commit)}
+              held
+              hideDate={tag.hideDate || entry.commit.hideDate}
+            />
+          ) : (
+            <Commit
+              key={`${c.id}:media:${k}`}
+              {...common}
+              commit={c}
+              mediaOnly={entry.media}
+              anchorId={null}
+              hideDate
+            />
+          );
+        })}
+      </Fragment>
+    );
+  };
+
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
   // but a spine with no vertebrae is just a line.
@@ -400,44 +487,38 @@ function TagBlock({
                 onSelectHash,
               };
 
-              const group = editions.groupOf.get(c.id);
-              if (!group) return <Commit key={c.id} {...shared} />;
-
-              // The work's row, at its lead's date, with every version in it.
-              if (group.lead === c) {
+              // Printed inside other rows: a version inside its work's row,
+              // a talk inside the project that holds it. At its own date it
+              // keeps a quiet line only when none of those rows covers that
+              // time; otherwise the row already is where a reader looks.
+              const holders = holdersOf(c, editions, editions.scopes, editions.byId);
+              if (holders.length > 0) {
+                if (!needsPointer(c, holders)) return null;
+                const top = holders[holders.length - 1];
+                const down =
+                  (editions.order.get(top.id) ?? 0) >
+                  (editions.order.get(c.id) ?? 0);
+                const group = editions.groupOf.get(c.id);
+                const hash = computeCommitHash(c.id);
                 return (
                   <Commit
                     key={c.id}
                     {...shared}
-                    versions={group.versions}
-                    selectedVersion={chosen[group.id] ?? c.id}
-                    onSelectVersion={(id) => onChoose(group.id, id)}
+                    foldedLine={
+                      group ? editionLine(c, locale) : heldLine(c, locale)
+                    }
+                    pointer={down ? "down" : "up"}
+                    anchorId={null}
+                    onPress={() =>
+                      onSelectHash
+                        ? onSelectHash(hash)
+                        : group && onChoose(group.id, c.id)
+                    }
                   />
                 );
               }
 
-              // Another version, at its own date. If the work's row already
-              // covers that time, the row is where a reader looks for it and
-              // this line would only repeat it.
-              if (withinRange(c, group.lead)) return null;
-              const down =
-                (editions.order.get(group.lead.id) ?? 0) >
-                (editions.order.get(c.id) ?? 0);
-              const hash = computeCommitHash(c.id);
-              return (
-                <Commit
-                  key={c.id}
-                  {...shared}
-                  foldedLine={editionLine(c, locale)}
-                  pointer={down ? "down" : "up"}
-                  anchorId={null}
-                  onPress={() =>
-                    onSelectHash
-                      ? onSelectHash(hash)
-                      : onChoose(group.id, c.id)
-                  }
-                />
-              );
+              return renderRow(c, shared);
             });
             return run.kind === "cluster" ? (
               // An identity can cluster twice (Meta, then RIT, then Meta

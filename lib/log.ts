@@ -150,7 +150,16 @@ export interface MediaPreview {
  * The hover peek view excludes pinned items — they're already on screen so
  * peeking adds nothing. See `getCommitPeekItems`.
  */
-type Pinned = { pinned?: true };
+type Pinned = {
+  pinned?: true;
+  /**
+   * When this attachment happened: a blog post's publication, a video's
+   * upload. Optional. Inside a project that holds talks, the project's
+   * attachments and its talks are one chronology, and this is what places
+   * an attachment in it; undated ones come last (lib/log-scopes.ts).
+   */
+  date?: string;
+};
 
 /**
  * Link media — a URL presented as an OG-style preview card (the card
@@ -410,6 +419,17 @@ interface BaseCommit {
    * A version with `present: "aside"` comes last among the row's badges.
    */
   lead?: true | "en" | "zh";
+  /**
+   * The projects this commit is about, by id. The first is the one it
+   * belongs to: the talk that took a project public, the interview that
+   * came with it. Any others are projects it also touches.
+   *
+   * A project other work belongs to is a scope on /works: one row that
+   * holds that work along with its own attachments, in the order they
+   * happened (lib/log-scopes.ts). Everywhere else the work is an ordinary
+   * commit, featured and embedded on its own.
+   */
+  about?: string[];
 }
 
 /** Timeline row dressing. Orthogonal to {@link CommitType}. */
@@ -444,6 +464,14 @@ export type CommitLanguage = "en" | "zh" | "both";
 
 export interface ProjectCommit extends BaseCommit {
   type: "project";
+  /**
+   * When the project went public: the talk, the release, the post that
+   * first showed it. A project's span (`date` – `endDate`) is when the work
+   * happened, and spans overlap; the moment it went public is a point, so
+   * that is where the row sits on /works and the date it prints. The span
+   * moves to its notes. Absent, the row sits at `date` as before.
+   */
+  publicDate?: string;
   stats?: {
     stars?: number;
     downloads?: string;
@@ -1146,6 +1174,8 @@ export function getCommitTypeIcon(type: CommitType): string {
  * non-roles sort by their own `date`.
  */
 function commitSortKey(c: Commit): string {
+  // A project sits where it went public (see `publicDate`).
+  if (c.type === "project" && c.publicDate) return c.publicDate;
   const explicit = c.sortBy;
   if (explicit === "date") return c.date;
   if (explicit === "endDate") {

@@ -46,6 +46,15 @@ import { TYPE } from "@/lib/typography";
 const HASH_CELL = "lg:w-14 lg:text-right";
 const GUTTER_PULL = "lg:-ml-[6.5rem]";
 
+/**
+ * How far right of the rail a project's branch runs (see `branch`): the
+ * rows it holds sit on that line. Far enough that a held icon clears the
+ * rail running past it, near enough that the title keeps its column.
+ */
+const BRANCH_PX = 8;
+/** How tall the curve from the project's icon out to its branch is. */
+const FORK_PX = 10;
+
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
    *  activates every connector that targets `toHash` (used so hovering
@@ -145,6 +154,31 @@ interface TimelineCommitProps {
   segments?: readonly StripSegment[];
   activeSegment?: string;
   onActiveSegment?: (id: string) => void;
+  /**
+   * The row's place on a project's branch (lib/log-scopes.ts). A project
+   * that holds other work forks a line out of its icon, a step right of
+   * the rail (`fork`); what it holds prints under it as rows of their own
+   * with their icons on that line (`entry`), and the line ends at the last
+   * one (`last`). The text never moves: the gutter carries the nesting.
+   */
+  branch?: "fork" | "entry" | "last";
+  /**
+   * The row is held by the project above it. It prints one step quieter:
+   * its title, venue and covers, and its prose only when pressed. It does
+   * not sign: the author is the project's.
+   */
+  held?: boolean;
+  /**
+   * The row's attachments print as entries on its branch (`mediaOnly`),
+   * not on the row.
+   */
+  mediaElsewhere?: boolean;
+  /**
+   * The row is a run of its commit's attachments, printed as an entry on
+   * the commit's branch: a dot on the line and the covers, in the page's
+   * form. No title; the project above is what they are attachments of.
+   */
+  mediaOnly?: readonly Media[];
 }
 
 export function TimelineCommit({
@@ -176,6 +210,10 @@ export function TimelineCommit({
   segments,
   activeSegment,
   onActiveSegment,
+  branch,
+  held = false,
+  mediaElsewhere = false,
+  mediaOnly,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
@@ -258,7 +296,9 @@ export function TimelineCommit({
   // a column of open ones was the same click as opening a caption, and
   // nothing painted the difference. They are not the same click any more:
   // this one changes the prose, the cover's opens the attachment.
-  const rowOnClick = inspecting
+  const rowOnClick = mediaOnly
+    ? undefined
+    : inspecting
     ? onInspectCommit
     : onPress
       ? onPress
@@ -274,7 +314,13 @@ export function TimelineCommit({
   // row scale). Everything below reads those atoms and nothing reads the
   // form's name, or `isExpanded` again: the feed's atoms already say
   // "no strip, no clamp, no peek".
-  const rowForm = rowFormFor(form, textOpen);
+  //
+  // A held row is a step quieter than the page: no prose until pressed.
+  const pageRowForm = rowFormFor(form, textOpen);
+  const rowForm =
+    held && !textOpen
+      ? { ...pageRowForm, description: "none" as const, notes: false }
+      : pageRowForm;
 
   // What the folded form adds under the title line: the description at two
   // lines, and the strip of covers. Both or either — a commit with no media
@@ -295,6 +341,7 @@ export function TimelineCommit({
     !!segments && segments.some((segment) => segment.items.length > 0);
   const showStrip =
     !isQuiet &&
+    !mediaElsewhere &&
     rowForm.media === "covers" &&
     (segmented || data.stripItems.length > 0);
   const showStatDescription =
@@ -316,7 +363,11 @@ export function TimelineCommit({
   // gets in the way of reading them. The one-liner peeks; an open row's
   // handle still does (IdentityHover).
   const showCursorPreview =
-    !!cursorPreview && rowForm.peek && !showStrip && !showStatDescription;
+    !!cursorPreview &&
+    !mediaOnly &&
+    rowForm.peek &&
+    !showStrip &&
+    !showStatDescription;
   // The feed's covers are the row's own strip items; what has no cover (a
   // live widget) stacks under the grid. Inspect mode keeps this layout —
   // the handle lives on the tile (InspectableMedia), not on a different
@@ -329,10 +380,17 @@ export function TimelineCommit({
   // row brings them.
   const attachmentCount =
     !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
+  const showGrid =
+    !isQuiet &&
+    !mediaElsewhere &&
+    rowForm.media === "grid" &&
+    expandedMedia.length > 0;
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
-  const showAuthorBlock = data.type !== "role" && data.type !== "event";
+  // A held row's author is the project's.
+  const showAuthorBlock =
+    !held && data.type !== "role" && data.type !== "event";
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -405,9 +463,99 @@ export function TimelineCommit({
   // `isQuiet`, not `isAside` — the gap has to follow whatever the gutter
   // is actually drawing, and an open aside draws the 12px icon. Kept at 3
   // it would run the rail under the mark.
-  const iconGapPx = isQuiet ? 3 : isRoleAnchor ? 10 : 7;
+  //
+  // A held row's icon is a size smaller (10px), so its gap is too.
+  const iconGapPx = isQuiet ? 3 : isRoleAnchor ? 10 : held ? 6 : 7;
+  // On a branch, the icon sits on the branch's line, not the rail.
+  const onBranch = branch === "entry" || branch === "last";
 
-  const rowContent = (
+  const railSpans = (gapPx: number) => (
+    <>
+      {hasRailAbove && (
+        <span
+          aria-hidden
+          data-rail-above
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
+          style={{ top: "-1000px", bottom: `calc(50% + ${gapPx}px)` }}
+        />
+      )}
+      {hasRailBelow && (
+        <span
+          aria-hidden
+          data-rail-below
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
+          style={{ top: `calc(50% + ${gapPx}px)`, bottom: "-1000px" }}
+        />
+      )}
+    </>
+  );
+
+  // A run of the commit's attachments on its branch: a dot on the branch's
+  // line where an entry's icon would be, and the covers in the page's form.
+  // The hash column holds its width, empty: the run is not a commit.
+  const mediaOnlyItems = mediaOnly
+    ? data.stripItems.filter((item) => mediaOnly.includes(item.media))
+    : [];
+  const mediaOnlyStacked = mediaOnly
+    ? mediaOnly.filter((m) => !tiled.has(m))
+    : [];
+  const mediaOnlyContent = mediaOnly && (
+    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+      <span
+        aria-hidden
+        className={cn("hidden @sm:inline-block leading-5", HASH_CELL, TYPE.hash, "text-transparent")}
+      >
+        {data.hash}
+      </span>
+      <span className="relative inline-flex items-center justify-center w-5 h-5">
+        {railSpans(3)}
+        {branch && <BranchLines branch={branch} gapPx={4} />}
+        <span
+          aria-hidden
+          style={{ transform: `translateX(${BRANCH_PX}px)` }}
+          className="block w-[5px] h-[5px] rounded-full bg-muted-foreground/30"
+        />
+      </span>
+      {form === "feed" ? (
+        <div
+          data-row-body
+          onClick={(e) => e.stopPropagation()}
+          className="min-w-0 space-y-4 cursor-default"
+        >
+          <AttachmentGrid
+            items={mediaOnlyItems}
+            set={attachmentSet}
+            inspecting={inspecting}
+            onInspect={onInspectMedia}
+            selectedMedia={selectedMedia}
+          />
+          {mediaOnlyStacked.length > 0 && (
+            <MediaRenderer
+              media={mediaOnlyStacked}
+              layout="stack"
+              size="default"
+              inspecting={inspecting}
+              onInspect={onInspectMedia}
+              selectedMedia={selectedMedia}
+              set={attachmentSet}
+            />
+          )}
+        </div>
+      ) : (
+        <MediaStrip
+          items={mediaOnlyItems}
+          set={attachmentSet}
+          peek={magneticPreviewEnabled}
+          className="min-w-0"
+          inspecting={inspecting}
+          onInspect={onInspectMedia}
+          selectedMedia={selectedMedia}
+        />
+      )}
+    </div>
+  );
+
+  const rowContent = mediaOnlyContent || (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
       {/*
         The hash is the commit's address, and now says so: clicking it puts
@@ -476,22 +624,8 @@ export function TimelineCommit({
           isQuiet ? "h-4" : "h-5",
         )}
       >
-        {hasRailAbove && (
-          <span
-            aria-hidden
-            data-rail-above
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
-            style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
-          />
-        )}
-        {hasRailBelow && (
-          <span
-            aria-hidden
-            data-rail-below
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
-            style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
-          />
-        )}
+        {railSpans(iconGapPx)}
+        {branch && <BranchLines branch={branch} gapPx={iconGapPx} />}
         {isQuiet ? (
           // A row in the quiet voice gets a tiny CSS dot, quieter than any
           // lucide icon and reading as "node on the rail" rather than
@@ -516,6 +650,7 @@ export function TimelineCommit({
           // wrapper gives the ring node 3px clearance from the 12px icon
           // so it reads as a distinct circle rather than a tight outline.
           <span
+            style={onBranch ? { transform: `translateX(${BRANCH_PX}px)` } : undefined}
             className={cn(
               "inline-flex items-center justify-center w-5 h-5 rounded-full transition-[box-shadow] duration-200",
               isRoleAnchor && [
@@ -531,7 +666,7 @@ export function TimelineCommit({
               type={data.type}
               override={data.iconOverride}
               className={cn(
-                "w-3 h-3",
+                held ? "w-2.5 h-2.5" : "w-3 h-3",
                 // An open aside wears its type mark a tier quieter than an
                 // ordinary row's. It is the same ladder the aside's title
                 // already steps down (`text-tertiary-foreground` on a row
@@ -778,7 +913,7 @@ export function TimelineCommit({
           edge-to-edge stack on a phone, captions written out, and every
           click its native one. `data-row-body` and its own click guard: a
           caption is for opening the attachment, not for pressing the row. */}
-      {!isQuiet && rowForm.media === "grid" && expandedMedia.length > 0 && (
+      {showGrid && (
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
@@ -849,6 +984,7 @@ export function TimelineCommit({
                     }
                   : undefined
               }
+              span={data.span}
               className="mt-3"
             />
           )}
@@ -973,5 +1109,66 @@ function Handle({
     >
       {byline.handle}
     </IdentityHover>
+  );
+}
+
+/**
+ * A project's branch, drawn in the icon column the way the rail is: 1px
+ * lines that stop short of the icon. The project's row curves out of its
+ * icon to a line one step right of the rail (`fork`); each row on the
+ * branch carries the line past its icon, and the last one ends it.
+ */
+function BranchLines({
+  branch,
+  gapPx,
+}: {
+  branch: "fork" | "entry" | "last";
+  gapPx: number;
+}) {
+  const line =
+    "pointer-events-none absolute -translate-x-1/2 w-px bg-muted-foreground/15";
+  const left = `calc(50% + ${BRANCH_PX}px)`;
+  if (branch === "fork") {
+    return (
+      <>
+        <svg
+          aria-hidden
+          className="pointer-events-none absolute overflow-visible stroke-muted-foreground/15"
+          style={{
+            left: "calc(50% - 1px)",
+            top: `calc(50% + ${gapPx}px)`,
+          }}
+          width={BRANCH_PX + 2}
+          height={FORK_PX}
+          fill="none"
+        >
+          <path
+            d={`M1 0 C1 ${FORK_PX * 0.6} ${BRANCH_PX + 1} ${FORK_PX * 0.4} ${BRANCH_PX + 1} ${FORK_PX}`}
+            strokeWidth={1}
+          />
+        </svg>
+        <span
+          aria-hidden
+          className={line}
+          style={{ left, top: `calc(50% + ${gapPx + FORK_PX}px)`, bottom: "-1000px" }}
+        />
+      </>
+    );
+  }
+  return (
+    <>
+      <span
+        aria-hidden
+        className={line}
+        style={{ left, top: "-1000px", bottom: `calc(50% + ${gapPx}px)` }}
+      />
+      {branch === "entry" && (
+        <span
+          aria-hidden
+          className={line}
+          style={{ left, top: `calc(50% + ${gapPx}px)`, bottom: "-1000px" }}
+        />
+      )}
+    </>
   );
 }

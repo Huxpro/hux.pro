@@ -93,6 +93,11 @@ export interface CommitProps {
   versions?: readonly CommitData[];
   selectedVersion?: string;
   onSelectVersion?: (id: string) => void;
+  /** Timeline-only: a project's branch (lib/log-scopes.ts), see `TimelineCommit`. */
+  branch?: "fork" | "entry" | "last";
+  held?: boolean;
+  mediaElsewhere?: boolean;
+  mediaOnly?: readonly Media[];
 }
 
 // =============================================================================
@@ -122,6 +127,10 @@ export function Commit({
   versions,
   selectedVersion,
   onSelectVersion,
+  branch,
+  held,
+  mediaElsewhere,
+  mediaOnly,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -270,6 +279,10 @@ export function Commit({
           segments={versionSegments ?? undefined}
           activeSegment={shown.id}
           onActiveSegment={onSelectVersion}
+          branch={branch}
+          held={held}
+          mediaElsewhere={mediaElsewhere}
+          mediaOnly={mediaOnly}
         />
       );
 
