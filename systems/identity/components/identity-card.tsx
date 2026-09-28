@@ -121,6 +121,7 @@ export function IdentityCard() {
               label: t(locale, "logVisit"),
               icon: <CornerDownRight className="h-3.5 w-3.5" />,
               onSelect: () => go(profile.roleHref),
+              href: profile.roleHref,
             }}
           />
         </div>
