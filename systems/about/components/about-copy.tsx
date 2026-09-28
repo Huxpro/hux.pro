@@ -1,5 +1,8 @@
-import { ServerBadge, ServerMagicLink } from "@/components/magic-link/server";
-import { SmartLink } from "@/components/mdx-components";
+import {
+  ServerBadge,
+  ServerMagicLink,
+  ServerProseLink,
+} from "@/components/magic-link/server";
 import { Fn, Footnote, Footnotes } from "./footnote";
 import type { Locale } from "@/lib/i18n";
 import { TYPE } from "@/lib/typography";
@@ -35,8 +38,9 @@ const components: MDXComponents = {
       {...props}
     />
   ),
-  // The running-text link, the article's (`.prose-link`, globals.css).
-  a: (props) => <SmartLink className="prose-link" {...props} />,
+  // The running-text link, the article's (`.prose-link`, globals.css), and
+  // a magic link wherever it points at something the site knows.
+  a: (props) => <ServerProseLink className="prose-link" {...props} />,
   strong: (props) => <strong className="font-medium text-foreground" {...props} />,
   // *interface* — the one word the words are about.
   // Every keyword summons something (components/magic-link): a badge names

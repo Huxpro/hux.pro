@@ -8,6 +8,9 @@ import type { LinkMedia, LocaleUrls, MediaPreview } from "@/lib/log";
 import { LOG } from "@/lib/log-client";
 import { getAllBlogPosts, getBlogPostBySlug } from "@/lib/mdx";
 import { cache } from "react";
+import { SmartLink } from "@/components/mdx-components";
+import { jekyllRedirects } from "@/lib/jekyll-redirects";
+import type { ComponentPropsWithoutRef } from "react";
 import { MagicLink, type MagicLinkProps } from "./magic-link";
 
 // =============================================================================
@@ -165,4 +168,96 @@ export function ServerMagicLink(props: ServerMagicLinkProps) {
 /** MDX `<Badge>`, on the server. */
 export function ServerBadge(props: Omit<ServerMagicLinkProps, "badge">) {
   return <MagicLink {...resolveOnServer(props)} badge />;
+}
+
+// =============================================================================
+// ServerProseLink — an ordinary link in prose, as a magic link when it can be.
+//
+// MDX's `a`, in a post, a doc and the About. A link needs no markup to peek
+// when it points at something of this site's own; it then behaves as that
+// thing does everywhere else.
+//
+//   /writing/<slug>          the post (its peek, its drawer)
+//   a section (/works, …)    the section's card
+//   a URL a commit attaches  that attachment, as its /works cover: a talk's
+//                            recording, a deck, a page the log presents
+//   anything else            a plain link (a way out, with its arrow)
+//
+// Someone else's page is not summoned from prose on its own card: a link
+// out stays one press away from where it goes. <MagicLink href> still
+// summons one where an author asks for it. An in-page anchor, a mail link
+// and the like are plain links.
+// =============================================================================
+
+/** Every URL a commit attaches (a `urls` variant too) → the commit and item. */
+let attached: Map<string, { commit: string; item: number }> | undefined;
+function attachmentAt(url: string) {
+  if (!attached) {
+    attached = new Map();
+    for (const commit of LOG.commits) {
+      (commit.media ?? []).forEach((m, item) => {
+        const urls = [m.url, ...Object.values((m as LinkMedia).urls ?? {})];
+        for (const u of urls) if (u && !attached!.has(u)) attached!.set(u, { commit: commit.id, item });
+      });
+    }
+  }
+  return attached.get(url);
+}
+
+/** The hosts this site's posts have lived at. */
+const OWN_HOSTS = new Set(["hux.pro", "www.hux.pro", "huangxuan.me", "huxpro.github.io"]);
+const OLD_PERMALINKS = new Map(jekyllRedirects.map((r) => [r.source, r.destination]));
+
+/**
+ * A link to one of this site's posts written as a full URL, at its address
+ * today or at an old blog's permalink (`huangxuan.me/2015/05/11/see-u-ali/`):
+ * the post's path, or null.
+ */
+function ownPostPath(href: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return null;
+  }
+  if (!OWN_HOSTS.has(url.hostname)) return null;
+  const path = url.pathname.replace(/\/(index\.html)?$/, "");
+  const post = OLD_PERMALINKS.get(path) ?? path;
+  return postSlugOf(post) ? post : null;
+}
+
+export function ServerProseLink({ href, children, className, ...rest }: ComponentPropsWithoutRef<"a">) {
+  const plain = () => (
+    <SmartLink href={href} className={className} {...rest}>
+      {children}
+    </SmartLink>
+  );
+  if (!href) return plain();
+
+  // One of this site's pages: a post (at any address it has had) or a
+  // section.
+  const own = /^https?:\/\//.test(href) ? ownPostPath(href) : href;
+  if (own?.startsWith("/") && !own.startsWith("//")) {
+    const slug = postSlugOf(own);
+    const media = slug ? postMedia(slug) : sectionMedia(own);
+    return media ? (
+      <MagicLink media={media} className={className}>
+        {children}
+      </MagicLink>
+    ) : (
+      plain()
+    );
+  }
+  if (!/^https?:\/\//.test(href)) return plain();
+
+  // Something a commit attaches: the attachment, as its cover on /works.
+  const at = attachmentAt(href);
+  if (at) {
+    return (
+      <MagicLink {...resolveOnServer({ commit: at.commit, item: at.item })} className={className}>
+        {children}
+      </MagicLink>
+    );
+  }
+  return plain();
 }
