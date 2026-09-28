@@ -5,10 +5,10 @@ One secondary surface, four shapes.
 ```
 systems/surface/
 ├── presentation.ts       # SurfaceMode, breakpoints, useSurfaceMode()
-├── adaptive-surface.tsx  # <AdaptiveSurface> — the policy: viewport picks the shape
-├── sheet.tsx             # <SurfaceSheet> — the one bottom sheet, detents, scrim
-├── window.tsx            # <SurfaceWindow> — the one floating, draggable shell
-├── chrome.tsx            # <SurfaceBody> — the title bar, toolbar, scroll area and footer
+├── adaptive-surface.tsx  # <AdaptiveSurface>: the policy, viewport picks the shape
+├── sheet.tsx             # <SurfaceSheet>: the one bottom sheet, detents, scrim
+├── window.tsx            # <SurfaceWindow>: the one floating, draggable shell
+├── chrome.tsx            # <SurfaceBody>: the title bar, toolbar, scroll area and footer
 ├── stack.ts              # which sheets are open, so a sheet *covered* by another recedes
 └── index.ts
 ```
@@ -35,7 +35,7 @@ Both still get the same shell, gaps, detents and stacking.
 
 ## The problem
 
-The site keeps growing secondary surfaces — the music playlist, the wallpaper
+The site keeps growing secondary surfaces: the music playlist, the wallpaper
 picker, whatever comes next. Each wants a different shape at a different size,
 and every one of them was re-deciding that on its own: its own `matchMedia`
 listener, its own drawer wiring, its own glass shell, its own header. Copies
@@ -55,15 +55,15 @@ lives here, once.
 
 `window` is not a drawer. It springs in with the same curve
 `systems/windows` uses to open an app from its shelf icon, and drags by its
-header through the shared `useDraggable` hook — so it inherits the devtool's
+header through the shared `useDraggable` hook, so it inherits the devtool's
 per-instance drag settings like every other draggable thing on the site. It
 rests near the top centre unless its `placement` says otherwise; the devtool
 asks for `top-right`, where it has always been and where it stays out of the
 page it exists to watch.
 
-`popover` is not a drawer either: it is a [Base UI
+`popover` is not a drawer either. It is a [Base UI
 Popover](https://base-ui.com/react/components/popover) positioned against an
-`anchor` — a ref to the element that owns it — flipping and shifting to stay on
+`anchor` (a ref to the element that owns it), flipping and shifting to stay on
 screen. It wears the same glass shell and the same title bar as the others at a
 smaller radius, so the phone's sheet and the desktop's card are recognisably one
 object. Focus returns to the anchor on close, since without a Base UI trigger
@@ -79,12 +79,11 @@ touches neither `<body>`'s pointer events nor its position. A non-modal surface
 also passes `disablePointerDismissal`, because a press on a live page belongs
 to the page.)
 
-A popover is the exception, for exactly the same reason: it is not about the
-page, it is the extension of one button, and every menu on every platform is put
-away by a press elsewhere. Its anchor is the one press that does not count —
-Base UI reads a press on it as an outside press, so the shape cancels that and
-leaves the gesture to the button, which would otherwise close and reopen in one
-click.
+A popover is the exception, for the same reason: it extends one button
+instead of serving the page, and every menu on every platform is put away by a
+press elsewhere. A press on its anchor is the one that does not count. Base UI
+reads it as an outside press, so the shape cancels that and leaves the gesture
+to the button, which would otherwise close and reopen in one click.
 
 Base UI can do that part itself, with `Popover.createHandle()` and a detached
 `Popover.Trigger`. It is not used here because three of the four shapes have no
@@ -92,9 +91,9 @@ trigger to be: on a phone `Popover.Root` never mounts, so the caller's button
 needs its own open state regardless, and in popover mode that would then race
 Base UI's. The cancellation is the adapter for a system that takes an anchor
 instead of a trigger, and it belongs here rather than in feature code. When a
-second anchored surface arrives, the thing worth extracting is the caller's
-side — a `useSurfaceTrigger()` handing back `{ ref, onClick, "aria-expanded" }`
-to spread on any button — not Base UI's trigger.
+second anchored surface arrives, extract the caller's side rather than Base
+UI's trigger: a `useSurfaceTrigger()` handing back
+`{ ref, onClick, "aria-expanded" }` to spread on any button.
 
 The other exception is a launcher. The command palette's sheet is modal: the page
 stops answering while it is up and a press on it dismisses, the click-away its
@@ -123,8 +122,8 @@ sheet everywhere, and moving a surface between shapes is a one-word change:
 
 ```ts
 ADAPTIVE_PRESENTATION  // { base: "sheet", sm: "panel", lg: "window" }
-ANCHORED_PRESENTATION  // { base: "sheet", sm: "popover" } — owned by a button
-DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" } — never floats free
+ANCHORED_PRESENTATION  // { base: "sheet", sm: "popover" }, owned by a button
+DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" }, never floats free
 ```
 
 A surface on `ANCHORED_PRESENTATION` passes `popover={{ anchor }}` whatever the
@@ -134,35 +133,35 @@ not this viewport is the one that uses it.
 Breakpoints match Tailwind's (`sm` 640, `lg` 1024) so a surface and the content
 inside it respond at the same widths rather than a few pixels apart.
 
-`useSurfaceMode()` (a `useBreakpointValue()` typed to the three shapes — a
+`useSurfaceMode()` is a `useBreakpointValue()` typed to the three shapes. (A
 surface with a vocabulary of its own, like the command palette, uses the
-generic one against the same breakpoints) starts at `base` so SSR and the first client render agree,
-then settles on the real viewport in an effect, and tracks it live — a resize or
-a rotation moves an **already-open** surface into its new shape rather than
-waiting for a reopen.
+generic one against the same breakpoints.) It starts at `base` so SSR and the
+first client render agree, then settles on the real viewport in an effect and
+tracks it live. A resize or a rotation moves an **already-open** surface into
+its new shape rather than waiting for a reopen.
 
 ## Content that adapts
 
-Most content should not care which shape it landed in. When it genuinely does —
-a 980px desktop window wants the track list in columns, a phone sheet does not —
-read it rather than re-measuring the viewport:
+Most content should not care which shape it landed in. When it does (a 980px
+desktop window wants the track list in columns, a phone sheet does not), read
+it rather than re-measuring the viewport:
 
 ```tsx
 const { mode, isWindow, close } = useSurfaceContext();
 ```
 
-Read it for questions about the **container** — how many columns fit, how dense
-a row should be. Not as a proxy for the viewport: a surface that hides a setting
-when it is a sheet has made the presentation map load-bearing for behaviour, and
-moving that surface to `panel` would silently change what the feature offers.
-Gate on the constraint itself — a breakpoint the CSS already names, a capability
-— or do not gate.
+Read it for questions about the **container**: how many columns fit, how dense
+a row should be. Do not read it as a proxy for the viewport. A surface that
+hides a setting when it is a sheet has made the presentation map load-bearing
+for behaviour, and moving that surface to `panel` would silently change what
+the feature offers. Gate on the constraint itself (a breakpoint the CSS already
+names, a capability), or do not gate.
 
 ## A surface is chrome
 
-`SHELL` (`sheet.tsx`) carries `.system-chrome`, so every shape — sheet, panel,
-window, popover — and everything inside it is the OS's own UI: no text
-selection, no long-press callout, no grey tap flash. That is the ruling, not an
+`SHELL` (`sheet.tsx`) carries `.system-chrome`, so every shape (sheet, panel,
+window, popover) and everything inside it is the OS's own UI: no text
+selection, no long-press callout, no grey tap flash. This is deliberate, not an
 accident of the class list, and it holds for whatever a surface is given to
 hold. Text fields are the one exception, in `globals.css`, so the command
 palette's search and the devtool's fields keep their caret.
@@ -170,7 +169,7 @@ palette's search and the devtool's fields keep their caret.
 Every surface today is chrome, and content-shaped surfaces are where this would
 have to be revisited: an article in a quick-look, a page previewed in a panel.
 `select-text` on such content wins back the selection but not the link preview
-`-webkit-touch-callout` takes away — so it is a third voice rather than an
+`-webkit-touch-callout` takes away. So it is a third voice rather than an
 override, and it belongs in the voice block in `globals.css` beside the other
 two. See [Design System](./design-system.md#touch).
 
@@ -181,27 +180,26 @@ two. See [Design System](./design-system.md#touch).
 | `id` | Draggable instance key in window mode. Register it in `DRAGGABLE_INSTANCES`. |
 | `title` / `actions` | Header content. `actions` sits left of the close button. |
 | `windowWidth` | Window mode only; drawers size against their edge. |
-| `popover` | `{ anchor, width?, align? }` — the popover shape's settings. Grouped because `anchor` is a precondition, not tuning: the card cannot position itself without one, so it is required inside the object rather than asked for in prose. |
+| `popover` | `{ anchor, width?, align? }`: the popover shape's settings. Grouped because `anchor` is a precondition, not tuning: the card cannot position itself without one, so it is required inside the object rather than asked for in prose. |
 | `maxHeight` | Caps window, popover and sheet height. |
-| `fitContent` | Size to what it holds rather than to the screen — the sheet's `fitContent` (see **Three heights**); a popover is content-sized under its cap already. |
+| `fitContent` | Size to what it holds rather than to the screen. This is the sheet's `fitContent` (see **Three heights**); a popover is content-sized under its cap already. |
 | `snapPoints` | Detents for the sheet shape, lowest first; a drag carries it to the top. |
 | `contentClassName` | Overrides the scroll area's padding, for content that bleeds wider. |
 | `scrollRef` | The scroll container, for content that scrolls a row into view. |
 
 The primitives carry a few props the policy layer deliberately does not pass
-on — a surface that wants one of these is a surface that should be composing
-the shell directly:
+on. A surface that wants one of these should compose the shell directly:
 
 | Prop | On | For |
 |------|----|-----|
-| `toolbar` | `SurfaceBody` | A strip between the header and the scroll area that does not scroll away — an index of the content. |
+| `toolbar` | `SurfaceBody` | A strip between the header and the scroll area that does not scroll away, such as an index of the content. |
 | `footer` | `SurfaceBody` | A strip below the scroll area that does not scroll away. |
 | `placement` | `SurfaceWindow` | Where the window rests before a drag: `center` (default) or `top-right`. |
 | `onPullPastTop` | `SurfaceSheet` | The drag that lifts a sheet off the edge it is docked to. |
 
 **Pulling a sheet off the edge.** A drag may carry a sheet past its top edge,
 and `onPullPastTop` fires when it is released more than `PULL_PAST_TOP_TRAVEL`
-real pixels past it — a surface that has somewhere else to be can take that as
+real pixels past it. A surface that has somewhere else to be can take that as
 "come off the edge". The devtool does; nothing else needs to, and without the
 prop the overshoot stays a rubber band.
 
@@ -215,7 +213,7 @@ the sheet and, once it is against the ceiling, keeps counting.
 
 The threshold is small (14px) because the budget is small: most of a pull is
 spent resizing, and what is left is the distance from the grabber to the top of
-the glass — about twenty pixels. A pull that stops at the top still snaps to
+the glass, about twenty pixels. A pull that stops at the top still snaps to
 the full detent; only one that keeps going detaches, and the shell carries
 `data-pull-armed` in between so the difference is visible.
 
@@ -229,7 +227,7 @@ Every phone shape is one `<SurfaceSheet>` (`sheet.tsx`): a [Base UI
 Drawer](https://base-ui.com/react/components/drawer), the glass shell, the
 grabber, the edge gaps. `AdaptiveSurface` composes it for its sheet mode and
 adds the title bar and scroll area. A surface whose header is not a title bar
-composes it directly — the command palette, whose header is its search field —
+composes it directly (the command palette, whose header is its search field)
 and still gets the same shell, so a sheet is a sheet whatever it holds.
 
 ```tsx
@@ -248,34 +246,34 @@ the sheet's whole travel; the glass shell is the flex child inside it. Base UI
 moves a sheet by translating the popup, so a one-box floating sheet would push
 its own rounded bottom off screen at a lower detent. The popup carries the same
 offset as bottom padding, so the shell stays planted a gap above the bottom edge
-and grows and shrinks from the top — at rest and under the finger alike. Past
+and grows and shrinks from the top, at rest and under the finger alike. Past
 the lowest detent (`--surface-detent-floor`) the padding stops and the sheet
 slides away whole, because that drag is a dismissal, not a resize.
 
 **Arriving.** A sheet should rise, and rise at the size it is going to be. Two
 things get in the way, both handled in `sheet.tsx` and the motion block:
 
-- Base UI resolves a detent's offset from measurements — the popup's height and
-  the viewport's — so on the first painted frame the offset is `0`, which *is*
+- Base UI resolves a detent's offset from measurements (the popup's height and
+  the viewport's), so on the first painted frame the offset is `0`, which *is*
   the top detent: the sheet lands full height and then slides down into its
-  detent. The offset is no mystery though (`popupHeight - detentHeight`), so
-  the popup carries the same sum in CSS as `--surface-snap-fallback` and stands
-  on it for the length of the entrance (`data-surface-entering`); Base UI's own
+  detent. The offset is simple to compute (`popupHeight - detentHeight`), so
+  the popup carries the same sum in CSS as `--surface-snap-fallback` and uses
+  it for the length of the entrance (`data-surface-entering`). Base UI's own
   value lands underneath, identical, before the mark comes off.
 - A `keepMounted` sheet is hidden with `display: none` while closed, and
-  nothing transitions out of `display: none` — there is no painted "before" to
+  nothing transitions out of `display: none`. There is no painted "before" to
   travel from, so Base UI's starting style does nothing and the sheet simply
   appears. `data-surface-arriving` gives it one painted frame at the bottom
-  edge (set from the render that opens the sheet, released two frames later —
-  a rAF callback runs *before* its own frame is painted) and the sheet travels
-  up from there.
+  edge, and the sheet travels up from there. The attribute is set from the
+  render that opens the sheet and released two frames later, because a rAF
+  callback runs *before* its own frame is painted.
 
 **Detents.** `snapPoints` are fractions of the viewport, iOS's medium and large;
 the site has one set, `SHEET_DETENTS` (`[0.7, 1]`), so sheets stacked on one
 another stand level. A sheet with detents opens at the detent of the sheet
 beneath it when that is one of its own (the stack publishes each sheet's
 `level`; a fixed-height sheet names its with the `level` prop), and at the
-first otherwise — so the wallpaper picker over the palette arrives level with
+first otherwise. So the wallpaper picker over the palette arrives level with
 the palette, and can still be pulled to the top over it, as an iOS child sheet
 can stand taller than its parent.
 Base UI publishes the active one as `--drawer-snap-point-offset` and the live
@@ -284,18 +282,18 @@ them is one block in `app/globals.css`, *Secondary surface motion*, on the
 site's own curve (`SURFACE_EASING`, `SURFACE_TRANSITION_MS` in `stack.ts`).
 
 **Three heights.** `snapPoints` for a sheet that holds a list, `height` for a
-fixed one, and `fitContent` for a sheet that holds one short thing — a form, a
-confirmation — which takes the height of what it holds, the way iOS sizes a
-form sheet to its form, so there is no empty half. A `fitContent` sheet is
+fixed one, and `fitContent` for a sheet that holds one short thing (a form, a
+confirmation). That sheet takes the height of what it holds, the way iOS sizes
+a form sheet to its form, so there is no empty half. A `fitContent` sheet is
 `flex: 0 1 auto` inside a popup capped at the screen: it measures itself, grows
 and shrinks with its content, and shrinks below the cap only if the content
-outgrows the screen — so the content bounds its own scroll area (a `max-h-*`
+outgrows the screen, so the content bounds its own scroll area (a `max-h-*`
 on it). The load-bundle sheet and the window menu on touch
 (`systems/windows/components/window-menu.tsx`) are the ones that do this; the
 keyboard pushes them up like any other sheet.
 
 **Changing what it says: `SurfaceMorph`.** A `fitContent` sheet that moves
-through steps — an offer, then how it went — must not cut between them: the
+through steps (an offer, then how it went) must not cut between them: the
 text jumps and the sheet snaps to its new height in one frame. Wrap the part
 that changes in `<SurfaceMorph step={…} render={(step) => …} />`
 (`systems/surface/morph.tsx`): the leaving step stays over the top and fades
@@ -305,14 +303,14 @@ so it grows or shrinks from the top, the way it opened. Reduced motion swaps
 at once. The two permission primers use it (the gyroscope's and the
 location's).
 
-**Modal.** The scrim is the viewport — `Drawer.Viewport` is already a
+**Modal.** The scrim is the viewport. `Drawer.Viewport` is already a
 transparent, full-screen box containing the popup, so when `modal` is on it
 takes the page away and a press on it dismisses; when it is off it is
 `pointer-events: none` and only the popup takes pointers. Base UI's scroll lock
 is safe under the bezel where Radix's was not: on iOS it only sets `overflow:
 hidden` on whichever element scrolls the viewport, never `position: relative` on
-`<body>`, and it stands down entirely when that element is already locked —
-which is the state `vitre` leaves the page in during container scroll
+`<body>`, and it stands down entirely when that element is already locked.
+That is the state `vitre` leaves the page in during container scroll
 (`<html>` hidden, `<body>` fixed at inset 0). Independently, the bezel keeps
 `<body>` at `overflow: clip` rather than `hidden`: `hidden` is a scroll
 container that `scrollIntoView` can still move, and a sheet resting below the
@@ -325,7 +323,7 @@ running while it is put away: an app window on a phone
 otherwise reload its iframe and lose the app's state.
 
 **A grip of its own.** `grip` replaces the grabber for a sheet whose handle
-says more than "drag me" — the window grip, which is also the window's menu
+says more than "drag me": the window grip, which is also the window's menu
 button. It renders where the grabber does, above `Drawer.Content`, so a mouse
 press on it still starts a drag. `gripOverlay` floats it over the content
 instead of giving it a row, for a sheet holding something that is not a
@@ -338,7 +336,7 @@ of `sheet.tsx`.
 
 **No gesture state up there.** A grip that changes with the drag is a grip that
 has to be changed back, and the end of a Base UI gesture can be missed
-altogether — so the sheet publishes nothing for a grip to change on, and the
+altogether. So the sheet publishes nothing for a grip to change on, and the
 window grip keeps only states that are harmless to be stuck in (it lights up
 under a thumb; it never changes shape).
 `systems/windows/components/window-grip.tsx` has the story of the five versions
@@ -366,8 +364,8 @@ fields never notices.
 
 ## Working with Base UI
 
-The sheet's motion is written against Base UI Drawer's contract — the data
-attributes and custom properties it publishes — and that contract lives in its
+The sheet's motion is written against Base UI Drawer's contract (the data
+attributes and custom properties it publishes), and that contract lives in its
 docs, its nested demo and its source, not in its types. Before changing
 `sheet.tsx` or the *Secondary surface motion* block in `globals.css`, read the
 numbered block at the top of `systems/surface/sheet.tsx`; it is the list of
@@ -387,29 +385,29 @@ what has already been got wrong. In short:
 - Test each gesture path on its own: click, touch tap, swipe release,
   programmatic focus.
 
-Base UI: https://base-ui.com/react/components/drawer — nested demo under
+Base UI: https://base-ui.com/react/components/drawer. The nested demo is under
 `docs/src/app/(docs)/react/components/drawer/demos/nested/` in its repository.
 
 ## Stacking
 
-iOS stacks sheets: presenting one from another sends the first back a step —
-smaller, dimmer, a little higher, inert — and brings it forward again when the
-one on top goes. That is a relationship between surfaces, not a property of
-either, so it lives in `stack.ts`: a module-level store (the surfaces mount in
+iOS stacks sheets. Presenting one from another sends the first back a step
+(smaller, dimmer, a little higher, inert) and brings it forward again when the
+one on top goes. That is a relationship between surfaces rather than a property
+of either, so it lives in `stack.ts`: a module-level store (the surfaces mount in
 different subtrees, and a store needs no provider to reach them all) that every
 open sheet registers with in order. A sheet with another opened after it reads
 `behind` and recedes; it deregisters on close rather than on unmount, so the
 one behind comes forward in step with the top sheet's exit. The recede takes
 its own curve (`SURFACE_RECEDE_EASING`, ease-in-out): a sheet starts moving a
 frame after its parent's depth changes, and on the travel curve that frame
-would already be a third of the recede — the parent would flinch before the
-child arrives.
+would already be a third of the recede, and the parent would flinch before
+the child arrives.
 
 Base UI has nested drawers of its own, with `data-nested-drawer-open` and
 `--nested-drawers`, but a drawer is only nested when it is a React child of
 another one. The wallpaper picker, the playlist and the palette all mount in
 sibling subtrees of the root layout, so `stack.ts` stays for those. Where a
-sheet *is* nested — the palette's slash sheet — the parent's depth comes from
+sheet *is* nested (the palette's slash sheet), the parent's depth comes from
 Base UI instead: `--nested-drawers` less the child's `--drawer-swipe-progress`,
 so the parent comes forward under the finger as the child is pulled down, with
 transitions off while `data-nested-drawer-swiping` is set. Both feed the one
@@ -417,14 +415,14 @@ transitions off while `data-nested-drawer-swiping` is set. Both feed the one
 
 Every sheet over a sheet is a true stack: close the top one and the one
 beneath comes forward. The palette under the wallpaper picker steps back one;
-under the slash sheet and the picker, two — `depth` from the stack plus Base
-UI's own count of nested sheets, one `--surface-depth` on the shell. See
+under the slash sheet and the picker, two. That is `depth` from the stack plus
+Base UI's own count of nested sheets, one `--surface-depth` on the shell. See
 [Command System](./system-command.md).
 
 The stack's order is also the paint order. Every viewport is a stacking
 context at the same level, so sibling sheets would otherwise paint in the
-order their portals mounted — fine while every sheet mounts as it opens, wrong
-the moment one is kept mounted: an app window put away and brought back over
+order their portals mounted. That is fine while every sheet mounts as it opens,
+and wrong the moment one is kept mounted: an app window put away and brought back over
 a younger sheet (the attachment sheet, say, whose `Visit` restored it) would
 come up underneath it while the stack said it was on top. So a sheet takes its
 place in the stack as its `layer` (`useSurfaceStack().rank`, `SurfaceViewport`
@@ -436,14 +434,14 @@ stack as it stands is `useSurfaceStackEntries()`, for the attachments lab.
 
 Opening second is not the same as covering. The dock's Live Activity panel
 hangs from the top edge and a sheet climbs from the bottom, so both can be up
-with neither hidden — the theater playlist stops exactly at the panel's bottom
+with neither hidden. The theater playlist stops exactly at the panel's bottom
 edge, and a queue opened *from* the player's card should leave that card
 usable rather than dim it and make it inert.
 
 So each surface reports the band it stands in (`band` on `useSurfaceStack`),
 and only a surface that overlaps it counts as being on top. An unreported band
 covers everything, which is the behaviour every surface had before any of them
-could say — so the shapes that never register (panel, window, popover: nothing
+could say. So the shapes that never register (panel, window, popover: nothing
 recedes on a tablet or a desktop) are unaffected, and a new sheet is correct
 before it is measured.
 
@@ -460,9 +458,9 @@ Two consequences, both measured on an iPhone 13:
 
 **Measure layout, never a rect.** The recede a band decides is a `scale()` on
 the very element being measured, so a `getBoundingClientRect` would feed its
-own answer back in. `useMeasuredBand` holds the plumbing — measure now, again
-once the entrance has landed, and on every resize of the shell or the window —
-and each shape supplies one reading off `offsetTop` / `offsetHeight`:
+own answer back in. `useMeasuredBand` holds the plumbing: measure now, again
+once the entrance has landed, and on every resize of the shell or the window.
+Each shape supplies one reading off `offsetTop` / `offsetHeight`:
 
 | | pinned edge | so the measurement is |
 |---|---|---|
@@ -474,7 +472,7 @@ shell, the sheet's band is live with the drag: tiling resolves during the
 gesture, not after it.
 
 A surface that has to fit around one it does not own reads the band instead of
-measuring it again from outside — `useSurfaceBandOf("dock-activity")` is how
+measuring it again from outside. `useSurfaceBandOf("dock-activity")` is how
 the theater playlist finds its ceiling when the player is a Live Activity.
 That keeps one owner per edge, and the two of them cannot disagree.
 
@@ -484,11 +482,11 @@ That keeps one owner per edge, and the two of them cannot disagree.
 |---------|--------------|-------|
 | Music playlist | `ADAPTIVE_PRESENTATION` | macOS-sized window (980×620), track list breaks into columns |
 | Wallpaper picker | `ADAPTIVE_PRESENTATION` | 3-column tile grid in window mode; `SHEET_DETENTS` as a sheet |
-| Theater playlist | `ADAPTIVE_PRESENTATION` | Albums + tracks for the video player. Its detents are a function of where the player is rather than a pair of fractions (`playlistDetents`): the sheet stops under whatever shape the player is wearing — the PiP window, which the provider parks at the top of the screen while the list is up, or the dock card it collapsed into, read from that card's band — so on a phone the two split the screen instead of overlapping, and the video is never something the list has to work around. The tablet panel can't resize to that, so there it ends above the window instead |
+| Theater playlist | `ADAPTIVE_PRESENTATION` | Albums + tracks for the video player. Its detents are a function of where the player is rather than a pair of fractions (`playlistDetents`): the sheet stops under whatever shape the player is wearing. That is the PiP window (which the provider parks at the top of the screen while the list is up) or the dock card it collapsed into (read from that card's band). On a phone the two split the screen instead of overlapping, and the list never has to work around the video. The tablet panel can't resize to that, so there it ends above the window instead |
 | Reading settings | `ANCHORED_PRESENTATION` | The article page's "Aa". `fitContent` sheet, end-aligned popover off the button; rows appear only where the setting does something, so the sheet is shorter than the popover |
 | Attachments | `ADAPTIVE_PRESENTATION` | A commit's attachments, paged (`useSnapPager`). `fitContent`; a 560px window. On a phone it is where every attachment opens; elsewhere only the kinds with no native home reach it. See [Attachments System](./system-attachments.md) |
-| Identity card | `ANCHORED_PRESENTATION` | Who signed a commit: a profile card, for a finger — with a pointer the same profile is a magnetic hover peek and this never opens. `fitContent`; the popover hangs off whichever `<handle>` or `Role:` was tapped, the anchor kept in a ref by its provider. See [Identity System](./system-identity.md) |
+| Identity card | `ANCHORED_PRESENTATION` | Who signed a commit: a profile card, for a finger. With a pointer the same profile is a magnetic hover peek and this never opens. `fitContent`; the popover hangs off whichever `<handle>` or `Role:` was tapped, the anchor kept in a ref by its provider. See [Identity System](./system-identity.md) |
 | Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight card, anchored to nothing, not the `popover` shape above |
-| Devtool panel | primitives, not `AdaptiveSurface` | `SurfaceSheet` docked / `SurfaceWindow` floating, and which one is the developer's call, not the viewport's — it is pulled off the edge by hand. `onPullPastTop`, `placement="top-right"`, a `toolbar` for its module rail and a `footer` for its status line. See [Devtool System](./system-devtool.md) |
+| Devtool panel | primitives, not `AdaptiveSurface` | `SurfaceSheet` docked / `SurfaceWindow` floating, and which one is the developer's call, not the viewport's: it is pulled off the edge by hand. `onPullPastTop`, `placement="top-right"`, a `toolbar` for its module rail and a `footer` for its status line. See [Devtool System](./system-devtool.md) |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.
