@@ -889,9 +889,30 @@ still under a pull, and so do the clouds and the stars' places, so nothing is
 already on its way before the window has opened. Let go short and it eases
 back.
 
-**No React per frame.** The recognizer writes two CSS variables and three
+**No React per frame.** The recognizer writes three CSS variables and three
 attributes on `<html>` and calls the renderer's `previewWindow`; the page, the
-cue and the search button are moved by CSS ("The sky pull" in `globals.css`):
+cue and the search button are moved by CSS ("The sky pull" in `globals.css`).
+`--sky-pull` is how far the page has followed, `--sky-pull-progress` how far to
+the line, and `--sky-pull-reveal` how much of the hint shows. The cue and the
+sky's lift both read the reveal, so they arrive as one thing:
+
+- **Nothing for the first ~8 mm** (`REVEAL_FROM_PX`, 46 px of page ≈ 52 of
+  finger) — well past where the platform itself calls a touch a drag (Android's
+  touch slop is 8 dp, iOS's pan about 10 pt). A page nudged at its top just
+  moves; the hint starts only once the pull is plainly a pull. It is in px, not
+  a fraction of the line, so moving the line does not move it.
+- **Then a smoothstep that runs all the way to the line** (`REVEAL_TO_PX` is the
+  line itself). Zero slope at the start, so it grows out of nothing with no
+  visible switch-on. And no plateau before the line: an earlier version was
+  full some way short of it, and a stretch where nothing changes is one the
+  hand does not feel — both halves of the pull read as shorter than they were.
+  Growing until the line keeps the whole second half moving, and the caption
+  turning to "let go" is the one thing that happens at the line.
+- **The line has hysteresis**: armed at `PULL_ARM_PX` (104 px of page, ~141 of
+  finger), disarmed only below `PULL_DISARM_PX` (96). A finger resting on the
+  line trembles a pixel or two; with one threshold the two captions — and the
+  tick — flickered with every tremor. Letting go anywhere while armed opens
+  the window: what the cue says is what happens.
 
 | state | what the home does |
 |---|---|
