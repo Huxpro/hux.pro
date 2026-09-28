@@ -28,6 +28,7 @@ import type {
   Instance,
   PromptsData,
 } from "@/lib/prompts";
+import type { PromptChapter } from "@/components/prompt/use-reading-chapter";
 import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
 import { t, useLocale } from "@/services";
@@ -599,6 +600,7 @@ function PromptItem({
   tag,
   attributes,
   anchorId,
+  chapter,
   expandable,
   children,
   detail,
@@ -606,6 +608,9 @@ function PromptItem({
   tag: string;
   attributes?: Record<string, string>;
   anchorId: string;
+  /** The run of the page this entry is read in — what the toolbar lights
+   *  while it is the one in the middle (`useReadingChapter`). */
+  chapter: PromptChapter;
   expandable: boolean;
   children: React.ReactNode;
   detail?: React.ReactNode;
@@ -661,6 +666,7 @@ function PromptItem({
     <div
       id={anchorId}
       ref={ref}
+      data-chapter={chapter}
       className={cn(
         "prompt-item group py-3 cursor-pointer transition-colors duration-200",
         "hover:bg-foreground/[0.02] -mx-4 px-4 rounded-lg scroll-mt-24",
@@ -838,6 +844,7 @@ function ConvictionItem({
       tag="conviction"
       attributes={attributes}
       anchorId={conviction.anchor}
+      chapter={conviction.topics[0]}
       expandable={Boolean(
         conviction.body ||
         conviction.shapedBy ||
@@ -968,6 +975,7 @@ function InfluenceItem({
       tag="influence"
       attributes={attributes}
       anchorId={influence.anchor}
+      chapter="influence"
       expandable={Boolean(influence.body || influence.links || shaped.length)}
       detail={
         <>
