@@ -4,7 +4,7 @@
  * Splits the snapshot pipeline into two halves so the same merging logic can
  * run in two places:
  *   - server-side at `/works` (snapshot loaded from disk by `lib/og-snapshot`)
- *   - client-side in the `/editor` preview (snapshot statically imported)
+ *   - client-side in the Works Lab preview (`/lab/works`) (snapshot statically imported)
  *
  * This file is intentionally fs-free so it survives a client bundle.
  */

@@ -23,22 +23,28 @@ import { t, useLocale } from "@/services";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { toast } from "sonner";
 import { MousePointer2 } from "lucide-react";
-import { EditorToolbar } from "./toolbar";
+import { LabShell } from "../shell";
+import { WorksToolbar } from "./toolbar";
 import { CommitEditor } from "./commit-editor";
 import { TagEditor } from "./tag-editor";
 
-// Static-import the snapshot so the editor preview can resolve previews and
+// The Works Lab — /lab/works. content/log.json, printed by the production
+// timeline in each of its forms, and (on a wide screen) edited in place:
+// Inspect selects a commit or a tag on the timeline itself, the inspector
+// beside it edits it, Save writes the file back through /api/log (next dev).
+
+// Static-import the snapshot so the lab preview can resolve previews and
 // video covers client-side — the same merging /works does server-side. URLs
 // not in the snapshot still need `pnpm og:snapshot` to gain a baked preview;
 // the LinkCard component's runtime fetch is the third-tier fallback.
 const ogSnapshot = ogSnapshotJson as OGSnapshot;
 const INSPECT_MIN_WIDTH = 1024;
 
-interface EditorViewProps {
+interface WorksLabViewProps {
   initialData: LogData;
 }
 
-export function EditorView({ initialData }: EditorViewProps) {
+export function WorksLabView({ initialData }: WorksLabViewProps) {
   const [data, setData] = useState<LogData>(initialData);
   const [savedData, setSavedData] = useState<LogData>(initialData);
   const [mode, setMode] = useState<InspectMode>("preview");
@@ -290,9 +296,17 @@ export function EditorView({ initialData }: EditorViewProps) {
   );
 
   return (
-    <div className="h-dvh flex flex-col bg-background text-foreground">
-      {/* Toolbar */}
-      <EditorToolbar
+    <LabShell
+      lab="works"
+      layout="canvas"
+      meta={
+        <>
+          {data.commits.length} commits · {data.tags.length} tags ·{" "}
+          {Object.keys(data.identities ?? {}).length} identities
+        </>
+      }
+    >
+      <WorksToolbar
         isDirty={isDirty}
         saving={saving}
         mode={effectiveMode}
@@ -305,19 +319,23 @@ export function EditorView({ initialData }: EditorViewProps) {
         onAddTag={handleAddTag}
       />
 
-      {/* Preview canvas + optional inspector. The column is /works'
-          (`--page-col` / `--page-gutter`); the extra left pad on `lg`
-          is the gutter the row pulls into (`GUTTER_PULL`), so the hash
-          and the rail hang in a real margin instead of clipping. */}
-      <div className="flex-1 flex min-h-0">
-        <div className="flex-1 overflow-y-auto" onClick={handleCanvasClick}>
-          <div className="mx-auto w-full max-w-[calc(var(--page-col)+6.5rem)] px-[var(--page-gutter)] py-8 lg:pl-[calc(var(--page-gutter)+6.5rem)]">
+      {/* The timeline + the inspector while inspecting. The column is
+          /works' (`--page-col`, less the gutter the page already has); the
+          extra left pad on `lg` is the gutter the row pulls into
+          (`GUTTER_PULL`), so the hash and the rail hang in a real margin
+          instead of clipping. */}
+      <div className="mt-6 flex items-start gap-6">
+        <div className="min-w-0 flex-1" onClick={handleCanvasClick}>
+          <div className="mx-auto w-full max-w-[calc(var(--page-col)+3.5rem)] py-2 lg:pl-[6.5rem]">
             <TimelineEditProvider value={editContext}>
               <LogTimeline
                 data={previewData}
                 locale={locale}
                 identities={data.identities}
                 form={form}
+                // The toolbar is this page's pinned bar: chapter markers stay
+                // in the flow as dividers instead of sticking under it.
+                pinnedChapters
               />
             </TimelineEditProvider>
             <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">
@@ -327,7 +345,7 @@ export function EditorView({ initialData }: EditorViewProps) {
         </div>
 
         {inspecting && (
-          <aside className="w-[480px] shrink-0 border-l border-border flex flex-col min-h-0 animate-in slide-in-from-right-4 fade-in duration-200">
+          <aside className="ink-flat sticky top-20 flex h-[calc(100svh-6rem)] w-[480px] shrink-0 flex-col overflow-hidden rounded-2xl border border-border/50 bg-glass-sheet shadow-overlay backdrop-blur-xl animate-in slide-in-from-right-4 fade-in duration-200">
             {selectedCommit ? (
               <CommitEditor
                 commit={selectedCommit}
@@ -354,7 +372,7 @@ export function EditorView({ initialData }: EditorViewProps) {
           </aside>
         )}
       </div>
-    </div>
+    </LabShell>
   );
 }
 

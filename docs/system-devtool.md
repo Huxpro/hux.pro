@@ -253,7 +253,7 @@ Rail and footer stay put while the modules scroll. The modules:
 2. **Glass**: Material — Tinted (色调) / Clear (透明); Tint — Neutral /
    Wallpaper; a one-line readout of what the legibility policy resolved for
    the wallpaper that is painting (`flipped · busy · relief · +ink · +glass`),
-   and a link to the Legibility Lab (`/editor/legibility`), where every one of
+   and a link to the Legibility Lab (`/lab/legibility`), where every one of
    those numbers is a slider. See `docs/system-legibility.md`.
 3. **Sky**: weather and time as one thing, because the wallpaper is a function
    of both. A status line (condition · phase · clock · sun elevation · moon

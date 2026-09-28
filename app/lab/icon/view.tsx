@@ -20,8 +20,8 @@ import {
   Slider,
   TextField,
   Toggle,
-} from "./controls";
-import { EditorNav } from "@/app/editor/nav";
+} from "@/app/lab/controls";
+import { LabButton, LabSection, LabShell, LabUnsaved } from "@/app/lab/shell";
 
 /**
  * Inlines the icon SVG into the DOM (not via `<img>`) so the wordmark renders
@@ -65,11 +65,11 @@ function IconPreview({
   );
 }
 
-interface IconEditorViewProps {
+interface IconLabViewProps {
   initialConfig: IconConfig;
 }
 
-export function IconEditorView({ initialConfig }: IconEditorViewProps) {
+export function IconLabView({ initialConfig }: IconLabViewProps) {
   const [config, setConfig] = useState<IconConfig>(initialConfig);
   const [savedConfig, setSavedConfig] = useState<IconConfig>(initialConfig);
   const [saving, setSaving] = useState(false);
@@ -158,107 +158,37 @@ export function IconEditorView({ initialConfig }: IconEditorViewProps) {
     URL.revokeObjectURL(url);
   }, [config]);
 
+  const actions = (
+    <>
+      <LabButton onClick={handleDownload}>
+        <Download />
+        SVG
+      </LabButton>
+      {/* Writing the icon is a wide-screen job, like the Works Lab's. */}
+      <LabButton onClick={handleReset} className="hidden lg:inline-flex">
+        <RotateCcw />
+        Reset
+      </LabButton>
+      <LabButton tone="primary" onClick={handleSave} disabled={!isDirty || saving} className="hidden lg:inline-flex">
+        <Save />
+        {saving ? "Saving..." : "Save"}
+      </LabButton>
+    </>
+  );
+
   return (
-    <div className="flex h-dvh flex-col bg-background text-foreground">
-      {/* Toolbar */}
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-muted/5 px-4">
-        <div className="flex items-center gap-3">
-          <EditorNav />
-          {isDirty && (
-            <span className="rounded bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-500">
-              unsaved
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted/20 hover:text-foreground"
-          >
-            <Download className="h-3 w-3" />
-            SVG
-          </button>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted/20 hover:text-foreground"
-          >
-            <RotateCcw className="h-3 w-3" />
-            Reset
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!isDirty || saving}
-            className="inline-flex items-center gap-1.5 rounded bg-foreground px-3 py-1.5 font-mono text-xs text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Save className="h-3 w-3" />
-            {saving ? "Saving..." : "Save"}
-          </button>
-        </div>
-      </div>
-
-      <div className="flex min-h-0 flex-1">
-        {/* Preview canvas — SVG is inlined (not <img>) so it renders with the
-            page's loaded font families, making the preview WYSIWYG. */}
-        <div className="flex flex-1 flex-col items-center justify-center gap-10 overflow-y-auto bg-muted/10 p-8">
-          {/* Hero preview */}
-          <div className="flex flex-col items-center gap-4">
-            <IconPreview
-              config={config}
-              idPrefix="hero"
-              className="h-64 w-64 rounded-[22%] shadow-2xl ring-1 ring-border/40"
-            />
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              app tile · 256
-            </span>
-          </div>
-
-          {/* Size ladder — legibility check at favicon sizes */}
-          <div className="flex items-end gap-6">
-            {[128, 64, 32, 16].map((px) => (
-              <div key={px} className="flex flex-col items-center gap-2">
-                <IconPreview
-                  config={config}
-                  idPrefix={`s${px}`}
-                  className="rounded-[22%] ring-1 ring-border/40"
-                  style={{ width: px, height: px }}
-                />
-                <span className="font-mono text-[10px] text-muted-foreground">
-                  {px}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Round mask + full-bleed square */}
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col items-center gap-2">
-              <IconPreview
-                config={config}
-                idPrefix="round"
-                className="h-20 w-20 rounded-full ring-1 ring-border/40"
-              />
-              <span className="font-mono text-[10px] text-muted-foreground">
-                round
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <IconPreview
-                config={config}
-                idPrefix="square"
-                className="h-20 w-20 ring-1 ring-border/40"
-              />
-              <span className="font-mono text-[10px] text-muted-foreground">
-                square
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <aside className="flex w-[360px] shrink-0 flex-col overflow-y-auto border-l border-border">
+    <LabShell
+      lab="icon"
+      layout="workbench"
+      actions={actions}
+      meta={
+        <span className="inline-flex items-center gap-2">
+          {config.text || "—"} · {config.background.style} · r {config.cornerRadius.toFixed(2)}
+          {isDirty && <LabUnsaved />}
+        </span>
+      }
+      panel={
+        <>
           <Section title="Typography">
             <Field label="Wordmark">
               <TextField
@@ -412,44 +342,87 @@ export function IconEditorView({ initialConfig }: IconEditorViewProps) {
                     onChange={(v) => setTex("scale", v)}
                   />
                 </Field>
-              </>
+            </>
+          )}
+
+          {tex &&
+            (config.background.style === "lines" ||
+              config.background.style === "gradient") && (
+              <Field label="Angle" hint={`${Math.round(tex.angle)}°`}>
+                <Slider
+                  value={tex.angle}
+                  min={0}
+                  max={360}
+                  step={1}
+                  onChange={(v) => setTex("angle", v)}
+                />
+              </Field>
             )}
+        </Section>
 
-            {tex &&
-              (config.background.style === "lines" ||
-                config.background.style === "gradient") && (
-                <Field label="Angle" hint={`${Math.round(tex.angle)}°`}>
-                  <Slider
-                    value={tex.angle}
-                    min={0}
-                    max={360}
-                    step={1}
-                    onChange={(v) => setTex("angle", v)}
-                  />
-                </Field>
-              )}
-          </Section>
+        <Section title="Shape">
+          <Field
+            label="Corner radius"
+            hint={config.cornerRadius.toFixed(2)}
+          >
+            <Slider
+              value={config.cornerRadius}
+              min={0}
+              max={0.5}
+              step={0.01}
+              onChange={(v) => set("cornerRadius", v)}
+            />
+          </Field>
+          <p className="font-mono text-[10px] leading-relaxed text-tertiary-foreground">
+            Baked into the SVG. Leave at 0 for full-bleed — most OSes apply
+            their own mask (previewed above).
+          </p>
+        </Section>
+        </>
+      }
+    >
+      {/* Preview — the SVG is inlined (not <img>) so it renders with the
+          page's loaded font families, making the preview WYSIWYG. */}
+      <LabSection title="App tile · 256">
+        <div className="flex justify-center rounded-2xl bg-muted/40 px-6 py-10 sm:py-14">
+          <IconPreview
+            config={config}
+            idPrefix="hero"
+            className="size-48 rounded-[22%] shadow-2xl ring-1 ring-border/40 sm:size-64"
+          />
+        </div>
+      </LabSection>
 
-          <Section title="Shape">
-            <Field
-              label="Corner radius"
-              hint={config.cornerRadius.toFixed(2)}
-            >
-              <Slider
-                value={config.cornerRadius}
-                min={0}
-                max={0.5}
-                step={0.01}
-                onChange={(v) => set("cornerRadius", v)}
+      {/* Size ladder — legibility check at favicon sizes */}
+      <LabSection title="Sizes" note="The same icon at the sizes it ships: a home-screen tile down to a tab's favicon.">
+        <div className="flex flex-wrap items-end justify-center gap-6 rounded-2xl bg-muted/40 px-6 py-8">
+          {[128, 64, 32, 16].map((px) => (
+            <div key={px} className="flex flex-col items-center gap-2">
+              <IconPreview
+                config={config}
+                idPrefix={`s${px}`}
+                className="rounded-[22%] ring-1 ring-border/40"
+                style={{ width: px, height: px }}
               />
-            </Field>
-            <p className="font-mono text-[10px] leading-relaxed text-tertiary-foreground">
-              Baked into the SVG. Leave at 0 for full-bleed — most OSes apply
-              their own mask (previewed above).
-            </p>
-          </Section>
-        </aside>
-      </div>
-    </div>
+              <span className="font-mono text-[10px] text-muted-foreground">{px}</span>
+            </div>
+          ))}
+        </div>
+      </LabSection>
+
+      {/* Round mask + full-bleed square */}
+      <LabSection title="Masks" note="What an OS that applies its own mask will cut it to.">
+        <div className="flex items-center justify-center gap-6 rounded-2xl bg-muted/40 px-6 py-8">
+          <div className="flex flex-col items-center gap-2">
+            <IconPreview config={config} idPrefix="round" className="h-20 w-20 rounded-full ring-1 ring-border/40" />
+            <span className="font-mono text-[10px] text-muted-foreground">round</span>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <IconPreview config={config} idPrefix="square" className="h-20 w-20 ring-1 ring-border/40" />
+            <span className="font-mono text-[10px] text-muted-foreground">square</span>
+          </div>
+        </div>
+      </LabSection>
+    </LabShell>
   );
 }

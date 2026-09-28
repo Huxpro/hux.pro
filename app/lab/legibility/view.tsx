@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Legibility Lab — /editor/legibility
+// Legibility Lab — /lab/legibility
 //
 // The devtool for the question "can I read this?": every wallpaper (the
 // weather set included), both materials, both tints, both themes, and one of
@@ -21,8 +21,8 @@
 // See lab-state.ts for how each reaches CSS.
 // =============================================================================
 
-import { Field, Section, Segmented, Slider } from "@/app/editor/icon/controls";
-import { EditorNav } from "@/app/editor/nav";
+import { Field, Section, Segmented, Slider } from "@/app/lab/controls";
+import { LabShell } from "@/app/lab/shell";
 import { cn } from "@/lib/utils";
 import { useGlass, useTheme } from "@/services";
 import { useAmbientTime, useLocation, useWallpaper, useWeather } from "@/systems/ambient";
@@ -41,7 +41,6 @@ import {
 import { BUILT_IN_WALLPAPERS, WALLPAPER_CATEGORIES } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
 import { Check, Copy, RotateCcw } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLabText } from "./i18n";
 import {
@@ -460,452 +459,438 @@ export function LegibilityLabView() {
     );
   };
 
-  return (
-    <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-6 pb-40 pt-8 lg:flex-row lg:items-start">
-      {/* ------------------------------------------------------------------ */}
-      {/* Stage                                                                */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="min-w-0 flex-1 space-y-8">
-        <header className="ink-bare flex flex-wrap items-baseline justify-between gap-3">
-          <div>
-            <Link href="/" className="text-xs font-mono tracking-wide text-muted-foreground hover:text-foreground">
-              λhux
-            </Link>
-            <div className="mt-1">
-              <EditorNav appearance="page" />
-            </div>
-          </div>
-          <div className="text-[11px] font-mono text-muted-foreground">
-            {sceneLabel(scene, locale)}
-            {wallpaper.kind === "weather" && ` · ${t(locale, WEATHER_STYLE_LABEL[wallpaper.effectiveStyle])}`} · {themeName(theme)} · {materialName(glass.material)} · {tintName(glass.tint)}
-            {live.flip && ` · ${L.flipped}`}
-            {live.flipMid && ` · ${L.flippedMid}`}
-            {dirty > 0 && <span className="ml-2 text-amber-500/90">{L.liveChanges(dirty)}</span>}
-          </div>
-        </header>
-
-        <section>
-          <SpecimenLabel>{L.bare}</SpecimenLabel>
-          <BareSpecimen />
-        </section>
-
-        <section className="grid gap-6 md:grid-cols-2">
-          <div>
-            <SpecimenLabel>{L.widget}</SpecimenLabel>
-            <WidgetSpecimen />
-          </div>
-          <div>
-            <SpecimenLabel>{L.activity}</SpecimenLabel>
-            <ActivitySpecimen />
-          </div>
-          <div>
-            <SpecimenLabel>{L.palette}</SpecimenLabel>
-            <PaletteSpecimen />
-          </div>
-          <div>
-            <SpecimenLabel>{L.sheet}</SpecimenLabel>
-            <SheetSpecimen />
-          </div>
-        </section>
-
-        <section>
-          <SpecimenLabel>
-            {L.reading(readingVars.veil.toFixed(2), readingVars.blur, readingVars.relief.toFixed(2), readingVars.inkBoost)}
-          </SpecimenLabel>
-          <ReadingSpecimen vars={readingVars} />
-        </section>
-
-        <section>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <SpecimenLabel>{L.gallery}</SpecimenLabel>
-            <div className="w-64">
-              <Segmented
-                value={galleryCategory}
-                onChange={setGalleryCategory}
-                options={[
-                  { value: "weather", label: L.galleryWeather },
-                  { value: "apple", label: L.galleryApple },
-                  { value: "nature", label: L.galleryNature },
-                ]}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-            {galleryTiles.map(({ scene: s, profile: p }) => {
-              const vars = resolveForLab({ profile: p, theme, reading: false, policy, pins: {} });
-              return (
-                <GalleryTile
-                  key={sceneKey(s)}
-                  scene={s}
-                  theme={theme}
-                  vars={vars}
-                  selected={sceneKey(s) === sceneKey(scene)}
-                  onSelect={() => selectScene(s)}
-                  locale={locale}
-                  ctx={skyCtx}
-                />
-              );
-            })}
-          </div>
-        </section>
-      </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Panel                                                                */}
-      {/* ------------------------------------------------------------------ */}
-      <aside className="ink-flat w-full shrink-0 self-start rounded-2xl border border-border/50 bg-glass-sheet shadow-overlay backdrop-blur-xl lg:sticky lg:top-6 lg:max-h-[calc(100svh-3rem)] lg:w-[380px] lg:overflow-y-auto">
-        <Section title={L.scene}>
-          <Field label={L.theme}>
-            <Segmented
-              value={theme}
-              onChange={(v) => setThemePreference(v)}
-              options={[
-                { value: "light", label: themeName("light") },
-                { value: "dark", label: themeName("dark") },
-              ]}
-            />
-          </Field>
-          <Field label={L.material}>
-            <Segmented
-              value={glass.material}
-              onChange={glass.setMaterial}
-              options={[
-                { value: "tinted", label: materialName("tinted") },
-                { value: "clear", label: materialName("clear") },
-              ]}
-            />
-          </Field>
-          <Field label={L.tint}>
-            <Segmented
-              value={glass.tint}
-              onChange={glass.setTint}
-              options={[
-                { value: "neutral", label: tintName("neutral") },
-                { value: "wallpaper", label: tintName("wallpaper") },
-              ]}
-            />
-          </Field>
-          <Field label={L.weatherStyle} hint={wallpaper.effectiveStyle !== wallpaper.weatherStyle ? L.fellBack : undefined}>
-            <Segmented
-              value={wallpaper.weatherStyle}
-              onChange={wallpaper.selectWeather}
-              options={WEATHER_STYLES.map((style) => ({ value: style, label: t(locale, WEATHER_STYLE_LABEL[style]) }))}
-            />
-          </Field>
-          <Field label={L.wallpaper} hint={sceneLabel(scene, locale)}>
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap gap-1">
+  const panel = (
+    <>
+      <Section title={L.scene}>
+        <Field label={L.theme}>
+          <Segmented
+            value={theme}
+            onChange={(v) => setThemePreference(v)}
+            options={[
+              { value: "light", label: themeName("light") },
+              { value: "dark", label: themeName("dark") },
+            ]}
+          />
+        </Field>
+        <Field label={L.material}>
+          <Segmented
+            value={glass.material}
+            onChange={glass.setMaterial}
+            options={[
+              { value: "tinted", label: materialName("tinted") },
+              { value: "clear", label: materialName("clear") },
+            ]}
+          />
+        </Field>
+        <Field label={L.tint}>
+          <Segmented
+            value={glass.tint}
+            onChange={glass.setTint}
+            options={[
+              { value: "neutral", label: tintName("neutral") },
+              { value: "wallpaper", label: tintName("wallpaper") },
+            ]}
+          />
+        </Field>
+        <Field label={L.weatherStyle} hint={wallpaper.effectiveStyle !== wallpaper.weatherStyle ? L.fellBack : undefined}>
+          <Segmented
+            value={wallpaper.weatherStyle}
+            onChange={wallpaper.selectWeather}
+            options={WEATHER_STYLES.map((style) => ({ value: style, label: t(locale, WEATHER_STYLE_LABEL[style]) }))}
+          />
+        </Field>
+        <Field label={L.wallpaper} hint={sceneLabel(scene, locale)}>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={goLive}
+                className={cn(
+                  "rounded px-1.5 py-0.5 text-[10px] font-mono transition-colors",
+                  wallpaper.kind === "weather" && isLive
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                )}
+              >
+                {L.live}
+              </button>
+              {WEATHER_SCENES.map((s) => (
                 <button
+                  key={sceneKey(s)}
                   type="button"
-                  onClick={goLive}
+                  onClick={() => selectScene(s)}
                   className={cn(
                     "rounded px-1.5 py-0.5 text-[10px] font-mono transition-colors",
-                    wallpaper.kind === "weather" && isLive
+                    sceneKey(s) === sceneKey(scene)
                       ? "bg-foreground text-background"
                       : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
                   )}
                 >
-                  {L.live}
+                  {sceneLabel(s, locale)}
                 </button>
-                {WEATHER_SCENES.map((s) => (
+              ))}
+            </div>
+            {WALLPAPER_CATEGORIES.map((category) => (
+              <div key={category} className="flex flex-wrap gap-1">
+                {BUILT_IN_WALLPAPERS.filter((w) => w.category === category).map((w) => (
                   <button
-                    key={sceneKey(s)}
+                    key={w.id}
                     type="button"
-                    onClick={() => selectScene(s)}
+                    onClick={() => selectScene({ kind: "image", id: w.id })}
                     className={cn(
                       "rounded px-1.5 py-0.5 text-[10px] font-mono transition-colors",
-                      sceneKey(s) === sceneKey(scene)
+                      scene.kind === "image" && scene.id === w.id
                         ? "bg-foreground text-background"
                         : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
                     )}
                   >
-                    {sceneLabel(s, locale)}
+                    {w.name}
                   </button>
                 ))}
               </div>
-              {WALLPAPER_CATEGORIES.map((category) => (
-                <div key={category} className="flex flex-wrap gap-1">
-                  {BUILT_IN_WALLPAPERS.filter((w) => w.category === category).map((w) => (
-                    <button
-                      key={w.id}
-                      type="button"
-                      onClick={() => selectScene({ kind: "image", id: w.id })}
-                      className={cn(
-                        "rounded px-1.5 py-0.5 text-[10px] font-mono transition-colors",
-                        scene.kind === "image" && scene.id === w.id
-                          ? "bg-foreground text-background"
-                          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
-                      )}
-                    >
-                      {w.name}
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </Field>
-        </Section>
+            ))}
+          </div>
+        </Field>
+      </Section>
 
-        <Section title={L.profile}>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            <Readout k={L.lum} v={profile.lum.toFixed(2)} />
-            <Readout k={L.contrast} v={profile.contrast.toFixed(2)} />
-            <Readout k={L.zones} v={`${profile.zones.top.toFixed(2)} / ${profile.zones.mid.toFixed(2)} / ${profile.zones.bottom.toFixed(2)}`} />
-            <Readout k={L.edges} v={profile.edges.toFixed(3)} />
-            <Readout k={L.busyConflict} v={`${live.busy.toFixed(2)} / ${live.conflict.toFixed(2)}`} />
-            <Readout k={L.chroma} v={profile.chroma.toFixed(2)} />
-            <Readout
-              k={L.tintRow}
-              v={
-                profile.tint ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <span
-                      className="inline-block size-3 rounded-sm ring-1 ring-border"
-                      style={{ background: `oklch(${profile.tint.l} ${profile.tint.c} ${profile.tint.h})` }}
-                    />
-                    {profile.tint.h.toFixed(0)}° · {profile.tint.c.toFixed(2)}
-                  </span>
-                ) : (
-                  L.grey
-                )
+      <Section title={L.profile}>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+          <Readout k={L.lum} v={profile.lum.toFixed(2)} />
+          <Readout k={L.contrast} v={profile.contrast.toFixed(2)} />
+          <Readout k={L.zones} v={`${profile.zones.top.toFixed(2)} / ${profile.zones.mid.toFixed(2)} / ${profile.zones.bottom.toFixed(2)}`} />
+          <Readout k={L.edges} v={profile.edges.toFixed(3)} />
+          <Readout k={L.busyConflict} v={`${live.busy.toFixed(2)} / ${live.conflict.toFixed(2)}`} />
+          <Readout k={L.chroma} v={profile.chroma.toFixed(2)} />
+          <Readout
+            k={L.tintRow}
+            v={
+              profile.tint ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="inline-block size-3 rounded-sm ring-1 ring-border"
+                    style={{ background: `oklch(${profile.tint.l} ${profile.tint.c} ${profile.tint.h})` }}
+                  />
+                  {profile.tint.h.toFixed(0)}° · {profile.tint.c.toFixed(2)}
+                </span>
+              ) : (
+                L.grey
+              )
+            }
+          />
+        </div>
+      </Section>
+
+      <Section title={L.contrastTitle}>
+        <div className="space-y-1.5">
+          {(
+            [
+              [L.contrastBare, contrast.bare],
+              [L.contrastBareMid, contrast.bareMid],
+              [L.contrastGlass, contrast.glass],
+              [L.contrastSheet, contrast.sheet],
+              [L.contrastReading, contrast.reading],
+            ] as const
+          ).map(([label, c]) => (
+            <div key={label} className="flex items-center justify-between gap-2 text-[11px]">
+              <span className="font-mono text-muted-foreground">{label}</span>
+              <span className="flex gap-1.5">
+                <ContrastBadge ratio={c.primary} />
+                <ContrastBadge ratio={c.secondary} />
+              </span>
+            </div>
+          ))}
+          <p className="text-[10px] leading-snug text-muted-foreground/70">
+            {L.contrastNote}
+          </p>
+        </div>
+      </Section>
+
+      <Section title={L.policy}>
+        {POLICY_KNOBS.filter((knob) => knob.group === "desktop").map(policyKnobRow)}
+        <Field label={L.toneRange} hint={`${policy.toneSafe[theme]} → ${policy.toneWorst[theme]}`}>
+          <div className="flex items-center gap-2">
+            <Slider
+              value={policy.toneSafe[theme]}
+              min={0}
+              max={1}
+              step={0.01}
+              onChange={(v) =>
+                setPolicyOverrides((o) => ({
+                  ...o,
+                  toneSafe: { ...(o.toneSafe ?? DEFAULT_LEGIBILITY_POLICY.toneSafe), [theme]: v },
+                }))
               }
             />
+            <Slider
+              value={policy.toneWorst[theme]}
+              min={0}
+              max={1}
+              step={0.01}
+              onChange={(v) =>
+                setPolicyOverrides((o) => ({
+                  ...o,
+                  toneWorst: { ...(o.toneWorst ?? DEFAULT_LEGIBILITY_POLICY.toneWorst), [theme]: v },
+                }))
+              }
+            />
+            {pairStar(["toneSafe", "toneWorst"], `${DEFAULT_LEGIBILITY_POLICY.toneSafe[theme]} → ${DEFAULT_LEGIBILITY_POLICY.toneWorst[theme]}`)}
           </div>
-        </Section>
-
-        <Section title={L.contrastTitle}>
-          <div className="space-y-1.5">
-            {(
-              [
-                [L.contrastBare, contrast.bare],
-                [L.contrastBareMid, contrast.bareMid],
-                [L.contrastGlass, contrast.glass],
-                [L.contrastSheet, contrast.sheet],
-                [L.contrastReading, contrast.reading],
-              ] as const
-            ).map(([label, c]) => (
-              <div key={label} className="flex items-center justify-between gap-2 text-[11px]">
-                <span className="font-mono text-muted-foreground">{label}</span>
-                <span className="flex gap-1.5">
-                  <ContrastBadge ratio={c.primary} />
-                  <ContrastBadge ratio={c.secondary} />
-                </span>
-              </div>
-            ))}
-            <p className="text-[10px] leading-snug text-muted-foreground/70">
-              {L.contrastNote}
-            </p>
-          </div>
-        </Section>
-
-        <Section title={L.policy}>
-          {POLICY_KNOBS.filter((knob) => knob.group === "desktop").map(policyKnobRow)}
-          <Field label={L.toneRange} hint={`${policy.toneSafe[theme]} → ${policy.toneWorst[theme]}`}>
-            <div className="flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground/60">{L.toneRangeHint(themeName(theme))}</span>
+        </Field>
+        <Field label={L.tintL} hint={`${policy.tintLightness[theme][0]} – ${policy.tintLightness[theme][1]}`}>
+          <div className="flex items-center gap-2">
+            {([0, 1] as const).map((i) => (
               <Slider
-                value={policy.toneSafe[theme]}
-                min={0}
-                max={1}
-                step={0.01}
-                onChange={(v) =>
-                  setPolicyOverrides((o) => ({
-                    ...o,
-                    toneSafe: { ...(o.toneSafe ?? DEFAULT_LEGIBILITY_POLICY.toneSafe), [theme]: v },
-                  }))
-                }
-              />
-              <Slider
-                value={policy.toneWorst[theme]}
-                min={0}
-                max={1}
-                step={0.01}
-                onChange={(v) =>
-                  setPolicyOverrides((o) => ({
-                    ...o,
-                    toneWorst: { ...(o.toneWorst ?? DEFAULT_LEGIBILITY_POLICY.toneWorst), [theme]: v },
-                  }))
-                }
-              />
-              {pairStar(["toneSafe", "toneWorst"], `${DEFAULT_LEGIBILITY_POLICY.toneSafe[theme]} → ${DEFAULT_LEGIBILITY_POLICY.toneWorst[theme]}`)}
-            </div>
-            <span className="text-[10px] text-muted-foreground/60">{L.toneRangeHint(themeName(theme))}</span>
-          </Field>
-          <Field label={L.tintL} hint={`${policy.tintLightness[theme][0]} – ${policy.tintLightness[theme][1]}`}>
-            <div className="flex items-center gap-2">
-              {([0, 1] as const).map((i) => (
-                <Slider
-                  key={i}
-                  value={policy.tintLightness[theme][i]}
-                  min={0.2}
-                  max={0.9}
-                  step={0.01}
-                  onChange={(v) =>
-                    setPolicyOverrides((o) => {
-                      const cur = o.tintLightness ?? DEFAULT_LEGIBILITY_POLICY.tintLightness;
-                      const pair = [...cur[theme]] as [number, number];
-                      pair[i] = v;
-                      return { ...o, tintLightness: { ...cur, [theme]: pair } };
-                    })
-                  }
-                />
-              ))}
-              {pairStar(["tintLightness"], DEFAULT_LEGIBILITY_POLICY.tintLightness[theme].join(" – "))}
-            </div>
-          </Field>
-          <Field label={L.tintC} hint={`${policy.tintChroma[0]} – ${policy.tintChroma[1]}`}>
-            <div className="flex items-center gap-2">
-              {([0, 1] as const).map((i) => (
-                <Slider
-                  key={i}
-                  value={policy.tintChroma[i]}
-                  min={0}
-                  max={0.3}
-                  step={0.005}
-                  onChange={(v) =>
-                    setPolicyOverrides((o) => {
-                      const pair = [...(o.tintChroma ?? DEFAULT_LEGIBILITY_POLICY.tintChroma)] as [number, number];
-                      pair[i] = v;
-                      return { ...o, tintChroma: pair };
-                    })
-                  }
-                />
-              ))}
-              {pairStar(["tintChroma"], DEFAULT_LEGIBILITY_POLICY.tintChroma.join(" – "))}
-            </div>
-          </Field>
-        </Section>
-
-        <Section title={L.policyReading}>
-          <Field label={L.veilBase} hint={`${policy.veilBase[theme]} (${themeName(theme)})`}>
-            <div className="flex items-center gap-2">
-              <Slider
-                value={policy.veilBase[theme]}
-                min={0}
+                key={i}
+                value={policy.tintLightness[theme][i]}
+                min={0.2}
                 max={0.9}
                 step={0.01}
                 onChange={(v) =>
-                  setPolicyOverrides((o) => ({
-                    ...o,
-                    veilBase: { ...(o.veilBase ?? DEFAULT_LEGIBILITY_POLICY.veilBase), [theme]: v },
-                  }))
+                  setPolicyOverrides((o) => {
+                    const cur = o.tintLightness ?? DEFAULT_LEGIBILITY_POLICY.tintLightness;
+                    const pair = [...cur[theme]] as [number, number];
+                    pair[i] = v;
+                    return { ...o, tintLightness: { ...cur, [theme]: pair } };
+                  })
                 }
               />
-              {pairStar(["veilBase"], String(DEFAULT_LEGIBILITY_POLICY.veilBase[theme]))}
-            </div>
-            <span className="text-[10px] text-muted-foreground/60">
-              {L.veilBaseHint}
-              <span className="ml-1.5 font-mono text-muted-foreground/40">{L.affects} {outputName("veil")}</span>
-            </span>
-          </Field>
-          {POLICY_KNOBS.filter((knob) => knob.group === "reading").map(policyKnobRow)}
-        </Section>
+            ))}
+            {pairStar(["tintLightness"], DEFAULT_LEGIBILITY_POLICY.tintLightness[theme].join(" – "))}
+          </div>
+        </Field>
+        <Field label={L.tintC} hint={`${policy.tintChroma[0]} – ${policy.tintChroma[1]}`}>
+          <div className="flex items-center gap-2">
+            {([0, 1] as const).map((i) => (
+              <Slider
+                key={i}
+                value={policy.tintChroma[i]}
+                min={0}
+                max={0.3}
+                step={0.005}
+                onChange={(v) =>
+                  setPolicyOverrides((o) => {
+                    const pair = [...(o.tintChroma ?? DEFAULT_LEGIBILITY_POLICY.tintChroma)] as [number, number];
+                    pair[i] = v;
+                    return { ...o, tintChroma: pair };
+                  })
+                }
+              />
+            ))}
+            {pairStar(["tintChroma"], DEFAULT_LEGIBILITY_POLICY.tintChroma.join(" – "))}
+          </div>
+        </Field>
+      </Section>
 
-        <Section title={L.resolved}>
-          {(
-            [
-              ["flip", L.flipBare, live.flip],
-              ["flipMid", L.flipMid, live.flipMid],
-            ] as const
-          ).map(([key, label, on]) => (
-            <Field key={key} label={label} hint={on ? L.on : L.off}>
+      <Section title={L.policyReading}>
+        <Field label={L.veilBase} hint={`${policy.veilBase[theme]} (${themeName(theme)})`}>
+          <div className="flex items-center gap-2">
+            <Slider
+              value={policy.veilBase[theme]}
+              min={0}
+              max={0.9}
+              step={0.01}
+              onChange={(v) =>
+                setPolicyOverrides((o) => ({
+                  ...o,
+                  veilBase: { ...(o.veilBase ?? DEFAULT_LEGIBILITY_POLICY.veilBase), [theme]: v },
+                }))
+              }
+            />
+            {pairStar(["veilBase"], String(DEFAULT_LEGIBILITY_POLICY.veilBase[theme]))}
+          </div>
+          <span className="text-[10px] text-muted-foreground/60">
+            {L.veilBaseHint}
+            <span className="ml-1.5 font-mono text-muted-foreground/40">{L.affects} {outputName("veil")}</span>
+          </span>
+        </Field>
+        {POLICY_KNOBS.filter((knob) => knob.group === "reading").map(policyKnobRow)}
+      </Section>
+
+      <Section title={L.resolved}>
+        {(
+          [
+            ["flip", L.flipBare, live.flip],
+            ["flipMid", L.flipMid, live.flipMid],
+          ] as const
+        ).map(([key, label, on]) => (
+          <Field key={key} label={label} hint={on ? L.on : L.off}>
+            <div className="flex items-center gap-2">
+              <Segmented
+                value={on ? "on" : "off"}
+                onChange={(v) => setPins((p) => ({ ...p, [key]: v === "on" }))}
+                options={[
+                  { value: "off", label: L.Off },
+                  { value: "on", label: L.On },
+                ]}
+              />
+              <Star active={key in pins} title={L.backToPolicy} onReset={() => setPins((p) => without(p, key))} />
+            </div>
+          </Field>
+        ))}
+        {OUTPUT_KNOBS.map((knob) => {
+          const value = readOutput(live, knob.key);
+          const policyValue = readOutput(unpinned, knob.key);
+          return (
+            <Field key={knob.key} label={knobLabel(knob.key, knob.label)} hint={String(value)}>
               <div className="flex items-center gap-2">
-                <Segmented
-                  value={on ? "on" : "off"}
-                  onChange={(v) => setPins((p) => ({ ...p, [key]: v === "on" }))}
-                  options={[
-                    { value: "off", label: L.Off },
-                    { value: "on", label: L.On },
-                  ]}
+                <Slider
+                  value={value}
+                  min={knob.min}
+                  max={knob.max}
+                  step={knob.step}
+                  onChange={(v) => setPins((p) => ({ ...p, [knob.key]: v }))}
                 />
-                <Star active={key in pins} title={L.backToPolicy} onReset={() => setPins((p) => without(p, key))} />
+                <Star
+                  active={knob.key in pins}
+                  title={L.backToPolicyValue(policyValue)}
+                  onReset={() => setPins((p) => without(p, knob.key))}
+                />
               </div>
             </Field>
-          ))}
-          {OUTPUT_KNOBS.map((knob) => {
-            const value = readOutput(live, knob.key);
-            const policyValue = readOutput(unpinned, knob.key);
+          );
+        })}
+        <p className="text-[10px] leading-snug text-muted-foreground/60">
+          {L.pinsNote}
+        </p>
+      </Section>
+
+      {SHEET_GROUPS.map((group) => (
+        <Section key={group.title} title={L.sheetSection(groupTitle(group.title))}>
+          {group.note && (
+            <p className="-mt-2 text-[10px] leading-snug text-muted-foreground/60">{groupNote(group.title, group.note)}</p>
+          )}
+          {group.knobs.map((knob) => {
+            const overridden = knob.name in sheet;
+            const value = overridden ? sheet[knob.name] : (defaults[knob.name] ?? knob.min);
             return (
-              <Field key={knob.key} label={knobLabel(knob.key, knob.label)} hint={String(value)}>
+              <Field key={knob.name} label={knobLabel(knob.name, knob.label)} hint={formatSheetValue(knob, value)}>
                 <div className="flex items-center gap-2">
                   <Slider
                     value={value}
                     min={knob.min}
                     max={knob.max}
                     step={knob.step}
-                    onChange={(v) => setPins((p) => ({ ...p, [knob.key]: v }))}
+                    onChange={(v) => setSheet((s) => ({ ...s, [knob.name]: v }))}
                   />
                   <Star
-                    active={knob.key in pins}
-                    title={L.backToPolicyValue(policyValue)}
-                    onReset={() => setPins((p) => without(p, knob.key))}
+                    active={overridden}
+                    title={L.backTo(formatSheetValue(knob, defaults[knob.name] ?? 0))}
+                    onReset={() => setSheet((s) => without(s, knob.name))}
                   />
                 </div>
+                <span className="text-[10px] font-mono text-muted-foreground/50">{knob.name}</span>
               </Field>
             );
           })}
-          <p className="text-[10px] leading-snug text-muted-foreground/60">
-            {L.pinsNote}
-          </p>
         </Section>
+      ))}
 
-        {SHEET_GROUPS.map((group) => (
-          <Section key={group.title} title={L.sheetSection(groupTitle(group.title))}>
-            {group.note && (
-              <p className="-mt-2 text-[10px] leading-snug text-muted-foreground/60">{groupNote(group.title, group.note)}</p>
-            )}
-            {group.knobs.map((knob) => {
-              const overridden = knob.name in sheet;
-              const value = overridden ? sheet[knob.name] : (defaults[knob.name] ?? knob.min);
-              return (
-                <Field key={knob.name} label={knobLabel(knob.name, knob.label)} hint={formatSheetValue(knob, value)}>
-                  <div className="flex items-center gap-2">
-                    <Slider
-                      value={value}
-                      min={knob.min}
-                      max={knob.max}
-                      step={knob.step}
-                      onChange={(v) => setSheet((s) => ({ ...s, [knob.name]: v }))}
-                    />
-                    <Star
-                      active={overridden}
-                      title={L.backTo(formatSheetValue(knob, defaults[knob.name] ?? 0))}
-                      onReset={() => setSheet((s) => without(s, knob.name))}
-                    />
-                  </div>
-                  <span className="text-[10px] font-mono text-muted-foreground/50">{knob.name}</span>
-                </Field>
-              );
-            })}
-          </Section>
-        ))}
+      <Section title={L.export}>
+        <div className="flex flex-wrap gap-2">
+          <CopyButton text={exported} label={L.copyJson} />
+          <CopyButton text={exportCss(sheet)} label={L.copyCss} />
+          <button
+            type="button"
+            onClick={() => {
+              setPolicyOverrides({});
+              setPins({});
+              setSheet({});
+            }}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1.5 text-xs font-mono text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+          >
+            <RotateCcw className="h-3 w-3" />
+            {L.resetAll}
+          </button>
+        </div>
+        <textarea
+          readOnly
+          value={exported}
+          className="h-40 w-full rounded-md border border-border/60 bg-transparent p-2 text-[10px] font-mono text-muted-foreground outline-none"
+        />
+        <p className="text-[10px] leading-snug text-muted-foreground/60">
+          {L.exportNote}
+        </p>
+      </Section>
+    </>
+  );
 
-        <Section title={L.export}>
-          <div className="flex flex-wrap gap-2">
-            <CopyButton text={exported} label={L.copyJson} />
-            <CopyButton text={exportCss(sheet)} label={L.copyCss} />
-            <button
-              type="button"
-              onClick={() => {
-                setPolicyOverrides({});
-                setPins({});
-                setSheet({});
-              }}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1.5 text-xs font-mono text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-            >
-              <RotateCcw className="h-3 w-3" />
-              {L.resetAll}
-            </button>
+  const meta = (
+    <>
+      {sceneLabel(scene, locale)}
+      {wallpaper.kind === "weather" && ` · ${t(locale, WEATHER_STYLE_LABEL[wallpaper.effectiveStyle])}`} · {themeName(theme)} · {materialName(glass.material)} · {tintName(glass.tint)}
+      {live.flip && ` · ${L.flipped}`}
+      {live.flipMid && ` · ${L.flippedMid}`}
+      {dirty > 0 && <span className="ml-2 text-amber-500/90">{L.liveChanges(dirty)}</span>}
+    </>
+  );
+
+  return (
+    <LabShell lab="legibility" layout="workbench" meta={meta} panel={panel}>
+      <section>
+        <SpecimenLabel>{L.bare}</SpecimenLabel>
+        <BareSpecimen />
+      </section>
+
+      <section className="grid gap-6 md:grid-cols-2">
+        <div>
+          <SpecimenLabel>{L.widget}</SpecimenLabel>
+          <WidgetSpecimen />
+        </div>
+        <div>
+          <SpecimenLabel>{L.activity}</SpecimenLabel>
+          <ActivitySpecimen />
+        </div>
+        <div>
+          <SpecimenLabel>{L.palette}</SpecimenLabel>
+          <PaletteSpecimen />
+        </div>
+        <div>
+          <SpecimenLabel>{L.sheet}</SpecimenLabel>
+          <SheetSpecimen />
+        </div>
+      </section>
+
+      <section>
+        <SpecimenLabel>
+          {L.reading(readingVars.veil.toFixed(2), readingVars.blur, readingVars.relief.toFixed(2), readingVars.inkBoost)}
+        </SpecimenLabel>
+        <ReadingSpecimen vars={readingVars} />
+      </section>
+
+      <section>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <SpecimenLabel>{L.gallery}</SpecimenLabel>
+          <div className="w-64">
+            <Segmented
+              value={galleryCategory}
+              onChange={setGalleryCategory}
+              options={[
+                { value: "weather", label: L.galleryWeather },
+                { value: "apple", label: L.galleryApple },
+                { value: "nature", label: L.galleryNature },
+              ]}
+            />
           </div>
-          <textarea
-            readOnly
-            value={exported}
-            className="h-40 w-full rounded-md border border-border/60 bg-transparent p-2 text-[10px] font-mono text-muted-foreground outline-none"
-          />
-          <p className="text-[10px] leading-snug text-muted-foreground/60">
-            {L.exportNote}
-          </p>
-        </Section>
-      </aside>
-    </main>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          {galleryTiles.map(({ scene: s, profile: p }) => {
+            const vars = resolveForLab({ profile: p, theme, reading: false, policy, pins: {} });
+            return (
+              <GalleryTile
+                key={sceneKey(s)}
+                scene={s}
+                theme={theme}
+                vars={vars}
+                selected={sceneKey(s) === sceneKey(scene)}
+                onSelect={() => selectScene(s)}
+                locale={locale}
+                ctx={skyCtx}
+              />
+            );
+          })}
+        </div>
+      </section>
+    </LabShell>
   );
 }

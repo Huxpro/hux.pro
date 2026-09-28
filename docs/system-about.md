@@ -31,7 +31,7 @@ over whatever page a visitor landed on.
 
 | | |
 |---|---|
-| first visit | rises over the page 700ms after load, once there is something under it to blur. Dismissing it is what marks the visitor as met (`hux_about_seen` in localStorage); a reload before that shows it again. Not on `/editor*` and `/vitre`, which are tools. |
+| first visit | rises over the page 700ms after load, once there is something under it to blur. Dismissing it is what marks the visitor as met (`hux_about_seen` in localStorage); a reload before that shows it again. Not on `/lab*` and `/vitre`, which are tools. |
 | `/` `O` | the palette's slash command, from any page — the About's only shortcut. There is no bare `O`: a single letter taken over every page fires by accident, and the About is not needed that often. |
 | ⌘K | `About` in search. Geolocation moved from `O` to `C`. |
 | λhux | the home screen's mark, the long way in: hover until it says its name (*The λHUX OS*) and the name is a door — click it; on a phone, hold it until the name is whole and the About rises — a ring round the mark, outside the finger, closes as the hold goes on (`HoldRing`, the search button's devtool hold's own; `components/home/scramble-identifier.tsx`). |

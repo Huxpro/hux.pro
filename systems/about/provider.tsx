@@ -50,7 +50,7 @@ const SEEN_KEY = "hux_about_seen";
 const FIRST_VISIT_DELAY_MS = 700;
 
 /** Paths that are tools rather than the site — no introduction there. */
-const QUIET_PREFIXES = ["/editor", "/vitre"];
+const QUIET_PREFIXES = ["/lab", "/vitre"];
 
 function readSeen(): boolean {
   try {

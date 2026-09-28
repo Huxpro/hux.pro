@@ -1,11 +1,13 @@
 "use client";
 
 /**
- * Small, design-system-aligned form primitives for the icon editor.
- * Mono uppercase labels, subtle borders, grayscale — the "System UI" vocabulary
- * used across the editor surface.
+ * The knobs every lab's panel is built from — Section, Field, Segmented,
+ * Slider, Toggle, TextField, ColorField. Mono labels, hairline borders,
+ * grayscale: the site's System UI vocabulary, one set for the whole family
+ * (see shell.tsx for the frame they sit in).
  */
 
+import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 
 export function Section({
@@ -17,9 +19,7 @@ export function Section({
 }) {
   return (
     <section className="border-b border-border/60 px-5 py-5">
-      <h2 className="mb-4 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h2>
+      <h2 className={cn("mb-4", TYPE.label)}>{title}</h2>
       <div className="flex flex-col gap-4">{children}</div>
     </section>
   );
@@ -129,12 +129,12 @@ export function Toggle({
     <button
       type="button"
       onClick={() => onChange(!value)}
-      className="flex items-center justify-between"
+      className="flex items-center justify-between gap-3 text-left"
     >
       <span className="text-xs font-medium text-foreground">{label}</span>
       <span
         className={cn(
-          "relative h-5 w-9 rounded-full transition-colors",
+          "relative h-5 w-9 shrink-0 rounded-full transition-colors",
           value ? "bg-foreground" : "bg-muted",
         )}
       >
@@ -180,7 +180,7 @@ export function ColorField({
         onChange={(e) => onChange(e.target.value)}
         className="w-24 rounded-md border border-border/60 bg-transparent px-2 py-1 font-mono text-xs text-foreground outline-none focus:border-foreground/40"
       />
-      <div className="flex gap-1">
+      <div className="flex flex-wrap gap-1">
         {SWATCHES.map((c) => (
           <button
             key={c}

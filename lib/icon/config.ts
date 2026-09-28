@@ -3,7 +3,7 @@
  *
  * This module is intentionally free of any React / Next.js imports so the exact
  * same config + normalization is shared by:
- *   - the editor (`app/editor/icon`),
+ *   - the Icon Lab (`app/lab/icon`),
  *   - the dev save route (`app/api/icon`),
  *   - the build-time generator (`scripts/icon-generate.ts`), and
  *   - the SVG renderer (`lib/icon/render.ts`).

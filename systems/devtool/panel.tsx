@@ -1153,7 +1153,7 @@ function GlassModule() {
             painting, on the row that opens the lab where it is tuned — the
             same row the Wallpaper module uses for the current picture. */}
         <Link
-          href="/editor/legibility"
+          href="/lab/legibility"
           className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2 py-1.5 text-left transition-colors hover:bg-muted/40"
         >
           <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">

@@ -1,15 +1,15 @@
 import { readIconConfig } from "@/lib/icon/generate";
-import { IconEditorView } from "./view";
+import { IconLabView } from "./view";
 
 export const metadata = {
-  title: "Icon Studio | Hux.Pro",
+  title: "Icon Lab | Hux.Pro",
   description: "Generate the app icon from typography + background levers.",
   robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
 
-export default function IconEditorPage() {
+export default function IconLabPage() {
   const config = readIconConfig();
-  return <IconEditorView initialConfig={config} />;
+  return <IconLabView initialConfig={config} />;
 }

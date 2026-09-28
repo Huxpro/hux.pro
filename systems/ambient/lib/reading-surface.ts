@@ -23,7 +23,7 @@ export const WALLPAPER_HOME_PATH = "/";
  * sharp, unveiled — and simulates the reading treatment inside one of its own
  * specimens, so it is a desktop too.
  */
-export const LEGIBILITY_LAB_PATH = "/editor/legibility";
+export const LEGIBILITY_LAB_PATH = "/lab/legibility";
 
 export function isWallpaperHomePath(pathname: string | null): boolean {
   return pathname === WALLPAPER_HOME_PATH || pathname === LEGIBILITY_LAB_PATH;

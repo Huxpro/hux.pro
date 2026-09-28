@@ -11,6 +11,7 @@ import {
   ProcessingWidget,
   buildProcessingCommits,
 } from "@/components/home/processing-widget";
+import { LabWidget } from "@/components/home/lab-widget";
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
 import { WritingWidget } from "@/components/home/writing-widget";
@@ -148,6 +149,8 @@ function WidgetGrid({
       : []),
     { id: "featured-talks", node: <FeaturedTalksWidget /> },
     { id: "prompt", node: <PromptWidget /> },
+    // The site studying itself: one lab's surface at a time (app/lab).
+    { id: "lab", node: <LabWidget /> },
     ...visibleGroups.map((group) => ({
       id: `group-${group.id}`,
       node: <GroupWidget group={group} />,

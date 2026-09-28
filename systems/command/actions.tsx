@@ -278,14 +278,16 @@ export function useCommandActions(): CommandAction[] {
       run: () => router.push("/docs"),
     },
     {
-      id: "editor",
+      id: "lab",
       key: "e",
       kind: "navigate",
       section: "navigation",
-      // Keyboard-only, same as docs. `e` opens log.json. The other
-      // labs stay on the editor dropdown; the palette does not list them.
+      // Keyboard-only, same as docs. `e` (for experiments — `l` is
+      // Language) opens the lab index; each lab is a card there and an
+      // entry in the dropdown on every lab's title. The palette does not
+      // list them.
       keywords: [],
-      run: () => router.push("/editor"),
+      run: () => router.push("/lab"),
     },
     {
       id: "theme",
