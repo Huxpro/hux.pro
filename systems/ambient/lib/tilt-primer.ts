@@ -58,6 +58,7 @@
 // SYSTEM_SURFACE below: a long press on a document is the reader's.
 // =============================================================================
 
+import type { PermissionStatus } from "./permissions";
 import {
   holdCallout,
   isBackgroundPress,
@@ -105,10 +106,10 @@ export const TILT_PRIMER_MIN_PRECIP = 0.02;
  * Should the offer be made at all? Every reason is a reason not to:
  *
  *   · `primed` — it has been made once, and once is the whole design.
- *   · `gated` — there is no permission to ask for. Everywhere but WebKit the
- *     event fires freely and the sky is already tilting, so an offer would be
- *     explaining something that is not missing. (Refused counts as answered:
- *     `gated` is false once the browser has said no.)
+ *   · `motion` — not "askable": there is no permission to ask for. Everywhere
+ *     but WebKit the event fires freely and the sky is already tilting, so an
+ *     offer would be explaining something that is not missing. (Refused counts
+ *     as answered: it is "refused", not "askable", once the browser said no.)
  *   · `wished` — `weatherGyro` is off, i.e. the visitor has been to the picker
  *     and turned it off. Offering it back is arguing.
  *   · `falling` — no rain or snow, nothing to lean.
@@ -119,13 +120,17 @@ export const TILT_PRIMER_MIN_PRECIP = 0.02;
  */
 export function shouldOfferTilt(state: {
   primed: boolean;
-  gated: boolean;
+  motion: PermissionStatus;
   wished: boolean;
   falling: boolean;
   sky: boolean;
 }): boolean {
   return (
-    !state.primed && state.gated && state.wished && state.falling && state.sky
+    !state.primed &&
+    state.motion === "askable" &&
+    state.wished &&
+    state.falling &&
+    state.sky
   );
 }
 

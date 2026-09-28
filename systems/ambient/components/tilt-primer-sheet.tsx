@@ -3,7 +3,11 @@
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useWallpaper } from "../provider";
+import type { PermissionKind } from "../lib/permissions";
 import { OFFER_DWELL, PermissionSheet, usePermissionOffer } from "./permission-sheet";
+import { usePermissions } from "./use-permissions";
+
+const MOTION: readonly PermissionKind[] = ["motion"];
 
 // ---------------------------------------------------------------------------
 // TiltPrimerSheet — the offer that comes before the motion prompt.
@@ -169,19 +173,31 @@ function TiltIllustration({ pose }: { pose: Pose }) {
 
 export function TiltPrimerSheet() {
   const { locale } = useLocale();
-  const { isTiltPrimerOpen, closeTiltPrimer, takeTilt } = useWallpaper();
+  const { isTiltPrimerOpen, closeTiltPrimer, setTiltPrimed } = useWallpaper();
+  const { request } = usePermissions(MOTION);
   const { phase, view, ask } = usePermissionOffer<"granted" | "denied">({
     open: isTiltPrimerOpen,
     close: closeTiltPrimer,
     dwell: (outcome) => OFFER_DWELL[outcome],
   });
 
-  // "prompt" is the gate refusing to even consider it — no dialog was shown
-  // and nothing was answered, so the offer is simply still standing.
   const take = () =>
     ask(async () => {
-      const access = await takeTilt();
-      return access === "denied" ? "denied" : access === "prompt" ? "offer" : "granted";
+      // Spent before the asking, not after: a prompt that is refused — and no
+      // browser asks twice — must not leave the offer armed for the next rainy
+      // day, and neither must a visitor who walks away with the dialog up.
+      // Synchronous, so `request` still reaches WebKit inside the tap.
+      setTiltPrimed(true);
+      const { motion } = await request(MOTION);
+      // "prompt" is the gate refusing to even consider it — no dialog was
+      // shown and nothing was answered, so the offer is simply still standing,
+      // and must survive a visitor who walks away from the sheet now. (Closing
+      // it is still an answer: `closeTiltPrimer` spends it.)
+      if (motion === "prompt") {
+        setTiltPrimed(false);
+        return "offer";
+      }
+      return motion === "denied" ? "denied" : "granted";
     });
 
   return (
@@ -198,7 +214,7 @@ export function TiltPrimerSheet() {
         t(locale, outcome === "granted" ? "tiltPrimerGranted" : "tiltPrimerDenied")
       }
       body={t(locale, "tiltPrimerBody")}
-      // `takeTilt()` reaches `requestPermission()` in the tap's own task.
+      // `request()` reaches `requestPermission()` in the tap's own task.
       confirm={{ label: t(locale, "tiltPrimerConfirm"), onClick: take }}
       dismiss={{ label: t(locale, "tiltPrimerDismiss"), onClick: closeTiltPrimer }}
       note={[t(locale, "tiltPrimerAsk"), t(locale, "tiltPrimerAgain")]}

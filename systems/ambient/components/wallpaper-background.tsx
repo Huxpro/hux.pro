@@ -16,7 +16,15 @@ import {
   shouldOfferTilt,
   TILT_PRIMER_MIN_PRECIP,
 } from "../lib/tilt-primer";
-import { attachSkyPull, attachSkyReturn, settlePull, skyOpenAction } from "../lib/sky-pull";
+import {
+  attachSkyPull,
+  attachSkyReturn,
+  settlePull,
+  skyAsksPlace,
+  skyOpenAction,
+} from "../lib/sky-pull";
+import type { PermissionKind } from "../lib/permissions";
+import { usePermissions } from "./use-permissions";
 import { usePathname } from "next/navigation";
 import { showCustomToast } from "@/components/ui/system-sonner";
 import { SystemToast } from "@/components/ui/system-toast";
@@ -28,6 +36,9 @@ import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
 import { BEZEL_INSET, VITRE_LAYER_ATTRIBUTE } from "vitre";
 import { WeatherWallpaper } from "./wallpaper";
+
+/** What the sky's offers need from the browser: the tilt and the window. */
+const SKY_NEEDS: readonly PermissionKind[] = ["motion", "location"];
 
 // ---------------------------------------------------------------------------
 // WallpaperBackground — the full-page background layer.
@@ -130,7 +141,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     gyro,
     skyWindow,
     setSkyWindow,
-    skyWantsLocation,
+    skyLocationOffered,
     gyroPrimed,
     offerTilt,
     openSkyOffer,
@@ -138,6 +149,9 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     statsRef,
   } = useWallpaper();
   const { scene } = useWeather();
+  // Where motion and the location stand — the one derivation every offer reads
+  // (lib/permissions.ts). The policies below decide what to do about it.
+  const { status: permissions } = usePermissions(SKY_NEEDS);
 
   const useShader = kind === "weather" && renderer === "shader";
 
@@ -207,7 +221,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   // so the two are never armed on the same sky.
   const offering = shouldOfferTilt({
     primed: gyroPrimed,
-    gated: gyro.gated,
+    motion: permissions.motion,
     wished: gyro.enabled,
     falling:
       scene.precipitation.type !== "none" &&
@@ -230,10 +244,8 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   const shown = skyWindow && onHome && sky;
   const openAction = skyOpenAction({
     sky: sky && onHome,
-    reachable: gyro.reachable,
-    gated: gyro.gated,
-    denied: gyro.denied,
-    wantsLocation: skyWantsLocation,
+    motion: permissions.motion,
+    place: skyAsksPlace(permissions.location, skyLocationOffered),
   });
   const previewRef = useRef<((amount: number) => void) | null>(null);
 

@@ -4,7 +4,11 @@ import { t, useLocale } from "@/services";
 import { LocateFixed, MapPinOff } from "lucide-react";
 import { formatLocationLabel } from "../lib/location";
 import { useLocation } from "../provider";
+import type { PermissionKind } from "../lib/permissions";
 import { OFFER_DWELL, PermissionSheet, usePermissionOffer } from "./permission-sheet";
+import { usePermissions } from "./use-permissions";
+
+const LOCATION: readonly PermissionKind[] = ["location"];
 
 // ---------------------------------------------------------------------------
 // LocationPrimerSheet — the offer that comes before the location prompt.
@@ -39,13 +43,8 @@ const OUTCOME_KEY = {
 
 export function LocationPrimerSheet() {
   const { locale } = useLocale();
-  const {
-    location,
-    permission,
-    isLocationPrimerOpen,
-    closeLocationPrimer,
-    requestAccurateLocation,
-  } = useLocation();
+  const { location, isLocationPrimerOpen, closeLocationPrimer } = useLocation();
+  const { status, request } = usePermissions(LOCATION);
   const offer = usePermissionOffer<Outcome>({
     open: isLocationPrimerOpen,
     close: closeLocationPrimer,
@@ -54,7 +53,7 @@ export function LocationPrimerSheet() {
 
   // Each opening starts from the offer — or, when the browser has already been
   // told no, from the way back: asking again would do nothing at all.
-  const view = offer.phase === "offer" && permission === "denied" ? "denied" : offer.view;
+  const view = offer.phase === "offer" && status.location === "refused" ? "denied" : offer.view;
 
   const guessed =
     location?.source === "ip" ? formatLocationLabel(location) : null;
@@ -87,7 +86,8 @@ export function LocationPrimerSheet() {
       body={body}
       confirm={{
         label: t(locale, "locationPrimerConfirm"),
-        onClick: () => offer.ask(requestAccurateLocation),
+        onClick: () =>
+          offer.ask(async () => (await request(LOCATION)).location ?? "unavailable"),
       }}
       dismiss={{ label: t(locale, "locationPrimerDismiss"), onClick: closeLocationPrimer }}
       note={[t(locale, "locationPrimerAsk"), t(locale, "locationPrimerAgain")]}

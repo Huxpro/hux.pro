@@ -26,7 +26,7 @@ systems/ambient/
 │   ├── location-primer-sheet.tsx # The offer before the browser's location prompt
 │   ├── tilt-primer-sheet.tsx     # The tilt's offer before WebKit's motion prompt (rain and snow)
 │   ├── sky-window-sheet.tsx      # The sky window's offer: motion, and the place with it
-│   ├── use-permissions.ts        # What a feature needs from the browser; one press asks for all of it
+│   ├── use-permissions.ts        # Where each permission stands, and one press that asks — in order
 │   ├── sky-pull-cue.tsx          # The body of light at the top while the home is pulled down
 │   ├── sky-body-hints.tsx        # Edge hints toward an off-screen sun or moon in the window
 │   ├── body-glyph.tsx            # Solid sun and moon-phase glyphs (devtool, hints, cue)
@@ -49,6 +49,7 @@ systems/ambient/
 │   ├── poke.ts                   # The two tapped eggs: which weather, when it is
 │   │                             #   dark enough, and "is this the sky?" — for all of them
 │   ├── wipe.ts                   # The foggy-day wipe: the stroke, the hand, the gesture
+│   ├── permissions.ts            # Motion and location as one vocabulary: ready / askable / refused / unsupported
 │   ├── tilt-primer.ts            # The press-and-hold that offers the gyroscope
 │   ├── sky-pull.ts               # Pull the home down to look up: the window, or its offer first
 │   ├── greeting.ts               # Time-of-day helpers
@@ -699,21 +700,63 @@ onto the sky over the wrong city is the one thing it must not be — and the IP
 guess is often a city off. So while the place in use is only that guess (and
 the browser has not refused better), a pull that would open the window goes
 through the sheet first, which says it will ask for the location too. "In use"
-is read from the location itself (`locationAskable`: its `source` is not a
-fix), not from whether precise location is *meant* to be on — a remembered
+is read from the location itself (`locationStatus` is `askable` unless a fix is
+actually the place in use), not from whether precise location is *meant* to be
+on — a remembered
 Safari Allow whose fix timed out, a "granted" whose fix failed, or a permission
 the browser won't report all mean GPS in intent while the sky still sits over
 the IP's city, and each of those used to open the window there without asking.
 
-One tap then asks for both, through `usePermissions(["motion", "location"])`
-(`components/use-permissions.ts`), which owns the order: motion first, inside
-the tap, where WebKit's gate needs it; then the location, which needs no gesture
-and so waits its turn rather than stacking a second dialog on the first. Where
-motion already flows, the sheet is only there for the place: it says so, and its
-second button opens the window without it. The location offer is made once a
-session (`skyWantsLocation` in the provider) — spent only by an opening that
-actually made it; after that a pull is just the window. The outcome line says
-which it got — the sky over where you are, or still on the network's guess.
+One tap then asks for both, through `usePermissions` (see "Permissions" below),
+which owns the order. Where motion already flows, the sheet is only there for
+the place: it says so, and its second button opens the window without it. The
+location offer is made once a session (`skyLocationOffered`, the window's own
+policy) — spent only by an opening that actually made it; after that a pull is
+just the window. The pull and the sheet decide "does this ask for the place?"
+with the one function, `skyAsksPlace`, so a sheet can never come up saying
+something the pull did not mean. The outcome line says which it got — the sky
+over where you are, or still on the network's guess.
+
+### Permissions (motion, location → the offers)
+
+Three offers stand in front of a browser prompt — the tilt (rain and snow), the
+sky window, and the location — and they share one pipeline, so each layer is
+written once and a new offer is mostly copy:
+
+```
+provider facts            gyro access · geolocation permission · the place in use
+  → lib/permissions.ts    status per kind: ready | askable | refused | unsupported
+  → usePermissions(kinds) { status, askable, request() } — request asks in order
+  → the feature's policy  shouldOfferTilt · skyOpenAction · skyAsksPlace · once-flags
+  → PermissionSheet       usePermissionOffer (offer → asking → outcome) + the sheet
+```
+
+- **Facts** live in the provider and nowhere derives from them but
+  `lib/permissions.ts`. They disagree with each other on purpose-built edges:
+  Safari reads `prompt` after an Allow; a `granted` location can still be on
+  the IP because the fix failed; WebKit's motion gate has no query at all.
+- **Status** is read from what is *in effect*. Motion is `ready` when readings
+  can flow; the location is `ready` only when a fix is the place in use. This
+  is the rule every drift so far broke — a window opened over the IP's city
+  because "GPS is on" was read as "GPS is in use".
+- **`request()`** asks for the kinds given (the askable ones by default) in the
+  only order that works: motion first and synchronously, because WebKit opens
+  its gate only inside the tap's own task; then the location, which needs no
+  gesture and so waits for motion's answer rather than stacking a second dialog.
+  Call it straight from the press — nothing awaited before it.
+- **Policy** is each feature's: whether to offer at all, and how often (the
+  tilt's once-ever `weatherGyroPrimed`, set by `setTiltPrimed` around the ask;
+  the window's once-a-session `skyLocationOffered`). Permissions never decide
+  those, and the policies never re-derive a status.
+- **The sheet** (`PermissionSheet`, `usePermissionOffer`) knows nothing about
+  which permission it fronts: `ask(fn)` runs whatever `request()` call the
+  feature makes and lands on the outcome it maps to.
+
+A new permission-backed feature adds a kind to `PermissionKind` (with its
+status function and its branch in `request()`) only if the browser guards
+something new; otherwise it picks its kinds, writes its policy, and renders a
+`PermissionSheet`. The devtool's tilt readout and the picker's tilt note read
+`motionStatus` too.
 
 **Devtool.** Sky → Window toggles it (on a desktop too) and reads out heading ·
 pitch. While it is on, Heading and Pitch sliders drive the view by hand — the

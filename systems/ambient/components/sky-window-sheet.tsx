@@ -6,7 +6,9 @@ import { useCallback, useState } from "react";
 import { isGyroReachable } from "../lib/gyroscope";
 import { useWallpaper } from "../provider";
 import { OFFER_DWELL, PermissionSheet, usePermissionOffer } from "./permission-sheet";
-import { usePermissions, type PermissionKind } from "./use-permissions";
+import type { PermissionKind } from "../lib/permissions";
+import { skyAsksPlace } from "../lib/sky-pull";
+import { usePermissions } from "./use-permissions";
 
 /** What the window needs from the browser: where the phone points, and where it is. */
 const SKY_PERMISSIONS: readonly PermissionKind[] = ["motion", "location"];
@@ -162,11 +164,10 @@ export function SkyWindowSheet() {
   const {
     isSkyOfferOpen: isOpen,
     closeSkyOffer,
-    gyro,
-    skyWantsLocation,
+    skyLocationOffered,
     setSkyWindow,
   } = useWallpaper();
-  const { request } = usePermissions(SKY_PERMISSIONS);
+  const { status, request } = usePermissions(SKY_PERMISSIONS);
   const [place, setPlace] = useState<Place>(null);
   // Whether this opening asks for the place too — decided as it opens and held
   // for the life of the sheet, so a fix landing halfway through does not
@@ -188,9 +189,10 @@ export function SkyWindowSheet() {
     // because it is the only thing still true.
     opening: () => {
       setPlace(null);
-      setAskPlace(skyWantsLocation);
-      setMotionOpen(gyro.reachable);
-      return gyro.denied ? "denied" : "offer";
+      // The same answer the pull used to decide a sheet was needed.
+      setAskPlace(skyAsksPlace(status.location, skyLocationOffered));
+      setMotionOpen(status.motion === "ready");
+      return status.motion === "refused" ? "denied" : "offer";
     },
   });
 
