@@ -454,6 +454,12 @@ export function SortableMasonry({
   // widget appearing later can never snap the whole grid back to the fallback.
   const [positioned, setPositioned] = useState(false);
   const [animate, setAnimate] = useState(false);
+  // True for the commit where the column count changes: that reflow snaps
+  // instead of gliding. Cards change column index *and* width at once, so an
+  // animated path would sweep them past the grid's edge; only rearranging
+  // (and a widget growing) should animate.
+  const [reflowing, setReflowing] = useState(false);
+  const laidOutColumnsRef = useRef<number | null>(null);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -597,11 +603,31 @@ export function SortableMasonry({
     ids.every((id) => heights[id] !== undefined);
 
   useEffect(() => {
-    if (!allMeasured || positioned) return;
-    setPositioned(true);
-    const frame = requestAnimationFrame(() => setAnimate(true));
-    return () => cancelAnimationFrame(frame);
+    if (allMeasured && !positioned) setPositioned(true);
   }, [allMeasured, positioned]);
+
+  // Transitions come on only once the positioned layout has been painted, so
+  // cards don't fly in from the origin on load. This must be its own effect:
+  // scheduled from the one above, the `positioned` flip it causes would run
+  // that effect's cleanup and cancel the frame before it fired — leaving the
+  // grid with no reflow animation at all.
+  useEffect(() => {
+    if (!positioned) return;
+    let frame = requestAnimationFrame(() => {
+      // Two frames: the first lands before the positioned layout is painted.
+      frame = requestAnimationFrame(() => setAnimate(true));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [positioned]);
+
+  // Glides come back two frames after a width reflow has been painted.
+  useEffect(() => {
+    if (!reflowing) return;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => setReflowing(false));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [reflowing]);
 
   // ---------------------------------------------------------------------------
   // Persistence
@@ -613,6 +639,10 @@ export function SortableMasonry({
   // layout with the old number of columns.
   useLayoutEffect(() => {
     if (!mounted) return;
+    if (laidOutColumnsRef.current !== null && laidOutColumnsRef.current !== columns) {
+      setReflowing(true);
+    }
+    laidOutColumnsRef.current = columns;
     const stored = loadLayouts(storageKey);
     storedRef.current = stored.byCount;
 
@@ -944,7 +974,7 @@ export function SortableMasonry({
               editing={editing}
               slot={positioned ? (slots[id] ?? null) : null}
               columns={columns}
-              animate={animate}
+              animate={animate && !reflowing}
               measure={measure}
             >
               {itemsById.get(id)}

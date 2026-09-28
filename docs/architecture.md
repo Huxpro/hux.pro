@@ -110,6 +110,11 @@ not one flat sequence.
   count — so resizing the window can never paint a card outside the grid while
   a measurement catches up. A column-count change re-derives the layout in a
   layout effect, before the browser paints.
+- Cards glide (240ms `transform`) when the layout is rearranged or a widget
+  above them changes height. Two exceptions snap: the first positioned paint
+  (transitions come on two frames later, so nothing flies in from the corner),
+  and a column-count change (cards change index *and* width at once, so a
+  glide would sweep them past the grid's edge).
 - Drop placement is computed from our own geometry — the pointer against the
   measured slots — not from dnd-kit droppables, so nothing about the drag
   depends on dnd-kit re-measuring a grid that is moving underneath it. Since
