@@ -221,7 +221,7 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
           // the same card its /writing row shows under the pointer, where a
           // phone has no pointer. The title is the surface's header.
           <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
-            <PostPeekView peek={post} className="w-full" />
+            <PostPeekView peek={post} className="w-full" whole />
           </div>
         ) : (
           <>

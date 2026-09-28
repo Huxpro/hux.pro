@@ -104,6 +104,14 @@ export const TYPE = {
    */
   voice:
     "font-serif text-sm [&:lang(en)]:text-[0.9375rem] text-muted-foreground leading-relaxed",
+  /**
+   * A post's dek: the line under its title (frontmatter `description`, the
+   * old Jekyll subtitle). One face wherever the post shows up -- its own
+   * masthead, a peek, a drawer -- and the size is the place's. Italic in
+   * Latin; upright in Chinese, whose serif has no oblique (see `voice`), so
+   * it needs a `lang` on the element or an ancestor.
+   */
+  dek: "font-serif italic [&:lang(zh)]:not-italic text-foreground/80 leading-relaxed",
   /** Body-sized secondary copy: a widget's description, an empty state. */
   body: "text-sm text-muted-foreground leading-relaxed",
 
