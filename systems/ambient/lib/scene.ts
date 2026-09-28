@@ -34,6 +34,7 @@ import type {
   PrecipitationType,
   WeatherCondition,
 } from "./weather";
+import { magneticDeclination } from "./magnetic";
 import { precipitationTypeForCondition } from "./weather";
 import { WIPE_MIN_FOG } from "./wipe";
 
@@ -103,8 +104,14 @@ export interface WeatherScene {
    * the sky window reads it — the stage's stars are a picture, the window's
    * are a sky. A guess of 40° (mirrored south) and Greenwich without
    * coordinates, which turns the right way at the right rate all the same.
+   *
+   * `declination` is where the phone's compass points, against true north,
+   * here and now (lib/magnetic.ts) — the sky window turns every magnetic
+   * heading it is handed by this much. 0 without coordinates: no guess of a
+   * place is better than none for a field that differs by 30° across a
+   * continent.
    */
-  celestial: { latitude: number; siderealDeg: number };
+  celestial: { latitude: number; siderealDeg: number; declination: number };
   fog: number;
   lightning: number;
   stars: number;
@@ -439,6 +446,16 @@ function coordsOf(params: DeriveSceneParams): { lat: number; lon: number } | nul
     Number.isFinite(lon)
     ? { lat, lon }
     : null;
+}
+
+/** The observer under the stars, and their compass's north. See `celestial`. */
+function celestialOf(params: DeriveSceneParams, hemisphere: 1 | -1): WeatherScene["celestial"] {
+  const coords = coordsOf(params);
+  return {
+    latitude: coords?.lat ?? 40 * hemisphere,
+    siderealDeg: localSiderealDeg(params.nowMs, coords?.lon ?? 0),
+    declination: coords ? magneticDeclination(coords.lat, coords.lon, params.nowMs) : 0,
+  };
 }
 
 /**
@@ -833,10 +850,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     precipitation: { type: precipType, intensity: precipIntensity },
     wind,
     windWorld,
-    celestial: {
-      latitude: coordsOf(params)?.lat ?? 40 * hemisphere,
-      siderealDeg: localSiderealDeg(params.nowMs, coordsOf(params)?.lon ?? 0),
-    },
+    celestial: celestialOf(params, hemisphere),
     fog,
     lightning: condition === "thunder" ? lightningFor(weather) : 0,
     stars,

@@ -2760,6 +2760,8 @@ function SkyModule() {
                 }
               />
               <MetaRow k={zh ? "偏移" : "offset"} v={deg(motion.diag.offsetDeg, 1)} />
+              {/* Magnetic → true north (WMM2025), east positive. */}
+              <MetaRow k={zh ? "磁偏角" : "declin."} v={deg(motion.diag.declinationDeg, 1)} />
               <MetaRow k={zh ? "校准中" : "aiming"} v={motion.diag.calibrating ? "yes" : "no"} />
               <MetaRow k={zh ? "朝向" : "heading"} v={deg(motion.view?.heading, 1)} />
               <MetaRow k={zh ? "仰角" : "pitch"} v={deg(motion.view?.pitch, 1)} />
