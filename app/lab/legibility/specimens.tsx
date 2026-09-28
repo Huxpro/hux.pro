@@ -31,6 +31,16 @@ import { legibilityCssVars, type LegibilityVars } from "@/systems/ambient/lib/le
 import { GLASS_PILL, GLASS_TRACK } from "@/systems/theater/lib/chrome";
 import { ArrowRight, ChevronDown, Cloud, Search } from "lucide-react";
 import type { CSSProperties } from "react";
+import { useLabStrings } from "@/app/lab/i18n";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/services";
+import { SPECIMEN_STRINGS } from "./specimen-strings";
+
+/** The specimens' words and the reader's locale, for the site dictionary. */
+function useSpecimenText() {
+  const { locale } = useLocale();
+  return { locale, S: useLabStrings(SPECIMEN_STRINGS) };
+}
 
 export function SpecimenLabel({ children }: { children: React.ReactNode }) {
   return <div className={cn("ink-bare mb-2", TYPE.label)}>{children}</div>;
@@ -38,26 +48,27 @@ export function SpecimenLabel({ children }: { children: React.ReactNode }) {
 
 /** Bare text: the home screen's identifier, greeting, and app labels. */
 export function BareSpecimen() {
+  const { locale, S } = useSpecimenText();
   return (
     <div className="ink-bare flex flex-col items-center gap-3 px-6 py-8 text-center">
       <span className={TYPE.identifier}>λhux</span>
-      <h1 className={cn(TITLE_POETIC, "text-foreground")}>good evening.</h1>
+      <h1 className={cn(TITLE_POETIC, "text-foreground")}>{t(locale, "greetingEvening")}</h1>
       <p className="text-sm sm:text-base leading-relaxed">
-        <span className="text-muted-foreground">you were reading </span>
+        <span className="text-muted-foreground">{t(locale, "greetingLastReading")} </span>
         <span className="font-serif italic text-foreground underline decoration-ink-line decoration-1 underline-offset-4">
           Building Design Systems
         </span>
         <span className="text-muted-foreground">.</span>
       </p>
       <div className="mt-2 flex flex-col items-center gap-1 text-sm">
-        <span className="text-foreground">primary — the ink</span>
-        <span className="text-muted-foreground">secondary — muted-foreground</span>
-        <span className="text-tertiary-foreground">tertiary — captions, dates beside a title</span>
-        <span className="text-quaternary-foreground">quaternary — hashes, separators, placeholders</span>
+        <span className="text-foreground">{S.ladder.primary}</span>
+        <span className="text-muted-foreground">{S.ladder.secondary}</span>
+        <span className="text-tertiary-foreground">{S.ladder.tertiary}</span>
+        <span className="text-quaternary-foreground">{S.ladder.quaternary}</span>
       </div>
       {/* The app folder: a middle-band zone, deciding its flip for itself. */}
       <div className="ink-bare-mid mt-4 flex gap-5">
-        {["Writing", "Works", "Prompt", "Docs"].map((label) => (
+        {S.apps.map((label) => (
           <span key={label} className="flex w-16 flex-col items-center">
             <span className="size-11 rounded-[12px] border border-border/50 bg-glass backdrop-blur-xl" />
             <span className={cn("mt-1.5 block max-w-16 truncate text-center", TYPE.appLabel)}>
@@ -74,10 +85,11 @@ export function BareSpecimen() {
  *  capsule and a kbd — composed from the roles the way
  *  writing-widget.tsx and featured-talks-widget.tsx compose them. */
 export function WidgetSpecimen() {
+  const { locale } = useSpecimenText();
   return (
     <WidgetShell className="w-full">
       <WidgetHeader className="pb-2">
-        <WidgetTitle signal>writing</WidgetTitle>
+        <WidgetTitle signal>{t(locale, "widgetBlog")}</WidgetTitle>
         <span className={TYPE.nav}>
           <ArrowRight className="h-3 w-3" />
         </span>
@@ -100,7 +112,7 @@ export function WidgetSpecimen() {
           </div>
         ))}
         <div className="mt-3 border-t border-border/30 pt-4 pb-1.5">
-          <span className={cn("block", TYPE.aside)}>featured</span>
+          <span className={cn("block", TYPE.aside)}>{t(locale, "writingFeatured")}</span>
         </div>
         <div className="flex items-center gap-2 pt-2">
           <span className={cn("inline-flex rounded-full p-0.5", GLASS_TRACK)}>
@@ -123,6 +135,7 @@ export function WidgetSpecimen() {
 
 /** The dock's Live Activity: pill and expanded panel, with a media title. */
 export function ActivitySpecimen() {
+  const { S } = useSpecimenText();
   return (
     <div className="flex flex-col items-center gap-4">
       <span
@@ -139,7 +152,7 @@ export function ActivitySpecimen() {
       </span>
       <div className="w-[min(100%,340px)] overflow-hidden rounded-2xl border border-border/50 bg-glass shadow-overlay backdrop-blur-xl">
         <div className="flex items-center justify-between px-5 pt-4 pb-3">
-          <span className={TYPE.label}>now playing</span>
+          <span className={TYPE.label}>{S.nowPlaying}</span>
           <span className={TYPE.meta}>05:46</span>
         </div>
         <div className="px-5 pb-4">
@@ -163,21 +176,18 @@ export function ActivitySpecimen() {
 
 /** The command palette: popover glass, input, a selected row, kbd hints. */
 export function PaletteSpecimen() {
-  const rows = [
-    ["Writing", "W"],
-    ["Wallpaper: Tahoe", "/ W"],
-    ["Glass: Clear", "/ G"],
-    ["Toggle theme", "T"],
-  ];
+  const { locale, S } = useSpecimenText();
+  const keys = ["W", "/ W", "/ G", "T"];
+  const rows = S.paletteRows.map((label, i) => [label, keys[i]]);
   return (
     <div className="w-full overflow-hidden rounded-xl border border-border/50 bg-glass-popover shadow-overlay backdrop-blur-xl">
       <div className="flex items-center gap-3 border-b border-border/50 px-4 py-3">
         <Search className="h-4 w-4 text-muted-foreground" />
-        <span className="flex-1 text-sm text-muted-foreground/60">what brings you here?</span>
+        <span className="flex-1 text-sm text-muted-foreground/60">{t(locale, "searchPlaceholder")}</span>
         <kbd className={cn("px-2 py-1", TYPE.kbd)}>esc</kbd>
       </div>
       <div className="p-2">
-        <div className={cn("px-3 py-2", TYPE.label)}>navigation</div>
+        <div className={cn("px-3 py-2", TYPE.label)}>{S.navigation}</div>
         {rows.map(([label, key], i) => (
           <div
             key={label}
@@ -197,16 +207,17 @@ export function PaletteSpecimen() {
 
 /** A secondary surface: the sheet material with a section label and a capsule row. */
 export function SheetSpecimen() {
+  const { locale } = useSpecimenText();
   return (
     <div className="w-full rounded-2xl border border-border/50 bg-glass-sheet p-5 shadow-overlay backdrop-blur-xl">
       <div className="flex items-center justify-between">
-        <span className="text-[13px] font-medium text-foreground">wallpaper</span>
+        <span className="text-[13px] font-medium text-foreground">{t(locale, "wallpaperTitle")}</span>
         <span className={TYPE.meta}>33</span>
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
-        <span className={TYPE.label}>placement</span>
+        <span className={TYPE.label}>{t(locale, "wallpaperPlacement").toLowerCase()}</span>
         <span className="flex overflow-hidden rounded-md border border-border/60">
-          {["Full", "Widget", "Off"].map((o, i) => (
+          {(["wallpaperPlacementFull", "wallpaperPlacementWidget", "wallpaperPlacementOff"] as const).map((key) => t(locale, key)).map((o, i) => (
             <span
               key={o}
               className={cn(
@@ -220,7 +231,7 @@ export function SheetSpecimen() {
           ))}
         </span>
       </div>
-      <p className={cn("mt-4", TYPE.captionQuiet)}>Wallpapers are Apple&apos;s; rights remain theirs.</p>
+      <p className={cn("mt-4", TYPE.captionQuiet)}>{t(locale, "wallpaperFooterNote")}</p>
     </div>
   );
 }
@@ -237,6 +248,7 @@ export function SheetSpecimen() {
  */
 export function ReadingSpecimen({ vars }: { vars: LegibilityVars }) {
   const style = legibilityCssVars(vars) as CSSProperties;
+  const { locale, S } = useSpecimenText();
   return (
     <div
       className={cn("ink-scope relative w-full overflow-hidden rounded-xl", vars.flip && "ink-flip")}
@@ -253,7 +265,7 @@ export function ReadingSpecimen({ vars }: { vars: LegibilityVars }) {
       <div aria-hidden className="absolute inset-0 bg-background" style={{ opacity: vars.veil }} />
       <div className="relative px-6 py-6">
         <span className={TYPE.nav}>λhux</span>
-        <h2 className={cn("mt-6 mb-6", TITLE_POETIC, "text-foreground")}>Writing</h2>
+        <h2 className={cn("mt-6 mb-6", TITLE_POETIC, "text-foreground")}>{t(locale, "writingTitle")}</h2>
 
         {/* /writing rows: PostList's title, language badge and date. */}
         <div className="mb-8">
@@ -298,24 +310,24 @@ export function ReadingSpecimen({ vars }: { vars: LegibilityVars }) {
         <div className={cn("mb-4 flex items-center gap-2", TYPE.meta)}>
           <span>sep 2026</span>
           <span className="text-quaternary-foreground">·</span>
-          <span>4 min read</span>
+          <span>{S.minRead}</span>
         </div>
-        <div className="prose-article">
+        <div className="prose-article" lang={locale}>
           <p>
-            A fixed grey was a pre-computed alpha for a page that was only ever white or
-            near-black. Under a picture it stops being any alpha at all —{" "}
+            {S.articleLead}
             <a href="#" onClick={(e) => e.preventDefault()}>
-              the same word
-            </a>{" "}
-            reads differently on every wallpaper, and <code>text-muted-foreground</code> stops
-            meaning &ldquo;secondary&rdquo;.
+              {S.articleLink}
+            </a>
+            {S.articleMid}
+            <code>text-muted-foreground</code>
+            {S.articleTail}
           </p>
           <blockquote>
-            <p>Regardless of the material you choose, use vibrant colors on top of it.</p>
+            <p>{S.articleQuote}</p>
           </blockquote>
         </div>
         <div className={cn("mt-2", TYPE.labelSm)}>
-          en <span className="mx-1.5 text-quaternary-foreground">·</span> 4 min read
+          {S.articleLang} <span className="mx-1.5 text-quaternary-foreground">·</span> {S.minRead}
         </div>
       </div>
     </div>

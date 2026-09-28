@@ -23,7 +23,9 @@ import { t, useLocale } from "@/services";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { toast } from "sonner";
 import { MousePointer2 } from "lucide-react";
+import { useLabStrings } from "@/app/lab/i18n";
 import { LabShell } from "../shell";
+import { WORKS_STRINGS } from "./strings";
 import { WorksToolbar } from "./toolbar";
 import { CommitEditor } from "./commit-editor";
 import { TagEditor } from "./tag-editor";
@@ -57,6 +59,7 @@ export function WorksLabView({ initialData }: WorksLabViewProps) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<LogForm>(DEFAULT_FORM);
   const { locale } = useLocale();
+  const S = useLabStrings(WORKS_STRINGS);
 
   // Reference equality is enough: every edit clones the slice it touches,
   // so `data === savedData` exactly tracks "no unsaved changes" without
@@ -148,30 +151,30 @@ export function WorksLabView({ initialData }: WorksLabViewProps) {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Save failed");
+        throw new Error(err.error || S.saveFailed);
       }
       setSavedData(data);
-      toast.success("Saved to content/log.json");
+      toast.success(S.saved);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : S.saveFailed);
     } finally {
       setSaving(false);
     }
-  }, [data]);
+  }, [data, S]);
 
   const handleReset = useCallback(async () => {
     try {
       const res = await fetch("/api/log");
-      if (!res.ok) throw new Error("Failed to load");
+      if (!res.ok) throw new Error(S.loadFailed);
       const fresh: LogData = await res.json();
       setData(fresh);
       setSavedData(fresh);
       clearSelection();
-      toast.success("Reloaded from disk");
+      toast.success(S.reloaded);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Reset failed");
+      toast.error(err instanceof Error ? err.message : S.resetFailed);
     }
-  }, [clearSelection]);
+  }, [clearSelection, S]);
 
   const handleUpdateCommit = useCallback(
     (updated: Commit) => {
@@ -299,12 +302,11 @@ export function WorksLabView({ initialData }: WorksLabViewProps) {
     <LabShell
       lab="works"
       layout="canvas"
-      meta={
-        <>
-          {data.commits.length} commits · {data.tags.length} tags ·{" "}
-          {Object.keys(data.identities ?? {}).length} identities
-        </>
-      }
+      meta={S.meta(
+        data.commits.length,
+        data.tags.length,
+        Object.keys(data.identities ?? {}).length,
+      )}
     >
       <WorksToolbar
         isDirty={isDirty}
@@ -377,13 +379,14 @@ export function WorksLabView({ initialData }: WorksLabViewProps) {
 }
 
 function EmptyInspector() {
+  const S = useLabStrings(WORKS_STRINGS);
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-2">
       <MousePointer2 className="w-6 h-6 text-quaternary-foreground" />
       <div className="font-mono text-[10px] uppercase tracking-wider text-quaternary-foreground">
-        Inspect mode
+        {S.inspectMode}
       </div>
-      <div className="text-sm text-tertiary-foreground">No selection</div>
+      <div className="text-sm text-tertiary-foreground">{S.noSelection}</div>
     </div>
   );
 }

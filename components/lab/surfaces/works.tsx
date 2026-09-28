@@ -1,5 +1,6 @@
 "use client";
 
+import { useLabStrings } from "@/app/lab/i18n";
 import logData from "@/content/log.json";
 import { localize, normalizeLogData, type RawLogData } from "@/lib/log";
 import { TYPE } from "@/lib/typography";
@@ -7,12 +8,14 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useMemo } from "react";
 import { SurfaceFrame } from "./frame";
+import { SURFACE_STRINGS } from "./strings";
 
 const log = normalizeLogData(logData as unknown as RawLogData);
 
 /** The Works Lab at a glance: the head of the log, as a git log. */
 export function WorksSurface() {
   const { locale } = useLocale();
+  const S = useLabStrings(SURFACE_STRINGS);
   const recent = useMemo(
     () =>
       log.commits
@@ -41,7 +44,7 @@ export function WorksSurface() {
         ))}
       </ol>
       <p className={cn(TYPE.labelSm, "mt-2.5 pl-[17px]")}>
-        log.json · {log.commits.length} commits · {log.tags.length} tags
+        {S.logSummary(log.commits.length, log.tags.length)}
       </p>
     </SurfaceFrame>
   );

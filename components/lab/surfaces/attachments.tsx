@@ -1,5 +1,6 @@
 "use client";
 
+import { useLabStrings } from "@/app/lab/i18n";
 import logData from "@/content/log.json";
 import ogSnapshotJson from "@/content/og-snapshot.json";
 import { ExternalImage } from "@/components/log/media/external-image";
@@ -19,9 +20,10 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useMemo } from "react";
 import { SurfaceFrame } from "./frame";
+import { SURFACE_STRINGS } from "./strings";
 
 /** A recording, a deck, a page — the three chips a cover says most. */
-const KINDS: { name: string; test: (m: Media) => boolean }[] = [
+const KINDS: { name: "recording" | "deck" | "page"; test: (m: Media) => boolean }[] = [
   { name: "recording", test: isVideoMedia },
   { name: "deck", test: isSlidesMedia },
   { name: "page", test: (m) => isLinkMedia(m) && !m.internal && !!m.preview?.image },
@@ -33,6 +35,7 @@ const KINDS: { name: string; test: (m: Media) => boolean }[] = [
  */
 export function AttachmentsSurface() {
   const { locale } = useLocale();
+  const S = useLabStrings(SURFACE_STRINGS);
   const samples = useMemo(() => {
     const { commits } = enrichLogDataWithPreviews(
       normalizeLogData(logData as unknown as RawLogData),
@@ -44,7 +47,7 @@ export function AttachmentsSurface() {
         if (hit) return { name, media: hit };
       }
       return null;
-    }).filter((s): s is { name: string; media: Media } => !!s);
+    }).filter((s): s is { name: (typeof KINDS)[number]["name"]; media: Media } => !!s);
   }, []);
 
   return (
@@ -60,7 +63,7 @@ export function AttachmentsSurface() {
               />
               <MediaMark mark={markFor(media, locale, { all: true })} size="mini" />
             </div>
-            <figcaption className={cn(TYPE.labelSm, "truncate text-center")}>{name}</figcaption>
+            <figcaption className={cn(TYPE.labelSm, "truncate text-center")}>{S.kinds[name]}</figcaption>
           </figure>
         ))}
       </div>

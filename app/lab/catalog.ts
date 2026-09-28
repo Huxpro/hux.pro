@@ -21,7 +21,9 @@ import type { Locale } from "@/lib/i18n";
  * move between them; the palette does not list them.
  *
  * Adding a lab: an entry here, a route under `app/lab/<id>`, a surface in
- * `components/lab/surfaces`, and the `LabShell` around the page.
+ * `components/lab/surfaces`, the `LabShell` around the page, and its words
+ * in both languages — a `strings.ts` beside it, read with `useLabStrings`
+ * (app/lab/i18n.ts). Every lab is bilingual; code names stay as written.
  */
 
 export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow";

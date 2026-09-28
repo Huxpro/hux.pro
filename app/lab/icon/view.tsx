@@ -21,7 +21,9 @@ import {
   TextField,
   Toggle,
 } from "@/app/lab/controls";
+import { useLabStrings } from "@/app/lab/i18n";
 import { LabButton, LabSection, LabShell, LabUnsaved } from "@/app/lab/shell";
+import { ICON_STRINGS } from "./strings";
 
 /**
  * Inlines the icon SVG into the DOM (not via `<img>`) so the wordmark renders
@@ -73,6 +75,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
   const [config, setConfig] = useState<IconConfig>(initialConfig);
   const [savedConfig, setSavedConfig] = useState<IconConfig>(initialConfig);
   const [saving, setSaving] = useState(false);
+  const S = useLabStrings(ICON_STRINGS);
 
   const isDirty = useMemo(
     () => JSON.stringify(config) !== JSON.stringify(savedConfig),
@@ -127,24 +130,24 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
         body: JSON.stringify(config),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Save failed");
+      if (!res.ok) throw new Error(json.error || S.saveFailed);
       setSavedConfig(config);
       toast.success(
         json.rasterized
-          ? "Saved · SVG + home-screen PNGs regenerated"
-          : "Saved · SVG written (raster skipped — offline?)",
+          ? S.savedRaster
+          : S.savedSvgOnly,
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : S.saveFailed);
     } finally {
       setSaving(false);
     }
-  }, [config]);
+  }, [config, S]);
 
   const handleReset = useCallback(() => {
     setConfig(DEFAULT_ICON_CONFIG);
-    toast.message("Reset to default config (not yet saved)");
-  }, []);
+    toast.message(S.resetDone);
+  }, [S]);
 
   const handleDownload = useCallback(() => {
     const blob = new Blob([buildIconSvg(config, { size: 512 })], {
@@ -167,11 +170,11 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
       {/* Writing the icon is a wide-screen job, like the Works Lab's. */}
       <LabButton onClick={handleReset} className="hidden lg:inline-flex">
         <RotateCcw />
-        Reset
+        {S.reset}
       </LabButton>
       <LabButton tone="primary" onClick={handleSave} disabled={!isDirty || saving} className="hidden lg:inline-flex">
         <Save />
-        {saving ? "Saving..." : "Save"}
+        {saving ? S.saving : S.save}
       </LabButton>
     </>
   );
@@ -183,14 +186,14 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
       actions={actions}
       meta={
         <span className="inline-flex items-center gap-2">
-          {config.text || "—"} · {config.background.style} · r {config.cornerRadius.toFixed(2)}
+          {config.text || "—"} · {S.textures[config.background.style]} · r {config.cornerRadius.toFixed(2)}
           {isDirty && <LabUnsaved />}
         </span>
       }
       panel={
         <>
-          <Section title="Typography">
-            <Field label="Wordmark">
+          <Section title={S.typography}>
+            <Field label={S.wordmark}>
               <TextField
                 value={config.text}
                 onChange={(v) => set("text", v)}
@@ -215,7 +218,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
               ))}
             </div>
 
-            <Field label="Weight" hint={String(config.fontWeight)}>
+            <Field label={S.weight} hint={String(config.fontWeight)}>
               <Slider
                 value={config.fontWeight}
                 min={100}
@@ -225,7 +228,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
               />
             </Field>
 
-            <Field label="Size" hint={config.fontSize.toFixed(2)}>
+            <Field label={S.size} hint={config.fontSize.toFixed(2)}>
               <Slider
                 value={config.fontSize}
                 min={0.1}
@@ -235,7 +238,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
               />
             </Field>
 
-            <Field label="Tracking" hint={config.letterSpacing.toFixed(3)}>
+            <Field label={S.tracking} hint={config.letterSpacing.toFixed(3)}>
               <Slider
                 value={config.letterSpacing}
                 min={-0.2}
@@ -245,7 +248,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
               />
             </Field>
 
-            <Field label="Nudge Y" hint={config.offsetY.toFixed(2)}>
+            <Field label={S.nudgeY} hint={config.offsetY.toFixed(2)}>
               <Slider
                 value={config.offsetY}
                 min={-0.3}
@@ -255,7 +258,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
               />
             </Field>
 
-            <Field label="Nudge X" hint={config.offsetX.toFixed(2)}>
+            <Field label={S.nudgeX} hint={config.offsetX.toFixed(2)}>
               <Slider
                 value={config.offsetX}
                 min={-0.3}
@@ -266,12 +269,12 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
             </Field>
 
             <Toggle
-              label="Italic"
+              label={S.italic}
               value={config.italic}
               onChange={(v) => set("italic", v)}
             />
 
-            <Field label="Wordmark color">
+            <Field label={S.wordmarkColor}>
               <ColorField
                 value={config.textColor}
                 onChange={(v) => set("textColor", v)}
@@ -279,24 +282,24 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
             </Field>
           </Section>
 
-          <Section title="Background">
-            <Field label="Texture">
+          <Section title={S.background}>
+            <Field label={S.texture}>
               <Segmented
                 columns={3}
                 value={config.background.style}
                 onChange={(v) => setBg("style", v)}
                 options={[
-                  { value: "solid", label: "Solid" },
-                  { value: "dots", label: "Dots" },
-                  { value: "grid", label: "Grid" },
-                  { value: "lines", label: "Lines" },
-                  { value: "noise", label: "Noise" },
-                  { value: "gradient", label: "Grad" },
+                  { value: "solid", label: S.textures.solid },
+                  { value: "dots", label: S.textures.dots },
+                  { value: "grid", label: S.textures.grid },
+                  { value: "lines", label: S.textures.lines },
+                  { value: "noise", label: S.textures.noise },
+                  { value: "gradient", label: S.textures.gradient },
                 ]}
               />
             </Field>
 
-            <Field label="Base color">
+            <Field label={S.baseColor}>
               <ColorField
                 value={config.background.color}
                 onChange={(v) => setBg("color", v)}
@@ -305,7 +308,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
 
             {/* Per-texture controls — each texture keeps its own values. */}
             {tex && config.background.style === "gradient" && (
-              <Field label="Gradient end">
+              <Field label={S.gradientEnd}>
                 <ColorField
                   value={tex.gradientColor}
                   onChange={(v) => setTex("gradientColor", v)}
@@ -315,14 +318,14 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
 
             {tex && config.background.style !== "gradient" && (
               <>
-                <Field label="Texture color">
+                <Field label={S.textureColor}>
                   <ColorField
                     value={tex.textureColor}
                     onChange={(v) => setTex("textureColor", v)}
                   />
                 </Field>
                 <Field
-                  label="Texture opacity"
+                  label={S.textureOpacity}
                   hint={tex.textureOpacity.toFixed(2)}
                 >
                   <Slider
@@ -333,7 +336,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
                     onChange={(v) => setTex("textureOpacity", v)}
                   />
                 </Field>
-                <Field label="Density" hint={tex.scale.toFixed(2)}>
+                <Field label={S.density} hint={tex.scale.toFixed(2)}>
                   <Slider
                     value={tex.scale}
                     min={0}
@@ -348,7 +351,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
           {tex &&
             (config.background.style === "lines" ||
               config.background.style === "gradient") && (
-              <Field label="Angle" hint={`${Math.round(tex.angle)}°`}>
+              <Field label={S.angle} hint={`${Math.round(tex.angle)}°`}>
                 <Slider
                   value={tex.angle}
                   min={0}
@@ -360,9 +363,9 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
             )}
         </Section>
 
-        <Section title="Shape">
+        <Section title={S.shape}>
           <Field
-            label="Corner radius"
+            label={S.cornerRadius}
             hint={config.cornerRadius.toFixed(2)}
           >
             <Slider
@@ -374,8 +377,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
             />
           </Field>
           <p className="font-mono text-[10px] leading-relaxed text-tertiary-foreground">
-            Baked into the SVG. Leave at 0 for full-bleed — most OSes apply
-            their own mask (previewed above).
+            {S.cornerNote}
           </p>
         </Section>
         </>
@@ -383,7 +385,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
     >
       {/* Preview — the SVG is inlined (not <img>) so it renders with the
           page's loaded font families, making the preview WYSIWYG. */}
-      <LabSection title="App tile · 256">
+      <LabSection title={S.appTile}>
         <div className="flex justify-center rounded-2xl bg-muted/40 px-6 py-10 sm:py-14">
           <IconPreview
             config={config}
@@ -394,7 +396,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
       </LabSection>
 
       {/* Size ladder — legibility check at favicon sizes */}
-      <LabSection title="Sizes" note="The same icon at the sizes it ships: a home-screen tile down to a tab's favicon.">
+      <LabSection title={S.sizes} note={S.sizesNote}>
         <div className="flex flex-wrap items-end justify-center gap-6 rounded-2xl bg-muted/40 px-6 py-8">
           {[128, 64, 32, 16].map((px) => (
             <div key={px} className="flex flex-col items-center gap-2">
@@ -411,15 +413,15 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
       </LabSection>
 
       {/* Round mask + full-bleed square */}
-      <LabSection title="Masks" note="What an OS that applies its own mask will cut it to.">
+      <LabSection title={S.masks} note={S.masksNote}>
         <div className="flex items-center justify-center gap-6 rounded-2xl bg-muted/40 px-6 py-8">
           <div className="flex flex-col items-center gap-2">
             <IconPreview config={config} idPrefix="round" className="h-20 w-20 rounded-full ring-1 ring-border/40" />
-            <span className="font-mono text-[10px] text-muted-foreground">round</span>
+            <span className="font-mono text-[10px] text-muted-foreground">{S.round}</span>
           </div>
           <div className="flex flex-col items-center gap-2">
             <IconPreview config={config} idPrefix="square" className="h-20 w-20 ring-1 ring-border/40" />
-            <span className="font-mono text-[10px] text-muted-foreground">square</span>
+            <span className="font-mono text-[10px] text-muted-foreground">{S.square}</span>
           </div>
         </div>
       </LabSection>

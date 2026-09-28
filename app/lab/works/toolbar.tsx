@@ -6,12 +6,14 @@ import type { InspectMode } from "@/components/log/timeline-edit-context";
 import { Segmented } from "@/components/ui/controls";
 import { LOG_FORMS, type LogForm } from "@/lib/log-view";
 import { TYPE } from "@/lib/typography";
+import { useLabStrings } from "@/app/lab/i18n";
 import { LabButton, LabChip, LabToolbar, LabUnsaved } from "../shell";
+import { WORKS_STRINGS } from "./strings";
 
-const FORM_CHIP: Record<LogForm, { icon: LucideIcon; label: string }> = {
-  index: { icon: List, label: "index" },
-  covers: { icon: LayoutList, label: "covers" },
-  feed: { icon: GalleryVertical, label: "feed" },
+const FORM_CHIP: Record<LogForm, { icon: LucideIcon; label: "formIndex" | "formCovers" | "formFeed" }> = {
+  index: { icon: List, label: "formIndex" },
+  covers: { icon: LayoutList, label: "formCovers" },
+  feed: { icon: GalleryVertical, label: "formFeed" },
 };
 
 interface WorksToolbarProps {
@@ -46,6 +48,7 @@ export function WorksToolbar({
   onReset,
   onAddTag,
 }: WorksToolbarProps) {
+  const S = useLabStrings(WORKS_STRINGS);
   const inspecting = mode === "inspect";
 
   return (
@@ -56,7 +59,8 @@ export function WorksToolbar({
           value={form}
           onChange={onFormChange}
           options={LOG_FORMS.map((id) => {
-            const { icon: Icon, label } = FORM_CHIP[id];
+            const { icon: Icon, label: key } = FORM_CHIP[id];
+            const label = S[key];
             return {
               value: id,
               label: <Icon className="h-3.5 w-3.5" />,
@@ -65,11 +69,11 @@ export function WorksToolbar({
             };
           })}
         />
-        <span className={TYPE.meta}>{FORM_CHIP[form].label}</span>
+        <span className={TYPE.meta}>{S[FORM_CHIP[form].label]}</span>
         {isDirty && <LabUnsaved />}
       </div>
 
-      <span className={`${TYPE.rowMeta} lg:hidden`}>editing needs a wide screen</span>
+      <span className={`${TYPE.rowMeta} lg:hidden`}>{S.needsWideScreen}</span>
 
       <div className="hidden flex-wrap items-center gap-1.5 lg:flex">
         <LabChip
@@ -78,19 +82,19 @@ export function WorksToolbar({
           disabled={inspectDisabled}
         >
           {inspecting ? <Check /> : <MousePointer2 />}
-          {inspecting ? "Done" : "Inspect"}
+          {inspecting ? S.done : S.inspect}
         </LabChip>
         <LabButton onClick={onAddTag} disabled={inspectDisabled}>
           <Plus />
-          Tag
+          {S.addTag}
         </LabButton>
         <LabButton onClick={onReset}>
           <RotateCcw />
-          Reset
+          {S.reset}
         </LabButton>
         <LabButton tone="primary" onClick={onSave} disabled={!isDirty || saving}>
           <Save />
-          {saving ? "Saving..." : "Save"}
+          {saving ? S.saving : S.save}
         </LabButton>
       </div>
     </LabToolbar>

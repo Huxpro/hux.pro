@@ -1,8 +1,11 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { Tag } from "@/lib/log";
+import { localize, type Tag } from "@/lib/log";
+import { useLocale } from "@/services";
 import { Tag as TagIcon, X } from "lucide-react";
+import { useLabStrings } from "@/app/lab/i18n";
+import { WORKS_STRINGS } from "./strings";
 
 interface TagEditorProps {
   tag: Tag;
@@ -40,6 +43,8 @@ function Field({
 }
 
 export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
+  const { locale } = useLocale();
+  const S = useLabStrings(WORKS_STRINGS);
   const update = (partial: Partial<Tag>) => {
     onUpdate({ ...tag, ...partial });
   };
@@ -51,10 +56,10 @@ export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
           <TagIcon className="w-3.5 h-3.5 shrink-0 text-tertiary-foreground" />
           <div className="min-w-0">
             <div className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground">
-              chapter
+              {S.chapter}
             </div>
             <div className="text-sm truncate leading-tight">
-              {tag.title.en || tag.id}
+              {localize(tag.title, locale) || tag.id}
             </div>
           </div>
         </div>
@@ -62,57 +67,57 @@ export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
           type="button"
           onClick={onClose}
           className="p-1 text-tertiary-foreground hover:text-foreground rounded transition-colors shrink-0"
-          title="Close inspector"
-          aria-label="Close inspector"
+          title={S.closeInspector}
+          aria-label={S.closeInspector}
         >
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      <Field label="ID" value={tag.id} onChange={(v) => update({ id: v })} />
+      <Field label={S.id} value={tag.id} onChange={(v) => update({ id: v })} />
       <Field
-        label="Title EN"
+        label={S.tagTitleEn}
         value={tag.title.en}
         onChange={(v) => update({ title: { ...tag.title, en: v } })}
       />
       <Field
-        label="Title ZH"
+        label={S.tagTitleZh}
         value={tag.title.zh}
         onChange={(v) => update({ title: { ...tag.title, zh: v } })}
       />
       <Field
-        label="Tagline EN"
+        label={S.taglineEn}
         value={tag.tagline.en}
         onChange={(v) => update({ tagline: { ...tag.tagline, en: v } })}
       />
       <Field
-        label="Tagline ZH"
+        label={S.taglineZh}
         value={tag.tagline.zh}
         onChange={(v) => update({ tagline: { ...tag.tagline, zh: v } })}
       />
       <Field
-        label="Start"
+        label={S.start}
         value={tag.startDate}
         onChange={(v) => update({ startDate: v })}
         placeholder="YYYY-MM"
       />
       <Field
-        label="End"
+        label={S.end}
         value={tag.endDate ?? ""}
         onChange={(v) => update({ endDate: v || undefined })}
-        placeholder="YYYY-MM or empty"
+        placeholder={S.endDatePlaceholder}
       />
 
       {/* Fields not yet rendered in /works */}
       <Field
-        label="Color"
+        label={S.color}
         value={tag.accentColor ?? ""}
         onChange={(v) => update({ accentColor: v || undefined })}
         placeholder="oklch(...)"
         dimmed
       />
       <Field
-        label="Narr. EN"
+        label={S.narrativeEn}
         value={tag.narrative?.en ?? ""}
         onChange={(v) =>
           update({
@@ -121,11 +126,11 @@ export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
               : undefined,
           })
         }
-        placeholder="Not rendered yet"
+        placeholder={S.notRendered}
         dimmed
       />
       <Field
-        label="Narr. ZH"
+        label={S.narrativeZh}
         value={tag.narrative?.zh ?? ""}
         onChange={(v) =>
           update({
@@ -134,11 +139,11 @@ export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
               : undefined,
           })
         }
-        placeholder="Not rendered yet"
+        placeholder={S.notRendered}
         dimmed
       />
       <Field
-        label="Keywords EN"
+        label={S.keywordsEn}
         value={tag.keywords?.en ?? ""}
         onChange={(v) =>
           update({
@@ -147,11 +152,11 @@ export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
               : undefined,
           })
         }
-        placeholder="Not rendered yet"
+        placeholder={S.notRendered}
         dimmed
       />
       <Field
-        label="Keywords ZH"
+        label={S.keywordsZh}
         value={tag.keywords?.zh ?? ""}
         onChange={(v) =>
           update({
@@ -160,7 +165,7 @@ export function TagEditor({ tag, onUpdate, onClose }: TagEditorProps) {
               : undefined,
           })
         }
-        placeholder="Not rendered yet"
+        placeholder={S.notRendered}
         dimmed
       />
     </div>

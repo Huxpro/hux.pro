@@ -7,6 +7,7 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { LAB_INDEX, labById, type LabId } from "./catalog";
+import { useFrameStrings } from "./i18n";
 import { LabNav } from "./nav";
 
 // =============================================================================
@@ -115,9 +116,10 @@ export function LabHeader({
 
 /** `λhux / lab` — home, and the index of labs. */
 export function LabCrumbs({ className }: { className?: string }) {
+  const F = useFrameStrings();
   const link = "rounded-sm transition-colors hover:text-foreground focus-visible:text-foreground outline-none";
   return (
-    <nav aria-label="Breadcrumb" className={cn(TYPE.identifier, "flex items-center gap-1.5", className)}>
+    <nav aria-label={F.breadcrumb} className={cn(TYPE.identifier, "flex items-center gap-1.5", className)}>
       <Link href="/" className={link}>
         λhux
       </Link>
@@ -143,7 +145,7 @@ export function LabPanel({
   className?: string;
   children: ReactNode;
 }) {
-  const { locale } = useLocale();
+  const F = useFrameStrings();
   const [open, setOpen] = useState(false);
   return (
     <aside
@@ -161,7 +163,7 @@ export function LabPanel({
       >
         <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
         <span className={cn(TYPE.label, "flex-1 text-foreground")}>
-          {title ?? (locale === "zh" ? "控制面板" : "Controls")}
+          {title ?? F.controls}
         </span>
         <ChevronDown
           className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", open && "rotate-180")}
@@ -275,9 +277,10 @@ export function LabChip({
 
 /** `unsaved` — the edit is live here and not yet on disk. */
 export function LabUnsaved() {
+  const F = useFrameStrings();
   return (
     <span className="ink-flat rounded bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-500">
-      unsaved
+      {F.unsaved}
     </span>
   );
 }

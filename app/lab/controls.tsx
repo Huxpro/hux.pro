@@ -7,6 +7,7 @@
  * (see shell.tsx for the frame they sit in).
  */
 
+import { useFrameStrings } from "@/app/lab/i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 
@@ -165,6 +166,7 @@ export function ColorField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const F = useFrameStrings();
   return (
     <div className="flex items-center gap-2">
       <input
@@ -172,7 +174,7 @@ export function ColorField({
         value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000"}
         onChange={(e) => onChange(e.target.value)}
         className="h-8 w-8 shrink-0 cursor-pointer rounded border border-border/60 bg-transparent"
-        aria-label="Color picker"
+        aria-label={F.colorPicker}
       />
       <input
         type="text"

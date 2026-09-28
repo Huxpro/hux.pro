@@ -1,5 +1,6 @@
 "use client";
 
+import { useLabStrings } from "@/app/lab/i18n";
 import { LabChip, LabSection, LabShell, LabToolbar } from "@/app/lab/shell";
 import { Slider as Range } from "@/components/ui/slider";
 import { TYPE } from "@/lib/typography";
@@ -11,6 +12,7 @@ import {
   harmonyStops,
   type GlowProps,
 } from "@/systems/glow";
+import { GLOW_STRINGS, type GlowPairId } from "./strings";
 import PROFILES from "@/systems/ambient/lib/wallpaper-profiles.json";
 import { createMeter, primeAudio, type VoiceMeter } from "@/systems/voice";
 import { Mic, Music, Search } from "lucide-react";
@@ -77,9 +79,10 @@ function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange:
   );
 }
 
-/** The motions, each paired with the border-beam type it answers to. */
+/** The motions, each paired with the border-beam type it answers to. Their
+ *  names and prose are in strings.ts, under `pairs[id]`. */
 const PAIRS: {
-  name: string;
+  id: GlowPairId;
   beam: "md" | "sm" | "pulse-inner" | "pulse-outside";
   motion: "rotate" | "pulse";
   period: number;
@@ -89,12 +92,9 @@ const PAIRS: {
   inside?: boolean;
   hostClass: string;
   inner: string;
-  label?: string;
-  theirs: string;
-  ours: string;
 }[] = [
   {
-    name: "rotate · card",
+    id: "rotateCard",
     beam: "md",
     motion: "rotate",
     // border-beam's own rotation time, so the pair turns together.
@@ -103,11 +103,9 @@ const PAIRS: {
     reach: 6,
     hostClass: "h-24 w-full",
     inner: "rounded-2xl border border-border/50 bg-glass",
-    theirs: "md: a lit arc sweeping a fixed colour field, a white spark at its head.",
-    ours: "motion=\"rotate\": the same, as layers in the shader.",
   },
   {
-    name: "rotate · button",
+    id: "rotateButton",
     beam: "sm",
     motion: "rotate",
     period: 1.96,
@@ -115,12 +113,9 @@ const PAIRS: {
     reach: 3,
     hostClass: "h-9 w-36",
     inner: "flex items-center justify-center rounded-full border border-border/50 bg-glass text-[13px] text-foreground",
-    label: "Running",
-    theirs: "sm: the button-sized preset.",
-    ours: "At 3px of reach — the stroke carries it.",
   },
   {
-    name: "pulse · inner",
+    id: "pulseInner",
     beam: "pulse-inner",
     motion: "pulse",
     period: 2.3,
@@ -128,11 +123,9 @@ const PAIRS: {
     reach: 7,
     hostClass: "h-24 w-full",
     inner: "rounded-2xl border border-border/50 bg-glass",
-    theirs: "pulse-inner: the whole edge breathing, contained.",
-    ours: "motion=\"pulse\": four quarters on their own clocks, the colour turning.",
   },
   {
-    name: "pulse · outside",
+    id: "pulseOutside",
     beam: "pulse-outside",
     motion: "pulse",
     period: 2.3,
@@ -142,8 +135,6 @@ const PAIRS: {
     inside: false,
     hostClass: "h-24 w-full",
     inner: "rounded-2xl border border-border/50 bg-background",
-    theirs: "pulse-outside: blooming out from behind an opaque host.",
-    ours: "inside={false} with a bleed: only the halo.",
   },
 ];
 
@@ -152,6 +143,7 @@ const PAIRS: {
 const PAINTINGS = ["ventura/light", "sonoma/light", "tahoe/dark", "monterey/light", "nature/aurora", "nature/zebra"] as const;
 
 function HarmonyRow({ name }: { name: (typeof PAINTINGS)[number] }) {
+  const S = useLabStrings(GLOW_STRINGS);
   const tint = (PROFILES.images as Record<string, { tint: { h: number; c: number } | null; chroma: number }>)[name];
   const source = tint?.tint && tint.chroma >= 0.03 ? { h: tint.tint.h, c: tint.tint.c } : null;
   const dark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
@@ -177,7 +169,7 @@ function HarmonyRow({ name }: { name: (typeof PAINTINGS)[number] }) {
                   .join(", ")})`,
               }}
             />
-            {h === "auto" && <p className={cn(TYPE.labelSm, "text-center")}>→ {rule}</p>}
+            {h === "auto" && <p className={cn(TYPE.labelSm, "text-center")}>{S.autoPicks(rule)}</p>}
           </div>
         );
       })}
@@ -230,6 +222,7 @@ function Specimen({
 }
 
 export function GlowLabView() {
+  const S = useLabStrings(GLOW_STRINGS);
   const [active, setActive] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [level, setLevel] = useState(0.45);
@@ -285,31 +278,25 @@ export function GlowLabView() {
   return (
     <LabShell lab="glow">
       <LabToolbar>
-        <Toggle label="on" on={active} onChange={setActive} />
-        <Toggle label="processing" on={processing} onChange={setProcessing} />
-        <Slider label="level" value={level} onChange={setLevel} disabled={mic === "on"} />
+        <Toggle label={S.on} on={active} onChange={setActive} />
+        <Toggle label={S.processing} on={processing} onChange={setProcessing} />
+        <Slider label={S.level} value={level} onChange={setLevel} disabled={mic === "on"} />
         <LabChip on={mic === "on"} onClick={mic === "on" ? stopMic : startMic}>
           <Mic />
-          {mic === "on" ? "listening" : mic === "denied" ? "mic blocked" : "microphone"}
+          {mic === "on" ? S.listening : mic === "denied" ? S.micBlocked : S.microphone}
         </LabChip>
       </LabToolbar>
 
       <LabSection
-        title="Motions"
-        note={
-          <>
-            How the light lives while on. Rotate and pulse are Libraries.dev border-beam&apos;s two
-            families, rebuilt as this light — each beside the original. Processing and the level
-            drive ours.
-          </>
-        }
+        title={S.motions}
+        note={S.motionsNote}
         aside={
           <div className="flex flex-col gap-2 sm:items-end">
-            <Slider label="period" value={pace} onChange={setPace} />
+            <Slider label={S.period} value={pace} onChange={setPace} />
             <div className="flex flex-wrap items-center gap-3">
-              <Slider label="baseline" value={baseline ?? 0} onChange={setBaseline} disabled={baseline === null} />
+              <Slider label={S.baseline} value={baseline ?? 0} onChange={setBaseline} disabled={baseline === null} />
               <Toggle
-                label={baseline === null ? "each motion's own" : "override"}
+                label={baseline === null ? S.eachOwn : S.override}
                 on={baseline !== null}
                 onChange={(on) => setBaseline(on ? 0.2 : null)}
               />
@@ -321,39 +308,42 @@ export function GlowLabView() {
             they were rebuilt against — on the same host, in the same
             theme: left is theirs, right is ours. */}
         <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
-          <p className={cn(TYPE.label, "hidden sm:block")}>border-beam (reference)</p>
-          <p className={cn(TYPE.label, "hidden sm:block")}>ours</p>
-          {PAIRS.map((pair) => (
-            <Fragment key={pair.name}>
-              <Motion name={`${pair.name} · border-beam`} where={pair.theirs}>
-                {mounted && <BorderBeam
-                  size={pair.beam}
-                  theme={theme}
-                  active={drive.active}
-                  borderRadius={pair.radius}
-                  duration={pair.period * speed}
-                  className={pair.hostClass}
-                >
-                  <div className={cn(pair.hostClass, pair.inner)}>{pair.label}</div>
-                </BorderBeam>}
-              </Motion>
-              <Motion name={`${pair.name} · ours`} where={pair.ours}>
-                <div className={cn("relative", pair.hostClass, pair.inner)} style={{ borderRadius: pair.radius }}>
-                  {pair.label}
-                  <Glow
-                    {...drive}
-                    motion={pair.motion}
-                    period={pair.period * speed}
-                    reach={pair.reach}
-                    bleed={pair.bleed}
-                    inside={pair.inside}
-                    baseline={baseline ?? undefined}
-                  />
-                </div>
-              </Motion>
-            </Fragment>
-          ))}
-          <Motion name="flow · ours" where="The default: the beams travel round, two each way. The About. (border-beam has no flow.)">
+          <p className={cn(TYPE.label, "hidden sm:block")}>{S.reference}</p>
+          <p className={cn(TYPE.label, "hidden sm:block")}>{S.ours}</p>
+          {PAIRS.map((pair) => {
+            const text = S.pairs[pair.id];
+            return (
+              <Fragment key={pair.id}>
+                <Motion name={`${text.name} · border-beam`} where={text.theirs}>
+                  {mounted && <BorderBeam
+                    size={pair.beam}
+                    theme={theme}
+                    active={drive.active}
+                    borderRadius={pair.radius}
+                    duration={pair.period * speed}
+                    className={pair.hostClass}
+                  >
+                    <div className={cn(pair.hostClass, pair.inner)}>{text.label}</div>
+                  </BorderBeam>}
+                </Motion>
+                <Motion name={`${text.name} · ${S.ours}`} where={text.ours}>
+                  <div className={cn("relative", pair.hostClass, pair.inner)} style={{ borderRadius: pair.radius }}>
+                    {text.label}
+                    <Glow
+                      {...drive}
+                      motion={pair.motion}
+                      period={pair.period * speed}
+                      reach={pair.reach}
+                      bleed={pair.bleed}
+                      inside={pair.inside}
+                      baseline={baseline ?? undefined}
+                    />
+                  </div>
+                </Motion>
+              </Fragment>
+            );
+          })}
+          <Motion name={S.flowName} where={S.flowWhere}>
             <div className="relative h-24 w-full rounded-2xl border border-border/50 bg-glass">
               <Glow {...drive} motion="flow" reach={4} baseline={baseline ?? undefined} />
             </div>
@@ -362,15 +352,8 @@ export function GlowLabView() {
       </LabSection>
 
       <LabSection
-        title="Colours"
-        note={
-          <>
-            The light&apos;s colours come from the wallpaper: its dominant colour sets a hue, and a
-            colour-wheel rule picks three from it (systems/glow/lib/harmony.ts). Auto gives a colourful
-            picture its analogous neighbours and a muted one a split complement; a grey picture keeps
-            Siri&apos;s palette. The devtool&apos;s Glow · Colours sets the rule for the whole site.
-          </>
-        }
+        title={S.colours}
+        note={S.coloursNote}
       >
         {/* Wider than a phone: the table scrolls sideways there, whole. */}
         <div className="-mx-5 space-y-3 overflow-x-auto px-5 sm:mx-0 sm:px-0">
@@ -384,22 +367,22 @@ export function GlowLabView() {
         </div>
       </LabSection>
 
-      <LabSection title="In production">
+      <LabSection title={S.inProduction}>
         <div className="grid gap-8 sm:grid-cols-2">
-          <Specimen name="Screen · ring" where="The About, over every page. Fixed, bezel-aware.">
+          <Specimen name={S.screenName} where={S.screenWhere}>
             <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl bg-background shadow-raised">
               <Glow {...drive} shape="ring" reach={12} />
               <div className="flex h-full items-center justify-center font-serif text-lg text-foreground">
-                Hey, I&apos;m Hux.
+                {S.screenText}
               </div>
             </div>
           </Specimen>
 
-          <Specimen name="Field · line" where="The palette listening (⌘K, then the microphone, or / V).">
+          <Specimen name={S.fieldName} where={S.fieldWhere}>
             <div className="relative w-full overflow-hidden rounded-2xl border border-border/50 bg-glass-popover">
               <div className="flex items-center gap-3 px-4 py-4 text-sm">
                 <Search className="h-4 w-4 text-muted-foreground" />
-                <span className="flex-1 text-foreground">go to the writing</span>
+                <span className="flex-1 text-foreground">{S.fieldText}</span>
                 <Mic className="h-4 w-4 text-foreground" />
               </div>
               <Glow {...drive} shape="line" />
@@ -407,7 +390,7 @@ export function GlowLabView() {
           </Specimen>
 
 
-          <Specimen name="Window · loading" where="The in-app browser while its page arrives: a line on the top edge, processing.">
+          <Specimen name={S.windowName} where={S.windowWhere}>
             <div className="relative h-32 w-full overflow-hidden rounded-xl border border-border/50 bg-background">
               <div className="flex h-7 items-center gap-1.5 border-b border-border/50 px-3">
                 <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />
@@ -423,18 +406,18 @@ export function GlowLabView() {
       </LabSection>
 
       <LabSection
-        title="Could be"
-        note="The same light where the OS has something alive to say. Each is a candidate, drawn so it can be judged by eye; none is wired in yet."
+        title={S.couldBe}
+        note={S.couldBeNote}
       >
         <div className="grid gap-8 sm:grid-cols-3">
-          <Specimen name="Command bar · line" where="The home bar, while ⌘K is listening — the voice seen from the page.">
+          <Specimen name={S.commandBarName} where={S.commandBarWhere}>
             <div className="relative w-full overflow-hidden rounded-full border border-border/50 bg-glass-popover px-4 py-2.5 text-sm text-tertiary-foreground">
-              Search or / for commands
+              {S.commandBarText}
               <Glow {...drive} shape="line" />
             </div>
           </Specimen>
 
-          <Specimen name="App tile · rotate" where="An app whose window is open, on the home shelf: running.">
+          <Specimen name={S.appTileName} where={S.appTileWhere}>
             <div className="relative size-16 rounded-[22%] bg-white shadow-raised">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/app-icons/lynx-flappy-bird.png" alt="" className="size-full rounded-[22%]" />
@@ -442,7 +425,7 @@ export function GlowLabView() {
             </div>
           </Specimen>
 
-          <Specimen name="Live Activity · comet" where="The dock pill while something is working — a comet around it.">
+          <Specimen name={S.activityName} where={S.activityWhere}>
             <div className="relative flex items-center gap-2 rounded-full bg-glass-strong px-4 py-2 text-xs text-foreground shadow-raised">
               <Music className="h-3.5 w-3.5" />
               Weightless
@@ -450,22 +433,22 @@ export function GlowLabView() {
             </div>
           </Specimen>
 
-          <Specimen name="Button · pulse outside" where="A primary action inviting a first press (the About's “Reveal”).">
+          <Specimen name={S.buttonName} where={S.buttonWhere}>
             <span className="relative rounded-full bg-foreground px-4 py-1.5 text-[13px] font-medium text-background">
-              Reveal
+              {S.buttonText}
               <Glow {...drive} motion="pulse" period={2.3 * speed} inside={false} shape="ring" reach={3} bleed={12} />
             </span>
           </Specimen>
 
-          <Specimen name="Card · pulse" where="The HEAD commit on /works — what I am doing now.">
+          <Specimen name={S.cardName} where={S.cardWhere}>
             <div className="relative w-full rounded-2xl border border-border/50 bg-glass p-4">
               <p className={TYPE.rowTitle}>Lynx Framework</p>
-              <p className={TYPE.rowMeta}>2023 — present</p>
+              <p className={TYPE.rowMeta}>{S.cardDates}</p>
               <Glow {...drive} motion="pulse" period={2.3 * speed} shape="ring" reach={4} bleed={12} strength={0.8} />
             </div>
           </Specimen>
 
-          <Specimen name="Avatar · ring" where="The identity card's photo while its person is ‘speaking’ (a talk playing).">
+          <Specimen name={S.avatarName} where={S.avatarWhere}>
             <div className="relative size-14 rounded-full bg-muted">
               <Glow {...drive} shape="ring" reach={3} bleed={10} />
             </div>

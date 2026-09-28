@@ -15,10 +15,13 @@ import type {
   RoleCommit,
   AsideLine,
 } from "@/lib/log";
-import { resolveIdentity, sortCommitsByDate } from "@/lib/log";
+import { localize, resolveIdentity, sortCommitsByDate } from "@/lib/log";
+import { useLocale } from "@/services";
 import { X, Trash2, Plus, Unlink, GitBranch, AlertTriangle } from "lucide-react";
 import { commitIcons } from "@/components/log/icons";
 import { toast } from "sonner";
+import { useLabStrings } from "@/app/lab/i18n";
+import { WORKS_STRINGS, type WorksStrings } from "./strings";
 
 interface CommitEditorProps {
   commit: Commit;
@@ -199,6 +202,7 @@ function StringListSection({
   placeholder?: string;
   addTitle?: string;
 }) {
+  const S = useLabStrings(WORKS_STRINGS);
   const updateItem = (index: number, value: string) => {
     const next = [...items];
     next[index] = value;
@@ -220,14 +224,14 @@ function StringListSection({
         <button
           onClick={addItem}
           className="p-0.5 text-quaternary-foreground hover:text-muted-foreground rounded transition-colors"
-          title={addTitle ?? `Add ${label.toLowerCase()}`}
+          title={addTitle ?? S.listAdd(label)}
         >
           <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
       {items.length === 0 && (
         <div className="text-xs text-quaternary-foreground font-mono pl-[88px]">
-          No {label.toLowerCase()}
+          {S.listEmpty(label)}
         </div>
       )}
       {items.map((item, i) => (
@@ -242,7 +246,7 @@ function StringListSection({
           <button
             onClick={() => deleteItem(i)}
             className="p-0.5 text-quaternary-foreground hover:text-red-500 rounded transition-colors"
-            title={`Remove ${label.toLowerCase()}`}
+            title={S.listRemove(label)}
           >
             <Trash2 className="w-3 h-3" />
           </button>
@@ -291,6 +295,8 @@ export function CommitEditor({
   focusMediaIndex = null,
   onFocusMediaIndexChange,
 }: CommitEditorProps) {
+  const { locale } = useLocale();
+  const S = useLabStrings(WORKS_STRINGS);
   const [tab, setTab] = useState<"form" | "json">("form");
   const [jsonText, setJsonText] = useState(() =>
     JSON.stringify(commit, null, 2)
@@ -309,14 +315,14 @@ export function CommitEditor({
     try {
       const parsed = JSON.parse(jsonText);
       if (!parsed.id || !parsed.type || !parsed.tagId) {
-        throw new Error("Missing required fields: id, type, tagId");
+        throw new Error(S.jsonMissingFields);
       }
       onUpdate(parsed as Commit);
       setJsonError(null);
       setTab("form");
-      toast.success("JSON applied");
+      toast.success(S.jsonApplied);
     } catch (err) {
-      setJsonError(err instanceof Error ? err.message : "Invalid JSON");
+      setJsonError(err instanceof Error ? err.message : S.jsonInvalid);
     }
   };
 
@@ -354,7 +360,7 @@ export function CommitEditor({
               {commit.type}
             </div>
             <div className="text-sm truncate leading-tight">
-              {commit.title.en || commit.id}
+              {localize(commit.title, locale) || commit.id}
             </div>
           </div>
         </div>
@@ -370,7 +376,7 @@ export function CommitEditor({
                   : "text-tertiary-foreground hover:text-muted-foreground"
               )}
             >
-              Form
+              {S.tabForm}
             </button>
             <button
               type="button"
@@ -382,14 +388,14 @@ export function CommitEditor({
                   : "text-tertiary-foreground hover:text-muted-foreground"
               )}
             >
-              JSON
+              {S.tabJson}
             </button>
           </div>
           <button
             type="button"
             onClick={onDelete}
             className="p-1 text-quaternary-foreground hover:text-red-500 rounded transition-colors"
-            title="Delete commit"
+            title={S.deleteCommit}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -397,8 +403,8 @@ export function CommitEditor({
             type="button"
             onClick={onClose}
             className="p-1 text-tertiary-foreground hover:text-foreground rounded transition-colors"
-            title="Close inspector"
-            aria-label="Close inspector"
+            title={S.closeInspector}
+            aria-label={S.closeInspector}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -425,7 +431,7 @@ export function CommitEditor({
               onClick={applyJson}
               className="px-3 py-1.5 text-xs font-mono bg-foreground text-background rounded hover:bg-foreground/90 transition-colors"
             >
-              Apply JSON
+              {S.applyJson}
             </button>
           </div>
         ) : (
@@ -468,48 +474,50 @@ function FormFields({
   focusMediaIndex?: number | null;
   onFocusMediaIndexChange?: (index: number | null) => void;
 }) {
+  const { locale } = useLocale();
+  const S = useLabStrings(WORKS_STRINGS);
   const commitTypes: CommitType[] = ["project", "talk", "post", "role", "press", "event"];
 
   return (
     <div className="space-y-2">
       {/* Core fields */}
-      <Field label="ID" value={commit.id} onChange={(v) => onUpdate({ id: v })} />
+      <Field label={S.id} value={commit.id} onChange={(v) => onUpdate({ id: v })} />
       <ChoiceField<CommitType>
-        label="Type"
+        label={S.type}
         value={commit.type}
-        options={commitTypes.map((t) => ({ value: t, label: t }))}
+        options={commitTypes.map((t) => ({ value: t, label: S.typeNames[t] }))}
         onChange={onTypeChange}
       />
       <ChoiceField
-        label="Tag"
+        label={S.tag}
         value={commit.tagId}
-        options={tags.map((t) => ({ value: t.id, label: t.title.en }))}
+        options={tags.map((t) => ({ value: t.id, label: localize(t.title, locale) }))}
         onChange={(v) => onUpdate({ tagId: v })}
       />
       <Field
-        label="Date"
+        label={S.date}
         value={commit.date}
         onChange={(v) => onUpdate({ date: v })}
-        placeholder="YYYY-MM or YYYY-MM-DD"
+        placeholder={S.datePlaceholder}
       />
       <Field
-        label="End Date"
+        label={S.endDate}
         value={commit.endDate ?? ""}
         onChange={(v) => onUpdate({ endDate: v || undefined })}
-        placeholder="YYYY-MM or empty"
+        placeholder={S.endDatePlaceholder}
       />
       <CheckField
-        label="Listed"
+        label={S.listed}
         checked={commit.listed !== false}
         onChange={(v) => onUpdate({ listed: v ? undefined : false })}
       />
       <CheckField
-        label="Hide Date"
+        label={S.hideDate}
         checked={commit.hideDate === true}
         onChange={(v) => onUpdate({ hideDate: v ? true : undefined })}
       />
       <CheckField
-        label="Aside"
+        label={S.aside}
         checked={commit.present === "aside"}
         onChange={(v) => onUpdate({ present: v ? "aside" : undefined })}
       />
@@ -520,7 +528,7 @@ function FormFields({
           nothing to log.json. */}
       {commit.present === "aside" && (
         <ChoiceField<AsideLine>
-          label="Aside line"
+          label={S.asideLine}
           value={commit.asideLine ?? "venue-title"}
           options={[
             { value: "venue-title", label: "venue · title" },
@@ -533,7 +541,7 @@ function FormFields({
         />
       )}
       <ChoiceField<"" | "en" | "zh" | "both">
-        label="Language"
+        label={S.language}
         value={commit.language ?? ""}
         options={[
           { value: "", label: "—" },
@@ -544,7 +552,7 @@ function FormFields({
         onChange={(v) => onUpdate({ language: v === "" ? undefined : v })}
       />
       <ChoiceField<"" | "en" | "zh" | "both">
-        label="Listed In"
+        label={S.listedIn}
         value={commit.listedIn ?? ""}
         options={[
           { value: "", label: "both" },
@@ -555,20 +563,20 @@ function FormFields({
         onChange={(v) => onUpdate({ listedIn: v === "" ? undefined : v })}
       />
       <ChoiceField<"" | "date" | "endDate">
-        label="Sort By"
+        label={S.sortBy}
         value={commit.sortBy ?? ""}
         options={[
-          { value: "", label: "default" },
+          { value: "", label: S.optDefault },
           { value: "date", label: "date" },
           { value: "endDate", label: "endDate" },
         ]}
         onChange={(v) => onUpdate({ sortBy: v === "" ? undefined : v })}
       />
       <ChoiceField<"" | "graduation-cap">
-        label="Icon"
+        label={S.icon}
         value={commit.icon ?? ""}
         options={[
-          { value: "", label: "default" },
+          { value: "", label: S.optDefault },
           { value: "graduation-cap", label: "grad-cap" },
         ]}
         onChange={(v) => onUpdate({ icon: v === "" ? undefined : v })}
@@ -581,7 +589,7 @@ function FormFields({
         onUpdate={onUpdate}
       />
 
-      <SectionLabel>Title</SectionLabel>
+      <SectionLabel>{S.title}</SectionLabel>
       <Field
         label="EN"
         value={commit.title.en}
@@ -593,7 +601,7 @@ function FormFields({
         onChange={(v) => onUpdate({ title: { ...commit.title, zh: v } })}
       />
 
-      <SectionLabel>Description</SectionLabel>
+      <SectionLabel>{S.description}</SectionLabel>
       <Field
         label="EN"
         value={commit.description.en}
@@ -607,7 +615,7 @@ function FormFields({
         multiline
       />
 
-      <SectionLabel>Team</SectionLabel>
+      <SectionLabel>{S.team}</SectionLabel>
       <Field
         label="EN"
         value={commit.team?.en ?? ""}
@@ -632,7 +640,7 @@ function FormFields({
         }
       />
 
-      <SectionLabel>Commentary</SectionLabel>
+      <SectionLabel>{S.commentary}</SectionLabel>
       <Field
         label="EN"
         value={commit.commentary?.en ?? ""}
@@ -659,13 +667,13 @@ function FormFields({
       />
 
       <StringListSection
-        label="Tags"
+        label={S.keywords}
         items={commit.tags ?? []}
         onChange={(tags) =>
           onUpdate({ tags: tags.length > 0 ? tags : undefined })
         }
-        placeholder="keyword"
-        addTitle="Add tag"
+        placeholder={S.keywordPlaceholder}
+        addTitle={S.addKeyword}
       />
 
       {/* Type-specific fields */}
@@ -710,30 +718,31 @@ function describeResolution(
   commit: Commit,
   tagCommits: Commit[],
   identities: Record<string, Identity>,
+  S: WorksStrings,
 ): Resolution {
   if (commit.type === "event") {
-    return { kind: "none", note: "Events never join a rail." };
+    return { kind: "none", note: S.noteEvent };
   }
   const resolved = resolveIdentity(commit, tagCommits);
   if (!resolved) {
     if (commit.attachedTo === null) {
-      return { kind: "detached", note: "Force-detached (attachedTo: null)." };
+      return { kind: "detached", note: S.noteDetached };
     }
-    return { kind: "none", note: "No role covers this date — nothing to attach to." };
+    return { kind: "none", note: S.noteNoRole };
   }
   const ident = identities[resolved.identityId];
   let source: string;
   if (commit.type === "role") {
-    source = "role — anchors this cluster";
+    source = S.sourceRole;
   } else if (commit.identityId) {
-    source = "explicit identityId";
+    source = S.sourceExplicit;
   } else if (
     typeof commit.attachedTo === "string" &&
     tagCommits.some((c) => c.id === commit.attachedTo && c.type === "role")
   ) {
-    source = `attached → ${commit.attachedTo}`;
+    source = S.sourceAttached(commit.attachedTo);
   } else {
-    source = resolved.role ? `tenure → ${resolved.role.id}` : "tenure";
+    source = resolved.role ? S.sourceTenureOf(resolved.role.id) : S.sourceTenure;
   }
   return {
     kind: "identity",
@@ -781,18 +790,20 @@ function IdentityRailSection({
   identities: Record<string, Identity>;
   onUpdate: (partial: Record<string, unknown>) => void;
 }) {
+  const { locale } = useLocale();
   // Rails are computed per-tag (buildTimelineData filters by tag before
   // computeRail), so resolve within the commit's own tag for parity. Derived
   // together in one memo so the filter / sort / identity resolutions don't
   // re-run on unrelated re-renders of the inspector.
+  const S = useLabStrings(WORKS_STRINGS);
   const { resolution, hole, roles } = useMemo(() => {
     const tagCommits = commits.filter((c) => c.tagId === commit.tagId);
     return {
-      resolution: describeResolution(commit, tagCommits, identities),
+      resolution: describeResolution(commit, tagCommits, identities, S),
       hole: detectRailHole(commit, tagCommits),
       roles: tagCommits.filter((c): c is RoleCommit => c.type === "role"),
     };
-  }, [commit, commits, identities]);
+  }, [commit, commits, identities, S]);
   const identityIds = Object.keys(identities);
   const editable = commit.type !== "role" && commit.type !== "event";
 
@@ -821,12 +832,12 @@ function IdentityRailSection({
 
   return (
     <>
-      <SectionLabel>Identity &amp; Rail</SectionLabel>
+      <SectionLabel>{S.identityRail}</SectionLabel>
 
       {/* Live resolved readout — the missing "why". */}
       <div className="flex items-start gap-2">
         <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground w-20 shrink-0 text-right pt-0.5">
-          Resolved
+          {S.resolved}
         </span>
         <div className="flex-1 text-xs">
           {resolution.kind === "identity" ? (
@@ -859,10 +870,11 @@ function IdentityRailSection({
           <div className="flex-1 flex items-start gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600 dark:text-amber-400">
             <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
             <span>
-              Detached, but sits inside the{" "}
-              <span className="font-medium">{identities[hole]?.handle ?? hole}</span>{" "}
-              cluster — this breaks the continuous rail. Set{" "}
-              <span className="font-mono">Rail</span> to Auto to reconnect it.
+              {S.railHoleBefore}
+              <span className="font-medium">{identities[hole]?.handle ?? hole}</span>
+              {S.railHoleMiddle}
+              <span className="font-mono">{S.anchor}</span>
+              {S.railHoleAfter}
             </span>
           </div>
         </div>
@@ -871,26 +883,26 @@ function IdentityRailSection({
       {editable && (
         <label className="flex items-center gap-2">
           <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground w-20 shrink-0 text-right">
-            Anchor
+            {S.anchor}
           </span>
           <select
             value={anchorValue}
             onChange={(e) => onAnchorChange(e.target.value)}
             className="flex-1 bg-transparent border border-border/50 rounded px-2 py-1 text-sm focus:outline-none focus:border-foreground/30 transition-colors"
           >
-            <option value={ATTACH_AUTO}>Auto (tenure)</option>
-            <option value={ATTACH_DETACH}>Detach (off rail)</option>
+            <option value={ATTACH_AUTO}>{S.anchorAuto}</option>
+            <option value={ATTACH_DETACH}>{S.anchorDetach}</option>
             {roles.length > 0 && (
-              <optgroup label="Pin to role (rail / beam)">
+              <optgroup label={S.pinToRole}>
                 {roles.map((r) => (
                   <option key={r.id} value={ROLE_PREFIX + r.id}>
-                    {r.title.en || r.id}
+                    {localize(r.title, locale) || r.id}
                   </option>
                 ))}
               </optgroup>
             )}
             {identityIds.length > 0 && (
-              <optgroup label="Pin to identity (byline)">
+              <optgroup label={S.pinToIdentity}>
                 {identityIds.map((id) => (
                   <option key={id} value={IDENT_PREFIX + id}>
                     {identities[id].handle}
@@ -916,13 +928,14 @@ function TypeSpecificFields({
   commit: Commit;
   onUpdate: (partial: Record<string, unknown>) => void;
 }) {
+  const S = useLabStrings(WORKS_STRINGS);
   switch (commit.type) {
     case "project":
       return (
         <>
-          <SectionLabel>Project</SectionLabel>
+          <SectionLabel>{S.project}</SectionLabel>
           <Field
-            label="Stars"
+            label={S.stars}
             value={commit.stats?.stars?.toString() ?? ""}
             onChange={(v) =>
               onUpdate({
@@ -934,7 +947,7 @@ function TypeSpecificFields({
             }
           />
           <Field
-            label="Users"
+            label={S.users}
             value={commit.stats?.users ?? ""}
             onChange={(v) =>
               onUpdate({
@@ -943,7 +956,7 @@ function TypeSpecificFields({
             }
           />
           <Field
-            label="Downloads"
+            label={S.downloads}
             value={commit.stats?.downloads ?? ""}
             onChange={(v) =>
               onUpdate({
@@ -957,9 +970,9 @@ function TypeSpecificFields({
     case "talk":
       return (
         <>
-          <SectionLabel>Talk</SectionLabel>
+          <SectionLabel>{S.talk}</SectionLabel>
           <Field
-            label="Conference"
+            label={S.conference}
             value={commit.conference.name}
             onChange={(v) =>
               onUpdate({
@@ -968,7 +981,7 @@ function TypeSpecificFields({
             }
           />
           <Field
-            label="City"
+            label={S.city}
             value={commit.conference.city ?? ""}
             onChange={(v) =>
               onUpdate({
@@ -977,7 +990,7 @@ function TypeSpecificFields({
             }
           />
           <Field
-            label="Conf URL"
+            label={S.confUrl}
             value={commit.conference.url ?? ""}
             onChange={(v) =>
               onUpdate({
@@ -991,14 +1004,14 @@ function TypeSpecificFields({
     case "post":
       return (
         <>
-          <SectionLabel>Post</SectionLabel>
+          <SectionLabel>{S.post}</SectionLabel>
           <Field
-            label="URL"
+            label={S.url}
             value={commit.url}
             onChange={(v) => onUpdate({ url: v })}
           />
           <Field
-            label="Publication"
+            label={S.publication}
             value={commit.publication.name}
             onChange={(v) =>
               onUpdate({
@@ -1012,29 +1025,29 @@ function TypeSpecificFields({
     case "role":
       return (
         <>
-          <SectionLabel>Role</SectionLabel>
+          <SectionLabel>{S.role}</SectionLabel>
           <Field
-            label="Identity"
+            label={S.identity}
             value={commit.identityId}
             onChange={(v) => onUpdate({ identityId: v })}
             placeholder="meta, bytedance, …"
           />
           <Field
-            label="Company EN"
+            label={S.companyEn}
             value={commit.company.en}
             onChange={(v) =>
               onUpdate({ company: { ...commit.company, en: v } })
             }
           />
           <Field
-            label="Company ZH"
+            label={S.companyZh}
             value={commit.company.zh}
             onChange={(v) =>
               onUpdate({ company: { ...commit.company, zh: v } })
             }
           />
           <Field
-            label="Override EN"
+            label={S.overrideEn}
             value={commit.companyOverride?.en ?? ""}
             onChange={(v) =>
               onUpdate({
@@ -1046,7 +1059,7 @@ function TypeSpecificFields({
             placeholder="Meta Reality Labs"
           />
           <Field
-            label="Override ZH"
+            label={S.overrideZh}
             value={commit.companyOverride?.zh ?? ""}
             onChange={(v) =>
               onUpdate({
@@ -1057,17 +1070,17 @@ function TypeSpecificFields({
             }
           />
           <Field
-            label="Location"
+            label={S.location}
             value={commit.location ?? ""}
             onChange={(v) => onUpdate({ location: v || undefined })}
           />
           <Field
-            label="URL"
+            label={S.url}
             value={commit.url ?? ""}
             onChange={(v) => onUpdate({ url: v || undefined })}
           />
           <CheckField
-            label="Hide Row"
+            label={S.hideRow}
             checked={commit.hideRow === true}
             onChange={(v) => onUpdate({ hideRow: v ? true : undefined })}
           />
@@ -1077,9 +1090,9 @@ function TypeSpecificFields({
     case "press":
       return (
         <>
-          <SectionLabel>Press</SectionLabel>
+          <SectionLabel>{S.press}</SectionLabel>
           <Field
-            label="Platform"
+            label={S.platform}
             value={commit.platform}
             onChange={(v) => onUpdate({ platform: v })}
           />
@@ -1095,13 +1108,7 @@ function TypeSpecificFields({
 // Media section
 // ─────────────────────────────────────────────────────────────────────────────
 
-const mediaKinds: { value: MediaKind; label: string }[] = [
-  { value: "link", label: "link" },
-  { value: "social-embed", label: "social-embed" },
-  { value: "video", label: "video" },
-  { value: "slides", label: "slides" },
-  { value: "image", label: "image" },
-];
+const mediaKinds: MediaKind[] = ["link", "social-embed", "video", "slides", "image"];
 
 /**
  * Fat working state for the media-item editor.
@@ -1246,6 +1253,7 @@ function MediaSection({
   // exposes (e.g. a `videoPlatform` survives the user flipping to `link` and
   // back). The parent keys this section by commit id, so switching commits
   // remounts and re-hydrates from that commit's media.
+  const S = useLabStrings(WORKS_STRINGS);
   const [drafts, setDrafts] = useState<MediaDraft[]>(() => media.map(mediaToDraft));
 
   const propagate = (nextDrafts: MediaDraft[]) => {
@@ -1277,18 +1285,18 @@ function MediaSection({
   return (
     <>
       <div className="flex items-center justify-between">
-        <SectionLabel>Media</SectionLabel>
+        <SectionLabel>{S.media}</SectionLabel>
         <button
           onClick={addItem}
           className="p-0.5 text-quaternary-foreground hover:text-muted-foreground rounded transition-colors"
-          title="Add media"
+          title={S.addMedia}
         >
           <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
       {drafts.length === 0 && (
         <div className="text-xs text-quaternary-foreground font-mono pl-[88px]">
-          No media attached
+          {S.noMedia}
         </div>
       )}
       {drafts.map((draft, i) => (
@@ -1316,6 +1324,7 @@ function MediaItemEditor({
   onDelete: () => void;
   focused?: boolean;
 }) {
+  const S = useLabStrings(WORKS_STRINGS);
   const ref = useRef<HTMLDivElement>(null);
   const set = (patch: Partial<MediaDraft>) => onChange({ ...draft, ...patch });
 
@@ -1343,20 +1352,20 @@ function MediaItemEditor({
           type="button"
           onClick={onDelete}
           className="p-0.5 text-quaternary-foreground hover:text-red-500 rounded transition-colors"
-          title="Remove media"
+          title={S.removeMedia}
         >
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
 
       <ChoiceField<MediaKind>
-        label="Kind"
+        label={S.kind}
         value={draft.kind}
-        options={mediaKinds}
+        options={mediaKinds.map((k) => ({ value: k, label: S.kindNames[k] }))}
         onChange={(v) => set({ kind: v })}
       />
       <Field
-        label="URL"
+        label={S.url}
         value={draft.url}
         onChange={(v) => set({ url: v })}
         placeholder="https://..."
@@ -1367,27 +1376,27 @@ function MediaItemEditor({
       {draft.kind === "link" && (
         <>
           <Field
-            label="URL EN"
+            label={S.urlEn}
             value={draft.urls?.en ?? ""}
             onChange={(v) =>
               set({
                 urls: { ...draft.urls, en: v || undefined },
               })
             }
-            placeholder="Locale variant (optional)"
+            placeholder={S.localeVariant}
           />
           <Field
-            label="URL ZH"
+            label={S.urlZh}
             value={draft.urls?.zh ?? ""}
             onChange={(v) =>
               set({
                 urls: { ...draft.urls, zh: v || undefined },
               })
             }
-            placeholder="Locale variant (optional)"
+            placeholder={S.localeVariant}
           />
           <Field
-            label="Preview title"
+            label={S.previewTitle}
             value={draft.preview?.title ?? ""}
             onChange={(v) =>
               set({
@@ -1397,10 +1406,10 @@ function MediaItemEditor({
                 },
               })
             }
-            placeholder="Card title override"
+            placeholder={S.previewTitlePlaceholder}
           />
           <Field
-            label="Preview desc"
+            label={S.previewDesc}
             value={draft.preview?.description ?? ""}
             onChange={(v) =>
               set({
@@ -1410,10 +1419,10 @@ function MediaItemEditor({
                 },
               })
             }
-            placeholder="Card description override"
+            placeholder={S.previewDescPlaceholder}
           />
           <Field
-            label="Preview image"
+            label={S.previewImage}
             value={draft.preview?.image ?? ""}
             onChange={(v) =>
               set({
@@ -1423,17 +1432,17 @@ function MediaItemEditor({
                 },
               })
             }
-            placeholder="Card image URL override"
+            placeholder={S.previewImagePlaceholder}
           />
         </>
       )}
 
       {draft.kind === "social-embed" && (
         <ChoiceField<"" | SocialEmbedPlatform>
-          label="Platform"
+          label={S.platform}
           value={draft.socialPlatform ?? ""}
           options={[
-            { value: "", label: "auto" },
+            { value: "", label: S.platformAuto },
             { value: "twitter", label: "X" },
             { value: "instagram", label: "IG" },
             { value: "tiktok", label: "TikTok" },
@@ -1445,7 +1454,7 @@ function MediaItemEditor({
       {draft.kind === "video" && (
         <>
           <ChoiceField<VideoPlatform>
-            label="Platform"
+            label={S.platform}
             value={draft.videoPlatform ?? "youtube"}
             options={[
               { value: "youtube", label: "YouTube" },
@@ -1455,10 +1464,10 @@ function MediaItemEditor({
             onChange={(v) => set({ videoPlatform: v })}
           />
           <Field
-            label="Thumbnail"
+            label={S.thumbnail}
             value={draft.thumbnail ?? ""}
             onChange={(v) => set({ thumbnail: v || undefined })}
-            placeholder="Thumbnail URL (optional)"
+            placeholder={S.thumbnailPlaceholder}
           />
         </>
       )}
@@ -1466,31 +1475,31 @@ function MediaItemEditor({
       {draft.kind === "slides" && (
         <>
           <Field
-            label="Title"
+            label={S.title}
             value={draft.slidesTitle ?? ""}
             onChange={(v) => set({ slidesTitle: v || undefined })}
-            placeholder="Deck title (modal)"
+            placeholder={S.slidesTitlePlaceholder}
           />
           <Field
-            label="Thumbnail"
+            label={S.thumbnail}
             value={draft.thumbnail ?? ""}
             onChange={(v) => set({ thumbnail: v || undefined })}
-            placeholder="Cover image URL (optional)"
+            placeholder={S.coverPlaceholder}
           />
         </>
       )}
 
       {draft.kind === "image" && (
         <Field
-          label="Alt"
+          label={S.alt}
           value={draft.alt ?? ""}
           onChange={(v) => set({ alt: v || undefined })}
-          placeholder="Alt text"
+          placeholder={S.altPlaceholder}
         />
       )}
 
       <CheckField
-        label="Pinned"
+        label={S.pinned}
         checked={draft.pinned === true}
         onChange={(v) => set({ pinned: v || undefined })}
       />

@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { LAB_INDEX, LABS, labFromPath } from "./catalog";
+import { useFrameStrings } from "./i18n";
 
 /**
  * The title on every lab: a dropdown that lists the whole family, the index
@@ -23,6 +24,7 @@ export function LabNav({
 }) {
   const pathname = usePathname();
   const { locale } = useLocale();
+  const F = useFrameStrings();
   const current = labFromPath(pathname);
   const page = appearance === "page";
   const title = current
@@ -44,7 +46,7 @@ export function LabNav({
             : "font-mono text-sm font-medium tracking-wide text-foreground",
           className,
         )}
-        aria-label={`Labs · ${title}`}
+        aria-label={`${F.labs} · ${title}`}
       >
         <span className="truncate">{title}</span>
         <ChevronDown
@@ -68,7 +70,7 @@ export function LabNav({
             <NavItem
               href={LAB_INDEX.href}
               mark={`/${LAB_INDEX.mark}`}
-              hint={locale === "zh" ? "全部实验室" : "Every lab"}
+              hint={F.everyLab}
               active={!current}
             />
             <div className="mx-2 my-1 h-px bg-border/60" />
