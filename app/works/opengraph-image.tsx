@@ -9,6 +9,6 @@ export default function OpengraphImage() {
   return renderOgImage({
     title: "Works",
     eyebrow: "/works",
-    meta: "commit history — profession as git log",
+    meta: "commit history: profession as git log",
   });
 }

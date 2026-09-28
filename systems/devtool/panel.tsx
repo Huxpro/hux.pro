@@ -849,7 +849,7 @@ function PanelStar({
   label?: string;
 }) {
   const title =
-    label ?? (source === "session" ? "Session override — reset" : "Saved — reset");
+    label ?? (source === "session" ? "Reset the session override" : "Reset the saved setting");
   return (
     <button
       onClick={onReset}
@@ -2586,7 +2586,7 @@ function SkyModule() {
                         : "A meteor can be seen through this weather (click the sky at night)"
                       : zh
                         ? "这个天气挡住了天空，没有流星"
-                        : "This weather covers the sky — no meteor",
+                        : "This weather covers the sky, so no meteor",
                   ].join(" · ")}
                 >
                   <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />

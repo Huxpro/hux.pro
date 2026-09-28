@@ -275,11 +275,11 @@ function WallpaperTile({
           type="button"
           onClick={() => selectWallpaper(wallpaper.id)}
           aria-pressed={selected}
-          aria-label={`Use the ${wallpaper.name} wallpaper — ${
+          aria-label={`Use the ${wallpaper.name} wallpaper (${
             meta ? `${meta}, ` : ""
           }${width} by ${height}${
             isPhoneWallpaper(wallpaper) ? ", a phone wallpaper" : ""
-          }`}
+          })`}
           className="absolute inset-0"
         >
           {single ? (
@@ -341,7 +341,7 @@ function WeatherStyleTile({
           type="button"
           onClick={() => selectWeather(style)}
           aria-pressed={selected}
-          aria-label={`${t(locale, "wallpaperWeather")} — ${name}`}
+          aria-label={`${t(locale, "wallpaperWeather")}: ${name}`}
           title={style === "sky" && !shaderSupported ? t(locale, "wallpaperNoWebGL") : undefined}
           className="absolute inset-0"
         >
@@ -451,7 +451,7 @@ function PlayTile({
           type="button"
           onClick={() => selectPlay(album, play)}
           aria-pressed={selected}
-          aria-label={`${name} — ${meta}`}
+          aria-label={`${name}, ${meta}`}
           className="absolute inset-0"
         >
           <PlayCollage wallpapers={albumWallpapers} variant={variant} fanned={shuffle} />
