@@ -312,13 +312,15 @@ function AboutFoot({
           newcomer landed on) and it breathes — the glow's pulse, blooming
           out from behind it — the one thing on the screen asking to be
           pressed. After that it is a plain Close. Where there is a
-          keyboard it wears its key, Esc. */}
+          keyboard it wears its key, Esc: the key's cap has an edge of its
+          own, so the pill needs less room after it than before the word
+          (16px, not 20) to look even. */}
       <button
         type="button"
         onClick={onDismiss}
         className={cn(
           "relative inline-flex items-center gap-2.5 rounded-full py-2 text-[13px] font-medium text-foreground",
-          keyboard ? "pr-2.5 pl-5" : "px-5",
+          keyboard ? "pr-4 pl-5" : "px-5",
           GLASS_TRACK_FLAT,
           "active:scale-[0.97] active:duration-0",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
@@ -332,8 +334,12 @@ function AboutFoot({
         )}
         <Glow active={firstTime} motion="pulse" inside={false} bleed={14} reach={3} strength={0.9} />
       </button>
-      {/* A little in from the edge, as at the top on a phone. */}
-      <div className="me-3 hidden sm:block">
+      {/* The row's mirror, nearly: the way out's pill touches the words'
+          left edge, and the switch's label stands just in from their right
+          (4px). Its chip (painted only under a pointer) cancels its own
+          padding, so the label is what is measured, and the chip, when it
+          shows, reaches about as far as the pill's glass does on the left. */}
+      <div className="me-1 hidden sm:block">
         <AboutLanguageSwitch />
       </div>
     </div>
