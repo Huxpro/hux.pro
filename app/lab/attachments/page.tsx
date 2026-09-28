@@ -17,7 +17,7 @@ import { AttachmentsLabView, type LabSamples } from "./view";
 export const metadata = {
   title: "Attachments Lab | Hux.Pro",
   description:
-    "Where a commit's attachments open, and the chip each cover wears — with the real surfaces on the page.",
+    "Where a commit's attachments open and the chip each cover wears, shown on the real surfaces.",
   robots: { index: false, follow: false },
 };
 

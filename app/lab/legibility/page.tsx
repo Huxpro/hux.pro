@@ -3,7 +3,7 @@ import { LegibilityLabView } from "./view";
 export const metadata = {
   title: "Legibility Lab | Hux.Pro",
   description:
-    "Every wallpaper, both materials, all the typography — with every knob a slider.",
+    "Every wallpaper, both materials and all the typography, with every knob a slider.",
   robots: { index: false, follow: false },
 };
 
