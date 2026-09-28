@@ -26,7 +26,8 @@ import { MoonGlyph, SunGlyph } from "./body-glyph";
 // the body itself, as light, and progress is brightness.
 //
 // No React per frame: it is placed, scaled and lit by the pull's own CSS
-// variables (`--sky-pull`, `--sky-pull-progress`), and its two lines swap on
+// variables (`--sky-pull` places it, `--sky-pull-reveal` lights it — nothing for
+// the first 40% of the way), and its two lines swap on
 // `html[data-sky-armed]` — see "The sky pull" in globals.css. Rendered always
 // and invisible at rest; it never takes a pointer, and it is decoration, so the
 // screen reader hears the toast that follows instead.

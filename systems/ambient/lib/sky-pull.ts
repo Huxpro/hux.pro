@@ -28,11 +28,12 @@
 // the top says there is something up there and how far is far enough (see
 // <SkyPullCue />); the sky's gradient lifts under it as a preview, while the
 // sun and the moon hold still until the window has actually opened. All of it
-// is driven from here without React: two CSS variables and three attributes on
+// is driven from here without React: three CSS variables and three attributes on
 // <html>, and a callback for the renderer.
 //
 //   --sky-pull           px the page has followed the finger down
 //   --sky-pull-progress  0..1 of the way to far enough
+//   --sky-pull-reveal    0..1 of the hint showing: nothing until 40% of the way
 //   [data-sky-pulling]   a finger is pulling (transitions off: follow it exactly)
 //   [data-sky-armed]     far enough: letting go opens the window
 //
@@ -54,17 +55,23 @@ import type { PermissionStatus } from "./permissions";
 import { onSystemSurface } from "./tilt-primer";
 
 /** How far the page follows at most, px — the rubber band's reach. */
-const PULL_REACH = 280;
+const PULL_REACH = 220;
+/** Followed this far, letting go opens the window, px. */
+const PULL_ARM_PX = 92;
 /**
- * Followed this far, letting go opens the window, px — half the rubber band's
- * reach, about 195 px of finger (reach · ln 2). Far enough that it is a pull
- * and not a flick: a window that opened almost as soon as the page moved read
- * as a gesture that went off by accident. Kept at half the reach, and the
- * reach grown with it, rather than pushed up the same band: near the band's
- * end the page barely moves for more finger, and the last stretch to the line
- * would feel like pulling against a wall.
+ * The pull says nothing of the sky until it is this far to the line, and has
+ * said all of it by `REVEAL_TO`: the cue and the sky's lift are one `reveal`,
+ * 0 → 1 across that stretch. A page nudged at its top just moves — a hint that
+ * lit up at the first pixel made the egg feel like it went off by itself, and
+ * the line itself (where letting go opens the window) stays where it was.
  */
-const PULL_ARM_PX = 140;
+const REVEAL_FROM = 0.4;
+const REVEAL_TO = 0.9;
+
+/** How much of the pull's hint shows, 0..1, at `progress` of the way to the line. */
+function revealAt(progress: number): number {
+  return Math.min(1, Math.max(0, (progress - REVEAL_FROM) / (REVEAL_TO - REVEAL_FROM)));
+}
 /**
  * A move that starts later than this after the finger landed belongs to the
  * widget grid's press-and-hold (400 ms), not to a pull.
@@ -132,10 +139,13 @@ function touchOf(list: TouchList, id: number | null): Touch | null {
 let painted: HTMLElement[] = [];
 
 function paint(px: number) {
-  const progress = Math.min(1, px / PULL_ARM_PX).toFixed(3);
+  const progress = Math.min(1, px / PULL_ARM_PX);
+  const p = progress.toFixed(3);
+  const reveal = revealAt(progress).toFixed(3);
   for (const el of painted) {
     el.style.setProperty("--sky-pull", `${px.toFixed(1)}px`);
-    el.style.setProperty("--sky-pull-progress", progress);
+    el.style.setProperty("--sky-pull-progress", p);
+    el.style.setProperty("--sky-pull-reveal", reveal);
   }
 }
 
@@ -162,7 +172,7 @@ export function settlePull() {
 }
 
 export interface SkyPullHandlers {
-  /** Every move, with the fraction of the way to far enough — the sky's preview. */
+  /** Every move, with how much of the hint shows (`revealAt`) — the sky's preview. */
   onProgress: (progress: number) => void;
   /** Let go past far enough. The page is left pulled; the caller decides what next. */
   onPulled: () => void;
@@ -240,7 +250,7 @@ export function attachSkyPull(handlers: SkyPullHandlers): () => void {
       // A tick where the platform has one: the point of no return, felt.
       if (armed) navigator.vibrate?.(8);
     }
-    handlers.onProgress(Math.min(1, px / PULL_ARM_PX));
+    handlers.onProgress(revealAt(Math.min(1, px / PULL_ARM_PX)));
   };
 
   const onEnd = (event: TouchEvent) => {

@@ -869,9 +869,15 @@ still under a pull, and so do the clouds and the stars' places, so nothing is
 already on its way before the window has opened. Let go short and it eases
 back.
 
-**No React per frame.** The recognizer writes two CSS variables and three
+**No React per frame.** The recognizer writes three CSS variables and three
 attributes on `<html>` and calls the renderer's `previewWindow`; the page, the
-cue and the search button are moved by CSS ("The sky pull" in `globals.css`):
+cue and the search button are moved by CSS ("The sky pull" in `globals.css`).
+`--sky-pull` is how far the page has followed, `--sky-pull-progress` how far to
+the line, and `--sky-pull-reveal` how much of the hint shows: **nothing until
+40% of the way** (`REVEAL_FROM`), all of it by 90% (`REVEAL_TO`). The cue and
+the sky's lift both read the reveal, so a page nudged at its top just moves, and
+the hint arrives as one thing rather than lighting at the first pixel; the line
+itself (`PULL_ARM_PX`, about 120 px of finger) is where it always was.
 
 | state | what the home does |
 |---|---|
