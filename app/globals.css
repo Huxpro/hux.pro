@@ -19,6 +19,17 @@
   --breakpoint-bleed: 900px;
 }
 
+/* `measure:` — wide enough for every reading column to be its own width. The
+   columns are 600 / 680 / 760px, and under 760 the viewport is the column: at
+   a phone's width all three land on the same line, so "Column" would be a
+   control wired to nothing. The rule that sets the width and the reader
+   control that picks it (components/post/reading-sheet.tsx) both answer to
+   this number, like `bleed:` above. It is the wide column's width, so the two
+   change together. */
+@theme {
+  --breakpoint-measure: 760px;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -1081,9 +1092,19 @@ html.dragging * {
    Reading settings — devtool "Reading" panel, reflected onto <html data-*>.
    ============================================================================= */
 
-/* Body typeface: serif mode swaps prose body copy to the serif stack. Headings
-   keep their explicit `font-sans`; code/quote/em keep their own families. */
-:root[data-reading-font="serif"] .prose-article {
+/* Typeface: serif mode swaps the whole reading composition to the serif stack
+   — the body, the headings inside it and the title over it. The headings and
+   the masthead title name `font-sans` explicitly (above, and TITLE_READER in
+   components/ui/header-zone.tsx), so inheriting from the body is not enough:
+   left alone, a serif page kept sans headings and a sans title. The About's
+   words are set as an article is and already follow the reading size, so they
+   follow the typeface too. Code keeps mono; quote/em were serif already. */
+:root[data-reading-font="serif"] .prose-article,
+:root[data-reading-font="serif"] .about-copy,
+:root[data-reading-font="serif"]
+  .prose-article
+  :is(h1, h2, h3):not(:where(.not-prose, .not-prose *)),
+:root[data-reading-font="serif"] main[data-variant="reader"] .reader-masthead h1 {
   @apply font-serif;
 }
 
@@ -1169,12 +1190,17 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* Reading measure: widen/narrow the reader column. Only the reader variant's
-   container is affected; poetic pages (home, lists) keep their width. */
-:root[data-reading-measure="narrow"] main[data-variant="reader"] {
-  max-width: 600px;
-}
-:root[data-reading-measure="wide"] main[data-variant="reader"] {
-  max-width: 760px;
+   container is affected; poetic pages (home, lists) keep their width. Only
+   where all three columns fit (`measure:`), so the setting does nothing where
+   the reader cannot see the row that sets it -- a phone does not keep a
+   narrow column chosen at a desk and hidden from the phone. */
+@media (width >= theme(--breakpoint-measure)) {
+  :root[data-reading-measure="narrow"] main[data-variant="reader"] {
+    max-width: 600px;
+  }
+  :root[data-reading-measure="wide"] main[data-variant="reader"] {
+    max-width: 760px;
+  }
 }
 
 /* Focus mode: dim every prose block except the one at the reading line, which
