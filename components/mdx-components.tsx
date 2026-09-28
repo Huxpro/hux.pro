@@ -32,7 +32,11 @@
  * @see docs/mdx.md - Documentation on MDX rendering
  */
 
-import { ServerBadge, ServerMagicLink } from "@/components/magic-link/server";
+import {
+  ServerBadge,
+  ServerMagicLink,
+  ServerProseLink,
+} from "@/components/magic-link/server";
 import { CodeBlock } from "@/components/code-block";
 import { HeadingWithLink } from "@/components/heading-link";
 import { MdxImage } from "@/components/mdx-image";
@@ -149,7 +153,8 @@ const sharedComponents: MDXComponents = {
   // ---------------------------------------------------------------------------
   // HTML Element Overrides (prose styles apply from .prose-article CSS)
   // ---------------------------------------------------------------------------
-  a: SmartLink,
+  // A link to something this site knows peeks as it (components/magic-link).
+  a: ServerProseLink,
   code: InlineCode,
   pre: CodeBlock,
   table: TableWrapper,

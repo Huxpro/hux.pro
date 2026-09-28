@@ -12,6 +12,23 @@ For each embed that renders as a card, the preview data is resolved highest-prio
 
 `(1)` and `(2)` are baked into the data **server-side** (`enrichLogDataWithPreviews` in `app/works/page.tsx`), so cards paint immediately with no request-time crawl and no skeleton flash. `(3)` only runs for a brand-new embed you haven't snapshotted yet — so dev still "just works".
 
+## Links in prose
+
+MDX's `a` is `ServerProseLink` (`components/magic-link/server.tsx`). A link
+that points at something of this site's own becomes a magic link, with the
+same peek and phone drawer it has everywhere else:
+
+| The link points at | It peeks, and on a phone opens, as |
+|---|---|
+| a post (`/writing/…`, or its full or old-blog URL) | the post |
+| a section (`/works`, `/works?type=talk`, …) | the section's card |
+| a URL a commit in `log.json` attaches | that attachment, as its /works cover |
+| anything else | a plain link |
+
+Someone else's page is not upgraded on its own card: a link out stays one
+press from where it goes. An author who wants one summoned writes
+`<MagicLink href>`, whose card the snapshot records.
+
 ## Our own pages
 
 A card for one of this site's posts (a `link` whose `url`, or a `urls` entry,
