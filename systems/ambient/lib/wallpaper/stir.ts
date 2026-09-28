@@ -15,9 +15,10 @@
 //
 // This module is only the recognizer: it decides whether a drag landed on the
 // background and reports how fast the hand is going, in CSS pixels per second.
-// The air's own behaviour lives in `WallpaperRenderer` ("Stirring up a gust"),
-// how each field is re-aimed by it under "Where the weather falls", and the
-// look in `shader.ts`.
+// The air's own behaviour is `GUST` and `gustStep` below, shared by both
+// engines that draw particles; how each field is re-aimed by it lives in the
+// Sky's `WallpaperRenderer` ("Where the weather falls") and in the Atmosphere
+// engine's fall vectors (lib/atmosphere/engine.ts). Neither moves a cloud.
 //
 // What counts as the background is not asked here twice: it is `isBackgroundClick`
 // from `lib/poke.ts`, the same question the tapped eggs ask, so no two of them
@@ -39,6 +40,57 @@
 // =============================================================================
 
 import { isBackgroundClick } from "../poke";
+
+/**
+ * How the air answers a hand — in both engines. One unit of hand travel is one
+ * viewport HEIGHT; wind is −1..1, positive blowing right. How each engine's
+ * rain and snow are re-aimed by the result is its own ("Where the weather
+ * falls" in the Sky's renderer, the fall vectors in the Atmosphere's engine).
+ */
+export const GUST = {
+  /** Hand speed (heights/s) → gust, through `tanh`, so a frantic hand saturates. */
+  gain: 0.55,
+  /**
+   * The strongest gust a hand can raise — above 1.0 on purpose, which is the
+   * top of the forecast's own range (50 km/h). A gust is not a wind; it is
+   * allowed to be briefly harder than any weather the sky is showing.
+   */
+  max: 1.1,
+  /** How quickly the hand's motion stops counting once it stops moving. */
+  stirTau: 0.1,
+  /**
+   * The gust's rise. Short: a squall front slams the rain over, it does not
+   * lean it politely. The rain's lean shears the curtain about mid-screen, so
+   * the edges sweep sideways at `0.5 × 0.75 × max ÷ attack` heights a second —
+   * a little over its own fall speed, which is the most that still reads as
+   * air rather than as a whip.
+   */
+  attack: 0.13,
+  /**
+   * And its fall — more than ten times as long, which is the shape of the
+   * thing. A gust arrives all at once and then *passes*: it is still half
+   * itself a second later, still visible at three, and gone by six. Getting up
+   * and dying away at the same rate is what makes a gust read as a twitch.
+   */
+  release: 1.6,
+} as const;
+
+/**
+ * One step of the gust toward what the hand is asking for: `stir` as it was at
+ * `stirAt` (ms), now `now`, `dtSec` since the last step. Freshness is measured
+ * from when the hand actually went past, never from the last frame — decaying
+ * it by a frame's worth would dock every gesture by however long the GPU took.
+ * Rising or falling, not stirring-or-not: the gust takes the fast constant
+ * whenever it is asked for MORE wind than it has, and the slow one whenever it
+ * is asked for less. So it always arrives at once and always passes slowly.
+ */
+export function gustStep(gust: number, stir: number, stirAt: number, now: number, dtSec: number): number {
+  const stale = (now - stirAt) / 1000;
+  const asked = stir * Math.exp(-stale / GUST.stirTau);
+  const tau = Math.abs(asked) > Math.abs(gust) ? GUST.attack : GUST.release;
+  const next = gust + (asked - gust) * (1 - Math.exp(-dtSec / tau));
+  return Math.abs(next) < 1e-3 && Math.abs(asked) < 1e-3 ? 0 : next;
+}
 
 /** Compatibility mouse events follow a tap; ignore a mouse this soon after one. */
 const AFTER_TOUCH_MS = 700;

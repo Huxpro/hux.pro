@@ -348,7 +348,8 @@ function WeatherStyleTile({
           className="absolute inset-0"
         >
           {style === "atmosphere" ? (
-            <LiveAtmosphere scene={scene} active={isPickerOpen} tile />
+            // Tilts like the Sky's tile beside it: lean the phone in the rain.
+            <LiveAtmosphere scene={scene} active={isPickerOpen} gyro={gyro.active} tile />
           ) : animated ? (
             <WeatherWallpaper
               scene={scene}

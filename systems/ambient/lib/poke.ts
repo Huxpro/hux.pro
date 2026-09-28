@@ -6,10 +6,10 @@
 // (`meteor`). Both are the same shape of thing: point-aimed, brief, bright,
 // self-cleaning, and belonging to one condition only. A poke is that shape.
 //
-// The Sky is the only engine that answers. A wash has no geometry to draw a
-// channel or a streak on, and a flash with no bolt in it is a different, lesser
-// find — so the Gradient and Classic styles simply do not have these easter
-// eggs, rather than having worse ones.
+// The engines that paint a sky answer — the Sky and Atmosphere, each its own
+// way. A wash has no geometry to draw a channel or a streak on, and a flash
+// with no bolt in it is a different, lesser find — so the Gradient and Classic
+// styles simply do not have these easter eggs, rather than having worse ones.
 //
 // This module is the part with no engine in it: which condition is armed, how
 // long each answer lives, how often one may fire, and the one question the

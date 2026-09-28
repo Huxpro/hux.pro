@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { lightningAt } from "./lightning.ts";
+import { lightningAt, STRIKE_LIFE, strikeAt } from "./lightning.ts";
 import { deriveSkyScene, solarPosition } from "./scene.ts";
 import { normalizeWeatherCode } from "../weather.ts";
 
@@ -62,4 +62,18 @@ test("storms show an early double stroke, coherent illumination, and a quiet int
     assert.equal(disabled.bolt, 0);
     assert.equal(disabled.strength, 0);
   }
+});
+
+test("a clicked strike lands on the point, lit from the cloud above it, then retires", () => {
+  const x = 0.3, y = 0.7;
+  const peak = strikeAt(0.12, x, y, 5);
+  assert.ok(peak.bolt > 0.95 && peak.strength > 0.8);
+  assert.equal(peak.toX, x);
+  assert.equal(peak.toY, y);
+  assert.ok(peak.y < y && Math.abs(peak.x - x) <= 0.04);
+  assert.equal(strikeAt(-0.01, x, y, 5).bolt, 0);
+  assert.equal(strikeAt(STRIKE_LIFE + 0.01, x, y, 5).strength, 0);
+  // A click near the top still gets a channel out of the cloud base.
+  const high = strikeAt(0.12, 0.5, 0.05, 5);
+  assert.ok(high.y < high.toY);
 });

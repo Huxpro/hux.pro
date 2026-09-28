@@ -26,7 +26,10 @@
 // fast it gives back, how quickly the hand that draws it runs out — and the
 // recognizer, `attachWipeDrag`, which decides whether a drag landed on the
 // background and reports the path it took, in CSS pixels. What the mist then
-// does with that path lives in `WallpaperRenderer` and `shader.ts`. The gust
+// does with that path lives in each engine: the Sky's `WallpaperRenderer` and
+// `shader.ts`, and Atmosphere's `AtmosphereEngine`, which paints the swath into
+// a mask its cloud pass reads (lib/atmosphere/engine.ts). Both use the
+// constants here: the life, the decay, the hand that tires, the carry. The gust
 // egg is arranged the same way, in `lib/wallpaper/stir.ts`.
 // =============================================================================
 

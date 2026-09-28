@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import type { PokeKind } from "@/systems/ambient/lib/poke";
 import Link from "next/link";
+import { EditorNav } from "@/app/editor/nav";
 import { useRouter } from "next/navigation";
 import { useWallpaper } from "@/systems/ambient/provider";
 import { AtmosphereWallpaper } from "@/systems/ambient/components/atmosphere-wallpaper";
@@ -30,17 +32,25 @@ export function WeatherStudio() {
     windSpeedKmh: wind, windDirectionDeg: 250,
   }), [condition,strength,wind]);
   const scene = useMemo(() => deriveSkyScene({ weather, nowMs: epoch+hour*3600000, latitude: 35, longitude: 0 }),[weather,hour]);
+  // The eggs, previewed: a tap on the sky strikes on a thunder day and sends a
+  // meteor on a clear night — the engine's own answers, as the home gives them.
+  const pokeRef = useRef<((kind: PokeKind, x: number, y: number) => void) | null>(null);
+  const poke: PokeKind | null = paused ? null : condition === "thunder" ? "strike"
+    : scene.daylight < 0.05 && scene.cloud < 0.6 && scene.fog < 0.3 ? "meteor" : null;
   const time = `${String(Math.floor(hour)).padStart(2,"0")}:${String(Math.round((hour%1)*60)).padStart(2,"0")}`;
   return (
     <main className="relative isolate min-h-svh bg-slate-950 text-white">
-      <div className="fixed inset-0"><AtmosphereWallpaper scene={scene} paused={paused} lightningKey={lightningKey} /></div>
+      <div className="fixed inset-0"><AtmosphereWallpaper scene={scene} paused={paused} lightningKey={lightningKey} pokeRef={pokeRef} /></div>
       {reading && <div className="fixed inset-0 bg-background/60" />}
       <div className="relative mx-auto flex min-h-svh max-w-6xl flex-col px-6 py-8 sm:px-12 sm:py-12">
         <header className="flex items-center justify-between gap-4 text-xs tracking-wide text-white/85 [text-shadow:0_1px_8px_#102030]">
+          <EditorNav appearance="page" className="text-white" />
           <Link href="/" className="rounded focus-visible:outline-2 focus-visible:outline-offset-4">← hux.pro</Link>
-          <span>ATMOSPHERE STUDIO</span>
         </header>
-        <div className={`flex flex-1 flex-col justify-center py-16 ${reading ? "text-foreground" : "[text-shadow:0_2px_24px_#10203060]"}`}>
+        <div
+          onClick={(e) => { if (poke) pokeRef.current?.(poke, e.clientX / innerWidth, 1 - e.clientY / innerHeight); }}
+          className={`flex flex-1 flex-col justify-center py-16 ${poke ? "cursor-crosshair" : ""} ${reading ? "text-foreground" : "[text-shadow:0_2px_24px_#10203060]"}`}
+        >
           <p className="mb-3 text-sm opacity-80">September 12 · 35° N</p>
           <h1 className="font-sans text-[clamp(5rem,14vw,10rem)] leading-none font-light tracking-[-0.065em] tabular-nums">{time}</h1>
           <p className="mt-5 font-serif text-2xl sm:text-3xl">{WEATHER_CONDITIONS[condition].label}</p>
@@ -66,7 +76,7 @@ export function WeatherStudio() {
             {condition === "thunder" && <button onClick={() => { setPaused(false); setLightningKey(k => k + 1); }} className="rounded-md border border-white/25 px-3 py-2 hover:bg-white/10">Preview lightning</button>}
             <button onClick={() => { selectWeather("atmosphere"); setPlacement("full"); router.push("/"); }} className="rounded-md border border-white/40 bg-white/15 px-3 py-2 hover:bg-white/25">Use live wallpaper →</button>
             <label className="flex items-center gap-2"><input type="checkbox" checked={reading} onChange={e=>setReading(e.target.checked)} /> Reading surface</label>
-            <span className="text-white/60">Preview conditions</span>
+            <span className="text-white/60">{poke === "strike" ? "Tap the sky to call a bolt down" : poke === "meteor" ? "Tap the sky for a meteor" : "Preview conditions"}</span>
           </div>
         </section>
       </div>

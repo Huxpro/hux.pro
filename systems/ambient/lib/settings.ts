@@ -71,7 +71,7 @@ export interface AmbientSettings {
   bezelRadius: number | null;
   /**
    * Rain and snow fall along the device's gyroscope rather than straight down
-   * the page (Sky only — see lib/gyroscope.ts). On by default: where the
+   * the page (Sky and Atmosphere — see lib/gyroscope.ts). On by default: where the
    * browser hands over motion freely it just works, and where it does not
    * this is the wish waiting for the one tap that grants it.
    */

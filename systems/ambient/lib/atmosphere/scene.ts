@@ -1,4 +1,4 @@
-import type { WeatherScene } from "../scene";
+import { themeKeyFor, type WeatherScene } from "../scene";
 import type { AmbientPhase } from "../phase";
 import type { NormalizedWeather, WeatherCondition } from "../weather";
 
@@ -16,9 +16,27 @@ export interface SkyScene {
   snow: number;
   fog: number;
   storm: number;
+  /** Screen-space drift: x across, y into the scene (away from the viewer). */
   wind: [number, number];
   moonPhase: number;
+  /** Where the moon's disc is, uv with y down, like `sun`. */
+  moon: [number, number];
+  /** 0..1 how much of the moon there is to see, before anything in front of it. */
+  moonVisible: number;
+  /** Relative disc size: 1 high in the sky, larger near the horizon. */
+  moonSize: number;
+  /** 0..1 how dark the night is for stars, before anything in front of them. */
+  stars: number;
+  /** 0..1 how thick the cloud is for its cover: thin cirrus → dense stratus. */
+  density: number;
+  /** 0..1 how dark the cloud bases read. */
+  darkness: number;
+  /** +1 north (the moon waxes on the right), −1 south (mirrored). */
+  hemisphere: number;
 }
+
+/** Cyclic or discrete: these jump to the new scene rather than easing to it. */
+export const SNAPPED_KEYS = ["moonPhase", "hemisphere"] as const;
 export const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 const smooth = (a: number, b: number, x: number) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -95,6 +113,7 @@ export function deriveSkyScene({ weather, nowMs, latitude, longitude, phase, con
   const cloudShade = blend(blend([0.017, 0.024, 0.043], [0.3, 0.4, 0.5], daylight), [0.095, 0.13, 0.19], storm * 0.65);
   const windSpeed = clamp(live?.windSpeedKmh ?? 12, 0, 100);
   const direction = (live?.windDirectionDeg ?? 250) * rad;
+  const night = 1 - smooth(-7, 5, solar.elevation);
   return {
     zenith, horizon, cloudLight, cloudShade,
     sun: [mix(0.13, 0.87, clamp((solar.progress - 0.22) / 0.56)), 0.84 - clamp(solar.elevation / 90, -0.2, 1) * 0.8],
@@ -103,6 +122,13 @@ export function deriveSkyScene({ weather, nowMs, latitude, longitude, phase, con
     // Synodic phase, using the Jan 2000 new moon epoch. The moon is illustrative,
     // not an ephemeris of its position in the sky.
     moonPhase: ((nowMs / 86400000 - 10962.76) / 29.530588853 % 1 + 1) % 1,
+    moon: [0.76, 0.2],
+    moonVisible: night,
+    moonSize: 1,
+    stars: night,
+    density: kind === "fog" ? 0.45 : 0.55 + storm * 0.35 + rain * 0.2,
+    darkness: clamp(storm * 0.65 + rain * 0.35 + snow * 0.1),
+    hemisphere: 1,
   };
 }
 
@@ -112,7 +138,15 @@ export function sceneGradient(scene: SkyScene): string {
 }
 
 /** Adapt the shared live scene without changing Sky's weather, clock or overrides.
- * Atmosphere retains its own lighting palette and volumetric cloud treatment. */
+ * Atmosphere keeps its own lighting palette and volumetric cloud treatment, but
+ * everything that is a measurement — where the sun and moon really are, how
+ * dark the night is, what the cloud is made of, which way the air is going —
+ * is the shared scene's, so the two engines never disagree about the weather.
+ *
+ * Stars and moon are taken from `behind`: the sky with nothing in front of it.
+ * Sky dims them by the cover because its decks are pictures; here the cloud
+ * volume and the mist occlude them physically, per pixel, so dimming them as
+ * well would count the murk twice (and leave nothing for the fog wipe to find). */
 export function toAtmosphereScene(scene: WeatherScene): SkyScene {
   const result = deriveSkyScene({
     nowMs: 0,
@@ -122,15 +156,33 @@ export function toAtmosphereScene(scene: WeatherScene): SkyScene {
     },
     sunPosition: { elevation: scene.sun.elevation, progress: 0.5 },
   });
+  // The stage looks toward the equator: south in the north, north in the
+  // south. Wind blowing away from the viewer carries the deck into the scene.
+  const into = -scene.windWorld.north * scene.hemisphere;
+  // The theme's lightness over this palette, as the shared scene keys its own:
+  // a night under the light theme is lifted, a day under the dark one pressed.
+  const theme = themeKeyFor(scene.theme, scene.sun.elevation);
+  const keyed = (c: Vec3) => [...theme.key(c)] as Vec3;
   return {
     ...result,
+    zenith: keyed(result.zenith),
+    horizon: keyed(result.horizon),
+    cloudLight: keyed(result.cloudLight),
+    cloudShade: keyed(result.cloudShade),
     sun: [scene.sun.screen.x, 1 - scene.sun.screen.y],
     moonPhase: scene.moon.phase,
+    moon: [scene.moon.screen.x, 1 - scene.moon.screen.y],
+    moonVisible: scene.behind.moon * theme.moon,
+    moonSize: scene.moon.size,
+    stars: scene.behind.stars,
+    density: scene.clouds.density,
+    darkness: scene.clouds.darkness,
+    hemisphere: scene.hemisphere,
     rain: scene.precipitation.type === "rain" ? scene.precipitation.intensity : 0,
     snow: scene.precipitation.type === "snow" ? scene.precipitation.intensity : 0,
     fog: scene.fog,
     storm: scene.lightning,
-    wind: [scene.wind.x, scene.wind.y],
+    wind: [scene.wind.x, into],
   };
 }
 
