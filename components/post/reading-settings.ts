@@ -10,7 +10,7 @@ import { makeStore } from "./persisted-setting";
  * {@link makeStore} factory):
  *
  *   · bleed   — let wide landscape media break out of the reading column
- *   · font    — body typeface: sans (default) or serif
+ *   · font    — reading typeface (body, headings, title): sans (default) or serif
  *   · size    — type size: small / default / large
  *   · measure — reading column width: narrow / default / wide
  *   · focus   — dim every block but the one at the reading line

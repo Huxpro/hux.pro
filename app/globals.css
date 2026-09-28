@@ -1081,9 +1081,19 @@ html.dragging * {
    Reading settings — devtool "Reading" panel, reflected onto <html data-*>.
    ============================================================================= */
 
-/* Body typeface: serif mode swaps prose body copy to the serif stack. Headings
-   keep their explicit `font-sans`; code/quote/em keep their own families. */
-:root[data-reading-font="serif"] .prose-article {
+/* Typeface: serif mode swaps the whole reading composition to the serif stack
+   — the body, the headings inside it and the title over it. The headings and
+   the masthead title name `font-sans` explicitly (above, and TITLE_READER in
+   components/ui/header-zone.tsx), so inheriting from the body is not enough:
+   left alone, a serif page kept sans headings and a sans title. The About's
+   words are set as an article is and already follow the reading size, so they
+   follow the typeface too. Code keeps mono; quote/em were serif already. */
+:root[data-reading-font="serif"] .prose-article,
+:root[data-reading-font="serif"] .about-copy,
+:root[data-reading-font="serif"]
+  .prose-article
+  :is(h1, h2, h3):not(:where(.not-prose, .not-prose *)),
+:root[data-reading-font="serif"] main[data-variant="reader"] .reader-masthead h1 {
   @apply font-serif;
 }
 
