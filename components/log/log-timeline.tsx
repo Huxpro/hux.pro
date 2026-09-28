@@ -314,12 +314,15 @@ function TagBlock({
   };
 
   /**
-   * A row as it prints. A project that holds other work forks a branch in
-   * the gutter, and what it holds follows it as rows of their own on that
-   * branch, in the order it happened: the talks (a step quieter than the
-   * page, pressable on their own) and the project's own attachments, a
-   * strip per run. The text column never moves; on a phone the nesting
-   * costs nothing but the icon's step to the right.
+   * A row as it prints. A project that holds other work is the head of a
+   * branch in the gutter, drawn the way `git log --graph` draws one: a lane
+   * a step right of the rail that grows up out of it. The project comes
+   * first, and what it holds follows on the same lane as rows of their own,
+   * in the order it happened: the talks (a step quieter than the page,
+   * pressable on their own) and the project's own attachments, a strip per
+   * run. Under the last one the lane curves back into the rail. The text
+   * column never moves; on a phone the nesting costs nothing but the
+   * icons' step to the right.
    */
   const renderRow = (
     c: CommitData,
@@ -341,7 +344,7 @@ function TagBlock({
           {...props}
           commit={c}
           {...versionProps(c)}
-          branch="fork"
+          branch="head"
           mediaElsewhere={withMedia}
         />
         {entries.map((entry, k) => {

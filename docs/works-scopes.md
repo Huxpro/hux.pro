@@ -40,12 +40,14 @@ on its own.
 `lib/log-scopes.ts` works out who belongs where; `components/log/log-timeline.tsx`
 renders it.
 
-- **A branch in the gutter.** What a project holds prints right under it,
-  as rows of their own. The project's icon forks a line a step right of the
-  rail, and each held row has its icon on that line; the line ends at the
-  last one. The text column never moves: the hash stays in the hash column
-  and the title in the title column, so nesting costs a phone nothing but
-  the icon's 8px step. The tenure rail runs on past the branch as before.
+- **A branch in the gutter**, drawn the way `git log --graph` draws one:
+  a lane a step (8px) right of the rail that grows up out of it. The
+  project is the branch's head, the first row you meet scrolling down,
+  with its icon on the lane. What it holds follows on the same lane, and
+  under the last one the lane curves back into the rail, over the commit
+  it grew from. The rail runs past the branch unbroken. The text column
+  never moves: the hash stays in the hash column and the title in the
+  title column, so nesting costs a phone nothing but the icons' step.
 - **Always printed, a step quieter.** Held rows follow the page's form
   (index rows in the index, covers in covers, the feed in the feed), minus
   their prose: title, venue and covers, and the description only when you

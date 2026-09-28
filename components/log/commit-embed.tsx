@@ -94,7 +94,7 @@ export interface CommitProps {
   selectedVersion?: string;
   onSelectVersion?: (id: string) => void;
   /** Timeline-only: a project's branch (lib/log-scopes.ts), see `TimelineCommit`. */
-  branch?: "fork" | "entry" | "last";
+  branch?: "head" | "entry" | "last";
   held?: boolean;
   mediaElsewhere?: boolean;
   mediaOnly?: readonly Media[];

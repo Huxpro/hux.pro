@@ -48,12 +48,17 @@ const GUTTER_PULL = "lg:-ml-[6.5rem]";
 
 /**
  * How far right of the rail a project's branch runs (see `branch`): the
- * rows it holds sit on that line. Far enough that a held icon clears the
- * rail running past it, near enough that the title keeps its column.
+ * project and the rows it holds sit on that line. Far enough that an icon
+ * clears the rail running past it, near enough that the title keeps its
+ * column.
  */
 const BRANCH_PX = 8;
-/** How tall the curve from the project's icon out to its branch is. */
+/** How tall the curve from the branch back into the rail is. */
 const FORK_PX = 10;
+/** The row's own vertical padding (`py-2.5`), which the join runs into. */
+const ROW_PAD_PX = 10;
+/** Where an icon's center sits below the top of the row's grid (`h-5`). */
+const ICON_CENTER_PX = 10;
 
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
@@ -155,13 +160,15 @@ interface TimelineCommitProps {
   activeSegment?: string;
   onActiveSegment?: (id: string) => void;
   /**
-   * The row's place on a project's branch (lib/log-scopes.ts). A project
-   * that holds other work forks a line out of its icon, a step right of
-   * the rail (`fork`); what it holds prints under it as rows of their own
-   * with their icons on that line (`entry`), and the line ends at the last
-   * one (`last`). The text never moves: the gutter carries the nesting.
+   * The row's place on a project's branch (lib/log-scopes.ts), drawn the
+   * way `git log --graph` draws one: a lane a step right of the rail that
+   * grows up out of it. The project is the branch's head, the first row
+   * you meet scrolling down (`head`); what it holds follows on the same
+   * lane (`entry`); and under the last one (`last`) the lane curves back
+   * into the rail it grew from. The text never moves: the gutter carries
+   * the nesting.
    */
-  branch?: "fork" | "entry" | "last";
+  branch?: "head" | "entry" | "last";
   /**
    * The row is held by the project above it. It prints one step quieter:
    * its title, venue and covers, and its prose only when pressed. It does
@@ -466,8 +473,10 @@ export function TimelineCommit({
   //
   // A held row's icon is a size smaller (10px), so its gap is too.
   const iconGapPx = isQuiet ? 3 : isRoleAnchor ? 10 : held ? 6 : 7;
-  // On a branch, the icon sits on the branch's line, not the rail.
-  const onBranch = branch === "entry" || branch === "last";
+  // On a branch, the icon sits on the branch's lane, not the rail, and the
+  // rail runs past it unbroken.
+  const onBranch = !!branch;
+  const railGapPx = onBranch ? 0 : iconGapPx;
 
   const railSpans = (gapPx: number) => (
     <>
@@ -500,7 +509,8 @@ export function TimelineCommit({
     ? mediaOnly.filter((m) => !tiled.has(m))
     : [];
   const mediaOnlyContent = mediaOnly && (
-    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+    <div className="relative grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+      {branch === "last" && <BranchJoin gapPx={4} />}
       <span
         aria-hidden
         className={cn("hidden @sm:inline-block leading-5", HASH_CELL, TYPE.hash, "text-transparent")}
@@ -508,7 +518,7 @@ export function TimelineCommit({
         {data.hash}
       </span>
       <span className="relative inline-flex items-center justify-center w-5 h-5">
-        {railSpans(3)}
+        {railSpans(0)}
         {branch && <BranchLines branch={branch} gapPx={4} />}
         <span
           aria-hidden
@@ -556,7 +566,8 @@ export function TimelineCommit({
   );
 
   const rowContent = mediaOnlyContent || (
-    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+    <div className="relative grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+      {branch === "last" && <BranchJoin gapPx={iconGapPx} />}
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked
@@ -624,7 +635,7 @@ export function TimelineCommit({
           isQuiet ? "h-4" : "h-5",
         )}
       >
-        {railSpans(iconGapPx)}
+        {railSpans(railGapPx)}
         {branch && <BranchLines branch={branch} gapPx={iconGapPx} />}
         {isQuiet ? (
           // A row in the quiet voice gets a tiny CSS dot, quieter than any
@@ -1114,55 +1125,31 @@ function Handle({
 
 /**
  * A project's branch, drawn in the icon column the way the rail is: 1px
- * lines that stop short of the icon. The project's row curves out of its
- * icon to a line one step right of the rail (`fork`); each row on the
- * branch carries the line past its icon, and the last one ends it.
+ * lines on the lane a step right of the rail, stopping short of each icon.
+ * The head's lane starts at its icon and runs down; each entry carries it
+ * past its icon; the last one takes it only as far as its icon, and
+ * `BranchJoin` brings it home.
  */
 function BranchLines({
   branch,
   gapPx,
 }: {
-  branch: "fork" | "entry" | "last";
+  branch: "head" | "entry" | "last";
   gapPx: number;
 }) {
   const line =
     "pointer-events-none absolute -translate-x-1/2 w-px bg-muted-foreground/15";
   const left = `calc(50% + ${BRANCH_PX}px)`;
-  if (branch === "fork") {
-    return (
-      <>
-        <svg
-          aria-hidden
-          className="pointer-events-none absolute overflow-visible stroke-muted-foreground/15"
-          style={{
-            left: "calc(50% - 1px)",
-            top: `calc(50% + ${gapPx}px)`,
-          }}
-          width={BRANCH_PX + 2}
-          height={FORK_PX}
-          fill="none"
-        >
-          <path
-            d={`M1 0 C1 ${FORK_PX * 0.6} ${BRANCH_PX + 1} ${FORK_PX * 0.4} ${BRANCH_PX + 1} ${FORK_PX}`}
-            strokeWidth={1}
-          />
-        </svg>
+  return (
+    <>
+      {branch !== "head" && (
         <span
           aria-hidden
           className={line}
-          style={{ left, top: `calc(50% + ${gapPx + FORK_PX}px)`, bottom: "-1000px" }}
+          style={{ left, top: "-1000px", bottom: `calc(50% + ${gapPx}px)` }}
         />
-      </>
-    );
-  }
-  return (
-    <>
-      <span
-        aria-hidden
-        className={line}
-        style={{ left, top: "-1000px", bottom: `calc(50% + ${gapPx}px)` }}
-      />
-      {branch === "entry" && (
+      )}
+      {branch !== "last" && (
         <span
           aria-hidden
           className={line}
@@ -1170,5 +1157,44 @@ function BranchLines({
         />
       )}
     </>
+  );
+}
+
+/**
+ * Where the branch grew from: under the last row on it, the lane runs down
+ * from its icon and curves back into the rail at the foot of the row, over
+ * the commit it forked from.
+ *
+ * It needs the row's full height, which the icon's cell does not have (it
+ * is the title line's), so it is an absolutely positioned grid item: placed
+ * in the icon column from the first row down, its box ends at the grid's
+ * bottom edge, and it reaches on through the row's padding from there.
+ */
+function BranchJoin({ gapPx }: { gapPx: number }) {
+  const line =
+    "pointer-events-none absolute -translate-x-1/2 w-px bg-muted-foreground/15";
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute col-start-1 col-end-2 @sm:col-start-2 @sm:col-end-3 row-start-1"
+      style={{ top: ICON_CENTER_PX + gapPx, bottom: -ROW_PAD_PX, left: 0, right: 0 }}
+    >
+      <span
+        className={line}
+        style={{ left: `calc(50% + ${BRANCH_PX}px)`, top: 0, bottom: FORK_PX }}
+      />
+      <svg
+        className="absolute overflow-visible stroke-muted-foreground/15"
+        style={{ left: "calc(50% - 1px)", bottom: 0 }}
+        width={BRANCH_PX + 2}
+        height={FORK_PX}
+        fill="none"
+      >
+        <path
+          d={`M${BRANCH_PX + 1} 0 C${BRANCH_PX + 1} ${FORK_PX * 0.6} 1 ${FORK_PX * 0.4} 1 ${FORK_PX}`}
+          strokeWidth={1}
+        />
+      </svg>
+    </span>
   );
 }
