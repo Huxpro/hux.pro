@@ -39,6 +39,7 @@ systems/ambient/
 │   ├── settle.ts                 # Named reasons the sky is between two states (the spinner)
 │   ├── sky-bodies.ts             # Per-frame channel: where the sun and moon are in the window
 │   ├── solar.ts                  # Sun elevation/azimuth, lunar ephemeris, moon phase
+│   ├── magnetic.ts               # WMM2025 magnetic declination: the compass's north → true north
 │   ├── scene.ts                  # weather × sun × moon × theme → WeatherScene
 │   ├── gradient.ts               # WeatherScene → CSS gradient + crossfade types
 │   ├── wallpaper/
@@ -616,8 +617,26 @@ where the browser says so:
 | Safari / iOS | alpha is relative to wherever the phone was when listening started; `webkitCompassHeading` rides beside it. The offset between the two is estimated — but only while the phone's top edge lies level enough to point anywhere (the compass heading is a heading of the top edge, which a phone held straight up does not have), and slowly after the first measurement. Simulated against a known offset, the recovered heading is within 0.1° held upright, tilted back past vertical and rolled. |
 | no compass at all | the first reading is anchored onto the stage's own heading (south; north in the south), so the window opens onto the sky it left. The devtool readout marks the heading with `~`. |
 
-Magnetic north is taken as north; declination is a few degrees almost
-everywhere people live, and nothing here is a navigation aid.
+**True north, not magnetic.** Every compass a browser hands over is magnetic:
+Chrome's `deviceorientationabsolute` and Firefox's `absolute: true` are
+Android's rotation vector, and WebKit's `webkitCompassHeading` is CoreLocation's
+`magneticHeading` (`WebCoreMotionManager.mm`). The sun and moon are placed
+against true north. The gap — the magnetic declination — is not "a few
+degrees": about +13° in San Francisco and Sydney, −12.5° in New York, +15° in
+Seattle, −7.6° in Beijing, and it moves every year. So every magnetic heading
+is turned by the declination at the observer's place and time, from the World
+Magnetic Model (`lib/magnetic.ts`: WMM2025, the NOAA/BGS coefficients embedded
+verbatim, valid 2025–2030 and held at the nearest end outside that). It rides
+on the scene as `celestial.declination` — the same coordinates and the same
+(devtool-able) clock as the sun and moon — and is 0 without coordinates, since
+a guessed place is no better than none for a field that varies by 30° across a
+continent. For Chrome's absolute alpha the correction is `alpha − D`; for
+WebKit it goes into the measured offset (`heading + D`), and a change of place
+moves the existing offset by the difference rather than waiting for a level
+phone to re-measure it. Checked against all 100 of the model's published test
+values (to their printed 0.01°), and against an independent implementation at
+5,000 random points. What no global model removes is the local field — a steel
+desk, a car, a phone case magnet — which is the compass's own error.
 
 **The renderer does the geometry, the shader the pixels.** `uWindow` eases
 0 → 1 over `WINDOW_TAU` and back, and every line of the shader that reads the
@@ -764,7 +783,8 @@ sensor is ignored until the row's star hands it back. The **Motion** fold under
 it shows what the sensor is actually saying: where north came from (`absolute`,
 `flagged`, `webkit`, `anchored`, `simulated`), the event rate, raw α β γ, the
 screen angle, WebKit's compass heading and accuracy, the offset applied to
-reach north, whether a correction is in flight, the view's heading, pitch and
+reach north, the magnetic declination turning it to true north, whether a
+correction is in flight, the view's heading, pitch and
 roll, the gravity tilt, and which settle reasons stand.
 
 #### Asking for the window

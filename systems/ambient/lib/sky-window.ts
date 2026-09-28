@@ -416,6 +416,14 @@ let compassOffset = NaN;
 let anchorOffset = NaN;
 let anchorHeading = 180;
 let simulated: SkyView | null = null;
+/**
+ * Magnetic declination here, degrees east (lib/magnetic.ts). Every compass the
+ * browser hands over is magnetic — Android's rotation vector behind
+ * `deviceorientationabsolute` and `absolute: true`, CoreLocation's
+ * `magneticHeading` behind `webkitCompassHeading` — and the sky is placed
+ * against true north. A true heading is the magnetic one plus this.
+ */
+let declinationDeg = 0;
 
 /** Where north came from, for the devtool. */
 export type ViewSource =
@@ -437,6 +445,8 @@ export interface MotionDiagnostics {
   compassAccuracy: number | null;
   /** The rotation applied to alpha to reach north (WebKit, or the anchor), degrees. */
   offsetDeg: number | null;
+  /** Magnetic declination applied to the compass, degrees east; null with none. */
+  declinationDeg: number | null;
   /** Events per second, smoothed. */
   rateHz: number;
   screenAngle: number;
@@ -453,6 +463,7 @@ function freshDiag(): MotionDiagnostics {
     compassHeading: null,
     compassAccuracy: null,
     offsetDeg: null,
+    declinationDeg: null,
     rateHz: 0,
     screenAngle: 0,
     calibrating: false,
@@ -551,7 +562,11 @@ function onAbsolute(event: DeviceOrientationEvent) {
   absoluteAt = performance.now();
   const screenAngle = readScreenAngle();
   note("absolute", angles, screenAngle);
-  publish(viewFromOrientation(angles.alpha, angles.beta, angles.gamma, screenAngle, true));
+  diag.declinationDeg = declinationDeg;
+  // alpha runs counter-clockwise, a heading clockwise: true north is `D` less.
+  publish(
+    viewFromOrientation(angles.alpha - declinationDeg, angles.beta, angles.gamma, screenAngle, true)
+  );
 }
 
 function onRelative(event: DeviceOrientationEvent) {
@@ -564,7 +579,10 @@ function onRelative(event: DeviceOrientationEvent) {
 
   if (event.absolute) {
     note("flagged", angles, screenAngle);
-    publish(viewFromOrientation(angles.alpha, angles.beta, angles.gamma, screenAngle, true));
+    diag.declinationDeg = declinationDeg;
+    publish(
+      viewFromOrientation(angles.alpha - declinationDeg, angles.beta, angles.gamma, screenAngle, true)
+    );
     return;
   }
 
@@ -578,6 +596,7 @@ function onRelative(event: DeviceOrientationEvent) {
   // between them made the window turn back and forth without ever arriving.
   if (compassed && (accuracy ?? 0) < 0 && !Number.isNaN(compassOffset)) {
     note("webkit", angles, screenAngle);
+    diag.declinationDeg = declinationDeg;
     diag.compassHeading = heading;
     diag.compassAccuracy = accuracy ?? null;
     publish(
@@ -593,6 +612,7 @@ function onRelative(event: DeviceOrientationEvent) {
   }
   if (compassed && (accuracy ?? 0) >= 0) {
     note("webkit", angles, screenAngle);
+    diag.declinationDeg = declinationDeg;
     diag.compassHeading = heading;
     diag.compassAccuracy = typeof accuracy === "number" ? accuracy : null;
     // Where the top edge points by the relative alpha, against where the
@@ -608,7 +628,9 @@ function onRelative(event: DeviceOrientationEvent) {
     const level = Math.hypot(topX, topY);
     if (level > COMPASS_LEVEL_MIN || Number.isNaN(compassOffset)) {
       const relHeading = Math.atan2(topX, topY);
-      const measured = wrapPi(relHeading - heading * DEG);
+      // Against TRUE north: the compass's magnetic heading, turned by the
+      // declination. The offset then carries it into every view below.
+      const measured = wrapPi(relHeading - (heading + declinationDeg) * DEG);
       if (Number.isNaN(compassOffset)) {
         compassOffset = measured;
       } else {
@@ -660,6 +682,21 @@ function onRelative(event: DeviceOrientationEvent) {
       false
     )
   );
+}
+
+/**
+ * Where magnetic north is, here: degrees east of true north (the scene's
+ * `celestial.declination`). A change turns the window by the difference — a
+ * relocation's worth, and the renderer glides a big one. WebKit's measured
+ * offset already has the old value baked in, so it is moved by the same
+ * difference rather than re-measured.
+ */
+export function setMagneticDeclination(deg: number) {
+  if (!Number.isFinite(deg) || deg === declinationDeg) return;
+  if (!Number.isNaN(compassOffset)) {
+    compassOffset = wrapPi(compassOffset - (deg - declinationDeg) * DEG);
+  }
+  declinationDeg = deg;
 }
 
 /**

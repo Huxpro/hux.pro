@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { subscribeGravity } from "../lib/gyroscope";
 import { holdSettle } from "../lib/settle";
 import { publishWindowBodies } from "../lib/sky-bodies";
-import { subscribeView } from "../lib/sky-window";
+import { setMagneticDeclination, subscribeView } from "../lib/sky-window";
 import type { PokeKind } from "../lib/poke";
 import type { WipeHandle } from "../lib/wipe";
 import type { WeatherScene } from "../lib/scene";
@@ -213,6 +213,14 @@ export function WeatherWallpaper({
   // did until one arrives. `scene.hemisphere` only says which way that is, and
   // it cannot change under a visitor's feet mid-window.
   const hemisphere = scene.hemisphere;
+  // The compass's north, here: every heading the phone gives is magnetic, and
+  // the sky is placed against true north (lib/magnetic.ts). Only from the
+  // window that is actually open — a picker preview renders this component too,
+  // with a scene of its own.
+  const declination = scene.celestial.declination;
+  useEffect(() => {
+    if (window3d) setMagneticDeclination(declination);
+  }, [window3d, declination]);
   useEffect(() => {
     const renderer = rendererRef.current;
     if (!renderer) return;
