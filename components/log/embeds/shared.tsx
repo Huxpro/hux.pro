@@ -131,6 +131,12 @@ interface AuthorFieldsProps {
     /** Applied to both cells, so the whole field hides together. */
     className?: string;
   };
+  /**
+   * How long the work ran (`2023 – Present`), for a project whose row sits
+   * at the moment it went public: the date column says when it went out,
+   * this says how long it had been going and still is.
+   */
+  span?: string;
   className?: string;
 }
 
@@ -154,6 +160,7 @@ const FIELD_SUBGRID = "col-span-2 grid grid-cols-subgrid gap-y-0.5";
 export function AuthorFields({
   byline,
   commit,
+  span,
   className,
 }: AuthorFieldsProps) {
   const role = byline?.expanded.title && (
@@ -265,6 +272,13 @@ export function AuthorFields({
             </>
           )}
         </>,
+      )}
+
+      {span && (
+        <>
+          <span className="text-tertiary-foreground">Active:</span>
+          <span className="text-tertiary-foreground">{span}</span>
+        </>
       )}
     </div>
   );

@@ -131,6 +131,21 @@ export function editionLine(commit: Commit, locale: Locale): string {
   return label ? `${head} · ${label}` : head;
 }
 
+/**
+ * What each version's badge says. When the versions differ by language, the
+ * badge is the language, the way the title line already marks one (`EN`,
+ * `中文`); otherwise it is the version's short name.
+ */
+export function badgeNames(versions: readonly Commit[], locale: Locale): string[] {
+  const langs = versions.map((v) => v.language);
+  const byLanguage =
+    langs.every((l) => l === "en" || l === "zh") &&
+    new Set(langs).size === versions.length;
+  return versions.map((v) =>
+    byLanguage ? (v.language === "en" ? "EN" : "中文") : editionShort(v, locale),
+  );
+}
+
 /** A version's short name, for its badge: its label, or its venue. */
 export function editionShort(commit: Commit, locale: Locale): string {
   return (

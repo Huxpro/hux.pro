@@ -51,6 +51,13 @@ export interface NormalizedCommit {
   /** "EN" / "中文" when the work's language differs from the viewer's locale. */
   languageBadge: "EN" | "中文" | null;
 
+  /**
+   * A project's span of work (`2023 – Present`) when the row sits at the
+   * moment it went public instead (`publicDate`): the date column says when
+   * it went public, the notes say how long the work ran.
+   */
+  span?: string;
+
   // Type-derived metadata
   meta?: string;
   /** When set, the meta line is rendered as an external link. */
@@ -188,12 +195,16 @@ export function normalizeCommit(
   // Type-specific extraction
   switch (commit.type) {
     case "project": {
+      const went = commit.publicDate;
       return {
         ...identity,
         languageBadge,
         title,
         description,
-        date,
+        date: went
+          ? formatCommitDate({ ...commit, date: went, endDate: undefined }, locale)
+          : date,
+        span: went ? date : undefined,
         commentary,
         expandedMedia,
         pinnedMedia,

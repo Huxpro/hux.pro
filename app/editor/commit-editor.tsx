@@ -265,6 +265,68 @@ function EditionSection({
   );
 }
 
+/**
+ * The projects this commit is about (lib/log-scopes.ts). The first is the
+ * one it belongs to: /works prints it inside that project. Others are
+ * projects it also touches. One dropdown per entry, and one more to add.
+ * Projects are not held by projects, so a project gets none of this.
+ */
+function AboutSection({
+  commit,
+  commits,
+  onUpdate,
+}: {
+  commit: Commit;
+  commits: Commit[];
+  onUpdate: (partial: Record<string, unknown>) => void;
+}) {
+  const projects = useMemo(
+    () => sortCommitsByDate(commits.filter((c) => c.type === "project")),
+    [commits],
+  );
+  if (commit.type === "project" || commit.type === "role" || commit.type === "event") {
+    return null;
+  }
+
+  const about = commit.about ?? [];
+  const set = (next: string[]) =>
+    onUpdate({ about: next.length ? next : undefined });
+  const options = (keep?: string) => [
+    { value: "", label: keep ? "— remove" : "—" },
+    ...projects
+      .filter((p) => p.id === keep || !about.includes(p.id))
+      .map((p) => ({ value: p.id, label: `${p.date} · ${p.title.en}` })),
+  ];
+
+  return (
+    <>
+      {about.map((id, i) => (
+        <ChoiceField<string>
+          key={id}
+          label={i === 0 ? "About" : "Also about"}
+          variant="dropdown"
+          value={id}
+          options={options(id)}
+          onChange={(v) =>
+            set(
+              v
+                ? about.map((x, k) => (k === i ? v : x))
+                : about.filter((_, k) => k !== i),
+            )
+          }
+        />
+      ))}
+      <ChoiceField<string>
+        label={about.length ? "Add about" : "About"}
+        variant="dropdown"
+        value=""
+        options={options()}
+        onChange={(v) => v && set([...about, v])}
+      />
+    </>
+  );
+}
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="font-mono text-[10px] uppercase tracking-wider text-quaternary-foreground pt-2">
@@ -674,6 +736,15 @@ function FormFields({
       />
 
       <EditionSection commit={commit} commits={commits} onUpdate={onUpdate} />
+      <AboutSection commit={commit} commits={commits} onUpdate={onUpdate} />
+      {commit.type === "project" && (
+        <Field
+          label="Went public"
+          value={commit.publicDate ?? ""}
+          onChange={(v) => onUpdate({ publicDate: v || undefined })}
+          placeholder="YYYY-MM: where the row sits"
+        />
+      )}
 
       <SectionLabel>Title</SectionLabel>
       <Field
@@ -1226,10 +1297,11 @@ interface MediaDraft {
   alt?: string;
   // shared
   pinned?: boolean;
+  date?: string;
 }
 
 function mediaToDraft(m: Media): MediaDraft {
-  const base = { url: m.url, pinned: m.pinned };
+  const base = { url: m.url, pinned: m.pinned, date: m.date };
   switch (m.kind) {
     case "link":
       return {
@@ -1268,7 +1340,10 @@ function mediaToDraft(m: Media): MediaDraft {
 function draftToMedia(d: MediaDraft): Media {
   // Pin only appears in saved JSON when explicitly true — matching `Pinned`'s
   // `pinned?: true` shape and keeping log.json minimal.
-  const pinned = d.pinned ? { pinned: true as const } : {};
+  const pinned = {
+    ...(d.pinned ? { pinned: true as const } : {}),
+    ...(d.date ? { date: d.date } : {}),
+  };
   switch (d.kind) {
     case "link":
       return {
@@ -1582,6 +1657,13 @@ function MediaItemEditor({
           placeholder="Alt text"
         />
       )}
+
+      <Field
+        label="Date"
+        value={draft.date ?? ""}
+        onChange={(v) => set({ date: v || undefined })}
+        placeholder="YYYY-MM(-DD): places it among a project's talks"
+      />
 
       <CheckField
         label="Pinned"

@@ -46,6 +46,20 @@ import { TYPE } from "@/lib/typography";
 const HASH_CELL = "lg:w-14 lg:text-right";
 const GUTTER_PULL = "lg:-ml-[6.5rem]";
 
+/**
+ * How far right of the rail a project's branch runs (see `branch`): the
+ * project and the rows it holds sit on that line. Far enough that an icon
+ * clears the rail running past it, near enough that the title keeps its
+ * column.
+ */
+const BRANCH_PX = 8;
+/** How tall the curve from the branch back into the rail is. */
+const FORK_PX = 10;
+/** The row's own vertical padding (`py-2.5`), which the join runs into. */
+const ROW_PAD_PX = 10;
+/** Where an icon's center sits below the top of the row's grid (`h-5`). */
+const ICON_CENTER_PX = 10;
+
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
    *  activates every connector that targets `toHash` (used so hovering
@@ -145,6 +159,30 @@ interface TimelineCommitProps {
   segments?: readonly StripSegment[];
   activeSegment?: string;
   onActiveSegment?: (id: string) => void;
+  /** A segment's caption pressed (see SegmentedStrip `onPress`). */
+  onPressSegment?: (id: string) => void;
+  /** Printed under the strip: what the reader pressed a segment to read. */
+  stripDetail?: ReactNode;
+  /**
+   * The row's place on a project's branch (lib/log-scopes.ts), drawn the
+   * way `git log --graph` draws one: a lane a step right of the rail that
+   * grows up out of it. The project is the branch's head, the first row
+   * you meet scrolling down (`head`); what it holds follows on the same
+   * lane (`entry`); and under the last one (`last`) the lane curves back
+   * into the rail it grew from. The text never moves: the gutter carries
+   * the nesting.
+   */
+  branch?: "head" | "entry" | "last";
+  /**
+   * The row is held by the project above it, on its branch (the index and
+   * the feed; lib/log-scopes.ts). Folded, it prints its title line and the
+   * form's pictures, and its venue and prose when it is pressed. It does
+   * not sign: the author is the project's.
+   */
+  held?: boolean;
+  /** The row is a project holding other work, printed with it (on a
+   *  branch, or across its strip). */
+  holds?: boolean;
 }
 
 export function TimelineCommit({
@@ -176,6 +214,11 @@ export function TimelineCommit({
   segments,
   activeSegment,
   onActiveSegment,
+  onPressSegment,
+  stripDetail,
+  branch,
+  held = false,
+  holds = false,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
@@ -274,7 +317,13 @@ export function TimelineCommit({
   // row scale). Everything below reads those atoms and nothing reads the
   // form's name, or `isExpanded` again: the feed's atoms already say
   // "no strip, no clamp, no peek".
-  const rowForm = rowFormFor(form, textOpen);
+  //
+  // A held row is a step quieter than the page: no prose until pressed.
+  const pageRowForm = rowFormFor(form, textOpen);
+  const rowForm =
+    held && !textOpen
+      ? { ...pageRowForm, description: "none" as const, notes: false }
+      : pageRowForm;
 
   // What the folded form adds under the title line: the description at two
   // lines, and the strip of covers. Both or either — a commit with no media
@@ -316,7 +365,10 @@ export function TimelineCommit({
   // gets in the way of reading them. The one-liner peeks; an open row's
   // handle still does (IdentityHover).
   const showCursorPreview =
-    !!cursorPreview && rowForm.peek && !showStrip && !showStatDescription;
+    !!cursorPreview &&
+    rowForm.peek &&
+    !showStrip &&
+    !showStatDescription;
   // The feed's covers are the row's own strip items; what has no cover (a
   // live widget) stacks under the grid. Inspect mode keeps this layout —
   // the handle lives on the tile (InspectableMedia), not on a different
@@ -329,10 +381,16 @@ export function TimelineCommit({
   // row brings them.
   const attachmentCount =
     !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
+  const showGrid =
+    !isQuiet &&
+    rowForm.media === "grid" &&
+    expandedMedia.length > 0;
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
-  const showAuthorBlock = data.type !== "role" && data.type !== "event";
+  // A held row's author is the project's.
+  const showAuthorBlock =
+    !held && data.type !== "role" && data.type !== "event";
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -405,10 +463,38 @@ export function TimelineCommit({
   // `isQuiet`, not `isAside` — the gap has to follow whatever the gutter
   // is actually drawing, and an open aside draws the 12px icon. Kept at 3
   // it would run the rail under the mark.
-  const iconGapPx = isQuiet ? 3 : isRoleAnchor ? 10 : 7;
+  //
+  // A held row's icon is a size smaller (10px), so its gap is too.
+  const iconGapPx = isQuiet ? 3 : isRoleAnchor ? 10 : held ? 6 : 7;
+  // On a branch, the icon sits on the branch's lane, not the rail, and the
+  // rail runs past it unbroken.
+  const onBranch = !!branch;
+  const railGapPx = onBranch ? 0 : iconGapPx;
+
+  const railSpans = (gapPx: number) => (
+    <>
+      {hasRailAbove && (
+        <span
+          aria-hidden
+          data-rail-above
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
+          style={{ top: "-1000px", bottom: `calc(50% + ${gapPx}px)` }}
+        />
+      )}
+      {hasRailBelow && (
+        <span
+          aria-hidden
+          data-rail-below
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
+          style={{ top: `calc(50% + ${gapPx}px)`, bottom: "-1000px" }}
+        />
+      )}
+    </>
+  );
 
   const rowContent = (
-    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+    <div className="relative grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+      {branch === "last" && <BranchJoin gapPx={iconGapPx} />}
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked
@@ -476,22 +562,8 @@ export function TimelineCommit({
           isQuiet ? "h-4" : "h-5",
         )}
       >
-        {hasRailAbove && (
-          <span
-            aria-hidden
-            data-rail-above
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
-            style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
-          />
-        )}
-        {hasRailBelow && (
-          <span
-            aria-hidden
-            data-rail-below
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
-            style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
-          />
-        )}
+        {railSpans(railGapPx)}
+        {branch && <BranchLines branch={branch} gapPx={iconGapPx} />}
         {isQuiet ? (
           // A row in the quiet voice gets a tiny CSS dot, quieter than any
           // lucide icon and reading as "node on the rail" rather than
@@ -516,6 +588,7 @@ export function TimelineCommit({
           // wrapper gives the ring node 3px clearance from the 12px icon
           // so it reads as a distinct circle rather than a tight outline.
           <span
+            style={onBranch ? { transform: `translateX(${BRANCH_PX}px)` } : undefined}
             className={cn(
               "inline-flex items-center justify-center w-5 h-5 rounded-full transition-[box-shadow] duration-200",
               isRoleAnchor && [
@@ -531,7 +604,7 @@ export function TimelineCommit({
               type={data.type}
               override={data.iconOverride}
               className={cn(
-                "w-3 h-3",
+                held ? "w-2.5 h-2.5" : "w-3 h-3",
                 // An open aside wears its type mark a tier quieter than an
                 // ordinary row's. It is the same ladder the aside's title
                 // already steps down (`text-tertiary-foreground` on a row
@@ -622,12 +695,21 @@ export function TimelineCommit({
         byline fully visible so the cluster's authorial context stays
         on-screen while you read.
       */}
-      {/* Where the strip captions every version with its venue, the lit
-          one's venue here would be printed twice; the line stays only for
-          a handle signing at rest, and returns whole when the row opens. */}
+      {/* A folded held row is its title line alone (see `held`). A branch's
+          head keeps no empty line for a handle that isn't signing at rest:
+          the page is shorter by a line per project that holds work. And where the strip
+          captions every version with its venue, the lit one's venue here
+          would be printed twice; the line stays only for a handle signing
+          at rest, and returns whole when the row opens. */}
       {!isQuiet &&
-        (data.meta || byline) &&
-        !(versionsOnStrip && !textOpen && !byline?.isClusterHead) && (
+        !(held && !textOpen) &&
+        !(versionsOnStrip && !textOpen && !byline?.isClusterHead) &&
+        (data.meta ||
+          (byline &&
+            (!(branch === "head" || holds) ||
+              textOpen ||
+              byline.isClusterHead ||
+              !!byline.subtitle))) && (
         // `min-w-0`: the line never wraps, so without it a long venue sets
         // the column's minimum width and pushes the date off a phone.
         <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex min-w-0 items-baseline justify-between gap-2", TYPE.rowMeta)}>
@@ -738,12 +820,22 @@ export function TimelineCommit({
             segments={segments}
             active={activeSegment}
             onActive={onActiveSegment}
+            onPress={onPressSegment}
             peek={rowForm.peek && magneticPreviewEnabled}
             className="min-w-0"
             inspecting={inspecting}
             onInspect={onInspectMedia}
             selectedMedia={selectedMedia}
           />
+        </div>
+      )}
+      {showStrip && segmented && stripDetail && (
+        <div
+          data-row-body
+          onClick={(e) => e.stopPropagation()}
+          className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 cursor-default"
+        >
+          {stripDetail}
         </div>
       )}
       {showStrip && !segmented && (
@@ -778,7 +870,7 @@ export function TimelineCommit({
           edge-to-edge stack on a phone, captions written out, and every
           click its native one. `data-row-body` and its own click guard: a
           caption is for opening the attachment, not for pressing the row. */}
-      {!isQuiet && rowForm.media === "grid" && expandedMedia.length > 0 && (
+      {showGrid && (
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
@@ -849,6 +941,7 @@ export function TimelineCommit({
                     }
                   : undefined
               }
+              span={data.span}
               className="mt-3"
             />
           )}
@@ -973,5 +1066,81 @@ function Handle({
     >
       {byline.handle}
     </IdentityHover>
+  );
+}
+
+/**
+ * A project's branch, drawn in the icon column the way the rail is: 1px
+ * lines on the lane a step right of the rail, stopping short of each icon.
+ * The head's lane starts at its icon and runs down; each entry carries it
+ * past its icon; the last one takes it only as far as its icon, and
+ * `BranchJoin` brings it home.
+ */
+function BranchLines({
+  branch,
+  gapPx,
+}: {
+  branch: "head" | "entry" | "last";
+  gapPx: number;
+}) {
+  const line =
+    "pointer-events-none absolute -translate-x-1/2 w-px bg-muted-foreground/15";
+  const left = `calc(50% + ${BRANCH_PX}px)`;
+  return (
+    <>
+      {branch !== "head" && (
+        <span
+          aria-hidden
+          className={line}
+          style={{ left, top: "-1000px", bottom: `calc(50% + ${gapPx}px)` }}
+        />
+      )}
+      {branch !== "last" && (
+        <span
+          aria-hidden
+          className={line}
+          style={{ left, top: `calc(50% + ${gapPx}px)`, bottom: "-1000px" }}
+        />
+      )}
+    </>
+  );
+}
+
+/**
+ * Where the branch grew from: under the last row on it, the lane runs down
+ * from its icon and curves back into the rail at the foot of the row, over
+ * the commit it forked from.
+ *
+ * It needs the row's full height, which the icon's cell does not have (it
+ * is the title line's), so it is an absolutely positioned grid item: placed
+ * in the icon column from the first row down, its box ends at the grid's
+ * bottom edge, and it reaches on through the row's padding from there.
+ */
+function BranchJoin({ gapPx }: { gapPx: number }) {
+  const line =
+    "pointer-events-none absolute -translate-x-1/2 w-px bg-muted-foreground/15";
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute col-start-1 col-end-2 @sm:col-start-2 @sm:col-end-3 row-start-1"
+      style={{ top: ICON_CENTER_PX + gapPx, bottom: -ROW_PAD_PX, left: 0, right: 0 }}
+    >
+      <span
+        className={line}
+        style={{ left: `calc(50% + ${BRANCH_PX}px)`, top: 0, bottom: FORK_PX }}
+      />
+      <svg
+        className="absolute overflow-visible stroke-muted-foreground/15"
+        style={{ left: "calc(50% - 1px)", bottom: 0 }}
+        width={BRANCH_PX + 2}
+        height={FORK_PX}
+        fill="none"
+      >
+        <path
+          d={`M${BRANCH_PX + 1} 0 C${BRANCH_PX + 1} ${FORK_PX * 0.6} 1 ${FORK_PX * 0.4} 1 ${FORK_PX}`}
+          strokeWidth={1}
+        />
+      </svg>
+    </span>
   );
 }

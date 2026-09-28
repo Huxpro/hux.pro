@@ -186,10 +186,8 @@
       "column": "right",
       "href": "/works",
       "commitIds": [
-        "react-universe-2025-two-threads",
-        "react-universe-2025-interview",
-        "react-summit-2025-unlock-native",
-        "d2-2025-lynx"
+        "react-lynx",
+        "lynx-framework"
       ]
     },
     {
@@ -736,6 +734,9 @@
         "zh": "国内首发"
       },
       "lead": "zh",
+      "about": [
+        "lynx-framework"
+      ],
       "conference": {
         "name": "第 19 届 D2 终端技术大会",
         "url": "https://d2.alibabatech.com/"
@@ -812,6 +813,9 @@
       },
       "date": "2025-09",
       "lead": true,
+      "about": [
+        "react-lynx"
+      ],
       "conference": {
         "name": "React Universe Conf",
         "city": "Wrocław, Poland",
@@ -845,6 +849,9 @@
         "zh": "在 React Universe 大会接受 Callstack 的访谈，聊 React Native 之外的 Lynx：可以直接从 Web 搬过来的原生 CSS；让原生 UI 与 React 视图保持同步、并能在主线程上交互的双线程模型（BTS/MTS）；作为一种规范的 React；社区把 Vue 和 Svelte 带到 Lynx 上；以及 Lynx 在字节支撑的小程序生态。"
       },
       "date": "2025-09",
+      "about": [
+        "react-lynx"
+      ],
       "conference": {
         "name": "React Universe Conf",
         "city": "Wrocław, Poland",
@@ -877,6 +884,9 @@
         "zh": "开箱即用的组件对于高速、规模化地交付用户界面至关重要。让我们隆重介绍 lynx-ui —— TikTok 背后 Lynx 跨平台技术家族的最新成员。借助 Lynx 的双线程架构，它带来高性能与原生级的交互体验。一起来了解我们如何构建它，以及它如何让 Lynx 更快地扩展到海量产品之中。"
       },
       "date": "2025-11",
+      "about": [
+        "lynx-ui"
+      ],
       "conference": {
         "name": "React Advanced London",
         "city": "London, UK",
@@ -1008,6 +1018,62 @@
       "language": "zh"
     },
     {
+      "id": "react-lynx",
+      "type": "project",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "ReactLynx",
+        "zh": "ReactLynx"
+      },
+      "description": {
+        "en": "React for Lynx, and the dual-threaded React it is built on. Taken to the React community as React for Two Threads.",
+        "zh": "Lynx 上的 React，以及它背后的双线程 React。以「双线程的 React」为题带给 React 社区。"
+      },
+      "date": "2023-02",
+      "endDate": "present",
+      "publicDate": "2025-09",
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://github.com/lynx-family/lynx-stack",
+          "present": "card"
+        }
+      ],
+      "tags": [
+        "React",
+        "Lynx",
+        "Architecture"
+      ]
+    },
+    {
+      "id": "lynx-ui",
+      "type": "project",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "lynx-ui",
+        "zh": "lynx-ui"
+      },
+      "description": {
+        "en": "Ready-to-use components for Lynx, the newest member of the family.",
+        "zh": "Lynx 的开箱即用组件库，家族里最新的成员。"
+      },
+      "date": "2024-01",
+      "endDate": "present",
+      "publicDate": "2025-11",
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://github.com/lynx-family/lynx-ui",
+          "present": "card"
+        }
+      ],
+      "tags": [
+        "Lynx",
+        "Design System",
+        "Components"
+      ]
+    },
+    {
       "id": "lynx-framework",
       "type": "project",
       "tagId": "lynx-era",
@@ -1021,6 +1087,7 @@
       },
       "date": "2023-02",
       "endDate": "present",
+      "publicDate": "2025-03",
       "tags": [
         "Cross-Platform",
         "Performance",
@@ -1036,7 +1103,8 @@
             "en": "https://lynxjs.org/next/blog/lynx-unlock-native-for-more",
             "zh": "https://lynxjs.org/next/zh/blog/lynx-unlock-native-for-more.html"
           },
-          "present": "card"
+          "present": "card",
+          "date": "2025-03-05"
         },
         {
           "kind": "link",
@@ -1148,7 +1216,6 @@
       "id": "reactconf-2021-memo",
       "type": "talk",
       "tagId": "react-era",
-      "attachedTo": "react-core",
       "title": {
         "en": "React without memo",
         "zh": "React without memo"
@@ -1158,6 +1225,9 @@
         "zh": "React Forget（现 React Compiler）的首次公开演讲：一个自动记忆化编译器，让你可以不用手写 memo、useMemo 和 useCallback。"
       },
       "date": "2021-09",
+      "about": [
+        "react-core"
+      ],
       "conference": {
         "name": "React Conf 2021",
         "city": "Online",
@@ -1258,7 +1328,8 @@
         {
           "kind": "link",
           "url": "https://react.dev/blog/2022/06/15/react-labs-what-we-have-been-working-on-june-2022#react-compiler",
-          "present": "card"
+          "present": "card",
+          "date": "2022-06-15"
         },
         {
           "kind": "link",
