@@ -96,8 +96,7 @@ export interface CommitProps {
   /** Timeline-only: a project's branch (lib/log-scopes.ts), see `TimelineCommit`. */
   branch?: "head" | "entry" | "last";
   held?: boolean;
-  mediaElsewhere?: boolean;
-  onToggle?: (open: boolean) => void;
+  holds?: boolean;
   /**
    * Timeline-only: the covers form's strip, from other commits as well as
    * this one, a segment each (media/segmented-strip.tsx): a project's, with
@@ -108,6 +107,8 @@ export interface CommitProps {
   strip?: readonly StripSource[];
   activeSegment?: string;
   onActiveSegment?: (id: string) => void;
+  onPressSegment?: (id: string) => void;
+  stripDetail?: ReactNode;
 }
 
 /** A segment of a row's strip, before its covers are resolved: whose they
@@ -146,11 +147,12 @@ export function Commit({
   onSelectVersion,
   branch,
   held,
-  mediaElsewhere,
-  onToggle,
+  holds,
   strip,
   activeSegment,
   onActiveSegment,
+  onPressSegment,
+  stripDetail,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -305,10 +307,11 @@ export function Commit({
           segments={segments ?? undefined}
           activeSegment={strip ? activeSegment : shown.id}
           onActiveSegment={strip ? onActiveSegment : onSelectVersion}
+          onPressSegment={onPressSegment}
+          stripDetail={stripDetail}
           branch={branch}
           held={held}
-          mediaElsewhere={mediaElsewhere}
-          onToggle={onToggle}
+          holds={holds}
         />
       );
 

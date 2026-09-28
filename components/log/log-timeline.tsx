@@ -15,14 +15,16 @@ import {
   getLocalizedTagTitle,
   type Identity,
   isRowVisible,
-  type Media,
+  commitVenue,
+  formatCommitDate,
+  localize,
+  localizeOptional,
   type Tag,
 } from "@/lib/log";
 import {
   badgeNames,
   buildEditions,
   editionLine,
-  editionShort,
   type Editions,
 } from "@/lib/log-editions";
 import {
@@ -37,7 +39,9 @@ import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeBylines } from "./bylines";
-import { Commit } from "./commit-embed";
+import { Commit, type StripSource } from "./commit-embed";
+import { Description } from "./embeds/shared";
+import { CommitIcon } from "./icons";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
 import { useTimelineEdit } from "./timeline-edit-context";
@@ -129,7 +133,8 @@ export function LogTimeline({
     const scopes = buildScopes(all, visible, e);
     const order = new Map(all.map((c, i) => [c.id, i]));
     const byId = new Map(all.map((c) => [c.id, c]));
-    return { ...e, scopes, order, byId };
+    const idByHash = new Map(all.map((c) => [computeCommitHash(c.id), c.id]));
+    return { ...e, scopes, order, byId, idByHash };
   }, [data, activeTypes, locale]);
 
   // Which version each work's row is showing, by work id. Unset is the lead.
@@ -145,13 +150,29 @@ export function LogTimeline({
   useEffect(
     () =>
       registerCommitRevealer((hash) => {
+        // Something a project holds, in the covers form: no row of its own,
+        // a column on the project's strip. Land on the project with it
+        // chosen, which brings the column into view.
+        const heldId = editions.idByHash.get(hash);
+        const heldCommit = heldId ? editions.byId.get(heldId) : undefined;
+        if (form === "covers" && heldId && heldCommit) {
+          const work = editions.groupOf.get(heldId);
+          const project = editions.scopes.scopeOf.get(work ? work.lead.id : heldId);
+          if (project) {
+            flushSync(() => {
+              choose(`scope:${project}`, heldId);
+              if (work) choose(work.id, heldId);
+            });
+            return document.getElementById(computeCommitHash(project));
+          }
+        }
         const id = editions.byHash.get(hash);
         const group = id ? editions.groupOf.get(id) : undefined;
         if (!id || !group) return null;
         flushSync(() => choose(group.id, id));
         return document.getElementById(computeCommitHash(group.lead.id));
       }),
-    [editions, choose],
+    [editions, choose, form],
   );
 
   return (
@@ -309,39 +330,37 @@ function TagBlock({
   }, [commits, identities, locale, activeTypes]);
 
   // A work in several versions prints as one row with its versions.
-  // `onPick` hears a badge press as well (a held row's project strip
-  // follows its badges).
-  const versionProps = (c: CommitData, onPick?: (version: string) => void) => {
+  const versionProps = (c: CommitData) => {
     const group = editions.groupOf.get(c.id);
     return group
       ? {
           versions: group.versions,
           selectedVersion: chosen[group.id] ?? c.id,
-          onSelectVersion: (id: string) => {
-            onChoose(group.id, id);
-            onPick?.(id);
-          },
+          onSelectVersion: (id: string) => onChoose(group.id, id),
         }
       : {};
   };
 
   /**
-   * A row as it prints. A project that holds other work is the head of a
-   * branch in the gutter, drawn the way `git log --graph` draws one: a lane
-   * a step right of the rail that grows up out of it, and curves back into
-   * it under the last row on it.
+   * A row as it prints. A project that holds other work lays it out the way
+   * the page's form lays out pictures.
    *
-   * The pictures and the list are split, so neither costs a line per item.
-   * The project's strip carries every cover in the scope, a segment each,
-   * in the order things happened: the talk (every version of it), the
-   * interview, the blog post, the repository. What it holds follows on the
-   * branch as rows of their own, each its title line alone until pressed.
-   * The rows and the strip are one control: a row's badge, or pressing a
-   * row, brings its covers into view on the strip; scrolling the strip to
-   * a version's covers makes its row read that version.
+   * In the covers form the pictures run across, so the commits they belong
+   * to run across with them: the project's strip is its branch turned on
+   * its side (media/segmented-strip.tsx). Each held work is a node on a
+   * line through the strip, titled, with a column per version under it,
+   * captioned with where and when; the project's own attachments sit on
+   * the same line where they happened (the post after the talk, the
+   * repository last). Nothing prints under the project: the strip is the
+   * whole scope in one row. Pressing a caption reads that commit's prose
+   * under the strip; scrolling the strip to a version makes its work read
+   * that version.
    *
-   * The text column never moves; on a phone the nesting costs nothing but
-   * the icons' step to the right.
+   * The index and the feed print pictures differently (none; every row
+   * whole), so there what the project holds follows it down the page as
+   * rows of their own, on a branch of the gutter drawn the way `git log
+   * --graph` draws one: a lane a step right of the rail that grows up out
+   * of it and curves back into it under the last row.
    */
   const renderRow = (
     c: CommitData,
@@ -351,78 +370,92 @@ function TagBlock({
     if (!held) {
       return <Commit key={c.id} {...props} commit={c} {...versionProps(c)} />;
     }
-
-    // The strip: one segment per version of each held work, and one per run
-    // of the project's own attachments, in the order they happened.
-    const entries = scopeEntries(c, held, editions, true);
-    const strip: { id: string; commit: CommitData; media?: Media[]; label?: string }[] = [];
-    const segmentsOf = new Map<string, string[]>();
-    for (const [k, entry] of entries.entries()) {
-      if (entry.kind === "media") {
-        strip.push({ id: `${c.id}:media:${k}`, commit: c, media: entry.media });
-        continue;
-      }
-      const group = editions.groupOf.get(entry.commit.id);
-      const versions = group ? group.versions : [entry.commit];
-      const names = group
-        ? badgeNames(versions, locale)
-        : [editionShort(entry.commit, locale)];
-      versions.forEach((v, i) =>
-        strip.push({ id: v.id, commit: v, label: names[i] }),
-      );
-      segmentsOf.set(entry.commit.id, versions.map((v) => v.id));
-    }
-
     const scopeKey = `scope:${c.id}`;
-    const showing = (id: string) => onChoose(scopeKey, id);
-    const onActiveSegment = (id: string) => {
-      showing(id);
-      // A version's covers in view: its row reads that version.
-      const group = editions.groupOf.get(id);
-      if (group) onChoose(group.id, id);
-    };
-    const rows = held;
-    // The rail runs on past the branch when it runs on past the project.
-    const rail = props.rail === "│" || props.rail === "┐" ? "│" : "";
 
-    return (
-      <Fragment key={c.id}>
+    if (form === "covers") {
+      const strip: StripSource[] = [];
+      for (const [k, entry] of scopeEntries(c, held, editions, true).entries()) {
+        if (entry.kind === "media") {
+          const id = `${c.id}:media:${k}`;
+          strip.push({ id, commit: c, media: entry.media, group: { id } });
+          continue;
+        }
+        const work = entry.commit;
+        const group = editions.groupOf.get(work.id);
+        const versions = group ? group.versions : [work];
+        const names = group ? badgeNames(versions, locale) : [];
+        const lane = {
+          id: work.id,
+          title: localize(work.title, locale),
+          icon: <CommitIcon type={work.type} className="h-3 w-3" />,
+        };
+        versions.forEach((v, i) =>
+          strip.push({
+            id: v.id,
+            commit: v,
+            caption: [names[i], commitVenue(v)].filter(Boolean).join(" · "),
+            date: formatCommitDate(v, locale),
+            title: group ? editionLine(v, locale) : heldLine(v, locale),
+            group: lane,
+          }),
+        );
+      }
+      const active =
+        chosen[scopeKey] ?? strip.find((s) => !s.media)?.id ?? strip[0]?.id;
+      const choose = (id: string) => {
+        onChoose(scopeKey, id);
+        const group = editions.groupOf.get(id);
+        if (group) onChoose(group.id, id);
+      };
+      // Pressing a caption reads that commit under the strip; pressing the
+      // one being read puts it away.
+      const detailKey = `detail:${c.id}`;
+      const reading = chosen[detailKey] === "open";
+      const current = strip.find((s) => s.id === active);
+      const prose =
+        reading && current && !current.media
+          ? localizeOptional(current.commit.description, locale)
+          : undefined;
+      return (
         <Commit
+          key={c.id}
           {...props}
           commit={c}
           {...versionProps(c)}
-          branch="head"
+          holds
           strip={strip}
-          activeSegment={chosen[scopeKey] ?? strip[0]?.id}
-          onActiveSegment={onActiveSegment}
+          activeSegment={active}
+          onActiveSegment={choose}
+          onPressSegment={(id) => {
+            onChoose(detailKey, id === active && reading ? "closed" : "open");
+            choose(id);
+          }}
+          stripDetail={prose && <Description text={prose} isExpanded />}
         />
-        {rows.map((h, k) => {
-          const group = editions.groupOf.get(h.id);
-          const current = () =>
-            group ? (chosen[group.id] ?? h.id) : h.id;
-          return (
-            <Commit
-              key={h.id}
-              locale={locale}
-              variant="timeline"
-              form={form}
-              rail={rail}
-              segmentId={props.segmentId}
-              onSelectHash={onSelectHash}
-              branch={k === rows.length - 1 ? "last" : "entry"}
-              commit={h}
-              {...versionProps(h, showing)}
-              held
-              // Its covers are on the project's strip. The feed prints
-              // everything, the index nothing, so there it keeps its own.
-              mediaElsewhere={form === "covers"}
-              onToggle={(open) => {
-                if (open && segmentsOf.has(h.id)) showing(current());
-              }}
-              hideDate={tag.hideDate || h.hideDate}
-            />
-          );
-        })}
+      );
+    }
+
+    // The rail runs on past the branch when it runs on past the project.
+    const rail = props.rail === "│" || props.rail === "┐" ? "│" : "";
+    return (
+      <Fragment key={c.id}>
+        <Commit {...props} commit={c} {...versionProps(c)} branch="head" holds />
+        {held.map((h, k) => (
+          <Commit
+            key={h.id}
+            locale={locale}
+            variant="timeline"
+            form={form}
+            rail={rail}
+            segmentId={props.segmentId}
+            onSelectHash={onSelectHash}
+            branch={k === held.length - 1 ? "last" : "entry"}
+            commit={h}
+            {...versionProps(h)}
+            held
+            hideDate={tag.hideDate || h.hideDate}
+          />
+        ))}
       </Fragment>
     );
   };

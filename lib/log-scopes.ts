@@ -9,12 +9,12 @@
 // cluster is what a reader should meet, so a project can hold it.
 //
 // A talk, post or press says which project it belongs to (`about[0]`).
-// The project's row then holds it: its strip carries every cover in the
-// scope in the order things happened (the talk, then the post that
-// followed it, then the repository; undated attachments come last), and
-// what it holds prints under it as one-line rows on a branch of the
-// gutter. The project sits on the page at the moment it went public
-// (`publicDate`), not where the work began.
+// The project's row then holds it, in the order things happened (the talk,
+// then the post that followed it, then the repository; undated attachments
+// come last): across its strip in the covers form, a column per commit, and
+// down a branch of the gutter in the index and the feed. The project sits
+// on the page at the moment it went public (`publicDate`), not where the
+// work began.
 //
 // A work in several versions (lib/log-editions.ts) belongs as one: it
 // joins the project any of its versions names, and prints as its one row.

@@ -159,6 +159,10 @@ interface TimelineCommitProps {
   segments?: readonly StripSegment[];
   activeSegment?: string;
   onActiveSegment?: (id: string) => void;
+  /** A segment's caption pressed (see SegmentedStrip `onPress`). */
+  onPressSegment?: (id: string) => void;
+  /** Printed under the strip: what the reader pressed a segment to read. */
+  stripDetail?: ReactNode;
   /**
    * The row's place on a project's branch (lib/log-scopes.ts), drawn the
    * way `git log --graph` draws one: a lane a step right of the rail that
@@ -170,17 +174,15 @@ interface TimelineCommitProps {
    */
   branch?: "head" | "entry" | "last";
   /**
-   * The row is held by the project above it (lib/log-scopes.ts). Folded, it
-   * is its title line and nothing else: its covers are on the project's
-   * strip, and its venue and prose print when it is pressed. It does not
-   * sign: the author is the project's.
+   * The row is held by the project above it, on its branch (the index and
+   * the feed; lib/log-scopes.ts). Folded, it prints its title line and the
+   * form's pictures, and its venue and prose when it is pressed. It does
+   * not sign: the author is the project's.
    */
   held?: boolean;
-  /** The row's covers print somewhere else (a held row's: its project's
-   *  strip), so the covers form draws none here. */
-  mediaElsewhere?: boolean;
-  /** Told when the reader presses the row open or closed. */
-  onToggle?: (open: boolean) => void;
+  /** The row is a project holding other work, printed with it (on a
+   *  branch, or across its strip). */
+  holds?: boolean;
 }
 
 export function TimelineCommit({
@@ -212,10 +214,11 @@ export function TimelineCommit({
   segments,
   activeSegment,
   onActiveSegment,
+  onPressSegment,
+  stripDetail,
   branch,
   held = false,
-  mediaElsewhere = false,
-  onToggle,
+  holds = false,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
@@ -272,9 +275,8 @@ export function TimelineCommit({
 
   const handleToggleExpanded = useCallback(() => {
     if (!hasExpandableContent) return;
-    onToggle?.(!textRelieved);
     setTextRelieved((prev) => !prev);
-  }, [hasExpandableContent, onToggle, textRelieved]);
+  }, [hasExpandableContent]);
 
   // A role row is nothing but its identity, so with a pointer its hover peek
   // is the identity card (see `buildCommitPreview`), and with a finger a tap
@@ -342,7 +344,6 @@ export function TimelineCommit({
     !!segments && segments.some((segment) => segment.items.length > 0);
   const showStrip =
     !isQuiet &&
-    !mediaElsewhere &&
     rowForm.media === "covers" &&
     (segmented || data.stripItems.length > 0);
   const showStatDescription =
@@ -382,7 +383,6 @@ export function TimelineCommit({
     !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
   const showGrid =
     !isQuiet &&
-    !mediaElsewhere &&
     rowForm.media === "grid" &&
     expandedMedia.length > 0;
 
@@ -697,7 +697,7 @@ export function TimelineCommit({
       */}
       {/* A folded held row is its title line alone (see `held`). A branch's
           head keeps no empty line for a handle that isn't signing at rest:
-          the page is shorter by a line per project. And where the strip
+          the page is shorter by a line per project that holds work. And where the strip
           captions every version with its venue, the lit one's venue here
           would be printed twice; the line stays only for a handle signing
           at rest, and returns whole when the row opens. */}
@@ -706,7 +706,7 @@ export function TimelineCommit({
         !(versionsOnStrip && !textOpen && !byline?.isClusterHead) &&
         (data.meta ||
           (byline &&
-            (branch !== "head" ||
+            (!(branch === "head" || holds) ||
               textOpen ||
               byline.isClusterHead ||
               !!byline.subtitle))) && (
@@ -820,12 +820,22 @@ export function TimelineCommit({
             segments={segments}
             active={activeSegment}
             onActive={onActiveSegment}
+            onPress={onPressSegment}
             peek={rowForm.peek && magneticPreviewEnabled}
             className="min-w-0"
             inspecting={inspecting}
             onInspect={onInspectMedia}
             selectedMedia={selectedMedia}
           />
+        </div>
+      )}
+      {showStrip && segmented && stripDetail && (
+        <div
+          data-row-body
+          onClick={(e) => e.stopPropagation()}
+          className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 cursor-default"
+        >
+          {stripDetail}
         </div>
       )}
       {showStrip && !segmented && (

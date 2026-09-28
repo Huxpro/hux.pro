@@ -72,6 +72,7 @@ export function SegmentedStrip({
   segments,
   active,
   onActive,
+  onPress,
   peek = true,
   className,
   inspecting = false,
@@ -81,6 +82,8 @@ export function SegmentedStrip({
   segments: readonly StripSegment[];
   active?: string;
   onActive?: (id: string) => void;
+  /** A caption or title pressed; defaults to choosing it (`onActive`). */
+  onPress?: (id: string) => void;
   peek?: boolean;
   className?: string;
   inspecting?: boolean;
@@ -181,7 +184,7 @@ export function SegmentedStrip({
 
   const choose = (id: string) => (e: React.MouseEvent) => {
     e.stopPropagation();
-    onActive?.(id);
+    (onPress ?? onActive)?.(id);
   };
 
   if (groups.length === 0) return null;
