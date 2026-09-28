@@ -43,17 +43,21 @@ renders it.
 - **Across, in the covers form.** The covers run across the page, so the
   commits they belong to run across with them: the project's strip is its
   branch turned on its side (`components/log/media/segmented-strip.tsx`).
-  Each held work is a node on a line through the strip, with its title,
-  and a column per version under it, captioned with what, where and when
-  (`Debut in China · 第 19 届 D2…  Mar 2025`). The project's own attachments
-  sit on the same line where they happened: the blog post after the talk,
-  the repository last (undated attachments come last; a work in several
+  Each held work is a column (a column per version) with its covers on
+  top, a caption under them with what, where and when
+  (`Debut in China · 第 19 届 D2…  Mar 2025`), and under that the work's
+  title on a line running along the bottom of the strip, a node each, the
+  way a branch's commits sit on its lane. The covers all start on one line,
+  and what is lit sits right above what it opens. The project's own
+  attachments sit on the same line where they happened: the blog post
+  after the talk, the repository last (undated attachments come last; a work in several
   versions counts from its first version; a talk and an attachment on the
   same day, the talk first). Nothing prints under the project: the scope is
   one row, and on a desk the strip takes the width that sat empty beside a
   single cover. On a phone it scrolls.
-- **One of them is lit.** A caption pressed is chosen, and its commit's
-  prose prints under the strip (press it again to put it away). Scrolling
+- **One of them is lit.** A caption or a title pressed is chosen, and its
+  commit's prose prints right under the lane (press it again to put it
+  away). Scrolling
   the strip by hand to another version's covers makes its work read that
   version. Arriving at `/works#<hash>` of something a project holds lands on
   the project with its column chosen and in view.

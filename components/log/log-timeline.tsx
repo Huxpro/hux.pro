@@ -347,11 +347,11 @@ function TagBlock({
    *
    * In the covers form the pictures run across, so the commits they belong
    * to run across with them: the project's strip is its branch turned on
-   * its side (media/segmented-strip.tsx). Each held work is a node on a
-   * line through the strip, titled, with a column per version under it,
-   * captioned with where and when; the project's own attachments sit on
-   * the same line where they happened (the post after the talk, the
-   * repository last). Nothing prints under the project: the strip is the
+   * its side (media/segmented-strip.tsx). Each held work is a column per
+   * version, its covers captioned underneath with where and when, over the
+   * work's title on a line along the bottom of the strip; the project's
+   * own attachments sit on the same line where they happened (the post
+   * after the talk, the repository last). Nothing prints under the project: the strip is the
    * whole scope in one row. Pressing a caption reads that commit's prose
    * under the strip; scrolling the strip to a version makes its work read
    * that version.
