@@ -48,7 +48,7 @@ export interface BlogPost extends Post {
   tags?: string[];
   origin?: string; // Markdown string describing provenance (from en file or zh-only)
   originZh?: string; // Chinese version's origin (from zh file)
-  /** Plain-text excerpt extracted from the post body for hover previews —
+  /** The post's first paragraph, whole, as plain text (lib/mdx `extractLead`) —
    *  markdown / MDX components stripped, whitespace collapsed, truncated. */
   excerpt?: string;
   excerptZh?: string;

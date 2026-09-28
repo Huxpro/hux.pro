@@ -37,37 +37,57 @@ function extractFirstImage(content: string): string | undefined {
   return undefined;
 }
 
-/**
- * Strip MDX / markdown to plain text for hover-preview excerpts.
- *
- * Order matters: code fences first (they contain markdown-looking text we
- * shouldn't process), then JSX, then markdown syntax. After flattening we
- * collapse whitespace and truncate at a word boundary when the text is
- * Latin-script — for CJK we hard-truncate since there are no spaces.
- */
-function extractExcerpt(content: string, maxChars = 320): string {
-  const text = content
-    .replace(/```[\s\S]*?```/g, "") // fenced code blocks
+/** Markdown inline syntax flattened to the text a reader sees. */
+function flattenInline(md: string): string {
+  return md
     .replace(/`([^`]+)`/g, "$1") // inline code
-    .replace(/<[^>]+>/g, "") // JSX / HTML tags (including <Figure …/>)
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, "") // image markdown
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // link markdown → text
-    .replace(/^#{1,6}\s+/gm, "") // heading hashes
+    .replace(/<[^>]+>/g, "") // inline JSX / HTML tags
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "") // images
+    .replace(/\[\^[^\]]+\]/g, "") // footnote references
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links → their text
+    .replace(/\[([^\]]+)\]\[[^\]]*\]/g, "$1") // reference links → their text
     .replace(/(\*\*|__)([^*_]+)\1/g, "$2") // **bold** / __bold__
     .replace(/(\*|_)([^*_]+)\1/g, "$2") // *italic* / _italic_
-    .replace(/^>\s+/gm, "") // blockquote
-    .replace(/^[-*+]\s+/gm, "") // unordered list marker
-    .replace(/^\d+\.\s+/gm, "") // ordered list marker
     .replace(/\s+/g, " ")
     .trim();
+}
 
-  if (text.length <= maxChars) return text;
-  const cut = text.slice(0, maxChars);
-  const lastSpace = cut.lastIndexOf(" ");
-  // Honor word boundaries only when they're close enough to the end —
-  // otherwise we lose too much text on CJK content with rare spaces.
-  const head = lastSpace > maxChars * 0.8 ? cut.slice(0, lastSpace) : cut;
-  return head + "…";
+/**
+ * The post's first paragraph, whole: the text a card of the post quotes
+ * (its peek, its drawer, its tile, its Open Graph description).
+ *
+ * A paragraph is a run of lines between blank lines. What opens a post but
+ * is not its prose is passed over: a heading, a figure or other JSX, an
+ * image, code, a quotation (an epigraph like "世界那么大，我想去看看"), a
+ * list, a table, a rule, and a paragraph that is only a link ("skip to the
+ * code"), and a Zhihu answer's "谢邀". A paragraph that ends in a colon is
+ * a lead-in ("知乎提问：") and brings the block it introduces with it,
+ * whatever that is. Nothing is cut: a card that quotes a paragraph quotes
+ * all of it, and a surface short of room clamps it visually.
+ */
+function extractLead(content: string): string | undefined {
+  const blocks = content
+    .replace(/```[\s\S]*?```/g, "\n\n")
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+  for (let i = 0; i < blocks.length; i++) {
+    const raw = blocks[i];
+    if (/^(#|>|<|!\[|\||-{3,}|\*{3,}|[-*+]\s|\d+\.\s|\[\^)/.test(raw)) continue;
+    if (/^\[[^\]]*\]\([^)]*\)$/.test(raw)) continue;
+    const text = flattenInline(raw);
+    if (!text || /^谢邀[。.!！]?$/.test(text)) continue;
+    if (/[:：]$/.test(text) && blocks[i + 1]) {
+      // The block it introduces, as text: a quotation's or a list's markers
+      // are not what it says.
+      const next = flattenInline(
+        blocks[i + 1].replace(/^>\s?/gm, "").replace(/^([-*+]|\d+\.)\s+/gm, ""),
+      );
+      return next ? `${text} ${next}` : text;
+    }
+    return text;
+  }
+  return undefined;
 }
 
 // BlogPost already has readingTime from Post, just add content fields
@@ -348,8 +368,8 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
   // Hover-preview extras — derived from the post body. excerpt feeds the
   // peek's body excerpt; cover supplies the visual vibe. Both are per-locale
   // because bilingual posts have separate bodies.
-  const excerpt = content ? extractExcerpt(content) : undefined;
-  const excerptZh = contentZh ? extractExcerpt(contentZh) : undefined;
+  const excerpt = content ? extractLead(content) : undefined;
+  const excerptZh = contentZh ? extractLead(contentZh) : undefined;
   const cover = content ? extractFirstImage(content) : undefined;
   const coverZh = contentZh ? extractFirstImage(contentZh) : undefined;
 

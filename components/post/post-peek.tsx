@@ -3,6 +3,7 @@
 import { PeekCover } from "@/components/log/media/peek-cover";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { PostLanguage, PostPeek } from "@/lib/content";
+import { langOf } from "@/lib/i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +52,7 @@ function flattenMarkdownLinks(md: string): string {
  *                     stacked. The caption itself signals BILINGUAL when the
  *                     post has both languages, so no separate alt-lang line.
  *   3. description  — curated frontmatter summary, serif italic (editorial dek)
- *   4. excerpt      — opening paragraphs of the body (sans, prose recipe)
+ *   4. excerpt      — the first paragraph, whole (sans, prose recipe)
  *   5. hairline rule
  *   6. tags         — plain text, middle-dot separated
  *
@@ -63,10 +64,14 @@ function flattenMarkdownLinks(md: string): string {
 export function PostPeekView({
   peek: meta,
   className,
+  whole = false,
 }: {
   peek: PostPeek;
   /** The width: the peek's own (PEEK_W) unless a surface sets it. */
   className?: string;
+  /** Print the dek and the paragraph in full: a drawer has the room a
+   *  pointer's peek doesn't, which clamps them to a few lines. */
+  whole?: boolean;
 }) {
   const origin = meta.origin ? flattenMarkdownLinks(meta.origin) : undefined;
   const hasTags = !!(meta.tags && meta.tags.length);
@@ -110,17 +115,21 @@ export function PostPeekView({
         </div>
 
         {/* Description acts as a subtitle / dek — serif italic for the
-            editorial vibe, distinct register from the sans excerpt below. */}
+            editorial vibe, distinct register from the sans excerpt below.
+            A peek field only: the post's page doesn't print it. */}
         {description && (
-          <p className="font-serif italic text-sm text-foreground/80 leading-relaxed line-clamp-2">
+          <p
+            lang={langOf(description)}
+            className={cn(TYPE.dek, "text-sm", !whole && "line-clamp-2")}
+          >
             {description}
           </p>
         )}
 
-        {/* Excerpt mirrors the actual article body (sans, the `.prose-article`
-            recipe) — reads as a snippet from the real reading experience. */}
+        {/* The first paragraph, whole (lib/mdx `extractLead`), in the article
+            body's recipe: it reads as the start of the real thing. */}
         {meta.excerpt && (
-          <p className="text-sm text-foreground/75 leading-relaxed line-clamp-5">
+          <p className={cn("text-sm text-foreground/75 leading-relaxed", !whole && "line-clamp-5")}>
             {meta.excerpt}
           </p>
         )}
