@@ -13,10 +13,18 @@ It combines with any form: `?graph=1&view=index` is `git log --graph
 
 - A commit sits on its first `about` project, if that project is in the
   same chapter. An edition sits wherever its original sits.
-- A project that anything sits on gets a lane. The project's own row is at
-  the bottom of its lane, and that is where the lane forks: back into the
-  main line, or into its parent project's lane when the project is itself
-  about another one (Lynx goes open source and lynx-ui fork from Lynx).
+- A project that anything sits on gets a lane, and **the project heads
+  it**: its row moves up to just above the newest work on its lane
+  (`headFirst`), so scrolling down a reader meets what the branch is before
+  what is on it. The lane runs down through that work and, under the
+  oldest of it, curves back into the lane it grew from: the main line, or
+  its parent project's lane when the project is itself about another one
+  (Lynx goes open source and lynx-ui grow out of Lynx). That is the way
+  `git log --graph` draws a branch: its tip on top, growing up out of its
+  base.
+- A parent lane runs on until the lanes that grew out of it have come back
+  into it, and only then curves back into its own parent. A sub-project's
+  head counts as work on its parent's lane, so the parent heads its family.
 - Everything else stays on the main line, column 0, where the rail runs in
   the other views.
 
@@ -47,7 +55,7 @@ tenure rail.
 
 Each lane is named the way git names a branch, and printed the way
 `git log --decorate` prints it: `(lynx)` after the title of the lane's
-newest row, in the same mono voice as the language badge. It is part of the
+head, the project, in the same mono voice as the language badge. It is part of the
 row, so it shows at every width and never sits on another lane's line.
 
 - The name is the project's `branch` field (`lynx`, `open-source`, `ui`),
@@ -55,9 +63,8 @@ row, so it shows at every width and never sits on another lane's line.
 - A project that is about another project gets its parent's name in front,
   the way git namespaces branches: `lynx/open-source`, `lynx/ui`. The name
   says where the lane branched from, even when the fork is a screen below.
-- The project's own row, at the bottom of the lane, is not decorated: it
-  already says its name, and in git a branch is named at its tip, not where
-  it started.
+- The name sits on the project's own row because that row is the lane's
+  tip: in git a branch is named at its tip, not where it started.
 
 The editor has a **Branch** field on projects.
 
@@ -65,7 +72,7 @@ The editor has a **Branch** field on projects.
 
 A project that other projects are about (Lynx Framework) is a family. In
 the default view, work about the family itself is *not* folded into the
-family's row (see docs/works-threads.md): that row sits where the family
-began, years below the work. So "about Lynx" only shows in the graph, as the
+family's row (see docs/works-threads.md): outside the graph, that row
+sits where the family began, years below the work. So "about Lynx" only shows in the graph, as the
 Lynx lane. Work about a release inside the family is still folded into the
 release in the default view.

@@ -27,7 +27,7 @@ import {
   threadPath,
   type CommitThreads,
 } from "@/lib/log-threads";
-import { layoutGraph } from "@/lib/log-graph";
+import { headFirst, layoutGraph } from "@/lib/log-graph";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -134,6 +134,19 @@ export function LogTimeline({
     return { ...t, order, byId };
   }, [data, activeTypes]);
 
+  // In the graph a project heads its lane: each chapter in `headFirst`
+  // order, the project just above the newest work on it.
+  const chapters = useMemo(
+    () =>
+      graph
+        ? data.map((d) => ({
+            ...d,
+            commits: headFirst(d.commits, (c) => !isRowVisible(c, activeTypes)),
+          }))
+        : data,
+    [graph, data, activeTypes],
+  );
+
   // The graph's width is the page's, not each chapter's: the main line sits
   // in the same column all the way down, whatever each chapter branches.
   const graphCols = useMemo(
@@ -141,13 +154,13 @@ export function LogTimeline({
       graph
         ? Math.max(
             1,
-            ...data.map(
+            ...chapters.map(
               ({ commits }) =>
                 layoutGraph(commits, (c) => !isRowVisible(c, activeTypes)).cols,
             ),
           )
         : 1,
-    [graph, data, activeTypes],
+    [graph, chapters, activeTypes],
   );
 
   // The last row asked for, with every row it sits inside, and a counter so
@@ -178,7 +191,7 @@ export function LogTimeline({
 
   return (
     <div className="space-y-0">
-      {data.map(({ tag, commits }, tagIndex) => (
+      {chapters.map(({ tag, commits }, tagIndex) => (
         <TagBlock
           key={tag.id}
           tag={tag}

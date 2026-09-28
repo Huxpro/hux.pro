@@ -9,9 +9,11 @@
  * so it can never disagree with where they are:
  *
  *   - the main line, through every mark in column 0, top to bottom;
- *   - each project's lane, through its marks, from its newest to its oldest;
+ *   - each project's lane, from its head (the project, lib/log-graph.ts
+ *     `headFirst`) down through the work on it, and on until the lanes
+ *     that grew out of it have come back;
  *   - the fork, a curve from the bottom of a lane back into the lane it
- *     branched from, under the project's own row, where it started.
+ *     grew from: the branch growing up out of its base.
  *
  * Lines stop short of each mark, the way the tenure rail does, so a mark is
  * a node on the line rather than something the line runs through.
@@ -101,29 +103,45 @@ export function GraphLanes({
       const main = marks.filter((m) => m.col === 0);
       if (main.length > 1) next.push({ d: through(main) });
 
-      const xOf = new Map<number, number>();
-      if (main[0]) xOf.set(0, main[0].x);
-      // Lanes come parents first (lib/log-graph.ts), so the lane a fork
-      // returns to has already been measured.
-      for (const lane of lanes) {
-        const own = marks.filter(
-          (m) =>
-            m.col === lane.col && m.index >= lane.top && m.index <= lane.bottom,
-        );
-        if (own.length === 0) continue;
-        xOf.set(lane.col, own[0].x);
+      const mainX = main[0]?.x;
+      // Each lane: its marks, where it is drawn, and where it ends. A lane
+      // runs on past its last mark until every lane that grew out of it has
+      // come back into it, then curves back into the lane it grew from.
+      // Children are settled first, so a parent knows where they land.
+      const drawn = lanes
+        .map((lane) => ({
+          lane,
+          own: marks.filter(
+            (m) =>
+              m.col === lane.col && m.index >= lane.top && m.index <= lane.bottom,
+          ),
+        }))
+        .filter((l) => l.own.length > 0);
+      const landsOn = new Map<string, number>(); // parent id → lowest landing
+      const ends = new Map<string, { end: number; land: number }>();
+      for (const { lane, own } of [...drawn].reverse()) {
+        const last = own[own.length - 1];
+        const end = Math.max(last.y + last.gap, landsOn.get(lane.id) ?? 0);
+        // The curve takes the room under the lane's end, short of the next
+        // mark down.
+        const below = marks.find((m) => m.y - m.gap > end);
+        const room = below ? below.y - below.gap - end : 28;
+        const land = end + Math.max(6, Math.min(20, room - 2));
+        ends.set(lane.id, { end, land });
+        if (lane.parent) {
+          landsOn.set(lane.parent, Math.max(landsOn.get(lane.parent) ?? 0, land));
+        }
+      }
+      const xOfLane = new Map(drawn.map((l) => [l.lane.id, l.own[0].x]));
+      for (const { lane, own } of drawn) {
+        const x = own[0].x;
+        const last = own[own.length - 1];
+        const { end, land } = ends.get(lane.id)!;
         let d = through(own);
-
-        const bottom = own[own.length - 1];
-        const toX = xOf.get(lane.from);
+        if (end > last.y + last.gap) d += `M${x} ${last.y + last.gap}V${end}`;
+        const toX = lane.parent ? xOfLane.get(lane.parent) : mainX;
         if (toX !== undefined) {
-          // Down and back into the lane it came from, within the space
-          // under this row, so the fork reads as this row's.
-          const below = marks.find((m) => m.index > lane.bottom);
-          const room = below ? below.y - bottom.y : 28;
-          const y1 = bottom.y + bottom.gap;
-          const y2 = bottom.y + Math.max(bottom.gap + 6, Math.min(24, room - 6));
-          d += `M${bottom.x} ${y1}C${bottom.x} ${y2} ${toX} ${y1} ${toX} ${y2}`;
+          d += `M${x} ${end}C${x} ${land} ${toX} ${end} ${toX} ${land}`;
         }
         next.push({ d, lane: lane.id });
       }
