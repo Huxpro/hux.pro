@@ -14,12 +14,12 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import {
+  computeCommitHash,
   getCommitPeekItems,
   formatCommitDate,
   getMediaStripItems,
   isPinnedMedia,
   localize,
-  localizeOptional,
 } from "@/lib/log";
 import { guestLabel, type Guest } from "@/lib/log-hosts";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
@@ -163,12 +163,15 @@ export function Commit({
             ),
             set: attachmentSet,
             before: g.kind === "about",
-            note: {
-              title: localize(g.commit.title, locale),
-              venue: g.commit.type === "talk" ? g.commit.conference.name : undefined,
-              url: g.commit.type === "talk" ? g.commit.conference.url : undefined,
+            caption: {
+              // Another telling of a talk shares its title, so where it was
+              // given says more; a talk on a project says what it was.
+              line:
+                g.kind === "edition" && g.commit.type === "talk"
+                  ? g.commit.conference.name
+                  : localize(g.commit.title, locale),
+              hash: computeCommitHash(g.commit.id),
               date: formatCommitDate(g.commit, locale),
-              description: localizeOptional(g.commit.description, locale),
             },
           }))
         : undefined,

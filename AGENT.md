@@ -26,7 +26,7 @@
 | **About / Badges** | [docs/system-about.md](./docs/system-about.md) (The surface a newcomer meets — veil, copy from `content/about/*.mdx`, the screen-edge glow, `/` `O` from anywhere; `<Badge>` opens a thing I made where it lives) |
 | **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (The site's one light — Siri's ring as a shared WebGL shader: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/editor/glow` lab) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (Who signed a commit — the profile card behind `<handle>` and `Role:`) |
-| **Guests on /works** | [docs/works-guests.md](./docs/works-guests.md) (A commit printed on another commit's row: `editionOf` / `about`, its covers on the host's strip, a quiet line when it falls outside the host's time) |
+| **Guests on /works** | [docs/works-guests.md](./docs/works-guests.md) (A commit printed on another commit's row: `editionOf` / `about`, an attachment on the host's strip that keeps its own caption, hash and page; a quiet line when it falls outside the host's time) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (A widget's list body scrolls under a pointer, holds still under a finger — and why) |
 
 ## 2. Quick Start Context

@@ -234,6 +234,22 @@ function Meta({ set, index }: { set: AttachmentSet; index: number }) {
           {owner.subtitle}
         </div>
       )}
+      {/* Another commit's item stands for that commit here: its address
+          and when, the way a row prints them, and its prose. */}
+      {owner.hash && (
+        <div className={cn("mt-1.5 flex items-baseline gap-2", TYPE.label)}>
+          <a
+            href={owner.href ?? `#${owner.hash}`}
+            className="font-mono transition-colors hover:text-foreground"
+          >
+            {owner.hash}
+          </a>
+          {owner.date && <span className="font-mono">{owner.date}</span>}
+        </div>
+      )}
+      {owner.description && (
+        <p className={cn("mt-2", TYPE.caption)}>{owner.description}</p>
+      )}
     </div>
   );
 }

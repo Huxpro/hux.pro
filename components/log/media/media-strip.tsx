@@ -34,6 +34,7 @@ import { useMemo } from "react";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { cn } from "@/lib/utils";
 import { ARTWORK_CHIP_REST } from "@/lib/glass";
+import { TYPE } from "@/lib/typography";
 import { useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import type { Media, StripItem } from "@/lib/log";
@@ -82,14 +83,12 @@ export interface StripGuest {
   items: StripItem[];
   set?: AttachmentSet | null;
   before?: boolean;
-  /** The guest itself, for the row's notes: what it is, where, when. */
-  note?: {
-    title: string;
-    venue?: string;
-    url?: string;
-    date: string;
-    description?: string;
-  };
+  /**
+   * The guest's own caption under its first cover: it is still a commit,
+   * so it keeps its name and its address. `line` is what it is (a talk's
+   * title, or where another telling was given); then its hash and date.
+   */
+  caption?: { line: string; hash: string; date: string };
 }
 
 export function MediaStrip({
@@ -111,13 +110,15 @@ export function MediaStrip({
       runItems: StripItem[],
       runSet: AttachmentSet | null | undefined,
       label?: string,
+      caption?: StripGuest["caption"],
     ) =>
       runItems.map((item, i) => ({
         slot: resolveTile(item, locale, runSet, attachments),
         set: runSet,
         label: i === 0 ? label : undefined,
+        caption: i === 0 ? caption : undefined,
       }));
-    const guest = (g: StripGuest) => run(g.items, g.set, g.label);
+    const guest = (g: StripGuest) => run(g.items, g.set, g.label, g.caption);
     return [
       ...(guests ?? []).filter((g) => g.before).flatMap(guest),
       ...run(items, set),
@@ -148,7 +149,7 @@ export function MediaStrip({
         className,
       )}
     >
-      {slots.map(({ slot, set: slotSet, label }, i) => {
+      {slots.map(({ slot, set: slotSet, label, caption }, i) => {
         // The row itself stops peeking once it prints its covers (see
         // `showCursorPreview` in TimelineCommit); each cover peeks instead,
         // in the same vocabulary, showing what it is at a readable size —
@@ -189,6 +190,23 @@ export function MediaStrip({
               >
                 {label}
               </span>
+            )}
+            {caption && (
+              <div className="mt-1.5 w-0 min-w-full">
+                <div className={cn("truncate", TYPE.rowMeta, "text-muted-foreground")}>
+                  {caption.line}
+                </div>
+                <div className={cn("mt-0.5 flex gap-2", TYPE.hash)}>
+                  <a
+                    href={`#${caption.hash}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="transition-colors hover:text-muted-foreground"
+                  >
+                    {caption.hash}
+                  </a>
+                  <span>{caption.date}</span>
+                </div>
+              </div>
             )}
           </MagneticPreview>
         );

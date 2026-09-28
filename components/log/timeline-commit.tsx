@@ -268,7 +268,6 @@ export function TimelineCommit({
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
   // The covers on this row: its own, and its guests'.
   const guestCovers = (guests ?? []).reduce((n, g) => n + g.items.length, 0);
-  const guestNotes = (guests ?? []).flatMap((g) => (g.note ? [g.note] : []));
   const coverCount = data.stripItems.length + guestCovers;
   const showStrip = !isQuiet && rowForm.media === "covers" && coverCount > 0;
   const showStatDescription =
@@ -771,42 +770,12 @@ export function TimelineCommit({
           text, so the field stack shimmered and settled by a pixel every
           time. The row's box snaps to its new height regardless. If this
           ever wants motion, it is the height that should animate. */}
-      {!isQuiet && rowForm.notes && (data.commentary || showAuthorBlock || guestNotes.length > 0) && (
+      {!isQuiet && rowForm.notes && (data.commentary || showAuthorBlock) && (
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
           className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
         >
-          {/* The commits printed on this row, each as itself: its title,
-              where and when, and its prose. Folded, the row shows only
-              their covers; open, it says what they are. */}
-          {guestNotes.map((note) => (
-            <div key={note.title} className="space-y-1 border-l border-border/60 pl-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className={cn("min-w-0", TYPE.rowTitle)}>{note.title}</span>
-                <span className={cn("shrink-0", TYPE.rowMeta)}>{note.date}</span>
-              </div>
-              {note.venue && (
-                <div className={TYPE.rowMeta}>
-                  {note.url ? (
-                    <a
-                      href={note.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-                    >
-                      {note.venue}
-                      <span aria-hidden className="text-[0.7rem]">↗</span>
-                    </a>
-                  ) : (
-                    note.venue
-                  )}
-                </div>
-              )}
-              {note.description && <Description text={note.description} isExpanded />}
-            </div>
-          ))}
-
           {data.commentary && <Commentary text={data.commentary} />}
 
           {/* The author fields, as `git log --pretty=fuller` writes them.

@@ -40,6 +40,13 @@ export interface AttachmentOwner {
   title: string;
   subtitle?: string;
   href?: string;
+  /**
+   * For another commit's item on a row (`from`): enough of that commit for
+   * its page on the surface to stand for it: its hash, when, and its prose.
+   */
+  hash?: string;
+  date?: string;
+  description?: string;
 }
 
 /**

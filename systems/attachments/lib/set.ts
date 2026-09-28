@@ -1,6 +1,7 @@
 import type { Locale } from "@/lib/i18n";
 import {
   computeCommitHash,
+  formatCommitDate,
   localize,
   localizeOptional,
   type Commit,
@@ -70,6 +71,9 @@ export function attachmentSetWith(
     title: localize(c.title, locale),
     subtitle: subtitleFor(c, locale),
     href: `/works#${computeCommitHash(c.id)}`,
+    hash: computeCommitHash(c.id),
+    date: formatCommitDate(c, locale),
+    description: localizeOptional(c.description, locale),
   });
   const runs = [
     ...guests.filter((g) => g.before).map((g) => ({ c: g.commit, guest: true })),

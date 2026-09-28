@@ -27,20 +27,28 @@ Two optional fields on any commit (`lib/log.ts`):
 `lib/log-hosts.ts` works out who is whose guest; `components/log/log-timeline.tsx`
 prints it.
 
-- **The guest's covers join the host's strip.** The talk that introduced a
-  project leads the project's covers; another telling of a talk follows
-  the talk's own. The guest's first cover wears its name where a cover's
-  chip leaves room: its language when an edition is in another language
-  (`中文`), otherwise where it happened (`React Conf 2021`). The feed's grid
-  and the index's `📎` count include them too.
+- **The guest is an attachment on the host's row, with a life of its own.**
+  The project *attaches* the talk: the talk's covers join the host's strip
+  (a talk that introduced a project leads the project's covers; another
+  telling of a talk follows the talk's own), and they stay the talk's.
+  - Its first cover wears its name where a cover's chip leaves room: its
+    language when an edition is in another language (`中文`), otherwise
+    where it happened (`React Conf 2021`).
+  - A caption under it keeps it a commit: what it is (a talk's title, or
+    where another telling was given), then its own hash and date
+    (`fdb0944 Sep 2021`).
+  - Opening it opens the talk, not the project: on every viewport it goes
+    to its own page on the attachment surface (a drawer on a phone, a
+    window on a desk), which prints the talk's title, venue, hash, date and
+    prose, with Watch one press away. It is never part of the host row's
+    own body.
+  - The feed's grid and the index's `📎` count include it.
 - **One set.** The row opens everything it prints as one attachment set,
   in the order it prints it (`attachmentSetWith`, systems/attachments), so
-  the drawer pages through all of it. Each item remembers whose it is
-  (`from`, read through `ownerOf`): the drawer's page, the theater and the
-  window name the guest's own title and venue.
-- **Opened, the host says what its guests are.** Folded, a host row shows
-  only its guests' covers. Pressed open (or in the feed), its notes print
-  each guest as itself: its title, where and when, and its prose.
+  the surface pages through all of it. Each item remembers whose it is
+  (`from`, read through `ownerOf`): the surface's page, the theater and the
+  window name the guest, and another commit's item opens on the surface
+  rather than straight to its native home.
 - **Inside the host's time, the guest prints no row.** React without memo
   (Sep 2021) is inside React Compiler's years, so the page reads it on the
   project's row. Its hash still lands there: `/works#<hash>` travels to the
