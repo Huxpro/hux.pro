@@ -18,7 +18,7 @@ const GLOW_HARMONIES: readonly GlowHarmony[] = [
 // =============================================================================
 // Glow tuning — the devtool's knobs on the light, saved.
 //
-// Set from the devtool's Glow module and kept in localStorage (`hux_glow`),
+// Set from the devtool's Glow module and kept in localStorage (`hux_glow_v2`),
 // so a taste decision survives reloads:
 //
 //   strength       every glow on the site, × this — the light's overall volume
@@ -31,17 +31,18 @@ const GLOW_HARMONIES: readonly GlowHarmony[] = [
 //                  the whole screen on a phone — the `sm` breakpoint).
 //   aboutMotion    how the About's ring lives: flow (the default), rotate,
 //                  pulse — to judge the motions on the one ring that matters.
-//   harmony        where every glow's colours come from: the wallpaper's
-//                  dominant colour by a colour-wheel rule, or Siri's fixed
-//                  palette (lib/harmony.ts). Auto by default.
+//   harmony        where every glow's colours come from: Siri's fixed
+//                  palette (the default), or the wallpaper's dominant colour
+//                  by a colour-wheel rule (lib/harmony.ts).
 //   aboutBaseline  advanced: the light the ring keeps where no wave, arc or
-//                  lobe is. Unset, each motion keeps its own (GLOW_BASELINE).
+//                  lobe is, whatever the motion: 5% by default. Null would
+//                  be each motion's own (GLOW_BASELINE).
 //
-// The desk's default is the ring as it first shipped (a reach of 3.8% of the
-// screen's short side, 18–38px), restated: at 1440×900 a 34px reach ends
-// 152px in, 1.3× the narrower gutter (117px, top and bottom). On a phone
-// the first ring (an 18px reach, ending 80px in) was 2.2× its 36px gutter,
-// its tail well over the words; 1.4 (50px) keeps it off most of them.
+// Both layouts default to a depth of 1.4: the light's tail ends 40% past
+// the narrower gutter, over the edge of the words but off most of them.
+//
+// Stored under a versioned key: when the defaults move, the version does,
+// so a browser that saved the old ones starts again from the new.
 //
 // The renderer reads `strength` from here every frame (`glowTuning()`), so a
 // slider drag changes every lit glow at once without re-rendering anything.
@@ -64,16 +65,16 @@ export interface GlowTuning {
 export const GLOW_TUNING_DEFAULTS: GlowTuning = {
   strength: 1,
   aboutStrength: 1,
-  aboutDesk: 1.3,
+  aboutDesk: 1.4,
   aboutPhone: 1.4,
   aboutMotion: "flow",
-  aboutBaseline: null,
-  harmony: "auto",
+  aboutBaseline: 0.05,
+  harmony: "siri",
 };
 
 const MOTIONS: readonly GlowMotion[] = ["flow", "rotate", "pulse"];
 
-const KEY = "hux_glow";
+const KEY = "hux_glow_v2";
 
 let state: GlowTuning = GLOW_TUNING_DEFAULTS;
 let loaded = false;

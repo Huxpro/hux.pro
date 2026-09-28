@@ -156,8 +156,8 @@ hues from it, so the light belongs to the picture instead of sitting on it.
 | complementary | 0°, +24°, +180° | the picture's colour and its opposite — the strongest contrast |
 | split | 0°, +150°, +210° | the opposite's two neighbours — contrast without the clash |
 | triadic | 0°, +120°, +240° | evenly round the wheel — the liveliest |
-| **auto** (default) | a colourful picture (chroma ≥ 0.08) → analogous; a muted one → split; a grey one (chroma < 0.03, or the plain page) → siri | |
-| siri | Siri's five stops, whatever the wallpaper | |
+| **auto** | a colourful picture (chroma ≥ 0.08) → analogous; a muted one → split; a grey one (chroma < 0.03, or the plain page) → siri | |
+| **siri** (default) | Siri's five stops, whatever the wallpaper | |
 
 Every hue is drawn at one OKLCH lightness and chroma (0.74 / 0.16 in the
 dark theme, 0.68 in the light), the chroma lowered until it fits sRGB, so
@@ -246,25 +246,22 @@ rounded host is never lit past its curve.
 ## Tuning
 
 The devtool's **Glow** module turns the light up or down, saved in
-localStorage (`hux_glow`, `lib/tuning.ts`):
+localStorage (`hux_glow_v2`, `lib/tuning.ts`; the key's version moves with the
+defaults, so a browser that saved the old ones starts from the new):
 
 | knob | range | what |
 |---|---|---|
-| Colours | Auto / Analog / Compl / Split / Triad / Siri | where every glow's colours come from (below): default Auto |
+| Colours | Siri / Auto / Analog / Compl / Split / Triad, on a line of its own | where every glow's colours come from (below): default Siri |
 | Strength · all | 0–150% | every glow on the site — the renderer reads it each frame, so a drag changes every lit glow at once |
+| About · motion | Flow / Rotate / Pulse | the About's ring's `motion` (below), to judge each on the ring that matters: default Flow. First of the About's knobs, since the others are read against it |
 | About · strength | 0–150% | the About's ring, on top of the above |
-| About · desk depth | 5–250% of the narrower gutter | the About's `<EdgeGlow depth>` on a desk (`sm` and up): default 130% |
+| About · desk depth | 5–250% of the narrower gutter | the About's `<EdgeGlow depth>` on a desk (`sm` and up): default 140% |
 | About · phone depth | 5–250% of the narrower gutter | the same on a phone: default 140% |
-| About · baseline | 0–100%, *(default)* until moved | advanced: overrides the motion's own baseline on the About's ring; the star gives it back |
-| About · motion | Flow / Rotate / Pulse | the About's ring's `motion` (below), to judge each on the ring that matters: default Flow |
+| About · baseline | 0–100% | advanced: the light the About's ring keeps where no wave, arc or lobe is, whatever the motion: default 5% |
 
-The desk's default is the ring as it first shipped — a reach of 3.8% of the
-screen's short side, clamped to 18–38px — restated: on a 1440×900 desk a
-34px reach ends 152px in, 1.3× the narrower gutter (117px, top and bottom;
-the sides have 456px). The first phone ring (the 18px floor, ending 80px in)
-was 2.2× a 393×659 phone's 36px gutter, its tail well over the words; 140%
-(50px) keeps it off most of them. Elsewhere the ring follows the words
-rather than the screen.
+Both layouts default to a depth of 140%: the light's tail ends 40% past the
+narrower gutter, over the edge of the words but off most of them. Elsewhere
+the ring follows the words rather than the screen.
 
 The module unfolds while the About is up (its `relevant`) and the panel scrolls
 to it (it has its place on the rail), where the light

@@ -866,14 +866,23 @@ function PanelRow({
   label,
   children,
   star,
+  stacked = false,
 }: {
   label: string;
   children: React.ReactNode;
   /** <PanelStar> when this row is not at its default. */
   star?: React.ReactNode;
+  /** The control on a line of its own under the label, the panel's full
+   *  width: for one too wide to sit beside it. */
+  stacked?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div
+      className={cn(
+        "flex gap-2",
+        stacked ? "flex-col items-stretch gap-1.5" : "items-center justify-between",
+      )}
+    >
       <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
         {label}
         {star}
@@ -3026,13 +3035,16 @@ function GlowPaletteSwatches({ zh, harmony }: { zh: boolean; harmony: GlowHarmon
   return (
     <PanelRow
       label={
-        source
-          ? `${zh ? "壁纸" : "Wallpaper"} ${Math.round(source.h)}° · ${rule}`
-          : `${zh ? "壁纸无色" : "Grey wallpaper"} · ${rule === "siri" ? "siri" : rule}`
+        // Siri's palette owes the wallpaper nothing.
+        rule === "siri"
+          ? "Siri"
+          : source
+            ? `${zh ? "壁纸" : "Wallpaper"} ${Math.round(source.h)}° · ${rule}`
+            : `${zh ? "壁纸无色" : "Grey wallpaper"} · ${rule}`
       }
     >
       <span className="flex items-center gap-1">
-        {source && (
+        {source && rule !== "siri" && (
           <span
             className="mr-1 size-3 rounded-full border border-border/50"
             style={{ background: `oklch(0.7 ${Math.min(source.c, 0.2)} ${source.h})` }}
@@ -3106,36 +3118,31 @@ function GlowModule() {
       }
     >
       <div className="space-y-3">
-        {/* Where every glow's colours come from: the wallpaper's dominant
-            colour by a colour-wheel rule, or Siri's palette
-            (systems/glow/lib/harmony.ts). */}
-        <PanelRow label={zh ? "配色" : "Colours"} star={star("harmony")}>
+        {/* Where every glow's colours come from: Siri's palette (the
+            default), or the wallpaper's dominant colour by a colour-wheel
+            rule (systems/glow/lib/harmony.ts). Six choices do not fit
+            beside a label in the panel's width, so they take a line. */}
+        <PanelRow label={zh ? "配色" : "Colours"} star={star("harmony")} stacked>
           <PanelSegmented<GlowHarmony>
             value={tuning.harmony}
             options={[
+              { value: "siri", label: "Siri" },
               { value: "auto", label: zh ? "自动" : "Auto" },
               { value: "analogous", label: zh ? "近似" : "Analog" },
               { value: "complementary", label: zh ? "互补" : "Compl" },
               { value: "split", label: zh ? "分裂" : "Split" },
               { value: "triadic", label: zh ? "三角" : "Triad" },
-              { value: "siri", label: "Siri" },
             ]}
             onChange={(v) => setGlowTuning({ harmony: v })}
             label="Glow colours"
+            fill
           />
         </PanelRow>
         <GlowPaletteSwatches zh={zh} harmony={tuning.harmony} />
         {slider("strength", zh ? "全站强度" : "Strength · all", "Glow strength, site-wide", 0, 1.5)}
-        {slider("aboutStrength", zh ? "关于 · 强度" : "About · strength", "About glow strength", 0, 1.5)}
-        {/* Where the ring's light ends, as a share of the narrower gutter
-            between the screen's edge and the words (<EdgeGlow>'s `depth`):
-            100% just touches them, past it the light's tail lies over them.
-            The light stands as high off every edge. One per layout, the
-            About having two (systems/glow/lib/tuning.ts has the defaults). */}
-        {slider("aboutDesk", zh ? "关于 · 桌面深度" : "About · desk depth", "About glow depth, desk", 0.05, 2.5)}
-        {slider("aboutPhone", zh ? "关于 · 手机深度" : "About · phone depth", "About glow depth, phone", 0.05, 2.5)}
         {/* How the About's ring lives while it is up: the motions of
-            <Glow motion>, judged on the ring that matters. */}
+            <Glow motion>, judged on the ring that matters. First of the
+            About's knobs, since the others are read against it. */}
         <PanelRow label={zh ? "关于 · 动效" : "About · motion"} star={star("aboutMotion")}>
           <PanelSegmented<GlowMotion>
             value={tuning.aboutMotion}
@@ -3148,14 +3155,19 @@ function GlowModule() {
             label="About glow motion"
           />
         </PanelRow>
+        {slider("aboutStrength", zh ? "关于 · 强度" : "About · strength", "About glow strength", 0, 1.5)}
+        {/* Where the ring's light ends, as a share of the narrower gutter
+            between the screen's edge and the words (<EdgeGlow>'s `depth`):
+            100% just touches them, past it the light's tail lies over them.
+            The light stands as high off every edge. One per layout, the
+            About having two (systems/glow/lib/tuning.ts has the defaults). */}
+        {slider("aboutDesk", zh ? "关于 · 桌面深度" : "About · desk depth", "About glow depth, desk", 0.05, 2.5)}
+        {slider("aboutPhone", zh ? "关于 · 手机深度" : "About · phone depth", "About glow depth, phone", 0.05, 2.5)}
         {/* Advanced: how much light the ring keeps where no wave, arc or
-            lobe is. Untouched, each motion keeps its own (GLOW_BASELINE);
-            a drag overrides it, the star gives it back. */}
+            lobe is, whatever the motion (5% by default); the star gives the
+            default back. */}
         <PanelSlider
-          label={
-            (zh ? "关于 · 底光" : "About · baseline") +
-            (tuning.aboutBaseline === null ? (zh ? "（默认）" : " (default)") : "")
-          }
+          label={zh ? "关于 · 底光" : "About · baseline"}
           ariaLabel="About glow baseline"
           value={tuning.aboutBaseline ?? GLOW_BASELINE[tuning.aboutMotion]}
           min={0}

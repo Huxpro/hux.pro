@@ -81,6 +81,7 @@ export function Segmented<T extends string>({
   onChange,
   tone = "reader",
   label,
+  fill = false,
 }: {
   value: T;
   options: SegmentedOption<T>[];
@@ -88,10 +89,17 @@ export function Segmented<T extends string>({
   tone?: ControlTone;
   /** Accessible name for the group, where no visible label names it. */
   label?: string;
+  /** Take the width it is given, the segments sharing it evenly, rather
+   *  than its content's: for a group too long to sit beside its label. */
+  fill?: boolean;
 }) {
   const t = SEGMENTED_TONE[tone];
   return (
-    <div role="group" aria-label={label} className={cn("flex shrink-0", t.group)}>
+    <div
+      role="group"
+      aria-label={label}
+      className={cn("flex", fill ? "w-full min-w-0" : "shrink-0", t.group)}
+    >
       {options.map((o) => {
         const selected = value === o.value;
         return (
@@ -105,6 +113,7 @@ export function Segmented<T extends string>({
             className={cn(
               "transition-colors",
               t.segment,
+              fill && "min-w-0 flex-1 truncate px-1",
               selected ? t.selected : t.idle
             )}
           >
