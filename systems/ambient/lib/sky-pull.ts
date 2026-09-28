@@ -50,6 +50,7 @@
 
 import { pageScrollTop } from "vitre";
 import { isBackgroundClick } from "./poke";
+import type { PermissionStatus } from "./permissions";
 import { onSystemSurface } from "./tilt-primer";
 
 /** How far the page follows at most, px — the rubber band's reach. */
@@ -67,28 +68,37 @@ const RETURN_SWIPE_PX = 56;
 const PULL_RETURN_MS = 450;
 
 /**
+ * Does opening the window ask for the location too? While the place is only a
+ * guess the browser could still improve (`askable`), and the sheet has not
+ * already offered it this session (`offered` — the window's own policy). One
+ * answer for the pull that decides whether a sheet is needed and the sheet that
+ * decides what to say, so the two can never disagree.
+ */
+export function skyAsksPlace(location: PermissionStatus, offered: boolean): boolean {
+  return location === "askable" && !offered;
+}
+
+/**
  * What opening the window takes, or null for "there is no window to open":
  *
- *   · `window` — readings can flow and the place is settled: just open it.
- *   · `offer`  — the sheet first: WebKit's motion gate stands (unanswered, or
- *                refused and it says so), or the window would open onto a
+ *   · `window` — motion is ready and the place needs nothing: just open it.
+ *   · `offer`  — the sheet first: motion can still be asked for, or was
+ *                refused and the sheet says so, or the window would open onto a
  *                guessed place and the sheet asks for the location in the same
- *                breath (`wantsLocation`).
+ *                breath (`place`, from `skyAsksPlace`).
  *
  * Null when the Sky is not what paints (no other engine has a sky to look
- * around), or there is no motion sensor to ask. Reduced motion is the caller's
+ * around), or there is no motion sensor at all. Reduced motion is the caller's
  * to add, through `sky`: a window that follows the hand is motion.
  */
 export function skyOpenAction(state: {
   sky: boolean;
-  reachable: boolean;
-  gated: boolean;
-  denied: boolean;
-  wantsLocation: boolean;
+  motion: PermissionStatus;
+  place: boolean;
 }): "window" | "offer" | null {
   if (!state.sky) return null;
-  if (state.reachable) return state.wantsLocation ? "offer" : "window";
-  if (state.gated || state.denied) return "offer";
+  if (state.motion === "ready") return state.place ? "offer" : "window";
+  if (state.motion === "askable" || state.motion === "refused") return "offer";
   return null;
 }
 

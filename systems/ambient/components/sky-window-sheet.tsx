@@ -2,10 +2,16 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { isGyroReachable } from "../lib/gyroscope";
-import { useLocation, useWallpaper } from "../provider";
+import { useWallpaper } from "../provider";
 import { OFFER_DWELL, PermissionSheet, usePermissionOffer } from "./permission-sheet";
+import type { PermissionKind } from "../lib/permissions";
+import { skyAsksPlace } from "../lib/sky-pull";
+import { usePermissions } from "./use-permissions";
+
+/** What the window needs from the browser: where the phone points, and where it is. */
+const SKY_PERMISSIONS: readonly PermissionKind[] = ["motion", "location"];
 
 // ---------------------------------------------------------------------------
 // SkyWindowSheet — the offer that comes before the sky window's prompts.
@@ -157,13 +163,11 @@ export function SkyWindowSheet() {
   const { locale } = useLocale();
   const {
     isSkyOfferOpen: isOpen,
-    closeSkyOffer: close,
-    takeSkyWindow,
-    gyro,
-    skyWantsLocation,
+    closeSkyOffer,
+    skyLocationOffered,
     setSkyWindow,
   } = useWallpaper();
-  const { requestAccurateLocation } = useLocation();
+  const { status, request } = usePermissions(SKY_PERMISSIONS);
   const [place, setPlace] = useState<Place>(null);
   // Whether this opening asks for the place too — decided as it opens and held
   // for the life of the sheet, so a fix landing halfway through does not
@@ -172,6 +176,9 @@ export function SkyWindowSheet() {
   // Motion already flows (Chrome, Android, a past grant): the sheet is only
   // here for the place, so it says that, and lets the window open without it.
   const [motionOpen, setMotionOpen] = useState(false);
+  // Every way out: an opening that offered the place has spent that offer for
+  // the session; one that only asked for motion has not.
+  const close = useCallback(() => closeSkyOffer(askPlace), [closeSkyOffer, askPlace]);
 
   const { phase, view, ask } = usePermissionOffer<"granted" | "denied">({
     open: isOpen,
@@ -182,29 +189,31 @@ export function SkyWindowSheet() {
     // because it is the only thing still true.
     opening: () => {
       setPlace(null);
-      setAskPlace(skyWantsLocation);
-      setMotionOpen(gyro.reachable);
-      return gyro.denied ? "denied" : "offer";
+      // The same answer the pull used to decide a sheet was needed.
+      setAskPlace(skyAsksPlace(status.location, skyLocationOffered));
+      setMotionOpen(status.motion === "ready");
+      return status.motion === "refused" ? "denied" : "offer";
     },
   });
 
+  // Both dialogs from the one press, in the order usePermissions keeps:
+  // motion inside the tap's own task, then the place. Motion is asked for even
+  // when it already flows — that is a no-op answer, and it turns the tilt's
+  // wish on with the window, as a yes to the sky should.
   const take = () =>
     ask(async () => {
-      // Motion FIRST: WebKit's gate only opens from inside the tap's own task,
-      // and the location prompt needs no such thing — so the place is asked
-      // for once motion has had its answer, which also keeps the two dialogs
-      // from arriving on top of each other.
-      const access = await takeSkyWindow();
+      const { motion = "unsupported", location } = await request(
+        askPlace ? ["motion", "location"] : ["motion"]
+      );
+      // The place is worth having whatever motion says: without the window
+      // the stage's sun and moon are still placed by it.
+      if (location) setPlace(location === "granted" ? "shared" : "guessed");
       // "prompt" is the gate refusing to even consider it — no dialog was
       // shown and nothing was answered, so the offer is simply still standing.
-      if (access === "prompt") return "offer";
-      // The place is worth having whatever motion said: without the window
-      // the stage's sun and moon are still placed by it.
-      if (askPlace) {
-        const outcome = await requestAccurateLocation();
-        setPlace(outcome === "granted" ? "shared" : "guessed");
-      }
-      return isGyroReachable(access) ? "granted" : "denied";
+      if (motion === "prompt") return "offer";
+      if (!isGyroReachable(motion)) return "denied";
+      setSkyWindow(true);
+      return "granted";
     });
 
   // Motion was never the question: open the window on the network's guess.
@@ -239,7 +248,7 @@ export function SkyWindowSheet() {
           {askPlace && !motionOpen && <> {t(locale, "skySheetAlsoPlace")}</>}
         </>
       }
-      // `takeSkyWindow()` reaches `requestPermission()` in the tap's own task.
+      // `request()` reaches `requestPermission()` in the tap's own task.
       confirm={{ label: t(locale, "skySheetConfirm"), onClick: take }}
       dismiss={{
         label: t(locale, onlyPlace ? "skySheetSkipPlace" : "tiltPrimerDismiss"),

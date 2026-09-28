@@ -11,7 +11,14 @@ import {
   GLASS_TINTS,
   getTintLabel,
 } from "@/services";
-import { useAmbientTime, useLocation, useSolarTheme, useWallpaper, useWeather } from "@/systems/ambient";
+import {
+  motionStatus,
+  useAmbientTime,
+  useLocation,
+  useSolarTheme,
+  useWallpaper,
+  useWeather,
+} from "@/systems/ambient";
 import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "vitre";
 import {
   DEFAULT_BEZEL_TINT,
@@ -2109,10 +2116,11 @@ function SkyModule() {
 
   // Seven states, in the order they rule each other out: what the browser can
   // do, then what the visitor asked for, then what is actually arriving.
+  const motionAccess = motionStatus(gyro);
   const gyroReadout = ((): string => {
     if (!gyro.supported) return zh ? "无传感器" : "no sensor";
-    if (gyro.denied) return zh ? "已拒绝" : "denied";
-    if (gyro.enabled && gyro.gated) return zh ? "待授权" : "tap to allow";
+    if (motionAccess === "refused") return zh ? "已拒绝" : "denied";
+    if (gyro.enabled && motionAccess === "askable") return zh ? "待授权" : "tap to allow";
     if (!gyro.enabled) return zh ? "关" : "off";
     if (gyro.readings === "live") return `${tiltDeg ?? 0}°`;
     if (gyro.readings === "waiting") return "…";

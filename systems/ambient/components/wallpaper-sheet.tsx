@@ -17,6 +17,7 @@ import {
   useSurfaceContext,
 } from "@/systems/surface";
 import { getWeatherStyleGradient } from "../lib/gradient";
+import { motionStatus } from "../lib/permissions";
 import type { WallpaperPlacement } from "../lib/settings";
 import {
   getWallpaperPairPreview,
@@ -486,9 +487,10 @@ function WeatherTiltRow() {
   const { gyro, setGyroEnabled } = useWallpaper();
   if (!gyro.supported) return null;
 
+  const motion = motionStatus(gyro);
   let note: TranslationKey = "wallpaperTiltNote";
-  if (gyro.denied) note = "wallpaperTiltDenied";
-  else if (gyro.enabled && gyro.gated) note = "wallpaperTiltAsk";
+  if (motion === "refused") note = "wallpaperTiltDenied";
+  else if (gyro.enabled && motion === "askable") note = "wallpaperTiltAsk";
   else if (gyro.active && gyro.readings === "silent") note = "wallpaperTiltSilent";
 
   return (

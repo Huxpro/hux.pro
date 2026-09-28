@@ -6,6 +6,7 @@ export * from "./gyroscope";
 export * from "./fixed-bg-tracker";
 export * from "./location";
 export * from "./notification";
+export * from "./permissions";
 export * from "./phase";
 export * from "./platform";
 export * from "./queries";
