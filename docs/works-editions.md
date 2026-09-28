@@ -34,16 +34,24 @@ embedded in a post and linked on its own.
 ## On the page
 
 `lib/log-editions.ts` groups the versions; `components/log/versions.tsx`
-draws the badges; `components/log/log-timeline.tsx` places the row.
+draws the badges; `components/log/media/segmented-strip.tsx` the covers; `components/log/log-timeline.tsx` places the row.
 
 - **One row per work**, at the lead version's date.
 - **The title line names every version**, where the language badge would
   be: `React for Two Threads  EN · 中文`. When the versions differ by
   language the badge is the language; otherwise it is the version's label
-  (`Revised · First version`). The one showing is lit; pressing another
-  shows it in the row: its title, venue, date, prose, covers and notes.
-  The meta line and the strip are the chosen version's, exactly as on any
-  other row, so a work in several versions is the same shape as a commit.
+  (`Revised · First version`). The one the row is reading is lit; its
+  title, venue, date and prose are the row's text.
+- **Every version's covers are on the page at once.** In the covers form
+  the strip holds all of them, a segment per version in badge order, each
+  segment's first cover wearing its badge's name
+  (`components/log/media/segmented-strip.tsx`). The badges and the strip
+  are one control: pressing a badge brings its segment into view and lights
+  its name, and scrolling the strip by hand to another version's covers
+  makes the row read that version. One line of covers, where a strip per
+  version would cost a line each; on a desk the width beside a single
+  cover was empty anyway. The index prints no covers, so there a badge
+  simply switches; the feed prints the chosen version's.
 - **A version dated outside the row's time** keeps one quiet line at its
   own date: `FEDAY 2023 · First version ↑`. The arrow says the row is
   elsewhere on the page and which way. Pressing it chooses that version and

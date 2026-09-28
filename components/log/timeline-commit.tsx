@@ -25,6 +25,7 @@ import { Paperclip } from "lucide-react";
 import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
+import { SegmentedStrip, type StripSegment } from "./media/segmented-strip";
 import type { AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
@@ -135,6 +136,15 @@ interface TimelineCommitProps {
    * how a reader picks one. The rest of the row is the chosen version.
    */
   versions?: ReactNode;
+  /**
+   * Covers from more than one commit, a segment each, printed as one strip
+   * in the covers form in place of the row's own (media/segmented-strip.tsx):
+   * every version of a work. `activeSegment` is the one the row is reading,
+   * and scrolling the strip to another chooses it (`onActiveSegment`).
+   */
+  segments?: readonly StripSegment[];
+  activeSegment?: string;
+  onActiveSegment?: (id: string) => void;
 }
 
 export function TimelineCommit({
@@ -163,6 +173,9 @@ export function TimelineCommit({
   onPress,
   anchorId,
   versions,
+  segments,
+  activeSegment,
+  onActiveSegment,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
@@ -278,15 +291,20 @@ export function TimelineCommit({
   // below it is noise.
   const isQuiet = isEvent || (isAside && !textOpen);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
+  const segmented =
+    !!segments && segments.some((segment) => segment.items.length > 0);
   const showStrip =
-    !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
+    !isQuiet &&
+    rowForm.media === "covers" &&
+    (segmented || data.stripItems.length > 0);
   const showStatDescription =
     !isQuiet && rowForm.description === "clamp" && !!data.description;
   // Where the handle signs: the bottom-right of the row, which is the media
   // line when a single cover leaves it the room — on any viewport — and the
   // meta line when there is more than one, since two covers may already be
   // the width of a phone and the strip then scrolls under the edge.
-  const signsOnMediaLine = showStrip && data.stripItems.length === 1;
+  const signsOnMediaLine =
+    showStrip && !segmented && data.stripItems.length === 1;
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
@@ -705,7 +723,21 @@ export function TimelineCommit({
           sized to its covers and stops its own clicks, so the line it sits
           on stays the row's; the empty stretch beside a single cover presses
           the row like any other part of it. */}
-      {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
+      {showStrip && segmented && (
+        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+          <SegmentedStrip
+            segments={segments}
+            active={activeSegment}
+            onActive={onActiveSegment}
+            peek={rowForm.peek && magneticPreviewEnabled}
+            className="min-w-0"
+            inspecting={inspecting}
+            onInspect={onInspectMedia}
+            selectedMedia={selectedMedia}
+          />
+        </div>
+      )}
+      {showStrip && !segmented && (
         <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
           {/* The covers get a line of their own, always. One cover used to
               tuck up beside the text and two or more dropped below it, so a

@@ -30,13 +30,14 @@
  * edge reads as a rail there is more of, which is what it is.
  */
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
+import type { Locale } from "@/lib/i18n";
 import type { Media, StripItem } from "@/lib/log";
-import { AttachmentTile, resolveTile } from "./attachment-tile";
+import { AttachmentTile, resolveTile, type TileSlot } from "./attachment-tile";
 import { InspectableMedia } from "./inspectable";
 import { mediaPeek } from "./media-peek";
 
@@ -107,39 +108,78 @@ export function MediaStrip({
         className,
       )}
     >
-      {slots.map((slot, i) => {
-        // The row itself stops peeking once it prints its covers (see
-        // `showCursorPreview` in TimelineCommit); each cover peeks instead,
-        // in the same vocabulary, showing what it is at a readable size —
-        // and whole, where the tile crops.
-        const spec = peek
-          ? mediaPeek(slot.media, locale, { leaves: slot.leaves })
-          : null;
-        return (
-          <MagneticPreview
-            key={`${slot.media.url}-${i}`}
-            preview={spec?.node}
-            enabled={!!spec}
-            panelClassName={spec?.panelClassName}
-            className="shrink-0 snap-start"
-          >
-            <InspectableMedia
-              media={slot.media}
-              inspecting={inspecting}
-              selected={selectedMedia === slot.media}
-              onInspect={onInspect}
-            >
-              <AttachmentTile
-                slot={slot}
-                size="covers"
-                locale={locale}
-                set={set}
-                attachments={attachments}
-              />
-            </InspectableMedia>
-          </MagneticPreview>
-        );
-      })}
+      {slots.map((slot, i) => (
+        <CoverTile
+          key={`${slot.media.url}-${i}`}
+          slot={slot}
+          peek={peek}
+          set={set}
+          attachments={attachments}
+          locale={locale}
+          inspecting={inspecting}
+          onInspect={onInspect}
+          selectedMedia={selectedMedia}
+        />
+      ))}
     </div>
+  );
+}
+
+/**
+ * One cover on a strip, peeking on hover where a pointer can rest.
+ *
+ * The row itself stops peeking once it prints its covers (see
+ * `showCursorPreview` in TimelineCommit); each cover peeks instead, in the
+ * same vocabulary, showing what it is at a readable size — and whole, where
+ * the tile crops.
+ */
+export function CoverTile({
+  slot,
+  peek,
+  set,
+  attachments,
+  locale,
+  inspecting,
+  onInspect,
+  selectedMedia,
+  className,
+  children,
+}: {
+  slot: TileSlot;
+  peek: boolean;
+  set?: AttachmentSet | null;
+  attachments: ReturnType<typeof useOptionalAttachments>;
+  locale: Locale;
+  inspecting: boolean;
+  onInspect?: (media: Media) => void;
+  selectedMedia: Media | null;
+  className?: string;
+  /** Drawn over the cover, like its chip (a segment's label). */
+  children?: ReactNode;
+}) {
+  const spec = peek ? mediaPeek(slot.media, locale, { leaves: slot.leaves }) : null;
+  return (
+    <MagneticPreview
+      preview={spec?.node}
+      enabled={!!spec}
+      panelClassName={spec?.panelClassName}
+      className={cn("relative shrink-0 snap-start", className)}
+    >
+      <InspectableMedia
+        media={slot.media}
+        inspecting={inspecting}
+        selected={selectedMedia === slot.media}
+        onInspect={onInspect}
+      >
+        <AttachmentTile
+          slot={slot}
+          size="covers"
+          locale={locale}
+          set={set}
+          attachments={attachments}
+        />
+      </InspectableMedia>
+      {children}
+    </MagneticPreview>
   );
 }

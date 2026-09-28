@@ -13,7 +13,13 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
-import { computeCommitHash, getCommitPeekItems, localize } from "@/lib/log";
+import {
+  computeCommitHash,
+  getCommitPeekItems,
+  getMediaStripItems,
+  isPinnedMedia,
+  localize,
+} from "@/lib/log";
 import { editionLine, editionShort } from "@/lib/log-editions";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
@@ -28,6 +34,7 @@ import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
 import { VersionBadges, type VersionView } from "./versions";
+import type { StripSegment } from "./media/segmented-strip";
 import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
@@ -168,6 +175,22 @@ export function Commit({
     }));
   }, [versions, locale]);
 
+  // Every version's covers, a segment each, for the one strip the covers
+  // form prints: the versions are alternatives, so all of them are on the
+  // page at once, and the badges say which one the row is reading.
+  const versionSegments = useMemo<StripSegment[] | null>(() => {
+    if (!versions || !versionViews) return null;
+    return versions.map((v, i) => ({
+      id: v.id,
+      label: versionViews[i].badge,
+      items: getMediaStripItems(
+        (v.media ?? []).filter((m) => !isPinnedMedia(m)),
+        locale,
+      ),
+      set: inspecting ? null : attachmentSetFor(v, locale),
+    }));
+  }, [versions, versionViews, locale, inspecting]);
+
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
     !commit ||
@@ -240,6 +263,9 @@ export function Commit({
           // A work's row answers to its lead's hash, whichever version shows.
           anchorId={versions ? computeCommitHash(commit.id) : anchorId}
           versions={versionBadges}
+          segments={versionSegments ?? undefined}
+          activeSegment={shown.id}
+          onActiveSegment={onSelectVersion}
         />
       );
 
