@@ -13,6 +13,7 @@
     "og:snapshot": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/og-snapshot.ts",
     "og:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/og-snapshot.ts --check",
     "og:complete": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/og-snapshot.ts --complete",
+    "og:sizes": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/og-snapshot.ts --sizes",
     "og:fonts": "node scripts/og-fonts.mjs",
     "icon:generate": "node scripts/icon-generate.ts",
     "icon:check": "node scripts/icon-generate.ts --check",

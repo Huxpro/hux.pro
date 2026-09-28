@@ -54,6 +54,7 @@ Crawling at request time depends on the third-party site being reachable **and**
 pnpm og:snapshot   # crawl embeds in log.json → write content/og-snapshot.json
 pnpm og:complete   # CI: no network; every cover-bearing attachment has an image
 pnpm og:check      # completeness, then re-crawl and fail on snapshot drift
+pnpm og:sizes      # record cover sizes only (no page crawl) → content/image-sizes.json
 ```
 
 Run `og:snapshot` whenever you add/change an embed, review the diff, and commit. The artifact is **deterministic** (sorted keys, no timestamps) so it only changes when content changes — no flaky churn. A failed crawl never overwrites a good prior entry. A crawl that returns a title but no image is treated as unusable — recover with a manual `preview.image`.
@@ -101,6 +102,30 @@ GitHub CI runs `pnpm og:complete`. It loads `log.json`, enriches it the same way
 
 This check does not crawl. A missing cover is a content bug (add a manual `preview` / `thumbnail`, or regenerate the snapshot), not a flaky third-party outage.
 
+## Cover sizes
+
+A card's picture is shown whole by default (`fit: "natural"`), so its slot is
+as tall as the picture — and a picture's height is unknown to the browser until
+its bytes arrive. A peek or a drawer used to open at the caption's height and
+jump as the image loaded. Every cover is known at build time, so its size is
+too: `content/image-sizes.json` records `[width, height]` for every image the
+site can show whole (a card's picture after enrichment, a magic link's or a
+badge's page, a still, each post's first image), keyed by URL, and `PeekCover`
+(`lib/image-sizes.ts`) gives the slot that aspect before the image is fetched.
+The site's own generated cards (`/…/opengraph-image`) are 1200×630 and need no
+entry.
+
+- `pnpm og:snapshot` records the sizes of the covers it just snapshotted, from
+  each file's header (a remote image is read only as far as its header).
+- `pnpm og:sizes` records them without crawling any page — after adding a
+  manual `preview.image` or replacing a file under `public/`.
+- `pnpm og:complete` fails when a cover has no recorded size, or a local
+  file's size has changed since it was recorded.
+
+A host that refuses the probe (The Verge answers Node's fetch with 403) is
+given its size by hand: add `"<url>": [width, height]` to the file. A failed
+probe never drops a size already recorded, so the entry stays.
+
 ## Drift / stale detection (stale-while-revalidate)
 
 - **CI (completeness):** `pnpm og:complete` — see above. Wired in `.github/workflows/ci.yml`.
@@ -140,3 +165,6 @@ Only **non-native embeds** are snapshotted — every `link` media item, since th
 | `lib/site-card.ts` | This site's own pages as cards, for the snapshot (no crawl). |
 | `scripts/og-snapshot.ts` | `pnpm og:snapshot` / `og:complete` / `og:check`. |
 | `content/og-snapshot.json` | Committed artifact. |
+| `content/image-sizes.json` | Committed artifact: each cover's `[width, height]`. |
+| `lib/image-dimensions.ts` | Reads a size from an image's header (PNG / JPEG / GIF / WebP / AVIF / SVG). |
+| `lib/image-sizes.ts` | `imageSizeOf`: a cover's recorded size, client-side. |
