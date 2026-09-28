@@ -216,11 +216,14 @@ export function PromptToolbar({
                 onClick={() => toChapterStart(reading)}
                 title={t(locale, "logChapterStart")}
                 aria-label={`${tagOf(reading)} — ${t(locale, "logChapterStart")}`}
-                className="pressable select-none whitespace-pre transition-colors duration-200 hover:text-foreground"
+                // One rung above the row, brackets and all: a tag is one
+                // word, and the row's tertiary is what `<system>` wore, so
+                // the element you are inside stands one step out of it —
+                // secondary, the rung mono metadata takes when it stands
+                // alone (`lib/typography`). Full ink is the pointer's.
+                className="pressable select-none whitespace-pre text-muted-foreground transition-colors duration-200 hover:text-foreground"
               >
-                &lt;
-                <span className="text-foreground">{tagOf(reading)}</span>
-                &gt;
+                &lt;{tagOf(reading)}&gt;
               </motion.button>
             ) : (
               // The element this page is the body of. Not a control.
