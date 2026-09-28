@@ -31,8 +31,10 @@ const components: MDXComponents = {
       className={cn(
         // On a phone the greeting is set at the words' own size — one voice,
         // the serif marking it — so the screen goes to what is said; a desk
-        // has the room for it to stand as a title.
-        "font-serif text-[1em] leading-[inherit] text-foreground sm:text-[2rem] sm:leading-tight sm:tracking-tight",
+        // has the room for it to stand as a title. On a phone the language
+        // switch sits at the words' top-right corner (about-surface.tsx);
+        // `pe-24` keeps the greeting clear of it.
+        "font-serif pe-24 sm:pe-0 text-[1em] leading-[inherit] text-foreground sm:text-[2rem] sm:leading-tight sm:tracking-tight",
         className,
       )}
       {...props}
