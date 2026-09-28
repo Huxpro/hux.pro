@@ -1,14 +1,12 @@
 "use client";
 
 import { MagicLinkHost } from "@/components/magic-link";
-import { HeaderAction } from "@/components/ui/controls";
 import { TYPE } from "@/lib/typography";
 import { GLASS_TRACK_FLAT } from "@/systems/theater/lib/chrome";
 import { cn } from "@/lib/utils";
-import { localeNames, t, useInputCapability, useLocale } from "@/services";
+import { t, useInputCapability, useLocale } from "@/services";
 import { useWallpaper } from "@/systems/ambient";
 import { useBreakpointValue } from "@/systems/surface";
-import { Languages } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { BEZEL_INSET, VITRE_LAYER_ATTRIBUTE } from "vitre";
 import {
@@ -22,6 +20,7 @@ import {
 } from "react";
 import { ABOUT_GLOW_Z, ABOUT_Z, OVER_ABOUT_Z, useAbout } from "../provider";
 import { EdgeGlow, Glow, useGlowTuning } from "@/systems/glow";
+import { AboutLanguageSwitch } from "./about-language";
 
 // =============================================================================
 // AboutSurface — the About, floating over whatever page is underneath.
@@ -68,7 +67,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
   // turn from Reveal to Close as it leaves.
   const [firstTime, setFirstTime] = useState(!seen);
   if (isOpen && firstTime !== !seen) setFirstTime(!seen);
-  const { locale, setLocale } = useLocale();
+  const { locale } = useLocale();
   const { hasFineHoverPointer } = useInputCapability();
   const tuning = useGlowTuning();
   // Inside the bezel, when one is drawn: the About is a surface on the page's
@@ -173,31 +172,6 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
               aria-hidden
               className="absolute inset-0 bg-glass/70 backdrop-blur-2xl backdrop-saturate-150"
             />
-            {/* The other language, in the corner. The About is the first
-                thing a visitor meets, often in the language their browser
-                guessed; one press puts it in the one they read. The
-                article's own switch (post-content.tsx): the meta row's
-                mono, the Languages glyph, a chip that only paints under a
-                pointer. On a phone its edge is the words' edge. */}
-            <div
-              className={cn(
-                "absolute z-10",
-                TYPE.meta,
-                "right-[max(2.25rem,calc(env(safe-area-inset-right)+1.5rem))] top-[max(2rem,calc(env(safe-area-inset-top)+1rem))]",
-                "sm:right-8 sm:top-6",
-              )}
-            >
-              <HeaderAction
-                variant="action"
-                onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-                label={locale === "zh" ? "Read in English" : "切换到中文"}
-              >
-                <Languages className="h-3 w-3" />
-                <span lang={locale === "zh" ? "en" : "zh"}>
-                  {localeNames[locale === "zh" ? "en" : "zh"]}
-                </span>
-              </HeaderAction>
-            </div>
             {/* On a desk the words and the way out are one group, centred
                 on the screen — spacers above and below take what is left.
                 On a phone the words take every line the screen has and the
@@ -233,13 +207,23 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
                   // the reader's size, 1.75 lines, the article's ink, a
                   // paragraph and a half apart — so the About reads as the
                   // site's prose, not a type of its own.
-                  className="about-copy w-full max-w-[33rem] space-y-[calc(var(--reading-size)*1.5)] text-[length:var(--reading-size)] leading-[1.75] text-foreground/85"
+                  className="about-copy relative w-full max-w-[33rem] space-y-[calc(var(--reading-size)*1.5)] text-[length:var(--reading-size)] leading-[1.75] text-foreground/85"
                   initial={{ y: 10, scale: 0.985 }}
                   animate={{ y: 0, scale: 1 }}
                   exit={{ y: 6, scale: 0.99 }}
                   transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
                   onClickCapture={onCopyClick}
                 >
+                  {/* The other language, on a phone: at the words' top-right
+                      corner, level with the top of the greeting, a little in
+                      from their right edge, scrolling away with them (the
+                      foot's middle is the way out's). On a desk it is at the
+                      words' bottom-right instead, in the foot's row
+                      (AboutFoot). Its own layer, so the greeting it sits
+                      beside never takes its press. */}
+                  <div className="absolute right-3 top-0 z-10 sm:hidden">
+                    <AboutLanguageSwitch />
+                  </div>
                   <MagicLinkHost onLaunch={close} layer={OVER_ABOUT_Z}>
                     {locale === "zh" ? zh : en}
                   </MagicLinkHost>
@@ -308,12 +292,14 @@ function AboutFoot({
   const { locale } = useLocale();
   return (
     // On a phone the way out is centred at the screen's foot. On a desk it
-    // hangs from the words' left edge, as their last line: centred under a
-    // ragged paragraph it lines up with nothing. How to come back is the
-    // words' own last sentence, not a line here.
+    // hangs from the words' left edge, as their last line (centred under a
+    // ragged paragraph it would line up with nothing), and the other
+    // language closes the row at their right edge: the words' bottom-right
+    // corner. How to come back is the words' own last sentence, not a line
+    // here.
     <div
       ref={ref}
-      className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-col items-center sm:items-start"
+      className="about-foot system-chrome mx-auto flex w-full max-w-[33rem] flex-col items-center sm:flex-row sm:items-center sm:justify-between"
     >
       {/* Glass, not a slab: the way out is part of the veil it sits on.
           On a first visit it is Reveal (the veil lifts off the page the
@@ -340,6 +326,10 @@ function AboutFoot({
         )}
         <Glow active={firstTime} motion="pulse" inside={false} bleed={14} reach={3} strength={0.9} />
       </button>
+      {/* A little in from the edge, as at the top on a phone. */}
+      <div className="me-3 hidden sm:block">
+        <AboutLanguageSwitch />
+      </div>
     </div>
   );
 }
