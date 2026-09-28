@@ -38,7 +38,7 @@ draws the badges; `components/log/media/segmented-strip.tsx` the versions across
 
 - **One row per work**, at the lead version's date.
 - **The versions run across the row.** In the covers form the row's strip
-  holds every version as a column over its own covers, captioned with what
+  holds every version as a column, its own covers captioned underneath with what
   it is, where and when: `EN · React Universe Conf  Sep 2025`,
   `中文 · SEE Conf 2025  Nov 2025` (`components/log/media/segmented-strip.tsx`).
   Nothing is behind a press, and it is one line of covers where a strip per

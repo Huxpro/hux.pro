@@ -13,15 +13,19 @@
  *
  * The strip is `git log` turned on its side. Each segment is one commit (a
  * version of a talk, the interview, the project's own post and repository)
- * and prints its caption over its covers: what it is, where, when. Segments
- * that are versions of one work stand under the work's title together
+ * and prints its caption under its covers: what it is, where, when. Segments
+ * that are versions of one work stand over the work's title together
  * (`group`), and when the strip has groups, their titles sit on a line
- * running through them, a node each, the way a branch's commits sit on
- * its lane.
+ * running under them, a node each, the way a branch's commits sit on its
+ * lane.
  *
- *   🎙 Lynx: Unlock Native for More ──────────────────── ● ───────
- *   D2 · Debut in China  Mar 2025   React Summit · …  Jun 2025
- *   [cover]                         [cover] [cover]              [post] [repo]
+ *   [cover]                        [cover] [cover]                 [post] [repo]
+ *   D2 · Debut in China  Mar 2025  React Summit · …  Jun 2025
+ *   🎙 Lynx: Unlock Native for More ─────────────────────────── ● ──────────
+ *
+ * The words go under the covers: every column's covers start on one line,
+ * whether it has words over it or not, and what is lit sits right above
+ * whatever it opens under the strip.
  *
  * One segment is the current one (`active`): its caption is lit. Choosing is
  * one choice from three places:
@@ -107,6 +111,7 @@ export function SegmentedStrip({
     return out;
   }, [segments, locale, attachments]);
   const onLane = segments.some((s) => s.group);
+  const captioned = segments.some((s) => s.caption || s.date);
 
   const trackRef = useRef<HTMLDivElement>(null);
   // The segment the strip last reported or was last brought to: a change of
@@ -206,6 +211,58 @@ export function SegmentedStrip({
         const lit = group.segments.some((s) => s.id === active);
         return (
           <div key={group.id} className="flex shrink-0 snap-start flex-col gap-1">
+            <div className="flex gap-2">
+              {group.segments.map((seg) => (
+                <div
+                  key={seg.id}
+                  data-segment={seg.id}
+                  className="flex flex-col gap-1"
+                >
+                  {/* The covers first, so every column's tops line up, and
+                      the words under them, where what is lit sits next to
+                      whatever it opens below the strip. */}
+                  <div className="flex gap-2">
+                    {seg.slots.map((slot, i) => (
+                      <CoverTile
+                        key={`${slot.media.url}-${i}`}
+                        slot={slot}
+                        peek={peek}
+                        set={seg.set}
+                        attachments={attachments}
+                        locale={locale}
+                        inspecting={inspecting}
+                        onInspect={onInspect}
+                        selectedMedia={selectedMedia}
+                        className="snap-align-none"
+                      />
+                    ))}
+                  </div>
+                  {captioned &&
+                    (seg.caption || seg.date ? (
+                      <button
+                        type="button"
+                        onClick={choose(seg.id)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        aria-pressed={seg.id === active}
+                        title={seg.title}
+                        className={cn(
+                          "flex h-4 w-0 min-w-full items-baseline gap-2 text-left transition-colors",
+                          TYPE.rowMeta,
+                          seg.id === active
+                            ? "text-foreground"
+                            : "hover:text-muted-foreground",
+                        )}
+                      >
+                        <span className="min-w-0 flex-1 truncate">{seg.caption}</span>
+                        {seg.date && <span className="shrink-0">{seg.date}</span>}
+                      </button>
+                    ) : (
+                      // Its line kept, empty, so the lane under it is one line.
+                      <span aria-hidden className="h-4" />
+                    ))}
+                </div>
+              ))}
+            </div>
             {onLane && (
               // The lane: the group's node, its title, and the line on to
               // the next one, through the gap between them.
@@ -219,7 +276,7 @@ export function SegmentedStrip({
                   aria-hidden
                   className={cn(
                     "inline-flex shrink-0 items-center justify-center",
-                    lit ? "text-muted-foreground" : "text-quaternary-foreground",
+                    lit ? "text-foreground" : "text-quaternary-foreground",
                   )}
                 >
                   {group.icon ?? (
@@ -245,51 +302,6 @@ export function SegmentedStrip({
                 />
               </button>
             )}
-            <div className="flex gap-2">
-              {group.segments.map((seg) => (
-                <div
-                  key={seg.id}
-                  data-segment={seg.id}
-                  className="flex flex-col gap-1"
-                >
-                  {(seg.caption || seg.date) && (
-                    <button
-                      type="button"
-                      onClick={choose(seg.id)}
-                      onKeyDown={(e) => e.stopPropagation()}
-                      aria-pressed={seg.id === active}
-                      title={seg.title}
-                      className={cn(
-                        "flex w-0 min-w-full items-baseline gap-2 text-left transition-colors",
-                        TYPE.rowMeta,
-                        seg.id === active
-                          ? "text-foreground"
-                          : "hover:text-muted-foreground",
-                      )}
-                    >
-                      <span className="min-w-0 flex-1 truncate">{seg.caption}</span>
-                      {seg.date && <span className="shrink-0">{seg.date}</span>}
-                    </button>
-                  )}
-                  <div className="flex gap-2">
-                    {seg.slots.map((slot, i) => (
-                      <CoverTile
-                        key={`${slot.media.url}-${i}`}
-                        slot={slot}
-                        peek={peek}
-                        set={seg.set}
-                        attachments={attachments}
-                        locale={locale}
-                        inspecting={inspecting}
-                        onInspect={onInspect}
-                        selectedMedia={selectedMedia}
-                        className="snap-align-none"
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         );
       })}

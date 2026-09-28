@@ -561,7 +561,7 @@ export function TimelineCommit({
         ) : (
           <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
             {displayTitle}
-            {/* Where the strip names the versions, over their covers, the
+            {/* Where the strip names the versions, under their covers, the
                 badges would say it twice. */}
             {versions
               ? !(showStrip && segmented) && versions
