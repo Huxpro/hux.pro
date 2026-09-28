@@ -55,8 +55,13 @@ import { onSystemSurface } from "./tilt-primer";
 
 /** How far the page follows at most, px — the rubber band's reach. */
 const PULL_REACH = 220;
-/** Followed this far, letting go opens the window, px. */
-const PULL_ARM_PX = 92;
+/**
+ * Followed this far, letting go opens the window, px — half the rubber band's
+ * reach, about 150 px of finger. Far enough that it is a pull and not a
+ * flick: a window that opened almost as soon as the page moved read as a
+ * gesture that went off by accident.
+ */
+const PULL_ARM_PX = 110;
 /**
  * A move that starts later than this after the finger landed belongs to the
  * widget grid's press-and-hold (400 ms), not to a pull.

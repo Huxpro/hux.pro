@@ -2092,10 +2092,13 @@ html[data-sky-window] [data-sky-exits] {
 
 /* The cue at the top: comes down with the pull from above the edge, grows and
    brightens as it comes — light, not a gauge — and says "let go" when letting
-   go will open the window. */
+   go will open the window. Wholly transparent for the first fifth of the pull,
+   so a page nudged at its top shows nothing at all, then fades in to be fully
+   there by four fifths: it arrives, rather than being there the moment the
+   page moves. */
 .sky-pull-cue {
   padding-top: calc(env(safe-area-inset-top) + 12px);
-  opacity: min(1, calc(var(--sky-pull-progress, 0) * 1.6));
+  opacity: clamp(0, calc((var(--sky-pull-progress, 0) - 0.2) / 0.6), 1);
   transform: translate3d(0, calc(var(--sky-pull, 0px) * 0.45 - 44px), 0);
   transition:
     opacity 300ms ease-out,
