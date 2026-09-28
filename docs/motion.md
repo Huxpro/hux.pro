@@ -2,7 +2,7 @@
 
 ## Philosophy
 
-Motion in Hux.Pro follows the **"System UI"** aesthetic—it is functional, physical, and restrained. It is never expressive for expression's sake.
+Motion in Hux.Pro follows the **"System UI"** aesthetic: functional, physical, and restrained. It is never expressive for expression's sake.
 
 > "If motion doesn't explain something, remove it."
 
@@ -99,8 +99,8 @@ The palette uses a single container that morphs its dimensions and content:
 
 ### Hover States
 Hover effects are designed to be "weighty" but responsive.
-- **Buttons** (chrome — orbs, FAB, window pills): slight scale down on press to mimic physical resistance.
-- **Media covers**: a dark wash over the art (`COVER_WASH`), the iOS Photos / Home Screen dim — never a scale of the card.
+- **Buttons** in the chrome (orbs, FAB, window pills): slight scale down on press to mimic physical resistance.
+- **Media covers**: a dark wash over the art (`COVER_WASH`), like the iOS Photos / Home Screen dim. The card never scales.
 - **Links**: Opacity changes or subtle underlines.
 
 ### Page Transitions

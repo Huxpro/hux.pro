@@ -191,7 +191,7 @@ When location mode changes, the UI uses stale-while-revalidate to prevent jank:
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-Style selection: `settings.weatherStyle` (`sky` | `gradient` | `classic` — the
+Style selection: `settings.weatherStyle` (`sky` | `gradient` | `classic`, the
 three tiles of the picker's Weather category). Sky is the shader; Gradient is
 the same scene as CSS, live; Classic is the original condition palettes. A
 runtime WebGL2 probe (or a failure at any point) turns Sky into Gradient;
@@ -257,10 +257,10 @@ Configuration lives in `systems/ambient/lib/route-config.ts`.
 | `systems/ambient/lib/location.ts` | IP + GPS location fetching |
 | `systems/ambient/lib/weather.ts` | Open-Meteo `current` integration, 6-condition model, precipitation intensity |
 | `systems/ambient/lib/solar.ts` | Sun elevation/azimuth (NOAA), moon phase, twilight helpers |
-| `systems/ambient/lib/scene.ts` | `deriveWeatherScene()` — palette keyframes, condition profiles, theme veil |
+| `systems/ambient/lib/scene.ts` | `deriveWeatherScene()`: palette keyframes, condition profiles, theme veil |
 | `systems/ambient/lib/gradient.ts` | Scene → CSS gradient (fallback renderer + devtool previews) |
 | `systems/ambient/lib/wallpaper/shader.ts` | GLSL wallpaper (sky, sun, moon, stars, clouds, fog, lightning, rain, snow) |
-| `systems/ambient/lib/wallpaper/renderer.ts` | `WallpaperRenderer` — uniform easing, drift, adaptive quality, lifecycle |
+| `systems/ambient/lib/wallpaper/renderer.ts` | `WallpaperRenderer`: uniform easing, drift, adaptive quality, lifecycle |
 | `systems/ambient/lib/wallpaper/support.ts` | WebGL2 probe, reduced-motion, quality profile |
 | `systems/ambient/lib/sun.ts` | Sunrise/sunset window detection |
 | `systems/ambient/lib/phase.ts` | 6-phase ambient time model |

@@ -1,4 +1,4 @@
-# Agent.md — AI Context for Hux.Pro
+# Agent.md: AI Context for Hux.Pro
 
 > This file provides context for AI assistants working on this codebase.
 
@@ -21,13 +21,13 @@
 | **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards; `pnpm og:complete` in GitHub CI) |
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + the `/lab/icon` lab) |
 | **App Folder** | [docs/app-shelf.md](./docs/app-shelf.md) (Home-screen snap-paged app folder) |
-| **Attachments** | [docs/system-attachments.md](./docs/system-attachments.md) (Where a commit's media opens: sheet on a phone, with the in-app browser stacked on it; theater / in-app window / router elsewhere; the chip every cover wears; the `/lab/attachments` lab — every render path) |
-| **Labs** | [systems/lab](./systems/lab) — see [docs/system-lab.md](./docs/system-lab.md) (`/lab` — the site studied from the inside, and the libraries it publishes. Each lab in the catalog (`systems/lab/catalog.ts`) is a `study` — Works (log.json) / Attachments / Icon / Legibility / Glow — or a `library`: Vitre, whose lab is the package's home in the library template (`LibraryShell`: Docs `/lab/vitre` with a simulated iPhone running the demo, API `/lab/vitre/api`, On hux.pro `/lab/vitre/site`); `/vitre` is only the demo. One frame for all of them (`LabShell`), bilingual throughout (a `strings.ts` per lab, `systems/lab/i18n.ts`), a surface each (`systems/lab/surfaces`) worn on the index and rotated by the home Lab widget — which is off by default. Routes stay in `app/lab/<id>`. In the palette Labs is search-only; `/` `E` opens the index; the old `/editor/*` addresses redirect.) |
-| **Home widgets** | [components/home/widgets.ts](./components/home/widgets.ts) (Every widget the home grid can show and whether it is on by default — `defaultEnabled`; a visitor's choices are overrides in `hux_widget_prefs`. Edit mode's `Widgets` pill lists them; a feature can offer its own switch with `useHomeWidget`, as `/lab` does.) |
-| **About / Badges** | [docs/system-about.md](./docs/system-about.md) (The surface a newcomer meets — veil, copy from `content/about/*.mdx`, the screen-edge glow, `/` `O` from anywhere; `<Badge>` opens a thing I made where it lives) |
-| **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (The site's one light — Siri's ring as a shared WebGL shader: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/lab/glow` lab) |
-| **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (Who signed a commit — the profile card behind `<handle>` and `Role:`) |
-| **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (A widget's list body scrolls under a pointer, holds still under a finger — and why) |
+| **Attachments** | [docs/system-attachments.md](./docs/system-attachments.md) (Where a commit's media opens: sheet on a phone, with the in-app browser stacked on it; theater / in-app window / router elsewhere; the chip every cover wears; the `/lab/attachments` lab, which covers every render path) |
+| **Labs** | [systems/lab](./systems/lab); see [docs/system-lab.md](./docs/system-lab.md) (`/lab`: the site studied from the inside, and the libraries it publishes. Each lab in the catalog (`systems/lab/catalog.ts`) is a `study` (Works (log.json) / Attachments / Icon / Legibility / Glow) or a `library`: Vitre, whose lab is the package's home in the library template (`LibraryShell`: Docs `/lab/vitre` with a simulated iPhone running the demo, API `/lab/vitre/api`, On hux.pro `/lab/vitre/site`); `/vitre` is only the demo. One frame for all of them (`LabShell`), bilingual throughout (a `strings.ts` per lab, `systems/lab/i18n.ts`), a surface each (`systems/lab/surfaces`) worn on the index and rotated by the home Lab widget, which is off by default. Routes stay in `app/lab/<id>`. In the palette Labs is search-only; `/` `E` opens the index; the old `/editor/*` addresses redirect.) |
+| **Home widgets** | [components/home/widgets.ts](./components/home/widgets.ts) (Every widget the home grid can show and whether it is on by default (`defaultEnabled`); a visitor's choices are overrides in `hux_widget_prefs`. Edit mode's `Widgets` pill lists them; a feature can offer its own switch with `useHomeWidget`, as `/lab` does.) |
+| **About / Badges** | [docs/system-about.md](./docs/system-about.md) (The surface a newcomer meets: veil, copy from `content/about/*.mdx`, the screen-edge glow, `/` `O` from anywhere; `<Badge>` opens a thing I made where it lives) |
+| **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (Siri's ring as a shared WebGL shader, the site's one light: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/lab/glow` lab) |
+| **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (The profile card behind `<handle>` and `Role:`, showing who signed a commit) |
+| **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (Why a widget's list body scrolls under a pointer and holds still under a finger) |
 
 ## 2. Quick Start Context
 
@@ -77,8 +77,8 @@ duration-300 (morphing transitions)
     top of each file and Base UI's Drawer docs. The library's data attributes
     and CSS variables are a contract with meanings its types do not carry;
     every one of the listed items was a shipped bug. The Live Activity panel is
-    the same drawer travelling `up` — three things differ in that direction and
-    are listed in `live-activity.tsx`.
+    the same drawer travelling `up`. Three things differ in that direction;
+    they are listed in `live-activity.tsx`.
 
 ## 3. Common Tasks
 
@@ -90,10 +90,10 @@ duration-300 (morphing transitions)
 - Use `app/globals.css` for global variables.
 - Use Tailwind utility classes for component styling.
 - Avoid introducing new colors; stick to the grayscale system.
-- Text and washes are `--ink` at an alpha, never a fixed grey — see
-  `docs/system-legibility.md`. Use `text-muted-foreground` /
+- Text and washes are `--ink` at an alpha, never a fixed grey (see
+  `docs/system-legibility.md`). Use `text-muted-foreground` /
   `text-tertiary-foreground` / `text-quaternary-foreground` / `bg-muted` /
-  `bg-accent` — never `text-muted-foreground/NN` — and a glass token for any
+  `bg-accent`, never `text-muted-foreground/NN`, and a glass token for any
   floating surface. Recurring recipes are roles in `lib/typography.ts`
   (`TYPE.label`, `TYPE.rowMeta`, `TYPE.kbd`, …); use them. Text sitting directly on the wallpaper goes in an
   `.ink-bare` zone.
@@ -101,7 +101,7 @@ duration-300 (morphing transitions)
 
 ### Testing the Music System Offline
 - Set `localStorage.hux_music_mock = "1"` **before app scripts run** (e.g. Playwright `context.addInitScript()`), or flip "Mock player" in the Devtool panel → Music section.
-- The flag makes `MusicProvider` skip the YouTube IFrame API and drive every music surface (home widget, Live Activity, playlist sheet) from the committed fixture in `systems/music/lib/mock.ts` — play/pause/skip/select all work with zero network.
+- The flag makes `MusicProvider` skip the YouTube IFrame API and drive every music surface (home widget, Live Activity, playlist sheet) from the committed fixture in `systems/music/lib/mock.ts`. Play/pause/skip/select all work with no network.
 - Use this for headless-browser verification in sandboxes where `youtube.com` is unreachable. Never enabled by default; real visitors always get the real player.
 
 ### Testing the Bezel
@@ -120,16 +120,16 @@ of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
   current theme) or `#rrggbb`.
 - **Scroll** is container on an iPhone with the bezel on, window otherwise; the
   devtool's Scroll row overrides it for the session. Scroll-driven CSS must
-  not use `scroll(root)` — bind to `--page-scroll` (published by the package
+  not use `scroll(root)`; bind to `--page-scroll` (published by the package
   on whichever element actually scrolls) or to `scroll(nearest)`.
 - **Hero exit** is how the home / index title leaves as the page scrolls:
-  `fade` (sticky, phases out — the default) or `scroll` (in flow, rides up).
+  `fade` (the default: sticky, phases out) or `scroll` (in flow, rides up).
   `defaultHeroExit` in `components/ui/hero-exit.ts` is the platform picker;
   the DevTool's Hero exit row pins either for the session.
 - **Everything is live.** Safari does not re-read the root background for its
   chrome after load; `syncChrome` in the package shows it each change by
-  morphing a fixed bezel to 8px and back. That morph is iOS-only — the surface
-  passes `chromeMorph`, and everywhere else the colour is set on `theme-color`
+  morphing a fixed bezel to 8px and back. That morph is iOS-only. The surface
+  passes `chromeMorph`; everywhere else the colour is set on `theme-color`
   with nothing drawn. Do not write the bezel colour, `data-bezel` or the scroll
   mode anywhere else.
 - **Page scroll** goes through the package (`pageScrollTop`, `onPageScroll`,

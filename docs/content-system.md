@@ -60,15 +60,15 @@ Each language version has its own statically generated route:
 ```
 
 **Why route-based instead of `?lang=` query params:**
-- Full static HTML per language — SEO crawlers see real content, not a Suspense skeleton
+- Full static HTML per language: SEO crawlers see real content instead of a Suspense skeleton
 - Build-time MDX error catching (no Suspense deferral hiding compilation failures)
-- Smaller payloads — only the requested language's MDX is rendered server-side
+- Smaller payloads: only the requested language's MDX is rendered server-side
 - Proper `hreflang` alternate links via `generateMetadata`
 
 **Key infrastructure:**
-- `middleware.ts` — redirects bare URLs by reading the `locale` cookie (synced from localStorage by the locale service); falls back to `defaultLocale` ("en")
-- `getPostHref()` — all internal links must use this helper, which returns `/{locale}` for bilingual posts and `/{post.language}` for single-language posts
-- `usePostLanguage()` — manages conflict/switch toasts; uses `hydrated` flag from `LocaleProvider` to wait for real system locale, and `sessionStorage` to distinguish intentional switches from shared-link conflicts across route navigations
+- `middleware.ts`: redirects bare URLs by reading the `locale` cookie (synced from localStorage by the locale service); falls back to `defaultLocale` ("en")
+- `getPostHref()`: all internal links must use this helper, which returns `/{locale}` for bilingual posts and `/{post.language}` for single-language posts
+- `usePostLanguage()`: manages conflict/switch toasts; uses `hydrated` flag from `LocaleProvider` to wait for real system locale, and `sessionStorage` to distinguish intentional switches from shared-link conflicts across route navigations
 
 ### Filtering Logic
 
@@ -123,7 +123,7 @@ Static HTML (one page per locale)
 
 ### Styling Convention
 
-MDX components are **context-less** — they contain no visual styling:
+MDX components are **context-less**. They contain no visual styling:
 
 | Concern | Location | Example |
 |---------|----------|---------|
