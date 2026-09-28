@@ -13,12 +13,19 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
-import { getCommitPeekItems, localize } from "@/lib/log";
+import {
+  getCommitPeekItems,
+  getMediaStripItems,
+  isPinnedMedia,
+  localize,
+} from "@/lib/log";
+import { guestLabel, type Guest } from "@/lib/log-hosts";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
 import { attachmentSetFor, leavesSite } from "@/systems/attachments";
 import { IDENTITY_PEEK_PANEL, IdentityPeek } from "@/systems/identity";
 import { markFor } from "./media/media-mark";
+import type { StripGuest } from "./media/media-strip";
 import { PeekCard, PeekThumb } from "./media/media-peek";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
@@ -65,6 +72,8 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
+  /** Timeline-only: commits printed on this row (lib/log-hosts.ts). */
+  guests?: readonly Guest[];
 }
 
 // =============================================================================
@@ -87,6 +96,7 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  guests,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -115,6 +125,26 @@ export function Commit({
         ? buildCommitPreview(commit, locale)
         : null,
     [commit, locale, magneticPreviewEnabled],
+  );
+
+  // Each guest's covers as a run on this row's strip, opening its own
+  // attachments: an `about` guest (the talk that introduced the project)
+  // ahead of the row's own covers, an edition after them.
+  const guestStrips = useMemo<StripGuest[] | undefined>(
+    () =>
+      commit && guests?.length
+        ? guests.map((g) => ({
+            key: g.commit.id,
+            label: guestLabel(g, commit),
+            items: getMediaStripItems(
+              (g.commit.media ?? []).filter((m) => !isPinnedMedia(m)),
+              locale,
+            ),
+            set: inspecting ? null : attachmentSetFor(g.commit, locale),
+            before: g.kind === "about",
+          }))
+        : undefined,
+    [commit, guests, locale, inspecting],
   );
 
   // Runtime guard: MDX/JSON inputs can bypass static typing.
@@ -167,6 +197,7 @@ export function Commit({
           form={form}
           onSelectHash={onSelectHash}
           attachmentSet={attachmentSet}
+          guests={guestStrips}
           inspecting={inspecting}
           isSelected={isSelected}
           isUnlisted={commit.listed === false}

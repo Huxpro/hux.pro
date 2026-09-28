@@ -340,6 +340,19 @@ interface BaseCommit {
    */
   attachedTo?: string | null;
   /**
+   * Another telling of the commit with this id: the same talk in another
+   * language, or given again. The versions a chain of these connects are
+   * one work, and /works prints it as one row, the version the chain ends
+   * at, with the others' covers on its strip (lib/log-hosts.ts).
+   */
+  editionOf?: string;
+  /**
+   * The projects this commit is about, by id; the first is the one it
+   * belongs to. The talk that introduced a project: /works prints it on the
+   * project's row, its covers on the project's strip (lib/log-hosts.ts).
+   */
+  about?: string[];
+  /**
    * Per-commit override that hides the date column and renders the
    * commit's location (for roles) instead. Useful for education
    * entries that overlap with concurrent work and would otherwise

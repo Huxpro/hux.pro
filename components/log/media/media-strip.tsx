@@ -33,6 +33,7 @@
 import { useMemo } from "react";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { cn } from "@/lib/utils";
+import { ARTWORK_CHIP_REST } from "@/lib/glass";
 import { useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import type { Media, StripItem } from "@/lib/log";
@@ -65,6 +66,22 @@ export interface MediaStripProps {
   inspecting?: boolean;
   onInspect?: (media: Media) => void;
   selectedMedia?: Media | null;
+  /**
+   * Other commits' covers on this strip (lib/log-hosts.ts): a talk's other
+   * telling, the talk that introduced a project. Each run opens its own
+   * commit's set, and its first cover wears its name (`中文`,
+   * `React Conf 2021`) at the corner the chip leaves free. `before` runs
+   * print ahead of the commit's own covers, the rest after them.
+   */
+  guests?: readonly StripGuest[];
+}
+
+export interface StripGuest {
+  key: string;
+  label?: string;
+  items: StripItem[];
+  set?: AttachmentSet | null;
+  before?: boolean;
 }
 
 export function MediaStrip({
@@ -75,14 +92,30 @@ export function MediaStrip({
   inspecting = false,
   onInspect,
   selectedMedia = null,
+  guests,
 }: MediaStripProps) {
   const attachments = useOptionalAttachments();
   const { locale } = useLocale();
-  // Once per item, not once per tile per render (attachment-tile.tsx).
-  const slots = useMemo(
-    () => items.map((item) => resolveTile(item, locale, set, attachments)),
-    [items, locale, set, attachments],
-  );
+  // Once per item, not once per tile per render (attachment-tile.tsx). Each
+  // cover carries the set it opens and, first in a guest's run, its name.
+  const slots = useMemo(() => {
+    const run = (
+      runItems: StripItem[],
+      runSet: AttachmentSet | null | undefined,
+      label?: string,
+    ) =>
+      runItems.map((item, i) => ({
+        slot: resolveTile(item, locale, runSet, attachments),
+        set: runSet,
+        label: i === 0 ? label : undefined,
+      }));
+    const guest = (g: StripGuest) => run(g.items, g.set, g.label);
+    return [
+      ...(guests ?? []).filter((g) => g.before).flatMap(guest),
+      ...run(items, set),
+      ...(guests ?? []).filter((g) => !g.before).flatMap(guest),
+    ];
+  }, [items, locale, set, attachments, guests]);
 
   if (slots.length === 0) return null;
 
@@ -107,7 +140,7 @@ export function MediaStrip({
         className,
       )}
     >
-      {slots.map((slot, i) => {
+      {slots.map(({ slot, set: slotSet, label }, i) => {
         // The row itself stops peeking once it prints its covers (see
         // `showCursorPreview` in TimelineCommit); each cover peeks instead,
         // in the same vocabulary, showing what it is at a readable size —
@@ -121,7 +154,7 @@ export function MediaStrip({
             preview={spec?.node}
             enabled={!!spec}
             panelClassName={spec?.panelClassName}
-            className="shrink-0 snap-start"
+            className="relative shrink-0 snap-start"
           >
             <InspectableMedia
               media={slot.media}
@@ -133,10 +166,22 @@ export function MediaStrip({
                 slot={slot}
                 size="covers"
                 locale={locale}
-                set={set}
+                set={slotSet}
                 attachments={attachments}
               />
             </InspectableMedia>
+            {label && (
+              <span
+                aria-hidden
+                className={cn(
+                  "pointer-events-none absolute left-1.5 top-1.5 z-10 rounded-full px-1.5 py-0.5",
+                  "font-mono text-[10px] leading-none whitespace-nowrap backdrop-blur-sm",
+                  ARTWORK_CHIP_REST,
+                )}
+              >
+                {label}
+              </span>
+            )}
           </MagneticPreview>
         );
       })}

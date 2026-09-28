@@ -13,8 +13,10 @@ import {
   getLocalizedTagTitle,
   type Identity,
   isRowVisible,
+  computeCommitHash,
   type Tag,
 } from "@/lib/log";
+import { buildHosts, type Guest } from "@/lib/log-hosts";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -100,6 +102,29 @@ export function LogTimeline({
   onSelectHash,
   pinnedChapters = false,
 }: LogTimelineProps) {
+  // Commits printed on another commit's row (lib/log-hosts.ts), across the
+  // whole log: a guest and its host can sit in different chapters.
+  const guests = useMemo(() => {
+    const all = data.flatMap((d) => d.commits);
+    const hosts = buildHosts(all, (c) => isRowVisible(c, activeTypes));
+    const inside = new Set<string>();
+    // A guest dated outside its host's time keeps a quiet line there: the
+    // aside's voice, named by where it happened.
+    const quiet = new Map<string, CommitData>();
+    for (const list of hosts.guestsOf.values()) {
+      for (const g of list) {
+        if (g.inside) inside.add(g.commit.id);
+        else
+          quiet.set(g.commit.id, {
+            ...g.commit,
+            present: "aside",
+            asideLine: g.commit.asideLine ?? "venue",
+          });
+      }
+    }
+    return { guestsOf: hosts.guestsOf, inside, quiet };
+  }, [data, activeTypes]);
+
   return (
     <div className="space-y-0">
       {data.map(({ tag, commits }, tagIndex) => (
@@ -114,6 +139,7 @@ export function LogTimeline({
           activeTypes={activeTypes}
           onSelectHash={onSelectHash}
           pinned={pinnedChapters}
+          guests={guests}
         />
       ))}
     </div>
@@ -130,6 +156,11 @@ interface TagBlockProps {
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
+  guests: {
+    guestsOf: Map<string, Guest[]>;
+    inside: Set<string>;
+    quiet: Map<string, CommitData>;
+  };
 }
 
 function TagBlock({
@@ -142,6 +173,7 @@ function TagBlock({
   activeTypes,
   onSelectHash,
   pinned,
+  guests,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -191,7 +223,11 @@ function TagBlock({
     // loop below skips the rest, and the block prints nothing if none are
     // left. It is `isRowVisible` negated — the same question /works asks
     // for its chip counts and its empty state.
-    const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
+    //
+    // A guest inside its host's time is printed on the host's row, so here
+    // it is out as well (lib/log-hosts.ts).
+    const hidden = (c: CommitData) =>
+      !isRowVisible(c, activeTypes) || guests.inside.has(c.id);
 
     const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
     const allBeams = [
@@ -239,7 +275,7 @@ function TagBlock({
       isHidden: hidden,
       hasVisible: commits.some((c) => !hidden(c)),
     };
-  }, [commits, identities, locale, activeTypes]);
+  }, [commits, identities, locale, activeTypes, guests]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
@@ -330,27 +366,49 @@ function TagBlock({
             }
           }
           return runs.map((run, runIdx) => {
-            const rows = run.indices.map((i) => (
-              <Commit
-                key={commits[i].id}
-                commit={commits[i]}
-                locale={locale}
-                variant="timeline"
-                hideDate={tag.hideDate || commits[i].hideDate}
-                rail={railInfo[i].rail}
-                segmentId={railInfo[i].segmentId}
-                isSegmentActive={
-                  railInfo[i].segmentId !== null &&
-                  railInfo[i].segmentId === activeBeam?.roleId
-                }
-                beamSpec={beamSpecs[i]}
-                onBeamSet={handleBeamSet}
-                onBeamClear={handleBeamClear}
-                byline={bylines[i]}
-                form={form}
-                onSelectHash={onSelectHash}
-              />
-            ));
+            const rows = run.indices.map((i) => {
+              const c = commits[i];
+              const hosted = guests.guestsOf.get(c.id);
+              const row = (
+                <Commit
+                  key={c.id}
+                  commit={guests.quiet.get(c.id) ?? c}
+                  locale={locale}
+                  variant="timeline"
+                  hideDate={tag.hideDate || c.hideDate}
+                  rail={railInfo[i].rail}
+                  segmentId={railInfo[i].segmentId}
+                  isSegmentActive={
+                    railInfo[i].segmentId !== null &&
+                    railInfo[i].segmentId === activeBeam?.roleId
+                  }
+                  beamSpec={beamSpecs[i]}
+                  onBeamSet={handleBeamSet}
+                  onBeamClear={handleBeamClear}
+                  byline={bylines[i]}
+                  form={form}
+                  onSelectHash={onSelectHash}
+                  guests={hosted}
+                />
+              );
+              // A guest with no row of its own still has an address: its
+              // hash lands on its host's row (use-commit-anchor.ts reads
+              // any element carrying the id and `data-rail-row`).
+              return (hosted ?? [])
+                .filter((g) => guests.inside.has(g.commit.id))
+                .reduce<React.ReactNode>(
+                  (inner, g) => (
+                    <div
+                      key={c.id}
+                      id={computeCommitHash(g.commit.id)}
+                      data-rail-row=""
+                    >
+                      {inner}
+                    </div>
+                  ),
+                  row,
+                );
+            });
             return run.kind === "cluster" ? (
               // An identity can cluster twice (Meta, then RIT, then Meta
               // again), so the run is named by its first row, not its id.
