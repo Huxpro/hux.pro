@@ -12,6 +12,21 @@ For each embed that renders as a card, the preview data is resolved highest-prio
 
 `(1)` and `(2)` are baked into the data **server-side** (`enrichLogDataWithPreviews` in `app/works/page.tsx`), so cards paint immediately with no request-time crawl and no skeleton flash. `(3)` only runs for a brand-new embed you haven't snapshotted yet — so dev still "just works".
 
+## Our own pages
+
+A card for one of this site's posts (a `link` whose `url`, or a `urls` entry,
+is `/writing/<slug>/<lang>`) comes down the same pipeline as anyone else's: the
+snapshot records it under its URL. What it records is not crawled but computed
+by `siteCardOf` (`lib/site-card.ts`) from `postCardOf` (`lib/content.ts`), the
+function the post's page publishes its Open Graph with. So the title and text
+a crawler reads off our page and the ones we paint for it are one answer: the
+post's title and its first paragraph, whole. The picture is the post's own
+first image; the page's `og:image` is the card baked from it for sharing
+(docs/og-images.md). Don't write a `preview` for a post; edit the post.
+
+`og:complete` recomputes each of these and fails when the post has changed
+since the snapshot (`run pnpm og:snapshot`), so they cannot drift.
+
 ## Why a snapshot
 
 Crawling at request time depends on the third-party site being reachable **and** crawlable from the server's IP. Some sites (Medium) return `403` to server-side requests regardless of User-Agent, so the live crawl is unreliable. The snapshot moves the crawl to build time and commits the result, removing the runtime dependency (and advancing the "static-export compatible" goal — no per-request server action for previews).
@@ -86,5 +101,6 @@ Only **non-native embeds** are snapshotted — every `link` media item, since th
 | `lib/og-core.ts` | Framework-agnostic crawl + parse + classification. Shared by the action and the script. |
 | `lib/og.ts` | `"use server"` wrapper — the live/fallback path. |
 | `lib/og-snapshot.ts` | Loads the snapshot; `enrichLogDataWithPreviews` bakes previews into log data. |
+| `lib/site-card.ts` | This site's own pages as cards, for the snapshot (no crawl). |
 | `scripts/og-snapshot.ts` | `pnpm og:snapshot` / `og:complete` / `og:check`. |
 | `content/og-snapshot.json` | Committed artifact. |
