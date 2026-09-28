@@ -22,7 +22,7 @@ import {
   isPinnedMedia,
   localize,
 } from "@/lib/log";
-import { editionLine, editionShort } from "@/lib/log-editions";
+import { badgeNames, editionLine } from "@/lib/log-editions";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
 import { attachmentSetFor, leavesSite } from "@/systems/attachments";
@@ -97,8 +97,25 @@ export interface CommitProps {
   branch?: "head" | "entry" | "last";
   held?: boolean;
   mediaElsewhere?: boolean;
-  mediaOnly?: readonly Media[];
+  onToggle?: (open: boolean) => void;
+  /**
+   * Timeline-only: the covers form's strip, from other commits as well as
+   * this one, a segment each (media/segmented-strip.tsx): a project's, with
+   * the covers of the work it holds. `media` narrows a segment to some of
+   * its commit's attachments. Without it, a work in several versions strips
+   * its versions.
+   */
+  strip?: readonly StripSource[];
+  activeSegment?: string;
+  onActiveSegment?: (id: string) => void;
 }
+
+/** A segment of a row's strip, before its covers are resolved: whose they
+ *  are, and what the strip says over them (see `StripSegment`). */
+export type StripSource = Omit<StripSegment, "items" | "set"> & {
+  commit: CommitData;
+  media?: readonly Media[];
+};
 
 // =============================================================================
 // Main Component
@@ -130,7 +147,10 @@ export function Commit({
   branch,
   held,
   mediaElsewhere,
-  mediaOnly,
+  onToggle,
+  strip,
+  activeSegment,
+  onActiveSegment,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -175,13 +195,10 @@ export function Commit({
   // marks one; otherwise it is the version's label.
   const versionViews = useMemo<VersionView[] | null>(() => {
     if (!versions) return null;
-    const langs = versions.map((v) => v.language);
-    const byLanguage =
-      langs.every((l) => l === "en" || l === "zh") &&
-      new Set(langs).size === versions.length;
-    return versions.map((v) => ({
+    const names = badgeNames(versions, locale);
+    return versions.map((v, i) => ({
       id: v.id,
-      badge: byLanguage ? (v.language === "en" ? "EN" : "中文") : editionShort(v, locale),
+      badge: names[i],
       line: editionLine(v, locale),
     }));
   }, [versions, locale]);
@@ -189,20 +206,29 @@ export function Commit({
   // Every version's covers, a segment each, for the one strip the covers
   // form prints: the versions are alternatives, so all of them are on the
   // page at once, and the badges say which one the row is reading.
-  const versionSegments = useMemo<StripSegment[] | null>(() => {
-    if (!versions || !versionViews) return null;
-    return versions.map((v, i) => ({
-      id: v.id,
-      caption: [versionViews[i].badge, commitVenue(v)].filter(Boolean).join(" · "),
-      date: formatCommitDate(v, locale),
-      title: versionViews[i].line,
+  const segments = useMemo<StripSegment[] | null>(() => {
+    const sources =
+      strip ??
+      (versions && versionViews
+        ? versions.map((v, i) => ({
+            id: v.id,
+            commit: v,
+            media: undefined,
+            caption: [versionViews[i].badge, commitVenue(v)].filter(Boolean).join(" · "),
+            date: formatCommitDate(v, locale),
+            title: versionViews[i].line,
+          }))
+        : null);
+    if (!sources) return null;
+    return sources.map(({ commit: src, media, ...rest }) => ({
+      ...rest,
       items: getMediaStripItems(
-        (v.media ?? []).filter((m) => !isPinnedMedia(m)),
+        (media ?? src.media ?? []).filter((m) => !isPinnedMedia(m)),
         locale,
       ),
-      set: inspecting ? null : attachmentSetFor(v, locale),
+      set: inspecting ? null : attachmentSetFor(src, locale),
     }));
-  }, [versions, versionViews, locale, inspecting]);
+  }, [strip, versions, versionViews, locale, inspecting]);
 
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
@@ -276,13 +302,13 @@ export function Commit({
           // A work's row answers to its lead's hash, whichever version shows.
           anchorId={versions ? computeCommitHash(commit.id) : anchorId}
           versions={versionBadges}
-          segments={versionSegments ?? undefined}
-          activeSegment={shown.id}
-          onActiveSegment={onSelectVersion}
+          segments={segments ?? undefined}
+          activeSegment={strip ? activeSegment : shown.id}
+          onActiveSegment={strip ? onActiveSegment : onSelectVersion}
           branch={branch}
           held={held}
           mediaElsewhere={mediaElsewhere}
-          mediaOnly={mediaOnly}
+          onToggle={onToggle}
         />
       );
 

@@ -27,7 +27,7 @@
 | **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (The site's one light — Siri's ring as a shared WebGL shader: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/editor/glow` lab) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (Who signed a commit — the profile card behind `<handle>` and `Role:`) |
 | **Editions** | [docs/works-editions.md](./docs/works-editions.md) (One work in several versions on /works: `editionOf` / `lead`, one row with its versions across the strip, a captioned column each, the quiet line at a version's own date) |
-| **Scopes** | [docs/works-scopes.md](./docs/works-scopes.md) (A project on /works that holds the work that took it public: `about`, `publicDate`, dated attachments, one chronology on a branch of the gutter) |
+| **Scopes** | [docs/works-scopes.md](./docs/works-scopes.md) (A project on /works that holds the work that took it public: `about`, `publicDate`, dated attachments; one strip of every cover in the scope, one-line rows on a branch of the gutter) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (A widget's list body scrolls under a pointer, holds still under a finger — and why) |
 
 ## 2. Quick Start Context

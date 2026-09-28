@@ -170,22 +170,17 @@ interface TimelineCommitProps {
    */
   branch?: "head" | "entry" | "last";
   /**
-   * The row is held by the project above it. It prints one step quieter:
-   * its title, venue and covers, and its prose only when pressed. It does
-   * not sign: the author is the project's.
+   * The row is held by the project above it (lib/log-scopes.ts). Folded, it
+   * is its title line and nothing else: its covers are on the project's
+   * strip, and its venue and prose print when it is pressed. It does not
+   * sign: the author is the project's.
    */
   held?: boolean;
-  /**
-   * The row's attachments print as entries on its branch (`mediaOnly`),
-   * not on the row.
-   */
+  /** The row's covers print somewhere else (a held row's: its project's
+   *  strip), so the covers form draws none here. */
   mediaElsewhere?: boolean;
-  /**
-   * The row is a run of its commit's attachments, printed as an entry on
-   * the commit's branch: a dot on the line and the covers, in the page's
-   * form. No title; the project above is what they are attachments of.
-   */
-  mediaOnly?: readonly Media[];
+  /** Told when the reader presses the row open or closed. */
+  onToggle?: (open: boolean) => void;
 }
 
 export function TimelineCommit({
@@ -220,7 +215,7 @@ export function TimelineCommit({
   branch,
   held = false,
   mediaElsewhere = false,
-  mediaOnly,
+  onToggle,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
@@ -277,8 +272,9 @@ export function TimelineCommit({
 
   const handleToggleExpanded = useCallback(() => {
     if (!hasExpandableContent) return;
+    onToggle?.(!textRelieved);
     setTextRelieved((prev) => !prev);
-  }, [hasExpandableContent]);
+  }, [hasExpandableContent, onToggle, textRelieved]);
 
   // A role row is nothing but its identity, so with a pointer its hover peek
   // is the identity card (see `buildCommitPreview`), and with a finger a tap
@@ -303,9 +299,7 @@ export function TimelineCommit({
   // a column of open ones was the same click as opening a caption, and
   // nothing painted the difference. They are not the same click any more:
   // this one changes the prose, the cover's opens the attachment.
-  const rowOnClick = mediaOnly
-    ? undefined
-    : inspecting
+  const rowOnClick = inspecting
     ? onInspectCommit
     : onPress
       ? onPress
@@ -371,7 +365,6 @@ export function TimelineCommit({
   // handle still does (IdentityHover).
   const showCursorPreview =
     !!cursorPreview &&
-    !mediaOnly &&
     rowForm.peek &&
     !showStrip &&
     !showStatDescription;
@@ -499,73 +492,7 @@ export function TimelineCommit({
     </>
   );
 
-  // A run of the commit's attachments on its branch: a dot on the branch's
-  // line where an entry's icon would be, and the covers in the page's form.
-  // The hash column holds its width, empty: the run is not a commit.
-  const mediaOnlyItems = mediaOnly
-    ? data.stripItems.filter((item) => mediaOnly.includes(item.media))
-    : [];
-  const mediaOnlyStacked = mediaOnly
-    ? mediaOnly.filter((m) => !tiled.has(m))
-    : [];
-  const mediaOnlyContent = mediaOnly && (
-    <div className="relative grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
-      {branch === "last" && <BranchJoin gapPx={4} />}
-      <span
-        aria-hidden
-        className={cn("hidden @sm:inline-block leading-5", HASH_CELL, TYPE.hash, "text-transparent")}
-      >
-        {data.hash}
-      </span>
-      <span className="relative inline-flex items-center justify-center w-5 h-5">
-        {railSpans(0)}
-        {branch && <BranchLines branch={branch} gapPx={4} />}
-        <span
-          aria-hidden
-          style={{ transform: `translateX(${BRANCH_PX}px)` }}
-          className="block w-[5px] h-[5px] rounded-full bg-muted-foreground/30"
-        />
-      </span>
-      {form === "feed" ? (
-        <div
-          data-row-body
-          onClick={(e) => e.stopPropagation()}
-          className="min-w-0 space-y-4 cursor-default"
-        >
-          <AttachmentGrid
-            items={mediaOnlyItems}
-            set={attachmentSet}
-            inspecting={inspecting}
-            onInspect={onInspectMedia}
-            selectedMedia={selectedMedia}
-          />
-          {mediaOnlyStacked.length > 0 && (
-            <MediaRenderer
-              media={mediaOnlyStacked}
-              layout="stack"
-              size="default"
-              inspecting={inspecting}
-              onInspect={onInspectMedia}
-              selectedMedia={selectedMedia}
-              set={attachmentSet}
-            />
-          )}
-        </div>
-      ) : (
-        <MediaStrip
-          items={mediaOnlyItems}
-          set={attachmentSet}
-          peek={magneticPreviewEnabled}
-          className="min-w-0"
-          inspecting={inspecting}
-          onInspect={onInspectMedia}
-          selectedMedia={selectedMedia}
-        />
-      )}
-    </div>
-  );
-
-  const rowContent = mediaOnlyContent || (
+  const rowContent = (
     <div className="relative grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
       {branch === "last" && <BranchJoin gapPx={iconGapPx} />}
       {/*
@@ -768,12 +695,21 @@ export function TimelineCommit({
         byline fully visible so the cluster's authorial context stays
         on-screen while you read.
       */}
-      {/* Where the strip captions every version with its venue, the lit
-          one's venue here would be printed twice; the line stays only for
-          a handle signing at rest, and returns whole when the row opens. */}
+      {/* A folded held row is its title line alone (see `held`). A branch's
+          head keeps no empty line for a handle that isn't signing at rest:
+          the page is shorter by a line per project. And where the strip
+          captions every version with its venue, the lit one's venue here
+          would be printed twice; the line stays only for a handle signing
+          at rest, and returns whole when the row opens. */}
       {!isQuiet &&
-        (data.meta || byline) &&
-        !(versionsOnStrip && !textOpen && !byline?.isClusterHead) && (
+        !(held && !textOpen) &&
+        !(versionsOnStrip && !textOpen && !byline?.isClusterHead) &&
+        (data.meta ||
+          (byline &&
+            (branch !== "head" ||
+              textOpen ||
+              byline.isClusterHead ||
+              !!byline.subtitle))) && (
         // `min-w-0`: the line never wraps, so without it a long venue sets
         // the column's minimum width and pushes the date off a phone.
         <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex min-w-0 items-baseline justify-between gap-2", TYPE.rowMeta)}>

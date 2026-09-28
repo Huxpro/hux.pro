@@ -48,18 +48,29 @@ renders it.
   it grew from. The rail runs past the branch unbroken. The text column
   never moves: the hash stays in the hash column and the title in the
   title column, so nesting costs a phone nothing but the icons' step.
-- **Always printed, a step quieter.** Held rows follow the page's form
-  (index rows in the index, covers in covers, the feed in the feed), minus
-  their prose: title, venue and covers, and the description only when you
-  press the row. They don't sign: the author is the project's.
-- **Attachments are entries too.** The project's own attachments move off
-  its row onto the branch, a dot on the line and a strip per run, so the
-  held rows and the attachments are one chronology in the order they
-  happened: the talk, then the post that followed it. A talk and an
-  attachment on the same day: the talk first. Undated attachments (a
-  repository) come last. A work in several versions counts from its first
-  version. The index prints no pictures, so there the attachments stay on
-  the project's row, counted on its title line.
+- **Pictures across, the list down.** The page is meant to be read by
+  scrolling it quickly, so a scope costs as few lines as it can. The
+  project's row carries one strip with every cover in the scope, a segment
+  each, in the order things happened: the talk (every version of it), the
+  interview, the blog post, the repository. Undated attachments come last;
+  a work in several versions counts from its first version; a talk and an
+  attachment on the same day, the talk first. Each segment's first cover
+  wears its name (`EN`, `Debut abroad`, `React Universe Conf`). On a desk
+  the width that sat empty beside a single cover takes most of it; on a
+  phone the strip scrolls.
+- **Held rows are one line.** What the project holds prints under it as
+  rows of their own, each its title line alone (with its version badges)
+  until you press it; pressed, it prints its venue, prose and notes. Its
+  covers stay on the project's strip. It doesn't sign: the author is the
+  project's. A branch's head drops the empty line a hidden handle would
+  hold.
+- **One control.** The rows and the strip are linked. A row's badge, or
+  pressing a row open, brings its covers into view on the strip and lights
+  their name; scrolling the strip to a version's covers makes its row read
+  that version.
+- **Other forms.** The index prints no pictures: the rows are the same
+  one-liners and the project counts its own attachments. The feed prints
+  everything: each row its own grid, the project its own attachments.
 - **Quiet lines.** A held commit dated outside every row that holds it
   keeps a quiet line at its own date that takes you there (`↑` / `↓`).
   Inside the project's span it gets none: React without memo is inside the

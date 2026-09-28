@@ -9,10 +9,11 @@
 // cluster is what a reader should meet, so a project can hold it.
 //
 // A talk, post or press says which project it belongs to (`about[0]`).
-// The project's row then holds it: what it holds prints right under it, on
-// a branch of the gutter, in the order things happened: the talk, then the
-// post that followed it, then the repository (undated attachments come
-// last). The project sits on the page at the moment it went public
+// The project's row then holds it: its strip carries every cover in the
+// scope in the order things happened (the talk, then the post that
+// followed it, then the repository; undated attachments come last), and
+// what it holds prints under it as one-line rows on a branch of the
+// gutter. The project sits on the page at the moment it went public
 // (`publicDate`), not where the work began.
 //
 // A work in several versions (lib/log-editions.ts) belongs as one: it
@@ -102,22 +103,20 @@ export function heldDate(commit: Commit, editions: Editions): string {
   return group.versions.map((v) => v.date).sort()[0];
 }
 
-/** One entry under a project on /works: a row it holds, or a run of its
- *  own attachments. */
+/** One entry in a project's chronology on /works: a row it holds, or a run
+ *  of its own attachments. */
 export type ScopeEntry =
   | { kind: "row"; commit: Commit }
   | { kind: "media"; media: Media[] };
 
 /**
- * What prints under a project, in the order it happened: the rows it holds
- * and its own attachments as one chronology. Dated entries first, by date (a
+ * A project's chronology, the order its strip is in: the rows it holds and
+ * its own attachments as one sequence. Dated entries first, by date (a
  * talk before an attachment dated the same day: the talk comes first, the
  * write-up after), then the undated attachments as authored, like the
  * repository. Consecutive attachments are one run, printed as one strip.
  *
- * `withMedia: false` leaves the attachments where they always were, on the
- * project's own row: the index prints no pictures, and a strip of its own
- * would be the one picture on the page.
+ * `withMedia: false` leaves the project's own attachments out.
  */
 export function scopeEntries(
   project: Commit,
