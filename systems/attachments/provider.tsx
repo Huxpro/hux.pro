@@ -24,6 +24,7 @@ import {
   nativeHomeFor,
   type HomeContext,
 } from "./lib/policy";
+import { ownerOf } from "./lib/set";
 import type { AttachmentHome, AttachmentSet } from "./lib/types";
 
 // =============================================================================
@@ -157,11 +158,14 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           if (media.kind !== "video" && media.kind !== "slides") return;
           // The stage picks the library: a recording lands among the talks,
           // a deck among the decks.
+          // Named by the commit the item is from (`ownerOf`), which is not
+          // always the set's: a project's row opens its talk's recording too.
+          const owner = ownerOf(set, index);
           openMedia(media, {
             id: `${set.id}#${index}`,
-            title: set.title,
-            subtitle: set.subtitle,
-            href: set.href,
+            title: owner.title,
+            subtitle: owner.subtitle,
+            href: owner.href,
           });
           sent();
           setIsOpen(false);
@@ -180,7 +184,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
         }
         case "window": {
           if (!openUrl) return;
-          openUrl(linkTarget(media, locale), { title: set.title });
+          openUrl(linkTarget(media, locale), { title: ownerOf(set, index).title });
           sent();
           // On a phone the window is a sheet, and it stacks on the attachment
           // sheet: putting the page away lands back on the commit's

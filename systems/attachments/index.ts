@@ -32,7 +32,7 @@ export type {
 } from "./provider";
 export { AttachmentSurface } from "./components/attachment-surface";
 export { ImageLightbox } from "./components/image-lightbox";
-export { attachmentSetFor } from "./lib/set";
+export { attachmentSetFor, attachmentSetWith, ownerOf } from "./lib/set";
 export {
   homeFor,
   nativeHomeFor,
@@ -41,4 +41,4 @@ export {
   leavesSite,
 } from "./lib/policy";
 export type { HomeContext } from "./lib/policy";
-export type { AttachmentHome, AttachmentSet } from "./lib/types";
+export type { AttachmentHome, AttachmentOwner, AttachmentSet } from "./lib/types";

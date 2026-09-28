@@ -5,7 +5,7 @@ import {
   localizeOptional,
   type Commit,
 } from "@/lib/log";
-import type { AttachmentSet } from "./types";
+import type { AttachmentOwner, AttachmentSet } from "./types";
 
 // =============================================================================
 // Attachments — building a set from a commit
@@ -47,5 +47,46 @@ export function attachmentSetFor(
     subtitle: subtitleFor(commit, locale),
     href: `/works#${hash}`,
     items,
+  };
+}
+
+/** The commit an item belongs to: its own entry in `from`, else the set's. */
+export function ownerOf(set: AttachmentSet, index: number): AttachmentOwner {
+  return set.from?.[index] ?? set;
+}
+
+/**
+ * A row's set when the row prints other commits' covers too: every item in
+ * the order the row prints them (`before` guests, the commit's own, then
+ * the rest), under the row's name, each remembering whose it is. One set,
+ * so the surface pages through everything on the row.
+ */
+export function attachmentSetWith(
+  commit: Commit,
+  guests: readonly { commit: Commit; before: boolean }[],
+  locale: Locale,
+): AttachmentSet | null {
+  const owner = (c: Commit): AttachmentOwner => ({
+    title: localize(c.title, locale),
+    subtitle: subtitleFor(c, locale),
+    href: `/works#${computeCommitHash(c.id)}`,
+  });
+  const runs = [
+    ...guests.filter((g) => g.before).map((g) => ({ c: g.commit, guest: true })),
+    { c: commit, guest: false },
+    ...guests.filter((g) => !g.before).map((g) => ({ c: g.commit, guest: true })),
+  ];
+  const items = runs.flatMap((r) => r.c.media ?? []);
+  if (items.length === 0) return null;
+  const own = attachmentSetFor(commit, locale);
+  return {
+    id: commit.id,
+    title: localize(commit.title, locale),
+    subtitle: subtitleFor(commit, locale),
+    href: own?.href ?? `/works#${computeCommitHash(commit.id)}`,
+    items,
+    from: runs.flatMap((r) =>
+      (r.c.media ?? []).map(() => (r.guest ? owner(r.c) : undefined)),
+    ),
   };
 }

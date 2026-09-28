@@ -31,9 +31,16 @@ prints it.
   project leads the project's covers; another telling of a talk follows
   the talk's own. The guest's first cover wears its name where a cover's
   chip leaves room: its language when an edition is in another language
-  (`中文`), otherwise where it happened (`React Conf 2021`). Each cover
-  opens the guest's own attachments. The feed's grid and the index's `📎`
-  count include them too.
+  (`中文`), otherwise where it happened (`React Conf 2021`). The feed's grid
+  and the index's `📎` count include them too.
+- **One set.** The row opens everything it prints as one attachment set,
+  in the order it prints it (`attachmentSetWith`, systems/attachments), so
+  the drawer pages through all of it. Each item remembers whose it is
+  (`from`, read through `ownerOf`): the drawer's page, the theater and the
+  window name the guest's own title and venue.
+- **Opened, the host says what its guests are.** Folded, a host row shows
+  only its guests' covers. Pressed open (or in the feed), its notes print
+  each guest as itself: its title, where and when, and its prose.
 - **Inside the host's time, the guest prints no row.** React without memo
   (Sep 2021) is inside React Compiler's years, so the page reads it on the
   project's row. Its hash still lands there: `/works#<hash>` travels to the
@@ -41,7 +48,7 @@ prints it.
 - **Outside it, one quiet line.** A guest dated away from its host keeps the
   aside's line at its own date, named by where it happened
   (`SEE Conf 2025`), so the timeline still has it when it happened.
-  Pressing it opens it in place like any aside.
+  Pressing it takes you to the host's row.
 
 Nothing is merged. A guest is still an ordinary commit: featured, embedded
 and linked on its own. Whenever its host is not on the page (`?type=talk`,

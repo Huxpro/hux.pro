@@ -82,6 +82,14 @@ export interface StripGuest {
   items: StripItem[];
   set?: AttachmentSet | null;
   before?: boolean;
+  /** The guest itself, for the row's notes: what it is, where, when. */
+  note?: {
+    title: string;
+    venue?: string;
+    url?: string;
+    date: string;
+    description?: string;
+  };
 }
 
 export function MediaStrip({

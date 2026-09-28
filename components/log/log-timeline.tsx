@@ -122,7 +122,7 @@ export function LogTimeline({
           });
       }
     }
-    return { guestsOf: hosts.guestsOf, inside, quiet };
+    return { guestsOf: hosts.guestsOf, hostOf: hosts.hostOf, inside, quiet };
   }, [data, activeTypes]);
 
   return (
@@ -158,6 +158,7 @@ interface TagBlockProps {
   pinned: boolean;
   guests: {
     guestsOf: Map<string, Guest[]>;
+    hostOf: Map<string, string>;
     inside: Set<string>;
     quiet: Map<string, CommitData>;
   };
@@ -369,6 +370,10 @@ function TagBlock({
             const rows = run.indices.map((i) => {
               const c = commits[i];
               const hosted = guests.guestsOf.get(c.id);
+              // A guest's quiet line takes the reader to its host's row.
+              const host = guests.quiet.has(c.id)
+                ? guests.hostOf.get(c.id)
+                : undefined;
               const row = (
                 <Commit
                   key={c.id}
@@ -389,6 +394,11 @@ function TagBlock({
                   form={form}
                   onSelectHash={onSelectHash}
                   guests={hosted}
+                  onPress={
+                    host && onSelectHash
+                      ? () => onSelectHash(computeCommitHash(host))
+                      : undefined
+                  }
                 />
               );
               // A guest with no row of its own still has an address: its

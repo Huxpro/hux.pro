@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { linkTarget, siteSectionLabel } from "../lib/policy";
+import { ownerOf } from "../lib/set";
 import type { AttachmentHome, AttachmentSet } from "../lib/types";
 import { useAttachments } from "../provider";
 
@@ -220,14 +221,17 @@ export function Actions({
   );
 }
 
-/** The commit's title and venue, the way the theater's top bar prints them. */
-function Meta({ set }: { set: AttachmentSet }) {
+/** The commit's title and venue, the way the theater's top bar prints them:
+ *  the commit this item is from, which on a row printing another commit's
+ *  covers is not always the set's own (`ownerOf`). */
+function Meta({ set, index }: { set: AttachmentSet; index: number }) {
+  const owner = ownerOf(set, index);
   return (
     <div className="min-w-0">
-      <div className={cn("truncate", TYPE.mediaTitle)}>{set.title}</div>
-      {set.subtitle && (
+      <div className={cn("truncate", TYPE.mediaTitle)}>{owner.title}</div>
+      {owner.subtitle && (
         <div className={cn("mt-0.5 truncate", TYPE.label)}>
-          {set.subtitle}
+          {owner.subtitle}
         </div>
       )}
     </div>
@@ -250,7 +254,7 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
     return (
       <div className="space-y-4">
         <Cover image={getMediaThumbnail(media)} label={label} onOpen={open} />
-        <Meta set={set} />
+        <Meta set={set} index={index} />
         <Actions
           primary={{ label, icon: homeIcon(home, kind), onSelect: open }}
           href={media.url}

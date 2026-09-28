@@ -15,14 +15,20 @@ import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import {
   getCommitPeekItems,
+  formatCommitDate,
   getMediaStripItems,
   isPinnedMedia,
   localize,
+  localizeOptional,
 } from "@/lib/log";
 import { guestLabel, type Guest } from "@/lib/log-hosts";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
-import { attachmentSetFor, leavesSite } from "@/systems/attachments";
+import {
+  attachmentSetFor,
+  attachmentSetWith,
+  leavesSite,
+} from "@/systems/attachments";
 import { IDENTITY_PEEK_PANEL, IdentityPeek } from "@/systems/identity";
 import { markFor } from "./media/media-mark";
 import type { StripGuest } from "./media/media-strip";
@@ -74,6 +80,8 @@ export interface CommitProps {
   onSelectHash?: (hash: string) => void;
   /** Timeline-only: commits printed on this row (lib/log-hosts.ts). */
   guests?: readonly Guest[];
+  /** Timeline-only, see `TimelineCommit`. */
+  onPress?: () => void;
 }
 
 // =============================================================================
@@ -97,6 +105,7 @@ export function Commit({
   form = DEFAULT_FORM,
   onSelectHash,
   guests,
+  onPress,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -106,9 +115,21 @@ export function Commit({
   // holds: a hover flips the timeline's active beam and re-renders every
   // row, and a set with a stable identity is what lets the strip, the
   // renderer and the row keep their own memo one day.
+  //
+  // A row printing guests' covers (lib/log-hosts.ts) opens them all as one
+  // set, in the order it prints them, each page naming its own commit.
   const attachmentSet = useMemo(
-    () => (!commit || inspecting ? null : attachmentSetFor(commit, locale)),
-    [commit, locale, inspecting],
+    () =>
+      !commit || inspecting
+        ? null
+        : guests?.length
+          ? attachmentSetWith(
+              commit,
+              guests.map((g) => ({ commit: g.commit, before: g.kind === "about" })),
+              locale,
+            )
+          : attachmentSetFor(commit, locale),
+    [commit, locale, inspecting, guests],
   );
   // The same for the row's normalised data and its hover peek: a timeline
   // render (a beam hover, a form change) touches every row, and neither of
@@ -140,11 +161,18 @@ export function Commit({
               (g.commit.media ?? []).filter((m) => !isPinnedMedia(m)),
               locale,
             ),
-            set: inspecting ? null : attachmentSetFor(g.commit, locale),
+            set: attachmentSet,
             before: g.kind === "about",
+            note: {
+              title: localize(g.commit.title, locale),
+              venue: g.commit.type === "talk" ? g.commit.conference.name : undefined,
+              url: g.commit.type === "talk" ? g.commit.conference.url : undefined,
+              date: formatCommitDate(g.commit, locale),
+              description: localizeOptional(g.commit.description, locale),
+            },
           }))
         : undefined,
-    [commit, guests, locale, inspecting],
+    [commit, guests, locale, attachmentSet],
   );
 
   // Runtime guard: MDX/JSON inputs can bypass static typing.
@@ -198,6 +226,7 @@ export function Commit({
           onSelectHash={onSelectHash}
           attachmentSet={attachmentSet}
           guests={guestStrips}
+          onPress={onPress}
           inspecting={inspecting}
           isSelected={isSelected}
           isUnlisted={commit.listed === false}
