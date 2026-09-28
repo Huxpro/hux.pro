@@ -25,7 +25,7 @@ Optional fields on any commit (`lib/log.ts`):
 }
 {
   "id": "d2-2025-lynx",
-  "about": ["lynx-open-source"]
+  "about": ["lynx-framework"]
 }
 ```
 
@@ -39,8 +39,8 @@ Optional fields on any commit (`lib/log.ts`):
   graph view's job (docs/works-graph.md). Work about a family (a project
   other projects are about, like Lynx Framework) is not folded either.
 
-An edition goes wherever its original goes. The D2 talk belongs to "Lynx
-goes open source", so its two editions sit inside it too, three levels deep.
+An edition goes wherever its original goes: React for Two Threads belongs
+to ReactLynx, so its Chinese edition sits inside it too.
 
 ## On the page
 
@@ -78,8 +78,9 @@ the tenure rail, hangs from the top of each list to its last row.
 
 A featured group can name a release instead of listing its talks. The home
 talk albums (`systems/theater/lib/albums.ts`) expand a project into the work
-about it (`workAbout`), newest first, so `featured-lynx-talks` names
-`lynx-open-source` once and plays the D2 and React Summit talks.
+about it (`workAbout`), newest first. `featured-lynx-talks` lists its talks
+directly (Two Threads and its interview, then the D2 talk and its React
+Summit and WAD tellings).
 
 ## When it doesn't apply
 

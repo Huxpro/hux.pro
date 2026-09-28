@@ -188,7 +188,9 @@
       "commitIds": [
         "react-universe-2025-two-threads",
         "react-universe-2025-interview",
-        "lynx-open-source"
+        "d2-2025-lynx",
+        "react-summit-2025-unlock-native",
+        "wad-2025-lynx-native"
       ]
     },
     {
@@ -739,7 +741,7 @@
       },
       "date": "2025-03",
       "about": [
-        "lynx-open-source"
+        "lynx-framework"
       ],
       "conference": {
         "name": "第 19 届 D2 终端技术大会",
@@ -816,7 +818,7 @@
       },
       "date": "2025-09",
       "about": [
-        "lynx-framework",
+        "react-lynx",
         "react-core"
       ],
       "conference": {
@@ -853,7 +855,7 @@
       },
       "date": "2025-09",
       "about": [
-        "lynx-framework",
+        "react-lynx",
         "react-core"
       ],
       "conference": {
@@ -1020,40 +1022,6 @@
       "language": "zh"
     },
     {
-      "id": "lynx-open-source",
-      "type": "project",
-      "tagId": "lynx-era",
-      "title": {
-        "en": "Lynx goes open source",
-        "zh": "Lynx 开源"
-      },
-      "branch": "open-source",
-      "description": {
-        "en": "Lynx opened its source in March 2025. These are the talks that introduced it, in China first and then abroad.",
-        "zh": "2025 年 3 月，Lynx 开源。下面是介绍它的几场演讲，先在国内，再到海外。"
-      },
-      "date": "2025-03",
-      "about": [
-        "lynx-framework"
-      ],
-      "media": [
-        {
-          "kind": "link",
-          "url": "https://lynxjs.org/next/blog/lynx-unlock-native-for-more",
-          "urls": {
-            "en": "https://lynxjs.org/next/blog/lynx-unlock-native-for-more",
-            "zh": "https://lynxjs.org/next/zh/blog/lynx-unlock-native-for-more.html"
-          },
-          "present": "card"
-        }
-      ],
-      "tags": [
-        "Lynx",
-        "Open Source",
-        "Cross-Platform"
-      ]
-    },
-    {
       "id": "lynx-ui",
       "type": "project",
       "tagId": "lynx-era",
@@ -1061,20 +1029,59 @@
         "en": "lynx-ui",
         "zh": "lynx-ui"
       },
-      "branch": "ui",
       "description": {
         "en": "Ready-to-use components for Lynx, the newest member of the family.",
         "zh": "Lynx 的开箱即用组件库，家族里最新的成员。"
       },
-      "date": "2025-11",
-      "about": [
-        "lynx-framework"
+      "date": "2024-01",
+      "endDate": "present",
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://github.com/lynx-family/lynx-ui",
+          "present": "card"
+        }
       ],
       "tags": [
         "Lynx",
         "Design System",
         "Components"
-      ]
+      ],
+      "about": [
+        "lynx-framework"
+      ],
+      "branch": "ui"
+    },
+    {
+      "id": "react-lynx",
+      "type": "project",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "ReactLynx",
+        "zh": "ReactLynx"
+      },
+      "description": {
+        "en": "React for Lynx, and the dual-threaded React it is built on. Taken to the React community as React for Two Threads.",
+        "zh": "Lynx 上的 React，以及它背后的双线程 React。以「双线程的 React」为题带给 React 社区。"
+      },
+      "date": "2023-02",
+      "endDate": "present",
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://github.com/lynx-family/lynx-stack",
+          "present": "card"
+        }
+      ],
+      "tags": [
+        "React",
+        "Lynx",
+        "Architecture"
+      ],
+      "about": [
+        "lynx-framework"
+      ],
+      "branch": "react"
     },
     {
       "id": "lynx-framework",

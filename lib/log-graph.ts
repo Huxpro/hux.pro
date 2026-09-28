@@ -13,14 +13,14 @@
 // from, the way `git log --graph` draws a branch growing up out of its base.
 // Everything else stays on the main line, which is where the rail runs.
 //
-//   │ ◆ Lynx Framework             (lynx) head
-//   │ │ ◆ lynx-ui                  (lynx/ui) head
-//   │ │ ● lynx-ui talk
-//   │ │╱
-//   │ ● React for Two Threads
-//   │ │ ◆ Lynx goes open source    (lynx/open-source) head
-//   │ │ ● D2
-//   │ │╱
+//   │ ◆     Lynx Framework         (lynx) head
+//   │ │   ◆ ReactLynx              (lynx/react) head
+//   │ │ ◆ │ lynx-ui                (lynx/ui) head
+//   │ │ ● │ lynx-ui talk
+//   │ │╱  │
+//   │ │   ● React for Two Threads
+//   │ │ ╱
+//   │ ● D2
 //   │╱
 //   ● FEDAY 2023                   main
 //   ●   Sabbatical                 main

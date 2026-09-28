@@ -19,7 +19,7 @@ It combines with any form: `?graph=1&view=index` is `git log --graph
   what is on it. The lane runs down through that work and, under the
   oldest of it, curves back into the lane it grew from: the main line, or
   its parent project's lane when the project is itself about another one
-  (Lynx goes open source and lynx-ui grow out of Lynx). That is the way
+  (ReactLynx and lynx-ui grow out of Lynx). That is the way
   `git log --graph` draws a branch: its tip on top, growing up out of its
   base.
 - A parent lane runs on until the lanes that grew out of it have come back
@@ -58,10 +58,10 @@ Each lane is named the way git names a branch, and printed the way
 head, the project, in the same mono voice as the language badge. It is part of the
 row, so it shows at every width and never sits on another lane's line.
 
-- The name is the project's `branch` field (`lynx`, `open-source`, `ui`),
+- The name is the project's `branch` field (`lynx`, `react`, `ui`),
   or its English title as a slug when there is none.
 - A project that is about another project gets its parent's name in front,
-  the way git namespaces branches: `lynx/open-source`, `lynx/ui`. The name
+  the way git namespaces branches: `lynx/react`, `lynx/ui`. The name
   says where the lane branched from, even when the fork is a screen below.
 - The name sits on the project's own row because that row is the lane's
   tip: in git a branch is named at its tip, not where it started.

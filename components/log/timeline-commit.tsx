@@ -440,16 +440,21 @@ export function TimelineCommit({
   // it would run the rail under the mark.
   const iconGapPx = isQuiet ? 3 : isRoleAnchor ? 10 : 7;
 
-  // `(lynx/ui)`, after the title, in the badge's voice.
+  // `(lynx/ui)`, after the title, in the badge's voice. After a real space,
+  // not a margin: the space is where a long title may break, so on a phone
+  // the name drops to the next line whole instead of running into the date.
   const ref = decoration && (
-    <span
-      className={cn(
-        "ml-2 whitespace-nowrap align-baseline font-mono text-xs transition-colors duration-200",
-        decoration.active ? "text-muted-foreground" : "text-tertiary-foreground",
-      )}
-    >
-      ({decoration.name})
-    </span>
+    <>
+      {" "}
+      <span
+        className={cn(
+          "ml-1 whitespace-nowrap align-baseline font-mono text-xs transition-colors duration-200",
+          decoration.active ? "text-muted-foreground" : "text-tertiary-foreground",
+        )}
+      >
+        ({decoration.name})
+      </span>
+    </>
   );
 
   const rowContent = (
