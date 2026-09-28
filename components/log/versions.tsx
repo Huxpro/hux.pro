@@ -4,23 +4,18 @@
  * Versions — one work, several tellings, one row.
  *
  * A work in several versions (lib/log-editions.ts) is one row on /works,
- * and the versions are alternatives of each other. They are named where the
- * title line already names a variant of the work, the language badge:
+ * and the versions are alternatives of each other. In the covers form the
+ * row's strip lays them across, a captioned column each
+ * (media/segmented-strip.tsx). Where there is no strip (the index), they are
+ * named here, where the title line already names a variant of the work,
+ * the language badge:
  *
  *   React for Two Threads  EN · 中文                         Sep 2025
- *   React Universe Conf ↗                                   <@bytedance>
- *   For over a decade, we've lived in a universe where…
- *   [EN cover]  [中文 cover]
  *
  * One badge per version. When the versions differ by language, the badge is
  * the language, in the badge's own words (`EN`, `中文`); otherwise it is the
- * version's label (`Revised`, `Re-run`). The one the row is reading is lit.
- *
- * The badges are a segmented control over the row's strip, which holds
- * every version's covers (media/segmented-strip.tsx): pressing one brings
- * its covers into view and makes the row read it, and scrolling the strip
- * to another version's covers lights that badge. Nothing else in the row
- * changes shape.
+ * version's label (`Revised`, `Re-run`). The one the row is reading is lit,
+ * and pressing another makes the row read it.
  */
 
 import { cn } from "@/lib/utils";

@@ -34,24 +34,26 @@ embedded in a post and linked on its own.
 ## On the page
 
 `lib/log-editions.ts` groups the versions; `components/log/versions.tsx`
-draws the badges; `components/log/media/segmented-strip.tsx` the covers; `components/log/log-timeline.tsx` places the row.
+draws the badges; `components/log/media/segmented-strip.tsx` the versions across the strip; `components/log/log-timeline.tsx` places the row.
 
 - **One row per work**, at the lead version's date.
-- **The title line names every version**, where the language badge would
-  be: `React for Two Threads  EN · 中文`. When the versions differ by
-  language the badge is the language; otherwise it is the version's label
-  (`Revised · First version`). The one the row is reading is lit; its
-  title, venue, date and prose are the row's text.
-- **Every version's covers are on the page at once.** In the covers form
-  the strip holds all of them, a segment per version in badge order, each
-  segment's first cover wearing its badge's name
-  (`components/log/media/segmented-strip.tsx`). The badges and the strip
-  are one control: pressing a badge brings its segment into view and lights
-  its name, and scrolling the strip by hand to another version's covers
-  makes the row read that version. One line of covers, where a strip per
-  version would cost a line each; on a desk the width beside a single
-  cover was empty anyway. The index prints no covers, so there a badge
-  simply switches; the feed prints the chosen version's.
+- **The versions run across the row.** In the covers form the row's strip
+  holds every version as a column over its own covers, captioned with what
+  it is, where and when: `EN · React Universe Conf  Sep 2025`,
+  `中文 · SEE Conf 2025  Nov 2025` (`components/log/media/segmented-strip.tsx`).
+  Nothing is behind a press, and it is one line of covers where a strip per
+  version would cost a line each; on a desk it takes the width that sat
+  empty beside a single cover, on a phone the strip scrolls.
+- **One of them is the row's.** The lit caption is the version the row is
+  reading: its title, date and prose are the row's text. Pressing another
+  caption, or scrolling the strip by hand to another version's covers,
+  makes the row read that one. The row's own venue line would repeat the
+  lit caption, so it folds away until the row is pressed open.
+- **Elsewhere, badges.** The index prints no covers, so there the title
+  line names the versions instead, where the language badge would be
+  (`React for Two Threads  EN · 中文`; a label such as `Revised` when the
+  versions don't differ by language), and pressing a badge switches. The
+  feed prints the chosen version.
 - **A version dated outside the row's time** keeps one quiet line at its
   own date: `FEDAY 2023 · First version ↑`. The arrow says the row is
   elsewhere on the page and which way. Pressing it chooses that version and

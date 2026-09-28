@@ -14,7 +14,9 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import {
+  commitVenue,
   computeCommitHash,
+  formatCommitDate,
   getCommitPeekItems,
   getMediaStripItems,
   isPinnedMedia,
@@ -182,7 +184,9 @@ export function Commit({
     if (!versions || !versionViews) return null;
     return versions.map((v, i) => ({
       id: v.id,
-      label: versionViews[i].badge,
+      caption: [versionViews[i].badge, commitVenue(v)].filter(Boolean).join(" · "),
+      date: formatCommitDate(v, locale),
+      title: versionViews[i].line,
       items: getMediaStripItems(
         (v.media ?? []).filter((m) => !isPinnedMedia(m)),
         locale,

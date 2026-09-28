@@ -305,6 +305,8 @@ export function TimelineCommit({
   // the width of a phone and the strip then scrolls under the edge.
   const signsOnMediaLine =
     showStrip && !segmented && data.stripItems.length === 1;
+  // The strip names every version over its covers: label, venue, date.
+  const versionsOnStrip = !!versions && showStrip && segmented;
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
@@ -559,8 +561,10 @@ export function TimelineCommit({
         ) : (
           <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
             {displayTitle}
+            {/* Where the strip names the versions, over their covers, the
+                badges would say it twice. */}
             {versions
-              ? versions
+              ? !(showStrip && segmented) && versions
               : data.languageBadge && (
                   <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
                     {data.languageBadge}
@@ -618,12 +622,17 @@ export function TimelineCommit({
         byline fully visible so the cluster's authorial context stays
         on-screen while you read.
       */}
-      {!isQuiet && (data.meta || byline) && (
+      {/* Where the strip captions every version with its venue, the lit
+          one's venue here would be printed twice; the line stays only for
+          a handle signing at rest, and returns whole when the row opens. */}
+      {!isQuiet &&
+        (data.meta || byline) &&
+        !(versionsOnStrip && !textOpen && !byline?.isClusterHead) && (
         // `min-w-0`: the line never wraps, so without it a long venue sets
         // the column's minimum width and pushes the date off a phone.
         <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex min-w-0 items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
-            {data.meta ? (
+            {versionsOnStrip && !textOpen ? null : data.meta ? (
               data.metaUrl ? (
                 <a
                   href={data.metaUrl}
