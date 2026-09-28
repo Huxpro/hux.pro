@@ -793,6 +793,51 @@ html.dragging * {
   }
 }
 
+/* A way out of the site: a small arrow after a link that leaves it. One
+   rule for every text link that does: any article's or the About's
+   outbound link on its own, and `.link-out` wherever a component sets one
+   (a talk's venue, a post's colophon, a /prompt source). A magic link
+   (`data-magic-link`) has none even when it names another site: it opens
+   here first, and its drawer's address is the way out.
+
+   It takes no room at all: the text sets exactly as it would without it,
+   and the underline ends with the last letter. The arrow is taken out of
+   the flow but given no offsets, so it stays where it would have been set
+   (right after the last letter, on the last line of a link broken over
+   lines), and it is lifted into the leading above that line, over the end
+   of the word, like a mark: the line's top plus its half-leading
+   (`1lh - 1em`, over two) is the letters' cap height, and it stands just
+   above it, clear of the glyphs beside it.
+   A mask of the ArrowUpRight glyph in `currentColor`: the link's ink. */
+.link-out::after,
+.prose-article a[href^="http"]:not(:where(.not-prose, .not-prose *, [data-magic-link], [href^="https://hux.pro"], :has(img)))::after,
+.prose-link[href^="http"]:not(:where([data-magic-link], [href^="https://hux.pro"]))::after {
+  content: "";
+  position: absolute;
+  width: 0.42em;
+  height: 0.42em;
+  margin-inline-start: 0.02em;
+  /* Never above its own line's box: a tight line (a /works row, clipped
+     to truncate) would cut it off, so there it settles lower instead. */
+  margin-top: max(0px, calc((1lh - 1em) / 2 - 0.3em));
+  background-color: currentColor;
+  opacity: 0.45;
+  pointer-events: none;
+  -webkit-mask: var(--link-out-glyph) center / contain no-repeat;
+  mask: var(--link-out-glyph) center / contain no-repeat;
+  transition: opacity 150ms;
+}
+:root {
+  --link-out-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 7h10v10'/%3E%3Cpath d='M7 17 17 7'/%3E%3C/svg%3E");
+}
+@media (hover: hover) {
+  .link-out:hover::after,
+  .prose-article a[href^="http"]:hover::after,
+  .prose-link[href^="http"]:hover::after {
+    opacity: 0.75;
+  }
+}
+
 .prose-article strong:not(:where(.not-prose, .not-prose *)) {
   @apply font-semibold;
 }

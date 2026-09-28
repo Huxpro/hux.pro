@@ -29,6 +29,12 @@ Someone else's page is not upgraded on its own card: a link out stays one
 press from where it goes. An author who wants one summoned writes
 `<MagicLink href>`, whose card the snapshot records.
 
+A plain link that leaves the site wears a small outward arrow after it (the
+`link-out` rule in `app/globals.css`, drawn for every outbound text link and
+for `.link-out` wherever a component sets one). A magic link never does, even
+when it names another site: it opens here first, and its drawer's address,
+dressed as a way out, is the second press that leaves.
+
 ## Our own pages
 
 A card for one of this site's posts (a `link` whose `url`, or a `urls` entry,
