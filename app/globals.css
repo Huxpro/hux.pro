@@ -2093,9 +2093,10 @@ html[data-sky-window] [data-sky-exits] {
 /* The cue at the top: comes down with the pull from above the edge, grows and
    brightens as it comes — light, not a gauge — and says "let go" when letting
    go will open the window. It reads `--sky-pull-reveal`, not the progress:
-   nothing at all for the first 40% of the way to the line, so a page nudged at
-   its top just moves, then the whole cue — its light, its size, its glow —
-   arrives over the next half, fully there just before the line. */
+   nothing at all for the first ~6 mm of the pull (just past where the platform
+   calls a touch a drag), so a page nudged at its top just moves, then the whole
+   cue — its light, its size, its glow — grows out of nothing on a smoothstep,
+   fully there just before the line (`revealAt`, lib/sky-pull.ts). */
 .sky-pull-cue {
   padding-top: calc(env(safe-area-inset-top) + 12px);
   opacity: var(--sky-pull-reveal, 0);

@@ -873,11 +873,23 @@ back.
 attributes on `<html>` and calls the renderer's `previewWindow`; the page, the
 cue and the search button are moved by CSS ("The sky pull" in `globals.css`).
 `--sky-pull` is how far the page has followed, `--sky-pull-progress` how far to
-the line, and `--sky-pull-reveal` how much of the hint shows: **nothing until
-40% of the way** (`REVEAL_FROM`), all of it by 90% (`REVEAL_TO`). The cue and
-the sky's lift both read the reveal, so a page nudged at its top just moves, and
-the hint arrives as one thing rather than lighting at the first pixel; the line
-itself (`PULL_ARM_PX`, about 120 px of finger) is where it always was.
+the line, and `--sky-pull-reveal` how much of the hint shows. The cue and the
+sky's lift both read the reveal, so they arrive as one thing:
+
+- **Nothing for the first ~6 mm** (`REVEAL_FROM_PX`, 36 px of page ≈ 39 of
+  finger) — just past where the platform itself calls a touch a drag (Android's
+  touch slop is 8 dp, iOS's pan about 10 pt). A page nudged at its top just
+  moves; the hint starts the moment the pull is unmistakably a pull. It is in
+  px, not a fraction of the line, so moving the line does not move it.
+- **Then a smoothstep to full just before the line** (`REVEAL_TO_PX`, 90% of it),
+  not a straight ramp: zero slope at both ends, so there is no visible moment
+  where it switches on or stops, and its first stretch is faint, where the eye
+  is most sensitive to change. "Let go" is read at full light.
+- **The line has hysteresis**: armed at `PULL_ARM_PX` (92 px of page, ~119 of
+  finger), disarmed only below `PULL_DISARM_PX` (84). A finger resting on the
+  line trembles a pixel or two; with one threshold the two captions — and the
+  tick — flickered with every tremor. Letting go anywhere while armed opens
+  the window: what the cue says is what happens.
 
 | state | what the home does |
 |---|---|

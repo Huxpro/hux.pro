@@ -33,7 +33,7 @@
 //
 //   --sky-pull           px the page has followed the finger down
 //   --sky-pull-progress  0..1 of the way to far enough
-//   --sky-pull-reveal    0..1 of the hint showing: nothing until 40% of the way
+//   --sky-pull-reveal    0..1 of the hint showing: nothing for the first ~6 mm
 //   [data-sky-pulling]   a finger is pulling (transitions off: follow it exactly)
 //   [data-sky-armed]     far enough: letting go opens the window
 //
@@ -56,21 +56,42 @@ import { onSystemSurface } from "./tilt-primer";
 
 /** How far the page follows at most, px — the rubber band's reach. */
 const PULL_REACH = 220;
-/** Followed this far, letting go opens the window, px. */
+/** Followed this far, letting go opens the window, px (about 119 px of finger). */
 const PULL_ARM_PX = 92;
 /**
- * The pull says nothing of the sky until it is this far to the line, and has
- * said all of it by `REVEAL_TO`: the cue and the sky's lift are one `reveal`,
- * 0 → 1 across that stretch. A page nudged at its top just moves — a hint that
- * lit up at the first pixel made the egg feel like it went off by itself, and
- * the line itself (where letting go opens the window) stays where it was.
+ * Once past the line, the page has to come back this far before it is not:
+ * hysteresis. A finger resting on the line trembles a pixel or two, and with a
+ * single threshold "let go" and "keep pulling" traded places under it — and
+ * the tick fired again — with every tremor. Two thresholds make crossing the
+ * line one event. Letting go anywhere while armed still opens the window: what
+ * the cue says is what happens.
  */
-const REVEAL_FROM = 0.4;
-const REVEAL_TO = 0.9;
+const PULL_DISARM_PX = 84;
+/**
+ * The pull says nothing of the sky until the page has followed this far, px —
+ * about 39 px of finger, some 6 mm on a phone. That is just past where the
+ * platform itself decides a touch is a drag and not a tap (Android's touch
+ * slop is 8 dp, iOS's pan about 10 pt), so the hint begins at the first moment
+ * the pull is unmistakably a pull, and a page nudged at its top just moves. In
+ * page px, not a fraction of the line, so moving the line does not move this.
+ */
+const REVEAL_FROM_PX = 36;
+/**
+ * …and has said all of it by here: just before the line, so "let go" is read
+ * at full light. Tied to the line, since it is the line it announces.
+ */
+const REVEAL_TO_PX = PULL_ARM_PX * 0.9;
 
-/** How much of the pull's hint shows, 0..1, at `progress` of the way to the line. */
-function revealAt(progress: number): number {
-  return Math.min(1, Math.max(0, (progress - REVEAL_FROM) / (REVEAL_TO - REVEAL_FROM)));
+/**
+ * How much of the pull's hint shows, 0..1, with the page `px` down: the cue
+ * and the sky's lift are this one value. Smoothstep, not a straight ramp: its
+ * slope is zero at both ends, so the hint grows out of nothing and settles
+ * into full rather than switching on and off at two visible corners — and it
+ * spends its first stretch faint, where the eye is most sensitive to change.
+ */
+function revealAt(px: number): number {
+  const t = Math.min(1, Math.max(0, (px - REVEAL_FROM_PX) / (REVEAL_TO_PX - REVEAL_FROM_PX)));
+  return t * t * (3 - 2 * t);
 }
 /**
  * A move that starts later than this after the finger landed belongs to the
@@ -141,7 +162,7 @@ let painted: HTMLElement[] = [];
 function paint(px: number) {
   const progress = Math.min(1, px / PULL_ARM_PX);
   const p = progress.toFixed(3);
-  const reveal = revealAt(progress).toFixed(3);
+  const reveal = revealAt(px).toFixed(3);
   for (const el of painted) {
     el.style.setProperty("--sky-pull", `${px.toFixed(1)}px`);
     el.style.setProperty("--sky-pull-progress", p);
@@ -243,14 +264,14 @@ export function attachSkyPull(handlers: SkyPullHandlers): () => void {
 
     const px = follow(dy);
     paint(px);
-    const nowArmed = px >= PULL_ARM_PX;
+    const nowArmed = px >= (armed ? PULL_DISARM_PX : PULL_ARM_PX);
     if (nowArmed !== armed) {
       armed = nowArmed;
       root().toggleAttribute("data-sky-armed", armed);
       // A tick where the platform has one: the point of no return, felt.
       if (armed) navigator.vibrate?.(8);
     }
-    handlers.onProgress(revealAt(Math.min(1, px / PULL_ARM_PX)));
+    handlers.onProgress(revealAt(px));
   };
 
   const onEnd = (event: TouchEvent) => {
