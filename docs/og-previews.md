@@ -8,9 +8,24 @@ For each embed that renders as a card, the preview data is resolved highest-prio
 
 1. **Manual `preview`** in `content/log.json` — author-curated, authoritative.
 2. **Build-time snapshot** `content/og-snapshot.json` — crawled OG metadata.
-3. **Live crawl** (Server Action `fetchOGData`) — runtime fallback for links not yet snapshotted.
+3. **Live crawl** (`GET /api/og?url=…`, called by `fetchOGData` in `lib/og.ts`) — runtime fallback for links not yet snapshotted. Development only unless `NEXT_PUBLIC_OG_RUNTIME=1`; see below.
 
 `(1)` and `(2)` are baked into the data **server-side** (`enrichLogDataWithPreviews` in `app/works/page.tsx`), so cards paint immediately with no request-time crawl and no skeleton flash. `(3)` only runs for a brand-new embed you haven't snapshotted yet — so dev still "just works".
+
+## Our own pages
+
+A card for one of this site's posts (a `link` whose `url`, or a `urls` entry,
+is `/writing/<slug>/<lang>`) comes down the same pipeline as anyone else's: the
+snapshot records it under its URL. What it records is not crawled but computed
+by `siteCardOf` (`lib/site-card.ts`) from `postCardOf` (`lib/content.ts`), the
+function the post's page publishes its Open Graph with. So the title and text
+a crawler reads off our page and the ones we paint for it are one answer: the
+post's title and its first paragraph, whole. The picture is the post's own
+first image; the page's `og:image` is the card baked from it for sharing
+(docs/og-images.md). Don't write a `preview` for a post; edit the post.
+
+`og:complete` recomputes each of these and fails when the post has changed
+since the snapshot (`run pnpm og:snapshot`), so they cannot drift.
 
 ## Why a snapshot
 
@@ -75,6 +90,23 @@ This check does not crawl. A missing cover is a content bug (add a manual `previ
 - **Optional live drift:** `pnpm og:check` re-crawls and fails if the committed snapshot differs from live — your signal to regenerate ("invalidate the cache"). Completeness runs first so a blank cover fails before the network work.
 - **Dev (opt-in):** set `NEXT_PUBLIC_OG_REVALIDATE=1` to have cards revalidate against the live crawl after painting and `console.warn` when the snapshot looks stale. Off by default to keep dev fast and non-flaky.
 
+## The live crawl
+
+`/api/og` crawls a URL a visitor's browser hands it, so it is guarded:
+
+- only `http(s)` on the default ports, with no credentials in the URL;
+- the host, and every redirect's host, must resolve only to public addresses
+  (no localhost, private ranges, link-local, or the cloud metadata address);
+- eight seconds at most, and no more than the page's `<head>` (1 MB cap).
+
+It is a GET so a CDN can cache it: a card for a day, a miss for an hour.
+One of this site's own pages is answered by `siteCardOf`, without a request.
+
+In production it answers 404 unless `NEXT_PUBLIC_OG_RUNTIME=1`. The site ships without
+API routes, and every link it shows is written in the repo, so the snapshot
+can hold every card; the live crawl is what paints a link written a minute ago
+in `pnpm dev`.
+
 ## Scope
 
 Only **non-native embeds** are snapshotted — every `link` media item, since the log presents a link only as a card. Native embeds (X, Instagram, TikTok) use their own widgets.
@@ -84,7 +116,10 @@ Only **non-native embeds** are snapshotted — every `link` media item, since th
 | File | Role |
 |------|------|
 | `lib/og-core.ts` | Framework-agnostic crawl + parse + classification. Shared by the action and the script. |
-| `lib/og.ts` | `"use server"` wrapper — the live/fallback path. |
+| `lib/og.ts` | `fetchOGData`: the browser's call to `/api/og` — the live/fallback path. |
+| `app/api/og/route.ts` | The live crawl: our pages from `siteCardOf`, anyone else's through the guard. Cacheable GET. |
+| `lib/og-guard.ts` | `assertPublicUrl`: the live crawl requests only public web pages. |
 | `lib/og-snapshot.ts` | Loads the snapshot; `enrichLogDataWithPreviews` bakes previews into log data. |
+| `lib/site-card.ts` | This site's own pages as cards, for the snapshot (no crawl). |
 | `scripts/og-snapshot.ts` | `pnpm og:snapshot` / `og:complete` / `og:check`. |
 | `content/og-snapshot.json` | Committed artifact. |

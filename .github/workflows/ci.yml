@@ -27,10 +27,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
+
+      # The snapshot check reads this site's own posts (the cards of our
+      # pages are computed from them, lib/site-card.ts), which takes the MDX
+      # loader's dependencies.
+      - name: Install
+        run: pnpm install --frozen-lockfile
 
       # Filesystem-only: enrich log.json with the committed snapshot and
-      # fail if any cover-bearing media attachment has no runtime image.
-      # No `pnpm install` — the script is local TypeScript.
+      # fail if any cover-bearing media attachment has no runtime image, or
+      # if a card of one of our own posts is stale.
       - name: Check attachment images
         run: pnpm og:complete
 

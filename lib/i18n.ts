@@ -9,6 +9,15 @@ export const defaultLocale: Locale = "en";
 
 export const locales: Locale[] = ["en", "zh"];
 
+/**
+ * The language a piece of copy is written in, read off its script: any Han
+ * makes it Chinese. For text whose locale was chosen with a fallback (a zh
+ * viewer shown an en-only dek), where the viewer's locale would be wrong.
+ */
+export function langOf(text: string): Locale {
+  return /[\u3400-\u9fff]/.test(text) ? "zh" : "en";
+}
+
 export const localeNames: Record<Locale, string> = {
   en: "English",
   zh: "中文",

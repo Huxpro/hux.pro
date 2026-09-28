@@ -312,7 +312,11 @@ export function MagicLink({
         ? "window"
         : "route";
   const external = /^https?:/.test(link.href);
-  const peek = magneticPreviewEnabled ? peekOf(target, locale, home === "tab") : null;
+  // Whether it has a peek is the thing's, not the input's: the input is
+  // only known in the browser, so the markup cannot depend on it or a phone
+  // hydrates a different tree from the one the server sent.
+  // MagneticPreview shows the peek only to a pointer, once hydrated.
+  const peek = peekOf(target, locale, home === "tab");
   // With a peek the thing has already said what it is; without, the
   // tooltip names it (and says when it will leave for a tab).
   const tooltip = peek
