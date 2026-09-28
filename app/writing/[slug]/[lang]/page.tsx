@@ -1,7 +1,7 @@
 import { MDXRenderer } from "@/components/mdx-renderer";
 import { getBlogPostBySlug, getBlogSlugs } from "@/lib/mdx";
 import { defaultLocale, locales, type Locale } from "@/lib/i18n";
-import { getLocalizedDescription, getLocalizedTitle } from "@/lib/content";
+import { postCardOf } from "@/lib/content";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BlogPostContent } from "../content";
@@ -29,6 +29,8 @@ export function generateStaticParams() {
   return params;
 }
 
+const OG_LOCALE: Record<Locale, string> = { en: "en_US", zh: "zh_CN" };
+
 export async function generateMetadata({
   params,
 }: {
@@ -40,17 +42,42 @@ export async function generateMetadata({
 
   if (!post) return {};
 
-  const title = getLocalizedTitle(post, locale);
-  const description = getLocalizedDescription(post, locale);
+  const card = postCardOf(post, locale);
 
-  const metadata: Metadata = { title, description };
+  // What a crawler reads off this page: the post's title (no "| Hux.Pro")
+  // and its first paragraph, the ones this site's own cards of the post
+  // print. The image is the card baked for sharing it, which the
+  // `opengraph-image` route beside this page adds by itself. Set whole,
+  // because a page's `openGraph` replaces the layout's rather than merging
+  // with it.
+  const metadata: Metadata = {
+    title: card.title,
+    description: card.description,
+    alternates: { canonical: card.url },
+    openGraph: {
+      type: "article",
+      siteName: "Hux.Pro",
+      url: card.url,
+      title: card.title,
+      description: card.description,
+      locale: OG_LOCALE[locale],
+      publishedTime: card.date,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: card.title,
+      description: card.description,
+    },
+  };
 
   if (post.language === "both") {
-    metadata.alternates = {
-      languages: {
-        en: `/writing/${slug}/en`,
-        zh: `/writing/${slug}/zh`,
-      },
+    metadata.alternates!.languages = {
+      en: `/writing/${slug}/en`,
+      zh: `/writing/${slug}/zh`,
+    };
+    metadata.openGraph = {
+      ...metadata.openGraph,
+      alternateLocale: OG_LOCALE[locale === "en" ? "zh" : "en"],
     };
   }
 

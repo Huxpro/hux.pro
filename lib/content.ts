@@ -297,6 +297,60 @@ export function getPostHref<T extends LocalizedContent>(
   return `${base}/${post.language}`;
 }
 
+// ===== The post card =====
+
+/**
+ * A post as a card: its title, its first paragraph, its picture. A card for
+ * it anywhere on this site paints this, and its page publishes the same
+ * title and paragraph as Open Graph, so a crawl of the page and a card
+ * inside the site say the same thing.
+ *
+ * The picture has two faces. Inside the site a card shows the post's own
+ * first image, and sets the title beside it. Shared elsewhere, the post is
+ * `shareImage`: the card baked for it (that image darkened, the title and
+ * the year set over it), since a feed may show the picture alone.
+ */
+export interface PostCard {
+  /** The page, site-relative: `/writing/<slug>/<lang>`. */
+  url: string;
+  lang: Locale;
+  title: string;
+  /** The first paragraph, whole; the dek when the body has none. */
+  description?: string;
+  /** The first image in the body; the baked card for a post with none. */
+  image: string;
+  /** The baked card, 1200×630 (its `opengraph-image` route). */
+  shareImage: string;
+  date: string;
+}
+
+/** The card of one language version of a post (`lang` is the page's). */
+export function postCardOf(
+  post: LocalizedContent & {
+    date: string;
+    cover?: string;
+    coverZh?: string;
+    excerpt?: string;
+    excerptZh?: string;
+  },
+  lang: Locale,
+): PostCard {
+  const url = `/writing/${post.slug}/${lang}`;
+  const pick = <T>(zh: T | undefined, en: T | undefined) =>
+    lang === "zh" ? (zh ?? en) : (en ?? zh);
+  const shareImage = `${url}/opengraph-image`;
+  return {
+    url,
+    lang,
+    title: getLocalizedTitle(post, lang),
+    description:
+      pick(post.excerptZh, post.excerpt) || getLocalizedDescription(post, lang) || undefined,
+    image: pick(post.coverZh, post.cover) ?? shareImage,
+    shareImage,
+    date: post.date,
+  };
+}
+
 // ===== The post peek =====
 
 /**

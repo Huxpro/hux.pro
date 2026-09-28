@@ -14,13 +14,22 @@ Two tiers, mirroring how the site is structured:
 | Tier | What | Card |
 |------|------|------|
 | **Subsite** | Each main section shares one card | `λhux` · path · serif section title · mono tagline |
-| **Writing** | Each post gets its own card | post cover image (darkened) · serif title · `year · reading time` |
+| **Writing** | Each post gets its own card | post's first image (darkened) · serif title · `year · reading time` |
 
-A post card uses the post's cover image (`/img/post-bg-*.jpg`, the first image
-in the body — already extracted as `cover`/`coverZh` in `lib/mdx.ts`). When a
-post has no cover, it falls back to the flat typographic card. Cards are
-per-locale, so a bilingual post gets distinct EN/ZH cards (CJK titles render in
-Noto Serif SC).
+A post has two faces. **Shared**, it is its card, baked by its
+`opengraph-image` route: its first image (`cover`/`coverZh`,
+extracted in `lib/mdx.ts`) darkened, the title and the year set over it, or
+the flat typographic card when it has no image. A feed may show the picture
+alone, so the picture carries the title. **Inside the site**, a card of the
+post shows the image itself and sets the title beside it.
+
+Both come from `postCardOf(post, lang)` in `lib/content.ts`, with the same
+title (without the `| Hux.Pro` the browser tab gets) and the same text: the
+post's first paragraph, whole (`extractLead`). The page publishes that
+paragraph as `og:description`; the dek (frontmatter `description`) is a
+peek's field, used only when the body has no paragraph. Cards are
+per-locale, so a bilingual post gets distinct EN/ZH cards (CJK titles render
+in Noto Serif SC).
 
 ## Design
 
@@ -68,7 +77,8 @@ automatically (Twitter falls back to `og:image`).
 | `lib/og-image.tsx` | Shared renderer — palette, font subsetting, cover loader, `renderOgImage()` |
 | `app/opengraph-image.tsx` | Home / default subsite card |
 | `app/{writing,works,docs,prompt}/opengraph-image.tsx` | Per-section subsite cards |
-| `app/writing/[slug]/[lang]/opengraph-image.tsx` | Per-post, per-locale cards |
+| `app/writing/[slug]/[lang]/page.tsx` | A post's Open Graph (`generateMetadata`, from `postCardOf`) |
+| `app/writing/[slug]/[lang]/opengraph-image.tsx` | Each post's shared card (its `og:image`) |
 | `app/layout.tsx` | `metadataBase` + base `openGraph` / `twitter` metadata |
 
 ## Adding / changing
