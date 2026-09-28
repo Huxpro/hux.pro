@@ -1293,6 +1293,115 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* -----------------------------------------------------------------------------
+   Widget Morph — a widget opens into its page, and the page closes into it
+   -----------------------------------------------------------------------------
+   See components/ui/widget-morph.ts. One name, `widget-morph`, is worn by the
+   card on one side of the navigation and by the page's root (the viewport) on
+   the other, so the group travels between the card's box and the screen. The
+   home screen is the `root` group behind it: it leans in as a card opens and
+   settles back as the page closes into one.
+
+   Both snapshots are cropped into the group, never stretched: `cover` from
+   the top, so the page at card size is its own top edge scaled down (its
+   title, where the card's title was) and the card at screen size is its
+   header scaled up while it fades. The pair is clipped to the group and its
+   corners go from the card's `rounded-2xl` to square. */
+
+html[data-widget-morph] [data-morph-source],
+html[data-widget-morph]:not(:has([data-morph-source])) {
+  view-transition-name: widget-morph;
+}
+
+/* λhux belongs to the page the card grows into, not a flight of its own. */
+html[data-widget-morph] [data-view-transition="site-identifier"] {
+  view-transition-name: none;
+}
+
+html[data-widget-morph="open"]::view-transition-group(widget-morph),
+html[data-widget-morph="close"]::view-transition-group(widget-morph) {
+  z-index: 1;
+  animation-duration: var(--morph-duration);
+  animation-timing-function: var(--morph-ease);
+}
+
+html[data-widget-morph="open"]::view-transition-image-pair(widget-morph),
+html[data-widget-morph="close"]::view-transition-image-pair(widget-morph) {
+  overflow: hidden;
+  animation: var(--morph-duration) var(--morph-ease) both;
+}
+html[data-widget-morph="open"]::view-transition-image-pair(widget-morph) {
+  animation-name: morph-corner-open;
+}
+html[data-widget-morph="close"]::view-transition-image-pair(widget-morph) {
+  animation-name: morph-corner-close;
+}
+
+html[data-widget-morph="open"]::view-transition-old(widget-morph),
+html[data-widget-morph="open"]::view-transition-new(widget-morph),
+html[data-widget-morph="close"]::view-transition-old(widget-morph),
+html[data-widget-morph="close"]::view-transition-new(widget-morph) {
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  mix-blend-mode: normal;
+}
+
+/* Open: the card gives way to the page early, while it is still card-sized,
+   so what grows is the page. */
+html[data-widget-morph="open"]::view-transition-old(widget-morph) {
+  animation: fade-out 160ms ease-out both;
+}
+html[data-widget-morph="open"]::view-transition-new(widget-morph) {
+  animation: fade-in 200ms ease-out both;
+}
+html[data-widget-morph="open"]::view-transition-old(root) {
+  animation: morph-home-recede var(--morph-duration) var(--morph-ease) both;
+}
+
+/* Close: the page shrinks as itself and hands over to the card on landing. */
+html[data-widget-morph="close"]::view-transition-old(widget-morph) {
+  animation: fade-out 180ms ease-in 140ms both;
+}
+html[data-widget-morph="close"]::view-transition-new(widget-morph) {
+  animation: fade-in 180ms ease-out 140ms both;
+}
+html[data-widget-morph="close"]::view-transition-new(root) {
+  animation: morph-home-recede var(--morph-duration) var(--morph-ease) reverse both;
+}
+
+/* Resting on an opened page, the renamed root is the page: any transition
+   that is not the close (the solar theme, a link onward) crossfades it the
+   way `root` is crossfaded above. */
+html[data-widget-morph="opened"]::view-transition-old(widget-morph) {
+  animation: fade-out 200ms ease-out both;
+}
+html[data-widget-morph="opened"]::view-transition-new(widget-morph) {
+  animation: fade-in 200ms ease-out both;
+}
+
+:root {
+  /* The iOS sheet curve the rest of the system moves on (docs/motion.md). */
+  --morph-duration: 520ms;
+  --morph-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes morph-corner-open {
+  from { border-radius: 1rem; }
+  to { border-radius: 0; }
+}
+@keyframes morph-corner-close {
+  from { border-radius: 0; }
+  to { border-radius: 1rem; }
+}
+/* The home screen leans in behind an opening card, the way the iOS Home
+   Screen zooms past you into an app — larger, never smaller, so the edges of
+   its snapshot never come into view — and dims under it. */
+@keyframes morph-home-recede {
+  from { transform: scale(1); filter: brightness(1); }
+  to { transform: scale(1.08); filter: brightness(0.8); }
+}
+
+/* -----------------------------------------------------------------------------
    Reduced Motion
    ----------------------------------------------------------------------------- */
 

@@ -167,6 +167,33 @@ Elements with matching `view-transition-name` morph between pages:
 
 The `λhux` identifier morphs from center (homepage) to left (content pages).
 
+#### Widget Morph
+
+A home widget opens its page the way an iOS widget opens its app: the card
+grows into the screen, the page is what it grows into, and going home shrinks
+the page back into the card. Every in-site link inside a card does it too (a
+post row opens its post out of the writing card).
+
+It is one name, `widget-morph`, worn by the tapped card on one side of the
+navigation and by the page's `:root` (the viewport) on the other, so the
+browser draws one group travelling between the card's box and the screen:
+
+```
+open    old: the card     →  new: :root (the page)     home (root) leans in
+close   old: :root (page) →  new: the card, on home    home (root) settles back
+```
+
+- `components/ui/widget-morph.ts` holds the phase on
+  `html[data-widget-morph]` (`open` → `opened` → `close`). `WidgetShell` marks
+  itself `data-morph-source` on the tap (click capture, before the router
+  starts the transition) and again when it mounts on home under the transition
+  back, so the close runs from λhux, ⌘K or the browser's back button alike.
+- CSS decides who wears the name: the marked card, or `:root` when no card is
+  marked. Snapshots are `object-fit: cover` from the top, clipped to the group
+  with the corner radius animating `1rem` ↔ `0`.
+- Off-screen cards decline the close (the page crossfades home instead);
+  reduced motion and browsers without View Transitions skip it entirely.
+
 ### Component Animations
 
 Individual components (like the Command Palette or Modals) use `animate-in` and `fade-in` utility classes (powered by `tw-animate-css` and Tailwind) to enter the stage smoothly.
