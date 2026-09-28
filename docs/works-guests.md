@@ -43,7 +43,12 @@ prints it.
     the attachment sheet's page for each prints the talk: title, venue,
     hash, date and prose. On a desk, hovering one peeks the talk itself
     instead of the attachment. It is never part of the host row's body.
-  - The feed's grid and the index's `📎` count include it.
+  - In the feed, its tiles are a section of the host's grid of their own,
+    under a ruled line naming it (`React without memo · React Conf 2021`,
+    or `SEE Conf 2025 · 中文` for another telling) with its hash and date,
+    and ruled off from the host's tiles when it comes first. Its prose
+    stays in its peek and its sheet, as on the strip. The index's `📎`
+    count includes it.
 - **One set.** The row opens everything it prints as one attachment set,
   in the order it prints it (`attachmentSetWith`, systems/attachments), so
   the surface pages through all of it. Each item remembers whose it is

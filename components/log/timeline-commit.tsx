@@ -731,7 +731,7 @@ export function TimelineCommit({
           {/* Guests' tiles in the same place their covers take on the
               strip: ahead of the row's own, or after them. */}
           {guests?.filter((g) => g.before).map((g) => (
-            <AttachmentGrid key={g.key} items={g.items} set={g.set ?? null} />
+            <GuestSection key={g.key} guest={g} />
           ))}
           {data.stripItems.length > 0 && (
             <AttachmentGrid
@@ -754,7 +754,7 @@ export function TimelineCommit({
             />
           )}
           {guests?.filter((g) => !g.before).map((g) => (
-            <AttachmentGrid key={g.key} items={g.items} set={g.set ?? null} />
+            <GuestSection key={g.key} guest={g} />
           ))}
         </div>
       )}
@@ -924,5 +924,45 @@ function Handle({
     >
       {byline.handle}
     </IdentityHover>
+  );
+}
+
+/**
+ * Another commit on this row, in the feed: its own section of the grid,
+ * under a ruled line naming it (what it is, where, then its hash and date),
+ * so its tiles read as its own and not as the row's. Its prose stays with
+ * it, in its peek and its sheet, as on the strip.
+ */
+function GuestSection({ guest }: { guest: StripGuest }) {
+  // Ahead of the row's own tiles it needs an end as well as a start, or the
+  // row's first tile reads as the guest's last.
+  const { owner } = guest;
+  const name = owner
+    ? [owner.line, owner.line === owner.venue ? guest.label : owner.venue]
+        .filter(Boolean)
+        .join(" · ")
+    : guest.label;
+  return (
+    <section
+      className={cn("space-y-2", guest.before && "border-b border-border/60 pb-3")}
+    >
+      {owner && (
+        <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-1.5">
+          <span className={cn("min-w-0 truncate", TYPE.rowMeta, "text-muted-foreground")}>
+            {name}
+          </span>
+          <span className={cn("flex shrink-0 gap-2", TYPE.hash)}>
+            <a
+              href={`#${owner.hash}`}
+              className="transition-colors hover:text-muted-foreground"
+            >
+              {owner.hash}
+            </a>
+            <span>{owner.date}</span>
+          </span>
+        </div>
+      )}
+      <AttachmentGrid items={guest.items} set={guest.set ?? null} />
+    </section>
   );
 }
