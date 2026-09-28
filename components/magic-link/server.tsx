@@ -1,5 +1,5 @@
 import {
-  getLocalizedTitle,
+  postCardOf,
   postPeekOf,
   type PostPeekSource,
 } from "@/lib/content";
@@ -53,9 +53,11 @@ function postMedia(slug: string): LinkMedia | null {
   const previews: Partial<Record<Locale, MediaPreview>> = {};
   for (const l of locales) {
     peek[l] = postPeekOf(post as PostPeekSource, l);
-    // The title only: the peek carries the rest, and is what a post's peek
-    // and drawer read.
-    previews[l] = { title: getLocalizedTitle(post, l) };
+    // The post's card, as its page publishes it (a locale the post is not
+    // written in reads the one it is). The peek is what a post's peek and
+    // drawer show; the card is what a tile of it shows.
+    const card = postCardOf(post, languages.includes(l) ? l : languages[0]);
+    previews[l] = { title: card.title, description: card.description, image: card.image };
   }
   return {
     kind: "link",

@@ -1,4 +1,40 @@
 {
+  "/writing/alitrip-strategy/zh": {
+    "title": "聊聊「阿里旅行 · 去啊」",
+    "description": "近几年，互联网产品从线上斗到了线下，互联网行业和传统行业的跨界融合屡见不鲜，“渗透传统行业”几乎成为了全行业下一轮创新的标配，新词“互联网+”也应运而生： 将互联网行业的生产要素，深度融入经济、社会等各个领域，尝试改变一些传统的实体经济行业，创造出新的产品形态、商业模式和生态",
+    "image": "/img/post-bg-alitrip.jpg",
+    "siteName": "Hux.Pro"
+  },
+  "/writing/farewell-flash/en": {
+    "title": "Flash Is Dead. Long Live Flash.",
+    "description": "A year and a half ago I said goodbye to Flash once already. That was when Adobe renamed Flash Professional CC to Animate CC, and Flash the authoring tool came to an end.",
+    "image": "/img/post-bg-farewell-flash.jpg",
+    "siteName": "Hux.Pro"
+  },
+  "/writing/farewell-flash/zh": {
+    "title": "Farewell, Flash. 感谢你，但这一次是真正的永别。",
+    "description": "一年半前，我曾和 Flash 作过一次告别。那一次，Adobe Flash Professional CC 被重新命名为了 Adobe Animate CC，宣告着 Flash 作为一个创作工具走到了尽头。",
+    "image": "/img/post-bg-farewell-flash.jpg",
+    "siteName": "Hux.Pro"
+  },
+  "/writing/hello-2015/zh": {
+    "title": "Hello 2015",
+    "description": "Hux 的 Blog 就这么开通了。",
+    "image": "/img/post-bg-2015.jpg",
+    "siteName": "Hux.Pro"
+  },
+  "/writing/see-u-ali/zh": {
+    "title": "See you, Alibaba",
+    "description": "Hi all 这里是鬼栈的离职信。",
+    "image": "/img/post-bg-see-u-ali.jpg",
+    "siteName": "Hux.Pro"
+  },
+  "/writing/taobao-hybrid-app/zh": {
+    "title": "Hybrid 架构下，加载本地 H5 资源后，如何处理 Ajax 请求？",
+    "description": "很荣幸在淘宝旅行时接触过类似的技术方案，简单回答一下题主提到的几个问题： 首先，什么是「虚拟域」？ 直接上图吧：",
+    "image": "/img/post-bg-taobao-hybrid.jpg",
+    "siteName": "Hux.Pro"
+  },
   "https://developer.apple.com/design/human-interface-guidelines": {
     "title": "Human Interface Guidelines | Apple Developer Documentation",
     "description": "The HIG contains guidance and best practices that can help you design a great experience for any Apple platform.",

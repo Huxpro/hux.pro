@@ -51,6 +51,7 @@ import {
 } from "../lib/log.ts";
 import type { Locale } from "../lib/i18n.ts";
 import { enrichLogDataWithPreviews } from "../lib/og-enrich.ts";
+import { isSiteCardUrl, siteCardOf } from "../lib/site-card.ts";
 
 type Snapshot = Record<string, SnapshotEntry>;
 
@@ -270,16 +271,35 @@ function checkCompleteness(): void {
     }
   }
 
+  // Our own pages: the snapshot must say what the page says now. A post's
+  // title, dek or first image edited without `pnpm og:snapshot` would leave
+  // its cards on this site describing an older page than a crawler sees.
+  let siteCards = 0;
+  for (const t of collectTargets()) {
+    if (t.kind !== "card" || !isSiteCardUrl(t.url)) continue;
+    const fresh = siteCardOf(t.url);
+    const recorded = snapshot[t.url];
+    if (!fresh) {
+      problems.push(`${t.url} — no such post on this site`);
+    } else if (!recorded) {
+      problems.push(`${t.url} — not in the snapshot (run \`pnpm og:snapshot\`)`);
+    } else if (JSON.stringify(pickEntry(fresh)) !== JSON.stringify(pickEntry(recorded))) {
+      problems.push(`${t.url} — the post changed since the snapshot (run \`pnpm og:snapshot\`)`);
+    } else {
+      siteCards += 1;
+    }
+  }
+
   log("");
   log("OG snapshot (complete)");
   log("─".repeat(48));
-  log(`  checked: ${checked} attachment cover(s)`);
+  log(`  checked: ${checked} attachment cover(s), ${siteCards} card(s) of this site's pages`);
   if (skippedWidgets) log(`  skipped — social widgets: ${skippedWidgets}`);
   if (problems.length) {
-    log(`  ✗ MISSING IMAGE (${problems.length}):`);
+    log(`  ✗ PROBLEMS (${problems.length}):`);
     for (const p of problems) log(`    • ${p}`);
     log("");
-    log("✗ A media attachment would paint without an image at runtime.");
+    log("✗ A media attachment would paint without an image at runtime, or a card of this site's own page is stale.");
     process.exit(1);
   }
   log("✓ every media attachment has a runtime image.");
@@ -296,6 +316,14 @@ async function crawl(t: Target): Promise<{
    *  a refusal to be crawled still answers this. */
   frame?: SnapshotEntry["frame"];
 }> {
+  if (t.kind === "card" && isSiteCardUrl(t.url)) {
+    // One of our own pages: its card is what the page publishes, read from
+    // the function that publishes it rather than crawled.
+    const card = siteCardOf(t.url);
+    const entry = pickEntry(card ?? {});
+    const ok = !!card && entryUsable(entry);
+    return { entry, ok, reason: ok ? "" : "no such post on this site" };
+  }
   if (t.kind === "card") {
     const res = await fetchOG(t.url);
     const entry = pickEntry({ ...res.data, frame: res.frame });
