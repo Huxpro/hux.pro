@@ -6,8 +6,8 @@
  *                                           # attachment has a runtime image
  *   node scripts/og-snapshot.ts --check     # completeness, then re-crawl + diff
  *
- * Reuses the exact crawl/parse core the runtime Server Action uses
- * (lib/og-core.ts), so the snapshot equals what the server would fetch.
+ * Reuses the exact crawl/parse core the runtime route uses (/api/og,
+ * lib/og-core.ts), so the snapshot equals what the server would fetch.
  *
  * Targets: every `kind:"link"` media item (all cards) in log.json, and every
  * external `href` a magic link or a badge names in the site's MDX (content/,
