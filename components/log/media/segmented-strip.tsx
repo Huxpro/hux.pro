@@ -263,7 +263,7 @@ export function SegmentedStrip({
                         "flex w-0 min-w-full items-baseline gap-2 text-left transition-colors",
                         TYPE.rowMeta,
                         seg.id === active
-                          ? "text-muted-foreground"
+                          ? "text-foreground"
                           : "hover:text-muted-foreground",
                       )}
                     >
