@@ -34,21 +34,23 @@ prints it.
   - Its first cover wears its name where a cover's chip leaves room: its
     language when an edition is in another language (`中文`), otherwise
     where it happened (`React Conf 2021`).
-  - Its covers stand together, over one caption that spans them all
-    (React without memo's recording and the React Conf 2021 recap post are
-    both the talk's): what it is (a talk's title, or where another telling
-    was given), then its own hash and date (`fdb0944 Sep 2021`).
+  - Its covers stand together, over one caption: its title and where it
+    was given (`React without memo` / `React Conf 2021`). With several
+    covers (React without memo's recording and the React Conf 2021 recap
+    post are both the talk's), a rule spans them so each reads as the
+    talk's; a single cover needs none.
   - Its covers behave as the talk's. Pressed, they open natively (the
-    recording on the theater's stage, titled with the talk), and on a phone
-    the attachment sheet's page for each prints the talk: title, venue,
-    hash, date and prose. On a desk, hovering one peeks the talk itself
-    instead of the attachment. It is never part of the host row's body.
+    recording on the theater's stage, titled with the talk). A commit's
+    particulars are for a closer look: on a phone the attachment sheet's
+    page for each prints the talk (title, venue, hash, date and prose); on
+    a desk, hovering one peeks the cover as any cover peeks, with a last
+    line saying whose it is (`React without memo  fdb0944 Sep 2021`). It is
+    never part of the host row's body.
   - In the feed, its tiles are a section of the host's grid of their own,
-    under a ruled line naming it (`React without memo · React Conf 2021`,
-    or `SEE Conf 2025 · 中文` for another telling) with its hash and date,
-    and ruled off from the host's tiles when it comes first. Its prose
-    stays in its peek and its sheet, as on the strip. The index's `📎`
-    count includes it.
+    under a ruled line naming it (`React without memo · React Conf 2021`)
+    with its hash and date, and ruled off from the host's tiles when it
+    comes first. Its prose stays in its sheet, as on the strip. The
+    index's `📎` count includes it.
 - **One set.** The row opens everything it prints as one attachment set,
   in the order it prints it (`attachmentSetWith`, systems/attachments), so
   the surface pages through all of it. Each item remembers whose it is

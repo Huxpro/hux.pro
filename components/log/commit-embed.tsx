@@ -20,7 +20,6 @@ import {
   getMediaStripItems,
   isPinnedMedia,
   localize,
-  localizeOptional,
 } from "@/lib/log";
 import { guestLabel, type Guest } from "@/lib/log-hosts";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
@@ -165,17 +164,10 @@ export function Commit({
             set: attachmentSet,
             before: g.kind === "about",
             owner: {
-              // Another telling of a talk shares its title, so where it was
-              // given says more; a talk on a project says what it was.
-              line:
-                g.kind === "edition" && g.commit.type === "talk"
-                  ? g.commit.conference.name
-                  : localize(g.commit.title, locale),
               title: localize(g.commit.title, locale),
               venue: g.commit.type === "talk" ? g.commit.conference.name : undefined,
               hash: computeCommitHash(g.commit.id),
               date: formatCommitDate(g.commit, locale),
-              description: localizeOptional(g.commit.description, locale),
             },
           }))
         : undefined,

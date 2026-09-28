@@ -929,18 +929,16 @@ function Handle({
 
 /**
  * Another commit on this row, in the feed: its own section of the grid,
- * under a ruled line naming it (what it is, where, then its hash and date),
+ * under a ruled line naming it (its title, where, then its hash and date),
  * so its tiles read as its own and not as the row's. Its prose stays with
- * it, in its peek and its sheet, as on the strip.
+ * it, in its sheet, as on the strip.
  */
 function GuestSection({ guest }: { guest: StripGuest }) {
   // Ahead of the row's own tiles it needs an end as well as a start, or the
   // row's first tile reads as the guest's last.
   const { owner } = guest;
   const name = owner
-    ? [owner.line, owner.line === owner.venue ? guest.label : owner.venue]
-        .filter(Boolean)
-        .join(" · ")
+    ? [owner.title, owner.venue].filter(Boolean).join(" · ")
     : guest.label;
   return (
     <section

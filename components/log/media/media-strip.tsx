@@ -84,19 +84,16 @@ export interface StripGuest {
   set?: AttachmentSet | null;
   before?: boolean;
   /**
-   * The guest as a commit. Its covers stand together on the strip with one
-   * caption under all of them, so each reads as the guest's: `line` is what
-   * it is (a talk's title, or where another telling was given), then its
-   * hash and date. On a pointer, hovering one peeks the guest itself (its
-   * title, venue, hash, date and prose) rather than the attachment.
+   * The guest as a commit. Under its covers it prints what it is, its title
+   * and where it was given, over a rule that spans them all when there are
+   * several, so each reads as the guest's. Its hash and date are for a
+   * closer look: on a pointer, a cover's peek ends with them.
    */
   owner?: {
-    line: string;
     title: string;
     venue?: string;
     hash: string;
     date: string;
-    description?: string;
   };
 }
 
@@ -156,12 +153,13 @@ export function MediaStrip({
       {runs.map((run) => {
         const covers = run.tiles.map(({ slot, set: slotSet }, i) => {
           const owner = run.guest?.owner;
-          // A guest's cover peeks the guest; any other peeks what it is.
-          const spec = !peek
-            ? null
-            : owner
-              ? { node: <GuestPeek owner={owner} />, panelClassName: undefined }
-              : mediaPeek(slot.media, locale, { leaves: slot.leaves });
+          // A guest's cover peeks as any cover does, and then says whose it is.
+          const spec = peek
+            ? mediaPeek(slot.media, locale, {
+                leaves: slot.leaves,
+                footer: owner && <GuestFootnote owner={owner} />,
+              })
+            : null;
           const label = i === 0 ? run.guest?.label : undefined;
           return (
             <MagneticPreview
@@ -203,25 +201,23 @@ export function MediaStrip({
         const owner = run.guest?.owner;
         if (!run.guest) return covers;
         return (
-          // A guest's covers stand together, over one caption that spans
-          // them all: each of them is the guest's.
+          // A guest's covers stand together over one caption. With several,
+          // a rule spans them so each reads as the guest's; one needs none.
           <div key={run.key} className="flex shrink-0 snap-start flex-col">
             <div className="flex gap-2">{covers}</div>
             {owner && (
-              <div className="mt-1.5 w-0 min-w-full border-t border-border/60 pt-1">
+              <div
+                className={cn(
+                  "mt-1.5 w-0 min-w-full",
+                  covers.length > 1 && "border-t border-border/60 pt-1",
+                )}
+              >
                 <div className={cn("truncate", TYPE.rowMeta, "text-muted-foreground")}>
-                  {owner.line}
+                  {owner.title}
                 </div>
-                <div className={cn("mt-0.5 flex gap-2", TYPE.hash)}>
-                  <a
-                    href={`#${owner.hash}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="transition-colors hover:text-muted-foreground"
-                  >
-                    {owner.hash}
-                  </a>
-                  <span>{owner.date}</span>
-                </div>
+                {owner.venue && (
+                  <div className={cn("mt-0.5 truncate", TYPE.hash)}>{owner.venue}</div>
+                )}
               </div>
             )}
           </div>
@@ -231,19 +227,15 @@ export function MediaStrip({
   );
 }
 
-/** A guest cover's peek: the guest commit itself, the way a row prints it. */
-function GuestPeek({ owner }: { owner: NonNullable<StripGuest["owner"]> }) {
+/** The last line of a guest cover's peek: whose it is, as a row prints it. */
+function GuestFootnote({ owner }: { owner: NonNullable<StripGuest["owner"]> }) {
   return (
-    <div className="w-[22rem] max-w-full space-y-1">
-      <div className={TYPE.mediaTitle}>{owner.title}</div>
-      {owner.venue && <div className={TYPE.label}>{owner.venue}</div>}
-      <div className={cn("flex gap-2", TYPE.hash)}>
-        <span>{owner.hash}</span>
-        <span>{owner.date}</span>
-      </div>
-      {owner.description && (
-        <p className={cn("pt-1", TYPE.caption)}>{owner.description}</p>
-      )}
+    <div className="flex items-baseline gap-2">
+      <span className={cn("min-w-0 flex-1 truncate", TYPE.rowMeta, "text-muted-foreground")}>
+        {owner.title}
+      </span>
+      <span className={cn("shrink-0", TYPE.hash)}>{owner.hash}</span>
+      <span className={cn("shrink-0", TYPE.hash)}>{owner.date}</span>
     </div>
   );
 }
