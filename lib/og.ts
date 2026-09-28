@@ -1,31 +1,18 @@
-"use server";
-
 /**
- * Server Action to fetch Open Graph metadata from a URL.
+ * A page's card at runtime, from the browser: `/api/og` (app/api/og/route.ts).
  *
- * Thin wrapper over the framework-agnostic core in `lib/og-core.ts` (the same
- * code the build-time snapshot uses). This runs server-side because the browser
- * can't fetch cross-origin HTML (CORS); the actual crawl goes out from the
- * current server process — the local `next dev` process in development, a
- * Vercel function in production.
- *
- * Role in the data pipeline: this is the *fallback / live* path. Cards normally
- * render from the committed snapshot (`content/og-snapshot.json`) or a manual
- * `preview`; this action only runs for links not yet in the snapshot, or when
- * an opt-in dev revalidation explicitly asks for the latest online version.
+ * The fallback path. Cards normally render from the committed snapshot
+ * (`content/og-snapshot.json`) or a manual `preview`; this runs only for a
+ * link not yet snapshotted, or when an opt-in dev revalidation asks for the
+ * page as it is now. The browser can't read another origin's HTML (CORS), so
+ * the route reads it, and a CDN keeps its answer.
  */
 
-import { fetchOG, type OGData } from "@/lib/og-core";
+import type { OGData } from "@/lib/og-core";
 
-// NOTE: a "use server" module may export only async functions. Re-exporting
-// a type works at the type level but Turbopack lowers `export type { ... }`
-// into a value re-export at runtime, throwing `OGData is not defined` when
-// the module is loaded. Consumers should import OGData from "@/lib/og-core"
-// directly.
 export async function fetchOGData(url: string): Promise<OGData> {
-  const result = await fetchOG(url, 86400 /* 24h Next Data Cache TTL */);
-  if (!result.ok) {
-    console.error(`Failed to fetch OG data for ${url}: ${result.error}`);
-  }
-  return result.data;
+  const response = await fetch(`/api/og?url=${encodeURIComponent(url)}`);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const body = (await response.json()) as { ok: boolean; data: OGData };
+  return body.data;
 }

@@ -4,7 +4,7 @@
  * This module holds the *single* implementation of "fetch a URL and pull out
  * its OG/Twitter-card metadata". It is intentionally free of any Next.js or
  * React imports so it can be used identically by:
- *   - the runtime Server Action (`lib/og.ts`), and
+ *   - the runtime route (`app/api/og/route.ts`), and
  *   - the build-time snapshot script (`scripts/og-snapshot.ts`).
  *
  * Sharing one parser is what makes "the snapshot equals what the server would
@@ -178,36 +178,87 @@ export function videoLinkHostLabel(url: string): string | null {
   return hit ? VIDEO_LINK_HOSTS[hit] : null;
 }
 
+/** Give up on a page that has not answered in this long. */
+const FETCH_TIMEOUT_MS = 8000;
+/** Read at most this much of a page: the tags live in its head. */
+const MAX_HTML_BYTES = 1024 * 1024;
+/** Follow at most this many redirects when each hop is guarded. */
+const MAX_REDIRECTS = 5;
+
+export interface FetchOGOptions {
+  /** Next.js Data Cache TTL (seconds). Ignored by plain Node fetch. */
+  revalidate?: number;
+  /**
+   * Checks every address the crawl is about to request — the URL and each
+   * redirect — and throws to refuse it. The runtime path passes one that
+   * refuses private networks (`lib/og-guard.ts`), since there the URL comes
+   * from a visitor; the snapshot script crawls URLs an author wrote.
+   */
+  guard?: (url: URL) => Promise<void>;
+}
+
+/** The page's HTML up to `</head>` or the byte cap, whichever comes first. */
+async function readHead(response: Response): Promise<string> {
+  if (!response.body) return response.text();
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let html = "";
+  let bytes = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    html += decoder.decode(value, { stream: true });
+    if (bytes >= MAX_HTML_BYTES || /<\/head>/i.test(html)) {
+      await reader.cancel().catch(() => {});
+      break;
+    }
+  }
+  return html + decoder.decode();
+}
+
 /**
- * Fetch and parse Open Graph metadata from a URL.
- *
- * Never throws — failures are reported via `ok: false` so callers can decide
+ * Fetch a URL and parse its OG metadata. Never throws — failures are
+ * reported via `ok: false` with a human-readable `error`, so callers decide
  * how to recover (the snapshot script, for instance, keeps prior good data
  * and flags the URL for a manual `preview`).
  *
- * @param url        Target URL.
- * @param revalidate Optional Next.js Data Cache TTL (seconds). Ignored by the
- *                   plain Node fetch used in the snapshot script.
+ * Bounded: it gives up after {@link FETCH_TIMEOUT_MS} and reads no more than
+ * the page's head (at most {@link MAX_HTML_BYTES}).
  */
 export async function fetchOG(
   url: string,
-  revalidate?: number,
+  options: FetchOGOptions = {},
 ): Promise<OGFetchResult> {
+  const { revalidate, guard } = options;
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": CRAWLER_USER_AGENT,
-        Accept: "text/html,application/xhtml+xml",
-        // Prefer English markup — some sites (e.g. web.dev) localize OG tags
-        // by Accept-Language and would otherwise return the datacenter
-        // region's default locale.
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-      // `next` is a Next.js fetch extension; plain Node fetch ignores it.
-      ...(revalidate !== undefined
-        ? { next: { revalidate } as { revalidate: number } }
-        : {}),
-    } as RequestInit);
+    const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+    let target = new URL(url);
+    let response: Response;
+    for (let hop = 0; ; hop++) {
+      if (guard) await guard(target);
+      response = await fetch(target, {
+        headers: {
+          "User-Agent": CRAWLER_USER_AGENT,
+          Accept: "text/html,application/xhtml+xml",
+          // Prefer English markup — some sites (e.g. web.dev) localize OG tags
+          // by Accept-Language and would otherwise return the datacenter
+          // region's default locale.
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+        signal,
+        // A guarded crawl follows redirects itself, so every hop is checked.
+        redirect: guard ? "manual" : "follow",
+        // `next` is a Next.js fetch extension; plain Node fetch ignores it.
+        ...(revalidate !== undefined
+          ? { next: { revalidate } as { revalidate: number } }
+          : {}),
+      } as RequestInit);
+      const location = response.headers.get("location");
+      if (!guard || response.status < 300 || response.status >= 400 || !location) break;
+      if (hop >= MAX_REDIRECTS) throw new Error("too many redirects");
+      target = new URL(location, target);
+    }
 
     const policy = framePolicyFromHeaders(response.headers);
 
@@ -225,7 +276,7 @@ export async function fetchOG(
       };
     }
 
-    const html = await response.text();
+    const html = await readHead(response);
     return {
       ok: true,
       status: response.status,
