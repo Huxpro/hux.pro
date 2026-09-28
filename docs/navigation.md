@@ -62,12 +62,12 @@ All states maintain `h-12` (48px) height to eliminate vertical jitter during tra
 
 ### Interaction States
 
-- **Homepage (Prompt)**: Focus ring effect (`focus:ring-2`) — feels like an input field
-- **Other pages (FAB/Pill)**: Scale effect (`active:scale-95`) — feels like a button
+- **Homepage (Prompt)**: Focus ring (`focus:ring-2`), like an input field
+- **Other pages (FAB/Pill)**: Scale (`active:scale-95`), like a button
 
 ## Command Palette
 
-The command palette is the central navigation hub, inspired by Raycast, Spotlight, and VS Code. It is dual-purpose: universal search **and** an app launcher (horizontal icon strip — see [Command System](./system-command)).
+The command palette is the central navigation hub, inspired by Raycast, Spotlight, and VS Code. It is dual-purpose: universal search **and** an app launcher (a horizontal icon strip; see [Command System](./system-command)).
 
 ### Opening Methods
 
@@ -80,9 +80,9 @@ The command palette is the central navigation hub, inspired by Raycast, Spotligh
 
 ### Homepage Entry Point
 
-On the homepage, the Command Trigger expands into a **conversational prompt**—a wide button styled as a search input with the placeholder "Search" (mobile) or "Search or / for commands" (desktop). This creates a more inviting, dialogue-like entry point that fits the AI-native OS aesthetic.
+On the homepage, the Command Trigger expands into a **conversational prompt**: a wide button styled as a search input with the placeholder "Search" (mobile) or "Search or / for commands" (desktop). The dialogue-like entry point fits the AI-native OS aesthetic.
 
-When navigating away from the homepage, the prompt smoothly morphs into a compact FAB (mobile) or pill (desktop) positioned in the bottom-right corner.
+When navigating away from the homepage, the prompt morphs into a compact FAB (mobile) or pill (desktop) positioned in the bottom-right corner.
 
 ### Two Modes
 
@@ -96,7 +96,7 @@ The command palette has two distinct modes that morph smoothly between each othe
 
 #### Slash Commands
 - Single-letter shortcuts for immediate actions
-- No search input—just press a letter
+- No search input: press a letter
 - Minimal UI showing only available actions
 - Width: 400px
 
@@ -121,9 +121,9 @@ When the search input is empty or unfocused:
 #### In Slash Commands
 
 Three sections, in order: **Navigation** (go somewhere), **Actions** (do one
-thing, now — voice, music, add to home screen) and **Settings** (a value that
+thing now: voice, music, add to home screen) and **Settings** (a value that
 stays). An action whose control is already on screen (voice: the field's
-microphone) is `slashOnly` — in this list, never a search result.
+microphone) is `slashOnly`: it appears in this list, never as a search result.
 
 | Key | Action |
 |-----|--------|
@@ -135,8 +135,8 @@ microphone) is `slashOnly` — in this list, never a search result.
 | `E` | Go to Editor |
 | `A` | Cycle Appearance: Follow the Sun → the theme the sun isn't showing → the one it is → Follow the System |
 | `L` | Toggle Language |
-| `O` | Open the About (its only shortcut — see [system-about.md](./system-about.md)) |
-| `V` | Voice — tap to listen, hold to talk and let go to send ([system-glow.md](./system-glow.md)) |
+| `O` | Open the About (its only shortcut; see [system-about.md](./system-about.md)) |
+| `V` | Voice: tap to listen, hold to talk and let go to send ([system-glow.md](./system-glow.md)) |
 | `C` | Toggle geolocation, by Coordinates (IP ↔ accurate) |
 | `W` | Open the Wallpaper picker |
 | `G` | Toggle Glass material (Tinted ↔ Clear) |
@@ -171,10 +171,10 @@ Instead of opening/closing between modes, the palette **morphs**:
 #### Adaptive height (popover)
 
 The popover list is viewport-relative rather than a fixed `360px`. The phone
-sheet does not use this — it fills its detents with `flex-1`.
+sheet does not use this; it fills its detents with `flex-1`.
 - **Offset**: `22vh`, capped at `13.5rem`, so the card sits a little lower than Spotlight's `20vh`
 - **Search list**: `43dvh` (Geolocation as the last full row on a 16" MacBook), capped at `40rem`
-- **Slash list**: no `43dvh` cap — the card grows for every lettered command (the original taller morph) and only scrolls against remaining viewport chrome
+- **Slash list**: no `43dvh` cap: the card grows for every lettered command (the original taller morph) and only scrolls against remaining viewport chrome
 - Short screens shrink and scroll; tall screens show more results without becoming a full-height panel
 
 ### Footer Hints
@@ -240,30 +240,30 @@ Content pages (prose, log, prompt, docs) share a common layout structure via the
 
 ### Reading settings ("Aa")
 
-An article page — anything `PostContent` renders with the ruler on — puts an
+An article page (anything `PostContent` renders with the ruler on) puts an
 `Aa` button in `PageLayout`'s `headerActions`, beside the meta row, where the
 list pages keep their language filter. It opens the settings that until now
 only the devtool could reach (`components/post/reading-settings.ts` and
 `ruler-settings.ts`): typeface, size, column, wide media, focus mode, ruler.
 
-It is Books' "Aa" menu, and takes the surface system's anchored presentation —
-a content-height sheet on a phone, a popover hanging off the button above that
-(`ANCHORED_PRESENTATION`, [Secondary Surfaces](./system-surface.md)). Neither is
-modal: the article stays live behind it, so a change lands where you can watch
-it.
+It is the equivalent of Books' "Aa" menu and takes the surface system's
+anchored presentation: a content-height sheet on a phone, a popover hanging off
+the button above that (`ANCHORED_PRESENTATION`,
+[Secondary Surfaces](./system-surface.md)). Neither is modal: the article stays
+live behind it, so a change lands where you can watch it.
 
 All five settings are here, in reader's words rather than the devtool's mono,
 and each appears only where it does something:
 
-**Size** is the one with teeth: `--reading-size` is the number every `em`
-inside an article resolves against, so moving it moves the whole composition —
-headings keep their hierarchy, captions and code keep their relation to the
-paragraph they annotate. That is why the article's type scale is relative
-rather than absolute; a body that grew while its headings stood still would
-collapse the hierarchy at one step.
+**Size** has the widest effect: `--reading-size` is the number every `em`
+inside an article resolves against, so changing it scales the whole
+composition. Headings keep their hierarchy, and captions and code keep their
+relation to the paragraph they annotate. That is why the article's type scale
+is relative rather than absolute; a body that grew while its headings stood
+still would collapse the hierarchy at one step.
 
 All but one are offered at every width. **Wide media** is the exception,
-and not on taste: the rule it switches lives entirely inside the `bleed`
+for a technical reason: the rule it switches lives entirely inside the `bleed`
 breakpoint (`--breakpoint-bleed`, `app/globals.css`), so below that width the
 control would be wired to nothing. The row hides itself with the `bleed:`
 variant of that same token, so the control and the rule it drives read one

@@ -1,4 +1,4 @@
-# App Folder — home-screen folder for external projects
+# App Folder: the home-screen folder for external projects
 
 The homepage widget grid includes an **app folder**: an iPad-style springboard
 of icons for apps (React, Lynx, Flappy Bird, Vue Lynx, …). Each icon is
@@ -6,10 +6,10 @@ the artwork the target site *itself* declares for home-screen use, wearing a
 small **runtime badge** in the corner.
 
 Tapping a tile opens the app in a **chrome window** (see the
-[Window System](./system-windows)) — web apps in an iframe, Lynx apps in a
+[Window System](./system-windows)): web apps in an iframe, Lynx apps in a
 Lynx Player. ⌘/middle-click still opens the app's `url` in a new tab.
 
-When the catalog outgrows one page, the folder **snap-scrolls** into pages —
+When the catalog outgrows one page, the folder **snap-scrolls** into pages,
 horizontal (`axis: "x"`, default, like iOS folders) or vertical (`axis: "y"`).
 
 ## Authoring
@@ -24,26 +24,26 @@ Apps live in [`content/apps.json`](../content/apps.json):
 }
 ```
 
-- `id` — stable identifier; also names the icon file under `public/app-icons/`.
-- `title` — the English label under the tile.
-- `titleZh` *(optional)* — Chinese label; falls back to `title`. Cat Wand /
+- `id`: stable identifier; also names the icon file under `public/app-icons/`.
+- `title`: the English label under the tile.
+- `titleZh` *(optional)*: Chinese label; falls back to `title`. Cat Wand /
   逗猫棒 is the one bilingual catalog entry today.
-- `url` — canonical destination (the "open externally" target, and what the
+- `url`: canonical destination (the "open externally" target, and what the
   icon snapshot resolves tile art from).
-- `runtime` *(optional)* — `"web"` (default) or `"lynx"`; picks the window
-  body. `flavor` / `bundleUrl` extend this for Lynx apps — see the
-  [Window System](./system-windows) doc.
-- `icon` *(optional)* — manual override when the site's declared icon is wrong
+- `runtime` *(optional)*: `"web"` (default) or `"lynx"`; picks the window
+  body. `flavor` / `bundleUrl` extend this for Lynx apps (see the
+  [Window System](./system-windows) doc).
+- `icon` *(optional)*: manual override when the site's declared icon is wrong
   or unfetchable: a site-local `/img/…` path is used as-is; an `https://…` URL
   is downloaded. Same recovery philosophy as og-snapshot's manual `preview`.
   Vue Lynx uses this because `vue.lynxjs.org/icon-512.png` is a pre-masked
   iOS squircle (transparent corners) that would double-frame against the
   tile's own rounded clip; the committed file is that art flattened onto
   opaque white.
-- `featured` *(optional)* — show on the home-screen folder. Defaults to `true`.
+- `featured` *(optional)*: show on the home-screen folder. Defaults to `true`.
   `false` keeps the app in the ⌘K launcher without featuring it on the
   springboard (BusyWeek and Cat Wand / 逗猫棒 are command-only this way).
-- `keywords` *(optional)* — extra ⌘K search terms on top of title / id /
+- `keywords` *(optional)*: extra ⌘K search terms on top of title / id /
   runtime.
 
 ## Icon pipeline (build-time, static-export friendly)
@@ -59,7 +59,7 @@ icons → `apple-touch-icon` → `<link rel="icon">` → conventional fallbacks*
 (`/apple-touch-icon.png` probe, `/favicon.ico`). The winning file is
 committed to `public/app-icons/<id>.<ext>` and described in
 `content/app-icons.json` (source, origin URL, intrinsic size), so production
-serves only local static assets — no runtime crawling, no hotlinking.
+serves only local static assets, with no runtime crawling or hotlinking.
 
 Failures never delete a good prior icon; an app with no fetchable icon and no
 manual `icon` fails the run loudly.
@@ -76,7 +76,7 @@ manual `icon` fails the run loudly.
 `AppTile` is the single icon visual used by the folder, the command launcher,
 and (via the same fill/pad rules) the minimized dock pills.
 
-## Rendering — App Folder
+## Rendering the App Folder
 
 `components/apps/app-folder.tsx` renders as one chrome-less item in the home
 `SortableMasonry`, so it drags alongside widgets. Icons inside are a *nested*
@@ -93,7 +93,7 @@ dnd-kit sortable with its own persisted order (`localStorage["hux_app_order_v2"]
 - The inner `DragOverlay` is **portaled to `<body>`**. This is load-bearing:
   in jiggle mode the masonry item wrapper carries a `rotate` transform, and a
   transformed ancestor becomes the containing block for the overlay's
-  `position: fixed` — displacing both the visible clone and dnd-kit's
+  `position: fixed`. That displaced both the visible clone and dnd-kit's
   collision rect, which silently broke cross-row sorting.
 
 **Pages.** Default layout is **4 columns × 2 rows** per page (`axis: "x"`).
@@ -101,7 +101,7 @@ Pass `layout={{ columns, rows, axis }}` to change capacity or scroll direction.
 
 | Catalog size | Behavior |
 |--------------|----------|
-| ≤ 8 (one page) | Natural-height grid — no snap, no page dots, no empty second-row gap |
+| ≤ 8 (one page) | Natural-height grid: no snap, no page dots, no empty second-row gap |
 | 9–16 | Two snap pages (8 + remainder); dots under the folder |
 | 17–24 | Three pages; same pattern |
 
@@ -112,23 +112,23 @@ may be short (left-aligned), like a springboard.
 **Group hint (Siri-Suggestions platter).** The folder is chrome-less at rest,
 but a translucent rounded platter materializes behind the icons whenever the
 group is "held": on hover, in edit mode, and on the lifted drag clone. In dark
-mode the platter uses a faint white wash — `--card` is darker than
-`--background` there, so a card tint alone would read as a hole rather than a
+mode the platter uses a faint white wash, because `--card` is darker than
+`--background` there and a card tint alone would read as a hole rather than a
 lift.
 
 **Tiles.** Padded glyph icons composite on a white plate (like Safari's
 add-to-home-screen), so transparent dark glyphs stay visible in dark mode.
 Square icons ≥160px render full-bleed *without* the plate.
 
-## Command palette — Spotlight launcher
+## Command palette: the Spotlight launcher
 
 ⌘K is dual-purpose: command search **and** an app launcher (see
 [Command System](./system-command)).
 
 - Headerless **horizontal icon strip** (`md` / 48px tiles; phone pitch is
   ~5.3 columns so iPhone 16 Pro shows five icons plus a sliver of the sixth)
-- Same UI while typing — unmatched apps filter out; empty strip hides the group
+- Same UI while typing: unmatched apps filter out; an empty strip hides the group
 - Real snapshot icons via `AppTile`
-- **Load…** opens an in-palette System UI form (`load-bundle-panel.tsx`) —
-  mono URL field only (title is derived from the path; flavour belongs to the
-  bundle, not the loader) — instead of `window.prompt`
+- **Load…** opens an in-palette System UI form (`load-bundle-panel.tsx`)
+  instead of `window.prompt`. It has a mono URL field only: the title is
+  derived from the path, and the flavour belongs to the bundle, not the loader

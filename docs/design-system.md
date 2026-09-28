@@ -38,13 +38,13 @@ All inner page headers (Writing, Docs, Career, Talks) use the same typography as
 font-serif text-3xl sm:text-4xl text-foreground tracking-tight system-voice cursor-default
 ```
 
-This creates visual consistency across the site and reinforces the literary, personal tone. **No subtitles** — the header stands alone. The heading is System voice, not a document title, so it is not selectable. Article titles use `TITLE_READER` and stay copyable.
+This creates visual consistency across the site and reinforces the literary, personal tone. **No subtitles**: the header stands alone. The heading is System voice, not a document title, so it is not selectable. Article titles use `TITLE_READER` and stay copyable.
 
 ### Typography roles
 
 Recurring text recipes are named once in `lib/typography.ts` (`TYPE.label`,
 `TYPE.rowTitle`, `TYPE.rowMeta`, `TYPE.kbd`, …) and composed by components
-and by the Legibility Lab alike — see the roles table in
+and by the Legibility Lab alike. See the roles table in
 [docs/system-legibility.md](./system-legibility.md). Use a role where one
 fits; write classes inline where none does, and promote the recipe to a role
 once it recurs.
@@ -144,7 +144,7 @@ a slider at `/lab/legibility`.
 
 ### Design Note
 
-All colors use **OKLCH** color space for perceptually uniform transitions. The palette is intentionally **grayscale** with no accent colors—the content provides the color. The one exception is opt-in: **Tint: Wallpaper** lends the picture's dominant colour to glass and the accent wash (never to ink).
+All colors use **OKLCH** color space for perceptually uniform transitions. The palette is intentionally **grayscale** with no accent colors: the content provides the color. The one exception is opt-in: **Tint: Wallpaper** lends the picture's dominant colour to glass and the accent wash (never to ink).
 
 ## Spacing & Layout
 
@@ -164,7 +164,7 @@ widget grid. Two rules keep it at home on any display (`app/page.tsx`,
 - **Centered when there is room.** `main` is `min-h-svh` and the composition
   carries auto margins, so it settles optically centered on tall screens
   (iPad Pro portrait, large desktops) and snaps back to the top-anchored
-  layout the moment the content outgrows the viewport — phones, tablets and
+  layout the moment the content outgrows the viewport. Phones, tablets and
   normal laptops are unchanged.
 - **More widgets, not bigger ones.** Column count and container width move
   together so a widget stays ~330px wide at every step, iPad-springboard
@@ -180,7 +180,7 @@ widget grid. Two rules keep it at home on any display (`app/page.tsx`,
   The fourth column waits for enough widgets to fill it: CSS multicol
   balances by height, so a fourth column over a handful of cards reads as a
   lopsided, half-empty grid. `roomy:` (defined in `globals.css`) is the last
-  step's gate — ≥ 96rem wide **and** ≥ 1000px tall, since the point is to
+  step's gate: ≥ 96rem wide **and** ≥ 1000px tall, since the point is to
   spend space the screen actually has spare; a short ultrawide is already
   scrolling and keeps the familiar desktop board.
 
@@ -208,69 +208,71 @@ type at runtime.
 
 | Class | Where | What it does |
 |---|---|---|
-| `pressable` | Rows, links, buttons, tiles — anything with a `hover:` wash | Pair with an `active:` colour (or, on chrome buttons, a scale). The `:active` rule zeroes the transition so the highlight lands on the **touch-down frame** (Tailwind's `hover:` is gated on `(hover: hover)`, so a finger otherwise gets nothing); release eases out through the element's own `transition-*`. |
-| `COVER_WASH` | Media covers — talks thumbs, `/works` tiles, inline players (`lib/glass.ts`) | iOS Photos / Music / Home Screen: a dark wash over the **art** on touch-down, not a scale of the card. The control is `group/thumb pressable` so a press on a sibling cover or the commit row cannot dim every thumbnail. |
+| `pressable` | Rows, links, buttons, tiles: anything with a `hover:` wash | Pair with an `active:` colour (or, on chrome buttons, a scale). The `:active` rule zeroes the transition so the highlight lands on the **touch-down frame** (Tailwind's `hover:` is gated on `(hover: hover)`, so a finger otherwise gets nothing); release eases out through the element's own `transition-*`. |
+| `COVER_WASH` | Media covers: talks thumbs, `/works` tiles, inline players (`lib/glass.ts`) | iOS Photos / Music / Home Screen: a dark wash over the **art** on touch-down, not a scale of the card. The control is `group/thumb pressable` so a press on a sibling cover or the commit row cannot dim every thumbnail. |
 | `system-chrome` | Navigation, command bar, dock, palette, edit controls, a window's frame, every surface (`SHELL`) | OS chrome: no text selection, no long-press callout, no grey tap flash. Text fields inside keep their caret. |
 | `system-surface` | The home screen, the 404 | The whole OS composition is non-selectable, descendants included. iOS otherwise skips `select-none` labels and expands a long-press into a full-page Copy / Find Selection. Paired with `useLockTextSelection`. |
-| `system-voice` | Poetic titles, the widget grid, app labels — System text inside a page that is otherwise a document | Selection off, everything else untouched, so a link keeps its preview and its tap flash. Text fields inside keep their caret. |
+| `system-voice` | Poetic titles, the widget grid, app labels (System text inside a page that is otherwise a document) | Selection off, everything else untouched, so a link keeps its preview and its tap flash. Text fields inside keep their caret. |
 | `press-hold` | Widgets and app icons (via `usePressHold`) | The visual half of a long-press: the held object grows slowly for the sensor's whole activation delay, then pops to its lifted size (`widget-lift`). Letting go or scrolling eases it back. |
 
 **Four voices, and a piece of UI picks one.** The three classes live in
 `globals.css` rather than as Tailwind utilities at the call sites, so the
-policies can be read side by side — and so all three carry the text-field
+policies can be read side by side, and so all three carry the text-field
 exception: `user-select: none` inherited into an `<input>` costs Safari the
 caret, and a `select-none` in a class string has no way to say otherwise.
 
-- **Chrome** (`.system-chrome`) — nothing: not selectable, no callout, no tap
-  flash. Navigation, the command bar, the dock, edit controls, a window's own
+- **Chrome** (`.system-chrome`): not selectable, no callout, no tap flash.
+  Navigation, the command bar, the dock, edit controls, a window's own
   frame, and every secondary surface (see
   [Surface System](./system-surface.md#a-surface-is-chrome)).
-- **Surface** (`.system-surface`) — a whole composition that is not a document:
-  the home screen, the 404. A long-press must not grow into a viewport-wide
-  selection, which iOS will do even over `select-none` labels; `useLockTextSelection`
-  is the JS half. Text fields inside still take a caret.
-- **Voice** (`.system-voice`) — selection off, nothing else. Poetic index
+- **Surface** (`.system-surface`): a whole composition that is not a document,
+  such as the home screen or the 404. A long-press must not grow into a
+  viewport-wide selection, which iOS will do even over `select-none` labels;
+  `useLockTextSelection` is the JS half. Text fields inside still take a caret.
+- **Voice** (`.system-voice`): selection off, nothing else. Poetic index
   titles (`TITLE_POETIC`), the widget grid, app labels: the OS speaking inside
   a page that is otherwise a document. Dragging across them must not paint a
   highlight, but a link inside still previews and still flashes. Pair it with
-  `cursor-default` where the arrow should say so too — never on an element
-  inside a link or button, where a cursor set on the text beats the pointer the
-  control would have lent it.
-- **Document** (no class) — prose, article titles via `TITLE_READER`, the
+  `cursor-default` where the arrow should say so too. Never put it on an
+  element inside a link or button, where a cursor set on the text beats the
+  pointer the control would have lent it.
+- **Document** (no class): prose, article titles via `TITLE_READER`, the
   `/writing` list, `/works` rows. Browser defaults: text stays selectable, and
   a long-press on a link still opens the system preview.
 
-A drag is the one case that cuts across all four: while something is being
-dragged — a window by its frame, a widget in edit mode — `html.dragging`
+A drag is the one case that cuts across all four. While something is being
+dragged (a window by its frame, a widget in edit mode), `html.dragging`
 suspends selection on the whole page, so the document under the dragged object
-never gets painted blue by a gesture that was never about its text. It is a
-state, not a tier: the moment the drag ends the page is a document again.
+is never highlighted by a gesture that was not about its text. It is a
+temporary state on top of the four voices: when the drag ends, the page is a
+document again.
 
 The cost, taken knowingly: what cannot be selected also cannot be handed to
-iOS Translate or Speak Selection. It is spent on System text only — greetings,
-index titles, widget cards, labels — never on an article's body or its own
+iOS Translate or Speak Selection. It applies to System text only (greetings,
+index titles, widget cards, labels), never to an article's body or its own
 title, and the one article title that speaks in the System voice (the
 greeting's "last reading" line) is a link to the page where it is selectable
 again.
 
 **Long-press semantics, by surface:**
 
-- **App icons / widgets** — a long-press picks the object up (400ms hold,
+- **App icons / widgets**: a long-press picks the object up (400ms hold,
   10px tolerance, `TOUCH_ACTIVATION`). No system callout, no selection.
-  Strictly: a press only *starts* a pickup on the widget's own surface — the
+  Strictly: a press only *starts* a pickup on the widget's own surface, the
   part whose tap is the whole-widget action. A press on a descendant with its
   own tap (a row link, a button, a tab, an input) belongs to that control:
   it scrolls, previews, or presses, and never lifts the card. In edit mode
   the whole card is a handle again, like an iOS jiggle.
-- **Content** (prose, the `/writing` list, `/works` rows) — browser defaults.
+- **Content** (prose, the `/writing` list, `/works` rows): browser defaults.
   A long-press on a link still opens the system preview; text stays
   selectable. Only the press wash is added.
-- **System chrome** — nothing: not selectable, no callout.
+- **System chrome**: not selectable, no callout.
 
 While the home grid is in edit mode the **Done** / **Reset** controls float
 above the command bar on desktop; on phones the bar fades out
 (`home-edit-store.ts`) and the controls take the bottom of the screen, where
-the thumb is. Same quiet pill as the rest of the chrome — no inverted fills.
+the thumb is. They use the same pill as the rest of the chrome, with no
+inverted fills.
 
 ## Components
 
@@ -403,7 +405,7 @@ See `app/globals.css` for full implementation.
 
 ### Code Blocks
 
-Code blocks use minimal contrast to blend seamlessly with content:
+Code blocks use minimal contrast so they sit in the content:
 
 ```css
 /* Code block container */
@@ -419,9 +421,9 @@ Code blocks use minimal contrast to blend seamlessly with content:
 ```
 
 **Design decisions:**
-- **Background**: `bg-muted/50` (50% opacity) — matches table header background for visual consistency
-- **Contrast**: Minimal — code blocks should feel integrated, not stand out
+- **Background**: `bg-muted/50` (50% opacity), matching the table header background
+- **Contrast**: Minimal, so code blocks read as part of the text instead of standing out
 - **Padding**: `p-4` on container, no extra padding on individual lines
 - **Syntax highlighting**: Uses shiki theme colors for tokens, but background is controlled by site theme
 
-This creates a subtle, cohesive look where code feels like part of the content rather than a separate element.
+Code reads as part of the content rather than as a separate element.
