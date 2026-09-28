@@ -36,14 +36,16 @@ import { setRulerSide, useRulerSide, type RulerSide } from "./ruler-settings";
 // live behind it, so a tap on Serif is a tap you watch land.
 //
 // It shows the same settings the devtool's module does, in the reader's voice
-// rather than the devtool's mono. All but one are offered everywhere.
+// rather than the devtool's mono. All but two are offered everywhere.
 //
-// Wide media is the one exception, and it is not a taste call: the rule that
-// lets landscape media break out of the column lives entirely inside the
-// `bleed` breakpoint (app/globals.css), so under that width the switch would
-// be wired to nothing. The row hides itself with the `bleed:` variant of that
-// same breakpoint — one number, so the control and the rule it drives cannot
-// drift apart, and nothing has to be measured in JS to know.
+// Wide media and the column are the exceptions, and neither is a taste call:
+// each rule lives entirely inside its own breakpoint (app/globals.css) —
+// landscape media only breaks out of the column at `bleed`, and the three
+// columns are only three different widths at `measure`, under which the
+// viewport is the column — so under that width the control would be wired to
+// nothing. Each row hides itself with the variant of that same breakpoint —
+// one number, so the control and the rule it drives cannot drift apart, and
+// nothing has to be measured in JS to know.
 //
 // Everything else is shown at every width even where it is less useful. These
 // are single, global, persisted settings: hiding focus mode on a phone would
@@ -115,7 +117,8 @@ function ReadingSettingsContent() {
         />
       </Row>
 
-      <Row label={t(locale, "readingMeasure")}>
+      {/* Shown from `measure:` up, the width its rule is on at. */}
+      <Row label={t(locale, "readingMeasure")} className="hidden measure:flex">
         <Segmented<ReadingMeasure>
           value={measure}
           onChange={setReadingMeasure}
