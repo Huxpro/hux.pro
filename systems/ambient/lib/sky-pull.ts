@@ -33,7 +33,7 @@
 //
 //   --sky-pull           px the page has followed the finger down
 //   --sky-pull-progress  0..1 of the way to far enough
-//   --sky-pull-reveal    0..1 of the hint showing: nothing for the first ~6 mm
+//   --sky-pull-reveal    0..1 of the hint showing: nothing for the first ~8 mm
 //   [data-sky-pulling]   a finger is pulling (transitions off: follow it exactly)
 //   [data-sky-armed]     far enough: letting go opens the window
 //
@@ -56,8 +56,8 @@ import { onSystemSurface } from "./tilt-primer";
 
 /** How far the page follows at most, px — the rubber band's reach. */
 const PULL_REACH = 220;
-/** Followed this far, letting go opens the window, px (about 119 px of finger). */
-const PULL_ARM_PX = 92;
+/** Followed this far, letting go opens the window, px (about 141 px of finger). */
+const PULL_ARM_PX = 104;
 /**
  * Once past the line, the page has to come back this far before it is not:
  * hysteresis. A finger resting on the line trembles a pixel or two, and with a
@@ -66,21 +66,25 @@ const PULL_ARM_PX = 92;
  * line one event. Letting go anywhere while armed still opens the window: what
  * the cue says is what happens.
  */
-const PULL_DISARM_PX = 84;
+const PULL_DISARM_PX = 96;
 /**
  * The pull says nothing of the sky until the page has followed this far, px —
- * about 39 px of finger, some 6 mm on a phone. That is just past where the
- * platform itself decides a touch is a drag and not a tap (Android's touch
- * slop is 8 dp, iOS's pan about 10 pt), so the hint begins at the first moment
- * the pull is unmistakably a pull, and a page nudged at its top just moves. In
- * page px, not a fraction of the line, so moving the line does not move this.
+ * about 52 px of finger, some 8 mm on a phone: well past where the platform
+ * itself decides a touch is a drag and not a tap (Android's touch slop is 8 dp,
+ * iOS's pan about 10 pt), so a page nudged at its top just moves, and the hint
+ * begins only once the pull is plainly a pull. In page px, not a fraction of
+ * the line, so moving the line does not move this.
  */
-const REVEAL_FROM_PX = 36;
+const REVEAL_FROM_PX = 46;
 /**
- * …and has said all of it by here: just before the line, so "let go" is read
- * at full light. Tied to the line, since it is the line it announces.
+ * …and has said all of it exactly at the line, not before. A hint that was
+ * already full some way short of the line left a stretch where nothing
+ * changed, and a stretch where nothing changes is one the hand does not feel:
+ * both halves of the pull read as shorter than they were. Growing all the way
+ * to the line keeps the whole second half moving; the caption switching to
+ * "let go" is then the one thing that happens at the line.
  */
-const REVEAL_TO_PX = PULL_ARM_PX * 0.9;
+const REVEAL_TO_PX = PULL_ARM_PX;
 
 /**
  * How much of the pull's hint shows, 0..1, with the page `px` down: the cue

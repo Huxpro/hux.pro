@@ -27,7 +27,7 @@ import { MoonGlyph, SunGlyph } from "./body-glyph";
 //
 // No React per frame: it is placed, scaled and lit by the pull's own CSS
 // variables (`--sky-pull` places it, `--sky-pull-reveal` lights it — nothing for
-// the first ~6 mm of the pull), and its two lines swap on
+// the first ~8 mm of the pull), and its two lines swap on
 // `html[data-sky-armed]` — see "The sky pull" in globals.css. Rendered always
 // and invisible at rest; it never takes a pointer, and it is decoration, so the
 // screen reader hears the toast that follows instead.
