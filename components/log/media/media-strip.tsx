@@ -37,7 +37,8 @@ import { ARTWORK_CHIP_REST } from "@/lib/glass";
 import { TYPE } from "@/lib/typography";
 import { useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
-import type { Media, StripItem } from "@/lib/log";
+import type { CommitType, Media, StripItem } from "@/lib/log";
+import { CommitIcon } from "../icons";
 import { AttachmentTile, resolveTile } from "./attachment-tile";
 import { InspectableMedia } from "./inspectable";
 import { mediaPeek } from "./media-peek";
@@ -84,12 +85,15 @@ export interface StripGuest {
   set?: AttachmentSet | null;
   before?: boolean;
   /**
-   * The guest as a commit. Under its covers it prints what it is, its title
-   * and where it was given, over a rule that spans them all when there are
-   * several, so each reads as the guest's. Its hash and date are for a
-   * closer look: on a pointer, a cover's peek ends with them.
+   * The guest as a commit. Under its covers it prints what it is, in one
+   * line: the mark its row wears in the gutter (it is a commit, not an
+   * attachment), its title and where it was given, over a rule that spans
+   * its covers when there are several. Its hash and date are for a closer
+   * look: on a pointer, a cover's peek ends with them.
    */
   owner?: {
+    type: CommitType;
+    icon?: string;
     title: string;
     venue?: string;
     hash: string;
@@ -212,12 +216,7 @@ export function MediaStrip({
                   covers.length > 1 && "border-t border-border/60 pt-1",
                 )}
               >
-                <div className={cn("truncate", TYPE.rowMeta, "text-muted-foreground")}>
-                  {owner.title}
-                </div>
-                {owner.venue && (
-                  <div className={cn("mt-0.5 truncate", TYPE.hash)}>{owner.venue}</div>
-                )}
+                <GuestName owner={owner} className="line-clamp-2" />
               </div>
             )}
           </div>
@@ -227,12 +226,47 @@ export function MediaStrip({
   );
 }
 
+/**
+ * A guest named as a commit: the mark its row wears in the gutter, then its
+ * title and where it was given, in the row's meta voice.
+ */
+export function GuestName({
+  owner,
+  venue = true,
+  className,
+}: {
+  owner: NonNullable<StripGuest["owner"]>;
+  /** Off where the venue is already on screen (a cover's peek). */
+  venue?: boolean;
+  className?: string;
+}) {
+  return (
+    <span className={cn("flex min-w-0 items-baseline gap-1.5", TYPE.rowMeta)}>
+      <CommitIcon
+        type={owner.type}
+        override={owner.icon}
+        className="h-3 w-3 shrink-0 translate-y-0.5 text-quaternary-foreground"
+      />
+      <span className={cn("min-w-0", className)}>
+        <span className="text-muted-foreground">{owner.title}</span>
+        {venue && owner.venue && (
+          // A venue breaks onto the next line whole, not inside its name.
+          <>
+            {" · "}
+            <span className="whitespace-nowrap">{owner.venue}</span>
+          </>
+        )}
+      </span>
+    </span>
+  );
+}
+
 /** The last line of a guest cover's peek: whose it is, as a row prints it. */
 function GuestFootnote({ owner }: { owner: NonNullable<StripGuest["owner"]> }) {
   return (
     <div className="flex items-baseline gap-2">
-      <span className={cn("min-w-0 flex-1 truncate", TYPE.rowMeta, "text-muted-foreground")}>
-        {owner.title}
+      <span className="min-w-0 flex-1">
+        <GuestName owner={owner} venue={false} className="truncate" />
       </span>
       <span className={cn("shrink-0", TYPE.hash)}>{owner.hash}</span>
       <span className={cn("shrink-0", TYPE.hash)}>{owner.date}</span>

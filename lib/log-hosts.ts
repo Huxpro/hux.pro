@@ -18,7 +18,8 @@
 // This module is the pure half. React lives in components/log.
 // =============================================================================
 
-import type { Commit } from "./log";
+import type { Locale } from "./i18n";
+import { localize, type Commit } from "./log";
 
 export interface Guest {
   commit: Commit;
@@ -103,12 +104,14 @@ export function withinRange(commit: Commit, row: Commit): boolean {
 }
 
 /**
- * The name a guest's covers wear on its host's strip: an edition in another
- * language is that language (`中文`, `EN`), anything else is where it
- * happened (`React Conf 2021`).
+ * The badge a guest's first cover wears on its host's strip: why it is
+ * there. Authored (`featuredAs`: `Intro talk`, `中文再演`); without it, an
+ * edition in another language is that language (`中文`, `EN`), and
+ * anything else wears none rather than repeat what its caption prints.
  */
-export function guestLabel(guest: Guest, host: Commit): string | undefined {
+export function guestLabel(guest: Guest, host: Commit, locale: Locale): string | undefined {
   const c = guest.commit;
+  if (c.featuredAs) return localize(c.featuredAs, locale);
   if (
     guest.kind === "edition" &&
     c.language &&
@@ -117,5 +120,5 @@ export function guestLabel(guest: Guest, host: Commit): string | undefined {
   ) {
     return c.language === "zh" ? "中文" : "EN";
   }
-  return c.type === "talk" ? c.conference?.name : undefined;
+  return undefined;
 }

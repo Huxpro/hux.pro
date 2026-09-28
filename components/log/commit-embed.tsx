@@ -156,7 +156,7 @@ export function Commit({
       commit && guests?.length
         ? guests.map((g) => ({
             key: g.commit.id,
-            label: guestLabel(g, commit),
+            label: guestLabel(g, commit, locale),
             items: getMediaStripItems(
               (g.commit.media ?? []).filter((m) => !isPinnedMedia(m)),
               locale,
@@ -164,6 +164,8 @@ export function Commit({
             set: attachmentSet,
             before: g.kind === "about",
             owner: {
+              type: g.commit.type,
+              icon: "icon" in g.commit ? g.commit.icon : undefined,
               title: localize(g.commit.title, locale),
               venue: g.commit.type === "talk" ? g.commit.conference.name : undefined,
               hash: computeCommitHash(g.commit.id),

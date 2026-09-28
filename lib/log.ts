@@ -353,6 +353,13 @@ interface BaseCommit {
    */
   about?: string[];
   /**
+   * Why this commit is on its host's row, when it is a guest there
+   * (lib/log-hosts.ts): `Intro talk`, `中文再演`. The badge on its first
+   * cover says it, so it names the connection, not what the commit already
+   * prints (its title, its venue).
+   */
+  featuredAs?: LocalizedString;
+  /**
    * Per-commit override that hides the date column and renders the
    * commit's location (for roles) instead. Useful for education
    * entries that overlap with concurrent work and would otherwise

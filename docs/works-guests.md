@@ -9,18 +9,23 @@ So one can be a **guest** on the other's row.
 
 ## Data
 
-Two optional fields on any commit (`lib/log.ts`):
+Optional fields on any commit (`lib/log.ts`):
 
 ```json
 { "id": "see-conf-2025-two-threads",
-  "editionOf": "react-universe-2025-two-threads" },
-{ "id": "reactconf-2021-memo", "about": ["react-core"] }
+  "editionOf": "react-universe-2025-two-threads",
+  "featuredAs": { "en": "Chinese re-run", "zh": "中文再演" } },
+{ "id": "reactconf-2021-memo", "about": ["react-core"],
+  "featuredAs": { "en": "Intro talk", "zh": "首发演讲" } }
 ```
 
 - `editionOf` points at another telling of the same work. The host is the
   version the chain of pointers ends at.
 - `about` names the projects a commit is about; the first one is its host
   when it is a project.
+- `featuredAs` says why the guest is on its host's row. It is the badge on
+  the guest's first cover, the most visible place the guest has, so it
+  names the connection rather than repeat what the caption prints.
 
 ## On the page
 
@@ -31,26 +36,31 @@ prints it.
   The project *attaches* the talk: the talk's covers join the host's strip
   (a talk that introduced a project leads the project's covers; another
   telling of a talk follows the talk's own), and they stay the talk's.
-  - Its first cover wears its name where a cover's chip leaves room: its
-    language when an edition is in another language (`中文`), otherwise
-    where it happened (`React Conf 2021`).
-  - Its covers stand together, over one caption: its title and where it
-    was given (`React without memo` / `React Conf 2021`). With several
-    covers (React without memo's recording and the React Conf 2021 recap
-    post are both the talk's), a rule spans them so each reads as the
-    talk's; a single cover needs none.
+  - Its first cover wears a badge where a cover's chip leaves room: its
+    `featuredAs` (`Intro talk`, `Chinese re-run`). Without one, an edition
+    in another language wears the language (`中文`), and anything else
+    wears none.
+  - Its covers stand together, over one caption on one line: the mark its
+    row wears in the gutter (a talk's mic, so the covers read as a commit
+    and not as attachments), its title and where it was given
+    (`React without memo · React Conf 2021`). It wraps to a second line
+    when it has one cover to span, the venue whole. With several covers
+    (React without memo's recording and the React Conf 2021 recap post),
+    a rule spans them so each reads as the talk's; a single cover needs
+    none.
   - Its covers behave as the talk's. Pressed, they open natively (the
     recording on the theater's stage, titled with the talk). A commit's
     particulars are for a closer look: on a phone the attachment sheet's
     page for each prints the talk (title, venue, hash, date and prose); on
     a desk, hovering one peeks the cover as any cover peeks, with a last
-    line saying whose it is (`React without memo  fdb0944 Sep 2021`). It is
-    never part of the host row's body.
+    line saying whose it is: its mark, title, hash and date
+    (`React without memo  fdb0944 Sep 2021`). It is never part of the host
+    row's body.
   - In the feed, its tiles are a section of the host's grid of their own,
-    under a ruled line naming it (`React without memo · React Conf 2021`)
-    with its hash and date, and ruled off from the host's tiles when it
-    comes first. Its prose stays in its sheet, as on the strip. The
-    index's `📎` count includes it.
+    under a ruled line naming it as the strip does, with its `featuredAs`
+    as a tag (the feed's tiles wear no badge) and its hash and date, and
+    ruled off from the host's tiles when it comes first. Its prose stays in
+    its sheet, as on the strip. The index's `📎` count includes it.
 - **One set.** The row opens everything it prints as one attachment set,
   in the order it prints it (`attachmentSetWith`, systems/attachments), so
   the surface pages through all of it. Each item remembers whose it is

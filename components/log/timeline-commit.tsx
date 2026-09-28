@@ -24,7 +24,7 @@ import { Description, Commentary, AuthorFields } from "./embeds/shared";
 import { Paperclip } from "lucide-react";
 import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
-import { MediaStrip, type StripGuest } from "./media/media-strip";
+import { GuestName, MediaStrip, type StripGuest } from "./media/media-strip";
 import type { AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
@@ -929,7 +929,8 @@ function Handle({
 
 /**
  * Another commit on this row, in the feed: its own section of the grid,
- * under a ruled line naming it (its title, where, then its hash and date),
+ * under a ruled line naming it (its mark, title and where, then its hash
+ * and date),
  * so its tiles read as its own and not as the row's. Its prose stays with
  * it, in its sheet, as on the strip.
  */
@@ -937,17 +938,26 @@ function GuestSection({ guest }: { guest: StripGuest }) {
   // Ahead of the row's own tiles it needs an end as well as a start, or the
   // row's first tile reads as the guest's last.
   const { owner } = guest;
-  const name = owner
-    ? [owner.title, owner.venue].filter(Boolean).join(" · ")
-    : guest.label;
   return (
     <section
       className={cn("space-y-2", guest.before && "border-b border-border/60 pb-3")}
     >
       {owner && (
         <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-1.5">
-          <span className={cn("min-w-0 truncate", TYPE.rowMeta, "text-muted-foreground")}>
-            {name}
+          <span className="flex min-w-0 items-baseline gap-2">
+            <GuestName owner={owner} className="truncate" />
+            {/* The feed's tiles wear no badge, so its header says why the
+                guest is here, in the tag a card wears for `EN`. */}
+            {guest.label && (
+              <span
+                className={cn(
+                  "shrink-0 rounded-sm border border-border/60 px-1.5 py-px",
+                  "font-mono text-[10px] leading-none text-muted-foreground",
+                )}
+              >
+                {guest.label}
+              </span>
+            )}
           </span>
           <span className={cn("flex shrink-0 gap-2", TYPE.hash)}>
             <a
