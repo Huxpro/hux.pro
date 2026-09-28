@@ -84,11 +84,20 @@ export interface StripGuest {
   set?: AttachmentSet | null;
   before?: boolean;
   /**
-   * The guest's own caption under its first cover: it is still a commit,
-   * so it keeps its name and its address. `line` is what it is (a talk's
-   * title, or where another telling was given); then its hash and date.
+   * The guest as a commit. Its covers stand together on the strip with one
+   * caption under all of them, so each reads as the guest's: `line` is what
+   * it is (a talk's title, or where another telling was given), then its
+   * hash and date. On a pointer, hovering one peeks the guest itself (its
+   * title, venue, hash, date and prose) rather than the attachment.
    */
-  caption?: { line: string; hash: string; date: string };
+  owner?: {
+    line: string;
+    title: string;
+    venue?: string;
+    hash: string;
+    date: string;
+    description?: string;
+  };
 }
 
 export function MediaStrip({
@@ -103,28 +112,23 @@ export function MediaStrip({
 }: MediaStripProps) {
   const attachments = useOptionalAttachments();
   const { locale } = useLocale();
-  // Once per item, not once per tile per render (attachment-tile.tsx). Each
-  // cover carries the set it opens and, first in a guest's run, its name.
-  const slots = useMemo(() => {
-    const run = (
-      runItems: StripItem[],
-      runSet: AttachmentSet | null | undefined,
-      label?: string,
-      caption?: StripGuest["caption"],
-    ) =>
-      runItems.map((item, i) => ({
+  // Once per item, not once per tile per render (attachment-tile.tsx). The
+  // strip in runs: the commit's own covers one by one, and each guest's as
+  // one group, every cover carrying the set it opens.
+  const runs = useMemo(() => {
+    const tiles = (runItems: StripItem[], runSet: AttachmentSet | null | undefined) =>
+      runItems.map((item) => ({
         slot: resolveTile(item, locale, runSet, attachments),
         set: runSet,
-        label: i === 0 ? label : undefined,
-        caption: i === 0 ? caption : undefined,
       }));
-    const guest = (g: StripGuest) => run(g.items, g.set, g.label, g.caption);
+    const guest = (g: StripGuest) => ({ key: g.key, guest: g, tiles: tiles(g.items, g.set) });
     return [
-      ...(guests ?? []).filter((g) => g.before).flatMap(guest),
-      ...run(items, set),
-      ...(guests ?? []).filter((g) => !g.before).flatMap(guest),
+      ...(guests ?? []).filter((g) => g.before && g.items.length > 0).map(guest),
+      { key: "own", guest: undefined, tiles: tiles(items, set) },
+      ...(guests ?? []).filter((g) => !g.before && g.items.length > 0).map(guest),
     ];
   }, [items, locale, set, attachments, guests]);
+  const slots = runs.flatMap((r) => r.tiles);
 
   if (slots.length === 0) return null;
 
@@ -149,68 +153,97 @@ export function MediaStrip({
         className,
       )}
     >
-      {slots.map(({ slot, set: slotSet, label, caption }, i) => {
-        // The row itself stops peeking once it prints its covers (see
-        // `showCursorPreview` in TimelineCommit); each cover peeks instead,
-        // in the same vocabulary, showing what it is at a readable size —
-        // and whole, where the tile crops.
-        const spec = peek
-          ? mediaPeek(slot.media, locale, { leaves: slot.leaves })
-          : null;
-        return (
-          <MagneticPreview
-            key={`${slot.media.url}-${i}`}
-            preview={spec?.node}
-            enabled={!!spec}
-            panelClassName={spec?.panelClassName}
-            className="relative shrink-0 snap-start"
-          >
-            <InspectableMedia
-              media={slot.media}
-              inspecting={inspecting}
-              selected={selectedMedia === slot.media}
-              onInspect={onInspect}
+      {runs.map((run) => {
+        const covers = run.tiles.map(({ slot, set: slotSet }, i) => {
+          const owner = run.guest?.owner;
+          // A guest's cover peeks the guest; any other peeks what it is.
+          const spec = !peek
+            ? null
+            : owner
+              ? { node: <GuestPeek owner={owner} />, panelClassName: undefined }
+              : mediaPeek(slot.media, locale, { leaves: slot.leaves });
+          const label = i === 0 ? run.guest?.label : undefined;
+          return (
+            <MagneticPreview
+              key={`${slot.media.url}-${i}`}
+              preview={spec?.node}
+              enabled={!!spec}
+              panelClassName={spec?.panelClassName}
+              className="relative shrink-0 snap-start"
             >
-              <AttachmentTile
-                slot={slot}
-                size="covers"
-                locale={locale}
-                set={slotSet}
-                attachments={attachments}
-              />
-            </InspectableMedia>
-            {label && (
-              <span
-                aria-hidden
-                className={cn(
-                  "pointer-events-none absolute left-1.5 top-1.5 z-10 rounded-full px-1.5 py-0.5",
-                  "font-mono text-[10px] leading-none whitespace-nowrap backdrop-blur-sm",
-                  ARTWORK_CHIP_REST,
-                )}
+              <InspectableMedia
+                media={slot.media}
+                inspecting={inspecting}
+                selected={selectedMedia === slot.media}
+                onInspect={onInspect}
               >
-                {label}
-              </span>
-            )}
-            {caption && (
-              <div className="mt-1.5 w-0 min-w-full">
+                <AttachmentTile
+                  slot={slot}
+                  size="covers"
+                  locale={locale}
+                  set={slotSet}
+                  attachments={attachments}
+                />
+              </InspectableMedia>
+              {label && (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "pointer-events-none absolute left-1.5 top-1.5 z-10 rounded-full px-1.5 py-0.5",
+                    "font-mono text-[10px] leading-none whitespace-nowrap backdrop-blur-sm",
+                    ARTWORK_CHIP_REST,
+                  )}
+                >
+                  {label}
+                </span>
+              )}
+            </MagneticPreview>
+          );
+        });
+        const owner = run.guest?.owner;
+        if (!run.guest) return covers;
+        return (
+          // A guest's covers stand together, over one caption that spans
+          // them all: each of them is the guest's.
+          <div key={run.key} className="flex shrink-0 snap-start flex-col">
+            <div className="flex gap-2">{covers}</div>
+            {owner && (
+              <div className="mt-1.5 w-0 min-w-full border-t border-border/60 pt-1">
                 <div className={cn("truncate", TYPE.rowMeta, "text-muted-foreground")}>
-                  {caption.line}
+                  {owner.line}
                 </div>
                 <div className={cn("mt-0.5 flex gap-2", TYPE.hash)}>
                   <a
-                    href={`#${caption.hash}`}
+                    href={`#${owner.hash}`}
                     onClick={(e) => e.stopPropagation()}
                     className="transition-colors hover:text-muted-foreground"
                   >
-                    {caption.hash}
+                    {owner.hash}
                   </a>
-                  <span>{caption.date}</span>
+                  <span>{owner.date}</span>
                 </div>
               </div>
             )}
-          </MagneticPreview>
+          </div>
         );
       })}
+    </div>
+  );
+}
+
+/** A guest cover's peek: the guest commit itself, the way a row prints it. */
+function GuestPeek({ owner }: { owner: NonNullable<StripGuest["owner"]> }) {
+  return (
+    <div className="w-[22rem] max-w-full space-y-1">
+      <div className={TYPE.mediaTitle}>{owner.title}</div>
+      {owner.venue && <div className={TYPE.label}>{owner.venue}</div>}
+      <div className={cn("flex gap-2", TYPE.hash)}>
+        <span>{owner.hash}</span>
+        <span>{owner.date}</span>
+      </div>
+      {owner.description && (
+        <p className={cn("pt-1", TYPE.caption)}>{owner.description}</p>
+      )}
     </div>
   );
 }

@@ -235,7 +235,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
     (set: AttachmentSet, index = 0) => {
       const media = set.items[index];
       if (!media) return;
-      const home = homeOfItem(set, index, ctx);
+      const home = homeFor(media, ctx);
       if (home === "surface") {
         setSession((prev) => ({ set, index, key: (prev?.key ?? 0) + 1 }));
         setIsOpen(true);
@@ -256,7 +256,10 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
   );
 
   const homeOf = useCallback(
-    (set: AttachmentSet, index: number) => homeOfItem(set, index, ctx),
+    (set: AttachmentSet, index: number) => {
+      const media = set.items[index];
+      return media ? homeFor(media, ctx) : "surface";
+    },
     [ctx],
   );
 
@@ -304,22 +307,4 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
       {children}
     </AttachmentsContext.Provider>
   );
-}
-
-/**
- * Where an item on a set opens. Another commit's item on a row (a talk on
- * the project it introduced, `from`) opens its own page on the surface on
- * every viewport: the item stands for that commit, so it is met as the
- * commit (its title, hash, date and prose) with its native action one press
- * away, rather than sent straight to the stage under the row's name.
- */
-function homeOfItem(
-  set: AttachmentSet,
-  index: number,
-  ctx: HomeContext,
-): AttachmentHome {
-  const media = set.items[index];
-  if (!media) return "surface";
-  if (set.from?.[index]) return "surface";
-  return homeFor(media, ctx);
 }

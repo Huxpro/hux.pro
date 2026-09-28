@@ -34,21 +34,21 @@ prints it.
   - Its first cover wears its name where a cover's chip leaves room: its
     language when an edition is in another language (`中文`), otherwise
     where it happened (`React Conf 2021`).
-  - A caption under it keeps it a commit: what it is (a talk's title, or
-    where another telling was given), then its own hash and date
-    (`fdb0944 Sep 2021`).
-  - Opening it opens the talk, not the project: on every viewport it goes
-    to its own page on the attachment surface (a drawer on a phone, a
-    window on a desk), which prints the talk's title, venue, hash, date and
-    prose, with Watch one press away. It is never part of the host row's
-    own body.
+  - Its covers stand together, over one caption that spans them all
+    (React without memo's recording and the React Conf 2021 recap post are
+    both the talk's): what it is (a talk's title, or where another telling
+    was given), then its own hash and date (`fdb0944 Sep 2021`).
+  - Its covers behave as the talk's. Pressed, they open natively (the
+    recording on the theater's stage, titled with the talk), and on a phone
+    the attachment sheet's page for each prints the talk: title, venue,
+    hash, date and prose. On a desk, hovering one peeks the talk itself
+    instead of the attachment. It is never part of the host row's body.
   - The feed's grid and the index's `📎` count include it.
 - **One set.** The row opens everything it prints as one attachment set,
   in the order it prints it (`attachmentSetWith`, systems/attachments), so
   the surface pages through all of it. Each item remembers whose it is
   (`from`, read through `ownerOf`): the surface's page, the theater and the
-  window name the guest, and another commit's item opens on the surface
-  rather than straight to its native home.
+  window name the guest.
 - **Inside the host's time, the guest prints no row.** React without memo
   (Sep 2021) is inside React Compiler's years, so the page reads it on the
   project's row. Its hash still lands there: `/works#<hash>` travels to the
