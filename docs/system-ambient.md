@@ -26,6 +26,7 @@ systems/ambient/
 │   ├── location-primer-sheet.tsx # The offer before the browser's location prompt
 │   ├── tilt-primer-sheet.tsx     # The tilt's offer before WebKit's motion prompt (rain and snow)
 │   ├── sky-window-sheet.tsx      # The sky window's offer: motion, and the place with it
+│   ├── use-permissions.ts        # What a feature needs from the browser; one press asks for all of it
 │   ├── sky-pull-cue.tsx          # The body of light at the top while the home is pulled down
 │   ├── sky-body-hints.tsx        # Edge hints toward an off-screen sun or moon in the window
 │   ├── body-glyph.tsx            # Solid sun and moon-phase glyphs (devtool, hints, cue)
@@ -695,16 +696,24 @@ never follows it.
 
 **Asking for the place in the same breath.** A window that turns true to north
 onto the sky over the wrong city is the one thing it must not be — and the IP
-guess is often a city off. So while precise location is not in effect (and the
-browser has not refused it), a pull that would open the window goes through the
-sheet first, which says it will ask for the location too. One tap then asks for
-motion (inside the tap, where WebKit's gate needs it) and then for the location
-(which needs no gesture, and so waits its turn rather than stacking a second
-dialog on the first). Where motion already flows, the sheet is only there for
-the place: it says so, and its second button opens the window without it. The
-offer is made once a session (`skyWantsLocation` in the provider); after that a
-pull is just the window. The outcome line says which it got — the sky over where
-you are, or still on the network's guess.
+guess is often a city off. So while the place in use is only that guess (and
+the browser has not refused better), a pull that would open the window goes
+through the sheet first, which says it will ask for the location too. "In use"
+is read from the location itself (`locationAskable`: its `source` is not a
+fix), not from whether precise location is *meant* to be on — a remembered
+Safari Allow whose fix timed out, a "granted" whose fix failed, or a permission
+the browser won't report all mean GPS in intent while the sky still sits over
+the IP's city, and each of those used to open the window there without asking.
+
+One tap then asks for both, through `usePermissions(["motion", "location"])`
+(`components/use-permissions.ts`), which owns the order: motion first, inside
+the tap, where WebKit's gate needs it; then the location, which needs no gesture
+and so waits its turn rather than stacking a second dialog on the first. Where
+motion already flows, the sheet is only there for the place: it says so, and its
+second button opens the window without it. The location offer is made once a
+session (`skyWantsLocation` in the provider) — spent only by an opening that
+actually made it; after that a pull is just the window. The outcome line says
+which it got — the sky over where you are, or still on the network's guess.
 
 **Devtool.** Sky → Window toggles it (on a desktop too) and reads out heading ·
 pitch. While it is on, Heading and Pitch sliders drive the view by hand — the

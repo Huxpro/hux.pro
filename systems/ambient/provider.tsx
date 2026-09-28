@@ -152,6 +152,15 @@ interface LocationContextType {
    * Accurate wish is running on the IP.
    */
   usingGps: boolean;
+  /**
+   * The place in use is only the network's guess — no fix is actually behind
+   * it — and the browser could still be asked for better: it has not refused,
+   * and it has the API. Read from what IS in use rather than from `usingGps`,
+   * which is what is MEANT to be: a remembered Safari grant, a "granted" whose
+   * fix failed, or an unknown permission all mean GPS while the sky still sits
+   * over the IP's city.
+   */
+  locationAskable: boolean;
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
@@ -358,7 +367,7 @@ interface WallpaperContextType {
    * Save the wish. Turning it ON from a tap is also what passes WebKit's
    * motion gate, so call it from a real user gesture.
    */
-  setGyroEnabled: (on: boolean) => void;
+  setGyroEnabled: (on: boolean) => Promise<GyroAccess>;
   /**
    * The sky window: the phone as a window onto the real sky — its heading and
    * pitch aim a camera at the sun and moon where they really are (see
@@ -370,9 +379,9 @@ interface WallpaperContextType {
   skyWindow: boolean;
   setSkyWindow: (on: boolean) => void;
   /**
-   * The window would open onto a guessed place: precise location is not in
-   * effect, the browser has not refused it, and the sheet has not already
-   * offered it this session. Then a hold that would open the window goes
+   * The window would open onto a guessed place: `locationAskable` (the place
+   * in use is the network's guess, and the browser could still be asked), and
+   * the sheet has not already offered it this session. Then a hold that would open the window goes
    * through the sheet instead, which asks for motion and location in one
    * breath — a window that turns true to north onto the sky over the wrong
    * city is the one thing it must not be.
@@ -527,13 +536,11 @@ interface WallpaperContextType {
    */
   isSkyOfferOpen: boolean;
   openSkyOffer: () => void;
-  closeSkyOffer: () => void;
   /**
-   * Ask for motion and, if it is given, open the window — reporting how it
-   * went so the sheet can say so. Must be called straight from the press. It
-   * does NOT close the sheet — whoever showed the outcome closes it.
+   * Close it. `offeredPlace`: this opening offered the location, so the offer
+   * is spent for the session — an opening that only asked for motion is not.
    */
-  takeSkyWindow: () => Promise<GyroAccess>;
+  closeSkyOffer: (offeredPlace?: boolean) => void;
 }
 
 const WallpaperContext = createContext<WallpaperContextType | undefined>(undefined);
@@ -1019,22 +1026,10 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   // like the window: a no today is not a no for ever, but asking on every pull
   // would be.
   const [skyAskedLocation, setSkyAskedLocation] = useState(false);
-  const closeSkyOffer = useCallback(() => {
+  const closeSkyOffer = useCallback((offeredPlace = false) => {
     setIsSkyOfferOpen(false);
-    setSkyAskedLocation(true);
+    if (offeredPlace) setSkyAskedLocation(true);
   }, []);
-
-  const takeSkyWindow = useCallback(() => {
-    // Straight from the press, for the same reason as `takeTilt`. The tilt's
-    // wish is turned on with it — the window lets the rain fall along gravity
-    // anyway, and a grant that left the tilt off on the next rainy day would be
-    // a yes only half taken. That grant also answers the tilt primer's
-    // question, so the long press on a rainy day has nothing left to offer.
-    return setGyroEnabled(true).then((access) => {
-      if (isGyroReachable(access)) setSkyWindow(true);
-      return access;
-    });
-  }, [setGyroEnabled]);
 
   const gyroActive = settings.weatherGyro && isGyroReachable(gyroAccess);
 
@@ -1126,12 +1121,12 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const usingGps =
     settings.locationMode === "accurate" &&
     canTakeFix(geoPermission, settings.locationGrantedAt, realNowMs);
-  const skyWantsLocation =
-    !usingGps &&
+  const locationAskable =
+    locationQuery.data?.source !== "geolocation" &&
     geoPermission !== "denied" &&
-    !skyAskedLocation &&
     typeof navigator !== "undefined" &&
     "geolocation" in navigator;
+  const skyWantsLocation = locationAskable && !skyAskedLocation;
 
   const setLocationMode = useCallback(
     (mode: LocationMode) => {
@@ -1596,6 +1591,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       location: locationQuery.data ?? null,
       permission: geoPermission,
       usingGps,
+      locationAskable,
       isLoading: locationQuery.isLoading,
       isFetching: locationQuery.isFetching,
       error: locationQuery.error?.message ?? null,
@@ -1611,6 +1607,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       locationQuery.data,
       geoPermission,
       usingGps,
+      locationAskable,
       isLocationPrimerOpen,
       openLocationPrimer,
       closeLocationPrimer,
@@ -1764,7 +1761,6 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       isSkyOfferOpen,
       openSkyOffer,
       closeSkyOffer,
-      takeSkyWindow,
     }),
     [
       settings.wallpaperKind,
@@ -1836,7 +1832,6 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       isSkyOfferOpen,
       openSkyOffer,
       closeSkyOffer,
-      takeSkyWindow,
     ]
   );
 
