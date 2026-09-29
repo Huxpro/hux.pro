@@ -81,6 +81,15 @@ export const PHONE_PALETTE_DEFAULT: PhonePalette = "sheet";
 export type HomeWeather = "line" | "widget";
 export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
 
+// =============================================================================
+// Widget morph
+// Whether a home widget opens its page by growing into it
+// (components/ui/widget-morph.ts), or with the plain crossfade every other
+// navigation has. Off, none of it runs: no wrapper, no marks, no names.
+// =============================================================================
+
+export const WIDGET_MORPH_DEFAULT = true;
+
 /**
  * How the hero leaves as the page scrolls. The platform picks a default;
  * the DevTool can pin either for the session. See `defaultHeroExit`.
@@ -143,6 +152,7 @@ interface DevtoolSettings {
   collapsed: Record<string, boolean>;
   phonePalette: PhonePalette;
   homeWeather: HomeWeather;
+  widgetMorph: boolean;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
 }
@@ -153,6 +163,7 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   collapsed: {},
   phonePalette: PHONE_PALETTE_DEFAULT,
   homeWeather: HOME_WEATHER_DEFAULT,
+  widgetMorph: WIDGET_MORPH_DEFAULT,
   detached: false,
 };
 
@@ -205,6 +216,10 @@ function getDevtoolSettings(): DevtoolSettings {
           parsed.homeWeather === "widget" || parsed.homeWeather === "line"
             ? parsed.homeWeather
             : HOME_WEATHER_DEFAULT,
+        widgetMorph:
+          typeof parsed.widgetMorph === "boolean"
+            ? parsed.widgetMorph
+            : WIDGET_MORPH_DEFAULT,
         detached: parsed.detached === true,
       };
     }
@@ -306,6 +321,9 @@ interface DevtoolContextType {
   /** Where the home screen says the weather. A saved setting. */
   homeWeather: HomeWeather;
   setHomeWeather: (value: HomeWeather) => void;
+  /** Whether a home widget grows into the page it opens. A saved setting. */
+  widgetMorph: boolean;
+  setWidgetMorph: (value: boolean) => void;
   /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
@@ -377,6 +395,7 @@ export function DevtoolProvider({
     useState<PhonePalette>(PHONE_PALETTE_DEFAULT);
   const [homeWeather, setHomeWeatherState] =
     useState<HomeWeather>(HOME_WEATHER_DEFAULT);
+  const [widgetMorph, setWidgetMorphState] = useState(WIDGET_MORPH_DEFAULT);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -394,6 +413,7 @@ export function DevtoolProvider({
     setCollapsedSections(settings.collapsed);
     setPhonePaletteState(settings.phonePalette);
     setHomeWeatherState(settings.homeWeather);
+    setWidgetMorphState(settings.widgetMorph);
     setIsDetached(settings.detached);
   }, []);
 
@@ -556,6 +576,11 @@ export function DevtoolProvider({
     setDevtoolSettings({ homeWeather: value });
   }, []);
 
+  const setWidgetMorph = useCallback((value: boolean) => {
+    setWidgetMorphState(value);
+    setDevtoolSettings({ widgetMorph: value });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -613,6 +638,8 @@ export function DevtoolProvider({
         setPhonePalette,
         homeWeather,
         setHomeWeather,
+        widgetMorph,
+        setWidgetMorph,
         heroExitOverride,
         setHeroExitOverride,
       }}

@@ -3,12 +3,12 @@
 import { cn } from "@/lib/utils";
 import { GradientStack } from "@/systems/ambient/components/gradient-stack";
 import { isIOSBrowser } from "@/systems/ambient/lib/platform";
+import { WIDGET_MORPH_DEFAULT, useOptionalDevtool } from "@/systems/devtool";
 import { useOptionalWallpaper } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
 import {
   useCallback,
-  useEffect,
   useState,
   type MouseEvent,
   type ReactNode,
@@ -70,6 +70,10 @@ export function WidgetShell({
   const wallpaper = useOptionalWallpaper();
   const router = useTransitionRouter();
   const tappable = !!href || !!onOpen;
+  // The devtool's Widgets › Open morph. Off, the card navigates like any
+  // link and none of widget-morph.ts is ever reached.
+  const morph =
+    (useOptionalDevtool()?.widgetMorph ?? WIDGET_MORPH_DEFAULT) && !!href;
 
   const handleClick = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
@@ -97,7 +101,7 @@ export function WidgetShell({
   // click the masonry swallows in edit mode never gets here.
   const handleClickCapture = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
-      if (!href || e.button !== 0) return;
+      if (e.button !== 0) return;
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const own = (e.target as Element).closest("a, button, [role='button']");
       let target: string | undefined;
@@ -110,15 +114,19 @@ export function WidgetShell({
         if (landsOnOwnAction(e)) return;
         target = href;
       }
-      if (target) armWidgetMorph(e.currentTarget, target);
+      if (!target) return;
+      armWidgetMorph(e.currentTarget, target);
     },
     [href],
   );
 
-  // The card's page is fetched while the card sits on the grid, so a tap
-  // grows into the page itself and not the launch screen that stands in for
-  // one still loading (widget-morph.ts). A no-op in development.
-  useEffect(() => {
+  // A press is a promise of a tap: fetch the page now, so the tap (a
+  // hundred-odd milliseconds later) grows into the page itself and not the
+  // launch screen that stands in for one still loading. Nothing is fetched
+  // for a card nobody touches — the header arrow's `Link` already prefetches
+  // on sight, and this is only the head start for a route that has not been.
+  // Deduplicated by the router; a no-op in development.
+  const handlePointerDown = useCallback(() => {
     if (href) router.prefetch(href);
   }, [href, router]);
 
@@ -138,7 +146,8 @@ export function WidgetShell({
     <div
       ref={setShellEl}
       onClick={tappable ? handleClick : undefined}
-      onClickCapture={href ? handleClickCapture : undefined}
+      onClickCapture={morph ? handleClickCapture : undefined}
+      onPointerDown={morph ? handlePointerDown : undefined}
       // iOS only paints `:active` on elements with a touch listener in their
       // ancestry; React delegates to the root, so an empty handler suffices.
       onTouchStart={tappable ? noop : undefined}

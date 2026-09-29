@@ -1300,11 +1300,13 @@ main[data-variant="reader"] .reader-masthead {
    so the group travels from the card's box to the screen. The home screen is
    the `root` group behind it and leans in as the card opens.
 
-   Both snapshots are cropped into the group, never stretched: `cover` from
-   the top, so the page at card size is its own top edge scaled down (its
-   title, where the card's title was) and the card at screen size is its
-   header scaled up while it fades. The pair is clipped to the group and its
-   corners go from the card's `rounded-2xl` to square. */
+   Neither snapshot is stretched. The page is `cover`ed from the top, so at
+   card size it is its own top edge scaled down (its title, where the card's
+   title was). The card is not scaled at all: the window grows around it
+   while it fades. `cover` would blow it up to the window, several times its
+   size on a desktop, where a card is a fifth of the screen's width. The pair
+   is clipped to the group and its corners go from the card's `rounded-2xl`
+   to square. */
 
 html[data-widget-morph] [data-morph-source],
 html[data-widget-morph]:not(:has([data-morph-source])) {
@@ -1330,21 +1332,35 @@ html[data-widget-morph="open"]::view-transition-image-pair(widget-morph) {
 html[data-widget-morph="open"]::view-transition-old(widget-morph),
 html[data-widget-morph="open"]::view-transition-new(widget-morph) {
   height: 100%;
-  object-fit: cover;
   object-position: top;
   mix-blend-mode: normal;
+}
+html[data-widget-morph="open"]::view-transition-new(widget-morph) {
+  object-fit: cover;
+}
+html[data-widget-morph="open"]::view-transition-old(widget-morph) {
+  object-fit: none;
 }
 
 /* The card gives way to the page early, while it is still card-sized, so
    what grows is the page. */
 html[data-widget-morph="open"]::view-transition-old(widget-morph) {
-  animation: fade-out 160ms ease-out both;
+  animation: fade-out 120ms ease-out both;
 }
 html[data-widget-morph="open"]::view-transition-new(widget-morph) {
-  animation: fade-in 200ms ease-out both;
+  animation: fade-in 140ms ease-out both;
 }
 html[data-widget-morph="open"]::view-transition-old(root) {
   animation: morph-home-recede var(--morph-duration) var(--morph-ease) both;
+}
+/* What the receding home dims toward. Opacity over black rather than
+   `filter: brightness()`: a filter puts the whole-screen snapshot through a
+   render pass of its own on every frame, opacity is a property of the quad
+   it is already drawn as — about a sixth less GPU time per frame, measured
+   against the same morph with the filter, and level with the plain crossfade
+   every other navigation has. */
+html[data-widget-morph="open"]::view-transition {
+  background: black;
 }
 
 /* Leaving an opened page — home, onward, or the theme recolouring it: the
@@ -1363,8 +1379,12 @@ html[data-widget-morph="opened"]::view-transition-new(widget-morph) {
 }
 
 :root {
-  /* The iOS sheet curve the rest of the system moves on (docs/motion.md). */
-  --morph-duration: 520ms;
+  /* The iOS sheet curve the rest of the system moves on (docs/motion.md).
+     It has covered ~95% of the distance by 300ms; what is left is settle.
+     Kept short because a view transition holds input for as long as it
+     runs, and its group (a size animation) is ticked on the main thread,
+     which the page it opens is also mounting on. */
+  --morph-duration: 450ms;
   --morph-ease: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -1374,10 +1394,11 @@ html[data-widget-morph="opened"]::view-transition-new(widget-morph) {
 }
 /* The home screen leans in behind an opening card, the way the iOS Home
    Screen zooms past you into an app — larger, never smaller, so the edges of
-   its snapshot never come into view — and dims under it. */
+   its snapshot never come into view — and dims under it (over the black of
+   `::view-transition`, above). */
 @keyframes morph-home-recede {
-  from { transform: scale(1); filter: brightness(1); }
-  to { transform: scale(1.08); filter: brightness(0.8); }
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.08); opacity: 0.8; }
 }
 
 /* -----------------------------------------------------------------------------

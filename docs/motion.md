@@ -198,6 +198,30 @@ draws one group travelling from the card's box to the screen, while home (the
   also prefetch their `href`, so the launch screen is the exception.
 - A back swipe the browser already animated (`hasUAVisualTransition`) skips
   the fade; reduced motion and browsers without View Transitions skip it all.
+- **Devtool › Widgets › Open morph** turns it off (a saved setting,
+  `WIDGET_MORPH_DEFAULT` in `systems/devtool/provider.tsx`). Off, `WidgetShell`
+  never calls into `widget-morph.ts`: no wrapper, no marks, no prefetch on
+  press — every navigation is exactly the plain crossfade.
+
+**Cost.** Measured on a production build with CDP tracing, the same tap with
+the morph off and on:
+
+- Main thread: the same style, layout and paint work (≈20ms style, ≈5ms
+  layout, ≈2.5ms paint over the whole transition, in the same event counts).
+  The morph adds nothing per frame, and the time from tap to the first
+  animated frame is the same.
+- GPU: ≈12ms of compositing per frame against ≈11ms for the crossfade (on a
+  software GPU, so the ratio is what counts). It runs for 450ms instead of
+  200ms, so the total is about twice. The dim is opacity over black, not
+  `filter: brightness()`, which cost a sixth more per frame for a
+  whole-screen render pass.
+- Navigation and data: the update never waits longer than the route does,
+  or 120ms if that is longer (see the launch screen above); nothing is
+  fetched at load — the press prefetches the card's own page, which the tap
+  would fetch a moment later anyway.
+- Like every view transition in Chrome, the group's size animation is ticked
+  on the main thread and input waits for it, which is why it is 450ms: the
+  curve is ~95% there by 300ms.
 
 ### Component Animations
 

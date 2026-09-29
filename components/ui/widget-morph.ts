@@ -38,6 +38,10 @@
 // app that is not ready opens onto its launch screen. The card grows into
 // that at once, and the page renders onto it when it lands.
 //
+// The whole thing is behind the devtool's Widgets › Open morph
+// (`WIDGET_MORPH_DEFAULT`): off, `WidgetShell` never arms, so the wrapper
+// below is never installed and nothing here runs.
+//
 // Phases end when the transition does. The transitions themselves are started
 // by `next-view-transitions` (links, the router) and by the browser's own
 // back button handling in that library, so there is no transition object to

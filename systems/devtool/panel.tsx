@@ -87,6 +87,7 @@ import {
   DRAGGABLE_DEFAULTS,
   PHONE_PALETTE_DEFAULT,
   HOME_WEATHER_DEFAULT,
+  WIDGET_MORPH_DEFAULT,
   type HomeWeather,
   type PhonePalette,
 } from "./provider";
@@ -145,6 +146,7 @@ import {
   GripVertical,
   Image as ImageIcon,
   Layers2,
+  LayoutGrid,
   Moon,
   Music,
   Pause,
@@ -195,6 +197,7 @@ const MODULE_ORDER = [
   "glass",
   "sky",
   "music",
+  "widgets",
   "command",
   "glow",
   "draggable",
@@ -211,6 +214,7 @@ export function DevtoolModules() {
       <GlassModule />
       <SkyModule />
       <MusicModule />
+      <WidgetsModule />
       <CommandModule />
       <GlowModule />
       <DraggableModule />
@@ -2969,6 +2973,52 @@ function MusicModule() {
 // is the desktop card at phone width — the palette as it was, kept whole so
 // the two can be compared on the same device. A saved setting (blue star).
 // =============================================================================
+
+// =============================================================================
+// Widgets Module — how a home widget opens its page (components/ui/widget-morph.ts)
+// =============================================================================
+
+function WidgetsModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const { widgetMorph, setWidgetMorph } = useDevtool();
+  const isHome = useIsHome();
+  const changed = widgetMorph !== WIDGET_MORPH_DEFAULT;
+
+  return (
+    <DebugSection
+      id="widgets"
+      title={zh ? "小组件" : "Widgets"}
+      icon={<LayoutGrid className="h-4 w-4" />}
+      compact
+      relevant={isHome}
+      star={changed ? "saved" : null}
+      action={
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {widgetMorph ? "morph" : "fade"}
+        </span>
+      }
+    >
+      <PanelRow
+        label={zh ? "打开时放大" : "Open morph"}
+        star={
+          changed ? (
+            <PanelStar
+              source="saved"
+              onReset={() => setWidgetMorph(WIDGET_MORPH_DEFAULT)}
+            />
+          ) : undefined
+        }
+      >
+        <PanelToggle
+          on={widgetMorph}
+          onClick={() => setWidgetMorph(!widgetMorph)}
+          label="Toggle widget open morph"
+        />
+      </PanelRow>
+    </DebugSection>
+  );
+}
 
 function CommandModule() {
   const { locale } = useLocale();
