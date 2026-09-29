@@ -38,9 +38,15 @@
 // app that is not ready opens onto its launch screen. The card grows into
 // that at once, and the page renders onto it when it lands.
 //
+// Only on a one-column grid (`fillsScreenWidth`): a card that is a quarter of
+// a desktop's screen opens its page at a quarter scale into a window the page
+// does not have, and that reads as noise, not as the card opening. Wider
+// grids get the crossfade.
+//
 // The whole thing is behind the devtool's Widgets › Open morph
 // (`WIDGET_MORPH_DEFAULT`): off, `WidgetShell` never arms, so the wrapper
-// below is never installed and nothing here runs.
+// below is never installed and nothing here runs; `everywhere` lifts the
+// one-column limit, to compare.
 //
 // Phases end when the transition does. The transitions themselves are started
 // by `next-view-transitions` (links, the router) and by the browser's own
@@ -105,6 +111,26 @@ function internalPath(href: string): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Whether `card` spans the screen the way a phone's one-column grid does —
+ * the only layout the morph reads in. Measured, not a breakpoint, because
+ * what it depends on is the ratio itself:
+ *
+ *   390×844    card 88% of the width: the page arrives at 88% scale, its
+ *              title where the card's title was (21px in, both), body text
+ *              at 13px, and the growth is mostly downward, as on iOS.
+ *   1440×900   card 23% × 26%: the page arrives at a quarter scale with
+ *              4px text, its title 82px into the card against the card's
+ *              21px, and grows into a full-screen window whose edge the
+ *              page does not have (it is a 680px column on the wallpaper).
+ *
+ * A tablet or a phone on its side has a grid of two or three columns and is
+ * the desktop case, only milder (43% → 6.5px text, the titles apart).
+ */
+export function fillsScreenWidth(card: HTMLElement): boolean {
+  return card.getBoundingClientRect().width >= window.innerWidth * 0.8;
 }
 
 /**

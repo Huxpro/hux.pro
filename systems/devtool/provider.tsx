@@ -86,9 +86,23 @@ export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
 // Whether a home widget opens its page by growing into it
 // (components/ui/widget-morph.ts), or with the plain crossfade every other
 // navigation has. Off, none of it runs: no wrapper, no marks, no names.
+//
+//   phone       only where a card is (nearly) the screen's width — a
+//               one-column grid, which is where the morph reads (see
+//               `fillsScreenWidth`). Wider, it is the crossfade.
+//   everywhere  every grid, for comparing; a desktop's card is a quarter of
+//               the screen and the page arrives at a quarter scale.
 // =============================================================================
 
-export const WIDGET_MORPH_DEFAULT = true;
+export type WidgetMorph = "off" | "phone" | "everywhere";
+export const WIDGET_MORPH_DEFAULT: WidgetMorph = "phone";
+
+function parseWidgetMorph(raw: unknown): WidgetMorph {
+  if (raw === "off" || raw === "phone" || raw === "everywhere") return raw;
+  // The first shape of this setting was a boolean.
+  if (raw === false) return "off";
+  return WIDGET_MORPH_DEFAULT;
+}
 
 /**
  * How the hero leaves as the page scrolls. The platform picks a default;
@@ -152,7 +166,7 @@ interface DevtoolSettings {
   collapsed: Record<string, boolean>;
   phonePalette: PhonePalette;
   homeWeather: HomeWeather;
-  widgetMorph: boolean;
+  widgetMorph: WidgetMorph;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
 }
@@ -216,10 +230,7 @@ function getDevtoolSettings(): DevtoolSettings {
           parsed.homeWeather === "widget" || parsed.homeWeather === "line"
             ? parsed.homeWeather
             : HOME_WEATHER_DEFAULT,
-        widgetMorph:
-          typeof parsed.widgetMorph === "boolean"
-            ? parsed.widgetMorph
-            : WIDGET_MORPH_DEFAULT,
+        widgetMorph: parseWidgetMorph(parsed.widgetMorph),
         detached: parsed.detached === true,
       };
     }
@@ -321,9 +332,9 @@ interface DevtoolContextType {
   /** Where the home screen says the weather. A saved setting. */
   homeWeather: HomeWeather;
   setHomeWeather: (value: HomeWeather) => void;
-  /** Whether a home widget grows into the page it opens. A saved setting. */
-  widgetMorph: boolean;
-  setWidgetMorph: (value: boolean) => void;
+  /** Where a home widget grows into the page it opens. A saved setting. */
+  widgetMorph: WidgetMorph;
+  setWidgetMorph: (value: WidgetMorph) => void;
   /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
@@ -395,7 +406,8 @@ export function DevtoolProvider({
     useState<PhonePalette>(PHONE_PALETTE_DEFAULT);
   const [homeWeather, setHomeWeatherState] =
     useState<HomeWeather>(HOME_WEATHER_DEFAULT);
-  const [widgetMorph, setWidgetMorphState] = useState(WIDGET_MORPH_DEFAULT);
+  const [widgetMorph, setWidgetMorphState] =
+    useState<WidgetMorph>(WIDGET_MORPH_DEFAULT);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -576,7 +588,7 @@ export function DevtoolProvider({
     setDevtoolSettings({ homeWeather: value });
   }, []);
 
-  const setWidgetMorph = useCallback((value: boolean) => {
+  const setWidgetMorph = useCallback((value: WidgetMorph) => {
     setWidgetMorphState(value);
     setDevtoolSettings({ widgetMorph: value });
   }, []);

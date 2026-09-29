@@ -198,8 +198,18 @@ draws one group travelling from the card's box to the screen, while home (the
   also prefetch their `href`, so the launch screen is the exception.
 - A back swipe the browser already animated (`hasUAVisualTransition`) skips
   the fade; reduced motion and browsers without View Transitions skip it all.
-- **Devtool › Widgets › Open morph** turns it off (a saved setting,
-  `WIDGET_MORPH_DEFAULT` in `systems/devtool/provider.tsx`). Off, `WidgetShell`
+- **Phones only** — more exactly, only where the card is at least 80% of the
+  screen's width, which is the one-column grid (`fillsScreenWidth`). The
+  morph depends on that ratio. On a 390px phone the card is 88% of the width:
+  the page arrives at 88% scale with its title exactly where the card's was.
+  On a 1440px desktop the card is 23% × 26%: the page arrives at a quarter
+  scale (4px text), its title 60px off the card's, growing into a
+  full-screen window the page does not have — it is a 680px column on the
+  wallpaper. A tablet or a phone on its side is the desktop case, milder.
+  Wider grids get the plain crossfade.
+- **Devtool › Widgets › Open morph**: `off` / `phone` / `everywhere` (a saved
+  setting, `WIDGET_MORPH_DEFAULT` in `systems/devtool/provider.tsx`).
+  `everywhere` lifts the one-column limit, to compare. Off, `WidgetShell`
   never calls into `widget-morph.ts`: no wrapper, no marks, no prefetch on
   press — every navigation is exactly the plain crossfade.
 

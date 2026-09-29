@@ -13,7 +13,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { armWidgetMorph } from "./widget-morph";
+import { armWidgetMorph, fillsScreenWidth } from "./widget-morph";
 import { landsOnOwnAction } from "./widget-surface";
 
 import { TYPE } from "@/lib/typography";
@@ -72,8 +72,8 @@ export function WidgetShell({
   const tappable = !!href || !!onOpen;
   // The devtool's Widgets › Open morph. Off, the card navigates like any
   // link and none of widget-morph.ts is ever reached.
-  const morph =
-    (useOptionalDevtool()?.widgetMorph ?? WIDGET_MORPH_DEFAULT) && !!href;
+  const morphMode = useOptionalDevtool()?.widgetMorph ?? WIDGET_MORPH_DEFAULT;
+  const morph = morphMode !== "off" && !!href;
 
   const handleClick = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
@@ -115,9 +115,10 @@ export function WidgetShell({
         target = href;
       }
       if (!target) return;
+      if (morphMode === "phone" && !fillsScreenWidth(e.currentTarget)) return;
       armWidgetMorph(e.currentTarget, target);
     },
-    [href],
+    [href, morphMode],
   );
 
   // A press is a promise of a tap: fetch the page now, so the tap (a

@@ -88,6 +88,7 @@ import {
   PHONE_PALETTE_DEFAULT,
   HOME_WEATHER_DEFAULT,
   WIDGET_MORPH_DEFAULT,
+  type WidgetMorph,
   type HomeWeather,
   type PhonePalette,
 } from "./provider";
@@ -2995,7 +2996,7 @@ function WidgetsModule() {
       star={changed ? "saved" : null}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
-          {widgetMorph ? "morph" : "fade"}
+          {widgetMorph}
         </span>
       }
     >
@@ -3010,10 +3011,28 @@ function WidgetsModule() {
           ) : undefined
         }
       >
-        <PanelToggle
-          on={widgetMorph}
-          onClick={() => setWidgetMorph(!widgetMorph)}
-          label="Toggle widget open morph"
+        <PanelSegmented<WidgetMorph>
+          value={widgetMorph}
+          options={[
+            {
+              value: "off",
+              label: zh ? "关" : "Off",
+              title: zh ? "和其他跳转一样淡入淡出" : "The crossfade every navigation has",
+            },
+            {
+              value: "phone",
+              label: zh ? "手机" : "Phone",
+              title: zh
+                ? "卡片几乎和屏幕一样宽时（单列网格）"
+                : "Where a card is about the screen's width (a one-column grid)",
+            },
+            {
+              value: "everywhere",
+              label: zh ? "全部" : "All",
+              title: zh ? "包括桌面，用于对比" : "Desktop too, for comparing",
+            },
+          ]}
+          onChange={setWidgetMorph}
         />
       </PanelRow>
     </DebugSection>
