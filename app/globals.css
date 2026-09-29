@@ -18,7 +18,7 @@
    grid, its own form in the theater, the dock and the pickers. See
    docs/system-skin.md. */
 @custom-variant material (&:where([data-skin="material"] *));
-@custom-variant m3 (&:where([data-skin="material"] [data-widget-shell], [data-skin="material"] [data-widget-shell] *));
+@custom-variant m3 (&:where([data-skin="material"] :is([data-widget-shell], .surface-shell), [data-skin="material"] :is([data-widget-shell], .surface-shell) *));
 
 /* `bleed:` — wide enough for landscape media to break out of the reading
    column. The rule that does it and the reader control that switches it off
@@ -624,6 +624,12 @@ html.dragging * {
 }
 
 /* Hide scrollbars while preserving scroll (e.g. the dock pill row) */
+/* The code face, captured where next/font sets it, so a skin that re-points
+   `--font-mono` for its own voice can still set code in it. */
+body {
+  --font-code: var(--font-mono);
+}
+
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1639,6 +1645,18 @@ html.dark[data-skin="material"] {
   --md-spring-fast-effects-duration: 147ms; /* ζ 1, k 3800 */
   --md-spring-default-effects: linear(0, 0.032, 0.107, 0.202, 0.304, 0.403, 0.495, 0.577, 0.649, 0.711, 0.764, 0.808, 0.844, 0.874, 0.899, 0.919, 0.935, 0.948, 0.959, 0.967, 0.974, 0.98, 0.984, 0.987, 0.99, 0.992, 0.994, 0.995, 0.996, 0.997, 0.998, 0.998, 1);
   --md-spring-default-effects-duration: 222ms; /* ζ 1, k 1600 */
+
+  /* Elevation, as Material's web tokens draw it: a key shadow and an
+     ambient one per level. Tone carries most of the lift in M3 (a raised
+     surface is a higher container); the shadow only separates it. */
+  --md-elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+  --md-elevation-2: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 2px 6px 2px rgb(0 0 0 / 0.15);
+  --md-elevation-3: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+
+  /* Emphasized easing — Material's curve for things entering and leaving
+     the screen (a sheet, a scrim), as a CSS cubic-bezier. */
+  --md-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
 /* --- The widget container. An Android widget is an opaque tonal surface
@@ -1773,6 +1791,273 @@ html[data-skin="material"] [data-widget-shell] [data-widget-title] {
 html[data-skin="material"] [data-widget-shell] .font-mono {
   letter-spacing: 0.2px;
   font-variant-numeric: tabular-nums;
+}
+
+/* --- Surfaces: every sheet, side panel, popover and window. On Android
+   these are the system's, not the app's: opaque tonal containers, no glass.
+   A surface re-points the site's tokens the way a widget card does (the
+   content inside needs no edits), and each shape takes its component's
+   geometry from Compose's tokens:
+     bottom sheet   SheetBottomTokens: surface-container-low, 28dp top
+                    corners, docked to the bottom edge, max 640dp wide, a
+                    32×4 drag handle in on-surface-variant at 40%, and a
+                    scrim of black at 32% under a modal one
+     side panel     a detached side sheet: surface-container-low, 28dp
+     popover        a menu: surface-container, 16dp, elevation 2
+     window         a dialog: surface-container-high, 28dp, elevation 3
+   The header title is Title Large. --- */
+html[data-skin="material"] .surface-shell {
+  --md-container: var(--md-surface-container-low);
+  --md-on-container: var(--md-on-surface);
+  --md-on-container-variant: var(--md-on-surface-variant);
+  --foreground: var(--md-on-surface);
+  --card-foreground: var(--md-on-surface);
+  --popover-foreground: var(--md-on-surface);
+  --ink: var(--md-on-surface);
+  --muted-foreground: var(--md-on-surface-variant);
+  --tertiary-foreground: color-mix(in srgb, var(--md-on-surface-variant) 80%, transparent);
+  --quaternary-foreground: color-mix(in srgb, var(--md-on-surface-variant) 45%, transparent);
+  --muted: color-mix(in srgb, var(--md-on-surface) 30%, transparent);
+  --secondary: var(--md-surface-container-highest);
+  --accent: color-mix(in srgb, var(--md-on-surface) var(--md-state-pressed), transparent);
+  --border: color-mix(in srgb, var(--md-outline-variant) 70%, transparent);
+  --input: var(--md-outline-variant);
+  --ring: var(--md-primary);
+  --glass: var(--md-surface-container-high);
+  --glass-hover: var(--md-surface-container-highest);
+  --glass-strong: var(--md-surface-container-highest);
+  --glass-strong-hover: color-mix(in srgb, var(--md-surface-container-highest), var(--md-on-surface) var(--md-state-hover));
+  --glass-overlay: var(--md-surface-container-highest);
+  --font-sans: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+
+  font-family: var(--font-sans);
+  color: var(--md-on-surface);
+  background-color: var(--md-container);
+  border-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  text-shadow: none;
+  box-shadow: var(--md-elevation-1);
+}
+html[data-skin="material"] .surface-shell * {
+  text-shadow: none;
+}
+/* The site's mono readouts speak the platform's face in a surface, with
+   tabular figures so columns still align — but code is code, and keeps the
+   face it was set in (`--font-code`, captured on <body> before any skin
+   re-points `--font-mono`). */
+html[data-skin="material"] .surface-shell .font-mono {
+  letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
+}
+html[data-skin="material"] .surface-shell :is(code, kbd, pre, samp) {
+  font-family: var(--font-code);
+}
+
+/* --- Controls in the Material skin (components/ui/controls.tsx).
+   Switch — M3's: a 52×32 track with a 2dp outline, the handle 16dp and
+   `outline` when off, 24dp and `on-primary` on a `primary` track when on,
+   28dp under the finger; it moves on the Expressive fast spatial spring.
+   Segmented — Expressive's connected button group, as the album tabs are:
+   separate buttons 2dp apart with small inner corners and round outer
+   ends, the selected one tonal and fully round. The `bare` tone (glyphs in
+   a toolbar) is left as it is. --- */
+html[data-skin="material"] [data-md-switch] {
+  width: 52px;
+  height: 32px;
+  border: 2px solid var(--md-outline);
+  background-color: var(--md-surface-container-highest);
+  transition:
+    background-color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects),
+    border-color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects);
+}
+html[data-skin="material"] [data-md-switch] > span {
+  width: 16px;
+  height: 16px;
+  translate: 6px 0;
+  background-color: var(--md-outline);
+  box-shadow: none;
+  transition:
+    translate var(--md-spring-fast-spatial-duration) var(--md-spring-fast-spatial),
+    width var(--md-spring-fast-spatial-duration) var(--md-spring-fast-spatial),
+    height var(--md-spring-fast-spatial-duration) var(--md-spring-fast-spatial),
+    background-color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects);
+}
+html[data-skin="material"] [data-md-switch][aria-pressed="true"] {
+  border-color: var(--md-primary);
+  background-color: var(--md-primary);
+}
+html[data-skin="material"] [data-md-switch][aria-pressed="true"] > span {
+  width: 24px;
+  height: 24px;
+  translate: 22px 0;
+  background-color: var(--md-on-primary);
+}
+html[data-skin="material"] [data-md-switch]:active:not(:disabled) > span {
+  width: 28px;
+  height: 28px;
+  translate: 0 0;
+}
+html[data-skin="material"] [data-md-switch][aria-pressed="true"]:active:not(:disabled) > span {
+  translate: 20px 0;
+}
+html[data-skin="material"] [data-segmented]:not([data-segmented="bare"]) {
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+html[data-skin="material"] [data-segmented]:not([data-segmented="bare"]) > button {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--md-shape-corner-small);
+  background-color: var(--md-surface-container-highest);
+  color: var(--md-on-surface-variant);
+  box-shadow: none;
+  font-family: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: capitalize;
+  transition:
+    border-radius var(--md-spring-fast-spatial-duration) var(--md-spring-fast-spatial),
+    background-color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects),
+    color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects);
+}
+html[data-skin="material"] [data-segmented]:not([data-segmented="bare"]) > button:first-child {
+  border-top-left-radius: var(--md-shape-corner-full);
+  border-bottom-left-radius: var(--md-shape-corner-full);
+}
+html[data-skin="material"] [data-segmented]:not([data-segmented="bare"]) > button:last-child {
+  border-top-right-radius: var(--md-shape-corner-full);
+  border-bottom-right-radius: var(--md-shape-corner-full);
+}
+html[data-skin="material"] [data-segmented]:not([data-segmented="bare"]) > button:hover {
+  background-color: color-mix(in srgb, var(--md-surface-container-highest), var(--md-on-surface) var(--md-state-hover));
+  color: var(--md-on-surface);
+}
+html[data-skin="material"] [data-segmented]:not([data-segmented="bare"]) > button[aria-pressed="true"] {
+  border-radius: var(--md-shape-corner-full);
+  background-color: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+/* A settings group's heading, the way Android's Settings heads one: Title
+   Small in `primary`, sentence case. */
+html[data-skin="material"] [data-section-label] {
+  font-family: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  color: var(--md-primary);
+}
+html[data-skin="material"] [data-section-label]::first-letter {
+  text-transform: uppercase;
+}
+html[data-skin="material"] [data-surface-popover].surface-shell {
+  --md-container: var(--md-surface-container);
+  border-radius: var(--md-shape-corner-large);
+  box-shadow: var(--md-elevation-2);
+}
+html[data-skin="material"] [data-surface-window].surface-shell {
+  --md-container: var(--md-surface-container-high);
+  border-radius: var(--md-shape-corner-extra-large);
+  box-shadow: var(--md-elevation-3);
+}
+html[data-skin="material"] [data-surface-popup][data-swipe-direction="right"].surface-shell {
+  border-radius: var(--md-shape-corner-extra-large);
+}
+
+/* The bottom sheet: docked, edge to edge. The detent machinery (the
+   "Secondary surface motion" section) is untouched; only the ring of gap it
+   keeps around a floating sheet goes to zero — `!important` because the
+   popup's motion variables are inline (sheet.tsx). */
+html[data-skin="material"] [data-surface-popup][data-swipe-direction="down"] {
+  --surface-gap: 0px !important;
+  left: 0;
+  right: 0;
+  max-width: 640px;
+  margin-inline: auto;
+}
+html[data-skin="material"] [data-surface-popup][data-swipe-direction="down"]:not([data-surface-snap]) {
+  bottom: 0 !important;
+}
+html[data-skin="material"] [data-surface-popup][data-swipe-direction="down"] > .surface-shell {
+  border-radius: var(--md-shape-corner-extra-large) var(--md-shape-corner-extra-large) 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+html[data-skin="material"] [data-surface-grabber] {
+  width: 32px;
+  height: 4px;
+  margin-top: 14px; /* 22dp from the top edge with the row's 8px */
+  margin-bottom: 6px;
+  background-color: color-mix(in srgb, var(--md-on-surface-variant) 40%, transparent);
+}
+
+/* The scrim: a modal surface dims the page under it, black at 32%, fading
+   with the sheet on the emphasized curves. Only while its popup is open, so
+   a kept-mounted sheet's closed viewport never shades anything. */
+html[data-skin="material"] [data-surface-viewport][data-modal] {
+  transition: background-color 400ms var(--md-easing-emphasized-decelerate);
+}
+html[data-skin="material"] [data-surface-viewport][data-modal]:has(> [data-surface-popup][data-open]:not([data-ending-style])) {
+  background-color: rgb(0 0 0 / 0.32);
+}
+html[data-skin="material"] [data-surface-viewport][data-modal]:has(> [data-surface-popup][data-ending-style]) {
+  transition: background-color 200ms var(--md-easing-emphasized-accelerate);
+}
+@starting-style {
+  html[data-skin="material"] [data-surface-viewport][data-modal]:has(> [data-surface-popup][data-open]) {
+    background-color: rgb(0 0 0 / 0);
+  }
+}
+
+/* A surface's title: Title Large (22/28, regular) in on-surface, sentence
+   case — the platform names a sheet in words. */
+html[data-skin="material"] [data-surface-title] {
+  font-family: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--md-on-surface);
+}
+html[data-skin="material"] [data-surface-title]::first-letter {
+  text-transform: uppercase;
+}
+
+/* --- The page itself: selection, caret, focus, scrollbars. Compose's
+   `TextSelectionColors` are primary at 40% behind the text and primary for
+   the caret; the focus indicator is 3dp of secondary, 2dp outside the
+   shape; Android's scrollbars are thin overlays that sit out of the way. */
+html[data-skin="material"] ::selection {
+  background-color: color-mix(in srgb, var(--md-primary) 40%, transparent);
+  color: inherit;
+}
+html[data-skin="material"] :is(input, textarea, [contenteditable="true"]) {
+  caret-color: var(--md-primary);
+  accent-color: var(--md-primary);
+}
+/* In the base layer, like the site's own focus rule: a component that
+   draws its own indicator (`outline-none` and a ring) or hides its
+   scrollbar (`no-scrollbar`) still wins. A text field shows focus by its
+   caret, not a frame, and a surface that takes focus only to hold it (a
+   sheet's popup, `tabindex="-1"`) is not a control and wears none. */
+@layer base {
+  html[data-skin="material"] :focus-visible:not(input, textarea, [contenteditable="true"], [tabindex="-1"], [role="dialog"], [data-surface-popup]) {
+    outline: 3px solid var(--md-secondary);
+    outline-offset: 2px;
+  }
+  html[data-skin="material"],
+  html[data-skin="material"] * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--md-on-surface-variant) 45%, transparent) transparent;
+  }
 }
 
 /* =============================================================================

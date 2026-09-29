@@ -147,6 +147,7 @@ export function SurfaceWindow({
               width: width ?? "min(92vw, 560px)",
               maxHeight: maxHeight ?? "76vh",
             }}
+            data-surface-window=""
             className={cn(SHELL, "pointer-events-auto relative z-[61]", className)}
           >
             <SurfaceWindowContext.Provider value={isDraggable}>

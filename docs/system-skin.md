@@ -25,6 +25,7 @@ are *arranged and sized* on Android; the skin is how they *look*.
 | Google Sans Flex (`--font-flex`) | `app/layout.tsx` |
 | The ripple (every pressable, site-wide) | `systems/skin/components/material-ripple.tsx` |
 | Haptics (pickup, resize ticks, drop) | `systems/skin/lib/haptics.ts` |
+| Sheets, panels, popovers, windows; switches and segmented controls | `app/globals.css`, "Skin — Material", the Surfaces and Controls blocks |
 
 ## Sources
 
@@ -140,6 +141,46 @@ Each widget's Material form, and the platform idea behind it:
 
 `WidgetShell` takes a `tone` (`primary` / `secondary` / `tertiary`) for the
 accent containers; the Glass skin ignores it.
+
+## Surfaces
+
+Every sheet, side panel, popover and window is the system's own UI, so under
+Material it is drawn the way Android draws its own: an opaque tonal
+container, no glass. `SHELL` (systems/surface/sheet.tsx) carries a
+`surface-shell` class, and the skin re-points the site's tokens on it exactly
+as it does on a widget card — the content inside needed no edits. The `m3:`
+variant applies inside a surface too, so the album tabs, the transport and
+the thumbnails take their Material form in the playlist or the wallpaper
+picker as they do on the home screen.
+
+| Surface | Material form (Compose tokens) |
+|---|---|
+| **Bottom sheet** | `SheetBottomTokens`: `surface-container-low`, 28dp top corners and square bottom ones, docked to the bottom edge and at most 640dp wide, a 32×4 drag handle in `on-surface-variant` at 40% 22dp from the top. The detent machinery is untouched; only the gap it keeps around a floating sheet goes to zero. |
+| **Scrim** | A modal surface dims the page: black at 32%, fading in on the emphasized-decelerate curve (and in from nothing on its first frame, `@starting-style`), out on emphasized-accelerate. Only while the popup is open, so a kept-mounted sheet's closed viewport shades nothing. |
+| **Side panel** | A detached side sheet: `surface-container-low`, 28dp. |
+| **Popover** | A menu: `surface-container`, 16dp, elevation 2. |
+| **Window** | A dialog: `surface-container-high`, 28dp, elevation 3. |
+| **Title** | Title Large (22/28, regular), `on-surface`, sentence case. The close button is a round icon button. |
+
+Type inside a surface is Google Sans Flex, the site's mono readouts
+included (with tabular figures); `code`, `kbd` and `pre` keep the code face,
+captured on `<body>` as `--font-code` before a skin re-points `--font-mono`.
+
+**Controls** (`components/ui/controls.tsx`), wherever they are:
+
+| Control | Material form |
+|---|---|
+| `Switch` | M3's switch: a 52×32 track with a 2dp `outline`; the handle 16dp in `outline` when off, 24dp in `on-primary` on a `primary` track when on, 28dp under the finger — moving on the Expressive fast spatial spring. |
+| `Segmented` (`system` / `reader`) | Expressive's connected button group, like the album tabs. The `bare` toolbar tone is left alone. |
+| A settings heading (the wallpaper picker's) | Android Settings' category header: Title Small in `primary`. |
+
+**The page.** Selection is `primary` at 40% (Compose's
+`TextSelectionColors`) and the caret `primary`; keyboard focus is a 3dp
+`secondary` outline 2dp outside the shape, except on text fields (the caret
+says it) and on surfaces that take focus only to hold it; scrollbars are
+thin, in `on-surface-variant`. The focus and scrollbar rules sit in the base
+layer, so a component that draws its own indicator or hides its scrollbar
+still wins.
 
 ## Touch: the ripple and the motor
 
