@@ -8,6 +8,7 @@ import {
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
+import type { WidgetSize } from "@/components/ui/widget-size";
 import promptsRaw from "@/content/prompts.json";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
@@ -18,6 +19,22 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { TYPE } from "@/lib/typography";
+// =============================================================================
+// PromptWidget — one size, medium.
+//
+// A quote needs a line's width and three lines' height to be read as a
+// quote; a small square would clamp it to a fragment, and a large box would
+// only be the same quote with more air around it. Neither says anything
+// the medium doesn't, so the widget declares exactly one size — the HIG's
+// "create one widget in the size that best represents the content".
+// =============================================================================
+
+export const PROMPT_WIDGET_SIZES: readonly WidgetSize[] = ["medium"];
+
+/** Two lines of the statement on the smallest medium cells, three once the
+ *  card is wide enough (cells are square, so width stands in for height). */
+const CLAMP = "line-clamp-2 @min-[360px]:line-clamp-3";
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -130,10 +147,10 @@ function QuoteDisplay({
 }) {
   return (
     <div>
-      <blockquote className="font-serif text-base text-foreground leading-relaxed line-clamp-3">
+      <blockquote className={cn("font-serif text-base text-foreground leading-relaxed", CLAMP)}>
         &ldquo;{item.text}&rdquo;
       </blockquote>
-      <p className={cn("mt-2", TYPE.caption)}>
+      <p className={cn("mt-2 truncate", TYPE.caption)}>
         {item.author}
         {item.source && (
           <span className="text-tertiary-foreground"> · {item.source}</span>
@@ -154,7 +171,7 @@ function BeliefDisplay({
   const label = locale === "zh" ? `论「${name}」` : `on ${name}`;
   return (
     <div>
-      <p className="font-serif text-base text-foreground leading-relaxed line-clamp-3">
+      <p className={cn("font-serif text-base text-foreground leading-relaxed", CLAMP)}>
         {item.statement}
       </p>
       {item.topic && <p className={cn("mt-2", TYPE.rowMeta)}>{label}</p>}
@@ -169,9 +186,11 @@ function InfluenceDisplay({
 }) {
   return (
     <div>
-      <p className="font-serif text-base text-foreground">{item.name}</p>
+      <p className="font-serif text-base text-foreground truncate">
+        {item.name}
+      </p>
       {item.context && (
-        <p className={cn("mt-1", TYPE.caption)}>{item.context}</p>
+        <p className={cn("mt-1", CLAMP, TYPE.caption)}>{item.context}</p>
       )}
     </div>
   );
@@ -198,14 +217,16 @@ function PromptItemDisplay({
 // Widget
 // =============================================================================
 
-export function PromptWidget() {
+export function PromptWidget({ size = "medium" }: { size?: WidgetSize }) {
   const { locale } = useLocale();
+  void size; // one size; the prop keeps the board's render contract uniform
 
   const items = useMemo(() => resolveItems(locale), [locale]);
 
   // Defer shuffle to after mount to avoid hydration mismatch from Math.random()
   const [shuffledIds, setShuffledIds] = useState<string[] | null>(null);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: shuffle after mount
     setShuffledIds(shuffle(items.map((i) => i.id)));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -263,7 +284,7 @@ export function PromptWidget() {
         </div>
         <WidgetLink href="/prompt" label="View prompts" />
       </WidgetHeader>
-      <WidgetBody>
+      <WidgetBody fill className="justify-center">
         <AnimatePresence mode="wait">
           <motion.div
             key={current.id}

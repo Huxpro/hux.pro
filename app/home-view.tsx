@@ -1,25 +1,34 @@
 "use client";
 
-import { AppFolder } from "@/components/apps";
+import { AppFolder, appFolderSizes } from "@/components/apps";
 import {
   HStackWidget,
+  STACK_WIDGET_SIZES,
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
-import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
+import {
+  FeaturedTalksWidget,
+  TALKS_WIDGET_SIZES,
+} from "@/components/home/featured-talks-widget";
 import {
   FEATURED_GROUP_ID as PROCESSING_GROUP_ID,
+  PROCESSING_WIDGET_SIZES,
   ProcessingWidget,
   buildProcessingCommits,
 } from "@/components/home/processing-widget";
-import { PromptWidget } from "@/components/home/prompt-widget";
+import {
+  PROMPT_WIDGET_SIZES,
+  PromptWidget,
+} from "@/components/home/prompt-widget";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
-import { WritingWidget } from "@/components/home/writing-widget";
+import {
+  WRITING_WIDGET_SIZES,
+  WritingWidget,
+} from "@/components/home/writing-widget";
 import { Commit } from "@/components/log";
 import { HeaderZone } from "@/components/ui/header-zone";
-import {
-  SortableMasonry,
-  type SortableWidget,
-} from "@/components/ui/sortable-masonry";
+import { WidgetBoard, type BoardWidget } from "@/components/ui/widget-board";
+import { FEATURED_APPS } from "@/lib/apps";
 import {
   heroContentClassName,
   heroZoneClassName,
@@ -36,9 +45,14 @@ import { localize, normalizeLogData, resolveGroupCommits } from "@/lib/log";
 import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
 import ogSnapshotJson from "@/content/og-snapshot.json";
 import { useLocale } from "@/services";
-import { AmbientGreeting, WeatherLine, WeatherWidget } from "@/systems/ambient";
+import {
+  AmbientGreeting,
+  WEATHER_WIDGET_SIZES,
+  WeatherLine,
+  WeatherWidget,
+} from "@/systems/ambient";
 import { HOME_WEATHER_DEFAULT, useOptionalDevtool } from "@/systems/devtool";
-import { MusicWidget } from "@/systems/music";
+import { MUSIC_WIDGET_SIZES, MusicWidget } from "@/systems/music";
 import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
 
 // =============================================================================
@@ -109,7 +123,7 @@ function WidgetGrid({
   const { locale } = useLocale();
 
   // Resolve presence up-front so conditionally-empty widgets never occupy an
-  // empty, draggable slot in the masonry.
+  // empty, draggable slot on the board.
   const processingCommits = buildProcessingCommits(log, locale);
   // Groups a dedicated widget already owns don't also get a generic card:
   // the three featured talk groups (React / Lynx / Personal) are unified into
@@ -129,33 +143,84 @@ function WidgetGrid({
         .length > 0,
   );
 
-  const items: SortableWidget[] = [
-    { id: "apps", node: <AppFolder /> },
-    ...(weatherWidget ? [{ id: "weather", node: <WeatherWidget /> }] : []),
-    { id: "blog", node: <WritingWidget posts={posts} /> },
-    { id: "music", node: <MusicWidget /> },
+  // Each widget declares the sizes it has a design for and the one it takes
+  // by default. The defaults are chosen so the default board is hole-free
+  // on a desktop's six cells: apps (2) + weather (1) + music (1) + blog
+  // (2×2) + projects (2×2) + talks (2×2) + prompt (2) = 18 = three full
+  // rows; on a phone the two smalls pair up into one row. With the weather
+  // moved to the greeting (devtool, Home › Weather), music takes the
+  // medium instead, so the board is still 18 cells and still full.
+  const items: BoardWidget[] = [
+    {
+      id: "apps",
+      sizes: appFolderSizes(FEATURED_APPS.length),
+      defaultSize: "medium",
+      render: (size) => <AppFolder size={size} />,
+    },
+    ...(weatherWidget
+      ? [
+          {
+            id: "weather",
+            sizes: WEATHER_WIDGET_SIZES,
+            defaultSize: "small",
+            render: (size) => <WeatherWidget size={size} />,
+          } satisfies BoardWidget,
+        ]
+      : []),
+    {
+      id: "music",
+      sizes: MUSIC_WIDGET_SIZES,
+      defaultSize: weatherWidget ? "small" : "medium",
+      render: (size) => <MusicWidget size={size} />,
+    },
+    {
+      id: "blog",
+      sizes: WRITING_WIDGET_SIZES,
+      defaultSize: "large",
+      render: (size) => <WritingWidget posts={posts} size={size} />,
+    },
     // Keeps the legacy "status" id so visitors' persisted grid order survives
     // the widget's change of shape.
     ...(processingCommits.length > 0
       ? [
           {
             id: "status",
-            node: (
-              <ProcessingWidget log={log} commits={processingCommits} />
+            sizes: PROCESSING_WIDGET_SIZES,
+            defaultSize: "large",
+            render: (size) => (
+              <ProcessingWidget
+                log={log}
+                commits={processingCommits}
+                size={size}
+              />
             ),
-          },
+          } satisfies BoardWidget,
         ]
       : []),
-    { id: "featured-talks", node: <FeaturedTalksWidget /> },
-    { id: "prompt", node: <PromptWidget /> },
-    ...visibleGroups.map((group) => ({
-      id: `group-${group.id}`,
-      node: <GroupWidget group={group} />,
-    })),
+    {
+      id: "featured-talks",
+      sizes: TALKS_WIDGET_SIZES,
+      defaultSize: "large",
+      render: (size) => <FeaturedTalksWidget size={size} />,
+    },
+    {
+      id: "prompt",
+      sizes: PROMPT_WIDGET_SIZES,
+      defaultSize: "medium",
+      render: (size) => <PromptWidget size={size} />,
+    },
+    ...visibleGroups.map(
+      (group): BoardWidget => ({
+        id: `group-${group.id}`,
+        sizes: STACK_WIDGET_SIZES,
+        defaultSize: "large",
+        render: () => <GroupWidget group={group} />,
+      }),
+    ),
   ];
 
   return (
-    <SortableMasonry
+    <WidgetBoard
       items={items}
       className={heroContentClassName(heroExit, "pt-2 sm:pt-4 mb-16")}
     />
@@ -217,8 +282,8 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
           </HeaderZone>
         </div>
 
-        {/* Widget grid — owns its own responsive width so column count and
-            container width stay in step (see SortableMasonry's `gridScale`). */}
+        {/* Widget board — owns its own responsive width so column count and
+            cell size stay in step (see `.widget-board` in globals.css). */}
         <WidgetGrid
           posts={posts}
           heroExit={heroExit}

@@ -4,12 +4,14 @@ import { computeBylines } from "@/components/log/bylines";
 import { normalizeCommit } from "@/components/log/commit-data";
 import { TimelineMini } from "@/components/log/timeline-mini";
 import {
+  WidgetBody,
   WidgetHeader,
   WidgetLink,
   WidgetScrollBody,
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
+import type { WidgetSize } from "@/components/ui/widget-size";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
@@ -20,11 +22,19 @@ import {
   computeRail,
   resolveGroupCommits,
 } from "@/lib/log";
+import { TYPE } from "@/lib/typography";
+import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useMemo } from "react";
 
 // ---------------------------------------------------------------------------
-// ProcessingWidget — a minimized /works timeline for the home grid.
+// ProcessingWidget — the home "projects" card, in two sizes.
+//
+//   medium  now: the project in progress — the one with no end date, or
+//           failing that the first curated one — with the team it belongs
+//           to and what it is. This is the "status" the widget's id still
+//           carries: a single live line, with the pulsing dot to say so.
+//   large   the log: a minimized /works timeline, below.
 //
 // The vertical sibling of FeaturedTalksWidget's horizontal stack, and
 // curated the same way: the talks card reads its `featured-*-talks` groups,
@@ -38,6 +48,8 @@ import { useMemo } from "react";
 // `computeBylines`, `normalizeCommit`), so the widget can't drift from the
 // page, and what it shows is edited in the log rather than in here.
 // ---------------------------------------------------------------------------
+
+export const PROCESSING_WIDGET_SIZES: readonly WidgetSize[] = ["medium", "large"];
 
 /** The curated group that decides which projects the card shows. */
 export const FEATURED_GROUP_ID = "featured-projects";
@@ -53,7 +65,7 @@ export const PROJECTS_HREF = "/works?type=project";
  * they still anchor the tenure rail and resolve each project's byline, so
  * they are taken from the whole timeline rather than the curated slice.
  * Exported so the home grid can gate the widget's presence before mounting
- * the masonry slot.
+ * the board slot.
  */
 export function buildProcessingCommits(
   log: LogData,
@@ -83,9 +95,14 @@ export function buildProcessingCommits(
 interface ProcessingWidgetProps {
   log: LogData;
   commits: CommitData[];
+  size?: WidgetSize;
 }
 
-export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
+export function ProcessingWidget({
+  log,
+  commits,
+  size = "large",
+}: ProcessingWidgetProps) {
   const { locale } = useLocale();
 
   // Rail + bylines are derived from the filtered list, so clusters stay
@@ -133,6 +150,52 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
 
   if (commits.length === 0) return null;
 
+  if (size === "medium") {
+    // The project in progress: no end date yet, else the first curated one.
+    let i = commits.findIndex(
+      (c) => c.type === "project" && c.endDate === "present",
+    );
+    if (i === -1) i = commits.findIndex((c) => c.type === "project");
+    const row = rows[i];
+    const byline = bylines[i];
+    // Where the work is: the team subtitle when the log names one, else the
+    // company on the byline — the same fallback the timeline's author block
+    // makes, one line shorter.
+    const where = byline?.subtitle ?? byline?.expanded.company;
+    return (
+      <WidgetShell href={PROJECTS_HREF}>
+        <WidgetHeader className="pb-2">
+          <WidgetTitle signal>{t(locale, "widgetStatus")}</WidgetTitle>
+          <WidgetLink href={PROJECTS_HREF} label="View works" />
+        </WidgetHeader>
+        <WidgetBody fill className="justify-end">
+          <div className={cn("flex items-center gap-2 min-w-0", TYPE.rowMeta)}>
+            <span className="shrink-0">{t(locale, "widgetNow")}</span>
+            {where && (
+              <>
+                <span aria-hidden className="text-quaternary-foreground">
+                  ·
+                </span>
+                <span className="truncate">{where}</span>
+              </>
+            )}
+          </div>
+          <div className={cn("mt-1 truncate", TYPE.rowTitle)}>{row.title}</div>
+          {row.description && (
+            <p
+              className={cn(
+                "mt-1 line-clamp-1 @min-[360px]:line-clamp-2",
+                TYPE.captionQuiet,
+              )}
+            >
+              {row.description}
+            </p>
+          )}
+        </WidgetBody>
+      </WidgetShell>
+    );
+  }
+
   return (
     <WidgetShell href={PROJECTS_HREF}>
       <WidgetHeader className="pb-2">
@@ -142,7 +205,7 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
 
       {/* No port, on any device: the group is short enough to print whole,
           so there is nothing to scroll and nothing to cut. */}
-      <WidgetScrollBody>
+      <WidgetScrollBody fill>
         {runs.map((run, runIdx) => {
           const nodes = run.indices.map((i) => (
             <TimelineMini

@@ -37,6 +37,7 @@ export {
   WeatherIcon,
   WeatherWidget,
   WeatherLine,
+  WEATHER_WIDGET_SIZES,
   WeatherNow,
   useDisplayWeather,
 } from "./components";

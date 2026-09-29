@@ -20,7 +20,7 @@ import { TYPE } from "@/lib/typography";
  * Tappable surface: pass `href` (a page to open) or `onOpen` (an action —
  * refresh the weather, open the playlist) and the whole card becomes the tap
  * target, not just the header arrow. Interactive descendants keep their own
- * taps (see `landsOnOwnAction`); the masonry's edit mode swallows clicks
+ * taps (see `landsOnOwnAction`); the board's edit mode swallows clicks
  * before they reach here, so rearranging never opens anything. Hover and
  * press chrome on those descendants must use their own named group —
  * the shell is `group/widget`, so a nested `group-active:` cannot follow
@@ -103,7 +103,12 @@ export function WidgetShell({
         // Named group: nested chrome (AlbumTabs, transport clusters) must
         // not inherit the card's `:hover` / `:active`. Widget-level hover
         // effects opt in with `group-hover/widget`.
-        "group/widget relative rounded-2xl overflow-hidden",
+        //
+        // A column that fills its cell on the widget board (and is simply
+        // as tall as its content anywhere else): header, then a body that
+        // takes the rest. A widget designs for the box its size gives it —
+        // more than fits means a bigger size or the page, never a taller card.
+        "group/widget relative flex h-full flex-col rounded-2xl overflow-hidden",
         "border border-border/50",
         "transition-all duration-300",
         widgetEnabled
@@ -194,15 +199,31 @@ export function WidgetTitle({
 
 /**
  * WidgetBody - Content area wrapper
+ *
+ * `fill`: take the rest of the card and clip — the body of a fixed-size
+ * widget, laid out with flex so its content can pin to the bottom edge the
+ * way a WidgetKit body does.
  */
 export function WidgetBody({
   className,
+  fill = false,
   children,
 }: {
   className?: string;
+  fill?: boolean;
   children: React.ReactNode;
 }) {
-  return <div className={cn("px-5 pb-5", className)}>{children}</div>;
+  return (
+    <div
+      className={cn(
+        "px-5 pb-5",
+        fill && "flex min-h-0 flex-1 flex-col overflow-hidden",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
 /**
@@ -244,6 +265,7 @@ export function WidgetBody({
 export function WidgetScrollBody({
   port,
   className,
+  fill = false,
   children,
 }: {
   /**
@@ -254,17 +276,27 @@ export function WidgetScrollBody({
    */
   port?: string;
   className?: string;
+  /** Fill the rest of the card instead of a fixed height — a widget whose
+   *  size decides how many rows show. */
+  fill?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className="px-5">
+    <div className={cn("px-5", fill && "flex min-h-0 flex-1 flex-col")}>
       <div
         className={cn(
           "relative -mx-2 px-2 pb-3 overflow-hidden no-scrollbar",
+          // In a cell the list is as tall as the box, not as its rows, so
+          // under a finger — where it never scrolls — the row the box cuts
+          // fades out rather than ending on a sliced line.
+          fill && [
+            "min-h-0 flex-1",
+            "[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
+          ],
           port && [
             "pointer-fine:pb-7 pointer-fine:overflow-y-auto pointer-fine:snap-y pointer-fine:snap-mandatory pointer-fine:scroll-smooth",
             "pointer-fine:[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]",
-            port,
+            !fill && port,
           ],
           className,
         )}

@@ -9,7 +9,7 @@ import { useSyncExternalStore } from "react";
 // shared with the command bar (systems/command/fab.tsx). On phones the bar
 // fades out while the grid is being edited so the edit controls can sit at
 // the bottom, so the two surfaces need one bit of shared state. A module
-// store keeps it out of the provider tree — the masonry writes, the bar reads.
+// store keeps it out of the provider tree — the board writes, the bar reads.
 // =============================================================================
 
 let editing = false;

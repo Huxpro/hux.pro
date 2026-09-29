@@ -9,7 +9,7 @@ export { SettleSpinner } from "./settle-spinner";
 export { SkyPullCue } from "./sky-pull-cue";
 export { SkyBodyHints } from "./sky-body-hints";
 export { WeatherIcon } from "./weather-icon";
-export { WeatherWidget } from "./weather-widget";
+export { WeatherWidget, WEATHER_WIDGET_SIZES } from "./weather-widget";
 export { WeatherLine } from "./weather-line";
 export { WeatherNow, useDisplayWeather } from "./weather-now";
 export { AmbientPhaseActivity } from "./phase-activity";
