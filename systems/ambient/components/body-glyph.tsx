@@ -84,3 +84,54 @@ export function SunGlyph({ className, light = false }: { className?: string; lig
     </svg>
   );
 }
+
+/** The sun's four rays that clear the horizon: left, the two diagonals, right. */
+const EVENT_RAYS = [-90, -45, 45, 90];
+
+/**
+ * A sunrise or a sunset: the sun's family again — half its disc on a horizon,
+ * the rays that clear it, and an arrow for which way it is going. Stands for
+ * the sun through the ±45 minutes either side of it crossing the horizon,
+ * when the thing in the sky is the event, not the disc: for most of that
+ * window there is no disc, and a sun glyph pointing at the ground would be
+ * pointing at nothing.
+ */
+export function SunEventGlyph({
+  event,
+  className,
+  light = false,
+}: {
+  event: "sunrise" | "sunset";
+  className?: string;
+  light?: boolean;
+}) {
+  const fill = light ? "fill-white" : "fill-foreground/85";
+  const rising = event === "sunrise";
+  return (
+    <svg viewBox="-7 -7 14 14" className={cn("h-3.5 w-3.5 shrink-0", className)} aria-hidden>
+      {/* The horizon, and the half of the sun above it. */}
+      <rect x={-6.6} y={4} width={13.2} height={1.3} rx={0.65} className={fill} />
+      <path d="M -3.2 3.1 A 3.2 3.2 0 0 1 3.2 3.1 Z" className={fill} />
+      <g transform="translate(0 3.1)">
+        {EVENT_RAYS.map((deg) => (
+          <rect
+            key={deg}
+            x={-0.65}
+            y={-6.2}
+            width={1.3}
+            height={1.8}
+            rx={0.65}
+            transform={`rotate(${deg})`}
+            className={fill}
+          />
+        ))}
+      </g>
+      {/* Which way it is going: up out of the horizon, or down into it. */}
+      <rect x={-0.6} y={rising ? -4.8 : -6.8} width={1.2} height={3.2} rx={0.6} className={fill} />
+      <path
+        d={rising ? "M 0 -6.9 L 2.3 -4.3 L -2.3 -4.3 Z" : "M 0 -1.1 L 2.3 -3.7 L -2.3 -3.7 Z"}
+        className={fill}
+      />
+    </svg>
+  );
+}
