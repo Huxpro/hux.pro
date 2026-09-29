@@ -27,5 +27,14 @@ export {
   getTintLabel,
   type GlassTint,
 } from "./glass";
+export {
+  WIDGET_SKINS,
+  WIDGET_SKIN_DEFAULT,
+  WidgetSkinProvider,
+  getWidgetSkinLabel,
+  useOptionalWidgetSkin,
+  useWidgetSkin,
+  type WidgetSkin,
+} from "./widget-skin";
 export { ThemeProvider, useSunThemeSlot, useTheme, type ThemePreference } from "./theme";
 export { VisitorProvider, useVisitor, type LastVisitedItem } from "./visitor";

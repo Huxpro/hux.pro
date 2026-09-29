@@ -5,6 +5,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 
 import {
   GlassProvider,
+  WidgetSkinProvider,
   InputCapabilityProvider,
   LocaleProvider,
   ThemeProvider,
@@ -65,6 +66,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <InputCapabilityProvider>
         <ThemeProvider>
           <GlassProvider>
+          <WidgetSkinProvider>
           <LocaleProvider>
             <VisitorProvider>
               <CommandProvider>
@@ -91,6 +93,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               </CommandProvider>
             </VisitorProvider>
           </LocaleProvider>
+          </WidgetSkinProvider>
           </GlassProvider>
         </ThemeProvider>
       </InputCapabilityProvider>

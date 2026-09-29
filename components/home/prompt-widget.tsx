@@ -268,7 +268,7 @@ export function PromptWidget({ size = "medium" }: { size?: WidgetSize }) {
   return (
     // The card is a pointer at one entry, so the surface opens that entry.
     // "View prompts" in the header stays the whole page.
-    <WidgetShell href={`/prompt#${current.anchor}`}>
+    <WidgetShell accent="teal" href={`/prompt#${current.anchor}`}>
       <WidgetHeader>
         <div className="flex items-center gap-2">
           <WidgetTitle>{t(locale, "widgetPrompt")}</WidgetTitle>

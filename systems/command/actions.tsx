@@ -3,12 +3,14 @@
 import {
   getGlassLabel,
   getTintLabel,
+  getWidgetSkinLabel,
   localeNames,
   t,
   useGlass,
   useInputCapability,
   useLocale,
   useTheme,
+  useWidgetSkin,
   type ThemePreference,
 } from "@/services";
 import { useAbout } from "@/systems/about";
@@ -24,6 +26,7 @@ import {
   GitCommit,
   Home,
   Image as ImageIcon,
+  LayoutGrid,
   Layers2,
   Languages,
   Mic,
@@ -134,6 +137,7 @@ export function useCommandActions(): CommandAction[] {
     tint: glassTint,
     setTint: setGlassTint,
   } = useGlass();
+  const { skin: widgetSkin, toggle: toggleWidgetSkin } = useWidgetSkin();
   const { isShowing: isDevtoolShowing, toggleShowing: toggleDevtool } =
     useDevtool();
   const {
@@ -412,6 +416,29 @@ export function useCommandActions(): CommandAction[] {
         "色调",
       ],
       run: () => toggleGlass(),
+    },
+    {
+      // How every widget is dressed: Apple (the default) or Classic.
+      id: "widget-skin",
+      key: "k",
+      kind: "toggle",
+      section: "settings",
+      label: `${t(locale, "settingsWidgetSkin")}: ${getWidgetSkinLabel(widgetSkin, locale)}`,
+      icon: <LayoutGrid className={ROW_ICON} />,
+      keywords: [
+        "widget",
+        "widgets",
+        "skin",
+        "apple",
+        "ios",
+        "classic",
+        "theme",
+        "小组件",
+        "皮肤",
+        "苹果",
+        "经典",
+      ],
+      run: () => toggleWidgetSkin(),
     },
     {
       id: "tint",

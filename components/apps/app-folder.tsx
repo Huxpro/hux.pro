@@ -421,6 +421,8 @@ export function AppFolder({
             // Fills its cell on the board; the page grid sits centred in
             // whatever height is left, the way a folder's icons float.
             "relative flex h-full flex-col justify-center rounded-2xl border",
+            // Apple skin: the platter shares the widgets' corner.
+            "skin-apple:rounded-[calc(var(--cell)*0.14)]",
             "transition-colors duration-300",
             // At rest the labels have nothing behind them but the wallpaper,
             // so the folder is a bare zone whose ink may flip — on the

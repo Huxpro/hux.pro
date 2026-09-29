@@ -4,12 +4,20 @@
 @custom-variant dark (&:is(.dark *));
 
 /* `roomy:` — a screen that is both wide AND tall enough to have real space to
-   spare, used by the home screen's widget board (see SortableMasonry's
-   `gridScale`). Width alone isn't the signal: a short ultrawide monitor is
+   spare, used by the home screen's widget board (`.widget-board` below).
+   Width alone isn't the signal: a short ultrawide monitor is
    already scrolling, so widening the board there changes a familiar desktop
    layout without solving anything. 1000px of height is roughly where the
    composition starts to fit with room left over. */
 @custom-variant roomy (@media (width >= 96rem) and (height >= 1000px));
+
+/* `skin-apple:` / `skin-classic:` — the widget skin (services/widget-skin.tsx,
+   docs/system-widget-skin.md). Apple is written as "not classic" so it is
+   what the server renders and there is no flash into it. `:where()` keeps
+   the specificity of a plain utility, so a skin rule and an ordinary one
+   compete on source order like any two utilities. */
+@custom-variant skin-apple (&:where(html:not([data-widget-skin="classic"]) *));
+@custom-variant skin-classic (&:where(html[data-widget-skin="classic"] *));
 
 /* `bleed:` — wide enough for landscape media to break out of the reading
    column. The rule that does it and the reader control that switches it off
@@ -1449,6 +1457,141 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
+   Widget skin — Apple (default) and Classic
+   docs/system-widget-skin.md is the spec; this block is its geometry, type
+   and colour. Components opt in with `skin-apple:` utilities and a few
+   stable hooks (`data-widget`, `data-widget-accent`, `data-widget-link`).
+
+   Values, all from Apple's Human Interface Guidelines (Widgets, Color,
+   Typography, Materials):
+     margins   16pt standard, 11pt tight ("setting margins of 11 points can
+               work well")
+     type      the system font; nothing under 11pt; custom type only for
+               the large numerals
+     colour    the system palette, light and dark, one accent per widget
+     surface   full-colour: the widget's own light / dark background.
+               Clear: "the system desaturates the widget and adds
+               translucency, highlights, and the Liquid Glass material"
+   ============================================================================= */
+
+:root {
+  /* Classic keeps the 20px the cards always had. */
+  --widget-pad: 1.25rem;
+  --widget-pad-tight: 0.75rem;
+  --widget-header-gap: 1rem;
+
+  /* The system font on an Apple device (SF, and PingFang for Chinese), the
+     site's Inter everywhere else — the closest face to SF that ships. */
+  --font-widget: -apple-system, BlinkMacSystemFont, var(--font-sans), system-ui,
+    sans-serif;
+
+  /* Apple's system colours, light appearance. */
+  --apple-red: #ff3b30;
+  --apple-orange: #ff9500;
+  --apple-yellow: #ffcc00;
+  --apple-green: #34c759;
+  --apple-mint: #00c7be;
+  --apple-teal: #30b0c7;
+  --apple-cyan: #32ade6;
+  --apple-blue: #007aff;
+  --apple-indigo: #5856d6;
+  --apple-purple: #af52de;
+  --apple-pink: #ff2d55;
+}
+
+.dark {
+  --apple-red: #ff453a;
+  --apple-orange: #ff9f0a;
+  --apple-yellow: #ffd60a;
+  --apple-green: #30d158;
+  --apple-mint: #63e6e2;
+  --apple-teal: #40c8e0;
+  --apple-cyan: #64d2ff;
+  --apple-blue: #0a84ff;
+  --apple-indigo: #5e5ce6;
+  --apple-purple: #bf5af2;
+  --apple-pink: #ff375f;
+}
+
+html:not([data-widget-skin="classic"]) {
+  --widget-pad: 1rem;
+  --widget-pad-tight: 0.6875rem;
+  --widget-header-gap: 0.375rem;
+
+  /* Full-colour appearance: a widget is its own light or dark tile, not a
+     pane over the wallpaper. Nearly opaque — enough blur survives to say
+     it floats, not enough to make text negotiate with the picture. */
+  --widget-fill: 94%;
+  --widget-surface: color-mix(
+    in oklab,
+    var(--glass-base) calc(var(--widget-fill) + var(--glass-add)),
+    transparent
+  );
+  --widget-edge: transparent;
+  --widget-highlight: none;
+}
+
+/* Clear appearance: the same tile as Liquid Glass. Translucent, a specular
+   edge, and colour taken out of the chrome — the accent falls back to the
+   label ink, as Apple's accented rendering does. */
+html.glass-clear:not([data-widget-skin="classic"]) {
+  --widget-fill: calc(var(--glass-fill) + 4%);
+  --widget-edge: color-mix(in oklab, white 22%, transparent);
+  --widget-highlight: inset 0 1px 0 0 color-mix(in oklab, white 45%, transparent),
+    inset 0 -1px 0 0 color-mix(in oklab, white 8%, transparent);
+}
+
+/* The accent a widget names with `data-widget-accent`. Titles and one key
+   glyph wear it; body text never does. */
+[data-widget] {
+  --widget-accent: var(--color-foreground);
+}
+[data-widget-accent="red"] { --widget-accent: var(--apple-red); }
+[data-widget-accent="orange"] { --widget-accent: var(--apple-orange); }
+[data-widget-accent="yellow"] { --widget-accent: var(--apple-yellow); }
+[data-widget-accent="green"] { --widget-accent: var(--apple-green); }
+[data-widget-accent="mint"] { --widget-accent: var(--apple-mint); }
+[data-widget-accent="teal"] { --widget-accent: var(--apple-teal); }
+[data-widget-accent="cyan"] { --widget-accent: var(--apple-cyan); }
+[data-widget-accent="blue"] { --widget-accent: var(--apple-blue); }
+[data-widget-accent="indigo"] { --widget-accent: var(--apple-indigo); }
+[data-widget-accent="purple"] { --widget-accent: var(--apple-purple); }
+[data-widget-accent="pink"] { --widget-accent: var(--apple-pink); }
+html.glass-clear [data-widget] {
+  --widget-accent: var(--color-foreground);
+}
+
+/* One face inside an Apple widget. Apple's widgets have no monospace: the
+   site's mono metadata (dates, labels, tags) becomes the system font with
+   tabular figures, so columns of dates still line up. The serif stays —
+   "a custom font for the large text" is the HIG's own allowance. */
+html:not([data-widget-skin="classic"]) [data-widget] {
+  font-family: var(--font-widget);
+}
+html:not([data-widget-skin="classic"]) [data-widget] .font-mono {
+  font-family: var(--font-widget);
+  letter-spacing: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Apple's widgets carry no "open" arrow — the whole widget is the link. The
+   header arrow stays in the tree as the keyboard's stop, and shows only
+   when the keyboard is on it. */
+html:not([data-widget-skin="classic"]) [data-widget-link]:not(:focus-visible) {
+  opacity: 0;
+}
+
+/* Continuous corners where the browser draws them. A superellipse eases
+   into the straight edge the way Apple's continuous curve does, so it
+   needs a larger radius to read the same size. */
+@supports (corner-shape: squircle) {
+  html:not([data-widget-skin="classic"]) [data-widget] {
+    border-radius: calc(var(--cell) * 0.18);
+    corner-shape: superellipse(1.6);
+  }
+}
+
+/* =============================================================================
    Widget board — `.widget-board`
    The home screen's grid of square cells (components/ui/widget-board.tsx).
    A widget spans a footprint of cells declared by its size family — small
@@ -1463,6 +1606,16 @@ main[data-variant="reader"] .reader-masthead {
    in widget-size.ts is the same rule in TypeScript, and the two must agree.
    ============================================================================= */
 
+/* Registered so it computes to a length where it is declared. Unregistered,
+   descendants inherit the *expression*, and its `100cqw` re-resolves
+   against whichever container they sit in — a widget is one — so anything
+   sized from the cell (the Apple corner, the grip) shrank to a sliver. */
+@property --cell {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 158px;
+}
+
 .widget-board {
   --board-cols: 2;
   --board-gap: 1rem;
@@ -1474,8 +1627,16 @@ main[data-variant="reader"] .reader-masthead {
   grid-template-columns: repeat(var(--board-cols), var(--cell));
   grid-auto-rows: var(--cell);
   grid-auto-flow: row dense;
-  gap: var(--board-gap);
+  column-gap: var(--board-gap);
+  /* The row gap can be wider than the column gap: under the Apple skin a
+     widget's name sits beneath it, the way iOS draws a 22pt gutter across
+     and 38pt down on a 390pt iPhone (HIG, Widgets › Specifications). */
+  row-gap: var(--board-row-gap, var(--board-gap));
   justify-content: center;
+}
+
+html:not([data-widget-skin="classic"]) .widget-board {
+  --board-row-gap: calc(var(--board-gap) + 1.125rem);
 }
 
 @media (width >= 40rem) {

@@ -43,7 +43,7 @@ function StackShell({
   children: React.ReactNode;
 }) {
   return (
-    <WidgetShell className={className} href={href}>
+    <WidgetShell accent="indigo" className={className} href={href}>
       <WidgetHeader>
         <WidgetTitle>{title}</WidgetTitle>
         {href ? (
@@ -78,11 +78,11 @@ export function HStackWidget({
         <div
           ref={scrollRef}
           className={cn(
-            "pl-5 pr-5",
+            "px-(--widget-pad)",
             "overflow-x-auto",
             "flex gap-3",
             "snap-x snap-mandatory",
-            "scroll-pl-5",
+            "scroll-pl-(--widget-pad)",
             "scroll-smooth",
             // Hide scrollbars
             "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -101,7 +101,7 @@ export function HStackWidget({
               {child}
             </div>
           ))}
-          <div className="flex-shrink-0 w-5" aria-hidden="true" />
+          <div className="flex-shrink-0 w-(--widget-pad)" aria-hidden="true" />
         </div>
 
         {/* Dots: a pointer's way to page the strip, shown with the card

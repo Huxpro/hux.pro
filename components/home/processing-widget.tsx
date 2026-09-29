@@ -163,7 +163,7 @@ export function ProcessingWidget({
     // makes, one line shorter.
     const where = byline?.subtitle ?? byline?.expanded.company;
     return (
-      <WidgetShell href={PROJECTS_HREF}>
+      <WidgetShell accent="blue" href={PROJECTS_HREF}>
         <WidgetHeader className="pb-2">
           <WidgetTitle signal>{t(locale, "widgetStatus")}</WidgetTitle>
           <WidgetLink href={PROJECTS_HREF} label="View works" />
@@ -197,7 +197,7 @@ export function ProcessingWidget({
   }
 
   return (
-    <WidgetShell href={PROJECTS_HREF}>
+    <WidgetShell accent="blue" href={PROJECTS_HREF}>
       <WidgetHeader className="pb-2">
         <WidgetTitle>{t(locale, "widgetStatus")}</WidgetTitle>
         <WidgetLink href={PROJECTS_HREF} label="View works" />

@@ -39,11 +39,30 @@ import { TYPE } from "@/lib/typography";
  *
  * Soft edging (viewport-relative mask) goes through the tracker per layer.
  */
+/**
+ * The accent a widget wears under the Apple skin: one of Apple's system
+ * colours, on its title and one key glyph. Omitted, the title is label ink.
+ * The classic skin ignores it. See docs/system-widget-skin.md.
+ */
+export type WidgetAccent =
+  | "red"
+  | "orange"
+  | "yellow"
+  | "green"
+  | "mint"
+  | "teal"
+  | "cyan"
+  | "blue"
+  | "indigo"
+  | "purple"
+  | "pink";
+
 export function WidgetShell({
   className,
   style,
   href,
   onOpen,
+  accent,
   children,
 }: {
   className?: string;
@@ -52,6 +71,8 @@ export function WidgetShell({
   href?: string;
   /** Action the widget performs when its surface is tapped (no page). */
   onOpen?: () => void;
+  /** Apple skin: the system colour the widget's title wears. */
+  accent?: WidgetAccent;
   children: React.ReactNode;
 }) {
   const wallpaper = useOptionalWallpaper();
@@ -98,6 +119,8 @@ export function WidgetShell({
       // iOS only paints `:active` on elements with a touch listener in their
       // ancestry; React delegates to the root, so an empty handler suffices.
       onTouchStart={tappable ? noop : undefined}
+      data-widget=""
+      data-widget-accent={accent}
       data-widget-tappable={tappable ? "" : undefined}
       className={cn(
         // Named group: nested chrome (AlbumTabs, transport clusters) must
@@ -111,9 +134,21 @@ export function WidgetShell({
         "group/widget relative flex h-full flex-col rounded-2xl overflow-hidden",
         "border border-border/50",
         "transition-all duration-300",
+        // Apple skin: the corner is a proportion of the cell (≈22 on a
+        // 158pt small widget, as on an iPhone), outside the board a 158
+        // cell is assumed. No hairline — a full-colour widget is its own
+        // tile — except the specular edge Clear draws.
+        "skin-apple:rounded-[calc(var(--cell)*0.14)]",
+        "skin-apple:border-(--widget-edge) skin-apple:shadow-(--widget-highlight)",
         widgetEnabled
           ? "bg-transparent backdrop-blur-sm hover:bg-ink/5"
-          : "bg-glass backdrop-blur-xl hover:border-border hover:bg-glass-hover",
+          : cn(
+              "bg-glass backdrop-blur-xl hover:border-border hover:bg-glass-hover",
+              // Apple's widgets do not light up under a pointer; the press
+              // wash (`.widget-surface`) is the whole of their feedback.
+              "skin-apple:bg-(--widget-surface) skin-apple:hover:bg-(--widget-surface)",
+              "skin-apple:hover:border-(--widget-edge) skin-apple:backdrop-saturate-150",
+            ),
         // Press wash for surface presses only (see `.widget-surface`).
         tappable && "widget-surface",
         className
@@ -158,8 +193,9 @@ export function WidgetHeader({
 }) {
   return (
     <div
+      data-widget-header=""
       className={cn(
-        "px-5 pt-5 pb-4 flex items-center justify-between",
+        "px-(--widget-pad) pt-(--widget-pad) pb-(--widget-header-gap) flex items-center justify-between",
         className
       )}
     >
@@ -188,6 +224,12 @@ export function WidgetTitle({
       className={cn(
         "inline-flex items-center gap-2",
         TYPE.label,
+        // Apple skin: a widget's headline — the system font, semibold, at
+        // the size Apple's own widget headers use, in the widget's accent.
+        // Capitalised from the lowercase label, so `writing` reads as
+        // `Writing` (Chinese has no case and is untouched).
+        "skin-apple:text-[15px] skin-apple:leading-5 skin-apple:font-semibold skin-apple:text-(--widget-accent)",
+        "skin-apple:capitalize",
         className
       )}
     >
@@ -216,7 +258,7 @@ export function WidgetBody({
   return (
     <div
       className={cn(
-        "px-5 pb-5",
+        "px-(--widget-pad) pb-(--widget-pad)",
         fill && "flex min-h-0 flex-1 flex-col overflow-hidden",
         className,
       )}
@@ -282,7 +324,7 @@ export function WidgetScrollBody({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("px-5", fill && "flex min-h-0 flex-1 flex-col")}>
+    <div className={cn("px-(--widget-pad)", fill && "flex min-h-0 flex-1 flex-col")}>
       <div
         className={cn(
           "relative -mx-2 px-2 pb-3 overflow-hidden no-scrollbar",
@@ -361,6 +403,7 @@ export function WidgetLink({
     <Link
       href={href}
       aria-label={label}
+      data-widget-link=""
       className={cn(
         WIDGET_ICON_HIT,
         WIDGET_REVEAL,

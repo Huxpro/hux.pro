@@ -81,7 +81,7 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
   if (size === "medium") {
     const track = albums[0].tracks[0];
     return (
-      <WidgetShell href={TALKS_HREF}>
+      <WidgetShell accent="purple" href={TALKS_HREF}>
         <WidgetHeader className="pb-2">
           <WidgetTitle>{t(locale, "widgetFeaturedTalks")}</WidgetTitle>
           <WidgetLink href={TALKS_HREF} />
@@ -127,13 +127,13 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
   // ---------------------------------------------------------------------------
   if (size === "xl") {
     return (
-      <WidgetShell href={TALKS_HREF}>
+      <WidgetShell accent="purple" href={TALKS_HREF}>
         <WidgetHeader className="pb-3">
           <WidgetTitle>{t(locale, "widgetFeaturedTalks")}</WidgetTitle>
           <WidgetLink href={TALKS_HREF} />
         </WidgetHeader>
 
-        <div className="px-5 pb-3">
+        <div className="px-(--widget-pad) pb-3">
           <AlbumTabs
             albums={albums}
             activeIndex={activeAlbum}
@@ -182,7 +182,7 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
   // large — the albums
   // ---------------------------------------------------------------------------
   return (
-    <WidgetShell href={TALKS_HREF}>
+    <WidgetShell accent="purple" href={TALKS_HREF}>
       <WidgetHeader className="pb-3">
         <WidgetTitle>{t(locale, "widgetFeaturedTalks")}</WidgetTitle>
         <WidgetLink href={TALKS_HREF} />
@@ -191,7 +191,7 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
       {/* Tabs and thumbs are sibling press surfaces. The shell is
           `group/widget`; AlbumTabs is `group/glass`. A finger on a
           thumbnail must not deepen the segmented control. */}
-      <div className="px-5 pb-3">
+      <div className="px-(--widget-pad) pb-3">
         <AlbumTabs
           albums={albums}
           activeIndex={activeAlbum}
@@ -204,8 +204,8 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
         <div
           ref={scrollRef}
           className={cn(
-            "flex gap-3 pl-5 pr-5",
-            "overflow-x-auto snap-x snap-mandatory scroll-pl-5 scroll-smooth",
+            "flex gap-3 px-(--widget-pad)",
+            "overflow-x-auto snap-x snap-mandatory scroll-pl-(--widget-pad) scroll-smooth",
             "no-scrollbar",
           )}
         >
@@ -233,7 +233,7 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
               )}
             </button>
           ))}
-          <div className="w-5 shrink-0" aria-hidden />
+          <div className="w-(--widget-pad) shrink-0" aria-hidden />
         </div>
 
         <PagerDots

@@ -10,6 +10,9 @@ import {
   useTheme,
   GLASS_TINTS,
   getTintLabel,
+  useWidgetSkin,
+  WIDGET_SKIN_DEFAULT,
+  type WidgetSkin,
 } from "@/services";
 import {
   motionStatus,
@@ -1939,6 +1942,7 @@ function SkyModule() {
   const setFollowSun = (on: boolean) => setThemePreference(on ? "sun" : "system");
   const { gyro, setGyroEnabled, effectiveStyle, skyWindow, setSkyWindow } = useWallpaper();
   const { homeWeather, setHomeWeather } = useDevtool();
+  const { skin: widgetSkin, setSkin: setWidgetSkin } = useWidgetSkin();
 
   const isDayNow = scene.sun.isDay;
   const isOverridden = debugOverride !== null;
@@ -2339,6 +2343,29 @@ function SkyModule() {
               },
             ]}
             onChange={(value: HomeWeather) => setHomeWeather(value)}
+          />
+        </PanelRow>
+
+        {/* How every widget is dressed — Apple's WidgetKit look, or the
+            site's own. Saved; also ⌘K › Widgets. docs/system-widget-skin.md. */}
+        <PanelRow
+          label={zh ? "小组件皮肤" : "Widget skin"}
+          star={
+            widgetSkin !== WIDGET_SKIN_DEFAULT ? (
+              <PanelStar
+                source="saved"
+                onReset={() => setWidgetSkin(WIDGET_SKIN_DEFAULT)}
+              />
+            ) : undefined
+          }
+        >
+          <PanelSegmented
+            value={widgetSkin}
+            options={[
+              { value: "apple", label: "Apple" },
+              { value: "classic", label: zh ? "经典" : "Classic" },
+            ]}
+            onChange={(value: WidgetSkin) => setWidgetSkin(value)}
           />
         </PanelRow>
 
