@@ -1,14 +1,10 @@
 "use client";
 
 import { useOptionalSkin } from "@/services/skin";
-import { useOptionalWallpaper } from "@/systems/ambient/provider";
 import { useEffect, useMemo } from "react";
-import {
-  ROLE_NAMES,
-  schemeRoles,
-  seedFromTint,
-  type SchemeStyle,
-} from "../lib/scheme";
+import { ROLE_NAMES, schemeRoles, type SchemeStyle } from "../lib/scheme";
+import { wallpaperOptions } from "../lib/wallpaper-colors";
+import { useWallpaperSeeds } from "./use-wallpaper-seeds";
 
 /**
  * Writes the Material palette for the current wallpaper onto <html>, as
@@ -16,35 +12,36 @@ import {
  * is a stylesheet swap and never a recompute). The stylesheet resolves them
  * to `--md-<role>` per theme under `html[data-skin="material"]`.
  *
- * The seed is the ambient profile's `tint` — the same dominant colour the
- * glow harmonises with (systems/glow/components/palette-bridge.tsx). With no
- * full-page wallpaper there is no picture to take a colour from, and the
- * stylesheet's baseline (Android's fallback seed) stands.
+ * The seed is the colour option the visitor chose (`useSkin().seed`): one
+ * of the wallpaper's own (`useWallpaperSeeds` — Android's extraction for a
+ * photograph, the ambient profile's live tint for a painted wallpaper), the
+ * first by default, or a basic colour. With no full-page wallpaper there is
+ * no picture to take a colour from, and Android's fallback seed stands.
  *
  * Mounted once, inside the ambient provider; renders nothing. Only computes
  * while the skin is Material.
  */
 export function DynamicColorBridge() {
   const skin = useOptionalSkin();
-  const wallpaper = useOptionalWallpaper();
   const active = skin?.skin === "material";
   const style: SchemeStyle = skin?.schemeStyle ?? "tonal-spot";
+  const choice = skin?.seed;
+  const options = wallpaperOptions(useWallpaperSeeds());
 
-  const tint =
-    wallpaper?.fullEnabled && wallpaper.profile.tint ? wallpaper.profile.tint : null;
-  // Rounded, so a Sky drifting through its scene re-seeds by the degree, not
-  // on every frame.
-  const h = tint ? Math.round(tint.h) : null;
-  const c = tint ? Math.round(tint.c * 100) / 100 : null;
+  // The chosen option: a basic colour as is, or the wallpaper's option in
+  // its slot (the style came with it, into `schemeStyle`).
+  const seed =
+    choice?.kind === "basic"
+      ? choice.argb
+      : options[Math.min(choice?.index ?? 0, options.length - 1)].seed;
 
   const palette = useMemo(() => {
     if (!active) return null;
-    const seed = seedFromTint(h === null || c === null ? null : { h, c });
     return {
       light: schemeRoles(seed, style, false),
       dark: schemeRoles(seed, style, true),
     };
-  }, [active, h, c, style]);
+  }, [active, seed, style]);
 
   useEffect(() => {
     const root = document.documentElement.style;

@@ -19,6 +19,7 @@ are *arranged and sized* on Android; the skin is how they *look*.
 | Boot script, storage keys (server-safe) | `systems/skin/lib/boot.ts` |
 | Dynamic color: wallpaper → scheme → roles | `systems/skin/lib/scheme.ts` |
 | Publishes the palette onto `<html>` | `systems/skin/components/dynamic-color-bridge.tsx` |
+| Wallpaper colors: extraction, options, the picker | `systems/skin/lib/wallpaper-colors.ts`, `components/wallpaper-colors.tsx` |
 | Tokens and the widget container | `app/globals.css`, "Skin — Material" |
 | Expressive shapes (`Sunny`, the cookies, …) as SVG paths | `systems/skin/lib/shapes.ts`, `ExpressiveShape` |
 | The resize frame (Material) and the corner (Glass) | `components/ui/resize-grip.tsx` |
@@ -74,9 +75,31 @@ stylesheet declares before the bridge has run.
 `--md-d-<role>`), and the stylesheet resolves `--md-<role>` per theme, so a
 theme switch is a stylesheet swap, never a recompute.
 
-**Wallpaper colors** — Android's own row under Wallpaper & style, with the
-same five styles: Tonal spot (the default), Neutral, Vibrant, Expressive,
-Monochrome. Monochrome is the one that sounds like the rest of this site.
+**Colors.** The wallpaper picker has Android's Colors section (Wallpaper &
+style), shown only in the Material skin
+(`systems/skin/components/wallpaper-colors.tsx`):
+
+- **Wallpaper colors.** Four options taken from the wallpaper through
+  Android's pipeline, using the same library
+  (`systems/skin/lib/wallpaper-colors.ts`). A photograph is shrunk to about
+  112×112 pixels, quantized to 128 colours (`QuantizerCelebi`) and ranked by
+  `Score`, which keeps up to four seeds, each read once per file. A painted
+  wallpaper (the Sky, the Gradient) has no pixels to read, so its one seed is
+  the live tint, as a live wallpaper hands Android. As on Android, the four
+  slots are shared between the seeds and the styles. One seed fills all four
+  (tonal spot, neutral, vibrant, expressive), two seeds take two each, and
+  four seeds take one each. Choosing an option sets the seed and the style
+  together. The first option is the default, and it follows the wallpaper.
+- **Basic colors.** Six seeds that ignore the wallpaper.
+- **Style.** Filter chips for the five styles Android names: tonal spot (the
+  default), neutral, vibrant, expressive, monochrome.
+
+Each swatch is drawn the way Android draws one: a disc whose top half is the
+primary accent and whose bottom quarters are the secondary and tertiary
+accents (the dark scheme's tone-80 accents), in the style that option
+carries. The selected swatch shrinks inside a ring. The choice is stored as
+`hux_skin_seed` (`useSkin().seed`, a `SeedChoice`), and `DynamicColorBridge`
+seeds from it.
 
 ## The widget container
 
@@ -270,7 +293,8 @@ no motor.
 |---|---|
 | Command palette | `Skin: Material` (⌘K), or `/` then `K` |
 | DevTool | Skin module — Material / Glass, the Wallpaper colors style, and the palette in force as swatches |
-| Code | `useSkin()` → `{ skin, setSkin, toggle, schemeStyle, setSchemeStyle }` |
+| Wallpaper picker | Wallpaper colors, Basic colors, Style (Material only) |
+| Code | `useSkin()` → `{ skin, setSkin, toggle, schemeStyle, setSchemeStyle, seed, setSeed }` |
 
 ## Edit mode
 

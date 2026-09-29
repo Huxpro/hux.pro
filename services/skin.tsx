@@ -11,6 +11,7 @@ import {
 import { t, type Locale } from "@/lib/i18n";
 import {
   SCHEME_STYLE_STORAGE_KEY,
+  SEED_STORAGE_KEY,
   SKIN_STORAGE_KEY,
 } from "@/systems/skin/lib/boot";
 import {
@@ -32,7 +33,11 @@ import {
 // Android's Wallpaper & style: how the one source colour is spread across
 // the palettes (tonal spot, neutral, vibrant, expressive, monochrome).
 //
-// Both are attributes on <html> (`data-skin`, `data-md-style`) set before
+// And the colour *option* the palette is seeded from: one of the wallpaper's
+// own colours (Android extracts up to four), or a basic colour that ignores
+// the wallpaper (`SeedChoice`).
+//
+// Skin and style are attributes on <html> (`data-skin`, `data-md-style`) set before
 // first paint by `SKIN_BOOT` (systems/skin/lib/boot.ts) in the root layout, so a returning visitor never
 // sees the other skin flash. Nothing re-renders to change skin: the widget
 // stylesheet reads the attribute (app/globals.css, "Skin — Material"). The
@@ -82,12 +87,39 @@ function readStoredStyle(): SchemeStyle {
   }
 }
 
+/**
+ * Which colour seeds the palette — Android's "Colors" tab under Wallpaper &
+ * style: one of the wallpaper's colours (by rank, as the wallpaper's own
+ * extraction orders them; the first is the default and follows the
+ * wallpaper), or a basic colour, which does not.
+ */
+export type SeedChoice =
+  | { kind: "wallpaper"; index: number }
+  | { kind: "basic"; argb: number };
+
+export const DEFAULT_SEED_CHOICE: SeedChoice = { kind: "wallpaper", index: 0 };
+
+function readStoredSeed(): SeedChoice {
+  if (typeof window === "undefined") return DEFAULT_SEED_CHOICE;
+  try {
+    const v = JSON.parse(localStorage.getItem(SEED_STORAGE_KEY) ?? "null");
+    if (v?.kind === "wallpaper" && Number.isInteger(v.index) && v.index >= 0 && v.index < 4)
+      return { kind: "wallpaper", index: v.index };
+    if (v?.kind === "basic" && Number.isInteger(v.argb)) return { kind: "basic", argb: v.argb };
+  } catch {
+    // Ignore storage errors and bad JSON
+  }
+  return DEFAULT_SEED_CHOICE;
+}
+
 interface SkinContextType {
   skin: Skin;
   setSkin: (skin: Skin) => void;
   toggle: () => void;
   schemeStyle: SchemeStyle;
   setSchemeStyle: (style: SchemeStyle) => void;
+  seed: SeedChoice;
+  setSeed: (seed: SeedChoice) => void;
 }
 
 const SkinContext = createContext<SkinContextType | undefined>(undefined);
@@ -106,11 +138,13 @@ export function useOptionalSkin() {
 export function SkinProvider({ children }: { children: React.ReactNode }) {
   const [skin, setSkinState] = useState<Skin>(DEFAULT_SKIN);
   const [schemeStyle, setStyleState] = useState<SchemeStyle>(DEFAULT_SCHEME_STYLE);
+  const [seed, setSeedState] = useState<SeedChoice>(DEFAULT_SEED_CHOICE);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
     setSkinState(readStoredSkin());
     setStyleState(readStoredStyle());
+    setSeedState(readStoredSeed());
   }, []);
 
   useEffect(() => {
@@ -139,14 +173,23 @@ export function SkinProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const setSeed = useCallback((next: SeedChoice) => {
+    setSeedState(next);
+    try {
+      localStorage.setItem(SEED_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // Ignore storage errors
+    }
+  }, []);
+
   const toggle = useCallback(
     () => setSkin(skin === "material" ? "glass" : "material"),
     [skin, setSkin],
   );
 
   const value = useMemo(
-    () => ({ skin, setSkin, toggle, schemeStyle, setSchemeStyle }),
-    [skin, setSkin, toggle, schemeStyle, setSchemeStyle],
+    () => ({ skin, setSkin, toggle, schemeStyle, setSchemeStyle, seed, setSeed }),
+    [skin, setSkin, toggle, schemeStyle, setSchemeStyle, seed, setSeed],
   );
 
   return <SkinContext.Provider value={value}>{children}</SkinContext.Provider>;
