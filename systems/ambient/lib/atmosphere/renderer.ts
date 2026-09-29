@@ -49,10 +49,11 @@ export function packedNoise(size = NOISE_SIZE): Uint8Array {
 }
 
 const UNIFORMS = [
-  "u_resolution", "u_noise", "u_wipe", "u_time", "u_zenith", "u_horizon", "u_cloudLight", "u_cloudShade",
-  "u_sun", "u_moon", "u_drift", "u_lightDir", "u_camera", "u_daylight", "u_twilight", "u_cloud", "u_fog",
-  "u_storm", "u_moonPhase", "u_moonVisible", "u_moonSize", "u_stars", "u_density", "u_darkness",
-  "u_coverage", "u_extinction", "u_exposure", "u_lightning", "u_lightningPosition", "u_meteor", "u_meteorGlow", "u_wipeOn",
+  "u_resolution", "u_noise", "u_wipe", "u_time", "u_zenith", "u_horizon", "u_glow", "u_glowStrength", "u_sunElevation",
+  "u_cloudLight", "u_cloudShade", "u_sun", "u_moon", "u_drift", "u_lightDir", "u_camera", "u_seed", "u_daylight",
+  "u_cloud", "u_fog", "u_storm", "u_moonPhase", "u_moonVisible", "u_moonSize", "u_stars", "u_density", "u_darkness",
+  "u_coverage", "u_shadowCoverage", "u_extinction", "u_exposure", "u_lightning", "u_lightningPosition", "u_meteor",
+  "u_meteorGlow", "u_wipeOn",
 ] as const;
 type Uniform = (typeof UNIFORMS)[number];
 
@@ -120,6 +121,9 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
         gl.uniform1f(loc.u_time, frame.time);
         gl.uniform3fv(loc.u_zenith, scene.zenith);
         gl.uniform3fv(loc.u_horizon, scene.horizon);
+        gl.uniform3fv(loc.u_glow, scene.glow);
+        gl.uniform1f(loc.u_glowStrength, scene.glowStrength);
+        gl.uniform1f(loc.u_sunElevation, scene.sunElevation);
         gl.uniform3fv(loc.u_cloudLight, scene.cloudLight);
         gl.uniform3fv(loc.u_cloudShade, scene.cloudShade);
         gl.uniform2fv(loc.u_sun, scene.sun);
@@ -130,8 +134,8 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
         const ll = Math.hypot(lx, ly, lz);
         gl.uniform3f(loc.u_lightDir, lx / ll, ly / ll, lz / ll);
         gl.uniform1f(loc.u_camera, frame.camera);
+        gl.uniform1f(loc.u_seed, scene.seed);
         gl.uniform1f(loc.u_daylight, scene.daylight);
-        gl.uniform1f(loc.u_twilight, scene.twilight);
         gl.uniform1f(loc.u_cloud, scene.cloud);
         gl.uniform1f(loc.u_fog, scene.fog);
         gl.uniform1f(loc.u_storm, scene.storm);
@@ -141,7 +145,11 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
         gl.uniform1f(loc.u_stars, scene.stars);
         gl.uniform1f(loc.u_density, scene.density);
         gl.uniform1f(loc.u_darkness, scene.darkness);
-        gl.uniform1f(loc.u_coverage, 0.74 + (0.23 - 0.74) * scene.cloud);
+        const coverage = 0.74 + (0.23 - 0.74) * scene.cloud;
+        gl.uniform1f(loc.u_coverage, coverage);
+        // The shadow reads the thick cores only, never below the noise's middle:
+        // an overcast keeps its thin and heavy parts (see densityLite).
+        gl.uniform1f(loc.u_shadowCoverage, Math.max(coverage, 0.44));
         gl.uniform1f(loc.u_extinction, (3.6 + 2.4 * scene.storm) * (0.75 + 0.45 * scene.density));
         gl.uniform1f(loc.u_exposure, scene.exposure);
         gl.uniform1f(loc.u_lightning, frame.flash);

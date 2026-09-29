@@ -7,8 +7,10 @@ import { EditorNav } from "@/app/editor/nav";
 import { useRouter } from "next/navigation";
 import { useWallpaper } from "@/systems/ambient/provider";
 import { AtmosphereWallpaper } from "@/systems/ambient/components/atmosphere-wallpaper";
-import { deriveSkyScene } from "@/systems/ambient/lib/atmosphere/scene";
-import { WEATHER_CONDITIONS, type WeatherCondition, type NormalizedWeather } from "@/systems/ambient/lib/weather";
+import { toAtmosphereScene } from "@/systems/ambient/lib/atmosphere/scene";
+import { deriveWeatherScene, type SceneWeatherInput } from "@/systems/ambient/lib/scene";
+import { WEATHER_CONDITIONS, type WeatherCondition } from "@/systems/ambient/lib/weather";
+import { useTheme } from "@/services";
 
 const epoch = Date.UTC(2026, 8, 12);
 const codes: Record<WeatherCondition,number> = { clear: 0, cloudy: 2, fog: 45, rain: 63, snow: 73, thunder: 95 };
@@ -23,15 +25,19 @@ export function WeatherStudio() {
   const [wind,setWind] = useState(16);
   const [paused,setPaused] = useState(false);
   const [reading,setReading] = useState(false);
-  const weather = useMemo<NormalizedWeather>(() => ({
+  const { theme } = useTheme();
+  // The shared scene, as the page derives it — the same palette, bodies and
+  // theme key — so the studio previews exactly what the wallpaper paints.
+  const weather = useMemo<SceneWeatherInput>(() => ({
     condition, weatherCode: codes[condition], temperatureC: condition === "snow" ? -2 : 20,
-    updatedAt: epoch,
     cloudCover: (condition === "clear" ? strength*0.15 : condition === "cloudy" ? strength : 70+strength*0.3) / 100,
-    precipitationMmH: condition === "rain" || condition === "thunder" ? strength/8 : 0,
-    snowfallCmH: condition === "snow" ? strength/60 : 0,
+    precipitationIntensity: condition === "rain" || condition === "thunder" || condition === "snow" ? strength/100 : 0,
+    visibilityM: condition === "fog" ? 1000 - strength*8 : 20000,
     windSpeedKmh: wind, windDirectionDeg: 250,
   }), [condition,strength,wind]);
-  const scene = useMemo(() => deriveSkyScene({ weather, nowMs: epoch+hour*3600000, latitude: 35, longitude: 0 }),[weather,hour]);
+  const scene = useMemo(() => toAtmosphereScene(deriveWeatherScene({
+    weather, nowMs: epoch + hour*3600000, lat: 35, lon: 0, theme, seed: 7,
+  })), [weather,hour,theme]);
   // The eggs, previewed: a tap on the sky strikes on a thunder day and sends a
   // meteor on a clear night — the engine's own answers, as the home gives them.
   const pokeRef = useRef<((kind: PokeKind, x: number, y: number) => void) | null>(null);

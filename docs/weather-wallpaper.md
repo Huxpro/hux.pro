@@ -4,8 +4,8 @@ Choose **Wallpaper → Weather → Atmosphere** in the wallpaper window (the sam
 
 | File | What it is |
 |------|------------|
-| `scene.ts` | `SkyScene`, Atmosphere's uniforms: its own palette (`deriveSkyScene`), and `toAtmosphereScene`, which adapts the live `WeatherScene` onto it |
-| `shaders.ts` | The cloud pass: sky, sun, moon, stars, meteor, a raymarched cloud volume, mist, the lightning's light |
+| `scene.ts` | `SkyScene`, Atmosphere's uniforms, and `toAtmosphereScene`, which takes them from the live `WeatherScene` |
+| `shaders.ts` | The cloud pass: the Sky's sky, sun, moon and stars (ported), the meteor, a raymarched cloud volume, the Sky's fog, the lightning's light |
 | `renderer.ts` | The WebGL1 program around it; the packed noise; the fog wipe's mask texture |
 | `details.ts` | The display-resolution 2D layer: rain, snow, the bolt |
 | `lightning.ts` | One lightning event for both layers — the storm's own and a clicked strike |
@@ -22,16 +22,26 @@ The Sky paints two cloud decks as pictures in one fragment pass; Atmosphere inte
 - **Occlusion.** The moon, the stars and a meteor sit behind the volume and are hidden by exactly the cloud in front of them, per pixel.
 - **Display-resolution weather.** Rain, snow and bolts are strokes on a separate 2D canvas at device resolution, so they stay sharp however far the cloud pass has to drop its own resolution.
 
-## Shared weather, independent rendering
+## One sky, two ways of rendering cloud
 
-`toAtmosphereScene` keeps Atmosphere's palette but takes every *measurement* from the shared `WeatherScene`, so the two engines never disagree about the weather:
+Atmosphere paints the Sky's sky and renders the cloud its own way. An A/B of the two engines on the same scenes (same place, clock and stubbed weather) showed the Sky ahead on everything behind the cloud and Atmosphere ahead on the cloud itself, so the sky was taken whole from the Sky:
+
+- **The palette is the shared scene's.** Zenith, horizon, the sun's glow and its strength, the cloud's lit and shaded colours: the Sky's hand-tuned keyframes by sun elevation, re-keyed to the theme (a night under the light theme lifted to lavender, a day under the dark one pressed down), lit by the moon, with the twilight look's exposure at the crossing. Atmosphere used to derive a palette of its own, which read grey at noon, brown at sunset and slate on a lifted night.
+- **The sky behind the volume is the Sky's `skyBase`, ported:** the gradient, the glow widening and warming as the sun falls, the dawn and dusk warmth band, the disc and its halo (the volume, not the cover, decides whether the disc is seen).
+- **The moon is the Sky's lit sphere** — a terminator of grazing light, seas, regolith bright to the limb — and it is *added* to the sky, never mixed into it, so under a lifted night it is still the brightest thing there. It is lit from the side the sun is on.
+- **The stars are the Sky's two fields**, a sparse bright one and a fine dust, twinkling, fading into the horizon haze.
+- **The fog is the Sky's** drifting low-frequency veil, denser toward the bottom, in the horizon's and the cloud's colours.
+- **Toward the horizon the deck gives way to what it averages to** — the Sky's `deckTowardHorizon` — which is also what a real deck does: it closes into one tone. It replaced a band of aliased, repeating little clouds, and the march is skipped where only the average shows.
+- **An overcast keeps its structure.** The shadow taps read the deck against their own threshold, never below the middle of the noise, so under full cover the thick cores shade and the thin parts glow — the mottling the Sky's two decks have — instead of one flat grey slab. Darkness takes the lit side toward the shade too, as the Sky's `thick × darkness` mix does, so a storm is dark through.
+- **A low sun lights the deck from underneath** in the glow's colour, so sunset cloud glows instead of standing in silhouette.
+
+Everything else that is a *measurement* is the shared `WeatherScene`'s too, so the two engines never disagree about the weather:
 
 - the sun and the moon where the scene stages them, the moon's phase, and its disc size (larger near the horizon);
-- the moon lit **from the side the sun is on**, rather than from a fixed axis;
 - stars and moon from `behind` — the sky with nothing in front of it. The Sky dims them by the cover because its decks are pictures; here the volume and the mist hide them physically, so dimming them as well would count the murk twice (and leave the fog wipe nothing to find);
 - cloud cover, and the **density** and **darkness** the measured cloud layers give (thin cirrus reads thin, stratus thick and grey-based);
 - precipitation, fog, lightning, and the wind — across the view as the Sky has it, and **into** the view from the world wind (`windWorld`), so on a day with a northerly the deck travels toward or away from the viewer. The deck drifts *with* the wind: the drift is subtracted where it is sampled (see "The wind's sign" in [system-ambient.md](./system-ambient.md#the-winds-sign)). On a calm day it still recedes very slowly, along the view and never across it, so the sky is never frozen and there is no sideways constant to fight the wind;
-- **the theme's key** (`themeKeyFor` in `lib/scene.ts`): the same lightness move the shared scene applies to its own colours, over Atmosphere's palette. A night under the light theme is lifted to a pale lavender and its moon dimmed to a day moon; a day under the dark theme is pressed down. The theme veil — already lightened by the key — sits right over it, and legibility (`profileFromScene`) reads the keyed palette.
+- the theme's dimming of a lifted night's moon (`themeKeyFor` in `lib/scene.ts`), over the unhidden moon.
 
 Both engines follow the same location, clock, observations and devtool overrides. Selecting a style uses the persisted `weatherStyle` setting and stops image playback.
 
@@ -43,8 +53,8 @@ Full placement paints the engine. Widget placement uses its matching CSS palette
 
 | Egg | Atmosphere's answer |
 |-----|---------------------|
-| **Strike** (thunder, a click) | A branching bolt from the cloud base down to the clicked point, crisp on the 2D layer, a restrike and a ground flash where it lands; the volume is lit from inside where the channel leaves it. `strikeAt` in `lightning.ts`. |
-| **Meteor** (a clear, dark night, a click) | A head and a train through the clicked point on a path re-rolled per click, at the Sky's pace and bounds, drawn inside the cloud pass so a cloud in front hides it; faint on a washed-out night. |
+| **Strike** (thunder, a click) | As in the Sky, a channel from the top of the sky that grows down to the clicked point in ~70 ms, with branches, a restrike and a ground flash where it lands — crisp on the 2D layer, as wide as the screen is tall allows; the volume is lit from inside where the channel leaves it. `strikeAt` in `lightning.ts`. |
+| **Meteor** (a clear, dark night, a click) | A head and a long train through the clicked point on a path re-rolled per click, at the Sky's pace and bounds, drawn inside the cloud pass so a cloud in front hides it; faint on a washed-out night. |
 | **Fog wipe** (fog, a drag) | The swath is painted into a small mask the cloud pass reads, torn at its edge by noise. It clears the mist *and* opens the cloud volume behind it, so the real moon and stars come through. The path has no corner limit — the mask holds a long stroke — and it uses `lib/wipe.ts`'s life, decay, carry and tiring hand. |
 | **Gust** (rain or snow, a drag) | `GUST` and `gustStep` from `lib/wallpaper/stir.ts`, the Sky's own air: the rain leans at once, the snow comes round over a breath. Neither engine moves a cloud. |
 
@@ -70,7 +80,7 @@ What changed:
 - **Early termination.** The march stops once the cloud in front is opaque; an overcast sky is where this pays most.
 - **Per-frame constants on the CPU**: coverage, extinction and the light direction are computed once per frame, and uniform locations once per program.
 - **Two rates.** The volume draws at 24 fps — it drifts, it does not dart — and at the full rate only while something quick is in it: a flash, a meteor, a hand in the mist, a tilt still settling. Precipitation draws every frame.
-- **Batched particles.** Rain and snow are stored as typed columns and grouped into depth bands; each band goes out as one path and one stroke (or one fill), instead of a path and a style string per drop. The bolt's geometry is cached per event.
+- **Batched particles.** Rain and snow are stored as typed columns and grouped into depth bands; each band goes out as one path and one stroke (or one fill), instead of a path and a style string per drop — which is what lets the rain run as dense as the Sky's (4,200 drops per CSS megapixel at full intensity) for a fraction of a millisecond. The bolt's geometry is cached per event.
 - **Adaptive quality, both ways.** A frame-time average above 1.55× the budget for 45 frames drops the cloud resolution by 0.8× (to 45% of its base), then the particle count (to 40%); meeting the cap for 300 frames wins them back, but never to a scale already measured as too slow.
 - **Budget.** A share (0.65) of the Sky's device profile (`getWallpaperQualityProfile`), at most 1.25 backing pixels per CSS pixel; the loop cap is the profile's.
 
@@ -80,7 +90,7 @@ The devtool's Wallpaper module reads the engine's stats (`GL1 + 2D · width×hei
 
 ## Studio
 
-`/editor/weather` (in the `/editor` dropdown as **atmosphere**) is the standalone Atmosphere studio: six weather presets, time, intensity, wind, pause, reading preview and lightning replay. A tap on the sky previews the eggs — a strike on Thunder, a meteor on a clear night. **Use live wallpaper** selects Atmosphere in the wallpaper system and returns home using live observations; synthetic studio weather never overrides the shared provider.
+`/editor/weather` (in the `/editor` dropdown as **atmosphere**) is the standalone Atmosphere studio. Its sky is the shared scene derived from the studio's weather, clock and the site's theme (`deriveWeatherScene`), so it previews exactly what the wallpaper paints: six weather presets, time, intensity, wind, pause, reading preview and lightning replay. A tap on the sky previews the eggs — a strike on Thunder, a meteor on a clear night. **Use live wallpaper** selects Atmosphere in the wallpaper system and returns home using live observations; synthetic studio weather never overrides the shared provider.
 
 ## Verification
 

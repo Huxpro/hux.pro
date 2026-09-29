@@ -1,48 +1,41 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { lightningAt, STRIKE_LIFE, strikeAt } from "./lightning.ts";
-import { deriveSkyScene, solarPosition } from "./scene.ts";
+import { toAtmosphereScene } from "./scene.ts";
+import { deriveWeatherScene } from "../scene.ts";
 import { normalizeWeatherCode } from "../weather.ts";
 
 const now = Date.UTC(2026, 2, 20, 12);
-test("solar lighting follows coordinates and UTC, including polar day/night", () => {
-  assert.ok(solarPosition(now,0,0).elevation > 87);
-  assert.ok(solarPosition(now,0,180).elevation < -87);
-  assert.ok(solarPosition(Date.UTC(2026,5,21),80,0).elevation > 0);
-  assert.ok(solarPosition(Date.UTC(2026,11,21,12),80,0).elevation < 0);
-});
-test("sunrise lighting evolves continuously rather than switching phase palettes", () => {
-  let previous = deriveSkyScene({ nowMs: now-8*3600000,latitude:35,longitude:0 });
-  for (let minute=1;minute<=240;minute++) {
-    const next = deriveSkyScene({ nowMs: now-8*3600000+minute*60000,latitude:35,longitude:0 });
-    assert.ok(Math.abs(next.daylight-previous.daylight)<0.04);
-    next.horizon.forEach((value,i)=>assert.ok(Math.abs(value-previous.horizon[i])<0.04));
+const at = (nowMs: number, weather: Parameters<typeof deriveWeatherScene>[0]["weather"], theme: "light" | "dark" = "dark") =>
+  toAtmosphereScene(deriveWeatherScene({ nowMs, lat: 35, lon: 0, theme, weather, seed: 7 }));
+
+test("sunrise evolves continuously: the palette is the shared scene's, minute by minute", () => {
+  let previous = at(now - 8 * 3600000, { condition: "clear" });
+  for (let minute = 1; minute <= 240; minute++) {
+    const next = at(now - 8 * 3600000 + minute * 60000, { condition: "clear" });
+    for (const key of ["zenith", "horizon", "glow", "cloudLight"] as const) {
+      next[key].forEach((value, i) => assert.ok(Math.abs(value - previous[key][i]) < 0.04, `${key} jumped at minute ${minute}`));
+    }
+    assert.ok(Math.abs(next.daylight - previous.daylight) < 0.04);
     previous = next;
   }
 });
+
 test("all WMO precipitation families are classified, including snow showers", () => {
   for(const code of [51,53,55,56,57,61,63,65,66,67,80,81,82]) assert.equal(normalizeWeatherCode(code),"rain");
   for(const code of [71,73,75,77,85,86]) assert.equal(normalizeWeatherCode(code),"snow");
   for(const code of [95,96,99]) assert.equal(normalizeWeatherCode(code),"thunder");
 });
-test("live intensity, clear intervals and previews do not inherit unrelated precipitation", () => {
-  const weather = {condition:"rain" as const, weatherCode:63,temperatureC:10,updatedAt:now,precipitationMmH:8,cloudCover:1};
-  const wet = deriveSkyScene({weather,nowMs:now});
-  const dry = deriveSkyScene({weather:{...weather,precipitationMmH:0},nowMs:now});
-  const preview = deriveSkyScene({weather,nowMs:now,condition:"clear",isDay:false});
-  assert.ok(wet.rain>dry.rain);
-  assert.equal(dry.rain,0);
-  assert.equal(preview.rain,0);
-  assert.ok(preview.cloud<0.1);
-  assert.equal(preview.daylight,0);
-});
-test("all weather/time combinations produce finite bounded uniforms", () => {
-  for(const condition of ["clear","cloudy","fog","rain","snow","thunder"] as const) {
-    for(const phase of ["sunrise","morning","afternoon","sunset","evening","night"] as const) {
-      const scene = deriveSkyScene({nowMs:now,condition,phase});
-      for(const value of Object.values(scene).flat()) assert.ok(Number.isFinite(value));
-      for(const key of ["cloud","rain","snow","fog","storm","daylight","twilight","moonPhase"] as const) assert.ok(scene[key]>=0&&scene[key]<=1);
-      if(condition === "thunder") assert.equal(scene.storm,1);
+test("all weather × hour × theme combinations produce finite, bounded uniforms", () => {
+  for (const condition of ["clear", "cloudy", "fog", "rain", "snow", "thunder"] as const) {
+    for (const hour of [0, 5, 6, 9, 12, 17, 18, 21]) for (const theme of ["light", "dark"] as const) {
+      const scene = at(Date.UTC(2026, 8, 20, hour), { condition }, theme);
+      for (const value of Object.values(scene).flat()) assert.ok(Number.isFinite(value));
+      for (const key of ["cloud", "rain", "snow", "fog", "storm", "daylight", "moonPhase", "moonVisible", "stars", "glowStrength"] as const) {
+        assert.ok(scene[key] >= 0 && scene[key] <= 1, `${condition} ${hour}h ${theme}: ${key}=${scene[key]}`);
+      }
+      if (condition === "thunder") assert.ok(scene.storm > 0);
+      if (condition === "clear") assert.equal(scene.rain + scene.snow, 0);
     }
   }
 });
@@ -70,7 +63,10 @@ test("a clicked strike lands on the point, lit from the cloud above it, then ret
   assert.ok(peak.bolt > 0.95 && peak.strength > 0.8);
   assert.equal(peak.toX, x);
   assert.equal(peak.toY, y);
-  assert.ok(peak.y < y && Math.abs(peak.x - x) <= 0.04);
+  // From the top of the sky, grown to the point within the stroke.
+  assert.ok((peak.from ?? peak.y) < 0 && peak.y < y);
+  assert.equal(strikeAt(0.01, x, y, 5).grow < 1, true);
+  assert.equal(peak.grow, 1);
   assert.equal(strikeAt(-0.01, x, y, 5).bolt, 0);
   assert.equal(strikeAt(STRIKE_LIFE + 0.01, x, y, 5).strength, 0);
   // A click near the top still gets a channel out of the cloud base.

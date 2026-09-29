@@ -59,7 +59,7 @@ export interface DetailFrame {
 export function createWeatherDetails(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
-  const rain = makeParticles(1100, 12);
+  const rain = makeParticles(5000, 12);
   const snow = makeParticles(500, 903);
   const rainBands = bands(rain, RAIN_EDGES);
   const snowBands = bands(snow, SNOW_EDGES);
@@ -81,12 +81,20 @@ export function createWeatherDetails(canvas: HTMLCanvasElement) {
   /** Particle share kept under load, 0.4..1. */
   let quality = 1;
   let dirty = false;
-  let bolt: { key: string; path: Path2D; branches: Path2D } | null = null;
+  type Point = [number, number];
+  let bolt: { key: string; points: Point[]; forks: { at: number; points: Point[] }[] } | null = null;
+  /** The channel as far as it has grown: the first `grow` of its points. */
+  const grownPath = (points: Point[], grow: number) => {
+    const path = new Path2D();
+    const end = Math.max(1, Math.round(grow * (points.length - 1)));
+    path.moveTo(...points[0]);
+    for (let i = 1; i <= end; i++) path.lineTo(...points[i]);
+    return path;
+  };
 
   const boltPaths = (l: LightningFrame) => {
-    const key = `${l.seed}|${l.x}|${l.y}|${l.toX}|${l.toY}|${width}|${height}`;
+    const key = `${l.seed}|${l.x}|${l.y}|${l.from}|${l.toX}|${l.toY}|${width}|${height}`;
     if (bolt?.key === key) return bolt;
-    type Point = [number, number];
     const subdivide = (a: Point, b: Point, depth: number, seed: number): Point[] => {
       if (!depth) return [a, b];
       const span = Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -94,17 +102,15 @@ export function createWeatherDetails(canvas: HTMLCanvasElement) {
         (a[1] + b[1]) / 2 + (random(seed + 7) - 0.5) * span * 0.12];
       return [...subdivide(a, mid, depth - 1, seed * 2).slice(0, -1), ...subdivide(mid, b, depth - 1, seed * 2 + 1)];
     };
-    const points = subdivide([width * l.x, height * l.y], [width * l.toX, height * l.toY], 5, l.seed);
-    const path = new Path2D(); path.moveTo(...points[0]); points.slice(1).forEach(p => path.lineTo(...p));
-    const branches = new Path2D();
-    const reach = Math.hypot(width * (l.toX - l.x), height * (l.toY - l.y)) / (height * 0.42);
-    for (const fork of [11, 21]) {
+    const top = l.from ?? l.y;
+    const points = subdivide([width * l.x, height * top], [width * l.toX, height * l.toY], 6, l.seed);
+    const reach = Math.hypot(width * (l.toX - l.x), height * (l.toY - top)) / (height * 0.42);
+    const forks = [17, 30, 41].map(fork => {
       const [x, y] = points[fork];
       const side = random(l.seed + fork) < 0.5 ? -1 : 1;
-      const branch = subdivide([x, y], [x + side * width * (fork === 11 ? 0.075 : 0.045) * reach, y + height * 0.12 * reach], 3, l.seed + fork);
-      branches.moveTo(...branch[0]); branch.slice(1).forEach(p => branches.lineTo(...p));
-    }
-    bolt = { key, path, branches };
+      return { at: fork / (points.length - 1), points: subdivide([x, y], [x + side * width * 0.06 * reach, y + height * 0.1 * reach], 3, l.seed + fork) };
+    });
+    bolt = { key, points, forks };
     return bolt;
   };
 
@@ -128,7 +134,8 @@ export function createWeatherDetails(canvas: HTMLCanvasElement) {
       const area = width * height / 1_000_000;
 
       // --- Rain: one streak per drop, one path per depth band.
-      const rainLive = Math.floor(Math.min(rain.count, Math.round(850 * area * quality)) * Math.min(1, f.rain));
+      // As dense as the Sky's rain reads at the same intensity: a sheet, not a scatter.
+      const rainLive = Math.floor(Math.min(rain.count, Math.round(4200 * area * quality)) * Math.min(1, f.rain));
       if (rainLive > 0) {
         const [dx, dy] = f.rainDir;
         const lean = Math.hypot(dx, dy) || 1;
@@ -205,13 +212,20 @@ export function createWeatherDetails(canvas: HTMLCanvasElement) {
       const l = f.lightning;
       if (l.bolt > 0.001) {
         const alpha = l.bolt;
-        const { path, branches } = boltPaths(l);
-        ctx.shadowColor = `rgba(136,181,255,${alpha})`; ctx.shadowBlur = 20;
-        ctx.strokeStyle = `rgba(154,193,255,${alpha * 0.6})`; ctx.lineWidth = 4; ctx.stroke(path);
-        ctx.shadowBlur = 7; ctx.strokeStyle = `rgba(232,244,255,${alpha})`; ctx.lineWidth = 1.35; ctx.stroke(path);
-        ctx.lineWidth = 0.65; ctx.stroke(branches);
+        const { points, forks } = boltPaths(l);
+        const path = grownPath(points, l.grow);
+        const branches = new Path2D();
+        for (const fork of forks) if (l.grow > fork.at) branches.addPath(grownPath(fork.points, Math.min(1, (l.grow - fork.at) / (1 - fork.at))));
+        // A channel is as wide as the screen is tall allows: hairline on a
+        // phone tile, a real bolt across a desktop.
+        const w = Math.max(1, height / 520);
+        ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.shadowColor = `rgba(136,181,255,${alpha})`; ctx.shadowBlur = 22 * w;
+        ctx.strokeStyle = `rgba(154,193,255,${alpha * 0.6})`; ctx.lineWidth = 5 * w; ctx.stroke(path);
+        ctx.shadowBlur = 8 * w; ctx.strokeStyle = `rgba(240,247,255,${alpha})`; ctx.lineWidth = 1.8 * w; ctx.stroke(path);
+        ctx.lineWidth = 0.9 * w; ctx.stroke(branches);
         ctx.shadowBlur = 0;
-        if (f.impact) {
+        if (f.impact && l.grow >= 1) {
           const x = width * l.toX, y = height * l.toY, r = Math.min(width, height) * 0.09;
           const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
           glow.addColorStop(0, `rgba(226,238,255,${alpha * 0.55})`);

@@ -69,7 +69,7 @@ const RAIN_LEAN = 0.33;
 const SNOW_LEAN = 1.5;
 
 /** The meteor: the Sky's pace and bounds, in screen heights and seconds (shader.ts). */
-const METEOR = { speed: 1.6, minFlight: 0.45, maxFlight: 1.25, train: 0.2, fade: 0.14 } as const;
+const METEOR = { speed: 1.6, minFlight: 0.45, maxFlight: 1.25, train: 0.42, fade: 0.2 } as const;
 
 /** The fog wipe's mask, rows; columns follow the aspect. */
 const WIPE_ROWS = 128;
