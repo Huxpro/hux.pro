@@ -81,9 +81,12 @@ under `skin-apple:` (dual markup, never a hook):
 | music | medium | The cover a square the height of the card; beside it state, title, artist, and the transport as bare white glyphs. | Music, medium |
 | writing | medium | "Latest · date", the title as a 17pt semibold headline, the description. | News / Notes, medium |
 | writing | large | The newest post as that headline, then the rest as a list divided by inset hairlines. | Reminders / Notes lists; "larger sizes support additional layers of information" |
+| writing | large, xl | No scroll: the rows that fit, whole. Dates title-cased (`Apr 2020`, `Featured`). | "Widgets don't scroll" |
 | projects | medium | "Now · team", the project as the headline, what it is. | — |
-| talks | large | Covers up to 260px wide, so the card is built around one. | Podcasts, large |
-| prompts | medium | Unchanged — and its `*italic*` marks now render (the shared `components/prompt/marks.tsx`, lifted from /prompt), where they used to print as asterisks in both skins. | — |
+| projects | large | A list: a green dot on what is current, name, team, dates on the right, hairlines between. No timeline rail, no domains. | Reminders / Stocks lists |
+| talks | large | Up Next: the lead talk's cover with its title *under* it (covers carry their own lettering, so nothing is set on the art), then the next talks across the other albums as rows. No album tabs — a widget has no segmented control. | TV, large |
+| talks | xl | Covers across all albums, two rows of four once the cell is past ~130px; a talk in two albums shows once. | TV / Podcasts, extra large |
+| prompts | medium | The refresh as a tinted circle button in the accent, the attribution as "— on Being". `*italic*` marks render (the shared `components/prompt/marks.tsx`). | Shortcuts / widget buttons |
 
 White ink on a coloured tile is `ink="light"` on the shell plus a
 `.widget-backdrop` element: the backdrop draws only under Apple and not under
@@ -91,6 +94,22 @@ Clear, and `ink-scope` re-derives the whole text ladder from `--ink: #fff`
 there, so `text-muted-foreground` and the rest follow without a single
 hardcoded white. Under Clear the backdrop goes, the ink comes back, and album
 art keeps its colour — the HIG's one exception to desaturation.
+
+## Type
+
+Apple's text styles, at the sizes the HIG's type table gives them, live in
+`lib/apple-type.ts` (`APPLE.headline` 17/22 semibold, `subheadline` 15/20,
+`footnote` 13/18, `caption1` 12/16 …) — use a role, not a raw size. SF
+tracks every size (tight at display sizes, loose at 12pt and under); on an
+Apple device the system does it, elsewhere the fallback font is tracked by
+one rule fitted to the HIG table, `max(-0.45px, 0.96px − 0.082em)`, which
+stands down when `data-system-font` is on `<html>`. Board and icon names
+are `caption1` in label ink, as on the Home Screen.
+
+Separators are `--apple-separator` (the system's `separator` colour, light
+and dark) drawn as a half-pixel hairline, inset to the text. No widget
+scrolls under Apple: a scroll port (`data-scroll-port`) is clipped, and the
+list shows the rows that fit.
 
 ## The icon grid
 

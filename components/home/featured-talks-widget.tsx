@@ -17,7 +17,9 @@ import { buildTalkAlbums } from "@/systems/theater/lib/albums";
 import { Play } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { APPLE } from "@/lib/apple-type";
 import { TYPE } from "@/lib/typography";
+import type { Album, Track } from "@/systems/theater/lib/types";
 // ---------------------------------------------------------------------------
 // FeaturedTalksWidget — the combined "Featured Talks" home card, in three
 // sizes.
@@ -57,6 +59,33 @@ const THUMB_PRESS = cn(
   "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
 );
 
+/** A track and where it lives, so a press can open the theater on it. */
+interface Pick {
+  track: Track;
+  albumIndex: number;
+  trackIndex: number;
+}
+
+/**
+ * The albums interleaved — each album's first talk, then each one's second —
+ * so a card with no tabs still shows all of them, newest-curated first. A
+ * talk curated into two albums shows once, from the first that has it.
+ */
+function interleave(albums: Album[]): Pick[] {
+  const out: Pick[] = [];
+  const seen = new Set<string>();
+  const depth = Math.max(0, ...albums.map((a) => a.tracks.length));
+  for (let ti = 0; ti < depth; ti++) {
+    albums.forEach((album, albumIndex) => {
+      const track = album.tracks[ti];
+      if (!track || seen.has(track.id)) return;
+      seen.add(track.id);
+      out.push({ track, albumIndex, trackIndex: ti });
+    });
+  }
+  return out;
+}
+
 export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
   const { locale } = useLocale();
   const { open } = useTheater();
@@ -74,6 +103,13 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
   }, [activeAlbum, scrollTo]);
 
   if (albums.length === 0 || !album) return null;
+
+  // Apple skin: no tabs and no strip. A widget has no scroll gesture and
+  // no segmented control — "avoid creating app-like layouts" — so the card
+  // shows a choice across the albums instead of a browser of one.
+  const picks = interleave(albums);
+  const openPick = (p: Pick) =>
+    open({ albums, albumIndex: p.albumIndex, trackIndex: p.trackIndex });
 
   // ---------------------------------------------------------------------------
   // medium — one talk
@@ -133,7 +169,7 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
           <WidgetLink href={TALKS_HREF} />
         </WidgetHeader>
 
-        <div className="px-(--widget-pad) pb-3">
+        <div className="px-(--widget-pad) pb-3 skin-apple:hidden">
           <AlbumTabs
             albums={albums}
             activeIndex={activeAlbum}
@@ -142,7 +178,31 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
           />
         </div>
 
-        <WidgetBody fill className="justify-center">
+        {/* Apple skin: covers across the albums, two rows of four once the
+            cell is past ~130px (Apple's 16px margins leave the room Classic's
+            tabs took), each with its title and where it was given. */}
+        <WidgetBody fill className="hidden justify-center skin-apple:flex">
+          <div className="grid grid-cols-4 gap-x-3 gap-y-3 overflow-hidden [&>*:nth-child(n+5)]:hidden @min-[560px]:[&>*:nth-child(n+5)]:block">
+            {picks.slice(0, GALLERY_MAX).map((p) => (
+              <button
+                key={p.track.id}
+                type="button"
+                onClick={() => openPick(p)}
+                className={cn(THUMB_PRESS, "min-w-0")}
+              >
+                <TrackThumb track={p.track} />
+                <div className={cn("mt-2 truncate text-foreground", APPLE.footnoteEmph)}>
+                  {p.track.title}
+                </div>
+                <div className={cn("truncate text-muted-foreground", APPLE.footnote)}>
+                  {p.track.subtitle ?? albums[p.albumIndex].title}
+                </div>
+              </button>
+            ))}
+          </div>
+        </WidgetBody>
+
+        <WidgetBody fill className="justify-center skin-apple:hidden">
           <div
             className={cn(
               "grid grid-cols-4 gap-3 overflow-hidden",
@@ -191,7 +251,7 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
       {/* Tabs and thumbs are sibling press surfaces. The shell is
           `group/widget`; AlbumTabs is `group/glass`. A finger on a
           thumbnail must not deepen the segmented control. */}
-      <div className="px-(--widget-pad) pb-3">
+      <div className="px-(--widget-pad) pb-3 skin-apple:hidden">
         <AlbumTabs
           albums={albums}
           activeIndex={activeAlbum}
@@ -200,7 +260,55 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
         />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col justify-center pb-5">
+      {/* Apple skin: Up Next. The lead talk as a cover with its title under
+          it, then the next across the other albums as rows — the TV app's
+          large widget, which is the same problem: a shelf of video and no
+          room to browse it. Titles sit under the art, never on it: talk
+          covers carry their own lettering. The rows wrap into a clipped
+          second column rather than show half a row when the cell is short. */}
+      <WidgetBody fill className="hidden skin-apple:flex">
+        {picks[0] && (
+          <button
+            type="button"
+            onClick={() => openPick(picks[0])}
+            className={cn(THUMB_PRESS, "block shrink-0")}
+          >
+            <TrackThumb track={picks[0].track} className="rounded-[10px] border-0" />
+            <div className={cn("mt-2 truncate text-foreground", APPLE.subheadlineEmph)}>
+              {picks[0].track.title}
+            </div>
+            <div className={cn("truncate text-muted-foreground", APPLE.footnote)}>
+              {picks[0].track.subtitle ?? albums[picks[0].albumIndex].title}
+            </div>
+          </button>
+        )}
+        <div className="mt-1.5 flex min-h-0 flex-1 flex-col flex-wrap content-start overflow-hidden">
+          {picks.slice(1, 4).map((p) => (
+            <button
+              key={p.track.id}
+              type="button"
+              onClick={() => openPick(p)}
+              className={cn(
+                THUMB_PRESS,
+                "relative flex w-full items-center gap-3 rounded-lg py-1.5",
+                "after:absolute after:inset-x-0 after:top-0 after:h-px after:origin-top after:scale-y-50 after:bg-(--apple-separator)",
+              )}
+            >
+              <TrackThumb track={p.track} className="w-16 shrink-0 rounded-md border-0" />
+              <div className="min-w-0 flex-1">
+                <div className={cn("truncate text-foreground", APPLE.footnoteEmph)}>
+                  {p.track.title}
+                </div>
+                <div className={cn("truncate text-muted-foreground", APPLE.footnote)}>
+                  {p.track.subtitle ?? albums[p.albumIndex].title}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </WidgetBody>
+
+      <div className="flex min-h-0 flex-1 flex-col justify-center pb-5 skin-apple:hidden">
         <div
           ref={scrollRef}
           className={cn(

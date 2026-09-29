@@ -337,6 +337,7 @@ export function WidgetScrollBody({
   return (
     <div className={cn("px-(--widget-pad)", fill && "flex min-h-0 flex-1 flex-col")}>
       <div
+        data-scroll-port={port ? "" : undefined}
         className={cn(
           "relative -mx-2 px-2 pb-3 overflow-hidden no-scrollbar",
           // In a cell the list is as tall as the box, not as its rows, so
