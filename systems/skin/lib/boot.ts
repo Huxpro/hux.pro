@@ -6,6 +6,8 @@
 
 export const SKIN_STORAGE_KEY = "hux_skin";
 export const SCHEME_STYLE_STORAGE_KEY = "hux_skin_style";
+/** Which colour option seeds the palette (services/skin.tsx, `SeedChoice`). */
+export const SEED_STORAGE_KEY = "hux_skin_seed";
 
 /**
  * Runs in <head> before first paint: the stored skin and colour style onto
