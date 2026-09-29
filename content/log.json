@@ -188,8 +188,9 @@
       "commitIds": [
         "react-universe-2025-two-threads",
         "react-universe-2025-interview",
+        "d2-2025-lynx",
         "react-summit-2025-unlock-native",
-        "d2-2025-lynx"
+        "wad-2025-lynx-native"
       ]
     },
     {
@@ -567,6 +568,9 @@
         "zh": "WeAreDevelopers World Congress 上的动手工作坊与黑客松。用 Lynx 一次 vibe code，把同一套应用带到 Web、移动端和桌面；并讨论 AI 原生应用基建：对 AI 友好、对 token 经济、对意图表达。"
       },
       "date": "2026-07",
+      "about": [
+        "lynx-framework"
+      ],
       "conference": {
         "name": "WeAreDevelopers World Congress",
         "city": "Berlin, Germany",
@@ -607,6 +611,9 @@
         "zh": "AI 正在改变应用如何被构建，却还没改变它们构建在什么之上。没有跨平台框架，Agent 就得为每个平台分别生成、验证和维护代码。这次演讲介绍 Lynx，以及 AI 原生应用基建的三条原则：对 AI 友好、对 token 经济、对意图表达，并以两周 vibe code 出的 vue-lynx 作为演示。"
       },
       "date": "2026-05",
+      "about": [
+        "lynx-framework"
+      ],
       "conference": {
         "name": "GOSIM Paris 2026",
         "city": "Paris, France",
@@ -649,6 +656,11 @@
         "zh": "《React for Two Threads》的中文场。讲 Lynx 的双线程 React、瞬时首帧渲染，以及当 UI 线程成为一等公民之后会涌现什么。与甄子琦、王浩阳一起。"
       },
       "date": "2025-11",
+      "editionOf": "react-universe-2025-two-threads",
+      "edition": {
+        "en": "Chinese edition",
+        "zh": "中文版"
+      },
       "conference": {
         "name": "SEE Conf 2025",
         "city": "Hangzhou, China",
@@ -684,6 +696,11 @@
         "zh": "TikTok 投入生产的 UI 框架 Lynx，用来消解单线程瓶颈。用标准 JavaScript 与 CSS 渲染丝滑、真正原生的移动端原语，而不是套一层迟滞的 WebView。"
       },
       "date": "2025-07",
+      "editionOf": "react-summit-2025-unlock-native",
+      "edition": {
+        "en": "Re-run",
+        "zh": "重讲"
+      },
       "conference": {
         "name": "WeAreDevelopers World Congress",
         "city": "Berlin, Germany",
@@ -723,6 +740,9 @@
         "zh": "伴随终端业务的成熟和碎片化，跨端已成为众多开发者和企业的首选。但同时，UI 框架的创新在收敛，跨端思路大同小异，市场格局趋于固化。在这个背景下，字节孕育多年的跨端技术 —— Lynx，为何决定走向开源？本演讲将揭开 Lynx 的“神秘面纱”，与你一同探寻跨端的洞见与未来。"
       },
       "date": "2025-03",
+      "about": [
+        "lynx-framework"
+      ],
       "conference": {
         "name": "第 19 届 D2 终端技术大会",
         "url": "https://d2.alibabatech.com/"
@@ -754,6 +774,11 @@
         "zh": "Lynx 是 TikTok 应用采用的全新跨平台技术栈，让团队用 CSS、React 等既有的 Web 技能，从同一套代码交付面向移动端与 Web 的真正原生 UI，并已于近期开源。本次演讲将探讨 Lynx 为何既熟悉又与众不同，深入其双线程架构，看它如何带来瞬时启动与丝滑交互，并预告 Lynx 的下一步。"
       },
       "date": "2025-06",
+      "editionOf": "d2-2025-lynx",
+      "edition": {
+        "en": "Debut abroad",
+        "zh": "海外首发"
+      },
       "conference": {
         "name": "React Summit",
         "city": "Amsterdam, Netherlands",
@@ -792,6 +817,10 @@
         "zh": "十多年来，我们身处这样一个宇宙：在客户端用 React 编写 UI，从事件处理到渲染，始终由单一 JavaScript 线程主宰。但如果 React 生来不同呢？如果从第一天起，它就被设计为彻底拥抱两个线程呢？这会解锁哪些收益？我们又会面临什么挑战？会涌现出哪些新特性、抽象与范式？而这一切如果不只是想象，而是今天已然存在的现实呢？"
       },
       "date": "2025-09",
+      "about": [
+        "react-lynx",
+        "react-core"
+      ],
       "conference": {
         "name": "React Universe Conf",
         "city": "Wrocław, Poland",
@@ -825,6 +854,10 @@
         "zh": "在 React Universe 大会接受 Callstack 的访谈，聊 React Native 之外的 Lynx：可以直接从 Web 搬过来的原生 CSS；让原生 UI 与 React 视图保持同步、并能在主线程上交互的双线程模型（BTS/MTS）；作为一种规范的 React；社区把 Vue 和 Svelte 带到 Lynx 上；以及 Lynx 在字节支撑的小程序生态。"
       },
       "date": "2025-09",
+      "about": [
+        "react-lynx",
+        "react-core"
+      ],
       "conference": {
         "name": "React Universe Conf",
         "city": "Wrocław, Poland",
@@ -857,6 +890,9 @@
         "zh": "开箱即用的组件对于高速、规模化地交付用户界面至关重要。让我们隆重介绍 lynx-ui —— TikTok 背后 Lynx 跨平台技术家族的最新成员。借助 Lynx 的双线程架构，它带来高性能与原生级的交互体验。一起来了解我们如何构建它，以及它如何让 Lynx 更快地扩展到海量产品之中。"
       },
       "date": "2025-11",
+      "about": [
+        "lynx-ui"
+      ],
       "conference": {
         "name": "React Advanced London",
         "city": "London, UK",
@@ -890,6 +926,9 @@
         "zh": "React Advanced London 上的圆桌讨论，探讨跨平台 UI 的愿景与现实——一次编写，在各端原生渲染。"
       },
       "date": "2025-11",
+      "about": [
+        "lynx-framework"
+      ],
       "conference": {
         "name": "React Advanced London",
         "city": "London, UK",
@@ -927,6 +966,11 @@
         "zh": "作为岗位的前端或许会消亡，但作为人机交互纽带的前端不会。"
       },
       "date": "2024-01",
+      "editionOf": "feday-2023",
+      "edition": {
+        "en": "Revised",
+        "zh": "升级版"
+      },
       "conference": {
         "name": "掘金年度技术演讲 2023",
         "city": "Shenzhen, China",
@@ -978,6 +1022,68 @@
       "language": "zh"
     },
     {
+      "id": "lynx-ui",
+      "type": "project",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "lynx-ui",
+        "zh": "lynx-ui"
+      },
+      "description": {
+        "en": "Ready-to-use components for Lynx, the newest member of the family.",
+        "zh": "Lynx 的开箱即用组件库，家族里最新的成员。"
+      },
+      "date": "2024-01",
+      "endDate": "present",
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://github.com/lynx-family/lynx-ui",
+          "present": "card"
+        }
+      ],
+      "tags": [
+        "Lynx",
+        "Design System",
+        "Components"
+      ],
+      "about": [
+        "lynx-framework"
+      ],
+      "branch": "ui"
+    },
+    {
+      "id": "react-lynx",
+      "type": "project",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "ReactLynx",
+        "zh": "ReactLynx"
+      },
+      "description": {
+        "en": "React for Lynx, and the dual-threaded React it is built on. Taken to the React community as React for Two Threads.",
+        "zh": "Lynx 上的 React，以及它背后的双线程 React。以「双线程的 React」为题带给 React 社区。"
+      },
+      "date": "2023-02",
+      "endDate": "present",
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://github.com/lynx-family/lynx-stack",
+          "present": "card"
+        }
+      ],
+      "tags": [
+        "React",
+        "Lynx",
+        "Architecture"
+      ],
+      "about": [
+        "lynx-framework"
+      ],
+      "branch": "react"
+    },
+    {
       "id": "lynx-framework",
       "type": "project",
       "tagId": "lynx-era",
@@ -985,6 +1091,7 @@
         "en": "Lynx Framework",
         "zh": "Lynx 框架"
       },
+      "branch": "lynx",
       "description": {
         "en": "Open-source cross-platform UI framework behind TikTok, Douyin, and CapCut. Familiar React and CSS, native rendering, dual-threaded architecture — instant launch and main-thread interactivity. Open-sourced in March 2025.",
         "zh": "支撑 TikTok、抖音、CapCut 的开源跨平台 UI 框架。熟悉的 React 与 CSS、原生渲染、双线程架构——瞬时启动与主线程交互。2025 年 3 月开源。"
@@ -1118,7 +1225,6 @@
       "id": "reactconf-2021-memo",
       "type": "talk",
       "tagId": "react-era",
-      "attachedTo": "react-core",
       "title": {
         "en": "React without memo",
         "zh": "React without memo"
@@ -1128,6 +1234,9 @@
         "zh": "React Forget（现 React Compiler）的首次公开演讲：一个自动记忆化编译器，让你可以不用手写 memo、useMemo 和 useCallback。"
       },
       "date": "2021-09",
+      "about": [
+        "react-core"
+      ],
       "conference": {
         "name": "React Conf 2021",
         "city": "Online",
@@ -1205,6 +1314,7 @@
         "en": "React Compiler (Forget)",
         "zh": "React Compiler（Forget）"
       },
+      "branch": "react-compiler",
       "description": {
         "en": "Founding engineer of the React Compiler (formerly Forget), the auto-memoization compiler that reshapes React's authoring model.",
         "zh": "React Compiler（原名 Forget）的联合创始工程师 —— 重塑 React 编写模型的自动记忆化编译器。"

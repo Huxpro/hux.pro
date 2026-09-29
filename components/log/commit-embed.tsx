@@ -65,6 +65,23 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
+  /**
+   * Print the row in the quiet voice with this line while it is folded,
+   * whatever the commit's own `present` says. An edition uses it: on the
+   * main timeline and inside its original it is one line until opened.
+   */
+  foldedLine?: string;
+  /** Timeline-only, see `TimelineCommit`. */
+  nested?: boolean;
+  pointer?: "up" | "down";
+  onPress?: () => void;
+  anchorId?: string | null;
+  children?: ReactNode;
+  evidence?: ReactNode;
+  childrenLabel?: string;
+  reveal?: number;
+  graph?: { col: number; cols: number };
+  decoration?: { name: string; active: boolean };
 }
 
 // =============================================================================
@@ -87,6 +104,17 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  foldedLine,
+  nested,
+  pointer,
+  onPress,
+  anchorId,
+  children,
+  evidence,
+  childrenLabel,
+  reveal,
+  graph,
+  decoration,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -105,10 +133,13 @@ export function Commit({
   // these changes with it. The peek is built only where a pointer can rest
   // on it — a phone would build and discard one per row.
   const { magneticPreviewEnabled } = useInputCapability();
-  const data = useMemo(
-    () => (commit ? normalizeCommit(commit, locale) : null),
-    [commit, locale],
-  );
+  const data = useMemo(() => {
+    if (!commit) return null;
+    const normalized = normalizeCommit(commit, locale);
+    return foldedLine
+      ? { ...normalized, present: "aside" as const, foldedTitle: foldedLine }
+      : normalized;
+  }, [commit, locale, foldedLine]);
   const preview = useMemo(
     () =>
       commit && magneticPreviewEnabled
@@ -173,7 +204,18 @@ export function Commit({
           onInspectCommit={onInspectCommit}
           onInspectMedia={onInspectMedia}
           selectedMedia={selectedMedia}
-        />
+          nested={nested}
+          pointer={pointer}
+          onPress={onPress}
+          anchorId={anchorId}
+          evidence={evidence}
+          childrenLabel={childrenLabel}
+          reveal={reveal}
+          graph={graph}
+          decoration={decoration}
+        >
+          {children}
+        </TimelineCommit>
       );
 
     case "card":

@@ -62,7 +62,14 @@ import {
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import { GalleryVertical, GitBranch, LayoutList, List, X } from "lucide-react";
+import {
+  GalleryVertical,
+  GitBranch,
+  GitGraph,
+  LayoutList,
+  List,
+  X,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/ui/controls";
@@ -104,6 +111,9 @@ interface WorksToolbarProps {
   onClearTypes: () => void;
   form: LogForm;
   onFormChange: (form: LogForm) => void;
+  /** `--graph`: projects drawn as lanes (lib/log-graph.ts). */
+  graph: boolean;
+  onGraphChange: (graph: boolean) => void;
   /** The chapters on the page, in order, with the marker each wears. */
   chapters: readonly { id: string; label: string }[];
 }
@@ -155,6 +165,8 @@ export function WorksToolbar({
   onClearTypes,
   form,
   onFormChange,
+  graph,
+  onGraphChange,
   chapters,
 }: WorksToolbarProps) {
   const filtering = active.length > 0;
@@ -350,6 +362,26 @@ export function WorksToolbar({
               };
             })}
           />
+
+          {/* `--graph`. Not a fourth form: a form is how much of each row
+              prints, and the graph is how rows relate, so it combines with
+              any of them. A toggle, pressed the way a type chip is. */}
+          <button
+            type="button"
+            onClick={() => onGraphChange(!graph)}
+            aria-pressed={graph}
+            aria-label={t(locale, "logGraph")}
+            title={t(locale, "logGraph")}
+            className={cn(
+              "inline-flex shrink-0 items-center justify-center rounded p-1",
+              "transition-colors duration-200",
+              graph
+                ? "bg-muted text-foreground"
+                : "text-tertiary-foreground hover:text-foreground",
+            )}
+          >
+            <GitGraph className="h-3.5 w-3.5" />
+          </button>
         </motion.div>
       </div>
     </div>

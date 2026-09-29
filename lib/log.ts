@@ -382,6 +382,35 @@ interface BaseCommit {
    * and on a type with no venue — a project has none, and prints its title.
    */
   asideLine?: AsideLine;
+  /**
+   * Another telling of the same work: the Chinese edition of a talk, the
+   * same talk given again at another conference, a revised version a few
+   * months later. Points at the commit it is an edition of.
+   *
+   * On /works the original row holds its editions, and each edition keeps
+   * a quiet line at its own date that takes you there
+   * (lib/log-threads.ts). Everywhere else an edition is an ordinary
+   * commit: it can still be featured, embedded and linked on its own.
+   */
+  editionOf?: string;
+  /**
+   * What this edition is, relative to the original: `中文版`, `海外首发`,
+   * `升级版`. Printed next to the venue wherever the edition is named.
+   * Optional; without it the venue says enough.
+   */
+  edition?: LocalizedString;
+  /**
+   * The projects this commit is about, by id. The first one is where it
+   * belongs: the talk that introduced a release, the post that explained a
+   * project. Any others are projects it also touches (React for Two
+   * Threads is about Lynx first, and React too).
+   *
+   * A project that other work points at is how a release looks: there is
+   * no release type. On /works the project holds that work and each piece
+   * keeps a quiet line at its own date (lib/log-threads.ts). Everywhere
+   * else the work is an ordinary commit, featured and embedded on its own.
+   */
+  about?: string[];
 }
 
 /** Timeline row dressing. Orthogonal to {@link CommitType}. */
@@ -416,6 +445,13 @@ export type CommitLanguage = "en" | "zh" | "both";
 
 export interface ProjectCommit extends BaseCommit {
   type: "project";
+  /**
+   * What the graph view calls this project's lane, as a git branch:
+   * `lynx`, `react`, `ui`. Only the last segment; a project that is
+   * about another one gets its parent's name in front (`lynx/ui`). Absent,
+   * it is made from the English title.
+   */
+  branch?: string;
   stats?: {
     stars?: number;
     downloads?: string;
@@ -1073,6 +1109,23 @@ export function matchesTypeFilter(
     isFilterableCommitType(commit.type) &&
     active.includes(commit.type)
   );
+}
+
+/**
+ * Where the work happened: the conference, the publication, the platform.
+ * A project, a role and an event have no venue.
+ */
+export function commitVenue(commit: Commit): string | undefined {
+  switch (commit.type) {
+    case "talk":
+      return commit.conference.name;
+    case "post":
+      return commit.publication.name;
+    case "press":
+      return commit.platform;
+    default:
+      return undefined;
+  }
 }
 
 /**

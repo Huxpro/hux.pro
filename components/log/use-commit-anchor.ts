@@ -59,12 +59,37 @@ function mark(el: HTMLElement) {
   );
 }
 
+/**
+ * Rows that exist but are not mounted yet: an edition lives inside its
+ * original, and the original only lists it once it is open. A timeline
+ * registers a revealer that opens whatever holds `hash` and renders it
+ * synchronously (flushSync), then says whether it did.
+ */
+const revealers = new Set<(hash: string) => boolean>();
+
+export function registerCommitRevealer(
+  reveal: (hash: string) => boolean,
+): () => void {
+  revealers.add(reveal);
+  return () => {
+    revealers.delete(reveal);
+  };
+}
+
 /** A commit hash is 7 hex characters — see `computeCommitHash`. */
 function rowFor(hash: string): HTMLElement | null {
   const id = hash.replace(/^#/, "");
   if (!/^[0-9a-f]{7}$/.test(id)) return null;
-  const el = document.getElementById(id);
-  return el?.hasAttribute("data-rail-row") ? (el as HTMLElement) : null;
+  const find = () => {
+    const el = document.getElementById(id);
+    return el?.hasAttribute("data-rail-row") ? (el as HTMLElement) : null;
+  };
+  const found = find();
+  if (found) return found;
+  for (const reveal of revealers) {
+    if (reveal(id)) return find();
+  }
+  return null;
 }
 
 /**
@@ -81,7 +106,22 @@ export function useCommitAnchor(): (hash: string) => void {
     (el: HTMLElement) => {
       stopRef.current();
 
-      const to = Math.max(0, pageOffsetOf(el) - HEADROOM);
+      // A row nested in another (an edition in its original) means little
+      // without the row around it. Bring the outer row's title to the top
+      // when the nested one still fits on screen below it; the mark goes on
+      // the nested row either way.
+      let frame = el;
+      for (
+        let outer = el.parentElement?.closest<HTMLElement>("[data-rail-row]");
+        outer;
+        outer = outer.parentElement?.closest<HTMLElement>("[data-rail-row]")
+      ) {
+        const bottom = pageOffsetOf(el) + el.offsetHeight;
+        if (bottom - pageOffsetOf(outer) > window.innerHeight - HEADROOM) break;
+        frame = outer;
+      }
+
+      const to = Math.max(0, pageOffsetOf(frame) - HEADROOM);
       const from = pageScrollTop();
 
       const land = () => {

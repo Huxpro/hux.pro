@@ -79,6 +79,20 @@
     "siteName": "GitHub",
     "frame": "deny"
   },
+  "https://github.com/lynx-family/lynx-stack": {
+    "title": "GitHub - lynx-family/lynx-stack: The frontend framework and toolchain of Lynx",
+    "description": "The frontend framework and toolchain of Lynx. Contribute to lynx-family/lynx-stack development by creating an account on GitHub.",
+    "image": "https://opengraph.githubassets.com/82ee5b7fa0fc18dd660ae1c1ba24037be32b809bc67738e4d111d49b2f77f5a3/lynx-family/lynx-stack",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
+  "https://github.com/lynx-family/lynx-ui": {
+    "title": "GitHub - lynx-family/lynx-ui: Out-of-the-box Lynx Component Library",
+    "description": "Out-of-the-box Lynx Component Library. Contribute to lynx-family/lynx-ui development by creating an account on GitHub.",
+    "image": "https://opengraph.githubassets.com/9a7f45cda286352917b484582f4558374e529f9b35f21d5a9c5efcbec474ee35/lynx-family/lynx-ui",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
   "https://gitnation.com/contents/lynx-ui-dual-threaded-ui-with-lynx": {
     "title": "lynx-ui: Best Lynx in Components",
     "description": "Shun discusses challenges in building React components for production, especially for mobile web; explores building complex mobile apps like TikTok with LYNX technology; introduces Lynx UI components for native user experiences; showcases customizable interactions with Lynx UI, including custom animation with MTS logic; demonstrates building composable dialog components and customizable design integration; extends Design System to TikTok with MotionJS adaptation and sponsorship announcement; introduces LYNX UI Theme LUNA and upcoming multi-platform app release.",

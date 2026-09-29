@@ -23,6 +23,7 @@ import {
   resolveGroupCommits,
   sortCommitsByDate,
 } from "@/lib/log";
+import { workAbout } from "@/lib/log-threads";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
 import { t } from "@/lib/i18n";
 import { resolveVideoId } from "./player";
@@ -88,7 +89,16 @@ export function buildTalkAlbums(locale: Locale): Album[] {
       undefined,
       locale,
     );
-    const tracks = commits
+    // A group can name a release (a project) rather than its talks; the
+    // album plays what is inside it.
+    const expanded = commits.flatMap((c) =>
+      c.type === "project"
+        ? workAbout(c.id, log.commits as Commit[]).filter((w) =>
+            isCommitVisibleIn(w, locale),
+          )
+        : [c],
+    );
+    const tracks = expanded
       .map((c) => commitToTrack(c, locale))
       .filter((t): t is Track => t !== null);
     if (tracks.length === 0) continue;
