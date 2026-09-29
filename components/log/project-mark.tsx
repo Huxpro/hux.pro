@@ -39,7 +39,11 @@ export function ProjectMark({
         draggable={false}
         className={cn(
           "block shrink-0 select-none overflow-hidden",
-          icon.fill ? "object-cover" : "bg-white object-contain p-[8%]",
+          // The plate's inset is in `em`, never `%`: a percentage padding
+          // is of the containing block's width, and on a 32px icon in a
+          // 300px cell it grew the box to 48px and left no content box for
+          // the image to draw in. The caller's font size sets it.
+          icon.fill ? "object-cover" : "bg-white object-contain p-[0.12em]",
           className,
         )}
       />
