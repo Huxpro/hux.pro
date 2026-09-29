@@ -109,7 +109,7 @@ export function WeatherWidget() {
               ) : (
                 <span
                   aria-hidden="true"
-                  className="shrink-0 rounded-[4px] bg-muted px-1 font-mono text-[10px] leading-[14px] text-tertiary-foreground transition-colors duration-150 group-hover/ip:text-foreground group-active/ip:text-foreground"
+                  className="shrink-0 rounded-[4px] bg-muted px-1 font-mono text-[10px] leading-[14px] text-tertiary-foreground transition-colors duration-150 group-hover/ip:text-foreground group-active/ip:text-foreground m3:rounded-full m3:bg-(--md-surface-container-highest) m3:px-1.5 m3:text-[11px] m3:font-medium m3:leading-4 m3:text-(--md-on-surface-variant)"
                 >
                   ip
                 </span>
