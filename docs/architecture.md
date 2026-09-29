@@ -84,6 +84,70 @@ Command palette for keyboard-first navigation.
 ### [Devtool System](./system-devtool.md)
 Developer tools for debugging ambient state.
 
+### Home Widget Grid (`components/ui/sortable-masonry.tsx`)
+
+The homepage widget grid is an iPad-springboard surface where **placement is
+explicit**: the layout is one list of widget IDs *per column* (`string[][]`),
+not one flat sequence.
+
+- A column is exactly as tall as what the visitor put in it. The middle column
+  can be the tallest, a column can be left empty, and nothing reflows into a
+  neighbour on its own. (It used to be CSS `columns`, which auto-balances
+  column heights — a widget's column was *derived* from the running height,
+  never chosen, so "make the middle column taller" wasn't expressible.)
+- **Every widget keeps its DOM node, in one stable parent, forever.** The grid
+  is a single relative container; cards are absolutely positioned and move by
+  `transform` alone, so React never reorders or reparents them. This is
+  load-bearing, not an optimisation: widgets own live, stateful DOM (the talks
+  widget hosts the theater's persistent YouTube player node, the app folder
+  portals its own drag overlay), and unmounting that mid-drag threw
+  `removeChild` / update-depth errors that took the page down.
+- Card heights come from a `ResizeObserver`, so a widget that grows (an image
+  loading, weather arriving) just pushes the cards under it down.
+- Only `y` is measured. A card's width and horizontal position are `calc()`s
+  of the grid's width (`(100% - gutters) / columns` wide, stepping one column
+  per `100% + gap` of its own width), and JS supplies just the column index and
+  count — so resizing the window can never paint a card outside the grid while
+  a measurement catches up. A column-count change re-derives the layout in a
+  layout effect, before the browser paints.
+- Cards glide (240ms `transform`) when the layout is rearranged or a widget
+  above them changes height. Two exceptions snap: the first positioned paint
+  (transitions come on two frames later, so nothing flies in from the corner),
+  and a column-count change (cards change index *and* width at once, so a
+  glide would sweep them past the grid's edge).
+- Drop placement is computed from our own geometry — the pointer against the
+  measured slots — not from dnd-kit droppables, so nothing about the drag
+  depends on dnd-kit re-measuring a grid that is moving underneath it. Since
+  the slots already include the held card's own slot, insertion is naturally
+  hysteretic: a card changes places only once the pointer crosses a
+  neighbour's midpoint, so the layout settles instead of flip-flopping.
+- The layout follows the drag live, so it is snapshotted at pickup: Escape
+  restores the snapshot, and a drop saves only if the layout actually changed
+  (writing the default back would mark that width "arranged").
+- Arrow keys move a held card one *place* per press: sideways to the next
+  column's centre, and vertically to just past the neighbour's midpoint. Known
+  limitation: dnd-kit's `KeyboardSensor` attaches its keydown listener in a
+  `setTimeout`, so on a page whose main thread is busy (the animated wallpaper
+  can delay a zero-delay timer by ~200ms) an arrow pressed immediately after
+  pickup can be missed.
+- dnd-kit still provides the sensors (mouse drags at once, touch needs a
+  long-press so swipes still scroll), the activation constraints and the
+  lifted `DragOverlay` clone. It must be told to measure draggables with
+  `getClientRect`: its default is *transform-agnostic*, and since a card's
+  position is nothing but a transform, the default would put every card at the
+  container's top-left and the lifted clone a whole slot away from the cursor.
+- Layouts persist per column count under `localStorage["hux_widget_order"]`
+  (`{ v: 2, cols: { "1" | "2" | "3" | "4": string[][] } }`; the legacy flat v1 array
+  is still read). An unvisited width inherits the widest arranged one rather
+  than snapping back to the default.
+- A legacy v1 order is chunked into columns by *count*, while CSS multi-column
+  balanced by *height*, so a visitor who arranged the grid before this landed
+  keeps their sequence but may see it distributed a little differently on the
+  first load. `Reset` puts them back on the default.
+- Before the cards have been measured (and with JS off) the grid renders as a
+  plain CSS multi-column in declaration order — same container, same children,
+  only the styling differs, so switching modes costs no remount.
+
 ## Import Conventions
 
 ```typescript
