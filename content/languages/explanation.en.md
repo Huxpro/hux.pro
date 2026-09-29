@@ -1,9 +1,3 @@
-{/*
-  The notes under the chart at /languages — the "Explanation" that sat under
-  the original PL chart (github.com/Huxpro/PL-chart), kept word for word.
-  The chart's own data is content/languages.json.
-*/}
-
 ## Explanation
 
 I know comparisons on PLs could be very controversial, but I want to make clear that this chart is **intentionally biased** to represent **my world of view**.

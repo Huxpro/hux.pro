@@ -4,7 +4,7 @@ import { Fragment } from "react";
 import {
   AXES,
   SCALE_MAX,
-  inkFor,
+  absColor,
   inlineMarks,
   isTodo,
   plainText,
@@ -135,9 +135,11 @@ function Meter({
 
 function NoteHead({
   language,
+  locale,
   interactive,
 }: {
   language: Language;
+  locale: Locale;
   interactive: boolean;
 }) {
   return (
@@ -146,7 +148,7 @@ function NoteHead({
         {language.emoji}
       </span>
       <h3 className="text-[15px] font-medium leading-6 text-foreground">
-        <InlineMarks source={language.title} interactive={interactive} />
+        <InlineMarks source={language.title[locale]} interactive={interactive} />
       </h3>
     </div>
   );
@@ -160,7 +162,7 @@ function Placement({ language, locale }: { language: Language; locale: Locale })
       <Meter
         label={AXES.abs.name[locale]}
         value={language.abs}
-        ink={inkFor(language.abs)}
+        ink={absColor(language.abs)}
         detail={tierOf(language.abs).label[locale]}
       />
     </dl>
@@ -188,19 +190,19 @@ export function LanguageNote({
   return (
     <div id={id} className={cn("space-y-4", className)}>
       {head === "full" ? (
-        <NoteHead language={language} interactive />
+        <NoteHead language={language} locale={locale} interactive />
       ) : (
-        <p lang="en" className={TYPE.caption}>
-          <InlineMarks source={language.title} />
+        <p className={TYPE.caption}>
+          <InlineMarks source={language.title[locale]} />
         </p>
       )}
       <Placement language={language} locale={locale} />
-      {/* My words, in English whatever the locale — set as a document:
-          selectable, links that preview. */}
-      <div lang="en" className="space-y-3">
-        {language.notes.map((note, i) =>
+      {/* My words, set as a document: selectable, links that preview. */}
+      <div lang={locale} className="space-y-3">
+        {language.notes[locale].map((note, i) =>
           isTodo(note) ? (
-            <p key={i} className={TYPE.aside}>
+            // Upright in Chinese: the CJK serif has no oblique (lib/typography).
+            <p key={i} className={cn(TYPE.aside, "[&:lang(zh)]:not-italic")}>
               <InlineMarks source={note} />
             </p>
           ) : (
@@ -225,13 +227,13 @@ export function LanguagePeek({
   language: Language;
   locale: Locale;
 }) {
-  const first = language.notes.find((n) => !isTodo(n));
+  const first = language.notes[locale].find((n) => !isTodo(n));
   return (
     <div className="w-80 space-y-3 p-1">
-      <NoteHead language={language} interactive={false} />
+      <NoteHead language={language} locale={locale} interactive={false} />
       <Placement language={language} locale={locale} />
       {first && (
-        <p lang="en" className={cn(TYPE.caption, "line-clamp-4")}>
+        <p lang={locale} className={cn(TYPE.caption, "line-clamp-4")}>
           {plainText(first)}
         </p>
       )}

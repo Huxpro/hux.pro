@@ -15,9 +15,11 @@ import type { Locale } from "@/lib/i18n";
 // chart (github.com/Huxpro/PL-chart) with nothing dropped: the axes' four
 // named steps, the tier each abstraction level stood for (comments in the
 // old source, named here), every note, and the entry that was commented out
-// (`drafts`, not plotted). Notes are English whatever the locale — they are
-// my words, not UI — and carry three inline marks, parsed by `inlineMarks`:
-// `[text](url)`, `*italic*` and `` `code` ``.
+// (`drafts`, not plotted). Every heading and note is written in both
+// languages (`title.en` / `title.zh`, `notes.en` / `notes.zh`: the same
+// paragraphs, the same links), and carries three inline marks, parsed by
+// `inlineMarks`: `[text](url)`, `*italic*` and `` `code` ``. The explanation
+// under the chart is content/languages/explanation.<locale>.md.
 // =============================================================================
 
 export type Bilingual = Record<Locale, string>;
@@ -45,16 +47,17 @@ export interface Language {
   name: string;
   /** The glyph the note opens with. */
   emoji: string;
-  /** The note's heading, with its links. */
-  title: string;
+  /** The note's heading, with its links, per locale. */
+  title: Bilingual;
   /** Abstraction level, 0 (bare metal) – 9 (pure). */
   abs: number;
   /** Interestingness, 0 (boring) – 9 (mind-blown). */
   i13s: number;
   /** Experience, 0 (little) – 9 (language lawyer). */
   exp: number;
-  /** Paragraphs. One that opens with `TBD` is a note still to be written. */
-  notes: string[];
+  /** Paragraphs, per locale — the same paragraphs, with the same links, in
+   *  each. One that opens with `TBD` is a note still to be written. */
+  notes: Record<Locale, string[]>;
 }
 
 interface LanguagesData {
@@ -116,25 +119,32 @@ export function byTier(
 }
 
 // -----------------------------------------------------------------------------
-// Ink by abstraction.
+// Colour by abstraction.
 //
-// Abstraction is ordinal, so it takes one hue, light to dark — and this
-// site's one hue is its ink. Each level is `--ink` at an alpha, so the ramp
-// is the theme's own (dark in light mode, light in dark) and composites with
-// a wallpaper the way every other ink token does. The low end stays above
-// 2:1 against the page so bare metal is still a mark, not a hole.
+// The one place on this site that is not grayscale, because here the colour
+// is the content: it carries the third dimension, as it did in the original.
+// The steps live in globals.css (`--abs-<palette>-<level>`), on :root so the
+// note's popover and sheet — portaled out of the page — see them too.
+//
+//   violet     one hue, pale (machine) → deep (abstract); in dark mode dim →
+//              bright. Abstraction is ordinal, and an ordinal scale reads
+//              best as a single hue stepped in lightness.
+//   instagram  the original chart's gradient, #fcb045 → #fd1d1d → #833ab4,
+//              sampled where ECharts' visualMap put each level.
+//   ink        the site's own ink at an alpha — the grayscale fallback.
 // -----------------------------------------------------------------------------
 
-const INK_FLOOR = 0.3;
+export type AbstractionPalette = "violet" | "instagram" | "ink";
 
-/** `--ink`'s alpha (0–1) for an abstraction level. */
-export function inkAlpha(level: number): number {
-  return INK_FLOOR + ((1 - INK_FLOOR) * level) / SCALE_MAX;
-}
+/** The palette the chart paints with. */
+export const ABSTRACTION_PALETTE: AbstractionPalette = "instagram";
 
 /** A CSS colour for an abstraction level. */
-export function inkFor(level: number): string {
-  return `color-mix(in oklab, var(--ink) ${Math.round(inkAlpha(level) * 100)}%, transparent)`;
+export function absColor(
+  level: number,
+  palette: AbstractionPalette = ABSTRACTION_PALETTE,
+): string {
+  return `var(--abs-${palette}-${level})`;
 }
 
 // -----------------------------------------------------------------------------

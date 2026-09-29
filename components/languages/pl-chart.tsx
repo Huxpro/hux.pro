@@ -15,7 +15,7 @@ import {
   LANGUAGES,
   SCALE_MAX,
   LABEL_TUCK,
-  inkFor,
+  absColor,
   placeLabels,
   tierOf,
   type LabelPlacement,
@@ -46,8 +46,8 @@ import { LanguageNote, LanguagePeek } from "./language-note";
 // links followed — a card hanging off the dot, or the sheet on a phone
 // (`ANCHORED_PRESENTATION`).
 //
-// Abstraction is shaded, not coloured: it is ordinal, so it takes one hue,
-// and this site's one hue is its ink (lib/languages `inkFor`). The strip
+// Abstraction is the colour (lib/languages `absColor`), the one place on
+// the site that is not grayscale, because here colour is data. The strip
 // under the chart is its legend and its filter at once — the original's
 // draggable range: press a level to keep only it, drag across to keep a
 // range, press the only level again to let everything back.
@@ -289,7 +289,7 @@ function Dot({
             style={{
               background: dimmed
                 ? "color-mix(in oklab, var(--ink) 12%, transparent)"
-                : inkFor(language.abs),
+                : absColor(language.abs),
             }}
           />
           <span
@@ -434,7 +434,7 @@ function AbstractionStrip({
                     "block h-3 w-full rounded-[3px] transition-opacity duration-200",
                     !kept && "opacity-25",
                   )}
-                  style={{ background: inkFor(level) }}
+                  style={{ background: absColor(level) }}
                 />
               </button>
             </div>

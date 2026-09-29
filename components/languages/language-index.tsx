@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { AXES, byTier, inkFor, plainText } from "@/lib/languages";
+import { AXES, byTier, absColor, plainText } from "@/lib/languages";
 import type { Locale } from "@/lib/i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
@@ -55,7 +55,7 @@ export function LanguageIndex({ locale }: { locale: Locale }) {
             <span
               aria-hidden
               className="size-2 rounded-full"
-              style={{ background: inkFor(tier.level) }}
+              style={{ background: absColor(tier.level) }}
             />
             <span className="tabular-nums">{tier.level}</span>
             <span>{tier.label[locale]}</span>
@@ -90,11 +90,12 @@ export function LanguageIndex({ locale }: { locale: Locale }) {
                     {/* The heading's words, unless they only repeat the
                         name (Scala: Scala). */}
                     <span
-                      lang="en"
+                      lang={locale}
                       className="min-w-0 flex-1 truncate text-sm text-muted-foreground"
                     >
-                      {plainText(language.title).toLowerCase() !==
-                        language.name.toLowerCase() && plainText(language.title)}
+                      {plainText(language.title[locale]).toLowerCase() !==
+                        language.name.toLowerCase() &&
+                        plainText(language.title[locale])}
                     </span>
                     <span
                       className={cn(TYPE.rowMeta, "shrink-0 tabular-nums")}

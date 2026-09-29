@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
+import type { ReactNode } from "react";
 import { MDXRenderer } from "@/components/mdx-renderer";
+import { locales, type Locale } from "@/lib/i18n";
 import { LanguagesView } from "./view";
 
 export const metadata = {
@@ -10,11 +12,19 @@ export const metadata = {
 };
 
 export default function LanguagesPage() {
-  // The notes under the chart are prose, so they are MDX and render on the
-  // server like any article; the chart around them is the client's.
-  const explanation = fs.readFileSync(
-    path.join(process.cwd(), "content/languages/explanation.en.mdx"),
-    "utf8",
-  );
-  return <LanguagesView explanation={<MDXRenderer source={explanation} />} />;
+  // The explanation under the chart is prose, so it renders on the server
+  // like any article — both languages at build time, the client picks one.
+  const explanation = Object.fromEntries(
+    locales.map((locale) => [
+      locale,
+      <MDXRenderer
+        key={locale}
+        source={fs.readFileSync(
+          path.join(process.cwd(), `content/languages/explanation.${locale}.md`),
+          "utf8",
+        )}
+      />,
+    ]),
+  ) as Record<Locale, ReactNode>;
+  return <LanguagesView explanation={explanation} />;
 }
