@@ -132,7 +132,8 @@ export function CommandSheet() {
           if (point !== SNAP_TOP) inputRef.current?.blur();
         }}
         label={t(locale, "commandPalette")}
-        className="system-chrome"
+        // The Material skin draws it as M3's search view (globals.css).
+        className="system-chrome search-view"
       >
         <SheetBody
           inputRef={inputRef}
@@ -202,7 +203,11 @@ function SheetBody({
 
         {/* Header — the search field. It stays through both sub-modes: they
             are sheets stacked on this one, not a body swapped underneath. */}
-        <div className="relative flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
+        <div
+          data-search-header=""
+          data-search-divider=""
+          className="relative flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1"
+        >
           {/* Listening: the site's glow along the field's bottom edge. */}
           <VoiceGlow voice={voice} />
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />

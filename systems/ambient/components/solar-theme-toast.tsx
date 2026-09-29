@@ -29,6 +29,8 @@ export function SolarThemeToast({ theme }: SolarThemeToastProps) {
 
   return (
     <div
+      // The Material skin draws it as a snackbar (globals.css).
+      data-snackbar=""
       className={cn(
         GLASS_PANEL,
         "inline-flex items-center gap-3 rounded-full px-4 py-3 shadow-raised",

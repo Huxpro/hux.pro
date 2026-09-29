@@ -1855,6 +1855,174 @@ html[data-skin="material"] .surface-shell :is(code, kbd, pre, samp) {
   font-family: var(--font-code);
 }
 
+/* --- The command palette as M3's search view (SearchViewTokens): the
+   docked view on a desktop, `surface-container-high` at 28dp, elevation 3;
+   the header a 56dp row with the 24dp search icon in `on-surface`, the query
+   in Body Large, and a divider in `outline` under it; results as list items
+   — 56dp, Body Large, a 24dp leading icon in `on-surface-variant` — with the
+   hover and keyboard highlight as state layers, and each section headed like
+   a settings group. The app strip keeps its own tiles. --- */
+html[data-skin="material"] .search-view {
+  --md-container: var(--md-surface-container-high);
+}
+html[data-skin="material"] .search-view[cmdk-root] {
+  border-radius: var(--md-shape-corner-extra-large);
+  box-shadow: var(--md-elevation-3);
+}
+html[data-skin="material"] .search-view [data-search-header] {
+  min-height: 56px;
+  gap: 16px;
+}
+html[data-skin="material"] .search-view [data-search-divider] {
+  border-bottom-color: var(--md-outline);
+}
+html[data-skin="material"] .search-view [data-search-header] > svg:first-of-type {
+  width: 24px;
+  height: 24px;
+  color: var(--md-on-surface);
+}
+html[data-skin="material"] .search-view [cmdk-input] {
+  font-family: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.5px;
+  color: var(--md-on-surface);
+}
+html[data-skin="material"] .search-view [cmdk-input]::placeholder {
+  color: var(--md-on-surface-variant);
+}
+html[data-skin="material"] .search-view [cmdk-item]:not([data-app-strip] *) {
+  min-height: 56px;
+  padding: 8px 16px;
+  gap: 16px;
+  border-radius: var(--md-shape-corner-large);
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.5px;
+  color: var(--md-on-surface);
+  transition: background-color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects);
+}
+html[data-skin="material"] .search-view [cmdk-item]:not([data-app-strip] *):hover {
+  background-color: color-mix(in srgb, var(--md-on-surface) var(--md-state-hover), transparent);
+}
+html[data-skin="material"] .search-view [cmdk-item][data-selected="true"]:not([data-app-strip] *) {
+  background-color: color-mix(in srgb, var(--md-on-surface) var(--md-state-focus), transparent);
+  color: var(--md-on-surface);
+}
+html[data-skin="material"] .search-view [cmdk-item]:not([data-app-strip] *) svg {
+  width: 24px;
+  height: 24px;
+  color: var(--md-on-surface-variant);
+}
+html[data-skin="material"] .search-view [cmdk-group-heading] {
+  padding: 16px 16px 4px;
+  font-family: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  color: var(--md-primary);
+}
+
+/* --- The dock as Android's status bar. A Live Activity's pill (and a
+   minimized window's) is a status chip: a tonal `secondary-container` pill,
+   32dp, Label Large in Google Sans Flex, flat on the wallpaper — no glass,
+   no shadow. Opened, the activity is a notification card: `surface-container`
+   at 28dp, the shade's corner. --- */
+html[data-skin="material"] [data-status-chip] {
+  --foreground: var(--md-on-secondary-container);
+  --muted-foreground: color-mix(in srgb, var(--md-on-secondary-container) 75%, transparent);
+  --tertiary-foreground: color-mix(in srgb, var(--md-on-secondary-container) 60%, transparent);
+  --font-sans: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+
+  height: 32px;
+  font-family: var(--font-sans);
+  color: var(--md-on-secondary-container);
+  background-color: var(--md-secondary-container);
+  border-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  text-shadow: none;
+}
+html[data-skin="material"] [data-status-chip] :is(span, div) {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  text-shadow: none;
+}
+html[data-skin="material"] [data-status-chip]:hover {
+  background-color: color-mix(in srgb, var(--md-secondary-container), var(--md-on-secondary-container) var(--md-state-hover));
+  border-color: transparent;
+}
+html[data-skin="material"] [data-dock-panel] .surface-shell {
+  --md-container: var(--md-surface-container);
+  border-radius: var(--md-shape-corner-extra-large);
+  box-shadow: var(--md-elevation-2);
+}
+
+/* --- Toasts as snackbars (SnackbarTokens): `inverse-surface` under
+   `inverse-on-surface`, Body Medium, 4dp corners, elevation 3; actions as
+   text buttons in `inverse-primary`. It arrives the way Compose's does —
+   fading in as it grows from 80% — and the site's tokens are re-pointed
+   inside, so the icon and the note behind the fact follow. --- */
+html[data-skin="material"] [data-snackbar] {
+  --foreground: var(--md-inverse-on-surface);
+  --muted-foreground: color-mix(in srgb, var(--md-inverse-on-surface) 85%, transparent);
+  --tertiary-foreground: color-mix(in srgb, var(--md-inverse-on-surface) 70%, transparent);
+  --background: var(--md-inverse-surface);
+  --border: transparent;
+  --muted: color-mix(in srgb, var(--md-inverse-on-surface) 20%, transparent);
+  --font-sans: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+
+  min-height: 48px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+  color: var(--md-inverse-on-surface);
+  background-color: var(--md-inverse-surface);
+  border-color: transparent;
+  border-radius: var(--md-shape-corner-extra-small);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: var(--md-elevation-3);
+  text-shadow: none;
+  transform-origin: 50% 100%;
+  animation: md-snackbar-in 300ms var(--md-easing-emphasized-decelerate) both;
+}
+html[data-skin="material"] [data-snackbar] * {
+  text-shadow: none;
+}
+html[data-skin="material"] [data-snackbar-action] {
+  border: 0;
+  border-radius: var(--md-shape-corner-full);
+  background: transparent;
+  color: var(--md-inverse-primary);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+html[data-skin="material"] [data-snackbar-action]:hover {
+  background-color: color-mix(in srgb, var(--md-inverse-primary) var(--md-state-hover), transparent);
+  opacity: 1;
+}
+@keyframes md-snackbar-in {
+  from {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin="material"] [data-snackbar] {
+    animation: none;
+  }
+}
+
 /* --- Controls in the Material skin (components/ui/controls.tsx).
    Switch — M3's: a 52×32 track with a 2dp outline, the handle 16dp and
    `outline` when off, 24dp and `on-primary` on a `primary` track when on,

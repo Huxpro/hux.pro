@@ -26,6 +26,8 @@ export function SystemToast({
 }) {
   return (
     <div
+      // The Material skin draws it as a snackbar (globals.css).
+      data-snackbar=""
       className={cn(
         GLASS_PANEL,
         "inline-flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-full px-4 py-3 shadow-raised",

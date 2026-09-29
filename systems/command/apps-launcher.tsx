@@ -43,6 +43,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
   return (
     <Command.Group>
       <div
+        data-app-strip=""
         className={cn(
           // Fixed-pitch icon strip: tight on desktop, scrolls when needed.
           "no-scrollbar flex gap-0.5 overflow-x-auto px-1.5 py-1.5",

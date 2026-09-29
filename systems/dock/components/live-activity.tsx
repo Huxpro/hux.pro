@@ -195,6 +195,8 @@ export function LiveActivity({
         className="shrink-0"
       >
         <Drawer.Trigger
+          // The Material skin draws it as an Android status chip.
+          data-status-chip=""
           className={cn(
             "pointer-events-auto flex items-center gap-2 shrink-0",
             "h-9 pl-1.5 pr-2.5 rounded-full",
@@ -245,7 +247,8 @@ export function LiveActivity({
               // Sheets from other subtrees stacked on this one.
               style={{ "--surface-stack-depth": depth } as React.CSSProperties}
               className={cn(
-                "relative origin-top overflow-hidden",
+                // `surface-shell`: under Material, a notification card.
+                "surface-shell relative origin-top overflow-hidden",
                 "rounded-2xl border border-border/50 bg-glass shadow-overlay backdrop-blur-xl",
                 // The dim on a receded panel is a wash over the shell rather
                 // than an opacity, so the glass stays glass.
