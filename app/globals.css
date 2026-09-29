@@ -1318,6 +1318,14 @@ html[data-widget-morph] [data-view-transition="site-identifier"] {
   view-transition-name: none;
 }
 
+/* A page open as an app over the home (components/home/app-overlay.tsx) has
+   its own λhux while the home's is still there: two elements cannot share a
+   name, and the router's crossfade would be abandoned for it. The app's
+   gives way; it is the home's that lives on. */
+[data-app-page] [data-view-transition="site-identifier"] {
+  view-transition-name: none;
+}
+
 html[data-widget-morph="open"]::view-transition-group(widget-morph) {
   z-index: 1;
   animation-duration: var(--morph-duration);

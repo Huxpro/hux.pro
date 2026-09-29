@@ -3031,6 +3031,13 @@ function WidgetsModule() {
               label: zh ? "全部" : "All",
               title: zh ? "包括桌面，用于对比" : "Desktop too, for comparing",
             },
+            {
+              value: "overlay",
+              label: zh ? "浮层" : "Overlay",
+              title: zh
+                ? "原型：不跳转，页面在首页之上打开，可下拉收回卡片（仅 Writing）"
+                : "Prototype: no navigation — the page opens over the home and pulls back into its card (Writing only)",
+            },
           ]}
           onChange={setWidgetMorph}
         />

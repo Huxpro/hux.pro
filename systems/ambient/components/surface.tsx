@@ -38,6 +38,10 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
       return;
     }
     if (!getScrollContainer() || window.location.hash) return;
+    // The home screen's app overlay changes the URL over a home that stays
+    // (components/home/app-overlay.tsx); the home is not a new page, and
+    // the card it opened from must still be where it was when it closes.
+    if (document.documentElement.hasAttribute("data-app-overlay")) return;
     scrollPageTo(0);
   }, [pathname]);
 

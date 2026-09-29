@@ -11,6 +11,7 @@ import {
   ProcessingWidget,
   buildProcessingCommits,
 } from "@/components/home/processing-widget";
+import { AppOverlayHost } from "@/components/home/app-overlay";
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
 import { WritingWidget } from "@/components/home/writing-widget";
@@ -225,6 +226,9 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
           weatherWidget={homeWeather === "widget"}
         />
       </div>
+      {/* Portalled to <body>: the app a widget opens over this screen when
+          Devtool › Widgets › Open morph is Overlay (app-overlay.tsx). */}
+      <AppOverlayHost />
     </main>
   );
 }
