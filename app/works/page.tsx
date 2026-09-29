@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { getLogData } from "@/lib/log-server";
 import { enrichLogDataWithPreviews } from "@/lib/og-snapshot";
-import { WorksView } from "./view";
+import { WorksIndex } from "./index-view";
 
 export const metadata = {
   title: "Works",
@@ -18,7 +18,7 @@ export default function WorksPage() {
   // (`useSearchParams`), which needs a boundary under static export.
   return (
     <Suspense>
-      <WorksView logData={logData} />
+      <WorksIndex logData={logData} />
     </Suspense>
   );
 }
