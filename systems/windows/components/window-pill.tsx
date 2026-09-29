@@ -17,13 +17,16 @@ export type DotAction = "close" | "minimize" | "zoom";
 
 /** A traffic-light dot: dim grey at rest, coloured (active window) on hover. */
 function Dot({
+  action,
   active,
   interacting,
   colorHover,
   label,
   onClick,
   glyph,
+  materialGlyph,
 }: {
+  action: DotAction;
   active: boolean;
   /** Window is being dragged/resized or its menu is open → controls "wake up". */
   interacting: boolean;
@@ -32,6 +35,8 @@ function Dot({
   /** Omitted where the dots are an indicator only — a phone window's grip. */
   onClick?: () => void;
   glyph: React.ReactNode;
+  /** The Material skin's glyph, where Android draws it differently. */
+  materialGlyph?: React.ReactNode;
 }) {
   // Having something to do is what makes a dot a control; nothing else decides
   // it, so nothing else needs to be passed and kept in step.
@@ -40,6 +45,7 @@ function Dot({
     <button
       type="button"
       data-window-control
+      data-window-dot={action}
       aria-label={label}
       title={label}
       tabIndex={interactive ? undefined : -1}
@@ -70,7 +76,14 @@ function Dot({
       )}
     >
       <span className="opacity-0 transition-opacity [@media(hover:hover)]:group-hover/chrome:opacity-100">
-        {glyph}
+        {materialGlyph ? (
+          <>
+            <span className="contents material:hidden">{glyph}</span>
+            <span className="hidden material:contents">{materialGlyph}</span>
+          </>
+        ) : (
+          glyph
+        )}
       </span>
     </button>
   );
@@ -86,6 +99,7 @@ const DOTS: {
   action: DotAction;
   colorHover: string;
   glyph: React.ReactNode;
+  materialGlyph?: React.ReactNode;
 }[] = [
   {
     label: "Close",
@@ -116,6 +130,12 @@ const DOTS: {
         <path d="M5 2.2v5.6M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
       </svg>
     ),
+    // Android's caption draws maximize as a square, not a plus.
+    materialGlyph: (
+      <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
+        <rect x="2" y="2" width="6" height="6" rx="1" stroke="currentColor" fill="none" />
+      </svg>
+    ),
   },
 ];
 
@@ -134,10 +154,15 @@ export function TrafficDots({
   onAction?: (action: DotAction) => void;
 }) {
   return (
-    <div className="flex items-center gap-[5px] [@media(hover:hover)]:gap-2">
+    <div data-window-dots="" className="flex items-center gap-[5px] [@media(hover:hover)]:gap-2">
+      {/* Material, touch: Android's app handle — one short bar where the
+          three lights were (globals.css, "Windows"). */}
+      <span data-window-handle="" aria-hidden className="hidden" />
       {DOTS.map((dot) => (
         <Dot
           key={dot.label}
+          action={dot.action}
+          materialGlyph={dot.materialGlyph}
           active={focused}
           interacting={interacting}
           colorHover={dot.colorHover}
@@ -184,7 +209,8 @@ export function PillTitle({ children }: { children: React.ReactNode }) {
  */
 export function pillShell(interacting: boolean, hoverLights = true) {
   return cn(
-    "group/chrome flex cursor-default items-center rounded-full px-2.5 py-1.5",
+    // `window-pill`: the Material skin's caption surface (globals.css).
+    "window-pill group/chrome flex cursor-default items-center rounded-full px-2.5 py-1.5",
     "touch-none select-none transition-all duration-200",
     interacting
       ? "border-black/10 bg-white/80 shadow-raised backdrop-blur-xl dark:border-white/14 dark:bg-black/60"
