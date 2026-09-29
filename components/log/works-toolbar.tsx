@@ -71,8 +71,13 @@ import {
   getCommitTypePluralLabel,
   type FilterableCommitType,
 } from "@/lib/log";
-import { LOG_FORMS, type LogForm } from "@/lib/log-view";
-import { pageScrollTop, scrollPageTo } from "vitre";
+import {
+  LOG_FORMS,
+  WORKS_READINGS,
+  type LogForm,
+  type WorksReading,
+} from "@/lib/log-view";
+import { pageOffsetOf, pageScrollTop, scrollPageTo } from "vitre";
 import { usePageLift } from "@/components/ui/use-page-lift";
 import { useScrollEdges } from "@/components/ui/use-scroll-edges";
 import { CommitIcon } from "./icons";
@@ -370,4 +375,126 @@ const HANDOVER = {
 /** Hairline between control groups — quaternary, because it carries nothing. */
 function Divider() {
   return <span aria-hidden className="h-3 w-px shrink-0 bg-border" />;
+}
+
+// =============================================================================
+// The selected reading's bar
+// =============================================================================
+
+/**
+ * Which page /works is: the selected works, or the log (lib/log-view.ts).
+ * Two words rather than a glyph pair, because the two are not densities of
+ * one thing the way the forms are — they are two pages, and a reader who
+ * has never seen either needs to be told which is which. The same bare
+ * segments as the form control, so the bar keeps one kind of switch.
+ */
+function ReadingSwitch({
+  locale,
+  value,
+  onChange,
+}: {
+  locale: Locale;
+  value: WorksReading;
+  onChange: (reading: WorksReading) => void;
+}) {
+  return (
+    <Segmented
+      tone="bare"
+      label={t(locale, "worksReadingLabel")}
+      value={value}
+      onChange={onChange}
+      options={WORKS_READINGS.map((reading) => ({
+        value: reading,
+        // The segment is sized for a glyph; a word wants a little air.
+        label: (
+          <span className="px-0.5">
+            {t(
+              locale,
+              reading === "selected"
+                ? "worksReadingSelected"
+                : "worksReadingLog",
+            )}
+          </span>
+        ),
+      }))}
+    />
+  );
+}
+
+/** Where a section comes to rest under a jump: clear of the pinned bar, the
+ *  same headroom a commit permalink travels to (use-commit-anchor). */
+const SECTION_HEADROOM = 96;
+
+export interface SectionJump {
+  /** The section's element id on the page. */
+  id: string;
+  label: string;
+  /** How many rows it holds — the chip row's number, in the chip row's place. */
+  count?: number;
+}
+
+/**
+ * The selected reading's line under the title: the reading switch, then the
+ * page's sections as places to go. The same instrument as the log's bar —
+ * same row, same ground growing in behind it once it lifts — with the one
+ * difference the page asks for: a curated page in tiers has sections rather
+ * than types, and the useful act on a section is reaching it, not hiding
+ * everything else.
+ */
+export function SelectedToolbar({
+  locale,
+  onReadingChange,
+  sections,
+}: {
+  locale: Locale;
+  onReadingChange: (reading: WorksReading) => void;
+  sections: readonly SectionJump[];
+}) {
+  const reduced = useReducedMotion() ?? false;
+  const lift = usePageLift(LIFT_PX);
+  const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
+
+  const jump = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    scrollPageTo(Math.max(0, pageOffsetOf(el) - SECTION_HEADROOM), {
+      behavior: reduced ? "auto" : "smooth",
+    });
+  };
+
+  return (
+    <div className="relative isolate w-max max-w-full">
+      <motion.div
+        aria-hidden
+        className={PANEL}
+        style={{ opacity: lift, scale: panelScale }}
+      />
+      <div className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground">
+        <ReadingSwitch
+          locale={locale}
+          value="selected"
+          onChange={onReadingChange}
+        />
+        <Divider />
+        <nav
+          aria-label={t(locale, "worksSectionsLabel")}
+          className="flex min-w-0 items-center gap-0.5 overflow-x-auto no-scrollbar"
+        >
+          {sections.map(({ id, label, count }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => jump(id)}
+              className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-tertiary-foreground transition-colors duration-200 hover:text-foreground"
+            >
+              <span>{label}</span>
+              {count !== undefined && (
+                <span className="tabular-nums">{count}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+      </div>
+    </div>
+  );
 }

@@ -177,7 +177,14 @@ const BADGE =
 const ICON_BOX =
   "mr-[0.34em] inline-block size-[1.08em] shrink-0 rounded-[0.26em] align-[-0.2em] select-none";
 
-function BadgeMark({ icon, kind }: { icon: BadgeIcon; kind: MagicLinkKind }) {
+/**
+ * A badge's icon, on its own. Sized in `em` like the pill, so a host that
+ * wants it larger sets a font size around it rather than a second recipe:
+ * /works prints each project beside the icon its badge wears, and the two
+ * must never differ (the plate under a favicon, the fill of a home-screen
+ * icon, the rounding, the monogram).
+ */
+export function BadgeMark({ icon, kind }: { icon: BadgeIcon; kind: MagicLinkKind }) {
   if (icon.type === "image") {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- a 1em glyph; next/image would only add a wrapper

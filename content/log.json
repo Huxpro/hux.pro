@@ -205,6 +205,22 @@
         "juejin-talk-2023",
         "feday-2023"
       ]
+    },
+    {
+      "id": "works-selected",
+      "title": {
+        "en": "Selected works",
+        "zh": "代表作"
+      },
+      "hidden": true,
+      "href": "/works",
+      "commitIds": [
+        "lynx-framework",
+        "react-core",
+        "hermes-engine",
+        "eleme-pwa",
+        "hux-blog"
+      ]
     }
   ],
   "identities": {

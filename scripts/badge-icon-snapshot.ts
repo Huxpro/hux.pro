@@ -51,11 +51,20 @@ interface Usage {
   where: string;
 }
 
-/** Every `<Badge …>` in the MDX — the pill, which wears an icon. */
+/**
+ * Every `<Badge …>` in the MDX — the pill, which wears an icon — and every
+ * project on /works, whose selected reading prints each project beside the
+ * same icon its badge would wear (app/works/selected.tsx).
+ */
 function collectUsages(): Usage[] {
-  return collectMagicLinkTags()
+  const badges = collectMagicLinkTags()
     .filter((t) => t.tag === "Badge")
     .map(({ attrs, where }) => ({ spec: attrs, where }));
+  const raw = JSON.parse(fs.readFileSync(LOG_PATH, "utf8")) as RawLogData;
+  const projects = normalizeLogData(raw)
+    .commits.filter((c) => c.type === "project" && c.listed !== false)
+    .map((c) => ({ spec: { commit: c.id }, where: `/works (${c.id})` }));
+  return [...badges, ...projects];
 }
 
 interface Site {

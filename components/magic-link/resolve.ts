@@ -375,3 +375,18 @@ export function resolveMagicLink(spec: MagicLinkSpec, locale: Locale): ResolvedM
 
   return null;
 }
+
+/**
+ * What `<Badge commit="…">` wears, without the rest of the link: the commit's
+ * site icon (or its monogram) and the kind that picks a glyph. For a surface
+ * that lists the things badges name beside their marks — the /works selected
+ * reading prints every project this way, so a project wears one icon on the
+ * About and on /works alike.
+ */
+export function commitBadge(
+  commitId: string,
+  locale: Locale,
+): { icon: BadgeIcon; kind: MagicLinkKind } | null {
+  const link = resolveMagicLink({ commit: commitId }, locale);
+  return link ? { icon: link.icon, kind: link.kind } : null;
+}

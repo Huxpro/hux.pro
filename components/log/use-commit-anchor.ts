@@ -70,21 +70,41 @@ function rowFor(hash: string): HTMLElement | null {
 /**
  * Wires arrival and returns the click handler a row's hash uses to become the
  * page's address.
+ *
+ * The handler pushes the permalink into history by default. `push: false`
+ * travels without writing the URL, for a caller that has already put the
+ * hash there itself — /works opening its log at a commit from the selected
+ * reading, where the router writes `?view=log#<hash>` in one go.
  */
-export function useCommitAnchor(): (hash: string) => void {
+export function useCommitAnchor(): (
+  hash: string,
+  opts?: { push?: boolean },
+) => void {
   const reduced = useReducedMotion() ?? false;
   // One travel at a time: a second hash while the first is still gliding
   // stops it rather than easing toward two destinations at once.
   const stopRef = useRef<() => void>(() => {});
+  // …and a second request for the row already being travelled to is the
+  // same request, not a new one. /works can ask twice for one arrival — the
+  // log opening at a permalink it was handed, and this hook's own arrival on
+  // mount — and restarting the glide would only replay the mark.
+  const headingRef = useRef<HTMLElement | null>(null);
 
   const travelTo = useCallback(
     (el: HTMLElement) => {
-      stopRef.current();
+      if (headingRef.current === el) return;
 
       const to = Math.max(0, pageOffsetOf(el) - HEADROOM);
       const from = pageScrollTop();
 
+      // Already there and still lit: nothing to add.
+      if (el.hasAttribute(TARGET_ATTR) && Math.abs(to - from) < 2) return;
+
+      stopRef.current();
+      headingRef.current = el;
+
       const land = () => {
+        headingRef.current = null;
         emitPageScroll();
         // Marked on arrival rather than on departure: the row lights up as
         // it settles, so the eye is already there to catch it.
@@ -151,13 +171,13 @@ export function useCommitAnchor(): (hash: string) => void {
   }, [travelTo]);
 
   return useCallback(
-    (hash: string) => {
+    (hash: string, { push = true }: { push?: boolean } = {}) => {
       const el = rowFor(hash);
       if (!el) return;
       // `pushState`, so the permalink is in the URL bar and in history without
       // a route change — and without firing `hashchange`, which would send the
       // travel through a second time.
-      window.history.pushState(null, "", `#${hash}`);
+      if (push) window.history.pushState(null, "", `#${hash}`);
       travelTo(el);
     },
     [travelTo],

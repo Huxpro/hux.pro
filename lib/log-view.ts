@@ -13,6 +13,30 @@
 // reading shareable. It is deliberately free of React and of `lib/log`'s
 // data layer: the parse/serialize pair is the whole contract, so the query
 // string stays the single source of truth for view state.
+//
+// Above both sits the page's *reading* — which of two pages /works is:
+//
+//  - `selected` — the default, and the page a newcomer meets. Curated, in
+//    tiers, prose first: the handful of works that matter most with what I
+//    did on each, then the rest of the projects, the talks and the press as
+//    short lists. It answers "what are this person's most important works,
+//    what did they do on each, when, and where can I see it?" in a screen,
+//    which the log, at one row per commit and equal weight for every row,
+//    could not. The curation is data (`works-selected` in content/log.json).
+//  - `log` — the archive: the whole commit history, exactly as it has
+//    always been, with its filter and its three forms.
+//
+// The reading has no param of its own worth sharing at rest; it is implied
+// by the two params that already exist, so every link written before the
+// selected reading existed still lands in the log:
+//
+//    /works                      selected
+//    /works?view=log             log, default form
+//    /works?view=index|feed|…    log, that form (git-flag aliases included)
+//    /works?type=talk            log, filtered
+//    /works#<hash>               log, travelled to that commit — decided by
+//                                the page (a fragment never reaches a query
+//                                codec), see app/works/view.tsx
 // =============================================================================
 
 import {
@@ -137,10 +161,28 @@ export function parseLogForm(value: string | null): LogForm | null {
 }
 
 // =============================================================================
+// Reading — which of the two pages /works is (see the header).
+// =============================================================================
+
+export const WORKS_READINGS = ["selected", "log"] as const;
+
+export type WorksReading = (typeof WORKS_READINGS)[number];
+
+export const DEFAULT_READING: WorksReading = "selected";
+
+/** The `view` value that names the log without naming a form: the log at
+ *  its default form. A form is already a statement that you want the log,
+ *  so `?view=index` needs no second word to say it. */
+const LOG_VIEW_VALUE = "log";
+
+// =============================================================================
 // View state
 // =============================================================================
 
 export interface LogViewState {
+  /** Selected works or the whole log. The two fields below are the log's,
+   *  and only reach the URL while the log is what is on screen. */
+  reading: WorksReading;
   /**
    * Selected artifact types. Empty means "no filter" rather than "nothing
    * selected" — the rest-state of the chip row, where every commit shows.
@@ -170,13 +212,6 @@ export function toggleType(
 export const TYPE_PARAM = "type";
 export const FORM_PARAM = "view";
 
-/**
- * Read view state out of a query string.
- *
- * Tolerant by design — a hand-edited or stale URL degrades to the default
- * rather than rendering an empty page: unknown type names are dropped,
- * an unknown form falls back to the default.
- */
 /** Type names that have been renamed — old links carry the old word, the
  *  same way `FORM_ALIAS` carries the git flags the forms were first named
  *  after. `social` became `press` when the type stopped meaning "my social
@@ -185,16 +220,30 @@ const TYPE_ALIAS: Record<string, FilterableCommitType> = {
   social: "press",
 };
 
+/**
+ * Read view state out of a query string.
+ *
+ * Tolerant by design — a hand-edited or stale URL degrades to the default
+ * rather than rendering an empty page: unknown type names are dropped,
+ * an unknown form falls back to the default.
+ *
+ * Either param at all means the log. A `type` naming nothing we know still
+ * does — whoever wrote it was asking for the log, and the unfiltered log is
+ * closer to that than the selected page is — and so does a `view` we
+ * cannot read, for the same reason.
+ */
 export function parseViewState(params: URLSearchParams): LogViewState {
   const raw = params.get(TYPE_PARAM);
   const requested = (raw ? raw.split(",").map((s) => s.trim()) : []).map(
     (name) => TYPE_ALIAS[name] ?? name,
   );
   const types = FILTERABLE_COMMIT_TYPES.filter((t) => requested.includes(t));
+  const view = params.get(FORM_PARAM);
 
   return {
+    reading: raw !== null || view !== null ? "log" : DEFAULT_READING,
     types,
-    form: parseLogForm(params.get(FORM_PARAM)) ?? DEFAULT_FORM,
+    form: parseLogForm(view) ?? DEFAULT_FORM,
   };
 }
 
@@ -202,6 +251,10 @@ export function parseViewState(params: URLSearchParams): LogViewState {
  * Write view state back into a query string, dropping both params at their
  * defaults so the plain `/works` URL stays clean — nobody should have to
  * share `?type=&view=covers`.
+ *
+ * The selected reading writes neither: it is the page at rest. The log
+ * writes what tells it apart — its filter and its form where they are not
+ * the defaults, and `view=log` where neither would be there to say so.
  *
  * Takes the current params and mutates a copy so unrelated query state
  * (anything another feature owns) survives a chip tap.
@@ -211,15 +264,18 @@ export function serializeViewState(
   current?: URLSearchParams,
 ): string {
   const params = new URLSearchParams(current?.toString());
+  const log = state.reading === "log";
 
-  if (state.types.length > 0) {
+  if (log && state.types.length > 0) {
     params.set(TYPE_PARAM, state.types.join(","));
   } else {
     params.delete(TYPE_PARAM);
   }
 
-  if (state.form !== DEFAULT_FORM) {
+  if (log && state.form !== DEFAULT_FORM) {
     params.set(FORM_PARAM, state.form);
+  } else if (log && state.types.length === 0) {
+    params.set(FORM_PARAM, LOG_VIEW_VALUE);
   } else {
     params.delete(FORM_PARAM);
   }
