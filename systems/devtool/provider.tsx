@@ -99,11 +99,11 @@ export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
 
 export type WidgetMorph = "off" | "phone" | "everywhere" | "flip";
 /**
- * `everywhere` while this is being tried on an iPad and a desktop as well as
- * a phone; `"off"` before it merges. A value saved in the devtool wins over
- * this — its star resets to it.
+ * `flip` on this branch, so its preview opens every card with the Motion
+ * take on a phone, an iPad and a desktop alike; `"off"` before it merges. A
+ * value saved in the devtool wins over this — its star resets to it.
  */
-export const WIDGET_MORPH_DEFAULT: WidgetMorph = "everywhere";
+export const WIDGET_MORPH_DEFAULT: WidgetMorph = "flip";
 
 function parseWidgetMorph(raw: unknown): WidgetMorph {
   if (raw === "off" || raw === "phone" || raw === "everywhere" || raw === "flip") {
