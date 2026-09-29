@@ -947,6 +947,14 @@ got round to them — because a finger that rested first is picking up a widget
 (`TOUCH_ACTIVATION`'s hold). A move up, a move sideways (the app folder's pages),
 or a page already scrolled is left entirely alone.
 
+**The cancelling listener is only there at the top.** While a non-passive
+`touchmove` is listened for, the browser must ask the main thread before every
+scroll it starts, so `attachSkyPull` adds it only while `pageScrollTop()` is at
+zero (or in iOS's bounce above it) and takes it off as soon as the page scrolls
+away, following `onPageScroll`. It cannot be added on `touchstart` instead:
+whether a touch's moves can be cancelled is settled as the touch begins, from
+the listeners already in place.
+
 **Only on the system surface**, and only on the home: the press must land inside
 `.system-surface` — the page that has declared itself one OS composition rather
 than a document (see "System chrome / System surface" in
