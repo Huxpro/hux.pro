@@ -8,6 +8,8 @@ import {
   WidgetShell,
   WidgetTitle,
 } from "@/components/ui/widget";
+import { sizeSpec } from "@/components/ui/widget-grid";
+import { useWidgetSize } from "@/components/ui/widget-size";
 import promptsRaw from "@/content/prompts.json";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
@@ -18,6 +20,20 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { TYPE } from "@/lib/typography";
+// =============================================================================
+// PromptWidget — one prompt at a time, rotating.
+//
+// Footprints: 1×1 is the prompt; 2×1 keeps it and spends the second cell on
+// the rotation itself — the next few prompts as a queue, each a tap away.
+// Height earns nothing here (a longer quote is still one quote), so the
+// widget declares none.
+// =============================================================================
+
+export const PROMPT_WIDGET_SIZE = sizeSpec([1, 1], [2, 1], [1, 1]);
+
+/** How many upcoming prompts the wide footprint lists. */
+const QUEUE_LENGTH = 3;
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -89,6 +105,18 @@ function resolveItems(locale: Locale): PromptItem[] {
   return items;
 }
 
+/** The one line a prompt is known by in the queue. */
+function promptLine(item: PromptItem): string {
+  switch (item.kind) {
+    case "quote":
+      return plain(item.text);
+    case "belief":
+      return plain(item.statement);
+    case "influence":
+      return plain(item.name);
+  }
+}
+
 /** Fisher-Yates shuffle (returns new array) */
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -123,6 +151,35 @@ const ROTATION_INTERVAL = 20_000; // 20 seconds
 // Item renderers
 // =============================================================================
 
+/**
+ * The prompts' one inline mark, `*…*` — a work's title (`*Principles*`),
+ * the way /prompt renders it (app/prompt/view.tsx, `Marks`): italic in
+ * Latin, and the same string carries 《》 in Chinese instead. The card used
+ * to print the asterisks.
+ */
+const TITLE_MARK = /(\*[^*]+\*)/g;
+
+function Marks({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(TITLE_MARK).map((part, i) =>
+        part.length > 2 && part.startsWith("*") && part.endsWith("*") ? (
+          <em key={i} className="[font-synthesis-style:none]">
+            {part.slice(1, -1)}
+          </em>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
+/** The same string with its marks taken off, for a one-line label. */
+function plain(text: string): string {
+  return text.replace(TITLE_MARK, (m) => m.slice(1, -1));
+}
+
 function QuoteDisplay({
   item,
 }: {
@@ -136,7 +193,10 @@ function QuoteDisplay({
       <p className={cn("mt-2", TYPE.caption)}>
         {item.author}
         {item.source && (
-          <span className="text-tertiary-foreground"> · {item.source}</span>
+          <span className="text-tertiary-foreground">
+            {" · "}
+            <Marks text={item.source} />
+          </span>
         )}
       </p>
     </div>
@@ -169,7 +229,9 @@ function InfluenceDisplay({
 }) {
   return (
     <div>
-      <p className="font-serif text-base text-foreground">{item.name}</p>
+      <p className="font-serif text-base text-foreground">
+        <Marks text={item.name} />
+      </p>
       {item.context && (
         <p className={cn("mt-1", TYPE.caption)}>{item.context}</p>
       )}
@@ -200,12 +262,14 @@ function PromptItemDisplay({
 
 export function PromptWidget() {
   const { locale } = useLocale();
+  const { w } = useWidgetSize(PROMPT_WIDGET_SIZE.default);
 
   const items = useMemo(() => resolveItems(locale), [locale]);
 
   // Defer shuffle to after mount to avoid hydration mismatch from Math.random()
   const [shuffledIds, setShuffledIds] = useState<string[] | null>(null);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only: Math.random after hydration
     setShuffledIds(shuffle(items.map((i) => i.id)));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -234,15 +298,37 @@ export function PromptWidget() {
     return () => clearInterval(timerRef.current);
   }, [advance]);
 
-  const handleNext = useCallback(() => {
-    advance();
-    setSpinKey((k) => k + 1);
-    // Reset timer so we get a full interval after manual advance
+  // A manual step (next, or a pick from the queue) restarts the clock so the
+  // chosen prompt gets a full interval.
+  const restartTimer = useCallback(() => {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(advance, ROTATION_INTERVAL);
   }, [advance]);
 
+  const handleNext = useCallback(() => {
+    advance();
+    setSpinKey((k) => k + 1);
+    restartTimer();
+  }, [advance, restartTimer]);
+
+  const jumpTo = useCallback(
+    (i: number) => {
+      setIndex(i % shuffled.length);
+      restartTimer();
+    },
+    [shuffled.length, restartTimer],
+  );
+
   if (!current) return null;
+
+  // The next few in rotation, in the order they will come.
+  const queue =
+    w >= 2 && shuffled.length > 1
+      ? Array.from(
+          { length: Math.min(QUEUE_LENGTH, shuffled.length - 1) },
+          (_, k) => (index + 1 + k) % shuffled.length,
+        )
+      : [];
 
   return (
     // The card is a pointer at one entry, so the surface opens that entry.
@@ -263,7 +349,7 @@ export function PromptWidget() {
         </div>
         <WidgetLink href="/prompt" label="View prompts" />
       </WidgetHeader>
-      <WidgetBody>
+      <WidgetBody className={cn(queue.length > 0 && "grid grid-cols-[3fr_2fr] gap-x-6")}>
         <AnimatePresence mode="wait">
           <motion.div
             key={current.id}
@@ -271,10 +357,41 @@ export function PromptWidget() {
             initial="initial"
             animate="animate"
             exit="exit"
+            className="min-w-0"
           >
             <PromptItemDisplay item={current} locale={locale} />
           </motion.div>
         </AnimatePresence>
+
+        {queue.length > 0 && (
+          <div className="min-w-0">
+            <span
+              className={cn(
+                "block text-xs text-tertiary-foreground",
+                locale === "zh" ? "font-mono" : "italic font-serif",
+              )}
+            >
+              {t(locale, "widgetUpNext")}
+            </span>
+            <ul className="mt-1">
+              {queue.map((i) => (
+                <li key={shuffled[i].id}>
+                  <button
+                    type="button"
+                    onClick={() => jumpTo(i)}
+                    className={cn(
+                      "pressable -mx-2 block w-[calc(100%+1rem)] truncate rounded-md px-2 py-1 text-left",
+                      "transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35",
+                      TYPE.rowTitle,
+                    )}
+                  >
+                    {promptLine(shuffled[i])}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </WidgetBody>
     </WidgetShell>
   );

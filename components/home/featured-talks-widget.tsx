@@ -8,6 +8,8 @@ import {
   WidgetTitle,
   WIDGET_REVEAL,
 } from "@/components/ui/widget";
+import { sizeSpec } from "@/components/ui/widget-grid";
+import { useWidgetSize } from "@/components/ui/widget-size";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { AlbumTabs, TrackThumb, useTheater } from "@/systems/theater";
@@ -26,7 +28,18 @@ import { TYPE } from "@/lib/typography";
 // The card hands off to the reading of /works it is a preview of, not to the
 // page's default: a card about talks that lands you in a column of twenty-five
 // commits has made you do the filtering it was already doing for you.
+//
+// Footprints: two cells tall and nothing else — a thumbnail row under a tab
+// row has exactly one height. Width is where it changes: one cell is a
+// carousel (one cover and a peek of the next); two cells is a shelf, three
+// covers abreast, and the pager only returns once an album holds more than
+// the shelf shows.
 // ---------------------------------------------------------------------------
+
+export const FEATURED_TALKS_SIZE = sizeSpec([1, 2], [2, 2], [1, 2]);
+
+/** Covers abreast on the wide shelf. */
+const SHELF_CARDS = 3;
 
 /** Where the card's surface and its arrow go. */
 const TALKS_HREF = "/works?type=talk";
@@ -34,6 +47,8 @@ const TALKS_HREF = "/works?type=talk";
 export function FeaturedTalksWidget() {
   const { locale } = useLocale();
   const { open } = useTheater();
+  const { w } = useWidgetSize(FEATURED_TALKS_SIZE.default);
+  const shelf = w >= 2;
   const albums = useMemo(() => buildTalkAlbums(locale), [locale]);
   const [activeAlbum, setActiveAlbum] = useState(0);
 
@@ -86,7 +101,10 @@ export function FeaturedTalksWidget() {
                 open({ albums, albumIndex: activeAlbum, trackIndex: i })
               }
               className={cn(
-                "group/thumb pressable w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
+                "group/thumb pressable shrink-0 snap-start rounded-xl text-left",
+                // Carousel: one cover and a peek of the next. Shelf: three
+                // abreast, the gaps taken out of the row's content box.
+                shelf ? "w-[calc((100%-1.5rem)/3)]" : "w-[86%] max-w-[200px]",
                 "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
               )}
             >
@@ -104,6 +122,7 @@ export function FeaturedTalksWidget() {
           <div className="w-5 shrink-0" aria-hidden />
         </div>
 
+        {(!shelf || album.tracks.length > SHELF_CARDS) && (
         <PagerDots
           count={album.tracks.length}
           index={activeCard}
@@ -113,6 +132,7 @@ export function FeaturedTalksWidget() {
           // of the next cover already says it can.
           className={cn("pt-3 pointer-coarse:hidden", WIDGET_REVEAL)}
         />
+        )}
       </div>
     </WidgetShell>
   );

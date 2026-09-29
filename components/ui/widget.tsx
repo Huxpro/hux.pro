@@ -20,7 +20,7 @@ import { TYPE } from "@/lib/typography";
  * Tappable surface: pass `href` (a page to open) or `onOpen` (an action —
  * refresh the weather, open the playlist) and the whole card becomes the tap
  * target, not just the header arrow. Interactive descendants keep their own
- * taps (see `landsOnOwnAction`); the masonry's edit mode swallows clicks
+ * taps (see `landsOnOwnAction`); the grid's edit mode swallows clicks
  * before they reach here, so rearranging never opens anything. Hover and
  * press chrome on those descendants must use their own named group —
  * the shell is `group/widget`, so a nested `group-active:` cannot follow
@@ -103,7 +103,11 @@ export function WidgetShell({
         // Named group: nested chrome (AlbumTabs, transport clusters) must
         // not inherit the card's `:hover` / `:active`. Widget-level hover
         // effects opt in with `group-hover/widget`.
-        "group/widget relative rounded-2xl overflow-hidden",
+        // `h-full` + a column: the card is its cell. On the home grid a
+        // widget's footprint is the visitor's choice, so the shell fills
+        // whatever it was given and the widget decides what to put in it
+        // (see components/ui/widget-size.tsx).
+        "group/widget relative flex h-full flex-col rounded-2xl overflow-hidden",
         "border border-border/50",
         "transition-all duration-300",
         widgetEnabled
