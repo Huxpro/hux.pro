@@ -13,11 +13,13 @@ import {
   getLocalizedTagTitle,
   type Identity,
   isRowVisible,
+  localizeOptional,
   type Tag,
 } from "@/lib/log";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TYPE } from "@/lib/typography";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
@@ -246,6 +248,15 @@ function TagBlock({
   // but a spine with no vertebrae is just a line.
   if (!hasVisible) return null;
 
+  // The tag's message. An annotated tag carries one (`git tag -a`), and
+  // `git show` prints it before the commits it marks; this is that message —
+  // the chapter in a paragraph, as the log's author tells it. It was
+  // authored for every chapter and printed nowhere, so the page named its
+  // eras (`HEAD`, `REACT`, `CHINA`) and left the reader to reconstruct what
+  // each one was from twenty rows of titles. Every form prints it: it is the
+  // chapter's, not a row's, and a form is a statement about the rows.
+  const narrative = localizeOptional(tag.narrative, locale);
+
   return (
     <div>
       {/* Tag ref marker — like `git log --decorate` ref annotations */}
@@ -298,6 +309,18 @@ function TagBlock({
           </button>
         )}
       </div>
+
+      {/* The tag message (see `narrative` above). In the system's own
+          face, not the serif: a tag's message is plain text under its ref,
+          and this one states facts — where, doing what, shipped to whom —
+          rather than reflecting on them the way a row's commentary does.
+          Muted, so the titles under it stay the only thing on the ink, and
+          on a measure, so it reads as a paragraph and not as a bar across
+          the column. Its left edge is the marker's, which on a wide page is
+          the titles' too (the gutter hangs in the margin there). */}
+      {narrative && (
+        <p className={cn("mt-1 mb-3 max-w-prose", TYPE.body)}>{narrative}</p>
+      )}
 
       {/* Commits — relative so the beam measures against this box.
        *  Consecutive commits sharing a tenure segmentId are wrapped in
