@@ -25,6 +25,7 @@ import { Paperclip } from "lucide-react";
 import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
+import { SegmentedStrip, type StripSegment } from "./media/segmented-strip";
 import type { AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
@@ -117,6 +118,33 @@ interface TimelineCommitProps {
   onInspectCommit?: () => void;
   onInspectMedia?: (media: Media) => void;
   selectedMedia?: Media | null;
+  /**
+   * The row stands for a commit that is printed somewhere else on the page,
+   * and pressing it goes there (`onPress`). The arrow says which way.
+   */
+  pointer?: "up" | "down";
+  /** Replaces what pressing the row does (see `pointer`). */
+  onPress?: () => void;
+  /**
+   * The element id the row answers to. Defaults to its hash; `null` gives
+   * it none, for a row that is not the commit's address (a pointer).
+   */
+  anchorId?: string | null;
+  /**
+   * The row is one work in several versions (lib/log-editions.ts): a badge
+   * per version on the title line, where the language badge would be, and
+   * how a reader picks one. The rest of the row is the chosen version.
+   */
+  versions?: ReactNode;
+  /**
+   * Covers from more than one commit, a segment each, printed as one strip
+   * in the covers form in place of the row's own (media/segmented-strip.tsx):
+   * every version of a work. `activeSegment` is the one the row is reading,
+   * and scrolling the strip to another chooses it (`onActiveSegment`).
+   */
+  segments?: readonly StripSegment[];
+  activeSegment?: string;
+  onActiveSegment?: (id: string) => void;
 }
 
 export function TimelineCommit({
@@ -141,6 +169,13 @@ export function TimelineCommit({
   onInspectCommit,
   onInspectMedia,
   selectedMedia = null,
+  pointer,
+  onPress,
+  anchorId,
+  versions,
+  segments,
+  activeSegment,
+  onActiveSegment,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
@@ -225,11 +260,13 @@ export function TimelineCommit({
   // this one changes the prose, the cover's opens the attachment.
   const rowOnClick = inspecting
     ? onInspectCommit
-    : rowOpensIdentity
-      ? openIdentity
-      : hasExpandableContent
-        ? handleToggleExpanded
-        : undefined;
+    : onPress
+      ? onPress
+      : rowOpensIdentity
+        ? openIdentity
+        : hasExpandableContent
+          ? handleToggleExpanded
+          : undefined;
 
   // The row's form: the page's, unless the reader opened this row, in which
   // case it is the feed for itself (`rowFormFor`, lib/log-view.ts — a form
@@ -254,15 +291,22 @@ export function TimelineCommit({
   // below it is noise.
   const isQuiet = isEvent || (isAside && !textOpen);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
+  const segmented =
+    !!segments && segments.some((segment) => segment.items.length > 0);
   const showStrip =
-    !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
+    !isQuiet &&
+    rowForm.media === "covers" &&
+    (segmented || data.stripItems.length > 0);
   const showStatDescription =
     !isQuiet && rowForm.description === "clamp" && !!data.description;
   // Where the handle signs: the bottom-right of the row, which is the media
   // line when a single cover leaves it the room — on any viewport — and the
   // meta line when there is more than one, since two covers may already be
   // the width of a phone and the strip then scrolls under the edge.
-  const signsOnMediaLine = showStrip && data.stripItems.length === 1;
+  const signsOnMediaLine =
+    showStrip && !segmented && data.stripItems.length === 1;
+  // The strip names every version over its covers: label, venue, date.
+  const versionsOnStrip = !!versions && showStrip && segmented;
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
@@ -504,18 +548,28 @@ export function TimelineCommit({
         {isQuiet ? (
           // Events and folded asides drop a tier. Face is per script
           // (see QuietLine): Latin serif italic, CJK upright mono.
-          <QuietLine
-            text={displayTitle}
-            className="min-w-0 flex-1 text-xs text-tertiary-foreground"
-          />
+          <span className="min-w-0 flex-1 text-xs text-tertiary-foreground">
+            <QuietLine text={displayTitle} />
+            {pointer && (
+              // The same mark the meta line's links wear (`↗` leaves the
+              // site); this one stays on the page and says which way.
+              <span aria-hidden className="ml-1.5 font-mono text-[0.7rem]">
+                {pointer === "down" ? "↓" : "↑"}
+              </span>
+            )}
+          </span>
         ) : (
           <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
             {displayTitle}
-            {data.languageBadge && (
-              <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
-                {data.languageBadge}
-              </span>
-            )}
+            {/* Where the strip names the versions, under their covers, the
+                badges would say it twice. */}
+            {versions
+              ? !(showStrip && segmented) && versions
+              : data.languageBadge && (
+                  <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
+                    {data.languageBadge}
+                  </span>
+                )}
           </span>
         )}
 
@@ -568,10 +622,17 @@ export function TimelineCommit({
         byline fully visible so the cluster's authorial context stays
         on-screen while you read.
       */}
-      {!isQuiet && (data.meta || byline) && (
-        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
+      {/* Where the strip captions every version with its venue, the lit
+          one's venue here would be printed twice; the line stays only for
+          a handle signing at rest, and returns whole when the row opens. */}
+      {!isQuiet &&
+        (data.meta || byline) &&
+        !(versionsOnStrip && !textOpen && !byline?.isClusterHead) && (
+        // `min-w-0`: the line never wraps, so without it a long venue sets
+        // the column's minimum width and pushes the date off a phone.
+        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex min-w-0 items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
-            {data.meta ? (
+            {versionsOnStrip && !textOpen ? null : data.meta ? (
               data.metaUrl ? (
                 <a
                   href={data.metaUrl}
@@ -671,7 +732,21 @@ export function TimelineCommit({
           sized to its covers and stops its own clicks, so the line it sits
           on stays the row's; the empty stretch beside a single cover presses
           the row like any other part of it. */}
-      {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
+      {showStrip && segmented && (
+        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+          <SegmentedStrip
+            segments={segments}
+            active={activeSegment}
+            onActive={onActiveSegment}
+            peek={rowForm.peek && magneticPreviewEnabled}
+            className="min-w-0"
+            inspecting={inspecting}
+            onInspect={onInspectMedia}
+            selectedMedia={selectedMedia}
+          />
+        </div>
+      )}
+      {showStrip && !segmented && (
         <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
           {/* The covers get a line of their own, always. One cover used to
               tuck up beside the text and two or more dropped below it, so a
@@ -784,10 +859,13 @@ export function TimelineCommit({
     </div>
   );
 
+  // A pointer is not the commit's address; the row it leads to is.
+  const rowId = anchorId === undefined ? data.hash : (anchorId ?? undefined);
+
   return (
     <div
-      id={data.hash}
-      data-rail-row
+      id={rowId}
+      data-rail-row={rowId ? "" : undefined}
       data-role-row={isRoleAnchor ? "" : undefined}
       className={className}
     >

@@ -59,10 +59,32 @@ function mark(el: HTMLElement) {
   );
 }
 
+/**
+ * Commits that have no row of their own: a version of a talk is shown in
+ * its work's row, and only while that row has it chosen. A timeline
+ * registers a revealer that makes `hash` the one shown, renders that
+ * synchronously (flushSync), and returns the row it is now in.
+ */
+type Revealer = (hash: string) => HTMLElement | null;
+const revealers = new Set<Revealer>();
+
+export function registerCommitRevealer(reveal: Revealer): () => void {
+  revealers.add(reveal);
+  return () => {
+    revealers.delete(reveal);
+  };
+}
+
 /** A commit hash is 7 hex characters — see `computeCommitHash`. */
 function rowFor(hash: string): HTMLElement | null {
   const id = hash.replace(/^#/, "");
   if (!/^[0-9a-f]{7}$/.test(id)) return null;
+  // Revealers first: the lead version's hash is also its row's id, and
+  // asking for it has to choose it again if another version is showing.
+  for (const reveal of revealers) {
+    const row = reveal(id);
+    if (row) return row;
+  }
   const el = document.getElementById(id);
   return el?.hasAttribute("data-rail-row") ? (el as HTMLElement) : null;
 }

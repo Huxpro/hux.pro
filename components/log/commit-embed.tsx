@@ -13,7 +13,16 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
-import { getCommitPeekItems, localize } from "@/lib/log";
+import {
+  commitVenue,
+  computeCommitHash,
+  formatCommitDate,
+  getCommitPeekItems,
+  getMediaStripItems,
+  isPinnedMedia,
+  localize,
+} from "@/lib/log";
+import { editionLine, editionShort } from "@/lib/log-editions";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
 import { attachmentSetFor, leavesSite } from "@/systems/attachments";
@@ -26,6 +35,8 @@ import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
+import { VersionBadges, type VersionView } from "./versions";
+import type { StripSegment } from "./media/segmented-strip";
 import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
@@ -65,6 +76,23 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
+  /**
+   * Print the row in the quiet voice with this line, whatever the commit's
+   * own `present` says: a version's line at its own date.
+   */
+  foldedLine?: string;
+  /** Timeline-only, see `TimelineCommit`. */
+  pointer?: "up" | "down";
+  onPress?: () => void;
+  anchorId?: string | null;
+  /**
+   * The work's versions, lead first (lib/log-editions.ts), when `commit` is
+   * one work in several. The row shows the one `selectedVersion` names and
+   * lets the reader choose between them (`onSelectVersion`).
+   */
+  versions?: readonly CommitData[];
+  selectedVersion?: string;
+  onSelectVersion?: (id: string) => void;
 }
 
 // =============================================================================
@@ -87,9 +115,20 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  foldedLine,
+  pointer,
+  onPress,
+  anchorId,
+  versions,
+  selectedVersion,
+  onSelectVersion,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
+  // The version the row is showing. A work's row is anchored at its lead
+  // (`commit`) and shows whichever version is chosen.
+  const shown =
+    (versions && versions.find((v) => v.id === selectedVersion)) ?? commit;
   // Everything the commit attaches, as the one set every affordance on the
   // row opens (systems/attachments). Not while inspecting: the editor's
   // clicks select, they do not open. Memoized, above the guard so hook order
@@ -97,25 +136,64 @@ export function Commit({
   // row, and a set with a stable identity is what lets the strip, the
   // renderer and the row keep their own memo one day.
   const attachmentSet = useMemo(
-    () => (!commit || inspecting ? null : attachmentSetFor(commit, locale)),
-    [commit, locale, inspecting],
+    () => (!shown || inspecting ? null : attachmentSetFor(shown, locale)),
+    [shown, locale, inspecting],
   );
   // The same for the row's normalised data and its hover peek: a timeline
   // render (a beam hover, a form change) touches every row, and neither of
   // these changes with it. The peek is built only where a pointer can rest
   // on it — a phone would build and discard one per row.
   const { magneticPreviewEnabled } = useInputCapability();
-  const data = useMemo(
-    () => (commit ? normalizeCommit(commit, locale) : null),
-    [commit, locale],
-  );
+  const data = useMemo(() => {
+    if (!shown) return null;
+    const normalized = normalizeCommit(shown, locale);
+    if (foldedLine) {
+      return { ...normalized, present: "aside" as const, foldedTitle: foldedLine };
+    }
+    // A work's row is never folded, whichever version is showing: a folded
+    // version is one without covers in the row, not a quiet row.
+    return versions ? { ...normalized, present: undefined } : normalized;
+  }, [shown, locale, foldedLine, versions]);
   const preview = useMemo(
     () =>
-      commit && magneticPreviewEnabled
-        ? buildCommitPreview(commit, locale)
+      shown && magneticPreviewEnabled
+        ? buildCommitPreview(shown, locale)
         : null,
-    [commit, locale, magneticPreviewEnabled],
+    [shown, locale, magneticPreviewEnabled],
   );
+  // Every version as its badge names it. When the versions differ by
+  // language the badge is the language, the way the title line already
+  // marks one; otherwise it is the version's label.
+  const versionViews = useMemo<VersionView[] | null>(() => {
+    if (!versions) return null;
+    const langs = versions.map((v) => v.language);
+    const byLanguage =
+      langs.every((l) => l === "en" || l === "zh") &&
+      new Set(langs).size === versions.length;
+    return versions.map((v) => ({
+      id: v.id,
+      badge: byLanguage ? (v.language === "en" ? "EN" : "中文") : editionShort(v, locale),
+      line: editionLine(v, locale),
+    }));
+  }, [versions, locale]);
+
+  // Every version's covers, a segment each, for the one strip the covers
+  // form prints: the versions are alternatives, so all of them are on the
+  // page at once, and the badges say which one the row is reading.
+  const versionSegments = useMemo<StripSegment[] | null>(() => {
+    if (!versions || !versionViews) return null;
+    return versions.map((v, i) => ({
+      id: v.id,
+      caption: [versionViews[i].badge, commitVenue(v)].filter(Boolean).join(" · "),
+      date: formatCommitDate(v, locale),
+      title: versionViews[i].line,
+      items: getMediaStripItems(
+        (v.media ?? []).filter((m) => !isPinnedMedia(m)),
+        locale,
+      ),
+      set: inspecting ? null : attachmentSetFor(v, locale),
+    }));
+  }, [versions, versionViews, locale, inspecting]);
 
   // Runtime guard: MDX/JSON inputs can bypass static typing.
   if (
@@ -130,21 +208,32 @@ export function Commit({
     return null;
   }
 
-  if (!data) return null;
-  const isSelected = !!edit && edit.selectedCommitId === commit.id;
+  if (!data || !shown) return null;
+  const isSelected = !!edit && edit.selectedCommitId === shown.id;
   const selectedMedia =
     inspecting && isSelected && edit && edit.selectedMediaIndex != null
-      ? commit.media?.[edit.selectedMediaIndex] ?? null
+      ? shown.media?.[edit.selectedMediaIndex] ?? null
       : null;
   const onInspectCommit =
-    inspecting && edit ? () => edit.onSelectCommit(commit.id) : undefined;
+    inspecting && edit ? () => edit.onSelectCommit(shown.id) : undefined;
   const onInspectMedia =
     inspecting && edit
       ? (media: Media) => {
-          const index = commit.media?.indexOf(media) ?? -1;
-          if (index >= 0) edit.onSelectMedia(commit.id, index);
+          // Any version's cover: the one it belongs to is the one selected.
+          const owner =
+            versions?.find((v) => v.media?.includes(media)) ?? shown;
+          const index = owner.media?.indexOf(media) ?? -1;
+          if (index >= 0) edit.onSelectMedia(owner.id, index);
         }
       : undefined;
+  const versionBadges =
+    versionViews && selectedVersion ? (
+      <VersionBadges
+        versions={versionViews}
+        selected={shown.id}
+        onSelect={onSelectVersion ?? (() => {})}
+      />
+    ) : undefined;
 
   switch (variant) {
     case "timeline":
@@ -173,6 +262,14 @@ export function Commit({
           onInspectCommit={onInspectCommit}
           onInspectMedia={onInspectMedia}
           selectedMedia={selectedMedia}
+          pointer={pointer}
+          onPress={onPress}
+          // A work's row answers to its lead's hash, whichever version shows.
+          anchorId={versions ? computeCommitHash(commit.id) : anchorId}
+          versions={versionBadges}
+          segments={versionSegments ?? undefined}
+          activeSegment={shown.id}
+          onActiveSegment={onSelectVersion}
         />
       );
 

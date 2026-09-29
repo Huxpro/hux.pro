@@ -637,8 +637,6 @@
     {
       "id": "see-conf-2025-two-threads",
       "type": "talk",
-      "present": "aside",
-      "asideLine": "venue",
       "tagId": "lynx-era",
       "title": {
         "en": "React for Two Threads",
@@ -649,6 +647,11 @@
         "zh": "《React for Two Threads》的中文场。讲 Lynx 的双线程 React、瞬时首帧渲染，以及当 UI 线程成为一等公民之后会涌现什么。与甄子琦、王浩阳一起。"
       },
       "date": "2025-11",
+      "editionOf": "react-universe-2025-two-threads",
+      "edition": {
+        "en": "Chinese edition",
+        "zh": "中文版"
+      },
       "conference": {
         "name": "SEE Conf 2025",
         "city": "Hangzhou, China",
@@ -684,6 +687,11 @@
         "zh": "TikTok 投入生产的 UI 框架 Lynx，用来消解单线程瓶颈。用标准 JavaScript 与 CSS 渲染丝滑、真正原生的移动端原语，而不是套一层迟滞的 WebView。"
       },
       "date": "2025-07",
+      "editionOf": "react-summit-2025-unlock-native",
+      "edition": {
+        "en": "Re-run",
+        "zh": "重讲"
+      },
       "conference": {
         "name": "WeAreDevelopers World Congress",
         "city": "Berlin, Germany",
@@ -723,6 +731,11 @@
         "zh": "伴随终端业务的成熟和碎片化，跨端已成为众多开发者和企业的首选。但同时，UI 框架的创新在收敛，跨端思路大同小异，市场格局趋于固化。在这个背景下，字节孕育多年的跨端技术 —— Lynx，为何决定走向开源？本演讲将揭开 Lynx 的“神秘面纱”，与你一同探寻跨端的洞见与未来。"
       },
       "date": "2025-03",
+      "edition": {
+        "en": "Debut in China",
+        "zh": "国内首发"
+      },
+      "lead": "zh",
       "conference": {
         "name": "第 19 届 D2 终端技术大会",
         "url": "https://d2.alibabatech.com/"
@@ -754,6 +767,12 @@
         "zh": "Lynx 是 TikTok 应用采用的全新跨平台技术栈，让团队用 CSS、React 等既有的 Web 技能，从同一套代码交付面向移动端与 Web 的真正原生 UI，并已于近期开源。本次演讲将探讨 Lynx 为何既熟悉又与众不同，深入其双线程架构，看它如何带来瞬时启动与丝滑交互，并预告 Lynx 的下一步。"
       },
       "date": "2025-06",
+      "editionOf": "d2-2025-lynx",
+      "edition": {
+        "en": "Debut abroad",
+        "zh": "海外首发"
+      },
+      "lead": "en",
       "conference": {
         "name": "React Summit",
         "city": "Amsterdam, Netherlands",
@@ -792,6 +811,7 @@
         "zh": "十多年来，我们身处这样一个宇宙：在客户端用 React 编写 UI，从事件处理到渲染，始终由单一 JavaScript 线程主宰。但如果 React 生来不同呢？如果从第一天起，它就被设计为彻底拥抱两个线程呢？这会解锁哪些收益？我们又会面临什么挑战？会涌现出哪些新特性、抽象与范式？而这一切如果不只是想象，而是今天已然存在的现实呢？"
       },
       "date": "2025-09",
+      "lead": true,
       "conference": {
         "name": "React Universe Conf",
         "city": "Wrocław, Poland",
@@ -927,6 +947,12 @@
         "zh": "作为岗位的前端或许会消亡，但作为人机交互纽带的前端不会。"
       },
       "date": "2024-01",
+      "editionOf": "feday-2023",
+      "edition": {
+        "en": "Revised",
+        "zh": "升级版"
+      },
+      "lead": true,
       "conference": {
         "name": "掘金年度技术演讲 2023",
         "city": "Shenzhen, China",
@@ -958,6 +984,10 @@
         "zh": "前端已死，又或是前端未来？当我们在说前端时，我们又在说什么？受陆奇博士的大模型演讲启发，不妨我们也来探讨一些大前端技术演化中的拐点，对下个世代（ AI、AVXR …）的前端（工程师）做一点猜想。"
       },
       "date": "2023-11",
+      "edition": {
+        "en": "First version",
+        "zh": "初版"
+      },
       "conference": {
         "name": "FEDAY 2023",
         "city": "Hangzhou, China",
