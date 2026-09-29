@@ -9,12 +9,11 @@ import { Link, useTransitionRouter } from "next-view-transitions";
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useState,
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { armWidgetMorph, claimWidgetMorph } from "./widget-morph";
+import { armWidgetMorph } from "./widget-morph";
 import { landsOnOwnAction } from "./widget-surface";
 
 import { TYPE } from "@/lib/typography";
@@ -48,7 +47,7 @@ import { TYPE } from "@/lib/typography";
  * Soft edging (viewport-relative mask) goes through the tracker per layer.
  *
  * A card that opens a page opens it *from the card* (`widget-morph.ts`): the
- * card grows into the page, and going home shrinks the page back into it.
+ * card grows into the page.
  * That holds for every in-site link inside the card too — a post row opens
  * its post out of the writing card, as a deep link in an iOS widget opens its
  * app out of the widget, not out of the row.
@@ -57,7 +56,6 @@ export function WidgetShell({
   className,
   style,
   href,
-  morphKey,
   onOpen,
   children,
 }: {
@@ -65,12 +63,6 @@ export function WidgetShell({
   style?: React.CSSProperties;
   /** Page the widget opens when its surface is tapped. */
   href?: string;
-  /**
-   * Which card this is, for the page it opened to close back into. Defaults
-   * to `href` without its hash; a card whose `href` moves (the prompt card
-   * points at the entry it is showing) names itself instead.
-   */
-  morphKey?: string;
   /** Action the widget performs when its surface is tapped (no page). */
   onOpen?: () => void;
   children: React.ReactNode;
@@ -78,7 +70,6 @@ export function WidgetShell({
   const wallpaper = useOptionalWallpaper();
   const router = useTransitionRouter();
   const tappable = !!href || !!onOpen;
-  const key = morphKey ?? href?.split("#")[0];
 
   const handleClick = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
@@ -106,7 +97,7 @@ export function WidgetShell({
   // click the masonry swallows in edit mode never gets here.
   const handleClickCapture = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
-      if (!key || e.button !== 0) return;
+      if (!href || e.button !== 0) return;
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const own = (e.target as Element).closest("a, button, [role='button']");
       let target: string | undefined;
@@ -119,9 +110,9 @@ export function WidgetShell({
         if (landsOnOwnAction(e)) return;
         target = href;
       }
-      if (target) armWidgetMorph(e.currentTarget, key, target);
+      if (target) armWidgetMorph(e.currentTarget, target);
     },
-    [key, href],
+    [href],
   );
 
   // The card's page is fetched while the card sits on the grid, so a tap
@@ -130,13 +121,6 @@ export function WidgetShell({
   useEffect(() => {
     if (href) router.prefetch(href);
   }, [href, router]);
-
-  // Home, mounting under the transition back from the page this card opened:
-  // become the shape the page closes into. Layout effect, so the mark is on
-  // before the browser captures the new state.
-  useLayoutEffect(() => {
-    if (shellEl && key) claimWidgetMorph(shellEl, key);
-  }, [shellEl, key]);
 
   const widgetEnabled = wallpaper?.widgetEnabled ?? false;
   const layers = wallpaper?.layers ?? [];
@@ -154,7 +138,7 @@ export function WidgetShell({
     <div
       ref={setShellEl}
       onClick={tappable ? handleClick : undefined}
-      onClickCapture={key ? handleClickCapture : undefined}
+      onClickCapture={href ? handleClickCapture : undefined}
       // iOS only paints `:active` on elements with a touch listener in their
       // ancestry; React delegates to the root, so an empty handler suffices.
       onTouchStart={tappable ? noop : undefined}

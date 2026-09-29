@@ -170,27 +170,25 @@ The `λhux` identifier morphs from center (homepage) to left (content pages).
 #### Widget Morph
 
 A home widget opens its page the way an iOS widget opens its app: the card
-grows into the screen, the page is what it grows into, and going home shrinks
-the page back into the card. Every in-site link inside a card does it too (a
-post row opens its post out of the writing card).
+grows into the screen and the page is what it grows into. Every in-site link
+inside a card does it too (a post row opens its post out of the writing card).
+Leaving the page is a quick fade-out over home, not the flight backwards: a
+page folding back into a card read as noise.
 
-It is one name, `widget-morph`, worn by the tapped card on one side of the
-navigation and by the page's `:root` (the viewport) on the other, so the
-browser draws one group travelling between the card's box and the screen:
-
-```
-open    old: the card     →  new: :root (the page)     home (root) leans in
-close   old: :root (page) →  new: the card, on home    home (root) settles back
-```
+The open is one name, `widget-morph`, worn by the tapped card before the
+navigation and by the page's `:root` (the viewport) after it, so the browser
+draws one group travelling from the card's box to the screen, while home (the
+`root` group) leans in behind it.
 
 - `components/ui/widget-morph.ts` holds the phase on
-  `html[data-widget-morph]` (`open` → `opened` → `close`). `WidgetShell` marks
-  itself `data-morph-source` on the tap (click capture, before the router
-  starts the transition) and again when it mounts on home under the transition
-  back, so the close runs from λhux, ⌘K or the browser's back button alike.
+  `html[data-widget-morph]`: `open` while the card grows, `opened` while on
+  the page it opened. `WidgetShell` marks itself `data-morph-source` on the
+  tap (click capture, before the router starts the transition).
 - CSS decides who wears the name: the marked card, or `:root` when no card is
   marked. Snapshots are `object-fit: cover` from the top, clipped to the group
-  with the corner radius animating `1rem` ↔ `0`.
+  with the corner radius animating `1rem` → `0`.
+- From `opened`, any transition (home, onward, the theme) fades the page's
+  snapshot out in 160ms over the new state, which sits still beneath it.
 - An open never waits on the network. `next-view-transitions` resolves a
   transition's update only once the route commits, and the browser holds the
   page frozen until then. The open races that against 120ms: a page that
@@ -198,12 +196,8 @@ close   old: :root (page) →  new: the card, on home    home (root) settles bac
   screen — home with its content hidden, i.e. the bare wallpaper — which the
   card grows into at once, and the page renders onto it when it lands. Cards
   also prefetch their `href`, so the launch screen is the exception.
-- The close keeps the page opaque while it shrinks and fades the card in only
-  once the window is nearly card-sized; earlier, the card's `cover`ed
-  snapshot arrives blown up several times over.
-- Off-screen cards decline the close (the page crossfades home instead), as
-  does a back swipe the browser already animated (`hasUAVisualTransition`);
-  reduced motion and browsers without View Transitions skip it entirely.
+- A back swipe the browser already animated (`hasUAVisualTransition`) skips
+  the fade; reduced motion and browsers without View Transitions skip it all.
 
 ### Component Animations
 

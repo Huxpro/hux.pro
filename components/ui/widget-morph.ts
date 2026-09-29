@@ -2,34 +2,32 @@
 
 // ---------------------------------------------------------------------------
 // Widget morph — a widget opens into its page the way an iOS widget opens its
-// app: the card grows into the screen and the page is what it grows into, and
-// going back home shrinks the page into the card it came from.
+// app: the card grows into the screen and the page is what it grows into.
+// Leaving the page is not the same flight backwards: the page fades out
+// quickly over what it leaves for, the home screen already in place.
 //
-// It is one View Transition name, `widget-morph`, worn by two different
+// The open is one View Transition name, `widget-morph`, worn by two different
 // elements across the navigation:
 //
-//   open    old: the tapped card   →  new: the page's `:root` (the viewport)
-//   close   old: the page's `:root` →  new: the card, back on the home grid
+//   old: the tapped card  →  new: the page's `:root` (the viewport)
 //
-// so the browser draws one group moving between the card's box and the
-// screen, with the card's snapshot and the page's crossfading inside it. The
-// home screen is the `root` group on the other side of it: it recedes behind
-// an opening card and comes forward under a closing one (globals.css,
-// "Widget Morph").
+// so the browser draws one group moving from the card's box to the screen,
+// with the card's snapshot giving way to the page's inside it. The home
+// screen is the `root` group behind it and leans in as the card opens
+// (globals.css, "Widget Morph").
 //
-// Which element wears the name is decided by CSS, not per-navigation code:
-// while `html[data-widget-morph]` is set, the element marked
-// `data-morph-source` wears it, and when no such element is on the page,
-// `:root` does. The card is marked on the tap and is gone once the page
-// commits; on the way back, the card marks itself when the home grid mounts.
-// That is what lets the close run from anything that goes home — the λhux
-// link, ⌘K, the browser's back button — without any of them knowing.
+// Which element wears the name is decided by CSS: while
+// `html[data-widget-morph]` is set, the element marked `data-morph-source`
+// wears it, and when no such element is on the page, `:root` does. The card
+// is marked on the tap and is gone once the page commits.
 //
-// `html[data-widget-morph]` is the phase: `open` while the card grows,
-// `opened` resting on the page it opened (primed to close), `close` while it
-// shrinks back. Only `open` and `close` carry keyframes, so a view transition
-// that is neither — the solar theme's crossfade, a link onward from the page —
-// meets a plain crossfade of the renamed root, the same as the `root` one.
+// `html[data-widget-morph]` is the phase: `open` while the card grows, and
+// `opened` resting on the page it opened. From `opened`, `:root` wears the
+// name on both sides of whatever transition comes next, and the page's
+// snapshot fades out over the new state — home, a page onward, the solar
+// theme's recolour of the same page. Going home is that quick fade, not a
+// shrink back into the card: a page folding into a card that is still
+// rendering read as noise, where a fade reads as leaving.
 //
 // The open never waits on the network. `next-view-transitions` starts the
 // transition on the tap and resolves its update only once the route has
@@ -50,17 +48,15 @@
 const ATTR = "data-widget-morph";
 export const MORPH_SOURCE_ATTR = "data-morph-source";
 
-type Phase = "idle" | "open" | "opened" | "close";
+type Phase = "idle" | "open" | "opened";
 
 interface MorphState {
   phase: Phase;
-  /** Which card: its `morphKey`, the same on every mount of the home grid. */
-  key: string | null;
-  /** The pathname the card opened. Close is offered only from here. */
+  /** The pathname the card opened. `opened` holds only while on it. */
   path: string | null;
 }
 
-const state: MorphState = { phase: "idle", key: null, path: null };
+const state: MorphState = { phase: "idle", path: null };
 
 /**
  * How long an open waits for its page before growing into a launch screen
@@ -84,7 +80,6 @@ function reset() {
   window.clearTimeout(armTimer);
   armedEl?.removeAttribute(MORPH_SOURCE_ATTR);
   armedEl = null;
-  state.key = null;
   state.path = null;
   setPhase("idle");
 }
@@ -113,7 +108,7 @@ function internalPath(href: string): string | null {
  * tap, before the router starts its view transition — the old state is
  * captured a frame later, so the mark is in place by then.
  */
-export function armWidgetMorph(card: HTMLElement, key: string, href: string) {
+export function armWidgetMorph(card: HTMLElement, href: string) {
   if (!supported()) return;
   const path = internalPath(href);
   // Same page (a hash on home) is not an open.
@@ -122,7 +117,6 @@ export function armWidgetMorph(card: HTMLElement, key: string, href: string) {
   reset();
   armedEl = card;
   card.setAttribute(MORPH_SOURCE_ATTR, "");
-  state.key = key;
   state.path = path;
   setPhase("open");
   // The tap may never become a navigation — an attachment opens in a sheet,
@@ -130,28 +124,6 @@ export function armWidgetMorph(card: HTMLElement, key: string, href: string) {
   armTimer = window.setTimeout(() => {
     if (state.phase === "open" && armedEl === card) reset();
   }, 1500);
-}
-
-/**
- * Called by a card as it mounts on the home grid: if it is the card the
- * current page was opened from, it becomes the shape the page closes into.
- * Returns whether it did. A card off-screen (home restored scrolled away
- * from it) declines, and the page just crossfades home instead of flying
- * somewhere nobody is looking.
- */
-export function claimWidgetMorph(card: HTMLElement, key: string): boolean {
-  // Only inside a transition: a home reached some other way (a plain link, a
-  // reload of history) has nothing to close, and a mark left on the card
-  // would ride into the next unrelated transition.
-  if (state.phase !== "opened" || state.key !== key || inFlight === 0) {
-    return false;
-  }
-  const r = card.getBoundingClientRect();
-  if (r.bottom <= 0 || r.top >= window.innerHeight) return false;
-  card.setAttribute(MORPH_SOURCE_ATTR, "");
-  armedEl = card;
-  setPhase("close");
-  return true;
 }
 
 /**
@@ -213,16 +185,15 @@ function showLaunch(page: Promise<unknown>) {
 }
 
 let installed = false;
-/** View transitions started and not yet finished. */
-let inFlight = 0;
 
 function installHook() {
   if (installed || typeof document === "undefined") return;
   installed = true;
   const start = document.startViewTransition.bind(document);
   // A back swipe the browser has already animated (iOS Safari's edge swipe)
-  // is not closed a second time. Capture, so this runs before the router's
-  // own popstate listener starts its transition.
+  // has already taken the page away: fading it out again over home would
+  // flash it back. Capture, so this runs before the router's own popstate
+  // listener starts its transition.
   window.addEventListener(
     "popstate",
     (e) => {
@@ -237,8 +208,6 @@ function installHook() {
         ? budgeted(arg, open)
         : arg) as ViewTransitionUpdateCallback,
     );
-    inFlight++;
-    transition.finished.finally(() => inFlight--);
     const phase = state.phase;
     if (phase === "open") {
       window.clearTimeout(armTimer);
@@ -246,15 +215,14 @@ function installHook() {
         if (state.phase !== "open") return;
         armedEl?.removeAttribute(MORPH_SOURCE_ATTR);
         armedEl = null;
-        // Landed where the card said it would: stay primed to close there.
+        // Landed where the card said it would: leaving it will fade.
         if (window.location.pathname === state.path) setPhase("opened");
         else reset();
       });
     } else if (phase === "opened") {
       transition.finished.finally(() => {
-        // Went home (closed, or crossfaded because the card declined) or
-        // onward: either way the page it opened is behind us. A transition
-        // that stays on the page (the theme) keeps it primed.
+        // Went home or onward: the page it opened is behind us. A
+        // transition that stays on the page (the theme) keeps the phase.
         if (window.location.pathname !== state.path) reset();
       });
     }

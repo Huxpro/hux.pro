@@ -1293,13 +1293,12 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* -----------------------------------------------------------------------------
-   Widget Morph — a widget opens into its page, and the page closes into it
+   Widget Morph — a widget opens into its page; leaving the page fades it out
    -----------------------------------------------------------------------------
    See components/ui/widget-morph.ts. One name, `widget-morph`, is worn by the
-   card on one side of the navigation and by the page's root (the viewport) on
-   the other, so the group travels between the card's box and the screen. The
-   home screen is the `root` group behind it: it leans in as a card opens and
-   settles back as the page closes into one.
+   card before the navigation and by the page's root (the viewport) after it,
+   so the group travels from the card's box to the screen. The home screen is
+   the `root` group behind it and leans in as the card opens.
 
    Both snapshots are cropped into the group, never stretched: `cover` from
    the top, so the page at card size is its own top edge scaled down (its
@@ -1317,37 +1316,27 @@ html[data-widget-morph] [data-view-transition="site-identifier"] {
   view-transition-name: none;
 }
 
-html[data-widget-morph="open"]::view-transition-group(widget-morph),
-html[data-widget-morph="close"]::view-transition-group(widget-morph) {
+html[data-widget-morph="open"]::view-transition-group(widget-morph) {
   z-index: 1;
   animation-duration: var(--morph-duration);
   animation-timing-function: var(--morph-ease);
 }
 
-html[data-widget-morph="open"]::view-transition-image-pair(widget-morph),
-html[data-widget-morph="close"]::view-transition-image-pair(widget-morph) {
-  overflow: hidden;
-  animation: var(--morph-duration) var(--morph-ease) both;
-}
 html[data-widget-morph="open"]::view-transition-image-pair(widget-morph) {
-  animation-name: morph-corner-open;
-}
-html[data-widget-morph="close"]::view-transition-image-pair(widget-morph) {
-  animation-name: morph-corner-close;
+  overflow: hidden;
+  animation: morph-corner-open var(--morph-duration) var(--morph-ease) both;
 }
 
 html[data-widget-morph="open"]::view-transition-old(widget-morph),
-html[data-widget-morph="open"]::view-transition-new(widget-morph),
-html[data-widget-morph="close"]::view-transition-old(widget-morph),
-html[data-widget-morph="close"]::view-transition-new(widget-morph) {
+html[data-widget-morph="open"]::view-transition-new(widget-morph) {
   height: 100%;
   object-fit: cover;
   object-position: top;
   mix-blend-mode: normal;
 }
 
-/* Open: the card gives way to the page early, while it is still card-sized,
-   so what grows is the page. */
+/* The card gives way to the page early, while it is still card-sized, so
+   what grows is the page. */
 html[data-widget-morph="open"]::view-transition-old(widget-morph) {
   animation: fade-out 160ms ease-out both;
 }
@@ -1358,29 +1347,19 @@ html[data-widget-morph="open"]::view-transition-old(root) {
   animation: morph-home-recede var(--morph-duration) var(--morph-ease) both;
 }
 
-/* Close: the page shrinks as itself and hands over to the card only once
-   the window is all but card-sized. Earlier, the card's snapshot is `cover`ed
-   into a window several times its size, and its text arrives blown up. The
-   curve has covered ~95% of the distance by 300ms. The page stays opaque
-   under it: two half-faded snapshots let the home screen show through. */
-html[data-widget-morph="close"]::view-transition-old(widget-morph) {
-  animation: none;
-}
-html[data-widget-morph="close"]::view-transition-new(widget-morph) {
-  animation: fade-in 160ms ease-out 280ms both;
-}
-html[data-widget-morph="close"]::view-transition-new(root) {
-  animation: morph-home-recede var(--morph-duration) var(--morph-ease) reverse both;
-}
-
-/* Resting on an opened page, the renamed root is the page: any transition
-   that is not the close (the solar theme, a link onward) crossfades it the
-   way `root` is crossfaded above. */
+/* Leaving an opened page — home, onward, or the theme recolouring it: the
+   renamed root is the page on both sides, and the page's snapshot fades out
+   quickly over the new state, which is simply there underneath. Not the
+   `root` crossfade, where both halves are part-transparent at once and the
+   wallpaper shows through the middle of it. */
 html[data-widget-morph="opened"]::view-transition-old(widget-morph) {
-  animation: fade-out 200ms ease-out both;
+  z-index: 1;
+  mix-blend-mode: normal;
+  animation: fade-out 160ms ease-out both;
 }
 html[data-widget-morph="opened"]::view-transition-new(widget-morph) {
-  animation: fade-in 200ms ease-out both;
+  mix-blend-mode: normal;
+  animation: none;
 }
 
 :root {
@@ -1392,10 +1371,6 @@ html[data-widget-morph="opened"]::view-transition-new(widget-morph) {
 @keyframes morph-corner-open {
   from { border-radius: 1rem; }
   to { border-radius: 0; }
-}
-@keyframes morph-corner-close {
-  from { border-radius: 0; }
-  to { border-radius: 1rem; }
 }
 /* The home screen leans in behind an opening card, the way the iOS Home
    Screen zooms past you into an app — larger, never smaller, so the edges of
