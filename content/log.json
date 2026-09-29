@@ -98,6 +98,24 @@
   ],
   "groups": [
     {
+      "id": "works-selected",
+      "title": {
+        "en": "Selected works",
+        "zh": "精选作品"
+      },
+      "hidden": true,
+      "href": "/works",
+      "commitIds": [
+        "lynx-framework",
+        "react-summit-2025-unlock-native",
+        "react-core",
+        "hermes-engine",
+        "reactconf-2021-memo",
+        "eleme-pwa",
+        "qcon-shanghai-2016"
+      ]
+    },
+    {
       "id": "home-featured-stack",
       "title": {
         "en": "Featured stack",
