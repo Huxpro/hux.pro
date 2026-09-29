@@ -92,6 +92,36 @@ there, so `text-muted-foreground` and the rest follow without a single
 hardcoded white. Under Clear the backdrop goes, the ink comes back, and album
 art keeps its colour — the HIG's one exception to desaturation.
 
+## The icon grid
+
+App icons and widgets share one grid, as on the iPhone Home Screen: a small
+widget covers exactly 2×2 icons, a medium 4×2, a large 4×4, and an icon's
+name hangs in the gap under it — which is why iOS's gutter is taller than it
+is wide. The Apple board already has that shape (a 34px row gap so widget
+names fit, a 16px column gap), so the icon grid is derived, not chosen
+(`.app-grid` in `globals.css`):
+
+```
+icon   = (cell − rowGap) / 2          two icons and one gap fill a cell, and
+                                      the gap between cells is the same gap
+hgap   = (colGap + rowGap) / 2        a uniform pitch across cell boundaries…
+bleed  = (rowGap − colGap) / 4        …needs icons a little inside the side
+                                      edges (iOS widgets overhang their icon
+                                      columns for the same reason)
+```
+
+Measured in the browser, icons land where the formula says to the tenth of a
+pixel, and every outer edge meets a widget's: 61.7px icons at 4.5 / 91.2 on a
+desktop cell of 157.3, 64.5px at 4.5 / 94 on a phone. The names end above the
+next icon row and above the next board row, on the same line as the widgets'
+own names. Under the Apple skin the folder has no platter, at rest or in
+edit mode — iOS draws none behind icons — so nothing insets them off the grid.
+
+This is what decides the folder's sizes: four apps are a **small square** —
+the room of four icons, beside the weather like an iPhone's first row — not
+a medium with an empty row. A medium (8 slots) is offered once there are
+more than four.
+
 ## How it is built
 
 - **Apple is "not classic".** The variants are

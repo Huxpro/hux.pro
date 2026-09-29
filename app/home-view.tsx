@@ -1,6 +1,10 @@
 "use client";
 
-import { AppFolder, appFolderSizes } from "@/components/apps";
+import {
+  AppFolder,
+  appFolderDefaultSize,
+  appFolderSizes,
+} from "@/components/apps";
 import {
   HStackWidget,
   STACK_WIDGET_SIZES,
@@ -28,6 +32,7 @@ import {
 import { Commit } from "@/components/log";
 import { HeaderZone } from "@/components/ui/header-zone";
 import { WidgetBoard, type BoardWidget } from "@/components/ui/widget-board";
+import { FOOTPRINT } from "@/components/ui/widget-size";
 import { FEATURED_APPS } from "@/lib/apps";
 import {
   heroContentClassName,
@@ -144,17 +149,22 @@ function WidgetGrid({
   );
 
   // Each widget declares the sizes it has a design for and the one it takes
-  // by default. The defaults are chosen so the default board is hole-free
-  // on a desktop's six cells: apps (2) + weather (1) + music (1) + blog
-  // (2×2) + projects (2×2) + talks (2×2) + prompt (2) = 18 = three full
-  // rows; on a phone the two smalls pair up into one row. With the weather
-  // moved to the greeting (devtool, Home › Weather), music takes the
-  // medium instead, so the board is still 18 cells and still full.
+  // by default. The app folder's default is the smallest that holds the
+  // catalog (four apps: a small square of 2×2 icons). Music then takes
+  // whatever size makes the first run — apps, weather, music — four cells,
+  // so with blog (2×2) the first desktop row is exactly six and the default
+  // board is hole-free: 4 + blog 4 + projects 4 + talks 4 + prompt 2 = 18,
+  // three full rows. On a phone the smalls pair up. With the weather moved
+  // to the greeting (devtool, Home › Weather) and an odd run left, music
+  // stays small and the board ends a row short rather than holing one.
+  const appsSize = appFolderDefaultSize(FEATURED_APPS.length);
+  const runCells = FOOTPRINT[appsSize].w * FOOTPRINT[appsSize].h + (weatherWidget ? 1 : 0);
+  const musicDefault = runCells % 2 === 0 ? "medium" : "small";
   const items: BoardWidget[] = [
     {
       id: "apps",
       sizes: appFolderSizes(FEATURED_APPS.length),
-      defaultSize: "medium",
+      defaultSize: appsSize,
       render: (size) => <AppFolder size={size} />,
     },
     ...(weatherWidget
@@ -172,7 +182,7 @@ function WidgetGrid({
       id: "music",
       sizes: MUSIC_WIDGET_SIZES,
       label: t(locale, "widgetMusicIdle"),
-      defaultSize: weatherWidget ? "small" : "medium",
+      defaultSize: musicDefault,
       render: (size) => <MusicWidget size={size} />,
     },
     {
