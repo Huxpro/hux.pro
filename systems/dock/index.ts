@@ -13,6 +13,8 @@ export { DockProvider, useDock } from "./provider";
 export {
   dismissNotice,
   NOTICE_DURATION_MS,
+  NOTICE_SLOT_ATTRIBUTE,
   showNotice,
+  useNotice,
   type Notice,
 } from "./notice";

@@ -251,9 +251,14 @@ Rules it keeps:
   place. Nothing stacks.
 - **Its time runs only on screen.** Behind an open panel it waits, then gets its
   full duration.
-- **It does not publish into `--dock-clear`.** The /works and /prompt bars pin
-  under the pills by that variable; a notice floats over them instead, so they
-  do not jump down and back for a three-second line.
+- **It does not publish into `--dock-clear`, and a bar it would cover steps
+  aside.** The /works and /prompt bars pin under the pills by that variable;
+  pushing them down for a three-second line would make them jump twice. Left
+  alone under a notice, a pinned bar is wider than it and shows round both its
+  ends. So it fades and lifts away the way the pills do, and comes back when
+  the notice goes (`components/ui/use-notice-yield.ts`). Only when it is
+  actually under the notice: pinned below Live Activity pills it already
+  clears it, and resting under the title it is nowhere near.
 - **A press takes it down early.** It is not a button — a screen reader hears
   it through the `role="status"` region — so its time is what dismisses it for
   everyone else.
