@@ -36,6 +36,7 @@ import { useWallpaper } from "../provider";
 import { GradientStack } from "./gradient-stack";
 import { BEZEL_INSET, VITRE_LAYER_ATTRIBUTE } from "vitre";
 import { WeatherWallpaper } from "./wallpaper";
+import { LiveAtmosphere } from "./live-atmosphere";
 
 /** What the sky's offers need from the browser: the tilt and the window. */
 const SKY_NEEDS: readonly PermissionKind[] = ["motion", "location"];
@@ -48,34 +49,38 @@ const SKY_NEEDS: readonly PermissionKind[] = ["motion", "location"];
 // them mutually exclusive — there is one layer, not several that have to be
 // arbitrated.
 //
-// Under the weather kind there are two engines for the same scene. The CG
-// style paints a WebGL canvas (sun, moon, clouds, rain, snow, fog, lightning,
-// stars) at full strength — its theme veil is mixed inside the shader. The
-// gradient style, and any WebGL fallback, paints the crossfading CSS stack at
-// the wash opacity. The provider resolves which one (`renderer`), so this
+// Under the weather kind there are three engines for the same scene. The Sky
+// paints a WebGL2 canvas (sun, moon, clouds, rain, snow, fog, lightning, stars)
+// at full strength — its theme veil is mixed inside the shader. Atmosphere
+// paints a raymarched cloud volume with display-resolution rain, snow and
+// bolts over it (lib/atmosphere/), its veil a layer over both. The gradient
+// styles, and the Sky's WebGL2 fallback, paint the crossfading CSS stack at the
+// wash opacity. The provider resolves which one (`renderer`), so this
 // component only swaps the child.
 //
 // It is also where the weather easter eggs are wired: the wallpaper layer is
 // pointer-events-none (it must be — it is behind the whole page), so the click
-// is caught on the document and handed to the shader. The tapped eggs — a bolt
-// on a thunder day, a meteor on a clear night — belong to the Sky alone: a wash
-// has no geometry to strike and no star field for a streak to belong to, and
-// either one faked would be a lesser find, so they are armed only while the
-// shader is the one painting. See lib/poke.ts for which weather answers a
-// click, with what, and what counts as a click on the sky.
+// is caught on the document and handed to the engine. The tapped eggs — a bolt
+// on a thunder day, a meteor on a clear night — belong to the two engines that
+// paint a sky, the Sky and Atmosphere: a wash has no geometry to strike and no
+// star field for a streak to belong to, and either one faked would be a lesser
+// find, so they are armed only while one of those is painting. Each engine
+// answers in its own way through the same `pokeRef`. See lib/poke.ts for which
+// weather answers a click, with what, and what counts as a click on the sky.
 //
 // The foggy-day egg — a drag wipes the mist clear — is wired here too, and on
-// the same terms: only the Sky has a fog layer to thin and a sky behind it to
-// uncover, so it is armed only while the shader is painting. See lib/wipe.ts.
+// the same terms: both engines have a fog to thin and a sky behind it to
+// uncover (Atmosphere opens its cloud volume as well). See lib/wipe.ts.
 //
-// The rain-and-snow egg — a drag stirs up a gust — is armed inside
-// <WeatherWallpaper /> instead, for the same reason one layer down: only the
-// Sky has particles for a wind to blow.
+// The rain-and-snow egg — a drag stirs up a gust — is armed inside each engine's
+// component instead, for the same reason one layer down: only an engine with
+// particles has something for a wind to blow.
 //
 // And the one egg every weather has: pull the home screen down and the sky
 // window opens, where the phone's compass and tilt aim a camera at the real sky
 // (see lib/sky-window.ts and lib/sky-pull.ts). Only the Sky has a world to look
-// around in, so it is armed on the same terms as the others.
+// around in — Atmosphere's volume is a stage seen from one place — so the pull
+// is armed only while the Sky paints.
 //
 // An image wallpaper paints at FULL STRENGTH. On the home screen that is the
 // whole treatment: the picture is the content, sharp and untinted, with the
@@ -153,12 +158,13 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   // (lib/permissions.ts). The policies below decide what to do about it.
   const { status: permissions } = usePermissions(SKY_NEEDS);
 
+  const useAtmosphere = kind === "weather" && renderer === "atmosphere";
   const useShader = kind === "weather" && renderer === "shader";
 
-  // The pokes, the Sky's alone: the ref is registered by <WeatherWallpaper />
-  // and is null under every other engine, so the eggs cannot half-exist. One
-  // ref for both of them — a scene can only ever arm one, so there is never a
-  // question of which one answers.
+  // The pokes: the ref is registered by <WeatherWallpaper /> or
+  // <AtmosphereWallpaper /> and is null under the washes, so the eggs cannot
+  // half-exist. One ref for both of them — a scene can only ever arm one, so
+  // there is never a question of which one answers.
   const layerRef = useRef<HTMLDivElement | null>(null);
   const pokeRef = useRef<
     ((kind: PokeKind, x: number, y: number) => void) | null
@@ -169,7 +175,10 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   // background means Done, and a long press there is about to mean Done too.
   // The page's own controls outrank an egg every time.
   const editingHome = useHomeEditing();
-  const sky = enabled && useShader && !reducedMotion && !editingHome;
+  // Either engine that paints a sky can answer the eggs; only the Sky has the
+  // window.
+  const eggs = enabled && (useShader || useAtmosphere) && !reducedMotion && !editingHome;
+  const sky = eggs && useShader;
 
   /** Client space → the wallpaper layer's own, or null when that is not sky. */
   const at = useCallback((clientX: number, clientY: number) => {
@@ -182,9 +191,9 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   // nothing here has to arbitrate. A meteor is a small, fast, bright object
   // rather than a full-screen flash, so it is much less of a photosensitivity
   // concern than the strike; it refuses under `prefers-reduced-motion` all the
-  // same (through `sky`), because the setting is about motion and not only
+  // same (through `eggs`), because the setting is about motion and not only
   // about flashes.
-  const poke = sky ? armedPoke(scene) : null;
+  const poke = eggs ? armedPoke(scene) : null;
   usePokeOnClick(poke, (kind, clientX, clientY) => {
     const point = at(clientX, clientY);
     if (point) pokeRef.current?.(kind, point.x, point.y);
@@ -193,7 +202,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   // The foggy-day egg. The recognizer is `lib/wipe.ts`'s, the way the gust's is
   // `lib/wallpaper/stir.ts`'s; all this end does is put the path into the
   // layer's own space.
-  const wiping = sky && scene.fog >= WIPE_MIN_FOG;
+  const wiping = eggs && scene.fog >= WIPE_MIN_FOG;
   useEffect(() => {
     if (!wiping) return;
     return attachWipeDrag({
@@ -226,7 +235,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     falling:
       scene.precipitation.type !== "none" &&
       scene.precipitation.intensity > TILT_PRIMER_MIN_PRECIP,
-    sky,
+    sky: eggs,
   });
   useEffect(() => {
     if (!offering) return;
@@ -311,7 +320,8 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     []
   );
 
-  if (!useShader && layers.length === 0) return null;
+  // The canvases paint without the stack; everything else is the stack.
+  if (!useShader && !useAtmosphere && layers.length === 0) return null;
 
   return (
     <div
@@ -334,7 +344,19 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         ...(bezel ? BEZEL_INSET : null),
       }}
     >
-      {useShader ? (
+      {useAtmosphere ? (
+        <LiveAtmosphere
+          scene={scene}
+          active={enabled}
+          edgeMask={edgeMask}
+          themeEaseMs={skyThemeEaseMs}
+          gyro={gyro.active}
+          interactive
+          statsRef={statsRef}
+          pokeRef={pokeRef}
+          wipeRef={wipeRef}
+        />
+      ) : useShader ? (
         <WeatherWallpaper
           scene={scene}
           active={enabled}

@@ -1245,14 +1245,16 @@ function WallpaperModule() {
 
   const isImage = kind === "image";
   const isShader = !isImage && renderer === "shader";
+  const isAtmosphere = !isImage && renderer === "atmosphere";
   // The swatch: what the CSS stack would paint for the effective style.
   const swatch = getWeatherStyleGradient(effectiveStyle, scene, phase);
 
-  // Poll the renderer stats while the shader is live — as a formatted line, so
-  // an unchanged readout is a no-op render.
+  // Poll the renderer stats while a canvas engine is live — as a formatted
+  // line, so an unchanged readout is a no-op render.
   const [glStats, setGlStats] = useState<string | null>(null);
+  const canvasEngine = isShader || isAtmosphere;
   useEffect(() => {
-    if (!isShader) {
+    if (!canvasEngine) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- sync: clear stale stats
       setGlStats(null);
       return;
@@ -1260,13 +1262,13 @@ function WallpaperModule() {
     const tick = () => {
       const st = statsRef.current?.();
       setGlStats(
-        st ? `${st.width}×${st.height} · ${st.scale.toFixed(2)}× · ${st.frameMs.toFixed(1)}ms` : null
+        st && st.width ? `${st.width}×${st.height} · ${st.scale.toFixed(2)}× · ${st.frameMs.toFixed(1)}ms` : null
       );
     };
     tick();
     const id = window.setInterval(tick, 500);
     return () => window.clearInterval(id);
-  }, [isShader, statsRef]);
+  }, [canvasEngine, statsRef]);
 
   // The segmented control has a position the setting does not: "custom" is not
   // a tint, it is "whatever the swatch says". Every row here is live; vitre
@@ -1362,7 +1364,9 @@ function WallpaperModule() {
 
   // What the weather layer is being drawn by, with the GL numbers when live.
   const fellBack = weatherStyle === "sky" && effectiveStyle !== "sky";
-  const engineLine = isShader
+  const engineLine = isAtmosphere
+    ? `Atmosphere · GL1 + 2D · ${glStats ?? (zh ? "CSS 渐变" : "CSS gradient")}`
+    : isShader
     ? `GL · ${glStats ?? "…"}`
     : `CSS · ${t(locale, WEATHER_STYLE_LABEL[effectiveStyle])}${
         fellBack ? ` (${zh ? "无 WebGL2，天空退回" : "no WebGL2, Sky fell back"})` : ""
@@ -1378,7 +1382,7 @@ function WallpaperModule() {
       star={star}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
-          {isImage ? wallpaper.id : `weather · ${isShader ? "gl" : "css"}`}
+          {isImage ? wallpaper.id : `weather · ${isShader ? "gl" : isAtmosphere ? "atmosphere" : "css"}`}
           <span className="ml-1 text-quaternary-foreground">W</span>
         </span>
       }
@@ -1463,7 +1467,7 @@ function WallpaperModule() {
               className="flex h-6 w-10 shrink-0 items-center justify-center rounded-sm"
               style={{ backgroundImage: swatch }}
             >
-              {weatherStyle === "sky" ? (
+              {weatherStyle === "sky" || weatherStyle === "atmosphere" ? (
                 <Sparkles className="h-3 w-3 text-white/85 drop-shadow" />
               ) : (
                 <Cloud className="h-3 w-3 text-white/85 drop-shadow" />

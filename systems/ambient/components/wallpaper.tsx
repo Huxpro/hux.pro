@@ -25,10 +25,11 @@ import { getWallpaperQualityProfile } from "../lib/wallpaper/support";
 // canvas in once the first frame has actually been painted (a WebGL canvas is
 // black until then). Everything visual lives in the renderer + shader.
 //
-// It also arms the easter egg only the Sky can answer: while it is raining or
+// It also arms the easter egg that needs particles: while it is raining or
 // snowing, `interactive` lets a hand dragged across the page background stir up
-// a gust (lib/wallpaper/stir.ts). The thunder-day strike, which both engines
-// answer, is wired one level up in <WallpaperBackground /> instead.
+// a gust (lib/wallpaper/stir.ts). <AtmosphereWallpaper /> arms its own the same
+// way. The tapped eggs and the fog wipe are wired one level up, in
+// <WallpaperBackground />, for both.
 // ---------------------------------------------------------------------------
 
 interface WeatherWallpaperProps {

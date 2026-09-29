@@ -8,7 +8,7 @@
  *
  *   - `/editor` itself is an editor. `e` lands there.
  *   - The others are readouts of a system (attachments, legibility, icon,
- *     theater chrome). Calling the family "labs" would be more accurate
+ *     glow, the Atmosphere weather engine, theater chrome). Calling the family "labs" would be more accurate
  *     and would collide with Language (`l`) as a letter.
  *   - Routes stay under `/editor`. Bookmarks, docs, and the slash letter
  *     are muscle memory; renaming the URL is not worth it.
@@ -23,6 +23,7 @@ export type EditorId =
   | "icon"
   | "legibility"
   | "glow"
+  | "weather"
   | "theater";
 
 export interface EditorEntry {
@@ -66,6 +67,12 @@ export const EDITORS: readonly EditorEntry[] = [
     hint: "The one light, at every scale",
   },
   {
+    id: "weather",
+    href: "/editor/weather",
+    title: "atmosphere",
+    hint: "The weather engine, any sky",
+  },
+  {
     id: "theater",
     href: "/editor/theater-variants",
     title: "theater",
@@ -88,6 +95,9 @@ export function editorFromPath(pathname: string): EditorEntry {
   }
   if (pathname.startsWith("/editor/glow")) {
     return EDITORS.find((e) => e.id === "glow")!;
+  }
+  if (pathname.startsWith("/editor/weather")) {
+    return EDITORS.find((e) => e.id === "weather")!;
   }
   if (pathname.startsWith("/editor/theater")) {
     return EDITORS.find((e) => e.id === "theater")!;

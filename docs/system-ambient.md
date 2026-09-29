@@ -1,6 +1,6 @@
 # Ambient System
 
-The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg) and on a clear night with [a shooting star](#the-shooting-star-clear-night-easter-egg); while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg), and on a foggy one a drag [wipes the mist clear](#the-fog-wipe-foggy-day-easter-egg). In any weather, pulling the home screen down opens [the sky window](#the-sky-window-any-weather-easter-egg): the phone's compass and tilt aim a camera into the real sky, with the sun and moon where they really are.
+The ambient system creates a **living, breathing interface** that responds to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper** — an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon, and whose rain and snow fall along the device's own gravity — offered in four styles: Sky, Atmosphere, Gradient and Classic. Atmosphere is an independent volumetric-cloud renderer with sharp precipitation; see [Atmosphere](./weather-wallpaper.md). On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg) and on a clear night with [a shooting star](#the-shooting-star-clear-night-easter-egg); while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg), and on a foggy one a drag [wipes the mist clear](#the-fog-wipe-foggy-day-easter-egg). In any weather, pulling the home screen down opens [the sky window](#the-sky-window-any-weather-easter-egg): the phone's compass and tilt aim a camera into the real sky, with the sun and moon where they really are.
 
 It also owns the page background — the **wallpaper**. Weather is not a separate
 background feature; it is the one wallpaper that changes on its own. See
@@ -226,9 +226,12 @@ at 40 px.)
 
 ### Two Engines
 
+Two engines, and a third that paints a sky its own way:
+
 | Engine | Where | How |
 |--------|-------|-----|
 | **Sky** (`wallpaper/`) | The `sky` weather style, full-page, when WebGL2 is available | One full-screen fragment pass: sky gradient + sun glow/disc, twinkling stars, a phased moon shaded as a lit sphere, two parallax fbm cloud decks lit toward the sun, drifting fog, stochastic lightning flashes, wind-sheared rain streaks, five depth layers of slow fluttering snow, theme veil, dither. |
+| **Atmosphere** (`atmosphere/`) | The `atmosphere` weather style, full-page; its own CSS gradient where WebGL is missing or lost | A raymarched cloud volume on WebGL1 (self-shadowed, sunlit rims, parallax, lit from inside by lightning) under a display-resolution 2D layer of rain, snow and bolts. Answers the same eggs as the Sky, its own way; no sky window. See [Atmosphere](./weather-wallpaper.md). |
 | **Gradient** (`gradient.ts` + `gradient-stack.tsx`) | The `gradient` and `classic` weather styles; widget cards under every style; the Sky's fallback when WebGL2 is missing (or the devtool pretends it is) | Sun-glow radial + cloud wash + zenith→horizon linear gradient built from the scene palette, crossfaded via the layer stack. (`gradient.ts` also keeps the original hand-tuned per-condition palettes for the devtool thumbnails.) |
 
 The Sky engine (`WallpaperRenderer`):
@@ -270,14 +273,16 @@ The Sky engine (`WallpaperRenderer`):
   `prefers-reduced-motion`, and survives context loss;
 - fades the canvas in only after the first frame is painted (no black flash).
 
-### Gyroscope Tilt (Sky engine)
+### Gyroscope Tilt (Sky and Atmosphere)
 
 Rain and snow fall along **gravity**, not along the bottom of the viewport:
 lean the phone and the streaks lean with it, turn it on its side and the snow
 crosses the page sideways. A raindrop re-aims in a moment, a flake over
-seconds, because a flake has a body and a raindrop barely does. Only the Sky
-has drops to lean, so this is a Sky feature; the Gradient and Classic styles
-ignore it.
+seconds, because a flake has a body and a raindrop barely does. Only the two
+engines that draw drops have drops to lean; the Gradient and Classic styles
+ignore it. Atmosphere also slides its camera a little with the tilt, so the
+nearest billows of its cloud volume move most — parallax the Sky's decks, being
+pictures, do not have ([Atmosphere](./weather-wallpaper.md#tilt)).
 
 **It is the same vector the wind leans** — see [Wind does not shear the
 weather; it tilts the way it falls](#wind-does-not-shear-the-weather-it-tilts-the-way-it-falls),
@@ -1033,12 +1038,16 @@ the whole page. It listens for `click`, not `pointerdown`, which is what makes
 it survive a phone: a click is a press and a release on the same spot, so
 scrolling the page with a thumb on the sky never lights it up.
 
-**The Sky is the only engine that answers.** `uPokeKind == 1` drives `strike()`
+**The two engines that paint a sky answer, each its own way.** In the Sky,
+`uPokeKind == 1` drives `strike()`
 in the shader: a forked channel drawn top-down out of the cloud base over
 ~70 ms, landing exactly on the point clicked, flickering through two return
 strokes and gone inside 1.2 s. The flash it throws lights the cloud decks the
 same way the weather's own `lightning()` does. `WallpaperRenderer.poke("strike",
-x, y)` is the entry point.
+x, y)` is the entry point. Atmosphere draws the channel crisply on its 2D layer
+from the cloud base down to the point, with a ground flash where it lands, and
+lights its cloud volume from inside where the channel leaves it
+(`AtmosphereEngine.poke`, [Atmosphere](./weather-wallpaper.md#the-eggs)).
 
 Under the Gradient and Classic styles the egg **does not exist**, and that is
 the decision rather than an omission. A wash has no geometry to draw a channel
@@ -1289,7 +1298,9 @@ down to 20%.
 - **Brightness scales with `scene.stars`**, for the same reason the stars' does:
   on a washed-out night the meteor is faint too.
 
-**Sky only, and that is deliberate.** The CSS wash draws no stars at all —
+**Sky and Atmosphere only, and that is deliberate.** (Atmosphere draws its
+meteor inside the cloud pass too, so a cloud in front hides it.) The CSS wash
+draws no stars at all —
 `gradient.ts` builds a sun-glow radial, a cloud wash and a zenith→horizon
 linear, and nothing else — so there is no field for a meteor to belong to, and a
 streak over a flat night gradient would read as a scratch on the screen. Unlike
@@ -1645,8 +1656,10 @@ in the brightest thing on screen. A Gaussian has no shoulder at any width, and
 no boundary anywhere to put an outline on: it is a density, falling off forever,
 which is what mist around a wiped patch actually is.
 
-**The Sky is the only engine that answers**, on the rule the strike sets out
-above: a wash has no fog layer to thin and no sky behind it to uncover, so the
+**The two sky engines answer**, on the rule the strike sets out
+above (Atmosphere's swath opens its cloud volume along with the mist — see
+[Atmosphere](./weather-wallpaper.md#the-eggs)): a wash has no fog layer to thin
+and no sky behind it to uncover, so the
 most it could offer is a smudge dressed as the same find. The fog term's `fa`
 yields along the stroke, the deck goes with it, and the night sky the murk was
 hiding comes back — plus the one mark a hand leaves on a misted window that

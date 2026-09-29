@@ -52,6 +52,7 @@ import {
   rub,
 } from "../wipe";
 import { FRAGMENT_SHADER, VERTEX_SHADER } from "./shader";
+import { GUST, gustStep } from "./stir";
 
 interface UniformSpec {
   name: string;
@@ -321,33 +322,7 @@ const STILL_FRAME_SEC = 37;
 // right, and one unit of hand travel is one viewport HEIGHT.
 // -----------------------------------------------------------------------------
 
-const GUST = {
-  /** Hand speed (heights/s) → gust, through `tanh`, so a frantic hand saturates. */
-  gain: 0.55,
-  /**
-   * The strongest gust a hand can raise — above 1.0 on purpose, which is the
-   * top of the forecast's own range (50 km/h). A gust is not a wind; it is
-   * allowed to be briefly harder than any weather the sky is showing.
-   */
-  max: 1.1,
-  /** How quickly the hand's motion stops counting once it stops moving. */
-  stirTau: 0.1,
-  /**
-   * The gust's rise. Short: a squall front slams the rain over, it does not
-   * lean it politely. The rain's lean shears the curtain about mid-screen, so
-   * the edges sweep sideways at `0.5 × 0.75 × max ÷ attack` heights a second —
-   * a little over its own fall speed, which is the most that still reads as
-   * air rather than as a whip.
-   */
-  attack: 0.13,
-  /**
-   * And its fall — more than ten times as long, which is the shape of the
-   * thing. A gust arrives all at once and then *passes*: it is still half
-   * itself a second later, still visible at three, and gone by six. Getting up
-   * and dying away at the same rate is what makes a gust read as a twitch.
-   */
-  release: 1.6,
-} as const;
+// The constants are `GUST` in ./stir.ts, shared with the Atmosphere engine.
 
 // -----------------------------------------------------------------------------
 // Where the weather falls
@@ -1766,22 +1741,10 @@ export class WallpaperRenderer {
    * a hand is still stirring and slowly once the air is its own again.
    */
   private advanceGust(dtSec: number) {
-    // A stir is worth only what it is fresh — and freshness is measured from
-    // when the hand actually went past, never from the last frame. Decaying it
-    // by a frame's worth would quietly dock every gesture by however long the
-    // GPU took, which on a slow one is most of it.
-    const stale = (performance.now() - this.stirAt) / 1000;
-    const stir = this.stir * Math.exp(-stale / GUST.stirTau);
-    // Rising or falling, not stirring-or-not: the gust takes the fast constant
-    // whenever it is being asked for MORE wind than it has — including a hand
-    // that reverses and whips it the other way — and the slow one whenever it
-    // is being asked for less, whether that is because the hand eased off or
-    // because it let go. So it always arrives at once and always passes slowly.
-    const rising = Math.abs(stir) > Math.abs(this.gust);
-    const tau = rising ? GUST.attack : GUST.release;
-    this.gust += (stir - this.gust) * (1 - Math.exp(-dtSec / tau));
-    if (Math.abs(this.gust) < 1e-3 && Math.abs(stir) < 1e-3) this.gust = 0;
+    // Shared with the Atmosphere engine: see `gustStep` in ./stir.ts.
+    this.gust = gustStep(this.gust, this.stir, this.stirAt, performance.now(), dtSec);
   }
+
 
   /**
    * A fall direction, as a unit vector — which is the shader's whole contract

@@ -465,6 +465,22 @@ function rekey(c: RGB, theme: "light" | "dark", amount: number): RGB {
   });
 }
 
+/**
+ * The theme's key at this sun elevation, for an engine that paints the sky
+ * from a palette of its own (Atmosphere, lib/atmosphere/scene.ts): the same
+ * amount, the same lightness move and the same dimming of the moon this scene
+ * applies to its own colours — so every weather wallpaper sits in the theme's
+ * lightness, and the veil (already lightened by `key.veil`) is right over it.
+ */
+export function themeKeyFor(theme: "light" | "dark", elevation: number) {
+  const amount = themeKeyAmount(theme, elevation);
+  return {
+    amount,
+    moon: lerp(1, THEME_KEY[theme].moon, amount),
+    key: (c: RGB): RGB => rekey(c, theme, amount),
+  };
+}
+
 // -----------------------------------------------------------------------------
 // Derivation
 // -----------------------------------------------------------------------------
