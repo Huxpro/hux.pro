@@ -34,9 +34,15 @@ export function languageName(text: Locale, lang: Locale) {
   return t(text, lang === "en" ? "languageNameEn" : "languageNameZh");
 }
 
-const BUTTON =
-  "w-full rounded-2xl px-4 py-3 text-[15px] font-medium transition-colors " +
-  "active:scale-[0.99] motion-reduce:active:scale-100";
+/**
+ * Tall and full-width under a thumb; on a desk, a compact row at the foot of
+ * the card, the way a banner's actions sit — nothing there needs a whole line.
+ */
+const BUTTON = cn(
+  "w-full rounded-2xl px-4 py-3 text-[15px] font-medium transition-colors",
+  "sm:w-auto sm:rounded-full sm:py-2 sm:text-sm",
+  "active:scale-[0.99] motion-reduce:active:scale-100",
+);
 
 export function LanguageSharedSheet({
   open,
@@ -47,15 +53,27 @@ export function LanguageSharedSheet({
   open: boolean;
   /** The language the link was shared in — the page as it stands. */
   shared: Locale;
-  /** The reader's own; the sheet speaks it. */
+  /** The reader's own, as far as the site knows; the sheet speaks it. */
   preferred: Locale;
   onChoose: (lang: Locale) => void;
 }) {
-  const fill = (text: string) =>
-    text
+  // Which language says what. The sheet's own words — the title, the body —
+  // are chrome, so they speak the reader's language, like the rest of the
+  // site's system text. The two choices do not: each is written in the
+  // language it leads to, the way an OS lists languages by their own names.
+  // "The reader's language" is the site's guess (a stored choice, or the
+  // browser's), and a guess can be wrong — an English browser in a Chinese
+  // reader's hands. Written in their own languages, each option is legible to
+  // exactly the person who wants it, whichever way the guess went.
+  const inPreferred = (key: Parameters<typeof t>[1]) =>
+    t(preferred, key)
       .replaceAll("{shared}", languageName(preferred, shared))
       .replaceAll("{preferred}", languageName(preferred, preferred));
-  const stay = fill(t(preferred, "languageStayIn"));
+  const switchLabel = inPreferred("languageSwitchTo");
+  const stayLabel = t(shared, "languageStayIn").replaceAll(
+    "{shared}",
+    languageName(shared, shared),
+  );
   const aboutUp = useOptionalAbout()?.isOpen ?? false;
 
   return (
@@ -67,33 +85,40 @@ export function LanguageSharedSheet({
       }}
       presentation={{ base: "sheet" }}
       sheetMaxWidth="400px"
-      title={fill(t(preferred, "languageSharedTitle"))}
-      closeLabel={stay}
+      title={inPreferred("languageSharedTitle")}
+      closeLabel={stayLabel}
       fitContent
     >
-      <div className="space-y-4 pb-2">
-        <div aria-hidden="true" className="flex justify-center pt-2">
+      <div className="space-y-4 pb-2 sm:space-y-3">
+        {/* The picture is for the phone's form sheet, where it gives the
+            thumb's half of the screen something to stand on; the banner on a
+            desk says it in its title. */}
+        <div aria-hidden="true" className="flex justify-center pt-2 sm:hidden">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-foreground/[0.06]">
             <Languages className="h-6 w-6 text-foreground" />
           </span>
         </div>
-        <p className="px-0.5 text-[15px] leading-relaxed text-secondary-foreground">
-          {fill(t(preferred, "languageSharedBody"))}
+        <p className="px-0.5 text-[15px] leading-relaxed text-secondary-foreground sm:text-sm">
+          {inPreferred("languageSharedBody")}
         </p>
-        <div className="space-y-2">
+        {/* Primary first in the reading order (top under a thumb); on a desk
+            it sits at the trailing end, where a confirming action does. */}
+        <div className="flex flex-col gap-2 sm:flex-row-reverse sm:justify-start">
           <button
             type="button"
+            lang={preferred}
             onClick={() => onChoose(preferred)}
             className={cn(BUTTON, "bg-foreground text-background hover:bg-foreground/90")}
           >
-            {fill(t(preferred, "languageSwitchTo"))}
+            {switchLabel}
           </button>
           <button
             type="button"
+            lang={shared}
             onClick={() => onChoose(shared)}
             className={cn(BUTTON, "bg-foreground/[0.06] hover:bg-foreground/10")}
           >
-            {stay}
+            {stayLabel}
           </button>
         </div>
       </div>

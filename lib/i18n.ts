@@ -285,14 +285,17 @@ export const translations = {
     // A bilingual post — the language switch, and a link shared in the other
     // language than the reader's. `{lang}` / `{shared}` / `{preferred}` are
     // `languageNameEn` / `languageNameZh`, in the words of the text around them.
+    // The two choices are each read in the language they lead to
+    // (`languageSwitchTo` in the preferred one, `languageStayIn` in the shared
+    // one); see components/post/language-sheet.tsx.
     languageNameEn: "English",
     languageNameZh: "Chinese",
     languageReadingIn: "Reading in {lang}",
     languageNote: "Preference unchanged",
     languageSharedTitle: "Shared in {shared}",
-    languageSharedBody: "You usually read in {preferred}, and this post has a {preferred} version too.",
+    languageSharedBody: "You usually read in {preferred}; this post comes in {preferred} too.",
     languageSwitchTo: "Read in {preferred}",
-    languageStayIn: "Stay in {shared}",
+    languageStayIn: "Keep reading in {shared}",
 
     // The article header's provenance line, folded behind an `(i)`.
 
