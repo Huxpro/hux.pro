@@ -133,7 +133,7 @@ microphone) is `slashOnly` — in this list, never a search result.
 | `P` | Go to Prompts |
 | `I` | Go to Docs (internal) |
 | `E` | Go to Editor |
-| `A` | Cycle Appearance (Follow the Sun → Light → Dark → Follow the System) |
+| `A` | Cycle Appearance: Follow the Sun → the theme the sun isn't showing → the one it is → Follow the System |
 | `L` | Toggle Language |
 | `O` | Open the About (its only shortcut — see [system-about.md](./system-about.md)) |
 | `V` | Voice — tap to listen, hold to talk and let go to send ([system-glow.md](./system-glow.md)) |

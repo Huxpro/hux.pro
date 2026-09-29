@@ -36,6 +36,8 @@ interface ThemeContextType {
    * choosing Follow the Sun lands on the sun's answer at once.
    */
   sunTheme: Theme | null;
+  /** The OS's `prefers-color-scheme`, under every Appearance: Follow the Sun's stand-in. */
+  systemTheme: Theme;
   toggleTheme: () => void;
   setThemePreference: (preference: ThemePreference) => void;
   /** For the ambient system: the sun's answer, as the app should show it now. */
@@ -153,6 +155,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         theme,
         preference,
         sunTheme,
+        systemTheme,
         toggleTheme,
         setThemePreference,
         setSunTheme,

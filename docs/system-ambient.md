@@ -1723,7 +1723,11 @@ sunrise/sunset phase from the devtool also surfaces it for testing.
 
 **Follow the Sun is an Appearance** (`services/theme.tsx`), and the default
 one. Appearance has four answers — Follow the Sun, Light, Dark, Follow the
-System — cycled in that order by the palette's `A`; the devtool's Sky module
+System. The palette's `A` cycles them starting from what the sun shows: Follow
+the Sun → the theme it is not showing → the one it is → Follow the System, so
+the first press out of Follow the Sun always changes the page. No memory of
+where the cycle began is kept: the sun's answer is current under every
+Appearance, so the order is read off it on each press. The devtool's Sky module
 carries a Follow the Sun toggle beside its timeline (off is Follow the System).
 Under it the app is Light while the sun is up and Dark once it is down. Light,
 Dark and Follow the System are what they say: the sun never touches them.

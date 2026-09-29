@@ -9,6 +9,7 @@ import {
   useInputCapability,
   useLocale,
   useTheme,
+  type ThemePreference,
 } from "@/services";
 import { useAbout } from "@/systems/about";
 import { useLocation, useWallpaper } from "@/systems/ambient";
@@ -98,7 +99,7 @@ export interface CommandAction {
 const ROW_ICON = "h-4 w-4";
 
 export function useCommandActions(): CommandAction[] {
-  const { theme, preference, setThemePreference } = useTheme();
+  const { theme, preference, sunTheme, systemTheme, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const {
     usingGps: locationAccurate,
@@ -151,6 +152,22 @@ export function useCommandActions(): CommandAction[] {
       : theme === "light"
       ? t(locale, "themeLight")
       : t(locale, "themeDark");
+  // Follow the Sun → the other theme than the sun's → the sun's → Follow the
+  // System → Follow the Sun. Leaving Follow the Sun lands on the theme it is
+  // not showing, so the first press always changes the page; the second puts
+  // back what the sun had, now held. No memory of where the cycle began: the
+  // sun's answer is current under every Appearance (services/theme.tsx), so
+  // which fixed theme comes first is read off it on every press.
+  const sunShows = sunTheme ?? systemTheme;
+  const sunOther = sunShows === "light" ? "dark" : "light";
+  const nextAppearance: ThemePreference =
+    preference === "sun"
+      ? sunOther
+      : preference === "system"
+      ? "sun"
+      : preference === sunOther
+      ? sunShows
+      : "system";
   const ThemeIcon =
     preference === "sun"
       ? Sunrise
@@ -322,18 +339,7 @@ export function useCommandActions(): CommandAction[] {
         "太阳",
         "自动切换",
       ],
-      // Follow the Sun → Light → Dark → Follow the System → Follow the Sun.
-      run: () => {
-        setThemePreference(
-          preference === "sun"
-            ? "light"
-            : preference === "light"
-            ? "dark"
-            : preference === "dark"
-            ? "system"
-            : "sun"
-        );
-      },
+      run: () => setThemePreference(nextAppearance),
     },
     {
       id: "language",
