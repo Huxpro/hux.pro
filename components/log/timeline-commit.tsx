@@ -4,6 +4,8 @@
  * TimelineCommit — Dense git-log style commit row for /works timeline.
  *
  * Summary: hash · icon · title ··· [📎 n in the index] date
+ *          + the description and the attachments as words (`text`), or
+ *            two lines and the strip of covers (`covers`)
  * Expanded: description, commentary, media, author fields
  *
  * 3-column grid: [hash | icon | content]. Hash column collapses on small containers.
@@ -24,6 +26,7 @@ import { Description, Commentary, AuthorFields } from "./embeds/shared";
 import { Paperclip } from "lucide-react";
 import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
+import { LinkWords } from "./media/link-words";
 import { MediaStrip } from "./media/media-strip";
 import type { AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
@@ -271,8 +274,17 @@ export function TimelineCommit({
   // prose and covers, the whole block lighting a card under the pointer
   // gets in the way of reading them. The one-liner peeks; an open row's
   // handle still does (IdentityHover).
+  //
+  // The words are the strip's case too: each word peeks its own attachment
+  // (LinkWords), so the row peeking the same covers over the paragraph the
+  // reader is trying to read would be two panels for one hover.
+  const showLinks = !isQuiet && rowForm.media === "links" && expandedMedia.length > 0;
   const showCursorPreview =
-    !!cursorPreview && rowForm.peek && !showStrip && !showStatDescription;
+    !!cursorPreview &&
+    rowForm.peek &&
+    !showStrip &&
+    !showLinks &&
+    !showStatDescription;
   // The feed's covers are the row's own strip items; what has no cover (a
   // live widget) stacks under the grid. Inspect mode keeps this layout —
   // the handle lives on the tile (InspectableMedia), not on a different
@@ -658,6 +670,27 @@ export function TimelineCommit({
           <Description
             text={data.description}
             isExpanded={rowForm.description === "full"}
+            // Printed whole with the words under it, the paragraph is the
+            // row's content and reads one rung up; clamped under a strip, it
+            // is a hook and stays quiet.
+            tone={rowForm.media === "links" ? "plain" : "quiet"}
+          />
+        </div>
+      )}
+
+      {/* `links` — the attachments as words, at a line's height. The same
+          items and the same doors as the strip, minus the picture; the
+          reader who wants the picture is one press from it on a word, or
+          one stop over on the toolbar. */}
+      {showLinks && (
+        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+          <LinkWords
+            media={expandedMedia}
+            set={attachmentSet}
+            peek={rowForm.peek && magneticPreviewEnabled}
+            inspecting={inspecting}
+            onInspect={onInspectMedia}
+            selectedMedia={selectedMedia}
           />
         </div>
       )}

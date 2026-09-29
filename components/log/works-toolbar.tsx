@@ -3,7 +3,7 @@
 /**
  * WorksToolbar — the one line under the /works title.
  *
- *   ⎇ main │ ▣ Projects 8  ◔ Talks 12  ◌ Social 3  ▤ Roles 2  ⨯ │ ≡ ▤ ▦
+ *   ⎇ main │ ▣ Projects 8  ◔ Talks 12  ◌ Social 3  ▤ Roles 2  ⨯ │ ≡ ¶ ▤ ▦
  *   └ ref    └───────────────── pathspec ──────────────────────┘   └ form
  *
  * Three controls, one row, because the row is the budget: this sits in the
@@ -62,7 +62,14 @@ import {
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import { GalleryVertical, GitBranch, LayoutList, List, X } from "lucide-react";
+import {
+  AlignLeft,
+  GalleryVertical,
+  GitBranch,
+  LayoutList,
+  List,
+  X,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/ui/controls";
@@ -118,12 +125,13 @@ const FORM_CHIP: Record<
   LogForm,
   {
     icon: LucideIcon;
-    labelKey: "logFormIndex" | "logFormCovers" | "logFormFeed";
+    labelKey: "logFormIndex" | "logFormText" | "logFormCovers" | "logFormFeed";
   }
 > = {
-  // Lines only; lines with a cover block; full panels. The glyphs climb in
-  // visual weight the way the forms climb in detail.
+  // Lines only; lines of text; lines with a cover block; full panels. The
+  // glyphs climb in visual weight the way the forms climb in detail.
   index: { icon: List, labelKey: "logFormIndex" },
+  text: { icon: AlignLeft, labelKey: "logFormText" },
   covers: { icon: LayoutList, labelKey: "logFormCovers" },
   feed: { icon: GalleryVertical, labelKey: "logFormFeed" },
 };

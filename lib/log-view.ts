@@ -35,10 +35,18 @@ import {
 //  - `index`  — the title line only. The overview: one row per commit, the
 //    whole career in two screens. Rich media is reachable but not shown
 //    (hover peek on a pointer device, or open the row).
-//  - `covers` — the default: the title, two lines, and the covers at a size
-//    you can recognise a slide or a screenshot at. Still one row per commit,
-//    so the overview survives, but the work is on screen rather than behind
-//    a hover a phone cannot perform.
+//  - `text`   — the default: the title, the description whole, and the
+//    attachments as words — `github.com ↗`, `Recording`, `Slides` — on one
+//    mono line. What a commit *is* was always in its text, and the old
+//    default clamped that to two lines and spent the row's height on a
+//    strip of covers instead; a cover you can recognise is a nice thing to
+//    have, but it is not the thing a reader came to find out. Still one row
+//    per commit, still every attachment one press away, at a third of the
+//    height.
+//  - `covers` — the title, two lines, and the covers at a size you can
+//    recognise a slide or a screenshot at. Still one row per commit, so the
+//    overview survives, but the work is on screen rather than behind a
+//    hover a phone cannot perform.
 //  - `feed`   — the grid, at half a column, with its captions written out,
 //    and the prose and notes printed whole to match. All the information is
 //    right there, so nothing in it peeks or opens a sheet: a video plays
@@ -53,21 +61,22 @@ import {
 // `-p`); those names still parse, as aliases, so old links keep working.
 // =============================================================================
 
-export const LOG_FORMS = ["index", "covers", "feed"] as const;
+export const LOG_FORMS = ["index", "text", "covers", "feed"] as const;
 
 export type LogForm = (typeof LOG_FORMS)[number];
 
-export const DEFAULT_FORM: LogForm = "covers";
+export const DEFAULT_FORM: LogForm = "text";
 
 /** The atoms a row composes. Every form is one setting of each. */
 export interface RowForm {
   /** What of the description prints: nothing, two lines, or all of it. */
   description: "none" | "clamp" | "full";
   /**
-   * The attachment object: nothing, the strip of covers, or the grid — the
-   * feed's half-column tiles with their captions written out.
+   * The attachment object: nothing, the attachments as words (`LinkWords`),
+   * the strip of covers, or the grid — the feed's half-column tiles with
+   * their captions written out.
    */
-  media: "none" | "covers" | "grid";
+  media: "none" | "links" | "covers" | "grid";
   /** The notes under the message: commentary and the author fields. */
   notes: boolean;
   /** Whether the row, or its covers, peek on hover. The feed does not: it
@@ -77,6 +86,7 @@ export interface RowForm {
 
 export const ROW_FORM: Record<LogForm, RowForm> = {
   index: { description: "none", media: "none", notes: false, peek: true },
+  text: { description: "full", media: "links", notes: false, peek: true },
   covers: { description: "clamp", media: "covers", notes: false, peek: true },
   feed: { description: "full", media: "grid", notes: true, peek: false },
 };
@@ -109,13 +119,21 @@ export const ROW_FORM: Record<LogForm, RowForm> = {
  * with its prose, so an open row is the whole commit whatever the form. The
  * other forms already print the picture, so their press still owns the
  * prose alone.
+ *
+ * The text form has already printed the prose whole, so its press has only
+ * the notes left to give — the commentary and the author fields — and
+ * gives them; the words stay where they are. A second press takes the
+ * notes back. (The feed, which prints the notes to begin with, clamps.)
  */
 export function rowFormFor(form: LogForm, textRelieved: boolean): RowForm {
   const base = ROW_FORM[form];
   if (!textRelieved) return base;
-  return base.description === "full"
-    ? { ...base, description: "clamp", notes: false }
-    : {
+  if (base.description === "full") {
+    return base.notes
+      ? { ...base, description: "clamp", notes: false }
+      : { ...base, notes: true };
+  }
+  return {
         ...base,
         description: "full",
         notes: true,
@@ -129,6 +147,7 @@ const FORM_ALIAS: Record<string, LogForm> = {
   stat: "covers",
   patch: "feed",
 };
+
 
 export function parseLogForm(value: string | null): LogForm | null {
   if (!value) return null;

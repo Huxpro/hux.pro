@@ -19,6 +19,14 @@ interface DescriptionProps {
   text: string;
   /** Full text. Otherwise clamped to two lines. */
   isExpanded?: boolean;
+  /**
+   * `quiet` (the default) is the hook under a title — tertiary, the rung
+   * the argument below settles on. `plain` is one rung up, muted: for the
+   * form that prints the description whole and nothing under it, where the
+   * paragraph is the row's answer to what the work was and has to be read,
+   * not glanced at.
+   */
+  tone?: "quiet" | "plain";
   className?: string;
 }
 
@@ -37,12 +45,13 @@ interface DescriptionProps {
 export function Description({
   text,
   isExpanded = false,
+  tone = "quiet",
   className,
 }: DescriptionProps) {
   return (
     <p
       className={cn(
-        TYPE.captionQuiet,
+        tone === "plain" ? TYPE.caption : TYPE.captionQuiet,
         // Two lines everywhere, and the measure does the rest: a phone's
         // ~40 characters a line, a desktop's ~90. A wider column is already
         // being handed more of the text, so spending a breakpoint to hand it

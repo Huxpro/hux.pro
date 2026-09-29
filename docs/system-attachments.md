@@ -241,10 +241,19 @@ parse, as aliases.
 | form | description | media | notes | peek | the reading |
 |---|---|---|---|---|---|
 | `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
-| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
+| `text` (default) | all of it | `links` — the attachments as words | — | ✓ (the words) | what each commit is, in its own words, with every attachment one press away; a third of the height of `covers` |
+| `covers` | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
 ### The attachment object
+
+**The words** (`LinkWords`, `components/log/media/link-words.tsx`, `text`)
+are the strip with the picture taken out: every attachment, named — a
+page by its host (`github.com ↗`), a recording or a deck by the word, an
+image by its caption, and a page by its own title when two share a host —
+on one mono line, each a real anchor that opens the set at itself through
+the same door a cover would. A word peeks its attachment under a pointer,
+so the row itself does not.
 
 Every cover is one tile (`AttachmentTile`,
 `components/log/media/attachment-tile.tsx`): a 2:1 crop of the artwork,
