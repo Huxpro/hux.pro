@@ -126,10 +126,18 @@ export function useCommitAnchor(): (hash: string) => void {
   );
 
   useEffect(() => {
-    const go = () => {
+    // The row may not exist yet when the address names it: /works folds
+    // talks and press into a line at the summary, and unfolds the branch
+    // that holds one when a permalink points at it (app/works/view.tsx) —
+    // a render that lands a frame or two after the hash does. So look for a
+    // few frames before giving up, rather than once.
+    let frame = 0;
+    const go = (tries = 8) => {
       const el = rowFor(window.location.hash);
       if (el) travelTo(el);
+      else if (tries > 0) frame = requestAnimationFrame(() => go(tries - 1));
     };
+    const onHashChange = () => go();
 
     // On mount: covers a cold load and a client navigation into `/works#hash`
     // alike. Gated on the webfonts, not just on paint — Inter, Newsreader and
@@ -139,13 +147,14 @@ export function useCommitAnchor(): (hash: string) => void {
     let cancelled = false;
     const whenReady = document.fonts?.ready ?? Promise.resolve();
     void whenReady.then(() => {
-      if (!cancelled) requestAnimationFrame(go);
+      if (!cancelled) frame = requestAnimationFrame(() => go());
     });
 
-    window.addEventListener("hashchange", go);
+    window.addEventListener("hashchange", onHashChange);
     return () => {
       cancelled = true;
-      window.removeEventListener("hashchange", go);
+      cancelAnimationFrame(frame);
+      window.removeEventListener("hashchange", onHashChange);
       stopRef.current();
     };
   }, [travelTo]);

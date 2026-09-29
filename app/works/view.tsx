@@ -1,64 +1,46 @@
 "use client";
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { scrollPageTo } from "vitre";
 import { PageLayout } from "@/components/ui/page-layout";
-import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
-import { PlacesReading } from "@/components/log/places";
-import { PlacesBar, ReadingSwitch } from "@/components/log/reading-switch";
+import { Branches, laneChapters, laneShows } from "@/components/log/places";
 import { t, useLocale } from "@/services";
-import type { Locale } from "@/lib/i18n";
 import {
-  buildTimelineData,
+  computeCommitHash,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
   type FilterableCommitType,
-  type Identity,
   type LogData,
-  type TimelineData,
 } from "@/lib/log";
+import { buildLanes, summarize, type Lane } from "@/lib/log-places";
 import {
-  DEFAULT_FORM,
   parseViewState,
   serializeViewState,
   toggleType,
-  type LogForm,
-  type LogReading,
+  type LogDepth,
   type LogViewState,
 } from "@/lib/log-view";
 
 // =============================================================================
-// Two readings of one log (lib/log-view.ts): the places, which the page opens
-// on, and the log itself. The query string says which, the way it already
-// said which filter and which form — and a commit's permalink says it too,
-// because a `#hash` names a row and only the log has rows.
+// One page, one log: the places are its branches (lib/log-places.ts), and
+// the page is that log at a depth (lib/log-view.ts) — folded to a summary
+// by default, unfolded a branch at a time or all at once.
 // =============================================================================
 
-/** A commit permalink: `#` and the 7 hex digits of `computeCommitHash`. */
-const COMMIT_HASH = /^#[0-9a-f]{7}$/;
-
-function subscribeHash(onChange: () => void) {
-  window.addEventListener("hashchange", onChange);
-  return () => window.removeEventListener("hashchange", onChange);
-}
-
-/**
- * Whether the address points at a commit. Read from the location rather than
- * held in state, so a link from the palette or the identity card into
- * `/works#hash` — cold, or from the places — lands in the log on its first
- * client frame rather than one effect late. The server has no hash, so it
- * renders the reading the query names, and hydration takes it from there.
- */
-function useCommitInAddress(): boolean {
-  return useSyncExternalStore(
-    subscribeHash,
-    () => COMMIT_HASH.test(window.location.hash),
-    () => false,
-  );
+/** The lane a commit permalink (`#<hash>`) needs unfolded, if any: the one
+ *  holding a commit the summary folds (a talk, a press piece). A project,
+ *  a role and an event print at the summary, and are travelled to there. */
+function laneToUnfold(lanes: Lane[], hash: string): string | null {
+  const id = hash.replace(/^#/, "");
+  if (!/^[0-9a-f]{7}$/.test(id)) return null;
+  for (const lane of lanes) {
+    const { folded } = summarize(lane);
+    if (folded.some((c) => computeCommitHash(c.id) === id)) return lane.id;
+  }
+  return null;
 }
 
 interface WorksViewProps {
@@ -71,13 +53,10 @@ export function WorksView({ logData }: WorksViewProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const data = useMemo(
-    () => buildTimelineData(logData, locale),
-    [logData, locale],
-  );
+  const lanes = useMemo(() => buildLanes(logData, locale), [logData, locale]);
 
   // View state lives in the URL, the way /writing's language filter does:
-  // a reading of this page ("just the talks, with the media showing") is a
+  // a reading of this page ("just the talks, every branch unfolded") is a
   // link someone can send, and the back button undoes a filter the way you
   // would expect it to.
   const urlView = useMemo(
@@ -104,14 +83,9 @@ export function WorksView({ logData }: WorksViewProps) {
     if (urlKey !== serializeViewState(view)) setView(urlView);
   }
 
-  const commitInAddress = useCommitInAddress();
-  const reading: LogReading = commitInAddress ? "log" : view.reading;
-
   const commit = useCallback(
     (next: Partial<LogViewState>) => {
-      // `reading` as it is on screen, not as the query last said it: a chip
-      // tapped in a log that a `#hash` opened is still a chip in the log.
-      const merged = { ...view, reading, ...next };
+      const merged = { ...view, ...next };
       setView(merged);
       const query = serializeViewState(
         merged,
@@ -123,41 +97,61 @@ export function WorksView({ logData }: WorksViewProps) {
         scroll: false,
       });
     },
-    [view, reading, searchParams, router, pathname],
+    [view, searchParams, router, pathname],
   );
 
-  const switchReading = useCallback(
-    (next: LogReading) => {
-      if (next === reading) return;
-      // Leaving the log leaves its permalink behind: the hash names a row
-      // the places don't have, and while it is in the address it holds the
-      // log open. Dropped before the state changes, so the render that
-      // follows already reads an address without it.
-      if (commitInAddress) {
-        window.history.replaceState(
-          window.history.state,
-          "",
-          window.location.pathname + window.location.search,
-        );
-      }
-      // The places carry no filter and no form (their URL is the bare one),
-      // so leaving the log lets go of both: coming back is the log as it
-      // opens, not a filter the address no longer mentions.
-      commit(
-        next === "places"
-          ? { reading: next, types: [], form: DEFAULT_FORM }
-          : { reading: next },
-      );
-      // The other reading starts at its top, not at whatever depth the one
-      // being left was scrolled to.
-      scrollPageTo(0);
-    },
-    [reading, commitInAddress, commit],
+  // The branches the reader unfolded (or folded) by hand, against what the
+  // depth says. Page state, not URL state: a depth is a reading worth
+  // sending, one branch opened on the way is not. A depth change is a new
+  // default for every branch, so the deviations are spent — reconciled
+  // during render, like the view above and TimelineCommit's own press.
+  const [flipped, setFlipped] = useState<ReadonlySet<string>>(new Set());
+  const [flippedAt, setFlippedAt] = useState<LogDepth>(view.depth);
+  if (flippedAt !== view.depth) {
+    setFlippedAt(view.depth);
+    setFlipped(new Set());
+  }
+
+  // A filter that leaves out the projects leaves the summary nothing to
+  // lead with, and nothing to protect from the talks it folds: `Talks` alone
+  // is a request for the talks, so every branch unfolds to its rows (and
+  // `Roles` alone to its header). The summary is for the mix.
+  const summarizes =
+    view.depth === "summary" &&
+    (view.types.length === 0 || view.types.includes("project"));
+
+  const isDeep = useCallback(
+    (lane: Lane) => (summarizes ? flipped.has(lane.id) : true),
+    [summarizes, flipped],
   );
 
-  // Facet counts are of the UNFILTERED timeline, so a chip's number never
-  // moves as you select — it answers "how much of this is there?", not "how
-  // much survived what I just did?", which is the question the rows answer.
+  const toggleLane = useCallback((lane: Lane) => {
+    setFlipped((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(lane.id)) next.add(lane.id);
+      return next;
+    });
+  }, []);
+
+  // A permalink to a commit the summary folds unfolds its branch first —
+  // the page opens whatever encloses the row, and the anchor then travels
+  // to it (useCommitAnchor waits for the row to exist).
+  useEffect(() => {
+    const open = () => {
+      const lane = laneToUnfold(lanes, window.location.hash);
+      if (!lane) return;
+      setFlipped((prev) => (prev.has(lane) ? prev : new Set(prev).add(lane)));
+    };
+    open();
+    window.addEventListener("hashchange", open);
+    return () => window.removeEventListener("hashchange", open);
+  }, [lanes]);
+
+  const selectHash = useCommitAnchor();
+
+  // Facet counts are of the UNFILTERED log, so a chip's number never moves
+  // as you select — it answers "how much of this is there?", not "how much
+  // survived what I just did?", which is the question the page answers.
   //
   // The question it answers precisely is "how many rows does tapping this
   // chip print?", which is why each commit is asked against its own type
@@ -166,10 +160,10 @@ export function WorksView({ logData }: WorksViewProps) {
   // role un-suppresses under its own chip (see `isRowVisible`) and a count
   // of 2 over a column of 9 is just a wrong number.
   //
-  // Counted over `data` rather than the raw log, because `data` is what the
-  // timeline renders — locale filtered and grouped under a tag that exists.
-  // A count derived from a different array is a count that can disagree with
-  // the rows under it.
+  // Counted over the lanes rather than the raw log, because the lanes are
+  // what the page lays out — locale filtered, every commit on a branch or on
+  // `main`. A count derived from a different array is a count that can
+  // disagree with the rows under it.
   const facets = useMemo<TypeFacet[]>(() => {
     // Per type: how many rows, and every distinct `icon` override they carry.
     // One override and the chip can wear it; more than one (or none) and it
@@ -179,8 +173,8 @@ export function WorksView({ logData }: WorksViewProps) {
       { count: number; icons: Set<string | undefined> }
     >();
 
-    for (const { commits } of data) {
-      for (const c of commits) {
+    for (const lane of lanes) {
+      for (const c of lane.commits) {
         if (!isFilterableCommitType(c.type)) continue;
         if (!isRowVisible(c, [c.type])) continue;
         const entry = seen.get(c.type) ?? { count: 0, icons: new Set() };
@@ -198,43 +192,17 @@ export function WorksView({ logData }: WorksViewProps) {
         iconOverride: icons.size === 1 ? [...icons][0] : undefined,
       };
     });
-  }, [data]);
+  }, [lanes]);
 
-  // The chapters, as the pinned bar names them when it wears one.
-  const chapters = useMemo(
-    () =>
-      data.map(({ tag }, i) => ({
-        id: tag.id,
-        label: chapterLabel(tag, i, locale),
-      })),
-    [data, locale],
-  );
+  const chapters = useMemo(() => laneChapters(lanes), [lanes]);
 
-  // Whether the log has anything to print under the current filter — the same
-  // question every TagBlock asks itself before rendering, so the end marker
-  // and the rows can never disagree. (They used to: this check knew about the
-  // filter but not about `hideRow`, so a filter matching only suppressed rows
-  // printed `git init` over an empty page.)
+  // Whether the page has anything to print under the current filter — the
+  // same question every lane asks itself before rendering, so the end
+  // marker and the lanes can never disagree.
   const hasMatches = useMemo(
-    () =>
-      data.some(({ commits }) =>
-        commits.some((c) => isRowVisible(c, view.types)),
-      ),
-    [data, view.types],
+    () => lanes.some((lane) => laneShows(lane, view.types)),
+    [lanes, view.types],
   );
-
-  if (reading === "places") {
-    return (
-      <PageLayout
-        page="works"
-        pinnedActions={
-          <PlacesBar locale={locale} reading={reading} onChange={switchReading} />
-        }
-      >
-        <PlacesReading log={logData} locale={locale} />
-      </PageLayout>
-    );
-  }
 
   return (
     <PageLayout
@@ -242,80 +210,36 @@ export function WorksView({ logData }: WorksViewProps) {
       pinnedActions={
         <WorksToolbar
           locale={locale}
-          lead={
-            <ReadingSwitch
-              locale={locale}
-              reading={reading}
-              onChange={switchReading}
-              compact
-            />
-          }
           facets={facets}
           active={view.types}
           onToggleType={(type) =>
             commit({ types: toggleType(view.types, type) })
           }
           onClearTypes={() => commit({ types: [] })}
-          form={view.form}
-          onFormChange={(form) => commit({ form })}
+          depth={view.depth}
+          onDepthChange={(depth) => commit({ depth })}
           chapters={chapters}
         />
       }
     >
-      <LogReadingBody
-        data={data}
+      <Branches
+        lanes={lanes}
         locale={locale}
         identities={logData.identities}
-        form={view.form}
+        depth={view.depth}
         types={view.types}
-        hasMatches={hasMatches}
-      />
-    </PageLayout>
-  );
-}
-
-/**
- * The log, as it always was. Its own component so the permalink hook mounts
- * with the rows it travels to: arriving from the places — a `#hash` followed,
- * or the switch — its first look for the row happens once the row exists,
- * not on a page that had none.
- */
-function LogReadingBody({
-  data,
-  locale,
-  identities,
-  form,
-  types,
-  hasMatches,
-}: {
-  data: TimelineData[];
-  locale: Locale;
-  identities?: Record<string, Identity>;
-  form: LogForm;
-  types: FilterableCommitType[];
-  hasMatches: boolean;
-}) {
-  const selectHash = useCommitAnchor();
-
-  return (
-    <>
-      {/* Git Log Timeline */}
-      <LogTimeline
-        data={data}
-        locale={locale}
-        identities={identities}
-        form={form}
-        activeTypes={types}
+        isDeep={isDeep}
+        foldable={summarizes}
+        onToggle={toggleLane}
         onSelectHash={selectHash}
-        pinnedChapters
       />
 
-      {/* End marker — `git init` closes a timeline that has commits in it;
-          a filter that matched nothing says so in the same slot, in the same
+      {/* End marker — `git init` closes a log that has commits in it; a
+          filter that matched nothing says so in the same slot, in the same
           voice, rather than leaving the page to end in silence. */}
       <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">
         {t(locale, hasMatches ? "logInit" : "logNoMatches")}
       </div>
-    </>
+    </PageLayout>
   );
 }

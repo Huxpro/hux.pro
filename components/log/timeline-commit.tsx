@@ -42,8 +42,17 @@ import { TYPE } from "@/lib/typography";
  * subtracts on the right. Below `lg` the page has no margin to hang it in
  * and the gutter stays inside the column as it always did.
  */
-const HASH_CELL = "lg:w-14 lg:text-right";
-const GUTTER_PULL = "lg:-ml-[6.5rem]";
+export const HASH_CELL = "lg:w-14 lg:text-right";
+export const GUTTER_PULL = "lg:-ml-[6.5rem]";
+
+/**
+ * The rail's line, as every row draws its halves of it. Exported for the
+ * rows /works prints around the log's own — a branch's header, its summary,
+ * its fold line (components/log/places.tsx) — so the line they continue is
+ * the same line, and the tenure hover (globals.css) brightens all of it.
+ */
+export const RAIL_LINE =
+  "pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10";
 
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
@@ -436,7 +445,7 @@ export function TimelineCommit({
           <span
             aria-hidden
             data-rail-above
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
+            className={RAIL_LINE}
             style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
           />
         )}
@@ -444,7 +453,7 @@ export function TimelineCommit({
           <span
             aria-hidden
             data-rail-below
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
+            className={RAIL_LINE}
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}

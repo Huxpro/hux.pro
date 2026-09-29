@@ -1448,6 +1448,24 @@ main[data-variant="reader"] .reader-masthead {
   );
 }
 
+/* A branch on /works (components/log/places.tsx): its header is the role row
+   of the whole branch, so resting on it lights the branch's rail from the
+   ring to the last row — the summary's rows and the log's alike. */
+[data-branch]:has([data-branch-head]:hover) [data-rail-above],
+[data-branch]:has([data-branch-head]:hover) [data-rail-below],
+[data-branch]:has([data-branch-head]:focus-within) [data-rail-above],
+[data-branch]:has([data-branch-head]:focus-within) [data-rail-below] {
+  background-color: color-mix(
+    in oklch,
+    var(--color-muted-foreground) 30%,
+    transparent
+  );
+}
+[data-branch]:has([data-branch-head]:hover) [data-branch-ring],
+[data-branch]:has([data-branch-head]:focus-within) [data-branch-ring] {
+  --tw-ring-color: color-mix(in oklch, var(--color-muted-foreground) 50%, transparent);
+}
+
 /* =============================================================================
    Widget Jiggle — iPad-springboard "edit mode" wobble applied to widgets
    while the homepage grid is being rearranged. Lives on an inner wrapper so

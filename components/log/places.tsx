@@ -1,59 +1,73 @@
 "use client";
 
 /**
- * Places — /works read as a career (see lib/log-places.ts for what goes
- * where, and lib/log-view.ts for how this reading and the log share a URL).
+ * Places as the log's branches — /works, at every depth (see
+ * lib/log-places.ts for what goes where, and lib/log-view.ts for the depths
+ * and the URL).
  *
- *   ByteDance                                    ← the place, in serif: a
- *   Architect                     2023 – Present    name, the way /prompt's
- *   Architect of Lynx at ByteDance. …                headings are
+ *        ○ ByteDance                              2023 – Present  ← the branch:
+ *        │ Architect                                                 a quiet
+ *        │                                                           header
+ *        │ [▣] Lynx Framework                     2023 – Present  ← its work,
+ *        │     1B+ users                                             a CV's
+ *        │     Open-source cross-platform UI framework …             rows
+ *        │     lynxjs.org  github.com
+ *        · Talks 12  WeAreDevelopers, GOSIM, …        unfold ⌄    ← the rest,
+ *                                                                    folded
+ *        · Sabbatical in China                           Nov 2022 ← `main`,
+ *        · Talks 1 · Press 3  COSCON, Gitee, …        unfold ⌄       between
+ *        ○ Meta                                     2018 – 2022      branches
  *
- *   Lynx Framework                2023 – Present ← the work done there,
- *   1B+ users                                       whole: what it is, how
- *   Open-source cross-platform UI framework …       big, and where to see it
- *   lynxjs.org  github.com
+ * The rail down the left is the log's tenure rail, the same line its rows
+ * draw through their icons, hung in the same margin (`GUTTER_PULL`). At the
+ * summary it links a place's header to the work under it; unfold the branch
+ * and the same line runs on through the commits it was summarising, whose
+ * hashes and icons appear on it — the page going one step deeper into the
+ * same objects, in place, rather than turning into another page. `main` has
+ * no tenure and so no line: its commits are dots between the brackets, as
+ * the log has always drawn a commit that belongs to no one.
  *
- *   Talks 12  React Advanced London, React …  ⌄  ← talks fold to one line
- *
- * Hierarchy is carried by type alone — size, face and rung — with no box,
- * no rule and no indent. The log's instruments (hash, rail, chips, covers)
- * are the log's; this reading has one job, which is to be scanned.
+ * Hierarchy at the summary is carried by the logos and by type — the
+ * project, not the company, is what a row is about — with no box, no rule
+ * and no indent beyond the log's own gutter.
  *
  * Every mark that stands for more than it prints opens what it stands for,
  * through the system that already owns it: the place name is the identity
- * card (systems/identity), the same one a `<handle>` opens on the log; a
- * link or a talk opens its attachment (systems/attachments) — the theater,
- * the in-app browser, the sheet on a phone — exactly as its cover would.
+ * card (systems/identity), the same one a `<handle>` opens on a row; a link
+ * opens its attachment (systems/attachments) — the theater, the in-app
+ * browser, the sheet on a phone — exactly as its cover would.
  */
 
-import { useId, useMemo, useState, type MouseEvent } from "react";
+import { useMemo, type MouseEvent, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
 import { t, type Locale } from "@/lib/i18n";
 import {
+  computeCommitHash,
+  FILTERABLE_COMMIT_TYPES,
   formatCommitDate,
   getCommitTypePluralLabel,
   isImageMedia,
   isLinkMedia,
+  isRowVisible,
   isSlidesMedia,
   isVideoMedia,
   localize,
   VIDEO_PLATFORM_LABEL,
   type Commit,
-  type LogData,
+  type FilterableCommitType,
+  type Identity,
   type Media,
-  type PressCommit,
   type ProjectCommit,
-  type RoleCommit,
-  type TalkCommit,
 } from "@/lib/log";
+import { formAtDepth, type LogDepth } from "@/lib/log-view";
 import {
-  buildPlaces,
-  ELSEWHERE_ID,
-  hasWork,
-  type Place,
-  type PlaceWork,
+  MAIN,
+  summarize,
+  type Branch,
+  type Lane,
+  type MainRun,
 } from "@/lib/log-places";
 import { IdentityHover } from "@/systems/identity";
 import {
@@ -62,17 +76,16 @@ import {
   linkTarget,
   useOptionalAttachments,
 } from "@/systems/attachments";
+import { CommitRows, type RailBracket } from "./log-timeline";
+import { ProjectIcon } from "./project-icon";
+import { GUTTER_PULL, HASH_CELL, RAIL_LINE } from "./timeline-commit";
 
 // =============================================================================
 // Recipes
 // =============================================================================
 
-/** A place's name: the serif heading voice /prompt gives a section. */
-const PLACE_NAME =
-  "font-serif text-2xl sm:text-[1.75rem] leading-tight tracking-tight text-foreground";
-
-/** A project's name: the one sans title on the page that isn't a row. */
-const WORK_TITLE = "text-[0.9375rem] sm:text-base font-medium text-foreground";
+/** A project's name: the one title on the page that leads a CV's row. */
+const WORK_TITLE = "text-[0.9375rem] sm:text-base font-medium leading-6 text-foreground";
 
 /** A description printed whole, at the rung a reader reads at. */
 const PROSE = "text-sm text-muted-foreground leading-relaxed";
@@ -82,16 +95,102 @@ const PROSE = "text-sm text-muted-foreground leading-relaxed";
 const QUIET_LINK =
   "font-mono text-xs text-muted-foreground underline underline-offset-2 decoration-ink-line transition-colors hover:text-foreground hover:decoration-foreground";
 
-/**
- * A place down the spine. Margins rather than the column's `space-y`, so a
- * life event between two places can sit in the middle of the gap it names:
- * its own top margin above it, and the place after it (`p + section`)
- * closing up to the same distance below.
- */
-const SECTION = "scroll-mt-24 mt-12 first:mt-0 [p+&]:mt-7";
+/** The rows a lane prints some other way — a branch's roles, which its
+ *  header speaks for — and, at the summary, everything on `main` but its
+ *  life events, which are the one thing there the log already prints as a
+ *  quiet line. Module-level, so the rows' memo holds across renders. */
+const OMIT_ROLES = (c: Commit) => c.type === "role";
+const OMIT_ALL_BUT_EVENTS = (c: Commit) => c.type !== "event";
 
-/** How many talks print before the list folds to its count. */
-const TALKS_OPEN_MAX = 3;
+// =============================================================================
+// The gutter
+// =============================================================================
+
+/**
+ * A row in the log's own geometry — the hash column, the rail, then the
+ * content (TimelineCommit's grid, pulled into the margin by the same
+ * `GUTTER_PULL`) — for the rows /works prints around the log's: a branch's
+ * header, a project at the summary, a fold line. The hash cell holds its
+ * width and prints nothing: these rows have no hash of their own to show,
+ * and the column is what keeps them on the log's rail, and their text on the
+ * log's text edge, at every width.
+ */
+function GutterRow({
+  id,
+  up = false,
+  down = false,
+  node,
+  gap = 0,
+  cell = "h-5",
+  className,
+  children,
+  ...data
+}: {
+  /** The commit hash this row stands for — its permalink target. */
+  id?: string;
+  /** The rail runs on above / below this row. */
+  up?: boolean;
+  down?: boolean;
+  /** What sits on the rail at the first line: a ring, a dot, nothing. */
+  node?: ReactNode;
+  /** How far short of the node's centre the line stops. */
+  gap?: number;
+  /** The rail cell's height — the first line's, so the node centres on it. */
+  cell?: string;
+  className?: string;
+  children: ReactNode;
+  [data: `data-${string}`]: string | undefined;
+}) {
+  return (
+    <div id={id} data-rail-row={id ? "" : undefined} {...data}>
+      <div
+        data-row-trigger
+        className={cn(
+          "@container relative -mx-3 px-3 rounded-lg [clip-path:inset(0_-100vw)]",
+          GUTTER_PULL,
+          className,
+        )}
+      >
+        <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+          <span
+            aria-hidden
+            className={cn(
+              "hidden @sm:inline-block select-none leading-5",
+              HASH_CELL,
+              TYPE.hash,
+              "text-transparent",
+            )}
+          >
+            0000000
+          </span>
+          <span aria-hidden className={cn("relative inline-flex w-5 items-center justify-center", cell)}>
+            {up && (
+              <span
+                data-rail-above
+                className={RAIL_LINE}
+                style={{ top: "-1000px", bottom: node ? `calc(50% + ${gap}px)` : "50%" }}
+              />
+            )}
+            {down && (
+              <span
+                data-rail-below
+                className={RAIL_LINE}
+                style={{ top: node ? `calc(50% + ${gap}px)` : "50%", bottom: "-1000px" }}
+              />
+            )}
+            {node}
+          </span>
+          <div className="min-w-0">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The rail's quiet node: the dot the log gives a row in the quiet voice. */
+const DOT = (
+  <span className="block h-[3px] w-[3px] rounded-full bg-muted-foreground/30" />
+);
 
 // =============================================================================
 // Derivations (display only — what goes where is lib/log-places)
@@ -169,9 +268,12 @@ function linkLabels(items: Media[], locale: Locale): string[] {
   });
 }
 
-/** The venue a talk or a press piece was given at or published by. */
-function venueOf(c: TalkCommit | PressCommit): string {
-  return c.type === "talk" ? c.conference.name : c.platform;
+/** Where a folded commit happened: the conference, the publication — or,
+ *  for a type with neither, what it was called. */
+function venueOf(c: Commit, locale: Locale): string {
+  if (c.type === "talk") return c.conference.name;
+  if (c.type === "press") return c.platform;
+  return localize(c.title, locale);
 }
 
 // =============================================================================
@@ -179,9 +281,9 @@ function venueOf(c: TalkCommit | PressCommit): string {
 // =============================================================================
 
 /**
- * The click a link or a talk row makes: through the attachment door when
- * one is mounted (the theater, the in-app browser, the sheet on a phone),
- * the plain href otherwise. Modified clicks are the browser's.
+ * The click a link makes: through the attachment door when one is mounted
+ * (the theater, the in-app browser, the sheet on a phone), the plain href
+ * otherwise. Modified clicks are the browser's.
  */
 function useOpenAttachment(locale: Locale) {
   const attachments = useOptionalAttachments();
@@ -241,267 +343,432 @@ function LinkLine({
   );
 }
 
-function RoleLines({ roles, locale }: { roles: RoleCommit[]; locale: Locale }) {
+/**
+ * A branch's header — the place, the role, the dates — quiet, because what
+ * the page is about is the work under it. The ring on the rail is where the
+ * branch starts: the same ring a role row wears on the log, since this
+ * header *is* the branch's roles (their permalinks land here).
+ */
+function BranchHead({
+  branch,
+  locale,
+  down,
+  describe,
+}: {
+  branch: Branch;
+  locale: Locale;
+  down: boolean;
+  /** Print the place's own prose: there is no work to speak for it. */
+  describe: boolean;
+}) {
+  const lead = branch.roles[0];
+  const company = localize(lead.company, locale);
+  // An education entry hides its dates on purpose (`hideDate`: it overlaps
+  // the work around it) and prints where it was instead, as on the log.
+  const when = (r: typeof lead) =>
+    r.hideDate ? (r.location ?? "") : formatCommitDate(r, locale);
+  const several = branch.roles.length > 1;
+  const description = localize(lead.description, locale).trim();
+
   return (
-    <ul className="mt-2 space-y-0.5">
-      {roles.map((r) => (
-        <li
-          key={r.id}
-          className="flex items-baseline justify-between gap-4 font-mono text-xs"
-        >
-          <span className="min-w-0 text-muted-foreground">
-            {localize(r.title, locale)}
-          </span>
-          {/* An education entry hides its dates on purpose (`hideDate`: it
-              overlaps the work around it) and prints where it was instead,
-              as it does on the log. */}
-          <span className="shrink-0 text-tertiary-foreground">
-            {r.hideDate ? r.location ?? "" : formatCommitDate(r, locale)}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <GutterRow
+      id={computeCommitHash(lead.id)}
+      data-branch-head=""
+      down={down}
+      gap={10}
+      cell="h-6"
+      className="pt-1 pb-2"
+      node={
+        <span
+          data-branch-ring
+          className="block h-5 w-5 rounded-full ring-1 ring-inset ring-muted-foreground/25 transition-[box-shadow] duration-200"
+        />
+      }
+    >
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="min-w-0 text-base leading-6 font-medium text-foreground">
+          {/* The name is the identity: rest on it (or tap it) and the card
+              a row's `<handle>` opens arrives — every role, the tenure, and
+              what was signed there. */}
+          <IdentityHover identityId={branch.id} roleId={lead.id}>
+            {company}
+          </IdentityHover>
+        </h2>
+        {/* One role says its dates here; several say their own, each on
+            its line, and the name has nothing to add to them. */}
+        {!several && (
+          <span className={cn("shrink-0", TYPE.rowMeta)}>{when(lead)}</span>
+        )}
+      </div>
+      <ul className="mt-0.5">
+        {branch.roles.map((r, i) => (
+          <li
+            key={r.id}
+            // Every role's permalink lands on its own line of the header —
+            // the lead's on the header itself. A `hideRow` role never had a
+            // row to land on; now it has this.
+            id={i === 0 ? undefined : computeCommitHash(r.id)}
+            data-rail-row={i === 0 ? undefined : ""}
+            className="flex items-baseline justify-between gap-4 font-mono text-xs"
+          >
+            <span data-row-trigger className="min-w-0 rounded text-muted-foreground">
+              {localize(r.title, locale)}
+            </span>
+            {several && (
+              <span className="shrink-0 text-tertiary-foreground">{when(r)}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+      {describe && description && (
+        <>
+          <p className={cn("mt-2", PROSE)}>{description}</p>
+          <LinkLine commit={lead} locale={locale} className="mt-2" />
+        </>
+      )}
+    </GutterRow>
   );
 }
 
-function Project({
+/**
+ * A project at the summary: its logo, its name, what it is and where to see
+ * it — the row a CV gives the thing, and the same commit its log row is one
+ * depth down (its permalink lands here while the branch is folded).
+ */
+function ProjectRow({
   project,
   company,
   locale,
+  up,
+  down,
 }: {
   project: ProjectCommit;
   company: string;
   locale: Locale;
+  up: boolean;
+  down: boolean;
 }) {
   const meta = [teamUnder(project, company, locale), ...statsOf(project, locale)]
     .filter(Boolean)
     .join(" · ");
   return (
-    <article>
-      <div className="flex items-baseline justify-between gap-4">
-        <h3 className={WORK_TITLE}>{localize(project.title, locale)}</h3>
-        <span className={cn("shrink-0", TYPE.rowMeta)}>
-          {formatCommitDate(project, locale)}
-        </span>
-      </div>
-      {meta && <p className={cn("mt-0.5", TYPE.rowMeta)}>{meta}</p>}
-      <p className={cn("mt-1.5", PROSE)}>{localize(project.description, locale)}</p>
-      <LinkLine commit={project} locale={locale} className="mt-2" />
-    </article>
+    <GutterRow id={computeCommitHash(project.id)} up={up} down={down} className="py-3">
+      <article className="flex items-start gap-3 sm:gap-3.5">
+        <ProjectIcon commit={project} locale={locale} className="size-8 sm:size-10" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-4">
+            <h3 className={WORK_TITLE}>{localize(project.title, locale)}</h3>
+            <span className={cn("shrink-0", TYPE.rowMeta)}>
+              {formatCommitDate(project, locale)}
+            </span>
+          </div>
+          {meta && <p className={cn("mt-0.5", TYPE.rowMeta)}>{meta}</p>}
+          <p className={cn("mt-1.5", PROSE)}>{localize(project.description, locale)}</p>
+          <LinkLine commit={project} locale={locale} className="mt-2" />
+        </div>
+      </article>
+    </GutterRow>
   );
 }
 
 /**
- * Talks or press as /writing lists posts: the title, where, and the date
- * across from it. A row opens its first attachment — the recording, the
- * deck, the article — the way its cover would on the log.
- *
- * A long list folds to one line: its count and the venues it was given at,
- * which is most of what a list of twelve talks tells a newcomer. The flagship
- * work above it stays the first thing read.
+ * What the summary folds, as one line: how much of each type, and where it
+ * was given — most of what a list of twelve talks tells a newcomer. It is
+ * the lane's way one step deeper: pressed, the lane unfolds into its
+ * commits, in place, and the line stays at their foot to fold them back.
  */
-function Sublist({
-  type,
-  items,
+function FoldLine({
+  folded,
+  open,
+  onToggle,
+  up,
   locale,
+  controls,
 }: {
-  type: "talk" | "press";
-  items: (TalkCommit | PressCommit)[];
+  folded: Commit[];
+  open: boolean;
+  onToggle: () => void;
+  up: boolean;
   locale: Locale;
+  controls: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const openAt = useOpenAttachment(locale);
-  const listId = useId();
-  if (items.length === 0) return null;
-
-  const folds = items.length > TALKS_OPEN_MAX;
-  const shown = !folds || open;
-  const label = getCommitTypePluralLabel(type, locale);
-  const venues = [...new Set(items.map(venueOf))].join(", ");
-
-  const heading = (
-    <>
-      <span className="text-muted-foreground">{label}</span>
-      <span className="tabular-nums text-tertiary-foreground">{items.length}</span>
-    </>
-  );
+  // In the chips' order, so the line and the bar list types the same way.
+  const counts = FILTERABLE_COMMIT_TYPES.flatMap((type) => {
+    const n = folded.filter((c) => c.type === type).length;
+    return n > 0 ? [[type, n] as const] : [];
+  });
+  const venues = [...new Set(folded.map((c) => venueOf(c, locale)))].join(", ");
 
   return (
-    <div>
-      {folds ? (
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-controls={listId}
-          className="pressable group flex w-full min-w-0 items-baseline gap-2 text-left font-mono text-xs"
-        >
-          {heading}
-          {/* Folded, the line says where; open, the rows below do. */}
-          <span
-            className={cn(
-              "min-w-0 flex-1 truncate font-sans text-tertiary-foreground transition-opacity",
-              open && "opacity-0",
-            )}
-          >
-            {venues}
+    <GutterRow up={up} node={DOT} gap={3} className="py-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={controls}
+        className="pressable group flex w-full min-w-0 items-baseline gap-2 text-left font-mono text-xs"
+      >
+        {counts.map(([type, n]) => (
+          <span key={type} className="shrink-0">
+            <span className="text-muted-foreground">
+              {getCommitTypePluralLabel(type, locale)}
+            </span>{" "}
+            <span className="tabular-nums text-tertiary-foreground">{n}</span>
           </span>
-          <span className="inline-flex shrink-0 items-center gap-1 text-tertiary-foreground transition-colors group-hover:text-foreground">
-            {t(locale, open ? "worksShowLess" : "worksShowAll")}
-            <ChevronDown
-              aria-hidden
-              className={cn(
-                "h-3 w-3 transition-transform duration-200",
-                open && "rotate-180",
-              )}
+        ))}
+        {/* Folded, the line says where; open, the rows above it do. */}
+        <span className="min-w-0 flex-1 truncate font-sans text-tertiary-foreground">
+          {open ? "" : venues}
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1 text-tertiary-foreground transition-colors group-hover:text-foreground">
+          {t(locale, open ? "worksFold" : "worksUnfold")}
+          <ChevronDown
+            aria-hidden
+            className={cn("h-3 w-3 transition-transform duration-200", open && "rotate-180")}
+          />
+        </span>
+      </button>
+    </GutterRow>
+  );
+}
+
+// =============================================================================
+// Lanes
+// =============================================================================
+
+interface LaneProps {
+  locale: Locale;
+  identities?: Record<string, Identity>;
+  depth: LogDepth;
+  types: FilterableCommitType[];
+  /** Unfolded into its commits: by the depth, the filter, the reader, or a
+   *  permalink to a commit the summary folds. */
+  deep: boolean;
+  /** The summary is on screen or one press away: the fold line is. */
+  foldable: boolean;
+  onToggle: () => void;
+  onSelectHash: (hash: string) => void;
+}
+
+/**
+ * Whether a lane prints anything under a filter — the same question each
+ * lane asks itself before rendering, so the page's empty state, the pinned
+ * bar's markers and the lanes can never disagree. A branch whose header the
+ * filter asks for (`role`: the headers are the roles) prints for that alone.
+ */
+export function laneShows(lane: Lane, types: FilterableCommitType[]): boolean {
+  if (lane.kind === "branch" && (types.length === 0 || types.includes("role"))) {
+    return true;
+  }
+  return lane.commits.some((c) => !OMIT_ROLES(c) && isRowVisible(c, types));
+}
+
+/** Of what the summary folds, what the filter lets through. */
+function foldedFor(folded: Commit[], types: FilterableCommitType[]) {
+  return folded.filter((c) => isRowVisible(c, types));
+}
+
+function BranchLane({
+  branch,
+  locale,
+  identities,
+  depth,
+  types,
+  deep,
+  foldable,
+  onToggle,
+  onSelectHash,
+}: LaneProps & { branch: Branch }) {
+  const summary = summarize(branch);
+  const projects = summary.projects.filter((c) => isRowVisible(c, types));
+  const folded = foldedFor(summary.folded, types);
+  const rowsId = `${branch.id}-commits`;
+  const company = localize(branch.roles[0].company, locale);
+  const foot = foldable && folded.length > 0;
+  const hasRows = branch.commits.some((c) => !OMIT_ROLES(c) && isRowVisible(c, types));
+  const asksForRoles = types.includes("role");
+
+  const bracket = useMemo<RailBracket>(
+    () => ({ segmentId: branch.id, openTop: true, openBottom: foot }),
+    [branch.id, foot],
+  );
+
+  const below = deep ? hasRows || foot : projects.length > 0 || foot;
+
+  return (
+    <section
+      aria-label={company}
+      data-branch=""
+      className="pt-5"
+    >
+      <BranchHead
+        branch={branch}
+        locale={locale}
+        down={below}
+        describe={asksForRoles || summary.projects.length === 0}
+      />
+      <div id={rowsId}>
+        {deep ? (
+          hasRows && (
+            <CommitRows
+              commits={branch.commits}
+              locale={locale}
+              identities={identities}
+              form={formAtDepth(depth)}
+              activeTypes={types}
+              omit={OMIT_ROLES}
+              bracket={bracket}
+              onSelectHash={onSelectHash}
             />
-          </span>
-        </button>
-      ) : (
-        <p className="flex items-baseline gap-2 font-mono text-xs">{heading}</p>
+          )
+        ) : (
+          projects.map((p, i) => (
+            <ProjectRow
+              key={p.id}
+              project={p}
+              company={company}
+              locale={locale}
+              up
+              down={i < projects.length - 1 || foot}
+            />
+          ))
+        )}
+      </div>
+      {foot && (
+        <FoldLine
+          folded={folded}
+          open={deep}
+          onToggle={onToggle}
+          up
+          locale={locale}
+          controls={rowsId}
+        />
       )}
-
-      {shown && (
-        <ul id={listId} className="mt-1.5">
-          {items.map((c) => {
-            const title = localize(c.title, locale);
-            const venue = venueOf(c);
-            const first = c.media?.[0];
-            const body = (
-              <>
-                <span className="min-w-0 text-sm text-foreground">
-                  {title}
-                  {!same(title, venue) && (
-                    <span className="text-tertiary-foreground"> · {venue}</span>
-                  )}
-                </span>
-                <span className={cn("shrink-0", TYPE.rowMeta)}>
-                  {formatCommitDate(c, locale)}
-                </span>
-              </>
-            );
-            const row =
-              "flex items-baseline justify-between gap-4 -mx-2 px-2 py-1.5 rounded-md";
-            return (
-              <li key={c.id}>
-                {first ? (
-                  <a
-                    {...anchorFor(first, locale)}
-                    onClick={openAt(c, 0)}
-                    className={cn(
-                      row,
-                      "pressable transition-colors duration-200 hover:bg-muted/50 active:bg-muted/60",
-                    )}
-                  >
-                    {body}
-                  </a>
-                ) : (
-                  <div className={row}>{body}</div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function Work({
-  work,
-  company,
-  locale,
-}: {
-  work: PlaceWork;
-  company: string;
-  locale: Locale;
-}) {
-  if (!hasWork(work)) return null;
-  return (
-    <div className="mt-5 space-y-5">
-      {work.projects.map((p) => (
-        <Project key={p.id} project={p} company={company} locale={locale} />
-      ))}
-      {(work.talks.length > 0 || work.press.length > 0) && (
-        <div className="space-y-4">
-          <Sublist type="talk" items={work.talks} locale={locale} />
-          <Sublist type="press" items={work.press} locale={locale} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PlaceSection({ place, locale }: { place: Place; locale: Locale }) {
-  const lead = place.roles[0];
-  const company = localize(lead.company, locale);
-  const description = localize(lead.description, locale).trim();
-  return (
-    <section id={place.id} aria-label={company} className={SECTION}>
-      <h2 className={PLACE_NAME}>
-        {/* The name is the identity: rest on it (or tap it) and the card the
-            log's `<handle>` opens arrives — every role, the tenure, and
-            what was signed there. */}
-        <IdentityHover identityId={place.id} roleId={lead.id}>
-          {company}
-        </IdentityHover>
-      </h2>
-      <RoleLines roles={place.roles} locale={locale} />
-      {/* One line of what the place was, from the latest role. The earlier
-          roles' own prose is the card's to tell; here it would restate the
-          projects printed under it. */}
-      {description && <p className={cn("mt-3", PROSE)}>{description}</p>}
-      <LinkLine commit={lead} locale={locale} className="mt-2" />
-      <Work work={place} company={company} locale={locale} />
     </section>
   );
 }
 
-// =============================================================================
-// The reading
-// =============================================================================
-
-export function PlacesReading({
-  log,
+function MainLane({
+  run,
   locale,
-}: {
-  log: LogData;
-  locale: Locale;
-}) {
-  const { spine, elsewhere } = useMemo(() => buildPlaces(log, locale), [log, locale]);
+  identities,
+  depth,
+  types,
+  deep,
+  foldable,
+  onToggle,
+  onSelectHash,
+}: LaneProps & { run: MainRun }) {
+  const summary = summarize(run);
+  const projects = summary.projects.filter((c) => isRowVisible(c, types));
+  const folded = foldedFor(summary.folded, types);
+  const rowsId = `${run.id}-commits`;
+  const foot = foldable && folded.length > 0;
 
   return (
-    // The column says its language: `TYPE.aside`'s italic is Latin-only.
-    <div lang={locale}>
-      {spine.map((entry) =>
-        entry.kind === "event" ? (
-          // A life event between two places — the move, the sabbatical —
-          // in the log's own aside voice, so the gap between two jobs is a
-          // thing that happened rather than a blank.
-          <p
-            key={entry.event.id}
-            className={cn(TYPE.aside, "[&:lang(zh)]:not-italic mt-9")}
-          >
-            {localize(entry.event.title, locale)}
-            <span className="text-quaternary-foreground"> · </span>
-            {formatCommitDate(entry.event, locale)}
-          </p>
+    <div className="pt-4">
+      <div id={rowsId}>
+        {deep ? (
+          <CommitRows
+            commits={run.commits}
+            locale={locale}
+            identities={identities}
+            form={formAtDepth(depth)}
+            activeTypes={types}
+            onSelectHash={onSelectHash}
+          />
         ) : (
-          <PlaceSection key={entry.place.id} place={entry.place} locale={locale} />
-        ),
+          <>
+            {/* The life events are already the quiet lines they need to be
+                on the log — the same rows, at any depth. */}
+            <CommitRows
+              commits={run.commits}
+              locale={locale}
+              identities={identities}
+              form={formAtDepth(depth)}
+              activeTypes={types}
+              omit={OMIT_ALL_BUT_EVENTS}
+              onSelectHash={onSelectHash}
+            />
+            {projects.map((p) => (
+              <ProjectRow key={p.id} project={p} company="" locale={locale} up={false} down={false} />
+            ))}
+          </>
+        )}
+      </div>
+      {foot && (
+        <FoldLine
+          folded={folded}
+          open={deep}
+          onToggle={onToggle}
+          up={false}
+          locale={locale}
+          controls={rowsId}
+        />
       )}
+    </div>
+  );
+}
 
-      {hasWork(elsewhere) && (
-        <section
-          id={ELSEWHERE_ID}
-          aria-label={t(locale, "worksElsewhere")}
-          className={SECTION}
-        >
-          <h2 className={PLACE_NAME}>{t(locale, "worksElsewhere")}</h2>
-          <p className={cn("mt-3", PROSE)}>{t(locale, "worksElsewhereNote")}</p>
-          <Work work={elsewhere} company="" locale={locale} />
-        </section>
-      )}
+// =============================================================================
+// The page
+// =============================================================================
+
+export interface LaneChapter {
+  id: string;
+  /** What the pinned bar's ref slot says while this lane is under it. */
+  label: string;
+  main: boolean;
+}
+
+export function laneChapters(lanes: Lane[]): LaneChapter[] {
+  return lanes.map((lane) => ({
+    id: lane.id,
+    label: lane.kind === "branch" ? lane.id : MAIN,
+    main: lane.kind === "main",
+  }));
+}
+
+export function Branches({
+  lanes,
+  isDeep,
+  foldable,
+  onToggle,
+  ...rest
+}: Omit<LaneProps, "deep" | "onToggle" | "foldable"> & {
+  lanes: Lane[];
+  isDeep: (lane: Lane) => boolean;
+  foldable: boolean;
+  onToggle: (lane: Lane) => void;
+}) {
+  return (
+    // The column says its language: `TYPE.aside`'s italic is Latin-only.
+    <div lang={rest.locale}>
+      {lanes.filter((lane) => laneShows(lane, rest.types)).map((lane) => (
+        <div key={lane.id}>
+          {/* Where the pinned bar's ref slot hands over to this lane: its
+              top edge, so the slot says `bytedance` from the moment the
+              branch's header passes under it, and `main` again after. */}
+          <div aria-hidden data-chapter={lane.id} />
+          {lane.kind === "branch" ? (
+            <BranchLane
+              branch={lane}
+              deep={isDeep(lane)}
+              foldable={foldable}
+              onToggle={() => onToggle(lane)}
+              {...rest}
+            />
+          ) : (
+            <MainLane
+              run={lane}
+              deep={isDeep(lane)}
+              foldable={foldable}
+              onToggle={() => onToggle(lane)}
+              {...rest}
+            />
+          )}
+        </div>
+      ))}
     </div>
   );
 }

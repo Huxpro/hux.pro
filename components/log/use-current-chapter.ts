@@ -11,10 +11,11 @@ export interface CurrentChapter {
 }
 
 /**
- * The chapter a pinned bar should wear: the last one whose marker pill
- * (`[data-chapter]`, LogTimeline) has scrolled up to the bar's ref slot. The
- * handover is where the two pills line up — centre to centre — so the one
- * in the flow slides under the slot and the slot is already wearing it.
+ * The chapter a pinned bar should wear: the last one whose marker
+ * (`[data-chapter]` — on /works, the top edge of each lane, a branch or a
+ * stretch of `main`: components/log/places.tsx) has scrolled up to the
+ * bar's ref slot. The handover is where the marker meets the slot's centre,
+ * so the branch's header slides under the slot as the slot takes its name.
  *
  * `ids` is the chapters in page order; a change (a filter emptying one)
  * re-reads where the page is.

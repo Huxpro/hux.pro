@@ -238,10 +238,18 @@ row to a preset; a row the reader opens by hand takes the `feed` preset
 for itself. Old links with git's names (`oneline`, `stat`, `patch`) still
 parse, as aliases.
 
+The forms are the deeper stops of the page's depth (`LOG_DEPTHS`): /works
+opens at the *summary*, where each place is a folded branch of the log —
+its projects as a CV's rows, its talks and press as one line — and prints
+no attachment object at all, only the links under a project. A branch
+unfolded on its own takes `index`; the toolbar's other stops unfold every
+branch into the form named. `covers` is the default of the log itself (the
+editor's preview), no longer of the page.
+
 | form | description | media | notes | peek | the reading |
 |---|---|---|---|---|---|
 | `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
-| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
+| `covers` | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
 ### The attachment object

@@ -6,7 +6,7 @@ import { WorksView } from "./view";
 export const metadata = {
   title: "Works",
   description:
-    "Where I've worked, as what, and what I built there — with the full commit history one switch away.",
+    "What I built, where, and as what — professional work as a git log, each place a branch of it.",
 };
 
 export default function WorksPage() {

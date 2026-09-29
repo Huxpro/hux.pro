@@ -3,8 +3,8 @@
 /**
  * WorksToolbar — the one line under the /works title.
  *
- *   ⎇ main │ ▣ Projects 8  ◔ Talks 12  ◌ Social 3  ▤ Roles 2  ⨯ │ ≡ ▤ ▦
- *   └ ref    └───────────────── pathspec ──────────────────────┘   └ form
+ *   ⎇ main │ ▣ Projects 8  ◔ Talks 12  ◌ Press 3  ▤ Roles 2  ⨯ │ ☰ ≡ ▤ ▦
+ *   └ ref    └───────────────── pathspec ─────────────────────┘   └ depth
  *
  * Three controls, one row, because the row is the budget: this sits in the
  * header zone above a sticky timeline, and anything that wraps to a second
@@ -14,7 +14,7 @@
  *
  * "Fits" is not something this component gets to assume, though: the chip row
  * is derived from the data, so a type nobody has filed anything under yet
- * would add a chip the day it does. The ref and the form control are
+ * would add a chip the day it does. The ref and the depth control are
  * pinned and the chips take the squeeze — they scroll inside their own group
  * rather than pushing the page sideways. On any real phone it never comes up.
  *
@@ -25,23 +25,27 @@
  * quaternary rung, and a clear button appears. Tapping the last selected chip
  * off returns to rest — the way out is the same gesture as the way in.
  *
- * The form control is the page's real answer to "everything at once" vs.
- * "see the work" — see `lib/log-view.ts` for what the three stops print. It
- * replaces the old expand/collapse toggle, whose two states were exactly the
- * two extremes this is trying to sit between.
+ * The depth control is the page's answer to "the summary" vs. "the whole
+ * history" — see `lib/log-view.ts` for what each stop prints. The summary
+ * is the first stop, the log's three forms the rest: one scale, because the
+ * page is one log, and how far it is unfolded is one question.
+ *
+ * Both controls mean the same thing at every depth. A chip narrows the
+ * summary exactly as it narrows the rows under it, so the bar never has a
+ * control that only works "in the log".
  *
  * The bar is pinned (PageLayout `pinnedActions`): it rests under the title
  * and rides up with the log until it meets the top, then stays, because a
  * filter you have to scroll back for is a filter you stop using. Pinned, it
  * takes over the chapter marker's job too. The ref slot is where `git log`
- * names where you are, so as each chapter's marker scrolls up under the
- * slot the slot wears it — `main` becomes `HEAD`, `HEAD` becomes the era
- * below — and the markers in the log are dividers that hand their pill up
- * rather than a second sticky layer. Tapping the pill goes back to where its
- * chapter starts.
+ * names where you are, and the page is a log whose branches are places
+ * (lib/log-places.ts), so as each branch's header scrolls up under the slot
+ * the slot wears the branch — `main` becomes `bytedance`, and `main` again
+ * in the stretch between two branches. Tapping the pill goes back to where
+ * its branch starts.
  *
- *    at rest     ⎇ main │ ▣ 8  ◔ 12  ◌ 3  ▤ 2 │ ≡ ▤ ▦
- *    pinned    ╭ (HEAD) │ ▣ 8  ◔ 12  ◌ 3  ▤ 2 │ ≡ ▤ ▦ ╮
+ *    at rest     ⎇ main │ ▣ 8  ◔ 12  ◌ 3  ▤ 2 │ ☰ ≡ ▤ ▦
+ *    pinned    ╭ (meta) │ ▣ 8  ◔ 12  ◌ 3  ▤ 2 │ ☰ ≡ ▤ ▦ ╮
  *              ╰──────────────── glass ───────────────╯
  *
  * Off its rest the row travels over the fading title and then over the
@@ -55,14 +59,21 @@
  * it, so nothing you are about to tap shifts.
  */
 
-import { useRef, type ReactNode } from "react";
+import { useRef } from "react";
 import {
   AnimatePresence,
   motion,
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import { GalleryVertical, GitBranch, LayoutList, List, X } from "lucide-react";
+import {
+  GalleryVertical,
+  GitBranch,
+  LayoutList,
+  List,
+  ListCollapse,
+  X,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/ui/controls";
@@ -71,7 +82,7 @@ import {
   getCommitTypePluralLabel,
   type FilterableCommitType,
 } from "@/lib/log";
-import { LOG_FORMS, type LogForm } from "@/lib/log-view";
+import { LOG_DEPTHS, type LogDepth } from "@/lib/log-view";
 import { pageScrollTop, scrollPageTo } from "vitre";
 import { usePageLift } from "@/components/ui/use-page-lift";
 import { useScrollEdges } from "@/components/ui/use-scroll-edges";
@@ -102,34 +113,31 @@ interface WorksToolbarProps {
   active: FilterableCommitType[];
   onToggleType: (type: FilterableCommitType) => void;
   onClearTypes: () => void;
-  form: LogForm;
-  onFormChange: (form: LogForm) => void;
-  /** The chapters on the page, in order, with the marker each wears. */
-  chapters: readonly { id: string; label: string }[];
+  depth: LogDepth;
+  onDepthChange: (depth: LogDepth) => void;
   /**
-   * What sits before the ref, inside the same capsule: the switch back to
-   * the places (components/log/reading-switch.tsx). A slot rather than the
-   * switch itself, so this bar stays the log's and knows nothing about the
-   * page's other reading.
+   * The lanes on the page, in order, with the ref each wears: a branch's
+   * name, or `main` for the stretches between them.
    */
-  lead?: ReactNode;
+  chapters: readonly { id: string; label: string; main: boolean }[];
 }
 
 /**
- * What each form wears and what it is called. One table rather than one per
- * attribute, so a fifth form is one row here; what each form *prints* is
- * `ROW_FORM` in `lib/log-view.ts` — that module is deliberately React-free,
- * and an icon is a component.
+ * What each depth wears and what it is called. One table rather than one per
+ * attribute, so a fifth depth is one row here; what each *prints* is
+ * `lib/log-view.ts` — that module is deliberately React-free, and an icon is
+ * a component.
  */
-const FORM_CHIP: Record<
-  LogForm,
+const DEPTH_CHIP: Record<
+  LogDepth,
   {
     icon: LucideIcon;
-    labelKey: "logFormIndex" | "logFormCovers" | "logFormFeed";
+    labelKey: "logFormSummary" | "logFormIndex" | "logFormCovers" | "logFormFeed";
   }
 > = {
-  // Lines only; lines with a cover block; full panels. The glyphs climb in
-  // visual weight the way the forms climb in detail.
+  // Folded; lines only; lines with a cover block; full panels. The glyphs
+  // climb in visual weight the way the depths climb in detail.
+  summary: { icon: ListCollapse, labelKey: "logFormSummary" },
   index: { icon: List, labelKey: "logFormIndex" },
   covers: { icon: LayoutList, labelKey: "logFormCovers" },
   feed: { icon: GalleryVertical, labelKey: "logFormFeed" },
@@ -142,14 +150,14 @@ const FORM_CHIP: Record<
  * see-through than the pill above it reads as a lesser thing — measured on
  * iOS without the blur, the log's text showed through between the counts.
  */
-export const PINNED_PANEL = cn(
+const PANEL = cn(
   "pointer-events-none absolute -inset-x-2.5 -inset-y-1.5 -z-10 rounded-full",
   "border border-border/50 bg-glass backdrop-blur-xl shadow-raised",
 );
 
 /** How much scroll it takes the capsule to grow in: the row has left its
  *  rest by then, and is not yet over the log. */
-export const PINNED_LIFT_PX = 32;
+const LIFT_PX = 32;
 
 /** A quick, settled spring for one ref handing over to the next. */
 const SETTLE = { type: "spring", duration: 0.4, bounce: 0.12 } as const;
@@ -160,10 +168,9 @@ export function WorksToolbar({
   active,
   onToggleType,
   onClearTypes,
-  form,
-  onFormChange,
+  depth,
+  onDepthChange,
   chapters,
-  lead,
 }: WorksToolbarProps) {
   const filtering = active.length > 0;
   const reduced = useReducedMotion() ?? false;
@@ -174,12 +181,15 @@ export function WorksToolbar({
     slotRef,
     chapters.map((c) => c.id),
   );
-  const chapter = chapters.find((c) => c.id === current.id) ?? null;
+  // `main` is the rest state's own word, so a stretch of `main` between two
+  // branches wears it exactly as the top of the page does.
+  const chapter =
+    chapters.find((c) => c.id === current.id && !c.main) ?? null;
   const motionOf = reduced ? { duration: 0 } : SETTLE;
-  const lift = usePageLift(PINNED_LIFT_PX);
+  const lift = usePageLift(LIFT_PX);
   const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
 
-  /** Back to where the chapter starts: its marker lined up under the slot,
+  /** Back to where the branch starts: its marker lined up under the slot,
    *  the frame where the slot takes it over. */
   const toChapterStart = (id: string) => {
     const slot = slotRef.current;
@@ -201,18 +211,16 @@ export function WorksToolbar({
     <div className="relative isolate w-max max-w-full">
       <motion.div
         aria-hidden
-        className={PINNED_PANEL}
+        className={PANEL}
         // Grows out from the row it is catching, as far as the page has
         // lifted it.
         style={{ opacity: lift, scale: panelScale }}
       />
 
       <div className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground">
-        {/* No divider after it: its lit chip is edge enough, and the row
-            has no hairline's width to spare. */}
-        {lead && <span className="shrink-0">{lead}</span>}
-        {/* The ref we are reading — `main` above the first chapter, the
-            chapter once its marker reaches here. Not a control at rest: the
+        {/* The ref we are reading — `main` above the first branch and
+            between two, the branch once its header reaches here. Not a
+            control at rest: the
             anchor the rest of the row hangs off, and the reason the page
             reads as a git log. */}
         {/* One grid cell that both refs share while they hand over, so the
@@ -255,10 +263,7 @@ export function WorksToolbar({
                 className="inline-flex items-center gap-1.5"
               >
                 <GitBranch className="h-3.5 w-3.5" />
-                {/* With a lead in front of it, a phone keeps the branch and
-                    drops the word, as the chips do theirs: the row was
-                    budgeted to fit 375px without a lead. */}
-                <span className={cn(lead && "hidden sm:inline")}>main</span>
+                <span>main</span>
               </motion.span>
             )}
           </AnimatePresence>
@@ -344,17 +349,16 @@ export function WorksToolbar({
 
           <Divider />
 
-          {/* Form. Segmented rather than a cycling button: three stops is one
-          too many to discover by tapping, and every form stays one tap away.
-          Each stop resets every row to a preset (`ROW_FORM`), which is all
-          a form is. */}
+          {/* Depth. Segmented rather than a cycling button: four stops is
+          too many to discover by tapping, and every depth stays one tap
+          away. */}
           <Segmented
             tone="bare"
             label={t(locale, "logFormLabel")}
-            value={form}
-            onChange={onFormChange}
-            options={LOG_FORMS.map((f) => {
-              const { icon: Icon, labelKey } = FORM_CHIP[f];
+            value={depth}
+            onChange={onDepthChange}
+            options={LOG_DEPTHS.map((f) => {
+              const { icon: Icon, labelKey } = DEPTH_CHIP[f];
               const name = t(locale, labelKey);
               return {
                 value: f,
