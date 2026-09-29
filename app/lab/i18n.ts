@@ -33,8 +33,8 @@ const frameEn = {
   everyLab: "Every lab",
   unsaved: "unsaved",
   labs: "Labs",
-  breadcrumb: "Breadcrumb",
   colorPicker: "Colour picker",
+  about: "About this lab",
 };
 
 const frameZh: typeof frameEn = {
@@ -42,8 +42,8 @@ const frameZh: typeof frameEn = {
   everyLab: "全部实验室",
   unsaved: "未保存",
   labs: "实验室",
-  breadcrumb: "路径",
   colorPicker: "取色器",
+  about: "关于这间实验室",
 };
 
 export const FRAME_STRINGS: LabTable<typeof frameEn> = { en: frameEn, zh: frameZh };

@@ -1,177 +1,255 @@
 "use client";
 
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { Popover } from "@base-ui/react/popover";
+import { Info, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { LAB_INDEX, labById, type LabId } from "./catalog";
+import { labById, type LabId } from "./catalog";
 import { useFrameStrings } from "./i18n";
 import { LabNav } from "./nav";
 
 // =============================================================================
 // The lab shell — one frame for every lab.
 //
-// Every lab is the same four things, top to bottom:
+// A lab opens on its work, not on a paragraph about it. The top of every lab
+// is one sticky bar (LabBar), and everything a lab says about itself lives
+// in it:
 //
-//   crumbs    λhux / lab — the way out, and the way back to the index
-//   title     the lab's name, which is also the switcher (LabNav)
-//   blurb     what it lays open, from the catalog, in the reader's language
-//   meta      the lab's live readout (what it is showing, what is pinned)
+//   λhux / Name ▾ (i)   the way home, the lab's name — which is also the
+//                       switcher between labs (LabNav) — and an info
+//                       button whose popover holds the catalog's blurb and
+//                       the lab's full live readout
+//   tools               what drives the stage (the Works Lab's form, the
+//                       Glow Lab's on / level / microphone)
+//   meta                the live readout, one truncated mono line (wide
+//                       screens; always complete in the info popover)
+//   actions             what writes (SVG, Reset, Save) — right-aligned
 //
-// and then one of two bodies:
+// A lab with none of the three still gets the bar: its name and the way to
+// the others, pinned.
+//
+// Under the bar, one of three bodies:
 //
 //   document   a single column of sections (the Glow Lab)
 //   workbench  a stage of specimens beside a panel of knobs (Attachments,
-//              Icon, Legibility). On a phone the panel folds into one
-//              `Controls` row under the header, closed: a phone gets the
-//              specimens, and the knobs are one tap away rather than a
-//              screenful of sliders in the way.
+//              Icon, Legibility). Beside the stage from `lg`; narrower, the
+//              panel is folded away and the bar's sliders button opens it
+//              under the bar — a phone gets the specimens, and the knobs are
+//              one tap away rather than a screenful of sliders in the way.
 //   canvas     the whole width, for a lab that lays out its own body (the
-//              Works Lab: a toolbar, the timeline, an inspector beside it).
+//              Works Lab: the timeline, an inspector beside it).
 //
-// The panel is CSS-only responsive — the same markup on the server and in
-// the browser — so nothing waits for a media query to paint.
+// The bar pins where /works pins its own: a rem from the top, or under the
+// Dock's Live Activities when there are any (`--dock-clear`). Anything else
+// that sticks under it reads `--lab-under-bar`.
 // =============================================================================
+
+/** Where the bar pins, and where a panel under it may pin. */
+const BAR_VARS =
+  "[--lab-bar-top:max(0.75rem,calc(var(--dock-clear)+0.5rem))] [--lab-under-bar:calc(var(--lab-bar-top)+4.25rem)]";
 
 export function LabShell({
   lab,
   layout = "document",
   meta,
+  tools,
   actions,
   panel,
-  panelTitle,
   children,
 }: {
   lab: LabId;
   layout?: "document" | "workbench" | "canvas";
-  /** Mono readout under the blurb: live context, pins, unsaved changes. */
+  /** The live readout: what the lab is showing, what is pinned. */
   meta?: ReactNode;
-  /** Buttons across from the title (Save, Reset, …). */
+  /** What drives the stage, in the bar after the name. */
+  tools?: ReactNode;
+  /** What writes, at the bar's right end (SVG, Reset, Save, …). */
   actions?: ReactNode;
   /** The workbench's knobs. */
   panel?: ReactNode;
-  /** The folded panel's row on a phone; `Controls` by default. */
-  panelTitle?: string;
   children: ReactNode;
 }) {
-  const header = <LabHeader lab={lab} meta={meta} actions={actions} />;
+  const [panelOpen, setPanelOpen] = useState(false);
+  const bar = (
+    <LabBar
+      lab={lab}
+      meta={meta}
+      tools={tools}
+      actions={actions}
+      panel={layout === "workbench" && panel ? { open: panelOpen, toggle: () => setPanelOpen((o) => !o) } : undefined}
+    />
+  );
 
   if (layout === "document") {
     return (
-      <main className="mx-auto w-full max-w-5xl space-y-10 px-5 pb-32 pt-6 sm:space-y-12 sm:px-6 sm:pt-10">
-        {header}
-        {children}
+      <main className={cn(BAR_VARS, "mx-auto w-full max-w-5xl px-4 pb-32 pt-3 sm:px-6")}>
+        {bar}
+        <div className="mt-8 space-y-12 sm:mt-10">{children}</div>
       </main>
     );
   }
 
   if (layout === "canvas") {
     return (
-      <main className="mx-auto w-full max-w-[1600px] px-5 pb-32 pt-6 sm:px-6 sm:pt-10">
-        {header}
+      <main className={cn(BAR_VARS, "mx-auto w-full max-w-[1600px] px-4 pb-32 pt-3 sm:px-6")}>
+        {bar}
         <div className="mt-6 sm:mt-8">{children}</div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-5 pb-32 pt-6 sm:px-6 sm:pt-10">
-      {header}
+    <main className={cn(BAR_VARS, "mx-auto w-full max-w-[1600px] px-4 pb-32 pt-3 sm:px-6")}>
+      {bar}
       <div className="mt-6 flex flex-col gap-6 sm:mt-8 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1 space-y-10">{children}</div>
-        {panel && <LabPanel title={panelTitle}>{panel}</LabPanel>}
+        {panel && <LabPanel open={panelOpen}>{panel}</LabPanel>}
       </div>
     </main>
   );
 }
 
-/** Crumbs, title-switcher, blurb and readout: the top of every lab. */
-export function LabHeader({
+/** The one sticky bar at the top of every lab. */
+export function LabBar({
   lab,
   meta,
+  tools,
   actions,
-  className,
+  panel,
 }: {
   lab: LabId;
   meta?: ReactNode;
+  tools?: ReactNode;
   actions?: ReactNode;
-  className?: string;
+  /** A workbench's folded panel: the bar's sliders button opens it below `lg`. */
+  panel?: { open: boolean; toggle: () => void };
 }) {
-  const { locale } = useLocale();
-  const entry = labById(lab);
+  const F = useFrameStrings();
   return (
-    <header className={cn("ink-bare space-y-3", className)}>
-      <LabCrumbs />
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <LabNav />
-        {actions && <div className="flex flex-wrap items-center gap-1.5">{actions}</div>}
+    <div
+      className={cn(
+        "ink-flat sticky top-[var(--lab-bar-top)] z-30",
+        "flex min-h-12 flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-border/50 bg-glass-popover px-3 py-2 shadow-overlay backdrop-blur-xl sm:px-4",
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-1.5">
+        <Link
+          href="/"
+          className={cn(TYPE.identifier, "shrink-0 rounded-sm transition-colors hover:text-foreground")}
+        >
+          λhux
+        </Link>
+        <span className="text-quaternary-foreground">/</span>
+        <LabNav appearance="bar" />
+        <LabInfo lab={lab} meta={meta} />
       </div>
-      <p className={cn(TYPE.body, "max-w-2xl")}>{entry.blurb[locale]}</p>
-      {meta && <div className="font-mono text-[11px] leading-relaxed text-muted-foreground">{meta}</div>}
-    </header>
+      {/* One row, never a pile: beside the name when it fits, on a line
+          of its own when it does not, and sideways-scrolling there rather
+          than wrapping into a third — a pinned bar has to stay short. */}
+      {tools && (
+        <div className="no-scrollbar -my-1 flex min-w-0 flex-nowrap items-center gap-x-3 overflow-x-auto py-1 [&>*]:shrink-0">
+          {tools}
+        </div>
+      )}
+      {meta && (
+        <div className="hidden min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground xl:block">
+          {meta}
+        </div>
+      )}
+      {(actions || panel) && (
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          {actions}
+          {panel && (
+            <button
+              type="button"
+              onClick={panel.toggle}
+              aria-expanded={panel.open}
+              aria-label={F.controls}
+              title={F.controls}
+              className={cn(
+                "inline-flex size-8 items-center justify-center rounded-md transition-colors lg:hidden",
+                panel.open
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+              )}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
-/** `λhux / lab` — home, and the index of labs. */
-export function LabCrumbs({ className }: { className?: string }) {
+/** (i) — what the lab lays open, and its whole live readout. */
+function LabInfo({ lab, meta }: { lab: LabId; meta?: ReactNode }) {
+  const { locale } = useLocale();
   const F = useFrameStrings();
-  const link = "rounded-sm transition-colors hover:text-foreground focus-visible:text-foreground outline-none";
+  const entry = labById(lab);
   return (
-    <nav aria-label={F.breadcrumb} className={cn(TYPE.identifier, "flex items-center gap-1.5", className)}>
-      <Link href="/" className={link}>
-        λhux
-      </Link>
-      <span className="text-quaternary-foreground">/</span>
-      <Link href={LAB_INDEX.href} className={link}>
-        {LAB_INDEX.mark}
-      </Link>
-    </nav>
+    <Popover.Root>
+      <Popover.Trigger
+        aria-label={F.about}
+        className={cn(
+          "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-tertiary-foreground outline-none transition-colors",
+          "hover:bg-foreground/[0.06] hover:text-foreground focus-visible:text-foreground data-[popup-open]:text-foreground",
+        )}
+      >
+        <Info className="h-3.5 w-3.5" />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner side="bottom" align="start" sideOffset={8} className="z-50">
+          <Popover.Popup
+            className={cn(
+              "w-[min(24rem,calc(100vw-2rem))] origin-[var(--transform-origin)] space-y-3 rounded-xl border border-border/50",
+              "bg-glass-sheet p-4 shadow-overlay backdrop-blur-xl outline-none",
+              "data-[starting-style]:scale-95 data-[starting-style]:opacity-0",
+              "data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
+              "transition-[transform,opacity] duration-150",
+            )}
+          >
+            <Popover.Title className={TYPE.rowTitle}>{entry.name[locale]}</Popover.Title>
+            <Popover.Description className={TYPE.body}>{entry.blurb[locale]}</Popover.Description>
+            {meta && (
+              <div className="border-t border-border/50 pt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                {meta}
+              </div>
+            )}
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 
 /**
  * The workbench's knobs: a glass panel beside the stage on a wide screen
- * (sticky, scrolling on its own), and one folded row under the header on
- * anything narrower.
+ * (sticky under the bar, scrolling on its own), and folded away on anything
+ * narrower until the bar's sliders button opens it above the stage.
  */
 export function LabPanel({
-  title,
+  open,
   className,
   children,
 }: {
-  title?: string;
+  open: boolean;
   className?: string;
   children: ReactNode;
 }) {
-  const F = useFrameStrings();
-  const [open, setOpen] = useState(false);
   return (
     <aside
       className={cn(
         "ink-flat order-first w-full shrink-0 self-start overflow-hidden rounded-2xl border border-border/50 bg-glass-sheet shadow-overlay backdrop-blur-xl",
-        "lg:sticky lg:top-6 lg:order-none lg:max-h-[calc(100svh-3rem)] lg:w-[360px] lg:overflow-y-auto",
+        open ? "block" : "hidden",
+        "lg:sticky lg:top-[var(--lab-under-bar)] lg:order-none lg:block lg:max-h-[calc(100svh-var(--lab-under-bar)-1rem)] lg:w-[360px] lg:overflow-y-auto",
         className,
       )}
     >
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-2 px-5 py-3.5 text-left lg:hidden"
-      >
-        <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className={cn(TYPE.label, "flex-1 text-foreground")}>
-          {title ?? F.controls}
-        </span>
-        <ChevronDown
-          className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", open && "rotate-180")}
-        />
-      </button>
-      <div className={cn(open ? "block" : "hidden", "border-t border-border/60 lg:block lg:border-t-0")}>
-        {children}
-      </div>
+      {children}
     </aside>
   );
 }
@@ -202,23 +280,6 @@ export function LabSection({
       </div>
       {children}
     </section>
-  );
-}
-
-/**
- * A strip of controls that stays with the reader: pinned under the top of the
- * page as the stage scrolls. The Glow Lab's drive, the Works Lab's toolbar.
- */
-export function LabToolbar({ className, children }: { className?: string; children: ReactNode }) {
-  return (
-    <div
-      className={cn(
-        "ink-flat sticky top-3 z-20 flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-2xl border border-border/50 bg-glass-popover px-4 py-3 shadow-overlay backdrop-blur-xl sm:gap-x-6 sm:px-5",
-        className,
-      )}
-    >
-      {children}
-    </div>
   );
 }
 

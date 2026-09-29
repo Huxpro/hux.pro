@@ -184,11 +184,11 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
       lab="icon"
       layout="workbench"
       actions={actions}
+      tools={isDirty ? <LabUnsaved /> : undefined}
       meta={
-        <span className="inline-flex items-center gap-2">
+        <>
           {config.text || "—"} · {S.textures[config.background.style]} · r {config.cornerRadius.toFixed(2)}
-          {isDirty && <LabUnsaved />}
-        </span>
+        </>
       }
       panel={
         <>

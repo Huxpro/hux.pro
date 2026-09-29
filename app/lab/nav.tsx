@@ -10,13 +10,12 @@ import { LAB_INDEX, LABS, labFromPath } from "./catalog";
 import { useFrameStrings } from "./i18n";
 
 /**
- * The title on every lab: a dropdown that lists the whole family, the index
- * first. One control at two sizes — the serif page title in a lab's header,
- * the compact mono mark in a bar (the Works Lab's sticky toolbar) — so the
- * way between labs is the same everywhere.
+ * The lab's name in its bar, and the way to every other lab: a dropdown that
+ * lists the whole family, the index first. `page` sets it at title size, for
+ * a page that has no bar.
  */
 export function LabNav({
-  appearance = "page",
+  appearance = "bar",
   className,
 }: {
   appearance?: "page" | "bar";
@@ -27,13 +26,7 @@ export function LabNav({
   const F = useFrameStrings();
   const current = labFromPath(pathname);
   const page = appearance === "page";
-  const title = current
-    ? page
-      ? current.name[locale]
-      : current.mark
-    : page
-      ? LAB_INDEX.name[locale]
-      : LAB_INDEX.mark;
+  const title = current ? current.name[locale] : LAB_INDEX.name[locale];
 
   return (
     <Menu.Root>
@@ -43,7 +36,7 @@ export function LabNav({
           "focus-visible:ring-1 focus-visible:ring-foreground/20",
           page
             ? "font-serif text-2xl tracking-tight text-foreground sm:text-3xl"
-            : "font-mono text-sm font-medium tracking-wide text-foreground",
+            : "text-sm font-medium text-foreground",
           className,
         )}
         aria-label={`${F.labs} · ${title}`}

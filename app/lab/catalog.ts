@@ -17,7 +17,7 @@ import type { Locale } from "@/lib/i18n";
  *
  * This family used to live under `/editor` and was called the editor family;
  * next.config.ts keeps every old address pointing here. The slash letter `e`
- * opens the index. The dropdown in each lab's header (`LabNav`) is how you
+ * opens the index. The dropdown on each lab's sticky bar (`LabNav`) is how you
  * move between them; the palette does not list them.
  *
  * Adding a lab: an entry here, a route under `app/lab/<id>`, a surface in
@@ -39,7 +39,7 @@ export interface LabEntry {
   mark: string;
   /** One line: which system it lays open. */
   hint: Text;
-  /** What it is for, a sentence or two, under the title. */
+  /** What it is for, a sentence or two — behind the bar's info button. */
   blurb: Text;
 }
 

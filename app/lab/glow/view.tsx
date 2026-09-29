@@ -1,7 +1,7 @@
 "use client";
 
 import { useLabStrings } from "@/app/lab/i18n";
-import { LabChip, LabSection, LabShell, LabToolbar } from "@/app/lab/shell";
+import { LabChip, LabSection, LabShell } from "@/app/lab/shell";
 import { Slider as Range } from "@/components/ui/slider";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
@@ -48,15 +48,18 @@ function Slider({
   value,
   onChange,
   disabled,
+  compact,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   disabled?: boolean;
+  /** In the bar: the label takes its own width, the track a little less. */
+  compact?: boolean;
 }) {
   return (
-    <div className={cn("flex items-center gap-3", disabled && "pointer-events-none opacity-40")}>
-      <span className={cn(TYPE.meta, "w-16 shrink-0")}>{label}</span>
+    <div className={cn("flex items-center", compact ? "gap-2" : "gap-3", disabled && "pointer-events-none opacity-40")}>
+      <span className={cn(TYPE.meta, "shrink-0", !compact && "w-16")}>{label}</span>
       <Range
         value={value}
         min={0}
@@ -64,7 +67,7 @@ function Slider({
         step={0.01}
         onChange={onChange}
         aria-label={label}
-        className="w-28 sm:w-40"
+        className={compact ? "w-24 sm:w-32" : "w-28 sm:w-40"}
       />
       <span className={cn(TYPE.rowMeta, "w-10 tabular-nums")}>{value.toFixed(2)}</span>
     </div>
@@ -276,16 +279,20 @@ export function GlowLabView() {
   };
 
   return (
-    <LabShell lab="glow">
-      <LabToolbar>
-        <Toggle label={S.on} on={active} onChange={setActive} />
-        <Toggle label={S.processing} on={processing} onChange={setProcessing} />
-        <Slider label={S.level} value={level} onChange={setLevel} disabled={mic === "on"} />
-        <LabChip on={mic === "on"} onClick={mic === "on" ? stopMic : startMic}>
-          <Mic />
-          {mic === "on" ? S.listening : mic === "denied" ? S.micBlocked : S.microphone}
-        </LabChip>
-      </LabToolbar>
+    <LabShell
+      lab="glow"
+      tools={
+        <>
+          <Toggle label={S.on} on={active} onChange={setActive} />
+          <Toggle label={S.processing} on={processing} onChange={setProcessing} />
+          <Slider label={S.level} value={level} onChange={setLevel} disabled={mic === "on"} compact />
+          <LabChip on={mic === "on"} onClick={mic === "on" ? stopMic : startMic}>
+            <Mic />
+            {mic === "on" ? S.listening : mic === "denied" ? S.micBlocked : S.microphone}
+          </LabChip>
+        </>
+      }
+    >
 
       <LabSection
         title={S.motions}

@@ -26,7 +26,7 @@ import { MousePointer2 } from "lucide-react";
 import { useLabStrings } from "@/app/lab/i18n";
 import { LabShell } from "../shell";
 import { WORKS_STRINGS } from "./strings";
-import { WorksToolbar } from "./toolbar";
+import { WorksActions, WorksTools } from "./toolbar";
 import { CommitEditor } from "./commit-editor";
 import { TagEditor } from "./tag-editor";
 
@@ -302,31 +302,31 @@ export function WorksLabView({ initialData }: WorksLabViewProps) {
     <LabShell
       lab="works"
       layout="canvas"
+      tools={<WorksTools form={form} isDirty={isDirty} onFormChange={setForm} />}
+      actions={
+        <WorksActions
+          isDirty={isDirty}
+          saving={saving}
+          mode={effectiveMode}
+          inspectDisabled={inspectDisabled}
+          onModeChange={handleModeChange}
+          onSave={handleSave}
+          onReset={handleReset}
+          onAddTag={handleAddTag}
+        />
+      }
       meta={S.meta(
         data.commits.length,
         data.tags.length,
         Object.keys(data.identities ?? {}).length,
       )}
     >
-      <WorksToolbar
-        isDirty={isDirty}
-        saving={saving}
-        mode={effectiveMode}
-        inspectDisabled={inspectDisabled}
-        form={form}
-        onFormChange={setForm}
-        onModeChange={handleModeChange}
-        onSave={handleSave}
-        onReset={handleReset}
-        onAddTag={handleAddTag}
-      />
-
       {/* The timeline + the inspector while inspecting. The column is
           /works' (`--page-col`, less the gutter the page already has); the
           extra left pad on `lg` is the gutter the row pulls into
           (`GUTTER_PULL`), so the hash and the rail hang in a real margin
           instead of clipping. */}
-      <div className="mt-6 flex items-start gap-6">
+      <div className="flex items-start gap-6">
         <div className="min-w-0 flex-1" onClick={handleCanvasClick}>
           <div className="mx-auto w-full max-w-[calc(var(--page-col)+3.5rem)] py-2 lg:pl-[6.5rem]">
             <TimelineEditProvider value={editContext}>
@@ -347,7 +347,7 @@ export function WorksLabView({ initialData }: WorksLabViewProps) {
         </div>
 
         {inspecting && (
-          <aside className="ink-flat sticky top-20 flex h-[calc(100svh-6rem)] w-[480px] shrink-0 flex-col overflow-hidden rounded-2xl border border-border/50 bg-glass-sheet shadow-overlay backdrop-blur-xl animate-in slide-in-from-right-4 fade-in duration-200">
+          <aside className="ink-flat sticky top-[var(--lab-under-bar)] flex h-[calc(100svh-var(--lab-under-bar)-1rem)] w-[480px] shrink-0 flex-col overflow-hidden rounded-2xl border border-border/50 bg-glass-sheet shadow-overlay backdrop-blur-xl animate-in slide-in-from-right-4 fade-in duration-200">
             {selectedCommit ? (
               <CommitEditor
                 commit={selectedCommit}
