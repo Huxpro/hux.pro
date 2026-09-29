@@ -110,8 +110,21 @@ export const ROW_FORM: Record<LogForm, RowForm> = {
  * other forms already print the picture, so their press still owns the
  * prose alone.
  */
-export function rowFormFor(form: LogForm, textRelieved: boolean): RowForm {
-  const base = ROW_FORM[form];
+export function rowFormFor(
+  form: LogForm,
+  textRelieved: boolean,
+  /**
+   * The row is an entry — a project (see `isEntry`, TimelineCommit) — and
+   * prints its prose whole in every form but the index: a project is the
+   * unit of this page, and a projects page gives each its paragraph. The
+   * press still owns the prose, in the other direction: it clamps.
+   */
+  entry = false,
+): RowForm {
+  const base =
+    entry && form !== "index"
+      ? { ...ROW_FORM[form], description: "full" as const }
+      : ROW_FORM[form];
   if (!textRelieved) return base;
   return base.description === "full"
     ? { ...base, description: "clamp", notes: false }

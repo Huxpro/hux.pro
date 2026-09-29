@@ -189,6 +189,16 @@ export function TimelineCommit({
   // prose whole so the fields being edited are on screen.
   const textOpen = inspecting ? isSelected : textRelieved;
 
+  // A project is an entry: the unit of this page, and the thing a projects
+  // page gives its own face and its own paragraph to. It wears its mark at
+  // 20px where the others wear a 12px glyph, its title steps up half a
+  // size, and its description prints whole and at body size in every form
+  // but the index (`rowFormFor`) — so a column of talks reads as the lines
+  // between the entries, the way it does on a projects page, rather than
+  // every row shouting at the same volume. The index keeps every row a
+  // line; the entry's mark is what tells a project from a talk there.
+  const isEntry = !!data.mark;
+
   // Pinned items render once in a stable spot beneath the row (visible
   // folded *and* expanded), so toggling never remounts them. The expanded
   // block renders the rest; normalizeCommit has already excluded pinned
@@ -238,7 +248,7 @@ export function TimelineCommit({
   // row scale). Everything below reads those atoms and nothing reads the
   // form's name, or `isExpanded` again: the feed's atoms already say
   // "no strip, no clamp, no peek".
-  const rowForm = rowFormFor(form, textOpen);
+  const rowForm = rowFormFor(form, textOpen, isEntry);
 
   // What the folded form adds under the title line: the description at two
   // lines, and the strip of covers. Both or either — a commit with no media
@@ -290,6 +300,12 @@ export function TimelineCommit({
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
   const showAuthorBlock = data.type !== "role" && data.type !== "event";
+  // The liner notes ride with the paragraph: an entry prints its paragraph
+  // whole, so its notes come with it, whatever the form says about notes —
+  // the author fields stay the form's, since a stack of `Author:` / `Role:`
+  // under eleven entries is the log's chrome, not the project's.
+  const showCommentary =
+    rowForm.notes || (isEntry && rowForm.description === "full");
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -363,10 +379,10 @@ export function TimelineCommit({
   // is actually drawing, and an open aside draws the 12px icon. Kept at 3
   // it would run the rail under the mark.
   //
-  // A project wears its own mark (ProjectMark): 16px, filled to its edge,
-  // so the rail stops where it stops for the role's 16px ring.
+  // A project wears its own mark (ProjectMark): 20px, the column's whole
+  // width, filled to its edge; the rail stops two pixels clear of it.
   const wearsMark = !isQuiet && !!data.mark;
-  const iconGapPx = isQuiet ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
+  const iconGapPx = isQuiet ? 3 : wearsMark ? 12 : isRoleAnchor ? 10 : 7;
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
@@ -490,10 +506,10 @@ export function TimelineCommit({
           >
             {data.mark ? (
               // A project's face where the others wear their kind's glyph
-              // (see `mark`, commit-data.ts). 16px — the role ring's size,
-              // so the two things in this column that fill it fill it
-              // alike — with the corner a home-screen icon has at that size.
-              <ProjectMark icon={data.mark} className="size-4 rounded-[4px]" />
+              // (see `mark`, commit-data.ts): the column's full 20px, the
+              // corner a home-screen icon has at that size. The entry's
+              // one loud thing — its title is only half a size up.
+              <ProjectMark icon={data.mark} className="size-5 rounded-[5px]" />
             ) : (
               <CommitIcon
                 type={data.type}
@@ -522,7 +538,15 @@ export function TimelineCommit({
             className="min-w-0 flex-1 text-xs text-tertiary-foreground"
           />
         ) : (
-          <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
+          <span
+            className={cn(
+              "min-w-0 flex-1",
+              TYPE.rowTitle,
+              // An entry's name: the size /writing gives a post's title in
+              // its list, and the weight a name carries over a paragraph.
+              isEntry && "sm:text-base font-medium",
+            )}
+          >
             {displayTitle}
             {data.languageBadge && (
               <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
@@ -671,6 +695,11 @@ export function TimelineCommit({
           <Description
             text={data.description}
             isExpanded={rowForm.description === "full"}
+            // An entry's paragraph is set at body size — the size /about
+            // and /prompt set theirs at — because it is the information,
+            // not a hook under the title. Clamped by a press it keeps the
+            // size: the reader folded it, not demoted it.
+            className={isEntry ? TYPE.body : undefined}
           />
         </div>
       )}
@@ -754,13 +783,17 @@ export function TimelineCommit({
           text, so the field stack shimmered and settled by a pixel every
           time. The row's box snaps to its new height regardless. If this
           ever wants motion, it is the height that should animate. */}
-      {!isQuiet && rowForm.notes && (data.commentary || showAuthorBlock) && (
+      {!isQuiet &&
+        ((showCommentary && data.commentary) ||
+          (rowForm.notes && showAuthorBlock)) && (
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
           className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
         >
-          {data.commentary && <Commentary text={data.commentary} />}
+          {showCommentary && data.commentary && (
+            <Commentary text={data.commentary} />
+          )}
 
           {/* The author fields, as `git log --pretty=fuller` writes them.
               They sit at the foot because the folded row already carries
@@ -771,7 +804,7 @@ export function TimelineCommit({
               The labels hold their column at every width: a field stack
               whose keys vanish on a phone is not `--pretty=fuller` any
               more, it is three unlabelled lines. */}
-          {showAuthorBlock && (
+          {rowForm.notes && showAuthorBlock && (
             <AuthorFields
               byline={byline}
               // Below `@sm` the gutter hash column is hidden, so the row has
