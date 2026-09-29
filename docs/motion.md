@@ -167,6 +167,72 @@ Elements with matching `view-transition-name` morph between pages:
 
 The `λhux` identifier morphs from center (homepage) to left (content pages).
 
+#### Widget Morph
+
+A home widget opens its page the way an iOS widget opens its app: the card
+grows into the screen and the page is what it grows into. Every in-site link
+inside a card does it too (a post row opens its post out of the writing card).
+Leaving the page is a quick fade-out over home, not the flight backwards: a
+page folding back into a card read as noise.
+
+The open is one name, `widget-morph`, worn by the tapped card before the
+navigation and by the page's `:root` (the viewport) after it, so the browser
+draws one group travelling from the card's box to the screen, while home (the
+`root` group) leans in behind it.
+
+- `components/ui/widget-morph.ts` holds the phase on
+  `html[data-widget-morph]`: `open` while the card grows, `opened` while on
+  the page it opened. `WidgetShell` marks itself `data-morph-source` on the
+  tap (click capture, before the router starts the transition).
+- CSS decides who wears the name: the marked card, or `:root` when no card is
+  marked. Snapshots are `object-fit: cover` from the top, clipped to the group
+  with the corner radius animating `1rem` → `0`.
+- From `opened`, any transition (home, onward, the theme) fades the page's
+  snapshot out in 160ms over the new state, which sits still beneath it.
+- An open never waits on the network. `next-view-transitions` resolves a
+  transition's update only once the route commits, and the browser holds the
+  page frozen until then. The open races that against 120ms: a page that
+  lands in time is what the card grows into; one that does not gets a launch
+  screen — home with its content hidden, i.e. the bare wallpaper — which the
+  card grows into at once, and the page renders onto it when it lands. Cards
+  also prefetch their `href`, so the launch screen is the exception.
+- A back swipe the browser already animated (`hasUAVisualTransition`) skips
+  the fade; reduced motion and browsers without View Transitions skip it all.
+- **Phones only** — more exactly, only where the card is at least 80% of the
+  screen's width, which is the one-column grid (`fillsScreenWidth`). The
+  morph depends on that ratio. On a 390px phone the card is 88% of the width:
+  the page arrives at 88% scale with its title exactly where the card's was.
+  On a 1440px desktop the card is 23% × 26%: the page arrives at a quarter
+  scale (4px text), its title 60px off the card's, growing into a
+  full-screen window the page does not have — it is a 680px column on the
+  wallpaper. A tablet or a phone on its side is the desktop case, milder.
+  Wider grids get the plain crossfade.
+- **Devtool › Widgets › Open morph**: `off` / `phone` / `everywhere` (a saved
+  setting, `WIDGET_MORPH_DEFAULT` in `systems/devtool/provider.tsx`).
+  `everywhere` lifts the one-column limit, to compare. Off, `WidgetShell`
+  never calls into `widget-morph.ts`: no wrapper, no marks, no prefetch on
+  press — every navigation is exactly the plain crossfade.
+
+**Cost.** Measured on a production build with CDP tracing, the same tap with
+the morph off and on:
+
+- Main thread: the same style, layout and paint work (≈20ms style, ≈5ms
+  layout, ≈2.5ms paint over the whole transition, in the same event counts).
+  The morph adds nothing per frame, and the time from tap to the first
+  animated frame is the same.
+- GPU: ≈12ms of compositing per frame against ≈11ms for the crossfade (on a
+  software GPU, so the ratio is what counts). It runs for 450ms instead of
+  200ms, so the total is about twice. The dim is opacity over black, not
+  `filter: brightness()`, which cost a sixth more per frame for a
+  whole-screen render pass.
+- Navigation and data: the update never waits longer than the route does,
+  or 120ms if that is longer (see the launch screen above); nothing is
+  fetched at load — the press prefetches the card's own page, which the tap
+  would fetch a moment later anyway.
+- Like every view transition in Chrome, the group's size animation is ticked
+  on the main thread and input waits for it, which is why it is 450ms: the
+  curve is ~95% there by 300ms.
+
 ### Component Animations
 
 Individual components (like the Command Palette or Modals) use `animate-in` and `fade-in` utility classes (powered by `tw-animate-css` and Tailwind) to enter the stage smoothly.

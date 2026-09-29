@@ -1293,6 +1293,115 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* -----------------------------------------------------------------------------
+   Widget Morph — a widget opens into its page; leaving the page fades it out
+   -----------------------------------------------------------------------------
+   See components/ui/widget-morph.ts. One name, `widget-morph`, is worn by the
+   card before the navigation and by the page's root (the viewport) after it,
+   so the group travels from the card's box to the screen. The home screen is
+   the `root` group behind it and leans in as the card opens.
+
+   Neither snapshot is stretched. The page is `cover`ed from the top, so at
+   card size it is its own top edge scaled down (its title, where the card's
+   title was). The card is not scaled at all: the window grows around it
+   while it fades. `cover` would blow it up to the window, several times its
+   size on a desktop, where a card is a fifth of the screen's width. The pair
+   is clipped to the group and its corners go from the card's `rounded-2xl`
+   to square. */
+
+html[data-widget-morph] [data-morph-source],
+html[data-widget-morph]:not(:has([data-morph-source])) {
+  view-transition-name: widget-morph;
+}
+
+/* λhux belongs to the page the card grows into, not a flight of its own. */
+html[data-widget-morph] [data-view-transition="site-identifier"] {
+  view-transition-name: none;
+}
+
+html[data-widget-morph="open"]::view-transition-group(widget-morph) {
+  z-index: 1;
+  animation-duration: var(--morph-duration);
+  animation-timing-function: var(--morph-ease);
+}
+
+html[data-widget-morph="open"]::view-transition-image-pair(widget-morph) {
+  overflow: hidden;
+  animation: morph-corner-open var(--morph-duration) var(--morph-ease) both;
+}
+
+html[data-widget-morph="open"]::view-transition-old(widget-morph),
+html[data-widget-morph="open"]::view-transition-new(widget-morph) {
+  height: 100%;
+  object-position: top;
+  mix-blend-mode: normal;
+}
+html[data-widget-morph="open"]::view-transition-new(widget-morph) {
+  object-fit: cover;
+}
+html[data-widget-morph="open"]::view-transition-old(widget-morph) {
+  object-fit: none;
+}
+
+/* The card gives way to the page early, while it is still card-sized, so
+   what grows is the page. */
+html[data-widget-morph="open"]::view-transition-old(widget-morph) {
+  animation: fade-out 120ms ease-out both;
+}
+html[data-widget-morph="open"]::view-transition-new(widget-morph) {
+  animation: fade-in 140ms ease-out both;
+}
+html[data-widget-morph="open"]::view-transition-old(root) {
+  animation: morph-home-recede var(--morph-duration) var(--morph-ease) both;
+}
+/* What the receding home dims toward. Opacity over black rather than
+   `filter: brightness()`: a filter puts the whole-screen snapshot through a
+   render pass of its own on every frame, opacity is a property of the quad
+   it is already drawn as — about a sixth less GPU time per frame, measured
+   against the same morph with the filter, and level with the plain crossfade
+   every other navigation has. */
+html[data-widget-morph="open"]::view-transition {
+  background: black;
+}
+
+/* Leaving an opened page — home, onward, or the theme recolouring it: the
+   renamed root is the page on both sides, and the page's snapshot fades out
+   quickly over the new state, which is simply there underneath. Not the
+   `root` crossfade, where both halves are part-transparent at once and the
+   wallpaper shows through the middle of it. */
+html[data-widget-morph="opened"]::view-transition-old(widget-morph) {
+  z-index: 1;
+  mix-blend-mode: normal;
+  animation: fade-out 160ms ease-out both;
+}
+html[data-widget-morph="opened"]::view-transition-new(widget-morph) {
+  mix-blend-mode: normal;
+  animation: none;
+}
+
+:root {
+  /* The iOS sheet curve the rest of the system moves on (docs/motion.md).
+     It has covered ~95% of the distance by 300ms; what is left is settle.
+     Kept short because a view transition holds input for as long as it
+     runs, and its group (a size animation) is ticked on the main thread,
+     which the page it opens is also mounting on. */
+  --morph-duration: 450ms;
+  --morph-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes morph-corner-open {
+  from { border-radius: 1rem; }
+  to { border-radius: 0; }
+}
+/* The home screen leans in behind an opening card, the way the iOS Home
+   Screen zooms past you into an app — larger, never smaller, so the edges of
+   its snapshot never come into view — and dims under it (over the black of
+   `::view-transition`, above). */
+@keyframes morph-home-recede {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.08); opacity: 0.8; }
+}
+
+/* -----------------------------------------------------------------------------
    Reduced Motion
    ----------------------------------------------------------------------------- */
 

@@ -3,10 +3,17 @@
 import { cn } from "@/lib/utils";
 import { GradientStack } from "@/systems/ambient/components/gradient-stack";
 import { isIOSBrowser } from "@/systems/ambient/lib/platform";
+import { WIDGET_MORPH_DEFAULT, useOptionalDevtool } from "@/systems/devtool";
 import { useOptionalWallpaper } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
-import { useCallback, useState, type MouseEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
+import { armWidgetMorph, fillsScreenWidth } from "./widget-morph";
 import { landsOnOwnAction } from "./widget-surface";
 
 import { TYPE } from "@/lib/typography";
@@ -38,6 +45,12 @@ import { TYPE } from "@/lib/typography";
  *   - iOS:     JS polyfill via fixedBgTracker (CSS is broken on all iOS browsers)
  *
  * Soft edging (viewport-relative mask) goes through the tracker per layer.
+ *
+ * A card that opens a page opens it *from the card* (`widget-morph.ts`): the
+ * card grows into the page.
+ * That holds for every in-site link inside the card too — a post row opens
+ * its post out of the writing card, as a deep link in an iOS widget opens its
+ * app out of the widget, not out of the row.
  */
 export function WidgetShell({
   className,
@@ -57,6 +70,10 @@ export function WidgetShell({
   const wallpaper = useOptionalWallpaper();
   const router = useTransitionRouter();
   const tappable = !!href || !!onOpen;
+  // The devtool's Widgets › Open morph. Off, the card navigates like any
+  // link and none of widget-morph.ts is ever reached.
+  const morphMode = useOptionalDevtool()?.widgetMorph ?? WIDGET_MORPH_DEFAULT;
+  const morph = morphMode !== "off" && !!href;
 
   const handleClick = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
@@ -79,6 +96,41 @@ export function WidgetShell({
   // tracker registrations run) once the card element is actually attached.
   const [shellEl, setShellEl] = useState<HTMLDivElement | null>(null);
 
+  // Capture, so the card is marked before whichever handler navigates — the
+  // shell's own below, or a row's `Link` — starts the view transition. A
+  // click the masonry swallows in edit mode never gets here.
+  const handleClickCapture = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const own = (e.target as Element).closest("a, button, [role='button']");
+      let target: string | undefined;
+      if (own && own !== e.currentTarget && e.currentTarget.contains(own)) {
+        // Only an in-page anchor navigates; a button runs its own action.
+        if (!(own instanceof HTMLAnchorElement)) return;
+        if (own.target && own.target !== "_self") return;
+        target = own.getAttribute("href") ?? undefined;
+      } else {
+        if (landsOnOwnAction(e)) return;
+        target = href;
+      }
+      if (!target) return;
+      if (morphMode === "phone" && !fillsScreenWidth(e.currentTarget)) return;
+      armWidgetMorph(e.currentTarget, target);
+    },
+    [href, morphMode],
+  );
+
+  // A press is a promise of a tap: fetch the page now, so the tap (a
+  // hundred-odd milliseconds later) grows into the page itself and not the
+  // launch screen that stands in for one still loading. Nothing is fetched
+  // for a card nobody touches — the header arrow's `Link` already prefetches
+  // on sight, and this is only the head start for a route that has not been.
+  // Deduplicated by the router; a no-op in development.
+  const handlePointerDown = useCallback(() => {
+    if (href) router.prefetch(href);
+  }, [href, router]);
+
   const widgetEnabled = wallpaper?.widgetEnabled ?? false;
   const layers = wallpaper?.layers ?? [];
   const edgeMask = wallpaper?.edgeMask ?? null;
@@ -95,6 +147,8 @@ export function WidgetShell({
     <div
       ref={setShellEl}
       onClick={tappable ? handleClick : undefined}
+      onClickCapture={morph ? handleClickCapture : undefined}
+      onPointerDown={morph ? handlePointerDown : undefined}
       // iOS only paints `:active` on elements with a touch listener in their
       // ancestry; React delegates to the root, so an empty handler suffices.
       onTouchStart={tappable ? noop : undefined}

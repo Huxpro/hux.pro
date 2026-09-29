@@ -8,6 +8,8 @@ export {
   useOptionalDevtool,
   type DevtoolPageMeta as DevtoolPageMetaData,
   HOME_WEATHER_DEFAULT,
+  WIDGET_MORPH_DEFAULT,
+  type WidgetMorph,
   type HeroExit,
   type HomeWeather,
 } from "./provider";
