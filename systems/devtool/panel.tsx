@@ -10,7 +10,13 @@ import {
   useTheme,
   GLASS_TINTS,
   getTintLabel,
+  DEFAULT_SKIN,
+  SKINS,
+  getSchemeStyleLabel,
+  getSkinLabel,
+  useSkin,
 } from "@/services";
+import { SCHEME_STYLES } from "@/systems/skin";
 import {
   motionStatus,
   useAmbientTime,
@@ -145,6 +151,7 @@ import {
   GripVertical,
   Image as ImageIcon,
   Layers2,
+  Shapes,
   Moon,
   Music,
   Pause,
@@ -209,6 +216,7 @@ export function DevtoolModules() {
       <ReadingModule />
       <WallpaperModule />
       <GlassModule />
+      <SkinModule />
       <SkyModule />
       <MusicModule />
       <CommandModule />
@@ -1166,6 +1174,105 @@ function GlassModule() {
           </span>
           <ExternalLink className="mr-1 h-3 w-3 shrink-0 text-muted-foreground" />
         </Link>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Skin Module
+//
+// Which platform the home screen's widgets are drawn in (services/skin.tsx):
+// Material (Android, the default) or Glass (Apple). Under Material, the
+// "Wallpaper colors" style Android offers, and the palette it produced from
+// the wallpaper that is painting — the roles a widget actually uses.
+// =============================================================================
+
+const SWATCH_ROLES = [
+  "primary",
+  "secondary",
+  "tertiary",
+  "primary-container",
+  "secondary-container",
+  "tertiary-container",
+  "surface-container",
+  "on-surface",
+] as const;
+
+function SkinModule() {
+  const { locale } = useLocale();
+  const skin = useSkin();
+  const isHome = useIsHome();
+  const star: Star =
+    skin.skin !== DEFAULT_SKIN || skin.schemeStyle !== "tonal-spot" ? "saved" : null;
+
+  return (
+    <DebugSection
+      id="skin"
+      title={t(locale, "settingsSkin")}
+      icon={<Shapes className="h-4 w-4" />}
+      compact
+      relevant={isHome}
+      star={star}
+      action={
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {skin.skin}
+        </span>
+      }
+    >
+      <div className="space-y-2">
+        <PanelRow
+          label={t(locale, "settingsSkin")}
+          star={
+            skin.skin === DEFAULT_SKIN ? null : (
+              <PanelStar source="saved" onReset={() => skin.setSkin(DEFAULT_SKIN)} label="Back to Material" />
+            )
+          }
+        >
+          <PanelSegmented
+            value={skin.skin}
+            options={SKINS.map((value) => ({
+              value,
+              label: getSkinLabel(value, locale),
+            }))}
+            onChange={skin.setSkin}
+          />
+        </PanelRow>
+        {skin.skin === "material" && (
+          <>
+            <PanelRow
+              label={t(locale, "settingsMdStyle")}
+              stacked
+              star={
+                skin.schemeStyle === "tonal-spot" ? null : (
+                  <PanelStar source="saved" onReset={() => skin.setSchemeStyle("tonal-spot")} label="Back to tonal spot" />
+                )
+              }
+            >
+              <PanelSegmented
+                value={skin.schemeStyle}
+                options={SCHEME_STYLES.map((value) => ({
+                  value,
+                  label: getSchemeStyleLabel(value, locale),
+                }))}
+                onChange={skin.setSchemeStyle}
+              />
+            </PanelRow>
+            {/* The palette in force: each swatch paints its own role, so it
+                is whatever the bridge last wrote — no second computation to
+                drift from the widgets. */}
+            <div className="flex items-center gap-1" aria-hidden>
+              {SWATCH_ROLES.map((role) => (
+                <span
+                  key={role}
+                  title={role}
+                  className="h-5 flex-1 rounded-md ring-1 ring-inset ring-border/60"
+                  style={{ backgroundColor: `var(--md-${role})` }}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </DebugSection>
   );

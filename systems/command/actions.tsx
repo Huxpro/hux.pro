@@ -2,11 +2,13 @@
 
 import {
   getGlassLabel,
+  getSkinLabel,
   getTintLabel,
   localeNames,
   t,
   useGlass,
   useInputCapability,
+  useSkin,
   useLocale,
   useTheme,
   type ThemePreference,
@@ -25,6 +27,7 @@ import {
   Home,
   Image as ImageIcon,
   Layers2,
+  Shapes,
   Languages,
   Mic,
   MapPin,
@@ -134,6 +137,7 @@ export function useCommandActions(): CommandAction[] {
     tint: glassTint,
     setTint: setGlassTint,
   } = useGlass();
+  const { skin, toggle: toggleSkin } = useSkin();
   const { isShowing: isDevtoolShowing, toggleShowing: toggleDevtool } =
     useDevtool();
   const {
@@ -412,6 +416,28 @@ export function useCommandActions(): CommandAction[] {
         "色调",
       ],
       run: () => toggleGlass(),
+    },
+    {
+      id: "skin",
+      key: "k",
+      kind: "toggle",
+      section: "settings",
+      label: `${t(locale, "settingsSkin")}: ${getSkinLabel(skin, locale)}`,
+      icon: <Shapes className={ROW_ICON} />,
+      keywords: [
+        "skin",
+        "theme",
+        "android",
+        "material",
+        "material you",
+        "ios",
+        "glass",
+        "widgets",
+        "皮肤",
+        "安卓",
+        "玻璃",
+      ],
+      run: () => toggleSkin(),
     },
     {
       id: "tint",

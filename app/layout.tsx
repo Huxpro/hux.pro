@@ -21,6 +21,7 @@ import { IdentityCard } from "@/systems/identity";
 import { InstallSheet } from "@/systems/install";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
+import { SKIN_BOOT } from "@/systems/skin/lib/boot";
 import { Dock } from "@/systems/dock";
 import { MusicActivity, MusicPlaylistSheet } from "@/systems/music";
 import {
@@ -33,6 +34,7 @@ import { MinimizedWindows, WindowLayer } from "@/systems/windows";
 import type { Metadata, Viewport } from "next";
 import { ViewTransitions } from "next-view-transitions";
 import {
+  Google_Sans_Flex,
   Inter,
   JetBrains_Mono,
   Newsreader,
@@ -70,6 +72,20 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   style: ["normal", "italic"],
   display: "swap",
+});
+
+// The Material skin's face (services/skin.tsx): Material 3 Expressive's brand
+// type, with its roundness axis. Not preloaded — the font is only fetched
+// once something set in it renders, so a visitor in the Glass skin never
+// downloads it.
+const googleSansFlex = Google_Sans_Flex({
+  variable: "--font-flex",
+  subsets: ["latin"],
+  axes: ["ROND", "opsz"],
+  display: "swap",
+  preload: false,
+  // next/font has no metrics for this family to size a fallback with.
+  adjustFontFallback: false,
 });
 
 export const metadata: Metadata = {
@@ -130,9 +146,12 @@ export default function RootLayout({
           {/* Before first paint: Safari picks its chrome colour at load, from
               the root background (iOS 26) or theme-color (iOS 18). */}
           <script dangerouslySetInnerHTML={{ __html: BEZEL_BOOT }} />
+          {/* The stored skin onto <html> before first paint, so a returning
+              visitor never sees the other skin flash (services/skin.tsx). */}
+          <script dangerouslySetInnerHTML={{ __html: SKIN_BOOT }} />
         </head>
         <body
-          className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+          className={`${inter.variable} ${googleSansFlex.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         >
           <Providers>
             <ReadingRootSync />
