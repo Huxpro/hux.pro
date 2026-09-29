@@ -2009,6 +2009,73 @@ html[data-skin="material"] [data-dock-panel] .surface-shell {
   box-shadow: var(--md-elevation-2);
 }
 
+/* --- Windows. Android's desktop windowing, not macOS: the caption's
+   controls are icon buttons in `on-surface-variant` — minimize, maximize (a
+   square), close, in that order, closing last at the edge — with state
+   layers rather than traffic-light colours. On a touch screen the three
+   lights give way to Android's app handle: one short bar at the top of the
+   window, which is what a phone shows over a full-screen app. --- */
+/* Lit (a drag, a menu, or a hovering pointer), the caption is a tonal
+   surface — `surface-container-high`, elevation 2 — not frosted glass. */
+html[data-skin="material"] .window-pill[class~="bg-white/80"] {
+  background-color: var(--md-surface-container-high);
+  border-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: var(--md-elevation-2);
+}
+@media (hover: hover) {
+  html[data-skin="material"] .window-pill:hover {
+    background-color: var(--md-surface-container-high);
+    border-color: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: var(--md-elevation-2);
+  }
+}
+html[data-skin="material"] .window-pill {
+  font-family: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  color: var(--md-on-surface);
+}
+html[data-skin="material"] [data-window-dot="minimize"] { order: 1; }
+html[data-skin="material"] [data-window-dot="zoom"] { order: 2; }
+html[data-skin="material"] [data-window-dot="close"] { order: 3; }
+@media (hover: hover) {
+  html[data-skin="material"] [data-window-dots] {
+    gap: 2px;
+  }
+  html[data-skin="material"] [data-window-dot] {
+    width: 24px;
+    height: 24px;
+    background-color: transparent !important;
+    color: var(--md-on-surface-variant);
+  }
+  html[data-skin="material"] [data-window-dot] > span {
+    opacity: 1;
+  }
+  html[data-skin="material"] [data-window-dot] svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 1.4;
+  }
+  html[data-skin="material"] [data-window-dot]:hover {
+    background-color: color-mix(in srgb, var(--md-on-surface) var(--md-state-hover), transparent) !important;
+    color: var(--md-on-surface);
+  }
+}
+@media (hover: none) {
+  html[data-skin="material"] [data-window-dot] {
+    display: none;
+  }
+  html[data-skin="material"] [data-window-handle] {
+    display: block;
+    width: 32px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: color-mix(in srgb, var(--md-on-surface-variant) 70%, transparent);
+  }
+}
+
 /* --- Toasts as snackbars (SnackbarTokens): `inverse-surface` under
    `inverse-on-surface`, Body Medium, 4dp corners, elevation 3; actions as
    text buttons in `inverse-primary`. It arrives the way Compose's does —
