@@ -8,6 +8,7 @@ import { ArrowRight } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useState,
   type MouseEvent,
@@ -122,6 +123,13 @@ export function WidgetShell({
     },
     [key, href],
   );
+
+  // The card's page is fetched while the card sits on the grid, so a tap
+  // grows into the page itself and not the launch screen that stands in for
+  // one still loading (widget-morph.ts). A no-op in development.
+  useEffect(() => {
+    if (href) router.prefetch(href);
+  }, [href, router]);
 
   // Home, mounting under the transition back from the page this card opened:
   // become the shape the page closes into. Layout effect, so the mark is on

@@ -1358,12 +1358,16 @@ html[data-widget-morph="open"]::view-transition-old(root) {
   animation: morph-home-recede var(--morph-duration) var(--morph-ease) both;
 }
 
-/* Close: the page shrinks as itself and hands over to the card on landing. */
+/* Close: the page shrinks as itself and hands over to the card only once
+   the window is all but card-sized. Earlier, the card's snapshot is `cover`ed
+   into a window several times its size, and its text arrives blown up. The
+   curve has covered ~95% of the distance by 300ms. The page stays opaque
+   under it: two half-faded snapshots let the home screen show through. */
 html[data-widget-morph="close"]::view-transition-old(widget-morph) {
-  animation: fade-out 180ms ease-in 140ms both;
+  animation: none;
 }
 html[data-widget-morph="close"]::view-transition-new(widget-morph) {
-  animation: fade-in 180ms ease-out 140ms both;
+  animation: fade-in 160ms ease-out 280ms both;
 }
 html[data-widget-morph="close"]::view-transition-new(root) {
   animation: morph-home-recede var(--morph-duration) var(--morph-ease) reverse both;

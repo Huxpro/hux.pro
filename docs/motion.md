@@ -191,7 +191,18 @@ close   old: :root (page) →  new: the card, on home    home (root) settles bac
 - CSS decides who wears the name: the marked card, or `:root` when no card is
   marked. Snapshots are `object-fit: cover` from the top, clipped to the group
   with the corner radius animating `1rem` ↔ `0`.
-- Off-screen cards decline the close (the page crossfades home instead);
+- An open never waits on the network. `next-view-transitions` resolves a
+  transition's update only once the route commits, and the browser holds the
+  page frozen until then. The open races that against 120ms: a page that
+  lands in time is what the card grows into; one that does not gets a launch
+  screen — home with its content hidden, i.e. the bare wallpaper — which the
+  card grows into at once, and the page renders onto it when it lands. Cards
+  also prefetch their `href`, so the launch screen is the exception.
+- The close keeps the page opaque while it shrinks and fades the card in only
+  once the window is nearly card-sized; earlier, the card's `cover`ed
+  snapshot arrives blown up several times over.
+- Off-screen cards decline the close (the page crossfades home instead), as
+  does a back swipe the browser already animated (`hasUAVisualTransition`);
   reduced motion and browsers without View Transitions skip it entirely.
 
 ### Component Animations
