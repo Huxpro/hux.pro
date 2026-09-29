@@ -76,5 +76,12 @@ prints it.
   Pressing it takes you to the host's row.
 
 Nothing is merged. A guest is still an ordinary commit: featured, embedded
-and linked on its own. Whenever its host is not on the page (`?type=talk`,
-a locale scope), it prints as the row it always was.
+and linked on its own.
+
+- **Filters follow the containment.** The host holds the guest, so the
+  filter reads it that way round. With the host on the page and only the
+  guest's type filtered out (`?type=project`), the guest still rides on
+  its host's row, covers and all, and its hash still lands there; it just
+  has no row or quiet line of its own. Whenever its host is not on the
+  page (`?type=talk`, a locale scope), it prints as the row it always was.
+

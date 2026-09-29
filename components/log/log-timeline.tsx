@@ -106,14 +106,22 @@ export function LogTimeline({
   // whole log: a guest and its host can sit in different chapters.
   const guests = useMemo(() => {
     const all = data.flatMap((d) => d.commits);
-    const hosts = buildHosts(all, (c) => isRowVisible(c, activeTypes));
+    // A guest the type filter drops still rides on its host's row: filtered
+    // to projects, a project keeps the talk that introduced it.
+    const hosts = buildHosts(
+      all,
+      (c) => isRowVisible(c, activeTypes),
+      (c) => isRowVisible(c),
+    );
+    // Guests printed only on their host's row: inside its time, or carried
+    // there by the filter. Their hash lands on the host.
     const inside = new Set<string>();
     // A guest dated outside its host's time keeps a quiet line there: the
     // aside's voice, named by where it happened.
     const quiet = new Map<string, CommitData>();
     for (const list of hosts.guestsOf.values()) {
       for (const g of list) {
-        if (g.inside) inside.add(g.commit.id);
+        if (g.inside || g.carried) inside.add(g.commit.id);
         else
           quiet.set(g.commit.id, {
             ...g.commit,

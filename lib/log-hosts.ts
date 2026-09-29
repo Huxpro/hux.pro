@@ -27,6 +27,12 @@ export interface Guest {
   kind: "edition" | "about";
   /** Whether the host's row covers its date; if not, it keeps a quiet line. */
   inside: boolean;
+  /**
+   * On the page only through its host: the reader's filter drops it as a
+   * row (`?type=project` drops the talk), but a project still holds the
+   * talk that introduced it. It has no row and no quiet line of its own.
+   */
+  carried: boolean;
 }
 
 export interface Hosts {
@@ -44,16 +50,24 @@ const EMPTY: Hosts = { hostOf: new Map(), guestsOf: new Map() };
  * An edition's host is the version its chain of `editionOf` ends at; a
  * commit `about` a project is the project's guest. A pointer to something
  * not on the page, or a cycle, is ignored: the commit is its own row.
+ *
+ * A host has to be on the page (`isVisible`). A guest can also ride on it
+ * when only the reader's filter drops it (`canRide`): the host contains it,
+ * so filtering to projects keeps the talk a project was introduced by on
+ * the project's row. The other way round, a talk with its project filtered
+ * out is simply its own row.
  */
 export function buildHosts(
   commits: readonly Commit[],
   isVisible: (commit: Commit) => boolean,
+  canRide: (commit: Commit) => boolean = isVisible,
 ): Hosts {
   const byId = new Map(commits.filter(isVisible).map((c) => [c.id, c]));
+  const candidates = commits.filter((c) => byId.has(c.id) || canRide(c));
 
   const hostOf = new Map<string, string>();
   const guestsOf = new Map<string, Guest[]>();
-  for (const c of byId.values()) {
+  for (const c of candidates) {
     let host: Commit | undefined;
     let kind: Guest["kind"] = "edition";
     if (c.editionOf) {
@@ -76,7 +90,12 @@ export function buildHosts(
     if (!host || host.id === c.id) continue;
     hostOf.set(c.id, host.id);
     const list = guestsOf.get(host.id) ?? [];
-    list.push({ commit: c, kind, inside: withinRange(c, host) });
+    list.push({
+      commit: c,
+      kind,
+      inside: withinRange(c, host),
+      carried: !byId.has(c.id),
+    });
     guestsOf.set(host.id, list);
   }
   if (hostOf.size === 0) return EMPTY;
