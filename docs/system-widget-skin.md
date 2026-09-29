@@ -67,6 +67,31 @@ still colours it. Nothing hardcodes an alpha.
 The accent is the title and, at most, one glyph. It never colours body text,
 and under Clear it is label ink.
 
+## Each widget, in Apple's idiom
+
+The shell gives every widget the tile, margins, type and accent. Where a size
+has an Apple counterpart worth borrowing, the widget also changes its layout
+under `skin-apple:` (dual markup, never a hook):
+
+| Widget | Size | Apple layout | Borrowed from |
+|---|---|---|---|
+| weather | small | The sky as the tile (a gradient per condition, day / night), white ink. Place, temperature in the light weight right under it, then the condition with its glyph and the next sun event at the foot. | Weather, small |
+| weather | medium | The temperature beside the condition; under them the day as a line from sunrise to sunset with a dot at now. | Weather, medium — the hourly strip, which this site has no data for, becomes the day's light |
+| music | small | The artwork blurred into a field of its own colour; the cover set on it top-left, play / pause top-right, title and artist at the foot. Music's red when idle. | Music, small |
+| music | medium | The cover a square the height of the card; beside it state, title, artist, and the transport as bare white glyphs. | Music, medium |
+| writing | medium | "Latest · date", the title as a 17pt semibold headline, the description. | News / Notes, medium |
+| writing | large | The newest post as that headline, then the rest as a list divided by inset hairlines. | Reminders / Notes lists; "larger sizes support additional layers of information" |
+| projects | medium | "Now · team", the project as the headline, what it is. | — |
+| talks | large | Covers up to 260px wide, so the card is built around one. | Podcasts, large |
+| prompts | medium | Unchanged — and its `*italic*` marks now render (the shared `components/prompt/marks.tsx`, lifted from /prompt), where they used to print as asterisks in both skins. | — |
+
+White ink on a coloured tile is `ink="light"` on the shell plus a
+`.widget-backdrop` element: the backdrop draws only under Apple and not under
+Clear, and `ink-scope` re-derives the whole text ladder from `--ink: #fff`
+there, so `text-muted-foreground` and the rest follow without a single
+hardcoded white. Under Clear the backdrop goes, the ink comes back, and album
+art keeps its colour — the HIG's one exception to desaturation.
+
 ## How it is built
 
 - **Apple is "not classic".** The variants are

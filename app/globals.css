@@ -1574,6 +1574,31 @@ html:not([data-widget-skin="classic"]) [data-widget] .font-mono {
   font-variant-numeric: tabular-nums;
 }
 
+/* A tile with its own colour behind it — Weather's sky, Music's artwork.
+   `.widget-backdrop` is that colour: Apple skin, full-colour appearance
+   only. Under Clear the system removes a widget's background and draws
+   Liquid Glass instead, so the backdrop goes and the ink comes back; album
+   art itself (a separate element) keeps its colour, as the HIG reserves
+   full colour for media. `data-widget-ink="light"` on the shell (with
+   `.ink-scope`, which re-derives the whole ladder from `--ink`) is the
+   white ink that reads on it. */
+.widget-backdrop {
+  display: none;
+}
+html:not([data-widget-skin="classic"]):not(.glass-clear) .widget-backdrop {
+  display: block;
+}
+html:not([data-widget-skin="classic"]):not(.glass-clear) [data-widget-ink="light"] {
+  --ink: #fff;
+  --ink-alpha-secondary: 78%;
+  --ink-alpha-tertiary: 62%;
+  --ink-alpha-quaternary: 40%;
+  --wp-ink-boost: 0%;
+  --wp-zone-boost: 0%;
+  --widget-accent: #fff;
+  text-shadow: none;
+}
+
 /* Apple's widgets carry no "open" arrow — the whole widget is the link. The
    header arrow stays in the tree as the keyboard's stop, and shows only
    when the keyboard is on it. */

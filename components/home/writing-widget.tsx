@@ -125,14 +125,22 @@ export function WritingWidget({
             href={getPostHref(post, locale, "/writing")}
             className="pressable -mx-2 block rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35"
           >
-            <div className={cn("flex items-center gap-2", TYPE.rowMeta)}>
+            <div className={cn("flex items-center gap-2 skin-apple:text-[13px] skin-apple:capitalize", TYPE.rowMeta)}>
               <span>{t(locale, "widgetLatest")}</span>
               <span aria-hidden className="text-quaternary-foreground">
                 ·
               </span>
               <time dateTime={post.date}>{formatPostDate(post.date)}</time>
             </div>
-            <div className={cn("mt-1 line-clamp-2", TYPE.rowTitle)}>
+            {/* Apple skin: the headline a medium News or Notes widget sets —
+                17 semibold, the one large line on the card. */}
+            <div
+              className={cn(
+                "mt-1 line-clamp-2",
+                TYPE.rowTitle,
+                "skin-apple:text-[17px] skin-apple:font-semibold skin-apple:leading-[22px]",
+              )}
+            >
               {getLocalizedTitle(post, locale)}
             </div>
             {post.description && (
@@ -140,6 +148,7 @@ export function WritingWidget({
                 className={cn(
                   "mt-1 line-clamp-1 @min-[360px]:line-clamp-2",
                   TYPE.captionQuiet,
+                  "skin-apple:text-[13px] skin-apple:leading-4",
                 )}
               >
                 {post.description}
@@ -162,17 +171,60 @@ export function WritingWidget({
         fill
         port={rows.length > PORT_ROWS ? "pointer-fine:max-h-64" : undefined}
       >
-        {rows.map(({ post, marker }, i) => (
-          <PostRow
-            key={post.slug}
-            post={post}
-            locale={locale}
-            marker={marker}
-            className={i >= TOUCH_ROWS ? "pointer-coarse:hidden" : undefined}
-          />
-        ))}
+        {rows.map(({ post, marker }, i) =>
+          i === 0 ? (
+            // Apple skin: the large card leads with the newest post as a
+            // headline — title, date and what it is about — and lists the
+            // rest under it. The HIG's "larger sizes support additional
+            // layers of information": the list is the same list, the lead
+            // is the layer a medium has no room for. Classic keeps a row.
+            <div key={post.slug}>
+              <PostHero post={post} locale={locale} />
+              <PostRow
+                post={post}
+                locale={locale}
+                marker={marker}
+                className="skin-apple:hidden"
+              />
+            </div>
+          ) : (
+            <PostRow
+              key={post.slug}
+              post={post}
+              locale={locale}
+              marker={marker}
+              className={i >= TOUCH_ROWS ? "pointer-coarse:hidden" : undefined}
+            />
+          ),
+        )}
       </WidgetScrollBody>
     </WidgetShell>
+  );
+}
+
+/** Apple skin only: the newest post, set as the large card's headline. */
+function PostHero({ post, locale }: { post: BlogPostSummary; locale: Locale }) {
+  return (
+    <Link
+      href={getPostHref(post, locale, "/writing")}
+      className={cn(
+        "pressable relative -mx-2 hidden rounded-lg px-2 pb-3 pt-1 transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35 skin-apple:block",
+        "after:absolute after:inset-x-2 after:bottom-0 after:h-px after:bg-border",
+      )}
+    >
+      <div className={cn("text-[13px] capitalize", TYPE.rowMeta)}>
+        {t(locale, "widgetLatest")} ·{" "}
+        <time dateTime={post.date}>{formatPostDate(post.date)}</time>
+      </div>
+      <div className="mt-1 line-clamp-2 text-[17px] font-semibold leading-[22px] text-foreground">
+        {getLocalizedTitle(post, locale)}
+      </div>
+      {post.description && (
+        <p className="mt-1 line-clamp-2 text-[13px] leading-4 text-muted-foreground">
+          {post.description}
+        </p>
+      )}
+    </Link>
   );
 }
 
@@ -195,6 +247,10 @@ function PostRow({
       // hover (which touch devices never see), and eases back on release.
       className={cn(
         "pressable snap-start flex items-baseline gap-3 -mx-2 px-2 py-2 rounded-lg transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35",
+        // Apple skin: a list the way Reminders and Notes draw one — rows a
+        // little taller, divided by hairlines inset to the text.
+        "relative skin-apple:py-2.5",
+        "skin-apple:after:absolute skin-apple:after:inset-x-2 skin-apple:after:bottom-0 skin-apple:after:h-px skin-apple:after:bg-border skin-apple:last:after:hidden",
         className,
       )}
     >
@@ -204,18 +260,18 @@ function PostRow({
           whole row of difference — where the whole point of a fixed row
           count is that the card is the same size whatever is in it. The
           title in full is one tap away. */}
-      <span className={cn("min-w-0 flex-1 truncate", TYPE.rowTitle)}>
+      <span className={cn("min-w-0 flex-1 truncate", TYPE.rowTitle, "skin-apple:text-[15px]")}>
         {getLocalizedTitle(post, locale)}
       </span>
       {/* The date slot carries the marker instead of the date, for the posts
           that are here *because* they are featured: the slot answers why the
           row is on the card, and for those rows the flag is the answer. */}
       {marker ? (
-        <span className={cn("shrink-0", TYPE.rowMeta)}>
+        <span className={cn("shrink-0", TYPE.rowMeta, "skin-apple:text-[13px]")}>
           {t(locale, "writingFeatured")}
         </span>
       ) : (
-        <time dateTime={post.date} className={cn("shrink-0", TYPE.rowMeta)}>
+        <time dateTime={post.date} className={cn("shrink-0", TYPE.rowMeta, "skin-apple:text-[13px]")}>
           {formatPostDate(post.date)}
         </time>
       )}

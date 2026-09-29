@@ -219,6 +219,10 @@ export function FeaturedTalksWidget({ size = "large" }: { size?: WidgetSize }) {
               }
               className={cn(
                 "group/thumb pressable w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
+                // Apple skin: a cover the card is built around, as Podcasts'
+                // large widget sets its episode art — not a thumbnail in a
+                // field of white.
+                "skin-apple:max-w-[260px]",
                 "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
               )}
             >

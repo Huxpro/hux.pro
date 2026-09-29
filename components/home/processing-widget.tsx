@@ -169,8 +169,8 @@ export function ProcessingWidget({
           <WidgetLink href={PROJECTS_HREF} label="View works" />
         </WidgetHeader>
         <WidgetBody fill className="justify-end">
-          <div className={cn("flex items-center gap-2 min-w-0", TYPE.rowMeta)}>
-            <span className="shrink-0">{t(locale, "widgetNow")}</span>
+          <div className={cn("flex items-center gap-2 min-w-0 skin-apple:text-[13px]", TYPE.rowMeta)}>
+            <span className="shrink-0 skin-apple:capitalize">{t(locale, "widgetNow")}</span>
             {where && (
               <>
                 <span aria-hidden className="text-quaternary-foreground">
@@ -180,12 +180,21 @@ export function ProcessingWidget({
               </>
             )}
           </div>
-          <div className={cn("mt-1 truncate", TYPE.rowTitle)}>{row.title}</div>
+          <div
+            className={cn(
+              "mt-1 truncate",
+              TYPE.rowTitle,
+              "skin-apple:text-[17px] skin-apple:font-semibold skin-apple:leading-[22px]",
+            )}
+          >
+            {row.title}
+          </div>
           {row.description && (
             <p
               className={cn(
                 "mt-1 line-clamp-1 @min-[360px]:line-clamp-2",
                 TYPE.captionQuiet,
+                "skin-apple:text-[13px] skin-apple:leading-4",
               )}
             >
               {row.description}

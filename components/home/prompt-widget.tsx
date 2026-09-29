@@ -9,6 +9,7 @@ import {
   WidgetTitle,
 } from "@/components/ui/widget";
 import type { WidgetSize } from "@/components/ui/widget-size";
+import { Marks } from "@/components/prompt/marks";
 import promptsRaw from "@/content/prompts.json";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
@@ -148,12 +149,15 @@ function QuoteDisplay({
   return (
     <div>
       <blockquote className={cn("font-serif text-base text-foreground leading-relaxed", CLAMP)}>
-        &ldquo;{item.text}&rdquo;
+        &ldquo;<Marks text={item.text} />&rdquo;
       </blockquote>
       <p className={cn("mt-2 truncate", TYPE.caption)}>
         {item.author}
         {item.source && (
-          <span className="text-tertiary-foreground"> · {item.source}</span>
+          <span className="text-tertiary-foreground">
+            {" · "}
+            <Marks text={item.source} />
+          </span>
         )}
       </p>
     </div>
@@ -172,7 +176,7 @@ function BeliefDisplay({
   return (
     <div>
       <p className={cn("font-serif text-base text-foreground leading-relaxed", CLAMP)}>
-        {item.statement}
+        <Marks text={item.statement} />
       </p>
       {item.topic && <p className={cn("mt-2", TYPE.rowMeta)}>{label}</p>}
     </div>
@@ -187,10 +191,12 @@ function InfluenceDisplay({
   return (
     <div>
       <p className="font-serif text-base text-foreground truncate">
-        {item.name}
+        <Marks text={item.name} />
       </p>
       {item.context && (
-        <p className={cn("mt-1", CLAMP, TYPE.caption)}>{item.context}</p>
+        <p className={cn("mt-1", CLAMP, TYPE.caption)}>
+          <Marks text={item.context} />
+        </p>
       )}
     </div>
   );
