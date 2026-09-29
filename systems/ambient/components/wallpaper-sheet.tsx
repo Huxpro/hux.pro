@@ -37,7 +37,7 @@ import {
   type WallpaperPlayEvery,
   type WeatherStyle,
 } from "../lib/wallpaper";
-import { useAmbientTime, useSolarTheme, useWallpaper, useWeather } from "../provider";
+import { useAmbientTime, useWallpaper, useWeather } from "../provider";
 import { WeatherWallpaper } from "./wallpaper";
 
 // ---------------------------------------------------------------------------
@@ -561,7 +561,6 @@ function WallpaperPickerBody() {
     playEvery,
     setPlayEvery,
   } = useWallpaper();
-  const { followSun, setFollowSun } = useSolarTheme();
   const isImage = kind === "image";
   const { isWindow } = useSurfaceContext();
   const columns = isWindow ? 3 : 2;
@@ -668,25 +667,6 @@ function WallpaperPickerBody() {
         ))}
       </div>
 
-      {/* Sunrise and sunset move the theme, not the wallpaper — but they are
-          the weather system's own events, so this is where they are turned
-          off. One row, the same shape as Placement. */}
-      {category === "weather" && (
-        <div className="space-y-2 pt-5">
-          <CompactRow<"on" | "off">
-            label={t(locale, "settingsSolarTheme")}
-            value={followSun ? "on" : "off"}
-            options={[
-              { value: "on", label: t(locale, "stateOn") },
-              { value: "off", label: t(locale, "stateOff") },
-            ]}
-            onChange={(value) => setFollowSun(value === "on")}
-          />
-          <p className="px-0.5 text-[11px] leading-snug text-tertiary-foreground">
-            {t(locale, "solarThemeHint")}
-          </p>
-        </div>
-      )}
       {category === "weather" && effectiveStyle === "sky" && <WeatherTiltRow />}
 
       {category !== "weather" && (

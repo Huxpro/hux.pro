@@ -133,7 +133,7 @@ microphone) is `slashOnly` — in this list, never a search result.
 | `P` | Go to Prompts |
 | `I` | Go to Docs (internal) |
 | `E` | Go to Editor |
-| `A` | Cycle Appearance (system → dark → light) |
+| `A` | Cycle Appearance (Follow the Sun → Light → Dark → Follow the System) |
 | `L` | Toggle Language |
 | `O` | Open the About (its only shortcut — see [system-about.md](./system-about.md)) |
 | `V` | Voice — tap to listen, hold to talk and let go to send ([system-glow.md](./system-glow.md)) |
@@ -141,7 +141,6 @@ microphone) is `slashOnly` — in this list, never a search result.
 | `W` | Open the Wallpaper picker |
 | `G` | Toggle Glass material (Tinted ↔ Clear) |
 | `T` | Toggle glass Tint (Wallpaper ↔ Neutral) |
-| `S` | Toggle Follow the Sun (theme at sunrise / sunset) |
 | `M` | Play / pause Music |
 | `Q` | Open the playlist browser |
 | `D` | Toggle the Devtool panel |

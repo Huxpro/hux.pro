@@ -1931,7 +1931,12 @@ function SkyModule() {
     isTimeTravelActive,
     resetTimeTravel,
   } = useAmbientTime();
-  const { followSun, setFollowSun, sunTheme } = useSolarTheme();
+  const { sunTheme } = useSolarTheme();
+  // Follow the Sun is an Appearance; this row is a shortcut to it, next to the
+  // clock it rides. Off is Follow the System.
+  const { preference: appearance, setThemePreference } = useTheme();
+  const followSun = appearance === "sun";
+  const setFollowSun = (on: boolean) => setThemePreference(on ? "sun" : "system");
   const { gyro, setGyroEnabled, effectiveStyle, skyWindow, setSkyWindow } = useWallpaper();
   const { homeWeather, setHomeWeather } = useDevtool();
 
@@ -2490,16 +2495,16 @@ function SkyModule() {
           </div>
           {/* The theme rides this timeline: play the day and it flips at the
               two ticks above, because the switch reads the same clock. The
-              toggle is the saved setting, not a session override — turning it
-              off here turns it off for good. */}
+              toggle is the Appearance itself, saved — off is Follow the
+              System. */}
           <PanelRow
-            label={zh ? "主题跟随太阳" : "Theme follows sun"}
+            label={t(locale, "themeSun")}
             star={
               followSun ? null : (
                 <PanelStar
                   onReset={() => setFollowSun(true)}
                   source="saved"
-                  label={zh ? "恢复跟随太阳" : "Follow the sun again"}
+                  label={zh ? "恢复跟随太阳" : "Follow the Sun again"}
                 />
               )
             }
@@ -2515,7 +2520,7 @@ function SkyModule() {
               <PanelToggle
                 on={followSun}
                 onClick={() => setFollowSun(!followSun)}
-                label="Theme follows the sun"
+                label="Follow the Sun"
               />
             </span>
           </PanelRow>

@@ -274,13 +274,10 @@ export const translations = {
     wallpaperPlayEveryHourly: "Hourly",
     wallpaperPlayEveryDaily: "Daily",
 
-    // Sun theme — the theme following sunrise and sunset
-    settingsSolarTheme: "Follow the Sun",
-    solarThemeHint:
-      "Once dawn and dusk have played out, the theme follows the sky — for this session only, never your saved Appearance.",
+    // Follow the Sun — the notice at a sunrise or a sunset
     solarThemeToLight: "Light Mode",
     solarThemeToDark: "Dark Mode",
-    solarThemeNote: "Preference unchanged",
+    solarThemeNote: "Following the Sun",
 
     // The article header's provenance line, folded behind an `(i)`.
 
@@ -360,7 +357,8 @@ export const translations = {
     commandClose: "Close command palette",
     appearance: "Appearance",
     languageLabel: "Language",
-    themeSystem: "System",
+    themeSystem: "Follow the System",
+    themeSun: "Follow the Sun",
     themeDark: "Dark",
     themeLight: "Light",
     switchToDark: "Switch to Dark Mode",
@@ -680,11 +678,9 @@ export const translations = {
     wallpaperPlayEveryDaily: "每天",
 
     // Sun theme — the theme following sunrise and sunset
-    settingsSolarTheme: "跟随日出日落",
-    solarThemeHint: "等日出、日落的天色走完，主题再跟上；仅在本次会话中生效，不会改写外观偏好。",
     solarThemeToLight: "浅色模式",
     solarThemeToDark: "深色模式",
-    solarThemeNote: "偏好未更改",
+    solarThemeNote: "跟随太阳",
 
     // The article header's provenance line, folded behind an `(i)`.
 
@@ -765,6 +761,7 @@ export const translations = {
     appearance: "外观",
     languageLabel: "语言",
     themeSystem: "跟随系统",
+    themeSun: "跟随太阳",
     themeDark: "深色",
     themeLight: "浅色",
     switchToDark: "切换到深色模式",

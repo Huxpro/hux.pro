@@ -5,40 +5,41 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 // =============================================================================
 // Theme Service
 //
-// Two layers decide what paints:
+// Appearance is one preference with four answers:
 //
-//   preference — light / dark / system. The user's, saved in localStorage.
-//   override   — light / dark. The sun's, for this browser session only.
+//   light / dark  what they say. Nothing else moves them.
+//   system        Follow the System: the OS's `prefers-color-scheme`.
+//   sun           Follow the Sun: Light while the sun is up, Dark once it is
+//                 down. The default.
 //
-// The override is how "the theme follows the sun" works (see the ambient
-// system's <SolarThemeSync />): when sunrise or sunset is crossed while the
-// page is open, the app flips without the saved preference moving an inch. It
-// lives in sessionStorage, so a reload in the same tab keeps the theme the sun
-// set and closing the tab forgets it — which is what makes the flip a session
-// thing rather than a setting changed behind the user's back.
+// The sun's answer is not this service's to know — it takes a location and a
+// forecast, which the ambient system has — so the ambient system hands it in
+// (`setSunTheme`, from <SolarThemeSync />), already staged: at a sunrise or a
+// sunset it arrives in the middle of the sky's animation, not the instant the
+// sun crosses. Until it has one, Follow the Sun trusts the system, and moves to
+// the sun's answer when the forecast lands.
 //
-// Anything the user chooses explicitly — the palette's Appearance command, a
-// toggle — clears the override. The preference is theirs; the override is a
-// guest.
+// The preference is saved in localStorage. The sun's answer is not saved at
+// all: it is recomputed on every visit, so a page opened after dark opens dark.
 // =============================================================================
 
 type Theme = "light" | "dark";
-type ThemePreference = Theme | "system";
+export type ThemePreference = Theme | "system" | "sun";
 
 interface ThemeContextType {
-  /** The theme in effect: the override while one is in force, else the preference's. */
+  /** The theme in effect, whatever decided it. */
   theme: Theme;
   preference: ThemePreference;
-  /** The session override, or null when the preference is having its way. */
-  override: Theme | null;
+  /**
+   * The theme the sun has handed in, or null before it has one. Only Follow
+   * the Sun paints it; the ambient system keeps it current either way, so
+   * choosing Follow the Sun lands on the sun's answer at once.
+   */
+  sunTheme: Theme | null;
   toggleTheme: () => void;
   setThemePreference: (preference: ThemePreference) => void;
-  /**
-   * Set the session override. Passing the theme the preference already gives
-   * clears it instead — an override that changes nothing is not one — and so
-   * does passing null.
-   */
-  setThemeOverride: (theme: Theme | null) => void;
+  /** For the ambient system: the sun's answer, as the app should show it now. */
+  setSunTheme: (theme: Theme | null) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -50,104 +51,100 @@ export function useTheme() {
 }
 
 const THEME_STORAGE_KEY = "hux_theme";
-/** sessionStorage: the override dies with the tab, by construction. */
-const THEME_OVERRIDE_KEY = "hux_theme_session";
+const DEFAULT_PREFERENCE: ThemePreference = "sun";
+
+// -----------------------------------------------------------------------------
+// Before Follow the Sun was an Appearance, it was a switch of its own in the
+// ambient settings (`themeFollowsSun`, on unless turned off) that only acted on
+// a sunrise or a sunset watched live, as a session override on top of the
+// preference. A saved "system" from then was almost always the default plus
+// that switch, so it becomes Follow the Sun — unless the switch had been turned
+// off, which was a clear answer. Once: every preference written from here on
+// carries the marker, so a "system" chosen today stays "system".
+// -----------------------------------------------------------------------------
+
+const THEME_MIGRATED_KEY = "hux_theme_v2";
+const LEGACY_AMBIENT_SETTINGS_KEY = "hux_ambient_settings";
+const LEGACY_OVERRIDE_KEY = "hux_theme_session";
+
+function legacyFollowedSun(): boolean {
+  try {
+    const settings = JSON.parse(localStorage.getItem(LEGACY_AMBIENT_SETTINGS_KEY) || "{}");
+    return settings?.themeFollowsSun !== false;
+  } catch {
+    return true;
+  }
+}
+
+function isPreference(value: unknown): value is ThemePreference {
+  return value === "light" || value === "dark" || value === "system" || value === "sun";
+}
 
 function getSystemTheme(): Theme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function getStoredPreference(): ThemePreference {
-  if (typeof window === "undefined") return "system";
-  const stored = localStorage.getItem(THEME_STORAGE_KEY);
-  if (stored === "light" || stored === "dark" || stored === "system") return stored;
-  return "system";
-}
-
 function setStoredPreference(preference: ThemePreference): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(THEME_STORAGE_KEY, preference);
-}
-
-function getStoredOverride(): Theme | null {
-  if (typeof window === "undefined") return null;
   try {
-    const stored = sessionStorage.getItem(THEME_OVERRIDE_KEY);
-    return stored === "light" || stored === "dark" ? stored : null;
-  } catch {
-    return null;
-  }
-}
-
-function setStoredOverride(theme: Theme | null): void {
-  if (typeof window === "undefined") return;
-  try {
-    if (theme) sessionStorage.setItem(THEME_OVERRIDE_KEY, theme);
-    else sessionStorage.removeItem(THEME_OVERRIDE_KEY);
+    localStorage.setItem(THEME_STORAGE_KEY, preference);
+    localStorage.setItem(THEME_MIGRATED_KEY, "1");
   } catch {
     // Ignore storage errors (private mode, disabled storage)
   }
 }
 
-function getInitialTheme(preference: ThemePreference): Theme {
-  if (typeof window === "undefined") return "light";
-  return preference === "system" ? getSystemTheme() : preference;
+function getStoredPreference(): ThemePreference {
+  if (typeof window === "undefined") return DEFAULT_PREFERENCE;
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (!isPreference(stored)) return DEFAULT_PREFERENCE;
+    if (stored !== "system" || localStorage.getItem(THEME_MIGRATED_KEY)) return stored;
+    const migrated: ThemePreference = legacyFollowedSun() ? "sun" : "system";
+    setStoredPreference(migrated);
+    sessionStorage.removeItem(LEGACY_OVERRIDE_KEY);
+    return migrated;
+  } catch {
+    return DEFAULT_PREFERENCE;
+  }
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [preference, setPreference] = useState<ThemePreference>(() => getStoredPreference());
-  const [baseTheme, setBaseTheme] = useState<Theme>(() => getInitialTheme(getStoredPreference()));
-  // Restored before first paint so a reload inside the session does not undo
-  // the sun's switch. <SolarThemeSync /> validates it once the sun times are
-  // known and drops it if the sun has moved on since.
-  const [override, setOverride] = useState<Theme | null>(() => getStoredOverride());
+  const [systemTheme, setSystemTheme] = useState<Theme>(() =>
+    typeof window === "undefined" ? "light" : getSystemTheme()
+  );
+  const [sunTheme, setSunTheme] = useState<Theme | null>(null);
 
-  const theme = override ?? baseTheme;
+  const theme: Theme =
+    preference === "light" || preference === "dark"
+      ? preference
+      : preference === "sun"
+        ? (sunTheme ?? systemTheme)
+        : systemTheme;
 
-  /** The override's two halves move together or not at all. */
-  const writeOverride = useCallback((next: Theme | null) => {
-    setOverride(next);
-    setStoredOverride(next);
-  }, []);
-
+  // Heard in every preference: Follow the Sun falls back to it too.
   useEffect(() => {
-    if (preference !== "system") return;
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const updateTheme = () => {
-      setBaseTheme(mediaQuery.matches ? "dark" : "light");
-    };
-    mediaQuery.addEventListener("change", updateTheme);
-    return () => mediaQuery.removeEventListener("change", updateTheme);
-  }, [preference]);
+    const update = () => setSystemTheme(mediaQuery.matches ? "dark" : "light");
+    mediaQuery.addEventListener("change", update);
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
-  const toggleTheme = useCallback(() => {
-    // Measured against what is on screen, override included: "toggle" means
-    // the other one than this. Choosing is the user's move, so it also ends
-    // whatever the sun was doing.
-    const nextTheme: Theme = theme === "light" ? "dark" : "light";
-    writeOverride(null);
-    setBaseTheme(nextTheme);
-    setPreference(nextTheme);
-    setStoredPreference(nextTheme);
-  }, [theme, writeOverride]);
+  const setThemePreference = useCallback((next: ThemePreference) => {
+    setPreference(next);
+    setStoredPreference(next);
+  }, []);
 
-  const setThemePreference = useCallback(
-    (nextPreference: ThemePreference) => {
-      writeOverride(null);
-      setPreference(nextPreference);
-      setStoredPreference(nextPreference);
-      setBaseTheme(getInitialTheme(nextPreference));
-    },
-    [writeOverride]
-  );
-
-  const setThemeOverride = useCallback(
-    (next: Theme | null) => writeOverride(next === baseTheme ? null : next),
-    [baseTheme, writeOverride]
+  // "Toggle" means the other one than this, as a choice of its own — so it
+  // leaves either Follow mode for the theme it names.
+  const toggleTheme = useCallback(
+    () => setThemePreference(theme === "light" ? "dark" : "light"),
+    [theme, setThemePreference]
   );
 
   return (
@@ -155,10 +152,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       value={{
         theme,
         preference,
-        override,
+        sunTheme,
         toggleTheme,
         setThemePreference,
-        setThemeOverride,
+        setSunTheme,
       }}
     >
       {children}
