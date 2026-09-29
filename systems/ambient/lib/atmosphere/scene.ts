@@ -33,6 +33,8 @@ export interface SkyScene {
   darkness: number;
   /** +1 north (the moon waxes on the right), −1 south (mirrored). */
   hemisphere: number;
+  /** The theme's exposure, multiplied in under the veil, as the Sky's shader does. */
+  exposure: number;
 }
 
 /** Cyclic or discrete: these jump to the new scene rather than easing to it. */
@@ -129,11 +131,12 @@ export function deriveSkyScene({ weather, nowMs, latitude, longitude, phase, con
     density: kind === "fog" ? 0.45 : 0.55 + storm * 0.35 + rain * 0.2,
     darkness: clamp(storm * 0.65 + rain * 0.35 + snow * 0.1),
     hemisphere: 1,
+    exposure: 1,
   };
 }
 
 export function sceneGradient(scene: SkyScene): string {
-  const rgb = (v: Vec3) => `rgb(${v.map(c => Math.round(clamp(c) * 255)).join(" ")})`;
+  const rgb = (v: Vec3) => `rgb(${v.map(c => Math.round(clamp(c * scene.exposure) * 255)).join(" ")})`;
   return `linear-gradient(180deg, ${rgb(scene.zenith)}, ${rgb(scene.horizon)})`;
 }
 
@@ -178,6 +181,7 @@ export function toAtmosphereScene(scene: WeatherScene): SkyScene {
     density: scene.clouds.density,
     darkness: scene.clouds.darkness,
     hemisphere: scene.hemisphere,
+    exposure: scene.exposure,
     rain: scene.precipitation.type === "rain" ? scene.precipitation.intensity : 0,
     snow: scene.precipitation.type === "snow" ? scene.precipitation.intensity : 0,
     fog: scene.fog,

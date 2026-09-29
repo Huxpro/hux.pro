@@ -52,7 +52,7 @@ const UNIFORMS = [
   "u_resolution", "u_noise", "u_wipe", "u_time", "u_zenith", "u_horizon", "u_cloudLight", "u_cloudShade",
   "u_sun", "u_moon", "u_drift", "u_lightDir", "u_camera", "u_daylight", "u_twilight", "u_cloud", "u_fog",
   "u_storm", "u_moonPhase", "u_moonVisible", "u_moonSize", "u_stars", "u_density", "u_darkness",
-  "u_coverage", "u_extinction", "u_lightning", "u_lightningPosition", "u_meteor", "u_meteorGlow", "u_wipeOn",
+  "u_coverage", "u_extinction", "u_exposure", "u_lightning", "u_lightningPosition", "u_meteor", "u_meteorGlow", "u_wipeOn",
 ] as const;
 type Uniform = (typeof UNIFORMS)[number];
 
@@ -143,6 +143,7 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
         gl.uniform1f(loc.u_darkness, scene.darkness);
         gl.uniform1f(loc.u_coverage, 0.74 + (0.23 - 0.74) * scene.cloud);
         gl.uniform1f(loc.u_extinction, (3.6 + 2.4 * scene.storm) * (0.75 + 0.45 * scene.density));
+        gl.uniform1f(loc.u_exposure, scene.exposure);
         gl.uniform1f(loc.u_lightning, frame.flash);
         gl.uniform2f(loc.u_lightningPosition, frame.lightning.x, frame.lightning.y);
         gl.uniform4fv(loc.u_meteor, frame.meteor);

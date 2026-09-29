@@ -32,7 +32,7 @@ uniform vec3 u_lightDir;
 uniform float u_camera;
 uniform float u_daylight, u_twilight, u_cloud, u_fog, u_storm, u_moonPhase;
 uniform float u_moonVisible, u_moonSize, u_stars, u_density, u_darkness;
-uniform float u_coverage, u_extinction;
+uniform float u_coverage, u_extinction, u_exposure;
 uniform float u_lightning;
 uniform vec2 u_lightningPosition;
 uniform vec4 u_meteor;
@@ -59,8 +59,14 @@ float envelope(float y) {
 // crunchy band there. Past a point they are swapped for their mean — which is
 // both what the eye resolves at that range and the cheaper sample.
 float density(vec3 p, float far) {
+  float band = envelope(p.y);
+  if (band <= 0.0) return 0.0;
   vec3 q = p*1.85;
   float shape = noise(q)*0.57 + noise(q*2.03+7.0)*0.27;
+  // The fine octaves and the erosion add at most 0.16: where the broad shape
+  // cannot reach the coverage even with all of it, this is sky, and exactly
+  // zero — most of a clear or broken sky is, so most samples stop here.
+  if (shape + 0.16 < u_coverage) return 0.0;
   if (far < 0.99) {
     // Fine erosion follows the billow edge, leaving a dense interior.
     float fine = noise(q*4.07+13.0)*0.11 + noise(q*8.13)*0.05 - (1.0-noise(q*7.0))*0.09;
@@ -68,7 +74,7 @@ float density(vec3 p, float far) {
   } else {
     shape += 0.035;
   }
-  return smoothstep(u_coverage,u_coverage+0.18,shape)*envelope(p.y);
+  return smoothstep(u_coverage,u_coverage+0.18,shape)*band;
 }
 // The shadow taps: the two broad octaves carry the billows' mass, which is all
 // a light ray integrated over a third of the deck can see of them. The constant
@@ -201,6 +207,8 @@ void main() {
     color += vec3(0.62,0.74,1.0)*u_lightning*flashFalloff*(0.35+0.65*(1.0-transmittance));
   }
   if (sunVisible > 0.0) color = mix(color,warm,exp(-sunDistance*8.0)*0.13*sunVisible*(0.12+0.88*transmittance)*(1.0-u_storm));
+  // The theme's exposure, under the veil (a CSS layer above), as the Sky's.
+  color *= u_exposure;
   color += (hash(gl_FragCoord.xy+17.0)-0.5)/255.0;
   gl_FragColor = vec4(color,1.0);
 }`;
