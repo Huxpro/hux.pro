@@ -85,8 +85,13 @@ export interface AppFolderProps {
  * from the footprint (`folderLayoutFor`): a cell row holds one row of icons,
  * a cell column holds four, so every size the grid can give it is a
  * different folder rather than the same one with more air around it.
+ *
+ * It is placed one cell tall. One row of four is what the folder has to
+ * show today (four featured apps), and a taller default only added a
+ * transparent band under that row that still took its cells — pushing
+ * the widgets beside and below it down for nothing.
  */
-export const APP_FOLDER_SIZE = sizeSpec([1, 1], [2, 2], [1, 2]);
+export const APP_FOLDER_SIZE = sizeSpec([1, 1], [2, 2], [1, 1]);
 
 /** Page layout for a footprint: 4 icons per cell of width, 1 / 3 rows tall. */
 export function folderLayoutFor(size: { w: number; h: number }): AppFolderLayout {

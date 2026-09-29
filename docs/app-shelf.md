@@ -80,7 +80,7 @@ and (via the same fill/pad rules) the minimized dock pills.
 
 `components/apps/app-folder.tsx` renders as one chrome-less item in the home
 `SortableGrid`, so it drags alongside widgets — and resizes like one: its
-footprint (`APP_FOLDER_SIZE`, 1×1 to 2×2, default 1×2) decides the page
+footprint (`APP_FOLDER_SIZE`, 1×1 to 2×2, default 1×1) decides the page
 layout through `folderLayoutFor` — four icons per cell of width, one row
 when a cell tall and three when two. Icons inside are a *nested*
 dnd-kit sortable with its own persisted order (`localStorage["hux_app_order_v2"]`):
@@ -100,8 +100,9 @@ dnd-kit sortable with its own persisted order (`localStorage["hux_app_order_v2"]
   collision rect, which silently broke cross-row sorting.
 
 **Pages.** The layout follows the folder's footprint on the grid (see
-[Widget Grid](./system-widget-grid.md)): 4 × 1 at one cell, 4 × 3 at 1×2 (the
-default), 8 × 1 and 8 × 3 across two cells. Pass `layout={{ columns, rows,
+[Widget Grid](./system-widget-grid.md)): 4 × 1 at one cell (the default —
+one row is what four featured apps fill), 4 × 3 at 1×2, 8 × 1 and 8 × 3
+across two cells. Pass `layout={{ columns, rows,
 axis }}` to override capacity or scroll direction.
 
 | Catalog size | Behavior |

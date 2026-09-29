@@ -47,7 +47,7 @@ same rows longer, the range is wrong* — is the test each entry had to pass.
 
 | Widget | Range | 1 tall | 2 tall | 3 tall | 2 wide |
 |---|---|---|---|---|---|
-| `apps` folder | 1×1 – 2×2, default 1×2 | one row of four | three rows (twelve per page) | — | eight per row. Page capacity **is** the footprint (`folderLayoutFor`). |
+| `apps` folder | 1×1 – 2×2, default 1×1 | one row of four | three rows (twelve per page) | — | eight per row. Page capacity **is** the footprint (`folderLayoutFor`). |
 | `weather` | 1×1 – 2×1 | the readout | — | — | the *day*: feels-like / humidity / wind, and the sun's arc with the sun where it is now, sunrise and sunset at its feet |
 | `blog` (writing) | 1×1 – 2×3, default 1×2 | a headline — the newest post with its excerpt | the list: latest, then featured (the word in the date slot), as many rows as the cell holds | rows carry their excerpt | latest and featured stop stacking and sit side by side, each under its own heading, every row with its excerpt (two headlines when 1 tall) |
 | `music` | 1×1 – 2×1 | now playing | — | — | **up next**: the following playlist entries, each a tap away |
@@ -101,9 +101,11 @@ breakpoint as CSS variables (`--gc1…4`, `--gr1…4`) that the `sm:` / `lg:` /
 
 The cost, honestly: the masonry balanced columns by *content height*, so a
 short card never left air under it. A cell grid gives every card its cell,
-and a widget shorter than its cell (the app folder at 1×2, a "weather
-unavailable" card) leaves the difference empty. The defaults were chosen so
-this is rare; the folder is chrome-less, so its air is invisible.
+and a widget shorter than its cell (a "weather unavailable" card) leaves the
+difference empty. The defaults were chosen so this is rare. The app folder
+was the lesson: placed at 1×2, its one row of four icons left a transparent
+band under it that still held two cells and pushed its neighbours down, so
+it is placed at 1×1 — the height its content actually has.
 
 The "same rows, only reflowed" behaviour has one more consequence: because
 the packer is dense, resizing or moving one widget can let a *later* widget
@@ -215,7 +217,7 @@ playlist), at 1280×900, 820×1000 and an iPhone 13 viewport with touch via
 CDP:
 
 - default packing at all three widths matches `packGrid` cell for cell
-  (desktop: apps 1×2, weather, blog 1×2 across the top; music under weather;
+  (desktop: apps 1×1, weather, blog 1×2 across the top; music under apps;
   projects, talks, prompts below);
 - mouse drag: edit mode enters, the placeholder shows the landing cell, the
   order re-packs and persists;
