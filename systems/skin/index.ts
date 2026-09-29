@@ -9,6 +9,8 @@
 // =============================================================================
 
 export { DynamicColorBridge } from "./components/dynamic-color-bridge";
+export { MaterialRipple } from "./components/material-ripple";
+export { haptic, type Haptic } from "./lib/haptics";
 export {
   FALLBACK_SEED,
   SCHEME_STYLES,

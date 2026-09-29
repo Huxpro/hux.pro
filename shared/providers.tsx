@@ -17,7 +17,7 @@ import { SystemSonner } from "@/components/ui/system-sonner";
 import { AboutProvider } from "@/systems/about";
 import { AmbientProvider } from "@/systems/ambient";
 import { GlowPaletteBridge } from "@/systems/glow";
-import { DynamicColorBridge } from "@/systems/skin";
+import { DynamicColorBridge, MaterialRipple } from "@/systems/skin";
 import { AttachmentProvider } from "@/systems/attachments";
 import { IdentityCardProvider } from "@/systems/identity";
 import { InstallProvider } from "@/systems/install";
@@ -39,6 +39,7 @@ function AmbientWrapper({ children }: { children: React.ReactNode }) {
     <AmbientProvider theme={theme}>
       <GlowPaletteBridge />
       <DynamicColorBridge />
+      <MaterialRipple />
       {children}
     </AmbientProvider>
   );

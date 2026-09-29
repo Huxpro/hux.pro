@@ -43,6 +43,7 @@ import {
   type ResizeHandlers,
 } from "./resize-grip";
 import { useOptionalSkin } from "@/services/skin";
+import { haptic } from "@/systems/skin/lib/haptics";
 import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
@@ -679,6 +680,7 @@ export function SortableGrid({
     setActiveId(String(e.active.id));
     setSelectedId(String(e.active.id));
     setEditing(true);
+    haptic("long-press");
   }
 
   function handleDragMove(e: DragMoveEvent) {
@@ -702,6 +704,7 @@ export function SortableGrid({
 
   function handleDragEnd() {
     setActiveId(null);
+    haptic("confirm");
     setOrder((prev) => {
       saveOrder(storageKey, prev);
       return prev;
@@ -797,6 +800,8 @@ export function SortableGrid({
           ),
         };
         const size = clampSize(snapPxToCells(px, geo), r.spec, columns);
+        // Crossing into a new cell is felt, as the launcher's resize is.
+        if (!sameSize(size, r.live.size)) haptic("tick");
         r.live = { id: r.id, size, px, phase: "live" };
         setResize(r.live);
       },
@@ -806,6 +811,7 @@ export function SortableGrid({
         if (!r || e.pointerId !== r.pointerId) return;
         resizeRef.current = null;
         commitSize(r.id, r.live.size);
+        haptic("confirm");
         // Ease the box from under the pointer onto its cells, then hand the
         // card back to the grid.
         const geo = el ? cellGeometry(el.getBoundingClientRect(), columns) : null;
@@ -887,6 +893,7 @@ export function SortableGrid({
           <div
             ref={gridRef}
             data-widget-grid
+            data-editing={editing || undefined}
             className={cn(
               "grid gap-4 auto-rows-[var(--cell-h)]",
               scale.columns,

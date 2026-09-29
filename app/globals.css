@@ -1722,8 +1722,8 @@ html[data-skin="material"] [data-widget-shell].widget-surface:hover {
   background-color: color-mix(in srgb, var(--md-container), var(--md-on-container) var(--md-state-hover));
   border-color: transparent;
 }
-/* The press state layer: the existing `.widget-surface` overlay, at
-   Material's 10% of the content colour. */
+/* The press: not the iOS wash over the whole card — the ripple draws it
+   (MaterialRipple, systems/skin), so the overlay stays clear. */
 html[data-skin="material"] [data-widget-shell].widget-surface::after {
   background-color: var(--md-on-container);
   transition-timing-function: var(--md-spring-default-effects);
@@ -1744,7 +1744,7 @@ html[data-skin="material"] [data-widget-shell].widget-surface:active:not(
         ):active
     )
   )::after {
-  opacity: 0.1;
+  opacity: 0;
 }
 html[data-skin="material"] [data-widget-wallpaper] {
   display: none;
