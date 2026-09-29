@@ -6,6 +6,7 @@ import type { Locale } from "@/lib/i18n";
 import { Languages } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, type ReactNode } from "react";
+import { Comments } from "./comments";
 import { ReadingSettings } from "./reading-sheet";
 import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
@@ -32,6 +33,9 @@ interface PostContentProps {
 
   /** Show the scroll-driven ruler table of contents */
   toc?: boolean;
+
+  /** The Discussion under the post (`commentTermFor(slug)`); none if unset. */
+  comments?: string;
 
   onMount?: (slug: string, title: string, href: string) => void;
 }
@@ -85,6 +89,7 @@ export function PostContent({
   origin,
   originZh,
   toc,
+  comments,
   onMount,
 }: PostContentProps) {
   const pathname = usePathname();
@@ -177,6 +182,12 @@ export function PostContent({
         >
           {renderMarkdownLinks(displayOrigin)}
         </p>
+      )}
+      {comments && (
+        <Comments
+          term={comments}
+          className="mt-[calc(var(--reading-size)*4)] border-t border-border pt-[calc(var(--reading-size)*2)]"
+        />
       )}
       {toc && <RulerToc />}
     </PageLayout>
