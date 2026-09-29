@@ -26,7 +26,7 @@ import {
 // A row is made of a few independent parts: the title line (always), the
 // description, the attachment object, the notes under it, and whether it
 // peeks on hover. Each part has its own small set of states (`RowForm`), and
-// a *form* is one preset of all of them — so the three readings of the page
+// a *form* is one preset of all of them — so the readings of the page
 // are compositions of the same atoms, and switching form is resetting every
 // row to a preset rather than four hand-made layouts. A row the reader opens
 // by hand is the same thing at a smaller scale: it takes the `feed` preset
@@ -39,21 +39,26 @@ import {
 //    you can recognise a slide or a screenshot at. Still one row per commit,
 //    so the overview survives, but the work is on screen rather than behind
 //    a hover a phone cannot perform.
+//  - `prose`  — the words: the description whole and at body size, the
+//    liner notes under it, and the attachments as a line of named links
+//    rather than covers. The reading a CV or a projects page gives — what
+//    it is, what I did, and where to go — with no picture to scroll past
+//    and nothing folded. A link still peeks, so the cover is one hover away.
 //  - `feed`   — the grid, at half a column, with its captions written out,
 //    and the prose and notes printed whole to match. All the information is
 //    right there, so nothing in it peeks or opens a sheet: a video plays
 //    where it is, a card goes to its page.
 //
-// A form sets all four atoms, but it only *owns* two of them: the picture
-// is the page's (`media`, `peek`), the prose is each row's (`description`,
-// `notes` — see `rowFormFor`). Pressing a row's text relieves or clamps it
-// against whatever the form printed; the picture holds still.
+// A form sets every atom, but it only *owns* the picture: the page's
+// (`media`, `peek`, `voice`). The prose is each row's (`description`,
+// `notes`, `fields` — see `rowFormFor`). Pressing a row's text relieves or
+// clamps it against whatever the form printed; the picture holds still.
 //
 // The page borrowed git's vocabulary for these once (`--oneline`, `--stat`,
 // `-p`); those names still parse, as aliases, so old links keep working.
 // =============================================================================
 
-export const LOG_FORMS = ["index", "covers", "feed"] as const;
+export const LOG_FORMS = ["index", "prose", "covers", "feed"] as const;
 
 export type LogForm = (typeof LOG_FORMS)[number];
 
@@ -64,21 +69,67 @@ export interface RowForm {
   /** What of the description prints: nothing, two lines, or all of it. */
   description: "none" | "clamp" | "full";
   /**
-   * The attachment object: nothing, the strip of covers, or the grid — the
-   * feed's half-column tiles with their captions written out.
+   * The size the description is set at. `caption` is the row's own —
+   * 12px, a tier under the title, the density a log wants. `body` is the
+   * prose form's: 14px, the size /about and /prompt set their paragraphs
+   * at, for a reading where the description is the information and not
+   * a hook under the title.
    */
-  media: "none" | "covers" | "grid";
-  /** The notes under the message: commentary and the author fields. */
+  voice: "caption" | "body";
+  /**
+   * The attachment object: nothing, the strip of covers, the grid — the
+   * feed's half-column tiles with their captions written out — or a line
+   * of named links, one per attachment, each opening the same door its
+   * cover would.
+   */
+  media: "none" | "covers" | "grid" | "links";
+  /** The notes under the message: the commentary. */
   notes: boolean;
+  /**
+   * The author fields at the foot — `git log --pretty=fuller`'s
+   * `Author:` / `Role:` stack. Notes on the provenance rather than on the
+   * prose, so a form can print one without the other: the prose form
+   * prints the commentary and leaves the handle on the meta line.
+   */
+  fields: boolean;
   /** Whether the row, or its covers, peek on hover. The feed does not: it
    *  has already printed everything a peek would show. */
   peek: boolean;
 }
 
 export const ROW_FORM: Record<LogForm, RowForm> = {
-  index: { description: "none", media: "none", notes: false, peek: true },
-  covers: { description: "clamp", media: "covers", notes: false, peek: true },
-  feed: { description: "full", media: "grid", notes: true, peek: false },
+  index: {
+    description: "none",
+    voice: "caption",
+    media: "none",
+    notes: false,
+    fields: false,
+    peek: true,
+  },
+  prose: {
+    description: "full",
+    voice: "body",
+    media: "links",
+    notes: true,
+    fields: false,
+    peek: true,
+  },
+  covers: {
+    description: "clamp",
+    voice: "caption",
+    media: "covers",
+    notes: false,
+    fields: false,
+    peek: true,
+  },
+  feed: {
+    description: "full",
+    voice: "caption",
+    media: "grid",
+    notes: true,
+    fields: true,
+    peek: false,
+  },
 };
 
 /**
@@ -114,11 +165,12 @@ export function rowFormFor(form: LogForm, textRelieved: boolean): RowForm {
   const base = ROW_FORM[form];
   if (!textRelieved) return base;
   return base.description === "full"
-    ? { ...base, description: "clamp", notes: false }
+    ? { ...base, description: "clamp", notes: false, fields: false }
     : {
         ...base,
         description: "full",
         notes: true,
+        fields: true,
         media: base.media === "none" ? "covers" : base.media,
       };
 }

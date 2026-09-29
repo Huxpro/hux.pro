@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, GalleryVertical, LayoutList, List, MousePointer2, Plus, RotateCcw, Save } from "lucide-react";
+import { AlignLeft, Check, GalleryVertical, LayoutList, List, MousePointer2, Plus, RotateCcw, Save } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { InspectMode } from "@/components/log/timeline-edit-context";
@@ -10,6 +10,7 @@ import { EditorNav } from "./nav";
 
 const FORM_CHIP: Record<LogForm, { icon: LucideIcon; label: string }> = {
   index: { icon: List, label: "index" },
+  prose: { icon: AlignLeft, label: "prose" },
   covers: { icon: LayoutList, label: "covers" },
   feed: { icon: GalleryVertical, label: "feed" },
 };

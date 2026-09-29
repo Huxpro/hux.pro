@@ -226,23 +226,32 @@ with no cover to wear it on carries the chip in its caption line. The
 chip says what the thing is; the policy above says where it opens, and the
 two never trade jobs.
 
-## The three forms of /works
+## The four forms of /works
 
-How much of a commit the page prints is one of three *forms*, and a form
+How much of a commit the page prints is one of four *forms*, and a form
 is a preset of a few independent atoms rather than a layout of its own
 (`ROW_FORM`, `lib/log-view.ts`): what of the description prints (`none` ·
-`clamp` · `full`), which attachment object (`none` · `covers` · `grid`),
-whether the notes print (commentary, the author fields, the link labels),
-and whether anything peeks on hover. The toolbar's control resets every
-row to a preset; a row the reader opens by hand takes the `feed` preset
-for itself. Old links with git's names (`oneline`, `stat`, `patch`) still
-parse, as aliases.
+`clamp` · `full`) and at which size (`caption` · `body`), which attachment
+object (`none` · `covers` · `grid` · `links`), whether the notes print (the
+commentary) and the author fields (`--pretty=fuller`), and whether anything
+peeks on hover. The toolbar's control resets every row to a preset; a row
+the reader opens by hand takes the `feed` preset for itself. Old links with
+git's names (`oneline`, `stat`, `patch`) still parse, as aliases.
 
-| form | description | media | notes | peek | the reading |
-|---|---|---|---|---|---|
-| `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
-| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
-| `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
+| form | description | media | notes | fields | peek | the reading |
+|---|---|---|---|---|---|---|
+| `index` | none | none | — | — | ✓ | the overview: one line per commit, the career in two screens |
+| `prose` | all of it, body size | `links` — one named link per attachment | ✓ | — | ✓ | the words: what it is, what I make of it, where to go — a projects page's reading, no picture to scroll past; a link peeks its cover |
+| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | — | ✓ | the work on screen, still one row per commit |
+| `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
+
+**The links** (`MediaLinks`, `prose`) are the attachments as words: a glyph
+and a name per item — the platform on a recording, `Slides` on a deck, the
+page's title on a card, the arrow out on a page that will leave — in mono
+on the secondary rung, underlined the way /prompt underlines an outbound
+link. Each is the same door its cover is (it opens the set at its own
+item) and peeks the same cover on hover, so leaving the picture out of the
+form costs one pointer-rest, not the picture.
 
 ### The attachment object
 

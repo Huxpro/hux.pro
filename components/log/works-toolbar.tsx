@@ -26,7 +26,7 @@
  * off returns to rest — the way out is the same gesture as the way in.
  *
  * The form control is the page's real answer to "everything at once" vs.
- * "see the work" — see `lib/log-view.ts` for what the three stops print. It
+ * "see the work" — see `lib/log-view.ts` for what the four stops print. It
  * replaces the old expand/collapse toggle, whose two states were exactly the
  * two extremes this is trying to sit between.
  *
@@ -62,7 +62,14 @@ import {
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import { GalleryVertical, GitBranch, LayoutList, List, X } from "lucide-react";
+import {
+  AlignLeft,
+  GalleryVertical,
+  GitBranch,
+  LayoutList,
+  List,
+  X,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/ui/controls";
@@ -118,12 +125,14 @@ const FORM_CHIP: Record<
   LogForm,
   {
     icon: LucideIcon;
-    labelKey: "logFormIndex" | "logFormCovers" | "logFormFeed";
+    labelKey: "logFormIndex" | "logFormProse" | "logFormCovers" | "logFormFeed";
   }
 > = {
-  // Lines only; lines with a cover block; full panels. The glyphs climb in
-  // visual weight the way the forms climb in detail.
+  // Lines only; lines with their paragraphs; lines with a cover block; full
+  // panels. The glyphs climb in visual weight the way the forms climb in
+  // detail — the prose form's is the paragraph's own mark.
   index: { icon: List, labelKey: "logFormIndex" },
+  prose: { icon: AlignLeft, labelKey: "logFormProse" },
   covers: { icon: LayoutList, labelKey: "logFormCovers" },
   feed: { icon: GalleryVertical, labelKey: "logFormFeed" },
 };
@@ -330,7 +339,7 @@ export function WorksToolbar({
 
           <Divider />
 
-          {/* Form. Segmented rather than a cycling button: three stops is one
+          {/* Form. Segmented rather than a cycling button: four stops is two
           too many to discover by tapping, and every form stays one tap away.
           Each stop resets every row to a preset (`ROW_FORM`), which is all
           a form is. */}

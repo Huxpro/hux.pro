@@ -24,6 +24,7 @@ import { Description, Commentary, AuthorFields } from "./embeds/shared";
 import { Paperclip } from "lucide-react";
 import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
+import { MediaLinks } from "./media/media-links";
 import { MediaStrip } from "./media/media-strip";
 import type { AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
@@ -258,6 +259,10 @@ export function TimelineCommit({
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
   const showStatDescription =
     !isQuiet && rowForm.description === "clamp" && !!data.description;
+  // The prose form's attachment object: every attachment as a named link,
+  // where the strip would print the ones with a cover.
+  const showLinks =
+    !isQuiet && rowForm.media === "links" && expandedMedia.length > 0;
   // Where the handle signs: the bottom-right of the row, which is the media
   // line when a single cover leaves it the room — on any viewport — and the
   // meta line when there is more than one, since two covers may already be
@@ -272,7 +277,11 @@ export function TimelineCommit({
   // gets in the way of reading them. The one-liner peeks; an open row's
   // handle still does (IdentityHover).
   const showCursorPreview =
-    !!cursorPreview && rowForm.peek && !showStrip && !showStatDescription;
+    !!cursorPreview &&
+    rowForm.peek &&
+    !showStrip &&
+    !showLinks &&
+    !showStatDescription;
   // The feed's covers are the row's own strip items; what has no cover (a
   // live widget) stacks under the grid. Inspect mode keeps this layout —
   // the handle lives on the tile (InspectableMedia), not on a different
@@ -658,6 +667,10 @@ export function TimelineCommit({
           <Description
             text={data.description}
             isExpanded={rowForm.description === "full"}
+            // The prose form sets the description at body size: there it
+            // is the information, not a hook under the title (`voice`,
+            // lib/log-view.ts).
+            className={rowForm.voice === "body" ? TYPE.body : undefined}
           />
         </div>
       )}
@@ -741,13 +754,17 @@ export function TimelineCommit({
           text, so the field stack shimmered and settled by a pixel every
           time. The row's box snaps to its new height regardless. If this
           ever wants motion, it is the height that should animate. */}
-      {!isQuiet && rowForm.notes && (data.commentary || showAuthorBlock) && (
+      {!isQuiet &&
+        ((rowForm.notes && data.commentary) ||
+          (rowForm.fields && showAuthorBlock)) && (
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
           className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
         >
-          {data.commentary && <Commentary text={data.commentary} />}
+          {rowForm.notes && data.commentary && (
+            <Commentary text={data.commentary} />
+          )}
 
           {/* The author fields, as `git log --pretty=fuller` writes them.
               They sit at the foot because the folded row already carries
@@ -758,7 +775,7 @@ export function TimelineCommit({
               The labels hold their column at every width: a field stack
               whose keys vanish on a phone is not `--pretty=fuller` any
               more, it is three unlabelled lines. */}
-          {showAuthorBlock && (
+          {rowForm.fields && showAuthorBlock && (
             <AuthorFields
               byline={byline}
               // Below `@sm` the gutter hash column is hidden, so the row has
@@ -780,6 +797,24 @@ export function TimelineCommit({
         </div>
       )}
 
+      {/* `links` — the prose form's object: every attachment as a named
+          link on one line, the same door its cover would be, peeking the
+          cover the form left out. After the notes, not before them: the
+          prose form reads as a page does — what it is, what I make of it,
+          and then where to go. `data-row-body` and its own click guard
+          are the component's. */}
+      {showLinks && (
+        <div className="col-start-2 @sm:col-start-3 mt-2 min-w-0">
+          <MediaLinks
+            items={expandedMedia}
+            set={attachmentSet}
+            peek={rowForm.peek && magneticPreviewEnabled}
+            inspecting={inspecting}
+            onInspect={onInspectMedia}
+            selectedMedia={selectedMedia}
+          />
+        </div>
+      )}
 
     </div>
   );
