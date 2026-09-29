@@ -140,6 +140,11 @@ export interface AdaptiveSurfaceProps {
    * About, the identity card over it. Every shape takes it.
    */
   zIndex?: number;
+  /**
+   * Width cap for the sheet shape (see `SurfaceSheet`'s `maxWidth`), for a
+   * surface that is a sheet at every width and must not span a wide screen.
+   */
+  sheetMaxWidth?: string;
   /** Padding on the scroll area, for content that wants to bleed wider. */
   contentClassName?: string;
   /** The scroll container, for content that needs to scroll a row into view. */
@@ -280,6 +285,7 @@ export function AdaptiveSurface({
   fitContent,
   snapPoints,
   zIndex,
+  sheetMaxWidth,
   contentClassName,
   scrollRef,
   children,
@@ -349,6 +355,7 @@ export function AdaptiveSurface({
           fitContent={fitContent}
           snapPoints={snapPoints}
           zIndex={zIndex}
+          maxWidth={sheetMaxWidth}
         >
           {body}
         </SurfaceSheet>
