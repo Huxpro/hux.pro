@@ -27,6 +27,7 @@
 | **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (The site's one light — Siri's ring as a shared WebGL shader: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/editor/glow` lab) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (Who signed a commit — the profile card behind `<handle>` and `Role:`) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (A widget's list body scrolls under a pointer, holds still under a finger — and why) |
+| **Skin (Material / Glass)** | [docs/system-skin.md](./docs/system-skin.md) (Widgets drawn as Android draws them: dynamic color from the wallpaper, M3 tokens, the 28dp container — or as Glass; `useSkin`, ⌘K `Skin`) |
 | **Widget Grid** | [docs/system-widget-grid.md](./docs/system-widget-grid.md) (The Android-shaped home grid: cells, footprints the visitor resizes, per-size representations) |
 
 ## 2. Quick Start Context
