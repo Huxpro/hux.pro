@@ -98,6 +98,9 @@ export function Segmented<T extends string>({
     <div
       role="group"
       aria-label={label}
+      // The Material skin redraws the group as a connected button group
+      // (globals.css, "Controls in the Material skin").
+      data-segmented={tone}
       className={cn("flex", fill ? "w-full min-w-0" : "shrink-0", t.group)}
     >
       {options.map((o) => {
@@ -147,6 +150,8 @@ export function Switch({
       disabled={disabled}
       aria-pressed={on}
       aria-label={label}
+      // The Material skin redraws it as M3's switch (globals.css).
+      data-md-switch=""
       className={cn(
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
         on ? SWITCH_TONE[tone] : "bg-muted/40 border-border/60",

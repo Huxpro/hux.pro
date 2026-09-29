@@ -75,7 +75,10 @@ import { WeatherWallpaper } from "./wallpaper";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-0.5 text-[11px] font-mono text-muted-foreground">
+    <div
+      data-section-label=""
+      className="px-0.5 text-[11px] font-mono text-muted-foreground"
+    >
       {children}
     </div>
   );
@@ -95,7 +98,10 @@ function CompactRow<T extends string>({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 px-0.5">
-      <span className="text-[11px] font-mono text-muted-foreground">
+      <span
+        data-section-label=""
+        className="text-[11px] font-mono text-muted-foreground"
+      >
         {label}
       </span>
       <Segmented tone="system" value={value} options={options} onChange={onChange} />

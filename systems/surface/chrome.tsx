@@ -67,7 +67,10 @@ function SurfaceHeader({
       )}
       data-drag-handle={draggable ? "" : undefined}
     >
-      <TitleAs className="min-w-0 flex-1 truncate text-xs font-mono text-muted-foreground">
+      <TitleAs
+        data-surface-title=""
+        className="min-w-0 flex-1 truncate text-xs font-mono text-muted-foreground"
+      >
         {title}
       </TitleAs>
       <div className="flex shrink-0 items-center gap-1">

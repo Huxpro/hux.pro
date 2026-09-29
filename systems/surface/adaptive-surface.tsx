@@ -205,6 +205,7 @@ function SurfacePopoverShape({
             // anchor: without a Base UI trigger there is nothing else to
             // hand it to.
             finalFocus={anchor}
+            data-surface-popover=""
             style={{
               width: popover?.width ?? "min(92vw, 300px)",
               maxHeight: maxHeight ?? "min(70vh, 520px)",

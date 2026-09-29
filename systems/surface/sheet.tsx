@@ -186,7 +186,7 @@ export function detentHeight(point: number): string {
  * back up.
  */
 export const HEADER_BUTTON =
-  "pressable system-chrome shrink-0 rounded-md p-2 text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
+  "pressable system-chrome shrink-0 rounded-md material:rounded-full p-2 text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
 
 /**
  * The glass shell every shape shares — and, with `.system-chrome`, the ruling
@@ -204,7 +204,9 @@ export const HEADER_BUTTON =
  * block in globals.css, beside the other two, when something needs it.
  */
 export const SHELL = [
-  "system-chrome flex flex-col overflow-hidden outline-none",
+  // `surface-shell`: the hook the Material skin re-points a surface's tokens
+  // on (globals.css, "Skin — Material", Surfaces).
+  "surface-shell system-chrome flex flex-col overflow-hidden outline-none",
   "rounded-3xl bg-glass-sheet backdrop-blur-xl",
   "border border-border/50 shadow-overlay",
 ].join(" ");
@@ -264,6 +266,9 @@ export function SurfaceViewport({
   return (
     <Drawer.Viewport
       {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
+      // The Material skin paints a scrim on a modal one (globals.css).
+      data-surface-viewport=""
+      data-modal={modal ? "" : undefined}
       className={cn("fixed inset-0", !modal && "pointer-events-none")}
       style={{ zIndex: zBase + held }}
     >
@@ -745,7 +750,10 @@ export function SurfaceSheet({
                   )}
                 >
                   {grip ?? (
-                    <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />
+                    <span
+                      data-surface-grabber=""
+                      className="h-1 w-9 rounded-full bg-muted-foreground/25"
+                    />
                   )}
                 </div>
                 {/* Everything below the grabber is content, not a handle: a
