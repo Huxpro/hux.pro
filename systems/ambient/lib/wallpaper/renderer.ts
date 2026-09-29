@@ -178,7 +178,17 @@ export interface WindowBodies {
   /** The window is fully open and the bodies have landed: hints may show. */
   settled: boolean;
   /** Screen 0..1, y up — off the glass when outside it; `ahead` < 0 behind you. */
-  sun: { x: number; y: number; ahead: number; up: boolean };
+  sun: {
+    x: number;
+    y: number;
+    ahead: number;
+    up: boolean;
+    /**
+     * Where the sun's light is: the sun while it is up, the horizon under it
+     * once it is down. Always `up` — there is always somewhere to aim.
+     */
+    light: { x: number; y: number; ahead: number; up: true };
+  };
   moon: { x: number; y: number; ahead: number; up: boolean };
 }
 
@@ -689,7 +699,7 @@ export class WallpaperRenderer {
   /** Reused every frame for the edge hints' listener, rather than rebuilt. */
   private bodies: WindowBodies = {
     settled: false,
-    sun: { x: 0, y: 0, ahead: 0, up: false },
+    sun: { x: 0, y: 0, ahead: 0, up: false, light: { x: 0, y: 0, ahead: 0, up: true } },
     moon: { x: 0, y: 0, ahead: 0, up: false },
   };
 
@@ -1854,6 +1864,15 @@ export class WallpaperRenderer {
       out.sun.y = sun.y;
       out.sun.ahead = sun.ahead;
       out.sun.up = sunW.z > HORIZON_Z;
+      // Straight down (never within a sunrise or a sunset) has no horizon under it.
+      const flat = Math.hypot(sunW.x, sunW.y);
+      const light =
+        sunW.z >= 0 || flat < 1e-6
+          ? sun
+          : projectToScreen(vec3(sunW.x / flat, sunW.y / flat, 0), view, aspect, k);
+      out.sun.light.x = light.x;
+      out.sun.light.y = light.y;
+      out.sun.light.ahead = light.ahead;
       out.moon.x = moon.x;
       out.moon.y = moon.y;
       out.moon.ahead = moon.ahead;

@@ -1,8 +1,9 @@
 "use client";
 
 import { t, useLocale } from "@/services";
-import { useWeather } from "../provider";
-import { MoonGlyph, SunGlyph } from "./body-glyph";
+import { sunEventOf } from "../lib/phase";
+import { useAmbientTime, useWeather } from "../provider";
+import { MoonGlyph, SunEventGlyph, SunGlyph } from "./body-glyph";
 
 // ---------------------------------------------------------------------------
 // SkyPullCue — "there is something up there", while the home is pulled down.
@@ -25,6 +26,10 @@ import { MoonGlyph, SunGlyph } from "./body-glyph";
 // second put an ink glyph in a glass bubble, which read as a button. This is
 // the body itself, as light, and progress is brightness.
 //
+// Through a sunrise or a sunset (lib/phase.ts) it is the event instead — the
+// sun is on the horizon or just under it, and the window will be about the
+// sunset rather than a disc (the sky window's sun hint says the same).
+//
 // No React per frame: it is placed, scaled and lit by the pull's own CSS
 // variables (`--sky-pull` places it, `--sky-pull-reveal` lights it — nothing for
 // the first ~8 mm of the pull), and its two lines swap on
@@ -36,6 +41,8 @@ import { MoonGlyph, SunGlyph } from "./body-glyph";
 export function SkyPullCue() {
   const { locale } = useLocale();
   const { scene } = useWeather();
+  const { phase } = useAmbientTime();
+  const event = sunEventOf(phase);
   // What is up there to be looked at: the sun while it is above the horizon,
   // otherwise the moon if it is — the thing the window will be about. With
   // neither up (a moonless night), the sun, which is at least somewhere.
@@ -49,7 +56,9 @@ export function SkyPullCue() {
       <div className="sky-pull-cue-bubble relative flex h-10 w-10 items-center justify-center">
         <span className="sky-pull-cue-bloom absolute inset-0 rounded-full" />
         <span className="sky-pull-cue-glyph relative">
-          {sunUp ? (
+          {event ? (
+            <SunEventGlyph light event={event} className="h-6 w-6" />
+          ) : sunUp ? (
             <SunGlyph light className="h-6 w-6" />
           ) : (
             <MoonGlyph
