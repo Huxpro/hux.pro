@@ -104,8 +104,12 @@ interface WorksToolbarProps {
   onClearTypes: () => void;
   form: LogForm;
   onFormChange: (form: LogForm) => void;
-  /** The chapters on the page, in order, with the marker each wears. */
-  chapters: readonly { id: string; label: string }[];
+  /**
+   * The chapters on the page, in order, with the marker each wears — its
+   * name, and the name's first half (`ByteDance`) for a phone, where the
+   * whole of it pushed the last chips off the bar.
+   */
+  chapters: readonly { id: string; label: string; short: string }[];
 }
 
 /**
@@ -118,12 +122,12 @@ const FORM_CHIP: Record<
   LogForm,
   {
     icon: LucideIcon;
-    labelKey: "logFormIndex" | "logFormCovers" | "logFormFeed";
+    labelKey: "logFormResume" | "logFormCovers" | "logFormFeed";
   }
 > = {
-  // Lines only; lines with a cover block; full panels. The glyphs climb in
+  // Entries; the log, lines with a cover block; full panels. The glyphs climb in
   // visual weight the way the forms climb in detail.
-  index: { icon: List, labelKey: "logFormIndex" },
+  resume: { icon: List, labelKey: "logFormResume" },
   covers: { icon: LayoutList, labelKey: "logFormCovers" },
   feed: { icon: GalleryVertical, labelKey: "logFormFeed" },
 };
@@ -230,7 +234,8 @@ export function WorksToolbar({
                   "pressable border-border transition-colors hover:border-foreground/30",
                 )}
               >
-                {chapter.label}
+                <span className="sm:hidden">{chapter.short}</span>
+                <span className="hidden sm:inline">{chapter.label}</span>
               </motion.button>
             ) : (
               <motion.span
@@ -289,7 +294,10 @@ export function WorksToolbar({
                   aria-label={`${label} (${count})`}
                   title={label}
                   className={cn(
-                    "inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-1",
+                    // A phone's chips sit a little tighter: pinned, the bar
+                    // also carries the chapter's name, and at the looser
+                    // spacing the last chip scrolled under the fade.
+                    "inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-1 sm:gap-1 sm:px-1.5",
                     "transition-colors duration-200",
                     selected
                       ? "bg-muted text-foreground"

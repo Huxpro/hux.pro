@@ -14,7 +14,7 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
-import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
+import { DEFAULT_FORM, PAGE_FORM, rowWeight, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
 import { attachmentSetFor, leavesSite } from "@/systems/attachments";
 import { IDENTITY_PEEK_PANEL, IdentityPeek } from "@/systems/identity";
@@ -25,6 +25,7 @@ import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
+import { ProjectLogo } from "./project-logo";
 import { useTimelineEdit } from "./timeline-edit-context";
 import { useInputCapability } from "@/services";
 
@@ -165,6 +166,15 @@ export function Commit({
           onBeamClear={onBeamClear}
           byline={byline}
           form={form}
+          logo={
+            // The work wears its logo where the page reads as a résumé; a
+            // talk, a piece of press or an event keeps its type mark.
+            PAGE_FORM[form].gutter === "entry" &&
+            rowWeight(commit.type) === "major" &&
+            commit.type !== "event" ? (
+              <ProjectLogo commitId={commit.id} locale={locale} className="size-10" />
+            ) : undefined
+          }
           onSelectHash={onSelectHash}
           attachmentSet={attachmentSet}
           inspecting={inspecting}

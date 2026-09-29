@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { t, type Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
@@ -16,17 +16,19 @@ import {
   getLocalizedTagTitle,
   type Identity,
   isRowVisible,
+  type RailInfo,
   splitRailAt,
   type Tag,
 } from "@/lib/log";
 import {
   DEFAULT_FORM,
   leadWithWork,
+  PAGE_FORM,
   rowWeight,
   type LogForm,
 } from "@/lib/log-view";
 import { TYPE } from "@/lib/typography";
-import { Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
@@ -101,11 +103,24 @@ interface LogTimelineProps {
    * phone would be one too many, and a paragraph cannot stick at all.
    */
   pinnedChapters?: boolean;
+  /**
+   * Whether a chapter's second half — what was said about the work — is
+   * open. With `onToggleMinor`, the half sits under a line that folds it
+   * (`FoldLine`) and the page owns the state, so a permalink can open the
+   * fold its commit is under (app/works/view.tsx). Without, it is always
+   * open, under a plain label: the editor edits every row.
+   */
+  minorOpen?: (tagId: string) => boolean;
+  onToggleMinor?: (tagId: string) => void;
 }
+
+/** No rail at all — the résumé's gutter hangs logos, not a git graph. */
+const NO_RAIL: RailInfo = { rail: "", segmentId: null };
 
 /**
  * Git Log / Commit History style timeline.
- * Renders tags as ref markers and commits as dense log entries.
+ * Renders tags as chapter openers and commits as log entries, at the depth
+ * the page asks for (lib/log-view.ts).
  */
 export function LogTimeline({
   data,
@@ -115,6 +130,8 @@ export function LogTimeline({
   activeTypes = NO_TYPES,
   onSelectHash,
   pinnedChapters = false,
+  minorOpen,
+  onToggleMinor,
 }: LogTimelineProps) {
   return (
     <div className="space-y-0">
@@ -130,6 +147,8 @@ export function LogTimeline({
           activeTypes={activeTypes}
           onSelectHash={onSelectHash}
           pinned={pinnedChapters}
+          minorOpen={minorOpen ? minorOpen(tag.id) : true}
+          onToggleMinor={onToggleMinor}
         />
       ))}
     </div>
@@ -146,6 +165,8 @@ interface TagBlockProps {
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
+  minorOpen: boolean;
+  onToggleMinor?: (tagId: string) => void;
 }
 
 function TagBlock({
@@ -158,6 +179,8 @@ function TagBlock({
   activeTypes,
   onSelectHash,
   pinned,
+  minorOpen,
+  onToggleMinor,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -200,6 +223,10 @@ function TagBlock({
   const gapFor = (c: CommitData) =>
     c.type === "role" ? 10 : c.type === "event" || c.present === "aside" ? 3 : 7;
 
+  // The résumé hangs logos in the gutter, and no git graph: no tenure rail,
+  // no connectors (`PAGE_FORM`).
+  const entry = PAGE_FORM[form].gutter === "entry";
+
   const {
     railInfo,
     beamSpecs,
@@ -207,58 +234,66 @@ function TagBlock({
     bylines,
     isHidden,
     hasVisible,
-    aboutLabel,
-    aboutFirst,
+    fold,
   } = useMemo(() => {
     const commits = ordered;
     const bylinesArr = computeBylines(commits, identities, locale);
 
-    // One predicate, four consumers: the rail re-brackets around the rows
-    // that survive, beams with a hidden endpoint are dropped, the render
-    // loop below skips the rest, and the block prints nothing if none are
-    // left. It is `isRowVisible` negated — the same question /works asks
-    // for its chip counts and its empty state.
-    const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
+    // What the chips leave on the page. It is `isRowVisible` negated — the
+    // same question /works asks for its chip counts and its empty state.
+    const filtered = (c: CommitData) => !isRowVisible(c, activeTypes);
 
-    // Each half brackets on its own (see `splitRailAt`).
-    const rail = adjustRailForHidden(
-      commits,
-      splitRailAt(computeRail(commits), aboutStart),
-      hidden,
-    );
-
-    // The label over the second half, and the row it sits over. Only when
+    // The fold over the second half, and the row it sits over. Only when
     // there is work printed above it: a filter down to talks has no halves
-    // to tell apart, and the label would be a heading over the whole page
-    // repeating the chip that was just pressed. It names what is actually
-    // under it — `talks`, `talks & press` — in the chips' own words.
-    const visibleAt = (i: number) => !hidden(commits[i]);
+    // to tell apart, and the line would be a heading over the whole page
+    // repeating the chip that was just pressed. It counts what is actually
+    // under it — `talks 12 · press 1` — in the chips' own words.
+    const visibleAt = (i: number) => !filtered(commits[i]);
     const firstMinor =
       aboutStart < 0
         ? -1
         : commits.findIndex((c, i) => i >= aboutStart && visibleAt(i));
     const workAbove =
-      firstMinor > 0 && commits.slice(0, firstMinor).some((c) => !hidden(c));
-    const minorTypes = FILTERABLE_COMMIT_TYPES.filter((type) =>
-      commits.some((c, i) => i >= aboutStart && c.type === type && visibleAt(i)),
-    );
-    const label = workAbove
-      ? minorTypes
-          .map((type) =>
-            getCommitTypePluralLabel(type, locale).toLocaleLowerCase(),
-          )
-          .join(t(locale, "logListJoin"))
-      : null;
-    const allBeams = [
-      ...computeBeams(commits, hidden).map((b) => ({
-        ...b,
-        inferred: false,
-      })),
-      ...computeInferredBeams(commits, rail).map((b) => ({
-        ...b,
-        inferred: true,
-      })),
-    ];
+      firstMinor > 0 && commits.slice(0, firstMinor).some((c) => !filtered(c));
+    const minors = workAbove
+      ? commits.filter((c, i) => i >= aboutStart && visibleAt(i))
+      : [];
+    const folded = minors.length > 0 && !minorOpen;
+
+    // One predicate, four consumers: the rail re-brackets around the rows
+    // that survive, beams with a hidden endpoint are dropped, the render
+    // loop below skips the rest, and the block prints nothing if none are
+    // left. A folded half is hidden the same way a filtered row is — the
+    // rail and the connectors cannot tell the two apart, and should not.
+    // So is an event in the résumé: `moved to the US` is a dateline between
+    // commits, and the résumé has no line of commits for it to sit on —
+    // the chapter's narrative already says it.
+    const hidden = (c: CommitData) =>
+      filtered(c) ||
+      (folded && rowWeight(c.type) === "minor") ||
+      (entry && c.type === "event");
+
+    // Each half brackets on its own (see `splitRailAt`).
+    const rail = entry
+      ? commits.map(() => NO_RAIL)
+      : adjustRailForHidden(
+          commits,
+          splitRailAt(computeRail(commits), aboutStart),
+          hidden,
+        );
+
+    const allBeams = entry
+      ? []
+      : [
+          ...computeBeams(commits, hidden).map((b) => ({
+            ...b,
+            inferred: false,
+          })),
+          ...computeInferredBeams(commits, rail).map((b) => ({
+            ...b,
+            inferred: true,
+          })),
+        ];
 
     const attachmentsWithGaps = allBeams.map((b) => ({
       ...b,
@@ -292,11 +327,10 @@ function TagBlock({
       attachments: attachmentsWithGaps,
       bylines: bylinesArr,
       isHidden: hidden,
-      hasVisible: commits.some((c) => !hidden(c)),
-      aboutLabel: label,
-      aboutFirst: label ? firstMinor : -1,
+      hasVisible: commits.some((c) => !filtered(c)),
+      fold: minors.length > 0 ? { at: firstMinor, rows: minors, folded } : null,
     };
-  }, [ordered, aboutStart, identities, locale, activeTypes]);
+  }, [ordered, aboutStart, identities, locale, activeTypes, minorOpen, entry]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
@@ -396,10 +430,10 @@ function TagBlock({
             if (isHidden(c)) continue;
             const sid = railInfo[i].segmentId;
             const last = runs[runs.length - 1];
-            // The second half's label sits between two runs, never inside
+            // The second half's fold sits between two runs, never inside
             // one, so a loose run is cut there too (a cluster already is:
             // `splitRailAt` gave the half its own segment ids).
-            const cut = i === aboutFirst;
+            const cut = i === fold?.at;
             if (!cut && sid && last && last.kind === "cluster" && last.segmentId === sid) {
               last.indices.push(i);
             } else if (sid) {
@@ -410,14 +444,21 @@ function TagBlock({
               runs.push({ kind: "loose", indices: [i] });
             }
           }
-          return runs.map((run, runIdx) => {
-            // What was said about the work, after the work: a label in the
-            // chips' own words, so the date jumping back up to this year
-            // reads as a second list rather than as the log going wrong.
-            const label =
-              run.indices[0] === aboutFirst && aboutLabel ? (
-                <p className={cn("mt-6 mb-1", TYPE.label)}>{aboutLabel}</p>
-              ) : null;
+          // What was said about the work, after the work: a line in the
+          // chips' own words, so the date jumping back up to this year reads
+          // as a second list rather than as the log going wrong. Folded, it
+          // is the whole of the second half; either way it is where the
+          // half opens and closes.
+          const foldLine = fold && (
+            <FoldLine
+              key="fold"
+              rows={fold.rows}
+              open={!fold.folded}
+              locale={locale}
+              onToggle={onToggleMinor && (() => onToggleMinor(tag.id))}
+            />
+          );
+          const rendered = runs.map((run, runIdx) => {
             const rows = run.indices.map((i) => (
               <Commit
                 key={commits[i].id}
@@ -442,17 +483,21 @@ function TagBlock({
             return run.kind === "cluster" ? (
               // An identity can cluster twice (Meta, then RIT, then Meta
               // again), so the run is named by its first row, not its id.
-              <Fragment key={`cluster-${commits[run.indices[0]].id}`}>
-                {label}
-                <div className="group/tenure">{rows}</div>
-              </Fragment>
+              <div
+                key={`cluster-${commits[run.indices[0]].id}`}
+                className="group/tenure"
+              >
+                {rows}
+              </div>
             ) : (
-              <Fragment key={`loose-${runIdx}`}>
-                {label}
-                <div>{rows}</div>
-              </Fragment>
+              <div key={`loose-${runIdx}`}>{rows}</div>
             );
           });
+          if (!fold) return rendered;
+          const split = runs.findIndex((run) => run.indices[0] >= fold.at);
+          return split < 0
+            ? [...rendered, foldLine]
+            : [...rendered.slice(0, split), foldLine, ...rendered.slice(split)];
         })()}
         {/* Persistent back-point connectors — one per explicit
          *  attachedTo. They run through the icon column (same visual
@@ -484,5 +529,86 @@ function TagBlock({
         ))}
       </div>
     </section>
+  );
+}
+
+/** Where a minor row happened — the conference, the platform — without the
+ *  year the date column already prints (`GOSIM Paris 2026` → `GOSIM Paris`). */
+function venueOf(c: CommitData): string | null {
+  const venue =
+    c.type === "talk"
+      ? c.conference.name
+      : c.type === "press"
+        ? c.platform
+        : c.type === "post"
+          ? c.publication.name
+          : null;
+  return venue ? venue.replace(/\s*(19|20)\d{2}$/, "") : null;
+}
+
+/**
+ * The line a chapter's second half hangs from —
+ *
+ *   talks 12 · press 1   WeAreDevelopers World Congress, GOSIM Paris, …   ⌄
+ *
+ * Folded, it is the half: how much was said about the work, in the chips'
+ * own words and counts, and where, newest first, for as long as the column
+ * has room. Open, the rows are under it, so it drops the venues they print
+ * and is only the label and the way back.
+ *
+ * The résumé starts it folded, and the log open (`PAGE_FORM.fold`): the
+ * same line at every depth, so going deeper never changes what it is, only
+ * where it starts. Without `onToggle` (the editor) it is a plain label.
+ */
+function FoldLine({
+  rows,
+  open,
+  locale,
+  onToggle,
+}: {
+  rows: CommitData[];
+  open: boolean;
+  locale: Locale;
+  onToggle?: () => void;
+}) {
+  const counts = FILTERABLE_COMMIT_TYPES.flatMap((type) => {
+    const n = rows.filter((c) => c.type === type).length;
+    return n > 0
+      ? [`${getCommitTypePluralLabel(type, locale).toLocaleLowerCase()} ${n}`]
+      : [];
+  }).join(" · ");
+  const venues = [
+    ...new Set(rows.map(venueOf).filter((v): v is string => !!v)),
+  ].join(t(locale, "logListSeparator"));
+
+  const body = (
+    <>
+      <span className={cn("shrink-0 tabular-nums", TYPE.label)}>{counts}</span>
+      <span className={cn("min-w-0 flex-1 truncate", TYPE.rowMeta)}>
+        {!open && venues}
+      </span>
+      {onToggle && (
+        <ChevronDown
+          aria-hidden
+          className={cn(
+            "h-3.5 w-3.5 shrink-0 self-center text-tertiary-foreground transition-transform duration-200",
+            open && "rotate-180",
+          )}
+        />
+      )}
+    </>
+  );
+
+  return onToggle ? (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="pressable -mx-3 mt-4 flex w-[calc(100%+1.5rem)] items-baseline gap-3 rounded-lg px-3 py-2.5 text-left transition-colors duration-150 hover:bg-muted/20 active:bg-muted/30"
+    >
+      {body}
+    </button>
+  ) : (
+    <p className="mt-6 mb-1 flex items-baseline gap-3">{body}</p>
   );
 }

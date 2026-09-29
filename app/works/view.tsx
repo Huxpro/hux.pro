@@ -1,14 +1,20 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
 import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
+import {
+  WorksContents,
+  type ContentsChapter,
+} from "@/components/log/works-contents";
 import { t, useLocale } from "@/services";
 import {
   buildTimelineData,
+  computeCommitHash,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
@@ -16,11 +22,16 @@ import {
   type LogData,
 } from "@/lib/log";
 import {
+  leadWithWork,
+  minorFolded,
   parseViewState,
+  rowWeight,
   serializeViewState,
   toggleType,
   type LogForm,
 } from "@/lib/log-view";
+
+const NO_FLIPS: ReadonlySet<string> = new Set();
 
 interface WorksViewProps {
   logData: LogData;
@@ -65,7 +76,50 @@ export function WorksView({ logData }: WorksViewProps) {
     if (urlKey !== serializeViewState(view)) setView(urlView);
   }
 
-  const selectHash = useCommitAnchor();
+  // The chapters' folds — which second halves (`talks & press`) are open.
+  // The depth sets the default (`minorFolded`: shut in the résumé, open in
+  // the log, open wherever a chip asked for a minor type), and the page
+  // remembers only the chapters the reader flipped from it. Stamped with
+  // the form they were flipped in, so a depth change spends them the way it
+  // spends an opened row (TimelineCommit) — without an effect to clear them.
+  const [flips, setFlips] = useState<{
+    form: LogForm;
+    tags: ReadonlySet<string>;
+  }>({ form: view.form, tags: NO_FLIPS });
+  const flipped = flips.form === view.form ? flips.tags : NO_FLIPS;
+  const foldedByDefault = minorFolded(view.form, view.types);
+  const minorOpen = useCallback(
+    (tagId: string) => foldedByDefault === flipped.has(tagId),
+    [foldedByDefault, flipped],
+  );
+  const toggleMinor = useCallback(
+    (tagId: string) => {
+      const tags = new Set(flipped);
+      if (tags.has(tagId)) tags.delete(tagId);
+      else tags.add(tagId);
+      setFlips({ form: view.form, tags });
+    },
+    [flipped, view.form],
+  );
+
+  // A permalink to a row the résumé has folded away: open its chapter's
+  // fold first, synchronously, so the row is in the document when the
+  // anchor measures it (`useCommitAnchor`). Everything else a hash can
+  // name is already on the page — an entry, or a row one depth down.
+  const reveal = useCallback(
+    (hash: string) => {
+      for (const { tag, commits } of data) {
+        const c = commits.find((c) => computeCommitHash(c.id) === hash);
+        if (!c) continue;
+        if (rowWeight(c.type) === "minor" && !minorOpen(tag.id)) {
+          flushSync(() => toggleMinor(tag.id));
+        }
+        return;
+      }
+    },
+    [data, minorOpen, toggleMinor],
+  );
+  const selectHash = useCommitAnchor(reveal);
 
   const commit = useCallback(
     (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
@@ -135,9 +189,32 @@ export function WorksView({ logData }: WorksViewProps) {
       data.map(({ tag }) => ({
         id: tag.id,
         label: chapterLabel(tag, locale),
+        short: chapterLabel(tag, locale).split(" · ")[0],
       })),
     [data, locale],
   );
+
+  // The contents line per chapter (WorksContents): the work each chapter
+  // leads with, in its order — projects, or, for a chapter that made none,
+  // whatever else it leads with (the Flash years are a role). Only in the
+  // résumé, and only while the page is about the work.
+  const contents = useMemo<ContentsChapter[] | null>(() => {
+    if (view.form !== "resume") return null;
+    if (view.types.length > 0 && !view.types.includes("project")) return null;
+    return data.flatMap(({ tag, commits }) => {
+      const lead = leadWithWork(commits).filter(
+        (c) =>
+          rowWeight(c.type) === "major" &&
+          c.type !== "event" &&
+          isRowVisible(c, view.types),
+      );
+      const projects = lead.filter((c) => c.type === "project");
+      const works = projects.length > 0 ? projects : lead.slice(0, 1);
+      return works.length > 0
+        ? [{ tag, label: chapterLabel(tag, locale), works }]
+        : [];
+    });
+  }, [data, locale, view.form, view.types]);
 
   // Whether the log has anything to print under the current filter — the same
   // question every TagBlock asks itself before rendering, so the end marker
@@ -170,7 +247,15 @@ export function WorksView({ logData }: WorksViewProps) {
         />
       }
     >
-      {/* Git Log Timeline */}
+      {contents && (
+        <WorksContents
+          chapters={contents}
+          locale={locale}
+          onSelectHash={selectHash}
+        />
+      )}
+
+      {/* The log, at the depth the page is read at (lib/log-view.ts). */}
       <LogTimeline
         data={data}
         locale={locale}
@@ -179,6 +264,8 @@ export function WorksView({ logData }: WorksViewProps) {
         activeTypes={view.types}
         onSelectHash={selectHash}
         pinnedChapters
+        minorOpen={minorOpen}
+        onToggleMinor={toggleMinor}
       />
 
       {/* End marker — `git init` closes a timeline that has commits in it;

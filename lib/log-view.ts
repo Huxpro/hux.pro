@@ -1,21 +1,42 @@
 // =============================================================================
-// Log View State — how much of the timeline is on screen, and which of it.
+// Log View State — one page, read at a depth.
 //
-// /works carries more information than any one reading of it can use: 35
-// commits, ~37 pieces of rich media, four chapters. Folded, the page is a
-// two-screen overview and every cover is invisible; fully unfolded it is a
-// thirteen-screen media wall with no overview left. The two states people
-// actually want — "show me everything at once" and "let me see the work" —
-// are the same page at two different densities, plus the ability to narrow
-// what is in it.
+// /works is one page with one model: the log. Every row on it is a commit,
+// every chapter is a tag, and there is no second rendering of either — no
+// curated page beside the log and no switch between them. What changes is
+// how deep you are reading, and which of it you asked for:
 //
-// And not every row is the same kind of thing. A project is the work; a talk
-// or a piece of press is somebody talking about it. Printed at one weight,
-// nineteen talks buried eleven projects — the headline work of the current
-// chapter was its thirteenth row. So a row also has a *weight*, and a form
-// is a density per weight rather than one density for every row.
+//   depth    `resume` — the default — reads each chapter as a section of a
+//            résumé: its opener (the name, the narrative), then its work,
+//            one entry each with the project's logo, what I did on it and
+//            the years, then what was said about the work folded to one
+//            line (`talks 12 · press 1 — WeAreDevelopers, GOSIM, …`) that
+//            unfolds in place into the log's own one-line rows. Above the
+//            first chapter, a contents line per chapter with its logos.
+//            `covers` and `feed` are the log as it always was — the hash
+//            column, the tenure rail, the covers, then every attachment —
+//            over the same rows in the same order.
+//   opening  a row, or a chapter's fold, is going one step deeper on that
+//            one thing: an entry opens into its prose, its covers, its
+//            notes and its hash; a folded `talks & press` line opens into
+//            its rows. A form change resets both, the way it always reset
+//            an opened row.
+//   types    narrow the one page. A chip means the same thing at every
+//            depth, the contents line and the fold included: pick `Talks`
+//            and the folds open, because they are what you asked for.
 //
-// This module is the vocabulary for all three, and the URL codec that makes
+// So the old addresses all land on this page. `?view=` names a depth
+// (`index`, and git's `--oneline`, are the résumé now: they were the
+// overview, and this is the overview); `?type=` filters; `#hash` travels
+// to a commit and opens the fold it is under (app/works/view.tsx).
+//
+// Not every row is the same kind of thing, either. A project is the work; a
+// talk or a piece of press is somebody talking about it. Printed at one
+// weight, nineteen talks buried eleven projects — the headline work of the
+// current chapter was its thirteenth row. So a row has a *weight*, and a
+// depth is a density per weight rather than one density for every row.
+//
+// This module is the vocabulary for all of it, and the URL codec that makes
 // a reading shareable. It is deliberately free of React and of `lib/log`'s
 // data layer: the parse/serialize pair is the whole contract, so the query
 // string stays the single source of truth for view state.
@@ -77,47 +98,49 @@ export function leadWithWork<T extends { type: CommitType }>(
 }
 
 // =============================================================================
-// Form — how much of each commit is printed, as a composition.
+// Form — how deep the page reads, as a composition.
 //
 // A row is made of a few independent parts: the title line (always), the
 // description, the attachment object, the notes under it, and whether it
 // peeks on hover. Each part has its own small set of states (`RowForm`), and
-// a *form* is one preset of all of them — so the three readings of the page
-// are compositions of the same atoms, and switching form is resetting every
-// row to a preset rather than four hand-made layouts. A row the reader opens
-// by hand is the same thing at a smaller scale: it takes the `feed` preset
-// for itself (see TimelineCommit).
+// a *form* is one preset of all of them — so the depths of the page are
+// compositions of the same atoms, and switching depth is resetting every
+// row to a preset rather than hand-made layouts. A row the reader opens
+// by hand is the same thing at a smaller scale: it takes a deeper preset
+// for itself (see `rowFormFor`).
 //
-//  - `index`  — the title line only. The overview: one row per commit, the
-//    whole career in two screens. Rich media is reachable but not shown
-//    (hover peek on a pointer device, or open the row).
-//  - `covers` — the default, and the one form that reads weight: the work
-//    prints its description and its covers at a size you can recognise a
-//    slide or a screenshot at; a talk or a piece of press prints one line,
-//    its venue riding beside the title. It used to put a contact sheet
-//    under every row, talks included, which made the default page eight
-//    screens of cover boxes with the projects somewhere inside; the covers
-//    worth a glance are the work's, and the rest are one press away.
+//  - `resume` — the default, and the overview. The work prints as an entry:
+//    its logo where the log hangs its hash, the name, what I did and where,
+//    the years, and a few lines of what it was. What was said about it
+//    prints one line a row, behind the chapter's fold. No hash, no rail:
+//    the git wink waits one step down, and an opened entry prints its hash
+//    in its author fields. It replaced the `index`, which was the overview
+//    by being every row's title line, the talks' as loud as the work's.
+//  - `covers` — the log: the hash column and the tenure rail, the work with
+//    its description and its covers at a size you can recognise a slide or
+//    a screenshot at, and a talk or a piece of press one line, its venue
+//    beside the title. The folds start open.
 //  - `feed`   — the grid, at half a column, with its captions written out,
 //    and the prose and notes printed whole to match — every row, at every
 //    weight. All the information is right there, so nothing in it peeks or
 //    opens a sheet: a video plays where it is, a card goes to its page.
 //
-// A form sets all five atoms, but it only *owns* two of them: the picture
+// A form sets the row's atoms, but it only *owns* two of them: the picture
 // is the page's (`media`, `peek`), the prose is each row's (`description`,
 // `notes`, and where the venue sits — see `rowFormFor`). Pressing a row's
 // text relieves or clamps it against whatever the form printed; the picture
-// holds still.
+// holds still. What a form sets for the page as a whole — the gutter and
+// the folds — is `PAGE_FORM`.
 //
 // The page borrowed git's vocabulary for these once (`--oneline`, `--stat`,
 // `-p`); those names still parse, as aliases, so old links keep working.
 // =============================================================================
 
-export const LOG_FORMS = ["index", "covers", "feed"] as const;
+export const LOG_FORMS = ["resume", "covers", "feed"] as const;
 
 export type LogForm = (typeof LOG_FORMS)[number];
 
-export const DEFAULT_FORM: LogForm = "covers";
+export const DEFAULT_FORM: LogForm = "resume";
 
 /** The atoms a row composes. Every form is one setting of each. */
 export interface RowForm {
@@ -136,21 +159,14 @@ export interface RowForm {
   peek: boolean;
   /**
    * Where the venue goes: `under` the title on a line of its own, where the
-   * handle signs beside it, or `beside` the title on the title line — the
-   * one-line row a minor commit folds to, like a /writing entry. The handle
-   * has no slot on that line, and does not need one: the chapter above
-   * already names the company.
+   * handle signs beside it (or, in an entry, what I did and where), or
+   * `beside` the title on the title line — the one-line row a minor commit
+   * folds to, like a /writing entry. The handle has no slot on that line,
+   * and does not need one: the chapter above already names the company.
    */
   meta: "under" | "beside";
 }
 
-const INDEX: RowForm = {
-  description: "none",
-  media: "none",
-  notes: false,
-  peek: true,
-  meta: "under",
-};
 const FEED: RowForm = {
   description: "full",
   media: "grid",
@@ -159,8 +175,26 @@ const FEED: RowForm = {
   meta: "under",
 };
 
+/** A talk or a piece of press, folded: its title line and nothing else. */
+const ONE_LINE: RowForm = {
+  description: "none",
+  media: "none",
+  notes: false,
+  peek: true,
+  meta: "beside",
+};
+
 export const ROW_FORM: Record<LogForm, Record<RowWeight, RowForm>> = {
-  index: { major: INDEX, minor: INDEX },
+  resume: {
+    major: {
+      description: "clamp",
+      media: "none",
+      notes: false,
+      peek: false,
+      meta: "under",
+    },
+    minor: ONE_LINE,
+  },
   covers: {
     major: {
       description: "clamp",
@@ -169,16 +203,47 @@ export const ROW_FORM: Record<LogForm, Record<RowWeight, RowForm>> = {
       peek: true,
       meta: "under",
     },
-    minor: {
-      description: "none",
-      media: "none",
-      notes: false,
-      peek: true,
-      meta: "beside",
-    },
+    minor: ONE_LINE,
   },
   feed: { major: FEED, minor: FEED },
 };
+
+/**
+ * What a form sets for the page rather than for a row — the two things
+ * every row in a chapter has to agree on.
+ *
+ *  - `gutter` — what hangs in the left margin. `log` is the hash column and
+ *    the type mark on the tenure rail, the git graph; `entry` is the work's
+ *    logo, at the size a résumé or a home screen sets one, and no rail — a
+ *    rail between logos would bracket tenures nothing on screen names yet.
+ *  - `fold` — whether a chapter's second half, what was said about the
+ *    work, starts folded to its one summary line. Only ever the page's
+ *    default: a chapter's line opens and closes on its own, and a filter
+ *    naming a minor type opens them all (`minorFolded`).
+ */
+export interface PageForm {
+  gutter: "log" | "entry";
+  fold: boolean;
+}
+
+export const PAGE_FORM: Record<LogForm, PageForm> = {
+  resume: { gutter: "entry", fold: true },
+  covers: { gutter: "log", fold: false },
+  feed: { gutter: "log", fold: false },
+};
+
+/**
+ * Whether a chapter's `talks & press` starts folded: the depth says so, and
+ * the reader has not asked for talks or press by name. A chip is a request
+ * to see that type — folding what was just asked for behind a line would
+ * make the chip a no-op until a second tap.
+ */
+export function minorFolded(
+  form: LogForm,
+  types: readonly FilterableCommitType[],
+): boolean {
+  return PAGE_FORM[form].fold && !types.some((t) => rowWeight(t) === "minor");
+}
 
 /**
  * Which atoms the form owns, and which the row's own press owns.
@@ -203,13 +268,11 @@ export const ROW_FORM: Record<LogForm, Record<RowWeight, RowForm>> = {
  * prose, the other opens the attachment.
  *
  * The exception is a row that prints no picture at all: every row in the
- * index, and a minor one in `covers`. In the index the title line counts
- * the attachments (`📎 3`), and the count is a promise the row has to keep;
- * either way, opening such a row brings its covers with its prose, so an
- * open row is the whole commit whatever the form. And an open row is never
- * one line — the venue goes back under the title, where the handle signs.
- * The other rows already print the picture, so their press still owns the
- * prose alone.
+ * résumé, and a minor one in `covers`. Opening such a row brings its covers
+ * with its prose, so an open row is the whole commit whatever the depth —
+ * an entry opens into the log row it stands for. And an open row is never
+ * one line — the venue goes back under the title. The other rows already
+ * print the picture, so their press still owns the prose alone.
  */
 export function rowFormFor(
   form: LogForm,
@@ -229,9 +292,15 @@ export function rowFormFor(
       };
 }
 
-/** The git flags the forms were first named after — old links carry them. */
+/**
+ * Names the depths used to go by — old links carry them. The git flags the
+ * forms were first named after, and `index`, the overview the résumé
+ * replaced: a link to "the page, at a glance" still gets the page at a
+ * glance.
+ */
 const FORM_ALIAS: Record<string, LogForm> = {
-  oneline: "index",
+  index: "resume",
+  oneline: "resume",
   stat: "covers",
   patch: "feed",
 };

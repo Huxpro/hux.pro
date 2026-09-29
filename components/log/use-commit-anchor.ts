@@ -70,12 +70,27 @@ function rowFor(hash: string): HTMLElement | null {
 /**
  * Wires arrival and returns the click handler a row's hash uses to become the
  * page's address.
+ *
+ * `reveal` is asked first, every time: the row a hash names may be inside
+ * something the page has folded (a chapter's `talks & press` in the
+ * résumé, app/works/view.tsx), and a folded row is not in the document to
+ * travel to. It opens whatever encloses the row, synchronously, so the row
+ * is there to measure by the time this looks for it.
  */
-export function useCommitAnchor(): (hash: string) => void {
+export function useCommitAnchor(
+  reveal?: (hash: string) => void,
+): (hash: string) => void {
   const reduced = useReducedMotion() ?? false;
   // One travel at a time: a second hash while the first is still gliding
   // stops it rather than easing toward two destinations at once.
   const stopRef = useRef<() => void>(() => {});
+  // The latest `reveal`, read at the moment of travel rather than a
+  // dependency: it closes over the page's fold state, so it is a new
+  // function every render, and arrival must run once, not once a render.
+  const revealRef = useRef(reveal);
+  useEffect(() => {
+    revealRef.current = reveal;
+  });
 
   const travelTo = useCallback(
     (el: HTMLElement) => {
@@ -127,6 +142,7 @@ export function useCommitAnchor(): (hash: string) => void {
 
   useEffect(() => {
     const go = () => {
+      revealRef.current?.(window.location.hash.replace(/^#/, ""));
       const el = rowFor(window.location.hash);
       if (el) travelTo(el);
     };
@@ -152,6 +168,7 @@ export function useCommitAnchor(): (hash: string) => void {
 
   return useCallback(
     (hash: string) => {
+      revealRef.current?.(hash);
       const el = rowFor(hash);
       if (!el) return;
       // `pushState`, so the permalink is in the URL bar and in history without

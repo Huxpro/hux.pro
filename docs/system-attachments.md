@@ -228,22 +228,27 @@ two never trade jobs.
 
 ## The three forms of /works
 
-How much of a commit the page prints is one of three *forms*, and a form
+/works is one page — the log — read at one of three depths, and the
+depth is a *form*. A form
 is a preset of a few independent atoms rather than a layout of its own
 (`ROW_FORM`, `lib/log-view.ts`): what of the description prints (`none` ·
 `clamp` · `full`), which attachment object (`none` · `covers` · `grid`),
 whether the notes print (commentary, the author fields, the link labels),
 and whether anything peeks on hover. A preset is per *weight*
 (`rowWeight`): projects, roles and events are the work, talks and press
-are what was said about it, and `covers` prints them differently. The
-toolbar's control resets every row to a preset; a row the reader opens by
-hand takes the `feed` preset for itself. Old links with git's names (`oneline`, `stat`, `patch`) still
-parse, as aliases.
+are what was said about it, and the first two depths print them
+differently. What a form sets for the page rather than a row is
+`PAGE_FORM`: the gutter (the résumé hangs logos, the log hashes and the
+tenure rail) and whether each chapter's `talks & press` starts folded to
+one line. The toolbar's control resets every row, and every fold, to a
+preset; a row the reader opens by hand goes one step deeper for itself.
+Old links with git's names (`oneline`, `stat`, `patch`), and `index`, the
+overview the résumé replaced, still parse, as aliases.
 
 | form | description | media | notes | peek | the reading |
 |---|---|---|---|---|---|
-| `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
-| `covers` (default) | the work: three lines · talks, press: none | the work: `covers` — 112px tiles, glyph chip · talks, press: none | — | ✓ | the work on screen; what was said about it one line each, venue beside the title |
+| `resume` (default) | the work: three lines, at reading size · talks, press: none | none — the entry names its attachments instead | — | talks, press | each chapter as a résumé section: logo, name, what I did, years; what was said about it folded to one line that opens into the one-line rows |
+| `covers` | the work: three lines · talks, press: none | the work: `covers` — 112px tiles, glyph chip · talks, press: none | — | ✓ | the log: hashes, the rail, the work on screen; what was said about it one line each, venue beside the title |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
 ### The attachment object
@@ -283,7 +288,7 @@ Cover and caption are one control (`AttachmentTile`'s `footer`): the same
 second click target that happens to do the same thing, and it is not the
 row's fold handle. Folding is a muted fill on the title line; opening an
 attachment is a dim. Mixing the two would make the presses feel the same. A hand-opened row in
-`covers` / `index` still folds from its title line; the expanded body
+`resume` / `covers` still folds from its title line; the expanded body
 (`data-row-body`) stops that click and wears a default cursor, so
 description, notes and captions do not look like fold targets. The feed
 itself does not fold per row — every commit is already open, and leaving
@@ -394,8 +399,8 @@ row now prints its covers, and in the feed altogether (`ROW_FORM.peek`). Each co
 the contact strip and a link card peeks as the mini OG card (domain, title,
 description), a video or a deck or an image as its poster — each wearing
 its chip, raised, and nothing else: no caption, no note. `PeekThumb` and
-`PeekCard` moved there from `commit-embed.tsx`; the row's stacked deck in
-the `index` form is built from the same two and wears the same chips
+`PeekCard` moved there from `commit-embed.tsx`; the row's stacked deck on a
+one-line row is built from the same two and wears the same chips
 (`PeekItem` carries its `media` for that), so the two forms peek alike.
 
 ## Slides in the theater

@@ -6,9 +6,13 @@
  * Type-specific logic lives HERE — renderers are type-agnostic.
  */
 
-import type { Locale } from "@/lib/i18n";
+import { t, type Locale } from "@/lib/i18n";
 import type { Commit, CommitType, Media, StripItem } from "@/lib/log";
+import { linkTarget } from "@/systems/attachments/lib/policy";
 import {
+  VIDEO_PLATFORM_LABEL,
+  isSlidesMedia,
+  isVideoMedia,
   localize,
   localizeOptional,
   formatCommitDate,
@@ -52,6 +56,18 @@ export interface NormalizedCommit {
 
   // Type-derived metadata
   meta?: string;
+  /** What I did on it (`credit`, lib/log.ts): the résumé entry's second
+   *  line, before the team. */
+  credit?: string;
+  /** The one number worth printing beside a project's name: `1B+ users`,
+   *  `★ 220k`. */
+  stat?: string;
+  /**
+   * Where to see it, a word each — `lynxjs.org`, `github.com`, `YouTube`,
+   * `slides` — for the résumé entry, which prints no covers. Every one is
+   * an attachment, opened the way its cover would open it.
+   */
+  links: MediaLink[];
   /** When set, the meta line is rendered as an external link. */
   metaUrl?: string;
 
@@ -82,6 +98,12 @@ export interface NormalizedCommit {
   // Compact rendering
   thumbnail?: { url: string; linkUrl?: string };
   secondaryLine?: string;
+}
+
+export interface MediaLink {
+  label: string;
+  href: string;
+  media: Media;
 }
 
 // =============================================================================
@@ -124,6 +146,78 @@ function deriveThumbnail(
     }
   }
   return undefined;
+}
+
+// =============================================================================
+// Résumé fields
+// =============================================================================
+
+const COMPACT = new Intl.NumberFormat("en", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+const USERS: Record<Locale, string> = { en: "users", zh: "用户" };
+const DOWNLOADS: Record<Locale, string> = { en: "downloads", zh: "下载" };
+
+/**
+ * One stat, the biggest claim first. Stars print as GitHub prints them
+ * (`★ 220k`), so the number says where it was counted without a word for
+ * it in either language.
+ */
+function statOf(commit: Commit, locale: Locale): string | undefined {
+  if (commit.type !== "project" || !commit.stats) return undefined;
+  const { users, stars, downloads } = commit.stats;
+  if (users) return `${users} ${USERS[locale]}`;
+  if (stars) return `★ ${COMPACT.format(stars).toLowerCase()}`;
+  if (downloads) return `${downloads} ${DOWNLOADS[locale]}`;
+  return undefined;
+}
+
+/**
+ * A word for each place a work can be seen.
+ *
+ * Derived, never authored: a recording is named for where it plays, a deck
+ * is a deck, and a page is named for the site it is on — which is what a
+ * reader deciding whether to click wants to know. Two pages on one site
+ * take their first path segment as well (`react.dev/blog`,
+ * `react.dev/learn`); two that would still read the same (three posts
+ * under `writing`) print once, since the set it opens pages through all of
+ * them anyway. An image is left out: it is a picture of the work, not a
+ * place to see it, and one depth down it is a cover.
+ */
+function linksOf(items: Media[], locale: Locale): MediaLink[] {
+  const where = (m: Media) => {
+    try {
+      const url = new URL(linkTarget(m, locale), "https://hux.pro");
+      return {
+        host: url.host.replace(/^www\./, ""),
+        segment: url.pathname.split("/").filter(Boolean)[0] ?? "",
+      };
+    } catch {
+      return { host: "", segment: "" };
+    }
+  };
+  const places = items.filter((m) => !isImageMedia(m));
+  const base = places.map((m) => {
+    if (isVideoMedia(m)) return VIDEO_PLATFORM_LABEL[m.platform];
+    if (isSlidesMedia(m)) return t(locale, "logSlides").toLowerCase();
+    const { host, segment } = where(m);
+    // This site's own pages go by what they are, not by our domain.
+    return host === "hux.pro" ? segment || host : host;
+  });
+  const seen = new Set<string>();
+  return places.flatMap((media, i) => {
+    const { host, segment } = where(media);
+    const shared = base.indexOf(base[i]) !== base.lastIndexOf(base[i]);
+    const label =
+      shared && segment && host !== "hux.pro"
+        ? `${base[i]}/${segment}`
+        : base[i];
+    if (seen.has(label)) return [];
+    seen.add(label);
+    return [{ label, href: linkTarget(media, locale), media }];
+  });
 }
 
 // =============================================================================
@@ -182,13 +276,17 @@ export function normalizeCommit(
           : `${foldedVenue} · ${title}`
       : undefined;
 
-  // Identity fields shared by every branch's return.
+  // Identity fields shared by every branch's return — and the résumé's,
+  // which every type can carry (a role's credit is the Flash years').
   const identity = {
     hash,
     type: commit.type,
     iconOverride: commit.icon,
     present: commit.present,
     foldedTitle,
+    credit: localizeOptional(commit.credit, locale),
+    stat: statOf(commit, locale),
+    links: linksOf(expandedMedia, locale),
   };
 
   // Type-specific extraction
@@ -282,6 +380,7 @@ export function normalizeCommit(
         expandedMedia: [],
         pinnedMedia: [],
         stripItems: [],
+        links: [],
       };
     }
 

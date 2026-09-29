@@ -17,45 +17,59 @@ import { TYPE } from "@/lib/typography";
 
 interface DescriptionProps {
   text: string;
-  /** Full text. Otherwise clamped — see `major`. */
+  /** Full text. Otherwise clamped — see `tier`. */
   isExpanded?: boolean;
-  /** The row is the work itself (`rowWeight`, lib/log-view.ts). */
-  major?: boolean;
+  /**
+   * How much the row's prose is asked to carry: `minor` for a talk or a
+   * piece of press, `major` for the work in the log, `entry` for the work
+   * where the page reads as a résumé (`PAGE_FORM`, lib/log-view.ts).
+   */
+  tier?: "minor" | "major" | "entry";
   className?: string;
 }
+
+const DESCRIPTION_TIER = {
+  minor: TYPE.captionQuiet,
+  major: TYPE.caption,
+  entry: TYPE.body,
+} as const;
 
 /**
  * A commit's description — what the work is.
  *
- * Two rungs, by the row's weight. A talk's or a press piece's sits on
- * `TYPE.captionQuiet` — 12px, tertiary — and only once the row is open. It
- * was briefly raised to `TYPE.body` to buy every row a second tier, but at
- * that weight a column of twenty-five descriptions competed with its own
- * titles, and it was pulled back.
+ * Three rungs, by the row's weight and the page's depth. A talk's or a
+ * press piece's sits on `TYPE.captionQuiet` — 12px, tertiary — and only
+ * once the row is open. It was briefly raised to `TYPE.body` to buy every
+ * row a second tier, but at that weight a column of twenty-five
+ * descriptions competed with its own titles, and it was pulled back.
  *
- * The work's sits one rung up, on `TYPE.caption`: muted, not tertiary. That
- * argument was about twenty-five rows all printing prose; the default form
- * now prints it for the work alone (`ROW_FORM`), eleven rows across four
- * chapters, and for those rows the description is *the* answer to what the
+ * The work's sits one rung up in the log, on `TYPE.caption`: muted, not
+ * tertiary. For those rows the description is *the* answer to what the
  * work was — on tertiary, clamped at two lines, it was the part of the page
- * a newcomer needed most and could read least. Still 12px, so it sits under
- * the title rather than beside it.
+ * a newcomer needed most and could read least. Still 12px, so it sits
+ * under the title rather than beside it, over a strip of covers.
+ *
+ * In the résumé an entry has no covers under it and its logo beside it, so
+ * the prose is the whole of what the row says about the work, and it is set
+ * at reading size, `TYPE.body` — the size the chapter narratives above it
+ * read at. Eleven of them across four chapters, each under a medium title
+ * a step larger, so it still sits under the title rather than competing.
  */
 export function Description({
   text,
   isExpanded = false,
-  major = false,
+  tier = "minor",
   className,
 }: DescriptionProps) {
   return (
     <p
       className={cn(
-        major ? TYPE.caption : TYPE.captionQuiet,
+        DESCRIPTION_TIER[tier],
         // Clamped, the measure does most of the work: a phone's ~40
         // characters a line, a desktop's ~90. Two lines is a hook, which is
         // all a talk's blurb is asked to be; three is where the work's
         // descriptions, all a sentence or two, finish on a desk.
-        !isExpanded && (major ? "line-clamp-3" : "line-clamp-2"),
+        !isExpanded && (tier === "minor" ? "line-clamp-2" : "line-clamp-3"),
         className
       )}
     >

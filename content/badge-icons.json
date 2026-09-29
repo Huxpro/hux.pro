@@ -79,6 +79,14 @@
     "width": 100,
     "height": 100
   },
+  "rit.edu": {
+    "url": "https://www.rit.edu",
+    "file": "/badge-icons/rit.edu.png",
+    "source": "manifest",
+    "iconUrl": "https://www.rit.edu/sites/all/themes/uwbase/rit_bootstrap_2019/favicon/android-chrome-384x384.png",
+    "width": 384,
+    "height": 384
+  },
   "wepiao.com": {
     "url": "https://www.wepiao.com",
     "file": "/img/badges/wepiao.webp",
@@ -91,6 +99,14 @@
     "iconUrl": "https://x.com/apple-touch-icon.png",
     "width": 1024,
     "height": 1024
+  },
+  "yanshuo.io": {
+    "url": "https://yanshuo.io",
+    "file": "/badge-icons/yanshuo.io.png",
+    "source": "icon",
+    "iconUrl": "https://yanshuo.io/favicon.ico",
+    "width": 32,
+    "height": 32
   },
   "youtube.com": {
     "url": "https://youtu.be",

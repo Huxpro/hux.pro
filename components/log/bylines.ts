@@ -37,6 +37,13 @@ export interface Byline {
    * from `data.meta` — talk conference, publication, platform).
    */
   subtitle?: string;
+  /**
+   * The same team, every time — the résumé entry's second line
+   * (`Founding engineer · React Core team @ Meta`) names where each piece
+   * of work was done, because an entry is read on its own, not as the
+   * next line of a run.
+   */
+  team?: string;
   expanded: {
     title: string;
     company: string;
@@ -90,9 +97,11 @@ export function computeBylines(
     // inheriting `Lynx @ ByteDance` prints the chip once at the top and
     // stays quiet after.
     let subtitle: string | undefined;
+    let team: string | undefined;
     if (c.type === "project") {
       const teamRaw = c.team ?? role?.team;
       const teamStr = teamRaw ? localize(teamRaw, locale) : undefined;
+      team = teamStr;
       if (teamStr && teamStr !== prevProjectTeam) {
         subtitle = teamStr;
         prevProjectTeam = teamStr;
@@ -110,6 +119,7 @@ export function computeBylines(
       handle: identity.handle,
       isClusterHead,
       subtitle,
+      team,
       expanded: {
         title,
         company,

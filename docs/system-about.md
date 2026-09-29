@@ -249,6 +249,14 @@ when a badge's site has no icon at all. `pnpm badges:check` is the
 filesystem-only half that CI runs (`.github/workflows/ci.yml`). A new badge
 pointing at a new site: run the snapshot and commit what it writes.
 
+Every project in `content/log.json` counts as a badge too: the résumé
+depth of `/works` prints each entry beside the icon its `<Badge commit=…>`
+would wear, and each role beside its `<Badge role=…>`'s (`commitBadge`,
+`components/log/project-logo.tsx`), so a project looks the same on the
+About and on `/works`. A new project is a new badge: name its site under
+`commits` when its first link is not its home (a school or a company goes
+under `identities`), and run the snapshot.
+
 An icon drawn for a home screen (manifest, apple-touch-icon, or any square
 ≥160px) fills its tile; a favicon is a glyph and sits on a white plate, the
 way a home screen shows one — so a black mark (Lynx's cat) reads in the dark.

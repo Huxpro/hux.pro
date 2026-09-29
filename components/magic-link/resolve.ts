@@ -375,3 +375,23 @@ export function resolveMagicLink(spec: MagicLinkSpec, locale: Locale): ResolvedM
 
   return null;
 }
+
+/**
+ * What `<Badge commit="…">` wears, without the rest of the link: the commit's
+ * site icon (or its monogram) and the kind that picks a glyph. For a surface
+ * that lists the things badges name beside their marks — /works prints every
+ * entry of its résumé this way (components/log/project-logo.tsx), so a
+ * project wears one icon on the About and on /works alike. A role resolves
+ * as `<Badge role="…">` would: the school or the studio it names.
+ */
+export function commitBadge(
+  commitId: string,
+  locale: Locale,
+): { icon: BadgeIcon; kind: MagicLinkKind } | null {
+  const isRole = LOG.commits.some((c) => c.id === commitId && c.type === "role");
+  const link = resolveMagicLink(
+    isRole ? { role: commitId } : { commit: commitId },
+    locale,
+  );
+  return link ? { icon: link.icon, kind: link.kind } : null;
+}

@@ -9,7 +9,7 @@ import { LOG_FORMS, type LogForm } from "@/lib/log-view";
 import { EditorNav } from "./nav";
 
 const FORM_CHIP: Record<LogForm, { icon: LucideIcon; label: string }> = {
-  index: { icon: List, label: "index" },
+  resume: { icon: List, label: "résumé" },
   covers: { icon: LayoutList, label: "covers" },
   feed: { icon: GalleryVertical, label: "feed" },
 };
