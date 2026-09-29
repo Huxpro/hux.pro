@@ -1,0 +1,435 @@
+{
+  "axes": {
+    "x": {
+      "key": "i13s",
+      "name": { "en": "interestingness", "zh": "有趣度" },
+      "ticks": [
+        { "at": 0, "emoji": "🥱", "label": { "en": "boring", "zh": "无聊" } },
+        { "at": 3, "emoji": "😎", "label": { "en": "cool", "zh": "挺酷" } },
+        { "at": 6, "emoji": "🤓", "label": { "en": "nerdy / love it", "zh": "着迷" } },
+        { "at": 9, "emoji": "🤯", "label": { "en": "mind-blown / obsessive", "zh": "上头" } }
+      ]
+    },
+    "y": {
+      "key": "exp",
+      "name": { "en": "experience", "zh": "经验" },
+      "ticks": [
+        { "at": 0, "emoji": "🤦‍♂️", "label": { "en": "little", "zh": "略知" } },
+        { "at": 3, "emoji": "🙇‍♂️", "label": { "en": "school-level", "zh": "课堂" } },
+        { "at": 6, "emoji": "👨‍💻", "label": { "en": "industry-capable", "zh": "工业级" } },
+        { "at": 9, "emoji": "👨‍🎓", "label": { "en": "language lawyer", "zh": "语言律师" } }
+      ]
+    },
+    "abs": {
+      "key": "abs",
+      "name": { "en": "abstraction", "zh": "抽象层级" },
+      "low": { "en": "machine", "zh": "机器" },
+      "high": { "en": "abstract", "zh": "抽象" },
+      "tiers": [
+        { "level": 0, "label": { "en": "bare metal", "zh": "裸机" } },
+        { "level": 1, "label": { "en": "intermediate representation", "zh": "中间表示" } },
+        { "level": 2, "label": { "en": "closer to hardware", "zh": "贴近硬件" } },
+        { "level": 3, "label": { "en": "system", "zh": "系统级" } },
+        { "level": 4, "label": { "en": "mainstream, statically typed", "zh": "主流 · 静态类型" } },
+        { "level": 5, "label": { "en": "mainstream, dynamically typed", "zh": "主流 · 动态类型" } },
+        { "level": 6, "label": { "en": "multi-paradigm", "zh": "多范式" } },
+        { "level": 7, "label": { "en": "pure, side-effectable", "zh": "纯 · 可有副作用" } },
+        { "level": 8, "label": { "en": "pure, but not total", "zh": "纯 · 非全函数" } },
+        { "level": 9, "label": { "en": "pure", "zh": "纯" } }
+      ]
+    }
+  },
+  "languages": [
+    {
+      "id": "plt",
+      "name": "λ Λ Π Σ",
+      "emoji": "📜",
+      "title": "[Programming Language Theory](https://en.wikipedia.org/wiki/Programming_language_theory)",
+      "abs": 9,
+      "i13s": 9,
+      "exp": 6,
+      "notes": [
+        "This could be in one level higher. But I'd prefer to treat theorem-proving-capable PLs as [mechanizied](https://en.wikipedia.org/wiki/POPLmark_challenge) forms that leverage machine-checkable formal proofs."
+      ]
+    },
+    {
+      "id": "coq",
+      "name": "Coq",
+      "emoji": "🐓",
+      "title": "[The Coq Proof Assistant](https://coq.inria.fr/)",
+      "abs": 9,
+      "i13s": 9,
+      "exp": 5,
+      "notes": [
+        "My favorite and most experienced [dependently-typed](https://en.wikipedia.org/wiki/Dependent_type) PL and [theorem prover](https://en.wikipedia.org/wiki/Proof_assistant).",
+        "It was both challenging and fun learning through [*Software Foundations*](https://softwarefoundations.cis.upenn.edu/) and exploring [*WasmCert*](https://github.com/Huxpro/WasmCert), an in-development Coq mechanization of the WebAssembly specification."
+      ]
+    },
+    {
+      "id": "agda-idris",
+      "name": "Agda/Idris",
+      "emoji": "🐔",
+      "title": "[Agda](https://github.com/agda/agda) & [Idris](https://www.idris-lang.org/)",
+      "abs": 9,
+      "i13s": 8,
+      "exp": 1,
+      "notes": [
+        "Two other interesting [dependently-typed](https://en.wikipedia.org/wiki/Dependent_type) PLs and [theorem provers](https://en.wikipedia.org/wiki/Proof_assistant) closer to Haskell. I'm looking forward to read [PLFA](https://plfa.github.io/) and [Type-Driven Development with Idris](https://www.manning.com/books/type-driven-development-with-idris) in the future."
+      ]
+    },
+    {
+      "id": "haskell",
+      "name": "Haskell",
+      "emoji": "🌯",
+      "title": "[Haskell](https://www.haskell.org/)",
+      "abs": 8,
+      "i13s": 7,
+      "exp": 5,
+      "notes": [
+        "Wondering the story behind this emoji? This is where I learnt [Monads are burritos](https://chrisdone.com/posts/monads-are-burritos/) and how to appreciate it (as well as [type classes](https://en.wikipedia.org/wiki/Type_class) but not quite with [laziness](https://en.wikipedia.org/wiki/Lazy_evaluation)). I haven't done any things substantial except a toy interpreter for [System F](https://en.wikipedia.org/wiki/System_F)."
+      ]
+    },
+    {
+      "id": "prolog",
+      "name": "Prolog",
+      "emoji": "📣",
+      "title": "[Prolog](https://en.wikipedia.org/wiki/Prolog)",
+      "abs": 8,
+      "i13s": 2,
+      "exp": 0,
+      "notes": [
+        "Representatives of [Logic Programming](https://en.wikipedia.org/wiki/Logic_programming) and Logic-based AI (part of [Symbolic AI](https://en.wikipedia.org/wiki/Artificial_intelligence#Symbolic)). The emoji came from how it's implemented: [Horn clauses](https://en.wikipedia.org/wiki/Horn_clause).",
+        "It's included here merely because I think it deserves a place in any PL charts, though I don't have spare times and further interests into it."
+      ]
+    },
+    {
+      "id": "ocaml",
+      "name": "OCaml",
+      "emoji": "🐫",
+      "title": "[OCaml](https://ocaml.org/)",
+      "abs": 7,
+      "i13s": 7,
+      "exp": 6,
+      "notes": [
+        "TBD (The ML family is a sweet spot in the language-design space: strict, side-effectable and Hindley-Milner type-inferred.)",
+        "TBD (Multicore OCaml, Algebraic Effect, Modular Implicit)"
+      ]
+    },
+    {
+      "id": "reason",
+      "name": "Reason",
+      "emoji": "🟥",
+      "title": "[ReasonML](https://reasonml.org) & 🦺 [BuckleScript](https://bucklescript.github.io/en/)",
+      "abs": 7,
+      "i13s": 6,
+      "exp": 7,
+      "notes": [
+        "TBD (Pragmatism, Web/JS focused, Comparison with Typed JS, Reason Native)",
+        "[ReasonReact](https://reasonml.github.io/reason-react/) (with React's new functional APIs, it has reduced into a thin layer of typing like `d.ts`)",
+        "When comparing with typed JS, I tend to think it more like an \"AND\" instead \"OR\". It's just nice to have one such PL that has proper FP, sound typing, and even ability to run cross Web and Native, within anyone's toolbox."
+      ]
+    },
+    {
+      "id": "sml",
+      "name": "SML",
+      "emoji": "📒",
+      "title": "[Standard ML](https://en.wikipedia.org/wiki/Standard_ML)",
+      "abs": 7,
+      "i13s": 5,
+      "exp": 6,
+      "notes": [
+        "Standard ML is one of the few languages (if not the only one among widely used high-level PLs) that has a full formal specification of its typing rules and operational semantics: [The Definition of Standard ML](https://www.amazon.com/Definition-Standard-ML-Revised/dp/0262631814), a heavy yellow book as this emoji.",
+        "I used it quite heavily during my education writing FP algorithms, interpreters and compilers. The main reason that I'm less interested in it is its slow evolution (if not stopped) and lack of tools and a active community."
+      ]
+    },
+    {
+      "id": "scala",
+      "name": "Scala",
+      "emoji": "🪑",
+      "title": "[Scala](https://www.scala-lang.org/)",
+      "abs": 6,
+      "i13s": 6,
+      "exp": 5,
+      "notes": [
+        "(I wanted to use emoji [\"ladder\"](https://emojipedia.org/ladder/) but it hasn't landed yet. So a chair for now.)",
+        "Don't know the story? Check out [#Hascalator](https://twitter.com/hashtag/hascalator) on twitter. Scala is a true hybrid of [FP](https://en.wikipedia.org/wiki/Functional_programming) and [OOP](https://en.wikipedia.org/wiki/Object-oriented_programming) (contrast: OCaml). Although people often complain it being overly flexible and expressive, I personally appreciate it and think all its syntax and semantics are very well blended (Oh I love `[A]` for Λ).",
+        "I'm also very excited about Scala 3, or [Dotty](https://dotty.epfl.ch/), and happy to see Scala winning the [2019 SIGPLAN software award](https://www.sigplan.org/Awards/Software/).",
+        "Oh I almost forget to mention my exp: I was part of a team writing compilers using Scala at Facebook."
+      ]
+    },
+    {
+      "id": "js",
+      "name": "JS",
+      "emoji": "🟨",
+      "title": "[JavaScript (Pre ES2015)](https://en.wikipedia.org/wiki/JavaScript)",
+      "abs": 5,
+      "i13s": 4,
+      "exp": 9,
+      "notes": [
+        "I was so hesitated writing about you, JavaScript. Why? I love and hate it at the same time (well someone might point out that's how \"true love\" looks like).",
+        "TBD (...)"
+      ]
+    },
+    {
+      "id": "es6",
+      "name": "ES6",
+      "emoji": "🟧",
+      "title": "[ECMAScript (Post ES2015)](https://en.wikipedia.org/wiki/ECMAScript)",
+      "abs": 5,
+      "i13s": 5,
+      "exp": 9,
+      "notes": [
+        "Don't get me wrong, I knew the relation of ES and JS well.",
+        "TBD (To many...)"
+      ]
+    },
+    {
+      "id": "typed-js",
+      "name": "JS:Ty",
+      "emoji": "⚠️",
+      "title": "[Flow](https://flow.org) & 🎡 [TypeScript](https://www.typescriptlang.org/)",
+      "abs": 6,
+      "i13s": 6,
+      "exp": 9,
+      "notes": ["TBD (Gradual typing, Soundness)"]
+    },
+    {
+      "id": "php",
+      "name": "PHP",
+      "emoji": "🐘",
+      "title": "[PHP](https://www.php.net/)",
+      "abs": 5,
+      "i13s": 0,
+      "exp": 1,
+      "notes": [
+        "I dunno if it's a world-wide meme but it's extremely popular [among Chinese community](https://www.zhihu.com/question/26498147): [\"PHP is the best language in the world\"](https://php-is-the-best-language-in-the-world.com/).",
+        "Many people knew that PHP stands for *Hypertext Preprocessor* but originally it stood for *Personal Home Page*. It had numerous [heritages](https://eev.ee/blog/2012/04/09/php-a-fractal-of-bad-design/) from that time until further refinements.",
+        "But anyways, I guesstimate [Zuck](https://en.wikipedia.org/wiki/Mark_Zuckerberg) did not regret starting Facebook with PHP, and I should add [Hack](https://hacklang.org/) into this chart soon."
+      ]
+    },
+    {
+      "id": "python",
+      "name": "Python",
+      "emoji": "🐍",
+      "title": "[Python](https://en.wikipedia.org/wiki/Python_(programming_language))",
+      "abs": 5,
+      "i13s": 3,
+      "exp": 4,
+      "notes": [
+        "Python pioneered simplicity, explicitness, and readability (so-called [pythonic](https://en.wikipedia.org/wiki/Zen_of_Python)). Its friendliness made it widely-used in both industry and education. Unfortunately, I haven't used it for anything beyond courses (e.g. Algorithms, Data Structures, AI, Networking), and I would forget the entire language as soon as I completed the course.",
+        "It's falling into this bucket mostly because it loses the battle of my \"king of mainstream [dynamically-typed](https://wiki.c2.com/?DynamicTyping) PL\" against JavaScript: It has no standardized specification effort; It has no good FP support; It's definitely much less \"full-stack\"; The gradual typing systems targeting it are less mature (though there are many efforts going on) and not popularized (yet); The *status quo* of its implementations, [CPython](https://en.wikipedia.org/wiki/CPython), uses a much less advanced GC and runs significantly slower than any JS engines that is JIT-ing, while JIT compilers for Python (e.g. PyPy) is not only challenging but also less appreciated due to Python's heavy heritages on C extensions for CPU-sensitive jobs. (N.B. JS engine chosen to not JIT are doing it for good purposes e.g. TTI, memory, embedded system, and it's not because they couldn't.)"
+      ]
+    },
+    {
+      "id": "lisp",
+      "name": "Lisp*",
+      "emoji": "🌜",
+      "title": "[Lisp Family](https://en.wikipedia.org/wiki/Lisp_(programming_language))",
+      "abs": 5,
+      "i13s": 3,
+      "exp": 3,
+      "notes": [
+        "Why a moon here? It's an open parenthesis!",
+        "TBD (Scheme, Clojure, Racket)"
+      ]
+    },
+    {
+      "id": "java",
+      "name": "Java",
+      "emoji": "☕️",
+      "title": "[Java](https://en.wikipedia.org/wiki/Java_(programming_language))",
+      "abs": 4,
+      "i13s": 3,
+      "exp": 5,
+      "notes": [
+        "Despite the fact that Java enjoyed many [criticism](https://en.wikipedia.org/wiki/Criticism_of_Java) and [dislikes](https://www.cs.utexas.edu/users/EWD/transcriptions/OtherDocs/Haskell.html), and contributed to nowadays misnomering of [OOP](https://en.wikipedia.org/wiki/Object-oriented_programming) together with C++ and others, Java has a remarkable place in PL history regarding its huge impact on both academia and industry.",
+        "My Java experience is mostly in ivory tower, where the most substantial one is an extended [MiniJava](https://www.cs.princeton.edu/~appel/modern/java/) compiler targeting JVM.",
+        "I'm not too interested in Java language itself because there is nothing too interesting after the effort of [adding generics in Java 1.5](https://en.wikipedia.org/wiki/Generics_in_Java) (thanks to [Generic Java](https://homepages.inf.ed.ac.uk/wadler/gj/) and [Pizza](https://en.wikipedia.org/wiki/Pizza_(programming_language)) from Wadler, Martin et.al.). There are some additions onto it (notably [Java8](https://en.wikipedia.org/wiki/Java_version_history#Java_SE_8)) but they're not as ground-breaking as ES6 or C++0x did to theirs. It seems like the true answer of \"better Java\" (which is a non-goal of Scala) is [Kotlin](https://kotlinlang.org/), but I haven't had enough experiences to place it in my chart.",
+        "JVM, however, is much more appealing. Tons of research efforts (funding) on managed language runtime (notably GC and JIT) were spent on it. So I separate it out."
+      ]
+    },
+    {
+      "id": "dart",
+      "name": "Dart",
+      "emoji": "🎯",
+      "title": "[Dart](https://en.wikipedia.org/wiki/Dart_(programming_language))",
+      "abs": 4,
+      "i13s": 3,
+      "exp": 1,
+      "notes": [
+        "A \"JS-er Java\" or \"JSer's Java\"? IMHO, its mix-and-match approach combining (a weird, modified subset of) the JS syntax with (a boring, inexpressive subset of) the Java semantics is a regression of both.",
+        "PL aside, its AOT-and-JIT-capable VM and its vendor lock-in on [Flutter](https://flutter.dev/) made it (eventually) on par with others' interestingness."
+      ]
+    },
+    {
+      "id": "actionscript",
+      "name": "AS",
+      "emoji": "⚡️",
+      "title": "[ActionScript](https://en.wikipedia.org/wiki/ActionScript)",
+      "abs": 4,
+      "i13s": 2,
+      "exp": 2,
+      "notes": [
+        "My second PL. I hope you still remember [*Adobe Flash*](https://en.wikipedia.org/wiki/Adobe_Flash), the most successful [rich internet application](https://en.wikipedia.org/wiki/Rich_web_application) platform before Apple's mobile revolution and (what so called) HTML5.",
+        "I taught myself AS 2.0 when I was into the Flash development in middle school times. It was that sense of accomplishment developing little interactive games and GUIs made me a programmer nowadays.",
+        "AS 3.0 is also my first [OOP](https://en.wikipedia.org/wiki/Object-oriented_programming) language and I always felt sorry about its [ECMAScript 4 abandon](https://en.wikipedia.org/wiki/ECMAScript#4th_Edition_(abandoned)) story."
+      ]
+    },
+    {
+      "id": "swift",
+      "name": "Swift",
+      "emoji": "🐦",
+      "title": "[Swift](https://swift.org/)",
+      "abs": 4,
+      "i13s": 6,
+      "exp": 2,
+      "notes": [
+        "Having tried with iOS development in ObjC, I very much appreciate Swift. I also believe it played an important role on pushing many mainstream PLs onboard with [optional chaining](https://docs.swift.org/swift-book/LanguageGuide/OptionalChaining.html).",
+        "Despite the fact that I have only developed one silly todo app in it, its uses of [ARC](https://en.wikipedia.org/wiki/Automatic_Reference_Counting), [LLVM](https://llvm.org/), and the latest [SwiftUI](https://developer.apple.com/xcode/swiftui/) made it very appealing to me."
+      ]
+    },
+    {
+      "id": "shell",
+      "name": "Shell",
+      "emoji": "🐚",
+      "title": "[Shell Script](https://en.wikipedia.org/wiki/Shell_script)",
+      "abs": 4,
+      "i13s": 1,
+      "exp": 5,
+      "notes": [
+        "They are probably the worst PLs to use in 99% of cases, nonetheless they can be extremely helpful. Although I had to Google/SOF all the time, I found myself writing a substantial amount of them in my projects, Ironically."
+      ]
+    },
+    {
+      "id": "cpp0x",
+      "name": "C++0x",
+      "emoji": "✖️",
+      "title": "[C++ (Post C++0x)](https://en.wikipedia.org/wiki/C%2B%2B)",
+      "abs": 3,
+      "i13s": 6,
+      "exp": 4,
+      "notes": [
+        "This multiplication stands for the \"x\" in \"0x\"",
+        "TBD (Smart pointer, Ownership, Type deduction, Lambda, Rvalue Ref, Concepts)"
+      ]
+    },
+    {
+      "id": "cpp",
+      "name": "C++",
+      "emoji": "➕",
+      "title": "[C++ (Pre C++0x)](https://en.wikipedia.org/wiki/C%2B%2B)",
+      "abs": 3,
+      "i13s": 4,
+      "exp": 4,
+      "notes": [
+        "I still remembered seeing Sci & Eng students struggling with learning C++98 in a poor [VC6](https://en.wikipedia.org/wiki/Microsoft_Visual_C%2B%2B) to pass exams (I was an fine art student, luckily). It's too often to hear people complaining it being too complicated, although I'm aware of its importance even back then.",
+        "Placing it here is pretty much an after-thought to appreciate the original design of combining C's efficiency (\"simple and direct mapping to hardware\") with [Simula](https://en.wikipedia.org/wiki/Simula)'s program organizations (objects, classes, inheritance and subclasses, etc.). This idea has grown way beyond just \"C with Classes\" to what we now known as [\"zero-overhead abstractions\"](http://www.stroustrup.com/ETAPS-corrected-draft.pdf). See how far I put C++0x is?",
+        "That being said, I did not appreciate C++ (and later Java) [\"colonized\"](https://www.quora.com/What-did-Alan-Kay-mean-by-I-made-up-the-term-object-oriented-and-I-can-tell-you-I-did-not-have-C++-in-mind) the term [OOP](https://en.wikipedia.org/wiki/Object-oriented_programming) to what it is nowadays, despite Alan Kay's [original idea (messaging, localized state)](http://userpage.fu-berlin.de/~ram/pub/pub_jf47ht81Ht/doc_kay_oop_en) should probably better described as [\"Server-oriented\"](https://www.quora.com/What-is-Alan-Kays-definition-of-Object-Oriented) ([like](https://www.infoq.com/interviews/johnson-armstrong-oop/) [Erlang](https://en.wikipedia.org/wiki/Erlang_(programming_language))'s [Actor model](https://en.wikipedia.org/wiki/Actor_model)). The results of abusing the metaphors of \"objects\" leads to [misconceptions of object data hiding](https://www.quora.com/Why-are-objects-able-to-access-private-members-of-other-objects-of-the-same-class), [bad patterns](https://www.quora.com/In-object-oriented-programming-why-is-it-bad-practice-to-make-data-members-public-when-the-get-set-public-members-modify-it-anyway), mis-associations with [class-basing](https://en.wikipedia.org/wiki/Class-based_programming) and abstract data type, and finally, unhealthy [contention with FP.](https://www.quora.com/Why-is-functional-programming-seen-as-the-opposite-of-OOP-rather-than-an-addition-to-it)"
+      ]
+    },
+    {
+      "id": "objc",
+      "name": "ObjC",
+      "emoji": "🍎",
+      "title": "[Objective C](https://en.wikipedia.org/wiki/Objective-C)",
+      "abs": 3,
+      "i13s": 1,
+      "exp": 1,
+      "notes": ["TBD: (Connections with Apple and Smalltalk)"]
+    },
+    {
+      "id": "rust",
+      "name": "Rust",
+      "emoji": "🦀",
+      "title": "[Rust](https://en.wikipedia.org/wiki/Rust_(programming_language))",
+      "abs": 3,
+      "i13s": 5,
+      "exp": 3,
+      "notes": [
+        "TBD: (Connections with ML and C++, Lifetimes, Ownership and Borrow Checker)"
+      ]
+    },
+    {
+      "id": "c",
+      "name": "C",
+      "emoji": "☝️",
+      "title": "[C](https://en.wikipedia.org/wiki/C_(programming_language))",
+      "abs": 2,
+      "i13s": 4,
+      "exp": 5,
+      "notes": [
+        "If you asked me one single most important PL, I would not hesitate and answer C. It serves as the footstone of nowadays world. It's just so fundamental, irreplaceable, and influential that no programmer could ignore.",
+        "The header emoji points to the beloved [pointer](https://en.wikipedia.org/wiki/Pointer_(computer_programming))! I don't blame its unsafety because it's designed to directly manipulate memory. I wasn't clicked the usefulness of pointer arithmetics until I wrote my first PL VM and implemented several GC algorithms with it."
+      ]
+    },
+    {
+      "id": "basic",
+      "name": "BASIC",
+      "emoji": "🧱",
+      "title": "[BASIC](https://en.wikipedia.org/wiki/BASIC)",
+      "abs": 5,
+      "i13s": 1,
+      "exp": 0,
+      "notes": [
+        "My very first PL taught by my father in my childhood. It always have a special place in my heart (though I have totally forgotten everything I learned). It marked the start of my life as a programmer."
+      ]
+    },
+    {
+      "id": "llvm",
+      "name": "LLVM",
+      "emoji": "🐉",
+      "title": "[Low Level Virtual Machine](https://en.wikipedia.org/wiki/LLVM)",
+      "abs": 1,
+      "i13s": 7,
+      "exp": 2,
+      "notes": [
+        "Here comes the dragon!",
+        "TBD (Intermediate Representation, SSA, Optimizing)"
+      ]
+    },
+    {
+      "id": "jvm",
+      "name": "JVM",
+      "emoji": "🥤",
+      "title": "[Java Virtual Machine](https://en.wikipedia.org/wiki/Java_virtual_machine)",
+      "abs": 1,
+      "i13s": 5,
+      "exp": 2,
+      "notes": ["TBD (IR, Bytecode, JIT, GC)"]
+    },
+    {
+      "id": "wasm",
+      "name": "Wasm",
+      "emoji": "🟦",
+      "title": "[Web Assembly](https://en.wikipedia.org/wiki/WebAssembly)",
+      "abs": 1,
+      "i13s": 7,
+      "exp": 4,
+      "notes": [
+        "TBD (Formal semantics, VM, Type system, Structured control flow)"
+      ]
+    },
+    {
+      "id": "asm",
+      "name": "Asm",
+      "emoji": "0️⃣",
+      "title": "[Assembly Language](https://en.wikipedia.org/wiki/Assembly_language)",
+      "abs": 0,
+      "i13s": 4,
+      "exp": 2,
+      "notes": ["TBD (Compiler geek)"]
+    }
+  ],
+  "drafts": [
+    {
+      "id": "hack",
+      "name": "Hack",
+      "emoji": "🧭",
+      "title": "[Hack](https://hacklang.org/)",
+      "abs": 5,
+      "i13s": 0,
+      "exp": 1,
+      "notes": ["Hack's logo looks like a compass to me"]
+    }
+  ]
+}
