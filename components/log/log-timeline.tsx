@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
   adjustRailForHidden,
   computeBeams,
+  computeCommitHash,
   computeInferredBeams,
   computeRail,
   type FilterableCommitType,
@@ -15,11 +16,17 @@ import {
   isRowVisible,
   type Tag,
 } from "@/lib/log";
-import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
+import {
+  computeSquashRuns,
+  DEFAULT_FORM,
+  type LogForm,
+  type SquashRun,
+} from "@/lib/log-view";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
+import { SquashRow } from "./squash-row";
 import { TimelineConnector } from "./timeline-connector";
 import type { BeamSpec } from "./timeline-commit";
 import { useTimelineEdit } from "./timeline-edit-context";
@@ -168,6 +175,73 @@ function TagBlock({
     [],
   );
 
+  // The chapter's folds: every run of two or more talks (press, posts)
+  // between two works prints as one line until pressed (`computeSquashRuns`,
+  // lib/log-view.ts). Not in the feed, which prints everything by
+  // definition; not under a type filter, where the reader has asked for
+  // exactly these rows; not in the editor, which has to reach every row.
+  const folds = !edit && form !== "feed" && activeTypes.length === 0;
+  const squashRuns = useMemo(
+    () =>
+      folds
+        ? computeSquashRuns(commits, (c) => isRowVisible(c, activeTypes))
+        : [],
+    [commits, activeTypes, folds],
+  );
+  const [unfolded, setUnfolded] = useState<Set<string>>(() => new Set());
+  const toggleRun = useCallback((key: string) => {
+    setUnfolded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+  // The rows a fold is standing for right now — hidden the way a filtered
+  // row is, so the rail brackets around them and no beam ends in a fold.
+  const squashed = useMemo(() => {
+    const ids = new Set<string>();
+    for (const run of squashRuns) {
+      if (unfolded.has(run.key)) continue;
+      for (const i of run.indices) ids.add(commits[i].id);
+    }
+    return ids;
+  }, [squashRuns, unfolded, commits]);
+
+  // A permalink to a folded row unfolds its run first, so `/works#<hash>`
+  // still lands: on arrival, and on a hash change from inside the page. The
+  // anchor (useCommitAnchor) looks the row up on the same event, before this
+  // has re-rendered, so once the rows are mounted the event is sent again
+  // for it — once, guarded by the ref, which is what keeps the second event
+  // from unfolding anything and sending a third.
+  const unfoldedRef = useRef(unfolded);
+  useEffect(() => {
+    unfoldedRef.current = unfolded;
+  }, [unfolded]);
+  const [pendingHash, setPendingHash] = useState<string | null>(null);
+  useEffect(() => {
+    if (squashRuns.length === 0) return;
+    const reveal = () => {
+      const hash = window.location.hash.replace(/^#/, "");
+      if (!/^[0-9a-f]{7}$/.test(hash)) return;
+      const run = squashRuns.find((r) =>
+        r.indices.some((i) => computeCommitHash(commits[i].id) === hash),
+      );
+      if (!run || unfoldedRef.current.has(run.key)) return;
+      setUnfolded((prev) => new Set(prev).add(run.key));
+      setPendingHash(hash);
+    };
+    reveal();
+    window.addEventListener("hashchange", reveal);
+    return () => window.removeEventListener("hashchange", reveal);
+  }, [squashRuns, commits]);
+  useEffect(() => {
+    if (!pendingHash) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consumed once the rows are mounted
+    setPendingHash(null);
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  }, [pendingHash]);
+
   // Compute beam specs for explicit `attachedTo` attachments. Both
   // endpoints (source + target) carry the same spec so hovering/
   // focusing/expanding EITHER end brightens the connector line.
@@ -190,8 +264,10 @@ function TagBlock({
     // that survive, beams with a hidden endpoint are dropped, the render
     // loop below skips the rest, and the block prints nothing if none are
     // left. It is `isRowVisible` negated — the same question /works asks
-    // for its chip counts and its empty state.
-    const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
+    // for its chip counts and its empty state — plus the rows a fold is
+    // standing for, which are off the page in the same sense.
+    const hidden = (c: CommitData) =>
+      !isRowVisible(c, activeTypes) || squashed.has(c.id);
 
     const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
     const allBeams = [
@@ -237,9 +313,11 @@ function TagBlock({
       attachments: attachmentsWithGaps,
       bylines: bylinesArr,
       isHidden: hidden,
-      hasVisible: commits.some((c) => !hidden(c)),
+      // Present, not printed: a chapter whose every row is behind a fold
+      // still prints the fold.
+      hasVisible: commits.some((c) => isRowVisible(c, activeTypes)),
     };
-  }, [commits, identities, locale, activeTypes]);
+  }, [commits, identities, locale, activeTypes, squashed]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
@@ -312,10 +390,18 @@ function TagBlock({
           // author bylines.
           type Run =
             | { kind: "loose"; indices: number[] }
-            | { kind: "cluster"; segmentId: string; indices: number[] };
+            | { kind: "cluster"; segmentId: string; indices: number[] }
+            | { kind: "squash"; run: SquashRun };
           const runs: Run[] = [];
+          const foldAt = new Map<number, SquashRun>(
+            squashRuns.map((run) => [run.indices[0], run]),
+          );
           for (let i = 0; i < commits.length; i++) {
             const c = commits[i];
+            // A fold prints where its run begins, whether or not the run
+            // is open under it — open, the line is the way back.
+            const fold = foldAt.get(i);
+            if (fold) runs.push({ kind: "squash", run: fold });
             if (isHidden(c)) continue;
             const sid = railInfo[i].segmentId;
             const last = runs[runs.length - 1];
@@ -329,7 +415,43 @@ function TagBlock({
               runs.push({ kind: "loose", indices: [i] });
             }
           }
+          // The first printed row from `from` on, for the rail question a
+          // fold asks (see `SquashRow`'s `rail`).
+          const printedFrom = (from: number) => {
+            for (let i = from; i < commits.length; i++) {
+              if (!isHidden(commits[i])) return i;
+            }
+            return -1;
+          };
+          const printedBefore = (before: number) => {
+            for (let i = before - 1; i >= 0; i--) {
+              if (!isHidden(commits[i])) return i;
+            }
+            return -1;
+          };
           return runs.map((run, runIdx) => {
+            if (run.kind === "squash") {
+              const first = run.run.indices[0];
+              const above = printedBefore(first);
+              const below = printedFrom(first);
+              // The rail runs through the fold when the rows either side of
+              // it are one tenure — the same line the rows themselves draw.
+              const through =
+                above >= 0 &&
+                below >= 0 &&
+                railInfo[above].segmentId !== null &&
+                railInfo[above].segmentId === railInfo[below].segmentId;
+              return (
+                <SquashRow
+                  key={`squash-${run.run.key}`}
+                  commits={run.run.indices.map((i) => commits[i])}
+                  locale={locale}
+                  open={unfolded.has(run.run.key)}
+                  onToggle={() => toggleRun(run.run.key)}
+                  rail={through}
+                />
+              );
+            }
             const rows = run.indices.map((i) => (
               <Commit
                 key={commits[i].id}

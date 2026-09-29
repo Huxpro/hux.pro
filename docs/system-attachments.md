@@ -244,6 +244,18 @@ parse, as aliases.
 | `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
+### The folds
+
+A run of two or more talks (press, posts) with no work between them prints
+as one line where the run sits — `··· ◔ 12 talks  React Summit, GOSIM … 2023 – 2026 ⌄`
+— and unfolds in place into the rows it stands for (`computeSquashRuns`,
+`lib/log-view.ts`; `SquashRow`, `components/log/squash-row.tsx`). The rows
+keep their place in the chronology; the page just stops printing what the
+reader has not asked for, the way a diff folds unchanged lines. A single
+talk between two projects stays a row. The feed prints everything, a type
+filter prints rows (the filter is the ask), and the editor never folds.
+A permalink into a fold unfolds it on the way in.
+
 ### The attachment object
 
 Every cover is one tile (`AttachmentTile`,

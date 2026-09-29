@@ -17,8 +17,75 @@
 
 import {
   FILTERABLE_COMMIT_TYPES,
+  type CommitType,
   type FilterableCommitType,
 } from "./log";
+
+// =============================================================================
+// Squash — a run of talks between two works, folded to one line.
+//
+// A chapter of the log is mostly what was *said* about its work: the current
+// one opens on twelve talks before it reaches the framework they are all
+// about, and a reader scrolling for the work reads the conference circuit
+// first. The rows are right where they are — a log is chronological — so
+// the page does not move them. It folds them: a run of two or more talks,
+// press or posts with no work between them prints as one line where the
+// run sits, in the log's own voice (`12 talks · React Summit, GOSIM …`),
+// and unfolds in place into the rows it stands for. The way a rebase
+// squashes a run of commits into one, and the way a diff folds unchanged
+// lines: nothing is gone, the page just stops printing what the reader has
+// not asked for.
+//
+// A single talk between two projects stays a row — one line folded to one
+// line would be a fold hiding nothing. And a reader who *has* asked for the
+// talks (`?type=talk`) gets rows, not folds: the filter is the ask.
+// =============================================================================
+
+/** The types a run can be made of: what was said about the work. */
+export function isSquashable(type: CommitType): boolean {
+  return type === "talk" || type === "press" || type === "post";
+}
+
+/** A run of squashable rows: the indices, in the chapter's order, of the
+ *  rows it folds. `key` names the run by its first row, so the fold's open
+ *  state survives a re-render that rebuilds the array. */
+export interface SquashRun {
+  key: string;
+  indices: number[];
+}
+
+/**
+ * The runs in a chapter: every stretch of two or more consecutive
+ * squashable rows among the rows that print (`visible`), broken by any
+ * printed row that is not squashable. Rows that do not print (a `hideRow`
+ * role sitting between two talks) neither join nor break a run: they are
+ * not on the page either way.
+ *
+ * Generic over anything with a `type` and an `id`, so the page and the
+ * editor would fold a chapter identically — though the editor does not
+ * fold at all (it has to reach every row).
+ */
+export function computeSquashRuns<T extends { id: string; type: CommitType }>(
+  commits: readonly T[],
+  visible: (commit: T) => boolean,
+  minimum = 2,
+): SquashRun[] {
+  const runs: SquashRun[] = [];
+  let current: number[] = [];
+  const flush = () => {
+    if (current.length >= minimum) {
+      runs.push({ key: commits[current[0]].id, indices: current });
+    }
+    current = [];
+  };
+  commits.forEach((c, i) => {
+    if (!visible(c)) return;
+    if (isSquashable(c.type)) current.push(i);
+    else flush();
+  });
+  flush();
+  return runs;
+}
 
 // =============================================================================
 // Form — how much of each commit is printed, as a composition.
