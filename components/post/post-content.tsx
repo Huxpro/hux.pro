@@ -56,7 +56,7 @@ function renderMarkdownLinks(md: string): ReactNode {
         href={match[2]}
         target="_blank"
         rel="noopener noreferrer"
-        className="underline underline-offset-2 decoration-ink-line hover:text-foreground hover:decoration-foreground transition-colors"
+        className="link-out underline underline-offset-2 decoration-ink-line hover:text-foreground hover:decoration-foreground transition-colors"
       >
         {match[1]}
       </a>

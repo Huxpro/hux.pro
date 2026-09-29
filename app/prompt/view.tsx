@@ -206,7 +206,7 @@ function LinkRow({
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className={cn("text-xs font-mono text-muted-foreground", linkClass)}
+          className={cn("link-out text-xs font-mono text-muted-foreground", linkClass)}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 + i * 0.05, duration: 0.2 }}
@@ -298,7 +298,7 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
             rel: "noopener noreferrer",
             onClick: (e: React.MouseEvent) => e.stopPropagation(),
           })}
-      className={cn("text-muted-foreground", linkClass)}
+      className={cn("text-muted-foreground", !attribution.ref && "link-out", linkClass)}
     >
       <Marks text={attribution.name} />
     </a>
@@ -320,7 +320,7 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className={cn("text-tertiary-foreground", linkClass)}
+              className={cn("link-out text-tertiary-foreground", linkClass)}
             >
               <Marks text={attribution.source} />
             </a>

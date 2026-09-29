@@ -12,10 +12,7 @@
  */
 
 import { useState, useEffect } from "react";
-import {
-  ExternalLink as ExternalLinkIcon,
-  Image as ImageIcon,
-} from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchOGData } from "@/lib/og";
 import type { OGData } from "@/lib/og-core";
@@ -136,14 +133,13 @@ export function Link({ url, label, icon, className }: LinkProps) {
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "group inline-flex items-center gap-1.5",
+        "link-out inline-flex items-center",
         "text-sm text-muted-foreground hover:text-foreground",
         "transition-colors",
         className
       )}
     >
       <span className="truncate">{displayLabel}</span>
-      <ExternalLinkIcon className="w-3.5 h-3.5 shrink-0 opacity-50 group-hover:opacity-100" />
     </a>
   );
 }

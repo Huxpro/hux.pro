@@ -182,12 +182,9 @@ export function TimelineMini({
                   href={data.metaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                  className="link-out hover:text-foreground transition-colors"
                 >
                   {data.meta}
-                  <span aria-hidden className="text-[0.7rem]">
-                    ↗
-                  </span>
                 </a>
               ) : (
                 data.meta
