@@ -473,6 +473,9 @@ function BoardItem({
               className={cn(
                 "ink-bare-mid pointer-events-none absolute inset-x-0 top-full mt-1.5 hidden truncate px-1 text-center capitalize skin-apple:block",
                 TYPE.appLabel,
+                // Caption 1 in the primary label colour, as iOS names a
+                // widget — and as the icon names beside it (`.app-grid`).
+                "text-[12px] leading-4 text-foreground",
                 isDragging && "invisible",
               )}
             >

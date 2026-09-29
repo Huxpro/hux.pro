@@ -209,7 +209,7 @@ function PostHero({ post, locale }: { post: BlogPostSummary; locale: Locale }) {
       href={getPostHref(post, locale, "/writing")}
       className={cn(
         "pressable relative -mx-2 hidden rounded-lg px-2 pb-3 pt-1 transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35 skin-apple:block",
-        "after:absolute after:inset-x-2 after:bottom-0 after:h-px after:bg-border",
+        "after:absolute after:inset-x-2 after:bottom-0 after:h-px after:origin-bottom after:scale-y-50 after:bg-(--apple-separator)",
       )}
     >
       <div className={cn("text-[13px] capitalize", TYPE.rowMeta)}>
@@ -250,7 +250,7 @@ function PostRow({
         // Apple skin: a list the way Reminders and Notes draw one — rows a
         // little taller, divided by hairlines inset to the text.
         "relative skin-apple:py-2.5",
-        "skin-apple:after:absolute skin-apple:after:inset-x-2 skin-apple:after:bottom-0 skin-apple:after:h-px skin-apple:after:bg-border skin-apple:last:after:hidden",
+        "skin-apple:after:absolute skin-apple:after:inset-x-2 skin-apple:after:bottom-0 skin-apple:after:h-px skin-apple:after:bg-(--apple-separator) skin-apple:after:origin-bottom skin-apple:after:scale-y-50 skin-apple:last:after:hidden",
         className,
       )}
     >
@@ -267,11 +267,11 @@ function PostRow({
           that are here *because* they are featured: the slot answers why the
           row is on the card, and for those rows the flag is the answer. */}
       {marker ? (
-        <span className={cn("shrink-0", TYPE.rowMeta, "skin-apple:text-[13px]")}>
+        <span className={cn("shrink-0", TYPE.rowMeta, "skin-apple:text-[13px] skin-apple:capitalize")}>
           {t(locale, "writingFeatured")}
         </span>
       ) : (
-        <time dateTime={post.date} className={cn("shrink-0", TYPE.rowMeta, "skin-apple:text-[13px]")}>
+        <time dateTime={post.date} className={cn("shrink-0", TYPE.rowMeta, "skin-apple:text-[13px] skin-apple:capitalize")}>
           {formatPostDate(post.date)}
         </time>
       )}

@@ -1599,6 +1599,39 @@ html:not([data-widget-skin="classic"]):not(.glass-clear) [data-widget-ink="light
   text-shadow: none;
 }
 
+/* SF Pro's tracking, as one rule. The HIG gives a table (Typography ›
+   Tracking values): +0.06pt at 11pt, 0 at 12, −0.08 at 13, −0.23 at 15,
+   −0.43 at 17, flat at about −0.45 to 20. Between 11 and 17 that is a line,
+   0.96px − 0.082em, and past 17 it is the floor — so one clamped expression
+   reproduces it to within a few hundredths of a point. Letter-spacing
+   inherits as an absolute length, so it is set on every element, each
+   against its own font size.
+
+   Only where the fallback renders: on an Apple device the text is SF itself
+   and the system applies SF's tracking already (`data-system-font`, set by
+   the skin provider), so adding it again would double it. */
+html:not([data-widget-skin="classic"]):not([data-system-font]) :is([data-widget-board], [data-widget]) * {
+  letter-spacing: max(-0.45px, calc(0.96px - 0.082em));
+}
+
+/* Apple's separator: a hairline, not a 1px rule — half a pixel on a 2×
+   screen — in the system separator colour, which is darker than our
+   border ink because it is thinner. */
+:root {
+  --apple-separator: rgb(60 60 67 / 0.29);
+}
+.dark {
+  --apple-separator: rgb(84 84 88 / 0.65);
+}
+
+/* A list port never scrolls under the Apple skin: widgets have no scroll
+   gesture (HIG, Widgets › Interactivity) — more than fits is a bigger size
+   or the page. The last row the box cuts fades out instead. */
+html:not([data-widget-skin="classic"]) [data-widget] [data-scroll-port] {
+  overflow: hidden !important;
+  scroll-snap-type: none !important;
+}
+
 /* Apple's widgets carry no "open" arrow — the whole widget is the link. The
    header arrow stays in the tree as the keyboard's stop, and shows only
    when the keyboard is on it. */
@@ -1723,6 +1756,11 @@ html:not([data-widget-skin="classic"]) .app-grid [data-app-label] {
   margin-top: 0.375rem;
   width: calc(var(--icon) + var(--icon-hgap));
   max-width: none;
+  /* iOS sets a Home Screen name at 12pt in the primary label colour — the
+     same voice as a widget's name (Caption 1). */
+  font-size: 12px;
+  line-height: 1rem;
+  color: var(--foreground);
 }
 
 /* The grip is the one control on a card that must take a touch drag for

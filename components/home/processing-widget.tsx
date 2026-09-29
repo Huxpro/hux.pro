@@ -22,7 +22,9 @@ import {
   computeRail,
   resolveGroupCommits,
 } from "@/lib/log";
+import { APPLE } from "@/lib/apple-type";
 import { TYPE } from "@/lib/typography";
+import { Link } from "next-view-transitions";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useMemo } from "react";
@@ -214,6 +216,46 @@ export function ProcessingWidget({
 
       {/* No port, on any device: the group is short enough to print whole,
           so there is nothing to scroll and nothing to cut. */}
+      {/* Apple skin: a list the way Stocks and Reminders set one — the
+          project, the team it belongs to under it, the years on the right,
+          hairlines between. No git rail and no handles: they are the /works
+          page's voice, and the row opens its entry there. The project in
+          progress wears the green dot the medium card's title does. */}
+      <WidgetBody fill className="hidden skin-apple:flex">
+        {commits.map((c, i) =>
+          c.type !== "project" || !isRowVisible(c) ? null : (
+            <Link
+              key={c.id}
+              href={`/works#${rows[i].hash}`}
+              className={cn(
+                "pressable relative -mx-2 flex items-center gap-3 rounded-lg px-2 py-2",
+                "transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35",
+                "after:absolute after:inset-x-2 after:bottom-0 after:h-px after:origin-bottom after:scale-y-50 after:bg-(--apple-separator) last:after:hidden",
+              )}
+            >
+              <div className="min-w-0 flex-1">
+                <div className={cn("flex min-w-0 items-center gap-1.5 text-foreground", APPLE.subheadline)}>
+                  {c.endDate === "present" && (
+                    <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-(--apple-green)" />
+                  )}
+                  <span className="truncate">{rows[i].title}</span>
+                </div>
+                {(bylines[i]?.subtitle ?? bylines[i]?.expanded.company) && (
+                  <div className={cn("truncate text-muted-foreground", APPLE.footnote)}>
+                    {bylines[i]?.subtitle ?? bylines[i]?.expanded.company}
+                  </div>
+                )}
+              </div>
+              <div className={cn("shrink-0 tabular-nums text-muted-foreground", APPLE.footnote)}>
+                {hideDateFor(c) ? rows[i].dateSlotOverride : rows[i].date}
+              </div>
+            </Link>
+          ),
+        )}
+      </WidgetBody>
+
+      {/* `contents` keeps Classic's layout exactly as it was; Apple drops it. */}
+      <div className="contents skin-apple:hidden">
       <WidgetScrollBody fill>
         {runs.map((run, runIdx) => {
           const nodes = run.indices.map((i) => (
@@ -237,6 +279,7 @@ export function ProcessingWidget({
           );
         })}
       </WidgetScrollBody>
+      </div>
     </WidgetShell>
   );
 }

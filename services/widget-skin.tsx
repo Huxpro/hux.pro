@@ -87,6 +87,14 @@ export function WidgetSkinProvider({ children }: { children: React.ReactNode }) 
     document.documentElement.dataset.widgetSkin = skin;
   }, [skin]);
 
+  // Whether the widget font resolves to SF itself (an Apple platform), in
+  // which case the system already tracks it and the skin's SF-tracking rule
+  // for the fallback font stands down (globals.css).
+  useEffect(() => {
+    const apple = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+    document.documentElement.toggleAttribute("data-system-font", apple);
+  }, []);
+
   const setSkin = useCallback((next: WidgetSkin) => {
     setSkinState(next);
     try {

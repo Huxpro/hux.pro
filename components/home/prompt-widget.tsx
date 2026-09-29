@@ -151,7 +151,9 @@ function QuoteDisplay({
       <blockquote className={cn("font-serif text-base text-foreground leading-relaxed", CLAMP)}>
         &ldquo;<Marks text={item.text} />&rdquo;
       </blockquote>
-      <p className={cn("mt-2 truncate", TYPE.caption)}>
+      <p className={cn("mt-2 truncate", TYPE.caption, "skin-apple:text-[13px]")}>
+        {/* Apple skin: an attribution the way Apple sets one — a dash. */}
+        <span className="hidden skin-apple:inline">— </span>
         {item.author}
         {item.source && (
           <span className="text-tertiary-foreground">
@@ -276,11 +278,15 @@ export function PromptWidget({ size = "medium" }: { size?: WidgetSize }) {
     // "View prompts" in the header stays the whole page.
     <WidgetShell accent="teal" href={`/prompt#${current.anchor}`}>
       <WidgetHeader>
-        <div className="flex items-center gap-2">
+        {/* Apple skin: the one action is a widget button — a tinted circle
+            in the widget's colour, in the corner, as Reminders and Podcasts
+            draw theirs — rather than a glyph beside the title. */}
+        <div className="flex items-center gap-2 skin-apple:flex-1 skin-apple:justify-between">
           <WidgetTitle>{t(locale, "widgetPrompt")}</WidgetTitle>
           <WidgetIconButton
             label={t(locale, "widgetPromptNext")}
             onClick={handleNext}
+            className="skin-apple:m-0 skin-apple:rounded-full skin-apple:bg-(--widget-accent)/15 skin-apple:text-(--widget-accent) skin-apple:hover:bg-(--widget-accent)/25 skin-apple:active:bg-(--widget-accent)/35"
           >
             <RefreshCw
               className="h-3 w-3 transition-transform duration-300"
