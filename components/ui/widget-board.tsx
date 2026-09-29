@@ -60,6 +60,7 @@ import {
   type Placed,
   type WidgetSize,
 } from "./widget-size";
+import { TYPE } from "@/lib/typography";
 import { landsOnOwnAction } from "./widget-surface";
 
 // =============================================================================
@@ -126,6 +127,12 @@ export interface BoardWidget {
   defaultSize?: WidgetSize;
   /** Render the widget at a size it supports. Called for the grid and the lifted clone alike. */
   render: (size: WidgetSize) => ReactNode;
+  /**
+   * The widget's name, drawn under it by the Apple skin the way iOS labels a
+   * widget on the Home Screen. Omitted for a widget whose contents are
+   * already labelled (the app folder's icons).
+   */
+  label?: string;
 }
 
 /** Cells of board it takes before a roomy display unlocks its eighth column. */
@@ -188,7 +195,11 @@ const CLONE_EDIT_CONTEXT: BoardEditContextValue = {
 interface BoardMetrics {
   cols: number;
   cell: number;
+  /** Column gap. */
   gap: number;
+  /** Row gap — wider than the column gap under the Apple skin, where each
+   *  widget's name sits beneath it. */
+  rowGap: number;
   /** Viewport x of the first column (the grid is centered in its frame). */
   originX: number;
   /** Viewport y of the first row. */
@@ -204,12 +215,14 @@ function readMetrics(grid: HTMLElement): BoardMetrics | null {
   if (tracks.length === 0) return null;
   const cell = tracks[0];
   const gap = Number.parseFloat(style.columnGap) || 0;
+  const rowGap = Number.parseFloat(style.rowGap) || gap;
   const rect = grid.getBoundingClientRect();
   const content = tracks.length * cell + (tracks.length - 1) * gap;
   return {
     cols: tracks.length,
     cell,
     gap,
+    rowGap,
     originX: rect.left + (rect.width - content) / 2,
     originY: rect.top,
   };
@@ -296,12 +309,14 @@ function BoardItem({
   size,
   offered,
   editing,
+  label,
   onResize,
   children,
 }: {
   id: string;
   index: number;
   size: WidgetSize;
+  label?: string;
   /** Sizes this widget can be switched to on the current board. */
   offered: readonly WidgetSize[];
   editing: boolean;
@@ -345,6 +360,7 @@ function BoardItem({
     const startX = e.clientX;
     const startY = e.clientY;
     const stride = metrics.cell + metrics.gap;
+    const rowStride = metrics.cell + metrics.rowGap;
     let moved = false;
     let current = size;
     const button = e.currentTarget;
@@ -357,7 +373,7 @@ function BoardItem({
       }
       moved = true;
       const w = (ev.clientX - origin.left + metrics.gap) / stride;
-      const h = (ev.clientY - origin.top + metrics.gap) / stride;
+      const h = (ev.clientY - origin.top + metrics.rowGap) / rowStride;
       const next = resolveResize(w, h, current, offered);
       if (next !== current) {
         current = next;
@@ -446,6 +462,23 @@ function BoardItem({
           }
         >
           {children}
+          {/* Apple skin: the widget's name under it, in the row gap the
+              skin widens for it (`.widget-board`). Part of the jiggling
+              object, so it moves with the widget; hidden while its widget
+              is in the hand, as iOS does. Read off the wallpaper's middle
+              band like the app folder's icon labels, so it flips with them. */}
+          {label && (
+            <span
+              aria-hidden
+              className={cn(
+                "ink-bare-mid pointer-events-none absolute inset-x-0 top-full mt-1.5 hidden truncate px-1 text-center capitalize skin-apple:block",
+                TYPE.appLabel,
+                isDragging && "invisible",
+              )}
+            >
+              {label}
+            </span>
+          )}
           {editing && offered.length > 1 && (
             <button
               type="button"
@@ -462,13 +495,19 @@ function BoardItem({
                 "border border-border/60 bg-glass-strong-hover text-muted-foreground shadow-raised backdrop-blur-xl",
                 "transition-colors hover:text-foreground active:text-foreground",
                 resizing && "text-foreground",
+                // Apple skin: iOS 18's handle — no button, just a white arc
+                // that follows the widget's own corner a few pixels outside
+                // it. Sized from the cell like the corner, so the two curves
+                // stay concentric at every cell size.
+                "skin-apple:-bottom-1 skin-apple:-right-1 skin-apple:size-[calc(var(--cell)*0.14+8px)] skin-apple:min-h-7 skin-apple:min-w-7",
+                "skin-apple:rounded-none skin-apple:border-0 skin-apple:bg-transparent skin-apple:shadow-none skin-apple:backdrop-blur-none",
               )}
             >
               {/* A corner bracket: the thing you take hold of is the corner. */}
               <svg
                 aria-hidden
                 viewBox="0 0 12 12"
-                className="h-3 w-3"
+                className="h-3 w-3 skin-apple:hidden"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
@@ -477,6 +516,26 @@ function BoardItem({
               >
                 <path d="M2 10h8V2" />
                 <path d="M6 6l4 4" />
+              </svg>
+              {/* The arc: centred on the corner's own centre (4, 4 in a box
+                  that overhangs the widget by 4px), a little outside it. */}
+              <svg
+                aria-hidden
+                viewBox="0 0 30 30"
+                className={cn(
+                  "hidden size-full overflow-visible skin-apple:block",
+                  "drop-shadow-[0_1px_2px_rgb(0_0_0/0.35)] transition-transform duration-150",
+                  resizing && "scale-110",
+                )}
+                fill="none"
+                stroke="white"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+              >
+                {/* 15°→75° of a circle r=25 about (4, 4): the corner's
+                    radius is 22 at this scale, so the stroke clears the
+                    widget's edge by a hair. */}
+                <path d="M 28.15 10.47 A 25 25 0 0 1 10.47 28.15" />
               </svg>
             </button>
           )}
@@ -511,7 +570,12 @@ export function WidgetBoard({
   const byId = useMemo(() => {
     const map = new Map<
       string,
-      { render: BoardWidget["render"]; sizes: WidgetSize[]; defaultSize: WidgetSize }
+      {
+        render: BoardWidget["render"];
+        sizes: WidgetSize[];
+        defaultSize: WidgetSize;
+        label?: string;
+      }
     >();
     for (const item of items) {
       const sizes = sortSizes(item.sizes);
@@ -519,7 +583,12 @@ export function WidgetBoard({
         item.defaultSize && sizes.includes(item.defaultSize)
           ? item.defaultSize
           : sizes[0];
-      map.set(item.id, { render: item.render, sizes, defaultSize });
+      map.set(item.id, {
+        render: item.render,
+        sizes,
+        defaultSize,
+        label: item.label,
+      });
     }
     return map;
   }, [items]);
@@ -662,9 +731,10 @@ export function WidgetBoard({
     if (!metrics) return;
     const id = String(e.active.id);
     const stride = metrics.cell + metrics.gap;
+    const rowStride = metrics.cell + metrics.rowGap;
     const cell = snapToCell(
       (rect.left - metrics.originX) / stride,
-      (rect.top - metrics.originY) / stride,
+      (rect.top - metrics.originY) / rowStride,
       FOOTPRINT[sizeOf(id)],
       metrics.cols,
     );
@@ -789,6 +859,7 @@ export function WidgetBoard({
                   size={size}
                   offered={offeredSizes(widget.sizes, fit)}
                   editing={editing}
+                  label={widget.label}
                   onResize={handleResize}
                 >
                   {widget.render(size)}
@@ -852,7 +923,7 @@ export function WidgetBoard({
               <button
                 type="button"
                 onClick={handleReset}
-                className="pressable text-xs font-mono text-tertiary-foreground transition-colors hover:text-muted-foreground active:text-foreground"
+                className="pressable text-xs font-mono text-tertiary-foreground transition-colors hover:text-muted-foreground active:text-foreground skin-apple:font-(family-name:--font-widget) skin-apple:text-[15px] skin-apple:text-muted-foreground"
               >
                 {t(locale, "widgetEditReset")}
               </button>
@@ -860,7 +931,7 @@ export function WidgetBoard({
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="pressable rounded-full border border-border/60 bg-glass-strong-hover px-5 py-2.5 md:px-4 md:py-1.5 text-xs font-mono text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground"
+              className="pressable rounded-full border border-border/60 bg-glass-strong-hover px-5 py-2.5 md:px-4 md:py-1.5 text-xs font-mono text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground skin-apple:font-(family-name:--font-widget) skin-apple:text-[15px] skin-apple:font-semibold skin-apple:text-foreground skin-apple:border-transparent"
             >
               {t(locale, "widgetEditDone")}
             </button>

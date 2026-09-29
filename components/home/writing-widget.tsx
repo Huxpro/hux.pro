@@ -115,7 +115,7 @@ export function WritingWidget({
   if (size === "medium") {
     const post = rows[0].post;
     return (
-      <WidgetShell href="/writing">
+      <WidgetShell accent="orange" href="/writing">
         <WidgetHeader className="pb-2">
           <WidgetTitle>{t(locale, "widgetBlog")}</WidgetTitle>
           <WidgetLink href="/writing" />
@@ -152,7 +152,7 @@ export function WritingWidget({
   }
 
   return (
-    <WidgetShell href="/writing">
+    <WidgetShell accent="orange" href="/writing">
       <WidgetHeader className="pb-2">
         <WidgetTitle>{t(locale, "widgetBlog")}</WidgetTitle>
         <WidgetLink href="/writing" />

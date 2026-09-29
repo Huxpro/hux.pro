@@ -49,7 +49,7 @@ export function MusicWidget({ size = "medium" }: { size?: WidgetSize }) {
 
   if (size === "small") {
     return (
-      <WidgetShell onOpen={openPlaylist}>
+      <WidgetShell accent="pink" onOpen={openPlaylist}>
         {track && (
           <>
             {/* The art is the surface: full bleed, under a scrim that keeps
@@ -133,7 +133,7 @@ export function MusicWidget({ size = "medium" }: { size?: WidgetSize }) {
   }
 
   return (
-    <WidgetShell onOpen={openPlaylist}>
+    <WidgetShell accent="pink" onOpen={openPlaylist}>
       <WidgetHeader className="pb-3">
         <div className="flex items-center gap-2 min-w-0">
           {showEQ && <EQBars className="text-green-500" />}

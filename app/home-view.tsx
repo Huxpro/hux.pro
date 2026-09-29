@@ -44,7 +44,7 @@ import type { Commit as CommitData, Group, RawLogData } from "@/lib/log";
 import { localize, normalizeLogData, resolveGroupCommits } from "@/lib/log";
 import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
 import ogSnapshotJson from "@/content/og-snapshot.json";
-import { useLocale } from "@/services";
+import { t, useLocale } from "@/services";
 import {
   AmbientGreeting,
   WEATHER_WIDGET_SIZES,
@@ -163,6 +163,7 @@ function WidgetGrid({
             id: "weather",
             sizes: WEATHER_WIDGET_SIZES,
             defaultSize: "small",
+            label: t(locale, "widgetWeather"),
             render: (size) => <WeatherWidget size={size} />,
           } satisfies BoardWidget,
         ]
@@ -170,12 +171,14 @@ function WidgetGrid({
     {
       id: "music",
       sizes: MUSIC_WIDGET_SIZES,
+      label: t(locale, "widgetMusicIdle"),
       defaultSize: weatherWidget ? "small" : "medium",
       render: (size) => <MusicWidget size={size} />,
     },
     {
       id: "blog",
       sizes: WRITING_WIDGET_SIZES,
+      label: t(locale, "widgetBlog"),
       defaultSize: "large",
       render: (size) => <WritingWidget posts={posts} size={size} />,
     },
@@ -186,6 +189,7 @@ function WidgetGrid({
           {
             id: "status",
             sizes: PROCESSING_WIDGET_SIZES,
+            label: t(locale, "widgetStatus"),
             defaultSize: "large",
             render: (size) => (
               <ProcessingWidget
@@ -200,12 +204,14 @@ function WidgetGrid({
     {
       id: "featured-talks",
       sizes: TALKS_WIDGET_SIZES,
+      label: t(locale, "widgetFeaturedTalks"),
       defaultSize: "large",
       render: (size) => <FeaturedTalksWidget size={size} />,
     },
     {
       id: "prompt",
       sizes: PROMPT_WIDGET_SIZES,
+      label: t(locale, "widgetPrompt"),
       defaultSize: "medium",
       render: (size) => <PromptWidget size={size} />,
     },
@@ -213,6 +219,7 @@ function WidgetGrid({
       (group): BoardWidget => ({
         id: `group-${group.id}`,
         sizes: STACK_WIDGET_SIZES,
+        label: localize(group.title, locale),
         defaultSize: "large",
         render: () => <GroupWidget group={group} />,
       }),
