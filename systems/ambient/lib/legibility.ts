@@ -32,7 +32,7 @@
 // =============================================================================
 
 import { PAGE_RGB, relativeLuminance01, rgb01ToOklab } from "./color";
-import { mixRGB, type RGB, type WeatherScene } from "./scene";
+import { mixRGB, scaleRGB, type RGB, type WeatherScene } from "./scene";
 import { clamp01 } from "./solar";
 import type { WeatherStyle } from "./wallpaper";
 import { getPlainProfile, type WallpaperProfile, type WallpaperTint } from "./wallpaper-profile";
@@ -312,7 +312,8 @@ export function profileFromScene(params: {
   theme: Theme;
 }): WallpaperProfile {
   const { scene, style, opacity, theme } = params;
-  const veil = (c: RGB) => mixRGB(c, scene.veil.color, scene.veil.amount);
+  const veil = (c: RGB) =>
+    mixRGB(scaleRGB(c, scene.flat.exposure), scene.veil.color, scene.veil.amount);
   const page = PAGE_RGB01[theme];
   const over = (c: RGB) => mixRGB(page, c, opacity);
 
