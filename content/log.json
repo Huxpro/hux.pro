@@ -597,12 +597,10 @@
     {
       "id": "gosim-2026-vibe-native",
       "type": "talk",
-      "present": "aside",
-      "asideLine": "venue",
       "tagId": "lynx-era",
       "title": {
         "en": "Why AI Agents Deserve a Better App Framework",
-        "zh": "为什么 AI Agent 配得上更好的应用框架"
+        "zh": "Why AI Agents Deserve a Better App Framework"
       },
       "description": {
         "en": "AI is transforming how apps are built, but not what they are built on. Without a cross platform framework, agents must generate, verify, and maintain separate code for every platform. This talk introduces Lynx and three principles for AI native app infrastructure (AI Ergonomic, AI Efficient, AI Expressive), with vue-lynx vibe coded in two weeks as the demo.",
@@ -819,12 +817,12 @@
       "type": "talk",
       "tagId": "lynx-era",
       "title": {
-        "en": "React for Two Threads · Interview",
-        "zh": "React for Two Threads · Interview"
+        "en": "Beyond React Native: Lynx's Native CSS & Two-Thread Model",
+        "zh": "Beyond React Native: Lynx's Native CSS & Two-Thread Model"
       },
       "description": {
-        "en": "A companion interview at React Universe Conf, going behind the scenes of React for Two Threads and Lynx's dual-threaded design.",
-        "zh": "React Universe 大会的配套访谈，聊聊《为双线程而生的 React》与 Lynx 双线程设计的台前幕后。"
+        "en": "An interview with Callstack at React Universe Conf on Lynx beyond React Native: native CSS ported straight from the web, the two-thread model (BTS/MTS) that keeps native UI and React views in step with interactivity on the main thread, React as a specification, the community bringing Vue and Svelte to Lynx, and the mini app ecosystem Lynx powers at ByteDance.",
+        "zh": "在 React Universe 大会接受 Callstack 的访谈，聊 React Native 之外的 Lynx：可以直接从 Web 搬过来的原生 CSS；让原生 UI 与 React 视图保持同步、并能在主线程上交互的双线程模型（BTS/MTS）；作为一种规范的 React；社区把 Vue 和 Svelte 带到 Lynx 上；以及 Lynx 在字节支撑的小程序生态。"
       },
       "date": "2025-09",
       "conference": {

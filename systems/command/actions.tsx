@@ -9,9 +9,10 @@ import {
   useInputCapability,
   useLocale,
   useTheme,
+  type ThemePreference,
 } from "@/services";
 import { useAbout } from "@/systems/about";
-import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
+import { useLocation, useWallpaper } from "@/systems/ambient";
 import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
 import { installTarget, useInstall } from "@/systems/install";
@@ -97,8 +98,21 @@ export interface CommandAction {
 
 const ROW_ICON = "h-4 w-4";
 
+const APPEARANCE_LABEL = {
+  sun: "themeSun",
+  light: "themeLight",
+  dark: "themeDark",
+  system: "themeSystem",
+} as const satisfies Record<ThemePreference, string>;
+const APPEARANCE_ICON: Record<ThemePreference, typeof Sun> = {
+  sun: Sunrise,
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
+};
+
 export function useCommandActions(): CommandAction[] {
-  const { theme, preference, setThemePreference } = useTheme();
+  const { preference, cycleThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const {
     usingGps: locationAccurate,
@@ -120,7 +134,6 @@ export function useCommandActions(): CommandAction[] {
     tint: glassTint,
     setTint: setGlassTint,
   } = useGlass();
-  const { followSun, setFollowSun } = useSolarTheme();
   const { isShowing: isDevtoolShowing, toggleShowing: toggleDevtool } =
     useDevtool();
   const {
@@ -129,6 +142,7 @@ export function useCommandActions(): CommandAction[] {
     pause: musicPause,
   } = useMusic();
   const { open: openAbout } = useAbout();
+  const AppearanceIcon = APPEARANCE_ICON[preference];
   const { requestVoice } = useCommand();
   const { guide: installGuide, open: openInstall } = useInstall();
   const router = useTransitionRouter();
@@ -143,15 +157,6 @@ export function useCommandActions(): CommandAction[] {
         ? `${getWallpaperPlayName(locale, wallpaperPlay, wallpaperPlayAlbum)} · ${wallpaper.name}`
         : wallpaper.name
       : getWeatherWallpaperName(locale, weatherStyle);
-
-  const themeLabel =
-    preference === "system"
-      ? t(locale, "themeSystem")
-      : theme === "light"
-      ? t(locale, "themeLight")
-      : t(locale, "themeDark");
-  const ThemeIcon =
-    preference === "system" ? Monitor : theme === "light" ? Sun : Moon;
 
   return [
     {
@@ -294,18 +299,30 @@ export function useCommandActions(): CommandAction[] {
       key: "a",
       kind: "toggle",
       section: "settings",
-      label: `${t(locale, "appearance")}: ${themeLabel}`,
-      icon: <ThemeIcon className={ROW_ICON} />,
-      keywords: ["theme", "dark", "light", "mode", "主题", "深色", "浅色"],
-      run: () => {
-        setThemePreference(
-          preference === "system"
-            ? "dark"
-            : preference === "dark"
-            ? "light"
-            : "system"
-        );
-      },
+      label: `${t(locale, "appearance")}: ${t(locale, APPEARANCE_LABEL[preference])}`,
+      icon: <AppearanceIcon className={ROW_ICON} />,
+      keywords: [
+        "theme",
+        "dark",
+        "light",
+        "mode",
+        "system",
+        "sun",
+        "sunrise",
+        "sunset",
+        "follow the sun",
+        "auto theme",
+        "day night",
+        "主题",
+        "深色",
+        "浅色",
+        "系统",
+        "日出",
+        "日落",
+        "太阳",
+        "自动切换",
+      ],
+      run: cycleThemePreference,
     },
     {
       id: "language",
@@ -423,29 +440,6 @@ export function useCommandActions(): CommandAction[] {
       ],
       run: () =>
         setGlassTint(glassTint === "wallpaper" ? "neutral" : "wallpaper"),
-    },
-    {
-      id: "follow-the-sun",
-      key: "s",
-      kind: "toggle",
-      section: "settings",
-      label: `${t(locale, "settingsSolarTheme")}: ${
-        followSun ? t(locale, "stateOn") : t(locale, "stateOff")
-      }`,
-      icon: <Sunrise className={ROW_ICON} />,
-      keywords: [
-        "sun",
-        "sunrise",
-        "sunset",
-        "follow the sun",
-        "auto theme",
-        "day night",
-        "日出",
-        "日落",
-        "太阳",
-        "自动切换",
-      ],
-      run: () => setFollowSun(!followSun),
     },
     {
       id: "music",

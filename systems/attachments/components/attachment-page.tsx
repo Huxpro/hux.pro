@@ -334,11 +334,13 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
             "pressable outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
           )}
         >
-          <ExternalImage
+          {/* Whole, at the size recorded for it (lib/image-sizes.ts): the
+              drawer opens at its height rather than growing to it. */}
+          <PeekCover
             src={media.thumbnail ?? media.url}
             alt={media.alt ?? ""}
-            loading="eager"
-            className="block h-auto w-full"
+            fit="natural"
+            className="bg-transparent"
           />
         </button>
         {media.alt && <p className={TYPE.caption}>{media.alt}</p>}

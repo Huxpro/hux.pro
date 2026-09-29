@@ -190,8 +190,8 @@ When the Window system is mounted, ⌘K also launches apps from
 | `U` | Go to Writing |
 | `X` | Go to Works |
 | `I` | Go to Docs (internal) |
-| `E` | Go to `/lab`, the index of labs (`e` for experiments — `L` is Language). Each lab is a card there and an entry in the dropdown on every lab's title; `log.json` is the Works Lab (`/lab/works`). See `app/lab/catalog.ts`. |
-| `A` | Toggle appearance |
+| `E` | Go to `/lab`, the index of labs (`e` for experiments — `L` is Language). Each lab is a card there and an entry in the dropdown on every lab's sticky bar; `log.json` is the Works Lab (`/lab/works`). See `app/lab/catalog.ts`. |
+| `A` | Cycle Appearance: Follow the Sun → the theme the sun isn't showing → the one it is → Follow the System |
 | `L` | Toggle language |
 | `G` | Toggle geolocation |
 | `W` | Open the Wallpaper picker |

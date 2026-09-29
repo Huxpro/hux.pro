@@ -27,5 +27,5 @@ export {
   getTintLabel,
   type GlassTint,
 } from "./glass";
-export { ThemeProvider, useTheme } from "./theme";
+export { ThemeProvider, useSunThemeSlot, useTheme, type ThemePreference } from "./theme";
 export { VisitorProvider, useVisitor, type LastVisitedItem } from "./visitor";

@@ -889,9 +889,30 @@ still under a pull, and so do the clouds and the stars' places, so nothing is
 already on its way before the window has opened. Let go short and it eases
 back.
 
-**No React per frame.** The recognizer writes two CSS variables and three
+**No React per frame.** The recognizer writes three CSS variables and three
 attributes on `<html>` and calls the renderer's `previewWindow`; the page, the
-cue and the search button are moved by CSS ("The sky pull" in `globals.css`):
+cue and the search button are moved by CSS ("The sky pull" in `globals.css`).
+`--sky-pull` is how far the page has followed, `--sky-pull-progress` how far to
+the line, and `--sky-pull-reveal` how much of the hint shows. The cue and the
+sky's lift both read the reveal, so they arrive as one thing:
+
+- **Nothing for the first ~8 mm** (`REVEAL_FROM_PX`, 46 px of page ≈ 52 of
+  finger) — well past where the platform itself calls a touch a drag (Android's
+  touch slop is 8 dp, iOS's pan about 10 pt). A page nudged at its top just
+  moves; the hint starts only once the pull is plainly a pull. It is in px, not
+  a fraction of the line, so moving the line does not move it.
+- **Then a smoothstep that runs all the way to the line** (`REVEAL_TO_PX` is the
+  line itself). Zero slope at the start, so it grows out of nothing with no
+  visible switch-on. And no plateau before the line: an earlier version was
+  full some way short of it, and a stretch where nothing changes is one the
+  hand does not feel — both halves of the pull read as shorter than they were.
+  Growing until the line keeps the whole second half moving, and the caption
+  turning to "let go" is the one thing that happens at the line.
+- **The line has hysteresis**: armed at `PULL_ARM_PX` (104 px of page, ~141 of
+  finger), disarmed only below `PULL_DISARM_PX` (96). A finger resting on the
+  line trembles a pixel or two; with one threshold the two captions — and the
+  tick — flickered with every tremor. Letting go anywhere while armed opens
+  the window: what the cue says is what happens.
 
 | state | what the home does |
 |---|---|
@@ -1700,10 +1721,23 @@ sunrise/sunset phase from the devtool also surfaces it for testing.
 
 ### The theme follows the sun
 
-The app's theme follows the day: Light while the sun is up, Dark once it is
-down. On by default (`themeFollowsSun` in the ambient settings), turned off in
-the wallpaper picker's Weather group, in the command palette (`/s`), or in the
-devtool's Sky module.
+**Follow the Sun is an Appearance** (`services/theme.tsx`), and the default
+one. Appearance has four answers — Follow the Sun, Light, Dark, Follow the
+System. The palette's `A` cycles them starting from what the sun shows: Follow
+the Sun → the theme it is not showing → the one it is → Follow the System, so
+the first press out of Follow the Sun always changes the page. No memory of
+where the cycle began is kept: the sun's answer is current under every
+Appearance, so the order is read off it on each press. The devtool's Sky module
+carries a Follow the Sun toggle beside its timeline (off is Follow the System).
+Under it the app is Light while the sun is up and Dark once it is down. Light,
+Dark and Follow the System are what they say: the sun never touches them.
+
+It was once a switch of its own (`themeFollowsSun` in the ambient settings, on
+unless turned off) that acted only on a crossing watched live, as a session
+override on top of the Appearance. A saved Follow the System from then was
+almost always the default plus that switch, so it was migrated to Follow the
+Sun once — unless the switch had been turned off (`getStoredPreference` in
+`services/theme.tsx`).
 
 **At the sun's own crossing — the middle of the long animation, not its end.**
 Sunrise and sunset are ±45 min windows here and the sky spends all of both
@@ -1757,32 +1791,30 @@ crossfade is ~60ms of capture for the same effect, and where it is unavailable
 (Firefox, `prefers-reduced-motion`) the chrome simply changes, which is what the
 rest of the app does when the user picks a theme.
 
-Three more rules make it a system gesture rather than a setting changing behind
-the user's back:
+The theme service paints the sun's answer; `<SolarThemeSync />` is what hands
+it in (`setSunTheme`). It keeps the answer current under every Appearance, so
+choosing Follow the Sun lands on it at once, and under Follow the Sun it moves
+the page in one of two ways:
 
-1. **Only a crossing watched live.** `<SolarThemeSync />` remembers which side
-   of the day it last saw and acts when that changes *while it is mounted*.
-   Arriving after dark does nothing; sitting on the page through dusk does.
-   That is what "in the same session" means — the sun may interrupt you, it may
-   not greet you.
-2. **A session override, never the preference.** It sets the theme service's
-   `override` (`services/theme.tsx`), which lives in sessionStorage: a reload in
-   the same tab keeps the theme the sun set — unless the sun has moved on since,
-   in which case the stale override is dropped on the way back in — and closing
-   the tab forgets it. The saved Appearance preference never moves, and any
-   explicit choice (the palette's Appearance command, a toggle) ends the
-   override. Turning the setting off takes an active override with it.
-3. **It says so.** Once the handover has settled, the small pill in the
-   bottom-center toast slot — the one the language switch uses — names the mode
-   and says the preference is unchanged. By then the change has already
+1. **The first answer of a visit, quietly.** The sun's answer takes a
+   forecast, so until one lands Follow the Sun trusts the system — the bezel's
+   boot script does the same for the first frame. If the sun then disagrees,
+   the page crossfades to it once, with no notice: that is the page arriving,
+   not an event. Nothing about the sun's answer is saved; a page opened after
+   dark opens dark.
+2. **A crossing watched live, staged.** The sun rises or sets with the page
+   open: the handover above, then a notice. Once it has settled, the small pill
+   in the bottom-center toast slot — the one the language switch uses — names
+   the mode and the Appearance it is following. By then the change has already
    dissolved in over two seconds, so there is nothing to confirm and nothing to
-   undo in a hurry; the way to turn it off is where settings live.
+   undo in a hurry. Picking another Appearance while the sky is moving calls
+   the whole handover off, sky included; so does the sun turning back before
+   it lands (the devtool's clock, scrubbed back across the line).
 
 Because the rule reads the ambient clock, **devtool time travel crosses it
 too**: playing the day in the Sky module crosses sunrise and sunset for real,
 and the theme changes there exactly as it would on the real clock — or does
-not, if the setting is off. The Sky module carries the toggle beside that
-timeline for the same reason.
+not, under any other Appearance.
 
 ### The theme's key
 
@@ -2211,15 +2243,14 @@ const {
 
 ```typescript
 const {
-  followSun,           // The setting — on by default, saved with the ambient settings
-  setFollowSun,
   sunTheme,            // "light" | "dark" at the effective clock, or null when unknown
   beginThemeHandover,  // Stage the next theme change (slow sky, then chrome)
 } = useSolarTheme();
 ```
 
 The provider only says what the sun implies; `<SolarThemeSync />` (mounted in
-the root layout) is what watches it cross and applies it.
+the root layout) hands it to the theme service (`useSunThemeSlot`) and stages
+it when it changes with the page open.
 
 ## Data Flow
 
@@ -2255,7 +2286,7 @@ The sun-event phase runs alongside this and never touches the background:
 
 ```
 phase    → AmbientPhaseActivity → Dock Live Activity
-sunTheme → SolarThemeSync       → theme override (this session) + notice
+sunTheme → SolarThemeSync       → the theme under Follow the Sun + notice
 ```
 
 ## Freshness

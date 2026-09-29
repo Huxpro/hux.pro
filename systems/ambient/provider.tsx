@@ -219,23 +219,17 @@ export function useAmbientTime() {
 // =============================================================================
 // Solar Theme Context
 //
-// "The theme follows the sun": crossing sunrise puts the app in Light, sunset
-// in Dark. It is a session override on top of the saved Appearance preference,
-// never a change to it (services/theme.tsx), and it only fires on a crossing
-// that happened while the page was open — the sun never rearranges a page on
-// arrival.
+// Follow the Sun, the default Appearance (services/theme.tsx): Light while the
+// sun is up, Dark once it is down.
 //
 // The provider only says what the sun implies right now; <SolarThemeSync /> is
-// what watches that value cross and applies it. Because it derives from the
-// ambient clock, devtool time travel crosses it too: playing the day in the Sky
-// module flips the theme at exactly the moments the real clock would, and
-// respects the setting the same way.
+// what hands that to the theme service, and stages it when it changes with the
+// page open. Because it derives from the ambient clock, devtool time travel
+// crosses it too: playing the day in the Sky module flips the theme at exactly
+// the moments the real clock would.
 // =============================================================================
 
 interface SolarThemeContextType {
-  /** The setting, on by default. Persisted with the rest of the ambient settings. */
-  followSun: boolean;
-  setFollowSun: (on: boolean) => void;
   /**
    * Which theme the sun implies at the effective clock, or null while the sun
    * times are unknown. Null is "no opinion", and nothing switches.
@@ -1280,11 +1274,6 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     [nowMs, sunriseMs, sunsetMs]
   );
 
-  const setFollowSun = useCallback(
-    (on: boolean) => updateSettings({ themeFollowsSun: on }),
-    [updateSettings]
-  );
-
   // Resolve which edge-fade mask to use.
   // Special case: dark-mode sunrise/sunset has high gradient-vs-background
   // contrast, so we use a more aggressive (wider) fade to soften the edge.
@@ -1648,12 +1637,10 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
 
   const solarThemeValue = useMemo(
     () => ({
-      followSun: settings.themeFollowsSun,
-      setFollowSun,
       sunTheme,
       beginThemeHandover: setSkyLead,
     }),
-    [settings.themeFollowsSun, setFollowSun, sunTheme]
+    [sunTheme]
   );
 
   const wallpaperValue = useMemo(
