@@ -195,7 +195,7 @@ export function LiveActivity({
         className="shrink-0"
       >
         <Drawer.Trigger
-          // The Material skin draws it as an Android status chip.
+          // The Android theme draws it as an Android status chip.
           data-status-chip=""
           className={cn(
             "pointer-events-auto flex items-center gap-2 shrink-0",

@@ -47,7 +47,7 @@ function formatTime(seconds: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// The transport in the Material skin (`m3:` — inside a home widget only; the
+// The transport in the Android theme (`m3:` — inside a home widget only; the
 // Live Activity keeps its glass capsule). Android's media controls: no
 // capsule around the buttons, icon buttons for the neighbours, and play /
 // pause as the one filled button in `primary`. In Material 3 Expressive a

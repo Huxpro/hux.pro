@@ -1,0 +1,125 @@
+/* =============================================================================
+   Android theme · Controls — the switch, the segmented control (a connected button group),
+   and settings headings.
+
+   Every rule here is scoped to `:root[data-os-theme="android"]` (checked by
+   `pnpm themes:check`), so the Hux theme never sees it.
+   ============================================================================= */
+
+/* --- Controls in the Android theme (components/ui/controls.tsx).
+   Switch — M3's: a 52×32 track with a 2dp outline, the handle 16dp and
+   `outline` when off, 24dp and `on-primary` on a `primary` track when on,
+   28dp under the finger; it moves on the Expressive fast spatial spring.
+   Segmented — Expressive's connected button group, as the album tabs are:
+   separate buttons 2dp apart with small inner corners and round outer
+   ends, the selected one tonal and fully round. The `bare` tone (glyphs in
+   a toolbar) is left as it is. --- */
+:root[data-os-theme="android"] [data-md-switch] {
+  width: 52px;
+  height: 32px;
+  border: 2px solid var(--md-outline);
+  background-color: var(--md-surface-container-highest);
+  transition:
+    background-color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects),
+    border-color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects);
+}
+:root[data-os-theme="android"] [data-md-switch] > span {
+  width: 16px;
+  height: 16px;
+  translate: 6px 0;
+  background-color: var(--md-outline);
+  box-shadow: none;
+  transition:
+    translate var(--md-spring-fast-spatial-duration) var(--md-spring-fast-spatial),
+    width var(--md-spring-fast-spatial-duration) var(--md-spring-fast-spatial),
+    height var(--md-spring-fast-spatial-duration) var(--md-spring-fast-spatial),
+    background-color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects);
+}
+:root[data-os-theme="android"] [data-md-switch][aria-pressed="true"] {
+  border-color: var(--md-primary);
+  background-color: var(--md-primary);
+}
+:root[data-os-theme="android"] [data-md-switch][aria-pressed="true"] > span {
+  width: 24px;
+  height: 24px;
+  translate: 22px 0;
+  background-color: var(--md-on-primary);
+}
+:root[data-os-theme="android"] [data-md-switch]:active:not(:disabled) > span {
+  width: 28px;
+  height: 28px;
+  translate: 0 0;
+}
+:root[data-os-theme="android"] [data-md-switch][aria-pressed="true"]:active:not(:disabled) > span {
+  translate: 20px 0;
+}
+:root[data-os-theme="android"] [data-segmented]:not([data-segmented="bare"]) {
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+:root[data-os-theme="android"] [data-segmented]:not([data-segmented="bare"]) > button {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--md-shape-corner-small);
+  background-color: var(--md-surface-container-highest);
+  color: var(--md-on-surface-variant);
+  box-shadow: none;
+  font-family: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: capitalize;
+  transition:
+    border-radius var(--md-spring-fast-spatial-duration) var(--md-spring-fast-spatial),
+    background-color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects),
+    color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects);
+}
+:root[data-os-theme="android"] [data-segmented]:not([data-segmented="bare"]) > button:first-child {
+  border-top-left-radius: var(--md-shape-corner-full);
+  border-bottom-left-radius: var(--md-shape-corner-full);
+}
+:root[data-os-theme="android"] [data-segmented]:not([data-segmented="bare"]) > button:last-child {
+  border-top-right-radius: var(--md-shape-corner-full);
+  border-bottom-right-radius: var(--md-shape-corner-full);
+}
+:root[data-os-theme="android"] [data-segmented]:not([data-segmented="bare"]) > button:hover {
+  background-color: color-mix(in srgb, var(--md-surface-container-highest), var(--md-on-surface) var(--md-state-hover));
+  color: var(--md-on-surface);
+}
+:root[data-os-theme="android"] [data-segmented]:not([data-segmented="bare"]) > button[aria-pressed="true"] {
+  border-radius: var(--md-shape-corner-full);
+  background-color: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+/* A settings group's heading, the way Android's Settings heads one: Title
+   Small in `primary`, sentence case. */
+:root[data-os-theme="android"] [data-section-label] {
+  font-family: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  color: var(--md-primary);
+}
+:root[data-os-theme="android"] [data-section-label]::first-letter {
+  text-transform: uppercase;
+}
+:root[data-os-theme="android"] [data-surface-popover].surface-shell {
+  --md-container: var(--md-surface-container);
+  border-radius: var(--md-shape-corner-large);
+  box-shadow: var(--md-elevation-2);
+}
+:root[data-os-theme="android"] [data-surface-window].surface-shell {
+  --md-container: var(--md-surface-container-high);
+  border-radius: var(--md-shape-corner-extra-large);
+  box-shadow: var(--md-elevation-3);
+}
+:root[data-os-theme="android"] [data-surface-popup][data-swipe-direction="right"].surface-shell {
+  border-radius: var(--md-shape-corner-extra-large);
+}

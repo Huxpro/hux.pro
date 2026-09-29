@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { Themed } from "@/systems/os/components/themed";
 
 // =============================================================================
 // The chrome pill — the traffic lights and the glass they sit on
@@ -35,7 +36,7 @@ function Dot({
   /** Omitted where the dots are an indicator only — a phone window's grip. */
   onClick?: () => void;
   glyph: React.ReactNode;
-  /** The Material skin's glyph, where Android draws it differently. */
+  /** The Android theme's glyph, where Android draws it differently. */
   materialGlyph?: React.ReactNode;
 }) {
   // Having something to do is what makes a dot a control; nothing else decides
@@ -77,10 +78,7 @@ function Dot({
     >
       <span className="opacity-0 transition-opacity [@media(hover:hover)]:group-hover/chrome:opacity-100">
         {materialGlyph ? (
-          <>
-            <span className="contents material:hidden">{glyph}</span>
-            <span className="hidden material:contents">{materialGlyph}</span>
-          </>
+          <Themed hux={glyph} android={materialGlyph} />
         ) : (
           glyph
         )}
@@ -156,7 +154,7 @@ export function TrafficDots({
   return (
     <div data-window-dots="" className="flex items-center gap-[5px] [@media(hover:hover)]:gap-2">
       {/* Material, touch: Android's app handle — one short bar where the
-          three lights were (globals.css, "Windows"). */}
+          three lights were (app/themes/android/system-ui.css). */}
       <span data-window-handle="" aria-hidden className="hidden" />
       {DOTS.map((dot) => (
         <Dot
@@ -209,7 +207,7 @@ export function PillTitle({ children }: { children: React.ReactNode }) {
  */
 export function pillShell(interacting: boolean, hoverLights = true) {
   return cn(
-    // `window-pill`: the Material skin's caption surface (globals.css).
+    // `window-pill`: the Android theme's caption surface (app/themes/android/).
     "window-pill group/chrome flex cursor-default items-center rounded-full px-2.5 py-1.5",
     "touch-none select-none transition-all duration-200",
     interacting

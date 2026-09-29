@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptionalSkin } from "@/services/skin";
+import { useOptionalOsTheme } from "@/services/os-theme";
 import { useOptionalWallpaper } from "@/systems/ambient/provider";
 import { useEffect, useMemo, useState } from "react";
 import { seedFromTint } from "../lib/scheme";
@@ -12,9 +12,9 @@ import { wallpaperSeeds } from "../lib/wallpaper-colors";
  * (and while a photograph is still being read). Always at least one.
  */
 export function useWallpaperSeeds(): number[] {
-  const skin = useOptionalSkin();
+  const os = useOptionalOsTheme();
   const wallpaper = useOptionalWallpaper();
-  const active = skin?.skin === "material";
+  const active = os?.meta.dynamicColor ?? false;
   const full = wallpaper?.fullEnabled ?? false;
   const src = full ? (wallpaper?.src ?? null) : null;
   const tint = full ? (wallpaper?.profile.tint ?? null) : null;

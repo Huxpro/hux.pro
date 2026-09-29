@@ -128,7 +128,7 @@ export function PageLayout({
   return (
     <main
       data-variant={variant}
-      // Where a widget's container transform lands (systems/skin).
+      // Where a widget's container transform lands (systems/os).
       data-page-surface=""
       className={cn(
         // The column and its gutter are `--page-col` / `--page-gutter`

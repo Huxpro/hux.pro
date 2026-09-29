@@ -226,8 +226,8 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
         >
           <Command
             className={cn(
-              // `surface-shell search-view`: the Material skin draws the
-              // palette as M3's docked search view (globals.css).
+              // `surface-shell search-view`: the Android theme draws the
+              // palette as M3's docked search view (app/themes/android/).
               "surface-shell search-view",
               "relative mx-4 transition-all duration-300 ease-out",
               "bg-glass-popover backdrop-blur-xl",

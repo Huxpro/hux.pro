@@ -45,3 +45,9 @@ jobs:
       # official icon committed (content/badge-icons.json, public/badge-icons).
       - name: Check badge icons
         run: pnpm badges:check
+
+      # Filesystem-only: every OS theme overlay (app/themes/<id>/) is scoped
+      # to its theme, the Hux stylesheet stays theme-agnostic, and no
+      # component branches on a theme id (docs/system-os-theme.md).
+      - name: Check OS theme layers
+        run: pnpm themes:check

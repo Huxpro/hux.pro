@@ -1,3 +1,5 @@
+import { currentThemeMetadata } from "../../lib/root";
+
 // =============================================================================
 // Haptics — the few moments Android's launcher answers with the motor.
 //
@@ -7,7 +9,7 @@
 // `navigator.vibrate(ms)` — so each constant is a duration tuned to feel like
 // the Pixel effect it stands for: a crisp click, not a buzz.
 //
-// Material skin only, and only where there is a finger: a desktop has no
+// Only in a theme with `haptics` (Android), and only where there is a finger: a desktop has no
 // motor, and Glass is iOS, where Safari exposes none. Silently nothing
 // elsewhere — haptics are a second channel, never the only one.
 // =============================================================================
@@ -22,7 +24,7 @@ const MS: Record<Haptic, number> = {
 
 export function haptic(kind: Haptic) {
   if (typeof navigator === "undefined" || !navigator.vibrate) return;
-  if (document.documentElement.dataset.skin !== "material") return;
+  if (!currentThemeMetadata().haptics) return;
   if (!window.matchMedia("(pointer: coarse)").matches) return;
   try {
     navigator.vibrate(MS[kind]);

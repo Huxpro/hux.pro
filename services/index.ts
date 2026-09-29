@@ -28,14 +28,12 @@ export {
   type GlassTint,
 } from "./glass";
 export {
-  DEFAULT_SKIN,
-  SKINS,
-  SkinProvider,
+  OsThemeProvider,
+  getOsThemeLabel,
   getSchemeStyleLabel,
-  getSkinLabel,
-  useOptionalSkin,
-  useSkin,
-  type Skin,
-} from "./skin";
+  useOptionalOsTheme,
+  useOsTheme,
+  type SeedChoice,
+} from "./os-theme";
 export { ThemeProvider, useSunThemeSlot, useTheme, type ThemePreference } from "./theme";
 export { VisitorProvider, useVisitor, type LastVisitedItem } from "./visitor";

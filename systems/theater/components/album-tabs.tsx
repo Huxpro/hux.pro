@@ -27,7 +27,7 @@ import type { Album } from "../lib/types";
 // `tone="onDark"` is the dim dark-stamp language, forced for editor mocks
 // and any stage that cannot follow the site theme.
 //
-// In a home widget under the Material skin (`m3:`) the control is Material 3
+// In a home widget under the Android theme (`m3:`) the control is Material 3
 // Expressive's *connected button group* instead: separate buttons 2dp apart,
 // small inner corners and round outer ends, the selected one a tonal
 // `secondary-container` whose corners open all the way round — the shape is

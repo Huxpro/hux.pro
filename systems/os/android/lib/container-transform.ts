@@ -1,3 +1,5 @@
+import { currentThemeMetadata } from "../../lib/root";
+
 // =============================================================================
 // Container transform — a widget opening into its page, as Android opens a
 // card into a screen.
@@ -12,7 +14,7 @@
 // one while `html[data-md-transform]` is set, and the stylesheet animates the
 // pair ("View Transition API Styles", globals.css).
 //
-// Material skin only, and only where the browser has view transitions;
+// Only in a theme that opens pages this way (Android), and only where the browser has view transitions;
 // anywhere else the page simply crossfades in, as it always has.
 // =============================================================================
 
@@ -23,7 +25,7 @@ const CLEAR_AFTER_MS = 900;
 export function armContainerTransform(card: Element | null) {
   if (!(card instanceof HTMLElement)) return;
   const root = document.documentElement;
-  if (root.dataset.skin !== "material") return;
+  if (currentThemeMetadata().openPage !== "container-transform") return;
   if (typeof document.startViewTransition !== "function") return;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   card.style.viewTransitionName = NAME;

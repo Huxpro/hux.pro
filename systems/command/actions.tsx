@@ -2,13 +2,13 @@
 
 import {
   getGlassLabel,
-  getSkinLabel,
+  getOsThemeLabel,
   getTintLabel,
   localeNames,
   t,
   useGlass,
   useInputCapability,
-  useSkin,
+  useOsTheme,
   useLocale,
   useTheme,
   type ThemePreference,
@@ -137,7 +137,7 @@ export function useCommandActions(): CommandAction[] {
     tint: glassTint,
     setTint: setGlassTint,
   } = useGlass();
-  const { skin, toggle: toggleSkin } = useSkin();
+  const { theme: osTheme, meta: osMeta, toggle: toggleOsTheme } = useOsTheme();
   const { isShowing: isDevtoolShowing, toggleShowing: toggleDevtool } =
     useDevtool();
   const {
@@ -304,7 +304,7 @@ export function useCommandActions(): CommandAction[] {
       label: `${t(locale, "appearance")}: ${t(locale, APPEARANCE_LABEL[preference])}`,
       icon: <AppearanceIcon className={ROW_ICON} />,
       keywords: [
-        "theme",
+        "appearance",
         "dark",
         "light",
         "mode",
@@ -315,7 +315,7 @@ export function useCommandActions(): CommandAction[] {
         "follow the sun",
         "auto theme",
         "day night",
-        "主题",
+        "外观",
         "深色",
         "浅色",
         "系统",
@@ -396,75 +396,86 @@ export function useCommandActions(): CommandAction[] {
       ],
       run: () => openWallpaperPicker(),
     },
+    // The OS theme: which platform the site is drawn as (services/
+    // os-theme.tsx). Not the appearance above — every theme has both.
     {
-      id: "glass",
-      key: "g",
-      kind: "toggle",
-      section: "settings",
-      label: `${t(locale, "settingsGlass")}: ${getGlassLabel(glassMaterial, locale)}`,
-      icon: <Layers2 className={ROW_ICON} />,
-      keywords: [
-        "glass",
-        "material",
-        "clear",
-        "tinted",
-        "translucent",
-        "liquid glass",
-        "玻璃",
-        "材质",
-        "透明",
-        "色调",
-      ],
-      run: () => toggleGlass(),
-    },
-    {
-      id: "skin",
+      id: "os-theme",
       key: "k",
       kind: "toggle",
       section: "settings",
-      label: `${t(locale, "settingsSkin")}: ${getSkinLabel(skin, locale)}`,
+      label: `${t(locale, "settingsTheme")}: ${getOsThemeLabel(osTheme, locale)}`,
       icon: <Shapes className={ROW_ICON} />,
       keywords: [
-        "skin",
         "theme",
+        "os",
+        "hux",
         "android",
         "material",
         "material you",
-        "ios",
-        "glass",
-        "widgets",
-        "皮肤",
+        "material design",
+        "skin",
+        "platform",
+        "主题",
         "安卓",
-        "玻璃",
+        "皮肤",
+        "系统",
       ],
-      run: () => toggleSkin(),
+      run: () => toggleOsTheme(),
     },
-    {
-      id: "tint",
-      key: "t",
-      kind: "toggle",
-      section: "settings",
-      label: `${t(locale, "settingsTint")}: ${getTintLabel(glassTint, locale)}`,
-      icon: (
-        <span
-          aria-hidden
-          className="size-4 shrink-0 rounded-full border border-border bg-tint"
-        />
-      ),
-      keywords: [
-        "tint",
-        "accent",
-        "colour",
-        "color",
-        "wallpaper colour",
-        "neutral",
-        "着色",
-        "强调色",
-        "中性",
-      ],
-      run: () =>
-        setGlassTint(glassTint === "wallpaper" ? "neutral" : "wallpaper"),
-    },
+    // The Hux theme's own material (Glass, and the tint it takes): offered
+    // only while that theme is up — in another theme they would change
+    // nothing on screen (the theme's `materialSetting`).
+    ...(osMeta.materialSetting === "glass"
+      ? ([
+          {
+            id: "glass",
+            key: "g",
+            kind: "toggle",
+            section: "settings",
+            label: `${t(locale, "settingsGlass")}: ${getGlassLabel(glassMaterial, locale)}`,
+            icon: <Layers2 className={ROW_ICON} />,
+            keywords: [
+              "glass",
+              "material",
+              "clear",
+              "tinted",
+              "translucent",
+              "liquid glass",
+              "玻璃",
+              "材质",
+              "透明",
+              "色调",
+            ],
+            run: () => toggleGlass(),
+          },
+          {
+            id: "tint",
+            key: "t",
+            kind: "toggle",
+            section: "settings",
+            label: `${t(locale, "settingsTint")}: ${getTintLabel(glassTint, locale)}`,
+            icon: (
+              <span
+                aria-hidden
+                className="size-4 shrink-0 rounded-full border border-border bg-tint"
+              />
+            ),
+            keywords: [
+              "tint",
+              "accent",
+              "colour",
+              "color",
+              "wallpaper colour",
+              "neutral",
+              "着色",
+              "强调色",
+              "中性",
+            ],
+            run: () =>
+              setGlassTint(glassTint === "wallpaper" ? "neutral" : "wallpaper"),
+          },
+          ] satisfies CommandAction[])
+      : []),
     {
       id: "music",
       key: "m",

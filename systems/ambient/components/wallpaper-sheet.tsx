@@ -1,6 +1,7 @@
 "use client";
 
-import { WallpaperColors } from "@/systems/skin/components/wallpaper-colors";
+import { WallpaperColors } from "@/systems/os/android/components/wallpaper-colors";
+import { Themed } from "@/systems/os/components/themed";
 import {
   Segmented,
   type SegmentedOption,
@@ -612,7 +613,7 @@ function WallpaperPickerBody() {
       {/* Material: Android's Colors — the palette's seed from the wallpaper
           (or a basic colour) and its style, right under the wallpaper it
           comes from. Glass has no generated palette, so no section. */}
-      <WallpaperColors className="hidden pb-5 material:block" />
+      <Themed android={<WallpaperColors className="pb-5" />} />
 
       {/* The label and the categories on one line, like Placement above. */}
       <div className="flex items-center justify-between gap-3 pb-3">

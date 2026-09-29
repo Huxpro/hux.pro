@@ -1,0 +1,24 @@
+/* =============================================================================
+   Android theme · Edit mode — no jiggle (the resize frame says "editing"), and the lift on
+   Material's fast spatial spring with an elevation, not a glow.
+
+   Every rule here is scoped to `:root[data-os-theme="android"]` (checked by
+   `pnpm themes:check`), so the Hux theme never sees it.
+   ============================================================================= */
+
+/* The Android theme does not jiggle: Android's launcher says "editing" with
+   the resize frame on the widget being worked on (components/ui/
+   resize-grip.tsx), not by setting the whole screen wobbling. */
+:root[data-os-theme="android"] .widget-jiggle {
+  animation: none;
+}
+
+/* In the Android theme the lift rides Material 3 Expressive's fast spatial
+   spring — the platform's small overshoot as the widget leaves the grid —
+   and its shadow is an elevation, not a glow. */
+:root[data-os-theme="android"] .widget-lift {
+  animation-duration: var(--md-spring-fast-spatial-duration);
+  animation-timing-function: var(--md-spring-fast-spatial);
+  --lift-scale: 1.04;
+  filter: drop-shadow(0 8px 12px rgb(0 0 0 / 0.18)) drop-shadow(0 4px 4px rgb(0 0 0 / 0.12));
+}

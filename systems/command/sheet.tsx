@@ -132,7 +132,7 @@ export function CommandSheet() {
           if (point !== SNAP_TOP) inputRef.current?.blur();
         }}
         label={t(locale, "commandPalette")}
-        // The Material skin draws it as M3's search view (globals.css).
+        // The Android theme draws it as M3's search view (app/themes/android/system-ui.css).
         className="system-chrome search-view"
       >
         <SheetBody

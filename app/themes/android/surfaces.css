@@ -1,0 +1,128 @@
+/* =============================================================================
+   Android theme · Surfaces — every sheet, side panel, popover and window as a Material
+   container; the bottom sheet docked with its drag handle and scrim.
+
+   Every rule here is scoped to `:root[data-os-theme="android"]` (checked by
+   `pnpm themes:check`), so the Hux theme never sees it.
+   ============================================================================= */
+
+/* --- Surfaces: every sheet, side panel, popover and window. On Android
+   these are the system's, not the app's: opaque tonal containers, no glass.
+   A surface re-points the site's tokens the way a widget card does (the
+   content inside needs no edits), and each shape takes its component's
+   geometry from Compose's tokens:
+     bottom sheet   SheetBottomTokens: surface-container-low, 28dp top
+                    corners, docked to the bottom edge, max 640dp wide, a
+                    32×4 drag handle in on-surface-variant at 40%, and a
+                    scrim of black at 32% under a modal one
+     side panel     a detached side sheet: surface-container-low, 28dp
+     popover        a menu: surface-container, 16dp, elevation 2
+     window         a dialog: surface-container-high, 28dp, elevation 3
+   The header title is Title Large. --- */
+:root[data-os-theme="android"] .surface-shell {
+  --md-container: var(--md-surface-container-low);
+  --md-on-container: var(--md-on-surface);
+  --md-on-container-variant: var(--md-on-surface-variant);
+  --foreground: var(--md-on-surface);
+  --card-foreground: var(--md-on-surface);
+  --popover-foreground: var(--md-on-surface);
+  --ink: var(--md-on-surface);
+  --muted-foreground: var(--md-on-surface-variant);
+  --tertiary-foreground: color-mix(in srgb, var(--md-on-surface-variant) 80%, transparent);
+  --quaternary-foreground: color-mix(in srgb, var(--md-on-surface-variant) 45%, transparent);
+  --muted: color-mix(in srgb, var(--md-on-surface) 30%, transparent);
+  --secondary: var(--md-surface-container-highest);
+  --accent: color-mix(in srgb, var(--md-on-surface) var(--md-state-pressed), transparent);
+  --border: color-mix(in srgb, var(--md-outline-variant) 70%, transparent);
+  --input: var(--md-outline-variant);
+  --ring: var(--md-primary);
+  --glass: var(--md-surface-container-high);
+  --glass-hover: var(--md-surface-container-highest);
+  --glass-strong: var(--md-surface-container-highest);
+  --glass-strong-hover: color-mix(in srgb, var(--md-surface-container-highest), var(--md-on-surface) var(--md-state-hover));
+  --glass-overlay: var(--md-surface-container-highest);
+  --font-sans: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+
+  font-family: var(--font-sans);
+  color: var(--md-on-surface);
+  background-color: var(--md-container);
+  border-color: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  text-shadow: none;
+  box-shadow: var(--md-elevation-1);
+}
+:root[data-os-theme="android"] .surface-shell * {
+  text-shadow: none;
+}
+/* The site's mono readouts speak the platform's face in a surface, with
+   tabular figures so columns still align — but code is code, and keeps the
+   face it was set in (`--font-code`, captured on <body> before any theme
+   re-points `--font-mono`). */
+:root[data-os-theme="android"] .surface-shell .font-mono {
+  letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
+}
+:root[data-os-theme="android"] .surface-shell :is(code, kbd, pre, samp) {
+  font-family: var(--font-code);
+}
+
+
+/* The bottom sheet: docked, edge to edge. The detent machinery (the
+   "Secondary surface motion" section) is untouched; only the ring of gap it
+   keeps around a floating sheet goes to zero — `!important` because the
+   popup's motion variables are inline (sheet.tsx). */
+:root[data-os-theme="android"] [data-surface-popup][data-swipe-direction="down"] {
+  --surface-gap: 0px !important;
+  left: 0;
+  right: 0;
+  max-width: 640px;
+  margin-inline: auto;
+}
+:root[data-os-theme="android"] [data-surface-popup][data-swipe-direction="down"]:not([data-surface-snap]) {
+  bottom: 0 !important;
+}
+:root[data-os-theme="android"] [data-surface-popup][data-swipe-direction="down"] > .surface-shell {
+  border-radius: var(--md-shape-corner-extra-large) var(--md-shape-corner-extra-large) 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+:root[data-os-theme="android"] [data-surface-grabber] {
+  width: 32px;
+  height: 4px;
+  margin-top: 14px; /* 22dp from the top edge with the row's 8px */
+  margin-bottom: 6px;
+  background-color: color-mix(in srgb, var(--md-on-surface-variant) 40%, transparent);
+}
+
+/* The scrim: a modal surface dims the page under it, black at 32%, fading
+   with the sheet on the emphasized curves. Only while its popup is open, so
+   a kept-mounted sheet's closed viewport never shades anything. */
+:root[data-os-theme="android"] [data-surface-viewport][data-modal] {
+  transition: background-color 400ms var(--md-easing-emphasized-decelerate);
+}
+:root[data-os-theme="android"] [data-surface-viewport][data-modal]:has(> [data-surface-popup][data-open]:not([data-ending-style])) {
+  background-color: rgb(0 0 0 / 0.32);
+}
+:root[data-os-theme="android"] [data-surface-viewport][data-modal]:has(> [data-surface-popup][data-ending-style]) {
+  transition: background-color 200ms var(--md-easing-emphasized-accelerate);
+}
+@starting-style {
+  :root[data-os-theme="android"] [data-surface-viewport][data-modal]:has(> [data-surface-popup][data-open]) {
+    background-color: rgb(0 0 0 / 0);
+  }
+}
+
+/* A surface's title: Title Large (22/28, regular) in on-surface, sentence
+   case — the platform names a sheet in words. */
+:root[data-os-theme="android"] [data-surface-title] {
+  font-family: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--md-on-surface);
+}
+:root[data-os-theme="android"] [data-surface-title]::first-letter {
+  text-transform: uppercase;
+}

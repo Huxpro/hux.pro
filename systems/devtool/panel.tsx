@@ -10,13 +10,11 @@ import {
   useTheme,
   GLASS_TINTS,
   getTintLabel,
-  DEFAULT_SKIN,
-  SKINS,
+  getOsThemeLabel,
   getSchemeStyleLabel,
-  getSkinLabel,
-  useSkin,
+  useOsTheme,
 } from "@/services";
-import { SCHEME_STYLES } from "@/systems/skin";
+import { DEFAULT_OS_THEME, OS_THEME_IDS, SCHEME_STYLES } from "@/systems/os";
 import {
   motionStatus,
   useAmbientTime,
@@ -216,7 +214,7 @@ export function DevtoolModules() {
       <ReadingModule />
       <WallpaperModule />
       <GlassModule />
-      <SkinModule />
+      <ThemeModule />
       <SkyModule />
       <MusicModule />
       <CommandModule />
@@ -1180,12 +1178,12 @@ function GlassModule() {
 }
 
 // =============================================================================
-// Skin Module
+// Theme Module
 //
-// Which platform the home screen's widgets are drawn in (services/skin.tsx):
-// Material (Android, the default) or Glass (Apple). Under Material, the
-// "Wallpaper colors" style Android offers, and the palette it produced from
-// the wallpaper that is painting — the roles a widget actually uses.
+// Which platform the site is drawn as (services/os-theme.tsx): Hux (the site
+// as built, the default) or Android (Material 3 Expressive). Under a theme
+// with dynamic colour, the Wallpaper colors style, and the palette it
+// produced — the roles a widget actually uses.
 // =============================================================================
 
 const SWATCH_ROLES = [
@@ -1199,63 +1197,67 @@ const SWATCH_ROLES = [
   "on-surface",
 ] as const;
 
-function SkinModule() {
+function ThemeModule() {
   const { locale } = useLocale();
-  const skin = useSkin();
-  const isHome = useIsHome();
+  const os = useOsTheme();
   const star: Star =
-    skin.skin !== DEFAULT_SKIN || skin.schemeStyle !== "tonal-spot" ? "saved" : null;
+    os.theme !== DEFAULT_OS_THEME || os.schemeStyle !== "tonal-spot" ? "saved" : null;
 
   return (
     <DebugSection
-      id="skin"
-      title={t(locale, "settingsSkin")}
+      id="os-theme"
+      title={t(locale, "settingsTheme")}
       icon={<Shapes className="h-4 w-4" />}
       compact
-      relevant={isHome}
+      // The theme is the whole site's, so it is relevant on every page.
+      relevant
       star={star}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
-          {skin.skin}
+          {os.theme}
         </span>
       }
     >
       <div className="space-y-2">
         <PanelRow
-          label={t(locale, "settingsSkin")}
+          label={t(locale, "settingsTheme")}
           star={
-            skin.skin === DEFAULT_SKIN ? null : (
-              <PanelStar source="saved" onReset={() => skin.setSkin(DEFAULT_SKIN)} label="Back to Material" />
+            os.theme === DEFAULT_OS_THEME ? null : (
+              <PanelStar
+                source="saved"
+                onReset={() => os.setTheme(DEFAULT_OS_THEME)}
+                label={`Back to ${getOsThemeLabel(DEFAULT_OS_THEME, locale)}`}
+              />
             )
           }
         >
           <PanelSegmented
-            value={skin.skin}
-            options={SKINS.map((value) => ({
+            value={os.theme}
+            options={OS_THEME_IDS.map((value) => ({
               value,
-              label: getSkinLabel(value, locale),
+              label: getOsThemeLabel(value, locale),
             }))}
-            onChange={skin.setSkin}
+            onChange={os.setTheme}
           />
         </PanelRow>
-        {skin.skin === "material" && (
+        {os.meta.dynamicColor && (
           <>
             <PanelRow
               label={t(locale, "settingsMdStyle")}
               stacked
               star={
-                skin.schemeStyle === "tonal-spot" ? null : (
-                  <PanelStar source="saved" onReset={() => skin.setSchemeStyle("tonal-spot")} label="Back to tonal spot" />
+                os.schemeStyle === "tonal-spot" ? null : (
+                  <PanelStar source="saved" onReset={() => os.setSchemeStyle("tonal-spot")} label="Back to tonal spot" />
                 )
               }
             >
               <PanelSegmented
-                value={skin.schemeStyle}
+                value={os.schemeStyle}
                 options={SCHEME_STYLES.map((value) => ({
                   value,
                   label: getSchemeStyleLabel(value, locale),
                 }))}
-                onChange={skin.setSchemeStyle}
+                onChange={os.setSchemeStyle}
               />
             </PanelRow>
             {/* The palette in force: each swatch paints its own role, so it

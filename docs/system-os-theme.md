@@ -1,34 +1,114 @@
-# Skin — Material and Glass
+# OS Theme — Hux and Android
 
-The home screen's widgets can be drawn as Android draws them or as Apple
-does. That choice is the **skin**: one attribute on `<html>`, like the glass
-material, so nothing re-renders to change it.
+The site can be drawn as two platforms. That choice is the **theme**. It is
+one attribute on `<html>`, so nothing re-renders to change it. It is not the
+**appearance** (light / dark, `services/theme.tsx`): each theme has both.
 
-| Skin | Platform | What a widget is |
+| Theme | Platform | What it is |
 |---|---|---|
-| **Material** (default) | Android, Material 3 Expressive | An opaque tonal container at the system radius, coloured from the wallpaper |
-| **Glass** | Apple, Liquid Glass | The translucent card the site was built with; Tinted / Clear is the knob inside it ([system-glass.md](./system-glass.md)) |
+| **Hux** (default) | Apple | The site as built: Liquid Glass surfaces (Tinted / Clear, [system-glass.md](./system-glass.md)), the mono and serif voice, iOS's press wash and jiggle mode |
+| **Android** | Android, Material 3 Expressive | Opaque tonal surfaces coloured from the wallpaper, Google Sans Flex, Compose's ripple, the resize frame, springs, the container transform |
 
-This page is the Material skin. It pairs with the Android-shaped grid
-([system-widget-grid.md](./system-widget-grid.md)): the grid is how widgets
-are *arranged and sized* on Android; the skin is how they *look*.
+**Triggers.**
+
+| Surface | How |
+|---|---|
+| Command palette | `Theme: Hux` / `Theme: Android` (⌘K), or `/` then `K` |
+| DevTool | The Theme module offers Hux / Android. Under Android it also has the Wallpaper colors style and the palette in force, as swatches |
+| Wallpaper picker | Android only: Wallpaper colors, Basic colors, Style |
+| Code | `useOsTheme()` → `{ theme, meta, setTheme, toggle, schemeStyle, setSchemeStyle, seed, setSeed }` |
+
+A theme change is committed as a single view-transition crossfade of the
+whole page. The attribute flips inside the transition's callback, so the old
+theme fades into the new one instead of each surface restyling on its own
+clock.
+
+## Architecture
+
+The layering follows [ryOS](https://github.com/ryokun6/ryos)
+(`src/themes`, `docs/3.3.1-theme-architecture.md`). A theme is data, the
+visual values live in CSS, and code branches on a theme's metadata, never on
+its name. There are four layers, outermost first:
+
+| Layer | Where | What it holds |
+|---|---|---|
+| **1. Registry** | `systems/os/themes/` (`hux.ts`, `android.ts`, `index.ts`) | One typed object per theme: its label and its `ThemeMetadata` (`pressFeedback`, `editMode`, `layoutMotion`, `haptics`, `dynamicColor`, `openPage`, `materialSetting`). No colours here. |
+| **2. Root** | `systems/os/lib/boot.ts`, `lib/root.ts` | `data-os-theme` and `data-os-platform` on `<html>`. `OS_THEME_BOOT` sets them before first paint, built from the registry. After that, `applyRootOsTheme` is the only writer, and `currentOsTheme()` / `currentThemeMetadata()` read them back for code outside React. |
+| **3. CSS** | Hux: `app/globals.css` (the site's own stylesheet). Android: `app/themes/android/*.css` | Each non-default theme is an **overlay** that only adds rules. Every one of those rules is scoped to `:root[data-os-theme="<id>"]`, so removing the attribute is a complete revert. Small per-element differences use the variants `android:`, `hux:` (Hux, or no theme set) and `m3:` (inside a Material container). |
+| **4. Structure** | `systems/os/components/themed.tsx` | Used where the DOM itself differs, for example a spinner that is a ring in one theme and a morphing shape in the other. `<Themed hux={…} android={…} />` renders both forms, and the stylesheet shows one through `display: contents` wrappers. That means no second render and no hydration mismatch. |
+
+**The contract between components and overlays is a set of role hooks.**
+Components mark what they are, and the overlay decides how that looks. No
+component knows which theme is up.
+
+| Hook | Marks | Android draws it as |
+|---|---|---|
+| `[data-widget-shell]` (+ `data-widget-tone`) | a home widget card | a widget container, 28dp, `surface-container` or an accent container |
+| `.surface-shell` (`SHELL`) | every sheet, panel, popover, window | Material surfaces; the site's tokens re-pointed inside |
+| `[data-surface-popup]` / `[data-surface-viewport][data-modal]` / `[data-surface-grabber]` / `[data-surface-title]` | a sheet's geometry, scrim, handle, title | the docked bottom sheet, its 32% scrim, the drag handle, Title Large |
+| `.search-view`, `[data-search-header]`, `[data-search-divider]`, `[data-app-strip]` | the command palette | M3's search view |
+| `[data-snackbar]`, `[data-snackbar-action]` | a toast | a snackbar |
+| `[data-status-chip]` | a dock pill | a status chip |
+| `.window-pill`, `[data-window-dots]`, `[data-window-dot]`, `[data-window-handle]` | an app window's chrome | the caption buttons / the app handle |
+| `[data-md-switch]`, `[data-segmented]`, `[data-section-label]` | settings controls | M3 switch, connected button group, a settings heading |
+| `[data-page-surface]` | a page's `<main>` | where the container transform lands |
+
+**Behaviour follows metadata.** Each theme-specific behaviour asks the
+active theme's metadata, never compares its name:
+
+| Behaviour | Reads |
+|---|---|
+| The ripple (`MaterialRipple`) | `pressFeedback === "ripple"` |
+| Haptics | `haptics` |
+| The container transform | `openPage === "container-transform"` |
+| The grid's reflow and lift springs | `layoutMotion === "spring"` |
+| Dynamic colour (`DynamicColorBridge`, `useWallpaperSeeds`) | `dynamicColor`; leaving the theme clears the palette variables |
+| Glass and Tint in ⌘K | `materialSetting === "glass"`, so they are offered only in the theme they change |
+
+**Keeping it from breaking: `pnpm themes:check`** (`scripts/check-themes.mjs`,
+also run in CI) fails when:
+
+1. a rule in an overlay is not scoped to its theme;
+2. an overlay isn't imported by `app/globals.css`;
+3. a stylesheet outside `app/themes/` styles a theme by attribute;
+4. a component compares a theme id (`theme === "android"`, `dataset.osTheme`)
+   instead of reading metadata.
+
+**Adding a theme:**
+
+1. Add an object in `systems/os/themes/<id>.ts` and register it in `index.ts`.
+2. Add its label in `lib/i18n.ts`.
+3. Write its overlay in `app/themes/<id>/`, starting from the role hooks
+   above, and import it in `app/globals.css`.
+4. Add a variant for it next to `android:` if it needs one.
+5. Run `pnpm themes:check`, then switch through every theme with ⌘K.
+
+**Storage and migration.** `hux_os_theme` holds `hux` or `android`. The
+Android theme's own settings are `hux_md_style` and `hux_md_seed`. The theme
+was once a "skin" (`hux_skin`: material / glass). The boot script migrates
+those keys once (material → android, glass → hux) before anything reads
+them.
+
+---
+
+The rest of this page is the **Android theme**. It pairs with the
+Android-shaped grid ([system-widget-grid.md](./system-widget-grid.md)): the
+grid is how widgets are *arranged and sized*, and the theme is how everything
+*looks*.
 
 | Piece | Where |
 |---|---|
-| The setting (`useSkin`, `hux_skin`, `hux_skin_style`) | `services/skin.tsx` |
-| Boot script, storage keys (server-safe) | `systems/skin/lib/boot.ts` |
-| Dynamic color: wallpaper → scheme → roles | `systems/skin/lib/scheme.ts` |
-| Publishes the palette onto `<html>` | `systems/skin/components/dynamic-color-bridge.tsx` |
-| Wallpaper colors: extraction, options, the picker | `systems/skin/lib/wallpaper-colors.ts`, `components/wallpaper-colors.tsx` |
-| Tokens and the widget container | `app/globals.css`, "Skin — Material" |
-| Expressive shapes (`Sunny`, the cookies, …) as SVG paths | `systems/skin/lib/shapes.ts`, `ExpressiveShape` |
-| The resize frame (Material) and the corner (Glass) | `components/ui/resize-grip.tsx` |
+| Dynamic color: wallpaper → scheme → roles | `systems/os/android/lib/scheme.ts` |
+| Publishes the palette onto `<html>` | `systems/os/android/components/dynamic-color-bridge.tsx` |
+| Wallpaper colors: extraction, options, the picker | `systems/os/android/lib/wallpaper-colors.ts`, `components/wallpaper-colors.tsx` |
+| Tokens, widgets, edit mode, surfaces, system UI, controls, page, motion | `app/themes/android/*.css` |
+| Expressive shapes (`Sunny`, the cookies, …) as SVG paths | `systems/os/android/lib/shapes.ts`, `ExpressiveShape` |
+| The resize frame (Android) and the corner (Hux) | `components/ui/resize-grip.tsx` |
 | Google Sans Flex (`--font-flex`) | `app/layout.tsx` |
-| The ripple (every pressable, site-wide) | `systems/skin/components/material-ripple.tsx` |
-| Haptics (pickup, resize ticks, drop) | `systems/skin/lib/haptics.ts` |
-| Container transform (widget → page) | `systems/skin/lib/container-transform.ts` |
-| Loading indicator (shape morph) | `systems/skin/components/loading-indicator.tsx`, `lib/loading-shapes.ts` |
-| Sheets, panels, popovers, windows; switches and segmented controls | `app/globals.css`, "Skin — Material", the Surfaces and Controls blocks |
+| The ripple (every pressable, site-wide) | `systems/os/android/components/material-ripple.tsx` |
+| Haptics (pickup, resize ticks, drop) | `systems/os/android/lib/haptics.ts` |
+| Container transform (widget → page) | `systems/os/android/lib/container-transform.ts` |
+| Loading indicator (shape morph) | `systems/os/android/components/loading-indicator.tsx`, `lib/loading-shapes.ts` |
 
 ## Sources
 
@@ -76,12 +156,12 @@ stylesheet declares before the bridge has run.
 theme switch is a stylesheet swap, never a recompute.
 
 **Colors.** The wallpaper picker has Android's Colors section (Wallpaper &
-style), shown only in the Material skin
-(`systems/skin/components/wallpaper-colors.tsx`):
+style), shown only in the Android theme
+(`systems/os/android/components/wallpaper-colors.tsx`):
 
 - **Wallpaper colors.** Four options taken from the wallpaper through
   Android's pipeline, using the same library
-  (`systems/skin/lib/wallpaper-colors.ts`). A photograph is shrunk to about
+  (`systems/os/android/lib/wallpaper-colors.ts`). A photograph is shrunk to about
   112×112 pixels, quantized to 128 colours (`QuantizerCelebi`) and ranked by
   `Score`, which keeps up to four seeds, each read once per file. A painted
   wallpaper (the Sky, the Gradient) has no pixels to read, so its one seed is
@@ -98,20 +178,20 @@ Each swatch is drawn the way Android draws one: a disc whose top half is the
 primary accent and whose bottom quarters are the secondary and tertiary
 accents (the dark scheme's tone-80 accents), in the style that option
 carries. The selected swatch shrinks inside a ring. The choice is stored as
-`hux_skin_seed` (`useSkin().seed`, a `SeedChoice`), and `DynamicColorBridge`
+`hux_md_seed` (`useOsTheme().seed`, a `SeedChoice`), and `DynamicColorBridge`
 seeds from it.
 
 ## The widget container
 
 An Android widget is not a pane over the wallpaper: it is an opaque tonal
-surface. So under Material a card is `surface-container`, at the 28px system
+surface. So in the Android theme a card is `surface-container`, at the 28px system
 radius, with no blur, no hairline and no picture showing through (the
 wallpaper-in-the-card overlay is hidden). Hover and press are state layers of
 `on-surface` at Material's 8% / 10%; keyboard focus is a 3px `secondary`
 outline.
 
 The content inside needed no edits. It paints with the site's tokens — the ink
-ladder, the glass fills, `border` — and the skin re-points those tokens, scoped
+ladder, the glass fills, `border` — and the theme re-points those tokens, scoped
 to the card, at Material roles:
 
 | Site token | Material role |
@@ -129,25 +209,17 @@ platform's. A widget title is Title Small in sentence case — the platform
 labels things in words, not in lowercase mono — and metadata keeps its rung in
 the same face with tabular figures, so dates still line up.
 
-Google Sans Flex is not preloaded: a visitor in the Glass skin never downloads
+Google Sans Flex is not preloaded: a visitor in the Hux theme never downloads
 it.
 
-## Variants: `material:` and `m3:`
+## Variants inside the Android theme
 
-Some controls are shared — the album tabs with the theater, the music
-transport with the Live Activity, a thumbnail with the playlist sheet — and
-want their Material form only on the home grid. Two Tailwind variants
-(`app/globals.css`) say where a class applies:
-
-| Variant | Applies |
-|---|---|
-| `material:` | Anywhere in the Material skin (the app icon's mask, the folder) |
-| `m3:` | Only inside a widget card in the Material skin |
-
-Where a widget's *structure* differs by skin (the weather readout), both
-forms are in the tree and the variant hides one. Nothing reads the skin in
-React, so a returning visitor gets the right form on the first frame with no
-second render.
+Some controls are shared, and want their Material form only inside a
+Material container. The album tabs, for example, are also used in the
+theater, the music transport also appears in the Live Activity, and a
+thumbnail also appears in the playlist sheet. `m3:` applies inside a widget
+card or a surface in the Android theme. `android:` applies anywhere in the
+Android theme, such as the app icon's mask or the folder.
 
 ## The widgets
 
@@ -165,14 +237,14 @@ Each widget's Material form, and the platform idea behind it:
 | **Search bar** | The command bar at the bottom of the home screen is what sits there on Android: the search bar, itself a widget — an opaque `surface-container-high` pill at elevation 1, Google Sans Flex, the grid's state layers, and a round shortcut chip. Other pages keep their round ⌘K button. |
 
 `WidgetShell` takes a `tone` (`primary` / `secondary` / `tertiary`) for the
-accent containers; the Glass skin ignores it.
+accent containers; the Hux theme ignores it.
 
 ## Surfaces
 
 Every sheet, side panel, popover and window is the system's own UI, so under
 Material it is drawn the way Android draws its own: an opaque tonal
 container, no glass. `SHELL` (systems/surface/sheet.tsx) carries a
-`surface-shell` class, and the skin re-points the site's tokens on it exactly
+`surface-shell` class, and the theme re-points the site's tokens on it exactly
 as it does on a widget card — the content inside needed no edits. The `m3:`
 variant applies inside a surface too, so the album tabs, the transport and
 the thumbnails take their Material form in the playlist or the wallpaper
@@ -189,7 +261,7 @@ picker as they do on the home screen.
 
 Type inside a surface is Google Sans Flex, the site's mono readouts
 included (with tabular figures); `code`, `kbd` and `pre` keep the code face,
-captured on `<body>` as `--font-code` before a skin re-points `--font-mono`.
+captured on `<body>` as `--font-code` before a theme re-points `--font-mono`.
 
 **System UI** beyond the surfaces:
 
@@ -223,16 +295,16 @@ its arrow) grows the card into the page, as Android opens a card into a
 screen. It rides the navigation's own view transition. The card is named
 `md-container` for the old snapshot, and the destination's
 `[data-page-surface]` (PageLayout's `<main>`) takes the name while
-`html[data-md-transform]` is set (`systems/skin/lib/container-transform.ts`).
+`html[data-md-transform]` is set (`systems/os/android/lib/container-transform.ts`).
 The container travels 500ms on the emphasized curve. Its corners open from
 the widget radius to square, and its `surface-container` fill thins into the
 page. Inside it the card fades out over the first 30% and the page fades in
-over the rest (fade through). This only happens in the Material skin, in
+over the rest (fade through). This only happens in the Android theme, in
 browsers with view transitions, and without reduced motion. Anywhere else
 the page crossfades in as before.
 
 **Loading indicator.** `LoadingIndicator` replaces the spinners in the
-Material skin with M3 Expressive's. One shape morphs into the next every
+Android theme with M3 Expressive's. One shape morphs into the next every
 650ms through Compose's sequence: SoftBurst, 9-sided cookie, pentagon, pill,
 Sunny, 4-sided cookie, oval. Each morph also turns the shape a quarter, and
 the whole indicator turns once every 4.67s. Every shape is sampled as a
@@ -242,11 +314,11 @@ per-frame script), and the indicator never seems to breathe. The indicator
 is 38/48 of its box. It is `primary`, or `on-primary-container` on a
 `primary-container` disc when `contained`. It stands in for the wallpaper's
 settle ring, the weather's reload and boot spinners, and a Lynx app's
-loading state. The Glass skin keeps its rings.
+loading state. The Hux theme keeps its rings.
 
 ## Touch: the ripple and the motor
 
-**The ripple.** Anywhere in the Material skin, pressing a pressable thing
+**The ripple.** Anywhere in the Android theme, pressing a pressable thing
 draws Compose's ripple rather than the iOS wash: a circle of the element's
 content colour at the pressed state layer's 10%, born under the finger,
 growing and drifting to the centre until it covers the element, fading once
@@ -279,28 +351,19 @@ link text has no indication), screen-sized surfaces, anything disabled, the
 grid while editing, and `data-no-ripple` (the launcher's app icons — Pixel
 never draws one there).
 
-The Glass skin keeps its wash; the widget card's `:active` overlay is held
-clear under Material so the ripple is the only press.
+The Hux theme keeps its wash; the widget card's `:active` overlay is held
+clear in the Android theme so the ripple is the only press.
 
 **Haptics.** Launcher3 answers a widget's pickup with `LONG_PRESS`, each cell
 a resize crosses with a tick, and the drop with a confirm; `haptic()` plays
 those as short `navigator.vibrate` pulses (12 / 4 / 8ms — clicks, not
-buzzes). Material skin, touch devices only; nothing where the platform has
+buzzes). Android theme, touch devices only; nothing where the platform has
 no motor.
-
-## Triggers
-
-| Surface | How |
-|---|---|
-| Command palette | `Skin: Material` (⌘K), or `/` then `K` |
-| DevTool | Skin module — Material / Glass, the Wallpaper colors style, and the palette in force as swatches |
-| Wallpaper picker | Wallpaper colors, Basic colors, Style (Material only) |
-| Code | `useSkin()` → `{ skin, setSkin, toggle, schemeStyle, setSchemeStyle, seed, setSeed }` |
 
 ## Edit mode
 
 Android's launcher does not jiggle. It says "editing" on the widget being
-worked on, and moves things on springs. So under Material:
+worked on, and moves things on springs. So in the Android theme:
 
 | | Glass (iOS) | Material (Android) |
 |---|---|---|
@@ -318,6 +381,6 @@ could change a widget's size but never put its edge where the finger is — a
 handle that lies about where the edge will land is worse than none. Right
 and bottom are the edges the grid grows toward.
 
-Both affordances are in the tree and the stylesheet picks one (`material:`);
-the only thing the grid reads from the skin in React is which spring Framer
+Both affordances are in the tree and the stylesheet picks one (`android:`);
+the only thing the grid reads from the theme in React is which spring Framer
 should use.

@@ -42,8 +42,8 @@ import {
   type ResizeAxes,
   type ResizeHandlers,
 } from "./resize-grip";
-import { useOptionalSkin } from "@/services/skin";
-import { haptic } from "@/systems/skin/lib/haptics";
+import { useOptionalOsTheme } from "@/services/os-theme";
+import { haptic } from "@/systems/os/android/lib/haptics";
 import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
@@ -256,7 +256,7 @@ function placementVars(id: string, layouts: GridLayout[]): CSSProperties {
 const LAYOUT_TRANSITION = { duration: 0.24, ease: [0.2, 0.8, 0.2, 1] as const };
 
 /**
- * The Material skin moves cards the way Compose does: Material 3
+ * The Android theme moves cards the way Compose does: Material 3
  * Expressive's default spatial spring (damping ratio 0.8, stiffness 380), in
  * Framer's terms — damping is 2ζ√(k·m).
  */
@@ -321,7 +321,7 @@ function SortableGridItem({
   /** The widget being worked on — the one that wears the Material frame. */
   selected: boolean;
   onSelect: (id: string) => void;
-  /** The Material skin is up (for Framer's transition only; styling is CSS). */
+  /** The Android theme is up (for Framer's transition only; styling is CSS). */
   material: boolean;
   /** Effective footprint (clamped to the range and the viewport). */
   size: Size;
@@ -431,7 +431,7 @@ function SortableGridItem({
         if (editing) {
           e.preventDefault();
           e.stopPropagation();
-          // A tap on a widget while editing picks it: in the Material skin
+          // A tap on a widget while editing picks it: in the Android theme
           // that is the one the resize frame goes on.
           onSelect(id);
         }
@@ -475,7 +475,7 @@ function SortableGridItem({
                 "pointer-events-none absolute inset-0 rounded-2xl border border-dashed border-foreground/25 bg-ink/5",
                 // Android's drop target: the footprint as a soft filled
                 // shape at the widget radius, no dashes.
-                "material:rounded-(--md-widget-radius) material:border-0 material:bg-[color-mix(in_srgb,var(--md-on-surface)_14%,transparent)]",
+                "android:rounded-(--md-widget-radius) android:border-0 android:bg-[color-mix(in_srgb,var(--md-on-surface)_14%,transparent)]",
               )}
             />
           )}
@@ -544,9 +544,10 @@ export function SortableGrid({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [resize, setResize] = useState<ResizeState | null>(null);
   // The widget being worked on: the last one lifted, held or tapped while
-  // editing. In the Material skin it is the one that wears the resize frame.
+  // editing. In the Android theme it is the one that wears the resize frame.
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const material = useOptionalSkin()?.skin === "material";
+  // The theme decides how the grid moves (springs or the tween).
+  const material = useOptionalOsTheme()?.meta.layoutMotion === "spring";
   const [sections, setSections] = useState<Map<string, GridSection>>(
     () => new Map(),
   );
@@ -981,7 +982,7 @@ export function SortableGrid({
                 className={cn(
                   "pressable text-xs font-mono text-tertiary-foreground transition-colors hover:text-muted-foreground active:text-foreground",
                   // Material: a text button in `primary`.
-                  "material:h-10 material:rounded-full material:px-3 material:[font-family:var(--font-flex)] material:text-sm material:font-medium material:tracking-[0.1px] material:text-(--md-primary) material:hover:bg-[color-mix(in_srgb,var(--md-primary)_8%,transparent)] material:active:bg-[color-mix(in_srgb,var(--md-primary)_10%,transparent)]",
+                  "android:h-10 android:rounded-full android:px-3 android:[font-family:var(--font-flex)] android:text-sm android:font-medium android:tracking-[0.1px] android:text-(--md-primary) android:hover:bg-[color-mix(in_srgb,var(--md-primary)_8%,transparent)] android:active:bg-[color-mix(in_srgb,var(--md-primary)_10%,transparent)]",
                 )}
               >
                 {t(locale, "widgetEditReset")}
@@ -993,8 +994,8 @@ export function SortableGrid({
               className={cn(
                 "pressable rounded-full border border-border/60 bg-glass-strong-hover px-5 py-2.5 md:px-4 md:py-1.5 text-xs font-mono text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground",
                 // Material: a filled button — `primary`, 40dp, Label Large.
-                "material:h-10 material:border-0 material:bg-(--md-primary) material:px-6 material:py-0 material:[font-family:var(--font-flex)] material:text-sm material:font-medium material:tracking-[0.1px] material:text-(--md-on-primary) material:shadow-md material:backdrop-blur-none",
-                "material:hover:bg-[color-mix(in_srgb,var(--md-primary),var(--md-on-primary)_8%)] material:hover:text-(--md-on-primary) material:active:bg-[color-mix(in_srgb,var(--md-primary),var(--md-on-primary)_10%)] material:active:text-(--md-on-primary)",
+                "android:h-10 android:border-0 android:bg-(--md-primary) android:px-6 android:py-0 android:[font-family:var(--font-flex)] android:text-sm android:font-medium android:tracking-[0.1px] android:text-(--md-on-primary) android:shadow-md android:backdrop-blur-none",
+                "android:hover:bg-[color-mix(in_srgb,var(--md-primary),var(--md-on-primary)_8%)] android:hover:text-(--md-on-primary) android:active:bg-[color-mix(in_srgb,var(--md-primary),var(--md-on-primary)_10%)] android:active:text-(--md-on-primary)",
               )}
             >
               {t(locale, "widgetEditDone")}

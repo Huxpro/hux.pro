@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import { currentThemeMetadata } from "../../lib/root";
 
 // =============================================================================
 // Material ripple — Android's touch feedback, for the whole site.
 //
-// In the Material skin, pressing anything pressable draws Compose's ripple:
+// In a theme whose `pressFeedback` is "ripple" (Android), pressing anything pressable draws Compose's ripple:
 // a circle of the element's content colour at the pressed state layer's 10%,
 // born at the finger, growing and drifting to the element's centre until it
 // covers it, and fading once the press is over. The numbers are Compose's
@@ -90,8 +91,9 @@ interface Pending {
 const live = new Set<Wave>();
 let frame = 0;
 
-function isMaterial() {
-  return document.documentElement.dataset.skin === "material";
+/** Whether the theme in force answers a press with a ripple (its metadata). */
+function ripples() {
+  return currentThemeMetadata().pressFeedback === "ripple";
 }
 
 function reducedMotion() {
@@ -137,7 +139,7 @@ function place(host: HTMLDivElement, target: HTMLElement, r: DOMRect) {
 }
 
 /** A widget card's content colour is its container's `on-` role, which the
- *  card's own `color` (the page's ink, for the Glass skin) does not carry. */
+ *  card's own `color` (the page's ink, for the Hux theme) does not carry. */
 function contentColor(target: HTMLElement, style: CSSStyleDeclaration) {
   if (target.matches("[data-widget-shell]")) {
     const role = style.getPropertyValue("--md-on-container").trim();
@@ -271,7 +273,7 @@ export function MaterialRipple() {
     };
 
     const onDown = (e: PointerEvent) => {
-      if (!isMaterial() || !e.isPrimary || e.button !== 0) return;
+      if (!ripples() || !e.isPrimary || e.button !== 0) return;
       const target = findTarget(e.target);
       if (!target) return;
       if (e.pointerType === "mouse") {
@@ -332,7 +334,7 @@ export function MaterialRipple() {
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.repeat || (e.key !== "Enter" && e.key !== " ")) return;
-      if (!isMaterial() || keyWave) return;
+      if (!ripples() || keyWave) return;
       const target = findTarget(document.activeElement);
       if (!target || target !== document.activeElement) return;
       if (!target.matches(":focus-visible")) return;

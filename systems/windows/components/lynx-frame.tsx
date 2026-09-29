@@ -1,6 +1,7 @@
 "use client";
 
-import { LoadingIndicator } from "@/systems/skin/components/loading-indicator";
+import { LoadingIndicator } from "@/systems/os/android/components/loading-indicator";
+import { Themed } from "@/systems/os/components/themed";
 import dynamic from "next/dynamic";
 
 // =============================================================================
@@ -16,9 +17,13 @@ const LynxPlayer = dynamic(() => import("./lynx-player"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center bg-background">
-      <span className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground/80 material:hidden" />
-      {/* Android's app-loading state: the Expressive indicator, contained. */}
-      <LoadingIndicator contained className="hidden material:inline-block" />
+      <Themed
+        hux={
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground/80" />
+        }
+        // Android's app-loading state: the Expressive indicator, contained.
+        android={<LoadingIndicator contained />}
+      />
     </div>
   ),
 });

@@ -171,9 +171,9 @@ was.
 The corner is also a keyboard control: focus it and the arrow keys change
 the footprint one cell at a time.
 
-That is the Glass skin. In the Material skin the same gesture wears
+That is the Hux theme. In the Android theme the same gesture wears
 Android's form — no jiggle, and a resize frame with edge handles on the
-widget being worked on; see [system-skin.md](./system-skin.md#edit-mode).
+widget being worked on; see [system-os-theme.md](./system-os-theme.md#edit-mode).
 
 ### Phone
 

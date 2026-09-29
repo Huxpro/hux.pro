@@ -190,7 +190,7 @@ function AppLaunchLink({
       }}
       // `pressable` + the tile's `group-active/app` dim: an iOS icon darkens
       // the instant it is touched, before anything else happens. No ripple
-      // in the Material skin either: a launcher icon is not a button with a
+      // in the Android theme either: a launcher icon is not a button with a
       // bounded surface, and Pixel's never draws one.
       data-no-ripple=""
       className="group/app pressable relative z-0 block overflow-visible outline-none hover:z-10 focus-visible:z-10"
@@ -406,10 +406,10 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
               : "ink-bare-mid ink-bare-rest border-transparent hover:border-border/40 hover:bg-glass",
             // Material: a folder is a tonal container at the widget radius,
             // opaque, with no hairline or blur — the same object a widget is.
-            "material:rounded-(--md-widget-radius) material:border-transparent material:backdrop-blur-none material:shadow-none",
+            "android:rounded-(--md-widget-radius) android:border-transparent android:backdrop-blur-none android:shadow-none",
             editing
-              ? "material:bg-(--md-surface-container-high)"
-              : "material:hover:border-transparent material:hover:bg-[color-mix(in_srgb,var(--md-surface-container)_72%,transparent)]",
+              ? "android:bg-(--md-surface-container-high)"
+              : "android:hover:border-transparent android:hover:bg-[color-mix(in_srgb,var(--md-surface-container)_72%,transparent)]",
             className,
           )}
         >

@@ -12,7 +12,8 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { Loader2, Navigation, Sunrise, Sunset } from "lucide-react";
-import { LoadingIndicator } from "@/systems/skin/components/loading-indicator";
+import { LoadingIndicator } from "@/systems/os/android/components/loading-indicator";
+import { Themed } from "@/systems/os/components/themed";
 import { useEffect, useState } from "react";
 import {
   formatClockTime,
@@ -22,7 +23,7 @@ import {
 import { useLocation, useWeather } from "../provider";
 import { WeatherIcon } from "./weather-icon";
 import { useDisplayWeather, WeatherNow, type DisplayWeather } from "./weather-now";
-import { ExpressiveShape, type ShapeName } from "@/systems/skin";
+import { ExpressiveShape, type ShapeName } from "@/systems/os";
 import type { WeatherCondition } from "../lib";
 
 // ---------------------------------------------------------------------------
@@ -106,10 +107,10 @@ export function WeatherWidget() {
                 </span>
               </WidgetTitle>
               {isReloading ? (
-                <>
-                  <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground material:hidden" />
-                  <LoadingIndicator size={18} className="hidden material:inline-block" />
-                </>
+                <Themed
+                  hux={<Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />}
+                  android={<LoadingIndicator size={18} />}
+                />
               ) : (
                 <span
                   aria-hidden="true"
@@ -123,10 +124,10 @@ export function WeatherWidget() {
             <>
               <WidgetTitle className="truncate">{displayCity}</WidgetTitle>
               {isReloading ? (
-                <>
-                  <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground material:hidden" />
-                  <LoadingIndicator size={18} className="hidden material:inline-block" />
-                </>
+                <Themed
+                  hux={<Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />}
+                  android={<LoadingIndicator size={18} />}
+                />
               ) : mounted && location?.source === "geolocation" ? (
                 <Navigation
                   className="h-3 w-3 shrink-0 text-muted-foreground"
@@ -140,7 +141,7 @@ export function WeatherWidget() {
           <WeatherIcon
             condition={displayWeather.condition}
             isDay={displayWeather.isDay !== false}
-            // In the Material skin the glyph is the body's hero, on its
+            // In the Android theme the glyph is the body's hero, on its
             // shape; a second one in the header would say it twice.
             className="h-4 w-4 shrink-0 text-foreground/80 m3:hidden"
           />
@@ -152,8 +153,8 @@ export function WeatherWidget() {
           <WeatherDay weather={displayWeather} />
         ) : displayWeather ? (
           <>
-            {/* Both readouts are in the tree and the skin picks one
-                (`m3:`), so a returning visitor in either skin gets the
+            {/* Both readouts are in the tree and the stylesheet picks one
+                (`m3:`), so a returning visitor in either theme gets the
                 right one on the first frame, with no second render. */}
             <div className="m3:hidden">
               <WeatherNow />

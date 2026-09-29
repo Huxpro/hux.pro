@@ -6,7 +6,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import {
   GlassProvider,
   InputCapabilityProvider,
-  SkinProvider,
+  OsThemeProvider,
   LocaleProvider,
   ThemeProvider,
   useTheme,
@@ -17,7 +17,7 @@ import { SystemSonner } from "@/components/ui/system-sonner";
 import { AboutProvider } from "@/systems/about";
 import { AmbientProvider } from "@/systems/ambient";
 import { GlowPaletteBridge } from "@/systems/glow";
-import { DynamicColorBridge, MaterialRipple } from "@/systems/skin";
+import { DynamicColorBridge, MaterialRipple } from "@/systems/os";
 import { AttachmentProvider } from "@/systems/attachments";
 import { IdentityCardProvider } from "@/systems/identity";
 import { InstallProvider } from "@/systems/install";
@@ -69,7 +69,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <InputCapabilityProvider>
         <ThemeProvider>
           <GlassProvider>
-          <SkinProvider>
+          <OsThemeProvider>
           <LocaleProvider>
             <VisitorProvider>
               <CommandProvider>
@@ -96,7 +96,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               </CommandProvider>
             </VisitorProvider>
           </LocaleProvider>
-          </SkinProvider>
+          </OsThemeProvider>
           </GlassProvider>
         </ThemeProvider>
       </InputCapabilityProvider>

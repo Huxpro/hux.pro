@@ -29,7 +29,7 @@ export function SolarThemeToast({ theme }: SolarThemeToastProps) {
 
   return (
     <div
-      // The Material skin draws it as a snackbar (globals.css).
+      // The Android theme draws it as a snackbar (app/themes/android/system-ui.css).
       data-snackbar=""
       className={cn(
         GLASS_PANEL,
