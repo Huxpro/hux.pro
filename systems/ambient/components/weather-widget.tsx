@@ -21,6 +21,8 @@ import {
 import { useLocation, useWeather } from "../provider";
 import { WeatherIcon } from "./weather-icon";
 import { useDisplayWeather, WeatherNow, type DisplayWeather } from "./weather-now";
+import { ExpressiveShape, type ShapeName } from "@/systems/skin";
+import type { WeatherCondition } from "../lib";
 
 // ---------------------------------------------------------------------------
 // Weather Widget — homepage grid card.
@@ -107,7 +109,7 @@ export function WeatherWidget() {
               ) : (
                 <span
                   aria-hidden="true"
-                  className="shrink-0 rounded-[4px] bg-muted px-1 font-mono text-[10px] leading-[14px] text-tertiary-foreground transition-colors duration-150 group-hover/ip:text-foreground group-active/ip:text-foreground"
+                  className="shrink-0 rounded-[4px] bg-muted px-1 font-mono text-[10px] leading-[14px] text-tertiary-foreground transition-colors duration-150 group-hover/ip:text-foreground group-active/ip:text-foreground m3:rounded-full m3:bg-(--md-surface-container-highest) m3:px-1.5 m3:text-[11px] m3:font-medium m3:leading-4 m3:text-(--md-on-surface-variant)"
                 >
                   ip
                 </span>
@@ -131,7 +133,9 @@ export function WeatherWidget() {
           <WeatherIcon
             condition={displayWeather.condition}
             isDay={displayWeather.isDay !== false}
-            className="h-4 w-4 shrink-0 text-foreground/80"
+            // In the Material skin the glyph is the body's hero, on its
+            // shape; a second one in the header would say it twice.
+            className="h-4 w-4 shrink-0 text-foreground/80 m3:hidden"
           />
         )}
       </WidgetHeader>
@@ -139,11 +143,78 @@ export function WeatherWidget() {
       <WidgetBody>
         {w >= 2 && displayWeather ? (
           <WeatherDay weather={displayWeather} />
+        ) : displayWeather ? (
+          <>
+            {/* Both readouts are in the tree and the skin picks one
+                (`m3:`), so a returning visitor in either skin gets the
+                right one on the first frame, with no second render. */}
+            <div className="m3:hidden">
+              <WeatherNow />
+            </div>
+            <MaterialWeatherNow weather={displayWeather} />
+          </>
         ) : (
           <WeatherNow />
         )}
       </WidgetBody>
     </WidgetShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The Material readout — Android's weather widget, in this site's data.
+//
+// Android's own guidance for a widget that shows one thing (the weather, the
+// current song): "try out making your whole widget an expressive shape", or
+// use one for visual hierarchy. So the condition sits on a Material 3
+// Expressive shape in `primary-container`, and the shape is the weather's —
+// a sun is `Sunny`'s points, rain a nine-sided cookie, snow a flower,
+// thunder a burst — while the temperature is the one big number, Display
+// Medium in Google Sans Flex with its roundness axis all the way up.
+// ---------------------------------------------------------------------------
+
+const CONDITION_SHAPE: Record<WeatherCondition, ShapeName> = {
+  clear: "sunny",
+  cloudy: "cookie12",
+  fog: "cookie7",
+  rain: "cookie9",
+  snow: "flower",
+  thunder: "softBurst",
+};
+
+function MaterialWeatherNow({ weather }: { weather: DisplayWeather }) {
+  const { locale } = useLocale();
+  const isDay = weather.isDay !== false;
+  // A clear night is not a sun: the moon sits on a soft cookie instead.
+  const shape = weather.condition === "clear" && !isDay ? "cookie12" : CONDITION_SHAPE[weather.condition];
+  return (
+    <div className="hidden items-center justify-between gap-4 m3:flex">
+      <div className="min-w-0">
+        <div className="text-[45px] font-normal leading-[52px] tracking-normal text-foreground [font-variation-settings:'ROND'_100]">
+          {Math.round(weather.temperatureC)}°
+        </div>
+        <div className="mt-0.5 truncate text-sm leading-5 text-muted-foreground">
+          {getWeatherConditionLabel(weather.condition, locale)}
+          {weather.sunriseMs && weather.sunsetMs ? (
+            <span className="text-tertiary-foreground">
+              {" · "}
+              {formatClockTime(isDay ? weather.sunsetMs : weather.sunriseMs, locale)}
+              {isDay ? " ↓" : " ↑"}
+            </span>
+          ) : null}
+        </div>
+      </div>
+      <ExpressiveShape
+        shape={shape}
+        className="size-[76px] shrink-0 text-(--md-on-primary-container)"
+      >
+        <WeatherIcon
+          condition={weather.condition}
+          isDay={isDay}
+          className="size-9"
+        />
+      </ExpressiveShape>
+    </div>
   );
 }
 
@@ -171,7 +242,7 @@ function WeatherDay({ weather }: { weather: DisplayWeather }) {
   return (
     <div className="grid grid-cols-2 gap-x-6">
       <div className="flex min-w-0 flex-col justify-between">
-        <div className="font-serif text-5xl leading-none text-foreground tracking-tight tabular-nums">
+        <div className="font-serif text-5xl leading-none text-foreground tracking-tight tabular-nums m3:font-sans m3:text-[45px] m3:leading-[52px] m3:[font-variant-numeric:normal] m3:[font-variation-settings:'ROND'_100]">
           {Math.round(weather.temperatureC)}°
         </div>
         <div className="mt-2 min-w-0">
@@ -179,7 +250,7 @@ function WeatherDay({ weather }: { weather: DisplayWeather }) {
             {getWeatherConditionLabel(weather.condition, locale)}
           </div>
           {details.length > 0 && (
-            <div className={cn("mt-1 truncate", TYPE.meta)}>
+            <div className={cn("mt-1 truncate m3:first-letter:uppercase", TYPE.meta)}>
               {details.join(" · ")}
             </div>
           )}
@@ -212,10 +283,12 @@ function SunArc({ sunriseMs, sunsetMs }: { sunriseMs?: number; sunsetMs?: number
   const sunY = 48 - 44 * Math.sin(angle);
 
   return (
-    <div className="flex min-w-0 flex-col justify-end">
+    <div className="flex min-w-0 flex-col items-center justify-end">
+      {/* Height-bound, not width-bound: a one-row cell has ~100px of body,
+          and an arc sized by a 300px column would be half again that. */}
       <svg
         viewBox="0 0 100 52"
-        className="w-full"
+        className="h-[58px] w-auto max-w-full"
         aria-hidden
         fill="none"
         strokeLinecap="round"
@@ -231,15 +304,15 @@ function SunArc({ sunriseMs, sunsetMs }: { sunriseMs?: number; sunsetMs?: number
           <>
             <path
               d={`M 6 48 A 44 44 0 0 1 ${sunX.toFixed(2)} ${sunY.toFixed(2)}`}
-              className="stroke-foreground/45"
+              className="stroke-foreground/45 m3:stroke-(--md-primary)"
               strokeWidth="1.5"
             />
-            <circle cx={sunX} cy={sunY} r="3.5" className="fill-foreground" />
+            <circle cx={sunX} cy={sunY} r="3.5" className="fill-foreground m3:fill-(--md-primary)" />
           </>
         )}
       </svg>
       {hasDay && (
-        <div className={cn("mt-1 flex items-center justify-between", TYPE.meta)}>
+        <div className={cn("mt-1 flex w-full max-w-[112px] items-center justify-between", TYPE.meta)}>
           <span className="flex items-center gap-1">
             <Sunrise className="h-3 w-3" />
             {formatClockTime(sunriseMs, locale)}

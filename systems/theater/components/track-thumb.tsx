@@ -48,7 +48,7 @@ export function TrackThumb({
   return (
     <div
       className={cn(
-        "relative aspect-video w-full overflow-hidden rounded-lg bg-muted/20",
+        "relative aspect-video w-full overflow-hidden rounded-lg bg-muted/20 m3:rounded-2xl",
         "border transition-colors",
         // Hairline selection — readable for the playlist rail without the
         // old double ring fighting the cover art.

@@ -333,7 +333,7 @@ export function PromptWidget() {
   return (
     // The card is a pointer at one entry, so the surface opens that entry.
     // "View prompts" in the header stays the whole page.
-    <WidgetShell href={`/prompt#${current.anchor}`}>
+    <WidgetShell href={`/prompt#${current.anchor}`} tone="primary">
       <WidgetHeader>
         <div className="flex items-center gap-2">
           <WidgetTitle>{t(locale, "widgetPrompt")}</WidgetTitle>
@@ -369,6 +369,8 @@ export function PromptWidget() {
               className={cn(
                 "block text-xs text-tertiary-foreground",
                 locale === "zh" ? "font-mono" : "italic font-serif",
+                // Material: a run heading is a Label in `primary`, not a voice.
+                "m3:not-italic m3:font-sans m3:font-medium m3:first-letter:uppercase m3:tracking-[0.1px] m3:text-(--md-primary)",
               )}
             >
               {t(locale, "widgetUpNext")}
@@ -380,7 +382,7 @@ export function PromptWidget() {
                     type="button"
                     onClick={() => jumpTo(i)}
                     className={cn(
-                      "pressable -mx-2 block w-[calc(100%+1rem)] truncate rounded-md px-2 py-1 text-left",
+                      "pressable -mx-2 block w-[calc(100%+1rem)] truncate rounded-md px-2 py-1 text-left m3:rounded-xl",
                       "transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35",
                       TYPE.rowTitle,
                     )}

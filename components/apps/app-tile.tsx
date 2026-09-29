@@ -23,10 +23,13 @@ const TILE_PX: Record<AppTileSize, number> = {
   lg: 64,
 };
 
+// The icon mask is the platform's: Apple's rounded square, or — in the
+// Material skin — Android's, which on a Pixel is a circle (the adaptive icon
+// mask Pixel Launcher ships as its default shape).
 const RADIUS: Record<AppTileSize, string> = {
-  sm: "rounded-[22.5%]",
-  md: "rounded-[22.5%]",
-  lg: "rounded-[22.5%]",
+  sm: "rounded-[22.5%] material:rounded-full",
+  md: "rounded-[22.5%] material:rounded-full",
+  lg: "rounded-[22.5%] material:rounded-full",
 };
 
 const PAD: Record<AppTileSize, string> = {

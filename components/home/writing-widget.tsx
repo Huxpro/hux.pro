@@ -172,6 +172,7 @@ function Column({ label, children }: { label: string; children: React.ReactNode 
         className={cn(
           "block pb-1 text-xs text-tertiary-foreground",
           /[぀-ヿ一-鿿]/.test(label) ? "font-mono" : "italic font-serif",
+          "m3:not-italic m3:font-sans m3:font-medium m3:first-letter:uppercase m3:tracking-[0.1px] m3:text-(--md-primary)",
         )}
       >
         {label}
@@ -186,7 +187,7 @@ function Headline({ post, locale }: { post: BlogPostSummary; locale: Locale }) {
   return (
     <Link
       href={getPostHref(post, locale, "/writing")}
-      className="pressable -mx-2 flex min-w-0 flex-col gap-1 rounded-lg px-2 py-1 transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35"
+      className="pressable -mx-2 flex min-w-0 flex-col gap-1 rounded-lg px-2 py-1 transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35 m3:rounded-xl"
     >
       <span className="line-clamp-2 font-serif text-base leading-snug text-foreground">
         {getLocalizedTitle(post, locale)}
@@ -196,7 +197,7 @@ function Headline({ post, locale }: { post: BlogPostSummary; locale: Locale }) {
           {post.description}
         </span>
       )}
-      <time dateTime={post.date} className={TYPE.rowMeta}>
+      <time dateTime={post.date} className={cn(TYPE.rowMeta, "m3:capitalize")}>
         {formatPostDate(post.date)}
       </time>
     </Link>
@@ -224,7 +225,7 @@ function PostRow({
       // `pressable` + `active:` — the row washes on touch-down, not only on
       // hover (which touch devices never see), and eases back on release.
       className={cn(
-        "pressable snap-start flex flex-col -mx-2 px-2 py-2 rounded-lg transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35",
+        "pressable snap-start flex flex-col -mx-2 px-2 py-2 rounded-lg transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35 m3:rounded-xl",
         className,
       )}
     >
@@ -241,11 +242,11 @@ function PostRow({
             why the row is on the card, and for those rows the flag is the
             answer. */}
         {marker ? (
-          <span className={cn("shrink-0", TYPE.rowMeta)}>
+          <span className={cn("shrink-0 m3:capitalize", TYPE.rowMeta)}>
             {t(locale, "writingFeatured")}
           </span>
         ) : (
-          <time dateTime={post.date} className={cn("shrink-0", TYPE.rowMeta)}>
+          <time dateTime={post.date} className={cn("shrink-0 m3:capitalize", TYPE.rowMeta)}>
             {formatPostDate(post.date)}
           </time>
         )}

@@ -20,6 +20,7 @@ are *arranged and sized* on Android; the skin is how they *look*.
 | Dynamic color: wallpaper → scheme → roles | `systems/skin/lib/scheme.ts` |
 | Publishes the palette onto `<html>` | `systems/skin/components/dynamic-color-bridge.tsx` |
 | Tokens and the widget container | `app/globals.css`, "Skin — Material" |
+| Expressive shapes (`Sunny`, the cookies, …) as SVG paths | `systems/skin/lib/shapes.ts`, `ExpressiveShape` |
 | Google Sans Flex (`--font-flex`) | `app/layout.tsx` |
 
 ## Sources
@@ -102,6 +103,39 @@ the same face with tabular figures, so dates still line up.
 Google Sans Flex is not preloaded: a visitor in the Glass skin never downloads
 it.
 
+## Variants: `material:` and `m3:`
+
+Some controls are shared — the album tabs with the theater, the music
+transport with the Live Activity, a thumbnail with the playlist sheet — and
+want their Material form only on the home grid. Two Tailwind variants
+(`app/globals.css`) say where a class applies:
+
+| Variant | Applies |
+|---|---|
+| `material:` | Anywhere in the Material skin (the app icon's mask, the folder) |
+| `m3:` | Only inside a widget card in the Material skin |
+
+Where a widget's *structure* differs by skin (the weather readout), both
+forms are in the tree and the variant hides one. Nothing reads the skin in
+React, so a returning visitor gets the right form on the first frame with no
+second render.
+
+## The widgets
+
+Each widget's Material form, and the platform idea behind it:
+
+| Widget | Material form |
+|---|---|
+| **Weather** | The condition glyph on an **Expressive shape** in `primary-container`, the shape chosen by the weather — `Sunny` for a clear day, a 12-sided cookie for cloud or a clear night, a 9-sided one for rain, a flower for snow, a burst for thunder — and the temperature as the one big number, Display Medium (45/52) in Google Sans Flex with `ROND` at 100. Android: for a widget that shows one thing, "try out making your whole widget an expressive shape". Two wide, the sun's arc and its dot take `primary`. |
+| **Music** | Android's media controls: no capsule, icon buttons for the neighbours, and play / pause as the one filled button in `primary`. Its **shape is its state** — round while paused, a rounded square while playing, tighter still under the finger — on the Expressive fast-spatial spring, overshoot included. The playlist toggle, when on, is a tonal `secondary-container` button. Art at 16px corners. |
+| **Talks** | The album switch is a **connected button group** (Expressive's replacement for segmented buttons): separate buttons 2dp apart, small inner corners, round outer ends; the selected one tonal and fully round — the shape is the selection, so the sliding pill is gone. Thumbnails at 16px. |
+| **Prompts** | A tonal card: `primary-container`, the one widget that is a single thing wearing the accent container, the way a home screen mixes them among the surfaces. (`tertiary-container` was tried: in the 2025 dark scheme it is a bright lilac that glares on a night home screen.) |
+| **Writing / Projects** | List rows with 12px state-layer corners; dates and the `featured` marker capitalised ("Jul 2020"); run headings ("Latest", "Up next") as a Label in `primary` rather than the serif voice. |
+| **App folder** | Circular icons — Pixel Launcher's default adaptive-icon mask — labels in Google Sans Flex, and the folder, when shown, a tonal container at the widget radius. |
+
+`WidgetShell` takes a `tone` (`primary` / `secondary` / `tertiary`) for the
+accent containers; the Glass skin ignores it.
+
 ## Triggers
 
 | Surface | How |
@@ -112,7 +146,5 @@ it.
 
 ## What this layer does not do yet
 
-This is the foundation: the palette, the tokens and the container. Each
-widget's Expressive treatment (shapes, the play button that morphs, a
-display-size temperature, connected button groups) and the Android edit mode
-(a resize frame with handles instead of the jiggle) build on it.
+The Android edit mode — a resize frame with handles instead of the jiggle,
+springs for lift and drop — builds on this.

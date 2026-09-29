@@ -401,6 +401,12 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
             editing
               ? "border-border/60 bg-glass-strong shadow-raised backdrop-blur-sm"
               : "ink-bare-mid ink-bare-rest border-transparent hover:border-border/40 hover:bg-glass",
+            // Material: a folder is a tonal container at the widget radius,
+            // opaque, with no hairline or blur — the same object a widget is.
+            "material:rounded-(--md-widget-radius) material:border-transparent material:backdrop-blur-none material:shadow-none",
+            editing
+              ? "material:bg-(--md-surface-container-high)"
+              : "material:hover:border-transparent material:hover:bg-[color-mix(in_srgb,var(--md-surface-container)_72%,transparent)]",
             className,
           )}
         >

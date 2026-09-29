@@ -26,9 +26,36 @@ import type { Album } from "../lib/types";
 //
 // `tone="onDark"` is the dim dark-stamp language, forced for editor mocks
 // and any stage that cannot follow the site theme.
+//
+// In a home widget under the Material skin (`m3:`) the control is Material 3
+// Expressive's *connected button group* instead: separate buttons 2dp apart,
+// small inner corners and round outer ends, the selected one a tonal
+// `secondary-container` whose corners open all the way round — the shape is
+// the selection, so the sliding pill is not drawn. Elsewhere (the theater,
+// the pickers) nothing changes.
 // ---------------------------------------------------------------------------
 
 const EASE = [0.32, 0.72, 0, 1] as const;
+
+// `!`: the glass track's `dark:` / `hover:` / `active:` classes would
+// otherwise win in one theme or on one state.
+const M3_GROUP = cn(
+  "m3:gap-0.5 m3:bg-transparent! m3:border-0! m3:p-0 m3:ring-0! m3:shadow-none! m3:backdrop-blur-none!",
+);
+
+const M3_BUTTON = cn(
+  "m3:h-8 m3:px-3.5 m3:py-0 m3:text-xs m3:font-medium m3:tracking-[0.5px]",
+  "m3:bg-(--md-surface-container-highest) m3:text-(--md-on-surface-variant)",
+  "m3:rounded-[8px] m3:first:rounded-l-full m3:last:rounded-r-full",
+  "m3:hover:bg-[color-mix(in_srgb,var(--md-surface-container-highest),var(--md-on-surface)_8%)] m3:hover:text-(--md-on-surface)",
+  "m3:transition-[border-radius,background-color,color] m3:duration-(--md-spring-fast-spatial-duration) m3:ease-(--md-spring-fast-spatial)",
+);
+
+const M3_SELECTED = cn(
+  "m3:rounded-full m3:first:rounded-full m3:last:rounded-full",
+  "m3:bg-(--md-secondary-container) m3:text-(--md-on-secondary-container)",
+  "m3:hover:bg-[color-mix(in_srgb,var(--md-secondary-container),var(--md-on-secondary-container)_8%)] m3:hover:text-(--md-on-secondary-container)",
+);
 
 interface AlbumTabsProps {
   /** Only the id and label are read, so any named group can be a tab. */
@@ -71,6 +98,7 @@ export function AlbumTabs({
         // Labels carry the breathing room instead (Apple camera picker).
         "inline-flex items-center rounded-full p-0.5",
         onDark ? GLASS_ON_DARK_TRACK : raised ? GLASS_TRACK : GLASS_TRACK_FLAT,
+        M3_GROUP,
         className,
       )}
     >
@@ -97,13 +125,15 @@ export function AlbumTabs({
                 : active
                   ? "text-foreground"
                   : "text-tertiary-foreground hover:text-muted-foreground focus-visible:text-foreground active:text-foreground",
+              M3_BUTTON,
+              active && M3_SELECTED,
             )}
           >
             {active && (
               <motion.span
                 layoutId={pillId}
                 className={cn(
-                  "absolute inset-0 -z-10 rounded-full",
+                  "absolute inset-0 -z-10 rounded-full m3:hidden",
                   onDark
                     ? GLASS_ON_DARK_PILL
                     : raised

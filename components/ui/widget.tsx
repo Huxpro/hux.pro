@@ -44,10 +44,17 @@ export function WidgetShell({
   style,
   href,
   onOpen,
+  tone,
   children,
 }: {
   className?: string;
   style?: React.CSSProperties;
+  /**
+   * The Material skin's accent containers: a widget that is one thing can
+   * wear `primary-` / `secondary-` / `tertiary-container` instead of the
+   * surface. The Glass skin ignores it.
+   */
+  tone?: "primary" | "secondary" | "tertiary";
   /** Page the widget opens when its surface is tapped. */
   href?: string;
   /** Action the widget performs when its surface is tapped (no page). */
@@ -103,6 +110,7 @@ export function WidgetShell({
       // turns this card into a Material widget container (app/globals.css,
       // "Skin — Material"). One attribute, so nothing here knows the skin.
       data-widget-shell=""
+      data-widget-tone={tone}
       className={cn(
         // Named group: nested chrome (AlbumTabs, transport clusters) must
         // not inherit the card's `:hover` / `:active`. Widget-level hover
@@ -298,6 +306,8 @@ export function WidgetScrollBody({
  */
 export const WIDGET_ICON_HIT = cn(
   "pressable -m-2 inline-flex size-7 shrink-0 items-center justify-center rounded-md outline-none",
+  // Material's icon buttons are round.
+  "m3:rounded-full",
   "text-muted-foreground transition-colors duration-200",
   // `--muted` is already a 4–6% ink wash, so `bg-muted/20` is invisible.
   // Same foreground alphas as `GLASS_BTN` — a finger can see the well.
