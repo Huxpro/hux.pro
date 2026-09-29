@@ -226,6 +226,9 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
         >
           <Command
             className={cn(
+              // `surface-shell search-view`: the Material skin draws the
+              // palette as M3's docked search view (globals.css).
+              "surface-shell search-view",
               "relative mx-4 transition-all duration-300 ease-out",
               "bg-glass-popover backdrop-blur-xl",
               "rounded-2xl border border-black/10 dark:border-white/10",
@@ -245,6 +248,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
             <SlashShortcuts actions={actions} />
             {/* Search / slash header — collapsed in load-bundle mode (panel owns chrome). */}
             <div
+              data-search-divider=""
               className={cn(
                 "relative border-b border-border/50",
                 isLoadBundleMode && "hidden"
@@ -260,6 +264,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
               >
                 <div className="overflow-hidden">
                   <div
+                    data-search-header=""
                     className={cn(
                       "flex items-center gap-3 px-4 transition-opacity duration-300 ease-out",
                       isSlashCommandsMode ? "opacity-0" : "opacity-100"

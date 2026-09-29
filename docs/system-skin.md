@@ -166,6 +166,14 @@ Type inside a surface is Google Sans Flex, the site's mono readouts
 included (with tabular figures); `code`, `kbd` and `pre` keep the code face,
 captured on `<body>` as `--font-code` before a skin re-points `--font-mono`.
 
+**System UI** beyond the surfaces:
+
+| Element | Material form |
+|---|---|
+| **Command palette** | M3's search view (`SearchViewTokens`). Docked on a desktop: `surface-container-high` at 28dp, elevation 3. On a phone it is the bottom sheet in the same container. The header is a 56dp row with the 24dp search icon in `on-surface`, the query in Body Large, and a divider in `outline`. Results are list items (56dp, Body Large, a 24dp leading icon in `on-surface-variant`); hover and the keyboard highlight are state layers, and each section is headed like a settings group. The app strip keeps its tiles. |
+| **Toasts** | Snackbars (`SnackbarTokens`): `inverse-surface` under `inverse-on-surface`, Body Medium, 4dp corners, elevation 3. Actions are text buttons in `inverse-primary`. A snackbar arrives as Compose's does, fading in as it grows from 80% on the emphasized-decelerate curve. |
+| **Dock** | The status bar. A Live Activity's pill (and a minimized window's) is a status chip: a flat 32dp `secondary-container` pill in Label Large. Opened, the activity is a notification card in `surface-container` at 28dp, with the media controls in their Material form. |
+
 **Controls** (`components/ui/controls.tsx`), wherever they are:
 
 | Control | Material form |

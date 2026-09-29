@@ -19,7 +19,7 @@ export function LanguageConflictToast({
   onChoose,
 }: LanguageConflictToastProps) {
   return (
-    <div className="w-full max-w-md bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-overlay animate-in slide-in-from-bottom-4 fade-in duration-200">
+    <div data-snackbar="" className="w-full max-w-md bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-overlay animate-in slide-in-from-bottom-4 fade-in duration-200">
       {/* Header */}
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-center gap-2 mb-2">
@@ -61,12 +61,14 @@ export function LanguageConflictToast({
       <div className="flex gap-2 px-3 pb-3">
         <button
           onClick={() => onChoose(systemLang)}
+          data-snackbar-action=""
           className="flex-1 px-4 py-2.5 bg-foreground text-background rounded-lg font-medium text-sm whitespace-nowrap transition-all hover:opacity-90 active:scale-[0.98]"
         >
           {systemLang === "en" ? "Keep English" : "保持中文"}
         </button>
         <button
           onClick={() => onChoose(sharedLang)}
+          data-snackbar-action=""
           className="flex-1 px-4 py-2.5 text-muted-foreground rounded-lg font-medium text-sm whitespace-nowrap transition-all hover:bg-muted/50 active:scale-[0.98] border border-border/50"
         >
           {systemLang === "en"
@@ -94,7 +96,7 @@ export function LanguageSwitchToast({
   const isSystemLang = currentLang === systemLang;
 
   return (
-    <div className="inline-flex items-center gap-3 px-4 py-3 bg-background/95 backdrop-blur-xl border border-border/50 rounded-full shadow-raised animate-in slide-in-from-bottom-2 fade-in duration-200">
+    <div data-snackbar="" className="inline-flex items-center gap-3 px-4 py-3 bg-background/95 backdrop-blur-xl border border-border/50 rounded-full shadow-raised animate-in slide-in-from-bottom-2 fade-in duration-200">
       <Languages className="w-4 h-4 text-muted-foreground" />
       <span className="text-sm text-muted-foreground">
         {systemLang === "en" ? (
