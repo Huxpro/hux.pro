@@ -23,6 +23,8 @@ are *arranged and sized* on Android; the skin is how they *look*.
 | Expressive shapes (`Sunny`, the cookies, …) as SVG paths | `systems/skin/lib/shapes.ts`, `ExpressiveShape` |
 | The resize frame (Material) and the corner (Glass) | `components/ui/resize-grip.tsx` |
 | Google Sans Flex (`--font-flex`) | `app/layout.tsx` |
+| The ripple (every pressable, site-wide) | `systems/skin/components/material-ripple.tsx` |
+| Haptics (pickup, resize ticks, drop) | `systems/skin/lib/haptics.ts` |
 
 ## Sources
 
@@ -138,6 +140,50 @@ Each widget's Material form, and the platform idea behind it:
 
 `WidgetShell` takes a `tone` (`primary` / `secondary` / `tertiary`) for the
 accent containers; the Glass skin ignores it.
+
+## Touch: the ripple and the motor
+
+**The ripple.** Anywhere in the Material skin, pressing a pressable thing
+draws Compose's ripple rather than the iOS wash: a circle of the element's
+content colour at the pressed state layer's 10%, born under the finger,
+growing and drifting to the centre until it covers the element, fading once
+the press is over. Compose's numbers (`RippleAnimation`):
+
+| | |
+|---|---|
+| Start radius | 30% of the longer side |
+| End radius | half the diagonal + 10dp, so the corners fill as fast as the middle |
+| Radius | 225ms, FastOutSlowIn |
+| Centre | 225ms, linear, touch point → centre |
+| Fade in / out | 75ms / 150ms, linear; the fade never starts before the wave is grown, so a quick tap still draws all of it |
+| Touch delay | 100ms (`ViewConfiguration` tap timeout): a press that becomes a scroll never flashes |
+
+The colour is the content's (`color`, or a card's `--md-on-container`), at
+full opacity: Compose replaces the alpha rather than multiplying it. A key
+press (Enter / Space on a focused control) ripples from the centre; with
+reduced motion the layer appears flat, as Android's does with animations
+removed.
+
+It is one delegated listener (`MaterialRipple`, mounted in the providers):
+the target is the innermost `button`, link, `role=` control or
+`.widget-surface` card under the pointer, and the wave is drawn in a layer on
+`<body>` that follows that element's box and corner radius every frame —
+nothing is inserted into React's tree, no component opts in. The layer drops
+the moment the element is no longer what the finger is on (a sheet the tap
+opened covers it, it unmounts, the grid enters edit mode), so a wave never
+paints over what the tap opened. Not rippled: inline text links (Compose's
+link text has no indication), screen-sized surfaces, anything disabled, the
+grid while editing, and `data-no-ripple` (the launcher's app icons — Pixel
+never draws one there).
+
+The Glass skin keeps its wash; the widget card's `:active` overlay is held
+clear under Material so the ripple is the only press.
+
+**Haptics.** Launcher3 answers a widget's pickup with `LONG_PRESS`, each cell
+a resize crosses with a tick, and the drop with a confirm; `haptic()` plays
+those as short `navigator.vibrate` pulses (12 / 4 / 8ms — clicks, not
+buzzes). Material skin, touch devices only; nothing where the platform has
+no motor.
 
 ## Triggers
 

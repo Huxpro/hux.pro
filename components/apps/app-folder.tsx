@@ -189,7 +189,10 @@ function AppLaunchLink({
         windows.openApp(app);
       }}
       // `pressable` + the tile's `group-active/app` dim: an iOS icon darkens
-      // the instant it is touched, before anything else happens.
+      // the instant it is touched, before anything else happens. No ripple
+      // in the Material skin either: a launcher icon is not a button with a
+      // bounded surface, and Pixel's never draws one.
+      data-no-ripple=""
       className="group/app pressable relative z-0 block overflow-visible outline-none hover:z-10 focus-visible:z-10"
     >
       {children}
