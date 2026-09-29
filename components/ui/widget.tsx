@@ -63,6 +63,7 @@ export function WidgetShell({
   href,
   onOpen,
   accent,
+  ink,
   children,
 }: {
   className?: string;
@@ -73,6 +74,13 @@ export function WidgetShell({
   onOpen?: () => void;
   /** Apple skin: the system colour the widget's title wears. */
   accent?: WidgetAccent;
+  /**
+   * Apple skin: the widget paints its own colour behind its content (a
+   * `.widget-backdrop` — Weather's sky, Music's artwork), and its text is
+   * white ink on that colour. Ignored by Classic and under Glass: Clear,
+   * where the backdrop is not drawn.
+   */
+  ink?: "light";
   children: React.ReactNode;
 }) {
   const wallpaper = useOptionalWallpaper();
@@ -121,6 +129,7 @@ export function WidgetShell({
       onTouchStart={tappable ? noop : undefined}
       data-widget=""
       data-widget-accent={accent}
+      data-widget-ink={ink}
       data-widget-tappable={tappable ? "" : undefined}
       className={cn(
         // Named group: nested chrome (AlbumTabs, transport clusters) must
@@ -151,6 +160,8 @@ export function WidgetShell({
             ),
         // Press wash for surface presses only (see `.widget-surface`).
         tappable && "widget-surface",
+        // Re-derive the ink ladder here, so `data-widget-ink` can swap it.
+        ink && "ink-scope",
         className
       )}
       style={style}
