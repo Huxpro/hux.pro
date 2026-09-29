@@ -1,6 +1,7 @@
 "use client";
 
 import { t, useLocale } from "@/services";
+import { sunEventOf } from "../lib/phase";
 import { useAmbientTime, useWeather } from "../provider";
 import { MoonGlyph, SunEventGlyph, SunGlyph } from "./body-glyph";
 
@@ -41,7 +42,7 @@ export function SkyPullCue() {
   const { locale } = useLocale();
   const { scene } = useWeather();
   const { phase } = useAmbientTime();
-  const event = phase === "sunrise" || phase === "sunset" ? phase : null;
+  const event = sunEventOf(phase);
   // What is up there to be looked at: the sun while it is above the horizon,
   // otherwise the moon if it is — the thing the window will be about. With
   // neither up (a moonless night), the sun, which is at least somewhere.

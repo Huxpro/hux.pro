@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import type { SunEvent } from "../lib/sun";
 
 // ---------------------------------------------------------------------------
 // The sun and the moon as solid glyphs — one family, drawn the same way: the
@@ -59,6 +60,21 @@ export function MoonGlyph({
 /** Eight short rays round the sun's disc, as solid as the disc. */
 const RAYS = Array.from({ length: 8 }, (_, i) => (i * 360) / 8);
 
+/** One rounded ray, `deg` round from straight up, from `r` to `r - length` out. */
+function Ray({ deg, r, length, fill }: { deg: number; r: number; length: number; fill: string }) {
+  return (
+    <rect
+      x={-0.65}
+      y={-r}
+      width={1.3}
+      height={length}
+      rx={0.65}
+      transform={`rotate(${deg})`}
+      className={fill}
+    />
+  );
+}
+
 /**
  * The sun: the moon's family — solid, the same size — but with rays. A plain
  * lit disc is what a FULL moon looks like, and the two must never be taken for
@@ -70,16 +86,7 @@ export function SunGlyph({ className, light = false }: { className?: string; lig
     <svg viewBox="-7 -7 14 14" className={cn("h-3.5 w-3.5 shrink-0", className)} aria-hidden>
       <circle r={3.4} className={fill} />
       {RAYS.map((deg) => (
-        <rect
-          key={deg}
-          x={-0.65}
-          y={-6.6}
-          width={1.3}
-          height={1.9}
-          rx={0.65}
-          transform={`rotate(${deg})`}
-          className={fill}
-        />
+        <Ray key={deg} deg={deg} r={6.6} length={1.9} fill={fill} />
       ))}
     </svg>
   );
@@ -91,17 +98,14 @@ const EVENT_RAYS = [-90, -45, 45, 90];
 /**
  * A sunrise or a sunset: the sun's family again — half its disc on a horizon,
  * the rays that clear it, and an arrow for which way it is going. Stands for
- * the sun through the ±45 minutes either side of it crossing the horizon,
- * when the thing in the sky is the event, not the disc: for most of that
- * window there is no disc, and a sun glyph pointing at the ground would be
- * pointing at nothing.
+ * the sun through the sun-event phases, when the disc is mostly not there.
  */
 export function SunEventGlyph({
   event,
   className,
   light = false,
 }: {
-  event: "sunrise" | "sunset";
+  event: SunEvent;
   className?: string;
   light?: boolean;
 }) {
@@ -114,16 +118,7 @@ export function SunEventGlyph({
       <path d="M -3.2 3.1 A 3.2 3.2 0 0 1 3.2 3.1 Z" className={fill} />
       <g transform="translate(0 3.1)">
         {EVENT_RAYS.map((deg) => (
-          <rect
-            key={deg}
-            x={-0.65}
-            y={-6.2}
-            width={1.3}
-            height={1.8}
-            rx={0.65}
-            transform={`rotate(${deg})`}
-            className={fill}
-          />
+          <Ray key={deg} deg={deg} r={6.2} length={1.8} fill={fill} />
         ))}
       </g>
       {/* Which way it is going: up out of the horizon, or down into it. */}

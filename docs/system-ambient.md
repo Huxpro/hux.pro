@@ -887,10 +887,10 @@ whichever of the sun and the moon is above the horizon — the moon at its real
 phase — drawn as **light**, not ink: a white body with a soft bloom round it
 that descends, grows and brightens with the pull, over "keep pulling to look
 up" — or, through a sunrise or a sunset, the event's glyph instead, since the
-window will be about the sunset rather than a disc. At the point of no return only the words change — "let go to look up" —
-with a tick where the platform has one (`navigator.vibrate`): the light is one
-continuous function of the pull, so it never jumps, crossing the line or
-letting go on either side of it. (The first version drew progress as a stroked
+window will be about the sunset rather than a disc. At the point of no return
+only the words change — "let go to look up" — with a tick where the platform
+has one (`navigator.vibrate`): the light is one continuous function of the
+pull, so it never jumps, crossing the line or letting go on either side of it. (The first version drew progress as a stroked
 ring round an outline icon, and read as a control; a second put an ink glyph in
 a glass bubble, and read as a button. Progress is brightness now.)
 

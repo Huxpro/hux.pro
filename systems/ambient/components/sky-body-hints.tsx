@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import { subscribeWindowBodies, type WindowBodies } from "../lib/sky-bodies";
-import type { SunEvent } from "../lib/sun";
+import { sunEventOf } from "../lib/phase";
 import { useAmbientTime, useWeather } from "../provider";
 import { MoonGlyph, SunEventGlyph, SunGlyph } from "./body-glyph";
 
@@ -24,13 +24,9 @@ import { MoonGlyph, SunEventGlyph, SunGlyph } from "./body-glyph";
 // daylight or below the horizon is not one to go looking for — and never for
 // one already on screen, clouded or not.
 //
-// Except the sun through a sunrise or a sunset (the ±45-minute phase windows,
-// lib/phase.ts). For most of either the disc is under the horizon, so a hint
-// for the body alone went out the moment it set — and at dusk before the moon
-// is up, that left the window with nothing to point at, at the best moment of
-// the day to be looking. What there is to see then is the event, so the sun's
-// hint becomes its glyph and points at the sun's light: the sun while it is
-// up, the horizon under it once it is down (`light` on WindowBodies).
+// Except the sun through a sunrise or a sunset: then its hint is the event's
+// glyph and points at `sun.light` — the sun, or the horizon under it once it
+// has set. See "The Sky Window" in docs/system-ambient.md.
 //
 // Sixty frames a second from the renderer (lib/sky-bodies.ts) and no React
 // render per frame: each hint's element is moved and faded by hand.
@@ -42,19 +38,7 @@ const EDGE = { side: 26, top: 64, bottom: 72 };
 const CHEVRON_OFFSET = 15;
 const HINT_OPACITY = 0.6;
 
-type Body = WindowBodies["moon"];
-
-/** The sun's hint through a sunrise or a sunset, reused rather than rebuilt per frame. */
-const sunLight: Body = { x: 0, y: 0, ahead: 0, up: true };
-
-/** What the sun's hint points at: the body, or through a sun event its light. */
-function sunTarget(sun: WindowBodies["sun"], event: SunEvent | null): Body {
-  if (!event) return sun;
-  sunLight.x = sun.light.x;
-  sunLight.y = sun.light.y;
-  sunLight.ahead = sun.light.ahead;
-  return sunLight;
-}
+type Body = Omit<WindowBodies["sun"], "light">;
 
 /** The viewport, measured on resize rather than read sixty times a second. */
 const viewport = { w: 0, h: 0 };
@@ -154,12 +138,10 @@ function Hint({
 export function SkyBodyHints() {
   const { scene } = useWeather();
   const { phase } = useAmbientTime();
-  const event: SunEvent | null = phase === "sunrise" || phase === "sunset" ? phase : null;
+  const event = sunEventOf(phase);
+  // What the sun's hint points at: the body, or through a sun event its light.
   // Read by the frame listener, which is subscribed once.
-  const eventRef = useRef(event);
-  useEffect(() => {
-    eventRef.current = event;
-  }, [event]);
+  const sunTarget = useEffectEvent((sun: WindowBodies["sun"]) => (event ? sun.light : sun));
   const sunRef = useRef<HTMLDivElement | null>(null);
   const moonRef = useRef<HTMLDivElement | null>(null);
 
@@ -173,7 +155,7 @@ export function SkyBodyHints() {
     const sun = sunRef.current ? placed(sunRef.current) : null;
     const moon = moonRef.current ? placed(moonRef.current) : null;
     const stop = subscribeWindowBodies((bodies) => {
-      place(sun, bodies ? sunTarget(bodies.sun, eventRef.current) : null, !!bodies?.settled);
+      place(sun, bodies ? sunTarget(bodies.sun) : null, !!bodies?.settled);
       place(moon, bodies?.moon ?? null, !!bodies?.settled);
     });
     return () => {
@@ -186,7 +168,7 @@ export function SkyBodyHints() {
     <div aria-hidden="true" className="ink-bare pointer-events-none fixed inset-0 z-30">
       <Hint hintRef={sunRef}>
         {event ? (
-          <SunEventGlyph event={event} className="h-3.5 w-3.5" />
+          <SunEventGlyph event={event} />
         ) : (
           <SunGlyph className="h-3.5 w-3.5" />
         )}
