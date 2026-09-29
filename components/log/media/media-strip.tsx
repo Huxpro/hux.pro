@@ -204,21 +204,85 @@ export function MediaStrip({
         });
         const owner = run.guest?.owner;
         if (!run.guest) return covers;
+        // Several covers of one guest lie in a pile, one cover wide: the
+        // first on top, the rest tucked behind it (GuestDeck). A pile is one
+        // thing, so its caption needs no rule to say the covers belong
+        // together.
+        const deck = covers.length > 1;
         return (
-          // A guest's covers stand together over one caption. With several,
-          // a rule spans them so each reads as the guest's; one needs none.
           <div key={run.key} className="flex shrink-0 snap-start flex-col">
-            <div className="flex gap-2">{covers}</div>
+            {deck ? <GuestDeck covers={covers} /> : <div className="flex gap-2">{covers}</div>}
             {owner && (
-              <div
-                className={cn(
-                  "mt-1.5 w-0 min-w-full",
-                  covers.length > 1 && "border-t border-border/60 pt-1",
-                )}
-              >
+              <div className="mt-1.5 w-0 min-w-full">
                 <GuestName owner={owner} className="line-clamp-2" />
               </div>
             )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// How far each cover behind the first shows past its right edge, at rest
+// and while the pile is hovered; and how much smaller each layer is, so the
+// pile stays inside the strip's height (the strip scrolls sideways, which
+// clips anything taller than a cover).
+const DECK_REST = 10;
+const DECK_OPEN = 22;
+const DECK_SHRINK = 0.08;
+
+/**
+ * A guest's covers as a pile: the first cover on top, the others behind it
+ * a step smaller, each showing a sliver past the one in front. The same
+ * idea as the row's stacked peek (commit-embed.tsx), laid flat so it fits
+ * the strip: the lesser media (a recap post behind a recording) is there
+ * but out of the way. Hovering the pile fans the slivers out; each sliver
+ * is its own cover, pressed and peeked as any cover is. On a phone the
+ * sheet pages through the pile like the rest of the row.
+ */
+function GuestDeck({ covers }: { covers: React.ReactNode[] }) {
+  const behind = covers.length - 1;
+  return (
+    <div
+      // Room for the slivers, fanned where a pointer can fan them, so they
+      // stay clear of the next cover; at rest on a touch screen.
+      className="group/deck relative pr-[var(--rest-room)] [@media(hover:hover)]:pr-[var(--open-room)]"
+      style={
+        {
+          "--rest-room": `${DECK_REST * behind}px`,
+          "--open-room": `${DECK_OPEN * behind}px`,
+        } as React.CSSProperties
+      }
+    >
+      <div className="relative rounded-lg shadow-raised" style={{ zIndex: covers.length }}>
+        {covers[0]}
+      </div>
+      {covers.slice(1).map((cover, i) => {
+        const depth = i + 1;
+        return (
+          <div
+            key={depth}
+            className={cn(
+              // Faded a step per layer, as the stacked peek's back cards are,
+              // so a dark cover behind a dark cover still reads as a card.
+              "absolute inset-y-0 left-0 origin-right transition-[transform,opacity] duration-200 ease-out",
+              "opacity-[var(--fade)] group-hover/deck:opacity-100",
+              "[transform:translateX(var(--rest))_scale(var(--scale))]",
+              "group-hover/deck:[transform:translateX(var(--open))_scale(var(--scale))]",
+              "motion-reduce:transition-none",
+            )}
+            style={
+              {
+                zIndex: covers.length - depth,
+                "--rest": `${DECK_REST * depth}px`,
+                "--open": `${DECK_OPEN * depth}px`,
+                "--scale": 1 - DECK_SHRINK * depth,
+                "--fade": 1 - 0.3 * depth,
+              } as React.CSSProperties
+            }
+          >
+            {cover}
           </div>
         );
       })}
