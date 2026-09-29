@@ -2243,15 +2243,14 @@ const {
 
 ```typescript
 const {
-  followSun,           // The setting — on by default, saved with the ambient settings
-  setFollowSun,
   sunTheme,            // "light" | "dark" at the effective clock, or null when unknown
   beginThemeHandover,  // Stage the next theme change (slow sky, then chrome)
 } = useSolarTheme();
 ```
 
 The provider only says what the sun implies; `<SolarThemeSync />` (mounted in
-the root layout) is what watches it cross and applies it.
+the root layout) hands it to the theme service (`useSunThemeSlot`) and stages
+it when it changes with the page open.
 
 ## Data Flow
 

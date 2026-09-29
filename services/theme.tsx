@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 // =============================================================================
 // Theme Service
@@ -14,8 +14,8 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 //
 // The sun's answer is not this service's to know — it takes a location and a
 // forecast, which the ambient system has — so the ambient system hands it in
-// (`setSunTheme`, from <SolarThemeSync />), already staged: at a sunrise or a
-// sunset it arrives in the middle of the sky's animation, not the instant the
+// (`useSunThemeSlot`, from <SolarThemeSync />), already staged: at a sunrise or
+// a sunset it arrives in the middle of the sky's animation, not the instant the
 // sun crosses. Until it has one, Follow the Sun trusts the system, and moves to
 // the sun's answer when the forecast lands.
 //
@@ -30,25 +30,42 @@ interface ThemeContextType {
   /** The theme in effect, whatever decided it. */
   theme: Theme;
   preference: ThemePreference;
-  /**
-   * The theme the sun has handed in, or null before it has one. Only Follow
-   * the Sun paints it; the ambient system keeps it current either way, so
-   * choosing Follow the Sun lands on the sun's answer at once.
-   */
-  sunTheme: Theme | null;
-  /** The OS's `prefers-color-scheme`, under every Appearance: Follow the Sun's stand-in. */
-  systemTheme: Theme;
-  toggleTheme: () => void;
   setThemePreference: (preference: ThemePreference) => void;
-  /** For the ambient system: the sun's answer, as the app should show it now. */
-  setSunTheme: (theme: Theme | null) => void;
+  /**
+   * The next Appearance in the cycle, starting from what Follow the Sun shows:
+   * Follow the Sun → the theme it is not showing → the one it is → Follow the
+   * System → Follow the Sun. Leaving Follow the Sun lands on the theme it is
+   * not showing, so the first step always changes the page; the second puts
+   * back what the sun had, now held. No memory of where the cycle began: the
+   * sun's answer is kept current under every Appearance, so the order is read
+   * off it on each step.
+   */
+  cycleThemePreference: () => void;
+}
+
+/**
+ * The sun's answer, for the ambient system alone: null before it has one.
+ * A context of its own, so the answer arriving — every visit, whatever the
+ * Appearance — re-renders only its one reader, not everything that reads the
+ * theme.
+ */
+interface SunThemeSlot {
+  sunTheme: Theme | null;
+  setSunTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const SunThemeContext = createContext<SunThemeSlot | undefined>(undefined);
 
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) throw new Error("useTheme must be used within ThemeProvider");
+  return context;
+}
+
+export function useSunThemeSlot() {
+  const context = useContext(SunThemeContext);
+  if (!context) throw new Error("useSunThemeSlot must be used within ThemeProvider");
   return context;
 }
 
@@ -61,8 +78,8 @@ const DEFAULT_PREFERENCE: ThemePreference = "sun";
 // a sunrise or a sunset watched live, as a session override on top of the
 // preference. A saved "system" from then was almost always the default plus
 // that switch, so it becomes Follow the Sun — unless the switch had been turned
-// off, which was a clear answer. Once: every preference written from here on
-// carries the marker, so a "system" chosen today stays "system".
+// off, which was a clear answer. Once, on the first read: the marker it leaves
+// means a "system" chosen from then on stays "system".
 // -----------------------------------------------------------------------------
 
 const THEME_MIGRATED_KEY = "hux_theme_v2";
@@ -90,7 +107,6 @@ function setStoredPreference(preference: ThemePreference): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(THEME_STORAGE_KEY, preference);
-    localStorage.setItem(THEME_MIGRATED_KEY, "1");
   } catch {
     // Ignore storage errors (private mode, disabled storage)
   }
@@ -100,12 +116,13 @@ function getStoredPreference(): ThemePreference {
   if (typeof window === "undefined") return DEFAULT_PREFERENCE;
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (!isPreference(stored)) return DEFAULT_PREFERENCE;
-    if (stored !== "system" || localStorage.getItem(THEME_MIGRATED_KEY)) return stored;
-    const migrated: ThemePreference = legacyFollowedSun() ? "sun" : "system";
-    setStoredPreference(migrated);
+    const preference = isPreference(stored) ? stored : DEFAULT_PREFERENCE;
+    if (localStorage.getItem(THEME_MIGRATED_KEY)) return preference;
+    localStorage.setItem(THEME_MIGRATED_KEY, "1");
     sessionStorage.removeItem(LEGACY_OVERRIDE_KEY);
-    return migrated;
+    if (preference !== "system" || !legacyFollowedSun()) return preference;
+    setStoredPreference("sun");
+    return "sun";
   } catch {
     return DEFAULT_PREFERENCE;
   }
@@ -118,12 +135,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
   const [sunTheme, setSunTheme] = useState<Theme | null>(null);
 
+  // What Follow the Sun shows, under any Appearance.
+  const sunShows = sunTheme ?? systemTheme;
   const theme: Theme =
-    preference === "light" || preference === "dark"
-      ? preference
-      : preference === "sun"
-        ? (sunTheme ?? systemTheme)
-        : systemTheme;
+    preference === "sun" ? sunShows : preference === "system" ? systemTheme : preference;
 
   // Heard in every preference: Follow the Sun falls back to it too.
   useEffect(() => {
@@ -142,26 +157,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setStoredPreference(next);
   }, []);
 
-  // "Toggle" means the other one than this, as a choice of its own — so it
-  // leaves either Follow mode for the theme it names.
-  const toggleTheme = useCallback(
-    () => setThemePreference(theme === "light" ? "dark" : "light"),
-    [theme, setThemePreference]
+  // Read when the cycle steps rather than subscribed to, so the sun's answer
+  // moving under a fixed Appearance does not rebuild the context.
+  const sunShowsRef = useRef(sunShows);
+  useEffect(() => {
+    sunShowsRef.current = sunShows;
+  }, [sunShows]);
+
+  const cycleThemePreference = useCallback(() => {
+    const shows = sunShowsRef.current;
+    const cycle: ThemePreference[] = ["sun", shows === "light" ? "dark" : "light", shows, "system"];
+    setThemePreference(cycle[(cycle.indexOf(preference) + 1) % cycle.length]);
+  }, [preference, setThemePreference]);
+
+  const value = useMemo(
+    () => ({ theme, preference, setThemePreference, cycleThemePreference }),
+    [theme, preference, setThemePreference, cycleThemePreference]
   );
+  const sunSlot = useMemo(() => ({ sunTheme, setSunTheme }), [sunTheme]);
 
   return (
-    <ThemeContext.Provider
-      value={{
-        theme,
-        preference,
-        sunTheme,
-        systemTheme,
-        toggleTheme,
-        setThemePreference,
-        setSunTheme,
-      }}
-    >
-      {children}
+    <ThemeContext.Provider value={value}>
+      <SunThemeContext.Provider value={sunSlot}>{children}</SunThemeContext.Provider>
     </ThemeContext.Provider>
   );
 }

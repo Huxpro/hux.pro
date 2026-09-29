@@ -98,8 +98,21 @@ export interface CommandAction {
 
 const ROW_ICON = "h-4 w-4";
 
+const APPEARANCE_LABEL = {
+  sun: "themeSun",
+  light: "themeLight",
+  dark: "themeDark",
+  system: "themeSystem",
+} as const satisfies Record<ThemePreference, string>;
+const APPEARANCE_ICON: Record<ThemePreference, typeof Sun> = {
+  sun: Sunrise,
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
+};
+
 export function useCommandActions(): CommandAction[] {
-  const { theme, preference, sunTheme, systemTheme, setThemePreference } = useTheme();
+  const { preference, cycleThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const {
     usingGps: locationAccurate,
@@ -129,6 +142,7 @@ export function useCommandActions(): CommandAction[] {
     pause: musicPause,
   } = useMusic();
   const { open: openAbout } = useAbout();
+  const AppearanceIcon = APPEARANCE_ICON[preference];
   const { requestVoice } = useCommand();
   const { guide: installGuide, open: openInstall } = useInstall();
   const router = useTransitionRouter();
@@ -143,39 +157,6 @@ export function useCommandActions(): CommandAction[] {
         ? `${getWallpaperPlayName(locale, wallpaperPlay, wallpaperPlayAlbum)} · ${wallpaper.name}`
         : wallpaper.name
       : getWeatherWallpaperName(locale, weatherStyle);
-
-  const themeLabel =
-    preference === "sun"
-      ? t(locale, "themeSun")
-      : preference === "system"
-      ? t(locale, "themeSystem")
-      : theme === "light"
-      ? t(locale, "themeLight")
-      : t(locale, "themeDark");
-  // Follow the Sun → the other theme than the sun's → the sun's → Follow the
-  // System → Follow the Sun. Leaving Follow the Sun lands on the theme it is
-  // not showing, so the first press always changes the page; the second puts
-  // back what the sun had, now held. No memory of where the cycle began: the
-  // sun's answer is current under every Appearance (services/theme.tsx), so
-  // which fixed theme comes first is read off it on every press.
-  const sunShows = sunTheme ?? systemTheme;
-  const sunOther = sunShows === "light" ? "dark" : "light";
-  const nextAppearance: ThemePreference =
-    preference === "sun"
-      ? sunOther
-      : preference === "system"
-      ? "sun"
-      : preference === sunOther
-      ? sunShows
-      : "system";
-  const ThemeIcon =
-    preference === "sun"
-      ? Sunrise
-      : preference === "system"
-      ? Monitor
-      : theme === "light"
-      ? Sun
-      : Moon;
 
   return [
     {
@@ -316,8 +297,8 @@ export function useCommandActions(): CommandAction[] {
       key: "a",
       kind: "toggle",
       section: "settings",
-      label: `${t(locale, "appearance")}: ${themeLabel}`,
-      icon: <ThemeIcon className={ROW_ICON} />,
+      label: `${t(locale, "appearance")}: ${t(locale, APPEARANCE_LABEL[preference])}`,
+      icon: <AppearanceIcon className={ROW_ICON} />,
       keywords: [
         "theme",
         "dark",
@@ -339,7 +320,7 @@ export function useCommandActions(): CommandAction[] {
         "太阳",
         "自动切换",
       ],
-      run: () => setThemePreference(nextAppearance),
+      run: cycleThemePreference,
     },
     {
       id: "language",

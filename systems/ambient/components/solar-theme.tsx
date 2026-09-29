@@ -1,7 +1,7 @@
 "use client";
 
 import { showCustomToast } from "@/components/ui/system-sonner";
-import { useTheme } from "@/services";
+import { useSunThemeSlot, useTheme } from "@/services";
 import { useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
@@ -65,7 +65,8 @@ function commitTheme(apply: () => void) {
 
 export function SolarThemeSync() {
   const { sunTheme, beginThemeHandover } = useSolarTheme();
-  const { theme, preference, sunTheme: shown, setSunTheme } = useTheme();
+  const { theme, preference } = useTheme();
+  const { sunTheme: shown, setSunTheme } = useSunThemeSlot();
   const reducedMotion = useReducedMotion() ?? false;
 
   /** The handover in flight, cleared whenever one ends or is called off. */
@@ -95,7 +96,6 @@ export function SolarThemeSync() {
 
     // Not following: keep the answer current, where nobody sees it.
     if (preference !== "sun") {
-      callOff();
       setSunTheme(sunTheme);
       return;
     }

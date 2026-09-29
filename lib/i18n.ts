@@ -677,7 +677,7 @@ export const translations = {
     wallpaperPlayEveryHourly: "每小时",
     wallpaperPlayEveryDaily: "每天",
 
-    // Sun theme — the theme following sunrise and sunset
+    // Follow the Sun — the notice at a sunrise or a sunset
     solarThemeToLight: "浅色模式",
     solarThemeToDark: "深色模式",
     solarThemeNote: "跟随太阳",
