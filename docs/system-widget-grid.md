@@ -171,6 +171,10 @@ was.
 The corner is also a keyboard control: focus it and the arrow keys change
 the footprint one cell at a time.
 
+That is the Glass skin. In the Material skin the same gesture wears
+Android's form — no jiggle, and a resize frame with edge handles on the
+widget being worked on; see [system-skin.md](./system-skin.md#edit-mode).
+
 ### Phone
 
 On a phone the grid is one column, so width has nothing to say — and the

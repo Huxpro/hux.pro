@@ -21,6 +21,7 @@ are *arranged and sized* on Android; the skin is how they *look*.
 | Publishes the palette onto `<html>` | `systems/skin/components/dynamic-color-bridge.tsx` |
 | Tokens and the widget container | `app/globals.css`, "Skin — Material" |
 | Expressive shapes (`Sunny`, the cookies, …) as SVG paths | `systems/skin/lib/shapes.ts`, `ExpressiveShape` |
+| The resize frame (Material) and the corner (Glass) | `components/ui/resize-grip.tsx` |
 | Google Sans Flex (`--font-flex`) | `app/layout.tsx` |
 
 ## Sources
@@ -144,7 +145,27 @@ accent containers; the Glass skin ignores it.
 | DevTool | Skin module — Material / Glass, the Wallpaper colors style, and the palette in force as swatches |
 | Code | `useSkin()` → `{ skin, setSkin, toggle, schemeStyle, setSchemeStyle }` |
 
-## What this layer does not do yet
+## Edit mode
 
-The Android edit mode — a resize frame with handles instead of the jiggle,
-springs for lift and drop — builds on this.
+Android's launcher does not jiggle. It says "editing" on the widget being
+worked on, and moves things on springs. So under Material:
+
+| | Glass (iOS) | Material (Android) |
+|---|---|---|
+| Edit mode reads as | every card jiggling | nothing moves; the widget being worked on is framed |
+| Resize | a corner on every resizable card | **the resize frame**: the selected widget outlined in `primary`, a round handle on each edge it can be dragged along; each handle moves one axis |
+| Which widget | — | the last one lifted, held, or tapped while editing |
+| Drop target | a dashed outline | the footprint as a soft filled shape at the widget radius |
+| Lift | 1.05 and a glow | Expressive fast-spatial spring (its overshoot as the card leaves the grid), 1.04, an elevation shadow |
+| Reflow | a 240ms tween | Expressive default-spatial spring (ζ 0.8, k 380 → Framer damping 2ζ√k) |
+| Done / Reset | glass pill / mono text | a filled `primary` button / a `primary` text button, Label Large |
+
+Two handles, not Android's four. A widget's cell is derived from the order
+([system-widget-grid.md](./system-widget-grid.md)), so a left or top handle
+could change a widget's size but never put its edge where the finger is — a
+handle that lies about where the edge will land is worse than none. Right
+and bottom are the edges the grid grows toward.
+
+Both affordances are in the tree and the stylesheet picks one (`material:`);
+the only thing the grid reads from the skin in React is which spring Framer
+should use.

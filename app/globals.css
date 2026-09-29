@@ -1803,6 +1803,13 @@ html[data-skin="material"] [data-widget-shell] .font-mono {
   }
 }
 
+/* The Material skin does not jiggle: Android's launcher says "editing" with
+   the resize frame on the widget being worked on (components/ui/
+   resize-grip.tsx), not by setting the whole screen wobbling. */
+html[data-skin="material"] .widget-jiggle {
+  animation: none;
+}
+
 /* =============================================================================
    Press feedback — `.pressable`
    iOS highlights on touch-DOWN, instantly, and fades the highlight out on
@@ -1972,6 +1979,16 @@ html[data-skin="material"] [data-widget-shell] .font-mono {
 
 .widget-lift {
   animation: widget-lift 220ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* In the Material skin the lift rides Material 3 Expressive's fast spatial
+   spring — the platform's small overshoot as the widget leaves the grid —
+   and its shadow is an elevation, not a glow. */
+html[data-skin="material"] .widget-lift {
+  animation-duration: var(--md-spring-fast-spatial-duration);
+  animation-timing-function: var(--md-spring-fast-spatial);
+  --lift-scale: 1.04;
+  filter: drop-shadow(0 8px 12px rgb(0 0 0 / 0.18)) drop-shadow(0 4px 4px rgb(0 0 0 / 0.12));
 }
 
 @media (prefers-reduced-motion: reduce) {
