@@ -117,6 +117,7 @@ export default async function BlogPostLangPage({
         frontmatter={frontmatter}
       />
       <BlogPostContent
+        slug={slug}
         title={post.title}
         titleZh={post.titleZh}
         date={post.date}

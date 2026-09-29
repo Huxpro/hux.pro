@@ -26,6 +26,7 @@
 | **About / Badges** | [docs/system-about.md](./docs/system-about.md) (The surface a newcomer meets — veil, copy from `content/about/*.mdx`, the screen-edge glow, `/` `O` from anywhere; `<Badge>` opens a thing I made where it lives) |
 | **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (The site's one light — Siri's ring as a shared WebGL shader: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/editor/glow` lab) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (Who signed a commit — the profile card behind `<handle>` and `Role:`) |
+| **Comments** | [docs/system-comments.md](./docs/system-comments.md) (giscus on this repo's Discussions under every post; the frame, its protocol, and `public/giscus/*.css` — the widget in the site's ink; one-time GitHub setup) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (A widget's list body scrolls under a pointer, holds still under a finger — and why) |
 
 ## 2. Quick Start Context
@@ -48,6 +49,7 @@
 | Global state | `components/providers.tsx` |
 | Translations | `lib/i18n.ts` |
 | Blog posts | `content/blog/*.mdx` (at /writing) |
+| Comments | `components/post/comments.tsx`, `lib/comments.ts`, `public/giscus/` |
 
 ### Design Tokens
 

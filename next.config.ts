@@ -17,6 +17,17 @@ const nextConfig: NextConfig = {
       { source: "/vitre/", destination: "/vitre/index.html" },
     ];
   },
+  // The comment widget's stylesheets (public/giscus) are loaded by giscus's
+  // own page, cross-origin with `crossorigin="anonymous"`: without this the
+  // browser refuses them and the widget falls back to GitHub's look.
+  async headers() {
+    return [
+      {
+        source: "/giscus/:file*",
+        headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+      },
+    ];
+  },
   async redirects() {
     return [
       ...jekyllRedirects,

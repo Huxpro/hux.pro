@@ -279,6 +279,10 @@ export const translations = {
     solarThemeToDark: "Dark Mode",
     solarThemeNote: "Following the Sun",
 
+    // Comments (giscus, under a post)
+    comments: "Comments",
+    commentsLoading: "loading comments…",
+
     // The article header's provenance line, folded behind an `(i)`.
 
     // Reading settings (the article page's "Aa")
@@ -681,6 +685,10 @@ export const translations = {
     solarThemeToLight: "浅色模式",
     solarThemeToDark: "深色模式",
     solarThemeNote: "跟随太阳",
+
+    // Comments (giscus, under a post)
+    comments: "评论",
+    commentsLoading: "正在载入评论…",
 
     // The article header's provenance line, folded behind an `(i)`.
 
