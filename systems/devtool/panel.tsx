@@ -3031,6 +3031,13 @@ function WidgetsModule() {
               label: zh ? "全部" : "All",
               title: zh ? "包括桌面，用于对比" : "Desktop too, for comparing",
             },
+            {
+              value: "flip",
+              label: "Flip",
+              title: zh
+                ? "Motion：没有 view transition，真实页面从卡片弹出；宽屏落到内容栏"
+                : "Motion: no view transition — the live page springs out of the card, into its column on a wide screen",
+            },
           ]}
           onChange={setWidgetMorph}
         />

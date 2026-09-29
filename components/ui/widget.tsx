@@ -13,7 +13,11 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { armWidgetMorph, fillsScreenWidth } from "./widget-morph";
+import {
+  armWidgetFlip,
+  armWidgetMorph,
+  fillsScreenWidth,
+} from "./widget-morph";
 import { landsOnOwnAction } from "./widget-surface";
 
 import { TYPE } from "@/lib/typography";
@@ -115,6 +119,10 @@ export function WidgetShell({
         target = href;
       }
       if (!target) return;
+      if (morphMode === "flip") {
+        armWidgetFlip(e.currentTarget, target);
+        return;
+      }
       if (morphMode === "phone" && !fillsScreenWidth(e.currentTarget)) return;
       armWidgetMorph(e.currentTarget, target);
     },
