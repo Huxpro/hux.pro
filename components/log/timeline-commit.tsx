@@ -24,7 +24,7 @@ import { Description, Commentary, AuthorFields } from "./embeds/shared";
 import { Paperclip } from "lucide-react";
 import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
-import { MediaStrip } from "./media/media-strip";
+import { GuestName, MediaStrip, type StripGuest } from "./media/media-strip";
 import type { AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
@@ -117,6 +117,14 @@ interface TimelineCommitProps {
   onInspectCommit?: () => void;
   onInspectMedia?: (media: Media) => void;
   selectedMedia?: Media | null;
+  /**
+   * Other commits printed on this row (lib/log-hosts.ts): their covers join
+   * the row's own, in the strip, the feed's grid and the index's count.
+   */
+  guests?: readonly StripGuest[];
+  /** Replaces what pressing the row does: a guest's quiet line takes the
+   *  reader to its host's row. */
+  onPress?: () => void;
 }
 
 export function TimelineCommit({
@@ -141,6 +149,8 @@ export function TimelineCommit({
   onInspectCommit,
   onInspectMedia,
   selectedMedia = null,
+  guests,
+  onPress,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
@@ -225,7 +235,9 @@ export function TimelineCommit({
   // this one changes the prose, the cover's opens the attachment.
   const rowOnClick = inspecting
     ? onInspectCommit
-    : rowOpensIdentity
+    : onPress
+      ? onPress
+      : rowOpensIdentity
       ? openIdentity
       : hasExpandableContent
         ? handleToggleExpanded
@@ -254,15 +266,17 @@ export function TimelineCommit({
   // below it is noise.
   const isQuiet = isEvent || (isAside && !textOpen);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
-  const showStrip =
-    !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
+  // The covers on this row: its own, and its guests'.
+  const guestCovers = (guests ?? []).reduce((n, g) => n + g.items.length, 0);
+  const coverCount = data.stripItems.length + guestCovers;
+  const showStrip = !isQuiet && rowForm.media === "covers" && coverCount > 0;
   const showStatDescription =
     !isQuiet && rowForm.description === "clamp" && !!data.description;
   // Where the handle signs: the bottom-right of the row, which is the media
   // line when a single cover leaves it the room — on any viewport — and the
   // meta line when there is more than one, since two covers may already be
   // the width of a phone and the strip then scrolls under the edge.
-  const signsOnMediaLine = showStrip && data.stripItems.length === 1;
+  const signsOnMediaLine = showStrip && coverCount === 1;
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
@@ -284,7 +298,9 @@ export function TimelineCommit({
   // they don't (the index, folded), the line counts them, and opening the
   // row brings them.
   const attachmentCount =
-    !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
+    !isQuiet && rowForm.media === "none"
+      ? expandedMedia.length + guestCovers
+      : 0;
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
@@ -671,7 +687,7 @@ export function TimelineCommit({
           sized to its covers and stops its own clicks, so the line it sits
           on stays the row's; the empty stretch beside a single cover presses
           the row like any other part of it. */}
-      {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
+      {showStrip && (
         <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
           {/* The covers get a line of their own, always. One cover used to
               tuck up beside the text and two or more dropped below it, so a
@@ -681,6 +697,7 @@ export function TimelineCommit({
             <MediaStrip
               items={data.stripItems}
               set={attachmentSet}
+              guests={guests}
               peek={rowForm.peek && magneticPreviewEnabled}
               className="min-w-0"
               inspecting={inspecting}
@@ -703,19 +720,28 @@ export function TimelineCommit({
           edge-to-edge stack on a phone, captions written out, and every
           click its native one. `data-row-body` and its own click guard: a
           caption is for opening the attachment, not for pressing the row. */}
-      {!isQuiet && rowForm.media === "grid" && expandedMedia.length > 0 && (
+      {!isQuiet &&
+        rowForm.media === "grid" &&
+        (expandedMedia.length > 0 || guestCovers > 0) && (
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
           className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
         >
-          <AttachmentGrid
-            items={data.stripItems}
-            set={attachmentSet}
-            inspecting={inspecting}
-            onInspect={onInspectMedia}
-            selectedMedia={selectedMedia}
-          />
+          {/* Guests' tiles in the same place their covers take on the
+              strip: ahead of the row's own, or after them. */}
+          {guests?.filter((g) => g.before).map((g) => (
+            <GuestSection key={g.key} guest={g} />
+          ))}
+          {data.stripItems.length > 0 && (
+            <AttachmentGrid
+              items={data.stripItems}
+              set={attachmentSet}
+              inspecting={inspecting}
+              onInspect={onInspectMedia}
+              selectedMedia={selectedMedia}
+            />
+          )}
           {stacked.length > 0 && (
             <MediaRenderer
               media={stacked}
@@ -727,6 +753,9 @@ export function TimelineCommit({
               set={attachmentSet}
             />
           )}
+          {guests?.filter((g) => !g.before).map((g) => (
+            <GuestSection key={g.key} guest={g} />
+          ))}
         </div>
       )}
 
@@ -895,5 +924,53 @@ function Handle({
     >
       {byline.handle}
     </IdentityHover>
+  );
+}
+
+/**
+ * Another commit on this row, in the feed: its own section of the grid,
+ * under a ruled line naming it (its mark, title and where, then its hash
+ * and date),
+ * so its tiles read as its own and not as the row's. Its prose stays with
+ * it, in its sheet, as on the strip.
+ */
+function GuestSection({ guest }: { guest: StripGuest }) {
+  // Ahead of the row's own tiles it needs an end as well as a start, or the
+  // row's first tile reads as the guest's last.
+  const { owner } = guest;
+  return (
+    <section
+      className={cn("space-y-2", guest.before && "border-b border-border/60 pb-3")}
+    >
+      {owner && (
+        <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-1.5">
+          <span className="flex min-w-0 items-baseline gap-2">
+            <GuestName owner={owner} className="truncate" />
+            {/* The feed's tiles wear no badge, so its header says why the
+                guest is here, in the tag a card wears for `EN`. */}
+            {guest.label && (
+              <span
+                className={cn(
+                  "shrink-0 rounded-sm border border-border/60 px-1.5 py-px",
+                  "font-mono text-[10px] leading-none text-muted-foreground",
+                )}
+              >
+                {guest.label}
+              </span>
+            )}
+          </span>
+          <span className={cn("flex shrink-0 gap-2", TYPE.hash)}>
+            <a
+              href={`#${owner.hash}`}
+              className="transition-colors hover:text-muted-foreground"
+            >
+              {owner.hash}
+            </a>
+            <span>{owner.date}</span>
+          </span>
+        </div>
+      )}
+      <AttachmentGrid items={guest.items} set={guest.set ?? null} />
+    </section>
   );
 }

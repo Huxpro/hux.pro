@@ -25,6 +25,28 @@ export interface AttachmentSet {
   /** The attachments themselves. Object identity matters: callers find an
    *  item's index by reference (`items.indexOf(media)`). */
   items: readonly Media[];
+  /**
+   * Whose each item is, where not the set's own commit: a row that prints
+   * another commit's covers with its own (a talk on the project it
+   * introduced, lib/log-hosts.ts) opens them all as one set, and each page
+   * still names the commit it came from. Aligned with `items`; a gap is the
+   * set's own. Read it through `ownerOf`.
+   */
+  from?: readonly (AttachmentOwner | undefined)[];
+}
+
+/** The commit an attachment belongs to, as the surfaces name it. */
+export interface AttachmentOwner {
+  title: string;
+  subtitle?: string;
+  href?: string;
+  /**
+   * For another commit's item on a row (`from`): enough of that commit for
+   * its page on the surface to stand for it: its hash, when, and its prose.
+   */
+  hash?: string;
+  date?: string;
+  description?: string;
 }
 
 /**

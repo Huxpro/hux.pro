@@ -197,6 +197,8 @@ export interface CardFaceProps {
   mark?: MediaMarkSpec | null;
   /** The chip at full weight from the start — a card in a peek. */
   raisedMark?: boolean;
+  /** A last line under the caption, over a hairline — a peek's footnote. */
+  footer?: React.ReactNode;
   className?: string;
   /** Fires when the foreground image resolves (load / cache-warm / error). */
   onImgResolved?: () => void;
@@ -222,6 +224,7 @@ export function CardFace({
   languageBadge = null,
   mark,
   raisedMark = false,
+  footer,
   className,
   onImgResolved,
 }: CardFaceProps) {
@@ -380,6 +383,11 @@ export function CardFace({
           </p>
         )}
       </div>
+      {footer && (
+        <div className={cn("border-t border-border/50", compact ? "px-2.5 py-2" : "px-4 py-2.5")}>
+          {footer}
+        </div>
+      )}
     </div>
   );
 }

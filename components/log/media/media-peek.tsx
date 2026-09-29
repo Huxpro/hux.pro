@@ -94,6 +94,7 @@ export function PeekCard({
   locale,
   fixedAspect = false,
   mark,
+  footer,
   className,
   onResolved,
 }: {
@@ -102,6 +103,8 @@ export function PeekCard({
   fixedAspect?: boolean;
   /** The chip on the cover — see CardFace. */
   mark?: MediaMarkSpec | null;
+  /** A last line under the caption — see CardFace. */
+  footer?: ReactNode;
   className?: string;
   onResolved?: () => void;
 }) {
@@ -125,6 +128,7 @@ export function PeekCard({
       domainLabel={domainLabel}
       mark={mark}
       raisedMark
+      footer={footer}
       // Peek-specific chrome — the shared panel recipe, minus the shadow: the
       // single-peek and stacked-peek branches strip the panel's own chrome
       // (BARE_PANEL_CHROME), so callers add `shadow-raised` per use (front /
@@ -142,11 +146,13 @@ function PeekPoster({
   image,
   caption,
   mark,
+  footer,
 }: {
   image: string | null;
   caption?: ReactNode;
   /** The cover's chip (media-mark.tsx), the same one the row's cover wears. */
   mark: MediaMarkSpec | null;
+  footer?: ReactNode;
 }) {
   return (
     <div className={cn(PEEK_W, GLASS_PANEL, "overflow-hidden shadow-raised")}>
@@ -167,6 +173,11 @@ function PeekPoster({
       {caption && (
         <div className={cn("flex items-center gap-1.5 px-3 py-2", TYPE.labelSm)}>
           {caption}
+        </div>
+      )}
+      {footer && (
+        <div className={cn("px-3 py-2", caption && "border-t border-border/50")}>
+          {footer}
         </div>
       )}
     </div>
@@ -193,13 +204,15 @@ const BARE = "p-0 bg-transparent border-transparent backdrop-blur-none";
  * peek is a glance, so its cover wears a chip whatever its kind
  * (media-mark.tsx, `all`); `leaves` says the click will open a tab — a page
  * that refuses to be framed — and the chip says so before the click rather
- * than after.
+ * than after. `footer` is a last line under the cover's caption: whose the
+ * cover is, when it is another commit's on this row (media-strip.tsx).
  */
 export function mediaPeek(
   media: Media,
   locale: Locale,
-  opts: { leaves?: boolean } = {},
+  opts: { leaves?: boolean; footer?: ReactNode } = {},
 ): MediaPeekSpec | null {
+  const { footer } = opts;
   // A post summoned with its peek (a magic link, components/magic-link)
   // peeks as its /writing row does, not as a card about it.
   const post = isLinkMedia(media) ? postPeekFor(media, locale) : null;
@@ -216,6 +229,7 @@ export function mediaPeek(
           media={media}
           locale={locale}
           mark={mark}
+          footer={footer}
           className={cn(PEEK_W, "shadow-raised")}
         />
       ),
@@ -227,7 +241,7 @@ export function mediaPeek(
   if (isVideoMedia(media) || isSlidesMedia(media)) {
     return {
       panelClassName: BARE,
-      node: <PeekPoster image={image} mark={mark} />,
+      node: <PeekPoster image={image} mark={mark} footer={footer} />,
     };
   }
 
@@ -238,6 +252,7 @@ export function mediaPeek(
         <PeekPoster
           image={media.url}
           mark={mark}
+          footer={footer}
           caption={
             media.alt && (
               <span className="truncate normal-case tracking-normal">

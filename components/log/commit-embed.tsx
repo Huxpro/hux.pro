@@ -13,12 +13,25 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
-import { getCommitPeekItems, localize } from "@/lib/log";
+import {
+  computeCommitHash,
+  getCommitPeekItems,
+  formatCommitDate,
+  getMediaStripItems,
+  isPinnedMedia,
+  localize,
+} from "@/lib/log";
+import { guestLabel, type Guest } from "@/lib/log-hosts";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
-import { attachmentSetFor, leavesSite } from "@/systems/attachments";
+import {
+  attachmentSetFor,
+  attachmentSetWith,
+  leavesSite,
+} from "@/systems/attachments";
 import { IDENTITY_PEEK_PANEL, IdentityPeek } from "@/systems/identity";
 import { markFor } from "./media/media-mark";
+import type { StripGuest } from "./media/media-strip";
 import { PeekCard, PeekThumb } from "./media/media-peek";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
@@ -65,6 +78,10 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
+  /** Timeline-only: commits printed on this row (lib/log-hosts.ts). */
+  guests?: readonly Guest[];
+  /** Timeline-only, see `TimelineCommit`. */
+  onPress?: () => void;
 }
 
 // =============================================================================
@@ -87,6 +104,8 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  guests,
+  onPress,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -96,9 +115,21 @@ export function Commit({
   // holds: a hover flips the timeline's active beam and re-renders every
   // row, and a set with a stable identity is what lets the strip, the
   // renderer and the row keep their own memo one day.
+  //
+  // A row printing guests' covers (lib/log-hosts.ts) opens them all as one
+  // set, in the order it prints them, each page naming its own commit.
   const attachmentSet = useMemo(
-    () => (!commit || inspecting ? null : attachmentSetFor(commit, locale)),
-    [commit, locale, inspecting],
+    () =>
+      !commit || inspecting
+        ? null
+        : guests?.length
+          ? attachmentSetWith(
+              commit,
+              guests.map((g) => ({ commit: g.commit, before: g.kind === "about" })),
+              locale,
+            )
+          : attachmentSetFor(commit, locale),
+    [commit, locale, inspecting, guests],
   );
   // The same for the row's normalised data and its hover peek: a timeline
   // render (a beam hover, a form change) touches every row, and neither of
@@ -115,6 +146,34 @@ export function Commit({
         ? buildCommitPreview(commit, locale)
         : null,
     [commit, locale, magneticPreviewEnabled],
+  );
+
+  // Each guest's covers as a run on this row's strip, opening its own
+  // attachments: an `about` guest (the talk that introduced the project)
+  // ahead of the row's own covers, an edition after them.
+  const guestStrips = useMemo<StripGuest[] | undefined>(
+    () =>
+      commit && guests?.length
+        ? guests.map((g) => ({
+            key: g.commit.id,
+            label: guestLabel(g, commit, locale),
+            items: getMediaStripItems(
+              (g.commit.media ?? []).filter((m) => !isPinnedMedia(m)),
+              locale,
+            ),
+            set: attachmentSet,
+            before: g.kind === "about",
+            owner: {
+              type: g.commit.type,
+              icon: "icon" in g.commit ? g.commit.icon : undefined,
+              title: localize(g.commit.title, locale),
+              venue: g.commit.type === "talk" ? g.commit.conference.name : undefined,
+              hash: computeCommitHash(g.commit.id),
+              date: formatCommitDate(g.commit, locale),
+            },
+          }))
+        : undefined,
+    [commit, guests, locale, attachmentSet],
   );
 
   // Runtime guard: MDX/JSON inputs can bypass static typing.
@@ -167,6 +226,8 @@ export function Commit({
           form={form}
           onSelectHash={onSelectHash}
           attachmentSet={attachmentSet}
+          guests={guestStrips}
+          onPress={onPress}
           inspecting={inspecting}
           isSelected={isSelected}
           isUnlisted={commit.listed === false}

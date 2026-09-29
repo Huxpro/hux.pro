@@ -33,9 +33,12 @@
 import { useMemo } from "react";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { cn } from "@/lib/utils";
+import { ARTWORK_CHIP_REST } from "@/lib/glass";
+import { TYPE } from "@/lib/typography";
 import { useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
-import type { Media, StripItem } from "@/lib/log";
+import type { CommitType, Media, StripItem } from "@/lib/log";
+import { CommitIcon } from "../icons";
 import { AttachmentTile, resolveTile } from "./attachment-tile";
 import { InspectableMedia } from "./inspectable";
 import { mediaPeek } from "./media-peek";
@@ -65,6 +68,37 @@ export interface MediaStripProps {
   inspecting?: boolean;
   onInspect?: (media: Media) => void;
   selectedMedia?: Media | null;
+  /**
+   * Other commits' covers on this strip (lib/log-hosts.ts): a talk's other
+   * telling, the talk that introduced a project. Each run opens its own
+   * commit's set, and its first cover wears its name (`中文`,
+   * `React Conf 2021`) at the corner the chip leaves free. `before` runs
+   * print ahead of the commit's own covers, the rest after them.
+   */
+  guests?: readonly StripGuest[];
+}
+
+export interface StripGuest {
+  key: string;
+  label?: string;
+  items: StripItem[];
+  set?: AttachmentSet | null;
+  before?: boolean;
+  /**
+   * The guest as a commit. Under its covers it prints what it is, in one
+   * line: the mark its row wears in the gutter (it is a commit, not an
+   * attachment), its title and where it was given, over a rule that spans
+   * its covers when there are several. Its hash and date are for a closer
+   * look: on a pointer, a cover's peek ends with them.
+   */
+  owner?: {
+    type: CommitType;
+    icon?: string;
+    title: string;
+    venue?: string;
+    hash: string;
+    date: string;
+  };
 }
 
 export function MediaStrip({
@@ -75,14 +109,27 @@ export function MediaStrip({
   inspecting = false,
   onInspect,
   selectedMedia = null,
+  guests,
 }: MediaStripProps) {
   const attachments = useOptionalAttachments();
   const { locale } = useLocale();
-  // Once per item, not once per tile per render (attachment-tile.tsx).
-  const slots = useMemo(
-    () => items.map((item) => resolveTile(item, locale, set, attachments)),
-    [items, locale, set, attachments],
-  );
+  // Once per item, not once per tile per render (attachment-tile.tsx). The
+  // strip in runs: the commit's own covers one by one, and each guest's as
+  // one group, every cover carrying the set it opens.
+  const runs = useMemo(() => {
+    const tiles = (runItems: StripItem[], runSet: AttachmentSet | null | undefined) =>
+      runItems.map((item) => ({
+        slot: resolveTile(item, locale, runSet, attachments),
+        set: runSet,
+      }));
+    const guest = (g: StripGuest) => ({ key: g.key, guest: g, tiles: tiles(g.items, g.set) });
+    return [
+      ...(guests ?? []).filter((g) => g.before && g.items.length > 0).map(guest),
+      { key: "own", guest: undefined, tiles: tiles(items, set) },
+      ...(guests ?? []).filter((g) => !g.before && g.items.length > 0).map(guest),
+    ];
+  }, [items, locale, set, attachments, guests]);
+  const slots = runs.flatMap((r) => r.tiles);
 
   if (slots.length === 0) return null;
 
@@ -107,39 +154,122 @@ export function MediaStrip({
         className,
       )}
     >
-      {slots.map((slot, i) => {
-        // The row itself stops peeking once it prints its covers (see
-        // `showCursorPreview` in TimelineCommit); each cover peeks instead,
-        // in the same vocabulary, showing what it is at a readable size —
-        // and whole, where the tile crops.
-        const spec = peek
-          ? mediaPeek(slot.media, locale, { leaves: slot.leaves })
-          : null;
-        return (
-          <MagneticPreview
-            key={`${slot.media.url}-${i}`}
-            preview={spec?.node}
-            enabled={!!spec}
-            panelClassName={spec?.panelClassName}
-            className="shrink-0 snap-start"
-          >
-            <InspectableMedia
-              media={slot.media}
-              inspecting={inspecting}
-              selected={selectedMedia === slot.media}
-              onInspect={onInspect}
+      {runs.map((run) => {
+        const covers = run.tiles.map(({ slot, set: slotSet }, i) => {
+          const owner = run.guest?.owner;
+          // A guest's cover peeks as any cover does, and then says whose it is.
+          const spec = peek
+            ? mediaPeek(slot.media, locale, {
+                leaves: slot.leaves,
+                footer: owner && <GuestFootnote owner={owner} />,
+              })
+            : null;
+          const label = i === 0 ? run.guest?.label : undefined;
+          return (
+            <MagneticPreview
+              key={`${slot.media.url}-${i}`}
+              preview={spec?.node}
+              enabled={!!spec}
+              panelClassName={spec?.panelClassName}
+              className="relative shrink-0 snap-start"
             >
-              <AttachmentTile
-                slot={slot}
-                size="covers"
-                locale={locale}
-                set={set}
-                attachments={attachments}
-              />
-            </InspectableMedia>
-          </MagneticPreview>
+              <InspectableMedia
+                media={slot.media}
+                inspecting={inspecting}
+                selected={selectedMedia === slot.media}
+                onInspect={onInspect}
+              >
+                <AttachmentTile
+                  slot={slot}
+                  size="covers"
+                  locale={locale}
+                  set={slotSet}
+                  attachments={attachments}
+                />
+              </InspectableMedia>
+              {label && (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "pointer-events-none absolute left-1.5 top-1.5 z-10 rounded-full px-1.5 py-0.5",
+                    "font-mono text-[10px] leading-none whitespace-nowrap backdrop-blur-sm",
+                    ARTWORK_CHIP_REST,
+                  )}
+                >
+                  {label}
+                </span>
+              )}
+            </MagneticPreview>
+          );
+        });
+        const owner = run.guest?.owner;
+        if (!run.guest) return covers;
+        return (
+          // A guest's covers stand together over one caption. With several,
+          // a rule spans them so each reads as the guest's; one needs none.
+          <div key={run.key} className="flex shrink-0 snap-start flex-col">
+            <div className="flex gap-2">{covers}</div>
+            {owner && (
+              <div
+                className={cn(
+                  "mt-1.5 w-0 min-w-full",
+                  covers.length > 1 && "border-t border-border/60 pt-1",
+                )}
+              >
+                <GuestName owner={owner} className="line-clamp-2" />
+              </div>
+            )}
+          </div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * A guest named as a commit: the mark its row wears in the gutter, then its
+ * title and where it was given, in the row's meta voice.
+ */
+export function GuestName({
+  owner,
+  venue = true,
+  className,
+}: {
+  owner: NonNullable<StripGuest["owner"]>;
+  /** Off where the venue is already on screen (a cover's peek). */
+  venue?: boolean;
+  className?: string;
+}) {
+  return (
+    <span className={cn("flex min-w-0 items-baseline gap-1.5", TYPE.rowMeta)}>
+      <CommitIcon
+        type={owner.type}
+        override={owner.icon}
+        className="h-3 w-3 shrink-0 translate-y-0.5 text-quaternary-foreground"
+      />
+      <span className={cn("min-w-0", className)}>
+        <span className="text-muted-foreground">{owner.title}</span>
+        {venue && owner.venue && (
+          // A venue breaks onto the next line whole, not inside its name.
+          <>
+            {" · "}
+            <span className="whitespace-nowrap">{owner.venue}</span>
+          </>
+        )}
+      </span>
+    </span>
+  );
+}
+
+/** The last line of a guest cover's peek: whose it is, as a row prints it. */
+function GuestFootnote({ owner }: { owner: NonNullable<StripGuest["owner"]> }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className="min-w-0 flex-1">
+        <GuestName owner={owner} venue={false} className="truncate" />
+      </span>
+      <span className={cn("shrink-0", TYPE.hash)}>{owner.hash}</span>
+      <span className={cn("shrink-0", TYPE.hash)}>{owner.date}</span>
     </div>
   );
 }

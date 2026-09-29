@@ -18,6 +18,7 @@ import {
   GLASS_CLUSTER,
   THEATER_BACKDROP,
 } from "@/systems/theater/lib/chrome";
+import { ownerOf } from "../lib/set";
 import { useAttachments } from "../provider";
 
 // =============================================================================
@@ -124,8 +125,9 @@ export function ImageLightbox() {
     return () => window.removeEventListener("keydown", onKey);
   }, [lightboxOpen, fit]);
 
-  const title = lightbox?.set.title ?? "";
-  const subtitle = lightbox?.set.subtitle;
+  const owner = lightbox ? ownerOf(lightbox.set, lightbox.index) : undefined;
+  const title = owner?.title ?? "";
+  const subtitle = owner?.subtitle;
   const src = image?.url ?? "";
 
   return (

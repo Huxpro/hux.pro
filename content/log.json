@@ -639,6 +639,11 @@
       "type": "talk",
       "present": "aside",
       "asideLine": "venue",
+      "editionOf": "react-universe-2025-two-threads",
+      "featuredAs": {
+        "en": "Chinese re-run",
+        "zh": "中文再演"
+      },
       "tagId": "lynx-era",
       "title": {
         "en": "React for Two Threads",
@@ -1118,7 +1123,13 @@
       "id": "reactconf-2021-memo",
       "type": "talk",
       "tagId": "react-era",
-      "attachedTo": "react-core",
+      "about": [
+        "react-core"
+      ],
+      "featuredAs": {
+        "en": "Intro talk",
+        "zh": "首发演讲"
+      },
       "title": {
         "en": "React without memo",
         "zh": "React without memo"
