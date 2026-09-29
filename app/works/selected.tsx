@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Selected works — the reading of /works a newcomer meets (lib/log-view.ts).
+ * Selected works — the top of /works, and the top of its log.
  *
  * The log is a complete record and a poor introduction: thirty-odd commits
  * at one weight, newest first, so the question a visitor actually arrives
@@ -9,69 +9,72 @@
  * each, when, and where can I see it? — was answered somewhere around the
  * twelfth row, under a cover tile, in two clamped lines of tertiary ink.
  *
- * This page answers it in tiers, the way a printed CV or a good projects
- * page does, and the hierarchy comes from how much is written rather than
- * from boxes:
+ * So the page leads with the handful of commits that answer it, printed
+ * open, and the log follows in the same scroll (lib/log-view.ts). These are
+ * not a second rendering of the work beside the log: they are its flagship
+ * commits at the shallowest depth, the prose a CV would print, with
  *
- *   Selected works   a handful of works, each a name, who I was on it, a
- *                    paragraph of prose at reading size, and where to see it
- *   More projects    the rest, one line each — name, team, years
- *   Talks            one line each — title, venue, date
- *   Press            the same
+ *   - the log's own controls: a type chip that is not theirs hides them,
+ *     and the form sets their picture as it sets every row's — their links
+ *     as text in the index, their covers, their grid and notes in the feed;
+ *   - their own history hanging off them: the talks and press about each
+ *     one, counted (`10 talks`) and unfolding in place into their rows,
+ *     every one of them a way down into the log at its hash;
+ *   - their place in the log kept: each leaves a one-line pointer in its
+ *     slot there (TimelineCommit's `pointer`), and the pointer, the entry's
+ *     permalink, and its years are the ways between the two depths.
  *
  * The curation is data, not code: the `works-selected` group in
  * content/log.json names the works, in the same shape the home widgets'
  * groups use (and `hidden`, so the home grid does not grow a card for it).
- * Everything else is derived — the tiers are the rest of the log sorted by
- * type, and a row's meta is read off the fields the log already prints.
- *
- * Every row that is a commit keeps its address in the log: a name opens the
- * log at that commit, where the covers, the commentary and the byline are.
- * A talk's title instead plays it, because for a talk the recording is the
- * work; its row in the log is one tap further, from the log itself.
+ * What hangs off each one is derived (`hangingOff`).
  */
 
-import { useMemo, type MouseEvent, type ReactNode } from "react";
+import { useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
 import { t, type Locale } from "@/lib/i18n";
 import {
   computeCommitHash,
   getCommitLanguageBadge,
+  getCommitTypeLabel,
   getCommitTypePluralLabel,
   isCommitVisibleIn,
+  isRowVisible,
   localize,
   localizeOptional,
   resolveGroupCommits,
   resolveIdentity,
   sortCommitsByDate,
   type Commit,
+  type CommitType,
+  type FilterableCommitType,
   type LogData,
   type Media,
   type RoleCommit,
 } from "@/lib/log";
+import { ROW_FORM, type LogForm } from "@/lib/log-view";
+import type { CommitAnchorOptions } from "@/components/log/use-commit-anchor";
 import {
   attachmentSetFor,
   linkTarget,
   useOptionalAttachments,
 } from "@/systems/attachments";
+import { useInputCapability } from "@/services";
 import { BadgeMark, commitBadge } from "@/components/magic-link";
 import { CommitIcon } from "@/components/log/icons";
+import { normalizeCommit } from "@/components/log/commit-data";
+import { Commentary } from "@/components/log/embeds/shared";
+import { AttachmentGrid } from "@/components/log/media/attachment-grid";
+import { MediaStrip } from "@/components/log/media/media-strip";
 
 /** The curated group in content/log.json this page leads with. */
 export const SELECTED_GROUP_ID = "works-selected";
 
-/** Section anchors — the bar's jumps land on these (SelectedToolbar). */
-export const WORKS_SECTION_IDS = {
-  selected: "works-selected",
-  projects: "works-projects",
-  talks: "works-talks",
-  press: "works-press",
-} as const;
-
-/** A commit's row in the log: the log reading, travelled to that commit. */
-export function logHrefFor(commit: Commit): string {
-  return `/works?view=log#${computeCommitHash(commit.id)}`;
+/** Where a selected work is printed: the id its log row points at. */
+export function printedAtId(commit: Commit): string {
+  return `selected-${computeCommitHash(commit.id)}`;
 }
 
 // =============================================================================
@@ -80,27 +83,96 @@ export function logHrefFor(commit: Commit): string {
 
 export interface SelectedWorksData {
   title: string;
-  selected: Commit[];
-  projects: Commit[];
-  talks: Commit[];
-  press: Commit[];
+  works: Commit[];
+  /** Per work (by id): what hangs off it, newest first. */
+  hanging: ReadonlyMap<string, Commit[]>;
+}
+
+/** The types that hang off a work — the ones that are *about* one. */
+const HANGING_TYPES: readonly CommitType[] = ["talk", "post", "press"];
+
+/** Tags compared as words: `Cross Platform` is `Cross-Platform`. */
+const word = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+
+/**
+ * What a work is about, in the words its satellites are tagged with: its
+ * name — the title's first word, which is what a talk about it is tagged
+ * (`Lynx`, `React`, `Ele.me`) — and its first tag, the one its author put
+ * first (`PWA` for Ele.me, whose talks never name it).
+ */
+function topicsOf(work: Commit): Set<string> {
+  const name = word(work.title.en.split(/\s+/)[0] ?? "");
+  const first = work.tags?.[0];
+  return new Set([name, first ? word(first) : ""].filter(Boolean));
+}
+
+const monthsApart = (a: string, b: string) =>
+  Math.abs(
+    Number(a.slice(0, 4)) * 12 +
+      Number(a.slice(5, 7)) -
+      (Number(b.slice(0, 4)) * 12 + Number(b.slice(5, 7))),
+  );
+
+/**
+ * Which talks, posts and press hang off which work. Derived, so a talk
+ * filed tomorrow finds its project without anyone curating it:
+ *
+ *   1. attached to the work (`attachedTo`) — the author said so;
+ *   2. otherwise, in the work's chapter and tagged with what it is about
+ *      (`topicsOf`) — the most such tags wins, the nearer in time breaks
+ *      a tie (a PWA talk in 2017 is Ele.me's, not the blog's).
+ *
+ * Each commit hangs off one work at most, so no count double-counts.
+ */
+function hangingOff(
+  works: Commit[],
+  commits: Commit[],
+): Map<string, Commit[]> {
+  const byId = new Map(works.map((w) => [w.id, w]));
+  const topics = new Map(works.map((w) => [w.id, topicsOf(w)]));
+  const hanging = new Map<string, Commit[]>(works.map((w) => [w.id, []]));
+
+  for (const c of commits) {
+    if (!HANGING_TYPES.includes(c.type) || byId.has(c.id)) continue;
+    let best: { work: Commit; score: number } | null = null;
+    if (typeof c.attachedTo === "string" && byId.has(c.attachedTo)) {
+      best = { work: byId.get(c.attachedTo)!, score: Infinity };
+    } else {
+      const tags = new Set((c.tags ?? []).map(word));
+      for (const work of works) {
+        if (work.tagId !== c.tagId) continue;
+        let score = 0;
+        for (const topic of topics.get(work.id)!) if (tags.has(topic)) score++;
+        if (score === 0) continue;
+        if (
+          !best ||
+          score > best.score ||
+          (score === best.score &&
+            monthsApart(c.date, work.date) <
+              monthsApart(c.date, best.work.date))
+        ) {
+          best = { work, score };
+        }
+      }
+    }
+    if (best) hanging.get(best.work.id)!.push(c);
+  }
+  return hanging;
 }
 
 /**
- * The page's tiers from the log. Visibility is the log's own
- * (`isCommitVisibleIn`), so a commit listed for one locale only is listed
- * here for that locale only, and nothing can be on this page that the log
- * would not show.
+ * The page's top tier from the log. Visibility is the log's own
+ * (`isCommitVisibleIn`), so a commit listed for one locale only is counted
+ * for that locale only, and nothing can be here that the log would not show.
  */
 export function buildSelectedWorks(
   logData: LogData,
   locale: Locale,
 ): SelectedWorksData {
   const group = logData.groups?.find((g) => g.id === SELECTED_GROUP_ID);
-  const selected = group
+  const works = group
     ? resolveGroupCommits(group, logData.commits, undefined, locale)
     : [];
-  const picked = new Set(selected.map((c) => c.id));
   const visible = sortCommitsByDate(
     logData.commits.filter((c) => isCommitVisibleIn(c, locale)),
   );
@@ -108,10 +180,8 @@ export function buildSelectedWorks(
     title: group
       ? localize(group.title, locale)
       : t(locale, "logSelectedWorks"),
-    selected,
-    projects: visible.filter((c) => c.type === "project" && !picked.has(c.id)),
-    talks: visible.filter((c) => c.type === "talk"),
-    press: visible.filter((c) => c.type === "press"),
+    works,
+    hanging: hangingOff(works, visible),
   };
 }
 
@@ -167,15 +237,36 @@ function monthOf(date: string, locale: Locale): string {
 }
 
 /** Where a row happened: a talk's venue, the platform a piece ran on, the
- *  team a project was built in. Null when it would repeat the title. */
-function venueOf(commit: Commit, title: string, locale: Locale): string | null {
+ *  publication a post ran in. Null when it would repeat the title. */
+function venueOf(commit: Commit, title: string): string | null {
   const venue =
     commit.type === "talk"
       ? commit.conference.name
       : commit.type === "press"
         ? commit.platform
-        : localizeOptional(commit.team, locale);
+        : commit.type === "post"
+          ? commit.publication.name
+          : null;
   return venue && venue !== title ? venue : null;
+}
+
+/**
+ * The count a work carries, in the metadata voice: `10 talks · 2 press`,
+ * or `演讲 10 · 媒体 2` — the chip row's own order of word and number.
+ */
+function countLine(commits: Commit[], locale: Locale): string {
+  return HANGING_TYPES.map((type) => {
+    const n = commits.filter((c) => c.type === type).length;
+    if (n === 0) return null;
+    if (locale === "zh") return `${getCommitTypeLabel(type, locale)} ${n}`;
+    const noun =
+      n === 1
+        ? getCommitTypeLabel(type, locale)
+        : getCommitTypePluralLabel(type, locale);
+    return `${n} ${noun.toLowerCase()}`;
+  })
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /**
@@ -236,13 +327,14 @@ function useOpenMedia(locale: Locale) {
   const attachments = useOptionalAttachments();
   return (commit: Commit, index: number) => (e: MouseEvent) => {
     if (!attachments) return;
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (!isPlainClick(e)) return;
     const set = attachmentSetFor(commit, locale);
     if (!set) return;
     e.preventDefault();
     attachments.open(set, index);
   };
 }
+type OpenMedia = ReturnType<typeof useOpenMedia>;
 
 /** The media a talk's title opens: its recording when it has one, else
  *  whatever it attaches first. */
@@ -254,151 +346,90 @@ function playableIndex(commit: Commit): number {
   return slides >= 0 ? slides : items.length > 0 ? 0 : -1;
 }
 
-// =============================================================================
-// The page
-// =============================================================================
-
-interface SelectedWorksProps {
-  logData: LogData;
-  locale: Locale;
-  /**
-   * Go to the log — at a commit, or (none given) at its top. The page's
-   * own switch rather than a navigation: a route change costs a second
-   * (see app/works/view.tsx), and this is one tap that should feel like
-   * turning a page.
-   */
-  onOpenLog: (commit?: Commit) => void;
-}
-
 /** A plain click is ours; a modified one is the browser's (a new tab). */
 const isPlainClick = (e: MouseEvent) =>
   !(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0);
 
-export function SelectedWorks({
-  logData,
-  locale,
-  onOpenLog,
-}: SelectedWorksProps) {
-  const data = useMemo(
-    () => buildSelectedWorks(logData, locale),
-    [logData, locale],
+// =============================================================================
+// The tier
+// =============================================================================
+
+/**
+ * A tier's heading: a serif line — the /prompt section's face, a step under
+ * the page title. The selected works wear it, and so does the log where it
+ * follows them, so the page reads as one document in two parts.
+ */
+export function TierHeading({
+  id,
+  children,
+  className,
+}: {
+  id?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <h2
+      id={id}
+      className={cn(
+        "mb-4 sm:mb-5 font-serif text-xl sm:text-2xl text-foreground",
+        className,
+      )}
+    >
+      {children}
+    </h2>
   );
+}
+
+interface SelectedWorksProps {
+  data: SelectedWorksData;
+  /** Every commit, for the role a work was done in. */
+  commits: Commit[];
+  locale: Locale;
+  /** The page's form and filter (lib/log-view.ts) — the same two the log
+   *  reads, so the bar means one thing from the top of the page down. */
+  form: LogForm;
+  types: readonly FilterableCommitType[];
+  /** Travel to a commit (useCommitAnchor): a row that hangs off a work, or
+   *  the work's own place in the log. */
+  onSelectHash: (hash: string, opts?: CommitAnchorOptions) => void;
+}
+
+export function SelectedWorks({
+  data,
+  commits,
+  locale,
+  form,
+  types,
+  onSelectHash,
+}: SelectedWorksProps) {
   const openMedia = useOpenMedia(locale);
-  const inLog = (commit: Commit): RowLink => ({
-    href: logHrefFor(commit),
-    internal: true,
-    hint: t(locale, "worksOpenInLog"),
-    onClick: (e) => {
-      if (!isPlainClick(e)) return;
-      e.preventDefault();
-      onOpenLog(commit);
-    },
-  });
+  const works = data.works.filter((c) => isRowVisible(c, types));
+  if (works.length === 0) return null;
 
   return (
-    <div>
-      <Section id={WORKS_SECTION_IDS.selected} title={data.title} first>
-        <div className="space-y-9 sm:space-y-10">
-          {data.selected.map((commit) => (
-            <SelectedWork
-              key={commit.id}
-              commit={commit}
-              commits={logData.commits}
-              locale={locale}
-              openMedia={openMedia}
-              name={inLog(commit)}
-            />
-          ))}
-        </div>
-      </Section>
-
-      {data.projects.length > 0 && (
-        <Section
-          id={WORKS_SECTION_IDS.projects}
-          title={t(locale, "worksMoreProjects")}
-        >
-          <RowList>
-            {data.projects.map((commit) => {
-              const title = localize(commit.title, locale);
-              return (
-                <Row
-                  key={commit.id}
-                  mark={
-                    <ProjectMark
-                      commit={commit}
-                      locale={locale}
-                      className="align-[-0.2em]"
-                    />
-                  }
-                  title={title}
-                  venue={venueOf(commit, title, locale)}
-                  badge={getCommitLanguageBadge(commit, locale)}
-                  date={yearsOf(commit, locale)}
-                  link={inLog(commit)}
-                />
-              );
-            })}
-          </RowList>
-        </Section>
-      )}
-
-      {(["talks", "press"] as const).map((tier) => {
-        const commits = data[tier];
-        if (commits.length === 0) return null;
-        return (
-          <Section
-            key={tier}
-            id={WORKS_SECTION_IDS[tier]}
-            title={getCommitTypePluralLabel(
-              tier === "talks" ? "talk" : "press",
-              locale,
+    <section aria-labelledby="works-selected-title" className="mb-14 sm:mb-16">
+      <TierHeading id="works-selected-title">{data.title}</TierHeading>
+      <div className="space-y-7 sm:space-y-8">
+        {works.map((commit) => (
+          <SelectedWork
+            key={commit.id}
+            commit={commit}
+            commits={commits}
+            // What hangs off it, as far as the filter lets through: with
+            // `?type=project` a work carries no count of talks the page is
+            // not showing.
+            hanging={(data.hanging.get(commit.id) ?? []).filter((c) =>
+              isRowVisible(c, types),
             )}
-          >
-            <RowList>
-              {commits.map((commit) => {
-                const title = localize(commit.title, locale);
-                const index = playableIndex(commit);
-                const media = index >= 0 ? commit.media![index] : null;
-                return (
-                  <Row
-                    key={commit.id}
-                    title={title}
-                    venue={venueOf(commit, title, locale)}
-                    badge={getCommitLanguageBadge(commit, locale)}
-                    date={monthOf(commit.date, locale)}
-                    link={
-                      media
-                        ? {
-                            href: linkTarget(media, locale),
-                            onClick: openMedia(commit, index),
-                          }
-                        : inLog(commit)
-                    }
-                  />
-                );
-              })}
-            </RowList>
-          </Section>
-        );
-      })}
-
-      {/* The end of the page hands on to the archive, in the slot and the
-          voice the log closes with (`git init`). */}
-      <p className="mt-16 py-4 font-mono text-xs text-tertiary-foreground">
-        {t(locale, "worksArchiveLead")}{" "}
-        <a
-          href="/works?view=log"
-          onClick={(e) => {
-            if (!isPlainClick(e)) return;
-            e.preventDefault();
-            onOpenLog();
-          }}
-          className="text-muted-foreground underline decoration-ink-line underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
-        >
-          git log
-        </a>
-      </p>
-    </div>
+            locale={locale}
+            form={form}
+            openMedia={openMedia}
+            onSelectHash={onSelectHash}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -407,64 +438,42 @@ export function SelectedWorks({
 // =============================================================================
 
 /**
- * A tier: a serif heading — the /prompt section's face, a step under the
- * page title — and what it holds. Separated by space alone.
- */
-function Section({
-  id,
-  title,
-  first = false,
-  children,
-}: {
-  id: string;
-  title: string;
-  first?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <section
-      id={id}
-      aria-labelledby={`${id}-title`}
-      className={cn(!first && "mt-14 sm:mt-16")}
-    >
-      <h2
-        id={`${id}-title`}
-        className="mb-4 sm:mb-5 font-serif text-xl sm:text-2xl text-foreground"
-      >
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-/**
- * One selected work, in four lines of intent:
+ * One selected work, printed open:
  *
  *   Lynx Framework                              2023 – present
  *   Architect · Lynx @ ByteDance
  *   Open-source cross-platform UI framework behind TikTok, …
- *   lynxjs.org   github.com
+ *   lynxjs.org   github.com                          10 talks ⌄
  *
- * The name and the years are a list row's skeleton, so the tiers under it
- * read as the same grammar with less said. The second line is who I was on
- * it, the third is the log's description whole and at reading size, and
- * the last is where to see it.
+ * The name and the years are a list row's skeleton, so the log under it
+ * reads as the same grammar with less said. The second line is who I was on
+ * it, the third is the log's description whole and at reading size, and the
+ * last is where to see it — at the page's form: links as text in the index,
+ * covers and the grid further down — and the count of what hangs off it.
+ *
+ * The name goes where the work is (its first link). The years go to where
+ * the work sits in the log, in its chapter, among what else I did then.
  */
 function SelectedWork({
   commit,
   commits,
+  hanging,
   locale,
+  form,
   openMedia,
-  name,
+  onSelectHash,
 }: {
   commit: Commit;
   commits: Commit[];
+  hanging: Commit[];
   locale: Locale;
-  openMedia: ReturnType<typeof useOpenMedia>;
-  /** Where the name goes: this commit in the log. */
-  name: RowLink;
+  form: LogForm;
+  openMedia: OpenMedia;
+  onSelectHash: SelectedWorksProps["onSelectHash"];
 }) {
+  const [open, setOpen] = useState(false);
+  const { magneticPreviewEnabled } = useInputCapability();
+  const hash = computeCommitHash(commit.id);
   const title = localize(commit.title, locale);
   const role = roleOwning(commit, commits);
   const team = localizeOptional(commit.team ?? role?.team, locale);
@@ -472,67 +481,263 @@ function SelectedWork({
     .filter(Boolean)
     .join(" · ");
   const description = localize(commit.description, locale);
+  const commentary = localizeOptional(commit.commentary, locale);
   const media = commit.media ?? [];
   const labels = mediaLabels(media, locale);
+  const atoms = ROW_FORM[form];
+  // The log's own derivations for the covers and their set, so a cover here
+  // is the same cover, opening the same way, as it is on any row.
+  const normalized = useMemo(
+    () => normalizeCommit(commit, locale),
+    [commit, locale],
+  );
+  const set = useMemo(
+    () => attachmentSetFor(commit, locale),
+    [commit, locale],
+  );
+  const count = countLine(hanging, locale);
+
+  const links = media.length > 0 && atoms.media === "none" && (
+    <p className="flex min-w-0 flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-muted-foreground">
+      {media.map((m, i) => (
+        <a
+          key={`${m.url}-${i}`}
+          href={linkTarget(m, locale)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={openMedia(commit, i)}
+          className="underline decoration-ink-line underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+        >
+          {labels[i]}
+        </a>
+      ))}
+    </p>
+  );
 
   return (
-    <article className="relative">
-      <div className="flex items-center justify-between gap-4">
-        <h3 className="flex min-w-0 items-center text-base font-medium text-foreground">
-          {/* The project's mark, at about twice the name's cap height. On a
-              desk it hangs in the margin, where the log hangs its hash
-              column, so every line of the entry keeps the column's edge;
-              narrower, it leads the name. */}
-          <ProjectMark
-            commit={commit}
-            locale={locale}
-            className="text-[1.3rem] lg:absolute lg:top-px lg:-left-10"
-          />
-          <LinkTo
-            link={name}
-            className="underline decoration-transparent underline-offset-4 transition-colors hover:decoration-ink-line"
+    // The id the log's pointer row names (`data-printed-at`), so the
+    // commit's permalink lands here, and `data-row-trigger` is where the
+    // arrival mark paints — the same wash a row in the log gets.
+    <article id={printedAtId(commit)} aria-labelledby={`${hash}-name`}>
+      <div data-row-trigger className="relative -mx-3 rounded-lg px-3 py-2">
+        <div className="flex items-center justify-between gap-4">
+          <h3
+            id={`${hash}-name`}
+            className="flex min-w-0 items-center text-base font-medium text-foreground"
           >
-            {title}
-          </LinkTo>
-        </h3>
-        <span className={cn("shrink-0", TYPE.rowMeta)}>
-          {yearsOf(commit, locale)}
-        </span>
+            {/* The project's mark, at about twice the name's cap height. On
+                a desk it hangs in the margin, where the log hangs its hash
+                column, so every line of the entry keeps the column's edge;
+                narrower, it leads the name. */}
+            <ProjectMark
+              commit={commit}
+              locale={locale}
+              className="text-[1.3rem] lg:absolute lg:top-[0.6rem] lg:-left-7"
+            />
+            {media.length > 0 ? (
+              <a
+                href={linkTarget(media[0], locale)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={openMedia(commit, 0)}
+                className="underline decoration-transparent underline-offset-4 transition-colors hover:decoration-ink-line"
+              >
+                {title}
+              </a>
+            ) : (
+              title
+            )}
+          </h3>
+          <a
+            href={`#${hash}`}
+            title={t(locale, "worksInTheLog")}
+            onClick={(e) => {
+              if (!isPlainClick(e)) return;
+              e.preventDefault();
+              // To the row itself, not through it back to here; and not a
+              // new address — this is going to see where the work sits, not
+              // naming it.
+              onSelectHash(hash, { follow: false, push: false });
+            }}
+            className={cn(
+              "shrink-0 transition-colors hover:text-foreground",
+              TYPE.rowMeta,
+            )}
+          >
+            {yearsOf(commit, locale)}
+          </a>
+        </div>
+        {who && <p className={cn("mt-1", TYPE.meta)}>{who}</p>}
+        {description && (
+          <p className="mt-2.5 text-sm sm:text-[0.9375rem] leading-relaxed text-muted-foreground text-pretty">
+            {description}
+          </p>
+        )}
+        {atoms.notes && commentary && (
+          <Commentary text={commentary} className="mt-2.5" />
+        )}
+        {atoms.media === "covers" && normalized.stripItems.length > 0 && (
+          <MediaStrip
+            items={normalized.stripItems}
+            set={set}
+            peek={atoms.peek && magneticPreviewEnabled}
+            className="mt-3 min-w-0"
+          />
+        )}
+        {atoms.media === "grid" && normalized.stripItems.length > 0 && (
+          <AttachmentGrid
+            items={normalized.stripItems}
+            set={set}
+            className="mt-3"
+          />
+        )}
+        {(links || count) && (
+          <div className="mt-2.5 flex items-baseline justify-between gap-4">
+            {links || <span />}
+            {count && (
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => setOpen((o) => !o)}
+                className={cn(
+                  "pressable inline-flex shrink-0 items-center gap-1 transition-colors hover:text-foreground",
+                  TYPE.rowMeta,
+                  open && "text-muted-foreground",
+                )}
+              >
+                {count}
+                <ChevronDown
+                  aria-hidden
+                  className={cn(
+                    "size-3 transition-transform duration-200",
+                    open && "rotate-180",
+                  )}
+                />
+              </button>
+            )}
+          </div>
+        )}
       </div>
-      {who && <p className={cn("mt-1", TYPE.meta)}>{who}</p>}
-      {description && (
-        <p className="mt-2.5 text-sm sm:text-[0.9375rem] leading-relaxed text-muted-foreground text-pretty">
-          {description}
-        </p>
-      )}
-      {media.length > 0 && (
-        <p className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-muted-foreground">
-          {media.map((m, i) => (
-            <a
-              key={`${m.url}-${i}`}
-              href={linkTarget(m, locale)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={openMedia(commit, i)}
-              className="underline decoration-ink-line underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
-            >
-              {labels[i]}
-            </a>
+      {open && (
+        <ul className="mt-1 mb-2">
+          {hanging.map((c) => (
+            <HangingRow
+              key={c.id}
+              commit={c}
+              locale={locale}
+              openMedia={openMedia}
+              onSelectHash={onSelectHash}
+            />
           ))}
-        </p>
+        </ul>
       )}
     </article>
   );
 }
 
 /**
+ * A row hanging off a work, unfolded under it: a /writing row, tightened —
+ * title left, date right, the venue between them in the metadata voice —
+ * with the log's hash in the margin, where the log prints it.
+ *
+ * The title plays the talk (or opens the piece), because for a talk the
+ * recording is the work. The hash goes down to the row in the log, where
+ * the prose, the covers and the byline are.
+ */
+function HangingRow({
+  commit,
+  locale,
+  openMedia,
+  onSelectHash,
+}: {
+  commit: Commit;
+  locale: Locale;
+  openMedia: OpenMedia;
+  onSelectHash: SelectedWorksProps["onSelectHash"];
+}) {
+  const hash = computeCommitHash(commit.id);
+  const title = localize(commit.title, locale);
+  const venue = venueOf(commit, title);
+  const badge = getCommitLanguageBadge(commit, locale);
+  const index = playableIndex(commit);
+  const toLog = (e: MouseEvent) => {
+    if (!isPlainClick(e)) return;
+    e.preventDefault();
+    onSelectHash(hash);
+  };
+
+  const body = (
+    <>
+      <span className="min-w-0 flex-1">
+        <span className={TYPE.rowTitle}>{title}</span>
+        {/* An en space rather than a margin: it breaks like a space, so a
+            venue that wraps starts flush on its own line. */}{" "}
+        {(venue || badge) && (
+          // One metadata run after the title: where, then — the same
+          // mismatch hint the log and /writing print, silent when the talk
+          // is in the reader's language — in what. Its own line on a phone;
+          // on a wider column it follows the title and wraps as a whole,
+          // never a venue broken across two lines.
+          <span
+            className={cn("block sm:inline sm:whitespace-nowrap", TYPE.rowMeta)}
+          >
+            {[venue, badge].filter(Boolean).join(" · ")}
+          </span>
+        )}
+      </span>
+      <span className={cn("shrink-0", TYPE.rowMeta)}>
+        {monthOf(commit.date, locale)}
+      </span>
+    </>
+  );
+  const rowClass =
+    "pressable flex items-baseline justify-between gap-4 rounded-lg -mx-3 px-3 py-1.5 transition-colors duration-200 hover:bg-muted/50 active:bg-muted/60";
+
+  return (
+    <li className="relative">
+      {/* The hash, hung in the margin the log hangs it in — the way down
+          into the log, and the only git on this part of the page. */}
+      <a
+        href={`#${hash}`}
+        onClick={toLog}
+        aria-label={`${t(locale, "worksInTheLog")}: ${hash}`}
+        title={t(locale, "worksInTheLog")}
+        className={cn(
+          "absolute top-1.5 right-full mr-9 hidden lg:block",
+          TYPE.hash,
+          "transition-colors hover:text-muted-foreground",
+        )}
+      >
+        {hash}
+      </a>
+      {index >= 0 ? (
+        <a
+          href={linkTarget(commit.media![index], locale)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={openMedia(commit, index)}
+          className={rowClass}
+        >
+          {body}
+        </a>
+      ) : (
+        <a href={`#${hash}`} onClick={toLog} className={rowClass}>
+          {body}
+        </a>
+      )}
+    </li>
+  );
+}
+
+/**
  * A project's logo: the icon its `<Badge commit=…>` wears on the About
  * (components/magic-link), because a project is the protagonist of its row
- * and should look the same wherever it is named. Sized by the font size
- * around it, the way the badge is. A commit the badge resolver cannot find
- * falls back to the log's own project glyph, quietly.
+ * and should look the same wherever it is named — here, and on its row in
+ * the log. Sized by the font size around it, the way the badge is. A commit
+ * the badge resolver cannot find falls back to the log's own project glyph,
+ * quietly.
  */
-function ProjectMark({
+export function ProjectMark({
   commit,
   locale,
   className,
@@ -543,7 +748,10 @@ function ProjectMark({
 }) {
   const badge = commitBadge(commit.id, locale);
   return (
-    <span aria-hidden className={cn("inline-flex shrink-0 leading-none", className)}>
+    <span
+      aria-hidden
+      className={cn("inline-flex shrink-0 leading-none", className)}
+    >
       {badge ? (
         <BadgeMark icon={badge.icon} kind={badge.kind} />
       ) : (
@@ -553,117 +761,5 @@ function ProjectMark({
         />
       )}
     </span>
-  );
-}
-
-function RowList({ children }: { children: ReactNode }) {
-  return <ul className="-mx-3">{children}</ul>;
-}
-
-/** Where a row goes: into the log (`internal`, with a hint saying so), or
- *  out to a piece of media — in both cases by the page's own hand. */
-interface RowLink {
-  href: string;
-  internal?: boolean;
-  hint?: string;
-  onClick: (e: MouseEvent) => void;
-}
-
-/**
- * A /writing row, tightened: title left, date right, and between them the
- * venue in the metadata voice. Tighter than /writing's because a list of
- * nineteen talks should be one screen, not three — the rows are still a
- * full-width target.
- */
-function Row({
-  mark,
-  title,
-  venue,
-  badge,
-  date,
-  link,
-}: {
-  /** Leads the title — a project's logo. Talks and press wear none: their
-   *  venue says where, and nineteen platform marks would say it louder. */
-  mark?: ReactNode;
-  title: string;
-  venue: string | null;
-  badge: string | null;
-  date: string;
-  link: RowLink;
-}) {
-  const className =
-    "pressable flex items-baseline justify-between gap-4 rounded-lg px-3 py-1.5 transition-colors duration-200 hover:bg-muted/50 active:bg-muted/60";
-  const body = (
-    <>
-      <span className="min-w-0 flex-1">
-        <span className={TYPE.rowTitle}>
-          {mark}
-          {title}
-        </span>
-        {/* An en space rather than a margin: it breaks like a space, so a
-            venue that wraps starts flush on its own line. */}
-        {" "}
-        {(venue || badge) && (
-          // One metadata run after the title: where, then — the same
-          // mismatch hint the log and /writing print, silent when the talk
-          // is in the reader's language — in what. Its own line on a phone;
-          // on a wider column it follows the title and wraps as a whole,
-          // never a venue broken across two lines.
-          <span
-            className={cn(
-              "block sm:inline sm:whitespace-nowrap",
-              TYPE.rowMeta,
-            )}
-          >
-            {[venue, badge].filter(Boolean).join(" · ")}
-          </span>
-        )}
-      </span>
-      <span className={cn("shrink-0", TYPE.rowMeta)}>{date}</span>
-    </>
-  );
-  return (
-    <li>
-      <LinkTo link={link} className={className}>
-        {body}
-      </LinkTo>
-    </li>
-  );
-}
-
-/**
- * A row's anchor. Always a real `href`, so a modified click, a middle click
- * or a copied link goes where the row says; a plain click is the page's own
- * (`onClick`): into the log, or to the attachment's home.
- */
-function LinkTo({
-  link,
-  className,
-  children,
-}: {
-  link: RowLink;
-  className?: string;
-  children: ReactNode;
-}) {
-  return link.internal ? (
-    <a
-      href={link.href}
-      title={link.hint}
-      onClick={link.onClick}
-      className={className}
-    >
-      {children}
-    </a>
-  ) : (
-    <a
-      href={link.href}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={link.onClick}
-      className={className}
-    >
-      {children}
-    </a>
   );
 }

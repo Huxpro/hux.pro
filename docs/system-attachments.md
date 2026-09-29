@@ -235,13 +235,16 @@ is a preset of a few independent atoms rather than a layout of its own
 whether the notes print (commentary, the author fields, the link labels),
 and whether anything peeks on hover. The toolbar's control resets every
 row to a preset; a row the reader opens by hand takes the `feed` preset
-for itself. Old links with git's names (`oneline`, `stat`, `patch`) still
-parse, as aliases.
+for itself. The selected works at the top of the page are rows printed
+open by curation, so their prose is always whole and the form sets only
+their picture: their links as text in the index, the strip in `covers`,
+the grid and the notes in `feed` (`app/works/selected.tsx`). Old links
+with git's names (`oneline`, `stat`, `patch`) still parse, as aliases.
 
 | form | description | media | notes | peek | the reading |
 |---|---|---|---|---|---|
-| `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
-| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
+| `index` (default) | none | none | — | ✓ | the overview: one line per commit, the career in two screens under the selected works |
+| `covers` | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
 ### The attachment object

@@ -9,38 +9,36 @@ import {
   useSyncExternalStore,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { scrollPageTo } from "vitre";
 import { PageLayout } from "@/components/ui/page-layout";
 import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
-import {
-  SelectedToolbar,
-  WorksToolbar,
-  type TypeFacet,
-} from "@/components/log/works-toolbar";
-import { TYPE } from "@/lib/typography";
+import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
+import type { RowPointer } from "@/components/log/timeline-commit";
 import { t, useLocale } from "@/services";
 import {
   buildTimelineData,
   computeCommitHash,
   FILTERABLE_COMMIT_TYPES,
-  getCommitTypePluralLabel,
-  isCommitVisibleIn,
   isFilterableCommitType,
   isRowVisible,
   type Commit,
   type FilterableCommitType,
   type LogData,
+  type TimelineData,
 } from "@/lib/log";
 import {
   parseViewState,
   serializeViewState,
   toggleType,
   type LogForm,
-  type LogViewState,
-  type WorksReading,
 } from "@/lib/log-view";
-import { SelectedWorks, WORKS_SECTION_IDS } from "./selected";
+import {
+  buildSelectedWorks,
+  printedAtId,
+  ProjectMark,
+  SelectedWorks,
+  TierHeading,
+} from "./selected";
 
 interface WorksViewProps {
   logData: LogData;
@@ -49,15 +47,14 @@ interface WorksViewProps {
 // -----------------------------------------------------------------------------
 // The fragment, as a store
 //
-// A permalink is `/works#<hash>` (use-commit-anchor.ts), and every one written
-// before the selected reading existed — the magic links in posts, the identity
-// card, the home widgets' rows — means "that commit, in the log". The fragment
-// never reaches the server or the query codec, so the page reads it here and
-// lets a commit hash open the log. Subscribed to `hashchange` and `popstate`
-// so the back button onto a permalink lands in the log too — and re-read a
-// frame after any click, because the router moves to `/works#<hash>` from
-// /works itself (a magic link in the About sheet, say) with `pushState`,
-// which fires neither.
+// A permalink is `/works#<hash>` (use-commit-anchor.ts), and the anchor hook
+// travels to it by itself on a load and on `hashchange`. The page reads the
+// fragment too, for the two things the hook cannot do: open what hides the
+// row (a type filter — the row is not on the page to travel to), and hear
+// an arrival that fires no event at all — the router moves to `/works#<hash>`
+// from /works itself (a magic link in the About sheet, say) with
+// `pushState`, which fires neither `hashchange` nor `popstate`. So it is
+// re-read a frame after any click as well.
 // -----------------------------------------------------------------------------
 
 const COMMIT_HASH = /^#[0-9a-f]{7}$/;
@@ -81,11 +78,14 @@ function subscribeHash(onChange: () => void) {
 const readHash = () => window.location.hash;
 const readNoHash = () => "";
 
-/** The URL's reading, with a commit permalink counted as a vote for the log. */
-function withHash(view: LogViewState, hash: string): LogViewState {
-  return COMMIT_HASH.test(hash) && view.reading !== "log"
-    ? { ...view, reading: "log" }
-    : view;
+/** The row a permalink names, if the page has it at all (a commit listed
+ *  for the other locale does not). */
+function commitAt(data: TimelineData[], hash: string): Commit | null {
+  for (const { commits } of data) {
+    const found = commits.find((c) => computeCommitHash(c.id) === hash);
+    if (found) return found;
+  }
+  return null;
 }
 
 export function WorksView({ logData }: WorksViewProps) {
@@ -96,6 +96,11 @@ export function WorksView({ logData }: WorksViewProps) {
 
   const data = useMemo(
     () => buildTimelineData(logData, locale),
+    [logData, locale],
+  );
+  // The top of the page: the flagship commits, and what hangs off each.
+  const selected = useMemo(
+    () => buildSelectedWorks(logData, locale),
     [logData, locale],
   );
 
@@ -117,9 +122,8 @@ export function WorksView({ logData }: WorksViewProps) {
   // three times in a row to find the view you want. So local state paints
   // immediately and the URL follows, which is also what makes the chips feel
   // like switches rather than links.
-  const [view, setView] = useState(() => withHash(urlView, hash));
+  const [view, setView] = useState(urlView);
   const [lastUrlKey, setLastUrlKey] = useState(urlKey);
-  const [lastHash, setLastHash] = useState(hash);
   if (urlKey !== lastUrlKey) {
     setLastUrlKey(urlKey);
     // Adopt the URL only when it is genuinely a different reading — our own
@@ -128,41 +132,77 @@ export function WorksView({ logData }: WorksViewProps) {
     // state when a prop changes" pattern, as used by TimelineCommit.)
     if (urlKey !== serializeViewState(view)) setView(urlView);
   }
-  // The commit the log owes a travel to, once it is on the page.
+
+  // The commit a permalink asked for, once it is on the page. Set on
+  // arrival only — on hydration (the server rendered without a fragment),
+  // by the back button, or by a link on this very page.
   const [travel, setTravel] = useState<string | null>(null);
+  const [lastHash, setLastHash] = useState(hash);
   if (hash !== lastHash) {
     setLastHash(hash);
-    // A permalink arriving — on hydration (the server rendered without
-    // one), by the back button, or by a link on this very page — opens the
-    // log at it. Only on arrival: a reader who then chooses the selected
-    // works has answered the hash.
     if (COMMIT_HASH.test(hash)) {
-      if (view.reading !== "log") setView({ ...view, reading: "log" });
-      setTravel(hash.slice(1));
+      const at = hash.slice(1);
+      setTravel(at);
+      // Open what hides it. A filter that leaves the commit out is cleared,
+      // because the link asked for that commit, and a reader cannot see why
+      // a page would refuse it.
+      const target = commitAt(data, at);
+      if (target && !isRowVisible(target, view.types)) {
+        setView({ ...view, types: [] });
+      }
     }
   }
 
   const selectHash = useCommitAnchor();
 
-  // Travel once the log is rendered and measured. Gated on the webfonts for
+  const commit = useCallback(
+    (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
+      const merged = { ...view, ...next };
+      setView(merged);
+      const query = serializeViewState(
+        merged,
+        new URLSearchParams(searchParams.toString()),
+      );
+      // `replace`, not `push`: toggling four chips to find the right view
+      // should not cost four taps of the back button to undo.
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+    },
+    [view, searchParams, router, pathname],
+  );
+
+  // A filter cleared for a permalink is written back to the URL the way a
+  // chip's is, with the fragment kept: the link is why the filter went, and
+  // a reload should land where this did.
+  const target = travel ? commitAt(data, travel) : null;
+  const opened =
+    !!target &&
+    !isRowVisible(target, urlView.types) &&
+    isRowVisible(target, view.types);
+  useEffect(() => {
+    if (!opened) return;
+    const query = serializeViewState(
+      view,
+      new URLSearchParams(searchParams.toString()),
+    );
+    router.replace(
+      (query ? `${pathname}?${query}` : pathname) + window.location.hash,
+      { scroll: false },
+    );
+  }, [opened, view, searchParams, router, pathname]);
+
+  // Travel once the row is rendered and measured: gated on the webfonts for
   // the reason the anchor hook's own arrival is (their swap moves every
-  // row), and without a history entry: whoever asked has written the URL.
+  // row), and without a history entry — whoever asked has written the URL.
   // On a cold load the hook arrives by itself as well; it takes the two
   // requests for one.
   //
-  // Once per commit: the fragment of a name's `?view=log#<hash>` is written
-  // by the router in its own time, and it landing is the same arrival
-  // again, not a reason to pull the reader back to a row they have since
-  // scrolled away from. Leaving the log clears the request (`setReading`),
-  // so the switch back starts the log at its top, and the same permalink
-  // arriving later is an arrival again.
+  // Once per arrival: a filter tapped afterwards is not a reason to pull
+  // the reader back to a row they have since scrolled away from.
   const travelled = useRef<string | null>(null);
   useEffect(() => {
-    if (!travel) {
-      travelled.current = null;
-      return;
-    }
-    if (view.reading !== "log" || travelled.current === travel) return;
+    if (!travel || travelled.current === travel) return;
     let cancelled = false;
     let frame = 0;
     const whenReady = document.fonts?.ready ?? Promise.resolve();
@@ -177,55 +217,7 @@ export function WorksView({ logData }: WorksViewProps) {
       cancelled = true;
       cancelAnimationFrame(frame);
     };
-  }, [travel, view.reading, selectHash]);
-
-  const commit = useCallback(
-    (
-      next: Partial<LogViewState>,
-      { hash, push = false }: { hash?: string; push?: boolean } = {},
-    ) => {
-      const merged = { ...view, ...next };
-      setView(merged);
-      const query = serializeViewState(
-        merged,
-        new URLSearchParams(searchParams.toString()),
-      );
-      const url =
-        (query ? `${pathname}?${query}` : pathname) + (hash ? `#${hash}` : "");
-      // `replace`, not `push`: toggling four chips to find the right view
-      // should not cost four taps of the back button to undo. Opening the
-      // log at a commit is the exception — that is going somewhere, and
-      // back should bring you back.
-      if (push) router.push(url, { scroll: false });
-      else router.replace(url, { scroll: false });
-    },
-    [view, searchParams, router, pathname],
-  );
-
-  // The two readings are two pages, so changing between them starts the
-  // new one from its top rather than at wherever the old one was scrolled.
-  const setReading = useCallback(
-    (reading: WorksReading) => {
-      if (reading === view.reading) return;
-      commit({ reading });
-      // Leaving the log spends whatever it was opened at, so the same
-      // permalink arriving again later is an arrival again.
-      if (reading === "selected") setTravel(null);
-      scrollPageTo(0);
-    },
-    [commit, view.reading],
-  );
-
-  // A name on the selected page: the log, travelled to that commit.
-  const openLogAt = useCallback(
-    (target?: Commit) => {
-      if (!target) return setReading("log");
-      const at = computeCommitHash(target.id);
-      commit({ reading: "log" }, { hash: at, push: true });
-      setTravel(at);
-    },
-    [commit, setReading],
-  );
+  }, [travel, selectHash]);
 
   // Facet counts are of the UNFILTERED timeline, so a chip's number never
   // moves as you select — it answers "how much of this is there?", not "how
@@ -241,7 +233,9 @@ export function WorksView({ logData }: WorksViewProps) {
   // Counted over `data` rather than the raw log, because `data` is what the
   // timeline renders — locale filtered and grouped under a tag that exists.
   // A count derived from a different array is a count that can disagree with
-  // the rows under it.
+  // the rows under it. (The selected works are among those rows: each keeps
+  // its slot in the log as a pointer, so it is counted once, as it is
+  // printed once.)
   const facets = useMemo<TypeFacet[]>(() => {
     // Per type: how many rows, and every distinct `icon` override they carry.
     // One override and the chip can wear it; more than one (or none) and it
@@ -272,19 +266,6 @@ export function WorksView({ logData }: WorksViewProps) {
     });
   }, [data]);
 
-  // The selected page's list tiers, as its bar offers them. The tiers that
-  // are one row a work — the ones worth jumping to past the fold.
-  const sections = useMemo(() => {
-    const visible = logData.commits.filter((c) => isCommitVisibleIn(c, locale));
-    return (["talk", "press"] as const)
-      .map((type) => ({
-        id: WORKS_SECTION_IDS[type === "talk" ? "talks" : "press"],
-        label: getCommitTypePluralLabel(type, locale),
-        count: visible.filter((c) => c.type === type).length,
-      }))
-      .filter((s) => s.count > 0);
-  }, [logData, locale]);
-
   // The chapters, as the pinned bar names them when it wears one.
   const chapters = useMemo(
     () =>
@@ -308,26 +289,38 @@ export function WorksView({ logData }: WorksViewProps) {
     [data, view.types],
   );
 
-  if (view.reading === "selected") {
-    return (
-      <PageLayout
-        page="works"
-        pinnedActions={
-          <SelectedToolbar
-            locale={locale}
-            onReadingChange={setReading}
-            sections={sections}
-          />
-        }
-      >
-        <SelectedWorks
-          logData={logData}
-          locale={locale}
-          onOpenLog={openLogAt}
-        />
-      </PageLayout>
-    );
-  }
+  // Whether the page leads with the selected works under this filter — the
+  // same question SelectedWorks asks itself. When it does, the log under it
+  // takes a heading of its own, so the page reads as one document in two
+  // parts; when a filter has stepped the selected works aside, the log is
+  // the page, and needs no heading to say so.
+  const leads = selected.works.some((c) => isRowVisible(c, view.types));
+
+  // A selected work keeps its slot in the log, as a pointer up to where it
+  // is printed: the chronology stays whole, the tenure rail and the
+  // connectors that attach to it still have their row, and nothing is said
+  // in full twice.
+  const selectedIds = useMemo(
+    () => new Set(selected.works.map((c) => c.id)),
+    [selected],
+  );
+  const pointerLabel = `↑ ${t(locale, "worksPrintedAbove")}`;
+  const pointerFor = useCallback(
+    (c: Commit): RowPointer | null =>
+      selectedIds.has(c.id)
+        ? { to: printedAtId(c), label: pointerLabel }
+        : null,
+    [selectedIds, pointerLabel],
+  );
+  // Every project wears its logo, the one it wears at the top of the page
+  // and on the About.
+  const markFor = useCallback(
+    (c: Commit) =>
+      c.type === "project" ? (
+        <ProjectMark commit={c} locale={locale} className="align-[-0.2em]" />
+      ) : null,
+    [locale],
+  );
 
   return (
     <PageLayout
@@ -342,28 +335,23 @@ export function WorksView({ logData }: WorksViewProps) {
           }
           onClearTypes={() => commit({ types: [] })}
           form={view.form}
-          onFormChange={(form: LogForm) => commit({ form })}
+          onFormChange={(form) => commit({ form })}
           chapters={chapters}
         />
       }
     >
-      {/* The way back to the selected works. Not in the bar: the bar is the
-          log's own, already spends a phone's whole width, and is left as it
-          was. Here it is the first thing under it, in the back link's voice,
-          and the browser's back does the same after a name opened the log. */}
-      <div className="-mt-2 mb-6 sm:mb-8">
-        <a
-          href={pathname}
-          onClick={(e) => {
-            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-            e.preventDefault();
-            setReading("selected");
-          }}
-          className={TYPE.nav}
-        >
-          ← {t(locale, "worksBackToSelected")}
-        </a>
-      </div>
+      <SelectedWorks
+        data={selected}
+        commits={logData.commits}
+        locale={locale}
+        form={view.form}
+        types={view.types}
+        onSelectHash={selectHash}
+      />
+
+      {leads && hasMatches && (
+        <TierHeading className="!mb-3">{t(locale, "worksLogTitle")}</TierHeading>
+      )}
 
       {/* Git Log Timeline */}
       <LogTimeline
@@ -374,6 +362,8 @@ export function WorksView({ logData }: WorksViewProps) {
         activeTypes={view.types}
         onSelectHash={selectHash}
         pinnedChapters
+        markFor={markFor}
+        pointerFor={pointerFor}
       />
 
       {/* End marker — `git init` closes a timeline that has commits in it;

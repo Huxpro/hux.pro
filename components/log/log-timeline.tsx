@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
-import type { BeamSpec } from "./timeline-commit";
+import type { BeamSpec, RowPointer } from "./timeline-commit";
 import { useTimelineEdit } from "./timeline-edit-context";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
@@ -85,6 +85,16 @@ interface LogTimelineProps {
    * two sticky layers at the top of a phone would be one too many.
    */
   pinnedChapters?: boolean;
+  /** A mark to lead a row's title with — /works gives each project its
+   *  logo. Omit and titles print bare. */
+  markFor?: (commit: CommitData) => ReactNode;
+  /**
+   * The rows that stand for a commit printed in full elsewhere on the page
+   * (/works's selected works). They keep their slot — the rail, the
+   * connectors and the order need them — and print as one line pointing
+   * there. Omit and every row is its own.
+   */
+  pointerFor?: (commit: CommitData) => RowPointer | null;
 }
 
 /**
@@ -99,6 +109,8 @@ export function LogTimeline({
   activeTypes = NO_TYPES,
   onSelectHash,
   pinnedChapters = false,
+  markFor,
+  pointerFor,
 }: LogTimelineProps) {
   return (
     <div className="space-y-0">
@@ -114,6 +126,8 @@ export function LogTimeline({
           activeTypes={activeTypes}
           onSelectHash={onSelectHash}
           pinned={pinnedChapters}
+          markFor={markFor}
+          pointerFor={pointerFor}
         />
       ))}
     </div>
@@ -130,6 +144,8 @@ interface TagBlockProps {
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
+  markFor?: (commit: CommitData) => ReactNode;
+  pointerFor?: (commit: CommitData) => RowPointer | null;
 }
 
 function TagBlock({
@@ -142,6 +158,8 @@ function TagBlock({
   activeTypes,
   onSelectHash,
   pinned,
+  markFor,
+  pointerFor,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -349,6 +367,8 @@ function TagBlock({
                 byline={bylines[i]}
                 form={form}
                 onSelectHash={onSelectHash}
+                mark={markFor?.(commits[i])}
+                pointer={pointerFor?.(commits[i]) ?? null}
               />
             ));
             return run.kind === "cluster" ? (

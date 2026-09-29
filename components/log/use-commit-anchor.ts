@@ -59,26 +59,40 @@ function mark(el: HTMLElement) {
   );
 }
 
-/** A commit hash is 7 hex characters — see `computeCommitHash`. */
-function rowFor(hash: string): HTMLElement | null {
+/**
+ * A commit hash is 7 hex characters — see `computeCommitHash`.
+ *
+ * A row can stand for a commit printed in full elsewhere on the page (a
+ * selected work at the top of /works; `data-printed-at`, see TimelineCommit's
+ * `pointer`). A permalink means the commit, so it lands where the commit is
+ * printed — unless the caller wants the row itself (`follow: false`): the
+ * place in the log a selected work sits at.
+ */
+function rowFor(hash: string, follow = true): HTMLElement | null {
   const id = hash.replace(/^#/, "");
   if (!/^[0-9a-f]{7}$/.test(id)) return null;
   const el = document.getElementById(id);
-  return el?.hasAttribute("data-rail-row") ? (el as HTMLElement) : null;
+  if (!el?.hasAttribute("data-rail-row")) return null;
+  const printedAt = follow ? el.getAttribute("data-printed-at") : null;
+  return (printedAt && document.getElementById(printedAt)) || el;
+}
+
+export interface CommitAnchorOptions {
+  /** Write `#<hash>` into history (the default). Off for a caller that has
+   *  already put it in the URL, or that is not naming the commit — only
+   *  going to where it sits. */
+  push?: boolean;
+  /** Follow a pointer row to where its commit is printed (the default). */
+  follow?: boolean;
 }
 
 /**
  * Wires arrival and returns the click handler a row's hash uses to become the
  * page's address.
- *
- * The handler pushes the permalink into history by default. `push: false`
- * travels without writing the URL, for a caller that has already put the
- * hash there itself — /works opening its log at a commit from the selected
- * reading, where the router writes `?view=log#<hash>` in one go.
  */
 export function useCommitAnchor(): (
   hash: string,
-  opts?: { push?: boolean },
+  opts?: CommitAnchorOptions,
 ) => void {
   const reduced = useReducedMotion() ?? false;
   // One travel at a time: a second hash while the first is still gliding
@@ -86,8 +100,8 @@ export function useCommitAnchor(): (
   const stopRef = useRef<() => void>(() => {});
   // …and a second request for the row already being travelled to is the
   // same request, not a new one. /works can ask twice for one arrival — the
-  // log opening at a permalink it was handed, and this hook's own arrival on
-  // mount — and restarting the glide would only replay the mark.
+  // page travelling to a permalink it was handed, and this hook's own
+  // arrival on mount — and restarting the glide would only replay the mark.
   const headingRef = useRef<HTMLElement | null>(null);
 
   const travelTo = useCallback(
@@ -171,8 +185,8 @@ export function useCommitAnchor(): (
   }, [travelTo]);
 
   return useCallback(
-    (hash: string, { push = true }: { push?: boolean } = {}) => {
-      const el = rowFor(hash);
+    (hash: string, { push = true, follow = true }: CommitAnchorOptions = {}) => {
+      const el = rowFor(hash, follow);
       if (!el) return;
       // `pushState`, so the permalink is in the URL bar and in history without
       // a route change — and without firing `hashchange`, which would send the

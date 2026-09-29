@@ -14,7 +14,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
-import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
+import {
+  DEFAULT_FORM,
+  rowFormFor,
+  type LogForm,
+  type RowForm,
+} from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
@@ -44,6 +49,29 @@ import { TYPE } from "@/lib/typography";
  */
 const HASH_CELL = "lg:w-14 lg:text-right";
 const GUTTER_PULL = "lg:-ml-[6.5rem]";
+
+/**
+ * A row that stands for a commit printed in full elsewhere on the page:
+ * /works's selected works, which lead the page with the flagship commits
+ * open. Their rows stay in the log, because the chronology, the tenure rail
+ * and the connectors that attach to them all need them there, but they
+ * print one line and point up rather than saying it all twice.
+ */
+export interface RowPointer {
+  /** The element id of where the commit is printed. `useCommitAnchor`
+   *  follows it, so the row's permalink lands there too. */
+  to: string;
+  /** What the meta line says in place of the row's own: `↑ selected works`. */
+  label: string;
+}
+
+/** A pointer row's atoms: the title line, at every form. */
+const POINTER_FORM: RowForm = {
+  description: "none",
+  media: "none",
+  notes: false,
+  peek: false,
+};
 
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
@@ -104,6 +132,11 @@ interface TimelineCommitProps {
    * the permalink it always looked like — see `useCommitAnchor`.
    */
   onSelectHash?: (hash: string) => void;
+  /** Leads the title — /works gives a project the logo its badge wears. */
+  mark?: ReactNode;
+  /** The commit is printed in full elsewhere; this row points there. A
+   *  press, or the hash, travels to it (see `RowPointer`). */
+  pointer?: RowPointer | null;
   /**
    * The commit's attachments as one set (see systems/attachments). Every
    * media affordance on the row — a strip cover, an expanded player or
@@ -134,6 +167,8 @@ export function TimelineCommit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  mark,
+  pointer = null,
   attachmentSet = null,
   inspecting = false,
   isSelected = false,
@@ -153,7 +188,7 @@ export function TimelineCommit({
   // Topics and stats are authored but not printed (see the expanded body),
   // so they can no longer be the reason a row is openable — a commit whose
   // only extra was a tag list would otherwise unfold onto nothing.
-  const hasExpandableContent = !!(
+  const hasExpandableContent = !pointer && !!(
     data.description ||
     data.commentary ||
     data.expandedMedia.length > 0 ||
@@ -223,9 +258,18 @@ export function TimelineCommit({
   // a column of open ones was the same click as opening a caption, and
   // nothing painted the difference. They are not the same click any more:
   // this one changes the prose, the cover's opens the attachment.
+  //
+  // A pointer's press is its one job: go where the commit is printed. The
+  // hash is the same door (`useCommitAnchor` follows the pointer), so the
+  // press is that too, and the URL says where the reader went.
+  const followPointer = useCallback(() => {
+    if (pointer) onSelectHash?.(data.hash);
+  }, [pointer, onSelectHash, data.hash]);
   const rowOnClick = inspecting
     ? onInspectCommit
-    : rowOpensIdentity
+    : pointer && onSelectHash
+      ? followPointer
+      : rowOpensIdentity
       ? openIdentity
       : hasExpandableContent
         ? handleToggleExpanded
@@ -237,7 +281,7 @@ export function TimelineCommit({
   // row scale). Everything below reads those atoms and nothing reads the
   // form's name, or `isExpanded` again: the feed's atoms already say
   // "no strip, no clamp, no peek".
-  const rowForm = rowFormFor(form, textOpen);
+  const rowForm = pointer ? POINTER_FORM : rowFormFor(form, textOpen);
 
   // What the folded form adds under the title line: the description at two
   // lines, and the strip of covers. Both or either — a commit with no media
@@ -283,8 +327,12 @@ export function TimelineCommit({
   // way out of its own. Where the covers print, they are the doors; where
   // they don't (the index, folded), the line counts them, and opening the
   // row brings them.
+  //
+  // A pointer counts nothing: its attachments are printed where it points.
   const attachmentCount =
-    !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
+    !isQuiet && !pointer && rowForm.media === "none"
+      ? expandedMedia.length
+      : 0;
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
@@ -510,6 +558,7 @@ export function TimelineCommit({
           />
         ) : (
           <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
+            {mark}
             {displayTitle}
             {data.languageBadge && (
               <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
@@ -568,10 +617,14 @@ export function TimelineCommit({
         byline fully visible so the cluster's authorial context stays
         on-screen while you read.
       */}
-      {!isQuiet && (data.meta || byline) && (
+      {!isQuiet && (data.meta || byline || pointer) && (
         <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
-            {data.meta ? (
+            {pointer ? (
+              // In place of the row's own meta: this row's content is
+              // elsewhere, and this is which way.
+              pointer.label
+            ) : data.meta ? (
               data.metaUrl ? (
                 <a
                   href={data.metaUrl}
@@ -626,7 +679,7 @@ export function TimelineCommit({
 
       {/* Pinned items: rendered once here whether the row is folded or
           expanded, so toggling never remounts them. */}
-      {!isQuiet && pinnedMedia.length > 0 && (
+      {!isQuiet && !pointer && pinnedMedia.length > 0 && (
         <div
           className="col-start-2 @sm:col-start-3 mt-2"
           onClick={(e) => e.stopPropagation()}
@@ -789,6 +842,7 @@ export function TimelineCommit({
       id={data.hash}
       data-rail-row
       data-role-row={isRoleAnchor ? "" : undefined}
+      data-printed-at={pointer?.to}
       className={className}
     >
       <MagneticPreview

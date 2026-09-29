@@ -1,42 +1,50 @@
 // =============================================================================
-// Log View State — how much of the timeline is on screen, and which of it.
+// Log View State — how deep /works reads, and which of it.
 //
-// /works carries more information than any one reading of it can use: 25
-// commits, ~37 pieces of rich media, three eras. Folded, the page is a
-// two-screen overview and every cover is invisible; fully unfolded it is a
-// thirteen-screen media wall with no overview left. The two states people
-// actually want — "show me everything at once" and "let me see the work" —
-// are the same page at two different densities, plus the ability to narrow
-// what is in it.
+// /works is one page with one model: every row on it is a commit from
+// content/log.json, and the page is those commits at different depths. It
+// reads top to bottom the way a CV does, most important first, and every
+// step down is the same material in more detail rather than another page:
+//
+//    Selected works   the flagship commits (`works-selected` in log.json),
+//                     printed open: name, logo, who I was on it, the
+//                     description whole, where to see it, and a count of
+//                     what hangs off it (`10 talks`), which unfolds in place
+//                     into those rows.
+//    the log          every commit, newest first, in its chapters, printed
+//                     at the page's *form* (below) — the index by default,
+//                     one line a row, so the rest of the work reads as the
+//                     list under the selected tier. A flagship keeps its
+//                     slot here as a one-line pointer up to where it is
+//                     printed, so the chronology and the rail stay whole
+//                     and nothing is printed in full twice.
+//
+// There is no switch between two readings. The two controls in the pinned
+// bar belong to the page, not to the log, and mean the same thing at every
+// depth: a type chip hides every row of another type whichever tier it is
+// in (so `?type=talk` is the talks, and the selected tier, all projects,
+// steps aside), and the form sets how much picture every row carries, the
+// selected works included (their links as text in the index, their covers,
+// their grid).
 //
 // This module is the vocabulary for both, and the URL codec that makes a
 // reading shareable. It is deliberately free of React and of `lib/log`'s
 // data layer: the parse/serialize pair is the whole contract, so the query
-// string stays the single source of truth for view state.
+// string stays the single source of truth for view state. Every address
+// the page has had lands somewhere on it:
 //
-// Above both sits the page's *reading* — which of two pages /works is:
-//
-//  - `selected` — the default, and the page a newcomer meets. Curated, in
-//    tiers, prose first: the handful of works that matter most with what I
-//    did on each, then the rest of the projects, the talks and the press as
-//    short lists. It answers "what are this person's most important works,
-//    what did they do on each, when, and where can I see it?" in a screen,
-//    which the log, at one row per commit and equal weight for every row,
-//    could not. The curation is data (`works-selected` in content/log.json).
-//  - `log` — the archive: the whole commit history, exactly as it has
-//    always been, with its filter and its three forms.
-//
-// The reading has no param of its own worth sharing at rest; it is implied
-// by the two params that already exist, so every link written before the
-// selected reading existed still lands in the log:
-//
-//    /works                      selected
-//    /works?view=log             log, default form
-//    /works?view=index|feed|…    log, that form (git-flag aliases included)
-//    /works?type=talk            log, filtered
-//    /works#<hash>               log, travelled to that commit — decided by
-//                                the page (a fragment never reaches a query
-//                                codec), see app/works/view.tsx
+//    /works                      the page, from the top
+//    /works?view=index|covers|feed
+//                                every row at that depth (the git flags the
+//                                forms were first named after still parse,
+//                                and a form we cannot read is the default)
+//    /works?type=talk,press      only those rows, at every depth (`social`
+//                                still means press)
+//    /works#<hash>               travelled to that commit and marked: a
+//                                flagship's to its selected entry, where it
+//                                is printed, and a filter hiding the row is
+//                                cleared first. A fragment never reaches a
+//                                codec; app/works/view.tsx reads it.
 // =============================================================================
 
 import {
@@ -56,10 +64,11 @@ import {
 // by hand is the same thing at a smaller scale: it takes the `feed` preset
 // for itself (see TimelineCommit).
 //
-//  - `index`  — the title line only. The overview: one row per commit, the
-//    whole career in two screens. Rich media is reachable but not shown
+//  - `index`  — the default: the title line only. One row per commit, the
+//    whole career in two screens, under selected works that already print
+//    the prose the page leads with. Rich media is reachable but not shown
 //    (hover peek on a pointer device, or open the row).
-//  - `covers` — the default: the title, two lines, and the covers at a size
+//  - `covers` — the title, two lines, and the covers at a size
 //    you can recognise a slide or a screenshot at. Still one row per commit,
 //    so the overview survives, but the work is on screen rather than behind
 //    a hover a phone cannot perform.
@@ -81,7 +90,7 @@ export const LOG_FORMS = ["index", "covers", "feed"] as const;
 
 export type LogForm = (typeof LOG_FORMS)[number];
 
-export const DEFAULT_FORM: LogForm = "covers";
+export const DEFAULT_FORM: LogForm = "index";
 
 /** The atoms a row composes. Every form is one setting of each. */
 export interface RowForm {
@@ -161,33 +170,17 @@ export function parseLogForm(value: string | null): LogForm | null {
 }
 
 // =============================================================================
-// Reading — which of the two pages /works is (see the header).
-// =============================================================================
-
-export const WORKS_READINGS = ["selected", "log"] as const;
-
-export type WorksReading = (typeof WORKS_READINGS)[number];
-
-export const DEFAULT_READING: WorksReading = "selected";
-
-/** The `view` value that names the log without naming a form: the log at
- *  its default form. A form is already a statement that you want the log,
- *  so `?view=index` needs no second word to say it. */
-const LOG_VIEW_VALUE = "log";
-
-// =============================================================================
 // View state
 // =============================================================================
 
 export interface LogViewState {
-  /** Selected works or the whole log. The two fields below are the log's,
-   *  and only reach the URL while the log is what is on screen. */
-  reading: WorksReading;
   /**
    * Selected artifact types. Empty means "no filter" rather than "nothing
    * selected" — the rest-state of the chip row, where every commit shows.
+   * It is the page's filter: the selected works answer to it too.
    */
   types: FilterableCommitType[];
+  /** How much of every row prints, the selected works' picture included. */
   form: LogForm;
 }
 
@@ -226,11 +219,6 @@ const TYPE_ALIAS: Record<string, FilterableCommitType> = {
  * Tolerant by design — a hand-edited or stale URL degrades to the default
  * rather than rendering an empty page: unknown type names are dropped,
  * an unknown form falls back to the default.
- *
- * Either param at all means the log. A `type` naming nothing we know still
- * does — whoever wrote it was asking for the log, and the unfiltered log is
- * closer to that than the selected page is — and so does a `view` we
- * cannot read, for the same reason.
  */
 export function parseViewState(params: URLSearchParams): LogViewState {
   const raw = params.get(TYPE_PARAM);
@@ -238,23 +226,17 @@ export function parseViewState(params: URLSearchParams): LogViewState {
     (name) => TYPE_ALIAS[name] ?? name,
   );
   const types = FILTERABLE_COMMIT_TYPES.filter((t) => requested.includes(t));
-  const view = params.get(FORM_PARAM);
 
   return {
-    reading: raw !== null || view !== null ? "log" : DEFAULT_READING,
     types,
-    form: parseLogForm(view) ?? DEFAULT_FORM,
+    form: parseLogForm(params.get(FORM_PARAM)) ?? DEFAULT_FORM,
   };
 }
 
 /**
  * Write view state back into a query string, dropping both params at their
  * defaults so the plain `/works` URL stays clean — nobody should have to
- * share `?type=&view=covers`.
- *
- * The selected reading writes neither: it is the page at rest. The log
- * writes what tells it apart — its filter and its form where they are not
- * the defaults, and `view=log` where neither would be there to say so.
+ * share `?type=&view=index`.
  *
  * Takes the current params and mutates a copy so unrelated query state
  * (anything another feature owns) survives a chip tap.
@@ -264,18 +246,15 @@ export function serializeViewState(
   current?: URLSearchParams,
 ): string {
   const params = new URLSearchParams(current?.toString());
-  const log = state.reading === "log";
 
-  if (log && state.types.length > 0) {
+  if (state.types.length > 0) {
     params.set(TYPE_PARAM, state.types.join(","));
   } else {
     params.delete(TYPE_PARAM);
   }
 
-  if (log && state.form !== DEFAULT_FORM) {
+  if (state.form !== DEFAULT_FORM) {
     params.set(FORM_PARAM, state.form);
-  } else if (log && state.types.length === 0) {
-    params.set(FORM_PARAM, LOG_VIEW_VALUE);
   } else {
     params.delete(FORM_PARAM);
   }

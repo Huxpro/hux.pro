@@ -53,8 +53,9 @@ interface Usage {
 
 /**
  * Every `<Badge …>` in the MDX — the pill, which wears an icon — and every
- * project on /works, whose selected reading prints each project beside the
- * same icon its badge would wear (app/works/selected.tsx).
+ * project on /works, which prints each project — a selected work, or its row
+ * in the log — beside the same icon its badge would wear
+ * (app/works/selected.tsx).
  */
 function collectUsages(): Usage[] {
   const badges = collectMagicLinkTags()

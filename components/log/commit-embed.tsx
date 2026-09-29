@@ -23,7 +23,11 @@ import { PeekCard, PeekThumb } from "./media/media-peek";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
-import { TimelineCommit, type BeamSpec } from "./timeline-commit";
+import {
+  TimelineCommit,
+  type BeamSpec,
+  type RowPointer,
+} from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
 import { useInputCapability } from "@/services";
@@ -65,6 +69,11 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
+  /** Timeline-only: leads the title (a project's logo on /works). */
+  mark?: ReactNode;
+  /** Timeline-only: the commit is printed in full elsewhere on the page,
+   *  and this row points there (see `RowPointer`). */
+  pointer?: RowPointer | null;
 }
 
 // =============================================================================
@@ -87,6 +96,8 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  mark,
+  pointer = null,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -166,6 +177,8 @@ export function Commit({
           byline={byline}
           form={form}
           onSelectHash={onSelectHash}
+          mark={mark}
+          pointer={pointer}
           attachmentSet={attachmentSet}
           inspecting={inspecting}
           isSelected={isSelected}
