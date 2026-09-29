@@ -92,18 +92,24 @@ export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
 //               `fillsScreenWidth`). Wider, it is the crossfade.
 //   everywhere  every grid, for comparing; a desktop's card is a quarter of
 //               the screen and the page arrives at a quarter scale.
+//   overlay     the app-overlay prototype (components/home/app-overlay.tsx):
+//               no navigation — the page opens over a home that stays, can
+//               be pulled back into its card, and closes into it. /writing
+//               only; other cards open as usual.
 // =============================================================================
 
-export type WidgetMorph = "off" | "phone" | "everywhere";
+export type WidgetMorph = "off" | "phone" | "everywhere" | "overlay";
 /**
- * `everywhere` while this is being tried on an iPad and a desktop as well as
- * a phone; `"off"` before it merges. A value saved in the devtool wins over
- * this — its star resets to it.
+ * `overlay` on this branch, so its preview opens Writing as an app on a
+ * phone, an iPad and a desktop alike; `"off"` before it merges. A value saved
+ * in the devtool wins over this — its star resets to it.
  */
-export const WIDGET_MORPH_DEFAULT: WidgetMorph = "everywhere";
+export const WIDGET_MORPH_DEFAULT: WidgetMorph = "overlay";
 
 function parseWidgetMorph(raw: unknown): WidgetMorph {
-  if (raw === "off" || raw === "phone" || raw === "everywhere") return raw;
+  if (raw === "off" || raw === "phone" || raw === "everywhere" || raw === "overlay") {
+    return raw;
+  }
   // The first shape of this setting was a boolean.
   if (raw === false) return "off";
   return WIDGET_MORPH_DEFAULT;

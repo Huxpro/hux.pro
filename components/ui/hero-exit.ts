@@ -6,7 +6,13 @@ import {
   type HeroExit,
 } from "@/systems/devtool/provider";
 import { cn } from "@/lib/utils";
-import { useEffect, useState, type CSSProperties } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type CSSProperties,
+} from "react";
 
 export type { HeroExit };
 
@@ -28,8 +34,18 @@ export function defaultHeroExit(_isIOS: boolean | null): HeroExit {
   return "fade";
 }
 
+/**
+ * Pins the hero-exit for a subtree. A page rendered somewhere other than the
+ * document — the home screen's app overlay, which scrolls in a scroller of
+ * its own — cannot fade its hero, because the fade follows the page's
+ * scroll; there the hero rides up with the content instead.
+ */
+const HeroExitContext = createContext<HeroExit | null>(null);
+export const HeroExitProvider = HeroExitContext.Provider;
+
 /** Resolved hero-exit, honouring a DevTool session pin when the panel is on. */
 export function useHeroExit(): HeroExit {
+  const pinned = useContext(HeroExitContext);
   const [isIOS, setIsIOS] = useState<boolean | null>(null);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: platform read
@@ -38,7 +54,7 @@ export function useHeroExit(): HeroExit {
 
   const devtool = useOptionalDevtool();
   const override = devtool?.isEnabled ? devtool.heroExitOverride : undefined;
-  return override ?? defaultHeroExit(isIOS);
+  return pinned ?? override ?? defaultHeroExit(isIOS);
 }
 
 /**

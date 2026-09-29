@@ -215,6 +215,21 @@ function showLaunch(page: Promise<unknown>) {
 }
 
 let installed = false;
+/** The next view transition is to be skipped (see `skipNextViewTransition`). */
+let skipNext = false;
+
+/**
+ * Let the next view transition run its update without capturing or
+ * animating anything. The app overlay (components/home/app-overlay.tsx)
+ * animates its own close on a back navigation, and the router's crossfade
+ * — started on the same popstate — would freeze the page over it.
+ */
+export function skipNextViewTransition() {
+  if (typeof document === "undefined") return;
+  if (typeof document.startViewTransition !== "function") return;
+  installHook();
+  skipNext = true;
+}
 
 function installHook() {
   if (installed || typeof document === "undefined") return;
@@ -232,6 +247,13 @@ function installHook() {
     { capture: true },
   );
   document.startViewTransition = ((arg?: unknown) => {
+    if (skipNext) {
+      skipNext = false;
+      const skipped = start(arg as ViewTransitionUpdateCallback);
+      skipped.skipTransition();
+      skipped.ready.catch(() => {});
+      return skipped;
+    }
     const open = { landing: null as Promise<unknown> | null };
     const transition = start(
       (state.phase === "open"

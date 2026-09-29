@@ -233,6 +233,45 @@ the morph off and on:
   on the main thread and input waits for it, which is why it is 450ms: the
   curve is ~95% there by 300ms.
 
+#### App Overlay (prototype)
+
+Devtool › Widgets › Open morph › **Overlay** opens a card's page the way iOS
+opens an app: over a home that stays. `components/home/app-overlay.tsx`.
+Nothing navigates. The page renders into a layer portalled over the home, on
+data fetched on the press (`/api/writing-list`, a static JSON built with the
+site), and the URL moves with `history.pushState` — which the App Router takes
+as a restore: `usePathname()` reads `/writing`, the home's tree stays mounted,
+nothing is fetched. A reload, or a link in, is the real page.
+
+One rectangle on one Motion spring, with the page laid out once at its open
+size and scaled uniformly by the rectangle's width, clipped at the bottom:
+
+- **open**: the card's box → the whole screen on a phone, the page's column
+  inset from top and bottom on anything wider — a window with edges. The home
+  dims and leans in behind, live.
+- **drag**: pulled down at the top of its scroll, the window shrinks and
+  follows the finger; let go fast (> 700px/s) or far (> 22% of the screen)
+  and it flies to the card with the finger's speed, else it springs back.
+- **close**: λhux, Esc, the dimmed home, or the back button — from wherever the
+  rectangle is to the card's box, measured live, since the home never left.
+
+Back and forward are the browser's own: closing pops the entry the open
+pushed, and a traversal that lands on an app's path over the home (back from a
+post opened in the app, forward) opens it again from its card. The router's
+crossfade on that popstate is skipped — it would freeze the frame over the
+spring. The window is opaque (`bg-background`): glass let the home read
+through the text, and a blur over a full-screen layer is a render pass a
+frame. Inside it the hero rides up with the content (`HeroExitProvider`),
+because the hero's fade follows the page's scroll and the app scrolls in its
+own scroller.
+
+Cost, measured the same way: ≈12ms compositing a frame against ≈13 for the
+plain crossfade; ≈20ms more script over the open (the page rendering into the
+layer, and Motion), ≈3ms more layout and paint — and no navigation: no route
+payload, no home unmount and remount on the way back.
+
+Only `/writing` is an app so far; other cards open as usual.
+
 ### Component Animations
 
 Individual components (like the Command Palette or Modals) use `animate-in` and `fade-in` utility classes (powered by `tw-animate-css` and Tailwind) to enter the stage smoothly.

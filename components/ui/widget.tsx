@@ -14,6 +14,11 @@ import {
   type ReactNode,
 } from "react";
 import { armWidgetMorph, fillsScreenWidth } from "./widget-morph";
+import {
+  isOverlayApp,
+  openOverlayApp,
+  prefetchOverlayApp,
+} from "@/components/home/app-overlay";
 import { landsOnOwnAction } from "./widget-surface";
 
 import { TYPE } from "@/lib/typography";
@@ -115,6 +120,17 @@ export function WidgetShell({
         target = href;
       }
       if (!target) return;
+      if (morphMode === "overlay") {
+        // Nothing navigates: the page opens over the home, and whichever
+        // handler would have navigated (the shell's own, a row's `Link`)
+        // never hears of the click. A target that is not an app yet goes
+        // on as a plain navigation.
+        if (openOverlayApp(e.currentTarget, target)) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        return;
+      }
       if (morphMode === "phone" && !fillsScreenWidth(e.currentTarget)) return;
       armWidgetMorph(e.currentTarget, target);
     },
@@ -128,8 +144,10 @@ export function WidgetShell({
   // on sight, and this is only the head start for a route that has not been.
   // Deduplicated by the router; a no-op in development.
   const handlePointerDown = useCallback(() => {
-    if (href) router.prefetch(href);
-  }, [href, router]);
+    if (!href) return;
+    if (morphMode === "overlay" && isOverlayApp(href)) prefetchOverlayApp(href);
+    else router.prefetch(href);
+  }, [href, router, morphMode]);
 
   const widgetEnabled = wallpaper?.widgetEnabled ?? false;
   const layers = wallpaper?.layers ?? [];
@@ -153,6 +171,9 @@ export function WidgetShell({
       // ancestry; React delegates to the root, so an empty handler suffices.
       onTouchStart={tappable ? noop : undefined}
       data-widget-tappable={tappable ? "" : undefined}
+      // Which page this card opens: how a back or forward that lands on an
+      // app's path over the home finds the card to open it from.
+      data-widget-href={href?.split("#")[0]}
       className={cn(
         // Named group: nested chrome (AlbumTabs, transport clusters) must
         // not inherit the card's `:hover` / `:active`. Widget-level hover
