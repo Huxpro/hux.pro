@@ -4,7 +4,7 @@ import { appTitle } from "@/lib/app-icon-core";
 import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { useDock } from "@/systems/dock";
+import { useBand, useDock } from "@/systems/dock";
 import { AnimatePresence, motion } from "framer-motion";
 import { useWindows } from "../provider";
 import { AppIconPlate } from "./app-icon-plate";
@@ -45,7 +45,11 @@ export function MinimizedWindows() {
   // Stand aside with the Live Activity pills while a panel or a notice holds
   // the dock's anchor (systems/dock, "Layout & coexistence rules").
   const { isAnyOpen, noticeUp } = useDock();
-  const away = isAnyOpen || noticeUp;
+  // In the shared band (systems/dock/band.ts) a parked window is a circle of
+  // its icon, like the activities beside it, and is out of sight while it
+  // re-forms.
+  const { shared: minimal, switching } = useBand();
+  const away = isAnyOpen || noticeUp || switching;
 
   return (
     <AnimatePresence>
@@ -64,16 +68,18 @@ export function MinimizedWindows() {
             away ? "pointer-events-none" : "pointer-events-auto",
             // The Live Activity pill's capsule: it stands in the same row.
             GLASS_CAPSULE,
-            "h-9 pl-1.5 pr-3",
+            minimal ? "h-9 w-9 justify-center px-[5px]" : "h-9 pl-1.5 pr-3",
             "transition-colors hover:border-border hover:bg-glass-hover active:scale-95",
           )}
           aria-label={`Restore ${appTitle(win.app, locale)}`}
           title={`Restore ${appTitle(win.app, locale)}`}
         >
           <PillIcon win={win} />
-          <span className="max-w-32 truncate text-xs font-medium text-foreground/80">
-            {appTitle(win.app, locale)}
-          </span>
+          {!minimal && (
+            <span className="max-w-32 truncate text-xs font-medium text-foreground/80">
+              {appTitle(win.app, locale)}
+            </span>
+          )}
         </motion.button>
       ))}
     </AnimatePresence>

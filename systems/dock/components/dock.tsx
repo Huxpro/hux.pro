@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
+import { useBand } from "../band";
 import { DockProvider } from "../provider";
 import { DockNotice } from "./dock-notice";
 
@@ -28,6 +29,10 @@ import { DockNotice } from "./dock-notice";
 
 function DockSurface({ children }: { children: React.ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Beside a pinned bar (band.ts) the pills stand at the end of the page
+  // column rather than the centre of the screen: the column's right edge is
+  // `--page-bleed` in from the viewport's, less the row's own `px-4`.
+  const { shared } = useBand();
   // Mouse drag-to-scroll (touch scrolls natively). `moved` gates the click
   // suppression so a drag never also fires a pill's onClick.
   const drag = useRef({ active: false, startX: 0, startLeft: 0, moved: false });
@@ -57,6 +62,13 @@ function DockSurface({ children }: { children: React.ReactNode }) {
         "--dock-clear",
         bottom > 0 ? `${Math.ceil(bar.getBoundingClientRect().top + bottom)}px` : "0px",
       );
+      // And what they need beside a pinned bar in the shared band (band.ts):
+      // a 36px circle each, and the row's 8px gap before each — the last one
+      // is the gap between the bar and the first circle.
+      const count = (Array.from(row.children) as HTMLElement[]).filter(
+        (pill) => pill.offsetHeight > 0,
+      ).length;
+      root.style.setProperty("--dock-minimal-w", `${count * (36 + 8)}px`);
     };
     publish();
     // A pill arriving or leaving, and a pill changing size (a panel
@@ -77,6 +89,7 @@ function DockSurface({ children }: { children: React.ReactNode }) {
       mo.disconnect();
       window.removeEventListener("resize", publish);
       root.style.removeProperty("--dock-clear");
+      root.style.removeProperty("--dock-minimal-w");
     };
   }, []);
 
@@ -84,8 +97,14 @@ function DockSurface({ children }: { children: React.ReactNode }) {
     /* Pill row. Outer centers; inner scrolls. Splitting the two avoids the
        flexbox `justify-center` + `overflow` clipping bug. */
     <div
-      className="system-chrome fixed left-0 right-0 z-50 flex justify-center pointer-events-none"
-      style={{ top: "max(env(safe-area-inset-top), 0.5rem)" }}
+      className={cn(
+        "system-chrome fixed left-0 right-0 z-50 flex pointer-events-none",
+        shared ? "justify-end" : "justify-center",
+      )}
+      style={{
+        top: "max(env(safe-area-inset-top), 0.5rem)",
+        ...(shared && { paddingRight: "max(0px, calc(var(--page-bleed) - 1rem))" }),
+      }}
     >
       <div
         ref={scrollRef}

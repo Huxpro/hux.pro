@@ -42,11 +42,15 @@ export function AmbientPhaseActivity() {
       id="ambient-phase"
       openLabel={t(locale, "phaseOpenDetails")}
       collapseLabel={t(locale, "dockCollapse")}
-      pill={
+      lead={
         <>
           <span className="h-6 w-6 rounded-full bg-muted/60 flex items-center justify-center shrink-0">
             <Icon className="h-3.5 w-3.5 text-foreground/80" />
           </span>
+        </>
+      }
+      trail={
+        <>
           {timeLabel && (
             <span className="text-xs font-mono tabular-nums text-foreground/80">
               {timeLabel}

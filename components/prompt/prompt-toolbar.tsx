@@ -94,8 +94,9 @@ interface PromptToolbarProps {
 /** The ground the pinned row stands on — the /works capsule, unchanged. */
 const PANEL = cn(
   GLASS_CAPSULE,
-  // `--pin-outset` (globals.css): PageLayout pins the bar by its glass.
-  "pointer-events-none absolute -inset-x-2.5 inset-y-[calc(var(--pin-outset)*-1)] -z-10",
+  // `--pin-outset` / `--pin-outset-x` (globals.css): the bar is placed by
+  // its glass, not its row.
+  "pointer-events-none absolute inset-x-[calc(var(--pin-outset-x)*-1)] inset-y-[calc(var(--pin-outset)*-1)] -z-10",
 );
 
 /** How much scroll it takes the capsule to grow in. */

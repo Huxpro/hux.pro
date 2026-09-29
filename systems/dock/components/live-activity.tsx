@@ -11,6 +11,7 @@ import {
 import { Drawer } from "@base-ui/react/drawer";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
+import { useBand } from "../band";
 import { useDock } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -19,7 +20,9 @@ import { useDock } from "../provider";
 // This is the canonical "Global Player" UI, extracted so every dock activity
 // (music, ambient phase changes, …) is visually identical. Callers supply only
 // the *content*:
-//   • `pill`   — leading content of the collapsed pill (icon, art, EQ bars…)
+//   • `lead`   — what leads the collapsed pill (art, an icon): the one thing
+//                it keeps when it shrinks to a circle (band.ts)
+//   • `trail`  — the rest of the pill (EQ bars, a time)
 //   • `title`  — left side of the expanded panel header
 //   • children — the expanded panel body
 //
@@ -107,8 +110,14 @@ const TOP_INSET = "max(env(safe-area-inset-top), 0.5rem)";
 interface LiveActivityProps {
   /** Stable id; the Dock allows only one activity open at a time. */
   id: string;
-  /** Leading content inside the collapsed pill (before the chevron). */
-  pill: React.ReactNode;
+  /**
+   * What leads the collapsed pill — art, an icon, about 24px. When the pinned
+   * bar holds the band (band.ts) the pill shrinks to a circle of this alone,
+   * cropped round.
+   */
+  lead: React.ReactNode;
+  /** The rest of the pill, before the chevron — EQ bars, a time. */
+  trail?: React.ReactNode;
   /** Panel header content (left side, before the collapse chevron). */
   title: React.ReactNode;
   /** Panel body. */
@@ -125,7 +134,8 @@ interface LiveActivityProps {
 
 export function LiveActivity({
   id,
-  pill,
+  lead,
+  trail,
   title,
   children,
   openLabel,
@@ -135,6 +145,9 @@ export function LiveActivity({
 }: LiveActivityProps) {
   const { isOpen, isAnyOpen, noticeUp, open, close, registerActivity } =
     useDock();
+  // In the shared band (band.ts) the pill is a circle of its lead; while it
+  // re-forms it is out of sight, like any other time it stands aside.
+  const { shared: minimal, switching } = useBand();
   const expanded = isOpen(id);
 
   // If this activity unmounts while expanded (e.g. its time window passes),
@@ -194,22 +207,40 @@ export function LiveActivity({
         // it is not.
         aria-hidden={false}
         data-dock-pill=""
-        data-hidden={isAnyOpen || noticeUp ? "" : undefined}
+        data-hidden={isAnyOpen || noticeUp || switching ? "" : undefined}
         className="shrink-0"
       >
         <Drawer.Trigger
           className={cn(
             "pointer-events-auto flex items-center gap-2 shrink-0",
             GLASS_CAPSULE,
-            "h-9 pl-1.5 pr-2.5",
+            // A circle is the lead in 5px of glass all round: 1 + 5 + 24 +
+            // 5 + 1 = 36, the pill's height.
+            minimal ? "h-9 w-9 justify-center px-[5px]" : "h-9 pl-1.5 pr-2.5",
             "hover:border-border hover:bg-glass-hover transition-colors",
             "pressable active:border-border active:bg-glass-hover active:scale-95",
             pillClassName
           )}
           aria-label={openLabel}
         >
-          {pill}
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <span
+            data-pill-lead=""
+            className={cn(
+              "flex shrink-0 items-center",
+              // A lead that is not round (theater's 16:9 thumbnail) is
+              // cropped round, at the size every other lead already is.
+              minimal &&
+                "[&>*]:!h-6 [&>*]:!w-6 [&>*]:!rounded-full [&>*]:overflow-hidden",
+            )}
+          >
+            {lead}
+          </span>
+          {!minimal && (
+            <>
+              {trail}
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            </>
+          )}
         </Drawer.Trigger>
       </Drawer.SwipeArea>
 

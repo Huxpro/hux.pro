@@ -3,6 +3,7 @@
 import { HeaderZone } from "@/components/ui/header-zone";
 import { TITLE_POETIC, TITLE_READER } from "@/components/ui/header-zone";
 import { SystemNav } from "@/components/ui/system-nav";
+import { PinnedSlot } from "@/components/ui/pinned-slot";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { cn } from "@/lib/utils";
 import {
@@ -196,15 +197,13 @@ export function PageLayout({
               // `--pin-rest`, then back down the 0.5rem gap), and given the
               // same back as bottom margin. Above the content's own layers
               // (the chapter markers are `z-20`) so rows pass under it. It
-              // pins a rem from the top, or under the Dock's Live Activities
-              // when there are any (`--dock-clear`): its glass (`--pin-outset`
-              // past the row) half a rem below theirs, the same gap the pills
-              // keep from the top of the screen.
-              <div
-                className="sticky top-[max(1rem,calc(var(--dock-clear)+0.5rem+var(--pin-outset)))] z-30 h-0 -mt-[calc(var(--pin-rest)-0.5rem+var(--hero-gap))] mb-[calc(var(--pin-rest)-0.5rem+var(--hero-gap))]"
-              >
+              // pins in the Dock's band — its glass (`--pin-outset` past the
+              // row) level with the top of the Live Activity pills — and
+              // when there are pills, the two share that band rather than
+              // stacking: see PinnedSlot and systems/dock/band.ts.
+              <PinnedSlot className="sticky top-[calc(max(env(safe-area-inset-top),0.5rem)+var(--pin-outset))] z-30 h-0 -mt-[calc(var(--pin-rest)-0.5rem+var(--hero-gap))] mb-[calc(var(--pin-rest)-0.5rem+var(--hero-gap))]">
                 {pinnedActions}
-              </div>
+              </PinnedSlot>
             )}
             {children}
           </div>

@@ -43,7 +43,7 @@ export function MusicActivity() {
       id="music"
       openLabel={t(locale, "musicOpenControls")}
       collapseLabel={t(locale, "musicCollapse")}
-      pill={
+      lead={
         <>
           {track ? (
             <span className="relative h-6 w-6 rounded-full overflow-hidden shrink-0">
@@ -58,6 +58,10 @@ export function MusicActivity() {
               <Music className="h-3.5 w-3.5 text-muted-foreground" />
             </span>
           )}
+        </>
+      }
+      trail={
+        <>
           {showEQ && <EQBars className="text-green-500" />}
         </>
       }

@@ -47,7 +47,7 @@ export function TheaterActivity() {
       id="theater"
       openLabel={t(locale, "theaterOpenControls")}
       collapseLabel={t(locale, "musicCollapse")}
-      pill={
+      lead={
         <>
           <span className="relative h-6 w-9 overflow-hidden rounded-[5px] shrink-0">
             {track.thumbnail ? (
@@ -59,6 +59,10 @@ export function TheaterActivity() {
               </span>
             )}
           </span>
+        </>
+      }
+      trail={
+        <>
           {showEQ && <EQBars className="text-red-500" />}
         </>
       }

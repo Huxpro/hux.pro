@@ -163,12 +163,14 @@
    `--dock-clear` is the bottom of the Dock's pills, published by the Dock
    itself (systems/dock) — 0 until it has any. `--pin-outset` is how far a
    pinned bar's glass capsule reaches past its row (the /works and /prompt
-   toolbars), so the bar can clear the Dock by its glass and not by its text:
-   counted by the row, the two capsules stood 2px apart. */
+   toolbars), above and below; `--pin-outset-x` to either side. The bar is
+   placed by its glass and not by its text: counted by the row, the capsule
+   met the Dock's pills with 2px to spare, or overlapped them. */
 :root {
   --hero-gap: 1rem;
   --dock-clear: 0px;
   --pin-outset: 0.375rem;
+  --pin-outset-x: 0.625rem;
 }
 @media (width >= 40rem) {
   :root {

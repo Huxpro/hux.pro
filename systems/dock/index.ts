@@ -18,3 +18,4 @@ export {
   useNotice,
   type Notice,
 } from "./notice";
+export { BAND_SWITCH_MS, setBandShared, useBand, type BandState } from "./band";

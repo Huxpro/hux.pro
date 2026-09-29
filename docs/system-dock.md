@@ -209,6 +209,31 @@ These match the product spec for multiple simultaneous activities:
   it exactly as they do for a panel, and a notice raised while a panel is open
   waits for the panel to close. The top centre holds one thing at a time.
 
+## The shared band
+
+A page's pinned bar (PageLayout `pinnedActions` — the /works and /prompt
+toolbars) and the Dock's pills share one strip at the top of the screen. They
+never stack.
+
+- The bar pins in the Dock's band: its glass level with the pills' top
+  (`max(safe-area, 0.5rem)`, plus `--pin-outset` from its row to its glass).
+- When there are pills and the bar rises to meet them — the point where it
+  used to stop under them, `--dock-clear` + 8px — the pills shrink to their
+  **minimal** form: a 36px circle of their `lead` alone, at the end of the page
+  column. The bar gives up that width (`--dock-minimal-w`, plus its glass's
+  `--pin-outset-x`), and its chip group scrolls inside itself if squeezed.
+  Scrolling back reverses it, with 4px of hysteresis.
+- The hand-over has two beats (`band.ts`): the pills fade out where they are,
+  then fade back in, in the other form and place. A pill in the centre and a
+  circle at the column's end are two places, not a journey between them.
+- A circle is still the drawer's trigger: tapping it opens the same panel. A
+  notice takes the band the same way it does anywhere else.
+
+`PinnedSlot` (`components/ui/pinned-slot.tsx`) measures and says when the bar
+has met the band; the Dock reads `useBand()`. A module store, because the
+page's bar and the Dock are not in one tree. `LiveActivity` takes `lead` and
+`trail` rather than one `pill` for this: the circle is the lead.
+
 ## Notices
 
 ```ts
