@@ -12,13 +12,25 @@
 // =============================================================================
 
 /**
- * The lifted translucent panel — the Dock Live Activity's expanded state, and
- * anything that wants to look like it. Deliberately no shadow: the shadow
- * belongs to whatever is the *visible* surface, so callers opt into
- * `shadow-raised` themselves.
+ * The lifted translucent panel — the peek a media cover or a magnetic link
+ * opens. Deliberately no shadow: the shadow belongs to whatever is the
+ * *visible* surface, so callers opt into `shadow-raised` themselves.
  */
 export const GLASS_PANEL =
   "rounded-lg border border-border/50 bg-glass-overlay backdrop-blur-xl";
+
+/**
+ * The capsule — one line of chrome floating over the page: a Live Activity
+ * pill, a Dock notice, the ground a pinned toolbar grows behind it on /works
+ * and /prompt. One recipe because they float over one another, and a capsule
+ * a shade more see-through than its neighbour reads as a lesser thing.
+ *
+ * The shape is the meaning (docs/system-dock.md, "Shape"): a capsule is a line
+ * you glance at. Anything with more than a line to read or a choice to make is
+ * a rounded rectangle, and a surface — a sheet or a panel, not a capsule.
+ */
+export const GLASS_CAPSULE =
+  "rounded-full border border-border/50 bg-glass backdrop-blur-xl shadow-raised";
 
 /**
  * The chip a glyph gets when it sits on artwork rather than on a surface —

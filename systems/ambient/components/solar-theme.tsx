@@ -1,13 +1,13 @@
 "use client";
 
-import { showCustomToast } from "@/components/ui/system-sonner";
-import { useSunThemeSlot, useTheme } from "@/services";
+import { t, useLocale, useSunThemeSlot, useTheme } from "@/services";
+import { showNotice } from "@/systems/dock";
 import { useReducedMotion } from "framer-motion";
+import { Sunrise, Sunset } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { SOLAR_HANDOVER, type SolarTheme } from "../lib/solar-theme";
 import { useSolarTheme } from "../provider";
-import { SolarThemeToast } from "./solar-theme-toast";
 
 // ---------------------------------------------------------------------------
 // Follow the Sun — the Appearance that is Light while the sun is up and Dark
@@ -45,8 +45,13 @@ import { SolarThemeToast } from "./solar-theme-toast";
 // those values in a ref — buys nothing but a way to read a stale one.
 // ---------------------------------------------------------------------------
 
-const TOAST_ID = "solar-theme";
-const TOAST_DURATION_MS = 5_000;
+// The notice (a Dock notice, systems/dock). Nobody touched anything, so it
+// says so — but quietly: one line at the top, not a card with buttons. By the
+// time it lands the change has already dissolved in over two seconds, so there
+// is nothing to confirm and nothing to undo in a hurry. Which event, which
+// mode, and why — the Appearance it is following, which is where to change it.
+const NOTICE_ID = "solar-theme";
+const NOTICE_DURATION_MS = 5_000;
 
 /**
  * Commit the theme as one crossfade of the whole page where the browser can do
@@ -67,6 +72,7 @@ export function SolarThemeSync() {
   const { sunTheme, beginThemeHandover } = useSolarTheme();
   const { theme, preference } = useTheme();
   const { sunTheme: shown, setSunTheme } = useSunThemeSlot();
+  const { locale } = useLocale();
   const reducedMotion = useReducedMotion() ?? false;
 
   /** The handover in flight, cleared whenever one ends or is called off. */
@@ -109,9 +115,12 @@ export function SolarThemeSync() {
 
     // A crossing, watched live: the sun has just risen or just set.
     const notice = () =>
-      showCustomToast(<SolarThemeToast theme={sunTheme} />, {
-        id: TOAST_ID,
-        duration: TOAST_DURATION_MS,
+      showNotice({
+        id: NOTICE_ID,
+        icon: sunTheme === "light" ? Sunrise : Sunset,
+        title: t(locale, sunTheme === "light" ? "solarThemeToLight" : "solarThemeToDark"),
+        note: t(locale, "solarThemeNote"),
+        duration: NOTICE_DURATION_MS,
       });
 
     if (reducedMotion) {
@@ -133,7 +142,7 @@ export function SolarThemeSync() {
         notice();
       }, SOLAR_HANDOVER.skyMs),
     ];
-  }, [sunTheme, shown, theme, preference, reducedMotion, setSunTheme, beginThemeHandover]);
+  }, [sunTheme, shown, theme, preference, reducedMotion, locale, setSunTheme, beginThemeHandover]);
 
   useEffect(
     () => () => {

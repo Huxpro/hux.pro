@@ -4,8 +4,15 @@
 // A coordination layer (DockProvider/useDock) + a reusable morph primitive
 // (LiveActivity) + the top-of-screen layout (Dock). Activities from other
 // systems (music, ambient) plug in by rendering a <LiveActivity /> as a child
-// of <Dock />.
+// of <Dock />. A one-line notice from anywhere is `showNotice` (notice.ts),
+// shown in the same place.
 // =============================================================================
 
 export { Dock, LiveActivity } from "./components";
 export { DockProvider, useDock } from "./provider";
+export {
+  dismissNotice,
+  NOTICE_DURATION_MS,
+  showNotice,
+  type Notice,
+} from "./notice";

@@ -12,7 +12,6 @@ import {
   VisitorProvider,
 } from "@/services";
 
-import { SystemSonner } from "@/components/ui/system-sonner";
 import { AboutProvider } from "@/systems/about";
 import { AmbientProvider } from "@/systems/ambient";
 import { GlowPaletteBridge } from "@/systems/glow";
@@ -78,7 +77,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
                               <InstallProvider>
                                 <AboutProvider>
                                   {children}
-                                  <SystemSonner />
                                 </AboutProvider>
                               </InstallProvider>
                             </IdentityCardProvider>

@@ -64,6 +64,7 @@ import {
 } from "motion/react";
 import { GalleryVertical, GitBranch, LayoutList, List, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/ui/controls";
 import { t, type Locale } from "@/lib/i18n";
@@ -129,15 +130,15 @@ const FORM_CHIP: Record<
 };
 
 /**
- * The ground the pinned row stands on: a Dock Live Activity pill's own
- * recipe (systems/dock/components/live-activity.tsx), blur included on a
+ * The ground the pinned row stands on: the capsule a Dock Live Activity
+ * pill is made of (`GLASS_CAPSULE`, lib/glass.ts), blur included on a
  * phone. The two float one over the other, and a capsule that is more
  * see-through than the pill above it reads as a lesser thing — measured on
  * iOS without the blur, the log's text showed through between the counts.
  */
 const PANEL = cn(
-  "pointer-events-none absolute -inset-x-2.5 -inset-y-1.5 -z-10 rounded-full",
-  "border border-border/50 bg-glass backdrop-blur-xl shadow-raised",
+  GLASS_CAPSULE,
+  "pointer-events-none absolute -inset-x-2.5 -inset-y-1.5 -z-10",
 );
 
 /** How much scroll it takes the capsule to grow in: the row has left its

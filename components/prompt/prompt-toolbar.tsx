@@ -54,6 +54,7 @@ import {
   useTransform,
 } from "motion/react";
 import { Diamond, X } from "lucide-react";
+import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { t, type Locale } from "@/lib/i18n";
 import {
@@ -91,8 +92,8 @@ interface PromptToolbarProps {
 
 /** The ground the pinned row stands on — the /works capsule, unchanged. */
 const PANEL = cn(
-  "pointer-events-none absolute -inset-x-2.5 -inset-y-1.5 -z-10 rounded-full",
-  "border border-border/50 bg-glass backdrop-blur-xl shadow-raised",
+  GLASS_CAPSULE,
+  "pointer-events-none absolute -inset-x-2.5 -inset-y-1.5 -z-10",
 );
 
 /** How much scroll it takes the capsule to grow in. */

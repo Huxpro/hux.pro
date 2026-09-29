@@ -35,7 +35,7 @@ import { MoonGlyph, SunEventGlyph, SunGlyph } from "./body-glyph";
 // the first ~8 mm of the pull), and its two lines swap on
 // `html[data-sky-armed]` — see "The sky pull" in globals.css. Rendered always
 // and invisible at rest; it never takes a pointer, and it is decoration, so the
-// screen reader hears the toast that follows instead.
+// screen reader hears the Dock notice that follows instead.
 // ---------------------------------------------------------------------------
 
 export function SkyPullCue() {

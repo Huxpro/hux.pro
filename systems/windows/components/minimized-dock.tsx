@@ -1,8 +1,10 @@
 "use client";
 
 import { appTitle } from "@/lib/app-icon-core";
+import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
+import { useDock } from "@/systems/dock";
 import { AnimatePresence, motion } from "framer-motion";
 import { useWindows } from "../provider";
 import { AppIconPlate } from "./app-icon-plate";
@@ -40,6 +42,10 @@ export function MinimizedWindows() {
   const { windows, restore } = useWindows();
   const { locale } = useLocale();
   const minimized = windows.filter((w) => w.mode === "minimized");
+  // Stand aside with the Live Activity pills while a panel or a notice holds
+  // the dock's anchor (systems/dock, "Layout & coexistence rules").
+  const { isAnyOpen, noticeUp } = useDock();
+  const away = isAnyOpen || noticeUp;
 
   return (
     <AnimatePresence>
@@ -49,15 +55,17 @@ export function MinimizedWindows() {
           type="button"
           onClick={() => restore(win.id)}
           initial={{ opacity: 0, scale: 0.8, y: -6 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+          animate={away ? { opacity: 0, scale: 0.9, y: -6 } : { opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.8, y: -6 }}
           transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
           style={{ transformOrigin: "top center" }}
           className={cn(
-            "pointer-events-auto flex shrink-0 items-center gap-2",
-            "h-9 rounded-full pl-1.5 pr-3",
-            "border border-border/50 bg-glass-strong shadow-raised backdrop-blur-xl",
-            "transition-colors hover:border-border hover:bg-glass-strong-hover active:scale-95",
+            "flex shrink-0 items-center gap-2",
+            away ? "pointer-events-none" : "pointer-events-auto",
+            // The Live Activity pill's capsule: it stands in the same row.
+            GLASS_CAPSULE,
+            "h-9 pl-1.5 pr-3",
+            "transition-colors hover:border-border hover:bg-glass-hover active:scale-95",
           )}
           aria-label={`Restore ${appTitle(win.app, locale)}`}
           title={`Restore ${appTitle(win.app, locale)}`}
