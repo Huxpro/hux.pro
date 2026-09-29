@@ -213,7 +213,7 @@ Like everything else in the Sky engine it is procedural: no texture is loaded.
 | `wind` | screen-space direction × strength |
 | `windWorld`, `celestial` | the same wind as east/north components, and latitude + local sidereal time — for [the sky window](#the-sky-window-any-weather-easter-egg), which turns |
 | `fog`, `lightning`, `stars` | 0..1 amounts |
-| `veil`, `exposure` | theme blend toward the page background (light: white, dark: `#1a1a1a`) and brightness — both drawn to one shared look through the sun's crossing ([The twilight look](#the-twilight-look)) |
+| `veil`, `exposure`, `flat` | theme blend toward the page background (light: white, dark: `#1a1a1a`) and brightness — both drawn to one shared look through the sun's crossing — and what the painters that never took the exposure paint with ([The twilight look](#the-twilight-look)) |
 
 Every sky colour above has already been put in the theme's key — see
 [The theme's key](#the-themes-key) — so a day under the dark theme is a deep
@@ -1898,11 +1898,13 @@ crossfade crosses nothing.
 The two looks are mixed as what they paint (`gain·col + offset`), so every
 frame in between is the plain mix of the two frames. The Gradient never took
 the exposure and adds its own lift to the veil (`CSS_VEIL_BOOST`); through
-twilight it trades that lift for the shared exposure on the same weight
-(`twilightExposure`), so both engines meet the same look. The legibility
-profile (`profileFromScene`) measures with the same exposure, so the policy
-sees a sunset as dark as the Sky draws it; away from twilight the factor is 1
-and every profile is what it was. Classic keeps its hand-tuned table.
+twilight it trades that lift for the shared exposure on the same weight, so
+both engines meet the same look. The legibility profile (`profileFromScene`)
+measures with the same exposure, so the policy sees a sunset as dark as the
+Sky draws it. Both read it off the scene (`flat`: the exposure to paint with
+and how much lift to keep), so neither has to know twilight exists; away from
+twilight it is exactly 1 and 1, and every gradient and profile is what it was.
+Classic keeps its hand-tuned table.
 
 ## Wallpaper
 

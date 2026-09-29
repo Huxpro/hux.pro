@@ -142,6 +142,14 @@ export interface WeatherScene {
   /** Theme veil: blend the rendered scene toward the page background. */
   veil: { color: RGB; amount: number };
   exposure: number;
+  /**
+   * For the painters that never applied `exposure` — the Gradient and the
+   * legibility profile, tuned without it: the exposure to paint with (1 away
+   * from twilight, the scene's through it) and how much of their own lift on
+   * the veil to keep (1 away from twilight, none through it). So they meet the
+   * Sky's twilight look without knowing there is one. See "The twilight look".
+   */
+  flat: { exposure: number; lift: number };
   /** Stable per-session seed so cloud layouts don't jump between renders. */
   seed: number;
   /** Which discrete condition produced this scene (for icons / labels). */
@@ -156,6 +164,10 @@ export interface WeatherScene {
 function hex(h: string): RGB {
   const n = parseInt(h.replace("#", ""), 16);
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}
+
+export function scaleRGB(c: RGB, k: number): RGB {
+  return [c[0] * k, c[1] * k, c[2] * k];
 }
 
 export function mixRGB(a: RGB, b: RGB, t: number): RGB {
@@ -416,7 +428,7 @@ const TWILIGHT_LOOK = {
  * How far the theme's own look gives way to the twilight look, 0..1, at this
  * sun elevation: 1 through the crossing, 0 once the theme's own look is back.
  */
-export function twilightLookAmount(theme: "light" | "dark", elevation: number): number {
+function twilightLookAmount(theme: "light" | "dark", elevation: number): number {
   const [low, high] = TWILIGHT_LOOK.plateau;
   const ends = TWILIGHT_LOOK[theme];
   return elevation >= high
@@ -425,30 +437,18 @@ export function twilightLookAmount(theme: "light" | "dark", elevation: number): 
 }
 
 /**
- * What the twilight look brings of the exposure, for the paths that paint the
- * scene's colours without the shader's own: 1 away from the crossing (they
- * were tuned without it), the scene's exposure through it. The Gradient paints
- * with it and the legibility profile measures with it, so both see a sunset
- * as dark as the Sky draws it.
- */
-export function twilightExposure(scene: WeatherScene): number {
-  return lerp(1, scene.exposure, twilightLookAmount(scene.theme, scene.sun.elevation));
-}
-
-/**
- * The theme's veil and exposure, drawn `amount` of the way to the twilight
- * look. Mixed as what they paint — the shader's `col·exposure` mixed toward the
- * veil is `gain·col + offset` — so every frame in between is the plain mix of
- * the two frames, and the veil keeps its colour while its amount goes to none.
+ * The theme's veil amount and exposure, drawn `t` of the way to the twilight
+ * look, mixed as what they paint (`gain·col + offset`); the veil keeps its
+ * colour while its amount goes to none.
  */
 function toTwilightLook(
-  look: { color: RGB; amount: number; exposure: number },
-  amount: number
-): { color: RGB; amount: number; exposure: number } {
-  if (amount <= 0) return look;
-  const gain = lerp(look.exposure * (1 - look.amount), TWILIGHT_LOOK.exposure, amount);
-  const veil = look.amount * (1 - amount);
-  return { color: look.color, amount: veil, exposure: gain / (1 - veil) };
+  look: { amount: number; exposure: number },
+  t: number
+): { amount: number; exposure: number } {
+  if (t <= 0) return look;
+  const gain = lerp(look.exposure * (1 - look.amount), TWILIGHT_LOOK.exposure, t);
+  const amount = look.amount * (1 - t);
+  return { amount, exposure: gain / (1 - amount) };
 }
 
 /** One colour of the sky, moved `amount` of the way into the theme's key. */
@@ -909,13 +909,13 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const keyAmount = themeKeyAmount(theme, elevation);
   const keyed = (c: RGB) => rekey(c, theme, keyAmount);
   // Then the veil the key left, and the exposure, drawn to the twilight look.
+  const twilight = twilightLookAmount(theme, elevation);
   const look = toTwilightLook(
     {
-      color: veilDefaults.color,
       amount: veilDefaults.amount * lerp(1, key.veil, keyAmount),
       exposure: veilDefaults.exposure,
     },
-    twilightLookAmount(theme, elevation)
+    twilight
   );
 
   return {
@@ -954,10 +954,11 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     clarity,
     behind,
     veil: {
-      color: look.color,
+      color: veilDefaults.color,
       amount: ov.veilAmount ?? look.amount,
     },
     exposure: look.exposure,
+    flat: { exposure: lerp(1, look.exposure, twilight), lift: 1 - twilight },
     seed: params.seed ?? 0,
     condition,
     theme,

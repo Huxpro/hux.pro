@@ -32,7 +32,7 @@
 // =============================================================================
 
 import { PAGE_RGB, relativeLuminance01, rgb01ToOklab } from "./color";
-import { mixRGB, twilightExposure, type RGB, type WeatherScene } from "./scene";
+import { mixRGB, scaleRGB, type RGB, type WeatherScene } from "./scene";
 import { clamp01 } from "./solar";
 import type { WeatherStyle } from "./wallpaper";
 import { getPlainProfile, type WallpaperProfile, type WallpaperTint } from "./wallpaper-profile";
@@ -312,11 +312,8 @@ export function profileFromScene(params: {
   theme: Theme;
 }): WallpaperProfile {
   const { scene, style, opacity, theme } = params;
-  // Through twilight the scene is mostly an exposure (lib/scene.ts); away
-  // from it this is 1 and the profile is the veiled colours alone.
-  const exposure = twilightExposure(scene);
   const veil = (c: RGB) =>
-    mixRGB([c[0] * exposure, c[1] * exposure, c[2] * exposure], scene.veil.color, scene.veil.amount);
+    mixRGB(scaleRGB(c, scene.flat.exposure), scene.veil.color, scene.veil.amount);
   const page = PAGE_RGB01[theme];
   const over = (c: RGB) => mixRGB(page, c, opacity);
 
