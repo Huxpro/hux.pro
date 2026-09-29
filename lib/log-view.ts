@@ -1,28 +1,35 @@
 // =============================================================================
-// Log View State — which reading of /works is on screen, and how much of it.
+// Log View State — how deep /works is read, and what is in it.
 //
-// /works is read two ways.
+// /works is one page with one model: the log, organised by what it made.
 //
-//  - `projects` — the default: the things I made, as a resume. One row per
-//    project, in order of how much it mattered rather than when it
-//    happened, each wearing its logo (the About's badge icons), what I did
-//    on it, when, and where to see it; the talks and the press as short
-//    lists under it. It answers the question a newcomer arrives with —
-//    "what has this person made, and what was their part?" — in one
-//    screen. It has no state of its own beyond being chosen: nothing in it
-//    filters or folds. (lib/works-index.ts builds it.)
-//  - `log` — every commit, reverse-chronological, as `git log`: the talks,
-//    the roles and the life events threaded between the projects, each era
-//    a tag. The whole record, for the reader who wants its shape rather
-//    than its highlights. Everything below the reading is about the log.
+// Its first screen is the projects, as a resume — one row per project, in
+// order of how much it mattered rather than when it happened, each wearing
+// its logo (the About's badge icons), what I did on it, when, and where to
+// see it. Under them, the rows no project claims: the other talks, the
+// press, the career around the work, one line each. (lib/works-index.ts
+// builds all of it, and says which rows belong to which project.)
 //
-// The log carries more information than any one reading of it can use: 25
-// commits, ~37 pieces of rich media, three eras. Folded, the page is a
-// two-screen overview and every cover is invisible; fully unfolded it is a
-// thirteen-screen media wall with no overview left. The two states people
-// actually want — "show me everything at once" and "let me see the work" —
-// are the same page at two different densities, plus the ability to narrow
-// what is in it.
+// Those rows are not a summary of the log. They ARE the log, at a shallower
+// depth: a project row is a container, and opening it — in place, the way
+// an app opens from its icon — prints its history, the same commits the
+// log prints, with their hash, their rail and their covers: Lynx opens into
+// its ten talks, React Compiler into "React without memo". There is no
+// second page to switch to; there is only how far down you have gone.
+//
+// Two things set that, and both apply to the whole page:
+//
+//  - the *form* (`?view=`) — how much of each row prints, and so how deep
+//    the page stands at rest. See `LogForm`, below.
+//  - the *types* (`?type=`) — which rows are in it at all. A filter that
+//    names a kind of row opens every container holding one, so `?type=talk`
+//    is the talks, under the projects they were about, then the rest.
+//
+// And one thing opens a single container: a `#hash` permalink, which opens
+// whatever encloses its row and travels to it (app/works/view.tsx). A
+// container the reader opens or closes by hand is a deviation from the
+// depth the page is at, spent the moment the form or the filter changes —
+// the same rule a row's own press follows (see TimelineCommit).
 //
 // This module is the vocabulary for all of it, and the URL codec that makes
 // a reading shareable. It is deliberately free of React and of `lib/log`'s
@@ -41,23 +48,29 @@ import {
 // A row is made of a few independent parts: the title line (always), the
 // description, the attachment object, the notes under it, and whether it
 // peeks on hover. Each part has its own small set of states (`RowForm`), and
-// a *form* is one preset of all of them — so the three readings of the page
+// a *form* is one preset of all of them — so the three depths of the page
 // are compositions of the same atoms, and switching form is resetting every
 // row to a preset rather than four hand-made layouts. A row the reader opens
 // by hand is the same thing at a smaller scale: it takes the `feed` preset
 // for itself (see TimelineCommit).
 //
-//  - `index`  — the title line only. The overview: one row per commit, the
-//    whole career in two screens. Rich media is reachable but not shown
-//    (hover peek on a pointer device, or open the row).
-//  - `covers` — the default: the title, two lines, and the covers at a size
-//    you can recognise a slide or a screenshot at. Still one row per commit,
-//    so the overview survives, but the work is on screen rather than behind
-//    a hover a phone cannot perform.
-//  - `feed`   — the grid, at half a column, with its captions written out,
-//    and the prose and notes printed whole to match. All the information is
-//    right there, so nothing in it peeks or opens a sheet: a video plays
-//    where it is, a card goes to its page.
+// On /works a form is also a depth — how far the page is opened at rest:
+//
+//  - `index`  — every row a line. The projects print as the second tier
+//    does (the icon, the name, the part I played, the years), the lists
+//    under them as the log's index. The whole of it in two screens. An
+//    opened project's rows are title lines too; rich media is reachable
+//    but not shown (hover peek on a pointer device, or open the row).
+//  - `covers` — the default: the resume. Each project is its full entry —
+//    two lines of description, its links — and opening one prints its rows
+//    with the title, two lines, and the covers at a size you can recognise
+//    a slide or a screenshot at. The lists under the projects stay lines.
+//  - `feed`   — everything open: every project's history, every list, each
+//    row with the grid at half a column, its captions written out, and the
+//    prose and notes printed whole to match. This is the log as it always
+//    read, organised by project. All the information is right there, so
+//    nothing in it peeks or opens a sheet: a video plays where it is, a
+//    card goes to its page.
 //
 // A form sets all four atoms, but it only *owns* two of them: the picture
 // is the page's (`media`, `peek`), the prose is each row's (`description`,
@@ -138,11 +151,16 @@ export function rowFormFor(form: LogForm, textRelieved: boolean): RowForm {
       };
 }
 
-/** The git flags the forms were first named after — old links carry them. */
+/**
+ * The git flags the forms were first named after — old links carry them —
+ * and `log`, the plain log's address while it was a page of its own: the
+ * whole log is the page opened all the way.
+ */
 const FORM_ALIAS: Record<string, LogForm> = {
   oneline: "index",
   stat: "covers",
   patch: "feed",
+  log: "feed",
 };
 
 export function parseLogForm(value: string | null): LogForm | null {
@@ -152,23 +170,10 @@ export function parseLogForm(value: string | null): LogForm | null {
 }
 
 // =============================================================================
-// Reading — the projects, or the log
-// =============================================================================
-
-export const WORKS_READINGS = ["projects", "log"] as const;
-
-export type WorksReading = (typeof WORKS_READINGS)[number];
-
-/** A plain `/works` is the projects; the log is one tap, or one param, away. */
-export const DEFAULT_READING: WorksReading = "projects";
-
-// =============================================================================
 // View state
 // =============================================================================
 
 export interface LogViewState {
-  /** Which reading is on screen. `types` and `form` are the log's alone. */
-  reading: WorksReading;
   /**
    * Selected artifact types. Empty means "no filter" rather than "nothing
    * selected" — the rest-state of the chip row, where every commit shows.
@@ -197,14 +202,6 @@ export function toggleType(
 
 export const TYPE_PARAM = "type";
 export const FORM_PARAM = "view";
-/**
- * `?view=log` — the log at its default form, unfiltered. The reading has no
- * param of its own: every URL the log ever had (`?type=talk`,
- * `?view=index`, `?view=oneline`) already names a reading of the log, so
- * the log is whatever carries one, and the one address that did not exist
- * before the projects became the default is the plain log — which is this.
- */
-export const LOG_VIEW_VALUE = "log";
 
 /** Type names that have been renamed — old links carry the old word, the
  *  same way `FORM_ALIAS` carries the git flags the forms were first named
@@ -221,12 +218,11 @@ const TYPE_ALIAS: Record<string, FilterableCommitType> = {
  * rather than rendering an empty page: unknown type names are dropped,
  * an unknown form falls back to the default.
  *
- * Which reading: the log when the URL says anything about the log — a
- * `type` (even one whose names have all gone stale: it was a link into the
- * log, and the log unfiltered is the nearest thing to what it meant), a
- * form or one of its git aliases, or `view=log`. Otherwise the projects.
- * A `#hash` permalink is not in the query string; the page reads it on
- * arrival and opens the log for it (app/works/view.tsx).
+ * Every address /works has had still means what it meant: `?type=talk` is
+ * the talks, `?view=index` the whole of it as lines, `?view=feed` (and
+ * `patch`, and `log`) all of it open. A `#hash` permalink is not in the
+ * query string; the page reads it on arrival and opens what encloses its
+ * row (app/works/view.tsx).
  */
 export function parseViewState(params: URLSearchParams): LogViewState {
   const raw = params.get(TYPE_PARAM);
@@ -234,31 +230,15 @@ export function parseViewState(params: URLSearchParams): LogViewState {
     (name) => TYPE_ALIAS[name] ?? name,
   );
   const types = FILTERABLE_COMMIT_TYPES.filter((t) => requested.includes(t));
-  const view = params.get(FORM_PARAM);
-  const form = parseLogForm(view);
+  const form = parseLogForm(params.get(FORM_PARAM)) ?? DEFAULT_FORM;
 
-  return {
-    reading:
-      raw !== null || form !== null || view === LOG_VIEW_VALUE
-        ? "log"
-        : DEFAULT_READING,
-    types,
-    form: form ?? DEFAULT_FORM,
-  };
+  return { types, form };
 }
 
 /**
  * Write view state back into a query string, dropping both params at their
  * defaults so the plain `/works` URL stays clean — nobody should have to
  * share `?type=&view=covers`.
- *
- * The projects reading writes nothing: it is the plain URL. The log writes
- * what it always wrote, plus `view=log` where that would otherwise be
- * nothing — so `?type=talk` and `?view=index` read exactly as they always
- * did, and the unfiltered log has an address that is not the projects'.
- * The log's filter and form outlive a trip to the projects in the page's
- * state, but not in its URL: a link to the projects is a link to the
- * projects.
  *
  * Takes the current params and mutates a copy so unrelated query state
  * (anything another feature owns) survives a chip tap.
@@ -269,12 +249,6 @@ export function serializeViewState(
 ): string {
   const params = new URLSearchParams(current?.toString());
 
-  if (state.reading !== "log") {
-    params.delete(TYPE_PARAM);
-    params.delete(FORM_PARAM);
-    return params.toString();
-  }
-
   if (state.types.length > 0) {
     params.set(TYPE_PARAM, state.types.join(","));
   } else {
@@ -283,8 +257,6 @@ export function serializeViewState(
 
   if (state.form !== DEFAULT_FORM) {
     params.set(FORM_PARAM, state.form);
-  } else if (state.types.length === 0) {
-    params.set(FORM_PARAM, LOG_VIEW_VALUE);
   } else {
     params.delete(FORM_PARAM);
   }

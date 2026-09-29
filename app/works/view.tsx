@@ -1,36 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { pageScrollTop, scrollPageTo } from "vitre";
 import { PageLayout } from "@/components/ui/page-layout";
-import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import {
-  ProjectsToolbar,
-  ReadingSwitch,
-  type WorksSection,
-} from "@/components/works/reading-bar";
-import { WorksIndexView } from "@/components/works/works-index";
-import { t, useLocale } from "@/services";
-import type { Locale } from "@/lib/i18n";
+  openByDefault,
+  projectMatches,
+  WorksIndexView,
+} from "@/components/works/works-index";
+import { ProjectIcon } from "@/components/works/project-icon";
+import { YearRail } from "@/components/works/year-rail";
+import { useLocale } from "@/services";
 import {
-  buildTimelineData,
   computeCommitHash,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
   type FilterableCommitType,
   type LogData,
-  type TimelineData,
 } from "@/lib/log";
 import {
   parseViewState,
   serializeViewState,
   toggleType,
   type LogForm,
-  type WorksReading,
 } from "@/lib/log-view";
 import { buildWorksIndex } from "@/lib/works-index";
 
@@ -38,22 +33,14 @@ interface WorksViewProps {
   logData: LogData;
 }
 
-/** A commit permalink (`#1a2b3c4`) — see `computeCommitHash`. */
-const COMMIT_HASH = /^#[0-9a-f]{7}$/;
-
 export function WorksView({ logData }: WorksViewProps) {
   const { locale } = useLocale();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
 
-  const data = useMemo(
-    () => buildTimelineData(logData, locale),
-    [logData, locale],
-  );
-
-  // The projects reading (lib/works-index.ts): the same log, read as a
-  // resume.
+  // The page, as data (lib/works-index.ts): the projects, what each one's
+  // history holds, and the rows no project claims.
   const index = useMemo(
     () => buildWorksIndex(logData, locale),
     [logData, locale],
@@ -87,12 +74,55 @@ export function WorksView({ logData }: WorksViewProps) {
     if (urlKey !== serializeViewState(view)) setView(urlView);
   }
 
+  // Which projects the reader has opened or closed by hand: a deviation
+  // from the depth the page stands at (`openByDefault`), kept as the set of
+  // ids that differ from it. A new form or filter is a new default, so the
+  // deviations are spent — the same rule a row's own press follows
+  // (TimelineCommit) — reconciled during render, so no frame paints the
+  // old ones against the new depth.
+  const [flipped, setFlipped] = useState<ReadonlySet<string>>(new Set());
+  const viewKey = serializeViewState(view);
+  const [lastViewKey, setLastViewKey] = useState(viewKey);
+  if (viewKey !== lastViewKey) {
+    setLastViewKey(viewKey);
+    setFlipped(new Set());
+  }
+
+  const projects = useMemo(
+    () => [...index.lead, ...index.more],
+    [index],
+  );
+  const byId = useMemo(
+    () => new Map(projects.map((e) => [e.commit.id, e])),
+    [projects],
+  );
+
+  const isOpen = useCallback(
+    (id: string) => {
+      const entry = byId.get(id);
+      if (!entry) return false;
+      const base = openByDefault(
+        entry.history,
+        entry.commit,
+        view.form,
+        view.types,
+      );
+      return flipped.has(id) ? !base : base;
+    },
+    [byId, view.form, view.types, flipped],
+  );
+
+  const toggle = useCallback((id: string) => {
+    setFlipped((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   const commit = useCallback(
-    (next: {
-      reading?: WorksReading;
-      types?: FilterableCommitType[];
-      form?: LogForm;
-    }) => {
+    (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
       const merged = { ...view, ...next };
       setView(merged);
       const query = serializeViewState(
@@ -108,41 +138,31 @@ export function WorksView({ logData }: WorksViewProps) {
     [view, searchParams, router, pathname],
   );
 
-  // Switching readings is switching pages in all but address: the new one
-  // starts at its top, not at whatever depth the old one was read to.
-  const changeReading = useCallback(
-    (reading: WorksReading) => {
-      if (reading === view.reading) return;
-      commit({ reading });
-      if (pageScrollTop() > 0) scrollPageTo(0);
+  // A commit permalink (`#1a2b3c4`) is an address in the log, and every
+  // `/works#hash` on the site (a home widget's row, an identity card, a
+  // badge on a desk) still means that row. Its row may be inside a project
+  // nobody has opened: then the project opens — by hand, as far as the
+  // page is concerned, so a later filter tap folds it again — and the
+  // anchor travels once the row has mounted.
+  const homeOf = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const [id, home] of index.home) {
+      map.set(`#${computeCommitHash(id)}`, home);
+    }
+    return map;
+  }, [index]);
+  const reveal = useCallback(
+    (hash: string) => {
+      const home = homeOf.get(hash);
+      if (!home || !byId.has(home) || isOpen(home)) return false;
+      toggle(home);
+      return true;
     },
-    [commit, view.reading],
+    [homeOf, byId, isOpen, toggle],
   );
+  const selectHash = useCommitAnchor(reveal);
 
-  // A commit permalink is an address in the log: every `/works#hash` on the
-  // site (a home widget's row, an identity card, a badge on a desk) was
-  // written when the log was the page, and means the row there. The hash is
-  // not in the query string, so it is read here, on arrival and on change;
-  // the log's own anchor hook (in `WorksLog`) travels to the row once the
-  // log has mounted.
-  const hashes = useMemo(
-    () => new Set(logData.commits.map((c) => `#${computeCommitHash(c.id)}`)),
-    [logData],
-  );
-  useEffect(() => {
-    const land = () => {
-      const hash = window.location.hash;
-      if (!COMMIT_HASH.test(hash) || !hashes.has(hash)) return;
-      // Local state only: the hash is the address, and `?view=log` beside
-      // it would be a second one saying the same thing.
-      setView((v) => (v.reading === "log" ? v : { ...v, reading: "log" }));
-    };
-    land();
-    window.addEventListener("hashchange", land);
-    return () => window.removeEventListener("hashchange", land);
-  }, [hashes]);
-
-  // Facet counts are of the UNFILTERED timeline, so a chip's number never
+  // Facet counts are of the UNFILTERED page, so a chip's number never
   // moves as you select — it answers "how much of this is there?", not "how
   // much survived what I just did?", which is the question the rows answer.
   //
@@ -153,10 +173,8 @@ export function WorksView({ logData }: WorksViewProps) {
   // role un-suppresses under its own chip (see `isRowVisible`) and a count
   // of 2 over a column of 9 is just a wrong number.
   //
-  // Counted over `data` rather than the raw log, because `data` is what the
-  // timeline renders — locale filtered and grouped under a tag that exists.
-  // A count derived from a different array is a count that can disagree with
-  // the rows under it.
+  // Counted over `index.context` — every commit the locale shows, which is
+  // every row the page can print, each in exactly one place.
   const facets = useMemo<TypeFacet[]>(() => {
     // Per type: how many rows, and every distinct `icon` override they carry.
     // One override and the chip can wear it; more than one (or none) and it
@@ -166,15 +184,13 @@ export function WorksView({ logData }: WorksViewProps) {
       { count: number; icons: Set<string | undefined> }
     >();
 
-    for (const { commits } of data) {
-      for (const c of commits) {
-        if (!isFilterableCommitType(c.type)) continue;
-        if (!isRowVisible(c, [c.type])) continue;
-        const entry = seen.get(c.type) ?? { count: 0, icons: new Set() };
-        entry.count += 1;
-        entry.icons.add(c.icon);
-        seen.set(c.type, entry);
-      }
+    for (const c of index.context) {
+      if (!isFilterableCommitType(c.type)) continue;
+      if (!isRowVisible(c, [c.type])) continue;
+      const entry = seen.get(c.type) ?? { count: 0, icons: new Set() };
+      entry.count += 1;
+      entry.icons.add(c.icon);
+      seen.set(c.type, entry);
     }
 
     return FILTERABLE_COMMIT_TYPES.filter((t) => seen.has(t)).map((type) => {
@@ -185,52 +201,35 @@ export function WorksView({ logData }: WorksViewProps) {
         iconOverride: icons.size === 1 ? [...icons][0] : undefined,
       };
     });
-  }, [data]);
+  }, [index]);
 
-  // The chapters, as the pinned bar names them when it wears one.
+  // The markers the pinned bar's ref slot hands over at: each open project,
+  // named as the branch it is and wearing its icon, and the end of its
+  // history, where the slot goes back to `main`.
   const chapters = useMemo(
     () =>
-      data.map(({ tag }, i) => ({
-        id: tag.id,
-        label: chapterLabel(tag, i, locale),
-      })),
-    [data, locale],
-  );
-
-  // What the projects reading holds, for its bar — the marks and the words
-  // the log's chips use, so the two readings name things the same way.
-  const sections = useMemo<WorksSection[]>(
-    () =>
-      (
-        [
+      projects
+        .filter(
+          (e) => projectMatches(e, view.types) && isOpen(e.commit.id),
+        )
+        .flatMap((e) => [
           {
-            id: "projects",
-            type: "project",
-            count: index.lead.length + index.more.length,
+            id: e.commit.id,
+            label: e.commit.id,
+            mark: (
+              <ProjectIcon
+                commit={e.commit}
+                monogram={e.monogram}
+                locale={locale}
+                className="size-3.5"
+                small
+              />
+            ),
           },
-          { id: "talks", type: "talk", count: index.talks.length },
-          { id: "press", type: "press", count: index.press.length },
-        ] satisfies WorksSection[]
-      ).filter((s) => s.count > 0),
-    [index],
+          { id: `${e.commit.id}/end` },
+        ]),
+    [projects, view.types, isOpen, locale],
   );
-
-  if (view.reading === "projects") {
-    return (
-      <PageLayout
-        page="works"
-        pinnedActions={
-          <ProjectsToolbar
-            locale={locale}
-            onReadingChange={changeReading}
-            sections={sections}
-          />
-        }
-      >
-        <WorksIndexView index={index} locale={locale} />
-      </PageLayout>
-    );
-  }
 
   return (
     <PageLayout
@@ -238,14 +237,6 @@ export function WorksView({ logData }: WorksViewProps) {
       pinnedActions={
         <WorksToolbar
           locale={locale}
-          leading={
-            <ReadingSwitch
-              locale={locale}
-              reading="log"
-              onChange={changeReading}
-              compact
-            />
-          }
           facets={facets}
           active={view.types}
           onToggleType={(type) =>
@@ -258,67 +249,17 @@ export function WorksView({ logData }: WorksViewProps) {
         />
       }
     >
-      <WorksLog
-        data={data}
+      <WorksIndexView
+        index={index}
         locale={locale}
-        logData={logData}
-        types={view.types}
         form={view.form}
-      />
-    </PageLayout>
-  );
-}
-
-/**
- * The log reading, as it has always been: the timeline and its end marker.
- * Its own component so the permalink hook mounts with the rows it travels
- * to — a hash that switched the page into the log finds them there.
- */
-function WorksLog({
-  data,
-  locale,
-  logData,
-  types,
-  form,
-}: {
-  data: TimelineData[];
-  locale: Locale;
-  logData: LogData;
-  types: FilterableCommitType[];
-  form: LogForm;
-}) {
-  const selectHash = useCommitAnchor();
-
-  // Whether the log has anything to print under the current filter — the same
-  // question every TagBlock asks itself before rendering, so the end marker
-  // and the rows can never disagree. (They used to: this check knew about the
-  // filter but not about `hideRow`, so a filter matching only suppressed rows
-  // printed `git init` over an empty page.)
-  const hasMatches = useMemo(
-    () =>
-      data.some(({ commits }) => commits.some((c) => isRowVisible(c, types))),
-    [data, types],
-  );
-
-  return (
-    <>
-      {/* Git Log Timeline */}
-      <LogTimeline
-        data={data}
-        locale={locale}
+        types={view.types}
         identities={logData.identities}
-        form={form}
-        activeTypes={types}
+        isOpen={isOpen}
+        onToggle={toggle}
         onSelectHash={selectHash}
-        pinnedChapters
       />
-
-      {/* End marker — `git init` closes a timeline that has commits in it;
-          a filter that matched nothing says so in the same slot, in the same
-          voice, rather than leaving the page to end in silence. */}
-      <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">
-        {t(locale, hasMatches ? "logInit" : "logNoMatches")}
-      </div>
-    </>
+      <YearRail index={index} types={view.types} />
+    </PageLayout>
   );
 }

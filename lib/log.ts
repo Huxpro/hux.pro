@@ -1254,7 +1254,16 @@ export interface BeamLink {
  * "which cluster does this row belong to" for hover/selection).
  * `rail` is only set when there's an actual bracket to draw.
  */
-export function computeRail(commits: Commit[]): RailInfo[] {
+export function computeRail(
+  commits: Commit[],
+  /**
+   * Where identities are resolved from, when `commits` is not the whole
+   * story: a project's history on /works holds its talks but not the
+   * `hideRow` roles whose tenure says who gave them. Defaults to
+   * `commits`, which is what a chapter of the log is.
+   */
+  context: Commit[] = commits,
+): RailInfo[] {
   const result: RailInfo[] = commits.map(() => ({
     rail: "",
     segmentId: null,
@@ -1264,7 +1273,7 @@ export function computeRail(commits: Commit[]): RailInfo[] {
   // identity (attachedTo:null, or no tenure fit) come back as null —
   // those rows are rail-less.
   const iids: (string | null)[] = commits.map(
-    (c) => resolveIdentity(c, commits)?.identityId ?? null,
+    (c) => resolveIdentity(c, context)?.identityId ?? null,
   );
 
   // Walk in sort order, grouping consecutive same-identity rows.

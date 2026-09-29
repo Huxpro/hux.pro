@@ -67,12 +67,29 @@ function rowFor(hash: string): HTMLElement | null {
   return el?.hasAttribute("data-rail-row") ? (el as HTMLElement) : null;
 }
 
+/** How long a revealed row gets to mount before the travel gives up. */
+const REVEAL_FRAMES = 30;
+
 /**
  * Wires arrival and returns the click handler a row's hash uses to become the
  * page's address.
+ *
+ * `reveal` is for a page whose rows are not all on it: /works prints a
+ * project's history only once the project is opened. A hash whose row is
+ * not in the document is handed to it; if it opens whatever encloses the
+ * row (returns true), the travel waits the few frames it takes the row to
+ * mount, and goes.
  */
-export function useCommitAnchor(): (hash: string) => void {
+export function useCommitAnchor(
+  reveal?: (hash: string) => boolean,
+): (hash: string) => void {
   const reduced = useReducedMotion() ?? false;
+  // The latest `reveal`, read at arrival rather than subscribed to: a new
+  // closure every render must not re-run the arrival below.
+  const revealRef = useRef(reveal);
+  useEffect(() => {
+    revealRef.current = reveal;
+  });
   // One travel at a time: a second hash while the first is still gliding
   // stops it rather than easing toward two destinations at once.
   const stopRef = useRef<() => void>(() => {});
@@ -126,9 +143,20 @@ export function useCommitAnchor(): (hash: string) => void {
   );
 
   useEffect(() => {
+    let cancelled = false;
     const go = () => {
-      const el = rowFor(window.location.hash);
-      if (el) travelTo(el);
+      const hash = window.location.hash;
+      const el = rowFor(hash);
+      if (el) return travelTo(el);
+      if (!revealRef.current?.(hash)) return;
+      let frames = 0;
+      const wait = () => {
+        if (cancelled) return;
+        const row = rowFor(hash);
+        if (row) travelTo(row);
+        else if (++frames < REVEAL_FRAMES) requestAnimationFrame(wait);
+      };
+      requestAnimationFrame(wait);
     };
 
     // On mount: covers a cold load and a client navigation into `/works#hash`
@@ -136,7 +164,6 @@ export function useCommitAnchor(): (hash: string) => void {
     // JetBrains Mono all swap in after first layout, and every row's height
     // changes when they do. Measuring before that lands the row ~80px off,
     // which on a page of 44px rows is a whole row and a half.
-    let cancelled = false;
     const whenReady = document.fonts?.ready ?? Promise.resolve();
     void whenReady.then(() => {
       if (!cancelled) requestAnimationFrame(go);

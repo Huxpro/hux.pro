@@ -255,10 +255,12 @@ way a home screen shows one — so a black mark (Lynx's cat) reads in the dark.
 A badge nobody has snapshotted falls back to a monogram in the commit's era
 colour, or the glyph of what it is; that is what the check is for.
 
-The same icons are the logos on `/works`, where the projects reading prints
-each project as a resume row led by its icon at app-icon size
-(`components/works/project-icon.tsx`, resolved through `resolveMagicLink`, so
-a project's chip in a sentence and its row can never disagree). A project
+The same icons are the logos on `/works`, which prints each project as a
+resume row led by its icon at app-icon size — the app that opens, in place,
+into its history — (`components/works/project-icon.tsx`, resolved through
+`resolveMagicLink`, so a project's chip in a sentence and its row can never
+disagree); the pinned bar wears the same icon, at a word's height, for the
+project you are reading inside. A project
 whose site has no icon there — WasmCert, Yanshuo, the Flash years — wears its
 letter in mono on the page's grey, not the era colour: a tile that size in
 colour would be the loudest thing on the page. `pnpm badges:snapshot` only

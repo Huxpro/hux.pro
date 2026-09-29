@@ -238,6 +238,13 @@ row to a preset; a row the reader opens by hand takes the `feed` preset
 for itself. Old links with git's names (`oneline`, `stat`, `patch`) still
 parse, as aliases.
 
+On `/works` the form is also how deep the page stands (see the header of
+`lib/log-view.ts`): the page opens on the projects as a resume, and a
+project's rows — the ones this table is about — print once it is opened,
+at the page's form. The rows no project claims print at `index` until the
+page goes deeper (`feed`, or a filter that names them); `feed` opens
+everything.
+
 | form | description | media | notes | peek | the reading |
 |---|---|---|---|---|---|
 | `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |

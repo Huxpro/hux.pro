@@ -44,6 +44,7 @@ export function ProjectIcon({
   monogram,
   locale,
   className,
+  small = false,
 }: {
   commit: Commit;
   /** What the tile wears when there is no icon to wear. */
@@ -51,6 +52,9 @@ export function ProjectIcon({
   locale: Locale;
   /** The tile's size (`size-10`) and anything else from the row. */
   className?: string;
+  /** A tile at a word's height — the pinned bar's, for the project it is
+   *  in — whose letter has to shrink with it. */
+  small?: boolean;
 }) {
   const icon = useMemo(() => {
     // A role standing in as a project (the Flash years) resolves as the
@@ -82,7 +86,12 @@ export function ProjectIcon({
 
   return (
     <span aria-hidden className={cn(TILE, "grid place-items-center bg-muted", className)}>
-      <span className="font-mono text-[15px] leading-none text-muted-foreground">
+      <span
+        className={cn(
+          "font-mono leading-none text-muted-foreground",
+          small ? "text-[9px]" : "text-[15px]",
+        )}
+      >
         {monogram}
       </span>
       <span className={HAIRLINE} />

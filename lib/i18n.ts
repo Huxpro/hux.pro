@@ -389,7 +389,7 @@ export const translations = {
     // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "Filter by type",
     logFilterClear: "Clear filter",
-    logChapterStart: "Back to the start of this chapter",
+    logChapterStart: "Back to where this starts",
     logFormLabel: "View",
     logFormIndex: "Index",
     logFormCovers: "Covers",
@@ -403,12 +403,11 @@ export const translations = {
     logView: "View",
     logSlides: "Slides",
     logRecording: "Recording",
-    // The two readings of /works (see lib/log-view.ts)
-    worksReadingLabel: "Reading",
-    worksReadingProjects: "projects",
-    worksReadingLog: "log",
-    worksSectionsLabel: "Jump to",
+    // /works — the projects, and the log inside them (see lib/log-view.ts)
     worksMoreProjects: "Other projects",
+    worksOther: "Other {type}",
+    worksAlong: "Along the way",
+    worksYearsLabel: "Years",
     worksLinkImage: "image",
     worksPosts: "{n} posts",
     // Attachment surface (see systems/attachments)
@@ -798,7 +797,7 @@ export const translations = {
     // Toolbar: type filter + form (see components/log/works-toolbar.tsx)
     logFilterLabel: "按类型筛选",
     logFilterClear: "清除筛选",
-    logChapterStart: "回到这一章的开头",
+    logChapterStart: "回到它的开头",
     logFormLabel: "视图",
     logFormIndex: "索引",
     logFormCovers: "封面",
@@ -812,12 +811,11 @@ export const translations = {
     logView: "查看",
     logSlides: "幻灯片",
     logRecording: "录像",
-    // The two readings of /works (see lib/log-view.ts)
-    worksReadingLabel: "阅读方式",
-    worksReadingProjects: "项目",
-    worksReadingLog: "日志",
-    worksSectionsLabel: "跳到",
+    // /works — the projects, and the log inside them (see lib/log-view.ts)
     worksMoreProjects: "其他项目",
+    worksOther: "其他{type}",
+    worksAlong: "一路走来",
+    worksYearsLabel: "年份",
     worksLinkImage: "图片",
     worksPosts: "{n} 篇文章",
     // Attachment surface (see systems/attachments)

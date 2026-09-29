@@ -30,19 +30,27 @@
  * replaces the old expand/collapse toggle, whose two states were exactly the
  * two extremes this is trying to sit between.
  *
+ * It is the page's only bar, and the page is one page: the chips and the
+ * form mean the same thing over the projects as over the rows they open
+ * into (lib/log-view.ts). There is no reading to switch between, so there
+ * is no switch — the bar is the three controls it always was, and fits a
+ * phone the way it always did.
+ *
  * The bar is pinned (PageLayout `pinnedActions`): it rests under the title
- * and rides up with the log until it meets the top, then stays, because a
+ * and rides up with the page until it meets the top, then stays, because a
  * filter you have to scroll back for is a filter you stop using. Pinned, it
  * takes over the chapter marker's job too. The ref slot is where `git log`
- * names where you are, so as each chapter's marker scrolls up under the
- * slot the slot wears it — `main` becomes `HEAD`, `HEAD` becomes the era
- * below — and the markers in the log are dividers that hand their pill up
- * rather than a second sticky layer. Tapping the pill goes back to where its
- * chapter starts.
+ * names where you are: `main` over the projects, and — once an opened
+ * project's history scrolls up under the slot — that project, as the
+ * branch it is (`lynx-framework`), until its history has gone by. The
+ * project's name line is the marker (`[data-chapter]`) that hands its pill
+ * up, not a second sticky layer; on a phone the pill wears the project's
+ * icon instead of its name, which a full row has no width for. Tapping the
+ * pill goes back to where it starts.
  *
  *    at rest     ⎇ main │ ▣ 8  ◔ 12  ◌ 3  ▤ 2 │ ≡ ▤ ▦
- *    pinned    ╭ (HEAD) │ ▣ 8  ◔ 12  ◌ 3  ▤ 2 │ ≡ ▤ ▦ ╮
- *              ╰──────────────── glass ───────────────╯
+ *    pinned    ╭ (lynx-framework) │ ▣ 8  ◔ 12 … │ ≡ ▤ ▦ ╮
+ *              ╰──────────────── glass ─────────────────╯
  *
  * Off its rest the row travels over the fading title and then over the
  * log, and needs a ground to stay legible, so a capsule of glass grows in
@@ -104,15 +112,13 @@ interface WorksToolbarProps {
   onClearTypes: () => void;
   form: LogForm;
   onFormChange: (form: LogForm) => void;
-  /** The chapters on the page, in order, with the marker each wears. */
-  chapters: readonly { id: string; label: string }[];
   /**
-   * What sits before the ref, inside the capsule: the page's `projects |
-   * log` switch (app/works/view.tsx). Before it rather than after, so the
-   * switch stands where it stood in the projects reading and the tap that
-   * brought you here is the tap that takes you back.
+   * The markers on the page (`[data-chapter]`), in order: an opened
+   * project, with the ref it wears (`lynx-framework`) and its icon, and
+   * where its history ends, with neither — past that the slot is `main`
+   * again.
    */
-  leading?: ReactNode;
+  chapters: readonly { id: string; label?: string; mark?: ReactNode }[];
 }
 
 /**
@@ -154,25 +160,6 @@ const LIFT_PX = 32;
 /** A quick, settled spring for one ref handing over to the next. */
 const SETTLE = { type: "spring", duration: 0.4, bounce: 0.12 } as const;
 
-/**
- * The capsule, on its own: the projects reading's bar (components/works)
- * pins the same way and stands on the same ground. Its parent is
- * `relative isolate`, so the `-z-10` lands behind the row, not the page.
- */
-export function PinnedCapsule() {
-  const lift = usePageLift(LIFT_PX);
-  const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
-  return (
-    <motion.div
-      aria-hidden
-      className={PANEL}
-      // Grows out from the row it is catching, as far as the page has
-      // lifted it.
-      style={{ opacity: lift, scale: panelScale }}
-    />
-  );
-}
-
 export function WorksToolbar({
   locale,
   facets,
@@ -182,7 +169,6 @@ export function WorksToolbar({
   form,
   onFormChange,
   chapters,
-  leading,
 }: WorksToolbarProps) {
   const filtering = active.length > 0;
   const reduced = useReducedMotion() ?? false;
@@ -193,8 +179,13 @@ export function WorksToolbar({
     slotRef,
     chapters.map((c) => c.id),
   );
-  const chapter = chapters.find((c) => c.id === current.id) ?? null;
+  const found = chapters.find((c) => c.id === current.id);
+  const chapter = found?.label
+    ? { id: found.id, label: found.label, mark: found.mark }
+    : null;
   const motionOf = reduced ? { duration: 0 } : SETTLE;
+  const lift = usePageLift(LIFT_PX);
+  const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
 
   /** Back to where the chapter starts: its marker lined up under the slot,
    *  the frame where the slot takes it over. */
@@ -216,20 +207,19 @@ export function WorksToolbar({
     // the page. `w-max`, bounded by the column: the capsule hugs what it
     // holds rather than spanning a row that is mostly empty on a desk.
     <div className="relative isolate w-max max-w-full">
-      <PinnedCapsule />
+      <motion.div
+        aria-hidden
+        className={PANEL}
+        // Grows out from the row it is catching, as far as the page has
+        // lifted it.
+        style={{ opacity: lift, scale: panelScale }}
+      />
 
       <div className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground">
-        {leading && (
-          <>
-            {leading}
-            <Divider />
-          </>
-        )}
-
-        {/* The ref we are reading — `main` above the first chapter, the
-            chapter once its marker reaches here. Not a control at rest: the
-            anchor the rest of the row hangs off, and the reason the page
-            reads as a git log. */}
+        {/* The ref we are reading — `main` over the projects, the opened
+            project once its row reaches here. Not a control at rest: the
+            anchor the rest of the row hangs off, and the wink that says the
+            page is a git log underneath. */}
         {/* One grid cell that both refs share while they hand over, so the
             outgoing one leaves from exactly where the incoming one arrives
             and nothing has to be measured out of the flow first. */}
@@ -253,10 +243,17 @@ export function WorksToolbar({
                 aria-label={`${chapter.label} — ${t(locale, "logChapterStart")}`}
                 className={cn(
                   CHAPTER_PILL,
-                  "pressable border-border transition-colors hover:border-foreground/30",
+                  "pressable max-w-[15rem] gap-1.5 border-border transition-colors hover:border-foreground/30",
+                  // On a phone the bar has no width for a project's name —
+                  // it is a full row already (see the header) — so the
+                  // pill wears the project's icon alone: the app you are in.
+                  chapter.mark && "px-1.5 sm:px-2.5",
                 )}
               >
-                {chapter.label}
+                {chapter.mark}
+                <span className={cn("truncate", chapter.mark && "hidden sm:inline")}>
+                  {chapter.label}
+                </span>
               </motion.button>
             ) : (
               <motion.span
@@ -394,6 +391,6 @@ const HANDOVER = {
 };
 
 /** Hairline between control groups — quaternary, because it carries nothing. */
-export function Divider() {
+function Divider() {
   return <span aria-hidden className="h-3 w-px shrink-0 bg-border" />;
 }

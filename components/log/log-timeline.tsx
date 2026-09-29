@@ -30,8 +30,8 @@ import { useTimelineEdit } from "./timeline-edit-context";
 const NO_TYPES: FilterableCommitType[] = [];
 
 /** What a chapter's ref marker says: the newest chapter is `HEAD`, the rest
- *  their title. Shared with the pinned bar, which wears the same marker. */
-export function chapterLabel(tag: Tag, tagIndex: number, locale: Locale): string {
+ *  their title. */
+function chapterLabel(tag: Tag, tagIndex: number, locale: Locale): string {
   return tagIndex === 0 ? "HEAD" : getLocalizedTagTitle(tag, locale).toUpperCase();
 }
 
@@ -46,6 +46,8 @@ export function chapterLabel(tag: Tag, tagIndex: number, locale: Locale): string
  * darken with black in dark mode (the "shade darker than the page" look).
  * Compositing a tint at alpha α over backdrop B gives a uniform shift, so a
  * solid background reads the same as before while a gradient keeps its hue.
+ *
+ * /works' pinned bar wears the same pill for the project it is in.
  */
 export const CHAPTER_PILL =
   "inline-flex items-center bg-white/85 dark:bg-black/45 sm:bg-white/70 sm:dark:bg-black/25 sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full";
@@ -78,13 +80,6 @@ interface LogTimelineProps {
   activeTypes?: FilterableCommitType[];
   /** Wires each row's hash as its permalink. Omit and it is plain text. */
   onSelectHash?: (hash: string) => void;
-  /**
-   * The page pins a bar that wears the current chapter (/works). Each
-   * chapter's marker then stays in the flow as a divider and hands its pill
-   * to the bar as it scrolls under it, instead of sticking on its own —
-   * two sticky layers at the top of a phone would be one too many.
-   */
-  pinnedChapters?: boolean;
 }
 
 /**
@@ -98,7 +93,6 @@ export function LogTimeline({
   form = DEFAULT_FORM,
   activeTypes = NO_TYPES,
   onSelectHash,
-  pinnedChapters = false,
 }: LogTimelineProps) {
   return (
     <div className="space-y-0">
@@ -113,7 +107,6 @@ export function LogTimeline({
           form={form}
           activeTypes={activeTypes}
           onSelectHash={onSelectHash}
-          pinned={pinnedChapters}
         />
       ))}
     </div>
@@ -129,7 +122,6 @@ interface TagBlockProps {
   form: LogForm;
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
-  pinned: boolean;
 }
 
 function TagBlock({
@@ -141,109 +133,20 @@ function TagBlock({
   form,
   activeTypes,
   onSelectHash,
-  pinned,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
   const isTagSelected = edit?.editingTagId === tag.id;
   const tagLabel = chapterLabel(tag, tagIndex, locale);
-  const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
-  const handleBeamSet = useCallback(
-    (spec: BeamSpec) => setActiveBeam(spec),
-    [],
-  );
-  // Stale-write guard: React runs sibling useEffects in document order,
-  // so a row higher up the list can fire its "set" before a row lower
-  // down fires its "clear" for the same hover transition. Ignore the
-  // clear if the active beam no longer matches the leaving row's spec.
-  const handleBeamClear = useCallback(
-    (spec: BeamSpec) =>
-      setActiveBeam((current) =>
-        current &&
-        current.fromHash === spec.fromHash &&
-        current.toHash === spec.toHash
-          ? null
-          : current,
-      ),
-    [],
-  );
-
-  // Compute beam specs for explicit `attachedTo` attachments. Both
-  // endpoints (source + target) carry the same spec so hovering/
-  // focusing/expanding EITHER end brightens the connector line.
-  // Per-endpoint gap is derived from the commit so the line meets each
-  // endpoint at the right radius (role ring vs icon vs event/aside dot).
-  const gapFor = (c: CommitData) =>
-    c.type === "role" ? 10 : c.type === "event" || c.present === "aside" ? 3 : 7;
-
-  const {
-    railInfo,
-    beamSpecs,
-    attachments,
-    bylines,
-    isHidden,
-    hasVisible,
-  } = useMemo(() => {
-    const bylinesArr = computeBylines(commits, identities, locale);
-
-    // One predicate, four consumers: the rail re-brackets around the rows
-    // that survive, beams with a hidden endpoint are dropped, the render
-    // loop below skips the rest, and the block prints nothing if none are
-    // left. It is `isRowVisible` negated — the same question /works asks
-    // for its chip counts and its empty state.
-    const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
-
-    const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
-    const allBeams = [
-      ...computeBeams(commits, hidden).map((b) => ({
-        ...b,
-        inferred: false,
-      })),
-      ...computeInferredBeams(commits, rail).map((b) => ({
-        ...b,
-        inferred: true,
-      })),
-    ];
-
-    const attachmentsWithGaps = allBeams.map((b) => ({
-      ...b,
-      fromGap: gapFor(commits[b.fromIdx]),
-      toGap: gapFor(commits[b.toIdx]),
-    }));
-
-    // Each beam endpoint stashes a BeamSpec so hover/focus/expand
-    // fires `activeBeam`. Source specs carry their own fromHash for
-    // exact-match activation. Target specs use `fromHash: null` so
-    // hovering the target activates every incoming connector.
-    const specs: (BeamSpec | null)[] = commits.map(() => null);
-    for (const b of allBeams) {
-      specs[b.fromIdx] = {
-        fromHash: b.fromHash,
-        toHash: b.toHash,
-        roleId: b.roleId,
-      };
-      if (specs[b.toIdx] === null) {
-        specs[b.toIdx] = {
-          fromHash: null,
-          toHash: b.toHash,
-          roleId: b.roleId,
-        };
-      }
-    }
-
-    return {
-      railInfo: rail,
-      beamSpecs: specs,
-      attachments: attachmentsWithGaps,
-      bylines: bylinesArr,
-      isHidden: hidden,
-      hasVisible: commits.some((c) => !hidden(c)),
-    };
-  }, [commits, identities, locale, activeTypes]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
-  // but a spine with no vertebrae is just a line.
+  // but a spine with no vertebrae is just a line. (The same predicate the
+  // rows below skip on — see `CommitRows`.)
+  const hasVisible = useMemo(
+    () => commits.some((c) => isRowVisible(c, activeTypes)),
+    [commits, activeTypes],
+  );
   if (!hasVisible) return null;
 
   return (
@@ -251,8 +154,7 @@ function TagBlock({
       {/* Tag ref marker — like `git log --decorate` ref annotations */}
       <div
         className={cn(
-          "flex items-center gap-3 py-2",
-          !pinned && "sticky top-4 z-20",
+          "flex items-center gap-3 py-2 sticky top-4 z-20",
           tagIndex > 0 && "mt-6 pt-6 border-t border-border/30",
         )}
       >
@@ -272,12 +174,7 @@ function TagBlock({
             {tagLabel}
           </button>
         ) : (
-          // `data-chapter` is what the pinned bar watches: the moment this
-          // pill reaches the bar's ref slot, the slot wears it.
-          <span
-            data-chapter={pinned ? tag.id : undefined}
-            className={cn(CHAPTER_PILL, "border-border")}
-          >
+          <span className={cn(CHAPTER_PILL, "border-border")}>
             {tagLabel}
           </span>
         )}
@@ -299,98 +196,250 @@ function TagBlock({
         )}
       </div>
 
-      {/* Commits — relative so the beam measures against this box.
-       *  Consecutive commits sharing a tenure segmentId are wrapped in
-       *  a `group/tenure` div so hovering/focusing/expanding ANY row in
-       *  the cluster brightens the rail and the role's ring. */}
-      <div className="relative space-y-0">
-        {(() => {
-          // Hidden-role rows (roles with `hideRow: true`) are kept in the
-          // commits array so `computeRail` and `resolveAuthor` can use
-          // their tenure windows / handles, but they don't render here —
-          // the cluster they anchor speaks for the tenure via the rail +
-          // author bylines.
-          type Run =
-            | { kind: "loose"; indices: number[] }
-            | { kind: "cluster"; segmentId: string; indices: number[] };
-          const runs: Run[] = [];
-          for (let i = 0; i < commits.length; i++) {
-            const c = commits[i];
-            if (isHidden(c)) continue;
-            const sid = railInfo[i].segmentId;
-            const last = runs[runs.length - 1];
-            if (sid && last && last.kind === "cluster" && last.segmentId === sid) {
-              last.indices.push(i);
-            } else if (sid) {
-              runs.push({ kind: "cluster", segmentId: sid, indices: [i] });
-            } else if (last && last.kind === "loose") {
-              last.indices.push(i);
-            } else {
-              runs.push({ kind: "loose", indices: [i] });
-            }
-          }
-          return runs.map((run, runIdx) => {
-            const rows = run.indices.map((i) => (
-              <Commit
-                key={commits[i].id}
-                commit={commits[i]}
-                locale={locale}
-                variant="timeline"
-                hideDate={tag.hideDate || commits[i].hideDate}
-                rail={railInfo[i].rail}
-                segmentId={railInfo[i].segmentId}
-                isSegmentActive={
-                  railInfo[i].segmentId !== null &&
-                  railInfo[i].segmentId === activeBeam?.roleId
-                }
-                beamSpec={beamSpecs[i]}
-                onBeamSet={handleBeamSet}
-                onBeamClear={handleBeamClear}
-                byline={bylines[i]}
-                form={form}
-                onSelectHash={onSelectHash}
-              />
-            ));
-            return run.kind === "cluster" ? (
-              // An identity can cluster twice (Meta, then RIT, then Meta
-              // again), so the run is named by its first row, not its id.
-              <div key={`cluster-${commits[run.indices[0]].id}`} className="group/tenure">
-                {rows}
-              </div>
-            ) : (
-              <div key={`loose-${runIdx}`}>{rows}</div>
-            );
-          });
-        })()}
-        {/* Persistent back-point connectors — one per explicit
-         *  attachedTo. They run through the icon column (same visual
-         *  vocabulary as the tenure rail), dimmed by default and
-         *  brightened when EITHER endpoint is the activeBeam. */}
-        {attachments.map((a) => (
-          <TimelineConnector
-            key={`${a.fromHash}->${a.toHash}`}
-            fromHash={a.fromHash}
-            toHash={a.toHash}
-            fromGap={a.fromGap}
-            toGap={a.toGap}
-            // Inferred beams piggyback on the visible tenure rail —
-            // suppress their dim render so N converging connectors
-            // don't darken the line via opacity stacking.
-            hideWhenIdle={a.inferred}
-            isActive={
-              !!activeBeam &&
-              activeBeam.toHash === a.toHash &&
-              // Exact source match always activates. Target hover
-              // (fromHash null) activates ONLY explicit attachedTo
-              // connectors — for inferred beams the role-hover
-              // brightens the rail directly via CSS so we don't
-              // paint a long overlapping line through icons.
-              (activeBeam.fromHash === a.fromHash ||
-                (activeBeam.fromHash === null && !a.inferred))
-            }
-          />
-        ))}
-      </div>
+      <CommitRows
+        commits={commits}
+        locale={locale}
+        identities={identities}
+        form={form}
+        activeTypes={activeTypes}
+        onSelectHash={onSelectHash}
+        hideDates={tag.hideDate}
+      />
     </div>
   );
+}
+
+interface CommitRowsProps {
+  /** The rows, in display order. Hidden ones (see `isRowVisible`) stay in
+   *  the array — the rail brackets around them — and simply do not print. */
+  commits: CommitData[];
+  /**
+   * Where identities are resolved from, when `commits` does not carry the
+   * roles itself: a project's history on /works holds its talks but not the
+   * `hideRow` roles whose tenure says who gave them. Defaults to `commits`,
+   * which is what a chapter of the log is.
+   */
+  context?: CommitData[];
+  locale: Locale;
+  identities?: Record<string, Identity>;
+  form: LogForm;
+  activeTypes?: FilterableCommitType[];
+  onSelectHash?: (hash: string) => void;
+  /** Print no dates (a chapter with `hideDate`). */
+  hideDates?: boolean;
+}
+
+/**
+ * A run of log rows — the commits, their tenure rail and their `attachedTo`
+ * connectors — with no chapter around them. A chapter of the log is one
+ * (TagBlock, above); so is a project's history on /works, opened in place
+ * under its row (components/works). Same rows, same rail, same hash: the
+ * page and the log are the same objects at two depths, and this is the one
+ * place those objects are drawn.
+ */
+export function CommitRows({
+  commits,
+  context,
+  locale,
+  identities,
+  form,
+  activeTypes = NO_TYPES,
+  onSelectHash,
+  hideDates = false,
+}: CommitRowsProps) {
+  const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
+  const handleBeamSet = useCallback(
+    (spec: BeamSpec) => setActiveBeam(spec),
+    [],
+  );
+  // Stale-write guard: React runs sibling useEffects in document order,
+  // so a row higher up the list can fire its "set" before a row lower
+  // down fires its "clear" for the same hover transition. Ignore the
+  // clear if the active beam no longer matches the leaving row's spec.
+  const handleBeamClear = useCallback(
+    (spec: BeamSpec) =>
+      setActiveBeam((current) =>
+        current &&
+        current.fromHash === spec.fromHash &&
+        current.toHash === spec.toHash
+          ? null
+          : current,
+      ),
+    [],
+  );
+
+  const { railInfo, beamSpecs, attachments, bylines, isHidden } =
+    useMemo(() => {
+      const ctx = context ?? commits;
+      const bylinesArr = computeBylines(commits, identities, locale, ctx);
+
+      // One predicate, four consumers: the rail re-brackets around the rows
+      // that survive, beams with a hidden endpoint are dropped, the render
+      // loop below skips the rest, and the caller prints nothing if none
+      // are left. It is `isRowVisible` negated — the same question /works
+      // asks for its chip counts and its empty state.
+      const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
+
+      const rail = adjustRailForHidden(
+        commits,
+        computeRail(commits, ctx),
+        hidden,
+      );
+      const allBeams = [
+        ...computeBeams(commits, hidden).map((b) => ({
+          ...b,
+          inferred: false,
+        })),
+        ...computeInferredBeams(commits, rail).map((b) => ({
+          ...b,
+          inferred: true,
+        })),
+      ];
+
+      // Compute beam specs for explicit `attachedTo` attachments. Both
+      // endpoints (source + target) carry the same spec so hovering/
+      // focusing/expanding EITHER end brightens the connector line.
+      // Per-endpoint gap is derived from the commit so the line meets each
+      // endpoint at the right radius (role ring vs icon vs event/aside dot).
+      const attachmentsWithGaps = allBeams.map((b) => ({
+        ...b,
+        fromGap: gapFor(commits[b.fromIdx]),
+        toGap: gapFor(commits[b.toIdx]),
+      }));
+
+      // Each beam endpoint stashes a BeamSpec so hover/focus/expand
+      // fires `activeBeam`. Source specs carry their own fromHash for
+      // exact-match activation. Target specs use `fromHash: null` so
+      // hovering the target activates every incoming connector.
+      const specs: (BeamSpec | null)[] = commits.map(() => null);
+      for (const b of allBeams) {
+        specs[b.fromIdx] = {
+          fromHash: b.fromHash,
+          toHash: b.toHash,
+          roleId: b.roleId,
+        };
+        if (specs[b.toIdx] === null) {
+          specs[b.toIdx] = {
+            fromHash: null,
+            toHash: b.toHash,
+            roleId: b.roleId,
+          };
+        }
+      }
+
+      return {
+        railInfo: rail,
+        beamSpecs: specs,
+        attachments: attachmentsWithGaps,
+        bylines: bylinesArr,
+        isHidden: hidden,
+      };
+    }, [commits, context, identities, locale, activeTypes]);
+
+  // Consecutive commits sharing a tenure segmentId are wrapped in a
+  // `group/tenure` div so hovering/focusing/expanding ANY row in the
+  // cluster brightens the rail and the role's ring.
+  //
+  // Hidden-role rows (roles with `hideRow: true`) are kept in the commits
+  // array so `computeRail` and `resolveAuthor` can use their tenure windows
+  // / handles, but they don't render here — the cluster they anchor speaks
+  // for the tenure via the rail + author bylines.
+  type Run =
+    | { kind: "loose"; indices: number[] }
+    | { kind: "cluster"; segmentId: string; indices: number[] };
+  const runs: Run[] = [];
+  for (let i = 0; i < commits.length; i++) {
+    const c = commits[i];
+    if (isHidden(c)) continue;
+    const sid = railInfo[i].segmentId;
+    const last = runs[runs.length - 1];
+    if (sid && last && last.kind === "cluster" && last.segmentId === sid) {
+      last.indices.push(i);
+    } else if (sid) {
+      runs.push({ kind: "cluster", segmentId: sid, indices: [i] });
+    } else if (last && last.kind === "loose") {
+      last.indices.push(i);
+    } else {
+      runs.push({ kind: "loose", indices: [i] });
+    }
+  }
+
+  // Relative so the connectors measure against this box.
+  return (
+    <div className="relative space-y-0">
+      {runs.map((run, runIdx) => {
+        const rows = run.indices.map((i) => (
+          <Commit
+            key={commits[i].id}
+            commit={commits[i]}
+            locale={locale}
+            variant="timeline"
+            hideDate={hideDates || commits[i].hideDate}
+            rail={railInfo[i].rail}
+            segmentId={railInfo[i].segmentId}
+            isSegmentActive={
+              railInfo[i].segmentId !== null &&
+              railInfo[i].segmentId === activeBeam?.roleId
+            }
+            beamSpec={beamSpecs[i]}
+            onBeamSet={handleBeamSet}
+            onBeamClear={handleBeamClear}
+            byline={bylines[i]}
+            form={form}
+            onSelectHash={onSelectHash}
+          />
+        ));
+        return run.kind === "cluster" ? (
+          // An identity can cluster twice (Meta, then RIT, then Meta
+          // again), so the run is named by its first row, not its id.
+          <div
+            key={`cluster-${commits[run.indices[0]].id}`}
+            className="group/tenure"
+          >
+            {rows}
+          </div>
+        ) : (
+          <div key={`loose-${runIdx}`}>{rows}</div>
+        );
+      })}
+      {/* Persistent back-point connectors — one per explicit
+       *  attachedTo. They run through the icon column (same visual
+       *  vocabulary as the tenure rail), dimmed by default and
+       *  brightened when EITHER endpoint is the activeBeam. */}
+      {attachments.map((a) => (
+        <TimelineConnector
+          key={`${a.fromHash}->${a.toHash}`}
+          fromHash={a.fromHash}
+          toHash={a.toHash}
+          fromGap={a.fromGap}
+          toGap={a.toGap}
+          // Inferred beams piggyback on the visible tenure rail —
+          // suppress their dim render so N converging connectors
+          // don't darken the line via opacity stacking.
+          hideWhenIdle={a.inferred}
+          isActive={
+            !!activeBeam &&
+            activeBeam.toHash === a.toHash &&
+            // Exact source match always activates. Target hover
+            // (fromHash null) activates ONLY explicit attachedTo
+            // connectors — for inferred beams the role-hover
+            // brightens the rail directly via CSS so we don't
+            // paint a long overlapping line through icons.
+            (activeBeam.fromHash === a.fromHash ||
+              (activeBeam.fromHash === null && !a.inferred))
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Where a connector meets its row: the role's ring, the event or aside
+ *  dot, or the type icon. */
+function gapFor(c: CommitData): number {
+  return c.type === "role"
+    ? 10
+    : c.type === "event" || c.present === "aside"
+      ? 3
+      : 7;
 }
