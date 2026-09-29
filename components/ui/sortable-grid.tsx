@@ -36,7 +36,13 @@ import {
   type ReactNode,
 } from "react";
 import { HANDOFF, setHomeEditing } from "./home-edit-store";
-import { ResizeGrip, type ResizeAxes } from "./resize-grip";
+import {
+  ResizeFrame,
+  ResizeGrip,
+  type ResizeAxes,
+  type ResizeHandlers,
+} from "./resize-grip";
+import { useOptionalSkin } from "@/services/skin";
 import {
   MOUSE_ACTIVATION,
   TOUCH_ACTIVATION,
@@ -248,6 +254,18 @@ function placementVars(id: string, layouts: GridLayout[]): CSSProperties {
 
 const LAYOUT_TRANSITION = { duration: 0.24, ease: [0.2, 0.8, 0.2, 1] as const };
 
+/**
+ * The Material skin moves cards the way Compose does: Material 3
+ * Expressive's default spatial spring (damping ratio 0.8, stiffness 380), in
+ * Framer's terms — damping is 2ζ√(k·m).
+ */
+const MATERIAL_LAYOUT_TRANSITION = {
+  type: "spring" as const,
+  stiffness: 380,
+  damping: 2 * 0.8 * Math.sqrt(380),
+  mass: 1,
+};
+
 /** No sort transforms: the grid re-packs and Framer moves the cards. */
 const noSortingStrategy: SortingStrategy = () => null;
 
@@ -274,7 +292,8 @@ const RESIZE_SETTLE_MS = 180;
 // =============================================================================
 
 interface ItemResizeHandlers {
-  onStart: (e: PointerEvent<HTMLDivElement>, id: string) => void;
+  /** `lock`: the axis the handle moves ("both" for the Glass corner). */
+  onStart: (e: PointerEvent<HTMLDivElement>, id: string, lock: ResizeAxes) => void;
   onMove: (e: PointerEvent<HTMLDivElement>) => void;
   onEnd: (e: PointerEvent<HTMLDivElement>) => void;
   onKey: (e: KeyboardEvent<HTMLDivElement>, id: string) => void;
@@ -290,11 +309,19 @@ function SortableGridItem({
   resize,
   resizeHandlers,
   enterEdit,
+  selected,
+  onSelect,
+  material,
   children,
 }: {
   id: string;
   index: number;
   editing: boolean;
+  /** The widget being worked on — the one that wears the Material frame. */
+  selected: boolean;
+  onSelect: (id: string) => void;
+  /** The Material skin is up (for Framer's transition only; styling is CSS). */
+  material: boolean;
   /** Effective footprint (clamped to the range and the viewport). */
   size: Size;
   /** Which axes the widget can be resized on here; null = not resizable. */
@@ -315,6 +342,12 @@ function SortableGridItem({
   });
   const hold = usePressHold({ ...TOUCH_ACTIVATION, mouse: true });
   const isResizing = resize?.id === id;
+  const handlers: ResizeHandlers = {
+    onPointerDown: (e, lock) => resizeHandlers.onStart(e, id, lock),
+    onPointerMove: resizeHandlers.onMove,
+    onPointerUp: resizeHandlers.onEnd,
+    onKeyDown: (e) => resizeHandlers.onKey(e, id),
+  };
 
   // Gate every press activator on where the press landed: a control's press
   // is the control's. Edit mode lifts the gate.
@@ -354,6 +387,7 @@ function SortableGridItem({
     const timer = window.setTimeout(() => {
       cancel();
       enterEdit();
+      onSelect(id);
     }, TOUCH_ACTIVATION.delay);
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("pointerup", cancel);
@@ -380,7 +414,7 @@ function SortableGridItem({
     <motion.div
       ref={setNodeRef}
       layout="position"
-      transition={LAYOUT_TRANSITION}
+      transition={material ? MATERIAL_LAYOUT_TRANSITION : LAYOUT_TRANSITION}
       data-widget-id={id}
       {...attributes}
       {...guardedListeners}
@@ -396,6 +430,9 @@ function SortableGridItem({
         if (editing) {
           e.preventDefault();
           e.stopPropagation();
+          // A tap on a widget while editing picks it: in the Material skin
+          // that is the one the resize frame goes on.
+          onSelect(id);
         }
       }}
       // A long-press (or right-click) on a widget should be a drag handle, not
@@ -433,7 +470,12 @@ function SortableGridItem({
           {(isDragging || isResizing) && (
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-0 rounded-2xl border border-dashed border-foreground/25 bg-ink/5"
+              className={cn(
+                "pointer-events-none absolute inset-0 rounded-2xl border border-dashed border-foreground/25 bg-ink/5",
+                // Android's drop target: the footprint as a soft filled
+                // shape at the widget radius, no dashes.
+                "material:rounded-(--md-widget-radius) material:border-0 material:bg-[color-mix(in_srgb,var(--md-on-surface)_14%,transparent)]",
+              )}
             />
           )}
           <div
@@ -442,14 +484,20 @@ function SortableGridItem({
           >
             <WidgetSizeProvider size={size}>{children}</WidgetSizeProvider>
             {editing && !isDragging && axes && (
-              <ResizeGrip
-                axes={axes}
-                label={t(locale, "widgetResize")}
-                onPointerDown={(e) => resizeHandlers.onStart(e, id)}
-                onPointerMove={resizeHandlers.onMove}
-                onPointerUp={resizeHandlers.onEnd}
-                onKeyDown={(e) => resizeHandlers.onKey(e, id)}
-              />
+              <>
+                <ResizeGrip
+                  axes={axes}
+                  label={t(locale, "widgetResize")}
+                  handlers={handlers}
+                />
+                {(selected || isResizing) && (
+                  <ResizeFrame
+                    axes={axes}
+                    label={t(locale, "widgetResize")}
+                    handlers={handlers}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
@@ -494,6 +542,10 @@ export function SortableGrid({
   const [editing, setEditing] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [resize, setResize] = useState<ResizeState | null>(null);
+  // The widget being worked on: the last one lifted, held or tapped while
+  // editing. In the Material skin it is the one that wears the resize frame.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const material = useOptionalSkin()?.skin === "material";
   const [sections, setSections] = useState<Map<string, GridSection>>(
     () => new Map(),
   );
@@ -625,6 +677,7 @@ export function SortableGrid({
 
   function handleDragStart(e: DragStartEvent) {
     setActiveId(String(e.active.id));
+    setSelectedId(String(e.active.id));
     setEditing(true);
   }
 
@@ -670,6 +723,8 @@ export function SortableGrid({
     startY: number;
     startPx: { w: number; h: number };
     spec: WidgetSizeSpec;
+    /** The axis the pressed handle moves. */
+    lock: ResizeAxes;
     live: ResizeState;
   } | null>(null);
   const settleTimer = useRef<number | null>(null);
@@ -694,7 +749,7 @@ export function SortableGrid({
 
   const resizeHandlers = useMemo<ItemResizeHandlers>(
     () => ({
-      onStart: (e, id) => {
+      onStart: (e, id, lock) => {
         const spec = specs.get(id) ?? DEFAULT_SIZE_SPEC;
         const wrapper = e.currentTarget.closest<HTMLElement>("[data-widget-id]");
         if (!wrapper || !gridRef.current) return;
@@ -715,8 +770,10 @@ export function SortableGrid({
           startY: e.clientY,
           startPx: live.px,
           spec,
+          lock,
           live,
         };
+        setSelectedId(id);
         setResize(live);
       },
       onMove: (e) => {
@@ -726,14 +783,17 @@ export function SortableGrid({
         const geo = cellGeometry(el.getBoundingClientRect(), columns);
         const minPx = footprintPx(clampSize(r.spec.min, r.spec, columns), geo);
         const maxPx = footprintPx(clampSize(r.spec.max, r.spec, columns), geo);
+        // An edge handle moves one axis; the other stays where it was.
+        const dx = r.lock === "y" ? 0 : e.clientX - r.startX;
+        const dy = r.lock === "x" ? 0 : e.clientY - r.startY;
         const px = {
           w: Math.max(
             minPx.w - RESIZE_SLACK_PX,
-            Math.min(maxPx.w + RESIZE_SLACK_PX, r.startPx.w + e.clientX - r.startX),
+            Math.min(maxPx.w + RESIZE_SLACK_PX, r.startPx.w + dx),
           ),
           h: Math.max(
             minPx.h - RESIZE_SLACK_PX,
-            Math.min(maxPx.h + RESIZE_SLACK_PX, r.startPx.h + e.clientY - r.startY),
+            Math.min(maxPx.h + RESIZE_SLACK_PX, r.startPx.h + dy),
           ),
         };
         const size = clampSize(snapPxToCells(px, geo), r.spec, columns);
@@ -845,6 +905,9 @@ export function SortableGrid({
                 resize={resize}
                 resizeHandlers={resizeHandlers}
                 enterEdit={enterEdit}
+                selected={editing && selectedId === id}
+                onSelect={setSelectedId}
+                material={material}
               >
                 {itemsById.get(id)}
               </SortableGridItem>
@@ -908,7 +971,11 @@ export function SortableGrid({
               <button
                 type="button"
                 onClick={handleReset}
-                className="pressable text-xs font-mono text-tertiary-foreground transition-colors hover:text-muted-foreground active:text-foreground"
+                className={cn(
+                  "pressable text-xs font-mono text-tertiary-foreground transition-colors hover:text-muted-foreground active:text-foreground",
+                  // Material: a text button in `primary`.
+                  "material:h-10 material:rounded-full material:px-3 material:[font-family:var(--font-flex)] material:text-sm material:font-medium material:tracking-[0.1px] material:text-(--md-primary) material:hover:bg-[color-mix(in_srgb,var(--md-primary)_8%,transparent)] material:active:bg-[color-mix(in_srgb,var(--md-primary)_10%,transparent)]",
+                )}
               >
                 {t(locale, "widgetEditReset")}
               </button>
@@ -916,7 +983,12 @@ export function SortableGrid({
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="pressable rounded-full border border-border/60 bg-glass-strong-hover px-5 py-2.5 md:px-4 md:py-1.5 text-xs font-mono text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground"
+              className={cn(
+                "pressable rounded-full border border-border/60 bg-glass-strong-hover px-5 py-2.5 md:px-4 md:py-1.5 text-xs font-mono text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground",
+                // Material: a filled button — `primary`, 40dp, Label Large.
+                "material:h-10 material:border-0 material:bg-(--md-primary) material:px-6 material:py-0 material:[font-family:var(--font-flex)] material:text-sm material:font-medium material:tracking-[0.1px] material:text-(--md-on-primary) material:shadow-md material:backdrop-blur-none",
+                "material:hover:bg-[color-mix(in_srgb,var(--md-primary),var(--md-on-primary)_8%)] material:hover:text-(--md-on-primary) material:active:bg-[color-mix(in_srgb,var(--md-primary),var(--md-on-primary)_10%)] material:active:text-(--md-on-primary)",
+              )}
             >
               {t(locale, "widgetEditDone")}
             </button>

@@ -116,7 +116,7 @@ export const TYPE = {
   body: "text-sm text-muted-foreground leading-relaxed",
 
   /** The label under an app icon (`sm` tiles drop to 10px). */
-  appLabel: "text-[11px] leading-tight text-muted-foreground material:font-(family-name:--font-flex)",
+  appLabel: "text-[11px] leading-tight text-muted-foreground material:[font-family:var(--font-flex)]",
 
   /** System navigation: the back link, `retry`, `main`. */
   nav: "font-mono text-xs tracking-wide text-muted-foreground transition-colors duration-200 hover:text-foreground",
