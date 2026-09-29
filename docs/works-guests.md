@@ -40,14 +40,22 @@ prints it.
     `featuredAs` (`Intro talk`, `Chinese re-run`). Without one, an edition
     in another language wears the language (`中文`), and anything else
     wears none.
-  - Its covers stand together, over one caption on one line: the mark its
-    row wears in the gutter (a talk's mic, so the covers read as a commit
-    and not as attachments), its title and where it was given
-    (`React without memo · React Conf 2021`). It wraps to a second line
-    when it has one cover to span, the venue whole. With several covers
-    (React without memo's recording and the React Conf 2021 recap post),
-    a rule spans them so each reads as the talk's; a single cover needs
-    none.
+  - Several covers of one guest lie in a pile, one cover wide
+    (`GuestDeck`, components/log/media/media-strip.tsx): the first on
+    top, the others behind it a step smaller and fainter, each showing a
+    sliver past the one in front. React without memo's recording lies on
+    top of the React Conf 2021 recap post, the lesser media there but out
+    of the way. It is the row's stacked peek laid flat: the strip scrolls
+    sideways, so the pile stays inside a cover's height. On a pointer,
+    hovering the pile fans the slivers out; each sliver is its own cover,
+    pressed and peeked as any cover is. On a phone the pile rests, and the
+    sheet pages through it like the rest of the row.
+  - Under its cover or its pile is one caption: the mark its row wears in
+    the gutter (a talk's mic, so the covers read as a commit and not as
+    attachments), its title and where it was given
+    (`React without memo · React Conf 2021`), wrapping with the venue
+    whole. A pile is one thing, so no rule is needed to hold its covers
+    together.
   - Its covers behave as the talk's. Pressed, they open natively (the
     recording on the theater's stage, titled with the talk). A commit's
     particulars are for a closer look: on a phone the attachment sheet's
