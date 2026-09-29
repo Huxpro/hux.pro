@@ -55,7 +55,7 @@
  * it, so nothing you are about to tap shifts.
  */
 
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   AnimatePresence,
   motion,
@@ -106,6 +106,13 @@ interface WorksToolbarProps {
   onFormChange: (form: LogForm) => void;
   /** The chapters on the page, in order, with the marker each wears. */
   chapters: readonly { id: string; label: string }[];
+  /**
+   * What sits before the ref, inside the same capsule: the switch back to
+   * the places (components/log/reading-switch.tsx). A slot rather than the
+   * switch itself, so this bar stays the log's and knows nothing about the
+   * page's other reading.
+   */
+  lead?: ReactNode;
 }
 
 /**
@@ -135,14 +142,14 @@ const FORM_CHIP: Record<
  * see-through than the pill above it reads as a lesser thing — measured on
  * iOS without the blur, the log's text showed through between the counts.
  */
-const PANEL = cn(
+export const PINNED_PANEL = cn(
   "pointer-events-none absolute -inset-x-2.5 -inset-y-1.5 -z-10 rounded-full",
   "border border-border/50 bg-glass backdrop-blur-xl shadow-raised",
 );
 
 /** How much scroll it takes the capsule to grow in: the row has left its
  *  rest by then, and is not yet over the log. */
-const LIFT_PX = 32;
+export const PINNED_LIFT_PX = 32;
 
 /** A quick, settled spring for one ref handing over to the next. */
 const SETTLE = { type: "spring", duration: 0.4, bounce: 0.12 } as const;
@@ -156,6 +163,7 @@ export function WorksToolbar({
   form,
   onFormChange,
   chapters,
+  lead,
 }: WorksToolbarProps) {
   const filtering = active.length > 0;
   const reduced = useReducedMotion() ?? false;
@@ -168,7 +176,7 @@ export function WorksToolbar({
   );
   const chapter = chapters.find((c) => c.id === current.id) ?? null;
   const motionOf = reduced ? { duration: 0 } : SETTLE;
-  const lift = usePageLift(LIFT_PX);
+  const lift = usePageLift(PINNED_LIFT_PX);
   const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
 
   /** Back to where the chapter starts: its marker lined up under the slot,
@@ -193,13 +201,16 @@ export function WorksToolbar({
     <div className="relative isolate w-max max-w-full">
       <motion.div
         aria-hidden
-        className={PANEL}
+        className={PINNED_PANEL}
         // Grows out from the row it is catching, as far as the page has
         // lifted it.
         style={{ opacity: lift, scale: panelScale }}
       />
 
       <div className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground">
+        {/* No divider after it: its lit chip is edge enough, and the row
+            has no hairline's width to spare. */}
+        {lead && <span className="shrink-0">{lead}</span>}
         {/* The ref we are reading — `main` above the first chapter, the
             chapter once its marker reaches here. Not a control at rest: the
             anchor the rest of the row hangs off, and the reason the page
@@ -244,7 +255,10 @@ export function WorksToolbar({
                 className="inline-flex items-center gap-1.5"
               >
                 <GitBranch className="h-3.5 w-3.5" />
-                <span>main</span>
+                {/* With a lead in front of it, a phone keeps the branch and
+                    drops the word, as the chips do theirs: the row was
+                    budgeted to fit 375px without a lead. */}
+                <span className={cn(lead && "hidden sm:inline")}>main</span>
               </motion.span>
             )}
           </AnimatePresence>

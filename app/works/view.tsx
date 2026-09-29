@@ -1,26 +1,65 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { scrollPageTo } from "vitre";
 import { PageLayout } from "@/components/ui/page-layout";
 import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
+import { PlacesReading } from "@/components/log/places";
+import { PlacesBar, ReadingSwitch } from "@/components/log/reading-switch";
 import { t, useLocale } from "@/services";
+import type { Locale } from "@/lib/i18n";
 import {
   buildTimelineData,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
   type FilterableCommitType,
+  type Identity,
   type LogData,
+  type TimelineData,
 } from "@/lib/log";
 import {
+  DEFAULT_FORM,
   parseViewState,
   serializeViewState,
   toggleType,
   type LogForm,
+  type LogReading,
+  type LogViewState,
 } from "@/lib/log-view";
+
+// =============================================================================
+// Two readings of one log (lib/log-view.ts): the places, which the page opens
+// on, and the log itself. The query string says which, the way it already
+// said which filter and which form — and a commit's permalink says it too,
+// because a `#hash` names a row and only the log has rows.
+// =============================================================================
+
+/** A commit permalink: `#` and the 7 hex digits of `computeCommitHash`. */
+const COMMIT_HASH = /^#[0-9a-f]{7}$/;
+
+function subscribeHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
+/**
+ * Whether the address points at a commit. Read from the location rather than
+ * held in state, so a link from the palette or the identity card into
+ * `/works#hash` — cold, or from the places — lands in the log on its first
+ * client frame rather than one effect late. The server has no hash, so it
+ * renders the reading the query names, and hydration takes it from there.
+ */
+function useCommitInAddress(): boolean {
+  return useSyncExternalStore(
+    subscribeHash,
+    () => COMMIT_HASH.test(window.location.hash),
+    () => false,
+  );
+}
 
 interface WorksViewProps {
   logData: LogData;
@@ -45,8 +84,8 @@ export function WorksView({ logData }: WorksViewProps) {
     () => parseViewState(new URLSearchParams(searchParams.toString())),
     [searchParams],
   );
-  // Canonical form of just the two params we own, so an unrelated query
-  // param can't make every comparison below look like a change.
+  // Canonical form of just the params we own, so an unrelated query param
+  // can't make every comparison below look like a change.
   const urlKey = serializeViewState(urlView);
 
   // …but the URL is not what we render from. `router.replace` re-runs the
@@ -65,11 +104,14 @@ export function WorksView({ logData }: WorksViewProps) {
     if (urlKey !== serializeViewState(view)) setView(urlView);
   }
 
-  const selectHash = useCommitAnchor();
+  const commitInAddress = useCommitInAddress();
+  const reading: LogReading = commitInAddress ? "log" : view.reading;
 
   const commit = useCallback(
-    (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
-      const merged = { ...view, ...next };
+    (next: Partial<LogViewState>) => {
+      // `reading` as it is on screen, not as the query last said it: a chip
+      // tapped in a log that a `#hash` opened is still a chip in the log.
+      const merged = { ...view, reading, ...next };
       setView(merged);
       const query = serializeViewState(
         merged,
@@ -81,7 +123,36 @@ export function WorksView({ logData }: WorksViewProps) {
         scroll: false,
       });
     },
-    [view, searchParams, router, pathname],
+    [view, reading, searchParams, router, pathname],
+  );
+
+  const switchReading = useCallback(
+    (next: LogReading) => {
+      if (next === reading) return;
+      // Leaving the log leaves its permalink behind: the hash names a row
+      // the places don't have, and while it is in the address it holds the
+      // log open. Dropped before the state changes, so the render that
+      // follows already reads an address without it.
+      if (commitInAddress) {
+        window.history.replaceState(
+          window.history.state,
+          "",
+          window.location.pathname + window.location.search,
+        );
+      }
+      // The places carry no filter and no form (their URL is the bare one),
+      // so leaving the log lets go of both: coming back is the log as it
+      // opens, not a filter the address no longer mentions.
+      commit(
+        next === "places"
+          ? { reading: next, types: [], form: DEFAULT_FORM }
+          : { reading: next },
+      );
+      // The other reading starts at its top, not at whatever depth the one
+      // being left was scrolled to.
+      scrollPageTo(0);
+    },
+    [reading, commitInAddress, commit],
   );
 
   // Facet counts are of the UNFILTERED timeline, so a chip's number never
@@ -152,12 +223,33 @@ export function WorksView({ logData }: WorksViewProps) {
     [data, view.types],
   );
 
+  if (reading === "places") {
+    return (
+      <PageLayout
+        page="works"
+        pinnedActions={
+          <PlacesBar locale={locale} reading={reading} onChange={switchReading} />
+        }
+      >
+        <PlacesReading log={logData} locale={locale} />
+      </PageLayout>
+    );
+  }
+
   return (
     <PageLayout
       page="works"
       pinnedActions={
         <WorksToolbar
           locale={locale}
+          lead={
+            <ReadingSwitch
+              locale={locale}
+              reading={reading}
+              onChange={switchReading}
+              compact
+            />
+          }
           facets={facets}
           active={view.types}
           onToggleType={(type) =>
@@ -170,13 +262,50 @@ export function WorksView({ logData }: WorksViewProps) {
         />
       }
     >
-      {/* Git Log Timeline */}
-      <LogTimeline
+      <LogReadingBody
         data={data}
         locale={locale}
         identities={logData.identities}
         form={view.form}
-        activeTypes={view.types}
+        types={view.types}
+        hasMatches={hasMatches}
+      />
+    </PageLayout>
+  );
+}
+
+/**
+ * The log, as it always was. Its own component so the permalink hook mounts
+ * with the rows it travels to: arriving from the places — a `#hash` followed,
+ * or the switch — its first look for the row happens once the row exists,
+ * not on a page that had none.
+ */
+function LogReadingBody({
+  data,
+  locale,
+  identities,
+  form,
+  types,
+  hasMatches,
+}: {
+  data: TimelineData[];
+  locale: Locale;
+  identities?: Record<string, Identity>;
+  form: LogForm;
+  types: FilterableCommitType[];
+  hasMatches: boolean;
+}) {
+  const selectHash = useCommitAnchor();
+
+  return (
+    <>
+      {/* Git Log Timeline */}
+      <LogTimeline
+        data={data}
+        locale={locale}
+        identities={identities}
+        form={form}
+        activeTypes={types}
         onSelectHash={selectHash}
         pinnedChapters
       />
@@ -187,6 +316,6 @@ export function WorksView({ logData }: WorksViewProps) {
       <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">
         {t(locale, hasMatches ? "logInit" : "logNoMatches")}
       </div>
-    </PageLayout>
+    </>
   );
 }

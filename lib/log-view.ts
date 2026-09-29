@@ -13,6 +13,28 @@
 // reading shareable. It is deliberately free of React and of `lib/log`'s
 // data layer: the parse/serialize pair is the whole contract, so the query
 // string stays the single source of truth for view state.
+//
+// Everything above is one *reading* of /works — the log. It is no longer
+// the first one. A newcomer's question is "where has this person worked, as
+// what, and what did they build there?", and a date-ordered stream at equal
+// weight answers it last: talks outnumber projects, so the headline work was
+// the twelfth row. The page now opens on **places** (`lib/log-places.ts`):
+// the identities as a CV's spine, each with its roles, and the work done
+// there nested under it — projects in full, talks as a compact list. The
+// log stays one switch away, whole and unchanged, with its filter and its
+// forms, for the reader who wants the history rather than the summary.
+//
+//   /works                   places (the default; no params)
+//   /works?view=log          the log, in its default form
+//   /works?view=index        the log, in a form (covers / feed too, and the
+//                            old flag aliases in FORM_ALIAS)
+//   /works?type=talk         the log, filtered — any `type` means the log
+//   /works#<hash>            the log, at that commit: a hash names a row,
+//                            and only the log has rows (app/works/view.tsx)
+//
+// So every link written before places existed — the home widgets'
+// `?type=project`, the palette's and the identity card's `#hash`, a shared
+// `?view=feed` — still lands in the log, where it was pointing.
 // =============================================================================
 
 import {
@@ -140,7 +162,18 @@ export function parseLogForm(value: string | null): LogForm | null {
 // View state
 // =============================================================================
 
+/**
+ * Which reading of /works is on screen — the places or the log. See the
+ * header: `places` is the default, and any param the log owns implies it.
+ */
+export const LOG_READINGS = ["places", "log"] as const;
+
+export type LogReading = (typeof LOG_READINGS)[number];
+
+export const DEFAULT_READING: LogReading = "places";
+
 export interface LogViewState {
+  reading: LogReading;
   /**
    * Selected artifact types. Empty means "no filter" rather than "nothing
    * selected" — the rest-state of the chip row, where every commit shows.
@@ -169,6 +202,8 @@ export function toggleType(
 
 export const TYPE_PARAM = "type";
 export const FORM_PARAM = "view";
+/** `?view=log`: the log in its default form, which has no value of its own. */
+export const LOG_VIEW = "log";
 
 /**
  * Read view state out of a query string.
@@ -191,17 +226,27 @@ export function parseViewState(params: URLSearchParams): LogViewState {
     (name) => TYPE_ALIAS[name] ?? name,
   );
   const types = FILTERABLE_COMMIT_TYPES.filter((t) => requested.includes(t));
+  const view = params.get(FORM_PARAM);
+  const form = parseLogForm(view);
 
   return {
+    // A filter or a form only means anything to the log, so a URL carrying
+    // either was written for the log — old links included, which predate
+    // there being any other reading to land in.
+    reading:
+      types.length > 0 || form !== null || view === LOG_VIEW
+        ? "log"
+        : DEFAULT_READING,
     types,
-    form: parseLogForm(params.get(FORM_PARAM)) ?? DEFAULT_FORM,
+    form: form ?? DEFAULT_FORM,
   };
 }
 
 /**
  * Write view state back into a query string, dropping both params at their
  * defaults so the plain `/works` URL stays clean — nobody should have to
- * share `?type=&view=covers`.
+ * share `?type=&view=covers`. The bare URL is the places; the log always
+ * carries at least one of its params (see the header).
  *
  * Takes the current params and mutates a copy so unrelated query state
  * (anything another feature owns) survives a chip tap.
@@ -212,6 +257,13 @@ export function serializeViewState(
 ): string {
   const params = new URLSearchParams(current?.toString());
 
+  // The places carry no filter and no form: the plain URL is theirs.
+  if (state.reading === "places") {
+    params.delete(TYPE_PARAM);
+    params.delete(FORM_PARAM);
+    return params.toString();
+  }
+
   if (state.types.length > 0) {
     params.set(TYPE_PARAM, state.types.join(","));
   } else {
@@ -220,6 +272,11 @@ export function serializeViewState(
 
   if (state.form !== DEFAULT_FORM) {
     params.set(FORM_PARAM, state.form);
+  } else if (state.types.length === 0) {
+    // The log in its default form still has to say it is the log, now that
+    // the bare URL is the places: `view=log`, the reading's own word, rather
+    // than `view=covers`, a density nobody picked. A filter already says it.
+    params.set(FORM_PARAM, LOG_VIEW);
   } else {
     params.delete(FORM_PARAM);
   }

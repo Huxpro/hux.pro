@@ -403,6 +403,19 @@ export const translations = {
     logView: "View",
     logSlides: "Slides",
     logRecording: "Recording",
+    // Places — the default reading of /works (see lib/log-places.ts)
+    worksReadingLabel: "Reading",
+    worksReadingPlaces: "places",
+    worksReadingLog: "log",
+    worksElsewhere: "Elsewhere",
+    worksElsewhereNote:
+      "Under no role: the side projects, the community talks, the press.",
+    worksShowAll: "show all",
+    worksShowLess: "show less",
+    worksUsers: "users",
+    worksStars: "stars",
+    worksImage: "image",
+    worksSlides: "slides",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "Close attachments",
     // Image lightbox (see systems/attachments/components/image-lightbox.tsx)
@@ -804,6 +817,17 @@ export const translations = {
     logView: "查看",
     logSlides: "幻灯片",
     logRecording: "录像",
+    worksReadingLabel: "阅读方式",
+    worksReadingPlaces: "履历",
+    worksReadingLog: "日志",
+    worksElsewhere: "在别处",
+    worksElsewhereNote: "不在任何一段任职之下的：业余项目、社区演讲、媒体报道。",
+    worksShowAll: "展开全部",
+    worksShowLess: "收起",
+    worksUsers: "用户",
+    worksStars: "星标",
+    worksImage: "图片",
+    worksSlides: "幻灯片",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "关闭附件",
     lightboxZoomIn: "放大",
