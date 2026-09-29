@@ -79,6 +79,14 @@
     "width": 100,
     "height": 100
   },
+  "webassembly.org": {
+    "url": "https://webassembly.org",
+    "file": "/badge-icons/webassembly.org.ico",
+    "source": "icon",
+    "iconUrl": "https://webassembly.org/favicon.ico",
+    "width": 32,
+    "height": 32
+  },
   "wepiao.com": {
     "url": "https://www.wepiao.com",
     "file": "/img/badges/wepiao.webp",
@@ -91,6 +99,14 @@
     "iconUrl": "https://x.com/apple-touch-icon.png",
     "width": 1024,
     "height": 1024
+  },
+  "yanshuo.io": {
+    "url": "https://yanshuo.io",
+    "file": "/badge-icons/yanshuo.io.png",
+    "source": "icon",
+    "iconUrl": "https://yanshuo.io/favicon.ico",
+    "width": 32,
+    "height": 32
   },
   "youtube.com": {
     "url": "https://youtu.be",

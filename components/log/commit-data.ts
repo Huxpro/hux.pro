@@ -8,6 +8,7 @@
 
 import type { Locale } from "@/lib/i18n";
 import type { Commit, CommitType, Media, StripItem } from "@/lib/log";
+import { commitMark, type BadgeIcon } from "@/components/magic-link/resolve";
 import {
   localize,
   localizeOptional,
@@ -28,6 +29,13 @@ export interface NormalizedCommit {
   type: CommitType;
   /** Optional icon override key (e.g. "graduation-cap"). */
   iconOverride?: string;
+  /**
+   * A project's own mark — the icon of the site that stands for it, or its
+   * monogram — worn in the gutter where the other types wear their glyph.
+   * A project is a thing with a name and a face; a talk is an occasion, and
+   * the mic says what kind. Only projects carry one.
+   */
+  mark?: BadgeIcon;
   /**
    * Timeline dressing. `"aside"` folds the row to a muted line
    * (see `foldedTitle`) until the reader opens it. Not a type.
@@ -196,6 +204,7 @@ export function normalizeCommit(
     case "project": {
       return {
         ...identity,
+        mark: commitMark(commit, locale),
         languageBadge,
         title,
         description,

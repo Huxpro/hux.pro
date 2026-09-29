@@ -27,6 +27,7 @@ import { Link } from "next-view-transitions";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
+import { ProjectMark } from "./project-mark";
 import { QuietLine } from "./quiet-line";
 
 import { TYPE } from "@/lib/typography";
@@ -78,7 +79,10 @@ export function TimelineMini({
   const hasRailAbove = rail === "│" || rail === "┘";
   const hasRailBelow = rail === "│" || rail === "┐";
   const isRoleAnchor = isRole && rail !== "";
-  const iconGapPx = isEvent || isAside ? 3 : isRoleAnchor ? 10 : 7;
+  // A project's mark fills the column the way the role ring does.
+  const wearsMark = !isEvent && !isAside && !!data.mark;
+  const iconGapPx =
+    isEvent || isAside ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
 
   const body = (
     <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 items-start">
@@ -120,11 +124,16 @@ export function TimelineMini({
               ],
             )}
           >
-            <CommitIcon
-              type={data.type}
-              override={data.iconOverride}
-              className="w-3 h-3 text-tertiary-foreground"
-            />
+            {data.mark ? (
+              // The same face the row wears on /works (TimelineCommit).
+              <ProjectMark icon={data.mark} className="size-4 rounded-[4px]" />
+            ) : (
+              <CommitIcon
+                type={data.type}
+                override={data.iconOverride}
+                className="w-3 h-3 text-tertiary-foreground"
+              />
+            )}
           </span>
         )}
       </span>
