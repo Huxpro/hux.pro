@@ -255,6 +255,16 @@ way a home screen shows one — so a black mark (Lynx's cat) reads in the dark.
 A badge nobody has snapshotted falls back to a monogram in the commit's era
 colour, or the glyph of what it is; that is what the check is for.
 
+The same icons are the logos on `/works`, where the projects reading prints
+each project as a resume row led by its icon at app-icon size
+(`components/works/project-icon.tsx`, resolved through `resolveMagicLink`, so
+a project's chip in a sentence and its row can never disagree). A project
+whose site has no icon there — WasmCert, Yanshuo, the Flash years — wears its
+letter in mono on the page's grey, not the era colour: a tile that size in
+colour would be the loudest thing on the page. `pnpm badges:snapshot` only
+reads the `<Badge>`s in MDX, so a new project's icon is fetched once it is
+named in a badge somewhere; until then its row wears its letter.
+
 The pill is sized in `em`, so it sits in a sentence at any size. In prose it
 carries `.not-prose` to escape the link style, and `globals.css` takes the
 block margin that class would give it back off.

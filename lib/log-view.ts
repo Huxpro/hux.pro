@@ -1,7 +1,22 @@
 // =============================================================================
-// Log View State — how much of the timeline is on screen, and which of it.
+// Log View State — which reading of /works is on screen, and how much of it.
 //
-// /works carries more information than any one reading of it can use: 25
+// /works is read two ways.
+//
+//  - `projects` — the default: the things I made, as a resume. One row per
+//    project, in order of how much it mattered rather than when it
+//    happened, each wearing its logo (the About's badge icons), what I did
+//    on it, when, and where to see it; the talks and the press as short
+//    lists under it. It answers the question a newcomer arrives with —
+//    "what has this person made, and what was their part?" — in one
+//    screen. It has no state of its own beyond being chosen: nothing in it
+//    filters or folds. (lib/works-index.ts builds it.)
+//  - `log` — every commit, reverse-chronological, as `git log`: the talks,
+//    the roles and the life events threaded between the projects, each era
+//    a tag. The whole record, for the reader who wants its shape rather
+//    than its highlights. Everything below the reading is about the log.
+//
+// The log carries more information than any one reading of it can use: 25
 // commits, ~37 pieces of rich media, three eras. Folded, the page is a
 // two-screen overview and every cover is invisible; fully unfolded it is a
 // thirteen-screen media wall with no overview left. The two states people
@@ -9,8 +24,8 @@
 // are the same page at two different densities, plus the ability to narrow
 // what is in it.
 //
-// This module is the vocabulary for both, and the URL codec that makes a
-// reading shareable. It is deliberately free of React and of `lib/log`'s
+// This module is the vocabulary for all of it, and the URL codec that makes
+// a reading shareable. It is deliberately free of React and of `lib/log`'s
 // data layer: the parse/serialize pair is the whole contract, so the query
 // string stays the single source of truth for view state.
 // =============================================================================
@@ -137,10 +152,23 @@ export function parseLogForm(value: string | null): LogForm | null {
 }
 
 // =============================================================================
+// Reading — the projects, or the log
+// =============================================================================
+
+export const WORKS_READINGS = ["projects", "log"] as const;
+
+export type WorksReading = (typeof WORKS_READINGS)[number];
+
+/** A plain `/works` is the projects; the log is one tap, or one param, away. */
+export const DEFAULT_READING: WorksReading = "projects";
+
+// =============================================================================
 // View state
 // =============================================================================
 
 export interface LogViewState {
+  /** Which reading is on screen. `types` and `form` are the log's alone. */
+  reading: WorksReading;
   /**
    * Selected artifact types. Empty means "no filter" rather than "nothing
    * selected" — the rest-state of the chip row, where every commit shows.
@@ -169,14 +197,15 @@ export function toggleType(
 
 export const TYPE_PARAM = "type";
 export const FORM_PARAM = "view";
-
 /**
- * Read view state out of a query string.
- *
- * Tolerant by design — a hand-edited or stale URL degrades to the default
- * rather than rendering an empty page: unknown type names are dropped,
- * an unknown form falls back to the default.
+ * `?view=log` — the log at its default form, unfiltered. The reading has no
+ * param of its own: every URL the log ever had (`?type=talk`,
+ * `?view=index`, `?view=oneline`) already names a reading of the log, so
+ * the log is whatever carries one, and the one address that did not exist
+ * before the projects became the default is the plain log — which is this.
  */
+export const LOG_VIEW_VALUE = "log";
+
 /** Type names that have been renamed — old links carry the old word, the
  *  same way `FORM_ALIAS` carries the git flags the forms were first named
  *  after. `social` became `press` when the type stopped meaning "my social
@@ -185,16 +214,36 @@ const TYPE_ALIAS: Record<string, FilterableCommitType> = {
   social: "press",
 };
 
+/**
+ * Read view state out of a query string.
+ *
+ * Tolerant by design — a hand-edited or stale URL degrades to the default
+ * rather than rendering an empty page: unknown type names are dropped,
+ * an unknown form falls back to the default.
+ *
+ * Which reading: the log when the URL says anything about the log — a
+ * `type` (even one whose names have all gone stale: it was a link into the
+ * log, and the log unfiltered is the nearest thing to what it meant), a
+ * form or one of its git aliases, or `view=log`. Otherwise the projects.
+ * A `#hash` permalink is not in the query string; the page reads it on
+ * arrival and opens the log for it (app/works/view.tsx).
+ */
 export function parseViewState(params: URLSearchParams): LogViewState {
   const raw = params.get(TYPE_PARAM);
   const requested = (raw ? raw.split(",").map((s) => s.trim()) : []).map(
     (name) => TYPE_ALIAS[name] ?? name,
   );
   const types = FILTERABLE_COMMIT_TYPES.filter((t) => requested.includes(t));
+  const view = params.get(FORM_PARAM);
+  const form = parseLogForm(view);
 
   return {
+    reading:
+      raw !== null || form !== null || view === LOG_VIEW_VALUE
+        ? "log"
+        : DEFAULT_READING,
     types,
-    form: parseLogForm(params.get(FORM_PARAM)) ?? DEFAULT_FORM,
+    form: form ?? DEFAULT_FORM,
   };
 }
 
@@ -202,6 +251,14 @@ export function parseViewState(params: URLSearchParams): LogViewState {
  * Write view state back into a query string, dropping both params at their
  * defaults so the plain `/works` URL stays clean — nobody should have to
  * share `?type=&view=covers`.
+ *
+ * The projects reading writes nothing: it is the plain URL. The log writes
+ * what it always wrote, plus `view=log` where that would otherwise be
+ * nothing — so `?type=talk` and `?view=index` read exactly as they always
+ * did, and the unfiltered log has an address that is not the projects'.
+ * The log's filter and form outlive a trip to the projects in the page's
+ * state, but not in its URL: a link to the projects is a link to the
+ * projects.
  *
  * Takes the current params and mutates a copy so unrelated query state
  * (anything another feature owns) survives a chip tap.
@@ -212,6 +269,12 @@ export function serializeViewState(
 ): string {
   const params = new URLSearchParams(current?.toString());
 
+  if (state.reading !== "log") {
+    params.delete(TYPE_PARAM);
+    params.delete(FORM_PARAM);
+    return params.toString();
+  }
+
   if (state.types.length > 0) {
     params.set(TYPE_PARAM, state.types.join(","));
   } else {
@@ -220,6 +283,8 @@ export function serializeViewState(
 
   if (state.form !== DEFAULT_FORM) {
     params.set(FORM_PARAM, state.form);
+  } else if (state.types.length === 0) {
+    params.set(FORM_PARAM, LOG_VIEW_VALUE);
   } else {
     params.delete(FORM_PARAM);
   }

@@ -205,6 +205,38 @@
         "juejin-talk-2023",
         "feday-2023"
       ]
+    },
+    {
+      "id": "works-projects",
+      "title": {
+        "en": "Projects",
+        "zh": "项目"
+      },
+      "hidden": true,
+      "commitIds": [
+        "lynx-framework",
+        "react-core",
+        "hermes-engine",
+        "eleme-pwa",
+        "hux-blog",
+        "yupiaoer"
+      ]
+    },
+    {
+      "id": "works-projects-more",
+      "title": {
+        "en": "Also",
+        "zh": "其他"
+      },
+      "hidden": true,
+      "commitIds": [
+        "wasmcert",
+        "xros-reality-labs",
+        "reasonml",
+        "alitrip-mobile-web",
+        "yanshuo-io",
+        "indie-flash"
+      ]
     }
   ],
   "identities": {
@@ -479,6 +511,10 @@
           "description": {
             "en": "Flash games and animations, made alone from the age of ten. A national and a provincial animation award and a national interactive multimedia award in high school; a national game and motion graphic award in college.",
             "zh": "十岁起独自做 Flash 游戏和动画。高中获全国与省级动画奖、全国交互多媒体奖；大学获全国游戏与动态图形奖。"
+          },
+          "credit": {
+            "en": "Games and animations, made alone from age ten",
+            "zh": "十岁起独自做游戏与动画"
           },
           "date": "2004-06",
           "endDate": "2014-06",
@@ -989,6 +1025,10 @@
         "en": "Open-source cross-platform UI framework behind TikTok, Douyin, and CapCut. Familiar React and CSS, native rendering, dual-threaded architecture — instant launch and main-thread interactivity. Open-sourced in March 2025.",
         "zh": "支撑 TikTok、抖音、CapCut 的开源跨平台 UI 框架。熟悉的 React 与 CSS、原生渲染、双线程架构——瞬时启动与主线程交互。2025 年 3 月开源。"
       },
+      "credit": {
+        "en": "Architect",
+        "zh": "架构师"
+      },
       "date": "2023-02",
       "endDate": "present",
       "tags": [
@@ -1164,6 +1204,10 @@
         "en": "JavaScript engine optimized for React Native, built by the Programming Language & Runtime (PL&R) team. Led the effort to bring Hermes to iOS.",
         "zh": "由 Programming Language & Runtime（PL&R）团队打造，为 React Native 优化的 JavaScript 引擎。主导将 Hermes 引入 iOS 的工作。"
       },
+      "credit": {
+        "en": "Brought Hermes to iOS",
+        "zh": "主导 Hermes 登陆 iOS"
+      },
       "date": "2020-03",
       "endDate": "2021-10",
       "team": {
@@ -1208,6 +1252,10 @@
       "description": {
         "en": "Founding engineer of the React Compiler (formerly Forget), the auto-memoization compiler that reshapes React's authoring model.",
         "zh": "React Compiler（原名 Forget）的联合创始工程师 —— 重塑 React 编写模型的自动记忆化编译器。"
+      },
+      "credit": {
+        "en": "Founding engineer",
+        "zh": "创始工程师"
       },
       "date": "2021-08",
       "endDate": "2022-10",
@@ -1261,6 +1309,10 @@
       "description": {
         "en": "Master's capstone and thesis, \"A Mechanized Formalization of the WebAssembly Specification in Coq\", advised by Prof. Matthew Fluet. A mechanization of the W3C WebAssembly Core Specification 1.0 in the Coq proof assistant, with a (nearly complete) machine-checked proof that the language is sound, implying both type safety and memory safety. Unlike prior work it follows the standard itself, which exposed issues in the spec and led to fixes.",
         "zh": "硕士毕业设计与论文《A Mechanized Formalization of the WebAssembly Specification in Coq》，导师 Matthew Fluet 教授。在 Coq 证明助手中机械化 W3C WebAssembly Core Specification 1.0，并（基本）完成了语言可靠性（soundness）的机器验证证明，由此得出类型安全与内存安全。与先前工作不同，它紧贴标准本身，因此发现了规范中的问题并提出了修正。"
+      },
+      "credit": {
+        "en": "Author",
+        "zh": "作者"
       },
       "date": "2019-08",
       "endDate": "2019-12",
@@ -1326,6 +1378,10 @@
         "en": "Summer 2019 internship. My manager framed it as: \"As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.\"",
         "zh": "2019 年暑期实习。我的主管这样描述这个项目：「作为 Reality Labs Research（原 Oculus Research）的一部分，我带领研究团队，为全天可穿戴、低功耗设备构建一门新的编程语言和应用框架。」"
       },
+      "credit": {
+        "en": "Research intern",
+        "zh": "研究实习"
+      },
       "date": "2019-05",
       "endDate": "2019-08",
       "team": {
@@ -1365,6 +1421,10 @@
       "description": {
         "en": "Contributor on the ReasonML team — an OCaml-syntax typed-JS toolchain that was later rebranded as ReScript. Worked on Messenger Web during the summer 2018 internship.",
         "zh": "参与 ReasonML 团队 —— 基于 OCaml 语法的类型化 JavaScript 工具链，后更名为 ReScript。2018 年暑期实习期间参与 Messenger Web 开发。"
+      },
+      "credit": {
+        "en": "Intern, ReasonML team",
+        "zh": "ReasonML 团队实习"
       },
       "date": "2018-05",
       "endDate": "2018-08",
@@ -1450,6 +1510,10 @@
         "en": "Guided the Ele.me PWA upgrade, pioneering PWA techniques for Vue-based multi-page apps. Featured by web.dev and highlighted at Google I/O 2017 — China's first widely cited Progressive Web App.",
         "zh": "指导饿了么的 PWA 升级，把 PWA 技术用在基于 Vue 的多页应用上。被 web.dev 收录，并在 Google I/O 2017 上被点名——中国首个被广泛引用的 Progressive Web App。"
       },
+      "credit": {
+        "en": "Led the PWA upgrade",
+        "zh": "主导 PWA 升级"
+      },
       "date": "2017-02",
       "endDate": "2017-05",
       "media": [
@@ -1487,6 +1551,10 @@
       "description": {
         "en": "My bachelor's graduation project: an online, full-featured WYSIWYG presentation tool, in the vein of Google Slides, for making Web-based slides that are linkable, sharable, cross-platform and free of delivery friction. Unlike PowerPoint and Keynote, it bet on the Web itself.",
         "zh": "我的本科毕业设计：一款所见即所得、功能完整的在线演示文稿工具，类似 Google Slides，用来制作可链接、可分享、跨平台、无需分发的 Web 幻灯片。与 PowerPoint、Keynote 不同，它押注的是 Web 本身。"
+      },
+      "credit": {
+        "en": "Creator",
+        "zh": "作者"
       },
       "date": "2016-06",
       "team": {
@@ -1526,6 +1594,10 @@
         "en": "Award-winning ticket-buying app. Founding engineer; also founded the Web Infra team and led the company-wide tech stack migration to React.",
         "zh": "获奖购票应用「娱票儿」。创始工程师，同时组建 Web 基础架构团队并主导全公司技术栈向 React 的迁移。"
       },
+      "credit": {
+        "en": "Founding engineer",
+        "zh": "创始工程师"
+      },
       "date": "2015-05",
       "endDate": "2016-06",
       "team": {
@@ -1561,6 +1633,10 @@
       "description": {
         "en": "Hybrid app patterns for Taobao and Alitrip (later Fliggy) mobile web — offline resources, virtual domains for local H5, product strategy notes from the road.",
         "zh": "淘宝与阿里旅行（后更名飞猪）移动端 Web 的 Hybrid App 架构 —— 本地资源离线化、H5 虚拟域，以及在职期间的行业观察。"
+      },
+      "credit": {
+        "en": "Front-end engineer",
+        "zh": "前端工程师"
       },
       "date": "2014-08",
       "endDate": "2015-05",
@@ -1603,6 +1679,10 @@
       "description": {
         "en": "The Jekyll theme and personal site that a generation of Chinese frontend engineers forked. Later a PWA; still one of the most starred Chinese blog themes on GitHub.",
         "zh": "被一代中国前端工程师 fork 的 Jekyll 主题与个人站点。后来做成了 PWA；至今仍是 GitHub 上星标最多的中文博客主题之一。"
+      },
+      "credit": {
+        "en": "Creator and maintainer",
+        "zh": "作者与维护者"
       },
       "date": "2015-01",
       "endDate": "present",

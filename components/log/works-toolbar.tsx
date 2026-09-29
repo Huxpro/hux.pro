@@ -55,7 +55,7 @@
  * it, so nothing you are about to tap shifts.
  */
 
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   AnimatePresence,
   motion,
@@ -106,6 +106,13 @@ interface WorksToolbarProps {
   onFormChange: (form: LogForm) => void;
   /** The chapters on the page, in order, with the marker each wears. */
   chapters: readonly { id: string; label: string }[];
+  /**
+   * What sits before the ref, inside the capsule: the page's `projects |
+   * log` switch (app/works/view.tsx). Before it rather than after, so the
+   * switch stands where it stood in the projects reading and the tap that
+   * brought you here is the tap that takes you back.
+   */
+  leading?: ReactNode;
 }
 
 /**
@@ -147,6 +154,25 @@ const LIFT_PX = 32;
 /** A quick, settled spring for one ref handing over to the next. */
 const SETTLE = { type: "spring", duration: 0.4, bounce: 0.12 } as const;
 
+/**
+ * The capsule, on its own: the projects reading's bar (components/works)
+ * pins the same way and stands on the same ground. Its parent is
+ * `relative isolate`, so the `-z-10` lands behind the row, not the page.
+ */
+export function PinnedCapsule() {
+  const lift = usePageLift(LIFT_PX);
+  const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
+  return (
+    <motion.div
+      aria-hidden
+      className={PANEL}
+      // Grows out from the row it is catching, as far as the page has
+      // lifted it.
+      style={{ opacity: lift, scale: panelScale }}
+    />
+  );
+}
+
 export function WorksToolbar({
   locale,
   facets,
@@ -156,6 +182,7 @@ export function WorksToolbar({
   form,
   onFormChange,
   chapters,
+  leading,
 }: WorksToolbarProps) {
   const filtering = active.length > 0;
   const reduced = useReducedMotion() ?? false;
@@ -168,8 +195,6 @@ export function WorksToolbar({
   );
   const chapter = chapters.find((c) => c.id === current.id) ?? null;
   const motionOf = reduced ? { duration: 0 } : SETTLE;
-  const lift = usePageLift(LIFT_PX);
-  const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
 
   /** Back to where the chapter starts: its marker lined up under the slot,
    *  the frame where the slot takes it over. */
@@ -191,15 +216,16 @@ export function WorksToolbar({
     // the page. `w-max`, bounded by the column: the capsule hugs what it
     // holds rather than spanning a row that is mostly empty on a desk.
     <div className="relative isolate w-max max-w-full">
-      <motion.div
-        aria-hidden
-        className={PANEL}
-        // Grows out from the row it is catching, as far as the page has
-        // lifted it.
-        style={{ opacity: lift, scale: panelScale }}
-      />
+      <PinnedCapsule />
 
       <div className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground">
+        {leading && (
+          <>
+            {leading}
+            <Divider />
+          </>
+        )}
+
         {/* The ref we are reading — `main` above the first chapter, the
             chapter once its marker reaches here. Not a control at rest: the
             anchor the rest of the row hangs off, and the reason the page
@@ -368,6 +394,6 @@ const HANDOVER = {
 };
 
 /** Hairline between control groups — quaternary, because it carries nothing. */
-function Divider() {
+export function Divider() {
   return <span aria-hidden className="h-3 w-px shrink-0 bg-border" />;
 }

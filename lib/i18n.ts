@@ -403,6 +403,14 @@ export const translations = {
     logView: "View",
     logSlides: "Slides",
     logRecording: "Recording",
+    // The two readings of /works (see lib/log-view.ts)
+    worksReadingLabel: "Reading",
+    worksReadingProjects: "projects",
+    worksReadingLog: "log",
+    worksSectionsLabel: "Jump to",
+    worksMoreProjects: "Other projects",
+    worksLinkImage: "image",
+    worksPosts: "{n} posts",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "Close attachments",
     // Image lightbox (see systems/attachments/components/image-lightbox.tsx)
@@ -804,6 +812,14 @@ export const translations = {
     logView: "查看",
     logSlides: "幻灯片",
     logRecording: "录像",
+    // The two readings of /works (see lib/log-view.ts)
+    worksReadingLabel: "阅读方式",
+    worksReadingProjects: "项目",
+    worksReadingLog: "日志",
+    worksSectionsLabel: "跳到",
+    worksMoreProjects: "其他项目",
+    worksLinkImage: "图片",
+    worksPosts: "{n} 篇文章",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "关闭附件",
     lightboxZoomIn: "放大",
