@@ -244,6 +244,20 @@ parse, as aliases.
 | `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
+### The refs
+
+A talk that presents a project is not a second piece of work; it is a
+pointer at the first. So it leaves its row and goes onto the project's, as
+`git log --decorate` puts a commit's refs beside its subject: one mono line
+per kind under the title — `◔ React Summit · GOSIM Paris 2026 · …` — each
+venue a door to the talk's attachments and a peek of them, and each
+carrying the talk's hash so `/works#<hash>` lands on the ref
+(`computeDecorations`, `lib/log.ts`; `Decorations`,
+`components/log/decorations.tsx`). Which project: `attachedTo`, or a tag
+that is a word of a project's title in the same chapter. A talk that
+decorates nothing keeps its row. A type filter prints rows (the filter is
+the ask), the feed prints everything, and the editor never decorates.
+
 ### The attachment object
 
 Every cover is one tile (`AttachmentTile`,

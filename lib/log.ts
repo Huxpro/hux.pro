@@ -1465,6 +1465,72 @@ export function computeBeams(
 }
 
 /**
+ * The refs a project wears: the talks (press, posts) that present it, the
+ * way `git log --decorate` prints a commit's tags beside its subject.
+ *
+ * A talk about the work is not a second piece of work; it is a pointer at
+ * the first. Printed as a row of its own it competes with the thing it is
+ * about, and nineteen of them buried eleven projects. Decorated onto the
+ * project instead, ten Lynx talks are one mono line under Lynx — each still
+ * a door to its recording — and the log is the work again.
+ *
+ * Which project a talk decorates, in order:
+ *  1. `attachedTo` naming a project in this chapter — the author said so.
+ *  2. `attachedTo` naming anything else, or `null` — the author said
+ *     otherwise (a role, an event, or deliberately detached): no project.
+ *  3. Otherwise, one of the talk's `tags` is a word of a project's English
+ *     title in the same chapter (`Lynx` ∈ "Lynx Framework", `PWA` ∈ "Ele.me
+ *     PWA"); with more than one candidate, the nearest in date. Words under
+ *     three letters (`io`, `me`) are not names.
+ *
+ * Talks that decorate nothing keep their rows. Returns a map from project
+ * id to its decorations, in the chapter's order (newest first).
+ */
+export function computeDecorations(commits: Commit[]): Map<string, Commit[]> {
+  const projects = commits.filter((c) => c.type === "project");
+  const out = new Map<string, Commit[]>();
+  if (projects.length === 0) return out;
+
+  const words = new Map<Commit, Set<string>>(
+    projects.map((p) => [
+      p,
+      new Set(
+        localize(p.title, "en")
+          .toLowerCase()
+          .split(/[^a-z0-9]+/)
+          .filter((w) => w.length >= 3),
+      ),
+    ]),
+  );
+  const time = (c: Commit) => new Date(c.date).getTime();
+
+  for (const c of commits) {
+    if (c.type !== "talk" && c.type !== "press" && c.type !== "post") continue;
+    let target: Commit | undefined;
+    if (c.attachedTo !== undefined) {
+      target =
+        typeof c.attachedTo === "string"
+          ? projects.find((p) => p.id === c.attachedTo)
+          : undefined;
+      if (!target) continue;
+    } else {
+      const tags = (c.tags ?? []).map((t) => t.toLowerCase());
+      const candidates = projects.filter((p) =>
+        tags.some((t) => words.get(p)!.has(t)),
+      );
+      if (candidates.length === 0) continue;
+      target = candidates.reduce((best, p) =>
+        Math.abs(time(p) - time(c)) < Math.abs(time(best) - time(c)) ? p : best,
+      );
+    }
+    const list = out.get(target.id) ?? [];
+    list.push(c);
+    out.set(target.id, list);
+  }
+  return out;
+}
+
+/**
  * The result of resolving a commit's authorial context:
  *  - `identityId` is the durable byline id — what the rail clusters
  *    on and what feeds `<handle>` (via `identities[identityId].handle`).

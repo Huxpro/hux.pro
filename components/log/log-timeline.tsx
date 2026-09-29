@@ -6,6 +6,7 @@ import {
   type Commit as CommitData,
   adjustRailForHidden,
   computeBeams,
+  computeDecorations,
   computeInferredBeams,
   computeRail,
   type FilterableCommitType,
@@ -168,6 +169,19 @@ function TagBlock({
     [],
   );
 
+  // The chapter's refs: each talk that presents a project leaves its row
+  // and goes onto the project's (`computeDecorations`, lib/log.ts). Not
+  // under a type filter, where the reader has asked for the rows; not in
+  // the feed, which prints everything by definition; not in the editor,
+  // which has to reach every row.
+  const decorating = !edit && form !== "feed" && activeTypes.length === 0;
+  const { decorations, decorated } = useMemo(() => {
+    const map = decorating ? computeDecorations(commits) : new Map<string, CommitData[]>();
+    const ids = new Set<string>();
+    for (const list of map.values()) for (const c of list) ids.add(c.id);
+    return { decorations: map, decorated: ids };
+  }, [commits, decorating]);
+
   // Compute beam specs for explicit `attachedTo` attachments. Both
   // endpoints (source + target) carry the same spec so hovering/
   // focusing/expanding EITHER end brightens the connector line.
@@ -190,8 +204,10 @@ function TagBlock({
     // that survive, beams with a hidden endpoint are dropped, the render
     // loop below skips the rest, and the block prints nothing if none are
     // left. It is `isRowVisible` negated — the same question /works asks
-    // for its chip counts and its empty state.
-    const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
+    // for its chip counts and its empty state — plus the rows that have
+    // gone onto a project as its refs.
+    const hidden = (c: CommitData) =>
+      !isRowVisible(c, activeTypes) || decorated.has(c.id);
 
     const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
     const allBeams = [
@@ -239,7 +255,7 @@ function TagBlock({
       isHidden: hidden,
       hasVisible: commits.some((c) => !hidden(c)),
     };
-  }, [commits, identities, locale, activeTypes]);
+  }, [commits, identities, locale, activeTypes, decorated]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
@@ -349,6 +365,7 @@ function TagBlock({
                 byline={bylines[i]}
                 form={form}
                 onSelectHash={onSelectHash}
+                decorations={decorations.get(commits[i].id)}
               />
             ));
             return run.kind === "cluster" ? (

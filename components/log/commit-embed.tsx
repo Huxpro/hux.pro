@@ -23,6 +23,7 @@ import { PeekCard, PeekThumb } from "./media/media-peek";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
+import { Decorations } from "./decorations";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
@@ -65,6 +66,8 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
+  /** Timeline-only: the talks this commit wears as refs (`computeDecorations`). */
+  decorations?: CommitData[];
 }
 
 // =============================================================================
@@ -87,6 +90,7 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  decorations,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -166,6 +170,11 @@ export function Commit({
           byline={byline}
           form={form}
           onSelectHash={onSelectHash}
+          decorations={
+            decorations && decorations.length > 0 ? (
+              <Decorations commits={decorations} locale={locale} />
+            ) : null
+          }
           attachmentSet={attachmentSet}
           inspecting={inspecting}
           isSelected={isSelected}

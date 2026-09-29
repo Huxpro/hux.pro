@@ -105,6 +105,12 @@ interface TimelineCommitProps {
    */
   onSelectHash?: (hash: string) => void;
   /**
+   * The refs this commit wears — the talks that present it, rendered
+   * (`Decorations`). Printed under the title line, before the meta line,
+   * the way `--decorate` prints them beside the subject.
+   */
+  decorations?: ReactNode;
+  /**
    * The commit's attachments as one set (see systems/attachments). Every
    * media affordance on the row — a strip cover, an expanded player or
    * card — opens this set at its own item, so a phone gets the
@@ -134,6 +140,7 @@ export function TimelineCommit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  decorations = null,
   attachmentSet = null,
   inspecting = false,
   isSelected = false,
@@ -551,6 +558,15 @@ export function TimelineCommit({
           </span>
         )}
       </div>
+
+      {/* The refs: what was said about this work, as one mono line per
+          kind under the title. Not folded with the prose — a ref is a
+          pointer at another commit, and stays printed whatever the form. */}
+      {!isQuiet && decorations && (
+        <div className="col-start-2 @sm:col-start-3 mt-1 min-w-0">
+          {decorations}
+        </div>
+      )}
 
       {/*
         Subtitle row: meta on the left, author byline right-aligned under
