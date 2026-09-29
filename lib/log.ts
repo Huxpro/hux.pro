@@ -1400,6 +1400,43 @@ export function adjustRailForHidden(
 }
 
 /**
+ * Break every tenure bracket at row `at`, so the rows from there down
+ * bracket on their own.
+ *
+ * /works reads a chapter as two halves — the work, then what was said about
+ * it (`leadWithWork`, lib/log-view.ts) — with a label between them. A rail
+ * that ran through the label would claim the two halves are one run of
+ * rows, and one that stopped at the label's edge would look cut. So the
+ * lower half's clusters get their own `segmentId` (the identity, marked),
+ * and the glyphs are re-stamped per contiguous run on each side.
+ *
+ * Call it between `computeRail` and {@link adjustRailForHidden}: identity
+ * is still resolved over the whole chapter, and the hidden-row pass then
+ * groups by the split ids rather than rejoining them.
+ */
+export function splitRailAt(rail: RailInfo[], at: number): RailInfo[] {
+  if (at <= 0 || at >= rail.length) return rail;
+  const result = rail.map((r, i) => ({
+    rail: r.rail,
+    segmentId: r.segmentId && i >= at ? `${r.segmentId}:after` : r.segmentId,
+  }));
+  let i = 0;
+  while (i < result.length) {
+    const sid = result[i].segmentId;
+    let j = i;
+    while (sid && j + 1 < result.length && result[j + 1].segmentId === sid) {
+      j += 1;
+    }
+    for (let k = i; k <= j; k++) {
+      result[k].rail =
+        !sid || j === i ? "" : k === i ? "┐" : k === j ? "┘" : "│";
+    }
+    i = j + 1;
+  }
+  return result;
+}
+
+/**
  * Placeholder: identity clusters have no single anchor row to beam
  * to, and cluster hover is CSS-only via `group/tenure`. Beams are
  * only used for explicit `attachedTo` links (see `computeBeams`).

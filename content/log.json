@@ -3,8 +3,8 @@
     {
       "id": "lynx-era",
       "title": {
-        "en": "HEAD",
-        "zh": "HEAD"
+        "en": "ByteDance · Lynx",
+        "zh": "字节跳动 · Lynx"
       },
       "tagline": {
         "en": "",
@@ -28,8 +28,8 @@
     {
       "id": "react-era",
       "title": {
-        "en": "React",
-        "zh": "React"
+        "en": "Meta · React",
+        "zh": "Meta · React"
       },
       "tagline": {
         "en": "",
@@ -54,8 +54,8 @@
     {
       "id": "pwa-era",
       "title": {
-        "en": "China",
-        "zh": "china"
+        "en": "China · Mobile Web",
+        "zh": "中国 · 移动 Web"
       },
       "tagline": {
         "en": "",

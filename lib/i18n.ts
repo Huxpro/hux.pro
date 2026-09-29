@@ -395,6 +395,8 @@ export const translations = {
     logFormCovers: "Covers",
     logFormFeed: "Feed",
     logNoMatches: "no commits match this filter.",
+    // Joins the type names over a chapter's second half: `talks & press`.
+    logListJoin: " & ",
     writingFeatured: "featured",
     logSelectedWorks: "Selected Works",
     logRead: "Read",
@@ -796,6 +798,7 @@ export const translations = {
     logFormCovers: "封面",
     logFormFeed: "信息流",
     logNoMatches: "没有符合筛选条件的提交。",
+    logListJoin: "与",
     writingFeatured: "精选",
     logSelectedWorks: "精选作品",
     logRead: "阅读",

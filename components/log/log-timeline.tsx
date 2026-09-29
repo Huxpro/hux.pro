@@ -1,21 +1,31 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import type { Locale } from "@/lib/i18n";
+import { Fragment, useCallback, useMemo, useState } from "react";
+import { t, type Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
   adjustRailForHidden,
   computeBeams,
   computeInferredBeams,
   computeRail,
+  FILTERABLE_COMMIT_TYPES,
   type FilterableCommitType,
   formatTagDateRange,
+  getCommitTypePluralLabel,
+  getLocalizedTagDescription,
   getLocalizedTagTitle,
   type Identity,
   isRowVisible,
+  splitRailAt,
   type Tag,
 } from "@/lib/log";
-import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
+import {
+  DEFAULT_FORM,
+  leadWithWork,
+  rowWeight,
+  type LogForm,
+} from "@/lib/log-view";
+import { TYPE } from "@/lib/typography";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeBylines } from "./bylines";
@@ -29,10 +39,16 @@ import { useTimelineEdit } from "./timeline-edit-context";
  *  (the editor's inspect loop re-renders constantly). */
 const NO_TYPES: FilterableCommitType[] = [];
 
-/** What a chapter's ref marker says: the newest chapter is `HEAD`, the rest
- *  their title. Shared with the pinned bar, which wears the same marker. */
-export function chapterLabel(tag: Tag, tagIndex: number, locale: Locale): string {
-  return tagIndex === 0 ? "HEAD" : getLocalizedTagTitle(tag, locale).toUpperCase();
+/**
+ * A chapter's name — who and what, `ByteDance · Lynx` — as its opener sets
+ * it in serif and the pinned bar wears it once the opener has scrolled
+ * under. Set as written: the marker used to be the title in capitals, or
+ * `HEAD` for the newest chapter, which named the git metaphor rather than
+ * the chapter. `HEAD` is still there, as a decoration on the opener's date
+ * — `git log --decorate` puts it beside a commit, not in place of one.
+ */
+export function chapterLabel(tag: Tag, locale: Locale): string {
+  return getLocalizedTagTitle(tag, locale);
 }
 
 /**
@@ -80,9 +96,9 @@ interface LogTimelineProps {
   onSelectHash?: (hash: string) => void;
   /**
    * The page pins a bar that wears the current chapter (/works). Each
-   * chapter's marker then stays in the flow as a divider and hands its pill
-   * to the bar as it scrolls under it, instead of sticking on its own —
-   * two sticky layers at the top of a phone would be one too many.
+   * chapter's name then hands itself to the bar as it scrolls under it —
+   * the openers themselves never stick: two sticky layers at the top of a
+   * phone would be one too many, and a paragraph cannot stick at all.
    */
   pinnedChapters?: boolean;
 }
@@ -146,7 +162,15 @@ function TagBlock({
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
   const isTagSelected = edit?.editingTagId === tag.id;
-  const tagLabel = chapterLabel(tag, tagIndex, locale);
+  const tagLabel = chapterLabel(tag, locale);
+  const narrative = getLocalizedTagDescription(tag, locale);
+
+  // The chapter's reading order: the work, then what was said about it
+  // (`leadWithWork`). Everything below — the rail, the bylines, the beams,
+  // the render loop — runs over this order, so they all agree on it.
+  // `aboutStart` is where the second half begins, or -1 if there is none.
+  const ordered = useMemo(() => leadWithWork(commits), [commits]);
+  const aboutStart = ordered.findIndex((c) => rowWeight(c.type) === "minor");
   const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
   const handleBeamSet = useCallback(
     (spec: BeamSpec) => setActiveBeam(spec),
@@ -183,7 +207,10 @@ function TagBlock({
     bylines,
     isHidden,
     hasVisible,
+    aboutLabel,
+    aboutFirst,
   } = useMemo(() => {
+    const commits = ordered;
     const bylinesArr = computeBylines(commits, identities, locale);
 
     // One predicate, four consumers: the rail re-brackets around the rows
@@ -193,7 +220,35 @@ function TagBlock({
     // for its chip counts and its empty state.
     const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
 
-    const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
+    // Each half brackets on its own (see `splitRailAt`).
+    const rail = adjustRailForHidden(
+      commits,
+      splitRailAt(computeRail(commits), aboutStart),
+      hidden,
+    );
+
+    // The label over the second half, and the row it sits over. Only when
+    // there is work printed above it: a filter down to talks has no halves
+    // to tell apart, and the label would be a heading over the whole page
+    // repeating the chip that was just pressed. It names what is actually
+    // under it — `talks`, `talks & press` — in the chips' own words.
+    const visibleAt = (i: number) => !hidden(commits[i]);
+    const firstMinor =
+      aboutStart < 0
+        ? -1
+        : commits.findIndex((c, i) => i >= aboutStart && visibleAt(i));
+    const workAbove =
+      firstMinor > 0 && commits.slice(0, firstMinor).some((c) => !hidden(c));
+    const minorTypes = FILTERABLE_COMMIT_TYPES.filter((type) =>
+      commits.some((c, i) => i >= aboutStart && c.type === type && visibleAt(i)),
+    );
+    const label = workAbove
+      ? minorTypes
+          .map((type) =>
+            getCommitTypePluralLabel(type, locale).toLocaleLowerCase(),
+          )
+          .join(t(locale, "logListJoin"))
+      : null;
     const allBeams = [
       ...computeBeams(commits, hidden).map((b) => ({
         ...b,
@@ -238,8 +293,10 @@ function TagBlock({
       bylines: bylinesArr,
       isHidden: hidden,
       hasVisible: commits.some((c) => !hidden(c)),
+      aboutLabel: label,
+      aboutFirst: label ? firstMinor : -1,
     };
-  }, [commits, identities, locale, activeTypes]);
+  }, [ordered, aboutStart, identities, locale, activeTypes]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
@@ -247,57 +304,76 @@ function TagBlock({
   if (!hasVisible) return null;
 
   return (
-    <div>
-      {/* Tag ref marker — like `git log --decorate` ref annotations */}
-      <div
-        className={cn(
-          "flex items-center gap-3 py-2",
-          !pinned && "sticky top-4 z-20",
-          tagIndex > 0 && "mt-6 pt-6 border-t border-border/30",
-        )}
-      >
-        {inspecting && edit ? (
-          <button
-            type="button"
-            onClick={() => edit.onSelectTag(tag.id)}
-            className={cn(
-              CHAPTER_PILL,
-              "transition-colors",
-              isTagSelected
-                ? "border-sky-500/70 ring-1 ring-inset ring-sky-500/35 bg-sky-500/[0.05]"
-                : "border-border hover:border-sky-500/50",
-            )}
-            title="Inspect chapter"
-          >
-            {tagLabel}
-          </button>
-        ) : (
-          // `data-chapter` is what the pinned bar watches: the moment this
-          // pill reaches the bar's ref slot, the slot wears it.
-          <span
+    <section aria-labelledby={`chapter-${tag.id}`}>
+      {/* The chapter opener. It used to be a ref marker and nothing else —
+          a pill reading `HEAD` or `CHINA` and a date range — while the tag
+          carried a company, a date range and a paragraph saying what the
+          chapter was, none of it printed. A newcomer met nineteen talks
+          before anything told them whose career this was.
+
+          So it opens the way a /prompt section does: the name in serif,
+          then the chapter's narrative in full, in the page's prose voice.
+          Read top to bottom the four openers are the career in four
+          paragraphs, and the log under each is the evidence.
+
+          The git wink stays where it is cheap: `HEAD` decorates the newest
+          chapter's date the way `git log --decorate` decorates a commit,
+          and the name is still what the pinned bar wears as its ref once
+          the opener has scrolled up under it. */}
+      <header className={cn("pb-3", tagIndex > 0 && "mt-16")}>
+        <div className="flex items-baseline justify-between gap-4">
+          <h2
+            id={`chapter-${tag.id}`}
+            // `data-chapter` is what the pinned bar watches: the moment the
+            // name reaches the bar's ref slot, the slot wears it — the way a
+            // large title hands itself to a navigation bar.
             data-chapter={pinned ? tag.id : undefined}
-            className={cn(CHAPTER_PILL, "border-border")}
+            className="min-w-0 font-serif text-xl sm:text-2xl text-foreground"
           >
-            {tagLabel}
+            {inspecting && edit ? (
+              <button
+                type="button"
+                onClick={() => edit.onSelectTag(tag.id)}
+                className={cn(
+                  "-mx-1.5 rounded px-1.5 text-left transition-colors",
+                  isTagSelected
+                    ? "ring-1 ring-inset ring-sky-500/70 bg-sky-500/[0.05]"
+                    : "hover:ring-1 hover:ring-inset hover:ring-sky-500/50",
+                )}
+                title="Inspect chapter"
+              >
+                {tagLabel}
+              </button>
+            ) : (
+              tagLabel
+            )}
+          </h2>
+          <span className="flex shrink-0 items-center gap-2">
+            {tagIndex === 0 && !tag.endDate && (
+              <span className={cn(CHAPTER_PILL, "border-border")}>
+                {t(locale, "logHead")}
+              </span>
+            )}
+            {!tag.hideDate && (
+              <span className={TYPE.rowMeta}>
+                {formatTagDateRange(tag, locale)}
+              </span>
+            )}
+            {inspecting && edit && (
+              <button
+                type="button"
+                onClick={() => edit.onAddCommit(tag.id)}
+                className="inline-flex items-center justify-center text-tertiary-foreground hover:text-foreground transition-colors"
+                title="Add entry"
+                aria-label="Add entry"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )}
           </span>
-        )}
-        {!tag.hideDate && (
-          <span className="font-mono text-xs text-tertiary-foreground">
-            {formatTagDateRange(tag, locale)}
-          </span>
-        )}
-        {inspecting && edit && (
-          <button
-            type="button"
-            onClick={() => edit.onAddCommit(tag.id)}
-            className="inline-flex items-center justify-center text-tertiary-foreground hover:text-foreground transition-colors"
-            title="Add entry"
-            aria-label="Add entry"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
+        </div>
+        {narrative && <p className={cn("mt-2", TYPE.body)}>{narrative}</p>}
+      </header>
 
       {/* Commits — relative so the beam measures against this box.
        *  Consecutive commits sharing a tenure segmentId are wrapped in
@@ -313,23 +389,35 @@ function TagBlock({
           type Run =
             | { kind: "loose"; indices: number[] }
             | { kind: "cluster"; segmentId: string; indices: number[] };
+          const commits = ordered;
           const runs: Run[] = [];
           for (let i = 0; i < commits.length; i++) {
             const c = commits[i];
             if (isHidden(c)) continue;
             const sid = railInfo[i].segmentId;
             const last = runs[runs.length - 1];
-            if (sid && last && last.kind === "cluster" && last.segmentId === sid) {
+            // The second half's label sits between two runs, never inside
+            // one, so a loose run is cut there too (a cluster already is:
+            // `splitRailAt` gave the half its own segment ids).
+            const cut = i === aboutFirst;
+            if (!cut && sid && last && last.kind === "cluster" && last.segmentId === sid) {
               last.indices.push(i);
             } else if (sid) {
               runs.push({ kind: "cluster", segmentId: sid, indices: [i] });
-            } else if (last && last.kind === "loose") {
+            } else if (!cut && last && last.kind === "loose") {
               last.indices.push(i);
             } else {
               runs.push({ kind: "loose", indices: [i] });
             }
           }
           return runs.map((run, runIdx) => {
+            // What was said about the work, after the work: a label in the
+            // chips' own words, so the date jumping back up to this year
+            // reads as a second list rather than as the log going wrong.
+            const label =
+              run.indices[0] === aboutFirst && aboutLabel ? (
+                <p className={cn("mt-6 mb-1", TYPE.label)}>{aboutLabel}</p>
+              ) : null;
             const rows = run.indices.map((i) => (
               <Commit
                 key={commits[i].id}
@@ -354,11 +442,15 @@ function TagBlock({
             return run.kind === "cluster" ? (
               // An identity can cluster twice (Meta, then RIT, then Meta
               // again), so the run is named by its first row, not its id.
-              <div key={`cluster-${commits[run.indices[0]].id}`} className="group/tenure">
-                {rows}
-              </div>
+              <Fragment key={`cluster-${commits[run.indices[0]].id}`}>
+                {label}
+                <div className="group/tenure">{rows}</div>
+              </Fragment>
             ) : (
-              <div key={`loose-${runIdx}`}>{rows}</div>
+              <Fragment key={`loose-${runIdx}`}>
+                {label}
+                <div>{rows}</div>
+              </Fragment>
             );
           });
         })()}
@@ -391,6 +483,6 @@ function TagBlock({
           />
         ))}
       </div>
-    </div>
+    </section>
   );
 }

@@ -14,7 +14,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
-import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
+import {
+  DEFAULT_FORM,
+  rowFormFor,
+  rowWeight,
+  type LogForm,
+} from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
@@ -237,10 +242,16 @@ export function TimelineCommit({
   // row scale). Everything below reads those atoms and nothing reads the
   // form's name, or `isExpanded` again: the feed's atoms already say
   // "no strip, no clamp, no peek".
-  const rowForm = rowFormFor(form, textOpen);
+  //
+  // The preset is also the row's weight's: the work prints its prose and its
+  // covers, a talk or a piece of press folds to one line (`ROW_FORM`).
+  const weight = rowWeight(data.type);
+  const isMajor = weight === "major";
+  const rowForm = rowFormFor(form, weight, textOpen);
 
-  // What the folded form adds under the title line: the description at two
-  // lines, and the strip of covers. Both or either — a commit with no media
+  // What the folded form adds under the title line: the description,
+  // clamped, and the strip of covers — for the work; a minor row in `covers`
+  // adds neither (`ROW_FORM`). Both or either — a commit with no media
   // still gets its description, so a form is "title, what, and what it
   // looks like" rather than "title, and covers if any".
   //
@@ -283,8 +294,16 @@ export function TimelineCommit({
   // way out of its own. Where the covers print, they are the doors; where
   // they don't (the index, folded), the line counts them, and opening the
   // row brings them.
+  //
+  // Except on the one-line row (`meta: "beside"`): a talk is a recording
+  // and a deck, so the count read `📎 1` down a column of fifteen — the same
+  // mark on every line of the list, saying nothing any one line needed. That
+  // line is a list entry, the way a /writing row is; opening it still
+  // brings its covers.
   const attachmentCount =
-    !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
+    !isQuiet && rowForm.media === "none" && rowForm.meta === "under"
+      ? expandedMedia.length
+      : 0;
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
@@ -500,7 +519,15 @@ export function TimelineCommit({
         )}
       </span>
 
-      <div className="flex items-center gap-2 min-w-0">
+      <div
+        className={cn(
+          "flex gap-2 min-w-0",
+          // A one-line row that wrapped (a phone, a long talk title) keeps
+          // its date on its first line, where a list entry's date is read;
+          // centred, it floated between the title and the venue.
+          rowForm.meta === "beside" ? "items-baseline" : "items-center",
+        )}
+      >
         {isQuiet ? (
           // Events and folded asides drop a tier. Face is per script
           // (see QuietLine): Latin serif italic, CJK upright mono.
@@ -509,12 +536,45 @@ export function TimelineCommit({
             className="min-w-0 flex-1 text-xs text-tertiary-foreground"
           />
         ) : (
-          <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
+          // Weight follows importance: the work's title is set in medium
+          // on the ink, what was said about it one rung down. Two steps a
+          // reader feels before they read — the column of projects stands
+          // out of the column of talks without a label saying which is
+          // which. The venue, where the form puts it beside the title,
+          // trails it in the row's own mono metadata voice, so the line
+          // reads like a /writing entry: what, where, and the date across.
+          <span
+            className={cn(
+              "min-w-0 flex-1",
+              TYPE.rowTitle,
+              isMajor ? "font-medium" : "text-muted-foreground",
+            )}
+          >
             {displayTitle}
-            {data.languageBadge && (
-              <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
-                {data.languageBadge}
+            {/* Beside the title where the row has the measure for it; on a
+                phone's column a mono venue wrapping mid-name reads as
+                broken, so it takes the next line, still inside the title's
+                block, still without the handle. */}
+            {rowForm.meta === "beside" && (data.meta || data.languageBadge) ? (
+              <span
+                className={cn(
+                  "block mt-0.5 @md:mt-0 @md:inline @md:ml-2 align-baseline",
+                  TYPE.rowMeta,
+                )}
+              >
+                {data.meta}
+                {data.languageBadge && (
+                  <span className={cn(data.meta && "ml-2")}>
+                    {data.languageBadge}
+                  </span>
+                )}
               </span>
+            ) : (
+              data.languageBadge && (
+                <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
+                  {data.languageBadge}
+                </span>
+              )
             )}
           </span>
         )}
@@ -568,7 +628,7 @@ export function TimelineCommit({
         byline fully visible so the cluster's authorial context stays
         on-screen while you read.
       */}
-      {!isQuiet && (data.meta || byline) && (
+      {!isQuiet && rowForm.meta === "under" && (data.meta || byline) && (
         <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
             {data.meta ? (
@@ -658,6 +718,7 @@ export function TimelineCommit({
           <Description
             text={data.description}
             isExpanded={rowForm.description === "full"}
+            major={isMajor}
           />
         </div>
       )}

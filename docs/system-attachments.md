@@ -233,15 +233,17 @@ is a preset of a few independent atoms rather than a layout of its own
 (`ROW_FORM`, `lib/log-view.ts`): what of the description prints (`none` ·
 `clamp` · `full`), which attachment object (`none` · `covers` · `grid`),
 whether the notes print (commentary, the author fields, the link labels),
-and whether anything peeks on hover. The toolbar's control resets every
-row to a preset; a row the reader opens by hand takes the `feed` preset
-for itself. Old links with git's names (`oneline`, `stat`, `patch`) still
+and whether anything peeks on hover. A preset is per *weight*
+(`rowWeight`): projects, roles and events are the work, talks and press
+are what was said about it, and `covers` prints them differently. The
+toolbar's control resets every row to a preset; a row the reader opens by
+hand takes the `feed` preset for itself. Old links with git's names (`oneline`, `stat`, `patch`) still
 parse, as aliases.
 
 | form | description | media | notes | peek | the reading |
 |---|---|---|---|---|---|
 | `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
-| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
+| `covers` (default) | the work: three lines · talks, press: none | the work: `covers` — 112px tiles, glyph chip · talks, press: none | — | ✓ | the work on screen; what was said about it one line each, venue beside the title |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
 ### The attachment object

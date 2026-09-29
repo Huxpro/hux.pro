@@ -132,9 +132,9 @@ export function WorksView({ logData }: WorksViewProps) {
   // The chapters, as the pinned bar names them when it wears one.
   const chapters = useMemo(
     () =>
-      data.map(({ tag }, i) => ({
+      data.map(({ tag }) => ({
         id: tag.id,
-        label: chapterLabel(tag, i, locale),
+        label: chapterLabel(tag, locale),
       })),
     [data, locale],
   );

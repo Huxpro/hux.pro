@@ -1,24 +1,80 @@
 // =============================================================================
 // Log View State — how much of the timeline is on screen, and which of it.
 //
-// /works carries more information than any one reading of it can use: 25
-// commits, ~37 pieces of rich media, three eras. Folded, the page is a
+// /works carries more information than any one reading of it can use: 35
+// commits, ~37 pieces of rich media, four chapters. Folded, the page is a
 // two-screen overview and every cover is invisible; fully unfolded it is a
 // thirteen-screen media wall with no overview left. The two states people
 // actually want — "show me everything at once" and "let me see the work" —
 // are the same page at two different densities, plus the ability to narrow
 // what is in it.
 //
-// This module is the vocabulary for both, and the URL codec that makes a
-// reading shareable. It is deliberately free of React and of `lib/log`'s
+// And not every row is the same kind of thing. A project is the work; a talk
+// or a piece of press is somebody talking about it. Printed at one weight,
+// nineteen talks buried eleven projects — the headline work of the current
+// chapter was its thirteenth row. So a row also has a *weight*, and a form
+// is a density per weight rather than one density for every row.
+//
+// This module is the vocabulary for all three, and the URL codec that makes
+// a reading shareable. It is deliberately free of React and of `lib/log`'s
 // data layer: the parse/serialize pair is the whole contract, so the query
 // string stays the single source of truth for view state.
 // =============================================================================
 
 import {
   FILTERABLE_COMMIT_TYPES,
+  type CommitType,
   type FilterableCommitType,
 } from "./log";
+
+// =============================================================================
+// Weight — what a row is to the chapter it sits in.
+//
+//  - `major` — the work itself, and the rows that place it: projects, the
+//    roles that print, the events that date a move. These carry the
+//    chapter, so they lead it and they print their prose.
+//  - `minor` — what was said about the work: talks and press (and posts,
+//    should one ever be filed here). Worth having and worth finding, not
+//    worth a paragraph and a contact sheet each while the reader is still
+//    asking what the work *was*. One line — title, venue, date — until
+//    opened.
+//
+// Weight is the type's, not the row's. A per-row `featured` flag deciding it
+// would be curation annotating rather than acting ("Less, but Better" in
+// docs/design-philosophy.md), and a talk that matters already says so by
+// being attached to the project it presents.
+// =============================================================================
+
+export type RowWeight = "major" | "minor";
+
+export function rowWeight(type: CommitType): RowWeight {
+  return type === "talk" || type === "press" || type === "post"
+    ? "minor"
+    : "major";
+}
+
+/**
+ * A chapter's reading order: the work first, then what was said about it,
+ * each half still newest-first as `sortCommitsByDate` left it.
+ *
+ * Strictly chronological, the current chapter opened on nine talks and a
+ * piece of press before it reached Lynx, the thing all of them are about: a
+ * newcomer met the conferences before the work. Hoisting the work keeps the
+ * log a log inside each half — the rail, the bylines and the connectors all
+ * still read top-down — and a talk attached to the project it presents now
+ * points *up* at it, the direction the reader has just come from.
+ *
+ * Stable, and generic over anything with a `type`, so the page and the
+ * editor order a chapter identically.
+ */
+export function leadWithWork<T extends { type: CommitType }>(
+  commits: readonly T[],
+): T[] {
+  return [
+    ...commits.filter((c) => rowWeight(c.type) === "major"),
+    ...commits.filter((c) => rowWeight(c.type) === "minor"),
+  ];
+}
 
 // =============================================================================
 // Form — how much of each commit is printed, as a composition.
@@ -35,19 +91,23 @@ import {
 //  - `index`  — the title line only. The overview: one row per commit, the
 //    whole career in two screens. Rich media is reachable but not shown
 //    (hover peek on a pointer device, or open the row).
-//  - `covers` — the default: the title, two lines, and the covers at a size
-//    you can recognise a slide or a screenshot at. Still one row per commit,
-//    so the overview survives, but the work is on screen rather than behind
-//    a hover a phone cannot perform.
+//  - `covers` — the default, and the one form that reads weight: the work
+//    prints its description and its covers at a size you can recognise a
+//    slide or a screenshot at; a talk or a piece of press prints one line,
+//    its venue riding beside the title. It used to put a contact sheet
+//    under every row, talks included, which made the default page eight
+//    screens of cover boxes with the projects somewhere inside; the covers
+//    worth a glance are the work's, and the rest are one press away.
 //  - `feed`   — the grid, at half a column, with its captions written out,
-//    and the prose and notes printed whole to match. All the information is
-//    right there, so nothing in it peeks or opens a sheet: a video plays
-//    where it is, a card goes to its page.
+//    and the prose and notes printed whole to match — every row, at every
+//    weight. All the information is right there, so nothing in it peeks or
+//    opens a sheet: a video plays where it is, a card goes to its page.
 //
-// A form sets all four atoms, but it only *owns* two of them: the picture
+// A form sets all five atoms, but it only *owns* two of them: the picture
 // is the page's (`media`, `peek`), the prose is each row's (`description`,
-// `notes` — see `rowFormFor`). Pressing a row's text relieves or clamps it
-// against whatever the form printed; the picture holds still.
+// `notes`, and where the venue sits — see `rowFormFor`). Pressing a row's
+// text relieves or clamps it against whatever the form printed; the picture
+// holds still.
 //
 // The page borrowed git's vocabulary for these once (`--oneline`, `--stat`,
 // `-p`); those names still parse, as aliases, so old links keep working.
@@ -61,7 +121,8 @@ export const DEFAULT_FORM: LogForm = "covers";
 
 /** The atoms a row composes. Every form is one setting of each. */
 export interface RowForm {
-  /** What of the description prints: nothing, two lines, or all of it. */
+  /** What of the description prints: nothing, a few lines (how many is the
+   *  row's weight — see `Description`), or all of it. */
   description: "none" | "clamp" | "full";
   /**
    * The attachment object: nothing, the strip of covers, or the grid — the
@@ -73,12 +134,50 @@ export interface RowForm {
   /** Whether the row, or its covers, peek on hover. The feed does not: it
    *  has already printed everything a peek would show. */
   peek: boolean;
+  /**
+   * Where the venue goes: `under` the title on a line of its own, where the
+   * handle signs beside it, or `beside` the title on the title line — the
+   * one-line row a minor commit folds to, like a /writing entry. The handle
+   * has no slot on that line, and does not need one: the chapter above
+   * already names the company.
+   */
+  meta: "under" | "beside";
 }
 
-export const ROW_FORM: Record<LogForm, RowForm> = {
-  index: { description: "none", media: "none", notes: false, peek: true },
-  covers: { description: "clamp", media: "covers", notes: false, peek: true },
-  feed: { description: "full", media: "grid", notes: true, peek: false },
+const INDEX: RowForm = {
+  description: "none",
+  media: "none",
+  notes: false,
+  peek: true,
+  meta: "under",
+};
+const FEED: RowForm = {
+  description: "full",
+  media: "grid",
+  notes: true,
+  peek: false,
+  meta: "under",
+};
+
+export const ROW_FORM: Record<LogForm, Record<RowWeight, RowForm>> = {
+  index: { major: INDEX, minor: INDEX },
+  covers: {
+    major: {
+      description: "clamp",
+      media: "covers",
+      notes: false,
+      peek: true,
+      meta: "under",
+    },
+    minor: {
+      description: "none",
+      media: "none",
+      notes: false,
+      peek: true,
+      meta: "beside",
+    },
+  },
+  feed: { major: FEED, minor: FEED },
 };
 
 /**
@@ -103,15 +202,21 @@ export const ROW_FORM: Record<LogForm, RowForm> = {
  * difference, and now they are not the same click at all — one changes the
  * prose, the other opens the attachment.
  *
- * The exception is the index, the one form that prints no picture at all.
- * There the title line only counts the attachments (`📎 3`), and the count
- * is a promise the row has to keep: opening an index row brings its covers
- * with its prose, so an open row is the whole commit whatever the form. The
- * other forms already print the picture, so their press still owns the
+ * The exception is a row that prints no picture at all: every row in the
+ * index, and a minor one in `covers`. In the index the title line counts
+ * the attachments (`📎 3`), and the count is a promise the row has to keep;
+ * either way, opening such a row brings its covers with its prose, so an
+ * open row is the whole commit whatever the form. And an open row is never
+ * one line — the venue goes back under the title, where the handle signs.
+ * The other rows already print the picture, so their press still owns the
  * prose alone.
  */
-export function rowFormFor(form: LogForm, textRelieved: boolean): RowForm {
-  const base = ROW_FORM[form];
+export function rowFormFor(
+  form: LogForm,
+  weight: RowWeight,
+  textRelieved: boolean,
+): RowForm {
+  const base = ROW_FORM[form][weight];
   if (!textRelieved) return base;
   return base.description === "full"
     ? { ...base, description: "clamp", notes: false }
@@ -120,6 +225,7 @@ export function rowFormFor(form: LogForm, textRelieved: boolean): RowForm {
         description: "full",
         notes: true,
         media: base.media === "none" ? "covers" : base.media,
+        meta: "under",
       };
 }
 

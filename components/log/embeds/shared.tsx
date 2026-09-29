@@ -17,38 +17,45 @@ import { TYPE } from "@/lib/typography";
 
 interface DescriptionProps {
   text: string;
-  /** Full text. Otherwise clamped to two lines. */
+  /** Full text. Otherwise clamped — see `major`. */
   isExpanded?: boolean;
+  /** The row is the work itself (`rowWeight`, lib/log-view.ts). */
+  major?: boolean;
   className?: string;
 }
 
 /**
  * A commit's description — what the work is.
  *
- * `TYPE.captionQuiet` at both lengths: 12px, tertiary. It was briefly raised
- * to `TYPE.body` (14px, muted) to buy the row a second tier — everything that
- * was not the title sat on tertiary, which is not a hierarchy — but at that
- * weight the description competes with the title for the row rather than
- * sitting under it, and a column of twenty-five rows reads louder than the
- * log wants. The hierarchy it was after is carried by the rest of the row
- * instead: the title is the only thing on the ink, and the mono metadata
- * around it annotates.
+ * Two rungs, by the row's weight. A talk's or a press piece's sits on
+ * `TYPE.captionQuiet` — 12px, tertiary — and only once the row is open. It
+ * was briefly raised to `TYPE.body` to buy every row a second tier, but at
+ * that weight a column of twenty-five descriptions competed with its own
+ * titles, and it was pulled back.
+ *
+ * The work's sits one rung up, on `TYPE.caption`: muted, not tertiary. That
+ * argument was about twenty-five rows all printing prose; the default form
+ * now prints it for the work alone (`ROW_FORM`), eleven rows across four
+ * chapters, and for those rows the description is *the* answer to what the
+ * work was — on tertiary, clamped at two lines, it was the part of the page
+ * a newcomer needed most and could read least. Still 12px, so it sits under
+ * the title rather than beside it.
  */
 export function Description({
   text,
   isExpanded = false,
+  major = false,
   className,
 }: DescriptionProps) {
   return (
     <p
       className={cn(
-        TYPE.captionQuiet,
-        // Two lines everywhere, and the measure does the rest: a phone's
-        // ~40 characters a line, a desktop's ~90. A wider column is already
-        // being handed more of the text, so spending a breakpoint to hand it
-        // a third line as well buys a screen and a half of page for a hook
-        // that was long enough at two.
-        !isExpanded && "line-clamp-2",
+        major ? TYPE.caption : TYPE.captionQuiet,
+        // Clamped, the measure does most of the work: a phone's ~40
+        // characters a line, a desktop's ~90. Two lines is a hook, which is
+        // all a talk's blurb is asked to be; three is where the work's
+        // descriptions, all a sentence or two, finish on a desk.
+        !isExpanded && (major ? "line-clamp-3" : "line-clamp-2"),
         className
       )}
     >
