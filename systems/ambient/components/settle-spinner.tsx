@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { LoadingIndicator } from "@/systems/skin/components/loading-indicator";
 import { t, useLocale } from "@/services";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { isSettling, subscribeSettle } from "../lib/settle";
@@ -60,7 +61,7 @@ export function SettleSpinner() {
         // Spinning only while it shows: an endless animation at opacity 0 would
         // keep the compositor producing frames on every page, for nothing.
         className={cn(
-          "text-tertiary-foreground motion-reduce:animate-none",
+          "text-tertiary-foreground motion-reduce:animate-none material:hidden",
           shown && "animate-spin"
         )}
         style={{ animationDuration: "0.9s" }}
@@ -73,6 +74,9 @@ export function SettleSpinner() {
           strokeLinecap="round"
         />
       </svg>
+      {/* Material: the Expressive loading indicator, mounted only while it
+          shows so its animation never runs unseen. */}
+      {shown && <LoadingIndicator size={22} className="hidden material:block" />}
     </div>
   );
 }

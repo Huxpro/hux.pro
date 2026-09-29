@@ -2,6 +2,7 @@
 
 import { t, useLocale } from "@/services";
 import { Loader2, Sunrise, Sunset } from "lucide-react";
+import { LoadingIndicator } from "@/systems/skin/components/loading-indicator";
 import { useEffect, useMemo, useState } from "react";
 import {
   formatClockTime,
@@ -103,7 +104,8 @@ export function WeatherNow() {
   if (isBootLoading && !displayWeather) {
     return (
       <div className="flex items-center justify-center py-4">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground material:hidden" />
+        <LoadingIndicator size={40} contained className="hidden material:inline-block" />
       </div>
     );
   }

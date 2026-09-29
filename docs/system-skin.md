@@ -25,6 +25,8 @@ are *arranged and sized* on Android; the skin is how they *look*.
 | Google Sans Flex (`--font-flex`) | `app/layout.tsx` |
 | The ripple (every pressable, site-wide) | `systems/skin/components/material-ripple.tsx` |
 | Haptics (pickup, resize ticks, drop) | `systems/skin/lib/haptics.ts` |
+| Container transform (widget → page) | `systems/skin/lib/container-transform.ts` |
+| Loading indicator (shape morph) | `systems/skin/components/loading-indicator.tsx`, `lib/loading-shapes.ts` |
 | Sheets, panels, popovers, windows; switches and segmented controls | `app/globals.css`, "Skin — Material", the Surfaces and Controls blocks |
 
 ## Sources
@@ -189,6 +191,34 @@ says it) and on surfaces that take focus only to hold it; scrollbars are
 thin, in `on-surface-variant`. The focus and scrollbar rules sit in the base
 layer, so a component that draws its own indicator or hides its scrollbar
 still wins.
+
+## Motion
+
+**Container transform.** Tapping a widget that opens a page (the card or
+its arrow) grows the card into the page, as Android opens a card into a
+screen. It rides the navigation's own view transition. The card is named
+`md-container` for the old snapshot, and the destination's
+`[data-page-surface]` (PageLayout's `<main>`) takes the name while
+`html[data-md-transform]` is set (`systems/skin/lib/container-transform.ts`).
+The container travels 500ms on the emphasized curve. Its corners open from
+the widget radius to square, and its `surface-container` fill thins into the
+page. Inside it the card fades out over the first 30% and the page fades in
+over the rest (fade through). This only happens in the Material skin, in
+browsers with view transitions, and without reduced motion. Anywhere else
+the page crossfades in as before.
+
+**Loading indicator.** `LoadingIndicator` replaces the spinners in the
+Material skin with M3 Expressive's. One shape morphs into the next every
+650ms through Compose's sequence: SoftBurst, 9-sided cookie, pentagon, pill,
+Sunny, 4-sided cookie, oval. Each morph also turns the shape a quarter, and
+the whole indicator turns once every 4.67s. Every shape is sampled as a
+radius per angle at the same angles and scaled to the same area, so the
+paths share their commands, the morph is plain SVG interpolation (SMIL, no
+per-frame script), and the indicator never seems to breathe. The indicator
+is 38/48 of its box. It is `primary`, or `on-primary-container` on a
+`primary-container` disc when `contained`. It stands in for the wallpaper's
+settle ring, the weather's reload and boot spinners, and a Lynx app's
+loading state. The Glass skin keeps its rings.
 
 ## Touch: the ripple and the motor
 
