@@ -1,5 +1,7 @@
 "use client";
 
+import { flipOpen } from "./widget-flip";
+
 // ---------------------------------------------------------------------------
 // Widget morph — a widget opens into its page the way an iOS widget opens its
 // app: the card grows into the screen and the page is what it grows into.
@@ -58,7 +60,7 @@
 const ATTR = "data-widget-morph";
 export const MORPH_SOURCE_ATTR = "data-morph-source";
 
-type Phase = "idle" | "open" | "opened";
+type Phase = "idle" | "open" | "opened" | "flip" | "flipping";
 
 interface MorphState {
   phase: Phase;
@@ -131,6 +133,26 @@ function internalPath(href: string): string | null {
  */
 export function fillsScreenWidth(card: HTMLElement): boolean {
   return card.getBoundingClientRect().width >= window.innerWidth * 0.8;
+}
+
+/**
+ * The Motion take (widget-flip.ts): mark `card` to open the next navigation
+ * by growing into the live page, with no view transition at all. The router
+ * still calls `startViewTransition`; the wrapper skips it before it captures
+ * anything and hands the card to the flip instead.
+ */
+export function armWidgetFlip(card: HTMLElement, href: string) {
+  if (!supported()) return;
+  const path = internalPath(href);
+  if (!path || path === window.location.pathname) return;
+  installHook();
+  reset();
+  armedEl = card;
+  state.path = path;
+  setPhase("flip");
+  armTimer = window.setTimeout(() => {
+    if (state.phase === "flip" && armedEl === card) reset();
+  }, 1500);
 }
 
 /**
@@ -232,6 +254,23 @@ function installHook() {
     { capture: true },
   );
   document.startViewTransition = ((arg?: unknown) => {
+    if (state.phase === "flip" && armedEl) {
+      // Skipped before the old state is captured: the update still runs,
+      // the page is never frozen, and nothing is drawn but the flip.
+      const skipped = start(arg as ViewTransitionUpdateCallback);
+      skipped.skipTransition();
+      skipped.ready.catch(() => {});
+      window.clearTimeout(armTimer);
+      const card = armedEl;
+      armedEl = null;
+      setPhase("flipping");
+      flipOpen(card).finally(() => {
+        if (state.phase !== "flipping") return;
+        if (window.location.pathname === state.path) setPhase("opened");
+        else reset();
+      });
+      return skipped;
+    }
     const open = { landing: null as Promise<unknown> | null };
     const transition = start(
       (state.phase === "open"

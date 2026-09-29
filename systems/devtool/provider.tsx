@@ -92,18 +92,23 @@ export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
 //               `fillsScreenWidth`). Wider, it is the crossfade.
 //   everywhere  every grid, for comparing; a desktop's card is a quarter of
 //               the screen and the page arrives at a quarter scale.
+//   flip        the Motion take (components/ui/widget-flip.ts): no view
+//               transition; the live page springs out of the card, into the
+//               page's column on a wide screen. Every grid.
 // =============================================================================
 
-export type WidgetMorph = "off" | "phone" | "everywhere";
+export type WidgetMorph = "off" | "phone" | "everywhere" | "flip";
 /**
- * `everywhere` while this is being tried on an iPad and a desktop as well as
- * a phone; `"off"` before it merges. A value saved in the devtool wins over
- * this — its star resets to it.
+ * `flip` on this branch, so its preview opens every card with the Motion
+ * take on a phone, an iPad and a desktop alike; `"off"` before it merges. A
+ * value saved in the devtool wins over this — its star resets to it.
  */
-export const WIDGET_MORPH_DEFAULT: WidgetMorph = "everywhere";
+export const WIDGET_MORPH_DEFAULT: WidgetMorph = "flip";
 
 function parseWidgetMorph(raw: unknown): WidgetMorph {
-  if (raw === "off" || raw === "phone" || raw === "everywhere") return raw;
+  if (raw === "off" || raw === "phone" || raw === "everywhere" || raw === "flip") {
+    return raw;
+  }
   // The first shape of this setting was a boolean.
   if (raw === false) return "off";
   return WIDGET_MORPH_DEFAULT;

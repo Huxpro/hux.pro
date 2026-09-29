@@ -233,6 +233,29 @@ the morph off and on:
   on the main thread and input waits for it, which is why it is 450ms: the
   curve is ~95% there by 300ms.
 
+#### Widget Flip (the Motion take)
+
+Devtool › Widgets › Open morph › **Flip** swaps the view-transition morph for
+`components/ui/widget-flip.ts`: no view transition runs (the router's is
+skipped before it captures anything, in the same wrapper), and one Motion
+spring drives a rectangle from the card's box to the page's — the viewport on
+a phone, the page's 680px column on a wider screen, a shape the page actually
+has. Before the route commits, a frame wears it (the card's copy on panel
+glass, over a home that fades back); after, the page's own `main` does,
+FLIP'd: scaled by the rectangle's width over its own, moved onto it, clipped
+to its height and corners. The glass fades once the spring settles.
+
+What it buys over the morph: nothing is frozen while the route loads, what
+grows is live DOM rather than a picture, the spring has give, and a desktop
+card opens into a column instead of a quarter-scale screen. What it costs: the
+home cannot stay behind (the route replaces it), and there is no gesture.
+
+Measured the same way (390×844, software GPU): ≈7ms compositing a frame
+against ≈11 for the plain crossfade — no snapshots, no blur. A 24px backdrop
+blur on the growing glass made it ≈19, so the glass is a denser tint instead.
+Main thread: ≈8ms more layout over the whole open (the frame's size, before
+the route commits), and Motion's per-frame writes.
+
 ### Component Animations
 
 Individual components (like the Command Palette or Modals) use `animate-in` and `fade-in` utility classes (powered by `tw-animate-css` and Tailwind) to enter the stage smoothly.
