@@ -109,11 +109,11 @@ function resolveItems(locale: Locale): PromptItem[] {
 function promptLine(item: PromptItem): string {
   switch (item.kind) {
     case "quote":
-      return item.text;
+      return plain(item.text);
     case "belief":
-      return item.statement;
+      return plain(item.statement);
     case "influence":
-      return item.name;
+      return plain(item.name);
   }
 }
 
@@ -151,6 +151,35 @@ const ROTATION_INTERVAL = 20_000; // 20 seconds
 // Item renderers
 // =============================================================================
 
+/**
+ * The prompts' one inline mark, `*…*` — a work's title (`*Principles*`),
+ * the way /prompt renders it (app/prompt/view.tsx, `Marks`): italic in
+ * Latin, and the same string carries 《》 in Chinese instead. The card used
+ * to print the asterisks.
+ */
+const TITLE_MARK = /(\*[^*]+\*)/g;
+
+function Marks({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(TITLE_MARK).map((part, i) =>
+        part.length > 2 && part.startsWith("*") && part.endsWith("*") ? (
+          <em key={i} className="[font-synthesis-style:none]">
+            {part.slice(1, -1)}
+          </em>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
+/** The same string with its marks taken off, for a one-line label. */
+function plain(text: string): string {
+  return text.replace(TITLE_MARK, (m) => m.slice(1, -1));
+}
+
 function QuoteDisplay({
   item,
 }: {
@@ -164,7 +193,10 @@ function QuoteDisplay({
       <p className={cn("mt-2", TYPE.caption)}>
         {item.author}
         {item.source && (
-          <span className="text-tertiary-foreground"> · {item.source}</span>
+          <span className="text-tertiary-foreground">
+            {" · "}
+            <Marks text={item.source} />
+          </span>
         )}
       </p>
     </div>
@@ -197,7 +229,9 @@ function InfluenceDisplay({
 }) {
   return (
     <div>
-      <p className="font-serif text-base text-foreground">{item.name}</p>
+      <p className="font-serif text-base text-foreground">
+        <Marks text={item.name} />
+      </p>
       {item.context && (
         <p className={cn("mt-1", TYPE.caption)}>{item.context}</p>
       )}
