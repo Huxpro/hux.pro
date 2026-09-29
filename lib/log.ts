@@ -1199,6 +1199,12 @@ export function getCommitLanguageBadge(
 export interface TimelineData {
   tag: Tag;
   commits: Commit[];
+  /**
+   * The commits identity resolution walks for this chapter's rows, when
+   * they are not the rows themselves — see {@link buildKindTimelineData}.
+   * Absent, the chapter's own commits are the context, as they always were.
+   */
+  context?: Commit[];
 }
 
 /**
@@ -1244,7 +1250,16 @@ export interface BeamLink {
  * "which cluster does this row belong to" for hover/selection).
  * `rail` is only set when there's an actual bracket to draw.
  */
-export function computeRail(commits: Commit[]): RailInfo[] {
+export function computeRail(
+  commits: Commit[],
+  /**
+   * The commits identity resolution walks — the roles behind a `<handle>`.
+   * The chapter's own rows by default; a chapter cut across the log by
+   * kind (`buildKindTimelineData`) hands the whole log, since the roles
+   * its projects were made under are filed in another chapter.
+   */
+  context: Commit[] = commits,
+): RailInfo[] {
   const result: RailInfo[] = commits.map(() => ({
     rail: "",
     segmentId: null,
@@ -1254,7 +1269,7 @@ export function computeRail(commits: Commit[]): RailInfo[] {
   // identity (attachedTo:null, or no tenure fit) come back as null —
   // those rows are rail-less.
   const iids: (string | null)[] = commits.map(
-    (c) => resolveIdentity(c, commits)?.identityId ?? null,
+    (c) => resolveIdentity(c, context)?.identityId ?? null,
   );
 
   // Walk in sort order, grouping consecutive same-identity rows.
@@ -1620,6 +1635,60 @@ export function buildTimelineData(
     tag,
     commits: sortCommitsByDate(visible.filter((c) => c.tagId === tag.id)),
   }));
+}
+
+/** The id a kind's chapter wears — `kind:project`. Never a real tag's. */
+export const KIND_TAG_PREFIX = "kind:";
+
+/**
+ * The same log cut the other way: one chapter per kind of work — Projects,
+ * Talks, Press, Roles — in {@link FILTERABLE_COMMIT_TYPES} order, each
+ * newest first. The reading a projects page gives: "what have you built"
+ * answered before "when", with the talks after it and the CV last, rather
+ * than nineteen talks and eleven projects shuffled together by date.
+ *
+ * Each chapter is a synthetic {@link Tag}: its title the kind's plural,
+ * its dates the span of what is in it. Events are the log's punctuation —
+ * datelines between commits — and have no kind to be filed under, so a
+ * kind cut has none. Every chapter carries the whole log as its
+ * `context` so a project still resolves the role it was made under (the
+ * `<handle>` byline, the tenure rail), though that role is filed in the
+ * Roles chapter; the rows themselves are only the kind's own, so a
+ * `hideRow` role never prints twice.
+ */
+export function buildKindTimelineData(
+  logData: LogData,
+  locale: Locale,
+): TimelineData[] {
+  const visible = logData.commits.filter((c) => isCommitVisibleIn(c, locale));
+  const out: TimelineData[] = [];
+  for (const type of FILTERABLE_COMMIT_TYPES) {
+    const commits = sortCommitsByDate(visible.filter((c) => c.type === type));
+    if (commits.length === 0) continue;
+    const dates = commits.map((c) => c.date).sort();
+    const open = commits.some(
+      (c) => c.endDate === "present" || (c.type === "role" && !c.endDate),
+    );
+    const ends = commits
+      .map((c) => (c.endDate && c.endDate !== "present" ? c.endDate : c.date))
+      .sort();
+    const label = {
+      en: getCommitTypePluralLabel(type, "en"),
+      zh: getCommitTypePluralLabel(type, "zh"),
+    };
+    out.push({
+      tag: {
+        id: `${KIND_TAG_PREFIX}${type}`,
+        title: label,
+        tagline: { en: "", zh: "" },
+        startDate: dates[0],
+        endDate: open ? undefined : ends[ends.length - 1],
+      },
+      commits,
+      context: visible,
+    });
+  }
+  return out;
 }
 
 // =============================================================================

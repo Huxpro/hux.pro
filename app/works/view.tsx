@@ -8,6 +8,7 @@ import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { t, useLocale } from "@/services";
 import {
+  buildKindTimelineData,
   buildTimelineData,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
@@ -19,6 +20,7 @@ import {
   parseViewState,
   serializeViewState,
   toggleType,
+  type LogBy,
   type LogForm,
 } from "@/lib/log-view";
 
@@ -32,7 +34,10 @@ export function WorksView({ logData }: WorksViewProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const data = useMemo(
+  // The log in its own order: the eras. What the chip counts are counted
+  // over whichever way the page is cut — a kind is a kind however the
+  // chapters fall — and what the page prints when it is cut by time.
+  const timeData = useMemo(
     () => buildTimelineData(logData, locale),
     [logData, locale],
   );
@@ -67,8 +72,16 @@ export function WorksView({ logData }: WorksViewProps) {
 
   const selectHash = useCommitAnchor();
 
+  // The same log cut by kind when the URL asks (`?by=kind`): one chapter
+  // per kind of work, Projects first. The rows are the same rows.
+  const data = useMemo(
+    () =>
+      view.by === "kind" ? buildKindTimelineData(logData, locale) : timeData,
+    [view.by, logData, locale, timeData],
+  );
+
   const commit = useCallback(
-    (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
+    (next: { types?: FilterableCommitType[]; form?: LogForm; by?: LogBy }) => {
       const merged = { ...view, ...next };
       setView(merged);
       const query = serializeViewState(
@@ -95,10 +108,12 @@ export function WorksView({ logData }: WorksViewProps) {
   // role un-suppresses under its own chip (see `isRowVisible`) and a count
   // of 2 over a column of 9 is just a wrong number.
   //
-  // Counted over `data` rather than the raw log, because `data` is what the
-  // timeline renders — locale filtered and grouped under a tag that exists.
-  // A count derived from a different array is a count that can disagree with
-  // the rows under it.
+  // Counted over `timeData` rather than the raw log, because that is what
+  // the timeline renders — locale filtered and grouped under a tag that
+  // exists. A count derived from a different array is a count that can
+  // disagree with the rows under it. The time cut, not the kind cut: the
+  // kind cut is the same rows regrouped, and a chip counts a kind whichever
+  // way the chapters fall.
   const facets = useMemo<TypeFacet[]>(() => {
     // Per type: how many rows, and every distinct `icon` override they carry.
     // One override and the chip can wear it; more than one (or none) and it
@@ -108,7 +123,7 @@ export function WorksView({ logData }: WorksViewProps) {
       { count: number; icons: Set<string | undefined> }
     >();
 
-    for (const { commits } of data) {
+    for (const { commits } of timeData) {
       for (const c of commits) {
         if (!isFilterableCommitType(c.type)) continue;
         if (!isRowVisible(c, [c.type])) continue;
@@ -127,16 +142,20 @@ export function WorksView({ logData }: WorksViewProps) {
         iconOverride: icons.size === 1 ? [...icons][0] : undefined,
       };
     });
-  }, [data]);
+  }, [timeData]);
+
+  // Whether the first chapter is the log's head: it is when the chapters
+  // are the eras, and not when they are the kinds.
+  const head = view.by === "time";
 
   // The chapters, as the pinned bar names them when it wears one.
   const chapters = useMemo(
     () =>
       data.map(({ tag }, i) => ({
         id: tag.id,
-        label: chapterLabel(tag, i, locale),
+        label: chapterLabel(tag, i, locale, head),
       })),
-    [data, locale],
+    [data, locale, head],
   );
 
   // Whether the log has anything to print under the current filter — the same
@@ -166,6 +185,8 @@ export function WorksView({ logData }: WorksViewProps) {
           onClearTypes={() => commit({ types: [] })}
           form={view.form}
           onFormChange={(form) => commit({ form })}
+          by={view.by}
+          onByChange={(by) => commit({ by })}
           chapters={chapters}
         />
       }
@@ -175,6 +196,7 @@ export function WorksView({ logData }: WorksViewProps) {
         data={data}
         locale={locale}
         identities={logData.identities}
+        head={head}
         form={view.form}
         activeTypes={view.types}
         onSelectHash={selectHash}

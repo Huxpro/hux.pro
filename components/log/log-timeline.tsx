@@ -31,8 +31,17 @@ const NO_TYPES: FilterableCommitType[] = [];
 
 /** What a chapter's ref marker says: the newest chapter is `HEAD`, the rest
  *  their title. Shared with the pinned bar, which wears the same marker. */
-export function chapterLabel(tag: Tag, tagIndex: number, locale: Locale): string {
-  return tagIndex === 0 ? "HEAD" : getLocalizedTagTitle(tag, locale).toUpperCase();
+export function chapterLabel(
+  tag: Tag,
+  tagIndex: number,
+  locale: Locale,
+  /** Whether the first chapter is where the log's head is — true for the
+   *  eras, false for a cut by kind, whose first chapter is only a kind. */
+  head = true,
+): string {
+  return head && tagIndex === 0
+    ? "HEAD"
+    : getLocalizedTagTitle(tag, locale).toUpperCase();
 }
 
 /**
@@ -54,8 +63,16 @@ interface LogTimelineProps {
   data: {
     tag: Tag;
     commits: CommitData[];
+    /** See `TimelineData.context` (lib/log.ts). */
+    context?: CommitData[];
   }[];
   locale: Locale;
+  /**
+   * Whether the newest chapter is `HEAD`. It is, when the chapters are the
+   * eras; a cut by kind (`buildKindTimelineData`) has no head, and its
+   * first chapter wears its own name like the rest.
+   */
+  head?: boolean;
   /**
    * Global identities map (handle + company + accent per identity id).
    * Used to hydrate the `<handle>` byline and the expanded author
@@ -95,6 +112,7 @@ export function LogTimeline({
   data,
   locale,
   identities,
+  head = true,
   form = DEFAULT_FORM,
   activeTypes = NO_TYPES,
   onSelectHash,
@@ -102,12 +120,14 @@ export function LogTimeline({
 }: LogTimelineProps) {
   return (
     <div className="space-y-0">
-      {data.map(({ tag, commits }, tagIndex) => (
+      {data.map(({ tag, commits, context }, tagIndex) => (
         <TagBlock
           key={tag.id}
           tag={tag}
           commits={commits}
+          context={context}
           tagIndex={tagIndex}
+          head={head}
           locale={locale}
           identities={identities}
           form={form}
@@ -123,7 +143,9 @@ export function LogTimeline({
 interface TagBlockProps {
   tag: Tag;
   commits: CommitData[];
+  context?: CommitData[];
   tagIndex: number;
+  head: boolean;
   locale: Locale;
   identities?: Record<string, Identity>;
   form: LogForm;
@@ -135,7 +157,9 @@ interface TagBlockProps {
 function TagBlock({
   tag,
   commits,
+  context,
   tagIndex,
+  head,
   locale,
   identities,
   form,
@@ -146,7 +170,7 @@ function TagBlock({
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
   const isTagSelected = edit?.editingTagId === tag.id;
-  const tagLabel = chapterLabel(tag, tagIndex, locale);
+  const tagLabel = chapterLabel(tag, tagIndex, locale, head);
   const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
   const handleBeamSet = useCallback(
     (spec: BeamSpec) => setActiveBeam(spec),
@@ -184,7 +208,7 @@ function TagBlock({
     isHidden,
     hasVisible,
   } = useMemo(() => {
-    const bylinesArr = computeBylines(commits, identities, locale);
+    const bylinesArr = computeBylines(commits, identities, locale, context);
 
     // One predicate, four consumers: the rail re-brackets around the rows
     // that survive, beams with a hidden endpoint are dropped, the render
@@ -193,7 +217,11 @@ function TagBlock({
     // for its chip counts and its empty state.
     const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
 
-    const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
+    const rail = adjustRailForHidden(
+      commits,
+      computeRail(commits, context),
+      hidden,
+    );
     const allBeams = [
       ...computeBeams(commits, hidden).map((b) => ({
         ...b,
@@ -239,7 +267,7 @@ function TagBlock({
       isHidden: hidden,
       hasVisible: commits.some((c) => !hidden(c)),
     };
-  }, [commits, identities, locale, activeTypes]);
+  }, [commits, context, identities, locale, activeTypes]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,

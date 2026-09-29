@@ -53,6 +53,9 @@ export function computeBylines(
   commits: Commit[],
   identities: Record<string, Identity> | undefined,
   locale: Locale,
+  /** The commits identity resolution walks; the rows themselves by
+   *  default. See `computeRail` / `TimelineData.context`. */
+  context: Commit[] = commits,
 ): (Byline | null)[] {
   const result: (Byline | null)[] = commits.map(() => null);
   let prevIdentityId: string | null = null;
@@ -60,7 +63,7 @@ export function computeBylines(
 
   for (let i = 0; i < commits.length; i++) {
     const c = commits[i];
-    const resolved = resolveIdentity(c, commits);
+    const resolved = resolveIdentity(c, context);
     if (!resolved) {
       prevIdentityId = null;
       continue;

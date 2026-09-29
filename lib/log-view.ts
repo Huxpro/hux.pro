@@ -137,6 +137,29 @@ export function parseLogForm(value: string | null): LogForm | null {
 }
 
 // =============================================================================
+// By — what the chapters are.
+//
+// The log has one order, by date, and its chapters are the eras. That is
+// the reading for "what was I doing when"; it is not the reading for "what
+// have you built", which a chronological log answers by making the reader
+// pick eleven projects out of nineteen talks. `kind` cuts the same log the
+// other way: one chapter per kind of work, Projects first, newest first
+// inside each (`buildKindTimelineData`, lib/log.ts). The rows are the
+// same rows, in every form; only the chapters change.
+// =============================================================================
+
+export const LOG_BYS = ["time", "kind"] as const;
+
+export type LogBy = (typeof LOG_BYS)[number];
+
+export const DEFAULT_BY: LogBy = "time";
+
+export function parseLogBy(value: string | null): LogBy | null {
+  if (!value) return null;
+  return (LOG_BYS as readonly string[]).includes(value) ? (value as LogBy) : null;
+}
+
+// =============================================================================
 // View state
 // =============================================================================
 
@@ -147,6 +170,7 @@ export interface LogViewState {
    */
   types: FilterableCommitType[];
   form: LogForm;
+  by: LogBy;
 }
 
 /**
@@ -169,6 +193,7 @@ export function toggleType(
 
 export const TYPE_PARAM = "type";
 export const FORM_PARAM = "view";
+export const BY_PARAM = "by";
 
 /**
  * Read view state out of a query string.
@@ -195,13 +220,14 @@ export function parseViewState(params: URLSearchParams): LogViewState {
   return {
     types,
     form: parseLogForm(params.get(FORM_PARAM)) ?? DEFAULT_FORM,
+    by: parseLogBy(params.get(BY_PARAM)) ?? DEFAULT_BY,
   };
 }
 
 /**
- * Write view state back into a query string, dropping both params at their
- * defaults so the plain `/works` URL stays clean — nobody should have to
- * share `?type=&view=covers`.
+ * Write view state back into a query string, dropping every param at its
+ * default so the plain `/works` URL stays clean — nobody should have to
+ * share `?type=&view=covers&by=time`.
  *
  * Takes the current params and mutates a copy so unrelated query state
  * (anything another feature owns) survives a chip tap.
@@ -222,6 +248,12 @@ export function serializeViewState(
     params.set(FORM_PARAM, state.form);
   } else {
     params.delete(FORM_PARAM);
+  }
+
+  if (state.by !== DEFAULT_BY) {
+    params.set(BY_PARAM, state.by);
+  } else {
+    params.delete(BY_PARAM);
   }
 
   return params.toString();

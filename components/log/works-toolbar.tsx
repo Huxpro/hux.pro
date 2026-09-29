@@ -3,10 +3,10 @@
 /**
  * WorksToolbar — the one line under the /works title.
  *
- *   ⎇ main │ ▣ Projects 8  ◔ Talks 12  ◌ Social 3  ▤ Roles 2  ⨯ │ ≡ ▤ ▦
- *   └ ref    └───────────────── pathspec ──────────────────────┘   └ form
+ *   ⎇ main │ ◈ │ ▣ Projects 8  ◔ Talks 12  ◌ Social 3  ▤ Roles 2  ⨯ │ ≡ ▤ ▦
+ *   └ ref    └ by └───────────────── pathspec ──────────────────────┘   └ form
  *
- * Three controls, one row, because the row is the budget: this sits in the
+ * Four controls, one row, because the row is the budget: this sits in the
  * header zone above a sticky timeline, and anything that wraps to a second
  * line pushes the first commit off the fold on a phone. So every control is
  * icon-first and earns its width — labels appear at `sm` and up, where there
@@ -62,7 +62,14 @@ import {
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import { GalleryVertical, GitBranch, LayoutList, List, X } from "lucide-react";
+import {
+  GalleryVertical,
+  GitBranch,
+  LayoutList,
+  List,
+  Shapes,
+  X,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/ui/controls";
@@ -71,7 +78,7 @@ import {
   getCommitTypePluralLabel,
   type FilterableCommitType,
 } from "@/lib/log";
-import { LOG_FORMS, type LogForm } from "@/lib/log-view";
+import { LOG_FORMS, type LogBy, type LogForm } from "@/lib/log-view";
 import { pageScrollTop, scrollPageTo } from "vitre";
 import { usePageLift } from "@/components/ui/use-page-lift";
 import { useScrollEdges } from "@/components/ui/use-scroll-edges";
@@ -104,6 +111,9 @@ interface WorksToolbarProps {
   onClearTypes: () => void;
   form: LogForm;
   onFormChange: (form: LogForm) => void;
+  /** What the chapters are: the eras, or the kinds (see lib/log-view). */
+  by: LogBy;
+  onByChange: (by: LogBy) => void;
   /** The chapters on the page, in order, with the marker each wears. */
   chapters: readonly { id: string; label: string }[];
 }
@@ -155,6 +165,8 @@ export function WorksToolbar({
   onClearTypes,
   form,
   onFormChange,
+  by,
+  onByChange,
   chapters,
 }: WorksToolbarProps) {
   const filtering = active.length > 0;
@@ -257,6 +269,34 @@ export function WorksToolbar({
           transition={motionOf}
           className="flex min-w-0 items-center gap-2 sm:gap-3"
         >
+          <Divider />
+
+          {/* What the chapters are — the eras, or the kinds. Beside the
+              ref, because it is the ref's business: it decides what the
+              slot will wear as the page scrolls (`HEAD`, or `PROJECTS`).
+              One chip, pressed or not, in the pathspec chips' own dress
+              (filled when on, tertiary at rest) rather than a two-stop
+              segmented control: the log has one order of its own, and
+              cutting it by kind is the one thing you can do to it — a
+              switch, not a choice among readings — and the second stop
+              was a phone's width of chips pushed under the edge. */}
+          <button
+            type="button"
+            onClick={() => onByChange(by === "kind" ? "time" : "kind")}
+            aria-pressed={by === "kind"}
+            aria-label={t(locale, "logByKind")}
+            title={t(locale, by === "kind" ? "logByTime" : "logByKind")}
+            className={cn(
+              "inline-flex shrink-0 items-center rounded p-1",
+              "transition-colors duration-200",
+              by === "kind"
+                ? "bg-muted text-foreground"
+                : "text-tertiary-foreground hover:text-foreground",
+            )}
+          >
+            <Shapes className="h-3 w-3" />
+          </button>
+
           <Divider />
 
           {/* Pathspec: what is in this reading of the log. */}
