@@ -100,11 +100,11 @@ export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
 
 export type WidgetMorph = "off" | "phone" | "everywhere" | "overlay";
 /**
- * `everywhere` while this is being tried on an iPad and a desktop as well as
- * a phone; `"off"` before it merges. A value saved in the devtool wins over
- * this — its star resets to it.
+ * `overlay` on this branch, so its preview opens Writing as an app on a
+ * phone, an iPad and a desktop alike; `"off"` before it merges. A value saved
+ * in the devtool wins over this — its star resets to it.
  */
-export const WIDGET_MORPH_DEFAULT: WidgetMorph = "everywhere";
+export const WIDGET_MORPH_DEFAULT: WidgetMorph = "overlay";
 
 function parseWidgetMorph(raw: unknown): WidgetMorph {
   if (raw === "off" || raw === "phone" || raw === "everywhere" || raw === "overlay") {
