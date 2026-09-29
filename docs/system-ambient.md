@@ -213,7 +213,7 @@ Like everything else in the Sky engine it is procedural: no texture is loaded.
 | `wind` | screen-space direction × strength |
 | `windWorld`, `celestial` | the same wind as east/north components, and latitude + local sidereal time — for [the sky window](#the-sky-window-any-weather-easter-egg), which turns |
 | `fog`, `lightning`, `stars` | 0..1 amounts |
-| `veil` | theme blend toward the page background (light: white, dark: `#1a1a1a`) |
+| `veil`, `exposure` | theme blend toward the page background (light: white, dark: `#1a1a1a`) and brightness — both drawn to one shared look through the sun's crossing ([The twilight look](#the-twilight-look)) |
 
 Every sky colour above has already been put in the theme's key — see
 [The theme's key](#the-themes-key) — so a day under the dark theme is a deep
@@ -1844,6 +1844,54 @@ On a change of theme the Sky's keyed colours (sky, glow, clouds, the moon's
 strength — `keyed` in `wallpaper/renderer.ts`) ease on the theme's clock
 instead of their own 1.8s, so the re-keyed sky lands with the veil rather than
 seconds behind the chrome.
+
+### The twilight look
+
+With the key at zero on both sides of the crossing, what was left of the theme
+at sunset was the veil and the exposure: Light brightened and washed 30% toward
+white, Dark dimmed and washed toward the page. That was the whole of the
+handover's cut — a bright, milky sunset with a blown-out sun became a dim one
+in three seconds, the sun's glow first.
+
+So **twilight belongs to neither theme**. Toward the sun's crossing both looks
+are drawn to one — no veil, the sky at 0.8 exposure — and through the crossing
+they are the same look (`TWILIGHT_LOOK` in `lib/scene.ts`). A theme that
+changes hands there has nothing left to change in the sky: the scene the shader
+and the Gradient receive is identical under either theme, and the handover's
+crossfade crosses nothing.
+
+```
+           light's own   ←──── meet ────→   dark's own
+  light  ──────┬────────────┬────┬───┬───────────────────────
+             +12°          0°  −1.5 −4
+  dark   ──────────────┬────┬────┬──────────────┬────────────
+                      +4    0°  −1.5           −8°
+```
+
+- **Following the sun**, Light's sun dims through the last hour of the
+  afternoon toward the meet, and Dark's brightens through the dawn out of it.
+- **The plateau** (−1.5° to 0°) covers where the handover really lands:
+  sunrise and sunset as the forecast has them, −0.83° on the ephemeris and 0°
+  on the estimated arc. It ends where the dark theme's key begins, so
+  through all of it the scene is the same under either theme, to the bit.
+- **Past the crossing** — where only a hand-picked theme goes — each theme takes
+  its own look back within a few degrees, since the key is about to take over
+  there and a meet that lingered would put the chrome on the wrong side of its
+  sky before the key arrives.
+- **Where it meets** is a legibility decision: about the frame lightness at
+  which the light card's tone conflict and the dark card's are equal
+  (`toneSafe` in `lib/legibility.ts`: Light wants the picture above 0.62, Dark
+  below 0.45). A clear sunset lands at ~0.53, both leaning on the policy's fill
+  by the same ~5 points while the sky changes hands.
+
+The two looks are mixed as what they paint (`gain·col + offset`), so every
+frame in between is the plain mix of the two frames. The Gradient never took
+the exposure and adds its own lift to the veil (`CSS_VEIL_BOOST`); through
+twilight it trades that lift for the shared exposure on the same weight
+(`twilightExposure`), so both engines meet the same look. The legibility
+profile (`profileFromScene`) measures with the same exposure, so the policy
+sees a sunset as dark as the Sky draws it; away from twilight the factor is 1
+and every profile is what it was. Classic keeps its hand-tuned table.
 
 ## Wallpaper
 

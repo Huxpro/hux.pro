@@ -11,7 +11,14 @@ import type { AmbientPhase } from "./phase";
 import type { SunEvent } from "./sun";
 import type { WallpaperLook, WeatherStyle } from "./wallpaper";
 import type { WeatherCondition } from "./weather";
-import { mixRGB, rgbToCss, type RGB, type WeatherScene } from "./scene";
+import {
+  mixRGB,
+  rgbToCss,
+  twilightExposure,
+  twilightLookAmount,
+  type RGB,
+  type WeatherScene,
+} from "./scene";
 
 /**
  * One entry in the crossfade stack rendered by <GradientStack />.
@@ -48,12 +55,20 @@ export const GRADIENT_CROSSFADE_MS = 700;
  */
 const CSS_VEIL_BOOST = { light: 0.28, dark: 0.18 } as const;
 
+/**
+ * The scene's veil, and the boost on top of it. Both give way to the twilight
+ * look together (lib/scene.ts): this path never took the exposure, so through
+ * the sun's crossing it takes the shared one instead of the boost, and the two
+ * themes' gradients meet where the shader's skies do.
+ */
 function veiled(c: RGB, scene: WeatherScene): RGB {
+  const twilight = twilightLookAmount(scene.theme, scene.sun.elevation);
+  const exposure = twilightExposure(scene);
   const amount = Math.min(
     1,
-    scene.veil.amount + CSS_VEIL_BOOST[scene.theme]
+    scene.veil.amount + CSS_VEIL_BOOST[scene.theme] * (1 - twilight)
   );
-  return mixRGB(c, scene.veil.color, amount);
+  return mixRGB([c[0] * exposure, c[1] * exposure, c[2] * exposure], scene.veil.color, amount);
 }
 
 export function sceneToCssGradient(scene: WeatherScene): string {
