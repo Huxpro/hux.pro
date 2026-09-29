@@ -80,6 +80,7 @@ export function MusicWidget() {
               className={cn(
                 "block text-xs text-tertiary-foreground",
                 locale === "zh" ? "font-mono" : "italic font-serif",
+                "m3:not-italic m3:font-sans m3:font-medium m3:first-letter:uppercase m3:tracking-[0.1px] m3:text-(--md-primary)",
               )}
             >
               {t(locale, "widgetUpNext")}
@@ -94,7 +95,7 @@ export function MusicWidget() {
                         type="button"
                         onClick={() => playAt(i)}
                         className={cn(
-                          "pressable -mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-md px-2 py-px text-left",
+                          "pressable -mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-md px-2 py-px text-left m3:rounded-xl m3:py-0.5",
                           "transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35",
                         )}
                       >
@@ -102,7 +103,7 @@ export function MusicWidget() {
                         <img
                           src={entry.thumbnailUrl}
                           alt=""
-                          className="h-6 w-6 shrink-0 rounded object-cover"
+                          className="h-6 w-6 shrink-0 rounded object-cover m3:rounded-md"
                         />
                         <span className={cn("min-w-0 flex-1 truncate", TYPE.rowTitle)}>
                           {entry.title ?? `${t(locale, "musicTrack")} ${i + 1}`}

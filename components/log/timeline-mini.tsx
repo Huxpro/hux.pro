@@ -247,7 +247,7 @@ export function TimelineMini({
   );
 
   const shell = cn(
-    "group pressable relative block -mx-2 px-2 rounded-lg transition-colors duration-150 overflow-y-clip",
+    "group pressable relative block -mx-2 px-2 rounded-lg transition-colors duration-150 overflow-y-clip m3:rounded-xl",
     isEvent || isAside ? "py-1" : "py-2",
     className,
   );
@@ -276,7 +276,7 @@ export function TimelineMini({
         href={href}
         data-row-link
         aria-label={displayTitle}
-        className="absolute inset-0 z-0 rounded-lg outline-none"
+        className="absolute inset-0 z-0 rounded-lg outline-none m3:rounded-xl"
       />
       <div className="relative z-10 pointer-events-none [&_a]:pointer-events-auto">
         {body}

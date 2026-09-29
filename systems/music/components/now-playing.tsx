@@ -46,6 +46,38 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+// ---------------------------------------------------------------------------
+// The transport in the Material skin (`m3:` — inside a home widget only; the
+// Live Activity keeps its glass capsule). Android's media controls: no
+// capsule around the buttons, icon buttons for the neighbours, and play /
+// pause as the one filled button in `primary`. In Material 3 Expressive a
+// button's *shape* carries its state: paused, it is round — the thing to
+// press; playing, it settles into a rounded square; pressed, it squeezes
+// tighter still. The corner rides the Expressive fast-spatial spring, so the
+// morph has the platform's small overshoot. The playlist toggle, when on,
+// is a tonal `secondary-container` button — Material's selected toggle.
+// ---------------------------------------------------------------------------
+
+// `!`: the glass classes these replace carry `dark:` and `hover:` variants
+// that would otherwise win the cascade in one theme or on one state.
+const M3_CLUSTER = cn(
+  "m3:gap-1.5 m3:bg-transparent! m3:border-0! m3:p-0 m3:ring-0! m3:shadow-none! m3:backdrop-blur-none!",
+);
+
+const M3_ICON_BTN = cn(
+  "m3:size-9 m3:rounded-full m3:text-(--md-on-surface-variant) m3:ring-0 m3:shadow-none",
+  "m3:hover:bg-[color-mix(in_srgb,var(--md-on-surface)_8%,transparent)]",
+  "m3:active:bg-[color-mix(in_srgb,var(--md-on-surface)_10%,transparent)]",
+);
+
+const M3_PLAY_BTN = cn(
+  "m3:size-12 m3:rounded-[24px] m3:bg-(--md-primary)! m3:text-(--md-on-primary)!",
+  "m3:ring-0! m3:shadow-none! m3:backdrop-blur-none!",
+  "m3:hover:bg-[color-mix(in_srgb,var(--md-primary),var(--md-on-primary)_8%)]!",
+  "m3:data-playing:rounded-[16px] m3:active:rounded-[12px]",
+  "m3:transition-[border-radius,background-color] m3:duration-(--md-spring-fast-spatial-duration) m3:ease-(--md-spring-fast-spatial)",
+);
+
 function MusicTransport({
   isPlaying,
   onPrevious,
@@ -70,31 +102,33 @@ function MusicTransport({
   raised?: boolean;
 }) {
   return (
-    <div className={raised ? GLASS_CLUSTER : GLASS_CLUSTER_FLAT}>
+    <div className={cn(raised ? GLASS_CLUSTER : GLASS_CLUSTER_FLAT, M3_CLUSTER)}>
       {!idle && (
-        <button type="button" onClick={onPrevious} aria-label="Previous track" className={GLASS_CLUSTER_BTN}>
-          <Rewind className="h-3.5 w-3.5" />
+        <button type="button" onClick={onPrevious} aria-label="Previous track" className={cn(GLASS_CLUSTER_BTN, M3_ICON_BTN)}>
+          <Rewind className="h-3.5 w-3.5 m3:size-[18px]" />
         </button>
       )}
       <button
         type="button"
         onClick={onPlayPause}
         aria-label={isPlaying ? "Pause" : "Play"}
+        data-playing={isPlaying ? "" : undefined}
         className={cn(
           GLASS_CLUSTER_BTN,
           "text-foreground",
           raised ? GLASS_PILL : GLASS_PILL_FLAT,
+          M3_PLAY_BTN,
         )}
       >
         {isPlaying ? (
-          <Pause className="h-3.5 w-3.5" fill="currentColor" />
+          <Pause className="h-3.5 w-3.5 m3:size-5" fill="currentColor" />
         ) : (
-          <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />
+          <Play className="h-3.5 w-3.5 translate-x-px m3:size-5" fill="currentColor" />
         )}
       </button>
       {!idle && (
-        <button type="button" onClick={onNext} aria-label="Next track" className={GLASS_CLUSTER_BTN}>
-          <FastForward className="h-3.5 w-3.5" />
+        <button type="button" onClick={onNext} aria-label="Next track" className={cn(GLASS_CLUSTER_BTN, M3_ICON_BTN)}>
+          <FastForward className="h-3.5 w-3.5 m3:size-[18px]" />
         </button>
       )}
       {/* A toggle, and lit while the list is up: the playlist is a place you
@@ -109,9 +143,11 @@ function MusicTransport({
           GLASS_CLUSTER_BTN,
           playlistOpen &&
             cn(raised ? GLASS_PILL : GLASS_PILL_FLAT, "text-foreground"),
+          M3_ICON_BTN,
+          playlistOpen && "m3:bg-(--md-secondary-container) m3:text-(--md-on-secondary-container)",
         )}
       >
-        <ListMusic className="h-3.5 w-3.5" />
+        <ListMusic className="h-3.5 w-3.5 m3:size-[18px]" />
       </button>
     </div>
   );
@@ -157,7 +193,7 @@ export function NowPlaying({
       <div className="flex items-start gap-3.5">
         {/* Album art — mqdefault is 16:9, object-cover crops to square */}
         <div
-          className="h-20 w-20 overflow-hidden rounded-lg shrink-0"
+          className="h-20 w-20 overflow-hidden rounded-lg shrink-0 m3:size-[88px] m3:rounded-2xl"
           onMouseEnter={() => setShowProgress(true)}
           onMouseLeave={() => setShowProgress(false)}
         >
@@ -168,7 +204,7 @@ export function NowPlaying({
           />
         </div>
 
-        <div className="flex h-20 min-w-0 flex-1 flex-col justify-between">
+        <div className="flex h-20 min-w-0 flex-1 flex-col justify-between m3:h-[88px]">
           <div className="min-w-0">
             <div className={cn("truncate", TYPE.mediaTitle)}>
               {track.title}
@@ -225,10 +261,10 @@ export function NowPlaying({
   if (isIdle && !isLoading) {
     return (
       <div className="flex items-start gap-3.5">
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-muted/30">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-muted/30 m3:size-[88px] m3:rounded-2xl">
           <Music className="h-6 w-6 text-quaternary-foreground" />
         </div>
-        <div className="flex h-20 min-w-0 flex-1 flex-col justify-between">
+        <div className="flex h-20 min-w-0 flex-1 flex-col justify-between m3:h-[88px]">
           <div className="text-xs font-mono text-muted-foreground">
             {t(locale, "musicNotPlaying")}
           </div>
@@ -252,8 +288,8 @@ export function NowPlaying({
   // loading skeleton
   return (
     <div className="flex items-start gap-3.5">
-      <div className="h-20 w-20 shrink-0 animate-pulse rounded-lg bg-muted" />
-      <div className="flex h-20 min-w-0 flex-1 flex-col justify-between">
+      <div className="h-20 w-20 shrink-0 animate-pulse rounded-lg bg-muted m3:size-[88px] m3:rounded-2xl" />
+      <div className="flex h-20 min-w-0 flex-1 flex-col justify-between m3:h-[88px]">
         <div>
           <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
           <div className="mt-1.5 h-3 w-1/2 animate-pulse rounded bg-muted" />

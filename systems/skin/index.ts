@@ -16,3 +16,5 @@ export {
   seedFromTint,
   type SchemeStyle,
 } from "./lib/scheme";
+export { ExpressiveShape } from "./components/expressive-shape";
+export { SHAPES, shapePath, starPath, type ShapeName } from "./lib/shapes";

@@ -11,6 +11,15 @@
    composition starts to fit with room left over. */
 @custom-variant roomy (@media (width >= 96rem) and (height >= 1000px));
 
+/* `material:` — only in the Material skin (services/skin.tsx), anywhere on
+   the page. `m3:` — only inside a widget card drawn in the Material skin
+   (`[data-widget-shell]`), which is what a shared control (the album tabs,
+   the music transport, a thumbnail) wants: its Material form on the home
+   grid, its own form in the theater, the dock and the pickers. See
+   docs/system-skin.md. */
+@custom-variant material (&:where([data-skin="material"] *));
+@custom-variant m3 (&:where([data-skin="material"] [data-widget-shell], [data-skin="material"] [data-widget-shell] *));
+
 /* `bleed:` — wide enough for landscape media to break out of the reading
    column. The rule that does it and the reader control that switches it off
    (components/post/reading-sheet.tsx) both answer to this one number, so
@@ -1650,17 +1659,23 @@ html.dark[data-skin="material"] {
    Google Sans Flex; the serif (a quotation, a post's headline) stays the
    site's, because it is the content's voice, not the platform's. --- */
 html[data-skin="material"] [data-widget-shell] {
-  --foreground: var(--md-on-surface);
-  --card-foreground: var(--md-on-surface);
-  --ink: var(--md-on-surface);
-  --muted-foreground: var(--md-on-surface-variant);
-  --tertiary-foreground: color-mix(in srgb, var(--md-on-surface-variant) 80%, transparent);
-  --quaternary-foreground: var(--md-outline-variant);
-  --muted: color-mix(in srgb, var(--md-on-surface) 30%, transparent);
+  /* The container and its content colour, as three variables so a tone
+     (below) is three lines, and everything under it follows. */
+  --md-container: var(--md-surface-container);
+  --md-on-container: var(--md-on-surface);
+  --md-on-container-variant: var(--md-on-surface-variant);
+
+  --foreground: var(--md-on-container);
+  --card-foreground: var(--md-on-container);
+  --ink: var(--md-on-container);
+  --muted-foreground: var(--md-on-container-variant);
+  --tertiary-foreground: color-mix(in srgb, var(--md-on-container-variant) 80%, transparent);
+  --quaternary-foreground: color-mix(in srgb, var(--md-on-container-variant) 45%, transparent);
+  --muted: color-mix(in srgb, var(--md-on-container) 30%, transparent);
   --secondary: var(--md-surface-container-highest);
-  --accent: color-mix(in srgb, var(--md-on-surface) var(--md-state-pressed), transparent);
-  --border: var(--md-outline-variant);
-  --input: var(--md-outline-variant);
+  --accent: color-mix(in srgb, var(--md-on-container) var(--md-state-pressed), transparent);
+  --border: color-mix(in srgb, var(--md-on-container-variant) 40%, transparent);
+  --input: var(--border);
   --ring: var(--md-primary);
   --glass: var(--md-surface-container-high);
   --glass-hover: var(--md-surface-container-highest);
@@ -1671,7 +1686,7 @@ html[data-skin="material"] [data-widget-shell] {
   --font-sans: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
 
   font-family: var(--font-sans);
-  background-color: var(--md-surface-container);
+  background-color: var(--md-container);
   border-color: transparent;
   border-radius: var(--md-widget-radius);
   backdrop-filter: none;
@@ -1681,18 +1696,36 @@ html[data-skin="material"] [data-widget-shell] {
   text-shadow: none;
   transition: background-color var(--md-spring-default-effects-duration) var(--md-spring-default-effects);
 }
+/* Tones: the accent containers a home screen mixes in among the surfaces —
+   a widget that is one thing (a quotation) can wear one. `WidgetShell`'s
+   `tone` prop sets the attribute; the Glass skin ignores it. */
+html[data-skin="material"] [data-widget-shell][data-widget-tone="primary"] {
+  --md-container: var(--md-primary-container);
+  --md-on-container: var(--md-on-primary-container);
+  --md-on-container-variant: color-mix(in srgb, var(--md-on-primary-container) 78%, var(--md-primary-container));
+}
+html[data-skin="material"] [data-widget-shell][data-widget-tone="secondary"] {
+  --md-container: var(--md-secondary-container);
+  --md-on-container: var(--md-on-secondary-container);
+  --md-on-container-variant: color-mix(in srgb, var(--md-on-secondary-container) 78%, var(--md-secondary-container));
+}
+html[data-skin="material"] [data-widget-shell][data-widget-tone="tertiary"] {
+  --md-container: var(--md-tertiary-container);
+  --md-on-container: var(--md-on-tertiary-container);
+  --md-on-container-variant: color-mix(in srgb, var(--md-on-tertiary-container) 78%, var(--md-tertiary-container));
+}
 html[data-skin="material"] [data-widget-shell] * {
   text-shadow: none;
 }
 /* The hover state layer, on the card's own surface only (a tappable card). */
 html[data-skin="material"] [data-widget-shell].widget-surface:hover {
-  background-color: color-mix(in srgb, var(--md-surface-container), var(--md-on-surface) var(--md-state-hover));
+  background-color: color-mix(in srgb, var(--md-container), var(--md-on-container) var(--md-state-hover));
   border-color: transparent;
 }
 /* The press state layer: the existing `.widget-surface` overlay, at
    Material's 10% of the content colour. */
 html[data-skin="material"] [data-widget-shell].widget-surface::after {
-  background-color: var(--md-on-surface);
+  background-color: var(--md-on-container);
   transition-timing-function: var(--md-spring-default-effects);
 }
 html[data-skin="material"] [data-widget-shell].widget-surface:active:not(
@@ -1734,7 +1767,7 @@ html[data-skin="material"] [data-widget-shell] [data-widget-title] {
   line-height: 20px;
   font-weight: 500;
   letter-spacing: 0.1px;
-  color: var(--md-on-surface);
+  color: var(--md-on-container);
   text-transform: capitalize;
 }
 html[data-skin="material"] [data-widget-shell] .font-mono {
