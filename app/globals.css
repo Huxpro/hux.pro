@@ -1682,6 +1682,49 @@ html:not([data-widget-skin="classic"]) .widget-board {
   }
 }
 
+/* =============================================================================
+   The icon grid — `.app-grid` (Apple skin)
+   App icons and widgets share one grid, as on the iPhone Home Screen: a small
+   widget covers exactly 2×2 icons, a medium 4×2, a large 4×4, and an icon's
+   name sits in the gap under it, which is why iOS's gutter is taller than it
+   is wide. The board already has that shape — `--board-row-gap` is wider
+   than `--board-gap` so widget names fit — so the icon grid is derived from
+   it, not chosen:
+
+     vertical    two icons and one row gap fill a cell, and the row gap
+                 between cells is the same gap:  icon = (cell − rowGap) / 2
+     horizontal  a uniform pitch across cell boundaries needs icons to sit a
+                 little inside the tile's side edges (iOS's widgets bleed a
+                 few points past the icon columns for the same reason):
+                   bleed = (rowGap − colGap) / 4
+                   hgap  = (colGap + rowGap) / 2
+
+   Worked through, every icon's outer edge meets a widget's edge on both
+   axes, anywhere on the board. Classic has no such grid (its row gap has no
+   room for a name) and keeps its centred folder.
+   ============================================================================= */
+.app-grid {
+  --icon-vgap: var(--board-row-gap, var(--board-gap, 1rem));
+  --icon: calc((var(--cell) - var(--icon-vgap)) / 2);
+  --icon-hgap: calc((var(--board-gap, 1rem) + var(--icon-vgap)) / 2);
+  --icon-bleed: calc((var(--icon-vgap) - var(--board-gap, 1rem)) / 4);
+}
+html:not([data-widget-skin="classic"]) .app-grid {
+  /* AppTile reads this before its fixed pixel size. */
+  --app-icon: var(--icon);
+}
+html:not([data-widget-skin="classic"]) .app-grid [data-app-label] {
+  /* The name hangs in the gap under the icon rather than taking a row of
+     its own, so icon rows keep the grid's pitch. */
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  translate: -50% 0;
+  margin-top: 0.375rem;
+  width: calc(var(--icon) + var(--icon-hgap));
+  max-width: none;
+}
+
 /* The grip is the one control on a card that must take a touch drag for
    itself — the page must not scroll under a resize. */
 .widget-grip {

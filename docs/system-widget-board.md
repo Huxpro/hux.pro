@@ -84,9 +84,9 @@ who never touched a size has nothing stored for it.
 
 | id | sizes | default | what each size says |
 |---|---|---|---|
-| `apps` | small · medium (· large · xl once the catalog fills more than a medium page) | medium | **small** the folder glyph: a page of small icons, no labels, as an iOS folder shows its contents. **medium** a springboard row-pair, 4×2 labelled icons. **large** a 4×4 page. **xl** an 8×2 iPad page. |
+| `apps` | small (· medium once the catalog passes 4 · large · xl once it passes 8) | the smallest that holds the catalog | A size is a number of icon slots — **small** 2×2, **medium** 4×2, **large** 4×4, **xl** 8×2 — the room a widget of that size takes on an iPhone. Under the Apple skin the icons sit on the board's icon grid ([Widget Skin](./system-widget-skin.md#the-icon-grid)). |
 | `weather` | small · medium | small | **small** the glance: city, then the temperature and the condition pinned to the bottom of the square. **medium** the readout: temperature with the condition and the day's light (sunrise / sunset) beside it — the body the dock's phase panel also renders. |
-| `music` | small · medium | small | **small** the cover: art edge to edge, the label on it, one round play / pause at the bottom — the card's tap opens the playlist. **medium** the player: art beside title and artist, the full transport under them. |
+| `music` | small · medium | small or medium — whichever makes apps + weather + music four cells | **small** the cover: art edge to edge, the label on it, one round play / pause at the bottom — the card's tap opens the playlist. **medium** the player: art beside title and artist, the full transport under them. |
 | `blog` | medium · large | large | **medium** what's new: the newest post alone, with its description. **large** what's worth reading: the latest few, then under a hairline every `featured` post. |
 | `status` | medium · large | large | **medium** now: the project in progress (no end date, else the newest), its team, what it is, and the pulsing dot — the "status" the id still carries. **large** the log: the minimized /works timeline. |
 | `featured-talks` | medium · large · xl | large | **medium** one talk: cover beside title, one thing to press play on. **large** the albums: segmented control, horizontal carousel, dots. **xl** the gallery: four covers side by side without a carousel, eight in two rows once the cells are tall enough. |
@@ -94,13 +94,17 @@ who never touched a size has nothing stored for it.
 | `group-*` | large | large | The generic `content/log.json` stacks: a horizontal stack needs a cover's height plus a title, a vertical one a column of them. One size. |
 
 The defaults are chosen so the **default board is hole-free on a desktop's
-six cells**: 2 + 1 + 1 + 4 + 4 + 4 + 2 = 18 = three full rows. On a phone
-the two smalls pair up into one row; the rest stack.
+six cells**. With four apps the folder is a small square, so music takes the
+medium: apps 1 + weather 1 + music 2 + blog 4 + projects 4 + talks 4 +
+prompt 2 = 18 = three full rows. On a phone the two smalls — the four icons
+and the weather — pair up into one row, as on an iPhone; the rest stack.
+The rule is in `app/home-view.tsx`: music is whatever makes the first run
+(apps, weather, music) four cells, and when that cannot be even the board
+ends a row short rather than holing one.
 
 Sizes that a widget *could* fill but does not earn are left out on purpose:
-the app folder's `large` and `xl` exist in the code but are only offered once
-the catalog has more apps than a medium page holds (`appFolderSizes`), so a
-mostly empty page is never a choice.
+the app folder only offers a size once the catalog outgrows the one below it
+(`appFolderSizes`), so a mostly empty page is never a choice.
 
 ### Designing for the box
 

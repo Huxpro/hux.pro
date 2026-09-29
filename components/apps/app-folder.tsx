@@ -64,47 +64,61 @@ import { createPortal } from "react-dom";
 // iOS folders, or y for a vertical stack of pages). Nested dnd-kit reordering
 // + board edit/jiggle behavior is preserved from the original AppShelf.
 //
-// On the widget board the folder is sized like a widget, and each size is a
-// different page shape rather than the same icons scaled:
+// On the widget board the folder is sized like a widget, and a size is how
+// many icon slots it covers — the iPhone's own arithmetic, where a small
+// widget takes the room of 2×2 icons:
 //
-//   small   the folder glyph: a page of small icons with no labels, the way
-//           an iOS folder shows its contents on the home screen (2×2 while
-//           the catalog is four apps or fewer, 3×3 beyond that).
-//   medium  a springboard row-pair: 4×2 labelled icons, today's folder.
-//   large   a full page: 4×4.
-//   xl      an iPad page: 8×2.
+//   small   2×2 — four icons, the room of a small widget
+//   medium  4×2
+//   large   4×4
+//   xl      8×2 (iPad)
 //
-// `large` and `xl` only earn a place once the catalog can fill more than a
-// medium page (see `appFolderSizes`) — a mostly empty page is not a size.
+// Under the Apple skin the slots are the board's icon grid (`.app-grid` in
+// globals.css): icons sized and spaced from the cell and the two gaps, so
+// every icon's edge meets a widget's edge. A folder larger than its catalog
+// is not offered — four apps are a small square, not a medium with an empty
+// row (see `appFolderSizes`); a catalog larger than the folder pages.
+// Classic keeps its centred pages (smaller icons on the small square), since
+// its gaps have no room for a name under a grid-aligned icon.
 // =============================================================================
 
 const STORAGE_KEY = "hux_app_order_v2";
 
-/** Page shape per widget size; `tile` is the icon size, labels off for the glyph. */
-function folderLayoutFor(
-  size: WidgetSize,
-  appCount: number,
-): { layout: AppFolderLayout; tile: AppTileSize; labels: boolean } {
-  switch (size) {
-    case "small":
-      return appCount <= 4
-        ? { layout: { columns: 2, rows: 2, axis: "x" }, tile: "md", labels: false }
-        : { layout: { columns: 3, rows: 3, axis: "x" }, tile: "sm", labels: false };
-    case "large":
-      return { layout: { columns: 4, rows: 4, axis: "x" }, tile: "lg", labels: true };
-    case "xl":
-      return { layout: { columns: 8, rows: 2, axis: "x" }, tile: "lg", labels: true };
-    default:
-      return { layout: DEFAULT_APP_FOLDER_LAYOUT, tile: "lg", labels: true };
-  }
+/**
+ * Icon slots per size. `tile` is Classic's fixed icon (the Apple skin sizes
+ * icons from the grid instead) — 48px on the small square, where four 64px
+ * icons and their names would not fit. `classicLabels` can hide Classic's
+ * names for a shape that has no room for them; every shape has room today.
+ */
+const FOLDER_SHAPE: Record<
+  WidgetSize,
+  { layout: AppFolderLayout; tile: AppTileSize; classicLabels: boolean }
+> = {
+  small: { layout: { columns: 2, rows: 2, axis: "x" }, tile: "md", classicLabels: true },
+  medium: { layout: DEFAULT_APP_FOLDER_LAYOUT, tile: "lg", classicLabels: true },
+  large: { layout: { columns: 4, rows: 4, axis: "x" }, tile: "lg", classicLabels: true },
+  xl: { layout: { columns: 8, rows: 2, axis: "x" }, tile: "lg", classicLabels: true },
+};
+
+/**
+ * The sizes the folder offers for a catalog of `appCount` apps: small always
+ * (it pages), and a larger one only once the catalog outgrows the one below
+ * it — a size whose slots would mostly stand empty is not a size.
+ */
+export function appFolderSizes(appCount: number): WidgetSize[] {
+  const sizes: WidgetSize[] = ["small"];
+  if (appCount > pageCapacity(FOLDER_SHAPE.small.layout)) sizes.push("medium");
+  if (appCount > pageCapacity(FOLDER_SHAPE.medium.layout)) sizes.push("large", "xl");
+  return sizes;
 }
 
-/** The sizes the folder offers for a catalog of `appCount` featured apps. */
-export function appFolderSizes(appCount: number): WidgetSize[] {
-  const mediumPage = pageCapacity(DEFAULT_APP_FOLDER_LAYOUT);
-  return appCount > mediumPage
-    ? ["small", "medium", "large", "xl"]
-    : ["small", "medium"];
+/** The smallest size that holds the whole catalog on one page. */
+export function appFolderDefaultSize(appCount: number): WidgetSize {
+  const sizes = appFolderSizes(appCount);
+  return (
+    sizes.find((s) => pageCapacity(FOLDER_SHAPE[s].layout) >= appCount) ??
+    sizes[sizes.length - 1]
+  );
 }
 
 // iOS grows a held icon a touch more than a held widget — it's smaller, so the
@@ -116,7 +130,7 @@ const ICON_LIFT_SCALE = 1.15;
 export interface AppFolderProps {
   /** Override page layout; defaults to 4×2 horizontal pages. */
   layout?: Partial<AppFolderLayout>;
-  /** The widget size on the board; picks the page shape (see `folderLayoutFor`). */
+  /** The widget size on the board; picks the page shape (see `FOLDER_SHAPE`). */
   size?: WidgetSize;
   className?: string;
 }
@@ -129,12 +143,12 @@ function SortableAppIcon({
   id,
   revealBadge = false,
   tile = "lg",
-  showLabel = true,
+  labelClassName,
 }: {
   id: string;
   revealBadge?: boolean;
   tile?: AppTileSize;
-  showLabel?: boolean;
+  labelClassName?: string;
 }) {
   const app = APPS_BY_ID.get(id)!;
   const { setNodeRef, attributes, listeners, isDragging, transform, transition } =
@@ -175,7 +189,7 @@ function SortableAppIcon({
           <AppTile
             app={app}
             size={tile}
-            showLabel={showLabel}
+            labelClassName={labelClassName}
             revealBadge={revealBadge}
           />
         </AppLaunchLink>
@@ -242,7 +256,11 @@ function PageDots({
     <div
       className={cn(
         "flex items-center justify-center gap-1.5",
-        axis === "x" ? "pt-2" : "absolute right-1 top-1/2 -translate-y-1/2 flex-col",
+        axis === "x"
+          ? // Apple skin: under the folder, in the gap the icon names use,
+            // so the dots never push the grid off its slots.
+            "pt-2 skin-apple:absolute skin-apple:inset-x-0 skin-apple:top-full skin-apple:pt-1"
+          : "absolute right-1 top-1/2 -translate-y-1/2 flex-col",
       )}
       role="tablist"
       aria-label="App folder pages"
@@ -276,7 +294,8 @@ export function AppFolder({
   size = "medium",
   className,
 }: AppFolderProps) {
-  const shape = folderLayoutFor(size, FEATURED_APPS.length);
+  const shape = FOLDER_SHAPE[size];
+  const labelClassName = shape.classicLabels ? undefined : "skin-classic:hidden";
   const layout: AppFolderLayout = {
     ...shape.layout,
     ...layoutOverride,
@@ -398,12 +417,14 @@ export function AppFolder({
   // plus row-gap was leaving a phantom gap under a short catalog).
   // Multi page: lock row count so every snap page shares one footprint
   // (8 / 12 / 16 icons → pages of `columns × rows`, last page may be short).
-  const pageStyle: CSSProperties = {
-    gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-    ...(needsPages
-      ? { gridTemplateRows: `repeat(${layout.rows}, auto)` }
-      : null),
-  };
+  //
+  // The columns and rows are variables so each skin can lay the same markup
+  // out its own way (dnd-kit cannot host the icons twice): Classic in equal
+  // fractions of the folder, Apple on the board's icon grid.
+  const pageStyle = {
+    "--cols": layout.columns,
+    "--rows": layout.rows,
+  } as CSSProperties;
 
   return (
     <DndContext
@@ -418,11 +439,16 @@ export function AppFolder({
       <SortableContext items={order} strategy={rectSortingStrategy}>
         <div
           className={cn(
-            // Fills its cell on the board; the page grid sits centred in
-            // whatever height is left, the way a folder's icons float.
-            "relative flex h-full flex-col justify-center rounded-2xl border",
-            // Apple skin: the platter shares the widgets' corner.
-            "skin-apple:rounded-[calc(var(--cell)*0.14)]",
+            // Fills its cell on the board. Classic: the page grid sits
+            // centred in whatever height is left, the way a folder's icons
+            // float. Apple: icons start at the top-left slot, on the grid.
+            "app-grid relative flex h-full flex-col justify-center rounded-2xl border",
+            "skin-apple:justify-start",
+            // Apple skin: no platter, ever — iOS draws none behind icons;
+            // in edit mode the icons jiggle as the object, as its own do.
+            // No border either, so nothing insets the icons off the grid.
+            "skin-apple:border-0 skin-apple:bg-transparent skin-apple:shadow-none skin-apple:backdrop-blur-none",
+            "skin-apple:hover:bg-transparent",
             "transition-colors duration-300",
             // At rest the labels have nothing behind them but the wallpaper,
             // so the folder is a bare zone whose ink may flip — on the
@@ -464,7 +490,14 @@ export function AppFolder({
                 key={`page-${pi}`}
                 className={cn(
                   "grid gap-x-2",
-                  shape.labels ? "gap-y-5" : "gap-y-2",
+                  // Classic's small square is tight: two rows of 48px
+                  // icons and their names, 157px tall at the smallest.
+                  size === "small" ? "gap-y-3" : shape.classicLabels ? "gap-y-5" : "gap-y-2",
+                  "grid-cols-[repeat(var(--cols),minmax(0,1fr))]",
+                  needsPages && "grid-rows-[repeat(var(--rows),auto)]",
+                  // Apple skin: the board's icon grid (`.app-grid`).
+                  "skin-apple:grid-cols-[repeat(var(--cols),var(--icon))] skin-apple:grid-rows-[repeat(var(--rows),var(--icon))]",
+                  "skin-apple:gap-x-(--icon-hgap) skin-apple:gap-y-(--icon-vgap) skin-apple:justify-start",
                   // The folder is chrome-less at rest, so its own edges are
                   // where the tiles sit, not a card border — keep this snug
                   // (rather than the ~20px card padding elsewhere) so icons
@@ -472,7 +505,7 @@ export function AppFolder({
                   // The remaining sliver is just clipping headroom for the
                   // hover scale (top/left/right) and the badge overhang
                   // (bottom) once a snap scroller has to clip overflow.
-                  "px-0 pt-1 pb-2",
+                  "px-0 pt-1 pb-2 skin-apple:px-(--icon-bleed) skin-apple:py-0",
                   needsPages && "w-full shrink-0 snap-start snap-always",
                 )}
                 style={pageStyle}
@@ -483,7 +516,7 @@ export function AppFolder({
                     id={id}
                     revealBadge={editing}
                     tile={shape.tile}
-                    showLabel={shape.labels}
+                    labelClassName={labelClassName}
                   />
                 ))}
               </div>
@@ -518,7 +551,7 @@ export function AppFolder({
                 <AppTile
                   app={APPS_BY_ID.get(activeId)!}
                   size={shape.tile}
-                  showLabel={shape.labels}
+                  labelClassName={labelClassName}
                   revealBadge
                 />
               </div>

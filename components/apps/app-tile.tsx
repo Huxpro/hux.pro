@@ -53,6 +53,7 @@ export function AppTile({
   showLabel = true,
   revealBadge = false,
   className,
+  labelClassName,
 }: {
   app: AppLink;
   size?: AppTileSize;
@@ -60,6 +61,7 @@ export function AppTile({
   /** Force the runtime badge visible (jiggle-edit, drag clone, always-on). */
   revealBadge?: boolean;
   className?: string;
+  labelClassName?: string;
 }) {
   const { locale } = useLocale();
   const label = appTitle(app, locale);
@@ -68,9 +70,18 @@ export function AppTile({
   const src = resolveAppIconSrc(app, APP_ICONS);
   const px = TILE_PX[size];
 
+  // The icon's side: its fixed size, unless an icon grid it sits in says
+  // otherwise (`--app-icon`, set by `.app-grid` under the Apple skin).
+  const side = `var(--app-icon, ${px}px)`;
+
   return (
-    <span className={cn("flex w-full flex-col items-center overflow-visible", className)}>
-      <span className="relative block overflow-visible" style={{ width: px, height: px }}>
+    <span
+      className={cn(
+        "relative flex w-full flex-col items-center overflow-visible",
+        className,
+      )}
+    >
+      <span className="relative block overflow-visible" style={{ width: side, height: side }}>
         {/* Scale a wrapper *outside* the rounded clip so overflow:hidden +
             transform don't shear the squircle (or the badge that hangs off
             the corner) against a clipping ancestor. */}
@@ -97,7 +108,7 @@ export function AppTile({
               "after:bg-black/0 after:transition-colors after:duration-200",
               "group-active/app:after:bg-black/30 group-active/app:after:duration-0",
             )}
-            style={{ width: px, height: px }}
+            style={{ width: side, height: side }}
           >
             {src ? (
               // eslint-disable-next-line @next/next/no-img-element -- tiny local static asset; next/image adds nothing at these sizes
@@ -134,10 +145,12 @@ export function AppTile({
       </span>
       {showLabel && (
         <span
+          data-app-label=""
           className={cn(
             "block truncate text-center system-voice",
             TYPE.appLabel,
             LABEL[size],
+            labelClassName,
           )}
         >
           {label}

@@ -80,12 +80,21 @@ and (via the same fill/pad rules) the minimized dock pills.
 
 `components/apps/app-folder.tsx` renders as one chrome-less item on the home
 [Widget Board](./system-widget-board.md), so it drags alongside widgets and
-is sized like one. Each size is a different page shape, not the same icons
-scaled — **small** is the folder glyph (a page of small icons, no labels),
-**medium** the 4×2 springboard row-pair, and **large** (4×4) / **xl** (8×2)
-are only offered once the catalog fills more than a medium page
-(`appFolderSizes`). Icons inside are a *nested* dnd-kit sortable with its
-own persisted order (`localStorage["hux_app_order_v2"]`):
+is sized like one. A size is a number of **icon slots**, the iPhone's own
+arithmetic — a small widget takes the room of 2×2 icons: **small** 2×2,
+**medium** 4×2, **large** 4×4, **xl** 8×2. A size is only offered once the
+catalog outgrows the one below it, and the default is the smallest that
+holds the catalog (`appFolderSizes`, `appFolderDefaultSize`): four apps are
+a small square, not a medium with an empty row.
+
+Under the Apple skin the slots are the board's **icon grid** (`.app-grid` in
+`globals.css`), derived from the cell and the two gaps so every icon's edge
+meets a widget's edge — see
+[Widget Skin › The icon grid](./system-widget-skin.md#the-icon-grid). Classic
+keeps its centred pages (48px icons on the small square).
+
+Icons inside are a *nested* dnd-kit sortable with its own persisted order
+(`localStorage["hux_app_order_v2"]`):
 
 - Pointer presses on icons stop propagation, so dragging an icon never lifts
   the whole folder (the folder still lifts from its empty areas).
@@ -101,8 +110,9 @@ own persisted order (`localStorage["hux_app_order_v2"]`):
   `position: fixed` — displacing both the visible clone and dnd-kit's
   collision rect, which silently broke cross-row sorting.
 
-**Pages.** Default (medium) layout is **4 columns × 2 rows** per page
-(`axis: "x"`); the board's `size` prop picks the others (`folderLayoutFor`).
+**Pages.** A page is the size's slots (`FOLDER_SHAPE`); a catalog larger
+than the page snap-scrolls sideways, with the dots under the folder (in the
+name gap, under the Apple skin, so they never move an icon off its slot).
 Pass `layout={{ columns, rows, axis }}` to override capacity or scroll
 direction.
 
