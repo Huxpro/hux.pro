@@ -162,7 +162,19 @@ export function FloatingActionButton() {
             // surface, and a transform makes the compositor re-blur every
             // frame of the press. The colour wash above is the feedback.
             ? "rounded-2xl pl-4 pr-6 md:px-4 w-auto md:w-full md:max-w-md focus:outline-none focus:ring-2 focus:ring-ring/20"
-            : "rounded-[24px] w-12 md:w-auto md:px-4 justify-center active:scale-95"
+            : "rounded-[24px] w-12 md:w-auto md:px-4 justify-center active:scale-95",
+          // In the Material skin the home bar is what sits at the bottom of
+          // an Android home screen: the search bar, which is itself a widget
+          // — an opaque `surface-container-high` pill at elevation 1, set
+          // in Google Sans Flex, with the same state layers as the grid.
+          isHomepage && [
+            "material:border-transparent material:bg-(--md-surface-container-high) material:backdrop-blur-none",
+            "material:text-(--md-on-surface-variant) material:[font-family:var(--font-flex)]",
+            "material:shadow-[0_1px_2px_rgb(0_0_0/0.3),0_1px_3px_1px_rgb(0_0_0/0.15)]",
+            "material:hover:border-transparent material:hover:bg-[color-mix(in_srgb,var(--md-surface-container-high),var(--md-on-surface)_8%)]",
+            "material:active:border-transparent material:active:bg-[color-mix(in_srgb,var(--md-surface-container-high),var(--md-on-surface)_10%)] material:active:text-(--md-on-surface)",
+            "material:focus:ring-(--md-secondary)",
+          ],
         )}
         style={{ borderRadius: FAB_RADIUS }}
         animate={{ opacity: yielding ? 0 : 1 }}
@@ -241,7 +253,7 @@ export function FloatingActionButton() {
               exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.1 } }}
               className="hidden sm:flex"
             >
-              <kbd className="items-center gap-0.5 px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded flex">
+              <kbd className="items-center gap-0.5 px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded flex material:rounded-full material:bg-(--md-surface-container-highest) material:px-2.5 material:text-(--md-on-surface-variant) material:[font-family:var(--font-flex)]">
                 <span>⌘</span>
                 <span>K</span>
               </kbd>

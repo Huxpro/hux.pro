@@ -134,6 +134,8 @@ Each widget's Material form, and the platform idea behind it:
 | **Writing / Projects** | List rows with 12px state-layer corners; dates and the `featured` marker capitalised ("Jul 2020"); run headings ("Latest", "Up next") as a Label in `primary` rather than the serif voice. |
 | **App folder** | Circular icons — Pixel Launcher's default adaptive-icon mask — labels in Google Sans Flex, and the folder, when shown, a tonal container at the widget radius. |
 
+| **Search bar** | The command bar at the bottom of the home screen is what sits there on Android: the search bar, itself a widget — an opaque `surface-container-high` pill at elevation 1, Google Sans Flex, the grid's state layers, and a round shortcut chip. Other pages keep their round ⌘K button. |
+
 `WidgetShell` takes a `tone` (`primary` / `secondary` / `tertiary`) for the
 accent containers; the Glass skin ignores it.
 
