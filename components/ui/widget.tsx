@@ -6,6 +6,7 @@ import { isIOSBrowser } from "@/systems/ambient/lib/platform";
 import { useOptionalWallpaper } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
+import { armContainerTransform } from "@/systems/skin/lib/container-transform";
 import { useCallback, useState, type MouseEvent, type ReactNode } from "react";
 import { landsOnOwnAction } from "./widget-surface";
 
@@ -75,6 +76,8 @@ export function WidgetShell({
           window.open(href, "_blank", "noopener");
           return;
         }
+        // Material: the card grows into the page it opens.
+        armContainerTransform(e.currentTarget);
         router.push(href);
       } else {
         onOpen?.();
@@ -351,6 +354,9 @@ export function WidgetLink({
     <Link
       href={href}
       aria-label={label}
+      onClick={(e) =>
+        armContainerTransform(e.currentTarget.closest("[data-widget-shell]"))
+      }
       className={cn(
         WIDGET_ICON_HIT,
         WIDGET_REVEAL,

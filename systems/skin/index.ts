@@ -19,4 +19,5 @@ export {
   type SchemeStyle,
 } from "./lib/scheme";
 export { ExpressiveShape } from "./components/expressive-shape";
+export { LoadingIndicator } from "./components/loading-indicator";
 export { SHAPES, shapePath, starPath, type ShapeName } from "./lib/shapes";

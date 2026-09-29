@@ -12,6 +12,7 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { Loader2, Navigation, Sunrise, Sunset } from "lucide-react";
+import { LoadingIndicator } from "@/systems/skin/components/loading-indicator";
 import { useEffect, useState } from "react";
 import {
   formatClockTime,
@@ -105,7 +106,10 @@ export function WeatherWidget() {
                 </span>
               </WidgetTitle>
               {isReloading ? (
-                <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
+                <>
+                  <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground material:hidden" />
+                  <LoadingIndicator size={18} className="hidden material:inline-block" />
+                </>
               ) : (
                 <span
                   aria-hidden="true"
@@ -119,7 +123,10 @@ export function WeatherWidget() {
             <>
               <WidgetTitle className="truncate">{displayCity}</WidgetTitle>
               {isReloading ? (
-                <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
+                <>
+                  <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground material:hidden" />
+                  <LoadingIndicator size={18} className="hidden material:inline-block" />
+                </>
               ) : mounted && location?.source === "geolocation" ? (
                 <Navigation
                   className="h-3 w-3 shrink-0 text-muted-foreground"

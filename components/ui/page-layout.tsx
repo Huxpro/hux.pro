@@ -128,6 +128,8 @@ export function PageLayout({
   return (
     <main
       data-variant={variant}
+      // Where a widget's container transform lands (systems/skin).
+      data-page-surface=""
       className={cn(
         // The column and its gutter are `--page-col` / `--page-gutter`
         // (globals.css), so a rail that bleeds past the column (`--page-bleed`)
