@@ -547,6 +547,16 @@ export interface WallpaperStats {
 
 const MIN_SCALE = 0.35;
 
+/**
+ * How slowly the decks slide with the tilt, seconds (the shader's uTilt). The
+ * Atmosphere engine slides its camera with the phone and the nearest billows
+ * of its volume move most; the two decks here are at two depths too, so they
+ * do the same — the near deck further than the far one, the sun, the moon and
+ * the stars not at all. Eased like a body turning rather than a reading
+ * arriving, so a hand's tremor does not shiver the sky.
+ */
+const TILT_TAU = 0.6;
+
 export class WallpaperRenderer {
   private canvas: HTMLCanvasElement;
   private gl: WebGL2RenderingContext | null = null;
@@ -682,6 +692,14 @@ export class WallpaperRenderer {
   private bodyAmt = 0;
   private bodyFly: { from: number; to: number; at: number } | null = null;
   private locLift: WebGLUniformLocation | null = null;
+  /**
+   * The tilt's parallax: how far the camera has slid sideways with the phone,
+   * eased, and where it is sliding to — the gravity's x while the tilt is
+   * followed, 0 otherwise. See TILT_TAU.
+   */
+  private tilt = 0;
+  private tiltTarget = 0;
+  private locTilt: WebGLUniformLocation | null = null;
   /** Hears where the sun and moon are through the window, every frame (edge hints). */
   private bodyListener: ((bodies: WindowBodies | null) => void) | null = null;
   private bodiesPublished = false;
@@ -856,6 +874,9 @@ export class WallpaperRenderer {
       this.gravity[0] = g.x / len;
       this.gravity[1] = g.y / len;
     }
+    // Only a followed tilt slides the camera: an upright default must not.
+    this.tiltTarget = gravity ? this.gravity[0] : 0;
+    if (this.opts.reducedMotion) this.tilt = this.tiltTarget;
     if (this.opts.reducedMotion) {
       this.settle();
     }
@@ -1160,6 +1181,7 @@ export class WallpaperRenderer {
     this.locStarFrame = gl.getUniformLocation(program, "uStarFrame");
     this.locMoonAxis = gl.getUniformLocation(program, "uMoonAxis");
     this.locLift = gl.getUniformLocation(program, "uLift");
+    this.locTilt = gl.getUniformLocation(program, "uTilt");
     // A new program has no star frame yet.
     this.starFrameAt.fill(NaN);
     gl.disable(gl.DEPTH_TEST);
@@ -1564,6 +1586,7 @@ export class WallpaperRenderer {
     this.lift += (aimLift - this.lift) * kl;
     if (Math.abs(aimLift - this.lift) < 1e-4) this.lift = aimLift;
     this.advanceBodyFly();
+    this.tilt += (this.tiltTarget - this.tilt) * (1 - Math.exp(-dtSec / TILT_TAU));
     const aimAt = this.windowOn ? 1 : 0;
     const kw = 1 - Math.exp(-dtSec / WINDOW_TAU);
     this.windowAmt += (aimAt - this.windowAmt) * kw;
@@ -1816,6 +1839,7 @@ export class WallpaperRenderer {
     const w = this.windowAmt;
     gl.uniform1f(this.locWindow, w);
     gl.uniform1f(this.locLift, this.lift);
+    gl.uniform1f(this.locTilt, this.tilt);
     if (w <= 0) {
       if (this.bodiesPublished) {
         this.bodiesPublished = false;
