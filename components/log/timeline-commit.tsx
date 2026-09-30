@@ -87,9 +87,9 @@ interface TimelineCommitProps {
   graph?: RowGraph;
   /** Which of those lines a lit connector runs along. */
   graphLit?: RowLit;
-  /** Another chapter's track is held: the row steps back — its words and
-   *  its node, not the graph passing through it. */
-  dimmed?: boolean;
+  /** Another chapter's track is held: the row folds to one line, in the
+   *  voice of an event or a folded aside, until the reader opens it. */
+  folded?: boolean;
   /** True when this row IS the role that owns its segment. */
   isRole?: boolean;
   /** The role id that owns this row's rail segment. */
@@ -154,7 +154,7 @@ export function TimelineCommit({
   rail,
   graph,
   graphLit,
-  dimmed = false,
+  folded = false,
   isRole = false,
   beamSpec = null,
   onBeamSet,
@@ -280,7 +280,8 @@ export function TimelineCommit({
   // The strip is the folded form's own: while the row is open the feed's
   // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
-  const isQuiet = isEvent || (isAside && !textOpen);
+  // A row outside a held chapter folds the same way (`folded`).
+  const isQuiet = isEvent || ((isAside || folded) && !textOpen);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
   const showStrip =
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
@@ -404,8 +405,6 @@ export function TimelineCommit({
     <div
       className={cn(
         "grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start",
-        "[&>*]:transition-opacity [&>*]:duration-300",
-        dimmed && "[&>:not([data-rail-icon])]:opacity-40",
       )}
     >
       {/*
@@ -504,10 +503,7 @@ export function TimelineCommit({
         )}
         {/* The node: on the trunk, or moved onto the side lane. */}
         <span
-          className={cn(
-            "inline-flex items-center justify-center transition-opacity duration-300",
-            dimmed && "opacity-40",
-          )}
+          className="inline-flex items-center justify-center"
           style={graph?.side === "node" ? { transform: `translateX(-${LANE}px)` } : undefined}
         >
         {isQuiet ? (

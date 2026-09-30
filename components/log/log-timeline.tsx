@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import {
+  type SetStateAction,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { pageScrollTop, scrollPageTo } from "vitre";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
@@ -120,6 +128,24 @@ export function LogTimeline({
   // The chapter whose track is held (its marker has focus) — page-wide, so
   // every commit outside it steps back, in its own block or another.
   const [held, setHeld] = useState<Held | null>(null);
+  // Holding a chapter folds every commit outside it, and letting go
+  // unfolds them: the page above the marker grows or shrinks at once. The
+  // marker that was pressed stays where it was under the pointer.
+  const anchor = useRef<{ el: HTMLElement; top: number } | null>(null);
+  const hold = useCallback(
+    (next: SetStateAction<Held | null>, marker: HTMLElement) => {
+      anchor.current = { el: marker, top: marker.getBoundingClientRect().top };
+      setHeld(next);
+    },
+    [],
+  );
+  useLayoutEffect(() => {
+    const a = anchor.current;
+    anchor.current = null;
+    if (!a || !a.el.isConnected) return;
+    const drift = a.el.getBoundingClientRect().top - a.top;
+    if (Math.abs(drift) > 1) scrollPageTo(pageScrollTop() + drift);
+  }, [held]);
   return (
     <div className="space-y-0">
       {data.map(({ tag, commits, members, laneOf }, tagIndex) => (
@@ -138,7 +164,7 @@ export function LogTimeline({
           pinned={pinnedChapters}
           refLook={refLook}
           held={held}
-          onHold={setHeld}
+          onHold={hold}
         />
       ))}
     </div>
@@ -153,7 +179,7 @@ interface Held {
 
 interface TagBlockProps {
   held: Held | null;
-  onHold: React.Dispatch<React.SetStateAction<Held | null>>;
+  onHold: (next: SetStateAction<Held | null>, marker: HTMLElement) => void;
   tag: Tag;
   commits: CommitData[];
   members?: Tag[];
@@ -334,9 +360,12 @@ function TagBlock({
         if (e.pointerType !== "touch") setTrackHover(lane);
       },
       onPointerLeave: () => setTrackHover((h) => (h === lane ? null : h)),
-      onFocus: () => onHold({ block: tag.id, lane }),
-      onBlur: () =>
-        onHold((h) => (h?.block === tag.id && h.lane === lane ? null : h)),
+      onFocus: (e) => onHold({ block: tag.id, lane }, e.currentTarget),
+      onBlur: (e) =>
+        onHold(
+          (h) => (h?.block === tag.id && h.lane === lane ? null : h),
+          e.currentTarget,
+        ),
       onKeyDown: (e) => {
         if (e.key === "Escape") e.currentTarget.blur();
       },
@@ -381,6 +410,7 @@ function TagBlock({
             locale={locale}
             pinned={pinned}
             message={pinned ? message : undefined}
+            messageOpen={trackFor(0).pinned}
             track={trackFor(0)}
           />
         ) : inspecting && edit ? (
@@ -424,7 +454,11 @@ function TagBlock({
         )}
         </div>
         {pinned && (inspecting || refLook === "stub") && message && (
-          <StubMessage text={message} dimmed={stepsBack([0])} />
+          <StubMessage
+            text={message}
+            dimmed={stepsBack([0])}
+            open={trackFor(0).pinned}
+          />
         )}
       </div>
 
@@ -492,7 +526,7 @@ function TagBlock({
                   rail={railInfo[i].rail}
                   graph={graphs[i]}
                   graphLit={lit.rows.get(i)}
-                  dimmed={stepsBack(laneOf?.get(commits[i].id) ?? [0])}
+                  folded={stepsBack(laneOf?.get(commits[i].id) ?? [0])}
                   segmentId={railInfo[i].segmentId}
                   isSegmentActive={
                     railInfo[i].segmentId !== null &&
@@ -826,11 +860,12 @@ function RefRow({
           locale={locale}
           pinned={pinned}
           message={message}
+          messageOpen={track.pinned}
           track={track}
         />
       </div>
       {look === "stub" && message && (
-        <StubMessage text={message} dimmed={dimmed} />
+        <StubMessage text={message} dimmed={dimmed} open={track.pinned} />
       )}
     </div>
   );
@@ -838,17 +873,56 @@ function RefRow({
 
 /** `stub`'s message: a paragraph under the marker, from the page column's
  *  edge, on a measure (the reading #326 tried). */
-function StubMessage({ text, dimmed }: { text: string; dimmed?: boolean }) {
+function StubMessage({
+  text,
+  dimmed,
+  open,
+}: {
+  text: string;
+  dimmed?: boolean;
+  open: boolean;
+}) {
   return (
-    <p
+    <Unfold open={open} className="relative">
+      <p
+        className={cn(
+          "pt-2 max-w-prose transition-opacity duration-300",
+          TYPE.body,
+          dimmed && "opacity-40",
+        )}
+      >
+        {text}
+      </p>
+    </Unfold>
+  );
+}
+
+/**
+ * A chapter's tag message opens only while its marker is held: the log at
+ * rest is its rows, and a chapter says what it was when it is asked. The
+ * height eases open and shut (a grid row from 0fr to 1fr), under the
+ * marker, so nothing above it moves.
+ */
+function Unfold({
+  open,
+  className,
+  children,
+}: {
+  open: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      aria-hidden={!open}
       className={cn(
-        "relative mt-2 max-w-prose transition-opacity duration-300",
-        TYPE.body,
-        dimmed && "opacity-40",
+        "grid transition-[grid-template-rows,opacity] duration-300 ease-out",
+        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+        className,
       )}
     >
-      {text}
-    </p>
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
   );
 }
 
@@ -879,6 +953,7 @@ function RefLabel({
   locale,
   pinned,
   message,
+  messageOpen = false,
   track,
 }: {
   look: RefLayout;
@@ -889,6 +964,8 @@ function RefLabel({
   /** The tag's message. The grid looks print it where a commit's
    *  description goes, in its type; `stub` leaves it to the caller. */
   message?: string;
+  /** Whether the message is open (its marker is held). */
+  messageOpen?: boolean;
   track?: TrackControl;
 }) {
   const pill = (
@@ -992,14 +1069,9 @@ function RefLabel({
           </>
         )}
         {message && (
-          <p
-            className={cn(
-              "col-start-2 lg:col-start-3 mt-1.5 min-w-0",
-              TYPE.caption,
-            )}
-          >
-            {message}
-          </p>
+          <Unfold open={messageOpen} className="col-start-2 lg:col-start-3 min-w-0">
+            <p className={cn("pt-1.5", TYPE.caption)}>{message}</p>
+          </Unfold>
         )}
       </div>
     </div>
