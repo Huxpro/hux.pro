@@ -6,6 +6,7 @@ export { TheaterOverlay } from "./theater-overlay";
 export { PipOverlay } from "./pip-overlay";
 export { TheaterPlaylistSheet } from "./playlist-sheet";
 export { TrackThumb } from "./track-thumb";
+export { LanguageSwitch } from "./language-switch";
 export { VideoControls } from "./video-controls";
 export { SurfaceSwitch } from "./surface-switch";
 export { TheaterSurfaces } from "./surfaces";

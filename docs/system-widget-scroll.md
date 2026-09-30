@@ -22,8 +22,8 @@ What each list prints is then a curation question, not a truncation one:
 | **projects** | the `featured-projects` group — 3 rows | the same 3, no port |
 | **writing** | 5 rows (`pointer-coarse:hidden` past the cut) | all of them, `max-h-64` |
 
-The projects card reads its group the way the talks card reads its
-`featured-*-talks` ones: a preview is a choice about what to show, and a
+The projects card reads its group the way the theater card reads the
+featured list in `content/theater.json`: a preview is a choice about what to show, and a
 truncated list is not one. Writing has no such group, so it caps by count.
 
 This file is the reasoning, because the rule looks arbitrary and isn't.

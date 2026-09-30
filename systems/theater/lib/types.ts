@@ -18,6 +18,9 @@ import type { VideoPlatform } from "@/lib/log";
  */
 export type TrackKind = "video" | "slides";
 
+/** The language a recording is spoken in, or a deck written in. */
+export type TrackLanguage = "en" | "zh";
+
 interface TrackBase {
   /** Stable id — the source commit id, or a synthetic id for ad-hoc tracks. */
   id: string;
@@ -34,7 +37,35 @@ interface TrackBase {
   thumbnail: string | null;
   /** Optional in-site link to the source commit / works page. */
   href?: string;
+  /** The language of the version on the stage, when known. */
+  language?: TrackLanguage;
+  /** When it was given (the listing commit's date), `YYYY-MM`. */
+  date?: string;
+  /**
+   * Every version of this piece, the one on the stage among them: the same
+   * talk given in English and in Chinese is one track with two versions
+   * (systems/theater/lib/library.ts). Absent or single for most tracks.
+   */
+  versions?: TrackVersion[];
 }
+
+/**
+ * One version of a track: everything that differs between the English and
+ * the Chinese telling of the same piece. `key` is the media's identity.
+ */
+export type TrackVersion = {
+  key: string;
+  language?: TrackLanguage;
+  date?: string;
+  url: string;
+  title: string;
+  subtitle?: string;
+  thumbnail: string | null;
+  href?: string;
+} & (
+  | { kind: "video"; platform: VideoPlatform; videoId: string | null }
+  | { kind: "slides"; platform?: never; videoId?: never }
+);
 
 /**
  * A playable video. Derived from a commit's video media plus display
@@ -65,7 +96,7 @@ export interface SlidesTrack extends TrackBase {
 
 export type Track = VideoTrack | SlidesTrack;
 
-/** A named playlist — one of the home widget's "albums" (React / Lynx / …). */
+/** A named shelf of the library — the theater's tabs. */
 export interface Album {
   id: string;
   title: string;

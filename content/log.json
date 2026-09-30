@@ -162,49 +162,6 @@
         "wasmcert",
         "yanshuo-io"
       ]
-    },
-    {
-      "id": "featured-react-talks",
-      "title": {
-        "en": "Featured React talks",
-        "zh": "精选 React 演讲"
-      },
-      "column": "left",
-      "href": "/works",
-      "commitIds": [
-        "react-universe-2025-two-threads",
-        "coscon-2022",
-        "reactconf-2021-memo"
-      ]
-    },
-    {
-      "id": "featured-lynx-talks",
-      "title": {
-        "en": "Featured Lynx talks",
-        "zh": "精选 Lynx 演讲"
-      },
-      "column": "right",
-      "href": "/works",
-      "commitIds": [
-        "react-universe-2025-two-threads",
-        "react-universe-2025-interview",
-        "react-summit-2025-unlock-native",
-        "d2-2025-lynx"
-      ]
-    },
-    {
-      "id": "featured-personal-talks",
-      "title": {
-        "en": "Featured personal talks",
-        "zh": "精选个人分享"
-      },
-      "column": "left",
-      "href": "/works",
-      "commitIds": [
-        "bilibili-sabbatical-2023",
-        "juejin-talk-2023",
-        "feday-2023"
-      ]
     }
   ],
   "identities": {
@@ -658,7 +615,8 @@
         {
           "kind": "video",
           "url": "https://www.bilibili.com/video/BV1YeSgBCEoe/",
-          "platform": "bilibili"
+          "platform": "bilibili",
+          "translationOf": "https://youtu.be/-uUcYrl51JM"
         }
       ],
       "tags": [
@@ -1731,6 +1689,36 @@
       "language": "zh",
       "present": "aside",
       "asideLine": "title"
+    },
+    {
+      "id": "gdg-devfest-2016-sw-101",
+      "type": "talk",
+      "tagId": "pwa-era",
+      "title": {
+        "en": "Service Worker 101",
+        "zh": "Service Worker 101"
+      },
+      "description": {
+        "en": "An introduction to Service Worker at GDG Beijing's DevFest: the lifecycle, and the caching strategies built on it (network first, cache first, racing the network against the cache), with sample code.",
+        "zh": "在 GDG 北京 DevFest 上分享的 Service Worker 入门：生命周期，以及建立在它之上的缓存策略（网络优先、缓存优先、网络与缓存赛跑），附示例代码。"
+      },
+      "date": "2016-11",
+      "conference": {
+        "name": "GDG DevFest Beijing 2016",
+        "city": "Beijing, China"
+      },
+      "media": [
+        {
+          "kind": "slides",
+          "url": "https://huxpro.github.io/sw-101-gdgdf/",
+          "title": "Service Worker 101"
+        }
+      ],
+      "tags": [
+        "PWA",
+        "Service Worker"
+      ],
+      "language": "zh"
     },
     {
       "id": "qcon-shanghai-2016",

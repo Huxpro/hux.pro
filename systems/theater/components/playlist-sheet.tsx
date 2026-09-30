@@ -19,6 +19,7 @@ import {
 } from "../lib/geometry";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
+import { LanguageSwitch } from "./language-switch";
 import { TrackThumb } from "./track-thumb";
 
 // ---------------------------------------------------------------------------
@@ -151,7 +152,7 @@ export function TheaterPlaylistSheet() {
           scroll sideways rather than wrap: an ad-hoc album is named after the
           video that opened it, and those titles are long. */}
       {albums.length > 1 && (
-        <div className="-mx-1 flex overflow-x-auto no-scrollbar px-1 pb-3 pt-1">
+        <div className="-mx-1 flex items-center gap-2 overflow-x-auto no-scrollbar px-1 pb-3 pt-1">
           <AlbumTabs
             albums={albums}
             activeIndex={albumIndex}
@@ -159,6 +160,8 @@ export function TheaterPlaylistSheet() {
             raised={false}
             className="shrink-0"
           />
+          {/* The playing track's language, where the PiP bar has no room. */}
+          <LanguageSwitch raised={false} className="ml-auto shrink-0" />
         </div>
       )}
 

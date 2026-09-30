@@ -153,6 +153,22 @@ export interface MediaPreview {
 type Pinned = { pinned?: true };
 
 /**
+ * What a recording or a deck knows about itself, apart from the commit that
+ * lists it — read by the theater, which is a library of media rather than a
+ * view of commits (systems/theater/lib/library.ts).
+ *
+ * `language` is the language spoken or written *in the media*; omitted, it
+ * is the listing commit's `language`. `translationOf` names another media
+ * (by its URL) that this one is the same piece as, told in another language
+ * — the SEE Conf 中文场 of a talk first given in English. The theater shows
+ * the pair as one entry with a language switch, never as two.
+ */
+type Playable = {
+  language?: "en" | "zh";
+  translationOf?: string;
+};
+
+/**
  * Link media — a URL presented as an OG-style preview card (the card
  * pipeline supplies title / description / image; `preview` is the
  * author-authoritative override).
@@ -219,7 +235,7 @@ export interface SocialEmbedMedia extends Pinned {
 }
 
 /** Video player — YouTube / Bilibili / Vimeo iframe with cover thumbnail. */
-export interface VideoMedia extends Pinned {
+export interface VideoMedia extends Pinned, Playable {
   kind: "video";
   url: string;
   platform: VideoPlatform;
@@ -231,7 +247,7 @@ export interface VideoMedia extends Pinned {
  * Renders as a cover with a play affordance; opening it puts the deck on the
  * theater's stage beside the videos, so visitors never leave the page.
  */
-export interface SlidesMedia extends Pinned {
+export interface SlidesMedia extends Pinned, Playable {
   kind: "slides";
   /** Direct URL of the playable deck (not the wrapping blog/keynote page). */
   url: string;

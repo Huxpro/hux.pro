@@ -1,16 +1,21 @@
 "use client";
 
 import { ExternalImage } from "@/components/log/media/external-image";
-import { COVER_WASH } from "@/lib/glass";
+import { ARTWORK_CHIP_REST, COVER_WASH } from "@/lib/glass";
 import { VIDEO_PLATFORM_LABEL } from "@/lib/log";
 import { cn } from "@/lib/utils";
-import type { Track } from "../lib/types";
+import { useLocale } from "@/services";
+import type { Track, TrackLanguage } from "../lib/types";
 
 // ---------------------------------------------------------------------------
 // TrackThumb — a track's cover in a rail. Bilibili/Vimeo tracks often lack a
 // public cover, so we fall back to a branded placeholder rather than an empty
 // box, keeping the album rails visually consistent. No chip: the rail's title
 // already says what the track is (media-mark.tsx).
+//
+// The one chip it does wear is language, and only when language is news:
+// every version when there are several ("EN · 中文" — this one can be heard
+// either way), or the one it has when that is not the viewer's.
 //
 // A hairline active edge (not a heavy ring) so selection is readable without
 // stealing focus from the cover.
@@ -36,6 +41,28 @@ const PLATFORM_TINT: Record<Source, string> = {
   slides: "text-muted-foreground bg-muted/30",
 };
 
+const LANGUAGE_LABEL: Record<TrackLanguage, string> = {
+  en: "EN",
+  zh: "中文",
+};
+
+/** The languages worth saying on the cover, or null. */
+export function trackLanguageChip(
+  track: Track,
+  locale: TrackLanguage,
+): string | null {
+  const langs = Array.from(
+    new Set(
+      (track.versions ?? [])
+        .map((v) => v.language)
+        .filter((l): l is TrackLanguage => !!l),
+    ),
+  );
+  if (langs.length > 1) return langs.map((l) => LANGUAGE_LABEL[l]).join(" · ");
+  const only = langs[0] ?? track.language;
+  return only && only !== locale ? LANGUAGE_LABEL[only] : null;
+}
+
 export function TrackThumb({
   track,
   active = false,
@@ -45,6 +72,8 @@ export function TrackThumb({
   active?: boolean;
   className?: string;
 }) {
+  const { locale } = useLocale();
+  const chip = trackLanguageChip(track, locale);
   return (
     <div
       className={cn(
@@ -74,6 +103,16 @@ export function TrackThumb({
             {PLATFORM_LABEL[sourceOf(track)]}
           </span>
         </div>
+      )}
+      {chip && (
+        <span
+          className={cn(
+            "absolute bottom-1.5 right-1.5 rounded px-1 py-px font-mono text-[9px] leading-tight backdrop-blur-sm",
+            ARTWORK_CHIP_REST,
+          )}
+        >
+          {chip}
+        </span>
       )}
       {/* iOS cover press: dim the art, don't scale the card. */}
       <span className={COVER_WASH} />
