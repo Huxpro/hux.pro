@@ -59,12 +59,31 @@ function mark(el: HTMLElement) {
   );
 }
 
-/** A commit hash is 7 hex characters — see `computeCommitHash`. */
-function rowFor(hash: string): HTMLElement | null {
+/**
+ * A commit hash is 7 hex characters — see `computeCommitHash`.
+ *
+ * A row can stand for a commit printed in full elsewhere on the page — a
+ * flagship at the head of /works under the `selected` flag leaves a pointer
+ * in its slot (`data-printed-at`, TimelineCommit's `pointer`). A permalink
+ * names the commit, so it lands where the commit is printed, unless the
+ * caller wants the slot itself (`follow: false`).
+ */
+function rowFor(hash: string, follow = true): HTMLElement | null {
   const id = hash.replace(/^#/, "");
   if (!/^[0-9a-f]{7}$/.test(id)) return null;
   const el = document.getElementById(id);
-  return el?.hasAttribute("data-rail-row") ? (el as HTMLElement) : null;
+  if (!el?.hasAttribute("data-rail-row")) return null;
+  const printedAt = follow ? el.getAttribute("data-printed-at") : null;
+  return (printedAt && document.getElementById(printedAt)) || el;
+}
+
+export interface CommitAnchorOptions {
+  /** Follow a pointer to where its commit is printed (the default). Off to
+   *  go to the slot — a selected work's years, down to its place in the log. */
+  follow?: boolean;
+  /** Write `#<hash>` into history (the default). Off when the travel is not
+   *  naming the commit, only going to where it sits. */
+  push?: boolean;
 }
 
 /**
@@ -79,7 +98,7 @@ function rowFor(hash: string): HTMLElement | null {
  */
 export function useCommitAnchor(
   reveal?: (hash: string) => void,
-): (hash: string) => void {
+): (hash: string, opts?: CommitAnchorOptions) => void {
   const reduced = useReducedMotion() ?? false;
   // One travel at a time: a second hash while the first is still gliding
   // stops it rather than easing toward two destinations at once.
@@ -167,14 +186,14 @@ export function useCommitAnchor(
   }, [travelTo]);
 
   return useCallback(
-    (hash: string) => {
+    (hash: string, { follow = true, push = true }: CommitAnchorOptions = {}) => {
       revealRef.current?.(hash);
-      const el = rowFor(hash);
+      const el = rowFor(hash, follow);
       if (!el) return;
       // `pushState`, so the permalink is in the URL bar and in history without
       // a route change — and without firing `hashchange`, which would send the
       // travel through a second time.
-      window.history.pushState(null, "", `#${hash}`);
+      if (push) window.history.pushState(null, "", `#${hash}`);
       travelTo(el);
     },
     [travelTo],

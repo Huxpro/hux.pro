@@ -335,6 +335,7 @@ lists the registry and needs no edit.
 | Flag | What it does |
 |---|---|
 | `fold` | A project's talks, press and posts leave their dates and fold behind one line under the project's row (`talks 10  WeAreDevelopers…  ⌄`), which opens in place into the log's own rows. Which rows belong to a project is `lib/works-projects.ts`. |
+| `selected` | "Selected works" (精选作品) leads the page: the flagship projects of the hidden `works-selected` group in `content/log.json`, each the log's own row in its `lead` presentation (mark, name, the description whole, its picture at the page's form — links as text in the index; on the title line, where a row's venue and date go, its role · team and its years — the eyebrow on a phone). Each keeps its slot in the log as a one-line pointer, `↑ selected works` in its venue's place; a permalink to it lands on the entry, and the entry's years go down to the slot. A type chip that is not `project` hides the head and its pointers. With `fold`, a flagship's fold hangs under its entry, not its pointer. With the projects shelf on, the shelf comes first and the head under it. `components/log/selected-works.tsx`. |
 
 **Where a value comes from.** A *saved setting* (blue `*`), in
 `localStorage.hux_works_flags` — a variant is compared by living with it

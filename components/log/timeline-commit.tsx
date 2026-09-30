@@ -19,7 +19,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
-import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
+import {
+  DEFAULT_FORM,
+  rowFormFor,
+  type LogForm,
+  type RowForm,
+} from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
@@ -64,6 +69,51 @@ import { TYPE } from "@/lib/typography";
  */
 export const HASH_CELL = "lg:w-14 lg:text-right";
 export const GUTTER_PULL = "lg:-ml-[6.5rem]";
+
+/**
+ * The `selected` flag's two prints of one commit (components/log/works-flags.ts,
+ * components/log/selected-works.tsx). A flagship project leads /works as a
+ * selected work — the row at its fullest — and keeps its slot in the log as
+ * a one-line pointer up to it, so it is printed in full once and the
+ * chronology, the rail and the connectors that need the slot keep it.
+ *
+ * The entry: the row, with its description whole at a reading rung, the
+ * role it was done in where the row's venue goes (the title line, or the
+ * eyebrow on a phone), and its picture at the page's form — in the index,
+ * which prints no covers, its links as text. No press: there is nothing
+ * folded to open. Its date goes down to its slot.
+ */
+export interface RowLead {
+  /** The entry's element id: where the slot's permalink lands (`RowPointer`). */
+  id: string;
+  /** In the venue's place: the role and team it was done in. */
+  who: string | null;
+  /** Where to see it, as text: the index's picture (the index prints no covers). */
+  links: ReactNode;
+  /** The date's press: down to the commit's slot in the log. */
+  onDate: () => void;
+  /** The date's tooltip, saying so. */
+  dateTitle: string;
+}
+
+/**
+ * The slot: the title line, with which way the rest is (`↑ selected works`)
+ * in the venue's place. A press, like the hash, is the commit's permalink,
+ * which `useCommitAnchor` follows up to the entry.
+ */
+export interface RowPointer {
+  /** The entry's element id (`RowLead.id`). */
+  to: string;
+  label: string;
+}
+
+/** A pointer's atoms: the title line, at every form. */
+const POINTER_FORM: RowForm = {
+  description: "none",
+  media: "none",
+  notes: false,
+  peek: false,
+};
 
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
@@ -134,6 +184,11 @@ interface TimelineCommitProps {
    * the permalink it always looked like — see `useCommitAnchor`.
    */
   onSelectHash?: (hash: string) => void;
+  /** Print the row as a selected work at the head of the page (`RowLead`). */
+  lead?: RowLead | null;
+  /** The commit is printed in full at the head; this row points there
+   *  (`RowPointer`). */
+  pointer?: RowPointer | null;
   /**
    * The commit's attachments as one set (see systems/attachments). Every
    * media affordance on the row — a strip cover, an expanded player or
@@ -167,6 +222,8 @@ export function TimelineCommit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  lead = null,
+  pointer = null,
   attachmentSet = null,
   inspecting = false,
   isSelected = false,
@@ -191,7 +248,10 @@ export function TimelineCommit({
   // Topics and stats are authored but not printed (see the expanded body),
   // so they can no longer be the reason a row is openable — a commit whose
   // only extra was a tag list would otherwise unfold onto nothing.
-  const hasExpandableContent = !!(
+  //
+  // A selected work has nothing folded (it prints everything its form
+  // does, the prose whole), and a pointer's content is at the head.
+  const hasExpandableContent = !lead && !pointer && !!(
     data.description ||
     data.commentary ||
     data.expandedMedia.length > 0 ||
@@ -261,13 +321,24 @@ export function TimelineCommit({
   // a column of open ones was the same click as opening a caption, and
   // nothing painted the difference. They are not the same click any more:
   // this one changes the prose, the cover's opens the attachment.
+  //
+  // A pointer's press is its one job: the commit's permalink, which lands
+  // on the selected entry (`useCommitAnchor` follows the pointer) and puts
+  // the address in the URL, as the hash does.
+  const followPointer = useCallback(() => {
+    onSelectHash?.(data.hash);
+  }, [onSelectHash, data.hash]);
   const rowOnClick = inspecting
     ? onInspectCommit
-    : rowOpensIdentity
-      ? openIdentity
-      : hasExpandableContent
-        ? handleToggleExpanded
-        : undefined;
+    : pointer
+      ? onSelectHash
+        ? followPointer
+        : undefined
+      : rowOpensIdentity
+        ? openIdentity
+        : hasExpandableContent
+          ? handleToggleExpanded
+          : undefined;
 
   // The row's form: the page's, unless the reader opened this row, in which
   // case it is the feed for itself (`rowFormFor`, lib/log-view.ts — a form
@@ -275,7 +346,15 @@ export function TimelineCommit({
   // row scale). Everything below reads those atoms and nothing reads the
   // form's name, or `isExpanded` again: the feed's atoms already say
   // "no strip, no clamp, no peek".
-  const rowForm = rowFormFor(form, textOpen);
+  //
+  // A selected work is the form's picture with the prose whole, always —
+  // it is the page's answer to "what is this", not a line to open. A
+  // pointer is its title line at every form.
+  const rowForm = pointer
+    ? POINTER_FORM
+    : lead
+      ? { ...rowFormFor(form, false), description: "full" as const }
+      : rowFormFor(form, textOpen);
 
   // What the folded form adds under the title line: the description at two
   // lines, and the strip of covers. Both or either — a commit with no media
@@ -312,7 +391,11 @@ export function TimelineCommit({
   // author fields name it in full. There is no meta line for it to fall
   // back to any more — the venue sits on the title line, so nothing stands
   // between a title and its sentence.
-  const signsOnMediaLine = showStrip && data.stripItems.length === 1;
+  //
+  // A selected work does not sign: its venue's place says who did it
+  // (`RowLead.who`, the company in it), so the handle would say it twice.
+  const signsOnMediaLine =
+    !lead && showStrip && data.stripItems.length === 1;
 
   // The venue on the title line: where a talk was given, where a piece of
   // press ran, where a project was built (the byline's team, printed
@@ -325,10 +408,18 @@ export function TimelineCommit({
   // becomes an eyebrow: the same three, one mono line *over* the title, the
   // way an editorial kicker sits over a headline. Nothing is cut to fit a
   // column, and the title and its sentence still sit together.
-  const besideText = data.meta ?? byline?.subtitle;
+  //
+  // The `selected` prints put their own line in that place: the entry the
+  // role and team it was done in (`RowLead.who`), the pointer which way the
+  // rest is (`↑ selected works`) — plain text, never a link.
+  const besideText = lead
+    ? lead.who
+    : pointer
+      ? pointer.label
+      : (data.meta ?? byline?.subtitle);
   const beside =
     !isQuiet && besideText ? (
-      data.meta && data.metaUrl ? (
+      !lead && !pointer && data.meta && data.metaUrl ? (
         <a
           href={data.metaUrl}
           target="_blank"
@@ -347,7 +438,7 @@ export function TimelineCommit({
   // line wraps if it must — and the arrow glued to the last word.
   const venueInline =
     !isQuiet && besideText ? (
-      data.meta && data.metaUrl ? (
+      !lead && !pointer && data.meta && data.metaUrl ? (
         <a
           href={data.metaUrl}
           target="_blank"
@@ -367,6 +458,24 @@ export function TimelineCommit({
   // What the date slot prints: the date, or a role's location under a
   // chapter that hides dates. Read by the title line and the eyebrow alike.
   const dateText = hideDate ? data.dateSlotOverride : data.date;
+  // A selected work's years are a press: down to where the work sits in the
+  // log, among what else was going on then. Read by the title line and the
+  // eyebrow alike.
+  const dateNode = lead ? (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        lead.onDate();
+      }}
+      title={lead.dateTitle}
+      className="pressable transition-colors hover:text-foreground"
+    >
+      {data.date}
+    </button>
+  ) : (
+    dateText
+  );
 
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
@@ -376,8 +485,16 @@ export function TimelineCommit({
   // prose and covers, the whole block lighting a card under the pointer
   // gets in the way of reading them. The one-liner peeks; an open row's
   // handle still does (IdentityHover).
+  //
+  // Neither `selected` print peeks: the entry has printed what a peek would
+  // show, and a pointer's content is a scroll away, not a hover.
   const showCursorPreview =
-    !!cursorPreview && rowForm.peek && !showStrip && !showStatDescription;
+    !!cursorPreview &&
+    rowForm.peek &&
+    !showStrip &&
+    !showStatDescription &&
+    !lead &&
+    !pointer;
   // The feed's covers are the row's own strip items; what has no cover (a
   // live widget) stacks under the grid. Inspect mode keeps this layout —
   // the handle lives on the tile (InspectableMedia), not on a different
@@ -388,12 +505,19 @@ export function TimelineCommit({
   // way out of its own. Where the covers print, they are the doors; where
   // they don't (the index, folded), the line counts them, and opening the
   // row brings them.
+  //
+  // Neither `selected` print counts: the entry prints its links in the
+  // index, and a pointer's attachments are the entry's.
   const attachmentCount =
-    !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
+    !isQuiet && !lead && !pointer && rowForm.media === "none"
+      ? expandedMedia.length
+      : 0;
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
-  const showAuthorBlock = data.type !== "role" && data.type !== "event";
+  // A selected work's title line already says who did it (`RowLead.who`).
+  const showAuthorBlock =
+    data.type !== "role" && data.type !== "event" && !lead;
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -515,7 +639,7 @@ export function TimelineCommit({
                 {attachmentCount}
               </span>
             )}
-            {dateText && <span>{dateText}</span>}
+            {dateText && <span>{dateNode}</span>}
           </span>
         </p>
       )}
@@ -679,7 +803,8 @@ export function TimelineCommit({
           <span
             className={cn(
               "min-w-0 flex-1",
-              printsMessage ? TYPE.rowHeading : TYPE.rowTitle,
+              // A selected work is a heading over its prose at every form.
+              printsMessage || lead ? TYPE.rowHeading : TYPE.rowTitle,
             )}
           >
             {displayTitle}
@@ -737,7 +862,7 @@ export function TimelineCommit({
                 "text-tertiary-foreground",
               )}
             >
-              {dateText}
+              {dateNode}
             </span>
           )}
         </span>
@@ -745,7 +870,7 @@ export function TimelineCommit({
 
       {/* Pinned items: rendered once here whether the row is folded or
           expanded, so toggling never remounts them. */}
-      {!isQuiet && pinnedMedia.length > 0 && (
+      {!isQuiet && !pointer && pinnedMedia.length > 0 && (
         <div
           className="col-start-2 lg:col-start-3 mt-2"
           onClick={(e) => e.stopPropagation()}
@@ -777,7 +902,20 @@ export function TimelineCommit({
           <Description
             text={data.description}
             isExpanded={rowForm.description === "full"}
+            // A selected work's prose is what the entry is for, so it reads
+            // at the body's size and rung rather than as a row's message.
+            className={
+              lead ? "text-sm text-muted-foreground text-pretty" : undefined
+            }
           />
+        </div>
+      )}
+
+      {/* A selected work's picture in the index, which prints none: its
+          links, as text. The other forms print its covers or its grid. */}
+      {lead && !isQuiet && rowForm.media === "none" && lead.links && (
+        <div className="col-start-2 lg:col-start-3 mt-2 min-w-0">
+          {lead.links}
         </div>
       )}
 
@@ -905,9 +1043,13 @@ export function TimelineCommit({
 
   return (
     <div
-      id={data.hash}
-      data-rail-row
+      // A selected work answers to its own id: the commit's hash stays with
+      // its slot in the log, which the rail, the connectors and the
+      // permalink all find it by (the pointer sends the permalink here).
+      id={lead ? lead.id : data.hash}
+      data-rail-row={lead ? undefined : true}
       data-role-row={isRoleAnchor ? "" : undefined}
+      data-printed-at={pointer?.to}
       className={className}
     >
       <MagneticPreview

@@ -64,6 +64,15 @@ export const WORKS_FLAGS = [
     },
     default: false,
   },
+  {
+    id: "selected",
+    label: { en: "Selected works", zh: "精选作品" },
+    description: {
+      en: "The flagship projects lead the page, whole; their rows in the log point up to them.",
+      zh: "代表项目完整地列在日志之前；它们在日志里的那一行只留一个指向上方的标记。",
+    },
+    default: false,
+  },
 ] as const satisfies readonly WorksFlagSpec[];
 
 export type WorksFlagId = (typeof WORKS_FLAGS)[number]["id"];

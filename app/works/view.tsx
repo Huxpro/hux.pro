@@ -14,12 +14,19 @@ import { ProjectShelf } from "@/components/log/project-shelf";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { useWorksFlag } from "@/components/log/works-flags";
+import {
+  SELECTED_GROUP_ID,
+  SelectedWorks,
+  selectedPointers,
+  selectedWorks,
+} from "@/components/log/selected-works";
 import { t, useLocale } from "@/services";
 import {
   computeCommitHash,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
+  localize,
   type FilterableCommitType,
   type LogData,
 } from "@/lib/log";
@@ -161,6 +168,32 @@ export function WorksView({ logData }: WorksViewProps) {
     () => data.flatMap(({ commits }) => commits.filter((c) => c.type === "project")),
     [data],
   );
+  // ── The `selected` flag (components/log/works-flags.ts) ─────────────────
+  // The flagships lead the page (components/log/selected-works.tsx), as far
+  // as the filter shows them: a chip that is not theirs hides the head, and
+  // then there are no pointers either — the log is the log without the flag,
+  // folds and all. Shown, each leaves a pointer in its slot in the log.
+  const selectedFlag = useWorksFlag("selected");
+  const selected = useMemo(
+    () =>
+      selectedFlag
+        ? selectedWorks(logData, data).filter(({ commit }) =>
+            isRowVisible(commit, view.types),
+          )
+        : [],
+    [selectedFlag, logData, data, view.types],
+  );
+  const pointers = useMemo(
+    () =>
+      selected.length > 0 ? selectedPointers(selected, locale) : undefined,
+    [selected, locale],
+  );
+  const selectedTitle = useMemo(() => {
+    const group = logData.groups?.find((g) => g.id === SELECTED_GROUP_ID);
+    return group
+      ? localize(group.title, locale)
+      : t(locale, "logSelectedWorks");
+  }, [logData, locale]);
 
   const commit = useCallback(
     (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
@@ -277,6 +310,22 @@ export function WorksView({ logData }: WorksViewProps) {
         />
       )}
 
+      {/* The flagships, whole (the `selected` flag) — under the shelf when
+          both are on: the directory names every project, this prints a
+          few of them in full. */}
+      {selected.length > 0 && (
+        <SelectedWorks
+          works={selected}
+          title={selectedTitle}
+          locale={locale}
+          identities={logData.identities}
+          form={view.form}
+          activeTypes={view.types}
+          onSelectHash={selectHash}
+          fold={fold}
+        />
+      )}
+
       {/* Git Log Timeline */}
       <LogTimeline
         data={data}
@@ -288,6 +337,7 @@ export function WorksView({ logData }: WorksViewProps) {
         pinnedChapters
         refLook={refLook}
         fold={fold}
+        pointers={pointers}
       />
 
       {/* End marker — `git init` closes a timeline that has commits in it;
