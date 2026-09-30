@@ -43,6 +43,7 @@ import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
+import { useWorksDescription } from "./row-trial";
 
 /**
  * The gutter — hash, rail icon, and the two gaps between them and the title —
@@ -177,6 +178,9 @@ export function TimelineCommit({
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
+  // The devtool's trial of the description's size: at the title's own size
+  // the title takes medium, so weight carries what size no longer does.
+  const trial = useWorksDescription();
   const isEvent = data.type === "event";
   const isAside = data.present === "aside";
   // Folded asides borrow the event voice: muted italic line, rail
@@ -656,7 +660,13 @@ export function TimelineCommit({
             className="min-w-0 flex-1 text-xs text-tertiary-foreground"
           />
         ) : (
-          <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
+          <span
+            className={cn(
+              "min-w-0 flex-1",
+              TYPE.rowTitle,
+              trial === "sm" && "font-medium",
+            )}
+          >
             {displayTitle}
             {data.languageBadge && (
               <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>

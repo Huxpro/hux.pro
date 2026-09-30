@@ -13,6 +13,8 @@ export {
   WORKS_REF_DEFAULT,
   WORKS_REFS,
   type WorksRef,
+  type WorksDescription,
+  WORKS_DESCRIPTION_DEFAULT,
 } from "./provider";
 export { DevtoolFAB } from "./dock";
 export { DevtoolPageMeta } from "./page-meta";

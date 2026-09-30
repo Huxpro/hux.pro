@@ -112,6 +112,18 @@ export const WORKS_REF_DEFAULT: WorksRef = "auto";
 export type HeroExit = "scroll" | "fade";
 
 /**
+ * The size a /works row's description prints at — a session-only trial, for
+ * comparing three answers in place (components/log/embeds/shared.tsx):
+ *
+ *   xs    12px, muted (the default). Two rungs under the title, size and ink.
+ *   13    13px, muted. A half step: still a size under the title.
+ *   sm    14px, muted, and the title set in medium — the title's own size,
+ *         so the hierarchy is weight and ink alone.
+ */
+export type WorksDescription = "xs" | "13" | "sm";
+export const WORKS_DESCRIPTION_DEFAULT: WorksDescription = "xs";
+
+/**
  * Whether this viewport has a bottom edge worth docking to. Tailwind's `sm`,
  * the same width at which every other surface stops being a bottom sheet.
  */
@@ -341,6 +353,9 @@ interface DevtoolContextType {
    */
   heroExitOverride: HeroExit | undefined;
   setHeroExitOverride: (value: HeroExit | undefined) => void;
+  /** Session-only: how a /works row's description prints. See `WorksDescription`. */
+  worksDescription: WorksDescription;
+  setWorksDescription: (value: WorksDescription) => void;
 }
 
 // =============================================================================
@@ -409,6 +424,9 @@ export function DevtoolProvider({
   const [worksRef, setWorksRefState] = useState<WorksRef>(WORKS_REF_DEFAULT);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
+  );
+  const [worksDescription, setWorksDescription] = useState<WorksDescription>(
+    WORKS_DESCRIPTION_DEFAULT
   );
 
   // Load state from localStorage on mount
@@ -653,6 +671,8 @@ export function DevtoolProvider({
         setWorksRef,
         heroExitOverride,
         setHeroExitOverride,
+        worksDescription,
+        setWorksDescription,
       }}
     >
       {children}

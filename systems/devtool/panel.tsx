@@ -83,6 +83,8 @@ import {
 import {
   sectionFoldKey,
   useDevtool,
+  WORKS_DESCRIPTION_DEFAULT,
+  type WorksDescription,
   DRAGGABLE_INSTANCES,
   DRAGGABLE_DEFAULTS,
   PHONE_PALETTE_DEFAULT,
@@ -2982,8 +2984,10 @@ function MusicModule() {
 function WorksModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { worksRef, setWorksRef } = useDevtool();
+  const { worksRef, setWorksRef, worksDescription, setWorksDescription } = useDevtool();
   const onWorks = usePathname() === "/works";
+  // The description's size, a session trial (components/log/row-trial.ts).
+  const descriptionChanged = worksDescription !== WORKS_DESCRIPTION_DEFAULT;
   const options: { value: WorksRef; label: string; title: string }[] = [
     {
       value: "auto",
@@ -3031,22 +3035,48 @@ function WorksModule() {
       title={zh ? "作品" : "Works"}
       icon={<GitBranch className="h-4 w-4" />}
       compact
-      relevant={onWorks}
-      star={worksRef !== WORKS_REF_DEFAULT ? "saved" : null}
+      relevant={onWorks || descriptionChanged}
+      star={strongest(
+        descriptionChanged ? "session" : null,
+        worksRef !== WORKS_REF_DEFAULT ? "saved" : null
+      )}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">{worksRef}</span>
       }
     >
-      <PanelRow
-        label={zh ? "章节标记" : "Chapter ref"}
-        star={
-          worksRef !== WORKS_REF_DEFAULT ? (
-            <PanelStar source="saved" onReset={() => setWorksRef(WORKS_REF_DEFAULT)} />
-          ) : undefined
-        }
-      >
-        <PanelSegmented value={worksRef} options={options} onChange={setWorksRef} />
-      </PanelRow>
+      <div className="space-y-3">
+        <PanelRow
+          label={zh ? "章节标记" : "Chapter ref"}
+          star={
+            worksRef !== WORKS_REF_DEFAULT ? (
+              <PanelStar source="saved" onReset={() => setWorksRef(WORKS_REF_DEFAULT)} />
+            ) : undefined
+          }
+        >
+          <PanelSegmented value={worksRef} options={options} onChange={setWorksRef} />
+        </PanelRow>
+        <PanelRow
+          label={zh ? "描述字号" : "Description"}
+          star={
+            descriptionChanged ? (
+              <PanelStar
+                onReset={() => setWorksDescription(WORKS_DESCRIPTION_DEFAULT)}
+                source="session"
+              />
+            ) : null
+          }
+        >
+          <PanelSegmented<WorksDescription>
+            value={worksDescription}
+            options={[
+              { value: "xs", label: "12" },
+              { value: "13", label: "13" },
+              { value: "sm", label: zh ? "14 · 标题加粗" : "14 · medium" },
+            ]}
+            onChange={setWorksDescription}
+          />
+        </PanelRow>
+      </div>
     </DebugSection>
   );
 }
