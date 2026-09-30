@@ -125,6 +125,14 @@ interface TimelineCommitProps {
   /** The page's form — how much of the commit to print (lib/log-view.ts). */
   form?: LogForm;
   /**
+   * Filed under the project above it (`threadByProject`, lib/log.ts): the
+   * subject column steps in, the gutter does not — the hash and the rail
+   * stay a straight column the way `git log --graph` keeps its graph
+   * straight whatever the subject does, so the tenure rail runs through a
+   * thread unbroken and the mark above reads as the thread's head.
+   */
+  nested?: boolean;
+  /**
    * Make this commit the page's address. When supplied, the hash column is
    * the permalink it always looked like — see `useCommitAnchor`.
    */
@@ -161,6 +169,7 @@ export function TimelineCommit({
   onBeamClear,
   byline = null,
   form = DEFAULT_FORM,
+  nested = false,
   onSelectHash,
   attachmentSet = null,
   inspecting = false,
@@ -402,7 +411,17 @@ export function TimelineCommit({
     : undefined;
 
   const rowContent = (
-    <div className="grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+    <div
+      className={cn(
+        "grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start",
+        // The subject column and everything under it (the third cell on:
+        // the hash and the icon are the first two, at every width — the
+        // hash is hidden below `lg`, not absent) step in by the width of
+        // a mark and a gap, so the thread's head sits over its members'
+        // text the way an outline's parent does.
+        nested && "[&>*:nth-child(n+3)]:pl-7",
+      )}
+    >
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked

@@ -22,6 +22,7 @@ import {
   localizeOptional,
   type Identity,
   isRowVisible,
+  threadParentIndex,
   type Tag,
 } from "@/lib/log";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
@@ -249,6 +250,7 @@ function TagBlock({
     attachments,
     bylines,
     graph,
+    nested,
     hasVisible,
   } = useMemo(() => {
     const bylinesArr = computeBylines(commits, identities, locale);
@@ -271,6 +273,15 @@ function TagBlock({
         inferred: true,
       })),
     ];
+
+    // Rows filed under a project (`attachedTo` naming one) print indented
+    // beneath it — `threadByProject` already put them there; this is the
+    // indent. A member whose project the filter dropped stands loose:
+    // there is nothing above it to be under.
+    const nested = commits.map((c) => {
+      const p = threadParentIndex(c, commits);
+      return p >= 0 && !hidden(commits[p]);
+    });
 
     // Each beam endpoint stashes a BeamSpec so hover/focus/expand
     // fires `activeBeam`. Source specs carry their own fromHash for
@@ -298,6 +309,7 @@ function TagBlock({
       attachments: allBeams,
       bylines: bylinesArr,
       graph: chapterGraph(commits, hidden, laneOf),
+      nested,
       hasVisible: commits.some((c) => !hidden(c)),
     };
   }, [commits, identities, locale, activeTypes, laneOf]);
@@ -501,6 +513,7 @@ function TagBlock({
                   onBeamSet={handleBeamSet}
                   onBeamClear={handleBeamClear}
                   byline={bylines[i]}
+                  nested={nested[i]}
                   onSelectHash={onSelectHash}
                 />
               );

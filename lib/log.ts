@@ -338,12 +338,19 @@ interface BaseCommit {
    */
   media?: Media[];
   /**
-   * Explicit role attachment.
+   * Explicit attachment.
    * - `undefined` (default): use tenure auto-detect — a commit dated
    *   within a role's [date, endDate] window joins that role's bracket.
    * - `"<role-id>"`: force-attach to that role even if the commit is
    *   outside its tenure window. Rendered as an animated beam when the
    *   role is non-adjacent in the sort order.
+   * - `"<project-id>"`: the work this commit is about — a talk presenting
+   *   the project, coverage of it. The commit *files under* the project
+   *   on the timeline: the project takes the place of its newest
+   *   attachment and the attachments follow it, indented, newest first
+   *   (see {@link threadByProject}). The beam still draws, now between
+   *   neighbours. Identity is inferred from tenure as if unattached.
+   * - `"<event-id>"`: a beam to a life marker; no filing.
    * - `null`: force-detach — no rail or beam even if in tenure.
    */
   attachedTo?: string | null;
@@ -1133,6 +1140,73 @@ function commitSortKey(c: Commit): string {
  *   anchoring the BOTTOM of the cluster.
  * - Non-roles: middle tier; order amongst themselves is stable.
  */
+/**
+ * The commit a row files under, when it does: the project its `attachedTo`
+ * names, if that project is in `commits` — a talk about Lynx under Lynx.
+ * A role or an event target is a beam, not a filing; a project that is
+ * not in this list (another chapter's) is not one either, and the row
+ * stays loose where its date puts it.
+ */
+export function threadParentIndex(
+  commit: Commit,
+  commits: readonly Commit[],
+): number {
+  if (typeof commit.attachedTo !== "string") return -1;
+  const idx = commits.findIndex((c) => c.id === commit.attachedTo);
+  return idx >= 0 && commits[idx].type === "project" && commits[idx] !== commit
+    ? idx
+    : -1;
+}
+
+/**
+ * The same rows, threaded: a project and the commits filed under it
+ * (`attachedTo` naming it) are one run — the project first, where its
+ * newest member's date would put it, then the members, newest first.
+ * Everything else keeps its place. Input is date order; so is the output,
+ * read run by run.
+ *
+ * A project page reads this way — the project, then what happened to it —
+ * where the log read ten Lynx talks scattered through two years with the
+ * project two years below them. The log's order is not broken, only
+ * folded: a talk still sits beside the month it was given, inside its
+ * project's run.
+ */
+export function threadByProject<T extends Commit>(sorted: T[]): T[] {
+  const members = new Map<number, number[]>();
+  for (let i = 0; i < sorted.length; i++) {
+    const p = threadParentIndex(sorted[i], sorted);
+    if (p < 0) continue;
+    const list = members.get(p) ?? [];
+    list.push(i);
+    members.set(p, list);
+  }
+  if (members.size === 0) return sorted;
+
+  const parentOf = new Map<number, number>();
+  for (const [p, list] of members) for (const i of list) parentOf.set(i, p);
+
+  const out: T[] = [];
+  const emitted = new Set<number>();
+  for (let i = 0; i < sorted.length; i++) {
+    if (emitted.has(i)) continue;
+    const p = parentOf.get(i) ?? i;
+    const list = members.get(p);
+    if (!list) {
+      out.push(sorted[i]);
+      emitted.add(i);
+      continue;
+    }
+    // The run: the project, then its members in the order they came.
+    out.push(sorted[p]);
+    emitted.add(p);
+    for (const m of list) {
+      out.push(sorted[m]);
+      emitted.add(m);
+    }
+  }
+  return out;
+}
+
 export function sortCommitsByDate<T extends Commit>(commits: T[]): T[] {
   const tier = (c: Commit) => {
     if (c.type !== "role") return 1;
@@ -1628,7 +1702,9 @@ export function buildTimelineData(
   const sortedTags = sortTagsByDate(logData.tags);
   return sortedTags.map((tag) => ({
     tag,
-    commits: sortCommitsByDate(visible.filter((c) => c.tagId === tag.id)),
+    commits: threadByProject(
+      sortCommitsByDate(visible.filter((c) => c.tagId === tag.id)),
+    ),
   }));
 }
 

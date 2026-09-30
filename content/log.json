@@ -588,6 +588,7 @@
   "commits": [
     {
       "id": "wad-2026-lynx-workshop",
+      "attachedTo": "lynx-framework",
       "type": "talk",
       "present": "aside",
       "asideLine": "venue",
@@ -630,6 +631,7 @@
     },
     {
       "id": "gosim-2026-vibe-native",
+      "attachedTo": "lynx-framework",
       "type": "talk",
       "tagId": "lynx-era",
       "title": {
@@ -670,6 +672,7 @@
     },
     {
       "id": "see-conf-2025-two-threads",
+      "attachedTo": "lynx-framework",
       "type": "talk",
       "present": "aside",
       "asideLine": "venue",
@@ -705,6 +708,7 @@
     },
     {
       "id": "wad-2025-lynx-native",
+      "attachedTo": "lynx-framework",
       "type": "talk",
       "present": "aside",
       "asideLine": "venue",
@@ -746,6 +750,7 @@
     },
     {
       "id": "d2-2025-lynx",
+      "attachedTo": "lynx-framework",
       "type": "talk",
       "tagId": "lynx-era",
       "title": {
@@ -777,6 +782,7 @@
     },
     {
       "id": "react-summit-2025-unlock-native",
+      "attachedTo": "lynx-framework",
       "type": "talk",
       "tagId": "lynx-era",
       "title": {
@@ -815,6 +821,7 @@
     },
     {
       "id": "react-universe-2025-two-threads",
+      "attachedTo": "lynx-framework",
       "type": "talk",
       "tagId": "lynx-era",
       "title": {
@@ -848,6 +855,7 @@
     },
     {
       "id": "react-universe-2025-interview",
+      "attachedTo": "lynx-framework",
       "type": "talk",
       "tagId": "lynx-era",
       "title": {
@@ -880,6 +888,7 @@
     },
     {
       "id": "react-advanced-2025-lynx-ui",
+      "attachedTo": "lynx-framework",
       "type": "talk",
       "tagId": "lynx-era",
       "title": {
@@ -913,6 +922,7 @@
     },
     {
       "id": "react-advanced-2025-panel",
+      "attachedTo": "lynx-framework",
       "type": "talk",
       "tagId": "lynx-era",
       "title": {
@@ -1445,6 +1455,7 @@
     },
     {
       "id": "jsconf-china-2017",
+      "attachedTo": "eleme-pwa",
       "type": "talk",
       "tagId": "pwa-era",
       "title": {

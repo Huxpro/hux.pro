@@ -70,6 +70,8 @@ export interface CommitProps {
   byline?: Byline | null;
   /** Timeline-only: how much of the commit to print (see `lib/log-view`). */
   form?: LogForm;
+  /** Timeline-only: filed under the project above it (see `threadByProject`). */
+  nested?: boolean;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
 }
@@ -96,6 +98,7 @@ export function Commit({
   onBeamClear,
   byline = null,
   form = DEFAULT_FORM,
+  nested = false,
   onSelectHash,
 }: CommitProps) {
   const edit = useTimelineEdit();
@@ -178,6 +181,7 @@ export function Commit({
           onBeamClear={onBeamClear}
           byline={byline}
           form={form}
+          nested={nested}
           onSelectHash={onSelectHash}
           attachmentSet={attachmentSet}
           inspecting={inspecting}
