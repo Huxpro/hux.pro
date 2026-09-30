@@ -52,6 +52,8 @@ export interface CommitProps {
   graph?: RowGraph;
   /** Timeline-only: which of those lines a lit connector runs along. */
   graphLit?: RowLit;
+  /** Timeline-only: another chapter's track is held; the row steps back. */
+  dimmed?: boolean;
   /** The role commit's id that owns this row's rail segment. */
   segmentId?: string | null;
   /** True when the parent timeline currently highlights this segment. */
@@ -86,6 +88,7 @@ export function Commit({
   rail,
   graph,
   graphLit,
+  dimmed,
   segmentId,
   isSegmentActive = false,
   beamSpec = null,
@@ -166,6 +169,7 @@ export function Commit({
           rail={rail}
           graph={graph}
           graphLit={graphLit}
+          dimmed={dimmed}
           isRole={commit.type === "role"}
           segmentId={segmentId ?? null}
           isSegmentActive={isSegmentActive}

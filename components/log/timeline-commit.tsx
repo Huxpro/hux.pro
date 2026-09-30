@@ -87,6 +87,9 @@ interface TimelineCommitProps {
   graph?: RowGraph;
   /** Which of those lines a lit connector runs along. */
   graphLit?: RowLit;
+  /** Another chapter's track is held: the row steps back — its words and
+   *  its node, not the graph passing through it. */
+  dimmed?: boolean;
   /** True when this row IS the role that owns its segment. */
   isRole?: boolean;
   /** The role id that owns this row's rail segment. */
@@ -151,6 +154,7 @@ export function TimelineCommit({
   rail,
   graph,
   graphLit,
+  dimmed = false,
   isRole = false,
   beamSpec = null,
   onBeamSet,
@@ -397,7 +401,13 @@ export function TimelineCommit({
     : undefined;
 
   const rowContent = (
-    <div className="grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+    <div
+      className={cn(
+        "grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start",
+        "[&>*]:transition-opacity [&>*]:duration-300",
+        dimmed && "[&>:not([data-rail-icon])]:opacity-40",
+      )}
+    >
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked
@@ -472,7 +482,7 @@ export function TimelineCommit({
           <span
             aria-hidden
             data-rail-above
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-graph-line"
             style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
           />
         )}
@@ -488,13 +498,16 @@ export function TimelineCommit({
           <span
             aria-hidden
             data-rail-below
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-graph-line"
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}
         {/* The node: on the trunk, or moved onto the side lane. */}
         <span
-          className="inline-flex items-center justify-center"
+          className={cn(
+            "inline-flex items-center justify-center transition-opacity duration-300",
+            dimmed && "opacity-40",
+          )}
           style={graph?.side === "node" ? { transform: `translateX(-${LANE}px)` } : undefined}
         >
         {isQuiet ? (
@@ -511,7 +524,7 @@ export function TimelineCommit({
           // once `isQuiet` is false, which is the height the icon wants.
           <span
             aria-hidden
-            className="block w-[3px] h-[3px] rounded-full bg-muted-foreground/30"
+            className="block w-[3px] h-[3px] rounded-full bg-graph-node"
           />
         ) : (
           // All icons live in the same-size invisible wrapper (w-5 h-5)
@@ -525,10 +538,12 @@ export function TimelineCommit({
               "inline-flex items-center justify-center w-5 h-5 rounded-full transition-[box-shadow] duration-200",
               isRoleAnchor && [
                 "ring-1 ring-inset",
-                "ring-muted-foreground/15",
-                "group-hover/tenure:ring-muted-foreground/40",
-                "group-focus-within/tenure:ring-muted-foreground/40",
-                "group-has-[[data-expanded]]/tenure:ring-muted-foreground/40",
+                // A node on the graph, and lit with its tenure (globals.css,
+                // "The graph").
+                "ring-graph-node",
+                "group-hover/tenure:ring-graph-lit",
+                "group-focus-within/tenure:ring-graph-lit",
+                "group-has-[[data-expanded]]/tenure:ring-graph-lit",
               ],
             )}
           >

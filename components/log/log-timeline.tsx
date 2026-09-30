@@ -117,6 +117,9 @@ export function LogTimeline({
   pinnedChapters = false,
   refLook = "stub",
 }: LogTimelineProps) {
+  // The chapter whose track is held (its marker has focus) — page-wide, so
+  // every commit outside it steps back, in its own block or another.
+  const [held, setHeld] = useState<Held | null>(null);
   return (
     <div className="space-y-0">
       {data.map(({ tag, commits, members, laneOf }, tagIndex) => (
@@ -134,13 +137,23 @@ export function LogTimeline({
           onSelectHash={onSelectHash}
           pinned={pinnedChapters}
           refLook={refLook}
+          held={held}
+          onHold={setHeld}
         />
       ))}
     </div>
   );
 }
 
+/** A held track: the block it is drawn in, and its lane there. */
+interface Held {
+  block: string;
+  lane: number;
+}
+
 interface TagBlockProps {
+  held: Held | null;
+  onHold: React.Dispatch<React.SetStateAction<Held | null>>;
   tag: Tag;
   commits: CommitData[];
   members?: Tag[];
@@ -156,6 +169,8 @@ interface TagBlockProps {
 }
 
 function TagBlock({
+  held,
+  onHold,
   tag,
   commits,
   members,
@@ -178,7 +193,7 @@ function TagBlock({
   // a pointer (`trackHover`), and held while it has focus (`trackPin`) — a
   // click or a tap focuses it, and clicking anywhere else, or Escape, lets go.
   const [trackHover, setTrackHover] = useState<number | null>(null);
-  const [trackPin, setTrackPin] = useState<number | null>(null);
+  const trackPin = held?.block === tag.id ? held.lane : null;
   const handleBeamSet = useCallback(
     (spec: BeamSpec) => setActiveBeam(spec),
     [],
@@ -306,6 +321,10 @@ function TagBlock({
     }
     return { rows, refs, header };
   })();
+  /** Whether a lane's things step back: another chapter's track is held,
+   *  here or in another block. */
+  const stepsBack = (lanes: number[]) =>
+    held !== null && !(held.block === tag.id && lanes.includes(held.lane));
   /** A marker's hold on its chapter's track (see `trackHover`). */
   const trackFor = (lane: number): TrackControl => ({
     lit: trackHover === lane || trackPin === lane,
@@ -315,8 +334,9 @@ function TagBlock({
         if (e.pointerType !== "touch") setTrackHover(lane);
       },
       onPointerLeave: () => setTrackHover((h) => (h === lane ? null : h)),
-      onFocus: () => setTrackPin(lane),
-      onBlur: () => setTrackPin((p) => (p === lane ? null : p)),
+      onFocus: () => onHold({ block: tag.id, lane }),
+      onBlur: () =>
+        onHold((h) => (h?.block === tag.id && h.lane === lane ? null : h)),
       onKeyDown: (e) => {
         if (e.key === "Escape") e.currentTarget.blur();
       },
@@ -347,7 +367,12 @@ function TagBlock({
           look={inspecting ? "stub" : lookOf(refLook)}
           lit={lit.header}
         />
-        <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            "flex items-center gap-3 transition-opacity duration-300",
+            stepsBack([0]) && "opacity-40",
+          )}
+        >
         {!inspecting && refLook !== "stub" ? (
           <RefLabel
             look={refLook}
@@ -399,7 +424,7 @@ function TagBlock({
         )}
         </div>
         {pinned && (inspecting || refLook === "stub") && message && (
-          <StubMessage text={message} />
+          <StubMessage text={message} dimmed={stepsBack([0])} />
         )}
       </div>
 
@@ -452,6 +477,7 @@ function TagBlock({
                     look={refLook}
                     lit={lit.refs.get(items.indexOf(item))}
                     track={trackFor(item.lane)}
+                    dimmed={stepsBack([item.lane])}
                   />
                 );
               }
@@ -466,6 +492,7 @@ function TagBlock({
                   rail={railInfo[i].rail}
                   graph={graphs[i]}
                   graphLit={lit.rows.get(i)}
+                  dimmed={stepsBack(laneOf?.get(commits[i].id) ?? [0])}
                   segmentId={railInfo[i].segmentId}
                   isSegmentActive={
                     railInfo[i].segmentId !== null &&
@@ -771,6 +798,7 @@ function RefRow({
   look,
   lit,
   track,
+  dimmed,
 }: {
   tag: Tag;
   locale: Locale;
@@ -779,12 +807,18 @@ function RefRow({
   look: RefLayout;
   lit?: RefLit;
   track: TrackControl;
+  dimmed: boolean;
 }) {
   const message = localizeOptional(tag.narrative, locale);
   return (
     <div className="relative pt-8 pb-2">
       <RefGraphLayer y={32 + 11} mode={mode} look={lookOf(look)} lit={lit} />
-      <div className="flex items-center gap-3">
+      <div
+        className={cn(
+          "flex items-center gap-3 transition-opacity duration-300",
+          dimmed && "opacity-40",
+        )}
+      >
         <RefLabel
           look={look}
           tag={tag}
@@ -795,15 +829,27 @@ function RefRow({
           track={track}
         />
       </div>
-      {look === "stub" && message && <StubMessage text={message} />}
+      {look === "stub" && message && (
+        <StubMessage text={message} dimmed={dimmed} />
+      )}
     </div>
   );
 }
 
 /** `stub`'s message: a paragraph under the marker, from the page column's
  *  edge, on a measure (the reading #326 tried). */
-function StubMessage({ text }: { text: string }) {
-  return <p className={cn("relative mt-2 max-w-prose", TYPE.body)}>{text}</p>;
+function StubMessage({ text, dimmed }: { text: string; dimmed?: boolean }) {
+  return (
+    <p
+      className={cn(
+        "relative mt-2 max-w-prose transition-opacity duration-300",
+        TYPE.body,
+        dimmed && "opacity-40",
+      )}
+    >
+      {text}
+    </p>
+  );
 }
 
 /** Where a ref's marker goes — on trial, switched from the DevTool's Works
@@ -997,10 +1043,15 @@ function TrackPill({
   track?: TrackControl;
   className?: string;
 }) {
+  // On the ladder: the chapter's name is the information where it stands
+  // (secondary) until its track is lit, when it is the thing being read —
+  // ink, and a border on the graph's lit rung, the track's own.
   const classes = cn(
     CHAPTER_PILL,
     "relative transition-colors duration-200",
-    track?.lit ? "border-muted-foreground/50" : "border-border",
+    track?.lit
+      ? "text-foreground border-graph-lit"
+      : "text-muted-foreground border-border",
     className,
   );
   if (!track) {

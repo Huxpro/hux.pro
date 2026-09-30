@@ -35,12 +35,13 @@ const TURN = 5;
 /** Height of a lane moving between the trunk and the side, px. */
 const BEND = 16;
 
-const INK = "pointer-events-none absolute w-px bg-muted-foreground/10";
-const STROKE = "stroke-muted-foreground/10";
-/** The same ink, lit — a connector's path while one of its ends is hovered,
- *  at the tenure highlight's strength. */
-const INK_LIT = "pointer-events-none absolute w-px bg-muted-foreground/30";
-const STROKE_LIT = "stroke-muted-foreground/30";
+/** A line at rest and a line lit, on the ladder's graph roles (globals.css,
+ *  "The graph"): the border rung, and the tertiary rung — a chapter's track
+ *  under its marker, a connector while one of its ends is pointed at. */
+const INK = "pointer-events-none absolute w-px bg-graph-line";
+const STROKE = "stroke-graph-line";
+const INK_LIT = "pointer-events-none absolute w-px bg-graph-lit";
+const STROKE_LIT = "stroke-graph-lit";
 const ink = (lit?: boolean) =>
   cn(lit ? INK_LIT : INK, "transition-colors duration-200");
 const stroke = (lit?: boolean) =>
@@ -134,7 +135,7 @@ export function GraphInCell({
           aria-hidden
           className={cn(
             "pointer-events-none absolute h-px transition-colors duration-200",
-            lit.reach ? "bg-muted-foreground/30" : "bg-muted-foreground/10",
+            lit.reach ? "bg-graph-lit" : "bg-graph-line",
           )}
           style={{ left: lane, top: "50%", width: LANE - gap }}
         />
@@ -336,7 +337,10 @@ export function RefInCell({
           {look === "ring" && (
             <span
               aria-hidden
-              className="pointer-events-none absolute left-1/2 size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-muted-foreground/30"
+              className={cn(
+                "pointer-events-none absolute left-1/2 size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border transition-colors duration-200",
+                startsLit ? "border-graph-lit" : "border-graph-node",
+              )}
               style={{ top: y }}
             />
           )}
