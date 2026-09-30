@@ -6,21 +6,24 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useHomeWidget } from "@/components/home/widgets";
+import { HeaderAction } from "@/components/ui/controls";
 import { ArrowRight, Check, Plus } from "lucide-react";
 import { Link } from "next-view-transitions";
-import { LAB_INDEX, LABS } from "./catalog";
+import { LABS } from "./catalog";
 
 /**
  * `/lab` — every lab as a card wearing its surface: the same small, live
  * view of the lab the home screen's Lab widget rotates through. A card is
  * one link; the surface inside it takes no taps of its own.
+ *
+ * No paragraph first: the cards say what the labs are. What sits under the
+ * title is the page's one control, the way /writing hangs its language
+ * filter there.
  */
 export function LabIndexView() {
   const { locale } = useLocale();
   return (
-    <PageLayout page="lab">
-      <p className={cn(TYPE.body, "ink-bare max-w-prose")}>{LAB_INDEX.blurb[locale]}</p>
-      <HomeWidgetSwitch />
+    <PageLayout page="lab" headerActions={<HomeWidgetSwitch />}>
       <ul className="grid gap-4 sm:grid-cols-2">
         {LABS.map((lab) => {
           const Surface = LAB_SURFACES[lab.id];
@@ -70,17 +73,13 @@ function HomeWidgetSwitch() {
   const { locale } = useLocale();
   const { enabled, setEnabled } = useHomeWidget("lab");
   return (
-    <button
-      type="button"
-      onClick={() => setEnabled(!enabled)}
-      aria-pressed={enabled}
-      className={cn(
-        TYPE.meta,
-        "pressable ink-bare mb-8 mt-3 inline-flex items-center gap-1.5 rounded-full py-1 transition-colors hover:text-foreground",
-      )}
-    >
-      {enabled ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-      {t(locale, enabled ? "labWidgetOn" : "labWidgetAdd")}
-    </button>
+    <span className="inline-flex items-center font-mono text-xs select-none">
+      <HeaderAction variant="action" active={enabled} onClick={() => setEnabled(!enabled)}>
+        <span className="inline-flex items-center gap-1">
+          {enabled ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+          {t(locale, enabled ? "labWidgetOn" : "labWidgetAdd")}
+        </span>
+      </HeaderAction>
+    </span>
   );
 }

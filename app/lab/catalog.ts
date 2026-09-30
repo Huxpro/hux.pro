@@ -52,10 +52,6 @@ export const LAB_INDEX = {
   href: "/lab",
   name: { en: "Lab", zh: "实验室" } satisfies Text,
   mark: "lab",
-  blurb: {
-    en: "This site, studied from the inside. Each lab lays one of its own systems open — the real components, the real policy, with the knobs that tune them.",
-    zh: "研究本站自身的实现。每间实验室剖开它的一个系统——真的组件、真的策略，以及调它们的旋钮。",
-  } satisfies Text,
 } as const;
 
 export const LABS: readonly LabEntry[] = [

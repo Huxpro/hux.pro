@@ -439,7 +439,7 @@ export const translations = {
 
     // Lab (app/lab/catalog.ts holds each lab's own copy)
     labTitle: "Lab",
-    labTitleHover: "Under the hood",
+    labTitleHover: "Physics",
     labOpen: "Open",
     labWidgetAdd: "Add the Lab widget to Home",
     labWidgetOn: "The Lab widget is on Home",
