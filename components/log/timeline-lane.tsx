@@ -76,7 +76,10 @@ export function GraphInCell({
         <span
           aria-hidden
           data-rail-above={cluster.above && !onSide ? "" : undefined}
-          className={cn(INK, "left-1/2 -translate-x-1/2 transition-colors duration-200")}
+          className={cn(
+            INK,
+            "left-1/2 -translate-x-1/2 transition-colors duration-200",
+          )}
           style={{ top: "-1000px", bottom: `calc(50% + ${trunkGap}px)` }}
         />
       )}
@@ -84,7 +87,10 @@ export function GraphInCell({
         <span
           aria-hidden
           data-rail-below={cluster.below && !onSide ? "" : undefined}
-          className={cn(INK, "left-1/2 -translate-x-1/2 transition-colors duration-200")}
+          className={cn(
+            INK,
+            "left-1/2 -translate-x-1/2 transition-colors duration-200",
+          )}
           style={{ top: `calc(50% + ${trunkGap}px)`, bottom: "-1000px" }}
         />
       )}
@@ -148,7 +154,11 @@ export function GraphInCell({
           <span
             aria-hidden
             className={INK}
-            style={{ left: lane, top: "-1000px", bottom: `calc(50% + ${TURN}px)` }}
+            style={{
+              left: lane,
+              top: "-1000px",
+              bottom: `calc(50% + ${TURN}px)`,
+            }}
           />
           <svg
             aria-hidden
@@ -180,12 +190,20 @@ export function GraphInCell({
  * down, bends into the side lane above the marker, and goes on there.
  * `y` is the marker's centre from the top of the cell, px.
  */
+/** How a chapter's ref meets the trunk (on trial, `?refs=` on /works):
+ *  `stub` — the marker sits right of the gutter and the trunk turns out to
+ *  it; `ring` — a node on the trunk, like a commit's; `under` — the marker
+ *  sits on the trunk and the line runs beneath it. */
+export type RefLook = "stub" | "ring" | "under";
+
 export function RefInCell({
   y,
   mode = "plain",
   first = false,
+  look = "stub",
 }: {
   y: number;
+  look?: RefLook;
   /** `plain`: the trunk passes to this chapter. `take`: this chapter takes
    *  the trunk and the running one steps aside. `fork`: the running one
    *  keeps the trunk and this chapter forks off beside it. */
@@ -261,35 +279,59 @@ export function RefInCell({
         <span
           aria-hidden
           className={cn(INK, "left-1/2 -translate-x-1/2")}
-          style={{ top: "-1000px", height: 1000 + y }}
+          style={{
+            top: "-1000px",
+            height:
+              1000 + y - (look === "ring" ? 5 : look === "under" ? 11 : 0),
+          }}
         />
       )}
-      {/* The trunk starts at the marker: out from under it below `lg`… */}
-      <span
-        aria-hidden
-        className={cn(INK, "left-1/2 -translate-x-1/2 lg:hidden")}
-        style={{ top: y, bottom: "-1000px" }}
-      />
-      {/* …and from `lg`, out to its left edge and down. */}
-      <svg
-        aria-hidden
-        className="pointer-events-none absolute overflow-visible hidden lg:block"
-        style={{ left: "calc(50% - 0.5px)", top: y - 0.5 }}
-        width={reach}
-        height={TURN + 1}
-      >
-        <path
-          d={`M ${reach} 0.5 H ${TURN + 0.5} Q 0.5 0.5 0.5 ${TURN + 0.5}`}
-          fill="none"
-          strokeWidth={1}
-          className={STROKE}
-        />
-      </svg>
-      <span
-        aria-hidden
-        className={cn(INK, "left-1/2 -translate-x-1/2 hidden lg:block")}
-        style={{ top: y + TURN, bottom: "-1000px" }}
-      />
+      {look !== "stub" && (
+        <>
+          {look === "ring" && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-muted-foreground/30"
+              style={{ top: y }}
+            />
+          )}
+          <span
+            aria-hidden
+            className={cn(INK, "left-1/2 -translate-x-1/2")}
+            style={{ top: y + (look === "ring" ? 5 : 11), bottom: "-1000px" }}
+          />
+        </>
+      )}
+      {look === "stub" && (
+        <>
+          {/* The trunk starts at the marker: out from under it below `lg`… */}
+          <span
+            aria-hidden
+            className={cn(INK, "left-1/2 -translate-x-1/2 lg:hidden")}
+            style={{ top: y, bottom: "-1000px" }}
+          />
+          {/* …and from `lg`, out to its left edge and down. */}
+          <svg
+            aria-hidden
+            className="pointer-events-none absolute overflow-visible hidden lg:block"
+            style={{ left: "calc(50% - 0.5px)", top: y - 0.5 }}
+            width={reach}
+            height={TURN + 1}
+          >
+            <path
+              d={`M ${reach} 0.5 H ${TURN + 0.5} Q 0.5 0.5 0.5 ${TURN + 0.5}`}
+              fill="none"
+              strokeWidth={1}
+              className={STROKE}
+            />
+          </svg>
+          <span
+            aria-hidden
+            className={cn(INK, "left-1/2 -translate-x-1/2 hidden lg:block")}
+            style={{ top: y + TURN, bottom: "-1000px" }}
+          />
+        </>
+      )}
     </>
   );
 }

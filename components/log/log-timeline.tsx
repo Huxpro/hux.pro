@@ -24,7 +24,7 @@ import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
 import { type BeamSpec, GUTTER_PULL, HASH_CELL } from "./timeline-commit";
-import { RefInCell, type RowGraph } from "./timeline-lane";
+import { RefInCell, type RefLook, type RowGraph } from "./timeline-lane";
 import { useTimelineEdit } from "./timeline-edit-context";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
@@ -91,6 +91,8 @@ interface LogTimelineProps {
    * two sticky layers at the top of a phone would be one too many.
    */
   pinnedChapters?: boolean;
+  /** How a chapter's ref sits on the graph (see `RefLabel`). */
+  refLook?: RefLayout;
 }
 
 /**
@@ -105,6 +107,7 @@ export function LogTimeline({
   activeTypes = NO_TYPES,
   onSelectHash,
   pinnedChapters = false,
+  refLook = "stub",
 }: LogTimelineProps) {
   return (
     <div className="space-y-0">
@@ -122,6 +125,7 @@ export function LogTimeline({
           activeTypes={activeTypes}
           onSelectHash={onSelectHash}
           pinned={pinnedChapters}
+          refLook={refLook}
         />
       ))}
     </div>
@@ -140,6 +144,7 @@ interface TagBlockProps {
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
+  refLook: RefLayout;
 }
 
 function TagBlock({
@@ -154,6 +159,7 @@ function TagBlock({
   activeTypes,
   onSelectHash,
   pinned,
+  refLook,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -271,8 +277,22 @@ function TagBlock({
         )}
       >
         {/* The chapter's trunk starts at its ref. */}
-        <RefGraphLayer y={(tagIndex > 0 ? 24 : 0) + 19} first />
-        {inspecting && edit ? (
+        <RefGraphLayer
+          // The marker's centre: `pt-6` (and the rule) replaces `py-2`'s
+          // top once there is a chapter above.
+          y={(tagIndex > 0 ? 25 : 8) + 11}
+          first
+          look={inspecting ? "stub" : lookOf(refLook)}
+        />
+        {!inspecting && refLook !== "stub" ? (
+          <RefLabel
+            look={refLook}
+            tag={tag}
+            label={tagLabel}
+            locale={locale}
+            pinned={pinned}
+          />
+        ) : inspecting && edit ? (
           <button
             type="button"
             onClick={() => edit.onSelectTag(tag.id)}
@@ -297,7 +317,7 @@ function TagBlock({
             {tagLabel}
           </span>
         )}
-        {!tag.hideDate && (
+        {(inspecting || refLook === "stub") && !tag.hideDate && (
           <span className="font-mono text-xs text-tertiary-foreground">
             {formatTagDateRange(tag, locale)}
           </span>
@@ -361,6 +381,7 @@ function TagBlock({
                     locale={locale}
                     mode={item.mode}
                     pinned={pinned}
+                    look={refLook}
                   />
                 );
               }
@@ -561,10 +582,12 @@ function RefGraphLayer({
   y,
   mode,
   first,
+  look,
 }: {
   y: number;
   mode?: RefMode;
   first?: boolean;
+  look?: RefLook;
 }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -586,7 +609,7 @@ function RefGraphLayer({
             0000000
           </span>
           <span className="relative w-5">
-            <RefInCell y={y} mode={mode} first={first} />
+            <RefInCell y={y} mode={mode} first={first} look={look} />
           </span>
         </div>
       </div>
@@ -604,26 +627,129 @@ function RefRow({
   locale,
   mode,
   pinned,
+  look,
 }: {
   tag: Tag;
   locale: Locale;
   mode: RefMode;
   pinned: boolean;
+  look: RefLayout;
 }) {
   return (
     <div className="relative flex items-center gap-3 pt-8 pb-2">
-      <RefGraphLayer y={32 + 11} mode={mode} />
-      <span
-        data-chapter={pinned ? tag.id : undefined}
-        className={cn(CHAPTER_PILL, "relative border-border")}
-      >
-        {chapterLabel(tag, -1, locale)}
-      </span>
-      {!tag.hideDate && (
-        <span className="font-mono text-xs text-tertiary-foreground">
-          {formatTagDateRange(tag, locale)}
-        </span>
+      <RefGraphLayer y={32 + 11} mode={mode} look={lookOf(look)} />
+      <RefLabel
+        look={look}
+        tag={tag}
+        label={chapterLabel(tag, -1, locale)}
+        locale={locale}
+        pinned={pinned}
+      />
+    </div>
+  );
+}
+
+/** Where a ref's marker goes (on trial, `?refs=` on /works). */
+export type RefLayout = "stub" | "ring" | "under" | "hash";
+export const REF_LAYOUTS: readonly RefLayout[] = ["stub", "ring", "under", "hash"];
+
+/** The line a layout draws: a marker in the hash slot leaves a ring on
+ *  the trunk, as a marker in the title slot does. */
+function lookOf(layout: RefLayout): RefLook {
+  return layout === "hash" ? "ring" : layout;
+}
+
+/**
+ * A ref's marker and its span, placed for its look. `stub` keeps the
+ * marker at the page column's edge; the others lay the ref out on the same
+ * grid as a commit row, so it lines up with the rows under it:
+ *
+ *   ring    ·  ○  (DESIGN) 2004 – 2016     the marker where a title goes
+ *   under   ·  (DESIGN) 2004 – 2016        the marker on the trunk
+ *   hash    (DESIGN) ○  2004 – 2016        the marker where a hash goes
+ */
+function RefLabel({
+  look,
+  tag,
+  label,
+  locale,
+  pinned,
+}: {
+  look: RefLayout;
+  tag: Tag;
+  label: string;
+  locale: Locale;
+  pinned: boolean;
+}) {
+  // `data-chapter` is what the pinned bar watches: the moment this pill
+  // reaches the bar's ref slot, the slot wears it. One per ref.
+  const pill = (
+    <span
+      data-chapter={pinned ? tag.id : undefined}
+      className={cn(CHAPTER_PILL, "relative shrink-0 border-border")}
+    >
+      {label}
+    </span>
+  );
+  const date = tag.hideDate ? null : (
+    <span className="font-mono text-xs text-tertiary-foreground">
+      {formatTagDateRange(tag, locale)}
+    </span>
+  );
+  if (look === "stub") {
+    return (
+      <>
+        {pill}
+        {date}
+      </>
+    );
+  }
+  const blankHash = (
+    <span
+      aria-hidden
+      className={cn(
+        "hidden @sm:inline-block select-none",
+        HASH_CELL,
+        TYPE.hash,
+        "text-transparent",
       )}
+    >
+      0000000
+    </span>
+  );
+  return (
+    <div className={cn("flex-1 min-w-0 -mx-3 px-3 @container", GUTTER_PULL)}>
+      <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-center">
+        {look === "hash" ? (
+          <>
+            {/* The hash slot is a hash wide; the marker overflows it to
+                the left, so the trunk stays where it is. Below `@sm` there
+                is no hash slot, and the marker sits on the trunk. */}
+            <span className="flex justify-end @sm:w-[7ch] lg:w-14 font-mono text-xs">
+              {pill}
+            </span>
+            <span aria-hidden className="hidden @sm:inline-block w-5" />
+            <span className="flex items-center min-w-0">{date}</span>
+          </>
+        ) : look === "ring" ? (
+          <>
+            {blankHash}
+            <span aria-hidden className="w-5" />
+            <span className="flex items-center gap-3 min-w-0">
+              {pill}
+              {date}
+            </span>
+          </>
+        ) : (
+          <>
+            {blankHash}
+            <span className="col-span-2 flex items-center gap-3 min-w-0">
+              {pill}
+              {date}
+            </span>
+          </>
+        )}
+      </div>
     </div>
   );
 }
