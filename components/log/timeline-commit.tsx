@@ -307,10 +307,11 @@ export function TimelineCommit({
   // the title line in every form and every state, so opening a row moves
   // nothing above the description — and never under the title: a line
   // between a title and its sentence is the thing this removes, whatever
-  // the viewport. The metadata is one block at the line's right: on a desk
-  // a single line, `📎 n · venue · date`; below `@md` the same block stacks,
-  // `📎 n · date` over the venue, right-aligned beside the title, which
-  // wraps in a column of its own.
+  // the viewport. On a desk the metadata is the right of the title line,
+  // `📎 n · venue · date`. Below `@md` the line has no room for it, so it
+  // becomes an eyebrow: the same three, one mono line *over* the title, the
+  // way an editorial kicker sits over a headline. Nothing is cut to fit a
+  // column, and the title and its sentence still sit together.
   const besideText = data.meta ?? byline?.subtitle;
   const beside =
     !isQuiet && besideText ? (
@@ -329,6 +330,30 @@ export function TimelineCommit({
         <span className="truncate">{besideText}</span>
       )
     ) : null;
+  // The same venue as running text, for the eyebrow: no truncation — the
+  // line wraps if it must — and the arrow glued to the last word.
+  const venueInline =
+    !isQuiet && besideText ? (
+      data.meta && data.metaUrl ? (
+        <a
+          href={data.metaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="transition-colors hover:text-foreground"
+        >
+          {besideText}
+          <span aria-hidden className="whitespace-nowrap text-[0.7rem]">
+            {" "}↗
+          </span>
+        </a>
+      ) : (
+        <>{besideText}</>
+      )
+    ) : null;
+  // What the date slot prints: the date, or a role's location under a
+  // chapter that hides dates. Read by the title line and the eyebrow alike.
+  const dateText = hideDate ? data.dateSlotOverride : data.date;
 
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
@@ -442,6 +467,38 @@ export function TimelineCommit({
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+      {/*
+        The eyebrow — below `@md` only. Placed first, in the content
+        column: grid auto-placement then starts the hash, the mark and the
+        title on the next row, so the mark sits on the title's line, not
+        the eyebrow's. From `@md` it is not rendered and the title line is
+        the first row again. Quiet rows keep their date on the line.
+      */}
+      {!isQuiet && (
+        <p
+          className={cn(
+            "col-start-2 @sm:col-start-3 @md:hidden mb-0.5 flex flex-wrap items-baseline gap-x-2 leading-4",
+            TYPE.rowMeta,
+          )}
+        >
+          {venueInline && <span>{venueInline}</span>}
+          {venueInline && dateText && (
+            <span aria-hidden className="text-quaternary-foreground">·</span>
+          )}
+          {dateText && <span>{dateText}</span>}
+          {attachmentCount > 0 && (
+            <span
+              className="inline-flex items-center gap-1"
+              aria-label={
+                attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
+              }
+            >
+              <Paperclip aria-hidden className="h-3 w-3" />
+              {attachmentCount}
+            </span>
+          )}
+        </p>
+      )}
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked
@@ -588,7 +645,7 @@ export function TimelineCommit({
         </span>
       </span>
 
-      <div className="flex items-start @md:items-center gap-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0">
         {isQuiet ? (
           // Events and folded asides drop a tier. Face is per script
           // (see QuietLine): Latin serif italic, CJK upright mono.
@@ -607,64 +664,53 @@ export function TimelineCommit({
           </span>
         )}
 
-        {/* The metadata block, packed to the right edge. On a desk one
-            line — the count, the venue, the date — packed rather than
-            spread, so what an open row takes away (the count, which its
-            covers replace) leaves the venue and the date exactly where they
-            were; the venue yields first, the count and the date never do.
-            Below `@md` the same block stacks: the count and the date on
-            the title's first line, the venue under them, right-aligned,
-            with the title wrapping in its own column beside it. The DOM
-            order is the phone's; `order` puts the venue between the count
-            and the date once the block is a line. */}
+        {/* The right of the title line, packed to the edge — the count,
+            the venue, the date — packed rather than spread, so what an
+            open row takes away (the count, which its covers replace)
+            leaves the venue and the date exactly where they were; the
+            venue yields first, the count and the date never do. Below
+            `@md` an ordinary row prints this as the eyebrow instead; a
+            quiet row has only its date, and keeps it here. */}
         <span
           className={cn(
-            "ml-auto flex shrink-0 max-w-[45%] flex-col items-end",
-            "@md:max-w-[55%] @md:min-w-0 @md:shrink @md:flex-row @md:items-center @md:justify-end @md:gap-2",
+            "ml-auto min-w-0 max-w-[55%] shrink items-center justify-end gap-2",
+            isQuiet ? "flex" : "hidden @md:flex",
           )}
         >
-          <span className="flex items-center gap-2 leading-5 @md:contents">
-            {attachmentCount > 0 && (
-              <span
-                className={cn("inline-flex shrink-0 items-center gap-1 @md:order-1", TYPE.rowMeta)}
-                aria-label={
-                  attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
-                }
-              >
-                <Paperclip aria-hidden className="h-3 w-3" />
-                {attachmentCount}
-              </span>
-            )}
-
-            {hideDate ? (
-              data.dateSlotOverride && (
-                <span className={cn("shrink-0 @md:order-3", TYPE.rowMeta)}>
-                  {data.dateSlotOverride}
-                </span>
-              )
-            ) : (
-              <span
-                className={cn(
-                  "font-mono text-xs shrink-0 @md:order-3",
-                  // Date stays — the year is the meaning for life events
-                  // (`moved to US, 2017`) — but pushed a tier quieter than
-                  // siblings so the row reads as background context.
-                  "text-tertiary-foreground",
-                )}
-              >
-                {data.date}
-              </span>
-            )}
-          </span>
+          {attachmentCount > 0 && (
+            <span
+              className={cn("inline-flex shrink-0 items-center gap-1", TYPE.rowMeta)}
+              aria-label={
+                attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
+              }
+            >
+              <Paperclip aria-hidden className="h-3 w-3" />
+              {attachmentCount}
+            </span>
+          )}
 
           {beside && (
             <span
               className={cn(
-                "inline-flex min-w-0 max-w-full justify-end text-right leading-5 @md:order-2",
+                "inline-flex min-w-0 justify-end text-right",
                 TYPE.rowMeta,
               )}
             >
               {beside}
+            </span>
+          )}
+
+          {dateText && (
+            <span
+              className={cn(
+                "font-mono text-xs shrink-0",
+                // Date stays — the year is the meaning for life events
+                // (`moved to US, 2017`) — but pushed a tier quieter than
+                // siblings so the row reads as background context.
+                "text-tertiary-foreground",
+              )}
+            >
+              {dateText}
             </span>
           )}
         </span>
