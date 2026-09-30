@@ -83,8 +83,8 @@ import {
 import {
   sectionFoldKey,
   useDevtool,
-  WORKS_DESCRIPTION_DEFAULT,
-  type WorksDescription,
+  WORKS_SCALE_DEFAULT,
+  type WorksScale,
   DRAGGABLE_INSTANCES,
   DRAGGABLE_DEFAULTS,
   PHONE_PALETTE_DEFAULT,
@@ -2984,10 +2984,12 @@ function MusicModule() {
 function WorksModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { worksRef, setWorksRef, worksDescription, setWorksDescription } = useDevtool();
+  const { worksRef, setWorksRef, worksScale, setWorksScale } = useDevtool();
   const onWorks = usePathname() === "/works";
-  // The description's size, a session trial (components/log/row-trial.ts).
-  const descriptionChanged = worksDescription !== WORKS_DESCRIPTION_DEFAULT;
+  // The log's scale, a session trial (components/log/row-trial.ts): type,
+  // spacing and the covers' size move together, because a list whose text
+  // grows while its pictures stay is a list whose pictures just got bigger.
+  const scaleChanged = worksScale !== WORKS_SCALE_DEFAULT;
   const options: { value: WorksRef; label: string; title: string }[] = [
     {
       value: "auto",
@@ -3035,9 +3037,9 @@ function WorksModule() {
       title={zh ? "作品" : "Works"}
       icon={<GitBranch className="h-4 w-4" />}
       compact
-      relevant={onWorks || descriptionChanged}
+      relevant={onWorks || scaleChanged}
       star={strongest(
-        descriptionChanged ? "session" : null,
+        scaleChanged ? "session" : null,
         worksRef !== WORKS_REF_DEFAULT ? "saved" : null
       )}
       action={
@@ -3056,26 +3058,30 @@ function WorksModule() {
           <PanelSegmented value={worksRef} options={options} onChange={setWorksRef} />
         </PanelRow>
         <PanelRow
-          label={zh ? "描述字号" : "Description"}
+          label={zh ? "尺度" : "Scale"}
           star={
-            descriptionChanged ? (
+            scaleChanged ? (
               <PanelStar
-                onReset={() => setWorksDescription(WORKS_DESCRIPTION_DEFAULT)}
+                onReset={() => setWorksScale(WORKS_SCALE_DEFAULT)}
                 source="session"
               />
             ) : null
           }
         >
-          <PanelSegmented<WorksDescription>
-            value={worksDescription}
+          <PanelSegmented<WorksScale>
+            value={worksScale}
             options={[
-              { value: "xs", label: "12" },
-              { value: "13", label: "13" },
-              { value: "sm", label: zh ? "14 · 标题加粗" : "14 · medium" },
+              { value: "compact", label: zh ? "紧凑" : "Compact" },
+              { value: "desk", label: zh ? "桌面" : "Desk" },
             ]}
-            onChange={setWorksDescription}
+            onChange={setWorksScale}
           />
         </PanelRow>
+        <p className="text-[10px] font-mono text-tertiary-foreground leading-relaxed">
+          {zh
+            ? "桌面：标题 14 中黑，描述 14，封面 80px，行距与章距放开。元数据仍 12。"
+            : "Desk: title 14 medium, description 14, covers 80px, more air per row and chapter. Metadata stays 12."}
+        </p>
       </div>
     </DebugSection>
   );

@@ -43,7 +43,7 @@ import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
-import { useWorksDescription } from "./row-trial";
+import { useWorksScale } from "./row-trial";
 
 /**
  * The gutter — hash, rail icon, and the two gaps between them and the title —
@@ -178,9 +178,11 @@ export function TimelineCommit({
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
-  // The devtool's trial of the description's size: at the title's own size
-  // the title takes medium, so weight carries what size no longer does.
-  const trial = useWorksDescription();
+  // The devtool's trial of the log's scale (row-trial.ts): at `desk` the
+  // title takes medium — the description is at its size, so weight carries
+  // what size no longer does — and the row's parts get a touch more air.
+  const scale = useWorksScale();
+  const desk = scale === "desk";
   const isEvent = data.type === "event";
   const isAside = data.present === "aside";
   // Folded asides borrow the event voice: muted italic line, rail
@@ -481,7 +483,7 @@ export function TimelineCommit({
       {!isQuiet && (
         <p
           className={cn(
-            "col-start-2 @sm:col-start-3 @md:hidden mb-0.5 flex items-baseline gap-2 leading-4",
+            "col-start-2 lg:col-start-3 @md:hidden mb-0.5 flex items-baseline gap-2 leading-4",
             TYPE.rowMeta,
           )}
         >
@@ -664,7 +666,7 @@ export function TimelineCommit({
             className={cn(
               "min-w-0 flex-1",
               TYPE.rowTitle,
-              trial === "sm" && "font-medium",
+              desk && "font-medium",
             )}
           >
             {displayTitle}
@@ -758,7 +760,7 @@ export function TimelineCommit({
           text is what the row's own control acts on, so it has to stay part
           of the trigger at both densities. */}
       {!isQuiet && rowForm.description !== "none" && !!data.description && (
-        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
+        <div className={cn("col-start-2 lg:col-start-3 min-w-0", desk ? "mt-2" : "mt-1.5")}>
           <Description
             text={data.description}
             isExpanded={rowForm.description === "full"}
@@ -776,7 +778,7 @@ export function TimelineCommit({
           on stays the row's; the empty stretch beside a single cover presses
           the row like any other part of it. */}
       {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
-        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
+        <div className={cn("col-start-2 lg:col-start-3 min-w-0", desk ? "mt-2.5" : "mt-1.5")}>
           {/* The covers get a line of their own, always. One cover used to
               tuck up beside the text and two or more dropped below it, so a
               row changed shape with its cargo — and a column of twenty-five
@@ -940,7 +942,7 @@ export function TimelineCommit({
             GUTTER_PULL,
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
-            isQuiet ? "py-1" : "py-2.5",
+            isQuiet ? "py-1" : desk ? "py-3" : "py-2.5",
             rowOnClick ? "pressable cursor-pointer" : "cursor-default",
             "@container",
             // Hover/active highlight is tied to the fold/unfold trigger

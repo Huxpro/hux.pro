@@ -11,7 +11,7 @@ import { IdentityHover } from "@/systems/identity";
 import type { Byline } from "../bylines";
 
 import { TYPE } from "@/lib/typography";
-import { useWorksDescription } from "../row-trial";
+import { useWorksScale } from "../row-trial";
 // =============================================================================
 // Description
 // =============================================================================
@@ -42,14 +42,13 @@ export function Description({
   isExpanded = false,
   className,
 }: DescriptionProps) {
-  // The devtool's trial of the size (components/log/row-trial.ts).
-  const trial = useWorksDescription();
+  // The devtool's trial of the log's scale (components/log/row-trial.ts).
+  const scale = useWorksScale();
   return (
     <p
       className={cn(
         TYPE.caption,
-        trial === "13" && "text-[13px]",
-        trial === "sm" && "text-sm",
+        scale === "desk" && "text-sm",
         // Two lines everywhere, and the measure does the rest: a phone's
         // ~40 characters a line, a desktop's ~90. A wider column is already
         // being handed more of the text, so spending a breakpoint to hand it

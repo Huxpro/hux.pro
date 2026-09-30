@@ -55,6 +55,7 @@ import {
 } from "@/lib/log";
 import type { AttachmentSet, AttachmentsApi } from "@/systems/attachments";
 import { ExternalImage } from "./external-image";
+import { useWorksScale } from "../row-trial";
 import {
   markFor,
   MediaMark,
@@ -67,6 +68,12 @@ type AttachmentTileSize = "covers" | "cell";
 
 const TILE_SIZE: Record<AttachmentTileSize, string> = {
   covers: "h-28",
+  cell: "w-full",
+};
+/** The covers at the `desk` scale (row-trial.ts): 80px tall, an attachment
+ *  beside 14px text rather than a poster over 12px. */
+const TILE_SIZE_DESK: Record<AttachmentTileSize, string> = {
+  covers: "h-20",
   cell: "w-full",
 };
 
@@ -204,6 +211,7 @@ export function AttachmentTile({
   imageClassName,
   className,
 }: AttachmentTileProps) {
+  const scale = useWorksScale();
   const { media, image, index, leaves, mark, caption } = slot;
 
   const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
@@ -229,7 +237,7 @@ export function AttachmentTile({
     flush
       ? "rounded-none"
       : "rounded-md border border-border/50 group-hover/thumb:border-border group-focus-visible/thumb:border-border",
-    TILE_SIZE[size],
+    (scale === "desk" ? TILE_SIZE_DESK : TILE_SIZE)[size],
     !footer && !imageClassName && className,
   );
 

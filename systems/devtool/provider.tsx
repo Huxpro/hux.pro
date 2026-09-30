@@ -112,16 +112,20 @@ export const WORKS_REF_DEFAULT: WorksRef = "auto";
 export type HeroExit = "scroll" | "fade";
 
 /**
- * The size a /works row's description prints at — a session-only trial, for
- * comparing three answers in place (components/log/embeds/shared.tsx):
+ * The scale the /works log is set at — a session-only trial, for comparing
+ * two whole answers in place rather than one element at a time
+ * (components/log/row-trial.ts):
  *
- *   xs    12px, muted (the default). Two rungs under the title, size and ink.
- *   13    13px, muted. A half step: still a size under the title.
- *   sm    14px, muted, and the title set in medium — the title's own size,
- *         so the hierarchy is weight and ink alone.
+ *   compact  what ships: title 14 regular, description 12, covers 112px
+ *            tall, rows at py-2.5, chapters at mt-6.
+ *   desk     the row read the way a desktop list is: title 14 medium,
+ *            description 14 muted (the site's body), covers 80px tall — an
+ *            attachment beside the text, not a poster over it — rows at
+ *            py-3, a touch more air between a row's parts, chapters at mt-8.
+ *            The mono metadata stays 12: the machine layer is 12 everywhere.
  */
-export type WorksDescription = "xs" | "13" | "sm";
-export const WORKS_DESCRIPTION_DEFAULT: WorksDescription = "xs";
+export type WorksScale = "compact" | "desk";
+export const WORKS_SCALE_DEFAULT: WorksScale = "compact";
 
 /**
  * Whether this viewport has a bottom edge worth docking to. Tailwind's `sm`,
@@ -353,9 +357,9 @@ interface DevtoolContextType {
    */
   heroExitOverride: HeroExit | undefined;
   setHeroExitOverride: (value: HeroExit | undefined) => void;
-  /** Session-only: how a /works row's description prints. See `WorksDescription`. */
-  worksDescription: WorksDescription;
-  setWorksDescription: (value: WorksDescription) => void;
+  /** Session-only: the scale the /works log is set at. See `WorksScale`. */
+  worksScale: WorksScale;
+  setWorksScale: (value: WorksScale) => void;
 }
 
 // =============================================================================
@@ -425,9 +429,7 @@ export function DevtoolProvider({
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
-  const [worksDescription, setWorksDescription] = useState<WorksDescription>(
-    WORKS_DESCRIPTION_DEFAULT
-  );
+  const [worksScale, setWorksScale] = useState<WorksScale>(WORKS_SCALE_DEFAULT);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -671,8 +673,8 @@ export function DevtoolProvider({
         setWorksRef,
         heroExitOverride,
         setHeroExitOverride,
-        worksDescription,
-        setWorksDescription,
+        worksScale,
+        setWorksScale,
       }}
     >
       {children}

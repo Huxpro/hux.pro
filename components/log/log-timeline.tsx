@@ -41,6 +41,7 @@ import {
 } from "./timeline-lane";
 import { useTimelineEdit } from "./timeline-edit-context";
 import type { WorksRef } from "@/systems/devtool";
+import { useWorksScale } from "./row-trial";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
  *  per-tag memo below on every render for callers that never filter
@@ -212,6 +213,9 @@ function TagBlock({
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
+  // The devtool's trial of the log's scale (row-trial.ts): bigger rows want
+  // more air between chapters.
+  const desk = useWorksScale() === "desk";
   const tagLabel = chapterLabel(tag, tagIndex, locale);
   const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
   // A chapter's whole track, lit from its marker: while the marker is under
@@ -403,7 +407,9 @@ function TagBlock({
         className={cn(
           "pb-2",
           !pinned && "sticky top-4 z-20",
-          tagIndex > 0 ? "mt-6 pt-6 border-t border-border/30" : "pt-2",
+          tagIndex > 0
+            ? cn(desk ? "mt-8 pt-8" : "mt-6 pt-6", "border-t border-border/30")
+            : "pt-2",
         )}
         // The marker's centre: below the rule once there is a chapter
         // above, and the marker's own half-height.

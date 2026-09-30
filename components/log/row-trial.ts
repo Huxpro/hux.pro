@@ -1,19 +1,20 @@
 "use client";
 
 /**
- * The session's answer to how a /works row's description prints — the
- * devtool's Works module (systems/devtool), read by the row's title and its
- * sentence so the two move together. The default when the devtool is off
- * or absent. A trial, not a setting: nothing here persists.
+ * The session's answer to the scale the /works log is set at — the devtool's
+ * Works module (systems/devtool), read by every part of a row that moves
+ * with it (the title, the sentence, the covers, the spacing) so they move
+ * together. The default when the devtool is off or absent. A trial, not a
+ * setting: nothing here persists.
  */
 
-import { useOptionalDevtool } from "@/systems/devtool/provider";
 import {
-  WORKS_DESCRIPTION_DEFAULT,
-  type WorksDescription,
+  useOptionalDevtool,
+  WORKS_SCALE_DEFAULT,
+  type WorksScale,
 } from "@/systems/devtool/provider";
 
-export function useWorksDescription(): WorksDescription {
+export function useWorksScale(): WorksScale {
   const devtool = useOptionalDevtool();
-  return devtool?.isEnabled ? devtool.worksDescription : WORKS_DESCRIPTION_DEFAULT;
+  return devtool?.isEnabled ? devtool.worksScale : WORKS_SCALE_DEFAULT;
 }
