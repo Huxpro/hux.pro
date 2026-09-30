@@ -477,26 +477,28 @@ export function TimelineCommit({
       {!isQuiet && (
         <p
           className={cn(
-            "col-start-2 @sm:col-start-3 @md:hidden mb-0.5 flex flex-wrap items-baseline gap-x-2 leading-4",
+            "col-start-2 @sm:col-start-3 @md:hidden mb-0.5 flex items-baseline gap-2 leading-4",
             TYPE.rowMeta,
           )}
         >
-          {venueInline && <span>{venueInline}</span>}
-          {venueInline && dateText && (
-            <span aria-hidden className="text-quaternary-foreground">·</span>
-          )}
-          {dateText && <span>{dateText}</span>}
-          {attachmentCount > 0 && (
-            <span
-              className="inline-flex items-center gap-1"
-              aria-label={
-                attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
-              }
-            >
-              <Paperclip aria-hidden className="h-3 w-3" />
-              {attachmentCount}
-            </span>
-          )}
+          {/* The venue on the left, the count and the date packed to the
+              right edge — the same right the title line keeps on a desk,
+              so the date sits in the column a reader scans down. */}
+          <span className="min-w-0 flex-1">{venueInline}</span>
+          <span className="ml-auto flex shrink-0 items-baseline gap-2">
+            {attachmentCount > 0 && (
+              <span
+                className="inline-flex items-center gap-1"
+                aria-label={
+                  attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
+                }
+              >
+                <Paperclip aria-hidden className="h-3 w-3" />
+                {attachmentCount}
+              </span>
+            )}
+            {dateText && <span>{dateText}</span>}
+          </span>
         </p>
       )}
       {/*

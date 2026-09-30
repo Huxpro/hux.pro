@@ -254,8 +254,9 @@ project's team, printed sparsely) sits on the title line in a column
 before the date, and the right of the line is packed to the edge, so when
 an open row's covers replace the count the venue and the date stay where
 they were. Below `@md` the line has no room for a column, so the same
-three become an *eyebrow* — one mono line over the title, `venue · date ·
-📎 n`, the way a kicker sits over a headline — nothing is cut to fit, and
+three become an *eyebrow* — one mono line over the title, the venue on
+the left and `📎 n` and the date packed to the right edge, the way a
+kicker sits over a headline — nothing is cut to fit, and
 the title and its sentence still sit together; the venue is never under
 the title, whatever the viewport, folded and open alike. There is no meta line: with nothing between
 a title and its sentence, the description sits one rung up (`TYPE.caption`,
