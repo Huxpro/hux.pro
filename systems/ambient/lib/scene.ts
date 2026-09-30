@@ -142,6 +142,14 @@ export interface WeatherScene {
   /** Theme veil: blend the rendered scene toward the page background. */
   veil: { color: RGB; amount: number };
   exposure: number;
+  /**
+   * For the painters that never applied `exposure` — the Gradient and the
+   * legibility profile, tuned without it: the exposure to paint with (1 away
+   * from twilight, the scene's through it) and how much of their own lift on
+   * the veil to keep (1 away from twilight, none through it). So they meet the
+   * Sky's twilight look without knowing there is one. See "The twilight look".
+   */
+  flat: { exposure: number; lift: number };
   /** Stable per-session seed so cloud layouts don't jump between renders. */
   seed: number;
   /** Which discrete condition produced this scene (for icons / labels). */
@@ -156,6 +164,10 @@ export interface WeatherScene {
 function hex(h: string): RGB {
   const n = parseInt(h.replace("#", ""), 16);
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}
+
+export function scaleRGB(c: RGB, k: number): RGB {
+  return [c[0] * k, c[1] * k, c[2] * k];
 }
 
 export function mixRGB(a: RGB, b: RGB, t: number): RGB {
@@ -361,6 +373,82 @@ const THEME_KEY: Record<"light" | "dark", ThemeKeyCurve> = {
 function themeKeyAmount(theme: "light" | "dark", elevation: number): number {
   const curve = THEME_KEY[theme];
   return smoothstep(curve.from, curve.to, elevation);
+}
+
+// -----------------------------------------------------------------------------
+// The twilight look — where the two themes meet
+//
+// The key keeps each theme's sky in its range away from the horizon; what is
+// left of the theme at the horizon is the veil and the exposure — the light
+// theme's brightened and washed toward white, the dark theme's dimmed and
+// washed toward the page. That is right at noon and at midnight, and it is the
+// whole of the cut at sunset: the key is zero on both sides of the crossing,
+// so when the theme follows the sun, the light theme's bright, milky sunset
+// became the dark theme's dim one in three seconds, the sun's glow first.
+//
+// So twilight belongs to neither theme. Toward the sun's crossing both looks
+// are drawn to one — no veil, the sky a little under its own exposure — and
+// at the crossing they are the same look, so a theme that changes hands there
+// (lib/solar-theme.ts) has nothing to change in the sky. The light theme's
+// sun dims through the last of the afternoon toward it, the dark theme's
+// brightens through the dawn, and each is its own again at the ends:
+//
+//            light's own   ←──── meet ────→   dark's own
+//   light  ──────┬────────────┬────┬───┬───────────────────────
+//              +12°          0°  −1.5 −4
+//   dark   ──────────────┬────┬────┬──────────────┬────────────
+//                       +4    0°  −1.5           −8°
+//
+// Long on the side each theme follows the sun toward, short on the side past
+// the crossing, where only a hand-picked theme goes: there the key is about to
+// take over (a dark afternoon, a light evening), and a meet that lingered
+// would put the chrome on the wrong side of its sky before the key arrives.
+// The plateau covers where the handover really lands: at sunrise and sunset
+// as the forecast has them, which is −0.83° on the ephemeris and 0° on the
+// estimated arc.
+//
+// Where the look meets is a legibility decision: the frame's lightness at
+// which the light chrome's tone conflict and the dark chrome's are about equal
+// (`toneSafe` in lib/legibility.ts — the light card wants the picture above
+// 0.62, the dark one below 0.45), so both lean on the policy's fill equally in
+// the minutes the sky is changing hands. For a clear sunset that is ~0.53.
+// -----------------------------------------------------------------------------
+
+const TWILIGHT_LOOK = {
+  /** The shared exposure at the crossing; the veil there is none. */
+  exposure: 0.8,
+  /** Sun elevations (degrees) between which the look is the shared one. */
+  plateau: [-1.5, 0],
+  /** Where each theme's own look is whole again, above and below the plateau. */
+  light: { above: 12, below: -4 },
+  dark: { above: 4, below: -8 },
+} as const;
+
+/**
+ * How far the theme's own look gives way to the twilight look, 0..1, at this
+ * sun elevation: 1 through the crossing, 0 once the theme's own look is back.
+ */
+function twilightLookAmount(theme: "light" | "dark", elevation: number): number {
+  const [low, high] = TWILIGHT_LOOK.plateau;
+  const ends = TWILIGHT_LOOK[theme];
+  return elevation >= high
+    ? 1 - smoothstep(high, ends.above, elevation)
+    : 1 - smoothstep(low, ends.below, elevation);
+}
+
+/**
+ * The theme's veil amount and exposure, drawn `t` of the way to the twilight
+ * look, mixed as what they paint (`gain·col + offset`); the veil keeps its
+ * colour while its amount goes to none.
+ */
+function toTwilightLook(
+  look: { amount: number; exposure: number },
+  t: number
+): { amount: number; exposure: number } {
+  if (t <= 0) return look;
+  const gain = lerp(look.exposure * (1 - look.amount), TWILIGHT_LOOK.exposure, t);
+  const amount = look.amount * (1 - t);
+  return { amount, exposure: gain / (1 - amount) };
 }
 
 /** One colour of the sky, moved `amount` of the way into the theme's key. */
@@ -820,6 +908,15 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const key = THEME_KEY[theme];
   const keyAmount = themeKeyAmount(theme, elevation);
   const keyed = (c: RGB) => rekey(c, theme, keyAmount);
+  // Then the veil the key left, and the exposure, drawn to the twilight look.
+  const twilight = twilightLookAmount(theme, elevation);
+  const look = toTwilightLook(
+    {
+      amount: veilDefaults.amount * lerp(1, key.veil, keyAmount),
+      exposure: veilDefaults.exposure,
+    },
+    twilight
+  );
 
   return {
     sun: { ...solar, screen: sunScreen, daylight, isDay: elevation > DAY_ELEVATION_DEG },
@@ -858,9 +955,10 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
     behind,
     veil: {
       color: veilDefaults.color,
-      amount: ov.veilAmount ?? veilDefaults.amount * lerp(1, key.veil, keyAmount),
+      amount: ov.veilAmount ?? look.amount,
     },
-    exposure: veilDefaults.exposure,
+    exposure: look.exposure,
+    flat: { exposure: lerp(1, look.exposure, twilight), lift: 1 - twilight },
     seed: params.seed ?? 0,
     condition,
     theme,

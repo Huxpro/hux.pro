@@ -11,7 +11,13 @@ import type { AmbientPhase } from "./phase";
 import type { SunEvent } from "./sun";
 import type { WallpaperLook, WeatherStyle } from "./wallpaper";
 import type { WeatherCondition } from "./weather";
-import { mixRGB, rgbToCss, type RGB, type WeatherScene } from "./scene";
+import {
+  mixRGB,
+  rgbToCss,
+  scaleRGB,
+  type RGB,
+  type WeatherScene,
+} from "./scene";
 
 /**
  * One entry in the crossfade stack rendered by <GradientStack />.
@@ -48,12 +54,13 @@ export const GRADIENT_CROSSFADE_MS = 700;
  */
 const CSS_VEIL_BOOST = { light: 0.28, dark: 0.18 } as const;
 
+/** The scene's veil and the boost on top of it, painted at `scene.flat`. */
 function veiled(c: RGB, scene: WeatherScene): RGB {
   const amount = Math.min(
     1,
-    scene.veil.amount + CSS_VEIL_BOOST[scene.theme]
+    scene.veil.amount + CSS_VEIL_BOOST[scene.theme] * scene.flat.lift
   );
-  return mixRGB(c, scene.veil.color, amount);
+  return mixRGB(scaleRGB(c, scene.flat.exposure), scene.veil.color, amount);
 }
 
 export function sceneToCssGradient(scene: WeatherScene): string {

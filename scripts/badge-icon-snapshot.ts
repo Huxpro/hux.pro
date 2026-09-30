@@ -51,11 +51,21 @@ interface Usage {
   where: string;
 }
 
-/** Every `<Badge …>` in the MDX — the pill, which wears an icon. */
-function collectUsages(): Usage[] {
-  return collectMagicLinkTags()
+/**
+ * Every `<Badge …>` in the MDX — the pill, which wears an icon — and every
+ * listed project in the log: a project row on /works wears its mark the way
+ * a badge does (components/log/project-mark.tsx), by the same rule
+ * (lib/badge-site.ts), so its site is crawled here too and `--check` fails
+ * the day a project is added without one.
+ */
+function collectUsages(commits: readonly { id: string; type: string; listed?: boolean }[]): Usage[] {
+  const badges = collectMagicLinkTags()
     .filter((t) => t.tag === "Badge")
     .map(({ attrs, where }) => ({ spec: attrs, where }));
+  const projects = commits
+    .filter((c) => c.type === "project" && c.listed !== false)
+    .map((c) => ({ spec: { commit: c.id }, where: `content/log.json: ${c.id}` }));
+  return [...badges, ...projects];
 }
 
 interface Site {
@@ -72,7 +82,7 @@ function collectSites(config: BadgeConfig): { sites: Site[]; unresolved: string[
   const { commits } = normalizeLogData(raw);
   const bySite = new Map<string, Site>();
   const unresolved: string[] = [];
-  for (const { spec, where } of collectUsages()) {
+  for (const { spec, where } of collectUsages(commits)) {
     if (spec.commit && !commits.some((c) => c.id === spec.commit)) {
       unresolved.push(`${where}: no commit "${spec.commit}"`);
       continue;

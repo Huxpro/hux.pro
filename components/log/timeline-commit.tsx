@@ -18,6 +18,7 @@ import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
+import { ProjectMark } from "./project-mark";
 import { QuietLine } from "./quiet-line";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { Description, Commentary, AuthorFields } from "./embeds/shared";
@@ -361,7 +362,11 @@ export function TimelineCommit({
   // `isQuiet`, not `isAside` — the gap has to follow whatever the gutter
   // is actually drawing, and an open aside draws the 12px icon. Kept at 3
   // it would run the rail under the mark.
-  const iconGapPx = isQuiet ? 3 : isRoleAnchor ? 10 : 7;
+  //
+  // A project wears its own mark (ProjectMark): 16px, filled to its edge,
+  // so the rail stops where it stops for the role's 16px ring.
+  const wearsMark = !isQuiet && !!data.mark;
+  const iconGapPx = isQuiet ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
@@ -483,19 +488,27 @@ export function TimelineCommit({
               ],
             )}
           >
-            <CommitIcon
-              type={data.type}
-              override={data.iconOverride}
-              className={cn(
-                "w-3 h-3",
-                // An open aside wears its type mark a tier quieter than an
-                // ordinary row's. It is the same ladder the aside's title
-                // already steps down (`text-tertiary-foreground` on a row
-                // that is otherwise `rowTitle`), so the gutter says what the
-                // row says: this is a work, and it is a minor one.
-                isAside ? "text-quaternary-foreground" : "text-tertiary-foreground",
-              )}
-            />
+            {data.mark ? (
+              // A project's face where the others wear their kind's glyph
+              // (see `mark`, commit-data.ts). 16px — the role ring's size,
+              // so the two things in this column that fill it fill it
+              // alike — with the corner a home-screen icon has at that size.
+              <ProjectMark icon={data.mark} className="size-4 rounded-[4px]" />
+            ) : (
+              <CommitIcon
+                type={data.type}
+                override={data.iconOverride}
+                className={cn(
+                  "w-3 h-3",
+                  // An open aside wears its type mark a tier quieter than an
+                  // ordinary row's. It is the same ladder the aside's title
+                  // already steps down (`text-tertiary-foreground` on a row
+                  // that is otherwise `rowTitle`), so the gutter says what the
+                  // row says: this is a work, and it is a minor one.
+                  isAside ? "text-quaternary-foreground" : "text-tertiary-foreground",
+                )}
+              />
+            )}
           </span>
         )}
       </span>

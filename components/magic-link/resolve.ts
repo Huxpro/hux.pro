@@ -249,6 +249,24 @@ function hrefFor(media: Media, locale: Locale): string {
   return media.url;
 }
 
+/**
+ * The mark a project wears on its row (components/log/project-mark.tsx):
+ * the official icon of the site that stands for it — the same one its
+ * `<Badge>` wears in the About, by the same rule (lib/badge-site.ts:
+ * content/badges.json names the site, else the host of its first external
+ * attachment) — or its monogram in its chapter's colour when the site has
+ * none. Resolved against the commit itself rather than the site's log, so
+ * the editor's unsaved copy and a widget's slice get the same answer.
+ */
+export function commitMark(commit: Commit, locale: Locale): BadgeIcon {
+  const url = badgeSiteUrl({ commit: commit.id }, [commit], BADGE_CONFIG);
+  const key = url && siteKey(url);
+  return (
+    (key ? fromEntry(BADGE_ICONS[key]) : null) ??
+    monogram(localize(commit.title, locale), tagColor(commit))
+  );
+}
+
 export function resolveMagicLink(spec: MagicLinkSpec, locale: Locale): ResolvedMagicLink | null {
   // Something the server resolved: a post, a section of this site.
   if (spec.media) {
