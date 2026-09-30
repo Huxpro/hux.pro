@@ -37,20 +37,23 @@ export interface Axis {
 }
 
 export interface AbstractionTier {
-  level: number;
+  /** 0–9, or `null` for beyond the scale. */
+  level: number | null;
   label: Bilingual;
 }
 
 export interface Language {
   id: string;
-  /** The short name the chart prints under the dot. */
-  name: string;
+  /** The short name the chart prints under the dot — one for both
+   *  languages, or one each (`nameOf`). */
+  name: string | Bilingual;
   /** The glyph the note opens with. */
   emoji: string;
   /** The note's heading, with its links, per locale. */
   title: Bilingual;
-  /** Abstraction level, 0 (bare metal) – 9 (pure). */
-  abs: number;
+  /** Abstraction level, 0 (bare metal) – 9 (pure); `null` past the end of
+   *  the scale (natural language). */
+  abs: number | null;
   /** Interestingness, 0 (boring) – 9 (mind-blown). */
   i13s: number;
   /** Experience, 0 (little) – 9 (language lawyer). */
@@ -58,6 +61,8 @@ export interface Language {
   /** Paragraphs, per locale — the same paragraphs, with the same links, in
    *  each. One that opens with `TBD` is a note still to be written. */
   notes: Record<Locale, string[]>;
+  /** The year a later entry joined the 2020 chart. */
+  added?: string;
 }
 
 interface LanguagesData {
@@ -69,6 +74,8 @@ interface LanguagesData {
       name: Bilingual;
       low: Bilingual;
       high: Bilingual;
+      /** What a level of `null` is called. */
+      beyond: Bilingual;
       tiers: AbstractionTier[];
     };
   };
@@ -84,9 +91,18 @@ export const SCALE_MAX = 9;
 export const AXES = DATA.axes;
 export const LANGUAGES: readonly Language[] = DATA.languages;
 
+/** Past the end of the abstraction scale. */
+export const BEYOND: AbstractionTier = { level: null, label: AXES.abs.beyond };
+
 /** A level's tier, by its number. */
-export function tierOf(level: number): AbstractionTier {
+export function tierOf(level: number | null): AbstractionTier {
+  if (level === null) return BEYOND;
   return AXES.abs.tiers.find((t) => t.level === level) ?? AXES.abs.tiers[0];
+}
+
+/** A language's name in a locale. */
+export function nameOf(language: Language, locale: Locale): string {
+  return typeof language.name === "string" ? language.name : language.name[locale];
 }
 
 /** The named step of an axis a value sits nearest. */
@@ -102,15 +118,14 @@ export function isTodo(note: string): boolean {
 }
 
 /**
- * The tiers in the order the list reads them: most abstract first, the way
- * the original source was laid out, and each tier's languages in their
- * authored order.
+ * The tiers in the order the list reads them: most abstract first (beyond
+ * the scale before 9), the way the original source was laid out, and each
+ * tier's languages in their authored order.
  */
 export function byTier(
   languages: readonly Language[] = LANGUAGES,
 ): { tier: AbstractionTier; languages: Language[] }[] {
-  return [...AXES.abs.tiers]
-    .sort((a, b) => b.level - a.level)
+  return [BEYOND, ...[...AXES.abs.tiers].sort((a, b) => b.level! - a.level!)]
     .map((tier) => ({
       tier,
       languages: languages.filter((l) => l.abs === tier.level),
@@ -139,11 +154,19 @@ export type AbstractionPalette = "violet" | "instagram" | "ink";
 /** The palette the chart paints with. */
 export const ABSTRACTION_PALETTE: AbstractionPalette = "instagram";
 
-/** A CSS colour for an abstraction level. */
+/**
+ * A CSS paint for an abstraction level: its colour, or — past the end of the
+ * scale — the whole ramp at once, since what sits there compiles into every
+ * level below it. A gradient, so it paints a `background`, not a `color`.
+ */
 export function absColor(
-  level: number,
+  level: number | null,
   palette: AbstractionPalette = ABSTRACTION_PALETTE,
 ): string {
+  if (level === null) {
+    const stops = [0, 3, 6, 9, 0].map((l) => `var(--abs-${palette}-${l})`);
+    return `conic-gradient(${stops.join(", ")})`;
+  }
   return `var(--abs-${palette}-${level})`;
 }
 
@@ -168,8 +191,18 @@ export interface LabelPlacement {
 
 const CENTERED: LabelPlacement = { side: "below", align: "center" };
 
-/** Width of one character of the label face, in ems (JetBrains Mono). */
+/** Width of one character of the label face, in ems (JetBrains Mono). A
+ *  Han character falls back to a CJK face, a full em wide. */
 const MONO_ADVANCE = 0.6;
+
+function labelWidth(name: string, fontSize: number): number {
+  let ems = 0;
+  for (const ch of name) ems += /[\u3400-\u9fff]/.test(ch) ? 1 : MONO_ADVANCE;
+  return ems * fontSize;
+}
+
+/** How far past the field's edge a name may hang before it turns inward. */
+const EDGE_SLACK = 24;
 
 /** How far past the dot's centre a start/end-anchored name begins, in px. */
 export const LABEL_TUCK = 6;
@@ -184,6 +217,7 @@ export function placeLabels(
   languages: readonly Language[],
   plotWidth: number,
   fontSize: number,
+  locale: Locale,
   gap = 4,
 ): Map<string, LabelPlacement> {
   const placements = new Map<string, LabelPlacement>();
@@ -200,7 +234,17 @@ export function placeLabels(
     };
     for (const l of sorted) {
       const center = (l.i13s / SCALE_MAX) * plotWidth;
-      const width = l.name.length * MONO_ADVANCE * fontSize;
+      const width = labelWidth(nameOf(l, locale), fontSize);
+      // A name that would run off the field's end turns back in from it —
+      // under its dot if that is clear, over it if the row is too crowded.
+      if (center + width / 2 > plotWidth + EDGE_SLACK) {
+        const [left, right] = extent(center, width, "end");
+        const side: LabelPlacement["side"] =
+          !prev.below || left >= prev.below.right + gap ? "below" : "above";
+        placements.set(l.id, { side, align: "end" });
+        prev[side] = { id: l.id, left, right, center, width };
+        continue;
+      }
       let placed: LabelPlacement | null = null;
       for (const side of ["below", "above"] as const) {
         const before = prev[side];

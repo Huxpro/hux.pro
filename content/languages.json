@@ -96,6 +96,10 @@
         "en": "abstract",
         "zh": "抽象"
       },
+      "beyond": {
+        "en": "beyond the scale",
+        "zh": "超出刻度"
+      },
       "tiers": [
         {
           "level": 0,
@@ -171,6 +175,32 @@
     }
   },
   "languages": [
+    {
+      "id": "natural-language",
+      "name": {
+        "en": "Natural Language",
+        "zh": "自然语言"
+      },
+      "emoji": "💬",
+      "title": {
+        "en": "[Natural Language](https://en.wikipedia.org/wiki/Natural_language)",
+        "zh": "[自然语言](https://en.wikipedia.org/wiki/Natural_language)"
+      },
+      "abs": null,
+      "i13s": 9,
+      "exp": 9,
+      "added": "2026",
+      "notes": {
+        "en": [
+          "Andrej Karpathy said it in 2023: \"the hottest new programming language is English\". In February 2025 he named what programming in it feels like, [vibe coding](https://en.wikipedia.org/wiki/Vibe_coding); a year later, what that had grown into, [agentic engineering](https://x.com/karpathy/status/2019137879310836075). In that one year it took over the world.",
+          "So it goes in the top right corner. No language gets more practice than a mother tongue, and none has been more interesting to program in. Its abstraction is off the scale: not closer to the λ-calculus than Coq, but past the end of the axis. Prose, which a model compiles into any of the languages below it."
+        ],
+        "zh": [
+          "Andrej Karpathy 在 2023 年就说过：“最热门的新编程语言是英语”。2025 年 2 月，他给用它编程的感觉起了个名字，[vibe coding](https://en.wikipedia.org/wiki/Vibe_coding)；一年后，又给它长成的样子起了个名字，[agentic engineering](https://x.com/karpathy/status/2019137879310836075)。就在这一年里，它接管了世界。",
+          "所以它在右上角：没有哪门语言比母语练得更多，也没有哪门语言比它更有意思。它的抽象层级超出了刻度：不是比 Coq 更接近 λ 演算，而是越过了坐标轴的尽头。一段散文，由模型编译成下面的任何一门语言。"
+        ]
+      }
+    },
     {
       "id": "plt",
       "name": "λ Λ Π Σ",
@@ -731,7 +761,7 @@
         "en": "[BASIC](https://en.wikipedia.org/wiki/BASIC)",
         "zh": "[BASIC](https://en.wikipedia.org/wiki/BASIC)"
       },
-      "abs": 5,
+      "abs": 2,
       "i13s": 1,
       "exp": 0,
       "notes": {

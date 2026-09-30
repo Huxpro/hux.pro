@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { AXES, byTier, absColor, plainText } from "@/lib/languages";
+import { AXES, absColor, byTier, nameOf, plainText } from "@/lib/languages";
 import type { Locale } from "@/lib/i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
@@ -47,9 +47,9 @@ export function LanguageIndex({ locale }: { locale: Locale }) {
   return (
     <div className="space-y-8">
       {byTier().map(({ tier, languages }) => (
-        <section key={tier.level} aria-labelledby={`tier-${tier.level}`}>
+        <section key={tier.level ?? "beyond"} aria-labelledby={`tier-${tier.level ?? "beyond"}`}>
           <h3
-            id={`tier-${tier.level}`}
+            id={`tier-${tier.level ?? "beyond"}`}
             className={cn(TYPE.label, "mb-2 flex items-center gap-2")}
           >
             <span
@@ -57,7 +57,9 @@ export function LanguageIndex({ locale }: { locale: Locale }) {
               className="size-2 rounded-full"
               style={{ background: absColor(tier.level) }}
             />
-            <span className="tabular-nums">{tier.level}</span>
+            {tier.level !== null && (
+              <span className="tabular-nums">{tier.level}</span>
+            )}
             <span>{tier.label[locale]}</span>
           </h3>
           <ul className="-mx-2">
@@ -85,7 +87,7 @@ export function LanguageIndex({ locale }: { locale: Locale }) {
                       {language.emoji}
                     </span>
                     <span className={cn(TYPE.rowTitle, "shrink-0 font-medium")}>
-                      {language.name}
+                      {nameOf(language, locale)}
                     </span>
                     {/* The heading's words, unless they only repeat the
                         name (Scala: Scala). */}
@@ -94,7 +96,7 @@ export function LanguageIndex({ locale }: { locale: Locale }) {
                       className="min-w-0 flex-1 truncate text-sm text-muted-foreground"
                     >
                       {plainText(language.title[locale]).toLowerCase() !==
-                        language.name.toLowerCase() &&
+                        nameOf(language, locale).toLowerCase() &&
                         plainText(language.title[locale])}
                     </span>
                     <span

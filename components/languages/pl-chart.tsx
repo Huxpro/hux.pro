@@ -17,6 +17,7 @@ import {
   SCALE_MAX,
   LABEL_TUCK,
   absColor,
+  nameOf,
   placeLabels,
   tierOf,
   type LabelPlacement,
@@ -73,6 +74,12 @@ function inRange(level: number, [lo, hi]: Range) {
   return level >= lo && level <= hi;
 }
 
+/** Out of the kept range. What is past the scale is in no range: any filter
+ *  sets it aside. */
+function isDimmed(level: number | null, range: Range, filtered: boolean) {
+  return level === null ? filtered : !inRange(level, range);
+}
+
 export function PLChart({ locale }: { locale: Locale }) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLElement | null>(null);
@@ -95,8 +102,8 @@ export function PLChart({ locale }: { locale: Locale }) {
 
   const labelSize = fieldWidth > 0 && fieldWidth < 420 ? 10 : 11;
   const placements = useMemo(
-    () => placeLabels(LANGUAGES, fieldWidth || 600, labelSize),
-    [fieldWidth, labelSize],
+    () => placeLabels(LANGUAGES, fieldWidth || 600, labelSize, locale),
+    [fieldWidth, labelSize, locale],
   );
 
   const open = useMemo(
@@ -188,7 +195,7 @@ export function PLChart({ locale }: { locale: Locale }) {
               locale={locale}
               placement={placements.get(language.id) ?? CENTERED}
               labelSize={labelSize}
-              dimmed={!inRange(language.abs, range)}
+              dimmed={isDimmed(language.abs, range, filtered)}
               selected={openId === language.id}
               peek={openId === null}
               onOpen={(el) => {
@@ -215,7 +222,7 @@ export function PLChart({ locale }: { locale: Locale }) {
           if (!next) setOpenId(null);
         }}
         presentation={ANCHORED_PRESENTATION}
-        title={open?.name ?? ""}
+        title={open ? nameOf(open, locale) : ""}
         closeLabel={t(locale, "languagesClose")}
         popover={{ anchor: anchorRef, width: "min(92vw, 420px)", align: "center" }}
         maxHeight="min(72dvh, 560px)"
@@ -279,7 +286,7 @@ function Dot({
           onClick={(e) => onOpen(e.currentTarget)}
           aria-haspopup="dialog"
           aria-expanded={selected}
-          aria-label={`${language.name} — ${AXES.x.name[locale]} ${language.i13s}, ${AXES.y.name[locale]} ${language.exp}, ${AXES.abs.name[locale]} ${language.abs} (${tier.label[locale]})`}
+          aria-label={`${nameOf(language, locale)} — ${AXES.x.name[locale]} ${language.i13s}, ${AXES.y.name[locale]} ${language.exp}, ${AXES.abs.name[locale]} ${tier.level ?? ""} (${tier.label[locale]})`}
           className={cn(
             "group/dot pressable relative grid size-8 cursor-pointer place-items-center rounded-full outline-none",
             "focus-visible:ring-2 focus-visible:ring-ring/50",
@@ -319,7 +326,7 @@ function Dot({
               ...(placement.align === "end" && { right: `calc(50% - ${LABEL_TUCK}px)` }),
             }}
           >
-            {language.name}
+            {nameOf(language, locale)}
           </span>
         </button>
       </MagneticPreview>
@@ -419,7 +426,8 @@ function AbstractionStrip({
           onPointerCancel={() => (drag.current = null)}
           onPointerLeave={() => setHover(null)}
         >
-          {AXES.abs.tiers.map(({ level }) => {
+          {AXES.abs.tiers.map(({ level: tierLevel }) => {
+            const level = tierLevel!;
             const kept = inRange(level, range);
             return (
               <div

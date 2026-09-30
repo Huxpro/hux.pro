@@ -103,7 +103,9 @@ function Meter({
   detail,
 }: {
   label: string;
-  value: number;
+  /** 0–9, or `null` past the end of the scale: every bar lit, each in its
+   *  own level's colour, and no number. */
+  value: number | null;
   ink?: string;
   detail?: string;
 }) {
@@ -118,14 +120,18 @@ function Meter({
               className="h-2.5 w-[5px] rounded-[1px]"
               style={{
                 background:
-                  i < value
-                    ? (ink ?? "var(--foreground)")
-                    : "color-mix(in oklab, var(--ink) 10%, transparent)",
+                  value === null
+                    ? absColor(i + 1)
+                    : i < value
+                      ? (ink ?? "var(--foreground)")
+                      : "color-mix(in oklab, var(--ink) 10%, transparent)",
               }}
             />
           ))}
         </span>
-        <span className={cn(TYPE.meta, "tabular-nums")}>{value}</span>
+        {value !== null && (
+          <span className={cn(TYPE.meta, "tabular-nums")}>{value}</span>
+        )}
         {detail && (
           <span className={cn(TYPE.rowMeta, "truncate")}>{detail}</span>
         )}
@@ -150,6 +156,12 @@ function NoteHead({
       </span>
       <h3 className="text-[15px] font-medium leading-6 text-foreground">
         <InlineMarks source={language.title[locale]} interactive={interactive} />
+        {/* A later entry says when it joined the 2020 chart. */}
+        {language.added && (
+          <span className="ml-2 inline-block rounded bg-muted px-1.5 py-0.5 align-[0.1em] font-mono text-[10px] font-normal leading-none text-muted-foreground">
+            {language.added}
+          </span>
+        )}
       </h3>
     </div>
   );
@@ -248,7 +260,8 @@ export function LanguagePeek({
           className="size-2 shrink-0 rounded-full"
           style={{ background: absColor(language.abs) }}
         />
-        {AXES.abs.name[locale]} {tier.level} · {tier.label[locale]}
+        {AXES.abs.name[locale]}
+        {tier.level !== null && ` ${tier.level}`} · {tier.label[locale]}
       </p>
       {first && (
         <p lang={locale} className={cn(TYPE.caption, "mt-3 line-clamp-3")}>
