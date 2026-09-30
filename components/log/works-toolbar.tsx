@@ -62,7 +62,13 @@ import {
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import { GalleryVertical, GitBranch, LayoutList, List, X } from "lucide-react";
+import {
+  GalleryVertical,
+  GitBranch,
+  LayoutList,
+  ScrollText,
+  X,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
@@ -72,7 +78,7 @@ import {
   getCommitTypePluralLabel,
   type FilterableCommitType,
 } from "@/lib/log";
-import { LOG_FORMS, type LogForm } from "@/lib/log-view";
+import { WORKS_FORMS, type WorksForm } from "@/lib/log-view";
 import { pageScrollTop, scrollPageTo } from "vitre";
 import { usePageLift } from "@/components/ui/use-page-lift";
 import { useNoticeYield } from "@/components/ui/use-notice-yield";
@@ -105,8 +111,8 @@ interface WorksToolbarProps {
   active: FilterableCommitType[];
   onToggleType: (type: FilterableCommitType) => void;
   onClearTypes: () => void;
-  form: LogForm;
-  onFormChange: (form: LogForm) => void;
+  form: WorksForm;
+  onFormChange: (form: WorksForm) => void;
   /** The chapters on the page, in order, with the marker each wears. */
   chapters: readonly { id: string; label: string }[];
 }
@@ -114,19 +120,22 @@ interface WorksToolbarProps {
 /**
  * What each form wears and what it is called. One table rather than one per
  * attribute, so a fifth form is one row here; what each form *prints* is
- * `ROW_FORM` in `lib/log-view.ts` — that module is deliberately React-free,
- * and an icon is a component.
+ * `WORKS_FORMS` and `ROW_FORM` in `lib/log-view.ts` — that module is
+ * deliberately React-free, and an icon is a component.
  */
 const FORM_CHIP: Record<
-  LogForm,
+  WorksForm,
   {
     icon: LucideIcon;
-    labelKey: "logFormIndex" | "logFormCovers" | "logFormFeed";
+    labelKey: "logFormOverview" | "logFormCovers" | "logFormFeed";
   }
 > = {
-  // Lines only; lines with a cover block; full panels. The glyphs climb in
-  // visual weight the way the forms climb in detail.
-  index: { icon: List, labelKey: "logFormIndex" },
+  // A written page; lines with a cover block; full panels. The overview is
+  // prose in sections — a name, a paragraph, then lists — rather than a
+  // column of lines, so it wears a page of text and not the list glyph the
+  // index wore. The log's two glyphs climb in weight as their forms climb
+  // in detail.
+  overview: { icon: ScrollText, labelKey: "logFormOverview" },
   covers: { icon: LayoutList, labelKey: "logFormCovers" },
   feed: { icon: GalleryVertical, labelKey: "logFormFeed" },
 };
@@ -352,14 +361,14 @@ export function WorksToolbar({
 
           {/* Form. Segmented rather than a cycling button: three stops is one
           too many to discover by tapping, and every form stays one tap away.
-          Each stop resets every row to a preset (`ROW_FORM`), which is all
-          a form is. */}
+          The log's stops reset every row to a preset (`ROW_FORM`), which is
+          all a form is; the overview's swaps the log for the overview. */}
           <Segmented
             tone="bare"
             label={t(locale, "logFormLabel")}
             value={form}
             onChange={onFormChange}
-            options={LOG_FORMS.map((f) => {
+            options={WORKS_FORMS.map((f) => {
               const { icon: Icon, labelKey } = FORM_CHIP[f];
               const name = t(locale, labelKey);
               return {

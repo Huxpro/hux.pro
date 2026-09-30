@@ -228,20 +228,23 @@ two never trade jobs.
 
 ## The three forms of /works
 
-How much of a commit the page prints is one of three *forms*, and a form
-is a preset of a few independent atoms rather than a layout of its own
-(`ROW_FORM`, `lib/log-view.ts`): what of the description prints (`none` ·
-`clamp` · `full`), which attachment object (`none` · `covers` · `grid`),
-whether the notes print (commentary, the author fields, the link labels),
-and whether anything peeks on hover. The toolbar's control resets every
-row to a preset; a row the reader opens by hand takes the `feed` preset
-for itself. Old links with git's names (`oneline`, `stat`, `patch`) still
-parse, as aliases.
+The toolbar's form control has three stops (`WORKS_FORMS`,
+`lib/log-view.ts`): the overview, and the log in two forms. A log form is
+a preset of a few independent atoms rather than a layout of its own
+(`ROW_FORM`): what of the description prints (`none` · `clamp` · `full`),
+which attachment object (`none` · `covers` · `grid`), whether the notes
+print (commentary, the author fields, the link labels), and whether
+anything peeks on hover. Choosing one resets every row to its preset; a
+row the reader opens by hand takes the `feed` preset for itself. The
+overview is not a row preset but a page of its own, under the same bar
+and filter (`components/log/works-overview.tsx`). Old links still parse,
+as aliases: `index` and git's `oneline` land on the overview, `stat` and
+`patch` on the log's two forms.
 
 | form | description | media | notes | peek | the reading |
 |---|---|---|---|---|---|
-| `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
-| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
+| `overview` | the selected works' whole; none below | text links — each opens where its cover would | — | — | the career in one page, in tiers: selected works, more projects, talks, press (roles when asked for). A type chip keeps its tiers; a project's name opens its commit in `covers` |
+| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, one row per commit |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
 ### The title line
@@ -269,6 +272,14 @@ muted) and reads as the row's second tier. The `@handle` signs the foot of
 a single cover; a row with more, or none, prints no handle while folded —
 the chapter names the company, and the author fields name it in full once
 the row is open.
+
+The title-line preset the page used to offer, `index` (no description, no
+media, peeks), is still a `LogForm`: the Works Lab still prints the log in
+it, its rows still open with their covers (`rowFormFor`), and it is the
+row a commit steps down to while another chapter's track is held. /works no
+longer offers it as a stop — the overview is what its stop was for. A held
+track is the log's alone: the overview has no refs to hold and no row forms
+to step, and switching to it lets a hold go.
 
 ### The attachment object
 
