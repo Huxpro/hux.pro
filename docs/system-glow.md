@@ -19,7 +19,7 @@ systems/voice/
 └── use-voice-input.ts  # Web Speech API words + the meter, one press
 
 systems/command/voice.tsx   # the palette's microphone, field glow, `/` `V`
-app/editor/glow/            # the lab: every scale, one set of controls
+app/lab/glow/               # the lab: every scale, one set of controls
 systems/glow/lib/tuning.ts  # the devtool's knobs: strength, the About's strength and depth
 ```
 
@@ -170,7 +170,7 @@ palette every frame; after a change of wallpaper or rule it eases there over
 
 The rule is site-wide — one light — in the devtool's Glow module
 (`Colours`, with the wallpaper's hue and the five stops as swatches);
-`/editor/glow` lays each rule out for wallpapers across the wheel. The CSS
+`/lab/glow` lays each rule out for wallpapers across the wheel. The CSS
 fallback (no WebGL) keeps Siri's stops.
 
 ## Motions
@@ -178,7 +178,7 @@ fallback (no WebGL) keeps Siri's stops.
 How the light lives while it is on. `flow` is the field this shader was
 built as; `rotate` and `pulse` are Libraries.dev border-beam's two families,
 and they are **built in layers** instead (`layered` in `lib/shader.ts`), as
-border-beam builds them — its CSS is in `/editor/glow` beside ours (the
+border-beam builds them — its CSS is in `/lab/glow` beside ours (the
 `border-beam` package, a lab-only dev dependency, MIT), each pair on the
 same host in the same theme.
 
@@ -365,7 +365,7 @@ swallowed, so a hold never types into the field.
 
 ### Candidates
 
-Drawn in `/editor/glow` so each can be judged by eye; none wired yet. The
+Drawn in `/lab/glow` so each can be judged by eye; none wired yet. The
 rule for adding one: the glow says *something is alive here* — listening,
 working, running, now. Never decoration.
 

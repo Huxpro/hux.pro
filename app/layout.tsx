@@ -79,7 +79,7 @@ export const metadata: Metadata = {
     template: "%s | Hux.Pro",
   },
   description: "Prose, Profession, Programming, Production, Projects",
-  // Generative app icon — authored in `/editor/icon`, rendered from
+  // Generative app icon — authored in the Icon Lab (`/lab/icon`), rendered from
   // `content/icon.json` by `pnpm icon:generate`. SVG for modern browser tabs,
   // PNG apple-touch-icon for the iOS home screen; Android/PWA icons come from
   // the web manifest (app/manifest.ts). favicon.ico covers legacy.

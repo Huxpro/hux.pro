@@ -315,9 +315,9 @@ is nothing to borrow.
 
 ## The lab
 
-**`/editor/legibility`** — hidden, `noindex`, linked from the devtool's Glass
-module. Bilingual like the rest of the site; its strings live beside it in
-`app/editor/legibility/i18n.ts`, not in the visitor dictionary. Not a mock: choosing a scene there selects it for real through the
+**`/lab/legibility`** — `noindex`, reached from the `/lab` index, the home
+screen's Lab widget, and the devtool's Glass module. Bilingual like the rest of the site; its strings live beside it in
+`app/lab/legibility/i18n.ts`, not in the visitor dictionary. Not a mock: choosing a scene there selects it for real through the
 same setters the picker and devtool use; the specimens are the production
 components; the sliders write the same variables the provider and stylesheet
 already read. The scene it sets (wallpaper, theme, material, tint) is the

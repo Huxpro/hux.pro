@@ -19,7 +19,7 @@ from config) while remaining *editable*.
 | SVG → PNG / ICO rasterizer | `lib/icon/raster.ts` |
 | Asset generation (Node) | `lib/icon/generate.ts` |
 | Generated assets | `public/icons/{icon.svg,apple-icon.png,icon-192.png,icon-512.png}`, `app/favicon.ico` |
-| Editor ("Icon Studio") | `app/editor/icon` (hidden URL) |
+| Icon Lab | `app/lab/icon` (`/lab/icon`) |
 | Dev save API | `app/api/icon` |
 | CLI generator | `scripts/icon-generate.ts` |
 | Web manifest | `app/manifest.ts` → `/manifest.webmanifest` |
@@ -44,10 +44,11 @@ doesn't decode woff2). The icon is a full-bleed background with a small centered
 mark, so the 512 doubles as the `maskable` icon — it survives platform masking
 without a separate safe-area render.
 
-## The editor
+## The lab
 
-Open **`/editor/icon`** (not linked anywhere, `noindex`). The right panel
-exposes the levers; the left canvas previews live, at multiple sizes, and under
+Open **`/lab/icon`** (from the `/lab` index, `noindex`). The panel
+exposes the levers (folded under `Controls` on a phone, where Save and Reset
+are not drawn); the stage previews live, at multiple sizes, and under
 round / square / app-tile masks. The preview inlines the SVG into the DOM so it
 renders with the site's actual font families — WYSIWYG against the shipped asset.
 

@@ -140,7 +140,7 @@ everywhere else: over a wallpaper or on Clear glass the same token composites
 with what is behind it instead of ignoring it. The numbers, the wallpaper
 boost, the relief text-shadow and the tint are all in
 [docs/system-legibility.md](./system-legibility.md), and every one of them is
-a slider at `/editor/legibility`.
+a slider at `/lab/legibility`.
 
 ### Design Note
 

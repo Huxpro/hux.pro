@@ -368,9 +368,9 @@ wallpaper's canvas, which every page pays alike.
 
 ## The lab
 
-**`/editor/attachments`** — hidden, `noindex` — is the devtool for this system, the
-way `/editor/legibility` is for reading surfaces. The lab prints every render
-path (`app/editor/attachments/paths.ts`) next to live specimens: the chips at
+**`/lab/attachments`** — the Attachments Lab, `noindex` — is the devtool for this system, the
+way `/lab/legibility` is for reading surfaces. The lab prints every render
+path (`app/lab/attachments/paths.ts`) next to live specimens: the chips at
 every size on the log's own covers, in the `/works` tier and the peek's, the
 GitNation case among them; the policy as a table, read live from `homeFor` /
 `nativeHomeFor` for a context you can pin (phone or not, a window manager);
@@ -379,9 +379,9 @@ feed (`InlinePlayable`), `MediaRenderer` (single and rail), peeks,
 inline players, the MDX `<Media />`, the home featured stack, `MediaThumbnail`,
 the theater rail thumb, and the attachment page — plus buttons that go through
 the real providers, with a readout of the surface stack and the open windows
-as they stand. `/editor/attachment` redirects here. On a phone it is where to
-watch `Visit` stack the browser over the attachment sheet. The top-left title
-is the editor-family dropdown (`app/editor/catalog.ts`).
+as they stand. `/lab/attachment` (and the old `/editor/attachments`) redirect here. On a phone it is where to
+watch `Visit` stack the browser over the attachment sheet. The title
+is the labs' dropdown (`app/lab/catalog.ts`).
 
 ## Hovering a cover
 
@@ -436,4 +436,4 @@ second. `Open in browser` in the window menu is the way out. See
 3. Give it a page in `attachment-page.tsx`.
 4. If it can play on the stage, give it a `Track` kind and teach `mediaToTrack`
    (`systems/theater/lib/albums.ts`) to build one.
-5. Check it in `/editor/attachments`: the table, the specimens, the buttons.
+5. Check it in `/lab/attachments`: the table, the specimens, the buttons.
