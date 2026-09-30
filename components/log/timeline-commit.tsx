@@ -87,8 +87,9 @@ interface TimelineCommitProps {
   graph?: RowGraph;
   /** Which of those lines a lit connector runs along. */
   graphLit?: RowLit;
-  /** Another chapter's track is held: the row folds to one line, in the
-   *  voice of an event or a folded aside, until the reader opens it. */
+  /** Another chapter's track is held: the row steps down one form until
+   *  the reader opens it — covers and feed to the index's one line, the
+   *  index to an aside's quiet line. */
   folded?: boolean;
   /** True when this row IS the role that owns its segment. */
   isRole?: boolean;
@@ -160,7 +161,7 @@ export function TimelineCommit({
   onBeamSet,
   onBeamClear,
   byline = null,
-  form = DEFAULT_FORM,
+  form: pageForm = DEFAULT_FORM,
   onSelectHash,
   attachmentSet = null,
   inspecting = false,
@@ -196,6 +197,12 @@ export function TimelineCommit({
   // stays the form's, except in the index, which prints none: there an
   // open row brings its covers too (see `rowFormFor`).
   const [textRelieved, setTextRelieved] = useState(defaultExpanded);
+
+  // Folded under another chapter's held track, the row steps down one
+  // form: from covers or the feed it is simply an index row, the same one
+  // line the index view prints; from the index it drops to an aside's voice.
+  const form: LogForm = folded ? "index" : pageForm;
+  const foldsQuiet = folded && pageForm === "index";
 
   // A form change is a new default, so the deviation is spent. Reconciled
   // during render rather than in an effect (React's "adjusting state when a
@@ -280,8 +287,7 @@ export function TimelineCommit({
   // The strip is the folded form's own: while the row is open the feed's
   // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
-  // A row outside a held chapter folds the same way (`folded`).
-  const isQuiet = isEvent || ((isAside || folded) && !textOpen);
+  const isQuiet = isEvent || ((isAside || foldsQuiet) && !textOpen);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
   const showStrip =
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
