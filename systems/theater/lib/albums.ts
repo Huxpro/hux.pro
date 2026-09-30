@@ -6,13 +6,15 @@
 // what the media is — never the type of the commit that lists it — so every
 // entry sits on exactly one shelf and nothing is left off.
 //
-// Shelves: Recordings / Slides. The one division that is the media's own,
-// and the one the stage itself draws differently: a recording has a transport
-// and plays audio, a deck has neither.
+// Shelves: one per language, the viewer's first — 中文 / EN. Language is the
+// one thing about a recording a viewer cannot work around, and the split is
+// the media's own. A piece given in both languages is on both shelves, each
+// wearing that shelf's telling — never twice on one shelf — and switching
+// shelves with it on the stage is how it switches language. Decks sit with
+// the language they are written in.
 // =============================================================================
 
 import type { Locale } from "@/lib/i18n";
-import { t } from "@/lib/i18n";
 import {
   type Media,
   getMediaThumbnail,
@@ -20,25 +22,27 @@ import {
   isVideoMedia,
 } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
-import { buildLibraryTracks } from "./library";
+import { buildLibrary, entryLanguages, entryToTrack } from "./library";
 import { resolveVideoId } from "./player";
-import type { Album, Track } from "./types";
+import type { Album, Track, TrackLanguage } from "./types";
+
+const LANGUAGE_TITLE: Record<TrackLanguage, string> = { en: "EN", zh: "中文" };
 
 /** The library, shelved for the theater's tabs. Empty shelves are dropped. */
 export function buildLibraryAlbums(locale: Locale): Album[] {
-  const tracks = buildLibraryTracks(locale);
-  const shelves: Album[] = [
-    {
-      id: "recordings",
-      title: t(locale, "theaterRecordings"),
-      tracks: tracks.filter((tk) => tk.kind === "video"),
-    },
-    {
-      id: "slides",
-      title: t(locale, "logSlides"),
-      tracks: tracks.filter((tk) => tk.kind === "slides"),
-    },
-  ];
+  const entries = buildLibrary(locale);
+  const order: TrackLanguage[] = locale === "zh" ? ["zh", "en"] : ["en", "zh"];
+  const shelves: Album[] = order.map((lang) => ({
+    id: `lang-${lang}`,
+    title: LANGUAGE_TITLE[lang],
+    tracks: entries
+      .filter((e) => {
+        const langs = entryLanguages(e);
+        // A piece in no known language shelves with the viewer's.
+        return langs.includes(lang) || (lang === locale && langs.length === 0);
+      })
+      .map((e) => entryToTrack(e, locale, lang)),
+  }));
   return shelves.filter((s) => s.tracks.length > 0);
 }
 

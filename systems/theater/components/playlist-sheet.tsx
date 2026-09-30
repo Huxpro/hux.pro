@@ -19,7 +19,6 @@ import {
 } from "../lib/geometry";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
-import { LanguageSwitch } from "./language-switch";
 import { TrackThumb } from "./track-thumb";
 
 // ---------------------------------------------------------------------------
@@ -148,7 +147,8 @@ export function TheaterPlaylistSheet() {
         </span>
       }
     >
-      {/* Albums first — the switch the PiP bar has no room for. The tabs
+      {/* Albums first — the switch the PiP bar has no room for, and here
+          the language switch too: the shelves are languages. The tabs
           scroll sideways rather than wrap: an ad-hoc album is named after the
           video that opened it, and those titles are long. */}
       {albums.length > 1 && (
@@ -160,8 +160,6 @@ export function TheaterPlaylistSheet() {
             raised={false}
             className="shrink-0"
           />
-          {/* The playing track's language, where the PiP bar has no room. */}
-          <LanguageSwitch raised={false} className="ml-auto shrink-0" />
         </div>
       )}
 
