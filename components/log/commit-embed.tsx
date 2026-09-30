@@ -24,7 +24,7 @@ import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
-import type { LaneMark } from "./timeline-lane";
+import type { RowGraph } from "./timeline-lane";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
 import { useInputCapability } from "@/services";
@@ -48,8 +48,8 @@ export interface CommitProps {
   hideDate?: boolean;
   /** Pre-computed git-graph rail char for the timeline gutter. */
   rail?: string;
-  /** Timeline-only: this row's piece of an overlap's side lane. */
-  lane?: LaneMark;
+  /** Timeline-only: this row's piece of the chapter graph. */
+  graph?: RowGraph;
   /** The role commit's id that owns this row's rail segment. */
   segmentId?: string | null;
   /** True when the parent timeline currently highlights this segment. */
@@ -82,7 +82,7 @@ export function Commit({
   className,
   hideDate = false,
   rail,
-  lane,
+  graph,
   segmentId,
   isSegmentActive = false,
   beamSpec = null,
@@ -161,7 +161,7 @@ export function Commit({
           className={className}
           hideDate={hideDate}
           rail={rail}
-          lane={lane}
+          graph={graph}
           isRole={commit.type === "role"}
           segmentId={segmentId ?? null}
           isSegmentActive={isSegmentActive}

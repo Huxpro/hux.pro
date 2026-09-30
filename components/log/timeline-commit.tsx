@@ -20,7 +20,7 @@ import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
 import { ProjectMark } from "./project-mark";
 import { QuietLine } from "./quiet-line";
-import { LaneInCell, type LaneMark } from "./timeline-lane";
+import { GraphInCell, HASH_NUDGE, LANE, type RowGraph } from "./timeline-lane";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { Description, Commentary, AuthorFields } from "./embeds/shared";
 import { Paperclip } from "lucide-react";
@@ -67,9 +67,11 @@ interface TimelineCommitProps {
   hideDate?: boolean;
   /** Git-graph rail char to draw on the right (`┐`, `│`, `┘` or empty). */
   rail?: string;
-  /** Where two chapters overlap: what this row draws of the side lane
-   *  (see `timeline-lane.tsx`). */
-  lane?: LaneMark;
+  /** The row's piece of the chapter graph — the trunk, and a side lane
+   *  where chapters overlap (see `timeline-lane.tsx`). Given, it draws the
+   *  line through the icon column in place of the tenure rail, which then
+   *  only lights it. */
+  graph?: RowGraph;
   /** True when this row IS the role that owns its segment. */
   isRole?: boolean;
   /** The role id that owns this row's rail segment. */
@@ -132,7 +134,7 @@ export function TimelineCommit({
   className,
   hideDate = false,
   rail,
-  lane,
+  graph,
   isRole = false,
   beamSpec = null,
   onBeamSet,
@@ -372,6 +374,11 @@ export function TimelineCommit({
   // so the rail stops where it stops for the role's 16px ring.
   const wearsMark = !isQuiet && !!data.mark;
   const iconGapPx = isQuiet ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
+  // A node moved onto the side lane pushes the hash left, the way a
+  // `git log --graph` row makes room for its graph (see timeline-lane.tsx).
+  const hashNudge = graph?.side === "node"
+    ? { transform: `translateX(-${HASH_NUDGE}px)` }
+    : undefined;
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
@@ -402,6 +409,7 @@ export function TimelineCommit({
             TYPE.hash,
             isQuiet ? "text-transparent leading-4" : "leading-5",
           )}
+          style={hashNudge}
         >
           {data.hash}
         </span>
@@ -421,6 +429,7 @@ export function TimelineCommit({
             TYPE.hash,
             "transition-colors hover:text-muted-foreground",
           )}
+          style={hashNudge}
         >
           {data.hash}
         </a>
@@ -442,7 +451,7 @@ export function TimelineCommit({
           isQuiet ? "h-4" : "h-5",
         )}
       >
-        {hasRailAbove && (
+        {!graph && hasRailAbove && (
           <span
             aria-hidden
             data-rail-above
@@ -450,8 +459,14 @@ export function TimelineCommit({
             style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
           />
         )}
-        {lane && <LaneInCell mark={lane} gap={iconGapPx} />}
-        {hasRailBelow && (
+        {graph && (
+          <GraphInCell
+            graph={graph}
+            gap={iconGapPx}
+            cluster={{ above: hasRailAbove, below: hasRailBelow }}
+          />
+        )}
+        {!graph && hasRailBelow && (
           <span
             aria-hidden
             data-rail-below
@@ -459,6 +474,11 @@ export function TimelineCommit({
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}
+        {/* The node: on the trunk, or moved onto the side lane. */}
+        <span
+          className="inline-flex items-center justify-center"
+          style={graph?.side === "node" ? { transform: `translateX(-${LANE}px)` } : undefined}
+        >
         {isQuiet ? (
           // A row in the quiet voice gets a tiny CSS dot, quieter than any
           // lucide icon and reading as "node on the rail" rather than
@@ -517,6 +537,7 @@ export function TimelineCommit({
             )}
           </span>
         )}
+        </span>
       </span>
 
       <div className="flex items-center gap-2 min-w-0">
