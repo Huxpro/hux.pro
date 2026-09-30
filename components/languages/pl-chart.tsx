@@ -9,6 +9,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { MousePointerClick } from "lucide-react";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import {
   AXES,
@@ -264,7 +265,13 @@ function Dot({
     >
       <MagneticPreview
         enabled={peek && !dimmed}
-        preview={<LanguagePeek language={language} locale={locale} />}
+        preview={
+          <LanguagePeek
+            language={language}
+            locale={locale}
+            openHint={t(locale, "languagesPeekOpen")}
+          />
+        }
         panelClassName="shadow-raised"
       >
         <button
@@ -274,7 +281,7 @@ function Dot({
           aria-expanded={selected}
           aria-label={`${language.name} — ${AXES.x.name[locale]} ${language.i13s}, ${AXES.y.name[locale]} ${language.exp}, ${AXES.abs.name[locale]} ${language.abs} (${tier.label[locale]})`}
           className={cn(
-            "group/dot pressable relative grid size-8 place-items-center rounded-full outline-none",
+            "group/dot pressable relative grid size-8 cursor-pointer place-items-center rounded-full outline-none",
             "focus-visible:ring-2 focus-visible:ring-ring/50",
             dimmed && "pointer-events-none",
           )}
@@ -385,78 +392,95 @@ function AbstractionStrip({
     if (!d.moved) select(d.anchor);
   };
 
+  // What the strip says beside it: the level under the pointer, else what is
+  // kept, else how to use it — a row of swatches does not look pressable on
+  // its own, so until it has been used it says so.
+  const tierName = (level: number) => `${level} · ${tierOf(level).label[locale]}`;
   const readout =
     hover !== null
-      ? `${hover} · ${tierOf(hover).label[locale]}`
+      ? tierName(hover)
       : range[0] === range[1]
-        ? `${range[0]} · ${tierOf(range[0]).label[locale]}`
+        ? tierName(range[0])
         : filtered
-          ? `${range[0]}–${range[1]}`
+          ? `${range[0]}–${range[1]} · ${tierOf(range[0]).label[locale]} → ${tierOf(range[1]).label[locale]}`
           : null;
 
   return (
-    <figcaption className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3 sm:pl-[3.5rem]">
-      <span className={TYPE.rowMeta}>{AXES.abs.low[locale]}</span>
-      <div
-        role="group"
-        aria-label={t(locale, "languagesFilterLabel")}
-        className="flex touch-pan-y gap-[2px] sm:gap-[3px]"
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => (drag.current = null)}
-        onPointerLeave={() => setHover(null)}
-      >
-        {AXES.abs.tiers.map(({ level, label }) => {
-          const kept = inRange(level, range);
-          return (
-            <div
-              key={level}
-              data-abs-level={level}
-              onPointerDown={(e) => onPointerDown(e, level)}
-              onPointerEnter={() => setHover(level)}
-            >
-              <button
-                type="button"
-                aria-pressed={filtered && kept}
-                aria-label={`${level} · ${label[locale]}`}
-                onClick={(e) => {
-                  // A pointer's press is handled on pointerup, drags included;
-                  // this is the keyboard's.
-                  if (e.detail === 0) select(level);
-                }}
-                onFocus={() => setHover(level)}
-                onBlur={() => setHover(null)}
-                className="pressable grid h-6 w-4 place-items-center rounded-[5px] outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:w-6"
+    <figcaption className="mt-5 sm:pl-[3.5rem]">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <span className={cn(TYPE.rowMeta, "shrink-0")}>{AXES.abs.low[locale]}</span>
+        {/* The track: a control's shape, so it reads as one. */}
+        <div
+          role="group"
+          aria-label={t(locale, "languagesFilterLabel")}
+          className="flex shrink-0 cursor-pointer touch-pan-y gap-[3px] rounded-full bg-muted p-1 ring-1 ring-inset ring-border"
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={() => (drag.current = null)}
+          onPointerLeave={() => setHover(null)}
+        >
+          {AXES.abs.tiers.map(({ level }) => {
+            const kept = inRange(level, range);
+            return (
+              <div
+                key={level}
+                data-abs-level={level}
+                onPointerDown={(e) => onPointerDown(e, level)}
+                onPointerEnter={() => setHover(level)}
               >
-                <span
-                  aria-hidden
-                  className={cn(
-                    "block h-3 w-full rounded-[3px] transition-opacity duration-200",
-                    !kept && "opacity-25",
-                  )}
-                  style={{ background: absColor(level) }}
-                />
-              </button>
-            </div>
-          );
-        })}
+                <button
+                  type="button"
+                  aria-pressed={filtered && kept}
+                  aria-label={tierName(level)}
+                  onClick={(e) => {
+                    // A pointer's press is handled on pointerup, drags included;
+                    // this is the keyboard's.
+                    if (e.detail === 0) select(level);
+                  }}
+                  onFocus={() => setHover(level)}
+                  onBlur={() => setHover(null)}
+                  className="group/swatch pressable grid h-6 w-4 cursor-pointer place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:w-6"
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "block h-3.5 w-full rounded-full transition-[opacity,transform] duration-200",
+                      "group-hover/swatch:scale-y-[1.3] group-active/swatch:scale-y-100 group-active/swatch:duration-0",
+                      !kept && "opacity-25",
+                      hover === level && "scale-y-[1.3]",
+                    )}
+                    style={{ background: absColor(level) }}
+                  />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <span className={cn(TYPE.rowMeta, "shrink-0")}>{AXES.abs.high[locale]}</span>
       </div>
-      <span className={TYPE.rowMeta}>{AXES.abs.high[locale]}</span>
-      <span
+      <p
         aria-live="polite"
-        className={cn(TYPE.meta, "min-w-0 basis-full sm:basis-auto sm:ml-2")}
+        className={cn(
+          "mt-2 flex min-h-5 items-center gap-1.5",
+          readout ? TYPE.meta : TYPE.rowMeta,
+        )}
       >
-        {readout ?? " "}
+        {readout ?? (
+          <>
+            <MousePointerClick aria-hidden className="size-3.5 shrink-0" />
+            {t(locale, "languagesFilterHint")}
+          </>
+        )}
         {filtered && hover === null && (
           <button
             type="button"
             onClick={() => onChange(FULL)}
-            className={cn(TYPE.nav, "pressable ml-3 underline-offset-2 hover:underline")}
+            className={cn(TYPE.nav, "pressable ml-2 underline underline-offset-2 decoration-ink-line")}
           >
             {t(locale, "languagesAll")}
           </button>
         )}
-      </span>
+      </p>
     </figcaption>
   );
 }

@@ -34,8 +34,8 @@ export const blogPosts: BlogPostMeta[] = [
   {
     slug: "pl-chart",
     language: "both",
-    title: "A PL Chart, Intentionally Biased",
-    titleZh: "一张有意带着偏见的编程语言图",
+    title: "My Biased View of Programming Languages (in 2020)",
+    titleZh: "我带着偏见的编程语言观（2020）",
     description:
       "Every programming language I've written, by how interesting it is to me and how much I've used it.",
     descriptionZh: "我写过的每一门编程语言：对我来说有多有趣，我用得有多深。",

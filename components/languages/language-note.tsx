@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
+import { MousePointerClick } from "lucide-react";
 import {
   AXES,
   SCALE_MAX,
@@ -219,24 +220,50 @@ export function LanguageNote({
   );
 }
 
-/** The hover peek: the head, where it sits, and the first thing said. */
+/**
+ * The hover peek: a taste, and the way in. The dot's position already says
+ * how interesting and how familiar the language is, so the peek does not
+ * repeat it in meters; it names the language, its tier, and quotes the start
+ * of the note — then says in so many words that a click opens the rest,
+ * because a peek that already shows a lot reads as all there is.
+ */
 export function LanguagePeek({
   language,
   locale,
+  openHint,
 }: {
   language: Language;
   locale: Locale;
+  /** "click to open the note", in the page's language. */
+  openHint: string;
 }) {
   const first = language.notes[locale].find((n) => !isTodo(n));
+  const tier = tierOf(language.abs);
   return (
-    <div className="w-80 space-y-3 p-1">
+    <div className="w-80 p-1">
       <NoteHead language={language} locale={locale} interactive={false} />
-      <Placement language={language} locale={locale} />
+      <p className={cn(TYPE.rowMeta, "mt-2 flex items-center gap-1.5")}>
+        <span
+          aria-hidden
+          className="size-2 shrink-0 rounded-full"
+          style={{ background: absColor(language.abs) }}
+        />
+        {AXES.abs.name[locale]} {tier.level} · {tier.label[locale]}
+      </p>
       {first && (
-        <p lang={locale} className={cn(TYPE.caption, "line-clamp-4")}>
+        <p lang={locale} className={cn(TYPE.caption, "mt-3 line-clamp-3")}>
           {plainText(first)}
         </p>
       )}
+      <p
+        className={cn(
+          TYPE.labelSm,
+          "mt-3 flex items-center gap-1.5 border-t border-border pt-2.5 text-muted-foreground",
+        )}
+      >
+        <MousePointerClick aria-hidden className="size-3" />
+        {openHint}
+      </p>
     </div>
   );
 }
