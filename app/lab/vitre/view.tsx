@@ -1,333 +1,299 @@
 "use client";
 
 // =============================================================================
-// Vitre Lab — /lab/vitre
+// Vitre Lab — /lab/vitre. A library, published from the lab.
 //
-// The page's edges and Safari's glass: packages/vitre, as this site
-// configures it (systems/ambient/lib/bezel.ts). Not a demo of the package —
-// that is /vitre, its own site — but the package on this page, now:
+// The labs study this site's systems; some of those systems are libraries
+// that can leave it. Vitre is the first: its page here is its whole home —
+// the documentation and the simulator, in the lab's frame. There is no other
+// docs page: /vitre is only the demo now (a phone, or the phone drawn here).
 //
-//   now      what vitre is drawing, read from vitre itself (useVitre), with a
-//            drawing of the frame at the numbers it has
-//   policy   the site's rule for when the bezel is on (a picture is framed, a
-//            wash fades), with the row that is deciding right now
-//   package  its three words — bezel, chrome, scroll
+//   bar        the lab's name and switcher, and the section tabs
+//   phone      a drawn iPhone running the demo build (simulator.tsx), pinned
+//              beside the article; the section in the middle of the screen
+//              runs its scenario in it
+//   article    the package's own documentation (packages/vitre/site/src/docs),
+//              in the site's type (docs.css). api.ts there fails the type
+//              check for an export or a prop that is not documented, so the
+//              contract stays with the package
 //
-// The panel is the devtool's Bezel section at lab size. Tint, band and radius
-// are the saved settings the devtool writes. The bezel switch and the scroll
-// are session overrides, which only act while the devtool is enabled — so
-// the lab enables it, as the Legibility Lab does, and puts it, the overrides
-// and the hero exit back when you leave.
+// On a phone there is no simulator — the phone is the device — and the
+// article opens with the way into the real demo instead.
+//
+// Nothing here touches the site's own vitre (the bezel this page is framed
+// by). The simulator is its own document, with its own <Vitre>.
 // =============================================================================
 
-import { ColorField, Field, Section, Segmented, Slider, Toggle } from "@/app/lab/controls";
 import { useLabStrings } from "@/app/lab/i18n";
-import { LabSection, LabShell, labButtonClass } from "@/app/lab/shell";
-import { useHeroExit, type HeroExit } from "@/components/ui/hero-exit";
+import { LabShell, labButtonClass } from "@/app/lab/shell";
+import type { SectionId } from "@/packages/vitre/site/src/docs/api";
+import { SECTIONS, SectionCovers } from "@/packages/vitre/site/src/docs/sections";
+import { formatValue } from "@/packages/vitre/site/src/devtool/controls";
+import { LangProvider, useT } from "@/packages/vitre/site/src/i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
-import { useWallpaper } from "@/systems/ambient";
-import {
-  BEZEL_TINTS,
-  isBezelHex,
-  WALLPAPER_FAMILY_EDGES,
-  type BezelTint,
-} from "@/systems/ambient/lib/bezel";
-import { isIOSBrowser } from "@/systems/ambient/lib/platform";
-import {
-  getWallpaperLook,
-  WALLPAPER_LOOK_FAMILY,
-  type WallpaperFamily,
-  type WallpaperLook,
-} from "@/systems/ambient/lib/wallpaper";
-import { useDevtool } from "@/systems/devtool";
+import { useLocale } from "@/services";
 import { ArrowUpRight } from "lucide-react";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import {
-  BEZEL_BAND_MAX,
-  BEZEL_BAND_MIN,
-  BEZEL_RADIUS_MAX,
-  onPageScroll,
-  pageScrollTop,
-  useVitre,
-  type VitreScroll,
-} from "vitre";
-import { FrameDrawing } from "@/components/lab/surfaces/vitre";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { DEMO_URL, PHONE, Phone, usePhoneBridge, type PhoneBridge } from "./simulator";
 import { VITRE_STRINGS } from "./strings";
+import "./docs.css";
 
-type TintChoice = (typeof BEZEL_TINTS)[number] | "custom";
+/** From here the page has room for the phone beside the article (the demo's own phone breakpoint, 767px, is below it). */
+const WIDE = "(min-width: 768px)";
 
-const FAMILIES: WallpaperFamily[] = ["picture", "wash"];
-const LOOKS_OF: Record<WallpaperFamily, WallpaperLook[]> = {
-  picture: (Object.keys(WALLPAPER_LOOK_FAMILY) as WallpaperLook[]).filter((l) => WALLPAPER_LOOK_FAMILY[l] === "picture"),
-  wash: (Object.keys(WALLPAPER_LOOK_FAMILY) as WallpaperLook[]).filter((l) => WALLPAPER_LOOK_FAMILY[l] === "wash"),
-};
-
-/** The page's scroll position, from vitre's page-scroll API (window or container alike). */
-function usePageScrollTop() {
-  return useSyncExternalStore(onPageScroll, () => Math.round(pageScrollTop()), () => 0);
-}
-
-/** A client-only read, the same on the server and the first render. */
-function useMounted() {
+function useWide(): boolean {
   return useSyncExternalStore(
-    () => () => {},
-    () => true,
+    (onChange) => {
+      const mq = matchMedia(WIDE);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => matchMedia(WIDE).matches,
     () => false,
   );
 }
 
 export function VitreLabView() {
+  const { locale } = useLocale();
+  return (
+    // The package's docs speak in its own `Text`; the site owns the language.
+    <LangProvider lang={locale}>
+      <VitreDocs />
+    </LangProvider>
+  );
+}
+
+function VitreDocs() {
+  const { locale } = useLocale();
   const S = useLabStrings(VITRE_STRINGS);
-  const vitre = useVitre();
-  const wallpaper = useWallpaper();
-  const devtool = useDevtool();
-  const heroExit = useHeroExit();
-  const scrollTop = usePageScrollTop();
-  const mounted = useMounted();
-  const ios = mounted && isIOSBrowser();
+  const wide = useWide();
+  const [active, setActive] = useState<SectionId>(SECTIONS[0].id);
+  const bridge = usePhoneBridge(active, locale, wide);
 
-  const look = getWallpaperLook(wallpaper.kind, wallpaper.effectiveStyle);
-  const family = WALLPAPER_LOOK_FAMILY[look];
-  const forced = wallpaper.devtoolOverrides.bezel !== undefined;
-
-  // --- The session overrides need the devtool on; put everything back on leave.
-  const live = useRef({ wallpaper, devtool });
+  // The section in the middle of the viewport is the active one — except
+  // while a picked section is being scrolled to, so the phone does not run
+  // every scenario in between.
+  const picking = useRef<number | null>(null);
   useEffect(() => {
-    live.current = { wallpaper, devtool };
-  });
-  useEffect(() => {
-    const { wallpaper: w, devtool: d } = live.current;
-    const initial = {
-      devtool: d.isEnabled,
-      overrides: w.devtoolOverrides,
-      heroExit: d.heroExitOverride,
-    };
-    d.setEnabled(true);
-    return () => {
-      const { wallpaper: w2, devtool: d2 } = live.current;
-      w2.setDevtoolOverrides(initial.overrides);
-      d2.setHeroExitOverride(initial.heroExit);
-      d2.setEnabled(initial.devtool);
-    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (picking.current !== null) return;
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActive(entry.target.id as SectionId);
+        }
+      },
+      { rootMargin: "-45% 0px -50% 0px" },
+    );
+    document.querySelectorAll("[data-doc-section]").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
-  const setOverride = (patch: { bezel?: boolean; scroll?: VitreScroll }) =>
-    wallpaper.setDevtoolOverrides({ ...wallpaper.devtoolOverrides, ...patch });
+  const pick = useCallback((id: SectionId) => {
+    setActive(id);
+    history.replaceState(history.state, "", `#${id}`);
+    if (picking.current !== null) window.clearTimeout(picking.current);
+    picking.current = window.setTimeout(() => {
+      picking.current = null;
+    }, 900);
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
-  // A custom tint keeps its colour while the picker is open on it.
-  const [customHex, setCustomHex] = useState<string>(() =>
-    isBezelHex(wallpaper.bezelTint) ? wallpaper.bezelTint : "#3a3a3a",
-  );
-  const tintChoice: TintChoice = isBezelHex(wallpaper.bezelTint) ? "custom" : wallpaper.bezelTint;
-
-  const meta = S.meta(vitre.enabled, vitre.color, vitre.band, vitre.radius, vitre.scroll);
-
-  const panel = (
-    <>
-      <Section title={S.bezel}>
-        <Toggle value={wallpaper.bezel} onChange={(on) => setOverride({ bezel: on })} label={S.bezelOn} />
-        {forced && (
-          <button
-            type="button"
-            onClick={() => setOverride({ bezel: undefined })}
-            className="self-start font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {S.auto}
-          </button>
-        )}
-        <Field label={S.tint} hint={wallpaper.bezelColor}>
-          <Segmented<TintChoice>
-            value={tintChoice}
-            onChange={(choice) =>
-              wallpaper.setBezelTint(choice === "custom" ? (customHex as BezelTint) : choice)
-            }
-            options={[...BEZEL_TINTS, "custom" as const].map((value) => ({ value, label: S.tints[value] }))}
-          />
-        </Field>
-        {tintChoice === "custom" && (
-          <ColorField
-            value={wallpaper.bezelTint}
-            onChange={(hex) => {
-              if (!isBezelHex(hex)) return;
-              setCustomHex(hex);
-              wallpaper.setBezelTint(hex);
-            }}
-          />
-        )}
-        <Field label={S.band} hint={`${wallpaper.bezelBand}px`}>
-          <Slider
-            value={wallpaper.bezelBand}
-            min={BEZEL_BAND_MIN}
-            max={BEZEL_BAND_MAX}
-            step={1}
-            onChange={(v) => wallpaper.setBezelBand(v)}
-          />
-        </Field>
-        <Field label={S.radius} hint={`${wallpaper.bezelRadius}px`}>
-          <Slider
-            value={wallpaper.bezelRadius}
-            min={0}
-            max={BEZEL_RADIUS_MAX}
-            step={2}
-            onChange={(v) => wallpaper.setBezelRadius(v)}
-          />
-        </Field>
-      </Section>
-      <Section title={S.page}>
-        <Field label={S.scroll} hint={wallpaper.devtoolOverrides.scroll ? S.forced : undefined}>
-          <Segmented<VitreScroll>
-            value={wallpaper.bezelScroll}
-            onChange={(scroll) => setOverride({ scroll })}
-            options={(["window", "container"] as const).map((value) => ({ value, label: S.scrolls[value] }))}
-          />
-        </Field>
-        <Field label={S.heroExit}>
-          <Segmented<HeroExit>
-            value={heroExit}
-            onChange={devtool.setHeroExitOverride}
-            options={(["fade", "scroll"] as const).map((value) => ({ value, label: S.heroExits[value] }))}
-          />
-        </Field>
-        <p className={TYPE.captionQuiet}>{S.panelNote}</p>
-      </Section>
-    </>
-  );
+  // Arriving at a section (/vitre#chrome on a desk lands here with its
+  // hash): scroll to it, and the observer makes it the active one.
+  useEffect(() => {
+    const id = location.hash.slice(1);
+    if (SECTIONS.some((s) => s.id === id)) document.getElementById(id)?.scrollIntoView({ block: "start" });
+  }, []);
 
   return (
     <LabShell
       lab="vitre"
-      layout="workbench"
-      meta={meta}
-      actions={
-        <a href="/vitre" className={labButtonClass()}>
-          {S.docs}
-          <ArrowUpRight />
-        </a>
-      }
-      panel={panel}
+      layout="canvas"
+      tools={<SectionTabs active={active} onPick={pick} label={S.sections} />}
     >
-      <LabSection title={S.now} note={S.nowNote}>
-        <div className="grid grid-cols-[auto_1fr] items-center gap-5 sm:gap-8">
-          <FrameDrawing
-            className="sm:hidden"
-            scale={0.22}
-            on={vitre.enabled}
-            color={vitre.color}
-            band={vitre.band}
-            radius={vitre.radius}
-            ground={vitre.ground}
-          />
-          <FrameDrawing
-            className="hidden sm:block"
-            on={vitre.enabled}
-            color={vitre.color}
-            band={vitre.band}
-            radius={vitre.radius}
-            ground={vitre.ground}
-          />
-          <dl className="grid min-w-0 grid-cols-[auto_1fr] gap-x-4 gap-y-2 font-mono text-xs sm:gap-x-6">
-            <Row k={S.stateBezel} v={vitre.enabled ? S.on : S.off} strong />
-            <Row
-              k={S.stateChrome}
-              v={
-                <span className="inline-flex items-center gap-2">
-                  <Swatch color={vitre.enabled ? vitre.color : vitre.ground} />
-                  {S.chromeNote(vitre.enabled ? vitre.color : vitre.ground)}
-                </span>
-              }
-            />
-            <Row k={S.stateBand} v={`${vitre.band}px`} />
-            <Row k={S.stateRadius} v={`${vitre.radius}px`} />
-            <Row k={S.stateScroll} v={S.scrolls[vitre.scroll]} />
-            <Row
-              k={S.stateGround}
-              v={
-                <span className="inline-flex items-center gap-2">
-                  <Swatch color={vitre.ground} />
-                  {vitre.ground}
-                </span>
-              }
-            />
-            <Row k={S.statePlatform} v={mounted ? (ios ? S.ios : S.notIos) : "…"} />
-            <Row k={S.stateScrollTop} v={`${scrollTop}px`} />
-          </dl>
-        </div>
-      </LabSection>
+      <div className="vitre-lab md:grid md:grid-cols-[minmax(320px,42%)_minmax(0,1fr)] md:gap-10 lg:gap-16">
+        <aside className="sticky top-[var(--lab-under-bar)] hidden h-[calc(100svh-var(--lab-under-bar))] items-center justify-center pb-10 md:flex">
+          {wide && <FittedPhone bridge={bridge} caption={S.caption} statusTitle={S.statusTitle} />}
+        </aside>
 
-      <LabSection title={S.policy} note={S.policyNote}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[28rem] border-separate border-spacing-0 font-mono text-xs">
-            <thead>
-              <tr className="text-left text-tertiary-foreground">
-                {[S.colFamily, S.colLooks, S.colBezel, S.colSoftEdge].map((h) => (
-                  <th key={h} className="border-b border-border/50 px-3 py-2 font-normal">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {FAMILIES.map((f) => {
-                const edges = WALLPAPER_FAMILY_EDGES[f];
-                const here = f === family;
-                return (
-                  <tr key={f} className={cn(here && "bg-foreground/[0.04]")}>
-                    <td className="border-b border-border/30 px-3 py-2.5 text-foreground">
-                      {S.families[f]}
-                      {here && <span className="ml-2 text-tertiary-foreground">← {S.current}</span>}
-                    </td>
-                    <td className="border-b border-border/30 px-3 py-2.5 text-muted-foreground">
-                      {LOOKS_OF[f].map((l) => (
-                        <span key={l} className={cn("mr-2", l === look && "text-foreground underline underline-offset-4")}>
-                          {S.looks[l]}
-                        </span>
-                      ))}
-                    </td>
-                    <td className="border-b border-border/30 px-3 py-2.5 text-foreground">
-                      {edges.bezel ? S.on : S.off}
-                      {here && forced && <span className="ml-2 text-amber-500/90">· {S.forced}</span>}
-                    </td>
-                    <td className="border-b border-border/30 px-3 py-2.5 text-foreground">
-                      {edges.softEdge ? S.on : S.off}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </LabSection>
-
-      <LabSection title={S.words} note={S.wordsNote}>
-        <dl className="grid gap-4 sm:grid-cols-3">
-          {(
-            [
-              ["bezel", S.wordBezel],
-              ["chrome", S.wordChrome],
-              ["scroll", S.wordScroll],
-            ] as const
-          ).map(([word, meaning]) => (
-            <div key={word} className="rounded-2xl bg-muted/40 p-4">
-              <dt className={cn(TYPE.rowTitle, "font-mono")}>{word}</dt>
-              <dd className={cn(TYPE.caption, "mt-1")}>{meaning}</dd>
-            </div>
+        <article className="min-w-0 pb-[30vh] md:pb-[40vh]">
+          <div className="mb-6 rounded-2xl border border-border/50 bg-glass p-5 backdrop-blur-xl md:hidden">
+            <p className={TYPE.rowTitle}>{S.phoneTitle}</p>
+            <p className={cn(TYPE.caption, "mt-1")}>{S.phoneBody}</p>
+            <a href={DEMO_URL} className={cn(labButtonClass("primary"), "mt-4")}>
+              {S.phoneOpen}
+              <ArrowUpRight />
+            </a>
+          </div>
+          {SECTIONS.map((section) => (
+            <DocSection
+              key={section.id}
+              section={section}
+              active={active === section.id}
+              wide={wide}
+              bridge={bridge}
+              liveLabel={S.live}
+            />
           ))}
-        </dl>
-      </LabSection>
+        </article>
+      </div>
     </LabShell>
   );
 }
 
-function Row({ k, v, strong }: { k: string; v: React.ReactNode; strong?: boolean }) {
+/** The phone, as large as its column lets it be (never past its own size). */
+function FittedPhone({ bridge, caption, statusTitle }: { bridge: PhoneBridge; caption: string; statusTitle: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.6);
+  useEffect(() => {
+    const el = box.current?.parentElement;
+    if (!el) return;
+    const fit = () => {
+      // Room for the caption under it and the frame's 12px of bezel around it.
+      const h = (el.clientHeight - 72) / PHONE.height;
+      const w = (el.clientWidth - 32) / PHONE.width;
+      setScale(Math.max(0.3, Math.min(1, h, w)));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   return (
-    <>
-      <dt className="text-tertiary-foreground">{k}</dt>
-      <dd className={cn("min-w-0 tabular-nums", strong ? "text-foreground" : "text-muted-foreground")}>{v}</dd>
-    </>
+    <div ref={box}>
+      <Phone bridge={bridge} scale={scale} caption={caption} statusTitle={statusTitle} />
+    </div>
   );
 }
 
-function Swatch({ color }: { color: string }) {
-  return <span className="size-3 shrink-0 rounded-sm border border-border/60" style={{ background: color }} />;
+type Section = (typeof SECTIONS)[number];
+
+function DocSection({
+  section: s,
+  active,
+  wide,
+  bridge,
+  liveLabel,
+}: {
+  section: Section;
+  active: boolean;
+  wide: boolean;
+  bridge: PhoneBridge;
+  liveLabel: string;
+}) {
+  const t = useT();
+  // What the phone reports, and the buttons that drive it, only mean
+  // something where there is a phone.
+  const live = wide && active ? s.live?.(bridge.report) : null;
+  return (
+    <section
+      id={s.id}
+      data-doc-section
+      className={cn(
+        "scroll-mt-[calc(var(--lab-under-bar)+1rem)] border-t border-border/50 py-10 first-of-type:border-t-0 first-of-type:pt-2",
+        // Beside the phone, one section at a time: the one it is running.
+        "md:min-h-[72vh] md:py-[10vh] md:first-of-type:pt-[4vh] md:transition-opacity md:duration-300",
+        !active && "md:opacity-50",
+      )}
+    >
+      <p className={cn(TYPE.meta, "text-tertiary-foreground")}>{s.eyebrow}</p>
+      <h2 className="mt-2 font-serif text-3xl tracking-tight text-foreground sm:text-[2rem]">{t(s.title)}</h2>
+      <p className="mt-3 text-base leading-relaxed text-foreground/85 sm:text-lg">{t(s.lede)}</p>
+      {s.body && <div className="vitre-prose mt-4">{t(s.body)}</div>}
+      {s.code && <CodeBlock code={s.code} />}
+      {wide && s.actions && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {s.actions.map((a) => (
+            <button
+              key={a.label.en}
+              type="button"
+              onClick={() => bridge.run(a.run)}
+              className="rounded-full border border-border/60 bg-glass px-3.5 py-1.5 font-mono text-xs text-foreground transition-colors hover:bg-glass-hover"
+            >
+              {t(a.label)}
+            </button>
+          ))}
+        </div>
+      )}
+      {live && (
+        <div className="mt-4 rounded-xl border border-border/50 bg-glass px-4 py-2.5">
+          <span className={TYPE.labelSm}>
+            {liveLabel} · {t(live.label)}
+          </span>
+          <pre className="mt-1 whitespace-pre-wrap font-mono text-xs text-foreground">{formatValue(live.value)}</pre>
+        </div>
+      )}
+      <SectionCovers id={s.id} />
+    </section>
+  );
+}
+
+/** The package's highlighted code block (shiki, loaded after the page). */
+function CodeBlock({ code }: { code: string }) {
+  const [Code, setCode] = useState<null | ((p: { code: string }) => React.ReactNode)>(null);
+  useEffect(() => {
+    let live = true;
+    import("@/packages/vitre/site/src/docs/Code").then((m) => live && setCode(() => m.Code));
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!Code) {
+    return (
+      <pre className="docs-code">
+        <code>{code}</code>
+      </pre>
+    );
+  }
+  return <Code code={code} />;
+}
+
+/**
+ * The sections, as the bar's tools: one chip each, the active one lit, and
+ * kept in view as the article scrolls (the bar's tools row scrolls sideways).
+ */
+function SectionTabs({
+  active,
+  onPick,
+  label,
+}: {
+  active: SectionId;
+  onPick: (id: SectionId) => void;
+  label: string;
+}) {
+  const t = useT();
+  const buttons = useRef(new Map<string, HTMLButtonElement>());
+  useEffect(() => {
+    const el = buttons.current.get(active);
+    const row = el?.closest<HTMLElement>("[data-lab-tools]");
+    if (!el || !row) return;
+    const left = el.offsetLeft - (row.clientWidth - el.offsetWidth) / 2;
+    row.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+  }, [active]);
+  return (
+    <div role="tablist" aria-label={label} className="flex items-center gap-0.5">
+      {SECTIONS.map((s) => (
+        <button
+          key={s.id}
+          ref={(el) => {
+            if (el) buttons.current.set(s.id, el);
+            else buttons.current.delete(s.id);
+          }}
+          type="button"
+          role="tab"
+          aria-selected={active === s.id}
+          onClick={() => onPick(s.id)}
+          className={cn(
+            "whitespace-nowrap rounded-full px-2.5 py-1 font-mono text-xs transition-colors",
+            active === s.id
+              ? "bg-foreground/[0.08] text-foreground"
+              : "text-tertiary-foreground hover:text-foreground",
+          )}
+        >
+          {t(s.nav)}
+        </button>
+      ))}
+    </div>
+  );
 }

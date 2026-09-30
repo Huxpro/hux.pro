@@ -3,94 +3,53 @@
 import { useLabStrings } from "@/app/lab/i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
-import { useOptionalWallpaper } from "@/systems/ambient";
 import { SurfaceFrame } from "./frame";
 import { SURFACE_STRINGS } from "./strings";
 
 /**
- * The frame at the numbers vitre has, drawn at a third of a phone: the band
- * in the bezel colour round the page's ground, its inner corners at the
- * radius. The same numbers as the page's own bezel, scaled — the real one is
- * the edge of this screen.
- */
-export function FrameDrawing({
-  on,
-  color,
-  band,
-  radius,
-  ground,
-  scale = 1 / 3,
-  className,
-}: {
-  on: boolean;
-  color: string;
-  band: number;
-  radius: number;
-  ground: string;
-  scale?: number;
-  className?: string;
-}) {
-  const W = 390 * scale;
-  const H = 844 * scale;
-  // A band under a pixel still reads as a hairline, so it can be seen at all.
-  const b = on ? Math.max(band * scale, 1) : 0;
-  const r = on ? radius * scale : 0;
-  return (
-    <div
-      aria-hidden
-      className={cn("relative shrink-0 overflow-hidden rounded-[14px] border border-border/60 shadow-raised", className)}
-      style={{ width: W, height: H, background: on ? color : ground }}
-    >
-      <div
-        className="absolute overflow-hidden"
-        style={{ inset: b, borderRadius: r, background: ground }}
-      >
-        {/* The page, sketched in shares of its width so it scales with it. */}
-        <div className="flex h-full flex-col gap-[5%] p-[10%] opacity-60">
-          <span className="h-1.5 w-1/3 rounded-full bg-foreground/30" />
-          <span className="mt-[8%] h-3 w-2/3 rounded bg-foreground/20" />
-          <span className="h-1.5 w-full shrink-0 rounded-full bg-foreground/10" />
-          <span className="h-1.5 w-5/6 shrink-0 rounded-full bg-foreground/10" />
-          <span className="h-1.5 w-4/6 shrink-0 rounded-full bg-foreground/10" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * The Vitre Lab at a glance: the frame this site would put round a phone
- * right now — the saved tint, band and radius, on or off as the wallpaper
- * decides — and where the page scrolls.
+ * The Vitre lab at a glance: the library, not this site's use of it — a phone
+ * as the demo draws itself by default, in the bezel's black with the page's
+ * aurora inside and Safari's bars taking the colour, and what the package is.
  */
 export function VitreSurface() {
   const S = useLabStrings(SURFACE_STRINGS);
-  const w = useOptionalWallpaper();
-  if (!w) return <SurfaceFrame>{null}</SurfaceFrame>;
   return (
     <SurfaceFrame className="flex items-center justify-center gap-5 px-4">
-      <FrameDrawing
-        on={w.bezel}
-        color={w.bezelColor}
-        band={w.bezelBand}
-        radius={w.bezelRadius}
-        ground="var(--background)"
-        scale={0.14}
-        className="rounded-[9px]"
-      />
-      <dl className={cn(TYPE.labelSm, "grid grid-cols-[auto_auto] gap-x-3 gap-y-1")}>
-        <dt>{S.vitreBezel}</dt>
-        <dd className="text-foreground">{w.bezel ? S.vitreOn : S.vitreOff}</dd>
-        <dt>{S.vitreTint}</dt>
-        <dd className="inline-flex items-center gap-1.5 text-foreground">
-          <span className="size-2.5 rounded-sm border border-border/60" style={{ background: w.bezelColor }} />
-          {w.bezelColor}
-        </dd>
-        <dt>{S.vitreBand}</dt>
-        <dd className="text-foreground tabular-nums">{w.bezelBand}px · r{w.bezelRadius}</dd>
-        <dt>{S.vitreScroll}</dt>
-        <dd className="text-foreground">{w.bezelScroll}</dd>
-      </dl>
+      <DemoPhone />
+      <div className="min-w-0 space-y-1.5">
+        <p className="font-mono text-sm text-foreground">vitre</p>
+        <p className={cn(TYPE.caption, "max-w-[11rem]")}>{S.vitreTagline}</p>
+        <p className={TYPE.labelSm}>React · iOS 26 Safari</p>
+      </div>
     </SurfaceFrame>
+  );
+}
+
+/** A 60×124 iPhone: black chrome (the bezel colour), rounded page, aurora. */
+function DemoPhone() {
+  return (
+    <div
+      aria-hidden
+      className="relative h-[124px] w-[60px] shrink-0 overflow-hidden rounded-[14px] bg-black shadow-raised ring-1 ring-black/40"
+    >
+      {/* Status bar and toolbar: the chrome, in the bezel's black. */}
+      <span className="absolute left-1/2 top-[5px] h-[5px] w-[18px] -translate-x-1/2 rounded-full bg-white/15" />
+      <div
+        className="absolute inset-x-[3px] bottom-[15px] top-[14px] overflow-hidden rounded-[7px]"
+        style={{
+          background:
+            "radial-gradient(120% 80% at 20% 10%, #b9a8ff 0%, transparent 60%), radial-gradient(100% 70% at 90% 40%, #8fe3e8 0%, transparent 55%), linear-gradient(180deg, #eef2ff, #ffffff)",
+        }}
+      >
+        <div className="flex flex-col gap-[3px] p-[5px]">
+          <span className="h-[3px] w-1/3 rounded-full bg-black/25" />
+          <span className="mt-[3px] h-[6px] w-5/6 rounded-sm bg-black/20" />
+          <span className="h-[9px] w-full rounded-[3px] bg-white/70" />
+          <span className="h-[9px] w-full rounded-[3px] bg-white/70" />
+          <span className="h-[9px] w-full rounded-[3px] bg-white/70" />
+        </div>
+      </div>
+      <span className="absolute inset-x-[12px] bottom-[5px] h-[6px] rounded-full bg-white/15" />
+    </div>
   );
 }

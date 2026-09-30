@@ -25,6 +25,10 @@ import type { Locale } from "@/lib/i18n";
  * the grid's edit mode, or the switch on the index). The dropdown on each
  * lab's sticky bar (`LabNav`) is how you move between the labs.
  *
+ * Some labs publish a library (`library`): Vitre is the first. Its lab is
+ * the library's home — its documentation, with a simulator — and its content
+ * stays in the package, where the type check holds it to the API.
+ *
  * Adding a lab: an entry here, a route under `app/lab/<id>`, a surface in
  * `components/lab/surfaces`, the `LabShell` around the page, and its words
  * in both languages — a `strings.ts` beside it, read with `useLabStrings`
@@ -46,6 +50,12 @@ export interface LabEntry {
   hint: Text;
   /** What it is for, a sentence or two — behind the bar's info button. */
   blurb: Text;
+  /**
+   * A library the lab publishes: a system of this site that can leave it.
+   * Its lab is its home page — documentation and a simulator — and `demo`
+   * is where it runs on its own (a phone opens it full screen).
+   */
+  library?: { package: string; demo: string };
 }
 
 export const LAB_INDEX = {
@@ -128,15 +138,16 @@ export const LABS: readonly LabEntry[] = [
   {
     id: "vitre",
     href: "/lab/vitre",
-    name: { en: "Vitre Lab", zh: "Vitre 实验室" },
+    name: { en: "Vitre", zh: "Vitre 窗玻璃" },
     mark: "vitre",
+    library: { package: "vitre", demo: "/vitre" },
     hint: {
-      en: "The page's edges, and Safari's glass",
-      zh: "页面的边缘，与 Safari 的玻璃",
+      en: "Safari's glass, in your colours",
+      zh: "让 Safari 的玻璃，显示你的颜色",
     },
     blurb: {
-      en: "Vitre is the package that draws this site's bezel, tints Safari's toolbar and status bar live, and scrolls the page in a container so its edges hold still. This is how the site configures it — the package's live state, the policy, and every knob. Its own demo and docs are at /vitre.",
-      zh: "Vitre 是为本站绘制边框、实时为 Safari 的工具栏与状态栏着色、并让页面在容器中滚动以稳住边缘的那个包。这里是本站对它的配置——包的实时状态、策略，以及每一个旋钮。它自己的演示与文档在 /vitre。",
+      en: "A React package from this site: it tints Safari's toolbar and status bar live on iOS 26, draws a bezel around the page, and scrolls the page in a container so its edges hold still. Its documentation, with a simulated iPhone running the demo; on a phone, the demo itself.",
+      zh: "出自本站的一个 React 包：在 iOS 26 上实时给 Safari 的工具栏和状态栏着色，给页面画一圈边框，并让页面在容器里滚动、边缘稳住。这里是它的文档，旁边一台模拟的 iPhone 跑着演示；在手机上，就是演示本身。",
     },
   },
 ];

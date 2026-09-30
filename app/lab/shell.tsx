@@ -158,7 +158,10 @@ export function LabBar({
           of its own when it does not, and sideways-scrolling there rather
           than wrapping into a third — a pinned bar has to stay short. */}
       {tools && (
-        <div className="no-scrollbar -my-1 flex min-w-0 flex-nowrap items-center gap-x-3 overflow-x-auto py-1 [&>*]:shrink-0">
+        <div
+          data-lab-tools
+          className="no-scrollbar relative -my-1 flex min-w-0 flex-nowrap items-center gap-x-3 overflow-x-auto py-1 [&>*]:shrink-0"
+        >
           {tools}
         </div>
       )}
