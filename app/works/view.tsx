@@ -8,7 +8,6 @@ import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { t, useLocale } from "@/services";
 import {
-  buildTimelineData,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
@@ -21,6 +20,7 @@ import {
   toggleType,
   type LogForm,
 } from "@/lib/log-view";
+import { buildEraTimeline, parseEraLayout } from "@/lib/log-eras";
 
 interface WorksViewProps {
   logData: LogData;
@@ -32,9 +32,11 @@ export function WorksView({ logData }: WorksViewProps) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // How overlapping chapters are drawn — on trial, see `lib/log-eras.ts`.
+  const eraLayout = parseEraLayout(searchParams.get("eras"));
   const data = useMemo(
-    () => buildTimelineData(logData, locale),
-    [logData, locale],
+    () => buildEraTimeline(logData, locale, eraLayout),
+    [logData, locale, eraLayout],
   );
 
   // View state lives in the URL, the way /writing's language filter does:
@@ -108,8 +110,10 @@ export function WorksView({ logData }: WorksViewProps) {
       { count: number; icons: Set<string | undefined> }
     >();
 
-    for (const { commits } of data) {
+    for (const { commits, picks } of data) {
       for (const c of commits) {
+        // A cherry-pick is a pointer to a row counted at home.
+        if (picks?.has(c.id)) continue;
         if (!isFilterableCommitType(c.type)) continue;
         if (!isRowVisible(c, [c.type])) continue;
         const entry = seen.get(c.type) ?? { count: 0, icons: new Set() };
@@ -130,12 +134,15 @@ export function WorksView({ logData }: WorksViewProps) {
   }, [data]);
 
   // The chapters, as the pinned bar names them when it wears one.
+  // A lanes block is several chapters, each marker in turn.
   const chapters = useMemo(
     () =>
-      data.map(({ tag }, i) => ({
-        id: tag.id,
-        label: chapterLabel(tag, i, locale),
-      })),
+      data.flatMap(({ tag, members, laneOf }, i) =>
+        (laneOf ? members : [tag]).map((t, k) => ({
+          id: t.id,
+          label: chapterLabel(t, k === 0 ? i : -1, locale),
+        })),
+      ),
     [data, locale],
   );
 

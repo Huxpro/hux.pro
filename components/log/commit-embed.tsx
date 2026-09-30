@@ -65,6 +65,9 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
+  /** Timeline-only: other chapters this row also belongs to, worn after
+   *  the title as refs (`git log --decorate`). */
+  refs?: string[];
 }
 
 // =============================================================================
@@ -87,6 +90,7 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  refs,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -166,6 +170,7 @@ export function Commit({
           byline={byline}
           form={form}
           onSelectHash={onSelectHash}
+          refs={refs}
           attachmentSet={attachmentSet}
           inspecting={inspecting}
           isSelected={isSelected}

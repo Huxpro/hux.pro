@@ -43,8 +43,12 @@ import { TYPE } from "@/lib/typography";
  * subtracts on the right. Below `lg` the page has no margin to hang it in
  * and the gutter stays inside the column as it always did.
  */
-const HASH_CELL = "lg:w-14 lg:text-right";
-const GUTTER_PULL = "lg:-ml-[6.5rem]";
+export const HASH_CELL = "lg:w-14 lg:text-right";
+export const GUTTER_PULL = "lg:-ml-[6.5rem]";
+
+/** A chapter's ref worn inline — the chapter marker's pill, at row size. */
+export const REF_CHIP =
+  "inline-flex items-center rounded-full border border-border px-1.5 font-mono text-[10px] leading-4 text-muted-foreground";
 
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
@@ -105,6 +109,9 @@ interface TimelineCommitProps {
    * the permalink it always looked like — see `useCommitAnchor`.
    */
   onSelectHash?: (hash: string) => void;
+  /** Other chapters this row also belongs to, worn after the title the way
+   *  `git log --decorate` prints the refs on a commit. */
+  refs?: string[];
   /**
    * The commit's attachments as one set (see systems/attachments). Every
    * media affordance on the row — a strip cover, an expanded player or
@@ -135,6 +142,7 @@ export function TimelineCommit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  refs,
   attachmentSet = null,
   inspecting = false,
   isSelected = false,
@@ -529,6 +537,11 @@ export function TimelineCommit({
                 {data.languageBadge}
               </span>
             )}
+            {refs?.map((ref) => (
+              <span key={ref} className={cn("ml-2 align-[1px]", REF_CHIP)}>
+                {ref}
+              </span>
+            ))}
           </span>
         )}
 

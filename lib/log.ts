@@ -278,6 +278,14 @@ export type Media =
 interface BaseCommit {
   id: string;
   tagId: string;
+  /**
+   * Other chapters this commit also belongs to — where two eras overlap
+   * (a Meta internship that was React work and PL work at once). `tagId`
+   * stays the home chapter: everything that reads one tag per commit (the
+   * editor, home widgets, a magic link's colour) keeps reading it. How
+   * /works draws the overlap is `lib/log-eras.ts`.
+   */
+  alsoTagIds?: string[];
   date: string; // YYYY-MM or YYYY-MM-DD
   endDate?: string; // YYYY-MM, YYYY-MM-DD, or "present"
   title: LocalizedString;
