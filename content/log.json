@@ -106,8 +106,8 @@
         "zh": ""
       },
       "narrative": {
-        "en": "Flash games and animations from the age of ten, award-winning through high school and college, and the first few bucks earned on motion graphics — the kid who wanted to make interfaces before knowing the word, who then went to art school for it: Digital Media Arts at CUC, and a summer at a motion graphics studio.",
-        "zh": "十岁开始做 Flash 游戏和动画，高中到大学拿过一些奖，也靠动态图形赚到了第一笔钱——那个还不知道“界面”这个词、就已经想做界面的孩子，后来为此去读了艺术：中国传媒大学数字媒体艺术，和在一家动态图形工作室的一个夏天。"
+        "en": "Flash games and animations from the age of ten, award-winning through high school and college, and the first few bucks earned on motion graphics — the kid who wanted to make interfaces before knowing the word, who then went to art school for it: Digital Media Arts at CUC, a summer at a motion graphics studio, a blog theme a generation of engineers forked, and Yanshuo, a presentation tool, to graduate with.",
+        "zh": "十岁开始做 Flash 游戏和动画，高中到大学拿过一些奖，也靠动态图形赚到了第一笔钱——那个还不知道“界面”这个词、就已经想做界面的孩子，后来为此去读了艺术：中国传媒大学数字媒体艺术、在一家动态图形工作室的一个夏天、一套被一代工程师 fork 过的博客主题，以及作为毕业设计的在线演示工具「演说」。"
       },
       "keywords": {
         "en": "Flash, Animation, Motion Graphics",
@@ -1524,6 +1524,9 @@
       "id": "yanshuo-io",
       "type": "project",
       "tagId": "pwa-era",
+      "alsoTagIds": [
+        "early-days"
+      ],
       "identityId": "cuc",
       "attachedTo": "cuc-ba",
       "title": {
@@ -1641,6 +1644,9 @@
       "id": "hux-blog",
       "type": "project",
       "tagId": "pwa-era",
+      "alsoTagIds": [
+        "early-days"
+      ],
       "attachedTo": null,
       "title": {
         "en": "Hux Blog",
