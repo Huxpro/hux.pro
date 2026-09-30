@@ -60,7 +60,7 @@ const SEGMENTED_TONE = {
 
 const SWITCH_TONE = {
   // Green is the devtool saying "live", and it only means that in there.
-  system: "bg-green-500/90 border-green-500/70",
+  system: "bg-live/90 border-live/70",
   reader: "border-transparent bg-foreground/85",
 } as const;
 
@@ -98,8 +98,8 @@ export function Segmented<T extends string>({
     <div
       role="group"
       aria-label={label}
-      // The Material skin redraws the group as a connected button group
-      // (globals.css, "Controls in the Material skin").
+      // The Android theme redraws the group as a connected button group
+      // (app/themes/android/controls.css).
       data-segmented={tone}
       className={cn("flex", fill ? "w-full min-w-0" : "shrink-0", t.group)}
     >
@@ -150,7 +150,7 @@ export function Switch({
       disabled={disabled}
       aria-pressed={on}
       aria-label={label}
-      // The Material skin redraws it as M3's switch (globals.css).
+      // The Android theme redraws it as M3's switch (app/themes/android/controls.css).
       data-md-switch=""
       className={cn(
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
@@ -238,6 +238,10 @@ export function HeaderAction({
       aria-expanded={expanded}
       aria-controls={controls}
       title={title}
+      // A role hook: an OS theme may draw these as its chips (the Android
+      // theme: a filter chip for a segment, a text button for an action).
+      data-chip={variant === "segment" ? "filter" : "action"}
+      data-selected={active ? "" : undefined}
       className={cn(
         // `pressable` is the touch contract any chip with a hover wash gets
         // (docs/design-system.md, "Touch"): the wash lands on the touch-down

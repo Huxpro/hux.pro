@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import type { KeyboardEvent, PointerEvent, ReactNode } from "react";
 
 // =============================================================================
-// Resize affordances — how a widget is resized, per skin.
+// Resize affordances — how a widget is resized, per theme.
 //
 //   Glass     `ResizeGrip`: the corner. iOS 17 puts a single rounded corner
 //             at a widget's bottom-right in jiggle mode; this is that
@@ -25,7 +25,7 @@ import type { KeyboardEvent, PointerEvent, ReactNode } from "react";
 // move / up events flowing however far the drag goes.
 //
 // Which one shows is the stylesheet's call (`material:`), not React's: both
-// are in the tree, so a returning visitor in either skin gets the right one
+// are in the tree, so a returning visitor in either theme gets the right one
 // without a second render.
 // =============================================================================
 
@@ -89,7 +89,7 @@ function Handle({
   );
 }
 
-/** Glass: the iOS corner. Hidden in the Material skin. */
+/** Glass: the iOS corner. Hidden in the Android theme. */
 export function ResizeGrip({
   axes,
   label,
@@ -104,7 +104,7 @@ export function ResizeGrip({
       axes={axes}
       label={label}
       handlers={handlers}
-      className="-bottom-3 -right-3 flex h-11 w-11 items-end justify-end focus-visible:[&>svg]:stroke-foreground material:hidden"
+      className="-bottom-3 -right-3 flex h-11 w-11 items-end justify-end focus-visible:[&>svg]:stroke-foreground android:hidden"
     >
       {/* The card corner is `rounded-2xl` (16px); this arc is centred on that
           corner's centre with a radius two pixels larger, so it hugs the
@@ -149,7 +149,7 @@ export function ResizeFrame({
   const x = axes === "both" || axes === "x";
   const y = axes === "both" || axes === "y";
   return (
-    <div data-resize-frame="" className="hidden material:contents">
+    <div data-resize-frame="" className="hidden android:contents">
       <div
         aria-hidden
         className="pointer-events-none absolute -inset-1.5 z-20 rounded-[calc(var(--md-widget-radius)+6px)] border-2 border-(--md-primary)"

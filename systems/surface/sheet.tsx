@@ -186,7 +186,7 @@ export function detentHeight(point: number): string {
  * back up.
  */
 export const HEADER_BUTTON =
-  "pressable system-chrome shrink-0 rounded-md material:rounded-full p-2 text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
+  "pressable system-chrome shrink-0 rounded-md android:rounded-full p-2 text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
 
 /**
  * The glass shell every shape shares — and, with `.system-chrome`, the ruling
@@ -204,8 +204,8 @@ export const HEADER_BUTTON =
  * block in globals.css, beside the other two, when something needs it.
  */
 export const SHELL = [
-  // `surface-shell`: the hook the Material skin re-points a surface's tokens
-  // on (globals.css, "Skin — Material", Surfaces).
+  // `surface-shell`: the hook the Android theme re-points a surface's tokens
+  // on (app/themes/android/surfaces.css).
   "surface-shell system-chrome flex flex-col overflow-hidden outline-none",
   "rounded-3xl bg-glass-sheet backdrop-blur-xl",
   "border border-border/50 shadow-overlay",
@@ -266,7 +266,7 @@ export function SurfaceViewport({
   return (
     <Drawer.Viewport
       {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
-      // The Material skin paints a scrim on a modal one (globals.css).
+      // The Android theme paints a scrim on a modal one (app/themes/android/).
       data-surface-viewport=""
       data-modal={modal ? "" : undefined}
       className={cn("fixed inset-0", !modal && "pointer-events-none")}
@@ -731,8 +731,8 @@ export function SurfaceSheet({
                   !fitContent && "flex-1",
                   // The dim on a receded sheet is a wash over the shell rather
                   // than an opacity, so the glass stays glass.
-                  "after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
-                  behind && "after:bg-black/15 dark:after:bg-black/30",
+                  "after:pointer-events-none after:absolute after:inset-0 after:bg-scrim/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
+                  behind && "after:bg-scrim/15 dark:after:bg-scrim/30",
                   className
                 )}
               >

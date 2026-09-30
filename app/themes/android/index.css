@@ -1,0 +1,26 @@
+/* =============================================================================
+   The Android theme's overlay — Material 3 Expressive, as Android 16 draws
+   the system. The Hux theme is the site's own stylesheet (app/globals.css);
+   this overlay only ever adds to it, and only under
+   `:root[data-os-theme="android"]`, so removing the attribute is a complete
+   revert and the two can never leak into each other.
+
+   Layers (docs/system-os-theme.md):
+     tokens     Material's numbers and the colour roles (the vocabulary)
+     foundation those numbers fed into the site's own token inputs, at the
+                root — what makes the theme reach every page
+     widgets …  role rules: the site's semantic hooks (`[data-widget-shell]`,
+                `.surface-shell`, `[data-snackbar]`, …) redrawn in that
+                vocabulary, re-pointing the site's own tokens inside them
+   ============================================================================= */
+
+@import "./tokens.css";
+@import "./foundation.css";
+@import "./widgets.css";
+@import "./edit.css";
+@import "./surfaces.css";
+@import "./system-ui.css";
+@import "./controls.css";
+@import "./page.css";
+@import "./pages.css";
+@import "./motion.css";

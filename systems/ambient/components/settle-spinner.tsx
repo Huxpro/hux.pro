@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { LoadingIndicator } from "@/systems/skin/components/loading-indicator";
+import { LoadingIndicator } from "@/systems/os/android/components/loading-indicator";
+import { Themed } from "@/systems/os/components/themed";
 import { t, useLocale } from "@/services";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { isSettling, subscribeSettle } from "../lib/settle";
@@ -52,31 +53,35 @@ export function SettleSpinner() {
         shown ? "opacity-100" : "opacity-0"
       )}
     >
-      <svg
-        viewBox="0 0 16 16"
-        width="14"
-        height="14"
-        fill="none"
-        aria-hidden="true"
-        // Spinning only while it shows: an endless animation at opacity 0 would
-        // keep the compositor producing frames on every page, for nothing.
-        className={cn(
-          "text-tertiary-foreground motion-reduce:animate-none material:hidden",
-          shown && "animate-spin"
-        )}
-        style={{ animationDuration: "0.9s" }}
-      >
-        <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.6" opacity={0.3} />
-        <path
-          d="M8 2a6 6 0 0 1 6 6"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-      </svg>
-      {/* Material: the Expressive loading indicator, mounted only while it
-          shows so its animation never runs unseen. */}
-      {shown && <LoadingIndicator size={22} className="hidden material:block" />}
+      <Themed
+        hux={
+          <svg
+            viewBox="0 0 16 16"
+            width="14"
+            height="14"
+            fill="none"
+            aria-hidden="true"
+            // Spinning only while it shows: an endless animation at opacity 0 would
+            // keep the compositor producing frames on every page, for nothing.
+            className={cn(
+              "block text-tertiary-foreground motion-reduce:animate-none",
+              shown && "animate-spin"
+            )}
+            style={{ animationDuration: "0.9s" }}
+          >
+            <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.6" opacity={0.3} />
+            <path
+              d="M8 2a6 6 0 0 1 6 6"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          </svg>
+        }
+        // Android: the Expressive loading indicator, mounted only while it
+        // shows so its animation never runs unseen.
+        android={shown ? <LoadingIndicator size={22} className="block" /> : null}
+      />
     </div>
   );
 }

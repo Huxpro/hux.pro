@@ -188,7 +188,7 @@ export function SurfaceSwitch({
                   ? cn(
                       GLASS_ON_DARK_BTN,
                       "h-8 w-8",
-                      active ? "text-white" : "cursor-pointer",
+                      active ? "text-on-media" : "cursor-pointer",
                     )
                   : cn(
                       "inline-flex h-7 w-7 items-center justify-center rounded-full",

@@ -58,12 +58,12 @@ export function MusicActivity() {
               <Music className="h-3.5 w-3.5 text-muted-foreground" />
             </span>
           )}
-          {showEQ && <EQBars className="text-green-500" />}
+          {showEQ && <EQBars className="text-live" />}
         </>
       }
       title={
         <>
-          {showEQ && <EQBars className="text-green-500" />}
+          {showEQ && <EQBars className="text-live" />}
           <span className="text-xs font-mono text-muted-foreground truncate">
             {t(locale, isPlaying || isLoading ? "widgetMusic" : "widgetMusicIdle")}
           </span>

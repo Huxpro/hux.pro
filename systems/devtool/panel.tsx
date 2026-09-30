@@ -10,13 +10,11 @@ import {
   useTheme,
   GLASS_TINTS,
   getTintLabel,
-  DEFAULT_SKIN,
-  SKINS,
+  getOsThemeLabel,
   getSchemeStyleLabel,
-  getSkinLabel,
-  useSkin,
+  useOsTheme,
 } from "@/services";
-import { SCHEME_STYLES } from "@/systems/skin";
+import { DEFAULT_OS_THEME, OS_THEME_IDS, SCHEME_STYLES } from "@/systems/os";
 import {
   motionStatus,
   useAmbientTime,
@@ -216,7 +214,7 @@ export function DevtoolModules() {
       <ReadingModule />
       <WallpaperModule />
       <GlassModule />
-      <SkinModule />
+      <ThemeModule />
       <SkyModule />
       <MusicModule />
       <CommandModule />
@@ -412,7 +410,7 @@ export function DevtoolRail() {
               <span
                 className={cn(
                   "absolute right-0.5 top-0 font-mono text-[10px] leading-none",
-                  entry.star === "session" ? "text-amber-500/80" : "text-sky-500/80"
+                  entry.star === "session" ? "text-warning/80" : "text-info/80"
                 )}
               >
                 *
@@ -668,8 +666,8 @@ function DebugSection({
                   className={cn(
                     "ml-0.5 shrink-0 text-xs font-mono transition-colors",
                     star === "session"
-                      ? "text-amber-500/80 hover:text-amber-400"
-                      : "text-sky-500/80 hover:text-sky-400"
+                      ? "text-warning/80 hover:text-warning"
+                      : "text-info/80 hover:text-info"
                   )}
                   title={`Reset ${title} to its defaults`}
                   aria-label={`Reset ${title} to its defaults`}
@@ -680,7 +678,7 @@ function DebugSection({
                 <span
                   className={cn(
                     "ml-0.5 shrink-0 text-xs font-mono",
-                    star === "session" ? "text-amber-500/80" : "text-sky-500/80"
+                    star === "session" ? "text-warning/80" : "text-info/80"
                   )}
                   title={
                     star === "session"
@@ -764,7 +762,7 @@ function FrontmatterModule() {
             title={locale === "zh" ? "复制 JSON" : "Copy JSON"}
           >
             {copied ? (
-              <Check className="h-3 w-3 text-green-500" />
+              <Check className="h-3 w-3 text-success" />
             ) : (
               <Copy className="h-3 w-3" />
             )}
@@ -861,8 +859,8 @@ function PanelStar({
       className={cn(
         "ml-1 font-mono transition-colors",
         source === "session"
-          ? "text-amber-500/80 hover:text-amber-400"
-          : "text-sky-500/80 hover:text-sky-400"
+          ? "text-warning/80 hover:text-warning"
+          : "text-info/80 hover:text-info"
       )}
     >
       *
@@ -1180,12 +1178,12 @@ function GlassModule() {
 }
 
 // =============================================================================
-// Skin Module
+// Theme Module
 //
-// Which platform the home screen's widgets are drawn in (services/skin.tsx):
-// Material (Android, the default) or Glass (Apple). Under Material, the
-// "Wallpaper colors" style Android offers, and the palette it produced from
-// the wallpaper that is painting — the roles a widget actually uses.
+// Which platform the site is drawn as (services/os-theme.tsx): Hux (the site
+// as built, the default) or Android (Material 3 Expressive). Under a theme
+// with dynamic colour, the Wallpaper colors style, and the palette it
+// produced — the roles a widget actually uses.
 // =============================================================================
 
 const SWATCH_ROLES = [
@@ -1199,63 +1197,67 @@ const SWATCH_ROLES = [
   "on-surface",
 ] as const;
 
-function SkinModule() {
+function ThemeModule() {
   const { locale } = useLocale();
-  const skin = useSkin();
-  const isHome = useIsHome();
+  const os = useOsTheme();
   const star: Star =
-    skin.skin !== DEFAULT_SKIN || skin.schemeStyle !== "tonal-spot" ? "saved" : null;
+    os.theme !== DEFAULT_OS_THEME || os.schemeStyle !== "tonal-spot" ? "saved" : null;
 
   return (
     <DebugSection
-      id="skin"
-      title={t(locale, "settingsSkin")}
+      id="os-theme"
+      title={t(locale, "settingsTheme")}
       icon={<Shapes className="h-4 w-4" />}
       compact
-      relevant={isHome}
+      // The theme is the whole site's, so it is relevant on every page.
+      relevant
       star={star}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
-          {skin.skin}
+          {os.theme}
         </span>
       }
     >
       <div className="space-y-2">
         <PanelRow
-          label={t(locale, "settingsSkin")}
+          label={t(locale, "settingsTheme")}
           star={
-            skin.skin === DEFAULT_SKIN ? null : (
-              <PanelStar source="saved" onReset={() => skin.setSkin(DEFAULT_SKIN)} label="Back to Material" />
+            os.theme === DEFAULT_OS_THEME ? null : (
+              <PanelStar
+                source="saved"
+                onReset={() => os.setTheme(DEFAULT_OS_THEME)}
+                label={`Back to ${getOsThemeLabel(DEFAULT_OS_THEME, locale)}`}
+              />
             )
           }
         >
           <PanelSegmented
-            value={skin.skin}
-            options={SKINS.map((value) => ({
+            value={os.theme}
+            options={OS_THEME_IDS.map((value) => ({
               value,
-              label: getSkinLabel(value, locale),
+              label: getOsThemeLabel(value, locale),
             }))}
-            onChange={skin.setSkin}
+            onChange={os.setTheme}
           />
         </PanelRow>
-        {skin.skin === "material" && (
+        {os.meta.dynamicColor && (
           <>
             <PanelRow
               label={t(locale, "settingsMdStyle")}
               stacked
               star={
-                skin.schemeStyle === "tonal-spot" ? null : (
-                  <PanelStar source="saved" onReset={() => skin.setSchemeStyle("tonal-spot")} label="Back to tonal spot" />
+                os.schemeStyle === "tonal-spot" ? null : (
+                  <PanelStar source="saved" onReset={() => os.setSchemeStyle("tonal-spot")} label="Back to tonal spot" />
                 )
               }
             >
               <PanelSegmented
-                value={skin.schemeStyle}
+                value={os.schemeStyle}
                 options={SCHEME_STYLES.map((value) => ({
                   value,
                   label: getSchemeStyleLabel(value, locale),
                 }))}
-                onChange={skin.setSchemeStyle}
+                onChange={os.setSchemeStyle}
               />
             </PanelRow>
             {/* The palette in force: each swatch paints its own role, so it
@@ -1571,9 +1573,9 @@ function WallpaperModule() {
               style={{ backgroundImage: swatch }}
             >
               {weatherStyle === "sky" ? (
-                <Sparkles className="h-3 w-3 text-white/85 drop-shadow" />
+                <Sparkles className="h-3 w-3 text-on-media/85 drop-shadow" />
               ) : (
-                <Cloud className="h-3 w-3 text-white/85 drop-shadow" />
+                <Cloud className="h-3 w-3 text-on-media/85 drop-shadow" />
               )}
             </span>
           )}
@@ -1981,7 +1983,7 @@ const PLAY_RATES = [
  * strip can carry marks at all. One constant because it was four literals at
  * two different alphas, under a comment claiming they were the same.
  */
-const TIMELINE_INK = "border-white/60 bg-white/60 mix-blend-difference";
+const TIMELINE_INK = "border-on-media/60 bg-on-media/60 mix-blend-difference";
 
 const PANEL_CHIP = cn(
   "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5",
@@ -1996,11 +1998,11 @@ const PLAYHEAD_INPUT = cn(
   "pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent",
   "[&::-webkit-slider-runnable-track]:h-full [&::-webkit-slider-runnable-track]:bg-transparent",
   "[&::-webkit-slider-thumb]:h-10 [&::-webkit-slider-thumb]:w-[3px] [&::-webkit-slider-thumb]:appearance-none",
-  "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white",
-  "[&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(0,0,0,0.55)]",
+  "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-plate",
+  "[&::-webkit-slider-thumb]:shadow-[0_0_0_1px_color-mix(in_oklab,var(--scrim)_55%,transparent)]",
   "[&::-moz-range-track]:bg-transparent",
   "[&::-moz-range-thumb]:h-10 [&::-moz-range-thumb]:w-[3px] [&::-moz-range-thumb]:rounded-full",
-  "[&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white"
+  "[&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-plate"
 );
 
 function SkyModule() {
@@ -2691,14 +2693,14 @@ function SkyModule() {
                         : "This weather covers the sky — no meteor",
                   ].join(" · ")}
                 >
-                  <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />
+                  <div className="absolute inset-0 bg-on-media/10 dark:bg-scrim/10" />
                   <div className="absolute inset-0 flex items-center justify-center text-foreground/70">
                     <WeatherIcon condition={condition} isDay={isDayNow} className="h-3.5 w-3.5" />
                   </div>
                   {isLive && (
                     <span
                       aria-hidden
-                      className="absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full bg-green-500 ring-1 ring-background"
+                      className="absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full bg-live ring-1 ring-background"
                     />
                   )}
                   {/* A corner mark for the weather you could see a meteor
@@ -2915,7 +2917,7 @@ function SkyModule() {
                 .filter(Boolean)
                 .join(" · ")}
               {location.timezoneMismatch && (
-                <span className="text-amber-500/80"> · tz≠</span>
+                <span className="text-warning/80"> · tz≠</span>
               )}
             </span>
           </PanelRow>
@@ -3039,7 +3041,7 @@ function MusicModule() {
       star={mock ? "saved" : null}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">
-          {mock && <span className="uppercase text-amber-500/70">mock · </span>}
+          {mock && <span className="uppercase text-warning/70">mock · </span>}
           {state}
         </span>
       }
@@ -3343,7 +3345,7 @@ function DraggableModule() {
                   {locale === "zh" ? inst.labelZh : inst.labelEn}
                 </span>
                 {(dragOverridden || persistOverridden) && (
-                  <span className="text-[9px] font-mono text-sky-500/80 uppercase">
+                  <span className="text-[9px] font-mono text-info/80 uppercase">
                     *
                   </span>
                 )}
@@ -3359,7 +3361,7 @@ function DraggableModule() {
                       config.persist
                         ? "text-foreground bg-muted/60"
                         : "text-quaternary-foreground hover:text-muted-foreground",
-                      persistOverridden && "ring-1 ring-sky-500/40"
+                      persistOverridden && "ring-1 ring-info/40"
                     )}
                     aria-label={`Toggle position save for ${inst.labelEn}`}
                     title={
@@ -3386,9 +3388,9 @@ function DraggableModule() {
                   className={cn(
                     "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
                     config.draggable
-                      ? "bg-green-500/90 border-green-500/70"
+                      ? "bg-live/90 border-live/70"
                       : "bg-muted/40 border-border/60",
-                    dragOverridden && "ring-1 ring-sky-500/40"
+                    dragOverridden && "ring-1 ring-info/40"
                   )}
                   aria-pressed={config.draggable}
                   aria-label={`Toggle draggable for ${inst.labelEn}`}

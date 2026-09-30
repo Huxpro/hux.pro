@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { Themed } from "@/systems/os/components/themed";
 
 // =============================================================================
 // The chrome pill — the traffic lights and the glass they sit on
@@ -35,7 +36,7 @@ function Dot({
   /** Omitted where the dots are an indicator only — a phone window's grip. */
   onClick?: () => void;
   glyph: React.ReactNode;
-  /** The Material skin's glyph, where Android draws it differently. */
+  /** The Android theme's glyph, where Android draws it differently. */
   materialGlyph?: React.ReactNode;
 }) {
   // Having something to do is what makes a dot a control; nothing else decides
@@ -55,7 +56,7 @@ function Dot({
         onClick?.();
       }}
       className={cn(
-        "flex cursor-default items-center justify-center rounded-full text-black/55",
+        "flex cursor-default items-center justify-center rounded-full text-on-plate/55",
         "transition-all duration-150 active:scale-90",
         // Small on touch; always full-size on desktop.
         "h-[6px] w-[6px] [@media(hover:hover)]:h-3 [@media(hover:hover)]:w-3",
@@ -68,7 +69,7 @@ function Dot({
         // Grey base (no `dark:`, to avoid out-specifying the hover colour in
         // dark mode). Dim at rest on both platforms; full when interacting, and
         // coloured (active window only) on desktop hover.
-        "bg-zinc-500",
+        "bg-muted-foreground",
         interacting
           ? "opacity-100"
           : "opacity-40 [@media(hover:hover)]:group-hover/chrome:opacity-100",
@@ -77,10 +78,7 @@ function Dot({
     >
       <span className="opacity-0 transition-opacity [@media(hover:hover)]:group-hover/chrome:opacity-100">
         {materialGlyph ? (
-          <>
-            <span className="contents material:hidden">{glyph}</span>
-            <span className="hidden material:contents">{materialGlyph}</span>
-          </>
+          <Themed hux={glyph} android={materialGlyph} />
         ) : (
           glyph
         )}
@@ -104,7 +102,7 @@ const DOTS: {
   {
     label: "Close",
     action: "close",
-    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#ff5f57]",
+    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-traffic-close",
     glyph: (
       <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
         <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" stroke="currentColor" fill="none" strokeLinecap="round" />
@@ -114,7 +112,7 @@ const DOTS: {
   {
     label: "Minimize",
     action: "minimize",
-    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#febc2e]",
+    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-traffic-minimize",
     glyph: (
       <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
         <path d="M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
@@ -124,7 +122,7 @@ const DOTS: {
   {
     label: "Zoom",
     action: "zoom",
-    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#28c840]",
+    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-traffic-zoom",
     glyph: (
       <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
         <path d="M5 2.2v5.6M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
@@ -156,7 +154,7 @@ export function TrafficDots({
   return (
     <div data-window-dots="" className="flex items-center gap-[5px] [@media(hover:hover)]:gap-2">
       {/* Material, touch: Android's app handle — one short bar where the
-          three lights were (globals.css, "Windows"). */}
+          three lights were (app/themes/android/system-ui.css). */}
       <span data-window-handle="" aria-hidden className="hidden" />
       {DOTS.map((dot) => (
         <Dot
@@ -199,28 +197,27 @@ export function PillTitle({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * The pill the dots sit on. Two states, kept mutually exclusive so light/dark
- * utilities never fight on specificity: chromeless at rest, glass while
- * something is happening — which is what gives a phone pill its glass look,
- * there being no hover to light it.
+ * The pill the dots sit on. Two states, kept mutually exclusive: chromeless at
+ * rest, glass while something is happening — which is what gives a phone pill
+ * its glass look, there being no hover to light it. Both paint tokens, so the
+ * theme and the appearance resolve them; nothing here says light or dark.
  *
  * `hoverLights` adds the desktop's hover state; a grip leaves it off, since a
  * press is the only thing that wakes it.
  */
 export function pillShell(interacting: boolean, hoverLights = true) {
   return cn(
-    // `window-pill`: the Material skin's caption surface (globals.css).
+    // `window-pill`: the Android theme's caption surface (app/themes/android/).
     "window-pill group/chrome flex cursor-default items-center rounded-full px-2.5 py-1.5",
     "touch-none select-none transition-all duration-200",
     interacting
-      ? "border-black/10 bg-white/80 shadow-raised backdrop-blur-xl dark:border-white/14 dark:bg-black/60"
+      ? "border-border bg-glass-overlay shadow-raised backdrop-blur-xl"
       : cn(
           "border-transparent bg-transparent shadow-none",
           hoverLights &&
             cn(
               // `hover:` (not group-hover) since this element *is* the group.
-              "[@media(hover:hover)]:hover:border-black/10 [@media(hover:hover)]:hover:bg-white/80 [@media(hover:hover)]:hover:shadow-raised [@media(hover:hover)]:hover:backdrop-blur-xl",
-              "dark:[@media(hover:hover)]:hover:border-white/14 dark:[@media(hover:hover)]:hover:bg-black/60",
+              "[@media(hover:hover)]:hover:border-border [@media(hover:hover)]:hover:bg-glass-overlay [@media(hover:hover)]:hover:shadow-raised [@media(hover:hover)]:hover:backdrop-blur-xl",
             ),
         ),
   );

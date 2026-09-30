@@ -1,0 +1,142 @@
+/* =============================================================================
+   Android theme · Widgets — the home screen's cards as Android draws them: opaque tonal
+   containers at the system radius, the site's tokens re-pointed at
+   Material roles inside, Title Small titles.
+
+   Every rule here is scoped to `:root[data-os-theme="android"]` (checked by
+   `pnpm themes:check`), so the Hux theme never sees it.
+   ============================================================================= */
+
+/* --- The widget container. An Android widget is an opaque tonal surface
+   at the system radius, not a pane over the wallpaper: no blur, no hairline,
+   no picture showing through. Its content paints with the same tokens it
+   always has — the ink ladder, the glass fills, the border — re-pointed here
+   at Material roles, so every widget follows without knowing the theme:
+     foreground            on-surface
+     muted-foreground      on-surface-variant
+     tertiary-foreground   on-surface-variant, a step back
+     quaternary-foreground outline-variant
+     border / input        outline-variant
+     glass fills           surface-container-high / -highest (a chip, a
+                           segmented control, a transport cluster)
+   `--muted` is on-surface at 30%, so the rows' existing washes land on
+   Material's state layers: `hover:bg-muted/20` is the 8%… hover layer,
+   `active:bg-muted/35` the 10% press. Everything in the card is set in
+   Google Sans Flex; the serif (a quotation, a post's headline) stays the
+   site's, because it is the content's voice, not the platform's. --- */
+:root[data-os-theme="android"] [data-widget-shell] {
+  /* The container and its content colour, as three variables so a tone
+     (below) is three lines, and everything under it follows. */
+  --md-container: var(--md-surface-container);
+  --md-on-container: var(--md-on-surface);
+  --md-on-container-variant: var(--md-on-surface-variant);
+
+  --foreground: var(--md-on-container);
+  --card-foreground: var(--md-on-container);
+  --ink: var(--md-on-container);
+  --muted-foreground: var(--md-on-container-variant);
+  --tertiary-foreground: color-mix(in srgb, var(--md-on-container-variant) 80%, transparent);
+  --quaternary-foreground: color-mix(in srgb, var(--md-on-container-variant) 45%, transparent);
+  --muted: color-mix(in srgb, var(--md-on-container) 30%, transparent);
+  --secondary: var(--md-surface-container-highest);
+  --accent: color-mix(in srgb, var(--md-on-container) var(--md-state-pressed), transparent);
+  --border: color-mix(in srgb, var(--md-on-container-variant) 40%, transparent);
+  --input: var(--border);
+  --ring: var(--md-primary);
+  --glass: var(--md-surface-container-high);
+  --glass-hover: var(--md-surface-container-highest);
+  --glass-strong: var(--md-surface-container-highest);
+  --glass-strong-hover: color-mix(in srgb, var(--md-surface-container-highest), var(--md-on-surface) var(--md-state-hover));
+  --glass-overlay: var(--md-surface-container-highest);
+  --font-mono: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+
+  font-family: var(--font-sans);
+  background-color: var(--md-container);
+  border-color: transparent;
+  border-radius: var(--md-widget-radius);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  /* Opaque ground: the wallpaper's relief shadow has nothing to lift the
+     text off. */
+  text-shadow: none;
+  transition: background-color var(--md-spring-default-effects-duration) var(--md-spring-default-effects);
+}
+/* Tones: the accent containers a home screen mixes in among the surfaces —
+   a widget that is one thing (a quotation) can wear one. `WidgetShell`'s
+   `tone` prop sets the attribute; the Hux theme ignores it. */
+:root[data-os-theme="android"] [data-widget-shell][data-widget-tone="primary"] {
+  --md-container: var(--md-primary-container);
+  --md-on-container: var(--md-on-primary-container);
+  --md-on-container-variant: color-mix(in srgb, var(--md-on-primary-container) 78%, var(--md-primary-container));
+}
+:root[data-os-theme="android"] [data-widget-shell][data-widget-tone="secondary"] {
+  --md-container: var(--md-secondary-container);
+  --md-on-container: var(--md-on-secondary-container);
+  --md-on-container-variant: color-mix(in srgb, var(--md-on-secondary-container) 78%, var(--md-secondary-container));
+}
+:root[data-os-theme="android"] [data-widget-shell][data-widget-tone="tertiary"] {
+  --md-container: var(--md-tertiary-container);
+  --md-on-container: var(--md-on-tertiary-container);
+  --md-on-container-variant: color-mix(in srgb, var(--md-on-tertiary-container) 78%, var(--md-tertiary-container));
+}
+:root[data-os-theme="android"] [data-widget-shell] * {
+  text-shadow: none;
+}
+/* The hover state layer, on the card's own surface only (a tappable card). */
+:root[data-os-theme="android"] [data-widget-shell].widget-surface:hover {
+  background-color: color-mix(in srgb, var(--md-container), var(--md-on-container) var(--md-state-hover));
+  border-color: transparent;
+}
+/* The press: not the iOS wash over the whole card — the ripple draws it
+   (MaterialRipple, systems/os/android), so the overlay stays clear. */
+:root[data-os-theme="android"] [data-widget-shell].widget-surface::after {
+  background-color: var(--md-on-container);
+  transition-timing-function: var(--md-spring-default-effects);
+}
+:root[data-os-theme="android"] [data-widget-shell].widget-surface:active:not(
+    :has(
+      :is(
+          a,
+          button,
+          [role="button"],
+          [role="tab"],
+          input,
+          textarea,
+          select,
+          summary,
+          [contenteditable="true"],
+          [data-widget-inert]
+        ):active
+    )
+  )::after {
+  opacity: 0;
+}
+:root[data-os-theme="android"] [data-widget-wallpaper] {
+  display: none;
+}
+/* Keyboard focus: Material's focus indicator is an outline in `secondary`,
+   3dp, outside the shape. */
+:root[data-os-theme="android"] [data-widget-shell]:focus-visible,
+:root[data-os-theme="android"] [data-widget-shell] :focus-visible {
+  outline: 3px solid var(--md-secondary);
+  outline-offset: 2px;
+}
+
+/* --- Type. A widget's title is Material's Title Small (14/20, medium,
+   +0.1), in sentence case — the platform labels things in words, not in a
+   machine's lowercase mono. Metadata (a date, a venue) keeps its rung and
+   becomes Body Small's 12/16 with tabular figures, so dates still line up
+   the way the mono made them. --- */
+:root[data-os-theme="android"] [data-widget-shell] [data-widget-title] {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  color: var(--md-on-container);
+  text-transform: capitalize;
+}
+:root[data-os-theme="android"] [data-widget-shell] .font-mono {
+  letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
+}

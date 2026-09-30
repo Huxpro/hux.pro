@@ -1,0 +1,197 @@
+/* =============================================================================
+   Android theme · Tokens — Material's numbers, and the palette. The baseline colour roles
+   (Android's fallback seed; DynamicColorBridge replaces them with the
+   wallpaper's), their resolution per appearance, and the shape, state,
+   motion and elevation tokens every other file here paints with.
+
+   Every rule here is scoped to `:root[data-os-theme="android"]` (checked by
+   `pnpm themes:check`), so the Hux theme never sees it.
+   ============================================================================= */
+
+/* --- Dynamic color. The palette for the current wallpaper is written onto
+   <html> as `--md-l-<role>` / `--md-d-<role>` by DynamicColorBridge
+   (systems/os/android), both themes at once. These are the baseline it replaces:
+   Android's fallback seed (Google Blue, 0xFF1B6EF3), tonal spot, the 2025
+   spec — what a phone generates from a wallpaper with no colour to give.
+   Regenerate with `schemeRoles(FALLBACK_SEED, "tonal-spot", dark)`. --- */
+:root[data-os-theme="android"] {
+  --md-l-primary: #4c5e8b;
+  --md-l-on-primary: #f9f8ff;
+  --md-l-primary-container: #b9cbff;
+  --md-l-on-primary-container: #30436e;
+  --md-l-secondary: #585f72;
+  --md-l-on-secondary: #f9f8ff;
+  --md-l-secondary-container: #dce2f9;
+  --md-l-on-secondary-container: #4b5164;
+  --md-l-tertiary: #6b5780;
+  --md-l-on-tertiary: #fff6ff;
+  --md-l-tertiary-container: #e1c8f8;
+  --md-l-on-tertiary-container: #523f67;
+  --md-l-surface: #faf8fe;
+  --md-l-surface-dim: #d8d9e4;
+  --md-l-surface-bright: #faf8fe;
+  --md-l-surface-container-lowest: #ffffff;
+  --md-l-surface-container-low: #f3f3fa;
+  --md-l-surface-container: #ededf6;
+  --md-l-surface-container-high: #e7e7f1;
+  --md-l-surface-container-highest: #e1e2ed;
+  --md-l-on-surface: #30323a;
+  --md-l-on-surface-variant: #5d5f68;
+  --md-l-outline: #787a84;
+  --md-l-outline-variant: #b0b1bc;
+  --md-l-inverse-surface: #0d0e12;
+  --md-l-inverse-on-surface: #9d9ca2;
+  --md-l-inverse-primary: #b9cbff;
+  --md-l-primary-fixed-dim: #abbdf0;
+  --md-l-on-primary-fixed: #1b2f59;
+  --md-d-primary: #b8c6ee;
+  --md-d-on-primary: #323f60;
+  --md-d-primary-container: #445274;
+  --md-d-on-primary-container: #dae3ff;
+  --md-d-secondary: #c0c6dc;
+  --md-d-on-secondary: #394052;
+  --md-d-secondary-container: #353b4d;
+  --md-d-on-secondary-container: #b8bfd5;
+  --md-d-tertiary: #edd8ff;
+  --md-d-on-tertiary: #5b4870;
+  --md-d-tertiary-container: #e1c8f8;
+  --md-d-on-tertiary-container: #523f67;
+  --md-d-surface: #0d0e12;
+  --md-d-surface-dim: #0d0e12;
+  --md-d-surface-bright: #292c34;
+  --md-d-surface-container-lowest: #000000;
+  --md-d-surface-container-low: #121318;
+  --md-d-surface-container: #17191f;
+  --md-d-surface-container-high: #1d1f26;
+  --md-d-surface-container-highest: #23262e;
+  --md-d-on-surface: #e4e5f0;
+  --md-d-on-surface-variant: #a9aab5;
+  --md-d-outline: #73757f;
+  --md-d-outline-variant: #454850;
+  --md-d-inverse-surface: #faf8fe;
+  --md-d-inverse-on-surface: #545559;
+  --md-d-inverse-primary: #515e81;
+  --md-d-primary-fixed-dim: #b3c0e8;
+  --md-d-on-primary-fixed: #243152;
+}
+
+/* --- Roles, resolved per theme. Components paint with `--md-<role>`,
+   never a tone: the pairing (`surface-container` under `on-surface`) is
+   what dynamic color guarantees to be legible, whatever the wallpaper. --- */
+:root[data-os-theme="android"] {
+  --md-primary: var(--md-l-primary);
+  --md-on-primary: var(--md-l-on-primary);
+  --md-primary-container: var(--md-l-primary-container);
+  --md-on-primary-container: var(--md-l-on-primary-container);
+  --md-secondary: var(--md-l-secondary);
+  --md-on-secondary: var(--md-l-on-secondary);
+  --md-secondary-container: var(--md-l-secondary-container);
+  --md-on-secondary-container: var(--md-l-on-secondary-container);
+  --md-tertiary: var(--md-l-tertiary);
+  --md-on-tertiary: var(--md-l-on-tertiary);
+  --md-tertiary-container: var(--md-l-tertiary-container);
+  --md-on-tertiary-container: var(--md-l-on-tertiary-container);
+  --md-surface: var(--md-l-surface);
+  --md-surface-dim: var(--md-l-surface-dim);
+  --md-surface-bright: var(--md-l-surface-bright);
+  --md-surface-container-lowest: var(--md-l-surface-container-lowest);
+  --md-surface-container-low: var(--md-l-surface-container-low);
+  --md-surface-container: var(--md-l-surface-container);
+  --md-surface-container-high: var(--md-l-surface-container-high);
+  --md-surface-container-highest: var(--md-l-surface-container-highest);
+  --md-on-surface: var(--md-l-on-surface);
+  --md-on-surface-variant: var(--md-l-on-surface-variant);
+  --md-outline: var(--md-l-outline);
+  --md-outline-variant: var(--md-l-outline-variant);
+  --md-inverse-surface: var(--md-l-inverse-surface);
+  --md-inverse-on-surface: var(--md-l-inverse-on-surface);
+  --md-inverse-primary: var(--md-l-inverse-primary);
+  --md-primary-fixed-dim: var(--md-l-primary-fixed-dim);
+  --md-on-primary-fixed: var(--md-l-on-primary-fixed);
+}
+:root.dark[data-os-theme="android"] {
+  --md-primary: var(--md-d-primary);
+  --md-on-primary: var(--md-d-on-primary);
+  --md-primary-container: var(--md-d-primary-container);
+  --md-on-primary-container: var(--md-d-on-primary-container);
+  --md-secondary: var(--md-d-secondary);
+  --md-on-secondary: var(--md-d-on-secondary);
+  --md-secondary-container: var(--md-d-secondary-container);
+  --md-on-secondary-container: var(--md-d-on-secondary-container);
+  --md-tertiary: var(--md-d-tertiary);
+  --md-on-tertiary: var(--md-d-on-tertiary);
+  --md-tertiary-container: var(--md-d-tertiary-container);
+  --md-on-tertiary-container: var(--md-d-on-tertiary-container);
+  --md-surface: var(--md-d-surface);
+  --md-surface-dim: var(--md-d-surface-dim);
+  --md-surface-bright: var(--md-d-surface-bright);
+  --md-surface-container-lowest: var(--md-d-surface-container-lowest);
+  --md-surface-container-low: var(--md-d-surface-container-low);
+  --md-surface-container: var(--md-d-surface-container);
+  --md-surface-container-high: var(--md-d-surface-container-high);
+  --md-surface-container-highest: var(--md-d-surface-container-highest);
+  --md-on-surface: var(--md-d-on-surface);
+  --md-on-surface-variant: var(--md-d-on-surface-variant);
+  --md-outline: var(--md-d-outline);
+  --md-outline-variant: var(--md-d-outline-variant);
+  --md-inverse-surface: var(--md-d-inverse-surface);
+  --md-inverse-on-surface: var(--md-d-inverse-on-surface);
+  --md-inverse-primary: var(--md-d-inverse-primary);
+  --md-primary-fixed-dim: var(--md-d-primary-fixed-dim);
+  --md-on-primary-fixed: var(--md-d-on-primary-fixed);
+}
+
+/* --- Shape, state, motion. The numbers are Material's own, from Compose
+   Material 3's generated tokens (ShapeTokens, StateTokens, the Standard and
+   Expressive motion schemes) and AOSP's `system_app_widget_*` dimens. --- */
+:root[data-os-theme="android"] {
+  --md-shape-corner-extra-small: 4px;
+  --md-shape-corner-small: 8px;
+  --md-shape-corner-medium: 12px;
+  --md-shape-corner-large: 16px;
+  --md-shape-corner-large-increased: 20px;
+  --md-shape-corner-extra-large: 28px;
+  --md-shape-corner-extra-large-increased: 32px;
+  --md-shape-corner-extra-extra-large: 48px;
+  --md-shape-corner-full: 9999px;
+
+  /* A widget's own corner is the system's, not the app's: Android draws
+     every widget at `system_app_widget_background_radius` (28dp), and a
+     view inside it, 8dp in, at `system_app_widget_inner_radius` (20dp) —
+     the two corners concentric. */
+  --md-widget-radius: 28px;
+  --md-widget-inner-radius: 20px;
+  --md-widget-inset: 8px;
+
+  /* State layers: the content colour over the container at these alphas. */
+  --md-state-hover: 8%;
+  --md-state-focus: 10%;
+  --md-state-pressed: 10%;
+  --md-state-dragged: 16%;
+
+  /* Springs, as CSS. Each is Material's spring (damping ratio, stiffness)
+     sampled into `linear()` over its own settle time, so a CSS transition
+     moves the way Compose's `spring()` does — including the Expressive
+     scheme's overshoot. Spatial springs move things; effects springs
+     (critically damped) fade and recolour them. */
+  --md-spring-fast-spatial: linear(0, 0.044, 0.153, 0.297, 0.454, 0.606, 0.743, 0.857, 0.948, 1.014, 1.058, 1.083, 1.094, 1.093, 1.085, 1.073, 1.058, 1.043, 1.03, 1.018, 1.008, 1.001, 0.996, 0.993, 0.991, 0.991, 0.992, 0.993, 0.994, 0.995, 0.997, 0.998, 1);
+  --md-spring-fast-spatial-duration: 358ms; /* expressive: ζ 0.6, k 800 */
+  --md-spring-default-spatial: linear(0, 0.029, 0.1, 0.196, 0.302, 0.411, 0.514, 0.609, 0.693, 0.765, 0.825, 0.875, 0.914, 0.945, 0.969, 0.986, 0.998, 1.006, 1.011, 1.014, 1.015, 1.015, 1.014, 1.013, 1.011, 1.01, 1.008, 1.006, 1.005, 1.004, 1.003, 1.002, 1);
+  --md-spring-default-spatial-duration: 422ms; /* expressive: ζ 0.8, k 380 */
+  --md-spring-fast-effects: linear(0, 0.033, 0.111, 0.209, 0.313, 0.414, 0.506, 0.589, 0.661, 0.723, 0.774, 0.817, 0.853, 0.882, 0.906, 0.925, 0.94, 0.953, 0.963, 0.971, 0.977, 0.982, 0.986, 0.989, 0.991, 0.993, 0.995, 0.996, 0.997, 0.998, 0.998, 0.998, 1);
+  --md-spring-fast-effects-duration: 147ms; /* ζ 1, k 3800 */
+  --md-spring-default-effects: linear(0, 0.032, 0.107, 0.202, 0.304, 0.403, 0.495, 0.577, 0.649, 0.711, 0.764, 0.808, 0.844, 0.874, 0.899, 0.919, 0.935, 0.948, 0.959, 0.967, 0.974, 0.98, 0.984, 0.987, 0.99, 0.992, 0.994, 0.995, 0.996, 0.997, 0.998, 0.998, 1);
+  --md-spring-default-effects-duration: 222ms; /* ζ 1, k 1600 */
+
+  /* Elevation, as Material's web tokens draw it: a key shadow and an
+     ambient one per level. Tone carries most of the lift in M3 (a raised
+     surface is a higher container); the shadow only separates it. */
+  --md-elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+  --md-elevation-2: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 2px 6px 2px rgb(0 0 0 / 0.15);
+  --md-elevation-3: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+
+  /* Emphasized easing — Material's curve for things entering and leaving
+     the screen (a sheet, a scrim), as a CSS cubic-bezier. */
+  --md-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+}

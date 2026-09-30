@@ -10,6 +10,7 @@
     "predev": "node scripts/lynx-shadow-css-bundle.mjs",
     "prebuild": "node scripts/lynx-shadow-css-bundle.mjs",
     "lint": "eslint",
+    "themes:check": "node scripts/check-themes.mjs",
     "og:snapshot": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/og-snapshot.ts",
     "og:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/og-snapshot.ts --check",
     "og:complete": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/og-snapshot.ts --complete",

@@ -42,14 +42,14 @@ function IconPreview({
   style?: React.CSSProperties;
 }) {
   const html = useMemo(
-    // `var(--font-mono)` → the exact JetBrains Mono instance next/font loaded
+    // `var(--font-jetbrains)` → the exact JetBrains Mono instance next/font loaded
     // site-wide, so the preview matches the rest of the site (and the embedded
     // JetBrains Mono in the shipped asset) glyph-for-glyph.
     () =>
       buildIconSvg(config, {
         size: 512,
         idPrefix,
-        fontFamily: "var(--font-mono)",
+        fontFamily: "var(--font-jetbrains)",
       }),
     [config, idPrefix],
   );

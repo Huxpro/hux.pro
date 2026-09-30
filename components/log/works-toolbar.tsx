@@ -286,6 +286,9 @@ export function WorksToolbar({
                   type="button"
                   onClick={() => onToggleType(type)}
                   aria-pressed={selected}
+                  // A role hook: a filter chip (docs/system-os-theme.md).
+                  data-chip="filter"
+                  data-selected={selected ? "" : undefined}
                   aria-label={`${label} (${count})`}
                   title={label}
                   className={cn(

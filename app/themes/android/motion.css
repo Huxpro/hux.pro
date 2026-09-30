@@ -1,0 +1,52 @@
+/* =============================================================================
+   Android theme · Motion — the container transform from a widget into its page.
+
+   Every rule here is scoped to `:root[data-os-theme="android"]` (checked by
+   `pnpm themes:check`), so the Hux theme never sees it.
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   Container transform (Android theme) — a widget opening into its page
+   (systems/os/android/lib/container-transform.ts). The container travels on the
+   emphasized curve for Material's long duration (500ms), its corners opening
+   from the widget radius to square and its tonal fill thinning into the
+   page as it arrives; inside it the card fades out over the first 30% and
+   the page fades in over the rest — fade through, so the two never show
+   at once.
+   ----------------------------------------------------------------------------- */
+
+:root[data-os-theme="android"][data-md-transform] [data-page-surface] {
+  view-transition-name: md-container;
+}
+
+:root[data-os-theme="android"]::view-transition-group(md-container) {
+  animation-duration: 500ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root[data-os-theme="android"]::view-transition-image-pair(md-container) {
+  overflow: hidden;
+  animation: md-container-shape 500ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+:root[data-os-theme="android"]::view-transition-old(md-container) {
+  animation: fade-out 150ms linear both;
+}
+
+:root[data-os-theme="android"]::view-transition-new(md-container) {
+  animation: fade-in 350ms linear 150ms both;
+}
+
+@keyframes md-container-shape {
+  from {
+    border-radius: var(--md-widget-radius);
+    background-color: var(--md-surface-container);
+  }
+  60% {
+    background-color: color-mix(in srgb, var(--md-surface-container) 70%, transparent);
+  }
+  to {
+    border-radius: 0;
+    background-color: transparent;
+  }
+}

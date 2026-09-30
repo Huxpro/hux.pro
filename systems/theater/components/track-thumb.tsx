@@ -30,9 +30,9 @@ const PLATFORM_LABEL: Record<Source, string> = {
 };
 
 const PLATFORM_TINT: Record<Source, string> = {
-  youtube: "text-red-500/40 bg-red-500/5",
-  bilibili: "text-[#00a1d6]/50 bg-[#00a1d6]/8",
-  vimeo: "text-sky-500/40 bg-sky-500/5",
+  youtube: "text-brand-youtube/40 bg-brand-youtube/5",
+  bilibili: "text-brand-bilibili/50 bg-brand-bilibili/8",
+  vimeo: "text-brand-vimeo/40 bg-brand-vimeo/5",
   slides: "text-muted-foreground bg-muted/30",
 };
 
@@ -53,7 +53,7 @@ export function TrackThumb({
         // Hairline selection — readable for the playlist rail without the
         // old double ring fighting the cover art.
         active
-          ? "border-foreground/35 dark:border-white/40"
+          ? "border-foreground/35 dark:border-foreground/40"
           : "border-border/40",
         className,
       )}

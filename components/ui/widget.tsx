@@ -6,7 +6,7 @@ import { isIOSBrowser } from "@/systems/ambient/lib/platform";
 import { useOptionalWallpaper } from "@/systems/ambient/provider";
 import { ArrowRight } from "lucide-react";
 import { Link, useTransitionRouter } from "next-view-transitions";
-import { armContainerTransform } from "@/systems/skin/lib/container-transform";
+import { armContainerTransform } from "@/systems/os/android/lib/container-transform";
 import { useCallback, useState, type MouseEvent, type ReactNode } from "react";
 import { landsOnOwnAction } from "./widget-surface";
 
@@ -51,9 +51,9 @@ export function WidgetShell({
   className?: string;
   style?: React.CSSProperties;
   /**
-   * The Material skin's accent containers: a widget that is one thing can
+   * The Android theme's accent containers: a widget that is one thing can
    * wear `primary-` / `secondary-` / `tertiary-container` instead of the
-   * surface. The Glass skin ignores it.
+   * surface. The Hux theme ignores it.
    */
   tone?: "primary" | "secondary" | "tertiary";
   /** Page the widget opens when its surface is tapped. */
@@ -109,9 +109,10 @@ export function WidgetShell({
       // ancestry; React delegates to the root, so an empty handler suffices.
       onTouchStart={tappable ? noop : undefined}
       data-widget-tappable={tappable ? "" : undefined}
-      // The skin's hook: under `html[data-skin="material"]` the stylesheet
-      // turns this card into a Material widget container (app/globals.css,
-      // "Skin — Material"). One attribute, so nothing here knows the skin.
+      // A role hook for the OS theme's overlay: in the Android theme the
+      // stylesheet turns this card into a Material widget container
+      // (app/themes/android/widgets.css). One attribute, so nothing here
+      // knows the theme.
       data-widget-shell=""
       data-widget-tone={tone}
       className={cn(
@@ -137,8 +138,8 @@ export function WidgetShell({
       {showOverlay && (
         <div
           aria-hidden="true"
-          // A Material widget is an opaque tonal container; the skin hides
-          // the wallpaper-in-the-card overlay by this attribute.
+          // A Material widget is an opaque tonal container; the Android
+          // theme hides the wallpaper-in-the-card overlay by this attribute.
           data-widget-wallpaper=""
           className="pointer-events-none absolute inset-0 -z-10"
           // Weight resolved by the provider, exactly as the full-page background
@@ -405,8 +406,8 @@ export function WidgetIconButton({
 export function WidgetStatus({ className }: { className?: string }) {
   return (
     <span className={cn("relative flex h-2 w-2", className)}>
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-75" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-live" />
     </span>
   );
 }

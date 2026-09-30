@@ -22,7 +22,7 @@ import { WebFrame } from "./web-frame";
  * shapes ask here rather than each keeping their own copy of the rule.
  */
 export function appGround(app: AppLink): string {
-  return (app.runtime ?? "web") === "lynx" ? "bg-black" : "bg-background";
+  return (app.runtime ?? "web") === "lynx" ? "bg-scrim" : "bg-background";
 }
 
 export function AppFrame({ app }: { app: AppLink }) {

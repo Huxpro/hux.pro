@@ -2,6 +2,8 @@
 
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { cn } from "@/lib/utils";
+import { Themed } from "@/systems/os/components/themed";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "next-view-transitions";
 import { useState } from "react";
 
@@ -66,19 +68,29 @@ export function SystemNav({
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      // A role hook: an OS theme may draw the way back as its own
+      // navigation (the Android theme: a top app bar's back button).
+      data-page-nav=""
+      aria-label={path === "λhux" ? "Home" : path}
     >
-      <span data-view-transition="site-identifier">
-        <TextScramble
-          trigger={true}
-          duration={0.4}
-          speed={0.02}
-          characterSet="λabcdefghijklmnopqrstuvwxyz/.~-_"
-          as="span"
-          className="inline-block pointer-events-none"
-        >
-          {displayText}
-        </TextScramble>
-      </span>
+      <Themed
+        hux={
+          <span data-view-transition="site-identifier">
+            <TextScramble
+              trigger={true}
+              duration={0.4}
+              speed={0.02}
+              characterSet="λabcdefghijklmnopqrstuvwxyz/.~-_"
+              as="span"
+              className="inline-block pointer-events-none"
+            >
+              {displayText}
+            </TextScramble>
+          </span>
+        }
+        // Android: the top app bar's navigation icon — back, not a path.
+        android={<ArrowLeft aria-hidden className="size-6" />}
+      />
     </Link>
   );
 }

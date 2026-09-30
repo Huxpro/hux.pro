@@ -21,7 +21,7 @@ import { IdentityCard } from "@/systems/identity";
 import { InstallSheet } from "@/systems/install";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
-import { SKIN_BOOT } from "@/systems/skin/lib/boot";
+import { OS_THEME_BOOT } from "@/systems/os/lib/boot";
 import { Dock } from "@/systems/dock";
 import { MusicActivity, MusicPlaylistSheet } from "@/systems/music";
 import {
@@ -45,8 +45,13 @@ import "./globals.css";
 // Italic is loaded, not synthesized. The site marks Latin work titles with
 // it (`*The Gay Science*`), and a slanted-by-the-browser Inter is a sheared
 // roman, not Inter Italic — which is drawn, with its own `a` and `f`.
+// The faces load under their own names (`--font-inter`, …). The *roles* —
+// `--font-sans`, `--font-serif`, `--font-mono` — are tokens in globals.css
+// that point at them, so an OS theme can re-point a role at another face
+// (the Android theme sets sans and mono in Google Sans Flex) without losing
+// the face itself: code stays in JetBrains Mono through `--font-code`.
 const inter = Inter({
-  variable: "--font-sans",
+  variable: "--font-inter",
   subsets: ["latin"],
   style: ["normal", "italic"],
   display: "swap",
@@ -68,16 +73,16 @@ const notoSerifSC = Noto_Serif_SC({
 
 // Same reason as Inter: a work title keeps its italic in the machine row too.
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
+  variable: "--font-jetbrains",
   subsets: ["latin"],
   style: ["normal", "italic"],
   display: "swap",
 });
 
-// The Material skin's face (services/skin.tsx): Material 3 Expressive's brand
-// type, with its roundness axis. Not preloaded — the font is only fetched
-// once something set in it renders, so a visitor in the Glass skin never
-// downloads it.
+// The Android theme's face (services/os-theme.tsx): Material 3 Expressive's
+// brand type, with its roundness axis. Not preloaded — the font is only
+// fetched once something set in it renders, so a visitor in the Hux theme
+// never downloads it.
 const googleSansFlex = Google_Sans_Flex({
   variable: "--font-flex",
   subsets: ["latin"],
@@ -146,9 +151,10 @@ export default function RootLayout({
           {/* Before first paint: Safari picks its chrome colour at load, from
               the root background (iOS 26) or theme-color (iOS 18). */}
           <script dangerouslySetInnerHTML={{ __html: BEZEL_BOOT }} />
-          {/* The stored skin onto <html> before first paint, so a returning
-              visitor never sees the other skin flash (services/skin.tsx). */}
-          <script dangerouslySetInnerHTML={{ __html: SKIN_BOOT }} />
+          {/* The stored OS theme onto <html> before first paint, so a
+              returning visitor never sees the other theme flash
+              (services/os-theme.tsx). */}
+          <script dangerouslySetInnerHTML={{ __html: OS_THEME_BOOT }} />
         </head>
         <body
           className={`${inter.variable} ${googleSansFlex.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}

@@ -106,6 +106,9 @@ export function PageLayout({
 
   const titleJsx = (
     <header
+      // A role hook: the page's title, which an OS theme may set in its own
+      // type (the Android theme: a large top app bar's Headline Large).
+      data-page-header={variant}
       onMouseEnter={() => useScramble && setIsHovered(true)}
       onMouseLeave={() => useScramble && setIsHovered(false)}
     >
@@ -128,7 +131,7 @@ export function PageLayout({
   return (
     <main
       data-variant={variant}
-      // Where a widget's container transform lands (systems/skin).
+      // Where a widget's container transform lands (systems/os).
       data-page-surface=""
       className={cn(
         // The column and its gutter are `--page-col` / `--page-gutter`

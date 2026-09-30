@@ -26,7 +26,7 @@ export function WebFrame({ url, title }: { url: string; title: string }) {
   }, [loaded]);
 
   return (
-    <div className="relative h-full w-full bg-white dark:bg-neutral-900">
+    <div className="relative h-full w-full bg-background">
       {/* Loading: the site's glow working — the same travelling beam a field
           shows while it settles what was said (systems/glow), along the top
           of the page the way a browser's loading bar runs, over a blank
@@ -49,7 +49,7 @@ export function WebFrame({ url, title }: { url: string; title: string }) {
       />
 
       {stalled && !loaded && (
-        <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-black/10 bg-glass-sheet px-4 py-3 backdrop-blur-md dark:border-white/10">
+        <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-border bg-glass-sheet px-4 py-3 backdrop-blur-md">
           <p className="text-xs text-muted-foreground">
             This site may block embedding.
           </p>

@@ -26,7 +26,7 @@ export const THEATER_BACKDROP = cn("bg-glass/80 backdrop-blur-xl");
 
 /** Theme-aware track (homepage widget + AlbumTabs). */
 export const GLASS_TRACK = cn(
-  "border border-border/50 bg-foreground/[0.06] dark:bg-white/[0.08]",
+  "border border-border/50 bg-foreground/[0.06] dark:bg-foreground/[0.08]",
   "backdrop-blur-xl",
 );
 
@@ -57,13 +57,13 @@ export const GLASS_CLUSTER = cn(
  */
 export const GLASS_TRACK_FLAT = cn(
   "group/glass pressable border border-border/30 bg-foreground/[0.03]",
-  "dark:border-transparent dark:bg-white/[0.02]",
+  "dark:border-transparent dark:bg-foreground/[0.02]",
   "backdrop-blur-xl",
   "transition-[background-color,border-color,box-shadow] duration-200",
   "hover:border-border/50 hover:bg-foreground/[0.08]",
   "active:border-border/50 active:bg-foreground/[0.08]",
-  "dark:hover:border-white/[0.06] dark:hover:bg-white/[0.05]",
-  "dark:active:border-white/[0.06] dark:active:bg-white/[0.05]",
+  "dark:hover:border-foreground/[0.06] dark:hover:bg-foreground/[0.05]",
+  "dark:active:border-foreground/[0.06] dark:active:bg-foreground/[0.05]",
 );
 
 export const GLASS_CLUSTER_FLAT = cn(
@@ -85,10 +85,10 @@ export const GLASS_PILL_FLAT = cn(
   "group-hover/glass:bg-card group-hover/glass:shadow-sm group-hover/glass:ring-border/50",
   "active:bg-card active:shadow-sm active:ring-border/50",
   "group-active/glass:bg-card group-active/glass:shadow-sm group-active/glass:ring-border/50",
-  "dark:hover:bg-card dark:hover:ring-white/[0.06]",
-  "dark:group-hover/glass:bg-card dark:group-hover/glass:ring-white/[0.06]",
-  "dark:active:bg-card dark:active:ring-white/[0.06]",
-  "dark:group-active/glass:bg-card dark:group-active/glass:ring-white/[0.06]",
+  "dark:hover:bg-card dark:hover:ring-foreground/[0.06]",
+  "dark:group-hover/glass:bg-card dark:group-hover/glass:ring-foreground/[0.06]",
+  "dark:active:bg-card dark:active:ring-foreground/[0.06]",
+  "dark:group-active/glass:bg-card dark:group-active/glass:ring-foreground/[0.06]",
 );
 
 /**
@@ -146,24 +146,24 @@ export const GLASS_ORB = cn(
 /** Always-dark theater: clustered control capsule (iPadOS toolbar). */
 export const GLASS_ON_DARK_CLUSTER = cn(
   "inline-flex items-center gap-0.5 rounded-full p-1",
-  "bg-white/[0.08] ring-1 ring-white/15 backdrop-blur-xl",
+  "bg-on-media/[0.08] ring-1 ring-on-media/15 backdrop-blur-xl",
 );
 
 /** Always-dark theater: icon button inside a cluster (or standalone orb). */
 export const GLASS_ON_DARK_BTN = cn(
   "inline-flex items-center justify-center rounded-full",
-  "pressable text-white/80",
+  "pressable text-on-media/80",
   "transition-[color,background-color,transform] duration-200",
-  "outline-none focus-visible:bg-white/10 focus-visible:text-white",
-  "hover:bg-white/10 hover:text-white",
-  "active:bg-white/15 active:text-white active:scale-95",
+  "outline-none focus-visible:bg-on-media/10 focus-visible:text-on-media",
+  "hover:bg-on-media/10 hover:text-on-media",
+  "active:bg-on-media/15 active:text-on-media active:scale-95",
   GLASS_HIT,
 );
 
 /** Always-dark theater: freestanding prev/next orb. */
 export const GLASS_ON_DARK_ORB = cn(
   GLASS_ON_DARK_BTN,
-  "bg-white/[0.08] ring-1 ring-white/15 backdrop-blur-xl",
+  "bg-on-media/[0.08] ring-1 ring-on-media/15 backdrop-blur-xl",
 );
 
 /**
@@ -171,11 +171,11 @@ export const GLASS_ON_DARK_ORB = cn(
  * (dim / frameless track + dark stamp). Not the brighter window-toolbar glass.
  */
 export const GLASS_ON_DARK_TRACK = cn(
-  "border border-transparent bg-white/[0.02] backdrop-blur-xl",
-  "hover:border-white/[0.06] hover:bg-white/[0.05]",
+  "border border-transparent bg-on-media/[0.02] backdrop-blur-xl",
+  "hover:border-on-media/[0.06] hover:bg-on-media/[0.05]",
 );
 
 /** Always-dark theater: dark selected stamp, not a white chip. */
 export const GLASS_ON_DARK_PILL = cn(
-  "bg-black/55 shadow-sm ring-1 ring-transparent backdrop-blur-xl",
+  "bg-scrim/55 shadow-sm ring-1 ring-transparent backdrop-blur-xl",
 );

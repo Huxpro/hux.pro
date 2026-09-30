@@ -321,6 +321,9 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       // chrome from fixed content at the viewport edge, and a wallpaper there
       // would win over the bezel colour. See VITRE_LAYER_ATTRIBUTE in vitre.
       {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
+      // A role hook: an OS theme whose pages are opaque app screens (the
+      // Android theme) hides the wallpaper off the home screen by it.
+      data-wallpaper-layer=""
       className={cn(
         "pointer-events-none fixed inset-0 -z-10",
         "transition-opacity ease-in-out"

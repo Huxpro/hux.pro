@@ -24,12 +24,12 @@ const TILE_PX: Record<AppTileSize, number> = {
 };
 
 // The icon mask is the platform's: Apple's rounded square, or — in the
-// Material skin — Android's, which on a Pixel is a circle (the adaptive icon
+// Android theme — Android's, which on a Pixel is a circle (the adaptive icon
 // mask Pixel Launcher ships as its default shape).
 const RADIUS: Record<AppTileSize, string> = {
-  sm: "rounded-[22.5%] material:rounded-full",
-  md: "rounded-[22.5%] material:rounded-full",
-  lg: "rounded-[22.5%] material:rounded-full",
+  sm: "rounded-[22.5%] android:rounded-full",
+  md: "rounded-[22.5%] android:rounded-full",
+  lg: "rounded-[22.5%] android:rounded-full",
 };
 
 const PAD: Record<AppTileSize, string> = {
@@ -88,17 +88,17 @@ export function AppTile({
             className={cn(
               "relative block overflow-hidden",
               RADIUS[size],
-              "border border-black/8 dark:border-white/12",
+              "border border-border",
               // Padded glyphs need a white plate; full-bleed icons bring their
               // own background (a plate would fringe the rounded clip).
-              !fills && "bg-white",
+              !fills && "bg-plate",
               // Touch-down dim, iOS-style: a dark wash over the art the
               // instant the icon is pressed, easing off on release. Driven by
               // the enclosing `group/app` link's `:active` (which is
               // `pressable`, so the wash lands on the press frame).
               "after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit]",
-              "after:bg-black/0 after:transition-colors after:duration-200",
-              "group-active/app:after:bg-black/30 group-active/app:after:duration-0",
+              "after:bg-scrim/0 after:transition-colors after:duration-200",
+              "group-active/app:after:bg-scrim/30 group-active/app:after:duration-0",
             )}
             style={{ width: px, height: px }}
           >
@@ -115,7 +115,7 @@ export function AppTile({
               />
             ) : (
               <span
-                className="flex h-full w-full items-center justify-center font-mono text-neutral-400"
+                className="flex h-full w-full items-center justify-center font-mono text-on-plate/40"
                 style={{ fontSize: Math.max(12, px * 0.35) }}
               >
                 {label.charAt(0)}

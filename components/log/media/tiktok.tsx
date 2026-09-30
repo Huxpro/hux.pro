@@ -134,7 +134,7 @@ export function TikTokEmbed({
       className={cn(
         "relative rounded-lg overflow-hidden",
         "border border-border/50",
-        theme === "dark" ? "bg-black" : "bg-white",
+        theme === "dark" ? "bg-scrim" : "bg-plate",
         className
       )}
       style={{ width, height, maxWidth: "100%" }}

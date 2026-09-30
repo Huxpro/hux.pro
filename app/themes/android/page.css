@@ -1,0 +1,35 @@
+/* =============================================================================
+   Android theme · The page — selection, caret, focus indicator and scrollbars.
+
+   Every rule here is scoped to `:root[data-os-theme="android"]` (checked by
+   `pnpm themes:check`), so the Hux theme never sees it.
+   ============================================================================= */
+
+/* --- The page itself: selection, caret, focus, scrollbars. Compose's
+   `TextSelectionColors` are primary at 40% behind the text and primary for
+   the caret; the focus indicator is 3dp of secondary, 2dp outside the
+   shape; Android's scrollbars are thin overlays that sit out of the way. */
+:root[data-os-theme="android"] ::selection {
+  background-color: color-mix(in srgb, var(--md-primary) 40%, transparent);
+  color: inherit;
+}
+:root[data-os-theme="android"] :is(input, textarea, [contenteditable="true"]) {
+  caret-color: var(--md-primary);
+  accent-color: var(--md-primary);
+}
+/* In the base layer, like the site's own focus rule: a component that
+   draws its own indicator (`outline-none` and a ring) or hides its
+   scrollbar (`no-scrollbar`) still wins. A text field shows focus by its
+   caret, not a frame, and a surface that takes focus only to hold it (a
+   sheet's popup, `tabindex="-1"`) is not a control and wears none. */
+@layer base {
+  :root[data-os-theme="android"] :focus-visible:not(input, textarea, [contenteditable="true"], [tabindex="-1"], [role="dialog"], [data-surface-popup]) {
+    outline: 3px solid var(--md-secondary);
+    outline-offset: 2px;
+  }
+  :root[data-os-theme="android"],
+  :root[data-os-theme="android"] * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--md-on-surface-variant) 45%, transparent) transparent;
+  }
+}

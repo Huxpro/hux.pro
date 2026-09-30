@@ -78,8 +78,8 @@ function MenuItem({
   const className = cn(
     "flex w-full items-center text-left text-foreground",
     sheet
-      ? "gap-3.5 rounded-xl px-3 py-2.5 text-[15px] active:bg-black/6 dark:active:bg-white/10"
-      : "gap-2.5 rounded-lg px-2.5 py-1.5 text-xs hover:bg-black/6 dark:hover:bg-white/10",
+      ? "gap-3.5 rounded-xl px-3 py-2.5 text-[15px] active:bg-accent"
+      : "gap-2.5 rounded-lg px-2.5 py-1.5 text-xs hover:bg-accent",
     // A destructive row is red on iOS; in a desktop menu it is just a row.
     sheet && destructive && "text-destructive",
   );
@@ -137,7 +137,7 @@ function MenuItem({
 function MenuRule({ shape }: { shape: MenuShape }) {
   return (
     <div
-      className={cn("my-1 h-px bg-black/6 dark:bg-white/8", shape === "sheet" && "mx-1")}
+      className={cn("my-1 h-px bg-border", shape === "sheet" && "mx-1")}
     />
   );
 }

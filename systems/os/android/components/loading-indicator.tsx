@@ -20,7 +20,7 @@ import {
 //
 // SMIL, not script: the browser interpolates the paths and the turns on its
 // own clock, nothing runs per frame in JS, and a hidden indicator (the Glass
-// skin's, `hidden material:inline-block`) costs nothing. Reduced motion shows
+// theme's, in a `<Themed>` slot) costs nothing. Reduced motion shows
 // the first shape, still.
 // =============================================================================
 

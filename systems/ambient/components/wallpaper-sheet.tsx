@@ -1,6 +1,7 @@
 "use client";
 
-import { WallpaperColors } from "@/systems/skin/components/wallpaper-colors";
+import { WallpaperColors } from "@/systems/os/android/components/wallpaper-colors";
+import { Themed } from "@/systems/os/components/themed";
 import {
   Segmented,
   type SegmentedOption,
@@ -145,14 +146,14 @@ function TileFrame({
         "ring-1 transition-[box-shadow,ring-color] duration-200",
         selected
           ? "ring-2 ring-foreground/70"
-          : "ring-black/10 group-hover:ring-black/20 dark:ring-white/15 dark:group-hover:ring-white/30"
+          : "ring-foreground/10 group-hover:ring-foreground/20 dark:ring-foreground/15 dark:group-hover:ring-foreground/30"
       )}
     >
       {children}
       {selected && (
         <span
           aria-hidden
-          className="pointer-events-none absolute right-2.5 top-2.5 z-10 flex size-6 items-center justify-center rounded-full bg-white text-black shadow-sm"
+          className="pointer-events-none absolute right-2.5 top-2.5 z-10 flex size-6 items-center justify-center rounded-full bg-plate text-on-plate shadow-sm"
         >
           <Check className="size-3.5" strokeWidth={2.5} />
         </span>
@@ -418,7 +419,7 @@ function PlayCollage({
       {shots.map((wallpaper, i) => (
         <span
           key={wallpaper.id}
-          className="absolute left-1/2 top-1/2 h-[64%] w-[56%] overflow-hidden rounded-[10px] bg-cover bg-center shadow-md ring-1 ring-white/50"
+          className="absolute left-1/2 top-1/2 h-[64%] w-[56%] overflow-hidden rounded-[10px] bg-cover bg-center shadow-md ring-1 ring-on-media/50"
           style={{
             backgroundImage: `url("${wallpaper[variant].thumb}")`,
             transform: `translate(-50%, -50%) translate(${poses[i].x}%, ${poses[i].y}%) rotate(${poses[i].rotate}deg)`,
@@ -612,7 +613,7 @@ function WallpaperPickerBody() {
       {/* Material: Android's Colors — the palette's seed from the wallpaper
           (or a basic colour) and its style, right under the wallpaper it
           comes from. Glass has no generated palette, so no section. */}
-      <WallpaperColors className="hidden pb-5 material:block" />
+      <Themed android={<WallpaperColors className="pb-5" />} />
 
       {/* The label and the categories on one line, like Placement above. */}
       <div className="flex items-center justify-between gap-3 pb-3">

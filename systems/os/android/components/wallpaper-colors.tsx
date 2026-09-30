@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { getSchemeStyleLabel, useOptionalSkin, type SeedChoice } from "@/services/skin";
+import { getSchemeStyleLabel, useOptionalOsTheme, type SeedChoice } from "@/services/os-theme";
 import { Check } from "lucide-react";
 import { SCHEME_STYLES, type SchemeStyle } from "../lib/scheme";
 import { BASIC_SEEDS, swatchColors, wallpaperOptions } from "../lib/wallpaper-colors";
@@ -22,7 +22,7 @@ import { useWallpaperSeeds } from "./use-wallpaper-seeds";
 // Then the style, as M3 filter chips: tonal spot (Android's default),
 // neutral, vibrant, expressive, monochrome.
 //
-// Material skin only: the wallpaper sheet mounts it `hidden material:block`.
+// Android theme only: the wallpaper sheet mounts it in a `<Themed android>` slot.
 // =============================================================================
 
 function Swatch({
@@ -90,10 +90,10 @@ function Row({
 
 export function WallpaperColors({ className }: { className?: string }) {
   const { locale } = useLocale();
-  const skin = useOptionalSkin();
+  const os = useOptionalOsTheme();
   const options = wallpaperOptions(useWallpaperSeeds());
-  if (!skin) return null;
-  const { seed: choice, setSeed, schemeStyle, setSchemeStyle } = skin;
+  if (!os) return null;
+  const { seed: choice, setSeed, schemeStyle, setSchemeStyle } = os;
   const optionLabel = (i: number) => `${t(locale, "mdColorOption")} ${i + 1}`;
   const is = (c: SeedChoice) =>
     c.kind === choice.kind &&

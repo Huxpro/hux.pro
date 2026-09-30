@@ -12,7 +12,7 @@ import {
 } from "@material/material-color-utilities";
 
 // =============================================================================
-// Dynamic color — the Material skin's palette, from the wallpaper.
+// Dynamic color — the Android theme's palette, from the wallpaper.
 //
 // What Android 12+ does with a wallpaper, with Google's own library: one
 // source colour → five tonal palettes (primary, secondary, tertiary, neutral,
@@ -53,7 +53,7 @@ export const SCHEME_STYLES: readonly SchemeStyle[] = [
 /** Android's fallback seed when the wallpaper gives no colour: Google Blue. */
 export const FALLBACK_SEED = 0xff1b6ef3;
 
-/** The roles the skin publishes, as `--md-<name>`. */
+/** The roles the Android theme publishes, as `--md-<name>`. */
 const ROLES: Record<string, DynamicColor> = {
   primary: MaterialDynamicColors.primary,
   "on-primary": MaterialDynamicColors.onPrimary,

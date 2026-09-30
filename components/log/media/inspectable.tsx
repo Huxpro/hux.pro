@@ -68,8 +68,8 @@ export function InspectableMedia({
           "pointer-events-none absolute inset-0 z-10 ring-inset transition",
           inline ? "rounded-md" : "rounded-lg",
           selected
-            ? "ring-2 ring-sky-500/70 bg-sky-500/[0.04]"
-            : "ring-0 group-hover/media:ring-1 group-hover/media:ring-sky-500/35",
+            ? "ring-2 ring-info/70 bg-info/[0.04]"
+            : "ring-0 group-hover/media:ring-1 group-hover/media:ring-info/35",
         )}
       />
       {/* The visible affordance and the keyboard target. The press itself is
@@ -80,7 +80,7 @@ export function InspectableMedia({
         className={cn(
           "absolute right-1.5 top-1.5 z-20 inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/70 bg-background/90 text-muted-foreground shadow-sm transition-opacity hover:text-foreground focus:opacity-100",
           selected
-            ? "opacity-100 border-sky-500/70 text-sky-600 ring-1 ring-inset ring-sky-500/35 dark:text-sky-400"
+            ? "opacity-100 border-info/70 text-info ring-1 ring-inset ring-info/35"
             : "opacity-0 group-hover/media:opacity-100 group-focus-within/media:opacity-100",
         )}
         title="Inspect media"

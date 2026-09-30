@@ -38,12 +38,12 @@ const SLIDER_CLASS = cn(
   // Desktop thumb only — touch keeps the platform's knob.
   "[@media(hover:hover)]:[&::-webkit-slider-thumb]:h-4 [@media(hover:hover)]:[&::-webkit-slider-thumb]:w-4",
   "[@media(hover:hover)]:[&::-webkit-slider-thumb]:appearance-none [@media(hover:hover)]:[&::-webkit-slider-thumb]:rounded-full",
-  "[@media(hover:hover)]:[&::-webkit-slider-thumb]:bg-white",
-  "[@media(hover:hover)]:[&::-webkit-slider-thumb]:shadow-[0_0_0_0.5px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.25)]",
+  "[@media(hover:hover)]:[&::-webkit-slider-thumb]:bg-plate",
+  "[@media(hover:hover)]:[&::-webkit-slider-thumb]:shadow-(--elevation-knob)",
   "[@media(hover:hover)]:[&::-moz-range-thumb]:h-4 [@media(hover:hover)]:[&::-moz-range-thumb]:w-4",
   "[@media(hover:hover)]:[&::-moz-range-thumb]:rounded-full [@media(hover:hover)]:[&::-moz-range-thumb]:border-0",
-  "[@media(hover:hover)]:[&::-moz-range-thumb]:bg-white",
-  "[@media(hover:hover)]:[&::-moz-range-thumb]:shadow-[0_0_0_0.5px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.25)]",
+  "[@media(hover:hover)]:[&::-moz-range-thumb]:bg-plate",
+  "[@media(hover:hover)]:[&::-moz-range-thumb]:shadow-(--elevation-knob)",
   "[&::-moz-range-track]:bg-transparent",
 );
 

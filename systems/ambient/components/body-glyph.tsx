@@ -48,10 +48,10 @@ export function MoonGlyph({
       aria-hidden
       style={mirror ? { transform: "scaleX(-1)" } : undefined}
     >
-      <circle r={r} className={light ? "fill-white/20" : "fill-muted-foreground/25"} />
+      <circle r={r} className={light ? "fill-on-media/20" : "fill-muted-foreground/25"} />
       <path
         d={`M 0 ${-r} ${limb} ${terminator} Z`}
-        className={light ? "fill-white" : "fill-foreground/85"}
+        className={light ? "fill-on-media" : "fill-foreground/85"}
       />
     </svg>
   );
@@ -81,7 +81,7 @@ function Ray({ deg, r, length, fill }: { deg: number; r: number; length: number;
  * each other: a full moon read as the sun is a phase nobody can see.
  */
 export function SunGlyph({ className, light = false }: { className?: string; light?: boolean }) {
-  const fill = light ? "fill-white" : "fill-foreground/85";
+  const fill = light ? "fill-on-media" : "fill-foreground/85";
   return (
     <svg viewBox="-7 -7 14 14" className={cn("h-3.5 w-3.5 shrink-0", className)} aria-hidden>
       <circle r={3.4} className={fill} />
@@ -109,7 +109,7 @@ export function SunEventGlyph({
   className?: string;
   light?: boolean;
 }) {
-  const fill = light ? "fill-white" : "fill-foreground/85";
+  const fill = light ? "fill-on-media" : "fill-foreground/85";
   const rising = event === "sunrise";
   return (
     <svg viewBox="-7 -7 14 14" className={cn("h-3.5 w-3.5 shrink-0", className)} aria-hidden>

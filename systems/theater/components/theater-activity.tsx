@@ -59,12 +59,12 @@ export function TheaterActivity() {
               </span>
             )}
           </span>
-          {showEQ && <EQBars className="text-red-500" />}
+          {showEQ && <EQBars className="text-live-video" />}
         </>
       }
       title={
         <>
-          {showEQ && <EQBars className="text-red-500" />}
+          {showEQ && <EQBars className="text-live-video" />}
           <span className="truncate text-xs font-mono text-muted-foreground">
             {t(locale, deck ? "theaterDeck" : "theaterWatching")}
           </span>

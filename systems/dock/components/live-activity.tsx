@@ -195,7 +195,7 @@ export function LiveActivity({
         className="shrink-0"
       >
         <Drawer.Trigger
-          // The Material skin draws it as an Android status chip.
+          // The Android theme draws it as an Android status chip.
           data-status-chip=""
           className={cn(
             "pointer-events-auto flex items-center gap-2 shrink-0",
@@ -252,8 +252,8 @@ export function LiveActivity({
                 "rounded-2xl border border-border/50 bg-glass shadow-overlay backdrop-blur-xl",
                 // The dim on a receded panel is a wash over the shell rather
                 // than an opacity, so the glass stays glass.
-                "after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
-                behind && "after:bg-black/15 dark:after:bg-black/30",
+                "after:pointer-events-none after:absolute after:inset-0 after:bg-scrim/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
+                behind && "after:bg-scrim/15 dark:after:bg-scrim/30",
                 panelClassName
               )}
             >

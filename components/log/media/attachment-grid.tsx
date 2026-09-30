@@ -384,7 +384,7 @@ function InlinePlayable({
   let cover: ReactNode;
   if (playing && embed && !onStage) {
     cover = (
-      <div className="relative aspect-video bg-black">
+      <div className="relative aspect-video bg-scrim">
         <iframe
           src={embed}
           title={caption.label}
@@ -425,7 +425,7 @@ function InlinePlayable({
               setPlaying(true);
             }}
             aria-label={t(locale, "theaterReturnPip")}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/55 text-white/90"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-scrim/55 text-on-media/90"
           >
             <PictureInPicture2 className="size-6" strokeWidth={1.75} />
             <span className="font-mono text-[10px]">

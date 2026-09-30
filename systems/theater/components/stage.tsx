@@ -55,12 +55,12 @@ export function Stage({
     <motion.div
       aria-hidden={!visible}
       className={cn(
-        "theater-stage fixed z-[10002] overflow-hidden bg-black",
+        "theater-stage fixed z-[10002] overflow-hidden bg-scrim",
         // PiP: flat bottom + widget-matched 2xl so it joins the glass bar as
         // one window. Theater: fully rounded, hairline ring.
         pip ? "rounded-t-2xl" : "rounded-2xl",
         visible && "shadow-overlay pointer-events-auto",
-        visible && (pip ? "border border-b-0 border-border/50" : "ring-1 ring-white/15"),
+        visible && (pip ? "border border-b-0 border-border/50" : "ring-1 ring-on-media/15"),
         !visible && "pointer-events-none",
       )}
       style={{ transformOrigin: "center center" }}
@@ -132,7 +132,7 @@ export function Stage({
 
       {/* Fallback frame when a track can't be embedded. */}
       {active && !isYouTube && !embedUrl && (
-        <div className="absolute inset-0 flex items-center justify-center text-xs font-mono text-white/60">
+        <div className="absolute inset-0 flex items-center justify-center text-xs font-mono text-on-media/60">
           {track?.kind === "slides" ? "Unable to open this deck" : "Unable to play this video"}
         </div>
       )}
