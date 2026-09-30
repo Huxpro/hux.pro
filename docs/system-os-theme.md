@@ -82,7 +82,7 @@ chrome:
 | `[data-page-nav]` (`SystemNav`) | the way back | the top app bar's navigation icon: arrow_back (via `<Themed>`), 48dp target, state layer |
 | `[data-page-header]` (`PageLayout`) | the page title | Headline Large (32/40), Display Small on a wide screen |
 | `[data-fab="fab"]` (the ⌘K button off home) | the page's action | M3's FAB: 56dp, 16dp corners, `primary-container`, search icon |
-| `[data-chip="filter"]` (`HeaderAction`, the /works and /prompt toolbars) | a filter | a filter chip: 32dp, 8dp, `outline-variant` edge, tonal when selected |
+| `[data-chip="filter"]` (`HeaderAction`, the /works and /prompt toolbars) | a filter | a filter chip at density −1: 28dp, Label Medium, 8dp corners, `outline-variant` edge, tonal when selected |
 | `[data-chip="action"]` | an action in a line of metadata | a text button in `primary` |
 
 **The contract between components and overlays is a set of role hooks.**
@@ -331,7 +331,7 @@ captured on `<body>` as `--font-code` before a theme re-points `--font-mono`.
 | Control | Material form |
 |---|---|
 | `Switch` | M3's switch: a 52×32 track with a 2dp `outline`; the handle 16dp in `outline` when off, 24dp in `on-primary` on a `primary` track when on, 28dp under the finger — moving on the Expressive fast spatial spring. |
-| `Segmented` (`system` / `reader`) | Expressive's connected button group, like the album tabs. The `bare` toolbar tone is left alone. |
+| `Segmented` (`system` / `reader`) | Expressive's connected button group at density −1 (28dp), like the album tabs: 8dp inner corners, round ends, the selected button a pill. The round ends are half the height, never `corner-full`: CSS scales every corner of a box down together when adjacent radii exceed it, so a 9999px end beside an 8px corner squares the inner one off. The `bare` toolbar tone is left alone. |
 | A settings heading (the wallpaper picker's) | Android Settings' category header: Title Small in `primary`. |
 
 **The page.** Selection is `primary` at 40% (Compose's

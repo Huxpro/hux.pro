@@ -62,8 +62,11 @@
   overflow: visible;
 }
 :root[data-os-theme="android"] [data-segmented]:not([data-segmented="bare"]) > button {
-  height: 32px;
-  padding: 0 14px;
+  /* Density −1 (Material's density scale steps by 4dp): 28dp, where a
+     phone's default is 32 — this sits among the site's small controls. */
+  --md-group-h: 28px;
+  height: var(--md-group-h);
+  padding: 0 12px;
   border-radius: var(--md-shape-corner-small);
   background-color: var(--md-surface-container-highest);
   color: var(--md-on-surface-variant);
@@ -79,20 +82,27 @@
     background-color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects),
     color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects);
 }
+/* The round ends are half the height, not `corner-full` (9999px): when two
+   adjacent radii add up to more than the box, CSS scales *every* corner down
+   by the same factor, so a 9999px outer end beside an 8px inner corner
+   crushes the inner one to nothing — a square join. At half the height the
+   end is exactly round and the inner corner keeps its 8dp. */
 :root[data-os-theme="android"] [data-segmented]:not([data-segmented="bare"]) > button:first-child {
-  border-top-left-radius: var(--md-shape-corner-full);
-  border-bottom-left-radius: var(--md-shape-corner-full);
+  border-top-left-radius: calc(var(--md-group-h) / 2);
+  border-bottom-left-radius: calc(var(--md-group-h) / 2);
 }
 :root[data-os-theme="android"] [data-segmented]:not([data-segmented="bare"]) > button:last-child {
-  border-top-right-radius: var(--md-shape-corner-full);
-  border-bottom-right-radius: var(--md-shape-corner-full);
+  border-top-right-radius: calc(var(--md-group-h) / 2);
+  border-bottom-right-radius: calc(var(--md-group-h) / 2);
 }
 :root[data-os-theme="android"] [data-segmented]:not([data-segmented="bare"]) > button:hover {
   background-color: color-mix(in srgb, var(--md-surface-container-highest), var(--md-on-surface) var(--md-state-hover));
   color: var(--md-on-surface);
 }
 :root[data-os-theme="android"] [data-segmented]:not([data-segmented="bare"]) > button[aria-pressed="true"] {
-  border-radius: var(--md-shape-corner-full);
+  /* Selected: fully round — at half the height too, so the corners morph
+     from 8dp to round on the spring instead of jumping to 9999px. */
+  border-radius: calc(var(--md-group-h) / 2);
   background-color: var(--md-secondary-container);
   color: var(--md-on-secondary-container);
 }

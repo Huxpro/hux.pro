@@ -46,13 +46,16 @@ const M3_GROUP = cn(
 const M3_BUTTON = cn(
   "m3:h-8 m3:px-3.5 m3:py-0 m3:text-xs m3:font-medium m3:tracking-[0.5px]",
   "m3:bg-(--md-surface-container-highest) m3:text-(--md-on-surface-variant)",
-  "m3:rounded-[8px] m3:first:rounded-l-full m3:last:rounded-r-full",
+  // Round ends at half the height (h-8 → 16px), not `-full`: a 9999px end
+  // beside an 8px corner makes CSS scale every corner down together, and the
+  // inner corners come out square.
+  "m3:rounded-[8px] m3:first:rounded-l-[16px] m3:last:rounded-r-[16px]",
   "m3:hover:bg-[color-mix(in_srgb,var(--md-surface-container-highest),var(--md-on-surface)_8%)] m3:hover:text-(--md-on-surface)",
   "m3:transition-[border-radius,background-color,color] m3:duration-(--md-spring-fast-spatial-duration) m3:ease-(--md-spring-fast-spatial)",
 );
 
 const M3_SELECTED = cn(
-  "m3:rounded-full m3:first:rounded-full m3:last:rounded-full",
+  "m3:rounded-[16px] m3:first:rounded-[16px] m3:last:rounded-[16px]",
   "m3:bg-(--md-secondary-container) m3:text-(--md-on-secondary-container)",
   "m3:hover:bg-[color-mix(in_srgb,var(--md-secondary-container),var(--md-on-secondary-container)_8%)] m3:hover:text-(--md-on-secondary-container)",
 );

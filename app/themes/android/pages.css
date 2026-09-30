@@ -9,8 +9,8 @@
                    bar's Headline Large (32/40), in the platform's face
      FAB           the command button (`[data-fab="fab"]`) is M3's FAB:
                    56dp, 16dp corners, `primary-container`, elevation 3
-     chips         a filter (`[data-chip="filter"]`) is M3's filter chip —
-                   32dp, 8dp corners, an `outline-variant` edge, tonal and
+     chips         a filter (`[data-chip="filter"]`) is M3's filter chip at
+                   density −1 — 28dp, 8dp corners, an `outline-variant` edge, tonal and
                    edgeless when selected; an action beside a line of
                    metadata (`[data-chip="action"]`) is a text button in
                    `primary`
@@ -86,21 +86,24 @@
 
 /* --- Chips --- */
 :root[data-os-theme="android"] [data-chip="filter"] + [data-chip="filter"] {
-  margin-left: 8px;
+  margin-left: 6px;
 }
 :root[data-os-theme="android"] [data-chip="filter"] {
-  height: 32px;
-  padding: 0 12px;
-  gap: 8px;
+  /* Density −1: 28dp and Label Medium (12/16), where a phone's default chip
+     is 32dp in Label Large — a page header here is a line of small type,
+     and a phone-sized chip in it reads a size too big. */
+  height: 28px;
+  padding: 0 10px;
+  gap: 6px;
   border-radius: var(--md-shape-corner-small);
   background-color: transparent;
   color: var(--md-on-surface-variant);
   box-shadow: inset 0 0 0 1px var(--md-outline-variant);
   font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 12px;
+  line-height: 16px;
   font-weight: 500;
-  letter-spacing: 0.1px;
+  letter-spacing: 0.5px;
   text-transform: none;
   transition:
     background-color var(--md-spring-fast-effects-duration) var(--md-spring-fast-effects),
