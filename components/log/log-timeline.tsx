@@ -26,13 +26,16 @@ import {
 } from "@/lib/log";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import type { EraBlock } from "@/lib/log-eras";
+import { orderWithFolds } from "@/lib/works-projects";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
+import { FoldLine } from "./fold-line";
 import { type BeamSpec, GUTTER_PULL, HASH_CELL } from "./timeline-commit";
 import {
+  GraphInCell,
   RefInCell,
   type RefLook,
   type RefLit,
@@ -67,6 +70,18 @@ export function chapterLabel(tag: Tag, tagIndex: number, locale: Locale): string
  */
 export const CHAPTER_PILL =
   "inline-flex items-center bg-white/85 dark:bg-black/45 sm:bg-white/70 sm:dark:bg-black/25 sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full";
+
+/**
+ * The `fold` flag's state (components/log/works-flags.ts), which the page
+ * owns so a permalink can open a fold before it travels (app/works/view.tsx).
+ */
+export interface LogFold {
+  /** Row id → the id of the project it folds under, for every chapter
+   *  (`foldUnderProjects`, lib/works-projects.ts). */
+  of: ReadonlyMap<string, string>;
+  isOpen: (projectId: string) => boolean;
+  onToggle: (projectId: string) => void;
+}
 
 /** A block of the timeline: a chapter, or chapters that overlap (see
  *  `lib/log-eras.ts`). A plain `TimelineData[]` is still a timeline. */
@@ -109,6 +124,11 @@ interface LogTimelineProps {
   /** How a chapter's ref sits on the graph (see `RefLabel`). The default
    *  is the plain marker the editor and every other log use. */
   refLook?: RefLayout;
+  /**
+   * Fold each project's talks, press and posts under its row (the `fold`
+   * flag). Omitted, the log is every commit at its date, as it always was.
+   */
+  fold?: LogFold;
 }
 
 /**
@@ -124,6 +144,7 @@ export function LogTimeline({
   onSelectHash,
   pinnedChapters = false,
   refLook = "stub",
+  fold,
 }: LogTimelineProps) {
   // The chapter whose track is held (its marker has focus) — page-wide, so
   // every commit outside it steps back, in its own block or another.
@@ -165,6 +186,7 @@ export function LogTimeline({
           refLook={refLook}
           held={held}
           onHold={hold}
+          fold={fold}
         />
       ))}
     </div>
@@ -192,15 +214,16 @@ interface TagBlockProps {
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
   refLook: RefLayout;
+  fold?: LogFold;
 }
 
 function TagBlock({
   held,
   onHold,
   tag,
-  commits,
+  commits: chronological,
   members,
-  laneOf,
+  laneOf: chronologicalLanes,
   tagIndex,
   locale,
   identities,
@@ -209,6 +232,7 @@ function TagBlock({
   onSelectHash,
   pinned,
   refLook,
+  fold,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -239,6 +263,32 @@ function TagBlock({
     [],
   );
 
+  // The order the block prints in. The log's own — every commit at its
+  // date — unless the `fold` flag lifts a project's rows out of theirs and
+  // sets them under it. Everything below (rail, beams, bylines, the graph,
+  // rows) is derived from this one array, so they cannot disagree about
+  // where a row is. Without folds it is the same array.
+  //
+  // A folded row is on the graph where its project is: it prints inside the
+  // project's fold, so it takes the project's chapters (`laneOf`) — its node
+  // under the project's, on the same line, stepping back with it when
+  // another track is held — rather than hopping to a lane of its own in the
+  // middle of the fold.
+  const foldOf = fold?.of;
+  const { commits, laneOf } = useMemo(() => {
+    if (!foldOf) return { commits: chronological, laneOf: chronologicalLanes };
+    const commits = orderWithFolds(chronological, foldOf);
+    if (!chronologicalLanes || commits === chronological) {
+      return { commits, laneOf: chronologicalLanes };
+    }
+    const laneOf = new Map(chronologicalLanes);
+    for (const c of commits) {
+      const lanes = chronologicalLanes.get(foldOf.get(c.id) ?? "");
+      if (lanes) laneOf.set(c.id, lanes);
+    }
+    return { commits, laneOf };
+  }, [chronological, chronologicalLanes, foldOf]);
+
   // Compute beam specs for explicit `attachedTo` attachments. Both
   // endpoints (source + target) carry the same spec so hovering/
   // focusing/expanding EITHER end lights the connector's path.
@@ -250,22 +300,57 @@ function TagBlock({
     bylines,
     graph,
     hasVisible,
+    folded,
+    isHeader,
   } = useMemo(() => {
     const bylinesArr = computeBylines(commits, identities, locale);
 
+    // What the reader's filter drops — `isRowVisible` negated, the same
+    // question /works asks for its chip counts and its empty state.
+    const filtered = (c: CommitData) => !isRowVisible(c, activeTypes);
+
+    // The folds, as far as this reading goes: each project's rows that the
+    // filter shows. A project with none has no fold line — `?type=project`
+    // is not asking what was said about the work.
+    const folds = new Map<string, CommitData[]>();
+    if (fold) {
+      for (const c of commits) {
+        const p = fold.of.get(c.id);
+        if (p && !filtered(c)) folds.set(p, [...(folds.get(p) ?? []), c]);
+      }
+    }
+    // A project the filter drops while it shows rows folded under it
+    // (`?type=talk`) stays as their header, in the quiet voice: its talks
+    // sit where its date is, not theirs, and the header is what says why.
+    const header = (c: CommitData) =>
+      c.type === "project" && folds.has(c.id) && filtered(c);
+    const closed = (c: CommitData) => {
+      const p = fold?.of.get(c.id);
+      return p !== undefined && !fold?.isOpen(p);
+    };
+
     // One predicate, four consumers: the rail re-brackets around the rows
     // that survive, beams with a hidden endpoint are dropped, the render
-    // loop below skips the rest, and the block prints nothing if none are
-    // left. It is `isRowVisible` negated — the same question /works asks
-    // for its chip counts and its empty state.
-    const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
+    // loop below skips the rest (and the graph leaves them out), and the
+    // block prints nothing if none are left. A closed fold's rows are hidden
+    // like a filtered one; a header is not — it is a row on the page, and
+    // the graph runs through it.
+    const hidden = (c: CommitData) =>
+      (filtered(c) && !header(c)) || closed(c);
 
     const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
     const allBeams = [
-      ...computeBeams(commits, hidden).map((b) => ({
-        ...b,
-        inferred: false,
-      })),
+      // A header is the project in passing, not an anchor to draw to; and a
+      // row folded under its own project has said so by being there, so the
+      // connector it would draw back up to it is dropped.
+      ...computeBeams(commits, (c) => hidden(c) || header(c))
+        .filter(
+          (b) => fold?.of.get(commits[b.fromIdx].id) !== commits[b.toIdx].id,
+        )
+        .map((b) => ({
+          ...b,
+          inferred: false,
+        })),
       ...computeInferredBeams(commits, rail).map((b) => ({
         ...b,
         inferred: true,
@@ -299,8 +384,10 @@ function TagBlock({
       bylines: bylinesArr,
       graph: chapterGraph(commits, hidden, laneOf),
       hasVisible: commits.some((c) => !hidden(c)),
+      folded: folds,
+      isHeader: header,
     };
-  }, [commits, identities, locale, activeTypes, laneOf]);
+  }, [commits, identities, locale, activeTypes, laneOf, fold]);
 
   // The lines lit right now: a held or pointed-at chapter's whole track,
   // and the connectors between a commit and the role it hangs from — drawn
@@ -457,7 +544,7 @@ function TagBlock({
             }
           }
           return runs.map((run) => {
-            const rows = run.items.map((item) => {
+            const rows = run.items.flatMap((item) => {
               if (item.kind === "ref") {
                 const ref = members![item.lane];
                 const label = chapterLabel(ref, -1, locale);
@@ -481,7 +568,9 @@ function TagBlock({
                 );
               }
               const i = item.i;
-              return (
+              const lanes = laneOf?.get(commits[i].id) ?? [0];
+              const step = stepDown(stepsBack(lanes));
+              const row = (
                 <Commit
                   key={commits[i].id}
                   commit={commits[i]}
@@ -491,7 +580,8 @@ function TagBlock({
                   rail={railInfo[i].rail}
                   graph={graphs[i]}
                   graphLit={lit.rows.get(i)}
-                  {...stepDown(stepsBack(laneOf?.get(commits[i].id) ?? [0]))}
+                  form={step.form}
+                  quiet={isHeader(commits[i]) || step.quiet}
                   segmentId={railInfo[i].segmentId}
                   isSegmentActive={
                     railInfo[i].segmentId !== null &&
@@ -504,6 +594,62 @@ function TagBlock({
                   onSelectHash={onSelectHash}
                 />
               );
+              // A project's fold line rides directly under its row, in its
+              // run, so a tenure cluster the project is in holds it too, and
+              // the graph runs on through it. The rows it opens into follow
+              // it in the order (`orderWithFolds`).
+              const under = folded.get(commits[i].id);
+              if (!fold || !under) return [row];
+              const projectId = commits[i].id;
+              const g = graphs[i]!;
+              const gl = lit.rows.get(i);
+              const above = railInfo[i].rail === "┐" || railInfo[i].rail === "│";
+              const side =
+                g.side === "pass" ||
+                g.side === "touch" ||
+                (g.side === "node" && !!g.sideBelow);
+              return [
+                row,
+                <div key={`fold-${projectId}`} className="relative">
+                  {/* Under a held track the line steps back with its
+                      project, the way a ref does. */}
+                  <div
+                    className={cn(
+                      "transition-opacity duration-300",
+                      stepsBack(lanes) && "opacity-40",
+                    )}
+                  >
+                    <FoldLine
+                      rows={under}
+                      open={fold.isOpen(projectId)}
+                      rail={false}
+                      locale={locale}
+                      onToggle={() => fold.onToggle(projectId)}
+                    />
+                  </div>
+                  {/* The graph runs on through the line, as it does through
+                      a ref: whatever leaves the project's row below — the
+                      trunk, and the side lane if it goes on — lit where
+                      that is lit. */}
+                  <GraphLayer>
+                    <GraphInCell
+                      graph={{
+                        trunkAbove: g.trunkBelow,
+                        trunkBelow: g.trunkBelow,
+                        side: side ? "pass" : undefined,
+                      }}
+                      gap={0}
+                      cluster={{ above, below: above }}
+                      lit={{
+                        trunkAbove: gl?.trunkBelow,
+                        trunkBelow: gl?.trunkBelow,
+                        sideAbove: gl?.sideBelow,
+                        sideBelow: gl?.sideBelow,
+                      }}
+                    />
+                  </GraphLayer>
+                </div>,
+              ];
             });
             const head = run.items.find((it) => it.kind === "row");
             const key = head && head.kind === "row" ? commits[head.i].id : tag.id;
@@ -739,6 +885,30 @@ function RefGraphLayer({
   lit?: RefLit;
 }) {
   return (
+    <GraphLayer>
+      {look === "auto" ? (
+        <>
+          {/* The marker over the trunk on a phone, a ring on it where
+              the marker has moved to the hash slot. */}
+          <span className="contents lg:hidden">
+            <RefInCell y={y} mode={mode} first={first} look="under" lit={lit} />
+          </span>
+          <span className="hidden lg:contents">
+            <RefInCell y={y} mode={mode} first={first} look="ring" lit={lit} />
+          </span>
+        </>
+      ) : (
+        <RefInCell y={y} mode={mode} first={first} look={look} lit={lit} />
+      )}
+    </GraphLayer>
+  );
+}
+
+/** The graph's cell laid over a line that is not a commit row — a ref, a
+ *  project's fold line: the same grid as a row, so its icon cell is exactly
+ *  on the trunk. */
+function GraphLayer({ children }: { children: React.ReactNode }) {
+  return (
     <div aria-hidden className="pointer-events-none absolute inset-0">
       <div
         className={cn(
@@ -748,22 +918,7 @@ function RefGraphLayer({
       >
         <div className="grid h-full grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2">
           <BlankHash />
-          <span className="relative w-5">
-            {look === "auto" ? (
-              <>
-                {/* The marker over the trunk on a phone, a ring on it where
-                    the marker has moved to the hash slot. */}
-                <span className="contents lg:hidden">
-                  <RefInCell y={y} mode={mode} first={first} look="under" lit={lit} />
-                </span>
-                <span className="hidden lg:contents">
-                  <RefInCell y={y} mode={mode} first={first} look="ring" lit={lit} />
-                </span>
-              </>
-            ) : (
-              <RefInCell y={y} mode={mode} first={first} look={look} lit={lit} />
-            )}
-          </span>
+          <span className="relative w-5">{children}</span>
         </div>
       </div>
     </div>

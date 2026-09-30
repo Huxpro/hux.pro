@@ -163,7 +163,13 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  FLAGS_PARAM,
+  WORKS_FLAGS,
+  setWorksFlag,
+  useWorksFlagState,
+} from "@/components/log/works-flags";
 import { Segmented, Switch } from "@/components/ui/controls";
 import { Slider } from "@/components/ui/slider";
 import { useRangeDrag } from "@/components/ui/use-range-drag";
@@ -2977,13 +2983,22 @@ function MusicModule() {
 // Works Module
 // How a chapter's ref sits on /works' graph, with its tag message — the
 // layouts on trial, switched on the real page. A saved setting (blue star).
+// Under it, the projects shelf's switch (`worksShelf`), saved the same way.
+//
+// Below them, the /works variants: one switch per flag in the registry
+// (components/log/works-flags.ts), so a flag added there shows up here with
+// nothing to write. Saved settings (blue star): a variant is compared by
+// living with it across reloads. A `?flags=` link overrides them for the
+// visit (amber); pressing its star, or any switch, takes the link out of the
+// address so the page is what the switches say.
 // =============================================================================
 
 function WorksModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
   const { worksRef, setWorksRef, worksShelf, setWorksShelf } = useDevtool();
-  const onWorks = usePathname() === "/works";
+  const refStar: Star = worksRef !== WORKS_REF_DEFAULT ? "saved" : null;
+  const shelfStar: Star = worksShelf ? "saved" : null;
   const options: { value: WorksRef; label: string; title: string }[] = [
     {
       value: "auto",
@@ -3025,45 +3040,123 @@ function WorksModule() {
     },
   ];
 
+  const pathname = usePathname();
+  const router = useRouter();
+  const { saved, linked } = useWorksFlagState();
+
+  const dropLink = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.delete(FLAGS_PARAM);
+    const query = params.toString();
+    router.replace(`${pathname}${query ? `?${query}` : ""}${window.location.hash}`, {
+      scroll: false,
+    });
+  };
+
+  const rows = WORKS_FLAGS.map((flag) => {
+    const on = linked ? linked.has(flag.id) : saved[flag.id];
+    const star: Star =
+      linked && linked.has(flag.id) !== saved[flag.id]
+        ? "session"
+        : saved[flag.id] !== flag.default
+          ? "saved"
+          : null;
+    return { flag, on, star };
+  });
+  const onIds = rows.filter((r) => r.on).map((r) => r.flag.id);
+
   return (
     <DebugSection
       id="works"
       title={zh ? "作品" : "Works"}
       icon={<GitBranch className="h-4 w-4" />}
       compact
-      relevant={onWorks}
-      star={worksRef !== WORKS_REF_DEFAULT || worksShelf ? "saved" : null}
+      relevant={pathname === "/works"}
+      // The module's star and its reset are the ref's, the shelf's and
+      // every flag's.
+      star={strongest(refStar, shelfStar, ...rows.map((r) => r.star))}
+      onReset={() => {
+        setWorksRef(WORKS_REF_DEFAULT);
+        setWorksShelf(false);
+        for (const { flag } of rows) setWorksFlag(flag.id, flag.default);
+        if (linked) dropLink();
+      }}
       action={
-        <span className="text-[10px] font-mono text-muted-foreground">{worksRef}</span>
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {worksRef}
+          {worksShelf && " · shelf"}
+          {linked && <span className="text-amber-500/70"> · {FLAGS_PARAM}</span>}
+          {onIds.length > 0 && ` · ${onIds.join(" · ")}`}
+        </span>
       }
     >
-      <PanelRow
-        label={zh ? "章节标记" : "Chapter ref"}
-        star={
-          worksRef !== WORKS_REF_DEFAULT ? (
-            <PanelStar source="saved" onReset={() => setWorksRef(WORKS_REF_DEFAULT)} />
-          ) : undefined
-        }
-      >
-        <PanelSegmented value={worksRef} options={options} onChange={setWorksRef} />
-      </PanelRow>
-      {/* The projects shelf above the log (components/log/project-shelf.tsx):
-          every project's mark in a row, a caret opening the directory. On
-          trial; off until it earns the page. */}
-      <PanelRow
-        label={zh ? "项目架" : "Projects shelf"}
-        star={
-          worksShelf ? (
-            <PanelStar source="saved" onReset={() => setWorksShelf(false)} />
-          ) : undefined
-        }
-      >
-        <PanelToggle
-          on={worksShelf}
-          onClick={() => setWorksShelf(!worksShelf)}
+      <div className="space-y-3">
+        <PanelRow
+          label={zh ? "章节标记" : "Chapter ref"}
+          star={
+            refStar ? (
+              <PanelStar source="saved" onReset={() => setWorksRef(WORKS_REF_DEFAULT)} />
+            ) : undefined
+          }
+        >
+          <PanelSegmented value={worksRef} options={options} onChange={setWorksRef} />
+        </PanelRow>
+        {/* The projects shelf above the log (components/log/project-shelf.tsx):
+            every project's mark in a row, a caret opening the directory. On
+            trial; off until it earns the page. */}
+        <PanelRow
           label={zh ? "项目架" : "Projects shelf"}
-        />
-      </PanelRow>
+          star={
+            shelfStar ? (
+              <PanelStar source="saved" onReset={() => setWorksShelf(false)} />
+            ) : undefined
+          }
+        >
+          <PanelToggle
+            on={worksShelf}
+            onClick={() => setWorksShelf(!worksShelf)}
+            label={zh ? "项目架" : "Projects shelf"}
+          />
+        </PanelRow>
+        {rows.map(({ flag, on, star }) => (
+          <div key={flag.id} className="space-y-1">
+            <PanelRow
+              label={flag.label[locale]}
+              star={
+                star && (
+                  <PanelStar
+                    source={star}
+                    onReset={() =>
+                      star === "session"
+                        ? dropLink()
+                        : setWorksFlag(flag.id, flag.default)
+                    }
+                  />
+                )
+              }
+            >
+              <PanelToggle
+                on={on}
+                label={`Toggle ${flag.label.en}`}
+                onClick={() => {
+                  setWorksFlag(flag.id, !on);
+                  if (linked) dropLink();
+                }}
+              />
+            </PanelRow>
+            <div className="text-[10px] font-mono text-muted-foreground">
+              {flag.description[locale]}
+            </div>
+          </div>
+        ))}
+        {linked && (
+          <div className="text-[10px] font-mono text-amber-500/70">
+            {zh
+              ? `由链接的 ?${FLAGS_PARAM}= 设定，仅本次访问`
+              : `Set by this link's ?${FLAGS_PARAM}=, for this visit`}
+          </div>
+        )}
+      </div>
     </DebugSection>
   );
 }

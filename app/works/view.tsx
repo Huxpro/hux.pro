@@ -1,15 +1,22 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
-import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
+import {
+  chapterLabel,
+  LogTimeline,
+  type LogFold,
+} from "@/components/log/log-timeline";
 import { useOptionalDevtool, WORKS_REF_DEFAULT } from "@/systems/devtool";
 import { ProjectShelf } from "@/components/log/project-shelf";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
+import { useWorksFlag } from "@/components/log/works-flags";
 import { t, useLocale } from "@/services";
 import {
+  computeCommitHash,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
@@ -23,6 +30,9 @@ import {
   type LogForm,
 } from "@/lib/log-view";
 import { buildEraTimeline } from "@/lib/log-eras";
+import { foldUnderProjects } from "@/lib/works-projects";
+
+const NO_FLIPS: ReadonlySet<string> = new Set();
 
 interface WorksViewProps {
   logData: LogData;
@@ -67,7 +77,75 @@ export function WorksView({ logData }: WorksViewProps) {
     if (urlKey !== serializeViewState(view)) setView(urlView);
   }
 
-  const selectHash = useCommitAnchor();
+  // ── The `fold` flag (components/log/works-flags.ts) ─────────────────────
+  // Which rows fold under which project: lib/works-projects.ts, per chapter.
+  const foldFlag = useWorksFlag("fold");
+  const foldOf = useMemo(
+    () =>
+      foldFlag
+        ? new Map(data.flatMap(({ commits }) => [...foldUnderProjects(commits)]))
+        : null,
+    [foldFlag, data],
+  );
+
+  // Whether a fold starts open is the reading's, not the row's:
+  //  - a `?type=` filter opens them, so a filter never hides its own
+  //    results behind a line (a fold holding none of them prints nothing);
+  //  - the feed opens them, because the feed is the form that prints
+  //    everything, and a fold there would be the one thing it kept back;
+  //  - `index` and `covers` start them shut — the overview is the point.
+  // The page remembers only the folds the reader flipped from that, stamped
+  // with the reading they were flipped in, so a new form or filter spends
+  // them the way a form change spends an opened row (TimelineCommit) —
+  // without an effect to clear them.
+  const foldsOpen = view.form === "feed" || view.types.length > 0;
+  const foldStamp = `${view.form}|${view.types.join(",")}`;
+  const [flips, setFlips] = useState<{
+    stamp: string;
+    ids: ReadonlySet<string>;
+  }>({ stamp: foldStamp, ids: NO_FLIPS });
+  const flipped = flips.stamp === foldStamp ? flips.ids : NO_FLIPS;
+  const isFoldOpen = useCallback(
+    (projectId: string) => foldsOpen !== flipped.has(projectId),
+    [foldsOpen, flipped],
+  );
+  const toggleFold = useCallback(
+    (projectId: string) => {
+      const ids = new Set(flipped);
+      if (ids.has(projectId)) ids.delete(projectId);
+      else ids.add(projectId);
+      setFlips({ stamp: foldStamp, ids });
+    },
+    [flipped, foldStamp],
+  );
+  const fold = useMemo<LogFold | undefined>(
+    () =>
+      foldOf
+        ? { of: foldOf, isOpen: isFoldOpen, onToggle: toggleFold }
+        : undefined,
+    [foldOf, isFoldOpen, toggleFold],
+  );
+
+  // A permalink to a row a fold has shut away: open the fold first,
+  // synchronously, so the row is in the document when the anchor measures
+  // it (`useCommitAnchor`). Every other row a hash can name is already on
+  // the page.
+  const reveal = useCallback(
+    (hash: string) => {
+      if (!foldOf) return;
+      for (const { commits } of data) {
+        const c = commits.find((c) => computeCommitHash(c.id) === hash);
+        if (!c) continue;
+        const projectId = foldOf.get(c.id);
+        if (projectId && !isFoldOpen(projectId)) {
+          flushSync(() => toggleFold(projectId));
+        }
+        return;
+      }
+    },
+    [data, foldOf, isFoldOpen, toggleFold],
+  );
+  const selectHash = useCommitAnchor(reveal);
 
   // How a chapter's ref sits on the graph — on trial, a saved setting in
   // the DevTool's Works module.
@@ -209,6 +287,7 @@ export function WorksView({ logData }: WorksViewProps) {
         onSelectHash={selectHash}
         pinnedChapters
         refLook={refLook}
+        fold={fold}
       />
 
       {/* End marker — `git init` closes a timeline that has commits in it;
