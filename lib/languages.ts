@@ -184,6 +184,19 @@ export function absColor(
   return `var(--abs-${palette}-${level})`;
 }
 
+/**
+ * The stretch of the ramp from level `lo` to `hi`, left to right, one stop
+ * per level: what a dot opens into when it shows its range.
+ */
+export function absSpectrum(
+  lo: number,
+  hi: number,
+  palette: AbstractionPalette = ABSTRACTION_PALETTE,
+): string {
+  const stops = Array.from({ length: hi - lo + 1 }, (_, i) => `var(--abs-${palette}-${lo + i})`);
+  return `linear-gradient(to right, ${stops.join(", ")})`;
+}
+
 // -----------------------------------------------------------------------------
 // Labels.
 //

@@ -196,12 +196,14 @@ function AbstractionMeter({ language, locale }: { language: Language; locale: Lo
           })}
         </span>
         {tier.level !== null && (
-          <span className={cn(TYPE.meta, "tabular-nums")}>{tier.level}</span>
+          <span className={cn(TYPE.meta, "shrink-0 tabular-nums")}>
+            {tier.level}
+            {ranged && (
+              <span className="text-tertiary-foreground"> ({reach[0]}–{reach[1]})</span>
+            )}
+          </span>
         )}
-        <span className={cn(TYPE.rowMeta, "truncate")}>
-          {tier.label[locale]}
-          {ranged && ` · ${reach[0]}–${reach[1]}`}
-        </span>
+        <span className={cn(TYPE.rowMeta, "truncate")}>{tier.label[locale]}</span>
       </dd>
     </div>
   );

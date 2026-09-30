@@ -9,7 +9,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { MousePointerClick } from "lucide-react";
+import { ChevronRight, MousePointerClick } from "lucide-react";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import {
   AXES,
@@ -17,6 +17,7 @@ import {
   SCALE_MAX,
   LABEL_TUCK,
   absColor,
+  absSpectrum,
   nameOf,
   placeLabels,
   reachOf,
@@ -28,6 +29,7 @@ import { t, type Locale } from "@/lib/i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { ANCHORED_PRESENTATION, AdaptiveSurface } from "@/systems/surface";
+import { useInputCapability } from "@/services";
 import { LanguageNote, LanguagePeek } from "./language-note";
 
 // =============================================================================
@@ -92,11 +94,52 @@ function standing(
   return reach[0] <= range[1] && reach[1] >= range[0] ? "reach" : "out";
 }
 
+/** Width of one level on a dot's range track, in px. */
+const TRACK_STEP = 10;
+
+/**
+ * A dot's range track: how wide, what it paints, and where along it the dot
+ * sits (`anchor`, px from its left end — the middle of the dot's own level).
+ * Past the end of the scale the track is the whole ramp, running from bare
+ * metal up to the dot: everything it compiles into, below it. A language with
+ * one level has none.
+ */
+function rangeTrack(
+  language: Language,
+): { width: number; anchor: number; paint: string } | null {
+  const reach = reachOf(language);
+  if (reach === null) {
+    const width = (SCALE_MAX + 1) * TRACK_STEP;
+    return { width, anchor: width - TRACK_STEP / 2, paint: absSpectrum(0, SCALE_MAX) };
+  }
+  const [lo, hi] = reach;
+  if (lo === hi) return null;
+  return {
+    width: (hi - lo + 1) * TRACK_STEP,
+    anchor: (language.abs! - lo + 0.5) * TRACK_STEP,
+    paint: absSpectrum(lo, hi),
+  };
+}
+
 export function PLChart({ locale }: { locale: Locale }) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLElement | null>(null);
 
   const [openId, setOpenId] = useState<string | null>(null);
+  // The dot under the pointer or focus, whose range the strip mirrors.
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  // Without hover, a first tap does what a pointer resting on a dot does —
+  // opens its range on the chart and in the strip — and a second tap (or
+  // the strip's "open the note") opens the note. A sheet that rose on the
+  // first tap would cover the very range it was tapped to see.
+  const { magneticPreviewEnabled: canHover } = useInputCapability();
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  const pickedRef = useRef<HTMLElement | null>(null);
+  const openNote = (id: string, el: HTMLElement | null) => {
+    anchorRef.current = el;
+    // Its own dot, pressed again, puts the note away.
+    setOpenId((open) => (open === id ? null : id));
+  };
   const [range, setRange] = useState<Range>(FULL);
   const [fieldWidth, setFieldWidth] = useState(0);
 
@@ -211,12 +254,18 @@ export function PLChart({ locale }: { locale: Locale }) {
               labelSize={labelSize}
               dimmed={stand === "out"}
               reached={stand === "reach"}
-              selected={openId === language.id}
+              selected={openId === language.id || pickedId === language.id}
               peek={openId === null}
+              onPreview={(on) =>
+                setPreviewId((id) => (on ? language.id : id === language.id ? null : id))
+              }
               onOpen={(el) => {
-                anchorRef.current = el;
-                // Its own dot, pressed again, puts the note away.
-                setOpenId((id) => (id === language.id ? null : language.id));
+                if (!canHover && pickedId !== language.id && openId !== language.id) {
+                  pickedRef.current = el;
+                  setPickedId(language.id);
+                  return;
+                }
+                openNote(language.id, el);
               }}
             />
             );
@@ -229,6 +278,14 @@ export function PLChart({ locale }: { locale: Locale }) {
         range={range}
         filtered={filtered}
         reached={LANGUAGES.some((l) => standing(l, range, filtered) === "reach")}
+        preview={
+          LANGUAGES.find((l) => l.id === (previewId ?? openId ?? pickedId)) ?? null
+        }
+        onOpenPreview={
+          pickedId && openId === null
+            ? () => openNote(pickedId, pickedRef.current)
+            : undefined
+        }
         onChange={setRange}
       />
 
@@ -271,6 +328,7 @@ function Dot({
   selected,
   peek,
   onOpen,
+  onPreview,
 }: {
   language: Language;
   locale: Locale;
@@ -283,11 +341,18 @@ function Dot({
   /** False while a note is open: the card is already saying it. */
   peek: boolean;
   onOpen: (el: HTMLElement) => void;
+  /** A pointer or focus is on the dot (or has left it): the strip mirrors
+   *  its range while it is. */
+  onPreview: (on: boolean) => void;
 }) {
   const tier = tierOf(language.abs);
+  const track = rangeTrack(language);
   return (
     <div
-      className="absolute -translate-x-1/2 translate-y-1/2"
+      className={cn(
+        "absolute -translate-x-1/2 translate-y-1/2 hover:z-10 focus-within:z-10",
+        selected && "z-10",
+      )}
       style={{ left: pct(language.i13s), bottom: pct(language.exp) }}
     >
       <MagneticPreview
@@ -304,6 +369,12 @@ function Dot({
         <button
           type="button"
           onClick={(e) => onOpen(e.currentTarget)}
+          // A finger has no hover: on a phone the tap (which opens the note)
+          // is what opens the range, through `selected`.
+          onPointerEnter={(e) => e.pointerType === "mouse" && onPreview(true)}
+          onPointerLeave={(e) => e.pointerType === "mouse" && onPreview(false)}
+          onFocus={() => onPreview(true)}
+          onBlur={() => onPreview(false)}
           aria-haspopup="dialog"
           aria-expanded={selected}
           aria-label={`${nameOf(language, locale)} — ${AXES.x.name[locale]} ${language.i13s}, ${AXES.y.name[locale]} ${language.exp}, ${AXES.abs.name[locale]} ${tier.level ?? ""} (${tier.label[locale]})`}
@@ -313,10 +384,31 @@ function Dot({
             dimmed && "pointer-events-none",
           )}
         >
+          {/* The range, as a track the dot sits on like a thumb: the stretch
+              of the ramp it reaches, anchored so its own level stays under
+              the dot. Closed (scaleX 0, from that anchor) at rest; open under
+              a pointer, on focus, and while its note is open. */}
+          {track && !dimmed && (
+            <span
+              aria-hidden
+              className={cn(
+                "absolute top-1/2 h-2 -translate-y-1/2 rounded-full ring-1 ring-background",
+                "scale-x-0 transition-transform duration-300 ease-out",
+                "group-hover/dot:scale-x-100 group-focus-visible/dot:scale-x-100",
+                selected && "scale-x-100",
+              )}
+              style={{
+                left: `calc(50% - ${track.anchor}px)`,
+                width: track.width,
+                transformOrigin: `${track.anchor}px 50%`,
+                background: track.paint,
+              }}
+            />
+          )}
           <span
             aria-hidden
             className={cn(
-              "block size-3 rounded-full ring-2 ring-background transition-[transform,opacity] duration-200",
+              "relative block size-3 rounded-full ring-2 ring-background transition-[transform,opacity] duration-200",
               "group-hover/dot:scale-[1.35] group-active/dot:scale-110 group-active/dot:duration-0",
               selected && "scale-[1.35] outline-2 outline-offset-2 outline-foreground",
               reached &&
@@ -366,6 +458,8 @@ function AbstractionStrip({
   range,
   filtered,
   reached,
+  preview,
+  onOpenPreview,
   onChange,
 }: {
   locale: Locale;
@@ -373,6 +467,14 @@ function AbstractionStrip({
   filtered: boolean;
   /** Some dot is kept by its range alone: say what its dashed ring means. */
   reached: boolean;
+  /**
+   * The language a pointer, focus or open note is on. While there is one,
+   * the strip is its legend: the levels it reaches lit, its own ringed — the
+   * same stretch its dot opens into on the chart, laid against the scale.
+   */
+  preview: Language | null;
+  /** Set while a tap has picked a dot but not opened it: the way in. */
+  onOpenPreview?: () => void;
   onChange: (range: Range) => void;
 }) {
   const [hover, setHover] = useState<number | null>(null);
@@ -429,14 +531,25 @@ function AbstractionStrip({
   // kept, else how to use it — a row of swatches does not look pressable on
   // its own, so until it has been used it says so.
   const tierName = (level: number) => `${level} · ${tierOf(level).label[locale]}`;
+  // The strip's own hover wins: a pointer on a swatch is asking about it.
+  const mirror = hover === null ? preview : null;
+  const mirrorReach = mirror ? (reachOf(mirror) ?? FULL) : null;
+  const mirrorText = mirror
+    ? mirror.abs === null
+      ? `${nameOf(mirror, locale)} · ${tierOf(null).label[locale]}`
+      : `${nameOf(mirror, locale)} · ${tierName(mirror.abs)}${
+          mirrorReach![0] !== mirrorReach![1] ? ` · ${mirrorReach![0]}–${mirrorReach![1]}` : ""
+        }`
+    : null;
   const readout =
-    hover !== null
+    mirrorText ??
+    (hover !== null
       ? tierName(hover)
       : range[0] === range[1]
         ? tierName(range[0])
         : filtered
           ? `${range[0]}–${range[1]} · ${tierOf(range[0]).label[locale]} → ${tierOf(range[1]).label[locale]}`
-          : null;
+          : null);
 
   return (
     <figcaption className="mt-5 sm:pl-[3.5rem]">
@@ -454,7 +567,8 @@ function AbstractionStrip({
         >
           {AXES.abs.tiers.map(({ level: tierLevel }) => {
             const level = tierLevel!;
-            const kept = inRange(level, range);
+            const kept = mirrorReach ? inRange(level, mirrorReach) : inRange(level, range);
+            const own = mirror !== null && mirror.abs === level;
             return (
               <div
                 key={level}
@@ -481,7 +595,8 @@ function AbstractionStrip({
                       "block h-3.5 w-full rounded-full transition-[opacity,transform] duration-200",
                       "group-hover/swatch:scale-y-[1.3] group-active/swatch:scale-y-100 group-active/swatch:duration-0",
                       !kept && "opacity-25",
-                      hover === level && "scale-y-[1.3]",
+                      (hover === level || own) && "scale-y-[1.3]",
+                      own && "outline-2 outline-offset-1 outline-foreground",
                     )}
                     style={{ background: absColor(level) }}
                   />
@@ -505,12 +620,22 @@ function AbstractionStrip({
             {t(locale, "languagesFilterHint")}
           </>
         )}
-        {filtered && hover === null && reached && (
+        {mirror && onOpenPreview && (
+          <button
+            type="button"
+            onClick={onOpenPreview}
+            className={cn(TYPE.nav, "pressable ml-2 inline-flex items-center gap-0.5 underline underline-offset-2 decoration-ink-line")}
+          >
+            {t(locale, "languagesOpenNote")}
+            <ChevronRight aria-hidden className="size-3" />
+          </button>
+        )}
+        {filtered && hover === null && !mirror && reached && (
           <span className={cn(TYPE.rowMeta, "ml-2 hidden sm:inline")}>
             · {t(locale, "languagesReached")}
           </span>
         )}
-        {filtered && hover === null && (
+        {filtered && hover === null && !mirror && (
           <button
             type="button"
             onClick={() => onChange(FULL)}
