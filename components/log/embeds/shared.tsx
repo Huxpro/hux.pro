@@ -25,14 +25,20 @@ interface DescriptionProps {
 /**
  * A commit's description — what the work is.
  *
- * `TYPE.captionQuiet` at both lengths: 12px, tertiary. It was briefly raised
- * to `TYPE.body` (14px, muted) to buy the row a second tier — everything that
- * was not the title sat on tertiary, which is not a hierarchy — but at that
- * weight the description competes with the title for the row rather than
- * sitting under it, and a column of twenty-five rows reads louder than the
- * log wants. The hierarchy it was after is carried by the rest of the row
- * instead: the title is the only thing on the ink, and the mono metadata
- * around it annotates.
+ * `TYPE.caption` at both lengths: 12px, muted — the role the type scale
+ * gives "a description under a title" (docs/system-legibility.md).
+ *
+ * It sat a rung lower, on `captionQuiet` (tertiary), for a while. That came
+ * from pulling back an experiment with `TYPE.body` (14px, muted), which bought
+ * the row a second tier but at that size competed with the title for the row,
+ * and a column of twenty-five rows read louder than the log wants. The size
+ * was the problem, not the ink: at 12px the description still sits under the
+ * title, and the title stays the only thing on full ink. Pulled back to
+ * tertiary as well, though, the description — the one part of a row that says
+ * what the work *was* — was the part a reader needed most and could read
+ * least, on the same rung as the mono metadata that only annotates it. `captionQuiet`
+ * stays where it belongs, on the blurbs inside embeds and attachment
+ * captions, which sit behind a description rather than being one.
  */
 export function Description({
   text,
@@ -42,7 +48,7 @@ export function Description({
   return (
     <p
       className={cn(
-        TYPE.captionQuiet,
+        TYPE.caption,
         // Two lines everywhere, and the measure does the rest: a phone's
         // ~40 characters a line, a desktop's ~90. A wider column is already
         // being handed more of the text, so spending a breakpoint to hand it
