@@ -305,46 +305,30 @@ export function TimelineCommit({
   // press ran, where a project was built (the byline's team, printed
   // sparsely — the first row of a run). A link where the meta is one. On
   // the title line in every form and every state, so opening a row moves
-  // nothing above the description — and never on a line of its own: a
-  // line between a title and its sentence is the thing this removes,
-  // whatever the viewport. From `@md` it is a column before the date;
-  // below that it trails the title in the title's own flow, the way `译`
-  // and `知乎` trail a post on /writing, wrapping with the title's words
-  // rather than dropping under them.
+  // nothing above the description — and never under the title: a line
+  // between a title and its sentence is the thing this removes, whatever
+  // the viewport. The metadata is one block at the line's right: on a desk
+  // a single line, `📎 n · venue · date`; below `@md` the same block stacks,
+  // `📎 n · date` over the venue, right-aligned beside the title, which
+  // wraps in a column of its own.
   const besideText = data.meta ?? byline?.subtitle;
-  const besideLink = !!data.meta && !!data.metaUrl;
-  const besideNode = (inline: boolean) =>
-    besideLink ? (
-      <a
-        href={data.metaUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => e.stopPropagation()}
-        className={cn(
-          "transition-colors hover:text-foreground",
-          inline ? "inline" : "inline-flex max-w-full items-center gap-1",
-        )}
-      >
-        {inline ? (
-          <>
-            {besideText}
-            <span aria-hidden className="whitespace-nowrap text-[0.7rem]">
-              {" "}↗
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="truncate">{besideText}</span>
-            <span aria-hidden className="text-[0.7rem]">↗</span>
-          </>
-        )}
-      </a>
-    ) : inline ? (
-      <>{besideText}</>
-    ) : (
-      <span className="truncate">{besideText}</span>
-    );
-  const hasBeside = !isQuiet && !!besideText;
+  const beside =
+    !isQuiet && besideText ? (
+      data.meta && data.metaUrl ? (
+        <a
+          href={data.metaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex max-w-full items-center gap-1 transition-colors hover:text-foreground"
+        >
+          <span className="truncate">{besideText}</span>
+          <span aria-hidden className="text-[0.7rem]">↗</span>
+        </a>
+      ) : (
+        <span className="truncate">{besideText}</span>
+      )
+    ) : null;
 
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
@@ -604,7 +588,7 @@ export function TimelineCommit({
         </span>
       </span>
 
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-start @md:items-center gap-2 min-w-0">
         {isQuiet ? (
           // Events and folded asides drop a tier. Face is per script
           // (see QuietLine): Latin serif italic, CJK upright mono.
@@ -620,63 +604,67 @@ export function TimelineCommit({
                 {data.languageBadge}
               </span>
             )}
-            {/* Below `@md` the line has no room for a second column, so
-                the venue trails the title in its own flow: after the last
-                word, in the metadata ink, never on a line of its own. */}
-            {hasBeside && (
-              <span className={cn("ml-2 align-baseline @md:hidden", TYPE.rowMeta)}>
-                {besideNode(true)}
-              </span>
-            )}
           </span>
         )}
 
-        {/* The right of the line, packed to the right edge: the count, the
-            venue, the date. Packed rather than spread, so what an open row
-            takes away — the count, which its covers replace — leaves the
-            venue and the date exactly where they were. The venue yields
-            first: it truncates, the count and the date never do. */}
-        <span className="ml-auto flex min-w-0 max-w-[55%] shrink items-center justify-end gap-2">
-          {attachmentCount > 0 && (
-            <span
-              className={cn("inline-flex shrink-0 items-center gap-1", TYPE.rowMeta)}
-              aria-label={
-                attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
-              }
-            >
-              <Paperclip aria-hidden className="h-3 w-3" />
-              {attachmentCount}
-            </span>
+        {/* The metadata block, packed to the right edge. On a desk one
+            line — the count, the venue, the date — packed rather than
+            spread, so what an open row takes away (the count, which its
+            covers replace) leaves the venue and the date exactly where they
+            were; the venue yields first, the count and the date never do.
+            Below `@md` the same block stacks: the count and the date on
+            the title's first line, the venue under them, right-aligned,
+            with the title wrapping in its own column beside it. The DOM
+            order is the phone's; `order` puts the venue between the count
+            and the date once the block is a line. */}
+        <span
+          className={cn(
+            "ml-auto flex shrink-0 max-w-[45%] flex-col items-end",
+            "@md:max-w-[55%] @md:min-w-0 @md:shrink @md:flex-row @md:items-center @md:justify-end @md:gap-2",
           )}
+        >
+          <span className="flex items-center gap-2 leading-5 @md:contents">
+            {attachmentCount > 0 && (
+              <span
+                className={cn("inline-flex shrink-0 items-center gap-1 @md:order-1", TYPE.rowMeta)}
+                aria-label={
+                  attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
+                }
+              >
+                <Paperclip aria-hidden className="h-3 w-3" />
+                {attachmentCount}
+              </span>
+            )}
 
-          {hasBeside && (
+            {hideDate ? (
+              data.dateSlotOverride && (
+                <span className={cn("shrink-0 @md:order-3", TYPE.rowMeta)}>
+                  {data.dateSlotOverride}
+                </span>
+              )
+            ) : (
+              <span
+                className={cn(
+                  "font-mono text-xs shrink-0 @md:order-3",
+                  // Date stays — the year is the meaning for life events
+                  // (`moved to US, 2017`) — but pushed a tier quieter than
+                  // siblings so the row reads as background context.
+                  "text-tertiary-foreground",
+                )}
+              >
+                {data.date}
+              </span>
+            )}
+          </span>
+
+          {beside && (
             <span
               className={cn(
-                "hidden @md:inline-flex min-w-0 justify-end text-right",
+                "inline-flex min-w-0 max-w-full justify-end text-right leading-5 @md:order-2",
                 TYPE.rowMeta,
               )}
             >
-              {besideNode(false)}
-            </span>
-          )}
-
-          {hideDate ? (
-            data.dateSlotOverride && (
-              <span className={cn("shrink-0", TYPE.rowMeta)}>
-                {data.dateSlotOverride}
-              </span>
-            )
-          ) : (
-            <span
-              className={cn(
-                "font-mono text-xs shrink-0",
-                // Date stays — the year is the meaning for life events
-                // (`moved to US, 2017`) — but pushed a tier quieter than
-                // siblings so the row reads as background context.
-                "text-tertiary-foreground",
-              )}
-            >
-              {data.date}
+              {beside}
             </span>
           )}
         </span>
