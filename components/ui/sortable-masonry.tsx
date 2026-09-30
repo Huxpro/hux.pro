@@ -262,10 +262,13 @@ function SortableMasonryItem({
 export function SortableMasonry({
   items,
   storageKey = "hux_widget_order",
+  controls,
   className,
 }: {
   items: SortableWidget[];
   storageKey?: string;
+  /** More edit-mode controls, between Reset and Done (the home widget picker). */
+  controls?: ReactNode;
   className?: string;
 }) {
   const { locale } = useLocale();
@@ -473,6 +476,7 @@ export function SortableMasonry({
                 {t(locale, "widgetEditReset")}
               </button>
             )}
+            {controls}
             <button
               type="button"
               onClick={() => setEditing(false)}

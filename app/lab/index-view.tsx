@@ -5,20 +5,25 @@ import { PageLayout } from "@/components/ui/page-layout";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { ArrowRight } from "lucide-react";
+import { useHomeWidget } from "@/components/home/widgets";
+import { HeaderAction } from "@/components/ui/controls";
+import { ArrowRight, Check, Plus } from "lucide-react";
 import { Link } from "next-view-transitions";
-import { LAB_INDEX, LABS } from "./catalog";
+import { LABS } from "./catalog";
 
 /**
  * `/lab` — every lab as a card wearing its surface: the same small, live
  * view of the lab the home screen's Lab widget rotates through. A card is
  * one link; the surface inside it takes no taps of its own.
+ *
+ * No paragraph first: the cards say what the labs are. What sits under the
+ * title is the page's one control, the way /writing hangs its language
+ * filter there.
  */
 export function LabIndexView() {
   const { locale } = useLocale();
   return (
-    <PageLayout page="lab">
-      <p className={cn(TYPE.body, "ink-bare mb-8 max-w-prose")}>{LAB_INDEX.blurb[locale]}</p>
+    <PageLayout page="lab" headerActions={<HomeWidgetSwitch />}>
       <ul className="grid gap-4 sm:grid-cols-2">
         {LABS.map((lab) => {
           const Surface = LAB_SURFACES[lab.id];
@@ -56,5 +61,25 @@ export function LabIndexView() {
         })}
       </ul>
     </PageLayout>
+  );
+}
+
+/**
+ * The Lab widget is off the home screen until asked for (HOME_WIDGETS); this
+ * is where someone who came for the labs asks. The home grid's edit mode
+ * lists it too.
+ */
+function HomeWidgetSwitch() {
+  const { locale } = useLocale();
+  const { enabled, setEnabled } = useHomeWidget("lab");
+  return (
+    <span className="inline-flex items-center font-mono text-xs select-none">
+      <HeaderAction variant="action" active={enabled} onClick={() => setEnabled(!enabled)}>
+        <span className="inline-flex items-center gap-1">
+          {enabled ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+          {t(locale, enabled ? "labWidgetOn" : "labWidgetAdd")}
+        </span>
+      </HeaderAction>
+    </span>
   );
 }

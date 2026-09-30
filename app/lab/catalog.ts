@@ -9,16 +9,21 @@ import type { Locale } from "@/lib/i18n";
  *
  *   - `/lab` is the index: every lab as a card wearing its widget surface
  *     (components/lab/surfaces), the same surface the home screen's Lab
- *     widget rotates through.
+ *     widget rotates through, for a visitor who adds it.
  *   - `/lab/works` is the one that still writes: log.json, edited over the
  *     /works timeline as it prints (on a wide screen, in `next dev`).
  *   - The others are readouts of a system (attachments, icon, legibility,
  *     glow), each with a panel of knobs.
  *
  * This family used to live under `/editor` and was called the editor family;
- * next.config.ts keeps every old address pointing here. The slash letter `e`
- * opens the index. The dropdown on each lab's sticky bar (`LabNav`) is how you
- * move between them; the palette does not list them.
+ * next.config.ts keeps every old address pointing here.
+ *
+ * Public, and quiet about it: the family is a study of the site's insides,
+ * not what most visitors came for. So the palette finds Labs by name but
+ * never offers it (`searchOnly`; `/` `E` still opens the index), and its
+ * home widget is off until a visitor adds it (components/home/widgets.ts —
+ * the grid's edit mode, or the switch on the index). The dropdown on each
+ * lab's sticky bar (`LabNav`) is how you move between the labs.
  *
  * Adding a lab: an entry here, a route under `app/lab/<id>`, a surface in
  * `components/lab/surfaces`, the `LabShell` around the page, and its words
@@ -47,10 +52,6 @@ export const LAB_INDEX = {
   href: "/lab",
   name: { en: "Lab", zh: "实验室" } satisfies Text,
   mark: "lab",
-  blurb: {
-    en: "This site, studied from the inside. Each lab lays one of its own systems open — the real components, the real policy, with the knobs that tune them.",
-    zh: "研究本站自身的实现。每间实验室剖开它的一个系统——真的组件、真的策略，以及调它们的旋钮。",
-  } satisfies Text,
 } as const;
 
 export const LABS: readonly LabEntry[] = [
