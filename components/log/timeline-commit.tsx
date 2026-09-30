@@ -286,6 +286,32 @@ export function TimelineCommit({
   const attachmentCount =
     !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
 
+  // The column beside the title on the one-line row: where a talk was
+  // given, where a project was built (the byline's team). A link where the
+  // meta is one, as it is under the title. The meta line used to spend a
+  // second line on this for every row of the index, with the handle at
+  // its end restating the chapter's company; on a desk the row is now the
+  // one line the form's name promises.
+  const besideText =
+    rowForm.meta === "beside" ? data.meta ?? byline?.subtitle : undefined;
+  const beside =
+    !isQuiet && besideText ? (
+      data.meta && data.metaUrl ? (
+        <a
+          href={data.metaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex max-w-full items-center gap-1 transition-colors hover:text-foreground"
+        >
+          <span className="truncate">{besideText}</span>
+          <span aria-hidden className="text-[0.7rem]">↗</span>
+        </a>
+      ) : (
+        <span className="truncate">{besideText}</span>
+      )
+    ) : null;
+
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
   const showAuthorBlock = data.type !== "role" && data.type !== "event";
@@ -516,6 +542,28 @@ export function TimelineCommit({
                 {data.languageBadge}
               </span>
             )}
+            {/* Below `@md` the column has no room for a second column: the
+                venue takes the next line, still inside the title's block,
+                still without the handle. */}
+            {beside && (
+              <span className={cn("flex min-w-0 mt-0.5 @md:hidden", TYPE.rowMeta)}>
+                {beside}
+              </span>
+            )}
+          </span>
+        )}
+
+        {/* The venue's column: right-aligned before the count and the date,
+            at most half the line, so a long conference name gives way to
+            the title rather than the other way round. */}
+        {beside && (
+          <span
+            className={cn(
+              "hidden @md:inline-flex shrink-0 max-w-[45%] min-w-0 justify-end text-right",
+              TYPE.rowMeta,
+            )}
+          >
+            {beside}
           </span>
         )}
 
@@ -568,7 +616,7 @@ export function TimelineCommit({
         byline fully visible so the cluster's authorial context stays
         on-screen while you read.
       */}
-      {!isQuiet && (data.meta || byline) && (
+      {!isQuiet && rowForm.meta === "under" && (data.meta || byline) && (
         <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
             {data.meta ? (
