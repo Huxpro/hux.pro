@@ -47,8 +47,15 @@ import { TYPE } from "@/lib/typography";
  *   hash 3.5rem + gap 0.5rem + icon 1.25rem + gap 0.5rem = 5.75rem
  *
  * plus the row's own 0.75rem of padding, which is what `-mx-3` already
- * subtracts on the right. Below `lg` the page has no margin to hang it in
- * and the gutter stays inside the column as it always did.
+ * subtracts on the right.
+ *
+ * The hash exists only where it can hang. Below `lg` the page has no margin
+ * wide enough (the gutter wants ~120px of it: a 680px column needs a ~872px
+ * viewport), and a hash kept inside the column would push every title in
+ * from the page's left edge — off the line the page title sits on, and out
+ * of the width the reading needs. So there the row is a phone's: the icon on
+ * the column's edge, no hash. A tablet reads as a desk held landscape, and
+ * as a phone held portrait.
  */
 export const HASH_CELL = "lg:w-14 lg:text-right";
 export const GUTTER_PULL = "lg:-ml-[6.5rem]";
@@ -390,7 +397,7 @@ export function TimelineCommit({
     : undefined;
 
   const rowContent = (
-    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+    <div className="grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked
@@ -413,7 +420,7 @@ export function TimelineCommit({
       {isQuiet || !onSelectHash ? (
         <span
           className={cn(
-            "hidden @sm:inline-block select-all",
+            "hidden lg:inline-block select-all",
             HASH_CELL,
             TYPE.hash,
             isQuiet ? "text-transparent leading-4" : "leading-5",
@@ -433,7 +440,7 @@ export function TimelineCommit({
           }}
           aria-label={`Link to commit ${data.hash}`}
           className={cn(
-            "hidden @sm:inline-block leading-5",
+            "hidden lg:inline-block leading-5",
             HASH_CELL,
             TYPE.hash,
             "transition-colors hover:text-muted-foreground",
@@ -620,7 +627,7 @@ export function TimelineCommit({
         on-screen while you read.
       */}
       {!isQuiet && (data.meta || byline) && (
-        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
+        <div className={cn("col-start-2 lg:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
             {data.meta ? (
               data.metaUrl ? (
@@ -679,7 +686,7 @@ export function TimelineCommit({
           expanded, so toggling never remounts them. */}
       {!isQuiet && pinnedMedia.length > 0 && (
         <div
-          className="col-start-2 @sm:col-start-3 mt-2"
+          className="col-start-2 lg:col-start-3 mt-2"
           onClick={(e) => e.stopPropagation()}
         >
           <MediaRenderer
@@ -705,7 +712,7 @@ export function TimelineCommit({
           text is what the row's own control acts on, so it has to stay part
           of the trigger at both densities. */}
       {!isQuiet && rowForm.description !== "none" && !!data.description && (
-        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
           <Description
             text={data.description}
             isExpanded={rowForm.description === "full"}
@@ -723,7 +730,7 @@ export function TimelineCommit({
           on stays the row's; the empty stretch beside a single cover presses
           the row like any other part of it. */}
       {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
-        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
           {/* The covers get a line of their own, always. One cover used to
               tuck up beside the text and two or more dropped below it, so a
               row changed shape with its cargo — and a column of twenty-five
@@ -758,7 +765,7 @@ export function TimelineCommit({
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
-          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
+          className="col-start-2 lg:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
         >
           <AttachmentGrid
             items={data.stripItems}
@@ -796,7 +803,7 @@ export function TimelineCommit({
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
-          className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
+          className="col-start-2 lg:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
         >
           {data.commentary && <Commentary text={data.commentary} />}
 
@@ -812,7 +819,7 @@ export function TimelineCommit({
           {showAuthorBlock && (
             <AuthorFields
               byline={byline}
-              // Below `@sm` the gutter hash column is hidden, so the row has
+              // Below `lg` the gutter hash column is hidden, so the row has
               // no permalink down there; above it the gutter already is one.
               // `onSelect` rather than an href: this page is already /works,
               // so the field makes the row the address in place.
@@ -821,7 +828,7 @@ export function TimelineCommit({
                   ? {
                       hash: data.hash,
                       onSelect: onSelectHash,
-                      className: "@sm:hidden",
+                      className: "lg:hidden",
                     }
                   : undefined
               }

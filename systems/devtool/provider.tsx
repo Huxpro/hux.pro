@@ -93,8 +93,9 @@ export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
 //   row    ring, with the span where a commit's date goes
 //   under  the marker is the node, on the trunk
 //   hash   the marker where a hash goes (`git log --decorate`)
-//   auto   hash where there is a hash slot, under where there is none (a
-//          phone) — the one chosen
+//   auto   hash where there is a hash slot (a desk, a tablet held landscape),
+//          under where there is none (a phone, a tablet held portrait) —
+//          the one chosen
 // =============================================================================
 
 export const WORKS_REFS = ["auto", "stub", "ring", "row", "under", "hash"] as const;

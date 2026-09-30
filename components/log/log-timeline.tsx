@@ -691,10 +691,10 @@ function RefGraphLayer({
           GUTTER_PULL,
         )}
       >
-        <div className="grid h-full grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2">
+        <div className="grid h-full grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2">
           <span
             className={cn(
-              "hidden @sm:inline-block select-none",
+              "hidden lg:inline-block select-none",
               HASH_CELL,
               TYPE.hash,
               "text-transparent",
@@ -707,10 +707,10 @@ function RefGraphLayer({
               <>
                 {/* The marker over the trunk on a phone, a ring on it where
                     the marker has moved to the hash slot. */}
-                <span className="contents @sm:hidden">
+                <span className="contents lg:hidden">
                   <RefInCell y={y} mode={mode} first={first} look="under" lit={lit} />
                 </span>
-                <span className="hidden @sm:contents">
+                <span className="hidden lg:contents">
                   <RefInCell y={y} mode={mode} first={first} look="ring" lit={lit} />
                 </span>
               </>
@@ -833,7 +833,7 @@ function RefLabel({
     <span
       aria-hidden
       className={cn(
-        "hidden @sm:inline-block select-none",
+        "hidden lg:inline-block select-none",
         HASH_CELL,
         TYPE.hash,
         "text-transparent",
@@ -850,37 +850,36 @@ function RefLabel({
           // The icon column held open at its width, so the message under
           // a marker that spans it still starts where titles do.
           look === "hash"
-            ? "grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr]"
+            ? "grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr]"
             : look === "auto"
-              ? // The hash slot at a hash's width: seven mono figures at
-                // 12px below `lg`, the fixed gutter from it.
-                "grid-cols-[1.25rem_1fr] @sm:max-lg:grid-cols-[3.15rem_1.25rem_1fr] lg:grid-cols-[3.5rem_1.25rem_1fr]"
-              : "grid-cols-[1.25rem_1fr] @sm:grid-cols-[auto_1.25rem_1fr]",
+              ? // The hash slot at the gutter's width (HASH_CELL).
+                "grid-cols-[1.25rem_1fr] lg:grid-cols-[3.5rem_1.25rem_1fr]"
+              : "grid-cols-[1.25rem_1fr] lg:grid-cols-[auto_1.25rem_1fr]",
         )}
       >
         {look === "auto" ? (
           // `under` where there is no hash slot, `hash` where there is: one
           // marker, placed twice. On a phone the marker and its span sit
-          // together over the icon column; from `@sm` the wrapper dissolves
+          // together over the icon column; from `lg` the wrapper dissolves
           // and each takes its own cell — the marker the hash's, overflowing
           // it leftward, the span the title's.
-          <span className="col-span-2 flex items-center gap-3 min-w-0 @sm:contents">
-            <span className="flex @sm:col-start-1 @sm:row-start-1 @sm:justify-self-end">
+          <span className="col-span-2 flex items-center gap-3 min-w-0 lg:contents">
+            <span className="flex lg:col-start-1 lg:row-start-1 lg:justify-self-end">
               {pill}
             </span>
-            <span className="flex items-center min-w-0 @sm:col-start-3 @sm:row-start-1">
+            <span className="flex items-center min-w-0 lg:col-start-3 lg:row-start-1">
               {date}
             </span>
           </span>
         ) : look === "hash" ? (
           <>
             {/* The hash slot is a hash wide; the marker overflows it to
-                the left, so the trunk stays where it is. Below `@sm` there
+                the left, so the trunk stays where it is. Below `lg` there
                 is no hash slot, and the marker sits on the trunk. */}
-            <span className="flex justify-end @sm:max-lg:w-[7ch] lg:w-14 font-mono text-xs">
+            <span className="flex justify-end lg:w-14 font-mono text-xs">
               {pill}
             </span>
-            <span aria-hidden className="hidden @sm:inline-block w-5" />
+            <span aria-hidden className="hidden lg:inline-block w-5" />
             <span className="flex items-center min-w-0">{date}</span>
           </>
         ) : look === "ring" || look === "row" ? (
@@ -911,7 +910,7 @@ function RefLabel({
         {message && (
           <p
             className={cn(
-              "col-start-2 @sm:col-start-3 mt-1.5 min-w-0",
+              "col-start-2 lg:col-start-3 mt-1.5 min-w-0",
               TYPE.caption,
             )}
           >
