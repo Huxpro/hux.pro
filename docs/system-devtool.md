@@ -335,6 +335,7 @@ lists the registry and needs no edit.
 | Flag | What it does |
 |---|---|
 | `fold` | A project's talks, press and posts leave their dates and fold behind one line under the project's row (`talks 10  WeAreDevelopers…  ⌄`), which opens in place into the log's own rows. Which rows belong to a project is `lib/works-projects.ts`. |
+| `resume` | Each project row reads as a résumé entry: its mark grows from the gutter into an app-icon tile beside the title (the title line the tile's height), the name gains its one stat (`1B+ users`, `★ 220k`), and the venue's place on the title line — the eyebrow on a phone — says what I did before the team (`Architect · Lynx @ ByteDance`, the commit's `credit`), so nothing stands between the name and its description. Where the form prints no covers (`index`) the row names its links (`lynxjs.org  github.com`), each opening through the attachments. Other types, the order and the URLs are the log's. Data: `components/log/resume.ts`. |
 
 **Where a value comes from.** A *saved setting* (blue `*`), in
 `localStorage.hux_works_flags` — a variant is compared by living with it

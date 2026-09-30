@@ -64,6 +64,15 @@ export const WORKS_FLAGS = [
     },
     default: false,
   },
+  {
+    id: "resume",
+    label: { en: "Projects as résumé entries", zh: "项目如简历条目" },
+    description: {
+      en: "A project row leads with its icon as a tile and says what I did on it, with its stat and its links.",
+      zh: "项目行以图标为首，写明我在其中做了什么，附上数据与链接。",
+    },
+    default: false,
+  },
 ] as const satisfies readonly WorksFlagSpec[];
 
 export type WorksFlagId = (typeof WORKS_FLAGS)[number]["id"];

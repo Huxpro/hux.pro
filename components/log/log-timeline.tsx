@@ -129,6 +129,11 @@ interface LogTimelineProps {
    * flag). Omitted, the log is every commit at its date, as it always was.
    */
   fold?: LogFold;
+  /**
+   * Print each project row as a résumé entry (the `resume` flag, see
+   * TimelineCommit). Every other row, and the order, are the log's.
+   */
+  resume?: boolean;
 }
 
 /**
@@ -145,6 +150,7 @@ export function LogTimeline({
   pinnedChapters = false,
   refLook = "stub",
   fold,
+  resume = false,
 }: LogTimelineProps) {
   // The chapter whose track is held (its marker has focus) — page-wide, so
   // every commit outside it steps back, in its own block or another.
@@ -187,6 +193,7 @@ export function LogTimeline({
           held={held}
           onHold={hold}
           fold={fold}
+          resume={resume}
         />
       ))}
     </div>
@@ -215,6 +222,7 @@ interface TagBlockProps {
   pinned: boolean;
   refLook: RefLayout;
   fold?: LogFold;
+  resume: boolean;
 }
 
 function TagBlock({
@@ -233,6 +241,7 @@ function TagBlock({
   pinned,
   refLook,
   fold,
+  resume,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -592,6 +601,7 @@ function TagBlock({
                   onBeamClear={handleBeamClear}
                   byline={bylines[i]}
                   onSelectHash={onSelectHash}
+                  resume={resume}
                 />
               );
               // A project's fold line rides directly under its row, in its
@@ -624,6 +634,11 @@ function TagBlock({
                       open={fold.isOpen(projectId)}
                       rail={false}
                       locale={locale}
+                      // Under a résumé entry the line hangs off the tile
+                      // too, so it reads as the entry's, not the column's. A
+                      // header in the quiet voice has no tile, and neither
+                      // does its line.
+                      resume={resume && !isHeader(commits[i])}
                       onToggle={() => fold.onToggle(projectId)}
                     />
                   </div>

@@ -38,7 +38,7 @@ import { Paperclip } from "lucide-react";
 import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
 import { MediaStrip } from "./media/media-strip";
-import type { AttachmentSet } from "@/systems/attachments";
+import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import { IdentityHover, useOptionalIdentityCard } from "@/systems/identity";
 import { useInputCapability } from "@/services";
 
@@ -64,6 +64,19 @@ import { TYPE } from "@/lib/typography";
  */
 export const HASH_CELL = "lg:w-14 lg:text-right";
 export const GUTTER_PULL = "lg:-ml-[6.5rem]";
+
+/**
+ * A project row as a résumé entry (the `resume` flag): its mark, grown from
+ * the gutter's 16px into an app-icon tile at the head of the title column,
+ * the way a home screen sets an icon beside its label. The tile's font size
+ * is its size, so the mark's `em` inset (ProjectMark) and the corner scale
+ * with it. The title line is the tile's height, the name and its credit set
+ * beside it, and everything the row prints under it hangs off the tile's
+ * right edge (`RESUME_INDENT`), and so does a fold line under it
+ * (fold-line.tsx).
+ */
+const RESUME_TILE = "text-[2.25rem] @sm:text-[2.5rem] size-[1em]";
+export const RESUME_INDENT = "pl-12 @sm:pl-13";
 
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
@@ -135,6 +148,13 @@ interface TimelineCommitProps {
    */
   onSelectHash?: (hash: string) => void;
   /**
+   * The `resume` flag (components/log/works-flags.ts): a project row reads
+   * as a résumé entry — its mark as a tile, my part in it, its stat, and
+   * where the form prints no covers, its links by name. Every other type is
+   * untouched.
+   */
+  resume?: boolean;
+  /**
    * The commit's attachments as one set (see systems/attachments). Every
    * media affordance on the row — a strip cover, an expanded player or
    * card — opens this set at its own item, so a phone gets the
@@ -167,6 +187,7 @@ export function TimelineCommit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  resume = false,
   attachmentSet = null,
   inspecting = false,
   isSelected = false,
@@ -176,6 +197,7 @@ export function TimelineCommit({
   selectedMedia = null,
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
+  const attachments = useOptionalAttachments();
   const { magneticPreviewEnabled } = useInputCapability();
   // A title over a sentence is a heading (`TYPE.rowHeading`); a title on its
   // own line — the index — is the one thing on the ink and needs no weight.
@@ -325,9 +347,46 @@ export function TimelineCommit({
   // becomes an eyebrow: the same three, one mono line *over* the title, the
   // way an editorial kicker sits over a headline. Nothing is cut to fit a
   // column, and the title and its sentence still sit together.
+  //
+  // A résumé entry (the `resume` flag, below) puts its credit there, before
+  // the team: what I did, then where — `Architect · Lynx @ ByteDance`.
   const besideText = data.meta ?? byline?.subtitle;
-  const beside =
-    !isQuiet && besideText ? (
+
+  // ── The `resume` flag ────────────────────────────────────────────────
+  // A project row as a résumé entry: the thing, the part I played in it,
+  // how far it went, and where to see it. A header in the quiet voice (a
+  // filtered-out project over its folded talks) stays one.
+  const asResume = resume && !isQuiet && data.type === "project";
+  const facts = asResume ? data.resume : undefined;
+  const tile = asResume ? data.mark : undefined;
+  // What I did, then where, in the venue's place on the title line (the
+  // eyebrow on a phone) — the row's one place for who and where (#385).
+  // With no credit authored it is the venue as the log prints it (sparse).
+  const credit = facts?.credit;
+  const team = byline?.team;
+  // The links print where the covers do not. Every link is a cover, so in
+  // `covers` and the feed the strip and the grid are already the doors, by
+  // picture, and naming them again under the prose would say it twice. The
+  // index prints no pictures: there the count (📎 2) names them instead,
+  // and each opens through the attachments as its cover would.
+  const links = facts && rowForm.media === "none" ? facts.links : [];
+  const indent = tile ? RESUME_INDENT : undefined;
+  // A credit is the entry's content, in the prose's face a rung above the
+  // team; the team is metadata, in the line's mono.
+  const creditText = credit && (
+    <>
+      <span className="font-sans text-muted-foreground">{credit}</span>
+      {team && (
+        <>
+          {" · "}
+          {team}
+        </>
+      )}
+    </>
+  );
+  const beside = credit ? (
+    <span className="truncate">{creditText}</span>
+  ) : !isQuiet && besideText ? (
       data.meta && data.metaUrl ? (
         <a
           href={data.metaUrl}
@@ -345,8 +404,9 @@ export function TimelineCommit({
     ) : null;
   // The same venue as running text, for the eyebrow: no truncation — the
   // line wraps if it must — and the arrow glued to the last word.
-  const venueInline =
-    !isQuiet && besideText ? (
+  const venueInline = credit ? (
+    creditText
+  ) : !isQuiet && besideText ? (
       data.meta && data.metaUrl ? (
         <a
           href={data.metaUrl}
@@ -389,7 +449,9 @@ export function TimelineCommit({
   // they don't (the index, folded), the line counts them, and opening the
   // row brings them.
   const attachmentCount =
-    !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
+    !isQuiet && rowForm.media === "none" && links.length === 0
+      ? expandedMedia.length
+      : 0;
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
@@ -469,8 +531,13 @@ export function TimelineCommit({
   //
   // A project wears its own mark (ProjectMark): 16px, filled to its edge,
   // so the rail stops where it stops for the role's 16px ring.
-  const wearsMark = !isQuiet && !!data.mark;
-  const iconGapPx = isQuiet ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
+  //
+  // As a résumé entry (the `resume` flag) the mark has left for the tile, and
+  // the gutter keeps the rail's node: the quiet dot, so the rail says "a
+  // commit, here" and the face is said once, at the size that shows it.
+  const wearsMark = !isQuiet && !tile && !!data.mark;
+  const dotInGutter = isQuiet || !!tile;
+  const iconGapPx = dotInGutter ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
   // A node moved onto the side lane pushes the hash left, the way a
   // `git log --graph` row makes room for its graph (see timeline-lane.tsx).
   const onSide = graph?.side === "node";
@@ -497,6 +564,7 @@ export function TimelineCommit({
             // set a step off its headline, not touching it.
             "col-start-2 lg:col-start-3 @md:hidden mb-1.5 flex items-start gap-2 leading-4",
             TYPE.rowMeta,
+            indent,
           )}
         >
           {/* The venue on the left, the count and the date packed to the
@@ -545,6 +613,8 @@ export function TimelineCommit({
             HASH_CELL,
             TYPE.hash,
             isQuiet ? "text-transparent leading-4" : "leading-5",
+            // Beside a résumé entry's title line, which is the tile's height.
+            tile && "self-center",
           )}
           style={hashNudge}
         >
@@ -565,6 +635,7 @@ export function TimelineCommit({
             HASH_CELL,
             TYPE.hash,
             "transition-colors hover:text-muted-foreground",
+            tile && "self-center",
           )}
           style={hashNudge}
         >
@@ -587,6 +658,7 @@ export function TimelineCommit({
           // otherwise the event's narrower span would shift the line
           // 2px left of the surrounding rail.
           isQuiet ? "h-4" : "h-5",
+          tile && "self-center",
         )}
       >
         {/* Without a chapter graph (a log outside /works), the tenure
@@ -602,7 +674,7 @@ export function TimelineCommit({
           className="inline-flex items-center justify-center"
           style={onSide ? { transform: `translateX(-${LANE}px)` } : undefined}
         >
-        {isQuiet ? (
+        {dotInGutter ? (
           // A row in the quiet voice gets a tiny CSS dot, quieter than any
           // lucide icon and reading as "node on the rail" rather than
           // "category icon". That is every event, and an aside while it is
@@ -665,7 +737,31 @@ export function TimelineCommit({
         </span>
       </span>
 
-      <div className="flex items-center gap-2 min-w-0">
+      <div
+        className={cn(
+          "flex items-center gap-2 min-w-0",
+          // The title line as tall as the tile beside it, the name and the
+          // credit set at its middle.
+          tile && "relative min-h-[2.25rem] @sm:min-h-[2.5rem]",
+          indent,
+        )}
+      >
+        {tile && (
+          // The tile, at the head of the title line. A hairline over it
+          // keeps a white plate's edge on a light page — over the picture,
+          // not around it, since an inset shadow on an `<img>` paints under
+          // the pixels.
+          <span
+            aria-hidden
+            className={cn(
+              "absolute left-0 top-0 overflow-hidden rounded-[0.24em]",
+              RESUME_TILE,
+            )}
+          >
+            <ProjectMark icon={tile} className="size-full" />
+            <span className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-border" />
+          </span>
+        )}
         {isQuiet ? (
           // Events and folded asides drop a tier — in size and face, not
           // to the tertiary rung: a life event is the row's whole content,
@@ -679,10 +775,24 @@ export function TimelineCommit({
           <span
             className={cn(
               "min-w-0 flex-1",
-              printsMessage ? TYPE.rowHeading : TYPE.rowTitle,
+              // A résumé entry's name is a heading at every form.
+              printsMessage || asResume ? TYPE.rowHeading : TYPE.rowTitle,
             )}
           >
             {displayTitle}
+            {facts?.stat && (
+              // Its one number, said quietly after the name. The space is a
+              // break opportunity: where the name and the number do not fit
+              // beside the years, the number takes the next line whole
+              // instead of dragging the name's last word down with it — and
+              // the space is the whole gap, so a wrapped number starts flush.
+              <>
+                {" "}
+                <span className={cn("whitespace-nowrap font-normal tabular-nums", TYPE.rowMeta)}>
+                  {facts.stat}
+                </span>
+              </>
+            )}
             {data.languageBadge && (
               <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
                 {data.languageBadge}
@@ -743,11 +853,51 @@ export function TimelineCommit({
         </span>
       </div>
 
+      {/* A résumé entry's links (the `resume` flag), where the form prints
+          no covers: each site once, by name, in the metadata's mono. Each
+          opens through the attachments — the drawer on a phone, its native
+          home on a desk — as its cover would; a modified click is the
+          browser's. `data-row-body`, so hovering one does not wash the row. */}
+      {links.length > 0 && (
+        <ul
+          data-row-body
+          className={cn(
+            "col-start-2 lg:col-start-3 mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-0.5",
+            indent,
+          )}
+        >
+          {links.map((link) => (
+            <li key={link.index} className="min-w-0 max-w-full">
+              <a
+                href={link.href}
+                {...(/^https?:/.test(link.href)
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                  if (!attachments || !attachmentSet) return;
+                  e.preventDefault();
+                  attachments.open(attachmentSet, link.index);
+                }}
+                title={link.label}
+                className={cn(
+                  TYPE.rowMeta,
+                  "block max-w-[14rem] truncate transition-colors duration-200 hover:text-foreground",
+                )}
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* Pinned items: rendered once here whether the row is folded or
           expanded, so toggling never remounts them. */}
       {!isQuiet && pinnedMedia.length > 0 && (
         <div
-          className="col-start-2 lg:col-start-3 mt-2"
+          className={cn("col-start-2 lg:col-start-3 mt-2", indent)}
           onClick={(e) => e.stopPropagation()}
         >
           <MediaRenderer
@@ -773,7 +923,7 @@ export function TimelineCommit({
           text is what the row's own control acts on, so it has to stay part
           of the trigger at both densities. */}
       {!isQuiet && rowForm.description !== "none" && !!data.description && (
-        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
+        <div className={cn("col-start-2 lg:col-start-3 mt-1.5 min-w-0", indent)}>
           <Description
             text={data.description}
             isExpanded={rowForm.description === "full"}
@@ -791,7 +941,7 @@ export function TimelineCommit({
           on stays the row's; the empty stretch beside a single cover presses
           the row like any other part of it. */}
       {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
-        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
+        <div className={cn("col-start-2 lg:col-start-3 mt-1.5 min-w-0", indent)}>
           {/* The covers get a line of their own, always. One cover used to
               tuck up beside the text and two or more dropped below it, so a
               row changed shape with its cargo — and a column of twenty-five
@@ -826,7 +976,13 @@ export function TimelineCommit({
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
-          className="col-start-2 lg:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
+          className={cn(
+            "col-start-2 lg:col-start-3 mt-2 min-w-0 space-y-4 cursor-default",
+            // A phone's grid is the screen's width, edge to edge; hung off
+            // the tile it would start a tile in and still run off the right.
+            // It keeps the column there and hangs from a desk's.
+            tile && "@sm:pl-13",
+          )}
         >
           <AttachmentGrid
             items={data.stripItems}
@@ -864,7 +1020,7 @@ export function TimelineCommit({
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
-          className="col-start-2 lg:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
+          className={cn("col-start-2 lg:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default", indent)}
         >
           {data.commentary && <Commentary text={data.commentary} />}
 
