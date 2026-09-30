@@ -24,7 +24,7 @@ import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
-import type { RowGraph } from "./timeline-lane";
+import type { RowGraph, RowLit } from "./timeline-lane";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
 import { useInputCapability } from "@/services";
@@ -50,6 +50,8 @@ export interface CommitProps {
   rail?: string;
   /** Timeline-only: this row's piece of the chapter graph. */
   graph?: RowGraph;
+  /** Timeline-only: which of those lines a lit connector runs along. */
+  graphLit?: RowLit;
   /** The role commit's id that owns this row's rail segment. */
   segmentId?: string | null;
   /** True when the parent timeline currently highlights this segment. */
@@ -83,6 +85,7 @@ export function Commit({
   hideDate = false,
   rail,
   graph,
+  graphLit,
   segmentId,
   isSegmentActive = false,
   beamSpec = null,
@@ -162,6 +165,7 @@ export function Commit({
           hideDate={hideDate}
           rail={rail}
           graph={graph}
+          graphLit={graphLit}
           isRole={commit.type === "role"}
           segmentId={segmentId ?? null}
           isSegmentActive={isSegmentActive}

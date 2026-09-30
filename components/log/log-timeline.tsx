@@ -23,9 +23,13 @@ import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
-import { TimelineConnector } from "./timeline-connector";
 import { type BeamSpec, GUTTER_PULL, HASH_CELL } from "./timeline-commit";
-import { RefInCell, type RefLook, type RowGraph } from "./timeline-lane";
+import {
+  RefInCell,
+  type RefLook,
+  type RowGraph,
+  type RowLit,
+} from "./timeline-lane";
 import { useTimelineEdit } from "./timeline-edit-context";
 import type { WorksRef } from "@/systems/devtool";
 
@@ -191,11 +195,7 @@ function TagBlock({
 
   // Compute beam specs for explicit `attachedTo` attachments. Both
   // endpoints (source + target) carry the same spec so hovering/
-  // focusing/expanding EITHER end brightens the connector line.
-  // Per-endpoint gap is derived from the commit so the line meets each
-  // endpoint at the right radius (role ring vs icon vs event/aside dot).
-  const gapFor = (c: CommitData) =>
-    c.type === "role" ? 10 : c.type === "event" || c.present === "aside" ? 3 : 7;
+  // focusing/expanding EITHER end lights the connector's path.
 
   const {
     railInfo,
@@ -226,12 +226,6 @@ function TagBlock({
       })),
     ];
 
-    const attachmentsWithGaps = allBeams.map((b) => ({
-      ...b,
-      fromGap: gapFor(commits[b.fromIdx]),
-      toGap: gapFor(commits[b.toIdx]),
-    }));
-
     // Each beam endpoint stashes a BeamSpec so hover/focus/expand
     // fires `activeBeam`. Source specs carry their own fromHash for
     // exact-match activation. Target specs use `fromHash: null` so
@@ -255,7 +249,7 @@ function TagBlock({
     return {
       railInfo: rail,
       beamSpecs: specs,
-      attachments: attachmentsWithGaps,
+      attachments: allBeams,
       bylines: bylinesArr,
       isHidden: hidden,
       hasVisible: commits.some((c) => !hidden(c)),
@@ -267,7 +261,36 @@ function TagBlock({
   // but a spine with no vertebrae is just a line.
   if (!hasVisible) return null;
 
-  const { items, graphs } = chapterGraph(commits, isHidden, laneOf);
+  const graph = chapterGraph(commits, isHidden, laneOf);
+  const { items, graphs } = graph;
+  // The connectors lit right now — a commit and the role it hangs from —
+  // drawn along the graph's own lines rather than straight down the icon
+  // column (see `litPath`).
+  const lit = (() => {
+    const rows = new Map<number, RowLit>();
+    const refs = new Map<number, "aside" | "through">();
+    if (!activeBeam) return { rows, refs };
+    const posOf = new Map<number, number>();
+    items.forEach((it, p) => {
+      if (it.kind === "row") posOf.set(it.i, p);
+    });
+    for (const a of attachments) {
+      const active =
+        activeBeam.toHash === a.toHash &&
+        (activeBeam.fromHash === a.fromHash ||
+          (activeBeam.fromHash === null && !a.inferred));
+      const from = posOf.get(a.fromIdx);
+      const to = posOf.get(a.toIdx);
+      if (!active || from === undefined || to === undefined) continue;
+      const path = litPath(graph, from, to);
+      for (const [p, l] of path.rows) {
+        const i = (items[p] as { i: number }).i;
+        rows.set(i, { ...rows.get(i), ...l });
+      }
+      for (const [p, l] of path.refs) refs.set(p, l);
+    }
+    return { rows, refs };
+  })();
   // The tag's message: an annotated tag carries one, and `git show` prints
   // it before the commits it marks — the chapter, as its author tells it.
   const message = localizeOptional(tag.narrative, locale);
@@ -394,6 +417,7 @@ function TagBlock({
                     mode={item.mode}
                     pinned={pinned}
                     look={refLook}
+                    lit={lit.refs.get(items.indexOf(item))}
                   />
                 );
               }
@@ -407,6 +431,7 @@ function TagBlock({
                   hideDate={tag.hideDate || commits[i].hideDate}
                   rail={railInfo[i].rail}
                   graph={graphs[i]}
+                  graphLit={lit.rows.get(i)}
                   segmentId={railInfo[i].segmentId}
                   isSegmentActive={
                     railInfo[i].segmentId !== null &&
@@ -434,34 +459,9 @@ function TagBlock({
             );
           });
         })()}
-        {/* Persistent back-point connectors — one per explicit
-         *  attachedTo. They run through the icon column (same visual
-         *  vocabulary as the tenure rail), dimmed by default and
-         *  brightened when EITHER endpoint is the activeBeam. */}
-        {attachments.map((a) => (
-          <TimelineConnector
-            key={`${a.fromHash}->${a.toHash}`}
-            fromHash={a.fromHash}
-            toHash={a.toHash}
-            fromGap={a.fromGap}
-            toGap={a.toGap}
-            // The trunk already runs through the icon column, so at rest
-            // every connector is it — a second translucent line laid over
-            // it would read as a darker stretch. They only light.
-            hideWhenIdle
-            isActive={
-              !!activeBeam &&
-              activeBeam.toHash === a.toHash &&
-              // Exact source match always activates. Target hover
-              // (fromHash null) activates ONLY explicit attachedTo
-              // connectors — for inferred beams the role-hover
-              // brightens the rail directly via CSS so we don't
-              // paint a long overlapping line through icons.
-              (activeBeam.fromHash === a.fromHash ||
-                (activeBeam.fromHash === null && !a.inferred))
-            }
-          />
-        ))}
+        {/* No connector overlay: a lit connector is the graph's own lines,
+            lit along its path (`lit` above), so it bends where the chapter
+            does instead of cutting straight down the icon column. */}
       </div>
     </div>
   );
@@ -497,7 +497,7 @@ function chapterGraph(
   commits: CommitData[],
   isHidden: (c: CommitData) => boolean,
   laneOf: ReadonlyMap<string, number[]> | undefined,
-): { items: Item[]; graphs: (RowGraph | undefined)[] } {
+): ChapterGraph {
   const lanesOf = (c: CommitData) => laneOf?.get(c.id) ?? [0];
   const items: Item[] = [];
   const started = new Set<number>([0]);
@@ -531,20 +531,24 @@ function chapterGraph(
   };
 
   const graphs: (RowGraph | undefined)[] = commits.map(() => undefined);
+  const holders: Holders[] = [];
   let trunk = 0;
   let side: number | null = null;
   items.forEach((it, p) => {
     if (it.kind === "ref") {
+      const before = { trunk, side };
       if (lastOf(trunk) > p && side === null) {
         if (own(trunk, it.lane, p) > own(it.lane, trunk, p)) {
           it.mode = "fork";
           side = it.lane;
+          holders[p] = { ...before, after: { trunk, side } };
           return;
         }
         it.mode = "take";
         side = trunk;
       }
       trunk = it.lane;
+      holders[p] = { ...before, after: { trunk, side } };
       return;
     }
     // The trunk's chapter is over and the side lane runs on: it turns back
@@ -558,6 +562,7 @@ function chapterGraph(
     const here = on(p);
     const onSide = side !== null && here.includes(side);
     const onTrunk = here.includes(trunk) || !onSide;
+    holders[p] = { trunk, side };
     const g: RowGraph = { trunkAbove: !enter, trunkBelow: false, enter };
     if (side !== null) {
       const end = lastOf(side);
@@ -585,7 +590,82 @@ function chapterGraph(
     graphs[it.i]!.trunkBelow =
       !!next && !(next.kind === "row" && graphs[next.i]?.enter);
   });
-  return { items, graphs };
+  return { items, graphs, holders, on };
+}
+
+/** Who held the trunk and the side lane at an item — for a ref, before it
+ *  and after it. */
+interface Holders {
+  trunk: number;
+  side: number | null;
+  after?: { trunk: number; side: number | null };
+}
+
+interface ChapterGraph {
+  items: Item[];
+  graphs: (RowGraph | undefined)[];
+  holders: Holders[];
+  /** The chapters (lane indices) an item's commit is on. */
+  on: (p: number) => number[];
+}
+
+/**
+ * The lines a connector lights, row by row: from one end's node to the
+ * other's, along the chapter both ends are on — wherever that chapter runs
+ * in between. It holds the trunk, or has stepped aside at a ref, or comes
+ * back in at an `enter`; the lit lines are the ones it is drawn on.
+ */
+function litPath(
+  graph: ChapterGraph,
+  fromPos: number,
+  toPos: number,
+): { rows: Map<number, RowLit>; refs: Map<number, "aside" | "through"> } {
+  const rows = new Map<number, RowLit>();
+  const refs = new Map<number, "aside" | "through">();
+  const [a, b] = fromPos < toPos ? [fromPos, toPos] : [toPos, fromPos];
+  const shared = graph.on(a).filter((l) => graph.on(b).includes(l));
+  const c = shared[0] ?? graph.on(b)[0] ?? 0;
+  const add = (p: number, lit: RowLit) =>
+    rows.set(p, { ...rows.get(p), ...lit });
+
+  for (let p = a; p <= b; p++) {
+    const it = graph.items[p];
+    const h = graph.holders[p];
+    if (!h) continue;
+    if (it.kind === "ref") {
+      if (it.mode === "take" && h.trunk === c) refs.set(p, "aside");
+      else if (h.after?.trunk === c || h.trunk === c) refs.set(p, "through");
+      continue;
+    }
+    const g = graph.graphs[it.i]!;
+    const top = p === a;
+    const bottom = p === b;
+    // Where the chapter runs at this row: on the trunk, or the side lane.
+    const onTrunk = h.trunk === c;
+    const onSide = h.side === c;
+    if (!onTrunk && !onSide) {
+      // Not drawn here at all (a hole in the data): fall back on the trunk.
+      add(p, { trunkAbove: !top, trunkBelow: !bottom });
+      continue;
+    }
+    if (onTrunk) {
+      add(p, {
+        // Came in from the side lane at this very node.
+        ...(g.enter ? { sideAbove: !top } : { trunkAbove: !top }),
+        trunkBelow: !bottom,
+      });
+      continue;
+    }
+    // On the side lane: the node is on the trunk (the commit is on both,
+    // and the lane reaches in to it) or on the side lane itself.
+    const node = g.side === "node";
+    add(p, {
+      sideAbove: !top,
+      sideBelow: !bottom,
+      reach: !node && (top || bottom),
+    });
+  }
+  return { rows, refs };
 }
 
 /** Where a ref's line sits: the same grid as a row, laid over the marker, so
@@ -595,11 +675,13 @@ function RefGraphLayer({
   mode,
   first,
   look,
+  lit,
 }: {
   y: number;
   mode?: RefMode;
   first?: boolean;
   look?: RefLook | "auto";
+  lit?: "aside" | "through";
 }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -626,14 +708,14 @@ function RefGraphLayer({
                 {/* The marker over the trunk on a phone, a ring on it where
                     the marker has moved to the hash slot. */}
                 <span className="contents @sm:hidden">
-                  <RefInCell y={y} mode={mode} first={first} look="under" />
+                  <RefInCell y={y} mode={mode} first={first} look="under" lit={lit} />
                 </span>
                 <span className="hidden @sm:contents">
-                  <RefInCell y={y} mode={mode} first={first} look="ring" />
+                  <RefInCell y={y} mode={mode} first={first} look="ring" lit={lit} />
                 </span>
               </>
             ) : (
-              <RefInCell y={y} mode={mode} first={first} look={look} />
+              <RefInCell y={y} mode={mode} first={first} look={look} lit={lit} />
             )}
           </span>
         </div>
@@ -653,17 +735,19 @@ function RefRow({
   mode,
   pinned,
   look,
+  lit,
 }: {
   tag: Tag;
   locale: Locale;
   mode: RefMode;
   pinned: boolean;
   look: RefLayout;
+  lit?: "aside" | "through";
 }) {
   const message = localizeOptional(tag.narrative, locale);
   return (
     <div className="relative pt-8 pb-2">
-      <RefGraphLayer y={32 + 11} mode={mode} look={lookOf(look)} />
+      <RefGraphLayer y={32 + 11} mode={mode} look={lookOf(look)} lit={lit} />
       <div className="flex items-center gap-3">
         <RefLabel
           look={look}

@@ -20,7 +20,13 @@ import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
 import { ProjectMark } from "./project-mark";
 import { QuietLine } from "./quiet-line";
-import { GraphInCell, HASH_NUDGE, LANE, type RowGraph } from "./timeline-lane";
+import {
+  GraphInCell,
+  HASH_NUDGE,
+  LANE,
+  type RowGraph,
+  type RowLit,
+} from "./timeline-lane";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { Description, Commentary, AuthorFields } from "./embeds/shared";
 import { Paperclip } from "lucide-react";
@@ -72,6 +78,8 @@ interface TimelineCommitProps {
    *  line through the icon column in place of the tenure rail, which then
    *  only lights it. */
   graph?: RowGraph;
+  /** Which of those lines a lit connector runs along. */
+  graphLit?: RowLit;
   /** True when this row IS the role that owns its segment. */
   isRole?: boolean;
   /** The role id that owns this row's rail segment. */
@@ -135,6 +143,7 @@ export function TimelineCommit({
   hideDate = false,
   rail,
   graph,
+  graphLit,
   isRole = false,
   beamSpec = null,
   onBeamSet,
@@ -436,8 +445,9 @@ export function TimelineCommit({
       )}
 
       <span
-        // data-rail-icon lets cross-row attachment lines measure this
-        // span's center to anchor their geometry (see TimelineConnector).
+        // data-rail-icon marks the row's cell on the graph: the rail, the
+        // chapter lanes and their lit paths are all drawn inside it
+        // (see timeline-lane.tsx).
         data-rail-icon
         className={cn(
           "relative inline-flex items-center justify-center w-5",
@@ -464,6 +474,7 @@ export function TimelineCommit({
             graph={graph}
             gap={iconGapPx}
             cluster={{ above: hasRailAbove, below: hasRailBelow }}
+            lit={graphLit}
           />
         )}
         {!graph && hasRailBelow && (

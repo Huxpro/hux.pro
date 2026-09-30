@@ -37,6 +37,30 @@ const BEND = 16;
 
 const INK = "pointer-events-none absolute w-px bg-muted-foreground/10";
 const STROKE = "stroke-muted-foreground/10";
+/** The same ink, lit — a connector's path while one of its ends is hovered,
+ *  at the tenure highlight's strength. */
+const INK_LIT = "pointer-events-none absolute w-px bg-muted-foreground/30";
+const STROKE_LIT = "stroke-muted-foreground/30";
+const ink = (lit?: boolean) =>
+  cn(lit ? INK_LIT : INK, "transition-colors duration-200");
+const stroke = (lit?: boolean) =>
+  cn(lit ? STROKE_LIT : STROKE, "transition-colors duration-200");
+
+/**
+ * Which of a row's lines a lit path runs along. A connector (a commit and
+ * the role it hangs from) follows the chapter they share through the graph —
+ * the trunk where that chapter holds it, the side lane where it has stepped
+ * aside, and `reach` the stroke between the side lane and a node on the
+ * trunk. A straight line down the icon column would cross whatever other
+ * chapter held the trunk in between.
+ */
+export interface RowLit {
+  trunkAbove?: boolean;
+  trunkBelow?: boolean;
+  sideAbove?: boolean;
+  sideBelow?: boolean;
+  reach?: boolean;
+}
 
 /** What one commit row draws of the graph. */
 export interface RowGraph {
@@ -61,10 +85,12 @@ export function GraphInCell({
   graph,
   gap,
   cluster,
+  lit = {},
 }: {
   graph: RowGraph;
   gap: number;
   cluster: { above: boolean; below: boolean };
+  lit?: RowLit;
 }) {
   const lane = `calc(50% - ${LANE}px)`;
   const onSide = graph.side === "node";
@@ -76,10 +102,7 @@ export function GraphInCell({
         <span
           aria-hidden
           data-rail-above={cluster.above && !onSide ? "" : undefined}
-          className={cn(
-            INK,
-            "left-1/2 -translate-x-1/2 transition-colors duration-200",
-          )}
+          className={cn(ink(lit.trunkAbove), "left-1/2 -translate-x-1/2")}
           style={{ top: "-1000px", bottom: `calc(50% + ${trunkGap}px)` }}
         />
       )}
@@ -87,38 +110,46 @@ export function GraphInCell({
         <span
           aria-hidden
           data-rail-below={cluster.below && !onSide ? "" : undefined}
-          className={cn(
-            INK,
-            "left-1/2 -translate-x-1/2 transition-colors duration-200",
-          )}
+          className={cn(ink(lit.trunkBelow), "left-1/2 -translate-x-1/2")}
           style={{ top: `calc(50% + ${trunkGap}px)`, bottom: "-1000px" }}
         />
       )}
       {(graph.side === "pass" || graph.side === "touch") && (
-        <span
-          aria-hidden
-          className={INK}
-          style={{ left: lane, top: "-1000px", bottom: "-1000px" }}
-        />
+        <>
+          {/* In halves, so a path can light the one it runs along. */}
+          <span
+            aria-hidden
+            className={ink(lit.sideAbove)}
+            style={{ left: lane, top: "-1000px", bottom: "50%" }}
+          />
+          <span
+            aria-hidden
+            className={ink(lit.sideBelow)}
+            style={{ left: lane, top: "50%", bottom: "-1000px" }}
+          />
+        </>
       )}
       {graph.side === "touch" && (
         <span
           aria-hidden
-          className="pointer-events-none absolute h-px bg-muted-foreground/10"
+          className={cn(
+            "pointer-events-none absolute h-px transition-colors duration-200",
+            lit.reach ? "bg-muted-foreground/30" : "bg-muted-foreground/10",
+          )}
           style={{ left: lane, top: "50%", width: LANE - gap }}
         />
       )}
       {onSide && graph.sideAbove && (
         <span
           aria-hidden
-          className={INK}
+          className={ink(lit.sideAbove)}
           style={{ left: lane, top: "-1000px", bottom: `calc(50% + ${gap}px)` }}
         />
       )}
       {onSide && graph.sideBelow && (
         <span
           aria-hidden
-          className={INK}
+          className={ink(lit.sideBelow)}
           style={{ left: lane, top: `calc(50% + ${gap}px)`, bottom: "-1000px" }}
         />
       )}
@@ -126,7 +157,7 @@ export function GraphInCell({
         <>
           <span
             aria-hidden
-            className={INK}
+            className={ink(lit.sideAbove)}
             style={{
               left: lane,
               top: "-1000px",
@@ -144,7 +175,7 @@ export function GraphInCell({
               d={`M 0.5 0 C 0.5 ${BEND / 2} ${LANE} ${BEND / 2} ${LANE} ${BEND}`}
               fill="none"
               strokeWidth={1}
-              className={STROKE}
+              className={stroke(lit.sideAbove)}
             />
           </svg>
         </>
@@ -153,7 +184,7 @@ export function GraphInCell({
         <>
           <span
             aria-hidden
-            className={INK}
+            className={ink(lit.sideAbove)}
             style={{
               left: lane,
               top: "-1000px",
@@ -171,7 +202,7 @@ export function GraphInCell({
               d={`M 0.5 0 Q 0.5 ${TURN + 0.5} ${TURN} ${TURN + 0.5} H ${LANE - gap}`}
               fill="none"
               strokeWidth={1}
-              className={STROKE}
+              className={stroke(lit.sideAbove || lit.reach)}
             />
           </svg>
         </>
@@ -201,9 +232,13 @@ export function RefInCell({
   mode = "plain",
   first = false,
   look = "stub",
+  lit,
 }: {
   y: number;
   look?: RefLook;
+  /** A lit path through this ref: the chapter stepping aside here, or the
+   *  trunk running straight through. */
+  lit?: "aside" | "through";
   /** `plain`: the trunk passes to this chapter. `take`: this chapter takes
    *  the trunk and the running one steps aside. `fork`: the running one
    *  keeps the trunk and this chapter forks off beside it. */
@@ -225,7 +260,7 @@ export function RefInCell({
         <>
           <span
             aria-hidden
-            className={cn(INK, "left-1/2 -translate-x-1/2")}
+            className={cn(ink(lit === "aside"), "left-1/2 -translate-x-1/2")}
             style={{ top: "-1000px", height: 1000 + bendTop }}
           />
           <svg
@@ -239,12 +274,12 @@ export function RefInCell({
               d={`M ${LANE} 0 C ${LANE} ${bendH / 2} 0.5 ${bendH / 2} 0.5 ${bendH}`}
               fill="none"
               strokeWidth={1}
-              className={STROKE}
+              className={stroke(lit === "aside")}
             />
           </svg>
           <span
             aria-hidden
-            className={INK}
+            className={ink(lit === "aside")}
             style={{ left: lane, top: bendTop + bendH, bottom: "-1000px" }}
           />
         </>
@@ -278,7 +313,7 @@ export function RefInCell({
       {!stepAside && !first && (
         <span
           aria-hidden
-          className={cn(INK, "left-1/2 -translate-x-1/2")}
+          className={cn(ink(lit === "through"), "left-1/2 -translate-x-1/2")}
           style={{
             top: "-1000px",
             height:
@@ -297,7 +332,7 @@ export function RefInCell({
           )}
           <span
             aria-hidden
-            className={cn(INK, "left-1/2 -translate-x-1/2")}
+            className={cn(ink(lit === "through"), "left-1/2 -translate-x-1/2")}
             style={{ top: y + (look === "ring" ? 5 : 11), bottom: "-1000px" }}
           />
         </>
@@ -307,7 +342,10 @@ export function RefInCell({
           {/* The trunk starts at the marker: out from under it below `lg`… */}
           <span
             aria-hidden
-            className={cn(INK, "left-1/2 -translate-x-1/2 lg:hidden")}
+            className={cn(
+              ink(lit === "through"),
+              "left-1/2 -translate-x-1/2 lg:hidden",
+            )}
             style={{ top: y, bottom: "-1000px" }}
           />
           {/* …and from `lg`, out to its left edge and down. */}
@@ -322,12 +360,15 @@ export function RefInCell({
               d={`M ${reach} 0.5 H ${TURN + 0.5} Q 0.5 0.5 0.5 ${TURN + 0.5}`}
               fill="none"
               strokeWidth={1}
-              className={STROKE}
+              className={stroke(lit === "through")}
             />
           </svg>
           <span
             aria-hidden
-            className={cn(INK, "left-1/2 -translate-x-1/2 hidden lg:block")}
+            className={cn(
+              ink(lit === "through"),
+              "left-1/2 -translate-x-1/2 hidden lg:block",
+            )}
             style={{ top: y + TURN, bottom: "-1000px" }}
           />
         </>

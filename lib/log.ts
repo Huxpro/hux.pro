@@ -1423,8 +1423,9 @@ export function computeInferredBeams(
 
 /**
  * Compute explicit attachment links: commits with `attachedTo: "<id>"`
- * pointing at another commit in the same tag. Rendered as a persistent
- * connector line in the icon column (see TimelineConnector).
+ * pointing at another commit in the same tag. Hovering either end lights
+ * the path between them along the chapter graph (see `litPath` in
+ * components/log/log-timeline.tsx).
  *
  * Targets can be roles (an artifact attached to a tenure context) or
  * events (an artifact attached to an ambient period like a sabbatical).
