@@ -55,8 +55,10 @@
      `decoration-<token>/NN` — that is a color-mix(), which Safari does not
      paint as a decoration. */
   --color-ink-line: var(--ink-line);
+  /* Type roles, not faces: each resolves to a token on <body> (below,
+     "Type roles"), which an OS theme may re-point. */
   --font-sans: var(--font-sans);
-  --font-serif: var(--font-serif-latin), var(--font-serif-cjk), serif;
+  --font-serif: var(--font-serif);
   --font-mono: var(--font-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   /* System glass fills. Every floating System UI surface — widgets, the
@@ -128,8 +130,8 @@
      Colour stays black in both themes; in dark mode the border does most of
      the separating (a black shadow on a dark surface barely reads), matching
      the existing FAB / Live Activity recipe. */
-  --shadow-raised: 0 4px 6px -4px rgb(0 0 0 / 0.05), 0 10px 15px -3px rgb(0 0 0 / 0.05);
-  --shadow-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.2);
+  --shadow-raised: var(--elevation-raised);
+  --shadow-overlay: var(--elevation-overlay);
 }
 
 /* =============================================================================
@@ -290,6 +292,11 @@
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
   --radius: 0.625rem;
+  /* The two heights `shadow-raised` / `shadow-overlay` paint (see the
+     elevation note in the theme block above) — tokens, so an OS theme can
+     swap in its own. */
+  --elevation-raised: 0 4px 6px -4px rgb(0 0 0 / 0.05), 0 10px 15px -3px rgb(0 0 0 / 0.05);
+  --elevation-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.2);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -392,13 +399,16 @@ html[data-tint="wallpaper"] {
 
 /* =============================================================================
    THE LADDER — every derived token, declared once, on every element that can
-   change an input: the root, a flipped bare zone, and a lab tile (`.ink-scope`)
+   change an input: the root, <body> (where an OS theme sets the inputs of a
+   whole page, since the root's are written inline by the legibility policy),
+   a flipped bare zone, and a lab tile (`.ink-scope`)
    carrying its own `--wp-*`. A custom property is computed where it is
    declared and inherited as a value, so a zone that only changed `--ink` would
    otherwise inherit the root's grey; listing it here is what makes the swap
    propagate to `text-muted-foreground`, `border-border` and the rest.
    ============================================================================= */
 :root,
+body,
 .ink-scope,
 .ink-flip,
 .ink-bare,
@@ -633,10 +643,25 @@ html.dragging * {
 }
 
 /* Hide scrollbars while preserving scroll (e.g. the dock pill row) */
-/* The code face, captured where next/font sets it, so a theme that re-points
-   `--font-mono` for its own voice can still set code in it. */
+/* Type roles. next/font puts the faces on <body> under their own names
+   (app/layout.tsx); these are the roles the utilities (`font-sans`,
+   `font-serif`, `font-mono`) and every rule read, declared where the faces
+   are. An OS theme re-points a role, never a face — so `--font-code`, the
+   face code is set in, survives any theme that gives `--font-mono` another
+   voice (the Android theme's overlay, app/themes/android/foundation.css). */
 body {
-  --font-code: var(--font-mono);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-serif-latin), var(--font-serif-cjk), serif;
+  --font-mono: var(--font-jetbrains);
+  --font-code: var(--font-jetbrains);
+}
+@layer base {
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-code);
+  }
 }
 
 .no-scrollbar {

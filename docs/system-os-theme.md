@@ -6,8 +6,8 @@ one attribute on `<html>`, so nothing re-renders to change it. It is not the
 
 | Theme | Platform | What it is |
 |---|---|---|
-| **Hux** (default) | Apple | The site as built: Liquid Glass surfaces (Tinted / Clear, [system-glass.md](./system-glass.md)), the mono and serif voice, iOS's press wash and jiggle mode |
-| **Android** | Android, Material 3 Expressive | Opaque tonal surfaces coloured from the wallpaper, Google Sans Flex, Compose's ripple, the resize frame, springs, the container transform |
+| **Hux** | Apple | The site as built: Liquid Glass surfaces (Tinted / Clear, [system-glass.md](./system-glass.md)), the mono and serif voice, iOS's press wash and jiggle mode |
+| **Android** (default) | Android, Material 3 Expressive | Opaque tonal surfaces coloured from the wallpaper, Google Sans Flex, Compose's ripple, the resize frame, springs, the container transform |
 
 **Triggers.**
 
@@ -34,8 +34,50 @@ its name. There are four layers, outermost first:
 |---|---|---|
 | **1. Registry** | `systems/os/themes/` (`hux.ts`, `android.ts`, `index.ts`) | One typed object per theme: its label and its `ThemeMetadata` (`pressFeedback`, `editMode`, `layoutMotion`, `haptics`, `dynamicColor`, `openPage`, `materialSetting`). No colours here. |
 | **2. Root** | `systems/os/lib/boot.ts`, `lib/root.ts` | `data-os-theme` and `data-os-platform` on `<html>`. `OS_THEME_BOOT` sets them before first paint, built from the registry. After that, `applyRootOsTheme` is the only writer, and `currentOsTheme()` / `currentThemeMetadata()` read them back for code outside React. |
-| **3. CSS** | Hux: `app/globals.css` (the site's own stylesheet). Android: `app/themes/android/*.css` | Each non-default theme is an **overlay** that only adds rules. Every one of those rules is scoped to `:root[data-os-theme="<id>"]`, so removing the attribute is a complete revert. Small per-element differences use the variants `android:`, `hux:` (Hux, or no theme set) and `m3:` (inside a Material container). |
+| **3a. Foundation** | Hux: `app/globals.css` (the token inputs). Android: `app/themes/android/foundation.css` | The site's tokens form a ladder. A few **inputs** feed it: the ink (`--ink`), the grounds (`--background`, `--card`, `--popover`), the glass fills, `--radius`, the elevation (`--elevation-*`) and the type roles (`--font-sans`, `--font-mono`, `--font-serif`). Every colour a component paints with is **derived** from those inputs, and every utility resolves to a token. A theme changes the whole site by feeding its values into the inputs, at the root and on `<body>`. That is how the Android theme reaches every page, including components it never names. |
+| **3b. Roles** | Hux: `app/globals.css`. Android: `app/themes/android/*.css` | The Android theme also adds what no token can express: geometry, structure and a role's container (a widget card, the bottom sheet, the FAB). It is an **overlay** that only adds rules. Every rule is scoped to `:root[data-os-theme="<id>"]`, so removing the attribute fully reverts it. Small per-element differences use the variants `android:`, `hux:` (Hux, or no theme set) and `m3:` (inside a Material container). |
 | **4. Structure** | `systems/os/components/themed.tsx` | Used where the DOM itself differs, for example a spinner that is a ring in one theme and a morphing shape in the other. `<Themed hux={…} android={…} />` renders both forms, and the stylesheet shows one through `display: contents` wrappers. That means no second render and no hydration mismatch. |
+
+**Why the foundation layer exists.** The first version of the Android
+theme re-pointed tokens inside a list of hooks: the widget card, the sheet
+shell, the snackbar. That list was the home screen and its surfaces, so
+every other page (a post, /works, /docs, a toolbar) stayed Hux. The site's
+foundation was already unified: about 1,400 token uses, a derived ladder,
+and typography roles. The theme had simply entered it at the wrong level,
+overriding *derived* tokens locally instead of *inputs* globally. Three
+places in the foundation also had values no theme could reach, and have
+been fixed:
+
+- the type roles were next/font's own variables, so re-pointing
+  `--font-mono` also lost the code face (the faces now load as
+  `--font-inter` / `--font-jetbrains`, and the roles point at them;
+  `--font-code` keeps code in JetBrains Mono);
+- `shadow-raised` / `shadow-overlay` were inlined literals (they now read
+  `--elevation-raised` / `--elevation-overlay`);
+- the ladder was derived only on the root, whose wallpaper inputs are
+  written inline by the legibility policy, so a page could not change them
+  (the ladder is now declared on `<body>` too).
+
+What remains is raw palette colour in classes (`bg-white/80`,
+`text-zinc-500`, …): 197 of them in 43 files. Many are legitimate, such as a
+brand mark or a black scrim over video. Some are not. `pnpm themes:check`
+ratchets them per file (`scripts/theme-leaks.json`): a count can fall but
+never rise.
+
+**Pages.** Off the home screen, a page in the Android theme is an app, and
+an Android app is an opaque screen: `surface`, no wallpaper, no relief. The
+home screen is the launcher, where the wallpaper is.
+`data-wallpaper-surface` (reading / desktop), the legibility policy's own
+split, decides which is which. `app/themes/android/pages.css` draws the page
+chrome:
+
+| Hook | Marks | Android draws it as |
+|---|---|---|
+| `[data-page-nav]` (`SystemNav`) | the way back | the top app bar's navigation icon: arrow_back (via `<Themed>`), 48dp target, state layer |
+| `[data-page-header]` (`PageLayout`) | the page title | Headline Large (32/40), Display Small on a wide screen |
+| `[data-fab="fab"]` (the ⌘K button off home) | the page's action | M3's FAB: 56dp, 16dp corners, `primary-container`, search icon |
+| `[data-chip="filter"]` (`HeaderAction`, the /works and /prompt toolbars) | a filter | a filter chip: 32dp, 8dp, `outline-variant` edge, tonal when selected |
+| `[data-chip="action"]` | an action in a line of metadata | a text button in `primary` |
 
 **The contract between components and overlays is a set of role hooks.**
 Components mark what they are, and the overlay decides how that looks. No
@@ -72,7 +114,9 @@ also run in CI) fails when:
 2. an overlay isn't imported by `app/globals.css`;
 3. a stylesheet outside `app/themes/` styles a theme by attribute;
 4. a component compares a theme id (`theme === "android"`, `dataset.osTheme`)
-   instead of reading metadata.
+   instead of reading metadata;
+5. a file gains a raw palette colour in a class (the leak ratchet,
+   `scripts/theme-leaks.json`; lower it with `--update` after removing some).
 
 **Adding a theme:**
 
@@ -82,6 +126,10 @@ also run in CI) fails when:
    above, and import it in `app/globals.css`.
 4. Add a variant for it next to `android:` if it needs one.
 5. Run `pnpm themes:check`, then switch through every theme with ⌘K.
+
+The Android theme is the default (`DEFAULT_OS_THEME`). A visitor who has
+never chosen gets it, including on first paint, since the boot script is
+generated from the registry.
 
 **Storage and migration.** `hux_os_theme` holds `hux` or `android`. The
 Android theme's own settings are `hux_md_style` and `hux_md_seed`. The theme

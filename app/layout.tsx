@@ -45,8 +45,13 @@ import "./globals.css";
 // Italic is loaded, not synthesized. The site marks Latin work titles with
 // it (`*The Gay Science*`), and a slanted-by-the-browser Inter is a sheared
 // roman, not Inter Italic — which is drawn, with its own `a` and `f`.
+// The faces load under their own names (`--font-inter`, …). The *roles* —
+// `--font-sans`, `--font-serif`, `--font-mono` — are tokens in globals.css
+// that point at them, so an OS theme can re-point a role at another face
+// (the Android theme sets sans and mono in Google Sans Flex) without losing
+// the face itself: code stays in JetBrains Mono through `--font-code`.
 const inter = Inter({
-  variable: "--font-sans",
+  variable: "--font-inter",
   subsets: ["latin"],
   style: ["normal", "italic"],
   display: "swap",
@@ -68,7 +73,7 @@ const notoSerifSC = Noto_Serif_SC({
 
 // Same reason as Inter: a work title keeps its italic in the machine row too.
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
+  variable: "--font-jetbrains",
   subsets: ["latin"],
   style: ["normal", "italic"],
   display: "swap",

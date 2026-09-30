@@ -269,6 +269,9 @@ export function PromptToolbar({
                   type="button"
                   onClick={() => onToggleKind(kind)}
                   aria-pressed={selected}
+                  // A role hook: a filter chip (docs/system-os-theme.md).
+                  data-chip="filter"
+                  data-selected={selected ? "" : undefined}
                   aria-label={`${label} (${facet.count})`}
                   title={label}
                   className={chipClass(selected)}
@@ -312,6 +315,9 @@ export function PromptToolbar({
                   type="button"
                   onClick={() => onToggleTopic(topic)}
                   aria-pressed={selected}
+                  // A role hook: a filter chip (docs/system-os-theme.md).
+                  data-chip="filter"
+                  data-selected={selected ? "" : undefined}
                   aria-label={`${label} (${count})`}
                   title={label}
                   className={chipClass(selected)}

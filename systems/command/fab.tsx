@@ -1,5 +1,6 @@
 "use client";
 
+import { Themed } from "@/systems/os/components/themed";
 import { useLocale, t } from "@/services";
 import { useCommand } from "./provider";
 import { cn } from "@/lib/utils";
@@ -186,6 +187,10 @@ export function FloatingActionButton() {
             : { duration: HANDOFF.in, delay: HANDOFF.delay },
         }}
         aria-label="Open command palette"
+        // A role hook: on the home screen it is the search bar (styled
+        // inline above), elsewhere the page's floating action button, which
+        // the Android theme draws as M3's FAB (app/themes/android/pages.css).
+        data-fab={isHomepage ? "search-bar" : "fab"}
       >
         <motion.div
           layout
@@ -194,7 +199,11 @@ export function FloatingActionButton() {
           {isHomepage ? (
             <Search className="h-4 w-4" />
           ) : (
-            <Command className="h-5 w-5 md:h-4 md:w-4" />
+            <Themed
+              hux={<Command className="h-5 w-5 md:h-4 md:w-4" />}
+              // Android: the FAB's one icon is what it does — search.
+              android={<Search className="size-6" />}
+            />
           )}
         </motion.div>
 
@@ -238,7 +247,7 @@ export function FloatingActionButton() {
                 x: 10,
                 transition: { duration: 0.2 },
               }}
-              className="hidden md:block overflow-hidden"
+              className="hidden md:block overflow-hidden android:md:hidden"
             >
               <span className="text-sm font-medium whitespace-nowrap">K</span>
             </motion.div>

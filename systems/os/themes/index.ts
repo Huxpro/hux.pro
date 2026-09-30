@@ -12,8 +12,8 @@ export const OS_THEMES: Record<OsThemeId, OsTheme> = { hux, android };
 
 export const OS_THEME_IDS = Object.keys(OS_THEMES) as OsThemeId[];
 
-/** The site's own theme. A visitor who never chose sees the site as built. */
-export const DEFAULT_OS_THEME: OsThemeId = "hux";
+/** The theme a visitor who never chose sees: Android (Material 3 Expressive). */
+export const DEFAULT_OS_THEME: OsThemeId = "android";
 
 export function isOsThemeId(value: unknown): value is OsThemeId {
   return typeof value === "string" && value in OS_THEMES;

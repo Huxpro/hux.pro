@@ -106,6 +106,9 @@ export function PageLayout({
 
   const titleJsx = (
     <header
+      // A role hook: the page's title, which an OS theme may set in its own
+      // type (the Android theme: a large top app bar's Headline Large).
+      data-page-header={variant}
       onMouseEnter={() => useScramble && setIsHovered(true)}
       onMouseLeave={() => useScramble && setIsHovered(false)}
     >

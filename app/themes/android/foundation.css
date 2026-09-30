@@ -1,0 +1,89 @@
+/* =============================================================================
+   Android theme · Foundation — the whole site, not a list of components.
+
+   The site's tokens are a ladder: a few *inputs* (the ink, the card and
+   popover grounds, the glass fills, the radius, the elevation, the type
+   roles) from which every colour a component paints with is derived
+   (app/globals.css, "THE LADDER"). This file feeds Material's values into
+   those inputs, at the root, so every page, every component and every
+   utility that reads a token re-derives in Material — the ones this overlay
+   never names included. The role files after it (widgets, surfaces, …) only
+   add what a token cannot say: geometry, structure, a role's container.
+
+   Every rule here is scoped to `:root[data-os-theme="android"]` (checked by
+   `pnpm themes:check`), so the Hux theme never sees it.
+   ============================================================================= */
+
+/* --- Inputs. The md roles resolve per appearance already (tokens.css), so
+   one block serves light and dark; it out-ranks `.dark` by specificity. --- */
+:root[data-os-theme="android"] {
+  /* Ink: on-surface. The ladder's alphas turn it into the secondary /
+     tertiary / quaternary rungs, which is where Material's on-surface-variant
+     sits too. */
+  --ink: var(--md-on-surface);
+  --ink-line-theme: color-mix(in srgb, var(--md-on-surface) 40%, transparent);
+  --ink-line: var(--ink-line-theme);
+
+  /* Grounds: the page is `surface`; a card and a popover are containers. */
+  --background: var(--md-surface);
+  --card: var(--md-surface-container);
+  --popover: var(--md-surface-container);
+  --primary: var(--md-primary);
+  --primary-foreground: var(--md-on-primary);
+
+  /* No glass: every fill opaque, no tint wash, no hover step through
+     translucency (Material's hover is a state layer). */
+  --glass-fill: 100%;
+  --glass-fill-raised: 100%;
+  --glass-fill-panel: 100%;
+  --glass-fill-popover: 100%;
+  --glass-fill-sheet: 100%;
+  --glass-hover-step: 0%;
+  --glass-dark-add: 0%;
+  --glass-add-k: 0;
+  --tint-glass: 0%;
+  --tint-accent: 0%;
+  /* An opaque surface needs no relief under its text. */
+  --glass-relief-k: 0;
+  --glass-relief-solid-k: 0;
+
+  /* Shape: the radius the rounded-* scale derives from. 12px puts sm / lg /
+     xl / 2xl on Material's small / medium / large / large-increased
+     (8 / 12 / 16 / 20). */
+  --radius: 12px;
+
+  /* Elevation: Material's levels, not the site's two soft lifts. */
+  --elevation-raised: var(--md-elevation-1);
+  --elevation-overlay: var(--md-elevation-3);
+}
+
+/* Type roles live on <body>, beside the faces (app/globals.css, "Type
+   roles"): the platform's face for the UI and the machine layer alike —
+   Android has no mono voice — with tabular figures where mono lined columns
+   up. Serif stays the site's: it is the content's voice, not the platform's.
+   Code keeps its face through `--font-code`. */
+:root[data-os-theme="android"] body {
+  --font-sans: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-flex), ui-sans-serif, system-ui, sans-serif;
+}
+:root[data-os-theme="android"] .font-mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2px;
+}
+
+/* --- Pages. Off the home screen, a page is an app, and an Android app is an
+   opaque screen: `surface`, no wallpaper behind it, no veil, no relief. The
+   home screen is the launcher, where the wallpaper is. (`data-wallpaper-
+   surface` is the legibility policy's own split, systems/ambient.) The
+   inputs change on <body>: the root's `--wp-*` are written inline. --- */
+:root[data-os-theme="android"][data-wallpaper-surface="reading"] [data-wallpaper-layer] {
+  opacity: 0 !important;
+}
+:root[data-os-theme="android"][data-wallpaper-surface="reading"] body {
+  --wp-ink-boost: 0%;
+  --wp-bare-boost: 0%;
+  --wp-zone-boost: 0%;
+  --wp-relief: 0;
+  --wp-glass-add: 0%;
+  background-color: var(--md-surface);
+}

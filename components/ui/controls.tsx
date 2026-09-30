@@ -238,6 +238,10 @@ export function HeaderAction({
       aria-expanded={expanded}
       aria-controls={controls}
       title={title}
+      // A role hook: an OS theme may draw these as its chips (the Android
+      // theme: a filter chip for a segment, a text button for an action).
+      data-chip={variant === "segment" ? "filter" : "action"}
+      data-selected={active ? "" : undefined}
       className={cn(
         // `pressable` is the touch contract any chip with a hover wash gets
         // (docs/design-system.md, "Touch"): the wash lands on the touch-down

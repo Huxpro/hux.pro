@@ -42,7 +42,7 @@ export interface BuildIconOptions {
   /**
    * Override the wordmark `font-family`. Defaults to the embeddable mono stack
    * (`'JetBrains Mono', …`) used by the standalone asset. The editor passes
-   * `var(--font-mono)` so its on-page preview uses the *exact* JetBrains Mono
+   * `var(--font-jetbrains)` so its on-page preview uses the *exact* JetBrains Mono
    * instance `next/font` loaded site-wide — same typeface, guaranteed WYSIWYG.
    */
   fontFamily?: string;

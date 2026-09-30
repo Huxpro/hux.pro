@@ -12,11 +12,17 @@
 //   4. Components branch on a theme's metadata (`useOsTheme().meta`,
 //      `currentThemeMetadata()`), never on its id — the registry is the
 //      only place that knows which theme does what.
+//   5. The foundation only gets more tokenised: a raw palette colour in a
+//      class (`bg-white/80`, `text-zinc-500`) is a value no theme can reach.
+//      Each product file's count is ratcheted against scripts/theme-leaks.json
+//      — it may fall, never rise; a new file starts at zero. After removing
+//      some, run `node scripts/check-themes.mjs --update` to lower the bar.
+//      (The editor's labs under app/editor are exempt: they are instruments.)
 //
 // Plain Node, filesystem only. See docs/system-os-theme.md.
 // =============================================================================
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const ROOT = new URL("..", import.meta.url).pathname;
@@ -125,6 +131,28 @@ for (const file of walk(ROOT, [".ts", ".tsx"], ["node_modules", ".next", "out", 
       errors.push(`${rel(file)}:${n + 1}: branches on a theme id — read the theme's metadata instead: ${l.trim()}`);
     }
   });
+}
+
+// --- 5: the leak ratchet ------------------------------------------------------
+const RAW_COLOUR =
+  /(?<![\w-])(?:text|bg|border|ring|fill|stroke|from|to|via|shadow|outline|divide|decoration|caret)-(?:white|black|(?:neutral|zinc|gray|slate|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3})\b/g;
+const LEAKS_FILE = join(ROOT, "scripts/theme-leaks.json");
+const counts = {};
+for (const file of walk(ROOT, [".ts", ".tsx"], ["node_modules", ".next", "out", "app/editor", "scripts"])) {
+  const n = (readFileSync(file, "utf8").match(RAW_COLOUR) ?? []).length;
+  if (n) counts[rel(file)] = n;
+}
+if (process.argv.includes("--update")) {
+  writeFileSync(LEAKS_FILE, JSON.stringify(counts, null, 2) + "\n");
+  console.log(`themes:check — leak baseline written (${Object.values(counts).reduce((a, b) => a + b, 0)} raw colours in ${Object.keys(counts).length} files).`);
+} else {
+  const baseline = JSON.parse(readFileSync(LEAKS_FILE, "utf8"));
+  for (const [file, n] of Object.entries(counts)) {
+    const allowed = baseline[file] ?? 0;
+    if (n > allowed) {
+      errors.push(`${file}: ${n} raw palette colour(s) in classes, baseline ${allowed} — use a token (text-foreground, bg-glass, border-border, …) so a theme can reach it`);
+    }
+  }
 }
 
 if (errors.length) {
