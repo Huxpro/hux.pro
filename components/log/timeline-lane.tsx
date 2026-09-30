@@ -227,6 +227,14 @@ export function GraphInCell({
  *  sits on the trunk and the line runs beneath it. */
 export type RefLook = "stub" | "ring" | "under";
 
+/**
+ * What of a ref a lit path or track runs along: the chapter stepping aside
+ * here (`aside`), the trunk running straight through (`through`), or — the
+ * ref's own chapter — its trunk starting here (`start`) or its lane forking
+ * off here (`fork`).
+ */
+export type RefLit = "aside" | "through" | "start" | "fork";
+
 export function RefInCell({
   y,
   mode = "plain",
@@ -236,9 +244,8 @@ export function RefInCell({
 }: {
   y: number;
   look?: RefLook;
-  /** A lit path through this ref: the chapter stepping aside here, or the
-   *  trunk running straight through. */
-  lit?: "aside" | "through";
+  /** What of this ref a lit path runs along (see `RefLit`). */
+  lit?: RefLit;
   /** `plain`: the trunk passes to this chapter. `take`: this chapter takes
    *  the trunk and the running one steps aside. `fork`: the running one
    *  keeps the trunk and this chapter forks off beside it. */
@@ -248,6 +255,9 @@ export function RefInCell({
 }) {
   const lane = `calc(50% - ${LANE}px)`;
   const stepAside = mode === "take";
+  // The trunk from the marker down: this chapter's own, or the one running
+  // straight through it.
+  const startsLit = lit === "start" || lit === "through";
   // The step aside: from the trunk to the lane, clear of the marker.
   const bendTop = y - 30;
   const bendH = BEND;
@@ -299,12 +309,12 @@ export function RefInCell({
               d={`M ${LANE} 0 C ${LANE} ${bendH / 2} 0.5 ${bendH / 2} 0.5 ${bendH}`}
               fill="none"
               strokeWidth={1}
-              className={STROKE}
+              className={stroke(lit === "fork")}
             />
           </svg>
           <span
             aria-hidden
-            className={INK}
+            className={ink(lit === "fork")}
             style={{ left: lane, top: y + 8 + bendH, bottom: "-1000px" }}
           />
         </>
@@ -332,7 +342,7 @@ export function RefInCell({
           )}
           <span
             aria-hidden
-            className={cn(ink(lit === "through"), "left-1/2 -translate-x-1/2")}
+            className={cn(ink(startsLit), "left-1/2 -translate-x-1/2")}
             style={{ top: y + (look === "ring" ? 5 : 11), bottom: "-1000px" }}
           />
         </>
@@ -343,7 +353,7 @@ export function RefInCell({
           <span
             aria-hidden
             className={cn(
-              ink(lit === "through"),
+              ink(startsLit),
               "left-1/2 -translate-x-1/2 lg:hidden",
             )}
             style={{ top: y, bottom: "-1000px" }}
@@ -360,13 +370,13 @@ export function RefInCell({
               d={`M ${reach} 0.5 H ${TURN + 0.5} Q 0.5 0.5 0.5 ${TURN + 0.5}`}
               fill="none"
               strokeWidth={1}
-              className={stroke(lit === "through")}
+              className={stroke(startsLit)}
             />
           </svg>
           <span
             aria-hidden
             className={cn(
-              ink(lit === "through"),
+              ink(startsLit),
               "left-1/2 -translate-x-1/2 hidden lg:block",
             )}
             style={{ top: y + TURN, bottom: "-1000px" }}
