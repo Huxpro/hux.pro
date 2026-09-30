@@ -23,8 +23,8 @@ export function LanguageConflictToast({
       {/* Header */}
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-center gap-2 mb-2">
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/10">
-            <Languages className="w-3.5 h-3.5 text-amber-500" />
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-warning/10">
+            <Languages className="w-3.5 h-3.5 text-warning" />
           </div>
           <span className="text-xs font-mono text-muted-foreground">
             {systemLang === "en" ? "Language mismatch" : "语言不匹配"}

@@ -171,7 +171,7 @@ export function FloatingActionButton() {
           isHomepage && [
             "android:border-transparent android:bg-(--md-surface-container-high) android:backdrop-blur-none",
             "android:text-(--md-on-surface-variant) android:[font-family:var(--font-flex)]",
-            "android:shadow-[0_1px_2px_rgb(0_0_0/0.3),0_1px_3px_1px_rgb(0_0_0/0.15)]",
+            "android:shadow-(--md-elevation-1)",
             "android:hover:border-transparent android:hover:bg-[color-mix(in_srgb,var(--md-surface-container-high),var(--md-on-surface)_8%)]",
             "android:active:border-transparent android:active:bg-[color-mix(in_srgb,var(--md-surface-container-high),var(--md-on-surface)_10%)] android:active:text-(--md-on-surface)",
             "android:focus:ring-(--md-secondary)",

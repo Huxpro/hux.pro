@@ -108,6 +108,37 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+
+  /* Fixed and status colours, as tokens (not palette classes), so that an
+     OS theme can reach them and `pnpm themes:check` can hold the line:
+       on-media / scrim   white and black over a photograph, a video, an
+                          artwork — the picture does not change with the
+                          theme, so neither does what sits on it
+       plate / on-plate   the white plate an app icon's glyph (a favicon,
+                          a slider's knob, a check on a picture) sits on
+       success            it worked (copied, saved)
+       live / live-video  something is playing: music, and video
+       warning / info     the two annotation hues (a session override, a
+                          selection being inspected)
+       brand-* / traffic-* other people's colours: a platform's mark, the
+                          macOS traffic lights of the Hux window chrome */
+  --color-on-media: var(--on-media);
+  --color-scrim: var(--scrim);
+  --color-plate: var(--plate);
+  --color-on-plate: var(--on-plate);
+  --color-success: var(--success);
+  --color-live: var(--live);
+  --color-live-video: var(--live-video);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-brand-youtube: var(--brand-youtube);
+  --color-brand-vimeo: var(--brand-vimeo);
+  --color-brand-bilibili: var(--brand-bilibili);
+  --color-brand-react: var(--brand-react);
+  --color-brand-vue: var(--brand-vue);
+  --color-traffic-close: var(--traffic-close);
+  --color-traffic-minimize: var(--traffic-minimize);
+  --color-traffic-zoom: var(--traffic-zoom);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -286,6 +317,24 @@
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.58 0.22 27);
+  /* Fixed and status colours (the @theme note above says what each is). */
+  --on-media: oklch(1 0 0);
+  --scrim: oklch(0 0 0);
+  --plate: oklch(1 0 0);
+  --on-plate: oklch(0 0 0);
+  --success: oklch(0.723 0.219 149.579);
+  --live: oklch(0.723 0.219 149.579);
+  --live-video: oklch(0.637 0.237 25.331);
+  --warning: oklch(0.769 0.188 70.08);
+  --info: oklch(0.685 0.169 237.323);
+  --brand-youtube: oklch(0.637 0.237 25.331);
+  --brand-vimeo: oklch(0.685 0.169 237.323);
+  --brand-bilibili: #00a1d6;
+  --brand-react: #149eca;
+  --brand-vue: #42b883;
+  --traffic-close: #ff5f57;
+  --traffic-minimize: #febc2e;
+  --traffic-zoom: #28c840;
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
@@ -297,6 +346,8 @@
      swap in its own. */
   --elevation-raised: 0 4px 6px -4px rgb(0 0 0 / 0.05), 0 10px 15px -3px rgb(0 0 0 / 0.05);
   --elevation-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.2);
+  /* A slider's knob: a hairline and a small drop, iOS's. */
+  --elevation-knob: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 1px 3px rgb(0 0 0 / 0.25);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);

@@ -180,7 +180,7 @@ const CHIP_SIZE: Record<MediaMarkSize, { box: string; icon: string; word: boolea
  * cover to wear it on, where it sits in the caption's line.
  */
 export const SURFACE_CHIP =
-  "bg-foreground/[0.06] text-muted-foreground ring-1 ring-border/50 dark:bg-white/[0.08]";
+  "bg-foreground/[0.06] text-muted-foreground ring-1 ring-border/50 dark:bg-foreground/[0.08]";
 
 /**
  * At rest the chip is light; the hover — and the press — of the cover it
@@ -190,13 +190,13 @@ export const SURFACE_CHIP =
 const CHIP_REST = cn(
   ARTWORK_CHIP_REST,
   "transition-[background-color,color,box-shadow] duration-200",
-  "[:where(a,button,[data-cover]):hover_&]:bg-black/35",
-  "[:where(a,button,[data-cover]):hover_&]:text-white",
-  "[:where(a,button,[data-cover]):hover_&]:ring-white/25",
+  "[:where(a,button,[data-cover]):hover_&]:bg-scrim/35",
+  "[:where(a,button,[data-cover]):hover_&]:text-on-media",
+  "[:where(a,button,[data-cover]):hover_&]:ring-on-media/25",
   // Touch never hovers: raise the chip on the same press that dims the art.
-  "[:where(a,button,[data-cover]):active_&]:bg-black/35",
-  "[:where(a,button,[data-cover]):active_&]:text-white",
-  "[:where(a,button,[data-cover]):active_&]:ring-white/25",
+  "[:where(a,button,[data-cover]):active_&]:bg-scrim/35",
+  "[:where(a,button,[data-cover]):active_&]:text-on-media",
+  "[:where(a,button,[data-cover]):active_&]:ring-on-media/25",
   "[:where(a,button,[data-cover]):active_&]:duration-0",
 );
 

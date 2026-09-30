@@ -52,6 +52,14 @@
      (8 / 12 / 16 / 20). */
   --radius: 12px;
 
+  /* Status: what is playing, and what is being pointed at, wear the
+     accent — Android marks a playing track and a selection in `primary`,
+     not in a fixed green or sky. Success and warning keep their hues;
+     media, plates and brands are fixed by definition. */
+  --live: var(--md-primary);
+  --live-video: var(--md-primary);
+  --info: var(--md-primary);
+
   /* Elevation: Material's levels, not the site's two soft lifts. */
   --elevation-raised: var(--md-elevation-1);
   --elevation-overlay: var(--md-elevation-3);

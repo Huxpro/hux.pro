@@ -82,7 +82,7 @@ export function HeadingWithLink({
           aria-label="Copy link to heading"
         >
           {isCopied ? (
-            <span className="text-xs text-green-500">✓</span>
+            <span className="text-xs text-success">✓</span>
           ) : (
             <LinkIcon className="h-3.5 w-3.5" />
           )}

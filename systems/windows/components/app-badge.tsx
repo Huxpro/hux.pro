@@ -71,14 +71,14 @@ function specFor(runtime: AppRuntime, flavor?: AppFlavor): BadgeSpec {
     const vue = flavor === "vue";
     return {
       // React blue vs Vue green — the whole point of the flavour tint.
-      bg: vue ? "bg-[#42b883]" : "bg-[#149eca]",
-      glyph: <LynxMark className="h-[70%] w-[70%] text-white" />,
+      bg: vue ? "bg-brand-vue" : "bg-brand-react",
+      glyph: <LynxMark className="h-[70%] w-[70%] text-on-media" />,
       label: runtimeLabel({ runtime, flavor }),
     };
   }
   return {
-    bg: "bg-zinc-600 dark:bg-zinc-500",
-    glyph: <WebMark className="h-[58%] w-[58%] text-white" />,
+    bg: "bg-muted-foreground",
+    glyph: <WebMark className="h-[58%] w-[58%] text-on-media" />,
     label: runtimeLabel({ runtime, flavor }),
   };
 }
@@ -105,7 +105,7 @@ export function AppBadge({
         "flex items-center justify-center rounded-full",
         // A white ring lifts the chip off the icon art beneath it, like the
         // AR/Clip overlays on the iOS home screen.
-        "ring-2 ring-white shadow-sm dark:ring-[#1a1a1a]",
+        "ring-2 ring-background shadow-sm",
         spec.bg,
         className,
       )}

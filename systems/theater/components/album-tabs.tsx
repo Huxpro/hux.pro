@@ -120,8 +120,8 @@ export function AlbumTabs({
               size === "sm" ? "px-3.5 py-1.5 text-[10px]" : "px-4 py-2 text-xs",
               onDark
                 ? active
-                  ? "text-white"
-                  : "text-white/45 hover:text-white/70 focus-visible:text-white/80 active:text-white"
+                  ? "text-on-media"
+                  : "text-on-media/45 hover:text-on-media/70 focus-visible:text-on-media/80 active:text-on-media"
                 : active
                   ? "text-foreground"
                   : "text-tertiary-foreground hover:text-muted-foreground focus-visible:text-foreground active:text-foreground",

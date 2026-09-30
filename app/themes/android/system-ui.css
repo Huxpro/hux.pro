@@ -120,15 +120,9 @@
    layers rather than traffic-light colours. On a touch screen the three
    lights give way to Android's app handle: one short bar at the top of the
    window, which is what a phone shows over a full-screen app. --- */
-/* Lit (a drag, a menu, or a hovering pointer), the caption is a tonal
-   surface — `surface-container-high`, elevation 2 — not frosted glass. */
-:root[data-os-theme="android"] .window-pill[class~="bg-white/80"] {
-  background-color: var(--md-surface-container-high);
-  border-color: transparent;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  box-shadow: var(--md-elevation-2);
-}
+/* Lit (a drag, a menu), the caption paints `bg-glass-overlay`, which the
+   foundation already resolves to an opaque container: no rule needed here.
+   Under a hovering pointer it steps up a tone, the hover of a container. */
 @media (hover: hover) {
   :root[data-os-theme="android"] .window-pill:hover {
     background-color: var(--md-surface-container-high);

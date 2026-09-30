@@ -848,10 +848,10 @@ export function TimelineCommit({
             // In the feed there is no fold, so there is no wash either.
             rowOnClick && "[&:hover:not(:has([data-row-body]:hover))]:bg-muted/20",
             rowOnClick && "[&:active:not(:has([data-row-body]:active))]:bg-muted/30",
-            inspecting && "hover:ring-1 hover:ring-inset hover:ring-sky-500/35",
+            inspecting && "hover:ring-1 hover:ring-inset hover:ring-info/35",
             isUnlisted && "opacity-55",
             isSelected &&
-              "bg-sky-500/[0.06] ring-1 ring-inset ring-sky-500/70 hover:ring-sky-500/70",
+              "bg-info/[0.06] ring-1 ring-inset ring-info/70 hover:ring-info/70",
           )}
         >
           {rowContent}

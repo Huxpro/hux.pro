@@ -60,7 +60,7 @@ const SEGMENTED_TONE = {
 
 const SWITCH_TONE = {
   // Green is the devtool saying "live", and it only means that in there.
-  system: "bg-green-500/90 border-green-500/70",
+  system: "bg-live/90 border-live/70",
   reader: "border-transparent bg-foreground/85",
 } as const;
 

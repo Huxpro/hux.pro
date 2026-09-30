@@ -23,8 +23,8 @@ export function PlaylistRail({
   const { album, trackIndex, selectTrack } = useTheater();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
-  const titleColor = tone === "onDark" ? "text-white/90" : "text-foreground/90";
-  const subColor = tone === "onDark" ? "text-white/50" : "text-muted-foreground";
+  const titleColor = tone === "onDark" ? "text-on-media/90" : "text-foreground/90";
+  const subColor = tone === "onDark" ? "text-on-media/50" : "text-muted-foreground";
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({

@@ -53,7 +53,7 @@ export function AppIconPlate({
       draggable={false}
       className={cn(
         "overflow-hidden rounded-[7px]",
-        fills ? "object-cover" : "bg-white object-contain p-0.5",
+        fills ? "object-cover" : "bg-plate object-contain p-0.5",
         className,
       )}
     />

@@ -137,7 +137,7 @@ export function TheaterPlaylistSheet() {
       scrollRef={listRef}
       title={
         <span className="flex items-center gap-2">
-          {isPlaying && <EQBars className="text-red-500" />}
+          {isPlaying && <EQBars className="text-live-video" />}
           <span className="truncate">{t(locale, "theaterPlaylist")}</span>
           {tracks.length > 0 && (
             <span className="shrink-0 font-mono text-xs tabular-nums text-tertiary-foreground">
@@ -187,7 +187,7 @@ export function TheaterPlaylistSheet() {
                   )}
                 >
                   {active && isPlaying && (
-                    <EQBars className="shrink-0 text-red-500" />
+                    <EQBars className="shrink-0 text-live-video" />
                   )}
                   <span className="truncate">{track.title}</span>
                 </span>

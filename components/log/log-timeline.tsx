@@ -48,7 +48,7 @@ export function chapterLabel(tag: Tag, tagIndex: number, locale: Locale): string
  * solid background reads the same as before while a gradient keeps its hue.
  */
 export const CHAPTER_PILL =
-  "inline-flex items-center bg-white/85 dark:bg-black/45 sm:bg-white/70 sm:dark:bg-black/25 sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full";
+  "inline-flex items-center bg-glass-overlay sm:bg-glass-strong sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full";
 
 interface LogTimelineProps {
   data: {
@@ -264,8 +264,8 @@ function TagBlock({
               CHAPTER_PILL,
               "transition-colors",
               isTagSelected
-                ? "border-sky-500/70 ring-1 ring-inset ring-sky-500/35 bg-sky-500/[0.05]"
-                : "border-border hover:border-sky-500/50",
+                ? "border-info/70 ring-1 ring-inset ring-info/35 bg-info/[0.05]"
+                : "border-border hover:border-info/50",
             )}
             title="Inspect chapter"
           >

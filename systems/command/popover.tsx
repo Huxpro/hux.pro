@@ -231,7 +231,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
               "surface-shell search-view",
               "relative mx-4 transition-all duration-300 ease-out",
               "bg-glass-popover backdrop-blur-xl",
-              "rounded-2xl border border-black/10 dark:border-white/10",
+              "rounded-2xl border border-border",
               "shadow-overlay",
               "outline-none",
               "animate-in fade-in-0 zoom-in-95 duration-200",

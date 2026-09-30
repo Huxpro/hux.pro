@@ -27,7 +27,7 @@ export const GLASS_PANEL =
  * arrives the same way wherever the picture is.
  */
 export const ARTWORK_CHIP =
-  "bg-black/35 text-white ring-1 ring-white/25";
+  "bg-scrim/35 text-on-media ring-1 ring-on-media/25";
 
 /**
  * The same chip at rest — a cover on the page, not yet looked at. Lighter,
@@ -36,7 +36,7 @@ export const ARTWORK_CHIP =
  * start (media-mark.tsx).
  */
 export const ARTWORK_CHIP_REST =
-  "bg-black/20 text-white/85 ring-1 ring-white/10";
+  "bg-scrim/20 text-on-media/85 ring-1 ring-on-media/10";
 
 /**
  * iOS cover press — Photos / Music / Home Screen icons.
@@ -62,13 +62,13 @@ export const ARTWORK_CHIP_REST =
  */
 export const COVER_WASH =
   "pointer-events-none absolute inset-0 transition-colors duration-200 " +
-  "bg-black/0 group-hover/thumb:bg-black/10 " +
-  "group-active/thumb:bg-black/25 group-active/thumb:duration-0";
+  "bg-scrim/0 group-hover/thumb:bg-scrim/10 " +
+  "group-active/thumb:bg-scrim/25 group-active/thumb:duration-0";
 
 export const COVER_WASH_TINTED =
   "pointer-events-none absolute inset-0 transition-colors duration-200 " +
-  "bg-black/10 group-hover/thumb:bg-black/20 " +
-  "group-active/thumb:bg-black/25 group-active/thumb:duration-0";
+  "bg-scrim/10 group-hover/thumb:bg-scrim/20 " +
+  "group-active/thumb:bg-scrim/25 group-active/thumb:duration-0";
 
 /** Press dim for copy that opens the attachment — see COVER_WASH. */
 export const COPY_WASH =

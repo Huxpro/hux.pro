@@ -58,11 +58,17 @@ been fixed:
   written inline by the legibility policy, so a page could not change them
   (the ladder is now declared on `<body>` too).
 
-What remains is raw palette colour in classes (`bg-white/80`,
-`text-zinc-500`, …): 197 of them in 43 files. Many are legitimate, such as a
-brand mark or a black scrim over video. Some are not. `pnpm themes:check`
-ratchets them per file (`scripts/theme-leaks.json`): a count can fall but
-never rise.
+The last gap was raw colour in classes: 197 palette classes (`bg-white/80`,
+`text-zinc-500`, …) and 11 colour literals (`bg-[#ff5f57]`) across 43
+product files. Each is now a token. Hairline and wash pairs became the
+ladder's tokens. Colours that are fixed by definition or mark a status got
+semantic tokens (`on-media`, `scrim`, `plate`, `success`, `live`, `info`,
+`brand-*`, …; [design-system.md](./design-system.md#fixed-and-status-colours)),
+which the Android theme re-points where Material differs (a playing track
+and a selection wear `primary`). `pnpm themes:check` ratchets the count per
+file against `scripts/theme-leaks.json`, which is empty, so every product
+file stays at zero. The editor's labs (`app/editor`) are exempt: they are
+instruments that paint specimens in fixed colours on purpose.
 
 **Pages.** Off the home screen, a page in the Android theme is an app, and
 an Android app is an opaque screen: `surface`, no wallpaper, no relief. The
@@ -115,8 +121,8 @@ also run in CI) fails when:
 3. a stylesheet outside `app/themes/` styles a theme by attribute;
 4. a component compares a theme id (`theme === "android"`, `dataset.osTheme`)
    instead of reading metadata;
-5. a file gains a raw palette colour in a class (the leak ratchet,
-   `scripts/theme-leaks.json`; lower it with `--update` after removing some).
+5. product code uses a raw colour in a class, whether a palette colour or a
+   colour literal (the ratchet, `scripts/theme-leaks.json`, is at zero).
 
 **Adding a theme:**
 

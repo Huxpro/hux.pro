@@ -731,8 +731,8 @@ export function SurfaceSheet({
                   !fitContent && "flex-1",
                   // The dim on a receded sheet is a wash over the shell rather
                   // than an opacity, so the glass stays glass.
-                  "after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
-                  behind && "after:bg-black/15 dark:after:bg-black/30",
+                  "after:pointer-events-none after:absolute after:inset-0 after:bg-scrim/0 after:transition-colors after:[transition-duration:var(--surface-duration)]",
+                  behind && "after:bg-scrim/15 dark:after:bg-scrim/30",
                   className
                 )}
               >

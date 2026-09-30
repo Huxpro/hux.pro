@@ -142,6 +142,27 @@ boost, the relief text-shadow and the tint are all in
 [docs/system-legibility.md](./system-legibility.md), and every one of them is
 a slider at `/editor/legibility`.
 
+### Fixed and status colours
+
+Some colours are not the ink's. They are tokens too, never palette classes,
+because a palette class (`bg-white/80`, `text-green-500`, `bg-[#ff5f57]`) is
+a value no theme can reach. `pnpm themes:check` fails on one in product
+code (see [system-os-theme.md](./system-os-theme.md)).
+
+| Token | For | Hux | Android |
+|---|---|---|---|
+| `on-media` / `scrim` | text, icons, rings and washes over a photograph, a video, an artwork; a video's letterbox | white / black | same: the picture doesn't change with the theme |
+| `plate` / `on-plate` | the white plate under an app icon's glyph or a favicon, a slider's knob, a check on a picture | white / black | same |
+| `success` | it worked: copied, saved | green | green |
+| `live` / `live-video` | something is playing: music / video | green / red | `primary` |
+| `warning` / `info` | a session override, a notice / a selection being inspected, a saved override | amber / sky | amber / `primary` |
+| `brand-*` | another platform's mark: YouTube, Vimeo, bilibili, React, Vue | their colours | same |
+| `traffic-*` | the macOS traffic lights of the Hux window chrome | their colours | unused (Android draws a caption) |
+
+Hairlines and washes that used to be a `black/NN` + `dark:white/NN` pair are
+the ladder's (`border-border`, `bg-accent`, `bg-glass-*`): one token, both
+appearances. `shadow-(--elevation-knob)` is the slider knob's shadow.
+
 ### Design Note
 
 All colors use **OKLCH** color space for perceptually uniform transitions. The palette is intentionally **grayscale** with no accent colors—the content provides the color. The one exception is opt-in: **Tint: Wallpaper** lends the picture's dominant colour to glass and the accent wash (never to ink).

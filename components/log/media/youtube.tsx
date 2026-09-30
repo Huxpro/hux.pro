@@ -169,7 +169,7 @@ export function YouTubeEmbed({
   return (
     <div
       className={cn(
-        "relative w-full aspect-video rounded-lg overflow-hidden bg-black",
+        "relative w-full aspect-video rounded-lg overflow-hidden bg-scrim",
         sizeClasses[size],
         className
       )}

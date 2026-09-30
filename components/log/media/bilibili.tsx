@@ -188,12 +188,12 @@ export function BilibiliEmbed({
           />
         ) : (
           // Bilibili-branded placeholder when no custom thumbnail is available
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#00a1d6]/8">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-brand-bilibili/8">
             {/* Bilibili wordmark-style label */}
-            <span className="text-[#00a1d6]/40 text-xs font-mono tracking-widest uppercase select-none">
+            <span className="text-brand-bilibili/40 text-xs font-mono tracking-widest uppercase select-none">
               bilibili
             </span>
-            <span className="text-[#00a1d6]/25 text-[10px] font-mono select-none">
+            <span className="text-brand-bilibili/25 text-[10px] font-mono select-none">
               {idLabel}
             </span>
           </div>
@@ -211,7 +211,7 @@ export function BilibiliEmbed({
   return (
     <div
       className={cn(
-        "relative w-full aspect-video rounded-lg overflow-hidden bg-black",
+        "relative w-full aspect-video rounded-lg overflow-hidden bg-scrim",
         sizeClasses[size],
         className
       )}

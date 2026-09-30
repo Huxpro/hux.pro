@@ -12,11 +12,13 @@
 //   4. Components branch on a theme's metadata (`useOsTheme().meta`,
 //      `currentThemeMetadata()`), never on its id — the registry is the
 //      only place that knows which theme does what.
-//   5. The foundation only gets more tokenised: a raw palette colour in a
-//      class (`bg-white/80`, `text-zinc-500`) is a value no theme can reach.
-//      Each product file's count is ratcheted against scripts/theme-leaks.json
-//      — it may fall, never rise; a new file starts at zero. After removing
-//      some, run `node scripts/check-themes.mjs --update` to lower the bar.
+//   5. No raw colour in product code: a palette class (`bg-white/80`,
+//      `text-zinc-500`) or a colour literal in a class (`bg-[#ff5f57]`) is a
+//      value no theme can reach — use a token (the ladder, or the fixed and
+//      status tokens: on-media, scrim, plate, success, live, info, brand-*,
+//      …; app/globals.css). The count is ratcheted per file against
+//      scripts/theme-leaks.json, which is empty: every product file is at
+//      zero, and stays there.
 //      (The editor's labs under app/editor are exempt: they are instruments.)
 //
 // Plain Node, filesystem only. See docs/system-os-theme.md.
@@ -134,8 +136,10 @@ for (const file of walk(ROOT, [".ts", ".tsx"], ["node_modules", ".next", "out", 
 }
 
 // --- 5: the leak ratchet ------------------------------------------------------
+// A palette colour (`bg-white/80`, `text-zinc-500`) or a colour literal in
+// an arbitrary value (`bg-[#ff5f57]`, `shadow-[0_1px_2px_rgb(0_0_0/.3)]`).
 const RAW_COLOUR =
-  /(?<![\w-])(?:text|bg|border|ring|fill|stroke|from|to|via|shadow|outline|divide|decoration|caret)-(?:white|black|(?:neutral|zinc|gray|slate|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3})\b/g;
+  /(?<![\w-])(?:text|bg|border|ring|fill|stroke|from|to|via|shadow|outline|divide|decoration|caret)-(?:white|black|(?:neutral|zinc|gray|slate|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3})\b|-\[[^\]\s]*(?:#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|oklch\()/g;
 const LEAKS_FILE = join(ROOT, "scripts/theme-leaks.json");
 const counts = {};
 for (const file of walk(ROOT, [".ts", ".tsx"], ["node_modules", ".next", "out", "app/editor", "scripts"])) {

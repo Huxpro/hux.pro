@@ -190,7 +190,7 @@ function BadgeMark({ icon, kind }: { icon: BadgeIcon; kind: MagicLinkKind }) {
         draggable={false}
         className={cn(
           ICON_BOX,
-          icon.fill ? "object-cover" : "bg-white object-contain p-[0.1em]",
+          icon.fill ? "object-cover" : "bg-plate object-contain p-[0.1em]",
         )}
       />
     );
@@ -202,7 +202,7 @@ function BadgeMark({ icon, kind }: { icon: BadgeIcon; kind: MagicLinkKind }) {
         className={cn(ICON_BOX, "relative", !icon.color && "bg-foreground/60")}
         style={icon.color ? { backgroundColor: icon.color } : undefined}
       >
-        <span className="absolute inset-0 grid place-items-center font-mono text-[0.62em] font-semibold leading-none text-white">
+        <span className="absolute inset-0 grid place-items-center font-mono text-[0.62em] font-semibold leading-none text-on-media">
           {icon.letter}
         </span>
       </span>
