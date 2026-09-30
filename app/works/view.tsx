@@ -3,12 +3,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
-import {
-  chapterLabel,
-  LogTimeline,
-  REF_LAYOUTS,
-  type RefLayout,
-} from "@/components/log/log-timeline";
+import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
+import { useOptionalDevtool, WORKS_REF_DEFAULT } from "@/systems/devtool";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { t, useLocale } from "@/services";
@@ -72,11 +68,9 @@ export function WorksView({ logData }: WorksViewProps) {
 
   const selectHash = useCommitAnchor();
 
-  // How a chapter's ref sits on the graph — on trial.
-  const refParam = searchParams.get("refs");
-  const refLook: RefLayout = REF_LAYOUTS.includes(refParam as RefLayout)
-    ? (refParam as RefLayout)
-    : "stub";
+  // How a chapter's ref sits on the graph — on trial, a saved setting in
+  // the DevTool's Works module.
+  const refLook = useOptionalDevtool()?.worksRef ?? WORKS_REF_DEFAULT;
 
   const commit = useCallback(
     (next: { types?: FilterableCommitType[]; form?: LogForm }) => {

@@ -81,6 +81,24 @@ export const PHONE_PALETTE_DEFAULT: PhonePalette = "sheet";
 export type HomeWeather = "line" | "widget";
 export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
 
+// =============================================================================
+// Works ref
+// How a chapter's ref sits on /works' graph, with its tag message — the
+// layouts on trial side by side (components/log/log-timeline.tsx, RefLabel):
+//
+//   stub   the marker at the column's edge, the trunk turning out to it; the
+//          message a paragraph under it
+//   ring   laid out like a row: a node on the trunk, the marker where a title
+//          goes, the message where a description goes
+//   row    ring, with the span where a commit's date goes
+//   under  the marker is the node, on the trunk
+//   hash   the marker where a hash goes (`git log --decorate`)
+// =============================================================================
+
+export const WORKS_REFS = ["stub", "ring", "row", "under", "hash"] as const;
+export type WorksRef = (typeof WORKS_REFS)[number];
+export const WORKS_REF_DEFAULT: WorksRef = "row";
+
 /**
  * How the hero leaves as the page scrolls. The platform picks a default;
  * the DevTool can pin either for the session. See `defaultHeroExit`.
@@ -143,6 +161,7 @@ interface DevtoolSettings {
   collapsed: Record<string, boolean>;
   phonePalette: PhonePalette;
   homeWeather: HomeWeather;
+  worksRef: WorksRef;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
 }
@@ -153,6 +172,7 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   collapsed: {},
   phonePalette: PHONE_PALETTE_DEFAULT,
   homeWeather: HOME_WEATHER_DEFAULT,
+  worksRef: WORKS_REF_DEFAULT,
   detached: false,
 };
 
@@ -205,6 +225,9 @@ function getDevtoolSettings(): DevtoolSettings {
           parsed.homeWeather === "widget" || parsed.homeWeather === "line"
             ? parsed.homeWeather
             : HOME_WEATHER_DEFAULT,
+        worksRef: (WORKS_REFS as readonly string[]).includes(parsed.worksRef)
+          ? parsed.worksRef
+          : WORKS_REF_DEFAULT,
         detached: parsed.detached === true,
       };
     }
@@ -306,6 +329,9 @@ interface DevtoolContextType {
   /** Where the home screen says the weather. A saved setting. */
   homeWeather: HomeWeather;
   setHomeWeather: (value: HomeWeather) => void;
+  /** How a chapter's ref sits on /works' graph. A saved setting. */
+  worksRef: WorksRef;
+  setWorksRef: (value: WorksRef) => void;
   /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
@@ -377,6 +403,7 @@ export function DevtoolProvider({
     useState<PhonePalette>(PHONE_PALETTE_DEFAULT);
   const [homeWeather, setHomeWeatherState] =
     useState<HomeWeather>(HOME_WEATHER_DEFAULT);
+  const [worksRef, setWorksRefState] = useState<WorksRef>(WORKS_REF_DEFAULT);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -394,6 +421,7 @@ export function DevtoolProvider({
     setCollapsedSections(settings.collapsed);
     setPhonePaletteState(settings.phonePalette);
     setHomeWeatherState(settings.homeWeather);
+    setWorksRefState(settings.worksRef);
     setIsDetached(settings.detached);
   }, []);
 
@@ -556,6 +584,11 @@ export function DevtoolProvider({
     setDevtoolSettings({ homeWeather: value });
   }, []);
 
+  const setWorksRef = useCallback((value: WorksRef) => {
+    setWorksRefState(value);
+    setDevtoolSettings({ worksRef: value });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -613,6 +646,8 @@ export function DevtoolProvider({
         setPhonePalette,
         homeWeather,
         setHomeWeather,
+        worksRef,
+        setWorksRef,
         heroExitOverride,
         setHeroExitOverride,
       }}

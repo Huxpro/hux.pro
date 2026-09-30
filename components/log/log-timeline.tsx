@@ -27,6 +27,7 @@ import { TimelineConnector } from "./timeline-connector";
 import { type BeamSpec, GUTTER_PULL, HASH_CELL } from "./timeline-commit";
 import { RefInCell, type RefLook, type RowGraph } from "./timeline-lane";
 import { useTimelineEdit } from "./timeline-edit-context";
+import type { WorksRef } from "@/systems/devtool";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
  *  per-tag memo below on every render for callers that never filter
@@ -92,7 +93,8 @@ interface LogTimelineProps {
    * two sticky layers at the top of a phone would be one too many.
    */
   pinnedChapters?: boolean;
-  /** How a chapter's ref sits on the graph (see `RefLabel`). */
+  /** How a chapter's ref sits on the graph (see `RefLabel`). The default
+   *  is the plain marker the editor and every other log use. */
   refLook?: RefLayout;
 }
 
@@ -670,15 +672,9 @@ function StubMessage({ text }: { text: string }) {
   return <p className={cn("relative mt-2 max-w-prose", TYPE.body)}>{text}</p>;
 }
 
-/** Where a ref's marker goes (on trial, `?refs=` on /works). */
-export type RefLayout = "stub" | "ring" | "row" | "under" | "hash";
-export const REF_LAYOUTS: readonly RefLayout[] = [
-  "stub",
-  "ring",
-  "row",
-  "under",
-  "hash",
-];
+/** Where a ref's marker goes — on trial, switched from the DevTool's Works
+ *  module (see `WorksRef` in systems/devtool). */
+type RefLayout = WorksRef;
 
 /** The line a layout draws: a marker in the hash slot leaves a ring on
  *  the trunk, as a marker in the title slot does. */
