@@ -24,6 +24,7 @@ import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
 import { TimelineCommit, type BeamSpec } from "./timeline-commit";
+import type { LaneMark } from "./timeline-lane";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
 import { useInputCapability } from "@/services";
@@ -47,6 +48,8 @@ export interface CommitProps {
   hideDate?: boolean;
   /** Pre-computed git-graph rail char for the timeline gutter. */
   rail?: string;
+  /** Timeline-only: this row's piece of an overlap's side lane. */
+  lane?: LaneMark;
   /** The role commit's id that owns this row's rail segment. */
   segmentId?: string | null;
   /** True when the parent timeline currently highlights this segment. */
@@ -65,9 +68,6 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
-  /** Timeline-only: other chapters this row also belongs to, worn after
-   *  the title as refs (`git log --decorate`). */
-  refs?: string[];
 }
 
 // =============================================================================
@@ -82,6 +82,7 @@ export function Commit({
   className,
   hideDate = false,
   rail,
+  lane,
   segmentId,
   isSegmentActive = false,
   beamSpec = null,
@@ -90,7 +91,6 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
-  refs,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -161,6 +161,7 @@ export function Commit({
           className={className}
           hideDate={hideDate}
           rail={rail}
+          lane={lane}
           isRole={commit.type === "role"}
           segmentId={segmentId ?? null}
           isSegmentActive={isSegmentActive}
@@ -170,7 +171,6 @@ export function Commit({
           byline={byline}
           form={form}
           onSelectHash={onSelectHash}
-          refs={refs}
           attachmentSet={attachmentSet}
           inspecting={inspecting}
           isSelected={isSelected}

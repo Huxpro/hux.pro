@@ -20,6 +20,7 @@ import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
 import { ProjectMark } from "./project-mark";
 import { QuietLine } from "./quiet-line";
+import { LaneInCell, type LaneMark } from "./timeline-lane";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { Description, Commentary, AuthorFields } from "./embeds/shared";
 import { Paperclip } from "lucide-react";
@@ -46,10 +47,6 @@ import { TYPE } from "@/lib/typography";
 export const HASH_CELL = "lg:w-14 lg:text-right";
 export const GUTTER_PULL = "lg:-ml-[6.5rem]";
 
-/** A chapter's ref worn inline — the chapter marker's pill, at row size. */
-export const REF_CHIP =
-  "inline-flex items-center rounded-full border border-border px-1.5 font-mono text-[10px] leading-4 text-muted-foreground";
-
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
    *  activates every connector that targets `toHash` (used so hovering
@@ -70,6 +67,9 @@ interface TimelineCommitProps {
   hideDate?: boolean;
   /** Git-graph rail char to draw on the right (`┐`, `│`, `┘` or empty). */
   rail?: string;
+  /** Where two chapters overlap: what this row draws of the side lane
+   *  (see `timeline-lane.tsx`). */
+  lane?: LaneMark;
   /** True when this row IS the role that owns its segment. */
   isRole?: boolean;
   /** The role id that owns this row's rail segment. */
@@ -109,9 +109,6 @@ interface TimelineCommitProps {
    * the permalink it always looked like — see `useCommitAnchor`.
    */
   onSelectHash?: (hash: string) => void;
-  /** Other chapters this row also belongs to, worn after the title the way
-   *  `git log --decorate` prints the refs on a commit. */
-  refs?: string[];
   /**
    * The commit's attachments as one set (see systems/attachments). Every
    * media affordance on the row — a strip cover, an expanded player or
@@ -135,6 +132,7 @@ export function TimelineCommit({
   className,
   hideDate = false,
   rail,
+  lane,
   isRole = false,
   beamSpec = null,
   onBeamSet,
@@ -142,7 +140,6 @@ export function TimelineCommit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
-  refs,
   attachmentSet = null,
   inspecting = false,
   isSelected = false,
@@ -453,6 +450,7 @@ export function TimelineCommit({
             style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
           />
         )}
+        {lane && <LaneInCell mark={lane} gap={iconGapPx} />}
         {hasRailBelow && (
           <span
             aria-hidden
@@ -537,11 +535,6 @@ export function TimelineCommit({
                 {data.languageBadge}
               </span>
             )}
-            {refs?.map((ref) => (
-              <span key={ref} className={cn("ml-2 align-[1px]", REF_CHIP)}>
-                {ref}
-              </span>
-            ))}
           </span>
         )}
 
