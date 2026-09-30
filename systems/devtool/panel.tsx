@@ -2986,6 +2986,13 @@ function WorksModule() {
   const onWorks = usePathname() === "/works";
   const options: { value: WorksRef; label: string; title: string }[] = [
     {
+      value: "auto",
+      label: "Auto",
+      title: zh
+        ? "桌面用 Hash，手机用 Under（选定的）"
+        : "Hash on a desk, Under on a phone (the one chosen)",
+    },
+    {
       value: "stub",
       label: "Stub",
       title: zh

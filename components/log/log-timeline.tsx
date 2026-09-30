@@ -599,7 +599,7 @@ function RefGraphLayer({
   y: number;
   mode?: RefMode;
   first?: boolean;
-  look?: RefLook;
+  look?: RefLook | "auto";
 }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -621,7 +621,20 @@ function RefGraphLayer({
             0000000
           </span>
           <span className="relative w-5">
-            <RefInCell y={y} mode={mode} first={first} look={look} />
+            {look === "auto" ? (
+              <>
+                {/* The marker over the trunk on a phone, a ring on it where
+                    the marker has moved to the hash slot. */}
+                <span className="contents @sm:hidden">
+                  <RefInCell y={y} mode={mode} first={first} look="under" />
+                </span>
+                <span className="hidden @sm:contents">
+                  <RefInCell y={y} mode={mode} first={first} look="ring" />
+                </span>
+              </>
+            ) : (
+              <RefInCell y={y} mode={mode} first={first} look={look} />
+            )}
           </span>
         </div>
       </div>
@@ -678,7 +691,7 @@ type RefLayout = WorksRef;
 
 /** The line a layout draws: a marker in the hash slot leaves a ring on
  *  the trunk, as a marker in the title slot does. */
-function lookOf(layout: RefLayout): RefLook {
+function lookOf(layout: RefLayout): RefLook | "auto" {
   return layout === "hash" || layout === "row" ? "ring" : layout;
 }
 
@@ -754,10 +767,28 @@ function RefLabel({
           // a marker that spans it still starts where titles do.
           look === "hash"
             ? "grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr]"
-            : "grid-cols-[1.25rem_1fr] @sm:grid-cols-[auto_1.25rem_1fr]",
+            : look === "auto"
+              ? // The hash slot at a hash's width: seven mono figures at
+                // 12px below `lg`, the fixed gutter from it.
+                "grid-cols-[1.25rem_1fr] @sm:max-lg:grid-cols-[3.15rem_1.25rem_1fr] lg:grid-cols-[3.5rem_1.25rem_1fr]"
+              : "grid-cols-[1.25rem_1fr] @sm:grid-cols-[auto_1.25rem_1fr]",
         )}
       >
-        {look === "hash" ? (
+        {look === "auto" ? (
+          // `under` where there is no hash slot, `hash` where there is: one
+          // marker, placed twice. On a phone the marker and its span sit
+          // together over the icon column; from `@sm` the wrapper dissolves
+          // and each takes its own cell — the marker the hash's, overflowing
+          // it leftward, the span the title's.
+          <span className="col-span-2 flex items-center gap-3 min-w-0 @sm:contents">
+            <span className="flex @sm:col-start-1 @sm:row-start-1 @sm:justify-self-end">
+              {pill}
+            </span>
+            <span className="flex items-center min-w-0 @sm:col-start-3 @sm:row-start-1">
+              {date}
+            </span>
+          </span>
+        ) : look === "hash" ? (
           <>
             {/* The hash slot is a hash wide; the marker overflows it to
                 the left, so the trunk stays where it is. Below `@sm` there
