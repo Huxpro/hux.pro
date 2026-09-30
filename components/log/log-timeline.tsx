@@ -359,7 +359,7 @@ function TagBlock({
                     key={`ref-${ref.id}`}
                     tag={ref}
                     locale={locale}
-                    stepAside={item.stepAside}
+                    mode={item.mode}
                     pinned={pinned}
                   />
                 );
@@ -438,17 +438,24 @@ function TagBlock({
 // The chapter graph (see timeline-lane.tsx)
 // =============================================================================
 
+type RefMode = "plain" | "take" | "fork";
+
 type Item =
   | { kind: "row"; i: number }
-  | { kind: "ref"; lane: number; stepAside: boolean };
+  | { kind: "ref"; lane: number; mode: RefMode };
 
 /**
  * The block's printed items in order — each later chapter's ref goes in
  * above its first commit — and what each row draws of the graph.
  *
  * The block's chapter holds the trunk from its header. At a later chapter's
- * ref, that chapter takes the trunk; if the one holding it has commits
- * further down, it steps aside into the side lane and runs to its last one.
+ * ref, if the one on the trunk has nothing further down, the newcomer just
+ * takes the trunk over (`plain`). If both go on, whichever has more of the
+ * rest to itself keeps the trunk: the newcomer takes it and the running one
+ * steps aside (`take`), or the newcomer forks off into the side lane
+ * (`fork`). When the trunk's chapter ends while the side lane is still
+ * running, the side lane turns back into the trunk.
+ *
  * A commit sits on the trunk if it belongs to the trunk's chapter, else on
  * the side lane. One side lane at a time: a ref landing while one is
  * running takes the trunk, and whoever held it simply stops there.
@@ -466,42 +473,61 @@ function chapterGraph(
     for (const l of lanesOf(commits[i])) {
       if (started.has(l)) continue;
       started.add(l);
-      items.push({ kind: "ref", lane: l, stepAside: false });
+      items.push({ kind: "ref", lane: l, mode: "plain" });
     }
     items.push({ kind: "row", i });
   }
 
+  const on = (p: number) => {
+    const it = items[p];
+    return it.kind === "row" ? lanesOf(commits[it.i]) : [];
+  };
   const last = new Map<number, number>();
-  items.forEach((it, p) => {
-    if (it.kind === "row") for (const l of lanesOf(commits[it.i])) last.set(l, p);
+  items.forEach((_, p) => {
+    for (const l of on(p)) last.set(l, p);
   });
-  const lastRow = items.reduce((m, it, p) => (it.kind === "row" ? p : m), -1);
+  const lastOf = (l: number) => last.get(l) ?? -1;
+  /** Rows after `p` that are `a`'s and not `b`'s. */
+  const own = (a: number, b: number, p: number) => {
+    let n = 0;
+    for (let q = p + 1; q < items.length; q++) {
+      const l = on(q);
+      if (l.includes(a) && !l.includes(b)) n++;
+    }
+    return n;
+  };
 
   const graphs: (RowGraph | undefined)[] = commits.map(() => undefined);
   let trunk = 0;
   let side: number | null = null;
   items.forEach((it, p) => {
     if (it.kind === "ref") {
-      const running = (last.get(trunk) ?? -1) > p;
-      if (running && side === null) {
-        it.stepAside = true;
+      if (lastOf(trunk) > p && side === null) {
+        if (own(trunk, it.lane, p) > own(it.lane, trunk, p)) {
+          it.mode = "fork";
+          side = it.lane;
+          return;
+        }
+        it.mode = "take";
         side = trunk;
       }
       trunk = it.lane;
       return;
     }
-    const on = lanesOf(commits[it.i]);
-    const onSide = side !== null && on.includes(side);
-    const onTrunk = on.includes(trunk) || !onSide;
-    // The trunk runs to the block's last row: a chapter that stops short
-    // of it hands the trunk on (to its ref's successor, or to the side
-    // lane returning), and the line goes on.
-    const g: RowGraph = {
-      trunkAbove: true,
-      trunkBelow: p < lastRow,
-    };
+    // The trunk's chapter is over and the side lane runs on: it turns back
+    // into the trunk at this row.
+    let enter = false;
+    if (side !== null && lastOf(trunk) < p) {
+      trunk = side;
+      side = null;
+      enter = true;
+    }
+    const here = on(p);
+    const onSide = side !== null && here.includes(side);
+    const onTrunk = here.includes(trunk) || !onSide;
+    const g: RowGraph = { trunkAbove: !enter, trunkBelow: false, enter };
     if (side !== null) {
-      const end = last.get(side)!;
+      const end = lastOf(side);
       g.side = onTrunk
         ? onSide
           ? p === end
@@ -517,6 +543,15 @@ function chapterGraph(
     }
     graphs[it.i] = g;
   });
+
+  // The trunk runs on to whatever comes next — a row, or a ref that picks
+  // it up — unless the next row is the side lane turning back into it.
+  items.forEach((it, p) => {
+    if (it.kind !== "row") return;
+    const next = items[p + 1];
+    graphs[it.i]!.trunkBelow =
+      !!next && !(next.kind === "row" && graphs[next.i]?.enter);
+  });
   return { items, graphs };
 }
 
@@ -524,11 +559,11 @@ function chapterGraph(
  *  its icon cell is exactly on the trunk. */
 function RefGraphLayer({
   y,
-  stepAside,
+  mode,
   first,
 }: {
   y: number;
-  stepAside?: boolean;
+  mode?: RefMode;
   first?: boolean;
 }) {
   return (
@@ -551,7 +586,7 @@ function RefGraphLayer({
             0000000
           </span>
           <span className="relative w-5">
-            <RefInCell y={y} stepAside={stepAside} first={first} />
+            <RefInCell y={y} mode={mode} first={first} />
           </span>
         </div>
       </div>
@@ -567,17 +602,17 @@ function RefGraphLayer({
 function RefRow({
   tag,
   locale,
-  stepAside,
+  mode,
   pinned,
 }: {
   tag: Tag;
   locale: Locale;
-  stepAside: boolean;
+  mode: RefMode;
   pinned: boolean;
 }) {
   return (
     <div className="relative flex items-center gap-3 pt-8 pb-2">
-      <RefGraphLayer y={32 + 11} stepAside={stepAside} />
+      <RefGraphLayer y={32 + 11} mode={mode} />
       <span
         data-chapter={pinned ? tag.id : undefined}
         className={cn(CHAPTER_PILL, "relative border-border")}

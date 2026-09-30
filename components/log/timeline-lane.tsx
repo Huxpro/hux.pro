@@ -32,6 +32,8 @@ export const LANE = 14;
 export const HASH_NUDGE = 8;
 /** Radius of the lanes' turns, px. */
 const TURN = 5;
+/** Height of a lane moving between the trunk and the side, px. */
+const BEND = 16;
 
 const INK = "pointer-events-none absolute w-px bg-muted-foreground/10";
 const STROKE = "stroke-muted-foreground/10";
@@ -48,6 +50,9 @@ export interface RowGraph {
   /** `node`: whether the side lane goes on above / below the node. */
   sideAbove?: boolean;
   sideBelow?: boolean;
+  /** The trunk's chapter ended above: the side lane comes down and turns
+   *  into the trunk at this row's node. */
+  enter?: boolean;
 }
 
 /** A row's graph, inside its icon cell. `gap` is how far a line stops short
@@ -111,6 +116,33 @@ export function GraphInCell({
           style={{ left: lane, top: `calc(50% + ${gap}px)`, bottom: "-1000px" }}
         />
       )}
+      {graph.enter && (
+        <>
+          <span
+            aria-hidden
+            className={INK}
+            style={{
+              left: lane,
+              top: "-1000px",
+              bottom: `calc(50% + ${gap + BEND}px)`,
+            }}
+          />
+          <svg
+            aria-hidden
+            className="pointer-events-none absolute overflow-visible"
+            style={{ left: lane, top: `calc(50% - ${gap + BEND}px)` }}
+            width={LANE + 1}
+            height={BEND}
+          >
+            <path
+              d={`M 0.5 0 C 0.5 ${BEND / 2} ${LANE} ${BEND / 2} ${LANE} ${BEND}`}
+              fill="none"
+              strokeWidth={1}
+              className={STROKE}
+            />
+          </svg>
+        </>
+      )}
       {graph.side === "join" && (
         <>
           <span
@@ -150,18 +182,22 @@ export function GraphInCell({
  */
 export function RefInCell({
   y,
-  stepAside = false,
+  mode = "plain",
   first = false,
 }: {
   y: number;
-  stepAside?: boolean;
+  /** `plain`: the trunk passes to this chapter. `take`: this chapter takes
+   *  the trunk and the running one steps aside. `fork`: the running one
+   *  keeps the trunk and this chapter forks off beside it. */
+  mode?: "plain" | "take" | "fork";
   /** The block's own header: nothing above to continue. */
   first?: boolean;
 }) {
   const lane = `calc(50% - ${LANE}px)`;
+  const stepAside = mode === "take";
   // The step aside: from the trunk to the lane, clear of the marker.
   const bendTop = y - 30;
-  const bendH = 16;
+  const bendH = BEND;
   // From `lg` the marker's left edge is this far right of the trunk: the
   // gutter's half-icon and its gap (see GUTTER_PULL).
   const reach = 18;
@@ -192,6 +228,31 @@ export function RefInCell({
             aria-hidden
             className={INK}
             style={{ left: lane, top: bendTop + bendH, bottom: "-1000px" }}
+          />
+        </>
+      )}
+      {/* The fork: the trunk goes straight on, and this chapter leaves it
+          just under its marker for the side lane. */}
+      {mode === "fork" && (
+        <>
+          <svg
+            aria-hidden
+            className="pointer-events-none absolute overflow-visible"
+            style={{ left: lane, top: y + 8 }}
+            width={LANE + 1}
+            height={bendH}
+          >
+            <path
+              d={`M ${LANE} 0 C ${LANE} ${bendH / 2} 0.5 ${bendH / 2} 0.5 ${bendH}`}
+              fill="none"
+              strokeWidth={1}
+              className={STROKE}
+            />
+          </svg>
+          <span
+            aria-hidden
+            className={INK}
+            style={{ left: lane, top: y + 8 + bendH, bottom: "-1000px" }}
           />
         </>
       )}
