@@ -106,15 +106,15 @@
         "zh": ""
       },
       "narrative": {
-        "en": "Flash games and animations from the age of ten, award-winning through high school and college, and the first few bucks earned on motion graphics — the kid who wanted to make interfaces before knowing the word.",
-        "zh": "十岁开始做 Flash 游戏和动画，高中到大学拿过一些奖，也靠动态图形赚到了第一笔钱——那个还不知道“界面”这个词、就已经想做界面的孩子。"
+        "en": "Flash games and animations from the age of ten, award-winning through high school and college, and the first few bucks earned on motion graphics — the kid who wanted to make interfaces before knowing the word, who then went to art school for it: Digital Media Arts at CUC, and a summer at a motion graphics studio.",
+        "zh": "十岁开始做 Flash 游戏和动画，高中到大学拿过一些奖，也靠动态图形赚到了第一笔钱——那个还不知道“界面”这个词、就已经想做界面的孩子，后来为此去读了艺术：中国传媒大学数字媒体艺术，和在一家动态图形工作室的一个夏天。"
       },
       "keywords": {
         "en": "Flash, Animation, Motion Graphics",
         "zh": "Flash, 动画, 动态图形"
       },
       "startDate": "2004-06",
-      "endDate": "2012-08",
+      "endDate": "2016-06",
       "accentColor": "oklch(0.72 0.14 60)"
     }
   ],
@@ -486,7 +486,10 @@
             "Art"
           ],
           "location": "Beijing, China",
-          "tagId": "pwa-era"
+          "tagId": "pwa-era",
+          "alsoTagIds": [
+            "early-days"
+          ]
         }
       ]
     },
@@ -574,6 +577,9 @@
                 "frame": "deny"
               }
             }
+          ],
+          "alsoTagIds": [
+            "early-days"
           ]
         }
       ]
