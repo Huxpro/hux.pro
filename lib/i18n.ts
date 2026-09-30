@@ -117,6 +117,7 @@ export const translations = {
     theaterClosePlaylist: "Close playlist",
     widgetEditDone: "Done",
     widgetEditReset: "Reset",
+    widgetEditWidgets: "Widgets",
     musicNotPlaying: "nothing playing",
     settingsMusic: "Music",
     musicPlay: "Play",
@@ -440,6 +441,8 @@ export const translations = {
     labTitle: "Lab",
     labTitleHover: "Under the hood",
     labOpen: "Open",
+    labWidgetAdd: "Add the Lab widget to Home",
+    labWidgetOn: "The Lab widget is on Home",
 
     // Prompts page
     promptsTitle: "System Prompts",
@@ -527,6 +530,7 @@ export const translations = {
     theaterClosePlaylist: "关闭播放列表",
     widgetEditDone: "完成",
     widgetEditReset: "重置",
+    widgetEditWidgets: "小组件",
     musicNotPlaying: "暂无播放",
     settingsMusic: "音乐",
     musicPlay: "播放",
@@ -846,6 +850,8 @@ export const translations = {
     labTitle: "实验室",
     labTitleHover: "格物而致知",
     labOpen: "进入",
+    labWidgetAdd: "把实验室小组件放到主屏",
+    labWidgetOn: "实验室小组件已在主屏",
 
     promptsTitle: "系统提示词",
     promptsTitleHover: "闻道有先后",

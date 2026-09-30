@@ -5,7 +5,8 @@ import { PageLayout } from "@/components/ui/page-layout";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { ArrowRight } from "lucide-react";
+import { useHomeWidget } from "@/components/home/widgets";
+import { ArrowRight, Check, Plus } from "lucide-react";
 import { Link } from "next-view-transitions";
 import { LAB_INDEX, LABS } from "./catalog";
 
@@ -18,7 +19,8 @@ export function LabIndexView() {
   const { locale } = useLocale();
   return (
     <PageLayout page="lab">
-      <p className={cn(TYPE.body, "ink-bare mb-8 max-w-prose")}>{LAB_INDEX.blurb[locale]}</p>
+      <p className={cn(TYPE.body, "ink-bare max-w-prose")}>{LAB_INDEX.blurb[locale]}</p>
+      <HomeWidgetSwitch />
       <ul className="grid gap-4 sm:grid-cols-2">
         {LABS.map((lab) => {
           const Surface = LAB_SURFACES[lab.id];
@@ -56,5 +58,29 @@ export function LabIndexView() {
         })}
       </ul>
     </PageLayout>
+  );
+}
+
+/**
+ * The Lab widget is off the home screen until asked for (HOME_WIDGETS); this
+ * is where someone who came for the labs asks. The home grid's edit mode
+ * lists it too.
+ */
+function HomeWidgetSwitch() {
+  const { locale } = useLocale();
+  const { enabled, setEnabled } = useHomeWidget("lab");
+  return (
+    <button
+      type="button"
+      onClick={() => setEnabled(!enabled)}
+      aria-pressed={enabled}
+      className={cn(
+        TYPE.meta,
+        "pressable ink-bare mb-8 mt-3 inline-flex items-center gap-1.5 rounded-full py-1 transition-colors hover:text-foreground",
+      )}
+    >
+      {enabled ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+      {t(locale, enabled ? "labWidgetOn" : "labWidgetAdd")}
+    </button>
   );
 }

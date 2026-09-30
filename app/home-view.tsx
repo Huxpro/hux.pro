@@ -13,6 +13,8 @@ import {
 } from "@/components/home/processing-widget";
 import { LabWidget } from "@/components/home/lab-widget";
 import { PromptWidget } from "@/components/home/prompt-widget";
+import { WidgetPicker } from "@/components/home/widget-picker";
+import { HOME_WIDGETS, useWidgetPrefs } from "@/components/home/widgets";
 import { ScrambleIdentifier } from "@/components/home/scramble-identifier";
 import { WritingWidget } from "@/components/home/writing-widget";
 import { Commit } from "@/components/log";
@@ -36,11 +38,17 @@ import type { Commit as CommitData, Group, RawLogData } from "@/lib/log";
 import { localize, normalizeLogData, resolveGroupCommits } from "@/lib/log";
 import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
 import ogSnapshotJson from "@/content/og-snapshot.json";
-import { useLocale } from "@/services";
+import { t, useLocale } from "@/services";
 import { AmbientGreeting, WeatherLine, WeatherWidget } from "@/systems/ambient";
 import { HOME_WEATHER_DEFAULT, useOptionalDevtool } from "@/systems/devtool";
 import { MusicWidget } from "@/systems/music";
 import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
+
+/** A declared widget's name in the picker (a log group names itself). */
+const WIDGET_TITLES = Object.fromEntries(HOME_WIDGETS.map((w) => [w.id, w.title])) as Record<
+  string,
+  (typeof HOME_WIDGETS)[number]["title"]
+>;
 
 // =============================================================================
 // Widget Components
@@ -108,6 +116,7 @@ function WidgetGrid({
   weatherWidget: boolean;
 }) {
   const { locale } = useLocale();
+  const { isEnabled } = useWidgetPrefs();
 
   // Resolve presence up-front so conditionally-empty widgets never occupy an
   // empty, draggable slot in the masonry.
@@ -130,7 +139,9 @@ function WidgetGrid({
         .length > 0,
   );
 
-  const items: SortableWidget[] = [
+  // Every widget present here, before the visitor's choices: the picker
+  // offers exactly these (components/home/widgets.ts).
+  const present: (SortableWidget & { title: string })[] = [
     { id: "apps", node: <AppFolder /> },
     ...(weatherWidget ? [{ id: "weather", node: <WeatherWidget /> }] : []),
     { id: "blog", node: <WritingWidget posts={posts} /> },
@@ -149,17 +160,21 @@ function WidgetGrid({
       : []),
     { id: "featured-talks", node: <FeaturedTalksWidget /> },
     { id: "prompt", node: <PromptWidget /> },
-    // The site studying itself: one lab's surface at a time (app/lab).
+    // The site studying itself: one lab's surface at a time (app/lab). Off
+    // until a visitor adds it (HOME_WIDGETS).
     { id: "lab", node: <LabWidget /> },
     ...visibleGroups.map((group) => ({
       id: `group-${group.id}`,
       node: <GroupWidget group={group} />,
+      title: localize(group.title, locale),
     })),
-  ];
+  ].map((w) => ({ ...w, title: "title" in w ? w.title : t(locale, WIDGET_TITLES[w.id]) }));
+  const items = present.filter((w) => isEnabled(w.id));
 
   return (
     <SortableMasonry
       items={items}
+      controls={<WidgetPicker widgets={present} />}
       className={heroContentClassName(heroExit, "pt-2 sm:pt-4 mb-16")}
     />
   );
