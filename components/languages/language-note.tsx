@@ -9,6 +9,7 @@ import {
   inlineMarks,
   isTodo,
   plainText,
+  reachOf,
   tierOf,
   type InlineToken,
   type Language,
@@ -103,9 +104,7 @@ function Meter({
   detail,
 }: {
   label: string;
-  /** 0–9, or `null` past the end of the scale: every bar lit, each in its
-   *  own level's colour, and no number. */
-  value: number | null;
+  value: number;
   ink?: string;
   detail?: string;
 }) {
@@ -120,18 +119,14 @@ function Meter({
               className="h-2.5 w-[5px] rounded-[1px]"
               style={{
                 background:
-                  value === null
-                    ? absColor(i + 1)
-                    : i < value
-                      ? (ink ?? "var(--foreground)")
-                      : "color-mix(in oklab, var(--ink) 10%, transparent)",
+                  i < value
+                    ? (ink ?? "var(--foreground)")
+                    : "color-mix(in oklab, var(--ink) 10%, transparent)",
               }}
             />
           ))}
         </span>
-        {value !== null && (
-          <span className={cn(TYPE.meta, "tabular-nums")}>{value}</span>
-        )}
+        <span className={cn(TYPE.meta, "tabular-nums")}>{value}</span>
         {detail && (
           <span className={cn(TYPE.rowMeta, "truncate")}>{detail}</span>
         )}
@@ -167,17 +162,57 @@ function NoteHead({
   );
 }
 
+/**
+ * Abstraction is a position, not an amount, so its row is not filled from
+ * the left like the other two: all ten levels (0–9) sit in a row, the ones
+ * the language reaches lit faintly in their own colours, and its own level
+ * solid. A language with no range lights one bar. Past the end of the scale,
+ * every bar is lit.
+ */
+function AbstractionMeter({ language, locale }: { language: Language; locale: Locale }) {
+  const reach = reachOf(language);
+  const tier = tierOf(language.abs);
+  const ranged = reach !== null && reach[0] !== reach[1];
+  return (
+    <div className="flex items-center gap-3">
+      <dt className={cn(TYPE.rowMeta, "w-28 shrink-0")}>{AXES.abs.name[locale]}</dt>
+      <dd className="flex min-w-0 items-center gap-2">
+        <span aria-hidden className="flex items-center gap-[2px]">
+          {Array.from({ length: SCALE_MAX + 1 }, (_, level) => {
+            const own = level === language.abs;
+            const reached = reach === null || (level >= reach[0] && level <= reach[1]);
+            return (
+              <span
+                key={level}
+                className={cn("w-[5px] rounded-[1px]", own ? "h-3" : "h-2.5")}
+                style={{
+                  background: reached
+                    ? absColor(level)
+                    : "color-mix(in oklab, var(--ink) 10%, transparent)",
+                  opacity: reached && !own && reach !== null ? 0.4 : 1,
+                }}
+              />
+            );
+          })}
+        </span>
+        {tier.level !== null && (
+          <span className={cn(TYPE.meta, "tabular-nums")}>{tier.level}</span>
+        )}
+        <span className={cn(TYPE.rowMeta, "truncate")}>
+          {tier.label[locale]}
+          {ranged && ` · ${reach[0]}–${reach[1]}`}
+        </span>
+      </dd>
+    </div>
+  );
+}
+
 function Placement({ language, locale }: { language: Language; locale: Locale }) {
   return (
     <dl className="space-y-1.5">
       <Meter label={AXES.x.name[locale]} value={language.i13s} />
       <Meter label={AXES.y.name[locale]} value={language.exp} />
-      <Meter
-        label={AXES.abs.name[locale]}
-        value={language.abs}
-        ink={absColor(language.abs)}
-        detail={tierOf(language.abs).label[locale]}
-      />
+      <AbstractionMeter language={language} locale={locale} />
     </dl>
   );
 }
@@ -262,6 +297,7 @@ export function LanguagePeek({
         />
         {AXES.abs.name[locale]}
         {tier.level !== null && ` ${tier.level}`} · {tier.label[locale]}
+        {language.absRange && ` · ${language.absRange[0]}–${language.absRange[1]}`}
       </p>
       {first && (
         <p lang={locale} className={cn(TYPE.caption, "mt-3 line-clamp-3")}>

@@ -19,6 +19,7 @@ import {
   absColor,
   nameOf,
   placeLabels,
+  reachOf,
   tierOf,
   type LabelPlacement,
   type Language,
@@ -74,10 +75,21 @@ function inRange(level: number, [lo, hi]: Range) {
   return level >= lo && level <= hi;
 }
 
-/** Out of the kept range. What is past the scale is in no range: any filter
- *  sets it aside. */
-function isDimmed(level: number | null, range: Range, filtered: boolean) {
-  return level === null ? filtered : !inRange(level, range);
+/**
+ * How a language stands against the kept range: `in` when its own level is
+ * in it; `reach` when only its range reaches it (C++ under a filter of 2:
+ * "as low as C"); `out` otherwise. What is past the scale is in no range, so
+ * any filter sets it aside.
+ */
+function standing(
+  language: Language,
+  range: Range,
+  filtered: boolean,
+): "in" | "reach" | "out" {
+  const reach = reachOf(language);
+  if (reach === null) return filtered ? "out" : "in";
+  if (inRange(language.abs!, range)) return "in";
+  return reach[0] <= range[1] && reach[1] >= range[0] ? "reach" : "out";
 }
 
 export function PLChart({ locale }: { locale: Locale }) {
@@ -188,14 +200,17 @@ export function PLChart({ locale }: { locale: Locale }) {
             />
           ))}
 
-          {LANGUAGES.map((language) => (
+          {LANGUAGES.map((language) => {
+            const stand = standing(language, range, filtered);
+            return (
             <Dot
               key={language.id}
               language={language}
               locale={locale}
               placement={placements.get(language.id) ?? CENTERED}
               labelSize={labelSize}
-              dimmed={isDimmed(language.abs, range, filtered)}
+              dimmed={stand === "out"}
+              reached={stand === "reach"}
               selected={openId === language.id}
               peek={openId === null}
               onOpen={(el) => {
@@ -204,7 +219,8 @@ export function PLChart({ locale }: { locale: Locale }) {
                 setOpenId((id) => (id === language.id ? null : language.id));
               }}
             />
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -212,6 +228,7 @@ export function PLChart({ locale }: { locale: Locale }) {
         locale={locale}
         range={range}
         filtered={filtered}
+        reached={LANGUAGES.some((l) => standing(l, range, filtered) === "reach")}
         onChange={setRange}
       />
 
@@ -250,6 +267,7 @@ function Dot({
   placement,
   labelSize,
   dimmed,
+  reached,
   selected,
   peek,
   onOpen,
@@ -259,6 +277,8 @@ function Dot({
   placement: LabelPlacement;
   labelSize: number;
   dimmed: boolean;
+  /** Kept by its range, not its level: drawn with a dashed ring. */
+  reached: boolean;
   selected: boolean;
   /** False while a note is open: the card is already saying it. */
   peek: boolean;
@@ -299,6 +319,9 @@ function Dot({
               "block size-3 rounded-full ring-2 ring-background transition-[transform,opacity] duration-200",
               "group-hover/dot:scale-[1.35] group-active/dot:scale-110 group-active/dot:duration-0",
               selected && "scale-[1.35] outline-2 outline-offset-2 outline-foreground",
+              reached &&
+                !selected &&
+                "outline-1 outline-offset-2 outline-dashed outline-muted-foreground",
             )}
             style={{
               background: dimmed
@@ -342,11 +365,14 @@ function AbstractionStrip({
   locale,
   range,
   filtered,
+  reached,
   onChange,
 }: {
   locale: Locale;
   range: Range;
   filtered: boolean;
+  /** Some dot is kept by its range alone: say what its dashed ring means. */
+  reached: boolean;
   onChange: (range: Range) => void;
 }) {
   const [hover, setHover] = useState<number | null>(null);
@@ -478,6 +504,11 @@ function AbstractionStrip({
             <MousePointerClick aria-hidden className="size-3.5 shrink-0" />
             {t(locale, "languagesFilterHint")}
           </>
+        )}
+        {filtered && hover === null && reached && (
+          <span className={cn(TYPE.rowMeta, "ml-2 hidden sm:inline")}>
+            · {t(locale, "languagesReached")}
+          </span>
         )}
         {filtered && hover === null && (
           <button

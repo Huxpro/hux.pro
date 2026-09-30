@@ -54,6 +54,13 @@ export interface Language {
   /** Abstraction level, 0 (bare metal) – 9 (pure); `null` past the end of
    *  the scale (natural language). */
   abs: number | null;
+  /**
+   * How far the language reaches either side of `abs`, when one number
+   * undersells it: "C++/Rust can be as low as C and as high as many at the
+   * same time" (the explanation). `abs` stays the dot's colour; the range is
+   * what the note's meter draws and what a filter matches.
+   */
+  absRange?: [number, number];
   /** Interestingness, 0 (boring) – 9 (mind-blown). */
   i13s: number;
   /** Experience, 0 (little) – 9 (language lawyer). */
@@ -98,6 +105,13 @@ export const BEYOND: AbstractionTier = { level: null, label: AXES.abs.beyond };
 export function tierOf(level: number | null): AbstractionTier {
   if (level === null) return BEYOND;
   return AXES.abs.tiers.find((t) => t.level === level) ?? AXES.abs.tiers[0];
+}
+
+/** The abstraction levels a language reaches: its range, else its one level;
+ *  `null` past the end of the scale. */
+export function reachOf(language: Language): [number, number] | null {
+  if (language.abs === null) return null;
+  return language.absRange ?? [language.abs, language.abs];
 }
 
 /** A language's name in a locale. */
