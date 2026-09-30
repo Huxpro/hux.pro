@@ -15,6 +15,13 @@ const en = {
   // Glow
   hey: "Hey.",
   listening: "listening…",
+  // Vitre
+  vitreBezel: "bezel",
+  vitreOn: "on",
+  vitreOff: "off",
+  vitreTint: "tint",
+  vitreBand: "band",
+  vitreScroll: "scroll",
 };
 
 const zh: typeof en = {
@@ -28,6 +35,12 @@ const zh: typeof en = {
   relief: "浮雕",
   hey: "嘿。",
   listening: "聆听中…",
+  vitreBezel: "边框",
+  vitreOn: "开",
+  vitreOff: "关",
+  vitreTint: "颜色",
+  vitreBand: "厚度",
+  vitreScroll: "滚动",
 };
 
 /** The surfaces' words — each lab at a glance, in the reader's language. */

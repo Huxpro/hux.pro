@@ -31,7 +31,7 @@ import type { Locale } from "@/lib/i18n";
  * (app/lab/i18n.ts). Every lab is bilingual; code names stay as written.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "vitre";
 
 type Text = Record<Locale, string>;
 
@@ -123,6 +123,20 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "One light for the whole site — Siri's ring, as a shader on the edge of a rounded box. Every specimen is the production <Glow>, drawn by the one shared renderer. Try the microphone.",
       zh: "全站只有一束光——Siri 的光环，作为圆角盒边缘上的着色器。每个样本都是线上的 <Glow>，由同一个渲染器绘制。试试麦克风。",
+    },
+  },
+  {
+    id: "vitre",
+    href: "/lab/vitre",
+    name: { en: "Vitre Lab", zh: "Vitre 实验室" },
+    mark: "vitre",
+    hint: {
+      en: "The page's edges, and Safari's glass",
+      zh: "页面的边缘，与 Safari 的玻璃",
+    },
+    blurb: {
+      en: "Vitre is the package that draws this site's bezel, tints Safari's toolbar and status bar live, and scrolls the page in a container so its edges hold still. This is how the site configures it — the package's live state, the policy, and every knob. Its own demo and docs are at /vitre.",
+      zh: "Vitre 是为本站绘制边框、实时为 Safari 的工具栏与状态栏着色、并让页面在容器中滚动以稳住边缘的那个包。这里是本站对它的配置——包的实时状态、策略，以及每一个旋钮。它自己的演示与文档在 /vitre。",
     },
   },
 ];

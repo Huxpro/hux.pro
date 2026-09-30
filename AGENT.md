@@ -22,7 +22,7 @@
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + the `/lab/icon` lab) |
 | **App Folder** | [docs/app-shelf.md](./docs/app-shelf.md) (Home-screen snap-paged app folder) |
 | **Attachments** | [docs/system-attachments.md](./docs/system-attachments.md) (Where a commit's media opens: sheet on a phone, with the in-app browser stacked on it; theater / in-app window / router elsewhere; the chip every cover wears; the `/lab/attachments` lab — every render path) |
-| **Labs** | [app/lab/catalog.ts](./app/lab/catalog.ts) (`/lab` — the site studied from the inside: Works (log.json) / Attachments / Icon / Legibility / Glow. One frame for all of them (`app/lab/shell.tsx`), bilingual throughout (a `strings.ts` per lab, `app/lab/i18n.ts`), a surface each (`components/lab/surfaces`) worn on the index and rotated by the home Lab widget — which is off by default. In the palette Labs is search-only; `/` `E` opens the index; the old `/editor/*` addresses redirect.) |
+| **Labs** | [app/lab/catalog.ts](./app/lab/catalog.ts) (`/lab` — the site studied from the inside: Works (log.json) / Attachments / Icon / Legibility / Glow / Vitre (the package on this page: its live state, the policy, the knobs; `/vitre` stays the package's own site). One frame for all of them (`app/lab/shell.tsx`), bilingual throughout (a `strings.ts` per lab, `app/lab/i18n.ts`), a surface each (`components/lab/surfaces`) worn on the index and rotated by the home Lab widget — which is off by default. In the palette Labs is search-only; `/` `E` opens the index; the old `/editor/*` addresses redirect.) |
 | **Home widgets** | [components/home/widgets.ts](./components/home/widgets.ts) (Every widget the home grid can show and whether it is on by default — `defaultEnabled`; a visitor's choices are overrides in `hux_widget_prefs`. Edit mode's `Widgets` pill lists them; a feature can offer its own switch with `useHomeWidget`, as `/lab` does.) |
 | **About / Badges** | [docs/system-about.md](./docs/system-about.md) (The surface a newcomer meets — veil, copy from `content/about/*.mdx`, the screen-edge glow, `/` `O` from anywhere; `<Badge>` opens a thing I made where it lives) |
 | **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (The site's one light — Siri's ring as a shared WebGL shader: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/lab/glow` lab) |
@@ -142,6 +142,8 @@ pnpm vitre:typecheck
 ```
 
 The package's demo and docs site is `packages/vitre/site` (`pnpm vitre:site`,
-served at `/bezel` in production). A new export or prop fails the type check
-until it is documented there.
+served at `/vitre` in production; `/bezel` redirects there). A new export or
+prop fails the type check until it is documented there. The package *on this
+site* — what it is drawing now, the policy, and the same knobs as the devtool —
+is the Vitre Lab, `/lab/vitre`.
 
