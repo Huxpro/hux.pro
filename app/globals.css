@@ -2530,7 +2530,8 @@ html[data-sky-armed] .sky-pull-cue-go {
 }
 
 /* =============================================================================
-   /languages — abstraction colour (lib/languages `absColor`).
+   The PL chart (content/blog/pl-chart) — abstraction colour
+   (lib/languages `absColor`).
 
    The one hue on the site, because on the PL chart colour is data: a
    language's abstraction level, 0 (bare metal) – 9 (pure). On :root, not

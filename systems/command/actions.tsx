@@ -33,7 +33,6 @@ import {
   Moon,
   Music,
   Orbit,
-  Sigma,
   Sparkles,
   SquarePlus,
   Sun,
@@ -230,29 +229,6 @@ export function useCommandActions(): CommandAction[] {
         "系统",
       ],
       run: () => router.push("/prompt"),
-    },
-    {
-      // The PL chart: every language I've written, placed and annotated.
-      id: "languages",
-      key: "y",
-      kind: "navigate",
-      section: "navigation",
-      label: t(locale, "languagesTitle"),
-      icon: <Sigma className={ROW_ICON} />,
-      keywords: [
-        "languages",
-        "programming languages",
-        "pl",
-        "plt",
-        "pl chart",
-        "chart",
-        "types",
-        "lambda",
-        "编程语言",
-        "语言",
-        "图表",
-      ],
-      run: () => router.push("/languages"),
     },
     {
       // The About: who made this and what it is. `/` `O` is its only

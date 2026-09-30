@@ -12,8 +12,14 @@ const contentDirectory = path.join(process.cwd(), "content");
  * header does not carry the one English phrase on the page.
  */
 function readingTimeText(body: string, lang: "en" | "zh"): string {
-  const minutes = Math.max(1, Math.ceil(readingTime(body).minutes));
+  const minutes = Math.max(1, Math.ceil(readingTime(stripComments(body)).minutes));
   return lang === "zh" ? `${minutes} 分钟` : `${minutes} min`;
+}
+
+/** MDX comments (`{/* … *\/}`): notes to whoever edits the post, not words
+ *  it says. */
+function stripComments(content: string): string {
+  return content.replace(/\{\/\*[\s\S]*?\*\/\}/g, "\n\n");
 }
 
 /**
@@ -58,7 +64,7 @@ function flattenInline(md: string): string {
  *
  * A paragraph is a run of lines between blank lines. What opens a post but
  * is not its prose is passed over: a heading, a figure or other JSX, an
- * image, code, a quotation (an epigraph like "世界那么大，我想去看看"), a
+ * image, code, an MDX comment, a quotation (an epigraph like "世界那么大，我想去看看"), a
  * list, a table, a rule, and a paragraph that is only a link ("skip to the
  * code"), and a Zhihu answer's "谢邀". A paragraph that ends in a colon is
  * a lead-in ("知乎提问：") and brings the block it introduces with it,
@@ -66,7 +72,7 @@ function flattenInline(md: string): string {
  * all of it, and a surface short of room clamps it visually.
  */
 function extractLead(content: string): string | undefined {
-  const blocks = content
+  const blocks = stripComments(content)
     .replace(/```[\s\S]*?```/g, "\n\n")
     .split(/\n\s*\n/)
     .map((b) => b.trim())

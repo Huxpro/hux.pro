@@ -15,7 +15,7 @@ import { LanguageNote } from "./language-note";
 // first, as the original source laid them out), each row folding open to its
 // note. It is the chart's table view — what a screen reader, a search and a
 // reader who would rather read than hover get — and the place a note can be
-// linked to: `/languages#coq` lands on Coq's row, open.
+// linked to: `/writing/pl-chart/en#coq` lands on Coq's row, open.
 //
 // A document, not chrome: rows are selectable and the links preview.
 // =============================================================================

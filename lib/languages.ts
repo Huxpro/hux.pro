@@ -2,7 +2,7 @@ import languagesJson from "@/content/languages.json";
 import type { Locale } from "@/lib/i18n";
 
 // =============================================================================
-// Languages — the PL chart (/languages), as data.
+// Languages — the PL chart (the post content/blog/pl-chart), as data.
 //
 // Every programming language I've written, placed on two personal axes and
 // shaded by a third, less personal one:
@@ -19,7 +19,7 @@ import type { Locale } from "@/lib/i18n";
 // languages (`title.en` / `title.zh`, `notes.en` / `notes.zh`: the same
 // paragraphs, the same links), and carries three inline marks, parsed by
 // `inlineMarks`: `[text](url)`, `*italic*` and `` `code` ``. The explanation
-// under the chart is content/languages/explanation.<locale>.md.
+// around the chart is the post itself, content/blog/pl-chart.<locale>.mdx.
 // =============================================================================
 
 export type Bilingual = Record<Locale, string>;

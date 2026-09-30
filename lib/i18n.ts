@@ -35,7 +35,6 @@ export const scrambleCharacterSets = {
     writing: "文字写作博客言之有物",
     works: "工作作品集术业有专攻",
     prompts: "系统提示词闻道有先后",
-    languages: "编程语言",
     // Default fallback for other pages
     default:
       "的一是了不人有我他这个们中来上大为和国地到以说时要就出会可也你对生能而子",
@@ -451,16 +450,12 @@ export const translations = {
     promptLastUpdated: "last updated",
     promptModel: "model",
 
-    // Languages — the PL chart (/languages)
-    languagesTitle: "Programming Languages",
-    languagesTitleHover: "λ Λ Π Σ",
+    // Languages — the PL chart (content/blog/pl-chart)
     languagesChart:
       "Programming languages by how interesting they are to me and how much I've used them, shaded by abstraction level",
-    languagesNotes: "Notes",
     languagesAll: "all",
     languagesFilterLabel: "Filter by abstraction level",
     languagesClose: "Close note",
-    languagesDraft: "to be written",
   },
   zh: {
     // Navigation
@@ -860,15 +855,11 @@ export const translations = {
     promptLastUpdated: "更新于",
     promptModel: "模型",
 
-    // Languages — the PL chart (/languages)
-    languagesTitle: "编程语言",
-    languagesTitleHover: "λ Λ Π Σ",
+    // Languages — the PL chart (content/blog/pl-chart)
     languagesChart: "编程语言：横轴是我觉得有多有趣，纵轴是我用得多深，深浅是抽象层级",
-    languagesNotes: "注解",
     languagesAll: "全部",
     languagesFilterLabel: "按抽象层级筛选",
     languagesClose: "关闭注解",
-    languagesDraft: "待写",
   },
 } as const;
 
@@ -884,7 +875,7 @@ export function t(locale: Locale, key: TranslationKey): string {
 // =============================================================================
 
 /** Page identifiers that have title + hover translations */
-export type ScramblePage = "writing" | "works" | "prompts" | "languages";
+export type ScramblePage = "writing" | "works" | "prompts";
 
 /** Get the appropriate Chinese character set for a page */
 export function getScrambleCharacterSet(

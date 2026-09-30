@@ -1,3 +1,19 @@
+---
+title: "A PL Chart, Intentionally Biased"
+description: "Every programming language I've written, by how interesting it is to me and how much I've used it."
+date: "2020-05-04"
+tags: ["Programming Languages", "PLT"]
+---
+
+{/*
+  The PL chart (github.com/Huxpro/PL-chart). The chart and the notes are
+  components over content/languages.json (components/languages, registered
+  in components/mdx-components.tsx); the words between them are this post.
+  Keep the Chinese post in step.
+*/}
+
+<PLChart locale="en" />
+
 ## Explanation
 
 I know comparisons on PLs could be very controversial, but I want to make clear that this chart is **intentionally biased** to represent **my world of view**.
@@ -21,3 +37,7 @@ I know comparisons on PLs could be very controversial, but I want to make clear 
       2. Yet type system enrich the static semantics and enable another level of abstractions, e.g. (higher-order) type operators abstract types just as (higher-order) functions abstract terms, thus adding abstraction powers.
 
       I don't know if a well-defined total order exist. The partial order I ended up with is letting the untyped PLs sitting in the middle, with whose type system are more traditional towards lower and those with more advanced ones (e.g. gradual, inductive, higher-ranked, higher-kinded, dependently-typed) towards higher.
+
+## Notes
+
+<LanguageNotes locale="en" />

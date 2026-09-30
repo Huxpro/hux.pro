@@ -38,6 +38,8 @@ import {
   ServerProseLink,
 } from "@/components/magic-link/server";
 import { CodeBlock } from "@/components/code-block";
+import { LanguageIndex } from "@/components/languages/language-index";
+import { PLChart } from "@/components/languages/pl-chart";
 import { HeadingWithLink } from "@/components/heading-link";
 import { MdxImage } from "@/components/mdx-image";
 import { HStackWidget, VStackWidget } from "@/components/home/featured-stack-widget";
@@ -184,6 +186,13 @@ const sharedComponents: MDXComponents = {
   // - Figure: Static image display (uses Next.js Image)
   // - MediaRenderer: Orchestrates multiple media items
   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // The PL chart (content/blog/pl-chart.*.mdx) — the chart and its notes, over
+  // content/languages.json. `locale` is the post's language, not the site's.
+  // ---------------------------------------------------------------------------
+  PLChart: withNotProse(PLChart),
+  LanguageNotes: withNotProse(LanguageIndex),
+
   Media: withNotProse(Media),
   Video: withNotProse(Video),
   SocialEmbed: withNotProse(SocialEmbed),

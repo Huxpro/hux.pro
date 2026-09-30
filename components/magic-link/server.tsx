@@ -6,7 +6,6 @@ import {
 import { locales, type Locale } from "@/lib/i18n";
 import type { LinkMedia, LocaleUrls, MediaPreview } from "@/lib/log";
 import { LOG } from "@/lib/log-client";
-import { LANGUAGES } from "@/lib/languages";
 import { getAllBlogPosts, getBlogPostBySlug } from "@/lib/mdx";
 import { cache } from "react";
 import { SmartLink } from "@/components/mdx-components";
@@ -107,13 +106,6 @@ function sectionCopy(path: string, query: URLSearchParams): SectionCopy | null {
     return {
       en: { title: "Works", description: "Commit history — professional work as git log." },
       zh: { title: "作品", description: "提交记录——把职业生涯写成 git log。" },
-    };
-  }
-  if (path === "/languages") {
-    const count = LANGUAGES.length;
-    return {
-      en: { title: "Programming Languages", description: `${count} languages, by how interesting they are to me and how much I've used them.` },
-      zh: { title: "编程语言", description: `${count} 门编程语言：有多有趣，用得多深。` },
     };
   }
   if (path === "/prompt") {

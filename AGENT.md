@@ -48,7 +48,7 @@
 | Global state | `components/providers.tsx` |
 | Translations | `lib/i18n.ts` |
 | Blog posts | `content/blog/*.mdx` (at /writing) |
-| PL chart | `content/languages.json` + `content/languages/explanation.{en,zh}.md` (at /languages, bilingual; chart in `components/languages/`, data helpers in `lib/languages.ts`; standalone twin: github.com/Huxpro/PL-chart) |
+| PL chart | A post, `content/blog/pl-chart.{en,zh}.mdx`, around `<PLChart>` / `<LanguageNotes>` (`components/languages/`, registered in `components/mdx-components.tsx`) over `content/languages.json` (`lib/languages.ts`); standalone twin: github.com/Huxpro/PL-chart |
 
 ### Design Tokens
 
