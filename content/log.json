@@ -62,8 +62,8 @@
         "zh": ""
       },
       "narrative": {
-        "en": "Programming languages and formal verification, from RIT's PL lab under Prof. Matthew Fluet to compilers at Meta: type theory, WebAssembly mechanized in Coq, ReasonML and a new language for XR over two summers, and the React Compiler.",
-        "zh": "编程语言与形式化验证，从 RIT 编程语言实验室（师从 Matthew Fluet 教授）到 Meta 的编译器：类型论、用 Coq 机械化 WebAssembly，两个夏天里的 ReasonML 与一门为 XR 设计的新语言，以及 React Compiler。"
+        "en": "Programming languages and formal verification, from RIT's PL lab under Prof. Matthew Fluet to compilers at Meta: type theory, WebAssembly mechanized in Coq, ReasonML and a new language for XR over two summers, then the Hermes JavaScript engine and the React Compiler.",
+        "zh": "编程语言与形式化验证，从 RIT 编程语言实验室（师从 Matthew Fluet 教授）到 Meta 的编译器：类型论、用 Coq 机械化 WebAssembly，两个夏天里的 ReasonML 与一门为 XR 设计的新语言，再到 Hermes JavaScript 引擎与 React Compiler。"
       },
       "keywords": {
         "en": "Type Theory, Coq, Compilers",
@@ -1190,6 +1190,9 @@
       "id": "hermes-engine",
       "type": "project",
       "tagId": "react-era",
+      "alsoTagIds": [
+        "pl-era"
+      ],
       "title": {
         "en": "Hermes JavaScript Engine",
         "zh": "Hermes JavaScript 引擎"
