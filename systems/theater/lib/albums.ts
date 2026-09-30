@@ -6,9 +6,10 @@
 // what the media is — never the type of the commit that lists it — so every
 // entry sits on exactly one shelf and nothing is left off.
 //
-// Shelves: Recordings / Slides. The one division that is the media's own,
-// and the one the stage itself draws differently: a recording has a transport
-// and plays audio, a deck has neither.
+// No shelves: one reel of everything, newest first, marked by year. The
+// library is small enough to see whole, and time is the order it was made
+// in — the decks of 2015–2017 and the recordings since fall into place
+// without anyone deciding which drawer a piece goes in.
 // =============================================================================
 
 import type { Locale } from "@/lib/i18n";
@@ -24,22 +25,22 @@ import { buildLibraryTracks } from "./library";
 import { resolveVideoId } from "./player";
 import type { Album, Track } from "./types";
 
-/** The library, shelved for the theater's tabs. Empty shelves are dropped. */
+/** The library as one album, newest first. */
 export function buildLibraryAlbums(locale: Locale): Album[] {
   const tracks = buildLibraryTracks(locale);
-  const shelves: Album[] = [
-    {
-      id: "recordings",
-      title: t(locale, "theaterRecordings"),
-      tracks: tracks.filter((tk) => tk.kind === "video"),
-    },
-    {
-      id: "slides",
-      title: t(locale, "logSlides"),
-      tracks: tracks.filter((tk) => tk.kind === "slides"),
-    },
-  ];
-  return shelves.filter((s) => s.tracks.length > 0);
+  if (tracks.length === 0) return [];
+  return [{ id: "library", title: t(locale, "theaterEverything"), tracks }];
+}
+
+/** The year a track was given, when it knows. */
+export function yearOf(track: Track): string | null {
+  return track.date?.slice(0, 4) ?? null;
+}
+
+/** Whether this track opens a new year in its album. */
+export function opensYear(tracks: Track[], index: number): boolean {
+  const y = yearOf(tracks[index]);
+  return !!y && (index === 0 || yearOf(tracks[index - 1]) !== y);
 }
 
 /** Build a one-off album for media the library does not hold. */

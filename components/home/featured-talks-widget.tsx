@@ -1,17 +1,15 @@
 "use client";
 
-import { PagerDots, useSnapPager } from "@/components/ui/snap-pager";
 import {
   WidgetHeader,
   WidgetLink,
   WidgetShell,
   WidgetTitle,
-  WIDGET_REVEAL,
 } from "@/components/ui/widget";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { TrackThumb, useTheater, type Album, type Track } from "@/systems/theater";
-import { buildLibraryAlbums } from "@/systems/theater/lib/albums";
+import { TrackThumb, useTheater, type Track } from "@/systems/theater";
+import { buildLibraryAlbums, yearOf } from "@/systems/theater/lib/albums";
 import { featuredTracks } from "@/systems/theater/lib/library";
 import { useMemo } from "react";
 
@@ -19,48 +17,42 @@ import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
 // FeaturedTalksWidget — the theater's front on the home grid.
 //
-// One strip, no tabs: the featured media from content/theater.json, the ones
-// the viewer can hear in their own language first. Tap a cover and the
-// theater opens on it with the whole library around it; the last card opens
-// the library itself. What the card shows is chosen in theater.json — never
-// by what kind of commit lists the media.
+// A marquee and a short bill: the first featured piece large, the next few as
+// rows, and a last row that opens everything. No tabs and no sideways strip —
+// the library is one reel in time order, and the card reads like the top of
+// it. Featured media come from content/theater.json, the ones the viewer can
+// hear in their own language first.
 // ---------------------------------------------------------------------------
 
 /** Where the card's surface and its arrow go. */
 const TALKS_HREF = "/works?type=talk";
 
-/** Where a track sits in the library's shelves. */
-function locate(albums: Album[], track: Track) {
-  for (let a = 0; a < albums.length; a++) {
-    const i = albums[a].tracks.indexOf(track);
-    if (i >= 0) return { albumIndex: a, trackIndex: i };
-  }
-  return { albumIndex: 0, trackIndex: 0 };
+/** Rows under the marquee. */
+const ROWS = 3;
+
+/** Where, and when — unless the venue's name already says the year. */
+function metaOf(track: Track): string {
+  const year = /\b(19|20)\d{2}\b/.test(track.subtitle ?? "")
+    ? null
+    : yearOf(track);
+  return [track.subtitle, year].filter(Boolean).join(" · ");
 }
 
 export function FeaturedTalksWidget() {
   const { locale } = useLocale();
   const { open } = useTheater();
   const albums = useMemo(() => buildLibraryAlbums(locale), [locale]);
+  const library = albums[0] ?? null;
   const featured = useMemo(
-    () =>
-      featuredTracks(
-        albums.flatMap((a) => a.tracks),
-        locale,
-      ),
-    [albums, locale],
-  );
-  const rest = useMemo(
-    () => albums.flatMap((a) => a.tracks).filter((tk) => !featured.includes(tk)),
-    [albums, featured],
+    () => (library ? featuredTracks(library.tracks, locale) : []),
+    [library, locale],
   );
 
-  // The featured covers, then the way into the rest.
-  const { scrollRef, index: activeCard, scrollTo } = useSnapPager(
-    featured.length + 1,
-  );
+  if (!library || featured.length === 0) return null;
 
-  if (featured.length === 0) return null;
+  const [marquee, ...bill] = featured;
+  const play = (track: Track) =>
+    open({ albums, albumIndex: 0, trackIndex: library.tracks.indexOf(track) });
 
   return (
     <WidgetShell href={TALKS_HREF}>
@@ -69,80 +61,67 @@ export function FeaturedTalksWidget() {
         <WidgetLink href={TALKS_HREF} />
       </WidgetHeader>
 
-      <div className="pb-5">
-        <div
-          ref={scrollRef}
+      <div className="px-5 pb-3">
+        <button
+          type="button"
+          onClick={() => play(marquee)}
           className={cn(
-            "flex gap-3 pl-5 pr-5",
-            "overflow-x-auto snap-x snap-mandatory scroll-pl-5 scroll-smooth",
-            "no-scrollbar",
+            "group/thumb pressable block w-full rounded-xl text-left",
+            "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
           )}
         >
-          {featured.map((track) => (
-            <button
-              key={track.id}
-              type="button"
-              data-pager-card
-              onClick={() => open({ albums, ...locate(albums, track) })}
-              className={cn(
-                "group/thumb pressable w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
-                "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
-              )}
-            >
-              <TrackThumb track={track} />
-              <div className={cn("mt-2 truncate", TYPE.rowTitle)}>
-                {track.title}
-              </div>
-              {track.subtitle && (
-                <div className={cn("mt-0.5 truncate", TYPE.label)}>
-                  {track.subtitle}
-                </div>
-              )}
-            </button>
-          ))}
+          <TrackThumb track={marquee} />
+          <div className={cn("mt-2 truncate", TYPE.rowTitle)}>
+            {marquee.title}
+          </div>
+          <div className={cn("mt-0.5 truncate", TYPE.rowMeta)}>
+            {metaOf(marquee)}
+          </div>
+        </button>
+      </div>
 
-          {/* The rest of the library: the theater at its newest piece, with
-              every shelf a tab away. Its cover is the rest's covers. */}
+      <div className="flex flex-col px-5 pb-3">
+        {bill.slice(0, ROWS).map((track) => (
           <button
+            key={track.id}
             type="button"
-            data-pager-card
-            onClick={() => open({ albums })}
+            onClick={() => play(track)}
             className={cn(
-              "group/thumb pressable w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
+              "group/thumb pressable -mx-2 flex items-center gap-3 rounded-lg px-2 py-1.5 text-left",
+              "transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35",
               "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
             )}
           >
-            <div className="relative grid aspect-video grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden rounded-lg border border-border/40">
-              {rest.slice(0, 4).map((track) => (
-                <TrackThumb
-                  key={track.id}
-                  track={track}
-                  className="rounded-none border-0"
-                />
-              ))}
-              <span className="absolute inset-0 flex items-center justify-center bg-black/45 font-mono text-lg tabular-nums text-white transition-colors group-hover/thumb:bg-black/55">
-                +{rest.length}
+            <span className="w-16 shrink-0">
+              <TrackThumb track={track} className="rounded-md" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className={cn("block truncate", TYPE.rowTitle)}>
+                {track.title}
               </span>
-            </div>
-            <div className={cn("mt-2 truncate", TYPE.rowTitle)}>
-              {t(locale, "theaterSeeAll")}
-            </div>
-            <div className={cn("mt-0.5 truncate", TYPE.label)}>
-              {albums.map((a) => `${a.title} ${a.tracks.length}`).join(" · ")}
-            </div>
+              <span className={cn("block truncate", TYPE.rowMeta)}>
+                {metaOf(track)}
+              </span>
+            </span>
           </button>
-          <div className="w-5 shrink-0" aria-hidden />
-        </div>
+        ))}
 
-        <PagerDots
-          count={featured.length + 1}
-          index={activeCard}
-          onSelect={scrollTo}
-          // A pointer's way to page the strip (a wheel cannot scroll it
-          // sideways), shown with the card; a finger swipes, and the peek
-          // of the next cover already says it can.
-          className={cn("pt-3 pointer-coarse:hidden", WIDGET_REVEAL)}
-        />
+        {/* Everything else: the theater at the newest piece, the whole reel
+            in its rail. */}
+        <button
+          type="button"
+          onClick={() => open({ albums })}
+          className={cn(
+            "pressable -mx-2 mt-1 flex items-baseline justify-between rounded-lg px-2 py-2 text-left",
+            "transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35",
+            "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
+          )}
+        >
+          <span className={TYPE.rowTitle}>{t(locale, "theaterSeeAll")}</span>
+          <span className={cn("tabular-nums", TYPE.rowMeta)}>
+            {library.tracks.length}
+          </span>
+        </button>
       </div>
     </WidgetShell>
   );

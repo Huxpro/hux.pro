@@ -10,13 +10,14 @@ import {
   useSurfaceBandOf,
   useSurfaceMode,
 } from "@/systems/surface";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   PIP_CONTROLS_H,
   PIP_GAP,
   PIP_TOP_STOP,
   playlistDetents,
 } from "../lib/geometry";
+import { opensYear, yearOf } from "../lib/albums";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
 import { LanguageSwitch } from "./language-switch";
@@ -62,6 +63,7 @@ export function TheaterPlaylistSheet() {
     albums,
     album,
     albumIndex,
+    track,
     trackIndex,
     phase,
     mode,
@@ -151,7 +153,7 @@ export function TheaterPlaylistSheet() {
       {/* Albums first — the switch the PiP bar has no room for. The tabs
           scroll sideways rather than wrap: an ad-hoc album is named after the
           video that opened it, and those titles are long. */}
-      {albums.length > 1 && (
+      {(albums.length > 1 || (track?.versions?.length ?? 0) > 1) && (
         <div className="-mx-1 flex items-center gap-2 overflow-x-auto no-scrollbar px-1 pb-3 pt-1">
           <AlbumTabs
             albums={albums}
@@ -169,38 +171,45 @@ export function TheaterPlaylistSheet() {
         {tracks.map((track, i) => {
           const active = i === trackIndex;
           return (
-            <button
-              key={track.id}
-              ref={active ? activeRef : undefined}
-              onClick={() => selectTrack(i)}
-              className={cn(
-                "group/thumb pressable flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors",
-                active ? "bg-accent/60" : "hover:bg-accent/40 active:bg-accent/60",
+            <Fragment key={track.id}>
+              {/* The reel is in time order; each year gets a heading. */}
+              {opensYear(tracks, i) && (
+                <div className="px-2 pb-1 pt-3 font-mono text-xs tabular-nums text-tertiary-foreground first:pt-0">
+                  {yearOf(track)}
+                </div>
               )}
-            >
-              <span className="w-24 shrink-0">
-                <TrackThumb track={track} active={active} />
-              </span>
-
-              <span className="min-w-0 flex-1">
-                <span
-                  className={cn(
-                    "flex items-center gap-1.5 text-sm leading-snug",
-                    active ? "text-foreground font-medium" : "text-foreground/90",
-                  )}
-                >
-                  {active && isPlaying && (
-                    <EQBars className="shrink-0 text-red-500" />
-                  )}
-                  <span className="truncate">{track.title}</span>
-                </span>
-                {track.subtitle && (
-                  <span className="mt-0.5 block truncate text-[10px] font-mono text-muted-foreground">
-                    {track.subtitle}
-                  </span>
+              <button
+                ref={active ? activeRef : undefined}
+                onClick={() => selectTrack(i)}
+                className={cn(
+                  "group/thumb pressable flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors",
+                  active ? "bg-accent/60" : "hover:bg-accent/40 active:bg-accent/60",
                 )}
-              </span>
-            </button>
+              >
+                <span className="w-24 shrink-0">
+                  <TrackThumb track={track} active={active} />
+                </span>
+
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={cn(
+                      "flex items-center gap-1.5 text-sm leading-snug",
+                      active ? "text-foreground font-medium" : "text-foreground/90",
+                    )}
+                  >
+                    {active && isPlaying && (
+                      <EQBars className="shrink-0 text-red-500" />
+                    )}
+                    <span className="truncate">{track.title}</span>
+                  </span>
+                  {track.subtitle && (
+                    <span className="mt-0.5 block truncate text-[10px] font-mono text-muted-foreground">
+                      {track.subtitle}
+                    </span>
+                  )}
+                </span>
+              </button>
+            </Fragment>
           );
         })}
       </div>
