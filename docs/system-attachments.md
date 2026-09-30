@@ -253,8 +253,9 @@ venue date`: the venue (a talk's conference, a piece of press's platform, a
 project's team, printed sparsely) sits on the title line in a column
 before the date, and the right of the line is packed to the edge, so when
 an open row's covers replace the count the venue and the date stay where
-they were. Below `@md` the venue takes the next line inside the title's
-block, folded and open alike. There is no meta line: with nothing between
+they were. Below `@md` the venue trails the title in the title's own flow,
+the way `译` trails a post on /writing — never on a line of its own,
+whatever the viewport, folded and open alike. There is no meta line: with nothing between
 a title and its sentence, the description sits one rung up (`TYPE.caption`,
 muted) and reads as the row's second tier. The `@handle` signs the foot of
 a single cover; a row with more, or none, prints no handle while folded —

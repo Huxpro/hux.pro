@@ -301,29 +301,51 @@ export function TimelineCommit({
   // between a title and its sentence.
   const signsOnMediaLine = showStrip && data.stripItems.length === 1;
 
-  // The venue's column on the title line: where a talk was given, where a
-  // piece of press ran, where a project was built (the byline's team,
-  // printed sparsely — the first row of a run). A link where the meta is
-  // one. On the title line in every form and every state, so opening a row
-  // moves nothing above the description.
+  // The venue on the title line: where a talk was given, where a piece of
+  // press ran, where a project was built (the byline's team, printed
+  // sparsely — the first row of a run). A link where the meta is one. On
+  // the title line in every form and every state, so opening a row moves
+  // nothing above the description — and never on a line of its own: a
+  // line between a title and its sentence is the thing this removes,
+  // whatever the viewport. From `@md` it is a column before the date;
+  // below that it trails the title in the title's own flow, the way `译`
+  // and `知乎` trail a post on /writing, wrapping with the title's words
+  // rather than dropping under them.
   const besideText = data.meta ?? byline?.subtitle;
-  const beside =
-    !isQuiet && besideText ? (
-      data.meta && data.metaUrl ? (
-        <a
-          href={data.metaUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex max-w-full items-center gap-1 transition-colors hover:text-foreground"
-        >
-          <span className="truncate">{besideText}</span>
-          <span aria-hidden className="text-[0.7rem]">↗</span>
-        </a>
-      ) : (
-        <span className="truncate">{besideText}</span>
-      )
-    ) : null;
+  const besideLink = !!data.meta && !!data.metaUrl;
+  const besideNode = (inline: boolean) =>
+    besideLink ? (
+      <a
+        href={data.metaUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "transition-colors hover:text-foreground",
+          inline ? "inline" : "inline-flex max-w-full items-center gap-1",
+        )}
+      >
+        {inline ? (
+          <>
+            {besideText}
+            <span aria-hidden className="whitespace-nowrap text-[0.7rem]">
+              {" "}↗
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="truncate">{besideText}</span>
+            <span aria-hidden className="text-[0.7rem]">↗</span>
+          </>
+        )}
+      </a>
+    ) : inline ? (
+      <>{besideText}</>
+    ) : (
+      <span className="truncate">{besideText}</span>
+    );
+  const hasBeside = !isQuiet && !!besideText;
+
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
@@ -598,12 +620,12 @@ export function TimelineCommit({
                 {data.languageBadge}
               </span>
             )}
-            {/* Below `@md` the line has no room for a second column: the
-                venue takes the next line, still inside the title's block —
-                and still the same place folded and open. */}
-            {beside && (
-              <span className={cn("flex min-w-0 mt-0.5 @md:hidden", TYPE.rowMeta)}>
-                {beside}
+            {/* Below `@md` the line has no room for a second column, so
+                the venue trails the title in its own flow: after the last
+                word, in the metadata ink, never on a line of its own. */}
+            {hasBeside && (
+              <span className={cn("ml-2 align-baseline @md:hidden", TYPE.rowMeta)}>
+                {besideNode(true)}
               </span>
             )}
           </span>
@@ -627,14 +649,14 @@ export function TimelineCommit({
             </span>
           )}
 
-          {beside && (
+          {hasBeside && (
             <span
               className={cn(
                 "hidden @md:inline-flex min-w-0 justify-end text-right",
                 TYPE.rowMeta,
               )}
             >
-              {beside}
+              {besideNode(false)}
             </span>
           )}
 
