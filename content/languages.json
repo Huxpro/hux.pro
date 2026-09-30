@@ -382,7 +382,7 @@
         "zh": "[Scala](https://www.scala-lang.org/)"
       },
       "abs": 6,
-      "absRange": [4, 7],
+      "absRange": [4, 8],
       "i13s": 6,
       "exp": 5,
       "notes": {
@@ -642,10 +642,12 @@
       "exp": 5,
       "notes": {
         "en": [
-          "They are probably the worst PLs to use in 99% of cases, nonetheless they can be extremely helpful. Although I had to Google/SOF all the time, I found myself writing a substantial amount of them in my projects, Ironically."
+          "They are probably the worst PLs to use in 99% of cases, nonetheless they can be extremely helpful. Although I had to Google/SOF all the time, I found myself writing a substantial amount of them in my projects, Ironically.",
+          "Why a 4 rather than the untyped 5? Its design fits the operating system too closely (processes, files, bytes, exit codes), and Unix itself fits the hardware a little too closely."
         ],
         "zh": [
-          "在 99% 的场景里它们大概是最糟糕的编程语言，但它们又可能极其有用。尽管我每次都得 Google / 查 Stack Overflow，讽刺的是，我发现自己在项目里写了相当多。"
+          "在 99% 的场景里它们大概是最糟糕的编程语言，但它们又可能极其有用。尽管我每次都得 Google / 查 Stack Overflow，讽刺的是，我发现自己在项目里写了相当多。",
+          "为什么是 4，而不是无类型语言的 5？因为它的设计太贴合操作系统了：进程、文件、字节、退出码；而 Unix 本身又有点太贴合硬件。"
         ]
       }
     },
@@ -658,7 +660,7 @@
         "zh": "[C++（C++0x 之后）](https://en.wikipedia.org/wiki/C%2B%2B)"
       },
       "abs": 3,
-      "absRange": [2, 6],
+      "absRange": [2, 5],
       "i13s": 6,
       "exp": 4,
       "notes": {
@@ -681,7 +683,7 @@
         "zh": "[C++（C++0x 之前）](https://en.wikipedia.org/wiki/C%2B%2B)"
       },
       "abs": 3,
-      "absRange": [2, 5],
+      "absRange": [2, 4],
       "i13s": 4,
       "exp": 4,
       "notes": {
