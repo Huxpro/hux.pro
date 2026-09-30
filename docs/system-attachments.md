@@ -240,8 +240,8 @@ parse, as aliases.
 
 | form | description | media | notes | peek | the reading |
 |---|---|---|---|---|---|
-| `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
-| `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
+| `index` (default) | none | none | — | ✓ | the overview, tabulated the way a CV is: each chapter's work, then its talks, then its press (`groupChapter`, lib/log-view.ts), one line each with the venue in a column — the career in two screens |
+| `covers` | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit, in the log's own order |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
 ### The attachment object

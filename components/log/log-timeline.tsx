@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
@@ -10,12 +10,20 @@ import {
   computeRail,
   type FilterableCommitType,
   formatTagDateRange,
+  getCommitTypePluralLabel,
   getLocalizedTagTitle,
   type Identity,
   isRowVisible,
+  splitRailAt,
   type Tag,
 } from "@/lib/log";
-import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
+import {
+  DEFAULT_FORM,
+  groupChapter,
+  type LedgerGroup,
+  type LogForm,
+} from "@/lib/log-view";
+import { TYPE } from "@/lib/typography";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeBylines } from "./bylines";
@@ -147,6 +155,19 @@ function TagBlock({
   const inspecting = edit?.mode === "inspect";
   const isTagSelected = edit?.editingTagId === tag.id;
   const tagLabel = chapterLabel(tag, tagIndex, locale);
+
+  // The index tabulates the chapter the way a CV does — the work, then the
+  // talks, then the press (`groupChapter`) — and everything below (the
+  // rail, the bylines, the beams, the render loop) runs over that order, so
+  // they all agree on it. The other forms are the log, in its own order.
+  const ledger = form === "index";
+  const { ordered, starts } = useMemo(
+    () =>
+      ledger
+        ? groupChapter(commits)
+        : { ordered: commits, starts: [] as { index: number; group: LedgerGroup }[] },
+    [commits, ledger],
+  );
   const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
   const handleBeamSet = useCallback(
     (spec: BeamSpec) => setActiveBeam(spec),
@@ -183,7 +204,9 @@ function TagBlock({
     bylines,
     isHidden,
     hasVisible,
+    labels,
   } = useMemo(() => {
+    const commits = ordered;
     const bylinesArr = computeBylines(commits, identities, locale);
 
     // One predicate, four consumers: the rail re-brackets around the rows
@@ -193,7 +216,44 @@ function TagBlock({
     // for its chip counts and its empty state.
     const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
 
-    const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
+    // Each group brackets on its own (see `splitRailAt`).
+    const rail = adjustRailForHidden(
+      commits,
+      splitRailAt(
+        computeRail(commits),
+        starts.slice(1).map((s) => s.index),
+      ),
+      hidden,
+    );
+
+    // A label over a group, at the first row of it that prints, in the
+    // chips' own words: `Talks`, `Press`. The work carries no label — it
+    // is the chapter's subject, and the pill above is its heading — and no
+    // group carries one unless another group prints too: a filter down to
+    // the talks has nothing to tell them apart from.
+    const printed = starts
+      .map(({ index, group }, k) => {
+        const end = starts[k + 1]?.index ?? commits.length;
+        let first = -1;
+        for (let i = index; i < end; i++) {
+          if (!hidden(commits[i])) {
+            first = i;
+            break;
+          }
+        }
+        return { first, group };
+      })
+      .filter((g) => g.first >= 0);
+    const labelMap = new Map<number, string>();
+    if (printed.length > 1) {
+      for (const { first, group } of printed) {
+        if (group === "work") continue;
+        labelMap.set(
+          first,
+          getCommitTypePluralLabel(group === "press" ? "press" : "talk", locale),
+        );
+      }
+    }
     const allBeams = [
       ...computeBeams(commits, hidden).map((b) => ({
         ...b,
@@ -238,8 +298,9 @@ function TagBlock({
       bylines: bylinesArr,
       isHidden: hidden,
       hasVisible: commits.some((c) => !hidden(c)),
+      labels: labelMap,
     };
-  }, [commits, identities, locale, activeTypes]);
+  }, [ordered, starts, identities, locale, activeTypes]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
@@ -313,23 +374,32 @@ function TagBlock({
           type Run =
             | { kind: "loose"; indices: number[] }
             | { kind: "cluster"; segmentId: string; indices: number[] };
+          const commits = ordered;
           const runs: Run[] = [];
           for (let i = 0; i < commits.length; i++) {
             const c = commits[i];
             if (isHidden(c)) continue;
             const sid = railInfo[i].segmentId;
             const last = runs[runs.length - 1];
-            if (sid && last && last.kind === "cluster" && last.segmentId === sid) {
+            // A group's label sits between two runs, never inside one, so
+            // a loose run is cut there too (a cluster already is:
+            // `splitRailAt` gave each group its own segment ids).
+            const cut = labels.has(i);
+            if (!cut && sid && last && last.kind === "cluster" && last.segmentId === sid) {
               last.indices.push(i);
             } else if (sid) {
               runs.push({ kind: "cluster", segmentId: sid, indices: [i] });
-            } else if (last && last.kind === "loose") {
+            } else if (!cut && last && last.kind === "loose") {
               last.indices.push(i);
             } else {
               runs.push({ kind: "loose", indices: [i] });
             }
           }
           return runs.map((run, runIdx) => {
+            const label = labels.get(run.indices[0]);
+            const heading = label ? (
+              <p className={cn("mt-5 mb-1", TYPE.label)}>{label}</p>
+            ) : null;
             const rows = run.indices.map((i) => (
               <Commit
                 key={commits[i].id}
@@ -354,11 +424,15 @@ function TagBlock({
             return run.kind === "cluster" ? (
               // An identity can cluster twice (Meta, then RIT, then Meta
               // again), so the run is named by its first row, not its id.
-              <div key={`cluster-${commits[run.indices[0]].id}`} className="group/tenure">
-                {rows}
-              </div>
+              <Fragment key={`cluster-${commits[run.indices[0]].id}`}>
+                {heading}
+                <div className="group/tenure">{rows}</div>
+              </Fragment>
             ) : (
-              <div key={`loose-${runIdx}`}>{rows}</div>
+              <Fragment key={`loose-${runIdx}`}>
+                {heading}
+                <div>{rows}</div>
+              </Fragment>
             );
           });
         })()}
