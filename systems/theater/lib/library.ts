@@ -112,6 +112,13 @@ function languageOf(listing: Listing): TrackLanguage | undefined {
   return lang === "en" || lang === "zh" ? lang : undefined;
 }
 
+/** The languages an entry can be heard (or read) in. */
+export function entryLanguages(entry: LibraryEntry): TrackLanguage[] {
+  return entry.versions
+    .map(languageOf)
+    .filter((l): l is TrackLanguage => !!l);
+}
+
 /**
  * Every recording and deck the log lists, as library entries, newest first.
  * Visibility follows the log's own (`listed`, `listedIn`): the library holds
@@ -221,9 +228,14 @@ export function withVersion(track: Track, version: TrackVersion): Track {
  * has one, the original otherwise. Every version rides along so the stage can
  * switch without going back to the library.
  */
-export function entryToTrack(entry: LibraryEntry, locale: Locale): Track {
+export function entryToTrack(
+  entry: LibraryEntry,
+  locale: Locale,
+  /** Wear this language's version when there is one (default: the locale). */
+  prefer: TrackLanguage = locale,
+): Track {
   const versions = entry.versions.map((v) => toVersion(v, locale));
-  const preferred = versions.find((v) => v.language === locale) ?? versions[0];
+  const preferred = versions.find((v) => v.language === prefer) ?? versions[0];
   const base = { id: entry.id, versions } as unknown as Track;
   return withVersion(base, preferred);
 }

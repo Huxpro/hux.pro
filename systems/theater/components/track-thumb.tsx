@@ -89,6 +89,9 @@ export function TrackThumb({
     >
       {track.thumbnail ? (
         <ExternalImage
+          // A new picture is a new image: the same track wearing its other
+          // version must not keep showing the last one while this loads.
+          key={track.thumbnail}
           src={track.thumbnail}
           className="absolute inset-0 h-full w-full object-cover"
         />

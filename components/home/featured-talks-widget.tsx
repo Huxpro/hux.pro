@@ -10,57 +10,51 @@ import {
 } from "@/components/ui/widget";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { TrackThumb, useTheater, type Album, type Track } from "@/systems/theater";
+import { AlbumTabs, TrackThumb, useTheater } from "@/systems/theater";
 import { buildLibraryAlbums } from "@/systems/theater/lib/albums";
 import { featuredTracks } from "@/systems/theater/lib/library";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
 // FeaturedTalksWidget — the theater's front on the home grid.
 //
-// One strip, no tabs: the featured media from content/theater.json, the ones
-// the viewer can hear in their own language first. Tap a cover and the
-// theater opens on it with the whole library around it; the last card opens
-// the library itself. What the card shows is chosen in theater.json — never
-// by what kind of commit lists the media.
+// Tabs by language, the viewer's first (中文 / EN): each shows the featured
+// media from content/theater.json that can be heard in that language, in its
+// telling in that language, and ends in a card that opens the rest of that
+// shelf. A talk given in both languages is on both tabs, once on each. What
+// the card shows is chosen in theater.json — never by what kind of commit
+// lists the media.
 // ---------------------------------------------------------------------------
 
 /** Where the card's surface and its arrow go. */
 const TALKS_HREF = "/works?type=talk";
 
-/** Where a track sits in the library's shelves. */
-function locate(albums: Album[], track: Track) {
-  for (let a = 0; a < albums.length; a++) {
-    const i = albums[a].tracks.indexOf(track);
-    if (i >= 0) return { albumIndex: a, trackIndex: i };
-  }
-  return { albumIndex: 0, trackIndex: 0 };
-}
-
 export function FeaturedTalksWidget() {
   const { locale } = useLocale();
   const { open } = useTheater();
   const albums = useMemo(() => buildLibraryAlbums(locale), [locale]);
+  const [activeAlbum, setActiveAlbum] = useState(0);
+  const album = albums[activeAlbum] ?? albums[0] ?? null;
   const featured = useMemo(
-    () =>
-      featuredTracks(
-        albums.flatMap((a) => a.tracks),
-        locale,
-      ),
-    [albums, locale],
+    () => (album ? featuredTracks(album.tracks, locale) : []),
+    [album, locale],
   );
   const rest = useMemo(
-    () => albums.flatMap((a) => a.tracks).filter((tk) => !featured.includes(tk)),
-    [albums, featured],
+    () => (album?.tracks ?? []).filter((tk) => !featured.includes(tk)),
+    [album, featured],
   );
 
   // The featured covers, then the way into the rest.
-  const { scrollRef, index: activeCard, scrollTo } = useSnapPager(
-    featured.length + 1,
-  );
+  const cards = featured.length + (rest.length > 0 ? 1 : 0);
+  const { scrollRef, index: activeCard, scrollTo } = useSnapPager(cards);
 
-  if (featured.length === 0) return null;
+  // Back to the start whenever the tab changes.
+  useEffect(() => {
+    scrollTo(0, "instant");
+  }, [activeAlbum, scrollTo]);
+
+  if (!album) return null;
 
   return (
     <WidgetShell href={TALKS_HREF}>
@@ -68,6 +62,18 @@ export function FeaturedTalksWidget() {
         <WidgetTitle>{t(locale, "widgetFeaturedTalks")}</WidgetTitle>
         <WidgetLink href={TALKS_HREF} />
       </WidgetHeader>
+
+      {/* Tabs and thumbs are sibling press surfaces. The shell is
+          `group/widget`; AlbumTabs is `group/glass`. A finger on a
+          thumbnail must not deepen the segmented control. */}
+      <div className="px-5 pb-3">
+        <AlbumTabs
+          albums={albums}
+          activeIndex={activeAlbum}
+          onSelect={setActiveAlbum}
+          raised={false}
+        />
+      </div>
 
       <div className="pb-5">
         <div
@@ -83,7 +89,13 @@ export function FeaturedTalksWidget() {
               key={track.id}
               type="button"
               data-pager-card
-              onClick={() => open({ albums, ...locate(albums, track) })}
+              onClick={() =>
+                open({
+                  albums,
+                  albumIndex: activeAlbum,
+                  trackIndex: album.tracks.indexOf(track),
+                })
+              }
               className={cn(
                 "group/thumb pressable w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
                 "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
@@ -101,16 +113,23 @@ export function FeaturedTalksWidget() {
             </button>
           ))}
 
-          {/* The rest of the library: the theater at its newest piece, with
-              every shelf a tab away. Its cover is the rest's covers. */}
-          <button
-            type="button"
-            data-pager-card
-            onClick={() => open({ albums })}
-            className={cn(
-              "group/thumb pressable w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
-              "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
-            )}
+          {/* The rest of this shelf: the theater at the first piece not
+              featured. Its cover is the rest's covers. */}
+          {rest.length > 0 && (
+            <button
+              type="button"
+              data-pager-card
+              onClick={() =>
+                open({
+                  albums,
+                  albumIndex: activeAlbum,
+                  trackIndex: album.tracks.indexOf(rest[0]),
+                })
+              }
+              className={cn(
+                "group/thumb pressable w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
+                "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
+          )}
           >
             <div className="relative grid aspect-video grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden rounded-lg border border-border/40">
               {rest.slice(0, 4).map((track) => (
@@ -128,14 +147,15 @@ export function FeaturedTalksWidget() {
               {t(locale, "theaterSeeAll")}
             </div>
             <div className={cn("mt-0.5 truncate", TYPE.label)}>
-              {albums.map((a) => `${a.title} ${a.tracks.length}`).join(" · ")}
+              {album.title} · {album.tracks.length}
             </div>
           </button>
+          )}
           <div className="w-5 shrink-0" aria-hidden />
         </div>
 
         <PagerDots
-          count={featured.length + 1}
+          count={cards}
           index={activeCard}
           onSelect={scrollTo}
           // A pointer's way to page the strip (a wheel cannot scroll it

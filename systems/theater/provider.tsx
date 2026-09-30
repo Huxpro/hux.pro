@@ -543,19 +543,25 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
    */
   const openInLibrary = useCallback(
     (key: string, m?: TheaterMode): boolean => {
-      for (let a = 0; a < registeredAlbums.length; a++) {
-        const tracks = registeredAlbums[a].tracks;
-        for (let i = 0; i < tracks.length; i++) {
-          const version = versionOf(tracks[i], key);
-          if (!version) continue;
-          open({
-            albums: registeredAlbums,
-            albumIndex: a,
-            trackIndex: i,
-            mode: m,
-            language: version.language ?? null,
-          });
-          return true;
+      // A shelf whose track already wears this version wins over one that
+      // only holds it: with shelves by language, the English telling of a
+      // talk lives on the English shelf.
+      for (const wearing of [true, false]) {
+        for (let a = 0; a < registeredAlbums.length; a++) {
+          const tracks = registeredAlbums[a].tracks;
+          for (let i = 0; i < tracks.length; i++) {
+            const version = versionOf(tracks[i], key);
+            if (!version) continue;
+            if (wearing && version.url !== tracks[i].url) continue;
+            open({
+              albums: registeredAlbums,
+              albumIndex: a,
+              trackIndex: i,
+              mode: m,
+              language: wearing ? null : (version.language ?? null),
+            });
+            return true;
+          }
         }
       }
       return false;
@@ -694,9 +700,18 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Switching shelves keeps the piece on the stage when the other shelf holds
+  // it too — with shelves by language, that is how a talk given in both
+  // switches language — and starts the shelf from the top otherwise.
   const selectAlbum = useCallback(
-    (index: number) => clampTrack(index, 0),
-    [clampTrack],
+    (index: number) => {
+      const same = shelved
+        ? (albums[index]?.tracks.findIndex((tk) => tk.id === shelved.id) ?? -1)
+        : -1;
+      setLanguage(null);
+      clampTrack(index, Math.max(same, 0));
+    },
+    [albums, shelved, clampTrack],
   );
   const selectTrack = useCallback(
     (index: number) => clampTrack(albumIndex, index),
