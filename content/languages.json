@@ -382,7 +382,7 @@
         "zh": "[Scala](https://www.scala-lang.org/)"
       },
       "abs": 6,
-      "absRange": [4, 8],
+      "absRange": [4, 7],
       "i13s": 6,
       "exp": 5,
       "notes": {
@@ -453,7 +453,7 @@
         "zh": "[Flow](https://flow.org) 与 🎡 [TypeScript](https://www.typescriptlang.org/)"
       },
       "abs": 6,
-      "absRange": [5, 7],
+      "absRange": [5, 6],
       "i13s": 6,
       "exp": 9,
       "notes": {
@@ -615,7 +615,7 @@
         "zh": "[Swift](https://swift.org/)"
       },
       "abs": 4,
-      "absRange": [3, 5],
+      "absRange": [3, 6],
       "i13s": 6,
       "exp": 2,
       "notes": {

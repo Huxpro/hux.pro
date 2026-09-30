@@ -59,6 +59,26 @@ export interface Language {
    * undersells it: "C++/Rust can be as low as C and as high as many at the
    * same time" (the explanation). `abs` stays the dot's colour; the range is
    * what the note's meter draws and what a filter matches.
+   *
+   * The scale is who a language's design serves, the machine or the
+   * mathematics, and only what its designers intended counts, not what it
+   * grew into or stumbled upon. A range reaches a level when the design
+   * deliberately has what that level asks:
+   *
+   *   low end (serving the machine)
+   *     2  raw pointers and manual memory are part of the language
+   *     3  zero-cost abstraction over them: RAII, ownership, value types + ARC
+   *     4  a managed runtime, static types describing representation
+   *     5  the runtime is a dynamic language's
+   *   high end (serving the mathematics)
+   *     4  types describe representation and class hierarchies
+   *     5  values need no machine in view: managed, closures, dynamic dispatch
+   *     6  types state constraints: parametric polymorphism, sums, structural
+   *        types, inference — kept or not (gradual and erased types count)
+   *     7  kept by proof: sound by design, escape hatches marked (`unsafe`,
+   *        `Obj.magic`); ADTs with exhaustive matching at the core
+   *     8  purity, too, is a kept promise
+   *     9  total; types are propositions
    */
   absRange?: [number, number];
   /** Interestingness, 0 (boring) – 9 (mind-blown). */
