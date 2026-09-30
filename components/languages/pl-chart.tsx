@@ -94,29 +94,27 @@ function standing(
   return reach[0] <= range[1] && reach[1] >= range[0] ? "reach" : "out";
 }
 
-/** Width of one level on a dot's range track, in px. */
-const TRACK_STEP = 10;
+/** Width of one level when a dot stretches into its range: one dot. */
+const PILL_STEP = 12;
 
 /**
- * A dot's range track: how wide, what it paints, and where along it the dot
- * sits (`anchor`, px from its left end — the middle of the dot's own level).
- * Past the end of the scale the track is the whole ramp, running from bare
- * metal up to the dot: everything it compiles into, below it. A language with
- * one level has none.
+ * A dot stretched into its range: how wide the bar is, where it starts
+ * relative to the dot's own 12px footprint, and the gradient it holds. The
+ * bar grows from the dot and keeps the dot's own level where the dot was.
+ * A language with one level — or none, past the end of the scale — does not
+ * stretch.
  */
-function rangeTrack(
+function rangePill(
   language: Language,
-): { width: number; anchor: number; paint: string } | null {
+): { width: number; left: number; mark: number; paint: string } | null {
   const reach = reachOf(language);
-  if (reach === null) {
-    const width = (SCALE_MAX + 1) * TRACK_STEP;
-    return { width, anchor: width - TRACK_STEP / 2, paint: absSpectrum(0, SCALE_MAX) };
-  }
+  if (reach === null || reach[0] === reach[1]) return null;
   const [lo, hi] = reach;
-  if (lo === hi) return null;
+  const own = (language.abs! - lo + 0.5) * PILL_STEP; // own level's centre, from the bar's left
   return {
-    width: (hi - lo + 1) * TRACK_STEP,
-    anchor: (language.abs! - lo + 0.5) * TRACK_STEP,
+    width: (hi - lo + 1) * PILL_STEP,
+    left: PILL_STEP / 2 - own,
+    mark: own,
     paint: absSpectrum(lo, hi),
   };
 }
@@ -346,7 +344,7 @@ function Dot({
   onPreview: (on: boolean) => void;
 }) {
   const tier = tierOf(language.abs);
-  const track = rangeTrack(language);
+  const pill = dimmed ? null : rangePill(language);
   return (
     <div
       className={cn(
@@ -384,43 +382,70 @@ function Dot({
             dimmed && "pointer-events-none",
           )}
         >
-          {/* The range, as a track the dot sits on like a thumb: the stretch
-              of the ramp it reaches, anchored so its own level stays under
-              the dot. Closed (scaleX 0, from that anchor) at rest; open under
-              a pointer, on focus, and while its note is open. */}
-          {track && !dimmed && (
-            <span
-              aria-hidden
-              className={cn(
-                "absolute top-1/2 h-2 -translate-y-1/2 rounded-full ring-1 ring-background",
-                "scale-x-0 transition-transform duration-300 ease-out",
-                "group-hover/dot:scale-x-100 group-focus-visible/dot:scale-x-100",
-                selected && "scale-x-100",
-              )}
-              style={{
-                left: `calc(50% - ${track.anchor}px)`,
-                width: track.width,
-                transformOrigin: `${track.anchor}px 50%`,
-                background: track.paint,
-              }}
-            />
-          )}
+          {/* The dot. With a range, it stretches into a bar holding that
+              stretch of the ramp — under a pointer, on focus, and while
+              picked or open — growing from where it sits so its own level
+              stays put, marked by a pip. Without one, it only swells. */}
           <span
             aria-hidden
             className={cn(
-              "relative block size-3 rounded-full ring-2 ring-background transition-[transform,opacity] duration-200",
-              "group-hover/dot:scale-[1.35] group-active/dot:scale-110 group-active/dot:duration-0",
-              selected && "scale-[1.35] outline-2 outline-offset-2 outline-foreground",
-              reached &&
-                !selected &&
-                "outline-1 outline-offset-2 outline-dashed outline-muted-foreground",
+              "relative block size-3 transition-transform duration-200",
+              !pill && "group-hover/dot:scale-[1.35] group-active/dot:scale-110 group-active/dot:duration-0",
+              !pill && selected && "scale-[1.35]",
             )}
-            style={{
-              background: dimmed
-                ? "color-mix(in oklab, var(--ink) 12%, transparent)"
-                : absColor(language.abs),
-            }}
-          />
+            style={
+              pill
+                ? ({
+                    "--pill-w": `${pill.width}px`,
+                    "--pill-x": `${pill.left}px`,
+                    "--pill-mark": `${pill.mark}px`,
+                  } as CSSProperties)
+                : undefined
+            }
+          >
+            <span
+              className={cn(
+                "absolute left-0 top-0 h-3 w-3 overflow-hidden rounded-full ring-2 ring-background",
+                "transition-[left,width] duration-300 ease-out",
+                pill &&
+                  "group-hover/dot:left-(--pill-x) group-hover/dot:w-(--pill-w) group-focus-visible/dot:left-(--pill-x) group-focus-visible/dot:w-(--pill-w)",
+                pill && selected && "left-(--pill-x) w-(--pill-w)",
+                selected && "outline-2 outline-offset-2 outline-foreground",
+                reached &&
+                  !selected &&
+                  "outline-1 outline-offset-2 outline-dashed outline-muted-foreground",
+              )}
+              style={{
+                background: dimmed
+                  ? "color-mix(in oklab, var(--ink) 12%, transparent)"
+                  : (pill?.paint ?? absColor(language.abs)),
+              }}
+            >
+              {pill && (
+                <>
+                  {/* At rest the bar is the dot: its own colour over the
+                      gradient, fading as it stretches. */}
+                  <span
+                    className={cn(
+                      "absolute inset-0 transition-opacity duration-200",
+                      "group-hover/dot:opacity-0 group-focus-visible/dot:opacity-0",
+                      selected && "opacity-0",
+                    )}
+                    style={{ background: absColor(language.abs) }}
+                  />
+                  {/* The pip: its own level, inside the stretch. */}
+                  <span
+                    className={cn(
+                      "absolute top-1/2 size-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 transition-opacity duration-200",
+                      "group-hover/dot:opacity-100 group-focus-visible/dot:opacity-100",
+                      selected && "opacity-100",
+                    )}
+                    style={{ left: "var(--pill-mark)" }}
+                  />
+                </>
+              )}
+            </span>
+          </span>
           <span
             aria-hidden
             className={cn(
