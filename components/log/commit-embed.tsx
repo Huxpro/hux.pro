@@ -46,6 +46,9 @@ export interface CommitProps {
   expandAll?: boolean;
   className?: string;
   hideDate?: boolean;
+  /** Timeline-only: one line under the project it belongs to (see
+   *  TimelineCommit). */
+  nested?: boolean;
   /** Pre-computed git-graph rail char for the timeline gutter. */
   rail?: string;
   /** Timeline-only: this row's piece of the chapter graph. */
@@ -85,6 +88,7 @@ export function Commit({
   defaultExpanded = false,
   className,
   hideDate = false,
+  nested = false,
   rail,
   graph,
   graphLit,
@@ -166,6 +170,7 @@ export function Commit({
           defaultExpanded={defaultExpanded}
           className={className}
           hideDate={hideDate}
+          nested={nested}
           rail={rail}
           graph={graph}
           graphLit={graphLit}

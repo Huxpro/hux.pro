@@ -1,15 +1,21 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
-import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
+import {
+  chapterLabel,
+  LogTimeline,
+  type LogNest,
+} from "@/components/log/log-timeline";
 import { useOptionalDevtool, WORKS_REF_DEFAULT } from "@/systems/devtool";
 import { ProjectShelf } from "@/components/log/project-shelf";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { t, useLocale } from "@/services";
 import {
+  computeCommitHash,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
@@ -23,6 +29,9 @@ import {
   type LogForm,
 } from "@/lib/log-view";
 import { buildEraTimeline } from "@/lib/log-eras";
+import { foldUnderProjects } from "@/lib/works-projects";
+
+const NO_PROJECTS: ReadonlySet<string> = new Set();
 
 interface WorksViewProps {
   logData: LogData;
@@ -67,7 +76,86 @@ export function WorksView({ logData }: WorksViewProps) {
     if (urlKey !== serializeViewState(view)) setView(urlView);
   }
 
-  const selectHash = useCommitAnchor();
+  // Under a filter that shows projects, each project carries what was said
+  // about it — its talks, press and posts, by the rule in
+  // lib/works-projects.ts — nested under its row, wherever the filter would
+  // otherwise drop them. `?type=project` is the reading of what was
+  // built, and the talks are the evidence for it. A row the filter shows in
+  // its own right (`?type=project,talk`) stays at its date; with no filter
+  // nothing is dropped, so nothing moves. The chips are untouched: nesting
+  // a talk under its project is context for the project, not a talk filter.
+  const nested = useMemo(() => {
+    if (!view.types.includes("project")) return null;
+    const under = new Map<string, string>();
+    for (const { commits } of data) {
+      const folds = foldUnderProjects(commits);
+      for (const c of commits) {
+        const projectId = folds.get(c.id);
+        if (projectId && !isRowVisible(c, view.types)) under.set(c.id, projectId);
+      }
+    }
+    return under.size > 0 ? under : null;
+  }, [data, view.types]);
+
+  // Each project's rows hang from one line — `talks 10 · WeAreDevelopers,
+  // GOSIM Paris, …` — that unfolds them in place. Whether it starts open is
+  // the form's:
+  //  - `index` and `covers` start it shut. The reading is the list of what
+  //    was built; ten talks under Lynx would push the next project a screen
+  //    down, and the count and the venues already say most of what they do.
+  //  - the feed starts it open, because the feed is the form that prints
+  //    everything, and a shut line would be the one thing it kept back.
+  // The page remembers only the lines the reader flipped from that, stamped
+  // with the form they were flipped in, so a new form spends them the way
+  // it spends an opened row (TimelineCommit) — without an effect to clear
+  // them.
+  const nestOpen = view.form === "feed";
+  const [flips, setFlips] = useState<{
+    form: LogForm;
+    ids: ReadonlySet<string>;
+  }>({ form: view.form, ids: NO_PROJECTS });
+  const flipped = flips.form === view.form ? flips.ids : NO_PROJECTS;
+  const isProjectOpen = useCallback(
+    (projectId: string) => nestOpen !== flipped.has(projectId),
+    [nestOpen, flipped],
+  );
+  const toggleProject = useCallback(
+    (projectId: string) => {
+      const ids = new Set(flipped);
+      if (ids.has(projectId)) ids.delete(projectId);
+      else ids.add(projectId);
+      setFlips({ form: view.form, ids });
+    },
+    [flipped, view.form],
+  );
+  const nest = useMemo<LogNest | undefined>(
+    () =>
+      nested
+        ? { of: nested, isOpen: isProjectOpen, onToggle: toggleProject }
+        : undefined,
+    [nested, isProjectOpen, toggleProject],
+  );
+
+  // A permalink to a row folded under its project's line: unfold it first,
+  // synchronously, so the row is in the document when the anchor measures
+  // it (`useCommitAnchor`). Every other row a hash can name is already on
+  // the page.
+  const reveal = useCallback(
+    (hash: string) => {
+      if (!nested) return;
+      for (const { commits } of data) {
+        const c = commits.find((c) => computeCommitHash(c.id) === hash);
+        if (!c) continue;
+        const projectId = nested.get(c.id);
+        if (projectId && !isProjectOpen(projectId)) {
+          flushSync(() => toggleProject(projectId));
+        }
+        return;
+      }
+    },
+    [data, nested, isProjectOpen, toggleProject],
+  );
+  const selectHash = useCommitAnchor(reveal);
 
   // How a chapter's ref sits on the graph — on trial, a saved setting in
   // the DevTool's Works module.
@@ -205,6 +293,7 @@ export function WorksView({ logData }: WorksViewProps) {
         locale={locale}
         identities={logData.identities}
         form={view.form}
+        nested={nest}
         activeTypes={view.types}
         onSelectHash={selectHash}
         pinnedChapters
