@@ -1,148 +1,177 @@
 "use client";
 
-import { PagerDots, useSnapPager } from "@/components/ui/snap-pager";
 import {
   WidgetHeader,
   WidgetLink,
   WidgetShell,
   WidgetTitle,
-  WIDGET_REVEAL,
 } from "@/components/ui/widget";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { TrackThumb, useTheater, type Album, type Track } from "@/systems/theater";
-import { buildLibraryAlbums } from "@/systems/theater/lib/albums";
-import { featuredTracks } from "@/systems/theater/lib/library";
-import { useMemo } from "react";
+import { AlbumTabs, TrackThumb, useTheater } from "@/systems/theater";
+import {
+  buildChannels,
+  onAir,
+  upNext,
+} from "@/systems/theater/lib/channel";
+import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
-// FeaturedTalksWidget — the theater's front on the home grid.
+// FeaturedTalksWidget — the theater as television.
 //
-// One strip, no tabs: the featured media from content/theater.json, the ones
-// the viewer can hear in their own language first. Tap a cover and the
-// theater opens on it with the whole library around it; the last card opens
-// the library itself. What the card shows is chosen in theater.json — never
-// by what kind of commit lists the media.
+// Two channels, one per language, the viewer's first. The card shows what is
+// on the chosen channel right now — the same program for everyone, because it
+// is a function of the clock (systems/theater/lib/channel.ts) — how far into
+// it the broadcast is, and what comes on after. Tapping the program tunes in:
+// the theater opens on the channel at that program, that far in, and plays on
+// from there.
+//
+// Time is read only in the browser. The server renders the card's frame; the
+// program arrives on mount, so no clock ever has to agree with another.
 // ---------------------------------------------------------------------------
 
 /** Where the card's surface and its arrow go. */
 const TALKS_HREF = "/works?type=talk";
 
-/** Where a track sits in the library's shelves. */
-function locate(albums: Album[], track: Track) {
-  for (let a = 0; a < albums.length; a++) {
-    const i = albums[a].tracks.indexOf(track);
-    if (i >= 0) return { albumIndex: a, trackIndex: i };
-  }
-  return { albumIndex: 0, trackIndex: 0 };
+/** Programs listed under the one on air. */
+const GUIDE = 2;
+
+/**
+ * The wall clock to the second — null on the server and in the hydrating
+ * render, so the markup never depends on whose clock rendered it.
+ */
+function subscribeClock(onTick: () => void) {
+  const id = setInterval(onTick, 1000);
+  return () => clearInterval(id);
+}
+const readClock = () => Math.floor(Date.now() / 1000) * 1000;
+function useNow(): number | null {
+  return useSyncExternalStore<number | null>(subscribeClock, readClock, () => null);
+}
+
+function clock(ms: number, locale: string): string {
+  return new Date(ms).toLocaleTimeString(locale === "zh" ? "zh-CN" : "en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function FeaturedTalksWidget() {
   const { locale } = useLocale();
   const { open } = useTheater();
-  const albums = useMemo(() => buildLibraryAlbums(locale), [locale]);
-  const featured = useMemo(
-    () =>
-      featuredTracks(
-        albums.flatMap((a) => a.tracks),
-        locale,
-      ),
-    [albums, locale],
-  );
-  const rest = useMemo(
-    () => albums.flatMap((a) => a.tracks).filter((tk) => !featured.includes(tk)),
-    [albums, featured],
-  );
+  const channels = useMemo(() => buildChannels(locale), [locale]);
+  const [active, setActive] = useState(0);
+  const channel = channels[active] ?? channels[0] ?? null;
+  const now = useNow();
 
-  // The featured covers, then the way into the rest.
-  const { scrollRef, index: activeCard, scrollTo } = useSnapPager(
-    featured.length + 1,
-  );
+  if (!channel) return null;
 
-  if (featured.length === 0) return null;
+  const live = now === null ? null : onAir(channel, now);
+  const guide = now === null ? [] : upNext(channel, now, GUIDE);
+  const duration = live?.track.duration ?? 0;
+  const progress = live && duration ? live.offset / duration : 0;
+  const minutesLeft = live ? Math.max(1, Math.ceil((duration - live.offset) / 60)) : 0;
+
+  const tuneIn = () => {
+    if (!live) return;
+    open({
+      albums: channels,
+      albumIndex: channels.indexOf(channel),
+      trackIndex: live.index,
+      startAt: live.offset,
+    });
+  };
 
   return (
     <WidgetShell href={TALKS_HREF}>
       <WidgetHeader className="pb-3">
         <WidgetTitle>{t(locale, "widgetFeaturedTalks")}</WidgetTitle>
+        <span className="ml-auto mr-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-red-500">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inset-0 animate-ping rounded-full bg-red-500/60 motion-reduce:hidden" />
+            <span className="relative h-1.5 w-1.5 rounded-full bg-red-500" />
+          </span>
+          {t(locale, "theaterOnAir")}
+        </span>
         <WidgetLink href={TALKS_HREF} />
       </WidgetHeader>
 
-      <div className="pb-5">
-        <div
-          ref={scrollRef}
+      <div className="px-5 pb-3">
+        <AlbumTabs
+          albums={channels}
+          activeIndex={active}
+          onSelect={setActive}
+          raised={false}
+        />
+      </div>
+
+      <div className="px-5 pb-3">
+        <button
+          type="button"
+          onClick={tuneIn}
+          disabled={!live}
           className={cn(
-            "flex gap-3 pl-5 pr-5",
-            "overflow-x-auto snap-x snap-mandatory scroll-pl-5 scroll-smooth",
-            "no-scrollbar",
+            "group/thumb pressable block w-full rounded-xl text-left",
+            "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
           )}
         >
-          {featured.map((track) => (
-            <button
-              key={track.id}
-              type="button"
-              data-pager-card
-              onClick={() => open({ albums, ...locate(albums, track) })}
-              className={cn(
-                "group/thumb pressable w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
-                "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
-              )}
-            >
-              <TrackThumb track={track} />
-              <div className={cn("mt-2 truncate", TYPE.rowTitle)}>
-                {track.title}
-              </div>
-              {track.subtitle && (
-                <div className={cn("mt-0.5 truncate", TYPE.label)}>
-                  {track.subtitle}
-                </div>
-              )}
-            </button>
-          ))}
+          <div className="relative">
+            {live ? (
+              <TrackThumb track={live.track} />
+            ) : (
+              <div className="aspect-video w-full rounded-lg border border-border/40 bg-muted/20" />
+            )}
+            {/* The broadcast's position: how far into this program it is. */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 overflow-hidden rounded-b-lg bg-black/25">
+              <div
+                className="h-full bg-red-500 transition-[width] duration-1000 ease-linear"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
+          </div>
+          <div className={cn("mt-2 truncate", TYPE.rowTitle)}>
+            {live?.track.title ?? " "}
+          </div>
+          <div className={cn("mt-0.5 flex gap-2", TYPE.rowMeta)}>
+            <span className="min-w-0 flex-1 truncate">{live?.track.subtitle}</span>
+            {live && (
+              <span className="shrink-0 tabular-nums">
+                {t(locale, "theaterMinutesLeft").replace("{n}", String(minutesLeft))}
+              </span>
+            )}
+          </div>
+        </button>
+      </div>
 
-          {/* The rest of the library: the theater at its newest piece, with
-              every shelf a tab away. Its cover is the rest's covers. */}
+      {/* The program guide: what comes on after, at what time here. */}
+      <div className="px-5 pb-4">
+        <div className={cn("pb-1", TYPE.rowMeta)}>{t(locale, "theaterUpNext")}</div>
+        {guide.map((slot) => (
           <button
+            key={`${slot.index}-${slot.startsAt}`}
             type="button"
-            data-pager-card
-            onClick={() => open({ albums })}
+            onClick={() =>
+              open({
+                albums: channels,
+                albumIndex: channels.indexOf(channel),
+                trackIndex: slot.index,
+              })
+            }
             className={cn(
-              "group/thumb pressable w-[86%] max-w-[200px] shrink-0 snap-start rounded-xl text-left",
+              "pressable -mx-2 flex w-[calc(100%+1rem)] items-baseline gap-3 rounded-lg px-2 py-1.5 text-left",
+              "transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35",
               "outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
             )}
           >
-            <div className="relative grid aspect-video grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden rounded-lg border border-border/40">
-              {rest.slice(0, 4).map((track) => (
-                <TrackThumb
-                  key={track.id}
-                  track={track}
-                  className="rounded-none border-0"
-                />
-              ))}
-              <span className="absolute inset-0 flex items-center justify-center bg-black/45 font-mono text-lg tabular-nums text-white transition-colors group-hover/thumb:bg-black/55">
-                +{rest.length}
-              </span>
-            </div>
-            <div className={cn("mt-2 truncate", TYPE.rowTitle)}>
-              {t(locale, "theaterSeeAll")}
-            </div>
-            <div className={cn("mt-0.5 truncate", TYPE.label)}>
-              {albums.map((a) => `${a.title} ${a.tracks.length}`).join(" · ")}
-            </div>
+            <span className={cn("w-10 shrink-0 tabular-nums", TYPE.rowMeta)}>
+              {clock(slot.startsAt, locale)}
+            </span>
+            <span className={cn("min-w-0 flex-1 truncate", TYPE.rowTitle)}>
+              {slot.track.title}
+            </span>
           </button>
-          <div className="w-5 shrink-0" aria-hidden />
-        </div>
-
-        <PagerDots
-          count={featured.length + 1}
-          index={activeCard}
-          onSelect={scrollTo}
-          // A pointer's way to page the strip (a wheel cannot scroll it
-          // sideways), shown with the card; a finger swipes, and the peek
-          // of the next cover already says it can.
-          className={cn("pt-3 pointer-coarse:hidden", WIDGET_REVEAL)}
-        />
+        ))}
       </div>
     </WidgetShell>
   );

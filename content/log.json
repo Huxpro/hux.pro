@@ -616,7 +616,8 @@
           "kind": "video",
           "url": "https://www.bilibili.com/video/BV1YeSgBCEoe/",
           "platform": "bilibili",
-          "translationOf": "https://youtu.be/-uUcYrl51JM"
+          "translationOf": "https://youtu.be/-uUcYrl51JM",
+          "duration": 1727
         }
       ],
       "tags": [
@@ -689,7 +690,8 @@
         {
           "kind": "video",
           "url": "https://www.bilibili.com/video/BV1A1XxYXERk",
-          "platform": "bilibili"
+          "platform": "bilibili",
+          "duration": 2708
         }
       ],
       "tags": [
@@ -721,7 +723,8 @@
         {
           "kind": "video",
           "url": "https://youtu.be/l2dByiwiQcM",
-          "platform": "youtube"
+          "platform": "youtube",
+          "duration": 1859
         },
         {
           "kind": "link",
@@ -759,7 +762,8 @@
         {
           "kind": "video",
           "url": "https://youtu.be/-uUcYrl51JM",
-          "platform": "youtube"
+          "platform": "youtube",
+          "duration": 2300
         }
       ],
       "tags": [
@@ -792,7 +796,8 @@
         {
           "kind": "video",
           "url": "https://youtu.be/L_u08K7xc18",
-          "platform": "youtube"
+          "platform": "youtube",
+          "duration": 977
         }
       ],
       "tags": [
@@ -894,7 +899,8 @@
         {
           "kind": "video",
           "url": "https://www.bilibili.com/video/BV1uz421d7Ch/",
-          "platform": "bilibili"
+          "platform": "bilibili",
+          "duration": 2002
         }
       ],
       "tags": [
@@ -925,7 +931,8 @@
         {
           "kind": "video",
           "url": "https://www.bilibili.com/video/BV1SC4y1c7ju/",
-          "platform": "bilibili"
+          "platform": "bilibili",
+          "duration": 2214
         }
       ],
       "tags": [
@@ -1031,7 +1038,8 @@
         {
           "kind": "video",
           "url": "https://www.bilibili.com/video/BV1LY411Q7hC/",
-          "platform": "bilibili"
+          "platform": "bilibili",
+          "duration": 3025
         }
       ],
       "tags": [
@@ -1095,7 +1103,8 @@
         {
           "kind": "video",
           "url": "https://youtu.be/lGEMwh32soc",
-          "platform": "youtube"
+          "platform": "youtube",
+          "duration": 721
         },
         {
           "kind": "link",
@@ -1771,7 +1780,8 @@
         {
           "kind": "video",
           "url": "https://www.bilibili.com/video/BV1ky4y1R7Zm/",
-          "platform": "bilibili"
+          "platform": "bilibili",
+          "duration": 704
         }
       ],
       "tags": [

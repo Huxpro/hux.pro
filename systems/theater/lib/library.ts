@@ -112,6 +112,13 @@ function languageOf(listing: Listing): TrackLanguage | undefined {
   return lang === "en" || lang === "zh" ? lang : undefined;
 }
 
+/** The languages an entry can be heard (or read) in. */
+export function entryLanguages(entry: LibraryEntry): TrackLanguage[] {
+  return entry.versions
+    .map(languageOf)
+    .filter((l): l is TrackLanguage => !!l);
+}
+
 /**
  * Every recording and deck the log lists, as library entries, newest first.
  * Visibility follows the log's own (`listed`, `listedIn`): the library holds
@@ -198,6 +205,7 @@ function toVersion(listing: Listing, locale: Locale): TrackVersion {
       url: media.url,
       videoId: resolveVideoId(media.url, media.platform),
       thumbnail: getMediaThumbnail(media) ?? getCommitThumbnail(commit),
+      duration: media.duration,
     };
   }
   return {
@@ -211,9 +219,9 @@ function toVersion(listing: Listing, locale: Locale): TrackVersion {
 
 /** A track wearing one of its versions. */
 export function withVersion(track: Track, version: TrackVersion): Track {
-  const { key: _key, language, date, ...playable } = version;
+  const { key: _key, language, date, duration, ...playable } = version;
   void _key;
-  return { ...track, ...playable, language, date } as Track;
+  return { ...track, ...playable, language, date, duration } as Track;
 }
 
 /**
@@ -221,9 +229,14 @@ export function withVersion(track: Track, version: TrackVersion): Track {
  * has one, the original otherwise. Every version rides along so the stage can
  * switch without going back to the library.
  */
-export function entryToTrack(entry: LibraryEntry, locale: Locale): Track {
+export function entryToTrack(
+  entry: LibraryEntry,
+  locale: Locale,
+  /** Wear this language's version when there is one (default: the locale). */
+  prefer: TrackLanguage = locale,
+): Track {
   const versions = entry.versions.map((v) => toVersion(v, locale));
-  const preferred = versions.find((v) => v.language === locale) ?? versions[0];
+  const preferred = versions.find((v) => v.language === prefer) ?? versions[0];
   const base = { id: entry.id, versions } as unknown as Track;
   return withVersion(base, preferred);
 }
