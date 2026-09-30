@@ -11,6 +11,7 @@ import {
   type FilterableCommitType,
   formatTagDateRange,
   getLocalizedTagTitle,
+  localizeOptional,
   type Identity,
   isRowVisible,
   type Tag,
@@ -265,25 +266,29 @@ function TagBlock({
   if (!hasVisible) return null;
 
   const { items, graphs } = chapterGraph(commits, isHidden, laneOf);
+  // The tag's message: an annotated tag carries one, and `git show` prints
+  // it before the commits it marks — the chapter, as its author tells it.
+  const message = localizeOptional(tag.narrative, locale);
 
   return (
     <div>
       {/* Tag ref marker — like `git log --decorate` ref annotations */}
       <div
         className={cn(
-          "flex items-center gap-3 py-2",
+          "pb-2",
           pinned ? "relative" : "sticky top-4 z-20",
-          tagIndex > 0 && "mt-6 pt-6 border-t border-border/30",
+          tagIndex > 0 ? "mt-6 pt-6 border-t border-border/30" : "pt-2",
         )}
       >
         {/* The chapter's trunk starts at its ref. */}
         <RefGraphLayer
-          // The marker's centre: `pt-6` (and the rule) replaces `py-2`'s
-          // top once there is a chapter above.
+          // The marker's centre: below the rule once there is a chapter
+          // above, and the marker's own half-height.
           y={(tagIndex > 0 ? 25 : 8) + 11}
           first
           look={inspecting ? "stub" : lookOf(refLook)}
         />
+        <div className="flex items-center gap-3">
         {!inspecting && refLook !== "stub" ? (
           <RefLabel
             look={refLook}
@@ -291,6 +296,7 @@ function TagBlock({
             label={tagLabel}
             locale={locale}
             pinned={pinned}
+            message={pinned ? message : undefined}
           />
         ) : inspecting && edit ? (
           <button
@@ -332,6 +338,10 @@ function TagBlock({
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
+        )}
+        </div>
+        {pinned && (inspecting || refLook === "stub") && message && (
+          <StubMessage text={message} />
         )}
       </div>
 
@@ -635,28 +645,45 @@ function RefRow({
   pinned: boolean;
   look: RefLayout;
 }) {
+  const message = localizeOptional(tag.narrative, locale);
   return (
-    <div className="relative flex items-center gap-3 pt-8 pb-2">
+    <div className="relative pt-8 pb-2">
       <RefGraphLayer y={32 + 11} mode={mode} look={lookOf(look)} />
-      <RefLabel
-        look={look}
-        tag={tag}
-        label={chapterLabel(tag, -1, locale)}
-        locale={locale}
-        pinned={pinned}
-      />
+      <div className="flex items-center gap-3">
+        <RefLabel
+          look={look}
+          tag={tag}
+          label={chapterLabel(tag, -1, locale)}
+          locale={locale}
+          pinned={pinned}
+          message={message}
+        />
+      </div>
+      {look === "stub" && message && <StubMessage text={message} />}
     </div>
   );
 }
 
+/** `stub`'s message: a paragraph under the marker, from the page column's
+ *  edge, on a measure (the reading #326 tried). */
+function StubMessage({ text }: { text: string }) {
+  return <p className={cn("relative mt-2 max-w-prose", TYPE.body)}>{text}</p>;
+}
+
 /** Where a ref's marker goes (on trial, `?refs=` on /works). */
-export type RefLayout = "stub" | "ring" | "under" | "hash";
-export const REF_LAYOUTS: readonly RefLayout[] = ["stub", "ring", "under", "hash"];
+export type RefLayout = "stub" | "ring" | "row" | "under" | "hash";
+export const REF_LAYOUTS: readonly RefLayout[] = [
+  "stub",
+  "ring",
+  "row",
+  "under",
+  "hash",
+];
 
 /** The line a layout draws: a marker in the hash slot leaves a ring on
  *  the trunk, as a marker in the title slot does. */
 function lookOf(layout: RefLayout): RefLook {
-  return layout === "hash" ? "ring" : layout;
+  return layout === "hash" || layout === "row" ? "ring" : layout;
 }
 
 /**
@@ -665,6 +692,7 @@ function lookOf(layout: RefLayout): RefLook {
  * grid as a commit row, so it lines up with the rows under it:
  *
  *   ring    ·  ○  (DESIGN) 2004 – 2016     the marker where a title goes
+ *   row     ·  ○  (DESIGN) ······ 2004 – 2016   …and the span where a date goes
  *   under   ·  (DESIGN) 2004 – 2016        the marker on the trunk
  *   hash    (DESIGN) ○  2004 – 2016        the marker where a hash goes
  */
@@ -674,12 +702,16 @@ function RefLabel({
   label,
   locale,
   pinned,
+  message,
 }: {
   look: RefLayout;
   tag: Tag;
   label: string;
   locale: Locale;
   pinned: boolean;
+  /** The tag's message. The grid looks print it where a commit's
+   *  description goes, in its type; `stub` leaves it to the caller. */
+  message?: string;
 }) {
   // `data-chapter` is what the pinned bar watches: the moment this pill
   // reaches the bar's ref slot, the slot wears it. One per ref.
@@ -719,25 +751,41 @@ function RefLabel({
   );
   return (
     <div className={cn("flex-1 min-w-0 -mx-3 px-3 @container", GUTTER_PULL)}>
-      <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-center">
+      <div
+        className={cn(
+          "grid gap-x-2 items-center",
+          // The icon column held open at its width, so the message under
+          // a marker that spans it still starts where titles do.
+          look === "hash"
+            ? "grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr]"
+            : "grid-cols-[1.25rem_1fr] @sm:grid-cols-[auto_1.25rem_1fr]",
+        )}
+      >
         {look === "hash" ? (
           <>
             {/* The hash slot is a hash wide; the marker overflows it to
                 the left, so the trunk stays where it is. Below `@sm` there
                 is no hash slot, and the marker sits on the trunk. */}
-            <span className="flex justify-end @sm:w-[7ch] lg:w-14 font-mono text-xs">
+            <span className="flex justify-end @sm:max-lg:w-[7ch] lg:w-14 font-mono text-xs">
               {pill}
             </span>
             <span aria-hidden className="hidden @sm:inline-block w-5" />
             <span className="flex items-center min-w-0">{date}</span>
           </>
-        ) : look === "ring" ? (
+        ) : look === "ring" || look === "row" ? (
           <>
             {blankHash}
             <span aria-hidden className="w-5" />
+            {/* `row`: the span where a commit's date goes, on the right. */}
             <span className="flex items-center gap-3 min-w-0">
               {pill}
-              {date}
+              {look === "row" ? (
+                <span className={cn("ml-auto shrink-0", TYPE.rowMeta)}>
+                  {date}
+                </span>
+              ) : (
+                date
+              )}
             </span>
           </>
         ) : (
@@ -748,6 +796,16 @@ function RefLabel({
               {date}
             </span>
           </>
+        )}
+        {message && (
+          <p
+            className={cn(
+              "col-start-2 @sm:col-start-3 mt-1.5 min-w-0",
+              TYPE.caption,
+            )}
+          >
+            {message}
+          </p>
         )}
       </div>
     </div>
