@@ -33,7 +33,12 @@ import { TYPE } from "@/lib/typography";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
 import { FoldLine } from "./fold-line";
-import { type BeamSpec, GUTTER_PULL, HASH_CELL } from "./timeline-commit";
+import {
+  type BeamSpec,
+  GUTTER_PULL,
+  HASH_CELL,
+  rowLayoutFor,
+} from "./timeline-commit";
 import {
   GraphInCell,
   RefInCell,
@@ -44,6 +49,7 @@ import {
 } from "./timeline-lane";
 import { useTimelineEdit } from "./timeline-edit-context";
 import type { WorksRef } from "@/systems/devtool";
+import type { BodySize, DeckMode, RowLayout } from "./works-flags";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
  *  per-tag memo below on every render for callers that never filter
@@ -129,6 +135,14 @@ interface LogTimelineProps {
    * flag). Omitted, the log is every commit at its date, as it always was.
    */
   fold?: LogFold;
+  /**
+   * How each row arranges itself (the `layout` flag): passed through to
+   * every row, the ones a fold opens into included. Omitted, `main`.
+   */
+  layout?: RowLayout;
+  /** The `body` and `deck` flags, passed through to every row likewise. */
+  body?: BodySize;
+  deck?: DeckMode;
 }
 
 /**
@@ -145,6 +159,9 @@ export function LogTimeline({
   pinnedChapters = false,
   refLook = "stub",
   fold,
+  layout,
+  body,
+  deck,
 }: LogTimelineProps) {
   // The chapter whose track is held (its marker has focus) — page-wide, so
   // every commit outside it steps back, in its own block or another.
@@ -187,6 +204,9 @@ export function LogTimeline({
           held={held}
           onHold={hold}
           fold={fold}
+          layout={layout}
+          body={body}
+          deck={deck}
         />
       ))}
     </div>
@@ -215,6 +235,9 @@ interface TagBlockProps {
   pinned: boolean;
   refLook: RefLayout;
   fold?: LogFold;
+  layout?: RowLayout;
+  body?: BodySize;
+  deck?: DeckMode;
 }
 
 function TagBlock({
@@ -233,9 +256,14 @@ function TagBlock({
   pinned,
   refLook,
   fold,
+  layout,
+  body,
+  deck,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
+  // The `layout: grid` flag lays the chapter out as a sheet of tiles.
+  const sheet = rowLayoutFor(layout ?? "main", form) === "grid";
   const tagLabel = chapterLabel(tag, tagIndex, locale);
   const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
   // A chapter's whole track, lit from its marker: while the marker is under
@@ -425,9 +453,23 @@ function TagBlock({
     held !== null && !(held.block === tag.id && lanes.includes(held.lane));
   /** A commit outside the held track steps down one form: covers and the
    *  feed to the index's one line (the index view's own row), the index to
-   *  an aside's quiet line. */
-  const stepDown = (back: boolean): { form: LogForm; quiet?: boolean } =>
-    !back ? { form } : form === "index" ? { form, quiet: true } : { form: "index" };
+   *  an aside's quiet line. The sheet (`layout: grid`) is a form of its own
+   *  that an index line would break a hole in, so there a tile steps back
+   *  in ink instead, as a ref does. */
+  const stepDown = (
+    back: boolean,
+  ): { form: LogForm; quiet?: boolean; className?: string } =>
+    !back
+      ? { form }
+      : sheet
+        ? { form, className: "opacity-40 transition-opacity duration-300" }
+        : form === "index"
+          ? { form, quiet: true }
+          : { form: "index" };
+  /** Where a ref's marker goes. The sheet draws no graph to place it on,
+   *  so there it is the plain marker every log without one uses (`stub`);
+   *  so it is in the editor's inspect mode, whose controls stand in it. */
+  const refLookHere: RefLayout = inspecting || sheet ? "stub" : refLook;
   /** A marker's hold on its chapter's track (see `trackHover`). */
   const trackFor = (lane: number): TrackControl => ({
     lit: trackHover === lane || trackPin === lane,
@@ -500,7 +542,8 @@ function TagBlock({
         label={tagLabel}
         locale={locale}
         pinned={pinned}
-        look={inspecting ? "stub" : refLook}
+        look={refLookHere}
+        bare={sheet}
         lit={lit.refs.get(0)}
         track={trackFor(0)}
         dimmed={stepsBack([0])}
@@ -512,7 +555,17 @@ function TagBlock({
        *  Consecutive commits sharing a tenure segmentId are wrapped in
        *  a `group/tenure` div so hovering/focusing/expanding ANY row in
        *  the cluster brightens the rail and the role's ring. */}
-      <div className="relative space-y-0">
+      <div
+        className={
+          // The `layout: grid` sheet: the chapter's rows two up at every
+          // width — on a phone as small tiles — in reading order, left to
+          // right. The runs below dissolve into it
+          // (`contents`); what is not a tile spans it (TimelineCommit).
+          sheet
+            ? "relative grid grid-cols-2 gap-x-3 sm:gap-x-6 gap-y-3"
+            : "relative space-y-0"
+        }
+      >
         {(() => {
           // Hidden-role rows (roles with `hideRow: true`) are kept in the
           // commits array so `computeRail` and `resolveAuthor` can use
@@ -551,14 +604,17 @@ function TagBlock({
                 return (
                   <RefRow
                     key={`ref-${ref.id}`}
-                    className="pt-8 pb-2"
+                    // In the sheet, a chapter starting inside the block
+                    // spans it: a divider between tiles, not a tile.
+                    className={cn("pt-8 pb-2", sheet && "col-span-full")}
                     y={32 + 11}
                     tag={ref}
                     label={label}
                     locale={locale}
                     mode={item.mode}
                     pinned={pinned}
-                    look={inspecting ? "stub" : refLook}
+                    look={refLookHere}
+                    bare={sheet}
                     lit={lit.refs.get(item.lane)}
                     track={trackFor(item.lane)}
                     dimmed={stepsBack([item.lane])}
@@ -578,10 +634,13 @@ function TagBlock({
                   variant="timeline"
                   hideDate={tag.hideDate || commits[i].hideDate}
                   rail={railInfo[i].rail}
-                  graph={graphs[i]}
-                  graphLit={lit.rows.get(i)}
+                  // The sheet has no graph: its tiles stand free, and a row
+                  // that spans it (a role, an event) draws no line either.
+                  graph={sheet ? NO_GRAPH : graphs[i]}
+                  graphLit={sheet ? undefined : lit.rows.get(i)}
                   form={step.form}
                   quiet={isHeader(commits[i]) || step.quiet}
+                  className={step.className}
                   segmentId={railInfo[i].segmentId}
                   isSegmentActive={
                     railInfo[i].segmentId !== null &&
@@ -592,6 +651,9 @@ function TagBlock({
                   onBeamClear={handleBeamClear}
                   byline={bylines[i]}
                   onSelectHash={onSelectHash}
+                  layout={layout}
+                  body={body}
+                  deck={deck}
                 />
               );
               // A project's fold line rides directly under its row, in its
@@ -610,7 +672,13 @@ function TagBlock({
                 (g.side === "node" && !!g.sideBelow);
               return [
                 row,
-                <div key={`fold-${projectId}`} className="relative">
+                // In the sheet the line spans it, under the project's tile's
+                // row, and the tiles it opens into follow it; the sheet has
+                // no graph to run through it.
+                <div
+                  key={`fold-${projectId}`}
+                  className={cn("relative", sheet && "col-span-full")}
+                >
                   {/* Under a held track the line steps back with its
                       project, the way a ref does. */}
                   <div
@@ -631,6 +699,7 @@ function TagBlock({
                       a ref: whatever leaves the project's row below — the
                       trunk, and the side lane if it goes on — lit where
                       that is lit. */}
+                  {!sheet && (
                   <GraphLayer>
                     <GraphInCell
                       graph={{
@@ -648,6 +717,7 @@ function TagBlock({
                       }}
                     />
                   </GraphLayer>
+                  )}
                 </div>,
               ];
             });
@@ -656,11 +726,13 @@ function TagBlock({
             return run.kind === "cluster" ? (
               // An identity can cluster twice (Meta, then RIT, then Meta
               // again), so the run is named by its first row, not its id.
-              <div key={`cluster-${key}`} className="group/tenure">
+              <div key={`cluster-${key}`} className={sheet ? "contents" : "group/tenure"}>
                 {rows}
               </div>
             ) : (
-              <div key={`loose-${key}`}>{rows}</div>
+              <div key={`loose-${key}`} className={sheet ? "contents" : undefined}>
+                {rows}
+              </div>
             );
           });
         })()}
@@ -785,6 +857,9 @@ function chapterGraph(
   });
   return { items, graphs, holders, on, lastOf, posOf };
 }
+
+/** No line at all: what a row draws in the sheet (`layout: grid`). */
+const NO_GRAPH: RowGraph = { trunkAbove: false, trunkBelow: false };
 
 /** Who held the trunk and the side lane at an item — for a ref, before it,
  *  and who holds the trunk after it. */
@@ -949,6 +1024,7 @@ function RefRow({
   lit,
   track,
   dimmed,
+  bare = false,
   children,
 }: {
   className: string;
@@ -964,12 +1040,16 @@ function RefRow({
   lit?: RefLit;
   track: TrackControl;
   dimmed: boolean;
+  /** No graph to sit on (the sheet): the marker alone, no line. */
+  bare?: boolean;
   children?: React.ReactNode;
 }) {
   const message = pinned ? localizeOptional(tag.narrative, locale) : undefined;
   return (
     <div className={cn("relative", className)}>
-      <RefGraphLayer y={y} mode={mode} first={first} look={lookOf(look)} lit={lit} />
+      {!bare && (
+        <RefGraphLayer y={y} mode={mode} first={first} look={lookOf(look)} lit={lit} />
+      )}
       <div
         className={cn(
           "flex items-center gap-3 transition-opacity duration-300",

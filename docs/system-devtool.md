@@ -326,15 +326,24 @@ together. Every flag off is /works as it ships.
 
 **The registry** is `WORKS_FLAGS` in `components/log/works-flags.ts`: per
 flag an `id`, an en/zh `label` and one-line `description`, and a `default`
-(always off). Boolean only; a flag that truly needed a small enum would add
-its values there and a segmented control in the module. The /works code
-reads a flag through one hook, `useWorksFlag("<id>")`. Adding a flag is
-therefore one registry entry plus reading it where it applies — the module
-lists the registry and needs no edit.
+(always off). A flag is a switch unless it lists `values`: then it is a
+**small enum** — one variant among a few rivals that exclude each other,
+each value an `id`, a short en/zh segment `label` and a one-line
+`description` — whose default is its first value, the page as it ships. The
+module draws a switch for a switch and, for an enum, a segmented choice on a
+line of its own with the chosen value's line under it. Reach for an enum
+only when the variants are rivals; independent ideas are separate switches,
+so they combine. The /works code reads a flag through one hook,
+`useWorksFlag("<id>")` — a boolean, or the enum's value id, typed from the
+registry. Adding a flag is therefore one registry entry plus reading it
+where it applies — the module lists the registry and needs no edit.
 
 | Flag | What it does |
 |---|---|
 | `fold` | A project's talks, press and posts leave their dates and fold behind one line under the project's row (`talks 10  WeAreDevelopers…  ⌄`), which opens in place into the log's own rows. Which rows belong to a project is `lib/works-projects.ts`. |
+| `layout` (enum) | How a row arranges its text, its picture and a project's face — all in TimelineCommit, composing main's parts (the title line with its venue and date, the eyebrow, the description, covers through MediaStrip, the mark through ProjectMark), with `rowLayoutFor` saying where each applies: never the index; in the feed the picture layouts are main's row. Every layout keeps main's rules for the row ("The title line", docs/system-attachments.md): nothing between a title and its sentence (`TYPE.message` under `TYPE.rowHeading`), the venue never under the title. What a layout decides is where the metadata block (venue, count, date) sits and the picture's shape. In the layouts other than `main` a project's mark leaves the gutter (which keeps the rail's dot) for a size its picture is read at. `main` (as it ships) · `side` (main's title line, full measure — the eyebrow on a phone; the covers as one deck under the date beside the text — 272px on a desk, 128px on a phone; the mark a badge on the deck's corner, or with no covers the picture itself; a deck of one is signed at its foot by the handle) · `media-first` (the first cover across the column, then main's row, the mark straddling the hero's bottom-left edge with the line under it — the eyebrow on a phone, the title line on a desk — beside it; the rest a small strip on a desk, a count on a phone; signs nowhere while folded) · `margin-meta` (a CV: from `xl` the mark, date, venue and handle in an 11rem margin column where the hash was, the date the permalink; below `xl` the eyebrow over the title at every width, led by the mark at text size; main's strip, its single cover signed below `xl`) · `grid` (each chapter a two-up contact sheet at every width: a tile is the deck, the eyebrow — the venue from `@2xs`, the date — then the mark beside the title, then the description; a project with no covers shows its mark on a plate; tiles do not sign; no hash and no graph — no trunk, lanes or lit connectors, so the Ref setting does not apply and a chapter's ref is the plain marker (`stub`), a chapter starting inside a block a divider spanning the sheet; roles, events, asides and fold lines span it too; under a held track the tiles outside it fade, as refs do, rather than step down to an index line that would hole the sheet). Every other layout keeps main's graph as it is: the trunk and lanes hang left of the node, a ref in the hash slot (`auto` on a desk, `hash`) or on the trunk (`under`) is a row of its own, and `margin-meta`'s column, standing where the hash does, is nudged clear of a node on the side lane as the hash is. Retired: `ink-order` (title, description, then the venue as a byline) — main's row now does what it set out to, with the venue on the title line; a saved value or `?flags=layout:ink-order` reads as `main`. |
+| `body` (enum) | The size a row's description is set at, in every layout, `main`'s included (TimelineCommit, `BODY_SIZE`); its ink stays the row's (`TYPE.message`, muted). `xs` (13px, `TYPE.message`, as it ships) · `sm` (14px on `relaxed`, `TYPE.body`'s size and leading: the title's size, which the title heads by its medium weight — `TYPE.rowHeading`, as it already is over any sentence). The measure stays the layout's: ~55 characters at 13px beside a `side` deck, ~95 in a column row, which clamps to two lines and reads as an abstract. Retired: `13` (a step up from the 12px caption the row used to ship; main's message is 13px now) reads as `xs`. |
+| `deck` (enum) | How a deck (`layout: side`, `grid`) shows the covers behind its front one, on a desk (MediaStrip). `click` (as built: the front cover, two edges, the count; a click opens the set) · `fan` (hover, after a 100ms beat, or keyboard focus spreads the pile in place — in a row to the left over its own text, stepping so the last cover's left edge meets the text's and never more than a cover apart; in a tile down over the tiles after it, stopping short of the next chapter's ref (its marker, measured as the pointer arrives); neither reaches a lane or a ref. The front keeps the badge; the cover under the pointer lifts whole; each cover is its own door, opening the set at its item) · `scrub` (the pointer's position across the deck turns the front cover, one invisible door per cover, with a pager on a scrim while it is read; a click opens the set at the cover shown; the deck is one tab stop whose arrows, Home and End move between covers). All CSS: transforms and `:has()` on `group/deck`, no render per frame; hover is asked of a fine pointer only, and reduced motion drops the transitions. On a phone every value is `click`: a tap opens the sheet, which already pages through the covers, rather than a swipe inside a 128px thumb whose dots would have to show under a finger (docs/system-widget-scroll.md). |
 
 **Where a value comes from.** A *saved setting* (blue `*`), in
 `localStorage.hux_works_flags` — a variant is compared by living with it
@@ -343,7 +352,11 @@ wrong kind. Like the reading settings it applies whether or not the devtool
 is on. A link can carry a variant too: `?flags=fold,resume` is the whole
 set for that visit — the ids it names on, every other off, whatever is
 saved — so a link reproduces one variant exactly, and `/works?flags=` is
-the page as it ships. It is read, never written (a chip tap keeps it, as it
+the page as it ships. An enum names its value after a colon,
+`?flags=fold,layout:side`, and enums combine like switches,
+`?flags=layout:side,body:sm,deck:fan`; a value an enum has retired reads as
+the one it became (`retired` in the registry), and any other value the flag
+does not have is its default. It is read, never written (a chip tap keeps it, as it
 keeps any param it does not own). The module shows it as a session override
 (amber); its star, or touching any switch, takes it out of the address.
 

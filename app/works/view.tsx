@@ -126,6 +126,12 @@ export function WorksView({ logData }: WorksViewProps) {
     [foldOf, isFoldOpen, toggleFold],
   );
 
+  // ── The `layout` flag: how a row arranges its parts (TimelineCommit).
+  const layout = useWorksFlag("layout");
+  // The `body` and `deck` flags: the description's size, how a deck opens.
+  const body = useWorksFlag("body");
+  const deck = useWorksFlag("deck");
+
   // A permalink to a row a fold has shut away: open the fold first,
   // synchronously, so the row is in the document when the anchor measures
   // it (`useCommitAnchor`). Every other row a hash can name is already on
@@ -288,6 +294,9 @@ export function WorksView({ logData }: WorksViewProps) {
         pinnedChapters
         refLook={refLook}
         fold={fold}
+        layout={layout}
+        body={body}
+        deck={deck}
       />
 
       {/* End marker — `git init` closes a timeline that has commits in it;

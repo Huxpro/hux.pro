@@ -27,6 +27,7 @@ import { TimelineCommit, type BeamSpec } from "./timeline-commit";
 import type { RowGraph, RowLit } from "./timeline-lane";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
+import type { BodySize, DeckMode, RowLayout } from "./works-flags";
 import { useInputCapability } from "@/services";
 
 import { TYPE } from "@/lib/typography";
@@ -72,6 +73,12 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
+  /** Timeline-only: the `layout` flag's arrangement of the row (see
+   *  TimelineCommit). */
+  layout?: RowLayout;
+  /** Timeline-only: the `body` and `deck` flags (see TimelineCommit). */
+  body?: BodySize;
+  deck?: DeckMode;
 }
 
 // =============================================================================
@@ -97,6 +104,9 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  layout = "main",
+  body = "xs",
+  deck = "click",
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -179,6 +189,9 @@ export function Commit({
           byline={byline}
           form={form}
           onSelectHash={onSelectHash}
+          layout={layout}
+          body={body}
+          deck={deck}
           attachmentSet={attachmentSet}
           inspecting={inspecting}
           isSelected={isSelected}

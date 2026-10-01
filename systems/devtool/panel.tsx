@@ -169,6 +169,7 @@ import {
   WORKS_FLAGS,
   setWorksFlag,
   useWorksFlagState,
+  type WorksFlagValue,
 } from "@/components/log/works-flags";
 import { Segmented, Switch } from "@/components/ui/controls";
 import { Slider } from "@/components/ui/slider";
@@ -2985,12 +2986,14 @@ function MusicModule() {
 // layouts on trial, switched on the real page. A saved setting (blue star).
 // Under it, the projects shelf's switch (`worksShelf`), saved the same way.
 //
-// Below them, the /works variants: one switch per flag in the registry
+// Below them, the /works variants: one row per flag in the registry
 // (components/log/works-flags.ts), so a flag added there shows up here with
-// nothing to write. Saved settings (blue star): a variant is compared by
-// living with it across reloads. A `?flags=` link overrides them for the
-// visit (amber); pressing its star, or any switch, takes the link out of the
-// address so the page is what the switches say.
+// nothing to write: a switch, or for a small enum a segmented choice on a
+// line of its own with the chosen value's line under it. Saved settings
+// (blue star): a variant is compared by living with it across reloads. A
+// `?flags=` link overrides them for the visit (amber); pressing its star, or
+// any control, takes the link out of the address so the page is what the
+// controls say.
 // =============================================================================
 
 function WorksModule() {
@@ -3054,16 +3057,19 @@ function WorksModule() {
   };
 
   const rows = WORKS_FLAGS.map((flag) => {
-    const on = linked ? linked.has(flag.id) : saved[flag.id];
+    const value = (linked ?? saved)[flag.id];
     const star: Star =
-      linked && linked.has(flag.id) !== saved[flag.id]
+      linked && linked[flag.id] !== saved[flag.id]
         ? "session"
         : saved[flag.id] !== flag.default
           ? "saved"
           : null;
-    return { flag, on, star };
+    return { flag, value, star };
   });
-  const onIds = rows.filter((r) => r.on).map((r) => r.flag.id);
+  // The header's summary: what is off its default, as a link would name it.
+  const onIds = rows
+    .filter((r) => r.value !== r.flag.default)
+    .map((r) => ("values" in r.flag ? `${r.flag.id}:${r.value}` : r.flag.id));
 
   return (
     <DebugSection
@@ -3118,10 +3124,12 @@ function WorksModule() {
             label={zh ? "项目架" : "Projects shelf"}
           />
         </PanelRow>
-        {rows.map(({ flag, on, star }) => (
+        {rows.map(({ flag, value, star }) => (
           <div key={flag.id} className="space-y-1">
             <PanelRow
               label={flag.label[locale]}
+              // An enum's values do not fit beside a label at the panel's width.
+              stacked={"values" in flag}
               star={
                 star && (
                   <PanelStar
@@ -3135,17 +3143,36 @@ function WorksModule() {
                 )
               }
             >
-              <PanelToggle
-                on={on}
-                label={`Toggle ${flag.label.en}`}
-                onClick={() => {
-                  setWorksFlag(flag.id, !on);
-                  if (linked) dropLink();
-                }}
-              />
+              {"values" in flag ? (
+                <PanelSegmented
+                  value={value as string}
+                  options={flag.values.map((v) => ({
+                    value: v.id,
+                    label: v.label[locale],
+                    title: v.id,
+                  }))}
+                  onChange={(next) => {
+                    setWorksFlag(flag.id, next as WorksFlagValue<typeof flag.id>);
+                    if (linked) dropLink();
+                  }}
+                  label={flag.label.en}
+                  fill
+                />
+              ) : (
+                <PanelToggle
+                  on={value as boolean}
+                  label={`Toggle ${flag.label.en}`}
+                  onClick={() => {
+                    setWorksFlag(flag.id, !value);
+                    if (linked) dropLink();
+                  }}
+                />
+              )}
             </PanelRow>
             <div className="text-[10px] font-mono text-muted-foreground">
-              {flag.description[locale]}
+              {"values" in flag
+                ? flag.values.find((v) => v.id === value)?.description[locale]
+                : flag.description[locale]}
             </div>
           </div>
         ))}
