@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
 import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
 import { useOptionalDevtool, WORKS_REF_DEFAULT } from "@/systems/devtool";
+import { ProjectShelf } from "@/components/log/project-shelf";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { t, useLocale } from "@/services";
@@ -70,7 +71,18 @@ export function WorksView({ logData }: WorksViewProps) {
 
   // How a chapter's ref sits on the graph — on trial, a saved setting in
   // the DevTool's Works module.
-  const refLook = useOptionalDevtool()?.worksRef ?? WORKS_REF_DEFAULT;
+  const devtool = useOptionalDevtool();
+  const refLook = devtool?.worksRef ?? WORKS_REF_DEFAULT;
+  // The projects shelf, on trial: a saved DevTool setting, off by default.
+  const shelf = devtool?.worksShelf ?? false;
+  // The shelf's projects: every project row the log prints, in the log's
+  // own order (newest first across the chapters). It stands only while
+  // the reading includes projects — a page filtered to talks opens on
+  // talks, not on a directory of something it is not showing.
+  const projects = useMemo(
+    () => data.flatMap(({ commits }) => commits.filter((c) => c.type === "project")),
+    [data],
+  );
 
   const commit = useCallback(
     (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
@@ -178,6 +190,15 @@ export function WorksView({ logData }: WorksViewProps) {
         />
       }
     >
+      {/* The directory: which projects there are, before when. */}
+      {shelf && (view.types.length === 0 || view.types.includes("project")) && (
+        <ProjectShelf
+          projects={projects}
+          locale={locale}
+          onSelectHash={selectHash}
+        />
+      )}
+
       {/* Git Log Timeline */}
       <LogTimeline
         data={data}
