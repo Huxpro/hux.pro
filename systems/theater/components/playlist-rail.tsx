@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
+import { opensYear, yearOf } from "../lib/albums";
 import { useTheater } from "../provider";
 import { TrackThumb } from "./track-thumb";
 
@@ -10,6 +11,10 @@ import { TrackThumb } from "./track-thumb";
 // scrollable (browse every video), with the current track highlighted and
 // auto-scrolled into view. Click a card to jump to it — the mini-YouTube
 // playlist experience the spec calls for.
+//
+// The library is one reel in time order, so the rail is marked by year: the
+// first card of each year carries it above the cover, and a hairline rule
+// runs from it along the year's cards.
 // ---------------------------------------------------------------------------
 
 export function PlaylistRail({
@@ -57,6 +62,21 @@ export function PlaylistRail({
               active ? "opacity-100" : "opacity-70 hover:opacity-100",
             )}
           >
+            <div
+              className={cn(
+                "mb-1.5 flex h-3 items-center gap-2 font-mono text-[10px] tabular-nums",
+                subColor,
+              )}
+            >
+              {opensYear(album.tracks, i) && <span>{yearOf(track)}</span>}
+              <span
+                aria-hidden
+                className={cn(
+                  "h-px flex-1",
+                  tone === "onDark" ? "bg-white/15" : "bg-border/60",
+                )}
+              />
+            </div>
             <TrackThumb track={track} active={active} />
             <div className={cn("mt-1.5 truncate text-xs", titleColor)}>
               {track.title}
