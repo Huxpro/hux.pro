@@ -279,6 +279,10 @@ by the rule in `lib/works-projects.ts` — on one line under its row:
 
     talks 10   WeAreDevelopers World Congress, GOSIM Paris, …   ⌄
 
+On trial behind a saved DevTool setting, Works → *Talks under projects*
+(`worksProjectTalks`), which is on by default. Off, the filter drops them
+as it always did, and every reading is the page without this.
+
 That line (`FoldLine`) unfolds the rows in place, lifted out of their
 dates and set under the project (`orderWithFolds`). It starts shut in
 `index` and `covers`, where ten talks under Lynx would push the next

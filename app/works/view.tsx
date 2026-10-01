@@ -84,8 +84,14 @@ export function WorksView({ logData }: WorksViewProps) {
   // its own right (`?type=project,talk`) stays at its date; with no filter
   // nothing is dropped, so nothing moves. The chips are untouched: nesting
   // a talk under its project is context for the project, not a talk filter.
+  //
+  // On trial behind a saved DevTool setting (Works → Talks under projects),
+  // ON by default; off, the filter drops them as it always did and the page
+  // is the page without this.
+  const devtool = useOptionalDevtool();
+  const projectTalks = devtool?.worksProjectTalks ?? true;
   const nested = useMemo(() => {
-    if (!view.types.includes("project")) return null;
+    if (!projectTalks || !view.types.includes("project")) return null;
     const under = new Map<string, string>();
     for (const { commits } of data) {
       const folds = foldUnderProjects(commits);
@@ -95,7 +101,7 @@ export function WorksView({ logData }: WorksViewProps) {
       }
     }
     return under.size > 0 ? under : null;
-  }, [data, view.types]);
+  }, [projectTalks, data, view.types]);
 
   // Each project's rows hang from one line — `talks 10 · WeAreDevelopers,
   // GOSIM Paris, …` — that unfolds them in place. Whether it starts open is
@@ -159,7 +165,6 @@ export function WorksView({ logData }: WorksViewProps) {
 
   // How a chapter's ref sits on the graph — on trial, a saved setting in
   // the DevTool's Works module.
-  const devtool = useOptionalDevtool();
   const refLook = devtool?.worksRef ?? WORKS_REF_DEFAULT;
   // The projects shelf, on trial: a saved DevTool setting, off by default.
   const shelf = devtool?.worksShelf ?? false;

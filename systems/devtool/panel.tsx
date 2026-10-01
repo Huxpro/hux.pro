@@ -2982,7 +2982,14 @@ function MusicModule() {
 function WorksModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { worksRef, setWorksRef, worksShelf, setWorksShelf } = useDevtool();
+  const {
+    worksRef,
+    setWorksRef,
+    worksShelf,
+    setWorksShelf,
+    worksProjectTalks,
+    setWorksProjectTalks,
+  } = useDevtool();
   const onWorks = usePathname() === "/works";
   const options: { value: WorksRef; label: string; title: string }[] = [
     {
@@ -3032,7 +3039,13 @@ function WorksModule() {
       icon={<GitBranch className="h-4 w-4" />}
       compact
       relevant={onWorks}
-      star={worksRef !== WORKS_REF_DEFAULT || worksShelf ? "saved" : null}
+      // Starred while anything is off its default — and the talks under
+      // projects default to on, so for them it is off that stars.
+      star={
+        worksRef !== WORKS_REF_DEFAULT || worksShelf || !worksProjectTalks
+          ? "saved"
+          : null
+      }
       action={
         <span className="text-[10px] font-mono text-muted-foreground">{worksRef}</span>
       }
@@ -3064,6 +3077,31 @@ function WorksModule() {
           label={zh ? "项目架" : "Projects shelf"}
         />
       </PanelRow>
+      {/* A project's talks, press and posts on a fold line under its row
+          on `?type=project` (lib/works-projects.ts, components/log/
+          fold-line.tsx). On trial, and on by default; off, the filter
+          drops them as it always did. */}
+      <div className="flex flex-col gap-1">
+        <PanelRow
+          label={zh ? "项目下的演讲" : "Talks under projects"}
+          star={
+            !worksProjectTalks ? (
+              <PanelStar source="saved" onReset={() => setWorksProjectTalks(true)} />
+            ) : undefined
+          }
+        >
+          <PanelToggle
+            on={worksProjectTalks}
+            onClick={() => setWorksProjectTalks(!worksProjectTalks)}
+            label={zh ? "项目下的演讲" : "Talks under projects"}
+          />
+        </PanelRow>
+        <div className="text-[10px] font-mono text-tertiary-foreground">
+          {zh
+            ? "?type=project 时，演讲折叠在各自的项目下"
+            : "?type=project folds each project's talks under it"}
+        </div>
+      </div>
     </DebugSection>
   );
 }
