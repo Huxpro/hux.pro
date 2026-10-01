@@ -21,7 +21,7 @@ import {
   resolveGroupCommits,
 } from "@/lib/log";
 import { t, useLocale } from "@/services";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 // ---------------------------------------------------------------------------
 // ProcessingWidget — a minimized /works timeline for the home grid.
@@ -105,31 +105,18 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
     return { rows, railInfo: rail, bylines, hideDateFor };
   }, [commits, log.identities, log.tags, locale]);
 
-  // Same tenure clustering as /works: consecutive rows sharing a segmentId
-  // share a `group/tenure` wrapper so hovering any of them brightens the
-  // rail and the role's ring.
-  const runs = useMemo(() => {
-    type Run =
-      | { kind: "loose"; indices: number[] }
-      | { kind: "cluster"; segmentId: string; indices: number[] };
-    const out: Run[] = [];
-    for (let i = 0; i < commits.length; i++) {
-      const c = commits[i];
-      if (c.type === "role" && c.hideRow === true) continue;
-      const sid = railInfo[i].segmentId;
-      const last = out[out.length - 1];
-      if (sid && last && last.kind === "cluster" && last.segmentId === sid) {
-        last.indices.push(i);
-      } else if (sid) {
-        out.push({ kind: "cluster", segmentId: sid, indices: [i] });
-      } else if (last && last.kind === "loose") {
-        last.indices.push(i);
-      } else {
-        out.push({ kind: "loose", indices: [i] });
-      }
-    }
-    return out;
-  }, [commits, railInfo]);
+  // Hidden-role rows stay in `commits` for the rail and the bylines, but
+  // take no row.
+  const shown = commits.flatMap((c, i) =>
+    c.type === "role" && c.hideRow === true ? [] : [i],
+  );
+  // Same tenures as /works: pointing at a row in one lights its role's
+  // ring, and pointing at the role lights the tenure's rail. A tenure is
+  // an identity's rows on the rail (`segmentId`).
+  const [engaged, setEngaged] = useState<number | null>(null);
+  const sid = engaged === null ? null : railInfo[engaged].segmentId;
+  const inTenure = (i: number) => !!sid && railInfo[i].segmentId === sid;
+  const railLit = engaged !== null && commits[engaged].type === "role";
 
   if (commits.length === 0) return null;
 
@@ -143,27 +130,21 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
       {/* No port, on any device: the group is short enough to print whole,
           so there is nothing to scroll and nothing to cut. */}
       <WidgetScrollBody>
-        {runs.map((run, runIdx) => {
-          const nodes = run.indices.map((i) => (
-            <TimelineMini
-              key={commits[i].id}
-              data={rows[i]}
-              rail={railInfo[i].rail}
-              isRole={commits[i].type === "role"}
-              byline={bylines[i]}
-              hideDate={hideDateFor(commits[i])}
-            />
-          ));
-          return run.kind === "cluster" ? (
-            // An identity can cluster twice (Meta, then RIT, then Meta
-            // again), so the run is named by its first row, not its id.
-            <div key={`cluster-${commits[run.indices[0]].id}`} className="group/tenure">
-              {nodes}
-            </div>
-          ) : (
-            <div key={`loose-${runIdx}`}>{nodes}</div>
-          );
-        })}
+        {shown.map((i) => (
+          <TimelineMini
+            key={commits[i].id}
+            data={rows[i]}
+            rail={railInfo[i].rail}
+            isRole={commits[i].type === "role"}
+            byline={bylines[i]}
+            hideDate={hideDateFor(commits[i])}
+            railLit={railLit && inTenure(i)}
+            ringLit={inTenure(i)}
+            onEngage={(on) =>
+              setEngaged((current) => (on ? i : current === i ? null : current))
+            }
+          />
+        ))}
       </WidgetScrollBody>
     </WidgetShell>
   );

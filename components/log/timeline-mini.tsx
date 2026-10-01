@@ -41,6 +41,12 @@ interface TimelineMiniProps {
   /** Pre-localized author byline (see `computeBylines`). */
   byline?: Byline | null;
   hideDate?: boolean;
+  /** The row's tenure is lit from its role: its rail runs on the lit rung. */
+  railLit?: boolean;
+  /** A row in the row's tenure is engaged: a role's ring lights. */
+  ringLit?: boolean;
+  /** The row is engaged (pointed at, or holding focus) or lets go. */
+  onEngage?: (engaged: boolean) => void;
   className?: string;
 }
 
@@ -50,6 +56,9 @@ export function TimelineMini({
   isRole = false,
   byline = null,
   hideDate = false,
+  railLit = false,
+  ringLit = false,
+  onEngage,
   className,
 }: TimelineMiniProps) {
   const isEvent = data.type === "event";
@@ -96,16 +105,20 @@ export function TimelineMini({
         {hasRailAbove && (
           <span
             aria-hidden
-            data-rail-above
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px bg-muted-foreground/10 transition-colors duration-200"
+            className={cn(
+              "pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200",
+              railLit ? "bg-graph-lit" : "bg-graph-line",
+            )}
             style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
           />
         )}
         {hasRailBelow && (
           <span
             aria-hidden
-            data-rail-below
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px bg-muted-foreground/10 transition-colors duration-200"
+            className={cn(
+              "pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200",
+              railLit ? "bg-graph-lit" : "bg-graph-line",
+            )}
             style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
           />
         )}
@@ -119,8 +132,8 @@ export function TimelineMini({
             className={cn(
               "inline-flex items-center justify-center w-5 h-5 rounded-full transition-[box-shadow] duration-200",
               isRoleAnchor && [
-                "ring-1 ring-inset ring-muted-foreground/15",
-                "group-hover/tenure:ring-muted-foreground/40",
+                "ring-1 ring-inset",
+                ringLit ? "ring-graph-lit" : "ring-graph-node",
               ],
             )}
           >
@@ -232,15 +245,30 @@ export function TimelineMini({
   // grid with a link around it rather than an `<a>` with links inside it —
   // except an anchor can't legally contain one, so the row's own anchor is
   // a sibling laid over the row, under the pills in the stacking order.
-  if (!href) return <div className={shell}>{body}</div>;
+  // Pointing at a row, or focusing it, lights its tenure (the widget holds
+  // which row, the way /works does).
+  const engage = onEngage && {
+    onPointerEnter: (e: React.PointerEvent) => {
+      if (e.pointerType !== "touch") onEngage(true);
+    },
+    onPointerLeave: (e: React.PointerEvent) => {
+      if (e.pointerType !== "touch") onEngage(false);
+    },
+    onFocus: () => onEngage(true),
+    onBlur: (e: React.FocusEvent<HTMLElement>) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+        onEngage(false);
+      }
+    },
+  };
+
+  if (!href) return <div className={shell} {...engage}>{body}</div>;
 
   return (
     <div
       id={data.hash}
       data-rail-row
-      // `data-role-row` + `data-rail-*` hook the shared tenure-rail CSS in
-      // globals.css (hover / focus on the role brightens the rail).
-      data-role-row={isRoleAnchor ? "" : undefined}
+      {...engage}
       className={cn(
         shell,
         "[&:hover:not(:has(a:not([data-row-link]):hover))]:bg-muted/20",

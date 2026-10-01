@@ -92,10 +92,13 @@ interface TimelineCommitProps {
   quiet?: boolean;
   /** True when this row IS the role that owns its segment. */
   isRole?: boolean;
-  /** The role id that owns this row's rail segment. */
-  segmentId?: string | null;
-  /** True when the parent timeline currently highlights this segment. */
-  isSegmentActive?: boolean;
+  /** The row's tenure is lit (a row in it is engaged): a role's ring
+   *  lights with it. */
+  tenureLit?: boolean;
+  /** A row in a tenure (one with a rail) reports when it is engaged —
+   *  under a mouse or pen, holding focus, or open — and when it lets go,
+   *  by its hash. The parent lights the tenure from it. */
+  onTenureEngage?: (hash: string, engaged: boolean) => void;
   /** The beam this row emits when hovered (from this commit up to the
    *  role). When null, the row has nothing to beam. */
   beamSpec?: BeamSpec | null;
@@ -115,7 +118,7 @@ interface TimelineCommitProps {
    *  to print, so vertical rhythm stays consistent across rows.
    *
    *  Sparse: `isClusterHead` rows render the byline at full opacity;
-   *  non-head rows render it transparent and fade in on cluster hover,
+   *  non-head rows render it transparent and fade in on row hover,
    *  so the timeline reads as "one author per chapter" instead of
    *  repeating the same `<jsx@fb.com>` on every line in a tenure run.
    *
@@ -156,6 +159,8 @@ export function TimelineCommit({
   graphLit,
   quiet = false,
   isRole = false,
+  tenureLit = false,
+  onTenureEngage,
   beamSpec = null,
   onBeamSet,
   onBeamClear,
@@ -337,27 +342,28 @@ export function TimelineCommit({
   // pinned on after collapsing on mobile. We use pointer events with
   // a pointerType guard so only mouse/pen drive the hover state —
   // touch is ignored and isExpanded becomes the sole signal on phones.
-  const participatesInSegment = !!beamSpec;
+  //
+  // A row in a tenure lights the tenure the same way, and also while it
+  // holds focus (a tap focuses it, so a phone gets it too).
+  const inTenure = !!onTenureEngage && !!rail;
+  const tracksEngagement = !!beamSpec || inTenure;
   const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const handleSegmentPointerEnter = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!participatesInSegment) return;
-      if (e.pointerType === "touch") return;
-      setIsHovered(true);
+      if (e.pointerType !== "touch") setIsHovered(true);
     },
-    [participatesInSegment],
+    [],
   );
   const handleSegmentPointerLeave = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!participatesInSegment) return;
-      if (e.pointerType === "touch") return;
-      setIsHovered(false);
+      if (e.pointerType !== "touch") setIsHovered(false);
     },
-    [participatesInSegment],
+    [],
   );
 
   useEffect(() => {
-    if (!participatesInSegment || !beamSpec) return;
+    if (!beamSpec) return;
     if (isHovered || textOpen) {
       onBeamSet?.(beamSpec);
     } else {
@@ -365,7 +371,15 @@ export function TimelineCommit({
       // (a sibling's later effect overwriting a fresh set on another row).
       onBeamClear?.(beamSpec);
     }
-  }, [participatesInSegment, beamSpec, isHovered, textOpen, onBeamSet, onBeamClear]);
+  }, [beamSpec, isHovered, textOpen, onBeamSet, onBeamClear]);
+
+  const tenureEngaged = isHovered || isFocused || textOpen;
+  useEffect(() => {
+    if (!inTenure) return;
+    onTenureEngage(data.hash, tenureEngaged);
+    // Let go on the way out too: a row a filter removes mid-hover.
+    return () => onTenureEngage(data.hash, false);
+  }, [inTenure, onTenureEngage, data.hash, tenureEngaged]);
 
   // Git-graph rail drawn THROUGH the icon column as two separate
   // absolutely-positioned segments — one above the icon, one below —
@@ -478,7 +492,6 @@ export function TimelineCommit({
         <GraphInCell
           graph={graph ?? { trunkAbove: hasRailAbove, trunkBelow: hasRailBelow }}
           gap={iconGapPx}
-          cluster={{ above: hasRailAbove, below: hasRailBelow }}
           lit={graphLit}
         />
         {/* The node: on the trunk, or moved onto the side lane. */}
@@ -516,10 +529,7 @@ export function TimelineCommit({
                 "ring-1 ring-inset",
                 // A node on the graph, and lit with its tenure (globals.css,
                 // "The graph").
-                "ring-graph-node",
-                "group-hover/tenure:ring-graph-lit",
-                "group-focus-within/tenure:ring-graph-lit",
-                "group-has-[[data-expanded]]/tenure:ring-graph-lit",
+                tenureLit ? "ring-graph-lit" : "ring-graph-node",
               ],
             )}
           >
@@ -837,7 +847,6 @@ export function TimelineCommit({
     <div
       id={data.hash}
       data-rail-row
-      data-role-row={isRoleAnchor ? "" : undefined}
       className={className}
     >
       <MagneticPreview
@@ -851,15 +860,21 @@ export function TimelineCommit({
           onClick={rowOnClick}
           onKeyDown={rowOnClick ? handleKeyDown : undefined}
           onPointerEnter={
-            participatesInSegment ? handleSegmentPointerEnter : undefined
+            tracksEngagement ? handleSegmentPointerEnter : undefined
           }
           onPointerLeave={
-            participatesInSegment ? handleSegmentPointerLeave : undefined
+            tracksEngagement ? handleSegmentPointerLeave : undefined
           }
-          // `data-expanded` lets the tenure wrapper's group-has variant
-          // brighten the rail while the row is open — mobile-friendly,
-          // survives losing focus after a tap-to-expand.
-          data-expanded={textOpen ? "" : undefined}
+          onFocus={inTenure ? () => setIsFocused(true) : undefined}
+          onBlur={
+            inTenure
+              ? (e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                    setIsFocused(false);
+                  }
+                }
+              : undefined
+          }
           // The row's painted box — the one that carries the hover wash, a
           // gutter wider than the row's layout box on each side. The commit
           // permalink's arrival mark paints here too, so "found" and
