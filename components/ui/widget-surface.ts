@@ -42,3 +42,13 @@ export function landsOnOwnAction(e: SyntheticEvent): boolean {
   const hit = (e.target as Element | null)?.closest(OWN_ACTION_SELECTOR);
   return !!hit && hit !== e.currentTarget && e.currentTarget.contains(hit);
 }
+
+/**
+ * True when the event landed on a control that edit mode draws on a card
+ * (`data-widget-edit` — the form strip, components/home/widget-frame.tsx).
+ * Edit mode makes the whole card a handle and swallows its taps; these are
+ * the exception, there to be tapped while the card jiggles.
+ */
+export function landsOnEditControl(e: SyntheticEvent): boolean {
+  return !!(e.target as Element | null)?.closest("[data-widget-edit]");
+}

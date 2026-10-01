@@ -22,7 +22,7 @@ import { useMemo, useState } from "react";
 
 import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
-// FeaturedTalksWidget — the tour.
+// TheaterTourForm — the theater widget's "tour" form (widgets.ts) — the tour.
 //
 // Every city I have given a talk in, on a dot-matrix map, with the route the
 // tour took between them (systems/theater/lib/tour.ts). From afar the map
@@ -53,7 +53,7 @@ function years(talks: TourTalk[]): string {
   return first === last ? first : `${first}–${last}`;
 }
 
-export function FeaturedTalksWidget() {
+export function TheaterTourForm() {
   const { locale } = useLocale();
   const { openMedia } = useTheater();
   const tour = useMemo(() => buildTour(locale), [locale]);

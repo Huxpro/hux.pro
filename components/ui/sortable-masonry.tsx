@@ -43,7 +43,7 @@ import {
   saveOrder,
 } from "./sortable-order";
 import { usePressHold } from "./use-press-hold";
-import { landsOnOwnAction } from "./widget-surface";
+import { landsOnEditControl, landsOnOwnAction } from "./widget-surface";
 
 // =============================================================================
 // SortableMasonry
@@ -193,9 +193,10 @@ function SortableMasonryItem({
   const hold = usePressHold(TOUCH_ACTIVATION);
 
   // Gate every press activator on where the press landed: a control's press
-  // is the control's. Edit mode lifts the gate.
+  // is the control's. Edit mode lifts the gate — except for the controls
+  // edit mode itself puts on a card (`data-widget-edit`, the form strip).
   const keepForControl = (e: React.SyntheticEvent) =>
-    !editing && landsOnOwnAction(e);
+    (!editing && landsOnOwnAction(e)) || landsOnEditControl(e);
   const guardedListeners = useMemo(
     () => guardActivators(listeners, keepForControl),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keepForControl only closes over `editing`
@@ -214,9 +215,10 @@ function SortableMasonryItem({
         listeners?.onPointerDown?.(e);
       }}
       // In edit mode a tap shouldn't navigate (iPad jiggle behaviour); swallow
-      // clicks that bubble up from links inside the widget.
+      // clicks that bubble up from links inside the widget — but not the
+      // edit-mode controls on the card, which exist to be tapped then.
       onClickCapture={(e) => {
-        if (editing) {
+        if (editing && !landsOnEditControl(e)) {
           e.preventDefault();
           e.stopPropagation();
         }

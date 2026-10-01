@@ -6,7 +6,13 @@ import { useEffect } from "react";
 import { useMasonryEdit } from "@/components/ui/sortable-masonry";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { resetWidgetPrefs, setWidgetEnabled, useWidgetPrefs } from "./widgets";
+import {
+  resetWidgetForms,
+  resetWidgetPrefs,
+  setWidgetEnabled,
+  useWidgetFormsCustomized,
+  useWidgetPrefs,
+} from "./widgets";
 
 /**
  * `Widgets` — beside Done while the home grid is in edit mode: every widget
@@ -30,6 +36,16 @@ export function WidgetPicker({
   useEffect(
     () => registerSection?.("widget-prefs", { reset: resetWidgetPrefs, isCustomized: customized }),
     [registerSection, customized],
+  );
+  // The forms the widgets are drawn in come back with Reset too.
+  const formsCustomized = useWidgetFormsCustomized();
+  useEffect(
+    () =>
+      registerSection?.("widget-forms", {
+        reset: resetWidgetForms,
+        isCustomized: formsCustomized,
+      }),
+    [registerSection, formsCustomized],
   );
 
   // Edit mode is entered by holding a widget, so the last one cannot go.

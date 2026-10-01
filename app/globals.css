@@ -1490,6 +1490,33 @@ main[data-variant="reader"] .reader-masthead {
   }
 }
 
+/* A widget arriving in a new form (components/home/widget-frame.tsx): the
+   frame eases to the new height while the new face resolves out of a slight
+   blur — iOS's widget resize, where the content cross-dissolves inside a
+   frame that springs to its new size. */
+@keyframes widget-form-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.widget-form-in {
+  animation: widget-form-in 0.38s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget-form-in {
+    animation: none;
+  }
+}
+
 /* =============================================================================
    Press feedback — `.pressable`
    iOS highlights on touch-DOWN, instantly, and fades the highlight out on

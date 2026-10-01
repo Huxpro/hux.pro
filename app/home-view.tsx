@@ -5,7 +5,8 @@ import {
   HStackWidget,
   VStackWidget,
 } from "@/components/home/featured-stack-widget";
-import { FeaturedTalksWidget } from "@/components/home/featured-talks-widget";
+import { THEATER_FORMS } from "@/components/home/theater";
+import { WidgetFrame, type WidgetForms } from "@/components/home/widget-frame";
 import {
   FEATURED_GROUP_ID as PROCESSING_GROUP_ID,
   ProcessingWidget,
@@ -142,7 +143,7 @@ function WidgetGrid({
 
   // Every widget present here, before the visitor's choices: the picker
   // offers exactly these (components/home/widgets.ts).
-  const present: (SortableWidget & { title: string })[] = [
+  const present: (SortableWidget & { title: string; forms?: WidgetForms })[] = [
     { id: "apps", node: <AppFolder /> },
     ...(weatherWidget ? [{ id: "weather", node: <WeatherWidget /> }] : []),
     { id: "blog", node: <WritingWidget posts={posts} /> },
@@ -159,7 +160,8 @@ function WidgetGrid({
           },
         ]
       : []),
-    { id: "featured-talks", node: <FeaturedTalksWidget /> },
+    // Drawn in whichever of its forms the visitor chose (widgets.ts).
+    { id: "featured-talks", node: null, forms: THEATER_FORMS },
     { id: "prompt", node: <PromptWidget /> },
     // The site studying itself: one lab's surface at a time (app/lab). Off
     // until a visitor adds it (HOME_WIDGETS).
@@ -170,7 +172,20 @@ function WidgetGrid({
       title: localize(group.title, locale),
     })),
   ].map((w) => ({ ...w, title: "title" in w ? w.title : t(locale, WIDGET_TITLES[w.id]) }));
-  const items = present.filter((w) => isEnabled(w.id));
+  const enabled = present.filter((w) => isEnabled(w.id));
+  // Every card in its frame: the menu, the forms (components/home/widget-frame).
+  const items = enabled.map(({ id, node, ...w }) => ({
+    id,
+    node: (
+      <WidgetFrame
+        id={id}
+        removable={enabled.length > 1}
+        forms={w.forms}
+      >
+        {node}
+      </WidgetFrame>
+    ),
+  }));
 
   return (
     <SortableMasonry
