@@ -9,7 +9,7 @@ curated playlists (`lib/albums.ts`).
 | Shape | Where | File |
 |-------|-------|------|
 | Theater | the immersive modal, tablet and up | `components/theater-overlay.tsx` |
-| PiP | a floating tile, everywhere | `components/pip-overlay.tsx` |
+| PiP | a floating tile (tablet and up), a card under the dock (phone) | `components/pip-overlay.tsx` |
 | Audio | a Live Activity in the dock | `components/theater-activity.tsx` |
 | Playlist | albums and tracks, a sheet / panel / window | `components/playlist-sheet.tsx` |
 
@@ -18,7 +18,7 @@ fixed box the provider moves between shapes and never remounts. Every piece
 of chrome reads the same `rect` from the provider (`lib/geometry.ts`), so it
 lines up with the video while both are moving.
 
-## PiP: the tile
+## PiP: the tile (tablet and desk)
 
 The PiP tile is all picture. Nothing sits under or beside the video: the
 controls are drawn over it when asked for, and the gestures are the ones the
@@ -69,10 +69,33 @@ is not modal, and an Escape pressed while it was up was almost always meant
 for something else (a menu, a sheet); it used to end the video and lose its
 place.
 
-### Sharing a phone with the playlist
+## PiP on a phone: one object with the dock
 
-On a phone the tile and the playlist sheet split the screen rather than
-overlap. While the sheet is up the provider parks the tile at the top at its
-large size (`pipParkedForPlaylist`), and the sheet's top detent is the tile's
-bottom edge (`playlistDetents`). The park is derived, not stored: closing the
-sheet puts the tile back where it was.
+A phone is too narrow for a tile to be anywhere but in the way, and the top
+of its screen is where the playlist needs the video to be. So on a phone
+(under the `sm` breakpoint, `pipCard` in the provider) PiP is not a tile. It
+is a card hanging under the dock's pill row, the Live Activity panel's width,
+and the player becomes one object in three sizes, anchored at the top like
+Notification Center:
+
+| Size | What it is | Get there by |
+|------|------------|--------------|
+| pill | the theater's Live Activity in the dock: sound only | push the card up, or its minimize button |
+| card | the video, with a row under it (title, play, next, minimize, close) | tap or pull down on the pill |
+| card + list | the card, with the playlist sheet taking the screen under it | pull the card down, or tap its row or grabber |
+
+Pull down and it grows; push up and it shrinks. A pull past 48px, or a flick
+faster than 0.4px/ms, changes size; less springs back. Downward travel is
+damped (it is a pull on something anchored); upward follows the finger.
+
+The pill does not open its panel on a phone. `LiveActivity` takes an
+`onActivate`, which a press on the pill (or Enter, or a pull down from it)
+calls instead; the theater passes `toPip`, because the card is the panel
+there, and it has the picture.
+
+The card sits at the top already, so it and the playlist split the screen
+with nothing to move: the sheet's top detent is the card's resting bottom
+edge (`pipCardBox`, `playlistDetents`), held still while the card is being
+pulled. On a drivable video a tap on the picture brings the same overlay the
+tile has (transport, scrubber, the playlist toggle), and close and minimize
+are in the row, where a thumb finds them without opening anything.

@@ -388,7 +388,7 @@ thing to avoid.
 |----------|--------|------|------------|
 | Music | `systems/music/components/music-activity.tsx` | album art + EQ | `<NowPlaying />` |
 | Ambient phase | `systems/ambient/components/phase-activity.tsx` | sun icon + time | `<WeatherNow />` |
-| Theater audio | `systems/theater/components/theater-activity.tsx` | thumbnail + EQ | transport + `<SurfaceSwitch />` |
+| Theater audio | `systems/theater/components/theater-activity.tsx` | thumbnail + EQ | transport + `<SurfaceSwitch />`; on a phone none: the pill is the PiP card's smallest size and a press brings the card back (`onActivate`, see [Theater](./system-theater.md)) |
 | Minimized windows | `systems/windows/components/minimized-dock.tsx` | app icon + title | none (restores the window) |
 
 Notices: the sun switching the theme (`systems/ambient/components/solar-theme.tsx`),

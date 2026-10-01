@@ -209,16 +209,56 @@ export function pipSettle(
   return { size, corner: `${row}${side}` as PipCorner, stash: null };
 }
 
+// ---------------------------------------------------------------------------
+// The phone's card
+//
+// On a phone the player is one object anchored at the top of the screen, in
+// three sizes: the Live Activity's pill in the dock, a card hanging under the
+// dock, and the card with the playlist sheet taking the rest of the screen
+// under it. Pull it down and it grows, push it up and it shrinks. The card is
+// the Live Activity panel's width (`w-[min(92vw,360px)]` in the dock), so the
+// pill and the card are the same object at two sizes rather than two boxes.
+// ---------------------------------------------------------------------------
+
+/** The card's outer width: the dock panel's. */
+const PIP_CARD_FRACTION = 0.92;
+const PIP_CARD_MAX = 360;
+/** Glass around the video, inside the card. */
+export const PIP_CARD_PAD = 6;
+/** The row under the video: title, transport, close. */
+export const PIP_CARD_FOOTER = 44;
+/** The grabber under the row: the card's "this pulls" sign. */
+export const PIP_CARD_GRABBER = 12;
+
+/** The card's outer width on this viewport. */
+function pipCardWidth(vp: Viewport): number {
+  return Math.min(vp.width * PIP_CARD_FRACTION, PIP_CARD_MAX);
+}
+
 /**
- * The placement the tile takes while the playlist sheet is up on a phone.
- *
- * The video goes to the top of the screen at its large size and the list
- * takes everything under it, the way a phone player puts its queue below the
- * picture. The side is kept (the tile stays on the side it was left on); a
- * stash is undone, because the list is something you look at the video beside.
+ * The video's rect inside the phone's card. The card hangs at
+ * `PIP_TOP_STOP`, under the dock's pill row, centred. During a vertical drag
+ * `dragTop` is where the video's top edge is following the finger to.
  */
-export function pipParkedForPlaylist(from: PipPlacement): PipPlacement {
-  return { size: "large", corner: `t${from.corner[1]}` as PipCorner, stash: null };
+export function pipCardRect(vp: Viewport, dragTop: number | null = null): StageRect {
+  const outer = pipCardWidth(vp);
+  const width = outer - PIP_CARD_PAD * 2;
+  return {
+    left: (vp.width - outer) / 2 + PIP_CARD_PAD,
+    top: dragTop ?? PIP_TOP_STOP + PIP_CARD_PAD,
+    width,
+    height: width * ASPECT,
+  };
+}
+
+/** The card's outer box, from the video rect it wraps. */
+export function pipCardBox(video: StageRect): StageRect {
+  return {
+    left: video.left - PIP_CARD_PAD,
+    top: video.top - PIP_CARD_PAD,
+    width: video.width + PIP_CARD_PAD * 2,
+    height: video.height + PIP_CARD_PAD + PIP_CARD_FOOTER + PIP_CARD_GRABBER,
+  };
 }
 
 /** The shorter of the playlist sheet's two detents, where both fit. */
@@ -230,8 +270,8 @@ const PLAYLIST_SECOND_DETENT_MIN = 0.62;
  * The playlist sheet's detents: everything below `ceiling`, and a half-height
  * stop under it when that leaves somewhere to drag to.
  *
- * `ceiling` is the bottom edge of whatever the player is showing: the parked
- * PiP window, or the dock card it collapsed into. The sheet stops there rather
+ * `ceiling` is the bottom edge of whatever the player is showing: the phone's
+ * card, or the dock panel it collapsed into. The sheet stops there rather
  * than running to the top of the screen, so the video is never something the
  * list has to work around: on a phone the two share the screen, they do not
  * overlap. That makes the top detent a property of the player's current shape,
@@ -253,6 +293,9 @@ export function stageRectFor(
   vp: Viewport,
   placement: PipPlacement,
   drag: { x: number; y: number } | null,
+  /** A phone: PiP is the card hanging under the dock, not a corner tile. */
+  card: boolean,
 ): StageRect {
-  return mode === "pip" ? pipRect(vp, placement, drag) : theaterRect(vp);
+  if (mode === "theater") return theaterRect(vp);
+  return card ? pipCardRect(vp, drag?.y ?? null) : pipRect(vp, placement, drag);
 }
