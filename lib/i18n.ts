@@ -412,7 +412,7 @@ export const translations = {
     logFormLabel: "View",
     logFormIndex: "Index",
     logFormCovers: "Covers",
-    logFormFeed: "Feed",
+    logFormOverview: "Overview",
     logNoMatches: "no commits match this filter.",
     writingFeatured: "featured",
     logSelectedWorks: "Selected Works",
@@ -422,6 +422,10 @@ export const translations = {
     logView: "View",
     logSlides: "Slides",
     logRecording: "Recording",
+    // The overview form (see components/log/works-overview.tsx): the tier
+    // after the selected works, and where a name goes — its commit, in the log.
+    logOverviewMoreProjects: "More projects",
+    logOverviewInLog: "Open in the log",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "Close attachments",
     // Image lightbox (see systems/attachments/components/image-lightbox.tsx)
@@ -848,7 +852,7 @@ export const translations = {
     logFormLabel: "视图",
     logFormIndex: "索引",
     logFormCovers: "封面",
-    logFormFeed: "信息流",
+    logFormOverview: "概览",
     logNoMatches: "没有符合筛选条件的提交。",
     writingFeatured: "精选",
     logSelectedWorks: "精选作品",
@@ -858,6 +862,8 @@ export const translations = {
     logView: "查看",
     logSlides: "幻灯片",
     logRecording: "录像",
+    logOverviewMoreProjects: "更多项目",
+    logOverviewInLog: "在日志中查看",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "关闭附件",
     lightboxZoomIn: "放大",

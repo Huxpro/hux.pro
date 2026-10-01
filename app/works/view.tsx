@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
 import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
 import { useOptionalDevtool, WORKS_REF_DEFAULT } from "@/systems/devtool";
 import { ProjectShelf } from "@/components/log/project-shelf";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
+import { WorksOverview } from "@/components/log/works-overview";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { t, useLocale } from "@/services";
 import {
@@ -20,7 +22,7 @@ import {
   parseViewState,
   serializeViewState,
   toggleType,
-  type LogForm,
+  type WorksForm,
 } from "@/lib/log-view";
 import { buildEraTimeline } from "@/lib/log-eras";
 
@@ -85,7 +87,7 @@ export function WorksView({ logData }: WorksViewProps) {
   );
 
   const commit = useCallback(
-    (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
+    (next: { types?: FilterableCommitType[]; form?: WorksForm }) => {
       const merged = { ...view, ...next };
       setView(merged);
       const query = serializeViewState(
@@ -99,6 +101,42 @@ export function WorksView({ logData }: WorksViewProps) {
       });
     },
     [view, searchParams, router, pathname],
+  );
+
+  // ── The overview's way into the log ──────────────────────────────────────
+  //
+  // A name in the overview is its commit's permalink in the covers form —
+  // `/works#<hash>`, the address the log's own hash writes and the home
+  // widgets and the palette link to, with the reader's filter kept. It is
+  // an address, so it is a real `href`; a plain click is the page's own
+  // switch, for the reason the chips are (a route change costs a second).
+  const logUrlFor = useCallback(
+    (hash: string) => {
+      const query = serializeViewState(
+        { ...view, form: "covers" },
+        new URLSearchParams(searchParams.toString()),
+      );
+      return `${pathname}${query ? `?${query}` : ""}#${hash}`;
+    },
+    [view, searchParams, pathname],
+  );
+  const openInLog = useCallback(
+    (hash: string, { replace = false }: { replace?: boolean } = {}) => {
+      // `pushState` rather than the router, so the log paints at once, and
+      // pushed rather than replaced: this is going somewhere, and back
+      // should bring the reader back to the overview. The router hears it
+      // (Next syncs `useSearchParams` with the History API), and the URL it
+      // hears is the reading about to be set, so nothing is adopted twice.
+      const url = logUrlFor(hash);
+      if (replace) window.history.replaceState(null, "", url);
+      else window.history.pushState(null, "", url);
+      // The log in the document now rather than on the next render, so the
+      // permalink's own arrival (`useCommitAnchor`, on `hashchange`) finds
+      // the row to measure — and glides to it, marks it, writes no history.
+      flushSync(() => setView((v) => ({ ...v, form: "covers" })));
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    },
+    [logUrlFor],
   );
 
   // Facet counts are of the UNFILTERED timeline, so a chip's number never
@@ -172,23 +210,42 @@ export function WorksView({ logData }: WorksViewProps) {
     [data, view.types],
   );
 
+  // The one bar every reading hangs under — the overview's and the log's.
+  const toolbar = (
+    <WorksToolbar
+      locale={locale}
+      facets={facets}
+      active={view.types}
+      onToggleType={(type) => commit({ types: toggleType(view.types, type) })}
+      onClearTypes={() => commit({ types: [] })}
+      form={view.form}
+      onFormChange={(form) => commit({ form })}
+      chapters={chapters}
+    />
+  );
+
+  // The overview: the same data, under the same bar and filter, in tiers
+  // (lib/log-view.ts, "Page forms"). A page of its own rather than a branch
+  // inside the log's, so the log below is exactly the log it was.
+  if (view.form === "overview") {
+    return (
+      <PageLayout page="works" pinnedActions={toolbar}>
+        <WorksOverview
+          logData={logData}
+          data={data}
+          locale={locale}
+          activeTypes={view.types}
+          logHrefFor={logUrlFor}
+          onOpenInLog={openInLog}
+        />
+      </PageLayout>
+    );
+  }
+
   return (
     <PageLayout
       page="works"
-      pinnedActions={
-        <WorksToolbar
-          locale={locale}
-          facets={facets}
-          active={view.types}
-          onToggleType={(type) =>
-            commit({ types: toggleType(view.types, type) })
-          }
-          onClearTypes={() => commit({ types: [] })}
-          form={view.form}
-          onFormChange={(form) => commit({ form })}
-          chapters={chapters}
-        />
-      }
+      pinnedActions={toolbar}
     >
       {/* The directory: which projects there are, before when. */}
       {shelf && (view.types.length === 0 || view.types.includes("project")) && (

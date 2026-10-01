@@ -25,10 +25,11 @@
  * quaternary rung, and a clear button appears. Tapping the last selected chip
  * off returns to rest — the way out is the same gesture as the way in.
  *
- * The form control is the page's real answer to "everything at once" vs.
- * "see the work" — see `lib/log-view.ts` for what the three stops print. It
- * replaces the old expand/collapse toggle, whose two states were exactly the
- * two extremes this is trying to sit between.
+ * The form control is the page's real answer to "the log at a glance",
+ * "see the work" and "the whole picture, in one page" — see
+ * `lib/log-view.ts` for what the three stops print. It replaces the old
+ * expand/collapse toggle, whose two states were the two extremes of the
+ * log, and neither of them the picture.
  *
  * The bar is pinned (PageLayout `pinnedActions`): it rests under the title
  * and rides up with the log until it meets the top, then stays, because a
@@ -62,7 +63,7 @@ import {
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import { GalleryVertical, GitBranch, LayoutList, List, X } from "lucide-react";
+import { GitBranch, LayoutList, List, ScrollText, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
@@ -72,7 +73,7 @@ import {
   getCommitTypePluralLabel,
   type FilterableCommitType,
 } from "@/lib/log";
-import { LOG_FORMS, type LogForm } from "@/lib/log-view";
+import { WORKS_FORMS, type WorksForm } from "@/lib/log-view";
 import { pageScrollTop, scrollPageTo } from "vitre";
 import { usePageLift } from "@/components/ui/use-page-lift";
 import { useNoticeYield } from "@/components/ui/use-notice-yield";
@@ -105,8 +106,8 @@ interface WorksToolbarProps {
   active: FilterableCommitType[];
   onToggleType: (type: FilterableCommitType) => void;
   onClearTypes: () => void;
-  form: LogForm;
-  onFormChange: (form: LogForm) => void;
+  form: WorksForm;
+  onFormChange: (form: WorksForm) => void;
   /** The chapters on the page, in order, with the marker each wears. */
   chapters: readonly { id: string; label: string }[];
 }
@@ -114,21 +115,24 @@ interface WorksToolbarProps {
 /**
  * What each form wears and what it is called. One table rather than one per
  * attribute, so a fifth form is one row here; what each form *prints* is
- * `ROW_FORM` in `lib/log-view.ts` — that module is deliberately React-free,
- * and an icon is a component.
+ * `WORKS_FORMS` and `ROW_FORM` in `lib/log-view.ts` — that module is
+ * deliberately React-free, and an icon is a component.
  */
 const FORM_CHIP: Record<
-  LogForm,
+  WorksForm,
   {
     icon: LucideIcon;
-    labelKey: "logFormIndex" | "logFormCovers" | "logFormFeed";
+    labelKey: "logFormIndex" | "logFormCovers" | "logFormOverview";
   }
 > = {
-  // Lines only; lines with a cover block; full panels. The glyphs climb in
-  // visual weight the way the forms climb in detail.
+  // Lines only; lines with a cover block; a written page. The log's two
+  // glyphs climb in weight as their forms climb in detail. The overview is
+  // prose in sections — a name, a paragraph, then lists — rather than a
+  // column of rows, so it wears a page of text, not the panels the feed
+  // wore in its slot.
   index: { icon: List, labelKey: "logFormIndex" },
   covers: { icon: LayoutList, labelKey: "logFormCovers" },
-  feed: { icon: GalleryVertical, labelKey: "logFormFeed" },
+  overview: { icon: ScrollText, labelKey: "logFormOverview" },
 };
 
 /**
@@ -352,14 +356,14 @@ export function WorksToolbar({
 
           {/* Form. Segmented rather than a cycling button: three stops is one
           too many to discover by tapping, and every form stays one tap away.
-          Each stop resets every row to a preset (`ROW_FORM`), which is all
-          a form is. */}
+          The log's stops reset every row to a preset (`ROW_FORM`), which is
+          all a form is; the overview's swaps the log for the overview. */}
           <Segmented
             tone="bare"
             label={t(locale, "logFormLabel")}
             value={form}
             onChange={onFormChange}
-            options={LOG_FORMS.map((f) => {
+            options={WORKS_FORMS.map((f) => {
               const { icon: Icon, labelKey } = FORM_CHIP[f];
               const name = t(locale, labelKey);
               return {
