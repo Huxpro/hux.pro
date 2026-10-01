@@ -134,8 +134,9 @@ export const TYPE = {
   /** Body-sized secondary copy: a widget's description, an empty state. */
   body: "text-sm text-muted-foreground leading-relaxed",
   /**
-   * Running text on a reading page: a /prompt entry's reasoning and the
-   * instances under it. The article body's rung (`reading-foreground`, the
+   * Running text on a reading page: a /prompt entry's reasoning — not the
+   * instances under it, which are its appendix and sit a rung below, on
+   * secondary. The article body's rung (`reading-foreground`, the
    * ink at 85%) at the list's size — not `body`, which is a widget's blurb:
    * secondary is a label rung, and a paragraph set on it is 4.3:1 on white
    * and about 3.5:1 on a veiled wallpaper, where /writing's body is 7.

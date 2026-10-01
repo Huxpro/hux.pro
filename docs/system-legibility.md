@@ -228,7 +228,7 @@ production components and the lab's specimens both import:
 | `caption` / `captionQuiet` | xs secondary / tertiary, relaxed | a description under a title / an embed's blurb |
 | `aside` | xs italic serif tertiary | commentary, a life event |
 | `body` | sm secondary relaxed | a widget's description, an empty state |
-| `reading` | sm reading relaxed | a /prompt entry's reasoning and instances |
+| `reading` | sm reading relaxed | a /prompt entry's reasoning |
 | `appLabel` | 11px leading-tight secondary | the label under an app icon |
 | `nav` | mono xs tracking-wide secondary → ink on hover | the back link, `retry` |
 | `kbd` | mono xs on `bg-muted/50` | keyboard hints |
@@ -243,8 +243,10 @@ site and, when it recurs, promoted here.
 #### The rungs, by rule
 
 - **Reading** (`reading-foreground`, `TYPE.reading`): running text — an
-  article's body, a /prompt entry's reasoning and its instances, the voices
-  under a statement. Text read line after line is not a label, and Apple sets
+  article's body, a /prompt entry's reasoning, the voices under a statement.
+  Reading content keeps a hierarchy of its own: what hangs off the prose (a
+  /prompt entry's instances, an influence's one-line context, a citation's
+  source) stays a rung below it, on secondary. Text read line after line is not a label, and Apple sets
   it in the label colour, not the secondary one. The label rungs are tuned
   for chrome: a paragraph on secondary is 4.3:1 on white and about 3.5:1 on a
   veiled wallpaper, where the same paragraph on this rung is about 7.
