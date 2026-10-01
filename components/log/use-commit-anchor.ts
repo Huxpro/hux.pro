@@ -1,25 +1,25 @@
 "use client";
 
 /**
- * Commit permalinks — `/works#<hash>`.
+ * Commit permalinks: `/works#<hash>`.
  *
  * Every row has carried `id={hash}` since the timeline was written, so the
  * anchors existed; nothing pointed at them and nothing happened on arrival.
- * A commit is the page's unit, and a unit you cannot link to is not one —
- * "the Lynx talk" had no address, and following a link from elsewhere on the
- * site dropped you at the top of a 25-row log to find it yourself.
+ * A commit is the page's unit, and it should be linkable. "the Lynx talk"
+ * had no address, and following a link from elsewhere on the site dropped
+ * you at the top of a 25-row log to find it yourself.
  *
  * This is both halves: land on `#hash` and the page travels to that row and
  * marks it; click a row's hash and the URL becomes that permalink without a
  * navigation.
  *
- * Scrolling goes through `vitre`, never `window.scrollY` — with the
+ * Scrolling goes through `vitre`, never `window.scrollY`. With the
  * bezel on an iPhone the page scrolls inside a container, so the window knows
  * nothing about it (see docs/system-ambient.md). The travel itself is the
  * same shape as the table of contents' (`ruler-toc.tsx`): `animate` from
  * motion driving `scrollPageTo`, on iOS's curve, cancelled the moment the
  * reader touches the page, and `emitPageScroll()` on arrival so the
- * subscribers that only hear about scrolling through bezel — the hero fade —
+ * subscribers that only hear about scrolling through bezel (the hero fade)
  * wake up at the end of it.
  */
 
@@ -59,7 +59,7 @@ function mark(el: HTMLElement) {
   );
 }
 
-/** A commit hash is 7 hex characters — see `computeCommitHash`. */
+/** A commit hash is 7 hex characters (see `computeCommitHash`). */
 function rowFor(hash: string): HTMLElement | null {
   const id = hash.replace(/^#/, "");
   if (!/^[0-9a-f]{7}$/.test(id)) return null;
@@ -132,7 +132,7 @@ export function useCommitAnchor(): (hash: string) => void {
     };
 
     // On mount: covers a cold load and a client navigation into `/works#hash`
-    // alike. Gated on the webfonts, not just on paint — Inter, Newsreader and
+    // alike. Gated on the webfonts, not just on paint: Inter, Newsreader and
     // JetBrains Mono all swap in after first layout, and every row's height
     // changes when they do. Measuring before that lands the row ~80px off,
     // which on a page of 44px rows is a whole row and a half.
@@ -155,7 +155,7 @@ export function useCommitAnchor(): (hash: string) => void {
       const el = rowFor(hash);
       if (!el) return;
       // `pushState`, so the permalink is in the URL bar and in history without
-      // a route change — and without firing `hashchange`, which would send the
+      // a route change, and without firing `hashchange`, which would send the
       // travel through a second time.
       window.history.pushState(null, "", `#${hash}`);
       travelTo(el);

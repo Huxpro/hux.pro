@@ -31,26 +31,26 @@ import { cn } from "@/lib/utils";
 import { isInternalLink } from "@/systems/attachments/lib/policy";
 
 // =============================================================================
-// MediaMark — what this cover is, said once, in one chip.
+// MediaMark: what this cover is, said once, in one chip.
 //
 // A cover on the site is one of a few kinds of thing, and each kind opens in
 // a different place: a recording and a deck on the theater's stage, a page in
 // the in-app browser, a post on its own route. The cover says which before it
-// is pressed, and it used to say so in three vocabularies at once — a play
+// is pressed. It used to say so in three vocabularies at once: a play
 // disc stamped on anything that played, a caption chip over the disc on a
 // deck, a line of prose under a card that would leave for a tab. This is the
 // one vocabulary: a chip at the cover's bottom-left corner, the same chip a
 // wallpaper tile wears for Live / Preset (`ARTWORK_CHIP`), with a glyph and
 // a word.
 //
-//   video    ▶ YouTube · bilibili · Vimeo — the platform, so a talk says
+//   video    ▶ YouTube · bilibili · Vimeo: the platform, so a talk says
 //            where it was recorded. A recording that lives on a page (a
 //            GitNation talk) is the same chip with the host's name: the chip
-//            says what the thing is, and it is a recording; where it opens —
-//            the stage for a video, the in-app browser for that page — is the
+//            says what the thing is, and it is a recording. Where it opens
+//            (the stage for a video, the in-app browser for that page) is the
 //            policy's business (systems/attachments), never the chip's.
 //   slides   ▤ Slides
-//   new tab  ↗ New tab — a page that refuses to be framed, whatever its kind
+//   new tab  ↗ New tab: a page that refuses to be framed, whatever its kind
 //
 // Who wears one is the surface's call, in three tiers:
 //
@@ -61,8 +61,8 @@ import { isInternalLink } from "@/systems/attachments/lib/policy";
 //            Web, a post Writing, an image Image, a social widget its
 //            platform. The peek is a glance, and the chip is its caption.
 //   the attachment sheet's page, the home    none. Each already says what the
-//   widgets' covers, the theater's rail      thing is beside the cover — a
-//            labelled button, the widget's line, the rail's title — and a
+//   widgets' covers, the theater's rail      thing is beside the cover (a
+//            labelled button, the widget's line, the rail's title), and a
 //            chip there would only repeat it.
 //
 // `markFor` reads the chip off a media item; `MediaMark` draws whatever it
@@ -70,19 +70,19 @@ import { isInternalLink } from "@/systems/attachments/lib/policy";
 //
 // A chip has two weights. At rest, on a cover in the page, it is light
 // (`ARTWORK_CHIP_REST`): a row of covers should not be a row of stamps. The
-// cover's hover — and its press, which a finger never hovers — raises it.
+// cover's hover raises it, and so does its press, which a finger never hovers.
 // The chip reads both off the anchor or button it sits in, so no cover has
 // to be a `group`. A cover standing alone in a peek, which is the
 // after-hover state, is raised from the start (`raised`).
 //
 // The chip is absolutely positioned: the parent must be `relative`. At
-// `mini` — the /works contact strip, whose covers are 56px tall — the chip
+// `mini` (the /works contact strip, whose covers are 56px tall) the chip
 // keeps its glyph and drops its word, the wallpaper tile's small badge.
 // =============================================================================
 
 export type MediaKind = "video" | "slides" | "web" | "post" | "image" | "social";
 
-/** The kind a media item stands for — what pressing its cover opens. */
+/** The kind a media item stands for: what pressing its cover opens. */
 /** A post on this site: `/writing/…`, or a link enrichment resolved to one. */
 export function isWritingLink(media: Media): boolean {
   return isLinkMedia(media) && (!!media.internal || media.url.startsWith("/writing"));
@@ -133,8 +133,8 @@ export function newTabMark(locale: Locale): MediaMarkSpec {
  *
  *   `leaves`  the press will open a tab (a page that refuses to be framed):
  *             the chip says so, whatever the kind.
- *   `all`     mark every kind, not only a recording and a deck — the hover
- *             peek's tier.
+ *   `all`     mark every kind, not only a recording and a deck (the hover
+ *             peek's tier).
  */
 export function markFor(
   media: Media,
@@ -176,14 +176,14 @@ const CHIP_SIZE: Record<MediaMarkSize, { box: string; icon: string; word: boolea
 };
 
 /**
- * The same chip on a surface instead of on artwork — for a card that has no
+ * The same chip on a surface instead of on artwork, for a card that has no
  * cover to wear it on, where it sits in the caption's line.
  */
 export const SURFACE_CHIP =
   "bg-foreground/[0.06] text-muted-foreground ring-1 ring-border/50 dark:bg-white/[0.08]";
 
 /**
- * At rest the chip is light; the hover — and the press — of the cover it
+ * At rest the chip is light. The hover or the press of the cover it
  * sits in raises it. Read off the nearest anchor / button / `data-cover`
  * so a cover need not be a `group`.
  */
@@ -211,7 +211,7 @@ export function MediaMark({
   size?: MediaMarkSize;
   /** In the flow of a caption line rather than on a cover. */
   inline?: boolean;
-  /** Already looked at — a peek's cover: the full-weight chip from the start. */
+  /** Already looked at (a peek's cover): the full-weight chip from the start. */
   raised?: boolean;
   className?: string;
 }) {

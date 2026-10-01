@@ -55,7 +55,7 @@ export interface MediaRendererProps {
   selectedMedia?: Media | null;
   /**
    * The commit's attachments as one set (see systems/attachments). With it, a
-   * cover or a card opens the set at its own item — the theater, an in-app
+   * cover or a card opens the set at its own item: the theater, an in-app
    * window, the attachment sheet, per viewport. Without it (MDX, the editor
    * preview), players play inline and cards are plain links, as before.
    */
@@ -96,7 +96,7 @@ function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaP
     index >= 0 && set && attachments
       ? () => attachments.open(set, index)
       : undefined;
-  // Where the click will land — and, when that is a tab because the page
+  // Where the click will land. When that is a tab because the page
   // refuses to be framed, the card says so up front.
   const leavesSite =
     index >= 0 && set && attachments
@@ -193,12 +193,12 @@ function SingleMedia({ media, theme, size, className, dense, set }: SingleMediaP
     );
   }
 
-  // Exhaustive — should be unreachable under the discriminated union.
+  // Exhaustive: should be unreachable under the discriminated union.
   return null;
 }
 
 // =============================================================================
-// Card Scroll Rail — horizontal scroll-snap track for the three-card case.
+// Card Scroll Rail: horizontal scroll-snap track for the three-card case.
 // =============================================================================
 
 /**
@@ -256,7 +256,7 @@ function CardScrollRail({ children }: { children: ReactNode }) {
       >
         {children}
       </div>
-      {/* Left fade — appears only once scrolled off the start, softening
+      {/* Left fade. Appears only once scrolled off the start, softening
           card 1's cut-off edge. */}
       <div
         aria-hidden
@@ -267,7 +267,7 @@ function CardScrollRail({ children }: { children: ReactNode }) {
           atStart ? "opacity-0" : "opacity-100",
         )}
       />
-      {/* Right fade — over the gutter/peek; starts at the column edge so
+      {/* Right fade, over the gutter/peek. Starts at the column edge so
           card 2 and both gaps stay undimmed, and disappears at the end so the
           last card reads clear over the pr-6 whitespace. */}
       <div
@@ -329,8 +329,8 @@ export function MediaRenderer({
     grid: "grid grid-cols-1 md:grid-cols-2 gap-4",
   };
 
-  // "Rich" media: videos / slides / images / link cards / social widgets —
-  // anything with a real cover. Items keep their authored order so a video
+  // "Rich" media: videos / slides / images / link cards / social widgets,
+  // i.e. anything with a real cover. Items keep their authored order so a video
   // + card interleave the way the author wrote them.
   const rich = media.filter(
     (m) =>
@@ -341,7 +341,7 @@ export function MediaRenderer({
       isSocialEmbedMedia(m),
   );
 
-  // 2+ rich items — regardless of family — become a horizontal scroll-snap
+  // 2+ rich items, regardless of family, become a horizontal scroll-snap
   // rail rather than a vertical stack. Two videos, a video + a card, or three
   // cards all read as a compact side-by-side row instead of a tall pile. A
   // single rich item renders full-width as before (big player / full card).
@@ -365,8 +365,8 @@ export function MediaRenderer({
               // `min-w-0` is load-bearing: without it a flex item's default
               // `min-width:auto` lets a text-heavy cell (a link card's title)
               // push past its `basis`, so the card cell grows wider than the
-              // text-less video/slides cell beside it — unequal tiles and an
-              // overflow that clips the peek. Pinning min-width keeps every
+              // text-less video/slides cell beside it. The result is unequal
+              // tiles and an overflow that clips the peek. Pinning min-width keeps every
               // cell exactly one half-column.
               className="min-w-0 shrink-0 self-start snap-start basis-[calc((100cqi_-_0.625rem)/2)]"
             >

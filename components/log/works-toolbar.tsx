@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * WorksToolbar — the one line under the /works title.
+ * WorksToolbar: the one line under the /works title.
  *
  *   ⎇ main │ ▣ Projects 8  ◔ Talks 12  ◌ Social 3  ▤ Roles 2  ⨯ │ ≡ ▤ ▦
  *   └ ref    └───────────────── pathspec ──────────────────────┘   └ form
@@ -9,13 +9,13 @@
  * Three controls, one row, because the row is the budget: this sits in the
  * header zone above a sticky timeline, and anything that wraps to a second
  * line pushes the first commit off the fold on a phone. So every control is
- * icon-first and earns its width — labels appear at `sm` and up, where there
- * is room for them, and the whole bar fits a 375px viewport without.
+ * icon-first. Labels appear at `sm` and up, where there is room for them,
+ * and the whole bar fits a 375px viewport without them.
  *
  * "Fits" is not something this component gets to assume, though: the chip row
  * is derived from the data, so a type nobody has filed anything under yet
  * would add a chip the day it does. The ref and the form control are
- * pinned and the chips take the squeeze — they scroll inside their own group
+ * pinned and the chips take the squeeze: they scroll inside their own group
  * rather than pushing the page sideways. On any real phone it never comes up.
  *
  * The filter is multi-select with a quiet rest state. Nothing selected is
@@ -23,10 +23,10 @@
  * default page is not shouting a control at you. The first tap flips the bar
  * into filtering mode: selected chips fill, unselected ones drop to the
  * quaternary rung, and a clear button appears. Tapping the last selected chip
- * off returns to rest — the way out is the same gesture as the way in.
+ * off returns to rest, so leaving uses the same gesture as entering.
  *
- * The form control is the page's real answer to "everything at once" vs.
- * "see the work" — see `lib/log-view.ts` for what the three stops print. It
+ * The form control is how the page handles "everything at once" vs.
+ * "see the work". See `lib/log-view.ts` for what the three stops print. It
  * replaces the old expand/collapse toggle, whose two states were exactly the
  * two extremes this is trying to sit between.
  *
@@ -35,8 +35,8 @@
  * filter you have to scroll back for is a filter you stop using. Pinned, it
  * takes over the chapter marker's job too. The ref slot is where `git log`
  * names where you are, so as each chapter's marker scrolls up under the
- * slot the slot wears it — `main` becomes `HEAD`, `HEAD` becomes the era
- * below — and the markers in the log are dividers that hand their pill up
+ * slot the slot wears it (`main` becomes `HEAD`, `HEAD` becomes the era
+ * below), and the markers in the log are dividers that hand their pill up
  * rather than a second sticky layer. Tapping the pill goes back to where its
  * chapter starts.
  *
@@ -46,7 +46,7 @@
  *
  * Off its rest the row travels over the fading title and then over the
  * log, and needs a ground to stay legible, so a capsule of glass grows in
- * behind it — the Live Activity material (docs/system-glass.md), because
+ * behind it. It is the Live Activity material (docs/system-glass.md), because
  * this is the same kind of thing: a small, live summary of where you are
  * that floats over what you are doing. It grows with the scroll that lifts
  * the row, over the first few pixels, the way a large title hands over to
@@ -88,9 +88,9 @@ export interface TypeFacet {
   count: number;
   /**
    * The `icon` override every row of this type is wearing, when they all
-   * wear the same one — so the chip carries the mark you will actually see
+   * wear the same one, so the chip carries the mark you will actually see
    * in the list. Today every visible `role` is an education entry flagged
-   * `graduation-cap`, and a briefcase on that chip would be a small lie.
+   * `graduation-cap`, and a briefcase on that chip would be wrong.
    * Unset the moment the rows disagree, and the type's own icon returns.
    */
   iconOverride?: string;
@@ -114,7 +114,7 @@ interface WorksToolbarProps {
 /**
  * What each form wears and what it is called. One table rather than one per
  * attribute, so a fifth form is one row here; what each form *prints* is
- * `ROW_FORM` in `lib/log-view.ts` — that module is deliberately React-free,
+ * `ROW_FORM` in `lib/log-view.ts`. That module is deliberately React-free,
  * and an icon is a component.
  */
 const FORM_CHIP: Record<
@@ -135,7 +135,7 @@ const FORM_CHIP: Record<
  * The ground the pinned row stands on: the capsule a Dock Live Activity
  * pill is made of (`GLASS_CAPSULE`, lib/glass.ts), blur included on a
  * phone. The two float one over the other, and a capsule that is more
- * see-through than the pill above it reads as a lesser thing — measured on
+ * see-through than the pill above it reads as a lesser thing. Measured on
  * iOS without the blur, the log's text showed through between the counts.
  */
 const PANEL = cn(
@@ -219,7 +219,7 @@ export function WorksToolbar({
         style={rowStyle}
         className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground"
       >
-        {/* The ref we are reading — `main` above the first chapter, the
+        {/* The ref we are reading: `main` above the first chapter, the
             chapter once its marker reaches here. Not a control at rest: the
             anchor the rest of the row hangs off, and the reason the page
             reads as a git log. */}
@@ -378,8 +378,8 @@ export function WorksToolbar({
 
 /**
  * How one ref hands over to the next: the incoming one arrives from the
- * side the page is moving from — from below reading on, as the marker came
- * up from below — and the outgoing one leaves the other way.
+ * side the page is moving from (from below when reading on, as the marker
+ * came up from below), and the outgoing one leaves the other way.
  */
 const HANDOVER = {
   enter: (dir: 1 | -1) => ({ opacity: 0, y: 8 * dir }),
@@ -387,7 +387,7 @@ const HANDOVER = {
   leave: (dir: 1 | -1) => ({ opacity: 0, y: -8 * dir }),
 };
 
-/** Hairline between control groups — quaternary, because it carries nothing. */
+/** Hairline between control groups. Quaternary, because it carries nothing. */
 function Divider() {
   return <span aria-hidden className="h-3 w-px shrink-0 bg-border" />;
 }

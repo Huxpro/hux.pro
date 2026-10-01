@@ -1,21 +1,21 @@
 "use client";
 
 /**
- * MediaStrip — a commit's contact sheet.
+ * MediaStrip: a commit's contact sheet.
  *
  * The `covers` form prints one of these under each folded row: every cover
  * the commit is carrying, as a row of `covers` tiles (attachment-tile.tsx)
- * in authored order. It is the answer to the /works paradox — folded, the page is a perfect two-screen
- * overview and none of the media exists; unfolded, the media is all there
- * and the overview is gone. The strip keeps one row per commit and still
+ * in authored order. It solves a /works problem: folded, the page is a
+ * two-screen overview and none of the media exists; unfolded, the media is
+ * all there and the overview is gone. The strip keeps one row per commit and still
  * puts the work on screen.
  *
  * It is not a picture of the row: the thumbs are the real affordances, wired
- * to the same door the expanded block opens — the attachment system, which
+ * to the same door the expanded block opens: the attachment system, which
  * sends a video to the theater, a deck to the stage, a card to an in-app
  * window on a desktop, and everything to the attachment sheet on a phone.
- * Nothing here needs a pointer, which is the other half of the point — the
- * hover peek this stands beside has never existed on a phone.
+ * Nothing here needs a pointer. That matters because the hover peek this
+ * stands beside has never existed on a phone.
  *
  * Deliberately chrome-light: the tiles and their chips, nothing else. Titles
  * live on the row above and the commit's own description sits over the
@@ -44,8 +44,8 @@ export interface MediaStripProps {
   /**
    * The covers to print, already resolved against the viewer's locale by
    * `getMediaStripItems`. The caller derives them (rather than this
-   * component) so a row can ask "is there a strip?" — which decides whether
-   * the hover peek is redundant — without building the list twice.
+   * component) so a row can ask "is there a strip?" (which decides whether
+   * the hover peek is redundant) without building the list twice.
    */
   items: StripItem[];
   /**
@@ -56,7 +56,7 @@ export interface MediaStripProps {
   set?: AttachmentSet | null;
   /**
    * Whether a cover peeks on hover: the form's `peek` (lib/log-view.ts)
-   * and a pointer to hover with. Off, no peek tree is built — a phone would
+   * and a pointer to hover with. Off, no peek tree is built; a phone would
    * build and discard one per cover otherwise.
    */
   peek?: boolean;
@@ -88,7 +88,7 @@ export function MediaStrip({
 
   return (
     <div
-      // Content inside the row that is not the row's fold trigger — see the
+      // Content inside the row that is not the row's fold trigger. See the
       // `data-row-body` note in TimelineCommit. Hovering a cover brightens
       // that cover, not the whole commit, exactly as hovering an expanded
       // tile does.
@@ -110,8 +110,8 @@ export function MediaStrip({
       {slots.map((slot, i) => {
         // The row itself stops peeking once it prints its covers (see
         // `showCursorPreview` in TimelineCommit); each cover peeks instead,
-        // in the same vocabulary, showing what it is at a readable size —
-        // and whole, where the tile crops.
+        // in the same vocabulary, showing what it is at a readable size,
+        // and whole where the tile crops.
         const spec = peek
           ? mediaPeek(slot.media, locale, { leaves: slot.leaves })
           : null;

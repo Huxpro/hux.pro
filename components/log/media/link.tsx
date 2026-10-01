@@ -6,7 +6,7 @@
  * - LinkCard: an OG-style card with image, title, and description. Backed by
  *             the card pipeline (manual preview > og-snapshot > live crawl).
  *             The only way the log presents a link.
- * - Link:     an inline pill — icon + text + external-link glyph — for MDX
+ * - Link:     an inline pill (icon + text + external-link glyph) for MDX
  *             prose (`<Media as="link" present="pill">`), where a card would
  *             break the paragraph.
  */
@@ -66,10 +66,10 @@ export interface LinkCardProps {
    * Non-mobile layouts are unchanged.
    */
   dense?: boolean;
-  /** Resolved at enrichment time — see {@link InternalLinkMeta}. */
+  /** Resolved at enrichment time; see {@link InternalLinkMeta}. */
   internal?: InternalLinkMeta;
   /**
-   * Take a plain click instead of navigating — the attachment system opens
+   * Take a plain click instead of navigating. The attachment system opens
    * the card its own way. Modified clicks (⌘, middle) stay the browser's,
    * and the anchor keeps its `href` for them.
    */
@@ -96,8 +96,8 @@ export interface LinkCardPropsFromMedia {
  *
  * The card has already painted from the snapshot/manual preview ("stale");
  * here we crawl live in the background ("revalidate") and warn if the live
- * result differs, so you know to regenerate the snapshot (`pnpm og:snapshot`)
- * — i.e. "invalidate the cache". Off by default to keep dev/prod fast and
+ * result differs, so you know to regenerate the snapshot (`pnpm og:snapshot`),
+ * i.e. "invalidate the cache". Off by default to keep dev/prod fast and
  * non-flaky. Crawl-blocked sites (Medium) simply fail the live fetch and are
  * skipped silently.
  */
@@ -107,7 +107,7 @@ async function revalidateAgainstLive(
 ): Promise<void> {
   try {
     const live = await fetchOGData(url);
-    if (!live.title && !live.image) return; // couldn't crawl — nothing to compare
+    if (!live.title && !live.image) return; // couldn't crawl, nothing to compare
     const diffs = (["title", "description", "image"] as const).filter(
       (k) => (live[k] || "") !== (shown[k] || ""),
     );
@@ -119,7 +119,7 @@ async function revalidateAgainstLive(
       );
     }
   } catch {
-    // Network/crawl failure — can't compare; leave the snapshot as-is.
+    // Network/crawl failure: can't compare, so leave the snapshot as-is.
   }
 }
 
@@ -149,7 +149,7 @@ export function Link({ url, label, icon, className }: LinkProps) {
 }
 
 // =============================================================================
-// CardFace — presentational cover + caption + title block.
+// CardFace: presentational cover + caption + title block.
 // Shared between the expanded `LinkCard` on /works and the `PeekCard` in the
 // hover deck. `fixedAspect` exists because stacked peeks need predictable
 // rectangles for their layered transforms; expanded cards prefer natural
@@ -168,13 +168,13 @@ export interface CardFaceProps {
    * Pin the image to a fixed `aspect-[2/1]` slot with a blurred backdrop of
    * the same image filling any letterbox. Use for stacked layouts where the
    * layered transforms need predictable rectangles. Default: false (natural
-   * aspect, no backdrop — the image's intrinsic dimensions size the slot).
+   * aspect, no backdrop: the image's intrinsic dimensions size the slot).
    */
   fixedAspect?: boolean;
   /**
    * Cover fill for the natural (non-`fixedAspect`) slot:
-   *  - `"natural"` (default): the image's intrinsic aspect sizes the slot —
-   *    an OG card renders whole, never cropped.
+   *  - `"natural"` (default): the image's intrinsic aspect sizes the slot,
+   *    so an OG card renders whole, never cropped.
    *  - `"cover"`: a fixed-aspect slot (`aspect`, default 16:9) cropped to
    *    fill. Opt-in via the commit media's `preview.fit`.
    * `fixedAspect` (the stacked-deck letterbox) takes precedence when set.
@@ -184,18 +184,18 @@ export interface CardFaceProps {
   aspect?: string;
   /** See `LinkCardProps.dense`. */
   dense?: boolean;
-  /** Caption override — internal-link cards print `/writing` here. */
+  /** Caption override. Internal-link cards print `/writing` here. */
   domainLabel?: string;
   /** "EN" / "中文" when the post is only available in the non-current locale. */
   languageBadge?: "EN" | "中文" | null;
   /**
    * The chip the cover wears (media-mark.tsx). Left out, a card pointing at
-   * a talks host wears the play chip and any other card wears none; given,
-   * it is what the cover says — `New tab` for a page that refuses to be
+   * a talks host wears the play chip and any other card wears none. Given,
+   * it is what the cover says, e.g. `New tab` for a page that refuses to be
    * framed, so the card says where the click goes before it is pressed.
    */
   mark?: MediaMarkSpec | null;
-  /** The chip at full weight from the start — a card in a peek. */
+  /** The chip at full weight from the start (a card in a peek). */
   raisedMark?: boolean;
   className?: string;
   /** Fires when the foreground image resolves (load / cache-warm / error). */
@@ -230,10 +230,10 @@ export function CardFace({
   // GitHub's generated social image is already a complete repo card (title,
   // description, stats). Repeating those fields in our caption makes a
   // card-in-a-card. Keep the domain line; let the image speak. Don't crop
-  // it in the 2-up rail either — 16:9 would slice the sides of a 2:1 card.
+  // it in the 2-up rail either: 16:9 would slice the sides of a 2:1 card.
   const githubSocialCard = isGithubSocialImage(image);
   // Talk-recording links (GitNation) wear the play chip with the host's
-  // name, so the card reads as the recording it is (media-mark.tsx) — unless
+  // name, so the card reads as the recording it is (media-mark.tsx), unless
   // the caller has said what the cover wears.
   const chip = mark !== undefined ? mark : talksMark(url);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -275,7 +275,7 @@ export function CardFace({
     // and the /writing peek size covers identically. `fit:"cover"` gives a
     // cropped fixed slot; the default `"natural"` keeps the OG image whole.
     //
-    // In the 2-up rail (`dense`), a natural-aspect OG image — often tall —
+    // In the 2-up rail (`dense`), a natural-aspect OG image (often tall)
     // balloons the card so it towers over the 16:9 video/slides cover beside
     // it. There, crop the cover to the same 16:9 slot so the two tiles' covers
     // line up and the card is only taller by its caption block. Full-width
@@ -334,9 +334,9 @@ export function CardFace({
             </span>
           )}
           {isArchivedUrl(url) && (
-            // Restrained tag — reuses the existing domain-row typography so
+            // A small tag. It reuses the existing domain-row typography so
             // it sits on the same baseline; a hair-thin border keeps it
-            // distinct from the domain without shouting.
+            // distinct from the domain.
             <span
               className={cn(
                 "inline-flex items-center shrink-0",
@@ -353,7 +353,7 @@ export function CardFace({
           <h4
             className={cn(
               "font-medium text-foreground",
-              // Title is intentionally unclamped — publisher titles are the
+              // Title is intentionally unclamped. Publisher titles are the
               // strongest at-a-glance signal and an ellipsis on the second
               // line ("Multi-page Progressive Web App | …") obscures more
               // than it saves. Card height grows to fit; the grid is `items-
@@ -370,7 +370,7 @@ export function CardFace({
               "text-muted-foreground line-clamp-2",
               compact ? "text-[11px] leading-snug" : "text-xs",
               // Dense tiles drop the description below `sm`. Must be
-              // `max-sm:hidden` (not `hidden sm:block`) — the latter
+              // `max-sm:hidden` (not `hidden sm:block`): the latter
               // overrides `line-clamp-2`'s required `display:-webkit-box`
               // at the sm breakpoint, unclamping the desktop card.
               dense && "max-sm:hidden",
@@ -409,7 +409,7 @@ export function LinkCard({
   const languageBadge = resolved?.badge ?? null;
   // When a preview is already resolved (manual override or build-time
   // snapshot, baked in server-side), seed state synchronously so the card
-  // paints immediately — no skeleton flash, no request-time crawl.
+  // paints immediately, with no skeleton flash and no request-time crawl.
   const hasResolvedPreview = !!(titleOverride && imageOverride);
   const [ogData, setOgData] = useState<OGData | null>(
     hasResolvedPreview
@@ -524,9 +524,9 @@ export function LinkCard({
           // timeline-commit's `:not(:has([data-row-body]:hover))` gate),
           // so the card carries its *own* feedback while it's hovered.
           // Compound cue: brighter bg (/50 → /60), full border, and an
-          // inset ring that reads as a subtle lift without animating
-          // geometry — dark-theme bg-muted is low-contrast on its own,
-          // so the ring is what makes the affordance unmistakable.
+          // inset ring that reads as a lift without animating
+          // geometry. Dark-theme bg-muted is low-contrast on its own,
+          // so the ring is what makes the affordance visible.
           "h-full transition-colors duration-200",
           "hover:bg-muted/50 hover:border-border hover:ring-1 hover:ring-inset hover:ring-border/60",
           "active:bg-muted/60",

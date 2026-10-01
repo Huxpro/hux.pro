@@ -1,5 +1,5 @@
 /**
- * The graph in the icon column — the trunk, and a side lane where two
+ * The graph in the icon column: the trunk, and a side lane where two
  * chapters overlap.
  *
  * The line through the icon column is the trunk: one chapter's history,
@@ -17,9 +17,9 @@
  *      ● M.S.
  *
  * Everything is drawn in the row's icon cell (`data-rail-icon`) the way the
- * rail always was — lines run ±1000px and the row's clip-path trims them to
- * the row — so each stretch of line exists exactly once and nothing stacks:
- * translucent ink laid twice reads as a second, darker line. The lane hangs
+ * rail always was (lines run ±1000px and the row's clip-path trims them to
+ * the row), so each stretch of line exists exactly once and nothing stacks.
+ * Translucent ink laid twice reads as a second, darker line. The lane hangs
  * in the gap between the hash and the icon.
  */
 
@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 /** How far left of the trunk the side lane runs, px. */
 export const LANE = 14;
 /** How far a row whose node sits on the side lane nudges its hash left, so
- *  the node has room beside it, px. Visual only — the grid does not move. */
+ *  the node has room beside it, px. Visual only; the grid does not move. */
 export const HASH_NUDGE = 8;
 /** Radius of the lanes' turns, px. */
 const TURN = 5;
@@ -36,8 +36,8 @@ const TURN = 5;
 const BEND = 16;
 
 /** A line at rest and a line lit, on the ladder's graph roles (globals.css,
- *  "The graph"): the border rung, and the tertiary rung — a chapter's track
- *  under its marker, a connector while one of its ends is pointed at. */
+ *  "The graph"): the border rung, and the tertiary rung (a chapter's track
+ *  under its marker, a connector while one of its ends is pointed at). */
 const tone = (lit?: boolean) =>
   cn("transition-colors duration-200", lit ? "bg-graph-lit" : "bg-graph-line");
 /** A vertical stretch of line. */
@@ -80,7 +80,7 @@ function LaneBend({
 
 /**
  * Which of a row's lines a lit path runs along. A connector (a commit and
- * the role it hangs from) follows the chapter they share through the graph —
+ * the role it hangs from) follows the chapter they share through the graph:
  * the trunk where that chapter holds it, the side lane where it has stepped
  * aside, and `reach` the stroke between the side lane and a node on the
  * trunk. A straight line down the icon column would cross whatever other
@@ -232,23 +232,23 @@ export function GraphInCell({
 }
 
 /** How a chapter's ref meets the trunk (the DevTool's Works › Ref):
- *  `stub` — the marker sits right of the gutter and the trunk turns out to
- *  it; `ring` — a node on the trunk, like a commit's; `under` — the marker
+ *  `stub`: the marker sits right of the gutter and the trunk turns out to
+ *  it. `ring`: a node on the trunk, like a commit's. `under`: the marker
  *  sits on the trunk and the line runs beneath it. */
 export type RefLook = "stub" | "ring" | "under";
 
 /**
  * What of a ref a lit path or track runs along: the chapter stepping aside
- * here (`aside`), the trunk running straight through (`through`), or — the
- * ref's own chapter — its trunk starting here (`start`) or its lane forking
- * off here (`fork`).
+ * here (`aside`), the trunk running straight through (`through`), or, for
+ * the ref's own chapter, its trunk starting here (`start`) or its lane
+ * forking off here (`fork`).
  */
 export type RefLit = "aside" | "through" | "start" | "fork";
 
 /**
  * A chapter's ref on the graph: the trunk starts at its marker, drawn as
  * its `look` has it. `take`: the chapter on the trunk above is still
- * running — it comes down, bends into the side lane above the marker, and
+ * running: it comes down, bends into the side lane above the marker, and
  * goes on there. `fork`: this chapter leaves the trunk for the side lane.
  * `y` is the marker's centre from the top of the cell, px.
  */

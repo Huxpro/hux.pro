@@ -1,5 +1,5 @@
 /**
- * Byline derivation — the per-commit `git log --pretty=fuller` author
+ * Byline derivation: the per-commit `git log --pretty=fuller` author
  * context shared by the /works timeline and the home "processing" widget.
  *
  * Handle + company come from the shared identity metadata; title / tenure /
@@ -19,7 +19,7 @@ import {
 } from "@/lib/log";
 
 export interface Byline {
-  /** The identity the commit was made as — the key into `identities`. */
+  /** The identity the commit was made as: the key into `identities`. */
   identityId: string;
   /** The specific role instance, when one owns the commit's date. */
   roleId?: string;
@@ -33,9 +33,9 @@ export interface Byline {
   /**
    * Effective team subtitle for a project row, computed as
    * `project.team ?? role.team`. Only set when the row is a project AND
-   * this is the first row in a contiguous same-team run — repeats render
+   * this is the first row in a contiguous same-team run; repeats render
    * blank (sparse). Non-projects get undefined here (their subtitle comes
-   * from `data.meta` — talk conference, publication, platform).
+   * from `data.meta`: talk conference, publication, platform).
    */
   subtitle?: string;
   expanded: {
@@ -72,13 +72,13 @@ export function computeBylines(
       continue;
     }
     const isClusterHead = resolved.identityId !== prevIdentityId;
-    // A role that never takes a row can't be the head the reader sees —
+    // A role that never takes a row can't be the head the reader sees:
     // it sorts first in its tenure, and would leave the run unsigned.
     if (!isSuppressedRow(c)) prevIdentityId = resolved.identityId;
 
     // Prefer role-instance details when we have a specific role (title /
     // dates / description differ per intern vs FTE etc.). Fall back to
-    // identity-level defaults when there's no role fit — e.g. an award
+    // identity-level defaults when there's no role fit, e.g. an award
     // received a month after tenure ended, linked only via `identityId`.
     const role = resolved.role;
     const company = role?.companyOverride
@@ -88,7 +88,7 @@ export function computeBylines(
     const desc = role ? localize(role.description, locale) : "";
 
     // Effective team subtitle: project override wins, otherwise inherits
-    // the role's team default. Sparse — blank the chip when it repeats the
+    // the role's team default. Sparse: blank the chip when it repeats the
     // previous project's team so a Lynx-era run of 10 projects all
     // inheriting `Lynx @ ByteDance` prints the chip once at the top and
     // stays quiet after.
@@ -100,7 +100,7 @@ export function computeBylines(
         subtitle = teamStr;
         prevProjectTeam = teamStr;
       } else if (teamStr) {
-        // Same team as previous project — blank, but keep tracker.
+        // Same team as previous project: blank, but keep tracker.
         prevProjectTeam = teamStr;
       }
       // (If teamStr is undefined we leave prevProjectTeam untouched so a

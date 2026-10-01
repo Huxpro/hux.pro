@@ -29,8 +29,8 @@ export const commitIconOverrides: Record<string, LucideIcon> = {
  * module knows, otherwise the one its type wears.
  *
  * Both tables are exported, so the resolution order used to be written out
- * at each of the three surfaces that draw the mark — the /works row, the
- * home widget, the toolbar's chips — all having to agree that a chip and
+ * at each of the three surfaces that draw the mark (the /works row, the
+ * home widget, the toolbar's chips), all having to agree that a chip and
  * the rows it selects never wear different marks. A component rather than
  * a resolver returning one, because a call whose result is rendered as a
  * component is exactly what `react-hooks/static-components` warns about,

@@ -78,9 +78,9 @@ export function extractVideoId(url: string, platform: VideoPlatform): string | n
 }
 
 /**
- * The player URL for a video, the one each facade mounts once pressed — so a
+ * The player URL for a video, the one each facade mounts once pressed. A
  * caller that keeps the playing state itself (the feed's inline player, which
- * has a bar to hand playback on to the stage) can mount the same iframe.
+ * has a bar to hand playback on to the stage) can then mount the same iframe.
  */
 export function videoEmbedUrl(url: string, platform: VideoPlatform): string | null {
   switch (platform) {
