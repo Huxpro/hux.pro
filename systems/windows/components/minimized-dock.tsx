@@ -13,12 +13,12 @@ import type { WindowInstance } from "../lib/types";
 import { AppBadgeFor } from "./app-badge";
 
 // =============================================================================
-// MinimizedWindows — minimized app windows, parked in the dock
+// MinimizedWindows: minimized app windows, parked in the dock
 //
 // Minimizing a window genies it up toward the top-center "live activity" band
-// (the Dock). It lands here as a pill — styled to match the music / ambient
-// Live Activity pills — that sits in the same row. Tapping the pill restores
-// (and focuses) the window, the iOS Dynamic-Island / minimized-app metaphor.
+// (the Dock). It lands here as a pill in the same row, styled to match the
+// music / ambient Live Activity pills. Tapping the pill restores (and focuses)
+// the window, following the iOS Dynamic-Island / minimized-app metaphor.
 //
 // Rendered as a child of <Dock>, so its pills become flex items in the dock's
 // pill row alongside the other activities.

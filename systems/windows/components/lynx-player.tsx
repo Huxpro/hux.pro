@@ -3,7 +3,7 @@
 // The two side-effect imports that (a) register the <lynx-view> custom element
 // and its background-thread runtime and (b) bring in element styles. Both spin
 // up Web Workers at import time, so this module must only ever load in the
-// browser — it's reached exclusively through the `ssr: false` dynamic import in
+// browser. It's reached only through the `ssr: false` dynamic import in
 // lynx-frame.tsx.
 import "@lynx-js/web-elements/index.css";
 import "@lynx-js/web-core/client";
@@ -17,19 +17,19 @@ import { LYNX_SHADOW_CSS } from "../lib/lynx-shadow-css";
 let GROUP_COUNTER = 41;
 
 // =============================================================================
-// LynxPlayer — a Lynx Player: renders a `.web.bundle` via <lynx-view>
+// LynxPlayer: a Lynx Player that renders a `.web.bundle` via <lynx-view>
 //
 // This is the Lynx-runtime analogue of the web iframe. `@lynx-js/web-core`
 // runs the bundle's script on a background Web Worker and paints its element
-// tree into the <lynx-view> host on the main thread — the same dual-thread
-// model Lynx uses on-device, faithfully reproduced in the browser.
+// tree into the <lynx-view> host on the main thread. This is the same
+// dual-thread model Lynx uses on-device, reproduced in the browser.
 //
 // Shadow-CSS fix: web-core injects the web-elements layout CSS by Blob-ing a
 // `?inline` CSS import into a <link> inside each shadow root. Under Turbopack
 // that import resolves to `undefined`, so the shadow root gets no layout CSS
 // and flex defaults (e.g. `flex-direction: column`) silently break. We inject
 // the real, flattened CSS (`LYNX_SHADOW_CSS`, from `pnpm lynx:shadow-css`)
-// ourselves — see scripts/lynx-shadow-css-bundle.mjs for the full write-up.
+// ourselves. See scripts/lynx-shadow-css-bundle.mjs for the full write-up.
 // =============================================================================
 
 /**
@@ -76,7 +76,7 @@ export default function LynxPlayer({ url }: { url: string }) {
         pixelWidth: Math.round(w * dpr),
         pixelHeight: Math.round(h * dpr),
       });
-      // SystemInfo is snapshotted when the bundle evaluates — only the first
+      // SystemInfo is snapshotted when the bundle evaluates, so only the first
       // box matters. Later resizes would rewrite the attribute without
       // reloading the card.
       setBrowserConfig((prev) => prev ?? next);
@@ -144,7 +144,7 @@ export default function LynxPlayer({ url }: { url: string }) {
           transform-vw
           // Fill the window body and make Lynx's rpx / vh / vw units resolve against
           // this container (not the page), so a real Lynx card scales to the window
-          // instead of the viewport — matching go-web's responsive mode.
+          // instead of the viewport, matching go-web's responsive mode.
           style={
             {
               display: "block",

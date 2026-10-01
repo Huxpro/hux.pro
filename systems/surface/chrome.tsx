@@ -6,7 +6,7 @@ import { HEADER_BUTTON } from "./sheet";
 import { useWindowDraggable } from "./window";
 
 // =============================================================================
-// SurfaceBody — the title bar, the scroll area and the footer under it.
+// SurfaceBody: the title bar, the scroll area and the footer under it.
 //
 // The one thing every shape puts inside its shell, so a surface reads as the
 // same object whichever direction it arrived from. Separate from both the
@@ -16,7 +16,7 @@ import { useWindowDraggable } from "./window";
 //
 // It asks the window whether it may be dragged rather than being told: in a
 // draggable window the header is the handle, and in a sheet or a panel nothing
-// is — the drawer moves those.
+// is, because the drawer moves those.
 // =============================================================================
 
 export interface SurfaceBodyProps {
@@ -36,12 +36,12 @@ export interface SurfaceBodyProps {
   /** The scroll container, for content that needs to scroll a row into view. */
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   /**
-   * A fixed strip between the header and the scroll area — a way around the
+   * A fixed strip between the header and the scroll area: a way around the
    * content, such as an index of its sections. It does not scroll away.
    */
   toolbar?: React.ReactNode;
   /**
-   * A fixed strip below the scroll area — a status line, a destructive action.
+   * A fixed strip below the scroll area: a status line, a destructive action.
    * It does not scroll away with the content.
    */
   footer?: React.ReactNode;

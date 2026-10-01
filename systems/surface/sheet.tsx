@@ -14,19 +14,19 @@ import {
 } from "./stack";
 
 // =============================================================================
-// SurfaceSheet — the bottom sheet every phone surface is made of.
+// SurfaceSheet: the bottom sheet every phone surface is made of.
 //
 // One Base UI Drawer. <AdaptiveSurface> composes it for the wallpaper picker
 // and the playlist (adding its title bar and scroll area); the command palette
 // composes it directly, because a palette's header is its search field, not a
 // title. Both get the same glass shell, the same grabber, the same edge gaps,
-// and the same stacking behaviour — so a sheet is a sheet whatever it holds.
+// and the same stacking behaviour, so a sheet is a sheet whatever it holds.
 //
 // Two boxes, not one. `Drawer.Popup` is a transparent positioning box the full
 // height of the sheet's travel; the glass shell is the flex child inside it.
 // The split is what lets a *floating* sheet have detents: Base UI moves the
-// popup by translating it, so at a lower detent the popup's bottom — and the
-// shell's rounded corners with it — would sit below the screen. The popup
+// popup by translating it, so at a lower detent the popup's bottom (and the
+// shell's rounded corners with it) would sit below the screen. The popup
 // carries the same offset as bottom padding, so the shell it holds stays
 // planted a gap above the bottom edge at every detent, and grows and shrinks
 // from the top as a floating sheet should. Past the lowest detent the padding
@@ -38,13 +38,13 @@ import {
 // Two things a phone sheet does that the other shapes never need:
 //
 //   Snap points.  `snapPoints={[0.7, 1]}` opens the sheet at seven tenths of
-//   the screen and lets a drag carry it to the top — the iOS medium / large
+//   the screen and lets a drag carry it to the top: the iOS medium / large
 //   detents. A sheet with a single short job instead of a list can skip them
 //   and take the height of what it holds (`fitContent`), the way iOS sizes a
 //   form sheet to its form.
 //
 //   Stacking.  A sheet opened over another one sends the one underneath back a
-//   step per sheet — smaller, dimmer, a little higher, inert — and brings it
+//   step per sheet (smaller, dimmer, a little higher, inert) and brings it
 //   forward again as they go. That is what iOS does when a sheet presents a
 //   sheet. Base UI counts the sheets nested in this one (React children) on the
 //   popup, live with their swipe; the shared stack (stack.ts) counts the ones
@@ -52,13 +52,13 @@ import {
 //
 // `modal` is off by default (see AdaptiveSurface for why: these surfaces are
 // about the page behind them, which stays live). A launcher like the command
-// palette turns it on, and then the viewport — a transparent, full-screen box
-// that already contains the popup — takes the page away and dismisses on a
+// palette turns it on, and then the viewport (a transparent, full-screen box
+// that already contains the popup) takes the page away and dismisses on a
 // press, the same click-away its desktop popover has. Base UI's scroll lock is
 // safe here in a way Radix's was not: on iOS it only sets `overflow: hidden` on
 // whichever element scrolls the viewport, and it stands down entirely when that
-// element is already locked — which is exactly the state vitre leaves the
-// page in during container scroll.
+// element is already locked. That is the state vitre leaves the page in
+// during container scroll.
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -89,7 +89,7 @@ import {
 // 4. Nesting is React nesting. A drawer is nested only when its Root renders
 //    inside another's Popup; the parent then gets `data-nested-drawer-open`,
 //    `data-nested-drawer-swiping` and `--nested-drawers`. Sheets in sibling
-//    subtrees get none of it — that is what stack.ts is for, and a nested
+//    subtrees get none of it. That is what stack.ts is for, and a nested
 //    sheet says so (`nestedIn`) so the stack does not count it a second time.
 // 5. A closing dialog returns focus to what opened it. Where that is a text
 //    field on a touch device, turn it off (`restoreFocus`): iOS opens the
@@ -104,13 +104,13 @@ import {
 //    0.7 detent arrives as 1.6px of movement, measured. Draw the rubber band
 //    from it; read intent from the pointer (`usePullPastTop` below).
 // 8. A swipe never starts from `button,a,input,select,textarea,label,
-//    [role="button"]` — `DEFAULT_IGNORE_SELECTOR` in
-//    utils/useSwipeDismiss.js, checked for mouse and touch alike. A control
+//    [role="button"]` (`DEFAULT_IGNORE_SELECTOR` in
+//    utils/useSwipeDismiss.js), checked for mouse and touch alike. A control
 //    that has to be draggable (the window grip) cannot wear those roles; give
 //    it a visually hidden button beside it for the semantics.
 // 9. Once a press becomes a swipe the popup captures the pointer and the rest
-//    of the stream never reaches you: no move, no up — and out here, above
-//    `Drawer.Content`, no click at all, even for a plain tap. Anything that
+//    of the stream never reaches you: no move, no up. Out here, above
+//    `Drawer.Content`, there is no click at all, even for a plain tap. Anything that
 //    listens for a tap on the grabber has to treat "the release came back to
 //    us at all" as the signal; a timer armed on press will otherwise fire in
 //    the middle of a drag. And nothing up here may hold a state the end of a
@@ -120,7 +120,7 @@ import {
 //    the sheet on every gesture, sideways ones included. Unless the scroller
 //    is itself a vertical scroller, every touchstart starts a swipe: the popup
 //    takes an inline `translate3d` and `data-swiping`, and loses both on
-//    touchend — the frame a snap begins. Three things keep the snap whole,
+//    touchend, the frame a snap begins. Three things keep the snap whole,
 //    each a stall on iOS when missing: the popup is `will-change: transform`
 //    for good (globals.css), so that release never re-layers it; the track
 //    uses `useSheetAxisLock` (axis-lock.ts), so a diagonal swipe moves the
@@ -180,24 +180,24 @@ export function detentHeight(point: number): string {
  *
  * The transition names `scale` explicitly. `transition-colors` does not cover
  * it, and Tailwind v4 compiles `scale-*` to the `scale` property rather than
- * `transform` — so the press used to snap back on the frame it was released
- * while the colour went on easing for another 80ms, which is one press read as
- * two events. Now both land together going down and ease out together coming
+ * `transform`. So the press used to snap back on the frame it was released
+ * while the colour went on easing for another 80ms, and one press read as two
+ * events. Now both land together going down and ease out together coming
  * back up.
  */
 export const HEADER_BUTTON =
   "pressable system-chrome shrink-0 rounded-md p-2 text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
 
 /**
- * The glass shell every shape shares — and, with `.system-chrome`, the ruling
- * that a surface is the OS's own UI until something proves otherwise: nothing
+ * The glass shell every shape shares. With `.system-chrome` it also carries the
+ * ruling that a surface is the OS's own UI until something proves otherwise: nothing
  * inside one selects, raises a long-press callout, or takes the grey tap
  * flash. Every surface today is chrome (the reading settings, the playlist,
  * the wallpaper picker, the devtool, the command palette), and the fields in
  * the last two keep their caret through the text-field exception in
  * globals.css.
  *
- * The case this does not cover is a surface holding a *document* — an article
+ * The case this does not cover is a surface holding a *document*: an article
  * in a quick-look, a page previewed in a panel. `select-text` would win back
  * the selection but not the link preview that `-webkit-touch-callout` takes
  * away, so that is a third tier rather than an override: put it in the voice
@@ -225,8 +225,8 @@ export const surfaceMotionVars = (exitClearance: string) =>
 
 /**
  * The full-screen box a drawer's popup sits in, shared by the sheet and the
- * panel. Modal: this box is the scrim — invisible, the page stays in view but
- * stops answering, and a press on it dismisses, because Base UI reads a press
+ * panel. Modal: this box is the scrim. It is invisible, the page stays in view
+ * but stops answering, and a press on it dismisses, because Base UI reads a press
  * on the popup's container as an outside press. Non-modal: it must not be a
  * wall over the page, so only the popup inside takes pointers.
  *
@@ -249,7 +249,7 @@ export function SurfaceViewport({
    * The surface's place in the stack (`useSurfaceStack().rank`, raw: −1
    * once it has left). Every viewport is a stacking context at the same
    * level, so sibling sheets otherwise paint in the order their portals
-   * mounted — and a kept-mounted sheet (an app window) reopened over a
+   * mounted, and a kept-mounted sheet (an app window) reopened over a
    * younger one would come up under it. The stack's order is the paint
    * order.
    */
@@ -277,7 +277,7 @@ export function SurfaceViewport({
  *
  * Small on purpose, and the measurement below explains why. A sheet's handle
  * rests near the top of the screen once the sheet is at its top detent, so the
- * room left above it — the whole budget for "keep pulling" — is about twenty
+ * room left above it (the whole budget for "keep pulling") is about twenty
  * pixels. Measured on an iPhone 13, a pull from the grabber at the 0.7 detent
  * all the way to the top of the glass spends 187px resizing the sheet and has
  * 20px left over. A threshold near that ceiling would be unreachable; this one
@@ -291,16 +291,16 @@ export const PULL_PAST_TOP_TRAVEL = 14;
  * Measures the POINTER, not the popup. Base UI does let a drag carry the sheet
  * past its top edge, but what it publishes there is damped by a square root
  * (`getSnapPointSwipeMovement`, useDrawerSnapPoints.js) and its swipe-start
- * threshold has already eaten ~17px of the gesture — between them, the 207px
+ * threshold has already eaten ~17px of the gesture. Between them, the 207px
  * pull above arrives as 1.6px of movement. That number is the right one to
  * draw the rubber band with and the wrong one to read intent from.
  *
- * The finger says it plainly instead:
+ * Read it from the pointer instead:
  *
  *   push = travelled up − the offset the sheet had to climb through
  *
  * so one continuous pull from a lower detent both resizes the sheet and, once
- * it is against the ceiling, keeps counting — which is the gesture as it is
+ * it is against the ceiling, keeps counting. That matches the gesture as it is
  * felt: the sheet stops moving and you are still pulling.
  *
  * `data-swiping` is the gate: it is Base UI's own verdict that this gesture is
@@ -379,16 +379,16 @@ function usePullPastTop(
  * The band a bottom sheet stands in, for the stack to tell covering from
  * tiling (stack.ts).
  *
- * A sheet's bottom edge is pinned by construction — the popup's padding holds
+ * A sheet's bottom edge is pinned by construction: the popup's padding holds
  * the shell a gap above the screen's edge at every detent (see the note at the
- * top of this file) — so the only thing that moves is how tall it is, and its
+ * top of this file). So the only thing that moves is how tall it is, and its
  * height is therefore its position. That makes one rule out of what would
  * otherwise be three: a detent sheet, a fixed-height sheet and a `fitContent`
  * sheet all just say how tall they laid out.
  *
  * `offsetHeight`, not a rect: the recede this band decides is a `scale()` on
  * this very element, and a measurement that saw it would feed its own answer
- * back in. The layout box does not move under a transform — and it does move
+ * back in. The layout box does not move under a transform, but it does move
  * under a drag, because Base UI spends the detent offset as the popup's
  * padding, which is layout. So the tiling is live with the gesture, the way
  * the rest of the stacking already is.
@@ -416,7 +416,7 @@ function useSheetBand(
 }
 
 export interface SurfaceSheetProps {
-  /** Stable id — the sheet's key in the surface stack. */
+  /** Stable id: the sheet's key in the surface stack. */
   id: string;
   /**
    * The id of the sheet this one renders inside, when it does. Base UI counts
@@ -428,7 +428,7 @@ export interface SurfaceSheetProps {
   onOpenChange: (open: boolean) => void;
   /**
    * Take the page away: a transparent scrim blocks it, and a tap on the scrim
-   * dismisses. Off by default — secondary surfaces leave the page live.
+   * dismisses. Off by default: secondary surfaces leave the page live.
    */
   modal?: boolean;
   /**
@@ -444,7 +444,7 @@ export interface SurfaceSheetProps {
   height?: string;
   /**
    * Take the height of the content instead of a height or detents: a sheet
-   * holding one short thing — a form, a confirmation — rather than a list, so
+   * holding one short thing (a form, a confirmation) rather than a list, so
    * there is no empty half. The content bounds its own scrolling area; the
    * sheet never grows past the screen, and the keyboard pushes it up as it
    * does any other sheet. Overrides `height`.
@@ -461,7 +461,7 @@ export interface SurfaceSheetProps {
   level?: number;
   /**
    * Return focus to what opened the sheet when it closes. On by default; a
-   * sheet stacked on one with a text field turns it off — focus handed back
+   * sheet stacked on one with a text field turns it off. Focus handed back
    * to a field is a focused field with no keyboard, and iOS opens the keyboard
    * on the next touch anywhere, whatever it was aimed at.
    */
@@ -469,27 +469,27 @@ export interface SurfaceSheetProps {
   /**
    * Keep the sheet's DOM alive while it is closed (Base UI hides the popup
    * rather than unmounting it). For a sheet whose content must keep running
-   * when it is put away — an app window, whose iframe or Lynx view would
+   * when it is put away: an app window, whose iframe or Lynx view would
    * otherwise reload and lose its state.
    */
   keepMounted?: boolean;
   /**
    * The affordance at the top of the shell. Defaults to the plain grabber;
-   * a sheet whose handle says more than "drag me" — the window grip, which is
-   * also its menu button — passes its own. It sits outside `Drawer.Content`,
+   * a sheet whose handle says more than "drag me" (the window grip, which is
+   * also its menu button) passes its own. It sits outside `Drawer.Content`,
    * so a *mouse* press on it starts a drag like the grabber it replaces.
    */
   grip?: React.ReactNode;
   /**
    * Float the grip over the content instead of giving it a row of its own, so
    * the sheet is edge-to-edge under it. For a sheet holding something that is
-   * not a document — an app window, whose chrome has always been a pill over
+   * not a document: an app window, whose chrome has always been a pill over
    * its content and never a title bar.
    */
   gripOverlay?: boolean;
   /**
    * Fired when a drag carries the sheet past its top edge by more than
-   * `PULL_PAST_TOP_TRAVEL` real pixels and lets go there — the gesture that
+   * `PULL_PAST_TOP_TRAVEL` real pixels and lets go there: the gesture that
    * lifts a surface off the edge it is docked to. Without it the overshoot is
    * only a rubber band, as it is for every other sheet.
    */
@@ -508,8 +508,8 @@ export interface SurfaceSheetProps {
    * Width cap, centred. On the popup (the positioning box), not the shell: the
    * popup takes pointers across its whole box, so a narrow shell in a
    * full-width popup would still wall off the bottom of the screen beside it.
-   * For a sheet that stays a sheet on a wide screen — a small question rising
-   * from the bottom — rather than becoming a panel or a window.
+   * For a sheet that stays a sheet on a wide screen (a small question rising
+   * from the bottom) rather than becoming a panel or a window.
    */
   maxWidth?: string;
   children: React.ReactNode;
@@ -569,14 +569,14 @@ export function SurfaceSheet({
   // does. A sheet Base UI mounts fresh measures itself in a layout effect,
   // which React flushes before paint, so its detent is resolved by the first
   // frame; one hidden with `display: none` has no box to measure and comes
-  // back with an offset of 0 — the top detent — so it arrives full height and
+  // back with an offset of 0 (the top detent), so it arrives full height and
   // slides down into its detent over half a second. Both marks are therefore
   // conditioned on `keepMounted`: the three sheets that had none of this
   // before the window came along keep exactly the behaviour they had, and in
   // particular a drag begun in the first half-second still moves them.
   //
-  //   `entering`  the offset is no mystery — it is `popupHeight -
-  //               detentHeight` — so for the length of the entrance the popup
+  //   `entering`  the offset is known in advance (`popupHeight -
+  //               detentHeight`), so for the length of the entrance the popup
   //               stands on `--surface-snap-fallback`, computed in CSS from
   //               the detent it is opening at, and Base UI's own value lands
   //               under it, identical, before the mark comes off.
@@ -586,8 +586,8 @@ export function SurfaceSheet({
   //               frame at the bottom edge is all it needs.
   //
   // Both are set from the render that opens the sheet, not from an effect,
-  // which would paint it in place first — and cleared on the way out, because
-  // a mark left behind would pin the *exit* to a detent offset.
+  // which would paint it in place first. They are cleared on the way out,
+  // because a mark left behind would pin the *exit* to a detent offset.
   const pinned = !!keepMounted && hasSnapPoints;
   const [entering, setEntering] = useState(open && pinned);
   const [arriving, setArriving] = useState(open && !!keepMounted);
@@ -607,7 +607,7 @@ export function SurfaceSheet({
     if (!arriving) return;
     // Two frames, not one: a rAF callback runs *before* that frame is painted,
     // so letting go in the first would leave the browser with nothing painted
-    // at the bottom edge to travel from — and no transition at all, which is
+    // at the bottom edge to travel from, and so no transition at all. That is
     // the bug this is here to fix.
     let inner = 0;
     const outer = requestAnimationFrame(() => {
@@ -628,7 +628,7 @@ export function SurfaceSheet({
   // Where the detent it is opening at puts the sheet, before anything has been
   // measured. An owner that controls the detent already knows it; an
   // uncontrolled sheet is about to be moved to `arrival` by the effect below,
-  // which runs after this paint — so read that, not the detent it is leaving.
+  // which runs after this paint. So read that, not the detent it is leaving.
   const opensAt = isControlled ? snap : arrival;
   const snapFallback = `max(0px, calc(100dvh - ${TOP_INSET} - ${detentLength(
     typeof opensAt === "number" ? opensAt : (snapPoints?.[0] ?? 1),
@@ -653,7 +653,7 @@ export function SurfaceSheet({
       // Only a change is a change. Every touch on a Base UI drawer ends in a
       // release that re-reports the detent it landed on, so a tap into a
       // field would otherwise reach the owner as "back to where you were"
-      // in the same breath as the focus — and undo whatever the focus asked
+      // in the same breath as the focus, and undo whatever the focus asked
       // for. A controlled prop's onChange should not fire for its own value.
       onSnapPointChange={(point) => {
         if (point === snap) return;
@@ -743,7 +743,7 @@ export function SurfaceSheet({
                   className
                 )}
               >
-                {/* Grabber — the affordance for drag-to-dismiss and the detents.
+                {/* Grabber: the affordance for drag-to-dismiss and the detents.
                     A sheet can hand in its own (`grip`); either way it lives
                     here, above Drawer.Content, so a mouse press on it is a
                     drag. Floating, it takes no room and only the grip itself
@@ -764,7 +764,7 @@ export function SurfaceSheet({
                     mouse press inside it is a press on a row, never the start
                     of a drag. Without this, the drawer takes the pointer on
                     press and the click never reaches what was pressed. A touch
-                    drag still works anywhere — Base UI reads the scroll
+                    drag still works anywhere; Base UI reads the scroll
                     containers for that. Transparent to layout so the content
                     keeps the shell's flex column. */}
                 <Drawer.Content

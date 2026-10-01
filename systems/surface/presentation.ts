@@ -3,18 +3,18 @@
 import { useEffect, useState } from "react";
 
 // =============================================================================
-// Surface presentation — how a secondary surface shows itself, per viewport.
+// Surface presentation: how a secondary surface shows itself, per viewport.
 //
 // The site has a growing set of secondary surfaces (the wallpaper picker, the
 // music playlist, whatever comes next). Each one wants a different shape at a
 // different size, and the right shape is a property of the VIEWPORT, not of the
-// feature — so it belongs in one place rather than re-decided per component:
+// feature. So it belongs in one place rather than re-decided per component:
 //
-//   sheet   — action sheet climbing from the bottom edge.  Phone.
-//   panel   — floating panel against the trailing edge.    Tablet.
-//   window  — centred, draggable window that morphs in.    Desktop.
-//   popover — a card hanging off the button that opened it. Desktop, for a
-//             surface that belongs to one control rather than to the page.
+//   sheet:   action sheet climbing from the bottom edge.  Phone.
+//   panel:   floating panel against the trailing edge.    Tablet.
+//   window:  centred, draggable window that morphs in.    Desktop.
+//   popover: a card hanging off the button that opened it. Desktop, for a
+//            surface that belongs to one control rather than to the page.
 //
 // A feature declares its presentation as a breakpoint map and stops thinking
 // about it:
@@ -35,7 +35,7 @@ export const SURFACE_BREAKPOINTS = { sm: 640, lg: 1024 } as const;
 
 /** A value per breakpoint. Anything omitted inherits the next breakpoint down. */
 export interface BreakpointMap<T> {
-  /** Below `sm`. Required — it is the fallback every other key inherits from. */
+  /** Below `sm`. Required: it is the fallback every other key inherits from. */
   base: T;
   /** From 640px. Defaults to `base`. */
   sm?: T;
@@ -53,7 +53,7 @@ export const ADAPTIVE_PRESENTATION: SurfacePresentation = {
 };
 
 /**
- * What a surface owned by a single button wants — the Books "Aa" menu: a sheet
+ * What a surface owned by a single button wants (the Books "Aa" menu): a sheet
  * under the thumb on a phone, and from `sm` up a popover hanging off the button
  * itself. A surface using this passes `anchor`.
  */
@@ -76,7 +76,7 @@ function resolve<T>(map: BreakpointMap<T>, width: number): T {
  * The value for the viewport right now.
  *
  * Starts at `base` so SSR and the first client render agree, then settles on
- * the real viewport in an effect — the same hydration-safe shape the ambient
+ * the real viewport in an effect, the same hydration-safe shape the ambient
  * settings use. Tracked live via matchMedia, so a resize or a rotation moves
  * an already-open surface into its new shape rather than waiting for a reopen.
  *
@@ -89,7 +89,7 @@ export function useBreakpointValue<T>(
   { immediate = false }: { immediate?: boolean } = {},
 ): T {
   const [value, setValue] = useState<T>(() =>
-    // `immediate` is for a surface that never renders on the server — an app
+    // `immediate` is for a surface that never renders on the server: an app
     // window, which only exists once someone has opened one. Settling in the
     // effect instead would mount the phone shape for a commit first, and a
     // shape carries an app with it: an iframe committed, fetched and thrown

@@ -178,7 +178,7 @@ import {
 } from "react";
 
 // =============================================================================
-// Devtool content — the modules, and nothing about where they are shown.
+// Devtool content: the modules, and nothing about where they are shown.
 //
 // The devtool is hosted in three different shells over its life (a bottom
 // sheet, a floating window, and neither while it is a pill), and none of that
@@ -188,7 +188,7 @@ import {
 // =============================================================================
 
 /**
- * The modules' ids, in the order they are rendered — so the rail reads in the
+ * The modules' ids, in the order they are rendered, so the rail reads in the
  * same order as the list it indexes. Keep in step with `DevtoolModules`.
  */
 const MODULE_ORDER = [
@@ -225,14 +225,14 @@ export function DevtoolModules() {
 }
 
 // =============================================================================
-// Sections — what the modules tell the rail about themselves
+// Sections: what the modules tell the rail about themselves
 //
 // Every module knows two things about itself the panel as a whole cannot:
 // whether it matters here and now (`relevant`), and whether anything inside it
 // is off its default (`star`). Relevance decides the fold until one is chosen
 // by hand; the star says "look in here" while the module is folded. The rail
 // needs both for every module at once, so each <DebugSection> reports them
-// here as it renders — the modules stay the only place that knows.
+// here as it renders. The modules stay the only place that knows.
 // =============================================================================
 
 /** Off its default: amber for this session only, sky for a saved setting. */
@@ -265,7 +265,7 @@ const SectionsApiContext = createContext<SectionsApi | null>(null);
 const SectionsContext = createContext<SectionsState | null>(null);
 
 /**
- * Wraps a shell's whole body — rail and modules both — so the two can meet.
+ * Wraps a shell's whole body (rail and modules both) so the two can meet.
  * `scrollRef` is the shell's scroll area, which the rail scrolls.
  */
 export function DevtoolSections({
@@ -340,7 +340,7 @@ export function DevtoolSections({
 }
 
 /**
- * The rail: one icon per module, above the list. Three things at a glance —
+ * The rail: one icon per module, above the list. Three things at a glance:
  * a dot under the ones that matter here, a star on the ones with something
  * changed inside, a filled chip on the ones that are open.
  *
@@ -592,7 +592,7 @@ interface DebugSectionProps {
   compact?: boolean;
   /**
    * Whether this module matters here and now. Unfolded when it does, folded
-   * when it does not — until a fold is chosen by hand, which is remembered
+   * when it does not, until a fold is chosen by hand, which is remembered
    * separately for each answer.
    */
   relevant: boolean;
@@ -741,7 +741,7 @@ function FrontmatterModule() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      // Clipboard blocked (insecure context / permissions) — no-op.
+      // Clipboard blocked (insecure context / permissions): no-op.
     }
   };
 
@@ -776,7 +776,7 @@ function FrontmatterModule() {
         </div>
       ) : (
         <div className="space-y-3">
-          {/* Route context — slug + which locale's file is rendered. */}
+          {/* Route context: slug + which locale's file is rendered. */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs font-mono text-foreground/90 break-all">
               {pageMeta.slug}
@@ -819,12 +819,12 @@ function FrontmatterModule() {
 // =============================================================================
 // Reading Module
 // Article reading-surface variations. Each setting persists (localStorage)
-// and applies even with the devtool disabled — the panel is just the UI.
-//   · Typeface  — body copy: sans or serif
-//   · Measure   — reading column width: narrow / default / wide
-//   · Bleed     — let wide media break out of the reading column on desktop
-//   · Focus     — dim every block but the one at the reading line
-//   · Ruler ToC — which screen edge the reading ruler docks to
+// and applies even with the devtool disabled; the panel is just the UI.
+//   · Typeface:  body copy, sans or serif
+//   · Measure:   reading column width (narrow / default / wide)
+//   · Bleed:     let wide media break out of the reading column on desktop
+//   · Focus:     dim every block but the one at the reading line
+//   · Ruler ToC: which screen edge the reading ruler docks to
 // =============================================================================
 
 /** Compact label + control row shared by the reading settings. */
@@ -899,7 +899,7 @@ function PanelRow({
 
 /**
  * The shared controls in the devtool's voice. Both take their props straight
- * from the component so the panel cannot drift from it — the hand-written
+ * from the component so the panel cannot drift from it. The hand-written
  * shadow types these replaced had already lost `Segmented`'s `label`, which
  * left every segmented group in here without an accessible name.
  */
@@ -1096,8 +1096,8 @@ function ReadingModule() {
 // Glass Module
 //
 // The material every floating System UI surface is made of. Two options, the
-// same two iOS 26 offers — Tinted (色调) and Clear (透明) — and the same effect:
-// one class on <html> swapping a handful of CSS variables, so nothing
+// same two iOS 26 offers: Tinted (色调) and Clear (透明). The effect is the same
+// too: one class on <html> swapping a handful of CSS variables, so nothing
 // re-renders and every `bg-glass*` surface follows along.
 // =============================================================================
 
@@ -1155,8 +1155,8 @@ function GlassModule() {
           />
         </PanelRow>
         {/* What the legibility policy resolved for the wallpaper that is
-            painting, on the row that opens the lab where it is tuned — the
-            same row the Wallpaper module uses for the current picture. */}
+            painting, on the row that opens the lab where it is tuned. It is
+            the same row the Wallpaper module uses for the current picture. */}
         <Link
           href="/lab/legibility"
           className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2 py-1.5 text-left transition-colors hover:bg-muted/40"
@@ -1187,7 +1187,7 @@ function GlassModule() {
 //
 // Under Weather there are two more rows. Style is the persisted choice among
 // the picker's three weather tiles (Sky / Gradient / Classic); "No WebGL2" is
-// the one session override that exists here — it pretends WebGL2 is missing so
+// the one session override that exists here. It pretends WebGL2 is missing so
 // the Sky's fallback can be seen on a machine that has it. Style and engine
 // are otherwise one-to-one, so there is no engine picker. The last line reads
 // the live engine back: internal resolution, adaptive scale and frame time for
@@ -1253,7 +1253,7 @@ function WallpaperModule() {
   // The swatch: what the CSS stack would paint for the effective style.
   const swatch = getWeatherStyleGradient(effectiveStyle, scene, phase);
 
-  // Poll the renderer stats while the shader is live — as a formatted line, so
+  // Poll the renderer stats while the shader is live, as a formatted line, so
   // an unchanged readout is a no-op render.
   const [glStats, setGlStats] = useState<string | null>(null);
   useEffect(() => {
@@ -1301,8 +1301,8 @@ function WallpaperModule() {
 
   // Full and Widget are independent switches here, not two halves of one
   // segmented control: the persisted setting can only be one of them, but the
-  // devtool exists precisely to see combinations the setting cannot express —
-  // both on at once included. They drive the ephemeral overrides, which is what
+  // devtool exists to see combinations the setting cannot express, both on at
+  // once included. They drive the ephemeral overrides, which is what
   // those were for; the persisted mode follows only when nothing is overridden.
   const placements = [
     {
@@ -1336,7 +1336,7 @@ function WallpaperModule() {
 
   // The rows' stars, summed for the header. Only the rows that are showing:
   // the bezel's saved rows count while the bezel is on, the style while the
-  // kind is Weather — a star has to be findable once the module is open.
+  // kind is Weather. A star has to be findable once the module is open.
   const sessionOverridden =
     Object.values(devtoolOverrides).some((v) => v !== undefined) ||
     heroExitOverride !== undefined;
@@ -1403,7 +1403,7 @@ function WallpaperModule() {
             among thirty-odd tiles is the picker's job, and a second grid here
             was a second picker to keep in step. Under Weather, the style is
             the picker's two tiles as a segmented row, and Engine is the devtool
-            override on top of it — what actually paints. */}
+            override on top of it: what actually paints. */}
         <PanelRow label={zh ? "类型" : "Kind"}>
           <PanelSegmented<"weather" | "image">
             value={kind}
@@ -1656,7 +1656,7 @@ function WallpaperModule() {
           </PanelRow>
         </div>
 
-        {/* The resolved asset — the fastest way to trace a wrong background. */}
+        {/* The resolved asset: the fastest way to trace a wrong background. */}
         <div className="break-all text-[10px] font-mono tabular-nums text-muted-foreground">
           {isImage ? src : engineLine}
         </div>
@@ -1710,7 +1710,7 @@ function PanelSlider({
 /**
  * A shooting star: a head with motion streaks trailing it.
  *
- * Tabler Icons' `comet`, inlined — MIT, Copyright (c) 2020-2026 Paweł Kuna
+ * Tabler Icons' `comet`, inlined. MIT, Copyright (c) 2020-2026 Paweł Kuna
  * (https://tabler.io/icons). One glyph does not earn a dependency, and the
  * drawing conventions are the same as the icon set the rest of this panel uses
  * (24 x 24, 2px stroke, round caps and joins), so it sits among them without
@@ -1742,27 +1742,27 @@ function MeteorMark({ className }: { className?: string }) {
 
 
 // =============================================================================
-// Sky Module — weather and time as one thing
+// Sky Module: weather and time as one thing
 //
 // The wallpaper is a function of (condition, clock); the two used to sit in
 // separate modules with a hint pointing from one to the other. Here they are
 // one picture:
 //
-//   · a status line saying what the sky IS right now — condition, phase,
-//     clock, sun height, moon phase — every field derived from the same scene;
+//   · a status line saying what the sky IS right now (condition, phase,
+//     clock, sun height, moon phase), every field derived from the same scene;
 //   · a day timeline painted with the sky's own colours for the current
 //     condition, sunrise and sunset ticked on it, with a playhead you drag.
 //     Change the condition and the strip repaints; move the playhead and the
 //     condition chips swap to their night faces. Phase names under it jump;
 //   · the six conditions, one row, previewed at the effective time of day.
-//     Click to force one, click it again to go back to the real weather —
-//     no toggle to remember;
+//     Click to force one, click it again to go back to the real weather.
+//     No toggle to remember;
 //   · the date (which is what changes the moon), and a fold of fine-tune
 //     sliders over the derived scene plus the raw API readout.
 //
 // Day/night is never chosen here. It follows the clock, so a moon in a daytime
 // sky is impossible by construction. One "Now" in the corner puts everything
-// back — time, day, condition and tweaks alike.
+// back: time, day, condition and tweaks alike.
 // =============================================================================
 
 const PHASE_ORDER: AmbientPhase[] = [
@@ -1833,7 +1833,7 @@ function compassPoint(deg: number): string {
  * `wind.x` is `sin(from) × hemisphere × speed`, so a track running 0 → 359
  * goes calm → right → calm → left → calm: both ends dead, and the direction
  * you drag bears no relation to the direction the rain leans. The track runs
- * **270° → 450°** instead — west, through north, to east — which is monotonic
+ * **270° → 450°** instead (west, through north, to east), which is monotonic
  * the whole way: drag left and the rain leans left, drag right and it leans
  * right, and the middle is the one bearing that has no crosswind in it.
  *
@@ -1859,7 +1859,7 @@ function leanArrow(deg: number, hemisphere: 1 | -1): string {
   return x > 0.02 ? "→" : x < -0.02 ? "←" : "·";
 }
 
-/** Minutes in a day — the scrub's range, and one loop of Play. */
+/** Minutes in a day: the scrub's range, and one loop of Play. */
 
 /**
  * The transport: a minute for the day, or half of one. Two buttons rather than
@@ -1875,8 +1875,8 @@ const PLAY_RATES = [
 /**
  * The ink every mark on the day timeline is drawn in. White through
  * `mix-blend-difference`, so one value stays legible over a night that is
- * nearly black and a noon that is nearly white — which is the whole reason the
- * strip can carry marks at all. One constant because it was four literals at
+ * nearly black and a noon that is nearly white. That is why the strip can
+ * carry marks at all. One constant because it was four literals at
  * two different alphas, under a comment claiming they were the same.
  */
 const TIMELINE_INK = "border-white/60 bg-white/60 mix-blend-difference";
@@ -1960,7 +1960,7 @@ function SkyModule() {
 
   // Everything a walk down this day needs. One object for both the strip's
   // colours and the meteor's window, so the day they draw cannot drift apart
-  // with one edit — and keyed on the DAY, not the instant, so scrubbing or
+  // with one edit. It is keyed on the DAY, not the instant, so scrubbing or
   // playing the clock does not redo any of it.
   const daySample: DaySampleParams = useMemo(
     () => ({
@@ -1990,7 +1990,7 @@ function SkyModule() {
   );
 
   /**
-   * The window as a line of text — usually one night, so usually the two
+   * The window as a line of text. It is usually one night, so usually the two
    * intervals the strip needs rejoined. `meteorWindowSpan` owns that, next to
    * the code that split them.
    */
@@ -2001,7 +2001,7 @@ function SkyModule() {
       ? "无"
       : "none";
 
-  // Which conditions you could see a meteor THROUGH — the weather half of the
+  // Which conditions you could see a meteor THROUGH: the weather half of the
   // window, asked of the scene each chip would actually produce, overrides and
   // all. So it answers the question somebody about to click it has: if I picked
   // this one now, could I see one? Pulling the cloud slider down lights Cloudy
@@ -2056,8 +2056,8 @@ function SkyModule() {
   // It runs the playhead, nothing else: from wherever the clock is, through
   // midnight, round again. It used to start by jumping to 90 minutes before
   // sunrise and stop 90 after sunset, which is a second way of choosing a time
-  // on a panel whose whole top half is for choosing a time — the strip, the
-  // phase names and the sun's own ticks are right there. Pick a moment, then
+  // on a panel whose whole top half is for choosing a time (the strip, the
+  // phase names and the sun's own ticks are right there). Pick a moment, then
   // press play from it.
   /** 0 is paused; otherwise the multiple of `PLAY_DURATION_MS` being played. */
   const [playRate, setPlayRate] = useState(0);
@@ -2079,7 +2079,7 @@ function SkyModule() {
 
   /**
    * One button per speed: pressing the lit one pauses, pressing the other
-   * changes speed without starting over — the playhead is where it is, and
+   * changes speed without starting over. The playhead stays where it is, and
    * only the step it moves by changes.
    */
   const play = (rate: number) => {
@@ -2119,7 +2119,7 @@ function SkyModule() {
 
   // --- Gyroscope -----------------------------------------------------------
   // The live tilt, polled rather than subscribed: a readout is worth twice a
-  // second, not sixty times — the sky itself gets every reading.
+  // second, not sixty times. The sky itself gets every reading.
   const [tiltDeg, setTiltDeg] = useState<number | null>(null);
   useEffect(() => {
     if (gyro.readings !== "live") {
@@ -2149,7 +2149,7 @@ function SkyModule() {
   // --- Sky window ----------------------------------------------------------
   // Where the window is looking, polled like the tilt. And a hand on it: a
   // desktop has no sensor to turn, so the heading and pitch can be driven from
-  // here instead — the sensor is ignored until the star hands it back.
+  // here instead. The sensor is ignored until the star hands it back.
   const [look, setLook] = useState<{ heading: number; pitch: number; compass: boolean } | null>(null);
   const [aim, setAim] = useState<{ heading: number; pitch: number } | null>(null);
   useEffect(() => {
@@ -2201,7 +2201,7 @@ function SkyModule() {
       if (view) {
         const { heading, pitch } = headingPitchOf(view.forward);
         // Roll: how far the screen's top has turned off the vertical plane,
-        // clockwise positive — 0 held level.
+        // clockwise positive; 0 held level.
         const roll = (Math.atan2(-view.right.z, view.up.z) * 180) / Math.PI;
         look = { heading, pitch, roll };
       }
@@ -2230,7 +2230,7 @@ function SkyModule() {
   };
 
   // The tweakable numbers: slider value ↔ scene value, one row each. Wind is
-  // two of them on purpose — a speed with no direction is a number that can
+  // two of them on purpose: a speed with no direction is a number that can
   // look like it does nothing, because a wind along the view axis has no
   // horizontal component and never leans the rain however hard it blows.
   const percent = (v: number) => `${v}%`;
@@ -2291,7 +2291,7 @@ function SkyModule() {
       }
     >
       <div className="space-y-3">
-        {/* What the sky is right now — every field from the same scene. */}
+        {/* What the sky is right now, every field from the same scene. */}
         <div className="flex items-center justify-between gap-2 rounded-lg border border-border/40 bg-muted/20 px-2.5 py-1.5 text-[11px] font-mono">
           <span className="flex min-w-0 items-center gap-1.5 text-foreground/90">
             <WeatherIcon condition={scene.condition} isDay={isDayNow} className="h-3.5 w-3.5 shrink-0" />
@@ -2405,7 +2405,7 @@ function SkyModule() {
             ))}
             {/* When a meteor is possible: the same ink as the sunrise and
                 sunset ticks (TIMELINE_INK), but a stretch rather than an
-                instant — a bar along the foot of the strip with a tick standing
+                instant: a bar along the foot of the strip with a tick standing
                 up at each end, drawn as one element's bottom and side borders.
                 A window across midnight arrives as two of these, one against
                 each end of the day. */}
@@ -2500,7 +2500,7 @@ function SkyModule() {
           </div>
           {/* The theme rides this timeline: play the day and it flips at the
               two ticks above, because the switch reads the same clock. The
-              toggle is the Appearance itself, saved — off is Follow the
+              toggle is the Appearance itself, saved; off is Follow the
               System. */}
           <PanelRow
             label={t(locale, "themeSun")}
@@ -2603,13 +2603,13 @@ function SkyModule() {
                       through. Only the weather half of the rule: when it is
                       dark enough is the strip's question, a few rows up. The
                       mark is live, so forcing Cloudy darkens it and then
-                      pulling the cloud slider down lights it again — which is
-                      the whole mechanism, shown rather than written.
+                      pulling the cloud slider down lights it again. The mark
+                      shows the mechanism, so it needs no text.
                       In `foreground` rather than white, for the same reason the
                       weather glyph below it is: these previews are pale in the
                       light theme and dark in the dark one, so the ink that
                       contrasts with both is the one that flips with them. White
-                      read beautifully on the night chips and disappeared
+                      read well on the night chips and disappeared
                       completely on the day ones. */}
                   {starry && (
                     <MeteorMark className="absolute left-1 top-1 h-3.5 w-3.5 text-foreground" />
@@ -2620,7 +2620,7 @@ function SkyModule() {
           </div>
         </div>
 
-        {/* The date — which is what moves the moon. */}
+        {/* The date, which is what moves the moon. */}
         <div className="space-y-1.5 border-t border-border/30 pt-2.5">
           <div className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
@@ -2659,8 +2659,8 @@ function SkyModule() {
 
         {/* The gyroscope: rain and snow fall along real gravity, in the Sky.
             A saved setting (blue star), on by default, and the only place
-            besides the picker where iOS's motion permission can be granted —
-            so the readout says which of "off", "unanswered" and "nothing
+            besides the picker where iOS's motion permission can be granted.
+            So the readout says which of "off", "unanswered" and "nothing
             coming through" is the case, and shows the live tilt once it is. */}
         <div className="border-t border-border/30 pt-2">
           <PanelRow
@@ -2693,7 +2693,7 @@ function SkyModule() {
           </PanelRow>
           {/* The sky window: the phone as a window onto the real sky. A
               session state, like the easter egg that opens it (a long press on
-              the home sky). The readout is where it looks — heading · pitch,
+              the home sky). The readout is where it looks (heading · pitch),
               with a ~ when there is no compass and north is a guess. */}
           <PanelRow
             label={zh ? "天空之窗" : "Window"}
@@ -2796,7 +2796,7 @@ function SkyModule() {
           )}
         </div>
 
-        {/* Where the location came from and how old it is — the first thing to
+        {/* Where the location came from and how old it is: the first thing to
             look at when the city is wrong. "tz≠" means the IP provider put the
             address in another UTC offset than this device's clock. */}
         {location && (
@@ -2914,7 +2914,7 @@ function SkyModule() {
 // =============================================================================
 // Music Module
 // Inspect the global player state and toggle the offline mock backend
-// (`hux_music_mock` — see systems/music/lib/mock.ts). Toggling hot-swaps the
+// (`hux_music_mock`; see systems/music/lib/mock.ts). Toggling hot-swaps the
 // backend in place via the provider (teardown → reset → re-init), no reload.
 // =============================================================================
 
@@ -2975,7 +2975,7 @@ function MusicModule() {
 
 // =============================================================================
 // Works Module
-// How a chapter's ref sits on /works' graph, with its tag message — the
+// How a chapter's ref sits on /works' graph, with its tag message. The
 // layouts on trial, switched on the real page. A saved setting (blue star).
 // =============================================================================
 
@@ -3071,7 +3071,7 @@ function WorksModule() {
 // =============================================================================
 // Command Module
 // The palette's shape on a phone. "Sheet" is the palette as it is; "Popover"
-// is the desktop card at phone width — the palette as it was, kept whole so
+// is the desktop card at phone width: the palette as it was, kept whole so
 // the two can be compared on the same device. A saved setting (blue star).
 // =============================================================================
 
@@ -3123,10 +3123,10 @@ function CommandModule() {
 }
 
 // =============================================================================
-// Glow Module — the light's volume (systems/glow), saved.
+// Glow Module: the light's volume (systems/glow), saved.
 // Site-wide strength multiplies every glow; the About's ring has its own
 // strength and depth on top. The devtool rides over the About while it is up
-// (dock.tsx), so these can be turned while the ring is on screen — `Show`
+// (dock.tsx), so these can be turned while the ring is on screen. `Show`
 // brings it up to look at.
 // =============================================================================
 

@@ -26,7 +26,7 @@ import {
 import type { Rect, WindowInstance } from "./lib/types";
 
 // =============================================================================
-// Window System — the "desktop" coordination layer
+// Window System: the "desktop" coordination layer
 //
 // Owns the set of open app windows and their stacking, the way a window server
 // does: opening, closing, focusing (z-order), minimizing, sizing (presets +
@@ -34,7 +34,7 @@ import type { Rect, WindowInstance } from "./lib/types";
 // <WindowLayer /> and <Window />; this provider is a pure state machine.
 //
 // One window per app id: tapping an already-open app focuses (and un-minimizes)
-// its window rather than spawning a duplicate — the home-screen mental model.
+// its window rather than spawning a duplicate, as on a home screen.
 // =============================================================================
 
 interface WindowContextType {
@@ -44,7 +44,7 @@ interface WindowContextType {
   /** Open (or focus) an ad-hoc Lynx window for an arbitrary `.web.bundle` URL. */
   openBundleUrl: (url: string, opts?: { title?: string; flavor?: "react" | "vue" }) => void;
   /**
-   * Open (or focus) a web page in a window — the in-app browser. A link a
+   * Open (or focus) a web page in a window: the in-app browser. A link a
    * commit attaches opens here on a desktop rather than leaving the site, the
    * way a link in a mobile app opens in its own in-app browser. The window is
    * the same one an app gets: `Open in browser` in its menu is the way out.
@@ -112,7 +112,7 @@ function applyPreset(
 /**
  * A phone shows one app at a time. Its window is a sheet there
  * (window-sheet.tsx), and a second sheet over the first buries it rather than
- * sitting beside it — so opening or restoring an app puts the others in the
+ * sitting beside it. So opening or restoring an app puts the others in the
  * dock, which is what the dock is for and what a phone's app switcher is. On
  * anything bigger, windows coexist the way windows do.
  */
@@ -144,7 +144,7 @@ function bundleTitle(url: string): string {
 
 export function WindowProvider({ children }: { children: React.ReactNode }) {
   const [windows, setWindows] = useState<WindowInstance[]>([]);
-  // Monotonic z counter — every focus bumps the target above all others.
+  // Monotonic z counter: every focus bumps the target above all others.
   const zRef = useRef(1);
   // How many windows have been opened this session, for the cascade offset.
   const openCountRef = useRef(0);
@@ -337,10 +337,10 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
   }, [windows]);
 
   // Keys that belong to the front-most window rather than to the page under
-  // it — the same rule a window server follows: the key goes to the window in
-  // front, and the page behind one is the background.
+  // it. This is the rule a window server follows: the key goes to the window
+  // in front, and the page behind one is the background.
   //
-  //   Esc  closes it — but not while another overlay owns the Escape (the
+  //   Esc  closes it, but not while another overlay owns the Escape (the
   //        command palette), nor while typing in a field, so closing a
   //        palette/menu never also nukes the window behind it.
   //   ⌘A   selects nothing. A cross-origin app frame owns the key outright
@@ -362,8 +362,8 @@ export function WindowProvider({ children }: { children: React.ReactNode }) {
       }
       if (e.key !== "Escape") return;
       if (inTextField(t)) return;
-      // Let an open overlay consume Escape first — the command palette (cmdk)
-      // or a window's own menu — instead of nuking the window behind it.
+      // Let an open overlay consume Escape first, instead of nuking the window
+      // behind it: the command palette (cmdk) or a window's own menu.
       if (document.querySelector("[cmdk-root], [role='menu']")) return;
       close(focusedId);
     };

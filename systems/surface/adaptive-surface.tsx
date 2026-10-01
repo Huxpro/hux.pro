@@ -21,11 +21,11 @@ import {
 import { SurfaceWindow } from "./window";
 
 // =============================================================================
-// AdaptiveSurface — the viewport's opinion about which shape a surface takes.
+// AdaptiveSurface: the viewport's opinion about which shape a surface takes.
 //
 // The policy layer. Underneath it are three shells that know nothing about
-// viewports — <SurfaceSheet> (sheet.tsx), <SurfaceWindow> (window.tsx) and the
-// panel below — plus the chrome they share (<SurfaceBody>, chrome.tsx). This
+// viewports: <SurfaceSheet> (sheet.tsx), <SurfaceWindow> (window.tsx) and the
+// panel below. They share the chrome in <SurfaceBody> (chrome.tsx). This
 // component is the rule that picks one:
 //
 //   <AdaptiveSurface id="wallpaper" open={…} presentation={ADAPTIVE_PRESENTATION}>
@@ -44,8 +44,8 @@ import { SurfaceWindow } from "./window";
 //           belongs to that one control. Needs `anchor`.
 //
 // Not every surface wants this rule. Where the shape is something the person
-// chose rather than something the viewport decided — the devtool, which is
-// pulled off the bottom edge into a floating pill by hand — the feature
+// chose rather than something the viewport decided (the devtool, which is
+// pulled off the bottom edge into a floating pill by hand), the feature
 // composes the shells directly, the way the command palette already does for
 // its search-field header. That is what the primitive layer is for.
 //
@@ -73,7 +73,7 @@ interface SurfaceContextValue {
 
 const SurfaceContext = createContext<SurfaceContextValue | null>(null);
 
-/** Lets content adapt to the shape it landed in — column counts, density. */
+/** Lets content adapt to the shape it landed in: column counts, density. */
 export function useSurfaceContext(): SurfaceContextValue {
   const ctx = useContext(SurfaceContext);
   if (!ctx) {
@@ -100,14 +100,14 @@ export interface AdaptiveSurfaceProps {
   windowWidth?: string;
   /**
    * The popover shape's settings, grouped because `anchor` is not tuning like
-   * `windowWidth` is — the shape cannot position itself without one. Keeping
+   * `windowWidth` is: the shape cannot position itself without one. Keeping
    * them together makes that required where a sibling `anchor?` could only ask
    * for it in prose. A surface whose presentation can resolve to `popover`
    * passes this whatever the current viewport is, since the shape is chosen at
    * render; the other shapes ignore it.
    */
   popover?: {
-    /** What the card hangs off — a ref to the button that owns it. */
+    /** What the card hangs off: a ref to the button that owns it. */
     anchor: React.RefObject<HTMLElement | null>;
     /** Width of the card. */
     width?: string;
@@ -121,7 +121,7 @@ export interface AdaptiveSurfaceProps {
   /** Height cap for the window, popover and sheet shapes. */
   maxHeight?: string;
   /**
-   * Size the surface to what it holds rather than to the screen — a short
+   * Size the surface to what it holds rather than to the screen, for a short
    * settings surface, a form, a confirmation. In the sheet shape this is
    * `SurfaceSheet`'s `fitContent` (see sheet.tsx: it stands at no detent and
    * never grows past the screen); a popover is content-sized under its cap
@@ -136,7 +136,7 @@ export interface AdaptiveSurfaceProps {
   snapPoints?: number[];
   /**
    * The paint layer, for a surface that must come up over something higher
-   * than the other secondary surfaces (60) — the attachment drawer over the
+   * than the other secondary surfaces (60): the attachment drawer over the
    * About, the identity card over it. Every shape takes it.
    */
   zIndex?: number;
@@ -153,7 +153,7 @@ export interface AdaptiveSurfaceProps {
 }
 
 /**
- * Popover mode — the card hanging off the button that opened it.
+ * Popover mode: the card hanging off the button that opened it.
  *
  * A Base UI Popover rather than a Drawer: it is positioned against an anchor,
  * it flips and shifts to stay on screen, and it dismisses on an outside press
@@ -231,7 +231,7 @@ function SurfacePopoverShape({
   );
 }
 
-/** Panel mode — the same drawer as the sheet, entering from the trailing edge. */
+/** Panel mode: the same drawer as the sheet, entering from the trailing edge. */
 function SurfacePanel({
   open,
   onOpenChange,
@@ -259,8 +259,8 @@ function SurfacePanel({
               "pointer-events-auto absolute z-[61] bottom-3 right-3 top-3 w-[min(94vw,var(--surface-panel-w,440px))]"
             )}
           >
-            {/* A mouse press in here is a press, not the start of a drag —
-                see the same note in sheet.tsx. A touch swipe still dismisses. */}
+            {/* A mouse press in here is a press, not the start of a drag.
+                See the same note in sheet.tsx. A touch swipe still dismisses. */}
             <Drawer.Content className="flex min-h-0 flex-1 flex-col">
               {children}
             </Drawer.Content>

@@ -1,5 +1,5 @@
 // =============================================================================
-// Window System — draggable/resizable "chrome" windows for apps
+// Window System: draggable/resizable "chrome" windows for apps
 //
 // Opens app tiles (from the home-screen shelf) as macOS/iPadOS-style windows.
 // Web apps load in an iframe; Lynx apps load in a Lynx Player (<lynx-view>).

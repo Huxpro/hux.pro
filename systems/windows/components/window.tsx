@@ -21,13 +21,13 @@ import { WindowSheet } from "./window-sheet";
 import { useSurfaceMode, type SurfacePresentation } from "@/systems/surface";
 
 // =============================================================================
-// Window — one app window, in the shape the viewport asks for
+// Window: one app window, in the shape the viewport asks for
 //
 // Below `sm` a window is a sheet (window-sheet.tsx): a phone has no room for a
 // box you move around, and a sheet is what that size of screen already speaks.
 // From `sm` up it is the draggable, resizable window below. The decision is the
 // surface system's breakpoint map, the same one that turns the palette into a
-// sheet at the same width — where a surface lives is a property of the
+// sheet at the same width. Where a surface lives is a property of the
 // viewport, not of the feature (docs/system-surface.md).
 //
 // Crossing the breakpoint remounts the app (the two shapes are different
@@ -41,9 +41,9 @@ const WINDOW_PRESENTATION: SurfacePresentation = { base: "sheet", sm: "window" }
 
 export function Window({ win }: { win: WindowInstance }) {
   // Resolved on the first render, not in an effect: a window only ever appears
-  // because somebody opened one, so there is no server render to agree with —
-  // and starting in the phone shape would commit this app's iframe, fetch it,
-  // and throw it away a frame later.
+  // because somebody opened one, so there is no server render to agree with.
+  // Starting in the phone shape would commit this app's iframe, fetch it, and
+  // throw it away a frame later.
   return useSurfaceMode(WINDOW_PRESENTATION, { immediate: true }) === "sheet" ? (
     <WindowSheet win={win} />
   ) : (
@@ -52,19 +52,19 @@ export function Window({ win }: { win: WindowInstance }) {
 }
 
 // =============================================================================
-// DesktopWindow — one draggable / resizable app window
+// DesktopWindow: one draggable / resizable app window
 //
 // Edge-to-edge content with a floating dots pill on top (WindowChrome). You can
 // also grab a thin band along the top edge to drag (a tolerance around the
 // chrome). Gestures write geometry straight to the DOM node for the gesture's
-// duration (no per-frame React churn — iframes/Workers hate re-rendering), then
+// duration (no per-frame React churn; iframes/Workers hate re-rendering), then
 // commit once on pointer-up. A "shield" over the body during a gesture stops the
 // iframe from swallowing the pointer stream.
 //
-// Drag is *free* — you can tuck a window mostly off-screen — and on release it
+// Drag is *free*: you can tuck a window mostly off-screen. On release it
 // springs back just enough to keep the chrome grabbable, with a small overshoot
-// as a friendly edge hint. Hovering the drag band or a resize edge (and any
-// active gesture) softly lights the window's border as feedback.
+// as an edge hint. Hovering the drag band or a resize edge (and any active
+// gesture) lights the window's border as feedback.
 // =============================================================================
 
 type ResizeDir = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
@@ -255,8 +255,8 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
       }}
       className={cn(
         // A window is the OS's own frame: its chrome, its grips and its
-        // shelf are gestures, never text. A web app inside is an <iframe>
-        // — a separate document, so its own text stays selectable; a Lynx
+        // shelf are gestures, never text. A web app inside is an <iframe>,
+        // a separate document, so its own text stays selectable; a Lynx
         // app renders in this document and is an app, not a page of prose.
         "system-chrome overflow-hidden",
         maximized ? "rounded-2xl" : "rounded-[22px]",
@@ -271,7 +271,7 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
         <AppFrame key={win.generation} app={win.app} />
       </div>
 
-      {/* Top-edge drag tolerance — grab near the top border to move. Sits below
+      {/* Top-edge drag tolerance: grab near the top border to move. Sits below
           the resize handles (so the very top edge still resizes) and the pill. */}
       {!maximized && (
         <div
@@ -285,10 +285,10 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
       {/* Floating chrome pill */}
       <WindowChrome win={win} focused={focused} gesturing={gesturing} beginDrag={beginDrag} />
 
-      {/* Gesture shield — stops the iframe/lynx-view eating the pointer stream. */}
+      {/* Gesture shield: stops the iframe/lynx-view eating the pointer stream. */}
       {gesturing && <div className="absolute inset-0 z-30" style={{ cursor: "inherit" }} />}
 
-      {/* Resize edges — hidden while maximized. */}
+      {/* Resize edges, hidden while maximized. */}
       {!maximized &&
         HANDLES.map((h) => (
           <div
