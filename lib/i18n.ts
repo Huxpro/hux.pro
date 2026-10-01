@@ -417,6 +417,11 @@ export const translations = {
     // Between the venues on a folded project's line (the `fold` flag,
     // components/log/fold-line.tsx): `WeAreDevelopers, GOSIM Paris, …`.
     logListSeparator: ", ",
+    // The `selected` flag (components/log/selected-works.tsx): a flagship's
+    // row in the log, pointing up to its entry, and the entry's years,
+    // pointing down to that row.
+    logSelectedPointer: "↑ selected works",
+    logSelectedInLog: "Where it sits in the log",
     writingFeatured: "featured",
     logSelectedWorks: "Selected Works",
     logRead: "Read",
@@ -854,6 +859,8 @@ export const translations = {
     logFormFeed: "信息流",
     logNoMatches: "没有符合筛选条件的提交。",
     logListSeparator: "、",
+    logSelectedPointer: "↑ 精选作品",
+    logSelectedInLog: "它在日志中的位置",
     writingFeatured: "精选",
     logSelectedWorks: "精选作品",
     logRead: "阅读",

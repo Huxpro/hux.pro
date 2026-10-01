@@ -33,7 +33,12 @@ import { TYPE } from "@/lib/typography";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
 import { FoldLine } from "./fold-line";
-import { type BeamSpec, GUTTER_PULL, HASH_CELL } from "./timeline-commit";
+import {
+  type BeamSpec,
+  GUTTER_PULL,
+  HASH_CELL,
+  type RowPointer,
+} from "./timeline-commit";
 import {
   GraphInCell,
   RefInCell,
@@ -129,6 +134,14 @@ interface LogTimelineProps {
    * flag). Omitted, the log is every commit at its date, as it always was.
    */
   fold?: LogFold;
+  /**
+   * The commits printed in full at the head of the page (the `selected`
+   * flag, components/log/selected-works.tsx), by id, and where. Each keeps
+   * its slot — the order, the rail and the connectors need it — as a
+   * one-line pointer up; and what folds under it (`fold`) hangs from the
+   * entry up there, not from here. Omitted, every row is its own.
+   */
+  pointers?: ReadonlyMap<string, RowPointer>;
 }
 
 /**
@@ -145,6 +158,7 @@ export function LogTimeline({
   pinnedChapters = false,
   refLook = "stub",
   fold,
+  pointers,
 }: LogTimelineProps) {
   // The chapter whose track is held (its marker has focus) — page-wide, so
   // every commit outside it steps back, in its own block or another.
@@ -187,6 +201,7 @@ export function LogTimeline({
           held={held}
           onHold={hold}
           fold={fold}
+          pointers={pointers}
         />
       ))}
     </div>
@@ -215,6 +230,7 @@ interface TagBlockProps {
   pinned: boolean;
   refLook: RefLayout;
   fold?: LogFold;
+  pointers?: ReadonlyMap<string, RowPointer>;
 }
 
 function TagBlock({
@@ -233,6 +249,7 @@ function TagBlock({
   pinned,
   refLook,
   fold,
+  pointers,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -312,11 +329,21 @@ function TagBlock({
     // The folds, as far as this reading goes: each project's rows that the
     // filter shows. A project with none has no fold line — `?type=project`
     // is not asking what was said about the work.
+    //
+    // A project printed at the head (`pointers`) has its fold up there,
+    // under its entry, so a project's talks live in one place: here its
+    // rows are gone, open or shut, and its pointer carries no fold line.
+    const up = (c: CommitData) => {
+      const p = fold?.of.get(c.id);
+      return p !== undefined && !!pointers?.has(p);
+    };
     const folds = new Map<string, CommitData[]>();
     if (fold) {
       for (const c of commits) {
         const p = fold.of.get(c.id);
-        if (p && !filtered(c)) folds.set(p, [...(folds.get(p) ?? []), c]);
+        if (p && !filtered(c) && !up(c)) {
+          folds.set(p, [...(folds.get(p) ?? []), c]);
+        }
       }
     }
     // A project the filter drops while it shows rows folded under it
@@ -336,7 +363,7 @@ function TagBlock({
     // like a filtered one; a header is not — it is a row on the page, and
     // the graph runs through it.
     const hidden = (c: CommitData) =>
-      (filtered(c) && !header(c)) || closed(c);
+      (filtered(c) && !header(c)) || closed(c) || up(c);
 
     const rail = adjustRailForHidden(commits, computeRail(commits), hidden);
     const allBeams = [
@@ -387,7 +414,7 @@ function TagBlock({
       folded: folds,
       isHeader: header,
     };
-  }, [commits, identities, locale, activeTypes, laneOf, fold]);
+  }, [commits, identities, locale, activeTypes, laneOf, fold, pointers]);
 
   // The lines lit right now: a held or pointed-at chapter's whole track,
   // and the connectors between a commit and the role it hangs from — drawn
@@ -592,6 +619,7 @@ function TagBlock({
                   onBeamClear={handleBeamClear}
                   byline={bylines[i]}
                   onSelectHash={onSelectHash}
+                  pointer={pointers?.get(commits[i].id) ?? null}
                 />
               );
               // A project's fold line rides directly under its row, in its
