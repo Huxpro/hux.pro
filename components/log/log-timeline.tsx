@@ -16,12 +16,15 @@ import {
   type Tag,
 } from "@/lib/log";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
+import type { EraBlock } from "@/lib/log-eras";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TYPE } from "@/lib/typography";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
 import { TimelineConnector } from "./timeline-connector";
-import type { BeamSpec } from "./timeline-commit";
+import { type BeamSpec, GUTTER_PULL, HASH_CELL } from "./timeline-commit";
+import { RefInCell, type RowGraph } from "./timeline-lane";
 import { useTimelineEdit } from "./timeline-edit-context";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
@@ -50,11 +53,14 @@ export function chapterLabel(tag: Tag, tagIndex: number, locale: Locale): string
 export const CHAPTER_PILL =
   "inline-flex items-center bg-white/85 dark:bg-black/45 sm:bg-white/70 sm:dark:bg-black/25 sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full";
 
+/** A block of the timeline: a chapter, or chapters that overlap (see
+ *  `lib/log-eras.ts`). A plain `TimelineData[]` is still a timeline. */
+type Block = { tag: Tag; commits: CommitData[] } & Partial<
+  Pick<EraBlock, "members" | "laneOf">
+>;
+
 interface LogTimelineProps {
-  data: {
-    tag: Tag;
-    commits: CommitData[];
-  }[];
+  data: Block[];
   locale: Locale;
   /**
    * Global identities map (handle + company + accent per identity id).
@@ -102,11 +108,13 @@ export function LogTimeline({
 }: LogTimelineProps) {
   return (
     <div className="space-y-0">
-      {data.map(({ tag, commits }, tagIndex) => (
+      {data.map(({ tag, commits, members, laneOf }, tagIndex) => (
         <TagBlock
           key={tag.id}
           tag={tag}
           commits={commits}
+          members={members}
+          laneOf={laneOf}
           tagIndex={tagIndex}
           locale={locale}
           identities={identities}
@@ -123,6 +131,8 @@ export function LogTimeline({
 interface TagBlockProps {
   tag: Tag;
   commits: CommitData[];
+  members?: Tag[];
+  laneOf?: ReadonlyMap<string, number[]>;
   tagIndex: number;
   locale: Locale;
   identities?: Record<string, Identity>;
@@ -135,6 +145,8 @@ interface TagBlockProps {
 function TagBlock({
   tag,
   commits,
+  members,
+  laneOf,
   tagIndex,
   locale,
   identities,
@@ -246,23 +258,27 @@ function TagBlock({
   // but a spine with no vertebrae is just a line.
   if (!hasVisible) return null;
 
+  const { items, graphs } = chapterGraph(commits, isHidden, laneOf);
+
   return (
     <div>
       {/* Tag ref marker — like `git log --decorate` ref annotations */}
       <div
         className={cn(
           "flex items-center gap-3 py-2",
-          !pinned && "sticky top-4 z-20",
+          pinned ? "relative" : "sticky top-4 z-20",
           tagIndex > 0 && "mt-6 pt-6 border-t border-border/30",
         )}
       >
+        {/* The chapter's trunk starts at its ref. */}
+        <RefGraphLayer y={(tagIndex > 0 ? 24 : 0) + 19} first />
         {inspecting && edit ? (
           <button
             type="button"
             onClick={() => edit.onSelectTag(tag.id)}
             className={cn(
               CHAPTER_PILL,
-              "transition-colors",
+              "relative transition-colors",
               isTagSelected
                 ? "border-sky-500/70 ring-1 ring-inset ring-sky-500/35 bg-sky-500/[0.05]"
                 : "border-border hover:border-sky-500/50",
@@ -276,7 +292,7 @@ function TagBlock({
           // pill reaches the bar's ref slot, the slot wears it.
           <span
             data-chapter={pinned ? tag.id : undefined}
-            className={cn(CHAPTER_PILL, "border-border")}
+            className={cn(CHAPTER_PILL, "relative border-border")}
           >
             {tagLabel}
           </span>
@@ -311,54 +327,77 @@ function TagBlock({
           // the cluster they anchor speaks for the tenure via the rail +
           // author bylines.
           type Run =
-            | { kind: "loose"; indices: number[] }
-            | { kind: "cluster"; segmentId: string; indices: number[] };
+            | { kind: "loose"; items: Item[] }
+            | { kind: "cluster"; segmentId: string; items: Item[] };
           const runs: Run[] = [];
-          for (let i = 0; i < commits.length; i++) {
-            const c = commits[i];
-            if (isHidden(c)) continue;
-            const sid = railInfo[i].segmentId;
+          for (const item of items) {
             const last = runs[runs.length - 1];
+            // A ref joins whatever run it falls in, so a tenure it sits
+            // inside stays one cluster around it.
+            if (item.kind === "ref") {
+              if (last) last.items.push(item);
+              else runs.push({ kind: "loose", items: [item] });
+              continue;
+            }
+            const sid = railInfo[item.i].segmentId;
             if (sid && last && last.kind === "cluster" && last.segmentId === sid) {
-              last.indices.push(i);
+              last.items.push(item);
             } else if (sid) {
-              runs.push({ kind: "cluster", segmentId: sid, indices: [i] });
+              runs.push({ kind: "cluster", segmentId: sid, items: [item] });
             } else if (last && last.kind === "loose") {
-              last.indices.push(i);
+              last.items.push(item);
             } else {
-              runs.push({ kind: "loose", indices: [i] });
+              runs.push({ kind: "loose", items: [item] });
             }
           }
-          return runs.map((run, runIdx) => {
-            const rows = run.indices.map((i) => (
-              <Commit
-                key={commits[i].id}
-                commit={commits[i]}
-                locale={locale}
-                variant="timeline"
-                hideDate={tag.hideDate || commits[i].hideDate}
-                rail={railInfo[i].rail}
-                segmentId={railInfo[i].segmentId}
-                isSegmentActive={
-                  railInfo[i].segmentId !== null &&
-                  railInfo[i].segmentId === activeBeam?.roleId
-                }
-                beamSpec={beamSpecs[i]}
-                onBeamSet={handleBeamSet}
-                onBeamClear={handleBeamClear}
-                byline={bylines[i]}
-                form={form}
-                onSelectHash={onSelectHash}
-              />
-            ));
+          return runs.map((run) => {
+            const rows = run.items.map((item) => {
+              if (item.kind === "ref") {
+                const ref = members![item.lane];
+                return (
+                  <RefRow
+                    key={`ref-${ref.id}`}
+                    tag={ref}
+                    locale={locale}
+                    stepAside={item.stepAside}
+                    pinned={pinned}
+                  />
+                );
+              }
+              const i = item.i;
+              return (
+                <Commit
+                  key={commits[i].id}
+                  commit={commits[i]}
+                  locale={locale}
+                  variant="timeline"
+                  hideDate={tag.hideDate || commits[i].hideDate}
+                  rail={railInfo[i].rail}
+                  graph={graphs[i]}
+                  segmentId={railInfo[i].segmentId}
+                  isSegmentActive={
+                    railInfo[i].segmentId !== null &&
+                    railInfo[i].segmentId === activeBeam?.roleId
+                  }
+                  beamSpec={beamSpecs[i]}
+                  onBeamSet={handleBeamSet}
+                  onBeamClear={handleBeamClear}
+                  byline={bylines[i]}
+                  form={form}
+                  onSelectHash={onSelectHash}
+                />
+              );
+            });
+            const head = run.items.find((it) => it.kind === "row");
+            const key = head && head.kind === "row" ? commits[head.i].id : tag.id;
             return run.kind === "cluster" ? (
               // An identity can cluster twice (Meta, then RIT, then Meta
               // again), so the run is named by its first row, not its id.
-              <div key={`cluster-${commits[run.indices[0]].id}`} className="group/tenure">
+              <div key={`cluster-${key}`} className="group/tenure">
                 {rows}
               </div>
             ) : (
-              <div key={`loose-${runIdx}`}>{rows}</div>
+              <div key={`loose-${key}`}>{rows}</div>
             );
           });
         })()}
@@ -373,10 +412,10 @@ function TagBlock({
             toHash={a.toHash}
             fromGap={a.fromGap}
             toGap={a.toGap}
-            // Inferred beams piggyback on the visible tenure rail —
-            // suppress their dim render so N converging connectors
-            // don't darken the line via opacity stacking.
-            hideWhenIdle={a.inferred}
+            // The trunk already runs through the icon column, so at rest
+            // every connector is it — a second translucent line laid over
+            // it would read as a darker stretch. They only light.
+            hideWhenIdle
             isActive={
               !!activeBeam &&
               activeBeam.toHash === a.toHash &&
@@ -391,6 +430,165 @@ function TagBlock({
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// The chapter graph (see timeline-lane.tsx)
+// =============================================================================
+
+type Item =
+  | { kind: "row"; i: number }
+  | { kind: "ref"; lane: number; stepAside: boolean };
+
+/**
+ * The block's printed items in order — each later chapter's ref goes in
+ * above its first commit — and what each row draws of the graph.
+ *
+ * The block's chapter holds the trunk from its header. At a later chapter's
+ * ref, that chapter takes the trunk; if the one holding it has commits
+ * further down, it steps aside into the side lane and runs to its last one.
+ * A commit sits on the trunk if it belongs to the trunk's chapter, else on
+ * the side lane. One side lane at a time: a ref landing while one is
+ * running takes the trunk, and whoever held it simply stops there.
+ */
+function chapterGraph(
+  commits: CommitData[],
+  isHidden: (c: CommitData) => boolean,
+  laneOf: ReadonlyMap<string, number[]> | undefined,
+): { items: Item[]; graphs: (RowGraph | undefined)[] } {
+  const lanesOf = (c: CommitData) => laneOf?.get(c.id) ?? [0];
+  const items: Item[] = [];
+  const started = new Set<number>([0]);
+  for (let i = 0; i < commits.length; i++) {
+    if (isHidden(commits[i])) continue;
+    for (const l of lanesOf(commits[i])) {
+      if (started.has(l)) continue;
+      started.add(l);
+      items.push({ kind: "ref", lane: l, stepAside: false });
+    }
+    items.push({ kind: "row", i });
+  }
+
+  const last = new Map<number, number>();
+  items.forEach((it, p) => {
+    if (it.kind === "row") for (const l of lanesOf(commits[it.i])) last.set(l, p);
+  });
+  const lastRow = items.reduce((m, it, p) => (it.kind === "row" ? p : m), -1);
+
+  const graphs: (RowGraph | undefined)[] = commits.map(() => undefined);
+  let trunk = 0;
+  let side: number | null = null;
+  items.forEach((it, p) => {
+    if (it.kind === "ref") {
+      const running = (last.get(trunk) ?? -1) > p;
+      if (running && side === null) {
+        it.stepAside = true;
+        side = trunk;
+      }
+      trunk = it.lane;
+      return;
+    }
+    const on = lanesOf(commits[it.i]);
+    const onSide = side !== null && on.includes(side);
+    const onTrunk = on.includes(trunk) || !onSide;
+    // The trunk runs to the block's last row: a chapter that stops short
+    // of it hands the trunk on (to its ref's successor, or to the side
+    // lane returning), and the line goes on.
+    const g: RowGraph = {
+      trunkAbove: true,
+      trunkBelow: p < lastRow,
+    };
+    if (side !== null) {
+      const end = last.get(side)!;
+      g.side = onTrunk
+        ? onSide
+          ? p === end
+            ? "join"
+            : "touch"
+          : "pass"
+        : "node";
+      if (g.side === "node") {
+        g.sideAbove = true;
+        g.sideBelow = p < end;
+      }
+      if (p >= end) side = null;
+    }
+    graphs[it.i] = g;
+  });
+  return { items, graphs };
+}
+
+/** Where a ref's line sits: the same grid as a row, laid over the marker, so
+ *  its icon cell is exactly on the trunk. */
+function RefGraphLayer({
+  y,
+  stepAside,
+  first,
+}: {
+  y: number;
+  stepAside?: boolean;
+  first?: boolean;
+}) {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0">
+      <div
+        className={cn(
+          "h-full -mx-3 px-3 @container [clip-path:inset(0_-100vw)]",
+          GUTTER_PULL,
+        )}
+      >
+        <div className="grid h-full grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2">
+          <span
+            className={cn(
+              "hidden @sm:inline-block select-none",
+              HASH_CELL,
+              TYPE.hash,
+              "text-transparent",
+            )}
+          >
+            0000000
+          </span>
+          <span className="relative w-5">
+            <RefInCell y={y} stepAside={stepAside} first={first} />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A chapter that starts inside an overlap: its ref, drawn as every chapter
+ * marker is — the same pill in the same place — without the rule above it,
+ * since the chapter before it has not ended.
+ */
+function RefRow({
+  tag,
+  locale,
+  stepAside,
+  pinned,
+}: {
+  tag: Tag;
+  locale: Locale;
+  stepAside: boolean;
+  pinned: boolean;
+}) {
+  return (
+    <div className="relative flex items-center gap-3 pt-8 pb-2">
+      <RefGraphLayer y={32 + 11} stepAside={stepAside} />
+      <span
+        data-chapter={pinned ? tag.id : undefined}
+        className={cn(CHAPTER_PILL, "relative border-border")}
+      >
+        {chapterLabel(tag, -1, locale)}
+      </span>
+      {!tag.hideDate && (
+        <span className="font-mono text-xs text-tertiary-foreground">
+          {formatTagDateRange(tag, locale)}
+        </span>
+      )}
     </div>
   );
 }

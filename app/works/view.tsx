@@ -8,7 +8,6 @@ import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { t, useLocale } from "@/services";
 import {
-  buildTimelineData,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
@@ -21,6 +20,7 @@ import {
   toggleType,
   type LogForm,
 } from "@/lib/log-view";
+import { buildEraTimeline } from "@/lib/log-eras";
 
 interface WorksViewProps {
   logData: LogData;
@@ -33,7 +33,7 @@ export function WorksView({ logData }: WorksViewProps) {
   const pathname = usePathname();
 
   const data = useMemo(
-    () => buildTimelineData(logData, locale),
+    () => buildEraTimeline(logData, locale),
     [logData, locale],
   );
 
@@ -130,12 +130,15 @@ export function WorksView({ logData }: WorksViewProps) {
   }, [data]);
 
   // The chapters, as the pinned bar names them when it wears one.
+  // Chapters that overlap share a block; each wears its own marker in turn.
   const chapters = useMemo(
     () =>
-      data.map(({ tag }, i) => ({
-        id: tag.id,
-        label: chapterLabel(tag, i, locale),
-      })),
+      data.flatMap(({ members }, i) =>
+        members.map((tag, k) => ({
+          id: tag.id,
+          label: chapterLabel(tag, k === 0 ? i : -1, locale),
+        })),
+      ),
     [data, locale],
   );
 
