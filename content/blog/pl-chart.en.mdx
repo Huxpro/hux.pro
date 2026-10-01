@@ -1,0 +1,47 @@
+---
+title: "My Biased View of Programming Languages (in 2020)"
+description: "Every programming language I've written, by how interesting it is to me and how much I've used it."
+date: "2020-05-04"
+tags: ["Programming Languages", "PLT"]
+---
+
+{/*
+  The PL chart (github.com/Huxpro/PL-chart). The chart and the notes are
+  components over content/languages.json (components/languages, registered
+  in components/mdx-components.tsx); the words between them are this post.
+  Keep the Chinese post in step.
+*/}
+
+<PLChart locale="en" />
+
+## Explanation
+
+I know comparisons on PLs could be very controversial, but I want to make clear that this chart is **intentionally biased** to represent **my world of view**.
+
+1. The Y axis represents my **experiences**, ranging from little (🤦‍♂️), school-level (🙇‍♂️), industry-capable (👨‍💻), towards language lawyer (👨‍🎓). This should be less controversial. Well, except for my professors or colleagues who reviewed my code and decided that my code is shittier than I thought.
+
+2. The X axis is how **interesting** a PL to me, ranging from boring (🥱), cool (😎), nerdy / love-it (🤓), mind-blown / obsessive (🤯). Although this is very subjective, my subjectivity does show some correlations with objectivity such as theoretical interestingness (e.g. `Coq/Agda > OCaml/Haskell`) and standard advancements (e.g. `C++0x > C++`, `Typed JS > ES6 > JS`). So it could feels controversial when people mistaking the chart as "Oh how is OCaml considered superior than `your favorites in the chart`?". Well, the reason could be as simple as "It related to my job (or not)!", or "I have no time to dig into it currently!". So don't take it too serious, and I will try to explain (in the tooltips) when I could.
+
+3. The colors are trying to capture the **abstraction level**. This is the most objective and measurable one, and I admit that my ordering is absolutely inaccurate and could be very misleading: e.g.
+
+   1. C++/Rust can be as low as C and as high as many at the same time!
+   2. Java and Scala are compiled into the exact same set of JVM instructions!
+
+   A refined definition should use a range but then I don't know how to visualize them in a chart. So instead, I had to used a value. But it come with some reason and not totally irrational:
+
+   1. A balance of their stereotypes and to emphasize what made the most differences, e.g.
+      1. Zero-overhead abstraction made C++/Rust more capable for system programming.
+      2. Being more managed (e.g. GC-ed) would be given higher abstraction level.
+   2. Their **type system**, this one is very tricky though:
+      1. From theory, we learned that the set of programs expressible is always narrowed because of incompleteness, so types sacrificed some dynamic semantics and could take away abstraction powers.
+      2. Yet type system enrich the static semantics and enable another level of abstractions, e.g. (higher-order) type operators abstract types just as (higher-order) functions abstract terms, thus adding abstraction powers.
+
+      I don't know if a well-defined total order exist. The partial order I ended up with is letting the untyped PLs sitting in the middle, with whose type system are more traditional towards lower and those with more advanced ones (e.g. gradual, inductive, higher-ranked, higher-kinded, dependently-typed) towards higher.
+
+Put another way, what the colours measure is who a language's design serves. Types can serve the machine — `int`, `class`, layouts a compiler can map onto hardware — or the mathematics: algebraic data types, parametric polymorphism, dependent types, all the way to proof assistants, where the types are the computation. That is why the statically typed mainstream sits at 4, just below the untyped middle, and why the top climbs toward the λ-calculus (and, for Prolog, logic). And it is the designers' intention that counts: what a language grew into later, or stumbled upon — C++'s template metaprogramming was discovered, not designed — does not move it much.
+
+Natural language, added in 2026, spans the whole scale.
+
+## Notes
+
+<LanguageNotes locale="en" />
