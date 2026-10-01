@@ -1,9 +1,9 @@
 // =============================================================================
-// The sky pull — pull the home screen down to look up.
+// The sky pull: pull the home screen down to look up.
 //
 // The home composition sits on the ground: identifier, greeting, widgets, all
 // in the lower part of the screen, with the sky above them. Pull the page down
-// from the top and it all sinks — the eyes lift — and past a point the sky
+// from the top and it all sinks, as the eyes lift. Past a point the sky
 // window opens (lib/sky-window.ts): the phone becomes a window onto the real
 // sky, and the home steps out of the frame the way it was already going, out
 // of the bottom. Swipe up and it comes back, which is looking down again.
@@ -13,16 +13,16 @@
 //   · It is the gesture's own metaphor. Down on the page is up with the eyes;
 //     nothing has to be explained for the next step to make sense.
 //   · It is found the way an egg should be found. Everybody pulls the top of a
-//     page down out of habit — pull-to-refresh — and the ones who do on the
+//     page down out of habit (pull-to-refresh), and the ones who do on the
 //     home screen are met with something that answers.
 //   · It shares nothing with the sky's other eggs. Those are all hands ON the
-//     wallpaper — a tap for the strike or the meteor, a drag for the gust, a
+//     wallpaper: a tap for the strike or the meteor, a drag for the gust, a
 //     hold for the fog wipe or, on a rainy or snowy day, for the tilt's offer
-//     (lib/tilt-primer.ts; the two holds are never armed on the same sky) —
-//     and this is the page itself moving.
+//     (lib/tilt-primer.ts; the two holds are never armed on the same sky).
+//     This one is the page itself moving.
 //   · Detecting it needs no permission, so the ask (on WebKit) comes after the
 //     visitor has already shown they want in, from the window's own sheet
-//     (SkyWindowSheet — not the tilt primer, which is the rain's).
+//     (SkyWindowSheet, not the tilt primer, which is the rain's).
 //
 // While the finger pulls, the page follows it (with resistance) and a cue at
 // the top says there is something up there and how far is far enough (see
@@ -41,7 +41,7 @@
 // the top of an article is the reader's, and the browser's.
 //
 // It has to claim the touch on its FIRST move, because a browser that has
-// begun scrolling will not let a touchmove be cancelled after the fact — and
+// begun scrolling will not let a touchmove be cancelled after the fact. And
 // cancelling is the only way to keep iOS's rubber-band and Chrome's
 // pull-to-refresh from happening on top of this. So the claim is made early
 // and narrowly: at the top of the page, moving down more than sideways, and
@@ -54,26 +54,26 @@ import { isBackgroundClick } from "./poke";
 import type { PermissionStatus } from "./permissions";
 import { onSystemSurface } from "./tilt-primer";
 
-/** How far the page follows at most, px — the rubber band's reach. */
+/** How far the page follows at most, px: the rubber band's reach. */
 const PULL_REACH = 220;
 /** Followed this far, letting go opens the window, px (about 141 px of finger). */
 const PULL_ARM_PX = 104;
 /**
  * Once past the line, the page has to come back this far before it is not:
  * hysteresis. A finger resting on the line trembles a pixel or two, and with a
- * single threshold "let go" and "keep pulling" traded places under it — and
- * the tick fired again — with every tremor. Two thresholds make crossing the
- * line one event. Letting go anywhere while armed still opens the window: what
- * the cue says is what happens.
+ * single threshold "let go" and "keep pulling" traded places under it with
+ * every tremor, and the tick fired again each time. Two thresholds make
+ * crossing the line one event. Letting go anywhere while armed still opens the
+ * window: what the cue says is what happens.
  */
 const PULL_DISARM_PX = 96;
 /**
- * The pull says nothing of the sky until the page has followed this far, px —
- * about 52 px of finger, some 8 mm on a phone: well past where the platform
- * itself decides a touch is a drag and not a tap (Android's touch slop is 8 dp,
- * iOS's pan about 10 pt), so a page nudged at its top just moves, and the hint
- * begins only once the pull is plainly a pull. In page px, not a fraction of
- * the line, so moving the line does not move this.
+ * The pull says nothing of the sky until the page has followed this far, px:
+ * about 52 px of finger, some 8 mm on a phone. That is well past where the
+ * platform itself decides a touch is a drag and not a tap (Android's touch
+ * slop is 8 dp, iOS's pan about 10 pt), so a page nudged at its top just
+ * moves, and the hint begins only once the pull is plainly a pull. In page px,
+ * not a fraction of the line, so moving the line does not move this.
  */
 const REVEAL_FROM_PX = 46;
 /**
@@ -90,7 +90,7 @@ const REVEAL_TO_PX = PULL_ARM_PX;
  * How much of the pull's hint shows, 0..1, with the page `px` down: the cue
  * and the sky's lift are this one value. Smoothstep, not a straight ramp: its
  * slope is zero at both ends, so the hint grows out of nothing and settles
- * into full rather than switching on and off at two visible corners — and it
+ * into full rather than switching on and off at two visible corners. It also
  * spends its first stretch faint, where the eye is most sensitive to change.
  */
 function revealAt(px: number): number {
@@ -110,7 +110,7 @@ const PULL_RETURN_MS = 450;
 /**
  * Does opening the window ask for the location too? While the place is only a
  * guess the browser could still improve (`askable`), and the sheet has not
- * already offered it this session (`offered` — the window's own policy). One
+ * already offered it this session (`offered`, the window's own policy). One
  * answer for the pull that decides whether a sheet is needed and the sheet that
  * decides what to say, so the two can never disagree.
  */
@@ -121,8 +121,8 @@ export function skyAsksPlace(location: PermissionStatus, offered: boolean): bool
 /**
  * What opening the window takes, or null for "there is no window to open":
  *
- *   · `window` — motion is ready and the place needs nothing: just open it.
- *   · `offer`  — the sheet first: motion can still be asked for, or was
+ *   · `window`: motion is ready and the place needs nothing, so just open it.
+ *   · `offer`:  the sheet first. Motion can still be asked for, or was
  *                refused and the sheet says so, or the window would open onto a
  *                guessed place and the sheet asks for the location in the same
  *                breath (`place`, from `skyAsksPlace`).
@@ -197,7 +197,7 @@ export function settlePull() {
 }
 
 export interface SkyPullHandlers {
-  /** Every move, with how much of the hint shows (`revealAt`) — the sky's preview. */
+  /** Every move, with how much of the hint shows (`revealAt`): the sky's preview. */
   onProgress: (progress: number) => void;
   /** Let go past far enough. The page is left pulled; the caller decides what next. */
   onPulled: () => void;
@@ -313,8 +313,8 @@ export function attachSkyPull(handlers: SkyPullHandlers): () => void {
 
 /**
  * In the window: a swipe up is looking back down. The page underneath is out
- * of the frame and must not scroll, so every move over the sky is cancelled —
- * but only over the sky: a sheet or the dock over it keeps its own touches.
+ * of the frame and must not scroll, so every move over the sky is cancelled.
+ * Only over the sky, though: a sheet or the dock over it keeps its own touches.
  */
 export function attachSkyReturn(onReturn: () => void): () => void {
   let id: number | null = null;
@@ -373,7 +373,7 @@ export function attachSkyReturn(onReturn: () => void): () => void {
   document.addEventListener("touchcancel", onEnd);
   return () => {
     // The swipe that closed the window is usually still going when the window
-    // closes and lets go of this — and the rest of that swipe is this
+    // closes and lets go of this, and the rest of that swipe is this
     // gesture's, not a scroll of the page coming back under it. So a finger
     // still down keeps being cancelled until it lifts.
     if (id === null) detach();

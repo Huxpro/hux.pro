@@ -1,5 +1,5 @@
 // =============================================================================
-// Where the sun and the moon are through the sky window, frame by frame — the
+// Where the sun and the moon are through the sky window, frame by frame. The
 // channel from the renderer to the edge hints (<SkyBodyHints />).
 //
 // Sixty times a second and nothing renders from it in React: the hints move

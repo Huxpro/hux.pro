@@ -14,7 +14,7 @@ export type ResolvedLocation = {
   timezone?: string;
   /**
    * The IP provider put this address in a different UTC offset from the
-   * browser's own clock — so the address is almost certainly placed in the
+   * browser's own clock, so the address is almost certainly placed in the
    * wrong city (a carrier gateway, a relay, a VPN). The coordinates are still
    * the best we have; this only says not to trust them much.
    */
@@ -162,7 +162,7 @@ export function isTimezoneMismatch(
  *
  * IP databases misplace whole carriers: a phone on cellular in San Jose can
  * come back as Dallas, and so can Private Relay or a VPN. The browser's own
- * clock is a free second opinion — so a provider that puts the address in a
+ * clock is a free second opinion, so a provider that puts the address in a
  * different UTC offset is doubted and the next one asked. If every provider
  * disagrees with the clock, the first answer is kept and flagged
  * (`timezoneMismatch`); the permission prompt reads that as its cue.
@@ -209,7 +209,7 @@ export async function fetchIpLocation(options?: {
 //
 // The browser's prompt is only ever raised by a tap on something that says
 // what it is for (the location primer, the command palette's Geolocation
-// row). Everything else — mount, focus, a refetch — first asks the
+// row). Everything else (mount, focus, a refetch) first asks the
 // Permissions API and takes a GPS fix only when the answer is already
 // "granted", so nothing on this site raises the prompt by itself.
 // -----------------------------------------------------------------------------
@@ -217,7 +217,7 @@ export async function fetchIpLocation(options?: {
 /**
  * "unknown": the Permissions API cannot say (old browsers). Treated like
  * "granted" where only a *read* is at stake, since a fix there is what the
- * visitor asked for — but never on focus.
+ * visitor asked for. Never on focus, though.
  */
 export type GeolocationPermission = "granted" | "prompt" | "denied" | "unknown";
 
@@ -241,7 +241,7 @@ function toPermission(status: PermissionStatus | null): GeolocationPermission {
 
 /**
  * Follow the geolocation permission: `onChange` gets the current answer as
- * soon as it is known, then every change — a grant from the primer, or one
+ * soon as it is known, then every change: a grant from the primer, or one
  * made later in the browser's site settings. Returns the unsubscribe.
  */
 export function subscribeGeolocationPermission(
@@ -274,7 +274,7 @@ export function classifyGeolocationError(err: unknown): GeolocationFailure {
 /**
  * Take a GPS fix. Coarse on purpose: the weather is a city-sized question, and
  * a network fix answers it in a fraction of the time a satellite fix takes
- * indoors — and still works with iOS's "Precise Location" off. A fix up to ten
+ * indoors, and still works with iOS's "Precise Location" off. A fix up to ten
  * minutes old is as good as a fresh one.
  */
 export async function requestAccurateLocation(options?: {

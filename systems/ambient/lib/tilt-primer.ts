@@ -1,20 +1,19 @@
 // =============================================================================
-// The tilt primer — the offer that comes before the permission prompt.
+// The tilt primer: the offer that comes before the permission prompt.
 //
 // Rain and snow on the Sky fall along real gravity, so a leaned phone leans the
 // weather (lib/gyroscope.ts, and "Where the weather falls" in the docs). On
 // WebKit that needs `DeviceOrientationEvent.requestPermission()`, which needs a
-// user gesture — and today the only place to make that gesture is the wallpaper
+// user gesture. Today the only place to make that gesture is the wallpaper
 // picker's Weather tab, three taps from the page, describing a feature nobody
 // has seen yet.
 //
 // So: hold a finger on a rainy or snowy background and a sheet comes up showing
-// what the tilt does, with a button that then asks. Two presses, not one —
-// which is the whole point and not an extra step. A permission dialog that
-// arrives with no idea what it is for gets refused, and in every browser a
-// refusal is final: there is no second prompt, only the site settings the
-// visitor will never open. The first press buys the explanation; the second
-// spends the one chance.
+// what the tilt does, with a button that then asks. It takes two presses, not
+// one, and that is deliberate. A permission dialog that arrives with no idea
+// what it is for gets refused, and in every browser a refusal is final: there
+// is no second prompt, only the site settings the visitor will never open.
+// The first press buys the explanation; the second spends the one chance.
 //
 // It is offered ONCE. `weatherGyroPrimed` is set as soon as the sheet is
 // answered either way. An introduction repeated is a nag, and this one
@@ -29,9 +28,9 @@
 // This is not a fourth egg, whatever the sheet's own copy says. The eggs are
 // rewards for poking at a sky that owes you nothing (see "The easter eggs");
 // this is a feature explaining itself, and it is *armed by the absence* of
-// something rather than by the presence of it — it exists only until it has
+// something rather than by the presence of it. It exists only until it has
 // been answered, and then never again. The copy greets it as a find because
-// that is honestly how it arrives for the visitor, who went looking for
+// that is how it arrives for the visitor, who went looking for
 // nothing and got something; the distinction here is about lifecycle, not
 // about how it feels to meet.
 //
@@ -48,14 +47,14 @@
 // Nothing here ever calls `preventDefault`: a press that turns out to be a
 // scroll must scroll, and the page's own fast path is not this module's to slow
 // down. The one style it touches is iOS's callout, for the length of the press
-// and put back after — see `holdCallout`, and the note on its absence being why
+// and put back after. See `holdCallout`, and the note on its absence being why
 // this hold did not work on a phone while the wipe's did. The sheet opens on a
-// `setTimeout`, which is not a user gesture — that is fine, because the gesture
+// `setTimeout`, which is not a user gesture. That is fine, because the gesture
 // WebKit wants is the button inside the sheet.
 //
 // Touch only. A mouse cannot tilt anything, and the gate this exists to open is
-// WebKit's, which is a phone's. And the system surface only — see
-// SYSTEM_SURFACE below: a long press on a document is the reader's.
+// WebKit's, which is a phone's. And the system surface only (see
+// SYSTEM_SURFACE below): a long press on a document is the reader's.
 // =============================================================================
 
 import type { PermissionStatus } from "./permissions";
@@ -67,14 +66,14 @@ import {
 } from "./poke";
 
 /**
- * The page that has declared itself one OS composition rather than a document
- * — the home screen (`app/globals.css`, "System surface"; `app/home-view.tsx`).
+ * The page that has declared itself one OS composition rather than a document:
+ * the home screen (`app/globals.css`, "System surface"; `app/home-view.tsx`).
  *
  * The offer is only made there, and this is why. `isBackgroundPress` asks
  * whether anything PAINTS over the wallpaper, which is the right question for
  * an easter egg and the wrong one here: a paragraph paints nothing, so on an
  * article the whole column answers "background" and a finger resting in the
- * margin — or on the prose — would put a permission sheet over what somebody
+ * margin (or on the prose) would put a permission sheet over what somebody
  * is reading. A long press on a document belongs to the reader; the system
  * surface is where a long press belongs to the system, and that is a property
  * the page states about itself rather than a list of routes kept in here.
@@ -88,7 +87,7 @@ export function onSystemSurface(target: EventTarget | null): boolean {
 
 /**
  * How long the finger rests before the offer comes up, and how far it may drift
- * while it does — `TOUCH_HOLD_*`, the same hold the fog wipe arms on and the
+ * while it does. Both are `TOUCH_HOLD_*`, the same hold the fog wipe arms on and the
  * same beat as the widget grid's `TOUCH_ACTIVATION`, from one definition rather
  * than from three comments promising they agree.
  */
@@ -105,15 +104,15 @@ export const TILT_PRIMER_MIN_PRECIP = 0.02;
 /**
  * Should the offer be made at all? Every reason is a reason not to:
  *
- *   · `primed` — it has been made once, and once is the whole design.
- *   · `motion` — not "askable": there is no permission to ask for. Everywhere
+ *   · `primed`: it has been made once, and it is only ever made once.
+ *   · `motion`: not "askable", so there is no permission to ask for. Everywhere
  *     but WebKit the event fires freely and the sky is already tilting, so an
  *     offer would be explaining something that is not missing. (Refused counts
  *     as answered: it is "refused", not "askable", once the browser said no.)
- *   · `wished` — `weatherGyro` is off, i.e. the visitor has been to the picker
+ *   · `wished`: `weatherGyro` is off, i.e. the visitor has been to the picker
  *     and turned it off. Offering it back is arguing.
- *   · `falling` — no rain or snow, nothing to lean.
- *   · `sky` — the Sky is what paints; no other engine has drops.
+ *   · `falling`: no rain or snow, nothing to lean.
+ *   · `sky`: the Sky is what paints; no other engine has drops.
  *
  * Reduced motion is the caller's to add, and it does: under it the wallpaper is
  * one still frame with no weather falling in it at all.
@@ -149,7 +148,7 @@ export function attachTiltPrimer(onHold: () => void): () => void {
   let freeCallout: (() => void) | null = null;
 
   /**
-   * The end of a press, however it ended — and the only way out, so what was
+   * The end of a press, however it ended. It is the only way out, so what was
    * put up on the way down always comes back down. Harmless when there was
    * never a press at all.
    */
@@ -166,11 +165,11 @@ export function attachTiltPrimer(onHold: () => void): () => void {
   };
 
   const onDown = (event: PointerEvent) => {
-    // A second finger is a pinch or a scroll starting over — not one hand
+    // A second finger is a pinch or a scroll starting over, not one hand
     // resting on the sky. But a new PRIMARY pointer means the last one is gone
     // and its lift never reached us (swallowed on the way up, or lost with the
     // page's focus); that press is stale, and this one is a fresh start rather
-    // than a second finger — without this, every such loss ate the next hold.
+    // than a second finger. Without this, every such loss ate the next hold.
     if (id !== -1) {
       stand();
       if (!event.isPrimary) return;
@@ -191,7 +190,7 @@ export function attachTiltPrimer(onHold: () => void): () => void {
     // not.
     freeCallout = holdCallout();
     timer = window.setTimeout(() => {
-      // The offer is made, but the PRESS is not over — the finger is still
+      // The offer is made, but the PRESS is not over: the finger is still
       // down, and iOS's own clock has not run out yet. Standing down here would
       // hand the callout back at 400 ms and let it come up over the sheet at
       // 500. So the suppression, and the listeners that undo it, stay until the

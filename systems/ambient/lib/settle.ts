@@ -1,12 +1,12 @@
 // =============================================================================
-// Settling — whether the sky is between two states it was not easing between.
+// Settling: whether the sky is between two states it was not easing between.
 //
 // Most of what the ambient system does is routine: the clock ticks the sun a
 // thousandth of a screen, a poll comes back with the same city, the compass
 // wanders a degree. None of that should announce itself. But some of it is not
-// routine — a location fix that moves you a hundred kilometres, a forecast that
+// routine: a location fix that moves you a hundred kilometres, a forecast that
 // turns clear into rain, a compass that corrects itself by thirty degrees, a
-// clock that jumps — and then the sky spends a second or two getting from one
+// clock that jumps. Then the sky spends a second or two getting from one
 // state to the other. For that second, a very small spinner in the corner says
 // "this is moving on purpose, and it will stop" (<SettleSpinner />).
 //
@@ -17,7 +17,7 @@
 // shows while any reason stands.
 //
 // Plain module state with a subscribe, not React: the renderer and the sensor
-// source report from outside React, sixty times a second if they like — only a
+// source report from outside React, sixty times a second if they like. Only a
 // CHANGE of the answer reaches a listener.
 // =============================================================================
 
@@ -60,7 +60,7 @@ export function holdSettle(reason: SettleReason, on: boolean) {
 }
 
 /**
- * Stand a reason for `ms` from now — for a change whose settling is an easing
+ * Stand a reason for `ms` from now. For a change whose settling is an easing
  * of known length rather than something that reports its own end. Extends, never
  * shortens, and never overrides a hold.
  */
@@ -76,7 +76,7 @@ export function isSettling(): boolean {
   return settling;
 }
 
-/** Which reasons stand right now — for the devtool. */
+/** Which reasons stand right now (for the devtool). */
 export function settleReasons(): SettleReason[] {
   const t = now();
   return [...reasons].filter(([, until]) => until > t).map(([key]) => key);

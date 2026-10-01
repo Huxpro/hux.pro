@@ -34,9 +34,9 @@ export interface WallpaperQualityProfile {
   pixelBudget: number;
   /**
    * Frame-rate cap. Only a whole divisor of the display's refresh rate is
-   * actually deliverable — the loop can skip an animation frame but it cannot
-   * invent one between two — so a cap of 45 on a 60 Hz panel does not give 45,
-   * it gives 30, and on 120 Hz it gives 40. Ask for a rate the panels in use
+   * actually deliverable: the loop can skip an animation frame but it cannot
+   * invent one between two. So a cap of 45 on a 60 Hz panel gives 30, not 45,
+   * and on 120 Hz it gives 40. Ask for a rate the panels in use
    * can hit, or the number is not the one that takes effect.
    */
   maxFps: number;
@@ -44,7 +44,7 @@ export interface WallpaperQualityProfile {
 
 /**
  * The scene is soft (gradients, fbm clouds), so rendering below device
- * resolution and letting CSS upscale is nearly invisible — and it is what
+ * resolution and letting CSS upscale is nearly invisible. It is also what
  * keeps a full-screen five-octave fbm affordable on phones.
  */
 export function getWallpaperQualityProfile(): WallpaperQualityProfile {
@@ -57,8 +57,8 @@ export function getWallpaperQualityProfile(): WallpaperQualityProfile {
     // 45 was meant to buy back some battery, and on every phone panel there is
     // it bought half the frame rate instead: 60 Hz cannot deliver 45, so the
     // gate dropped every second frame and the page ran at a flat 30. That is
-    // what reads as dropped frames on a phone fast enough for 60 — the motion
-    // is half-rate, not late. Fewer pixels is the honest way to spend less
+    // what reads as dropped frames on a phone fast enough for 60: the motion
+    // is half-rate, not late. Fewer pixels is the right way to spend less
     // here, and that is what pixelBudget is for.
     return { pixelBudget: cores <= 4 ? 320_000 : 480_000, maxFps: 60 };
   }

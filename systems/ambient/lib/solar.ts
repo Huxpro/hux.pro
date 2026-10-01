@@ -19,7 +19,7 @@ export interface SolarPosition {
 }
 
 const DEG = Math.PI / 180;
-/** An angle in degrees, wrapped to 0..360 — a bearing. */
+/** An angle in degrees, wrapped to 0..360 (a bearing). */
 export const rev = (deg: number) => ((deg % 360) + 360) % 360;
 const J2000_MS = 946728000000; // 2000-01-01T12:00:00Z
 
@@ -47,7 +47,7 @@ export function getSolarPosition(
 }
 
 /**
- * Local sidereal time in degrees — how far the celestial sphere has turned
+ * Local sidereal time in degrees: how far the celestial sphere has turned
  * over a longitude. The same clock `equatorialToHorizontal` places the sun and
  * moon by, so the sky window's stars turn with them (lib/sky-window.ts).
  */
@@ -95,7 +95,7 @@ export function estimateSolarPosition(params: {
   const peak = 55;
   const { sunrise, sunset } = sunTimesOrDefault(params.nowMs, params.sunriseMs, params.sunsetMs);
   // Periodic by construction: any time is folded into the one day the arc is
-  // written for — from the previous sunset to this one — so a caller asking
+  // written for (from the previous sunset to this one), so a caller asking
   // about another day (the moon, running behind the sun by its phase) gets the
   // same arc rather than falling off the end of it.
   const from = sunset - 86_400_000;
@@ -130,8 +130,8 @@ export function estimateSolarPosition(params: {
 // positions"): geocentric ecliptic longitude/latitude with the main
 // perturbation terms, converted to a topocentric horizontal position for the
 // observer. Against astronomy-engine over 2020–2032, anywhere within 60° of the
-// equator, the moon above the horizon: 0.03° median, 0.1° worst — a fifth of
-// its own disc — and the phase's elongation within 0.1°. What it leaves out is
+// equator, the moon above the horizon: 0.03° median, 0.1° worst (a fifth of
+// its own disc), and the phase's elongation within 0.1°. What it leaves out is
 // atmospheric refraction (the real moon sits up to 0.5° higher at the horizon,
 // under 0.1° above 10°), as the sun's does.
 // -----------------------------------------------------------------------------

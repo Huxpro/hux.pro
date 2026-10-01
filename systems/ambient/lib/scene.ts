@@ -2,7 +2,7 @@
 // Weather scene derivation
 //
 // One pure function turns (weather × sun × theme) into a `WeatherScene`: the
-// complete, renderer-agnostic description of the wallpaper — sky palette, sun
+// complete, renderer-agnostic description of the wallpaper: sky palette, sun
 // and moon placement, cloud cover/density/lighting, precipitation, wind, fog,
 // lightning, stars and the theme veil.
 //
@@ -60,7 +60,7 @@ export interface WeatherScene {
     illumination: number;
     /** 0..1 how strongly the moon shows (above horizon × dark sky × clear). */
     visible: number;
-    /** Where the disc is drawn — staged, not the raw elevation (see `stageMoon`). */
+    /** Where the disc is drawn: staged, not the raw elevation (see `stageMoon`). */
     screen: ScreenPoint;
     /** Relative disc size: 1 high in the sky, larger near the horizon. */
     size: number;
@@ -78,7 +78,7 @@ export interface WeatherScene {
   clouds: {
     cover: number;
     density: number;
-    /** 0..1 storminess — how dark the cloud bases read. */
+    /** 0..1 storminess: how dark the cloud bases read. */
     darkness: number;
     lit: RGB;
     shade: RGB;
@@ -101,12 +101,12 @@ export interface WeatherScene {
   /**
    * Where the observer stands under the stars: the latitude sets the pole's
    * height, and the local sidereal time how far the sphere has turned. Only
-   * the sky window reads it — the stage's stars are a picture, the window's
-   * are a sky. A guess of 40° (mirrored south) and Greenwich without
+   * the sky window reads it. The stage's stars are a picture; the window's
+   * turn with the sky. A guess of 40° (mirrored south) and Greenwich without
    * coordinates, which turns the right way at the right rate all the same.
    *
    * `declination` is where the phone's compass points, against true north,
-   * here and now (lib/magnetic.ts) — the sky window turns every magnetic
+   * here and now (lib/magnetic.ts). The sky window turns every magnetic
    * heading it is handed by this much. 0 without coordinates: no guess of a
    * place is better than none for a field that differs by 30° across a
    * continent.
@@ -119,21 +119,21 @@ export interface WeatherScene {
    * What the murk is hiding: the same night sky with neither the fog nor the
    * deck that a fog day brings in front of it.
    *
-   * A foggy night has no stars and barely a moon — `cover` alone saturates the
-   * star term and the fog halves what is left of the moon — so by the time the
-   * shader runs there is nothing there to uncover. Which is the whole point of
-   * the wipe: the sky above the fog really does have a moon and stars in it,
-   * and clearing the mist is supposed to show you them. So the scene hands over
-   * the unhidden version too, and the shader reaches for it inside the swath.
+   * A foggy night has no stars and barely a moon: `cover` alone saturates the
+   * star term and the fog halves what is left of the moon. So by the time the
+   * shader runs there is nothing there to uncover. That defeats the wipe: the
+   * sky above the fog really does have a moon and stars in it, and clearing
+   * the mist is supposed to show you them. So the scene hands over the
+   * unhidden version too, and the shader reaches for it inside the swath.
    * See "The Fog Wipe" in docs/system-ambient.md.
    */
   behind: { stars: number; moon: number };
   /**
    * How much of the sky the murk leaves you: 1 under an open sky, 0 under an
-   * overcast or a fog. `stars` is `behind.stars * clarity` — the first factor
+   * overcast or a fog. `stars` is `behind.stars * clarity`. The first factor
    * is how dark the night is, the second is whether there is anything in the
-   * way — and keeping them apart is what lets a question about one be asked
-   * without dragging in the other. The meteor's window is the example: whether
+   * way. Keeping them apart lets a question about one be asked without
+   * dragging in the other. The meteor's window is the example: whether
    * it is dark enough is the sun's business and whether you could see through
    * is the weather's, and multiplying them together (which is all `stars` is)
    * answers neither.
@@ -143,8 +143,8 @@ export interface WeatherScene {
   veil: { color: RGB; amount: number };
   exposure: number;
   /**
-   * For the painters that never applied `exposure` — the Gradient and the
-   * legibility profile, tuned without it: the exposure to paint with (1 away
+   * For the painters that never applied `exposure` (the Gradient and the
+   * legibility profile, tuned without it): the exposure to paint with (1 away
    * from twilight, the scene's through it) and how much of their own lift on
    * the veil to keep (1 away from twilight, none through it). So they meet the
    * Sky's twilight look without knowing there is one. See "The twilight look".
@@ -302,7 +302,7 @@ const VEIL_DEFAULTS = {
 } as const;
 
 // -----------------------------------------------------------------------------
-// Theme key — the sky the sun painted, in the theme's lightness
+// Theme key: the sky the sun painted, in the theme's lightness
 //
 // The sun decides what is in the sky: its colour, the sun or the moon, the
 // stars. The theme decides how light it is. Those agree by day under the light
@@ -310,13 +310,13 @@ const VEIL_DEFAULTS = {
 // needs. They disagree by day under the dark theme and by night under the
 // light one, and a veil cannot settle that: it mixes toward the page colour,
 // so a noon sky under a dark veil is a grey-blue midtone the dark chrome sits
-// on like a sticker, and a night under a white one is slate. Neither is a
-// theme; each is the other one, dirtied.
+// on like a sticker, and a night under a white one is slate. Neither reads as
+// its theme; each reads as the other theme, muddied.
 //
-// So the sky is re-keyed instead — the Apple light/dark wallpaper pairs, where
-// both halves are the same place and only the key differs. Each colour's OKLab
-// lightness is moved into the theme's range and its hue kept, so the day stays
-// the day and the night stays the night:
+// So the sky is re-keyed instead, like the Apple light/dark wallpaper pairs,
+// where both halves are the same place and only the key differs. Each
+// colour's OKLab lightness is moved into the theme's range and its hue kept,
+// so the day stays the day and the night stays the night:
 //
 //   dark theme, day    the noon sky pressed down into the dark theme's range:
 //                      deep blue, clouds still lighter than the sky, the sun's
@@ -325,11 +325,11 @@ const VEIL_DEFAULTS = {
 //                      all afternoon.
 //   light theme, night the night lifted into the light theme's range: pale
 //                      moonlit lavender, the brighter stars still showing, and
-//                      the moon dimmed to a day moon — at full strength it
-//                      would saturate to a white ball and read as the sun.
+//                      the moon dimmed to a day moon (at full strength it
+//                      would saturate to a white ball and read as the sun).
 //
-// The amount is zero through the twilight band on both sides — sunrise and
-// sunset are the in-between the sky already reads well under either theme —
+// The amount is zero through the twilight band on both sides (sunrise and
+// sunset are the in-between the sky already reads well under either theme),
 // and it is zero on both sides of the sun's own crossing, which is where the
 // theme changes hands when it follows the sun (lib/solar-theme.ts). So the
 // handover never has a re-key to fight: it only ever begins or ends where the
@@ -376,10 +376,10 @@ function themeKeyAmount(theme: "light" | "dark", elevation: number): number {
 }
 
 // -----------------------------------------------------------------------------
-// The twilight look — where the two themes meet
+// The twilight look: where the two themes meet
 //
 // The key keeps each theme's sky in its range away from the horizon; what is
-// left of the theme at the horizon is the veil and the exposure — the light
+// left of the theme at the horizon is the veil and the exposure: the light
 // theme's brightened and washed toward white, the dark theme's dimmed and
 // washed toward the page. That is right at noon and at midnight, and it is the
 // whole of the cut at sunset: the key is zero on both sides of the crossing,
@@ -387,7 +387,7 @@ function themeKeyAmount(theme: "light" | "dark", elevation: number): number {
 // became the dark theme's dim one in three seconds, the sun's glow first.
 //
 // So twilight belongs to neither theme. Toward the sun's crossing both looks
-// are drawn to one — no veil, the sky a little under its own exposure — and
+// are drawn to one (no veil, the sky a little under its own exposure), and
 // at the crossing they are the same look, so a theme that changes hands there
 // (lib/solar-theme.ts) has nothing to change in the sky. The light theme's
 // sun dims through the last of the afternoon toward it, the dark theme's
@@ -409,7 +409,7 @@ function themeKeyAmount(theme: "light" | "dark", elevation: number): number {
 //
 // Where the look meets is a legibility decision: the frame's lightness at
 // which the light chrome's tone conflict and the dark chrome's are about equal
-// (`toneSafe` in lib/legibility.ts — the light card wants the picture above
+// (`toneSafe` in lib/legibility.ts: the light card wants the picture above
 // 0.62, the dark one below 0.45), so both lean on the policy's fill equally in
 // the minutes the sky is changing hands. For a clear sunset that is ~0.53.
 // -----------------------------------------------------------------------------
@@ -472,7 +472,7 @@ function rekey(c: RGB, theme: "light" | "dark", amount: number): RGB {
 /**
  * The weather as the scene reads it. Only `condition` is required: every
  * measurement present replaces the condition's profile default for what it
- * describes, and every one missing falls back to it — so a condition alone
+ * describes, and every one missing falls back to it. So a condition alone
  * (the devtool, the legibility gallery, the profiler) paints exactly the
  * hand-tuned profile, and a real forecast paints the sky it measured.
  */
@@ -547,7 +547,7 @@ function celestialOf(params: DeriveSceneParams, hemisphere: 1 | -1): WeatherScen
 }
 
 /**
- * Where the horizon sits on the stage, in screen heights from the bottom — and
+ * Where the horizon sits on the stage, in screen heights from the bottom, and
  * so where the sky window's horizon maps to in the shader's sky gradient
  * (`WINDOW_HORIZON_Y` in wallpaper/shader.ts is this, interpolated).
  */
@@ -572,8 +572,8 @@ export const HORIZON_Y = 0.1;
 //   · The daytime moon is intentional and quiet: it shows only when it is well
 //     up AND far enough from the sun to be seen in daylight (a crescent near
 //     the sun is invisible by day, in the sky and here), and then as a pale
-//     disc, not the night's lantern.
-//   · It is drawn a little larger near the horizon — the moon illusion, which
+//     disc rather than the bright night one.
+//   · It is drawn a little larger near the horizon (the moon illusion), which
 //     is how the eye remembers a rising moon.
 // -----------------------------------------------------------------------------
 
@@ -649,14 +649,14 @@ function resolveLunar(params: DeriveSceneParams): SolarPosition & { phase: numbe
   const coords = coordsOf(params);
   if (coords) return getLunarPosition(params.nowMs, coords.lat, coords.lon);
 
-  // No ephemeris without a place, but the phase needs none — and the phase IS
+  // No ephemeris without a place, but the phase needs none, and the phase IS
   // where the moon is relative to the sun: it runs behind the sun by its
   // phase's share of a day. New, it crosses the sky with the sun (and is lost
   // in it); first quarter, it is highest at dusk; full, it rises as the sun
   // sets and is highest at midnight; last quarter, it rises at midnight. So
   // its arc is the sun's own estimated arc, that far behind. Anything else
   // (a fixed night arc, as this once was) draws a crescent high at midnight
-  // and leaves the moon deaf to the calendar — to the devtool's date too.
+  // and leaves the moon ignoring the calendar, and the devtool's date too.
   const { nowMs } = params;
   const phase = getMoonPhase(nowMs);
   const { sunrise, sunset } = sunTimesOrDefault(
@@ -673,8 +673,8 @@ function resolveLunar(params: DeriveSceneParams): SolarPosition & { phase: numbe
 }
 
 /**
- * Instability, 0..1: 0 in stable air, 1 by ~2500 J/kg of CAPE — the towering,
- * dark-based cumulonimbus of a real storm. A thunder code is convection
+ * Instability, 0..1: 0 in stable air, 1 by ~2500 J/kg of CAPE (the towering,
+ * dark-based cumulonimbus of a real storm). A thunder code is convection
  * whatever the CAPE reads this quarter-hour, so it never counts for less than
  * half.
  */
@@ -685,7 +685,7 @@ function convectionOf(weather: SceneWeatherInput | null | undefined): number {
 }
 
 /**
- * How hard a thunderstorm flashes, 0.55..1 — the shader scales the flash's
+ * How hard a thunderstorm flashes, 0.55..1. The shader scales the flash's
  * brightness by it. A code with hail (96/99) is the severe end; otherwise the
  * air's instability decides. A thunder scene is never 0: the strike egg
  * (lib/poke.ts) arms on any lightning at all.
@@ -732,7 +732,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   // Cover is the measured cover. The only floor is physical: whatever is
   // falling came out of a cloud, so the heavier it falls the more sky that
   // cloud takes (a shower under a broken sky is real; a downpour from 20% is
-  // not). Fog keeps its profile floor — it is murk, not sky, but the murk is
+  // not). Fog keeps its profile floor: it is murk, not sky, but the murk is
   // what tints the palette below.
   const measuredCover = ov.cloudCover ?? weather?.cloudCover;
   const coverFloor =
@@ -753,7 +753,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
 
   // Which layers the cover is in decides what it looks like. Low stratus is
   // thick and grey-based, mid-level cloud in between, high cirrus a thin
-  // bright veil — so "70% cloud" of cirrus and "70% cloud" of stratus are no
+  // bright veil. So "70% cloud" of cirrus and "70% cloud" of stratus are no
   // longer the same sky. (The shader scales coverage by density, which is
   // exactly the thin-cirrus effect.)
   const low = weather?.cloudCoverLow;
@@ -788,7 +788,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
 
   // --- Cloud lighting ---------------------------------------------------
   // With layers measured, how dark the undersides are is how much low and mid
-  // cloud there is, how hard it is falling, and how unstable the air is —
+  // cloud there is, how hard it is falling, and how unstable the air is,
   // calibrated so the typical day of each condition lands on its old profile
   // value. Snow cloud is bright-based, and fog lifts everything.
   const darkness = layered
@@ -825,7 +825,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   };
 
   // --- Atmosphere -------------------------------------------------------
-  // Fog is visibility: nothing at 10 km, thick by 200 m (log scale — the eye
+  // Fog is visibility: nothing at 10 km, thick by 200 m (log scale; the eye
   // reads visibility in orders of magnitude). A fog code keeps it at least
   // half-thick, since model visibility is the least reliable number here. A
   // dew point within a degree or two of the air temperature adds a haze.
@@ -863,7 +863,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const moonUp = smoothstep(-3, 5, lunar.elevation);
   const skyDark = smoothstep(6, -8, elevation);
   // The daytime moon, on purpose (see "Staging the moon"): well up, and far
-  // enough from the sun — elongation from the phase: 0° at new, 180° at full —
+  // enough from the sun (elongation from the phase: 0° at new, 180° at full),
   // and then pale. At night the sky's darkness is the only gate.
   const elongation = 180 - Math.abs(moonPhase * 360 - 180);
   const dayMoon =
@@ -884,15 +884,15 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   // What the deck and the fog leave of whatever is up there. Named because two
   // different questions want it on its own: how bright to draw the star field
   // (that is `stars`, below) and whether anything up there could be seen at all
-  // (that is the meteor's window — see lib/poke.ts).
+  // (that is the meteor's window; see lib/poke.ts).
   const clarity = (1 - smoothstep(0.15, 0.65, cover)) * (1 - fog);
   // Naming it moves a multiplication inside a bracket, and `a * (b * c)` is not
   // `(a * b) * c`: `stars` shifts by one double ULP on about 3% of scenes. It
   // reaches the shader as a float32, whose spacing near 1 is five hundred
-  // million times coarser, so nothing rendered moves — checked over 366336
+  // million times coarser, so nothing rendered moves. Checked over 366336
   // scenes, zero of them landing on a different float32.
   const stars = starDust * clarity;
-  // The same two with the murk taken away — see `behind` on WeatherScene. Only
+  // The same two with the murk taken away (see `behind` on WeatherScene). Only
   // the fog wipe ever asks for them, and only inside the swath it has cleared.
   const behind = { stars: starDust, moon: moonBare };
 
@@ -902,7 +902,7 @@ export function deriveWeatherScene(params: DeriveSceneParams): WeatherScene {
   const moonlitHorizon = mixRGB(horizon, hex("#2a3556"), moonLight * 0.35);
   const moonlitLit = mixRGB(lit, hex("#4a5578"), moonLight * (1 - smoothstep(-8, 4, elevation)) * 0.7);
 
-  // The theme's key, last, over every colour the sky is painted from — so the
+  // The theme's key, last, over every colour the sky is painted from, so the
   // shader, the Gradient and the legibility profile all read the re-keyed sky
   // and never have to know there was another.
   const key = THEME_KEY[theme];
@@ -1009,8 +1009,8 @@ export function toSceneWeather(
 
 /**
  * One day's worth of scene inputs: everything `deriveWeatherScene` needs except
- * the instant. Anything walking a day — the devtool's sky strip, the meteor's
- * window — takes this, so a new scene input is threaded through once.
+ * the instant. Anything walking a day (the devtool's sky strip, the meteor's
+ * window) takes this, so a new scene input is threaded through once.
  */
 export interface DaySampleParams {
   /** Any instant of the day to sample; the day is taken from local midnight. */
@@ -1027,7 +1027,7 @@ export interface DaySampleParams {
  * The scene at a given minute of one local day.
  *
  * The one way to walk a day, so the things drawn from it cannot disagree about
- * which day it is. Pure and cheap — the ephemeris is a few hundred multiplies.
+ * which day it is. Pure and cheap: the ephemeris is a few hundred multiplies.
  */
 export function daySceneAt(
   params: DaySampleParams

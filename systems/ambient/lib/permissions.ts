@@ -1,15 +1,15 @@
 // =============================================================================
-// Permissions — what the browser has let the sky have, as one vocabulary.
+// Permissions: what the browser has let the sky have, as one vocabulary.
 //
 // Two things the sky needs are guarded: motion (WebKit's gate on
 // `DeviceOrientationEvent`) and a real location (the geolocation prompt). The
-// raw facts about each live in the provider — the gyroscope's access, the
-// geolocation permission, the location in use — and they do not agree on what
+// raw facts about each live in the provider (the gyroscope's access, the
+// geolocation permission, the location in use), and they do not agree on what
 // "granted" means: Safari reads "prompt" after an Allow, a "granted" location
 // can still be running on the IP because the fix failed, and there is no query
 // at all for WebKit's motion gate. So every consumer that asks "can I ask for
 // this, and should I?" used to derive its own answer from a different subset
-// of those facts, and they drifted — a window opening over the IP's city
+// of those facts, and they drifted. A window opening over the IP's city
 // without asking was one such drift.
 //
 // This is the one derivation. Each kind reads as exactly one of:
@@ -20,8 +20,8 @@
 //   unsupported  nothing here to ask (no sensor event, no geolocation API)
 //
 // "ready" is read from what IS in effect, never from what is wished or what the
-// permission string says. Policy — whether to offer at all, how often — is not
-// here: it belongs to each feature (the tilt's once-ever, the window's
+// permission string says. Policy (whether to offer at all, how often) is not
+// here. It belongs to each feature (the tilt's once-ever, the window's
 // once-a-session place). Asking, and the order it must happen in, is
 // `usePermissions` (components/use-permissions.ts).
 // =============================================================================
@@ -45,7 +45,7 @@ export function motionStatus(gyro: {
 
 /**
  * The location, from the place in use and the browser's permission. Ready only
- * when a fix is actually behind the place — a remembered Safari Allow whose
+ * when a fix is actually behind the place. A remembered Safari Allow whose
  * fix timed out, or a "granted" whose fix failed, is still the IP's guess, and
  * still askable.
  */

@@ -23,9 +23,9 @@ import {
 /**
  * Where the active wallpaper paints.
  *
- *   full   — behind the whole page
- *   widget — only inside widget cards
- *   off    — nowhere (the global background kill switch)
+ *   full     behind the whole page
+ *   widget   only inside widget cards
+ *   off      nowhere (the global background kill switch)
  */
 export type WallpaperPlacement = "full" | "off" | "widget";
 
@@ -57,11 +57,11 @@ export interface AmbientSettings {
   wallpaperPlayIndex: number;
   /** Shuffle's permutation of the album; Loop stores catalog order. */
   wallpaperPlayOrder: string[];
-  /** Wall-clock ms of the last advance — Hourly and Daily compare against this. */
+  /** Wall-clock ms of the last advance. Hourly and Daily compare against this. */
   wallpaperPlayAt: number;
   /**
    * The bezel's colour: a named tint or a `#rrggbb` literal. Whether the bezel
-   * is on is not a setting — the wallpaper kind decides, and the devtool can
+   * is on is not a setting: the wallpaper kind decides, and the devtool can
    * override it for the session. See `WALLPAPER_FAMILY_EDGES`.
    */
   bezelTint: BezelTint;
@@ -71,7 +71,7 @@ export interface AmbientSettings {
   bezelRadius: number | null;
   /**
    * Rain and snow fall along the device's gyroscope rather than straight down
-   * the page (Sky only — see lib/gyroscope.ts). On by default: where the
+   * the page (Sky only; see lib/gyroscope.ts). On by default: where the
    * browser hands over motion freely it just works, and where it does not
    * this is the wish waiting for the one tap that grants it.
    */
@@ -84,9 +84,9 @@ export interface AmbientSettings {
    */
   weatherGyroGranted: boolean;
   /**
-   * The tilt has been offered once, on a rainy or snowy sky, and answered —
-   * taken or waved off. The offer is a one-time introduction to something the
-   * visitor did not ask about, and a second one would be nagging — so this is
+   * The tilt has been offered once, on a rainy or snowy sky, and answered
+   * (taken or waved off). The offer is a one-time introduction to something the
+   * visitor did not ask about, and a second one would be nagging. So this is
    * cleared only when a grant it led to has lapsed, or the ask never reached a
    * dialog. See lib/tilt-primer.ts.
    */

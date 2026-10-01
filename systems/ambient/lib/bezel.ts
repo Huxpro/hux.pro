@@ -14,7 +14,7 @@ import { WALLPAPER_LOOK_FAMILY, type WallpaperFamily } from "./wallpaper";
 // all live in this file.
 // =============================================================================
 
-/** The page's own ground, per theme — `--background` in globals.css. */
+/** The page's own ground, per theme (`--background` in globals.css). */
 export const PAGE_GROUND = { light: "#ffffff", dark: "#1a1a1a" } as const;
 
 /**
@@ -84,7 +84,7 @@ export function resolveBezelTint(tint: BezelTint, theme: "light" | "dark"): stri
  * The boot resolver for `vitreBootScript`: the same decisions as the provider,
  * from what is knowable before React runs. It cannot import, so every constant
  * is interpolated and the two cannot drift. Follow the Sun is not knowable
- * yet — it takes a forecast — so it boots as Follow the System does, which is
+ * yet (it takes a forecast), so it boots as Follow the System does, which is
  * also what the theme service shows until the forecast lands.
  */
 export function bezelBootResolver(): string {
