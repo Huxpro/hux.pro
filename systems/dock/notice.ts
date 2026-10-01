@@ -5,21 +5,22 @@ import type { ReactNode } from "react";
 import { useSyncExternalStore } from "react";
 
 // =============================================================================
-// Notices — what the system tells you, said once, at the top.
+// Notices: what the system tells you, said once, at the top.
 //
 // The one-line "this just happened" the site used to put in a bottom toast:
 // the sun switched the theme, the page is in the other language now, the sky
 // window opened, a link went to a new tab. It is shown in the Dock (see
 // components/dock-notice.tsx), where Live Activities already live, because
-// the two are the same kind of thing — the system speaking — and because the
-// bottom of the screen belongs to what you summon: the command bar and the
-// sheets that rise from it. Top is the system → you, bottom is you → the
-// system. See docs/system-dock.md, "Notices".
+// the two are the same kind of thing (the system reporting to you), and
+// because the bottom of the screen belongs to what you summon: the command
+// bar and the sheets that rise from it. Top is the system → you, bottom is
+// you → the system. See docs/system-dock.md, "Notices".
 //
-// A module store rather than a provider, because the callers are everywhere —
-// providers, effects, a clock — and most of them sit above or beside the Dock
-// in the tree, not under it. `showNotice` can be called from anywhere, before
-// the Dock has mounted too; the Dock shows whatever is current when it does.
+// A module store rather than a provider, because the callers are everywhere
+// (providers, effects, a clock), and most of them sit above or beside the
+// Dock in the tree, not under it. `showNotice` can be called from anywhere,
+// before the Dock has mounted too; the Dock shows whatever is current when it
+// does.
 //
 // One at a time. A new notice replaces the one showing, the way iOS's island
 // swaps one system alert for the next rather than stacking them; the same `id`
@@ -34,7 +35,7 @@ export interface Notice {
   icon: LucideIcon;
   /** The fact, in the foreground. */
   title: ReactNode;
-  /** The note behind it — how to undo it, or what did not change. */
+  /** The secondary line: how to undo it, or what did not change. */
   note?: ReactNode;
   /** How long it stays on screen, ms. */
   duration?: number;
@@ -47,8 +48,9 @@ export type ShownNotice = Notice & {
 };
 
 /**
- * On the box the notice stands in, for what has to know where it is — a bar
- * pinned under the Dock stepping aside for it (components/ui/use-notice-yield).
+ * On the box the notice sits in, for anything that has to know where it is,
+ * such as a bar pinned under the Dock stepping aside for it
+ * (components/ui/use-notice-yield).
  */
 export const NOTICE_SLOT_ATTRIBUTE = "data-dock-notice-slot";
 
@@ -79,7 +81,7 @@ export function showNotice(notice: Notice): string {
 }
 
 /**
- * Take a notice down. With an id, only if that is the one showing — a caller
+ * Take a notice down. With an id, only if that is the one showing: a caller
  * tidying up after itself must not take down someone else's.
  */
 export function dismissNotice(id?: string) {

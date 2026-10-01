@@ -12,12 +12,12 @@ import { useCommand } from "./provider";
 import { useCompactViewport } from "./use-compact-viewport";
 
 // =============================================================================
-// CommandAppsStrip — Spotlight-style horizontal app launcher
+// CommandAppsStrip: Spotlight-style horizontal app launcher
 //
 // One presentation for browse *and* search: a tight horizontal icon strip
 // (scrolls when the catalog overflows). cmdk filters items in place; when
 // nothing matches the group hides entirely (no empty Apps section).
-// No group heading — the icons speak for themselves.
+// No group heading; the icons are enough on their own.
 // =============================================================================
 
 export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
@@ -29,7 +29,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
     "group/app shrink-0 rounded-xl",
     "flex flex-col items-center justify-center",
     // Phone: ~5.3 columns so iPhone 16 Pro (402 CSS px) shows five tiles
-    // and a sliver of the sixth — enough to hint the strip scrolls.
+    // and a sliver of the sixth, enough to hint that the strip scrolls.
     // Desktop keeps the original 4.25rem pitch.
     compact
       ? "w-[calc((100%-8px)/5.3)] max-w-[4.25rem] px-0.5 py-1.5"
@@ -89,7 +89,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
             "apps",
           ]}
           onSelect={() => {
-            // Stay inside the palette chrome — morph into the Load Bundle panel.
+            // Stay inside the palette chrome and morph into the Load Bundle panel.
             openLoadBundle();
           }}
           className={itemClass}
@@ -108,7 +108,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
   );
 }
 
-/** @deprecated Use {@link CommandAppsStrip} — single strip for browse + search. */
+/** @deprecated Use {@link CommandAppsStrip}, the single strip for browse + search. */
 export const CommandAppsGrid = CommandAppsStrip;
-/** @deprecated Use {@link CommandAppsStrip} — list view removed. */
+/** @deprecated Use {@link CommandAppsStrip}. The list view was removed. */
 export const CommandAppsList = CommandAppsStrip;

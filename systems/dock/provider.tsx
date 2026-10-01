@@ -5,15 +5,15 @@ import { usePathname } from "next/navigation";
 import { useNotice } from "./notice";
 
 // =============================================================================
-// Dock System — coordination layer for "Live Activities"
+// Dock System: coordination layer for "Live Activities"
 //
-// A Live Activity is a collapsed pill that morphs into an expanded panel —
-// the iOS Dynamic Island / Notification Center metaphor. Multiple activities
+// A Live Activity is a collapsed pill that morphs into an expanded panel,
+// after the iOS Dynamic Island / Notification Center. Multiple activities
 // (music, ambient phase changes, …) coexist in a single horizontal dock at the
 // top of the screen.
 //
 // This provider owns the *coordination*, not the visuals:
-//   • which activity (if any) is currently expanded — only ONE at a time
+//   • which activity (if any) is currently expanded (only ONE at a time)
 //   • collapse on route change
 //   • whether a notice (notice.ts) holds the dock's anchor right now
 //
@@ -21,8 +21,8 @@ import { useNotice } from "./notice";
 // (live-activity.tsx) and the library already does both.
 //
 // The visuals live in <LiveActivity /> and the layout in <Dock />. Keeping the
-// shared state here means new activities just register an id and a renderer —
-// they never re-implement the open/close state machine.
+// shared state here means new activities just register an id and a renderer.
+// They never re-implement the open/close state machine.
 // =============================================================================
 
 interface DockContextType {
@@ -31,9 +31,9 @@ interface DockContextType {
   /** True when any activity is expanded (used to hide sibling pills). */
   isAnyOpen: boolean;
   /**
-   * True while a notice stands where the pills do. It takes the anchor the
-   * way an open panel does — the pills step aside for it and come back when
-   * it goes — and it waits while a panel is open, so the two never share it.
+   * True while a notice is shown where the pills are. It takes the anchor
+   * the way an open panel does: the pills step aside for it and come back
+   * when it goes. It waits while a panel is open, so the two never share it.
    */
   noticeUp: boolean;
   isOpen: (id: string) => boolean;

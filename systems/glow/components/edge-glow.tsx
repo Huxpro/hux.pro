@@ -4,14 +4,14 @@ import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { Glow, type GlowProps } from "./glow";
 
 // =============================================================================
-// <EdgeGlow> — the glow around a screen, ending where its content begins.
+// <EdgeGlow>: the glow around a screen, ending where its content begins.
 //
 //   <EdgeGlow active={open} content={[wordsRef, footRef]} depth={1.3} />
 //
 // A screen-sized ring (the About's) has no natural depth: a fixed number of
 // px is a sliver on a desk and a flood on a phone, and a share of the screen
 // ignores what the ring is framing. So an edge glow's depth is a share of the
-// **gutter** — the room between the glow's edge and the content it frames:
+// **gutter**, the room between the glow's edge and the content it frames:
 //
 //   gutter.x   the narrower of the left and right gutters
 //   gutter.y   the narrower of the top and bottom gutters
@@ -21,7 +21,7 @@ import { Glow, type GlowProps } from "./glow";
 //
 //              a number   of the narrower of the two: the light stands as
 //                         high off every edge, and reaches the content
-//                         first where it is nearest — a ring's usual look
+//                         first where it is nearest (a ring's usual look)
 //              { x, y }   per axis, x off the sides and y off the top and
 //                         bottom: the light follows the content's shape
 //
@@ -33,8 +33,8 @@ import { Glow, type GlowProps } from "./glow";
 // are measured live while the glow is on and kept for its way out.
 //
 // Where the light ends is exact, and grounded in the light itself: the beams
-// get the reach whose own visible tail (2% opacity) ends there — the same
-// light as a <Glow> given that reach — and a window makes the end exact.
+// get the reach whose own visible tail (2% opacity) ends there, which is the
+// same light as a <Glow> given that reach. A window makes the end exact.
 // See GLOW_EXTENT_PER_REACH (lib/shader.ts).
 // =============================================================================
 
@@ -58,9 +58,9 @@ interface Box {
 }
 
 /**
- * The element's rect as laid out at rest — every scrolling ancestor at its
- * top — clipped by every ancestor that clips it. Scrolling the content moves
- * the words, not the room the ring has: measured as it currently shows, a
+ * The element's rect as laid out at rest (every scrolling ancestor at its
+ * top), clipped by every ancestor that clips it. Scrolling the content moves
+ * the words, not the room the ring has. Measured as it currently shows, a
  * long article scrolled up would touch the screen's top and take the gutter
  * (and with it the light) to nothing.
  */

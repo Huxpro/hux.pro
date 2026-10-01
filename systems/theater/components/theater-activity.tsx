@@ -11,7 +11,7 @@ import { TrackThumb } from "./track-thumb";
 import { VideoControls } from "./video-controls";
 
 // ---------------------------------------------------------------------------
-// TheaterActivity — Audio view of the video system.
+// TheaterActivity: Audio view of the video system.
 //
 // Exclusive with Theater and PiP. The video parks off-screen; only sound
 // keeps playing. A Live Activity pill unfolds into transport + a

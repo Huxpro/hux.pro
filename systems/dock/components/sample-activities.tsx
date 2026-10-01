@@ -9,9 +9,9 @@ import { LiveActivity } from "./live-activity";
 // ---------------------------------------------------------------------------
 // Sample Live Activities, for the Band Lab (/lab/band).
 //
-// Two of the Dock's activities cannot be summoned on demand — the sun's phase
-// only appears around sunrise and sunset, theater only with a video playing —
-// so the lab asks for stand-ins, and for more of them than a day would bring,
+// Two of the Dock's activities cannot be summoned on demand: the sun's phase
+// only appears around sunrise and sunset, theater only with a video playing.
+// So the lab asks for stand-ins, and for more of them than a day would bring,
 // to crowd the band. They are the real <LiveActivity> with sample
 // content: the same pill, the same drawer, the same forms in the band. Nothing
 // here renders unless the lab has asked for it this session (band.ts,

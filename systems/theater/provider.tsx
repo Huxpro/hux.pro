@@ -38,7 +38,7 @@ import type {
 import { Stage } from "./components/stage";
 
 // =============================================================================
-// Theater Provider — the immersive video system's coordination layer.
+// Theater Provider: the immersive video system's coordination layer.
 //
 // Owns the single persistent player (so audio survives mode + route changes,
 // exactly like the Music system), the playlist model (albums → tracks), the
@@ -87,7 +87,7 @@ interface TheaterContextValue {
   phase: PlayerPhase;
   currentTime: number;
   duration: number;
-  /** True on touch/coarse-pointer devices — theater chrome stays visible. */
+  /** True on touch/coarse-pointer devices; theater chrome stays visible. */
   isCoarse: boolean;
   /** Viewport is large enough for the immersive theater (tablet+ / desktop). */
   theaterAvailable: boolean;
@@ -97,7 +97,7 @@ interface TheaterContextValue {
   viewport: Viewport;
   pipOffset: { x: number; y: number };
   dragging: boolean;
-  /** The playlist surface (albums + tracks) — the only browser PiP has. */
+  /** The playlist surface (albums + tracks). The only browser PiP has. */
   isPlaylistOpen: boolean;
 
   /** Register the default albums (curated talk playlists) once. */
@@ -115,7 +115,7 @@ interface TheaterContextValue {
    * Open a piece of media on the stage, in the library it belongs to. A video
    * lands in its curated talk album when it has one (`openVideo`); a deck
    * lands in the Slides album beside every other deck. The two libraries are
-   * never on screen together — a recording is browsed among recordings, a
+   * never on screen together: a recording is browsed among recordings, a
    * deck among decks.
    */
   openMedia: (media: VideoMedia | SlidesMedia, meta: MediaMeta) => void;
@@ -145,7 +145,7 @@ interface TheaterContextValue {
 const TheaterContext = createContext<TheaterContextValue | undefined>(undefined);
 
 /**
- * The stage — its occupant and its doors — and nothing that ticks.
+ * The stage (its occupant and its entry points) and nothing that ticks.
  * `TheaterContext` carries `currentTime`, so everything subscribed to it
  * re-renders twice a second while a video plays. Anything that only sends
  * something to the stage (a cover's `openVideo`, the attachment system's
@@ -217,7 +217,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const [dragging, setDragging] = useState(false);
 
   // Touch vs mouse only affects chrome (hover-to-reveal vs always-on). Mode
-  // selection is viewport-sized: phones get PiP, tablet+ gets theater — an
+  // selection is viewport-sized: phones get PiP, tablet+ gets theater. An
   // iPad is touch-primary but has plenty of room for the immersive modal.
   const isCoarse = primaryInput === "touch" || viewport.width < 640;
   const theaterAvailable = theaterFits(viewport);
@@ -234,8 +234,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
 
   // The playlist sheet and the PiP window share a phone screen rather than
   // overlapping: the window goes to the top of the screen and the sheet takes
-  // everything under it (the sheet's top detent is the window's bottom edge —
-  // see `playlistDetents`). The park is derived, not stored — closing the
+  // everything under it (the sheet's top detent is the window's bottom edge;
+  // see `playlistDetents`). The park is derived, not stored. Closing the
   // sheet puts the window back where the user left it with no bookkeeping, and
   // no frame has the two disagreeing. It is the phone's problem only: the
   // tablet panel and the desktop window leave the PiP's corner alone.
@@ -320,7 +320,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       .catch(() => setPhase("error"));
   }, []);
 
-  // YouTube (and other embeds) inject their iframe after first paint — keep
+  // YouTube (and other embeds) inject their iframe after first paint. Keep
   // the fullscreen allow-list patched so iPad doesn't fall back to PiP.
   useEffect(() => {
     const host = hostRef.current;
@@ -362,8 +362,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
         playerRef.current.loadVideoById(track.videoId);
       }
     } else {
-      // Non-YouTube track plays in its own iframe (rendered by <Stage />) —
-      // silence the YouTube player so audio never overlaps.
+      // Non-YouTube track plays in its own iframe (rendered by <Stage />).
+      // Silence the YouTube player so audio never overlaps.
       try {
         playerRef.current?.stopVideo();
       } catch {
@@ -457,7 +457,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     if (mode === "theater" || mode === "closed") setPlaylistOpen(false);
   }, [mode]);
 
-  // Phone-sized (or short) viewports can't host theater chrome — drop to PiP
+  // Phone-sized (or short) viewports can't host theater chrome. Drop to PiP
   // rather than rendering a crushed modal if the window is resized / rotated.
   useEffect(() => {
     if (!theaterAvailable) {
@@ -579,8 +579,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       }
       const track = mediaToTrack(media, meta);
       if (!track) return;
-      // The Slides library, at this deck — every other deck a card away. A
-      // deck the log does not list (an MDX page's) plays alone.
+      // Open the Slides library at this deck, with every other deck a card
+      // away. A deck the log does not list (an MDX page's) plays alone.
       const idx = slidesAlbum
         ? slidesAlbum.tracks.findIndex((tk) => tk.url === track.url)
         : -1;
@@ -676,14 +676,14 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     [albumIndex, clampTrack],
   );
 
-  // Named after the Music system's playlist surface — the same gesture, the
+  // Named after the Music system's playlist surface: the same gesture, the
   // same words, so an entry point anywhere reads the same in both systems.
   const openPlaylist = useCallback(() => setPlaylistOpen(true), []);
   const closePlaylist = useCallback(() => setPlaylistOpen(false), []);
 
   // Escape closes the player (a standard modal affordance). Track/album
-  // navigation via keyboard and scroll is intentionally omitted on desktop —
-  // clicking the album tabs / playlist rail / arrows is the single, clear path.
+  // navigation via keyboard and scroll is intentionally omitted on desktop.
+  // Clicking the album tabs / playlist rail / arrows is the single path.
   useEffect(() => {
     if (effectiveMode === "closed") return;
     const onKey = (e: KeyboardEvent) => {

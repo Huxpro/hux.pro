@@ -1,10 +1,10 @@
 // =============================================================================
-// The glow's palette — one light for the whole site.
+// The glow's palette: one light for the whole site.
 //
 // Siri's ring, as five stops laid around a loop: blue · violet · pink · amber
-// · cyan, and back to blue. Every glow on the site — the About's screen-edge
-// ring, the command bar listening, a badge under the pointer — is drawn from
-// these, by the same shader (lib/shader.ts), so a glow reads as one kind of
+// · cyan, and back to blue. Every glow on the site (the About's screen-edge
+// ring, the command bar listening, a badge under the pointer) is drawn from
+// these by the same shader (lib/shader.ts), so a glow reads as one kind of
 // light wherever it appears. The CSS fallback (no WebGL) and anything else
 // drawn in CSS take the same stops from `GLOW_CSS_STOPS`.
 //
@@ -29,12 +29,12 @@ const hex = ([r, g, b]: readonly [number, number, number]) =>
     .map((c) => Math.round(c * 255).toString(16).padStart(2, "0"))
     .join("");
 
-/** The stops as CSS colours, closed into a loop — for a conic gradient. */
+/** The stops as CSS colours, closed into a loop, for a conic gradient. */
 export const GLOW_CSS_STOPS = [...GLOW_STOPS, GLOW_STOPS[0]].map(hex).join(", ");
 
 /**
  * GLSL for `vec3 ring(float t)`: the palette as a smooth cyclic ramp, over
- * the five stops in `uPal` — Siri's (these) or the wallpaper's, per frame
+ * the five stops in `uPal`: Siri's (these) or the wallpaper's, per frame
  * (lib/harmony.ts).
  */
 export function glslRing(): string {

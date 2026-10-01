@@ -1,7 +1,7 @@
 import { glslRing } from "./palette";
 
 // =============================================================================
-// The glow shader — one field of light on the edge of a rounded box.
+// The glow shader: one field of light on the edge of a rounded box.
 //
 // Every glow on the site is this shader over some box: the whole screen (the
 // About), a search field (voice), a badge. For each pixel it knows how far it
@@ -18,35 +18,35 @@ import { glslRing } from "./palette";
 //   colour    the palette (lib/palette.ts) laid around the ring, drifting.
 //   core      a thin bright line on the edge itself.
 //   halo      outside the box (`uBleed` px of canvas around it), a softer
-//             light spilling out — the bloom a small element needs, since a
-//             glow drawn only inside a 20px badge is no glow at all.
+//             light spilling out. A small element needs this bloom: a glow
+//             drawn only inside a 20px badge is barely visible.
 //   focus     the ring can be narrowed to an arc: `uFocus` is the arc's
 //             half-width (0 = the whole ring) and `uFocusAt` its centre (0.25
-//             is the bottom). The "line" shape — the glow along the bottom of
-//             a field — is the ring focused on its bottom edge; "processing"
+//             is the bottom). The "line" shape (the glow along the bottom of
+//             a field) is the ring focused on its bottom edge; "processing"
 //             is that arc gathered small and swept side to side.
 //   reveal    the ring arrives from the focus centre and spreads both ways,
 //             its front flaring, with a surge in reach as it lands.
-//   motion    how the light lives while on: flow is this field; rotate and
-//             pulse are built in layers instead (`layered`, below) — a crisp
-//             stroke, an inner glow, a bloom and, for a rotation, a spark —
-//             as Libraries.dev's border-beam builds them.
+//   motion    how the light moves while on: flow is this field; rotate and
+//             pulse are built in layers instead (`layered`, below), as
+//             Libraries.dev's border-beam builds them: a crisp stroke, an
+//             inner glow, a bloom and, for a rotation, a spark.
 // =============================================================================
 
 /**
  * How far past its `reach` the light visibly goes: the depth, in reaches, at
- * which the brightest crest at rest — a beam at its full height, 1.7 reaches
- * thick (`0.3 + 1.4`), energy 1 — falls to 2% opacity, below what an eye
- * picks out on a blurred ground:
+ * which the brightest crest at rest falls to 2% opacity, below what an eye
+ * picks out on a blurred ground. That crest is a beam at its full height,
+ * 1.7 reaches thick (`0.3 + 1.4`), at energy 1:
  *
  *   1 − exp(−1.15 · g) = 0.02  →  g = 0.01757
  *   exp(−(d / 1.7)^1.45) = g   →  d = 1.7 · 4.041^(1/1.45) = 4.45
  *
  * It is what makes an extent (where the light ends, px) and a reach (the
  * beams' scale) the same number in two units: a glow told to end at E has
- * reach E / 4.45 and looks exactly like one given that reach — its own tail
- * ends there — and the window that makes the end exact only trims the last
- * few percent. Change the beams' thickness or falloff and this must follow.
+ * reach E / 4.45 and looks exactly like one given that reach, because its
+ * own tail ends there. The window that makes the end exact only trims the
+ * last few percent. Change the beams' thickness or falloff and this must follow.
  */
 export const GLOW_EXTENT_PER_REACH = 4.45;
 
@@ -100,7 +100,7 @@ float sdRoundBox(vec2 p, vec2 b, float r) {
 
 // Smooth minimum of four distances (log-sum-exp, stable), softness k.
 // A hard min of the edge distances makes the light's contours corner along
-// each diagonal — a crease from every corner, once the light reaches deeper
+// each diagonal: a crease from every corner, once the light reaches deeper
 // than the corner's radius. The smooth min keeps them round at every depth,
 // and where two edges meet their light adds up instead of folding.
 float smin4(vec4 d, float k) {
@@ -112,20 +112,20 @@ float smin4(vec4 d, float k) {
 ${glslRing()}
 
 // -----------------------------------------------------------------------------
-// Rotate and pulse — a light built in layers, as border-beam builds it.
+// Rotate and pulse: a light built in layers, as border-beam builds it.
 //
 // Flow is a field: travelling beams whose one falloff does everything. A
 // rotation and a pulse are not fields but compositions, each layer with one
 // job, and that is what makes them read at any size:
 //
-//   colour   fixed on the box — the palette laid once round the ring and
+//   colour   fixed on the box: the palette laid once round the ring and
 //            only drifting (uHue). A rotation sweeps a light over it, so the
 //            colour changes as the light travels; the colours do not ride
 //            along with it.
-//   stroke   a crisp 1px line on the outline — the definition, what a small
-//            element is recognised by.
-//   inner    a soft glow inward from it — the body.
-//   bloom    past the edge, in the bleed — the atmosphere.
+//   stroke   a crisp 1px line on the outline. It gives the shape, which is
+//            what a small element is recognised by.
+//   inner    a soft glow inward from it: the body.
+//   bloom    past the edge, in the bleed: the soft surround.
 //   spark    a rotation's head: a narrow highlight a little ahead of the
 //            middle of the lit arc, white on a dark ground and ink on a
 //            light one, with a hot point of bloom just ahead of it.
@@ -180,11 +180,11 @@ vec4 layered(float edge, float out_, bool outside, float s, vec4 wq, float reach
   // Past the edge the rim's light is a share of the peak's, not a depth.
   float litOut = mix(raw, 1.0, uBaseline) * breathLift;
 
-  // Where the light must end (an extent — the About's depth), the inner
-  // glow must have faded out on its own by then, as the flow's beams do
-  // (GLOW_EXTENT_PER_REACH): the window below only makes the end exact, and
-  // a glow still bright when it gets there is cut, not ended — a line across
-  // the light. At the strongest inner glow (alpha ~1 on a screen) that is
+  // Where the light must end (an extent, such as the About's depth), the
+  // inner glow must have faded out on its own by then, as the flow's beams do
+  // (GLOW_EXTENT_PER_REACH). The window below only makes the end exact; a
+  // glow still bright when it gets there is cut off, leaving a hard line
+  // across the light. At the strongest inner glow (alpha ~1 on a screen) that is
   // 2% by the window's start, 0.8 of the extent:
   //   exp(-(0.8 E / depth)^1.1) = 0.02  ->  depth = 0.232 E
   // at the deepest breath, and a breath scales within it.
@@ -211,7 +211,8 @@ vec4 layered(float edge, float out_, bool outside, float s, vec4 wq, float reach
     col = mix(c, sparkCol, clamp(hot * 0.7, 0.0, 1.0));
   } else {
     // The stroke defines, the inner glow is a breath of colour: both kept
-    // low, as border-beam keeps them — a light on the edge, not a frame.
+    // low, as border-beam keeps them, so it reads as a light on the edge
+    // rather than a frame.
     float strokeA = rotate ? mix(0.4, 0.6, uDark) : mix(0.35, 0.55, uDark);
     float innerA = rotate ? mix(0.22, 0.34, uDark) : mix(0.3, 0.42, uDark);
     // A screen is not a card: across a whole screen a glow that faint is
@@ -246,7 +247,7 @@ void main() {
   vec2 box = max(size * 0.5 - uBleed, vec2(1.0));
 
   float sd = sdRoundBox(p, box, min(uRadius, min(box.x, box.y)));
-  // Inward from the edge, CSS px — for a line, up from the bottom edge only,
+  // Inward from the edge, CSS px. For a line, up from the bottom edge only,
   // so the light rises from one edge instead of lining all four.
   float edge = max(-sd, 0.0);     // the true rounded outline: the core line
   float out_ = max(sd, 0.0);      // outward, into the bleed
@@ -258,7 +259,7 @@ void main() {
   vec4 edges = vec4(p.x + box.x, box.x - p.x, p.y + box.y, box.y - p.y);
 
   // An extent: the light must end at a given distance from each edge (the
-  // About's ring ends where the words begin — a different distance off the
+  // About's ring ends where the words begin, a different distance off the
   // sides than off the top and bottom). The pixel's own extent blends the
   // two by which edges are near, so a corner eases from one to the other.
   // The beams are sized so their own visible tail ends there
@@ -274,7 +275,7 @@ void main() {
   // Where round the ring the pixel is, 0–1 (0.25 the bottom), and its weight
   // toward each quarter (right, bottom, left, top): cos² of the angle to it,
   // which sums to one all the way round, so per-quarter values blend
-  // seamlessly — a pulse's breath.
+  // without seams. This is a pulse's breath.
   float ring_s = atan(p.y / box.y, p.x / box.x) / TAU + 0.5;
   vec4 wq = max(cos(TAU * (ring_s - vec4(0.5, 0.25, 0.0, 0.75))), 0.0);
 
@@ -283,7 +284,7 @@ void main() {
   // The light stays on the box: without a bleed, nothing outside its rounded
   // outline (antialiased at the canvas's resolution). A rounded host's
   // corners are not lit past its curve; a square host round a rounded glow
-  // — a bezel's screen — is clipped by the host itself.
+  // (a bezel's screen) is clipped by the host itself.
   float cover = uBleed > 0.0 ? 1.0 : clamp(0.5 - sd * uScale, 0.0, 1.0);
   if (cover <= 0.0) { gl_FragColor = vec4(0.0); return; }
 
@@ -295,10 +296,10 @@ void main() {
 
   // The beams' depth: the smooth min of the four straight edges, so their
   // light rounds each corner instead of creasing on its diagonal. Softness
-  // follows the reach — a screen's ring blends its corners broadly, a
+  // follows the reach: a screen's ring blends its corners broadly, a
   // badge's barely. A line keeps its one edge.
   // Blended once more with the true outline (and its ln 2 offset added back),
-  // so a round host — an avatar, a phone's 44px corners — keeps its light on
+  // so a round host (an avatar, a phone's 44px corners) keeps its light on
   // the curve, where the straight edges alone would sit a few px inside it.
   float kS = max(0.5, reach * 0.55);
   float straight = smin4(max(edges, 0.0), kS);
@@ -325,7 +326,7 @@ void main() {
   // over the voice (voice-glow's bend).
   d /= mix(1.0, 0.45 + 0.55 * focus, uLine);
   // Past the edge the beams are measured outward, so the halo carries
-  // their colours and their depth — a breath blooms, a beam spills — rather
+  // their colours and their depth (a breath blooms, a beam spills) rather
   // than one grey average of the ring.
   if (outside) d = out_;
 
@@ -357,8 +358,8 @@ void main() {
   float a = 1.0 - exp(-glow * 1.15);
 
   // Outside the box: the halo, the beams' own light fading over the bleed,
-  // softer and dimmer. Inside: the line on the edge itself — on the true
-  // outline, so it stays crisp.
+  // softer and dimmer. Inside: the line on the edge itself, drawn on the true
+  // outline so it stays crisp.
   if (outside) {
     a *= smoothstep(uBleed, uBleed * 0.4, out_) * mix(0.55, 0.75, uDark);
   } else {
@@ -370,8 +371,8 @@ void main() {
   }
 
   // The extent's window: the last fifth of it, where the brightest crest is
-  // already under 6%, taken to nothing at it — the light's own tail, made
-  // exact. The arrival's surge carries past it for a moment.
+  // already under 6%, taken to nothing at it. This makes the light's own
+  // tail end exactly there. The arrival's surge carries past it for a moment.
   if (uExtent.x > 0.0) {
     a *= 1.0 - smoothstep(extent * 0.8, extent * (1.0 + 0.4 * uSurge), d);
   }

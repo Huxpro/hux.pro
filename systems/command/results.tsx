@@ -24,7 +24,7 @@ import {
 import { useCommand } from "./provider";
 
 // =============================================================================
-// Search results and the slash list — the palette's two bodies, shared by the
+// Search results and the slash list: the palette's two bodies, shared by the
 // popover and the sheet. Neither knows which shell it is in; keyboard hints
 // follow the input device, not the shell.
 // =============================================================================
@@ -59,7 +59,7 @@ function Letter({ letter }: { letter?: string }) {
  * The way into slash mode where there is no keyboard to type "/" on: the
  * hint, made pressable. It sits where a search field keeps its trailing
  * accessory on iOS (the dictation mic, a filter), inside the field and before
- * the close button outside it, and only while the field is empty — which is
+ * the close button outside it, and only while the field is empty, which is
  * exactly when typing "/" would have worked. The same kbd chip the hints are
  * made of, with a rim, a touch-sized hit area and press feedback, so it reads
  * as the palette's own vocabulary and not as a foreign control.
@@ -84,7 +84,7 @@ export function SlashEntry({ className }: { className?: string }) {
   );
 }
 
-/** Icon, label, letter — the same in a search row and a slash row. */
+/** Icon, label, letter: the same in a search row and a slash row. */
 function RowBody({ action }: { action: CommandAction }) {
   return (
     <>

@@ -30,7 +30,7 @@ import {
 // with flex-1; this is the Spotlight card, whose list should grow with the
 // viewport instead of sitting on a 360px cap.
 // Offset: a little below Spotlight's 20vh, capped so it still sits in the
-// upper third. Search list: 43dvh — on a 16" MacBook (~1040px chrome) that
+// upper third. Search list: 43dvh. On a 16" MacBook (~1040px chrome) that
 // lands on Geolocation as the last full row. Slash list: no 43dvh cap, so
 // the card grows for the full lettered list (the original morph) and only
 // scrolls when it would hit the remaining viewport.
@@ -51,11 +51,11 @@ const PALETTE_SLASH_MAX =
   "max-h-[var(--command-palette-slash-max)] overflow-y-auto overscroll-contain";
 
 // =============================================================================
-// CommandPopover — the palette as a floating card, Spotlight-style.
+// CommandPopover: the palette as a floating card, Spotlight-style.
 //
 // The shell for anything wider than a phone: a centred card a fifth of the
 // way down, draggable through the shared hook, closed by a click on the page.
-// Its three modes (search, slash, load-bundle) morph inside one card — width,
+// Its three modes (search, slash, load-bundle) morph inside one card: width,
 // header and footer each animate rather than swapping.
 //
 // It still works at phone widths (the devtool's Command module can ask for it
@@ -133,7 +133,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
     };
   }, [isPhoneSafari]);
 
-  // Focus the field on open and on the way back from slash mode — not on a
+  // Focus the field on open and on the way back from slash mode, but not on a
   // phone, where the keyboard would jump the layout. The slash list has no
   // field, so on the way in the keyboard goes with it.
   useEffect(() => {
@@ -149,7 +149,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
   return (
       <div
         className={cn(
-          // Above the theater/PiP surfaces (z-[10000]+) — the command palette is
+          // Above the theater/PiP surfaces (z-[10000]+). The command palette is
           // the primary nav and must always sit on top.
           "system-chrome z-[10050] flex items-start justify-center overflow-y-auto",
           "pt-[var(--command-palette-offset)] pb-8",
@@ -243,7 +243,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
             shouldFilter={!isSlashCommandsMode && !isLoadBundleMode}
           >
             <SlashShortcuts actions={actions} />
-            {/* Search / slash header — collapsed in load-bundle mode (panel owns chrome). */}
+            {/* Search / slash header, collapsed in load-bundle mode (panel owns chrome). */}
             <div
               className={cn(
                 "relative border-b border-border/50",
@@ -324,7 +324,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
             </div>
 
             <div className="relative">
-              {/* Load-bundle form — System UI panel inside the same glass shell */}
+              {/* Load-bundle form: System UI panel inside the same glass shell */}
               <div
                 className={cn(
                   "grid transition-all duration-300 ease-out",
@@ -373,7 +373,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
               </div>
             </div>
 
-            {/* Footer — keyboard hints, so only where there is a keyboard;
+            {/* Footer: keyboard hints, so only where there is a keyboard;
                 the load-bundle row keeps its note either way. */}
             {(showHints || isLoadBundleMode) && (
             <div className="border-t border-border/50 text-xs text-muted-foreground">

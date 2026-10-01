@@ -7,7 +7,7 @@ import { embedUrlFor } from "../lib/player";
 import type { StageRect, Track } from "../lib/types";
 
 // ---------------------------------------------------------------------------
-// Stage — the single persistent player element.
+// Stage: the single persistent player element.
 //
 // Rendered once by the provider and repositioned (never remounted) as the mode
 // morphs between theater / PiP / parked-off-screen. This is what lets playback
@@ -85,7 +85,7 @@ export function Stage({
           ? { duration: 0 }
           : {
               // Position/size morphs (theater ⇄ PiP) glide; show/hide is a
-              // short, clean fade + scale in place — no fly-in from a corner.
+              // short fade + scale in place, with no fly-in from a corner.
               duration: 0.34,
               ease: EASE,
               opacity: { duration: 0.18, ease: "easeOut" },
@@ -93,7 +93,7 @@ export function Stage({
             }
       }
     >
-      {/* YouTube host — always mounted so the IFrame API instance persists. */}
+      {/* YouTube host. Always mounted so the IFrame API instance persists. */}
       <div
         ref={hostRef}
         className={cn(
@@ -102,12 +102,12 @@ export function Stage({
         )}
       />
 
-      {/* Non-YouTube (Bilibili / Vimeo) — a plain iframe, kept mounted while
+      {/* Non-YouTube (Bilibili / Vimeo): a plain iframe, kept mounted while
           active so it keeps playing when parked / minimized. A slide deck is
           the same iframe: reveal.js drives itself from inside it (arrow keys
           once it has focus, taps on touch), so the stage only has to hold it.
           Decks get the clipboard for their own "copy link" affordances and no
-          sandbox — they are ours, and reveal's fullscreen shortcut needs the
+          sandbox. They are ours, and reveal's fullscreen shortcut needs the
           real document. */}
       {active && !isYouTube && embedUrl && (
         <iframe

@@ -4,14 +4,15 @@ import { useSyncExternalStore } from "react";
 import { SURFACE_BREAKPOINTS } from "@/systems/surface/presentation";
 
 // =============================================================================
-// The top band — how the Dock and a page's pinned bar share the top strip.
+// The top band: how the Dock and a page's pinned bar share the top strip.
 //
 // A page's pinned bar (PinnedSlot: /works and /prompt's toolbars, a lab's own
 // bar) and the Dock's occupants (Live Activities, parked windows) both reach
 // for the top of the screen. How they share it is not one fixed policy but a
 // composition of independent choices, set here and read by the real
-// components — the Dock, every LiveActivity, the parked windows and the
-// pinned slot — so what the Band Lab (/lab/band) shows is the site itself.
+// components (the Dock, every LiveActivity, the parked windows and the
+// pinned slot). What the Band Lab (/lab/band) shows is therefore the site
+// itself.
 //
 //   share       Whether a pinned bar shares the band at all. Off is the old
 //               way: the pills centred, the bar pinned in a row under them.
@@ -23,29 +24,30 @@ import { SURFACE_BREAKPOINTS } from "@/systems/surface/presentation";
 //                        folds the bar away and lays them out instead
 //   form        Their shape while sharing: a pill, or a ball of what leads it.
 //   openForm    Their shape when a count is opened (the bar is out of the way
-//               then, so pills have room — or stay balls when there are many).
+//               then, so pills have room; or they stay balls when there are
+//               many).
 //   trayCap     How many a tray shows whole, on a phone (two more wider).
 //   peek        A window that holds more than it shows ends on half of the
-//               next — the cut is what says it scrolls.
+//               next. The cut is what shows it scrolls.
 //   barScrolls  (all) The bar rides in the scrolling strip: one row, the bar
 //               first, sliding away as the occupants scroll in.
 //
 // Every one of these is an *overflow* strategy. While the bar at its own
-// width and every occupant as a pill fit the band side by side, they simply
-// stand side by side — the occupants after the bar, a gap from its glass —
-// whatever is configured: a wide screen is never folded for a phone's sake.
+// width and every occupant as a pill fit the band side by side, they sit
+// side by side (the occupants after the bar, a gap from its glass) whatever
+// is configured. A wide screen is never folded for a phone's sake.
 // Only what does not fit is worked on, in order: the occupants become balls
 // (if `form` says so) and, if that is not enough, the group takes over.
 //
 // The site's old names are presets of these (PRESETS). What ships is
-// `DEFAULT_CONFIG` — either / or: side by side while it fits, balls when it
+// `DEFAULT_CONFIG`, either / or: side by side while it fits, balls when it
 // does not quite, a count when it does not at all. Anything else is a session
 // override the lab sets (sessionStorage: this tab, until it closes), so a
 // visitor never meets an experiment.
 //
-// A configuration only applies once the bar has *met* the band — risen, with
-// the page, to where the Dock is. Until then, and on every page without a
-// pinned bar, the Dock is the Dock.
+// A configuration only applies once the bar has *met* the band, meaning it
+// has risen with the page to where the Dock is. Until then, and on every page
+// without a pinned bar, the Dock behaves as it always has.
 //
 // Where everything stands is one function, `bandGeometry`, read by both the
 // Dock and the pinned slot, so the two can never disagree about a pixel.
@@ -102,7 +104,7 @@ export interface BandState {
   vw: number;
   /** A page's pinned bar has risen to the band. */
   met: boolean;
-  /** Count: opened — the occupants hold the band and the bar is folded. */
+  /** Count: opened. The occupants hold the band and the bar is folded. */
   open: boolean;
   /** How many sample Live Activities the lab has put in the Dock. */
   samples: number;
@@ -112,7 +114,7 @@ export interface BandState {
   clear: number;
   /**
    * The pinned bar, as its slot measures it: the box it lives in (viewport
-   * px — the page column for /works and /prompt, a lab's own frame for a
+   * px; the page column for /works and /prompt, a lab's own frame for a
    * lab bar), how far its glass reaches past its row sideways, and its row
    * at natural width and at the least it can do its job in.
    */
@@ -230,7 +232,7 @@ export function useBandGeometry(): BandGeometry {
 }
 
 /**
- * One fact about the band, live — for a reader that needs a shape or a flag
+ * One fact about the band, live. For a reader that needs a shape or a flag
  * and should not re-render when anything else about the band moves (every
  * Live Activity's drawer, on every resize). Return a primitive.
  */
@@ -303,7 +305,7 @@ export interface BandGeometry {
   form: BandForm;
   /**
    * The occupants' window, in viewport px: exactly where they may be seen,
-   * and where the row clips — so nothing slides under the bar, the gutter or
+   * and where the row clips, so nothing slides under the bar, the gutter or
    * the folded ball. Null in stack, which centres itself as it always has.
    */
   window: { left: number; width: number; padStart: number; padEnd: number } | null;
@@ -311,8 +313,8 @@ export interface BandGeometry {
   rides: boolean;
   /**
    * Width taken from the end of the bar's row (its `--band-reserve`): the
-   * window, the gap, and the reach of the bar's glass past its row — so the
-   * glass, not the text, ends a gap before the first occupant.
+   * window, the gap, and the reach of the bar's glass past its row. That way
+   * the glass, not the text, ends a gap before the first occupant.
    */
   reserve: number;
 }
@@ -351,12 +353,12 @@ export function bandGeometry(band: BandState): BandGeometry {
   const barMinGlass = band.bar ? band.bar.min + 2 * outset : 0;
   const barGlass = band.bar ? band.bar.natural + 2 * outset : 0;
 
-  // Fit: the bar at its own width, then the occupants — as pills, or as
-  // balls if the configuration allows and pills do not fit — with no window
-  // to scroll and nothing folded. Left-aligned after the bar, where the eye
-  // already is, rather than pushed to the column's far end. The occupants
-  // are the screen's, not the column's: side by side they may run on into
-  // the margin a wide screen leaves beside it, up to the gutter.
+  // Fit: the bar at its own width, then the occupants with no window to
+  // scroll and nothing folded. They go as pills, or as balls if the
+  // configuration allows and pills do not fit. Left-aligned after the bar,
+  // where the eye already is, rather than pushed to the column's far end.
+  // The occupants are the screen's, not the column's: side by side they may
+  // run on into the margin a wide screen leaves beside it, up to the gutter.
   const span = Math.max(col.right, vw - GUTTER) - glassLeft;
   const tries: BandForm[] = config.form === "ball" ? ["pill", "ball"] : ["pill"];
   for (const f of tries) {
@@ -384,8 +386,8 @@ export function bandGeometry(band: BandState): BandGeometry {
 
   if (mode === "count") {
     // One ball at the column's end; the bar gives up it and a gap. The
-    // occupants wait, out of sight, in the ball's own place — so opening it
-    // is the row growing out of the ball, not appearing from somewhere else.
+    // occupants wait, out of sight, in the ball's own place, so opening it
+    // grows the row out of the ball instead of from somewhere else.
     return {
       ...base,
       mode,
@@ -397,7 +399,7 @@ export function bandGeometry(band: BandState): BandGeometry {
 
   if (mode === "open") {
     // The bar is folded to a ball at its own start; the occupants fill the
-    // rest of the band, scrolling edge to edge — the window runs on to the
+    // rest of the band, scrolling edge to edge. The window runs on to the
     // screen's edge and keeps the gutter as padding inside itself, so a swipe
     // is not cut off at the column.
     const left = glassLeft + CAPSULE + GAP;
@@ -424,9 +426,9 @@ export function bandGeometry(band: BandState): BandGeometry {
 
   // all / tray: a window at the column's end; the bar gives up its width.
   // On a phone the gutter is too thin to be a margin worth keeping, so the
-  // window runs on to the screen's edge — the next occupant is cut there,
-  // by the glass of the phone rather than by a line in the air, and the cut
-  // is what says it scrolls. Wider, the window stops at the column.
+  // window runs on to the screen's edge. The next occupant is cut there by
+  // the phone's own edge rather than by a straight line mid-screen, and the
+  // cut is what shows it scrolls. Wider, the window stops at the column.
   const bleeds = vw - col.right <= BLEED_MAX;
   const edge = bleeds ? vw : col.right;
   // What the bar can give, and never less than one whole occupant: the bar

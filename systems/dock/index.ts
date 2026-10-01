@@ -1,5 +1,5 @@
 // =============================================================================
-// Dock System — shared "Live Activity" pill ⇄ panel surface
+// Dock System: shared "Live Activity" pill ⇄ panel surface
 //
 // A coordination layer (DockProvider/useDock) + a reusable morph primitive
 // (LiveActivity) + the top-of-screen layout (Dock). Activities from other

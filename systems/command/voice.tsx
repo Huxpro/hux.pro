@@ -9,7 +9,7 @@ import { useEffect, useRef, type KeyboardEvent, type PointerEvent } from "react"
 import { useCommand } from "./provider";
 
 // =============================================================================
-// Voice in the palette — speak into the search field.
+// Voice in the palette: speak into the search field.
 //
 // The microphone sits in the field's trailing cluster (both shells). Pressed,
 // the field listens (systems/voice): the words fill it as they are heard, the
@@ -18,22 +18,22 @@ import { useCommand } from "./provider";
 //
 // Every way in answers a tap and a hold, the way dictation tools do (Wispr
 // Flow's held Fn, macOS's Globe): a tap starts listening and the speaker's
-// pause ends it; a hold of HOLD_MS or more is push-to-talk — letting go
+// pause ends it; a hold of HOLD_MS or more is push-to-talk, and letting go
 // sends what was said. Three ways in, all inside the palette, so none can
-// collide with a system-wide dictation key (Fn / Globe, Win+H, ⌥Space —
-// which a page cannot see or should not take):
+// collide with a system-wide dictation key (Fn / Globe, Win+H, ⌥Space, which
+// a page cannot see or should not take):
 //
 //   the microphone          press / press and hold
 //   `/` `V`                 tap / hold the V
-//   Space in an empty field hold (a tap does nothing — a leading space
+//   Space in an empty field hold (a tap does nothing; a leading space
 //                           means nothing to a search)
 //
-// While it listens, the field wears the site's glow along its bottom edge —
+// While it listens, the field shows the site's glow along its bottom edge:
 // the `line` shape of the same light the About rings the screen with
 // (systems/glow). It rises and spreads with the voice and ripples with its
-// bands; when the speaker pauses and the words are being settled, it gathers
-// into one beam travelling the edge — the glow's `processing` — and fades as
-// the phrase lands.
+// bands. When the speaker pauses and the words are being settled, it gathers
+// into one beam travelling the edge (the glow's `processing`) and fades once
+// the final phrase is in.
 // =============================================================================
 
 const LANG = { en: "en-US", zh: "zh-CN" } as const;
@@ -41,7 +41,7 @@ const LANG = { en: "en-US", zh: "zh-CN" } as const;
 /**
  * What was said, as a query: the field hears intent, not a sentence. "Go to
  * the writing", "open works", "show me the wallpaper", "打开写作" arrive as
- * "writing", "works", "wallpaper", "写作" — the words cmdk can match.
+ * "writing", "works", "wallpaper", "写作": the words cmdk can match.
  */
 const FILLER_EN =
   /^(?:(?:please|hey|ok|okay)[,\s]+)?(?:(?:go|take me|navigate|jump|switch)\s+to|open(?:\s+up)?|show(?:\s+me)?|search(?:\s+for)?|find|play|turn(?:\s+on|\s+off)?)\s+(?:(?:the|my|a)\s+)?/i;
@@ -69,7 +69,7 @@ export function useCommandVoice(setValue: (text: string) => void): VoiceInput {
     onFinal: (said) => setValue(toQuery(said)),
   });
 
-  // `/` `V`: each request starts one session — whether it opened the palette
+  // `/` `V`: each request starts one session, whether it opened the palette
   // (this field mounts with it pending) or arrived while the field was up.
   // Counted at module level, so a field remounting never replays an old one.
   // A request made by a key follows that key: its repeats are swallowed (they

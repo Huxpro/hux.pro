@@ -17,22 +17,22 @@ import {
 } from "../lib/chrome";
 
 // ---------------------------------------------------------------------------
-// SurfaceSwitch — the exclusive player views: Theater · PiP · Audio.
+// SurfaceSwitch: the exclusive player views (Theater · PiP · Audio).
 //
 // Only one surface can be up at a time. The lifted pill is the *current*
 // view (not an action). The other segments are the only legal moves.
 // In theater / PiP the Audio move is a Minimize icon (the action) with a
 // "keep listening" hint. In the Live Activity the same view shows Volume2
-// + Audio / 声音 — that surface already *is* the audio activity.
+// + Audio / 声音, because that surface already *is* the audio activity.
 //
 // A deck has no audio to keep: for it the third view is plainly Minimize,
 // icon and word, everywhere. The switch reads the track off the theater
 // itself, so every host of it agrees on what is on the stage.
 //
 // The highlight is one absolutely-positioned ball. It animates x/width when
-// `current` changes. It does NOT use layoutId — a shared-element projection
-// would also tween when the parent PiP window is dragged, so the ball trails
-// the finger. A transform on a child stays glued to the track.
+// `current` changes. It does NOT use layoutId: a shared-element projection
+// would also tween when the parent PiP window is dragged, so the ball would
+// trail the finger. A transform on a child stays glued to the track.
 // ---------------------------------------------------------------------------
 
 export type TheaterSurface = "theater" | "pip" | "mini";
@@ -60,7 +60,7 @@ interface SurfaceSwitchProps {
   /** Text labels (Live Activity). Icon-only in the tight PiP / theater bars. */
   labels?: boolean;
   /**
-   * When false, no outer track — parent already provides the capsule
+   * When false, no outer track; the parent already provides the capsule
    * (one window toolbar instead of nested glass).
    */
   framed?: boolean;

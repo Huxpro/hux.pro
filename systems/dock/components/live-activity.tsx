@@ -15,20 +15,20 @@ import { OCCUPANT_TRANSITION, useBandOccupant } from "./use-band-occupant";
 import { useDock } from "../provider";
 
 // ---------------------------------------------------------------------------
-// LiveActivity — the shared collapsed-pill ⇄ expanded-panel morph.
+// LiveActivity: the shared collapsed-pill ⇄ expanded-panel morph.
 //
 // This is the canonical "Global Player" UI, extracted so every dock activity
 // (music, ambient phase changes, …) is visually identical. Callers supply only
 // the *content*:
-//   • `pill`   — leading content of the collapsed pill (icon, art, EQ bars…)
-//   • `title`  — left side of the expanded panel header
-//   • children — the expanded panel body
+//   • `pill`:   leading content of the collapsed pill (icon, art, EQ bars…)
+//   • `title`:  left side of the expanded panel header
+//   • children: the expanded panel body
 //
 // The panel is a Base UI Drawer travelling UP, the mirror of the phone sheet in
 // systems/surface: the Dynamic Island metaphor is anchored at the top and puts
 // itself away upwards, the opposite of a sheet. Everything the dock used to
-// hand-write — the drag, the enter/exit animation, the scrim, Escape — is the
-// library's now, or CSS ("Dock panel motion" in globals.css). What stays here
+// hand-write (the drag, the enter/exit animation, the scrim, Escape) is now
+// the library's, or CSS ("Dock panel motion" in globals.css). What stays here
 // is what Base UI has no opinion about: which activity is open (provider.tsx),
 // and that a panel steps back when a sheet rises over it (the shared surface
 // stack).
@@ -36,16 +36,16 @@ import { useDock } from "../provider";
 // Two things the drawer brought that the hand-written panel could not:
 //
 //   Pull to expand.  `Drawer.SwipeArea` wraps the pill, so dragging DOWN from
-//   it opens the panel and the panel follows the finger the whole way — iOS's
-//   Notification Center, rather than a pill you may only tap.
+//   it opens the panel and the panel follows the finger the whole way, like
+//   iOS's Notification Center, rather than a pill you may only tap.
 //
 //   Stacking.  The panel registers in the shared surface stack (stack.ts), so
 //   it is no longer the one overlay on the site that does not know about the
-//   others. A palette opened over it — from the keyboard; a press on the FAB
-//   is an outside press and dismisses instead — sends it back a step and makes
-//   it inert, and a panel opened over the playlist sheet sends that back
-//   instead. The same step the palette takes when the wallpaper picker rises
-//   over it.
+//   others. A palette opened over it from the keyboard sends it back a step
+//   and makes it inert (a press on the FAB is an outside press and dismisses
+//   it instead). A panel opened over the playlist sheet sends that sheet back
+//   instead. It is the same step the palette takes when the wallpaper picker
+//   rises over it.
 //
 // See docs/system-dock.md for what was measured on the way here, including the
 // two capabilities that were tried and left out.
@@ -54,11 +54,11 @@ import { useDock } from "../provider";
 // -----------------------------------------------------------------------------
 // BEFORE CHANGING THIS FILE, OR THE "Dock panel motion" BLOCK IN globals.css:
 // read the "BEFORE CHANGING THIS FILE" list at the top of
-// systems/surface/sheet.tsx. Every item on it applies here too — this is the
+// systems/surface/sheet.tsx. Every item on it applies here too: this is the
 // same library, the same data attributes, the same custom properties. Five
-// things are specific to this panel, and each was found the hard way — four of
-// them by reading Base UI 1.8's source rather than its types, the fourth by
-// looking at the thing move and measuring it:
+// things are specific to this panel, and each was found the hard way. Four of
+// them came from reading Base UI 1.8's source rather than its types; the
+// fourth came from watching the panel move and measuring it:
 //
 // 1. A dismiss drag and a `Drawer.SwipeArea` drag move the popup by different
 //    means. The dismiss drag writes an inline `transform` on the popup
@@ -66,7 +66,7 @@ import { useDock } from "../provider";
 //    stylesheet; the swipe area writes only `--drawer-swipe-movement-y` and
 //    inlines `transition: none`, so the CSS has to do the moving. That is why
 //    the swiping rule in globals.css exists, and why it is scoped to
-//    `[data-starting-style]` — on the frame a dismiss is released the popup
+//    `[data-starting-style]`. On the frame a dismiss is released, the popup
 //    carries `data-swiping` and `data-ending-style` at once, and a rule that
 //    pinned it to the finger there would strand it instead of letting it go.
 // 2. `--drawer-snap-point-offset` is sign-corrected for `up` (DrawerPopup.js),
@@ -76,7 +76,7 @@ import { useDock } from "../provider";
 //    have none for that reason; see docs/system-dock.md.
 // 3. `Drawer.SwipeArea` renders `role="presentation" aria-hidden`, which would
 //    take the pill button out of the accessibility tree with it. It is a
-//    wrapper here, not an overlay — an overlay would eat the tap — and it opts
+//    wrapper here, not an overlay (an overlay would eat the tap), and it opts
 //    back in with `aria-hidden={false}`. `role="presentation"` on a plain div
 //    changes nothing and stays.
 // 4. Opacity belongs ON the glass, never on a box that contains it. An element
@@ -84,17 +84,17 @@ import { useDock } from "../provider";
 //    it samples that empty group instead of the page and the glass is not there
 //    at all while the animation runs; on the element that carries the blur the
 //    same opacity is fine, because its own backdrop resolves before its opacity
-//    applies. A fade on the popup made the panel see-through on the way in, the
-//    page's text legible through it, unblurred — shipped and reverted. A/B'd at
-//    the same opacity on the same frame: on the shell the text behind it is
-//    blurred, on the popup it is sharp. So the popup, which holds no glass,
-//    carries the transform, and the fades sit one level down on the shell and
-//    on the pill, which are the glass.
+//    applies. A fade on the popup made the panel see-through on the way in,
+//    with the page's text legible through it, unblurred. That shipped and was
+//    reverted. A/B'd at the same opacity on the same frame: on the shell the
+//    text behind it is blurred, on the popup it is sharp. So the popup, which
+//    holds no glass, carries the transform, and the fades sit one level down
+//    on the shell and on the pill, which are the glass.
 // 5. The panel's closed transform may scale but must not translate. Base UI
 //    measures how far "closed" is by reading the popup's transform when a
 //    `Drawer.SwipeArea` drag starts (`resolveClosedOffset`, `min(height,
-//    |translateY|)`) — and it reads it *before* it marks the popup as swiping,
-//    so it sees the closed rule in globals.css. A `translateY(-10px)` there
+//    |translateY|)`). It reads it *before* it marks the popup as swiping, so
+//    it sees the closed rule in globals.css. A `translateY(-10px)` there
 //    told it the panel was ten pixels from open: a pull that should track the
 //    finger down a whole panel height tracked ten pixels and then overshot
 //    (measured `--drawer-swipe-movement-y` of +12px where −170 was due). A pure
@@ -137,8 +137,8 @@ export function LiveActivity({
   const { isOpen, isAnyOpen, noticeUp, open, close, registerActivity } =
     useDock();
   // The band (band.ts): once a page's pinned bar has met it, the pill takes
-  // the shape its configuration gives it — a pill, or a ball of what leads
-  // it — and a count keeps it out of sight until it is opened.
+  // the shape its configuration gives it (a pill, or a ball of what leads
+  // it), and a count keeps it out of sight until it is opened.
   const { glassRef, contentRef, natural, ball, counted, width } = useBandOccupant();
   const expanded = isOpen(id);
 
@@ -158,9 +158,9 @@ export function LiveActivity({
   //
   // The mirror of a sheet's: a sheet hangs from a pinned bottom edge, so its
   // height says where its top is; the panel hangs from a pinned top edge, so
-  // its height says where its bottom is. Layout values only — `offsetTop` on
-  // the popup, `offsetHeight` on the shell — because the travel in and the
-  // recede are both transforms on these very elements.
+  // its height says where its bottom is. Layout values only (`offsetTop` on
+  // the popup, `offsetHeight` on the shell), because the travel in and the
+  // recede are both transforms on these same elements.
   const shellRef = useRef<HTMLDivElement>(null);
   const measure = useCallback(() => {
     const shell = shellRef.current;
@@ -182,14 +182,14 @@ export function LiveActivity({
       // Up, not down. The panel is anchored at the top and puts itself away
       // over the top edge; a sheet does the mirror of this.
       swipeDirection="up"
-      // No focus trap and no scroll lock — a Live Activity is a notification,
-      // not a launcher, and the page behind it goes on. Pointer dismissal
+      // No focus trap and no scroll lock. A Live Activity is a notification,
+      // not a launcher, and the page behind it stays usable. Pointer dismissal
       // stays ON, unlike the secondary surfaces (see AdaptiveSurface for why
       // theirs is off): a press anywhere else puts the notification away,
       // which is what the dock's own transparent scrim used to do.
       modal={false}
     >
-      {/* Collapsed pill — a flex item in the dock row, and the drawer's
+      {/* Collapsed pill: a flex item in the dock row, and the drawer's
           trigger. It stays mounted while a panel is open so the row keeps its
           layout; it just goes invisible and stops taking pointers, because the
           open panel should stand alone. A notice (dock-notice.tsx) stands
@@ -235,8 +235,8 @@ export function LiveActivity({
 
       <Drawer.Portal>
         {/* The same full-screen box the sheets use, so the bezel knows about
-            this layer. Non-modal, so it never walls the page off — which is
-            the one place the drawer does not replicate the old dock: the
+            this layer. Non-modal, so it never walls the page off. This is
+            the one place the drawer does not replicate the old dock. The
             transparent scrim used to eat every press, so with a panel open the
             command palette's FAB could not be reached. Now the press both
             dismisses the panel (Base UI's outside press) and lands where it
@@ -246,7 +246,7 @@ export function LiveActivity({
         <SurfaceViewport modal={false} layer={rank}>
           <Drawer.Popup
             data-dock-panel=""
-            // The dock's expanded shape — see the note in dock.tsx. On the
+            // The dock's expanded shape (see the note in dock.tsx). On the
             // popup rather than the shell: the shell carries the surface
             // stack's recede transform, so its box shrinks when something
             // rises over it; the popup's is where the panel actually stands.
@@ -296,14 +296,14 @@ export function LiveActivity({
                   </Drawer.Close>
                 </div>
 
-                {/* Body is padding-agnostic — each activity supplies content
+                {/* Body is padding-agnostic: each activity supplies content
                     that already carries its own padding (a <NowPlaying />
                     wrapper, a full weather card, …) so the panel can host any
                     widget body. */}
                 {children}
               </Drawer.Content>
 
-              {/* Grabber — swipe up to collapse. Outside Drawer.Content, so a
+              {/* Grabber: swipe up to collapse. Outside Drawer.Content, so a
                   mouse drag on it is a drag. */}
               <div className="flex justify-center pb-2">
                 <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />

@@ -9,8 +9,8 @@ const GREY = 0.03;
 
 /**
  * Publishes the wallpaper's dominant colour to the glow (lib/harmony.ts): the
- * ambient profile's `tint` — a photograph's measured once, the Sky's read off
- * the live scene — or null for a grey picture and the plain page. Mounted
+ * ambient profile's `tint` (a photograph's measured once, the Sky's read off
+ * the live scene), or null for a grey picture and the plain page. Mounted
  * once, inside the ambient provider; renders nothing.
  */
 export function GlowPaletteBridge() {

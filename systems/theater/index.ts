@@ -1,5 +1,5 @@
 // =============================================================================
-// Theater System — immersive video player (theater modal + universal PiP)
+// Theater System: immersive video player (theater modal + universal PiP)
 //
 // A global, persistent video system modeled on the Music system: one player
 // that survives mode + route changes, surfaced as a large desktop theater
