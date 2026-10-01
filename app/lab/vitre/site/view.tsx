@@ -1,12 +1,12 @@
 "use client";
 
 // =============================================================================
-// /lab/vitre/site — the library template's "On hux.pro" page, for Vitre.
+// /lab/vitre/site: the library template's "On hux.pro" page, for Vitre.
 //
 // How this site uses its own package, read-only: what vitre is drawing on
 // this page now (from the package, useVitre), the site's rule for when the
 // bezel is on (systems/ambient/lib/bezel.ts), and the files it lives in. It
-// changes nothing — the knobs are the devtool's, one explicit tap away.
+// changes nothing; the knobs are the devtool's, one explicit tap away.
 // =============================================================================
 
 import { LabButton, LabSection, LibraryFiles, LibraryShell, useLabStrings, type LibraryFile } from "@/systems/lab";

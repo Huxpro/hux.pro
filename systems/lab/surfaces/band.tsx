@@ -9,7 +9,7 @@ const BAR = { left: 24, right: 366, outset: OUTSET_X, natural: 300, min: 150 };
 
 /**
  * The Band Lab at a glance: a phone's top edge as the band is composed right
- * now (the lab's configuration, or the tray when the site is stacking) — laid
+ * now (the lab's configuration, or the tray when the site is stacking), laid
  * out by the band's own geometry (systems/dock/band.ts), for a pinned bar and
  * three occupants. It takes no taps; the card does.
  */

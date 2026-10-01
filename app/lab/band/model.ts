@@ -1,7 +1,7 @@
 import { GAP, type BandState } from "@/systems/dock";
 
 // =============================================================================
-// The Band Lab's model — what it can put on the page, and how it holds the
+// The Band Lab's model: what it can put on the page, and how it holds the
 // page to the band's four rules.
 //
 // Nothing here draws. The lab's stage is the site itself: the real Dock, its

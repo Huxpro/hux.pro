@@ -7,7 +7,7 @@ import { useOptionalWallpaper } from "@/systems/ambient";
 import { SurfaceFrame } from "./frame";
 import { SURFACE_STRINGS } from "./strings";
 
-/** The ink ladder, top rung to bottom — the four the site sets text in. */
+/** The ink ladder, top rung to bottom: the four the site sets text in. */
 const RUNGS = [
   { name: "ink", className: "text-foreground" },
   { name: "muted", className: "text-muted-foreground" },
@@ -17,7 +17,7 @@ const RUNGS = [
 
 /**
  * The Legibility Lab at a glance: the ink ladder over whatever is painting,
- * and what the policy resolved for it — the readout the devtool's Glass row
+ * and what the policy resolved for it: the readout the devtool's Glass row
  * prints, the lab's first question asked of the wallpaper right now.
  *
  * The well is clear here, not the family's muted ground: the question is the

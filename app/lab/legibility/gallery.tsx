@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Gallery — every wallpaper at once, each under its own resolved policy.
+// Gallery: every wallpaper at once, each under its own resolved policy.
 //
 // A tile is an `.ink-scope`: it carries the CSS variables the provider would
 // write for that wallpaper, so its ladder and relief are derived locally from
@@ -13,7 +13,7 @@
 // morning, sunrise, sunset) for the visitor's coordinates, derived by the
 // same `deriveWeatherScene` the page uses and profiled the same way
 // (`profileFromScene`; Classic keeps its measured table). The tile paints the
-// style's CSS gradient — for the Sky that is the Gradient it falls back to,
+// style's CSS gradient. For the Sky that is the Gradient it falls back to,
 // the same palette without the shader's texture.
 // =============================================================================
 

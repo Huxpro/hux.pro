@@ -23,7 +23,7 @@ import {
 import { VITRE_STRINGS } from "./strings";
 
 // =============================================================================
-// The simulator — an iPhone, drawn, running the Vitre demo.
+// The simulator: an iPhone, drawn, running the Vitre demo.
 //
 // The demo has to be a document of its own: <Vitre> takes over the page it
 // is on (the root's attributes, where the page scrolls, Safari's chrome). So
@@ -40,7 +40,7 @@ export const PHONE = { width: 402, height: 874, status: 62 };
 const TOOLBAR = { expanded: 86, collapsed: 40 };
 /** Scroll distance, px, before the simulated toolbar changes state. */
 const TOOLBAR_THRESHOLD = 8;
-/** The demo build's page (the catalog's `demo`), never redirected — /vitre sends anything but a phone to the lab. */
+/** The demo build's page (the catalog's `demo`), never redirected. /vitre sends anything but a phone to the lab. */
 export const DEMO_URL = libraryById("vitre").library.demo;
 
 function luminance(color: string | null): number {
@@ -74,7 +74,7 @@ function useSimulatedToolbar(): [boolean, (scroll: PhoneScroll) => void] {
 /**
  * The phone's latest report, outside React state: it arrives several times a
  * second while the demo scrolls, and only the phone and the active section's
- * readout read it (usePhoneReport) — not the whole article around them.
+ * readout read it (usePhoneReport), not the whole article around them.
  */
 export interface ReportStore {
   get: () => PhoneReport | null;
@@ -196,7 +196,7 @@ export function usePhoneBridge(
  * The drawn iPhone, scaled to `scale`, with the demo inside.
  *
  * Scaled by `zoom`, not a transform. A transform resamples the demo's pixels,
- * so every edge in it — the iframe's sides, the bezel's bands and corners —
+ * so every edge in it (the iframe's sides, the bezel's bands and corners)
  * lands between device pixels and shows a hairline of whatever is behind.
  * Zoomed, the demo lays out at its 402pt and renders at a finer device pixel
  * ratio, so its edges snap like any page under browser zoom. A browser that

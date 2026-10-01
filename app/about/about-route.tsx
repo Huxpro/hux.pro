@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 
 /**
  * Opens the About on arrival at `/about`, and when it is put away, leaves the
- * address as `/` — the page underneath already is the home screen, so the
+ * address as `/`. The page underneath already is the home screen, so the
  * history entry is swapped rather than navigated (no remount, no scroll).
  */
 export function AboutRoute() {

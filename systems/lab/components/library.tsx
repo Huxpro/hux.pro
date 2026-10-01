@@ -11,14 +11,14 @@ import { useLabStrings, type LabTable } from "../i18n";
 import { LabShell, labButtonClass } from "./shell";
 
 // =============================================================================
-// The library template — one shape for every library the lab publishes.
+// The library template: one shape for every library the lab publishes.
 //
 // A library lab is a study that left: a system of this site, published as a
 // package. Its lab is its home, and every library's home has the same three
 // pages under the same bar, so a new library brings its words and its demo,
 // not a design:
 //
-//   Docs        /lab/<id>        the guide — the library's own body (Vitre's
+//   Docs        /lab/<id>        the guide: the library's own body (Vitre's
 //                                is an article beside a simulated iPhone)
 //   API         /lab/<id>/api    every export and every public type, from
 //                                data the package type-checks (LibraryApi)
@@ -27,7 +27,7 @@ import { LabShell, labButtonClass } from "./shell";
 //
 // The pages are the bar's actions (LibraryPages), so they stay put while a
 // page's own tools scroll; the header (LibraryHeader) opens each page with
-// what a developer checks first — version, requirements, where to get it.
+// what a developer checks first: version, requirements, where to get it.
 // =============================================================================
 
 export type LibraryPage = "docs" | "api" | "site";
@@ -100,7 +100,7 @@ export function LibraryShell({
   );
 }
 
-/** Docs · API · On hux.pro — the same three, in every library's bar. */
+/** Docs · API · On hux.pro: the same three, in every library's bar. */
 function LibraryPages({ lab, page }: { lab: LibraryLab; page: LibraryPage }) {
   const L = useLabStrings(LIBRARY_STRINGS);
   return (
@@ -126,7 +126,7 @@ function LibraryPages({ lab, page }: { lab: LibraryLab; page: LibraryPage }) {
 
 /**
  * What a developer checks before reading on: the package's name and version,
- * what it needs, and where to get it — read from its package.json (the
+ * what it needs, and where to get it. Read from its package.json (the
  * catalog's `library`), so it cannot drift from what ships.
  */
 export function LibraryHeader({ lab }: { lab: LibraryLab }) {
@@ -163,7 +163,7 @@ export function LibraryHeader({ lab }: { lab: LibraryLab }) {
   );
 }
 
-/** The package in one mono line — `vitre v0.1.0 · React >=19 · not on npm yet` — for a card. */
+/** The package in one mono line (`vitre v0.1.0 · React >=19 · not on npm yet`), for a card. */
 export function LibraryFacts({ lab, className }: { lab: LibraryLab; className?: string }) {
   const L = useLabStrings(LIBRARY_STRINGS);
   const { package: name, version, requires, npm } = lab.library;
@@ -221,7 +221,7 @@ function matches(query: string, ...texts: string[]): boolean {
   return !q || texts.some((t) => t.toLowerCase().includes(q));
 }
 
-/** Every export, by kind, then every public type's fields — filtered by name. */
+/** Every export, by kind, then every public type's fields, filtered by name. */
 export function ApiReference({ api, query = "" }: { api: LibraryApi; query?: string }) {
   const L = useLabStrings(LIBRARY_STRINGS);
   const { locale } = useLocale();

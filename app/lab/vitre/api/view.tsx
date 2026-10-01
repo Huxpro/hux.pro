@@ -4,7 +4,7 @@ import { ApiFilter, ApiReference, LibraryShell } from "@/systems/lab";
 import { useState } from "react";
 import { VITRE_API } from "../api";
 
-/** /lab/vitre/api — the library template's API page, with Vitre's data. */
+/** /lab/vitre/api: the library template's API page, with Vitre's data. */
 export function VitreApiView() {
   const [query, setQuery] = useState("");
   return (

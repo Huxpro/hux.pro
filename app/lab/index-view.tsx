@@ -14,13 +14,13 @@ import { Link } from "next-view-transitions";
 import type { ReactNode } from "react";
 
 /**
- * `/lab` — every lab as a card wearing its surface: the same small, live
+ * `/lab`: every lab as a card wearing its surface, the same small, live
  * view of the lab the home screen's Lab widget rotates through. A card is
  * one link; the surface inside it takes no taps of its own.
  *
- * Two sections, libraries first. A library is a lab that shipped — a
+ * Two sections, libraries first. A library is a lab that shipped. It makes a
  * different promise (you can use it) to a different reader (a developer),
- * so it is not one more card with a tag: it leads, as a wide card with the
+ * so it is not one more card with a tag. It leads, as a wide card with the
  * package's facts. The studies follow, the site laid open.
  *
  * No paragraph first: the cards say what the labs are. What sits under the

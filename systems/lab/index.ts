@@ -1,5 +1,5 @@
 // =============================================================================
-// Lab — the site studied from the inside, and the libraries it publishes.
+// Lab: the site studied from the inside, and the libraries it publishes.
 // See docs/system-lab.md.
 // =============================================================================
 

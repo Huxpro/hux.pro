@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Lab strings — both languages, keyed, local to the lab.
+// Lab strings: both languages, keyed, local to the lab.
 //
 // The lab is a devtool, so its copy lives beside it rather than in the site
 // dictionary (`lib/i18n.ts`), which holds the strings visitors see. Knob

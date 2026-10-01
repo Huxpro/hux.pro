@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Attachments Lab — /lab/attachments
+// Attachments Lab: /lab/attachments
 //
 // The devtool for the attachments system: the question "what happens when I
 // press this?", answered for every kind of thing a commit attaches, on every
@@ -10,13 +10,13 @@
 // Four things on the stage, none of them mocks:
 //
 //   vocabulary   the chips a cover can wear (media-mark.tsx), at each size,
-//                on the log's own covers — the platform on a recording (and
+//                on the log's own covers: the platform on a recording (and
 //                on a recording that lives on a page, the one case where a
 //                play chip opens the in-app browser), `Slides` on a deck,
 //                `New tab` on a page whose press leaves the site; and, in
 //                the peek's tier, a chip on every kind.
-//   homes        the policy (systems/attachments/lib/policy.ts) as a table —
-//                where a tap lands and where the surface's button sends it —
+//   homes        the policy (systems/attachments/lib/policy.ts) as a table
+//                (where a tap lands and where the surface's button sends it)
 //                for a context you set: phone or not, a theater, a window
 //                manager. It reads the real functions, so the table cannot
 //                drift from the site.
@@ -95,7 +95,7 @@ export interface LabSamples {
   vimeo?: VideoMedia;
   slides?: SlidesMedia;
   /**
-   * A recording that lives on a page — a GitNation talk. The special case:
+   * A recording that lives on a page, such as a GitNation talk. The special case:
    * it is a recording (the play chip, the host's name) that opens in the
    * in-app browser rather than on the stage.
    */
@@ -196,7 +196,7 @@ function HomeChip({ home, compact }: { home: AttachmentHome; compact: boolean })
 // Small parts
 // -----------------------------------------------------------------------------
 
-/** A stage section's heading — the family's label (see LabSection). */
+/** A stage section's heading: the family's label (see LabSection). */
 function Label({ children }: { children: React.ReactNode }) {
   return <h2 className={cn("ink-bare mb-3", TYPE.label)}>{children}</h2>;
 }

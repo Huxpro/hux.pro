@@ -23,7 +23,7 @@ export const metadata = {
 
 /**
  * One attachment of each kind, taken from the log itself so the specimens are
- * the site's own — the first the log has of each, in authored order.
+ * the site's own: the first the log has of each, in authored order.
  */
 function pickSamples(): LabSamples {
   const { commits } = enrichLogDataWithPreviews(getLogData());

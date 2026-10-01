@@ -1,6 +1,6 @@
 import type { LabTable } from "@/systems/lab";
 
-// /lab/vitre/site — how this site uses vitre. Code names stay as written.
+// /lab/vitre/site: how this site uses vitre. Code names stay as written.
 
 const en = {
   now: "Now, on this page",

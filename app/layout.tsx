@@ -42,7 +42,7 @@ import "./globals.css";
 
 // Italic is loaded, not synthesized. The site marks Latin work titles with
 // it (`*The Gay Science*`), and a slanted-by-the-browser Inter is a sheared
-// roman, not Inter Italic — which is drawn, with its own `a` and `f`.
+// roman, not Inter Italic. Inter Italic is drawn, with its own `a` and `f`.
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
@@ -79,7 +79,7 @@ export const metadata: Metadata = {
     template: "%s | Hux.Pro",
   },
   description: "Prose, Profession, Programming, Production, Projects",
-  // Generative app icon — authored in the Icon Lab (`/lab/icon`), rendered from
+  // Generative app icon: authored in the Icon Lab (`/lab/icon`), rendered from
   // `content/icon.json` by `pnpm icon:generate`. SVG for modern browser tabs,
   // PNG apple-touch-icon for the iOS home screen; Android/PWA icons come from
   // the web manifest (app/manifest.ts). favicon.ico covers legacy.

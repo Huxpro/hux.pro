@@ -1,9 +1,9 @@
 // =============================================================================
-// Works Lab strings — both languages, keyed. See `systems/lab/i18n.ts`.
+// Works Lab strings: both languages, keyed. See `systems/lab/i18n.ts`.
 //
-// What stays as written in both: the values log.json holds — commit types,
+// What stays as written in both: the values log.json holds (commit types,
 // media kinds, `en` / `zh` / `both`, `date` / `endDate`, platform names,
-// identity handles — and the JSON field names a note refers to
+// identity handles), and the JSON field names a note refers to
 // (`attachedTo`, `identityId`). Where a picker shows such a value, the
 // Chinese adds a gloss after it rather than replacing it, so what you pick
 // is still what you would search log.json for.
@@ -34,12 +34,12 @@ const en = {
   meta: (commits: number, tags: number, identities: number) =>
     `${commits} commits · ${tags} tags · ${identities} identities`,
 
-  // Inspector — shared
+  // Inspector: shared
   inspectMode: "Inspect mode",
   noSelection: "No selection",
   closeInspector: "Close inspector",
 
-  // Commit editor — header, tabs, JSON
+  // Commit editor: header, tabs, JSON
   tabForm: "Form",
   tabJson: "JSON",
   deleteCommit: "Delete commit",
@@ -204,12 +204,12 @@ const zh: typeof en = {
   meta: (commits: number, tags: number, identities: number) =>
     `${commits} 条提交 · ${tags} 个标签 · ${identities} 个身份`,
 
-  // Inspector — shared
+  // Inspector: shared
   inspectMode: "检查模式",
   noSelection: "未选中任何内容",
   closeInspector: "关闭检查器",
 
-  // Commit editor — header, tabs, JSON
+  // Commit editor: header, tabs, JSON
   tabForm: "表单",
   tabJson: "JSON",
   deleteCommit: "删除提交",

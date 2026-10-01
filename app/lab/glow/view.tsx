@@ -28,15 +28,15 @@ import {
 } from "react";
 
 // =============================================================================
-// /lab/glow — the Glow Lab: the site's one light, at every scale.
+// /lab/glow, the Glow Lab: the site's one light, at every scale.
 //
-// The lab for systems/glow: one set of controls — on, level, processing, a
-// real microphone — driving every specimen at once, from a screen down to a
+// The lab for systems/glow: one set of controls (on, level, processing, a
+// real microphone) driving every specimen at once, from a screen down to a
 // word. The first row is where the glow lives in production; the second is
 // where it could, drawn so the question "does this belong here?" can be
 // answered by looking. Nothing here is a mock of the glow: every specimen is
 // the production <Glow>, drawn by the one shared renderer. Between them, the
-// three motions (flow, rotate, pulse — inside and out) side by side, with a
+// three motions (flow, rotate, pulse; inside and out) side by side, with a
 // period to drag.
 // =============================================================================
 
@@ -306,8 +306,8 @@ export function GlowLabView() {
           </div>
         }
       >
-        {/* Each motion beside Libraries.dev's border-beam — the reference
-            they were rebuilt against — on the same host, in the same
+        {/* Each motion beside Libraries.dev's border-beam (the reference
+            they were rebuilt against), on the same host, in the same
             theme: left is theirs, right is ours. */}
         <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
           <p className={cn(TYPE.label, "hidden sm:block")}>{S.reference}</p>

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { SurfaceFrame } from "./frame";
 
 /**
- * The Vitre lab at a glance: the library, not this site's use of it — a phone
+ * The Vitre lab at a glance: the library, not this site's use of it. A phone
  * as the demo draws itself by default, in the bezel's black with the page's
  * aurora inside and Safari's bars taking the colour, and what the package is.
  */

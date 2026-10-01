@@ -29,13 +29,13 @@ import { WorksActions, WorksTools } from "./toolbar";
 import { CommitEditor } from "./commit-editor";
 import { TagEditor } from "./tag-editor";
 
-// The Works Lab — /lab/works. content/log.json, printed by the production
+// The Works Lab: /lab/works. content/log.json, printed by the production
 // timeline in each of its forms, and (on a wide screen) edited in place:
 // Inspect selects a commit or a tag on the timeline itself, the inspector
 // beside it edits it, Save writes the file back through /api/log (next dev).
 
 // Static-import the snapshot so the lab preview can resolve previews and
-// video covers client-side — the same merging /works does server-side. URLs
+// video covers client-side: the same merging /works does server-side. URLs
 // not in the snapshot still need `pnpm og:snapshot` to gain a baked preview;
 // the LinkCard component's runtime fetch is the third-tier fallback.
 const ogSnapshot = ogSnapshotJson as OGSnapshot;
@@ -67,7 +67,7 @@ export function WorksLabView({ initialData }: WorksLabViewProps) {
   const effectiveMode: InspectMode = inspectDisabled ? "preview" : mode;
   const inspecting = effectiveMode === "inspect";
 
-  // Derive preview data — runs the snapshot enrichment (same as /works does
+  // Derive preview data. Runs the snapshot enrichment (same as /works does
   // server-side) so flipping a media item to `present:"card"` immediately
   // surfaces the OG cover in the hover/peek view, provided the URL is in the
   // snapshot. URLs that aren't snapshotted yet need `pnpm og:snapshot`.

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * `/about` is the home screen with the About already up — the address to
+ * `/about` is the home screen with the About already up: the address to
  * share. The About itself is a surface over every page (systems/about); this
  * route only asks for it.
  */

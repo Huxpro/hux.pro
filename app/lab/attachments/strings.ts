@@ -1,8 +1,8 @@
 // =============================================================================
-// Attachments Lab strings — both languages, keyed (see systems/lab/i18n.ts).
+// Attachments Lab strings: both languages, keyed (see systems/lab/i18n.ts).
 //
-// Labels are translated; the identifiers they name — component, function and
-// prop names, file and route paths, platform names — are not.
+// Labels are translated; the identifiers they name (component, function and
+// prop names, file and route paths, platform names) are not.
 // =============================================================================
 
 import type { LabTable } from "@/systems/lab";

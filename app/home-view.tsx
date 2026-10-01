@@ -45,7 +45,7 @@ import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
 import dynamic from "next/dynamic";
 
 // Off until a visitor adds it (HOME_WIDGETS), and the server always renders
-// the defaults — so the Lab widget and every lab surface it rotates through
+// the defaults, so the Lab widget and every lab surface it rotates through
 // (Glow's renderer, the icon's) load only for a visitor who has it on.
 const LabWidget = dynamic(() => import("@/components/home/lab-widget").then((m) => m.LabWidget), {
   ssr: false,
@@ -62,7 +62,7 @@ const WIDGET_TITLES = Object.fromEntries(HOME_WIDGETS.map((w) => [w.id, w.title]
 // =============================================================================
 
 // Enrich with OG previews (same as /works and the editor preview do) so link
-// cards resolve their cover image from the snapshot — otherwise widget covers
+// cards resolve their cover image from the snapshot. Otherwise widget covers
 // that rely on OG images (e.g. GitNation talk cards) render empty.
 const log = enrichLogDataWithPreviews(
   normalizeLogData(logData as unknown as RawLogData),
@@ -206,8 +206,8 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
     // not a document that starts at the top. `min-h-svh` + auto margins on the
     // inner block let it sit optically centered in the viewport once there is
     // room to spare (tall desktops, iPad Pro portrait) while collapsing to the
-    // old top-anchored layout the moment the content is taller than the screen
-    // — phones, tablets and normal laptops lay out exactly as before.
+    // old top-anchored layout the moment the content is taller than the screen.
+    // Phones, tablets and normal laptops lay out exactly as before.
     // Auto margins (rather than `justify-center`) are what make that safe: an
     // overflowing composition still starts at the top edge instead of being
     // clipped above it.
@@ -242,7 +242,7 @@ export function HomeView({ posts }: { posts: BlogPostSummary[] }) {
           </HeaderZone>
         </div>
 
-        {/* Widget grid — owns its own responsive width so column count and
+        {/* Widget grid. Owns its own responsive width so column count and
             container width stay in step (see SortableMasonry's `gridScale`). */}
         <WidgetGrid
           posts={posts}

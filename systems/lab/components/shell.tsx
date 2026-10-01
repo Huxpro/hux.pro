@@ -15,21 +15,21 @@ import { useFrameStrings } from "../i18n";
 import { LabNav } from "./nav";
 
 // =============================================================================
-// The lab shell — one frame for every lab.
+// The lab shell: one frame for every lab.
 //
 // A lab opens on its work, not on a paragraph about it. The top of every lab
 // is one sticky bar (LabBar), and everything a lab says about itself lives
 // in it:
 //
-//   λhux / Name ▾ (i)   the way home, the lab's name — which is also the
-//                       switcher between labs (LabNav) — and an info
+//   λhux / Name ▾ (i)   the way home, the lab's name (which is also the
+//                       switcher between labs, LabNav), and an info
 //                       button whose popover holds the catalog's blurb and
 //                       the lab's full live readout
 //   tools               what drives the stage (the Works Lab's form, the
 //                       Glow Lab's on / level / microphone)
 //   meta                the live readout, one truncated mono line (wide
 //                       screens; always complete in the info popover)
-//   actions             what writes (SVG, Reset, Save) — right-aligned
+//   actions             what writes (SVG, Reset, Save), right-aligned
 //
 // A lab with none of the three still gets the bar: its name and the way to
 // the others, pinned.
@@ -40,14 +40,14 @@ import { LabNav } from "./nav";
 //   workbench  a stage of specimens beside a panel of knobs (Attachments,
 //              Icon, Legibility). Beside the stage from `lg`; narrower, the
 //              panel is folded away and the bar's sliders button opens it
-//              under the bar — a phone gets the specimens, and the knobs are
+//              under the bar. A phone gets the specimens, and the knobs are
 //              one tap away rather than a screenful of sliders in the way.
 //   canvas     the whole width, for a lab that lays out its own body (the
 //              Works Lab: the timeline, an inspector beside it).
 //
 // The bar is a pinned bar like /works's toolbar: it rides in a PinnedSlot and
 // shares the top band with the Dock by whatever composition the band is set
-// to (systems/dock/band.ts) — its name kept whole, its tools wrapping under
+// to (systems/dock/band.ts): its name kept whole, its tools wrapping under
 // it when they do not fit beside it. Its first row is the band's height, so
 // it stands level with the Dock's pills. Anything that sticks under it reads
 // `--lab-under-bar`. A lab can set the bar aside (`pin="static"`) while
@@ -192,7 +192,7 @@ export function LabBar({
       </div>
       {/* One row, never a pile: beside the name when it fits, on a line
           of its own when it does not, and sideways-scrolling there rather
-          than wrapping into a third — a pinned bar has to stay short. */}
+          than wrapping into a third. A pinned bar has to stay short. */}
       {tools && (
         <div
           data-lab-tools
@@ -247,7 +247,7 @@ export function LabBar({
   );
 }
 
-/** (i) — what the lab lays open, and its whole live readout. */
+/** (i): what the lab lays open, and its whole live readout. */
 function LabInfo({ lab, meta }: { lab: LabId; meta?: ReactNode }) {
   const { locale } = useLocale();
   const F = useFrameStrings();
@@ -396,7 +396,7 @@ export function LabChip({
   );
 }
 
-/** `unsaved` — the edit is live here and not yet on disk. */
+/** `unsaved`: the edit is live here and not yet on disk. */
 export function LabUnsaved() {
   const F = useFrameStrings();
   return (

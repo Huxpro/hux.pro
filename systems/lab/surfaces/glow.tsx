@@ -8,7 +8,7 @@ import { SurfaceFrame } from "./frame";
 import { SURFACE_STRINGS } from "./strings";
 
 /**
- * The Glow Lab at a glance: the production <Glow>, twice — a ring flowing
+ * The Glow Lab at a glance: the production <Glow>, twice. A ring flowing
  * round a card, a line resting under a field. Drawn by the one shared
  * renderer, so it costs nothing while scrolled off screen.
  */

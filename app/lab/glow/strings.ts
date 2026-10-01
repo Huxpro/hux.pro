@@ -1,5 +1,5 @@
 // =============================================================================
-// Glow Lab strings — both languages, keyed (see systems/lab/i18n.ts).
+// Glow Lab strings: both languages, keyed (see systems/lab/i18n.ts).
 //
 // The motion pairs' prose is keyed by the pair's id in view.tsx's PAIRS, which
 // keeps only the structure (beam, motion, period, radius, classes). Motion

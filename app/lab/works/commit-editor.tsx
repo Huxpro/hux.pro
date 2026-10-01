@@ -26,9 +26,9 @@ import { WORKS_STRINGS, type WorksStrings } from "./strings";
 interface CommitEditorProps {
   commit: Commit;
   tags: Tag[];
-  /** All commits (roles included) — powers live identity/rail resolution. */
+  /** All commits (roles included). Powers live identity/rail resolution. */
   commits: Commit[];
-  /** Identity metadata lookup — powers the readout + override dropdown. */
+  /** Identity metadata lookup. Powers the readout + override dropdown. */
   identities: Record<string, Identity>;
   onUpdate: (commit: Commit) => void;
   onDelete: () => void;
@@ -185,7 +185,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// String-list section — repeatable add/remove rows for a string[] field,
+// String-list section: repeatable add/remove rows for a string[] field,
 // styled to match the Media section so plural fields feel consistent.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -522,7 +522,7 @@ function FormFields({
         onChange={(v) => onUpdate({ present: v ? "aside" : undefined })}
       />
       {/* Only an aside has a folded line to compose, so the control only
-          exists once the row is one — the same way a talk's conference
+          exists once the row is one, the same way a talk's conference
           fields only appear for a talk. `venue · title` is the default and
           is written as the absence of the field, so the common case adds
           nothing to log.json. */}
@@ -679,7 +679,7 @@ function FormFields({
       {/* Type-specific fields */}
       <TypeSpecificFields commit={commit} onUpdate={onUpdate} />
 
-      {/* Media — keyed by commit id so the section remounts and re-hydrates
+      {/* Media, keyed by commit id so the section remounts and re-hydrates
           its fat drafts when the user switches commits. */}
       <MediaSection
         key={commit.id}
@@ -696,7 +696,7 @@ function FormFields({
 // Identity & Rail section
 //
 // Surfaces the otherwise-invisible identity/rail system: which identity a
-// commit resolves to (and *why* — tenure vs explicit vs attached vs detached),
+// commit resolves to (and *why*: tenure vs explicit vs attached vs detached),
 // a control to attach/detach/override it, and a warning when a detached commit
 // punches a hole in an otherwise-continuous identity cluster. Mirrors the
 // runtime logic in `resolveIdentity` / `computeRail` so the editor readout
@@ -810,8 +810,8 @@ function IdentityRailSection({
   // ONE mutually-exclusive control for both axes. `identityId` and
   // `attachedTo` overlap (and `identityId` silently wins in resolveIdentity),
   // so exposing them as two independent fields invites contradictory state
-  // (e.g. Detach + an identity override). Collapse them into a single choice —
-  // Auto / Detach / pin-to-role / pin-to-identity — that can't contradict
+  // (e.g. Detach + an identity override). Collapse them into a single choice
+  // (Auto / Detach / pin-to-role / pin-to-identity) that can't contradict
   // itself: picking any option clears the other field.
   const anchorValue = commit.identityId
     ? IDENT_PREFIX + commit.identityId
@@ -834,7 +834,7 @@ function IdentityRailSection({
     <>
       <SectionLabel>{S.identityRail}</SectionLabel>
 
-      {/* Live resolved readout — the missing "why". */}
+      {/* Live resolved readout: the missing "why". */}
       <div className="flex items-start gap-2">
         <span className="font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground w-20 shrink-0 text-right pt-0.5">
           {S.resolved}
@@ -863,7 +863,7 @@ function IdentityRailSection({
         </div>
       </div>
 
-      {/* Rail-hole warning — the juejin/feday mistake, caught in-editor. */}
+      {/* Rail-hole warning: the juejin/feday mistake, caught in-editor. */}
       {hole && (
         <div className="flex items-start gap-2">
           <span className="w-20 shrink-0" />
@@ -1116,7 +1116,7 @@ const mediaKinds: MediaKind[] = ["link", "social-embed", "video", "slides", "ima
  * Two reasons we don't edit `Media` directly:
  *  1. Switching kinds shouldn't drop sibling-kind fields. A user who pasted a
  *     URL, picked a Bilibili platform, and then flipped to "link" should not
- *     lose `url` and `platform` — flipping back must restore them.
+ *     lose `url` and `platform`; flipping back must restore them.
  *  2. Each kind's optional fields live side-by-side here without the
  *     discriminated union narrowing them away. We serialize down to the active
  *     `Media` shape only on output (`draftToMedia`), so saved JSON stays clean.
@@ -1179,7 +1179,7 @@ function mediaToDraft(m: Media): MediaDraft {
 
 /** Narrow a fat draft down to the discriminated Media shape on save. */
 function draftToMedia(d: MediaDraft): Media {
-  // Pin only appears in saved JSON when explicitly true — matching `Pinned`'s
+  // Pin only appears in saved JSON when explicitly true, matching `Pinned`'s
   // `pinned?: true` shape and keeping log.json minimal.
   const pinned = d.pinned ? { pinned: true as const } : {};
   switch (d.kind) {
@@ -1247,7 +1247,7 @@ function MediaSection({
   focusIndex?: number | null;
   onFocusIndexChange?: (index: number | null) => void;
 }) {
-  // Working draft state — one per row, hydrated once at mount.
+  // Working draft state: one per row, hydrated once at mount.
   //
   // Drafts hold sibling-kind fields beyond what the narrowed Media union
   // exposes (e.g. a `videoPlatform` survives the user flipping to `link` and
@@ -1372,7 +1372,7 @@ function MediaItemEditor({
       />
 
       {/* Kind-specific fields. Sibling-kind values live in the draft and are
-          preserved across kind switches — only the active inputs are shown. */}
+          preserved across kind switches. Only the active inputs are shown. */}
       {draft.kind === "link" && (
         <>
           <Field

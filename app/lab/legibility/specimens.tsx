@@ -1,13 +1,13 @@
 "use client";
 
 // =============================================================================
-// Specimens — one of every surface the site draws text on, rendered from the
+// Specimens: one of every surface the site draws text on, rendered from the
 // same typography roles (`lib/typography.ts`) and glass tokens production
 // renders from.
 //
 // Nothing here imports a production component, on purpose: a widget mounted
 // in the lab would be a second rendering of the site to keep in step with the
-// first. The contract is one level down — a role is a class string, and the
+// first. The contract is one level down: a role is a class string, and the
 // writing widget's date and the specimen's date are the same string
 // (`TYPE.rowMeta`), so they cannot disagree. What the lab tests is the spec;
 // production is the spec composed into components.
@@ -82,7 +82,7 @@ export function BareSpecimen() {
 }
 
 /** A home widget: the shell, its label, rows with a title and a date, a tab
- *  capsule and a kbd — composed from the roles the way
+ *  capsule and a kbd, composed from the roles the way
  *  writing-widget.tsx and featured-talks-widget.tsx compose them. */
 export function WidgetSpecimen() {
   const { locale } = useSpecimenText();
@@ -237,14 +237,14 @@ export function SheetSpecimen() {
 }
 
 /**
- * A reading page — /writing, /works, an article — as its own surface.
+ * A reading page (/writing, /works, an article) as its own surface.
  *
  * The picture behind a reading route is defocused and veiled with the page
  * colour; this box does the same to the wallpaper behind it (a backdrop blur
  * at the policy's radius, a veil at the policy's alpha) and carries the
  * policy's *reading* resolution as an `.ink-scope`, so the sliders for veil,
  * blur, relief-on-reading and the ink boost act here exactly as they act on
- * the real route — while the rest of the lab stays the desktop.
+ * the real route, while the rest of the lab stays the desktop.
  */
 export function ReadingSpecimen({ vars }: { vars: LegibilityVars }) {
   const style = legibilityCssVars(vars) as CSSProperties;
