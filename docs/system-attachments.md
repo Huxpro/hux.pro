@@ -256,9 +256,14 @@ an open row's covers replace the count the venue and the date stay where
 they were. Below `@md` the line has no room for a column, so the same
 three become an *eyebrow* — one mono line over the title, the venue on
 the left and `📎 n` and the date packed to the right edge, the way a
-kicker sits over a headline — nothing is cut to fit, and
+kicker sits over a headline, a step (6px) off it — nothing is cut to fit, and
 the title and its sentence still sit together; the venue is never under
-the title, whatever the viewport, folded and open alike. There is no meta line: with nothing between
+the title, whatever the viewport, folded and open alike. The eyebrow's
+cells are top-aligned 16px lines rather than baseline-aligned, so the `📎 n`
+an open row gives up cannot nudge the venue. The title's weight is the
+form's too (`rowHeading` where the form prints a message, `rowTitle` in the
+index), never the press's: a title that thickened as its row opened was the
+one thing on the line that moved. There is no meta line: with nothing between
 a title and its sentence, the description sits one rung up (`TYPE.caption`,
 muted) and reads as the row's second tier. The `@handle` signs the foot of
 a single cover; a row with more, or none, prints no handle while folded —

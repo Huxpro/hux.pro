@@ -178,10 +178,10 @@ export function TimelineCommit({
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
   // A title over a sentence is a heading (`TYPE.rowHeading`); a title on its
-  // own line — the index, folded — is the one thing on the ink and needs no
-  // weight. So the covers form and every opened row set the title in
-  // medium, and the one-liner stays as it was. Decided after the
-  // description is known (`rowForm`), below.
+  // own line — the index — is the one thing on the ink and needs no weight.
+  // The form decides it, not the press: a title that thickened as its row
+  // opened was the one thing on the title line that moved. Decided after
+  // the description is known (`printsMessage`), below.
   const isEvent = data.type === "event";
   const isAside = data.present === "aside";
   // Folded asides borrow the event voice: muted italic line, rail
@@ -296,10 +296,14 @@ export function TimelineCommit({
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
   const showStatDescription =
     !isQuiet && rowForm.description === "clamp" && !!data.description;
-  // Whether a sentence prints under the title — clamped or whole — which is
-  // what decides the title's weight (see the note above).
+  // Whether the form prints a sentence under the title — clamped or whole —
+  // which is what decides the title's weight (see the note above). The
+  // form's, not the row's: an index row opened onto its sentence keeps the
+  // one-liner's weight, so the press only ever adds below the title line.
   const printsMessage =
-    !isQuiet && rowForm.description !== "none" && !!data.description;
+    !isQuiet &&
+    rowFormFor(form, false).description !== "none" &&
+    !!data.description;
   // Where the handle signs: the foot of the strip, when a single cover
   // leaves it the room — on any viewport. Two covers may already be the
   // width of a phone and the strip then scrolls under the edge, so a row
@@ -486,7 +490,12 @@ export function TimelineCommit({
       {!isQuiet && (
         <p
           className={cn(
-            "col-start-2 lg:col-start-3 @md:hidden mb-0.5 flex items-baseline gap-2 leading-4",
+            // `items-start`, not `items-baseline`: every cell is one 16px
+            // line box, so their tops are their baselines — and the 📎
+            // count, whose icon has no baseline of its own, cannot move the
+            // venue when an open row takes it away. `mb-1.5`: a kicker
+            // set a step off its headline, not touching it.
+            "col-start-2 lg:col-start-3 @md:hidden mb-1.5 flex items-start gap-2 leading-4",
             TYPE.rowMeta,
           )}
         >
@@ -494,10 +503,10 @@ export function TimelineCommit({
               right edge — the same right the title line keeps on a desk,
               so the date sits in the column a reader scans down. */}
           <span className="min-w-0 flex-1">{venueInline}</span>
-          <span className="ml-auto flex shrink-0 items-baseline gap-2">
+          <span className="ml-auto flex shrink-0 items-start gap-2">
             {attachmentCount > 0 && (
               <span
-                className="inline-flex items-center gap-1"
+                className="inline-flex h-4 items-center gap-1"
                 aria-label={
                   attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
                 }
