@@ -35,12 +35,6 @@ import {
 export const PHONE = { width: 402, height: 874, status: 62 };
 /** Safari's bottom toolbar, expanded and collapsed, in points. */
 const TOOLBAR = { expanded: 86, collapsed: 40 };
-/**
- * How far the demo reaches under the status bar and the toolbar, px. Scaled
- * by a fractional transform, an iframe's edges fall between device pixels and
- * show a hairline of the demo's body; tucked under opaque bars, they cannot.
- */
-const SEAM = 1;
 /** Scroll distance, px, before the simulated toolbar changes state. */
 const TOOLBAR_THRESHOLD = 8;
 /**
@@ -168,7 +162,17 @@ export function usePhoneBridge(
   return { frameRef, src, report, collapsed, taps, statusTap, run };
 }
 
-/** The drawn iPhone, scaled to `scale`, with the demo inside. */
+/**
+ * The drawn iPhone, scaled to `scale`, with the demo inside.
+ *
+ * Scaled by `zoom`, not a transform. A transform resamples the demo's pixels,
+ * so every edge in it — the iframe's sides, the bezel's bands and corners —
+ * lands between device pixels and shows a hairline of whatever is behind.
+ * Zoomed, the demo lays out at its 402pt and renders at a finer device pixel
+ * ratio, so its edges snap like any page under browser zoom. A browser that
+ * does not zoom an iframe's document (its width comes out short) gets the
+ * transform instead.
+ */
 export function Phone({
   bridge,
   scale,
@@ -186,12 +190,14 @@ export function Phone({
   const chrome = report?.themeColor ?? "#ffffff";
   const ink = luminance(chrome) > 0.6 ? "#000000" : "#ffffff";
   const toolbar = collapsed ? TOOLBAR.collapsed : TOOLBAR.expanded;
+  const [zoomed, setZoomed] = useState(true);
+  const fit: CSSProperties = zoomed ? { zoom: scale } : { transform: `scale(${scale})`, transformOrigin: "top left" };
   const style = {
     "--chrome": chrome,
     "--chrome-ink": ink,
     width: PHONE.width,
     height: PHONE.height,
-    transform: `scale(${scale})`,
+    ...fit,
   } as CSSProperties;
 
   return (
@@ -208,7 +214,11 @@ export function Phone({
             ref={frameRef}
             title="Vitre demo"
             src={src}
-            style={{ height: PHONE.height - PHONE.status - toolbar + 2 * SEAM, margin: `-${SEAM}px 0` }}
+            style={{ height: PHONE.height - PHONE.status - toolbar }}
+            onLoad={() => {
+              const width = frameRef.current?.contentWindow?.innerWidth;
+              if (width && Math.abs(width - PHONE.width) > 1) setZoomed(false);
+            }}
           />
           <div className="phone-toolbar" data-collapsed={collapsed || undefined} style={{ height: toolbar }}>
             <span className="phone-button" aria-hidden="true">‹</span>

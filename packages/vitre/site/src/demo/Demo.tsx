@@ -162,12 +162,16 @@ export function Demo() {
     return () => window.removeEventListener("message", onMessage);
   }, [patch, action, setLang]);
 
-  // The page's own ground, painted by the host, as a real site does.
+  // The page's own ground, painted by the host, as a real site does — on
+  // <body> only while the bezel is off. While it is on, <body> is Vitre's: it
+  // takes the bezel colour, so nothing at the screen's edge can show the
+  // ground between the bezel's pieces, and the page's ground is the backdrop
+  // layer inside the bezel (below).
   useEffect(() => {
-    document.body.style.background = GROUND[theme];
+    document.body.style.background = config.enabled ? "" : GROUND[theme];
     document.body.style.color = theme === "dark" ? "#f4f4f5" : "#18181b";
     document.body.dataset.theme = theme;
-  }, [theme]);
+  }, [theme, config.enabled]);
 
   const color = resolveColor(config, theme);
   const scroll = resolveScroll(config);
@@ -181,18 +185,17 @@ export function Demo() {
       scroll={scroll}
       ground={GROUND[theme]}
       backdrop={
-        config.backdrop !== "none" && (
-          <div
-            aria-hidden="true"
-            {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
-            style={{
-              position: "fixed",
-              zIndex: -1,
-              background: BACKDROPS[config.backdrop](theme === "dark"),
-              ...(config.enabled ? BEZEL_INSET : { inset: 0 }),
-            }}
-          />
-        )
+        // No backdrop is the bare ground, inside the bezel all the same.
+        <div
+          aria-hidden="true"
+          {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
+          style={{
+            position: "fixed",
+            zIndex: -1,
+            background: config.backdrop === "none" ? GROUND[theme] : BACKDROPS[config.backdrop](theme === "dark"),
+            ...(config.enabled ? BEZEL_INSET : { inset: 0 }),
+          }}
+        />
       }
       className="demo-scroll"
     >

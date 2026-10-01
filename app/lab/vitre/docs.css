@@ -109,16 +109,14 @@
 .vitre-lab .phone {
   --phone-glass: #0b0b0c;
   position: relative;
-  transform-origin: top left;
   border-radius: 58px;
 }
 .dark .vitre-lab .phone {
   --phone-glass: #1c1c1e;
 }
 /* The body: one solid shape behind the screen, 12px larger all round. The
-   screen sits on it, so no edge of the screen is butted against the frame —
-   an outer box-shadow ring is, and under a fractional scale the page behind
-   shows through that seam as a hairline.
+   screen sits on it, so no edge of the screen is butted against the frame,
+   as an outer box-shadow ring would be.
 
    The front is black glass on every iPhone; what reads light or dark is the
    metal band around it. In light mode the glass border is slimmer and the
@@ -152,22 +150,14 @@
 .vitre-lab .phone::after {
   content: "";
   position: absolute;
-  inset: -2px;
+  inset: 0;
   z-index: 3;
-  border-radius: 60px;
+  border-radius: inherit;
   pointer-events: none;
   background: linear-gradient(125deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 22%, transparent 40%, transparent 72%, rgba(255, 255, 255, 0.06) 100%);
-  /* The glass, over the screen's edge: from 2px outside it to 1.5px inside.
-     Under a fractional scale the screen's clip and the demo iframe's sides
-     fall between device pixels, and whatever ends exactly there blends with
-     what is behind — the demo's white body shows as a hairline. Here they
-     end under solid glass, and this ring's own soft edge lies on glass too.
-     (simulator.tsx, SEAM, does the top and bottom.) */
-  box-shadow: inset 0 0 0 3.5px var(--phone-glass);
 }
 .vitre-lab .phone-status {
   position: relative;
-  z-index: 1;
   flex: none;
   display: flex;
   width: 100%;
@@ -175,7 +165,6 @@
   justify-content: space-between;
   padding: 0 34px;
   border: 0;
-  /* Opaque, over the demo's top edge (SEAM). */
   background: var(--chrome);
   color: var(--chrome-ink);
   font: 600 16px/1 var(--font-sans);
@@ -203,8 +192,6 @@
   transition: height 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .vitre-lab .phone-toolbar {
-  position: relative;
-  z-index: 1;
   flex: none;
   display: flex;
   align-items: flex-start;
@@ -212,7 +199,6 @@
   gap: 10px;
   overflow: hidden;
   padding: 8px 16px 0;
-  /* Opaque, over the demo's bottom edge (SEAM). */
   background: var(--chrome);
   transition: height 0.28s cubic-bezier(0.32, 0.72, 0, 1), background-color 0.3s ease;
 }
