@@ -4,7 +4,7 @@ import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect } from "react";
-import { dismissNotice, useNotice } from "../notice";
+import { dismissNotice, NOTICE_SLOT_ATTRIBUTE, useNotice } from "../notice";
 import { useDock } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -22,8 +22,9 @@ import { useDock } from "../provider";
 // is the glass — never on a box around it (live-activity.tsx, note 4).
 //
 // It does not publish into `--dock-clear`: a bar pinned under the dock (/works,
-// /prompt) would jump down and back for a three-second line. The notice floats
-// over it instead, the way a banner floats over a navigation bar.
+// /prompt) would jump down and back for a three-second line. A bar it would
+// cover steps aside instead, as the pills do (components/ui/use-notice-yield,
+// which finds this slot by NOTICE_SLOT_ATTRIBUTE).
 //
 // A press takes it down early. It is not a button — it does nothing else, and
 // a screen reader hears it through the status region, not as a control; the
@@ -54,6 +55,7 @@ export function DockNotice() {
 
   return (
     <div
+      {...{ [NOTICE_SLOT_ATTRIBUTE]: "" }}
       role="status"
       aria-live="polite"
       className="pointer-events-none absolute inset-x-0 top-0 grid justify-items-center px-4"

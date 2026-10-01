@@ -46,6 +46,12 @@ export type ShownNotice = Notice & {
   seq: number;
 };
 
+/**
+ * On the box the notice stands in, for what has to know where it is — a bar
+ * pinned under the Dock stepping aside for it (components/ui/use-notice-yield).
+ */
+export const NOTICE_SLOT_ATTRIBUTE = "data-dock-notice-slot";
+
 /** Long enough to read a line and its note once. */
 export const NOTICE_DURATION_MS = 3200;
 

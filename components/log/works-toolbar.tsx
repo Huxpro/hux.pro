@@ -75,6 +75,7 @@ import {
 import { LOG_FORMS, type LogForm } from "@/lib/log-view";
 import { pageScrollTop, scrollPageTo } from "vitre";
 import { usePageLift } from "@/components/ui/use-page-lift";
+import { useNoticeYield } from "@/components/ui/use-notice-yield";
 import { useScrollEdges } from "@/components/ui/use-scroll-edges";
 import { CommitIcon } from "./icons";
 import { CHAPTER_PILL } from "./log-timeline";
@@ -171,6 +172,16 @@ export function WorksToolbar({
   const motionOf = reduced ? { duration: 0 } : SETTLE;
   const lift = usePageLift(LIFT_PX);
   const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
+  // Steps aside for a Dock notice it would sit under (use-notice-yield).
+  // The fade goes on the capsule and on the row, never on the box holding
+  // the capsule; the box takes only the transform and the pointer.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const away = useNoticeYield(rootRef);
+  const panelOpacity = useTransform(() => lift.get() * (1 - away.get()));
+  const rowOpacity = useTransform(away, [0, 1], [1, 0]);
+  const rootY = useTransform(away, [0, 1], [0, -6]);
+  const rootScale = useTransform(away, [0, 1], [1, 0.96]);
+  const rootPointer = useTransform(away, (a) => (a > 0.5 ? "none" : "auto"));
 
   /** Back to where the chapter starts: its marker lined up under the slot,
    *  the frame where the slot takes it over. */
@@ -191,16 +202,23 @@ export function WorksToolbar({
     // `isolate` so the panel's `-z-10` sits behind this row and not behind
     // the page. `w-max`, bounded by the column: the capsule hugs what it
     // holds rather than spanning a row that is mostly empty on a desk.
-    <div className="relative isolate w-max max-w-full">
+    <motion.div
+      ref={rootRef}
+      className="relative isolate w-max max-w-full origin-top"
+      style={{ y: rootY, scale: rootScale, pointerEvents: rootPointer }}
+    >
       <motion.div
         aria-hidden
         className={PANEL}
         // Grows out from the row it is catching, as far as the page has
         // lifted it.
-        style={{ opacity: lift, scale: panelScale }}
+        style={{ opacity: panelOpacity, scale: panelScale }}
       />
 
-      <div className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground">
+      <motion.div
+        style={{ opacity: rowOpacity }}
+        className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground"
+      >
         {/* The ref we are reading — `main` above the first chapter, the
             chapter once its marker reaches here. Not a control at rest: the
             anchor the rest of the row hangs off, and the reason the page
@@ -352,8 +370,8 @@ export function WorksToolbar({
             })}
           />
         </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

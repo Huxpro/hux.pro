@@ -65,6 +65,7 @@ import {
   type PromptTopic,
 } from "@/lib/prompt-view";
 import { usePageLift } from "@/components/ui/use-page-lift";
+import { useNoticeYield } from "@/components/ui/use-notice-yield";
 import { useScrollEdges } from "@/components/ui/use-scroll-edges";
 import { useReadingChapter, type PromptChapter } from "./use-reading-chapter";
 
@@ -143,6 +144,16 @@ export function PromptToolbar({
   const more = useScrollEdges(topicsRef);
   const lift = usePageLift(LIFT_PX);
   const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
+  // Steps aside for a Dock notice it would sit under (use-notice-yield).
+  // The fade goes on the capsule and on the row, never on the box holding
+  // the capsule; the box takes only the transform and the pointer.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const away = useNoticeYield(rootRef);
+  const panelOpacity = useTransform(() => lift.get() * (1 - away.get()));
+  const rowOpacity = useTransform(away, [0, 1], [1, 0]);
+  const rootY = useTransform(away, [0, 1], [0, -6]);
+  const rootScale = useTransform(away, [0, 1], [1, 0.96]);
+  const rootPointer = useTransform(away, (a) => (a > 0.5 ? "none" : "auto"));
   const reduced = useReducedMotion() ?? false;
   const motionOf = reduced ? { duration: 0 } : SETTLE;
   const rowRef = useRef<HTMLDivElement>(null);
@@ -187,15 +198,20 @@ export function PromptToolbar({
     );
 
   return (
-    <div className="relative isolate w-max max-w-full">
+    <motion.div
+      ref={rootRef}
+      className="relative isolate w-max max-w-full origin-top"
+      style={{ y: rootY, scale: rootScale, pointerEvents: rootPointer }}
+    >
       <motion.div
         aria-hidden
         className={PANEL}
-        style={{ opacity: lift, scale: panelScale }}
+        style={{ opacity: panelOpacity, scale: panelScale }}
       />
 
-      <div
+      <motion.div
         ref={rowRef}
+        style={{ opacity: rowOpacity }}
         className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground"
       >
         {/* The element you are inside: the page's own at the title, a
@@ -337,8 +353,8 @@ export function PromptToolbar({
             )}
           </div>
         </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
