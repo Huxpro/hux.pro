@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { EQBars } from "@/systems/music/components/now-playing";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Minimize2, PictureInPicture2, X } from "lucide-react";
+import { Minimize2, PictureInPicture2, SquareArrowOutUpRight, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { GLASS_BTN } from "../lib/chrome";
 import {
@@ -57,6 +57,8 @@ export function TheaterSidecar() {
     toPip,
     minimize,
     close,
+    nativeWindowAvailable,
+    popOut,
   } = useTheater();
   const reduceMotion = useReducedMotion();
 
@@ -127,6 +129,17 @@ export function TheaterSidecar() {
             >
               <PictureInPicture2 className="h-4 w-4" />
             </button>
+            {nativeWindowAvailable && (
+              <button
+                type="button"
+                onClick={popOut}
+                aria-label={t(locale, "theaterPopOut")}
+                title={t(locale, "theaterPopOut")}
+                className={cn(GLASS_BTN, "h-8 w-8")}
+              >
+                <SquareArrowOutUpRight className="h-4 w-4" />
+              </button>
+            )}
             <button
               type="button"
               onClick={minimize}

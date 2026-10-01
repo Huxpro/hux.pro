@@ -11,6 +11,7 @@ curated playlists (`lib/albums.ts`).
 | Theater | the immersive modal, tablet and up | `components/theater-overlay.tsx` |
 | PiP | a floating tile (tablet and up), a card under the dock (phone) | `components/pip-overlay.tsx` |
 | Sidecar | a column docked at the right edge of a wide desk | `components/sidecar.tsx` |
+| Native window | a real always-on-top window (Chromium desks) | `components/native-window.tsx` |
 | Audio | a Live Activity in the dock | `components/theater-activity.tsx` |
 | Playlist | albums and tracks, a sheet / panel / window | `components/playlist-sheet.tsx` |
 
@@ -126,3 +127,33 @@ page stays usable.
   window past its room and it floats as a tile by itself.
 - The dock's pills stay centred on the viewport rather than the page; hover
   peeks that hang into the page's right margin can run under the column.
+
+## The native window (Chromium desks)
+
+Every shape above stays inside the tab. Where the browser has the Document
+Picture-in-Picture API (`documentPictureInPicture`, Chrome and Edge on a
+desk), the tile and the sidecar also have a pop-out button
+(`SquareArrowOutUpRight`), and the player moves into a real, always-on-top
+window of its own: it stays over the editor or the call the user switched
+to. Elsewhere the button is not there.
+
+- **A new player, started where the old one was.** An iframe moved to another
+  document reloads, and a player made from this tab's `YT` could not hear its
+  iframe there (the IFrame API talks over `postMessage` to the iframe's
+  parent). So the window loads the API itself (`loadYouTubeAPIIn`) and makes
+  its own player, started at the page player's time; the page's is paused.
+  While the window is open its player is the live one (`livePlayer` in the
+  provider): play, pause, seek and the clock all reach it.
+- **On the page**, the theater stands in the dock as its Live Activity,
+  reading `in a window`, with a transport that drives the window's player.
+  Choosing PiP, Theater or the sidecar there closes the window.
+- **Coming back.** However the window closes (its own close, the browser's
+  "back to tab", or a move back from the page), its `pagehide` hands playback
+  back (`bringBack`): the page's player loads the track the window got to,
+  seeks to where it got to, and plays if it was playing. Closing the player
+  from the page ends the session instead.
+- **The look** is the page's: its stylesheets are copied in, and the root's
+  attributes (the theme is a class on `<html>`) are mirrored for as long as
+  the window is open (`adoptPageLook`).
+- A deck or a Bilibili / Vimeo embed is a plain frame in the window and
+  starts from the top: it has no API to say where it was.
