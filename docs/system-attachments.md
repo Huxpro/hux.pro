@@ -244,6 +244,27 @@ parse, as aliases.
 | `covers` (default) | two lines | `covers` — 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
 | `feed` | all of it | `grid` — half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
 
+### The title line
+
+Every fact on a row has one place, in every form and every state, and
+opening a row only adds below the title line — nothing above the
+description moves. The line is `hash · mark · title [· 中文] ··· [📎 n]
+venue date`: the venue (a talk's conference, a piece of press's platform, a
+project's team, printed sparsely) sits on the title line in a column
+before the date, and the right of the line is packed to the edge, so when
+an open row's covers replace the count the venue and the date stay where
+they were. Below `@md` the line has no room for a column, so the same
+three become an *eyebrow* — one mono line over the title, the venue on
+the left and `📎 n` and the date packed to the right edge, the way a
+kicker sits over a headline — nothing is cut to fit, and
+the title and its sentence still sit together; the venue is never under
+the title, whatever the viewport, folded and open alike. There is no meta line: with nothing between
+a title and its sentence, the description sits one rung up (`TYPE.caption`,
+muted) and reads as the row's second tier. The `@handle` signs the foot of
+a single cover; a row with more, or none, prints no handle while folded —
+the chapter names the company, and the author fields name it in full once
+the row is open.
+
 ### The attachment object
 
 Every cover is one tile (`AttachmentTile`,

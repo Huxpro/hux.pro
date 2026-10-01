@@ -46,6 +46,14 @@ export const TYPE = {
 
   /** A row's title: a post in a list, a commit, a track. */
   rowTitle: "text-sm text-foreground",
+  /**
+   * A row's title when a message prints under it: a /works commit in the
+   * `covers` form, or any commit the reader has opened. One line on its own
+   * carries its weight by being the only thing on the ink; over a sentence
+   * one rung down and one step smaller, it takes medium so the pair reads
+   * as heading and body rather than two lines of the same thing.
+   */
+  rowHeading: "text-sm font-medium text-foreground",
   /** A media title — the thing that is playing. */
   mediaTitle: "text-sm font-medium leading-snug text-foreground",
   /** Metadata beside a title: the date on a list row, a topic line. */
@@ -59,6 +67,15 @@ export const TYPE = {
 
   /** A description under a title. */
   caption: "text-xs text-muted-foreground leading-relaxed",
+  /**
+   * A commit's message: the sentence under a `rowHeading`. 13px — the one
+   * size between the caption and the body, and the one place it is used.
+   * At 12 beside a 14px heading the sentence read as a caption to a
+   * picture that was not there; at 14 it was the heading's size and the
+   * two competed for the row. The half step sits under the heading and
+   * still reads as a sentence, and the muted rung keeps it the second tier.
+   */
+  message: "text-[13px] text-muted-foreground leading-relaxed",
   /** A description that should sit behind the caption: an embed's blurb. */
   captionQuiet: "text-xs text-tertiary-foreground leading-relaxed",
   /** An aside: commentary, a life event in the timeline, "featured". */

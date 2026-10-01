@@ -3,8 +3,13 @@
 /**
  * TimelineCommit — Dense git-log style commit row for /works timeline.
  *
- * Summary: hash · icon · title ··· [📎 n in the index] date
- * Expanded: description, commentary, media, author fields
+ * Summary: hash · icon · title ··· [📎 n in the index] venue date
+ *          + description (clamped) and the strip of covers (`covers`)
+ * Expanded: description whole, media, commentary, author fields
+ *
+ * Every fact on the row has one place, in every form and every state: the
+ * title line is the same line folded and open, and opening a row only adds
+ * below it. See "The title line" in docs/system-attachments.md.
  *
  * 3-column grid: [hash | icon | content]. Hash column collapses on small containers.
  * Uses the same shared primitives as CommitCard to ensure visual sync.
@@ -172,6 +177,11 @@ export function TimelineCommit({
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
+  // A title over a sentence is a heading (`TYPE.rowHeading`); a title on its
+  // own line — the index, folded — is the one thing on the ink and needs no
+  // weight. So the covers form and every opened row set the title in
+  // medium, and the one-liner stays as it was. Decided after the
+  // description is known (`rowForm`), below.
   const isEvent = data.type === "event";
   const isAside = data.present === "aside";
   // Folded asides borrow the event voice: muted italic line, rail
@@ -286,11 +296,74 @@ export function TimelineCommit({
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
   const showStatDescription =
     !isQuiet && rowForm.description === "clamp" && !!data.description;
-  // Where the handle signs: the bottom-right of the row, which is the media
-  // line when a single cover leaves it the room — on any viewport — and the
-  // meta line when there is more than one, since two covers may already be
-  // the width of a phone and the strip then scrolls under the edge.
+  // Whether a sentence prints under the title — clamped or whole — which is
+  // what decides the title's weight (see the note above).
+  const printsMessage =
+    !isQuiet && rowForm.description !== "none" && !!data.description;
+  // Where the handle signs: the foot of the strip, when a single cover
+  // leaves it the room — on any viewport. Two covers may already be the
+  // width of a phone and the strip then scrolls under the edge, so a row
+  // with more prints no handle while folded: the chapter names the company,
+  // the handle is sparse by rule (cluster heads only), and an open row's
+  // author fields name it in full. There is no meta line for it to fall
+  // back to any more — the venue sits on the title line, so nothing stands
+  // between a title and its sentence.
   const signsOnMediaLine = showStrip && data.stripItems.length === 1;
+
+  // The venue on the title line: where a talk was given, where a piece of
+  // press ran, where a project was built (the byline's team, printed
+  // sparsely — the first row of a run). A link where the meta is one. On
+  // the title line in every form and every state, so opening a row moves
+  // nothing above the description — and never under the title: a line
+  // between a title and its sentence is the thing this removes, whatever
+  // the viewport. On a desk the metadata is the right of the title line,
+  // `📎 n · venue · date`. Below `@md` the line has no room for it, so it
+  // becomes an eyebrow: the same three, one mono line *over* the title, the
+  // way an editorial kicker sits over a headline. Nothing is cut to fit a
+  // column, and the title and its sentence still sit together.
+  const besideText = data.meta ?? byline?.subtitle;
+  const beside =
+    !isQuiet && besideText ? (
+      data.meta && data.metaUrl ? (
+        <a
+          href={data.metaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex max-w-full items-center gap-1 transition-colors hover:text-foreground"
+        >
+          <span className="truncate">{besideText}</span>
+          <span aria-hidden className="text-[0.7rem]">↗</span>
+        </a>
+      ) : (
+        <span className="truncate">{besideText}</span>
+      )
+    ) : null;
+  // The same venue as running text, for the eyebrow: no truncation — the
+  // line wraps if it must — and the arrow glued to the last word.
+  const venueInline =
+    !isQuiet && besideText ? (
+      data.meta && data.metaUrl ? (
+        <a
+          href={data.metaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="transition-colors hover:text-foreground"
+        >
+          {besideText}
+          <span aria-hidden className="whitespace-nowrap text-[0.7rem]">
+            {" "}↗
+          </span>
+        </a>
+      ) : (
+        <>{besideText}</>
+      )
+    ) : null;
+  // What the date slot prints: the date, or a role's location under a
+  // chapter that hides dates. Read by the title line and the eyebrow alike.
+  const dateText = hideDate ? data.dateSlotOverride : data.date;
+
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
@@ -403,6 +476,40 @@ export function TimelineCommit({
 
   const rowContent = (
     <div className="grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+      {/*
+        The eyebrow — below `@md` only. Placed first, in the content
+        column: grid auto-placement then starts the hash, the mark and the
+        title on the next row, so the mark sits on the title's line, not
+        the eyebrow's. From `@md` it is not rendered and the title line is
+        the first row again. Quiet rows keep their date on the line.
+      */}
+      {!isQuiet && (
+        <p
+          className={cn(
+            "col-start-2 lg:col-start-3 @md:hidden mb-0.5 flex items-baseline gap-2 leading-4",
+            TYPE.rowMeta,
+          )}
+        >
+          {/* The venue on the left, the count and the date packed to the
+              right edge — the same right the title line keeps on a desk,
+              so the date sits in the column a reader scans down. */}
+          <span className="min-w-0 flex-1">{venueInline}</span>
+          <span className="ml-auto flex shrink-0 items-baseline gap-2">
+            {attachmentCount > 0 && (
+              <span
+                className="inline-flex items-center gap-1"
+                aria-label={
+                  attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
+                }
+              >
+                <Paperclip aria-hidden className="h-3 w-3" />
+                {attachmentCount}
+              </span>
+            )}
+            {dateText && <span>{dateText}</span>}
+          </span>
+        </p>
+      )}
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked
@@ -558,7 +665,12 @@ export function TimelineCommit({
             className="min-w-0 flex-1 text-xs text-tertiary-foreground"
           />
         ) : (
-          <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
+          <span
+            className={cn(
+              "min-w-0 flex-1",
+              printsMessage ? TYPE.rowHeading : TYPE.rowTitle,
+            )}
+          >
             {displayTitle}
             {data.languageBadge && (
               <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
@@ -568,110 +680,57 @@ export function TimelineCommit({
           </span>
         )}
 
-        {attachmentCount > 0 && (
-          <span
-            className={cn("inline-flex shrink-0 items-center gap-1", TYPE.rowMeta)}
-            aria-label={
-              attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
-            }
-          >
-            <Paperclip aria-hidden className="h-3 w-3" />
-            {attachmentCount}
-          </span>
-        )}
-
-        {hideDate ? (
-          data.dateSlotOverride && (
-            <span className={cn("shrink-0 ml-auto", TYPE.rowMeta)}>
-              {data.dateSlotOverride}
-            </span>
-          )
-        ) : (
-          <span
-            className={cn(
-              "font-mono text-xs shrink-0 ml-auto",
-              // Date stays — the year is the meaning for life events
-              // (`moved to US, 2017`) — but pushed a tier quieter than
-              // siblings so the row reads as background context.
-              "text-tertiary-foreground",
-            )}
-          >
-            {data.date}
-          </span>
-        )}
-      </div>
-
-      {/*
-        Subtitle row: meta on the left, author byline right-aligned under
-        the date column. The row is rendered whenever EITHER half exists
-        — and importantly, when only the byline exists (project commit
-        without a venue meta), the empty left side still reserves the
-        full row height so vertical rhythm stays consistent across the
-        timeline.
-
-        Sparse byline: cluster-head rows print the handle at full
-        opacity; subsequent rows in the same author run render it with
-        opacity 0 and fade in on per-row hover (the row's own `group`
-        scope, not the cluster) so a stray cursor over one commit
-        doesn't light up the whole tenure. An expanded row keeps its
-        byline fully visible so the cluster's authorial context stays
-        on-screen while you read.
-      */}
-      {!isQuiet && (data.meta || byline) && (
-        <div className={cn("col-start-2 lg:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
-          <span className="min-w-0 truncate">
-            {data.meta ? (
-              data.metaUrl ? (
-                <a
-                  href={data.metaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  {data.meta}
-                  <span aria-hidden className="text-[0.7rem]">↗</span>
-                </a>
-              ) : (
-                data.meta
-              )
-            ) : (
-              // Project subtitle fallback — set only on the first row
-              // of a same-team run so repeats stay blank (sparse). The
-              // left cell still exists to preserve baseline alignment
-              // with the right-aligned byline.
-              byline?.subtitle
-            )}
-          </span>
-          {/* The handle has three places it could sign and wears exactly
-              one at a time. Folded with no covers under it, it is here: a
-              compact mark stacked horizontally on the meta line, under the
-              date. With a cover, it moves to the foot of the strip; open, it
-              transposes into the vertical `Author:` / `Role:` stack at the
-              foot of the body. While one of the other two is signing, this
-              slot holds only the line's height — not a second, invisible
-              handle with a peek of its own — so the line beneath never
-              moves and the same handle is never mounted twice. */}
-          {textOpen || signsOnMediaLine ? (
-            // `self-center`, and it is load-bearing. This line is
-            // `items-baseline`, and an EMPTY inline box has no text to take a
-            // baseline from — CSS puts it on the box's bottom margin edge. So
-            // baseline alignment dropped the placeholder ~4px to sit its
-            // bottom on the meta text's baseline and grew the line from 16px
-            // to 20px, in exactly the states where the handle signs somewhere
-            // else. The slot meant to hold the line still was the one thing
-            // moving it: `index` and the feed measured 16px with the handle
-            // here and 20px without it, and `covers` sat at 20px whenever a
-            // single cover took the signature. Aligning centre keeps the
-            // placeholder out of the baseline pass, so it contributes its
-            // height and nothing else, and every state is the 16px line its
-            // own type sets.
-            <span aria-hidden className="h-4 shrink-0 self-center" />
-          ) : (
-            <Handle byline={byline} className="text-tertiary-foreground" />
+        {/* The right of the title line, packed to the edge — the count,
+            the venue, the date — packed rather than spread, so what an
+            open row takes away (the count, which its covers replace)
+            leaves the venue and the date exactly where they were; the
+            venue yields first, the count and the date never do. Below
+            `@md` an ordinary row prints this as the eyebrow instead; a
+            quiet row has only its date, and keeps it here. */}
+        <span
+          className={cn(
+            "ml-auto min-w-0 max-w-[55%] shrink items-center justify-end gap-2",
+            isQuiet ? "flex" : "hidden @md:flex",
           )}
-        </div>
-      )}
+        >
+          {attachmentCount > 0 && (
+            <span
+              className={cn("inline-flex shrink-0 items-center gap-1", TYPE.rowMeta)}
+              aria-label={
+                attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
+              }
+            >
+              <Paperclip aria-hidden className="h-3 w-3" />
+              {attachmentCount}
+            </span>
+          )}
+
+          {beside && (
+            <span
+              className={cn(
+                "inline-flex min-w-0 justify-end text-right",
+                TYPE.rowMeta,
+              )}
+            >
+              {beside}
+            </span>
+          )}
+
+          {dateText && (
+            <span
+              className={cn(
+                "font-mono text-xs shrink-0",
+                // Date stays — the year is the meaning for life events
+                // (`moved to US, 2017`) — but pushed a tier quieter than
+                // siblings so the row reads as background context.
+                "text-tertiary-foreground",
+              )}
+            >
+              {dateText}
+            </span>
+          )}
+        </span>
+      </div>
 
       {/* Pinned items: rendered once here whether the row is folded or
           expanded, so toggling never remounts them. */}

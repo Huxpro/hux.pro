@@ -289,6 +289,13 @@ interface BaseCommit {
   date: string; // YYYY-MM or YYYY-MM-DD
   endDate?: string; // YYYY-MM, YYYY-MM-DD, or "present"
   title: LocalizedString;
+  /**
+   * The short name, where a line has room for a name and nothing else: the
+   * home screen's projects widget. `Lynx` for "Lynx Framework", `React` for
+   * "React Compiler (Forget)" — what the thing is called, with what it is
+   * left to the title on /works. Absent, the title prints.
+   */
+  name?: LocalizedString;
   description: LocalizedString;
   /**
    * Explicit identity attachment for this commit's `<handle>` byline
