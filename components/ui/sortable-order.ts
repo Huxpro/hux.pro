@@ -1,5 +1,5 @@
 // =============================================================================
-// Sortable order persistence — shared by every draggable home-screen surface
+// Sortable order persistence, shared by every draggable home-screen surface
 // (the widget masonry and the app shelf). An order is an array of item IDs in
 // localStorage, so each visitor keeps their own layout.
 // =============================================================================
@@ -9,7 +9,7 @@
 export const MOUSE_ACTIVATION = { distance: 8 };
 
 // Touch: a plain swipe scrolls the page; only a long-press picks an item up.
-// 400ms sits between a tap and iOS's own ~500ms home-screen hold — long enough
+// 400ms sits between a tap and iOS's own ~500ms home-screen hold: long enough
 // that a slow tap or the start of a scroll never lifts anything, short enough
 // to still feel like a response to the press. The held item grows for the
 // whole delay (see `usePressHold`) so the pickup is foreshadowed rather than

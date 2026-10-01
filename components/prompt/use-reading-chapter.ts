@@ -17,12 +17,12 @@ export type PromptChapter = PromptTopic | "influence";
  * view belongs to (`[data-chapter]`, set on every entry by `app/prompt/view`).
  *
  * The middle, and not the bar, because the middle is where this page already
- * says you are reading — the spotlight in `globals.css` lights whichever
+ * says you are reading. The spotlight in `globals.css` lights whichever
  * entry crosses it and dims the rest. The bar naming a chapter an entry
  * earlier or later than the one in the light would be two answers to one
  * question.
  *
- * `null` until the entries have begun to pass under `bar` — the pinned row
+ * `null` until the entries have begun to pass under `bar`, the pinned row
  * that asks. Before that the reader is still at the title, outside every
  * chapter and inside only the page itself, and the bar says so. Also `null`
  * when a filter left nothing to read.

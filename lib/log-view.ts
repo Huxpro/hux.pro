@@ -1,11 +1,11 @@
 // =============================================================================
-// Log View State — how much of the timeline is on screen, and which of it.
+// Log View State: how much of the timeline is on screen, and which of it.
 //
 // /works carries more information than any one reading of it can use: 25
 // commits, ~37 pieces of rich media, three eras. Folded, the page is a
 // two-screen overview and every cover is invisible; fully unfolded it is a
 // thirteen-screen media wall with no overview left. The two states people
-// actually want — "show me everything at once" and "let me see the work" —
+// actually want ("show me everything at once" and "let me see the work")
 // are the same page at two different densities, plus the ability to narrow
 // what is in it.
 //
@@ -21,32 +21,32 @@ import {
 } from "./log";
 
 // =============================================================================
-// Form — how much of each commit is printed, as a composition.
+// Form: how much of each commit is printed, as a composition.
 //
 // A row is made of a few independent parts: the title line (always), the
 // description, the attachment object, the notes under it, and whether it
 // peeks on hover. Each part has its own small set of states (`RowForm`), and
-// a *form* is one preset of all of them — so the three readings of the page
+// a *form* is one preset of all of them. So the three readings of the page
 // are compositions of the same atoms, and switching form is resetting every
 // row to a preset rather than four hand-made layouts. A row the reader opens
 // by hand is the same thing at a smaller scale: it takes the `feed` preset
 // for itself (see TimelineCommit).
 //
-//  - `index`  — the title line only. The overview: one row per commit, the
+//  - `index`: the title line only. The overview: one row per commit, the
 //    whole career in two screens. Rich media is reachable but not shown
 //    (hover peek on a pointer device, or open the row).
-//  - `covers` — the default: the title, two lines, and the covers at a size
+//  - `covers`: the default: the title, two lines, and the covers at a size
 //    you can recognise a slide or a screenshot at. Still one row per commit,
 //    so the overview survives, but the work is on screen rather than behind
 //    a hover a phone cannot perform.
-//  - `feed`   — the grid, at half a column, with its captions written out,
+//  - `feed`: the grid, at half a column, with its captions written out,
 //    and the prose and notes printed whole to match. All the information is
 //    right there, so nothing in it peeks or opens a sheet: a video plays
 //    where it is, a card goes to its page.
 //
 // A form sets all four atoms, but it only *owns* two of them: the picture
 // is the page's (`media`, `peek`), the prose is each row's (`description`,
-// `notes` — see `rowFormFor`). Pressing a row's text relieves or clamps it
+// `notes`; see `rowFormFor`). Pressing a row's text relieves or clamps it
 // against whatever the form printed; the picture holds still.
 //
 // The page borrowed git's vocabulary for these once (`--oneline`, `--stat`,
@@ -64,8 +64,8 @@ export interface RowForm {
   /** What of the description prints: nothing, two lines, or all of it. */
   description: "none" | "clamp" | "full";
   /**
-   * The attachment object: nothing, the strip of covers, or the grid — the
-   * feed's half-column tiles with their captions written out.
+   * The attachment object: nothing, the strip of covers, or the grid (the
+   * feed's half-column tiles with their captions written out).
    */
   media: "none" | "covers" | "grid";
   /** The notes under the message: commentary and the author fields. */
@@ -85,10 +85,10 @@ export const ROW_FORM: Record<LogForm, RowForm> = {
  * Which atoms the form owns, and which the row's own press owns.
  *
  * The form owns the **picture**: `media` and the `peek` that stands in for
- * it — with one exception, at the end. That is the expensive atom — it decides the page's scroll length and
- * what every frame costs (see "What the page costs to scroll" in
- * docs/system-attachments.md) — and it is the one a reader wants to set
- * once for the whole page rather than row by row.
+ * it, with one exception (see the end). That is the expensive atom. It
+ * decides the page's scroll length and what every frame costs (see "What
+ * the page costs to scroll" in docs/system-attachments.md), and it is the
+ * one a reader wants to set once for the whole page rather than row by row.
  *
  * A row's press owns the **prose**: `description`, and the `notes` that are
  * notes on it. That is the cheap atom, and the one whose right answer
@@ -99,9 +99,9 @@ export const ROW_FORM: Record<LogForm, RowForm> = {
  * So a press relieves the text, or clamps it back where the form had
  * already printed it whole. The picture does not move. That is also what
  * lets a row keep its press inside the feed: folding a commit and opening
- * a caption used to be the same click with nothing painting the
- * difference, and now they are not the same click at all — one changes the
- * prose, the other opens the attachment.
+ * a caption used to be the same click with nothing showing the
+ * difference. Now they are two different clicks: one changes the prose,
+ * the other opens the attachment.
  *
  * The exception is the index, the one form that prints no picture at all.
  * There the title line only counts the attachments (`📎 3`), and the count
@@ -123,7 +123,7 @@ export function rowFormFor(form: LogForm, textRelieved: boolean): RowForm {
       };
 }
 
-/** The git flags the forms were first named after — old links carry them. */
+/** The git flags the forms were first named after. Old links carry them. */
 const FORM_ALIAS: Record<string, LogForm> = {
   oneline: "index",
   stat: "covers",
@@ -143,7 +143,7 @@ export function parseLogForm(value: string | null): LogForm | null {
 export interface LogViewState {
   /**
    * Selected artifact types. Empty means "no filter" rather than "nothing
-   * selected" — the rest-state of the chip row, where every commit shows.
+   * selected": the rest-state of the chip row, where every commit shows.
    */
   types: FilterableCommitType[];
   form: LogForm;
@@ -173,11 +173,11 @@ export const FORM_PARAM = "view";
 /**
  * Read view state out of a query string.
  *
- * Tolerant by design — a hand-edited or stale URL degrades to the default
+ * Tolerant on purpose: a hand-edited or stale URL degrades to the default
  * rather than rendering an empty page: unknown type names are dropped,
  * an unknown form falls back to the default.
  */
-/** Type names that have been renamed — old links carry the old word, the
+/** Type names that have been renamed. Old links carry the old word, the
  *  same way `FORM_ALIAS` carries the git flags the forms were first named
  *  after. `social` became `press` when the type stopped meaning "my social
  *  accounts" and started meaning coverage. */
@@ -200,7 +200,7 @@ export function parseViewState(params: URLSearchParams): LogViewState {
 
 /**
  * Write view state back into a query string, dropping both params at their
- * defaults so the plain `/works` URL stays clean — nobody should have to
+ * defaults so the plain `/works` URL stays clean. Nobody should have to
  * share `?type=&view=covers`.
  *
  * Takes the current params and mutates a copy so unrelated query state

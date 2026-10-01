@@ -52,15 +52,15 @@ export function WorksView({ logData }: WorksViewProps) {
   const urlKey = serializeViewState(urlView);
 
   // …but the URL is not what we render from. `router.replace` re-runs the
-  // route, which costs about a second — far too long for a control you tap
-  // three times in a row to find the view you want. So local state paints
+  // route, which costs about a second. That is far too long for a control you
+  // tap three times in a row to find the view you want. So local state paints
   // immediately and the URL follows, which is also what makes the chips feel
   // like switches rather than links.
   const [view, setView] = useState(urlView);
   const [lastUrlKey, setLastUrlKey] = useState(urlKey);
   if (urlKey !== lastUrlKey) {
     setLastUrlKey(urlKey);
-    // Adopt the URL only when it is genuinely a different reading — our own
+    // Adopt the URL only when it is a different reading. Our own
     // replace() landing is not news, and re-adopting it would hand every
     // consumer a fresh `types` array for no reason. (React's "adjusting
     // state when a prop changes" pattern, as used by TimelineCommit.)
@@ -69,7 +69,7 @@ export function WorksView({ logData }: WorksViewProps) {
 
   const selectHash = useCommitAnchor();
 
-  // How a chapter's ref sits on the graph — on trial, a saved setting in
+  // How a chapter's ref sits on the graph. On trial, as a saved setting in
   // the DevTool's Works module.
   const devtool = useOptionalDevtool();
   const refLook = devtool?.worksRef ?? WORKS_REF_DEFAULT;
@@ -77,7 +77,7 @@ export function WorksView({ logData }: WorksViewProps) {
   const shelf = devtool?.worksShelf ?? false;
   // The shelf's projects: every project row the log prints, in the log's
   // own order (newest first across the chapters). It stands only while
-  // the reading includes projects — a page filtered to talks opens on
+  // the reading includes projects: a page filtered to talks opens on
   // talks, not on a directory of something it is not showing.
   const projects = useMemo(
     () => data.flatMap(({ commits }) => commits.filter((c) => c.type === "project")),
@@ -102,7 +102,7 @@ export function WorksView({ logData }: WorksViewProps) {
   );
 
   // Facet counts are of the UNFILTERED timeline, so a chip's number never
-  // moves as you select — it answers "how much of this is there?", not "how
+  // moves as you select. It answers "how much of this is there?", not "how
   // much survived what I just did?", which is the question the rows answer.
   //
   // The question it answers precisely is "how many rows does tapping this
@@ -113,7 +113,7 @@ export function WorksView({ logData }: WorksViewProps) {
   // of 2 over a column of 9 is just a wrong number.
   //
   // Counted over `data` rather than the raw log, because `data` is what the
-  // timeline renders — locale filtered and grouped under a tag that exists.
+  // timeline renders: locale filtered and grouped under a tag that exists.
   // A count derived from a different array is a count that can disagree with
   // the rows under it.
   const facets = useMemo<TypeFacet[]>(() => {
@@ -159,8 +159,8 @@ export function WorksView({ logData }: WorksViewProps) {
     [data, locale],
   );
 
-  // Whether the log has anything to print under the current filter — the same
-  // question every TagBlock asks itself before rendering, so the end marker
+  // Whether the log has anything to print under the current filter. It is the
+  // same question every TagBlock asks itself before rendering, so the end marker
   // and the rows can never disagree. (They used to: this check knew about the
   // filter but not about `hideRow`, so a filter matching only suppressed rows
   // printed `git init` over an empty page.)
@@ -211,7 +211,7 @@ export function WorksView({ logData }: WorksViewProps) {
         refLook={refLook}
       />
 
-      {/* End marker — `git init` closes a timeline that has commits in it;
+      {/* End marker. `git init` closes a timeline that has commits in it;
           a filter that matched nothing says so in the same slot, in the same
           voice, rather than leaving the page to end in silence. */}
       <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">

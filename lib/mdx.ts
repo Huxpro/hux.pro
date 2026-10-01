@@ -7,7 +7,7 @@ import type { BlogPost, Doc, PostLanguage } from "./content";
 const contentDirectory = path.join(process.cwd(), "content");
 
 /**
- * "4 min" for English text, "4 分钟" for Chinese — the estimate is
+ * "4 min" for English text, "4 分钟" for Chinese. The estimate is
  * printed in the language of the text it measures, so a 中文 article's
  * header does not carry the one English phrase on the page.
  */
@@ -23,13 +23,13 @@ function stripComments(content: string): string {
 }
 
 /**
- * Find the first image URL referenced in the post body — used as the peek
- * preview's cover so the hover surfaces the visual vibe alongside the text.
+ * Find the first image URL referenced in the post body. It is used as the
+ * peek preview's cover, so the hover shows a picture alongside the text.
  *
  * Looks at three shapes, in order of how the codebase usually opens a post:
- *  - `<Figure url="…"`  — the MDX Figure component (most common in this repo)
- *  - `<img src="…"`     — raw HTML
- *  - `![alt](url)`      — markdown image syntax
+ *  - `<Figure url="…"`:  the MDX Figure component (most common in this repo)
+ *  - `<img src="…"`:     raw HTML
+ *  - `![alt](url)`:      markdown image syntax
  *
  * Returns undefined when no image appears in the body.
  */
@@ -100,7 +100,7 @@ function extractLead(content: string): string | undefined {
 export interface BlogPostWithContent extends BlogPost {
   content: string;
   contentZh?: string;
-  /** Raw parsed frontmatter of each locale's source file, verbatim — the YAML
+  /** Raw parsed frontmatter of each locale's source file, verbatim: the YAML
    *  the author actually wrote (before merge/derivation). Powers the devtool's
    *  frontmatter inspector. `frontmatterZh` is undefined for en-only posts. */
   frontmatter?: Record<string, unknown>;
@@ -201,7 +201,7 @@ export function validateBlogContent(): {
  * enrichment pipeline to swap an internal `/writing/{slug}/{lang}` URL to
  * the version that matches the viewer's locale.
  *
- * Memoized at module scope — blog content is fs-static within a process,
+ * Memoized at module scope. Blog content is fs-static within a process,
  * and this would otherwise re-scan on every `/works` request.
  */
 export type BlogLangManifest = Record<string, PostLanguage>;
@@ -292,7 +292,7 @@ export function getAllBlogPosts(): BlogPost[] {
       if (!post) return null;
 
       // Return just the metadata, not the bodies. `contentZh` is only read on
-      // the article page, never on the list — dropping it here keeps the full
+      // the article page, never on the list. Dropping it here keeps the full
       // Chinese bodies (~the bulk of the payload) out of the list page's
       // client bundle. Frontmatter is kept: it's tiny and powers the devtool
       // hover inspector.
@@ -371,8 +371,8 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
   const titleZh = hasZh ? (zhData.title as string) : undefined;
   const descriptionZh = hasZh ? (zhData.description as string) : undefined;
 
-  // Hover-preview extras — derived from the post body. excerpt feeds the
-  // peek's body excerpt; cover supplies the visual vibe. Both are per-locale
+  // Hover-preview extras, derived from the post body. excerpt feeds the
+  // peek's body excerpt; cover supplies the picture. Both are per-locale
   // because bilingual posts have separate bodies.
   const excerpt = content ? extractLead(content) : undefined;
   const excerptZh = contentZh ? extractLead(contentZh) : undefined;

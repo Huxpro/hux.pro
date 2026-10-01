@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Media — unified MDX entry point for a single piece of attached content.
+ * Media: unified MDX entry point for a single piece of attached content.
  *
  * Detects the kind from the URL and routes to the appropriate renderer.
  * Authors can force a kind with `as`, and a card vs. pill presentation for
@@ -83,7 +83,7 @@ export function Media({
       const videoPlatform =
         (platform as VideoPlatform) ?? detectVideoPlatform(url);
       if (!videoPlatform) {
-        // Misclassified URL — degrade to a card rather than silently failing.
+        // Misclassified URL: degrade to a card rather than silently failing.
         return <LinkCard url={url} size={size} className={className} />;
       }
       return (

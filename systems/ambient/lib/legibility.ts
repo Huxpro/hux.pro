@@ -1,5 +1,5 @@
 // =============================================================================
-// Legibility — the policy that turns a wallpaper profile into CSS variables.
+// Legibility: the policy that turns a wallpaper profile into CSS variables.
 //
 // docs/system-legibility.md is the long version. The short one:
 //
@@ -13,19 +13,19 @@
 //   ink boost   Secondary and tertiary text are ink at an alpha (Apple's label
 //               ladder). Over a busy picture the same alpha reads weaker, so
 //               the ladder gets a few points of alpha back.
-//   relief      A text shadow — a dark drop under light ink, a white halo
-//               under dark ink — the way Aqua labelled desktop icons and the
+//   relief      A text shadow (a dark drop under light ink, a white halo
+//               under dark ink), the way Aqua labelled desktop icons and the
 //               Home Screen labels bright wallpapers. Strength follows how
 //               busy the picture is and how little the ink stands out from it.
 //   flip        Bare text (the identifier and greeting, nothing behind them but
 //               the picture) flips to the inverse ink when the top band is on
-//               the wrong side of the ink — a dark photograph under the light
-//               theme. Small elements flip; surfaces adapt (Liquid Glass).
+//               the wrong side of the ink (a dark photograph under the light
+//               theme). Small elements flip; surfaces adapt (Liquid Glass).
 //   glass add   Clear glass over a busy picture gets a few points of fill: the
 //               dimming layer Liquid Glass Clear requires under text.
 //   lift        On a reading route, the secondary and tertiary rungs climb
 //               until they reach a target contrast on the ground they will
-//               actually sit on — the picture behind its veil, or the page.
+//               actually sit on: the picture behind its veil, or the page.
 //
 // plus the tint: the picture's dominant colour, clamped into a range that can
 // colour a surface without shouting, exposed for the Tint setting.
@@ -53,8 +53,8 @@ export interface LegibilityPolicy {
   inkBoostMax: number;
   /**
    * Alpha points a *bare* zone gains on top of that at full busyness. Text
-   * with nothing but the picture behind it — the header, the labels under
-   * the app icons — has no fill helping it, so its secondary rung climbs
+   * with nothing but the picture behind it (the header, the labels under
+   * the app icons) has no fill helping it, so its secondary rung climbs
    * toward solid the busier the picture gets (iOS paints Home Screen labels
    * at full white); text on glass keeps the ordinary boost.
    */
@@ -72,7 +72,7 @@ export interface LegibilityPolicy {
   /** Fill points added to glass at full busyness (Clear's dimming layer). */
   glassAddMax: number;
   /**
-   * Fill points added when the picture is on the wrong side of the card — a
+   * Fill points added when the picture is on the wrong side of the card. A
    * dark photograph under the light theme's white card lands on mid grey,
    * where dark ink has nothing to stand on. The other half of the dimming
    * layer: busyness is one reason a Clear surface needs fill, tone is the other.
@@ -88,9 +88,9 @@ export interface LegibilityPolicy {
    * Head start for the light ink in that comparison. Light text carries a
    * dark drop, dark text a white halo, and a drop reads on far more grounds
    * than a halo (Aqua and the Lock Screen both reach for white-with-shadow
-   * over a photograph). The halo only fails on texture, though — on a calm
+   * over a photograph). The halo only fails on texture, though. On a calm
    * mid-tone picture (the dew drop) dark ink with a halo reads fine and the
-   * theme's ink should stay — so the head start grows with busyness:
+   * theme's ink should stay, so the head start grows with busyness:
    * `dropBias × √busy`. At full busyness the light theme flips at a band
    * below ~0.59 and the dark theme flips back to dark ink only above ~0.74;
    * on a calm picture both behave as the plain margin.
@@ -100,7 +100,7 @@ export interface LegibilityPolicy {
    * The reading treatment. A photograph behind a prose column is a competing
    * figure, so reading routes recede it behind a veil of the page colour and
    * a defocus. Both start from a per-theme base and grow with busyness and
-   * tone conflict — a raked-sand picture, or a dark one under the light
+   * tone conflict: a raked-sand picture, or a dark one under the light
    * theme, needs more of each than a calm gradient.
    */
   veilBase: Record<Theme, number>;
@@ -108,7 +108,7 @@ export interface LegibilityPolicy {
   veilBusy: number;
   /** Veil alpha added at full tone conflict. */
   veilConflict: number;
-  /** The veil never exceeds this — some picture must remain. */
+  /** The veil never exceeds this; some picture must remain. */
   veilMax: number;
   /** Defocus radius in px on a calm picture. */
   blurBase: number;
@@ -118,7 +118,7 @@ export interface LegibilityPolicy {
    * The contrast the secondary rung must reach on a reading route (WCAG 2;
    * 4.5 is AA for body-sized text). Its alpha is lifted until it does,
    * measured against the backdrop it sits on there: the picture's mean and
-   * its worst band, behind the veil. Never lowered — a rung that already
+   * its worst band, behind the veil. Never lowered: a rung that already
    * clears it keeps its alpha.
    */
   readingSecondaryContrast: number;
@@ -128,7 +128,7 @@ export interface LegibilityPolicy {
    * The most alpha the lift may take each rung to. A rung lifted all the way
    * to the ink is no longer a rung: the hierarchy is the reason there is a
    * ladder at all, so where reaching the target would cost it, the lift stops
-   * here and what is left is the ground's to fix — the veil's, not the ink's.
+   * here and what is left is the ground's to fix (the veil's, not the ink's).
    */
   readingSecondaryMax: number;
   readingTertiaryMax: number;
@@ -183,7 +183,7 @@ export const INK_ALPHA: Record<Theme, { secondary: number; tertiary: number }> =
 };
 
 export interface LegibilityVars {
-  /** How busy the picture is, 0..1 — the number most others derive from. */
+  /** How busy the picture is, 0..1. Most of the other numbers derive from it. */
   busy: number;
   /** How far the picture sits on the wrong side of the card colour, 0..1. */
   conflict: number;
@@ -217,7 +217,7 @@ const clamp = (n: number, [lo, hi]: [number, number]) => Math.min(hi, Math.max(l
 const round = (n: number, places = 2) => Number(n.toFixed(places));
 
 /**
- * No wallpaper worth adapting to: every output at rest — bar the lift on a
+ * No wallpaper worth adapting to: every output at rest, bar the lift on a
  * reading route, which the plain page needs as well (tertiary is 2.2:1 on
  * white).
  */
@@ -230,7 +230,7 @@ export function plainLegibility(theme: Theme, reading = false): LegibilityVars {
  *
  * `reading` is whether this route recedes the wallpaper behind a veil (see
  * `lib/reading-surface.ts`); the veil does most of the work there, so relief
- * is scaled back and bare text never flips — there is no bare text on a
+ * is scaled back and bare text never flips. There is no bare text on a
  * reading page, only prose over the veil. `veiled` is whether that veil is
  * drawn (the Reading dim switch); the lift measures the ground with or
  * without it.
@@ -248,16 +248,16 @@ export function resolveLegibility(params: {
   const busy = clamp01(profile.edges / policy.edgesFull);
 
   // Tone conflict: how far the whole picture sits from where the theme's card
-  // wants it. Measured on the frame, not the top band — this is about what
-  // surfaces land on, and surfaces are everywhere.
+  // wants it. Measured on the frame, not the top band, because this is about
+  // what surfaces land on, and surfaces are everywhere.
   const safe = policy.toneSafe[theme];
   const worst = policy.toneWorst[theme];
   const conflict = clamp01((profile.lum - safe) / (worst - safe));
 
   // Bare text sits in two bands: the header in the top one, the app folder's
   // labels in the middle one. For each, compare how far each ink is from the
-  // band — the light ink with its head start, since its drop is the stronger
-  // relief — and flip only when the inverse is clearly better: a margin, so
+  // band (the light ink with its head start, since its drop is the stronger
+  // relief), and flip only when the inverse is clearly better: a margin, so
   // a picture does not flip on a rounding error.
   const inkL = INK_LIGHTNESS[theme];
   const inverseL = INK_LIGHTNESS[theme === "dark" ? "light" : "dark"];
@@ -307,14 +307,15 @@ export function resolveLegibility(params: {
 // The label ladder is Apple's, and Apple tunes it for an opaque ground: on
 // white the secondary rung is 4.3:1 and the tertiary 2.2:1. Behind a reading
 // column the ground is the picture through a veil, which takes a few more
-// points off — so on a reading route each rung is lifted until it reaches
+// points off. So on a reading route each rung is lifted until it reaches
 // the policy's target on that ground. The ground is known: the profile has
 // the picture's mean colour and its bands' lightness, and the veil is ours.
 // So this is arithmetic, not sampling: the alpha at which the ink, composited
-// over the veiled picture, clears the target — against the mean and against
-// the worst band (the darkest under dark ink, the brightest under light), the
-// larger of the two. The blur is what makes a mean honest here: at 28px and
-// up, what is behind a line of text is a region's average, not its detail.
+// over the veiled picture, clears the target. It is computed against the mean
+// and against the worst band (the darkest under dark ink, the brightest under
+// light), and the larger of the two wins. The blur is what makes a mean valid
+// here: at 28px and up, what is behind a line of text is a region's average,
+// not its detail.
 // -----------------------------------------------------------------------------
 
 type Rgb01 = readonly [number, number, number];
@@ -375,11 +376,11 @@ function readingLift(params: {
 /**
  * The picture's dominant colour, made safe for a surface.
  *
- * A wallpaper's own tint is whatever it is — near-black on Earth, pastel on a
+ * A wallpaper's own tint is whatever it is: near-black on Earth, pastel on a
  * snowfield. A surface tinted with it wants a mid lightness and a chroma that
  * reads as colour without becoming a highlighter, so both are clamped (ryOS
  * does the same in HSL). A grey picture yields a grey tint, which at any
- * amount changes nothing — the neutral baseline, by construction.
+ * amount changes nothing. That is the neutral baseline, by construction.
  */
 function clampTint(profile: WallpaperProfile, theme: Theme, policy: LegibilityPolicy): WallpaperTint {
   const source = profile.tint;
@@ -398,7 +399,7 @@ function clampTint(profile: WallpaperProfile, theme: Theme, policy: LegibilityPo
 //
 // The Sky and the Gradient are not files: the scene is derived every minute
 // from the sun, the moon and the weather (lib/scene.ts), and the shader paints
-// it. There is nothing to measure at build time — but there is nothing to
+// it. There is nothing to measure at build time, but there is nothing to
 // measure at runtime either, because the scene already *is* the description
 // of the picture: its sky colours, its cloud cover, its rain. This reads a
 // profile straight off those numbers, in the same shape the profiler writes
@@ -419,7 +420,7 @@ const PAGE_RGB01: Record<Theme, RGB> = {
  *
  *   zones     the veiled zenith (top), the zenith/horizon mix (middle) and the
  *             veiled horizon (bottom), each with the sun's glow where the sun
- *             is — then composited over the page at the layer's opacity, since
+ *             is. Then composited over the page at the layer's opacity, since
  *             the Gradient and Classic paint as a wash.
  *   edges     what the shader adds that a gradient has not: cloud texture,
  *             rain or snow streaks, fog grain, stars. The Gradient is smooth,
@@ -485,7 +486,7 @@ export function profileFromScene(params: {
 // The variables, as the stylesheet reads them.
 // -----------------------------------------------------------------------------
 
-/** CSS custom properties for a resolved policy — inline on <html>, or on any
+/** CSS custom properties for a resolved policy: inline on <html>, or on any
  *  `.ink-scope` element that wants its own (the lab's gallery tiles). */
 export function legibilityCssVars(vars: LegibilityVars): Record<string, string> {
   return {
@@ -555,7 +556,7 @@ export function applyLegibility(
 }
 
 // -----------------------------------------------------------------------------
-// Contrast estimate — for the lab's readout, not for the page.
+// Contrast estimate, for the lab's readout, not for the page.
 // -----------------------------------------------------------------------------
 
 type Rgb = [number, number, number];

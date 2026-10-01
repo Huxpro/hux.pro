@@ -1,11 +1,11 @@
 "use client";
 
 // =============================================================================
-// Vitre Lab — /lab/vitre. A library, published from the lab.
+// Vitre Lab: /lab/vitre. A library, published from the lab.
 //
 // The labs study this site's systems; some of those systems are libraries
 // that can leave it. Vitre is the first: its lab is its whole home, in the
-// library template (systems/lab/components/library.tsx) — this guide, the
+// library template (systems/lab/components/library.tsx): this guide, the
 // API reference (./api) and how this site uses it (./site). There is no
 // other docs page: /vitre is only the demo (a phone, or the phone drawn here).
 //
@@ -18,7 +18,7 @@
 //              check for an export or a prop that is not documented, so the
 //              contract stays with the package
 //
-// On a phone there is no simulator — the phone is the device — and the
+// On a phone there is no simulator, since the phone is the device. The
 // article opens with the way into the real demo instead.
 //
 // Nothing here touches the site's own vitre (the bezel this page is framed
@@ -70,7 +70,7 @@ function VitreDocs() {
   const [active, setActive] = useState<SectionId>(SECTIONS[0].id);
   const bridge = usePhoneBridge(active, locale, theme, wide);
 
-  // The section in the middle of the viewport is the active one — except
+  // The section in the middle of the viewport is the active one, except
   // while a picked section is being scrolled to, so the phone does not run
   // every scenario in between.
   const picking = useRef<number | null>(null);

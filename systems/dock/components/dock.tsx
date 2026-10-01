@@ -9,7 +9,7 @@ import { CAPSULE, setBandDock, setBandOpen, strip, useBand, useBandGeometry } fr
 import { AnimatePresence, motion } from "motion/react";
 
 // ---------------------------------------------------------------------------
-// Dock — the top-of-screen home for Live Activities.
+// Dock: the top-of-screen home for Live Activities.
 //
 // Layout model (per product spec):
 //   • Collapsed: pills sit side by side in a horizontal, centered row that
@@ -17,18 +17,18 @@ import { AnimatePresence, motion } from "motion/react";
 //   • Expanded: the open activity's panel takes over the same top-center anchor
 //     while every pill goes invisible and stops taking pointers.
 //   • A notice (../notice.ts) takes the anchor the same way, for as long as it
-//     is up — see dock-notice.tsx.
+//     is up (see dock-notice.tsx).
 //
 // The row holds pills and nothing else. The panels are Base UI drawers,
 // portalled into the shared surface viewport (see live-activity.tsx), so the
-// row is free to lay itself out however it likes — the old rule that it must
-// carry no transform, so the `fixed` panels inside it stayed anchored to the
-// viewport, went with the portal.
+// row is free to lay itself out however it likes. The old rule that it must
+// carry no transform (so the `fixed` panels inside it stayed anchored to the
+// viewport) went away with the portal.
 //
 // With a page's pinned bar in the band (../band.ts) the row takes the place
 // the band's composition gives it: a window at the column's end (a row or a
 // tray), the strip the bar rides in, a count's ball, the count opened. Its
-// box is `bandGeometry`'s window — which is also where it clips — and moving
+// box is `bandGeometry`'s window, which is also where it clips. Moving
 // between places is that box's edges transitioning, with each pill's width
 // animating into or out of its ball, so nothing jumps.
 //
@@ -41,10 +41,10 @@ const MOVE = { duration: 0.32, ease: [0.32, 0.72, 0, 1] } as const;
 const ROOM = 12;
 
 /**
- * The window's clip: where it ends in mid-air — against the bar, the folded
- * ball, the column — the end is a capsule's, so an occupant sliding out of
- * it goes under a curve of its own radius instead of being cut by a line in
- * the air, and one resting flush against it is exactly its own shape. At the
+ * The window's clip. Where it ends in mid-air (against the bar, the folded
+ * ball, the column), the end is a capsule's. An occupant sliding out of it
+ * goes under a curve of its own radius instead of being cut by a straight
+ * line, and one resting flush against it is exactly its own shape. At the
  * screen's edge the end stays square: the phone cuts it there. Between the
  * ends the clip keeps the row's full height, so the pills keep their
  * shadows. A path rather than a mask: a clip leaves the pills' blur alone,
@@ -63,8 +63,8 @@ function windowClip(width: number, roundStart: boolean, roundEnd: boolean) {
 }
 
 /** How much of an occupant a round end may leave before it fades: gone
- *  under 6px, whole from two thirds of a ball — so by the time what is left
- *  is half a ball or less, it is already on its way out. */
+ *  under 6px, whole from two thirds of a ball. By the time what is left is
+ *  half a ball or less, it is already fading. */
 function sliver(seen: number) {
   const t = Math.min(1, Math.max(0, (seen - 6) / ((CAPSULE * 2) / 3 - 6)));
   return t * t * (3 - 2 * t);
@@ -82,8 +82,9 @@ function DockSurface({ children }: { children: React.ReactNode }) {
   const rides = geometry.rides;
 
   // The strip the bar rides in hands its scroll to the pinned slot to
-  // follow — on the slot itself, so a scroll restyles the slot, not the
-  // document. Leaving it, the row comes home.
+  // follow. The offset is set on the slot itself, so a scroll restyles the
+  // slot, not the document. When it stops riding in the strip, the row
+  // scrolls back home.
   useEffect(() => {
     const row = scrollRef.current;
     if (!row || !rides) return;
@@ -127,7 +128,7 @@ function DockSurface({ children }: { children: React.ReactNode }) {
       const clear = bottom > 0 ? Math.ceil(bar.getBoundingClientRect().top + bottom) : 0;
       root.style.setProperty("--dock-clear", `${clear}px`);
       // Each occupant's width as a pill, in row order, for the band's
-      // geometry (band.ts) — measured by the occupant itself.
+      // geometry (band.ts), measured by the occupant itself.
       setBandDock(
         (Array.from(row.children) as HTMLElement[])
           .map((pill) => Number(pill.dataset.natural))
@@ -165,7 +166,7 @@ function DockSurface({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Where the row stands. One box in every mode, placed by its left edge and
-  // width — so moving from one mode to another is those two numbers
+  // width, so moving from one mode to another is those two numbers
   // animating, not the row reappearing somewhere else. In stack it is the
   // pills centred (the screen less its 16px margins, scrolling once they
   // outgrow it); sharing the band, it is exactly the occupants' window
@@ -178,9 +179,9 @@ function DockSurface({ children }: { children: React.ReactNode }) {
   const roundEnd = !!geometry.window && box.left + box.width < vw - 0.5;
   const clip = geometry.window ? windowClip(box.width, roundStart, roundEnd) : undefined;
 
-  // A sliver fades. What a round end leaves of an occupant thinner than half
-  // a ball is not a shape anyone reads — a leaf of glass in the air — so it
-  // goes, over its last few pixels. On the glass itself, as `filter:
+  // A sliver fades. When a round end leaves less than half a ball of an
+  // occupant, what remains does not read as a shape, so it fades out over its
+  // last few pixels. On the glass itself, as `filter:
   // opacity()`: an opacity on anything holding the glass would take its blur
   // with it, and a parked pill's own opacity is motion's. Followed on every
   // scroll, and through the window's own move. With no round end there is

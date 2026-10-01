@@ -30,14 +30,14 @@ export interface DraggableInstanceConfig {
 }
 
 export const DRAGGABLE_DEFAULTS: Record<string, DraggableInstanceConfig> = {
-  // The floating devtool — pill and window are two sizes of one object, so
+  // The floating devtool. Pill and window are two sizes of one object, so
   // they share an instance and stay anchored by the same corner. Persisted,
   // which is also how the window finds where the pill was left.
   devtool: { draggable: true, persist: true },
-  // Well-positioned by design — not draggable by default, but persist is pre-armed
+  // Well-positioned already, so not draggable by default; persist is pre-armed
   // so enabling drag via devtools automatically remembers position
   "command-fab": { draggable: false, persist: true },
-  // Transient overlay — draggable for convenience, but resets to center on each open
+  // Transient overlay: draggable for convenience, but resets to center on each open
   "command-palette": { draggable: true, persist: false },
   // Adaptive surfaces in their desktop "window" shape. Same posture as the
   // palette: drag it out of the way while you work, back to centre next open.
@@ -65,7 +65,7 @@ export const DRAGGABLE_INSTANCES = [
 // =============================================================================
 // Phone palette
 // The command palette's shape on a phone: the sheet it is now, or the popover
-// it was — the desktop card at phone width, kept whole for comparison.
+// it was (the desktop card at phone width), kept whole for comparison.
 // =============================================================================
 
 export type PhonePalette = "sheet" | "popover";
@@ -74,8 +74,8 @@ export const PHONE_PALETTE_DEFAULT: PhonePalette = "sheet";
 // =============================================================================
 // Home weather
 // Where the home screen says the weather: the grid card, or one line of date,
-// place and temperature over the greeting, the way a lock screen does it —
-// kept side by side so the two can be compared.
+// place and temperature over the greeting, the way a lock screen does it.
+// Kept side by side so the two can be compared.
 // =============================================================================
 
 export type HomeWeather = "line" | "widget";
@@ -83,8 +83,8 @@ export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
 
 // =============================================================================
 // Works ref
-// How a chapter's ref sits on /works' graph, with its tag message — the
-// layouts on trial side by side (components/log/log-timeline.tsx, RefLabel):
+// How a chapter's ref sits on /works' graph, with its tag message. The
+// layouts on trial, side by side (components/log/log-timeline.tsx, RefLabel):
 //
 //   stub   the marker at the column's edge, the trunk turning out to it; the
 //          message a paragraph under it
@@ -94,8 +94,8 @@ export const HOME_WEATHER_DEFAULT: HomeWeather = "widget";
 //   under  the marker is the node, on the trunk
 //   hash   the marker where a hash goes (`git log --decorate`)
 //   auto   hash where there is a hash slot (a desk, a tablet held landscape),
-//          under where there is none (a phone, a tablet held portrait) —
-//          the one chosen
+//          under where there is none (a phone, a tablet held portrait).
+//          The one chosen
 // =============================================================================
 
 export const WORKS_REFS = ["auto", "stub", "ring", "row", "under", "hash"] as const;
@@ -122,12 +122,12 @@ const CAN_DOCK = { base: true, sm: false };
 // Where the devtool lives. Two booleans rather than a list of shapes, because
 // neither of them is the viewport's business:
 //
-//   isDetached  false — docked to an edge.   true — floating free.
-//   isOpen      false — collapsed to a pill. true — the panel is showing.
+//   isDetached  false: docked to an edge.   true: floating free.
+//   isOpen      false: collapsed to a pill. true: the panel is showing.
 //
 // The viewport turns that into a shape (systems/devtool/dock.tsx): docked and
 // open is a bottom sheet, floating and open is a window, floating and closed is
-// the pill. Docked and closed is nothing at all — the way back is `D` or the
+// the pill. Docked and closed is nothing at all; the way back is `D` or the
 // command palette. A desktop has no bottom edge worth docking to, so it reads
 // as floating whatever this says, which is exactly how it has always behaved.
 //
@@ -141,7 +141,7 @@ const CAN_DOCK = { base: true, sm: false };
 //
 //   floating   the pill stands by whenever it is enabled, so on = `isEnabled`.
 //   docked     there is no pill. Nothing is left behind when the drawer goes
-//              down, so on = `isOpen` — swiping the drawer away IS off, and
+//              down, so on = `isOpen`. Swiping the drawer away IS off, and
 //              must not take two presses to undo.
 //
 // That is `isShowing`, and `toggleShowing` is the switch built on it. Off in
@@ -158,14 +158,14 @@ interface DevtoolSettings {
   fabEnabled: boolean;
   draggable: Record<string, Partial<DraggableInstanceConfig>>;
   /**
-   * The folds you chose by hand, keyed `id:relevant` or `id:idle` — see
-   * {@link sectionFoldKey}. Unset means the module's relevance decides.
+   * The folds you chose by hand, keyed `id:relevant` or `id:idle` (see
+   * {@link sectionFoldKey}). Unset means the module's relevance decides.
    */
   collapsed: Record<string, boolean>;
   phonePalette: PhonePalette;
   homeWeather: HomeWeather;
   worksRef: WorksRef;
-  /** The projects shelf above /works' log — on trial, off by default. */
+  /** The projects shelf above /works' log. On trial, off by default. */
   worksShelf: boolean;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
@@ -267,7 +267,7 @@ interface DevtoolContextType {
   /** Open the panel */
   open: () => void;
   /**
-   * Turn the devtool on if it is off, and show the panel — one action, because
+   * Turn the devtool on if it is off, and show the panel. One action, because
    * `open()` is gated on `isEnabled` and a caller cannot flip both in a tick.
    * What the command palette runs.
    */
@@ -286,9 +286,9 @@ interface DevtoolContextType {
   isShowing: boolean;
   /** The palette's switch: put the devtool on screen, or take it off. */
   toggleShowing: () => void;
-  /** Lift the devtool off the edge — it collapses to the floating pill. */
+  /** Lift the devtool off the edge; it collapses to the floating pill. */
   detach: () => void;
-  /** Put it back on the edge — it reopens as the sheet. */
+  /** Put it back on the edge; it reopens as the sheet. */
   dock: () => void;
   /** Toggle devtool enabled state */
   toggleEnabled: () => void;
@@ -312,7 +312,7 @@ interface DevtoolContextType {
   setPageMeta: (meta: DevtoolPageMeta | null) => void;
   /**
    * Whether a panel section is folded, by its {@link sectionFoldKey}. The
-   * rail's folds win, then the ones chosen by hand, then `fallback` — which
+   * rail's folds win, then the ones chosen by hand, then `fallback`, which
    * the section passes as "not relevant here".
    */
   isSectionCollapsed: (key: string, fallback: boolean) => boolean;
@@ -359,7 +359,7 @@ interface DevtoolContextType {
 // =============================================================================
 
 export interface DevtoolPageMeta {
-  /** Route context — e.g. blog slug + rendered locale. */
+  /** Route context, e.g. blog slug + rendered locale. */
   slug: string;
   lang: string;
   /** The post's language scope (`en` / `zh` / `both`), for the header badge. */
@@ -428,8 +428,8 @@ export function DevtoolProvider({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: localStorage read
     setDraggableOverrides(settings.draggable);
     // Loaded in the same effect as `fabEnabled` (which gates the panel's
-    // render), so the panel's first paint already has the correct fold state
-    // — no expand→collapse flash.
+    // render), so the panel's first paint already has the correct fold state.
+    // No expand→collapse flash.
     setCollapsedSections(settings.collapsed);
     setPhonePaletteState(settings.phonePalette);
     setHomeWeatherState(settings.homeWeather);
@@ -476,9 +476,9 @@ export function DevtoolProvider({
   }, []);
 
   // Pulled off the edge: the panel collapses into the pill it will reopen
-  // from. Closing it is the gesture — what is left behind is the pill, and
-  // nothing else: the palette that summoned it goes too, because clearing the
-  // screen down to the page is the whole point of asking for a pill.
+  // from. Closing it is the gesture. Only the pill is left behind: the palette
+  // that summoned it goes too, because a pill is asked for to clear the screen
+  // down to the page.
   const detach = useCallback(() => {
     setIsDetached(true);
     setDevtoolSettings({ detached: true });
@@ -506,7 +506,7 @@ export function DevtoolProvider({
       return;
     }
     // Floating: the pill is the thing on screen, so off means disabled.
-    // Docked: only the drawer is, and putting it away is not disabling —
+    // Docked: only the drawer is, and putting it away is not disabling.
     // `isEnabled` also keeps the ambient overrides live.
     if (isFloating) setEnabled(false);
     else close();

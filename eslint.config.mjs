@@ -5,12 +5,12 @@ import nextTs from "eslint-config-next/typescript";
 /**
  * A floating surface must paint with the `--glass*` tokens, not its own alpha.
  *
- * The Glass setting (Tinted / Clear — see docs/system-glass.md) swaps those
+ * The Glass setting (Tinted / Clear; see docs/system-glass.md) swaps those
  * tokens from one class on <html>. A surface that hardcodes `bg-card/70` does
  * not respond to it, and stays an opaque slab beside washed-out neighbours.
  * That contract used to live in a comment claiming "every floating System UI
- * surface" already followed it, which had quietly become false for eleven
- * surfaces. A comment cannot notice the twelfth; this can.
+ * surface" already followed it, which was no longer true for eleven
+ * surfaces. A comment cannot catch a twelfth; this rule can.
  */
 const GLASS_TOKENS_ONLY = {
   files: ["**/*.{ts,tsx}"],

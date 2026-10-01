@@ -18,7 +18,7 @@ import {
 } from "./lib/platform";
 
 // =============================================================================
-// Install — the state behind the "Add to Home Screen" command.
+// Install: the state behind the "Add to Home Screen" command.
 //
 // Open state lives here rather than in the sheet, for the reason the tilt
 // primer's lives in the ambient provider: the command that opens it is in the
@@ -38,7 +38,7 @@ interface InstallContextType {
   /** The browser has handed us its install dialog to open (Chromium). */
   canPrompt: boolean;
   /**
-   * Installed from this tab since it loaded — `appinstalled` fired. The tab
+   * Installed from this tab since it loaded (`appinstalled` fired). The tab
    * itself is still a tab (the app opened in a window of its own), so `guide`
    * cannot say so; this can.
    */

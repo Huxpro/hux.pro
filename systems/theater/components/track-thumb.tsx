@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { Track } from "../lib/types";
 
 // ---------------------------------------------------------------------------
-// TrackThumb — a track's cover in a rail. Bilibili/Vimeo tracks often lack a
+// TrackThumb: a track's cover in a rail. Bilibili/Vimeo tracks often lack a
 // public cover, so we fall back to a branded placeholder rather than an empty
 // box, keeping the album rails visually consistent. No chip: the rail's title
 // already says what the track is (media-mark.tsx).
@@ -16,8 +16,8 @@ import type { Track } from "../lib/types";
 // stealing focus from the cover.
 // ---------------------------------------------------------------------------
 
-/** What the placeholder names, and the tint it takes — by platform, or by
- *  kind for a deck, which has no platform. */
+/** What the placeholder names, and the tint it takes. Keyed by platform, or
+ *  by kind for a deck, which has no platform. */
 type Source = NonNullable<Track["platform"]> | "slides";
 
 function sourceOf(track: Track): Source {
@@ -50,8 +50,8 @@ export function TrackThumb({
       className={cn(
         "relative aspect-video w-full overflow-hidden rounded-lg bg-muted/20",
         "border transition-colors",
-        // Hairline selection — readable for the playlist rail without the
-        // old double ring fighting the cover art.
+        // Hairline selection. Readable in the playlist rail without the old
+        // double ring clashing with the cover art.
         active
           ? "border-foreground/35 dark:border-white/40"
           : "border-border/40",

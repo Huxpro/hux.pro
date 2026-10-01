@@ -108,7 +108,7 @@ export function PostContent({
   const displayOrigin =
     displayLocale === "zh" && originZh ? originZh : origin;
   // Provenance is a sentence, and a thing a reader looks up once, if ever.
-  // Among the header's handles it read as clutter — and on a phone it had to
+  // Among the header's handles it read as clutter, and on a phone it had to
   // fold behind an `(i)` to fit at all. It is a colophon: it closes the
   // article instead of standing between the title and the text.
   /**

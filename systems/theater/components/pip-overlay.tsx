@@ -11,7 +11,7 @@ import { useTheater } from "../provider";
 import { SurfaceSwitch } from "./surface-switch";
 
 // ---------------------------------------------------------------------------
-// PipOverlay — the floating, draggable Picture-in-Picture window.
+// PipOverlay: the floating, draggable Picture-in-Picture window.
 //
 // Universal across desktop (toggled from the theater) and phones (the default,
 // since a full-screen takeover is too heavy there). The video is the shared
@@ -21,7 +21,7 @@ import { SurfaceSwitch } from "./surface-switch";
 //
 // Chrome matches Featured Talks / theater. The SurfaceSwitch pill marks PiP
 // as the current view; Theater / Audio are the only moves. Close sits in the
-// same capsule — it ends the session, it is not a view. The list button opens
+// same capsule. It ends the session; it is not a view. The list button opens
 // the playlist surface: on a phone this window is the whole player, and
 // without it there is no way to see what else is in the album.
 // ---------------------------------------------------------------------------
@@ -108,7 +108,7 @@ export function PipOverlay() {
             height: PIP_CONTROLS_H,
           }}
         >
-          {/* Drag handle + title — WidgetTitle voice. */}
+          {/* Drag handle + title, in the WidgetTitle voice. */}
           <div
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -142,7 +142,7 @@ export function PipOverlay() {
             </button>
             {/* Where the Music system keeps its playlist button: last in the
                 transport cluster, because what plays next is transport. It is
-                a toggle and says so — the list is a place you are in or out
+                a toggle and says so. The list is a place you are in or out
                 of, and a button that did nothing when you were already in it
                 read as broken. */}
             <button

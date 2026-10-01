@@ -22,7 +22,7 @@ import { useMemo } from "react";
 import { SurfaceFrame } from "./frame";
 import { SURFACE_STRINGS } from "./strings";
 
-/** A recording, a deck, a page — the three chips a cover says most. */
+/** A recording, a deck, a page: the three chips a cover says most. */
 const KINDS: { name: "recording" | "deck" | "page"; test: (m: Media) => boolean }[] = [
   { name: "recording", test: isVideoMedia },
   { name: "deck", test: isSlidesMedia },
@@ -30,8 +30,8 @@ const KINDS: { name: "recording" | "deck" | "page"; test: (m: Media) => boolean 
 ];
 
 /**
- * The Attachments Lab at a glance: its vocabulary — the chip each kind of
- * cover wears before it is pressed — on the log's own covers.
+ * The Attachments Lab at a glance: its vocabulary (the chip each kind of
+ * cover wears before it is pressed) on the log's own covers.
  */
 export function AttachmentsSurface() {
   const { locale } = useLocale();

@@ -1,5 +1,5 @@
 // =============================================================================
-// Surface System — one secondary surface, three shapes.
+// Surface System: one secondary surface, three shapes.
 //
 // Where a secondary surface should live is a property of the viewport, not of
 // the feature: a phone wants a bottom sheet, a tablet a side panel, a desktop a
@@ -22,15 +22,15 @@
 // landed in from `useSurfaceContext()` instead of re-measuring the viewport.
 //
 // A surface that belongs to one button rather than to the page takes a fourth
-// shape — `ANCHORED_PRESENTATION`, a sheet on a phone and a popover hanging off
-// that button above it — and passes `anchor`.
+// shape, `ANCHORED_PRESENTATION` (a sheet on a phone and a popover hanging off
+// that button above it), and passes `anchor`.
 //
 // Two layers, because shape is not always the viewport's call:
 //
 //   primitives   <SurfaceSheet> (sheet.tsx), <SurfaceWindow> (window.tsx) and
 //                the chrome they hold (<SurfaceBody>, chrome.tsx). Shells that
 //                know nothing about viewports.
-//   policy       <AdaptiveSurface>, the rule above — viewport picks the shape.
+//   policy       <AdaptiveSurface>, the rule above: viewport picks the shape.
 //
 // A feature composes the primitives directly when the rule is not its rule:
 // the command palette, whose header is a search field rather than a title bar,

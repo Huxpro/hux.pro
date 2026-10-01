@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 // =============================================================================
-// Surface stack — which sheets are open, in the order they opened.
+// Surface stack: which sheets are open, in the order they opened.
 //
 // iOS stacks sheets: presenting one from another sends the first back a step
 // (smaller, dimmer, a little higher) and brings it forward again when the one
@@ -16,7 +16,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 // Who is in it. Not every secondary surface: the panel, the window and the
 // popover shapes never register, because nothing recedes on a tablet or a
 // desktop. What registers is the surfaces that are anchored to an edge and
-// span the screen's width — the phone sheets, and the dock's Live Activity
+// span the screen's width: the phone sheets, and the dock's Live Activity
 // panel at the top. That is why `SurfaceBand` below is a pair of Y
 // coordinates rather than a rectangle: for everything in this stack, where it
 // stands on the vertical axis IS where it stands, and a shape that floats
@@ -31,7 +31,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
  */
 export const SURFACE_TRANSITION_MS = 500;
 
-/** The curve a surface travels on — arriving, leaving, changing detent. */
+/** The curve a surface travels on: arriving, leaving, changing detent. */
 export const SURFACE_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
 
 /**
@@ -42,9 +42,9 @@ export const SURFACE_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
 export const SURFACE_RECEDE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 
 /**
- * The band of the screen a surface occupies, in viewport pixels — the whole of
- * where it is, for a surface anchored to an edge across the full width (see
- * the note above). Both edges are visual: measured from layout values, never
+ * The band of the screen a surface occupies, in viewport pixels. For a surface
+ * anchored to an edge across the full width, that is the whole of where it is
+ * (see the note above). Both edges are visual: measured from layout values, never
  * from a `getBoundingClientRect`, because the recede a band decides is itself
  * a transform on the surface being measured.
  */
@@ -60,7 +60,7 @@ interface Entry {
   /** The detent the sheet stands at, for a sheet opening over it to arrive level. */
   level?: number;
   /**
-   * Where the surface stands. Absent means "assume it covers everything" —
+   * Where the surface stands. Absent means "assume it covers everything",
    * the behaviour every surface had before any of them could say.
    */
   band?: SurfaceBand;
@@ -135,8 +135,8 @@ function setBand(id: string, band: SurfaceBand | undefined) {
 
 /**
  * Where another surface is standing, or `undefined` if it is closed or has not
- * said. For a surface that has to fit itself around one it does not own — the
- * theater playlist, whose top detent is the bottom edge of the dock card the
+ * said. For a surface that has to fit itself around one it does not own, like
+ * the theater playlist, whose top detent is the bottom edge of the dock card the
  * player collapsed into. The stack already knows, so asking it beats a second
  * measurement of the same element from the outside.
  */
@@ -160,7 +160,7 @@ export function useSurfaceBandOf(id: string): SurfaceBand | undefined {
  *   size / resize  a `ResizeObserver` on the shell, which is what a detent
  *                  change actually is, and the window's own resize
  *
- * `measure` must read layout values only — `offsetTop`, `offsetHeight` — and
+ * `measure` must read layout values only (`offsetTop`, `offsetHeight`) and
  * must be a `useCallback`, since it is this effect's dependency.
  */
 export function useMeasuredBand(
@@ -195,7 +195,7 @@ export function useMeasuredBand(
 }
 
 /**
- * The stack as it stands, bottom first — for a readout (the attachments lab), not
+ * The stack as it stands, bottom first. For a readout (the attachments lab), not
  * for a sheet, which asks `useSurfaceStack` about its own place.
  */
 export function useSurfaceStackEntries(): readonly { id: string; nestedIn?: string }[] {
@@ -209,10 +209,10 @@ export function useSurfaceStackEntries(): readonly { id: string; nestedIn?: stri
  *
  * `behind` counts every sheet above *that covers this one*, nested or not: it
  * is what makes the sheet inert and dims it. Surfaces that merely share the
- * screen — the dock panel at the top, a sheet stopping below it — do not
+ * screen (the dock panel at the top, a sheet stopping below it) do not
  * count, because neither is hidden. `depth` leaves out the sheets nested in
- * this one — Base UI already counts those on the parent popup as
- * `--nested-drawers`, live with their swipe — so a shell can add the two
+ * this one. Base UI already counts those on the parent popup as
+ * `--nested-drawers`, live with their swipe, so a shell can add the two
  * without counting a sheet twice. `beneathLevel` is the detent of the nearest
  * sheet under this one that it actually stands on, so a sheet can arrive level
  * with it.
@@ -221,11 +221,11 @@ export function useSurfaceStackEntries(): readonly { id: string; nestedIn?: stri
  * tiling. Measure it off a box that does not carry the recede transform (the
  * popup, or `offsetHeight`), or the answer feeds back into itself.
  *
- * `rank` is the sheet's
- * place in the stack from the bottom — its layer, for a viewport to stand on:
- * sheets portal into sibling subtrees in whatever order they first mounted,
- * and a kept-mounted one (a window) opened again over a younger sheet would
- * otherwise paint under it while the stack says it is on top.
+ * `rank` is the sheet's place in the stack from the bottom. That is its layer,
+ * for a viewport to stand on: sheets portal into sibling subtrees in whatever
+ * order they first mounted, and a kept-mounted one (a window) opened again
+ * over a younger sheet would otherwise paint under it while the stack says it
+ * is on top.
  */
 export function useSurfaceStack(
   id: string,
@@ -253,8 +253,8 @@ export function useSurfaceStack(
     if (active) setLevel(id, level);
   }, [id, active, level]);
 
-  // Destructured, so a caller passing a fresh object every render — which a
-  // measured band is — does not re-run this on every render.
+  // Destructured, so a caller passing a fresh object every render (as a
+  // measured band does) does not re-run this on every render.
   const bandTop = band?.top;
   const bandBottom = band?.bottom;
   useEffect(() => {

@@ -30,5 +30,5 @@ const zh: typeof en = {
   listening: "聆听中…",
 };
 
-/** The surfaces' words — each lab at a glance, in the reader's language. */
+/** The surfaces' words: each lab at a glance, in the reader's language. */
 export const SURFACE_STRINGS: LabTable<typeof en> = { en, zh };

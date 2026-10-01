@@ -5,19 +5,19 @@ import { useEffect, useState, type ReactNode } from "react";
 import { SURFACE_EASING } from "./stack";
 
 // =============================================================================
-// SurfaceMorph — a surface that changes what it says without changing surfaces.
+// SurfaceMorph: a surface that changes what it says without changing surfaces.
 //
 // A primer's sheet asks, the browser's dialog answers, and the sheet then says
 // how it went. Swapping its content outright is a cut: the text jumps, and a
 // content-sized sheet (`fitContent`) snaps to its new height in one frame. iOS
-// does neither — the sheet re-sizes and the content cross-fades inside it — so
-// this does that:
+// does neither: the sheet re-sizes and the content cross-fades inside it. This
+// does the same:
 //
 //   - the step that is leaving stays, absolutely placed over the top of the
 //     box, and fades out; the new one fades in in flow, a beat later;
 //   - the box's height eases from the old step's measured height to the new
-//     one's with the sheet's own curve, so a content-sized sheet — pinned at
-//     its bottom edge — grows or shrinks from the top, the way it opened.
+//     one's with the sheet's own curve, so a content-sized sheet (pinned at
+//     its bottom edge) grows or shrinks from the top, the way it opened.
 //
 // Steps are rendered from `render(step)` rather than held as elements, so the
 // leaving one is drawn from current state (it is inert and fading; nothing in
@@ -28,7 +28,7 @@ import { SURFACE_EASING } from "./stack";
 // Under reduced motion the swap is immediate: no fade, no height travel.
 // =============================================================================
 
-/** Height travel — the sheet's own open/close curve, a little quicker. */
+/** Height travel: the sheet's own open/close curve, a little quicker. */
 const HEIGHT_MS = 420;
 /** The leaving step is gone before the entering one is fully in. */
 const FADE_OUT_MS = 180;
@@ -38,7 +38,7 @@ const FADE_IN_DELAY_MS = 90;
 export interface SurfaceMorphProps<Step extends string> {
   /** Which content is showing. A change of step is what morphs. */
   step: Step;
-  /** The content for a step — called for the leaving step too, while it fades. */
+  /** The content for a step. Called for the leaving step too, while it fades. */
   render: (step: Step) => ReactNode;
   className?: string;
 }

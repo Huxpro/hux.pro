@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The knobs every lab's panel is built from — Section, Field, Segmented,
+ * The knobs every lab's panel is built from: Section, Field, Segmented,
  * Slider, Toggle, TextField, ColorField. Mono labels, hairline borders,
  * grayscale: the site's System UI vocabulary, one set for the whole family
  * (see shell.tsx for the frame they sit in).

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * ProjectShelf — the projects, as a directory above the log. On trial: a
+ * ProjectShelf: the projects, as a directory above the log. On trial: a
  * saved DevTool setting (Works → Projects shelf), off by default.
  *
  * /works is a log, and a log answers "what happened when". The question a
@@ -9,7 +9,7 @@
  * them find eleven projects among nineteen talks. A projects page answers
  * it first, in a column of faces and names.
  *
- * Folded — the way it rests — the shelf is one line: the projects' marks in
+ * Folded (the way it rests), the shelf is one line: the projects' marks in
  * a row, the way a dock holds its apps, and a caret after them. Every
  * project is on screen at a glance and the log starts a line later. Each
  * mark is already the project's door (its row's permalink, and its peek
@@ -23,15 +23,15 @@
  * you stop opening.
  *
  * It is a directory, not a second log. A cell is a permalink to the
- * project's row (`/works#<hash>`), so pressing it travels the page there —
- * to the description whole, the covers, the notes, the author — and on a
+ * project's row (`/works#<hash>`), so pressing it scrolls the page there
+ * (to the description whole, the covers, the notes, the author), and on a
  * pointer device it peeks the row's own peek (the stacked covers), so the
  * work is one rest of the pointer away before the trip. Nothing here
  * duplicates what the row prints; the shelf says *which*, the row says
  * *what*.
  *
  * No marker: a row of eleven faces says "projects" and "eleven" better than
- * a pill could, and it is not a chapter — the pinned bar's ref slot does not
+ * a pill could, and it is not a chapter. The pinned bar's ref slot does not
  * watch it, so `main` stays up until the first era's marker arrives.
  */
 
@@ -86,7 +86,7 @@ const UNFOLD = {
 };
 
 export interface ProjectShelfProps {
-  /** The projects, in the order to show them — the log's own, newest first. */
+  /** The projects, in the order to show them: the log's own, newest first. */
   projects: readonly Commit[];
   locale: Locale;
   /** Makes a cell the row's permalink (see `useCommitAnchor`). */
@@ -126,7 +126,7 @@ export function ProjectShelf({
 
   /** A press on a mark or a cell: the page's own travel to the row. */
   const travel = (hash: string) => (e: MouseEvent<HTMLAnchorElement>) => {
-    // Modified clicks belong to the browser — a new tab of the permalink is
+    // Modified clicks belong to the browser. A new tab of the permalink is
     // exactly what they ask for.
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     if (!onSelectHash) return;
@@ -172,8 +172,8 @@ export function ProjectShelf({
           </div>
         )}
 
-        {/* The disclosure: points on while folded, down once open — the one
-            mark on the page that says a thing folds. */}
+        {/* The disclosure points on while folded and down once open. It is
+            the one mark on the page that says a thing folds. */}
         <button
           type="button"
           onClick={() => shelfStore.set(open ? "closed" : "open")}
@@ -227,8 +227,8 @@ export function ProjectShelf({
                       "transition-colors duration-150 hover:bg-muted/20 active:bg-muted/30",
                     )}
                   >
-                    {/* The face, at the size a list gives an icon — a third
-                        bigger than the row's — with the corner an app icon has. */}
+                    {/* The face, at the size a list gives an icon (a third
+                        bigger than the row's), with the corner an app icon has. */}
                     <ProjectMark
                       icon={mark}
                       className="mt-0.5 size-8 rounded-[22.5%] text-base"

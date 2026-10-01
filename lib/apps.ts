@@ -1,5 +1,5 @@
 /**
- * App catalog — single read of `content/apps.json` + icon snapshot for every
+ * App catalog: single read of `content/apps.json` + icon snapshot for every
  * surface that launches or renders apps (home folder, ⌘K launcher, windows).
  *
  * Keep this module free of React imports so scripts and Node tooling can share
@@ -14,7 +14,7 @@ export const APPS: AppLink[] = (appsJson as { apps: AppLink[] }).apps;
 export const APP_ICONS = appIconSnapshot as AppIconSnapshot;
 export const APPS_BY_ID = new Map(APPS.map((a) => [a.id, a]));
 
-/** Home-screen springboard — catalog minus `featured: false` (command-only) apps. */
+/** Home-screen springboard: catalog minus `featured: false` (command-only) apps. */
 export const FEATURED_APPS: AppLink[] = APPS.filter((a) => a.featured !== false);
 export const DEFAULT_APP_IDS = FEATURED_APPS.map((a) => a.id);
 
@@ -30,7 +30,7 @@ export function iconFillsTile(
   return entry.width === entry.height && entry.width >= 160;
 }
 
-/** Folder page capacity helpers — used by the home App Folder widget. */
+/** Folder page capacity helpers, used by the home App Folder widget. */
 export type AppFolderAxis = "x" | "y";
 
 export interface AppFolderLayout {

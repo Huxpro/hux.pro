@@ -6,13 +6,13 @@ import { CommandPopover } from "./popover";
 import { CommandSheet } from "./sheet";
 
 // =============================================================================
-// CommandPalette — one palette, two shells.
+// CommandPalette: one palette, two shells.
 //
 // Which shell is a property of the viewport, decided against the same
 // breakpoints every secondary surface uses (systems/surface): a sheet on a
-// phone, and above that the palette's own floating popover — a Spotlight card
-// rather than a titled window, so it is not an AdaptiveSurface and has a
-// vocabulary of its own here.
+// phone, and above that the palette's own floating popover. The popover is a
+// Spotlight card rather than a titled window, so it is not an AdaptiveSurface
+// and has a vocabulary of its own here.
 //
 // The devtool's Command module can ask for the popover on a phone too. That is
 // the palette as it was before the sheet, kept whole: the popover never lost
@@ -28,7 +28,7 @@ const COMMAND_PRESENTATION: BreakpointMap<CommandShellShape> = {
   sm: "popover",
 };
 
-/** The popover everywhere — the devtool's "Popover" choice. */
+/** The popover everywhere: the devtool's "Popover" choice. */
 const POPOVER_PRESENTATION: BreakpointMap<CommandShellShape> = { base: "popover" };
 
 export function CommandPalette() {

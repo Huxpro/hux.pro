@@ -12,7 +12,7 @@ import type { ComponentPropsWithoutRef } from "react";
  * wide, high-resolution captures break out of the reading column while small
  * or square images stay within it (see {@link shouldBleedImage}). The decision
  * is made from the image's intrinsic dimensions, read from `/public` at build
- * time — this is a Server Component, so the filesystem access never reaches the
+ * time. This is a Server Component, so the filesystem access never reaches the
  * client.
  *
  * Authors override the automatic call per image with a URL fragment:

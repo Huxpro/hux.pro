@@ -38,8 +38,8 @@ import { useOptionalTheater } from "@/systems/theater";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Every in-page reference — an attribution anchor, a back-link, an item's own
- * `#` mark — travels the same way: put the id in the URL so the link can be
+ * Every in-page reference (an attribution anchor, a back-link, an item's own
+ * `#` mark) travels the same way: put the id in the URL so the link can be
  * shared, then glide there instead of teleporting. `scrollIntoView` follows
  * whichever element actually scrolls, so this keeps working inside
  * Vitre's scroll container as well as the window.
@@ -62,7 +62,7 @@ function goToId(id: string) {
  * How an in-page link travels, and what it points at.
  *
  * `goTo` defaults to the plain scroll above; the page installs one that
- * first lifts the filter when the target is currently filtered out — a
+ * first lifts the filter when the target is currently filtered out. A
  * reference has to be allowed to win over a reading, or "shaped by: Steve
  * Jobs" is a dead link the moment you tap 行事.
  *
@@ -222,8 +222,8 @@ function LinkRow({
  * Inline marks inside a line of content. Two of them, and each is the mark
  * a script makes for itself:
  *
- *   `**bold**`   weight — the emphasis Chinese has always used
- *   `*italic*`   slope — a work's title, a term as a term, a Latin aside
+ *   `**bold**`   weight: the emphasis Chinese has always used
+ *   `*italic*`   slope: a work's title, a term as a term, a Latin aside
  *
  * Italic is the one mark this site's two alphabets do not share. Newsreader
  * and Inter both ship a drawn italic; Noto Serif SC ships upright only, so a
@@ -268,7 +268,7 @@ function plain(text: string) {
 
 /**
  * An attribution renders as an anchor when it points at an entry in
- * `influences`, and as plain text when it doesn't — most of what shaped a
+ * `influences`, and as plain text when it doesn't. Most of what shaped a
  * belief never gets an entry of its own.
  */
 function AttributionText({
@@ -282,12 +282,12 @@ function AttributionText({
 }) {
   const { goTo, anchorFor } = useNav();
   // Provenance has two halves and they are not the same kind of thing: who
-  // said it is a name you might go and look up — several of them are links
-  // to an entry further down the page — and where they said it annotates
+  // said it is a name you might go and look up (several of them are links
+  // to an entry further down the page), and where they said it annotates
   // the name. So the author stays on the sentence's own rung and the work
   // drops one, which is the only place in a citation where the ladder
   // steps. What separates them carries nothing and sits below both.
-  // `ref` links the name inward, `url` links the work outward — and when
+  // `ref` links the name inward, `url` links the work outward. When
   // there is no work to hang it on, the url links the name instead, because
   // a source that can be looked up should be reachable either way.
   const nameRung =
@@ -351,10 +351,10 @@ function AttributionText({
  * Markdown-lite body: "- " lines are a list, anything else is a paragraph,
  * and a body can be both.
  *
- * That shape is the point of this page rather than a convenience. A belief
- * arrives in a dozen phrasings — one for a talk, one for a 3am note, one for
- * an argument — and filing each as its own entry would make the page a pile
- * instead of a system. So each entry keeps the shortest form of the thing as
+ * That shape is deliberate. A belief arrives in a dozen phrasings (one for
+ * a talk, one for a 3am note, one for an argument), and filing each as its
+ * own entry would make the page a pile instead of a system. So each entry
+ * keeps the shortest form of the thing as
  * its statement, the reasoning as the paragraph, and every other way it has
  * been said as a line underneath: same belief, different instances.
  */
@@ -408,13 +408,13 @@ function Body({ text }: { text: string }) {
  * The faces of a belief, revealed on expand.
  *
  * Each line is the same conviction showing up somewhere specific, so it is
- * set quieter than the reasoning above it — the reasoning is the entry's
- * prose, on the reading rung, and these are its appendix, on secondary —
- * and can carry two kinds of
- * pointer: whose words or example it is (`from`), and which other entry on
+ * set quieter than the reasoning above it. The reasoning is the entry's
+ * prose, on the reading rung; these are its appendix, on secondary. Each
+ * line can carry two kinds of pointer: whose words or example it is
+ * (`from`), and which other entry on
  * this page it is also filed under (`ref`). The second is what lets a big
- * belief own its small ones without deleting them — the page groups by
- * linking, not by swallowing.
+ * belief own its small ones without deleting them: the page groups entries
+ * by linking them, not by merging them.
  */
 function Instances({
   instances,
@@ -429,7 +429,7 @@ function Instances({
       {instances.map((instance, i) => {
         const label = instance.ref ? labelOf(instance.ref) : undefined;
         // When the instance IS the other entry's sentence, the arrow alone
-        // carries the link — printing the label would say it twice.
+        // carries the link. Printing the label would say it twice.
         const echo =
           label !== undefined &&
           plain(instance.text).includes(label.replace(/…$/, "").trim());
@@ -443,7 +443,7 @@ function Instances({
           >
             <span className="text-quaternary-foreground">·</span>
             <span>
-              {/* The name this face goes by, when it has one — a quote's own
+              {/* The name this face goes by, when it has one: a quote's own
                   words, a discipline, a chapter of a career. */}
               {instance.title && (
                 <span className="text-foreground">
@@ -483,7 +483,7 @@ function Instances({
 
 /**
  * What an entry's id is worth printing for: it is this belief's outline word
- * — the one word it would be filed under — and it is also the anchor. So the
+ * (the one word it would be filed under), and it is also the anchor. So the
  * two are the same control at two sizes. At rest the row prints `#flux`,
  * quietly, which is the only line of chrome this page shows by default; on
  * hover it gives way to the full tag, where the same click lives on the `id`
@@ -500,7 +500,7 @@ function useCopyLink(id: string) {
       // of noise; what goes on the clipboard should be the link as it reads.
       navigator.clipboard?.writeText(decodeURI(window.location.href)).then(
         () => setCopied(true),
-        () => {}, // clipboard denied — the URL is updated either way
+        () => {}, // clipboard denied; the URL is updated either way
       );
     },
     [id],
@@ -520,9 +520,9 @@ function useCopyLink(id: string) {
  * hover, focus or expand and invisible at rest.
  *
  * The id is the entry's outline word and its anchor at the same time, so it
- * is the one attribute that is also a control — underlined by default,
- * because a link that only announces itself on hover inside a row that is
- * itself only there on hover is a secret.
+ * is the one attribute that is also a control. It is underlined by default,
+ * because a link that only shows itself on hover, inside a row that is
+ * itself only there on hover, would never be found.
  *
  * Under the pointer it grows a `#`, which is both the promise (this is an
  * anchor) and the thing you are about to get (`#会通` is the link). The
@@ -574,7 +574,7 @@ function EntryTag({
         {/* The promise and the receipt, in front of the word: under the
             pointer the value reads `#会通`, which is the fragment about to
             land on the clipboard, and after the click a ✓ takes the same
-            place. Plain inline text that is simply not there until it is —
+            place. Plain inline text that is absent until it is needed:
             an inline-block with a clipped width sits on its own bottom
             edge rather than on the line's baseline, which is what had the
             `#` floating a pixel above the word it belongs to. */}
@@ -619,7 +619,7 @@ function PromptItem({
   tag: string;
   attributes?: Record<string, string>;
   anchorId: string;
-  /** The run of the page this entry is read in — what the toolbar lights
+  /** The run of the page this entry is read in: what the toolbar lights
    *  while it is the one in the middle (`useReadingChapter`). */
   chapter: PromptChapter;
   expandable: boolean;
@@ -639,8 +639,8 @@ function PromptItem({
   const { copied, copyLink } = useCopyLink(anchorId);
 
   // `mouseenter`/`mouseleave` only fire when the pointer moves, so anything
-  // that moves the page under a still pointer — collapsing this entry,
-  // scrolling — leaves the row open on an entry the pointer is no longer
+  // that moves the page under a still pointer (collapsing this entry,
+  // scrolling) leaves the row open on an entry the pointer is no longer
   // on, until the next click. `:hover` is the browser's own answer to the
   // same question and it survives layout, so re-ask it whenever the layout
   // is what changed.
@@ -743,12 +743,12 @@ function PromptItem({
 /**
  * One sentence of a conviction. Borrowed words are set as a quote with
  * their attribution under them; mine are set as a statement. The head of a
- * chorus is set at full size and the voices after it a half step down —
+ * chorus is set at full size and the voices after it a half step down:
  * still whole sentences, visibly not the head.
  */
 /**
  * Provenance inside the voice band. Sans and upright, because a face says
- * what kind of thing this is — but the same size and leading as the
+ * what kind of thing this is, but the same size and leading as the
  * sentence it belongs to: a source set a step smaller reads as a footnote
  * that has fallen into the middle of a line, and at one size the whole
  * thing reads as one citation sentence.
@@ -781,11 +781,11 @@ function StatementLine({
         )}
         {quoted && (
           // Trailing rather than stacked: a witness's papers belong on the
-          // same line as the testimony, the way an instance's do — but in
+          // same line as the testimony, the way an instance's do, but in
           // the metadata face, not the sentence's. A face says what kind of
           // thing this is, not where it happens to sit: serif is a voice,
-          // sans is provenance, and provenance that changed face because it
-          // is inline would be the layout talking over the meaning.
+          // sans is provenance. Provenance that changed face because it is
+          // inline would let the layout override the meaning.
           <span className={VOICE_META}>
             <span className="text-quaternary-foreground">{" — "}</span>
             <AttributionText attribution={quoted} rung="reading" />
@@ -819,7 +819,7 @@ function StatementLine({
 /**
  * A conviction. `quotedFrom` decides the typography: borrowed words are set
  * as a quote with their attribution on the surface; my own words are set as
- * a statement. Provenance is the only thing that varies — the belief is
+ * a statement. Provenance is the only thing that varies. The belief is
  * mine either way, so both are `<conviction>`.
  */
 function ConvictionItem({
@@ -835,14 +835,14 @@ function ConvictionItem({
   /** Short label for an id an instance points at. */
   labelOf: (id: string) => string | undefined;
 }) {
-  // `id`, `type`, `on`. The id is the entry's outline word — the one word
-  // this belief would be filed under — and it is worth showing because it
+  // `id`, `type`, `on`. The id is the entry's outline word (the one word
+  // this belief would be filed under), and it is worth showing because it
   // is not always in the sentence: 修身 and 行事 carry it (成己, 演示),
   // while a 天行 statement is a claim about the world and the id is my name
   // for the claim (自然, 天命). It is also the hash.
   //
   // `on` is the shelf, space-separated the way a `class` attribute holds
-  // several. A statement's `facet` is authored but not printed — the row
+  // several. A statement's `facet` is authored but not printed. The row
   // was long enough with it, and the facets are what the voices answer,
   // not what the entry is.
   const attributes: Record<string, string> = {
@@ -899,7 +899,7 @@ function ConvictionItem({
         <StatementLine key={i} statement={statement} head={i === 0} />
       ))}
 
-      {/* My own way of saying it — the aside voice /works uses for a note in
+      {/* My own way of saying it: the aside voice /works uses for a note in
           the margin, so a proverb and the line I actually say can share a
           row without competing. */}
     </PromptItem>
@@ -907,7 +907,7 @@ function ConvictionItem({
 }
 
 /**
- * A deck this entry is carrying. Tapping it opens the Theater stage — the
+ * A deck this entry is carrying. Tapping it opens the Theater stage, the
  * same library the log's decks live in, so this one lands beside them and
  * can be sent to PiP and read while you keep scrolling.
  */
@@ -964,7 +964,7 @@ function InfluenceItem({
   convictions: Conviction[];
 }) {
   const { goTo, anchorFor } = useNav();
-  // Back-links are computed, never authored — the same relation read from
+  // Back-links are computed, never authored: the same relation read from
   // the other end.
   // Any voice in the chorus counts: quoting someone in the third sentence
   // of a belief is still that person shaping the belief.
@@ -975,7 +975,7 @@ function InfluenceItem({
   );
 
   // `id` then `kind`. An influence sits on no shelf (`lib/prompts`), and the
-  // row below — what they shaped — is the truer answer to what they are "on".
+  // row below (what they shaped) is the better answer to what they are "on".
   const attributes: Record<string, string> = {
     id: influence.anchor,
     kind: influence.kind,
@@ -1120,7 +1120,7 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   );
 
   // A reading of this page ("just the convictions, just on open source") is a
-  // link someone can send, and the back button undoes a filter — same
+  // link someone can send, and the back button undoes a filter. Same
   // contract as /works, same codec shape (lib/prompt-view).
   const urlView = useMemo(
     () => parsePromptView(new URLSearchParams(searchParams.toString())),
@@ -1176,7 +1176,7 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
       element.scrollIntoView({ block: "start" });
     });
     return () => cancelAnimationFrame(frame);
-    // Once, on mount — a later locale switch must not yank the page around.
+    // Once, on mount. A later locale switch must not yank the page around.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1197,7 +1197,7 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
   );
 
   const topicFacets = useMemo<TopicFacet[]>(() => {
-    // Convictions only — the influences carry no topic. A belief on two
+    // Convictions only; the influences carry no topic. A belief on two
     // shelves is counted on both: the chip answers "how much is filed
     // here?", and both answers are true.
     const counts = new Map<PromptTopic, number>();
@@ -1224,8 +1224,8 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
 
   // A reference outranks a reading: following one into something the filter
   // is currently hiding clears the filter and then goes there, rather than
-  // silently doing nothing. Two renders — the entry has to exist before it
-  // can be scrolled to — so the id waits in state for one pass.
+  // silently doing nothing. It takes two renders, because the entry has to
+  // exist before it can be scrolled to, so the id waits in state for one pass.
   const pendingId = useRef<string | null>(null);
 
   const goTo = useCallback(
@@ -1250,7 +1250,7 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
     const id = pendingId.current;
     if (!id) return;
     pendingId.current = null;
-    // The URL was written by `commit` — this only travels.
+    // The URL was written by `commit`; this only travels.
     scrollToId(id);
   }, [view]);
 

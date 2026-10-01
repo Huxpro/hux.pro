@@ -7,26 +7,26 @@ import { useAmbientTime, useWeather } from "../provider";
 import { MoonGlyph, SunEventGlyph, SunGlyph } from "./body-glyph";
 
 // ---------------------------------------------------------------------------
-// SkyBodyHints — which way to turn to find the sun or the moon.
+// SkyBodyHints: which way to turn to find the sun or the moon.
 //
 // Through the sky window the bodies are where they really are, which is most
 // of the time not in front of you. A sky with no moon in it and no idea where
-// it went is a window that has lost its point. So a body that is off the glass
-// (to a side, overhead, behind you) gets a hint at the edge of the screen: its
-// own solid glyph and a small chevron pointing past it, sitting on the line
-// from the centre of the screen toward the body — turn that way and it comes
-// into the window, and the hint lets go of it.
+// it went is not much use as a window. So a body that is off the glass (to a
+// side, overhead, behind you) gets a hint at the edge of the screen: its own
+// solid glyph and a small chevron pointing past it, sitting on the line from
+// the centre of the screen toward the body. Turn that way and it comes into
+// the window, and the hint lets go of it.
 //
 // Quiet on purpose: small, faint, no label, no motion of its own beyond
 // following the body. The sky is the thing to look at; this only says where.
 // Only once the window has fully opened and the bodies have landed (their
-// flight in IS the first hint), only for a body that is up — a moon lost in the
-// daylight or below the horizon is not one to go looking for — and never for
+// flight in IS the first hint), only for a body that is up (a moon lost in the
+// daylight or below the horizon is not one to go looking for), and never for
 // one already on screen, clouded or not.
 //
 // Except the sun through a sunrise or a sunset: then its hint is the event's
-// glyph and points at `sun.light` — the sun, or the horizon under it once it
-// has set. See "The Sky Window" in docs/system-ambient.md.
+// glyph and points at `sun.light`, which is the sun, or the horizon under it
+// once it has set. See "The Sky Window" in docs/system-ambient.md.
 //
 // Sixty frames a second from the renderer (lib/sky-bodies.ts) and no React
 // render per frame: each hint's element is moved and faded by hand.

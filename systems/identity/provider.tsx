@@ -14,7 +14,7 @@ import {
 import { buildIdentityProfile, type IdentityProfile } from "./lib/profile";
 
 // =============================================================================
-// IdentityCardProvider — the identity card's state.
+// IdentityCardProvider: the identity card's state.
 //
 // One card, mounted once (components/identity-card.tsx), opened by a tap on
 // any `<handle>`, `Role:` field or role row where there is no pointer to
@@ -47,7 +47,7 @@ export interface OpenIdentityCard {
   identityId: string;
   /** The role instance to lead with; the identity's latest otherwise. */
   roleId?: string;
-  /** What was pressed — the popover hangs off it. */
+  /** What was pressed; the popover hangs off it. */
   anchor?: HTMLElement | null;
 }
 

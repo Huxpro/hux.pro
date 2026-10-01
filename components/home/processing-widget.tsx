@@ -23,12 +23,12 @@ import { t, useLocale } from "@/services";
 import { useMemo } from "react";
 
 // ---------------------------------------------------------------------------
-// ProcessingWidget — a minimized /works timeline for the home grid.
+// ProcessingWidget: a minimized /works timeline for the home grid.
 //
 // The vertical sibling of FeaturedTalksWidget's horizontal stack, and
 // curated the same way: the talks card reads its `featured-*-talks` groups,
 // this one reads `featured-projects`. A card is a preview, and a preview is
-// a choice about what to show — a truncated list is not one. Rows are
+// a choice about what to show. A truncated list is not a choice. Rows are
 // /works' one-liners: mark, title, date; link pills, bylines and
 // attachments (cards, videos, slides) are left to /works, where each row
 // permalinks.
@@ -42,14 +42,14 @@ import { useMemo } from "react";
 /** The curated group that decides which projects the card shows. */
 export const FEATURED_GROUP_ID = "featured-projects";
 
-/** Where the card hands off — the same reading of /works it is a preview
+/** Where the card hands off: the same reading of /works it is a preview
  *  of, so arriving there does not mean finding these three in a column of
  *  twenty-five. */
 export const PROJECTS_HREF = "/works?type=project";
 
 /**
  * The commits the widget renders: the curated projects, in the log's own
- * order. Roles are carried along as hidden rows — they never render, but
+ * order. Roles are carried along as hidden rows. They never render, but
  * they still anchor the tenure rail and resolve each project's byline, so
  * they are taken from the whole timeline rather than the curated slice.
  * Exported so the home grid can gate the widget's presence before mounting

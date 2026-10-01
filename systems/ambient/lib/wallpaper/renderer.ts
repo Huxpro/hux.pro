@@ -1,5 +1,5 @@
 // =============================================================================
-// WallpaperRenderer — owns one WebGL2 canvas and drives the wallpaper shader.
+// WallpaperRenderer: owns one WebGL2 canvas and drives the wallpaper shader.
 //
 //   • Scenes are *targets*: every uniform eases toward its new value with its
 //     own time constant, so a weather refetch (say, 30% → 95% cloud) rolls in
@@ -11,11 +11,11 @@
 //     and backs off when frames run long, recovering when they are cheap.
 //   • Pauses when the tab is hidden; renders one still frame under
 //     prefers-reduced-motion; survives context loss.
-//   • A poke (the click-answered easter eggs — see ../poke.ts) is the one thing
+//   • A poke (the click-answered easter eggs; see ../poke.ts) is the one thing
 //     here that is *not* eased: `poke()` arms `uPoke*` and the shader runs its
 //     own envelope off the age. A strike that eased in would not be a strike.
 //
-// Zero React inside — the component just hands it a canvas and scenes.
+// Zero React inside. The component just hands it a canvas and scenes.
 // =============================================================================
 
 import { UPRIGHT_GRAVITY, type GravityVector } from "../gyroscope";
@@ -69,16 +69,16 @@ interface UniformSpec {
 // Where a body is drawn tracks the clock it was given (`TRACK`); what the sky
 // is made of crossfades. A live clock moves the sun and moon by a thousandth
 // of a screen a minute, so their easing is only ever felt when the clock is
-// driven by hand — the devtool's date and time sliders — and there it should
+// driven by hand (the devtool's date and time sliders), and there it should
 // feel attached to the slider, not towed behind it.
 const TRACK = 0.25;
 
 // What the theme changes: the veil's colour and amount and the exposure
-// (VEIL_DEFAULTS in ../scene.ts) — and, in the two pairings the theme re-keys,
+// (VEIL_DEFAULTS in ../scene.ts), plus, in the two pairings the theme re-keys,
 // the `keyed` colours, which borrow this clock while a change of theme lands.
-// Named so `setThemeEase` can stretch this one group — the sun's handover takes
-// as long over the sky as it does over the page — without the weather slowing
-// down with it.
+// Named so `setThemeEase` can stretch this one group without the weather
+// slowing down with it: the sun's handover takes as long over the sky as it
+// does over the page.
 const THEME = 0.5;
 
 const UNIFORMS: UniformSpec[] = [
@@ -112,7 +112,7 @@ const UNIFORMS: UniformSpec[] = [
   { name: "uVeilAmount", size: 1, tau: THEME },
   { name: "uExposure", size: 1, tau: THEME },
   // The sky window's (see ../sky-window.ts). The world wind never reaches the
-  // shader as itself — the renderer turns it into a lean across the view — so
+  // shader as itself (the renderer turns it into a lean across the view), so
   // its location is simply null, the way uWind's always has been.
   { name: "uWindWorld", size: 2, tau: 3.0 },
   { name: "uSunWorld", size: 3, tau: TRACK },
@@ -123,8 +123,8 @@ const FLOAT_COUNT = UNIFORMS.reduce((n, u) => n + u.size, 0);
 
 /**
  * Per-uniform float offset into the packed scene, and the distinct easing time
- * constants — both derived once from the table, so the per-frame loops index
- * arrays instead of scanning names.
+ * constants. Both are derived once from the table, so the per-frame loops
+ * index arrays instead of scanning names.
  */
 const OFFSET: Record<string, number> = {};
 const TAUS: number[] = [];
@@ -177,7 +177,7 @@ const BODIES = [
 export interface WindowBodies {
   /** The window is fully open and the bodies have landed: hints may show. */
   settled: boolean;
-  /** Screen 0..1, y up — off the glass when outside it; `ahead` < 0 behind you. */
+  /** Screen 0..1, y up. Off the glass when outside it; `ahead` < 0 behind you. */
   sun: {
     x: number;
     y: number;
@@ -185,7 +185,7 @@ export interface WindowBodies {
     up: boolean;
     /**
      * Where the sun's light is: the sun while it is up, the horizon under it
-     * once it is down. Always `up` — there is always somewhere to aim.
+     * once it is down. Always `up`: there is always somewhere to aim.
      */
     light: { x: number; y: number; ahead: number; up: true };
   };
@@ -194,7 +194,7 @@ export interface WindowBodies {
 
 /**
  * A point `t` of the way from (ax, ay) to (bx, by) in screen space, bowed off
- * the straight line by BODY_FLY_BOW — upward, so a body flies over rather than
+ * the straight line by BODY_FLY_BOW. Upward, so a body flies over rather than
  * sliding across. Measured in the shader's own space (x stretched by the
  * aspect), so the bow is the same on a tall screen as a wide one.
  */
@@ -221,14 +221,14 @@ function flyAlong(ax: number, ay: number, bx: number, by: number, t: number, asp
 /**
  * How long the sky takes to become a window, and to go back to being a stage.
  * Long enough to watch the horizon drop into place and the sun slide round to
- * where it really is — that is the reveal — and no longer.
+ * where it really is (that is the reveal), and no longer.
  */
 const WINDOW_TAU = 0.45;
 
 /**
  * The pull's preview (lib/sky-pull.ts): as the home is pulled down, the sky's
- * gradient lifts — by up to this many screen heights, so the zenith's colour
- * reaches further down and the stars come lower — as if the eyes were rising
+ * gradient lifts by up to this many screen heights, so the zenith's colour
+ * reaches further down and the stars come lower, as if the eyes were rising
  * with the page going down. ONLY the gradient: the sun and the moon hold still
  * under a pull, and so do the clouds and the stars, so that nothing is already
  * on its way before the window has opened (see `BODY_FLY_SEC`). It follows the
@@ -239,9 +239,9 @@ const PREVIEW_TAU = 0.1;
 
 /**
  * Once the window opens, the sun and the moon fly from where the stage had
- * them to where they really are — after the sky has had a beat to become the
- * window (`BODY_FLY_DELAY`), along a slight arc, easing in and out. It is the
- * guide: a moon that is really behind you flies off the edge it would take to
+ * them to where they really are. They go after the sky has had a beat to
+ * become the window (`BODY_FLY_DELAY`), along a slight arc, easing in and out.
+ * It is the guide: a moon that is really behind you flies off the edge it would take to
  * turn and find it. Back to the stage, the same flight the other way.
  */
 const BODY_FLY_SEC = 1.2;
@@ -253,21 +253,21 @@ const BODY_FLY_BOW = 0.18;
 // Gliding across a jump
 //
 // Easing is for the minute-by-minute drift of a live clock and a hand on a
-// slider. A JUMP — a location fix that lands a hundred kilometres away, a
-// refetch after hours asleep, a preset on the devtool's clock — used to snap,
+// slider. A JUMP (a location fix that lands a hundred kilometres away, a
+// refetch after hours asleep, a preset on the devtool's clock) used to snap,
 // because easing a screen position flew the disc across the screen in a
 // straight line, which is not a way the sun has ever moved. Snapping was the
 // honest answer to that, and it read as a cut.
 //
 // So a jump now GLIDES: quickly, but along the sky rather than across the
-// glass. What is interpolated is the body's direction in the world — the
-// shortest way round the celestial sphere — and every frame of it is staged
+// glass. What is interpolated is the body's direction in the world (the
+// shortest way round the celestial sphere), and every frame of it is staged
 // the way the stage stages a real position (`stageSun` / `stageMoon`), or
 // projected through the window. The disc arcs over rather than sliding under.
 //
-// The window's camera does the same when the view it is given jumps — the
+// The window's camera does the same when the view it is given jumps (the
 // first reading after the window opens, a compass that arrives late, the
-// devtool's slider let go somewhere else: it turns to the new view along the
+// devtool's slider let go somewhere else). It turns to the new view along the
 // shortest rotation instead of cutting to it. A real hand, after the sensor's
 // own smoothing, never turns `VIEW_JUMP_DEG` between two readings, so this
 // never adds lag to one.
@@ -312,7 +312,7 @@ const STILL_FRAME_SEC = 37;
 // Air has mass, and that is the whole feel of it:
 //
 //   · The hand's own motion (`stir`) goes stale within a breath, so a finger
-//     resting on the page makes no wind at all — only a moving one does.
+//     resting on the page makes no wind at all. Only a moving one does.
 //   · The gust chases that stir slowly. A flick barely raises it; a long sweep
 //     builds it. Real gusts arrive over a moment, not a frame.
 //   · And it falls away more slowly still, so the sky settles back on its own.
@@ -325,24 +325,24 @@ const GUST = {
   /** Hand speed (heights/s) → gust, through `tanh`, so a frantic hand saturates. */
   gain: 0.55,
   /**
-   * The strongest gust a hand can raise — above 1.0 on purpose, which is the
-   * top of the forecast's own range (50 km/h). A gust is not a wind; it is
-   * allowed to be briefly harder than any weather the sky is showing.
+   * The strongest gust a hand can raise. Above 1.0 on purpose, which is the
+   * top of the forecast's own range (50 km/h): a gust may be briefly harder
+   * than any weather the sky is showing.
    */
   max: 1.1,
   /** How quickly the hand's motion stops counting once it stops moving. */
   stirTau: 0.1,
   /**
-   * The gust's rise. Short: a squall front slams the rain over, it does not
-   * lean it politely. The rain's lean shears the curtain about mid-screen, so
-   * the edges sweep sideways at `0.5 × 0.75 × max ÷ attack` heights a second —
+   * The gust's rise. Short: a squall front slams the rain over instead of
+   * leaning it. The rain's lean shears the curtain about mid-screen, so
+   * the edges sweep sideways at `0.5 × 0.75 × max ÷ attack` heights a second,
    * a little over its own fall speed, which is the most that still reads as
    * air rather than as a whip.
    */
   attack: 0.13,
   /**
-   * And its fall — more than ten times as long, which is the shape of the
-   * thing. A gust arrives all at once and then *passes*: it is still half
+   * And its fall: more than ten times as long. That ratio is what gives a gust
+   * its shape. A gust arrives all at once and then *passes*: it is still half
    * itself a second later, still visible at three, and gone by six. Getting up
    * and dying away at the same rate is what makes a gust read as a twitch.
    */
@@ -354,9 +354,9 @@ const GUST = {
 //
 // Wind reaches the rain and the snow as one thing only: the direction they
 // fall in. Gravity pulls down, the air pushes sideways, and a particle at
-// terminal velocity travels along the sum — so a gust does not distort the
-// curtain, it re-aims it, and the whole of the feel is in how fast each field
-// can be re-aimed.
+// terminal velocity travels along the sum. So a gust re-aims the curtain
+// rather than distorting it, and the feel is all in how fast each field can be
+// re-aimed.
 //
 // THE GYROSCOPE ARRIVES BY THE SAME DOOR, and that is the point of writing it
 // this way. A tilt moves gravity; a wind adds a term across it; the weather
@@ -364,14 +364,14 @@ const GUST = {
 //
 //     fall = g + perp(g) · lean
 //
-// with `g` the unit gravity in page space — (0,-1) for a screen lying flat or
-// held upright, the sensor's reading otherwise — and `perp(g)` gravity turned
-// a quarter turn, which is screen-right when `g` is screen-down.
+// with `g` the unit gravity in page space and `perp(g)` gravity turned a
+// quarter turn, which is screen-right when `g` is screen-down. `g` is (0,-1)
+// for a screen lying flat or held upright, and the sensor's reading otherwise.
 //
 // ACROSS GRAVITY, not across the page, and it is worth saying why. A storm's
 // wind is horizontal in the world, and horizontal means perpendicular to the
 // way things fall. Turn the phone on its side and a real snowfall does not
-// stop being laid over — the whole storm turns with you, the flakes keeping
+// stop being laid over: the whole storm turns with you, the flakes keeping
 // their angle to gravity. Holding the wind along the page instead would mean
 // that at ninety degrees the wind blew straight down the fall, speeding the
 // rain up rather than leaning it, which is nothing that happens outdoors.
@@ -389,12 +389,12 @@ const GUST = {
 //     between drag and mass. An ease leaves at full speed and decelerates,
 //     which reads as being dragged; a spring leaves at REST and has to be
 //     accelerated, which reads as having a body. Turn the wind and the flakes
-//     keep going the way they were going, then come round — and then keep
+//     keep going the way they were going, then come round, and then keep
 //     going that way after the air is still.
 //   · The CLOUD decks are heavier again and get nothing from a hand at all:
 //     you cannot stir a cloud by waving at it. They answer the forecast only.
 //
-// Both leans below are sideways-over-fall — a tangent, not a speed — and each
+// Both leans below are sideways-over-fall (a tangent, not a speed), and each
 // field has its own because a flake falls at about a thirtieth of a drop's
 // speed and the same air therefore lays it over much further.
 // -----------------------------------------------------------------------------
@@ -403,8 +403,8 @@ const GUST = {
 const RAIN_LEAN = 0.75;
 /**
  * Short on purpose. A drop is small, fast and already all the way down, so it
- * really is at the new angle within a blink — and the air it is answering has
- * its own rise and fall (`GUST`) which is where a gust's shape belongs. What
+ * is at the new angle within a blink. The air it is answering has its own rise
+ * and fall (`GUST`), which is where a gust's shape belongs. What
  * is left for this to do is keep a slammed gust from cracking like a whip: at
  * a tenth of a second the curtain's far corner sweeps under a screen height a
  * second, against the 1.5–2.5 the rain is falling at.
@@ -418,7 +418,7 @@ const RAIN_FALL_TAU = 0.08;
  * snow along `uSnowFall × fall`, where `fall` is the layer's own speed, so a
  * lean of L here is the same picture the two hand-tuned depth ramps used to
  * draw at a drift of `L × 0.2278`. That 0.2278 is the ratio the old ramps
- * shared — which is why they had to span the same 3x, and why they no longer
+ * shared. That is why they had to span the same 3x, and why they no longer
  * have to.
  */
 const SNOW_LEAN = 2.634;
@@ -431,7 +431,7 @@ const SNOW_LEAN = 2.634;
  * while its first frame moves at a tenth of its own top speed and the rain's
  * at all of it. That gap is the mass.
  *
- * ONE number, for the wind and for the tilt alike — a flake's body cannot know
+ * ONE number, for the wind and for the tilt alike. A flake's body cannot know
  * which of the two moved, and a sky where the same flakes came round at two
  * different rates depending on the cause would be a sky with two physics in
  * it. This is the value the snow's shipped answer to a change of wind was
@@ -442,27 +442,27 @@ const SNOW_FALL_OMEGA = 0.9;
 
 /**
  * How much faster heavier snow falls. It used to live in the shader, on each
- * layer's speed, with a copy here to divide the lean by — a number kept in
- * step by hand across a JS/GLSL boundary, which is the kind of arrangement
- * that is right until the day it is not.
+ * layer's speed, with a copy here to divide the lean by: a number kept in
+ * step by hand across a JS/GLSL boundary, which is right until the day it is
+ * not.
  *
  * It only ever belonged on one side. The shader's job is a DEPTH ramp; how
  * fast snow falls is a property of the snow, and the travel is accumulated
  * here. Moving it also stops a change of intensity from re-scaling every
- * second of fall already banked — the same reason `uRainFall` is accumulated
- * rather than multiplied out of the clock.
+ * second of fall already banked. That is the same reason `uRainFall` is
+ * accumulated rather than multiplied out of the clock.
  */
 const snowFallRate = (snow: number) => 0.85 + 0.3 * snow;
 
 /**
- * Where the snow's accumulated travel wraps — the shader clock's own hourly
+ * Where the snow's accumulated travel wraps: at the shader clock's own hourly
  * wrap, for the same reason. Its magnitude is roughly elapsed fall time, and
  * once that reaches the tens of thousands of cell widths float32 has no
  * fraction left to place a flake inside its cell with.
  */
 const FALL_WRAP_SEC = 3600;
 
-/** How long one wiped point lives — cleared, held, and closed over again. */
+/** How long one wiped point lives: cleared, held, and closed over again. */
 const WIPE_LIFE_SEC = WIPE_LIFE_MS / 1000;
 
 function packScene(scene: WeatherScene, out: Float32Array) {
@@ -604,7 +604,7 @@ export class WallpaperRenderer {
    */
   private gravity = new Float32Array([UPRIGHT_GRAVITY.x, UPRIGHT_GRAVITY.y]);
   /**
-   * Where each field is actually going — gravity plus the wind across it —
+   * Where each field is actually going (gravity plus the wind across it),
    * chasing that sum at its own weight, with the velocity of the snow's
    * spring beside it. Not unit vectors: a leaning fall is a longer one, and
    * the travels below are their integrals, so the length is the speed.
@@ -614,7 +614,7 @@ export class WallpaperRenderer {
   private snowDirVel = new Float32Array([0, 0]);
   /** Scratch for the target of each, rebuilt every frame. */
   private fallAt = new Float32Array([0, -1]);
-  /** Where the mist carries a cleared patch over one point's life — see aimWipe. */
+  /** Where the mist carries a cleared patch over one point's life; see aimWipe. */
   private wipeBlow = new Float32Array([0, -WIPE_SETTLE]);
   /**
    * How far each field has travelled. The rain's is a scalar because its
@@ -632,7 +632,7 @@ export class WallpaperRenderer {
   private gust = 0;
 
   /**
-   * The poke in flight — a strike, a meteor — of which there is never more
+   * The poke in flight (a strike, a meteor), of which there is never more
    * than one: the conditions that arm them are disjoint (see ../poke.ts).
    * `pokeAt` of 0 means none is running.
    */
@@ -648,12 +648,12 @@ export class WallpaperRenderer {
   // `wipeCount` of them starting at `wipeStart`, each one (x, y, made-at) plus
   // whether it continues the corner before it or begins a new stroke. They
   // expire in the order they were made, so ageing them is a walk from the
-  // front — and because deaths are always a prefix, a surviving corner is never
+  // front. Because deaths are always a prefix, a surviving corner is never
   // joined across to some older stroke's.
   private wipeXY = new Float32Array(WIPE_MAX_POINTS * 2);
   private wipeAt = new Float64Array(WIPE_MAX_POINTS);
   private wipeJoin = new Uint8Array(WIPE_MAX_POINTS);
-  /** What the hand had left when each corner was made — see `rub` in ../wipe. */
+  /** What the hand had left when each corner was made; see `rub` in ../wipe. */
   private wipeCharge = new Float32Array(WIPE_MAX_POINTS);
   private wipeStart = 0;
   private wipeCount = 0;
@@ -662,11 +662,11 @@ export class WallpaperRenderer {
   private wipeLive = 0;
   /** The live corners' bounding box in screen units, so the shader can skip the loop. */
   private wipeBox = new Float32Array(4);
-  /** Whether a stroke is in progress — its last corner is the one under the hand. */
+  /** Whether a stroke is in progress: its last corner is the one under the hand. */
   private wipeStroke = false;
   /** Path length travelled since the last committed corner, for the curvature test. */
   private wipeRun = 0;
-  /** The hand. It tires across strokes, not within one — lifting gives nothing back. */
+  /** The hand. It tires across strokes, not within one: lifting gives nothing back. */
   private hand = freshHand();
 
   // --- The sky window (see ../sky-window.ts) ---------------------------------
@@ -674,7 +674,7 @@ export class WallpaperRenderer {
   private windowOn = false;
   /** …and how far it has got there: 0 the stage, 1 the window. Eased. */
   private windowAmt = 0;
-  /** How far a pull on the home has got, 0..1 — see `previewWindow`. */
+  /** How far a pull on the home has got, 0..1; see `previewWindow`. */
   private preview = 0;
   /** …and how far the gradient has lifted for it, screen heights. Eased. */
   private lift = 0;
@@ -784,7 +784,7 @@ export class WallpaperRenderer {
     // on a devtool slider; a jump glides along the sky instead (see "Gliding
     // across a jump"). The jump that matters is between one target and the
     // next: measuring against the eased position instead would read a run of
-    // small steps — a scrub — as one big jump, and glide the disc mid-drag.
+    // small steps (a scrub) as one big jump, and glide the disc mid-drag.
     if (!first) {
       BODIES.forEach((body, i) => {
         this.glides[i] = this.glideIfJumped(body, prevTarget) ?? this.glides[i];
@@ -799,8 +799,8 @@ export class WallpaperRenderer {
   }
 
   /**
-   * Answer a click at (x, y) in screen space — 0..1 across, 0..1 bottom → top,
-   * the same convention as the sun — with whatever the weather answers with.
+   * Answer a click at (x, y) in screen space (0..1 across, 0..1 bottom → top,
+   * the same convention as the sun) with whatever the weather answers with.
    * The easter eggs; see ../poke.ts.
    *
    * Only while the frame loop is already running: a poke is an animation, and a
@@ -833,16 +833,16 @@ export class WallpaperRenderer {
   }
 
   /**
-   * Which way gravity points in screen space — the gyroscope's reading. `null`
+   * Which way gravity points in screen space: the gyroscope's reading. `null`
    * is an upright screen, which is also where this starts, so a device with no
    * sensor (or a visitor with the tilt off) is simply the case where nobody
    * ever calls it.
    *
    * Nothing in the sky is turned by it. It joins the wind in the one vector
    * the weather answers to (see "Where the weather falls"), so the rain is
-   * re-aimed within a blink and the snow over seconds — the same ease and the
-   * same spring a gust gets, because a flake cannot tell which of the two
-   * moved. Under reduced motion there is nothing to lag: both snap to it.
+   * re-aimed within a blink and the snow over seconds. These are the same ease
+   * and the same spring a gust gets, because a flake cannot tell which of the
+   * two moved. Under reduced motion there is nothing to lag: both snap to it.
    */
   setGravity(gravity: GravityVector | null) {
     const g = gravity ?? UPRIGHT_GRAVITY;
@@ -863,9 +863,9 @@ export class WallpaperRenderer {
 
   /**
    * Look at the sky through the phone, or go back to the stage. The window
-   * eases in and out (`WINDOW_TAU`) — the horizon dropping into place and the
-   * sun sliding round to where it really is are the reveal — except under
-   * reduced motion, where it simply is one or the other.
+   * eases in and out (`WINDOW_TAU`), because the horizon dropping into place and
+   * the sun sliding round to where it really is are the reveal. Under reduced
+   * motion it simply is one or the other.
    */
   setSkyWindow(on: boolean) {
     if (this.windowOn === on) return;
@@ -884,8 +884,8 @@ export class WallpaperRenderer {
 
   /**
    * Hear where the sun and the moon are through the window, once a frame while
-   * it is open, and a null when it closes — for the edge hints that point at a
-   * body off the glass (<SkyBodyHints />).
+   * it is open, and a null when it closes. This feeds the edge hints that point
+   * at a body off the glass (<SkyBodyHints />).
    */
   onWindowBodies(listener: ((bodies: WindowBodies | null) => void) | null) {
     this.bodyListener = listener;
@@ -902,18 +902,18 @@ export class WallpaperRenderer {
   }
 
   /**
-   * Where the window looks — the sensor's view, straight from
+   * Where the window looks: the sensor's view, straight from
    * `subscribeView`. Null goes back to the stage's own heading, which is also
    * where the window opens before the first reading arrives.
    */
   setView(view: SkyView | null) {
     // A view that jumped is turned to, from wherever the window is showing
-    // now — which may itself be halfway through an earlier turn.
+    // now, which may itself be halfway through an earlier turn.
     //
     // But a turn in progress is only started over when the SOURCE jumps again.
     // During the turn the window lags the phone by design, so every live
     // reading is far from what is on screen; measured against that alone, each
-    // one — sixty a second — restarted the turn at its motionless first frame,
+    // one (sixty a second) restarted the turn at its motionless first frame,
     // and the window never got there: stuck, spinner up, until the phone was
     // swung round to where the window had frozen. A reading that follows the
     // last one just moves where the turn is heading.
@@ -938,7 +938,7 @@ export class WallpaperRenderer {
   /**
    * How long the theme's own uniforms take to arrive, in ms to settled, or
    * null for the table's own pace. An exponential ease is asymptotic, so
-   * "settled" is 3 time constants — close enough to read as arrived.
+   * "settled" is 3 time constants: close enough to read as arrived.
    */
   setThemeEase(settleMs: number | null) {
     this.themeTau =
@@ -946,7 +946,7 @@ export class WallpaperRenderer {
   }
 
   /**
-   * Clear the mist at (x, y) — same screen space as `poke`. Called once per
+   * Clear the mist at (x, y), in the same screen space as `poke`. Called once per
    * frame along a drag.
    *
    * The path is kept as the corners of a polyline, not as a row of discs, and
@@ -956,7 +956,7 @@ export class WallpaperRenderer {
    * between samples to fill in.
    *
    * The last corner is the one under the hand and simply slides with it, so the
-   * swath always reaches the fingertip. A new one is committed by *shape* —
+   * swath always reaches the fingertip. A new one is committed by *shape*:
    * when the path has bowed away from the straight line the shader would draw
    * (`WIPE_SLACK`), or at `WIPE_MAX_GAP` on a run straight enough never to trip
    * that. Never by frame: a slow, careful hand would spend the whole ring on a
@@ -974,7 +974,7 @@ export class WallpaperRenderer {
       return;
     }
 
-    // Measured in the shader's own space, where x is stretched by the aspect —
+    // Measured in the shader's own space, where x is stretched by the aspect:
     // a stroke is an even width on screen, so its geometry has to be too.
     const aspect = this.cssHeight > 0 ? this.cssWidth / this.cssHeight : 1;
     const head = (this.wipeStart + this.wipeCount - 1) % WIPE_MAX_POINTS;
@@ -989,14 +989,14 @@ export class WallpaperRenderer {
 
     // What the hand manages here. Spent by the distance rubbed and recovered
     // only off the glass, so the far end of a long stroke comes up less clear
-    // than the near end did — and the corner keeps whatever it was given, which
+    // than the near end did. The corner keeps whatever it was given, which
     // is what puts the gradient along the path rather than over the whole of it.
     const charge = rub(this.hand, step, now);
 
     // How far the hand has travelled since the last corner, against how far it
     // has actually got: on a straight run the two are equal, and the more the
     // path bows the further they drift apart. That difference is the curvature
-    // test — commit as soon as the straight line the shader would draw stops
+    // test: commit as soon as the straight line the shader would draw stops
     // being the path, which is what keeps a letter off the polygon it was
     // coming out as. A straight run never trips it, so it still spends one
     // corner per WIPE_MAX_GAP and the trail stays long.
@@ -1007,8 +1007,8 @@ export class WallpaperRenderer {
       y - this.wipeXY[anchor * 2 + 1]
     );
     if (this.wipeRun - chord > WIPE_SLACK || chord >= WIPE_MAX_GAP) {
-      // The corner lands where the hand is now; the old head — a point the hand
-      // really passed through — becomes the anchor of the live segment, and the
+      // The corner lands where the hand is now. The old head (a point the hand
+      // really passed through) becomes the anchor of the live segment, and the
       // run restarts from it.
       this.pushWipe(x, y, now, 1, charge);
       this.wipeRun = step;
@@ -1036,7 +1036,7 @@ export class WallpaperRenderer {
     if (reduced) {
       this.stop();
       // Nothing will advance the gust again; don't freeze half of one into the
-      // still frame — nor half a turn of the fall it was in the middle of.
+      // still frame, nor half a turn of the fall it was in the middle of.
       this.stir = 0;
       this.gust = 0;
       this.settle();
@@ -1063,7 +1063,7 @@ export class WallpaperRenderer {
     // later would be flying toward a target that has long since moved on.
     this.finishGlides();
     // Every egg is measured in wall-clock time; a paused renderer would resume
-    // one hours later, mid-flash — or with a hole in the fog that never healed.
+    // one hours later, mid-flash, or with a hole in the fog that never healed.
     this.pokeAt = 0;
     this.pokeAge = -1;
     this.wipeCount = 0;
@@ -1261,7 +1261,7 @@ export class WallpaperRenderer {
   }
 
   /**
-   * Size the drawing buffer — and repaint it in the same task.
+   * Size the drawing buffer, and repaint it in the same task.
    *
    * Setting a canvas's width or height clears its buffer, and with
    * `alpha: false` that is opaque black. The ResizeObserver that calls this
@@ -1437,7 +1437,7 @@ export class WallpaperRenderer {
   /**
    * A glide from where the body is now, when a new scene jumped its staged
    * position past `JUMP_SCREEN`; null when it only drifted. Under reduced motion
-   * there is no glide — the still frame simply is the new sky.
+   * there is no glide: the still frame simply is the new sky.
    */
   private glideIfJumped(body: (typeof BODIES)[number], from: Float32Array): BodyGlide | null {
     if (this.opts.reducedMotion) return null;
@@ -1579,9 +1579,9 @@ export class WallpaperRenderer {
     // One air, two fields, and the only difference between them is how quickly
     // each can be re-aimed. Nothing is added to the air: a constant here would
     // be a wind that always blows one way, which adds to a wind going with it
-    // and eats one going against — the flakes leant twice as far right as left
-    // at the same wind, and at a light enough one they leant the opposite way
-    // to the rain. The flakes have their own wander (the waft and the slow
+    // and eats one going against. With one, the flakes leant twice as far
+    // right as left at the same wind, and at a light enough one they leant the
+    // opposite way to the rain. The flakes have their own wander (the waft and the slow
     // beat in `snow()`), so they never fall dead straight without it.
     // The rain eases toward where it is going.
     const kr = 1 - Math.exp(-dtSec / RAIN_FALL_TAU);
@@ -1599,7 +1599,7 @@ export class WallpaperRenderer {
       this.snowDir[i] += dtSec * this.snowDirVel[i];
     }
     // And this frame's worth of travel along each. A leaning fall is a longer
-    // one — that is the hypotenuse, and it is why a gust quickens the rain as
+    // one (that is the hypotenuse), which is why a gust quickens the rain as
     // well as leaning it.
     const rainSpeed = Math.hypot(this.rainDir[0], this.rainDir[1]);
     this.rainFall = (this.rainFall + dtSec * rainSpeed) % FALL_WRAP_SEC;
@@ -1618,8 +1618,8 @@ export class WallpaperRenderer {
    * lived in two places would let the first frame of a scene, and every
    * reduced-motion still, drift from every frame after it.
    *
-   * `src` is a packed-uniform array — `current` while easing, `target` when
-   * snapping — and `gust` is what a hand has raised, which a snap has none of.
+   * `src` is a packed-uniform array (`current` while easing, `target` when
+   * snapping), and `gust` is what a hand has raised, which a snap has none of.
    */
   private aimRain(src: Float32Array, gust: number) {
     // 1, because the rain's own fall speed is the shader's business: it varies
@@ -1629,8 +1629,8 @@ export class WallpaperRenderer {
 
   private aimSnow(src: Float32Array, gust: number) {
     // The snow's does leave: heavier snow falls faster, so the fall gets
-    // longer while the sideways travel does not — sideways is the air's speed
-    // times the time, whatever the flake is doing vertically. Which is why the
+    // longer while the sideways travel does not. Sideways is the air's speed
+    // times the time, whatever the flake is doing vertically. That is why the
     // snow's lean goes shallower as the snow gets heavier, and why it takes no
     // division to arrange.
     this.fallFor(snowFallRate(src[SNOW_OFFSET]), (this.windAcross(src) + gust) * SNOW_LEAN);
@@ -1639,7 +1639,7 @@ export class WallpaperRenderer {
   /**
    * The wind across the screen, −1..1, positive blowing right.
    *
-   * On the stage that is the scene's own `wind.x` — the part of the wind across
+   * On the stage that is the scene's own `wind.x`: the part of the wind across
    * a view that always faces south. Through the window it is the part across
    * wherever the phone is facing: the world wind against the screen's right
    * edge. Face into the wind and the rain comes straight down at you; turn side
@@ -1651,7 +1651,7 @@ export class WallpaperRenderer {
     const w = this.windowAmt;
     if (w <= 0) return stage;
     const view = this.currentView(src);
-    // Level and square to where you look — forward × up-in-the-world — and not
+    // Level and square to where you look (forward × up-in-the-world), not
     // the screen's own right edge, which tips with the phone's roll. The lean
     // is laid across gravity on screen already (`fallFor`); what it needs from
     // here is only how much of the wind is crossing your line of sight. Looking
@@ -1686,8 +1686,8 @@ export class WallpaperRenderer {
    * plain (0, −settle) it was before there was a gyroscope to ask.
    *
    * The gust is in the sum because it is wind, and the wipe has no business
-   * knowing which wind is which — though on a fog day there is never one to
-   * add: the stir listener is armed on precipitation, and a fog scene has none.
+   * knowing which wind is which. On a fog day there is never one to add
+   * anyway: the stir listener is armed on precipitation, and a fog scene has none.
    */
   private aimWipe() {
     const across =
@@ -1704,8 +1704,8 @@ export class WallpaperRenderer {
    *
    *     fall = g · along  +  perp(g) · across
    *
-   * — the wind laid ACROSS gravity rather than across the page (see "Where the
-   * weather falls"). Upright and calm this is exactly (0, −along), which is
+   * with the wind laid ACROSS gravity rather than across the page (see "Where
+   * the weather falls"). Upright and calm this is exactly (0, −along), which is
    * what it was before there was a gyroscope to ask.
    */
   private fallFor(along: number, across: number) {
@@ -1720,7 +1720,7 @@ export class WallpaperRenderer {
    * rest, painted once. Reduced motion has no next frame to arrive in, so
    * anything that would have eased has to be there already.
    *
-   * It is one method because it was three, written out at each call site — and
+   * It is one method because it was three, written out at each call site, and
    * one of the three had already lost the fall: a scene arriving under reduced
    * motion repainted with the PREVIOUS wind's lean, which on the ordinary path
    * (a placeholder forecast, then the real one) meant the still sky kept the
@@ -1761,20 +1761,20 @@ export class WallpaperRenderer {
    * One step of the gust (see "Stirring up a gust").
    *
    * The hand's stir decays on its own, so a finger that stops moving stops
-   * making wind without anyone having to say so — which is also why letting go
+   * making wind without anyone having to say so. That is also why letting go
    * needs no announcement. The gust then chases whatever is left, quickly while
    * a hand is still stirring and slowly once the air is its own again.
    */
   private advanceGust(dtSec: number) {
-    // A stir is worth only what it is fresh — and freshness is measured from
+    // A stir is worth only what it is fresh, and freshness is measured from
     // when the hand actually went past, never from the last frame. Decaying it
     // by a frame's worth would quietly dock every gesture by however long the
     // GPU took, which on a slow one is most of it.
     const stale = (performance.now() - this.stirAt) / 1000;
     const stir = this.stir * Math.exp(-stale / GUST.stirTau);
     // Rising or falling, not stirring-or-not: the gust takes the fast constant
-    // whenever it is being asked for MORE wind than it has — including a hand
-    // that reverses and whips it the other way — and the slow one whenever it
+    // whenever it is being asked for MORE wind than it has (including a hand
+    // that reverses and whips it the other way), and the slow one whenever it
     // is being asked for less, whether that is because the hand eased off or
     // because it let go. So it always arrives at once and always passes slowly.
     const rising = Math.abs(stir) > Math.abs(this.gust);
@@ -1784,7 +1784,7 @@ export class WallpaperRenderer {
   }
 
   /**
-   * A fall direction, as a unit vector — which is the shader's whole contract
+   * A fall direction, as a unit vector. That is the shader's whole contract
    * for it, so the one degenerate case is answered here rather than per pixel.
    * It is reachable: a direction eased from one aim to its opposite passes
    * through zero on the way, which a 180-degree flip of gravity is.
@@ -1803,12 +1803,12 @@ export class WallpaperRenderer {
    * The sky window's uniforms, and the two it overrides.
    *
    * `uWindow` of 0 is the stage, and the shader's stage path is untouched by
-   * everything else here — the window's code sits behind that one uniform, so
+   * everything else here. The window's code sits behind that one uniform, so
    * a sky nobody has turned into a window renders exactly as it always has.
    *
    * The sun and the moon are the overrides: where the stage stages them and
    * where the window projects them are both known here, and the disc is drawn
-   * at the blend — so through the transition it slides from one to the other,
+   * at the blend. So through the transition it slides from one to the other,
    * and every line of the shader that draws a disc, a glow or a halo keeps
    * working in screen space unchanged.
    */
@@ -1831,8 +1831,8 @@ export class WallpaperRenderer {
     gl.uniform3f(this.locViewFwd, view.forward.x, view.forward.y, view.forward.z);
     const k = viewScale(aspect);
     gl.uniform1f(this.locViewScale, k);
-    // The star frame only moves when the celestial frame does — a new place,
-    // or the clock — so it is rebuilt and sent then, not every frame.
+    // The star frame only moves when the celestial frame does (a new place,
+    // or the clock), so it is rebuilt and sent then, not every frame.
     if (this.celestial[0] !== this.starFrameAt[0] || this.celestial[1] !== this.starFrameAt[1]) {
       this.starFrameAt.set(this.celestial);
       gl.uniformMatrix3fv(
@@ -1847,8 +1847,8 @@ export class WallpaperRenderer {
     const sun = projectToScreen(sunW, view, aspect, k);
     const moon = projectToScreen(moonW, view, aspect, k);
     // Held where the stage has them until the flight starts, then flown along
-    // a slight arc to where they really are — not blended with the sky's own
-    // ease, so a pull and the first beat of the window leave them still.
+    // a slight arc to where they really are. They are not blended with the
+    // sky's own ease, so a pull and the first beat of the window leave them still.
     const b = this.bodyAmt;
     const so = OFFSET.uSun;
     const mo = OFFSET.uMoon;
@@ -1876,8 +1876,8 @@ export class WallpaperRenderer {
       out.moon.x = moon.x;
       out.moon.y = moon.y;
       out.moon.ahead = moon.ahead;
-      // Worth finding: above the horizon and not lost in the daylight — the
-      // moon the sky would show with nothing in front of it.
+      // Worth finding: above the horizon and not lost in the daylight, judged
+      // by the moon the sky would show with nothing in front of it.
       out.moon.up = moonW.z > HORIZON_Z && c[MOON_BEHIND_OFFSET] > 0.04;
       this.bodiesPublished = true;
       this.bodyListener(out);
@@ -1885,7 +1885,7 @@ export class WallpaperRenderer {
 
     // The crescent faces the sun. In the shader's moon frame the lit limb is +x
     // while waxing and −x while waning, and x is mirrored by the hemisphere
-    // after this turn — so the axis is the sun's way, signed by both. Turned by
+    // after this turn. So the axis is the sun's way, signed by both. Turned by
     // the blend's share of the angle, so the stage's upright crescent swings
     // round rather than passing through a degenerate zero.
     const waxing = c[MOON_PHASE_OFFSET] < 0.5 ? 1 : -1;
@@ -1936,7 +1936,7 @@ export class WallpaperRenderer {
       this.aimWipe();
       gl.uniform2f(this.locWipeBlow, this.wipeBlow[0], this.wipeBlow[1]);
     }
-    // How long a frame is taking, smoothed — the same number adaptQuality()
+    // How long a frame is taking, smoothed: the same number adaptQuality()
     // steers the resolution by. Anything that moves fast enough to leave gaps
     // between frames needs to know it (see the meteor's wake in shader.ts).
     gl.uniform1f(this.locFrameSec, this.frameEma / 1000);

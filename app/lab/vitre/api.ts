@@ -11,7 +11,7 @@ import {
 
 // Vitre's API, in the library template's shape. The data is the package's
 // (site/src/docs/api.ts), which fails the type check for an export or a field
-// of a public type that is not documented — so this page lists exactly what
+// of a public type that is not documented. So this page lists exactly what
 // ships, and every export links to the section of the guide that covers it.
 
 function fields(docs: Record<string, FieldDoc>): ApiField[] {

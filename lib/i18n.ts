@@ -278,12 +278,12 @@ export const translations = {
     wallpaperPlayEveryHourly: "Hourly",
     wallpaperPlayEveryDaily: "Daily",
 
-    // Follow the Sun — the notice at a sunrise or a sunset
+    // Follow the Sun: the notice at a sunrise or a sunset
     solarThemeToLight: "Light Mode",
     solarThemeToDark: "Dark Mode",
     solarThemeNote: "Following the Sun",
 
-    // A bilingual post — the language switch, and a link shared in the other
+    // A bilingual post: the language switch, and a link shared in the other
     // language than the reader's. `{lang}` / `{shared}` / `{preferred}` are
     // `languageNameEn` / `languageNameZh`, in the words of the text around them.
     // The two choices are each read in the language they lead to
@@ -480,7 +480,7 @@ export const translations = {
     promptLastUpdated: "last updated",
     promptModel: "model",
 
-    // Languages — the PL chart (content/blog/pl-chart)
+    // Languages: the PL chart (content/blog/pl-chart)
     languagesChart:
       "Programming languages by how interesting they are to me and how much I've used them, shaded by abstraction level",
     languagesAll: "show all",
@@ -721,7 +721,7 @@ export const translations = {
     wallpaperPlayEveryHourly: "每小时",
     wallpaperPlayEveryDaily: "每天",
 
-    // Follow the Sun — the notice at a sunrise or a sunset
+    // Follow the Sun: the notice at a sunrise or a sunset
     solarThemeToLight: "浅色模式",
     solarThemeToDark: "深色模式",
     solarThemeNote: "跟随太阳",
@@ -912,7 +912,7 @@ export const translations = {
     promptLastUpdated: "更新于",
     promptModel: "模型",
 
-    // Languages — the PL chart (content/blog/pl-chart)
+    // Languages: the PL chart (content/blog/pl-chart)
     languagesChart: "编程语言：横轴是我觉得有多有趣，纵轴是我用得多深，深浅是抽象层级",
     languagesAll: "显示全部",
     languagesFilterHint: "点选一级来筛选，拖动选一个范围",

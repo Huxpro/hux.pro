@@ -42,16 +42,16 @@ import {
 } from "./resolve";
 
 // =============================================================================
-// MagicLink — a word that summons something.
+// MagicLink: a word that summons something.
 //
 //   I <MagicLink post="dreamer">dream</MagicLink> of making …
 //   … web apps for <Badge role="alitrip-engineer">Alibaba</Badge> …
 //   … architecting <Badge commit="lynx-framework">Lynx</Badge>.
 //
-// One link, two dresses. Plain, it is the prose link's underline — a word
+// One link, two dresses. Plain, it is the prose link's underline: a word
 // that points somewhere. As a badge (`badge`, MDX `<Badge>`) it is a pill
-// wearing the thing's official icon — a company, a project, an app — the
-// icon its site declares for a home screen, snapshotted by
+// wearing the official icon of the thing (a company, a project, an app). That
+// is the icon its site declares for a home screen, snapshotted by
 // `pnpm badges:snapshot` (lib/badge-site.ts says which site), and CI
 // (`pnpm badges:check`) keeps a badge from shipping without one.
 //
@@ -70,9 +70,9 @@ import {
 // recording or a deck to the stage, a page to the in-app browser (a tab if it
 // refuses to be framed), a role to its row on /works, an app to a window. It
 // goes through the attachments' policy exactly as a /works cover does
-// (`open`): on a phone the drawer first — the thing, its title and its way
-// in, a thumb's reach from where you are — never a jump into a player or a
-// page from a word. The peek follows the input, as every peek on the site
+// (`open`). On a phone the drawer comes first: the thing, its title and its
+// way in, a thumb's reach from where you are. A word never jumps straight
+// into a player or a page. The peek follows the input, as every peek on the site
 // does (`magneticPreviewEnabled`): a touch tablet has no pointer to rest, so
 // a tap there opens a role's card as a popover and a media item its home.
 //
@@ -85,7 +85,7 @@ import {
 // away.
 //
 // A surface that hosts magic links and should step aside when one opens
-// something — the About, which floats over everything — wraps them in
+// something (the About, which floats over everything) wraps them in
 // <MagicLinkHost onLaunch={…}>. Not for a drawer or a card: those float over
 // their host (the About raises them, OVER_ABOUT_Z), so a link that opens one
 // leaves the host where it is.
@@ -100,7 +100,7 @@ const MagicLinkHostContext = createContext<MagicLinkHostValue | null>(null);
 
 /**
  * A surface hosting magic links. `onLaunch` is called just before a link
- * inside it takes the reader elsewhere — anywhere but a drawer or a card,
+ * inside it takes the reader elsewhere: anywhere but a drawer or a card,
  * which float over the host. `layer` is the host's paint layer when it sits
  * above the page's (the About, z 10020): the peeks come up over it.
  */
@@ -118,11 +118,11 @@ export function MagicLinkHost({
 }
 
 export interface MagicLinkProps {
-  /** A commit id in content/log.json — one of its media, as a /works cover. */
+  /** A commit id in content/log.json: one of its media, as a /works cover. */
   commit?: string;
   /** Which of the commit's media. Defaults to its first. */
   item?: number;
-  /** A role — a range id under `identities` in content/log.json. */
+  /** A role: a range id under `identities` in content/log.json. */
   role?: string;
   /** An identity id, as a whole. */
   identity?: string;
@@ -130,7 +130,7 @@ export interface MagicLinkProps {
    *  of the site. MDX names a post by `post=` there; here it is `media`,
    *  or `href` for a client that renders a MagicLink directly. */
   media?: Media;
-  /** An app id in content/apps.json — opens in a window. */
+  /** An app id in content/apps.json. Opens in a window. */
   app?: string;
   /** Any URL: a page, a recording, a deck, an image, a social post, a path. */
   href?: string;
@@ -158,7 +158,7 @@ const GLYPHS: Record<MagicLinkKind, LucideIcon> = {
   social: AtSign,
 };
 
-/** A plain magic link: the running-text link (`.prose-link`, globals.css —
+/** A plain magic link: the running-text link (`.prose-link`, globals.css;
  *  the same rule as an article's links), nothing else. `.not-prose` keeps
  *  the article's other rules off it. */
 const PLAIN =
@@ -330,7 +330,7 @@ export function MagicLink({
     if (e.defaultPrevented || e.button !== 0) return;
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     // Nothing to open but its fallback page: the browser follows the link,
-    // and the host steps aside for it — unless it leaves for a tab, which
+    // and the host steps aside for it, unless it leaves for a tab, which
     // takes nothing from the host.
     if (!target) {
       if (!external) onLaunch?.();

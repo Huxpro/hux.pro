@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import type { SunEvent } from "../lib/sun";
 
 // ---------------------------------------------------------------------------
-// The sun and the moon as solid glyphs — one family, drawn the same way: the
+// The sun and the moon as solid glyphs. One family, drawn the same way: the
 // whole disc faint, and the lit part solid. The moon's lit part is its real
 // phase; the sun is all lit. Used wherever the sky's two bodies are named
 // rather than drawn: the devtool's readouts, the sky window's edge hints, the
@@ -23,9 +23,9 @@ export function MoonGlyph({
   phase: number;
   mirror?: boolean;
   /**
-   * Drawn as light rather than ink — the lit part white, the rest a breath of
-   * it — for where the glyph stands for the body itself in the sky (the pull
-   * cue), rather than names it in a readout.
+   * Drawn as light rather than ink (the lit part white, the rest a faint
+   * white), for where the glyph stands for the body itself in the sky (the
+   * pull cue), rather than names it in a readout.
    */
   light?: boolean;
   className?: string;
@@ -76,7 +76,7 @@ function Ray({ deg, r, length, fill }: { deg: number; r: number; length: number;
 }
 
 /**
- * The sun: the moon's family — solid, the same size — but with rays. A plain
+ * The sun: the moon's family (solid, the same size), but with rays. A plain
  * lit disc is what a FULL moon looks like, and the two must never be taken for
  * each other: a full moon read as the sun is a phase nobody can see.
  */
@@ -96,7 +96,7 @@ export function SunGlyph({ className, light = false }: { className?: string; lig
 const EVENT_RAYS = [-90, -45, 45, 90];
 
 /**
- * A sunrise or a sunset: the sun's family again — half its disc on a horizon,
+ * A sunrise or a sunset: the sun's family again. Half its disc on a horizon,
  * the rays that clear it, and an arrow for which way it is going. Stands for
  * the sun through the sun-event phases, when the disc is mostly not there.
  */

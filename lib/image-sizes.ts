@@ -5,8 +5,8 @@ import { generatedImageSize, type ImageDimensions } from "@/lib/image-dimensions
  * The size of a cover the site shows, known before the image is fetched.
  *
  * `content/image-sizes.json` records `[width, height]` for every cover that
- * can be shown whole — a card's picture (ours or another site's), a post's
- * first image — keyed by the URL the page asks for. `pnpm og:snapshot` writes
+ * can be shown whole (a card's picture, ours or another site's; a post's
+ * first image), keyed by the URL the page asks for. `pnpm og:snapshot` writes
  * it from the files' headers, and `pnpm og:complete` fails when a cover is
  * missing from it or a local file has changed since. A cover slot reads it to
  * hold its height while the picture loads (components/log/media/peek-cover),

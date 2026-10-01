@@ -13,18 +13,18 @@ import { WindowGrip } from "./window-grip";
 import { WindowMenuSheet } from "./window-menu";
 
 // =============================================================================
-// WindowSheet — an app window on a phone, which is to say: a sheet
+// WindowSheet: an app window on a phone, which is to say a sheet
 //
 // A draggable, resizable, free-floating box is a desktop idea. On a phone the
 // same app is one sheet from the bottom edge, with detents for its size, the
-// shared stack for its depth, and its grip (window-grip.tsx) — the window's own
-// pill, floating over edge-to-edge content — for the whole of its chrome. There
+// shared stack for its depth, and its grip (window-grip.tsx) for the whole of
+// its chrome: the window's own pill, floating over edge-to-edge content. There
 // is no title bar, here as there. Everything the pill used to offer lives in
 // the menu it opens, which is a sheet stacked on this one: iOS presenting a
 // sheet from a sheet.
 //
 // Three detents, not the site's two. A window opens where a desktop window's
-// top edge sits — just clear of the live-activity dock band — because that is
+// top edge sits (just clear of the live-activity dock band), because that is
 // the size an app wants; from there a drag takes it to the very top, or down
 // to seven tenths to see the page behind it. (The site's shared pair,
 // SHEET_DETENTS, is for surfaces that stack level with one another; a window
@@ -32,9 +32,9 @@ import { WindowMenuSheet } from "./window-menu";
 //
 // Put away, not killed. A swipe down is `minimize`, never `close`: the sheet
 // closes but `keepMounted` leaves its DOM in place, so the iframe or the Lynx
-// view keeps its document (a counter at 5 comes back at 5 — the same promise
+// view keeps its document. A counter at 5 comes back at 5: the same promise
 // WindowLayer makes for a minimized desktop window, kept by a different
-// mechanism). The app comes back from its dock pill. Close is the menu's
+// mechanism. The app comes back from its dock pill. Close is the menu's
 // destructive row and nothing else, so no stray flick can lose an app's state.
 //
 // Closing unmounts this component, which would take a sheet mid-exit with it.
@@ -46,9 +46,9 @@ import { WindowMenuSheet } from "./window-menu";
 type Level = "page" | "dock" | "top";
 
 /**
- * The site's lowest and highest — seven tenths (far enough down to see the page
- * behind the window) and the top — with the window's own middle detent between
- * them. Taken from the shared list rather than restated, because a sheet
+ * The site's lowest and highest detents, seven tenths (far enough down to see
+ * the page behind the window) and the top, with the window's own middle detent
+ * between them. Taken from the shared list rather than restated, because a sheet
  * stacked on this one arrives level by matching values; taken by size rather
  * than by position, so a third site detent would not silently land here.
  */
@@ -95,11 +95,11 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
   }, [isPresent, minimized, safeToRemove]);
 
   // The menu belongs to the window: putting the window away puts it away too.
-  // Adjusted during render rather than in an effect — it is derived from the
+  // Adjusted during render rather than in an effect. It is derived from the
   // window's own state, and a menu that closed one paint later would be a menu
   // sliding down on its own after the window had gone (docs/react-engineering).
   // A window put away comes back the size it lives at, not the size the drag
-  // that dismissed it left behind — a flick down ends at the lowest detent by
+  // that dismissed it left behind. A flick down ends at the lowest detent by
   // definition, and an app restored from the dock should not arrive shrunk.
   const [wasOpen, setWasOpen] = useState(open);
   if (wasOpen !== open) {
@@ -148,8 +148,8 @@ export function WindowSheet({ win }: { win: WindowInstance }) {
       className={appGround(win.app)}
     >
       {/* Edge-to-edge app, with the chrome floating over it. A drag in here
-          belongs to the app, not the sheet — a game that follows a finger
-          (逗猫棒) must not have the window slide out from under it — so the
+          belongs to the app, not the sheet. A game that follows a finger
+          (逗猫棒) must not have the window slide out from under it, so the
           grip is the only handle. An iframe got this for free, since its
           touches never reach this document; a Lynx view is in the DOM, and so
           is the loading spinner before either. The attribute is Base UI's

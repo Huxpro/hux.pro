@@ -1,5 +1,5 @@
 /**
- * Image dimensions from a file's header — pure, no Node or DOM APIs.
+ * Image dimensions from a file's header. Pure: no Node or DOM APIs.
  *
  * A cover shown whole (`fit: "natural"`) is only as tall as its picture, and
  * the picture's size is unknown to the page until the bytes arrive: the slot
@@ -41,27 +41,27 @@ export function parseImageDimensions(bytes: Uint8Array): ImageDimensions | null 
     String.fromCharCode(...bytes.subarray(from, to));
   let dims: ImageDimensions | null = null;
   try {
-    // PNG — IHDR width/height are big-endian u32 at byte 16/20.
+    // PNG: IHDR width/height are big-endian u32 at byte 16/20.
     if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
       dims = { width: view.getUint32(16), height: view.getUint32(20) };
     }
-    // GIF — logical screen width/height are little-endian u16 at byte 6/8.
+    // GIF: logical screen width/height are little-endian u16 at byte 6/8.
     else if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
       dims = { width: view.getUint16(6, true), height: view.getUint16(8, true) };
     }
-    // WebP — "RIFF"…"WEBP" then a VP8 / VP8L / VP8X chunk.
+    // WebP: "RIFF"…"WEBP" then a VP8 / VP8L / VP8X chunk.
     else if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") {
       dims = parseWebp(bytes, view, ascii(12, 16));
     }
-    // JPEG — scan segments for a Start-Of-Frame marker.
+    // JPEG: scan segments for a Start-Of-Frame marker.
     else if (bytes[0] === 0xff && bytes[1] === 0xd8) {
       dims = parseJpeg(bytes, view);
     }
-    // AVIF / HEIF — an ISO-BMFF `ftyp`, the size in the `ispe` property.
+    // AVIF / HEIF: an ISO-BMFF `ftyp`, the size in the `ispe` property.
     else if (ascii(4, 8) === "ftyp") {
       dims = parseIspe(bytes, view);
     }
-    // SVG — text; the root element says its size.
+    // SVG: text; the root element says its size.
     else {
       dims = parseSvg(bytes);
     }

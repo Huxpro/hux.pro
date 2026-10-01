@@ -22,11 +22,11 @@ import { PlaylistRail } from "./playlist-rail";
 import { SurfaceSwitch } from "./surface-switch";
 
 // ---------------------------------------------------------------------------
-// TheaterOverlay — the immersive desktop modal chrome.
+// TheaterOverlay: the immersive desktop modal chrome.
 //
-// Default is immersive: chrome hidden. Reveal only on clear intent —
+// Default is immersive: chrome hidden. Reveal only on clear intent, meaning
 // hovering a margin hit-zone (toolbar / arrows / playlist bands) or a
-// keyboard shortcut — never on ambient pointer jitter. Auto-hides quickly
+// keyboard shortcut. Never on ambient pointer jitter. Auto-hides quickly
 // after the pointer leaves chrome, whether playing or paused.
 // ---------------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ export function TheaterOverlay() {
     trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1;
 
   const midY = rect.top + rect.height / 2;
-  // Compact / tablet theater hugs the edges — overlay arrows on the video
+  // Compact / tablet theater hugs the edges, so overlay arrows on the video
   // instead of parking them in side gutters that no longer exist.
   const overlayArrows = rect.left < 72;
 
@@ -201,7 +201,7 @@ export function TheaterOverlay() {
   ]);
 
   const pinChrome = useCallback(() => {
-    // Opening click / cursor still in the margin for a beat — don't flash.
+    // Opening click / cursor still in the margin for a beat: don't flash.
     if (Date.now() - openedAtRef.current < OPEN_GRACE_MS) return;
     pinnedRef.current = true;
     clearHideTimer();
@@ -218,7 +218,7 @@ export function TheaterOverlay() {
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop — below the stage; click to close. */}
+          {/* Backdrop, below the stage; click to close. */}
           <motion.div
             key="backdrop"
             className={cn("fixed inset-0 z-[10000]", THEATER_BACKDROP)}
@@ -231,7 +231,7 @@ export function TheaterOverlay() {
             role="presentation"
           />
 
-          {/* Margin hit-zones — the only pointer path to reveal chrome.
+          {/* Margin hit-zones: the only pointer path to reveal chrome.
               Hovering the video itself (iframe) does not show UI. */}
           <div
             aria-hidden

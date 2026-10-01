@@ -1,5 +1,5 @@
 // =============================================================================
-// Slide decks — which URLs are playable reveal.js decks, and where they live.
+// Slide decks: which URLs are playable reveal.js decks, and where they live.
 //
 // Framework-free so the theater's album builder (systems/theater/lib) and the
 // /works cover component can share one answer without importing each other.
@@ -12,7 +12,7 @@
 /**
  * Paths that host self-contained reveal.js decks (not the wrapping keynote
  * blog posts under /YYYY/MM/DD/). Keep in sync with the slide repos under
- * github.com/Huxpro — served from huxpro.github.io (CNAME → og.hux.pro).
+ * github.com/Huxpro, served from huxpro.github.io (CNAME → og.hux.pro).
  *
  * `huangxuan.me/<deck>` used to work, but that domain now redirects to
  * hux.pro (which 404s these paths), so playable links must go through
@@ -33,7 +33,7 @@ const SLIDES_HOST = "https://huxpro.github.io";
 const SLIDES_HOSTS = new Set([
   "huxpro.github.io",
   "og.hux.pro",
-  // Legacy — still recognized so we can rewrite to huxpro.github.io.
+  // Legacy, still recognized so we can rewrite to huxpro.github.io.
   "huangxuan.me",
   "www.huangxuan.me",
 ]);
@@ -99,7 +99,7 @@ export function resolveSlidesEmbedUrl(url: string): string {
     const deck = deckPathFromUrl(parsed);
     if (!deck) return url;
 
-    // og.hux.pro already serves the deck — keep hash/query for deep links.
+    // og.hux.pro already serves the deck. Keep hash/query for deep links.
     if (host === "og.hux.pro" || host === "huxpro.github.io") {
       const out = new URL(`${SLIDES_HOST}${deck}/`);
       out.search = parsed.search;

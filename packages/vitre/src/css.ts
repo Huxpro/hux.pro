@@ -22,8 +22,8 @@ import {
 // Measured on iOS 26.5 Safari, which is what every rule here is for:
 //
 //   - The chrome takes its colour from `position: fixed` content spanning the
-//     viewport edge — even transparent content, whose composited background it
-//     copies — and otherwise from the root background.
+//     viewport edge (even transparent content, whose composited background it
+//     copies), and otherwise from the root background.
 //   - The toolbar collapses only when the DOCUMENT scrolls, and each collapse
 //     is a relayout and a fresh look at what is under the chrome.
 //
@@ -47,8 +47,8 @@ import {
 //
 // Being armed also means <html> no longer reads as `overflow: hidden`, which
 // is how overlay libraries decide the page is already locked. That is why the
-// arming is short-lived and stands down the moment one of them takes over —
-// see status-tap.ts.
+// arming is short-lived and stands down the moment one of them takes over
+// (see status-tap.ts).
 // =============================================================================
 
 const html = "html";

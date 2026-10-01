@@ -23,7 +23,7 @@ import {
 import { glowTuning } from "../lib/tuning";
 
 // =============================================================================
-// <Glow> — the site's one light, on the edge of whatever it is placed in.
+// <Glow>: the site's one light, on the edge of whatever it is placed in.
 //
 //   <div className="relative rounded-2xl">       ← the host; the glow reads
 //     …                                              its radius
@@ -32,15 +32,15 @@ import { glowTuning } from "../lib/tuning";
 //
 // Two shapes of the same light (lib/shader.ts):
 //
-//   ring   the whole edge — the About's screen, a badge's halo, a card
-//   line   one edge, from the centre out — the bottom of a field listening,
+//   ring   the whole edge: the About's screen, a badge's halo, a card
+//   line   one edge, from the centre out: the bottom of a field listening,
 //          the top of a window loading (`edge="top"`)
 //
 // and two states on top of either:
 //
 //   level       energy 0–1, a number or a getter sampled every frame (a
-//               voice meter: see systems/voice). Reach, brightness and — for
-//               a line — how wide it spreads all follow it. Without one the
+//               voice meter: see systems/voice). Reach, brightness and (for
+//               a line) how wide it spreads all follow it. Without one the
 //               glow rests at 0.45.
 //   processing  the light gathers into one short beam that travels: along
 //               the bottom and back for a line (thinking, transcribing,
@@ -48,27 +48,27 @@ import { glowTuning } from "../lib/tuning";
 //
 // It sits `absolute` over its host (which must be `relative`), `bleed` px
 // past each side for the halo, and takes no pointer. `fixed` puts it over the
-// viewport instead. Nothing is drawn — and nothing costs a frame — while it
-// is off and settled, or scrolled off screen. Without WebGL it is a still CSS
+// viewport instead. Nothing is drawn, and no frame is spent, while it is
+// off and settled, or scrolled off screen. Without WebGL it is a still CSS
 // ring in the same colours.
 // =============================================================================
 
 export type GlowShape = "ring" | "line";
 
 /**
- * How the light lives while it is on (Libraries.dev's border-beam families,
+ * How the light moves while it is on (Libraries.dev's border-beam families,
  * as this shader's light):
  *
- *   flow    the beams travel round the edge, two each way — the default, and
- *           the About's ring
+ *   flow    the beams travel round the edge, two each way (the default, and
+ *           the About's ring)
  *   rotate  a lit arc sweeps round the ring at an even pace (2s a turn),
  *           over colours that stay put, a spark at its head: running
  *   pulse   the whole ring lit, each quarter deepening and brightening on
  *           its own slow clock while the colour turns round: now, alive,
  *           waiting
  *
- * Rotate and pulse are built in layers — a crisp 1px stroke, an inner glow,
- * a bloom past the edge — as border-beam builds them (lib/shader.ts).
+ * Rotate and pulse are built in layers, as border-beam builds them: a crisp
+ * 1px stroke, an inner glow, and a bloom past the edge (lib/shader.ts).
  *
  * `processing` gathers any of them into a travelling beam; a voice's `level`
  * drives any of them.
@@ -78,8 +78,8 @@ export type GlowMotion = "flow" | "rotate" | "pulse";
 /**
  * Each motion's baseline when `baseline` is not given: the depth its light
  * keeps where nothing moves, as a share of the depth where the motion peaks
- * — a flow's trough against its crest, a rim against a rotation's arc or a
- * pulse's lobe. 0 is light only where the motion is; 1 is a rim as deep as
+ * (a flow's trough against its crest, a rim against a rotation's arc or a
+ * pulse's lobe). 0 is light only where the motion is; 1 is a rim as deep as
  * the peak, the motion no longer visible. Below a flow's own trough (0.176)
  * the rim also dims, as the flow's core line does, to nothing at 0.
  *
@@ -102,7 +102,7 @@ export interface GlowProps {
   edge?: "bottom" | "top";
   /** Energy, 0–1: a number, or a getter read every frame. Rest is 0.45. */
   level?: number | (() => number);
-  /** Low / mid / high energy, 0–1 each, read every frame — a voice's bands. */
+  /** Low / mid / high energy, 0–1 each, read every frame: a voice's bands. */
   bands?: () => readonly [number, number, number];
   /** Gather into a travelling beam (thinking, transcribing, loading). */
   processing?: boolean;
@@ -110,14 +110,14 @@ export interface GlowProps {
   motion?: GlowMotion;
   /** Seconds per turn (rotate, 2 by default) or per breath (pulse, 2.3). */
   period?: number;
-  /** False to draw only the halo past the edge — with a `bleed`, a light
-   *  blooming out from behind the host (border-beam's `pulse-outside`). */
+  /** False to draw only the halo past the edge. With a `bleed`, that is a
+   *  light blooming out from behind the host (border-beam's `pulse-outside`). */
   inside?: boolean;
   /**
    * Advanced: the depth the light keeps where no wave, arc or lobe is, 0–1
    * of the depth where the motion peaks. Each motion has its own
-   * (`GLOW_BASELINE`), which is what to use; pass this only to override it
-   * — 0 is light only where it moves, 1 a rim as deep as the peak.
+   * (`GLOW_BASELINE`), which is what to use; pass this only to override it.
+   * 0 is light only where it moves, 1 a rim as deep as the peak.
    */
   baseline?: number;
   /** How far the light reaches in from the edge, CSS px. Sized to the host
@@ -126,7 +126,7 @@ export interface GlowProps {
   /**
    * Where the light ends, px from the edge: `x` off the left and right
    * edges, `y` off the top and bottom. The same scale as `reach` in another
-   * unit — the beams get the reach whose own visible tail ends there
+   * unit: the beams get the reach whose own visible tail ends there
    * (`GLOW_EXTENT_PER_REACH`, 4.45 reaches) and the light is zero at it
    * exactly. Overrides `reach`. <EdgeGlow> sets it from the content's gutter.
    */
@@ -149,7 +149,7 @@ export interface GlowProps {
   style?: CSSProperties;
   /** Called when the light has fully left. */
   onDone?: () => void;
-  /** The glow's box — the rounded rectangle whose edge is lit. */
+  /** The glow's box: the rounded rectangle whose edge is lit. */
   ref?: Ref<HTMLSpanElement>;
 }
 
@@ -161,8 +161,8 @@ const REST_BANDS = [1, 1, 1] as const;
 const STILL_BREATH = [1, 1, 1, 1] as const;
 
 /**
- * A pulse's four clocks — right, bottom, left, top — as border-beam's
- * oscillators are: each ping-pongs between a shallow and a deep breath on a
+ * A pulse's four clocks (right, bottom, left, top), modelled on border-beam's
+ * oscillators. Each ping-pongs between a shallow and a deep breath on a
  * cosine, its period a little off the others' and its phase offset, so the
  * quarters never breathe in step and the breath rolls round the ring.
  * Multiples of the pulse's period.
@@ -319,7 +319,7 @@ export function Glow({
         // Pulse: each quarter breathes on its own clock; the colour turns
         // slowly round, a full turn in 14s.
         if (pulsing && !still) m.pulseT += dt;
-        // Each quarter's breath — only a pulse has one; anything else is
+        // Each quarter's breath. Only a pulse has one; anything else is
         // handed the still breath below.
         const breathPeriod = Math.max(0.5, p.period ?? 2.3);
         const breath = pulsing
@@ -343,8 +343,8 @@ export function Glow({
           focus = rest + (0.045 - rest) * blend;
           focusAt = 0.25 + 0.085 * pass * blend;
         } else if (blend > 0.001) {
-          // A comet around the whole ring — from a rotation, where its head
-          // stands.
+          // A comet around the whole ring, starting (from a rotation) where
+          // its head is.
           focus = 0.5 + (0.075 - 0.5) * blend;
           focusAt = 0.25 + (p.motion === "rotate" ? m.turn : 0) + (still ? 0 : m.scanT * 0.45);
         }

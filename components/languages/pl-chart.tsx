@@ -33,7 +33,7 @@ import { useInputCapability } from "@/services";
 import { LanguageNote, LanguagePeek } from "./language-note";
 
 // =============================================================================
-// PLChart — every language I've written, on two personal axes.
+// PLChart: every language I've written, on two personal axes.
 //
 //   x  interestingness to me   🥱 · 😎 · 🤓 · 🤯
 //   y  my experience with it   🤦‍♂️ · 🙇‍♂️ · 👨‍💻 · 👨‍🎓
@@ -42,18 +42,18 @@ import { LanguageNote, LanguagePeek } from "./language-note";
 // Not a charting library: thirty-one dots on a 10 × 10 grid is a layout, so
 // it is one. The field is a box and a dot sits at a percentage of it, which
 // makes the chart as fluid as the column it is in with nothing to resize. Each
-// dot is a real button — focusable, labelled, pressable — which is what a
-// canvas could never be.
+// dot is a real button (focusable, labelled, pressable), which a canvas could
+// never be.
 //
 // A dot behaves the way a thing does everywhere on this site: a pointer that
 // rests on it gets the peek (the note's head and first line, following the
 // cursor), and a press opens the note itself where it can be read and its
-// links followed — a card hanging off the dot, or the sheet on a phone
+// links followed: a card hanging off the dot, or the sheet on a phone
 // (`ANCHORED_PRESENTATION`).
 //
 // Abstraction is the colour (lib/languages `absColor`), the one place on
 // the site that is not grayscale, because here colour is data. The strip
-// under the chart is its legend and its filter at once — the original's
+// under the chart is its legend and its filter at once. It is the original's
 // draggable range: press a level to keep only it, drag across to keep a
 // range, press the only level again to let everything back.
 // =============================================================================
@@ -125,8 +125,8 @@ export function PLChart({ locale }: { locale: Locale }) {
   const [openId, setOpenId] = useState<string | null>(null);
   // The dot under the pointer or focus, whose range the strip mirrors.
   const [previewId, setPreviewId] = useState<string | null>(null);
-  // Without hover, a first tap does what a pointer resting on a dot does —
-  // opens its range on the chart and in the strip — and a second tap (or
+  // Without hover, a first tap does what a pointer resting on a dot does:
+  // it opens its range on the chart and in the strip. A second tap (or
   // the strip's "open the note") opens the note. A sheet that rose on the
   // first tap would cover the very range it was tapped to see.
   const { magneticPreviewEnabled: canHover } = useInputCapability();
@@ -382,8 +382,8 @@ function Dot({
           )}
         >
           {/* The dot. With a range, it stretches into a bar holding that
-              stretch of the ramp — under a pointer, on focus, and while
-              picked or open — growing from where it sits so its own level
+              stretch of the ramp under a pointer, on focus, and while
+              picked or open. It grows from where it sits so its own level
               stays put, marked by a pip. Without one, it only swells. */}
           <span
             aria-hidden
@@ -475,7 +475,7 @@ function Dot({
 }
 
 // -----------------------------------------------------------------------------
-// The abstraction strip — legend and filter.
+// The abstraction strip: legend and filter.
 // -----------------------------------------------------------------------------
 
 function AbstractionStrip({
@@ -494,8 +494,8 @@ function AbstractionStrip({
   reached: boolean;
   /**
    * The language a pointer, focus or open note is on. While there is one,
-   * the strip is its legend: the levels it reaches lit, its own ringed — the
-   * same stretch its dot opens into on the chart, laid against the scale.
+   * the strip is its legend: the levels it reaches lit, its own ringed. That
+   * is the same stretch its dot opens into on the chart, laid against the scale.
    */
   preview: Language | null;
   /** Set while a tap has picked a dot but not opened it: the way in. */
@@ -553,7 +553,7 @@ function AbstractionStrip({
   };
 
   // What the strip says beside it: the level under the pointer, else what is
-  // kept, else how to use it — a row of swatches does not look pressable on
+  // kept, else how to use it. A row of swatches does not look pressable on
   // its own, so until it has been used it says so.
   const tierName = (level: number) => `${level} · ${tierOf(level).label[locale]}`;
   // The strip's own hover wins: a pointer on a swatch is asking about it.

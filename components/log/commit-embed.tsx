@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Commit — Unified entry point for rendering commits.
+ * Commit: unified entry point for rendering commits.
  *
  * Normalizes type-specific commit data via the adapter, then dispatches
  * to the appropriate variant renderer:
@@ -113,7 +113,7 @@ export function Commit({
   // The same for the row's normalised data and its hover peek: a timeline
   // render (a beam hover, a form change) touches every row, and neither of
   // these changes with it. The peek is built only where a pointer can rest
-  // on it — a phone would build and discard one per row.
+  // on it; a phone would build and discard one per row.
   const { magneticPreviewEnabled } = useInputCapability();
   const data = useMemo(
     () => (commit ? normalizeCommit(commit, locale) : null),
@@ -222,13 +222,13 @@ interface CommitPreview {
 }
 
 /** Strips the cursor-preview panel's bg / border / blur so the peek content
- *  can supply its own. (The panel carries no shadow to strip — see the panel
- *  base in magnetic-preview; the visible card/thumb casts the shadow.) */
+ *  can supply its own. (The panel carries no shadow to strip: see the panel
+ *  base in magnetic-preview. The visible card/thumb casts the shadow.) */
 const BARE_PANEL_CHROME =
   "bg-transparent border-transparent backdrop-blur-none";
 
 /**
- * Build the cursor-preview for a commit — a "peek view" that scales to how
+ * Build the cursor-preview for a commit: a "peek view" that scales to how
  * much media the commit carries. Returns `null` when there's nothing worth
  * showing so the hover never renders an empty card.
  *
@@ -237,12 +237,12 @@ const BARE_PANEL_CHROME =
  *    LinkCards (image + domain + title); videos / images render as bare
  *    covers. Front card sharp; back cards rotated, scaled, and faded so they
  *    peek out without overflowing the panel's rounded clip.
- *  - 1 item:   a single instance of the same chrome — mini-card for a link,
+ *  - 1 item:   a single instance of the same chrome: mini-card for a link,
  *    flush poster for a video / image.
  *  - 0 items:  the commit's description text, if any.
  *
  * Reconciliation with `pinned`: peek = "what's *behind* the fold". Pinned
- * items are already visible inline, so the peek excludes them — see
+ * items are already visible inline, so the peek excludes them. See
  * `getCommitPeekItems` for the exact filter rationale.
  */
 export function buildCommitPreview(
@@ -250,7 +250,7 @@ export function buildCommitPreview(
   locale: Locale,
 ): CommitPreview | null {
   // A role row stands for an identity, and its peek is that identity's
-  // card — the same profile the handle on any other row peeks.
+  // card: the same profile the handle on any other row peeks.
   if (commit.type === "role") {
     return {
       panelClassName: IDENTITY_PEEK_PANEL,
@@ -263,7 +263,7 @@ export function buildCommitPreview(
   if (items.length >= 2) {
     return {
       // Strip the panel chrome so the rotated cards read as floating, not
-      // contained in another box — the rotation IS the visual signal of
+      // contained in another box. The rotation IS the visual signal of
       // "there's more here" and a background defeats it. Padding (`p-8`)
       // gives the back layers' translate + rotate room to peek out around
       // the front card (the panel's default cap already fits it).
@@ -293,7 +293,7 @@ export function buildCommitPreview(
     }
     return {
       // Strip the panel chrome so the thumb is the only surface (keeping it
-      // stacked the panel's border on top of the thumb's — a double edge).
+      // stacked the panel's border on top of the thumb's: a double edge).
       panelClassName: `p-0 ${BARE_PANEL_CHROME}`,
       // A pure-media poster: cover + rounded clip + shadow, no border (unlike
       // the link/writing cards, whose border frames their text). The image
@@ -318,8 +318,8 @@ export function buildCommitPreview(
 
   return {
     // Unlike the other peeks (bare panel, content == PEEK_W), this fallback
-    // uses the panel itself as the visible card, so PEEK_W goes on the PANEL
-    // — otherwise its p-3 padding would make the outer box wider (408) than
+    // uses the panel itself as the visible card, so PEEK_W goes on the PANEL.
+    // Otherwise its p-3 padding would make the outer box wider (408) than
     // the flush 384 peeks. It's a visible card, so it opts into shadow-raised.
     panelClassName: `${PEEK_W} shadow-raised`,
     node: (
@@ -343,13 +343,13 @@ const DECK_FRONT_W = "w-[22rem]"; // 352px
  * badge surfaces the rest of the count when relevant.
  *
  * Reveal is gated on every image resolving (load OR error) so the layers
- * appear together — Bilibili's CDN especially trickles in on a cold hover
+ * appear together. Bilibili's CDN especially trickles in on a cold hover
  * and a staggered reveal looks broken.
  */
 /**
  * The chip a peeked item's cover wears: the peek's tier (media-mark.tsx),
- * every kind marked, and `New tab` on a page that will leave — the same
- * vocabulary the stat covers' own peeks use, so oneline and stat agree.
+ * every kind marked, and `New tab` on a page that will leave. This is the
+ * same vocabulary the stat covers' own peeks use, so oneline and stat agree.
  */
 function peekMark(item: PeekItem, locale: Locale) {
   return markFor(item.media, locale, { all: true, leaves: leavesSite(item.media) });
@@ -374,7 +374,7 @@ function StackedPeek({ items, locale }: { items: PeekItem[]; locale: Locale }) {
 
   // Per-depth pose. Index 0 = front (items[0]); larger index = deeper.
   // Tuned so back cards visibly peek out without busting the panel padding
-  // (p-8) — i=2's corner is ~30px past the front; needs >= 32px of slack.
+  // (p-8): i=2's corner is ~30px past the front; needs >= 32px of slack.
   const layers = [
     { dx: 0, dy: 0, rot: 0, scale: 1, opacity: 1 }, //          front
     { dx: 14, dy: 10, rot: 5, scale: 0.97, opacity: 0.92 }, //  middle
@@ -395,7 +395,7 @@ function StackedPeek({ items, locale }: { items: PeekItem[]; locale: Locale }) {
         return (
           <div
             key={i}
-            // Front uses `relative` (not static) so its `zIndex` applies —
+            // Front uses `relative` (not static) so its `zIndex` applies.
             // `z-index` is a no-op on static elements, which would let the
             // absolute back layers stack above the front regardless of value.
             // Front being `relative` also keeps it in-flow so the container
@@ -412,12 +412,12 @@ function StackedPeek({ items, locale }: { items: PeekItem[]; locale: Locale }) {
               // Stacked: every layer keeps the same shape so the layered
               // transforms overlap predictably. The front layer's bg is
               // forced opaque so back cards' content can't bleed *through*
-              // it — translucency only makes sense where the page bg sits
+              // it. Translucency only makes sense where the page bg sits
               // behind, which is true for back cards (peeking from behind)
               // but not for the front (a full card sits behind it).
               // Every layer carries its own `shadow-raised` so the deck reads
-              // as real stacked cards — each lifted above the one behind it —
-              // not one silhouette with a single outer shadow. Safe now that
+              // as stacked cards, each lifted above the one behind it,
+              // rather than one silhouette with a single outer shadow. Safe now that
               // the shadow is light (raised, black/5): each layer's wrapper
               // opacity (0.92 / 0.78) also fades its shadow, so the back
               // cards' shadows recede instead of compounding into mud (which

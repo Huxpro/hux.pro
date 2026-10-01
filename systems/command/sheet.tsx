@@ -30,37 +30,38 @@ import {
 } from "./results";
 
 // =============================================================================
-// CommandSheet — the palette as a phone sheet.
+// CommandSheet: the palette as a phone sheet.
 //
 // The same sheet the wallpaper picker and the playlist are, with the search
 // field where their title bar is. It opens at seven tenths of the screen and
-// a drag (or a tap into the field) carries it to the top — the iOS medium and
-// large detents, the way Maps' sheet grows when its search field is tapped.
+// a drag (or a tap into the field) carries it to the top. These are the iOS
+// medium and large detents, the way Maps' sheet grows when its search field is
+// tapped.
 //
 // A launcher is not a secondary surface, so this one is modal: the page stops
 // answering while it is up, and a tap on the page dismisses it, as a click on
 // the page dismisses the desktop popover.
 //
 // Leaving after a command (see CommandKind): the sheet closes, except after a
-// `surface` command, when it stays where it is and steps back while the
-// surface it opened — the wallpaper picker — rises over it, the shared stack
-// doing the stepping. Closing the picker brings the palette forward again:
+// `surface` command. Then it stays where it is and steps back while the
+// surface it opened (the wallpaper picker) rises over it; the shared stack
+// does the stepping. Closing the picker brings the palette forward again:
 // on a phone a sheet presented from a sheet returns to it, as on iOS.
 //
-// The palette's two sub-modes — slash commands and load bundle — are each a
+// The palette's two sub-modes (slash commands and load bundle) are each a
 // second sheet stacked on this one on a phone, the way iOS presents a sheet
-// from a sheet: the palette stays open and steps back, the sub-mode rises over
-// it, and a drag down (the palette following the finger forward), its close
-// button or a tap on the receded palette brings the palette forward again —
-// one level at a time, as on iOS; the palette's own close is on the palette.
+// from a sheet. The palette stays open and steps back, and the sub-mode rises
+// over it. A drag down (the palette following the finger forward), its close
+// button or a tap on the receded palette brings the palette forward again,
+// one level at a time, as on iOS. The palette's own close is on the palette.
 // They are a true stack (each sheet is a React child of the palette's, so Base
 // UI treats it as nested, and the shared stack recedes the parent). The two are
 // mutually exclusive, so only ever one is up.
 //
 // Each takes the height its content asks for, which is not the same height.
 // Slash mode is a list, so it stands level with the palette's detent, its own
-// scrolling continuing where the palette's left off. Load bundle is a form —
-// a line of hint, a field, a button — so it takes the height of that and no
+// scrolling continuing where the palette's left off. Load bundle is a form
+// (a line of hint, a field, a button), so it takes the height of that and no
 // more (`fitContent`): a sheet up to the palette's detent to hold one field
 // would be mostly empty. It is reached from the apps strip's Load tile, and the
 // keyboard comes back for its field, so the sheet rests on top of the keyboard
@@ -72,8 +73,8 @@ import {
 // hardware keyboard still gets the letters.
 //
 // The shell (this component) is always mounted so the sheet can animate out;
-// everything that costs something — the command list, the field, the
-// shortcuts — lives in SheetBody, which Base UI unmounts with the sheet.
+// everything that costs something (the command list, the field, the
+// shortcuts) lives in SheetBody, which Base UI unmounts with the sheet.
 // =============================================================================
 
 /** The site's detents. The palette opens at the first. */
@@ -174,7 +175,7 @@ function SheetBody({
   const showHints = useShowKeyboardHints();
 
   // The slash sheet stands level with the palette: as tall as the palette's
-  // detent, read once on the way in. No detents of its own — a sheet with
+  // detent, read once on the way in. No detents of its own: a sheet with
   // detents reports its swipe as a position between them, which at the lowest
   // detent is already "all the way", and the palette underneath needs the
   // plain fraction of the way out to come forward under the finger. (Base UI
@@ -200,7 +201,7 @@ function SheetBody({
       >
         <SlashShortcuts actions={actions} />
 
-        {/* Header — the search field. It stays through both sub-modes: they
+        {/* Header: the search field. It stays through both sub-modes: they
             are sheets stacked on this one, not a body swapped underneath. */}
         <div className="relative flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
           {/* Listening: the site's glow along the field's bottom edge. */}
@@ -241,7 +242,7 @@ function SheetBody({
         />
       </Command>
 
-      {/* The sub-mode sheets, stacked on the palette — mutually exclusive, so
+      {/* The sub-mode sheets, stacked on the palette. Mutually exclusive, so
           never both up. Outside the cmdk root, so a key pressed in here is not
           also a key pressed in the search list. */}
       <SurfaceSheet
@@ -304,7 +305,7 @@ function SheetBody({
             chrome="sheet"
             onBack={() => setLoadBundleMode(false)}
             // The bundle opens in a window: the whole palette leaves, both
-            // sheets with it — the same exit a `navigate` command takes.
+            // sheets with it. This is the same exit a `navigate` command takes.
             onLoaded={close}
           />
         </div>
@@ -314,10 +315,10 @@ function SheetBody({
 }
 
 /**
- * The header a sub-mode sheet wears: what this is, and one way out, one level
- * down — a stacked sheet's close is its own, as on iOS, and the palette's own
- * close stays on the palette. Both sub-modes wear the same one, which is the
- * whole claim: they are one shape presented twice.
+ * The header a sub-mode sheet uses: what this is, and one way out, one level
+ * down. A stacked sheet's close is its own, as on iOS, and the palette's own
+ * close stays on the palette. Both sub-modes use the same header because they
+ * are one shape presented twice.
  */
 function SubModeHeader({
   icon: Icon,

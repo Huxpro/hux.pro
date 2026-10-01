@@ -1,5 +1,5 @@
 // =============================================================================
-// Theater System — Player helpers
+// Theater System: Player helpers
 //
 // Reuses the Music system's YouTube IFrame API loader (single script tag, one
 // global namespace). The Music system's global `YT` declarations don't include

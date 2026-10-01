@@ -1,10 +1,10 @@
 // =============================================================================
-// Gyroscope — where "down" is, in screen space.
+// Gyroscope: where "down" is, in screen space.
 //
 // The sky's rain and snow fall along gravity rather than along the bottom of
 // the viewport: lean the phone and the streaks lean with it, turn it on its
 // side and the snow crosses the page sideways. That needs exactly one thing
-// per frame — the direction of gravity as the *screen* sees it — which is all
+// per frame: the direction of gravity as the *screen* sees it. That is all
 // this module produces.
 //
 // `deviceorientation` reports the Euler angles (alpha, beta, gamma) that take
@@ -14,7 +14,7 @@
 //
 //   g_device = (cos β · sin γ, −sin β, −cos β · cos γ)
 //
-// Alpha — the compass heading — drops out, which is right: which way you face
+// Alpha (the compass heading) drops out, which is right: which way you face
 // cannot change which way things fall. The first two components are the part
 // of gravity lying in the plane of the screen (x right, y toward the top);
 // the third is how much of it points into the glass, so a phone flat on a
@@ -30,8 +30,8 @@
 // ungated browser starts tilting by itself, and only a first grant needs
 // somewhere to tap (the Weather tab of the wallpaper picker, and the devtool's
 // Sky module). Once granted, the grant is remembered in the ambient settings
-// and re-taken silently on the next load — which is the only time
-// `requestPermission()` is ever called without a gesture, precisely so a
+// and re-taken silently on the next load. That is the only time
+// `requestPermission()` is ever called without a gesture, so that a
 // visitor who has never answered is never prompted out of nowhere.
 // =============================================================================
 
@@ -48,7 +48,7 @@ export interface GravityVector {
   y: number;
 }
 
-/** Down the page — a phone held upright, and the answer when we cannot know. */
+/** Down the page: a phone held upright, and the answer when we cannot know. */
 export const UPRIGHT_GRAVITY: GravityVector = { x: 0, y: -1 };
 
 /** Below this much of gravity in the screen plane, the screen is flat and the direction is noise. */
@@ -61,11 +61,11 @@ const DEG = Math.PI / 180;
 /**
  * How this browser hands over motion readings.
  *
- *   unsupported — no `DeviceOrientationEvent` at all
- *   open        — the event fires with nothing to ask (everything but WebKit)
- *   prompt      — WebKit's gate, unanswered: one tap away
- *   granted     — WebKit's gate, already passed
- *   denied      — asked and refused; the browser's own settings can undo it
+ *   unsupported  no `DeviceOrientationEvent` at all
+ *   open         the event fires with nothing to ask (everything but WebKit)
+ *   prompt       WebKit's gate, unanswered: one tap away
+ *   granted      WebKit's gate, already passed
+ *   denied       asked and refused; the browser's own settings can undo it
  */
 export type GyroAccess = "unsupported" | "open" | "prompt" | "granted" | "denied";
 
@@ -94,7 +94,7 @@ function isGyroGated(): boolean {
 
 /**
  * Ask WebKit for motion access. Call it **from a user gesture**: without one
- * the promise rejects, which is reported back as `"prompt"` — still one tap
+ * the promise rejects, which is reported back as `"prompt"`: still one tap
  * away, and no prompt was shown.
  */
 export async function requestGyroAccess(): Promise<GyroAccess> {
@@ -135,8 +135,8 @@ export async function resolveGyroAccess(options?: {
 /**
  * Screen-space gravity from a `deviceorientation` reading.
  *
- * `screenAngle` is `screen.orientation.angle` — how far the layout has been
- * turned out of the device's natural orientation — and the in-plane vector is
+ * `screenAngle` is `screen.orientation.angle` (how far the layout has been
+ * turned out of the device's natural orientation), and the in-plane vector is
  * turned by the same angle to land in the page's frame. (That is the
  * transform three.js's DeviceOrientationControls applies, and it checks out
  * by hand in both landscapes: gravity comes back down the page.) A screen too
@@ -196,7 +196,7 @@ export function readScreenAngle(): number {
 // The shared source
 //
 // One `deviceorientation` listener for the whole page, however many surfaces
-// want the readings — the full-page sky and the picker's Sky tile both do, and
+// want the readings. The full-page sky and the picker's Sky tile both do, and
 // a second listener would cost a second stream of events for the same number.
 // -----------------------------------------------------------------------------
 
@@ -221,7 +221,7 @@ let lastAt = 0;
 
 function onDeviceOrientation(event: DeviceOrientationEvent) {
   // A browser with no sensor still fires an event or two, every angle null, to
-  // say exactly that — Chromium does it on any secure origin. There is nothing
+  // say exactly that; Chromium does it on any secure origin. There is nothing
   // to read in one and nothing to pass on: dropping it here is what leaves the
   // provider's `readings` on "silent" for a device that cannot tilt.
   if (!Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return;
@@ -246,7 +246,7 @@ function onDeviceOrientation(event: DeviceOrientationEvent) {
  * Nothing is validated here: a caller subscribing where access was never
  * granted simply never hears anything, which is also what a desktop browser
  * with no sensor does (the event type exists in every one of them and fires in
- * none) — see the provider's `gyro.readings`.
+ * none). See the provider's `gyro.readings`.
  */
 export function subscribeGravity(listener: GravityListener): () => void {
   if (typeof window === "undefined") return () => {};

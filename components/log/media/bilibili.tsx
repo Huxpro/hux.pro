@@ -199,7 +199,7 @@ export function BilibiliEmbed({
           </div>
         )}
 
-        {/* The cover wears its chip — the platform — the way every cover on the
+        {/* The cover wears its chip (the platform), the way every cover on the
             site does (media-mark.tsx). COVER_WASH is the iOS press affordance. */}
         <div className={COVER_WASH_TINTED} />
         <MediaMark mark={videoMark("bilibili")} />

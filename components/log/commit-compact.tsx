@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * CommitCompact — Generic minimal commit renderer for VStack/HStack widgets.
+ * CommitCompact: generic minimal commit renderer for VStack/HStack widgets.
  *
- * Replaces the 5 per-type compact components. Fully type-agnostic —
- * all type-specific decisions are made by the adapter (normalizeCommit).
+ * Replaces the 5 per-type compact components. Type-agnostic: all
+ * type-specific decisions are made by the adapter (normalizeCommit).
  *
  * Layout: optional thumbnail → title → secondaryLine → date
  */
@@ -43,7 +43,7 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
 
       <div className="space-y-1 min-w-0">
         {/* Title truncates, but the language badge stays pinned and visible
-            (shrink-0) — a talk's language must not get clipped with a long
+            (shrink-0). A talk's language must not get clipped with a long
             title. */}
         {/* The same pair the /works row prints: a heading over its message
             (`TYPE.rowHeading` / `TYPE.message`), a plain title otherwise. */}
@@ -72,7 +72,7 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
             {data.description}
           </div>
         )}
-        {/* Date — shown separately when secondaryLine doesn't include it */}
+        {/* Date, shown separately when secondaryLine doesn't include it */}
         {data.secondaryLine === data.description && (
           <div className="text-xs font-mono text-muted-foreground">
             {data.date}

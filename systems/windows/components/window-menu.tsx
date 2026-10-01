@@ -21,21 +21,21 @@ import { useWindows } from "../provider";
 import { AppIconPlate } from "./app-icon-plate";
 
 // =============================================================================
-// The window menu — one list of actions, three containers
+// The window menu: one list of actions, three containers
 //
 // What a window offers (which app this is · how big · open in browser ·
 // minimize · close) is one thing; where it is offered is three:
 //
-//   • a popover under the pill            — a pointer device (window-chrome)
-//   • an action sheet from the bottom     — touch, on a windowed window
-//   • the same sheet, nested in the window — touch, where the window IS a sheet
+//   • a popover under the pill            → a pointer device (window-chrome)
+//   • an action sheet from the bottom     → touch, on a windowed window
+//   • the same sheet, nested in the window → touch, where the window IS a sheet
 //
 // So the rows live here, in `WindowMenuBody`, and each container is a shell
 // around them. `WindowMenuSheet` is the sheet form of it, shared by the last
 // two: content height, modal (a menu dismisses on a tap outside, as a popover
-// does), and a selection that dismisses the sheet *before* it acts — `close`
+// does), and a selection that dismisses the sheet *before* it acts. `close`
 // unmounts the window, and with it a sheet that would otherwise vanish
-// mid-animation. It is also what iOS does.
+// mid-animation. iOS does the same.
 //
 // Size presets are a windowing idea. Where the window is a sheet, its size is
 // the detent the finger left it at, so the menu drops those rows (`presets`)
@@ -53,7 +53,7 @@ type MenuShape = "popover" | "sheet";
 
 /**
  * One row of the menu: a menu item in the popover, an action-sheet row on
- * touch. Same row, two densities — a sheet row is a thumb target and carries
+ * touch. Same row, two densities: a sheet row is a thumb target and carries
  * iOS's red for the destructive one; a popover row is a pointer target.
  */
 function MenuItem({
@@ -69,7 +69,7 @@ function MenuItem({
   Icon: LucideIcon;
   children: React.ReactNode;
   onSelect: () => void;
-  /** Renders an anchor rather than a button — "Open in browser". */
+  /** Renders an anchor rather than a button ("Open in browser"). */
   href?: string;
   active?: boolean;
   destructive?: boolean;
@@ -143,7 +143,7 @@ function MenuRule({ shape }: { shape: MenuShape }) {
 }
 
 /**
- * What the menu holds — the app it belongs to, then its actions, in one order
+ * What the menu holds: the app it belongs to, then its actions, in one order
  * for both shapes. The popover keeps them in one list; the sheet puts Close in
  * a group of its own, the way an iOS action sheet separates the destructive
  * choice from the rest.
@@ -248,8 +248,8 @@ export function WindowMenuBody({
 
 /**
  * The menu as a sheet: content height, modal, and a selection that lands after
- * the sheet has gone. `nestedIn` names the window's own sheet when there is one
- * — Base UI then treats this as a real nested drawer and sends the window a
+ * the sheet has gone. `nestedIn` names the window's own sheet when there is
+ * one. Base UI then treats this as a real nested drawer and sends the window a
  * step back under it, the way iOS presents a sheet from a sheet.
  */
 export function WindowMenuSheet({

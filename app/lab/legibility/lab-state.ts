@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Lab state — the three layers a person can turn, and how each reaches CSS.
+// Lab state: the three layers a person can turn, and how each reaches CSS.
 //
 //   scene      what is painting: wallpaper, theme, material, tint. These drive
 //              the REAL app state (the same setters the devtool and the picker
@@ -13,14 +13,14 @@
 //              profile and handed to the provider as `legibilityOverride`, the
 //              same CSS variables the provider would have written.
 //
-//   sheet      the stylesheet's own inputs — alpha ladder, washes, relief
+//   sheet      the stylesheet's own inputs: alpha ladder, washes, relief
 //              shape, glass fills, tint amounts. Written inline on <html>,
 //              removed on unmount. The default for each is read from the
 //              computed style, so the lab never carries a second copy of it.
 //
 // Nothing here persists across a reload. Within the session the tuning stays
-// put when you leave — the policy through the provider, the sheet inline on
-// <html>, and the sliders' own state in `LAB_SESSION` below — so a veil tuned
+// put when you leave (the policy through the provider, the sheet inline on
+// <html>, and the sliders' own state in `LAB_SESSION` below), so a veil tuned
 // here can be checked on the real /writing before it is copied into code.
 // "Reset all" clears the lot.
 // =============================================================================
@@ -61,7 +61,7 @@ export interface PolicyKnob {
   key: keyof LegibilityPolicy;
   /** Which surface the knob shapes: the desktop (ink, relief, flip, glass) or a reading route (veil, blur). */
   group: PolicyGroup;
-  /** What moving it can change — read off `resolveLegibility`, so the panel can say so. */
+  /** What moving it can change, read off `resolveLegibility` so the panel can say so. */
   affects: OutputName[];
   label: string;
   hint: string;
@@ -104,7 +104,7 @@ export function mergePolicy(overrides: PolicyOverrides): LegibilityPolicy {
   return { ...DEFAULT_LEGIBILITY_POLICY, ...overrides };
 }
 
-/** `obj` without `keys` — the reset behind every star. */
+/** `obj` without `keys`: the reset behind every star. */
 export function without<T extends object>(obj: T, ...keys: (keyof T)[]): T {
   const next = { ...obj };
   for (const k of keys) delete next[k];
@@ -112,7 +112,7 @@ export function without<T extends object>(obj: T, ...keys: (keyof T)[]): T {
 }
 
 // -----------------------------------------------------------------------------
-// Output pins — the resolved variables, editable directly
+// Output pins: the resolved variables, editable directly
 // -----------------------------------------------------------------------------
 
 export interface OutputKnob {
@@ -184,7 +184,7 @@ export function resolveForLab(params: {
 /**
  * Whether a knob can move anything for this profile: resolve at both ends of
  * its range and compare. A relief knob under a picture whose busyness already
- * saturates it, a tint bound the picture's tint never reaches — those are
+ * saturates it, a tint bound the picture's tint never reaches: those are
  * inert here, and the panel says so instead of letting a slider look broken.
  */
 export function knobActsHere(
@@ -294,7 +294,7 @@ export function parseSheetValue(raw: string): number | null {
 }
 
 // -----------------------------------------------------------------------------
-// Session store — the sliders' state, kept while the tab lives
+// Session store: the sliders' state, kept while the tab lives
 // -----------------------------------------------------------------------------
 
 export const LAB_SESSION: {

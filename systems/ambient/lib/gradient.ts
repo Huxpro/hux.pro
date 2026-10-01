@@ -1,7 +1,7 @@
 // =============================================================================
 // CSS gradient renderer for a WeatherScene.
 //
-// This is the wallpaper's *fallback* path — widget mode, browsers without
+// This is the wallpaper's *fallback* path: widget mode, browsers without
 // WebGL, and `prefers-reduced-motion`. It paints the same palette the shader
 // uses (sky zenith → horizon, sun glow at the real sun position, a soft cloud
 // wash) so switching renderers never changes the mood, only the fidelity.
@@ -23,7 +23,7 @@ import {
  * One entry in the crossfade stack rendered by <GradientStack />.
  *
  * The stack is source-agnostic: a layer is whatever the active wallpaper source
- * produced — a weather/sun-event gradient, or a picture wallpaper — so switching
+ * produced (a weather/sun-event gradient, or a picture wallpaper), so switching
  * sources crossfades through the same machinery as a weather change.
  */
 export interface GradientLayerData {
@@ -95,7 +95,7 @@ export function sceneToCssGradient(scene: WeatherScene): string {
 }
 
 // -----------------------------------------------------------------------------
-// Devtool previews — the original hand-tuned palette table.
+// Devtool previews: the original hand-tuned palette table.
 //
 // The scene-derived gradient above is what the page renders; these thumbnails
 // exist to tell conditions apart at a glance, so they keep the older, more
@@ -289,8 +289,8 @@ export function getWeatherGradient(params: {
  * The three authored colours a weather gradient is built from, in paint order
  * (two radial spots, then the linear ground). Read by the legibility profiler
  * (`scripts/wallpaper-profile.ts`) so the weather wallpapers get the same
- * static profile a picture does — the gradient has no pixels to sample, but
- * it has these, and they are what it is made of.
+ * static profile a picture does. The gradient has no pixels to sample, but
+ * it is made of these three colours.
  */
 export function getWeatherPaletteColors(params: {
   condition: WeatherCondition;
@@ -321,9 +321,9 @@ function getSunEventGradient(params: {
 
 /**
  * The Classic weather style: the original palettes, chosen the way the page
- * always chose them — the sunrise or sunset gradient during those phases,
- * otherwise the condition's day or night palette. It steps at phase and
- * weather changes rather than following the clock, which is the point of it.
+ * always chose them: the sunrise or sunset gradient during those phases,
+ * otherwise the condition's day or night palette. It deliberately steps at
+ * phase and weather changes rather than following the clock.
  */
 export function getClassicGradient(scene: WeatherScene, phase: AmbientPhase): string {
   if (phase === "sunrise" || phase === "sunset") {

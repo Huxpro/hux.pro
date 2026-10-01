@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // =============================================================================
-// LoadBundlePanel — inviting OTA Lynx open form inside ⌘K chrome
+// LoadBundlePanel: the OTA Lynx open form inside ⌘K chrome
 //
 // One field (the bundle URL), one action (Open), one way out (← / Esc).
 // Title is derived from the path; flavour belongs to the bundle.
@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from "react";
 // Two chromes. In the desktop popover the panel replaces the palette's body in
 // place, so it brings its own header: a back arrow and the title. On a phone it
 // is the body of a sheet stacked on the palette, and that sheet's header is
-// already the icon, the title and one way out — so the panel drops both and
+// already the icon, the title and one way out. So the panel drops both and
 // keeps only the hint, which reads as the field's subtitle.
 // =============================================================================
 

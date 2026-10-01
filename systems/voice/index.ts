@@ -1,5 +1,5 @@
 // =============================================================================
-// Voice System — speak to the site.
+// Voice System: speak to the site.
 //
 //   const voice = useVoiceInput({ lang: "en-US", onInterim, onFinal });
 //   <button onClick={voice.toggle}>…</button>

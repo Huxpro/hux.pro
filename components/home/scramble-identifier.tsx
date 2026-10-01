@@ -87,7 +87,7 @@ function IdentifierWing({
 }
 
 /**
- * Homepage system identifier — and the long way into the About.
+ * Homepage system identifier, and the long way into the About.
  *
  * Desktop (mouse / pen): hover scrambles `λhux` → `λHUX`; dwelling exposes
  * "The" / "操作" and "OS" / "系统" from the void. Once the OS has said its
@@ -95,11 +95,11 @@ function IdentifierWing({
  * `/about`, where the OS introduces itself. Leave reverses.
  *
  * Touch: the same beats on press-and-hold, and holding until the name is
- * whole opens `/about` there and then — the hold is the press. A finger
+ * whole opens `/about` there and then: the hold is the press. A finger
  * covers the mark, so a ring round it (HoldRing, the search button's hold's
  * own) closes as the hold goes on: the one sign on a phone that holding is
  * doing something. A flick or
- * quick tap cancels — we never use mouseenter, which iOS would stick.
+ * quick tap cancels. We never use mouseenter, which iOS would stick.
  */
 export function ScrambleIdentifier() {
   const { locale } = useLocale();
@@ -165,7 +165,7 @@ export function ScrambleIdentifier() {
     setEngaged(true);
     setRingLayer(true);
     // The finger is on the mark: the ring round it, outside the finger,
-    // closes as the hold goes on — the hint that holding does something.
+    // closes as the hold goes on. That is the hint that holding does something.
     const reveal = reduced
       ? undefined
       : window.setTimeout(() => {

@@ -23,19 +23,19 @@ import { EdgeGlow, Glow, useGlowTuning } from "@/systems/glow";
 import { AboutLanguageSwitch } from "./about-language";
 
 // =============================================================================
-// AboutSurface — the About, floating over whatever page is underneath.
+// AboutSurface: the About, floating over whatever page is underneath.
 //
 // Three layers, bottom to top:
 //
 //   the veil    the page, blurred and washed in the glass material
 //               (`bg-glass`, so Tinted / Clear and the wallpaper tint apply),
 //               so the words sit on something calm without the page going
-//               away — you can still see where you are.
+//               away. You can still see where you are.
 //   the words   a single column in the middle, brief, from
 //               content/about/<locale>.mdx (rendered on the server by
 //               AboutCopy and handed in as `en` / `zh`). Each block rises in
 //               turn (`.about-copy`, globals.css).
-//   the glow    the Siri ring on the screen's edge (systems/glow) — a shader,
+//   the glow    the Siri ring on the screen's edge (systems/glow): a shader,
 //               always moving, above everything and taking no pointer.
 //
 // It leaves by a press anywhere outside the words, Escape, `O`, the button
@@ -55,15 +55,15 @@ export interface AboutSurfaceProps {
  * How far around the words (and the way out) a click still counts as a miss
  * rather than a way out: a generous column margin, about the width of a
  * hand's slip beside a line. Past it, towards the screen's edges, a click
- * closes. Pointer only — see `onBackdrop`.
+ * closes. Pointer only; see `onBackdrop`.
  */
 const MISS_MARGIN_X = 96;
 const MISS_MARGIN_Y = 64;
 
 export function AboutSurface({ en, zh }: AboutSurfaceProps) {
   const { isOpen, dismiss, close, seen } = useAbout();
-  // Whether this showing is the newcomer's first, held while it is up —
-  // dismissing marks the visitor as met at once, and the way out must not
+  // Whether this showing is the newcomer's first, held while it is up.
+  // Dismissing marks the visitor as met at once, and the way out must not
   // turn from Reveal to Close as it leaves.
   const [firstTime, setFirstTime] = useState(!seen);
   if (isOpen && firstTime !== !seen) setFirstTime(!seen);
@@ -113,14 +113,14 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
     };
   }, [isOpen]);
 
-  // Pressing outside the words puts the About away — but only where that is
+  // Pressing outside the words puts the About away, but only where that is
   // what the press meant. On a touch screen, never: a phone's About is the
   // whole screen, every blank stretch of it is a thumb resting between
   // lines, and the way out is the button at its foot. With a pointer, not
   // near the words either: a click in the column's margin is a reader
   // steadying a selection or missing a link, not leaving. Out towards the
   // edges of the screen, well clear of the text, a click is a deliberate
-  // gesture — there it closes, as clicking beside a sheet does.
+  // gesture, and there it closes, as clicking beside a sheet does.
   const onBackdrop = (e: MouseEvent) => {
     if (e.target !== e.currentTarget) return;
     if (!hasFineHoverPointer) return;
@@ -138,7 +138,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
   };
 
   // A plain link in the copy navigates; the About steps aside for it. Magic
-  // links do the same through MagicLinkHost, since they may open no page —
+  // links do the same through MagicLinkHost, since they may open no page,
   // or a drawer, which floats over the About instead.
   const onCopyClick = (e: MouseEvent) => {
     const anchor = (e.target as Element).closest("a");
@@ -173,7 +173,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
               className="absolute inset-0 bg-glass/70 backdrop-blur-2xl backdrop-saturate-150"
             />
             {/* On a desk the words and the way out are one group, centred
-                on the screen — spacers above and below take what is left.
+                on the screen; spacers above and below take what is left.
                 On a phone the words take every line the screen has and the
                 way out sits at its foot. Either way the words scroll in their
                 own container, and the way out never scrolls away with them. */}
@@ -205,7 +205,7 @@ export function AboutSurface({ en, zh }: AboutSurfaceProps) {
                   lang={locale === "zh" ? "zh" : "en"}
                   // Set as an article is (`.prose-article`, globals.css):
                   // the reader's size, 1.75 lines, the article's ink, a
-                  // paragraph and a half apart — so the About reads as the
+                  // paragraph and a half apart. The About reads as the
                   // site's prose, not a type of its own.
                   className="about-copy relative w-full max-w-[33rem] space-y-[calc(var(--reading-size)*1.5)] text-[length:var(--reading-size)] leading-[1.75] text-foreground/85"
                   initial={{ y: 10, scale: 0.985 }}
@@ -309,8 +309,8 @@ function AboutFoot({
     >
       {/* Glass, not a slab: the way out is part of the veil it sits on.
           On a first visit it is Reveal (the veil lifts off the page the
-          newcomer landed on) and it breathes — the glow's pulse, blooming
-          out from behind it — the one thing on the screen asking to be
+          newcomer landed on) and it pulses with the glow, which blooms
+          out from behind it. It is the one thing on the screen asking to be
           pressed. After that it is a plain Close. Where there is a
           keyboard it wears its key, Esc: the key's cap has an edge of its
           own, so the pill needs less room after it than before the word

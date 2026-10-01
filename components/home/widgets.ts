@@ -4,13 +4,13 @@ import type { TranslationKey } from "@/lib/i18n";
 import { useCallback, useSyncExternalStore } from "react";
 
 // =============================================================================
-// Home widgets — which cards the home grid may show, and which it shows before
+// Home widgets: which cards the home grid may show, and which it shows before
 // a visitor says otherwise.
 //
 // A widget is a feature's card on the home screen, not the feature itself: a
 // module can be public (a route, a palette entry) and still keep its card off
 // the home screen until a visitor asks for it. That is one flag here,
-// `defaultEnabled`, and nothing else — no layout, no sizes. The grid's order
+// `defaultEnabled`, and nothing else (no layout, no sizes). The grid's order
 // stays the masonry's business (sortable-order.ts).
 //
 //   HOME_WIDGETS   every widget the grid knows by id, with its default
@@ -44,8 +44,8 @@ export const HOME_WIDGETS = [
   { id: "status", title: "widgetStatus", defaultEnabled: true },
   { id: "featured-talks", title: "widgetFeaturedTalks", defaultEnabled: true },
   { id: "prompt", title: "widgetPrompt", defaultEnabled: true },
-  // Labs is public — /lab, the palette — but a study of the site's insides,
-  // not something a visitor came for. Its card waits to be asked for.
+  // Labs is public (/lab, the palette), but it is a study of the site's
+  // insides, not something a visitor came for. Its card waits to be asked for.
   { id: "lab", title: "widgetLab", defaultEnabled: false },
 ] as const satisfies readonly HomeWidgetSpec[];
 
@@ -59,7 +59,7 @@ export function isEnabledByDefault(id: string): boolean {
 }
 
 // -----------------------------------------------------------------------------
-// Visitor overrides — a module store, so the grid, its picker and a feature's
+// Visitor overrides: a module store, so the grid, its picker and a feature's
 // own switch (on another page) read the same bit, across tabs too.
 // -----------------------------------------------------------------------------
 
@@ -111,8 +111,8 @@ function subscribe(listener: () => void) {
 }
 
 const getSnapshot = () => (prefs ??= read());
-// The server — and the first client render — show every widget at its
-// default; a visitor's overrides apply right after hydration.
+// The server and the first client render show every widget at its default.
+// A visitor's overrides apply right after hydration.
 const getServerSnapshot = () => EMPTY;
 
 /** Turn a widget on or off for this visitor. Back at its default, the override is dropped. */

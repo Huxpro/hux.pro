@@ -23,17 +23,17 @@ interface DescriptionProps {
 }
 
 /**
- * A commit's description — what the work is.
+ * A commit's description: what the work is.
  *
  * `TYPE.message`: 13px, muted. It sat on 12px tertiary for a long time, and
  * the reason was the line between it and the title: the venue, in tertiary
  * mono. Brightening or enlarging the paragraph under that line made a
- * sandwich — ink, the lightest rung, a middle one — so the paragraph stayed
+ * sandwich (ink, the lightest rung, a middle one), so the paragraph stayed
  * as light and as small as the line above it, and the row had no second
  * tier. The venue now sits on the title line (TimelineCommit), nothing
  * stands between a title and its sentence, and the title over a sentence
  * takes medium (`TYPE.rowHeading`), so the sentence can take the rung and
- * the size it needed all along — a half step under the heading, which is
+ * the size it needed: a half step under the heading, which is
  * where a sentence under a heading sits. (At 14 it was the heading's size
  * and the two competed for the row.)
  */
@@ -89,7 +89,7 @@ export function Commentary({ text, className }: CommentaryProps) {
 }
 
 // =============================================================================
-// Author Fields — `git log --pretty=fuller`
+// Author Fields: `git log --pretty=fuller`
 // =============================================================================
 
 /**
@@ -97,7 +97,7 @@ export function Commentary({ text, className }: CommentaryProps) {
  * resolvable identity (e.g. personal works with `attachedTo: null`).
  * The subtitle-row byline stays blank for those rows, but the author
  * block still names the person once opened. This is a display fallback
- * only — it is not an identity in the log.
+ * only. It is not an identity in the log.
  */
 const DEFAULT_AUTHOR_HANDLE = "hux";
 
@@ -106,7 +106,7 @@ const DEFAULT_AUTHOR_HANDLE = "hux";
  *
  * No rule under it: a 7-character hex in a `commit` field is the most
  * conventional link on the web, and the block had two dotted underlines in
- * three lines — one for this, which navigates, and one for `Role:`, which
+ * three lines: one for this, which navigates, and one for `Role:`, which
  * expands in place. The same mark for two different behaviours told the
  * reader nothing, and under CJK the rule is drawn by the fallback font's
  * metrics rather than the mono's, so the two did not even match each other.
@@ -117,13 +117,13 @@ const HASH_LINK = cn(TYPE.hash, "transition-colors hover:text-muted-foreground")
 interface AuthorFieldsProps {
   byline?: Byline | null;
   /**
-   * The hash as a leading `commit` field — how `git log --pretty=fuller`
-   * opens, and the surface's permalink.
+   * The hash as a leading `commit` field (how `git log --pretty=fuller`
+   * opens), and the surface's permalink.
    *
    * Two surfaces need it for two reasons. The home widget hands off to
    * /works, so it passes `href` and the field is a link; `scroll={false}`,
    * because `useCommitAnchor` takes the hash from the URL on arrival and
-   * eases to it — left on, the router's jump and the eased correction run in
+   * eases to it. Left on, the router's jump and the eased correction run in
    * series and read as a stumble. /works is already the page, so it passes
    * `onSelect` and the field makes this row the address in place.
    *
@@ -150,7 +150,7 @@ interface AuthorFieldsProps {
 const FIELD_SUBGRID = "col-span-2 grid grid-cols-subgrid gap-y-0.5";
 
 /**
- * The author block at the foot of an expanded commit — the vertical form of
+ * The author block at the foot of an expanded commit: the vertical form of
  * the handle that was on the meta line a moment ago. Folded, the row states
  * its author compactly on that line; open, it transposes into this labelled
  * field stack and the mark above stands down, so the fact is stated once and
@@ -177,8 +177,8 @@ export function AuthorFields({
    * The `Author:` and `Role:` lines stand for one identity, so together they
    * are the identity card's trigger (systems/identity): hover peeks the
    * profile on a desktop, a tap opens it as a sheet on a phone, and either
-   * lights the whole block — not one line of it, which would say the lines
-   * were separate things. No control bolted on; the region is the affordance.
+   * lights the whole block. Lighting one line would say the lines were
+   * separate things. No control bolted on; the region is the affordance.
    */
   const identity = (children: React.ReactNode) =>
     byline ? (
@@ -200,9 +200,9 @@ export function AuthorFields({
       className={cn(
         // The labels hold their column at every width. They used to stand
         // down below `@sm` to spare a phone the 64px gutter, but a field
-        // stack whose keys disappear is no longer `--pretty=fuller` — it is
-        // three unlabelled lines — and the wrap it was avoiding is cheaper
-        // than the form it was costing.
+        // stack whose keys disappear is just three unlabelled lines, not
+        // `--pretty=fuller`. The wrap it was avoiding is cheaper than the
+        // form it was costing.
         "grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 font-mono text-xs",
         className,
       )}
@@ -257,8 +257,8 @@ export function AuthorFields({
               <span className="text-tertiary-foreground">Role:</span>
               <span className="text-tertiary-foreground">
                 {/*
-                  The role's prose — its tenure, the other roles under the
-                  same handle, what was signed with it — is the identity card
+                  The role's prose (its tenure, the other roles under the
+                  same handle, what was signed with it) is the identity card
                   behind this block rather than a disclosure under it. It is
                   tenure prose, the same under all twelve commits of a
                   tenure, so it belongs to the identity and not to the row.

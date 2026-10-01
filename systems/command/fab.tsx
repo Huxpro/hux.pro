@@ -22,8 +22,8 @@ const DEVTOOL_HOLD_MS = 1200;
 
 /**
  * Nothing happens visibly before this. A tap is ~100ms and a hesitant one
- * rarely half that again, so no ordinary press ever sees the ring — which is
- * what keeps this hidden while still making the second half of the hold
+ * rarely half that again, so no ordinary press ever sees the ring. That
+ * keeps this hidden while still making the second half of the hold
  * legible. The feedback is also what makes a shorter hold safe: an accidental
  * one announces itself in time to let go.
  */
@@ -32,7 +32,7 @@ const DEVTOOL_HOLD_REVEAL_MS = 700;
 /** A press that slides this far is a drag or a scroll, not a hold. */
 const HOLD_SLOP_PX = 10;
 
-/** Both shapes of this button are this round — the bar and the round FAB. */
+/** Both shapes of this button (the bar and the round FAB) are this round. */
 const FAB_RADIUS = 24;
 
 export function FloatingActionButton() {
@@ -52,9 +52,9 @@ export function FloatingActionButton() {
   // screen; above it the controls float over the bar.
   const compact = useCompactViewport();
 
-  // The hold that opens the devtool. Timers and the press live in refs — a
-  // state update mid-press would only fight the drag below — but the ring is
-  // state, because it has to render.
+  // The hold that opens the devtool. Timers and the press live in refs,
+  // because a state update mid-press would only interfere with the drag below.
+  // The ring is state, because it has to render.
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdOrigin = useRef<{ x: number; y: number } | null>(null);
@@ -78,7 +78,7 @@ export function FloatingActionButton() {
       heldRef.current = false;
       holdOrigin.current = { x: e.clientX, y: e.clientY };
       revealTimer.current = setTimeout(() => {
-        // The live box, so the ring wraps the button as it is drawn — which
+        // The live box, so the ring wraps the button as it is drawn, which
         // during a press includes its own `active:scale-95`.
         setHoldRing(buttonRef.current?.getBoundingClientRect() ?? null);
       }, DEVTOOL_HOLD_REVEAL_MS);

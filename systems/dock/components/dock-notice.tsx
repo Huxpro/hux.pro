@@ -8,18 +8,18 @@ import { dismissNotice, NOTICE_SLOT_ATTRIBUTE, useNotice } from "../notice";
 import { useDock } from "../provider";
 
 // ---------------------------------------------------------------------------
-// DockNotice — a notice (notice.ts), standing where the pills do.
+// DockNotice: a notice (notice.ts), shown where the pills are.
 //
 // It takes the dock's anchor the way an open panel does: the pills step aside
 // for it (`noticeUp`, the same fade they make for a panel) and come back when
-// it goes, so the top centre holds one thing at a time — iOS's island putting
-// a Live Activity away for a moment to say "Silent Mode". Its motion is the
-// pills' own, so the hand-over reads as one thing changing rather than two
-// things passing.
+// it goes, so the top centre holds one thing at a time. This is how iOS's
+// island puts a Live Activity away for a moment to say "Silent Mode". Its
+// motion is the pills' own, so the hand-over reads as one thing changing
+// rather than two things passing.
 //
 // It is the capsule (GLASS_CAPSULE), at the pills' height, because it is one
 // line to glance at. The fade and the scale are on the capsule itself, which
-// is the glass — never on a box around it (live-activity.tsx, note 4).
+// is the glass, never on a box around it (live-activity.tsx, note 4).
 //
 // It does not publish into `--dock-clear`: a bar pinned under the dock (/works,
 // /prompt) would jump down and back for a three-second line. A bar it would
@@ -28,11 +28,11 @@ import { useDock } from "../provider";
 //
 // It can be put away by hand, the way an iOS banner can: swiped up it follows
 // the finger and leaves that way, and a short pull springs back; a tap takes
-// it down too. It is not a button — it does nothing else, and a screen reader
-// hears it through the status region, not as a control; the time is what puts
-// it away for everyone else. Held — a finger down on it, or a pointer resting
-// over it — its time stops, so a line being read does not vanish under the
-// hand reading it; let go, it gets what it had left.
+// it down too. It is not a button: it does nothing else, and a screen reader
+// hears it through the status region, not as a control. For everyone else, the
+// timer is what puts it away. While it is held (a finger down on it, or a
+// pointer resting over it) the timer stops, so a line being read does not
+// vanish mid-read. On release, it gets the time it had left.
 // ---------------------------------------------------------------------------
 
 /** The pills' hide transition (globals.css, `[data-dock-pill][data-hidden]`). */
@@ -75,8 +75,8 @@ export function DockNotice() {
     };
   }, [id, seq, duration, held]);
 
-  // A new notice arrives the ordinary way, whatever the last one did —
-  // adjusted during the render that brings it, not an effect after.
+  // A new notice arrives the ordinary way, whatever the last one did. This is
+  // adjusted during the render that brings it, not in an effect after.
   const [lastSeq, setLastSeq] = useState(seq);
   if (seq !== undefined && seq !== lastSeq) {
     setLastSeq(seq);
@@ -127,7 +127,7 @@ function NoticeCapsule({
 }) {
   /** Whether the press in progress has become a drag. */
   const dragged = useRef(false);
-  /** The capsule's travel — the drag's, the throw's and the arrival's. */
+  /** The capsule's travel: the drag's, the throw's and the arrival's. */
   const y = useMotionValue(0);
   const Icon = notice.icon;
   return (
@@ -157,7 +157,7 @@ function NoticeCapsule({
         if (info.offset.y < -SWIPE_PX || flicked) {
           // Thrown: carried up and off from where the finger let go, and only
           // then dismissed. Left to the exit, the throw would race the drag's
-          // own spring back to the rest — both move `y` — and the exit,
+          // own spring back to the rest (both move `y`), and the exit,
           // interrupted, would never finish, stranding the capsule. This runs
           // after the drag has started its spring (motion starts it, then
           // calls here), so it takes `y` over.
@@ -168,8 +168,8 @@ function NoticeCapsule({
         }
       }}
       // motion calls a press that became a drag a tap when it ends over the
-      // capsule — which it always does, having carried the capsule with it —
-      // so a short pull would dismiss instead of springing back. A press that
+      // capsule. It always does, having carried the capsule with it, so a
+      // short pull would dismiss instead of springing back. A press that
       // dragged is not a tap.
       onTap={() => {
         if (!dragged.current) dismissNotice(notice.id);

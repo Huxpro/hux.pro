@@ -1,16 +1,16 @@
 // =============================================================================
-// Typography roles — the one spec production and the lab both render from.
+// Typography roles: the one spec production and the lab both render from.
 //
 // A role is a class string: a size, a family, a tracking, and a rung of the
 // ink ladder (docs/system-legibility.md). Components compose a role with their
 // own layout classes; the Legibility Lab composes the same role into a
-// specimen. That is the whole contract — the lab cannot drift from the site,
-// because there is nothing to drift: the same string paints both.
+// specimen. That is the contract. The lab cannot drift from the site,
+// because the same string paints both.
 //
 // Rungs: `text-foreground` is the ink; `text-muted-foreground` secondary;
 // `text-tertiary-foreground` for anything that annotates a neighbour (a date
 // beside a title, a caption under it); `text-quaternary-foreground` only for
-// what carries no information of its own — separators, the hash column,
+// what carries no information of its own: separators, the hash column,
 // placeholder glyphs. Quaternary is nearly invisible over a picture, which is
 // the point for decoration and a bug for text. Never `text-muted-foreground/NN`:
 // a modifier on text multiplies the wallpaper boost away.
@@ -20,7 +20,7 @@
 // is secondary (`meta`).
 //
 // Where a component needs something no role covers, it writes the classes
-// inline and, if it recurs, the role is added here — not the other way round.
+// inline and, if it recurs, the role is added here, not the other way round.
 // Divergences that are a taste call rather than a bug are listed under
 // "Decisions" in docs/system-legibility.md.
 // =============================================================================
@@ -34,8 +34,8 @@ export const TYPE = {
    * condition, a talk's venue under its title, palette group headings.
    *
    * Set as written, not in capitals. The machine layer already speaks in
-   * lowercase mono everywhere else — `jul 2020`, `retry`, `cd ~`, `on Being`
-   * — and the strings were authored that way; `uppercase tracking-wider` was
+   * lowercase mono everywhere else (`jul 2020`, `retry`, `cd ~`, `on Being`),
+   * and the strings were authored that way; `uppercase tracking-wider` was
    * a second machine voice painted over them, louder than the content it
    * labels. Mono is what marks a label as the system's; the capitals only
    * repeated it. A proper name keeps its own case (`React Universe Conf`).
@@ -48,15 +48,15 @@ export const TYPE = {
   rowTitle: "text-sm text-foreground",
   /**
    * A row's title when its form prints a message under it: a /works commit
-   * in the `covers` or `feed` form. The form decides, not the press — an
+   * in the `covers` or `feed` form. The form decides, not the press: an
    * index row the reader opens keeps its weight, so the title line never
-   * changes under a tap. One line on its own
-   * carries its weight by being the only thing on the ink; over a sentence
+   * changes under a tap. One line on its own carries its weight by being
+   * the only thing on the ink; over a sentence
    * one rung down and one step smaller, it takes medium so the pair reads
    * as heading and body rather than two lines of the same thing.
    */
   rowHeading: "text-sm font-medium text-foreground",
-  /** A media title — the thing that is playing. */
+  /** A media title: the thing that is playing. */
   mediaTitle: "text-sm font-medium leading-snug text-foreground",
   /** Metadata beside a title: the date on a list row, a topic line. */
   rowMeta: "font-mono text-xs text-tertiary-foreground",
@@ -64,13 +64,13 @@ export const TYPE = {
   meta: "font-mono text-xs text-muted-foreground",
   /** The hash column: pure decoration, so the one mono role on the
    *  quaternary rung. Everything that carries information sits on tertiary
-   *  or above — quaternary is for separators, hashes and placeholders. */
+   *  or above; quaternary is for separators, hashes and placeholders. */
   hash: "font-mono text-xs text-quaternary-foreground",
 
   /** A description under a title. */
   caption: "text-xs text-muted-foreground leading-relaxed",
   /**
-   * A commit's message: the sentence under a `rowHeading`. 13px — the one
+   * A commit's message: the sentence under a `rowHeading`. 13px: the one
    * size between the caption and the body, and the one place it is used.
    * At 12 beside a 14px heading the sentence read as a caption to a
    * picture that was not there; at 14 it was the heading's size and the
@@ -90,18 +90,18 @@ export const TYPE = {
    * size and a different family. Borrowed words sit on this rung; mine
    * override to tertiary at the call site.
    *
-   * Three semantic objects, two sizes, two faces — and the face belongs to
-   * the role, never to the position:
+   * Three semantic objects, two sizes, two faces. The face belongs to the
+   * role, never to the position:
    *
    *   a conviction   serif, large
-   *   a voice        serif, 14px — upright, whoever said it. A quotation
-   *                  already carries its marks and its papers, and a line
+   *   a voice        serif, 14px, upright whoever said it. A quotation
+   *                  already carries its marks and its source, and a line
    *                  without either is mine; italic would be a third signal
    *                  for a fact already twice stated. It would also be a
    *                  signal one of this page's two scripts cannot make:
    *                  the CJK serif has no oblique, so the browser shears
    *                  the glyphs, which Chinese typography has never done.
-   *   provenance     sans, 14px — under a statement, trailing a
+   *   provenance     sans, 14px: under a statement, trailing a
    *                  voice, after a title, anywhere
    *
    * One size for the whole second level, and it is the size the instances
@@ -110,9 +110,9 @@ export const TYPE = {
    *
    * Latin gets a step of optical correction, the same +6.25% the article
    * prose makes: Newsreader's x-height is 44/100 against Inter's 54.6, so
-   * serif set at the sans size reads small beside it — and in this band a
-   * quotation and its source sit on the same line, which is exactly where
-   * that shows. Matching the x-heights outright would take +24% and blow
+   * serif set at the sans size reads small beside it. In this band a
+   * quotation and its source sit on the same line, which is where that
+   * shows. Matching the x-heights outright would take +24% and blow
    * the serif's cap height past the sans; the correction is a taste, not a
    * calculation. Chinese takes none: Noto Serif SC and Inter already meet.
    *
@@ -134,10 +134,10 @@ export const TYPE = {
   /** Body-sized secondary copy: a widget's description, an empty state. */
   body: "text-sm text-muted-foreground leading-relaxed",
   /**
-   * Running text on a reading page: a /prompt entry's reasoning — not the
-   * instances under it, which are its appendix and sit a rung below, on
+   * Running text on a reading page: a /prompt entry's reasoning. The
+   * instances under it are its appendix and sit a rung below, on
    * secondary. The article body's rung (`reading-foreground`, the
-   * ink at 85%) at the list's size — not `body`, which is a widget's blurb:
+   * ink at 85%) at the list's size. Not `body`, which is a widget's blurb:
    * secondary is a label rung, and a paragraph set on it is 4.3:1 on white
    * and about 3.5:1 on a veiled wallpaper, where /writing's body is 7.
    */

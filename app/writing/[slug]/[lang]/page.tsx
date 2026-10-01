@@ -101,7 +101,7 @@ export default async function BlogPostLangPage({
   const content =
     locale === "zh" && post.contentZh ? post.contentZh : post.content;
 
-  // Verbatim frontmatter for the locale being rendered — fed to the devtool
+  // Verbatim frontmatter for the locale being rendered, fed to the devtool
   // inspector. Falls back to the primary file's frontmatter when a locale
   // variant is absent.
   const frontmatter =

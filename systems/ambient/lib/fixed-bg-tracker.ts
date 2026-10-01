@@ -60,13 +60,13 @@ class FixedBgTracker {
     const vh = window.visualViewport?.height ?? window.innerHeight;
     const size = `${vw}px ${vh}px`;
 
-    // Phase 1 — batch read (all forced layouts happen here, once)
+    // Phase 1: batch read (all forced layouts happen here, once)
     const measured = [...this.entries].map((entry) => ({
       entry,
       rect: entry.shell.getBoundingClientRect(),
     }));
 
-    // Phase 2 — batch write (no interleaved reads → no layout thrashing)
+    // Phase 2: batch write (no interleaved reads → no layout thrashing)
     for (const { entry, rect } of measured) {
       const pos = `${-rect.left}px ${-rect.top}px`;
       this.applyStyles(entry, size, pos);

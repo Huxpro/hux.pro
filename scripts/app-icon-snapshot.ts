@@ -11,7 +11,7 @@
  * and record what happened in `content/app-icons.json`.
  *
  * Design goals (mirroring og-snapshot):
- *  - Committed artifacts, zero runtime crawling — static-export friendly.
+ *  - Committed artifacts, zero runtime crawling: static-export friendly.
  *  - On crawl failure: never delete a good prior icon; if there's no prior
  *    icon and no manual `icon` override, FAIL loudly so the author adds one.
  *  - Deterministic snapshot serialization → no flaky churn.
@@ -83,13 +83,13 @@ function entryUsable(e: AppIconSnapshotEntry): boolean {
   return fs.existsSync(path.join(ROOT, "public", e.file.replace(/^\//, "")));
 }
 
-/** Write bytes only when they differ — keeps `git status` quiet across runs. */
+/** Write bytes only when they differ, so `git status` stays quiet across runs. */
 function writeIfChanged(file: string, bytes: Uint8Array): boolean {
   try {
     const prev = fs.readFileSync(file);
     if (prev.length === bytes.length && prev.equals(Buffer.from(bytes))) return false;
   } catch {
-    // Missing file — first write.
+    // Missing file: first write.
   }
   fs.writeFileSync(file, bytes);
   return true;
@@ -166,7 +166,7 @@ async function resolve(app: AppLink): Promise<ResolveResult> {
   return { error: `no fetchable icon (${page}; tried ${failures.length} candidate(s))` };
 }
 
-/** Concurrency cap — same rationale as og-snapshot. */
+/** Concurrency cap, for the same reason as in og-snapshot. */
 const CRAWL_CONCURRENCY = 5;
 
 async function mapWithLimit<T, R>(

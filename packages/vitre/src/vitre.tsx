@@ -26,11 +26,11 @@ import { keepRoot, type RootState } from "./root";
 import { enableStatusTapToTop } from "./status-tap";
 
 // =============================================================================
-// <Vitre> — see ../vitre.d.ts for the contract.
+// <Vitre>: see ../vitre.d.ts for the contract.
 //
 // Four bands and four quarter-circles in the bezel colour, drawn above
 // everything so the page stops on a clean line and is rounded off inside
-// them — ryOS's DesktopCornerMask, with bands. The top and bottom bands are
+// them (ryOS's DesktopCornerMask, with bands). The top and bottom bands are
 // the band thickness; the sides are the safe area, which in landscape is the
 // notch. The top and bottom bands overshoot the viewport by half a screen, so
 // a viewport that resizes (a desktop window, a toolbar in window scroll) never
@@ -133,7 +133,7 @@ export function Vitre({
 
   // The chrome: shown the new colour whenever the colour it should show
   // changes. Not on the first resolution when it matches what the page loaded
-  // with — Safari already has that one.
+  // with: Safari already has that one.
   // The morph starts and ends at the bezel on screen: its band and corners
   // while it is on, nothing while it is off. Read through a ref so a band
   // change alone does not trigger a sync.

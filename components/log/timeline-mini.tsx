@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * TimelineMini — Minimized git-log row for widget-sized timelines.
+ * TimelineMini: minimized git-log row for widget-sized timelines.
  *
  * A trimmed-down `TimelineCommit`: same icon column + tenure rail, same
- * title / date line — and nothing under it. It is /works' one-liner at
+ * title / date line, and nothing under it. It is /works' one-liner at
  * widget width: the mark says what kind of thing it is (a project wears
  * its own face), the title says which, the date says when. The team and
  * the handle used to take a second line under each title; on a card that
@@ -14,17 +14,17 @@
  * pinned/expanded media, inspect mode) is likewise left to /works.
  * Attachments never render here.
  *
- * Consumes NormalizedCommit — fully type-agnostic.
+ * Consumes NormalizedCommit, so it is type-agnostic.
  *
  * **The row is a permalink into /works.** It used to fold an author /
  * description block open in place, which made the card a second, worse
- * reader for something /works already shows better — and made the card's
- * own height a function of what you had tapped. Now that a commit has an
+ * reader for something /works already shows better. It also made the
+ * card's own height a function of what you had tapped. Now that a commit has an
  * address (`/works#<hash>`, see `use-commit-anchor.ts`), the row hands off
  * instead: tapping it opens that row on /works, which travels to it and
  * marks it. The preview stays a preview.
  *
- * That address belongs to /works and this component names it directly — it
+ * That address belongs to /works and this component names it directly. It
  * is that page in miniature, not a general-purpose row.
  */
 
@@ -57,7 +57,7 @@ export function TimelineMini({
   const isEvent = data.type === "event";
   const isAside = data.present === "aside";
   // Folded asides borrow the event voice: muted italic line, rail
-  // dot. Mini rows do not unfold in place — they permalink into /works,
+  // dot. Mini rows do not unfold in place; they permalink into /works,
   // where the aside can be opened. The type is unchanged, so filters
   // still find it.
   // The name, where the commit has one: a widget line has room for what a
@@ -66,20 +66,20 @@ export function TimelineMini({
     isAside && data.foldedTitle ? data.foldedTitle : data.name ?? data.title;
 
   // No outbound links on a mini row. They used to sit between the title and
-  // the date — a globe and a GitHub mark on nearly every project — and on a
+  // the date (a globe and a GitHub mark on nearly every project), and on a
   // widget-width card they were paid for out of the title, which truncated
   // to make room ("React Compiler (F…"). The row is already a permalink to
   // its full entry on /works, where every link is one more tap away; the
   // preview's job is to say what the thing is, in full.
 
-  // Events are the log's punctuation — they have no page of their own to
+  // Events have no page of their own to
   // open, so they stay plain text. Asides are real commits (a talk, a
   // post) wearing the event voice, so they still permalink into /works.
   const href = isEvent ? null : `/works#${data.hash}`;
 
   // Rail drawn through the icon column as two segments (above / below the
   // icon), each stopping short of the icon so it sits in a gap on the line.
-  // See TimelineCommit for the full rationale — same glyph vocabulary.
+  // See TimelineCommit for the full rationale; same glyph vocabulary.
   const hasRailAbove = rail === "│" || rail === "┘";
   const hasRailBelow = rail === "│" || rail === "┐";
   const isRoleAnchor = isRole && rail !== "";
@@ -187,10 +187,10 @@ export function TimelineMini({
     className,
   );
 
-  // Nested links (the `meta` site) are why the row is a
-  // grid with a link around it rather than an `<a>` with links inside it —
-  // except an anchor can't legally contain one, so the row's own anchor is
-  // a sibling laid over the row, under the pills in the stacking order.
+  // Nested links (the `meta` site) are why the row is not an `<a>` with
+  // links inside it: an anchor can't legally contain one. So the row is a
+  // grid, and its own anchor is a sibling laid over the row, under the pills
+  // in the stacking order.
   if (!href) return <div className={shell}>{body}</div>;
 
   return (

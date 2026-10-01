@@ -3,7 +3,7 @@
  *
  * Normalizes type-specific commit data into a generic shape consumed by
  * all three renderers (TimelineCommit, CommitCard, CommitCompact).
- * Type-specific logic lives HERE — renderers are type-agnostic.
+ * Type-specific logic lives HERE; renderers are type-agnostic.
  */
 
 import type { Locale } from "@/lib/i18n";
@@ -30,8 +30,8 @@ export interface NormalizedCommit {
   /** Optional icon override key (e.g. "graduation-cap"). */
   iconOverride?: string;
   /**
-   * A project's own mark — the icon of the site that stands for it, or its
-   * monogram — worn in the gutter where the other types wear their glyph.
+   * A project's own mark (the icon of the site that stands for it, or its
+   * monogram), worn in the gutter where the other types wear their glyph.
    * A project is a thing with a name and a face; a talk is an occasion, and
    * the mic says what kind. Only projects carry one.
    */
@@ -48,7 +48,7 @@ export interface NormalizedCommit {
   name?: string;
   /**
    * The one line an aside row prints while folded. `venue · title` by
-   * default — the conference, publication or platform, then what it was.
+   * default: the conference, publication or platform, then what it was.
    * `asideLine` can keep just the venue or just the title. The venue
    * alone when the two would say the same thing, and the title alone for
    * a type with no venue. Absent when the row is not an aside.
@@ -78,13 +78,13 @@ export interface NormalizedCommit {
   // Media
   /** Rich media (cards / widgets / players / images) shown when expanded. */
   expandedMedia: Media[];
-  /** Items flagged `pinned: true` — shown beneath the row while folded. */
+  /** Items flagged `pinned: true`, shown beneath the row while folded. */
   pinnedMedia: Media[];
   /**
    * Contact-sheet covers: every cover in `expandedMedia`, at thumbnail size,
    * for the `stat` density's strip (see `MediaStrip`). Derived here because
    * that is where the locale is resolved and the renderers are deliberately
-   * locale-agnostic — the alternative was a prop threaded through four
+   * locale-agnostic. The alternative was a prop threaded through four
    * components that neither read nor cared about it.
    */
   stripItems: StripItem[];
@@ -98,7 +98,7 @@ export interface NormalizedCommit {
 // Media Partitioning
 // =============================================================================
 
-/** Whether two labels would print as the same line — case and surrounding
+/** Whether two labels would print as the same line. Case and surrounding
  *  space are not a difference worth repeating a venue over. */
 function sameLine(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -160,7 +160,7 @@ export function normalizeCommit(
   const thumbnail = deriveThumbnail(media);
   const languageBadge = getCommitLanguageBadge(commit, locale);
   // The venue an aside prints while folded: the conference, the
-  // publication, the platform — where the work happened, since the aside
+  // publication, the platform. That is where the work happened, since the aside
   // voice is the event voice and an event is a dateline.
   const foldedVenue =
     commit.type === "talk"
@@ -285,7 +285,7 @@ export function normalizeCommit(
     }
 
     case "event": {
-      // Life events render bare — no meta line, no links, no expand.
+      // Life events render bare: no meta line, no links, no expand.
       return {
         ...identity,
         languageBadge,

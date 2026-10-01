@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 
 // =============================================================================
-// LynxFrame — SSR-safe boundary around the Lynx Player
+// LynxFrame: SSR-safe boundary around the Lynx Player
 //
 // <lynx-view> and its runtime instantiate Web Workers the moment their module
 // is imported, so the player can't touch the server. `next/dynamic` with

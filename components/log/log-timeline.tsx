@@ -42,7 +42,7 @@ import {
 import { useTimelineEdit } from "./timeline-edit-context";
 import type { WorksRef } from "@/systems/devtool";
 
-/** Stable "no filter" default — a fresh `[]` per render would bust the
+/** Stable "no filter" default. A fresh `[]` per render would bust the
  *  per-tag memo below on every render for callers that never filter
  *  (the editor's inspect loop re-renders constantly). */
 const NO_TYPES: FilterableCommitType[] = [];
@@ -59,7 +59,7 @@ export function chapterLabel(tag: Tag, tagIndex: number, locale: Locale): string
  * covered by a flat opaque patch. The blur is `sm:` and up: a sticky
  * backdrop filter over an animating wallpaper and full-bleed covers is
  * re-sampled every scroll frame, which a phone cannot afford, so there the
- * fill is denser instead. The tint direction follows the theme — lighten
+ * fill is denser instead. The tint direction follows the theme: lighten
  * toward white in light mode (keeping the near-white chip it always was),
  * darken with black in dark mode (the "shade darker than the page" look).
  * Compositing a tint at alpha α over backdrop B gives a uniform shift, so a
@@ -88,7 +88,7 @@ interface LogTimelineProps {
   form?: LogForm;
   /**
    * Selected commit types. Empty is "no filter"; anything else hides every
-   * commit that doesn't match — events included, since they are the one
+   * commit that doesn't match, events included, since they are the one
    * type that isn't selectable in the first place.
    *
    * Filtering hides rows rather than removing them from the array, because
@@ -102,8 +102,8 @@ interface LogTimelineProps {
   /**
    * The page pins a bar that wears the current chapter (/works). Each
    * chapter's marker then stays in the flow as a divider and hands its pill
-   * to the bar as it scrolls under it, instead of sticking on its own —
-   * two sticky layers at the top of a phone would be one too many.
+   * to the bar as it scrolls under it, instead of sticking on its own.
+   * Two sticky layers at the top of a phone would be one too many.
    */
   pinnedChapters?: boolean;
   /** How a chapter's ref sits on the graph (see `RefLabel`). The default
@@ -125,8 +125,8 @@ export function LogTimeline({
   pinnedChapters = false,
   refLook = "stub",
 }: LogTimelineProps) {
-  // The chapter whose track is held (its marker has focus) — page-wide, so
-  // every commit outside it steps back, in its own block or another.
+  // The chapter whose track is held (its marker has focus). It is page-wide,
+  // so every commit outside it steps back, in its own block or another.
   const [held, setHeld] = useState<Held | null>(null);
   // Holding a chapter folds every commit outside it, and letting go
   // unfolds them: the page above the marker grows or shrinks at once. The
@@ -215,7 +215,7 @@ function TagBlock({
   const tagLabel = chapterLabel(tag, tagIndex, locale);
   const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
   // A chapter's whole track, lit from its marker: while the marker is under
-  // a pointer (`trackHover`), and held while it has focus (`trackPin`) — a
+  // a pointer (`trackHover`), and held while it has focus (`trackPin`). A
   // click or a tap focuses it, and clicking anywhere else, or Escape, lets go.
   const [trackHover, setTrackHover] = useState<number | null>(null);
   const trackPin = held?.block === tag.id ? held.lane : null;
@@ -256,7 +256,7 @@ function TagBlock({
     // One predicate, four consumers: the rail re-brackets around the rows
     // that survive, beams with a hidden endpoint are dropped, the render
     // loop below skips the rest, and the block prints nothing if none are
-    // left. It is `isRowVisible` negated — the same question /works asks
+    // left. It is `isRowVisible` negated: the same question /works asks
     // for its chip counts and its empty state.
     const hidden = (c: CommitData) => !isRowVisible(c, activeTypes);
 
@@ -303,9 +303,9 @@ function TagBlock({
   }, [commits, identities, locale, activeTypes, laneOf]);
 
   // The lines lit right now: a held or pointed-at chapter's whole track,
-  // and the connectors between a commit and the role it hangs from — drawn
-  // along the graph's own lines rather than straight down the icon column
-  // (see `litPath`).
+  // and the connectors between a commit and the role it hangs from. They are
+  // drawn along the graph's own lines rather than straight down the icon
+  // column (see `litPath`).
   const lit = useMemo(() => {
     const lit: Lit = { rows: new Map(), refs: new Map() };
     for (const lane of new Set([trackHover, trackPin])) {
@@ -326,7 +326,7 @@ function TagBlock({
     return lit;
   }, [graph, attachments, trackHover, trackPin, activeBeam]);
 
-  // A chapter with nothing left in it prints nothing — no ref marker hanging
+  // A chapter with nothing left in it prints nothing, so no ref marker hangs
   // over an empty stretch of page. The era headers are the timeline's spine,
   // but a spine with no vertebrae is just a line.
   if (!hasVisible) return null;
@@ -398,7 +398,7 @@ function TagBlock({
 
   return (
     <div>
-      {/* Tag ref marker — like `git log --decorate` ref annotations */}
+      {/* Tag ref marker, like `git log --decorate` ref annotations */}
       <RefRow
         className={cn(
           "pb-2",
@@ -421,7 +421,7 @@ function TagBlock({
         {inspectControls(tag, tagLabel)}
       </RefRow>
 
-      {/* Commits — relative so the beam measures against this box.
+      {/* Commits. Relative so the beam measures against this box.
        *  Consecutive commits sharing a tenure segmentId are wrapped in
        *  a `group/tenure` div so hovering/focusing/expanding ANY row in
        *  the cluster brightens the rail and the role's ring. */}
@@ -429,8 +429,8 @@ function TagBlock({
         {(() => {
           // Hidden-role rows (roles with `hideRow: true`) are kept in the
           // commits array so `computeRail` and `resolveAuthor` can use
-          // their tenure windows / handles, but they don't render here —
-          // the cluster they anchor speaks for the tenure via the rail +
+          // their tenure windows / handles, but they don't render here.
+          // The cluster they anchor speaks for the tenure via the rail +
           // author bylines.
           type Run =
             | { kind: "loose"; items: Item[] }
@@ -534,8 +534,8 @@ type Item =
   | { kind: "ref"; lane: number; mode: RefMode };
 
 /**
- * The block's printed items in order — each later chapter's ref goes in
- * above its first commit — and what each row draws of the graph.
+ * The block's printed items in order (each later chapter's ref goes in
+ * above its first commit), and what each row draws of the graph.
  *
  * The block's chapter holds the trunk from its header. At a later chapter's
  * ref, if the one on the trunk has nothing further down, the newcomer just
@@ -629,8 +629,8 @@ function chapterGraph(
     graphs[it.i] = g;
   });
 
-  // The trunk runs on to whatever comes next — a row, or a ref that picks
-  // it up — unless the next row is the side lane turning back into it.
+  // The trunk runs on to whatever comes next (a row, or a ref that picks
+  // it up), unless the next row is the side lane turning back into it.
   items.forEach((it, p) => {
     if (it.kind !== "row") return;
     const next = items[p + 1];
@@ -640,7 +640,7 @@ function chapterGraph(
   return { items, graphs, holders, on, lastOf, posOf };
 }
 
-/** Who held the trunk and the side lane at an item — for a ref, before it,
+/** Who held the trunk and the side lane at an item (for a ref, before it),
  *  and who holds the trunk after it. */
 interface Holders {
   trunk: number;
@@ -672,7 +672,7 @@ const lightRow = (lit: Lit, i: number, row: RowLit) =>
 
 /**
  * The lines a connector lights, row by row: from one end's node to the
- * other's, along the chapter both ends are on — wherever that chapter runs
+ * other's, along the chapter both ends are on, wherever that chapter runs
  * in between. It holds the trunk, or has stepped aside at a ref, or comes
  * back in at an `enter`; the lit lines are the ones it is drawn on.
  */
@@ -772,13 +772,13 @@ function RefGraphLayer({
 
 /**
  * A chapter's ref: the block's header (`first`), or a chapter that starts
- * inside an overlap, drawn as every chapter marker is — the same pill in the
- * same place — without the rule above it, since the chapter before it has
+ * inside an overlap, drawn as every chapter marker is (the same pill in the
+ * same place) but without the rule above it, since the chapter before it has
  * not ended. `children` stands in for the marker (the editor's inspect
  * controls).
  *
  * The tag's message: an annotated tag carries one, and `git show` prints it
- * before the commits it marks — the chapter, as its author tells it. Only
+ * before the commits it marks: the chapter, as its author tells it. Only
  * the page that pins its chapters (/works) prints it.
  */
 function RefRow({
@@ -921,7 +921,7 @@ function Unfold({
   );
 }
 
-/** Where a ref's marker goes — on trial, switched from the DevTool's Works
+/** Where a ref's marker goes. On trial, switched from the DevTool's Works
  *  module (see `WorksRef` in systems/devtool). */
 type RefLayout = WorksRef;
 
@@ -998,7 +998,7 @@ function RefLabel({
           // `under` where there is no hash slot, `hash` where there is: one
           // marker, placed twice. On a phone the marker and its span sit
           // together over the icon column; from `lg` the wrapper dissolves
-          // and each takes its own cell — the marker the hash's, overflowing
+          // and each takes its own cell: the marker the hash's, overflowing
           // it leftward, the span the title's.
           <span className="col-span-2 flex items-center gap-3 min-w-0 lg:contents">
             <span className="flex lg:col-start-1 lg:row-start-1 lg:justify-self-end">
@@ -1070,9 +1070,9 @@ interface TrackControl {
 }
 
 /**
- * A chapter's marker. Pointing at it lights the chapter's whole track —
- * where it holds the trunk, where it steps aside, every commit it reaches;
- * clicking it (or tapping, or tabbing to it) holds the light until focus
+ * A chapter's marker. Pointing at it lights the chapter's whole track:
+ * where it holds the trunk, where it steps aside, every commit it reaches.
+ * Clicking it (or tapping, or tabbing to it) holds the light until focus
  * moves on.
  *
  * `data-chapter` is what the pinned bar watches: the moment this pill
@@ -1092,7 +1092,7 @@ function TrackPill({
   className?: string;
 }) {
   // On the ladder: the chapter's name is the information where it stands
-  // (secondary) until its track is lit, when it is the thing being read —
+  // (secondary) until its track is lit. Then it is the thing being read:
   // ink, and a border on the graph's lit rung, the track's own.
   return (
     <button

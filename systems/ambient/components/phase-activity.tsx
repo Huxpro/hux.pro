@@ -9,7 +9,7 @@ import { useAmbientTime } from "../provider";
 import { WeatherNow } from "./weather-now";
 
 // ---------------------------------------------------------------------------
-// Ambient Phase Activity — sun-event notification.
+// Ambient Phase Activity: sun-event notification.
 //
 // A heads-up that the ambient phase is about to change to sunrise/sunset. It
 // plugs into the shared Dock exactly like the music player: a collapsed pill

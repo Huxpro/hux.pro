@@ -8,15 +8,15 @@ import { MapPin } from "lucide-react";
 import type { IdentityProfile, ProfileRole } from "../lib/profile";
 
 // =============================================================================
-// IdentityProfileView — the profile, as a card's contents.
+// IdentityProfileView: the profile, as a card's contents.
 //
 // The same block whether it arrives as a hover peek (desktop) or a sheet
 // (phone): a photo from that time in a circle beside the role the card was
-// opened at — title, tenure, team, location — and its prose; the other roles
+// opened at (title, tenure, team, location) and its prose; the other roles
 // under the same handle; what was signed with it. The company and the handle
 // are not restated: the mark that opened the card already printed them, and
-// the sheet is titled by the handle. Nothing to press — the card answers
-// "who was I then?" and gets out of the way.
+// the sheet is titled by the handle. There is nothing to press. The card
+// answers "who was I then?" and nothing more.
 // =============================================================================
 
 /** The photo: authored for the identity, else the GitHub avatar (lib/profile). */
@@ -78,7 +78,7 @@ export function IdentityProfileView({
   /**
    * What the count line heads, where there is room to list it: the card
    * (identity-card.tsx) hangs the signed commits here, as the count's
-   * body — no rule and no label between them, since the count already
+   * body, with no rule and no label between them, since the count already
    * says what they are. The peek, a glance, has only the count.
    */
   contributions?: React.ReactNode;
@@ -97,8 +97,8 @@ export function IdentityProfileView({
         )}
       </div>
 
-      {/* The same identity's other tenures — the two summers before the
-          full-time years, say. */}
+      {/* The same identity's other tenures, e.g. the two summers before the
+          full-time years. */}
       {profile.otherRoles.length > 0 && (
         <div className="space-y-2 border-t border-border/40 pt-3">
           <div className={TYPE.labelSm}>{t(locale, "identityOtherRoles")}</div>
@@ -108,7 +108,7 @@ export function IdentityProfileView({
         </div>
       )}
 
-      {/* Contributions: what was signed with this handle — the count, and
+      {/* Contributions: what was signed with this handle. The count, and
           under it, where the card has room, the commits it counts. */}
       {profile.total > 0 && (
         <div className="border-t border-border/40 pt-3">

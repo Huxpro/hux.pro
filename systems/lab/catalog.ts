@@ -2,7 +2,7 @@ import type { Locale } from "@/lib/i18n";
 import vitrePackage from "@/packages/vitre/package.json";
 
 /**
- * The `/lab` family — the site, studied from the inside.
+ * The `/lab` family: the site, studied from the inside.
  *
  * Each lab lays one of this site's own systems open: the real components,
  * the real policy, the real state, with the knobs that tune them. None is a
@@ -22,14 +22,14 @@ import vitrePackage from "@/packages/vitre/package.json";
  * Public, and quiet about it: the family is a study of the site's insides,
  * not what most visitors came for. So the palette finds Labs by name but
  * never offers it (`searchOnly`; `/` `E` still opens the index), and its
- * home widget is off until a visitor adds it (components/home/widgets.ts —
+ * home widget is off until a visitor adds it (components/home/widgets.ts;
  * the grid's edit mode, or the switch on the index). The dropdown on each
  * lab's sticky bar (`LabNav`) is how you move between the labs.
  *
  * A lab is one of two kinds:
  *
  *   study     one of this site's systems laid open (all but one, today)
- *   library   a system that left as a package — Vitre is the first. Its lab
+ *   library   a system that left as a package. Vitre is the first. Its lab
  *             is the library's home, in the library template
  *             (components/library.tsx): its docs, its API reference and how
  *             this site uses it, under one header. Its content stays in the
@@ -37,7 +37,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  *
  * Adding a lab: an entry here, a route under `app/lab/<id>`, a surface in
  * `systems/lab/surfaces`, the `LabShell` (or, for a library, the
- * `LibraryShell`) around the page, and its words in both languages — a
+ * `LibraryShell`) around the page, and its words in both languages: a
  * `strings.ts` beside it, read with `useLabStrings` (systems/lab/i18n.ts).
  * Every lab is bilingual; code names stay as written. docs/system-lab.md has
  * the rest.
@@ -51,13 +51,13 @@ export type Text = Record<Locale, string>;
 interface LabBase {
   id: LabId;
   href: string;
-  /** The lab's name — `Glow Lab` / `光实验室`. */
+  /** The lab's name: `Glow Lab` / `光实验室`. */
   name: Text;
   /** The mono mark in the switcher and on the card: the file or system it opens. */
   mark: string;
   /** One line: which system it lays open. */
   hint: Text;
-  /** What it is for, a sentence or two — behind the bar's info button. */
+  /** What it is for, a sentence or two, behind the bar's info button. */
   blurb: Text;
 }
 
@@ -74,7 +74,7 @@ export interface LibraryLab extends LabBase {
 
 export type LabEntry = StudyLab | LibraryLab;
 
-/** What a library's header says about the package — read from it, not retyped. */
+/** What a library's header says about the package, read from it, not retyped. */
 export interface LibraryInfo {
   /** The name it is imported by. */
   package: string;
@@ -83,7 +83,7 @@ export interface LibraryInfo {
   requires: string;
   /** The package's folder in this site's repository. */
   source: string;
-  /** Its npm page — null while it lives only in this repository. */
+  /** Its npm page; null while it lives only in this repository. */
   npm: string | null;
   /** The demo's own page, which the simulator frames and a phone opens full screen. */
   demo: string;
@@ -225,7 +225,7 @@ export function labById(id: LabId): LabEntry {
   return LABS.find((lab) => lab.id === id)!;
 }
 
-/** A library lab by id — a study's id is a mistake, caught here. */
+/** A library lab by id. A study's id is a mistake, caught here. */
 export function libraryById(id: LabId): LibraryLab {
   const lab = labById(id);
   if (lab.kind !== "library") throw new Error(`${id} is a study, not a library`);

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * SocialEmbed — router for native social platform widgets.
+ * SocialEmbed: router for native social platform widgets.
  *
  * Renders the X / Instagram / TikTok official embed in place. Distinct from a
  * `link` card: this is a live mini-app, not OG metadata. Platform detection
@@ -91,7 +91,7 @@ export function SocialEmbed({
   const platform = platformProp || detectSocialEmbedPlatform(url);
 
   // Misclassified URL (e.g. the author picked "social-embed" then pasted a
-  // non-social URL). Degrade to a plain pill rather than guessing a card —
+  // non-social URL). Degrade to a plain pill rather than guessing a card;
   // cards only ever come from kind:"link", present:"card".
   if (!platform) {
     return <Link url={url} className={className} />;

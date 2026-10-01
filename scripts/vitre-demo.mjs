@@ -4,7 +4,7 @@
 // The simulator on /lab/vitre is an iframe of the demo build, which Vite
 // writes into public/vitre (gitignored) and next.config.ts serves at /vitre.
 // `pnpm build` always builds it; `pnpm dev` runs this instead, which builds it
-// only when it is missing or older than its sources — a fresh clone gets a
+// only when it is missing or older than its sources. A fresh clone gets a
 // working phone, and a warm one starts without the extra seconds.
 //
 // The demo has no hot reload inside the site: after editing the package or

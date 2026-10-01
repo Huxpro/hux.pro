@@ -10,7 +10,7 @@ import {
 } from "react";
 
 // =============================================================================
-// SnapPager — the horizontally stacked, snap-paged strip the home widgets
+// SnapPager: the horizontally stacked, snap-paged strip the home widgets
 // are built from, as one primitive.
 //
 // The Featured Talks widget and the featured-stack widget each wrote their own
@@ -45,7 +45,7 @@ export const PAGER_CARD_ATTR = "data-pager-card";
 export interface SnapPager {
   /** The scroll track. */
   scrollRef: RefObject<HTMLDivElement | null>;
-  /** The card currently in view — live, for the dots and the counter. */
+  /** The card currently in view, live, for the dots and the counter. */
   index: number;
   /**
    * The card the track came to rest on. It moves only once scrolling has
@@ -151,7 +151,7 @@ export interface PagerDotsProps {
 
 /**
  * The indicator: one dot per page, the current one drawn as a short bar. The
- * geometry is the widgets' — a 6px dot, a 12px bar — and the ink is the
+ * geometry is the widgets' (a 6px dot, a 12px bar), and the ink is the
  * foreground at an alpha so it sits on glass and on the page alike.
  */
 export function PagerDots({

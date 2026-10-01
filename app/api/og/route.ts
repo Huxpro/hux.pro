@@ -4,7 +4,7 @@ import { assertPublicUrl } from "@/lib/og-guard";
 import { siteCardOf } from "@/lib/site-card";
 
 /**
- * GET /api/og?url=… — a page's card, read at runtime: the fallback for a
+ * GET /api/og?url=…: a page's card, read at runtime. The fallback for a
  * link the snapshot (`pnpm og:snapshot`) has not recorded.
  *
  * - One of this site's pages answers from the function the page publishes

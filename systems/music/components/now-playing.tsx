@@ -15,7 +15,7 @@ import { useMusic } from "../provider";
 
 import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
-// EQ Bars — Apple Music style animated "now playing" indicator
+// EQ Bars: Apple Music style animated "now playing" indicator
 // Uses scaleY transform (GPU-accelerated) instead of height animation.
 // ---------------------------------------------------------------------------
 
@@ -118,7 +118,7 @@ function MusicTransport({
 }
 
 // ---------------------------------------------------------------------------
-// NowPlaying — the shared "now playing" card body.
+// NowPlaying: the shared "now playing" card body.
 //
 // Pure presentational surface bound to the global MusicProvider. Reused by
 // both the homepage MusicWidget and the global MusicDock so controls and
@@ -155,7 +155,7 @@ export function NowPlaying({
   if (track) {
     return (
       <div className="flex items-start gap-3.5">
-        {/* Album art — mqdefault is 16:9, object-cover crops to square */}
+        {/* Album art: mqdefault is 16:9, object-cover crops to square */}
         <div
           className="h-20 w-20 overflow-hidden rounded-lg shrink-0"
           onMouseEnter={() => setShowProgress(true)}

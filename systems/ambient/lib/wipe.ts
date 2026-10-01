@@ -1,13 +1,13 @@
 // =============================================================================
-// The fog wipe — the foggy-day easter egg.
+// The fog wipe: the foggy-day easter egg.
 //
 // Drag a hand across the page's background while it is foggy and the mist wipes
 // clear along the path, the way it does on a misted window: the sky the fog was
 // hiding shows through, the hand tires as it goes, and the fog closes back over
-// it. Nothing is kept — it heals, and that is the whole shape.
+// it. Nothing is kept: it heals.
 //
 // One module per egg, which is how the others are arranged. The pokes
-// (lib/poke.ts) are taps — a bolt on a thunder day, a meteor on a clear night;
+// (lib/poke.ts) are taps (a bolt on a thunder day, a meteor on a clear night);
 // the gust (lib/wallpaper/stir.ts) is a drag on a rainy or snowy one. All of
 // them ask `isBackgroundClick` the same question about where the sky is, so
 // they can never disagree about it, and `data-no-poke` keeps them all off. (It
@@ -16,16 +16,16 @@
 //
 // They can never both be armed, so no arbitration code exists anywhere and none
 // is needed. From `deriveWeatherScene`: only a scene with nothing falling can
-// reach `WIPE_MIN_FOG` — fog follows the measured visibility, but under rain or
+// reach `WIPE_MIN_FOG`. Fog follows the measured visibility, but under rain or
 // snow it is held just below the threshold, and a fog code never takes a
 // measured precipitation (weather.ts `derivePrecipitationType`). Lightning only
 // comes with a thunder code, which always carries rain. Each egg gates on its
 // own scalar and the three sets do not meet.
 //
 // This module is the part with no engine in it: how far a stroke reaches, how
-// fast it gives back, how quickly the hand that draws it runs out — and the
-// recognizer, `attachWipeDrag`, which decides whether a drag landed on the
-// background and reports the path it took, in CSS pixels. What the mist then
+// fast it gives back, how quickly the hand that draws it runs out. It also
+// holds the recognizer, `attachWipeDrag`, which decides whether a drag landed
+// on the background and reports the path it took, in CSS pixels. What the mist then
 // does with that path lives in `WallpaperRenderer` and `shader.ts`. The gust
 // egg is arranged the same way, in `lib/wallpaper/stir.ts`.
 // =============================================================================
@@ -44,14 +44,14 @@ import {
 /**
  * How much fog a scene needs before the wipe is armed. Only the fog profile
  * (0.9) clears it; the next densest scene is drizzle at 0.3, so the gate is
- * the condition in all but name — and it is the scalar the effect acts on.
+ * the condition in all but name, and it is the scalar the effect acts on.
  */
 export const WIPE_MIN_FOG = 0.5;
 
 /**
- * How long one point of a stroke lives, ms — from the moment it is cleared to
+ * How long one point of a stroke lives, ms: from the moment it is cleared to
  * the moment the last of it is gone. Slower than the strike on purpose: fog is
- * not an event, it is a condition, and it should reassert itself rather than
+ * a condition rather than an event, and it should reassert itself rather than
  * snap back.
  */
 export const WIPE_LIFE_MS = 8000;
@@ -63,8 +63,8 @@ export const WIPE_LIFE_MS = 8000;
  * then shutting.
  *
  * A stroke that sits at full strength for a while and then fades is a drawing
- * with a timer on it — you watch a finished mark, and then you watch it go. Mist
- * never lets you see a finished mark: it is taking the stroke back from the
+ * with a timer on it: you watch a finished mark, and then you watch it go. Mist
+ * never lets you see a finished mark. It is taking the stroke back from the
  * first instant, and what lasts is the ghost, not the stroke. So the visible
  * life is mostly tail. At this rate a point is at 70% after a tenth of its life,
  * a third of the way in by halfway, and a faint smudge for the whole back half.
@@ -80,7 +80,7 @@ export const WIPE_TAIL = 0.72;
 
 /**
  * Half the width of the swath, in the shader's screen units (1.0 = the
- * viewport's height) — so a stroke is ~5.6% of the viewport height across. A
+ * viewport's height), so a stroke is ~5.6% of the viewport height across. A
  * fingertip on a misted window, not a fist: wide enough to see through, narrow
  * enough that two strokes of a letter do not merge into one another.
  */
@@ -88,12 +88,12 @@ export const WIPE_RADIUS = 0.028;
 
 /**
  * How far past the live corners' bounding box the swath can still reach, in the
- * same units — the margin on the shader's early-out box. A function of four of
+ * same units: the margin on the shader's early-out box. A function of four of
  * the constants around it, and kept here with them so that tuning any of those
  * cannot quietly leave the box behind and clip the swath's soft edge:
  *
- *   · the widest the swath gets — `WIPE_RADIUS` times the top of the `ragged`
- *     fray, out to where the Gaussian has nothing left in it: ~0.082
+ *   · the widest the swath gets (`WIPE_RADIUS` times the top of the `ragged`
+ *     fray, out to where the Gaussian has nothing left in it): ~0.082
  *   · the furthest the warp can push a fragment: ~0.11 at the end of a life
  *   · the furthest the wind can carry a patch over a whole life: ~0.05
  *
@@ -105,8 +105,8 @@ export const WIPE_REACH = 0.24;
 
 /**
  * How many corners of the path the shader carries at once. They are the corners
- * of a polyline, not a row of discs, so each one buys a whole segment of swath
- * — which is what makes the trail long enough to write with. Straight runs
+ * of a polyline, not a row of discs, so each one buys a whole segment of swath.
+ * That is what makes the trail long enough to write with. Straight runs
  * spend one per `WIPE_MAX_GAP`; curves spend as many as they need (see
  * `WIPE_SLACK`), which is the trade that keeps a letter from coming out as a
  * polygon. The shader skips the whole loop outside the stroke's bounding box,
@@ -116,20 +116,20 @@ export const WIPE_MAX_POINTS = 64;
 
 /**
  * The longest a single segment may be, in screen units. Only a dead straight
- * run ever reaches it — everywhere else the curvature test below commits first.
+ * run ever reaches it; everywhere else the curvature test below commits first.
  */
 export const WIPE_MAX_GAP = 0.085;
 
 /**
  * How far the path may bow away from the straight line the shader would draw
- * for it, before another corner is committed — measured as the difference
- * between the distance travelled and the distance covered, which is a scalar
- * either end of the segment already knows.
+ * for it, before another corner is committed. It is measured as the
+ * difference between the distance travelled and the distance covered, which is
+ * a scalar either end of the segment already knows.
  *
- * This is the whole fix for a curve coming out as a polygon: spacing corners by
+ * This is the fix for a curve coming out as a polygon: spacing corners by
  * distance alone cuts every corner by however much the hand turned between two
  * of them, and it cuts a tight one worst, which is exactly where a letter is.
- * Chosen against the worst case there is — a circle, where every chord shows —
+ * Chosen against the worst case there is (a circle, where every chord shows),
  * so the deepest facet left in a segment is a few per cent of the stroke's own
  * width, well under the amplitude of the noise that tears its edge.
  */
@@ -139,21 +139,20 @@ export const WIPE_SLACK = 0.00025;
 //
 // Wipe a misted window for real and you do not get to keep wiping. The hand
 // cools, the finger picks up what it took off the glass, and the same stroke
-// stops coming up clear — it smears. Rest a moment and it works again.
+// stops coming up clear. It smears. Rest a moment and it works again.
 //
-// Which is the difference between a wallpaper that answers you and a drawing
-// board: a board's ink is the same on the hundredth stroke as on the first.
-// Nothing about the swath being pretty fixes that; only running out does. It
-// also settles what "long enough to write with" was always going to run into —
-// you can write a word, you cannot write a paragraph, and the reason is your
-// hand rather than an array bound.
+// That separates a wallpaper that answers you from a drawing board, whose ink
+// is the same on the hundredth stroke as on the first. Nothing about the swath
+// being pretty fixes that; only running out does. It also settles what "long
+// enough to write with" was always going to run into: you can write a word but
+// not a paragraph, and the reason is your hand rather than an array bound.
 //
 // Spent by the distance rubbed, recovered by time off the glass, and it belongs
 // to the hand rather than to a stroke: lifting between two letters does not
 // give it back.
 
 /**
- * What is left of the hand, per screen unit of path rubbed — an e-fold rate.
+ * What is left of the hand, per screen unit of path rubbed: an e-fold rate.
  * Half a screen leaves about half, one sweep across leaves a quarter, and two
  * screen-heights of path is the floor. That is the budget, and it is meant to
  * be felt inside the first stroke rather than after a few: the point of a hand
@@ -174,7 +173,7 @@ export const WIPE_RECOVER = 0.3;
 
 /**
  * How long a gap has to be before it counts as off the glass, seconds. Below it
- * the hand is still down and still working — a slow, careful stroke tires it
+ * the hand is still down and still working. A slow, careful stroke tires it
  * exactly as much as a fast one, because it is the rubbing that does it.
  */
 export const WIPE_REST_S = 0.12;
@@ -190,7 +189,7 @@ export function freshHand(): WipeHand {
 }
 
 /**
- * Rub `travelled` screen units at `now`, and return what the hand manages —
+ * Rub `travelled` screen units at `now`, and return what the hand manages:
  * 1 fresh, `WIPE_SPENT` when it has had enough.
  */
 export function rub(hand: WipeHand, travelled: number, now: number): number {
@@ -208,10 +207,10 @@ export function rub(hand: WipeHand, travelled: number, now: number): number {
 
 // --- Where the mist carries it -----------------------------------------------
 //
-// A cleared patch is not a mark on the screen, it is a hole in something that
-// is moving. It goes downwind and settles as it ages, so the old end of a
+// A cleared patch is a hole in something that is moving, not a mark on the
+// screen. It goes downwind and settles as it ages, so the old end of a
 // stroke has travelled further than the new end and the stroke shears rather
-// than sitting still — which is most of why the mark reads as weather and not
+// than sitting still. That is most of why the mark reads as weather and not
 // as a board.
 //
 // All three are a displacement over the whole of one point's life, in screen
@@ -229,8 +228,8 @@ export const WIPE_BLOW_STILL = 0.008;
 export const WIPE_SETTLE = 0.014;
 
 /**
- * A move longer than this is not a stroke, it is a pointer that went somewhere
- * else — a window dragged under the cursor, a capture handed back. Draw no line
+ * A move longer than this is not a stroke but a pointer that went somewhere
+ * else (a window dragged under the cursor, a capture handed back). Draw no line
  * across the screen for it; start a new stroke instead.
  */
 export const WIPE_JUMP = 0.35;
@@ -243,7 +242,7 @@ export const WIPE_SLOP_PX = 10;
 
 // --- Touch, where the page's own scroll has first claim ----------------------
 //
-// A finger on the sky is ambiguous — it could be a scroll — and the ambiguity
+// A finger on the sky is ambiguous (it could be a scroll), and the ambiguity
 // cannot be resolved by watching which way it goes. `preventDefault` on a
 // pointer event does not stop scrolling, and by the time a direction is
 // readable iOS has started scrolling and will not be stopped. So the question
@@ -260,7 +259,7 @@ export const WIPE_SLOP_PX = 10;
 
 /**
  * How long a finger must rest on the sky before the wipe takes the gesture, and
- * how far it may drift while it does — `TOUCH_HOLD_*`, the one hold every
+ * how far it may drift while it does: `TOUCH_HOLD_*`, the one hold every
  * press-and-hold on this site keeps. Past the slop the gesture was a scroll all
  * along and the wipe never existed.
  */
@@ -270,7 +269,7 @@ export const WIPE_ARM_SLOP_PX = TOUCH_HOLD_SLOP_PX;
 /**
  * How long after a stroke ends a fresh touch is armed at once, ms. Writing is
  * letters, and holding for 400 ms before every stroke of every letter is not
- * writing — once a hand is clearly drawing, it keeps the gesture.
+ * writing. Once a hand is clearly drawing, it keeps the gesture.
  */
 export const WIPE_RESUME_MS = 1200;
 
@@ -284,13 +283,13 @@ export const WIPE_RESUME_NEAR = 0.3;
 
 /**
  * What the Sky can be asked for. Registered by `<WeatherWallpaper />` and null
- * under every other engine, so the egg cannot half-exist — the same arrangement
- * the strike uses.
+ * under every other engine, so the egg cannot half-exist. The strike uses the
+ * same arrangement.
  */
 export interface WipeHandle {
   /** Clear the mist at (x, y), screen space 0..1 bottom → top. Repeatedly along a stroke. */
   wipe(x: number, y: number): void;
-  /** The stroke is over — the next `wipe` starts a new one, not a continuation. */
+  /** The stroke is over: the next `wipe` starts a new one, not a continuation. */
   wipeEnd(): void;
 }
 
@@ -299,7 +298,7 @@ export interface WipeHandle {
 // -----------------------------------------------------------------------------
 
 /**
- * The most path one frame may carry, as x, y pairs — a couple of hundred
+ * The most path one frame may carry, as x, y pairs: a couple of hundred
  * samples, which no real hand reaches and a stalled tab would otherwise.
  */
 const MAX_PENDING = 512;
@@ -309,10 +308,10 @@ export interface WipeGestureHandlers {
   /**
    * The path the hand covered since the last frame, as x, y pairs. Not one
    * position: see `sample`. The array belongs to the recognizer and is emptied
-   * as soon as this returns — read it, do not keep it.
+   * as soon as this returns. Read it, do not keep it.
    */
   onWipe: (path: readonly number[]) => void;
-  /** The stroke is over — after its last `onWipe`. */
+  /** The stroke is over, after its last `onWipe`. */
   onEnd: () => void;
 }
 
@@ -321,7 +320,7 @@ export interface WipeGestureHandlers {
  * along its path. Returns the detach.
  *
  * A drag cannot use the strike's click trick, so it has to tell a wipe from a
- * scroll itself — and it cannot do that by watching which way the hand goes.
+ * scroll itself, and it cannot do that by watching which way the hand goes.
  * `preventDefault` on a pointer event does not stop scrolling; only a
  * non-passive `touchmove` does, and only before the scroll has started, which
  * on iOS means before the finger has moved at all. So on touch the question is
@@ -329,8 +328,8 @@ export interface WipeGestureHandlers {
  * widget grid settles it (`TOUCH_ACTIVATION` in components/ui/sortable-order).
  * On a mouse there is no ambiguity and the slop is enough.
  *
- * "Is this the sky?" — the expensive question, a `getComputedStyle` per
- * ancestor — is asked once, on `pointerdown`, and never again while the hand
+ * "Is this the sky?" (the expensive question, a `getComputedStyle` per
+ * ancestor) is asked once, on `pointerdown`, and never again while the hand
  * moves. The path itself is taken whole, coalesced samples and all, and handed
  * over once a frame; see `sample`.
  */
@@ -367,15 +366,15 @@ export function attachWipeDrag(handlers: WipeGestureHandlers): () => void {
    *
    * A `pointermove` is not one position: the browser coalesces everything the
    * digitiser reported since the last one into it, and a pen or a trackpad
-   * reports several times a frame. Keeping only the newest — which is what
-   * "sample once a frame" used to mean here — throws the shape of the path
+   * reports several times a frame. Keeping only the newest (which is what
+   * "sample once a frame" used to mean here) throws the shape of the path
    * away and hands the renderer a frame-rate polygon to draw, so a fast curve
    * comes out as the chords between wherever the hand happened to be on each
    * frame. Every one of them goes in, in order; what to keep is the renderer's
    * decision, and it makes it by shape rather than by count.
    *
    * The *delivery* is still once a frame, because that is how often anything
-   * can be drawn — and it is one call with the batch rather than one call per
+   * can be drawn. And it is one call with the batch rather than one call per
    * sample, so whatever the far end has to measure it measures once. A stalled
    * frame is capped: past the ceiling the oldest samples go, since the near end
    * of the path is the part still being drawn.
@@ -393,7 +392,7 @@ export function attachWipeDrag(handlers: WipeGestureHandlers): () => void {
     if (!raf) raf = requestAnimationFrame(flush);
   };
 
-  /** One position on its own — the first mark of a stroke, or a mouse tap. */
+  /** One position on its own: the first mark of a stroke, or a mouse tap. */
   const mark = (x: number, y: number) => {
     pending.push(x, y);
     handlers.onWipe(pending);
@@ -401,7 +400,7 @@ export function attachWipeDrag(handlers: WipeGestureHandlers): () => void {
   };
 
   /**
-   * The one thing that stops the page scrolling under a wipe — and the reason
+   * The one thing that stops the page scrolling under a wipe, and the reason
    * the hold above has to happen first. A pointer event cannot cancel a
    * scroll; only a non-passive `touchmove` can, and only before the scroll has
    * started, which on iOS means before the finger has moved at all.
@@ -418,7 +417,7 @@ export function attachWipeDrag(handlers: WipeGestureHandlers): () => void {
   /**
    * Once it is a wipe, the page stops selecting and scrolling under it. A hand
    * dragged across the sky would otherwise leave a blue smear of whatever text
-   * it crossed — and clear whatever was already selected, since a selection
+   * it crossed, and clear whatever was already selected, since a selection
    * made before the gesture was claimed is not something the visitor asked for
    * either.
    */
@@ -438,7 +437,7 @@ export function attachWipeDrag(handlers: WipeGestureHandlers): () => void {
   };
 
   /**
-   * The end of a gesture, however it ended — and the only way out, so that the
+   * The end of a gesture, however it ended, and the only way out, so that the
    * listeners and the two styles put up on the way in always come back down
    * together. Harmless when there was never a gesture at all.
    */
@@ -465,7 +464,7 @@ export function attachWipeDrag(handlers: WipeGestureHandlers): () => void {
     }
     // And nothing may outlive the gesture. A sample left in the queue is
     // replayed by the *next* stroke's first frame, after that stroke has
-    // already begun — and since the two ends are usually nearer than
+    // already begun. And since the two ends are usually nearer than
     // WIPE_JUMP, the renderer joins them: a line straight from where the next
     // touch went down back to where the last one came up.
     pending.length = 0;
@@ -499,7 +498,7 @@ export function attachWipeDrag(handlers: WipeGestureHandlers): () => void {
     document.addEventListener("pointercancel", onCancel);
     if (!touch) return;
     // Sit on iOS's own press gesture for the length of this touch, whether it
-    // becomes a wipe or not — see `holdCallout`. Without it WebKit claims the
+    // becomes a wipe or not (see `holdCallout`). Without it WebKit claims the
     // press and cancels the pointer before the hold below can finish.
     freeCallout = holdCallout();
     if (resuming(atX, atY)) engage();
@@ -514,8 +513,8 @@ export function attachWipeDrag(handlers: WipeGestureHandlers): () => void {
       const travelled = Math.hypot(atX - startX, atY - startY);
       if (touch) {
         // The finger moved before the hold was good, so it was the scroller's
-        // all along. Nothing was ever bound, so there is nothing to give back
-        // — but the gesture still has to be closed properly, or the callout
+        // all along. Nothing was ever bound, so there is nothing to give back,
+        // but the gesture still has to be closed properly, or the callout
         // suppression put up on the way down is left on the document for the
         // rest of the session.
         if (travelled > WIPE_ARM_SLOP_PX) release();

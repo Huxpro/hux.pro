@@ -9,13 +9,13 @@ import { cn } from "@/lib/utils";
 import { LanguageNote } from "./language-note";
 
 // =============================================================================
-// LanguageIndex — the chart, read as a list.
+// LanguageIndex: the chart, read as a list.
 //
 // Every language, under the abstraction tier it was placed in (most abstract
 // first, as the original source laid them out), each row folding open to its
-// note. It is the chart's table view — what a screen reader, a search and a
-// reader who would rather read than hover get — and the place a note can be
-// linked to: `/writing/pl-chart/en#coq` lands on Coq's row, open.
+// note. It is the chart's table view, which is what a screen reader, a search
+// and a reader who would rather read than hover get. It is also the place a
+// note can be linked to: `/writing/pl-chart/en#coq` lands on Coq's row, open.
 //
 // A document, not chrome: rows are selectable and the links preview.
 // =============================================================================

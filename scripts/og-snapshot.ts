@@ -12,7 +12,7 @@
  *
  * Targets: every `kind:"link"` media item (all cards) in log.json, and every
  * external `href` a magic link or a badge names in the site's MDX (content/,
- * docs/) — its peek is the page's card. Social embeds, videos, and images do
+ * docs/), since its peek is the page's card. Social embeds, videos, and images do
  * not pass through this pipeline.
  *
  * Design goals (per request):
@@ -69,7 +69,7 @@ import { isSiteCardUrl, siteCardOf } from "../lib/site-card.ts";
 type Snapshot = Record<string, SnapshotEntry>;
 
 /** Stable field order for the serialized artifact. `frame` is only ever
- *  `"deny"` — a page that may be framed stores nothing, so the field reads
+ *  `"deny"`. A page that may be framed stores nothing, so the field reads
  *  as the exception it is (see `FramePolicy` in lib/og-core). */
 const FIELDS = ["title", "description", "image", "siteName", "frame"] as const;
 
@@ -90,7 +90,7 @@ interface Target {
   url: string;
   kind: TargetKind;
   needsCrawl: boolean; // false when a manual override covers it
-  /** Snapshot of the media item itself — used by the video-cover fetcher
+  /** Snapshot of the media item itself, used by the video-cover fetcher
    *  to pick the right per-platform API. Carries no runtime state beyond
    *  what `og-core` reads. */
   media: PreviewableMedia;
@@ -98,7 +98,7 @@ interface Target {
 
 function collectTargets(): Target[] {
   // Normalize the nested `identities[*].ranges` authoring shape into the
-  // flat runtime `commits[]` before scanning — otherwise media attached
+  // flat runtime `commits[]` before scanning. Otherwise media attached
   // to role instances (e.g. Alibaba intern's writing cards) never enters
   // the crawl set. `normalizeLogData` is idempotent for already-flat
   // input, so this is safe even before the identity migration lands.
@@ -207,7 +207,7 @@ function serialize(snap: Snapshot): string {
 }
 
 /** A snapshot entry is only a cover if it actually has an image. Title-only
- *  OG is not enough — the strip, tiles, and attachment page would paint
+ *  OG is not enough: the strip, tiles, and attachment page would paint
  *  a blank. Recover with a manual `preview.image` / `thumbnail`. */
 function entryUsable(e: SnapshotEntry): boolean {
   return !!e.image;
@@ -385,7 +385,7 @@ function checkCompleteness(): void {
       }
       for (const locale of localesFor(media)) {
         const image = getAttachmentImage(media, locale);
-        // Only a link carries a per-locale `urls` map — the same guard
+        // Only a link carries a per-locale `urls` map: the same guard
         // `localesFor` uses to decide there is more than one locale here.
         const urls = isLinkMedia(media) ? media.urls : undefined;
         const where = urls?.[locale] ?? media.url;
@@ -425,7 +425,7 @@ function checkCompleteness(): void {
   }
 
   // Every cover shown whole has its size recorded, and a local one's record
-  // is the file's size now — else its slot opens at nothing and jumps when
+  // is the file's size now. Otherwise its slot opens at nothing and jumps when
   // the image loads (lib/image-sizes.ts).
   const { sizes } = readSizes();
   let sized = 0;
@@ -469,8 +469,8 @@ async function crawl(t: Target): Promise<{
   entry: SnapshotEntry;
   ok: boolean;
   reason: string;
-  /** The page's framing policy, learned from the headers of any response —
-   *  a refusal to be crawled still answers this. */
+  /** The page's framing policy, learned from the headers of any response.
+   *  A refusal to be crawled still answers this. */
   frame?: SnapshotEntry["frame"];
 }> {
   if (t.kind === "card" && isSiteCardUrl(t.url)) {
@@ -499,7 +499,7 @@ async function crawl(t: Target): Promise<{
   return { entry, ok, reason };
 }
 
-/** Concurrency cap — keep us well under any per-host rate limits and CPU. */
+/** Concurrency cap: keep us well under any per-host rate limits and CPU. */
 const CRAWL_CONCURRENCY = 5;
 
 async function mapWithLimit<T, R>(
@@ -522,7 +522,7 @@ async function mapWithLimit<T, R>(
 /**
  * Cover sizes for the covers `snapshot` shows. A local file is read from
  * disk; a remote one is fetched only as far as its header. A probe that fails
- * keeps the size recorded before — which is also how a host that refuses the
+ * keeps the size recorded before. That is also how a host that refuses the
  * probe is given its size by hand.
  */
 async function recordSizes(snapshot: Snapshot) {
@@ -566,7 +566,7 @@ function logSizes(
 
 /**
  * `--sizes`: record cover sizes for the committed snapshot, without crawling
- * any page — for a cover added by hand, or a local file replaced.
+ * any page. For a cover added by hand, or a local file replaced.
  */
 async function sizesOnly(): Promise<void> {
   const log = (s: string) => process.stdout.write(s + "\n");
@@ -600,7 +600,7 @@ async function main() {
   try {
     prevStr = fs.readFileSync(SNAPSHOT_PATH, "utf8");
   } catch {
-    // Missing file is fine — first run.
+    // Missing file is fine: first run.
   }
   const existing: Snapshot = prevStr ? JSON.parse(prevStr) : {};
 
@@ -613,7 +613,7 @@ async function main() {
   const manualSkipped: string[] = [];
   const missing: { url: string; reason: string }[] = [];
 
-  // Split out the manual-covered targets — their preview needs no network.
+  // Split out the manual-covered targets: their preview needs no network.
   // Their framing policy still does (an author writes a title and an image
   // for a page that blocks crawlers; whether it blocks frames is the page's
   // to say), so external ones get a headers-only look below.
@@ -643,9 +643,9 @@ async function main() {
       // "Never overwrite good data" has to cover the crawl that *succeeds*
       // and comes back thinner, not only the one that fails. A site
       // redesign that drops its `og:image` still answers 200 with a title,
-      // which `entryUsable` calls a success — and the cover we already had
-      // would go with it, silently, taking the commit's tile off /works and
-      // failing `og:complete` for a picture that is still live.
+      // which `entryUsable` calls a success, and the cover we already had
+      // would be dropped without warning, taking the commit's tile off /works
+      // and failing `og:complete` for a picture that is still live.
       // (ticketingbusinessforum was the case: its image still 200'd, but
       // the page stopped advertising it. Its cover is now self-hosted with
       // a manual preview, which is the durable fix.) The image we recorded
@@ -662,8 +662,8 @@ async function main() {
       else unchanged.push(t.url);
     } else {
       if (prev && entryUsable(prev)) {
-        // Preserve good prior data — and the one thing a failed crawl can
-        // still teach: whether the page may be framed.
+        // Preserve good prior data, and keep the one thing a failed crawl can
+        // still tell us: whether the page may be framed.
         const kept = pickEntry({ ...prev, frame: frame ?? prev.frame });
         next[t.url] = kept;
         if (JSON.stringify(kept) !== JSON.stringify(pickEntry(prev)))

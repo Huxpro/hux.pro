@@ -1,5 +1,5 @@
 // =============================================================================
-// The sky window — the phone as a window onto the real sky.
+// The sky window: the phone as a window onto the real sky.
 //
 // Everywhere else the Sky is a STAGE: the page looks south (north in the
 // southern hemisphere), the horizon is the bottom of the viewport, and the sun
@@ -9,7 +9,7 @@
 // This is the other reading, and it is a different feature on purpose: hold the
 // phone up and the screen becomes a window. Its compass heading says which way
 // you face, its pitch how far up you look, its roll which way is level. The sun
-// and the moon are where the ephemeris puts them — turn round and they are
+// and the moon are where the ephemeris puts them: turn round and they are
 // behind you; look up and the zenith is overhead; tip the phone to the ground
 // and there is a horizon. The clouds become a deck with perspective, the stars a
 // sphere turning with the sidereal clock, and the rain keeps falling along real
@@ -19,7 +19,7 @@
 // the view goes from the sensor to `WallpaperRenderer.setView()` without passing
 // through React, like the gravity does.
 //
-// FRAMES. The world is East-North-Up (x east, y north, z up) — the W3C frame
+// FRAMES. The world is East-North-Up (x east, y north, z up), the W3C frame
 // `deviceorientation` is defined in, and azimuths are clockwise from north, the
 // way lib/solar.ts gives them. A view is three unit vectors in that frame: where
 // the screen's right, its top and the direction it looks (out of the back of the
@@ -32,8 +32,8 @@
 // For WebKit the offset between the two is estimated, and only while the top of
 // the phone has a direction to measure (it is a heading of the top edge, which
 // a phone held straight up does not have). With no compass at all the window
-// still turns, anchored so that where you first point is where the stage looked
-// — so it opens onto the same sky it left.
+// still turns, anchored so that where you first point is where the stage
+// looked. So it opens onto the same sky it left.
 // =============================================================================
 
 import { readScreenAngle } from "./gyroscope";
@@ -52,7 +52,7 @@ export interface SkyView {
   right: Vec3;
   /** The screen's top edge. */
   up: Vec3;
-  /** Out of the back of the phone — where you are looking. */
+  /** Out of the back of the phone: where you are looking. */
   forward: Vec3;
   /** True when the heading is a real compass heading, not a guess. */
   compass: boolean;
@@ -61,14 +61,14 @@ export interface SkyView {
 /**
  * How wide the window is, along the screen's LONGER side, in degrees. About a
  * phone camera's own: wide enough that a sun and a moon a quarter of the sky
- * apart can share it held in landscape, narrow enough that finding one is a
- * turn of the body rather than a flick of the wrist — which is the whole fun.
+ * apart can share it held in landscape, narrow enough that finding one takes
+ * a turn of the body rather than a flick of the wrist.
  */
 const WINDOW_FOV_DEG = 80;
 
 /**
- * Past this, in screen heights from the centre, a body is simply off screen —
- * and a body BEHIND the viewer is put here too, in the direction it lies, so its
+ * Past this, in screen heights from the centre, a body is off screen. A body
+ * BEHIND the viewer is put here too, in the direction it lies, so its
  * glow falls away continuously as it swings round behind you instead of
  * jumping through infinity.
  */
@@ -112,7 +112,7 @@ export function headingPitchOf(v: Vec3): { heading: number; pitch: number } {
 }
 
 /**
- * A level view facing `headingDeg`, tipped up by `pitchDeg` — what the devtool
+ * A level view facing `headingDeg`, tipped up by `pitchDeg`: what the devtool
  * drives on a desktop, and the view before the first reading arrives.
  */
 export function viewFacing(headingDeg: number, pitchDeg: number): SkyView {
@@ -138,8 +138,8 @@ export function stageView(hemisphere: 1 | -1): SkyView {
  *
  * The W3C angles are intrinsic Z-X'-Y'': R = Rz(α)·Rx(β)·Ry(γ) takes a device
  * vector into the Earth frame. The screen's own axes are the device's, turned
- * by `screen.orientation.angle` when the layout has rotated — the same turn
- * lib/gyroscope.ts applies to gravity.
+ * by `screen.orientation.angle` when the layout has rotated (the same turn
+ * lib/gyroscope.ts applies to gravity).
  */
 export function viewFromOrientation(
   alphaDeg: number,
@@ -223,8 +223,8 @@ export function projectToScreen(
 
 /**
  * Which way the moon's lit limb faces on screen, as an angle from screen-right,
- * in radians — toward the sun, along the great circle between them, whatever
- * the camera's roll. That is the only honest crescent in a window: the stage
+ * in radians: toward the sun, along the great circle between them, whatever
+ * the camera's roll. That is the only correct crescent in a window: the stage
  * can say "waxing is lit on the right", but a sky you can turn around in cannot.
  */
 export function moonLitAngle(moon: Vec3, sun: Vec3, view: SkyView): number {
@@ -239,8 +239,8 @@ export function moonLitAngle(moon: Vec3, sun: Vec3, view: SkyView): number {
 // -----------------------------------------------------------------------------
 // Gliding between two views
 //
-// A view that jumps — the first reading after the window opens, a compass that
-// arrives late, the devtool's slider let go somewhere else — is turned to, not
+// A view that jumps (the first reading after the window opens, a compass that
+// arrives late, the devtool's slider let go somewhere else) is turned to, not
 // cut to. Interpolating the three vectors on their own would shear the frame
 // on the way (and pass through zero for a half turn), so the turn is a slerp of
 // the rotation itself: the shortest way round, at an even speed, square the
@@ -331,8 +331,8 @@ export function slerpDir(a: Vec3, b: Vec3, t: number): Vec3 {
 }
 
 /**
- * Has the view jumped by more than `deg` between two readings? A cheap test —
- * how far the forward and the up edge each turned — for the renderer to run on
+ * Has the view jumped by more than `deg` between two readings? A cheap test
+ * (how far the forward and the up edge each turned) for the renderer to run on
  * every sensor event, where the exact angle of the turn is not needed.
  */
 export function viewJumped(a: SkyView, b: SkyView, deg: number): boolean {
@@ -345,7 +345,7 @@ export function viewJumped(a: SkyView, b: SkyView, deg: number): boolean {
 // The sky's own frame: the stars
 //
 // The star field is fixed to the celestial sphere and the sphere turns about
-// the pole once a sidereal day — so a star rises in the east and sets in the
+// the pole once a sidereal day. So a star rises in the east and sets in the
 // west, the pole sits at the latitude's height, and at a long exposure the
 // whole field wheels. The stars themselves are hashed, not catalogued: this is
 // a sky, not a planetarium.
@@ -382,7 +382,7 @@ export function starFrame(latDeg: number, lstDeg: number, out: Float32Array): Fl
 
 type ViewListener = (view: SkyView) => void;
 
-/** The sensor's own jitter, smoothed — a compass wanders more than a level. */
+/** The sensor's own jitter, smoothed. A compass wanders more than a level. */
 const VIEW_TAU = 0.12;
 /** How slowly WebKit's compass offset is allowed to wander, once it has one. */
 const OFFSET_TAU = 1.5;
@@ -390,7 +390,7 @@ const OFFSET_TAU = 1.5;
 const ABSOLUTE_FRESH_MS = 600;
 /**
  * The top of the phone must have at least this much of itself lying level for
- * `webkitCompassHeading` to mean what it says — past that the phone is held too
+ * `webkitCompassHeading` to mean what it says. Past that the phone is held too
  * steeply for "where the top edge points" to be a direction at all.
  */
 const COMPASS_LEVEL_MIN = 0.35;
@@ -418,9 +418,9 @@ let anchorHeading = 180;
 let simulated: SkyView | null = null;
 /**
  * Magnetic declination here, degrees east (lib/magnetic.ts). Every compass the
- * browser hands over is magnetic — Android's rotation vector behind
+ * browser hands over is magnetic (Android's rotation vector behind
  * `deviceorientationabsolute` and `absolute: true`, CoreLocation's
- * `magneticHeading` behind `webkitCompassHeading` — and the sky is placed
+ * `magneticHeading` behind `webkitCompassHeading`), and the sky is placed
  * against true north. A true heading is the magnetic one plus this.
  */
 let declinationDeg = 0;
@@ -434,7 +434,7 @@ export type ViewSource =
   | "simulated"  // the devtool's hand
   | "none";
 
-/** What the sensor has been saying, raw — the devtool's Motion fold. */
+/** What the sensor has been saying, raw. Shown in the devtool's Motion fold. */
 export interface MotionDiagnostics {
   source: ViewSource;
   alpha: number | null;
@@ -589,11 +589,12 @@ function onRelative(event: DeviceOrientationEvent) {
   const heading = (event as CompassEvent).webkitCompassHeading;
   const accuracy = (event as CompassEvent).webkitCompassAccuracy;
   const compassed = typeof heading === "number" && Number.isFinite(heading);
-  // An accuracy of −1 is WebKit's compass saying it has lost its calibration —
-  // common in the first seconds after the sensor starts, and near metal. Once
-  // there is an offset, such a reading keeps it rather than falling back to the
-  // anchor: the two can be half the sky apart, and a stream that flickered
-  // between them made the window turn back and forth without ever arriving.
+  // An accuracy of −1 is WebKit's compass saying it has lost its calibration.
+  // It is common in the first seconds after the sensor starts, and near
+  // metal. Once there is an offset, such a reading keeps it rather than falling
+  // back to the anchor: the two can be half the sky apart, and a stream that
+  // flickered between them made the window turn back and forth without ever
+  // arriving.
   if (compassed && (accuracy ?? 0) < 0 && !Number.isNaN(compassOffset)) {
     note("webkit", angles, screenAngle);
     diag.declinationDeg = declinationDeg;
@@ -646,7 +647,7 @@ function onRelative(event: DeviceOrientationEvent) {
       if (gap > CALIBRATING_DEG) setCalibrating(true);
       else if (gap < CALIBRATED_DEG) setCalibrating(false);
     } else {
-      // Held too steeply to measure — the phone raised to the sky, which is
+      // Held too steeply to measure: the phone raised to the sky, which is
       // what the window is for. No correction can land until it comes back
       // down, so there is nothing to wait for; a spinner held up here would
       // spin for as long as the visitor kept looking.
@@ -686,8 +687,8 @@ function onRelative(event: DeviceOrientationEvent) {
 
 /**
  * Where magnetic north is, here: degrees east of true north (the scene's
- * `celestial.declination`). A change turns the window by the difference — a
- * relocation's worth, and the renderer glides a big one. WebKit's measured
+ * `celestial.declination`). A change turns the window by the difference (a
+ * relocation's worth), and the renderer glides a big one. WebKit's measured
  * offset already has the old value baked in, so it is moved by the same
  * difference rather than re-measured.
  */
@@ -716,7 +717,7 @@ export function subscribeView(listener: ViewListener, stageHeading = 180): () =>
     window.addEventListener("deviceorientation", onRelative, { passive: true });
     attached = true;
     // Until the first reading, the window is looking where the stage did and
-    // is about to turn: say so — but not for ever, on a device that has no
+    // is about to turn: say so. But not for ever, on a device that has no
     // sensor to send one.
     if (!simulated) {
       setCalibrating(true);
@@ -757,7 +758,7 @@ export function readView(): SkyView | null {
 }
 
 /**
- * Drive the window by hand — the devtool's heading and pitch, on a desktop
+ * Drive the window by hand (the devtool's heading and pitch), on a desktop
  * with no sensor. Null hands it back to the sensor.
  */
 export function simulateView(view: SkyView | null) {

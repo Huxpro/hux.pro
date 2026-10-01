@@ -26,20 +26,20 @@ import { isWritingLink } from "@/components/log/media/media-mark";
 import { attachmentSetFor } from "@/systems/attachments/lib/set";
 
 // =============================================================================
-// Magic-link resolution — from what an author writes to what a link summons.
+// Magic-link resolution: from what an author writes to what a link summons.
 //
 // A magic link names a *summonable*: a thing on this site that has a peek
 // (what it shows under the pointer) and a drawer (what stands in for the peek
 // on a phone), the same ones wherever it is summoned from. What it names:
 //
-//   commit="lynx-framework"   a commit, whole — a /works row: its peek, and
+//   commit="lynx-framework"   a commit, whole, as a /works row: its peek, and
 //                             the attachment drawer paging through all of
 //                             its media; a press goes to its row on /works.
-//   commit="…" item={1}       one of its media alone — a /works cover: its
+//   commit="…" item={1}       one of its media alone, as a /works cover: its
 //                             peek, a drawer of just it, and its home (the
 //                             in-app browser, the stage, the router).
-//   role="alitrip-engineer"   a role — a range under an identity in
-//   identity="alibaba"        content/log.json — as a /works role row: the
+//   role="alitrip-engineer"   a role (a range under an identity in
+//   identity="alibaba"        content/log.json), as a /works role row: the
 //                             identity's profile as the peek, its card as
 //                             the drawer, its row on /works as its home.
 //   post="dreamer"            a post, as its /writing row: its peek, and the
@@ -97,7 +97,7 @@ export interface ResolvedMagicLink {
   target: MagicLinkTarget | null;
   kind: MagicLinkKind;
   label: string;
-  /** The real address — what a modified click and a crawler follow. */
+  /** The real address: what a modified click and a crawler follow. */
   href: string;
   icon: BadgeIcon;
   /** What the badge is, for its tooltip: the title, the domain. */
@@ -141,7 +141,7 @@ export function mediaFromHref(
     default: {
       // The page's card, as the snapshot read it (`pnpm og:snapshot` crawls
       // the hrefs written in magic links too): its title, description and
-      // image for the peek, and whether it lets itself be framed — a page
+      // image for the peek, and whether it lets itself be framed. A page
       // that refuses goes to a tab rather than a window of refusal.
       const snap = BADGE_CONFIG.previews?.[url] ?? SNAPSHOT[url];
       return {
@@ -182,13 +182,13 @@ function kindOf(media: Media): MagicLinkKind {
 const BADGE_ICONS = badgeIconsJson as AppIconSnapshot;
 const BADGE_CONFIG = badgeConfigJson as BadgeConfig;
 
-/** This site's own icon — what a path on it wears (the generative app icon). */
+/** This site's own icon: what a path on it wears (the generative app icon). */
 const SITE_ICON: BadgeIcon = { type: "image", src: "/icons/icon.svg", fill: true };
 
 /**
  * An icon drawn for a home screen (a manifest icon, an apple-touch-icon, an
  * app's own art) is opaque and fills its tile; a favicon is a glyph, often on
- * nothing, and sits on a white plate — the way a home screen shows one.
+ * nothing, and sits on a white plate, the way a home screen shows one.
  */
 function fromEntry(entry: AppIconSnapshotEntry | undefined): BadgeIcon | null {
   if (!entry?.file) return null;
@@ -250,12 +250,12 @@ function hrefFor(media: Media, locale: Locale): string {
 }
 
 /**
- * The mark a project wears on its row (components/log/project-mark.tsx):
- * the official icon of the site that stands for it — the same one its
+ * The mark a project wears on its row (components/log/project-mark.tsx).
+ * It is the official icon of the site that stands for it, the same one its
  * `<Badge>` wears in the About, by the same rule (lib/badge-site.ts:
  * content/badges.json names the site, else the host of its first external
- * attachment) — or its monogram in its chapter's colour when the site has
- * none. Resolved against the commit itself rather than the site's log, so
+ * attachment). When the site has none, it is its monogram in its chapter's
+ * colour. Resolved against the commit itself rather than the site's log, so
  * the editor's unsaved copy and a widget's slice get the same answer.
  */
 export function commitMark(commit: Commit, locale: Locale): BadgeIcon {
@@ -328,7 +328,7 @@ export function resolveMagicLink(spec: MagicLinkSpec, locale: Locale): ResolvedM
     };
   }
 
-  // A commit, by id: the whole commit — a project, a talk — or, with
+  // A commit, by id: the whole commit (a project, a talk) or, with
   // `item`, one of its media alone.
   if (spec.commit) {
     const commit = LOG.commits.find((c) => c.id === spec.commit);

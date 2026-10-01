@@ -23,11 +23,11 @@ import {
 import { setRulerSide, useRulerSide, type RulerSide } from "./ruler-settings";
 
 // ---------------------------------------------------------------------------
-// ReadingSettings — the reader's way into the reading settings.
+// ReadingSettings: the reader's way into the reading settings.
 //
 // The settings themselves are old (reading-settings.ts): persisted, global,
 // live. Until now the only UI was the devtool's Reading module, which a reader
-// has no reason to ever open — so the typeface and the measure were, in
+// has no reason to ever open, so the typeface and the measure were, in
 // practice, ours and not theirs. This is the same store with a door on it.
 //
 // It is Books' "Aa": a sheet on a phone, a popover hanging off the button
@@ -38,14 +38,14 @@ import { setRulerSide, useRulerSide, type RulerSide } from "./ruler-settings";
 // It shows the same settings the devtool's module does, in the reader's voice
 // rather than the devtool's mono. All but two are offered everywhere.
 //
-// Wide media and the column are the exceptions, and neither is a taste call:
-// each rule lives entirely inside its own breakpoint (app/globals.css) —
-// landscape media only breaks out of the column at `bleed`, and the three
-// columns are only three different widths at `measure`, under which the
-// viewport is the column — so under that width the control would be wired to
-// nothing. Each row hides itself with the variant of that same breakpoint —
-// one number, so the control and the rule it drives cannot drift apart, and
-// nothing has to be measured in JS to know.
+// Wide media and the column are the exceptions, and neither is a taste call.
+// Each rule lives entirely inside its own breakpoint (app/globals.css).
+// Landscape media only breaks out of the column at `bleed`, and the three
+// columns are only three different widths at `measure`; under that, the
+// viewport is the column. So under that width the control would be wired to
+// nothing. Each row hides itself with the variant of that same breakpoint.
+// It is one number, so the control and the rule it drives cannot drift
+// apart, and nothing has to be measured in JS to know.
 //
 // Everything else is shown at every width even where it is less useful. These
 // are single, global, persisted settings: hiding focus mode on a phone would
@@ -73,8 +73,8 @@ function ReadingSettingsContent() {
           onChange={setReadingFont}
           label={t(locale, "readingFont")}
           options={[
-            // Each option in the face it selects — the control is its own
-            // specimen, which is the whole question being asked.
+            // Each option is set in the face it selects, so the control is
+            // its own specimen of the question being asked.
             {
               value: "sans",
               label: <span className="font-sans">{t(locale, "readingFontSans")}</span>,
@@ -97,7 +97,7 @@ function ReadingSettingsContent() {
               value: "small",
               ariaLabel: t(locale, "readingSizeSmall"),
               title: t(locale, "readingSizeSmall"),
-              // An A at the size it selects — the same idea as the column
+              // An A at the size it selects. Same idea as the column
               // glyph: the control is a specimen of its own setting.
               label: <span className="text-[11px] leading-5">A</span>,
             },
@@ -205,7 +205,7 @@ function Row({
   );
 }
 
-/** Full, full, and a short last line — a paragraph's shape in three rules. */
+/** Full, full, and a short last line: a paragraph's shape in three rules. */
 const MEASURE_RULES = [1, 1, 0.6];
 
 /**

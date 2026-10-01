@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * PeekCover — the shared cover-image slot at the top of a hover peek.
+ * PeekCover: the shared cover-image slot at the top of a hover peek.
  *
  * Both hover surfaces open with a cover image and used to size it in
  * conflicting, hardcoded ways: the /writing peek pinned covers to a fixed
@@ -11,7 +11,7 @@
  * /writing. This component unifies the two into one primitive with two modes:
  *
  *  - `fit="cover"`   (default): a fixed-aspect slot; the image fills it and is
- *                    cropped (`object-cover`). Great default — most covers are
+ *                    cropped (`object-cover`). The default, since most covers are
  *                    roughly landscape and read well cropped to a stable
  *                    rectangle. The ratio is `aspect` (falls back to
  *                    {@link DEFAULT_COVER_ASPECT}).
@@ -36,7 +36,7 @@ import { imageSizeOf } from "@/lib/image-sizes";
 import { ExternalImage } from "./external-image";
 
 export interface PeekCoverProps {
-  /** Cover image URL (third-party — rendered via {@link ExternalImage}). */
+  /** Cover image URL (third-party, rendered via {@link ExternalImage}). */
   src: string;
   /** Alt text, for a cover that is the content rather than decoration. */
   alt?: string;
@@ -50,7 +50,7 @@ export interface PeekCoverProps {
   /** Extra classes for the slot wrapper (background, rounding, width, …). */
   className?: string;
   /**
-   * Extra classes merged onto the `<img>` itself — e.g. a load-in fade
+   * Extra classes merged onto the `<img>` itself, e.g. a load-in fade
    * (`opacity-0 → opacity-100`). Layout classes are supplied internally.
    */
   imgClassName?: string;
@@ -71,7 +71,7 @@ export function PeekCover({
   onResolved,
 }: PeekCoverProps) {
   // Two modes, one scaffold:
-  //  - natural: the slot is the image's own aspect, so nothing is cropped —
+  //  - natural: the slot is the image's own aspect, so nothing is cropped:
   //    the recorded size's when there is one (the slot holds its height
   //    before the image loads), else `h-auto` and the image's own height.
   //  - cover: a fixed-aspect rectangle the image fills and is cropped to.

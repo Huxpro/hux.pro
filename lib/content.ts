@@ -10,8 +10,8 @@ export type PostLanguage = "en" | "zh" | "both";
  *
  * Lives here (framework-agnostic content layer) rather than in the client
  * component, so `lib/*` and the node snapshot script can reference it without
- * reaching across the framework boundary — the same reason `SocialEmbedPlatform`
- * lives in `lib/og-core`. `PeekCover` imports these back from here.
+ * reaching across the framework boundary. `SocialEmbedPlatform` lives in
+ * `lib/og-core` for the same reason. `PeekCover` imports these back from here.
  */
 export type CoverFit = "cover" | "natural";
 
@@ -48,18 +48,18 @@ export interface BlogPost extends Post {
   tags?: string[];
   origin?: string; // Markdown string describing provenance (from en file or zh-only)
   originZh?: string; // Chinese version's origin (from zh file)
-  /** The post's first paragraph, whole, as plain text (lib/mdx `extractLead`) —
+  /** The post's first paragraph, whole, as plain text (lib/mdx `extractLead`):
    *  markdown / MDX components stripped, whitespace collapsed, truncated. */
   excerpt?: string;
   excerptZh?: string;
-  /** First image URL referenced in the post body — used as the peek cover. */
+  /** First image URL referenced in the post body, used as the peek cover. */
   cover?: string;
   coverZh?: string;
   /**
    * How the peek cover fills its slot (frontmatter `coverFit`):
    *  - `"cover"` (default): fixed-aspect slot, image cropped to fill.
-   *  - `"natural"`: slot matches the cover's intrinsic aspect (no crop) —
-   *    use for portrait screenshots / framing-sensitive covers.
+   *  - `"natural"`: slot matches the cover's intrinsic aspect (no crop).
+   *    Use for portrait screenshots / framing-sensitive covers.
    * Applies to both locales' covers. See {@link CoverFit} / PeekCover.
    */
   coverFit?: CoverFit;
@@ -70,16 +70,16 @@ export interface BlogPost extends Post {
    */
   coverAspect?: string;
   /**
-   * Frontmatter `featured: true` — curated onto the home writing widget
+   * Frontmatter `featured: true`: curated onto the home writing widget
    * alongside the latest posts. Mirrored in `lib/data.ts` for the client.
    */
   featured?: boolean;
 }
 
 /**
- * Format a post date the way every writing surface prints it — the list,
- * the article header and the home widget: `"apr 2021"` (lowercase short
- * month + year, always en-US so it reads as a quiet mono caption in both
+ * Format a post date the way every writing surface prints it (the list,
+ * the article header and the home widget): `"apr 2021"` (lowercase short
+ * month + year, always en-US so it reads as a plain mono caption in both
  * locales).
  */
 export function formatPostDate(dateStr: string): string {
@@ -89,7 +89,7 @@ export function formatPostDate(dateStr: string): string {
 }
 
 /**
- * The row-level slice of a blog post — what list-like client surfaces (the
+ * The row-level slice of a blog post: what list-like client surfaces (the
  * home writing widget) need, without excerpts, covers or raw frontmatter.
  * Built server-side from `getAllBlogPosts()` so the client payload stays
  * small and the data is the real frontmatter, not a hand-kept mirror.
@@ -168,12 +168,12 @@ export function shouldShowPost<T extends LocalizedContent>(
 // -----------------------------------------------------------------------------
 // Every tag is an ordinary tag; nothing here is a special kind of data. By
 // default a tag is visible in every locale. This table is the single source of
-// truth for the exceptions — exactly the way a post's own locale visibility
+// truth for the exceptions, the same way a post's own locale visibility
 // lives in `shouldShowPost` above, rather than being special-cased ad-hoc at
 // each render site. A tag listed here is shown ONLY in the locales given:
 //   "译"   the piece is a translation   → zh only
 //   "知乎" originally answered on Zhihu  → zh only
-// The mechanism is fully general — scope ANY tag to ANY locale by adding a row
+// The mechanism is fully general: scope ANY tag to ANY locale by adding a row
 // (e.g. `Foo: ["en"]` for en-only, `Bar: []` to hide everywhere). A tag not
 // listed stays visible in every locale.
 // =============================================================================
@@ -203,8 +203,8 @@ export function getVisibleTags(tags: string[], locale: Locale): string[] {
 // -----------------------------------------------------------------------------
 // A separate, smaller concern from visibility above: which tags read as
 // provenance/meta *annotations* and so render as a badge on the list row,
-// instead of living only in the hover peek. This is purely a display choice and
-// is deliberately independent of locale visibility — a tag can be locale-scoped
+// instead of living only in the hover peek. This is only a display choice and
+// is deliberately independent of locale visibility. A tag can be locale-scoped
 // without being a decorator (e.g. an en-only topic tag), and a decorator is
 // still subject to the visibility table (a decorator hidden in this locale
 // won't render). 译 / 知乎 happen to be both, but each is configured on its own.
@@ -354,7 +354,7 @@ export function postCardOf(
 // ===== The post peek =====
 
 /**
- * What a post shows under the pointer — the /writing row's peek — resolved
+ * What a post shows under the pointer (the /writing row's peek), resolved
  * for one locale: the post's "inner page" bits the row does not print.
  * Title and date are left out; they are on whatever was hovered.
  *
@@ -365,7 +365,7 @@ export function postCardOf(
 export interface PostPeek {
   language: PostLanguage;
   readingTime: string;
-  /** Curated frontmatter summary — the dek. */
+  /** Curated frontmatter summary: the dek. */
   description?: string;
   /** Provenance, as authored (markdown links are flattened when shown). */
   origin?: string;
@@ -397,7 +397,7 @@ export type PostPeekSource = Post &
 
 /**
  * A post's peek for `locale`, preferring that locale's bits and falling back
- * to the other language's — a single-language post (js-20yrs-preface is
+ * to the other language's, so a single-language post (js-20yrs-preface is
  * zh-only) still peeks for a reader in the other locale.
  */
 export function postPeekOf(post: PostPeekSource, locale: Locale): PostPeek {

@@ -1,7 +1,7 @@
 import type { LabTable } from "@/systems/lab";
 
-// The lab's own words. The documentation itself — every section, table and
-// API summary — is the package's, bilingual in its own `Text` type
+// The lab's own words. The documentation itself (every section, table and
+// API summary) is the package's, bilingual in its own `Text` type
 // (packages/vitre/site/src/docs), and follows the site's language here.
 
 const en = {

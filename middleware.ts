@@ -5,7 +5,7 @@ const LOCALES = new Set(["en", "zh"]);
 
 // Generated metadata routes live under the matched paths (e.g.
 // /writing/<slug>/<lang>/opengraph-image, /docs/opengraph-image) but must pass
-// through untouched — appending a locale suffix 404s the generated image.
+// through untouched. Appending a locale suffix 404s the generated image.
 const METADATA_SEGMENTS = new Set([
   "opengraph-image",
   "twitter-image",

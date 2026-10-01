@@ -18,7 +18,7 @@ const FORM_CHIP: Record<LogForm, { icon: LucideIcon; label: "formIndex" | "formC
 
 /**
  * The Works Lab's part of the lab bar. Tools: which form the timeline prints
- * in, for everyone. Actions: the editing — Inspect, a new tag, reload, save —
+ * in, for everyone. Actions: the editing (Inspect, a new tag, reload, save),
  * drawn from `lg` only: the inspector needs 480px beside the timeline, and a
  * phone is here to look at the log, not to write it (the lab's info says so).
  */

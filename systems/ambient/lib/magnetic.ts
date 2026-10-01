@@ -1,5 +1,5 @@
 // =============================================================================
-// Magnetic declination — how far magnetic north is from true north, here.
+// Magnetic declination: how far magnetic north is from true north, here.
 //
 // Every compass a browser hands over is magnetic. Chrome's
 // `deviceorientationabsolute` (and Firefox's `absolute: true`) is Android's
@@ -16,7 +16,7 @@
 // field with a linear secular variation, valid 2025.0–2030.0. The coefficients
 // below are WMM.COF as published, verbatim. Checked against the model's own
 // published test values (WMM2025_TestValues.txt) to their printed precision.
-// Local anomalies — a steel desk, a car — are not in any global model; that is
+// Local anomalies (a steel desk, a car) are not in any global model. That is
 // the compass's own error, and nothing here removes it.
 // =============================================================================
 
@@ -32,7 +32,7 @@ const WGS84_A = 6378.137;
 const WGS84_E2 = (1 / 298.257223563) * (2 - 1 / 298.257223563);
 const MAX_DEGREE = 12;
 
-/** n, m, g, h (nT), ġ, ḣ (nT/yr) — WMM2025.COF. */
+/** n, m, g, h (nT), ġ, ḣ (nT/yr), from WMM2025.COF. */
 // prettier-ignore
 const COEFFICIENTS = [
   1, 0, -29351.8, 0.0, 12.0, 0.0,
@@ -151,9 +151,9 @@ function decimalYear(ms: number): number {
 
 /**
  * The declination at a place and time, degrees east of true north (positive:
- * magnetic north lies east of true north). At `altKm` above the ellipsoid —
+ * magnetic north lies east of true north). At `altKm` above the ellipsoid:
  * sea level unless given; a few km changes it by hundredths. Outside the model's
- * span the field is held at its nearest end rather than extrapolated — a
+ * span the field is held at its nearest end rather than extrapolated, so a
  * devtool clock years away is still given a sensible north.
  */
 export function magneticDeclination(

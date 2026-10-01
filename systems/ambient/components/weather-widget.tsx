@@ -16,7 +16,7 @@ import { WeatherIcon } from "./weather-icon";
 import { useDisplayWeather, WeatherNow } from "./weather-now";
 
 // ---------------------------------------------------------------------------
-// Weather Widget — homepage grid card.
+// Weather Widget: homepage grid card.
 //
 // Header (city + location indicator + condition icon) is widget-specific; the
 // body is the shared <WeatherNow /> so the homepage and the dock phase panel
@@ -51,7 +51,7 @@ export function WeatherWidget() {
   const displayCity = cityLabel ?? staleCity ?? t(locale, "widgetWeather");
   // A city from the network is a guess, and the header says so: an `ip` tag
   // beside it, where the arrow sits for a GPS fix. Tag and city together are
-  // the way to the location primer — the one place a visitor who sees the
+  // the way to the location primer, the one place a visitor who sees the
   // wrong city goes looking. When the guess also disagrees with this device's
   // clock it is probably wrong, and it reads "Dallas?".
   const guessed = mounted && location?.source === "ip";
@@ -70,8 +70,8 @@ export function WeatherWidget() {
               onClick={openLocationPrimer}
               aria-label={t(locale, doubtful ? "locationDoubtful" : "locationGuessed")}
               title={t(locale, doubtful ? "locationDoubtful" : "locationGuessed")}
-              // `pressable` + `active:` — the city and its tag wash together on
-              // touch-down, as one control, and ease back on release; the
+              // `pressable` + `active:`: the city and its tag wash together on
+              // touch-down, as one control, and ease back on release. The
               // negative margin keeps the text where the plain title sits.
               className={cn(
                 "pressable group/ip -mx-1.5 -my-0.5 flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left outline-none",

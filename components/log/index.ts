@@ -7,7 +7,7 @@
  *  - Commit:      a work item (project / talk / post / role / social / event).
  *  - Media:       attached external content. Kinds: link, social-embed,
  *                 video, slides, image.
- *  - Link card:   `kind:"link", present:"card"` — an OG-style preview block.
+ *  - Link card:   `kind:"link", present:"card"`: an OG-style preview block.
  *  - SocialEmbed: native social platform widget (X / Instagram / TikTok).
  *  - Slides:      HTML reveal.js deck played on the theater stage.
  */

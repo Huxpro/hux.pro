@@ -72,7 +72,7 @@ export type MediaKind = "link" | "social-embed" | "video" | "slides" | "image";
 /**
  * How a `link` renders: always as a card, an attachment with a cover.
  *
- * There used to be a second presentation, the "pill" — an icon in the
+ * There used to be a second presentation, the "pill": an icon in the
  * title line's rail. A glyph with no cover and no words said only "there is
  * a link here" (a row of identical globes, in the index), so every link is a
  * card now, and the title line keeps no way out of its own. The field stays
@@ -83,7 +83,7 @@ export type LinkPresent = "card";
 /** Video platforms with native iframe support. */
 export type VideoPlatform = "youtube" | "bilibili" | "vimeo";
 
-/** How each platform writes its own name — the rail pill, the cover chip. */
+/** How each platform writes its own name, on the rail pill and the cover chip. */
 export const VIDEO_PLATFORM_LABEL: Record<VideoPlatform, string> = {
   youtube: "YouTube",
   bilibili: "bilibili",
@@ -132,14 +132,14 @@ export interface MediaPreview {
    * desktop opens a link card in an in-app browser window (systems/windows)
    * only when the answer is not `"deny"`; a page that refuses goes to a tab
    * instead of a window showing a refusal. Written by the enrichment
-   * pipeline, never authored — absent means "not checked", and is read as
+   * pipeline, never authored. Absent means "not checked", and is read as
    * allowed.
    */
   frame?: FramePolicy;
 }
 
 /**
- * Pinned media is "always visible above the row's fold" — it stays beneath
+ * Pinned media is "always visible above the row's fold": it stays beneath
  * the row even while the row is collapsed (and renders in the expanded view
  * too). Default is unpinned: only visible once the row is expanded.
  *
@@ -147,13 +147,13 @@ export interface MediaPreview {
  * (currently always expanded-only); the field is kept on every kind for
  * schema uniformity.
  *
- * The hover peek view excludes pinned items — they're already on screen so
+ * The hover peek view excludes pinned items. They're already on screen, so
  * peeking adds nothing. See `getCommitPeekItems`.
  */
 type Pinned = { pinned?: true };
 
 /**
- * Link media — a URL presented as an OG-style preview card (the card
+ * Link media: a URL presented as an OG-style preview card (the card
  * pipeline supplies title / description / image; `preview` is the
  * author-authoritative override).
  */
@@ -169,7 +169,7 @@ export interface InternalLinkMeta {
   slug: string;
   urls: LocaleUrls;
   /**
-   * The post's peek per locale — what its /writing row shows under the
+   * The post's peek per locale: what its /writing row shows under the
    * pointer. Set where a post is summoned from prose (a magic link,
    * components/magic-link), so its peek and its drawer page are the post's
    * own rather than a link card's. Absent on /works, whose covers keep
@@ -197,17 +197,17 @@ export interface LinkMedia extends Pinned {
   preview?: MediaPreview;
   /**
    * Per-locale OG previews, populated by `enrichLogDataWithPreviews`
-   * when the media has a `urls` map. Never author-authored — the
+   * when the media has a `urls` map. Never author-authored. The
    * enrichment pipeline writes it before the render layer reads it.
    * When absent (single-URL cards), the top-level `preview` is used.
    */
   previews?: Partial<Record<"en" | "zh", MediaPreview>>;
-  /** Resolved at enrichment time — see {@link InternalLinkMeta}. */
+  /** Resolved at enrichment time. See {@link InternalLinkMeta}. */
   internal?: InternalLinkMeta;
 }
 
 /**
- * Social embed — a native widget for X / Instagram / TikTok. Distinct kind
+ * Social embed: a native widget for X / Instagram / TikTok. Distinct kind
  * from `link` because it's a live mini-app, not an OG card; it doesn't go
  * through the card pipeline.
  */
@@ -218,7 +218,7 @@ export interface SocialEmbedMedia extends Pinned {
   platform?: SocialEmbedPlatform;
 }
 
-/** Video player — YouTube / Bilibili / Vimeo iframe with cover thumbnail. */
+/** Video player: YouTube / Bilibili / Vimeo iframe with cover thumbnail. */
 export interface VideoMedia extends Pinned {
   kind: "video";
   url: string;
@@ -227,7 +227,7 @@ export interface VideoMedia extends Pinned {
 }
 
 /**
- * HTML slide deck — typically a reveal.js export (Yanshuo.io / self-hosted).
+ * HTML slide deck, typically a reveal.js export (Yanshuo.io / self-hosted).
  * Renders as a cover with a play affordance; opening it puts the deck on the
  * theater's stage beside the videos, so visitors never leave the page.
  */
@@ -243,11 +243,11 @@ export interface SlidesMedia extends Pinned {
 
 /**
  * Static image asset. Opens in the lightbox (systems/attachments), where it
- * can be zoomed and panned — a poster, a figure, anything meant to be read.
+ * can be zoomed and panned: a poster, a figure, anything meant to be read.
  */
 export interface ImageMedia extends Pinned {
   kind: "image";
-  /** The full-resolution image — what the lightbox zooms into. */
+  /** The full-resolution image, which the lightbox zooms into. */
   url: string;
   /**
    * A lighter cover for the tiles, the inline figure and the peek, when
@@ -279,7 +279,7 @@ interface BaseCommit {
   id: string;
   tagId: string;
   /**
-   * Other chapters this commit also belongs to — where two eras overlap
+   * Other chapters this commit also belongs to, where two eras overlap
    * (a Meta internship that was React work and PL work at once). `tagId`
    * stays the home chapter: everything that reads one tag per commit (the
    * editor, home widgets, a magic link's colour) keeps reading it. How
@@ -292,8 +292,8 @@ interface BaseCommit {
   /**
    * The short name, where a line has room for a name and nothing else: the
    * home screen's projects widget. `Lynx` for "Lynx Framework", `React` for
-   * "React Compiler (Forget)" — what the thing is called, with what it is
-   * left to the title on /works. Absent, the title prints.
+   * "React Compiler (Forget)". The name says what the thing is called; what
+   * it is stays with the title on /works. Absent, the title prints.
    */
   name?: LocalizedString;
   description: LocalizedString;
@@ -309,7 +309,7 @@ interface BaseCommit {
   identityId?: string;
   /**
    * Sub-org / team the commit sits under. Renders as the row's
-   * subtitle chip on project rows — e.g. `"React Core team @ Meta"`,
+   * subtitle chip on project rows, e.g. `"React Core team @ Meta"`,
    * `"PLR @ Meta"`, `"Lynx @ ByteDance"`. Set on a project to override
    * per-row; set on a role range to serve as the default for every
    * project resolved under that role (Lynx-era projects inherit
@@ -335,8 +335,8 @@ interface BaseCommit {
   language?: CommitLanguage;
   /**
    * Which locale's listings should include this commit (visibility filter).
-   * Defaults to "both" — independent of `language`, since you may want to
-   * feature a Chinese talk in the English view.
+   * Defaults to "both". It is independent of `language`, since you may want
+   * to feature a Chinese talk in the English view.
    */
   listedIn?: CommitLanguage;
   /**
@@ -346,27 +346,27 @@ interface BaseCommit {
   media?: Media[];
   /**
    * Explicit role attachment.
-   * - `undefined` (default): use tenure auto-detect — a commit dated
+   * - `undefined` (default): use tenure auto-detect: a commit dated
    *   within a role's [date, endDate] window joins that role's bracket.
    * - `"<role-id>"`: force-attach to that role even if the commit is
    *   outside its tenure window. Rendered as an animated beam when the
    *   role is non-adjacent in the sort order.
-   * - `null`: force-detach — no rail or beam even if in tenure.
+   * - `null`: force-detach (no rail or beam even if in tenure).
    */
   attachedTo?: string | null;
   /**
    * Per-commit override that hides the date column and renders the
    * commit's location (for roles) instead. Useful for education
    * entries that overlap with concurrent work and would otherwise
-   * highlight the overlap. Orthogonal to `sortBy` — hiding the date
-   * is purely a display concern.
+   * highlight the overlap. Orthogonal to `sortBy`: hiding the date
+   * is only a display concern.
    */
   hideDate?: boolean;
   /**
    * Which date field anchors this commit in the timeline sort.
    * - `"endDate"` (default for roles): role row sits at the top of
    *   its tenure cluster.
-   * - `"date"`: row sits at its start date — e.g. an education entry
+   * - `"date"`: row sits at its start date, e.g. an education entry
    *   that should land at its enrollment year rather than anchor
    *   the top of an unrelated cluster via its graduation year.
    * - undefined: type default (`endDate` for roles, `date` otherwise).
@@ -374,7 +374,7 @@ interface BaseCommit {
   sortBy?: "date" | "endDate";
   /**
    * Override the default icon picked by commit type. Useful when
-   * the type is correct but the iconography wants a flavor — e.g.
+   * the type is correct but the iconography wants a flavor, e.g.
    * an education `role` rendered with `graduation-cap` instead of
    * the default briefcase.
    */
@@ -382,19 +382,19 @@ interface BaseCommit {
   /**
    * How this commit dresses on the timeline. Not a type: filters still
    * key off `type`, so an aside talk survives `?type=talk`. Same data,
-   * different row — the media layer already uses `present` this way
+   * different row. The media layer already uses `present` this way
    * (`pill` vs `card`).
    *
    *  - undefined (default): the ordinary row for this type.
    *  - `"aside"`: folded, the row borrows the event voice: one muted
-   *    italic line (see `asideLine` — the venue, the title, or both).
+   *    italic line (see `asideLine`: the venue, the title, or both).
    *    Click to expand into the real title, description, and media.
    */
   present?: CommitPresent;
   /**
    * Which part of an aside the folded line prints (see {@link AsideLine}).
    * Absent is `"venue-title"`. Meaningless on a row that is not an aside,
-   * and on a type with no venue — a project has none, and prints its title.
+   * and on a type with no venue (a project has none, and prints its title).
    */
   asideLine?: AsideLine;
 }
@@ -403,12 +403,12 @@ interface BaseCommit {
 export type CommitPresent = "aside";
 
 /**
- * What an aside's folded line prints — see {@link BaseCommit.asideLine}.
+ * What an aside's folded line prints. See {@link BaseCommit.asideLine}.
  *
  *  - `"venue-title"` (default): `WePiao Internal Tech Talk · JavaScript
  *    模块化七日谈`. The venue leads, because folded an aside is answering
  *    "when and where"; the title is the detail it offers after that.
- *  - `"venue"`: the venue alone — for a talk, the conference. The way the
+ *  - `"venue"`: the venue alone (for a talk, the conference). The way the
  *    event rows above it read. Also the floor under `"venue-title"` when
  *    the two would say the same thing: a deck whose `conference.name` is
  *    its own name, or the same title in the other locale.
@@ -474,7 +474,7 @@ export interface RoleCommit extends BaseCommit {
    * Required for role commits: the identity this role is an instance of.
    * Multiple roles can share the same `identityId` (Meta SWE + two
    * summer interns all point to identity `"meta"`), which is how the
-   * rail clusters them into one continuous run — the identity IS the
+   * rail clusters them into one continuous run. The identity is the
    * cross-tenure link.
    *
    * `handle` is stored on the identity only. `company` is copied onto
@@ -485,7 +485,7 @@ export interface RoleCommit extends BaseCommit {
   identityId: string;
   /**
    * Company label shown on the row's meta line. On disk this field is
-   * NOT stored on the role range — it comes from the identity (or the
+   * NOT stored on the role range. It comes from the identity (or the
    * range's `companyOverride`). `normalizeLogData` fills it in when
    * flattening ranges into commits; `denormalizeLogData` strips it
    * back out on save so it stays a single source of truth on the
@@ -494,7 +494,7 @@ export interface RoleCommit extends BaseCommit {
   company: LocalizedString;
   /**
    * Per-range override for `company` when a specific instance wants a
-   * different label than the identity's canonical one — e.g. a Meta
+   * different label than the identity's canonical one, e.g. a Meta
    * intern at "Meta Reality Labs" while the identity stays "Meta".
    */
   companyOverride?: LocalizedString;
@@ -504,7 +504,7 @@ export interface RoleCommit extends BaseCommit {
    * Suppress this role's own timeline row. The role still exists as a
    * range within its identity (contributes to tenure inference and its
    * `<handle>` still shows up on other commits in-window), it just
-   * doesn't take a row of its own — used when the identity's contained
+   * doesn't take a row of its own. Used when the identity's contained
    * projects speak for the tenure and the role row would be redundant.
    */
   hideRow?: boolean;
@@ -518,7 +518,7 @@ export interface RoleCommit extends BaseCommit {
  * A public appearance that isn't a talk: a magazine cover story, a list you
  * were named to, a long post published somewhere that isn't this site.
  *
- * Both directions on purpose — written *about* me and written *by* me,
+ * Both directions on purpose: written *about* me and written *by* me,
  * elsewhere. English leans toward coverage and Chinese (媒体) covers 媒体报道
  * and 自媒体 alike; each label is idiomatic in its own language, which is
  * worth more than making the two translations of each other.
@@ -533,12 +533,12 @@ export interface PressCommit extends BaseCommit {
 }
 
 // -----------------------------------------------------------------------------
-// Event Commit (Life event / bracket marker — moves, graduations, joins)
+// Event Commit (Life event / bracket marker: moves, graduations, joins)
 // -----------------------------------------------------------------------------
 
 /**
  * An ambient life event that contextualizes nearby work commits but is
- * not itself a "work artifact" — moves, graduations, tenure beginnings.
+ * not itself a "work artifact": moves, graduations, tenure beginnings.
  * Rendered as muted italic on the timeline, no links, no expand.
  */
 export interface EventCommit extends BaseCommit {
@@ -650,13 +650,13 @@ export type Group = GroupByIds | GroupByQuery;
 // =============================================================================
 
 /**
- * An `Identity` is the persistent "who I was when I committed this" —
+ * An `Identity` is the persistent "who I was when I committed this":
  * a shared byline that can span multiple role instances. Two summer
  * interns and a full-time engineer at Meta all point to the same
  * identity (handle: `jsx@fb.com`, company: Meta); each role only
  * differs in title / tenure / description / team.
  *
- * Metadata only — no ranges here at runtime; ranges are materialized
+ * Metadata only. No ranges live here at runtime; ranges are materialized
  * into top-level role commits by `normalizeLogData` and carry an
  * `identityId` back-reference for lookup.
  */
@@ -668,14 +668,14 @@ export interface Identity {
   /**
    * A photo of me from that time, for the identity card (systems/identity):
    * a site-local `/…` path or a URL, masked to a circle where it is shown.
-   * Optional — the card draws a monogram of the company in its place.
+   * Optional. Without it, the card draws a monogram of the company in its place.
    */
   avatar?: string;
 }
 
 /**
  * Authoring-only nested shape: an `Identity` plus its collected role
- * ranges. On disk, `content/log.json` uses this — everything about
+ * ranges. On disk, `content/log.json` uses this: everything about
  * "Meta" (handle, company, and every role instance under it) sits in
  * one place. `normalizeLogData` flattens the ranges into `commits[]`
  * so the downstream pipeline (sort / rail / groups / og) keeps
@@ -690,8 +690,8 @@ export interface RawIdentity extends Identity {
 
 /**
  * A role range under an identity, as it appears on disk. All the
- * BaseCommit + RoleCommit fields EXCEPT `type` and `identityId` —
- * both are auto-injected by the normalizer. `tagId` may be omitted
+ * BaseCommit + RoleCommit fields EXCEPT `type` and `identityId`,
+ * which are both auto-injected by the normalizer. `tagId` may be omitted
  * to inherit from the enclosing identity.
  */
 export interface RawRoleRange
@@ -715,7 +715,7 @@ export interface RawLogData {
   /**
    * Nested identities keyed by short stable id (`meta`, `bytedance`,
    * `rit`). Each identity carries its role ranges inline for
-   * co-located authoring — no way for a range to drift out of sync
+   * co-located authoring, so a range has no way to drift out of sync
    * with its identity's handle/company.
    */
   identities?: Record<string, RawIdentity>;
@@ -727,7 +727,7 @@ export interface RawLogData {
  * `identities[*].ranges` have been flattened into `commits` with
  * `type: "role"` and `identityId` back-reference injected. The
  * `identities` map is preserved as a metadata lookup (handle,
- * company, accent color) — no ranges live inside it at runtime.
+ * company, accent color). No ranges live inside it at runtime.
  */
 export interface LogData {
   tags: Tag[];
@@ -768,8 +768,8 @@ export function normalizeLogData(raw: RawLogData | LogData): LogData {
       for (const range of ranges) {
         // Copy `company` onto the runtime role from the identity (or
         // the range's per-instance override). Storing it here keeps
-        // every row-rendering path identity-map-agnostic — commit-data,
-        // commit-card, editor forms all just read `role.company`.
+        // every row-rendering path identity-map-agnostic: commit-data,
+        // commit-card and the editor forms all just read `role.company`.
         const company = range.companyOverride ?? def.company;
         const roleCommit = {
           ...range,
@@ -799,7 +799,7 @@ export function normalizeLogData(raw: RawLogData | LogData): LogData {
  * top-level `commits[]`.
  *
  * Preserves the nested-authoring shape on disk even after the editor
- * saves — the flat runtime shape never touches `log.json`.
+ * saves. The flat runtime shape never touches `log.json`.
  */
 export function denormalizeLogData(flat: LogData): RawLogData {
   const identities: Record<string, RawIdentity> = {};
@@ -821,8 +821,8 @@ export function denormalizeLogData(flat: LogData): RawLogData {
     if (c.type === "role" && c.identityId && identities[c.identityId]) {
       const idDef = identities[c.identityId];
       // Strip fields that live on the identity (company, identityId,
-      // type) so they don't get duplicated in the on-disk range —
-      // the identity is the single source of truth.
+      // type) so they don't get duplicated in the on-disk range.
+      // The identity is the single source of truth.
       const {
         identityId: _idRef,
         type: _type,
@@ -933,8 +933,8 @@ export function formatDateRange(
 /**
  * Format a commit's date for display.
  *
- * Roles always render a date range — even without an `endDate`, an
- * open-ended role reads as `"2023 — Present"` so the row visibly
+ * Roles always render a date range. Even without an `endDate`, an
+ * open-ended role reads as `"2023 – Present"` so the row visibly
  * communicates "still ongoing" rather than collapsing to a single
  * month label (which would otherwise read like a one-off project).
  *
@@ -972,7 +972,7 @@ export function formatTagDateRange(tag: Tag, locale: Locale): string {
 
 /**
  * Compute a 7-character hex hash from a commit's id.
- * Uses djb2 hashing — deterministic, stable, and visually git-like.
+ * Uses djb2 hashing: deterministic, stable, and git-like to look at.
  * The id is the canonical key so the hash won't change when content is edited.
  */
 export function computeCommitHash(commitId: string): string {
@@ -1001,8 +1001,8 @@ const COMMIT_TYPE_LABELS: Record<CommitType, LocalizedString> = {
   event: { en: "Event", zh: "事件" },
 };
 
-/** Where the rule doesn't hold. `press` is a mass noun — a body of coverage,
- *  not a count of pieces — so "Presses" would be a different word. */
+/** Where the rule doesn't hold. `press` is a mass noun (a body of coverage,
+ *  not a count of pieces), so "Presses" would be a different word. */
 const COMMIT_TYPE_PLURAL_EN: Partial<Record<CommitType, string>> = {
   press: "Press",
 };
@@ -1015,7 +1015,7 @@ export function getCommitTypeLabel(type: CommitType, locale: Locale): string {
 }
 
 /**
- * Display name for a commit type as a *collection* — the label on a
+ * Display name for a commit type as a *collection*: the label on a
  * /works filter chip, which names a body of work rather than one row.
  *
  * Deliberately a straight pluralization of `getCommitTypeLabel`: the chip
@@ -1040,12 +1040,13 @@ export function getCommitTypePluralLabel(
  * what is on the page.
  *
  * `event` is the one exception, and not on a "work vs. not work"
- * distinction — `role` earns a chip on exactly those grounds. An event
+ * distinction; `role` earns a chip on exactly those grounds. An event
  * is a dateline ("moved to the US"): no title of its own worth reading
  * alone, no media, no link, rendered as a muted italic between the
  * commits it annotates. It is punctuation, and "show me only the
  * punctuation" is not a reading anyone wants. A role is a row with a
- * title, a company, a tenure and often a link — "just the career" is.
+ * title, a company, a tenure and often a link. "Just the career" is a
+ * reading people want.
  *
  * Note that the chips the toolbar actually prints are derived from the
  * data: a type with no *visible* rows gets none. Roles are usually
@@ -1074,9 +1075,9 @@ export function isFilterableCommitType(
 /**
  * True when `commit` survives the active type filter.
  *
- * An empty `active` list is "no filter" — everything passes, events
+ * An empty `active` list is "no filter": everything passes, events
  * included. Once anything is selected the predicate is exact: only
- * commits of a selected type pass, so events (never selectable — see
+ * commits of a selected type pass, so events (never selectable; see
  * {@link FILTERABLE_COMMIT_TYPES}) drop out with the rest.
  */
 export function matchesTypeFilter(
@@ -1134,10 +1135,10 @@ function commitSortKey(c: Commit): string {
  *
  * - Roles that sort by `endDate` (the default): role comes BEFORE
  *   non-roles at tie, so the role row appears above its projects
- *   dated at the same month — anchoring the TOP of the cluster.
+ *   dated at the same month. It anchors the TOP of the cluster.
  * - Roles that sort by `date` (start): role comes AFTER non-roles at
- *   tie, so the role row settles BELOW its same-month projects —
- *   anchoring the BOTTOM of the cluster.
+ *   tie, so the role row settles BELOW its same-month projects and
+ *   anchors the BOTTOM of the cluster.
  * - Non-roles: middle tier; order amongst themselves is stable.
  */
 export function sortCommitsByDate<T extends Commit>(commits: T[]): T[] {
@@ -1191,7 +1192,7 @@ export function isCommitVisibleIn(commit: Commit, locale: Locale): boolean {
  * intrinsic language. Returns null when no badge should appear: no language
  * set, or language is "both".
  *
- * The badge only flags a *mismatch* — "this piece isn't in your locale" —
+ * The badge only flags a *mismatch* ("this piece isn't in your locale"),
  * so it stays silent when the language already matches the viewer. That
  * holds for talks too: a talk can't be translated, but an EN talk on an EN
  * page is the expected case, and nineteen identical badges down the log said
@@ -1243,15 +1244,15 @@ export interface BeamLink {
  * Compute the rail bracket info for each commit in a tag.
  *
  * Under the identity model, the rail groups **consecutive commits
- * sharing the same resolved `identityId`** — the byline handle IS the
+ * sharing the same resolved `identityId`**. The byline handle is the
  * clustering key. Two summer interns + a full-time engineer + all the
  * projects during Meta tenure resolve to identity `"meta"` and form
  * one continuous ┐│┘ bracket regardless of role-instance boundaries
  * inside. When the identity changes (Meta → RIT), the rail breaks.
  *
- *   ┐  topmost row in cluster — line goes down only
- *   │  mid-cluster row — line both directions
- *   ┘  bottommost row in cluster — line goes up only
+ *   ┐  topmost row in cluster: line goes down only
+ *   │  mid-cluster row: line both directions
+ *   ┘  bottommost row in cluster: line goes up only
  *      (empty)  no cluster, or single-row identity, or no identity
  *
  * `segmentId` is set to the identity id for every clustered row
@@ -1266,8 +1267,8 @@ export function computeRail(commits: Commit[]): RailInfo[] {
   }));
 
   // Resolve identity for every commit. Non-role commits with no
-  // identity (attachedTo:null, or no tenure fit) come back as null —
-  // those rows are rail-less.
+  // identity (attachedTo:null, or no tenure fit) come back as null.
+  // Those rows are rail-less.
   const iids: (string | null)[] = commits.map(
     (c) => resolveIdentity(c, commits)?.identityId ?? null,
   );
@@ -1283,8 +1284,8 @@ export function computeRail(commits: Commit[]): RailInfo[] {
     let j = i;
     while (j + 1 < commits.length && iids[j + 1] === iid) j += 1;
 
-    // Stamp segmentId for every row in the cluster (even single-row —
-    // preserves "belongs to identity X" for downstream lookups).
+    // Stamp segmentId for every row in the cluster (even single-row,
+    // to preserve "belongs to identity X" for downstream lookups).
     for (let k = i; k <= j; k++) result[k].segmentId = iid;
 
     // Bracket glyphs only when there's actually more than one row to
@@ -1308,8 +1309,8 @@ export function computeRail(commits: Commit[]): RailInfo[] {
  * identity resolution needs their handle and tenure, but the cluster
  * they anchor speaks for the tenure and the row itself would be
  * redundant. Exported so that everything which has to agree on "what
- * is on the page" — the rail, the render loop, the toolbar's per-type
- * counts — asks the same question.
+ * is on the page" (the rail, the render loop, the toolbar's per-type
+ * counts) asks the same question.
  */
 export function isSuppressedRow(commit: Commit): boolean {
   return commit.type === "role" && commit.hideRow === true;
@@ -1319,7 +1320,7 @@ export function isSuppressedRow(commit: Commit): boolean {
  * The one question every part of /works has to agree on: does this commit
  * take a row in the current reading of the log?
  *
- * Two rules compose — a row the data suppresses outright, and a row the
+ * Two rules compose: a row the data suppresses outright, and a row the
  * reader's type filter drops. They were composed by hand at three call
  * sites and the three had already drifted apart: the toolbar's counts
  * checked suppression, the page's "did anything match?" check did not, so
@@ -1329,7 +1330,7 @@ export function isSuppressedRow(commit: Commit): boolean {
  *
  * **Suppression is conditional on context, and this is where that lives.**
  * `hideRow` means "the cluster this role anchors already speaks for the
- * tenure" — which is true of the whole log and false the moment the reader
+ * tenure". That is true of the whole log and false the moment the reader
  * filters to roles, because then there is no cluster left to speak. Seven
  * of nine roles are `hideRow`, so the Roles chip used to print the two
  * that aren't: both degrees, and a career page that was nothing but
@@ -1352,19 +1353,19 @@ export function isRowVisible(
 
 /**
  * Re-derive rail glyphs after some rows are hidden. The identity
- * cluster (segmentId) is unchanged — we just shift the `┐` / `┘`
+ * cluster (segmentId) is unchanged. We just shift the `┐` / `┘`
  * top/bottom markers onto the first/last *visible* row in each
  * cluster, and clear the hidden row's own rail so it contributes
  * nothing to the gutter.
  *
- * `isHidden` is the whole rule, not a supplement to one held in here —
- * see {@link isRowVisible}, which is what callers negate. /works passes
+ * `isHidden` is the whole rule, not a supplement to one held in here.
+ * See {@link isRowVisible}, which is what callers negate. /works passes
  * its type filter through it, so a filtered timeline re-brackets around
  * the rows that survive instead of drawing a rail into the gap where a
  * dropped row used to be.
  *
  * Called after `computeRail` so the identity clustering stays derived
- * from the full data: hidden rows — filtered-out ones included — still
+ * from the full data: hidden rows (filtered-out ones included) still
  * contribute their handle / tenure to identity resolution for the
  * commits around them, which is why filtering never costs a byline.
  */
@@ -1392,7 +1393,7 @@ export function adjustRailForHidden(
   }
   for (const [, indices] of visibleBySegment) {
     if (indices.length < 2) {
-      // Hiding the role collapsed the cluster to a single visible row —
+      // Hiding the role collapsed the cluster to a single visible row:
       // no rail glyph (matches the "solo role" baseline).
       for (const i of indices) result[i].rail = "";
       continue;
@@ -1404,7 +1405,7 @@ export function adjustRailForHidden(
     }
   }
 
-  // Hidden rows themselves: drop rail/segmentId — they won't render
+  // Hidden rows themselves: drop rail/segmentId. They won't render
   // anyway, but be defensive against downstream consumers that walk
   // the array without checking visibility.
   for (const i of hidden) {
@@ -1436,12 +1437,12 @@ export function computeInferredBeams(
  *
  * Targets can be roles (an artifact attached to a tenure context) or
  * events (an artifact attached to an ambient period like a sabbatical).
- * Silently skips when the target is missing — a typo in JSON degrades
+ * Silently skips when the target is missing, so a typo in JSON degrades
  * to "no connector" rather than crashing.
  */
 export function computeBeams(
   commits: Commit[],
-  /** Rows the caller will not render — the whole rule, as
+  /** Rows the caller will not render: the whole rule, as
    *  {@link adjustRailForHidden} takes it. A connector with a hidden
    *  endpoint has nothing to draw between, so it is dropped rather than
    *  left dangling; both ends are asked the same question. */
@@ -1466,8 +1467,8 @@ export function computeBeams(
       targetType !== "project"
     )
       continue;
-    // If the target is hidden — a `hideRow` role, or one the filter
-    // dropped — the connector has nothing to land on.
+    // If the target is hidden (a `hideRow` role, or one the filter
+    // dropped), the connector has nothing to land on.
     if (isHidden(commits[toIdx])) continue;
     beams.push({
       fromIdx: i,
@@ -1482,7 +1483,7 @@ export function computeBeams(
 
 /**
  * The result of resolving a commit's authorial context:
- *  - `identityId` is the durable byline id — what the rail clusters
+ *  - `identityId` is the durable byline id: what the rail clusters
  *    on and what feeds `<handle>` (via `identities[identityId].handle`).
  *  - `role` is the specific role instance whose title / tenure /
  *    description feed the expanded author block. Absent when no role
@@ -1507,8 +1508,8 @@ const monthIdx = (m: string): number => {
 /**
  * Per-commits-array cache of "roles grouped by their identityId" plus
  * a flat "all roles" list. `resolveIdentity` gets called once per
- * commit inside `computeRail` and again inside the byline builder —
- * without this the role scan is O(N²) over the same commits array.
+ * commit inside `computeRail` and again inside the byline builder.
+ * Without this the role scan is O(N²) over the same commits array.
  * A WeakMap keyed on the array reference lets both callers share the
  * work without threading a new parameter through the public API.
  */
@@ -1781,7 +1782,7 @@ export function isLinkCard(media: Media): media is LinkMedia & { present: "card"
 }
 
 /**
- * True when an item plays rather than opens — the one rule behind every
+ * True when an item plays rather than opens. The one rule behind every
  * play badge on the site.
  *
  * Videos and decks play in-site (the theater, the slides player); a link
@@ -1834,7 +1835,7 @@ function extractYouTubeId(url: string): string | null {
 }
 
 /**
- * The still image an attachment paints at runtime — same resolver the
+ * The still image an attachment paints at runtime. Same resolver the
  * contact strip, feed tiles, and the og-snapshot completeness check use.
  *
  * Live social widgets return null (they are not covers). Cards
@@ -1857,13 +1858,13 @@ export function getAttachmentImage(
  *
  * Derivation by kind:
  * - VideoMedia:       explicit `thumbnail`, else YouTube's derived URL
- *                     (Bilibili / Vimeo: must be explicit — no public derivation).
+ *                     (Bilibili / Vimeo: must be explicit; no public derivation).
  * - SlidesMedia:      explicit `thumbnail` (decks don't expose a public cover API).
  * - ImageMedia:       explicit `thumbnail`, else the image URL itself.
  * - LinkMedia (card): the resolved `preview.image` (card pipeline writes this
  *                     server-side from the OG snapshot + manual override).
- * - LinkMedia (pill): null — pills don't carry a thumbnail.
- * - SocialEmbedMedia: null — widgets render their own cover.
+ * - LinkMedia (pill): null. Pills don't carry a thumbnail.
+ * - SocialEmbedMedia: null. Widgets render their own cover.
  */
 export function getMediaThumbnail(media: Media): string | null {
   switch (media.kind) {
@@ -1941,7 +1942,7 @@ export type PeekItem =
  *
  * Reconciliation with `pinned`:
  *   Peek = "what's *behind* the fold". Pinned media is already visible
- *   inline in the row, so peeking at it adds nothing — we filter it out.
+ *   inline in the row, so peeking at it adds nothing, so we filter it out.
  *   Concretely: a commit with 3 media (1 pinned, 2 default) peeks the 2
  *   hidden ones; a commit whose media is *entirely* pinned peeks nothing
  *   and falls back to the description. This keeps the peek's role crisp:
@@ -1962,7 +1963,7 @@ export function getCommitPeekItems(commit: Commit): PeekItem[] {
 }
 
 /**
- * One cover in a commit's contact strip — the row of thumbnails the
+ * One cover in a commit's contact strip, the row of thumbnails the
  * `stat` density prints under a folded row (see `MediaStrip`).
  *
  * Carries the `Media` itself, not just its URL, because the strip is
@@ -1980,11 +1981,11 @@ export interface StripItem {
  * Collect every cover in a media array, preserving authored order.
  *
  * Where the hover peek asks "what is behind the fold?", the strip asks
- * "what is in this commit?" — so the two filters differ:
+ * "what is in this commit?", so the two filters differ:
  *  - pills contribute nothing either way (no cover; they already show
  *    as icons in the folded row's right rail);
  *  - social embeds contribute nothing (a live widget has no still to
- *    stand in for it — they stay expanded-only);
+ *    stand in for it; they stay expanded-only);
  *  - link cards use the viewer's locale variant when the enrichment
  *    pipeline resolved one, matching what `MediaRenderer` would render.
  *

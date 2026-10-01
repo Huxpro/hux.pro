@@ -1,5 +1,5 @@
 // =============================================================================
-// Badge sites — which site's icon a badge wears.
+// Badge sites: which site's icon a badge wears.
 //
 // A badge wears the official icon of the thing it names, and a thing's icon is
 // its site's: the icon the site itself declares for a home screen (manifest →
@@ -15,7 +15,7 @@
 //   identity= (`identities`): a company's own site.
 //   commit=   the site in content/badges.json `commits` when one is named there
 //             (a project whose first link is an article about it, not its
-//             home — Ele.me's PWA is a Medium post, Alitrip is now Fliggy);
+//             home; Ele.me's PWA is a Medium post, Alitrip is now Fliggy);
 //             otherwise the host of its first external attachment.
 //   href=     the URL's host. youtu.be is YouTube, twitter.com is X.
 //   neither   an app wears its home-screen icon (content/app-icons.json), a
@@ -26,7 +26,7 @@
 import type { Commit } from "./log";
 import { IMAGE_EXTENSIONS } from "./media-kind";
 
-/** content/badges.json — authored. */
+/** content/badges.json, authored. */
 export interface BadgeConfig {
   /** Commit id → the URL of the site that stands for it. */
   commits?: Record<string, string>;

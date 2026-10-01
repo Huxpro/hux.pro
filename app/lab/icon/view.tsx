@@ -30,7 +30,7 @@ import { ICON_STRINGS } from "./strings";
 
 /**
  * Inlines the icon SVG into the DOM (not via `<img>`) so the wordmark renders
- * with the page's loaded font families — WYSIWYG against the committed asset,
+ * with the page's loaded font families: WYSIWYG against the committed asset,
  * which embeds the same glyphs. One base render is CSS-scaled to each slot, so
  * textures stay proportional; `idPrefix` keeps the internal defs from
  * cross-wiring between the multiple inlined copies.
@@ -100,7 +100,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
     [],
   );
 
-  // Edit a parameter of the *active* texture only — keeps each texture's tuning
+  // Edit a parameter of the *active* texture only. Keeps each texture's tuning
   // independent (switching styles never carries another's values over).
   const setTex = useCallback(
     <K extends keyof TextureSettings>(key: K, value: TextureSettings[K]) =>
@@ -309,7 +309,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
               />
             </Field>
 
-            {/* Per-texture controls — each texture keeps its own values. */}
+            {/* Per-texture controls; each texture keeps its own values. */}
             {tex && config.background.style === "gradient" && (
               <Field label={S.gradientEnd}>
                 <ColorField
@@ -386,7 +386,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
         </>
       }
     >
-      {/* Preview — the SVG is inlined (not <img>) so it renders with the
+      {/* Preview. The SVG is inlined (not <img>) so it renders with the
           page's loaded font families, making the preview WYSIWYG. */}
       <LabSection title={S.appTile}>
         <div className="flex justify-center rounded-2xl bg-muted/40 px-6 py-10 sm:py-14">
@@ -398,7 +398,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
         </div>
       </LabSection>
 
-      {/* Size ladder — legibility check at favicon sizes */}
+      {/* Size ladder: legibility check at favicon sizes */}
       <LabSection title={S.sizes} note={S.sizesNote}>
         <div className="flex flex-wrap items-end justify-center gap-6 rounded-2xl bg-muted/40 px-6 py-8">
           {[128, 64, 32, 16].map((px) => (

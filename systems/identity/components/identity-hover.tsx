@@ -11,12 +11,12 @@ import { useIdentityProfile, useOptionalIdentityCard } from "../provider";
 import { IdentityProfileView } from "./identity-profile";
 
 // =============================================================================
-// IdentityHover — the profile behind a handle, the way the row peeks.
+// IdentityHover: the profile behind a handle, the way the row peeks.
 //
 // /works already has one hover system: the magnetic peek that follows the
 // cursor off a folded row and shows what the row is holding. A handle, a
-// `Role:` field and a role row are the same kind of thing — a name that
-// stands for more than it prints — so they peek the same way. No click, no
+// `Role:` field and a role row are the same kind of thing (a name that
+// stands for more than it prints), so they peek the same way. No click, no
 // close: the card arrives with the pointer and leaves with it.
 //
 // Where there is no pointer (a phone, a touch tablet) the same mark is a
@@ -46,13 +46,13 @@ interface IdentityHoverProps {
   roleId?: string;
   /** Classes for the mark itself (the text). */
   className?: string;
-  /** Classes for the wrapper the peek attaches to — a flex item's `shrink-0`. */
+  /** Classes for the wrapper the peek attaches to, e.g. a flex item's `shrink-0`. */
   wrapperClassName?: string;
   /**
    * The mark is a region, not a run of text: the author block, whose
    * `Author:` and `Role:` lines stand for the one identity together. The
-   * whole area lights on hover, and under the finger that opens the sheet —
-   * a wash over the block, since colouring one line of it would say the
+   * whole area lights on hover, and under the finger that opens the sheet,
+   * as a wash over the block. Colouring one line of it would say the
    * lines were separate things. The region's own layout (a subgrid of the
    * field stack it sits in) is the caller's, passed in `className` and
    * `wrapperClassName`; this only lights it.

@@ -14,7 +14,7 @@ import { usePermissions } from "./use-permissions";
 const SKY_PERMISSIONS: readonly PermissionKind[] = ["motion", "location"];
 
 // ---------------------------------------------------------------------------
-// SkyWindowSheet — the offer that comes before the sky window's prompts.
+// SkyWindowSheet: the offer that comes before the sky window's prompts.
 //
 // Summoned by pulling the home down while WebKit's motion gate still stands,
 // or while the place is only a guess (lib/sky-pull.ts), and mounted in the
@@ -34,11 +34,11 @@ const SKY_PERMISSIONS: readonly PermissionKind[] = ["motion", "location"];
 // which is a phone; there is no desktop shape to design because there is no
 // desktop case.
 //
-// The picture is the argument. Saying "the sky holds still while you turn" is
-// the part nobody reads — so a phone pans across a faint sky, and inside the
-// phone the same sky is drawn in full, holding still while the phone moves
-// over it. The sun comes into the window and goes out of it again, and that
-// is the feature at a size that fits above a paragraph. See the block in
+// The picture makes the case. Nobody reads the sentence "the sky holds still
+// while you turn", so a phone pans across a faint sky, and inside the phone
+// the same sky is drawn in full, holding still while the phone moves over it.
+// The sun comes into the window and goes out of it again. That is the feature
+// at a size that fits above a paragraph. See the block in
 // globals.css for why it is drawn from the world's frame, where the tilt
 // primer's picture is drawn from the phone's.
 //
@@ -56,20 +56,20 @@ const SKY_PERMISSIONS: readonly PermissionKind[] = ["motion", "location"];
 /**
  * How the picture is standing.
  *
- *   panning — the phone sweeps across the sky and the sky inside it holds
- *             still. The promise, and the argument.
- *   still   — the phone parked between the sun and the moon, showing neither:
- *             a window that does not turn is a window onto one patch of sky,
- *             which is exactly what a refused browser gives you.
+ *   panning: the phone sweeps across the sky and the sky inside it holds
+ *            still. What the window offers.
+ *   still:   the phone parked between the sun and the moon, showing neither.
+ *            A window that does not turn is a window onto one patch of sky,
+ *            which is what a refused browser gives you.
  *
  * Under `prefers-reduced-motion` the panning animations are paused at 0%, which
- * is the phone framing the sun — the still frame says it in one picture.
+ * is the phone framing the sun. That still frame shows the idea in one picture.
  */
 type Pose = "panning" | "still";
 
 /**
  * The sky the phone looks into, in the world's frame: a horizon, a sun low on
- * the left and a crescent higher on the right. Drawn twice — faint for the
+ * the left and a crescent higher on the right. Drawn twice: faint for the
  * world outside the phone, full inside it.
  */
 function Panorama() {
@@ -169,7 +169,7 @@ export function SkyWindowSheet() {
   } = useWallpaper();
   const { status, request } = usePermissions(SKY_PERMISSIONS);
   const [place, setPlace] = useState<Place>(null);
-  // Whether this opening asks for the place too — decided as it opens and held
+  // Whether this opening asks for the place too. Decided as it opens and held
   // for the life of the sheet, so a fix landing halfway through does not
   // rewrite the offer under the visitor's thumb.
   const [askPlace, setAskPlace] = useState(false);
@@ -198,7 +198,7 @@ export function SkyWindowSheet() {
 
   // Both dialogs from the one press, in the order usePermissions keeps:
   // motion inside the tap's own task, then the place. Motion is asked for even
-  // when it already flows — that is a no-op answer, and it turns the tilt's
+  // when it already flows: that is a no-op answer, and it turns the tilt's
   // wish on with the window, as a yes to the sky should.
   const take = () =>
     ask(async () => {
@@ -208,8 +208,8 @@ export function SkyWindowSheet() {
       // The place is worth having whatever motion says: without the window
       // the stage's sun and moon are still placed by it.
       if (location) setPlace(location === "granted" ? "shared" : "guessed");
-      // "prompt" is the gate refusing to even consider it — no dialog was
-      // shown and nothing was answered, so the offer is simply still standing.
+      // "prompt" is the gate refusing to even consider it. No dialog was
+      // shown and nothing was answered, so the offer is still standing.
       if (motion === "prompt") return "offer";
       if (!isGyroReachable(motion)) return "denied";
       setSkyWindow(true);

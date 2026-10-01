@@ -5,7 +5,7 @@ import { ArrowUpRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // =============================================================================
-// WebFrame — a web app in an <iframe>, with a "won't embed" fallback
+// WebFrame: a web app in an <iframe>, with a "won't embed" fallback
 //
 // Many sites refuse framing (X-Frame-Options / CSP frame-ancestors), and the
 // browser blocks that at a layer JS can't read cross-origin. So instead of
@@ -27,10 +27,10 @@ export function WebFrame({ url, title }: { url: string; title: string }) {
 
   return (
     <div className="relative h-full w-full bg-white dark:bg-neutral-900">
-      {/* Loading: the site's glow working — the same travelling beam a field
-          shows while it settles what was said (systems/glow), along the top
-          of the page the way a browser's loading bar runs, over a blank
-          ground. It sweeps out as the page lands. */}
+      {/* Loading: the site's glow in its working state. It is the same
+          travelling beam a field shows while it settles what was said
+          (systems/glow), run along the top of the page like a browser's
+          loading bar, over a blank ground. It sweeps out as the page lands. */}
       {!loaded && <div className="absolute inset-0 z-10 bg-background" />}
       <div className="pointer-events-none absolute inset-0 z-10">
         <Glow active={!loaded} shape="line" edge="top" processing reach={7} />

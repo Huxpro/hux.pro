@@ -1,5 +1,5 @@
 // =============================================================================
-// Glow System — the site's one light.
+// Glow System: the site's one light.
 //
 // Siri's ring, as a shader on the edge of a rounded box: the About's screen,
 // a field listening to a voice, a badge under the pointer. One palette

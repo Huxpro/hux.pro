@@ -1,18 +1,18 @@
 "use client";
 
 // =============================================================================
-// Legibility Lab — /lab/legibility
+// Legibility Lab: /lab/legibility
 //
 // The devtool for the question "can I read this?": every wallpaper (the
 // weather set included), both materials, both tints, both themes, and one of
-// every surface the site draws text on — with every number in the system a
-// slider, and a star wherever a live value differs from what ships.
+// every surface the site draws text on. Every number in the system is a
+// slider, with a star wherever a live value differs from what ships.
 //
 // The stage is not a mock. Choosing a wallpaper here selects it for real,
 // through the same setters the picker uses; the specimens are the production
 // components and classes; the sliders write the same CSS variables the
 // provider and the stylesheet already read. What you see is what the site
-// does — and leaving the page puts everything back.
+// does, and leaving the page puts everything back.
 //
 // Three layers of knob, top to bottom of the panel:
 //   scene    → app state (persisted while here, restored on leave)
@@ -140,7 +140,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
           setDone(true);
           setTimeout(() => setDone(false), 1200);
         } catch {
-          // Clipboard unavailable — the textarea below is selectable.
+          // Clipboard unavailable; the textarea below is selectable.
         }
       }}
       className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1.5 text-xs font-mono text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
@@ -169,7 +169,7 @@ export function LegibilityLabView() {
   // --- The stage needs the devtool on (the condition and clock overrides only
   // apply then) and the wallpaper full-page whatever the visitor's placement.
   // Both, and any condition / clock the scene chips force, are ephemeral
-  // devtool state — they go back to what they were on leave, or the picker's
+  // devtool state. They go back to what they were on leave, or the picker's
   // placement and the live sky would look broken afterwards. What stays is
   // what the visitor could have set anyway (the wallpaper, theme, material,
   // tint) and the tuning (the policy through the provider, the sheet inline).
@@ -269,7 +269,7 @@ export function LegibilityLabView() {
   }, [policyOverrides, pins]);
 
   // The tuned policy goes to the provider, which resolves every route with it
-  // until Reset all — that is how a veil tuned here reaches /writing.
+  // until Reset all. That is how a veil tuned here reaches /writing.
   useEffect(() => {
     setLabPolicy(Object.keys(policyOverrides).length ? policy : null);
   }, [setLabPolicy, policy, policyOverrides]);
@@ -283,7 +283,7 @@ export function LegibilityLabView() {
     () => resolveForLab({ profile: wallpaper.profile, theme, reading, policy, pins }),
     [wallpaper.profile, theme, reading, policy, pins],
   );
-  // The policy's own answer, before any pin — what a pin's star goes back to.
+  // The policy's own answer, before any pin: what a pin's star goes back to.
   const unpinned = useMemo(
     () => resolveForLab({ profile: wallpaper.profile, theme, reading, policy, pins: {} }),
     [wallpaper.profile, theme, reading, policy],
@@ -294,7 +294,7 @@ export function LegibilityLabView() {
     for (const knob of POLICY_KNOBS) out[knob.key] = knobActsHere(knob, { profile: wallpaper.profile, theme, policy });
     return out;
   }, [wallpaper.profile, theme, policy]);
-  // The reading specimen carries the policy as a reading route resolves it —
+  // The reading specimen carries the policy as a reading route resolves it:
   // no flip, relief × reliefReading, and the veil and blur it will get.
   const readingVars = useMemo(
     () => resolveForLab({ profile: wallpaper.profile, theme, reading: true, policy, pins }),

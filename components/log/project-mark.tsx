@@ -1,10 +1,10 @@
 /**
- * ProjectMark — the face a project wears.
+ * ProjectMark: the face a project wears.
  *
  * A project row on /works used to wear the package glyph every other project
  * wore, so the gutter said "this is a project" eleven times and never which
- * one. A project is a thing with a name and a face — Lynx has a mark, React
- * has one, Hermes has one — and the About already gives each its official
+ * one. A project is a thing with a name and a face (Lynx has a mark, React
+ * has one, Hermes has one), and the About already gives each its official
  * icon on a `<Badge>`. This is that icon on the row, at the row's size: the
  * home-screen icon the site declares (rounded, filling its tile) or a
  * favicon on a white plate, and a monogram in the chapter's colour for a

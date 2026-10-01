@@ -1,17 +1,17 @@
 "use client";
 
 // =============================================================================
-// Lab strings — both languages, keyed, local to each lab.
+// Lab strings: both languages, keyed, local to each lab.
 //
 // The labs are devtools, so their copy lives beside them (a `strings.ts` in
 // each lab, `STRINGS` here for the frame) rather than in the site dictionary
 // (`lib/i18n.ts`), which holds what visitors read. Every table is written
-// the same way — `const en = {…}`, then `const zh: typeof en = {…}` so a
-// missing or extra key is a type error — and read with `useLabStrings`.
+// the same way (`const en = {…}`, then `const zh: typeof en = {…}` so a
+// missing or extra key is a type error) and read with `useLabStrings`.
 // A string that takes a value is a function in both (`(n: number) => …`).
 //
-// What stays untranslated, on purpose: code — component, prop, file and
-// JSON key names, CSS classes, route paths — because that is what you
+// What stays untranslated, on purpose: code (component, prop, file and
+// JSON key names, CSS classes, route paths), because that is what you
 // would search the repo for. A label is translated; the identifier it
 // names is not.
 // =============================================================================

@@ -2,7 +2,7 @@ import { glowPalette, subscribeGlowPalette } from "./harmony";
 import { GLOW_FRAGMENT, GLOW_VERTEX } from "./shader";
 
 // =============================================================================
-// The glow renderer — one WebGL context for every glow on the page.
+// The glow renderer: one WebGL context for every glow on the page.
 //
 // A glow is small and there can be many (a badge under the pointer, a field
 // listening, the About's whole screen), and a browser keeps only a handful of
@@ -13,7 +13,7 @@ import { GLOW_FRAGMENT, GLOW_VERTEX } from "./shader";
 // WebGL buffer is presented and cleared).
 //
 // One `requestAnimationFrame` loop serves every instance, and it runs only
-// while some instance is live — arriving, on, or leaving — and the tab is
+// while some instance is live (arriving, on, or leaving) and the tab is
 // visible. An instance scrolled off screen is skipped (the component watches
 // it with an IntersectionObserver). When a device cannot hold 60 fps the loop
 // drops to every other frame, and every few seconds tries full rate again
@@ -42,7 +42,7 @@ export interface GlowUniforms {
   flip: number;
   /** Where the light must end, px off the side / top-bottom edges; 0,0 = no limit. */
   extent: readonly [number, number];
-  /** 0 flow · 1 rotate · 2 pulse — which light the shader builds. */
+  /** Which light the shader builds: 0 flow · 1 rotate · 2 pulse. */
   mode: number;
   /** A rotation's head, ring units. */
   head: number;

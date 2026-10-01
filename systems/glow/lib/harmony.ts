@@ -5,31 +5,31 @@ import { GLOW_STOPS } from "./palette";
 import { glowTuning, subscribeGlowTuning } from "./tuning";
 
 // =============================================================================
-// The glow's colours, from the wallpaper — in harmony with it.
+// The glow's colours, taken from the wallpaper so they harmonise with it.
 //
 // The light was one fixed palette, Siri's. Over a wallpaper it can instead be
 // drawn from the picture: its dominant colour (the ambient system's profile,
-// `tint` — a photograph's measured once, the Sky's read off the live scene)
+// `tint`: a photograph's measured once, the Sky's read off the live scene)
 // sets a base hue, and a colour-wheel rule picks the light's hues from it, so
-// the glow belongs to the picture instead of sitting on it.
+// the glow matches the picture instead of sitting on top of it.
 //
 //   analogous       base −32°, base, base +32°: neighbours on the wheel, the
-//                   calmest harmony — the light is the picture's own colour,
-//                   lit
+//                   calmest harmony. The light is the picture's own colour,
+//                   brightened
 //   complementary   base, base +24°, base +180°: the picture's colour and its
 //                   opposite, the strongest contrast
 //   split           base, base +150°, base +210°: the opposite's two
-//                   neighbours — contrast without the clash
+//                   neighbours, for contrast without the clash
 //   triadic         base, +120°, +240°: evenly round the wheel, the liveliest
 //   auto            by the picture: a colourful one (chroma ≥ 0.08) gets
-//                   analogous — a vivid picture wants its light to agree; a
-//                   muted one gets split — a little colour it does not have; a
-//                   grey one (no tint) keeps Siri's palette
+//                   analogous, so a vivid picture's light agrees with it; a
+//                   muted one gets split, adding a little colour it does not
+//                   have; a grey one (no tint) keeps Siri's palette
 //   siri            the fixed palette, whatever the wallpaper
 //
 // Hues are OKLCH, so "32° apart" is 32° as the eye sees it. Every hue is
 // drawn at one lightness and chroma (per theme: lighter in the dark), the
-// chroma lowered until the colour fits in sRGB — the three hues read as
+// chroma lowered until the colour fits in sRGB. The three hues read as
 // equals, and none clips. Three hues become the shader's five stops as a
 // loop (a b c b' a', the returns a touch lighter and darker), so the ring
 // passes through each twice as it goes round.
@@ -50,7 +50,7 @@ export const GLOW_HARMONIES: readonly GlowHarmony[] = [
   "siri",
 ];
 
-/** The wallpaper's dominant colour, OKLCH — or null for a grey picture. */
+/** The wallpaper's dominant colour, OKLCH, or null for a grey picture. */
 export interface GlowSource {
   h: number;
   c: number;

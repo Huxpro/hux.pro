@@ -1,5 +1,5 @@
 // =============================================================================
-// Theater System — Album derivation
+// Theater System: Album derivation
 //
 // Builds the home widget's three "albums" (React / Lynx / Personal) from the
 // same log data the rest of the site renders. Each album is a curated group of
@@ -38,7 +38,8 @@ export const ALBUM_GROUP_IDS = [
 /**
  * Short, tab-friendly album names. The underlying group titles ("Featured
  * React talks", …) are too long for a segmented switcher, so each album gets a
- * concise label — the three albums the spec names: React / Lynx / Personal.
+ * concise label. These are the three albums the spec names: React / Lynx /
+ * Personal.
  */
 const ALBUM_LABELS: Record<string, { en: string; zh: string }> = {
   "featured-react-talks": { en: "React", zh: "React" },
@@ -107,7 +108,7 @@ export function adHocAlbum(track: Track, title: string): Album {
 /**
  * One track for one piece of media, or null for media the stage cannot hold
  * (a link card, an image, a social widget). `id` must be unique within the
- * album — the caller derives it from the commit and the media's position.
+ * album; the caller derives it from the commit and the media's position.
  */
 export function mediaToTrack(
   media: Media,
@@ -127,7 +128,7 @@ export function mediaToTrack(
     return {
       ...meta,
       kind: "slides",
-      // The deck's playable address, not the page that wraps it — legacy
+      // The deck's playable address, not the page that wraps it. Legacy
       // huangxuan.me links and Wayback snapshots resolve to the live deck.
       url: resolveSlidesEmbedUrl(media.url),
       title: media.title || meta.title,

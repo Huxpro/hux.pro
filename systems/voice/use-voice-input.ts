@@ -4,16 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createMeter, primeAudio, type VoiceMeter } from "./lib/meter";
 
 // =============================================================================
-// useVoiceInput — speak instead of type.
+// useVoiceInput: speak instead of type.
 //
 // Two things run while it listens, from one press:
 //
 //   words   the Web Speech API (`SpeechRecognition`, `webkitSpeechRecognition`
 //           in Safari and Chrome): interim words as they are heard, the final
-//           phrase when the speaker pauses. The browser does the recognition —
-//           on-device or its vendor's service; nothing goes through this site.
+//           phrase when the speaker pauses. The browser does the recognition,
+//           on-device or via its vendor's service; nothing goes through this
+//           site.
 //   voice   a microphone stream through the voice meter (lib/meter.ts), for
-//           the glow to follow — how loud, which bands. Where a second capture
+//           the glow to follow: how loud, which bands. Where a second capture
 //           is refused (some Android browsers hold the microphone for the
 //           recogniser alone), the level is synthesised from the recogniser's
 //           own sound / speech events, so the glow still answers the voice.
@@ -86,7 +87,7 @@ export interface VoiceInput {
   supported: boolean;
   state: RecognitionState;
   listening: boolean;
-  /** Start (from a press — the microphone is only granted in a gesture). */
+  /** Start (from a press: the microphone is only granted in a gesture). */
   start: () => void;
   stop: () => void;
   toggle: () => void;

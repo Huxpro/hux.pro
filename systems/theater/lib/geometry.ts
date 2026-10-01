@@ -1,11 +1,11 @@
 // =============================================================================
-// Theater System — Stage geometry
+// Theater System: Stage geometry
 //
 // The stage (the persistent player element) is a single fixed rectangle that
 // morphs between the theater (large centered) and PiP (small floating) modes.
-// Keeping the math here — pure functions of the viewport, a drag offset, and
-// the device class — lets both the stage and its chrome read identical numbers
-// in the same render so they stay pixel-aligned while animating and dragging.
+// The math lives here as pure functions of the viewport, a drag offset, and
+// the device class. Both the stage and its chrome read identical numbers in
+// the same render, so they stay pixel-aligned while animating and dragging.
 // =============================================================================
 
 import type { StageRect } from "./types";
@@ -66,7 +66,7 @@ const THEATER_MARGIN = 16;
 
 /**
  * Theater chrome (top bar + playlist rail + a watchable 16:9 stage) needs a
- * tablet-class viewport. Phones — including landscape — stay on PiP.
+ * tablet-class viewport. Phones (including landscape) stay on PiP.
  * Matches Tailwind `md` / iPad mini portrait (768×1024).
  */
 export const THEATER_MIN_WIDTH = 768;
@@ -119,17 +119,17 @@ function pipWidth(vp: Viewport): number {
   return Math.min(vp.width * PIP_WIDTH_FRACTION, PIP_MAX_WIDTH);
 }
 
-/** Height of the whole window — video plus the control bar under it. */
+/** Height of the whole window: video plus the control bar under it. */
 function pipHeight(vp: Viewport): number {
   return pipWidth(vp) * ASPECT + PIP_CONTROLS_H;
 }
 
 /**
- * Floating PiP rect. Anchored bottom-centre by default — under the page, where
- * the Live Activity sits over it, on the same axis and the same width, so the
- * player reads as one card that moved rather than two. `offset` is the user's
- * accumulated drag, clamped so the window (plus its control bar) stays on
- * screen. The rect describes the VIDEO area only; the control bar sits in the
+ * Floating PiP rect. Anchored bottom-centre by default, under the page where
+ * the Live Activity sits over it, on the same axis and at the same width. The
+ * player then reads as one card that moved rather than two. `offset` is the
+ * user's accumulated drag, clamped so the window (plus its control bar) stays
+ * on screen. The rect describes the VIDEO area only; the control bar sits in the
  * PIP_CONTROLS_H strip directly below it.
  */
 export function pipRect(vp: Viewport, offset: { x: number; y: number }): StageRect {
@@ -172,7 +172,7 @@ const PLAYLIST_SECOND_DETENT_MIN = 0.62;
  * The playlist sheet's detents: everything below `ceiling`, and a half-height
  * stop under it when that leaves somewhere to drag to.
  *
- * `ceiling` is the bottom edge of whatever the player is showing — the parked
+ * `ceiling` is the bottom edge of whatever the player is showing: the parked
  * PiP window, or the dock card it collapsed into. The sheet stops there rather
  * than running to the top of the screen, so the video is never something the
  * list has to work around: on a phone the two share the screen, they do not
@@ -186,9 +186,9 @@ export function playlistDetents(viewportHeight: number, ceiling: number): number
 
 /**
  * The stage's rect for a *visible* mode. Hidden states (closed / minimized)
- * don't move the stage off-screen anymore — they keep it at its mode's rect and
- * just fade + scale it out (so opening is a clean in-place morph, not a fly-in
- * from a parked corner), while the still-mounted iframe keeps audio alive.
+ * don't move the stage off-screen anymore. They keep it at its mode's rect and
+ * fade + scale it out (so opening is an in-place morph, not a fly-in from a
+ * parked corner), while the still-mounted iframe keeps audio alive.
  */
 export function stageRectFor(
   mode: "theater" | "pip",

@@ -11,13 +11,13 @@ import {
 import { VITRE_CSS } from "./css";
 
 // =============================================================================
-// Boot — the first frame, before React runs.
+// Boot: the first frame, before React runs.
 //
 // A bezel applied only by a component arrives a frame or more after first
 // paint, and on iOS Safari that first paint is when the chrome picks its
 // colour. So the host puts this script inline in <head>. It installs the
 // stylesheet, applies the resolved state to <html>, creates `theme-color`, and
-// records the state on `window` — React never touches `window`, so the record
+// records the state on `window`. React never touches `window`, so the record
 // survives a failed hydration that strips <html>.
 // =============================================================================
 

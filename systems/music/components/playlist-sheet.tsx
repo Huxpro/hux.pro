@@ -14,7 +14,7 @@ import { useMusic } from "../provider";
 import { EQBars } from "./now-playing";
 
 // ---------------------------------------------------------------------------
-// MusicPlaylistSheet — the global playlist browser.
+// MusicPlaylistSheet: the global playlist browser.
 //
 // One system-wide surface (mounted once in the root layout) that any trigger
 // can summon via `openPlaylist()`: the homepage MusicWidget, the music Live
@@ -152,7 +152,7 @@ function TrackList({
                   <span>{t(locale, "musicPlaylistEmpty")}</span>
                 </div>
               ) : (
-                // Loading skeleton — playlist IDs haven't landed yet.
+                // Loading skeleton: playlist IDs haven't landed yet.
                 <div aria-hidden>
                   {Array.from({ length: 8 }).map((_, i) => (
                     <div key={i} className="flex items-center gap-3 px-3 py-2">
@@ -181,7 +181,7 @@ function TrackList({
                         : "hover:bg-accent/40 active:bg-accent/60",
                     )}
                   >
-                    {/* Position — index number, or EQ bars on the live row */}
+                    {/* Position: index number, or EQ bars on the live row */}
                     <span className="w-5 shrink-0 flex justify-center text-[10px] font-mono text-muted-foreground tabular-nums">
                       {active && isPlaying ? (
                         <EQBars className="text-green-500" />
@@ -190,7 +190,7 @@ function TrackList({
                       )}
                     </span>
 
-                    {/* Album art — square, like every other music surface.
+                    {/* Album art: square, like every other music surface.
                         YouTube serves 16:9; object-cover crops it. */}
                     <span className="relative size-10 rounded-md overflow-hidden bg-muted/40 shrink-0">
                       <span className="absolute inset-0 flex items-center justify-center">

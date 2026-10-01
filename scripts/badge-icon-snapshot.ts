@@ -5,7 +5,7 @@
  *   node scripts/badge-icon-snapshot.ts --check  # CI: every badge has an icon, no network
  *
  * Targets: every `<Badge>` written in the site's MDX (scripts/magic-link-tags.ts)
- * (content/**, docs/**). Each resolves to a site (lib/badge-site.ts — the same
+ * (content/**, docs/**). Each resolves to a site (lib/badge-site.ts, the same
  * rule the component uses); for each site we take the icon the site declares
  * for a home screen (manifest → apple-touch-icon → favicon, lib/app-icon-core),
  * or the one content/badges.json names, download it into public/badge-icons/,
@@ -52,7 +52,7 @@ interface Usage {
 }
 
 /**
- * Every `<Badge …>` in the MDX — the pill, which wears an icon — and every
+ * Every `<Badge …>` in the MDX (the pill, which wears an icon) and every
  * listed project in the log: a project row on /works wears its mark the way
  * a badge does (components/log/project-mark.tsx), by the same rule
  * (lib/badge-site.ts), so its site is crawled here too and `--check` fails

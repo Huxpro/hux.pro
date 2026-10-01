@@ -5,13 +5,13 @@ import type { CSSProperties } from "react";
 import { useRangeDrag } from "./use-range-drag";
 
 // =============================================================================
-// Slider — one range input for the icon studio, the Legibility Lab and the
+// Slider: one range input for the icon studio, the Legibility Lab and the
 // devtool, styled the way the site's sliders always read on a phone.
 //
 // Only the track is ours: a thin bar in the theme's ink at a few percent, the
 // travelled part in ink, painted as a background gradient stopped at the value
 // so the input stays one plain, accessible range control. The thumb is the
-// platform's — `appearance-none` on the input alone leaves the native knob in
+// platform's: `appearance-none` on the input alone leaves the native knob in
 // place (iOS Safari's flat white pill, Chrome's round one), tinted white by
 // `accent-color` where the platform tints it. On a hover-capable pointer the
 // native knob is small and grey-ish on some engines, so desktop gets a white
@@ -35,7 +35,7 @@ const SLIDER_CLASS = cn(
   "bg-foreground/15 [background-image:linear-gradient(var(--foreground),var(--foreground))]",
   "[background-size:var(--slider-fill)_100%] bg-no-repeat accent-white",
   "outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-  // Desktop thumb only — touch keeps the platform's knob.
+  // Desktop thumb only; touch keeps the platform's knob.
   "[@media(hover:hover)]:[&::-webkit-slider-thumb]:h-4 [@media(hover:hover)]:[&::-webkit-slider-thumb]:w-4",
   "[@media(hover:hover)]:[&::-webkit-slider-thumb]:appearance-none [@media(hover:hover)]:[&::-webkit-slider-thumb]:rounded-full",
   "[@media(hover:hover)]:[&::-webkit-slider-thumb]:bg-white",

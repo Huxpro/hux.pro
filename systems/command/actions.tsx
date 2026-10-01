@@ -50,7 +50,7 @@ import {
 import { useCommand } from "./provider";
 
 // =============================================================================
-// Command actions — the one list behind search results, the slash list and
+// Command actions: the one list behind search results, the slash list and
 // the slash letter shortcuts.
 //
 // A command is a thing the palette can do; how it is reached (typed, tapped,
@@ -80,7 +80,7 @@ export interface CommandAction {
   kind: CommandKind;
   /**
    *   navigation  goes somewhere
-   *   actions     does one thing, now — install, speak, play
+   *   actions     does one thing, now (install, speak, play)
    *   settings    a value that stays, read back in its row
    */
   section: "navigation" | "actions" | "settings";
@@ -97,7 +97,7 @@ export interface CommandAction {
   icon?: React.ReactNode;
   /** cmdk search terms, both languages. */
   keywords: string[];
-  /** `key`: the slash letter that ran it, when a key did — a command that
+  /** `key`: the slash letter that ran it, when a key did. A command that
    *  can be held (voice) reads it to follow the key's release. */
   run: (ctx?: { key?: string }) => void | Promise<void>;
 }
@@ -238,11 +238,11 @@ export function useCommandActions(): CommandAction[] {
     },
     {
       // The About: who made this and what it is. `/` `O` is its only
-      // shortcut — no bare `O` on the page (systems/about).
+      // shortcut; there is no bare `O` on the page (systems/about).
       id: "about",
       key: "o",
       // `navigate`, not `surface`: the phone sheet must not stay behind the
-      // About as a stack — it would show through the veil.
+      // About as a stack, because it would show through the veil.
       kind: "navigate",
       section: "navigation",
       label: t(locale, "aboutTitle"),
@@ -291,7 +291,7 @@ export function useCommandActions(): CommandAction[] {
     {
       // The labs are public, but a study of the site's insides rather than
       // a place most visitors came for: found by name, never offered. `/`
-      // `E` (for experiments — `L` is Language) still opens the index.
+      // `E` (for experiments, since `L` is Language) still opens the index.
       id: "lab",
       key: "e",
       kind: "navigate",
@@ -536,7 +536,7 @@ export function useCommandActions(): CommandAction[] {
     {
       id: "debug-panel",
       key: "d",
-      // On and off are about what is ON SCREEN, not about `isEnabled` — as a
+      // On and off are about what is ON SCREEN, not about `isEnabled`. As a
       // drawer, swiping it away is off, and turning it back on must not take
       // two presses. The devtool works that out (`isShowing`); this row just
       // reports it. Its kind follows what the press will actually do: on opens
@@ -563,7 +563,7 @@ export function useCommandActions(): CommandAction[] {
 }
 
 // =============================================================================
-// Shell context — how the palette leaves once a command has run.
+// Shell context: how the palette leaves once a command has run.
 // The popover closes; the sheet closes too, except after a `surface` command,
 // when it stays behind the sheet it opened (see CommandKind, and sheet.tsx).
 // =============================================================================
@@ -585,7 +585,7 @@ export function useCommandShell(): CommandShell {
   return ctx;
 }
 
-/** Where a command was chosen from — it decides whether the palette stays. */
+/** Where a command was chosen from. It decides whether the palette stays. */
 export type CommandOrigin = "search" | "slash";
 
 /**
@@ -605,7 +605,7 @@ export function useRunCommand() {
 /**
  * Slash-mode letter shortcuts: a single key runs the command that owns it,
  * Backspace returns to search. Renders nothing; mounted by either shell while
- * it is open — a phone with a hardware keyboard gets the letters too.
+ * it is open, so a phone with a hardware keyboard gets the letters too.
  */
 export function SlashShortcuts({ actions }: { actions: CommandAction[] }) {
   const { isOpen, isSlashCommandsMode, isLoadBundleMode, setSlashCommandsMode } =
@@ -639,7 +639,7 @@ export function SlashShortcuts({ actions }: { actions: CommandAction[] }) {
 }
 
 /**
- * Whether to show keyboard hints — slash letters, `esc`, the footer's arrows.
+ * Whether to show keyboard hints (slash letters, `esc`, the footer's arrows).
  * Not a question of shell or viewport but of input: a fine hover pointer
  * means a desktop, or an iPad with a trackpad and so a keyboard; its absence
  * means a phone, or a bare iPad, whichever shell the palette is in. The

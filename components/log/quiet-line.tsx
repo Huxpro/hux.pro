@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Quiet rows — life events, and an aside while it is folded — drop a tier
+ * Quiet rows (life events, and an aside while it is folded) drop a tier
  * and change face by script.
  *
  * Latin is the italic serif aside. CJK has no italic: the browser would
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * does not do, so those glyphs sit in mono, upright, with the meta line.
  *
  * The choice is per run. Testing the whole string used to flip an English
- * line to mono because its venue was Chinese — `PWA 之我见 · Progressive
+ * line to mono because its venue was Chinese: `PWA 之我见 · Progressive
  * Web App, in my points of view` painted JetBrains Mono end to end. The
  * English around that name is still an aside.
  */

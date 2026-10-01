@@ -129,7 +129,7 @@ export function VimeoEmbed({
           src={thumbnailUrl}
           className="absolute inset-0 w-full h-full object-cover"
         />
-        {/* The cover wears its chip — the platform — the way every cover on the
+        {/* The cover wears its chip (the platform), the way every cover on the
             site does (media-mark.tsx). COVER_WASH is the iOS press affordance. */}
         <div className={COVER_WASH_TINTED} />
         <MediaMark mark={videoMark("vimeo")} />

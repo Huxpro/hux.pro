@@ -43,22 +43,22 @@ import { SamplePromptBar, SampleWorksBar } from "./sample-bars";
 import { BAND_STRINGS, type BandStrings } from "./strings";
 
 // =============================================================================
-// The Band Lab — the top of the screen, composed.
+// The Band Lab: the top of the screen, composed.
 //
 // Nothing on this page is a picture. The knobs set the band's configuration
 // on the site itself (systems/dock/band.ts, this tab only); the occupants are
 // the Dock's real ones; the bar that meets them is a real bar in a real
-// PinnedSlot — this lab's own, or /prompt's or /works's toolbar with sample
-// facets — on this page's real scroll. What you see when it pins is what the
+// PinnedSlot (this lab's own, or /prompt's or /works's toolbar with sample
+// facets) on this page's real scroll. What you see when it pins is what the
 // site does, and the checks are measured off it.
 //
 // Each thing has one place, and the subject keeps the top to itself:
 //
-//   top      the subject — the lab's own bar (when it is the bar under test)
+//   top      the subject: the lab's own bar (when it is the bar under test)
 //            and, as its second row, which bar meets the band
 //   bottom   the remote, beside the FAB: the four rules as dots (tap for
 //            what they measured, in a sheet that leaves the page live), how
-//            many occupants, the presets — what you reach for while pinned
+//            many occupants, the presets; what you reach for while pinned
 //   panel    the fine knobs, in the page on a phone and beside it, pinned,
 //            on a wide screen
 // =============================================================================
@@ -368,9 +368,9 @@ function Readout({
 }
 
 /**
- * The harness, at the bottom: what you reach for while the bar is pinned —
- * the four rules as dots, how many occupants, the presets. It stands where
- * the FAB stands, left of it, well clear of the band it is for.
+ * The harness, at the bottom: what you reach for while the bar is pinned.
+ * That is the four rules as dots, how many occupants, the presets. It stands
+ * where the FAB stands, left of it, well clear of the band it is for.
  */
 function QuickBar({
   m,

@@ -9,8 +9,8 @@ export const OCCUPANT_TRANSITION =
 
 /**
  * What an occupant of the Dock's row takes from the band (../band.ts): its
- * shape and whether it is out of sight behind a count — and, for the band
- * to lay itself out by, its own width as a pill, measured.
+ * shape and whether it is out of sight behind a count. It also measures its
+ * own width as a pill, which the band uses to lay itself out.
  *
  * A ball is the same pill at the band's height, its content clipped, so
  * going from one to the other is the pill's real width changing between two

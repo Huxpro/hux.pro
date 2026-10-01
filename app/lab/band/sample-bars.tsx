@@ -17,7 +17,7 @@ import { useState } from "react";
 
 // The pages' own toolbars, on the lab page: the real components with sample
 // facets and their own state, so a chip still takes a tap and the row still
-// scrolls — only the counts are made up.
+// scrolls. Only the counts are made up.
 
 const KIND_COUNTS = [20, 5];
 const TOPIC_COUNTS = [4, 4, 5];

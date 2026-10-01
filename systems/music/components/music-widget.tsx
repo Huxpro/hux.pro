@@ -12,7 +12,7 @@ import { useMusic } from "../provider";
 import { EQBars, NowPlaying } from "./now-playing";
 
 // ---------------------------------------------------------------------------
-// Music Widget — homepage grid card.
+// Music Widget: homepage grid card.
 //
 // The YouTube player itself lives in MusicProvider (always mounted) so audio
 // survives navigation. This widget is purely a control surface bound to the
