@@ -17,7 +17,7 @@ import { useMemo } from "react";
 
 import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
-// FeaturedTalksWidget — the theater's front on the home grid.
+// TheaterReelForm — the theater widget's "featured" form (widgets.ts) — the theater's front on the home grid.
 //
 // One strip, no tabs: the featured media from content/theater.json, the ones
 // the viewer can hear in their own language first. Tap a cover and the
@@ -38,7 +38,7 @@ function locate(albums: Album[], track: Track) {
   return { albumIndex: 0, trackIndex: 0 };
 }
 
-export function FeaturedTalksWidget() {
+export function TheaterReelForm() {
   const { locale } = useLocale();
   const { open } = useTheater();
   const albums = useMemo(() => buildLibraryAlbums(locale), [locale]);

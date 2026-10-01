@@ -47,6 +47,8 @@ interface TrackBase {
    * (systems/theater/lib/library.ts). Absent or single for most tracks.
    */
   versions?: TrackVersion[];
+  /** Running time in seconds, when known. */
+  duration?: number;
 }
 
 /**
@@ -57,6 +59,7 @@ export type TrackVersion = {
   key: string;
   language?: TrackLanguage;
   date?: string;
+  duration?: number;
   url: string;
   title: string;
   subtitle?: string;

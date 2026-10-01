@@ -240,6 +240,11 @@ export interface VideoMedia extends Pinned, Playable {
   url: string;
   platform: VideoPlatform;
   thumbnail?: string;
+  /**
+   * Running time in seconds, read off the platform's page when the video is
+   * listed. The theater's timeline sizes a recording's mark by it.
+   */
+  duration?: number;
 }
 
 /**

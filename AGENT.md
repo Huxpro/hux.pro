@@ -27,6 +27,7 @@
 | **About / Badges** | [docs/system-about.md](./docs/system-about.md) (The surface a newcomer meets — veil, copy from `content/about/*.mdx`, the screen-edge glow, `/` `O` from anywhere; `<Badge>` opens a thing I made where it lives) |
 | **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (The site's one light — Siri's ring as a shared WebGL shader: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/lab/glow` lab) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (Who signed a commit — the profile card behind `<handle>` and `Role:`) |
+| **Widget Forms** | [docs/system-widget-forms.md](./docs/system-widget-forms.md) (A home widget drawn more than one way — the right-click menu, the edit-mode strip, the morph; `forms` in `components/home/widgets.ts`) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (A widget's list body scrolls under a pointer, holds still under a finger — and why) |
 
 ## 2. Quick Start Context
