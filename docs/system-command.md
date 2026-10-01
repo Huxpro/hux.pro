@@ -200,7 +200,7 @@ are one step quieter still: no label, so no row at all.
 | `U` | Go to Writing |
 | `X` | Go to Works |
 | `I` | Go to Docs (internal) |
-| `E` | Go to `/lab`, the index of labs (`e` for experiments — `L` is Language). Not in the slash list: Labs is *search-only* (below). Each lab is a card on the index and an entry in the dropdown on every lab's sticky bar; `log.json` is the Works Lab (`/lab/works`). See `systems/lab/catalog.ts`. |
+| `E` | Go to `/lab`, the index of labs (`e` for experiments; `L` is Language). Not in the slash list: Labs is *search-only* (below). Each lab is a card on the index and an entry in the dropdown on every lab's sticky bar; `log.json` is the Works Lab (`/lab/works`). See `systems/lab/catalog.ts`. |
 | `A` | Cycle Appearance: Follow the Sun → the theme the sun isn't showing → the one it is → Follow the System |
 | `L` | Toggle language |
 | `G` | Toggle geolocation |

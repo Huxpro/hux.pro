@@ -248,17 +248,17 @@ parse, as aliases.
 ### The title line
 
 Every fact on a row has one place, in every form and every state, and
-opening a row only adds below the title line — nothing above the
+opening a row only adds below the title line. Nothing above the
 description moves. The line is `hash · mark · title [· 中文] ··· [📎 n]
 venue date`: the venue (a talk's conference, a piece of press's platform, a
 project's team, printed sparsely) sits on the title line in a column
 before the date, and the right of the line is packed to the edge, so when
 an open row's covers replace the count the venue and the date stay where
 they were. Below `@md` the line has no room for a column, so the same
-three become an *eyebrow* — one mono line over the title, the venue on
-the left and `📎 n` and the date packed to the right edge, the way a
-kicker sits over a headline, a step (6px) off it — nothing is cut to fit, and
-the title and its sentence still sit together; the venue is never under
+three become an *eyebrow*: one mono line over the title, a step (6px) off
+it, the way a kicker sits over a headline. The venue is on the left, and
+`📎 n` and the date are packed to the right edge. Nothing is cut to fit, and
+the title and its sentence still sit together. The venue is never under
 the title, whatever the viewport, folded and open alike. The eyebrow's
 cells are top-aligned 16px lines rather than baseline-aligned, so the `📎 n`
 an open row gives up cannot nudge the venue. The title's weight is the
@@ -267,7 +267,7 @@ index), never the press's: a title that thickened as its row opened was the
 one thing on the line that moved. There is no meta line: with nothing between
 a title and its sentence, the description sits one rung up (`TYPE.caption`,
 muted) and reads as the row's second tier. The `@handle` signs the foot of
-a single cover; a row with more, or none, prints no handle while folded —
+a single cover; a row with more, or none, prints no handle while folded:
 the chapter names the company, and the author fields name it in full once
 the row is open.
 
@@ -397,18 +397,18 @@ wallpaper's canvas, which every page pays alike.
 
 ## The lab
 
-**`/lab/attachments`** — the Attachments Lab, `noindex` — is the devtool for this system, the
+**`/lab/attachments`**, the Attachments Lab (`noindex`), is the devtool for this system, the
 way `/lab/legibility` is for reading surfaces. The lab prints every render
 path (`app/lab/attachments/paths.ts`) next to live specimens: the chips at
 every size on the log's own covers, in the `/works` tier and the peek's, the
 GitNation case among them; the policy as a table, read live from `homeFor` /
 `nativeHomeFor` for a context you can pin (phone or not, a window manager);
-and the production surfaces themselves — the strip, the desk grid, the phone
-feed (`InlinePlayable`), `MediaRenderer` (single and rail), peeks,
+and the production surfaces themselves. Those are the strip, the desk grid,
+the phone feed (`InlinePlayable`), `MediaRenderer` (single and rail), peeks,
 inline players, the MDX `<Media />`, the home featured stack, `MediaThumbnail`,
-the theater rail thumb, and the attachment page — plus buttons that go through
-the real providers, with a readout of the surface stack and the open windows
-as they stand. `/lab/attachment` (and the old `/editor/attachments`) redirect here. On a phone it is where to
+the theater rail thumb, and the attachment page. There are also buttons that
+go through the real providers, with a readout of the surface stack and the
+open windows as they stand. `/lab/attachment` (and the old `/editor/attachments`) redirect here. On a phone it is where to
 watch `Visit` stack the browser over the attachment sheet. The title
 is the labs' dropdown (`systems/lab/catalog.ts`).
 

@@ -12,7 +12,7 @@
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
-| **Dock / Live Activities / Notices** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel; `showNotice` for a one-line notice — there is no bottom toast) |
+| **Dock / Live Activities / Notices** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel; `showNotice` for a one-line notice; there is no bottom toast) |
 | **Glass** | [docs/system-glass.md](./docs/system-glass.md) (Clear / Tinted material, reading surfaces) |
 | **Legibility** | [docs/system-legibility.md](./docs/system-legibility.md) (Ink-at-alpha tokens, wallpaper profiles, relief, tint, the `/lab/legibility` lab) |
 | **Ambient / Wallpaper** | [docs/system-ambient.md](./docs/system-ambient.md) (Weather + Apple wallpaper pairs, `pnpm wallpapers:encode` / `pnpm wallpapers:check` / `pnpm wallpapers:profile`) |
@@ -144,13 +144,13 @@ pnpm vitre:typecheck
 
 The package's documentation is the Vitre lab, in the lab's library template:
 the guide `/lab/vitre` (with the simulator), the API reference
-`/lab/vitre/api` and how this site uses it, `/lab/vitre/site` — pages in
-`app/lab/vitre`, content the package's (`packages/vitre/site/src/docs`). A new
+`/lab/vitre/api` and how this site uses it, `/lab/vitre/site`. The pages are in
+`app/lab/vitre`; the content is the package's (`packages/vitre/site/src/docs`). A new
 export or prop fails the type check until it is documented there, and then
 shows on the API page by itself. The demo the simulator runs is
 `packages/vitre/site` (`pnpm vitre:site`; built into `public/vitre` and served
-at `/vitre`, `/bezel` redirecting there; `pnpm dev` builds it when stale) — a
-phone opens it full screen, anything else is redirected to the lab (by user
-agent, in next.config.ts — the one place that decides). The simulator and the
+at `/vitre`, `/bezel` redirecting there; `pnpm dev` builds it when stale). A
+phone opens it full screen; anything else is redirected to the lab, by user
+agent. next.config.ts is the one place that decides. The simulator and the
 lab's Demo links use `/vitre/index.html`, which is never redirected.
 

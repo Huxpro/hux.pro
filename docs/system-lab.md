@@ -8,10 +8,10 @@ systems/lab/
 ├── i18n.ts               # LabTable, useLabStrings, the frame's own words
 ├── components/
 │   ├── shell.tsx         # LabShell, LabBar, LabPanel, LabSection, buttons
-│   ├── nav.tsx           # LabNav — the name in the bar, and the switcher
+│   ├── nav.tsx           # LabNav: the name in the bar, and the switcher
 │   ├── controls.tsx      # the panel's knobs: Field, Segmented, Slider, …
 │   └── library.tsx       # the library template: LibraryShell, ApiReference, …
-└── surfaces/             # each lab at a glance — the /lab cards, the home widget
+└── surfaces/             # each lab at a glance: the /lab cards, the home widget
 
 app/lab/                  # the routes: the index, and one folder per lab
 app/lab/vitre/            # the first library: guide, api/, site/
@@ -26,8 +26,8 @@ Icon, Legibility, Glow). It is for this site; it never pretends to be anything
 else.
 
 A **library** is a system that left as a package. Its lab is the package's
-home — there is no other docs site — and every library's home has the same
-shape, so a new library brings its words and its demo, not a design:
+home; there is no other docs site. Every library's home has the same shape,
+so a new library brings its words and its demo, not a design:
 
 | page | path | what it is |
 |---|---|---|
@@ -36,8 +36,8 @@ shape, so a new library brings its words and its demo, not a design:
 | On hux.pro | `/lab/<id>/site` | how this site uses it: live state, policy, the files it lives in. Read-only; the knobs stay in the devtool |
 
 `LibraryShell` puts the three pages in the bar's actions and opens each page
-with `LibraryHeader` — name, version, peer requirements, npm or "not on npm
-yet", source, demo — read from the package's own `package.json` through the
+with `LibraryHeader` (name, version, peer requirements, npm or "not on npm
+yet", source, demo), read from the package's own `package.json` through the
 catalog's `library`, so it cannot drift from what ships. Publishing to npm is
 flipping `private` there; the header follows.
 
@@ -46,7 +46,7 @@ flipping `private` there; the header follows.
 A library's words live in the package, not in `app/lab`: Vitre's are
 `packages/vitre/site/src/docs` (`sections.tsx` for the guide, `api.ts` for
 the reference). `api.ts` is type-checked against `vitre.d.ts`, so an export
-or a public field that is not documented fails `pnpm vitre:typecheck` — and,
+or a public field that is not documented fails `pnpm vitre:typecheck` and,
 because the lab imports it, `next build`. The lab adapts that data to the
 template's `LibraryApi` (`app/lab/vitre/api.ts`) and renders it in the site's
 type.
@@ -62,7 +62,7 @@ at `/vitre`; anything else is sent to the lab.
 
 ## One frame
 
-Every lab, of either kind, opens on its work under one sticky bar — the way
+Every lab, of either kind, opens on its work under one sticky bar: the way
 home, the lab's name (which is also the switcher, `LabNav`), an info button
 with the catalog's blurb, then the lab's tools, a live readout and its
 actions. Three bodies under it: `document` (one column), `workbench` (a stage
@@ -76,7 +76,7 @@ a row of their own, and on a phone they take the second row.
 
 ## Adding one
 
-1. An entry in `catalog.ts` — `kind: "study"`, or `kind: "library"` with its
+1. An entry in `catalog.ts`: `kind: "study"`, or `kind: "library"` with its
    `library` read from the package.
 2. A route under `app/lab/<id>`, in `LabShell` (a study) or `LibraryShell`
    (a library, with `api/` and `site/` beside it).
@@ -95,5 +95,5 @@ grid with its one line. The switcher on every bar groups the same way.
 
 Labs is public but not what most visitors came for: the palette finds it by
 name and never offers it (`searchOnly`; `/` `E` still opens the index), and
-the home widget is off until a visitor adds it — from the grid's edit mode
+the home widget is off until a visitor adds it, from the grid's edit mode
 or the switch on `/lab` (`components/home/widgets.ts`).

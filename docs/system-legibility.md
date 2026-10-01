@@ -58,7 +58,7 @@ Every text and wash token is now `--ink` at a percentage:
 | Token | Is | Light | Dark |
 |---|---|---|---|
 | `--foreground` | the ink | `oklch(0.145)` | `oklch(0.93)` |
-| `--reading-foreground` | ink at `--ink-alpha-reading` — running text, not a label | 85 % | 85 % |
+| `--reading-foreground` | ink at `--ink-alpha-reading`, for running text rather than labels | 85 % | 85 % |
 | `--muted-foreground` | ink at `--ink-alpha-secondary` (+ boost) | 54 % | 60 % |
 | `--tertiary-foreground` | ink at `--ink-alpha-tertiary` (+ boost) | 32 % | 36 % |
 | `--quaternary-foreground` | ink at `--ink-alpha-quaternary` (+ boost) | 20 % | 22 % |
@@ -141,8 +141,8 @@ its measured table.
 
 ### 3. Policy (`legibility.ts`)
 
-`resolveLegibility(profile, theme, reading, veiled)` returns these numbers —
-all the runtime ever computes, memoised on what can change:
+`resolveLegibility(profile, theme, reading, veiled)` returns these numbers.
+They are all the runtime ever computes, memoised on what can change:
 
 | Output | From | Lands in |
 |---|---|---|
@@ -154,7 +154,7 @@ all the runtime ever computes, memoised on what can change:
 | `veil` | `veilBase[theme] + busy × 0.15 + conflict × 0.15`, capped at 0.7 (base 0.32 light / 0.40 dark) | `--wp-veil`; the reading veil's alpha when Reading dim is on, under any kind (the Sky included) |
 | `blur` | `28px + busy × 16px` | `--wp-blur`; the reading defocus radius when Reading blur is on (pictures only) |
 | `tint` | the profile's tint clamped to L 0.50–0.66 (light) / 0.60–0.76 (dark), C 0.05–0.16; grey below chroma 0.03 | `--wp-tint-l/c/h` |
-| `lift` | reading routes only: the alpha points secondary and tertiary need, on top of `inkBoost`, to reach 4.5:1 and 3:1 on the veiled picture — its mean and its worst band — capped at 80 % / 60 % so the rungs stay rungs | `--wp-lift-secondary`, `--wp-lift-tertiary` |
+| `lift` | reading routes only: the alpha points secondary and tertiary need, on top of `inkBoost`, to reach 4.5:1 and 3:1 on the veiled picture (its mean and its worst band), capped at 80 % / 60 % so the rungs stay rungs | `--wp-lift-secondary`, `--wp-lift-tertiary` |
 
 `busy` is `edges / 0.06`, clamped. `conflict` is how far the picture sits on
 the wrong side of the card colour (a dark photograph under the light theme's
@@ -243,7 +243,7 @@ site and, when it recurs, promoted here.
 
 #### The rungs, by rule
 
-- **Reading** (`reading-foreground`, `TYPE.reading`): running text — an
+- **Reading** (`reading-foreground`, `TYPE.reading`): running text, such as an
   article's body, a /prompt entry's reasoning, the voices under a statement.
   Reading content keeps a hierarchy of its own: what hangs off the prose (a
   /prompt entry's instances, an influence's one-line context, a citation's
@@ -288,14 +288,15 @@ Still open, and reproduced verbatim in the lab:
 
 ### 6. The reading treatment
 
-**The lift.** Apple's ladder is tuned for an opaque ground — on white the
-secondary rung is 4.3:1 and the tertiary 2.2:1 — and a reading column's
-ground is the picture through a veil, a few points worse. So on a reading
+**The lift.** Apple's ladder is tuned for an opaque ground: on white the
+secondary rung is 4.3:1 and the tertiary 2.2:1. A reading column's ground
+is the picture through a veil, a few points worse. So on a reading
 route each label rung is lifted to a target contrast on the ground it will
 actually sit on (`readingLift` in `legibility.ts`): the profile has the
 picture's mean colour and its bands' lightness, the veil is ours, and the
-defocus is what makes the mean honest — at 28px and up a line of text sits
-on a region's average, not its detail. Arithmetic, not sampling. The lift
+defocus is what makes the mean honest: at 28px and up a line of text sits
+on a region's average rather than its detail. It is arithmetic; nothing is
+sampled. The lift
 stops at a ceiling per rung (80 % / 60 %): a secondary rung lifted to the
 ink is not a rung, and where the target needs more than that, the ground is
 what is wrong and the veil is what should change. The plain page lifts too:
@@ -339,9 +340,11 @@ is nothing to borrow.
 
 ## The lab
 
-**`/lab/legibility`** — `noindex`, reached from the `/lab` index, the home
-screen's Lab widget, and the devtool's Glass module. Bilingual like the rest of the site; its strings live beside it in
-`app/lab/legibility/i18n.ts`, not in the visitor dictionary. Not a mock: choosing a scene there selects it for real through the
+**`/lab/legibility`** is `noindex`, reached from the `/lab` index, the home
+screen's Lab widget, and the devtool's Glass module. It is bilingual like the
+rest of the site; its strings live beside it in
+`app/lab/legibility/i18n.ts`, not in the visitor dictionary. Choosing a scene
+there selects it for real through the
 same setters the picker and devtool use; the specimens are the production
 components; the sliders write the same variables the provider and stylesheet
 already read. The scene it sets (wallpaper, theme, material, tint) is the

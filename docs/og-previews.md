@@ -105,7 +105,7 @@ This check does not crawl. A missing cover is a content bug (add a manual `previ
 ## Cover sizes
 
 A card's picture is shown whole by default (`fit: "natural"`), so its slot is
-as tall as the picture — and a picture's height is unknown to the browser until
+as tall as the picture. A picture's height is unknown to the browser until
 its bytes arrive. A peek or a drawer used to open at the caption's height and
 jump as the image loaded. Every cover is known at build time, so its size is
 too: `content/image-sizes.json` records `[width, height]` for every image the
@@ -117,8 +117,8 @@ entry.
 
 - `pnpm og:snapshot` records the sizes of the covers it just snapshotted, from
   each file's header (a remote image is read only as far as its header).
-- `pnpm og:sizes` records them without crawling any page — after adding a
-  manual `preview.image` or replacing a file under `public/`.
+- `pnpm og:sizes` records them without crawling any page. Run it after adding
+  a manual `preview.image` or replacing a file under `public/`.
 - `pnpm og:complete` fails when a cover has no recorded size, or a local
   file's size has changed since it was recorded.
 

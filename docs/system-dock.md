@@ -6,7 +6,7 @@ metaphor). It is the shared foundation for the "Global Player" UI: the music
 player and the ambient phase notification are both dock activities and therefore
 look and behave identically.
 
-It is also where the site's one-line **notices** appear — "Dark Mode ·
+It is also where the site's one-line **notices** appear: "Dark Mode ·
 Preference unchanged", "Reading in Chinese", "Sky window · swipe up to come
 back". See [Notices](#notices).
 
@@ -15,11 +15,11 @@ back". See [Notices](#notices).
 ```
 systems/dock/
 ├── provider.tsx                  # DockProvider + useDock (coordination only)
-├── notice.ts                     # showNotice / dismissNotice — the notice store
+├── notice.ts                     # showNotice / dismissNotice: the notice store
 ├── components/
-│   ├── dock.tsx                  # <Dock> — pill row layout
-│   ├── live-activity.tsx         # <LiveActivity> — the pill ⇄ panel drawer
-│   ├── dock-notice.tsx           # <DockNotice> — the notice, at the pills' anchor
+│   ├── dock.tsx                  # <Dock>: pill row layout
+│   ├── live-activity.tsx         # <LiveActivity>: the pill ⇄ panel drawer
+│   ├── dock-notice.tsx           # <DockNotice>: the notice, at the pills' anchor
 │   └── index.ts
 └── index.ts
 ```
@@ -214,38 +214,38 @@ These match the product spec for multiple simultaneous activities:
 Everything above competes for one strip at the top of the screen: Live
 Activities, parked windows, a notice, an open panel, and a page's pinned bar
 (/works's and /prompt's toolbars, a lab's own bar). How they share it is still
-being decided — on the real components. It is not one fixed strategy but a
-composition of independent choices, `BandConfig` in `systems/dock/band.ts`,
-read by the Dock, every `LiveActivity`, the parked windows and the page's
+being decided, on the real components. It is a composition of independent
+choices, `BandConfig` in `systems/dock/band.ts`, read by the Dock, every `LiveActivity`, the parked windows and the page's
 `PinnedSlot`:
 
 | Knob | What it chooses |
 |---|---|
 | `share` | whether a pinned bar shares the band at all; off is the old way (pills centred, the bar pinned under them) |
-| `group` | how the occupants stand beside the bar: `all` in a row after it, `tray` in a window of a fixed size, `count` folded into one ball with how many — tap it and the bar folds to a ball while they open out |
+| `group` | how the occupants stand beside the bar: `all` in a row after it, `tray` in a window of a fixed size, `count` folded into one ball with how many; tap it and the bar folds to a ball while they open out |
 | `form` / `openForm` | their shape beside the bar, and when a count is opened: `pill` or `ball` (a ball is the pill at 36px, its content clipped) |
 | `trayCap` | how many a tray shows whole on a phone (two more wider) |
 | `peek` | a window that holds more than it shows ends on half of the next |
 | `barScrolls` | (`all`) the bar rides in the scrolling strip, first, sliding away as the occupants come in |
 
-`PRESETS` names four sets of them — `stack`, `tray`, `scroll` (band scroll),
+`PRESETS` names four sets of them: `stack`, `tray`, `scroll` (band scroll),
 `swap` (either / or). What ships is `DEFAULT_CONFIG`, either / or: side by
 side while everything fits, balls when it does not quite, a count when it
 does not at all. Anything else is a session override set in **`/lab/band`**.
-Every pinned bar takes part — /works's and /prompt's toolbars, and every
+Every pinned bar takes part: /works's and /prompt's toolbars, and every
 lab's own bar (`LabBar`), which rides in a `PinnedSlot` at the band's height
 unless a lab sets it aside (`pin="static"`).
 
 Where everything stands is one function, `bandGeometry(band, vw)`, read by
 both the Dock and the slot, so they never disagree about a pixel. It returns
-the occupants' **window** — exactly where they may be seen, and where the Dock
-row clips, so nothing slides under the bar, the gutter or a ball — and the
-bar's **reserve**, the width it gives up at its end. Some rules it keeps:
+two things. The occupants' **window** is exactly where they may be seen and
+where the Dock row clips, so nothing slides under the bar, the gutter or a
+ball. The bar's **reserve** is the width it gives up at its end. Some rules it
+keeps:
 
 - Every knob is an **overflow** strategy. While the bar at its own width
   and every occupant as a pill fit the band side by side, they stand side by
-  side — left-aligned after the bar, a gap from its glass, running on into
-  the margin beside the column if they need to — whatever is configured; a
+  side, whatever is configured: left-aligned after the bar, a gap from its
+  glass, running on into the margin beside the column if they need to. A
   wide screen is never folded for a phone's sake. Past that,
   in order: the occupants become balls (if `form` says so), then the group
   takes over. A count never counts one occupant: it is already as small as
@@ -257,17 +257,18 @@ bar's **reserve**, the width it gives up at its end. Some rules it keeps:
 - On a phone (a gutter of 32px or less) the window runs on to the screen's
   edge: the next occupant is cut by the edge of the phone, and that cut is
   what says it scrolls. Wider, it stops at the column.
-- The bar never gets less than its minimum while an occupant would fit —
-  but an occupant is never pushed out of reach to save the bar: the window is
+- The bar never gets less than its minimum while an occupant would fit.
+  But an occupant is never pushed out of reach to save the bar: the window is
   at least one whole occupant.
 - An opened count scrolls edge to edge, however many there are.
 - Where the window ends in mid-air (against the bar, the folded ball, the
   column) its end is a capsule's: an occupant sliding out goes under a curve
   of its own radius, not a straight line. At the screen's edge it stays
   square. It is a `clip-path`, which keeps the pills' blur (a mask would not).
-  What a round end leaves of an occupant fades as it thins — gone under 6px,
-  whole from two thirds of a ball — as `filter: opacity()` on the glass
-  itself (an opacity on anything holding it would take the blur with it).
+  What a round end leaves of an occupant fades as it thins (gone under 6px,
+  whole from two thirds of a ball). The fade is `filter: opacity()` on the
+  glass itself (an opacity on anything holding it would take the blur with
+  it).
 
 An occupant takes part the same way: `useBandOccupant()` gives it its shape
 (pill or ball), whether a count hides it, and its own width as a pill
@@ -277,10 +278,10 @@ the Dock fades a sliver. Readers that need one fact about the band select it
 (`useBandSelect`), so a resize does not re-render every Live Activity.
 
 A bar takes part by declaration. Its slot (`PinnedSlot`) measures it and
-reports its box; the bar marks the part that gives way — `data-bar-give` on a
+reports its box. The bar marks the part that gives way: `data-bar-give` on a
 chip group that scrolls inside itself (minimum: the fixed parts and one whole
 chip), or `data-bar-keep` on the part of a wrapping bar that must stay whole
-(the lab bar's name; its tools wrap under it) — and narrows itself by
+(the lab bar's name; its tools wrap under it). It narrows itself by
 `--band-reserve`, which the slot sets. The slot also folds the bar to a ball
 when a count is opened. `LabShell` puts its bar in the band with
 `pin="band"`.
@@ -288,15 +289,15 @@ when a count is opened. `LabShell` puts its bar in the band with
 **The Band Lab** is the site itself: the knobs set the override, the
 occupants are the Dock's own (up to six sample activities drawn by the real
 `LiveActivity`, the mock music player, a parked window, a notice), and the bar
-that meets them is chosen on the page — the lab's own two-row bar, or the
-real /prompt or /works toolbar with sample facets — on the page's real
-scroll. Four rules are measured off the page as it is (`app/lab/band/model.ts`):
+that meets them is chosen on the page: the lab's own two-row bar, or the
+real /prompt or /works toolbar with sample facets. They meet on the page's
+real scroll. Four rules are measured off the page as it is (`app/lab/band/model.ts`):
 one band, a bar that can still do its job, nothing overlapping with the gap
 held, every occupant reachable.
 
 Each part of the harness has one place, and the top is the subject's: the
 lab's own bar, whose second row picks which bar meets the band. At the
-bottom, beside the FAB, the remote — the four rules as dots (tap them for
+bottom, beside the FAB, is the remote: the four rules as dots (tap them for
 what they measured, in a sheet that is not modal, so the band stays live
 under it), how many occupants, the presets. The fine knobs are a panel: in
 the page on a phone, beside it and pinned on a wide screen.
@@ -322,16 +323,16 @@ showNotice({
 
 A notice is the system telling you something happened, once, in a line: the
 sun switched the theme, the page is in the other language now, the sky window
-opened, a link went to a new tab. It is callable from anywhere — providers,
-effects, a clock — because it is a module store (`notice.ts`), not a context;
-most callers sit beside the Dock in the tree, not under it.
+opened, a link went to a new tab. It is callable from anywhere (providers,
+effects, a clock) because it is a module store (`notice.ts`) rather than a
+context. Most callers sit beside the Dock in the tree, not under it.
 
 **Why here, and not a bottom toast.** The site used to show these through Sonner
 at the bottom centre. Measured on a 390px phone, the toast row sat 16px from the
 bottom and 46px tall, over the command bar at 24–72px: for the three seconds
 it was up, a tap on ⌘K landed on the toast. The two-button language card was
-worse — 136px tall, over ⌘K until answered — and at `z-index: 999999999` it
-drew over every sheet and over the About veil. The fix is a rule about which
+worse: 136px tall, it covered ⌘K until answered, and at `z-index: 999999999`
+it drew over every sheet and over the About veil. The fix is a rule about which
 edge means what:
 
 | Edge | Direction | What lives there |
@@ -356,14 +357,14 @@ Rules it keeps:
   the notice goes (`components/ui/use-notice-yield.ts`). Only when it is
   actually under the notice: pinned below Live Activity pills it already
   clears it, and resting under the title it is nowhere near.
-- **A press takes it down early.** It is not a button — a screen reader hears
-  it through the `role="status"` region — so its time is what dismisses it for
+- **A press takes it down early.** It is not a button (a screen reader hears
+  it through the `role="status"` region), so its time is what dismisses it for
   everyone else.
 - **Opacity on the glass.** The notice's fade is on the capsule, which carries
   the blur; see "The glass is the constraint on the motion" above.
 
-A notice has no choices in it. Anything that asks — like a link shared in the
-other language than the reader's — is a surface: a bigger toast rather than a
+A notice has no choices in it. Anything that asks, like a link shared in the
+other language than the reader's, is a surface: a bigger toast rather than a
 dialog. `components/post/language-sheet.tsx` is a form sheet rising from the
 bottom at every width, capped at 400px on a desk (`sheetMaxWidth`), and not
 modal: no scrim, the page stays live behind it.
@@ -372,10 +373,11 @@ modal: no scrim, the page stays live behind it.
 
 The shape says what a thing is, not which edge it came from:
 
-- **Capsule** (`GLASS_CAPSULE`, `lib/glass.ts`) — one line to glance at: a Live
-  Activity pill, a notice, the pinned /works and /prompt bars, the command bar.
-- **Rounded rectangle** — something to read or act on: the Live Activity panel
-  (16px), a sheet (24px), a window.
+- **Capsule** (`GLASS_CAPSULE`, `lib/glass.ts`) is for one line to glance at:
+  a Live Activity pill, a notice, the pinned /works and /prompt bars, the
+  command bar.
+- **Rounded rectangle** is for something to read or act on: the Live
+  Activity panel (16px), a sheet (24px), a window.
 
 A capsule with two buttons in it, or a card pretending to be a toast, is the
 thing to avoid.

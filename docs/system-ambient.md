@@ -213,7 +213,7 @@ Like everything else in the Sky engine it is procedural: no texture is loaded.
 | `wind` | screen-space direction × strength |
 | `windWorld`, `celestial` | the same wind as east/north components, and latitude + local sidereal time, for [the sky window](#the-sky-window-any-weather-easter-egg), which turns |
 | `fog`, `lightning`, `stars` | 0..1 amounts |
-| `veil`, `exposure`, `flat` | theme blend toward the page background (light: white, dark: `#1a1a1a`) and brightness — both drawn to one shared look through the sun's crossing — and what the painters that never took the exposure paint with ([The twilight look](#the-twilight-look)) |
+| `veil`, `exposure`, `flat` | theme blend toward the page background (light: white, dark: `#1a1a1a`) and brightness (both drawn to one shared look through the sun's crossing), and what the painters that never took the exposure paint with ([The twilight look](#the-twilight-look)) |
 
 Every sky colour above has already been put in the theme's key (see
 [The theme's key](#the-themes-key)), so a day under the dark theme is a deep
@@ -676,14 +676,15 @@ Through the window:
   real phase and a `SunGlyph` of the same family, now shared in
   `components/body-glyph.tsx`. The sun has rays and the moon never does: a
   plain lit disc is a full moon, and the two must never be taken for each
-  other. Every one of them reads `scene.moon.phase` — the effective clock's,
-  so the devtool's date and time move them all together with the sky.
+  other. Every one of them reads `scene.moon.phase`, which follows the
+  effective clock, so the devtool's date and time move them all together with
+  the sky.
 - **Through a sunrise or a sunset the sun's hint is the event.** For most of
   the ±45-minute phase windows (`lib/phase.ts`) the disc is under the horizon,
-  so a hint for the body alone went out the moment it set (−1°) — and at dusk
-  before the moon is up, the window had nothing to point at at the best moment
-  of the day to be looking. So in those windows the sun's hint is drawn as a
-  `SunEventGlyph` (half a sun on a horizon, an arrow up or down — the same
+  so a hint for the body alone went out the moment it set (−1°). At dusk,
+  before the moon is up, the window then had nothing to point at, at the best
+  moment of the day to be looking. So in those windows the sun's hint is drawn as a
+  `SunEventGlyph` (half a sun on a horizon, an arrow up or down; the same
   solid family) and points at the sun's **light**: the sun while it is up, the
   horizon under it once it is down (`sun.light` on `WindowBodies`). Facing the
   glow, the glow is its own hint and the edge lets go, as for any body on the
@@ -881,12 +882,12 @@ Why a pull, and not the press-and-hold it replaced:
 
 **Something is up there.** A pull with no answer stops halfway. So as the page
 comes down, something comes down from above the top edge (`<SkyPullCue />`):
-whichever of the sun and the moon is above the horizon — the moon at its real
-phase — drawn as **light**, not ink: a white body with a soft bloom round it
-that descends, grows and brightens with the pull, over "keep pulling to look
-up" — or, through a sunrise or a sunset, the event's glyph instead, since the
+whichever of the sun and the moon is above the horizon (the moon at its real
+phase). It is drawn as **light**, not ink: a white body with a soft bloom round
+it that descends, grows and brightens with the pull, over "keep pulling to look
+up". Through a sunrise or a sunset it is the event's glyph instead, since the
 window will be about the sunset rather than a disc. At the point of no return
-only the words change — "let go to look up" — with a tick where the platform
+only the words change, to "let go to look up", with a tick where the platform
 has one (`navigator.vibrate`): the light is one continuous function of the
 pull, so it never jumps, crossing the line or letting go on either side of it. (The first version drew progress as a stroked
 ring round an outline icon, and read as a control; a second put an ink glyph in
@@ -1731,7 +1732,7 @@ sunrise/sunset phase from the devtool also surfaces it for testing.
 ### The theme follows the sun
 
 **Follow the Sun is an Appearance** (`services/theme.tsx`), and the default
-one. Appearance has four answers — Follow the Sun, Light, Dark, Follow the
+one. Appearance has four answers: Follow the Sun, Light, Dark, Follow the
 System. The palette's `A` cycles them starting from what the sun shows: Follow
 the Sun → the theme it is not showing → the one it is → Follow the System, so
 the first press out of Follow the Sun always changes the page. No memory of
@@ -1745,7 +1746,7 @@ It was once a switch of its own (`themeFollowsSun` in the ambient settings, on
 unless turned off) that acted only on a crossing watched live, as a session
 override on top of the Appearance. A saved Follow the System from then was
 almost always the default plus that switch, so it was migrated to Follow the
-Sun once — unless the switch had been turned off (`getStoredPreference` in
+Sun once, unless the switch had been turned off (`getStoredPreference` in
 `services/theme.tsx`).
 
 **At the sun's own crossing: the middle of the long animation, not its end.**
@@ -1806,14 +1807,14 @@ choosing Follow the Sun lands on it at once, and under Follow the Sun it moves
 the page in one of two ways:
 
 1. **The first answer of a visit, quietly.** The sun's answer takes a
-   forecast, so until one lands Follow the Sun trusts the system — the bezel's
+   forecast, so until one lands Follow the Sun trusts the system. The bezel's
    boot script does the same for the first frame. If the sun then disagrees,
    the page crossfades to it once, with no notice: that is the page arriving,
    not an event. Nothing about the sun's answer is saved; a page opened after
    dark opens dark.
 2. **A crossing watched live, staged.** The sun rises or sets with the page
    open: the handover above, then a notice. Once it has settled, the small pill
-   in the bottom-center toast slot — the one the language switch uses — names
+   in the bottom-center toast slot (the one the language switch uses) names
    the mode and the Appearance it is following. By then the change has already
    dissolved in over two seconds, so there is nothing to confirm and nothing to
    undo in a hurry. Picking another Appearance while the sky is moving calls
@@ -1822,8 +1823,8 @@ the page in one of two ways:
 
 Because the rule reads the ambient clock, **devtool time travel crosses it
 too**: playing the day in the Sky module crosses sunrise and sunset for real,
-and the theme changes there exactly as it would on the real clock — or does
-not, under any other Appearance.
+and the theme changes there exactly as it would on the real clock. Under any
+other Appearance it does not.
 
 ### The theme's key
 
@@ -1870,11 +1871,11 @@ seconds behind the chrome.
 With the key at zero on both sides of the crossing, what was left of the theme
 at sunset was the veil and the exposure: Light brightened and washed 30% toward
 white, Dark dimmed and washed toward the page. That was the whole of the
-handover's cut — a bright, milky sunset with a blown-out sun became a dim one
+handover's cut: a bright, milky sunset with a blown-out sun became a dim one
 in three seconds, the sun's glow first.
 
 So **twilight belongs to neither theme**. Toward the sun's crossing both looks
-are drawn to one — no veil, the sky at 0.8 exposure — and through the crossing
+are drawn to one (no veil, the sky at 0.8 exposure), and through the crossing
 they are the same look (`TWILIGHT_LOOK` in `lib/scene.ts`). A theme that
 changes hands there has nothing left to change in the sky: the scene the shader
 and the Gradient receive is identical under either theme, and the handover's
@@ -1894,10 +1895,10 @@ crossfade crosses nothing.
   sunrise and sunset as the forecast has them, −0.83° on the ephemeris and 0°
   on the estimated arc. It ends where the dark theme's key begins, so
   through all of it the scene is the same under either theme, to the bit.
-- **Past the crossing** — where only a hand-picked theme goes — each theme takes
-  its own look back within a few degrees, since the key is about to take over
-  there and a meet that lingered would put the chrome on the wrong side of its
-  sky before the key arrives.
+- **Past the crossing**, where only a hand-picked theme goes, each theme
+  takes its own look back within a few degrees. The key is about to take over
+  there, and a meet that lingered would put the chrome on the wrong side of
+  its sky before the key arrives.
 - **Where it meets** is a legibility decision: about the frame lightness at
   which the light card's tone conflict and the dark card's are equal
   (`toneSafe` in `lib/legibility.ts`: Light wants the picture above 0.62, Dark
