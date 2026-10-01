@@ -82,18 +82,6 @@ export function saveConfig(config: DemoConfig): void {
 }
 
 // -----------------------------------------------------------------------------
-// Which page this is
-// -----------------------------------------------------------------------------
-
-/**
- * The demo itself on a phone or inside the docs' phone frame; the docs page on
- * anything wider. The boot resolver repeats this test in plain JS.
- */
-export function isDemoPage(): boolean {
-  return isFramed() || matchMedia("(max-width: 767px)").matches;
-}
-
-// -----------------------------------------------------------------------------
 // Messages between the docs page and the phone
 // -----------------------------------------------------------------------------
 

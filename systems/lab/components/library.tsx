@@ -3,11 +3,10 @@
 import { ArrowUpRight, Search } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type { Locale } from "@/lib/i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { libraryById, SITE_REPO, type LabId, type LibraryLab } from "../catalog";
+import { libraryById, SITE_REPO, type LabId, type LibraryLab, type Text } from "../catalog";
 import { useLabStrings, type LabTable } from "../i18n";
 import { LabShell, labButtonClass } from "./shell";
 
@@ -76,14 +75,12 @@ export function LibraryShell({
   lab,
   page,
   tools,
-  meta,
   children,
 }: {
   lab: LabId;
   page: LibraryPage;
   /** The page's own tools (the guide's section tabs, the API's filter). */
   tools?: ReactNode;
-  meta?: ReactNode;
   children: ReactNode;
 }) {
   const entry = libraryById(lab);
@@ -93,7 +90,6 @@ export function LibraryShell({
       layout={page === "docs" ? "canvas" : "document"}
       tools={tools}
       scrollTools
-      meta={meta}
       actions={<LibraryPages lab={entry} page={page} />}
     >
       <div>
@@ -187,13 +183,11 @@ export function LibraryFacts({ lab, className }: { lab: LibraryLab; className?: 
 // The API reference
 // -----------------------------------------------------------------------------
 
-type Words = Record<Locale, string>;
-
 export interface ApiExport {
   name: string;
   kind: "component" | "hook" | "function" | "constant";
   signature: string;
-  summary: Words;
+  summary: Text;
   /** Where the guide explains it (`/lab/vitre#state`). */
   docs?: string;
 }
@@ -202,7 +196,7 @@ export interface ApiField {
   name: string;
   type: string;
   default?: string;
-  summary: Words;
+  summary: Text;
 }
 
 export interface ApiType {
@@ -324,7 +318,7 @@ export function ApiFilter({ value, onChange }: { value: string; onChange: (value
 /** One file of this site the library lives in, and what it does there. */
 export interface LibraryFile {
   path: string;
-  role: Words;
+  role: Text;
 }
 
 /** Where the library lives in this site, each file linked to the repository. */

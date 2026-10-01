@@ -45,7 +45,8 @@ import vitrePackage from "@/packages/vitre/package.json";
 
 export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "vitre";
 
-type Text = Record<Locale, string>;
+/** Words in both languages. */
+export type Text = Record<Locale, string>;
 
 interface LabBase {
   id: LabId;
@@ -84,7 +85,7 @@ export interface LibraryInfo {
   source: string;
   /** Its npm page — null while it lives only in this repository. */
   npm: string | null;
-  /** Where it runs on its own: /vitre (a phone opens it full screen). */
+  /** The demo's own page, which the simulator frames and a phone opens full screen. */
   demo: string;
 }
 
@@ -185,7 +186,8 @@ export const LABS: readonly LabEntry[] = [
       requires: `React ${vitrePackage.peerDependencies.react}`,
       source: `${SITE_REPO}/packages/vitre`,
       npm: vitrePackage.private ? null : `https://www.npmjs.com/package/${vitrePackage.name}`,
-      demo: "/vitre",
+      // The demo's page itself: /vitre sends anything but a phone back here.
+      demo: "/vitre/index.html",
     },
     hint: {
       en: "Safari's glass, in your colours",
@@ -197,6 +199,12 @@ export const LABS: readonly LabEntry[] = [
     },
   },
 ];
+
+/** The two kinds, in the order the index and the switcher show them, with their headings (lib/i18n). */
+export const LAB_GROUPS = [
+  { kind: "library", title: "labLibraries", note: "labLibrariesNote" },
+  { kind: "study", title: "labStudies", note: "labStudiesNote" },
+] as const;
 
 export function labById(id: LabId): LabEntry {
   return LABS.find((lab) => lab.id === id)!;

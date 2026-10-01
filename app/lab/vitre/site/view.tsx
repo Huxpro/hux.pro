@@ -17,31 +17,57 @@ import { WALLPAPER_FAMILY_EDGES } from "@/systems/ambient/lib/bezel";
 import { isIOSBrowser } from "@/systems/ambient/lib/platform";
 import { getWallpaperLook, WALLPAPER_LOOK_FAMILY, type WallpaperFamily } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useMounted } from "@/components/ui/use-mounted";
+import type { ReactNode } from "react";
 import { useVitre } from "vitre";
 import { SITE_STRINGS } from "./strings";
 
 const FAMILIES: WallpaperFamily[] = ["picture", "wash"];
 
-const role = (key: keyof typeof SITE_STRINGS.en.roles) => ({ en: SITE_STRINGS.en.roles[key], zh: SITE_STRINGS.zh.roles[key] });
-
 const FILES: LibraryFile[] = [
-  { path: "packages/vitre", role: role("pkg") },
-  { path: "app/layout.tsx", role: role("layout") },
-  { path: "systems/ambient/lib/bezel.ts", role: role("bezel") },
-  { path: "systems/ambient/components/surface.tsx", role: role("surface") },
-  { path: "systems/devtool/panel.tsx", role: role("devtool") },
-  { path: "components/ui/use-hero-fade.ts", role: role("scroll") },
+  {
+    path: "packages/vitre",
+    role: {
+      en: "The package: <Vitre>, the boot script, the page-scroll API.",
+      zh: "包本身：<Vitre>、启动脚本、页面滚动 API。",
+    },
+  },
+  {
+    path: "app/layout.tsx",
+    role: {
+      en: "The boot script in <head>: the first frame, before React.",
+      zh: "<head> 里的启动脚本：React 之前的第一帧。",
+    },
+  },
+  {
+    path: "systems/ambient/lib/bezel.ts",
+    role: {
+      en: "The rule above, the bezel tints, and the boot resolver.",
+      zh: "上面那条规则、bezel 的配色，以及启动解析器。",
+    },
+  },
+  {
+    path: "systems/ambient/components/surface.tsx",
+    role: {
+      en: "<Vitre> around every page, with the wallpaper as its backdrop.",
+      zh: "每一页外面的 <Vitre>，壁纸是它的背景层。",
+    },
+  },
+  {
+    path: "systems/devtool/panel.tsx",
+    role: {
+      en: "The devtool's Bezel section: every knob, live.",
+      zh: "开发者工具的 Bezel 一节：每个旋钮，实时生效。",
+    },
+  },
+  {
+    path: "components/ui/use-hero-fade.ts",
+    role: {
+      en: "One of the places the site listens to the page's scroll through vitre, so it works in either scroll.",
+      zh: "本站通过 vitre 监听页面滚动的地方之一，两种滚动方式下都能用。",
+    },
+  },
 ];
-
-/** A client-only read, false on the server and the first render. */
-function useMounted() {
-  return useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
-}
 
 export function VitreSiteView() {
   const S = useLabStrings(SITE_STRINGS);

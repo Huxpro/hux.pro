@@ -47,7 +47,8 @@ const BACKDROPS: Record<DemoConfig["backdrop"], (dark: boolean) => string> = {
     dark
       ? "linear-gradient(165deg, #2a1033 0%, #6b1f3a 45%, #b3542b 100%)"
       : "linear-gradient(165deg, #ffd6a5 0%, #ff9f80 45%, #c75b7a 100%)",
-  none: () => "none",
+  // No backdrop is the bare ground, inside the bezel all the same.
+  none: (dark) => GROUND[dark ? "dark" : "light"],
 };
 
 function useSystemDark(): boolean {
@@ -162,16 +163,13 @@ export function Demo() {
     return () => window.removeEventListener("message", onMessage);
   }, [patch, action, setLang]);
 
-  // The page's own ground, painted by the host, as a real site does — on
-  // <body> only while the bezel is off. While it is on, <body> is Vitre's: it
-  // takes the bezel colour, so nothing at the screen's edge can show the
-  // ground between the bezel's pieces, and the page's ground is the backdrop
-  // layer inside the bezel (below).
+  // The page's own ground is the host's stylesheet (styles.css, by
+  // `data-theme`), as on a real site: while the bezel is on, Vitre's rule for
+  // <body> wins over it and paints the bezel colour, and the ground is the
+  // backdrop layer inside the bezel (below).
   useEffect(() => {
-    document.body.style.background = config.enabled ? "" : GROUND[theme];
-    document.body.style.color = theme === "dark" ? "#f4f4f5" : "#18181b";
     document.body.dataset.theme = theme;
-  }, [theme, config.enabled]);
+  }, [theme]);
 
   const color = resolveColor(config, theme);
   const scroll = resolveScroll(config);
@@ -185,14 +183,13 @@ export function Demo() {
       scroll={scroll}
       ground={GROUND[theme]}
       backdrop={
-        // No backdrop is the bare ground, inside the bezel all the same.
         <div
           aria-hidden="true"
           {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
           style={{
             position: "fixed",
             zIndex: -1,
-            background: config.backdrop === "none" ? GROUND[theme] : BACKDROPS[config.backdrop](theme === "dark"),
+            background: BACKDROPS[config.backdrop](theme === "dark"),
             ...(config.enabled ? BEZEL_INSET : { inset: 0 }),
           }}
         />

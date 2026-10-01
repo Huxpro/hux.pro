@@ -1,6 +1,8 @@
 "use client";
 
-import { LAB_SURFACES, LABS, LibraryFacts, type LabEntry, type LibraryLab } from "@/systems/lab";
+import { LAB_GROUPS, LABS, type LabEntry } from "@/systems/lab/catalog";
+import { LibraryFacts } from "@/systems/lab/components/library";
+import { LAB_SURFACES } from "@/systems/lab/surfaces";
 import { PageLayout } from "@/components/ui/page-layout";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
@@ -27,31 +29,20 @@ import type { ReactNode } from "react";
  */
 export function LabIndexView() {
   const { locale } = useLocale();
-  const libraries = LABS.filter((lab): lab is LibraryLab => lab.kind === "library");
-  const studies = LABS.filter((lab) => lab.kind === "study");
   return (
     <PageLayout page="lab" headerActions={<HomeWidgetSwitch />}>
       <div className="space-y-10">
-        {libraries.length > 0 && (
-          <LabGroup title={t(locale, "labLibraries")} note={t(locale, "labLibrariesNote")}>
-            <ul className="grid gap-4">
-              {libraries.map((lab) => (
+        {LAB_GROUPS.map(({ kind, title, note }) => (
+          <LabGroup key={kind} title={t(locale, title)} note={t(locale, note)}>
+            <ul className={cn("grid gap-4", kind === "study" && "sm:grid-cols-2")}>
+              {LABS.filter((lab) => lab.kind === kind).map((lab) => (
                 <li key={lab.id} className="min-w-0">
-                  <LabCard lab={lab} wide />
+                  <LabCard lab={lab} />
                 </li>
               ))}
             </ul>
           </LabGroup>
-        )}
-        <LabGroup title={t(locale, "labStudies")} note={t(locale, "labStudiesNote")}>
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {studies.map((lab) => (
-              <li key={lab.id} className="min-w-0">
-                <LabCard lab={lab} />
-              </li>
-            ))}
-          </ul>
-        </LabGroup>
+        ))}
       </div>
     </PageLayout>
   );
@@ -69,9 +60,10 @@ function LabGroup({ title, note, children }: { title: string; note: string; chil
   );
 }
 
-/** A lab as one link: its surface, its name and line. Wide, the surface sits beside the words. */
-function LabCard({ lab, wide }: { lab: LabEntry; wide?: boolean }) {
+/** A lab as one link: its surface, its name and line. A library's is wide, its surface beside the words. */
+function LabCard({ lab }: { lab: LabEntry }) {
   const { locale } = useLocale();
+  const wide = lab.kind === "library";
   const Surface = LAB_SURFACES[lab.id];
   return (
     <Link

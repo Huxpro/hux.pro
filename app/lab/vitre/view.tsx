@@ -34,25 +34,23 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale, useTheme } from "@/services";
 import { ArrowUpRight } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { DEMO_URL, PHONE, Phone, usePhoneBridge, type PhoneBridge } from "./simulator";
+import { useMediaQuery } from "@/components/ui/use-media-query";
+import { Code } from "@/packages/vitre/site/src/docs/Code";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import {
+  DEMO_URL,
+  PHONE,
+  Phone,
+  usePhoneBridge,
+  usePhoneReport,
+  type PhoneBridge,
+  type ReportStore,
+} from "./simulator";
 import { VITRE_STRINGS } from "./strings";
 import "./docs.css";
 
 /** From here the page has room for the phone beside the article (the demo's own phone breakpoint, 767px, is below it). */
 const WIDE = "(min-width: 768px)";
-
-function useWide(): boolean {
-  return useSyncExternalStore(
-    (onChange) => {
-      const mq = matchMedia(WIDE);
-      mq.addEventListener("change", onChange);
-      return () => mq.removeEventListener("change", onChange);
-    },
-    () => matchMedia(WIDE).matches,
-    () => false,
-  );
-}
 
 export function VitreLabView() {
   const { locale } = useLocale();
@@ -68,7 +66,7 @@ function VitreDocs() {
   const { locale } = useLocale();
   const { theme } = useTheme();
   const S = useLabStrings(VITRE_STRINGS);
-  const wide = useWide();
+  const wide = useMediaQuery(WIDE);
   const [active, setActive] = useState<SectionId>(SECTIONS[0].id);
   const bridge = usePhoneBridge(active, locale, theme, wide);
 
@@ -111,7 +109,7 @@ function VitreDocs() {
     <LibraryShell lab="vitre" page="docs" tools={<SectionTabs active={active} onPick={pick} label={S.sections} />}>
       <div className="vitre-lab md:grid md:grid-cols-[minmax(320px,42%)_minmax(0,1fr)] md:gap-10 lg:gap-16">
         <aside className="sticky top-[var(--lab-under-bar)] hidden h-[calc(100svh-var(--lab-under-bar))] items-center justify-center pb-10 md:flex">
-          {wide && <FittedPhone bridge={bridge} caption={S.caption} statusTitle={S.statusTitle} />}
+          {wide && <FittedPhone bridge={bridge} />}
         </aside>
 
         <article className="min-w-0 pb-[30vh] md:pb-[40vh]">
@@ -129,8 +127,8 @@ function VitreDocs() {
               section={section}
               active={active === section.id}
               wide={wide}
-              bridge={bridge}
-              liveLabel={S.live}
+              run={bridge.run}
+              reports={bridge.reports}
             />
           ))}
           {/* Beside the simulator, the way to the real thing. */}
@@ -142,7 +140,7 @@ function VitreDocs() {
 }
 
 /** The phone, as large as its column lets it be (never past its own size). */
-function FittedPhone({ bridge, caption, statusTitle }: { bridge: PhoneBridge; caption: string; statusTitle: string }) {
+function FittedPhone({ bridge }: { bridge: PhoneBridge }) {
   const box = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.6);
   useEffect(() => {
@@ -161,30 +159,32 @@ function FittedPhone({ bridge, caption, statusTitle }: { bridge: PhoneBridge; ca
   }, []);
   return (
     <div ref={box}>
-      <Phone bridge={bridge} scale={scale} caption={caption} statusTitle={statusTitle} />
+      <Phone bridge={bridge} scale={scale} />
     </div>
   );
 }
 
 type Section = (typeof SECTIONS)[number];
 
-function DocSection({
+/**
+ * One section of the guide. Memoised, with only stable props from the bridge:
+ * the phone's reports and toolbar re-render the phone and the active
+ * section's readout, not the article.
+ */
+const DocSection = memo(function DocSection({
   section: s,
   active,
   wide,
-  bridge,
-  liveLabel,
+  run,
+  reports,
 }: {
   section: Section;
   active: boolean;
   wide: boolean;
-  bridge: PhoneBridge;
-  liveLabel: string;
+  run: PhoneBridge["run"];
+  reports: ReportStore;
 }) {
   const t = useT();
-  // What the phone reports, and the buttons that drive it, only mean
-  // something where there is a phone.
-  const live = wide && active ? s.live?.(bridge.report) : null;
   return (
     <section
       id={s.id}
@@ -200,14 +200,14 @@ function DocSection({
       <h2 className="mt-2 font-serif text-3xl tracking-tight text-foreground sm:text-[2rem]">{t(s.title)}</h2>
       <p className="mt-3 text-base leading-relaxed text-foreground/85 sm:text-lg">{t(s.lede)}</p>
       {s.body && <div className="vitre-prose mt-4">{t(s.body)}</div>}
-      {s.code && <CodeBlock code={s.code} />}
+      {s.code && <Code code={s.code} />}
       {wide && s.actions && (
         <div className="mt-4 flex flex-wrap gap-2">
           {s.actions.map((a) => (
             <button
               key={a.label.en}
               type="button"
-              onClick={() => bridge.run(a.run)}
+              onClick={() => run(a.run)}
               className="rounded-full border border-border/60 bg-glass px-3.5 py-1.5 font-mono text-xs text-foreground transition-colors hover:bg-glass-hover"
             >
               {t(a.label)}
@@ -215,37 +215,27 @@ function DocSection({
           ))}
         </div>
       )}
-      {live && (
-        <div className="mt-4 rounded-xl border border-border/50 bg-glass px-4 py-2.5">
-          <span className={TYPE.labelSm}>
-            {liveLabel} · {t(live.label)}
-          </span>
-          <pre className="mt-1 whitespace-pre-wrap font-mono text-xs text-foreground">{formatValue(live.value)}</pre>
-        </div>
-      )}
+      {/* What the phone reports only means something where there is a phone. */}
+      {wide && active && s.live && <LiveReadout live={s.live} reports={reports} />}
       <SectionCovers id={s.id} />
     </section>
   );
-}
+});
 
-/** The package's highlighted code block (shiki, loaded after the page). */
-function CodeBlock({ code }: { code: string }) {
-  const [Code, setCode] = useState<null | ((p: { code: string }) => React.ReactNode)>(null);
-  useEffect(() => {
-    let live = true;
-    import("@/packages/vitre/site/src/docs/Code").then((m) => live && setCode(() => m.Code));
-    return () => {
-      live = false;
-    };
-  }, []);
-  if (!Code) {
-    return (
-      <pre className="docs-code">
-        <code>{code}</code>
-      </pre>
-    );
-  }
-  return <Code code={code} />;
+/** The active section's readout of the phone, live. */
+function LiveReadout({ live, reports }: { live: NonNullable<Section["live"]>; reports: ReportStore }) {
+  const t = useT();
+  const S = useLabStrings(VITRE_STRINGS);
+  const reading = live(usePhoneReport(reports));
+  if (!reading) return null;
+  return (
+    <div className="mt-4 rounded-xl border border-border/50 bg-glass px-4 py-2.5">
+      <span className={TYPE.labelSm}>
+        {S.live} · {t(reading.label)}
+      </span>
+      <pre className="mt-1 whitespace-pre-wrap font-mono text-xs text-foreground">{formatValue(reading.value)}</pre>
+    </div>
+  );
 }
 
 /**

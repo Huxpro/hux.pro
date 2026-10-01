@@ -4,9 +4,10 @@ import { Menu } from "@base-ui/react/menu";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { LAB_INDEX, LABS, labFromPath } from "../catalog";
+import { LAB_GROUPS, LAB_INDEX, LABS, labFromPath } from "../catalog";
 import { useFrameStrings } from "../i18n";
 
 /**
@@ -67,10 +68,10 @@ export function LabNav({
               active={!current}
             />
             {/* The index's two sections, in its order: libraries, then studies. */}
-            {GROUPS.map(({ kind, title }) => (
+            {LAB_GROUPS.map(({ kind, title }) => (
               <Menu.Group key={kind}>
                 <div className="mx-2 my-1 h-px bg-border/60" />
-                <Menu.GroupLabel className="px-2.5 pb-0.5 pt-1.5 font-mono text-[10px] uppercase tracking-wider text-tertiary-foreground">
+                <Menu.GroupLabel className={cn(TYPE.labelSm, "px-2.5 pb-0.5 pt-1.5")}>
                   {t(locale, title)}
                 </Menu.GroupLabel>
                 {LABS.filter((lab) => lab.kind === kind).map((lab) => (
@@ -90,11 +91,6 @@ export function LabNav({
     </Menu.Root>
   );
 }
-
-const GROUPS = [
-  { kind: "library", title: "labLibraries" },
-  { kind: "study", title: "labStudies" },
-] as const;
 
 function NavItem({ href, mark, hint, active }: { href: string; mark: string; hint: string; active: boolean }) {
   return (

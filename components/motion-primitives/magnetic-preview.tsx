@@ -3,7 +3,8 @@
 import { GLASS_PANEL } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { useInputCapability } from "@/services";
-import React, { useRef, useSyncExternalStore } from "react";
+import React, { useRef } from "react";
+import { useMounted } from "@/components/ui/use-mounted";
 import { createPortal } from "react-dom";
 import { Cursor } from "./cursor";
 
@@ -46,9 +47,6 @@ export interface MagneticPreviewProps {
  */
 export const PEEK_W = "w-96"; // 24rem · 384px
 
-/** A store that never changes: hydration is the only event. */
-const subscribeNever = () => () => {};
-
 const defaultVariants = {
   initial: { opacity: 0, scale: 0.9, y: 8 },
   animate: { opacity: 1, scale: 1, y: 0 },
@@ -80,7 +78,7 @@ export function MagneticPreview({
   // HTML on hydration: the server snapshot says "not yet", the client's
   // says "now", and React reconciles the two without an effect or a state
   // update — a hundred instances on a page used to schedule a hundred.
-  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const hydrated = useMounted();
   const showPreview = hydrated && enabled && magneticPreviewEnabled;
   const hostRef = useRef<HTMLElement>(null);
 

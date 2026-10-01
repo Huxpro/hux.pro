@@ -150,6 +150,6 @@ shows on the API page by itself. The demo the simulator runs is
 `packages/vitre/site` (`pnpm vitre:site`; built into `public/vitre` and served
 at `/vitre`, `/bezel` redirecting there; `pnpm dev` builds it when stale) — a
 phone opens it full screen, anything else is redirected to the lab (by user
-agent in next.config.ts, and by width in the page). The simulator frames
-`/vitre/index.html`, which is never redirected.
+agent, in next.config.ts — the one place that decides). The simulator and the
+lab's Demo links use `/vitre/index.html`, which is never redirected.
 

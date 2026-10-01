@@ -1,5 +1,6 @@
 "use client";
 
+import { useMounted } from "@/components/ui/use-mounted";
 import { useLabStrings, LabChip, LabSection, LabShell } from "@/systems/lab";
 import { Slider as Range } from "@/components/ui/slider";
 import { TYPE } from "@/lib/typography";
@@ -23,7 +24,6 @@ import {
   useEffect,
   useRef,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -237,11 +237,7 @@ export function GlowLabView() {
   const { theme } = useTheme();
   // border-beam writes its styles for one theme; the server cannot know the
   // reader's, so the reference draws once on the client.
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
+  const mounted = useMounted();
   const [mic, setMic] = useState<"off" | "on" | "denied">("off");
   const meter = useRef<VoiceMeter | null>(null);
   const stream = useRef<MediaStream | null>(null);

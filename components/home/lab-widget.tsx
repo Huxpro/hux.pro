@@ -1,6 +1,7 @@
 "use client";
 
-import { LAB_INDEX, LABS, LAB_SURFACES } from "@/systems/lab";
+import { LAB_INDEX, LABS } from "@/systems/lab/catalog";
+import { LAB_SURFACES } from "@/systems/lab/surfaces";
 import {
   WidgetBody,
   WidgetHeader,

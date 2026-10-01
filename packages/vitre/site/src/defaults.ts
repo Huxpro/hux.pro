@@ -46,14 +46,12 @@ export const STORAGE_KEY = "vitre-demo";
 
 /**
  * The boot resolver: the same decisions as the demo, before React runs. The
- * docs page (wide, not framed) gets no bezel; the phone in its frame starts
- * from the defaults, in its host's light or dark (`?theme=`); a phone
- * visiting the demo starts from what it saved.
+ * phone in the docs' frame starts from the defaults, in its host's light or
+ * dark (`?theme=`); a visit to the demo starts from what it saved.
  */
 export function bootResolver(): string {
   return `
 var framed=new URLSearchParams(location.search).has("frame");
-if(!framed&&!matchMedia("(max-width: 767px)").matches)return null;
 var c=${JSON.stringify(DEFAULT_CONFIG)};
 if(!framed){try{var s=JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)})||"{}");for(var k in s)c[k]=s[k];}catch(e){}}
 var host=framed&&new URLSearchParams(location.search).get("theme");
