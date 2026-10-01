@@ -318,8 +318,23 @@ interface BaseCommit {
    * the line only prints where the value actually changes.
    */
   team?: LocalizedString;
-  /** Personal reflection / liner notes */
+  /** Personal reflection / liner notes. Read with the description: on
+   *  /works it prints under it, above the covers, in every form that
+   *  prints a description. */
   commentary?: LocalizedString;
+  /**
+   * The long form, which only a reader who asked for it reads: a talk's
+   * programme abstract as the conference published it, a thesis's
+   * particulars, a source quoted whole. Printed under the covers when a row
+   * is opened, and in the feed; never in the folded `covers` row.
+   *
+   * The split is the rule for every commit: `description` is what someone
+   * scrolling the page should know about the work, complete in itself and
+   * short enough to print whole; anything that only elaborates it goes
+   * here. A description that needs a clamp to fit has something of this
+   * field in it.
+   */
+  details?: LocalizedString;
   tags?: string[];
   /**
    * Whether this commit should be shown in /works (and other index surfaces).

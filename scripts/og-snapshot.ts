@@ -148,8 +148,10 @@ function collectTargets(): Target[] {
       }
     }
   }
-  // A magic link's page peeks as its card (components/magic-link).
-  for (const url of magicLinkHrefs()) {
+  // A magic link's page peeks as its card (components/magic-link): the
+  // ones prose names, and a /works venue's page (a talk's conference),
+  // which the timeline renders as one.
+  for (const url of [...magicLinkHrefs(), ...venueHrefs(log.commits ?? [])]) {
     upsert({
       url,
       kind: "card",
@@ -158,6 +160,17 @@ function collectTargets(): Target[] {
     });
   }
   return [...byUrl.values()];
+}
+
+/** Every venue page /works renders as a magic link (TimelineCommit's
+ *  `venueLink`): a talk's conference. */
+function venueHrefs(commits: RawLogData["commits"]): string[] {
+  const urls = new Set<string>();
+  for (const c of commits ?? []) {
+    const url = c.type === "talk" ? c.conference.url : undefined;
+    if (url && /^https?:/.test(url) && detectMediaKind(url) === "link") urls.add(url);
+  }
+  return [...urls];
 }
 
 /** Pages given their card by hand (content/badges.json `previews`). */

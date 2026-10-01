@@ -5,7 +5,6 @@
  * Used by TimelineCommit and CommitCompact.
  */
 
-import { Link } from "next-view-transitions";
 import { cn } from "@/lib/utils";
 import { IdentityHover } from "@/systems/identity";
 import type { Byline } from "../bylines";
@@ -17,8 +16,6 @@ import { TYPE } from "@/lib/typography";
 
 interface DescriptionProps {
   text: string;
-  /** Full text. Otherwise clamped to two lines. */
-  isExpanded?: boolean;
   className?: string;
 }
 
@@ -36,28 +33,30 @@ interface DescriptionProps {
  * the size it needed: a half step under the heading, which is
  * where a sentence under a heading sits. (At 14 it was the heading's size
  * and the two competed for the row.)
+ *
+ * Never clamped. It was two lines for a long time, with the rest behind the
+ * row's press, and a clamp is a statement that the text was not written to
+ * be read: what the reader got was the first half of somebody's programme
+ * abstract, cut mid-word. A description is now the part that should be
+ * read, short enough to print whole; what only elaborates it is `Details`.
  */
-export function Description({
-  text,
-  isExpanded = false,
-  className,
-}: DescriptionProps) {
-  return (
-    <p
-      className={cn(
-        TYPE.message,
-        // Two lines everywhere, and the measure does the rest: a phone's
-        // ~40 characters a line, a desktop's ~90. A wider column is already
-        // being handed more of the text, so spending a breakpoint to hand it
-        // a third line as well buys a screen and a half of page for a hook
-        // that was long enough at two.
-        !isExpanded && "line-clamp-2",
-        className
-      )}
-    >
-      {text}
-    </p>
-  );
+export function Description({ text, className }: DescriptionProps) {
+  return <p className={cn(TYPE.message, className)}>{text}</p>;
+}
+
+// =============================================================================
+// Details
+// =============================================================================
+
+/**
+ * The long form behind a commit's press (`details` in log.json): a talk's
+ * programme abstract, a thesis's particulars. It prints under the covers,
+ * so it is a step under the description in size (`TYPE.caption`, 12px) and
+ * keeps the muted rung: it is running text, and a paragraph on tertiary is
+ * a contrast bug, not a hierarchy.
+ */
+export function Details({ text, className }: { text: string; className?: string }) {
+  return <p className={cn(TYPE.caption, className)}>{text}</p>;
 }
 
 // =============================================================================
@@ -73,7 +72,8 @@ interface CommentaryProps {
  * What I say about a work, in the margin. The aside's face (italic serif,
  * 12px), but a rung up from `TYPE.aside`: an aside elsewhere annotates a
  * neighbour, and this one is the only place the row says something in my
- * own words.
+ * own words. That is why it is read with the description, above the
+ * covers, and not kept behind the row's press with the notes.
  */
 export function Commentary({ text, className }: CommentaryProps) {
   return (
@@ -102,15 +102,9 @@ export function Commentary({ text, className }: CommentaryProps) {
 const DEFAULT_AUTHOR_HANDLE = "hux";
 
 /**
- * The `commit` field's hash, in both its modes.
- *
- * No rule under it: a 7-character hex in a `commit` field is the most
- * conventional link on the web, and the block had two dotted underlines in
- * three lines: one for this, which navigates, and one for `Role:`, which
- * expands in place. The same mark for two different behaviours told the
- * reader nothing, and under CJK the rule is drawn by the fallback font's
- * metrics rather than the mono's, so the two did not even match each other.
- * Colour carries it instead, and hover does the confirming.
+ * The `commit` field's hash. No rule under it: a 7-character hex in a
+ * `commit` field is the most conventional link there is, so colour carries
+ * it and hover confirms.
  */
 const HASH_LINK = cn(TYPE.hash, "transition-colors hover:text-muted-foreground");
 
@@ -118,28 +112,24 @@ interface AuthorFieldsProps {
   byline?: Byline | null;
   /**
    * The hash as a leading `commit` field (how `git log --pretty=fuller`
-   * opens), and the surface's permalink.
-   *
-   * Two surfaces need it for two reasons. The home widget hands off to
-   * /works, so it passes `href` and the field is a link; `scroll={false}`,
-   * because `useCommitAnchor` takes the hash from the URL on arrival and
-   * eases to it. Left on, the router's jump and the eased correction run in
-   * series and read as a stumble. /works is already the page, so it passes
-   * `onSelect` and the field makes this row the address in place.
-   *
-   * On /works it also carries `className: "lg:hidden"`: the gutter hash
-   * column is `hidden lg:inline`, so below that width the row has no
-   * permalink at all, and above it two would be a duplicate.
+   * opens), and the row's permalink: `onSelect` makes the row the page's
+   * address in place.
    */
-  commit?: {
-    hash: string;
-    /** Link away to the row (the widget's hand-off to /works). */
-    href?: string;
-    /** Make this row the page's address, without navigating (/works). */
-    onSelect?: (hash: string) => void;
-    /** Applied to both cells, so the whole field hides together. */
-    className?: string;
-  };
+  commit?: { hash: string; onSelect?: (hash: string) => void };
+  /**
+   * Print the lines in, one after another (`sig-print`, globals.css "The
+   * signature"), when an ancestor carries `data-sig-open`: the phone's
+   * easter egg. Each line's label goes first and its value a beat after.
+   */
+  print?: boolean;
+  /**
+   * Print the `Role:` field. The signature leaves it out: `Author:` opens
+   * the identity card, which carries the role and its tenure, and a role
+   * line repeated on every row of a tenure (`Architect @ ByteDance`, eleven
+   * times down the Lynx years) restates the company the handle and the
+   * team already name. The feed, which prints everything, keeps it.
+   */
+  withRole?: boolean;
   className?: string;
 }
 
@@ -150,28 +140,52 @@ interface AuthorFieldsProps {
 const FIELD_SUBGRID = "col-span-2 grid grid-cols-subgrid gap-y-0.5";
 
 /**
- * The author block at the foot of an expanded commit: the vertical form of
- * the handle that was on the meta line a moment ago. Folded, the row states
- * its author compactly on that line; open, it transposes into this labelled
- * field stack and the mark above stands down, so the fact is stated once and
- * the two states are the same thing seen along two axes.
- *
- * Lives here because both surfaces print it and both must keep printing the
- * same thing: it carries state (the role disclosure) rather than only markup,
- * so a copy on each surface is a behaviour to keep in sync by hand.
+ * The author block, as `git log --pretty=fuller` writes it: `commit`,
+ * `Author:`, and `Role:` where everything is printed (the feed). On /works
+ * it is provenance, not content (the chapter names the company, the title
+ * line the team), so it never prints at rest and never gates the row's
+ * press: on a desk the margin shows it under the hash on hover, and on a
+ * phone a tap on the row's mark brings this stack, an easter egg
+ * (TimelineCommit, "The signature"). The feed prints it outright.
  */
 export function AuthorFields({
   byline,
   commit,
+  print = false,
+  withRole = true,
   className,
 }: AuthorFieldsProps) {
-  const role = byline?.expanded.title && (
+  // `@ Company` never breaks: a role wrapping as `… XROS @` / `Meta` leaves
+  // the at-sign hanging at a line's end, pointing at nothing.
+  const role = withRole && byline?.expanded.title && (
     <>
-      {byline.expanded.title}
-      <span className="text-quaternary-foreground"> @ </span>
-      {byline.expanded.company}
+      {byline.expanded.title}{" "}
+      <span className="whitespace-nowrap">
+        <span className="text-quaternary-foreground">@ </span>
+        {byline.expanded.company}
+      </span>
     </>
   );
+
+  // A cell's place for `print`: its line in the stack, and whether it is
+  // the value that follows its label.
+  const cell = (i: number, value: boolean) =>
+    print
+      ? {
+          className: "sig-print",
+          style: {
+            "--sig-i": i,
+            "--sig-o": value ? "60ms" : "0ms",
+          } as React.CSSProperties,
+        }
+      : { className: undefined, style: undefined };
+  const authorLine = commit ? 1 : 0;
+  const commitLabel = commit ? cell(0, false) : null;
+  const commitValue = commit ? cell(0, true) : null;
+  const authorLabel = cell(authorLine, false);
+  const authorValue = cell(authorLine, true);
+  const roleLabel = role ? cell(authorLine + 1, false) : null;
+  const roleValue = role ? cell(authorLine + 1, true) : null;
 
   /**
    * The `Author:` and `Role:` lines stand for one identity, so together they
@@ -210,52 +224,59 @@ export function AuthorFields({
       {commit && (
         <>
           <span
-            className={cn("text-tertiary-foreground", commit.className)}
+            className={cn("text-tertiary-foreground", commitLabel?.className)}
+            style={commitLabel?.style}
           >
             commit
           </span>
-          <span className={commit.className}>
-            {commit.href ? (
-              <Link
-                href={commit.href}
-                scroll={false}
-                onClick={(e) => e.stopPropagation()}
-                aria-label={`Open commit ${commit.hash} in works`}
-                className={cn(HASH_LINK)}
-              >
-                {commit.hash}
-              </Link>
-            ) : (
-              <a
-                href={`#${commit.hash}`}
-                onClick={(e) => {
-                  // Modified clicks belong to the browser.
-                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                  e.preventDefault();
-                  e.stopPropagation();
-                  commit.onSelect?.(commit.hash);
-                }}
-                aria-label={`Link to commit ${commit.hash}`}
-                className={cn(HASH_LINK)}
-              >
-                {commit.hash}
-              </a>
-            )}
+          <span className={commitValue?.className} style={commitValue?.style}>
+            <a
+              href={`#${commit.hash}`}
+              onClick={(e) => {
+                // Modified clicks belong to the browser.
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                e.preventDefault();
+                e.stopPropagation();
+                commit.onSelect?.(commit.hash);
+              }}
+              aria-label={`Link to commit ${commit.hash}`}
+              className={cn(HASH_LINK, "sig-hash")}
+            >
+              {commit.hash}
+            </a>
           </span>
         </>
       )}
 
       {identity(
         <>
-          <span className="text-tertiary-foreground">Author:</span>
-          <span className="text-tertiary-foreground">
+          <span
+            className={cn("text-tertiary-foreground", authorLabel.className)}
+            style={authorLabel.style}
+          >
+            Author:
+          </span>
+          {/* The who, a rung above the labels and the role: the one field
+              a reader came for. */}
+          <span
+            className={cn("text-muted-foreground", authorValue.className)}
+            style={authorValue.style}
+          >
             &lt;{byline?.handle ?? DEFAULT_AUTHOR_HANDLE}&gt;
           </span>
 
           {role && (
             <>
-              <span className="text-tertiary-foreground">Role:</span>
-              <span className="text-tertiary-foreground">
+              <span
+                className={cn("text-tertiary-foreground", roleLabel?.className)}
+                style={roleLabel?.style}
+              >
+                Role:
+              </span>
+              <span
+                className={cn("text-tertiary-foreground", roleValue?.className)}
+                style={roleValue?.style}
+              >
                 {/*
                   The role's prose (its tenure, the other roles under the
                   same handle, what was signed with it) is the identity card
@@ -267,7 +288,9 @@ export function AuthorFields({
                 {byline.expanded.location && (
                   <>
                     <span className="text-quaternary-foreground"> · </span>
-                    {byline.expanded.location}
+                    <span className="whitespace-nowrap">
+                      {byline.expanded.location}
+                    </span>
                   </>
                 )}
               </span>
