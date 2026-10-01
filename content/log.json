@@ -36,8 +36,8 @@
         "zh": ""
       },
       "narrative": {
-        "en": "From RIT's programming languages lab to Meta's React org. Built Hermes for iOS, co-founded React Forget as tech lead of the auto-memoization compiler, and shipped to billions through React Native.",
-        "zh": "从 RIT 编程语言实验室到 Meta React 团队。将 Hermes 引入 iOS，作为 React Forget 自动记忆化编译器的联合创始工程师及技术负责人，通过 React Native 服务数十亿用户。"
+        "en": "Meta's React org, from two summer internships to full time. Built Hermes for iOS, co-founded React Forget as tech lead of the auto-memoization compiler, and shipped to billions through React Native.",
+        "zh": "Meta React 团队，从两段暑期实习到全职。将 Hermes 引入 iOS，作为 React Forget 自动记忆化编译器的联合创始工程师及技术负责人，通过 React Native 服务数十亿用户。"
       },
       "company": {
         "en": "Meta",
@@ -47,9 +47,31 @@
         "en": "React, Compilers, JavaScript Engines",
         "zh": "React, 编译器, JavaScript 引擎"
       },
-      "startDate": "2017-08",
+      "startDate": "2018-05",
       "endDate": "2022-10",
       "accentColor": "oklch(0.7 0.2 220)"
+    },
+    {
+      "id": "pl-era",
+      "title": {
+        "en": "PL",
+        "zh": "PL"
+      },
+      "tagline": {
+        "en": "",
+        "zh": ""
+      },
+      "narrative": {
+        "en": "Programming languages and formal verification, from RIT's PL lab under Prof. Matthew Fluet to compilers at Meta: type theory, WebAssembly mechanized in Coq, ReasonML and a new language for XR over two summers, then the Hermes JavaScript engine and the React Compiler.",
+        "zh": "编程语言与形式化验证，从 RIT 编程语言实验室（师从 Matthew Fluet 教授）到 Meta 的编译器：类型论、用 Coq 机械化 WebAssembly，两个夏天里的 ReasonML 与一门为 XR 设计的新语言，再到 Hermes JavaScript 引擎与 React Compiler。"
+      },
+      "keywords": {
+        "en": "Type Theory, Coq, Compilers",
+        "zh": "类型论, Coq, 编译器"
+      },
+      "startDate": "2017-08",
+      "endDate": "2022-10",
+      "accentColor": "oklch(0.68 0.16 150)"
     },
     {
       "id": "pwa-era",
@@ -76,23 +98,23 @@
     {
       "id": "early-days",
       "title": {
-        "en": "Early days",
-        "zh": "早年"
+        "en": "Design",
+        "zh": "Design"
       },
       "tagline": {
         "en": "",
         "zh": ""
       },
       "narrative": {
-        "en": "Flash games and animations from the age of ten, award-winning through high school and college, and the first few bucks earned on motion graphics — the kid who wanted to make interfaces before knowing the word.",
-        "zh": "十岁开始做 Flash 游戏和动画，高中到大学拿过一些奖，也靠动态图形赚到了第一笔钱——那个还不知道“界面”这个词、就已经想做界面的孩子。"
+        "en": "Flash games and animations from the age of ten, award-winning through high school and college, and the first few bucks earned on motion graphics — the kid who wanted to make interfaces before knowing the word, who then went to art school for it: Digital Media Arts at CUC, a summer at a motion graphics studio, a blog theme a generation of engineers forked, and Yanshuo, a presentation tool, to graduate with.",
+        "zh": "十岁开始做 Flash 游戏和动画，高中到大学拿过一些奖，也靠动态图形赚到了第一笔钱——那个还不知道“界面”这个词、就已经想做界面的孩子，后来为此去读了艺术：中国传媒大学数字媒体艺术、在一家动态图形工作室的一个夏天、一套被一代工程师 fork 过的博客主题，以及作为毕业设计的在线演示工具「演说」。"
       },
       "keywords": {
         "en": "Flash, Animation, Motion Graphics",
         "zh": "Flash, 动画, 动态图形"
       },
       "startDate": "2004-06",
-      "endDate": "2012-08",
+      "endDate": "2016-06",
       "accentColor": "oklch(0.72 0.14 60)"
     }
   ],
@@ -244,7 +266,10 @@
             "Research",
             "Internship"
           ],
-          "tagId": "react-era"
+          "tagId": "react-era",
+          "alsoTagIds": [
+            "pl-era"
+          ]
         },
         {
           "id": "meta-intern-reasonml",
@@ -265,7 +290,10 @@
             "Messenger",
             "Internship"
           ],
-          "tagId": "react-era"
+          "tagId": "react-era",
+          "alsoTagIds": [
+            "pl-era"
+          ]
         }
       ]
     },
@@ -296,7 +324,7 @@
             "Compiler"
           ],
           "location": "New York, USA",
-          "tagId": "react-era"
+          "tagId": "pl-era"
         }
       ]
     },
@@ -415,7 +443,10 @@
             "Art"
           ],
           "location": "Beijing, China",
-          "tagId": "pwa-era"
+          "tagId": "pwa-era",
+          "alsoTagIds": [
+            "early-days"
+          ]
         }
       ]
     },
@@ -503,6 +534,9 @@
                 "frame": "deny"
               }
             }
+          ],
+          "alsoTagIds": [
+            "early-days"
           ]
         }
       ]
@@ -943,6 +977,10 @@
         "en": "Lynx Framework",
         "zh": "Lynx 框架"
       },
+      "name": {
+        "en": "Lynx",
+        "zh": "Lynx"
+      },
       "description": {
         "en": "Open-source cross-platform UI framework behind TikTok, Douyin, and CapCut. Familiar React and CSS, native rendering, dual-threaded architecture — instant launch and main-thread interactivity. Open-sourced in March 2025.",
         "zh": "支撑 TikTok、抖音、CapCut 的开源跨平台 UI 框架。熟悉的 React 与 CSS、原生渲染、双线程架构——瞬时启动与主线程交互。2025 年 3 月开源。"
@@ -1114,9 +1152,16 @@
       "id": "hermes-engine",
       "type": "project",
       "tagId": "react-era",
+      "alsoTagIds": [
+        "pl-era"
+      ],
       "title": {
         "en": "Hermes JavaScript Engine",
         "zh": "Hermes JavaScript 引擎"
+      },
+      "name": {
+        "en": "Hermes",
+        "zh": "Hermes"
       },
       "description": {
         "en": "JavaScript engine optimized for React Native, built by the Programming Language & Runtime (PL&R) team. Led the effort to bring Hermes to iOS.",
@@ -1159,9 +1204,16 @@
       "id": "react-core",
       "type": "project",
       "tagId": "react-era",
+      "alsoTagIds": [
+        "pl-era"
+      ],
       "title": {
         "en": "React Compiler (Forget)",
         "zh": "React Compiler（Forget）"
+      },
+      "name": {
+        "en": "React",
+        "zh": "React"
       },
       "description": {
         "en": "Founding engineer of the React Compiler (formerly Forget), the auto-memoization compiler that reshapes React's authoring model.",
@@ -1210,11 +1262,15 @@
     {
       "id": "wasmcert",
       "type": "project",
-      "tagId": "react-era",
+      "tagId": "pl-era",
       "attachedTo": "rit-ms",
       "title": {
         "en": "WasmCert: WebAssembly in Coq",
         "zh": "WasmCert：用 Coq 形式化 WebAssembly"
+      },
+      "name": {
+        "en": "WasmCert",
+        "zh": "WasmCert"
       },
       "description": {
         "en": "Master's capstone and thesis, \"A Mechanized Formalization of the WebAssembly Specification in Coq\", advised by Prof. Matthew Fluet. A mechanization of the W3C WebAssembly Core Specification 1.0 in the Coq proof assistant, with a (nearly complete) machine-checked proof that the language is sound, implying both type safety and memory safety. Unlike prior work it follows the standard itself, which exposed issues in the spec and led to fixes.",
@@ -1276,9 +1332,16 @@
       "id": "xros-reality-labs",
       "type": "project",
       "tagId": "react-era",
+      "alsoTagIds": [
+        "pl-era"
+      ],
       "title": {
         "en": "XROS PL and Frameworks",
         "zh": "XROS PL 与框架"
+      },
+      "name": {
+        "en": "XROS",
+        "zh": "XROS"
       },
       "description": {
         "en": "Summer 2019 internship. My manager framed it as: \"As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.\"",
@@ -1316,9 +1379,16 @@
       "id": "reasonml",
       "type": "project",
       "tagId": "react-era",
+      "alsoTagIds": [
+        "pl-era"
+      ],
       "title": {
         "en": "ReasonML (now ReScript)",
         "zh": "ReasonML（后更名为 ReScript）"
+      },
+      "name": {
+        "en": "ReasonML",
+        "zh": "ReasonML"
       },
       "description": {
         "en": "Contributor on the ReasonML team — an OCaml-syntax typed-JS toolchain that was later rebranded as ReScript. Worked on Messenger Web during the summer 2018 internship.",
@@ -1404,6 +1474,10 @@
         "en": "Ele.me PWA",
         "zh": "饿了么 PWA"
       },
+      "name": {
+        "en": "Ele.me PWA",
+        "zh": "饿了么 PWA"
+      },
       "description": {
         "en": "Guided the Ele.me PWA upgrade, pioneering PWA techniques for Vue-based multi-page apps. Featured by web.dev and highlighted at Google I/O 2017 — China's first widely cited Progressive Web App.",
         "zh": "指导饿了么的 PWA 升级，把 PWA 技术用在基于 Vue 的多页应用上。被 web.dev 收录，并在 Google I/O 2017 上被点名——中国首个被广泛引用的 Progressive Web App。"
@@ -1436,11 +1510,18 @@
       "id": "yanshuo-io",
       "type": "project",
       "tagId": "pwa-era",
+      "alsoTagIds": [
+        "early-days"
+      ],
       "identityId": "cuc",
       "attachedTo": "cuc-ba",
       "title": {
         "en": "Yanshuo.io (演说)",
         "zh": "演说.io"
+      },
+      "name": {
+        "en": "Yanshuo.io",
+        "zh": "演说"
       },
       "description": {
         "en": "My bachelor's graduation project: an online, full-featured WYSIWYG presentation tool, in the vein of Google Slides, for making Web-based slides that are linkable, sharable, cross-platform and free of delivery friction. Unlike PowerPoint and Keynote, it bet on the Web itself.",
@@ -1480,6 +1561,10 @@
         "en": "Yupiaoer (娱票儿)",
         "zh": "娱票儿"
       },
+      "name": {
+        "en": "Yupiaoer",
+        "zh": "娱票儿"
+      },
       "description": {
         "en": "Award-winning ticket-buying app. Founding engineer; also founded the Web Infra team and led the company-wide tech stack migration to React.",
         "zh": "获奖购票应用「娱票儿」。创始工程师，同时组建 Web 基础架构团队并主导全公司技术栈向 React 的迁移。"
@@ -1515,6 +1600,10 @@
       "title": {
         "en": "Taobao / Alitrip Mobile Web",
         "zh": "淘宝 / 阿里旅行 移动 Web"
+      },
+      "name": {
+        "en": "Alitrip",
+        "zh": "阿里旅行"
       },
       "description": {
         "en": "Hybrid app patterns for Taobao and Alitrip (later Fliggy) mobile web — offline resources, virtual domains for local H5, product strategy notes from the road.",
@@ -1553,8 +1642,15 @@
       "id": "hux-blog",
       "type": "project",
       "tagId": "pwa-era",
+      "alsoTagIds": [
+        "early-days"
+      ],
       "attachedTo": null,
       "title": {
+        "en": "Hux Blog",
+        "zh": "Hux Blog"
+      },
+      "name": {
         "en": "Hux Blog",
         "zh": "Hux Blog"
       },
@@ -1798,7 +1894,7 @@
     {
       "id": "event-moved-to-us",
       "type": "event",
-      "tagId": "react-era",
+      "tagId": "pl-era",
       "attachedTo": "rit-ms",
       "date": "2017-07",
       "title": {

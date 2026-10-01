@@ -3,8 +3,13 @@
 /**
  * TimelineCommit — Dense git-log style commit row for /works timeline.
  *
- * Summary: hash · icon · title ··· [📎 n in the index] date
- * Expanded: description, commentary, media, author fields
+ * Summary: hash · icon · title ··· [📎 n in the index] venue date
+ *          + description (clamped) and the strip of covers (`covers`)
+ * Expanded: description whole, media, commentary, author fields
+ *
+ * Every fact on the row has one place, in every form and every state: the
+ * title line is the same line folded and open, and opening a row only adds
+ * below it. See "The title line" in docs/system-attachments.md.
  *
  * 3-column grid: [hash | icon | content]. Hash column collapses on small containers.
  * Uses the same shared primitives as CommitCard to ensure visual sync.
@@ -20,6 +25,13 @@ import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
 import { ProjectMark } from "./project-mark";
 import { QuietLine } from "./quiet-line";
+import {
+  GraphInCell,
+  HASH_NUDGE,
+  LANE,
+  type RowGraph,
+  type RowLit,
+} from "./timeline-lane";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { Description, Commentary, AuthorFields } from "./embeds/shared";
 import { Paperclip } from "lucide-react";
@@ -40,11 +52,18 @@ import { TYPE } from "@/lib/typography";
  *   hash 3.5rem + gap 0.5rem + icon 1.25rem + gap 0.5rem = 5.75rem
  *
  * plus the row's own 0.75rem of padding, which is what `-mx-3` already
- * subtracts on the right. Below `lg` the page has no margin to hang it in
- * and the gutter stays inside the column as it always did.
+ * subtracts on the right.
+ *
+ * The hash exists only where it can hang. Below `lg` the page has no margin
+ * wide enough (the gutter wants ~120px of it: a 680px column needs a ~872px
+ * viewport), and a hash kept inside the column would push every title in
+ * from the page's left edge — off the line the page title sits on, and out
+ * of the width the reading needs. So there the row is a phone's: the icon on
+ * the column's edge, no hash. A tablet reads as a desk held landscape, and
+ * as a phone held portrait.
  */
-const HASH_CELL = "lg:w-14 lg:text-right";
-const GUTTER_PULL = "lg:-ml-[6.5rem]";
+export const HASH_CELL = "lg:w-14 lg:text-right";
+export const GUTTER_PULL = "lg:-ml-[6.5rem]";
 
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
@@ -66,6 +85,16 @@ interface TimelineCommitProps {
   hideDate?: boolean;
   /** Git-graph rail char to draw on the right (`┐`, `│`, `┘` or empty). */
   rail?: string;
+  /** The row's piece of the chapter graph — the trunk, and a side lane
+   *  where chapters overlap (see `timeline-lane.tsx`). Given, it draws the
+   *  line through the icon column in place of the tenure rail, which then
+   *  only lights it. */
+  graph?: RowGraph;
+  /** Which of those lines a lit connector runs along. */
+  graphLit?: RowLit;
+  /** The row speaks in an aside's quiet voice until the reader opens it,
+   *  whatever it is (the timeline's step down under a held track). */
+  quiet?: boolean;
   /** True when this row IS the role that owns its segment. */
   isRole?: boolean;
   /** The role id that owns this row's rail segment. */
@@ -128,6 +157,9 @@ export function TimelineCommit({
   className,
   hideDate = false,
   rail,
+  graph,
+  graphLit,
+  quiet = false,
   isRole = false,
   beamSpec = null,
   onBeamSet,
@@ -145,6 +177,11 @@ export function TimelineCommit({
 }: TimelineCommitProps) {
   const identityCard = useOptionalIdentityCard();
   const { magneticPreviewEnabled } = useInputCapability();
+  // A title over a sentence is a heading (`TYPE.rowHeading`); a title on its
+  // own line — the index — is the one thing on the ink and needs no weight.
+  // The form decides it, not the press: a title that thickened as its row
+  // opened was the one thing on the title line that moved. Decided after
+  // the description is known (`printsMessage`), below.
   const isEvent = data.type === "event";
   const isAside = data.present === "aside";
   // Folded asides borrow the event voice: muted italic line, rail
@@ -253,17 +290,84 @@ export function TimelineCommit({
   // The strip is the folded form's own: while the row is open the feed's
   // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
-  const isQuiet = isEvent || (isAside && !textOpen);
+  const isQuiet = isEvent || ((isAside || quiet) && !textOpen);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
   const showStrip =
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
   const showStatDescription =
     !isQuiet && rowForm.description === "clamp" && !!data.description;
-  // Where the handle signs: the bottom-right of the row, which is the media
-  // line when a single cover leaves it the room — on any viewport — and the
-  // meta line when there is more than one, since two covers may already be
-  // the width of a phone and the strip then scrolls under the edge.
+  // Whether the form prints a sentence under the title — clamped or whole —
+  // which is what decides the title's weight (see the note above). The
+  // form's, not the row's: an index row opened onto its sentence keeps the
+  // one-liner's weight, so the press only ever adds below the title line.
+  const printsMessage =
+    !isQuiet &&
+    rowFormFor(form, false).description !== "none" &&
+    !!data.description;
+  // Where the handle signs: the foot of the strip, when a single cover
+  // leaves it the room — on any viewport. Two covers may already be the
+  // width of a phone and the strip then scrolls under the edge, so a row
+  // with more prints no handle while folded: the chapter names the company,
+  // the handle is sparse by rule (cluster heads only), and an open row's
+  // author fields name it in full. There is no meta line for it to fall
+  // back to any more — the venue sits on the title line, so nothing stands
+  // between a title and its sentence.
   const signsOnMediaLine = showStrip && data.stripItems.length === 1;
+
+  // The venue on the title line: where a talk was given, where a piece of
+  // press ran, where a project was built (the byline's team, printed
+  // sparsely — the first row of a run). A link where the meta is one. On
+  // the title line in every form and every state, so opening a row moves
+  // nothing above the description — and never under the title: a line
+  // between a title and its sentence is the thing this removes, whatever
+  // the viewport. On a desk the metadata is the right of the title line,
+  // `📎 n · venue · date`. Below `@md` the line has no room for it, so it
+  // becomes an eyebrow: the same three, one mono line *over* the title, the
+  // way an editorial kicker sits over a headline. Nothing is cut to fit a
+  // column, and the title and its sentence still sit together.
+  const besideText = data.meta ?? byline?.subtitle;
+  const beside =
+    !isQuiet && besideText ? (
+      data.meta && data.metaUrl ? (
+        <a
+          href={data.metaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex max-w-full items-center gap-1 transition-colors hover:text-foreground"
+        >
+          <span className="truncate">{besideText}</span>
+          <span aria-hidden className="text-[0.7rem]">↗</span>
+        </a>
+      ) : (
+        <span className="truncate">{besideText}</span>
+      )
+    ) : null;
+  // The same venue as running text, for the eyebrow: no truncation — the
+  // line wraps if it must — and the arrow glued to the last word.
+  const venueInline =
+    !isQuiet && besideText ? (
+      data.meta && data.metaUrl ? (
+        <a
+          href={data.metaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="transition-colors hover:text-foreground"
+        >
+          {besideText}
+          <span aria-hidden className="whitespace-nowrap text-[0.7rem]">
+            {" "}↗
+          </span>
+        </a>
+      ) : (
+        <>{besideText}</>
+      )
+    ) : null;
+  // What the date slot prints: the date, or a role's location under a
+  // chapter that hides dates. Read by the title line and the eyebrow alike.
+  const dateText = hideDate ? data.dateSlotOverride : data.date;
+
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
   // has no peek at all (`rowForm.peek`): it has printed everything one
@@ -367,9 +471,54 @@ export function TimelineCommit({
   // so the rail stops where it stops for the role's 16px ring.
   const wearsMark = !isQuiet && !!data.mark;
   const iconGapPx = isQuiet ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
+  // A node moved onto the side lane pushes the hash left, the way a
+  // `git log --graph` row makes room for its graph (see timeline-lane.tsx).
+  const onSide = graph?.side === "node";
+  const hashNudge = onSide
+    ? { transform: `translateX(-${HASH_NUDGE}px)` }
+    : undefined;
 
   const rowContent = (
-    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+    <div className="grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+      {/*
+        The eyebrow — below `@md` only. Placed first, in the content
+        column: grid auto-placement then starts the hash, the mark and the
+        title on the next row, so the mark sits on the title's line, not
+        the eyebrow's. From `@md` it is not rendered and the title line is
+        the first row again. Quiet rows keep their date on the line.
+      */}
+      {!isQuiet && (
+        <p
+          className={cn(
+            // `items-start`, not `items-baseline`: every cell is one 16px
+            // line box, so their tops are their baselines — and the 📎
+            // count, whose icon has no baseline of its own, cannot move the
+            // venue when an open row takes it away. `mb-1.5`: a kicker
+            // set a step off its headline, not touching it.
+            "col-start-2 lg:col-start-3 @md:hidden mb-1.5 flex items-start gap-2 leading-4",
+            TYPE.rowMeta,
+          )}
+        >
+          {/* The venue on the left, the count and the date packed to the
+              right edge — the same right the title line keeps on a desk,
+              so the date sits in the column a reader scans down. */}
+          <span className="min-w-0 flex-1">{venueInline}</span>
+          <span className="ml-auto flex shrink-0 items-start gap-2">
+            {attachmentCount > 0 && (
+              <span
+                className="inline-flex h-4 items-center gap-1"
+                aria-label={
+                  attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
+                }
+              >
+                <Paperclip aria-hidden className="h-3 w-3" />
+                {attachmentCount}
+              </span>
+            )}
+            {dateText && <span>{dateText}</span>}
+          </span>
+        </p>
+      )}
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked
@@ -392,11 +541,12 @@ export function TimelineCommit({
       {isQuiet || !onSelectHash ? (
         <span
           className={cn(
-            "hidden @sm:inline-block select-all",
+            "hidden lg:inline-block select-all",
             HASH_CELL,
             TYPE.hash,
             isQuiet ? "text-transparent leading-4" : "leading-5",
           )}
+          style={hashNudge}
         >
           {data.hash}
         </span>
@@ -411,19 +561,21 @@ export function TimelineCommit({
           }}
           aria-label={`Link to commit ${data.hash}`}
           className={cn(
-            "hidden @sm:inline-block leading-5",
+            "hidden lg:inline-block leading-5",
             HASH_CELL,
             TYPE.hash,
             "transition-colors hover:text-muted-foreground",
           )}
+          style={hashNudge}
         >
           {data.hash}
         </a>
       )}
 
       <span
-        // data-rail-icon lets cross-row attachment lines measure this
-        // span's center to anchor their geometry (see TimelineConnector).
+        // data-rail-icon marks the row's cell on the graph: the rail, the
+        // chapter lanes and their lit paths are all drawn inside it
+        // (see timeline-lane.tsx).
         data-rail-icon
         className={cn(
           "relative inline-flex items-center justify-center w-5",
@@ -437,22 +589,19 @@ export function TimelineCommit({
           isQuiet ? "h-4" : "h-5",
         )}
       >
-        {hasRailAbove && (
-          <span
-            aria-hidden
-            data-rail-above
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
-            style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
-          />
-        )}
-        {hasRailBelow && (
-          <span
-            aria-hidden
-            data-rail-below
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
-            style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
-          />
-        )}
+        {/* Without a chapter graph (a log outside /works), the tenure
+            rail is the row's whole graph: a trunk where it runs. */}
+        <GraphInCell
+          graph={graph ?? { trunkAbove: hasRailAbove, trunkBelow: hasRailBelow }}
+          gap={iconGapPx}
+          cluster={{ above: hasRailAbove, below: hasRailBelow }}
+          lit={graphLit}
+        />
+        {/* The node: on the trunk, or moved onto the side lane. */}
+        <span
+          className="inline-flex items-center justify-center"
+          style={onSide ? { transform: `translateX(-${LANE}px)` } : undefined}
+        >
         {isQuiet ? (
           // A row in the quiet voice gets a tiny CSS dot, quieter than any
           // lucide icon and reading as "node on the rail" rather than
@@ -467,7 +616,7 @@ export function TimelineCommit({
           // once `isQuiet` is false, which is the height the icon wants.
           <span
             aria-hidden
-            className="block w-[3px] h-[3px] rounded-full bg-muted-foreground/30"
+            className="block w-[3px] h-[3px] rounded-full bg-graph-node"
           />
         ) : (
           // All icons live in the same-size invisible wrapper (w-5 h-5)
@@ -481,10 +630,12 @@ export function TimelineCommit({
               "inline-flex items-center justify-center w-5 h-5 rounded-full transition-[box-shadow] duration-200",
               isRoleAnchor && [
                 "ring-1 ring-inset",
-                "ring-muted-foreground/15",
-                "group-hover/tenure:ring-muted-foreground/40",
-                "group-focus-within/tenure:ring-muted-foreground/40",
-                "group-has-[[data-expanded]]/tenure:ring-muted-foreground/40",
+                // A node on the graph, and lit with its tenure (globals.css,
+                // "The graph").
+                "ring-graph-node",
+                "group-hover/tenure:ring-graph-lit",
+                "group-focus-within/tenure:ring-graph-lit",
+                "group-has-[[data-expanded]]/tenure:ring-graph-lit",
               ],
             )}
           >
@@ -511,6 +662,7 @@ export function TimelineCommit({
             )}
           </span>
         )}
+        </span>
       </span>
 
       <div className="flex items-center gap-2 min-w-0">
@@ -522,7 +674,12 @@ export function TimelineCommit({
             className="min-w-0 flex-1 text-xs text-tertiary-foreground"
           />
         ) : (
-          <span className={cn("min-w-0 flex-1", TYPE.rowTitle)}>
+          <span
+            className={cn(
+              "min-w-0 flex-1",
+              printsMessage ? TYPE.rowHeading : TYPE.rowTitle,
+            )}
+          >
             {displayTitle}
             {data.languageBadge && (
               <span className={cn("ml-2 align-baseline", TYPE.rowMeta)}>
@@ -532,116 +689,63 @@ export function TimelineCommit({
           </span>
         )}
 
-        {attachmentCount > 0 && (
-          <span
-            className={cn("inline-flex shrink-0 items-center gap-1", TYPE.rowMeta)}
-            aria-label={
-              attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
-            }
-          >
-            <Paperclip aria-hidden className="h-3 w-3" />
-            {attachmentCount}
-          </span>
-        )}
-
-        {hideDate ? (
-          data.dateSlotOverride && (
-            <span className={cn("shrink-0 ml-auto", TYPE.rowMeta)}>
-              {data.dateSlotOverride}
-            </span>
-          )
-        ) : (
-          <span
-            className={cn(
-              "font-mono text-xs shrink-0 ml-auto",
-              // Date stays — the year is the meaning for life events
-              // (`moved to US, 2017`) — but pushed a tier quieter than
-              // siblings so the row reads as background context.
-              "text-tertiary-foreground",
-            )}
-          >
-            {data.date}
-          </span>
-        )}
-      </div>
-
-      {/*
-        Subtitle row: meta on the left, author byline right-aligned under
-        the date column. The row is rendered whenever EITHER half exists
-        — and importantly, when only the byline exists (project commit
-        without a venue meta), the empty left side still reserves the
-        full row height so vertical rhythm stays consistent across the
-        timeline.
-
-        Sparse byline: cluster-head rows print the handle at full
-        opacity; subsequent rows in the same author run render it with
-        opacity 0 and fade in on per-row hover (the row's own `group`
-        scope, not the cluster) so a stray cursor over one commit
-        doesn't light up the whole tenure. An expanded row keeps its
-        byline fully visible so the cluster's authorial context stays
-        on-screen while you read.
-      */}
-      {!isQuiet && (data.meta || byline) && (
-        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
-          <span className="min-w-0 truncate">
-            {data.meta ? (
-              data.metaUrl ? (
-                <a
-                  href={data.metaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  {data.meta}
-                  <span aria-hidden className="text-[0.7rem]">↗</span>
-                </a>
-              ) : (
-                data.meta
-              )
-            ) : (
-              // Project subtitle fallback — set only on the first row
-              // of a same-team run so repeats stay blank (sparse). The
-              // left cell still exists to preserve baseline alignment
-              // with the right-aligned byline.
-              byline?.subtitle
-            )}
-          </span>
-          {/* The handle has three places it could sign and wears exactly
-              one at a time. Folded with no covers under it, it is here: a
-              compact mark stacked horizontally on the meta line, under the
-              date. With a cover, it moves to the foot of the strip; open, it
-              transposes into the vertical `Author:` / `Role:` stack at the
-              foot of the body. While one of the other two is signing, this
-              slot holds only the line's height — not a second, invisible
-              handle with a peek of its own — so the line beneath never
-              moves and the same handle is never mounted twice. */}
-          {textOpen || signsOnMediaLine ? (
-            // `self-center`, and it is load-bearing. This line is
-            // `items-baseline`, and an EMPTY inline box has no text to take a
-            // baseline from — CSS puts it on the box's bottom margin edge. So
-            // baseline alignment dropped the placeholder ~4px to sit its
-            // bottom on the meta text's baseline and grew the line from 16px
-            // to 20px, in exactly the states where the handle signs somewhere
-            // else. The slot meant to hold the line still was the one thing
-            // moving it: `index` and the feed measured 16px with the handle
-            // here and 20px without it, and `covers` sat at 20px whenever a
-            // single cover took the signature. Aligning centre keeps the
-            // placeholder out of the baseline pass, so it contributes its
-            // height and nothing else, and every state is the 16px line its
-            // own type sets.
-            <span aria-hidden className="h-4 shrink-0 self-center" />
-          ) : (
-            <Handle byline={byline} className="text-tertiary-foreground" />
+        {/* The right of the title line, packed to the edge — the count,
+            the venue, the date — packed rather than spread, so what an
+            open row takes away (the count, which its covers replace)
+            leaves the venue and the date exactly where they were; the
+            venue yields first, the count and the date never do. Below
+            `@md` an ordinary row prints this as the eyebrow instead; a
+            quiet row has only its date, and keeps it here. */}
+        <span
+          className={cn(
+            "ml-auto min-w-0 max-w-[55%] shrink items-center justify-end gap-2",
+            isQuiet ? "flex" : "hidden @md:flex",
           )}
-        </div>
-      )}
+        >
+          {attachmentCount > 0 && (
+            <span
+              className={cn("inline-flex shrink-0 items-center gap-1", TYPE.rowMeta)}
+              aria-label={
+                attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
+              }
+            >
+              <Paperclip aria-hidden className="h-3 w-3" />
+              {attachmentCount}
+            </span>
+          )}
+
+          {beside && (
+            <span
+              className={cn(
+                "inline-flex min-w-0 justify-end text-right",
+                TYPE.rowMeta,
+              )}
+            >
+              {beside}
+            </span>
+          )}
+
+          {dateText && (
+            <span
+              className={cn(
+                "font-mono text-xs shrink-0",
+                // Date stays — the year is the meaning for life events
+                // (`moved to US, 2017`) — but pushed a tier quieter than
+                // siblings so the row reads as background context.
+                "text-tertiary-foreground",
+              )}
+            >
+              {dateText}
+            </span>
+          )}
+        </span>
+      </div>
 
       {/* Pinned items: rendered once here whether the row is folded or
           expanded, so toggling never remounts them. */}
       {!isQuiet && pinnedMedia.length > 0 && (
         <div
-          className="col-start-2 @sm:col-start-3 mt-2"
+          className="col-start-2 lg:col-start-3 mt-2"
           onClick={(e) => e.stopPropagation()}
         >
           <MediaRenderer
@@ -667,7 +771,7 @@ export function TimelineCommit({
           text is what the row's own control acts on, so it has to stay part
           of the trigger at both densities. */}
       {!isQuiet && rowForm.description !== "none" && !!data.description && (
-        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
           <Description
             text={data.description}
             isExpanded={rowForm.description === "full"}
@@ -685,7 +789,7 @@ export function TimelineCommit({
           on stays the row's; the empty stretch beside a single cover presses
           the row like any other part of it. */}
       {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
-        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
           {/* The covers get a line of their own, always. One cover used to
               tuck up beside the text and two or more dropped below it, so a
               row changed shape with its cargo — and a column of twenty-five
@@ -720,7 +824,7 @@ export function TimelineCommit({
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
-          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
+          className="col-start-2 lg:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
         >
           <AttachmentGrid
             items={data.stripItems}
@@ -758,7 +862,7 @@ export function TimelineCommit({
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
-          className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
+          className="col-start-2 lg:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
         >
           {data.commentary && <Commentary text={data.commentary} />}
 
@@ -774,7 +878,7 @@ export function TimelineCommit({
           {showAuthorBlock && (
             <AuthorFields
               byline={byline}
-              // Below `@sm` the gutter hash column is hidden, so the row has
+              // Below `lg` the gutter hash column is hidden, so the row has
               // no permalink down there; above it the gutter already is one.
               // `onSelect` rather than an href: this page is already /works,
               // so the field makes the row the address in place.
@@ -783,7 +887,7 @@ export function TimelineCommit({
                   ? {
                       hash: data.hash,
                       onSelect: onSelectHash,
-                      className: "@sm:hidden",
+                      className: "lg:hidden",
                     }
                   : undefined
               }

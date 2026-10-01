@@ -21,6 +21,7 @@ import { isVoiceSupported } from "@/systems/voice";
 import {
   Bug,
   FileText,
+  FlaskConical,
   GitCommit,
   Home,
   Image as ImageIcon,
@@ -86,7 +87,12 @@ export interface CommandAction {
   /** In the slash list only, never a search result: a command whose control
    *  is already on screen (voice: the field's microphone). */
   slashOnly?: boolean;
-  /** Search / slash row text. Keyboard-only commands (docs, editor) have none. */
+  /** Found, never offered: a search result once the query matches it, but
+   *  not in the list the palette opens on, nor in the slash list. A public
+   *  corner of the site that is not a destination most visitors came for
+   *  (the labs). Its slash letter, if it has one, still runs it. */
+  searchOnly?: boolean;
+  /** Search / slash row text. Keyboard-only commands (docs) have none. */
   label?: string;
   icon?: React.ReactNode;
   /** cmdk search terms, both languages. */
@@ -283,15 +289,29 @@ export function useCommandActions(): CommandAction[] {
       run: () => router.push("/docs"),
     },
     {
+      // The labs are public, but a study of the site's insides rather than
+      // a place most visitors came for: found by name, never offered. `/`
+      // `E` (for experiments — `L` is Language) still opens the index.
       id: "lab",
       key: "e",
       kind: "navigate",
       section: "navigation",
-      // Keyboard-only, same as docs. `e` (for experiments — `l` is
-      // Language) opens the lab index; each lab is a card there and an
-      // entry in the dropdown on every lab's title. The palette does not
-      // list them.
-      keywords: [],
+      searchOnly: true,
+      label: t(locale, "labTitle"),
+      icon: <FlaskConical className={ROW_ICON} />,
+      keywords: [
+        "lab",
+        "labs",
+        "laboratory",
+        "experiments",
+        "under the hood",
+        "design system",
+        "internals",
+        "实验室",
+        "实验",
+        "实现",
+        "设计系统",
+      ],
       run: () => router.push("/lab"),
     },
     {

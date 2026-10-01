@@ -10,6 +10,8 @@
  */
 
 import { COVER_WASH } from "@/lib/glass";
+import { cn } from "@/lib/utils";
+import { TYPE } from "@/lib/typography";
 import type { NormalizedCommit } from "./commit-data";
 import { ExternalImage } from "./media/external-image";
 
@@ -43,8 +45,15 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
         {/* Title truncates, but the language badge stays pinned and visible
             (shrink-0) — a talk's language must not get clipped with a long
             title. */}
+        {/* The same pair the /works row prints: a heading over its message
+            (`TYPE.rowHeading` / `TYPE.message`), a plain title otherwise. */}
         <div className="flex items-baseline gap-2 min-w-0">
-          <span className="text-sm text-foreground truncate min-w-0">
+          <span
+            className={cn(
+              "truncate min-w-0",
+              data.secondaryLine === data.description ? TYPE.rowHeading : TYPE.rowTitle,
+            )}
+          >
             {data.title}
           </span>
           {data.languageBadge && (
@@ -59,7 +68,7 @@ export function CommitCompact({ data, className }: CommitCompactProps) {
           </div>
         )}
         {data.secondaryLine === data.description && (
-          <div className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+          <div className={cn("line-clamp-2", TYPE.message)}>
             {data.description}
           </div>
         )}

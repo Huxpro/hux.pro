@@ -1,6 +1,6 @@
 "use client";
 
-import { useLabStrings } from "@/app/lab/i18n";
+import { useLabStrings } from "../i18n";
 import logData from "@/content/log.json";
 import ogSnapshotJson from "@/content/og-snapshot.json";
 import { ExternalImage } from "@/components/log/media/external-image";

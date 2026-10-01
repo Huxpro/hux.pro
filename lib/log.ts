@@ -294,9 +294,24 @@ export type Media =
 interface BaseCommit {
   id: string;
   tagId: string;
+  /**
+   * Other chapters this commit also belongs to — where two eras overlap
+   * (a Meta internship that was React work and PL work at once). `tagId`
+   * stays the home chapter: everything that reads one tag per commit (the
+   * editor, home widgets, a magic link's colour) keeps reading it. How
+   * /works draws the overlap is `lib/log-eras.ts`.
+   */
+  alsoTagIds?: string[];
   date: string; // YYYY-MM or YYYY-MM-DD
   endDate?: string; // YYYY-MM, YYYY-MM-DD, or "present"
   title: LocalizedString;
+  /**
+   * The short name, where a line has room for a name and nothing else: the
+   * home screen's projects widget. `Lynx` for "Lynx Framework", `React` for
+   * "React Compiler (Forget)" — what the thing is called, with what it is
+   * left to the title on /works. Absent, the title prints.
+   */
+  name?: LocalizedString;
   description: LocalizedString;
   /**
    * Explicit identity attachment for this commit's `<handle>` byline
@@ -1431,8 +1446,9 @@ export function computeInferredBeams(
 
 /**
  * Compute explicit attachment links: commits with `attachedTo: "<id>"`
- * pointing at another commit in the same tag. Rendered as a persistent
- * connector line in the icon column (see TimelineConnector).
+ * pointing at another commit in the same tag. Hovering either end lights
+ * the path between them along the chapter graph (see `litPath` in
+ * components/log/log-timeline.tsx).
  *
  * Targets can be roles (an artifact attached to a tenure context) or
  * events (an artifact attached to an ambient period like a sabbatical).
@@ -1612,8 +1628,9 @@ export function resolveIdentity(
 
 
 /**
- * Build the timeline data structure from raw LogData.
- * Single source of truth for /works rendering and editor preview.
+ * Build the timeline data structure from raw LogData: one chapter per tag.
+ * `buildEraTimeline` (lib/log-eras.ts) joins the overlapping ones for /works
+ * and the editor preview.
  *
  * When `locale` is provided, commits are filtered by per-locale visibility
  * (`listedIn`). Omit the locale to include every listed commit (useful for

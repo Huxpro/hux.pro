@@ -32,6 +32,17 @@ export const blogPosts: BlogPostMeta[] = [
     tags: ["知乎", "Meta"],
   },
   {
+    slug: "pl-chart",
+    language: "both",
+    title: "My Biased View of Programming Languages (in 2020)",
+    titleZh: "我带着偏见的编程语言观（2020）",
+    description:
+      "Every programming language I've written, by how interesting it is to me and how much I've used it.",
+    descriptionZh: "我写过的每一门编程语言：对我来说有多有趣，我用得有多深。",
+    date: "2020-05-04",
+    tags: ["Programming Languages", "PLT"],
+  },
+  {
     slug: "react-hooks-vue-composition",
     language: "zh",
     title: "React Hooks 是否可以改为用类似 Vue 3 Composition API 的方式实现？",

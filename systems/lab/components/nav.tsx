@@ -4,10 +4,11 @@ import { Menu } from "@base-ui/react/menu";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
-import { useLocale } from "@/services";
-import { LAB_INDEX, LABS, labFromPath } from "./catalog";
-import { useFrameStrings } from "./i18n";
+import { t, useLocale } from "@/services";
+import { LAB_GROUPS, LAB_INDEX, LABS, labFromPath } from "../catalog";
+import { useFrameStrings } from "../i18n";
 
 /**
  * The lab's name in its bar, and the way to every other lab: a dropdown that
@@ -66,15 +67,23 @@ export function LabNav({
               hint={F.everyLab}
               active={!current}
             />
-            <div className="mx-2 my-1 h-px bg-border/60" />
-            {LABS.map((lab) => (
-              <NavItem
-                key={lab.id}
-                href={lab.href}
-                mark={lab.name[locale]}
-                hint={lab.hint[locale]}
-                active={lab.id === current?.id}
-              />
+            {/* The index's two sections, in its order: libraries, then studies. */}
+            {LAB_GROUPS.map(({ kind, title }) => (
+              <Menu.Group key={kind}>
+                <div className="mx-2 my-1 h-px bg-border/60" />
+                <Menu.GroupLabel className={cn(TYPE.labelSm, "px-2.5 pb-0.5 pt-1.5")}>
+                  {t(locale, title)}
+                </Menu.GroupLabel>
+                {LABS.filter((lab) => lab.kind === kind).map((lab) => (
+                  <NavItem
+                    key={lab.id}
+                    href={lab.href}
+                    mark={lab.name[locale]}
+                    hint={lab.hint[locale]}
+                    active={lab.id === current?.id}
+                  />
+                ))}
+              </Menu.Group>
             ))}
           </Menu.Popup>
         </Menu.Positioner>
@@ -83,17 +92,7 @@ export function LabNav({
   );
 }
 
-function NavItem({
-  href,
-  mark,
-  hint,
-  active,
-}: {
-  href: string;
-  mark: string;
-  hint: string;
-  active: boolean;
-}) {
+function NavItem({ href, mark, hint, active }: { href: string; mark: string; hint: string; active: boolean }) {
   return (
     <Menu.LinkItem
       href={href}

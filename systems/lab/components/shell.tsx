@@ -7,8 +7,9 @@ import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { labById, type LabId } from "./catalog";
-import { useFrameStrings } from "./i18n";
+import { useOptionalDevtool } from "@/systems/devtool";
+import { labById, type LabId } from "../catalog";
+import { useFrameStrings } from "../i18n";
 import { LabNav } from "./nav";
 
 // =============================================================================
@@ -58,6 +59,7 @@ export function LabShell({
   tools,
   actions,
   panel,
+  scrollTools,
   children,
 }: {
   lab: LabId;
@@ -70,6 +72,13 @@ export function LabShell({
   actions?: ReactNode;
   /** The workbench's knobs. */
   panel?: ReactNode;
+  /**
+   * Tools longer than the bar (a library guide's section tabs): they scroll
+   * in the room between the name and the actions rather than wrapping the
+   * actions onto a row of their own; on a phone, they take the second row
+   * and the actions stay beside the name.
+   */
+  scrollTools?: boolean;
   children: ReactNode;
 }) {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -78,6 +87,7 @@ export function LabShell({
       lab={lab}
       meta={meta}
       tools={tools}
+      scrollTools={scrollTools}
       actions={actions}
       panel={layout === "workbench" && panel ? { open: panelOpen, toggle: () => setPanelOpen((o) => !o) } : undefined}
     />
@@ -117,22 +127,31 @@ export function LabBar({
   lab,
   meta,
   tools,
+  scrollTools,
   actions,
   panel,
 }: {
   lab: LabId;
   meta?: ReactNode;
   tools?: ReactNode;
+  scrollTools?: boolean;
   actions?: ReactNode;
   /** A workbench's folded panel: the bar's sliders button opens it below `lg`. */
   panel?: { open: boolean; toggle: () => void };
 }) {
   const F = useFrameStrings();
+  // The devtool's floating pill is fixed at the top-right, where the bar's
+  // actions end. A lab that turns the devtool on (Legibility, Vitre) would
+  // lose its last action under it, so the bar makes room while it shows.
+  const devtool = useOptionalDevtool();
+  const pill = !!devtool?.isEnabled && devtool.isFloating && !devtool.isOpen;
   return (
     <div
       className={cn(
         "ink-flat sticky top-[var(--lab-bar-top)] z-30",
         "flex min-h-12 flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-border/50 bg-glass-popover px-3 py-2 shadow-overlay backdrop-blur-xl sm:px-4",
+        // Last, so it wins over the padding above.
+        pill && "sm:pr-[7.5rem]",
       )}
     >
       <div className="flex min-w-0 items-center gap-1.5">
@@ -150,7 +169,15 @@ export function LabBar({
           of its own when it does not, and sideways-scrolling there rather
           than wrapping into a third — a pinned bar has to stay short. */}
       {tools && (
-        <div className="no-scrollbar -my-1 flex min-w-0 flex-nowrap items-center gap-x-3 overflow-x-auto py-1 [&>*]:shrink-0">
+        <div
+          data-lab-tools
+          className={cn(
+            "no-scrollbar relative -my-1 flex min-w-0 flex-nowrap items-center gap-x-3 overflow-x-auto py-1 [&>*]:shrink-0",
+            // From no width up to its own: it never pushes the actions off
+            // the row, and takes no more room than it needs.
+            scrollTools && "max-sm:order-last max-sm:w-full sm:max-w-fit sm:flex-1 sm:basis-0",
+          )}
+        >
           {tools}
         </div>
       )}
@@ -283,26 +310,24 @@ export function LabSection({
   );
 }
 
+/** The one button's look, for a link that is a lab's action too. */
+export function labButtonClass(tone: "ghost" | "primary" = "ghost") {
+  return cn(
+    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-xs transition-colors",
+    "disabled:cursor-not-allowed disabled:opacity-40 [&_svg]:h-3 [&_svg]:w-3",
+    tone === "primary"
+      ? "bg-foreground text-background hover:bg-foreground/90"
+      : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+  );
+}
+
 /** A lab's action: mono, small, the one button everywhere. */
 export function LabButton({
   tone = "ghost",
   className,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: "ghost" | "primary" }) {
-  return (
-    <button
-      type="button"
-      {...props}
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-xs transition-colors",
-        "disabled:cursor-not-allowed disabled:opacity-40 [&_svg]:h-3 [&_svg]:w-3",
-        tone === "primary"
-          ? "bg-foreground text-background hover:bg-foreground/90"
-          : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
-        className,
-      )}
-    />
-  );
+  return <button type="button" {...props} className={cn(labButtonClass(tone), className)} />;
 }
 
 /** A pill that a toggle wears: on is ink, off is a hairline. */

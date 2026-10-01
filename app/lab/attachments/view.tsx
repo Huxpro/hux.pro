@@ -28,8 +28,7 @@
 //                over it; the stack readout shows the sheets as they stand.
 // =============================================================================
 
-import { Field, Section, Segmented, Toggle } from "@/app/lab/controls";
-import { LabShell } from "@/app/lab/shell";
+import { Field, Section, Segmented, Toggle, LabShell, useLabStrings } from "@/systems/lab";
 import { TYPE } from "@/lib/typography";
 import { LinkCardFromMedia } from "@/components/log/media/link";
 import {
@@ -81,7 +80,6 @@ import {
   ZoomIn,
 } from "lucide-react";
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { useLabStrings } from "@/app/lab/i18n";
 import { RENDER_PATHS } from "./paths";
 import { ATTACHMENTS_STRINGS } from "./strings";
 

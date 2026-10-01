@@ -182,6 +182,15 @@ When the Window system is mounted, ⌘K also launches apps from
 | `Esc` | Close palette |
 | `Backspace` | Exit slash commands mode |
 
+### Found, never offered (`searchOnly`)
+
+A command can be public without being a destination most visitors came
+for. `searchOnly` (systems/command/actions.tsx) keeps it out of the list the
+palette opens on and out of the slash list; a query that matches it
+(`lab`, `实验`) brings it into the results with its letter, and the letter
+still runs it. Labs is the one such command. Keyboard-only commands (Docs)
+are one step quieter still: no label, so no row at all.
+
 ### Slash Commands Shortcuts
 
 | Key | Action |
@@ -190,7 +199,7 @@ When the Window system is mounted, ⌘K also launches apps from
 | `U` | Go to Writing |
 | `X` | Go to Works |
 | `I` | Go to Docs (internal) |
-| `E` | Go to `/lab`, the index of labs (`e` for experiments — `L` is Language). Each lab is a card there and an entry in the dropdown on every lab's sticky bar; `log.json` is the Works Lab (`/lab/works`). See `app/lab/catalog.ts`. |
+| `E` | Go to `/lab`, the index of labs (`e` for experiments — `L` is Language). Not in the slash list: Labs is *search-only* (below). Each lab is a card on the index and an entry in the dropdown on every lab's sticky bar; `log.json` is the Works Lab (`/lab/works`). See `systems/lab/catalog.ts`. |
 | `A` | Cycle Appearance: Follow the Sun → the theme the sun isn't showing → the one it is → Follow the System |
 | `L` | Toggle language |
 | `G` | Toggle geolocation |

@@ -8,7 +8,7 @@ import {
   type MouseEvent,
 } from "react";
 import type { LogData, Commit, Tag } from "@/lib/log";
-import { buildTimelineData } from "@/lib/log";
+import { buildEraTimeline } from "@/lib/log-eras";
 import {
   enrichLogDataWithPreviews,
   type OGSnapshot,
@@ -23,8 +23,7 @@ import { t, useLocale } from "@/services";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { toast } from "sonner";
 import { MousePointer2 } from "lucide-react";
-import { useLabStrings } from "@/app/lab/i18n";
-import { LabShell } from "../shell";
+import { useLabStrings, LabShell } from "@/systems/lab";
 import { WORKS_STRINGS } from "./strings";
 import { WorksActions, WorksTools } from "./toolbar";
 import { CommitEditor } from "./commit-editor";
@@ -74,7 +73,7 @@ export function WorksLabView({ initialData }: WorksLabViewProps) {
   // snapshot. URLs that aren't snapshotted yet need `pnpm og:snapshot`.
   const previewData = useMemo(
     () =>
-      buildTimelineData(
+      buildEraTimeline(
         enrichLogDataWithPreviews(data, ogSnapshot),
         inspecting ? undefined : locale,
         inspecting ? { includeAll: true } : undefined,

@@ -120,6 +120,7 @@ export const translations = {
     theaterClosePlaylist: "Close playlist",
     widgetEditDone: "Done",
     widgetEditReset: "Reset",
+    widgetEditWidgets: "Widgets",
     musicNotPlaying: "nothing playing",
     settingsMusic: "Music",
     musicPlay: "Play",
@@ -439,10 +440,16 @@ export const translations = {
     aboutEnter: "Reveal",
     aboutClose: "Close",
 
-    // Lab (app/lab/catalog.ts holds each lab's own copy)
+    // Lab (systems/lab/catalog.ts holds each lab's own copy)
     labTitle: "Lab",
-    labTitleHover: "Under the hood",
+    labTitleHover: "Physics",
     labOpen: "Open",
+    labLibraries: "Libraries",
+    labLibrariesNote: "Systems of this site, published as packages",
+    labStudies: "Studies",
+    labStudiesNote: "This site's systems, laid open",
+    labWidgetAdd: "Add the Lab widget to Home",
+    labWidgetOn: "The Lab widget is on Home",
 
     // Prompts page
     promptsTitle: "System Prompts",
@@ -460,6 +467,17 @@ export const translations = {
     promptTokens: "tokens",
     promptLastUpdated: "last updated",
     promptModel: "model",
+
+    // Languages — the PL chart (content/blog/pl-chart)
+    languagesChart:
+      "Programming languages by how interesting they are to me and how much I've used them, shaded by abstraction level",
+    languagesAll: "show all",
+    languagesFilterHint: "pick a level to filter, drag for a range",
+    languagesPeekOpen: "click to open the note",
+    languagesReached: "dashed: reaches it by its range",
+    languagesOpenNote: "open the note",
+    languagesFilterLabel: "Filter by abstraction level",
+    languagesClose: "Close note",
   },
   zh: {
     // Navigation
@@ -533,6 +551,7 @@ export const translations = {
     theaterClosePlaylist: "关闭播放列表",
     widgetEditDone: "完成",
     widgetEditReset: "重置",
+    widgetEditWidgets: "小组件",
     musicNotPlaying: "暂无播放",
     settingsMusic: "音乐",
     musicPlay: "播放",
@@ -852,6 +871,12 @@ export const translations = {
     labTitle: "实验室",
     labTitleHover: "格物而致知",
     labOpen: "进入",
+    labLibraries: "开源库",
+    labLibrariesNote: "本站的系统，发布成了包",
+    labStudies: "研究",
+    labStudiesNote: "本站的系统，摊开来看",
+    labWidgetAdd: "把实验室小组件放到主屏",
+    labWidgetOn: "实验室小组件已在主屏",
 
     promptsTitle: "系统提示词",
     promptsTitleHover: "闻道有先后",
@@ -867,6 +892,16 @@ export const translations = {
     promptTokens: "tokens",
     promptLastUpdated: "更新于",
     promptModel: "模型",
+
+    // Languages — the PL chart (content/blog/pl-chart)
+    languagesChart: "编程语言：横轴是我觉得有多有趣，纵轴是我用得多深，深浅是抽象层级",
+    languagesAll: "显示全部",
+    languagesFilterHint: "点选一级来筛选，拖动选一个范围",
+    languagesPeekOpen: "点击展开注解",
+    languagesReached: "虚线圈：靠区间够到",
+    languagesOpenNote: "展开注解",
+    languagesFilterLabel: "按抽象层级筛选",
+    languagesClose: "关闭注解",
   },
 } as const;
 

@@ -1,4 +1,4 @@
-import type { LabTable } from "@/app/lab/i18n";
+import type { LabTable } from "../i18n";
 
 const en = {
   // Works

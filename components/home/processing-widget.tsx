@@ -1,6 +1,5 @@
 "use client";
 
-import { computeBylines } from "@/components/log/bylines";
 import { normalizeCommit } from "@/components/log/commit-data";
 import { TimelineMini } from "@/components/log/timeline-mini";
 import {
@@ -28,15 +27,16 @@ import { useMemo } from "react";
 //
 // The vertical sibling of FeaturedTalksWidget's horizontal stack, and
 // curated: the theater card reads content/theater.json's featured media,
-// this one reads the `featured-projects` group. A card is a preview, and a preview is
-// a choice about what to show — a truncated list is not one. Rows are dense
-// git-log lines with author bylines; link pills and attachments (cards,
-// videos, slides) are left to /works, where each row permalinks.
+// this one reads the `featured-projects` group. A card is a preview, and a
+// preview is a choice about what to show — a truncated list is not one. Rows
+// are /works' one-liners: mark, title, date; link pills, bylines and
+// attachments (cards, videos, slides) are left to /works, where each row
+// permalinks.
 //
 // Everything is derived from `content/log.json` through the same helpers
 // /works uses (`resolveGroupCommits`, `buildTimelineData`, `computeRail`,
-// `computeBylines`, `normalizeCommit`), so the widget can't drift from the
-// page, and what it shows is edited in the log rather than in here.
+// `normalizeCommit`), so the widget can't drift from the page, and what it
+// shows is edited in the log rather than in here.
 // ---------------------------------------------------------------------------
 
 /** The curated group that decides which projects the card shows. */
@@ -88,22 +88,21 @@ interface ProcessingWidgetProps {
 export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
   const { locale } = useLocale();
 
-  // Rail + bylines are derived from the filtered list, so clusters stay
-  // contiguous even where /works would have interleaved talks between two
-  // projects of the same tenure.
-  const { rows, railInfo, bylines, hideDateFor } = useMemo(() => {
+  // The rail is derived from the filtered list, so clusters stay contiguous
+  // even where /works would have interleaved talks between two projects of
+  // the same tenure.
+  const { rows, railInfo, hideDateFor } = useMemo(() => {
     // The widget has no filter, so the only thing hiding a row here is the
     // data itself.
     const rail = adjustRailForHidden(commits, computeRail(commits), (c) =>
       !isRowVisible(c),
     );
-    const bylines = computeBylines(commits, log.identities, locale);
     const rows = commits.map((c) => normalizeCommit(c, locale));
     const tagHideDate = new Map(log.tags.map((t) => [t.id, !!t.hideDate]));
     const hideDateFor = (c: CommitData) =>
       !!(tagHideDate.get(c.tagId) || c.hideDate);
-    return { rows, railInfo: rail, bylines, hideDateFor };
-  }, [commits, log.identities, log.tags, locale]);
+    return { rows, railInfo: rail, hideDateFor };
+  }, [commits, log.tags, locale]);
 
   // Same tenure clustering as /works: consecutive rows sharing a segmentId
   // share a `group/tenure` wrapper so hovering any of them brightens the
@@ -150,7 +149,6 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
               data={rows[i]}
               rail={railInfo[i].rail}
               isRole={commits[i].type === "role"}
-              byline={bylines[i]}
               hideDate={hideDateFor(commits[i])}
             />
           ));

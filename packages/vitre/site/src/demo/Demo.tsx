@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import {
   DEFAULT_CONFIG,
   GROUND,
+  hostTheme,
   isFramed,
   loadConfig,
   resolveColor,
@@ -46,7 +47,8 @@ const BACKDROPS: Record<DemoConfig["backdrop"], (dark: boolean) => string> = {
     dark
       ? "linear-gradient(165deg, #2a1033 0%, #6b1f3a 45%, #b3542b 100%)"
       : "linear-gradient(165deg, #ffd6a5 0%, #ff9f80 45%, #c75b7a 100%)",
-  none: () => "none",
+  // No backdrop is the bare ground, inside the bezel all the same.
+  none: (dark) => GROUND[dark ? "dark" : "light"],
 };
 
 function useSystemDark(): boolean {
@@ -112,8 +114,10 @@ export function Demo() {
   const [devtoolOpen, setDevtoolOpen] = useState(false);
   const [running, setRunning] = useState<ScenarioName | null>(null);
   const systemDark = useSystemDark();
+  // In the docs' frame, "system" is the page the phone is drawn on.
+  const [host, setHost] = useState(hostTheme);
   const theme: "light" | "dark" =
-    config.theme === "system" ? (systemDark ? "dark" : "light") : config.theme;
+    config.theme === "system" ? (host ?? (systemDark ? "dark" : "light")) : config.theme;
 
   const patch = useCallback((p: Partial<DemoConfig>) => {
     setConfig((c) => {
@@ -152,16 +156,18 @@ export function Demo() {
       if (data?.type === "vitre-demo:patch") patch(data.patch);
       else if (data?.type === "vitre-demo:action") action(data.action);
       else if (data?.type === "vitre-demo:lang") setLang(data.lang);
+      else if (data?.type === "vitre-demo:theme") setHost(data.theme);
     };
     window.addEventListener("message", onMessage);
     window.parent.postMessage({ type: "vitre-demo:ready" }, location.origin);
     return () => window.removeEventListener("message", onMessage);
   }, [patch, action, setLang]);
 
-  // The page's own ground, painted by the host, as a real site does.
+  // The page's own ground is the host's stylesheet (styles.css, by
+  // `data-theme`), as on a real site: while the bezel is on, Vitre's rule for
+  // <body> wins over it and paints the bezel colour, and the ground is the
+  // backdrop layer inside the bezel (below).
   useEffect(() => {
-    document.body.style.background = GROUND[theme];
-    document.body.style.color = theme === "dark" ? "#f4f4f5" : "#18181b";
     document.body.dataset.theme = theme;
   }, [theme]);
 
@@ -177,18 +183,16 @@ export function Demo() {
       scroll={scroll}
       ground={GROUND[theme]}
       backdrop={
-        config.backdrop !== "none" && (
-          <div
-            aria-hidden="true"
-            {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
-            style={{
-              position: "fixed",
-              zIndex: -1,
-              background: BACKDROPS[config.backdrop](theme === "dark"),
-              ...(config.enabled ? BEZEL_INSET : { inset: 0 }),
-            }}
-          />
-        )
+        <div
+          aria-hidden="true"
+          {...{ [VITRE_LAYER_ATTRIBUTE]: "" }}
+          style={{
+            position: "fixed",
+            zIndex: -1,
+            background: BACKDROPS[config.backdrop](theme === "dark"),
+            ...(config.enabled ? BEZEL_INSET : { inset: 0 }),
+          }}
+        />
       }
       className="demo-scroll"
     >

@@ -50,6 +50,18 @@ export function isFramed(): boolean {
   return new URLSearchParams(location.search).has("frame");
 }
 
+/**
+ * The host page's light or dark, for the phone in its frame: there, "system"
+ * means the page the phone is drawn on, not the computer's setting. `?theme=`
+ * gives the first one; `vitre-demo:theme` messages follow it. Null when not
+ * framed, or when the host says nothing.
+ */
+export function hostTheme(): "light" | "dark" | null {
+  if (!isFramed()) return null;
+  const param = new URLSearchParams(location.search).get("theme");
+  return param === "light" || param === "dark" ? param : null;
+}
+
 export function loadConfig(): DemoConfig {
   if (isFramed()) return DEFAULT_CONFIG;
   try {
@@ -70,18 +82,6 @@ export function saveConfig(config: DemoConfig): void {
 }
 
 // -----------------------------------------------------------------------------
-// Which page this is
-// -----------------------------------------------------------------------------
-
-/**
- * The demo itself on a phone or inside the docs' phone frame; the docs page on
- * anything wider. The boot resolver repeats this test in plain JS.
- */
-export function isDemoPage(): boolean {
-  return isFramed() || matchMedia("(max-width: 767px)").matches;
-}
-
-// -----------------------------------------------------------------------------
 // Messages between the docs page and the phone
 // -----------------------------------------------------------------------------
 
@@ -90,7 +90,8 @@ export type DemoAction = "scroll-top" | "scroll-middle" | "scroll-bottom" | "res
 export type ToPhone =
   | { type: "vitre-demo:patch"; patch: Partial<DemoConfig> }
   | { type: "vitre-demo:action"; action: DemoAction }
-  | { type: "vitre-demo:lang"; lang: "en" | "zh" };
+  | { type: "vitre-demo:lang"; lang: "en" | "zh" }
+  | { type: "vitre-demo:theme"; theme: "light" | "dark" };
 
 /** Sent by the phone on every page scroll, so the docs can move its toolbar. */
 export interface PhoneScroll {

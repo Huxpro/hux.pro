@@ -25,14 +25,17 @@ interface DescriptionProps {
 /**
  * A commit's description — what the work is.
  *
- * `TYPE.captionQuiet` at both lengths: 12px, tertiary. It was briefly raised
- * to `TYPE.body` (14px, muted) to buy the row a second tier — everything that
- * was not the title sat on tertiary, which is not a hierarchy — but at that
- * weight the description competes with the title for the row rather than
- * sitting under it, and a column of twenty-five rows reads louder than the
- * log wants. The hierarchy it was after is carried by the rest of the row
- * instead: the title is the only thing on the ink, and the mono metadata
- * around it annotates.
+ * `TYPE.message`: 13px, muted. It sat on 12px tertiary for a long time, and
+ * the reason was the line between it and the title: the venue, in tertiary
+ * mono. Brightening or enlarging the paragraph under that line made a
+ * sandwich — ink, the lightest rung, a middle one — so the paragraph stayed
+ * as light and as small as the line above it, and the row had no second
+ * tier. The venue now sits on the title line (TimelineCommit), nothing
+ * stands between a title and its sentence, and the title over a sentence
+ * takes medium (`TYPE.rowHeading`), so the sentence can take the rung and
+ * the size it needed all along — a half step under the heading, which is
+ * where a sentence under a heading sits. (At 14 it was the heading's size
+ * and the two competed for the row.)
  */
 export function Description({
   text,
@@ -42,7 +45,7 @@ export function Description({
   return (
     <p
       className={cn(
-        TYPE.captionQuiet,
+        TYPE.message,
         // Two lines everywhere, and the measure does the rest: a phone's
         // ~40 characters a line, a desktop's ~90. A wider column is already
         // being handed more of the text, so spending a breakpoint to hand it
@@ -118,8 +121,8 @@ interface AuthorFieldsProps {
    * series and read as a stumble. /works is already the page, so it passes
    * `onSelect` and the field makes this row the address in place.
    *
-   * On /works it also carries `className: "@sm:hidden"`: the gutter hash
-   * column is `hidden @sm:inline`, so below that width the row has no
+   * On /works it also carries `className: "lg:hidden"`: the gutter hash
+   * column is `hidden lg:inline`, so below that width the row has no
    * permalink at all, and above it two would be a duplicate.
    */
   commit?: {

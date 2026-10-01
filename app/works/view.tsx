@@ -4,11 +4,12 @@ import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
 import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
+import { useOptionalDevtool, WORKS_REF_DEFAULT } from "@/systems/devtool";
+import { ProjectShelf } from "@/components/log/project-shelf";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { t, useLocale } from "@/services";
 import {
-  buildTimelineData,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
@@ -21,6 +22,7 @@ import {
   toggleType,
   type LogForm,
 } from "@/lib/log-view";
+import { buildEraTimeline } from "@/lib/log-eras";
 
 interface WorksViewProps {
   logData: LogData;
@@ -33,7 +35,7 @@ export function WorksView({ logData }: WorksViewProps) {
   const pathname = usePathname();
 
   const data = useMemo(
-    () => buildTimelineData(logData, locale),
+    () => buildEraTimeline(logData, locale),
     [logData, locale],
   );
 
@@ -66,6 +68,21 @@ export function WorksView({ logData }: WorksViewProps) {
   }
 
   const selectHash = useCommitAnchor();
+
+  // How a chapter's ref sits on the graph — on trial, a saved setting in
+  // the DevTool's Works module.
+  const devtool = useOptionalDevtool();
+  const refLook = devtool?.worksRef ?? WORKS_REF_DEFAULT;
+  // The projects shelf, on trial: a saved DevTool setting, off by default.
+  const shelf = devtool?.worksShelf ?? false;
+  // The shelf's projects: every project row the log prints, in the log's
+  // own order (newest first across the chapters). It stands only while
+  // the reading includes projects — a page filtered to talks opens on
+  // talks, not on a directory of something it is not showing.
+  const projects = useMemo(
+    () => data.flatMap(({ commits }) => commits.filter((c) => c.type === "project")),
+    [data],
+  );
 
   const commit = useCallback(
     (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
@@ -130,12 +147,15 @@ export function WorksView({ logData }: WorksViewProps) {
   }, [data]);
 
   // The chapters, as the pinned bar names them when it wears one.
+  // Chapters that overlap share a block; each wears its own marker in turn.
   const chapters = useMemo(
     () =>
-      data.map(({ tag }, i) => ({
-        id: tag.id,
-        label: chapterLabel(tag, i, locale),
-      })),
+      data.flatMap(({ members }, i) =>
+        members.map((tag, k) => ({
+          id: tag.id,
+          label: chapterLabel(tag, k === 0 ? i : -1, locale),
+        })),
+      ),
     [data, locale],
   );
 
@@ -170,6 +190,15 @@ export function WorksView({ logData }: WorksViewProps) {
         />
       }
     >
+      {/* The directory: which projects there are, before when. */}
+      {shelf && (view.types.length === 0 || view.types.includes("project")) && (
+        <ProjectShelf
+          projects={projects}
+          locale={locale}
+          onSelectHash={selectHash}
+        />
+      )}
+
       {/* Git Log Timeline */}
       <LogTimeline
         data={data}
@@ -179,6 +208,7 @@ export function WorksView({ logData }: WorksViewProps) {
         activeTypes={view.types}
         onSelectHash={selectHash}
         pinnedChapters
+        refLook={refLook}
       />
 
       {/* End marker — `git init` closes a timeline that has commits in it;
