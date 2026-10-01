@@ -436,8 +436,8 @@ and has no transport (reveal.js takes the arrow keys inside the frame). It
 minimizes to the Live Activity like anything else on the stage. The pill is
 a place to keep a deck open as well as a place to listen, and it knows the
 difference: for a deck the third view is `Minimize`, icon and word, in the
-theater bar, the PiP bar and the pill alike (`SurfaceSwitch` reads the
-track off the theater itself),
+theater bar and the pill alike (`SurfaceSwitch` reads the track off the
+theater itself), and the PiP tile's minimize button says the same,
 never `Audio`, and the pill reads `slides` under the deck glyph rather than
 `watching` behind an equalizer.
 

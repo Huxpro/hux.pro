@@ -3,15 +3,15 @@
 //
 // The stage (the persistent player element) is a single fixed rectangle that
 // morphs between the theater (large centered) and PiP (small floating) modes.
-// The math lives here as pure functions of the viewport, a drag offset, and
-// the device class. Both the stage and its chrome read identical numbers in
+// The math lives here as pure functions of the viewport, the PiP placement
+// (and a drag, while one is in progress), and the device class. Both the stage and its chrome read identical numbers in
 // the same render, so they stay pixel-aligned while animating and dragging.
 // =============================================================================
 
 import type { StageRect } from "./types";
 
 const ASPECT = 9 / 16;
-/** Gap from the viewport edge for the floating PiP window. */
+/** Gap from the viewport edge for the floating PiP tile. */
 const PIP_MARGIN = 16;
 /**
  * Room the window leaves under itself at rest. Centred at the bottom, it would
@@ -20,24 +20,55 @@ const PIP_MARGIN = 16;
  */
 const PIP_BOTTOM_INSET = 24 + 48 + 8;
 /**
- * The PiP window is the same card as a Live Activity: the dock's
- * `w-[min(92vw,360px)]`, centred. The two are the player's two shapes, so they
- * are one object arriving at opposite edges of the screen rather than two
- * differently-sized boxes. 360px also keeps the 16:9 video at 202px, over the
- * ≳200px the YouTube IFrame API wants for its ready handshake (a phone
- * narrower than ~356px falls below that, as it always did).
+ * The two sizes the PiP tile comes in, as a share of the viewport's width with
+ * a ceiling. Large is the Live Activity card's width (`w-[min(92vw,360px)]` in
+ * the dock) on a phone and a little more on a desk; small leaves the page most
+ * of the screen. Both keep the 16:9 video over the ≳200px the YouTube IFrame API
+ * wants for its ready handshake on any phone wider than ~360px.
  */
-const PIP_WIDTH_FRACTION = 0.92;
-const PIP_MAX_WIDTH = 360;
-/** Height of the PiP control bar rendered directly beneath the video. */
-export const PIP_CONTROLS_H = 44;
+const PIP_SIZES = {
+  small: { fraction: 0.56, max: 280 },
+  large: { fraction: 0.92, max: 400 },
+} as const;
 /**
- * How high the window may go: dragged, or parked above a surface. Clears the
+ * How high the tile may go: dragged, or parked above a surface. Clears the
  * dock's pill row (top inset + a 36px pill) with air to spare.
  */
 export const PIP_TOP_STOP = 64;
-/** Air between the PiP window and whatever it is parked against. */
+/** Air between the PiP tile and whatever it is parked against. */
 export const PIP_GAP = 8;
+/** How much of a stashed tile stays on screen: the handle you pull it back by. */
+export const PIP_STASH_PEEK = 28;
+/**
+ * How far a fling carries past the release point, in milliseconds of the
+ * release velocity. The tile lands on the corner nearest to where the throw
+ * was headed, not where the finger happened to stop.
+ */
+const PIP_PROJECTION_MS = 200;
+
+/** One of the four places the tile rests. */
+export type PipCorner = "tl" | "tr" | "bl" | "br";
+export type PipSize = keyof typeof PIP_SIZES;
+/** The edge a tile has been thrown into, or null when it is on screen. */
+export type PipStash = "left" | "right" | null;
+
+/**
+ * Where the PiP tile is, as the user left it: a corner, a size, and whether it
+ * has been tucked into a side edge. Positions are never stored. They are
+ * derived from this and the viewport, so a rotation or a resize keeps the tile
+ * in its corner instead of stranding it at old coordinates.
+ */
+export interface PipPlacement {
+  corner: PipCorner;
+  size: PipSize;
+  stash: PipStash;
+}
+
+export const DEFAULT_PIP_PLACEMENT: PipPlacement = {
+  corner: "br",
+  size: "large",
+  stash: null,
+};
 
 export interface Viewport {
   width: number;
@@ -114,53 +145,80 @@ export function theaterRect(vp: Viewport): StageRect {
   return { top, left, width, height };
 }
 
-/** PiP window width: the Live Activity card's, whatever the viewport. */
-function pipWidth(vp: Viewport): number {
-  return Math.min(vp.width * PIP_WIDTH_FRACTION, PIP_MAX_WIDTH);
+/** PiP tile width for a size. */
+export function pipWidth(vp: Viewport, size: PipSize): number {
+  const { fraction, max } = PIP_SIZES[size];
+  return Math.min(vp.width * fraction, max);
 }
 
-/** Height of the whole window: video plus the control bar under it. */
-function pipHeight(vp: Viewport): number {
-  return pipWidth(vp) * ASPECT + PIP_CONTROLS_H;
+/** The tile's top when it rests in a bottom corner: above the command bar. */
+function pipBottomTop(vp: Viewport, height: number): number {
+  return Math.max(vp.height - height - PIP_BOTTOM_INSET, PIP_TOP_STOP);
 }
 
 /**
- * Floating PiP rect. Anchored bottom-centre by default, under the page where
- * the Live Activity sits over it, on the same axis and at the same width. The
- * player then reads as one card that moved rather than two. `offset` is the
- * user's accumulated drag, clamped so the window (plus its control bar) stays
- * on screen. The rect describes the VIDEO area only; the control bar sits in the
- * PIP_CONTROLS_H strip directly below it.
+ * The PiP tile's rect. With no drag in progress it is the placement's corner
+ * (or its stash, mostly off the side it was thrown to). During a drag it is
+ * wherever the finger has it: free sideways, so it can be pulled past an edge
+ * into a stash, and held between the dock and the command bar vertically.
  */
-export function pipRect(vp: Viewport, offset: { x: number; y: number }): StageRect {
-  const width = pipWidth(vp);
+export function pipRect(
+  vp: Viewport,
+  placement: PipPlacement,
+  drag: { x: number; y: number } | null = null,
+): StageRect {
+  const width = pipWidth(vp, placement.size);
   const height = width * ASPECT;
-  const baseLeft = (vp.width - width) / 2;
-  const baseTop = pipRestTop(vp);
-  const left = clamp(baseLeft + offset.x, PIP_MARGIN, vp.width - width - PIP_MARGIN);
-  const top = clamp(baseTop + offset.y, PIP_TOP_STOP, baseTop);
+  const bottom = pipBottomTop(vp, height);
+  if (drag) {
+    return {
+      left: clamp(drag.x, -width + PIP_STASH_PEEK, vp.width - PIP_STASH_PEEK),
+      top: clamp(drag.y, PIP_TOP_STOP, bottom),
+      width,
+      height,
+    };
+  }
+  const top = placement.corner[0] === "t" ? PIP_TOP_STOP : bottom;
+  let left =
+    placement.corner[1] === "l" ? PIP_MARGIN : vp.width - width - PIP_MARGIN;
+  if (placement.stash === "left") left = -width + PIP_STASH_PEEK;
+  if (placement.stash === "right") left = vp.width - PIP_STASH_PEEK;
   return { top, left, width, height };
 }
 
-/** Where the window sits with no drag: bottom-centre, above the command bar. */
-function pipRestTop(vp: Viewport): number {
-  return Math.max(vp.height - pipHeight(vp) - PIP_BOTTOM_INSET, PIP_TOP_STOP);
+/**
+ * Where a released tile comes to rest. The release point is carried along the
+ * throw (`PIP_PROJECTION_MS` of its velocity, in px/ms) and the tile goes to the
+ * corner nearest that projected point. Thrown hard enough past a side edge, it
+ * stashes there instead, keeping the row (top or bottom) it was headed for.
+ */
+export function pipSettle(
+  vp: Viewport,
+  size: PipSize,
+  at: { x: number; y: number },
+  velocity: { x: number; y: number },
+): PipPlacement {
+  const width = pipWidth(vp, size);
+  const height = width * ASPECT;
+  const x = at.x + velocity.x * PIP_PROJECTION_MS;
+  const y = at.y + velocity.y * PIP_PROJECTION_MS;
+  const row = y + height / 2 < vp.height / 2 ? "t" : "b";
+  if (x < -width * 0.35) return { size, corner: `${row}l`, stash: "left" };
+  if (x > vp.width - width * 0.65) return { size, corner: `${row}r`, stash: "right" };
+  const side = x + width / 2 < vp.width / 2 ? "l" : "r";
+  return { size, corner: `${row}${side}` as PipCorner, stash: null };
 }
 
 /**
- * The drag offset that parks the PiP window at its top stop.
+ * The placement the tile takes while the playlist sheet is up on a phone.
  *
- * What the playlist surface does with the window while it is up: the video
- * goes to the top of the screen and the list takes everything under it, the
- * way a phone player puts its queue below the picture. The horizontal drag is
- * kept (the window stays on the side it was left on) and the vertical one only
- * ever moves up, so a window already higher is left where it is.
+ * The video goes to the top of the screen at its large size and the list
+ * takes everything under it, the way a phone player puts its queue below the
+ * picture. The side is kept (the tile stays on the side it was left on); a
+ * stash is undone, because the list is something you look at the video beside.
  */
-export function pipOffsetAtTop(
-  vp: Viewport,
-  from: { x: number; y: number },
-): { x: number; y: number } {
-  return { x: from.x, y: Math.min(PIP_TOP_STOP - pipRestTop(vp), from.y) };
+export function pipParkedForPlaylist(from: PipPlacement): PipPlacement {
+  return { size: "large", corner: `t${from.corner[1]}` as PipCorner, stash: null };
 }
 
 /** The shorter of the playlist sheet's two detents, where both fit. */
@@ -193,7 +251,8 @@ export function playlistDetents(viewportHeight: number, ceiling: number): number
 export function stageRectFor(
   mode: "theater" | "pip",
   vp: Viewport,
-  offset: { x: number; y: number },
+  placement: PipPlacement,
+  drag: { x: number; y: number } | null,
 ): StageRect {
-  return mode === "pip" ? pipRect(vp, offset) : theaterRect(vp);
+  return mode === "pip" ? pipRect(vp, placement, drag) : theaterRect(vp);
 }

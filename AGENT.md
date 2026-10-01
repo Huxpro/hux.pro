@@ -13,6 +13,7 @@
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
 | **Dock / Live Activities / Notices** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel; `showNotice` for a one-line notice; there is no bottom toast) |
+| **Theater / PiP** | [docs/system-theater.md](./docs/system-theater.md) (The video player's shapes: theater modal, the PiP tile and its gestures, the Audio Live Activity, the playlist) |
 | **Glass** | [docs/system-glass.md](./docs/system-glass.md) (Clear / Tinted material, reading surfaces) |
 | **Legibility** | [docs/system-legibility.md](./docs/system-legibility.md) (Ink-at-alpha tokens, wallpaper profiles, relief, tint, the `/lab/legibility` lab) |
 | **Ambient / Wallpaper** | [docs/system-ambient.md](./docs/system-ambient.md) (Weather + Apple wallpaper pairs, `pnpm wallpapers:encode` / `pnpm wallpapers:check` / `pnpm wallpapers:profile`) |
