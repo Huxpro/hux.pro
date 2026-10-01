@@ -23,7 +23,11 @@ import { PeekCard, PeekThumb } from "./media/media-peek";
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
 import type { Byline } from "./bylines";
 import { normalizeCommit } from "./commit-data";
-import { TimelineCommit, type BeamSpec } from "./timeline-commit";
+import {
+  TimelineCommit,
+  type BeamSpec,
+  type HandleLook,
+} from "./timeline-commit";
 import type { RowGraph, RowLit } from "./timeline-lane";
 import { CommitCompact } from "./commit-compact";
 import { useTimelineEdit } from "./timeline-edit-context";
@@ -68,6 +72,8 @@ export interface CommitProps {
   /** Author byline for git-author-style rendering. Pre-localized in
    *  the timeline so this component stays locale-agnostic. */
   byline?: Byline | null;
+  /** Timeline-only: which rows print the handle at rest. */
+  handleLook?: HandleLook;
   /** Timeline-only: how much of the commit to print (see `lib/log-view`). */
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
@@ -95,6 +101,7 @@ export function Commit({
   onBeamSet,
   onBeamClear,
   byline = null,
+  handleLook,
   form = DEFAULT_FORM,
   onSelectHash,
 }: CommitProps) {
@@ -177,6 +184,7 @@ export function Commit({
           onBeamSet={onBeamSet}
           onBeamClear={onBeamClear}
           byline={byline}
+          handleLook={handleLook}
           form={form}
           onSelectHash={onSelectHash}
           attachmentSet={attachmentSet}

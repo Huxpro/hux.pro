@@ -77,7 +77,7 @@ import { usePageLift } from "@/components/ui/use-page-lift";
 import { useScrollEdges } from "@/components/ui/use-scroll-edges";
 import { CommitIcon } from "./icons";
 import { CHAPTER_PILL } from "./log-timeline";
-import { useCurrentChapter } from "./use-current-chapter";
+import { useCurrentAuthor, useCurrentChapter } from "./use-current-chapter";
 
 export interface TypeFacet {
   type: FilterableCommitType;
@@ -106,6 +106,9 @@ interface WorksToolbarProps {
   onFormChange: (form: LogForm) => void;
   /** The chapters on the page, in order, with the marker each wears. */
   chapters: readonly { id: string; label: string }[];
+  /** Name the author under the bar after the chapter (DevTool's Works ›
+   *  Author `bar`, on trial). */
+  showAuthor?: boolean;
 }
 
 /**
@@ -156,6 +159,7 @@ export function WorksToolbar({
   form,
   onFormChange,
   chapters,
+  showAuthor = false,
 }: WorksToolbarProps) {
   const filtering = active.length > 0;
   const reduced = useReducedMotion() ?? false;
@@ -167,6 +171,7 @@ export function WorksToolbar({
     chapters.map((c) => c.id),
   );
   const chapter = chapters.find((c) => c.id === current.id) ?? null;
+  const author = useCurrentAuthor(slotRef, showAuthor && !!chapter);
   const motionOf = reduced ? { duration: 0 } : SETTLE;
   const lift = usePageLift(LIFT_PX);
   const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
@@ -249,6 +254,18 @@ export function WorksToolbar({
             )}
           </AnimatePresence>
         </span>
+
+        {/* The author under the bar (`showAuthor`): who the commits being
+            read were made as — `git log` would print it on every one. */}
+        {author && (
+          <motion.span
+            layout="position"
+            transition={motionOf}
+            className="shrink-0 whitespace-nowrap text-muted-foreground"
+          >
+            {author}
+          </motion.span>
+        )}
 
         {/* The rest of the row moves over as the ref changes width, rather
             than jumping on the frame the pill changes. */}

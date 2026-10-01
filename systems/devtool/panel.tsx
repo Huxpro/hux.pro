@@ -88,9 +88,11 @@ import {
   PHONE_PALETTE_DEFAULT,
   HOME_WEATHER_DEFAULT,
   WORKS_REF_DEFAULT,
+  WORKS_AUTHOR_DEFAULT,
   type HomeWeather,
   type PhonePalette,
   type WorksRef,
+  type WorksAuthor,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
 import { useOptionalAbout } from "@/systems/about/provider";
@@ -2982,7 +2984,7 @@ function MusicModule() {
 function WorksModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { worksRef, setWorksRef } = useDevtool();
+  const { worksRef, setWorksRef, worksAuthor, setWorksAuthor } = useDevtool();
   const onWorks = usePathname() === "/works";
   const options: { value: WorksRef; label: string; title: string }[] = [
     {
@@ -3025,6 +3027,34 @@ function WorksModule() {
     },
   ];
 
+  const authorOptions: { value: WorksAuthor; label: string; title: string }[] = [
+    {
+      value: "line",
+      label: "Line",
+      title: zh
+        ? "handle 在 meta 行、日期下方，每段同作者只印第一行（现状）"
+        : "The handle on the meta line under the date, once per same-author run (as it is)",
+    },
+    {
+      value: "marker",
+      label: "Marker",
+      title: zh
+        ? "每段同作者开头一个作者标记，像 chapter 的 ref：桌面挂在 hash 位，手机一行"
+        : "A marker heading each same-author run, like a chapter's ref: in the hash slot on a desk, a line on a phone",
+    },
+    {
+      value: "bar",
+      label: "Bar",
+      title: zh ? "顶部 bar 显示当前阅读位置的作者" : "The pinned bar names the author under it",
+    },
+    {
+      value: "every",
+      label: "Every",
+      title: zh ? "每行都印 handle，低一档" : "Every row prints its handle, a rung quieter",
+    },
+  ];
+  const changed = worksRef !== WORKS_REF_DEFAULT || worksAuthor !== WORKS_AUTHOR_DEFAULT;
+
   return (
     <DebugSection
       id="works"
@@ -3032,9 +3062,11 @@ function WorksModule() {
       icon={<GitBranch className="h-4 w-4" />}
       compact
       relevant={onWorks}
-      star={worksRef !== WORKS_REF_DEFAULT ? "saved" : null}
+      star={changed ? "saved" : null}
       action={
-        <span className="text-[10px] font-mono text-muted-foreground">{worksRef}</span>
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {worksRef} · {worksAuthor}
+        </span>
       }
     >
       <PanelRow
@@ -3046,6 +3078,23 @@ function WorksModule() {
         }
       >
         <PanelSegmented value={worksRef} options={options} onChange={setWorksRef} />
+      </PanelRow>
+      <PanelRow
+        label={zh ? "作者" : "Author"}
+        star={
+          worksAuthor !== WORKS_AUTHOR_DEFAULT ? (
+            <PanelStar
+              source="saved"
+              onReset={() => setWorksAuthor(WORKS_AUTHOR_DEFAULT)}
+            />
+          ) : undefined
+        }
+      >
+        <PanelSegmented
+          value={worksAuthor}
+          options={authorOptions}
+          onChange={setWorksAuthor}
+        />
       </PanelRow>
     </DebugSection>
   );

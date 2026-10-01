@@ -57,6 +57,8 @@ import { TYPE } from "@/lib/typography";
  * the column's edge, no hash. A tablet reads as a desk held landscape, and
  * as a phone held portrait.
  */
+export type HandleLook = "line" | "hover" | "every";
+
 export const HASH_CELL = "lg:w-14 lg:text-right";
 export const GUTTER_PULL = "lg:-ml-[6.5rem]";
 
@@ -125,6 +127,10 @@ interface TimelineCommitProps {
    *  Expanded: the `expanded` payload feeds a `git log --pretty=fuller`
    *  style block at the top of the row's expanded body. */
   byline?: Byline | null;
+  /** Which rows print the handle at rest: the head of a same-author run
+   *  (`line`), none — a marker above the run carries it (`hover`), or all
+   *  of them (`every`). Every row shows its own on hover. */
+  handleLook?: HandleLook;
   /** The page's form — how much of the commit to print (lib/log-view.ts). */
   form?: LogForm;
   /**
@@ -165,6 +171,7 @@ export function TimelineCommit({
   onBeamSet,
   onBeamClear,
   byline = null,
+  handleLook = "line",
   form = DEFAULT_FORM,
   onSelectHash,
   attachmentSet = null,
@@ -678,7 +685,11 @@ export function TimelineCommit({
             // own type sets.
             <span aria-hidden className="h-4 shrink-0 self-center" />
           ) : (
-            <Handle byline={byline} className="text-tertiary-foreground" />
+            <Handle
+              byline={byline}
+              look={handleLook}
+              className="text-tertiary-foreground"
+            />
           )}
         </div>
       )}
@@ -752,7 +763,7 @@ export function TimelineCommit({
                 The meta line gives it up while this line exists, so the
                 handle is still printed exactly once (`signsOnMediaLine`). */}
             {signsOnMediaLine && (
-              <Handle byline={byline} className={TYPE.rowMeta} />
+              <Handle byline={byline} look={handleLook} className={TYPE.rowMeta} />
             )}
           </div>
         </div>
@@ -847,6 +858,8 @@ export function TimelineCommit({
     <div
       id={data.hash}
       data-rail-row
+      // What the pinned bar reads to name the author under it.
+      data-author={byline?.handle}
       className={className}
     >
       <MagneticPreview
@@ -939,23 +952,29 @@ export function TimelineCommit({
  */
 function Handle({
   byline,
+  look,
   className,
 }: {
   byline?: Byline | null;
+  look: HandleLook;
   className?: string;
 }) {
   if (!byline) return null;
+  const shown =
+    look === "every" || (look === "line" && byline.isClusterHead);
   return (
     <IdentityHover
       identityId={byline.identityId}
       roleId={byline.roleId}
       wrapperClassName={cn(
         "shrink-0 transition-opacity duration-200",
-        byline.isClusterHead
-          ? "opacity-100"
-          : "opacity-0 group-hover:opacity-100",
+        shown ? "opacity-100" : "opacity-0 group-hover:opacity-100",
       )}
-      className={className}
+      // `every`: the run's later rows a rung under its head.
+      className={cn(
+        className,
+        look === "every" && !byline.isClusterHead && "text-quaternary-foreground",
+      )}
     >
       {byline.handle}
     </IdentityHover>
