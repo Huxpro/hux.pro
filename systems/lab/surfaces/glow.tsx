@@ -1,6 +1,6 @@
 "use client";
 
-import { useLabStrings } from "@/app/lab/i18n";
+import { useLabStrings } from "../i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { Glow } from "@/systems/glow";

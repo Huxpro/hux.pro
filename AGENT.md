@@ -22,7 +22,7 @@
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + the `/lab/icon` lab) |
 | **App Folder** | [docs/app-shelf.md](./docs/app-shelf.md) (Home-screen snap-paged app folder) |
 | **Attachments** | [docs/system-attachments.md](./docs/system-attachments.md) (Where a commit's media opens: sheet on a phone, with the in-app browser stacked on it; theater / in-app window / router elsewhere; the chip every cover wears; the `/lab/attachments` lab — every render path) |
-| **Labs** | [app/lab/catalog.ts](./app/lab/catalog.ts) (`/lab` — the site studied from the inside: Works (log.json) / Attachments / Icon / Legibility / Glow / Vitre — the first lab that publishes a library (`library` in the catalog): `/lab/vitre` is the package's home, its documentation with a simulated iPhone running the demo; `/vitre` is only the demo. One frame for all of them (`app/lab/shell.tsx`), bilingual throughout (a `strings.ts` per lab, `app/lab/i18n.ts`), a surface each (`components/lab/surfaces`) worn on the index and rotated by the home Lab widget — which is off by default. In the palette Labs is search-only; `/` `E` opens the index; the old `/editor/*` addresses redirect.) |
+| **Labs** | [systems/lab](./systems/lab) — see [docs/system-lab.md](./docs/system-lab.md) (`/lab` — the site studied from the inside, and the libraries it publishes. Each lab in the catalog (`systems/lab/catalog.ts`) is a `study` — Works (log.json) / Attachments / Icon / Legibility / Glow — or a `library`: Vitre, whose lab is the package's home in the library template (`LibraryShell`: Docs `/lab/vitre` with a simulated iPhone running the demo, API `/lab/vitre/api`, On hux.pro `/lab/vitre/site`); `/vitre` is only the demo. One frame for all of them (`LabShell`), bilingual throughout (a `strings.ts` per lab, `systems/lab/i18n.ts`), a surface each (`systems/lab/surfaces`) worn on the index and rotated by the home Lab widget — which is off by default. Routes stay in `app/lab/<id>`. In the palette Labs is search-only; `/` `E` opens the index; the old `/editor/*` addresses redirect.) |
 | **Home widgets** | [components/home/widgets.ts](./components/home/widgets.ts) (Every widget the home grid can show and whether it is on by default — `defaultEnabled`; a visitor's choices are overrides in `hux_widget_prefs`. Edit mode's `Widgets` pill lists them; a feature can offer its own switch with `useHomeWidget`, as `/lab` does.) |
 | **About / Badges** | [docs/system-about.md](./docs/system-about.md) (The surface a newcomer meets — veil, copy from `content/about/*.mdx`, the screen-edge glow, `/` `O` from anywhere; `<Badge>` opens a thing I made where it lives) |
 | **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (The site's one light — Siri's ring as a shared WebGL shader: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/lab/glow` lab) |
@@ -141,10 +141,12 @@ of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
 pnpm vitre:typecheck
 ```
 
-The package's documentation is the Vitre lab, `/lab/vitre`: the page and the
-simulator are `app/lab/vitre`, the content is the package's
-(`packages/vitre/site/src/docs`). A new export or prop fails the type check
-until it is documented there. The demo the simulator runs is
+The package's documentation is the Vitre lab, in the lab's library template:
+the guide `/lab/vitre` (with the simulator), the API reference
+`/lab/vitre/api` and how this site uses it, `/lab/vitre/site` — pages in
+`app/lab/vitre`, content the package's (`packages/vitre/site/src/docs`). A new
+export or prop fails the type check until it is documented there, and then
+shows on the API page by itself. The demo the simulator runs is
 `packages/vitre/site` (`pnpm vitre:site`; built into `public/vitre` and served
 at `/vitre`, `/bezel` redirecting there; `pnpm dev` builds it when stale) — a
 phone opens it full screen, anything else is redirected to the lab (by user

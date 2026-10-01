@@ -8,8 +8,8 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useOptionalDevtool } from "@/systems/devtool";
-import { labById, type LabId } from "./catalog";
-import { useFrameStrings } from "./i18n";
+import { labById, type LabId } from "../catalog";
+import { useFrameStrings } from "../i18n";
 import { LabNav } from "./nav";
 
 // =============================================================================
@@ -59,6 +59,7 @@ export function LabShell({
   tools,
   actions,
   panel,
+  scrollTools,
   children,
 }: {
   lab: LabId;
@@ -71,6 +72,13 @@ export function LabShell({
   actions?: ReactNode;
   /** The workbench's knobs. */
   panel?: ReactNode;
+  /**
+   * Tools longer than the bar (a library guide's section tabs): they scroll
+   * in the room between the name and the actions rather than wrapping the
+   * actions onto a row of their own; on a phone, they take the second row
+   * and the actions stay beside the name.
+   */
+  scrollTools?: boolean;
   children: ReactNode;
 }) {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -79,6 +87,7 @@ export function LabShell({
       lab={lab}
       meta={meta}
       tools={tools}
+      scrollTools={scrollTools}
       actions={actions}
       panel={layout === "workbench" && panel ? { open: panelOpen, toggle: () => setPanelOpen((o) => !o) } : undefined}
     />
@@ -118,12 +127,14 @@ export function LabBar({
   lab,
   meta,
   tools,
+  scrollTools,
   actions,
   panel,
 }: {
   lab: LabId;
   meta?: ReactNode;
   tools?: ReactNode;
+  scrollTools?: boolean;
   actions?: ReactNode;
   /** A workbench's folded panel: the bar's sliders button opens it below `lg`. */
   panel?: { open: boolean; toggle: () => void };
@@ -160,7 +171,12 @@ export function LabBar({
       {tools && (
         <div
           data-lab-tools
-          className="no-scrollbar relative -my-1 flex min-w-0 flex-nowrap items-center gap-x-3 overflow-x-auto py-1 [&>*]:shrink-0"
+          className={cn(
+            "no-scrollbar relative -my-1 flex min-w-0 flex-nowrap items-center gap-x-3 overflow-x-auto py-1 [&>*]:shrink-0",
+            // From no width up to its own: it never pushes the actions off
+            // the row, and takes no more room than it needs.
+            scrollTools && "max-sm:order-last max-sm:w-full sm:max-w-fit sm:flex-1 sm:basis-0",
+          )}
         >
           {tools}
         </div>

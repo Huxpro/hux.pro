@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
         destination: "/lab/vitre",
         permanent: false,
       })),
-      // The labs' address before they were labs (app/lab/catalog.ts). The
+      // The labs' address before they were labs (systems/lab/catalog.ts). The
       // log editor is the Works Lab now; the theater chrome gallery is gone,
       // so its address lands on the index. Specific rules first.
       { source: "/editor", destination: "/lab/works", permanent: true },

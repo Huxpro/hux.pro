@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n";
+import vitrePackage from "@/packages/vitre/package.json";
 
 /**
  * The `/lab` family — the site, studied from the inside.
@@ -8,7 +9,7 @@ import type { Locale } from "@/lib/i18n";
  * mock; a lab is where a system is looked at, not where a copy of it is.
  *
  *   - `/lab` is the index: every lab as a card wearing its widget surface
- *     (components/lab/surfaces), the same surface the home screen's Lab
+ *     (systems/lab/surfaces), the same surface the home screen's Lab
  *     widget rotates through, for a visitor who adds it.
  *   - `/lab/works` is the one that still writes: log.json, edited over the
  *     /works timeline as it prints (on a wide screen, in `next dev`).
@@ -25,21 +26,28 @@ import type { Locale } from "@/lib/i18n";
  * the grid's edit mode, or the switch on the index). The dropdown on each
  * lab's sticky bar (`LabNav`) is how you move between the labs.
  *
- * Some labs publish a library (`library`): Vitre is the first. Its lab is
- * the library's home — its documentation, with a simulator — and its content
- * stays in the package, where the type check holds it to the API.
+ * A lab is one of two kinds:
+ *
+ *   study     one of this site's systems laid open (all but one, today)
+ *   library   a system that left as a package — Vitre is the first. Its lab
+ *             is the library's home, in the library template
+ *             (components/library.tsx): its docs, its API reference and how
+ *             this site uses it, under one header. Its content stays in the
+ *             package, where the type check holds it to the API.
  *
  * Adding a lab: an entry here, a route under `app/lab/<id>`, a surface in
- * `components/lab/surfaces`, the `LabShell` around the page, and its words
- * in both languages — a `strings.ts` beside it, read with `useLabStrings`
- * (app/lab/i18n.ts). Every lab is bilingual; code names stay as written.
+ * `systems/lab/surfaces`, the `LabShell` (or, for a library, the
+ * `LibraryShell`) around the page, and its words in both languages — a
+ * `strings.ts` beside it, read with `useLabStrings` (systems/lab/i18n.ts).
+ * Every lab is bilingual; code names stay as written. docs/system-lab.md has
+ * the rest.
  */
 
 export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "vitre";
 
 type Text = Record<Locale, string>;
 
-export interface LabEntry {
+interface LabBase {
   id: LabId;
   href: string;
   /** The lab's name — `Glow Lab` / `光实验室`. */
@@ -50,13 +58,38 @@ export interface LabEntry {
   hint: Text;
   /** What it is for, a sentence or two — behind the bar's info button. */
   blurb: Text;
-  /**
-   * A library the lab publishes: a system of this site that can leave it.
-   * Its lab is its home page — documentation and a simulator — and `demo`
-   * is where it runs on its own (a phone opens it full screen).
-   */
-  library?: { package: string; demo: string };
 }
+
+/** One of this site's systems, laid open with its knobs. */
+export interface StudyLab extends LabBase {
+  kind: "study";
+}
+
+/** A system of this site, published as a package: its lab is its home. */
+export interface LibraryLab extends LabBase {
+  kind: "library";
+  library: LibraryInfo;
+}
+
+export type LabEntry = StudyLab | LibraryLab;
+
+/** What a library's header says about the package — read from it, not retyped. */
+export interface LibraryInfo {
+  /** The name it is imported by. */
+  package: string;
+  version: string;
+  /** What it needs from the host, one line (its peer dependencies). */
+  requires: string;
+  /** The package's folder in this site's repository. */
+  source: string;
+  /** Its npm page — null while it lives only in this repository. */
+  npm: string | null;
+  /** Where it runs on its own: /vitre (a phone opens it full screen). */
+  demo: string;
+}
+
+/** This site's repository, at main (GitHub takes a file or a folder here). */
+export const SITE_REPO = "https://github.com/Huxpro/hux.pro/tree/main";
 
 export const LAB_INDEX = {
   href: "/lab",
@@ -68,6 +101,7 @@ export const LABS: readonly LabEntry[] = [
   {
     id: "works",
     href: "/lab/works",
+    kind: "study",
     name: { en: "Works Lab", zh: "作品实验室" },
     mark: "log.json",
     hint: {
@@ -82,6 +116,7 @@ export const LABS: readonly LabEntry[] = [
   {
     id: "attachments",
     href: "/lab/attachments",
+    kind: "study",
     name: { en: "Attachments Lab", zh: "附件实验室" },
     mark: "attachments",
     hint: {
@@ -96,6 +131,7 @@ export const LABS: readonly LabEntry[] = [
   {
     id: "icon",
     href: "/lab/icon",
+    kind: "study",
     name: { en: "Icon Lab", zh: "图标实验室" },
     mark: "icon.json",
     hint: {
@@ -110,6 +146,7 @@ export const LABS: readonly LabEntry[] = [
   {
     id: "legibility",
     href: "/lab/legibility",
+    kind: "study",
     name: { en: "Legibility Lab", zh: "可读性实验室" },
     mark: "legibility",
     hint: {
@@ -124,6 +161,7 @@ export const LABS: readonly LabEntry[] = [
   {
     id: "glow",
     href: "/lab/glow",
+    kind: "study",
     name: { en: "Glow Lab", zh: "光实验室" },
     mark: "glow",
     hint: {
@@ -140,7 +178,15 @@ export const LABS: readonly LabEntry[] = [
     href: "/lab/vitre",
     name: { en: "Vitre", zh: "Vitre 窗玻璃" },
     mark: "vitre",
-    library: { package: "vitre", demo: "/vitre" },
+    kind: "library",
+    library: {
+      package: vitrePackage.name,
+      version: vitrePackage.version,
+      requires: `React ${vitrePackage.peerDependencies.react}`,
+      source: `${SITE_REPO}/packages/vitre`,
+      npm: vitrePackage.private ? null : `https://www.npmjs.com/package/${vitrePackage.name}`,
+      demo: "/vitre",
+    },
     hint: {
       en: "Safari's glass, in your colours",
       zh: "让 Safari 的玻璃，显示你的颜色",
@@ -154,6 +200,13 @@ export const LABS: readonly LabEntry[] = [
 
 export function labById(id: LabId): LabEntry {
   return LABS.find((lab) => lab.id === id)!;
+}
+
+/** A library lab by id — a study's id is a mistake, caught here. */
+export function libraryById(id: LabId): LibraryLab {
+  const lab = labById(id);
+  if (lab.kind !== "library") throw new Error(`${id} is a study, not a library`);
+  return lab;
 }
 
 /** The lab a path belongs to, or null for the index (and anything unknown). */

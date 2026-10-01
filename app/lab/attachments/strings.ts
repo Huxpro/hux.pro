@@ -1,11 +1,11 @@
 // =============================================================================
-// Attachments Lab strings — both languages, keyed (see app/lab/i18n.ts).
+// Attachments Lab strings — both languages, keyed (see systems/lab/i18n.ts).
 //
 // Labels are translated; the identifiers they name — component, function and
 // prop names, file and route paths, platform names — are not.
 // =============================================================================
 
-import type { LabTable } from "@/app/lab/i18n";
+import type { LabTable } from "@/systems/lab";
 
 const en = {
   /** The attachment set's title, and the track / window titles it lends. */

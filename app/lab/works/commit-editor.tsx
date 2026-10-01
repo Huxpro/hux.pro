@@ -20,7 +20,7 @@ import { useLocale } from "@/services";
 import { X, Trash2, Plus, Unlink, GitBranch, AlertTriangle } from "lucide-react";
 import { commitIcons } from "@/components/log/icons";
 import { toast } from "sonner";
-import { useLabStrings } from "@/app/lab/i18n";
+import { useLabStrings } from "@/systems/lab";
 import { WORKS_STRINGS, type WorksStrings } from "./strings";
 
 interface CommitEditorProps {

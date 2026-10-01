@@ -1,7 +1,6 @@
 "use client";
 
-import { useLabStrings } from "@/app/lab/i18n";
-import { LabChip, LabSection, LabShell } from "@/app/lab/shell";
+import { useLabStrings, LabChip, LabSection, LabShell } from "@/systems/lab";
 import { Slider as Range } from "@/components/ui/slider";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";

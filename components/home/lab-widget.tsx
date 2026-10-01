@@ -1,7 +1,6 @@
 "use client";
 
-import { LAB_INDEX, LABS } from "@/app/lab/catalog";
-import { LAB_SURFACES } from "@/components/lab/surfaces";
+import { LAB_INDEX, LABS, LAB_SURFACES } from "@/systems/lab";
 import {
   WidgetBody,
   WidgetHeader,
@@ -46,7 +45,7 @@ const fadeVariants = {
  *
  * The other widgets read out something alive elsewhere (the weather, the
  * music, the current commit). This one shows the site reading itself: each
- * lab's surface (components/lab/surfaces) is that lab at a glance — the head
+ * lab's surface (systems/lab/surfaces) is that lab at a glance — the head
  * of the log, the icon down its sizes, the ink ladder over the wallpaper
  * that is painting, the one light — and the card opens the lab it shows.
  * The header arrow is the index of labs; the refresh turns to the next one.

@@ -4,11 +4,12 @@
 // Vitre Lab — /lab/vitre. A library, published from the lab.
 //
 // The labs study this site's systems; some of those systems are libraries
-// that can leave it. Vitre is the first: its page here is its whole home —
-// the documentation and the simulator, in the lab's frame. There is no other
-// docs page: /vitre is only the demo now (a phone, or the phone drawn here).
+// that can leave it. Vitre is the first: its lab is its whole home, in the
+// library template (systems/lab/components/library.tsx) — this guide, the
+// API reference (./api) and how this site uses it (./site). There is no
+// other docs page: /vitre is only the demo (a phone, or the phone drawn here).
 //
-//   bar        the lab's name and switcher, and the section tabs
+//   bar        the lab's name and switcher, the section tabs, the pages
 //   phone      a drawn iPhone running the demo build (simulator.tsx), pinned
 //              beside the article; the section in the middle of the screen
 //              runs its scenario in it
@@ -24,8 +25,7 @@
 // by). The simulator is its own document, with its own <Vitre>.
 // =============================================================================
 
-import { useLabStrings } from "@/app/lab/i18n";
-import { LabShell, labButtonClass } from "@/app/lab/shell";
+import { LibraryShell, labButtonClass, useLabStrings } from "@/systems/lab";
 import type { SectionId } from "@/packages/vitre/site/src/docs/api";
 import { SECTIONS, SectionCovers } from "@/packages/vitre/site/src/docs/sections";
 import { formatValue } from "@/packages/vitre/site/src/devtool/controls";
@@ -108,11 +108,7 @@ function VitreDocs() {
   }, []);
 
   return (
-    <LabShell
-      lab="vitre"
-      layout="canvas"
-      tools={<SectionTabs active={active} onPick={pick} label={S.sections} />}
-    >
+    <LibraryShell lab="vitre" page="docs" tools={<SectionTabs active={active} onPick={pick} label={S.sections} />}>
       <div className="vitre-lab md:grid md:grid-cols-[minmax(320px,42%)_minmax(0,1fr)] md:gap-10 lg:gap-16">
         <aside className="sticky top-[var(--lab-under-bar)] hidden h-[calc(100svh-var(--lab-under-bar))] items-center justify-center pb-10 md:flex">
           {wide && <FittedPhone bridge={bridge} caption={S.caption} statusTitle={S.statusTitle} />}
@@ -141,7 +137,7 @@ function VitreDocs() {
           <p className={cn(TYPE.caption, "hidden border-t border-border/50 pt-6 md:block")}>{S.onIphone}</p>
         </article>
       </div>
-    </LabShell>
+    </LibraryShell>
   );
 }
 

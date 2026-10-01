@@ -381,7 +381,7 @@ the theater rail thumb, and the attachment page — plus buttons that go through
 the real providers, with a readout of the surface stack and the open windows
 as they stand. `/lab/attachment` (and the old `/editor/attachments`) redirect here. On a phone it is where to
 watch `Visit` stack the browser over the attachment sheet. The title
-is the labs' dropdown (`app/lab/catalog.ts`).
+is the labs' dropdown (`systems/lab/catalog.ts`).
 
 ## Hovering a cover
 

@@ -437,7 +437,7 @@ export const translations = {
     aboutEnter: "Reveal",
     aboutClose: "Close",
 
-    // Lab (app/lab/catalog.ts holds each lab's own copy)
+    // Lab (systems/lab/catalog.ts holds each lab's own copy)
     labTitle: "Lab",
     labTitleHover: "Physics",
     labOpen: "Open",

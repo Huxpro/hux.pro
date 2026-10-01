@@ -1,4 +1,4 @@
-import type { LabTable } from "@/app/lab/i18n";
+import type { LabTable } from "@/systems/lab";
 
 const en = {
   // Actions and toasts

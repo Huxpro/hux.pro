@@ -1,6 +1,6 @@
 "use client";
 
-import { LAB_SURFACES } from "@/components/lab/surfaces";
+import { LAB_SURFACES, LABS, LibraryTag } from "@/systems/lab";
 import { PageLayout } from "@/components/ui/page-layout";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
@@ -9,8 +9,6 @@ import { useHomeWidget } from "@/components/home/widgets";
 import { HeaderAction } from "@/components/ui/controls";
 import { ArrowRight, Check, Plus } from "lucide-react";
 import { Link } from "next-view-transitions";
-import { LABS } from "./catalog";
-import { LibraryTag } from "./nav";
 
 /**
  * `/lab` — every lab as a card wearing its surface: the same small, live
@@ -45,7 +43,7 @@ export function LabIndexView() {
                   <div className="min-w-0 space-y-0.5">
                     <p className={cn(TYPE.rowTitle, "flex items-center gap-2")}>
                       {lab.name[locale]}
-                      {lab.library && <LibraryTag />}
+                      {lab.kind === "library" && <LibraryTag />}
                     </p>
                     <p className={cn(TYPE.caption, "line-clamp-2")}>{lab.hint[locale]}</p>
                   </div>

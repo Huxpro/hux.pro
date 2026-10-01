@@ -6,8 +6,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { LAB_INDEX, LABS, labFromPath } from "./catalog";
-import { useFrameStrings } from "./i18n";
+import { LAB_INDEX, LABS, labFromPath } from "../catalog";
+import { useFrameStrings } from "../i18n";
 
 /**
  * The lab's name in its bar, and the way to every other lab: a dropdown that
@@ -72,7 +72,7 @@ export function LabNav({
                 key={lab.id}
                 href={lab.href}
                 mark={lab.name[locale]}
-                library={!!lab.library}
+                library={lab.kind === "library"}
                 hint={lab.hint[locale]}
                 active={lab.id === current?.id}
               />

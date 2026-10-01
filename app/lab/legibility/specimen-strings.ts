@@ -1,4 +1,4 @@
-import type { LabTable } from "@/app/lab/i18n";
+import type { LabTable } from "@/systems/lab";
 
 // The specimens' own words, where the site has none to lend. Wherever a
 // specimen draws a piece of the site that already has a string in the site

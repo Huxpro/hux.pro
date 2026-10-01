@@ -7,7 +7,7 @@
  * (see shell.tsx for the frame they sit in).
  */
 
-import { useFrameStrings } from "@/app/lab/i18n";
+import { useFrameStrings } from "../i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 

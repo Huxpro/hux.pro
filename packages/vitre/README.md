@@ -269,8 +269,10 @@ a simulated iPhone running the demo beside the article, in the site's frame.
   (`sections.tsx`) and the API reference (`api.ts`), bilingual. Every export and
   prop is documented, and the reference is type-checked against `vitre.d.ts`,
   so `pnpm vitre:typecheck` fails for an undocumented one. hux.pro's lab
-  renders it (`app/lab/vitre`): the page, the section tabs and the simulator
-  are the lab's, the words are the package's.
+  renders it (`app/lab/vitre`, in the lab's library template): the guide with
+  its section tabs and simulator, the API page built from `api.ts`, and how
+  hux.pro itself uses the package. The pages are the lab's, the words are the
+  package's.
 
 ```bash
 pnpm vitre:site

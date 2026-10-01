@@ -6,9 +6,8 @@ import type { InspectMode } from "@/components/log/timeline-edit-context";
 import { Segmented } from "@/components/ui/controls";
 import { LOG_FORMS, type LogForm } from "@/lib/log-view";
 import { TYPE } from "@/lib/typography";
-import { useLabStrings } from "@/app/lab/i18n";
+import { useLabStrings, LabButton, LabChip, LabUnsaved } from "@/systems/lab";
 import { cn } from "@/lib/utils";
-import { LabButton, LabChip, LabUnsaved } from "../shell";
 import { WORKS_STRINGS } from "./strings";
 
 const FORM_CHIP: Record<LogForm, { icon: LucideIcon; label: "formIndex" | "formCovers" | "formFeed" }> = {
