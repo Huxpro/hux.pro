@@ -454,14 +454,6 @@ MDX page's deck) plays as an ad-hoc album. The attachment system, the
 standalone `<Slides />` cover and /prompt's deck all go through it.
 `SlideModal` and `SlidesPlayerProvider` are gone.
 
-**Channels** (`systems/theater/lib/channel.ts`) are the library as
-television: one per language, each a loop of every recording that can be
-heard in it, playing since a fixed epoch — what is on is a function of the
-clock, the same for every visitor. A channel is an album with `live` set: the
-provider loops it and moves on when a YouTube program ends, and `open({
-startAt })` puts the tuned-in program that far in (YouTube's `startSeconds`,
-Bilibili's `t`). A recording needs `duration` on its media to be scheduled;
-decks do not broadcast. The home card is the channel guide.
 **The tour** (`systems/theater/lib/tour.ts`) is another way into the
 library: every talk's `conference.city` on a dot-matrix map
 (`components/tour-map.tsx`, land from `lib/land.ts` — a 0.5° Natural Earth

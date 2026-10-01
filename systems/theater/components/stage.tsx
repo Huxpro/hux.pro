@@ -48,7 +48,7 @@ export function Stage({
   const embedUrl = useMemo(() => {
     if (!track || isYouTube) return null;
     if (track.kind === "slides") return track.url;
-    return embedUrlFor(track.url, track.platform, track.startAt);
+    return embedUrlFor(track.url, track.platform);
   }, [track, isYouTube]);
 
   return (

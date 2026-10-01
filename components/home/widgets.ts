@@ -1,7 +1,12 @@
 "use client";
 
 import type { TranslationKey } from "@/lib/i18n";
-import { GalleryHorizontal, Map as MapIcon, Radio, type LucideIcon } from "lucide-react";
+import {
+  GalleryHorizontal,
+  GitCommitHorizontal,
+  Map as MapIcon,
+  type LucideIcon,
+} from "lucide-react";
 import { useCallback, useSyncExternalStore } from "react";
 
 // =============================================================================
@@ -67,7 +72,7 @@ export const HOME_WIDGETS = [
     // The theater's library, read three ways (components/home/theater).
     forms: [
       { id: "reel", title: "widgetFormReel", icon: GalleryHorizontal },
-      { id: "channel", title: "widgetFormChannel", icon: Radio },
+      { id: "timeline", title: "widgetFormTimeline", icon: GitCommitHorizontal },
       { id: "tour", title: "widgetFormTour", icon: MapIcon },
     ],
   },

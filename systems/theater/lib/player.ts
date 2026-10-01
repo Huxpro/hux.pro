@@ -20,7 +20,7 @@ export { loadYouTubeAPI } from "@/systems/music/lib/youtube-player";
 
 /** YT.Player plus the single-video controls used for playlist playback. */
 export interface YTPlayerExt extends YT.Player {
-  loadVideoById(videoId: string, startSeconds?: number): void;
+  loadVideoById(videoId: string): void;
   cueVideoById(videoId: string): void;
   seekTo(seconds: number, allowSeekAhead?: boolean): void;
   getIframe(): HTMLIFrameElement;
@@ -44,12 +44,7 @@ export function resolveVideoId(
 }
 
 /** Build a non-YouTube autoplay embed URL for the stage iframe. */
-export function embedUrlFor(
-  url: string,
-  platform: VideoPlatform,
-  /** Seconds in — a channel tuning into a program already under way. */
-  startAt = 0,
-): string | null {
+export function embedUrlFor(url: string, platform: VideoPlatform): string | null {
   if (platform === "bilibili") {
     const trimmed = url.trim();
     let bvid: string | null = null;
@@ -80,15 +75,12 @@ export function embedUrlFor(
     player.searchParams.set("high_quality", "1");
     player.searchParams.set("danmaku", "0");
     player.searchParams.set("autoplay", "1");
-    if (startAt > 0) player.searchParams.set("t", String(Math.floor(startAt)));
     return player.toString();
   }
 
   if (platform === "vimeo") {
     const id = extractVimeoId(url);
-    if (!id) return null;
-    const t = startAt > 0 ? `#t=${Math.floor(startAt)}s` : "";
-    return `https://player.vimeo.com/video/${id}?autoplay=1${t}`;
+    return id ? `https://player.vimeo.com/video/${id}?autoplay=1` : null;
   }
 
   return null;

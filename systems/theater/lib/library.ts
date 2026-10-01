@@ -217,6 +217,11 @@ function toVersion(listing: Listing, locale: Locale): TrackVersion {
   };
 }
 
+/** Every version of an entry, the original first, as the stage would play it. */
+export function entryVersions(entry: LibraryEntry, locale: Locale): TrackVersion[] {
+  return entry.versions.map((v) => toVersion(v, locale));
+}
+
 /** A track wearing one of its versions. */
 export function withVersion(track: Track, version: TrackVersion): Track {
   const { key: _key, language, date, duration, ...playable } = version;

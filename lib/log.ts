@@ -241,9 +241,8 @@ export interface VideoMedia extends Pinned, Playable {
   platform: VideoPlatform;
   thumbnail?: string;
   /**
-   * Running time in seconds. What the theater's channels schedule by — a
-   * broadcast needs to know when each program ends (systems/theater/lib/
-   * channel.ts). Read off the platform's page when the video is listed.
+   * Running time in seconds, read off the platform's page when the video is
+   * listed. The theater's timeline sizes a recording's mark by it.
    */
   duration?: number;
 }

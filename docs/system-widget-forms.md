@@ -10,7 +10,7 @@ WidgetKit's sizes (Small / Medium / Large / Extra Large) exist because a home
 screen is a grid of cells. This grid is a masonry of one column width
 (`SortableMasonry`), so a "bigger" widget has nowhere to go. What varies
 usefully is the *reading*: the theater card can be a reel of featured talks,
-a channel guide of what is on now, or a map of where they were given. Each is
+a timeline of when they were given, or a map of where. Each is
 a whole widget; none is a crop of another.
 
 ## Where the choice is made
@@ -49,7 +49,7 @@ key, glyph — the default first:
   defaultEnabled: true,
   forms: [
     { id: "reel", title: "widgetFormReel", icon: GalleryHorizontal },
-    { id: "channel", title: "widgetFormChannel", icon: Radio },
+    { id: "timeline", title: "widgetFormTimeline", icon: GitCommitHorizontal },
     { id: "tour", title: "widgetFormTour", icon: MapIcon },
   ],
 },

@@ -57,8 +57,6 @@ interface OpenOptions {
   mode?: TheaterMode;
   /** Which version to play, for a track that has several. */
   language?: TrackLanguage | null;
-  /** Seconds into the opened track to start at — a channel tuning in. */
-  startAt?: number;
 }
 
 /** What a track shows for the media it came from: the commit's name. */
@@ -213,10 +211,6 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [registeredAlbums, setRegisteredAlbums] = useState<Album[]>([]);
   const [language, setLanguage] = useState<TrackLanguage | null>(null);
-  /** The opened track's start offset; any other track starts at 0. */
-  const [start, setStart] = useState<{ id: string; seconds: number } | null>(
-    null,
-  );
   const [albumIndex, setAlbumIndex] = useState(0);
   const [trackIndex, setTrackIndex] = useState(0);
   const [mode, setMode] = useState<TheaterMode>("closed");
@@ -245,11 +239,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     const version = language
       ? shelved?.versions?.find((v) => v.language === language)
       : undefined;
-    const worn = shelved && version ? withVersion(shelved, version) : shelved;
-    return worn && start && start.id === worn.id
-      ? { ...worn, startAt: start.seconds }
-      : worn;
-  }, [shelved, language, start]);
+    return shelved && version ? withVersion(shelved, version) : shelved;
+  }, [shelved, language]);
 
   const effectiveMode: TheaterMode = minimized ? "closed" : mode;
   // The stage always sits at a *visible* mode's rect; hidden states fade/scale
@@ -301,7 +292,6 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const readyRef = useRef(false);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const pendingVideoRef = useRef<string | null>(null);
-  const pendingStartRef = useRef(0);
   const loadedVideoRef = useRef<string | null>(null);
 
   const ensurePlayer = useCallback(() => {
@@ -332,10 +322,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
               if (pending) {
                 pendingVideoRef.current = null;
                 loadedVideoRef.current = pending;
-                (player as YTPlayerExt).loadVideoById(
-                  pending,
-                  pendingStartRef.current,
-                );
+                (player as YTPlayerExt).loadVideoById(pending);
               }
             },
             onStateChange: (e) => {
@@ -385,12 +372,11 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       ensurePlayer();
       if (!readyRef.current || !playerRef.current) {
         pendingVideoRef.current = track.videoId;
-        pendingStartRef.current = track.startAt ?? 0;
         return;
       }
       if (loadedVideoRef.current !== track.videoId) {
         loadedVideoRef.current = track.videoId;
-        playerRef.current.loadVideoById(track.videoId, track.startAt ?? 0);
+        playerRef.current.loadVideoById(track.videoId);
       }
     } else {
       // Non-YouTube track plays in its own iframe (rendered by <Stage />) —
@@ -404,7 +390,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       setPhase("idle");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track?.id, track?.platform, track?.videoId, track?.startAt, mode, minimized, ensurePlayer]);
+  }, [track?.id, track?.platform, track?.videoId, mode, minimized, ensurePlayer]);
 
   // Pause background music whenever a video starts playing.
   useEffect(() => {
@@ -516,13 +502,10 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       trackIndex: ti = 0,
       mode: m,
       language: lang = null,
-      startAt,
     }: OpenOptions) => {
       if (next.length === 0) return;
       setAlbums(next);
       setLanguage(lang);
-      const opened = next[ai]?.tracks[ti];
-      setStart(opened && startAt ? { id: opened.id, seconds: startAt } : null);
       setAlbumIndex(Math.min(Math.max(ai, 0), next.length - 1));
       const tracks = next[ai]?.tracks ?? [];
       setTrackIndex(Math.min(Math.max(ti, 0), Math.max(tracks.length - 1, 0)));
@@ -690,17 +673,9 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
 
   const next = useCallback(() => {
     const tracks = album?.tracks ?? [];
-    // A channel loops, as its schedule does; it never runs on into the next.
-    if (album?.live) clampTrack(albumIndex, (trackIndex + 1) % tracks.length);
-    else if (trackIndex < tracks.length - 1) clampTrack(albumIndex, trackIndex + 1);
+    if (trackIndex < tracks.length - 1) clampTrack(albumIndex, trackIndex + 1);
     else if (albumIndex < albums.length - 1) clampTrack(albumIndex + 1, 0);
   }, [album, albumIndex, trackIndex, albums.length, clampTrack]);
-
-  // A channel plays on: when a program ends, the next one starts. Only the
-  // YouTube player says when it ended; a Bilibili program waits for "next".
-  useEffect(() => {
-    if (phase === "ended" && album?.live) next();
-  }, [phase, album?.live, next]);
 
   const previous = useCallback(() => {
     if (trackIndex > 0) clampTrack(albumIndex, trackIndex - 1);
