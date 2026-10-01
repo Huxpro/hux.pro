@@ -10,19 +10,19 @@ import { pickInternalLink } from "@/lib/og-enrich";
 import type { AttachmentHome } from "./types";
 
 // =============================================================================
-// Attachments — the policy: where a piece of attached media opens.
+// Attachments policy: where a piece of attached media opens.
 //
 // The site is a small operating system with places already built for the
 // things a commit attaches: a theater for anything that plays, a window
 // manager for anything that is a page, a router for its own pages. On a
-// desktop an attachment goes to its native home — the click on a video cover
+// desktop an attachment goes to its native home: the click on a video cover
 // lands in the theater, the click on a link card in an in-app browser window.
 //
 // A phone has fewer of those homes in a usable shape: the stage is a PiP
 // there, and a window is the whole screen. There every attachment
 // opens the same way, in a bottom sheet that pages through the commit's
 // attachments and offers each one's native action as a button. A page still
-// has its home there — a window on a phone is a sheet (systems/windows), so
+// has its home there. A window on a phone is a sheet (systems/windows), so
 // `Visit` stacks the in-app browser over the attachment sheet the way a link
 // in a mobile app opens in its own in-app browser, and only a page that
 // refuses to be framed, or a PDF, leaves for a tab. Two rules, one function, so a cover
@@ -38,8 +38,8 @@ export interface HomeContext {
 }
 
 /**
- * The URL a link opens — the viewer's locale variant where the card has one,
- * the matching post for an internal writing link.
+ * The URL a link opens: the viewer's locale variant where the card has one,
+ * or the matching post for an internal writing link.
  */
 export function linkTarget(media: Media, locale: Locale): string {
   if (!isLinkMedia(media)) return media.url;
@@ -51,8 +51,8 @@ export function linkTarget(media: Media, locale: Locale): string {
 
 /**
  * A PDF: the in-app browser cannot show one. Its page is a sandboxed iframe,
- * and neither engine reads a PDF there — WebKit paints the first page as a
- * still image that will not scroll, Chrome will not run its viewer in a
+ * and neither engine reads a PDF there. WebKit paints the first page as a
+ * still image that will not scroll; Chrome will not run its viewer in a
  * sandboxed frame. The system's own viewer, in a tab, is the only good home.
  */
 export function isPdfLink(media: Media): boolean {
@@ -86,7 +86,7 @@ export function isInternalLink(media: Media): boolean {
 
 /**
  * What a link to this site prints where a card prints a domain: its section
- * (`/writing`, `/works`) — a path has no domain worth printing, and a query
+ * (`/writing`, `/works`). A path has no domain worth printing, and a query
  * string is not a name. Null for a link elsewhere.
  */
 export function siteSectionLabel(media: Media): string | null {
@@ -97,7 +97,7 @@ export function siteSectionLabel(media: Media): string | null {
 }
 
 /**
- * The attachment's native home — what its primary action does, whatever
+ * The attachment's native home: what its primary action does, whatever
  * surface the action is offered from. This is also where a desktop click
  * lands directly for the kinds that have one.
  */
@@ -110,9 +110,9 @@ export function nativeHomeFor(media: Media, ctx: HomeContext): AttachmentHome {
   if (isImageMedia(media)) return "lightbox";
   if (isLinkMedia(media)) {
     if (isInternalLink(media)) return "route";
-    // A page that refuses to be framed (X-Frame-Options, frame-ancestors —
-    // read at snapshot time) would open a window showing a refusal; a PDF,
-    // one that will not scroll (`isPdfLink`).
+    // A page that refuses to be framed (X-Frame-Options, frame-ancestors,
+    // read at snapshot time) would open a window showing a refusal; a PDF
+    // would open one that will not scroll (`isPdfLink`).
     if (unframeable(media)) return "tab";
     // The in-app browser, on every viewport: a window is a sheet on a phone.
     return ctx.windows ? "window" : "tab";
@@ -124,8 +124,8 @@ export function nativeHomeFor(media: Media, ctx: HomeContext): AttachmentHome {
  * Where a click on the attachment lands. A phone opens the surface for
  * everything, and the surface's button sends the item on (`nativeHomeFor`);
  * elsewhere a video or a deck goes to the theater, an image to the lightbox, a
- * link to its window, and the kind with no native home of its own — a social
- * widget — opens the surface in its desktop shape.
+ * link to its window, and the kind with no native home of its own (a social
+ * widget) opens the surface in its desktop shape.
  */
 export function homeFor(media: Media, ctx: HomeContext): AttachmentHome {
   if (ctx.compact) return "surface";

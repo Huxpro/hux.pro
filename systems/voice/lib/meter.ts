@@ -1,9 +1,9 @@
 // =============================================================================
-// The voice meter — how loud, and where in the spectrum, right now.
+// The voice meter: how loud, and where in the spectrum, right now.
 //
 // One AudioContext for the page, one analyser per microphone stream, nothing
 // connected to the speakers: the voice is measured, never played. Reading the
-// meter is cheap and lazy — the glow calls `level()` / `bands()` once a frame
+// meter is cheap and lazy. The glow calls `level()` / `bands()` once a frame
 // and the analysis happens then, so a meter nobody reads costs nothing.
 //
 // The raw numbers are shaped the way voice-glow shapes them (Libraries.dev),
@@ -16,8 +16,8 @@
 //   envelope    fast up (attack), slow down (release): the glow leaps with a
 //               syllable and settles between words instead of flickering.
 //   bands       80–300 Hz (the voice's body), 300–2000 (vowels), 2–6 kHz
-//               (sibilance), each on its own envelope — so the glow's beams
-//               ripple with a sentence rather than pumping in unison.
+//               (sibilance), each on its own envelope, so the glow's beams
+//               move with a sentence rather than pumping in unison.
 // =============================================================================
 
 let context: AudioContext | null = null;

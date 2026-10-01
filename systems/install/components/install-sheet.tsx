@@ -19,22 +19,22 @@ import { installTarget, promptInstall, type InstallGuide } from "../lib/platform
 import { useInstall } from "../provider";
 
 // ---------------------------------------------------------------------------
-// InstallSheet — the directions that come before "Add to Home Screen".
+// InstallSheet: the directions that come before "Add to Home Screen".
 //
 // The tilt primer's sibling, for the same reason: the thing it leads to is a
 // browser's, and a page cannot press it for you. Where Chromium hands us its
-// install dialog, the sheet's button opens it — one press to learn what it is,
+// install dialog, the sheet's button opens it: one press to learn what it is,
 // one to spend the event, which is single-use. Everywhere else (every browser
 // on an iPhone, Safari on a Mac, a browser that kept its event) the door is in
 // the browser's own menu, and the sheet shows which buttons lead to it, drawn
 // the way they look on screen, since that glyph is what the eye goes hunting
 // for in a toolbar full of them.
 //
-// A sheet on a phone and a window on a desktop — unlike the primer, both are
+// A sheet on a phone and a window on a desktop. Unlike the primer, both are
 // real cases here. The panel shape is skipped: this is a form, not a list,
 // and a side drawer holding four lines would be mostly empty.
 //
-// The picture is the promise, as the primer's is: the site's own icon landing
+// As in the primer, the picture shows the result: the site's own icon landing
 // on a home screen (or a Dock), so what "install" gets you is on screen before
 // any sentence about it.
 // ---------------------------------------------------------------------------
@@ -69,7 +69,7 @@ type Step = [Glyph, TranslationKey];
 
 /**
  * Every guide's steps, in the order the menus are met. Kept to the three or
- * four presses it actually takes — a fifth line is where people stop reading.
+ * four presses it actually takes. A fifth line is where people stop reading.
  * Menu labels are quoted as the browser prints them; Chrome's is mid-rename
  * on Android, so its step names both.
  */
@@ -157,7 +157,7 @@ const BODY: Record<ReturnType<typeof installTarget>, TranslationKey> = {
 
 /**
  * A home screen of placeholder icons with one empty slot, and the site's icon
- * dropping into it — on a phone for a home screen, on a display's Dock for a
+ * dropping into it: on a phone for a home screen, on a display's Dock for a
  * desktop. The placeholders are the same wash as the tilt primer's phone, so
  * the only thing with colour in it is the icon that is arriving.
  *
@@ -199,7 +199,7 @@ function centredRow(count: number, size: number, gap: number, centre: number): n
 /**
  * The phone. Its screen is x 13–83, y 9–159 (centre x 48), and everything on
  * it is laid out about that centre: a 4 × 4 page of icons under the notch,
- * and a Dock whose icons stand in the page's columns — as on iOS — with its
+ * and a Dock whose icons stand in the page's columns (as on iOS), with its
  * backing inset from the screen's edge by the same margin on all three sides.
  */
 const PHONE = {
@@ -257,7 +257,7 @@ function PhoneHome() {
           )
         )
       )}
-      {/* The Dock, which stays as it is — a new app goes on the page. */}
+      {/* The Dock, which stays as it is. A new app goes on the page. */}
       <rect
         x={dock.x}
         y={dock.y}
@@ -286,7 +286,7 @@ function PhoneHome() {
  * The display. Its screen is x 17–183 (centre x 100); the Dock is centred on
  * it with equal padding either side of its icons, and the new app lands at
  * the Dock's trailing end, as it does on a Mac. The window above is centred
- * too — anywhere else it reads as the picture being off, not the window.
+ * too. Anywhere else it reads as the picture being off, not the window.
  */
 const DESK = {
   centre: 100,
@@ -417,7 +417,7 @@ function InstallSlot({
  *   offer      the directions, or the button that opens the browser's dialog.
  *   asking     that dialog is up; it covers the page, so this only has to not
  *              offer the button twice.
- *   accepted   installed — said, then the sheet lets itself out.
+ *   accepted   installed. The sheet says so, then closes itself.
  *   dismissed  the dialog was closed with a no. The event is spent, and the
  *              browser will offer a new one later on its own schedule.
  */
@@ -444,8 +444,8 @@ export function InstallSheet() {
     return () => window.clearTimeout(timer);
   }, [phase, close]);
 
-  // Back to the offer on the way in, during the render that opens it — the
-  // same reset the tilt primer does, and for the same reason: swapping the
+  // Back to the offer on the way in, during the render that opens it. The
+  // tilt primer does the same reset, for the same reason: swapping the
   // content while the sheet animates away would flash the offer behind the
   // outcome.
   const [wasOpen, setWasOpen] = useState(isOpen);
@@ -462,7 +462,7 @@ export function InstallSheet() {
     setPhase("asking");
     const outcome = await promptInstall();
     // "unavailable": the event went stale between the render and the press.
-    // Nothing was asked, so the offer stands — now as directions, since
+    // Nothing was asked, so the offer stands, now as directions, since
     // `canPrompt` has gone false with it.
     setPhase(outcome === "unavailable" ? "offer" : outcome);
   };

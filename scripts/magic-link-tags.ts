@@ -2,10 +2,10 @@
  * Every magic link written in the site's MDX (content/**, docs/**), read
  * the way the snapshot scripts need it: which tag, what it names, and where.
  *
- * One reader for both scripts that care — the badge icons
+ * One reader for both scripts that care (the badge icons
  * (scripts/badge-icon-snapshot.ts: a `<Badge>` must wear its site's icon)
  * and the page cards (scripts/og-snapshot.ts: a link's `href` peeks as its
- * page's card) — so they cannot disagree on what a tag says.
+ * page's card), so they cannot disagree on what a tag says.
  */
 
 import fs from "fs";

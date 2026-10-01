@@ -42,7 +42,7 @@ export function resolveScroll(config: DemoConfig): VitreScroll {
 }
 
 // -----------------------------------------------------------------------------
-// Persistence — only the standalone demo saves; the phone inside the docs page
+// Persistence: only the standalone demo saves; the phone inside the docs page
 // is driven by the docs and starts from the defaults every time.
 // -----------------------------------------------------------------------------
 

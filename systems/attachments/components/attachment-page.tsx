@@ -41,10 +41,10 @@ import type { AttachmentHome, AttachmentSet } from "../lib/types";
 import { useAttachments } from "../provider";
 
 // =============================================================================
-// AttachmentPage — one attachment, at full width, with its native action.
+// AttachmentPage: one attachment, at full width, with its native action.
 //
-// A page is the attachment shown large — the cover of a video or a deck, the
-// whole of a link card, an image, a live social widget — over a title line
+// A page is the attachment shown large (the cover of a video or a deck, the
+// whole of a link card, an image, a live social widget) over a title line
 // and a row of actions. The first action is the thing itself (`Watch`,
 // `Slides`, `Read`, `Visit`): the provider's `act`, which sends the item to
 // its native home from wherever the surface is standing. The second is the
@@ -57,7 +57,7 @@ import { useAttachments } from "../provider";
 //
 // The cover wears no chip here (media-mark.tsx): the page prints the domain,
 // the title and a labelled button, and the button's glyph already says what
-// the item is and where it goes — a chip on the cover would repeat it.
+// the item is and where it goes. A chip on the cover would repeat it.
 // The button's glyph is what the item is: a play mark, the deck glyph, a
 // globe for the in-app browser, a book for a post, the arrow out for a tab.
 // =============================================================================
@@ -67,7 +67,7 @@ interface AttachmentPageProps {
   index: number;
 }
 
-/** A cover the page action opens — a stage-shaped 16:9 box. */
+/** A cover the page action opens: a stage-shaped 16:9 box. */
 function Cover({
   image,
   label,
@@ -274,8 +274,8 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
     return (
       <div className="space-y-4">
         {post ? (
-          // A post summoned with its peek: the page is the peek, whole —
-          // the same card its /writing row shows under the pointer, where a
+          // A post summoned with its peek: the page is the whole peek, the
+          // same card its /writing row shows under the pointer, where a
           // phone has no pointer. The title is the surface's header.
           <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
             <PostPeekView peek={post} className="w-full" whole />

@@ -21,15 +21,15 @@ import {
 import { useAttachments } from "../provider";
 
 // =============================================================================
-// ImageLightbox — a still, letterboxed, to be read.
+// ImageLightbox: a still, letterboxed, to be read.
 //
 // An image attached to a commit is usually something to read rather than to
 // glance at: a poster, a figure, a page. The attachment surface shows it at
 // the width of a sheet, which is a thumbnail for a 44×34 poster. The lightbox
 // is its home instead (lib/policy.ts): the page steps back under the
 // theater's veil, the image is fitted to the viewport with a margin all round
-// (the letterbox), and from there it zooms — wheel or trackpad, a pinch,
-// a double-click at the point to read, `+` / `-` / `0` — and pans by drag.
+// (the letterbox). From there it zooms (wheel or trackpad, a pinch, a
+// double-click at the point to read, `+` / `-` / `0`) and pans by drag.
 //
 // Zoom and pan are react-zoom-pan-pinch; the modal is Base UI's Dialog (focus
 // trap, scroll lock, Escape, the return of focus to the cover that opened
@@ -51,7 +51,7 @@ const BELOW = 56;
 /**
  * The lightbox's place in the stack: over the sheets (60s), the windows and
  * the dock, but under the bezel (vitre draws it at 9999, the FAB's layer), so
- * the page — and anything over the page — stops on the bezel's clean line
+ * the page, and anything over the page, stops on the bezel's clean line
  * and is rounded off inside it, the same as every other surface.
  */
 const LAYER = 9990;
@@ -102,7 +102,7 @@ export function ImageLightbox() {
     return () => window.removeEventListener("resize", onResize);
   }, [lightboxOpen, measure, fit]);
 
-  // `+` / `-` / `0` — the zoom keys of every image viewer.
+  // `+` / `-` / `0`: the zoom keys of every image viewer.
   useEffect(() => {
     if (!lightboxOpen) return;
     const onKey = (e: KeyboardEvent) => {

@@ -15,12 +15,12 @@ import {
 } from "react";
 
 // =============================================================================
-// AboutProvider — the About surface's state.
+// AboutProvider: the About surface's state.
 //
-// The About is the one thing on the site that speaks before it is asked: a
+// The About is the one thing on the site that opens without being asked. A
 // newcomer finds it floating over whatever page they landed on, says hello
 // to whoever made this, and dismisses it. From then on it is a slash command
-// away — `/` `O`, from anywhere — and a row in the palette.
+// away (`/` `O`, from anywhere) and a row in the palette.
 //
 //   first visit   opens itself once the page has painted; dismissing it is
 //                 what marks the visitor as having met it (`hux_about_seen`),
@@ -29,14 +29,14 @@ import {
 //                 Not a bare `O`: a single letter taken over every page is
 //                 one keystroke from firing by accident, and the About is
 //                 not something anyone needs that often.
-//   Esc           closes it — unless something over it (a drawer, a card,
+//   Esc           closes it, unless something over it (a drawer, a card,
 //                 the palette) has taken that press.
 //   the drawer    on a phone a magic link in the copy opens the attachment
 //                 drawer or the identity card over the About (OVER_ABOUT_Z),
 //                 not in its place:
 //                 the words stay underneath. The About steps aside only once
-//                 something leaves for a home below it — the stage, a
-//                 window, the router, the lightbox; a tab leaves the site
+//                 something leaves for a home below it: the stage, a
+//                 window, the router, the lightbox. A tab leaves the site
 //                 and finds it as it was on the way back.
 //   `/about`      the linkable address: the home screen with it already up.
 //
@@ -49,7 +49,7 @@ const SEEN_KEY = "hux_about_seen";
 /** How long a newcomer's first page shows before the About rises over it. */
 const FIRST_VISIT_DELAY_MS = 700;
 
-/** Paths that are tools rather than the site — no introduction there. */
+/** Paths that are tools rather than the site. No introduction there. */
 const QUIET_PREFIXES = ["/lab", "/vitre"];
 
 function readSeen(): boolean {
@@ -74,13 +74,13 @@ interface AboutContextValue {
   isOpen: boolean;
   open: () => void;
   /**
-   * The visitor puts it away — the button at its foot, Escape, a click well
+   * The visitor puts it away: the button at its foot, Escape, a click well
    * clear of the words. The one close that also leaves `/about` for `/`
    * (app/about/about-route.tsx).
    */
   dismiss: () => void;
   /**
-   * Something else takes the screen from it — a link to another page, the
+   * Something else takes the screen from it: a link to another page, the
    * stage, a window. Leaves the address alone: a navigation is leaving
    * `/about` already, and swapping it under the router's push would cancel
    * the push.
@@ -160,8 +160,8 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(id);
   }, []);
 
-  // A thing opened from the About's drawer that lands under the About — on
-  // the stage, in a window, on another page — takes the screen from it. A
+  // A thing opened from the About's drawer that lands under the About (on
+  // the stage, in a window, on another page) takes the screen from it. A
   // tab leaves the site, and finds it as it was on the way back.
   const onSend = useOptionalAttachments()?.onSend;
   const onAttachmentSent = useEffectEvent((home: string) => {
@@ -169,9 +169,9 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
   });
   useEffect(() => onSend?.((home) => onAttachmentSent(home)), [onSend]);
 
-  // Any page change while it is up — a drawer's Visit, a card's row, a link
-  // it did not see — takes the screen from it: the About is over a page,
-  // not a page. Coming to `/about` is the one arrival that keeps it.
+  // Any page change while it is up (a drawer's Visit, a card's row, a link
+  // it did not see) takes the screen from it, because the About sits over a
+  // page and is not one. Coming to `/about` is the one arrival that keeps it.
   const pathname = usePathname();
   const lastPathRef = useRef(pathname);
   const onPathChange = useEffectEvent((path: string) => {
@@ -184,7 +184,7 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   // Escape is the About's only once nothing above it has claimed it. On the
-  // window, in the bubble phase — after every surface's own listener — and
+  // window, in the bubble phase (after every surface's own listener), and
   // not if one of them handled it (a drawer, a card, a window, the palette
   // over the About each mark theirs `defaultPrevented`).
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
@@ -208,8 +208,8 @@ export function AboutProvider({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * A surface's paint layer while the About is up — `z` (OVER_ABOUT_Z by
- * default) — and `undefined` (its own) otherwise. For whatever must come up
+ * A surface's paint layer: `z` (OVER_ABOUT_Z by default) while the About is
+ * up, and `undefined` (its own) otherwise. For whatever must come up
  * over the About rather than under it.
  */
 export function useOverAboutZ(z: number = OVER_ABOUT_Z): number | undefined {

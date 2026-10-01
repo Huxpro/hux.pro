@@ -8,7 +8,7 @@ import {
 import type { AttachmentSet } from "./types";
 
 // =============================================================================
-// Attachments — building a set from a commit
+// Attachments: building a set from a commit
 // =============================================================================
 
 /** The venue line under a commit's title, by type. */

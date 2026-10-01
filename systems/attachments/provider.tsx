@@ -26,14 +26,14 @@ import {
 import type { AttachmentHome, AttachmentSet } from "./lib/types";
 
 // =============================================================================
-// AttachmentProvider — one door for everything a commit attaches.
+// AttachmentProvider: one door for everything a commit attaches.
 //
-// Every affordance on a commit row — a cover on the contact strip, the player
-// in the expanded body, the icon in the folded rail — calls `open(set, index)`
-// and stops thinking. The provider applies the policy (lib/policy.ts): on a
+// Every affordance on a commit row (a cover on the contact strip, the player
+// in the expanded body, the icon in the folded rail) calls `open(set, index)`
+// and nothing more. The provider applies the policy (lib/policy.ts): on a
 // phone the attachment surface comes up at that item; on a desktop the item
-// goes straight to its native home — the theater, the lightbox, an in-app
-// browser window, the router — and the surface only appears for the kinds
+// goes straight to its native home (the theater, the lightbox, an in-app
+// browser window, the router), and the surface only appears for the kinds
 // that have none.
 //
 // The surface itself (components/attachment-surface.tsx) is mounted once in
@@ -59,16 +59,16 @@ export interface LightboxSession {
 }
 
 export interface AttachmentsContextValue {
-  /** Open the attachment at `index` — per the policy, wherever it belongs. */
+  /** Open the attachment at `index`, wherever the policy says it belongs. */
   open: (set: AttachmentSet, index?: number) => void;
   /** Perform the attachment's native action: play it, open its page… */
   act: (set: AttachmentSet, index: number) => void;
   /** Where `open` would send the attachment right now. */
   homeOf: (set: AttachmentSet, index: number) => AttachmentHome;
-  /** Where `act` would send it — its native home, from any surface. */
+  /** Where `act` would send it: its native home, from any surface. */
   nativeHomeOf: (set: AttachmentSet, index: number) => AttachmentHome;
   /**
-   * Hear every attachment leaving for a home that is not the surface — the
+   * Hear every attachment leaving for a home that is not the surface: the
    * stage, a window, the router, a tab. For a layer the surface can float
    * over (the About) that should step aside once the thing opens somewhere
    * underneath it. Returns the unsubscribe.
@@ -82,7 +82,7 @@ export interface AttachmentsContextValue {
   lightbox: LightboxSession | null;
   lightboxOpen: boolean;
   closeLightbox: () => void;
-  /** A phone-sized viewport — the one fact of the policy's context a row
+  /** A phone-sized viewport: the one fact of the policy's context a row
    *  lays itself out by (the feed plays a video where it is there). */
   compact: boolean;
 }
@@ -117,8 +117,8 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
 
   // Only the facts the policy branches on, and only the callbacks `send`
   // calls: the theater's context value is rebuilt on every playback tick,
-  // and depending on the object would re-publish this context — and
-  // re-render every row on /works — twice a second while a video plays.
+  // and depending on the object would re-publish this context (and
+  // re-render every row on /works) twice a second while a video plays.
   const hasWindows = !!windows;
   const openMedia = theater?.openMedia;
   const openUrl = windows?.openUrl;
@@ -145,7 +145,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
     (home: AttachmentHome, set: AttachmentSet, index: number) => {
       const media = set.items[index];
       if (!media) return;
-      // Heard once the thing has actually gone somewhere — after each case's
+      // Heard once the thing has actually gone somewhere, after each case's
       // own guards, so a host is never told of an open that did not happen.
       const sent = () => {
         for (const listener of sendListeners.current) listener(home);
@@ -206,7 +206,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           // says why it left: the reader asked the site to open something
           // and the browser took it, which reads as a glitch unless named.
           // On a phone the sheet's own button already says so (its mark is
-          // the arrow out, and the page notes it) — no notice under a tab
+          // the arrow out, and the page notes it). No notice under a tab
           // that has just covered the screen.
           if (!compact && leavesSite(media)) {
             const host = getDomainLabel(url);

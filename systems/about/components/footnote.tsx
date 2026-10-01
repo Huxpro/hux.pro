@@ -3,13 +3,13 @@
 import type { MouseEvent, ReactNode } from "react";
 
 // =============================================================================
-// Footnotes in the About's words — `<Fn n="1" />` in a sentence, and
+// Footnotes in the About's words: `<Fn n="1" />` in a sentence, and
 // `<Footnote n="1">…</Footnote>` in a `<Footnotes>` block at the end.
 //
 // The mark scrolls the note into view inside the About's own scroll area and
 // leaves the address alone (a hash would land in the history and in the
 // URL a reader shares); the note's number scrolls back. The notes are set in
-// the About's annotation type — the tiny mono line its credits were.
+// the About's annotation type, the tiny mono line its credits were set in.
 // =============================================================================
 
 function jump(e: MouseEvent<HTMLAnchorElement>, id: string) {

@@ -2,7 +2,7 @@ import type { ChromeSyncOptions } from "../vitre";
 import { CHROME_MORPH_PX, THEME_COLOR_ID } from "./constants";
 
 // =============================================================================
-// Chrome — the browser's own UI, kept in the colour the page asks for.
+// Chrome: the browser's own UI, kept in the colour the page asks for.
 //
 // Measured on iOS 26.5 Safari:
 //
@@ -86,8 +86,8 @@ export function syncChrome(color: string, options: ChromeSyncOptions = {}): void
 
   // Every piece is its OWN fixed element with its own background. Measured on
   // iOS 26.5: for a fixed element at the edge Safari samples that element's
-  // box as composited — a transparent full-screen container with coloured
-  // children does not work, two fixed bars do.
+  // box as composited. A transparent full-screen container with coloured
+  // children does not work; two fixed bars do.
   const top = fixed(`left:0;right:0;top:0;height:${band}px;background:${color}`);
   const bottom = fixed(`left:0;right:0;bottom:0;height:${band}px;background:${color}`);
   const corners =

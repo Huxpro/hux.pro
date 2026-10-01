@@ -1,5 +1,5 @@
 // =============================================================================
-// Music System Settings — localStorage persistence
+// Music System Settings: localStorage persistence
 // =============================================================================
 
 /** YouTube Music playlist ID (public playlist, hardcoded) */

@@ -17,18 +17,18 @@ import type { ProfileCommit } from "../lib/profile";
 import { IdentityProfileView } from "./identity-profile";
 
 // =============================================================================
-// IdentityCard — a role, as a surface, for a finger.
+// IdentityCard: a role, as a surface, for a finger.
 //
 // On a desktop the profile is a hover peek off the handle (identity-hover.tsx)
 // and this never opens. On a phone the same mark is tapped and the role comes
 // up as a sheet; on a touch tablet, as a popover hanging off the mark
-// (`ANCHORED_PRESENTATION`). The header names the handle, nothing more — a
-// profile's name is its title.
+// (`ANCHORED_PRESENTATION`). The header names the handle and nothing more,
+// since a profile's name is its title.
 //
 // Where the peek only answers "who was I then?", the drawer is somewhere to
 // go from: the profile, whose count of signed commits heads the commits
-// themselves — each a row that opens its attachments in their own drawer,
-// stacked over this one the iOS way — and Visit, to the role's row on
+// themselves (each a row that opens its attachments in their own drawer,
+// stacked over this one the iOS way), and Visit, to the role's row on
 // /works.
 // =============================================================================
 

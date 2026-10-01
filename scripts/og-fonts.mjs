@@ -1,5 +1,5 @@
 // =============================================================================
-// og-fonts — bake the fonts the OG image system needs into the repo.
+// og-fonts: bake the fonts the OG image system needs into the repo.
 //
 // The OG cards (lib/og-image.tsx) render with Newsreader (serif), JetBrains
 // Mono (system layer) and Noto Serif SC (CJK serif). Fetching these from Google
@@ -7,8 +7,8 @@
 // routes, firing hundreds of font requests, and a single failed/ rate-limited
 // fetch throws and fails the whole build (this is what broke Vercel).
 //
-// So instead we bake the fonts to disk once — exactly like og:snapshot bakes
-// link previews — and the build reads them locally with no network at all.
+// So instead we bake the fonts to disk once, as og:snapshot bakes link
+// previews, and the build reads them locally with no network at all.
 //
 // Latin faces are subset to the full printable Latin range, so *any* English
 // title renders forever. The CJK face is subset to the characters that actually

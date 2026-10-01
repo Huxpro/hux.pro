@@ -14,12 +14,12 @@ import path from "node:path";
 import remarkGfm from "remark-gfm";
 
 // =============================================================================
-// AboutCopy — the About's words, from content/about/<locale>.mdx.
+// AboutCopy: the About's words, from content/about/<locale>.mdx.
 //
 // A server component: the root layout renders both languages once, at build
 // time, and hands them to the client surface, which shows the reader's. The
-// copy is MDX so a line can carry a <MagicLink> or a <Badge> — the same component a post can
-// use — and so editing it is editing a file, not a component.
+// copy is MDX so a line can carry a <MagicLink> or a <Badge> (the same component a post can
+// use), and so editing it is editing a file, not a component.
 //
 // Not exported from the system's index: it reads the file system, and the
 // index is imported by client code.
@@ -29,9 +29,9 @@ const components: MDXComponents = {
   h1: ({ className, ...props }) => (
     <h1
       className={cn(
-        // On a phone the greeting is set at the words' own size — one voice,
-        // the serif marking it — so the screen goes to what is said; a desk
-        // has the room for it to stand as a title. On a phone the language
+        // On a phone the greeting is set at the words' own size, in one
+        // voice with only the serif marking it, so the screen goes to what is
+        // said. A desk has the room for it to stand as a title. On a phone the language
         // switch sits at the words' top-right corner (about-surface.tsx);
         // `pe-24` keeps the greeting clear of it.
         "font-serif pe-24 sm:pe-0 text-[1em] leading-[inherit] text-foreground sm:text-[2rem] sm:leading-tight sm:tracking-tight",
@@ -44,7 +44,7 @@ const components: MDXComponents = {
   // a magic link wherever it points at something the site knows.
   a: (props) => <ServerProseLink className="prose-link" {...props} />,
   strong: (props) => <strong className="font-medium text-foreground" {...props} />,
-  // *interface* — the one word the words are about.
+  // *interface*: the one word the words are about.
   // Every keyword summons something (components/magic-link): a badge names
   // a thing I made and wears its icon; a magic link is the word alone. Both
   // peek under the pointer and open the drawer on a phone.
