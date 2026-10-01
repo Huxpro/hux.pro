@@ -13,6 +13,7 @@ import type { Locale } from "@/lib/i18n";
 import {
   type Commit,
   type Identity,
+  isSuppressedRow,
   localize,
   resolveIdentity,
 } from "@/lib/log";
@@ -71,7 +72,9 @@ export function computeBylines(
       continue;
     }
     const isClusterHead = resolved.identityId !== prevIdentityId;
-    prevIdentityId = resolved.identityId;
+    // A role that never takes a row can't be the head the reader sees —
+    // it sorts first in its tenure, and would leave the run unsigned.
+    if (!isSuppressedRow(c)) prevIdentityId = resolved.identityId;
 
     // Prefer role-instance details when we have a specific role (title /
     // dates / description differ per intern vs FTE etc.). Fall back to

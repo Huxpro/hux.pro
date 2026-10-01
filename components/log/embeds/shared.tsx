@@ -118,8 +118,8 @@ interface AuthorFieldsProps {
    * series and read as a stumble. /works is already the page, so it passes
    * `onSelect` and the field makes this row the address in place.
    *
-   * On /works it also carries `className: "@sm:hidden"`: the gutter hash
-   * column is `hidden @sm:inline`, so below that width the row has no
+   * On /works it also carries `className: "lg:hidden"`: the gutter hash
+   * column is `hidden lg:inline`, so below that width the row has no
    * permalink at all, and above it two would be a duplicate.
    */
   commit?: {
