@@ -63,11 +63,15 @@ import {
   type MediaMarkSpec,
 } from "./media-mark";
 
-type AttachmentTileSize = "covers" | "cell";
+export type AttachmentTileSize = "covers" | "cell" | "small";
 
 const TILE_SIZE: Record<AttachmentTileSize, string> = {
   covers: "h-28",
   cell: "w-full",
+  // The covers after a leading one (the `layout: media-first` flag, see
+  // TimelineCommit): the picture has been shown big; these say there is
+  // more of it, and open it.
+  small: "h-16",
 };
 
 /** What a tile says under (or beside) itself, when the form prints it. */

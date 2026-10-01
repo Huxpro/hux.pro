@@ -19,9 +19,10 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
-import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
+import { DEFAULT_FORM, ROW_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
+import type { BodySize, DeckMode, RowLayout } from "./works-flags";
 import { CommitIcon } from "./icons";
 import { ProjectMark } from "./project-mark";
 import { QuietLine } from "./quiet-line";
@@ -64,6 +65,60 @@ import { TYPE } from "@/lib/typography";
  */
 export const HASH_CELL = "lg:w-14 lg:text-right";
 export const GUTTER_PULL = "lg:-ml-[6.5rem]";
+
+/**
+ * The gutter under the `margin-meta` layout: the hash gives its cell to the
+ * row's when and where, a column of its own in the margin — 11rem, where
+ * a venue like `React Advanced London` sits on one line. From `xl`, where
+ * the page's margin is wide enough to hold it:
+ *
+ *   meta 11rem + gap 0.5rem + icon 1.25rem + gap 0.5rem + padding 0.75rem = 14rem
+ *
+ * From `lg` to `xl` the margin holds the rail only (1.25 + 0.5 + 0.75), and
+ * the when and where are the eyebrow over the title.
+ */
+const MARGIN_PULL = "lg:-ml-[2.5rem] xl:-ml-[14rem]";
+
+/**
+ * The description's size under the `body` flag, over the rung the row sets
+ * it on (`TYPE.message`, muted; the ink is the row's whatever the size).
+ * `xs` is the message as it ships — 13px, the half step under a 14px
+ * heading — and adds nothing. `sm` is 14px on `relaxed` leading (≈23px),
+ * `TYPE.body`'s size and leading: the title's size, so the title heads it by
+ * weight alone — and it already does, since a title over a sentence is set
+ * in medium (`TYPE.rowHeading`) in every layout.
+ *
+ * The measure is left to the layout: `side` sets the description in the
+ * 336px beside its deck on a desk, ~55 characters at 13px (174px, ~26, on
+ * a phone); the column layouts in 632px, ~95 at 13px — long for prose,
+ * fine for a two-line abstract, which is all a clamped row reads it as.
+ */
+const BODY_SIZE: Record<BodySize, string | undefined> = {
+  xs: undefined,
+  sm: "text-sm leading-relaxed",
+};
+
+/**
+ * The layout a row is drawn in, given the flag and the page's form.
+ *
+ * A layout arranges a row that prints its description, so the index — the
+ * title line, nothing to arrange — is `main` whatever the flag says. The
+ * spatial layouts (`side`, `media-first`, `grid`) arrange the description
+ * around the *covers*; the feed prints its own grid of captioned tiles
+ * instead, so there they are `main`'s row. `margin-meta` moves the
+ * metadata, not the picture, and applies to the feed as it is.
+ */
+export function rowLayoutFor(layout: RowLayout, form: LogForm): RowLayout {
+  const base = ROW_FORM[form];
+  if (base.description === "none") return "main";
+  if (
+    base.media !== "covers" &&
+    (layout === "side" || layout === "media-first" || layout === "grid")
+  ) {
+    return "main";
+  }
+  return layout;
+}
 
 export interface BeamSpec {
   /** Source hash, or null for a target-only spec — the latter
@@ -135,6 +190,16 @@ interface TimelineCommitProps {
    */
   onSelectHash?: (hash: string) => void;
   /**
+   * The `layout` flag (components/log/works-flags.ts): how the row
+   * arranges its text and its picture. `main` is the row as it ships; see
+   * "The row's layout" below.
+   */
+  layout?: RowLayout;
+  /** The `body` flag: the description's size (`BODY_SIZE`). */
+  body?: BodySize;
+  /** The `deck` flag: how a deck opens up under a pointer (MediaStrip). */
+  deck?: DeckMode;
+  /**
    * The commit's attachments as one set (see systems/attachments). Every
    * media affordance on the row — a strip cover, an expanded player or
    * card — opens this set at its own item, so a phone gets the
@@ -167,6 +232,9 @@ export function TimelineCommit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  layout = "main",
+  body = "xs",
+  deck = "click",
   attachmentSet = null,
   inspecting = false,
   isSelected = false,
@@ -304,6 +372,88 @@ export function TimelineCommit({
     !isQuiet &&
     rowFormFor(form, false).description !== "none" &&
     !!data.description;
+  // Whether this row prints its sentence now — the form's, or the reader's
+  // press — which is what the message below reads.
+  const showsMessage =
+    !isQuiet && rowForm.description !== "none" && !!data.description;
+
+  // ── The row's layout (the `layout` flag) ────────────────────────────────
+  // As it ships a row is one column: the title line (the title, and at its
+  // right the venue and the date — an eyebrow over the title on a phone),
+  // the description, and a strip of covers under all of it. The layouts
+  // are other arrangements of the same parts — this renderer composing them
+  // in another order and another shape, never a second row. Every one of
+  // them keeps the row's one rule: nothing stands between a title and its
+  // sentence, and each fact has one place. What a layout decides is where
+  // the metadata block (venue, count, date) sits, and the picture's shape:
+  //
+  //  - `side`        the text on the left, the picture beside it on the
+  //    right at the size the strip prints it — the covers as one deck
+  //    (MediaStrip `deck`). The title line is main's, full measure, and the
+  //    deck hangs under the date (on a phone, under the eyebrow's date).
+  //    The description takes the lines the deck's height gives it, so the
+  //    row is as tall as the larger of the two.
+  //  - `media-first` the first cover leads, across the column (`wide`), then
+  //    main's row; the other covers are a small strip under it on a desk,
+  //    the hero's count on a phone.
+  //  - `margin-meta` the CV: when and where in a column of their own in the
+  //    margin, where the hash was, from `xl`; below it, the eyebrow over the
+  //    title at every width — never the title line's right. The title, the
+  //    description and the covers are the reading column, nothing else.
+  //  - `grid`        the chapter as a contact sheet (log-timeline lays the
+  //    rows out two up, a phone's too): a row with covers is a tile — the
+  //    deck, the eyebrow, the title, the description. No hash, no rail;
+  //    what has no picture (a role, an event, an aside) spans the sheet.
+  //
+  // (`ink-order` — title, description, then the venue as a byline — was
+  // the first of these; main's row now does what it set out to, with the
+  // venue on the title line instead, and it is retired: works-flags.ts.)
+  //
+  // A project wears its own mark (ProjectMark). As it ships, that is the
+  // 16px face in the gutter's node. The other layouts give the work a face
+  // at the size their picture is read at, and the gutter keeps only the
+  // rail's dot — the face is said once:
+  //
+  //  - `side`        a badge on the deck's corner, the way an app's icon
+  //    sits on its screenshots in a store card; with no covers, the icon
+  //    is the picture, a tile under the date.
+  //  - `media-first` a badge straddling the hero's bottom-left edge, the
+  //    line under it set beside it — a featured card; with no covers, the
+  //    icon leads.
+  //  - `margin-meta` the logo column of a CV: 40px in the margin, over the
+  //    date; below `xl`, at text size at the head of the eyebrow.
+  //  - `grid`        the tile's header, icon and title, as an app's tile;
+  //    with no covers, the icon on a plate where the cover would be.
+  //
+  // `rowLayoutFor` says where each applies: the index is always `main`.
+  const arrangement = rowLayoutFor(layout, form);
+  const marginMeta = arrangement === "margin-meta";
+  const tile = arrangement === "grid";
+  // The picture leaves the strip for a shape of its own: a deck beside the
+  // text (`side`) or on top of a tile (`grid`), one wide cover over the text
+  // (`media-first`).
+  const pictureShape: "deck" | "wide" | null = !showStrip
+    ? null
+    : arrangement === "side" || tile
+      ? "deck"
+      : arrangement === "media-first"
+        ? "wide"
+        : null;
+  // The project's face, where the layout sets it outside the gutter.
+  const face =
+    !isQuiet && data.mark && arrangement !== "main" ? data.mark : null;
+  // A tile is a row with a picture — or a project, whose face stands in for
+  // one; everything else in the sheet spans it.
+  const spansSheet = tile && pictureShape === null && !face;
+  const tileRow = tile && !spansSheet;
+  // Which column the text sits in: the row's grid is [hash | rail | text]
+  // as it ships, [meta | rail | text] under `margin-meta` (the meta column
+  // from `xl`), and a single column in the sheet.
+  const textCol = tile
+    ? "col-start-1"
+    : marginMeta
+      ? "col-start-2 xl:col-start-3"
+      : "col-start-2 lg:col-start-3";
   // Where the handle signs: the foot of the strip, when a single cover
   // leaves it the room — on any viewport. Two covers may already be the
   // width of a phone and the strip then scrolls under the edge, so a row
@@ -312,7 +462,18 @@ export function TimelineCommit({
   // author fields name it in full. There is no meta line for it to fall
   // back to any more — the venue sits on the title line, so nothing stands
   // between a title and its sentence.
-  const signsOnMediaLine = showStrip && data.stripItems.length === 1;
+  //
+  // The layouts keep the rule where they keep a single cover: `main`'s strip
+  // (and `margin-meta`'s, which is main's — but from `xl` the margin signs
+  // instead), and `side`'s deck of one, under it. A hero (`media-first`)
+  // has the title line at its foot, and a tile's foot is its sentence, so
+  // those sign nowhere while folded, as main's rows with more than one
+  // cover do.
+  const singleCover = showStrip && data.stripItems.length === 1;
+  const signsOnMediaLine =
+    (arrangement === "main" || marginMeta) && singleCover;
+  const signsUnderDeck =
+    arrangement === "side" && pictureShape === "deck" && singleCover;
 
   // The venue on the title line: where a talk was given, where a piece of
   // press ran, where a project was built (the byline's team, printed
@@ -367,6 +528,15 @@ export function TimelineCommit({
   // What the date slot prints: the date, or a role's location under a
   // chapter that hides dates. Read by the title line and the eyebrow alike.
   const dateText = hideDate ? data.dateSlotOverride : data.date;
+  // Where the metadata block sits (the layout's choice, see above): main's
+  // — the title line's right from `@md`, the eyebrow below it — or in the
+  // margin (`margin-meta`: the eyebrow below `xl`), or always the eyebrow
+  // (a tile, a phone-width card at every width).
+  const metaAt: "main" | "margin" | "eyebrow" = tileRow
+    ? "eyebrow"
+    : marginMeta
+      ? "margin"
+      : "main";
 
   // A hover panel repeating, on top of the row, what the row now prints
   // inside itself is the one thing a strip makes redundant — and the feed
@@ -396,6 +566,10 @@ export function TimelineCommit({
   const showAuthorBlock = data.type !== "role" && data.type !== "event";
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // The row's own key, not a bubbled one: Enter on a cover inside it
+      // (a strip's, a deck's) is that cover's, and opens it — this would
+      // otherwise swallow the link's activation and fold the row instead.
+      if (e.target !== e.currentTarget) return;
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         e.currentTarget.click();
@@ -469,8 +643,11 @@ export function TimelineCommit({
   //
   // A project wears its own mark (ProjectMark): 16px, filled to its edge,
   // so the rail stops where it stops for the role's 16px ring.
-  const wearsMark = !isQuiet && !!data.mark;
-  const iconGapPx = isQuiet ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
+  //
+  // Where a layout sets the face elsewhere (`face`), the gutter keeps the
+  // rail's dot, as a quiet row's.
+  const wearsMark = !isQuiet && !face && !!data.mark;
+  const iconGapPx = isQuiet || face ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
   // A node moved onto the side lane pushes the hash left, the way a
   // `git log --graph` row makes room for its graph (see timeline-lane.tsx).
   const onSide = graph?.side === "node";
@@ -478,47 +655,320 @@ export function TimelineCommit({
     ? { transform: `translateX(-${HASH_NUDGE}px)` }
     : undefined;
 
-  const rowContent = (
-    <div className="grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
-      {/*
-        The eyebrow — below `@md` only. Placed first, in the content
-        column: grid auto-placement then starts the hash, the mark and the
-        title on the next row, so the mark sits on the title's line, not
-        the eyebrow's. From `@md` it is not rendered and the title line is
-        the first row again. Quiet rows keep their date on the line.
-      */}
-      {!isQuiet && (
-        <p
-          className={cn(
-            // `items-start`, not `items-baseline`: every cell is one 16px
-            // line box, so their tops are their baselines — and the 📎
-            // count, whose icon has no baseline of its own, cannot move the
-            // venue when an open row takes it away. `mb-1.5`: a kicker
-            // set a step off its headline, not touching it.
-            "col-start-2 lg:col-start-3 @md:hidden mb-1.5 flex items-start gap-2 leading-4",
-            TYPE.rowMeta,
-          )}
-        >
-          {/* The venue on the left, the count and the date packed to the
-              right edge — the same right the title line keeps on a desk,
-              so the date sits in the column a reader scans down. */}
-          <span className="min-w-0 flex-1">{venueInline}</span>
-          <span className="ml-auto flex shrink-0 items-start gap-2">
-            {attachmentCount > 0 && (
-              <span
-                className="inline-flex h-4 items-center gap-1"
-                aria-label={
-                  attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
-                }
-              >
-                <Paperclip aria-hidden className="h-3 w-3" />
-                {attachmentCount}
-              </span>
-            )}
-            {dateText && <span>{dateText}</span>}
-          </span>
-        </p>
+  // ── The parts ──────────────────────────────────────────────────────────
+  // Built once and composed below in the order and shape the row's layout
+  // puts them in (`arrangement`). With `layout: main` they compose into the
+  // row as it ships, element for element.
+
+  // The date as the row's address where it has taken the hash's place (the
+  // margin, the eyebrow of a row with no hash): pressing it puts `#<hash>`
+  // in the URL bar, as the hash does.
+  const dateLink =
+    onSelectHash && !isQuiet ? (
+      <a
+        href={`#${data.hash}`}
+        onClick={(e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+          e.preventDefault();
+          e.stopPropagation();
+          onSelectHash(data.hash);
+        }}
+        aria-label={`Link to commit ${data.hash}`}
+        className="transition-colors hover:text-foreground"
+      >
+        {dateText}
+      </a>
+    ) : (
+      dateText
+    );
+
+  // The face as a tile: the mark filling a rounded square, a hairline over
+  // it so a white plate keeps its edge on a light page. The caller's font
+  // size is its size (ProjectMark insets in `em`).
+  const faceTile = (className: string) =>
+    face && (
+      <span
+        aria-hidden
+        className={cn("relative block shrink-0 overflow-hidden rounded-[0.22em] size-[1em]", className)}
+      >
+        <ProjectMark icon={face} className="size-full" />
+        <span className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-border" />
+      </span>
+    );
+
+  const paperclip = attachmentCount > 0 && (
+    <span
+      className="inline-flex h-4 items-center gap-1"
+      aria-label={
+        attachmentCount === 1 ? "1 attachment" : `${attachmentCount} attachments`
+      }
+    >
+      <Paperclip aria-hidden className="h-3 w-3" />
+      {attachmentCount}
+    </span>
+  );
+
+  // The badge a project's face wears on its picture, where the layout says
+  // so: on the deck's corner (`side`), straddling the hero's bottom-left
+  // edge (`media-first`).
+  const badge =
+    face && arrangement === "side"
+      ? faceTile(
+          // Top-left: the cover's own chips hold the other corners (its
+          // kind bottom-left, the count top-right, the pile bottom-right).
+          "absolute -top-1.5 -left-1.5 text-[22px] @lg:text-[40px] @lg:-top-2 @lg:-left-2.5 shadow-sm ring-2 ring-background",
+        )
+      : face && arrangement === "media-first"
+        ? faceTile(
+            "absolute bottom-[-1.125rem] left-3 text-[36px] @lg:text-[44px] @lg:bottom-[-1.375rem] shadow-sm ring-[3px] ring-background",
+          )
+        : null;
+  // The line under a hero whose badge straddles its edge sits beside the
+  // badge: the eyebrow below `@md`, the title line from it.
+  const besideBadge = pictureShape === "wide" && !!badge;
+
+  /*
+    The eyebrow — the metadata block over the title. Where it shows is the
+    layout's (`metaAt`): below `@md` as it ships; below `xl` under
+    `margin-meta`, whose margin holds it from there; at every width on a
+    tile. It is placed first among the row's text, in the content column:
+    grid auto-placement then starts the hash, the mark and the title on the
+    next row, so the mark sits on the title's line, not the eyebrow's.
+    Quiet rows keep their date on the line.
+  */
+  const eyebrow = !isQuiet && (
+    <p
+      className={cn(
+        `${textCol} ${
+          metaAt === "main" ? "@md:hidden" : metaAt === "margin" ? "xl:hidden" : ""
+        } mb-1.5 flex items-start gap-2 leading-4`,
+        besideBadge && "pl-[3.5rem]",
+        TYPE.rowMeta,
       )}
+    >
+      {/* `margin-meta` leads with the face, where the margin's would be. */}
+      {metaAt === "margin" && face && (
+        <span className="mr-0.5 inline-block self-center">
+          {faceTile("text-[16px]")}
+        </span>
+      )}
+      {/* `items-start`, not `items-baseline`: every cell is one 16px
+          line box, so their tops are their baselines — and the 📎
+          count, whose icon has no baseline of its own, cannot move the
+          venue when an open row takes it away. `mb-1.5`: a kicker set a
+          step off its headline, not touching it.
+
+          The venue on the left, the count and the date packed to the
+          right edge — the same right the title line keeps on a desk,
+          so the date sits in the column a reader scans down. A tile, two
+          up on a phone, keeps the venue to one line, and drops it where
+          it would be an ellipsis after the year. */}
+      <span
+        className={
+          metaAt === "eyebrow"
+            ? "hidden @2xs:block min-w-0 flex-1 truncate"
+            : "min-w-0 flex-1"
+        }
+      >
+        {venueInline}
+      </span>
+      <span className="ml-auto flex shrink-0 items-start gap-2">
+        {paperclip}
+        {dateText && <span>{metaAt === "main" ? dateText : dateLink}</span>}
+      </span>
+    </p>
+  );
+
+  // `margin-meta` from `xl`: the row's when and where in a column in the
+  // margin — the face, the date, the venue under it, the handle under that,
+  // set to the rail like the hash was; the margin has the room, so the
+  // handles of a run fade in on hover there as they do at a strip's foot.
+  //
+  // The cell stands where the hash does, so a node moved onto the side lane
+  // nudges it left as it nudges the hash (`hashNudge`): the lane runs in the
+  // gap between the margin and the node, and the margin keeps clear of it.
+  const marginCell = marginMeta && (
+    <div
+      style={hashNudge}
+      className={cn(
+        // It spans the row's text rows, so its lines sit beside the title
+        // and the description rather than holding the title's row open
+        // until they end.
+        "hidden xl:flex xl:w-44 xl:row-span-6 min-w-0 flex-col items-end gap-0.5 text-right",
+        TYPE.rowMeta,
+        isQuiet ? "leading-4" : "leading-5",
+      )}
+    >
+      {faceTile("text-[40px] mb-1.5")}
+      <span className={isQuiet ? undefined : "text-muted-foreground"}>
+        {dateLink}
+      </span>
+      {!isQuiet && venueInline && <span className="leading-4">{venueInline}</span>}
+      {!isQuiet && byline && !textOpen && (
+        <Handle byline={byline} className="leading-4 text-tertiary-foreground" />
+      )}
+    </div>
+  );
+
+  // Pinned items: rendered once here whether the row is folded or
+  // expanded, so toggling never remounts them.
+  const pinned = !isQuiet && pinnedMedia.length > 0 && (
+    <div
+      className={cn(textCol, "mt-2")}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <MediaRenderer
+        media={pinnedMedia}
+        layout="stack"
+        size="default"
+        inspecting={inspecting}
+        onInspect={onInspectMedia}
+        selectedMedia={selectedMedia}
+        set={attachmentSet}
+      />
+    </div>
+  );
+
+  /* ── The message ────────────────────────────────────────────────
+     The prose, at whatever density this row is at: the form's, or its
+     opposite once the reader pressed it. One element either way — it
+     used to be printed twice, clamped in the folded block and whole in
+     the expanded body, which is why pressing the text had to swap
+     layouts and take the picture with it.
+
+     Deliberately NOT `data-row-body`: this is the press target. The
+     text is what the row's own control acts on, so it has to stay part
+     of the trigger at both densities.
+
+     `TYPE.message` in every layout. Beside a deck (`side`) it takes the
+     lines the deck's height gives it — five, where the two a column row
+     gets would leave the picture beside empty paper. The `body` flag sets
+     its size in every layout (`BODY_SIZE`). */
+  const besideDeck = arrangement === "side" && (pictureShape === "deck" || !!face);
+  const message = showsMessage && (
+    <div className={cn(textCol, "mt-1.5 min-w-0")}>
+      <Description
+        text={data.description!}
+        isExpanded={rowForm.description === "full"}
+        className={
+          BODY_SIZE[body] || besideDeck
+            ? cn(
+                BODY_SIZE[body],
+                besideDeck && rowForm.description === "clamp" && "line-clamp-3 @lg:line-clamp-5",
+              )
+            : undefined
+        }
+      />
+    </div>
+  );
+
+  // The picture in its own shape (see `pictureShape`): the strip's covers,
+  // drawn by the strip — the same tiles, the same door into the
+  // attachments, the same peek.
+  const picture = pictureShape && (
+    <MediaStrip
+      items={pictureShape === "wide" ? data.stripItems.slice(0, 1) : data.stripItems}
+      shape={pictureShape}
+      set={attachmentSet}
+      peek={rowForm.peek && magneticPreviewEnabled}
+      inspecting={inspecting}
+      onInspect={onInspectMedia}
+      selectedMedia={selectedMedia}
+      badge={badge}
+      mode={deck}
+      fanTo={tile ? "down" : "left"}
+      // The hero counts what it leads on a phone, where the covers after it
+      // are not printed (the sheet pages through them); on a desk they are.
+      total={pictureShape === "wide" ? data.stripItems.length : undefined}
+      countClassName={pictureShape === "wide" ? "@lg:hidden" : undefined}
+      className={
+        pictureShape === "wide"
+          ? cn(textCol, badge ? "mb-2" : "mb-3")
+          : tile
+            ? cn(textCol, "mb-2.5")
+            : // Beside the text at every width: 272px on a desk, where it is
+              // the strip's cover size; 128px in a phone's column, where the
+              // text keeps ~190px, three lines of description.
+              "w-32 @lg:w-[17rem]"
+      }
+    />
+  );
+  // No covers, but a face: the face is the picture. Under the date as the
+  // deck would be (`side`), leading the row as the hero would (`media-first`),
+  // on a plate the tile's cover would fill (`grid`).
+  const facePicture =
+    !pictureShape && face
+      ? arrangement === "side"
+        ? faceTile("mt-1 text-[48px] @lg:text-[72px]")
+        : arrangement === "media-first"
+          ? <div className={cn(textCol, "mb-3")}>{faceTile("text-[56px]")}</div>
+          : tile
+            ? (
+                <div
+                  className={cn(
+                    textCol,
+                    "mb-2.5 grid aspect-[2/1] place-items-center rounded-md border border-border/50 bg-muted/40",
+                  )}
+                >
+                  {faceTile("text-[40px] @2xs:text-[56px]")}
+                </div>
+              )
+            : null
+      : null;
+
+  // `covers` — the contact strip (`main`, `margin-meta`).
+  const strip = !pictureShape && showStrip && (
+    <div className={cn(textCol, "mt-1.5 min-w-0")}>
+      {/* The covers get a line of their own, always. One cover used to
+          tuck up beside the text and two or more dropped below it, so a
+          row changed shape with its cargo — and a column of twenty-five
+          of them changed shape twenty-five times. */}
+      <div className="flex items-end justify-between gap-4">
+        <MediaStrip
+          items={data.stripItems}
+          set={attachmentSet}
+          peek={rowForm.peek && magneticPreviewEnabled}
+          className="min-w-0"
+          inspecting={inspecting}
+          onInspect={onInspectMedia}
+          selectedMedia={selectedMedia}
+        />
+
+        {/* And the room the covers leave takes the letterhead — where a
+            letterhead goes, and a better use of the space than nothing.
+            The meta line gives it up while this line exists, so the
+            handle is still printed exactly once (`signsOnMediaLine`).
+            Under `margin-meta` the margin signs from `xl`. */}
+        {signsOnMediaLine &&
+          (marginMeta ? (
+            <span className="xl:hidden">
+              <Handle byline={byline} className={TYPE.rowMeta} />
+            </span>
+          ) : (
+            <Handle byline={byline} className={TYPE.rowMeta} />
+          ))}
+      </div>
+    </div>
+  );
+
+  const rowContent = (
+    <div
+      className={
+        tile
+          ? "grid grid-cols-1 items-start"
+          : marginMeta
+            ? "grid grid-cols-[auto_1fr] xl:grid-cols-[auto_auto_1fr] gap-x-2 items-start"
+            : "grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start"
+      }
+    >
+      {/* A picture that leads its row comes first in the grid, over the
+          eyebrow and the title line — the hash and the rail's node then sit
+          with the title, on a later grid row, and the rail runs on past the
+          picture. */}
+      {(pictureShape === "wide" || tile) && picture}
+      {(arrangement === "media-first" || tile) && facePicture}
+      {eyebrow}
+      {marginCell}
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked
@@ -537,8 +987,11 @@ export function TimelineCommit({
         left edge, in line with the era markers and every other page's prose.
         A git log prints the graph and the hash before the subject too; what
         it never did was push the subject off the margin to make room.
+
+        `margin-meta` gives the hash's cell to the margin column, and the
+        sheet has none: there the date is the address (`dateLink`).
       */}
-      {isQuiet || !onSelectHash ? (
+      {tile || marginMeta ? null : isQuiet || !onSelectHash ? (
         <span
           className={cn(
             "hidden lg:inline-block select-all",
@@ -572,6 +1025,7 @@ export function TimelineCommit({
         </a>
       )}
 
+      {tile ? null : (
       <span
         // data-rail-icon marks the row's cell on the graph: the rail, the
         // chapter lanes and their lit paths are all drawn inside it
@@ -602,13 +1056,14 @@ export function TimelineCommit({
           className="inline-flex items-center justify-center"
           style={onSide ? { transform: `translateX(-${LANE}px)` } : undefined}
         >
-        {isQuiet ? (
+        {isQuiet || face ? (
           // A row in the quiet voice gets a tiny CSS dot, quieter than any
           // lucide icon and reading as "node on the rail" rather than
           // "category icon". That is every event, and an aside while it is
           // folded — the same `isQuiet` the title and the container height
           // already read, so the three cannot disagree about which voice
-          // the row is in.
+          // the row is in. (And a project whose layout sets its face
+          // elsewhere: the face is said once.)
           //
           // Opening an aside gives the icon back: the row is printing its
           // real title and its media by then, and the gutter saying `talk`
@@ -664,8 +1119,22 @@ export function TimelineCommit({
         )}
         </span>
       </span>
+      )}
 
-      <div className="flex items-center gap-2 min-w-0">
+      <div
+        className={
+          // Placed by hand in the layouts whose grid differs from main's.
+          marginMeta || tile
+            ? cn(textCol, "flex items-center gap-2 min-w-0", tile && "gap-2.5")
+            : besideBadge
+              ? // From `@md`, beside the badge that straddles the hero's edge.
+                "flex items-center gap-2 min-w-0 @md:pl-[3.5rem] @lg:pl-[4rem]"
+              : "flex items-center gap-2 min-w-0"
+        }
+      >
+        {/* The tile's header: the face beside the title, as an app's tile —
+            unless the face is already the picture. */}
+        {tileRow && !facePicture && faceTile("text-[28px] @2xs:text-[36px]")}
         {isQuiet ? (
           // Events and folded asides drop a tier — in size and face, not
           // to the tertiary rung: a life event is the row's whole content,
@@ -680,6 +1149,7 @@ export function TimelineCommit({
             className={cn(
               "min-w-0 flex-1",
               printsMessage ? TYPE.rowHeading : TYPE.rowTitle,
+              tileRow && "line-clamp-2",
             )}
           >
             {displayTitle}
@@ -697,11 +1167,14 @@ export function TimelineCommit({
             leaves the venue and the date exactly where they were; the
             venue yields first, the count and the date never do. Below
             `@md` an ordinary row prints this as the eyebrow instead; a
-            quiet row has only its date, and keeps it here. */}
+            quiet row has only its date, and keeps it here. A layout that
+            sets the block elsewhere (`metaAt`) leaves a quiet row's date
+            here, and under `margin-meta` only until the margin takes it. */}
+        {(metaAt === "main" || isQuiet) && (
         <span
           className={cn(
             "ml-auto min-w-0 max-w-[55%] shrink items-center justify-end gap-2",
-            isQuiet ? "flex" : "hidden @md:flex",
+            isQuiet ? (metaAt === "margin" ? "flex xl:hidden" : "flex") : "hidden @md:flex",
           )}
         >
           {attachmentCount > 0 && (
@@ -741,42 +1214,56 @@ export function TimelineCommit({
             </span>
           )}
         </span>
+        )}
       </div>
 
-      {/* Pinned items: rendered once here whether the row is folded or
-          expanded, so toggling never remounts them. */}
-      {!isQuiet && pinnedMedia.length > 0 && (
-        <div
-          className="col-start-2 lg:col-start-3 mt-2"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MediaRenderer
-            media={pinnedMedia}
-            layout="stack"
-            size="default"
+      {/* The parts under the title line, in the layout's order. */}
+      {tileRow ? (
+        <>
+          {message}
+          {pinned}
+        </>
+      ) : besideDeck ? (
+        // The text and its picture side by side at every width, the picture
+        // under the date — and under a deck of one, the handle, at the
+        // cover's foot as the strip's single cover has it.
+        <div className={cn(textCol, "flex min-w-0 items-start gap-3 @lg:gap-6")}>
+          <div className="min-w-0 flex-1">
+            {pinned}
+            {message}
+          </div>
+          {picture ? (
+            <div className="mt-1 flex shrink-0 flex-col items-end gap-1.5">
+              {picture}
+              {signsUnderDeck && (
+                <Handle byline={byline} className={TYPE.rowMeta} />
+              )}
+            </div>
+          ) : (
+            facePicture
+          )}
+        </div>
+      ) : (
+        <>
+          {pinned}
+          {message}
+        </>
+      )}
+
+      {/* `media-first`: the covers after the first, small, under the text. */}
+      {pictureShape === "wide" && data.stripItems.length > 1 && (
+        // On a desk only: in a phone's column every cover opens the same
+        // sheet, which pages through them all, so the hero's count says it.
+        <div className={cn(textCol, "mt-2 min-w-0 hidden @lg:block")}>
+          <MediaStrip
+            items={data.stripItems.slice(1)}
+            size="small"
+            set={attachmentSet}
+            peek={rowForm.peek && magneticPreviewEnabled}
+            className="min-w-0"
             inspecting={inspecting}
             onInspect={onInspectMedia}
             selectedMedia={selectedMedia}
-            set={attachmentSet}
-          />
-        </div>
-      )}
-
-      {/* ── The message ────────────────────────────────────────────────
-          The prose, at whatever density this row is at: the form's, or its
-          opposite once the reader pressed it. One element either way — it
-          used to be printed twice, clamped in the folded block and whole in
-          the expanded body, which is why pressing the text had to swap
-          layouts and take the picture with it.
-
-          Deliberately NOT `data-row-body`: this is the press target. The
-          text is what the row's own control acts on, so it has to stay part
-          of the trigger at both densities. */}
-      {!isQuiet && rowForm.description !== "none" && !!data.description && (
-        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
-          <Description
-            text={data.description}
-            isExpanded={rowForm.description === "full"}
           />
         </div>
       )}
@@ -786,37 +1273,12 @@ export function TimelineCommit({
           exactly where it was, which is what lets the press survive inside
           the feed: it can no longer be mistaken for opening a caption.
 
-          `covers` — the contact strip. No handler on this cell: the strip is
-          sized to its covers and stops its own clicks, so the line it sits
-          on stays the row's; the empty stretch beside a single cover presses
-          the row like any other part of it. */}
-      {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
-        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
-          {/* The covers get a line of their own, always. One cover used to
-              tuck up beside the text and two or more dropped below it, so a
-              row changed shape with its cargo — and a column of twenty-five
-              of them changed shape twenty-five times. */}
-          <div className="flex items-end justify-between gap-4">
-            <MediaStrip
-              items={data.stripItems}
-              set={attachmentSet}
-              peek={rowForm.peek && magneticPreviewEnabled}
-              className="min-w-0"
-              inspecting={inspecting}
-              onInspect={onInspectMedia}
-              selectedMedia={selectedMedia}
-            />
-
-            {/* And the room the covers leave takes the letterhead — where a
-                letterhead goes, and a better use of the space than nothing.
-                The meta line gives it up while this line exists, so the
-                handle is still printed exactly once (`signsOnMediaLine`). */}
-            {signsOnMediaLine && (
-              <Handle byline={byline} className={TYPE.rowMeta} />
-            )}
-          </div>
-        </div>
-      )}
+          `covers` — the contact strip (`strip`, above), unless the layout
+          gave the picture a shape of its own. No handler on this cell: the
+          strip is sized to its covers and stops its own clicks, so the line
+          it sits on stays the row's; the empty stretch beside a single
+          cover presses the row like any other part of it. */}
+      {strip}
 
       {/* `grid` — the feed's object: half-column tiles on a desk, the
           edge-to-edge stack on a phone, captions written out, and every
@@ -826,7 +1288,7 @@ export function TimelineCommit({
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
-          className="col-start-2 lg:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
+          className={cn(textCol, "mt-2 min-w-0 space-y-4 cursor-default")}
         >
           <AttachmentGrid
             items={data.stripItems}
@@ -864,7 +1326,7 @@ export function TimelineCommit({
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
-          className="col-start-2 lg:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
+          className={cn(textCol, "mt-1.5 min-w-0 space-y-1.5 cursor-default")}
         >
           {data.commentary && <Commentary text={data.commentary} />}
 
@@ -908,7 +1370,8 @@ export function TimelineCommit({
       id={data.hash}
       data-rail-row
       data-role-row={isRoleAnchor ? "" : undefined}
-      className={className}
+      // In the sheet, what is not a tile spans it.
+      className={spansSheet ? cn(className, "col-span-full") : className}
     >
       <MagneticPreview
         preview={cursorPreview}
@@ -952,10 +1415,22 @@ export function TimelineCommit({
             // gutter's width so the content column is the page column. The
             // hover wash follows, which is right — the hash and the rail are
             // the row's, not the margin's.
-            GUTTER_PULL,
+            // `margin-meta` hangs a wider gutter; the sheet has none.
+            marginMeta ? MARGIN_PULL : tile ? undefined : GUTTER_PULL,
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
             isQuiet ? "py-1" : "py-2.5",
+            // A row led by its picture opens with a breath above it, so the
+            // picture reads as the head of its row and not the foot of the
+            // one before.
+            pictureShape === "wide" && "pt-6",
+            // Tiles sit closer than rows: a narrower wash, so two up on a
+            // phone the washes of neighbours do not meet.
+            tile && "-mx-1.5 px-1.5",
+            // A tile has no rail to clip, and a deck fanned down (`deck:
+            // fan`) crosses its foot: no clip, and above the tiles after it
+            // while it is being read.
+            tile && deck === "fan" && "[clip-path:none] hover:z-20 has-[:focus-visible]:z-20",
             rowOnClick ? "pressable cursor-pointer" : "cursor-default",
             "@container",
             // Hover/active highlight is tied to the fold/unfold trigger
