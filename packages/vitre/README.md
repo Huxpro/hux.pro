@@ -258,8 +258,13 @@ a simulated iPhone running the demo beside the article, in the site's frame.
   shows what Vitre resolved, wrote to `<html>` and set as `theme-color`.
   Settings are saved and the boot script paints the next load from them, so
   Safari's real chrome can be tested. A phone opens it full screen; anything
-  wider is sent to `/lab/vitre`, where it runs framed (`?frame`) in the drawn
-  phone and each section drives it over `postMessage`.
+  else is sent to `/lab/vitre` (by the server, from the user agent, and by the
+  page itself on a wide screen), where it runs framed (`?frame`) in the drawn
+  phone, in the site's light or dark, and each section drives it over
+  `postMessage`. Its canonical page is the lab.
+- **In `pnpm dev`** the demo is built before Next starts whenever it is
+  missing or older than its sources (`scripts/vitre-demo.mjs`); it has no hot
+  reload inside the site, so rebuild it with `pnpm vitre:site:build`.
 - **The documentation's content** stays here, in `site/src/docs`: the sections
   (`sections.tsx`) and the API reference (`api.ts`), bilingual. Every export and
   prop is documented, and the reference is type-checked against `vitre.d.ts`,

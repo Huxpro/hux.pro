@@ -37,8 +37,11 @@ export const PHONE = { width: 402, height: 874, status: 62 };
 const TOOLBAR = { expanded: 86, collapsed: 40 };
 /** Scroll distance, px, before the simulated toolbar changes state. */
 const TOOLBAR_THRESHOLD = 8;
-/** Where the demo build is served (next.config.ts rewrites /vitre). */
-export const DEMO_URL = "/vitre/";
+/**
+ * The demo build's page. Its file, not /vitre: that address sends anything
+ * but a phone here (next.config.ts), and this one is never redirected.
+ */
+export const DEMO_URL = "/vitre/index.html";
 
 function luminance(color: string | null): number {
   const m = color?.match(/^#([0-9a-f]{6})$/i);
@@ -79,18 +82,25 @@ export interface PhoneBridge {
 }
 
 /**
- * The phone's side of the page: loads the demo, keeps its language with the
- * site's, runs the active section's scenario, and hands back its reports.
- * `enabled` is false where there is no phone on screen (a phone is the
- * device there): nothing loads and nothing is sent.
+ * The phone's side of the page: loads the demo, keeps its language and its
+ * light or dark with the site's (the demo's "system" is the page around it),
+ * runs the active section's scenario, and hands back its reports. `enabled`
+ * is false where there is no phone on screen (a phone is the device there):
+ * nothing loads and nothing is sent.
  */
-export function usePhoneBridge(active: SectionId, locale: Locale, enabled: boolean): PhoneBridge {
+export function usePhoneBridge(
+  active: SectionId,
+  locale: Locale,
+  theme: "light" | "dark",
+  enabled: boolean,
+): PhoneBridge {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [ready, setReady] = useState(false);
   const [report, setReport] = useState<PhoneReport | null>(null);
   const [collapsed, onPhoneScroll] = useSimulatedToolbar();
-  // The phone's first language comes from its URL; later changes by message.
-  const [src] = useState(() => `${DEMO_URL}index.html?frame=1&lang=${locale}`);
+  // The phone's first language and theme come from its URL, so its first
+  // frame is right; later changes come by message.
+  const [src] = useState(() => `${DEMO_URL}?frame=1&lang=${locale}&theme=${theme}`);
 
   const send = useCallback((message: ToPhone) => {
     frameRef.current?.contentWindow?.postMessage(message, location.origin);
@@ -123,6 +133,9 @@ export function usePhoneBridge(active: SectionId, locale: Locale, enabled: boole
   useEffect(() => {
     if (ready) send({ type: "vitre-demo:lang", lang: locale });
   }, [ready, locale, send]);
+  useEffect(() => {
+    if (ready) send({ type: "vitre-demo:theme", theme });
+  }, [ready, theme, send]);
 
   // The active section's scenario, in the phone.
   useEffect(() => {

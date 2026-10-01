@@ -13,6 +13,7 @@ const en = {
     "On a phone the demo needs no simulator: open it full screen and Safari's own toolbar and status bar take its colours. Each card there runs one feature.",
   phoneOpen: "Open the demo",
   live: "In the phone",
+  onIphone: "Open this page on an iPhone to use the demo with Safari's real chrome.",
 };
 
 const zh: typeof en = {
@@ -24,6 +25,7 @@ const zh: typeof en = {
     "在手机上，演示不需要模拟器：全屏打开它，Safari 自己的工具栏和状态栏就会用上它的颜色。里面的每张卡片演示一个功能。",
   phoneOpen: "打开演示",
   live: "手机里",
+  onIphone: "用 iPhone 打开这页，就能在真的 Safari 里试这个 demo。",
 };
 
 export const VITRE_STRINGS: LabTable<typeof en> = { en, zh };

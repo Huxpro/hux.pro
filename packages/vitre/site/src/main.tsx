@@ -12,8 +12,10 @@ import "./styles.css";
 // The documentation lives on hux.pro, as a lab (/lab/vitre): the article, the
 // simulated phone that runs this page, and the site's own frame around both.
 // Its content is still the package's — src/docs here, where api.ts fails the
-// type check for an undocumented export. Anything wider than a phone is sent
-// there. `vite dev` has no hux.pro to send it to, so it gets the demo.
+// type check for an undocumented export. hux.pro's server sends anything but a
+// phone there from /vitre; this sends a wide screen that reached the page
+// anyway (an iPad, or /vitre/index.html). `vite dev` has no hux.pro to send it
+// to, so it gets the demo.
 const DOCS = "/lab/vitre";
 
 if (!isDemoPage() && import.meta.env.PROD) {

@@ -146,6 +146,8 @@ simulator are `app/lab/vitre`, the content is the package's
 (`packages/vitre/site/src/docs`). A new export or prop fails the type check
 until it is documented there. The demo the simulator runs is
 `packages/vitre/site` (`pnpm vitre:site`; built into `public/vitre` and served
-at `/vitre`, `/bezel` redirecting there) — a phone opens it full screen, a wider
-screen is sent to the lab.
+at `/vitre`, `/bezel` redirecting there; `pnpm dev` builds it when stale) — a
+phone opens it full screen, anything else is redirected to the lab (by user
+agent in next.config.ts, and by width in the page). The simulator frames
+`/vitre/index.html`, which is never redirected.
 

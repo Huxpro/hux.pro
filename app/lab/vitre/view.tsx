@@ -32,7 +32,7 @@ import { formatValue } from "@/packages/vitre/site/src/devtool/controls";
 import { LangProvider, useT } from "@/packages/vitre/site/src/i18n";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
-import { useLocale } from "@/services";
+import { useLocale, useTheme } from "@/services";
 import { ArrowUpRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { DEMO_URL, PHONE, Phone, usePhoneBridge, type PhoneBridge } from "./simulator";
@@ -66,10 +66,11 @@ export function VitreLabView() {
 
 function VitreDocs() {
   const { locale } = useLocale();
+  const { theme } = useTheme();
   const S = useLabStrings(VITRE_STRINGS);
   const wide = useWide();
   const [active, setActive] = useState<SectionId>(SECTIONS[0].id);
-  const bridge = usePhoneBridge(active, locale, wide);
+  const bridge = usePhoneBridge(active, locale, theme, wide);
 
   // The section in the middle of the viewport is the active one — except
   // while a picked section is being scrolled to, so the phone does not run
@@ -136,6 +137,8 @@ function VitreDocs() {
               liveLabel={S.live}
             />
           ))}
+          {/* Beside the simulator, the way to the real thing. */}
+          <p className={cn(TYPE.caption, "hidden border-t border-border/50 pt-6 md:block")}>{S.onIphone}</p>
         </article>
       </div>
     </LabShell>

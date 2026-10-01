@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import {
   DEFAULT_CONFIG,
   GROUND,
+  hostTheme,
   isFramed,
   loadConfig,
   resolveColor,
@@ -112,8 +113,10 @@ export function Demo() {
   const [devtoolOpen, setDevtoolOpen] = useState(false);
   const [running, setRunning] = useState<ScenarioName | null>(null);
   const systemDark = useSystemDark();
+  // In the docs' frame, "system" is the page the phone is drawn on.
+  const [host, setHost] = useState(hostTheme);
   const theme: "light" | "dark" =
-    config.theme === "system" ? (systemDark ? "dark" : "light") : config.theme;
+    config.theme === "system" ? (host ?? (systemDark ? "dark" : "light")) : config.theme;
 
   const patch = useCallback((p: Partial<DemoConfig>) => {
     setConfig((c) => {
@@ -152,6 +155,7 @@ export function Demo() {
       if (data?.type === "vitre-demo:patch") patch(data.patch);
       else if (data?.type === "vitre-demo:action") action(data.action);
       else if (data?.type === "vitre-demo:lang") setLang(data.lang);
+      else if (data?.type === "vitre-demo:theme") setHost(data.theme);
     };
     window.addEventListener("message", onMessage);
     window.parent.postMessage({ type: "vitre-demo:ready" }, location.origin);
