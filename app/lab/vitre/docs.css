@@ -108,13 +108,42 @@
 
 .vitre-lab .phone {
   position: relative;
+  transform-origin: top left;
+  border-radius: 58px;
+}
+/* The body: one solid shape behind the screen, 12px larger all round. The
+   screen sits on it, so no edge of the screen is butted against the frame —
+   an outer box-shadow ring is, and under a fractional scale the page behind
+   shows through that seam as a hairline.
+
+   The front is black glass on every iPhone; what reads light or dark is the
+   metal band around it. In light mode the glass border is slimmer and the
+   band wider, in silver titanium; in dark, graphite. */
+.vitre-lab .phone::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 70px;
+  pointer-events: none;
+  background: #0b0b0c;
+  box-shadow:
+    inset 0 0 0 0.5px #b4b4ba,
+    inset 0 0 0 4px #dcdce0,
+    inset 0 0 0 5px #2a2a2d,
+    0 30px 70px rgba(30, 30, 50, 0.16);
+}
+.dark .vitre-lab .phone::before {
+  background: #1c1c1e;
+  box-shadow: inset 0 0 0 2px #3a3a3c, 0 40px 80px rgba(0, 0, 0, 0.3);
+}
+.vitre-lab .phone-screen {
+  position: relative;
   display: flex;
   flex-direction: column;
-  transform-origin: top left;
+  height: 100%;
   overflow: hidden;
-  border-radius: 58px;
+  border-radius: inherit;
   background: var(--chrome);
-  box-shadow: 0 0 0 10px #1c1c1e, 0 0 0 12px #3a3a3c, 0 40px 80px rgba(0, 0, 0, 0.3);
   transition: background-color 0.3s ease;
 }
 .vitre-lab .phone::after {
@@ -125,10 +154,14 @@
   border-radius: inherit;
   pointer-events: none;
   background: linear-gradient(125deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 22%, transparent 40%, transparent 72%, rgba(255, 255, 255, 0.06) 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  /* A hairline of the glass inside the screen's edge: it covers the demo
+     iframe's sides, which a fractional scale leaves between device pixels
+     (simulator.tsx, SEAM, does the top and bottom). */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 0 1.5px #000;
 }
 .vitre-lab .phone-status {
   position: relative;
+  z-index: 1;
   flex: none;
   display: flex;
   width: 100%;
@@ -136,10 +169,12 @@
   justify-content: space-between;
   padding: 0 34px;
   border: 0;
-  background: none;
+  /* Opaque, over the demo's top edge (SEAM). */
+  background: var(--chrome);
   color: var(--chrome-ink);
   font: 600 16px/1 var(--font-sans);
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 .vitre-lab .phone-status > :not(.phone-status-flash) { position: relative; }
 .vitre-lab .phone-status-flash {
@@ -162,6 +197,8 @@
   transition: height 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .vitre-lab .phone-toolbar {
+  position: relative;
+  z-index: 1;
   flex: none;
   display: flex;
   align-items: flex-start;
@@ -169,7 +206,9 @@
   gap: 10px;
   overflow: hidden;
   padding: 8px 16px 0;
-  transition: height 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  /* Opaque, over the demo's bottom edge (SEAM). */
+  background: var(--chrome);
+  transition: height 0.28s cubic-bezier(0.32, 0.72, 0, 1), background-color 0.3s ease;
 }
 .vitre-lab .phone-url {
   flex: 1;
