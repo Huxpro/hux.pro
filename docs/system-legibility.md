@@ -151,7 +151,7 @@ all the runtime ever computes, memoised on what can change:
 | `relief` | `max(need, busy × 0.85)`, where `need` grows as the ink-to-top-band gap shrinks below 0.55; × 0 on reading routes; under 0.1 → 0 | `--wp-relief`, scales the text shadow |
 | `flip`, `flipMid` | per band (top for the header, middle for the app folder): the inverse ink clears the band by more than 0.15 more than the theme's ink, the light ink scored with a head start of `0.25 × √busy` because its drop is the stronger relief and a halo only fails on texture — so at full busyness the light theme flips below ~0.59 and the dark theme flips back above ~0.74, while a calm mid-tone picture (the dew drop) keeps the theme's ink | `data-wallpaper-flip`, `data-wallpaper-flip-mid` |
 | `glassAdd` | `busy × 14 + conflict × 22` fill points | `--wp-glass-add`, added to every glass fill (Clear takes all, Tinted half) |
-| `veil` | `veilBase[theme] + busy × 0.15 + conflict × 0.15`, capped at 0.7 (base 0.32 light / 0.40 dark) | `--wp-veil`; the reading veil's alpha when Reading dim is on — under any kind, the Sky included |
+| `veil` | `veilBase[theme] + busy × 0.15 + conflict × 0.2`, capped at 0.8 (base 0.50 light / 0.55 dark) | `--wp-veil`; the reading veil's alpha when Reading dim is on — under any kind, the Sky included |
 | `blur` | `28px + busy × 16px` | `--wp-blur`; the reading defocus radius when Reading blur is on — pictures only |
 | `tint` | the profile's tint clamped to L 0.50–0.66 (light) / 0.60–0.76 (dark), C 0.05–0.16; grey below chroma 0.03 | `--wp-tint-l/c/h` |
 | `lift` | reading routes only: the alpha points secondary and tertiary need, on top of `inkBoost`, to reach 4.5:1 and 3:1 on the veiled picture — its mean and its worst band — capped at 80 % / 60 % so the rungs stay rungs | `--wp-lift-secondary`, `--wp-lift-tertiary` |
@@ -287,6 +287,12 @@ Still open, and reproduced verbatim in the lab:
    labels are not migrated and could go either way.
 
 ### 6. The reading treatment
+
+**The veil is uniform.** It was briefly shaped to the column — whole
+under it, thinning to 60 % of itself over 240px into the margins, so a desk
+would keep the picture beside the text — but a ramp that wide over a dark
+or saturated picture is a visible band, and the column read as a stripe
+with an edge either side. One alpha across the screen has no edge to see.
 
 **The lift.** Apple's ladder is tuned for an opaque ground — on white the
 secondary rung is 4.3:1 and the tertiary 2.2:1 — and a reading column's
