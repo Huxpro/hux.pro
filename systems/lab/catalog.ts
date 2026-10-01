@@ -43,7 +43,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "vitre";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -172,6 +172,21 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "One light for the whole site — Siri's ring, as a shader on the edge of a rounded box. Every specimen is the production <Glow>, drawn by the one shared renderer. Try the microphone.",
       zh: "全站只有一束光——Siri 的光环，作为圆角盒边缘上的着色器。每个样本都是线上的 <Glow>，由同一个渲染器绘制。试试麦克风。",
+    },
+  },
+  {
+    id: "band",
+    href: "/lab/band",
+    name: { en: "Band Lab", zh: "顶部带实验室" },
+    mark: "dock",
+    kind: "study",
+    hint: {
+      en: "The top of the screen, shared",
+      zh: "屏幕顶部，谁来共用",
+    },
+    blurb: {
+      en: "Live Activities, parked windows, a notice and a page's pinned bar all reach for one strip at the top. Compose how they share it — every choice an overflow strategy — on the real Dock and real bars, and hold it to four rules measured off the page.",
+      zh: "实时活动、停靠的窗口、提示和页面的吸顶工具栏，都要争顶部这一条。在真实的 Dock 和真实的工具栏上组合它们怎么共用——每个选择都是溢出策略——再用从页面上量出来的四条规则检查。",
     },
   },
   {

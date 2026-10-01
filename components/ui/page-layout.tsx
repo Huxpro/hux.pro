@@ -3,6 +3,7 @@
 import { HeaderZone } from "@/components/ui/header-zone";
 import { TITLE_POETIC, TITLE_READER } from "@/components/ui/header-zone";
 import { SystemNav } from "@/components/ui/system-nav";
+import { PINNED_TOP, PinnedSlot } from "@/components/ui/pinned-slot";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { cn } from "@/lib/utils";
 import {
@@ -200,11 +201,9 @@ export function PageLayout({
               // when there are any (`--dock-clear`): its glass (`--pin-outset`
               // past the row) half a rem below theirs, the same gap the pills
               // keep from the top of the screen.
-              <div
-                className="sticky top-[max(1rem,calc(var(--dock-clear)+0.5rem+var(--pin-outset)))] z-30 h-0 -mt-[calc(var(--pin-rest)-0.5rem+var(--hero-gap))] mb-[calc(var(--pin-rest)-0.5rem+var(--hero-gap))]"
-              >
+              <PinnedSlot className={cn("sticky z-30 h-0 -mt-[calc(var(--pin-rest)-0.5rem+var(--hero-gap))] mb-[calc(var(--pin-rest)-0.5rem+var(--hero-gap))]", PINNED_TOP)}>
                 {pinnedActions}
-              </div>
+              </PinnedSlot>
             )}
             {children}
           </div>

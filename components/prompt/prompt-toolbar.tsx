@@ -66,6 +66,7 @@ import {
 } from "@/lib/prompt-view";
 import { usePageLift } from "@/components/ui/use-page-lift";
 import { useNoticeYield } from "@/components/ui/use-notice-yield";
+import { BAND_RESERVE } from "@/components/ui/pinned-slot";
 import { useScrollEdges } from "@/components/ui/use-scroll-edges";
 import { useReadingChapter, type PromptChapter } from "./use-reading-chapter";
 
@@ -149,12 +150,8 @@ export function PromptToolbar({
   // The fade goes on the capsule and on the row, never on the box holding
   // the capsule; the box takes only the transform and the pointer.
   const rootRef = useRef<HTMLDivElement>(null);
-  const away = useNoticeYield(rootRef);
+  const { away, rowStyle, rootStyle } = useNoticeYield(rootRef);
   const panelOpacity = useTransform(() => lift.get() * (1 - away.get()));
-  const rowOpacity = useTransform(away, [0, 1], [1, 0]);
-  const rootY = useTransform(away, [0, 1], [0, -6]);
-  const rootScale = useTransform(away, [0, 1], [1, 0.96]);
-  const rootPointer = useTransform(away, (a) => (a > 0.5 ? "none" : "auto"));
   const reduced = useReducedMotion() ?? false;
   const motionOf = reduced ? { duration: 0 } : SETTLE;
   const rowRef = useRef<HTMLDivElement>(null);
@@ -201,8 +198,10 @@ export function PromptToolbar({
   return (
     <motion.div
       ref={rootRef}
-      className="relative isolate w-max max-w-full origin-top"
-      style={{ y: rootY, scale: rootScale, pointerEvents: rootPointer }}
+      // `--band-reserve` (PinnedSlot): what the bar gives up at its end for
+      // the Dock when they share the top band; it narrows as that eases in.
+      className={cn("relative isolate w-max origin-top", BAND_RESERVE)}
+      style={rootStyle}
     >
       <motion.div
         aria-hidden
@@ -212,7 +211,7 @@ export function PromptToolbar({
 
       <motion.div
         ref={rowRef}
-        style={{ opacity: rowOpacity }}
+        style={rowStyle}
         className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground"
       >
         {/* The element you are inside: the page's own at the title, a
@@ -307,6 +306,7 @@ export function PromptToolbar({
             glyphs nobody has learned, and the words are the point. */}
           <div
             ref={topicsRef}
+            data-bar-give
             role="group"
             aria-label={t(locale, "promptTopicLabel")}
             className={cn(

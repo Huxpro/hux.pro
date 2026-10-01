@@ -209,6 +209,103 @@ These match the product spec for multiple simultaneous activities:
   it exactly as they do for a panel, and a notice raised while a panel is open
   waits for the panel to close. The top centre holds one thing at a time.
 
+## The top band, and its lab
+
+Everything above competes for one strip at the top of the screen: Live
+Activities, parked windows, a notice, an open panel, and a page's pinned bar
+(/works's and /prompt's toolbars, a lab's own bar). How they share it is still
+being decided — on the real components. It is not one fixed strategy but a
+composition of independent choices, `BandConfig` in `systems/dock/band.ts`,
+read by the Dock, every `LiveActivity`, the parked windows and the page's
+`PinnedSlot`:
+
+| Knob | What it chooses |
+|---|---|
+| `share` | whether a pinned bar shares the band at all; off is the old way (pills centred, the bar pinned under them) |
+| `group` | how the occupants stand beside the bar: `all` in a row after it, `tray` in a window of a fixed size, `count` folded into one ball with how many — tap it and the bar folds to a ball while they open out |
+| `form` / `openForm` | their shape beside the bar, and when a count is opened: `pill` or `ball` (a ball is the pill at 36px, its content clipped) |
+| `trayCap` | how many a tray shows whole on a phone (two more wider) |
+| `peek` | a window that holds more than it shows ends on half of the next |
+| `barScrolls` | (`all`) the bar rides in the scrolling strip, first, sliding away as the occupants come in |
+
+`PRESETS` names four sets of them — `stack`, `tray`, `scroll` (band scroll),
+`swap` (either / or). What ships is `DEFAULT_CONFIG`, either / or: side by
+side while everything fits, balls when it does not quite, a count when it
+does not at all. Anything else is a session override set in **`/lab/band`**.
+Every pinned bar takes part — /works's and /prompt's toolbars, and every
+lab's own bar (`LabBar`), which rides in a `PinnedSlot` at the band's height
+unless a lab sets it aside (`pin="static"`).
+
+Where everything stands is one function, `bandGeometry(band, vw)`, read by
+both the Dock and the slot, so they never disagree about a pixel. It returns
+the occupants' **window** — exactly where they may be seen, and where the Dock
+row clips, so nothing slides under the bar, the gutter or a ball — and the
+bar's **reserve**, the width it gives up at its end. Some rules it keeps:
+
+- Every knob is an **overflow** strategy. While the bar at its own width
+  and every occupant as a pill fit the band side by side, they stand side by
+  side — left-aligned after the bar, a gap from its glass, running on into
+  the margin beside the column if they need to — whatever is configured; a
+  wide screen is never folded for a phone's sake. Past that,
+  in order: the occupants become balls (if `form` says so), then the group
+  takes over. A count never counts one occupant: it is already as small as
+  the ball that would count it. An opened count that fits again closes.
+- A bar that wraps (the lab's) is measured at its one-line width, so it can
+  fit too.
+
+- The window starts a `GAP` (8px) after the bar's *glass*, not its text.
+- On a phone (a gutter of 32px or less) the window runs on to the screen's
+  edge: the next occupant is cut by the edge of the phone, and that cut is
+  what says it scrolls. Wider, it stops at the column.
+- The bar never gets less than its minimum while an occupant would fit —
+  but an occupant is never pushed out of reach to save the bar: the window is
+  at least one whole occupant.
+- An opened count scrolls edge to edge, however many there are.
+- Where the window ends in mid-air (against the bar, the folded ball, the
+  column) its end is a capsule's: an occupant sliding out goes under a curve
+  of its own radius, not a straight line. At the screen's edge it stays
+  square. It is a `clip-path`, which keeps the pills' blur (a mask would not).
+  What a round end leaves of an occupant fades as it thins — gone under 6px,
+  whole from two thirds of a ball — as `filter: opacity()` on the glass
+  itself (an opacity on anything holding it would take the blur with it).
+
+An occupant takes part the same way: `useBandOccupant()` gives it its shape
+(pill or ball), whether a count hides it, and its own width as a pill
+(measured from its content and its glass's padding), which it publishes as
+`data-natural` on its row child; it marks its glass `data-band-glass`, where
+the Dock fades a sliver. Readers that need one fact about the band select it
+(`useBandSelect`), so a resize does not re-render every Live Activity.
+
+A bar takes part by declaration. Its slot (`PinnedSlot`) measures it and
+reports its box; the bar marks the part that gives way — `data-bar-give` on a
+chip group that scrolls inside itself (minimum: the fixed parts and one whole
+chip), or `data-bar-keep` on the part of a wrapping bar that must stay whole
+(the lab bar's name; its tools wrap under it) — and narrows itself by
+`--band-reserve`, which the slot sets. The slot also folds the bar to a ball
+when a count is opened. `LabShell` puts its bar in the band with
+`pin="band"`.
+
+**The Band Lab** is the site itself: the knobs set the override, the
+occupants are the Dock's own (up to six sample activities drawn by the real
+`LiveActivity`, the mock music player, a parked window, a notice), and the bar
+that meets them is chosen on the page — the lab's own two-row bar, or the
+real /prompt or /works toolbar with sample facets — on the page's real
+scroll. Four rules are measured off the page as it is (`app/lab/band/model.ts`):
+one band, a bar that can still do its job, nothing overlapping with the gap
+held, every occupant reachable.
+
+Each part of the harness has one place, and the top is the subject's: the
+lab's own bar, whose second row picks which bar meets the band. At the
+bottom, beside the FAB, the remote — the four rules as dots (tap them for
+what they measured, in a sheet that is not modal, so the band stays live
+under it), how many occupants, the presets. The fine knobs are a panel: in
+the page on a phone, beside it and pinned on a wide screen.
+
+What moves is animated, not swapped: a pill becomes a ball by its real width
+changing (`width` is in the `[data-dock-pill] > *` transition, which outranks
+the trigger's own utilities); the Dock row's window moves by its `left`,
+`width` and padding transitioning; the bar narrows by its `max-width`.
+
 ## Notices
 
 ```ts

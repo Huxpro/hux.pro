@@ -3,11 +3,13 @@
 import { Popover } from "@base-ui/react/popover";
 import { Info, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
+import { BAND_RESERVE, PinnedSlot } from "@/components/ui/pinned-slot";
 import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useOptionalDevtool } from "@/systems/devtool";
+import { useBandSelect } from "@/systems/dock";
 import { labById, type LabId } from "../catalog";
 import { useFrameStrings } from "../i18n";
 import { LabNav } from "./nav";
@@ -43,14 +45,18 @@ import { LabNav } from "./nav";
 //   canvas     the whole width, for a lab that lays out its own body (the
 //              Works Lab: the timeline, an inspector beside it).
 //
-// The bar pins where /works pins its own: a rem from the top, or under the
-// Dock's Live Activities when there are any (`--dock-clear`). Anything else
-// that sticks under it reads `--lab-under-bar`.
+// The bar is a pinned bar like /works's toolbar: it rides in a PinnedSlot and
+// shares the top band with the Dock by whatever composition the band is set
+// to (systems/dock/band.ts) — its name kept whole, its tools wrapping under
+// it when they do not fit beside it. Its first row is the band's height, so
+// it stands level with the Dock's pills. Anything that sticks under it reads
+// `--lab-under-bar`. A lab can set the bar aside (`pin="static"`) while
+// another bar is the one pinned (the Band Lab, trying /prompt's).
 // =============================================================================
 
 /** Where the bar pins, and where a panel under it may pin. */
 const BAR_VARS =
-  "[--lab-bar-top:max(0.75rem,calc(var(--dock-clear)+0.5rem))] [--lab-under-bar:calc(var(--lab-bar-top)+4.25rem)]";
+  "[--lab-bar-top:max(0.75rem,calc(var(--dock-clear)+0.5rem))] [--lab-under-bar:calc(var(--lab-bar-top)+3.25rem)]";
 
 export function LabShell({
   lab,
@@ -60,10 +66,13 @@ export function LabShell({
   actions,
   panel,
   scrollTools,
+  pin = "band",
   children,
 }: {
   lab: LabId;
   layout?: "document" | "workbench" | "canvas";
+  /** Whether the bar holds the top (in the band), or scrolls away. */
+  pin?: LabBarPin;
   /** The live readout: what the lab is showing, what is pinned. */
   meta?: ReactNode;
   /** What drives the stage, in the bar after the name. */
@@ -82,6 +91,8 @@ export function LabShell({
   children: ReactNode;
 }) {
   const [panelOpen, setPanelOpen] = useState(false);
+  // The bar rests on the Dock's line (0.5rem), as it does once pinned.
+  const top = pin === "band" ? "pt-2" : "pt-3";
   const bar = (
     <LabBar
       lab={lab}
@@ -90,12 +101,13 @@ export function LabShell({
       scrollTools={scrollTools}
       actions={actions}
       panel={layout === "workbench" && panel ? { open: panelOpen, toggle: () => setPanelOpen((o) => !o) } : undefined}
+      pin={pin}
     />
   );
 
   if (layout === "document") {
     return (
-      <main className={cn(BAR_VARS, "mx-auto w-full max-w-5xl px-4 pb-32 pt-3 sm:px-6")}>
+      <main className={cn(BAR_VARS, "mx-auto w-full max-w-5xl px-4 pb-32 sm:px-6", top)}>
         {bar}
         <div className="mt-8 space-y-12 sm:mt-10">{children}</div>
       </main>
@@ -104,7 +116,7 @@ export function LabShell({
 
   if (layout === "canvas") {
     return (
-      <main className={cn(BAR_VARS, "mx-auto w-full max-w-[1600px] px-4 pb-32 pt-3 sm:px-6")}>
+      <main className={cn(BAR_VARS, "mx-auto w-full max-w-[1600px] px-4 pb-32 sm:px-6", top)}>
         {bar}
         <div className="mt-6 sm:mt-8">{children}</div>
       </main>
@@ -112,7 +124,7 @@ export function LabShell({
   }
 
   return (
-    <main className={cn(BAR_VARS, "mx-auto w-full max-w-[1600px] px-4 pb-32 pt-3 sm:px-6")}>
+    <main className={cn(BAR_VARS, "mx-auto w-full max-w-[1600px] px-4 pb-32 sm:px-6", top)}>
       {bar}
       <div className="mt-6 flex flex-col gap-6 sm:mt-8 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1 space-y-10">{children}</div>
@@ -122,6 +134,8 @@ export function LabShell({
   );
 }
 
+export type LabBarPin = "band" | "static";
+
 /** The one sticky bar at the top of every lab. */
 export function LabBar({
   lab,
@@ -130,6 +144,7 @@ export function LabBar({
   scrollTools,
   actions,
   panel,
+  pin = "band",
 }: {
   lab: LabId;
   meta?: ReactNode;
@@ -138,23 +153,33 @@ export function LabBar({
   actions?: ReactNode;
   /** A workbench's folded panel: the bar's sliders button opens it below `lg`. */
   panel?: { open: boolean; toggle: () => void };
+  pin?: LabBarPin;
 }) {
   const F = useFrameStrings();
+  // A count opened folds the bar to a ball (PinnedSlot draws it); the bar
+  // is its own glass, so it can fade itself without breaking its blur.
+  const open = useBandSelect((g) => g.mode === "open");
+  const folded = pin === "band" && open;
   // The devtool's floating pill is fixed at the top-right, where the bar's
   // actions end. A lab that turns the devtool on (Legibility, Vitre) would
   // lose its last action under it, so the bar makes room while it shows.
   const devtool = useOptionalDevtool();
   const pill = !!devtool?.isEnabled && devtool.isFloating && !devtool.isOpen;
-  return (
+  const bar = (
     <div
       className={cn(
-        "ink-flat sticky top-[var(--lab-bar-top)] z-30",
-        "flex min-h-12 flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-border/50 bg-glass-popover px-3 py-2 shadow-overlay backdrop-blur-xl sm:px-4",
+        "ink-flat z-30",
+        "flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-border/50 bg-glass-popover px-3 shadow-overlay backdrop-blur-xl sm:px-4",
+        // Its first row is a pill's height, level with the Dock's; the
+        // tools wrap under it when they do not fit beside it.
+        "min-h-9 py-px",
+        pin === "band" && [BAND_RESERVE, "origin-left transition-[max-width,opacity,transform]"],
+        folded && "pointer-events-none scale-95 opacity-0",
         // Last, so it wins over the padding above.
         pill && "sm:pr-[7.5rem]",
       )}
     >
-      <div className="flex min-w-0 items-center gap-1.5">
+      <div data-bar-keep className="flex min-w-0 items-center gap-1.5">
         <Link
           href="/"
           className={cn(TYPE.identifier, "shrink-0 rounded-sm transition-colors hover:text-foreground")}
@@ -209,6 +234,16 @@ export function LabBar({
         </div>
       )}
     </div>
+  );
+  if (pin !== "band") return bar;
+  return (
+    <PinnedSlot
+      className="sticky top-[var(--lab-bar-top)] z-30"
+      outset={0}
+      insetTop="0px"
+    >
+      {bar}
+    </PinnedSlot>
   );
 }
 

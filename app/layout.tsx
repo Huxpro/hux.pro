@@ -21,7 +21,7 @@ import { IdentityCard } from "@/systems/identity";
 import { InstallSheet } from "@/systems/install";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
-import { Dock } from "@/systems/dock";
+import { Dock, SampleActivities } from "@/systems/dock";
 import { MusicActivity, MusicPlaylistSheet } from "@/systems/music";
 import {
   TheaterActivity,
@@ -144,6 +144,7 @@ export default function RootLayout({
               <AmbientPhaseActivity />
               <MusicActivity />
               <TheaterActivity />
+              <SampleActivities />
               <MinimizedWindows />
             </Dock>
             <MusicPlaylistSheet />
