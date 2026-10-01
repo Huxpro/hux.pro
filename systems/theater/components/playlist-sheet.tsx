@@ -14,6 +14,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   PIP_GAP,
   PIP_TOP_STOP,
+  pipCardBox,
+  pipCardRect,
   playlistDetents,
 } from "../lib/geometry";
 import { useTheater } from "../provider";
@@ -34,15 +36,15 @@ import { TrackThumb } from "./track-thumb";
 // window on a desktop. None of them takes the page (or the video) away.
 //
 // On a phone the sheet and the player split the screen rather than stacking:
-// the provider parks the PiP tile at the top of the screen, and the sheet's
-// top detent is that tile's bottom edge, so the list never runs under the
+// the player is a card hanging at the top of the screen, and the sheet's
+// top detent is that card's bottom edge, so the list never runs under the
 // video and the video never covers a row. Summoned from the Live Activity
 // instead, the same rule points at the dock card the player collapsed into.
 // The sheet stops under whatever shape the player currently has, which is why
 // the detents are a function of where the player is rather than a pair of
 // fractions.
 //
-// Neither ceiling is measured here. The PiP tile's comes from the same rect
+// Neither ceiling is measured here. The card's comes from the same rect
 // the stage is drawn from, and the dock card's from the band the dock panel
 // already publishes to the surface stack. Each edge of the split is one number,
 // held by whoever owns that edge, so the sheet and the player cannot disagree
@@ -66,6 +68,7 @@ export function TheaterPlaylistSheet() {
     minimized,
     rect,
     viewport,
+    pipCard,
     isPlaylistOpen,
     openPlaylist,
     closePlaylist,
@@ -92,11 +95,12 @@ export function TheaterPlaylistSheet() {
   const surfaceMode = useSurfaceMode(ADAPTIVE_PRESENTATION);
   const pipShowing = mode === "pip" && !minimized;
 
-  // The PiP tile's bottom edge. The provider has already parked the tile by
-  // the time the surface is open, so this is the rect the stage is drawn
-  // from: the sheet and the video cannot disagree about where the line
-  // between them runs.
-  const pipCeiling = rect.top + rect.height;
+  // The player's bottom edge: the phone's card around the video, or the tile.
+  // Both come from the geometry the stage is drawn from, so the sheet and the
+  // video cannot disagree about where the line between them runs. The card's
+  // is its resting box, so the sheet holds still while the card is pulled.
+  const cardBox = pipCardBox(pipCardRect(viewport));
+  const pipCeiling = pipCard ? cardBox.top + cardBox.height : rect.top + rect.height;
 
   // The dock's, when the player is a Live Activity instead. The panel
   // measures itself for the surface stack already, so the sheet reads that
@@ -105,7 +109,7 @@ export function TheaterPlaylistSheet() {
   // sheet grow into the room that frees up.
   //
   // With no panel up the player is a pill in the dock row, and the ceiling is
-  // the line the PiP tile parks at: the same constant, so the two shapes of
+  // the line the card hangs from: the same constant, so the two shapes of
   // the player leave the sheet the same room rather than nearly the same.
   const panelBand = useSurfaceBandOf("dock-activity");
   const dockCeiling = panelBand?.bottom ?? PIP_TOP_STOP;

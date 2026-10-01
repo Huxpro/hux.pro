@@ -122,7 +122,18 @@ interface LiveActivityProps {
   pillClassName?: string;
   /** Extra classes for the expanded panel (e.g. widget-matched radius). */
   panelClassName?: string;
+  /**
+   * Take the pill's "open" for yourself. A press on the pill (or Enter on
+   * it, or a pull down from it) calls this instead of opening the panel,
+   * and the panel never opens. For an activity whose expanded shape lives
+   * somewhere else: the video player's card on a phone, which is the same
+   * object as this pill at a larger size (systems/theater).
+   */
+  onActivate?: () => void;
 }
+
+/** How far a pull down from the pill must travel to count as one. */
+const PULL_TO_ACTIVATE = 24;
 
 export function LiveActivity({
   id,
@@ -133,6 +144,7 @@ export function LiveActivity({
   collapseLabel,
   pillClassName,
   panelClassName,
+  onActivate,
 }: LiveActivityProps) {
   const { isOpen, isAnyOpen, noticeUp, open, close, registerActivity } =
     useDock();
@@ -178,7 +190,11 @@ export function LiveActivity({
   return (
     <Drawer.Root
       open={expanded}
-      onOpenChange={(next) => (next ? open(id) : close())}
+      onOpenChange={(next) => {
+        if (!next) close();
+        else if (onActivate) onActivate();
+        else open(id);
+      }}
       // Up, not down. The panel is anchored at the top and puts itself away
       // over the top edge; a sheet does the mirror of this.
       swipeDirection="up"
@@ -203,6 +219,30 @@ export function LiveActivity({
         // Its width as a pill, for the Dock to lay the band out by.
         data-natural={natural ?? undefined}
         className="shrink-0"
+        // With `onActivate` the panel never opens, so the drawer's own pull
+        // (which drags the panel out after the finger) has nothing to pull.
+        // A pull down still means "bigger", and is read here instead.
+        disabled={!!onActivate}
+        onPointerDown={
+          onActivate
+            ? (e: React.PointerEvent) => {
+                const startY = e.clientY;
+                const move = (ev: PointerEvent) => {
+                  if (ev.clientY - startY < PULL_TO_ACTIVATE) return;
+                  stop();
+                  onActivate();
+                };
+                const stop = () => {
+                  window.removeEventListener("pointermove", move);
+                  window.removeEventListener("pointerup", stop);
+                  window.removeEventListener("pointercancel", stop);
+                };
+                window.addEventListener("pointermove", move);
+                window.addEventListener("pointerup", stop);
+                window.addEventListener("pointercancel", stop);
+              }
+            : undefined
+        }
       >
         <Drawer.Trigger
           ref={glassRef}

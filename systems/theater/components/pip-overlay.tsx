@@ -16,99 +16,110 @@ import {
   SkipForward,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { GLASS_ON_DARK_BTN } from "../lib/chrome";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { GLASS_BTN, GLASS_ON_DARK_BTN } from "../lib/chrome";
 import { trackFling } from "../lib/fling";
-import { PIP_STASH_PEEK, pipSettle } from "../lib/geometry";
+import {
+  PIP_CARD_FOOTER,
+  PIP_CARD_GRABBER,
+  PIP_CARD_PAD,
+  PIP_STASH_PEEK,
+  pipCardBox,
+  pipSettle,
+} from "../lib/geometry";
 import { formatTime } from "../lib/player";
 import { useTheater } from "../provider";
 
 // ---------------------------------------------------------------------------
-// PipOverlay: the Picture-in-Picture tile's controls and gestures.
+// PipOverlay: the Picture-in-Picture player's controls and gestures.
 //
-// The tile is all picture. The video is the shared <Stage />; nothing sits
-// under or beside it. Controls are drawn over it when asked for, and the
-// gestures are the ones the system PiP on iOS and Android already taught:
+// PiP takes one of two shapes, both drawn around the shared <Stage />:
 //
-//   tap         controls in (a finger), play / pause (a mouse)
-//   double-tap  the other size (small ⇄ large)
-//   drag        the tile follows; released, it is thrown to the nearest
-//               corner, judged by where the throw was headed
-//   throw off   a side edge stashes it there, a handle's width left on
-//               screen; the sound keeps playing, a tap brings it back
+//   The tile (tablet and desk). The video is the whole thing; controls are
+//   drawn over it when asked for, and the gestures are the ones the system
+//   PiP on iOS and Android already taught:
+//     tap         controls in (a finger), play / pause (a mouse)
+//     double-tap  the other size (small ⇄ large)
+//     drag        the tile follows; released, it is thrown to the nearest
+//                 corner, judged by where the throw was headed
+//     throw off   a side edge stashes it there, a handle's width left on
+//                 screen; the sound keeps playing, a tap brings it back
 //
-// What the overlay can do depends on what is playing. A YouTube video is
-// ours to drive (the IFrame API), so a transparent layer takes the whole
-// picture for the gestures and the overlay carries the transport and a
+//   The card (a phone). The player is one object with the dock: a card
+//   hanging under the dock's pill row, which grows when pulled down (the
+//   playlist takes the screen under it) and shrinks when pushed up (into the
+//   Live Activity's pill, sound only). A tap on that pill brings the card
+//   back (theater-activity.tsx). No corners, no stash: a phone is too narrow
+//   for a tile to be anywhere but in the way, and its top is where the
+//   playlist needs the video to be.
+//
+// What the overlay on the video can do depends on what is playing. A YouTube
+// video is ours to drive (the IFrame API), so a transparent layer takes the
+// whole picture for the gestures and the overlay carries the transport and a
 // scrubber. Anything else (a Bilibili or Vimeo embed, a reveal.js deck) can
-// only be driven from inside its own frame, so the frame keeps the picture
-// and the tile is held by a strip along its top edge instead. The strip is
-// always there, because a pointer over a cross-origin frame tells this
-// document nothing: there is no hover or tap to reveal it with.
+// only be driven from inside its own frame, so the frame keeps the picture.
+// The tile is then held by a strip along its top edge; the card by its row.
+// Neither can be revealed by a tap or hover on the picture: a pointer over a
+// cross-origin frame tells this document nothing.
 //
-// Escape no longer closes the player from here (see the provider): the tile
-// is not modal.
+// Escape does not close the player from here (see the provider): neither
+// shape is modal.
 // ---------------------------------------------------------------------------
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 /** A finger's controls go away this long after the last touch, while playing. */
 const TOUCH_HIDE_MS = 2500;
-/** A mouse's controls go away this long after it leaves the tile. */
+/** A mouse's controls go away this long after it leaves the player. */
 const POINTER_HIDE_MS = 300;
 /** Two taps closer than this are a double-tap. */
 const DOUBLE_TAP_MS = 280;
-/** Below this width the tile drops the title line to keep the transport clear. */
+/** Below this width the overlay drops the title line to keep the transport clear. */
 const ROOM_FOR_TITLE = 260;
+/** How far the card must be pulled (px) or how fast (px/ms) to change size. */
+const CARD_PULL = 48;
+const CARD_FLICK = 0.4;
 
 export function PipOverlay() {
-  const { locale } = useLocale();
-  const {
-    mode,
-    minimized,
-    track,
-    phase,
-    rect,
-    viewport,
-    isCoarse,
-    dragging,
-    theaterAvailable,
-    pipPlacement,
-    currentTime,
-    duration,
-    albumIndex,
-    trackIndex,
-    album,
-    albums,
-    isPlaylistOpen,
-    togglePlay,
-    next,
-    previous,
-    seek,
-    toTheater,
-    minimize,
-    close,
-    openPlaylist,
-    closePlaylist,
-    setPipPlacement,
-    setPipDrag,
-  } = useTheater();
-  const reduceMotion = useReducedMotion();
-
+  const { mode, minimized, pipCard } = useTheater();
   const open = mode === "pip" && !minimized;
-  const deck = track?.kind === "slides";
-  // Ours to drive: the gesture layer takes the picture. Otherwise the frame
-  // keeps it and the tile is held by its top strip.
-  const drivable = track?.kind === "video" && track.platform === "youtube" && !!track.videoId;
-  const isPlaying = phase === "playing";
-  const stash = pipPlacement.stash;
+  return (
+    <AnimatePresence>
+      {open && (pipCard ? <PipCard key="pip-card" /> : <PipTile key="pip-tile" />)}
+    </AnimatePresence>
+  );
+}
 
-  const hasPrev = albumIndex > 0 || trackIndex > 0;
-  const hasNext =
-    trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1;
+// ---------------------------------------------------------------------------
+// Shared: what is on the stage, the reveal, the controls over the video
+// ---------------------------------------------------------------------------
 
-  // --- Reveal ---------------------------------------------------------------
-  const [revealed, setRevealed] = useState(false);
-  // Bumped by every touch on the tile, so the auto-hide restarts from it.
+function useStageFacts() {
+  const { track, phase, albumIndex, trackIndex, album, albums } = useTheater();
+  return {
+    deck: track?.kind === "slides",
+    // Ours to drive: the gesture layer takes the picture.
+    drivable: track?.kind === "video" && track.platform === "youtube" && !!track.videoId,
+    isPlaying: phase === "playing",
+    hasPrev: albumIndex > 0 || trackIndex > 0,
+    hasNext:
+      trackIndex < (album?.tracks.length ?? 0) - 1 || albumIndex < albums.length - 1,
+  };
+}
+
+/**
+ * When the controls over the video are showing. A mouse brings them with
+ * movement and takes them away by leaving; a finger toggles them with a tap,
+ * and they leave on their own while the video plays. Focus inside the player
+ * holds them, so a keyboard never tabs into something invisible.
+ */
+function useReveal() {
+  const { isCoarse, dragging } = useTheater();
+  const { isPlaying } = useStageFacts();
+  // Each shape mounts when it opens, so a fresh start is a fresh mount. On a
+  // touch screen the controls show once on arrival, so the first look says
+  // what the player can do; they leave on the timer below once it plays.
+  const [revealed, setRevealed] = useState(isCoarse);
+  // Bumped by every touch on the player, so the auto-hide restarts from it.
   const [touchedAt, setTouchedAt] = useState(0);
   const lastInput = useRef<"touch" | "mouse">(isCoarse ? "touch" : "mouse");
   const focusWithin = useRef(false);
@@ -120,9 +131,10 @@ export function PipOverlay() {
       leaveTimer.current = null;
     }
   };
+  useEffect(() => clearLeave, []);
 
-  // A finger's controls go away on their own while the video plays. Paused,
-  // they stay: a paused tile with nothing on it reads as a frozen frame.
+  // Paused, they stay: a paused player with nothing on it reads as a frozen
+  // frame.
   useEffect(() => {
     if (!revealed || !isPlaying || lastInput.current !== "touch") return;
     const id = window.setTimeout(() => {
@@ -131,26 +143,236 @@ export function PipOverlay() {
     return () => window.clearTimeout(id);
   }, [revealed, isPlaying, touchedAt]);
 
-  // Each session starts clean. On a touch screen the controls show once on
-  // arrival, so the first look says what the tile can do; they then leave
-  // on the timer above once the video is playing.
-  useEffect(() => {
-    // An intentional reset when the tile opens or closes, like the theater's.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRevealed(open && isCoarse);
-    if (open && isCoarse) lastInput.current = "touch";
-  }, [open, isCoarse]);
+  const handlers = {
+    // On movement rather than on entry: a player that has just been dragged
+    // is still under the pointer, and no entry would come.
+    onPointerMove: (e: React.PointerEvent) => {
+      if (e.pointerType !== "mouse" || dragging) return;
+      lastInput.current = "mouse";
+      clearLeave();
+      if (!revealed) setRevealed(true);
+    },
+    onPointerLeave: (e: React.PointerEvent) => {
+      if (e.pointerType !== "mouse") return;
+      clearLeave();
+      leaveTimer.current = window.setTimeout(() => {
+        if (!focusWithin.current) setRevealed(false);
+      }, POINTER_HIDE_MS);
+    },
+    onPointerDownCapture: (e: React.PointerEvent) => {
+      lastInput.current = e.pointerType === "mouse" ? "mouse" : "touch";
+      if (e.pointerType !== "mouse") setTouchedAt(e.timeStamp);
+    },
+    onFocusCapture: () => {
+      focusWithin.current = true;
+      setRevealed(true);
+    },
+    onBlurCapture: (e: React.FocusEvent) => {
+      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+      focusWithin.current = false;
+      if (lastInput.current === "touch") setTouchedAt(performance.now());
+      else setRevealed(false);
+    },
+  };
 
-  // --- Gestures -------------------------------------------------------------
+  return { revealed, setRevealed, handlers };
+}
+
+/**
+ * The controls over a drivable video: corner buttons, the transport in the
+ * middle, the title and a scrubber along the bottom. Pointer-transparent
+ * while hidden, so the gesture layer under it gets every press.
+ */
+function VideoControlsOverlay({
+  shown,
+  width,
+  topLeft,
+  topRight,
+}: {
+  shown: boolean;
+  width: number;
+  topLeft?: ReactNode;
+  topRight?: ReactNode;
+}) {
+  const { locale } = useLocale();
+  const { track, currentTime, duration, togglePlay, next, previous, seek } = useTheater();
+  const { isPlaying, hasPrev, hasNext } = useStageFacts();
+
+  return (
+    <div
+      className={cn(
+        "absolute inset-0 text-white transition-opacity duration-200",
+        "bg-gradient-to-b from-black/50 via-black/10 to-black/60",
+        shown
+          ? "opacity-100 [&_button]:pointer-events-auto [&_[role=slider]]:pointer-events-auto"
+          : "opacity-0",
+      )}
+    >
+      <div className="absolute inset-x-1.5 top-1.5 flex items-center justify-between">
+        <div className="flex items-center gap-0.5">{topLeft}</div>
+        <div className="flex items-center gap-0.5">{topRight}</div>
+      </div>
+
+      <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2">
+        <button
+          type="button"
+          onClick={previous}
+          disabled={!hasPrev}
+          aria-label={t(locale, "theaterPrevious")}
+          className={cn(GLASS_ON_DARK_BTN, "h-8 w-8 disabled:opacity-30")}
+        >
+          <SkipBack className="h-4 w-4" fill="currentColor" />
+        </button>
+        <button
+          type="button"
+          onClick={togglePlay}
+          aria-label={t(locale, isPlaying ? "theaterPause" : "theaterPlay")}
+          className={cn(GLASS_ON_DARK_BTN, "h-11 w-11 bg-white/15 text-white")}
+        >
+          {isPlaying ? (
+            <Pause className="h-5 w-5" fill="currentColor" />
+          ) : (
+            <Play className="h-5 w-5 translate-x-px" fill="currentColor" />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={next}
+          disabled={!hasNext}
+          aria-label={t(locale, "theaterNext")}
+          className={cn(GLASS_ON_DARK_BTN, "h-8 w-8 disabled:opacity-30")}
+        >
+          <SkipForward className="h-4 w-4" fill="currentColor" />
+        </button>
+      </div>
+
+      <div className="absolute inset-x-2.5 bottom-1.5">
+        {width >= ROOM_FOR_TITLE && track && (
+          <div className="mb-0.5 truncate text-[11px] leading-tight text-white/85">
+            {track.title}
+          </div>
+        )}
+        <Scrubber
+          currentTime={currentTime}
+          duration={duration}
+          onSeek={seek}
+          label={t(locale, "theaterSeek")}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** The player's own moves: playlist, Audio, Theater (where it fits). */
+function useViewButtons({ onDark, audio = true }: { onDark: boolean; audio?: boolean }) {
+  const { locale } = useLocale();
+  const { theaterAvailable, isPlaylistOpen, toTheater, minimize, openPlaylist, closePlaylist } =
+    useTheater();
+  const { deck } = useStageFacts();
+  const btn = onDark ? cn(GLASS_ON_DARK_BTN, "h-7 w-7") : cn(GLASS_BTN, "h-8 w-8");
+  const lit = onDark ? "bg-white/15 text-white" : "bg-foreground/[0.08] text-foreground";
+
+  const playlistLabel = t(
+    locale,
+    isPlaylistOpen ? "theaterClosePlaylist" : "theaterOpenPlaylist",
+  );
+  const minimizeLabel = t(
+    locale,
+    deck ? "theaterSurfaceMinimizeHint" : "theaterSurfaceMiniHint",
+  );
+  const expandLabel = t(locale, "theaterSurfaceGo").replace(
+    "{surface}",
+    t(locale, "theaterSurfaceTheater"),
+  );
+
+  return {
+    playlist: (
+      <button
+        type="button"
+        onClick={isPlaylistOpen ? closePlaylist : openPlaylist}
+        aria-pressed={isPlaylistOpen}
+        aria-label={playlistLabel}
+        title={playlistLabel}
+        className={cn(btn, isPlaylistOpen && lit)}
+      >
+        <ListVideo className="h-3.5 w-3.5" />
+      </button>
+    ),
+    audio: audio ? (
+      <button
+        type="button"
+        onClick={minimize}
+        aria-label={minimizeLabel}
+        title={minimizeLabel}
+        className={btn}
+      >
+        <Minimize2 className="h-3.5 w-3.5" />
+      </button>
+    ) : null,
+    theater: theaterAvailable ? (
+      <button
+        type="button"
+        onClick={toTheater}
+        aria-label={expandLabel}
+        title={expandLabel}
+        className={btn}
+      >
+        <Maximize2 className="h-3.5 w-3.5" />
+      </button>
+    ) : null,
+  };
+}
+
+function CloseButton({ onDark }: { onDark: boolean }) {
+  const { locale } = useLocale();
+  const { close } = useTheater();
+  return (
+    <button
+      type="button"
+      onClick={close}
+      aria-label={t(locale, "theaterClose")}
+      title={t(locale, "theaterClose")}
+      className={onDark ? cn(GLASS_ON_DARK_BTN, "h-7 w-7") : cn(GLASS_BTN, "h-8 w-8")}
+    >
+      <X className={onDark ? "h-3.5 w-3.5" : "h-4 w-4"} />
+    </button>
+  );
+}
+
+function useBoxTransition() {
+  const { dragging } = useTheater();
+  const reduceMotion = useReducedMotion();
+  return dragging || reduceMotion ? { duration: 0 } : { duration: 0.34, ease: EASE };
+}
+
+// ---------------------------------------------------------------------------
+// The tile: tablet and desk
+// ---------------------------------------------------------------------------
+
+function PipTile() {
+  const { locale } = useLocale();
+  const {
+    rect,
+    viewport,
+    dragging,
+    pipPlacement,
+    togglePlay,
+    setPipPlacement,
+    setPipDrag,
+  } = useTheater();
+  const { drivable } = useStageFacts();
+  const { revealed, setRevealed, handlers } = useReveal();
+  const views = useViewButtons({ onDark: true });
+  const transition = useBoxTransition();
+  const stash = pipPlacement.stash;
+
   const tapTimer = useRef<number | null>(null);
   const lastTapAt = useRef(0);
   // A drag that ends over the stash handle must not also press it.
   const justDragged = useRef(false);
-
   useEffect(
     () => () => {
       if (tapTimer.current !== null) window.clearTimeout(tapTimer.current);
-      if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current);
     },
     [],
   );
@@ -174,7 +396,6 @@ export function PipOverlay() {
     { doubleTap = true } = {},
   ) => {
     if (e.button !== 0) return;
-    lastInput.current = e.pointerType === "mouse" ? "mouse" : "touch";
     const origin = { x: rect.left, y: rect.top };
     const size = pipPlacement.size;
     trackFling(e, {
@@ -208,250 +429,293 @@ export function PipOverlay() {
 
   const unstash = () => setPipPlacement({ ...pipPlacement, stash: null });
 
-  const transition =
-    dragging || reduceMotion ? { duration: 0 } : { duration: 0.34, ease: EASE };
-  const roomy = rect.width >= ROOM_FOR_TITLE;
+  return (
+    <motion.div
+      role="group"
+      aria-label={t(locale, "theaterPipGroup")}
+      // OS chrome: nothing here is text to select or a link to preview. The
+      // box itself lets the page through; only what it holds takes pointers.
+      className="system-chrome pointer-events-none fixed z-[10004] overflow-hidden rounded-2xl"
+      initial={{ opacity: 0, ...rect }}
+      animate={{ opacity: 1, ...rect }}
+      exit={{ opacity: 0 }}
+      transition={{ ...transition, opacity: { duration: 0.18 } }}
+      {...handlers}
+    >
+      {drivable ? (
+        <>
+          {/* The gesture layer: the whole picture. A mouse click plays or
+              pauses, as it does on the video itself everywhere else. */}
+          <div
+            aria-hidden
+            className={cn(
+              "pointer-events-auto absolute inset-0 touch-none",
+              dragging ? "cursor-grabbing" : "cursor-grab",
+            )}
+            onPointerDown={(e) =>
+              hold(e, (pointerType) => {
+                if (pointerType === "mouse") togglePlay();
+                else setRevealed((r) => !r);
+              })
+            }
+          />
+          <VideoControlsOverlay
+            shown={revealed && !stash && !dragging}
+            width={rect.width}
+            topLeft={<CloseButton onDark />}
+            topRight={
+              <>
+                {views.playlist}
+                {views.audio}
+                {views.theater}
+              </>
+            }
+          />
+        </>
+      ) : (
+        // The strip: what holds a tile whose picture is its own.
+        <div
+          className={cn(
+            "pointer-events-auto absolute inset-x-0 top-0 flex h-9 touch-none items-center gap-0.5 px-1 text-white",
+            "bg-gradient-to-b from-black/65 to-black/0",
+            dragging ? "cursor-grabbing" : "cursor-grab",
+            stash && "invisible",
+          )}
+          onPointerDown={(e) => {
+            if ((e.target as HTMLElement).closest("button")) return;
+            hold(e, () => {});
+          }}
+        >
+          <CloseButton onDark />
+          <span aria-hidden className="flex flex-1 justify-center text-white/45">
+            <GripHorizontal className="h-4 w-4" />
+          </span>
+          {views.playlist}
+          {views.audio}
+          {views.theater}
+        </div>
+      )}
 
-  const expandLabel = t(locale, "theaterSurfaceGo").replace(
-    "{surface}",
-    t(locale, "theaterSurfaceTheater"),
+      {/* Stashed: a handle on the strip still on screen, pointing back in. */}
+      {stash && (
+        <button
+          type="button"
+          aria-label={t(locale, "theaterPipShow")}
+          title={t(locale, "theaterPipShow")}
+          onClick={() => {
+            if (!justDragged.current) unstash();
+          }}
+          onPointerDown={(e) => hold(e, unstash, { doubleTap: false })}
+          className={cn(
+            "pointer-events-auto absolute inset-y-0 flex touch-none items-center justify-center",
+            "border-border/50 bg-glass-strong-hover text-foreground backdrop-blur-xl",
+            stash === "left" ? "right-0 border-l" : "left-0 border-r",
+          )}
+          style={{ width: PIP_STASH_PEEK }}
+        >
+          {stash === "left" ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
+      )}
+    </motion.div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// The card: a phone
+// ---------------------------------------------------------------------------
+
+/**
+ * How far the card moves for a pull. Down is damped (it is a pull on
+ * something anchored), and once the playlist is up there is nowhere further
+ * down to go, so it barely gives. Up follows the finger: that is the way to
+ * the dock.
+ */
+function cardTravel(dy: number, listOpen: boolean): number {
+  if (dy >= 0) return dy * (listOpen ? 0.2 : 0.5);
+  return dy * 0.9;
+}
+
+function PipCard() {
+  const { locale } = useLocale();
+  const {
+    rect,
+    track,
+    dragging,
+    isPlaylistOpen,
+    togglePlay,
+    next,
+    minimize,
+    openPlaylist,
+    closePlaylist,
+    setPipDrag,
+  } = useTheater();
+  const { drivable, isPlaying, hasNext, deck } = useStageFacts();
+  const { revealed, setRevealed, handlers } = useReveal();
+  const views = useViewButtons({ onDark: true, audio: false });
+  const transition = useBoxTransition();
+  const box = pipCardBox(rect);
+
+  /**
+   * Arm a press on anything that holds the card: the gesture layer on a
+   * drivable video, the row under it, the grabber. Pulled down past the
+   * threshold it opens the playlist under itself; pushed up, it closes the
+   * playlist, or with none open goes into the dock. A tap does `onTap`.
+   */
+  const hold = (e: React.PointerEvent, onTap: (pointerType: string) => void) => {
+    if (e.button !== 0) return;
+    const top = rect.top;
+    const listOpen = isPlaylistOpen;
+    trackFling(e, {
+      onDragStart: () => setRevealed(false),
+      onDrag: (_dx, dy) => setPipDrag({ x: rect.left, y: top + cardTravel(dy, listOpen) }),
+      onRelease: (_dx, dy, velocity) => {
+        setPipDrag(null);
+        const up = dy < -CARD_PULL || velocity.y < -CARD_FLICK;
+        const down = dy > CARD_PULL || velocity.y > CARD_FLICK;
+        if (listOpen) {
+          if (up) closePlaylist();
+        } else if (up) minimize();
+        else if (down) openPlaylist();
+      },
+      onTap,
+    });
+  };
+
   const minimizeLabel = t(
     locale,
     deck ? "theaterSurfaceMinimizeHint" : "theaterSurfaceMiniHint",
   );
-  const playlistLabel = t(
-    locale,
-    isPlaylistOpen ? "theaterClosePlaylist" : "theaterOpenPlaylist",
-  );
-
-  // The tile's own moves, shared by the overlay's top row and the strip.
-  const viewButtons = (
-    <>
-      <button
-        type="button"
-        onClick={isPlaylistOpen ? closePlaylist : openPlaylist}
-        aria-pressed={isPlaylistOpen}
-        aria-label={playlistLabel}
-        title={playlistLabel}
-        className={cn(GLASS_ON_DARK_BTN, "h-7 w-7", isPlaylistOpen && "bg-white/15 text-white")}
-      >
-        <ListVideo className="h-3.5 w-3.5" />
-      </button>
-      <button
-        type="button"
-        onClick={minimize}
-        aria-label={minimizeLabel}
-        title={minimizeLabel}
-        className={cn(GLASS_ON_DARK_BTN, "h-7 w-7")}
-      >
-        <Minimize2 className="h-3.5 w-3.5" />
-      </button>
-      {theaterAvailable && (
-        <button
-          type="button"
-          onClick={toTheater}
-          aria-label={expandLabel}
-          title={expandLabel}
-          className={cn(GLASS_ON_DARK_BTN, "h-7 w-7")}
-        >
-          <Maximize2 className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </>
-  );
-
-  const closeButton = (
-    <button
-      type="button"
-      onClick={close}
-      aria-label={t(locale, "theaterClose")}
-      title={t(locale, "theaterClose")}
-      className={cn(GLASS_ON_DARK_BTN, "h-7 w-7")}
-    >
-      <X className="h-3.5 w-3.5" />
-    </button>
-  );
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          key="pip-tile"
-          role="group"
-          aria-label={t(locale, "theaterPipGroup")}
-          // OS chrome: nothing here is text to select or a link to preview.
-          // The box itself lets the page through; only what it holds takes
-          // pointers.
-          className="system-chrome pointer-events-none fixed z-[10004] overflow-hidden rounded-2xl"
-          initial={{ opacity: 0, top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
-          animate={{ opacity: 1, top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
-          exit={{ opacity: 0 }}
-          transition={{ ...transition, opacity: { duration: 0.18 } }}
-          // On movement rather than on entry: a tile that has just been
-          // dragged is still under the pointer, and no entry would come.
-          onPointerMove={(e) => {
-            if (e.pointerType !== "mouse" || dragging) return;
-            lastInput.current = "mouse";
-            clearLeave();
-            if (!revealed) setRevealed(true);
+    <>
+      {/* The card's glass, under the stage: the video sits in it. */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none fixed z-[10001] rounded-[22px] border border-border/50 bg-glass shadow-overlay backdrop-blur-xl"
+        initial={{ opacity: 0, ...box }}
+        animate={{ opacity: 1, ...box }}
+        exit={{ opacity: 0 }}
+        transition={{ ...transition, opacity: { duration: 0.18 } }}
+      />
+
+      {/* Everything that takes a press, over the stage. */}
+      <motion.div
+        role="group"
+        aria-label={t(locale, "theaterPipGroup")}
+        className="system-chrome pointer-events-none fixed z-[10004]"
+        initial={{ opacity: 0, ...box }}
+        animate={{ opacity: 1, ...box }}
+        exit={{ opacity: 0 }}
+        transition={{ ...transition, opacity: { duration: 0.18 } }}
+        {...handlers}
+      >
+        {drivable && (
+          <div
+            className="absolute overflow-hidden rounded-2xl"
+            style={{ left: PIP_CARD_PAD, top: PIP_CARD_PAD, width: rect.width, height: rect.height }}
+          >
+            <div
+              aria-hidden
+              className="pointer-events-auto absolute inset-0 touch-none"
+              onPointerDown={(e) =>
+                hold(e, (pointerType) => {
+                  if (pointerType === "mouse") togglePlay();
+                  else setRevealed((r) => !r);
+                })
+              }
+            />
+            <VideoControlsOverlay
+              shown={revealed && !dragging}
+              width={rect.width}
+              topRight={views.playlist}
+            />
+          </div>
+        )}
+
+        {/* The row: what is playing, and the moves a thumb wants without
+            opening anything. A press on the title opens the list, which is
+            also where a pull down goes. */}
+        <div
+          className="pointer-events-auto absolute flex touch-none items-center gap-0.5 pl-1"
+          style={{
+            left: PIP_CARD_PAD,
+            right: PIP_CARD_PAD,
+            top: PIP_CARD_PAD + rect.height,
+            height: PIP_CARD_FOOTER,
           }}
-          onPointerLeave={(e) => {
-            if (e.pointerType !== "mouse") return;
-            clearLeave();
-            leaveTimer.current = window.setTimeout(() => {
-              if (!focusWithin.current) setRevealed(false);
-            }, POINTER_HIDE_MS);
-          }}
-          onPointerDownCapture={(e) => {
-            if (e.pointerType !== "mouse") setTouchedAt(e.timeStamp);
-          }}
-          onFocusCapture={() => {
-            focusWithin.current = true;
-            setRevealed(true);
-          }}
-          onBlurCapture={(e) => {
-            if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-            focusWithin.current = false;
-            if (lastInput.current === "touch") setTouchedAt(performance.now());
-            else setRevealed(false);
+          onPointerDown={(e) => {
+            if ((e.target as HTMLElement).closest("button")) return;
+            hold(e, () => (isPlaylistOpen ? closePlaylist() : openPlaylist()));
           }}
         >
-          {drivable ? (
-            <>
-              {/* The gesture layer: the whole picture. A mouse click plays or
-                  pauses, as it does on the video itself everywhere else. */}
-              <div
-                aria-hidden
-                className={cn(
-                  "pointer-events-auto absolute inset-0 touch-none",
-                  dragging ? "cursor-grabbing" : "cursor-grab",
-                )}
-                onPointerDown={(e) =>
-                  hold(e, (pointerType) => {
-                    if (pointerType === "mouse") togglePlay();
-                    else setRevealed((r) => !r);
-                  })
-                }
-              />
-
-              <div
-                className={cn(
-                  "absolute inset-0 text-white transition-opacity duration-200",
-                  "bg-gradient-to-b from-black/50 via-black/10 to-black/60",
-                  revealed && !stash && !dragging
-                    ? "opacity-100 [&_button]:pointer-events-auto [&_[role=slider]]:pointer-events-auto"
-                    : "opacity-0",
-                )}
-              >
-                <div className="absolute inset-x-1.5 top-1.5 flex items-center justify-between">
-                  {closeButton}
-                  <div className="flex items-center gap-0.5">{viewButtons}</div>
-                </div>
-
-                <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={previous}
-                    disabled={!hasPrev}
-                    aria-label={t(locale, "theaterPrevious")}
-                    className={cn(GLASS_ON_DARK_BTN, "h-8 w-8 disabled:opacity-30")}
-                  >
-                    <SkipBack className="h-4 w-4" fill="currentColor" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={togglePlay}
-                    aria-label={t(locale, isPlaying ? "theaterPause" : "theaterPlay")}
-                    className={cn(GLASS_ON_DARK_BTN, "h-11 w-11 bg-white/15 text-white")}
-                  >
-                    {isPlaying ? (
-                      <Pause className="h-5 w-5" fill="currentColor" />
-                    ) : (
-                      <Play className="h-5 w-5 translate-x-px" fill="currentColor" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={next}
-                    disabled={!hasNext}
-                    aria-label={t(locale, "theaterNext")}
-                    className={cn(GLASS_ON_DARK_BTN, "h-8 w-8 disabled:opacity-30")}
-                  >
-                    <SkipForward className="h-4 w-4" fill="currentColor" />
-                  </button>
-                </div>
-
-                <div className="absolute inset-x-2.5 bottom-1.5">
-                  {roomy && track && (
-                    <div className="mb-0.5 truncate text-[11px] leading-tight text-white/85">
-                      {track.title}
-                    </div>
-                  )}
-                  <Scrubber
-                    currentTime={currentTime}
-                    duration={duration}
-                    onSeek={seek}
-                    label={t(locale, "theaterSeek")}
-                  />
-                </div>
-              </div>
-            </>
-          ) : (
-            // The strip: what holds a tile whose picture is its own.
-            <div
-              className={cn(
-                "pointer-events-auto absolute inset-x-0 top-0 flex h-9 touch-none items-center gap-0.5 px-1 text-white",
-                "bg-gradient-to-b from-black/65 to-black/0",
-                dragging ? "cursor-grabbing" : "cursor-grab",
-                stash && "invisible",
-              )}
-              onPointerDown={(e) => {
-                if ((e.target as HTMLElement).closest("button")) return;
-                hold(e, () => {});
-              }}
-            >
-              {closeButton}
-              <span aria-hidden className="flex flex-1 justify-center text-white/45">
-                <GripHorizontal className="h-4 w-4" />
-              </span>
-              {viewButtons}
+          <div className="min-w-0 flex-1 px-1.5">
+            <div className="truncate text-[13px] font-medium leading-snug text-foreground">
+              {track?.title}
             </div>
-          )}
-
-          {/* Stashed: a handle on the strip still on screen, pointing back in. */}
-          {stash && (
+            {track?.subtitle && (
+              <div className="truncate font-mono text-[10px] leading-snug text-muted-foreground">
+                {track.subtitle}
+              </div>
+            )}
+          </div>
+          {drivable && (
             <button
               type="button"
-              aria-label={t(locale, "theaterPipShow")}
-              title={t(locale, "theaterPipShow")}
-              onClick={() => {
-                if (!justDragged.current) unstash();
-              }}
-              onPointerDown={(e) => hold(e, unstash, { doubleTap: false })}
-              className={cn(
-                "pointer-events-auto absolute inset-y-0 flex touch-none items-center justify-center",
-                "border-border/50 bg-glass-strong-hover text-foreground backdrop-blur-xl",
-                stash === "left" ? "right-0 border-l" : "left-0 border-r",
-              )}
-              style={{ width: PIP_STASH_PEEK }}
+              onClick={togglePlay}
+              aria-label={t(locale, isPlaying ? "theaterPause" : "theaterPlay")}
+              className={cn(GLASS_BTN, "h-8 w-8 text-foreground")}
             >
-              {stash === "left" ? (
-                <ChevronRight className="h-4 w-4" />
+              {isPlaying ? (
+                <Pause className="h-4 w-4" fill="currentColor" />
               ) : (
-                <ChevronLeft className="h-4 w-4" />
+                <Play className="h-4 w-4 translate-x-px" fill="currentColor" />
               )}
             </button>
           )}
-        </motion.div>
-      )}
-    </AnimatePresence>
+          <button
+            type="button"
+            onClick={next}
+            disabled={!hasNext}
+            aria-label={t(locale, "theaterNext")}
+            className={cn(GLASS_BTN, "h-8 w-8")}
+          >
+            <SkipForward className="h-4 w-4" fill="currentColor" />
+          </button>
+          <button
+            type="button"
+            onClick={minimize}
+            aria-label={minimizeLabel}
+            title={minimizeLabel}
+            className={cn(GLASS_BTN, "h-8 w-8")}
+          >
+            <Minimize2 className="h-4 w-4" />
+          </button>
+          <CloseButton onDark={false} />
+        </div>
+
+        {/* The grabber: the card pulls. */}
+        <div
+          aria-hidden
+          className="pointer-events-auto absolute inset-x-0 bottom-0 flex touch-none items-start justify-center"
+          style={{ height: PIP_CARD_GRABBER }}
+          onPointerDown={(e) =>
+            hold(e, () => (isPlaylistOpen ? closePlaylist() : openPlaylist()))
+          }
+        >
+          <span className="h-1 w-9 rounded-full bg-muted-foreground/25" />
+        </div>
+      </motion.div>
+    </>
   );
 }
 
 /**
- * The tile's scrubber: press anywhere on it to jump, drag to scrub. Arrow
- * keys step five seconds when it has focus.
+ * The scrubber: press anywhere on it to jump, drag to scrub. Arrow keys step
+ * five seconds when it has focus.
  */
 function Scrubber({
   currentTime,

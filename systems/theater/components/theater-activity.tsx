@@ -19,12 +19,17 @@ import { VideoControls } from "./video-controls";
 //
 // A deck parked here is not playing anything: the pill says `slides` rather
 // than `watching`, wears the deck glyph, and its lifted view is Minimize.
+//
+// On a phone the pill is the smallest size of one object: the PiP card
+// pushed up into the dock. A press on it (or a pull down from it) brings the
+// card back rather than opening a panel; the card is the panel there, and it
+// has the picture (pip-overlay.tsx).
 // ---------------------------------------------------------------------------
 
 export function TheaterActivity() {
   const { locale } = useLocale();
   const { close: closeDock } = useDock();
-  const { minimized, track, phase, toPip, toTheater, theaterAvailable } =
+  const { minimized, track, phase, toPip, toTheater, theaterAvailable, pipCard } =
     useTheater();
   const [mounted, setMounted] = useState(false);
 
@@ -46,6 +51,7 @@ export function TheaterActivity() {
     <LiveActivity
       id="theater"
       openLabel={t(locale, "theaterOpenControls")}
+      onActivate={pipCard ? toPip : undefined}
       collapseLabel={t(locale, "musicCollapse")}
       pill={
         <>

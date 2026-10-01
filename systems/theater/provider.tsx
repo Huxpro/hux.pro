@@ -16,7 +16,6 @@ import type { SlidesMedia, VideoMedia, VideoPlatform } from "@/lib/log";
 import { useInputCapability } from "@/services";
 import {
   DEFAULT_PIP_PLACEMENT,
-  pipParkedForPlaylist,
   readViewport,
   stageRectFor,
   theaterAvailable as theaterFits,
@@ -98,9 +97,13 @@ interface TheaterContextValue {
   /** The viewport the geometry above was measured against. */
   viewport: Viewport;
   /**
+   * PiP is the phone's card (hanging under the dock, pulled down for the
+   * playlist and pushed up into the dock) rather than the corner tile.
+   */
+  pipCard: boolean;
+  /**
    * Where the PiP tile rests: a corner, a size, and whether it is stashed in a
-   * side edge. While the playlist is up on a phone this is the parked
-   * placement, not the one the user left.
+   * side edge. The phone's card has one place and ignores it.
    */
   pipPlacement: PipPlacement;
   /** The tile's top-left while a drag is in progress, null otherwise. */
@@ -242,28 +245,15 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const geomMode: "theater" | "pip" =
     mode === "theater" && theaterAvailable ? "theater" : "pip";
 
-  // The playlist sheet and the PiP tile share a phone screen rather than
-  // overlapping: the tile goes to the top of the screen and the sheet takes
-  // everything under it (the sheet's top detent is the tile's bottom edge;
-  // see `playlistDetents`). The park is derived, not stored. Closing the
-  // sheet puts the tile back where the user left it with no bookkeeping, and
-  // no frame has the two disagreeing. It is the phone's problem only: the
-  // tablet panel and the desktop window leave the PiP's corner alone.
-  //
-  // What the chrome reads is this *effective* placement, so a drag that
-  // starts on a parked tile starts where the tile is.
-  const parkedForPlaylist =
-    isPlaylistOpen &&
-    mode === "pip" &&
-    !minimized &&
-    viewport.width < SURFACE_BREAKPOINTS.sm;
-  const effectivePlacement = useMemo(
-    () => (parkedForPlaylist ? pipParkedForPlaylist(pipPlacement) : pipPlacement),
-    [parkedForPlaylist, pipPlacement],
-  );
+  // On a phone, PiP is one object with the dock: a card hanging under the
+  // dock's pill row, the Live Activity's pill when pushed up, the card with
+  // the playlist under it when pulled down. The card's home is the top of
+  // the screen, which is where the playlist sheet needs the video to be, so
+  // the two split the screen with nothing to park (see `playlistDetents`).
+  const pipCard = viewport.width < SURFACE_BREAKPOINTS.sm;
   const rect = useMemo(
-    () => stageRectFor(geomMode, viewport, effectivePlacement, pipDrag),
-    [geomMode, viewport, effectivePlacement, pipDrag],
+    () => stageRectFor(geomMode, viewport, pipPlacement, pipDrag, pipCard),
+    [geomMode, viewport, pipPlacement, pipDrag, pipCard],
   );
   const visible = mode !== "closed" && !minimized;
 
@@ -728,7 +718,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     theaterAvailable,
     rect,
     viewport,
-    pipPlacement: effectivePlacement,
+    pipCard,
+    pipPlacement,
     pipDrag,
     dragging,
     isPlaylistOpen,
