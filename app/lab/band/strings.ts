@@ -26,7 +26,7 @@ const en = {
   } satisfies Record<BandGroup, string>,
   groupNotes: {
     all: "In one row after the bar, as many as there are; the bar gives up their width down to its minimum, and the rest scroll.",
-    tray: "In a window of a fixed size at the end — the bar's share never depends on the count; the window scrolls inside itself.",
+    tray: "In a window of a fixed size at the end. The bar's share never depends on the count; the window scrolls inside itself.",
     count: "Folded into one ball with how many. Tap it: the bar folds to a ball and the occupants open out, scrolling if they need to.",
   } satisfies Record<BandGroup, string>,
   form: "Shape, beside the bar",
@@ -56,7 +56,7 @@ const en = {
   // Readout
   readout: "The four rules",
   close: "Close",
-  readoutNote: "Measured off the page as it is now — the real Dock, the real bar.",
+  readoutNote: "Measured off the page as it is now: the real Dock, the real bar.",
   modes: {
     stack: "stacked",
     fit: "side by side",
@@ -65,7 +65,7 @@ const en = {
     count: "counted",
     open: "opened",
   } satisfies Record<BandMode, string>,
-  notMet: "The bar has not met the band — scroll.",
+  notMet: "The bar has not met the band. Scroll.",
   noBar: "No pinned bar on the page: the Dock is the Dock.",
   empty: "Nothing in the Dock. Add a sample activity.",
   checks: {
@@ -116,7 +116,7 @@ const zh: typeof en = {
   },
   groupNotes: {
     all: "全部排成一行跟在工具栏后面；工具栏让出它们的宽度，最多让到自己的最小宽度，放不下的横滑。",
-    tray: "住在末端一个固定大小的窗口里——工具栏分到的宽度不随数量变化；窗口内部自己横滑。",
+    tray: "住在末端一个固定大小的窗口里。工具栏分到的宽度不随数量变化；窗口内部自己横滑。",
     count: "收成一个显示数量的小球。点它：工具栏收成小球，活动展开，需要时可以横滑。",
   },
   form: "在工具栏旁边的形状",
@@ -125,7 +125,7 @@ const zh: typeof en = {
   trayCap: "手机上托盘放几个",
   trayCapHint: (n: number) => `${n} · 更宽时 ${n + 2}`,
   peek: "露出下一个的一半",
-  peekNote: "窗口装的比露出来的多时，末尾停在下一个的一半上——切口本身就说明它能滑。",
+  peekNote: "窗口装的比露出来的多时，末尾停在下一个的一半上，这道切口说明它能滑。",
   barScrolls: "工具栏跟着一起滑",
   barScrollsNote: "一整条，贴着屏幕两边：工具栏在最前，活动滑进来时它滑出去。",
   bar: "吸顶工具栏",
@@ -143,7 +143,7 @@ const zh: typeof en = {
   notice: "发一条提示",
   readout: "四条规则",
   close: "关闭",
-  readoutNote: "直接从页面上量出来的——真实的 Dock，真实的工具栏。",
+  readoutNote: "直接从页面上量出来：真实的 Dock，真实的工具栏。",
   modes: {
     stack: "上下叠放",
     fit: "并排放得下",
@@ -152,7 +152,7 @@ const zh: typeof en = {
     count: "收成计数",
     open: "已展开",
   },
-  notMet: "工具栏还没碰到顶部带——往下滚。",
+  notMet: "工具栏还没碰到顶部带。往下滚。",
   noBar: "页面上没有吸顶工具栏：Dock 就是 Dock。",
   empty: "Dock 里没有东西。加一个示例活动。",
   checks: {
