@@ -228,7 +228,7 @@ at 40 px.)
 
 | Engine | Where | How |
 |--------|-------|-----|
-| **Sky** (`wallpaper/`) | The `sky` weather style, full-page, when WebGL2 is available | One full-screen fragment pass: sky gradient + sun glow/disc, twinkling stars, a phased moon shaded as a lit sphere, two parallax fbm cloud decks lit toward the sun, drifting fog, stochastic lightning flashes, wind-sheared rain streaks, five depth layers of slow fluttering snow, theme veil, dither. |
+| **Sky** (`wallpaper/`) | The `sky` weather style, full-page, when WebGL2 is available | One full-screen fragment pass: sky gradient + sun glow/disc, twinkling stars, a phased moon shaded as a lit sphere, two parallax fbm cloud decks lit and self-shadowed toward the sun (and sliding by depth with the tilt), drifting fog, stochastic lightning flashes, wind-sheared rain streaks, five depth layers of slow fluttering snow, theme veil, dither. |
 | **Gradient** (`gradient.ts` + `gradient-stack.tsx`) | The `gradient` and `classic` weather styles; widget cards under every style; the Sky's fallback when WebGL2 is missing (or the devtool pretends it is) | Sun-glow radial + cloud wash + zenith→horizon linear gradient built from the scene palette, crossfaded via the layer stack. (`gradient.ts` also keeps the original hand-tuned per-condition palettes for the devtool thumbnails.) |
 
 The Sky engine (`WallpaperRenderer`):
@@ -266,9 +266,51 @@ The Sky engine (`WallpaperRenderer`):
   the single largest saving in the shader, because the rim sample is the most
   expensive thing in the frame and a clear night asks for it on nearly every
   pixel;
+- **knows a deck is absent before it has finished its noise.** The deck's base
+  is fbm5, taken octave by octave, and after each one the rest is bounded:
+  every octave still to come adds at most its amplitude (all of them, less than
+  twice the next one's) and the detail term at most 0.875 × 0.25. Once even that
+  cannot lift the point over the threshold, it is the `cov <= 0.0` case above,
+  so the deck stops there — after one or two of its eight octaves on a clear
+  night — and where it does not stop the base is fbm5 to the last operation.
+  Bit-identical again, verified by rendering ten scenes (clear, broken,
+  overcast, thunder, fog and snow, noon to night) with the new cloud lighting
+  neutralised and comparing every channel of every pixel against main. It is
+  the Atmosphere engine's rejection of its own raymarch samples, on the same
+  kind of bound. The saving is up to six of a deck pixel's eight noise
+  evaluations on a clear sky; on SwiftShader, where the rest of the frame
+  dominates, it is inside the noise of the measurement — kept because it is
+  exact and free, not claimed as a speed-up;
 - pauses when the tab is hidden, renders a single still frame under
   `prefers-reduced-motion`, and survives context loss;
 - fades the canvas in only after the first frame is painted (no black flash).
+
+### Cloud lighting: the decks have a body
+
+The two decks are pictures, but they are lit like the Atmosphere engine lights
+its volume. An A/B of the two engines on the same scenes showed the difference
+plainly: at 55% cover the Sky drew a few pale wisps where Atmosphere drew
+cumulus with shaded bases, and at sunset the Sky's cloud all but vanished into
+the glow, which was the colour it shared. Three things came across:
+
+- **A self-shadow.** The sample nudged toward the sun, which already gave the
+  lit rim where the deck thins toward it, also gives the shadow where there is
+  more cloud between a point and the sun: the base goes `CLOUD_SHADOW` of the
+  way to the shade. Like the Atmosphere engine's shadow taps it reads only the
+  broad billows (their mass, not their fray), against its own threshold — never
+  below the middle of the noise, with an edge widened to match — so an overcast
+  keeps its thin and heavy parts instead of going one shade all over.
+- **A firmer edge where the sky is broken.** The deck's soft edge is
+  `CLOUD_EDGE` = 0.26 of noise wide up to 60% cover (it was 0.38), so a broken
+  sky has cores the eye reads as solid and edges it reads as soft, rather than a
+  translucent film all over. It widens back to 0.38 by 90%: an overcast's soft
+  masses are its structure, and the narrow edge cut them into ragged islands.
+- **A low sun from underneath.** Between the sun's last few degrees and civil
+  twilight the lit colour and the shade both take on the glow, the thickness
+  and the self-shadow ease off (the light comes from below the deck, not across
+  it), and the glow is added to the underside (`CLOUD_UNDERLIGHT`). Sunset cloud
+  glows; cloud between the viewer and the sun still stands dark against it,
+  which is what backlit cloud does.
 
 ### Gyroscope Tilt (Sky engine)
 
@@ -294,6 +336,15 @@ inside the page: its zenith is the top of the viewport, its horizon the bottom,
 the sun and moon cross it where the ephemeris puts them, and the wind blows
 across it. Tilting the device does not turn any of that — it tells that world
 which way is down, and only the things that FALL answer.
+
+The one thing that moves besides is **depth**: the two decks slide sideways a
+little with the tilt, the near deck (`TILT_NEAR`, 0.14 screen heights at a full
+sideways tilt) three times as far as the far one (`TILT_FAR`), eased over
+`TILT_TAU` so a hand's tremor never shivers the sky. The sun, the moon and the
+stars are at infinity and do not move. Nothing turns; the decks separate, the
+way the Atmosphere engine's volume shows the nearest billows moving most when
+its camera slides. Only a followed tilt does it — the upright default never
+slides — and never through the sky window, which has a camera of its own.
 
 The other reading, where the device is a window and the view counter-rotates,
 is a different feature — and it now exists as one: [the sky
