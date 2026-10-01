@@ -185,11 +185,9 @@ export function LogTimeline({
   );
 }
 
-/** A held track: the block it is drawn in, and its lane there. */
-interface Held {
-  block: string;
-  lane: number;
-}
+/** What is held: a chapter's track — the block it is drawn in, and its
+ *  lane there — or an author, `git log --author`, by identity. */
+type Held = { block: string; lane: number } | { author: string };
 
 interface TagBlockProps {
   held: Held | null;
@@ -234,7 +232,8 @@ function TagBlock({
   // a pointer (`trackHover`), and held while it has focus (`trackPin`) — a
   // click or a tap focuses it, and clicking anywhere else, or Escape, lets go.
   const [trackHover, setTrackHover] = useState<number | null>(null);
-  const trackPin = held?.block === tag.id ? held.lane : null;
+  const trackPin =
+    held && "block" in held && held.block === tag.id ? held.lane : null;
   // The row engaging its tenure right now, by hash (see `onTenureEngage`).
   const [engaged, setEngaged] = useState<string | null>(null);
   const handleTenureEngage = useCallback(
@@ -377,9 +376,16 @@ function TagBlock({
 
   const { items, graphs } = graph;
   /** Whether a lane's things step back: another chapter's track is held,
-   *  here or in another block. */
+   *  here or in another block — or an author, which no chapter is. */
   const stepsBack = (lanes: number[]) =>
-    held !== null && !(held.block === tag.id && lanes.includes(held.lane));
+    held !== null &&
+    !("block" in held && held.block === tag.id && lanes.includes(held.lane));
+  /** Whether a commit steps back: it is off the held track, or by another
+   *  author than the one held. */
+  const rowBack = (i: number) =>
+    held !== null && "author" in held
+      ? bylines[i]?.identityId !== held.author
+      : stepsBack(laneOf?.get(commits[i].id) ?? [0]);
   /** A commit outside the held track steps down one form: covers and the
    *  feed to the index's one line (the index view's own row), the index to
    *  an aside's quiet line. */
@@ -397,7 +403,8 @@ function TagBlock({
       onFocus: (e) => onHold({ block: tag.id, lane }, e.currentTarget),
       onBlur: (e) =>
         onHold(
-          (h) => (h?.block === tag.id && h.lane === lane ? null : h),
+          (h) =>
+            h && "block" in h && h.block === tag.id && h.lane === lane ? null : h,
           e.currentTarget,
         ),
       onKeyDown: (e) => {
@@ -407,6 +414,29 @@ function TagBlock({
       onClick: (e) => e.currentTarget.focus(),
     },
   });
+  /** An author marker's hold on its author — the same gesture as a
+   *  chapter's marker: a click or a tap holds it, focus moving on lets go. */
+  const authorFor = (id: string): TrackControl => {
+    const pinned = !!held && "author" in held && held.author === id;
+    return {
+      lit: pinned,
+      pinned,
+      bind: {
+        onPointerEnter: () => {},
+        onPointerLeave: () => {},
+        onFocus: (e) => onHold({ author: id }, e.currentTarget),
+        onBlur: (e) =>
+          onHold(
+            (h) => (h && "author" in h && h.author === id ? null : h),
+            e.currentTarget,
+          ),
+        onKeyDown: (e) => {
+          if (e.key === "Escape") e.currentTarget.blur();
+        },
+        onClick: (e) => e.currentTarget.focus(),
+      },
+    };
+  };
   /** In the editor's inspect mode a chapter's marker selects the chapter,
    *  and adds an entry to it. */
   const inspectControls = (t: Tag, label: string) =>
@@ -505,7 +535,7 @@ function TagBlock({
               rail={railInfo[i].rail}
               graph={graphs[i]}
               graphLit={lit.rows.get(i)}
-              {...stepDown(stepsBack(laneOf?.get(commits[i].id) ?? [0]))}
+              {...stepDown(rowBack(i))}
               tenureLit={railInfo[i].segmentId === tenure?.sid}
               onTenureEngage={handleTenureEngage}
               beamSpec={beamSpecs[i]}
@@ -524,7 +554,8 @@ function TagBlock({
                 byline={byline}
                 below={graphs[i]}
                 lit={lit.rows.get(i)}
-                dimmed={stepsBack(laneOf?.get(commits[i].id) ?? [0])}
+                dimmed={rowBack(i)}
+                control={authorFor(byline.identityId)}
               />
               {row}
             </Fragment>
@@ -556,11 +587,13 @@ function AuthorRow({
   below,
   lit,
   dimmed,
+  control,
 }: {
   byline: Byline;
   below?: RowGraph;
   lit?: RowLit;
   dimmed: boolean;
+  control: TrackControl;
 }) {
   const role = [byline.expanded.title, byline.expanded.company]
     .filter(Boolean)
@@ -579,12 +612,21 @@ function AuthorRow({
         dimmed && "opacity-40",
       )}
     >
-      <div className="grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-center">
+      {/* The whole line is the control — on a phone, a tap target the
+          width of the page, which no handle tucked under a date is. */}
+      <button
+        type="button"
+        aria-pressed={control.pinned}
+        title={byline.handle}
+        className="grid w-full cursor-pointer grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-center text-left outline-none"
+        {...control.bind}
+      >
         <span
           className={cn(
-            "hidden lg:flex justify-end whitespace-nowrap",
+            "hidden lg:flex justify-end whitespace-nowrap transition-colors duration-200",
             HASH_CELL,
             TYPE.rowMeta,
+            control.pinned && "text-foreground",
           )}
         >
           {byline.handle}
@@ -602,15 +644,36 @@ function AuthorRow({
           />
         </span>
         <span className={cn("min-w-0 truncate", TYPE.rowMeta)}>
-          <span className="lg:hidden">{byline.handle}</span>
+          <span
+            className={cn(
+              "lg:hidden transition-colors duration-200",
+              control.pinned && "text-foreground",
+            )}
+          >
+            {byline.handle}
+          </span>
           {role && (
-            <span className="text-quaternary-foreground">
+            <span
+              className={cn(
+                "transition-colors duration-200",
+                control.pinned ? "text-tertiary-foreground" : "text-quaternary-foreground",
+              )}
+            >
               <span className="lg:hidden"> · </span>
               {role}
             </span>
           )}
         </span>
-      </div>
+        {/* Held, the role says what it was — as a chapter's marker, held,
+            prints its tag message. */}
+        {byline.expanded.description && (
+          <Unfold open={control.pinned} className="col-start-2 lg:col-start-3 min-w-0">
+            <p className={cn("pt-1.5 pb-1", TYPE.caption)}>
+              {byline.expanded.description}
+            </p>
+          </Unfold>
+        )}
+      </button>
     </div>
   );
 }
