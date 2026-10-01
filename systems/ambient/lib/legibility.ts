@@ -155,10 +155,16 @@ export const DEFAULT_LEGIBILITY_POLICY: LegibilityPolicy = {
   toneWorst: { light: 0.22, dark: 0.85 },
   flipMargin: 0.15,
   dropBias: 0.25,
-  veilBase: { light: 0.32, dark: 0.4 },
+  // The veil is the reading column's ground, and the ink's lift can only do
+  // so much on a thin one: at 0.32 two-thirds of the picture came through,
+  // and a dark or saturated one under the light theme (earth-moon-horizon,
+  // aurora, the iPadOS violets) left the column on a grey haze where no rung
+  // short of the ink reached 4.5:1. The veil is uniform: shaped to the
+  // column, it thinned toward the margins and the column read as a band.
+  veilBase: { light: 0.5, dark: 0.55 },
   veilBusy: 0.15,
-  veilConflict: 0.15,
-  veilMax: 0.7,
+  veilConflict: 0.2,
+  veilMax: 0.8,
   blurBase: 28,
   blurBusy: 16,
   readingSecondaryContrast: 4.5,
