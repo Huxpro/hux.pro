@@ -19,6 +19,7 @@ import {
   type TimelineData,
   buildTimelineData,
   sortCommitsByDate,
+  threadByProject,
 } from "./log";
 
 export interface EraBlock extends TimelineData {
@@ -71,7 +72,14 @@ export function buildEraTimeline(
     const members = group.map(({ tag }) => tag);
     if (group.length === 1) return { ...group[0], members };
     const lane = new Map(group.map((_, i) => [rank.get(members[i].id)!, i]));
-    const commits = sortCommitsByDate(group.flatMap(({ commits }) => commits));
+    // Joined, the chapters are sorted again as one, which undoes the
+    // threading each chapter came with (`threadByProject`): a talk filed
+    // under a project would float back to its own month, above or below
+    // its project by date. Thread the joined list, so a project and its
+    // talks stay one run across the overlap.
+    const commits = threadByProject(
+      sortCommitsByDate(group.flatMap(({ commits }) => commits)),
+    );
     return {
       tag: members[0],
       members,
