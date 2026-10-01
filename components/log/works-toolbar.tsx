@@ -64,6 +64,7 @@ import {
 } from "motion/react";
 import { GalleryVertical, GitBranch, LayoutList, List, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/ui/controls";
 import { t, type Locale } from "@/lib/i18n";
@@ -74,6 +75,7 @@ import {
 import { LOG_FORMS, type LogForm } from "@/lib/log-view";
 import { pageScrollTop, scrollPageTo } from "vitre";
 import { usePageLift } from "@/components/ui/use-page-lift";
+import { useNoticeYield } from "@/components/ui/use-notice-yield";
 import { useScrollEdges } from "@/components/ui/use-scroll-edges";
 import { CommitIcon } from "./icons";
 import { CHAPTER_PILL } from "./log-timeline";
@@ -129,15 +131,16 @@ const FORM_CHIP: Record<
 };
 
 /**
- * The ground the pinned row stands on: a Dock Live Activity pill's own
- * recipe (systems/dock/components/live-activity.tsx), blur included on a
+ * The ground the pinned row stands on: the capsule a Dock Live Activity
+ * pill is made of (`GLASS_CAPSULE`, lib/glass.ts), blur included on a
  * phone. The two float one over the other, and a capsule that is more
  * see-through than the pill above it reads as a lesser thing — measured on
  * iOS without the blur, the log's text showed through between the counts.
  */
 const PANEL = cn(
-  "pointer-events-none absolute -inset-x-2.5 -inset-y-1.5 -z-10 rounded-full",
-  "border border-border/50 bg-glass backdrop-blur-xl shadow-raised",
+  GLASS_CAPSULE,
+  // `--pin-outset` (globals.css): PageLayout pins the bar by its glass.
+  "pointer-events-none absolute -inset-x-2.5 inset-y-[calc(var(--pin-outset)*-1)] -z-10",
 );
 
 /** How much scroll it takes the capsule to grow in: the row has left its
@@ -170,6 +173,16 @@ export function WorksToolbar({
   const motionOf = reduced ? { duration: 0 } : SETTLE;
   const lift = usePageLift(LIFT_PX);
   const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
+  // Steps aside for a Dock notice it would sit under (use-notice-yield).
+  // The fade goes on the capsule and on the row, never on the box holding
+  // the capsule; the box takes only the transform and the pointer.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const away = useNoticeYield(rootRef);
+  const panelOpacity = useTransform(() => lift.get() * (1 - away.get()));
+  const rowOpacity = useTransform(away, [0, 1], [1, 0]);
+  const rootY = useTransform(away, [0, 1], [0, -6]);
+  const rootScale = useTransform(away, [0, 1], [1, 0.96]);
+  const rootPointer = useTransform(away, (a) => (a > 0.5 ? "none" : "auto"));
 
   /** Back to where the chapter starts: its marker lined up under the slot,
    *  the frame where the slot takes it over. */
@@ -190,16 +203,23 @@ export function WorksToolbar({
     // `isolate` so the panel's `-z-10` sits behind this row and not behind
     // the page. `w-max`, bounded by the column: the capsule hugs what it
     // holds rather than spanning a row that is mostly empty on a desk.
-    <div className="relative isolate w-max max-w-full">
+    <motion.div
+      ref={rootRef}
+      className="relative isolate w-max max-w-full origin-top"
+      style={{ y: rootY, scale: rootScale, pointerEvents: rootPointer }}
+    >
       <motion.div
         aria-hidden
         className={PANEL}
         // Grows out from the row it is catching, as far as the page has
         // lifted it.
-        style={{ opacity: lift, scale: panelScale }}
+        style={{ opacity: panelOpacity, scale: panelScale }}
       />
 
-      <div className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground">
+      <motion.div
+        style={{ opacity: rowOpacity }}
+        className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground"
+      >
         {/* The ref we are reading — `main` above the first chapter, the
             chapter once its marker reaches here. Not a control at rest: the
             anchor the rest of the row hangs off, and the reason the page
@@ -351,8 +371,8 @@ export function WorksToolbar({
             })}
           />
         </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

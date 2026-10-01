@@ -17,9 +17,9 @@ import type {
 } from "@/lib/log";
 import { localize, resolveIdentity, sortCommitsByDate } from "@/lib/log";
 import { useLocale } from "@/services";
-import { X, Trash2, Plus, Unlink, GitBranch, AlertTriangle } from "lucide-react";
+import { X, Trash2, Plus, Unlink, GitBranch, AlertTriangle, Check } from "lucide-react";
 import { commitIcons } from "@/components/log/icons";
-import { toast } from "sonner";
+import { showNotice } from "@/systems/dock";
 import { useLabStrings } from "@/systems/lab";
 import { WORKS_STRINGS, type WorksStrings } from "./strings";
 
@@ -320,7 +320,7 @@ export function CommitEditor({
       onUpdate(parsed as Commit);
       setJsonError(null);
       setTab("form");
-      toast.success(S.jsonApplied);
+      showNotice({ id: "lab", icon: Check, title: S.jsonApplied });
     } catch (err) {
       setJsonError(err instanceof Error ? err.message : S.jsonInvalid);
     }

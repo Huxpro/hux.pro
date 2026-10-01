@@ -283,6 +283,21 @@ export const translations = {
     solarThemeToDark: "Dark Mode",
     solarThemeNote: "Following the Sun",
 
+    // A bilingual post — the language switch, and a link shared in the other
+    // language than the reader's. `{lang}` / `{shared}` / `{preferred}` are
+    // `languageNameEn` / `languageNameZh`, in the words of the text around them.
+    // The two choices are each read in the language they lead to
+    // (`languageSwitchTo` in the preferred one, `languageStayIn` in the shared
+    // one); see components/post/language-sheet.tsx.
+    languageNameEn: "English",
+    languageNameZh: "Chinese",
+    languageReadingIn: "Reading in {lang}",
+    languageNote: "Preference unchanged",
+    languageSharedTitle: "Shared in {shared}",
+    languageSharedBody: "You usually read in {preferred}; this post comes in {preferred} too.",
+    languageSwitchTo: "Read in {preferred}",
+    languageStayIn: "Keep reading in {shared}",
+
     // The article header's provenance line, folded behind an `(i)`.
 
     // Reading settings (the article page's "Aa")
@@ -710,6 +725,16 @@ export const translations = {
     solarThemeToLight: "浅色模式",
     solarThemeToDark: "深色模式",
     solarThemeNote: "跟随太阳",
+
+    // 双语文章 —— 切换语言，以及别人分享来的另一种语言的链接。
+    languageNameEn: "英文",
+    languageNameZh: "中文",
+    languageReadingIn: "正在阅读{lang}版",
+    languageNote: "偏好未更改",
+    languageSharedTitle: "分享的是{shared}版",
+    languageSharedBody: "你平时读{preferred}，这篇也有{preferred}版。",
+    languageSwitchTo: "切换到{preferred}版",
+    languageStayIn: "继续读{shared}版",
 
     // The article header's provenance line, folded behind an `(i)`.
 

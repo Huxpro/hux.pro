@@ -21,8 +21,8 @@ import {
 } from "@/components/log/timeline-edit-context";
 import { t, useLocale } from "@/services";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
-import { toast } from "sonner";
-import { MousePointer2 } from "lucide-react";
+import { showNotice } from "@/systems/dock";
+import { Check, CircleAlert, MousePointer2, RotateCcw } from "lucide-react";
 import { useLabStrings, LabShell } from "@/systems/lab";
 import { WORKS_STRINGS } from "./strings";
 import { WorksActions, WorksTools } from "./toolbar";
@@ -153,9 +153,9 @@ export function WorksLabView({ initialData }: WorksLabViewProps) {
         throw new Error(err.error || S.saveFailed);
       }
       setSavedData(data);
-      toast.success(S.saved);
+      showNotice({ id: "lab", icon: Check, title: S.saved });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : S.saveFailed);
+      showNotice({ id: "lab", icon: CircleAlert, title: err instanceof Error ? err.message : S.saveFailed, duration: 6000 });
     } finally {
       setSaving(false);
     }
@@ -169,9 +169,9 @@ export function WorksLabView({ initialData }: WorksLabViewProps) {
       setData(fresh);
       setSavedData(fresh);
       clearSelection();
-      toast.success(S.reloaded);
+      showNotice({ id: "lab", icon: RotateCcw, title: S.reloaded });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : S.resetFailed);
+      showNotice({ id: "lab", icon: CircleAlert, title: err instanceof Error ? err.message : S.resetFailed, duration: 6000 });
     }
   }, [clearSelection, S]);
 

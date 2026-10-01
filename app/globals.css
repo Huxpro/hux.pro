@@ -166,10 +166,14 @@
 /* The gap under a page's hero (components/ui/hero-exit.ts), a variable so a
    bar pinned out of the hero can be lifted back over it by the same amount.
    `--dock-clear` is the bottom of the Dock's pills, published by the Dock
-   itself (systems/dock) — 0 until it has any. */
+   itself (systems/dock) — 0 until it has any. `--pin-outset` is how far a
+   pinned bar's glass capsule reaches past its row (the /works and /prompt
+   toolbars), so the bar can clear the Dock by its glass and not by its text:
+   counted by the row, the two capsules stood 2px apart. */
 :root {
   --hero-gap: 1rem;
   --dock-clear: 0px;
+  --pin-outset: 0.375rem;
 }
 @media (width >= 40rem) {
   :root {

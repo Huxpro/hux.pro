@@ -26,8 +26,7 @@ import {
 import type { PermissionKind } from "../lib/permissions";
 import { usePermissions } from "./use-permissions";
 import { usePathname } from "next/navigation";
-import { showCustomToast } from "@/components/ui/system-sonner";
-import { SystemToast } from "@/components/ui/system-toast";
+import { showNotice } from "@/systems/dock";
 import { t, useLocale } from "@/services";
 import { Compass } from "lucide-react";
 import { useHomeEditing } from "@/components/ui/home-edit-store";
@@ -267,14 +266,13 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         setSkyWindow(true);
         // The sky answering is most of the feedback; this is the rest — what
         // just happened, and how to undo it.
-        showCustomToast(
-          <SystemToast
-            icon={Compass}
-            title={t(locale, "skyWindowOn")}
-            note={t(locale, "skyWindowOnNote")}
-          />,
-          { id: "sky-window", duration: 3200 }
-        );
+        showNotice({
+          id: "sky-window",
+          icon: Compass,
+          title: t(locale, "skyWindowOn"),
+          note: t(locale, "skyWindowOnNote"),
+          duration: 3200,
+        });
       },
     });
   }, [openAction, skyWindow, openSkyOffer, setSkyWindow, locale]);
@@ -283,8 +281,10 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     if (!shown) return;
     return attachSkyReturn(() => {
       setSkyWindow(false);
-      showCustomToast(<SystemToast icon={Compass} title={t(locale, "skyWindowOff")} />, {
+      showNotice({
         id: "sky-window",
+        icon: Compass,
+        title: t(locale, "skyWindowOff"),
         duration: 1600,
       });
     });

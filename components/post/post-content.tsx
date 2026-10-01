@@ -6,6 +6,7 @@ import type { Locale } from "@/lib/i18n";
 import { Languages } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, type ReactNode } from "react";
+import { LanguageSharedSheet } from "./language-sheet";
 import { ReadingSettings } from "./reading-sheet";
 import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
@@ -89,7 +90,7 @@ export function PostContent({
 }: PostContentProps) {
   const pathname = usePathname();
 
-  const { displayLocale, switchLanguage, hasAlternate, alternateLabel } =
+  const { displayLocale, switchLanguage, hasAlternate, alternateLabel, shared } =
     usePostLanguage({ locale, language });
 
   useEffect(() => {
@@ -179,6 +180,7 @@ export function PostContent({
         </p>
       )}
       {toc && <RulerToc />}
+      {hasAlternate && <LanguageSharedSheet {...shared} />}
     </PageLayout>
   );
 }

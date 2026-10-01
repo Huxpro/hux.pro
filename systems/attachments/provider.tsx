@@ -9,8 +9,7 @@ import {
   useState,
 } from "react";
 import { useTransitionRouter } from "next-view-transitions";
-import { showCustomToast } from "@/components/ui/system-sonner";
-import { SystemToast } from "@/components/ui/system-toast";
+import { showNotice } from "@/systems/dock";
 import { getDomainLabel } from "@/lib/og-core";
 import { t, useLocale } from "@/services";
 import { ArrowUpRight } from "lucide-react";
@@ -207,18 +206,17 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           // says why it left: the reader asked the site to open something
           // and the browser took it, which reads as a glitch unless named.
           // On a phone the sheet's own button already says so (its mark is
-          // the arrow out, and the page notes it) — no toast under a tab
+          // the arrow out, and the page notes it) — no notice under a tab
           // that has just covered the screen.
           if (!compact && leavesSite(media)) {
             const host = getDomainLabel(url);
-            showCustomToast(
-              <SystemToast
-                icon={ArrowUpRight}
-                title={t(locale, "linkOpensInTab")}
-                note={t(locale, "linkFrameDenied").replace("{host}", host)}
-              />,
-              { id: `frame-denied:${host}`, duration: 4000 },
-            );
+            showNotice({
+              id: `frame-denied:${host}`,
+              icon: ArrowUpRight,
+              title: t(locale, "linkOpensInTab"),
+              note: t(locale, "linkFrameDenied").replace("{host}", host),
+              duration: 4000,
+            });
           }
           return;
         }

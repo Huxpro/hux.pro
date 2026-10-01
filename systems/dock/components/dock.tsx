@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 import { DockProvider } from "../provider";
+import { DockNotice } from "./dock-notice";
 
 // ---------------------------------------------------------------------------
 // Dock — the top-of-screen home for Live Activities.
@@ -12,6 +13,8 @@ import { DockProvider } from "../provider";
 //     becomes horizontally scrollable once it gets crowded.
 //   • Expanded: the open activity's panel takes over the same top-center anchor
 //     while every pill goes invisible and stops taking pointers.
+//   • A notice (../notice.ts) takes the anchor the same way, for as long as it
+//     is up — see dock-notice.tsx.
 //
 // The row holds pills and nothing else. The panels are Base UI drawers,
 // portalled into the shared surface viewport (see live-activity.tsx), so the
@@ -123,6 +126,7 @@ function DockSurface({ children }: { children: React.ReactNode }) {
       >
         {children}
       </div>
+      <DockNotice />
     </div>
   );
 }

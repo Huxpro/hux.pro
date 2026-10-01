@@ -6,14 +6,20 @@ metaphor). It is the shared foundation for the "Global Player" UI: the music
 player and the ambient phase notification are both dock activities and therefore
 look and behave identically.
 
+It is also where the site's one-line **notices** appear — "Dark Mode ·
+Preference unchanged", "Reading in Chinese", "Sky window · swipe up to come
+back". See [Notices](#notices).
+
 ## Overview
 
 ```
 systems/dock/
 ├── provider.tsx                  # DockProvider + useDock (coordination only)
+├── notice.ts                     # showNotice / dismissNotice — the notice store
 ├── components/
 │   ├── dock.tsx                  # <Dock> — pill row layout
 │   ├── live-activity.tsx         # <LiveActivity> — the pill ⇄ panel drawer
+│   ├── dock-notice.tsx           # <DockNotice> — the notice, at the pills' anchor
 │   └── index.ts
 └── index.ts
 ```
@@ -199,6 +205,84 @@ These match the product spec for multiple simultaneous activities:
 - **Dismissal:** a press outside, Escape, a swipe up, the collapse chevron, or a
   route change. The first three are the drawer's; the last is `DockProvider`'s.
 
+- **A notice takes the anchor too:** while one is up the pills step aside for
+  it exactly as they do for a panel, and a notice raised while a panel is open
+  waits for the panel to close. The top centre holds one thing at a time.
+
+## Notices
+
+```ts
+import { showNotice, dismissNotice } from "@/systems/dock";
+
+showNotice({
+  id: "solar-theme",          // the same id again updates it in place
+  icon: Sunset,
+  title: "Dark Mode",         // the fact
+  note: "Preference unchanged", // behind it: what did not change, or how to undo
+  duration: 5_000,            // default 3.2s
+});
+```
+
+A notice is the system telling you something happened, once, in a line: the
+sun switched the theme, the page is in the other language now, the sky window
+opened, a link went to a new tab. It is callable from anywhere — providers,
+effects, a clock — because it is a module store (`notice.ts`), not a context;
+most callers sit beside the Dock in the tree, not under it.
+
+**Why here, and not a bottom toast.** The site used to show these through Sonner
+at the bottom centre. Measured on a 390px phone, the toast row sat 16px from the
+bottom and 46px tall, over the command bar at 24–72px: for the three seconds
+it was up, a tap on ⌘K landed on the toast. The two-button language card was
+worse — 136px tall, over ⌘K until answered — and at `z-index: 999999999` it
+drew over every sheet and over the About veil. The fix is a rule about which
+edge means what:
+
+| Edge | Direction | What lives there |
+|---|---|---|
+| **Top** | the system → you | Live Activities, notices |
+| **Bottom** | you → the system | the command bar, and the sheets that rise from it |
+
+A notice at the top cannot collide with the command bar, and the Dock already
+knew how to share its anchor (pills ⇄ panel).
+
+Rules it keeps:
+
+- **One at a time.** A new notice replaces the one showing; they crossfade in
+  place. Nothing stacks.
+- **Its time runs only on screen.** Behind an open panel it waits, then gets its
+  full duration.
+- **It does not publish into `--dock-clear`, and a bar it would cover steps
+  aside.** The /works and /prompt bars pin under the pills by that variable;
+  pushing them down for a three-second line would make them jump twice. Left
+  alone under a notice, a pinned bar is wider than it and shows round both its
+  ends. So it fades and lifts away the way the pills do, and comes back when
+  the notice goes (`components/ui/use-notice-yield.ts`). Only when it is
+  actually under the notice: pinned below Live Activity pills it already
+  clears it, and resting under the title it is nowhere near.
+- **A press takes it down early.** It is not a button — a screen reader hears
+  it through the `role="status"` region — so its time is what dismisses it for
+  everyone else.
+- **Opacity on the glass.** The notice's fade is on the capsule, which carries
+  the blur; see "The glass is the constraint on the motion" above.
+
+A notice has no choices in it. Anything that asks — like a link shared in the
+other language than the reader's — is a surface: a bigger toast rather than a
+dialog. `components/post/language-sheet.tsx` is a form sheet rising from the
+bottom at every width, capped at 400px on a desk (`sheetMaxWidth`), and not
+modal: no scrim, the page stays live behind it.
+
+### Shape
+
+The shape says what a thing is, not which edge it came from:
+
+- **Capsule** (`GLASS_CAPSULE`, `lib/glass.ts`) — one line to glance at: a Live
+  Activity pill, a notice, the pinned /works and /prompt bars, the command bar.
+- **Rounded rectangle** — something to read or act on: the Live Activity panel
+  (16px), a sheet (24px), a window.
+
+A capsule with two buttons in it, or a card pretending to be a toast, is the
+thing to avoid.
+
 ## Consumers
 
 | Activity | Source | Pill | Panel body |
@@ -207,6 +291,12 @@ These match the product spec for multiple simultaneous activities:
 | Ambient phase | `systems/ambient/components/phase-activity.tsx` | sun icon + time | `<WeatherNow />` |
 | Theater audio | `systems/theater/components/theater-activity.tsx` | thumbnail + EQ | transport + `<SurfaceSwitch />` |
 | Minimized windows | `systems/windows/components/minimized-dock.tsx` | app icon + title | — (restores the window) |
+
+Notices: the sun switching the theme (`systems/ambient/components/solar-theme.tsx`),
+the sky window (`wallpaper-background.tsx`), a link that refused to be framed
+(`systems/attachments/provider.tsx`), the language switch on a bilingual post
+(`components/post/use-post-language.tsx`), and the `/editor` labs' save and
+reset.
 
 Music and Ambient phase reuse the same shared body component their homepage
 widget uses (`NowPlaying`, `WeatherNow`), so the dock panel and the grid widget
