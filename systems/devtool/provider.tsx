@@ -165,6 +165,8 @@ interface DevtoolSettings {
   phonePalette: PhonePalette;
   homeWeather: HomeWeather;
   worksRef: WorksRef;
+  /** The projects shelf above /works' log — on trial, off by default. */
+  worksShelf: boolean;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
 }
@@ -176,6 +178,7 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   phonePalette: PHONE_PALETTE_DEFAULT,
   homeWeather: HOME_WEATHER_DEFAULT,
   worksRef: WORKS_REF_DEFAULT,
+  worksShelf: false,
   detached: false,
 };
 
@@ -231,6 +234,7 @@ function getDevtoolSettings(): DevtoolSettings {
         worksRef: (WORKS_REFS as readonly string[]).includes(parsed.worksRef)
           ? parsed.worksRef
           : WORKS_REF_DEFAULT,
+        worksShelf: parsed.worksShelf === true,
         detached: parsed.detached === true,
       };
     }
@@ -335,6 +339,10 @@ interface DevtoolContextType {
   /** How a chapter's ref sits on /works' graph. A saved setting. */
   worksRef: WorksRef;
   setWorksRef: (value: WorksRef) => void;
+  /** Whether /works opens with the projects shelf. A saved setting, off
+   *  by default. */
+  worksShelf: boolean;
+  setWorksShelf: (value: boolean) => void;
   /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
@@ -407,6 +415,7 @@ export function DevtoolProvider({
   const [homeWeather, setHomeWeatherState] =
     useState<HomeWeather>(HOME_WEATHER_DEFAULT);
   const [worksRef, setWorksRefState] = useState<WorksRef>(WORKS_REF_DEFAULT);
+  const [worksShelf, setWorksShelfState] = useState(false);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -425,6 +434,7 @@ export function DevtoolProvider({
     setPhonePaletteState(settings.phonePalette);
     setHomeWeatherState(settings.homeWeather);
     setWorksRefState(settings.worksRef);
+    setWorksShelfState(settings.worksShelf);
     setIsDetached(settings.detached);
   }, []);
 
@@ -592,6 +602,11 @@ export function DevtoolProvider({
     setDevtoolSettings({ worksRef: value });
   }, []);
 
+  const setWorksShelf = useCallback((value: boolean) => {
+    setWorksShelfState(value);
+    setDevtoolSettings({ worksShelf: value });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -651,6 +666,8 @@ export function DevtoolProvider({
         setHomeWeather,
         worksRef,
         setWorksRef,
+        worksShelf,
+        setWorksShelf,
         heroExitOverride,
         setHeroExitOverride,
       }}

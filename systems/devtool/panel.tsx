@@ -2982,7 +2982,7 @@ function MusicModule() {
 function WorksModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { worksRef, setWorksRef } = useDevtool();
+  const { worksRef, setWorksRef, worksShelf, setWorksShelf } = useDevtool();
   const onWorks = usePathname() === "/works";
   const options: { value: WorksRef; label: string; title: string }[] = [
     {
@@ -3032,7 +3032,7 @@ function WorksModule() {
       icon={<GitBranch className="h-4 w-4" />}
       compact
       relevant={onWorks}
-      star={worksRef !== WORKS_REF_DEFAULT ? "saved" : null}
+      star={worksRef !== WORKS_REF_DEFAULT || worksShelf ? "saved" : null}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">{worksRef}</span>
       }
@@ -3046,6 +3046,23 @@ function WorksModule() {
         }
       >
         <PanelSegmented value={worksRef} options={options} onChange={setWorksRef} />
+      </PanelRow>
+      {/* The projects shelf above the log (components/log/project-shelf.tsx):
+          every project's mark in a row, a caret opening the directory. On
+          trial; off until it earns the page. */}
+      <PanelRow
+        label={zh ? "项目架" : "Projects shelf"}
+        star={
+          worksShelf ? (
+            <PanelStar source="saved" onReset={() => setWorksShelf(false)} />
+          ) : undefined
+        }
+      >
+        <PanelToggle
+          on={worksShelf}
+          onClick={() => setWorksShelf(!worksShelf)}
+          label={zh ? "项目架" : "Projects shelf"}
+        />
       </PanelRow>
     </DebugSection>
   );
