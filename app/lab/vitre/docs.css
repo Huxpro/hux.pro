@@ -107,9 +107,13 @@
    theme-color (--chrome), with their ink (--chrome-ink) picked for contrast. */
 
 .vitre-lab .phone {
+  --phone-glass: #0b0b0c;
   position: relative;
   transform-origin: top left;
   border-radius: 58px;
+}
+.dark .vitre-lab .phone {
+  --phone-glass: #1c1c1e;
 }
 /* The body: one solid shape behind the screen, 12px larger all round. The
    screen sits on it, so no edge of the screen is butted against the frame —
@@ -125,7 +129,7 @@
   inset: -12px;
   border-radius: 70px;
   pointer-events: none;
-  background: #0b0b0c;
+  background: var(--phone-glass);
   box-shadow:
     inset 0 0 0 0.5px #b4b4ba,
     inset 0 0 0 4px #dcdce0,
@@ -133,7 +137,6 @@
     0 30px 70px rgba(30, 30, 50, 0.16);
 }
 .dark .vitre-lab .phone::before {
-  background: #1c1c1e;
   box-shadow: inset 0 0 0 2px #3a3a3c, 0 40px 80px rgba(0, 0, 0, 0.3);
 }
 .vitre-lab .phone-screen {
@@ -149,15 +152,18 @@
 .vitre-lab .phone::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -2px;
   z-index: 3;
-  border-radius: inherit;
+  border-radius: 60px;
   pointer-events: none;
   background: linear-gradient(125deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 22%, transparent 40%, transparent 72%, rgba(255, 255, 255, 0.06) 100%);
-  /* A hairline of the glass inside the screen's edge: it covers the demo
-     iframe's sides, which a fractional scale leaves between device pixels
-     (simulator.tsx, SEAM, does the top and bottom). */
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 0 1.5px #000;
+  /* The glass, over the screen's edge: from 2px outside it to 1.5px inside.
+     Under a fractional scale the screen's clip and the demo iframe's sides
+     fall between device pixels, and whatever ends exactly there blends with
+     what is behind — the demo's white body shows as a hairline. Here they
+     end under solid glass, and this ring's own soft edge lies on glass too.
+     (simulator.tsx, SEAM, does the top and bottom.) */
+  box-shadow: inset 0 0 0 3.5px var(--phone-glass);
 }
 .vitre-lab .phone-status {
   position: relative;
