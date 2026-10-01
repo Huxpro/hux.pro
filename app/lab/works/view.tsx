@@ -8,7 +8,7 @@ import {
   type MouseEvent,
 } from "react";
 import type { LogData, Commit, Tag } from "@/lib/log";
-import { buildTimelineData } from "@/lib/log";
+import { buildEraTimeline } from "@/lib/log-eras";
 import {
   enrichLogDataWithPreviews,
   type OGSnapshot,
@@ -73,7 +73,7 @@ export function WorksLabView({ initialData }: WorksLabViewProps) {
   // snapshot. URLs that aren't snapshotted yet need `pnpm og:snapshot`.
   const previewData = useMemo(
     () =>
-      buildTimelineData(
+      buildEraTimeline(
         enrichLogDataWithPreviews(data, ogSnapshot),
         inspecting ? undefined : locale,
         inspecting ? { includeAll: true } : undefined,

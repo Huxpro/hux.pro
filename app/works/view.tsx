@@ -4,11 +4,11 @@ import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
 import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
+import { useOptionalDevtool, WORKS_REF_DEFAULT } from "@/systems/devtool";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { t, useLocale } from "@/services";
 import {
-  buildTimelineData,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
@@ -21,6 +21,7 @@ import {
   toggleType,
   type LogForm,
 } from "@/lib/log-view";
+import { buildEraTimeline } from "@/lib/log-eras";
 
 interface WorksViewProps {
   logData: LogData;
@@ -33,7 +34,7 @@ export function WorksView({ logData }: WorksViewProps) {
   const pathname = usePathname();
 
   const data = useMemo(
-    () => buildTimelineData(logData, locale),
+    () => buildEraTimeline(logData, locale),
     [logData, locale],
   );
 
@@ -66,6 +67,10 @@ export function WorksView({ logData }: WorksViewProps) {
   }
 
   const selectHash = useCommitAnchor();
+
+  // How a chapter's ref sits on the graph — on trial, a saved setting in
+  // the DevTool's Works module.
+  const refLook = useOptionalDevtool()?.worksRef ?? WORKS_REF_DEFAULT;
 
   const commit = useCallback(
     (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
@@ -130,12 +135,15 @@ export function WorksView({ logData }: WorksViewProps) {
   }, [data]);
 
   // The chapters, as the pinned bar names them when it wears one.
+  // Chapters that overlap share a block; each wears its own marker in turn.
   const chapters = useMemo(
     () =>
-      data.map(({ tag }, i) => ({
-        id: tag.id,
-        label: chapterLabel(tag, i, locale),
-      })),
+      data.flatMap(({ members }, i) =>
+        members.map((tag, k) => ({
+          id: tag.id,
+          label: chapterLabel(tag, k === 0 ? i : -1, locale),
+        })),
+      ),
     [data, locale],
   );
 
@@ -179,6 +187,7 @@ export function WorksView({ logData }: WorksViewProps) {
         activeTypes={view.types}
         onSelectHash={selectHash}
         pinnedChapters
+        refLook={refLook}
       />
 
       {/* End marker — `git init` closes a timeline that has commits in it;

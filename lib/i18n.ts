@@ -464,6 +464,17 @@ export const translations = {
     promptTokens: "tokens",
     promptLastUpdated: "last updated",
     promptModel: "model",
+
+    // Languages — the PL chart (content/blog/pl-chart)
+    languagesChart:
+      "Programming languages by how interesting they are to me and how much I've used them, shaded by abstraction level",
+    languagesAll: "show all",
+    languagesFilterHint: "pick a level to filter, drag for a range",
+    languagesPeekOpen: "click to open the note",
+    languagesReached: "dashed: reaches it by its range",
+    languagesOpenNote: "open the note",
+    languagesFilterLabel: "Filter by abstraction level",
+    languagesClose: "Close note",
   },
   zh: {
     // Navigation
@@ -875,6 +886,16 @@ export const translations = {
     promptTokens: "tokens",
     promptLastUpdated: "更新于",
     promptModel: "模型",
+
+    // Languages — the PL chart (content/blog/pl-chart)
+    languagesChart: "编程语言：横轴是我觉得有多有趣，纵轴是我用得多深，深浅是抽象层级",
+    languagesAll: "显示全部",
+    languagesFilterHint: "点选一级来筛选，拖动选一个范围",
+    languagesPeekOpen: "点击展开注解",
+    languagesReached: "虚线圈：靠区间够到",
+    languagesOpenNote: "展开注解",
+    languagesFilterLabel: "按抽象层级筛选",
+    languagesClose: "关闭注解",
   },
 } as const;
 

@@ -60,6 +60,11 @@
      quaternary labels): captions and watermarks, placeholders, dividers. */
   --color-tertiary-foreground: var(--tertiary-foreground);
   --color-quaternary-foreground: var(--quaternary-foreground);
+  /* The log's graph, on the ladder (see THE LADDER): `bg-graph-line`,
+     `stroke-graph-lit`, `ring-graph-node`… */
+  --color-graph-line: var(--graph-line);
+  --color-graph-node: var(--graph-node);
+  --color-graph-lit: var(--graph-lit);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -414,6 +419,19 @@ html[data-tint="wallpaper"] {
   --input: var(--border);
   --accent-wash: color-mix(in oklab, var(--ink) var(--wash-alpha-accent), transparent);
   --ring-wash: color-mix(in oklab, var(--ink) var(--ink-alpha-ring), transparent);
+
+  /* --- The graph (/works) ---
+     The log's lines and nodes are roles on the rungs, not alphas of their
+     own, so they follow the theme, a flipped zone, the wallpaper boost and
+     the lab's sheet like every other token (docs/system-legibility.md).
+     A line at rest carries nothing of its own: a hairline, the border rung.
+     A node (a ref's ring, a role's ring) is decoration on it: quaternary,
+     the hash's rung, a step above its line. Lit — a chapter's track, a
+     connector while its end is pointed at — it annotates the rows it joins:
+     tertiary, the rung of a date beside its title. */
+  --graph-line: var(--border);
+  --graph-node: var(--quaternary-foreground);
+  --graph-lit: var(--tertiary-foreground);
 
   /* --- Tint --- */
   --tint: oklch(var(--wp-tint-l) var(--wp-tint-c) var(--wp-tint-h));
@@ -1431,8 +1449,8 @@ main[data-variant="reader"] .reader-masthead {
   }
 }
 
-/* Tenure rail: when the role row is hovered/focused/expanded, brighten
-   every rail span in its cluster. Member hover instead activates only
+/* Tenure rail: when the role row is hovered/focused/expanded, light every
+   rail span in its cluster — on the graph's lit rung (`--graph-lit`). Member hover instead activates only
    that member's connector via JS state. */
 
 .group\/tenure:has(> [data-role-row]:hover) [data-rail-above],
@@ -1441,11 +1459,7 @@ main[data-variant="reader"] .reader-masthead {
 .group\/tenure:has(> [data-role-row]:focus-within) [data-rail-below],
 .group\/tenure:has(> [data-role-row]:has([data-expanded])) [data-rail-above],
 .group\/tenure:has(> [data-role-row]:has([data-expanded])) [data-rail-below] {
-  background-color: color-mix(
-    in oklch,
-    var(--color-muted-foreground) 30%,
-    transparent
-  );
+  background-color: var(--graph-lit);
 }
 
 /* =============================================================================
@@ -2527,4 +2541,64 @@ html[data-sky-armed] .sky-pull-cue-go {
 }
 @media (prefers-reduced-motion: reduce) {
   .voice-mic-live { animation: none; }
+}
+
+/* =============================================================================
+   The PL chart (content/blog/pl-chart) — abstraction colour
+   (lib/languages `absColor`).
+
+   The one hue on the site, because on the PL chart colour is data: a
+   language's abstraction level, 0 (bare metal) – 9 (pure). On :root, not
+   the page, so the note's popover and sheet (portaled) read them too.
+
+   violet     ordinal, one hue (OKLCH h 300) stepped 0.062 in L. Light: pale →
+              deep, the palest 2.1:1 on the page. Dark: dim → bright, from 2.1:1;
+              ten steps between that floor and white leave 0.058 each.
+   instagram  the original chart's gradient (#fcb045 → #fd1d1d → #833ab4),
+              sampled where its visualMap (min −1, max 9) put each level.
+   ink        the grayscale fallback: the theme's ink at 30 % → 100 %.
+   ============================================================================= */
+:root {
+  --abs-violet-0: oklch(0.77 0.138 300);
+  --abs-violet-1: oklch(0.708 0.18 300);
+  --abs-violet-2: oklch(0.646 0.19 300);
+  --abs-violet-3: oklch(0.583 0.19 300);
+  --abs-violet-4: oklch(0.521 0.19 300);
+  --abs-violet-5: oklch(0.459 0.19 300);
+  --abs-violet-6: oklch(0.397 0.19 300);
+  --abs-violet-7: oklch(0.334 0.178 300);
+  --abs-violet-8: oklch(0.272 0.144 300);
+  --abs-violet-9: oklch(0.21 0.112 300);
+  --abs-instagram-0: #fc933d;
+  --abs-instagram-1: #fc7535;
+  --abs-instagram-2: #fd582d;
+  --abs-instagram-3: #fd3a25;
+  --abs-instagram-4: #fd1d1d;
+  --abs-instagram-5: #e5233b;
+  --abs-instagram-6: #cc2959;
+  --abs-instagram-7: #b42e78;
+  --abs-instagram-8: #9b3496;
+  --abs-instagram-9: #833ab4;
+  --abs-ink-0: color-mix(in oklab, var(--ink) 30%, transparent);
+  --abs-ink-1: color-mix(in oklab, var(--ink) 38%, transparent);
+  --abs-ink-2: color-mix(in oklab, var(--ink) 46%, transparent);
+  --abs-ink-3: color-mix(in oklab, var(--ink) 53%, transparent);
+  --abs-ink-4: color-mix(in oklab, var(--ink) 61%, transparent);
+  --abs-ink-5: color-mix(in oklab, var(--ink) 69%, transparent);
+  --abs-ink-6: color-mix(in oklab, var(--ink) 77%, transparent);
+  --abs-ink-7: color-mix(in oklab, var(--ink) 84%, transparent);
+  --abs-ink-8: color-mix(in oklab, var(--ink) 92%, transparent);
+  --abs-ink-9: color-mix(in oklab, var(--ink) 100%, transparent);
+}
+.dark {
+  --abs-violet-0: oklch(0.445 0.19 300);
+  --abs-violet-1: oklch(0.503 0.19 300);
+  --abs-violet-2: oklch(0.561 0.19 300);
+  --abs-violet-3: oklch(0.618 0.19 300);
+  --abs-violet-4: oklch(0.676 0.19 300);
+  --abs-violet-5: oklch(0.734 0.162 300);
+  --abs-violet-6: oklch(0.792 0.124 300);
+  --abs-violet-7: oklch(0.849 0.086 300);
+  --abs-violet-8: oklch(0.907 0.052 300);
+  --abs-violet-9: oklch(0.965 0.018 300);
 }
