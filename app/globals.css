@@ -588,10 +588,47 @@ html:not([data-wallpaper-relief]) {
   --text-relief-solid: none;
 }
 
+/* Paper lift — the relief of a reading route. Text there sits on the veiled
+   picture, and the relief above (a dark drop or a white halo, sized for an
+   icon label on a busy desktop) is off: on a column of prose its drop reads
+   as type stamped into the page. What reading text wants instead is the
+   page's own colour round each glyph — the surface the text would have had
+   if it had a card — in two layers, after #98's hero lift:
+
+     edge    a tight ring (2px) that separates the glyph's edge from whatever
+             pixel of the picture is behind it; too small to pool into a box
+     bloom   a wide, faint cloud (16px) that merges between glyphs and lines
+             into a ground shaped like the text itself: a local veil where
+             there is text, and none where there is not
+
+   Both are the page colour, so the one rule is a white halo under the light
+   theme's ink and a near-black one under the dark theme's. Only on a reading
+   route with a wallpaper behind it; text on glass keeps its own (none). */
+:root {
+  --paper-edge-a: 0.7;
+  --paper-edge-r: 2px;
+  --paper-bloom-a: 0.4;
+  --paper-bloom-r: 16px;
+}
+html[data-wallpaper-surface="reading"]:not([data-wallpaper-kind="none"]) {
+  --text-relief:
+    0 0 var(--paper-edge-r) color-mix(in srgb, var(--background) calc(var(--paper-edge-a) * 100%), transparent),
+    0 0 var(--paper-bloom-r) color-mix(in srgb, var(--background) calc(var(--paper-bloom-a) * 100%), transparent);
+}
+/* Not round what carries nothing: a separator or a hash on the quaternary
+   rung is lighter than its own halo would be, so the ring reads before the
+   glyph (a dash becomes a white bar). And not round text that is there but
+   not shown — a `text-transparent` placeholder keeps its shadow, which is
+   how a hidden hash came back as a smudge. */
+html[data-wallpaper-surface="reading"]:not([data-wallpaper-kind="none"])
+  :is(.text-quaternary-foreground, .text-transparent) {
+  text-shadow: none;
+}
+
 /* Where relief lands. `text-shadow` inherits as a computed value, so it is
    declared once per kind of ground: the page, a glass surface, a solid one,
-   and any zone that changed its inputs. Prose sits on the reading veil and
-   the policy already scales it there. */
+   and any zone that changed its inputs. On a reading route the page's
+   relief is the paper lift above. */
 body,
 .ink-bare,
 .ink-bare-mid,

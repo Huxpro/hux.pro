@@ -256,6 +256,14 @@ export const SHEET_GROUPS: SheetGroup[] = [
     ],
   },
   {
+    title: "Paper lift",
+    note: "Reading routes only: the page colour round each glyph — a tight edge and a wide bloom.",
+    knobs: [
+      { name: "--paper-edge-a", label: "Edge · 0 0 2px", unit: "", min: 0, max: 1, step: 0.05 },
+      { name: "--paper-bloom-a", label: "Bloom · 0 0 16px", unit: "", min: 0, max: 1, step: 0.05 },
+    ],
+  },
+  {
     title: "Glass fills",
     note: "The current material's ladder. Switch the material to edit the other.",
     knobs: [
