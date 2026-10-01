@@ -72,8 +72,12 @@ export interface NormalizedCommit {
    */
   dateSlotOverride?: string;
 
-  // Expandable content
+  // What the description is read with
   commentary?: string;
+
+  // Expandable content
+  /** The long form behind the press (`BaseCommit.details`). */
+  details?: string;
 
   // Media
   /** Rich media (cards / widgets / players / images) shown when expanded. */
@@ -155,6 +159,7 @@ export function normalizeCommit(
   const name = localizeOptional(commit.name, locale);
   const description = localize(commit.description, locale);
   const commentary = localizeOptional(commit.commentary, locale);
+  const details = localizeOptional(commit.details, locale);
   const date = formatCommitDate(commit, locale);
   const hash = computeCommitHash(commit.id);
   const thumbnail = deriveThumbnail(media);
@@ -201,6 +206,7 @@ export function normalizeCommit(
     present: commit.present,
     foldedTitle,
     name,
+    details,
   };
 
   // Type-specific extraction
