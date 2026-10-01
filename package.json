@@ -7,7 +7,7 @@
     "build": "pnpm vitre:site:build && next build",
     "start": "next start",
     "lynx:shadow-css": "node scripts/lynx-shadow-css-bundle.mjs",
-    "predev": "node scripts/lynx-shadow-css-bundle.mjs",
+    "predev": "node scripts/lynx-shadow-css-bundle.mjs && node scripts/vitre-demo.mjs",
     "prebuild": "node scripts/lynx-shadow-css-bundle.mjs",
     "lint": "eslint",
     "og:snapshot": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/og-snapshot.ts",

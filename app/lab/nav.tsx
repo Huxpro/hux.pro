@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useLocale } from "@/services";
+import { t, useLocale } from "@/services";
 import { LAB_INDEX, LABS, labFromPath } from "./catalog";
 import { useFrameStrings } from "./i18n";
 
@@ -72,6 +72,7 @@ export function LabNav({
                 key={lab.id}
                 href={lab.href}
                 mark={lab.name[locale]}
+                library={!!lab.library}
                 hint={lab.hint[locale]}
                 active={lab.id === current?.id}
               />
@@ -86,11 +87,13 @@ export function LabNav({
 function NavItem({
   href,
   mark,
+  library,
   hint,
   active,
 }: {
   href: string;
   mark: string;
+  library?: boolean;
   hint: string;
   active: boolean;
 }) {
@@ -105,8 +108,21 @@ function NavItem({
         active && "bg-muted/25",
       )}
     >
-      <span className="font-mono text-xs text-foreground">{mark}</span>
+      <span className="flex items-center gap-1.5 font-mono text-xs text-foreground">
+        {mark}
+        {library && <LibraryTag />}
+      </span>
       <span className="text-[11px] text-muted-foreground">{hint}</span>
     </Menu.LinkItem>
+  );
+}
+
+/** A lab that publishes a library wears this beside its name. */
+export function LibraryTag() {
+  const { locale } = useLocale();
+  return (
+    <span className="rounded-full border border-border/60 px-1.5 py-px font-mono text-[10px] leading-4 text-tertiary-foreground">
+      {t(locale, "labLibrary")}
+    </span>
   );
 }

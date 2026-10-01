@@ -4,6 +4,7 @@ import { AttachmentsSurface } from "./attachments";
 import { GlowSurface } from "./glow";
 import { IconSurface } from "./icon";
 import { LegibilitySurface } from "./legibility";
+import { VitreSurface } from "./vitre";
 import { WorksSurface } from "./works";
 
 /**
@@ -16,6 +17,7 @@ export const LAB_SURFACES: Record<LabId, ComponentType> = {
   icon: IconSurface,
   legibility: LegibilitySurface,
   glow: GlowSurface,
+  vitre: VitreSurface,
 };
 
 export { SurfaceFrame } from "./frame";

@@ -25,13 +25,17 @@ import type { Locale } from "@/lib/i18n";
  * the grid's edit mode, or the switch on the index). The dropdown on each
  * lab's sticky bar (`LabNav`) is how you move between the labs.
  *
+ * Some labs publish a library (`library`): Vitre is the first. Its lab is
+ * the library's home — its documentation, with a simulator — and its content
+ * stays in the package, where the type check holds it to the API.
+ *
  * Adding a lab: an entry here, a route under `app/lab/<id>`, a surface in
  * `components/lab/surfaces`, the `LabShell` around the page, and its words
  * in both languages — a `strings.ts` beside it, read with `useLabStrings`
  * (app/lab/i18n.ts). Every lab is bilingual; code names stay as written.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "vitre";
 
 type Text = Record<Locale, string>;
 
@@ -46,6 +50,12 @@ export interface LabEntry {
   hint: Text;
   /** What it is for, a sentence or two — behind the bar's info button. */
   blurb: Text;
+  /**
+   * A library the lab publishes: a system of this site that can leave it.
+   * Its lab is its home page — documentation and a simulator — and `demo`
+   * is where it runs on its own (a phone opens it full screen).
+   */
+  library?: { package: string; demo: string };
 }
 
 export const LAB_INDEX = {
@@ -123,6 +133,21 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "One light for the whole site — Siri's ring, as a shader on the edge of a rounded box. Every specimen is the production <Glow>, drawn by the one shared renderer. Try the microphone.",
       zh: "全站只有一束光——Siri 的光环，作为圆角盒边缘上的着色器。每个样本都是线上的 <Glow>，由同一个渲染器绘制。试试麦克风。",
+    },
+  },
+  {
+    id: "vitre",
+    href: "/lab/vitre",
+    name: { en: "Vitre", zh: "Vitre 窗玻璃" },
+    mark: "vitre",
+    library: { package: "vitre", demo: "/vitre" },
+    hint: {
+      en: "Safari's glass, in your colours",
+      zh: "让 Safari 的玻璃，显示你的颜色",
+    },
+    blurb: {
+      en: "A React package from this site: it tints Safari's toolbar and status bar live on iOS 26, draws a bezel around the page, and scrolls the page in a container so its edges hold still. Its documentation, with a simulated iPhone running the demo; on a phone, the demo itself.",
+      zh: "出自本站的一个 React 包：在 iOS 26 上实时给 Safari 的工具栏和状态栏着色，给页面画一圈边框，并让页面在容器里滚动、边缘稳住。这里是它的文档，旁边一台模拟的 iPhone 跑着演示；在手机上，就是演示本身。",
     },
   },
 ];

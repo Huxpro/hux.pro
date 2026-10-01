@@ -11,7 +11,6 @@ import {
   ProcessingWidget,
   buildProcessingCommits,
 } from "@/components/home/processing-widget";
-import { LabWidget } from "@/components/home/lab-widget";
 import { PromptWidget } from "@/components/home/prompt-widget";
 import { WidgetPicker } from "@/components/home/widget-picker";
 import { HOME_WIDGETS, useWidgetPrefs } from "@/components/home/widgets";
@@ -43,6 +42,14 @@ import { AmbientGreeting, WeatherLine, WeatherWidget } from "@/systems/ambient";
 import { HOME_WEATHER_DEFAULT, useOptionalDevtool } from "@/systems/devtool";
 import { MusicWidget } from "@/systems/music";
 import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
+import dynamic from "next/dynamic";
+
+// Off until a visitor adds it (HOME_WIDGETS), and the server always renders
+// the defaults — so the Lab widget and every lab surface it rotates through
+// (Glow's renderer, the icon's) load only for a visitor who has it on.
+const LabWidget = dynamic(() => import("@/components/home/lab-widget").then((m) => m.LabWidget), {
+  ssr: false,
+});
 
 /** A declared widget's name in the picker (a log group names itself). */
 const WIDGET_TITLES = Object.fromEntries(HOME_WIDGETS.map((w) => [w.id, w.title])) as Record<
