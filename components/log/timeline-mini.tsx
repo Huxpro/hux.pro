@@ -60,8 +60,10 @@ export function TimelineMini({
   // dot. Mini rows do not unfold in place — they permalink into /works,
   // where the aside can be opened. The type is unchanged, so filters
   // still find it.
+  // The name, where the commit has one: a widget line has room for what a
+  // thing is called, and the title's detail is /works' to print.
   const displayTitle =
-    isAside && data.foldedTitle ? data.foldedTitle : data.title;
+    isAside && data.foldedTitle ? data.foldedTitle : data.name ?? data.title;
 
   // No outbound links on a mini row. They used to sit between the title and
   // the date — a globe and a GitHub mark on nearly every project — and on a

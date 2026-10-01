@@ -44,6 +44,8 @@ export interface NormalizedCommit {
 
   // Core content
   title: string;
+  /** The short name, when the commit has one (`BaseCommit.name`). */
+  name?: string;
   /**
    * The one line an aside row prints while folded. `venue · title` by
    * default — the conference, publication or platform, then what it was.
@@ -150,6 +152,7 @@ export function normalizeCommit(
   const stripItems = getMediaStripItems(expandedMedia, locale);
 
   const title = localize(commit.title, locale);
+  const name = localizeOptional(commit.name, locale);
   const description = localize(commit.description, locale);
   const commentary = localizeOptional(commit.commentary, locale);
   const date = formatCommitDate(commit, locale);
@@ -197,6 +200,7 @@ export function normalizeCommit(
     iconOverride: commit.icon,
     present: commit.present,
     foldedTitle,
+    name,
   };
 
   // Type-specific extraction
