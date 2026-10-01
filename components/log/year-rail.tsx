@@ -24,7 +24,6 @@ import {
   type FilterableCommitType,
   type TimelineData,
 } from "@/lib/log";
-import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
@@ -33,18 +32,28 @@ import { cn } from "@/lib/utils";
 // The log is already in order; what a reader loses fifteen rows down is where
 // in it they are. The dates are there, one per row, but only for the rows on
 // screen. So the margin carries the whole run, newest at the top, the way
-// the log reads — a scrollbar that is labelled in years:
+// the log reads — a scrollbar with a scale:
 //
-//   │ 2026
-//   │ 2025
-//   ┃ 2024   ← the year(s) of the row at the reading line: a talk lights its
-//   │ 2023     one, a project its span (Hermes, 2020 – 2021)
-//   │ 2022
-//   │ 2021
-//     2020   ← under a filter, a year with nothing left in it keeps its
-//     2019     place, a rung quieter and not a button, so the scale stays
-//     2018     a scale
-//   │ 2017
+//   2026 ┃
+//        ┃   ← the span of the row at the reading line: a talk lights its
+//   2023 ┃     one year, a project its years (Lynx, 2023 – 2026), and the
+//        │     span's two ends are written
+//        │
+//        ·   ← under a filter, a year with nothing left in it keeps its
+//        ·     place and drops its tick, and is not a button
+//        │
+//   2008 │   ← the rail's two ends are written, so the scale says what it
+//              spans
+//
+// Mostly ticks, and that is the point. It is a note in the margin, not a
+// second column: written out, nineteen years at the row's metadata size
+// were a list beside the list, the one thing at the page's edge as loud as
+// the dates every row already prints. So only four years are written — the
+// rail's top and bottom, which give the scale its ends, and the from and to
+// of the span in view, which say where you are — and the rest come up under
+// the pointer (or the focus). The type is the margin's, 10px mono at the
+// quaternary rung, the lightest the site sets; the lit span is the one
+// thing on it in full ink.
 //
 // Pressing a year goes to the first row of it that is on the page, under
 // whatever `?type=` is on.
@@ -294,29 +303,57 @@ function Rail({
       className="fixed top-1/2 -z-[1] -translate-y-1/2"
       style={{ left: "calc(50% + var(--page-col) / 2 + 3.5rem)" }}
     >
-      <ol className="flex flex-col">
+      <ol className="flex flex-col font-mono text-[10px] leading-none tabular-nums">
         {years.map((year) => {
           const lit = year >= current.from && year <= current.to;
-          if (!filled.has(year)) {
-            // Nothing of this year is on the page: a place on the scale,
-            // not a way in.
+          const has = filled.has(year);
+          // Written: the rail's two ends, and the two ends of the span in
+          // view. Every other year is a tick until it is pointed at.
+          const labelled =
+            year === top ||
+            year === bottom ||
+            year === current.from ||
+            year === current.to;
+          const tick = (
+            <span
+              aria-hidden
+              className={cn(
+                "block h-full w-[2px] rounded-full transition-colors duration-300",
+                lit
+                  ? "bg-foreground"
+                  : has
+                    ? "bg-border group-hover/year:bg-tertiary-foreground"
+                    : // Nothing of this year is on the page: its place on
+                      // the scale, and no tick.
+                      "bg-transparent",
+              )}
+            />
+          );
+          const label = (
+            <span
+              className={cn(
+                "transition-[color,opacity] duration-300",
+                lit
+                  ? "text-foreground"
+                  : "text-quaternary-foreground group-hover/year:text-tertiary-foreground",
+                labelled
+                  ? "opacity-100"
+                  : "opacity-0 group-hover/year:opacity-100 group-focus-visible/year:opacity-100",
+              )}
+            >
+              {year}
+            </span>
+          );
+          if (!has) {
+            // A place on the scale, not a way in.
             return (
               <li
                 key={year}
                 aria-hidden
-                className={cn(
-                  TYPE.hash,
-                  "flex h-5 items-center gap-2.5 leading-none tabular-nums transition-colors duration-300",
-                  lit && "text-foreground",
-                )}
+                className="group/year flex h-4 items-center gap-2"
               >
-                <span
-                  className={cn(
-                    "h-full w-px transition-colors duration-300",
-                    lit && "bg-foreground",
-                  )}
-                />
-                {year}
+                {tick}
+                {label}
               </li>
             );
           }
@@ -326,22 +363,10 @@ function Rail({
                 type="button"
                 onClick={() => goTo(year)}
                 aria-current={year === current.year ? "location" : undefined}
-                className={cn(
-                  TYPE.rowMeta,
-                  "group/year flex h-5 items-center gap-2.5 leading-none tabular-nums transition-colors duration-300",
-                  lit ? "text-foreground" : "hover:text-foreground",
-                )}
+                className="group/year flex h-4 items-center gap-2"
               >
-                <span
-                  aria-hidden
-                  className={cn(
-                    "h-full w-px transition-colors duration-300",
-                    lit
-                      ? "bg-foreground"
-                      : "bg-border group-hover/year:bg-tertiary-foreground",
-                  )}
-                />
-                {year}
+                {tick}
+                {label}
               </button>
             </li>
           );
