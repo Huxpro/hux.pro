@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useNotice } from "./notice";
 
 // =============================================================================
 // Dock System — coordination layer for "Live Activities"
@@ -14,6 +15,7 @@ import { usePathname } from "next/navigation";
 // This provider owns the *coordination*, not the visuals:
 //   • which activity (if any) is currently expanded — only ONE at a time
 //   • collapse on route change
+//   • whether a notice (notice.ts) holds the dock's anchor right now
 //
 // Escape and the outside press are not here: the panel is a Base UI drawer
 // (live-activity.tsx) and the library already does both.
@@ -28,6 +30,12 @@ interface DockContextType {
   openId: string | null;
   /** True when any activity is expanded (used to hide sibling pills). */
   isAnyOpen: boolean;
+  /**
+   * True while a notice stands where the pills do. It takes the anchor the
+   * way an open panel does — the pills step aside for it and come back when
+   * it goes — and it waits while a panel is open, so the two never share it.
+   */
+  noticeUp: boolean;
   isOpen: (id: string) => boolean;
   open: (id: string) => void;
   close: () => void;
@@ -52,6 +60,7 @@ export function useDock() {
 export function DockProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [openId, setOpenId] = useState<string | null>(null);
+  const notice = useNotice();
 
   const open = useCallback((id: string) => setOpenId(id), []);
   const close = useCallback(() => setOpenId(null), []);
@@ -77,6 +86,7 @@ export function DockProvider({ children }: { children: React.ReactNode }) {
       value={{
         openId,
         isAnyOpen: openId !== null,
+        noticeUp: notice !== null && openId === null,
         isOpen,
         open,
         close,

@@ -25,7 +25,6 @@ export {
   AmbientSurface,
   AmbientPhaseActivity,
   SolarThemeSync,
-  SolarThemeToast,
   WallpaperBackground,
   WallpaperSheet,
   TiltPrimerSheet,

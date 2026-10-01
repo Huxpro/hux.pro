@@ -49,12 +49,13 @@ token follows along for free:
 
 | Token | For |
 |-------|-----|
-| `bg-glass` / `bg-glass-hover` | Widget cards, the FAB, living surfaces |
-| `bg-glass-strong` / `-hover` | Live Activity pills |
-| `bg-glass-overlay` | Live Activity panels |
+| `bg-glass` / `bg-glass-hover` | Widget cards, the FAB, living surfaces, the Dock's capsules and Live Activity panels |
+| `bg-glass-strong` / `-hover` | Theater chrome, the app folder, press and hover washes |
+| `bg-glass-overlay` | Theater chrome, the lifted peek panel (`GLASS_PANEL`) |
 | `bg-glass-sheet` | Adaptive surfaces (picker, playlist) |
 | `bg-glass-popover` | Command palette, devtool panel |
 | `GLASS_PANEL` (`lib/glass.ts`) | The lifted peek panel, shared by two callers |
+| `GLASS_CAPSULE` (`lib/glass.ts`) | One line of chrome: Live Activity pills, Dock notices, the pinned /works and /prompt bars |
 
 **Text on glass** needs nothing: the ink tokens are alphas, so they composite
 with the fill, and under an image wallpaper the relief text-shadow lands on

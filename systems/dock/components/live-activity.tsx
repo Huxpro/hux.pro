@@ -1,5 +1,6 @@
 "use client";
 
+import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import {
   SurfaceViewport,
@@ -132,7 +133,8 @@ export function LiveActivity({
   pillClassName,
   panelClassName,
 }: LiveActivityProps) {
-  const { isOpen, isAnyOpen, open, close, registerActivity } = useDock();
+  const { isOpen, isAnyOpen, noticeUp, open, close, registerActivity } =
+    useDock();
   const expanded = isOpen(id);
 
   // If this activity unmounts while expanded (e.g. its time window passes),
@@ -185,21 +187,21 @@ export function LiveActivity({
       {/* Collapsed pill — a flex item in the dock row, and the drawer's
           trigger. It stays mounted while a panel is open so the row keeps its
           layout; it just goes invisible and stops taking pointers, because the
-          open panel should stand alone. */}
+          open panel should stand alone. A notice (dock-notice.tsx) stands
+          alone in the same way while it is up. */}
       <Drawer.SwipeArea
         // See note 3 above: the wrapper is presentational, the button inside
         // it is not.
         aria-hidden={false}
         data-dock-pill=""
-        data-hidden={isAnyOpen ? "" : undefined}
+        data-hidden={isAnyOpen || noticeUp ? "" : undefined}
         className="shrink-0"
       >
         <Drawer.Trigger
           className={cn(
             "pointer-events-auto flex items-center gap-2 shrink-0",
-            "h-9 pl-1.5 pr-2.5 rounded-full",
-            "border border-border/50 bg-glass backdrop-blur-xl",
-            "shadow-raised",
+            GLASS_CAPSULE,
+            "h-9 pl-1.5 pr-2.5",
             "hover:border-border hover:bg-glass-hover transition-colors",
             "pressable active:border-border active:bg-glass-hover active:scale-95",
             pillClassName

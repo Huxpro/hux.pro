@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { toast } from "sonner";
-import { Download, RotateCcw, Save } from "lucide-react";
+import { showNotice } from "@/systems/dock";
+import { Check, CircleAlert, Download, RotateCcw, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_ICON_CONFIG,
@@ -135,13 +135,13 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || S.saveFailed);
       setSavedConfig(config);
-      toast.success(
-        json.rasterized
-          ? S.savedRaster
-          : S.savedSvgOnly,
-      );
+      showNotice({
+        id: "lab",
+        icon: Check,
+        title: json.rasterized ? S.savedRaster : S.savedSvgOnly,
+      });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : S.saveFailed);
+      showNotice({ id: "lab", icon: CircleAlert, title: err instanceof Error ? err.message : S.saveFailed, duration: 6000 });
     } finally {
       setSaving(false);
     }
@@ -149,7 +149,7 @@ export function IconLabView({ initialConfig }: IconLabViewProps) {
 
   const handleReset = useCallback(() => {
     setConfig(DEFAULT_ICON_CONFIG);
-    toast.message(S.resetDone);
+    showNotice({ id: "lab", icon: RotateCcw, title: S.resetDone });
   }, [S]);
 
   const handleDownload = useCallback(() => {
