@@ -9,15 +9,18 @@ import type {
 import { SCENARIOS, type Scenario } from "@/packages/vitre/site/src/scenarios";
 import type { SectionId } from "@/packages/vitre/site/src/docs/api";
 import type { Locale } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { libraryById } from "@/systems/lab/catalog";
+import { useLabStrings } from "@/systems/lab/i18n";
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
   type RefObject,
 } from "react";
+import { VITRE_STRINGS } from "./strings";
 
 // =============================================================================
 // The simulator — an iPhone, drawn, running the Vitre demo.
@@ -37,11 +40,8 @@ export const PHONE = { width: 402, height: 874, status: 62 };
 const TOOLBAR = { expanded: 86, collapsed: 40 };
 /** Scroll distance, px, before the simulated toolbar changes state. */
 const TOOLBAR_THRESHOLD = 8;
-/**
- * The demo build's page. Its file, not /vitre: that address sends anything
- * but a phone here (next.config.ts), and this one is never redirected.
- */
-export const DEMO_URL = "/vitre/index.html";
+/** The demo build's page (the catalog's `demo`), never redirected — /vitre sends anything but a phone to the lab. */
+export const DEMO_URL = libraryById("vitre").library.demo;
 
 function luminance(color: string | null): number {
   const m = color?.match(/^#([0-9a-f]{6})$/i);
@@ -71,10 +71,40 @@ function useSimulatedToolbar(): [boolean, (scroll: PhoneScroll) => void] {
   return [collapsed, onScroll];
 }
 
+/**
+ * The phone's latest report, outside React state: it arrives several times a
+ * second while the demo scrolls, and only the phone and the active section's
+ * readout read it (usePhoneReport) — not the whole article around them.
+ */
+export interface ReportStore {
+  get: () => PhoneReport | null;
+  subscribe: (onChange: () => void) => () => void;
+}
+
+function createReportStore(): ReportStore & { set: (report: PhoneReport) => void } {
+  let report: PhoneReport | null = null;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => report,
+    set: (next) => {
+      report = next;
+      listeners.forEach((listener) => listener());
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+
+export function usePhoneReport(reports: ReportStore): PhoneReport | null {
+  return useSyncExternalStore(reports.subscribe, reports.get, () => null);
+}
+
 export interface PhoneBridge {
   frameRef: RefObject<HTMLIFrameElement | null>;
   src: string;
-  report: PhoneReport | null;
+  reports: ReportStore;
   collapsed: boolean;
   taps: number;
   statusTap: () => void;
@@ -96,7 +126,7 @@ export function usePhoneBridge(
 ): PhoneBridge {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [ready, setReady] = useState(false);
-  const [report, setReport] = useState<PhoneReport | null>(null);
+  const [reports] = useState(createReportStore);
   const [collapsed, onPhoneScroll] = useSimulatedToolbar();
   // The phone's first language and theme come from its URL, so its first
   // frame is right; later changes come by message.
@@ -123,12 +153,12 @@ export function usePhoneBridge(
       if (event.origin !== location.origin) return;
       const type = event.data?.type;
       if (type === "vitre-demo:ready") setReady(true);
-      else if (type === "vitre-demo:report") setReport(event.data as PhoneReport);
+      else if (type === "vitre-demo:report") reports.set(event.data as PhoneReport);
       else if (type === "vitre-demo:scroll") onPhoneScroll(event.data as PhoneScroll);
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [enabled, onPhoneScroll]);
+  }, [enabled, onPhoneScroll, reports]);
 
   useEffect(() => {
     if (ready) send({ type: "vitre-demo:lang", lang: locale });
@@ -159,7 +189,7 @@ export function usePhoneBridge(
     [sendAction],
   );
 
-  return { frameRef, src, report, collapsed, taps, statusTap, run };
+  return { frameRef, src, reports, collapsed, taps, statusTap, run };
 }
 
 /**
@@ -173,20 +203,10 @@ export function usePhoneBridge(
  * does not zoom an iframe's document (its width comes out short) gets the
  * transform instead.
  */
-export function Phone({
-  bridge,
-  scale,
-  caption,
-  statusTitle,
-  className,
-}: {
-  bridge: PhoneBridge;
-  scale: number;
-  caption: string;
-  statusTitle: string;
-  className?: string;
-}) {
-  const { frameRef, report, collapsed, src, taps, statusTap } = bridge;
+export function Phone({ bridge, scale }: { bridge: PhoneBridge; scale: number }) {
+  const S = useLabStrings(VITRE_STRINGS);
+  const { frameRef, reports, collapsed, src, taps, statusTap } = bridge;
+  const report = usePhoneReport(reports);
   const chrome = report?.themeColor ?? "#ffffff";
   const ink = luminance(chrome) > 0.6 ? "#000000" : "#ffffff";
   const toolbar = collapsed ? TOOLBAR.collapsed : TOOLBAR.expanded;
@@ -201,10 +221,10 @@ export function Phone({
   } as CSSProperties;
 
   return (
-    <figure className={cn("relative m-0", className)} style={{ width: PHONE.width * scale, height: PHONE.height * scale }}>
+    <figure className="relative m-0" style={{ width: PHONE.width * scale, height: PHONE.height * scale }}>
       <div className="phone" style={style}>
         <div className="phone-screen">
-          <button type="button" className="phone-status" style={{ height: PHONE.status }} onClick={statusTap} title={statusTitle}>
+          <button type="button" className="phone-status" style={{ height: PHONE.status }} onClick={statusTap} title={S.statusTitle}>
             {taps > 0 && <span key={taps} className="phone-status-flash" aria-hidden="true" />}
             <span className="phone-time">9:41</span>
             <span className="phone-island" />
@@ -227,7 +247,7 @@ export function Phone({
           </div>
         </div>
       </div>
-      <figcaption className="absolute inset-x-0 -bottom-8 text-center text-xs text-tertiary-foreground">{caption}</figcaption>
+      <figcaption className="absolute inset-x-0 -bottom-8 text-center text-xs text-tertiary-foreground">{S.caption}</figcaption>
     </figure>
   );
 }

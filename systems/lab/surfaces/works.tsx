@@ -1,6 +1,6 @@
 "use client";
 
-import { useLabStrings } from "@/app/lab/i18n";
+import { useLabStrings } from "../i18n";
 import logData from "@/content/log.json";
 import { localize, normalizeLogData, type RawLogData } from "@/lib/log";
 import { TYPE } from "@/lib/typography";

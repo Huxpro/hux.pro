@@ -1,5 +1,5 @@
 // =============================================================================
-// Works Lab strings — both languages, keyed. See `app/lab/i18n.ts`.
+// Works Lab strings — both languages, keyed. See `systems/lab/i18n.ts`.
 //
 // What stays as written in both: the values log.json holds — commit types,
 // media kinds, `en` / `zh` / `both`, `date` / `endDate`, platform names,
@@ -9,7 +9,7 @@
 // is still what you would search log.json for.
 // =============================================================================
 
-import type { LabTable } from "@/app/lab/i18n";
+import type { LabTable } from "@/systems/lab";
 
 const en = {
   // Toolbar

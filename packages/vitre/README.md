@@ -258,8 +258,8 @@ a simulated iPhone running the demo beside the article, in the site's frame.
   shows what Vitre resolved, wrote to `<html>` and set as `theme-color`.
   Settings are saved and the boot script paints the next load from them, so
   Safari's real chrome can be tested. A phone opens it full screen; anything
-  else is sent to `/lab/vitre` (by the server, from the user agent, and by the
-  page itself on a wide screen), where it runs framed (`?frame`) in the drawn
+  else is sent to `/lab/vitre` (by hux.pro's server, from the user agent),
+  where it runs framed (`?frame`) in the drawn
   phone, in the site's light or dark, and each section drives it over
   `postMessage`. Its canonical page is the lab.
 - **In `pnpm dev`** the demo is built before Next starts whenever it is
@@ -269,17 +269,18 @@ a simulated iPhone running the demo beside the article, in the site's frame.
   (`sections.tsx`) and the API reference (`api.ts`), bilingual. Every export and
   prop is documented, and the reference is type-checked against `vitre.d.ts`,
   so `pnpm vitre:typecheck` fails for an undocumented one. hux.pro's lab
-  renders it (`app/lab/vitre`): the page, the section tabs and the simulator
-  are the lab's, the words are the package's.
+  renders it (`app/lab/vitre`, in the lab's library template): the guide with
+  its section tabs and simulator, the API page built from `api.ts`, and how
+  hux.pro itself uses the package. The pages are the lab's, the words are the
+  package's.
 
 ```bash
 pnpm vitre:site
 ```
 
 Then open `http://localhost:5173/vitre/` on a phone on the same network or in
-the iOS simulator. (`vite dev` has no lab to send a wide screen to, so there
-it shows the demo too; for the documentation run hux.pro, after
-`pnpm vitre:site:build`.)
+the iOS simulator. (`vite dev` shows the demo on any screen; for the
+documentation run hux.pro.)
 
 ## Testing
 

@@ -1,4 +1,4 @@
-import type { LabTable } from "@/app/lab/i18n";
+import type { LabTable } from "@/systems/lab";
 
 // The lab's own words. The documentation itself — every section, table and
 // API summary — is the package's, bilingual in its own `Text` type

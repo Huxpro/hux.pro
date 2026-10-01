@@ -1,5 +1,5 @@
 // =============================================================================
-// Glow Lab strings — both languages, keyed (see app/lab/i18n.ts).
+// Glow Lab strings — both languages, keyed (see systems/lab/i18n.ts).
 //
 // The motion pairs' prose is keyed by the pair's id in view.tsx's PAIRS, which
 // keeps only the structure (beam, motion, period, radius, classes). Motion
@@ -7,7 +7,7 @@
 // so they stay as written in every language; the words around them do not.
 // =============================================================================
 
-import type { LabTable } from "@/app/lab/i18n";
+import type { LabTable } from "@/systems/lab";
 
 const en = {
   // Toolbar

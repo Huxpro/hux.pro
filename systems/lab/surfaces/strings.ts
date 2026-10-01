@@ -1,4 +1,4 @@
-import type { LabTable } from "@/app/lab/i18n";
+import type { LabTable } from "../i18n";
 
 const en = {
   // Works
@@ -15,8 +15,6 @@ const en = {
   // Glow
   hey: "Hey.",
   listening: "listening…",
-  // Vitre
-  vitreTagline: "Safari's glass, in your colours",
 };
 
 const zh: typeof en = {
@@ -30,7 +28,6 @@ const zh: typeof en = {
   relief: "浮雕",
   hey: "嘿。",
   listening: "聆听中…",
-  vitreTagline: "让 Safari 的玻璃，显示你的颜色",
 };
 
 /** The surfaces' words — each lab at a glance, in the reader's language. */

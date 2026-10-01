@@ -437,11 +437,14 @@ export const translations = {
     aboutEnter: "Reveal",
     aboutClose: "Close",
 
-    // Lab (app/lab/catalog.ts holds each lab's own copy)
+    // Lab (systems/lab/catalog.ts holds each lab's own copy)
     labTitle: "Lab",
     labTitleHover: "Physics",
     labOpen: "Open",
-    labLibrary: "library",
+    labLibraries: "Libraries",
+    labLibrariesNote: "Systems of this site, published as packages",
+    labStudies: "Studies",
+    labStudiesNote: "This site's systems, laid open",
     labWidgetAdd: "Add the Lab widget to Home",
     labWidgetOn: "The Lab widget is on Home",
 
@@ -862,7 +865,10 @@ export const translations = {
     labTitle: "实验室",
     labTitleHover: "格物而致知",
     labOpen: "进入",
-    labLibrary: "开源库",
+    labLibraries: "开源库",
+    labLibrariesNote: "本站的系统，发布成了包",
+    labStudies: "研究",
+    labStudiesNote: "本站的系统，摊开来看",
     labWidgetAdd: "把实验室小组件放到主屏",
     labWidgetOn: "实验室小组件已在主屏",
 

@@ -13,12 +13,16 @@
   font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
 }
-body { margin: 0; }
+/* The page's ground. While the bezel is on, Vitre's own rule for <body> wins
+   and paints the bezel colour. */
+body { margin: 0; background: #ffffff; color: #18181b; }
 /* A stacking context of its own, so the backdrop's negative z-index paints
    above the host's body background in window scroll too (in container scroll
    <body> is fixed and already forms one). */
 #root { isolation: isolate; }
 body[data-theme="dark"] {
+  background: #1a1a1a;
+  color: #f4f4f5;
   --ink: #f4f4f5;
   --muted: #a1a1aa;
   --line: rgba(255, 255, 255, 0.12);

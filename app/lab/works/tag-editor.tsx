@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { localize, type Tag } from "@/lib/log";
 import { useLocale } from "@/services";
 import { Tag as TagIcon, X } from "lucide-react";
-import { useLabStrings } from "@/app/lab/i18n";
+import { useLabStrings } from "@/systems/lab";
 import { WORKS_STRINGS } from "./strings";
 
 interface TagEditorProps {

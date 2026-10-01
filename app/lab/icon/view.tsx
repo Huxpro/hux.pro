@@ -20,9 +20,12 @@ import {
   Slider,
   TextField,
   Toggle,
-} from "@/app/lab/controls";
-import { useLabStrings } from "@/app/lab/i18n";
-import { LabButton, LabSection, LabShell, LabUnsaved } from "@/app/lab/shell";
+  useLabStrings,
+  LabButton,
+  LabSection,
+  LabShell,
+  LabUnsaved,
+} from "@/systems/lab";
 import { ICON_STRINGS } from "./strings";
 
 /**

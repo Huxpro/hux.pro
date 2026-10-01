@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { isDemoPage, isFramed } from "./config";
+import { isFramed } from "./config";
 import { Demo } from "./demo/Demo";
 import { LangProvider } from "./i18n";
 import "./styles.css";
@@ -12,21 +12,12 @@ import "./styles.css";
 // The documentation lives on hux.pro, as a lab (/lab/vitre): the article, the
 // simulated phone that runs this page, and the site's own frame around both.
 // Its content is still the package's — src/docs here, where api.ts fails the
-// type check for an undocumented export. hux.pro's server sends anything but a
-// phone there from /vitre; this sends a wide screen that reached the page
-// anyway (an iPad, or /vitre/index.html). `vite dev` has no hux.pro to send it
-// to, so it gets the demo.
-const DOCS = "/lab/vitre";
-
-if (!isDemoPage() && import.meta.env.PROD) {
-  location.replace(DOCS + location.hash);
-} else {
-  document.documentElement.dataset.page = "demo";
-  createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-      <LangProvider persist={!isFramed()}>
-        <Demo />
-      </LangProvider>
-    </StrictMode>
-  );
-}
+// type check for an undocumented export. Which one a visitor gets is hux.pro's
+// server's call (next.config.ts): /vitre sends anything but a phone to the lab.
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <LangProvider persist={!isFramed()}>
+      <Demo />
+    </LangProvider>
+  </StrictMode>
+);

@@ -1,10 +1,10 @@
 "use client";
 
-import { useLabStrings } from "@/app/lab/i18n";
+import { labById } from "../catalog";
+import { useLocale } from "@/services";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { SurfaceFrame } from "./frame";
-import { SURFACE_STRINGS } from "./strings";
 
 /**
  * The Vitre lab at a glance: the library, not this site's use of it — a phone
@@ -12,13 +12,13 @@ import { SURFACE_STRINGS } from "./strings";
  * aurora inside and Safari's bars taking the colour, and what the package is.
  */
 export function VitreSurface() {
-  const S = useLabStrings(SURFACE_STRINGS);
+  const { locale } = useLocale();
   return (
     <SurfaceFrame className="flex items-center justify-center gap-5 px-4">
       <DemoPhone />
       <div className="min-w-0 space-y-1.5">
         <p className="font-mono text-sm text-foreground">vitre</p>
-        <p className={cn(TYPE.caption, "max-w-[11rem]")}>{S.vitreTagline}</p>
+        <p className={cn(TYPE.caption, "max-w-[11rem]")}>{labById("vitre").hint[locale]}</p>
         <p className={TYPE.labelSm}>React · iOS 26 Safari</p>
       </div>
     </SurfaceFrame>

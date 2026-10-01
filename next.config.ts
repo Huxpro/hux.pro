@@ -26,16 +26,16 @@ const nextConfig: NextConfig = {
       // /vitre is the package's short address. A phone gets the demo there,
       // full screen; anything else gets its documentation, the Vitre Lab
       // (the hash rides along). Temporary: which one depends on the device.
-      // /vitre/index.html is never redirected — the simulator frames it, and
-      // the lab's "open the demo" link points at it, so a narrow window on a
-      // desk still reaches the demo (whose own check sends wide ones back).
+      // This is the one place that decides. /vitre/index.html is never
+      // redirected: the simulator frames it, and the lab's Demo links point
+      // at it, so any screen can still open the demo itself.
       ...["/vitre", "/vitre/"].map((source) => ({
         source,
         missing: [{ type: "header" as const, key: "user-agent", value: ".*(iPhone|iPod|Android|Mobile).*" }],
         destination: "/lab/vitre",
         permanent: false,
       })),
-      // The labs' address before they were labs (app/lab/catalog.ts). The
+      // The labs' address before they were labs (systems/lab/catalog.ts). The
       // log editor is the Works Lab now; the theater chrome gallery is gone,
       // so its address lands on the index. Specific rules first.
       { source: "/editor", destination: "/lab/works", permanent: true },

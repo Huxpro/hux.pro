@@ -31,7 +31,7 @@ import { legibilityCssVars, type LegibilityVars } from "@/systems/ambient/lib/le
 import { GLASS_PILL, GLASS_TRACK } from "@/systems/theater/lib/chrome";
 import { ArrowRight, ChevronDown, Cloud, Search } from "lucide-react";
 import type { CSSProperties } from "react";
-import { useLabStrings } from "@/app/lab/i18n";
+import { useLabStrings } from "@/systems/lab";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/services";
 import { SPECIMEN_STRINGS } from "./specimen-strings";
