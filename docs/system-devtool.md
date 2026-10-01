@@ -308,6 +308,44 @@ Rail and footer stay put while the modules scroll. The modules:
    runtime and flavor, source (web / built-in / online), size preset, reload
    count, rect, and the bundle or page URL. Inspection only: apps launch, and
    bundles load by URL, from ⌘K. The header shows how many are open.
+6. **Works** (作品): on top, **Ref** — how a chapter's ref sits on the graph
+   (`auto` / stub / ring / row / under / hash; a saved setting, `worksRef` in
+   the devtool's settings, read by app/works/view.tsx). Under it, **Projects
+   shelf** — the shelf of project marks above the log
+   (components/log/project-shelf.tsx; a saved setting, `worksShelf`, off by
+   default). Under those, the /works variants, one switch per flag — see
+   below. The header reads the ref, the shelf when it is on, and the flags
+   that are on (`auto · shelf · fold`); its star and reset cover all of them.
+
+### Works flags
+
+An exploration of /works lands as a **flag**, off by default, rather than as
+a second page or a switch the reader sees; the Works module is where they
+are turned on, so variants can be compared on the real page, alone or
+together. Every flag off is /works as it ships.
+
+**The registry** is `WORKS_FLAGS` in `components/log/works-flags.ts`: per
+flag an `id`, an en/zh `label` and one-line `description`, and a `default`
+(always off). Boolean only; a flag that truly needed a small enum would add
+its values there and a segmented control in the module. The /works code
+reads a flag through one hook, `useWorksFlag("<id>")`. Adding a flag is
+therefore one registry entry plus reading it where it applies — the module
+lists the registry and needs no edit.
+
+| Flag | What it does |
+|---|---|
+| `fold` | A project's talks, press and posts leave their dates and fold behind one line under the project's row (`talks 10  WeAreDevelopers…  ⌄`), which opens in place into the log's own rows. Which rows belong to a project is `lib/works-projects.ts`. |
+
+**Where a value comes from.** A *saved setting* (blue `*`), in
+`localStorage.hux_works_flags` — a variant is compared by living with it
+across reloads, not for one session, so an amber override would be the
+wrong kind. Like the reading settings it applies whether or not the devtool
+is on. A link can carry a variant too: `?flags=fold,resume` is the whole
+set for that visit — the ids it names on, every other off, whatever is
+saved — so a link reproduces one variant exactly, and `/works?flags=` is
+the page as it ships. It is read, never written (a chip tap keeps it, as it
+keeps any param it does not own). The module shows it as a session override
+(amber); its star, or touching any switch, takes it out of the address.
 
 ### Folding and the rail
 
@@ -322,6 +360,7 @@ only it knows:
   | Module | Relevant when |
   |---|---|
   | Frontmatter, Reading | the page is a post (`pageMeta` is set) |
+  | Works | on /works |
   | Wallpaper, Sky | on home (the wallpaper is the page), or something is overridden for the session |
   | Glass | on home |
   | Music | a track is playing or paused, or the mock is on |
