@@ -47,8 +47,10 @@ export const TYPE = {
   /** A row's title: a post in a list, a commit, a track. */
   rowTitle: "text-sm text-foreground",
   /**
-   * A row's title when a message prints under it: a /works commit in the
-   * `covers` form, or any commit the reader has opened. One line on its own
+   * A row's title when its form prints a message under it: a /works commit
+   * in the `covers` or `feed` form. The form decides, not the press — an
+   * index row the reader opens keeps its weight, so the title line never
+   * changes under a tap. One line on its own
    * carries its weight by being the only thing on the ink; over a sentence
    * one rung down and one step smaller, it takes medium so the pair reads
    * as heading and body rather than two lines of the same thing.
