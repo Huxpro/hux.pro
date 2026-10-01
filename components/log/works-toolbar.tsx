@@ -25,10 +25,11 @@
  * quaternary rung, and a clear button appears. Tapping the last selected chip
  * off returns to rest — the way out is the same gesture as the way in.
  *
- * The form control is the page's real answer to "everything at once" vs.
- * "see the work" — see `lib/log-view.ts` for what the three stops print. It
- * replaces the old expand/collapse toggle, whose two states were exactly the
- * two extremes this is trying to sit between.
+ * The form control is the page's real answer to "the log at a glance",
+ * "see the work" and "the whole picture, in one page" — see
+ * `lib/log-view.ts` for what the three stops print. It replaces the old
+ * expand/collapse toggle, whose two states were the two extremes of the
+ * log, and neither of them the picture.
  *
  * The bar is pinned (PageLayout `pinnedActions`): it rests under the title
  * and rides up with the log until it meets the top, then stays, because a
@@ -62,13 +63,7 @@ import {
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import {
-  GalleryVertical,
-  GitBranch,
-  LayoutList,
-  ScrollText,
-  X,
-} from "lucide-react";
+import { GitBranch, LayoutList, List, ScrollText, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
@@ -127,17 +122,17 @@ const FORM_CHIP: Record<
   WorksForm,
   {
     icon: LucideIcon;
-    labelKey: "logFormOverview" | "logFormCovers" | "logFormFeed";
+    labelKey: "logFormIndex" | "logFormCovers" | "logFormOverview";
   }
 > = {
-  // A written page; lines with a cover block; full panels. The overview is
+  // Lines only; lines with a cover block; a written page. The log's two
+  // glyphs climb in weight as their forms climb in detail. The overview is
   // prose in sections — a name, a paragraph, then lists — rather than a
-  // column of lines, so it wears a page of text and not the list glyph the
-  // index wore. The log's two glyphs climb in weight as their forms climb
-  // in detail.
-  overview: { icon: ScrollText, labelKey: "logFormOverview" },
+  // column of rows, so it wears a page of text, not the panels the feed
+  // wore in its slot.
+  index: { icon: List, labelKey: "logFormIndex" },
   covers: { icon: LayoutList, labelKey: "logFormCovers" },
-  feed: { icon: GalleryVertical, labelKey: "logFormFeed" },
+  overview: { icon: ScrollText, labelKey: "logFormOverview" },
 };
 
 /**

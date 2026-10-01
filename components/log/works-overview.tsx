@@ -7,8 +7,11 @@
 // at one weight, newest first, so the question a visitor actually arrives
 // with — what are this person's most important works, what did they do on
 // each, when, and where can I see it? — was answered somewhere around the
-// twelfth row. The index form was meant to be the answer and was the same
-// rows with less printed.
+// twelfth row. The feed, the form control's third stop, was the log's
+// answer to "show me everything", and it was the same rows with more
+// printed: thirteen screens, still at one weight. The overview takes its
+// slot (lib/log-view.ts, "Page forms"); the index and the covers stay the
+// log at a glance and the log with its work on screen.
 //
 // This is that answer as a page, in tiers, the way a printed CV or a good
 // projects page reads, and the hierarchy comes from how much is written

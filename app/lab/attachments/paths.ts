@@ -56,8 +56,8 @@ export const RENDER_PATHS: readonly RenderPath[] = [
     id: "grid-desk",
     surface: "AttachmentGrid (desk)",
     context: {
-      en: "/works feed, sm and up — pair / lone card / lone playable",
-      zh: "/works 信息流，sm 及以上——成对／单张卡片／单个可播放项",
+      en: "The log's feed (Works Lab), sm and up — pair / lone card / lone playable",
+      zh: "日志的信息流（作品实验室），sm 及以上——成对／单张卡片／单个可播放项",
     },
     click: {
       en: "act() → nativeHomeFor (stage, window, route, tab)",
@@ -69,8 +69,8 @@ export const RENDER_PATHS: readonly RenderPath[] = [
     id: "grid-phone",
     surface: "AttachmentGrid (phone)",
     context: {
-      en: "/works feed, < sm — edge-to-edge stack",
-      zh: "/works 信息流，< sm——通栏纵向堆叠",
+      en: "The log's feed (Works Lab), < sm — edge-to-edge stack",
+      zh: "日志的信息流（作品实验室），< sm——通栏纵向堆叠",
     },
     click: {
       en: "act() on a card; a recording/deck plays in place",

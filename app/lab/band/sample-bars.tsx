@@ -3,7 +3,7 @@
 import { PromptToolbar } from "@/components/prompt/prompt-toolbar";
 import { WorksToolbar } from "@/components/log/works-toolbar";
 import { FILTERABLE_COMMIT_TYPES, type FilterableCommitType } from "@/lib/log";
-import { DEFAULT_FORM, toggleType, type LogForm } from "@/lib/log-view";
+import { DEFAULT_FORM, toggleType, type WorksForm } from "@/lib/log-view";
 import {
   PROMPT_KINDS,
   PROMPT_TOPICS,
@@ -47,7 +47,7 @@ export function SamplePromptBar() {
 export function SampleWorksBar() {
   const { locale } = useLocale();
   const [active, setActive] = useState<FilterableCommitType[]>([]);
-  const [form, setForm] = useState<LogForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<WorksForm>(DEFAULT_FORM);
   return (
     <WorksToolbar
       locale={locale}
