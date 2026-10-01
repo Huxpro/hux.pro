@@ -141,8 +141,8 @@ its measured table.
 
 ### 3. Policy (`legibility.ts`)
 
-`resolveLegibility(profile, theme, reading)` returns eight numbers — all the
-runtime ever computes, memoised on what can change:
+`resolveLegibility(profile, theme, reading, veiled)` returns these numbers —
+all the runtime ever computes, memoised on what can change:
 
 | Output | From | Lands in |
 |---|---|---|
@@ -154,6 +154,7 @@ runtime ever computes, memoised on what can change:
 | `veil` | `veilBase[theme] + busy × 0.15 + conflict × 0.15`, capped at 0.7 (base 0.32 light / 0.40 dark) | `--wp-veil`; the reading veil's alpha when Reading dim is on — under any kind, the Sky included |
 | `blur` | `28px + busy × 16px` | `--wp-blur`; the reading defocus radius when Reading blur is on — pictures only |
 | `tint` | the profile's tint clamped to L 0.50–0.66 (light) / 0.60–0.76 (dark), C 0.05–0.16; grey below chroma 0.03 | `--wp-tint-l/c/h` |
+| `lift` | reading routes only: the alpha points secondary and tertiary need, on top of `inkBoost`, to reach 4.5:1 and 3:1 on the veiled picture — its mean and its worst band — capped at 80 % / 60 % so the rungs stay rungs | `--wp-lift-secondary`, `--wp-lift-tertiary` |
 
 `busy` is `edges / 0.06`, clamped. `conflict` is how far the picture sits on
 the wrong side of the card colour (a dark photograph under the light theme's
@@ -286,6 +287,19 @@ Still open, and reproduced verbatim in the lab:
    labels are not migrated and could go either way.
 
 ### 6. The reading treatment
+
+**The lift.** Apple's ladder is tuned for an opaque ground — on white the
+secondary rung is 4.3:1 and the tertiary 2.2:1 — and a reading column's
+ground is the picture through a veil, a few points worse. So on a reading
+route each label rung is lifted to a target contrast on the ground it will
+actually sit on (`readingLift` in `legibility.ts`): the profile has the
+picture's mean colour and its bands' lightness, the veil is ours, and the
+defocus is what makes the mean honest — at 28px and up a line of text sits
+on a region's average, not its detail. Arithmetic, not sampling. The lift
+stops at a ceiling per rung (80 % / 60 %): a secondary rung lifted to the
+ink is not a rung, and where the target needs more than that, the ground is
+what is wrong and the veil is what should change. The plain page lifts too:
+tertiary on white needs about 12 points to reach 3:1.
 
 A photograph behind a 680px prose column is a competing figure, so every route
 but the home screen recedes it: a veil of the page colour over the picture and

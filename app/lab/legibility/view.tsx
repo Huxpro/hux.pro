@@ -852,7 +852,14 @@ export function LegibilityLabView() {
 
       <section>
         <SpecimenLabel>
-          {L.reading(readingVars.veil.toFixed(2), readingVars.blur, readingVars.relief.toFixed(2), readingVars.inkBoost)}
+          {L.reading(
+            readingVars.veil.toFixed(2),
+            readingVars.blur,
+            readingVars.relief.toFixed(2),
+            readingVars.inkBoost,
+            readingVars.lift.secondary,
+            readingVars.lift.tertiary,
+          )}
         </SpecimenLabel>
         <ReadingSpecimen vars={readingVars} />
       </section>

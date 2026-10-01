@@ -1461,19 +1461,21 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   // around them sits on the plain page, so the policy sees "plain" for the
   // flip and relief, while the glass still gets the picture's dimming layer.
   const [labPolicy, setLabPolicy] = useState<LegibilityPolicy | null>(null);
+  const readingDim = settings.wallpaperReadingDim;
   const resolvedLegibility = useMemo<LegibilityVars>(() => {
     const full = resolveLegibility({
       profile,
       theme: chromeTheme,
       reading,
+      veiled: readingDim,
       policy: labPolicy ?? undefined,
     });
     if (fullEnabled) return full;
     if (widgetEnabled) {
-      return { ...plainLegibility(chromeTheme), glassAdd: full.glassAdd, tint: full.tint, veil: full.veil, blur: full.blur };
+      return { ...plainLegibility(chromeTheme, reading), glassAdd: full.glassAdd, tint: full.tint, veil: full.veil, blur: full.blur };
     }
-    return plainLegibility(chromeTheme);
-  }, [profile, chromeTheme, reading, fullEnabled, widgetEnabled, labPolicy]);
+    return plainLegibility(chromeTheme, reading);
+  }, [profile, chromeTheme, reading, readingDim, fullEnabled, widgetEnabled, labPolicy]);
 
   const [legibilityOverride, setLegibilityOverride] = useState<LegibilityVars | null>(null);
   const legibility = legibilityOverride ?? resolvedLegibility;
