@@ -615,6 +615,15 @@ html[data-wallpaper-surface="reading"]:not([data-wallpaper-kind="none"]) {
     0 0 var(--paper-edge-r) color-mix(in srgb, var(--background) calc(var(--paper-edge-a) * 100%), transparent),
     0 0 var(--paper-bloom-r) color-mix(in srgb, var(--background) calc(var(--paper-bloom-a) * 100%), transparent);
 }
+/* Not round what carries nothing: a separator or a hash on the quaternary
+   rung is lighter than its own halo would be, so the ring reads before the
+   glyph (a dash becomes a white bar). And not round text that is there but
+   not shown — a `text-transparent` placeholder keeps its shadow, which is
+   how a hidden hash came back as a smudge. */
+html[data-wallpaper-surface="reading"]:not([data-wallpaper-kind="none"])
+  :is(.text-quaternary-foreground, .text-transparent) {
+  text-shadow: none;
+}
 
 /* Where relief lands. `text-shadow` inherits as a computed value, so it is
    declared once per kind of ground: the page, a glass surface, a solid one,
