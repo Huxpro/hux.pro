@@ -38,6 +38,13 @@ export interface Byline {
    * from `data.meta` — talk conference, publication, platform).
    */
   subtitle?: string;
+  /**
+   * The same team, on every project row: what a project row as a résumé
+   * entry (the `resume` flag) prints after my part in it — `Architect ·
+   * Lynx @ ByteDance`. A resume says where on every entry; the sparse
+   * `subtitle` stays the log's.
+   */
+  team?: string;
   expanded: {
     title: string;
     company: string;
@@ -93,9 +100,10 @@ export function computeBylines(
     // inheriting `Lynx @ ByteDance` prints the chip once at the top and
     // stays quiet after.
     let subtitle: string | undefined;
+    let teamStr: string | undefined;
     if (c.type === "project") {
       const teamRaw = c.team ?? role?.team;
-      const teamStr = teamRaw ? localize(teamRaw, locale) : undefined;
+      teamStr = teamRaw ? localize(teamRaw, locale) : undefined;
       if (teamStr && teamStr !== prevProjectTeam) {
         subtitle = teamStr;
         prevProjectTeam = teamStr;
@@ -113,6 +121,7 @@ export function computeBylines(
       handle: identity.handle,
       isClusterHead,
       subtitle,
+      team: teamStr,
       expanded: {
         title,
         company,

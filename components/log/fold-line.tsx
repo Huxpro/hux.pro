@@ -10,7 +10,7 @@ import {
 } from "@/lib/log";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
-import { GUTTER_PULL, HASH_CELL } from "./timeline-commit";
+import { GUTTER_PULL, HASH_CELL, RESUME_INDENT } from "./timeline-commit";
 
 /** Where a row was given — the conference, the outlet — without the year
  *  the date column already prints (`GOSIM Paris 2026` → `GOSIM Paris`). */
@@ -46,6 +46,7 @@ export function FoldLine({
   open,
   rail,
   locale,
+  resume = false,
   onToggle,
 }: {
   /** The rows it holds that the page's filter shows. */
@@ -54,6 +55,9 @@ export function FoldLine({
   /** The project's rail continues below it, so it passes through here. */
   rail: boolean;
   locale: Locale;
+  /** The project above is a résumé entry (the `resume` flag): start where
+   *  its text does, past the tile, not where its tile does. */
+  resume?: boolean;
   onToggle: () => void;
 }) {
   const counts = FILTERABLE_COMMIT_TYPES.flatMap((type) => {
@@ -113,7 +117,7 @@ export function FoldLine({
             lifts its venue into an eyebrow below `@md`, the venues here are
             a teaser list that ends in `…` by design, so they stay beside
             the counts and cut. */}
-        <span className="flex min-w-0 items-baseline gap-3">
+        <span className={cn("flex min-w-0 items-baseline gap-3", resume && RESUME_INDENT)}>
           <span className={cn("shrink-0 tabular-nums", TYPE.label)}>{counts}</span>
           <span className="ml-auto flex min-w-0 max-w-[55%] items-baseline justify-end gap-2">
             {!open && venues && (

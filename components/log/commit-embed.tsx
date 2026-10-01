@@ -72,6 +72,9 @@ export interface CommitProps {
   form?: LogForm;
   /** Make a commit the page's address; wires the hash column. */
   onSelectHash?: (hash: string) => void;
+  /** Timeline-only: a project row reads as a résumé entry (the `resume`
+   *  flag, see TimelineCommit). */
+  resume?: boolean;
 }
 
 // =============================================================================
@@ -97,6 +100,7 @@ export function Commit({
   byline = null,
   form = DEFAULT_FORM,
   onSelectHash,
+  resume = false,
 }: CommitProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -179,6 +183,7 @@ export function Commit({
           byline={byline}
           form={form}
           onSelectHash={onSelectHash}
+          resume={resume}
           attachmentSet={attachmentSet}
           inspecting={inspecting}
           isSelected={isSelected}

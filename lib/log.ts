@@ -318,6 +318,17 @@ interface BaseCommit {
    * the line only prints where the value actually changes.
    */
   team?: LocalizedString;
+  /**
+   * What I did on it, in a few words — `"Founding engineer"`, `"Led the
+   * PWA upgrade"`. With the `resume` flag on (components/log/works-flags.ts)
+   * a project row prints it before the team as its second line
+   * (`Architect · Lynx @ ByteDance`), the way a resume puts the part you
+   * played under the name of the thing. Authored, not derived: a role's
+   * title says what the job was called (`Software Engineer`), which is
+   * rarely what the project needed from me. Absent, the line is the team
+   * alone, as it always was.
+   */
+  credit?: LocalizedString;
   /** Personal reflection / liner notes */
   commentary?: LocalizedString;
   tags?: string[];

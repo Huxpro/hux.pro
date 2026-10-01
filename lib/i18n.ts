@@ -425,6 +425,12 @@ export const translations = {
     logView: "View",
     logSlides: "Slides",
     logRecording: "Recording",
+    // A project row as a résumé entry (the `resume` flag,
+    // components/log/resume.ts): its one number, and its links by name.
+    logStatUsers: "{n} users",
+    logStatDownloads: "{n} downloads",
+    logLinkImage: "image",
+    logLinkPosts: "{n} posts",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "Close attachments",
     // Image lightbox (see systems/attachments/components/image-lightbox.tsx)
@@ -862,6 +868,10 @@ export const translations = {
     logView: "查看",
     logSlides: "幻灯片",
     logRecording: "录像",
+    logStatUsers: "{n} 用户",
+    logStatDownloads: "{n} 下载",
+    logLinkImage: "图片",
+    logLinkPosts: "{n} 篇文章",
     // Attachment surface (see systems/attachments)
     attachmentsClose: "关闭附件",
     lightboxZoomIn: "放大",

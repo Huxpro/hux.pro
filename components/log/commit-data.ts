@@ -9,6 +9,7 @@
 import type { Locale } from "@/lib/i18n";
 import type { Commit, CommitType, Media, StripItem } from "@/lib/log";
 import { commitMark, type BadgeIcon } from "@/components/magic-link/resolve";
+import { resumeFacts, type ResumeFacts } from "./resume";
 import {
   localize,
   localizeOptional,
@@ -36,6 +37,12 @@ export interface NormalizedCommit {
    * the mic says what kind. Only projects carry one.
    */
   mark?: BadgeIcon;
+  /**
+   * What a project row prints as a résumé entry with the `resume` flag on:
+   * my part in it, its one stat, its links (components/log/resume.ts). Only
+   * projects carry it, and nothing reads it with the flag off.
+   */
+  resume?: ResumeFacts;
   /**
    * Timeline dressing. `"aside"` folds the row to a muted line
    * (see `foldedTitle`) until the reader opens it. Not a type.
@@ -209,6 +216,7 @@ export function normalizeCommit(
       return {
         ...identity,
         mark: commitMark(commit, locale),
+        resume: resumeFacts(commit, locale),
         languageBadge,
         title,
         description,

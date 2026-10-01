@@ -161,6 +161,10 @@ export function WorksView({ logData }: WorksViewProps) {
     () => data.flatMap(({ commits }) => commits.filter((c) => c.type === "project")),
     [data],
   );
+  // ── The `resume` flag ───────────────────────────────────────────────────
+  // How a project row reads, and nothing else: no row moves, so a permalink
+  // needs nothing from it (TimelineCommit).
+  const resumeFlag = useWorksFlag("resume");
 
   const commit = useCallback(
     (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
@@ -288,6 +292,7 @@ export function WorksView({ logData }: WorksViewProps) {
         pinnedChapters
         refLook={refLook}
         fold={fold}
+        resume={resumeFlag}
       />
 
       {/* End marker — `git init` closes a timeline that has commits in it;
