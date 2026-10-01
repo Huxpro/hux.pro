@@ -84,6 +84,13 @@ a row of their own, and on a phone they take the second row.
 4. Its words in both languages: a `strings.ts` beside it, read with
    `useLabStrings`. Code names stay as written.
 
+## The index
+
+`/lab` has two sections, libraries first: a library is a lab that shipped, a
+different promise to a different reader, so it leads as a wide card with the
+package's facts (`LibraryFacts`) and its blurb, where a study is a card in the
+grid with its one line. The switcher on every bar groups the same way.
+
 ## Quiet by design
 
 Labs is public but not what most visitors came for: the palette finds it by

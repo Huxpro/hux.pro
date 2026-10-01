@@ -167,6 +167,22 @@ export function LibraryHeader({ lab }: { lab: LibraryLab }) {
   );
 }
 
+/** The package in one mono line — `vitre v0.1.0 · React >=19 · not on npm yet` — for a card. */
+export function LibraryFacts({ lab, className }: { lab: LibraryLab; className?: string }) {
+  const L = useLabStrings(LIBRARY_STRINGS);
+  const { package: name, version, requires, npm } = lab.library;
+  return (
+    <p className={cn("flex flex-wrap gap-x-1.5 font-mono text-[11px] text-tertiary-foreground", className)}>
+      {/* Each fact whole on its line; the line breaks between them. */}
+      <span className="whitespace-nowrap">
+        <span className="text-muted-foreground">{name}</span> v{version}
+      </span>
+      <span className="whitespace-nowrap">· {requires}</span>
+      <span className="whitespace-nowrap">· {npm ? "npm" : L.notOnNpm}</span>
+    </p>
+  );
+}
+
 // -----------------------------------------------------------------------------
 // The API reference
 // -----------------------------------------------------------------------------
