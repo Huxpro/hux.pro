@@ -101,7 +101,7 @@ export const TYPE = {
    *                  signal one of this page's two scripts cannot make:
    *                  the CJK serif has no oblique, so the browser shears
    *                  the glyphs, which Chinese typography has never done.
-   *   provenance     sans, 14px, muted — under a statement, trailing a
+   *   provenance     sans, 14px — under a statement, trailing a
    *                  voice, after a title, anywhere
    *
    * One size for the whole second level, and it is the size the instances
@@ -122,7 +122,7 @@ export const TYPE = {
    * system talking about it.
    */
   voice:
-    "font-serif text-sm [&:lang(en)]:text-[0.9375rem] text-muted-foreground leading-relaxed",
+    "font-serif text-sm [&:lang(en)]:text-[0.9375rem] text-reading-foreground leading-relaxed",
   /**
    * A post's dek: the line under its title (frontmatter `description`, the
    * old Jekyll subtitle). One face wherever the post shows up -- its own
@@ -133,6 +133,14 @@ export const TYPE = {
   dek: "font-serif italic [&:lang(zh)]:not-italic text-foreground/80 leading-relaxed",
   /** Body-sized secondary copy: a widget's description, an empty state. */
   body: "text-sm text-muted-foreground leading-relaxed",
+  /**
+   * Running text on a reading page: a /prompt entry's reasoning and the
+   * instances under it. The article body's rung (`reading-foreground`, the
+   * ink at 85%) at the list's size — not `body`, which is a widget's blurb:
+   * secondary is a label rung, and a paragraph set on it is 4.3:1 on white
+   * and about 3.5:1 on a veiled wallpaper, where /writing's body is 7.
+   */
+  reading: "text-sm text-reading-foreground leading-relaxed",
 
   /** The label under an app icon (`sm` tiles drop to 10px). */
   appLabel: "text-[11px] leading-tight text-muted-foreground",

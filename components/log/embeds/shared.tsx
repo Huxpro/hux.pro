@@ -69,11 +69,17 @@ interface CommentaryProps {
   className?: string;
 }
 
+/**
+ * What I say about a work, in the margin. The aside's face (italic serif,
+ * 12px), but a rung up from `TYPE.aside`: an aside elsewhere annotates a
+ * neighbour, and this one is the only place the row says something in my
+ * own words.
+ */
 export function Commentary({ text, className }: CommentaryProps) {
   return (
     <p
       className={cn(
-        TYPE.aside,
+        "text-xs italic font-serif text-muted-foreground leading-relaxed",
         className
       )}
     >

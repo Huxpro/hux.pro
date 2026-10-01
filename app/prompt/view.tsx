@@ -298,12 +298,12 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
             rel: "noopener noreferrer",
             onClick: (e: React.MouseEvent) => e.stopPropagation(),
           })}
-      className={cn("text-muted-foreground", linkClass)}
+      className={cn("text-reading-foreground", linkClass)}
     >
       <Marks text={attribution.name} />
     </a>
   ) : (
-    <span className="text-muted-foreground">
+    <span className="text-reading-foreground">
       <Marks text={attribution.name} />
     </span>
   );
@@ -320,12 +320,12 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className={cn("text-tertiary-foreground", linkClass)}
+              className={cn("text-muted-foreground", linkClass)}
             >
               <Marks text={attribution.source} />
             </a>
           ) : (
-            <span className="text-tertiary-foreground">
+            <span className="text-muted-foreground">
               <Marks text={attribution.source} />
             </span>
           )}
@@ -366,7 +366,7 @@ function Body({ text }: { text: string }) {
             {block.lines.map((line, i) => (
               <motion.li
                 key={i}
-                className="text-sm text-muted-foreground flex items-start gap-2"
+                className="text-sm text-reading-foreground flex items-start gap-2"
                 initial={{ opacity: 0, x: -4 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05, duration: 0.2 }}
@@ -381,10 +381,7 @@ function Body({ text }: { text: string }) {
         ) : (
           <div key={b} className="space-y-2">
             {block.lines.map((line, i) => (
-              <p
-                key={i}
-                className="text-sm text-muted-foreground leading-relaxed"
-              >
+              <p key={i} className={TYPE.reading}>
                 <Marks text={line} />
               </p>
             ))}
@@ -425,7 +422,7 @@ function Instances({
         return (
           <motion.li
             key={i}
-            className="text-sm text-muted-foreground flex items-start gap-2"
+            className="text-sm text-reading-foreground flex items-start gap-2"
             initial={{ opacity: 0, x: -4 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.05, duration: 0.2 }}
@@ -442,7 +439,7 @@ function Instances({
               )}
               <Marks text={instance.text} />
               {instance.from && (
-                <span className="text-tertiary-foreground">
+                <span>
                   <span className="text-quaternary-foreground">{" — "}</span>
                   <AttributionText attribution={instance.from} />
                 </span>
@@ -854,7 +851,7 @@ function ConvictionItem({
       detail={
         <>
           {conviction.shapedBy && conviction.shapedBy.length > 0 && (
-            <p className="text-xs font-mono text-tertiary-foreground mb-3">
+            <p className="text-xs font-mono text-muted-foreground mb-3">
               {shapedByLabel}:{" "}
               {conviction.shapedBy.map((attribution, i) => (
                 <span key={attribution.name}>
@@ -983,7 +980,7 @@ function InfluenceItem({
           {shaped.length > 0 && (
             <p
               className={cn(
-                "text-xs font-mono text-tertiary-foreground",
+                "text-xs font-mono text-muted-foreground",
                 influence.body && "mt-4",
               )}
             >
@@ -1028,7 +1025,7 @@ function InfluenceItem({
         <Marks text={influence.name} />
       </p>
       {influence.context && (
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-reading-foreground">
           <Marks text={influence.context} />
         </p>
       )}

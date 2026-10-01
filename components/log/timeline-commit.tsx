@@ -667,11 +667,13 @@ export function TimelineCommit({
 
       <div className="flex items-center gap-2 min-w-0">
         {isQuiet ? (
-          // Events and folded asides drop a tier. Face is per script
-          // (see QuietLine): Latin serif italic, CJK upright mono.
+          // Events and folded asides drop a tier — in size and face, not
+          // to the tertiary rung: a life event is the row's whole content,
+          // and at 12px on tertiary it was 2.1:1. Face is per script (see
+          // QuietLine): Latin serif italic, CJK upright mono.
           <QuietLine
             text={displayTitle}
-            className="min-w-0 flex-1 text-xs text-tertiary-foreground"
+            className="min-w-0 flex-1 text-xs text-muted-foreground"
           />
         ) : (
           <span
