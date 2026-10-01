@@ -154,6 +154,7 @@ all the runtime ever computes, memoised on what can change:
 | `veil` | `veilBase[theme] + busy × 0.15 + conflict × 0.15`, capped at 0.7 (base 0.32 light / 0.40 dark) | `--wp-veil`; the reading veil's alpha when Reading dim is on — under any kind, the Sky included |
 | `blur` | `28px + busy × 16px` | `--wp-blur`; the reading defocus radius when Reading blur is on — pictures only |
 | `tint` | the profile's tint clamped to L 0.50–0.66 (light) / 0.60–0.76 (dark), C 0.05–0.16; grey below chroma 0.03 | `--wp-tint-l/c/h` |
+| `key` | reading routes, a defocused picture only: `readingKey[theme]` (`L' = floor + span · L`, `chroma` of the colour kept) as `contrast(c) brightness(b) saturate(s)`; the veil drops to `readingKeyVeil` (0.5) of itself | `--wp-key-b/c/s`, appended to the defocus filter (`gradient-stack.tsx`) |
 | `lift` | reading routes only: the alpha points secondary and tertiary need, on top of `inkBoost`, to reach 4.5:1 and 3:1 on the veiled picture — its mean and its worst band — capped at 80 % / 60 % so the rungs stay rungs | `--wp-lift-secondary`, `--wp-lift-tertiary` |
 
 `busy` is `edges / 0.06`, clamped. `conflict` is how far the picture sits on
@@ -287,6 +288,24 @@ Still open, and reproduced verbatim in the lab:
    labels are not migrated and could go either way.
 
 ### 6. The reading treatment
+
+**The re-key.** A veil mixes toward the page colour, so it can only grey a
+picture out — #277 found the same for the Sky and re-keyed it instead
+(`THEME_KEY`, scene.ts). A photograph on a reading route now gets the same
+treatment: its lightness pressed into the theme's side of the page
+(0.55–0.97 under the light theme, 0.05–0.47 under the dark), 85 % of its
+colour kept, and half the veil it used to need. The bright patches under the
+dark theme and the dark ones under the light theme are what stood between
+the column and its contrast; the key takes them out without the grey film.
+It is three CSS filter functions after the blur — `contrast` and
+`brightness` make the affine map on sRGB values, `saturate` gives the colour
+back — folded by the compositor into the blur's pass, on the one element the
+blur already paints. Across the 53 pictures: no wallpaper short of the
+targets in either theme, against 5 (light) and 8 (dark) under the veil
+alone, with 61 % / 71 % of the picture's chroma kept where a veil thick
+enough to reach the same targets kept 38 % / 41 %. The lab's reading
+specimen applies it to its backdrop; floor, span and chroma are sliders per
+theme.
 
 **The lift.** Apple's ladder is tuned for an opaque ground — on white the
 secondary rung is 4.3:1 and the tertiary 2.2:1 — and a reading column's

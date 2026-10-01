@@ -101,6 +101,10 @@ tone conflict; see [docs/system-legibility.md](./system-legibility.md)) and
 are tuned in the lab with **Surface: Reading**, which applies them to the lab
 page itself.
 
+A defocused picture is also re-keyed — its lightness pressed into the
+theme's range, its colour kept — so the veil over it can stay thin
+(`key` in the legibility policy).
+
 `lib/reading-surface.ts` owns the predicate. The blur is painted on an inner
 element of each layer (`gradient-stack.tsx`) so the soft-edge mask on the layer
 stays crisp and unscaled, and `wallpaper-background.tsx` draws the veil over the

@@ -90,6 +90,7 @@ export const POLICY_KNOBS: PolicyKnob[] = [
   { key: "veilMax", group: "reading", affects: ["veil", "lift"], label: "Veil max", hint: "some picture must remain", min: 0.3, max: 1, step: 0.01 },
   { key: "blurBase", group: "reading", affects: ["blur"], label: "Blur base", hint: "px on a calm picture", min: 0, max: 80, step: 1 },
   { key: "blurBusy", group: "reading", affects: ["blur"], label: "Blur · busy", hint: "px added at busy = 1", min: 0, max: 80, step: 1 },
+  { key: "readingKeyVeil", group: "reading", affects: ["veil", "lift"], label: "Veil over a keyed picture", hint: "what is left of the veil once the picture is re-keyed", min: 0, max: 1, step: 0.05 },
   { key: "readingSecondaryContrast", group: "reading", affects: ["lift"], label: "Secondary target", hint: "WCAG contrast the secondary rung must reach on a reading route", min: 1, max: 7, step: 0.1 },
   { key: "readingTertiaryContrast", group: "reading", affects: ["lift"], label: "Tertiary target", hint: "WCAG contrast the tertiary rung must reach on a reading route", min: 1, max: 7, step: 0.1 },
   { key: "readingSecondaryMax", group: "reading", affects: ["lift"], label: "Secondary ceiling", hint: "the most alpha the lift may take secondary to — past it the hierarchy goes", min: 0.5, max: 1, step: 0.01 },
@@ -174,6 +175,7 @@ export function resolveForLab(params: {
   profile: WallpaperProfile;
   theme: Theme;
   reading: boolean;
+  keyed?: boolean;
   policy: LegibilityPolicy;
   pins: OutputPins;
 }): LegibilityVars {

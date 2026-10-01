@@ -258,8 +258,9 @@ export function ReadingSpecimen({ vars }: { vars: LegibilityVars }) {
         aria-hidden
         className="absolute inset-0"
         style={{
-          backdropFilter: `blur(${vars.blur}px)`,
-          WebkitBackdropFilter: `blur(${vars.blur}px)`,
+          // The defocus and the re-key, as the reading route paints them.
+          backdropFilter: `blur(${vars.blur}px) contrast(${vars.key.c}) brightness(${vars.key.b}) saturate(${vars.key.s})`,
+          WebkitBackdropFilter: `blur(${vars.blur}px) contrast(${vars.key.c}) brightness(${vars.key.b}) saturate(${vars.key.s})`,
         }}
       />
       <div aria-hidden className="absolute inset-0 bg-background" style={{ opacity: vars.veil }} />
