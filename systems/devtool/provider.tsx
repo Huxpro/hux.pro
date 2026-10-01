@@ -102,6 +102,23 @@ export const WORKS_REFS = ["auto", "stub", "ring", "row", "under", "hash"] as co
 export type WorksRef = (typeof WORKS_REFS)[number];
 export const WORKS_REF_DEFAULT: WorksRef = "auto";
 
+// =============================================================================
+// Works › Author — where a commit's author (its tenure: the role it was
+// made under, `<@bytedance>`) is printed while the row is folded. On trial:
+//
+//   line    the handle on the meta line, under the date, on the first row
+//           of a same-author run; the rest fade in on hover (as it was)
+//   marker  a marker at the head of each same-author run, the way a
+//           chapter's ref heads its chapter: the handle in the hash slot
+//           on a desk, a quiet line of its own on a phone, with the role
+//   bar     the pinned bar names the author under it, after the chapter
+//   every   every row prints its handle, a rung quieter than the head's
+// =============================================================================
+
+export const WORKS_AUTHORS = ["line", "marker", "bar", "every"] as const;
+export type WorksAuthor = (typeof WORKS_AUTHORS)[number];
+export const WORKS_AUTHOR_DEFAULT: WorksAuthor = "line";
+
 /**
  * How the hero leaves as the page scrolls. The platform picks a default;
  * the DevTool can pin either for the session. See `defaultHeroExit`.
@@ -165,6 +182,7 @@ interface DevtoolSettings {
   phonePalette: PhonePalette;
   homeWeather: HomeWeather;
   worksRef: WorksRef;
+  worksAuthor: WorksAuthor;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
 }
@@ -176,6 +194,7 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   phonePalette: PHONE_PALETTE_DEFAULT,
   homeWeather: HOME_WEATHER_DEFAULT,
   worksRef: WORKS_REF_DEFAULT,
+  worksAuthor: WORKS_AUTHOR_DEFAULT,
   detached: false,
 };
 
@@ -231,6 +250,11 @@ function getDevtoolSettings(): DevtoolSettings {
         worksRef: (WORKS_REFS as readonly string[]).includes(parsed.worksRef)
           ? parsed.worksRef
           : WORKS_REF_DEFAULT,
+        worksAuthor: (WORKS_AUTHORS as readonly string[]).includes(
+          parsed.worksAuthor,
+        )
+          ? parsed.worksAuthor
+          : WORKS_AUTHOR_DEFAULT,
         detached: parsed.detached === true,
       };
     }
@@ -335,6 +359,9 @@ interface DevtoolContextType {
   /** How a chapter's ref sits on /works' graph. A saved setting. */
   worksRef: WorksRef;
   setWorksRef: (value: WorksRef) => void;
+  /** Where /works prints a folded commit's author. A saved setting. */
+  worksAuthor: WorksAuthor;
+  setWorksAuthor: (value: WorksAuthor) => void;
   /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
@@ -407,6 +434,8 @@ export function DevtoolProvider({
   const [homeWeather, setHomeWeatherState] =
     useState<HomeWeather>(HOME_WEATHER_DEFAULT);
   const [worksRef, setWorksRefState] = useState<WorksRef>(WORKS_REF_DEFAULT);
+  const [worksAuthor, setWorksAuthorState] =
+    useState<WorksAuthor>(WORKS_AUTHOR_DEFAULT);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -425,6 +454,7 @@ export function DevtoolProvider({
     setPhonePaletteState(settings.phonePalette);
     setHomeWeatherState(settings.homeWeather);
     setWorksRefState(settings.worksRef);
+    setWorksAuthorState(settings.worksAuthor);
     setIsDetached(settings.detached);
   }, []);
 
@@ -592,6 +622,11 @@ export function DevtoolProvider({
     setDevtoolSettings({ worksRef: value });
   }, []);
 
+  const setWorksAuthor = useCallback((value: WorksAuthor) => {
+    setWorksAuthorState(value);
+    setDevtoolSettings({ worksAuthor: value });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -651,6 +686,8 @@ export function DevtoolProvider({
         setHomeWeather,
         worksRef,
         setWorksRef,
+        worksAuthor,
+        setWorksAuthor,
         heroExitOverride,
         setHeroExitOverride,
       }}

@@ -4,7 +4,11 @@ import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
 import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
-import { useOptionalDevtool, WORKS_REF_DEFAULT } from "@/systems/devtool";
+import {
+  useOptionalDevtool,
+  WORKS_AUTHOR_DEFAULT,
+  WORKS_REF_DEFAULT,
+} from "@/systems/devtool";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
 import { t, useLocale } from "@/services";
@@ -70,7 +74,10 @@ export function WorksView({ logData }: WorksViewProps) {
 
   // How a chapter's ref sits on the graph — on trial, a saved setting in
   // the DevTool's Works module.
-  const refLook = useOptionalDevtool()?.worksRef ?? WORKS_REF_DEFAULT;
+  const devtool = useOptionalDevtool();
+  const refLook = devtool?.worksRef ?? WORKS_REF_DEFAULT;
+  // Where a folded commit's author is printed — on trial, the same module.
+  const authorLook = devtool?.worksAuthor ?? WORKS_AUTHOR_DEFAULT;
 
   const commit = useCallback(
     (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
@@ -175,6 +182,7 @@ export function WorksView({ logData }: WorksViewProps) {
           form={view.form}
           onFormChange={(form) => commit({ form })}
           chapters={chapters}
+          showAuthor={authorLook === "bar"}
         />
       }
     >
@@ -188,6 +196,7 @@ export function WorksView({ logData }: WorksViewProps) {
         onSelectHash={selectHash}
         pinnedChapters
         refLook={refLook}
+        authorLook={authorLook}
       />
 
       {/* End marker — `git init` closes a timeline that has commits in it;

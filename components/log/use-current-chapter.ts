@@ -67,3 +67,39 @@ export function useCurrentChapter(
 
   return chapter;
 }
+
+/**
+ * The author a pinned bar should name: the handle (`[data-author]`, on each
+ * commit row) of the last row whose top has reached the bar's slot. Off
+ * (`enabled` false) it reads nothing.
+ */
+export function useCurrentAuthor(
+  slotRef: RefObject<HTMLElement | null>,
+  enabled: boolean,
+): string | null {
+  const [author, setAuthor] = useState<string | null>(null);
+
+  useEffect(() => {
+    const slot = slotRef.current;
+    if (!slot || !enabled) return;
+    const root = slot.closest("main") ?? document;
+    const update = () => {
+      const line = slot.getBoundingClientRect().bottom;
+      let handle: string | null = null;
+      for (const el of root.querySelectorAll<HTMLElement>("[data-rail-row]")) {
+        if (el.getBoundingClientRect().top > line) break;
+        handle = el.dataset.author ?? null;
+      }
+      setAuthor(handle);
+    };
+    update();
+    const off = onPageScroll(update);
+    window.addEventListener("resize", update);
+    return () => {
+      off();
+      window.removeEventListener("resize", update);
+    };
+  }, [slotRef, enabled]);
+
+  return enabled ? author : null;
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   type SetStateAction,
   useCallback,
   useLayoutEffect,
@@ -32,8 +33,14 @@ import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
-import { type BeamSpec, GUTTER_PULL, HASH_CELL } from "./timeline-commit";
 import {
+  type BeamSpec,
+  GUTTER_PULL,
+  HASH_CELL,
+  type HandleLook,
+} from "./timeline-commit";
+import {
+  GraphInCell,
   RefInCell,
   type RefLook,
   type RefLit,
@@ -41,7 +48,8 @@ import {
   type RowLit,
 } from "./timeline-lane";
 import { useTimelineEdit } from "./timeline-edit-context";
-import type { WorksRef } from "@/systems/devtool";
+import type { WorksAuthor, WorksRef } from "@/systems/devtool";
+import type { Byline } from "./bylines";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
  *  per-tag memo below on every render for callers that never filter
@@ -110,6 +118,9 @@ interface LogTimelineProps {
   /** How a chapter's ref sits on the graph (see `RefLabel`). The default
    *  is the plain marker the editor and every other log use. */
   refLook?: RefLayout;
+  /** Where a folded commit's author is printed (see `WorksAuthor`). The
+   *  default is the handle on the meta line every other log uses. */
+  authorLook?: WorksAuthor;
 }
 
 /**
@@ -125,6 +136,7 @@ export function LogTimeline({
   onSelectHash,
   pinnedChapters = false,
   refLook = "stub",
+  authorLook = "line",
 }: LogTimelineProps) {
   // The chapter whose track is held (its marker has focus) — page-wide, so
   // every commit outside it steps back, in its own block or another.
@@ -164,6 +176,7 @@ export function LogTimeline({
           onSelectHash={onSelectHash}
           pinned={pinnedChapters}
           refLook={refLook}
+          authorLook={authorLook}
           held={held}
           onHold={hold}
         />
@@ -193,6 +206,7 @@ interface TagBlockProps {
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
   refLook: RefLayout;
+  authorLook: WorksAuthor;
 }
 
 function TagBlock({
@@ -210,6 +224,7 @@ function TagBlock({
   onSelectHash,
   pinned,
   refLook,
+  authorLook,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
@@ -479,7 +494,8 @@ function TagBlock({
             );
           }
           const i = item.i;
-          return (
+          const byline = bylines[i];
+          const row = (
             <Commit
               key={commits[i].id}
               commit={commits[i]}
@@ -495,11 +511,105 @@ function TagBlock({
               beamSpec={beamSpecs[i]}
               onBeamSet={handleBeamSet}
               onBeamClear={handleBeamClear}
-              byline={bylines[i]}
+              byline={byline}
+              handleLook={HANDLE_LOOK[authorLook]}
               onSelectHash={onSelectHash}
             />
           );
+          // `marker`: the head of a same-author run gets a marker above it.
+          if (authorLook !== "marker" || !byline?.isClusterHead) return row;
+          return (
+            <Fragment key={commits[i].id}>
+              <AuthorRow
+                byline={byline}
+                below={graphs[i]}
+                lit={lit.rows.get(i)}
+                dimmed={stepsBack(laneOf?.get(commits[i].id) ?? [0])}
+              />
+              {row}
+            </Fragment>
+          );
         })}
+      </div>
+    </div>
+  );
+}
+
+/** Which rows print their handle at rest, under each author look. */
+const HANDLE_LOOK: Record<WorksAuthor, HandleLook> = {
+  line: "line",
+  marker: "hover",
+  bar: "line",
+  every: "every",
+};
+
+/**
+ * `marker`: the head of a same-author run — the tenure it was made under —
+ * as a ref heads a chapter. The handle hangs in the hash slot on a desk,
+ * where a chapter's marker hangs; on a phone, with no hash slot, it leads a
+ * quiet line of its own. The role and its company follow, where a commit's
+ * meta goes. The graph runs straight through: whatever reaches the row
+ * below from above it.
+ */
+function AuthorRow({
+  byline,
+  below,
+  lit,
+  dimmed,
+}: {
+  byline: Byline;
+  below?: RowGraph;
+  lit?: RowLit;
+  dimmed: boolean;
+}) {
+  const role = [byline.expanded.title, byline.expanded.company]
+    .filter(Boolean)
+    .join(" @ ");
+  const side = !!below && (!!below.side || !!below.enter);
+  const through: RowGraph = {
+    trunkAbove: !!below?.trunkAbove,
+    trunkBelow: !!below?.trunkAbove,
+    side: side ? "pass" : undefined,
+  };
+  return (
+    <div
+      className={cn(
+        "-mx-3 px-3 pt-3 pb-0.5 [clip-path:inset(0_-100vw)] transition-opacity duration-300",
+        GUTTER_PULL,
+        dimmed && "opacity-40",
+      )}
+    >
+      <div className="grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-center">
+        <span
+          className={cn(
+            "hidden lg:flex justify-end whitespace-nowrap",
+            HASH_CELL,
+            TYPE.rowMeta,
+          )}
+        >
+          {byline.handle}
+        </span>
+        <span data-rail-icon className="relative inline-flex w-5 h-4">
+          <GraphInCell
+            graph={through}
+            gap={0}
+            lit={{
+              trunkAbove: lit?.trunkAbove,
+              trunkBelow: lit?.trunkAbove,
+              sideAbove: lit?.sideAbove,
+              sideBelow: lit?.sideAbove,
+            }}
+          />
+        </span>
+        <span className={cn("min-w-0 truncate", TYPE.rowMeta)}>
+          <span className="lg:hidden">{byline.handle}</span>
+          {role && (
+            <span className="text-quaternary-foreground">
+              <span className="lg:hidden"> · </span>
+              {role}
+            </span>
+          )}
+        </span>
       </div>
     </div>
   );
