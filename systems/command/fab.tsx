@@ -120,7 +120,10 @@ export function FloatingActionButton() {
       // Leaves with the home for the sky window (globals.css, "The sky pull").
       data-sky-exits=""
       className={cn(
-        "system-chrome fixed bottom-6 left-0 right-0 z-50 px-6",
+        // Its right edge is the page's: a docked theater sidecar takes the
+        // viewport's (`--sidecar-room`, globals.css).
+        "system-chrome fixed bottom-6 left-0 right-[var(--sidecar-room,0px)] z-50 px-6",
+        "transition-[right] duration-300 ease-out",
         "flex pointer-events-none",
         isHomepage ? "justify-center" : "justify-end"
       )}

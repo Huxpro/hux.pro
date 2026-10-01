@@ -19,10 +19,19 @@ import { useTheater } from "../provider";
 
 interface VideoControlsProps {
   variant?: "theater" | "pip";
+  /**
+   * The playlist toggle at the end of the cluster. Off where the list is
+   * already on screen (the sidecar holds its queue under the controls).
+   */
+  playlist?: boolean;
   className?: string;
 }
 
-export function VideoControls({ variant = "theater", className }: VideoControlsProps) {
+export function VideoControls({
+  variant = "theater",
+  playlist = true,
+  className,
+}: VideoControlsProps) {
   const { locale } = useLocale();
   const {
     track,
@@ -124,20 +133,22 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
 
           {/* A toggle, and lit while the list is up: from in here the list is
               the other half of the player, not a one-way door. */}
-          <button
-            onClick={isPlaylistOpen ? closePlaylist : openPlaylist}
-            aria-pressed={isPlaylistOpen}
-            aria-label={t(
-              locale,
-              isPlaylistOpen ? "theaterClosePlaylist" : "theaterOpenPlaylist",
-            )}
-            className={cn(
-              GLASS_CLUSTER_BTN,
-              isPlaylistOpen && cn(GLASS_PILL, "text-foreground"),
-            )}
-          >
-            <ListVideo className="h-3.5 w-3.5" />
-          </button>
+          {playlist && (
+            <button
+              onClick={isPlaylistOpen ? closePlaylist : openPlaylist}
+              aria-pressed={isPlaylistOpen}
+              aria-label={t(
+                locale,
+                isPlaylistOpen ? "theaterClosePlaylist" : "theaterOpenPlaylist",
+              )}
+              className={cn(
+                GLASS_CLUSTER_BTN,
+                isPlaylistOpen && cn(GLASS_PILL, "text-foreground"),
+              )}
+            >
+              <ListVideo className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -17,6 +17,8 @@ import { useInputCapability } from "@/services";
 import {
   DEFAULT_PIP_PLACEMENT,
   readViewport,
+  SIDECAR_ROOM,
+  sidecarAvailable as sidecarFits,
   stageRectFor,
   theaterAvailable as theaterFits,
   type PipPlacement,
@@ -92,6 +94,8 @@ interface TheaterContextValue {
   isCoarse: boolean;
   /** Viewport is large enough for the immersive theater (tablet+ / desktop). */
   theaterAvailable: boolean;
+  /** Viewport is wide enough to give the sidecar column its room (desk). */
+  sidecarAvailable: boolean;
   /** Geometry of the persistent stage in the current mode. */
   rect: StageRect;
   /** The viewport the geometry above was measured against. */
@@ -138,6 +142,8 @@ interface TheaterContextValue {
   restore: () => void;
   toPip: () => void;
   toTheater: () => void;
+  /** Dock the player into a column at the right edge (PiP where it won't fit). */
+  toSidecar: () => void;
 
   play: () => void;
   pause: () => void;
@@ -234,6 +240,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   // iPad is touch-primary but has plenty of room for the immersive modal.
   const isCoarse = primaryInput === "touch" || viewport.width < 640;
   const theaterAvailable = theaterFits(viewport);
+  const sidecarAvailable = sidecarFits(viewport);
 
   const album = albums[albumIndex] ?? null;
   const track = album?.tracks[trackIndex] ?? null;
@@ -242,8 +249,12 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   // The stage always sits at a *visible* mode's rect; hidden states fade/scale
   // it out in place rather than moving it, so opening reads as a clean morph.
   // If theater is requested on a phone-sized viewport, keep PiP geometry.
-  const geomMode: "theater" | "pip" =
-    mode === "theater" && theaterAvailable ? "theater" : "pip";
+  const geomMode: "theater" | "pip" | "sidecar" =
+    mode === "theater" && theaterAvailable
+      ? "theater"
+      : mode === "sidecar" && sidecarAvailable
+        ? "sidecar"
+        : "pip";
 
   // On a phone, PiP is one object with the dock: a card hanging under the
   // dock's pill row, the Live Activity's pill when pushed up, the card with
@@ -256,6 +267,21 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     [geomMode, viewport, pipPlacement, pipDrag, pipCard],
   );
   const visible = mode !== "closed" && !minimized;
+
+  // --- The sidecar's room ---
+  // A docked sidecar is a place on the page, so the page moves over for it:
+  // `--sidecar-room` on <html> is read by globals.css (the body's right
+  // padding and the page column's bleed). Only while it shows: minimized,
+  // the column is gone and so is the room.
+  const sidecarShowing = geomMode === "sidecar" && !minimized;
+  useEffect(() => {
+    if (!sidecarShowing) return;
+    const root = document.documentElement;
+    root.style.setProperty("--sidecar-room", `${SIDECAR_ROOM}px`);
+    return () => {
+      root.style.removeProperty("--sidecar-room");
+    };
+  }, [sidecarShowing]);
 
   // --- Viewport tracking (drives stage geometry) ---
   useEffect(() => {
@@ -449,10 +475,13 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     }
   }, [pathname]);
 
-  // The playlist belongs to PiP and the Live Activity. The theater has its own
+  // The playlist belongs to PiP and the Live Activity. The theater and the
+  // sidecar each have their own,
   // album tabs and rail, and closing the player ends the session entirely.
   useEffect(() => {
-    if (mode === "theater" || mode === "closed") setPlaylistOpen(false);
+    if (mode === "theater" || mode === "sidecar" || mode === "closed") {
+      setPlaylistOpen(false);
+    }
   }, [mode]);
 
   // Phone-sized (or short) viewports can't host theater chrome. Drop to PiP
@@ -462,6 +491,13 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       setMode((m) => (m === "theater" ? "pip" : m));
     }
   }, [theaterAvailable]);
+
+  // The same for the sidecar: a window narrowed past its room floats again.
+  useEffect(() => {
+    if (!sidecarAvailable) {
+      setMode((m) => (m === "sidecar" ? "pip" : m));
+    }
+  }, [sidecarAvailable]);
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -611,6 +647,10 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     setMinimized(false);
     setMode("pip");
   }, []);
+  const toSidecar = useCallback(() => {
+    setMinimized(false);
+    setMode(sidecarAvailable ? "sidecar" : "pip");
+  }, [sidecarAvailable]);
   const toTheater = useCallback(() => {
     setMinimized(false);
     setMode(theaterAvailable ? "theater" : "pip");
@@ -716,6 +756,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     duration,
     isCoarse,
     theaterAvailable,
+    sidecarAvailable,
     rect,
     viewport,
     pipCard,
@@ -734,6 +775,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     restore,
     toPip,
     toTheater,
+    toSidecar,
     play,
     pause,
     togglePlay,
@@ -760,7 +802,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
         active={mode !== "closed"}
         visible={visible}
         dragging={dragging}
-        pip={geomMode === "pip"}
+        pip={geomMode !== "theater"}
       />
     </TheaterContext.Provider>
   );

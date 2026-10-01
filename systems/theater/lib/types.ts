@@ -76,10 +76,13 @@ export interface Album {
  * Where the player is currently surfaced:
  *  - `closed`:  not shown; player stopped.
  *  - `theater`: the large immersive modal (tablet+ / desktop default).
- *  - `pip`:     the floating Picture-in-Picture window (phone default, or a
- *               fallback toggled from theater).
+ *  - `pip`:     the floating Picture-in-Picture tile (phone default, or a
+ *               fallback toggled from theater); a card under the dock on a
+ *               phone.
+ *  - `sidecar`: a column at the right edge of a wide desk, the page moved
+ *               over to make room for it.
  */
-export type TheaterMode = "closed" | "theater" | "pip";
+export type TheaterMode = "closed" | "theater" | "pip" | "sidecar";
 
 /** Simplified player phase for the UI (mirrors the Music system's PlayerState). */
 export type PlayerPhase =

@@ -162,8 +162,25 @@
   --page-gutter: 1.5rem;
   --page-bleed: max(
     var(--page-gutter),
-    calc((100vw - var(--page-col)) / 2 + var(--page-gutter))
+    calc((100vw - var(--sidecar-room, 0px) - var(--page-col)) / 2 + var(--page-gutter))
   );
+}
+
+/* The theater's sidecar (systems/theater): a column docked at the right edge
+   of a wide desk. It is a place beside the page, not a window over it, so
+   the page moves over to make room: `--sidecar-room` is set on <html> by the
+   theater provider while the column shows, and is unset otherwise. The
+   page column re-centres in what is left (the padding here, the bleed
+   above); fixed chrome that hangs off the right edge (the command bar's
+   FAB) reads the same variable. */
+body {
+  padding-right: var(--sidecar-room, 0px);
+  transition: padding-right 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
 }
 
 /* The gap under a page's hero (components/ui/hero-exit.ts), a variable so a

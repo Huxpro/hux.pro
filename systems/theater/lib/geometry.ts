@@ -261,6 +261,59 @@ export function pipCardBox(video: StageRect): StageRect {
   };
 }
 
+// ---------------------------------------------------------------------------
+// The sidecar
+//
+// On a wide desk the player can stop floating and become a column at the
+// right edge: the video at the top, the queue under it, and the page moved
+// over to make room (`--sidecar-room`, see globals.css). It is a place, not
+// a window, so nothing on the page is ever under it.
+// ---------------------------------------------------------------------------
+
+/** The column's width, and its inset from the viewport's edges. */
+export const SIDECAR_WIDTH = 320;
+export const SIDECAR_INSET = 12;
+/** Glass around the column's content. */
+export const SIDECAR_PAD = 10;
+/** The column's header row, above the video. */
+export const SIDECAR_HEADER = 36;
+/** What the page gives up to the column: the column and its inset. */
+export const SIDECAR_ROOM = SIDECAR_WIDTH + SIDECAR_INSET * 2;
+/**
+ * Below this the page cannot spare the room: the 680px column, its gutters
+ * and the sidecar need about this much, and the theater's own "compact"
+ * cut-off is the same width.
+ */
+export const SIDECAR_MIN_WIDTH = 1100;
+export const SIDECAR_MIN_HEIGHT = 600;
+
+/** True when the viewport has room for the sidecar beside the page. */
+export function sidecarAvailable(vp: Viewport): boolean {
+  return vp.width >= SIDECAR_MIN_WIDTH && vp.height >= SIDECAR_MIN_HEIGHT;
+}
+
+/** The column's box: the right edge, full height, inset. */
+export function sidecarBox(vp: Viewport): StageRect {
+  return {
+    left: vp.width - SIDECAR_INSET - SIDECAR_WIDTH,
+    top: SIDECAR_INSET,
+    width: SIDECAR_WIDTH,
+    height: vp.height - SIDECAR_INSET * 2,
+  };
+}
+
+/** The video's rect in the column: under the header, the column's width. */
+export function sidecarRect(vp: Viewport): StageRect {
+  const box = sidecarBox(vp);
+  const width = box.width - SIDECAR_PAD * 2;
+  return {
+    left: box.left + SIDECAR_PAD,
+    top: box.top + SIDECAR_PAD + SIDECAR_HEADER,
+    width,
+    height: width * ASPECT,
+  };
+}
+
 /** The shorter of the playlist sheet's two detents, where both fit. */
 const PLAYLIST_FIRST_DETENT = 0.5;
 /** Below this much room, a second detent would be a few pixels of travel. */
@@ -289,7 +342,7 @@ export function playlistDetents(viewportHeight: number, ceiling: number): number
  * parked corner), while the still-mounted iframe keeps audio alive.
  */
 export function stageRectFor(
-  mode: "theater" | "pip",
+  mode: "theater" | "pip" | "sidecar",
   vp: Viewport,
   placement: PipPlacement,
   drag: { x: number; y: number } | null,
@@ -297,5 +350,6 @@ export function stageRectFor(
   card: boolean,
 ): StageRect {
   if (mode === "theater") return theaterRect(vp);
+  if (mode === "sidecar") return sidecarRect(vp);
   return card ? pipCardRect(vp, drag?.y ?? null) : pipRect(vp, placement, drag);
 }
