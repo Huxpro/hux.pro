@@ -54,6 +54,33 @@ export interface Language {
   /** Abstraction level, 0 (bare metal) – 9 (pure); `null` for no one
    *  level but all of them (natural language). */
   abs: number | null;
+  /**
+   * How far the language reaches either side of `abs`, when one number
+   * undersells it: "C++/Rust can be as low as C and as high as many at the
+   * same time" (the explanation). `abs` stays the dot's colour; the range is
+   * what the note's meter draws and what a filter matches.
+   *
+   * The scale is who a language's design serves, the machine or the
+   * mathematics, and only what its designers intended counts, not what it
+   * grew into or stumbled upon. A range reaches a level when the design
+   * deliberately has what that level asks:
+   *
+   *   low end (serving the machine)
+   *     2  raw pointers and manual memory are part of the language
+   *     3  zero-cost abstraction over them: RAII, ownership, value types + ARC
+   *     4  a managed runtime, static types describing representation
+   *     5  the runtime is a dynamic language's
+   *   high end (serving the mathematics)
+   *     4  types describe representation and class hierarchies
+   *     5  values need no machine in view: managed, closures, dynamic dispatch
+   *     6  types state constraints: parametric polymorphism, sums, structural
+   *        types, inference — kept or not (gradual and erased types count)
+   *     7  kept by proof: sound by design, escape hatches marked (`unsafe`,
+   *        `Obj.magic`); ADTs with exhaustive matching at the core
+   *     8  purity, too, is a kept promise
+   *     9  total; types are propositions
+   */
+  absRange?: [number, number];
   /** Interestingness, 0 (boring) – 9 (mind-blown). */
   i13s: number;
   /** Experience, 0 (little) – 9 (language lawyer). */
@@ -98,6 +125,13 @@ export const WHOLE: AbstractionTier = { level: null, label: AXES.abs.whole };
 export function tierOf(level: number | null): AbstractionTier {
   if (level === null) return WHOLE;
   return AXES.abs.tiers.find((t) => t.level === level) ?? AXES.abs.tiers[0];
+}
+
+/** The abstraction levels a language reaches: its range, else its one
+ *  level; for one with no level of its own, the whole scale. */
+export function reachOf(language: Language): [number, number] {
+  if (language.abs === null) return [0, SCALE_MAX];
+  return language.absRange ?? [language.abs, language.abs];
 }
 
 /** A language's name in a locale. */
@@ -168,6 +202,19 @@ export function absColor(
     return `conic-gradient(${stops.join(", ")})`;
   }
   return `var(--abs-${palette}-${level})`;
+}
+
+/**
+ * The stretch of the ramp from level `lo` to `hi`, left to right, one stop
+ * per level: what a dot opens into when it shows its range.
+ */
+export function absSpectrum(
+  lo: number,
+  hi: number,
+  palette: AbstractionPalette = ABSTRACTION_PALETTE,
+): string {
+  const stops = Array.from({ length: hi - lo + 1 }, (_, i) => `var(--abs-${palette}-${lo + i})`);
+  return `linear-gradient(to right, ${stops.join(", ")})`;
 }
 
 // -----------------------------------------------------------------------------

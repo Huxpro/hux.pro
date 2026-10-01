@@ -382,6 +382,7 @@
         "zh": "[Scala](https://www.scala-lang.org/)"
       },
       "abs": 6,
+      "absRange": [4, 7],
       "i13s": 6,
       "exp": 5,
       "notes": {
@@ -452,6 +453,7 @@
         "zh": "[Flow](https://flow.org) 与 🎡 [TypeScript](https://www.typescriptlang.org/)"
       },
       "abs": 6,
+      "absRange": [5, 6],
       "i13s": 6,
       "exp": 9,
       "notes": {
@@ -518,6 +520,7 @@
         "zh": "[Lisp 家族](https://en.wikipedia.org/wiki/Lisp_(programming_language))"
       },
       "abs": 5,
+      "absRange": [5, 7],
       "i13s": 3,
       "exp": 3,
       "notes": {
@@ -612,6 +615,7 @@
         "zh": "[Swift](https://swift.org/)"
       },
       "abs": 4,
+      "absRange": [3, 6],
       "i13s": 6,
       "exp": 2,
       "notes": {
@@ -656,6 +660,7 @@
         "zh": "[C++（C++0x 之后）](https://en.wikipedia.org/wiki/C%2B%2B)"
       },
       "abs": 3,
+      "absRange": [2, 5],
       "i13s": 6,
       "exp": 4,
       "notes": {
@@ -678,6 +683,7 @@
         "zh": "[C++（C++0x 之前）](https://en.wikipedia.org/wiki/C%2B%2B)"
       },
       "abs": 3,
+      "absRange": [2, 4],
       "i13s": 4,
       "exp": 4,
       "notes": {
@@ -702,6 +708,7 @@
         "zh": "[Objective-C](https://en.wikipedia.org/wiki/Objective-C)"
       },
       "abs": 3,
+      "absRange": [2, 4],
       "i13s": 1,
       "exp": 1,
       "notes": {
@@ -722,6 +729,7 @@
         "zh": "[Rust](https://en.wikipedia.org/wiki/Rust_(programming_language))"
       },
       "abs": 3,
+      "absRange": [2, 7],
       "i13s": 5,
       "exp": 3,
       "notes": {
