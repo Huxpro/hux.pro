@@ -19,7 +19,13 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Media } from "@/lib/log";
-import { DEFAULT_FORM, rowFormFor, type LogForm } from "@/lib/log-view";
+import {
+  DEFAULT_FORM,
+  ROW_FORM,
+  rowFormFor,
+  type LogForm,
+  type RowForm,
+} from "@/lib/log-view";
 import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
@@ -75,6 +81,31 @@ export interface BeamSpec {
   roleId: string;
 }
 
+/**
+ * A nested row's atoms (see `nested`): the title line, in every form. The
+ * project it sits under is the reading; the rows under it are its evidence,
+ * and printing each at the page's density would bury the next project
+ * under them. It still peeks, so on a desk its cover is a hover away.
+ */
+const NESTED_FORM: RowForm = {
+  description: "none",
+  media: "none",
+  notes: false,
+  peek: true,
+};
+
+/**
+ * A nested row's form. Shut, one line. Open, it is the whole commit — the
+ * same promise an index row keeps (`rowFormFor`) — and in the feed that is
+ * the feed's own grid, so an opened talk there looks like the talks of the
+ * unfiltered page. `rowFormFor` alone would read a press in the feed as
+ * "clamp the prose back", which a row that printed none cannot mean.
+ */
+function nestedRowForm(form: LogForm, open: boolean): RowForm {
+  if (!open) return NESTED_FORM;
+  return form === "feed" ? ROW_FORM.feed : rowFormFor(form, true);
+}
+
 interface TimelineCommitProps {
   data: NormalizedCommit;
   cursorPreview?: ReactNode;
@@ -83,6 +114,14 @@ interface TimelineCommitProps {
   defaultExpanded?: boolean;
   className?: string;
   hideDate?: boolean;
+  /**
+   * The row prints under the project it belongs to, as one line: its title
+   * a rung quieter and its venue beside it (`NESTED_FORM`). /works nests a
+   * project's talks under it while `?type=project` hides talks, so the
+   * reading of what was built carries what was said about it. A press opens
+   * it like any row.
+   */
+  nested?: boolean;
   /** Git-graph rail char to draw on the right (`┐`, `│`, `┘` or empty). */
   rail?: string;
   /** The row's piece of the chapter graph — the trunk, and a side lane
@@ -156,6 +195,7 @@ export function TimelineCommit({
   defaultExpanded = false,
   className,
   hideDate = false,
+  nested = false,
   rail,
   graph,
   graphLit,
@@ -275,7 +315,13 @@ export function TimelineCommit({
   // row scale). Everything below reads those atoms and nothing reads the
   // form's name, or `isExpanded` again: the feed's atoms already say
   // "no strip, no clamp, no peek".
-  const rowForm = rowFormFor(form, textOpen);
+  const rowForm = nested
+    ? nestedRowForm(form, textOpen)
+    : rowFormFor(form, textOpen);
+  // A nested row while it is one line: the title line and nothing else at
+  // any width — the venue and the date in their column at its right, no
+  // eyebrow over it on a phone, no count — and the handle is the project's.
+  const compact = nested && !textOpen;
 
   // What the folded form adds under the title line: the description at two
   // lines, and the strip of covers. Both or either — a commit with no media
@@ -387,9 +433,13 @@ export function TimelineCommit({
   // Every link is an attachment with a cover, so the title line carries no
   // way out of its own. Where the covers print, they are the doors; where
   // they don't (the index, folded), the line counts them, and opening the
-  // row brings them.
+  // row brings them. A nested row gives the count's width to its title: on
+  // a phone, one line under a project has no room for both, and its cover
+  // peeks on a desk.
   const attachmentCount =
-    !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
+    !isQuiet && !compact && rowForm.media === "none"
+      ? expandedMedia.length
+      : 0;
 
   // The `--pretty=fuller` header. Roles and events are excluded for the same
   // reason they always were — a role IS its own provenance, an event has none.
@@ -485,9 +535,11 @@ export function TimelineCommit({
         column: grid auto-placement then starts the hash, the mark and the
         title on the next row, so the mark sits on the title's line, not
         the eyebrow's. From `@md` it is not rendered and the title line is
-        the first row again. Quiet rows keep their date on the line.
+        the first row again. Quiet rows keep their date on the line, and
+        so does a nested row while it is one line: an eyebrow over each of
+        ten talks under a project would make them twenty lines.
       */}
-      {!isQuiet && (
+      {!isQuiet && !compact && (
         <p
           className={cn(
             // `items-start`, not `items-baseline`: every cell is one 16px
@@ -679,7 +731,15 @@ export function TimelineCommit({
           <span
             className={cn(
               "min-w-0 flex-1",
-              printsMessage ? TYPE.rowHeading : TYPE.rowTitle,
+              // A rung under the project's title: it is the work, these
+              // are what was said about it. And one line at any width, so
+              // ten of them stay a block you can see past; the press prints
+              // the rest.
+              compact
+                ? "truncate text-sm text-muted-foreground"
+                : printsMessage
+                  ? TYPE.rowHeading
+                  : TYPE.rowTitle,
             )}
           >
             {displayTitle}
@@ -697,11 +757,13 @@ export function TimelineCommit({
             leaves the venue and the date exactly where they were; the
             venue yields first, the count and the date never do. Below
             `@md` an ordinary row prints this as the eyebrow instead; a
-            quiet row has only its date, and keeps it here. */}
+            quiet row has only its date, and keeps it here; so does a
+            nested row while it is one line — its venue joins the date
+            from `@md`, where the line has room for both. */}
         <span
           className={cn(
             "ml-auto min-w-0 max-w-[55%] shrink items-center justify-end gap-2",
-            isQuiet ? "flex" : "hidden @md:flex",
+            isQuiet || compact ? "flex" : "hidden @md:flex",
           )}
         >
           {attachmentCount > 0 && (
@@ -720,6 +782,11 @@ export function TimelineCommit({
             <span
               className={cn(
                 "inline-flex min-w-0 justify-end text-right",
+                // A nested row on a phone gives the venue's width to its
+                // title: one line has room for a title and a date, the
+                // fold line above already names the venues, and opening
+                // the row brings its eyebrow.
+                compact && "hidden @md:inline-flex",
                 TYPE.rowMeta,
               )}
             >
@@ -745,7 +812,7 @@ export function TimelineCommit({
 
       {/* Pinned items: rendered once here whether the row is folded or
           expanded, so toggling never remounts them. */}
-      {!isQuiet && pinnedMedia.length > 0 && (
+      {!isQuiet && !compact && pinnedMedia.length > 0 && (
         <div
           className="col-start-2 lg:col-start-3 mt-2"
           onClick={(e) => e.stopPropagation()}
@@ -955,7 +1022,8 @@ export function TimelineCommit({
             GUTTER_PULL,
             // Events get tighter vertical padding so they sit between
             // commits as ambient annotations rather than as full rows.
-            isQuiet ? "py-1" : "py-2.5",
+            // A nested row is one line, and packs as tight as one.
+            isQuiet || compact ? "py-1" : "py-2.5",
             rowOnClick ? "pressable cursor-pointer" : "cursor-default",
             "@container",
             // Hover/active highlight is tied to the fold/unfold trigger

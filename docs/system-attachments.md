@@ -270,6 +270,46 @@ a single cover; a row with more, or none, prints no handle while folded —
 the chapter names the company, and the author fields name it in full once
 the row is open.
 
+### A project's talks, under `?type=project`
+
+A filter that shows projects and drops talks (`?type=project`, where the
+home screen's projects widget lands) is the reading of what was built. Each
+project there carries what was said about it — its talks, press and posts,
+by the rule in `lib/works-projects.ts` — on one line under its row:
+
+    talks 10   WeAreDevelopers World Congress, GOSIM Paris, …   ⌄
+
+On trial behind a saved DevTool setting, Works → *Talks under projects*
+(`worksProjectTalks`), which is on by default. Off, the filter drops them
+as it always did, and every reading is the page without this.
+
+That line (`FoldLine`) unfolds the rows in place, lifted out of their
+dates and set under the project (`orderWithFolds`). It starts shut in
+`index` and `covers`, where ten talks under Lynx would push the next
+project a screen down and the count and the venues already say most of
+what the rows do, and open in the `feed`, the form that prints everything.
+Flipping a line is spent by a form change, like opening a row.
+
+A nested row is the title line in every form (`NESTED_FORM`,
+`TimelineCommit`): the title a rung quieter, the venue and the date in
+their column at the line's right, one line at any width, no covers or
+count. Below `@md` it raises no eyebrow — ten eyebrows over ten talks
+would make them twenty lines — and the line is the title and the date:
+the fold line above already names the venues, and opening the row brings
+its eyebrow back. Its press opens it into the whole commit,
+as an index row's does. A `#hash` to one opens its project's line first
+(`useCommitAnchor`'s `reveal`). The chips and their counts do not change —
+the talks are context for the projects, not a talk filter — and a row the
+filter shows in its own right (`?type=project,talk`) stays at its date.
+
+The rows are lifted within a block, so where chapters overlap the graph is
+drawn over the lifted order: a nested row sits on its own chapter's line
+(React without memo, a React talk under React Compiler, is a node on the
+side lane under PL's trunk), and the trunk and any side lane run on through
+the fold line as they run through a ref. Under a held track a project
+outside it dims its fold line as a ref dims, and its nested rows step down
+a form with every other commit.
+
 ### The attachment object
 
 Every cover is one tile (`AttachmentTile`,

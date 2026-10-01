@@ -167,6 +167,9 @@ interface DevtoolSettings {
   worksRef: WorksRef;
   /** The projects shelf above /works' log — on trial, off by default. */
   worksShelf: boolean;
+  /** A project's talks nested under it on /works' `?type=project` — on
+   *  trial, ON by default. */
+  worksProjectTalks: boolean;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
 }
@@ -179,6 +182,7 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   homeWeather: HOME_WEATHER_DEFAULT,
   worksRef: WORKS_REF_DEFAULT,
   worksShelf: false,
+  worksProjectTalks: true,
   detached: false,
 };
 
@@ -235,6 +239,9 @@ function getDevtoolSettings(): DevtoolSettings {
           ? parsed.worksRef
           : WORKS_REF_DEFAULT,
         worksShelf: parsed.worksShelf === true,
+        // On unless it was turned off: a setting saved before the switch
+        // existed has no key, and reads as the default.
+        worksProjectTalks: parsed.worksProjectTalks !== false,
         detached: parsed.detached === true,
       };
     }
@@ -343,6 +350,10 @@ interface DevtoolContextType {
    *  by default. */
   worksShelf: boolean;
   setWorksShelf: (value: boolean) => void;
+  /** Whether /works' `?type=project` nests each project's talks under it.
+   *  A saved setting, ON by default. */
+  worksProjectTalks: boolean;
+  setWorksProjectTalks: (value: boolean) => void;
   /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
@@ -416,6 +427,7 @@ export function DevtoolProvider({
     useState<HomeWeather>(HOME_WEATHER_DEFAULT);
   const [worksRef, setWorksRefState] = useState<WorksRef>(WORKS_REF_DEFAULT);
   const [worksShelf, setWorksShelfState] = useState(false);
+  const [worksProjectTalks, setWorksProjectTalksState] = useState(true);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -435,6 +447,7 @@ export function DevtoolProvider({
     setHomeWeatherState(settings.homeWeather);
     setWorksRefState(settings.worksRef);
     setWorksShelfState(settings.worksShelf);
+    setWorksProjectTalksState(settings.worksProjectTalks);
     setIsDetached(settings.detached);
   }, []);
 
@@ -607,6 +620,11 @@ export function DevtoolProvider({
     setDevtoolSettings({ worksShelf: value });
   }, []);
 
+  const setWorksProjectTalks = useCallback((value: boolean) => {
+    setWorksProjectTalksState(value);
+    setDevtoolSettings({ worksProjectTalks: value });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -668,6 +686,8 @@ export function DevtoolProvider({
         setWorksRef,
         worksShelf,
         setWorksShelf,
+        worksProjectTalks,
+        setWorksProjectTalks,
         heroExitOverride,
         setHeroExitOverride,
       }}

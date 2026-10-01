@@ -414,6 +414,9 @@ export const translations = {
     logFormCovers: "Covers",
     logFormFeed: "Feed",
     logNoMatches: "no commits match this filter.",
+    // Between the venues on a folded project's line (the `fold` flag,
+    // components/log/fold-line.tsx): `WeAreDevelopers, GOSIM Paris, …`.
+    logListSeparator: ", ",
     writingFeatured: "featured",
     logSelectedWorks: "Selected Works",
     logRead: "Read",
@@ -850,6 +853,7 @@ export const translations = {
     logFormCovers: "封面",
     logFormFeed: "信息流",
     logNoMatches: "没有符合筛选条件的提交。",
+    logListSeparator: "、",
     writingFeatured: "精选",
     logSelectedWorks: "精选作品",
     logRead: "阅读",
