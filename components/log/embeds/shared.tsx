@@ -48,6 +48,7 @@ export function Description({
     <p
       className={cn(
         TYPE.caption,
+        scale === "mid" && "text-[13px]",
         scale === "desk" && "text-sm",
         // Two lines everywhere, and the measure does the rest: a phone's
         // ~40 characters a line, a desktop's ~90. A wider column is already

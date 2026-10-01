@@ -183,6 +183,9 @@ export function TimelineCommit({
   // what size no longer does — and the row's parts get a touch more air.
   const scale = useWorksScale();
   const desk = scale === "desk";
+  // Both bigger scales set the title in medium: the description is at or
+  // near its size, so weight carries what size no longer does.
+  const mediumTitle = scale !== "compact";
   const isEvent = data.type === "event";
   const isAside = data.present === "aside";
   // Folded asides borrow the event voice: muted italic line, rail
@@ -666,7 +669,7 @@ export function TimelineCommit({
             className={cn(
               "min-w-0 flex-1",
               TYPE.rowTitle,
-              desk && "font-medium",
+              mediumTitle && "font-medium",
             )}
           >
             {displayTitle}

@@ -118,13 +118,15 @@ export type HeroExit = "scroll" | "fade";
  *
  *   compact  what ships: title 14 regular, description 12, covers 112px
  *            tall, rows at py-2.5, chapters at mt-6.
+ *   mid      the type alone, a half step: title 14 medium, description 13
+ *            muted; covers and spacing as shipped.
  *   desk     the row read the way a desktop list is: title 14 medium,
  *            description 14 muted (the site's body), covers 80px tall — an
  *            attachment beside the text, not a poster over it — rows at
  *            py-3, a touch more air between a row's parts, chapters at mt-8.
  *            The mono metadata stays 12: the machine layer is 12 everywhere.
  */
-export type WorksScale = "compact" | "desk";
+export type WorksScale = "compact" | "mid" | "desk";
 export const WORKS_SCALE_DEFAULT: WorksScale = "compact";
 
 /**

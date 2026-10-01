@@ -3072,6 +3072,7 @@ function WorksModule() {
             value={worksScale}
             options={[
               { value: "compact", label: zh ? "紧凑" : "Compact" },
+              { value: "mid", label: zh ? "中" : "Mid" },
               { value: "desk", label: zh ? "桌面" : "Desk" },
             ]}
             onChange={setWorksScale}
@@ -3079,8 +3080,8 @@ function WorksModule() {
         </PanelRow>
         <p className="text-[10px] font-mono text-tertiary-foreground leading-relaxed">
           {zh
-            ? "桌面：标题 14 中黑，描述 14，封面 80px，行距与章距放开。元数据仍 12。"
-            : "Desk: title 14 medium, description 14, covers 80px, more air per row and chapter. Metadata stays 12."}
+            ? "中：标题 14 中黑，描述 13，其余不动。桌面：描述 14，封面 80px，行距与章距放开。元数据仍 12。"
+            : "Mid: title 14 medium, description 13, nothing else. Desk: description 14, covers 80px, more air per row and chapter. Metadata stays 12."}
         </p>
       </div>
     </DebugSection>
