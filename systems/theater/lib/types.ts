@@ -47,6 +47,13 @@ interface TrackBase {
    * (systems/theater/lib/library.ts). Absent or single for most tracks.
    */
   versions?: TrackVersion[];
+  /** Running time in seconds, when known. */
+  duration?: number;
+  /**
+   * Where to start, in seconds — set only on the track a channel tuned into,
+   * which is already that far into its program.
+   */
+  startAt?: number;
 }
 
 /**
@@ -57,6 +64,7 @@ export type TrackVersion = {
   key: string;
   language?: TrackLanguage;
   date?: string;
+  duration?: number;
   url: string;
   title: string;
   subtitle?: string;
@@ -101,6 +109,11 @@ export interface Album {
   id: string;
   title: string;
   tracks: Track[];
+  /**
+   * A channel (./channel.ts): it plays on by itself — when a program ends,
+   * the next one starts, as a broadcast would.
+   */
+  live?: boolean;
 }
 
 /**
