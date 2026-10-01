@@ -15,6 +15,7 @@ Two tiers, mirroring how the site is structured:
 |------|------|------|
 | **Subsite** | Each main section shares one card | `λhux` · path · serif section title · mono tagline |
 | **Writing** | Each post gets its own card | post's first image (darkened) · serif title · `year · reading time` |
+| **Reading** | A narrowing of a section people send, e.g. `/works?type=talk` | the subsite card, with the query as its path and a count |
 
 A post has two faces. **Shared**, it is its card, baked by its
 `opengraph-image` route: its first image (`cover`/`coverZh`,
@@ -30,6 +31,33 @@ paragraph as `og:description`; the dek (frontmatter `description`) is a
 peek's field, used only when the body has no paragraph. Cards are
 per-locale, so a bilingual post gets distinct EN/ZH cards (CJK titles render
 in Noto Serif SC).
+
+## Readings: a card for a query string
+
+`/works?type=talk` is /works filtered, not a page: the query string is the
+view state (`lib/log-view.ts`). But it is a link people send (the About's
+magic links, the home widgets), and a crawler unfurling it reads the Open
+Graph of whatever HTML it is served. A static page has one, so each reading
+worth a card (`WORKS_READINGS` in `lib/works-readings.ts`: `talk`,
+`project`) has a page of its own, `app/works/[type]`, prerendered with its
+title, its words and its baked card, and rendering nothing else.
+
+- **The view is the layout's** (`app/works/layout.tsx`). `/works` and
+  `/works/<type>` are both empty pages under it, so a chip tap that moves
+  between them keeps the view mounted.
+- **The query is still the address.** `next.config.ts` rewrites
+  `/works?type=<type>` to `/works/<type>` (`beforeFiles`, or the plain
+  `/works` page would answer first) and redirects a bare `/works/<type>` back
+  to the query. Only a query naming exactly one reading is rewritten
+  (`?type=talk&view=feed` is; `?type=talk,project` is /works).
+- **One card, three readers.** `worksCardOf` (`lib/works-card.ts`) is the
+  page's Open Graph (`app/works/metadata.ts`), its image
+  (`/works/<type>/opengraph-image`) and a magic link's card
+  (`components/magic-link/server.tsx`), counted from the log so it never
+  goes stale. As a bonus, the tab's title follows the reading.
+
+A new reading: add its type to `WORKS_READINGS` and its words to `READINGS`
+in `lib/works-card.ts`.
 
 ## Design
 
@@ -78,6 +106,8 @@ automatically (Twitter falls back to `og:image`).
 | `lib/og-image.tsx` | Shared renderer: palette, font subsetting, cover loader, `renderOgImage()` |
 | `app/opengraph-image.tsx` | Home / default subsite card |
 | `app/{writing,works,docs,prompt}/opengraph-image.tsx` | Per-section subsite cards |
+| `app/works/[type]/{page,opengraph-image}.tsx` | A reading's Open Graph and card (`/works?type=talk`, rewritten here) |
+| `lib/works-readings.ts`, `lib/works-card.ts` | Which readings have a card; the card (copy, count, image) |
 | `app/writing/[slug]/[lang]/page.tsx` | A post's Open Graph (`generateMetadata`, from `postCardOf`) |
 | `app/writing/[slug]/[lang]/opengraph-image.tsx` | Each post's shared card (its `og:image`) |
 | `app/layout.tsx` | `metadataBase` + base `openGraph` / `twitter` metadata |

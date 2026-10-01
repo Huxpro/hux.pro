@@ -10,6 +10,7 @@ import { getAllBlogPosts, getBlogPostBySlug } from "@/lib/mdx";
 import { cache } from "react";
 import { SmartLink } from "@/components/mdx-components";
 import { jekyllRedirects } from "@/lib/jekyll-redirects";
+import { worksCardOf, worksReadingOf } from "@/lib/works-card";
 import type { ComponentPropsWithoutRef } from "react";
 import { MagicLink, type MagicLinkProps } from "./magic-link";
 
@@ -80,7 +81,6 @@ type SectionCopy = Record<Locale, { title: string; description: string }>;
  * Counted, not written down, so a card never goes stale.
  */
 function sectionCopy(path: string, query: URLSearchParams): SectionCopy | null {
-  const count = (type: string) => LOG.commits.filter((c) => c.type === type).length;
   if (path === "/writing") {
     const posts = readAllPosts();
     const since = posts.at(-1)?.date.slice(0, 4) ?? "";
@@ -89,25 +89,7 @@ function sectionCopy(path: string, query: URLSearchParams): SectionCopy | null {
       zh: { title: "文章", description: `${posts.length} 篇文章，始于 ${since} 年。` },
     };
   }
-  if (path === "/works") {
-    const type = query.get("type");
-    if (type === "talk") {
-      return {
-        en: { title: "Talks", description: `Recordings and decks from ${count("talk")} talks I've given, in the commit log.` },
-        zh: { title: "演讲", description: `${count("talk")} 场演讲的录像与幻灯片，收在提交记录里。` },
-      };
-    }
-    if (type === "project") {
-      return {
-        en: { title: "Projects", description: `${count("project")} projects I've built, in the commit log.` },
-        zh: { title: "项目", description: `${count("project")} 个做过的项目，收在提交记录里。` },
-      };
-    }
-    return {
-      en: { title: "Works", description: "Commit history: professional work as git log." },
-      zh: { title: "作品", description: "提交记录：把职业生涯写成 git log。" },
-    };
-  }
+  if (path === "/works") return worksCardOf(worksReadingOf(query)).copy;
   if (path === "/prompt") {
     return {
       en: { title: "System Prompts", description: "Quotes, principles, people, and books that shape my thinking." },
@@ -121,7 +103,11 @@ function sectionMedia(href: string): LinkMedia | null {
   const url = new URL(href, "https://hux.pro");
   const copy = sectionCopy(url.pathname, url.searchParams);
   if (!copy) return null;
-  const image = `${url.pathname}/opengraph-image`;
+  // A reading of /works with a card of its own wears that card.
+  const image =
+    url.pathname === "/works"
+      ? worksCardOf(worksReadingOf(url.searchParams)).image
+      : `${url.pathname}/opengraph-image`;
   return {
     kind: "link",
     url: href,

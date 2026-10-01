@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 import { jekyllRedirects } from "./lib/jekyll-redirects";
+import { WORKS_READINGS } from "./lib/works-readings";
+
+// `talk|project`: the readings of /works with a page of their own.
+const READING = WORKS_READINGS.join("|");
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -12,14 +16,32 @@ const nextConfig: NextConfig = {
   // "build" script; `pnpm dev` builds it when stale). Only its entry needs a
   // rewrite; its assets are plain public files.
   async rewrites() {
-    return [
-      { source: "/vitre", destination: "/vitre/index.html" },
-      { source: "/vitre/", destination: "/vitre/index.html" },
-    ];
+    return {
+      // A reading of /works with a card of its own (`/works?type=talk`,
+      // lib/works-readings.ts) is served by its page, so a crawler reads that
+      // reading's Open Graph. Before the filesystem, or the plain /works page
+      // would answer first. The address keeps its query, which the view
+      // reads; the view is the section's layout, so it is the same either way.
+      beforeFiles: [
+        {
+          source: "/works",
+          has: [{ type: "query", key: "type", value: `(?<type>${READING})` }],
+          destination: "/works/:type",
+        },
+      ],
+      afterFiles: [
+        { source: "/vitre", destination: "/vitre/index.html" },
+        { source: "/vitre/", destination: "/vitre/index.html" },
+      ],
+      fallback: [],
+    };
   },
   async redirects() {
     return [
       ...jekyllRedirects,
+      // A reading's page is reached through its query (see rewrites); the
+      // page itself is not an address.
+      { source: `/works/:type(${READING})`, destination: "/works?type=:type", permanent: false },
       // The site's address before the package was named vitre.
       { source: "/bezel", destination: "/vitre", permanent: true },
       { source: "/bezel/:path*", destination: "/vitre/:path*", permanent: true },
