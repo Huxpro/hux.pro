@@ -105,7 +105,7 @@ function sectionCopy(path: string, query: URLSearchParams): SectionCopy | null {
     }
     return {
       en: { title: "Works", description: "Commit history: professional work as git log." },
-      zh: { title: "作品", description: "提交记录——把职业生涯写成 git log。" },
+      zh: { title: "作品", description: "提交记录：把职业生涯写成 git log。" },
     };
   }
   if (path === "/prompt") {

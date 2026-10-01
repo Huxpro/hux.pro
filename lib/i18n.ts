@@ -501,7 +501,7 @@ export const translations = {
     productions: "作品",
 
     // Homepage
-    tagline: "散文、职业、编程、生产、项目——一个完整人格的多重面向。",
+    tagline: "散文、职业、编程、生产、项目：一个完整人格的多重面向。",
     currently: "近况",
     currentStatus:
       "字节跳动 Lynx 架构师。让界面更好地服务更多用户、更多开发者、更多机器，并探索 AI 时代的应用框架。",
