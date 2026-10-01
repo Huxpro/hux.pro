@@ -504,6 +504,14 @@ export interface SurfaceSheetProps {
    *  sheet that must come up over a higher layer (the devtool over the
    *  About). */
   zIndex?: number;
+  /**
+   * Width cap, centred. On the popup (the positioning box), not the shell: the
+   * popup takes pointers across its whole box, so a narrow shell in a
+   * full-width popup would still wall off the bottom of the screen beside it.
+   * For a sheet that stays a sheet on a wide screen — a small question rising
+   * from the bottom — rather than becoming a panel or a window.
+   */
+  maxWidth?: string;
   children: React.ReactNode;
 }
 
@@ -526,6 +534,7 @@ export function SurfaceSheet({
   onPullPastTop,
   label,
   zIndex,
+  maxWidth,
   className,
   children,
 }: SurfaceSheetProps) {
@@ -698,6 +707,9 @@ export function SurfaceSheet({
                           }
                         : { height: height ?? "80dvh" }),
                     }),
+                // Absolutely placed with both sides set, so a capped width
+                // and auto margins centre it.
+                ...(maxWidth && { maxWidth, marginInline: "auto" }),
               }}
               // The positioning box only, so nothing paints outside the shell.
               className="pointer-events-auto absolute inset-x-3 z-[61] flex flex-col bg-transparent outline-none"

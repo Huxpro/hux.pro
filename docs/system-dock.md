@@ -261,9 +261,10 @@ Rules it keeps:
   the blur; see "The glass is the constraint on the motion" above.
 
 A notice has no choices in it. Anything that asks — like a link shared in the
-other language than the reader's — is a surface: a form sheet on a phone, a
-small window wider (`components/post/language-sheet.tsx`, the same shape as the
-permission offers).
+other language than the reader's — is a surface: a bigger toast rather than a
+dialog. `components/post/language-sheet.tsx` is a form sheet rising from the
+bottom at every width, capped at 400px on a desk (`sheetMaxWidth`), and not
+modal: no scrim, the page stays live behind it.
 
 ### Shape
 
