@@ -296,9 +296,11 @@ export function LegibilityLabView() {
   }, [wallpaper.profile, theme, policy]);
   // The reading specimen carries the policy as a reading route resolves it —
   // no flip, relief × reliefReading, and the veil and blur it will get.
+  // A picture is re-keyed there; the weather keys itself.
+  const readingKeyed = wallpaper.kind === "image";
   const readingVars = useMemo(
-    () => resolveForLab({ profile: wallpaper.profile, theme, reading: true, policy, pins }),
-    [wallpaper.profile, theme, policy, pins],
+    () => resolveForLab({ profile: wallpaper.profile, theme, reading: true, keyed: readingKeyed, policy, pins }),
+    [wallpaper.profile, theme, readingKeyed, policy, pins],
   );
 
   useEffect(() => {
@@ -703,6 +705,32 @@ export function LegibilityLabView() {
             <span className="ml-1.5 font-mono text-muted-foreground/40">{L.affects} {outputName("veil")}</span>
           </span>
         </Field>
+        {(
+          [
+            ["floor", L.keyFloor, 0, 0.9],
+            ["span", L.keySpan, 0.1, 1],
+            ["chroma", L.keyChroma, 0, 1.2],
+          ] as const
+        ).map(([part, label, min, max]) => (
+          <Field key={part} label={label} hint={`${policy.readingKey[theme][part]} (${themeName(theme)})`}>
+            <div className="flex items-center gap-2">
+              <Slider
+                value={policy.readingKey[theme][part]}
+                min={min}
+                max={max}
+                step={0.01}
+                onChange={(v) =>
+                  setPolicyOverrides((o) => {
+                    const key = o.readingKey ?? DEFAULT_LEGIBILITY_POLICY.readingKey;
+                    return { ...o, readingKey: { ...key, [theme]: { ...key[theme], [part]: v } } };
+                  })
+                }
+              />
+              {pairStar(["readingKey"], String(DEFAULT_LEGIBILITY_POLICY.readingKey[theme][part]))}
+            </div>
+            <span className="text-[10px] text-muted-foreground/60">{L.keyHint}</span>
+          </Field>
+        ))}
         {POLICY_KNOBS.filter((knob) => knob.group === "reading").map(policyKnobRow)}
       </Section>
 

@@ -132,6 +132,19 @@ export interface LegibilityPolicy {
    */
   readingSecondaryMax: number;
   readingTertiaryMax: number;
+  /**
+   * The re-key of a defocused picture on a reading route, per theme — the
+   * Sky's answer (`THEME_KEY` in scene.ts, #277) for a photograph. A veil
+   * mixes toward the page colour, so it can only grey a picture out; the key
+   * keeps the hue and moves the lightness into the theme's range,
+   * `L' = floor + span · L`, with `chroma` of the colour kept. The picture's
+   * bright patches under the dark theme and dark ones under the light theme
+   * are what stood between the column and its contrast, and the key takes
+   * them out without taking the colour.
+   */
+  readingKey: Record<Theme, { floor: number; span: number; chroma: number }>;
+  /** What is left of the veil over a keyed picture: the key did most of it. */
+  readingKeyVeil: number;
   /** OKLCH lightness range a tint is clamped into, per theme. */
   tintLightness: Record<Theme, [number, number]>;
   /** OKLCH chroma range a tint is clamped into. */
@@ -165,6 +178,13 @@ export const DEFAULT_LEGIBILITY_POLICY: LegibilityPolicy = {
   readingTertiaryContrast: 3,
   readingSecondaryMax: 0.8,
   readingTertiaryMax: 0.6,
+  // Light: 0.55–0.97, dark: 0.05–0.47 — the picture's whole range pressed
+  // into the theme's side of the page, with 85% of its colour.
+  readingKey: {
+    light: { floor: 0.55, span: 0.42, chroma: 0.85 },
+    dark: { floor: 0.05, span: 0.42, chroma: 0.85 },
+  },
+  readingKeyVeil: 0.5,
   tintLightness: { light: [0.5, 0.66], dark: [0.6, 0.76] },
   tintChroma: [0.05, 0.16],
   tintMinChroma: 0.03,
@@ -204,6 +224,12 @@ export interface LegibilityVars {
   /** Defocus radius, px, of the picture on a reading route. */
   blur: number;
   /**
+   * The re-key as the stylesheet applies it: `contrast(c) brightness(b)
+   * saturate(s)` on the defocused picture. Identity (1, 1, 1) unless the
+   * picture is keyed.
+   */
+  key: { b: number; c: number; s: number };
+  /**
    * Alpha points the secondary and tertiary rungs gain on a reading route,
    * on top of `inkBoost`, to reach the policy's target contrast. Zero on the
    * desktop.
@@ -240,9 +266,12 @@ export function resolveLegibility(params: {
   theme: Theme;
   reading: boolean;
   veiled?: boolean;
+  /** The picture is re-keyed: a defocused picture on a reading route. */
+  keyed?: boolean;
   policy?: LegibilityPolicy;
 }): LegibilityVars {
   const { profile, theme, reading, veiled = true } = params;
+  const keyed = reading && (params.keyed ?? false);
   const policy = params.policy ?? DEFAULT_LEGIBILITY_POLICY;
 
   const busy = clamp01(profile.edges / policy.edgesFull);
@@ -279,8 +308,10 @@ export function resolveLegibility(params: {
 
   const tint = clampTint(profile, theme, policy);
   const inkBoost = Math.round(Math.max(busy, conflict * 0.7) * policy.inkBoostMax);
+  const key = keyed ? keyFilter(policy.readingKey[theme]) : IDENTITY_KEY;
   const veil = round(
-    Math.min(policy.veilMax, policy.veilBase[theme] + busy * policy.veilBusy + conflict * policy.veilConflict),
+    Math.min(policy.veilMax, policy.veilBase[theme] + busy * policy.veilBusy + conflict * policy.veilConflict) *
+      (keyed ? policy.readingKeyVeil : 1),
   );
 
   return {
@@ -295,8 +326,9 @@ export function resolveLegibility(params: {
     veil,
     blur: Math.round(policy.blurBase + busy * policy.blurBusy),
     tint,
+    key,
     lift: reading
-      ? readingLift({ profile, theme, inkBoost, veil: veiled ? veil : 0, policy })
+      ? readingLift({ profile, theme, inkBoost, veil: veiled ? veil : 0, key, policy })
       : { secondary: 0, tertiary: 0 },
   };
 }
@@ -318,6 +350,33 @@ export function resolveLegibility(params: {
 // -----------------------------------------------------------------------------
 
 type Rgb01 = readonly [number, number, number];
+
+const IDENTITY_KEY = { b: 1, c: 1, s: 1 } as const;
+
+/**
+ * `L' = floor + span · L` as the stylesheet can say it. CSS filter functions
+ * act on sRGB values: `contrast(c)` is `c·(x − ½) + ½` and `brightness(b)`
+ * multiplies, so together `b·c·x + b·(1 − c)/2` — an affine map with slope
+ * `b·c = span` and offset `b·(1 − c)/2 = floor`. Both scale a colour's
+ * channel differences by `span` too, so `saturate(chroma / span)` gives back
+ * all but `chroma` of it. sRGB value stands in for OKLab lightness; on a
+ * picture blurred past 28px the difference is not one anyone can see.
+ */
+function keyFilter({ floor, span, chroma }: { floor: number; span: number; chroma: number }) {
+  const b = 2 * floor + span;
+  return { b: round(b, 3), c: round(span / b, 3), s: round(chroma / span, 3) };
+}
+
+/** What the re-key does to one colour, for the lift's estimate of the ground. */
+function applyKey(rgb: Rgb01, { b, c, s }: { b: number; c: number; s: number }): Rgb01 {
+  const [r, g, bl] = rgb.map((x) => clamp01(b * (c * (x - 0.5) + 0.5)));
+  // saturate(s), the Filter Effects matrix.
+  return [
+    clamp01((0.213 + 0.787 * s) * r + (0.715 - 0.715 * s) * g + (0.072 - 0.072 * s) * bl),
+    clamp01((0.213 - 0.213 * s) * r + (0.715 + 0.285 * s) * g + (0.072 - 0.072 * s) * bl),
+    clamp01((0.213 - 0.213 * s) * r + (0.715 - 0.715 * s) * g + (0.072 + 0.928 * s) * bl),
+  ];
+}
 
 const mix01 = (over: Rgb01, alpha: number, under: Rgb01): Rgb01 =>
   [0, 1, 2].map((i) => over[i] * alpha + under[i] * (1 - alpha)) as unknown as Rgb01;
@@ -348,16 +407,17 @@ function readingLift(params: {
   theme: Theme;
   inkBoost: number;
   veil: number;
+  key: { b: number; c: number; s: number };
   policy: LegibilityPolicy;
 }): { secondary: number; tertiary: number } {
-  const { profile, theme, inkBoost, veil, policy } = params;
+  const { profile, theme, inkBoost, veil, key, policy } = params;
   const ink = grey01(INK_LIGHTNESS[theme]);
   const page = PAGE_RGB01[theme];
   const zones = [profile.zones.top, profile.zones.mid, profile.zones.bottom];
   const worstBand = theme === "light" ? Math.min(...zones) : Math.max(...zones);
   const [r, g, b] = profile.mean;
   const grounds = [[r / 255, g / 255, b / 255] as const, grey01(worstBand)].map((picture) =>
-    mix01(page, veil, picture),
+    mix01(page, veil, applyKey(picture, key)),
   );
 
   const lift = (base: number, target: number, max: number) => {
@@ -498,6 +558,9 @@ export function legibilityCssVars(vars: LegibilityVars): Record<string, string> 
     "--wp-tint-h": String(vars.tint.h),
     "--wp-veil": String(vars.veil),
     "--wp-blur": `${vars.blur}px`,
+    "--wp-key-b": String(vars.key.b),
+    "--wp-key-c": String(vars.key.c),
+    "--wp-key-s": String(vars.key.s),
     "--wp-lift-secondary": `${vars.lift.secondary}%`,
     "--wp-lift-tertiary": `${vars.lift.tertiary}%`,
   };
@@ -512,6 +575,9 @@ export function sameVars(a: LegibilityVars, b: LegibilityVars): boolean {
     a.glassAdd === b.glassAdd &&
     a.veil === b.veil &&
     a.blur === b.blur &&
+    a.key.b === b.key.b &&
+    a.key.c === b.key.c &&
+    a.key.s === b.key.s &&
     a.lift.secondary === b.lift.secondary &&
     a.lift.tertiary === b.lift.tertiary &&
     a.flip === b.flip &&
