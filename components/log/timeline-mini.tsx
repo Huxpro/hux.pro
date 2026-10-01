@@ -4,9 +4,15 @@
  * TimelineMini — Minimized git-log row for widget-sized timelines.
  *
  * A trimmed-down `TimelineCommit`: same icon column + tenure rail, same
- * title / date summary line and `<handle>` byline — minus everything that
+ * title / date line — and nothing under it. It is /works' one-liner at
+ * widget width: the mark says what kind of thing it is (a project wears
+ * its own face), the title says which, the date says when. The team and
+ * the handle used to take a second line under each title; on a card that
+ * is "projects" by its own label, under a greeting that names the
+ * company, they were the chapter restated five times. Everything that
  * needs page-width real estate (hash column, link pills, cursor peek,
- * pinned/expanded media, inspect mode). Attachments never render here.
+ * pinned/expanded media, inspect mode) is likewise left to /works.
+ * Attachments never render here.
  *
  * Consumes NormalizedCommit — fully type-agnostic.
  *
@@ -24,7 +30,6 @@
 
 import { cn } from "@/lib/utils";
 import { Link } from "next-view-transitions";
-import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
 import { ProjectMark } from "./project-mark";
@@ -38,8 +43,6 @@ interface TimelineMiniProps {
   rail?: string;
   /** True when this row IS a role that anchors its tenure segment. */
   isRole?: boolean;
-  /** Pre-localized author byline (see `computeBylines`). */
-  byline?: Byline | null;
   hideDate?: boolean;
   className?: string;
 }
@@ -48,7 +51,6 @@ export function TimelineMini({
   data,
   rail = "",
   isRole = false,
-  byline = null,
   hideDate = false,
   className,
 }: TimelineMiniProps) {
@@ -174,51 +176,6 @@ export function TimelineMini({
         )}
       </div>
 
-      {/* Subtitle row: meta / team on the left, <handle> byline on the
-          right. Sparse handle: cluster heads print it at rest, the rest
-          fade in on row hover. */}
-      {(!(isEvent || isAside) && (data.meta || byline)) && (
-        <div
-          className={cn(
-            "col-start-2 mt-0.5 flex items-baseline justify-between gap-2",
-            TYPE.rowMeta,
-          )}
-        >
-          <span className="min-w-0 truncate">
-            {data.meta ? (
-              data.metaUrl ? (
-                <a
-                  href={data.metaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  {data.meta}
-                  <span aria-hidden className="text-[0.7rem]">
-                    ↗
-                  </span>
-                </a>
-              ) : (
-                data.meta
-              )
-            ) : (
-              byline?.subtitle
-            )}
-          </span>
-          {byline && (
-            <span
-              className={cn(
-                "shrink-0 text-tertiary-foreground transition-opacity duration-200",
-                byline.isClusterHead
-                  ? "opacity-100"
-                  : "opacity-0 group-hover:opacity-100",
-              )}
-            >
-              {byline.handle}
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 
