@@ -197,8 +197,12 @@ function GradientLayer({
           className="absolute inset-0 scale-110"
           style={{
             // Radius from the legibility policy (`--wp-blur` on <html>): a
-            // busy picture is defocused further than a calm one.
-            filter: "blur(var(--wp-blur, 40px))",
+            // busy picture is defocused further than a calm one. Then the
+            // re-key (`--wp-key-*`, legibility.ts): the picture's lightness
+            // pressed into the theme's range, its colour kept. The three
+            // colour functions fold into one colour matrix after the blur.
+            filter:
+              "blur(var(--wp-blur, 40px)) contrast(var(--wp-key-c, 1)) brightness(var(--wp-key-b, 1)) saturate(var(--wp-key-s, 1))",
             backgroundImage: gradient,
             backgroundSize: cover ? (triple ? "cover, cover, 100% 100%" : "cover, 100% 100%") : undefined,
             backgroundPosition: "center",

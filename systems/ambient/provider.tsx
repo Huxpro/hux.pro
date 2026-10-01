@@ -1468,6 +1468,8 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       theme: chromeTheme,
       reading,
       veiled: readingDim,
+      // A defocused picture is re-keyed; the weather keys itself (scene.ts).
+      keyed: isBlurred,
       policy: labPolicy ?? undefined,
     });
     if (fullEnabled) return full;
@@ -1475,7 +1477,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       return { ...plainLegibility(chromeTheme, reading), glassAdd: full.glassAdd, tint: full.tint, veil: full.veil, blur: full.blur };
     }
     return plainLegibility(chromeTheme, reading);
-  }, [profile, chromeTheme, reading, readingDim, fullEnabled, widgetEnabled, labPolicy]);
+  }, [profile, chromeTheme, reading, readingDim, isBlurred, fullEnabled, widgetEnabled, labPolicy]);
 
   const [legibilityOverride, setLegibilityOverride] = useState<LegibilityVars | null>(null);
   const legibility = legibilityOverride ?? resolvedLegibility;
