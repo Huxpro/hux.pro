@@ -52,7 +52,7 @@ import { useAttachments } from "../provider";
 //
 // Chrome is the theater's (lib/chrome.ts): a frosted cluster holding mono
 // uppercase actions, the primary one lifted on the glass pill, the same
-// material the PiP bar and the Live Activity wear. The surface and the stage
+// material the theater bar and the Live Activity wear. The surface and the stage
 // are one system, and their controls should say so.
 //
 // The cover wears no chip here (media-mark.tsx): the page prints the domain,

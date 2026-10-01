@@ -28,8 +28,8 @@ interface StageProps {
   /** Stage is on-screen (false when parked / minimized / closed). */
   visible: boolean;
   dragging: boolean;
-  /** In PiP the control bar sits directly below, so the video is flat-bottomed
-   *  and shares a continuous border with the bar (reads as one window). */
+  /** In PiP the video is the whole tile: its controls are drawn over it
+   *  (pip-overlay.tsx), so it wears the tile's radius and hairline. */
   pip: boolean;
 }
 
@@ -56,11 +56,11 @@ export function Stage({
       aria-hidden={!visible}
       className={cn(
         "theater-stage fixed z-[10002] overflow-hidden bg-black",
-        // PiP: flat bottom + widget-matched 2xl so it joins the glass bar as
-        // one window. Theater: fully rounded, hairline ring.
-        pip ? "rounded-t-2xl" : "rounded-2xl",
+        // PiP: the tile itself, widget-matched 2xl with the glass hairline.
+        // Theater: the same radius, with a ring for the dark veil.
+        "rounded-2xl",
         visible && "shadow-overlay pointer-events-auto",
-        visible && (pip ? "border border-b-0 border-border/50" : "ring-1 ring-white/15"),
+        visible && (pip ? "border border-border/50" : "ring-1 ring-white/15"),
         !visible && "pointer-events-none",
       )}
       style={{ transformOrigin: "center center" }}

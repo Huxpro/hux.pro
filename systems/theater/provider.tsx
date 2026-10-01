@@ -15,10 +15,12 @@ import { SURFACE_BREAKPOINTS } from "@/systems/surface";
 import type { SlidesMedia, VideoMedia, VideoPlatform } from "@/lib/log";
 import { useInputCapability } from "@/services";
 import {
-  pipOffsetAtTop,
+  DEFAULT_PIP_PLACEMENT,
+  pipParkedForPlaylist,
   readViewport,
   stageRectFor,
   theaterAvailable as theaterFits,
+  type PipPlacement,
   type Viewport,
 } from "./lib/geometry";
 import { adHocAlbum, mediaToTrack } from "./lib/albums";
@@ -95,7 +97,14 @@ interface TheaterContextValue {
   rect: StageRect;
   /** The viewport the geometry above was measured against. */
   viewport: Viewport;
-  pipOffset: { x: number; y: number };
+  /**
+   * Where the PiP tile rests: a corner, a size, and whether it is stashed in a
+   * side edge. While the playlist is up on a phone this is the parked
+   * placement, not the one the user left.
+   */
+  pipPlacement: PipPlacement;
+  /** The tile's top-left while a drag is in progress, null otherwise. */
+  pipDrag: { x: number; y: number } | null;
   dragging: boolean;
   /** The playlist surface (albums + tracks). The only browser PiP has. */
   isPlaylistOpen: boolean;
@@ -138,8 +147,8 @@ interface TheaterContextValue {
   openPlaylist: () => void;
   closePlaylist: () => void;
 
-  setPipOffset: (offset: { x: number; y: number }) => void;
-  setDragging: (dragging: boolean) => void;
+  setPipPlacement: (placement: PipPlacement) => void;
+  setPipDrag: (drag: { x: number; y: number } | null) => void;
 }
 
 const TheaterContext = createContext<TheaterContextValue | undefined>(undefined);
@@ -213,8 +222,9 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
 
   // --- Geometry ---
   const [viewport, setViewport] = useState<Viewport>(() => readViewport());
-  const [pipOffset, setPipOffset] = useState({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState(false);
+  const [pipPlacement, setPipPlacement] = useState<PipPlacement>(DEFAULT_PIP_PLACEMENT);
+  const [pipDrag, setPipDrag] = useState<{ x: number; y: number } | null>(null);
+  const dragging = pipDrag !== null;
 
   // Touch vs mouse only affects chrome (hover-to-reveal vs always-on). Mode
   // selection is viewport-sized: phones get PiP, tablet+ gets theater. An
@@ -232,30 +242,28 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const geomMode: "theater" | "pip" =
     mode === "theater" && theaterAvailable ? "theater" : "pip";
 
-  // The playlist sheet and the PiP window share a phone screen rather than
-  // overlapping: the window goes to the top of the screen and the sheet takes
-  // everything under it (the sheet's top detent is the window's bottom edge;
+  // The playlist sheet and the PiP tile share a phone screen rather than
+  // overlapping: the tile goes to the top of the screen and the sheet takes
+  // everything under it (the sheet's top detent is the tile's bottom edge;
   // see `playlistDetents`). The park is derived, not stored. Closing the
-  // sheet puts the window back where the user left it with no bookkeeping, and
+  // sheet puts the tile back where the user left it with no bookkeeping, and
   // no frame has the two disagreeing. It is the phone's problem only: the
   // tablet panel and the desktop window leave the PiP's corner alone.
   //
-  // What the chrome reads and drags from is this *effective* offset, so a drag
-  // that starts on a parked window starts where the window is. Pushed against
-  // the park it moves sideways and no further down: under the list is not a
-  // place the window can be while the list is up.
+  // What the chrome reads is this *effective* placement, so a drag that
+  // starts on a parked tile starts where the tile is.
   const parkedForPlaylist =
     isPlaylistOpen &&
     mode === "pip" &&
     !minimized &&
     viewport.width < SURFACE_BREAKPOINTS.sm;
-  const effectiveOffset = useMemo(
-    () => (parkedForPlaylist ? pipOffsetAtTop(viewport, pipOffset) : pipOffset),
-    [parkedForPlaylist, viewport, pipOffset],
+  const effectivePlacement = useMemo(
+    () => (parkedForPlaylist ? pipParkedForPlaylist(pipPlacement) : pipPlacement),
+    [parkedForPlaylist, pipPlacement],
   );
   const rect = useMemo(
-    () => stageRectFor(geomMode, viewport, effectiveOffset),
-    [geomMode, viewport, effectiveOffset],
+    () => stageRectFor(geomMode, viewport, effectivePlacement, pipDrag),
+    [geomMode, viewport, effectivePlacement, pipDrag],
   );
   const visible = mode !== "closed" && !minimized;
 
@@ -486,7 +494,10 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       const tracks = next[ai]?.tracks ?? [];
       setTrackIndex(Math.min(Math.max(ti, 0), Math.max(tracks.length - 1, 0)));
       setMinimized(false);
-      setPipOffset({ x: 0, y: 0 });
+      // The corner and size are the user's and outlive a session; a stash is
+      // a "not now" for the video that was playing, not for the next one.
+      setPipPlacement((p) => (p.stash ? { ...p, stash: null } : p));
+      setPipDrag(null);
       setMode(resolveMode(m));
     },
     [resolveMode],
@@ -681,11 +692,14 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const openPlaylist = useCallback(() => setPlaylistOpen(true), []);
   const closePlaylist = useCallback(() => setPlaylistOpen(false), []);
 
-  // Escape closes the player (a standard modal affordance). Track/album
-  // navigation via keyboard and scroll is intentionally omitted on desktop.
-  // Clicking the album tabs / playlist rail / arrows is the single path.
+  // Escape closes the theater (a standard modal affordance). It does nothing
+  // to PiP: the tile is not modal, and an Escape pressed there was almost
+  // always meant for something else (a menu, a sheet), which ended the
+  // video and lost its place. Track/album navigation via keyboard and scroll
+  // is intentionally omitted on desktop. Clicking the album tabs / playlist
+  // rail / arrows is the single path.
   useEffect(() => {
-    if (effectiveMode === "closed") return;
+    if (effectiveMode !== "theater") return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
@@ -714,7 +728,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     theaterAvailable,
     rect,
     viewport,
-    pipOffset: effectiveOffset,
+    pipPlacement: effectivePlacement,
+    pipDrag,
     dragging,
     isPlaylistOpen,
     registerAlbums,
@@ -738,8 +753,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     selectTrack,
     openPlaylist,
     closePlaylist,
-    setPipOffset,
-    setDragging,
+    setPipPlacement,
+    setPipDrag,
   };
 
   return (
