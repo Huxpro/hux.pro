@@ -462,6 +462,15 @@ provider loops it and moves on when a YouTube program ends, and `open({
 startAt })` puts the tuned-in program that far in (YouTube's `startSeconds`,
 Bilibili's `t`). A recording needs `duration` on its media to be scheduled;
 decks do not broadcast. The home card is the channel guide.
+**The tour** (`systems/theater/lib/tour.ts`) is another way into the
+library: every talk's `conference.city` on a dot-matrix map
+(`components/tour-map.tsx`, land from `lib/land.ts` — a 0.5° Natural Earth
+bitmask), with the route the cities were first visited in. It reads the log's
+talks rather than only the library, since a stop is a place spoken at,
+recorded or not: a talk that left a recording or a deck plays through
+`openMedia`, the rest open their /works row. A city the table in `tour.ts`
+does not know, and every online talk, stays off the map (the card's
+"Off the map" chip) rather than being pinned somewhere it was not.
 
 What the home card leads with is curation, and lives beside the library
 rather than in the log: `content/theater.json` lists the featured media by
