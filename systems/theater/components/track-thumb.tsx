@@ -89,6 +89,10 @@ export function TrackThumb({
     >
       {track.thumbnail ? (
         <ExternalImage
+          // A new picture is a new image: a cover whose track changes (a
+          // version switch, a channel moving to its next program) must not
+          // keep showing the last one while this loads.
+          key={track.thumbnail}
           src={track.thumbnail}
           className="absolute inset-0 h-full w-full object-cover"
         />
