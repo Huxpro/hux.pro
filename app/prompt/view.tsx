@@ -271,7 +271,15 @@ function plain(text: string) {
  * `influences`, and as plain text when it doesn't — most of what shaped a
  * belief never gets an entry of its own.
  */
-function AttributionText({ attribution }: { attribution: Attribution }) {
+function AttributionText({
+  attribution,
+  rung = "secondary",
+}: {
+  attribution: Attribution;
+  /** The rung of the sentence this attribution belongs to: running text
+   *  (a voice) or the quieter lines around it (an instance, a byline). */
+  rung?: "reading" | "secondary";
+}) {
   const { goTo, anchorFor } = useNav();
   // Provenance has two halves and they are not the same kind of thing: who
   // said it is a name you might go and look up — several of them are links
@@ -282,6 +290,10 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
   // `ref` links the name inward, `url` links the work outward — and when
   // there is no work to hang it on, the url links the name instead, because
   // a source that can be looked up should be reachable either way.
+  const nameRung =
+    rung === "reading" ? "text-reading-foreground" : "text-muted-foreground";
+  const sourceRung =
+    rung === "reading" ? "text-muted-foreground" : "text-tertiary-foreground";
   const nameHref = attribution.ref
     ? `#${anchorFor(attribution.ref)}`
     : !attribution.source && attribution.url
@@ -298,12 +310,12 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
             rel: "noopener noreferrer",
             onClick: (e: React.MouseEvent) => e.stopPropagation(),
           })}
-      className={cn("text-muted-foreground", linkClass)}
+      className={cn(nameRung, linkClass)}
     >
       <Marks text={attribution.name} />
     </a>
   ) : (
-    <span className="text-muted-foreground">
+    <span className={nameRung}>
       <Marks text={attribution.name} />
     </span>
   );
@@ -320,12 +332,12 @@ function AttributionText({ attribution }: { attribution: Attribution }) {
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className={cn("text-tertiary-foreground", linkClass)}
+              className={cn(sourceRung, linkClass)}
             >
               <Marks text={attribution.source} />
             </a>
           ) : (
-            <span className="text-tertiary-foreground">
+            <span className={sourceRung}>
               <Marks text={attribution.source} />
             </span>
           )}
@@ -366,7 +378,7 @@ function Body({ text }: { text: string }) {
             {block.lines.map((line, i) => (
               <motion.li
                 key={i}
-                className="text-sm text-muted-foreground flex items-start gap-2"
+                className="text-sm text-reading-foreground flex items-start gap-2"
                 initial={{ opacity: 0, x: -4 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05, duration: 0.2 }}
@@ -381,10 +393,7 @@ function Body({ text }: { text: string }) {
         ) : (
           <div key={b} className="space-y-2">
             {block.lines.map((line, i) => (
-              <p
-                key={i}
-                className="text-sm text-muted-foreground leading-relaxed"
-              >
+              <p key={i} className={TYPE.reading}>
                 <Marks text={line} />
               </p>
             ))}
@@ -399,7 +408,9 @@ function Body({ text }: { text: string }) {
  * The faces of a belief, revealed on expand.
  *
  * Each line is the same conviction showing up somewhere specific, so it is
- * set quieter than the reasoning above it and can carry two kinds of
+ * set quieter than the reasoning above it — the reasoning is the entry's
+ * prose, on the reading rung, and these are its appendix, on secondary —
+ * and can carry two kinds of
  * pointer: whose words or example it is (`from`), and which other entry on
  * this page it is also filed under (`ref`). The second is what lets a big
  * belief own its small ones without deleting them — the page groups by
@@ -442,7 +453,7 @@ function Instances({
               )}
               <Marks text={instance.text} />
               {instance.from && (
-                <span className="text-tertiary-foreground">
+                <span>
                   <span className="text-quaternary-foreground">{" — "}</span>
                   <AttributionText attribution={instance.from} />
                 </span>
@@ -777,7 +788,7 @@ function StatementLine({
           // is inline would be the layout talking over the meaning.
           <span className={VOICE_META}>
             <span className="text-quaternary-foreground">{" — "}</span>
-            <AttributionText attribution={quoted} />
+            <AttributionText attribution={quoted} rung="reading" />
           </span>
         )}
       </p>
@@ -854,7 +865,7 @@ function ConvictionItem({
       detail={
         <>
           {conviction.shapedBy && conviction.shapedBy.length > 0 && (
-            <p className="text-xs font-mono text-tertiary-foreground mb-3">
+            <p className="text-xs font-mono text-muted-foreground mb-3">
               {shapedByLabel}:{" "}
               {conviction.shapedBy.map((attribution, i) => (
                 <span key={attribution.name}>
@@ -983,7 +994,7 @@ function InfluenceItem({
           {shaped.length > 0 && (
             <p
               className={cn(
-                "text-xs font-mono text-tertiary-foreground",
+                "text-xs font-mono text-muted-foreground",
                 influence.body && "mt-4",
               )}
             >
