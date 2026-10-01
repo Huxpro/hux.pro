@@ -21,7 +21,9 @@ export { loadYouTubeAPI } from "@/systems/music/lib/youtube-player";
 /** YT.Player plus the single-video controls used for playlist playback. */
 export interface YTPlayerExt extends YT.Player {
   loadVideoById(videoId: string): void;
+  loadVideoById(options: { videoId: string; startSeconds?: number }): void;
   cueVideoById(videoId: string): void;
+  cueVideoById(options: { videoId: string; startSeconds?: number }): void;
   seekTo(seconds: number, allowSeekAhead?: boolean): void;
   getIframe(): HTMLIFrameElement;
 }

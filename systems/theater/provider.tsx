@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { usePathname } from "next/navigation";
 import { useOptionalMusic } from "@/systems/music";
@@ -25,6 +26,11 @@ import {
   type Viewport,
 } from "./lib/geometry";
 import { adHocAlbum, mediaToTrack } from "./lib/albums";
+import {
+  adoptPageLook,
+  nativeWindowSupported,
+  requestNativeWindow,
+} from "./lib/native-window";
 import {
   enableIframeFullscreen,
   loadYouTubeAPI,
@@ -113,6 +119,21 @@ interface TheaterContextValue {
   /** The tile's top-left while a drag is in progress, null otherwise. */
   pipDrag: { x: number; y: number } | null;
   dragging: boolean;
+  /**
+   * The native picture-in-picture window the player is in (Chromium desks),
+   * or null. While it is open the page's stage is hidden and the theater's
+   * Live Activity stands for it in the dock.
+   */
+  nativeWindow: Window | null;
+  /** The browser can open one, and there is a pointer to ask with. */
+  nativeWindowAvailable: boolean;
+  /** Move the player into a native window. Call it from the click that asks. */
+  popOut: () => void;
+  /** Where the window's player starts, and whether it plays (read once). */
+  nativeHandoff: () => { startAt: number; resume: boolean };
+  /** The window's YouTube player once it is ready, and its state changes. */
+  attachNativePlayer: (player: YTPlayerExt | null) => void;
+  reportNativeState: (state: YT.PlayerState) => void;
   /** The playlist surface (albums + tracks). The only browser PiP has. */
   isPlaylistOpen: boolean;
 
@@ -193,6 +214,9 @@ export function useTheater() {
 export function useOptionalTheater() {
   return useContext(TheaterContext);
 }
+
+/** `useSyncExternalStore` for a fact that never changes after load. */
+const noSubscription = () => () => {};
 
 function ytPhase(state: YT.PlayerState): PlayerPhase {
   switch (state) {
@@ -294,8 +318,29 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // --- The native window (lib/native-window.ts) ---
+  const [nativeWindow, setNativeWindow] = useState<Window | null>(null);
+  // The window's own YouTube player. While it exists it is the live one:
+  // play, pause, seek and the clock all go to it, and the page's is paused.
+  const nativePlayerRef = useRef<YTPlayerExt | null>(null);
+  const handoffRef = useRef({ startAt: 0, resume: false });
+  // Set when the session is ending, so the window closing does not hand
+  // playback back to a player that is being stopped.
+  const endingRef = useRef(false);
+  const nativeSupported = useSyncExternalStore(
+    noSubscription,
+    nativeWindowSupported,
+    () => false,
+  );
+  const nativeWindowAvailable = nativeSupported && !isCoarse;
+
   // --- YouTube player (persistent) ---
   const playerRef = useRef<YTPlayerExt | null>(null);
+  /** The player that is playing: the window's while there is one. */
+  const livePlayer = useCallback(
+    () => nativePlayerRef.current ?? playerRef.current,
+    [],
+  );
   const readyRef = useRef(false);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const pendingVideoRef = useRef<string | null>(null);
@@ -373,6 +418,10 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // In a native window the window's player has the track
+    // (components/native-window.tsx); the page's stays paused where it was.
+    if (nativeWindow) return;
+
     if (!track) return;
 
     if (track.platform === "youtube" && track.videoId) {
@@ -397,7 +446,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       setPhase("idle");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track?.id, track?.platform, track?.videoId, mode, minimized, ensurePlayer]);
+  }, [track?.id, track?.platform, track?.videoId, mode, minimized, nativeWindow, ensurePlayer]);
 
   // Pause background music whenever a video starts playing.
   useEffect(() => {
@@ -407,9 +456,9 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
 
   // --- Progress polling (YouTube only, while playing) ---
   useEffect(() => {
-    if (phase !== "playing" || !playerRef.current) return;
+    if (phase !== "playing" || !livePlayer()) return;
     const poll = () => {
-      const p = playerRef.current;
+      const p = livePlayer();
       if (!p) return;
       try {
         setCurrentTime(p.getCurrentTime());
@@ -421,7 +470,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     poll();
     const id = setInterval(poll, 500);
     return () => clearInterval(id);
-  }, [phase]);
+  }, [phase, livePlayer]);
 
   // Backfill a real title for ad-hoc YouTube tracks (opened from a bare video
   // click) once the player reports its metadata.
@@ -429,7 +478,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     if (!track || track.platform !== "youtube") return;
     if (phase !== "playing" && phase !== "paused") return;
     if (track.title && track.title !== "Video") return;
-    const p = playerRef.current;
+    const p = livePlayer();
     if (!p) return;
     try {
       const data = p.getVideoData();
@@ -631,45 +680,153 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   );
 
   const close = useCallback(() => {
+    if (nativeWindow) {
+      endingRef.current = true;
+      nativeWindow.close();
+    }
     setMode("closed");
     setMinimized(false);
     setPhase("idle");
     setCurrentTime(0);
     setDuration(0);
-  }, []);
+  }, [nativeWindow]);
+
+  // Any move back onto the page closes the native window first; its
+  // `pagehide` hands playback back (`bringBack` below) and the move then
+  // decides the shape.
+  const leaveNativeWindow = useCallback(() => {
+    nativeWindow?.close();
+  }, [nativeWindow]);
 
   const minimize = useCallback(() => setMinimized(true), []);
   const restore = useCallback(() => {
+    leaveNativeWindow();
     setMinimized(false);
     setMode((m) => (m === "closed" ? "pip" : m));
-  }, []);
+  }, [leaveNativeWindow]);
   const toPip = useCallback(() => {
+    leaveNativeWindow();
     setMinimized(false);
     setMode("pip");
-  }, []);
+  }, [leaveNativeWindow]);
   const toSidecar = useCallback(() => {
+    leaveNativeWindow();
     setMinimized(false);
     setMode(sidecarAvailable ? "sidecar" : "pip");
-  }, [sidecarAvailable]);
+  }, [sidecarAvailable, leaveNativeWindow]);
   const toTheater = useCallback(() => {
+    leaveNativeWindow();
     setMinimized(false);
     setMode(theaterAvailable ? "theater" : "pip");
-  }, [theaterAvailable]);
+  }, [theaterAvailable, leaveNativeWindow]);
+
+  // Back from the window: the page's player picks up where the window's got
+  // to, on whatever track it got to, playing if it was. Then the stage shows
+  // again in the shape it had.
+  const bringBack = () => {
+    const from = nativePlayerRef.current;
+    nativePlayerRef.current = null;
+    setNativeWindow(null);
+    if (endingRef.current) {
+      endingRef.current = false;
+      return;
+    }
+    let at = 0;
+    let playing = false;
+    try {
+      if (from) {
+        at = from.getCurrentTime();
+        // YT.PlayerState.PLAYING, as a number: the window's API is not this
+        // tab's, and this tab's may never have loaded.
+        playing = from.getPlayerState() === 1;
+      }
+    } catch {
+      /* the window's player is already gone */
+    }
+    const main = playerRef.current;
+    if (track?.kind === "video" && track.platform === "youtube" && track.videoId && main && readyRef.current) {
+      try {
+        if (loadedVideoRef.current !== track.videoId) {
+          loadedVideoRef.current = track.videoId;
+          main.loadVideoById({ videoId: track.videoId, startSeconds: at });
+        } else {
+          main.seekTo(at, true);
+        }
+        if (playing) main.playVideo();
+        else main.pauseVideo();
+      } catch {
+        /* noop */
+      }
+    }
+    setMinimized(false);
+  };
+  const bringBackRef = useRef(bringBack);
+  useEffect(() => {
+    bringBackRef.current = bringBack;
+  });
+
+  const popOut = useCallback(() => {
+    if (!nativeWindowSupported() || nativeWindow || !track) return;
+    const isYouTube = track.kind === "video" && track.platform === "youtube";
+    let startAt = 0;
+    try {
+      startAt = isYouTube ? (playerRef.current?.getCurrentTime() ?? 0) : 0;
+    } catch {
+      /* not ready yet: start from the top */
+    }
+    handoffRef.current = {
+      startAt,
+      // A recording plays on in the window if it was playing (or about to);
+      // a deck or another platform's embed simply opens there.
+      resume: !isYouTube || phase === "playing" || phase === "loading",
+    };
+    requestNativeWindow()
+      .then((win) => {
+        const teardown = adoptPageLook(win);
+        try {
+          playerRef.current?.pauseVideo();
+        } catch {
+          /* noop */
+        }
+        win.addEventListener(
+          "pagehide",
+          () => {
+            teardown();
+            bringBackRef.current();
+          },
+          { once: true },
+        );
+        setNativeWindow(win);
+        setPlaylistOpen(false);
+        setMinimized(true);
+      })
+      .catch(() => {
+        /* refused (no gesture, or already open elsewhere): stay on the page */
+      });
+  }, [nativeWindow, track, phase]);
+
+  const nativeHandoff = useCallback(() => handoffRef.current, []);
+  const attachNativePlayer = useCallback((player: YTPlayerExt | null) => {
+    nativePlayerRef.current = player;
+  }, []);
+  const reportNativeState = useCallback((state: YT.PlayerState) => {
+    setPhase(ytPhase(state));
+  }, []);
 
   const play = useCallback(() => {
     try {
-      playerRef.current?.playVideo();
+      livePlayer()?.playVideo();
     } catch {
       /* noop */
     }
-  }, []);
+  }, [livePlayer]);
   const pause = useCallback(() => {
     try {
-      playerRef.current?.pauseVideo();
+      livePlayer()?.pauseVideo();
     } catch {
       /* noop */
     }
-  }, []);
+  }, [livePlayer]);
   const togglePlay = useCallback(() => {
     if (phase === "playing") pause();
     else play();
@@ -699,14 +856,17 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     }
   }, [albumIndex, trackIndex, albums, clampTrack]);
 
-  const seek = useCallback((seconds: number) => {
-    try {
-      playerRef.current?.seekTo(seconds, true);
-      setCurrentTime(seconds);
-    } catch {
-      /* noop */
-    }
-  }, []);
+  const seek = useCallback(
+    (seconds: number) => {
+      try {
+        livePlayer()?.seekTo(seconds, true);
+        setCurrentTime(seconds);
+      } catch {
+        /* noop */
+      }
+    },
+    [livePlayer],
+  );
 
   const selectAlbum = useCallback(
     (index: number) => clampTrack(index, 0),
@@ -764,6 +924,12 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     pipDrag,
     dragging,
     isPlaylistOpen,
+    nativeWindow,
+    nativeWindowAvailable,
+    popOut,
+    nativeHandoff,
+    attachNativePlayer,
+    reportNativeState,
     registerAlbums,
     open,
     openTrack,
@@ -799,7 +965,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
         hostRef={hostRef}
         rect={rect}
         track={track}
-        active={mode !== "closed"}
+        active={mode !== "closed" && !nativeWindow}
         visible={visible}
         dragging={dragging}
         pip={geomMode !== "theater"}

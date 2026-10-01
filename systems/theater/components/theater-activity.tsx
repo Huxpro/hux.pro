@@ -24,13 +24,25 @@ import { VideoControls } from "./video-controls";
 // pushed up into the dock. A press on it (or a pull down from it) brings the
 // card back rather than opening a panel; the card is the panel there, and it
 // has the picture (pip-overlay.tsx).
+//
+// While the player is out in a native window (native-window.tsx) this pill
+// stands for it on the page: it reads `in a window`, its transport drives
+// the window's player, and choosing PiP or Theater brings the player back.
 // ---------------------------------------------------------------------------
 
 export function TheaterActivity() {
   const { locale } = useLocale();
   const { close: closeDock } = useDock();
-  const { minimized, track, phase, toPip, toTheater, theaterAvailable, pipCard } =
-    useTheater();
+  const {
+    minimized,
+    track,
+    phase,
+    toPip,
+    toTheater,
+    theaterAvailable,
+    pipCard,
+    nativeWindow,
+  } = useTheater();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -72,7 +84,10 @@ export function TheaterActivity() {
         <>
           {showEQ && <EQBars className="text-red-500" />}
           <span className="truncate text-xs font-mono text-muted-foreground">
-            {t(locale, deck ? "theaterDeck" : "theaterWatching")}
+            {t(
+              locale,
+              nativeWindow ? "theaterInWindow" : deck ? "theaterDeck" : "theaterWatching",
+            )}
           </span>
         </>
       }

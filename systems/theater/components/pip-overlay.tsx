@@ -12,6 +12,7 @@ import {
   Minimize2,
   PanelRight,
   Pause,
+  SquareArrowOutUpRight,
   Play,
   SkipBack,
   SkipForward,
@@ -270,9 +271,11 @@ function useViewButtons({ onDark, audio = true }: { onDark: boolean; audio?: boo
   const {
     theaterAvailable,
     sidecarAvailable,
+    nativeWindowAvailable,
     isPlaylistOpen,
     toTheater,
     toSidecar,
+    popOut,
     minimize,
     openPlaylist,
     closePlaylist,
@@ -316,6 +319,17 @@ function useViewButtons({ onDark, audio = true }: { onDark: boolean; audio?: boo
         className={btn}
       >
         <Minimize2 className="h-3.5 w-3.5" />
+      </button>
+    ) : null,
+    native: nativeWindowAvailable ? (
+      <button
+        type="button"
+        onClick={popOut}
+        aria-label={t(locale, "theaterPopOut")}
+        title={t(locale, "theaterPopOut")}
+        className={btn}
+      >
+        <SquareArrowOutUpRight className="h-3.5 w-3.5" />
       </button>
     ) : null,
     sidecar: sidecarAvailable ? (
@@ -487,6 +501,7 @@ function PipTile() {
               <>
                 {views.playlist}
                 {views.audio}
+                {views.native}
                 {views.sidecar}
                 {views.theater}
               </>
@@ -513,6 +528,7 @@ function PipTile() {
           </span>
           {views.playlist}
           {views.audio}
+          {views.native}
           {views.sidecar}
           {views.theater}
         </div>
