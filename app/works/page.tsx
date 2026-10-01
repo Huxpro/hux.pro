@@ -1,24 +1,9 @@
-import { Suspense } from "react";
-import { getLogData } from "@/lib/log-server";
-import { enrichLogDataWithPreviews } from "@/lib/og-snapshot";
-import { WorksView } from "./view";
+import type { Metadata } from "next";
+import { worksMetadata } from "./metadata";
 
-export const metadata = {
-  title: "Works",
-  description:
-    "Commit history: professional work as git log, with tags marking each chapter.",
-};
+// The view is the layout's. This page is /works's Open Graph.
+export const metadata: Metadata = worksMetadata(null);
 
 export default function WorksPage() {
-  // Bake snapshot/manual link previews into the data server-side so cards
-  // render synchronously on the client (no request-time crawl, no skeleton
-  // flash). Un-snapshotted links fall back to a live fetch in the component.
-  const logData = enrichLogDataWithPreviews(getLogData());
-  // The view reads its filter / density state off the query string
-  // (`useSearchParams`), which needs a boundary under static export.
-  return (
-    <Suspense>
-      <WorksView logData={logData} />
-    </Suspense>
-  );
+  return null;
 }
