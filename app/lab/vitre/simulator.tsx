@@ -35,6 +35,12 @@ import {
 export const PHONE = { width: 402, height: 874, status: 62 };
 /** Safari's bottom toolbar, expanded and collapsed, in points. */
 const TOOLBAR = { expanded: 86, collapsed: 40 };
+/**
+ * How far the demo reaches under the status bar and the toolbar, px. Scaled
+ * by a fractional transform, an iframe's edges fall between device pixels and
+ * show a hairline of the demo's body; tucked under opaque bars, they cannot.
+ */
+const SEAM = 1;
 /** Scroll distance, px, before the simulated toolbar changes state. */
 const TOOLBAR_THRESHOLD = 8;
 /**
@@ -191,22 +197,24 @@ export function Phone({
   return (
     <figure className={cn("relative m-0", className)} style={{ width: PHONE.width * scale, height: PHONE.height * scale }}>
       <div className="phone" style={style}>
-        <button type="button" className="phone-status" style={{ height: PHONE.status }} onClick={statusTap} title={statusTitle}>
-          {taps > 0 && <span key={taps} className="phone-status-flash" aria-hidden="true" />}
-          <span className="phone-time">9:41</span>
-          <span className="phone-island" />
-          <span className="phone-icons">●●● ◐</span>
-        </button>
-        <iframe
-          ref={frameRef}
-          title="Vitre demo"
-          src={src}
-          style={{ height: PHONE.height - PHONE.status - toolbar }}
-        />
-        <div className="phone-toolbar" data-collapsed={collapsed || undefined} style={{ height: toolbar }}>
-          <span className="phone-button" aria-hidden="true">‹</span>
-          <span className="phone-url">vitre</span>
-          <span className="phone-button" aria-hidden="true">•••</span>
+        <div className="phone-screen">
+          <button type="button" className="phone-status" style={{ height: PHONE.status }} onClick={statusTap} title={statusTitle}>
+            {taps > 0 && <span key={taps} className="phone-status-flash" aria-hidden="true" />}
+            <span className="phone-time">9:41</span>
+            <span className="phone-island" />
+            <span className="phone-icons">●●● ◐</span>
+          </button>
+          <iframe
+            ref={frameRef}
+            title="Vitre demo"
+            src={src}
+            style={{ height: PHONE.height - PHONE.status - toolbar + 2 * SEAM, margin: `-${SEAM}px 0` }}
+          />
+          <div className="phone-toolbar" data-collapsed={collapsed || undefined} style={{ height: toolbar }}>
+            <span className="phone-button" aria-hidden="true">‹</span>
+            <span className="phone-url">vitre</span>
+            <span className="phone-button" aria-hidden="true">•••</span>
+          </div>
         </div>
       </div>
       <figcaption className="absolute inset-x-0 -bottom-8 text-center text-xs text-tertiary-foreground">{caption}</figcaption>
