@@ -11,6 +11,7 @@ import {
 import { Drawer } from "@base-ui/react/drawer";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
+import { OCCUPANT_TRANSITION, useBandOccupant } from "./use-band-occupant";
 import { useDock } from "../provider";
 
 // ---------------------------------------------------------------------------
@@ -135,6 +136,10 @@ export function LiveActivity({
 }: LiveActivityProps) {
   const { isOpen, isAnyOpen, noticeUp, open, close, registerActivity } =
     useDock();
+  // The band (band.ts): once a page's pinned bar has met it, the pill takes
+  // the shape its configuration gives it — a pill, or a ball of what leads
+  // it — and a count keeps it out of sight until it is opened.
+  const { glassRef, contentRef, natural, ball, counted, width } = useBandOccupant();
   const expanded = isOpen(id);
 
   // If this activity unmounts while expanded (e.g. its time window passes),
@@ -194,22 +199,37 @@ export function LiveActivity({
         // it is not.
         aria-hidden={false}
         data-dock-pill=""
-        data-hidden={isAnyOpen || noticeUp ? "" : undefined}
+        data-hidden={isAnyOpen || noticeUp || counted ? "" : undefined}
+        // Its width as a pill, for the Dock to lay the band out by.
+        data-natural={natural ?? undefined}
         className="shrink-0"
       >
         <Drawer.Trigger
+          ref={glassRef}
+          data-band-glass=""
           className={cn(
-            "pointer-events-auto flex items-center gap-2 shrink-0",
+            "pointer-events-auto flex items-center shrink-0 overflow-hidden",
             GLASS_CAPSULE,
-            "h-9 pl-1.5 pr-2.5",
-            "hover:border-border hover:bg-glass-hover transition-colors",
+            // 5px in from the border puts a 24px lead dead centre in a 36px
+            // ball: 1 + 5 + 24 + 5 + 1.
+            "h-9 pl-[5px] pr-2.5",
+            "hover:border-border hover:bg-glass-hover",
+            OCCUPANT_TRANSITION,
             "pressable active:border-border active:bg-glass-hover active:scale-95",
             pillClassName
           )}
+          style={width === undefined ? undefined : { width: width }}
           aria-label={openLabel}
         >
-          {pill}
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <span ref={contentRef} className="inline-flex shrink-0 items-center gap-2">
+            {pill}
+            <ChevronDown
+              className={cn(
+                "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-opacity duration-200",
+                ball && "opacity-0",
+              )}
+            />
+          </span>
         </Drawer.Trigger>
       </Drawer.SwipeArea>
 

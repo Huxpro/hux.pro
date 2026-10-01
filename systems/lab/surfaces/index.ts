@@ -1,6 +1,7 @@
 import type { LabId } from "../catalog";
 import type { ComponentType } from "react";
 import { AttachmentsSurface } from "./attachments";
+import { BandSurface } from "./band";
 import { GlowSurface } from "./glow";
 import { IconSurface } from "./icon";
 import { LegibilitySurface } from "./legibility";
@@ -17,6 +18,7 @@ export const LAB_SURFACES: Record<LabId, ComponentType> = {
   icon: IconSurface,
   legibility: LegibilitySurface,
   glow: GlowSurface,
+  band: BandSurface,
   vitre: VitreSurface,
 };
 
