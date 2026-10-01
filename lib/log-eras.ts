@@ -13,15 +13,12 @@
 // next one's marker keeps a lane of its own beside the trunk until its last
 // commit (see `components/log/timeline-lane.tsx`).
 
-import type { Locale } from "./i18n";
 import {
   type Commit,
-  type LogData,
   type Tag,
   type TimelineData,
-  isCommitVisibleIn,
+  buildTimelineData,
   sortCommitsByDate,
-  sortTagsByDate,
 } from "./log";
 
 export interface EraBlock extends TimelineData {
@@ -34,66 +31,54 @@ export interface EraBlock extends TimelineData {
   laneOf?: ReadonlyMap<string, number[]>;
 }
 
-/** Every chapter a commit belongs to, home first. */
-export function commitTagIds(commit: Commit): string[] {
-  return [commit.tagId, ...(commit.alsoTagIds ?? [])];
-}
-
 /**
- * The timeline as blocks. A log with no shared commits comes out as exactly
- * `buildTimelineData` would have it.
+ * The timeline as blocks: `buildTimelineData`'s chapters (the same commits,
+ * by the same visibility rule), with the chapters that share a commit
+ * joined into one block. A log with no shared commits comes out as exactly
+ * `buildTimelineData` has it.
  */
 export function buildEraTimeline(
-  logData: LogData,
-  locale: Locale,
+  ...args: Parameters<typeof buildTimelineData>
 ): EraBlock[] {
-  const visible = logData.commits.filter((c) => isCommitVisibleIn(c, locale));
-  const tags = sortTagsByDate(logData.tags);
-  const rank = new Map(tags.map((t, i) => [t.id, i]));
-
-  // Membership, restricted to chapters that exist, in page order.
-  const membership = new Map<string, string[]>();
-  for (const c of visible) {
-    const ids = [...new Set(commitTagIds(c))]
-      .filter((id) => rank.has(id))
-      .sort((a, b) => rank.get(a)! - rank.get(b)!);
-    membership.set(c.id, ids);
-  }
+  const chapters = buildTimelineData(...args);
+  const rank = new Map(chapters.map(({ tag }, i) => [tag.id, i]));
+  /** The chapters a commit belongs to, home first, in page order. */
+  const ranksOf = (c: Commit) =>
+    [...new Set([c.tagId, ...(c.alsoTagIds ?? [])])]
+      .flatMap((id) => rank.get(id) ?? [])
+      .sort((a, b) => a - b);
 
   // Overlaps: chapters joined by a shared commit (union–find).
-  const parent = new Map(tags.map((t) => [t.id, t.id]));
-  const find = (id: string): string =>
-    parent.get(id) === id ? id : find(parent.get(id)!);
-  for (const ids of membership.values()) {
-    for (const id of ids.slice(1)) parent.set(find(id), find(ids[0]));
+  const parent = chapters.map((_, i) => i);
+  const find = (i: number): number =>
+    parent[i] === i ? i : (parent[i] = find(parent[i]));
+  for (const { commits } of chapters) {
+    for (const c of commits) {
+      const [first, ...rest] = ranksOf(c);
+      for (const r of rest) parent[find(r)] = find(first);
+    }
   }
 
-  const blocks: EraBlock[] = [];
-  const emitted = new Set<string>();
-  for (const tag of tags) {
-    const root = find(tag.id);
-    if (emitted.has(root)) continue;
-    emitted.add(root);
-    const members = tags.filter((t) => find(t.id) === root);
-    const ids = new Set(members.map((t) => t.id));
-    const commits = sortCommitsByDate(
-      visible.filter((c) => ids.has(membership.get(c.id)![0])),
-    );
-    const lane = new Map(members.map((t, i) => [t.id, i]));
-    blocks.push({
-      tag,
+  // One block per overlap, where its newest chapter stood.
+  const groups = new Map<number, TimelineData[]>();
+  chapters.forEach((chapter, i) => {
+    const root = find(i);
+    const group = groups.get(root);
+    if (group) group.push(chapter);
+    else groups.set(root, [chapter]);
+  });
+  return [...groups.values()].map((group) => {
+    const members = group.map(({ tag }) => tag);
+    if (group.length === 1) return { ...group[0], members };
+    const lane = new Map(group.map((_, i) => [rank.get(members[i].id)!, i]));
+    const commits = sortCommitsByDate(group.flatMap(({ commits }) => commits));
+    return {
+      tag: members[0],
       members,
       commits,
-      laneOf:
-        members.length > 1
-          ? new Map(
-              commits.map((c) => [
-                c.id,
-                membership.get(c.id)!.map((id) => lane.get(id)!),
-              ]),
-            )
-          : undefined,
-    });
-  }
-  return blocks;
+      laneOf: new Map(
+        commits.map((c) => [c.id, ranksOf(c).map((r) => lane.get(r)!)]),
+      ),
+    };
+  });
 }

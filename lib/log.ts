@@ -1605,8 +1605,9 @@ export function resolveIdentity(
 
 
 /**
- * Build the timeline data structure from raw LogData.
- * Single source of truth for /works rendering and editor preview.
+ * Build the timeline data structure from raw LogData: one chapter per tag.
+ * `buildEraTimeline` (lib/log-eras.ts) joins the overlapping ones for /works
+ * and the editor preview.
  *
  * When `locale` is provided, commits are filtered by per-locale visibility
  * (`listedIn`). Omit the locale to include every listed commit (useful for

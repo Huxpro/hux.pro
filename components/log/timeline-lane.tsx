@@ -38,14 +38,45 @@ const BEND = 16;
 /** A line at rest and a line lit, on the ladder's graph roles (globals.css,
  *  "The graph"): the border rung, and the tertiary rung — a chapter's track
  *  under its marker, a connector while one of its ends is pointed at. */
-const INK = "pointer-events-none absolute w-px bg-graph-line";
-const STROKE = "stroke-graph-line";
-const INK_LIT = "pointer-events-none absolute w-px bg-graph-lit";
-const STROKE_LIT = "stroke-graph-lit";
-const ink = (lit?: boolean) =>
-  cn(lit ? INK_LIT : INK, "transition-colors duration-200");
+const tone = (lit?: boolean) =>
+  cn("transition-colors duration-200", lit ? "bg-graph-lit" : "bg-graph-line");
+/** A vertical stretch of line. */
+const ink = (lit?: boolean) => cn("pointer-events-none absolute w-px", tone(lit));
 const stroke = (lit?: boolean) =>
-  cn(lit ? STROKE_LIT : STROKE, "transition-colors duration-200");
+  cn(
+    "transition-colors duration-200",
+    lit ? "stroke-graph-lit" : "stroke-graph-line",
+  );
+
+/** A lane moving between the trunk and the side lane over `BEND`px: out to
+ *  the side (a ref's step aside or fork), or back into the trunk (`enter`). */
+function LaneBend({
+  top,
+  into,
+  lit,
+}: {
+  top: number | string;
+  into: "side" | "trunk";
+  lit?: boolean;
+}) {
+  const [from, to] = into === "side" ? [LANE, 0.5] : [0.5, LANE];
+  return (
+    <svg
+      aria-hidden
+      className="pointer-events-none absolute overflow-visible"
+      style={{ left: `calc(50% - ${LANE}px)`, top }}
+      width={LANE + 1}
+      height={BEND}
+    >
+      <path
+        d={`M ${from} 0 C ${from} ${BEND / 2} ${to} ${BEND / 2} ${to} ${BEND}`}
+        fill="none"
+        strokeWidth={1}
+        className={stroke(lit)}
+      />
+    </svg>
+  );
+}
 
 /**
  * Which of a row's lines a lit path runs along. A connector (a commit and
@@ -72,8 +103,8 @@ export interface RowGraph {
    *  trunk (the commit is on both chapters), ending in it, or carrying the
    *  node itself (the commit is on the side chapter only). */
   side?: "pass" | "touch" | "join" | "node";
-  /** `node`: whether the side lane goes on above / below the node. */
-  sideAbove?: boolean;
+  /** `node`: whether the side lane goes on below the node (it always
+   *  comes down to it). */
   sideBelow?: boolean;
   /** The trunk's chapter ended above: the side lane comes down and turns
    *  into the trunk at this row's node. */
@@ -133,14 +164,11 @@ export function GraphInCell({
       {graph.side === "touch" && (
         <span
           aria-hidden
-          className={cn(
-            "pointer-events-none absolute h-px transition-colors duration-200",
-            lit.reach ? "bg-graph-lit" : "bg-graph-line",
-          )}
+          className={cn("pointer-events-none absolute h-px", tone(lit.reach))}
           style={{ left: lane, top: "50%", width: LANE - gap }}
         />
       )}
-      {onSide && graph.sideAbove && (
+      {onSide && (
         <span
           aria-hidden
           className={ink(lit.sideAbove)}
@@ -165,20 +193,11 @@ export function GraphInCell({
               bottom: `calc(50% + ${gap + BEND}px)`,
             }}
           />
-          <svg
-            aria-hidden
-            className="pointer-events-none absolute overflow-visible"
-            style={{ left: lane, top: `calc(50% - ${gap + BEND}px)` }}
-            width={LANE + 1}
-            height={BEND}
-          >
-            <path
-              d={`M 0.5 0 C 0.5 ${BEND / 2} ${LANE} ${BEND / 2} ${LANE} ${BEND}`}
-              fill="none"
-              strokeWidth={1}
-              className={stroke(lit.sideAbove)}
-            />
-          </svg>
+          <LaneBend
+            top={`calc(50% - ${gap + BEND}px)`}
+            into="trunk"
+            lit={lit.sideAbove}
+          />
         </>
       )}
       {graph.side === "join" && (
@@ -212,17 +231,7 @@ export function GraphInCell({
   );
 }
 
-/**
- * A chapter's ref on the graph: the trunk starts at its marker. From `lg`
- * up the marker sits right of the gutter, and the trunk reaches out to it
- * with a short turn; below `lg` the marker sits over the trunk and the line
- * comes out from under it.
- *
- * `stepAside`: the chapter on the trunk above is still running — it comes
- * down, bends into the side lane above the marker, and goes on there.
- * `y` is the marker's centre from the top of the cell, px.
- */
-/** How a chapter's ref meets the trunk (on trial, `?refs=` on /works):
+/** How a chapter's ref meets the trunk (the DevTool's Works › Ref):
  *  `stub` — the marker sits right of the gutter and the trunk turns out to
  *  it; `ring` — a node on the trunk, like a commit's; `under` — the marker
  *  sits on the trunk and the line runs beneath it. */
@@ -236,6 +245,13 @@ export type RefLook = "stub" | "ring" | "under";
  */
 export type RefLit = "aside" | "through" | "start" | "fork";
 
+/**
+ * A chapter's ref on the graph: the trunk starts at its marker, drawn as
+ * its `look` has it. `take`: the chapter on the trunk above is still
+ * running — it comes down, bends into the side lane above the marker, and
+ * goes on there. `fork`: this chapter leaves the trunk for the side lane.
+ * `y` is the marker's centre from the top of the cell, px.
+ */
 export function RefInCell({
   y,
   mode = "plain",
@@ -261,7 +277,8 @@ export function RefInCell({
   const startsLit = lit === "start" || lit === "through";
   // The step aside: from the trunk to the lane, clear of the marker.
   const bendTop = y - 30;
-  const bendH = BEND;
+  // How far the marker reaches up and down the trunk from its centre.
+  const clear = look === "ring" ? 5 : look === "under" ? 11 : 0;
   // From `lg` the marker's left edge is this far right of the trunk: the
   // gutter's half-icon and its gap (see GUTTER_PULL).
   const reach = 18;
@@ -274,24 +291,11 @@ export function RefInCell({
             className={cn(ink(lit === "aside"), "left-1/2 -translate-x-1/2")}
             style={{ top: "-1000px", height: 1000 + bendTop }}
           />
-          <svg
-            aria-hidden
-            className="pointer-events-none absolute overflow-visible"
-            style={{ left: lane, top: bendTop }}
-            width={LANE + 1}
-            height={bendH}
-          >
-            <path
-              d={`M ${LANE} 0 C ${LANE} ${bendH / 2} 0.5 ${bendH / 2} 0.5 ${bendH}`}
-              fill="none"
-              strokeWidth={1}
-              className={stroke(lit === "aside")}
-            />
-          </svg>
+          <LaneBend top={bendTop} into="side" lit={lit === "aside"} />
           <span
             aria-hidden
             className={ink(lit === "aside")}
-            style={{ left: lane, top: bendTop + bendH, bottom: "-1000px" }}
+            style={{ left: lane, top: bendTop + BEND, bottom: "-1000px" }}
           />
         </>
       )}
@@ -299,24 +303,11 @@ export function RefInCell({
           just under its marker for the side lane. */}
       {mode === "fork" && (
         <>
-          <svg
-            aria-hidden
-            className="pointer-events-none absolute overflow-visible"
-            style={{ left: lane, top: y + 8 }}
-            width={LANE + 1}
-            height={bendH}
-          >
-            <path
-              d={`M ${LANE} 0 C ${LANE} ${bendH / 2} 0.5 ${bendH / 2} 0.5 ${bendH}`}
-              fill="none"
-              strokeWidth={1}
-              className={stroke(lit === "fork")}
-            />
-          </svg>
+          <LaneBend top={y + 8} into="side" lit={lit === "fork"} />
           <span
             aria-hidden
             className={ink(lit === "fork")}
-            style={{ left: lane, top: y + 8 + bendH, bottom: "-1000px" }}
+            style={{ left: lane, top: y + 8 + BEND, bottom: "-1000px" }}
           />
         </>
       )}
@@ -327,8 +318,7 @@ export function RefInCell({
           className={cn(ink(lit === "through"), "left-1/2 -translate-x-1/2")}
           style={{
             top: "-1000px",
-            height:
-              1000 + y - (look === "ring" ? 5 : look === "under" ? 11 : 0),
+            height: 1000 + y - clear,
           }}
         />
       )}
@@ -347,7 +337,7 @@ export function RefInCell({
           <span
             aria-hidden
             className={cn(ink(startsLit), "left-1/2 -translate-x-1/2")}
-            style={{ top: y + (look === "ring" ? 5 : 11), bottom: "-1000px" }}
+            style={{ top: y + clear, bottom: "-1000px" }}
           />
         </>
       )}

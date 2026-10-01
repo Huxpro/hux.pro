@@ -87,10 +87,9 @@ interface TimelineCommitProps {
   graph?: RowGraph;
   /** Which of those lines a lit connector runs along. */
   graphLit?: RowLit;
-  /** Another chapter's track is held: the row steps down one form until
-   *  the reader opens it — covers and feed to the index's one line, the
-   *  index to an aside's quiet line. */
-  folded?: boolean;
+  /** The row speaks in an aside's quiet voice until the reader opens it,
+   *  whatever it is (the timeline's step down under a held track). */
+  quiet?: boolean;
   /** True when this row IS the role that owns its segment. */
   isRole?: boolean;
   /** The role id that owns this row's rail segment. */
@@ -155,13 +154,13 @@ export function TimelineCommit({
   rail,
   graph,
   graphLit,
-  folded = false,
+  quiet = false,
   isRole = false,
   beamSpec = null,
   onBeamSet,
   onBeamClear,
   byline = null,
-  form: pageForm = DEFAULT_FORM,
+  form = DEFAULT_FORM,
   onSelectHash,
   attachmentSet = null,
   inspecting = false,
@@ -197,12 +196,6 @@ export function TimelineCommit({
   // stays the form's, except in the index, which prints none: there an
   // open row brings its covers too (see `rowFormFor`).
   const [textRelieved, setTextRelieved] = useState(defaultExpanded);
-
-  // Folded under another chapter's held track, the row steps down one
-  // form: from covers or the feed it is simply an index row, the same one
-  // line the index view prints; from the index it drops to an aside's voice.
-  const form: LogForm = folded ? "index" : pageForm;
-  const foldsQuiet = folded && pageForm === "index";
 
   // A form change is a new default, so the deviation is spent. Reconciled
   // during render rather than in an effect (React's "adjusting state when a
@@ -287,7 +280,7 @@ export function TimelineCommit({
   // The strip is the folded form's own: while the row is open the feed's
   // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
-  const isQuiet = isEvent || ((isAside || foldsQuiet) && !textOpen);
+  const isQuiet = isEvent || ((isAside || quiet) && !textOpen);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
   const showStrip =
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
@@ -403,16 +396,13 @@ export function TimelineCommit({
   const iconGapPx = isQuiet ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
   // A node moved onto the side lane pushes the hash left, the way a
   // `git log --graph` row makes room for its graph (see timeline-lane.tsx).
-  const hashNudge = graph?.side === "node"
+  const onSide = graph?.side === "node";
+  const hashNudge = onSide
     ? { transform: `translateX(-${HASH_NUDGE}px)` }
     : undefined;
 
   const rowContent = (
-    <div
-      className={cn(
-        "grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start",
-      )}
-    >
+    <div className="grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked
@@ -483,34 +473,18 @@ export function TimelineCommit({
           isQuiet ? "h-4" : "h-5",
         )}
       >
-        {!graph && hasRailAbove && (
-          <span
-            aria-hidden
-            data-rail-above
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-graph-line"
-            style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
-          />
-        )}
-        {graph && (
-          <GraphInCell
-            graph={graph}
-            gap={iconGapPx}
-            cluster={{ above: hasRailAbove, below: hasRailBelow }}
-            lit={graphLit}
-          />
-        )}
-        {!graph && hasRailBelow && (
-          <span
-            aria-hidden
-            data-rail-below
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-graph-line"
-            style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
-          />
-        )}
+        {/* Without a chapter graph (a log outside /works), the tenure
+            rail is the row's whole graph: a trunk where it runs. */}
+        <GraphInCell
+          graph={graph ?? { trunkAbove: hasRailAbove, trunkBelow: hasRailBelow }}
+          gap={iconGapPx}
+          cluster={{ above: hasRailAbove, below: hasRailBelow }}
+          lit={graphLit}
+        />
         {/* The node: on the trunk, or moved onto the side lane. */}
         <span
           className="inline-flex items-center justify-center"
-          style={graph?.side === "node" ? { transform: `translateX(-${LANE}px)` } : undefined}
+          style={onSide ? { transform: `translateX(-${LANE}px)` } : undefined}
         >
         {isQuiet ? (
           // A row in the quiet voice gets a tiny CSS dot, quieter than any
