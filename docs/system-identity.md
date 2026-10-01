@@ -27,16 +27,24 @@ the same handle, and what was signed with it.
 A handle, a `Role:` field, or a role row stands for the identity's card: a
 GitHub profile page sized to a card, with nothing to press.
 
-- **The role** the card was opened at: its title, tenure (`2020 – 2022`,
-  `2023 – Present`), team and location, and its prose. Its mark is a photo
-  from that time, masked to a circle (`Identity.avatar` in
+- **The role** the card was opened at, laid out as a profile page's head: a
+  photo from that time, masked to a circle (`Identity.avatar` in
   `content/log.json`, a site-local path or URL; the GitHub avatar stands in
-  until one is authored, `DEFAULT_AVATAR` in `lib/profile.ts`). The company
-  and the handle are not restated: the mark that opened the card printed
-  them, and the sheet is titled by the handle.
-- **The other roles** under the same identity, latest first.
-- **Contributions**: how many commits were signed with this handle, by type,
-  most numerous first (`7 commits signed · 4 projects · 3 talks`).
+  until one is authored, `DEFAULT_AVATAR` in `lib/profile.ts`), beside the
+  title and a mono line of tenure (`2020 – 2022`, `2023 – Present`), team and
+  location; its prose under both, at the card's full width. The company and
+  the handle are not restated: the mark that opened the card printed them,
+  and the sheet is titled by the handle.
+- **The other roles** under the same identity, latest first, as quiet rows
+  with their tenure on the right.
+- **Contributions** as figures: how many commits were signed with this
+  handle, then each type, most numerous first (`5 commits · 4 projects ·
+  1 talk`). With a single type the total would only repeat it, so the type
+  stands alone. In the peek the figures are a readout. In the sheet they are
+  the tabs (the shared `Segmented`, reader tone) of the signed commits listed
+  under them as an inset group, so the count heads the list it counts
+  rather than sitting beside a second copy of it. A tab opens on All each
+  time the card does.
 
 Everything is derived from the committed log by `buildIdentityProfile`, and
 the same `resolveIdentity` the bylines use decides what was signed as whom.

@@ -434,8 +434,8 @@ export const translations = {
     lightboxHintTouch: "Pinch to zoom · double-tap · drag to pan",
     // Identity card (see systems/identity)
     identityCardClose: "Close identity card",
-    identityOtherRoles: "Also as this identity",
-    identityCommits: "commits signed",
+    identityOtherRoles: "Other roles, same handle",
+    identityCommits: "commits",
     // Links that leave the site (see systems/attachments)
     linkOpensInTab: "Opens in a new tab",
     linkNewTab: "New tab",
@@ -870,7 +870,7 @@ export const translations = {
     // Identity card (see systems/identity)
     identityCardClose: "关闭身份卡片",
     identityOtherRoles: "同一身份下的其他职位",
-    identityCommits: "条署名提交",
+    identityCommits: "提交",
     // Links that leave the site (see systems/attachments)
     linkOpensInTab: "在新标签页打开",
     linkNewTab: "新标签页",
