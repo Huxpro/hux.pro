@@ -103,7 +103,7 @@ function Meter({
   detail,
 }: {
   label: string;
-  /** 0–9, or `null` past the end of the scale: every bar lit, each in its
+  /** 0–9, or `null` for the whole scale: every bar lit, each in its
    *  own level's colour, and no number. */
   value: number | null;
   ink?: string;

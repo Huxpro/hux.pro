@@ -37,7 +37,7 @@ export interface Axis {
 }
 
 export interface AbstractionTier {
-  /** 0–9, or `null` for beyond the scale. */
+  /** 0–9, or `null` for the whole scale at once. */
   level: number | null;
   label: Bilingual;
 }
@@ -51,8 +51,8 @@ export interface Language {
   emoji: string;
   /** The note's heading, with its links, per locale. */
   title: Bilingual;
-  /** Abstraction level, 0 (bare metal) – 9 (pure); `null` past the end of
-   *  the scale (natural language). */
+  /** Abstraction level, 0 (bare metal) – 9 (pure); `null` for no one
+   *  level but all of them (natural language). */
   abs: number | null;
   /** Interestingness, 0 (boring) – 9 (mind-blown). */
   i13s: number;
@@ -75,7 +75,7 @@ interface LanguagesData {
       low: Bilingual;
       high: Bilingual;
       /** What a level of `null` is called. */
-      beyond: Bilingual;
+      whole: Bilingual;
       tiers: AbstractionTier[];
     };
   };
@@ -91,12 +91,12 @@ export const SCALE_MAX = 9;
 export const AXES = DATA.axes;
 export const LANGUAGES: readonly Language[] = DATA.languages;
 
-/** Past the end of the abstraction scale. */
-export const BEYOND: AbstractionTier = { level: null, label: AXES.abs.beyond };
+/** No one level but every one: the whole abstraction scale. */
+export const WHOLE: AbstractionTier = { level: null, label: AXES.abs.whole };
 
 /** A level's tier, by its number. */
 export function tierOf(level: number | null): AbstractionTier {
-  if (level === null) return BEYOND;
+  if (level === null) return WHOLE;
   return AXES.abs.tiers.find((t) => t.level === level) ?? AXES.abs.tiers[0];
 }
 
@@ -118,14 +118,14 @@ export function isTodo(note: string): boolean {
 }
 
 /**
- * The tiers in the order the list reads them: most abstract first (beyond
- * the scale before 9), the way the original source was laid out, and each
+ * The tiers in the order the list reads them: most abstract first (the
+ * whole scale before 9), the way the original source was laid out, and each
  * tier's languages in their authored order.
  */
 export function byTier(
   languages: readonly Language[] = LANGUAGES,
 ): { tier: AbstractionTier; languages: Language[] }[] {
-  return [BEYOND, ...[...AXES.abs.tiers].sort((a, b) => b.level! - a.level!)]
+  return [WHOLE, ...[...AXES.abs.tiers].sort((a, b) => b.level! - a.level!)]
     .map((tier) => ({
       tier,
       languages: languages.filter((l) => l.abs === tier.level),
@@ -141,7 +141,7 @@ export function byTier(
 // The steps live in globals.css (`--abs-<palette>-<level>`), on :root so the
 // note's popover and sheet — portaled out of the page — see them too.
 //
-//   violet     one hue, pale (machine) → deep (abstract); in dark mode dim →
+//   violet     one hue, pale (machine) → deep (math); in dark mode dim →
 //              bright. Abstraction is ordinal, and an ordinal scale reads
 //              best as a single hue stepped in lightness.
 //   instagram  the original chart's gradient, #fcb045 → #fd1d1d → #833ab4,
@@ -155,9 +155,9 @@ export type AbstractionPalette = "violet" | "instagram" | "ink";
 export const ABSTRACTION_PALETTE: AbstractionPalette = "instagram";
 
 /**
- * A CSS paint for an abstraction level: its colour, or — past the end of the
- * scale — the whole ramp at once, since what sits there compiles into every
- * level below it. A gradient, so it paints a `background`, not a `color`.
+ * A CSS paint for an abstraction level: its colour, or — for the whole
+ * scale — every colour at once, since what sits there reaches every
+ * level. A gradient, so it paints a `background`, not a `color`.
  */
 export function absColor(
   level: number | null,

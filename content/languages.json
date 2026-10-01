@@ -93,12 +93,12 @@
         "zh": "机器"
       },
       "high": {
-        "en": "abstract",
-        "zh": "抽象"
+        "en": "math",
+        "zh": "数学"
       },
-      "beyond": {
-        "en": "beyond the scale",
-        "zh": "超出刻度"
+      "whole": {
+        "en": "the whole scale",
+        "zh": "整条刻度"
       },
       "tiers": [
         {
@@ -193,11 +193,11 @@
       "notes": {
         "en": [
           "Andrej Karpathy said it in 2023: \"the hottest new programming language is English\". In February 2025 he named what programming in it feels like, [vibe coding](https://en.wikipedia.org/wiki/Vibe_coding); a year later, what that had grown into, [agentic engineering](https://x.com/karpathy/status/2019137879310836075). In that one year it took over the world.",
-          "So it goes in the top right corner. No language gets more practice than a mother tongue, and none has been more interesting to program in. Its abstraction is off the scale: not closer to the λ-calculus than Coq, but past the end of the axis. Prose, which a model compiles into any of the languages below it."
+          "So it goes in the top right corner. No language gets more practice than a mother tongue, and none has been more interesting to program in. Nor does it sit at any one level of abstraction: it spans the whole scale, as low and as high as people go. It is the most fluid medium there is. Whatever people can imagine, human language can reach, and that includes the machines and the mathematics people invented. A model compiles it into any of the languages below."
         ],
         "zh": [
           "Andrej Karpathy 在 2023 年就说过：“最热门的新编程语言是英语”。2025 年 2 月，他给用它编程的感觉起了个名字，[vibe coding](https://en.wikipedia.org/wiki/Vibe_coding)；一年后，又给它长成的样子起了个名字，[agentic engineering](https://x.com/karpathy/status/2019137879310836075)。就在这一年里，它接管了世界。",
-          "所以它在右上角：没有哪门语言比母语练得更多，也没有哪门语言比它更有意思。它的抽象层级超出了刻度：不是比 Coq 更接近 λ 演算，而是越过了坐标轴的尽头。一段散文，由模型编译成下面的任何一门语言。"
+          "所以它在右上角：没有哪门语言比母语练得更多，也没有哪门语言比它更有意思。它也不落在哪一级抽象上：它是全人类的上下区间，是最流动的载体。只要是人能想象出来的，人类语言就够得到，当然也包括人类发明的机器与数学。模型会把它编译成下面的任何一门语言。"
         ]
       }
     },
