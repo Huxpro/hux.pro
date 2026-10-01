@@ -10,6 +10,7 @@ import {
   ListVideo,
   Maximize2,
   Minimize2,
+  PanelRight,
   Pause,
   Play,
   SkipBack,
@@ -263,11 +264,19 @@ function VideoControlsOverlay({
   );
 }
 
-/** The player's own moves: playlist, Audio, Theater (where it fits). */
+/** The player's own moves: playlist, Audio, the sidecar and Theater (where they fit). */
 function useViewButtons({ onDark, audio = true }: { onDark: boolean; audio?: boolean }) {
   const { locale } = useLocale();
-  const { theaterAvailable, isPlaylistOpen, toTheater, minimize, openPlaylist, closePlaylist } =
-    useTheater();
+  const {
+    theaterAvailable,
+    sidecarAvailable,
+    isPlaylistOpen,
+    toTheater,
+    toSidecar,
+    minimize,
+    openPlaylist,
+    closePlaylist,
+  } = useTheater();
   const { deck } = useStageFacts();
   const btn = onDark ? cn(GLASS_ON_DARK_BTN, "h-7 w-7") : cn(GLASS_BTN, "h-8 w-8");
   const lit = onDark ? "bg-white/15 text-white" : "bg-foreground/[0.08] text-foreground";
@@ -307,6 +316,17 @@ function useViewButtons({ onDark, audio = true }: { onDark: boolean; audio?: boo
         className={btn}
       >
         <Minimize2 className="h-3.5 w-3.5" />
+      </button>
+    ) : null,
+    sidecar: sidecarAvailable ? (
+      <button
+        type="button"
+        onClick={toSidecar}
+        aria-label={t(locale, "theaterDock")}
+        title={t(locale, "theaterDock")}
+        className={btn}
+      >
+        <PanelRight className="h-3.5 w-3.5" />
       </button>
     ) : null,
     theater: theaterAvailable ? (
@@ -467,6 +487,7 @@ function PipTile() {
               <>
                 {views.playlist}
                 {views.audio}
+                {views.sidecar}
                 {views.theater}
               </>
             }
@@ -492,6 +513,7 @@ function PipTile() {
           </span>
           {views.playlist}
           {views.audio}
+          {views.sidecar}
           {views.theater}
         </div>
       )}

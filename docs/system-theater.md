@@ -10,6 +10,7 @@ curated playlists (`lib/albums.ts`).
 |-------|-------|------|
 | Theater | the immersive modal, tablet and up | `components/theater-overlay.tsx` |
 | PiP | a floating tile (tablet and up), a card under the dock (phone) | `components/pip-overlay.tsx` |
+| Sidecar | a column docked at the right edge of a wide desk | `components/sidecar.tsx` |
 | Audio | a Live Activity in the dock | `components/theater-activity.tsx` |
 | Playlist | albums and tracks, a sheet / panel / window | `components/playlist-sheet.tsx` |
 
@@ -99,3 +100,29 @@ edge (`pipCardBox`, `playlistDetents`), held still while the card is being
 pulled. On a drivable video a tap on the picture brings the same overlay the
 tile has (transport, scrubber, the playlist toggle), and close and minimize
 are in the row, where a thumb finds them without opening anything.
+
+## The sidecar (wide desks)
+
+A floating tile is always over something on a desk, and always has to be
+moved off the next thing. The sidecar is the player as a place beside the
+page instead: a column at the right edge (`sidecarBox`), the video at its top
+(`sidecarRect`), what is playing and its transport under it, and the album's
+queue taking the rest. It sits between the theater, which takes the screen,
+and the tile, which takes a corner: for watching an album through while the
+page stays usable.
+
+- **Getting there.** The tile's dock button (`PanelRight`), shown where the
+  viewport can spare the room: `sidecarAvailable`, 1100 × 600 and up. The
+  column's header floats it back into a tile, minimizes it into the dock, or
+  closes it.
+- **The page moves over.** While the column shows, the provider sets
+  `--sidecar-room` on `<html>` (the column's 320px and its insets, 344px).
+  `globals.css` pads the body's right edge by it and takes it out of the page
+  column's bleed (`--page-bleed`), so the column re-centres in what is left;
+  the command bar's FAB reads it for its right edge. Minimized, the column is
+  gone and so is the room.
+- **It is a place, not a modal.** It stays across route changes (the theater
+  collapses to PiP on one), takes no scroll lock and no Escape. Narrow the
+  window past its room and it floats as a tile by itself.
+- The dock's pills stay centred on the viewport rather than the page; hover
+  peeks that hang into the page's right margin can run under the column.
