@@ -242,6 +242,11 @@
   /* --- INPUTS: wallpaper-derived, written by the provider (see legibility.ts).
      At rest — no wallpaper, or a weather gradient — every one is zero. --- */
   --wp-ink-boost: 0%;
+  /* What a reading route adds to the secondary and tertiary rungs to reach
+     the policy's target contrast on the veiled picture (legibility.ts,
+     `readingLift`). Zero on the desktop. */
+  --wp-lift-secondary: 0%;
+  --wp-lift-tertiary: 0%;
   --wp-bare-boost: 0%; /* what a bare zone adds on top; zones opt in below */
   --wp-zone-boost: 0%;
   --wp-relief: 0;
@@ -411,12 +416,12 @@ html[data-tint="wallpaper"] {
   --popover-foreground: var(--ink);
   --muted-foreground: color-mix(
     in oklab,
-    var(--ink) calc(var(--ink-alpha-secondary) + var(--wp-ink-boost) + var(--wp-zone-boost)),
+    var(--ink) calc(var(--ink-alpha-secondary) + var(--wp-ink-boost) + var(--wp-zone-boost) + var(--wp-lift-secondary)),
     transparent
   );
   --tertiary-foreground: color-mix(
     in oklab,
-    var(--ink) calc(var(--ink-alpha-tertiary) + var(--wp-ink-boost) + var(--wp-zone-boost)),
+    var(--ink) calc(var(--ink-alpha-tertiary) + var(--wp-ink-boost) + var(--wp-zone-boost) + var(--wp-lift-tertiary)),
     transparent
   );
   --quaternary-foreground: color-mix(

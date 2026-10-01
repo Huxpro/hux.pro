@@ -25,8 +25,8 @@ const STRINGS = {
     activity: "live activity — bg-glass, pill and panel",
     palette: "command palette — bg-glass-popover",
     sheet: "secondary surface — bg-glass-sheet",
-    reading: (veil: string, blur: number, relief: string, boost: number) =>
-      `reading page — its own surface: veil ${veil} over a ${blur}px defocus, relief ${relief}, +${boost}% ink — the numbers /writing and /works get on this wallpaper`,
+    reading: (veil: string, blur: number, relief: string, boost: number, lift2: number, lift3: number) =>
+      `reading page — its own surface: veil ${veil} over a ${blur}px defocus, relief ${relief}, +${boost}% ink, lift +${lift2}% / +${lift3}% — the numbers /writing and /works get on this wallpaper`,
     gallery: "gallery — every wallpaper under its own resolved policy (weather tiles: the style's CSS gradient at that hour)",
     galleryWeather: "Weather",
     galleryApple: "Apple",
@@ -100,8 +100,8 @@ const STRINGS = {
     activity: "实时活动 — bg-glass，胶囊与面板",
     palette: "命令面板 — bg-glass-popover",
     sheet: "二级面板 — bg-glass-sheet",
-    reading: (veil: string, blur: number, relief: string, boost: number) =>
-      `阅读页 — 独立的表面：压暗 ${veil}，虚化 ${blur}px，浮雕 ${relief}，墨色 +${boost}% — 这张壁纸下 /writing 与 /works 实际拿到的数值`,
+    reading: (veil: string, blur: number, relief: string, boost: number, lift2: number, lift3: number) =>
+      `阅读页 — 独立的表面：压暗 ${veil}，虚化 ${blur}px，浮雕 ${relief}，墨色 +${boost}%，抬升 +${lift2}% / +${lift3}% — 这张壁纸下 /writing 与 /works 实际拿到的数值`,
     gallery: "总览 — 每张壁纸各按自己的策略解析（天气块：该风格在那个时刻的 CSS 渐变）",
     galleryWeather: "天气",
     galleryApple: "Apple",
@@ -184,6 +184,10 @@ const KNOBS_ZH: Record<string, { label: string; hint?: string }> = {
   veilMax: { label: "压暗上限", hint: "总要留一些壁纸" },
   blurBase: { label: "虚化基值", hint: "平静壁纸上的像素半径" },
   blurBusy: { label: "虚化 · 繁忙", hint: "完全繁忙时增加的像素半径" },
+  readingSecondaryContrast: { label: "次级目标对比度", hint: "阅读页上次级墨需达到的对比度（WCAG）" },
+  readingTertiaryContrast: { label: "三级目标对比度", hint: "阅读页上三级墨需达到的对比度（WCAG）" },
+  readingSecondaryMax: { label: "次级上限", hint: "抬升最多把次级墨带到的透明度 — 再高层级就没了" },
+  readingTertiaryMax: { label: "三级上限", hint: "抬升最多把三级墨带到的透明度" },
   tintMinChroma: { label: "主色最低彩度", hint: "比这更灰：不取主色" },
   // outputs
   inkBoost: { label: "墨色增益" },
@@ -232,6 +236,7 @@ const OUTPUT_NAMES_ZH: Record<string, string> = {
   veil: "压暗",
   blur: "虚化",
   tint: "着色",
+  lift: "阅读抬升",
 };
 /** English reads the key itself, bar the one that is two words. */
 const OUTPUT_NAMES_EN: Record<string, string> = { conflict: "tone conflict", inkBoost: "ink boost", bareBoost: "bare boost", glassAdd: "glass add" };

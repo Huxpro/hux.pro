@@ -23,6 +23,9 @@
 //               theme. Small elements flip; surfaces adapt (Liquid Glass).
 //   glass add   Clear glass over a busy picture gets a few points of fill: the
 //               dimming layer Liquid Glass Clear requires under text.
+//   lift        On a reading route, the secondary and tertiary rungs climb
+//               until they reach a target contrast on the ground they will
+//               actually sit on — the picture behind its veil, or the page.
 //
 // plus the tint: the picture's dominant colour, clamped into a range that can
 // colour a surface without shouting, exposed for the Tint setting.
@@ -31,7 +34,7 @@
 // to run on every render; the provider memoises it anyway.
 // =============================================================================
 
-import { PAGE_RGB, relativeLuminance01, rgb01ToOklab } from "./color";
+import { oklabToRgb01, PAGE_RGB, relativeLuminance01, rgb01ToOklab } from "./color";
 import { mixRGB, scaleRGB, type RGB, type WeatherScene } from "./scene";
 import { clamp01 } from "./solar";
 import type { WeatherStyle } from "./wallpaper";
@@ -111,6 +114,24 @@ export interface LegibilityPolicy {
   blurBase: number;
   /** Defocus radius added at full busyness. */
   blurBusy: number;
+  /**
+   * The contrast the secondary rung must reach on a reading route (WCAG 2;
+   * 4.5 is AA for body-sized text). Its alpha is lifted until it does,
+   * measured against the backdrop it sits on there: the picture's mean and
+   * its worst band, behind the veil. Never lowered — a rung that already
+   * clears it keeps its alpha.
+   */
+  readingSecondaryContrast: number;
+  /** The same for the tertiary rung: 3 is AA for large text and UI marks. */
+  readingTertiaryContrast: number;
+  /**
+   * The most alpha the lift may take each rung to. A rung lifted all the way
+   * to the ink is no longer a rung: the hierarchy is the reason there is a
+   * ladder at all, so where reaching the target would cost it, the lift stops
+   * here and what is left is the ground's to fix — the veil's, not the ink's.
+   */
+  readingSecondaryMax: number;
+  readingTertiaryMax: number;
   /** OKLCH lightness range a tint is clamped into, per theme. */
   tintLightness: Record<Theme, [number, number]>;
   /** OKLCH chroma range a tint is clamped into. */
@@ -140,6 +161,10 @@ export const DEFAULT_LEGIBILITY_POLICY: LegibilityPolicy = {
   veilMax: 0.7,
   blurBase: 28,
   blurBusy: 16,
+  readingSecondaryContrast: 4.5,
+  readingTertiaryContrast: 3,
+  readingSecondaryMax: 0.8,
+  readingTertiaryMax: 0.6,
   tintLightness: { light: [0.5, 0.66], dark: [0.6, 0.76] },
   tintChroma: [0.05, 0.16],
   tintMinChroma: 0.03,
@@ -147,6 +172,15 @@ export const DEFAULT_LEGIBILITY_POLICY: LegibilityPolicy = {
 
 /** The OKLab lightness of the ink in each theme (`--ink` in globals.css). */
 export const INK_LIGHTNESS: Record<Theme, number> = { light: 0.145, dark: 0.93 };
+
+/**
+ * The label rungs' alphas in each theme (`--ink-alpha-*` in globals.css), so
+ * the lift knows what it is lifting from. Keep in step with the stylesheet.
+ */
+export const INK_ALPHA: Record<Theme, { secondary: number; tertiary: number }> = {
+  light: { secondary: 0.54, tertiary: 0.32 },
+  dark: { secondary: 0.6, tertiary: 0.36 },
+};
 
 export interface LegibilityVars {
   /** How busy the picture is, 0..1 — the number most others derive from. */
@@ -169,6 +203,12 @@ export interface LegibilityVars {
   veil: number;
   /** Defocus radius, px, of the picture on a reading route. */
   blur: number;
+  /**
+   * Alpha points the secondary and tertiary rungs gain on a reading route,
+   * on top of `inkBoost`, to reach the policy's target contrast. Zero on the
+   * desktop.
+   */
+  lift: { secondary: number; tertiary: number };
   /** The wallpaper's tint, clamped for use on a surface. */
   tint: WallpaperTint;
 }
@@ -176,9 +216,13 @@ export interface LegibilityVars {
 const clamp = (n: number, [lo, hi]: [number, number]) => Math.min(hi, Math.max(lo, n));
 const round = (n: number, places = 2) => Number(n.toFixed(places));
 
-/** No wallpaper worth adapting to: every output at rest. */
-export function plainLegibility(theme: Theme): LegibilityVars {
-  return resolveLegibility({ profile: getPlainProfile(theme), theme, reading: false });
+/**
+ * No wallpaper worth adapting to: every output at rest — bar the lift on a
+ * reading route, which the plain page needs as well (tertiary is 2.2:1 on
+ * white).
+ */
+export function plainLegibility(theme: Theme, reading = false): LegibilityVars {
+  return resolveLegibility({ profile: getPlainProfile(theme), theme, reading });
 }
 
 /**
@@ -187,15 +231,18 @@ export function plainLegibility(theme: Theme): LegibilityVars {
  * `reading` is whether this route recedes the wallpaper behind a veil (see
  * `lib/reading-surface.ts`); the veil does most of the work there, so relief
  * is scaled back and bare text never flips — there is no bare text on a
- * reading page, only prose over the veil.
+ * reading page, only prose over the veil. `veiled` is whether that veil is
+ * drawn (the Reading dim switch); the lift measures the ground with or
+ * without it.
  */
 export function resolveLegibility(params: {
   profile: WallpaperProfile;
   theme: Theme;
   reading: boolean;
+  veiled?: boolean;
   policy?: LegibilityPolicy;
 }): LegibilityVars {
-  const { profile, theme, reading } = params;
+  const { profile, theme, reading, veiled = true } = params;
   const policy = params.policy ?? DEFAULT_LEGIBILITY_POLICY;
 
   const busy = clamp01(profile.edges / policy.edgesFull);
@@ -231,21 +278,97 @@ export function resolveLegibility(params: {
   relief = relief < policy.reliefFloor ? 0 : round(relief);
 
   const tint = clampTint(profile, theme, policy);
+  const inkBoost = Math.round(Math.max(busy, conflict * 0.7) * policy.inkBoostMax);
+  const veil = round(
+    Math.min(policy.veilMax, policy.veilBase[theme] + busy * policy.veilBusy + conflict * policy.veilConflict),
+  );
 
   return {
     busy: round(busy),
     conflict: round(conflict),
-    inkBoost: Math.round(Math.max(busy, conflict * 0.7) * policy.inkBoostMax),
+    inkBoost,
     bareBoost: reading ? 0 : Math.round(busy * policy.bareBoostMax),
     relief,
     flip,
     flipMid,
     glassAdd: Math.round(busy * policy.glassAddMax + conflict * policy.glassAddToneMax),
-    veil: round(
-      Math.min(policy.veilMax, policy.veilBase[theme] + busy * policy.veilBusy + conflict * policy.veilConflict),
-    ),
+    veil,
     blur: Math.round(policy.blurBase + busy * policy.blurBusy),
     tint,
+    lift: reading
+      ? readingLift({ profile, theme, inkBoost, veil: veiled ? veil : 0, policy })
+      : { secondary: 0, tertiary: 0 },
+  };
+}
+
+// -----------------------------------------------------------------------------
+// The reading lift
+//
+// The label ladder is Apple's, and Apple tunes it for an opaque ground: on
+// white the secondary rung is 4.3:1 and the tertiary 2.2:1. Behind a reading
+// column the ground is the picture through a veil, which takes a few more
+// points off — so on a reading route each rung is lifted until it reaches
+// the policy's target on that ground. The ground is known: the profile has
+// the picture's mean colour and its bands' lightness, and the veil is ours.
+// So this is arithmetic, not sampling: the alpha at which the ink, composited
+// over the veiled picture, clears the target — against the mean and against
+// the worst band (the darkest under dark ink, the brightest under light), the
+// larger of the two. The blur is what makes a mean honest here: at 28px and
+// up, what is behind a line of text is a region's average, not its detail.
+// -----------------------------------------------------------------------------
+
+type Rgb01 = readonly [number, number, number];
+
+const mix01 = (over: Rgb01, alpha: number, under: Rgb01): Rgb01 =>
+  [0, 1, 2].map((i) => over[i] * alpha + under[i] * (1 - alpha)) as unknown as Rgb01;
+
+const contrast01 = (a: Rgb01, b: Rgb01) => {
+  const la = relativeLuminance01(a);
+  const lb = relativeLuminance01(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+};
+
+const grey01 = (L: number) => oklabToRgb01({ L, a: 0, b: 0 }) as Rgb01;
+
+/** The least alpha of `ink` over `ground` that reaches `target`; 1 if none does. */
+function alphaFor(target: number, ink: Rgb01, ground: Rgb01): number {
+  if (contrast01(ink, ground) < target) return 1;
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 16; i++) {
+    const mid = (lo + hi) / 2;
+    if (contrast01(mix01(ink, mid, ground), ground) >= target) hi = mid;
+    else lo = mid;
+  }
+  return hi;
+}
+
+function readingLift(params: {
+  profile: WallpaperProfile;
+  theme: Theme;
+  inkBoost: number;
+  veil: number;
+  policy: LegibilityPolicy;
+}): { secondary: number; tertiary: number } {
+  const { profile, theme, inkBoost, veil, policy } = params;
+  const ink = grey01(INK_LIGHTNESS[theme]);
+  const page = PAGE_RGB01[theme];
+  const zones = [profile.zones.top, profile.zones.mid, profile.zones.bottom];
+  const worstBand = theme === "light" ? Math.min(...zones) : Math.max(...zones);
+  const [r, g, b] = profile.mean;
+  const grounds = [[r / 255, g / 255, b / 255] as const, grey01(worstBand)].map((picture) =>
+    mix01(page, veil, picture),
+  );
+
+  const lift = (base: number, target: number, max: number) => {
+    const have = Math.round(base * 100) + inkBoost;
+    const need = Math.max(...grounds.map((ground) => alphaFor(target, ink, ground)));
+    return Math.max(0, Math.min(Math.round(max * 100), Math.ceil(need * 100)) - have);
+  };
+
+  return {
+    secondary: lift(INK_ALPHA[theme].secondary, policy.readingSecondaryContrast, policy.readingSecondaryMax),
+    tertiary: lift(INK_ALPHA[theme].tertiary, policy.readingTertiaryContrast, policy.readingTertiaryMax),
   };
 }
 
@@ -375,6 +498,8 @@ export function legibilityCssVars(vars: LegibilityVars): Record<string, string> 
     "--wp-tint-h": String(vars.tint.h),
     "--wp-veil": String(vars.veil),
     "--wp-blur": `${vars.blur}px`,
+    "--wp-lift-secondary": `${vars.lift.secondary}%`,
+    "--wp-lift-tertiary": `${vars.lift.tertiary}%`,
   };
 }
 
@@ -387,6 +512,8 @@ export function sameVars(a: LegibilityVars, b: LegibilityVars): boolean {
     a.glassAdd === b.glassAdd &&
     a.veil === b.veil &&
     a.blur === b.blur &&
+    a.lift.secondary === b.lift.secondary &&
+    a.lift.tertiary === b.lift.tertiary &&
     a.flip === b.flip &&
     a.flipMid === b.flipMid &&
     a.tint.l === b.tint.l &&
