@@ -1409,7 +1409,8 @@ export function adjustRailForHidden(
 
 /**
  * Placeholder: identity clusters have no single anchor row to beam
- * to, and cluster hover is CSS-only via `group/tenure`. Beams are
+ * to, and a tenure lights from whichever of its rows is engaged (see
+ * `onTenureEngage` in components/log/timeline-commit.tsx). Beams are
  * only used for explicit `attachedTo` links (see `computeBeams`).
  * Kept so consumers that mix inferred + explicit beams keep a stable
  * shape at the call site.

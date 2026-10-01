@@ -112,16 +112,14 @@ export interface RowGraph {
 }
 
 /** A row's graph, inside its icon cell. `gap` is how far a line stops short
- *  of the node; `cluster` hooks the trunk into the tenure highlight. */
+ *  of the node. */
 export function GraphInCell({
   graph,
   gap,
-  cluster,
   lit = {},
 }: {
   graph: RowGraph;
   gap: number;
-  cluster: { above: boolean; below: boolean };
   lit?: RowLit;
 }) {
   const lane = `calc(50% - ${LANE}px)`;
@@ -133,7 +131,6 @@ export function GraphInCell({
       {graph.trunkAbove && (
         <span
           aria-hidden
-          data-rail-above={cluster.above && !onSide ? "" : undefined}
           className={cn(ink(lit.trunkAbove), "left-1/2 -translate-x-1/2")}
           style={{ top: "-1000px", bottom: `calc(50% + ${trunkGap}px)` }}
         />
@@ -141,7 +138,6 @@ export function GraphInCell({
       {graph.trunkBelow && (
         <span
           aria-hidden
-          data-rail-below={cluster.below && !onSide ? "" : undefined}
           className={cn(ink(lit.trunkBelow), "left-1/2 -translate-x-1/2")}
           style={{ top: `calc(50% + ${trunkGap}px)`, bottom: "-1000px" }}
         />

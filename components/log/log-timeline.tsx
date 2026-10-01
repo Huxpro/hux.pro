@@ -14,6 +14,7 @@ import {
   type Commit as CommitData,
   adjustRailForHidden,
   computeBeams,
+  computeCommitHash,
   computeInferredBeams,
   computeRail,
   type FilterableCommitType,
@@ -219,6 +220,13 @@ function TagBlock({
   // click or a tap focuses it, and clicking anywhere else, or Escape, lets go.
   const [trackHover, setTrackHover] = useState<number | null>(null);
   const trackPin = held?.block === tag.id ? held.lane : null;
+  // The row engaging its tenure right now, by hash (see `onTenureEngage`).
+  const [engaged, setEngaged] = useState<string | null>(null);
+  const handleTenureEngage = useCallback(
+    (hash: string, on: boolean) =>
+      setEngaged((current) => (on ? hash : current === hash ? null : current)),
+    [],
+  );
   const handleBeamSet = useCallback(
     (spec: BeamSpec) => setActiveBeam(spec),
     [],
@@ -302,14 +310,38 @@ function TagBlock({
     };
   }, [commits, identities, locale, activeTypes, laneOf]);
 
-  // The lines lit right now: a held or pointed-at chapter's whole track,
-  // and the connectors between a commit and the role it hangs from — drawn
-  // along the graph's own lines rather than straight down the icon column
-  // (see `litPath`).
+  // The tenure an engaged row belongs to: its identity's rows on the rail
+  // (`segmentId`), first to last as item positions — a bracket other rows
+  // can sit inside, the way RIT's runs from WasmCert to the M.S. around the
+  // Meta internships — and whether its role is the row engaged.
+  const tenure = useMemo(() => {
+    const i = engaged
+      ? commits.findIndex((c) => computeCommitHash(c.id) === engaged)
+      : -1;
+    const sid = railInfo[i]?.segmentId;
+    if (!sid) return null;
+    const at = graph.items.flatMap((it, p) =>
+      it.kind === "row" && railInfo[it.i].segmentId === sid ? [p] : [],
+    );
+    return {
+      sid,
+      from: at[0],
+      to: at[at.length - 1],
+      byRole: commits[i].type === "role",
+    };
+  }, [engaged, commits, graph, railInfo]);
+
+  // The lines lit right now: a held or pointed-at chapter's whole track; a
+  // tenure, from its role; and the connectors between a commit and the
+  // role it hangs from — all drawn along the graph's own lines rather than
+  // straight down the icon column (see `litPath`).
   const lit = useMemo(() => {
     const lit: Lit = { rows: new Map(), refs: new Map() };
     for (const lane of new Set([trackHover, trackPin])) {
       if (lane !== null) litTrack(graph, lane, lit);
+    }
+    if (tenure?.byRole && tenure.from < tenure.to) {
+      litPath(graph, tenure.from, tenure.to, lit);
     }
     if (!activeBeam) return lit;
     for (const a of attachments) {
@@ -324,7 +356,7 @@ function TagBlock({
       }
     }
     return lit;
-  }, [graph, attachments, trackHover, trackPin, activeBeam]);
+  }, [graph, attachments, trackHover, trackPin, tenure, activeBeam]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
@@ -421,103 +453,56 @@ function TagBlock({
         {inspectControls(tag, tagLabel)}
       </RefRow>
 
-      {/* Commits — relative so the beam measures against this box.
-       *  Consecutive commits sharing a tenure segmentId are wrapped in
-       *  a `group/tenure` div so hovering/focusing/expanding ANY row in
-       *  the cluster brightens the rail and the role's ring. */}
-      <div className="relative space-y-0">
-        {(() => {
-          // Hidden-role rows (roles with `hideRow: true`) are kept in the
-          // commits array so `computeRail` and `resolveAuthor` can use
-          // their tenure windows / handles, but they don't render here —
-          // the cluster they anchor speaks for the tenure via the rail +
-          // author bylines.
-          type Run =
-            | { kind: "loose"; items: Item[] }
-            | { kind: "cluster"; segmentId: string; items: Item[] };
-          const runs: Run[] = [];
-          for (const item of items) {
-            const last = runs[runs.length - 1];
-            // A ref joins whatever run it falls in, so a tenure it sits
-            // inside stays one cluster around it.
-            if (item.kind === "ref") {
-              if (last) last.items.push(item);
-              else runs.push({ kind: "loose", items: [item] });
-              continue;
-            }
-            const sid = railInfo[item.i].segmentId;
-            if (sid && last && last.kind === "cluster" && last.segmentId === sid) {
-              last.items.push(item);
-            } else if (sid) {
-              runs.push({ kind: "cluster", segmentId: sid, items: [item] });
-            } else if (last && last.kind === "loose") {
-              last.items.push(item);
-            } else {
-              runs.push({ kind: "loose", items: [item] });
-            }
-          }
-          return runs.map((run) => {
-            const rows = run.items.map((item) => {
-              if (item.kind === "ref") {
-                const ref = members![item.lane];
-                const label = chapterLabel(ref, -1, locale);
-                return (
-                  <RefRow
-                    key={`ref-${ref.id}`}
-                    className="pt-8 pb-2"
-                    y={32 + 11}
-                    tag={ref}
-                    label={label}
-                    locale={locale}
-                    mode={item.mode}
-                    pinned={pinned}
-                    look={inspecting ? "stub" : refLook}
-                    lit={lit.refs.get(item.lane)}
-                    track={trackFor(item.lane)}
-                    dimmed={stepsBack([item.lane])}
-                  >
-                    {inspectControls(ref, label)}
-                  </RefRow>
-                );
-              }
-              const i = item.i;
-              return (
-                <Commit
-                  key={commits[i].id}
-                  commit={commits[i]}
-                  locale={locale}
-                  variant="timeline"
-                  hideDate={tag.hideDate || commits[i].hideDate}
-                  rail={railInfo[i].rail}
-                  graph={graphs[i]}
-                  graphLit={lit.rows.get(i)}
-                  {...stepDown(stepsBack(laneOf?.get(commits[i].id) ?? [0]))}
-                  segmentId={railInfo[i].segmentId}
-                  isSegmentActive={
-                    railInfo[i].segmentId !== null &&
-                    railInfo[i].segmentId === activeBeam?.roleId
-                  }
-                  beamSpec={beamSpecs[i]}
-                  onBeamSet={handleBeamSet}
-                  onBeamClear={handleBeamClear}
-                  byline={bylines[i]}
-                  onSelectHash={onSelectHash}
-                />
-              );
-            });
-            const head = run.items.find((it) => it.kind === "row");
-            const key = head && head.kind === "row" ? commits[head.i].id : tag.id;
-            return run.kind === "cluster" ? (
-              // An identity can cluster twice (Meta, then RIT, then Meta
-              // again), so the run is named by its first row, not its id.
-              <div key={`cluster-${key}`} className="group/tenure">
-                {rows}
-              </div>
-            ) : (
-              <div key={`loose-${key}`}>{rows}</div>
+      {/* Hidden-role rows (roles with `hideRow: true`) are kept in the
+          commits array so `computeRail` and `resolveAuthor` can use their
+          tenure windows / handles, but they don't render here — the
+          tenure they anchor speaks through the rail and the bylines. */}
+      <div className="relative">
+        {items.map((item) => {
+          if (item.kind === "ref") {
+            const ref = members![item.lane];
+            const label = chapterLabel(ref, -1, locale);
+            return (
+              <RefRow
+                key={`ref-${ref.id}`}
+                className="pt-8 pb-2"
+                y={32 + 11}
+                tag={ref}
+                label={label}
+                locale={locale}
+                mode={item.mode}
+                pinned={pinned}
+                look={inspecting ? "stub" : refLook}
+                lit={lit.refs.get(item.lane)}
+                track={trackFor(item.lane)}
+                dimmed={stepsBack([item.lane])}
+              >
+                {inspectControls(ref, label)}
+              </RefRow>
             );
-          });
-        })()}
+          }
+          const i = item.i;
+          return (
+            <Commit
+              key={commits[i].id}
+              commit={commits[i]}
+              locale={locale}
+              variant="timeline"
+              hideDate={tag.hideDate || commits[i].hideDate}
+              rail={railInfo[i].rail}
+              graph={graphs[i]}
+              graphLit={lit.rows.get(i)}
+              {...stepDown(stepsBack(laneOf?.get(commits[i].id) ?? [0]))}
+              tenureLit={railInfo[i].segmentId === tenure?.sid}
+              onTenureEngage={handleTenureEngage}
+              beamSpec={beamSpecs[i]}
+              onBeamSet={handleBeamSet}
+              onBeamClear={handleBeamClear}
+              byline={bylines[i]}
+              onSelectHash={onSelectHash}
+            />
+          );
+        })}
       </div>
     </div>
   );

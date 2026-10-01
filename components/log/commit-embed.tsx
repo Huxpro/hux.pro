@@ -54,10 +54,10 @@ export interface CommitProps {
   graphLit?: RowLit;
   /** Timeline-only: the row speaks in an aside's quiet voice. */
   quiet?: boolean;
-  /** The role commit's id that owns this row's rail segment. */
-  segmentId?: string | null;
-  /** True when the parent timeline currently highlights this segment. */
-  isSegmentActive?: boolean;
+  /** Timeline-only: the row's tenure is lit. */
+  tenureLit?: boolean;
+  /** Timeline-only: the row reports when it engages its tenure. */
+  onTenureEngage?: (hash: string, engaged: boolean) => void;
   /** The beam this row emits when hovered. */
   beamSpec?: BeamSpec | null;
   /** Notify the parent the row would like its beam rendered. */
@@ -89,8 +89,8 @@ export function Commit({
   graph,
   graphLit,
   quiet,
-  segmentId,
-  isSegmentActive = false,
+  tenureLit,
+  onTenureEngage,
   beamSpec = null,
   onBeamSet,
   onBeamClear,
@@ -171,8 +171,8 @@ export function Commit({
           graphLit={graphLit}
           quiet={quiet}
           isRole={commit.type === "role"}
-          segmentId={segmentId ?? null}
-          isSegmentActive={isSegmentActive}
+          tenureLit={tenureLit}
+          onTenureEngage={onTenureEngage}
           beamSpec={beamSpec}
           onBeamSet={onBeamSet}
           onBeamClear={onBeamClear}
