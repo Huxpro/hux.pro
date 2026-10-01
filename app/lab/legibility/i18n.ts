@@ -211,6 +211,8 @@ const KNOBS_ZH: Record<string, { label: string; hint?: string }> = {
   "--relief-drop-a2": { label: "投影 · 0 0 2px" },
   "--relief-halo-a1": { label: "光晕 · 0 0 4px" },
   "--relief-halo-a2": { label: "光晕 · 0 0 3px" },
+  "--paper-edge-a": { label: "边缘 · 0 0 2px" },
+  "--paper-bloom-a": { label: "晕染 · 0 0 16px" },
   "--glass-relief-k": { label: "玻璃上 ×" },
   "--glass-relief-solid-k": { label: "面板 / 弹层上 ×" },
   "--glass-fill": { label: "玻璃" },
@@ -245,6 +247,7 @@ const SHEET_GROUPS_ZH: Record<string, { title: string; note?: string }> = {
   "Ink ladder": { title: "墨色阶梯", note: "--ink 的透明度。主墨即墨本身；正文在调用处为 foreground/85。" },
   Washes: { title: "洗色", note: "墨色几个百分点的填充：kbd、悬停、分隔线。" },
   "Relief shape": { title: "浮雕形状", note: "浅墨下投影，深墨下光晕。由 --wp-relief 缩放。" },
+  "Paper lift": { title: "纸面托底", note: "仅阅读页：每个字形周围的页面底色 — 一圈紧贴的边缘，一层宽的晕染。" },
   "Glass fills": { title: "玻璃填充", note: "当前材质的阶梯。切换材质以编辑另一套。" },
   "Tint amounts": { title: "着色量", note: "零即中性。“壁纸”着色设置会提升两者。" },
 };
