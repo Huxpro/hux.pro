@@ -1,5 +1,5 @@
 /**
- * Card snapshot enrichment — pure, framework-agnostic.
+ * Card snapshot enrichment: pure, framework-agnostic.
  *
  * Splits the snapshot pipeline into two halves so the same merging logic can
  * run in two places:
@@ -48,7 +48,7 @@ function resolveInternal(
 /**
  * Pick the URL of an internal post that matches the viewer's locale, falling
  * back to whichever version exists. Returns the badge to flash when only the
- * non-locale version is available — single source of truth for both the
+ * non-locale version is available. A single source of truth for both the
  * expanded card and the folded-rail pill so they can't drift.
  */
 export function pickInternalLink(
@@ -92,7 +92,7 @@ function mergePreview(
  * Resolve a card target's effective preview by layering, highest priority last:
  *   snapshot entry  →  manual `preview` (author override wins per-field)
  * Returns undefined when there's nothing to show (the runtime will then live-
- * fetch as a fallback — typically only a brand-new, not-yet-snapshotted link).
+ * fetch as a fallback, typically only for a brand-new, not-yet-snapshotted link).
  */
 function resolvePreview(
   media: Media,

@@ -46,7 +46,7 @@ const BLEED_MIN_ASPECT = 1.3;
  * screenshots while excluding the small Lighthouse cards and the near-square
  * architecture diagram.
  *
- * The decision is a default only — authors override it per image with a
+ * The decision is a default only. Authors override it per image with a
  * `#bleed` / `#no-bleed` URL fragment (see {@link parseBleedDirective}).
  */
 export function shouldBleedImage({ width, height }: ImageDimensions): boolean {
@@ -96,7 +96,7 @@ const dimensionCache = new Map<string, ImageDimensions | null>();
 
 /**
  * Read the intrinsic dimensions of a local (`/…` under `/public`) image.
- * Returns null for remote URLs, unreadable files, or unsupported formats —
+ * Returns null for remote URLs, unreadable files, or unsupported formats;
  * callers treat null as "no bleed".
  */
 export function getLocalImageDimensions(src: string): ImageDimensions | null {

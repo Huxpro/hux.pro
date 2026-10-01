@@ -12,8 +12,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 //   sun           Follow the Sun: Light while the sun is up, Dark once it is
 //                 down. The default.
 //
-// The sun's answer is not this service's to know — it takes a location and a
-// forecast, which the ambient system has — so the ambient system hands it in
+// The sun's answer is not this service's to know. It takes a location and a
+// forecast, which the ambient system has, so the ambient system hands it in
 // (`useSunThemeSlot`, from <SolarThemeSync />), already staged: at a sunrise or
 // a sunset it arrives in the middle of the sky's animation, not the instant the
 // sun crosses. Until it has one, Follow the Sun trusts the system, and moves to
@@ -45,8 +45,8 @@ interface ThemeContextType {
 
 /**
  * The sun's answer, for the ambient system alone: null before it has one.
- * A context of its own, so the answer arriving — every visit, whatever the
- * Appearance — re-renders only its one reader, not everything that reads the
+ * A context of its own, so the answer arriving (every visit, whatever the
+ * Appearance) re-renders only its one reader, not everything that reads the
  * theme.
  */
 interface SunThemeSlot {
@@ -77,8 +77,8 @@ const DEFAULT_PREFERENCE: ThemePreference = "sun";
 // ambient settings (`themeFollowsSun`, on unless turned off) that only acted on
 // a sunrise or a sunset watched live, as a session override on top of the
 // preference. A saved "system" from then was almost always the default plus
-// that switch, so it becomes Follow the Sun — unless the switch had been turned
-// off, which was a clear answer. Once, on the first read: the marker it leaves
+// that switch, so it becomes Follow the Sun. The exception is a switch that had
+// been turned off, which was a clear answer. Once, on the first read: the marker it leaves
 // means a "system" chosen from then on stays "system".
 // -----------------------------------------------------------------------------
 

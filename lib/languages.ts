@@ -2,7 +2,7 @@ import languagesJson from "@/content/languages.json";
 import type { Locale } from "@/lib/i18n";
 
 // =============================================================================
-// Languages — the PL chart (the post content/blog/pl-chart), as data.
+// Languages: the PL chart (the post content/blog/pl-chart), as data.
 //
 // Every programming language I've written, placed on two personal axes and
 // shaded by a third, less personal one:
@@ -44,7 +44,7 @@ export interface AbstractionTier {
 
 export interface Language {
   id: string;
-  /** The short name the chart prints under the dot — one for both
+  /** The short name the chart prints under the dot: one for both
    *  languages, or one each (`nameOf`). */
   name: string | Bilingual;
   /** The glyph the note opens with. */
@@ -74,7 +74,7 @@ export interface Language {
    *     4  types describe representation and class hierarchies
    *     5  values need no machine in view: managed, closures, dynamic dispatch
    *     6  types state constraints: parametric polymorphism, sums, structural
-   *        types, inference — kept or not (gradual and erased types count)
+   *        types, inference; kept or not (gradual and erased types count)
    *     7  kept by proof: sound by design, escape hatches marked (`unsafe`,
    *        `Obj.magic`); ADTs with exhaustive matching at the core
    *     8  purity, too, is a kept promise
@@ -85,7 +85,7 @@ export interface Language {
   i13s: number;
   /** Experience, 0 (little) – 9 (language lawyer). */
   exp: number;
-  /** Paragraphs, per locale — the same paragraphs, with the same links, in
+  /** Paragraphs, per locale: the same paragraphs, with the same links, in
    *  each. One that opens with `TBD` is a note still to be written. */
   notes: Record<Locale, string[]>;
   /** The year a later entry joined the 2020 chart. */
@@ -173,14 +173,14 @@ export function byTier(
 // The one place on this site that is not grayscale, because here the colour
 // is the content: it carries the third dimension, as it did in the original.
 // The steps live in globals.css (`--abs-<palette>-<level>`), on :root so the
-// note's popover and sheet — portaled out of the page — see them too.
+// note's popover and sheet (portaled out of the page) see them too.
 //
 //   violet     one hue, pale (machine) → deep (math); in dark mode dim →
 //              bright. Abstraction is ordinal, and an ordinal scale reads
 //              best as a single hue stepped in lightness.
 //   instagram  the original chart's gradient, #fcb045 → #fd1d1d → #833ab4,
 //              sampled where ECharts' visualMap put each level.
-//   ink        the site's own ink at an alpha — the grayscale fallback.
+//   ink        the site's own ink at an alpha; the grayscale fallback.
 // -----------------------------------------------------------------------------
 
 export type AbstractionPalette = "violet" | "instagram" | "ink";
@@ -189,8 +189,8 @@ export type AbstractionPalette = "violet" | "instagram" | "ink";
 export const ABSTRACTION_PALETTE: AbstractionPalette = "instagram";
 
 /**
- * A CSS paint for an abstraction level: its colour, or — for the whole
- * scale — every colour at once, since what sits there reaches every
+ * A CSS paint for an abstraction level: its colour, or, for the whole
+ * scale, every colour at once, since what sits there reaches every
  * level. A gradient, so it paints a `background`, not a `color`.
  */
 export function absColor(
@@ -282,7 +282,7 @@ export function placeLabels(
     for (const l of sorted) {
       const center = (l.i13s / SCALE_MAX) * plotWidth;
       const width = labelWidth(nameOf(l, locale), fontSize);
-      // A name that would run off the field's end turns back in from it —
+      // A name that would run off the field's end turns back in from it:
       // under its dot if that is clear, over it if the row is too crowded.
       if (center + width / 2 > plotWidth + EDGE_SLACK) {
         const [left, right] = extent(center, width, "end");

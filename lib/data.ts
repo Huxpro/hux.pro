@@ -10,7 +10,7 @@ export interface BlogPostMeta extends LocalizedContent {
 }
 
 // Talks live in content/log.json (type: "talk"). Do not keep a parallel
-// catalog here — the old placeholder entries were fiction.
+// catalog here. The old placeholder entries were fiction.
 
 // Static data for client-side search in command palette
 // This mirrors the MDX frontmatter for quick access without fs

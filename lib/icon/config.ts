@@ -1,5 +1,5 @@
 /**
- * App-icon configuration — the single source of truth for the generative icon.
+ * App-icon configuration: the single source of truth for the generative icon.
  *
  * This module is intentionally free of any React / Next.js imports so the exact
  * same config + normalization is shared by:
@@ -9,12 +9,12 @@
  *   - the SVG renderer (`lib/icon/render.ts`).
  *
  * The committed config lives at `content/icon.json`. The icon is a *pure
- * function* of this config — same config in, byte-identical SVG out — which is
+ * function* of this config: same config in, byte-identical SVG out. That is
  * what makes the design "stable" and "generative" rather than a one-off asset.
  *
  * The wordmark is always set in the site's mono family (JetBrains Mono) and
- * drawn verbatim (no case transform) — the icon is a terminal-style system
- * mark, by design, so typeface and casing are not levers.
+ * drawn verbatim (no case transform). The icon is a terminal-style system
+ * mark, so typeface and casing are not levers.
  */
 
 /** Background treatment. "solid" plus the texture/gradient family. */
@@ -28,7 +28,7 @@ export type IconBackgroundStyle =
 
 /**
  * Per-texture parameters. Each texture style owns its *own* copy of these, so
- * switching styles never inherits another texture's tuning — dots can be faint
+ * switching styles never inherits another texture's tuning. Dots can be faint
  * white while a gradient keeps its own end color and angle, independently.
  *
  * Not every field applies to every style (gradient ignores `scale`; only
@@ -100,7 +100,7 @@ export const TEXTURE_STYLES: Exclude<IconBackgroundStyle, "solid">[] = [
   "gradient",
 ];
 
-/** Per-texture default tunings — distinct so each style looks right on its own. */
+/** Per-texture default tunings, distinct so each style looks right on its own. */
 const TEXTURE_DEFAULTS: Record<
   Exclude<IconBackgroundStyle, "solid">,
   TextureSettings
@@ -113,7 +113,7 @@ const TEXTURE_DEFAULTS: Record<
 };
 
 /**
- * Default icon — the terminal-style system mark.
+ * Default icon: the terminal-style system mark.
  *
  * Mono "λHUX" (the site's λ system identifier) on the paco.me-inspired
  * `#1a1a1a` canvas, lifted by a barely-there grid. Grayscale only.
@@ -188,7 +188,7 @@ function normalizeTexture(
  * `IconConfig`, filling gaps from `DEFAULT_ICON_CONFIG` and clamping ranges.
  *
  * Used by the save route and generator so a hand-edited or stale `icon.json`
- * can never produce a broken render — the icon always draws *something*.
+ * can never produce a broken render. The icon always draws *something*.
  */
 export function normalizeIconConfig(input: unknown): IconConfig {
   const raw = (input ?? {}) as Partial<IconConfig>;

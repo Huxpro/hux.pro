@@ -5,7 +5,7 @@ import { enrichLogDataWithPreviews, type OGSnapshot } from "@/lib/og-enrich";
 
 /**
  * The committed log, flattened and enriched once for the lifetime of the
- * module — for the client-side systems that derive from it without being
+ * module, for the client-side systems that derive from it without being
  * handed it (the theater's albums, the identity card). The server pages
  * load it through `lib/log-server` instead.
  */

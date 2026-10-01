@@ -3,7 +3,7 @@ import { detectSocialEmbedPlatform } from "./og-core";
 import { isPlayableSlidesUrl } from "./slides";
 
 // =============================================================================
-// Media kind — what a bare URL is, read off the URL.
+// Media kind: what a bare URL is, read off the URL.
 //
 // One reading for every place that has only a URL: <Media /> choosing what
 // to render, a magic link choosing what to peek and open

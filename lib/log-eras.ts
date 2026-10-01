@@ -1,10 +1,10 @@
 // =============================================================================
-// Overlapping eras — chapters that share commits
+// Overlapping eras: chapters that share commits
 // =============================================================================
 //
 // A chapter used to own its commits outright: one `tagId`, one block. Some
-// work belongs to two at once — the Meta internships were React work and PL
-// work — so a commit may name more chapters in `alsoTagIds`, and chapters
+// work belongs to two at once (the Meta internships were React work and PL
+// work), so a commit may name more chapters in `alsoTagIds`, and chapters
 // that share a commit overlap.
 //
 // Overlapping chapters print as one block, in date order, the way
@@ -22,7 +22,7 @@ import {
 } from "./log";
 
 export interface EraBlock extends TimelineData {
-  /** The chapters this block prints, newest first — one, or every chapter
+  /** The chapters this block prints, newest first: one, or every chapter
    *  of an overlap. The first is `tag`; each later one starts at its own
    *  marker inside the block. */
   members: Tag[];

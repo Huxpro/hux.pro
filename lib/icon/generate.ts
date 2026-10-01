@@ -4,8 +4,8 @@
  * Turns `content/icon.json` into the committed, self-contained SVG assets the
  * site actually serves as its favicon / app icon. Shared by the dev save route
  * (`app/api/icon`) and the build-time CLI (`scripts/icon-generate.ts`) so
- * "what the editor previews" and "what ships" are produced by one code path —
- * the same committed-artifact discipline as the OG snapshot.
+ * "what the editor previews" and "what ships" are produced by one code path.
+ * It is the same committed-artifact discipline as the OG snapshot.
  *
  * Node-only (uses `fs`); never imported into client code.
  */
@@ -77,7 +77,7 @@ export interface GenerateResult {
  *   - `app/favicon.ico`              16/32/48 branded legacy favicon
  *
  * The SVG embeds a glyph-subset font (self-contained); the PNGs are rasterized
- * with resvg using the same font as a buffer. Both font paths are best-effort —
+ * with resvg using the same font as a buffer. Both font paths are best-effort:
  * if the network is unavailable the SVG still writes (system-font fallback) and
  * raster is skipped rather than producing fontless PNGs.
  */
@@ -102,7 +102,7 @@ export async function generateIconAssets(
   // --- PNG / ICO (home-screen assets) --------------------------------------
   // resvg matches fonts by their real family name (e.g. "JetBrains Mono Light"
   // for the static 300 instance), so the raster SVG must request that exact
-  // name — not the generic "JetBrains Mono" the browser-facing SVG uses.
+  // name, not the generic "JetBrains Mono" the browser-facing SVG uses.
   const fontBuffer = await fetchFontBuffer(normalized);
   const fontFamily = fontBuffer ? fontFamilyName(fontBuffer) : null;
   const rasterFamily = fontFamily
