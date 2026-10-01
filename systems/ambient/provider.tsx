@@ -148,7 +148,7 @@ interface LocationContextType {
   permission: GeolocationPermission | null;
   /**
    * Accurate is in effect: the mode asks for it and a fix may be taken
-   * (`canTakeFix` — including a remembered Safari grant). False while an
+   * (`canTakeFix`, which counts a remembered Safari grant). False while an
    * Accurate wish is running on the IP.
    */
   usingGps: boolean;
@@ -180,13 +180,13 @@ export function useLocation() {
 // =============================================================================
 // Ambient Time Context
 //
-// One clock. Everything time-shaped — the sun and moon, the sky, the phase,
-// the greeting, the sun-event notice — reads `nowMs` from here, so devtool
+// One clock. Everything time-shaped (the sun and moon, the sky, the phase,
+// the greeting, the sun-event notice) reads `nowMs` from here, so devtool
 // time travel moves all of it together and nothing can disagree.
 // =============================================================================
 
 interface AmbientTimeContextType {
-  /** Effective "now" — real time, or the devtool time-travel clock. */
+  /** Effective "now": real time, or the devtool time-travel clock. */
   nowMs: number;
   /** Real wall-clock time, untouched by time travel (the devtool's "now" mark). */
   realNowMs: number;
@@ -237,9 +237,9 @@ interface SolarThemeContextType {
   sunTheme: SolarTheme | null;
   /**
    * Hand the theme over (see SOLAR_HANDOVER): the wallpaper starts painting
-   * `next` — slowly, on a longer crossfade — while the chrome stays where it
-   * is. The lead ends by itself the moment the app theme catches up; `null`
-   * calls it off early, for a handover that is no longer wanted.
+   * `next` on a longer crossfade while the chrome stays where it is. The lead
+   * ends by itself once the app theme catches up; `null` calls it off early,
+   * for a handover that is no longer wanted.
    */
   beginThemeHandover: (next: SolarTheme | null) => void;
 }
@@ -256,7 +256,7 @@ export function useSolarTheme() {
 // Wallpaper Context
 //
 // The background is one stack fed by exactly one kind (see lib/wallpaper.ts),
-// so "weather" and "image" are mutually exclusive by construction — there is
+// so "weather" and "image" are mutually exclusive by construction: there is
 // no state in which both can paint. Under "weather", `weatherStyle` picks one
 // of three: the Sky (shader), the Gradient (CSS, live) or the Classic palettes
 // (CSS, stepped). Everything here persists to the same localStorage blob as
@@ -283,7 +283,7 @@ export interface DevtoolWallpaperOverrides {
    * The wallpaper family `softEdging` and `bezel` were set under. They
    * describe the edge of what was showing at the time, so once the family
    * changes (picture ↔ wash: a kind switch, or Sky ↔ a CSS style) they no
-   * longer apply — switching to the gradient turns the bezel off even if it
+   * longer apply. Switching to the gradient turns the bezel off even if it
    * was forced on, and switching back does not bring the override back.
    * Stamped by the provider; callers never set it.
    */
@@ -293,11 +293,11 @@ export interface DevtoolWallpaperOverrides {
 /**
  * Whether tilt readings are actually arriving.
  *
- *   waiting — subscribed; the first event is milliseconds away
- *   live    — the sky is tilting with the device
- *   silent  — nothing came. Every desktop browser defines
- *             `DeviceOrientationEvent` and none of them fires it, so "on" is
- *             not the same as "working", and the picker says which.
+ *   waiting: subscribed; the first event is milliseconds away
+ *   live:    the sky is tilting with the device
+ *   silent:  nothing came. Every desktop browser defines
+ *            `DeviceOrientationEvent` and none of them fires it, so "on" is
+ *            not the same as "working", and the picker says which.
  */
 export type GyroReadings = "waiting" | "live" | "silent";
 
@@ -314,9 +314,9 @@ export interface GyroState {
   /** Motion was refused for this site; only the browser's own settings undo it. */
   denied: boolean;
   /**
-   * Readings can flow right now, whatever the saved wish — the browser hands
-   * them over freely, or WebKit's gate has been passed. What the sky window
-   * needs: it listens to the sensor whether or not the tilt is wished on.
+   * Readings can flow right now, whatever the saved wish: the browser hands
+   * them over freely, or WebKit's gate has been passed. The sky window needs
+   * this, because it listens to the sensor whether or not the tilt is wished on.
    */
   reachable: boolean;
   /** There is a `DeviceOrientationEvent` here at all. */
@@ -343,8 +343,8 @@ interface WallpaperContextType {
   statsRef: React.MutableRefObject<(() => WallpaperStats) | null>;
   /**
    * The gyroscope tilt: the Sky's rain and snow fall along real gravity. The
-   * readings themselves never come through here — they go from the sensor
-   * straight to the renderer (see lib/gyroscope.ts) — so this is only what a
+   * readings themselves never come through here. They go from the sensor
+   * straight to the renderer (see lib/gyroscope.ts), so this is only what a
    * toggle needs to say and do.
    */
   gyro: GyroState;
@@ -354,7 +354,7 @@ interface WallpaperContextType {
    */
   setGyroEnabled: (on: boolean) => Promise<GyroAccess>;
   /**
-   * The sky window: the phone as a window onto the real sky — its heading and
+   * The sky window: the phone as a window onto the real sky. Its heading and
    * pitch aim a camera at the sun and moon where they really are (see
    * lib/sky-window.ts). Found by pulling the home down, in any weather.
    * Session-only on purpose: an easter egg you found is not a setting you
@@ -364,11 +364,11 @@ interface WallpaperContextType {
   skyWindow: boolean;
   setSkyWindow: (on: boolean) => void;
   /**
-   * The window's sheet has offered the location this session. The window's
-   * own policy, not a permission: while the place is only a guess and this is
-   * false, a pull goes through the sheet, which asks for motion and location in
-   * one breath (`skyAsksPlace`, lib/sky-pull.ts) — a window that turns true to
-   * north onto the sky over the wrong city is the one thing it must not be.
+   * The window's sheet has offered the location this session. This is the
+   * window's own policy, not a permission. While the place is only a guess and
+   * this is false, a pull goes through the sheet, which asks for motion and
+   * location together (`skyAsksPlace`, lib/sky-pull.ts). The window must never
+   * turn true to north onto the sky over the wrong city.
    * Session-only: a no today is not a no for ever, but asking on every pull
    * would be.
    */
@@ -379,8 +379,8 @@ interface WallpaperContextType {
   /** Selects a pair AND switches the background kind to it. Pins; play turns off. */
   selectWallpaper: (id: string) => void;
   /**
-   * Shuffle or Loop over Apple / Nature — iOS Photo Shuffle and macOS Change
-   * Picture. Selects the mode AND switches the background kind to image.
+   * Shuffle or Loop over Apple / Nature (iOS Photo Shuffle and macOS Change
+   * Picture). Selects the mode AND switches the background kind to image.
    */
   selectPlay: (album: WallpaperPlayAlbum, play: Exclude<WallpaperPlay, "off">) => void;
   /** `off` while a still is pinned. */
@@ -391,7 +391,7 @@ interface WallpaperContextType {
   setPlayEvery: (every: WallpaperPlayEvery) => void;
   /**
    * Which half of the pair is showing. The app theme, except while the sun is
-   * handing the theme over — then the sky leads and this is where it shows.
+   * handing the theme over: then the sky leads and this is where it shows.
    */
   variant: "light" | "dark";
   /** Where the active wallpaper paints. */
@@ -411,7 +411,7 @@ interface WallpaperContextType {
   /**
    * The same pace for the Sky, which paints a canvas rather than the stack:
    * ms to settled for the shader's theme uniforms, or null for its own. Only
-   * the sun's handover sets it — the weather keeps the renderer's own taus.
+   * the sun's handover sets it; the weather keeps the renderer's own taus.
    */
   skyThemeEaseMs: number | null;
   /** Resolved CSS mask-image value, or null when soft-edging is off. */
@@ -431,7 +431,7 @@ interface WallpaperContextType {
   veil: number;
   /** Whether the wallpaper should be defocused right now: a picture, on a reading page. */
   blurred: boolean;
-  /** Whether this page recedes the wallpaper — see `isReadingSurface`. */
+  /** Whether this page recedes the wallpaper. See `isReadingSurface`. */
   reading: boolean;
   /** Whether the bezel is drawn. Live. */
   bezel: boolean;
@@ -441,7 +441,7 @@ interface WallpaperContextType {
   bezelScroll: VitreScroll;
   /**
    * Whether a chrome colour change has to be morphed onto the screen for the
-   * browser to see it. iOS Safari only — see vitre. Everywhere else the
+   * browser to see it. iOS Safari only (see vitre). Everywhere else the
    * chrome follows `theme-color` or has no colour to follow, and the morph
    * would just be bands at the edges of the window for the best part of a
    * second, on every theme change.
@@ -461,9 +461,9 @@ interface WallpaperContextType {
   setBezelRadius: (px: number | null) => void;
   /**
    * The corner radius of the page's screen, px: the box a surface over the
-   * whole page (the About, its glow) fills. Inside a bezel it is the bezel's
-   * — the same number <Vitre> is given, so the two move together when the
-   * devtool drags it — and 0 without one: a browser window's page is a plain
+   * whole page (the About, its glow) fills. Inside a bezel it is the bezel's,
+   * the same number <Vitre> is given, so the two move together when the
+   * devtool drags it. Without one it is 0: a browser window's page is a plain
    * rectangle, and a phone's own rounded glass is the hardware's to clip.
    */
   screenRadius: number;
@@ -478,25 +478,25 @@ interface WallpaperContextType {
   src: string | null;
   /**
    * The static profile of what is painting, and the legibility policy
-   * resolved from it — the CSS variables on <html>. See legibility.ts.
+   * resolved from it (the CSS variables on <html>). See legibility.ts.
    */
   profile: WallpaperProfile;
   legibility: LegibilityVars;
   /**
    * The Legibility Lab's tuned policy, applied on every route until Reset all
-   * or a reload — so a veil tuned in the lab can be checked on /writing.
+   * or a reload, so a veil tuned in the lab can be checked on /writing.
    */
   labPolicy: LegibilityPolicy | null;
   setLabPolicy: (policy: LegibilityPolicy | null) => void;
   /** The lab's pins on the resolved variables for its own scene. Lab-only. */
   legibilityOverride: LegibilityVars | null;
   setLegibilityOverride: (vars: LegibilityVars | null) => void;
-  /** Secondary window — the wallpaper picker. */
+  /** Secondary window: the wallpaper picker. */
   isPickerOpen: boolean;
   openPicker: () => void;
   closePicker: () => void;
   /**
-   * The tilt primer — the one-time offer that comes before WebKit's motion
+   * The tilt primer: the one-time offer that comes before WebKit's motion
    * prompt. See lib/tilt-primer.ts. Open state lives here rather than in the
    * background component because the sheet is mounted in the layout, beside
    * the picker, and not inside a `pointer-events-none` wallpaper layer.
@@ -505,27 +505,28 @@ interface WallpaperContextType {
   /** The offer has been made and answered; it is never made again. */
   gyroPrimed: boolean;
   offerTilt: () => void;
-  /** Close it, and never offer again — the answer was "no" or was given. */
+  /** Close it, and never offer again: the answer was "no" or was given. */
   closeTiltPrimer: () => void;
   /**
    * Mark the offer spent (true) or standing again (false), without closing
-   * the sheet. The sheet spends it BEFORE asking — a refusal, and no browser
-   * asks twice, must not leave the offer armed for the next rainy day — and
+   * the sheet. The sheet spends it BEFORE asking, because a refusal must not
+   * leave the offer armed for the next rainy day (no browser asks twice). It
    * re-arms it when the gate declined to ask at all.
    */
   setTiltPrimed: (primed: boolean) => void;
   /**
-   * The sky window's own offer — what pulling the home down brings up while
+   * The sky window's own offer: what pulling the home down brings up while
    * WebKit's motion gate still stands, or while the place is only a guess
-   * (lib/sky-pull.ts, SkyWindowSheet). Not the tilt primer: that one is the
-   * rain-and-snow egg's, offered once on a long press; this one is the pull's,
-   * in any weather.
+   * (lib/sky-pull.ts, SkyWindowSheet). This is separate from the tilt primer.
+   * That one belongs to the rain-and-snow egg and is offered once on a long
+   * press; this one belongs to the pull, in any weather.
    */
   isSkyOfferOpen: boolean;
   openSkyOffer: () => void;
   /**
    * Close it. `offeredPlace`: this opening offered the location, so the offer
-   * is spent for the session — an opening that only asked for motion is not.
+   * is spent for the session. An opening that only asked for motion does not
+   * spend it.
    */
   closeSkyOffer: (offeredPlace?: boolean) => void;
 }
@@ -547,7 +548,7 @@ export function useOptionalWallpaper() {
 // =============================================================================
 
 /**
- * Devtool weather override: the condition only. Day/night is never a choice —
+ * Devtool weather override: the condition only. Day/night is never a choice;
  * it follows the clock (real or time-travelled), so a forced condition can't
  * put a moon in a daytime sky. Null means the real weather.
  */
@@ -560,8 +561,8 @@ interface WeatherContextType {
   /** The renderer-agnostic wallpaper description (see lib/scene.ts). */
   scene: WeatherScene;
   /**
-   * The weather as the scene sees it — real measurements, or the override's
-   * profile — for anything that wants to derive a scene at another time.
+   * The weather as the scene sees it (real measurements, or the override's
+   * profile), for anything that wants to derive a scene at another time.
    */
   sceneWeather: SceneWeatherInput | null;
   isLoading: boolean;
@@ -603,7 +604,7 @@ function scrubToMs(minutes: number, referenceMs: number): number {
 export function AmbientProvider({ children, theme: chromeTheme }: AmbientProviderProps) {
   const { isEnabled: isDevtoolEnabled } = useDevtool();
 
-  // Ambient Settings — initialize with defaults to match SSR, hydrate from
+  // Ambient Settings: initialize with defaults to match SSR, then hydrate from
   // localStorage in an effect to avoid hydration mismatches.
   const [settings, setSettingsState] = useState<AmbientSettings>(getDefaultSettings);
   /** Whether `settings` is the stored one yet, rather than the SSR defaults. */
@@ -693,13 +694,13 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     [updateSettings]
   );
 
-  // The look the settings ask for, before WebGL support is known — what the
-  // edge of the page is resolved from, so the boot script and the provider
-  // agree on the first frame, and a Sky that falls back keeps its frame.
+  // The look the settings ask for, before WebGL support is known. The edge of
+  // the page is resolved from it, so the boot script and the provider agree on
+  // the first frame, and a Sky that falls back keeps its frame.
   const edgeFamily =
     WALLPAPER_LOOK_FAMILY[getWallpaperLook(settings.wallpaperKind, settings.weatherStyle)];
 
-  // Secondary window (the picker sheet). Ephemeral — never persisted.
+  // Secondary window (the picker sheet). Ephemeral, never persisted.
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const openPicker = useCallback(() => setIsPickerOpen(true), []);
   const closePicker = useCallback(() => setIsPickerOpen(false), []);
@@ -713,7 +714,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   );
   const isImageKind = settings.wallpaperKind === "image";
 
-  // Shuffle / Loop — step when iOS Shuffle Frequency says so. On Visit is once
+  // Shuffle / Loop: step when iOS Shuffle Frequency says so. On Visit is once
   // per tab session; Hourly and Daily poll on a minute so a long-lived tab
   // still turns over. A week away advances once, not seven times.
   useEffect(() => {
@@ -787,9 +788,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   );
 
   // Home is the desktop: the picture stays sharp and untinted, because that is
-  // the whole point of choosing one. Reading pages recede it instead — a veil
-  // plus a defocus over the top, which costs far less of the image than dimming
-  // the layer itself on every route alike.
+  // why one was chosen. Reading pages recede it instead, with a veil plus a
+  // defocus over the top. That costs far less of the image than dimming the
+  // layer itself on every route alike.
   const pathname = usePathname();
 
   // DevTool overrides (ephemeral, not persisted)
@@ -839,11 +840,11 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   );
 
   /**
-   * The bezel — vitre, configured in ./lib/bezel. Live.
+   * The bezel: vitre, configured in ./lib/bezel. Live.
    *
-   * The wallpaper's family decides whether it is on (`WALLPAPER_FAMILY_EDGES`:
-   * a picture — the Sky or an image — is framed, a wash fades), on iOS only;
-   * a devtool override for this session wins until the family changes. Band,
+   * The wallpaper's family decides whether it is on, on iOS only
+   * (`WALLPAPER_FAMILY_EDGES`: a picture, the Sky or an image, is framed; a
+   * wash fades). A devtool override for this session wins until the family changes. Band,
    * radius and tint are saved settings, the same for every kind. `null` until
    * the stored settings and the platform are both known: a `false` before
    * then would take off the bezel the boot script painted.
@@ -875,9 +876,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   );
 
   // --- The theme handover ---------------------------------------------------
-  // The sun's change is staged rather than thrown, and the sky goes first: for
-  // the length of the lead the wallpaper — the scene, the wash's weight, a
-  // picture's half — is painted in the incoming theme while the chrome is
+  // The sun's change is staged rather than thrown, and the sky goes first. For
+  // the length of the lead the wallpaper (the scene, the wash's weight, a
+  // picture's half) is painted in the incoming theme while the chrome is
   // still in the outgoing one. Everything that belongs to the chrome keeps
   // reading `chromeTheme`; the prop is destructured under that name so there
   // is no bare `theme` in this scope to reach for by reflex, and every derived
@@ -887,9 +888,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const wallpaperTheme: "light" | "dark" = skyLead ?? chromeTheme;
 
   // The lead runs for exactly the sky's animation. It outlives the chrome's
-  // switch, which lands halfway through it — cutting it short there would
-  // re-target the crossfade in flight — and it ends on its own, so a handover
-  // that is never completed leaves nothing behind.
+  // switch, which lands halfway through it; cutting it short there would
+  // re-target the crossfade in flight. It ends on its own, so a handover that
+  // is never completed leaves nothing behind.
   useEffect(() => {
     if (!skyLead) return;
     const timer = window.setTimeout(() => setSkyLead(null), SOLAR_HANDOVER.skyMs);
@@ -920,9 +921,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   // browser's business. Chrome, Firefox and Android WebViews just fire the
   // event, so there the sky starts tilting on its own. WebKit gates motion
   // behind a permission AND a user gesture, so there the setting waits for the
-  // tap that grants it (the picker's Weather tab, or the devtool's Sky row) —
-  // and once granted, the grant is remembered and re-taken silently from then
-  // on. See lib/gyroscope.ts.
+  // tap that grants it (the picker's Weather tab, or the devtool's Sky row).
+  // Once granted, the grant is remembered and re-taken silently from then on.
+  // See lib/gyroscope.ts.
   const [gyroAccess, setGyroAccess] = useState<GyroAccess>("unsupported");
   const gyroProbedRef = useRef(false);
 
@@ -938,9 +939,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       if (access === "granted" && !settings.weatherGyroGranted) {
         updateSettings({ weatherGyroGranted: true });
       } else if (access !== "granted" && settings.weatherGyroGranted) {
-        // The grant lapsed — a new Safari session, or its site data cleared —
+        // The grant lapsed (a new Safari session, or its site data cleared),
         // and the tilt is off again with nothing on screen to say why. The
-        // offer was spent on a yes, so making it again is not nagging: without
+        // offer was spent on a yes, so making it again is not nagging. Without
         // this, the one gesture that can win the grant back is disarmed for
         // good while the sky has gone back to falling straight down.
         updateSettings(
@@ -962,7 +963,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
         return gyroAccess;
       }
       updateSettings({ weatherGyro: true });
-      // Turning it on is the gesture WebKit wants, so ask now — the promise is
+      // Turning it on is the gesture WebKit wants, so ask now. The promise is
       // resolved in the same task the tap started, which is what makes the
       // prompt appear at all.
       if (isGyroReachable(gyroAccess) || gyroAccess === "unsupported") {
@@ -972,8 +973,8 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
       setGyroAccess(access);
       updateSettings({ weatherGyroGranted: access === "granted" });
       // Handed back rather than only stored, because the one caller that has
-      // to SAY something — the primer sheet — needs the answer, and a toggle
-      // that merely flips can keep ignoring it.
+      // to SAY something (the primer sheet) needs the answer. A toggle that
+      // merely flips can keep ignoring it.
       return access;
     },
     [gyroAccess, updateSettings]
@@ -990,10 +991,10 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     [updateSettings]
   );
 
-  // The sky window. Session state, never saved — see `skyWindow` above.
+  // The sky window. Session state, never saved (see `skyWindow` above).
   const [skyWindow, setSkyWindow] = useState(false);
 
-  // The window's own offer (SkyWindowSheet) — the pull's, not the rain's.
+  // The window's own offer (SkyWindowSheet). It belongs to the pull, not the rain.
   const [isSkyOfferOpen, setIsSkyOfferOpen] = useState(false);
   const openSkyOffer = useCallback(() => setIsSkyOfferOpen(true), []);
   // Whether that sheet has made its location offer this session. Session-only
@@ -1070,8 +1071,8 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   }, []);
 
   // Location (React Query)
-  // A grant made *during* the visit — in the browser's site settings, or a
-  // prompt answered elsewhere — is the visitor saying yes, so follow it. Only
+  // A grant made *during* the visit (in the browser's site settings, or a
+  // prompt answered elsewhere) is the visitor saying yes, so follow it. Only
   // a change counts: a page that loads already granted but set to IP was set
   // to IP on purpose. Nor does the grant our own request is waiting on: that
   // request switches when its fix lands, with the fix in hand.
@@ -1106,7 +1107,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
 
   const requestAccurateLocationAction = useCallback(async (): Promise<LocationRequestOutcome> => {
     requestingLocationRef.current = true;
-    // A fix on request is a change of place on its way — the settle spinner
+    // A fix on request is a change of place on its way. The settle spinner
     // stands until it lands (and the sky that follows it takes over from there).
     holdSettle("location", true);
     try {
@@ -1151,11 +1152,11 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
 
   // --- Settling (lib/settle.ts) ---------------------------------------------
   // A poll that comes back with more or less the same answer is routine and
-  // says nothing. One that moves you — a fix a city away — or turns the sky
-  // over — clear to rain, a clear sky clouding over — is a change the sky will
-  // spend a couple of seconds rolling into, and the spinner stands for that:
-  // while the relocated forecast is fetched, then for the scene's own easing
-  // (the decks and the precipitation take ~2.5 s to arrive).
+  // says nothing. One that moves you (a fix a city away) or turns the sky over
+  // (clear to rain, a clear sky clouding over) is a change the sky will spend a
+  // couple of seconds rolling into. The spinner stands for that: while the
+  // relocated forecast is fetched, then for the scene's own easing (the decks
+  // and the precipitation take ~2.5 s to arrive).
   const settledPlaceRef = useRef<{ lat: number; lon: number } | null>(null);
   const [awaitingForecast, setAwaitingForecast] = useState(false);
   useEffect(() => {
@@ -1196,7 +1197,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   // from this, so dawn and dusk progress continuously. Timers do not run in a
   // locked phone or a page parked in the back/forward cache, so coming back
   // re-reads the clock at once instead of showing the time it was left at
-  // until the next tick — and re-arms the tick on the boundary.
+  // until the next tick, and re-arms the tick on the boundary.
   useEffect(() => {
     let timer: number | undefined;
     const arm = () => {
@@ -1228,7 +1229,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
 
   // Refetch weather when the local day rolls over. Open-Meteo returns a single
   // forecast day, so a page left open overnight would otherwise keep yesterday's
-  // sunrise/sunset — staling everything derived from them (phase, sky,
+  // sunrise/sunset, which stales everything derived from them (phase, sky,
   // greeting, and the phase notification). The minute tick above makes this fire
   // within ~60s of midnight.
   const lastDayRef = useRef(new Date().toDateString());
@@ -1267,8 +1268,8 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
 
   // The same clock and the same sun times the phase reads, reduced to the one
   // bit the theme cares about. It returns a primitive, so the minute tick and
-  // the devtool's 10Hz scrub leave `solarThemeValue` — and every consumer of
-  // it — untouched until the side of the day actually changes.
+  // the devtool's 10Hz scrub leave `solarThemeValue` (and every consumer of
+  // it) untouched until the side of the day actually changes.
   const sunTheme = useMemo(
     () => solarThemeAt({ nowMs, sunriseMs, sunsetMs }),
     [nowMs, sunriseMs, sunsetMs]
@@ -1284,7 +1285,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     : null;
 
   // ---------------------------------------------------------------------------
-  // Scene — the single source of truth for both weather engines.
+  // Scene: the single source of truth for both weather engines.
   // ---------------------------------------------------------------------------
 
   // Stable per-session seed so cloud layouts don't re-roll on every render.
@@ -1357,7 +1358,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
    *
    * Only when blurred. In `widget` placement, and on the home screen, the photo
    * paints SHARP inside a card or across the page. Photographs then pick the
-   * smallest cover rendition for this viewport × DPR (`pickWallpaperSrc`) — @1x
+   * smallest cover rendition for this viewport × DPR (`pickWallpaperSrc`): @1x
    * on a 1× display, the full @2x file on retina. The 480px thumb paints first
    * and the chosen file fades in over it.
    */
@@ -1374,7 +1375,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     [isImageKind, activeWallpaper, wallpaperTheme, isBlurred, displaySize]
   );
 
-  // Compute the CSS background. Exactly one kind wins — an image wallpaper
+  // Compute the CSS background. Exactly one kind wins: an image wallpaper
   // replaces the weather sky outright rather than stacking over it. Under
   // weather it is the Classic palette when that style is chosen, otherwise the
   // gradient rendering of the scene: the full-page layer under Gradient (or a
@@ -1396,7 +1397,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   // --- Legibility ------------------------------------------------------------
   // What is painting has a profile: a picture's was measured once and
   // committed; Classic's palettes likewise; the Sky and the Gradient are read
-  // off the live scene (`profileFromScene`) — the scene is already the
+  // off the live scene (`profileFromScene`). The scene is already the
   // description of the picture, so nothing is sampled. The policy turns the
   // profile into a few CSS variables on <html>, memoised on what can change.
   const paintingCondition = sceneWeather?.condition ?? null;
@@ -1544,7 +1545,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
     return () => clearTimeout(timeout);
   }, [layers, crossfadeMs]);
 
-  // Memoised, because this provider re-renders often — the 60s clock tick, every
+  // Memoised, because this provider re-renders often: the 60s clock tick, every
   // React Query transition, every crossfade push and prune, and (since the
   // reading surface moved in here) every navigation. A fresh object literal on
   // any of those would re-render every consumer app-wide: the background, every

@@ -5,13 +5,13 @@ import { AdaptiveSurface, SurfaceMorph, type SurfacePresentation } from "@/syste
 import { useEffect, useState, type ReactNode } from "react";
 
 // ---------------------------------------------------------------------------
-// PermissionSheet — the shape every "offer before the prompt" shares.
+// PermissionSheet: the shape every "offer before the prompt" shares.
 //
 // The tilt (TiltPrimerSheet), the place (LocationPrimerSheet) and the sky
 // window (SkyWindowSheet) each put a sheet in front of a browser permission
 // prompt, for one reason: a prompt that shows up with no idea what it is for
-// gets refused, and a refusal is final everywhere. What they offer differs —
-// the picture, the words, what the button asks for — and that stays in each
+// gets refused, and a refusal is final everywhere. What they offer differs
+// (the picture, the words, what the button asks for), and that stays in each
 // sheet. What is the same lives here:
 //
 //   · The phases of one press (`usePermissionOffer`): the offer, the browser's
@@ -19,8 +19,8 @@ import { useEffect, useState, type ReactNode } from "react";
 //     the offer; an outcome stays up long enough to read and then the sheet
 //     lets itself out.
 //   · The sheet itself (`PermissionSheet`): a form sheet as tall as its
-//     content, a picture that stays, and under it the offer — a paragraph, the
-//     button that asks, the one that doesn't, a footnote — cross-fading into
+//     content, a picture that stays, and under it the offer (a paragraph, the
+//     button that asks, the one that doesn't, a footnote), cross-fading into
 //     the outcome in the same sheet.
 //
 // It stays up through the browser's dialog and says how it went, because it
@@ -40,15 +40,15 @@ export const OFFER_DWELL = { granted: 1400, denied: 3000 } as const;
 /**
  * The phases of one press, for a sheet that is `open` and closes with `close`.
  *
- *   · `dwell` — how long an outcome stays up, ms.
- *   · `opening` — where an opening starts, when that is not always the offer
+ *   · `dwell`: how long an outcome stays up, ms.
+ *   · `opening`: where an opening starts, when that is not always the offer
  *     (a refusal that still stands opens onto the refusal). It runs during the
  *     render that opens the sheet, so it may set the caller's own state too.
  *
  * Returns the phase, the `view` the sheet shows (the offer while the browser's
  * dialog is over it), and `ask`, which runs one request and lands on what it
- * returns — `"offer"` for a gate that would not even show a dialog, where
- * nothing was answered and the offer simply still stands.
+ * returns. That is `"offer"` for a gate that would not even show a dialog,
+ * where nothing was answered and the offer still stands.
  */
 export function usePermissionOffer<Outcome extends string>({
   open,
@@ -65,9 +65,9 @@ export function usePermissionOffer<Outcome extends string>({
   const outcome = phase === "offer" || phase === "asking" ? null : (phase as Outcome);
   const wait = outcome === null ? null : dwell(outcome);
 
-  // The outcome shows, and then the sheet lets itself out — each time it is
-  // open on one, including an opening that lands straight on the same outcome
-  // the last one ended on.
+  // The outcome shows, and then the sheet lets itself out. That happens each
+  // time it is open on one, including an opening that lands straight on the
+  // same outcome the last one ended on.
   useEffect(() => {
     if (!open || wait === null) return;
     const timer = window.setTimeout(close, wait);
@@ -118,7 +118,7 @@ export function PermissionSheet<Outcome extends string>({
 }: {
   id: string;
   open: boolean;
-  /** Every way out that is not the button — the scrim, the close, a swipe. */
+  /** Every way out that is not the button: the scrim, the close, a swipe. */
   close: () => void;
   title: string;
   presentation?: SurfacePresentation;

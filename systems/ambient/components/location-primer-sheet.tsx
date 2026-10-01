@@ -11,23 +11,24 @@ import { usePermissions } from "./use-permissions";
 const LOCATION: readonly PermissionKind[] = ["location"];
 
 // ---------------------------------------------------------------------------
-// LocationPrimerSheet — the offer that comes before the location prompt.
+// LocationPrimerSheet: the offer that comes before the location prompt.
 //
-// The same shape as the tilt primer (tilt-primer-sheet.tsx) — the one in
-// permission-sheet.tsx — for the same reason: a browser permission prompt that shows up with no idea what it is for
-// gets refused, and a refusal is final everywhere. So the site never raises it
-// on its own — not on load, not on focus, not on a refetch (lib/queries.ts
-// checks the permission before any fix) — and asks only here, or from the
-// command palette's Geolocation row, both a tap on something that says why.
+// The same shape as the tilt primer (tilt-primer-sheet.tsx), the one in
+// permission-sheet.tsx, for the same reason. A browser permission prompt that
+// shows up with no idea what it is for gets refused, and a refusal is final
+// everywhere. So the site never raises it on its own: not on load, not on
+// focus, not on a refetch (lib/queries.ts checks the permission before any
+// fix). It asks only here, or from the command palette's Geolocation row, both
+// a tap on something that says why.
 //
 // What summons it is a *reason*: the weather widget's city reads "Dallas?"
 // when the IP provider put the address in another timezone from this device's
 // clock (`timezoneMismatch`, lib/location.ts), and tapping that opens this.
 // It names the city the network guessed, because "your network thinks you are
-// in Dallas" is the whole argument.
+// in Dallas" is the reason to say yes.
 //
-// Unlike the tilt primer it is not phone-only — a laptop on a VPN is misplaced
-// just the same — so it is a sheet on a phone and a small window from `sm` up.
+// Unlike the tilt primer it is not phone-only (a laptop on a VPN is misplaced
+// just the same), so it is a sheet on a phone and a small window from `sm` up.
 // ---------------------------------------------------------------------------
 
 type Outcome = "granted" | "denied" | "unavailable";
@@ -51,8 +52,8 @@ export function LocationPrimerSheet() {
     dwell: (outcome) => DWELL[outcome],
   });
 
-  // Each opening starts from the offer — or, when the browser has already been
-  // told no, from the way back: asking again would do nothing at all.
+  // Each opening starts from the offer. When the browser has already been told
+  // no, it starts from the way back instead, since asking again would do nothing.
   const view = offer.phase === "offer" && status.location === "refused" ? "denied" : offer.view;
 
   const guessed =

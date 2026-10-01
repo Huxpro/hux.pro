@@ -18,7 +18,7 @@ import { attachWindStir } from "../lib/wallpaper/stir";
 import { getWallpaperQualityProfile } from "../lib/wallpaper/support";
 
 // ---------------------------------------------------------------------------
-// WeatherWallpaper — the shader-backed full-page sky.
+// WeatherWallpaper: the shader-backed full-page sky.
 //
 // A thin React shell around `WallpaperRenderer`: it owns the <canvas>, hands
 // the renderer every new scene, starts/stops it with `active`, and fades the
@@ -39,7 +39,7 @@ interface WeatherWallpaperProps {
    * Follow the gyroscope: the sky keeps its place on the page and gains a
    * second gravity, so the rain and snow fall along the real one instead of
    * down the viewport. The readings go from the sensor to the renderer without
-   * passing through React — they arrive sixty times a second, and none of them
+   * passing through React. They arrive sixty times a second, and none of them
    * is state anything renders from. The provider owns whether this is on
    * (`gyro.active`); reduced motion turns it off here regardless.
    */
@@ -47,43 +47,42 @@ interface WeatherWallpaperProps {
   /**
    * Look at the sky through the phone: its heading, pitch and roll aim a
    * camera into the real sky (lib/sky-window.ts). The view streams from the
-   * sensor to the renderer like the gravity does. A window has a world in it,
-   * and in a world things fall along real gravity — so this follows the
-   * gravity too, whatever `gyro` says. Reduced motion turns it off here.
+   * sensor to the renderer like the gravity does. Through the window, things
+   * fall along real gravity, so this follows the gravity too, whatever `gyro`
+   * says. Reduced motion turns it off here.
    */
   skyWindow?: boolean;
   /** Optional CSS mask (iOS soft-edging). */
   edgeMask?: string | null;
   /**
-   * Let a drag across the page background stir up a gust — the easter egg. For
-   * the full-page sky only; a preview tile is a picture of a sky, not one you
-   * can put your hand into.
+   * Let a drag across the page background stir up a gust (the easter egg). For
+   * the full-page sky only; a preview tile is only a picture of a sky.
    */
   interactive?: boolean;
   className?: string;
-  /** WebGL unavailable or lost — the parent should swap to the CSS renderer. */
+  /** WebGL unavailable or lost: the parent should swap to the CSS renderer. */
   onFallback?: (reason: string) => void;
   /** Handed a getter for live renderer stats (resolution / frame time), for the devtool. */
   statsRef?: React.MutableRefObject<(() => WallpaperStats) | null>;
   /**
-   * Handed the renderer's poke — one answer of the given kind at (x, y) in
+   * Handed the renderer's poke: one answer of the given kind at (x, y) in
    * screen space, 0..1 bottom → top. The weather easter eggs; see lib/poke.ts.
    */
   pokeRef?: React.MutableRefObject<
     ((kind: PokeKind, x: number, y: number) => void) | null
   >;
   /**
-   * Handed the renderer's wipe — the foggy-day easter egg; see lib/wipe.ts.
+   * Handed the renderer's wipe, the foggy-day easter egg. See lib/wipe.ts.
    * Null under every other engine, so the egg cannot half-exist.
    */
   wipeRef?: React.MutableRefObject<WipeHandle | null>;
   /**
-   * Handed the renderer's pull preview — how far a pull on the home has got
+   * Handed the renderer's pull preview: how far a pull on the home has got
    * toward opening the sky window, 0..1 (lib/sky-pull.ts).
    */
   previewRef?: React.MutableRefObject<((amount: number) => void) | null>;
   /**
-   * Override the device quality profile — for a small preview (the picker's
+   * Override the device quality profile, for a small preview (the picker's
    * CG tile) that should cost a fraction of the full-page layer.
    */
   quality?: { pixelBudget?: number; maxFps?: number };
@@ -184,7 +183,7 @@ export function WeatherWallpaper({
   }, [active]);
 
   // The easter egg exists only when there is something falling for the wind to
-  // blow — and never under reduced motion, where the sky is one still frame.
+  // blow, and never under reduced motion, where the sky is one still frame.
   const precipitating =
     scene.precipitation.type !== "none" && scene.precipitation.intensity > 0.02;
   useEffect(() => {
@@ -209,13 +208,13 @@ export function WeatherWallpaper({
   }, [falling, reducedMotion]);
 
   // The window: where the phone is looking, straight to the renderer. Opening
-  // it before the first reading is fine — the renderer looks where the stage
+  // it before the first reading is fine: the renderer looks where the stage
   // did until one arrives. `scene.hemisphere` only says which way that is, and
   // it cannot change under a visitor's feet mid-window.
   const hemisphere = scene.hemisphere;
   // The compass's north, here: every heading the phone gives is magnetic, and
   // the sky is placed against true north (lib/magnetic.ts). Only from the
-  // window that is actually open — a picker preview renders this component too,
+  // window that is actually open. A picker preview renders this component too,
   // with a scene of its own.
   const declination = scene.celestial.declination;
   useEffect(() => {

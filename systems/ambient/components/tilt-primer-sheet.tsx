@@ -10,7 +10,7 @@ import { usePermissions } from "./use-permissions";
 const MOTION: readonly PermissionKind[] = ["motion"];
 
 // ---------------------------------------------------------------------------
-// TiltPrimerSheet — the offer that comes before the motion prompt.
+// TiltPrimerSheet: the offer that comes before the motion prompt.
 //
 // Summoned by a finger resting on a rainy or snowy background (lib/tilt-primer.ts),
 // mounted in the layout beside the wallpaper picker. Two presses reach the
@@ -23,26 +23,26 @@ const MOTION: readonly PermissionKind[] = ["motion"];
 // which is a phone; there is no desktop shape to design because there is no
 // desktop case.
 //
-// The picture is the argument. Saying "the rain leans" is the part nobody reads
-// — so a phone tilts one way and the rain inside it tilts the other, which is
-// the whole feature at a size that fits above a paragraph, and the same
-// relationship the shader draws at full size: the weather is aimed at real
-// down, and the screen is what turns.
+// The picture makes the case. Nobody reads the sentence "the rain leans", so a
+// phone tilts one way and the rain inside it tilts the other. That is the
+// feature at a size that fits above a paragraph, and the same relationship the
+// shader draws at full size: the weather is aimed at real down, and the screen
+// is what turns.
 //
-// Both of them move because of where the camera stands, and that is the whole
-// legibility of the thing: drawn in the world's frame the rain would be fixed
-// and only the phone would turn — leaving the one thing worth noticing as the
-// one thing that never changes. The camera follows the device part of the way
-// instead, so the cause and the effect are both on screen with the angle
-// between them still exactly the device's. See the block in globals.css.
+// Both of them move because of where the camera stands, and that is what makes
+// it readable. Drawn in the world's frame, the rain would be fixed and only the
+// phone would turn, so the one thing worth noticing would be the one thing
+// that never changes. The camera follows the device part of the way instead,
+// so the cause and the effect are both on screen with the angle between them
+// still exactly the device's. See the block in globals.css.
 //
 // The sheet's shape is shared with the other offers (permission-sheet.tsx).
 //
 // It stays up through the browser's dialog and says how it went, because it is
 // the only thing on screen that can. A refusal especially: the sky simply goes
 // on falling straight down, and without a word here the only explanation lives
-// three taps away in a picker the visitor has no reason to open — which is the
-// very problem this sheet exists to fix. So it says it once, with where to undo
+// three taps away in a picker the visitor has no reason to open. That is the
+// problem this sheet exists to fix. So it says it once, with where to undo
 // it, and then gets out of the way on its own. A grant gets a word too, shorter:
 // the phone in your hand is about to do the thing, and the sheet is in front of
 // it.
@@ -54,16 +54,16 @@ const MOTION: readonly PermissionKind[] = ["motion"];
  * because a field rolled at render time would differ between the server's HTML
  * and the client's.
  *
- * Eleven strokes, evenly spaced, all one length and one weight — about five on
- * screen at a time. This is a diagram and not a downpour: it has exactly one
- * thing to say, and every drop past the few it takes to read as rain is a
- * distraction competing with it. Even spacing for the same reason — scattered
- * drops read as a simulation, and a window showing only two fifths of the field
- * turns scatter into clumps as the field rotates through it.
+ * Eleven strokes, evenly spaced, all one length and one weight, about five on
+ * screen at a time. This is a diagram, so it has one thing to say, and every
+ * drop past the few it takes to read as rain is a distraction from it. Even
+ * spacing for the same reason: scattered drops read as a simulation, and a
+ * window showing only two fifths of the field turns scatter into clumps as the
+ * field rotates through it.
  *
  * The x range is wider than the screen on purpose. The field turns under the
  * phone, and a field only as wide as the screen swings out from under its own
- * corners — what cuts the shower off is then the field's edge and not the
+ * corners. The shower is then cut off by the field's edge and not by the
  * phone. It is sized by the screen's half-diagonal about the rock's centre
  * (79.2 units), so no rotation can empty a corner. See the block in
  * globals.css.
@@ -88,14 +88,14 @@ const RAIN = [
 /**
  * How the picture is standing. `held` is not a third drawing: it is these same
  * animations paused at 0%, which CSS does under `prefers-reduced-motion`
- * without this component having to know — and it lands on a tilted phone with
- * the rain slanting the other way, which says it in one frame.
+ * without this component having to know. It lands on a tilted phone with the
+ * rain slanting the other way, which shows the idea in one frame.
  *
- *   rocking — the phone tilts one way, the rain the other. The promise, and
- *             the argument.
- *   flat    — upright, rain straight down the screen. Nothing leaning at all,
- *             which is exactly what a refused browser gives you, and the
- *             honest thing to show next to the sentence saying so.
+ *   rocking: the phone tilts one way, the rain the other. What the tilt
+ *            offers.
+ *   flat:    upright, rain straight down the screen. Nothing leaning at all,
+ *            which is what a refused browser gives you, and the accurate
+ *            thing to show next to the sentence saying so.
  */
 type Pose = "rocking" | "flat";
 
@@ -108,8 +108,8 @@ function TiltIllustration({ pose }: { pose: Pose }) {
         pose === "flat" && "tilt-primer-flat"
       )}
     >
-      {/* The viewBox holds the phone at the angle it is DRAWN at — c·θ, so
-          107 × 164 about (48, 80) — or the SVG viewport cuts a straight line
+      {/* The viewBox holds the phone at the angle it is DRAWN at (c·θ, so
+          107 × 164 about (48, 80)), or the SVG viewport cuts a straight line
           through the corner. It is tighter than the device's own tilt because
           the camera only follows part of the way; see globals.css. */}
       <svg viewBox="-9 -6 114 172" width="135" height="203" fill="none">
@@ -152,7 +152,7 @@ function TiltIllustration({ pose }: { pose: Pose }) {
           {/* The notch, so it reads as a phone and not as a card. */}
           <rect x="38" y="13" width="20" height="4" rx="2" className="fill-foreground/20" />
 
-          {/* And the weather inside it, which turns the other way — its own
+          {/* And the weather inside it, which turns the other way. Its own
               rotation is the device's whole angle, and the camera above takes
               back part of it. The same counter-rotation the shader does per
               fragment, here done once. */}
@@ -183,14 +183,14 @@ export function TiltPrimerSheet() {
 
   const take = () =>
     ask(async () => {
-      // Spent before the asking, not after: a prompt that is refused — and no
-      // browser asks twice — must not leave the offer armed for the next rainy
+      // Spent before the asking, not after. A prompt that is refused (no
+      // browser asks twice) must not leave the offer armed for the next rainy
       // day, and neither must a visitor who walks away with the dialog up.
       // Synchronous, so `request` still reaches WebKit inside the tap.
       setTiltPrimed(true);
       const { motion } = await request(MOTION);
-      // "prompt" is the gate refusing to even consider it — no dialog was
-      // shown and nothing was answered, so the offer is simply still standing,
+      // "prompt" is the gate refusing to even consider it. No dialog was
+      // shown and nothing was answered, so the offer is still standing,
       // and must survive a visitor who walks away from the sheet now. (Closing
       // it is still an answer: `closeTiltPrimer` spends it.)
       if (motion === "prompt") {

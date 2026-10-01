@@ -6,7 +6,7 @@ import { fixedBgTracker } from "../lib/fixed-bg-tracker";
 import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "../lib/gradient";
 
 // ---------------------------------------------------------------------------
-// GradientStack — the shared crossfade renderer.
+// GradientStack: the shared crossfade renderer.
 //
 // Instead of dipping the gradient to transparent and swapping colors (which
 // reads as a flash), we keep a small stack of gradient layers. When the weather
@@ -15,15 +15,15 @@ import { GRADIENT_CROSSFADE_MS, type GradientLayerData } from "../lib/gradient";
 // old layers once the crossfade completes.
 //
 // One renderer serves both the full-page background and the per-widget overlays,
-// so they share identical transition behaviour — and the iOS `fixedBgTracker`
+// so they share identical transition behaviour, and the iOS `fixedBgTracker`
 // (background-attachment polyfill + viewport-relative edge mask) keeps working
 // per layer. It is also source-agnostic: weather gradients and picture
 // wallpapers are both just a `background-image`, which is what lets the two
 // crossfade into each other when the wallpaper source changes.
 //
 // Picture wallpapers paint the 480px picker thumb first and fade the chosen
-// @1x/@2x file on top once it has decoded — the same blur-up ryOS does with a
-// 24px LQIP, using a thumb we already ship.
+// @1x/@2x file on top once it has decoded. This is the same blur-up ryOS does
+// with a 24px LQIP, using a thumb we already ship.
 // ---------------------------------------------------------------------------
 
 interface GradientLayerProps {
@@ -43,7 +43,7 @@ interface GradientLayerProps {
   cover: boolean;
   /**
    * Reading page: defocus the picture. The blur is painted on an inner element
-   * so the mask on this layer stays crisp and unscaled — and this path is only
+   * so the mask on this layer stays crisp and unscaled. This path is only
    * taken full-page, never through the widget tracker.
    */
   blurred: boolean;
@@ -134,7 +134,7 @@ function GradientLayer({
   }
 
   // Picture wallpapers must keep their aspect ratio. `cover` is layered so the
-  // flat base underneath still stretches — see buildAsset() in lib/wallpaper.
+  // flat base underneath still stretches (see buildAsset() in lib/wallpaper).
   // It comes last so it wins over the widget sizing above.
   if (cover && !fadeFull) {
     style.backgroundSize = triple ? "cover, cover, 100% 100%" : "cover, 100% 100%";

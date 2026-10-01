@@ -11,14 +11,14 @@ import {
 import { useLocation, useWallpaper, type LocationRequestOutcome } from "../provider";
 
 // ---------------------------------------------------------------------------
-// usePermissions — where each permission stands, and one press that asks.
+// usePermissions: where each permission stands, and one press that asks.
 //
 // The status is lib/permissions.ts's single derivation, read from the
 // provider's live facts; every sheet, the pull and the tilt's offer read it
 // here rather than deriving their own. `request` asks, in the only order that
 // works: WebKit opens its motion gate only from inside the tap's own task, so
 // motion goes first and synchronously; the location prompt needs no gesture,
-// so it follows once motion has had its answer — which also keeps the two
+// so it follows once motion has had its answer. That also keeps the two
 // dialogs from landing on top of each other.
 //
 // The pipeline, end to end (docs/system-ambient.md, "Permissions"):
@@ -61,8 +61,8 @@ export function usePermissions(kinds: readonly PermissionKind[]) {
   /**
    * Ask for `which` (every askable one by default), in order. Call it straight
    * from the press: nothing may be awaited before it, or WebKit's motion dialog
-   * never appears. Motion asked for turns the tilt's wish on with it — a yes to
-   * the sky is a yes to rain along gravity too — and asking for one already
+   * never appears. Motion asked for turns the tilt's wish on with it, since a
+   * yes to the sky is a yes to rain along gravity too. Asking for one already
    * ready is a harmless no-op answer.
    */
   const request = useCallback(
