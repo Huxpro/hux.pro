@@ -166,13 +166,13 @@ function NoteHead({
  * Abstraction is a position, not an amount, so its row is not filled from
  * the left like the other two: all ten levels (0–9) sit in a row, the ones
  * the language reaches lit faintly in their own colours, and its own level
- * solid. A language with no range lights one bar. Past the end of the scale,
- * every bar is lit.
+ * solid. A language with no range lights one bar. One with no level of its
+ * own lights every bar, solid.
  */
 function AbstractionMeter({ language, locale }: { language: Language; locale: Locale }) {
   const reach = reachOf(language);
   const tier = tierOf(language.abs);
-  const ranged = reach !== null && reach[0] !== reach[1];
+  const ranged = reach[0] !== reach[1];
   return (
     <div className="flex items-center gap-3">
       <dt className={cn(TYPE.rowMeta, "w-28 shrink-0")}>{AXES.abs.name[locale]}</dt>
@@ -180,7 +180,7 @@ function AbstractionMeter({ language, locale }: { language: Language; locale: Lo
         <span aria-hidden className="flex items-center gap-[2px]">
           {Array.from({ length: SCALE_MAX + 1 }, (_, level) => {
             const own = level === language.abs;
-            const reached = reach === null || (level >= reach[0] && level <= reach[1]);
+            const reached = level >= reach[0] && level <= reach[1];
             return (
               <span
                 key={level}
@@ -189,7 +189,7 @@ function AbstractionMeter({ language, locale }: { language: Language; locale: Lo
                   background: reached
                     ? absColor(level)
                     : "color-mix(in oklab, var(--ink) 10%, transparent)",
-                  opacity: reached && !own && reach !== null ? 0.4 : 1,
+                  opacity: reached && !own && language.abs !== null ? 0.4 : 1,
                 }}
               />
             );

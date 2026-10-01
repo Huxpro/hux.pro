@@ -80,8 +80,8 @@ function inRange(level: number, [lo, hi]: Range) {
 /**
  * How a language stands against the kept range: `in` when its own level is
  * in it; `reach` when only its range reaches it (C++ under a filter of 2:
- * "as low as C"); `out` otherwise. What is past the scale is in no range, so
- * any filter sets it aside.
+ * "as low as C"); `out` otherwise. What spans the whole scale has no level
+ * of its own to be in, and reaches every range.
  */
 function standing(
   language: Language,
@@ -89,8 +89,8 @@ function standing(
   filtered: boolean,
 ): "in" | "reach" | "out" {
   const reach = reachOf(language);
-  if (reach === null) return filtered ? "out" : "in";
-  if (inRange(language.abs!, range)) return "in";
+  if (language.abs === null) return filtered ? "reach" : "in";
+  if (inRange(language.abs, range)) return "in";
   return reach[0] <= range[1] && reach[1] >= range[0] ? "reach" : "out";
 }
 
@@ -101,22 +101,21 @@ const PILL_STEP = 12;
  * A dot stretched into its range: how wide the bar is, where it starts
  * relative to the dot's own 12px footprint, and the gradient it holds. The
  * bar grows from the dot and keeps the dot's own level where the dot was.
- * A language with one level — or none, past the end of the scale — does not
- * stretch.
+ * A language with one level does not stretch. One with no level of its own
+ * (natural language) stretches over the whole scale, leftward from the dot
+ * as from the top of the ramp, with no pip: no level is more its own.
  */
 function rangePill(
   language: Language,
-): { width: number; left: number; mark: number; paint: string } | null {
-  const reach = reachOf(language);
-  if (reach === null || reach[0] === reach[1]) return null;
-  const [lo, hi] = reach;
-  const own = (language.abs! - lo + 0.5) * PILL_STEP; // own level's centre, from the bar's left
-  return {
-    width: (hi - lo + 1) * PILL_STEP,
-    left: PILL_STEP / 2 - own,
-    mark: own,
-    paint: absSpectrum(lo, hi),
-  };
+): { width: number; left: number; mark: number | null; paint: string } | null {
+  const [lo, hi] = reachOf(language);
+  if (lo === hi) return null;
+  const width = (hi - lo + 1) * PILL_STEP;
+  if (language.abs === null) {
+    return { width, left: PILL_STEP - width, mark: null, paint: absSpectrum(lo, hi) };
+  }
+  const own = (language.abs - lo + 0.5) * PILL_STEP; // own level's centre, from the bar's left
+  return { width, left: PILL_STEP / 2 - own, mark: own, paint: absSpectrum(lo, hi) };
 }
 
 export function PLChart({ locale }: { locale: Locale }) {
@@ -398,7 +397,6 @@ function Dot({
                 ? ({
                     "--pill-w": `${pill.width}px`,
                     "--pill-x": `${pill.left}px`,
-                    "--pill-mark": `${pill.mark}px`,
                   } as CSSProperties)
                 : undefined
             }
@@ -434,14 +432,16 @@ function Dot({
                     style={{ background: absColor(language.abs) }}
                   />
                   {/* The pip: its own level, inside the stretch. */}
-                  <span
-                    className={cn(
-                      "absolute top-1/2 size-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 transition-opacity duration-200",
-                      "group-hover/dot:opacity-100 group-focus-visible/dot:opacity-100",
-                      selected && "opacity-100",
-                    )}
-                    style={{ left: "var(--pill-mark)" }}
-                  />
+                  {pill.mark !== null && (
+                    <span
+                      className={cn(
+                        "absolute top-1/2 size-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 transition-opacity duration-200",
+                        "group-hover/dot:opacity-100 group-focus-visible/dot:opacity-100",
+                        selected && "opacity-100",
+                      )}
+                      style={{ left: pill.mark }}
+                    />
+                  )}
                 </>
               )}
             </span>
@@ -558,7 +558,7 @@ function AbstractionStrip({
   const tierName = (level: number) => `${level} · ${tierOf(level).label[locale]}`;
   // The strip's own hover wins: a pointer on a swatch is asking about it.
   const mirror = hover === null ? preview : null;
-  const mirrorReach = mirror ? (reachOf(mirror) ?? FULL) : null;
+  const mirrorReach = mirror ? reachOf(mirror) : null;
   const mirrorText = mirror
     ? mirror.abs === null
       ? `${nameOf(mirror, locale)} · ${tierOf(null).label[locale]}`

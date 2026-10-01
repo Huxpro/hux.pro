@@ -47,9 +47,9 @@ export function LanguageIndex({ locale }: { locale: Locale }) {
   return (
     <div className="space-y-8">
       {byTier().map(({ tier, languages }) => (
-        <section key={tier.level ?? "beyond"} aria-labelledby={`tier-${tier.level ?? "beyond"}`}>
+        <section key={tier.level ?? "whole"} aria-labelledby={`tier-${tier.level ?? "whole"}`}>
           <h3
-            id={`tier-${tier.level ?? "beyond"}`}
+            id={`tier-${tier.level ?? "whole"}`}
             className={cn(TYPE.label, "mb-2 flex items-center gap-2")}
           >
             <span
