@@ -22,6 +22,7 @@ import {
   type Viewport,
 } from "./lib/geometry";
 import { adHocAlbum, mediaToTrack } from "./lib/albums";
+import { mediaKey, versionOf, withVersion } from "./lib/library";
 import {
   enableIframeFullscreen,
   loadYouTubeAPI,
@@ -34,6 +35,7 @@ import type {
   StageRect,
   TheaterMode,
   Track,
+  TrackLanguage,
 } from "./lib/types";
 import { Stage } from "./components/stage";
 
@@ -53,6 +55,8 @@ interface OpenOptions {
   trackIndex?: number;
   /** Force a mode; otherwise theater on tablet+/desktop, PiP on phones. */
   mode?: TheaterMode;
+  /** Which version to play, for a track that has several. */
+  language?: TrackLanguage | null;
 }
 
 /** What a track shows for the media it came from: the commit's name. */
@@ -76,12 +80,20 @@ export interface OpenVideoInput {
 
 interface TheaterContextValue {
   albums: Album[];
-  /** The curated default albums (registered once), for entry points elsewhere. */
+  /** The library's shelves (registered once), for entry points elsewhere. */
   registeredAlbums: Album[];
   albumIndex: number;
   trackIndex: number;
   album: Album | null;
+  /** The track on the stage, wearing the version being played. */
   track: Track | null;
+  /**
+   * The language asked for this session, or null for each track's default
+   * (the viewer's locale when the track has it). Set by the version switch,
+   * and held across tracks: whoever switched a talk to English wants the
+   * next talk that has an English version in English too.
+   */
+  language: TrackLanguage | null;
   mode: TheaterMode;
   minimized: boolean;
   phase: PlayerPhase;
@@ -100,27 +112,26 @@ interface TheaterContextValue {
   /** The playlist surface (albums + tracks) — the only browser PiP has. */
   isPlaylistOpen: boolean;
 
-  /** Register the default albums (curated talk playlists) once. */
+  /** Register the library's shelves once. */
   registerAlbums: (albums: Album[]) => void;
   open: (opts: OpenOptions) => void;
   /** Open at a specific track by id within the given albums. */
   openTrack: (albums: Album[], trackId: string, mode?: TheaterMode) => void;
   /**
-   * Open the player for an arbitrary video (e.g. a commit-page click). Jumps to
-   * the matching track inside the curated albums when possible; otherwise plays
-   * it as a one-off while still exposing the curated albums to switch to.
+   * Open the player for an arbitrary video (e.g. a commit-page click). Lands
+   * on its entry in the library, at that very version, when the library
+   * holds it; otherwise plays it as a one-off with the library a tab away.
    */
   openVideo: (input: OpenVideoInput) => void;
   /**
-   * Open a piece of media on the stage, in the library it belongs to. A video
-   * lands in its curated talk album when it has one (`openVideo`); a deck
-   * lands in the Slides album beside every other deck. The two libraries are
-   * never on screen together — a recording is browsed among recordings, a
-   * deck among decks.
+   * Open a piece of media on the stage. Whatever it is and wherever it was
+   * clicked, the library is searched by the media's identity, so a deck
+   * opened from /prompt and the same deck opened from /works land on the
+   * same entry.
    */
   openMedia: (media: VideoMedia | SlidesMedia, meta: MediaMeta) => void;
-  /** Register the Slides library (every deck in the log) once. */
-  registerSlidesAlbum: (album: Album | null) => void;
+  /** Play another version of the track on the stage (see `language`). */
+  selectLanguage: (language: TrackLanguage) => void;
   close: () => void;
   minimize: () => void;
   restore: () => void;
@@ -199,7 +210,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   // --- Playlist + mode state ---
   const [albums, setAlbums] = useState<Album[]>([]);
   const [registeredAlbums, setRegisteredAlbums] = useState<Album[]>([]);
-  const [slidesAlbum, setSlidesAlbum] = useState<Album | null>(null);
+  const [language, setLanguage] = useState<TrackLanguage | null>(null);
   const [albumIndex, setAlbumIndex] = useState(0);
   const [trackIndex, setTrackIndex] = useState(0);
   const [mode, setMode] = useState<TheaterMode>("closed");
@@ -223,7 +234,13 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const theaterAvailable = theaterFits(viewport);
 
   const album = albums[albumIndex] ?? null;
-  const track = album?.tracks[trackIndex] ?? null;
+  const shelved = album?.tracks[trackIndex] ?? null;
+  const track = useMemo(() => {
+    const version = language
+      ? shelved?.versions?.find((v) => v.language === language)
+      : undefined;
+    return shelved && version ? withVersion(shelved, version) : shelved;
+  }, [shelved, language]);
 
   const effectiveMode: TheaterMode = minimized ? "closed" : mode;
   // The stage always sits at a *visible* mode's rect; hidden states fade/scale
@@ -479,9 +496,16 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   );
 
   const open = useCallback(
-    ({ albums: next, albumIndex: ai = 0, trackIndex: ti = 0, mode: m }: OpenOptions) => {
+    ({
+      albums: next,
+      albumIndex: ai = 0,
+      trackIndex: ti = 0,
+      mode: m,
+      language: lang = null,
+    }: OpenOptions) => {
       if (next.length === 0) return;
       setAlbums(next);
+      setLanguage(lang);
       setAlbumIndex(Math.min(Math.max(ai, 0), next.length - 1));
       const tracks = next[ai]?.tracks ?? [];
       setTrackIndex(Math.min(Math.max(ti, 0), Math.max(tracks.length - 1, 0)));
@@ -513,36 +537,45 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     setRegisteredAlbums(next);
   }, []);
 
-  const openVideo = useCallback(
-    (input: OpenVideoInput) => {
-      const videoId = resolveVideoId(input.url, input.platform);
-      // Try to locate the video inside the curated albums first, so a click on
-      // /works lands inside the right playlist with full navigation context.
+  /**
+   * Open the library at this media, at the very version that was clicked.
+   * False when the library does not hold it.
+   */
+  const openInLibrary = useCallback(
+    (key: string, m?: TheaterMode): boolean => {
       for (let a = 0; a < registeredAlbums.length; a++) {
-        const idx = registeredAlbums[a].tracks.findIndex(
-          (tk) =>
-            tk.url === input.url ||
-            (videoId && tk.videoId && tk.videoId === videoId) ||
-            (input.id && tk.id === input.id),
-        );
-        if (idx >= 0) {
+        const tracks = registeredAlbums[a].tracks;
+        for (let i = 0; i < tracks.length; i++) {
+          const version = versionOf(tracks[i], key);
+          if (!version) continue;
           open({
             albums: registeredAlbums,
             albumIndex: a,
-            trackIndex: idx,
-            mode: input.mode,
+            trackIndex: i,
+            mode: m,
+            language: version.language ?? null,
           });
-          return;
+          return true;
         }
       }
-      // Not curated → play as a one-off album, but keep the curated albums
-      // available to switch into.
+      return false;
+    },
+    [registeredAlbums, open],
+  );
+
+  const openVideo = useCallback(
+    (input: OpenVideoInput) => {
+      if (openInLibrary(mediaKey(input.url, input.platform), input.mode)) {
+        return;
+      }
+      // Not mine, or not listed → play as a one-off, with the library's
+      // shelves still there to switch into.
       const track: Track = {
         id: input.id ?? input.url,
         kind: "video",
         platform: input.platform,
         url: input.url,
-        videoId,
+        videoId: resolveVideoId(input.url, input.platform),
         title: input.title ?? "Video",
         subtitle: input.subtitle,
         thumbnail: input.thumbnail ?? null,
@@ -556,12 +589,8 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
         mode: input.mode,
       });
     },
-    [registeredAlbums, open],
+    [registeredAlbums, open, openInLibrary],
   );
-
-  const registerSlidesAlbum = useCallback((next: Album | null) => {
-    setSlidesAlbum(next);
-  }, []);
 
   const openMedia = useCallback(
     (media: VideoMedia | SlidesMedia, meta: MediaMeta) => {
@@ -577,20 +606,18 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
         });
         return;
       }
+      if (openInLibrary(mediaKey(media.url))) return;
+      // A deck the library does not hold (an MDX page's) plays alone.
       const track = mediaToTrack(media, meta);
       if (!track) return;
-      // The Slides library, at this deck — every other deck a card away. A
-      // deck the log does not list (an MDX page's) plays alone.
-      const idx = slidesAlbum
-        ? slidesAlbum.tracks.findIndex((tk) => tk.url === track.url)
-        : -1;
-      if (slidesAlbum && idx >= 0) {
-        open({ albums: [slidesAlbum], albumIndex: 0, trackIndex: idx });
-        return;
-      }
       open({ albums: [adHocAlbum(track, track.title)], albumIndex: 0, trackIndex: 0 });
     },
-    [openVideo, slidesAlbum, open],
+    [openVideo, openInLibrary, open],
+  );
+
+  const selectLanguage = useCallback(
+    (next: TrackLanguage) => setLanguage(next),
+    [],
   );
 
   const close = useCallback(() => {
@@ -705,6 +732,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     trackIndex,
     album,
     track,
+    language,
     mode,
     minimized,
     phase,
@@ -722,7 +750,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     openTrack,
     openVideo,
     openMedia,
-    registerSlidesAlbum,
+    selectLanguage,
     close,
     minimize,
     restore,

@@ -437,15 +437,26 @@ track off the theater itself),
 never `Audio`, and the pill reads `slides` under the deck glyph rather than
 `watching` behind an equalizer.
 
-The stage keeps **two libraries** and never shows them together. A recording
-is browsed among recordings: the talk albums (React / Lynx / Personal) the
-`TheaterRegistrar` registers, with an ad-hoc album for a video none of them
-holds. A deck is browsed among decks: `buildSlidesAlbum(locale)` is every deck
-in the log, in date order, registered as the Slides library, and opening any
-deck lands in it at that deck with every other deck a card away.
-`useTheater().openMedia(media, meta)` picks the library from the media's
-kind; the attachment system and the standalone `<Slides />` cover both go
-through it. `SlideModal` and `SlidesPlayerProvider` are gone.
+The stage holds **one library**: every recording and every deck of mine the
+site lists (`systems/theater/lib/library.ts`). It is built from the media, not
+from the commits that list them — a commit's type (talk, press) never decides
+where its media sits. Each entry is one piece of media, keyed by its identity
+(a YouTube id, a BV number, a deck's address), so the same media listed twice
+is one entry, and a media that is the same piece as another told in another
+language (`translationOf` on the media, with `language`) joins it as a second
+version: the theater's `EN · 中文` switch plays the other one, and the
+viewer's locale picks which plays first. The library is shelved by what the
+media is — Recordings / Slides (`buildLibraryAlbums`) — and the
+`TheaterRegistrar` registers the shelves. `useTheater().openMedia(media, meta)`
+and `openVideo` look the media up by its identity and land on its entry, at
+that version; only media the library does not hold (someone else's video, an
+MDX page's deck) plays as an ad-hoc album. The attachment system, the
+standalone `<Slides />` cover and /prompt's deck all go through it.
+`SlideModal` and `SlidesPlayerProvider` are gone.
+
+What the home card leads with is curation, and lives beside the library
+rather than in the log: `content/theater.json` lists the featured media by
+URL, in order.
 
 ## The in-app browser
 
@@ -460,6 +471,7 @@ second. `Open in browser` in the window menu is the way out. See
 1. Say where it opens in `lib/policy.ts` — both functions.
 2. Say what its cover wears in `media-mark.tsx` — `mediaKindOf` and `markFor`.
 3. Give it a page in `attachment-page.tsx`.
-4. If it can play on the stage, give it a `Track` kind and teach `mediaToTrack`
-   (`systems/theater/lib/albums.ts`) to build one.
+4. If it can play on the stage, give it a `Track` kind, teach `mediaToTrack`
+   (`systems/theater/lib/albums.ts`) to build one, and let the library
+   (`systems/theater/lib/library.ts`) collect it.
 5. Check it in `/lab/attachments`: the table, the specimens, the buttons.

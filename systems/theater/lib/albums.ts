@@ -1,105 +1,48 @@
 // =============================================================================
-// Theater System — Album derivation
+// Theater System — shelves
 //
-// Builds the home widget's three "albums" (React / Lynx / Personal) from the
-// same log data the rest of the site renders. Each album is a curated group of
-// talk/social commits; each track is that commit's first video plus display
-// metadata. Groups are the single source of truth (see content/log.json), so
-// re-ordering or re-tagging talks there updates the albums automatically.
+// The library (./library.ts) is every recording and deck on the site; this
+// file decides how it is shelved into the theater's tabs. Shelving reads only
+// what the media is — never the type of the commit that lists it — so every
+// entry sits on exactly one shelf and nothing is left off.
+//
+// Shelves: Recordings / Slides. The one division that is the media's own,
+// and the one the stage itself draws differently: a recording has a transport
+// and plays audio, a deck has neither.
 // =============================================================================
 
-import { LOG as log } from "@/lib/log-client";
 import type { Locale } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import {
-  type Commit,
   type Media,
-  type VideoMedia,
-  getCommitThumbnail,
   getMediaThumbnail,
-  isCommitVisibleIn,
   isSlidesMedia,
   isVideoMedia,
-  localize,
-  resolveGroupCommits,
-  sortCommitsByDate,
 } from "@/lib/log";
 import { resolveSlidesEmbedUrl } from "@/lib/slides";
-import { t } from "@/lib/i18n";
+import { buildLibraryTracks } from "./library";
 import { resolveVideoId } from "./player";
 import type { Album, Track } from "./types";
 
-/** Group ids (from content/log.json) that back the three home albums. */
-export const ALBUM_GROUP_IDS = [
-  "featured-react-talks",
-  "featured-lynx-talks",
-  "featured-personal-talks",
-] as const;
-
-/**
- * Short, tab-friendly album names. The underlying group titles ("Featured
- * React talks", …) are too long for a segmented switcher, so each album gets a
- * concise label — the three albums the spec names: React / Lynx / Personal.
- */
-const ALBUM_LABELS: Record<string, { en: string; zh: string }> = {
-  "featured-react-talks": { en: "React", zh: "React" },
-  "featured-lynx-talks": { en: "Lynx", zh: "Lynx" },
-  "featured-personal-talks": { en: "Personal", zh: "个人" },
-};
-
-function firstVideo(commit: Commit): VideoMedia | null {
-  for (const m of commit.media ?? []) {
-    if (isVideoMedia(m)) return m;
-  }
-  return null;
+/** The library, shelved for the theater's tabs. Empty shelves are dropped. */
+export function buildLibraryAlbums(locale: Locale): Album[] {
+  const tracks = buildLibraryTracks(locale);
+  const shelves: Album[] = [
+    {
+      id: "recordings",
+      title: t(locale, "theaterRecordings"),
+      tracks: tracks.filter((tk) => tk.kind === "video"),
+    },
+    {
+      id: "slides",
+      title: t(locale, "logSlides"),
+      tracks: tracks.filter((tk) => tk.kind === "slides"),
+    },
+  ];
+  return shelves.filter((s) => s.tracks.length > 0);
 }
 
-function commitSubtitle(commit: Commit): string | undefined {
-  if (commit.type === "talk") return commit.conference.name;
-  if (commit.type === "press") return commit.platform;
-  return undefined;
-}
-
-function commitToTrack(commit: Commit, locale: Locale): Track | null {
-  const video = firstVideo(commit);
-  if (!video) return null;
-  return {
-    id: commit.id,
-    kind: "video",
-    platform: video.platform,
-    url: video.url,
-    videoId: resolveVideoId(video.url, video.platform),
-    title: localize(commit.title, locale),
-    subtitle: commitSubtitle(commit),
-    thumbnail: getMediaThumbnail(video) ?? getCommitThumbnail(commit),
-    href: "/works",
-  };
-}
-
-/** Build the three home albums for the given locale, dropping empty ones. */
-export function buildTalkAlbums(locale: Locale): Album[] {
-  const groups = log.groups ?? [];
-  const albums: Album[] = [];
-  for (const groupId of ALBUM_GROUP_IDS) {
-    const group = groups.find((g) => g.id === groupId);
-    if (!group) continue;
-    const commits = resolveGroupCommits(
-      group,
-      log.commits as Commit[],
-      undefined,
-      locale,
-    );
-    const tracks = commits
-      .map((c) => commitToTrack(c, locale))
-      .filter((t): t is Track => t !== null);
-    if (tracks.length === 0) continue;
-    const label = ALBUM_LABELS[group.id];
-    const title = label ? label[locale] : localize(group.title, locale);
-    albums.push({ id: group.id, title, tracks });
-  }
-  return albums;
-}
-
-/** Build a one-off album for a video that isn't part of the curated set. */
+/** Build a one-off album for media the library does not hold. */
 export function adHocAlbum(track: Track, title: string): Album {
   return { id: `adhoc-${track.id}`, title, tracks: [track] };
 }
@@ -107,7 +50,7 @@ export function adHocAlbum(track: Track, title: string): Album {
 /**
  * One track for one piece of media, or null for media the stage cannot hold
  * (a link card, an image, a social widget). `id` must be unique within the
- * album — the caller derives it from the commit and the media's position.
+ * album — the caller derives it from where the media is and its position.
  */
 export function mediaToTrack(
   media: Media,
@@ -136,32 +79,3 @@ export function mediaToTrack(
   }
   return null;
 }
-
-/**
- * Every deck in the log, as one album: the theater's second library.
- *
- * Decks and recordings are different things to browse. A recording sits in
- * a talk playlist (React / Lynx / Personal); a deck belongs with the other
- * decks, in the order they were given. So the stage keeps two libraries and
- * never mixes them: open a video and the talk albums are the tabs; open a
- * deck and this is the only album, with every other deck a card away.
- */
-export function buildSlidesAlbum(locale: Locale): Album | null {
-  const tracks: Track[] = [];
-  for (const commit of sortCommitsByDate(log.commits as Commit[])) {
-    if (!isCommitVisibleIn(commit, locale)) continue;
-    (commit.media ?? []).forEach((m, i) => {
-      if (!isSlidesMedia(m)) return;
-      const track = mediaToTrack(m, {
-        id: `${commit.id}#${i}`,
-        title: localize(commit.title, locale),
-        subtitle: commitSubtitle(commit),
-        href: "/works",
-      });
-      if (track) tracks.push(track);
-    });
-  }
-  if (tracks.length === 0) return null;
-  return { id: "slides", title: t(locale, "logSlides"), tracks };
-}
-

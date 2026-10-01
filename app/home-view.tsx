@@ -41,7 +41,6 @@ import { t, useLocale } from "@/services";
 import { AmbientGreeting, WeatherLine, WeatherWidget } from "@/systems/ambient";
 import { HOME_WEATHER_DEFAULT, useOptionalDevtool } from "@/systems/devtool";
 import { MusicWidget } from "@/systems/music";
-import { ALBUM_GROUP_IDS } from "@/systems/theater/lib/albums";
 import dynamic from "next/dynamic";
 
 // Off until a visitor adds it (HOME_WIDGETS), and the server always renders
@@ -129,15 +128,10 @@ function WidgetGrid({
   // empty, draggable slot in the masonry.
   const processingCommits = buildProcessingCommits(log, locale);
   // Groups a dedicated widget already owns don't also get a generic card:
-  // the three featured talk groups (React / Lynx / Personal) are unified into
-  // the album-switching FeaturedTalksWidget, and `featured-projects` is what
-  // ProcessingWidget prints. `hidden` is the author's own "don't render this
+  // `featured-projects` is what ProcessingWidget prints. `hidden` is the author's own "don't render this
   // one"; being spoken for is a different fact, and it belongs next to the
   // widget doing the speaking rather than in the data.
-  const claimedGroupIds = new Set<string>([
-    ...ALBUM_GROUP_IDS,
-    PROCESSING_GROUP_ID,
-  ]);
+  const claimedGroupIds = new Set<string>([PROCESSING_GROUP_ID]);
   const visibleGroups = (log.groups ?? []).filter(
     (group) =>
       !group.hidden &&

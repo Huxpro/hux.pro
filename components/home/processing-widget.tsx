@@ -26,10 +26,10 @@ import { useMemo } from "react";
 // ProcessingWidget — a minimized /works timeline for the home grid.
 //
 // The vertical sibling of FeaturedTalksWidget's horizontal stack, and
-// curated the same way: the talks card reads its `featured-*-talks` groups,
-// this one reads `featured-projects`. A card is a preview, and a preview is
-// a choice about what to show — a truncated list is not one. Rows are
-// /works' one-liners: mark, title, date; link pills, bylines and
+// curated: the theater card reads content/theater.json's featured media,
+// this one reads the `featured-projects` group. A card is a preview, and a
+// preview is a choice about what to show — a truncated list is not one. Rows
+// are /works' one-liners: mark, title, date; link pills, bylines and
 // attachments (cards, videos, slides) are left to /works, where each row
 // permalinks.
 //

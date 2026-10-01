@@ -18,6 +18,7 @@ import {
 import { THEATER_BOTTOM, THEATER_TOP_BAR } from "../lib/geometry";
 import { useTheater } from "../provider";
 import { AlbumTabs } from "./album-tabs";
+import { LanguageSwitch } from "./language-switch";
 import { PlaylistRail } from "./playlist-rail";
 import { SurfaceSwitch } from "./surface-switch";
 
@@ -326,6 +327,7 @@ export function TheaterOverlay() {
                   ) : (
                     <div />
                   )}
+                  <LanguageSwitch className="shrink-0" />
                   <div className={cn(GLASS_CLUSTER, "shrink-0")}>
                     {track?.url && (
                       <a

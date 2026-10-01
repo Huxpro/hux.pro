@@ -1,11 +1,16 @@
 export * from "./types";
+export { buildLibraryAlbums, adHocAlbum, mediaToTrack } from "./albums";
 export {
-  buildTalkAlbums,
-  buildSlidesAlbum,
-  adHocAlbum,
-  mediaToTrack,
-  ALBUM_GROUP_IDS,
-} from "./albums";
+  buildLibrary,
+  buildLibraryTracks,
+  entryToTrack,
+  featuredTracks,
+  mediaKey,
+  speaks,
+  versionOf,
+  withVersion,
+  type LibraryEntry,
+} from "./library";
 export { resolveVideoId, enableIframeFullscreen } from "./player";
 export { theaterAvailable, THEATER_MIN_WIDTH, THEATER_MIN_HEIGHT } from "./geometry";
 export {
