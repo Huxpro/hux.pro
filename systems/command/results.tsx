@@ -10,7 +10,7 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useOptionalWindows } from "@/systems/windows";
-import { Command } from "cmdk";
+import { Command, useCommandState } from "cmdk";
 import { Hash } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import { Fragment } from "react";
@@ -124,7 +124,12 @@ export function CommandResults({
   const router = useTransitionRouter();
   const windows = useOptionalWindows();
 
-  const listed = actions.filter((a) => a.label && !a.slashOnly);
+  // What the palette opens on leaves out what is only found (searchOnly);
+  // a query brings it in.
+  const searching = useCommandState((state) => state.search.trim().length > 0);
+  const listed = actions.filter(
+    (a) => a.label && !a.slashOnly && (searching || !a.searchOnly),
+  );
 
   return (
     <Command.List className={cn("overflow-y-auto p-2", className)}>
@@ -208,7 +213,7 @@ export function CommandSlashList({
   className?: string;
 }) {
   const { locale } = useLocale();
-  const listed = actions.filter((a) => a.key && a.label);
+  const listed = actions.filter((a) => a.key && a.label && !a.searchOnly);
 
   return (
     <div className={cn("p-2", className)}>

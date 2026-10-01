@@ -35,6 +35,7 @@ export const scrambleCharacterSets = {
     writing: "文字写作博客言之有物",
     works: "工作作品集术业有专攻",
     prompts: "系统提示词闻道有先后",
+    lab: "实验室格物而致知",
     // Default fallback for other pages
     default:
       "的一是了不人有我他这个们中来上大为和国地到以说时要就出会可也你对生能而子",
@@ -91,6 +92,8 @@ export const translations = {
     widgetWeather: "weather",
     widgetPrompt: "prompts",
     widgetPromptNext: "Next prompt",
+    widgetLab: "lab",
+    widgetLabNext: "Next lab",
     widgetMusic: "playing",
     widgetMusicIdle: "music",
     widgetFeaturedTalks: "talks",
@@ -114,6 +117,7 @@ export const translations = {
     theaterClosePlaylist: "Close playlist",
     widgetEditDone: "Done",
     widgetEditReset: "Reset",
+    widgetEditWidgets: "Widgets",
     musicNotPlaying: "nothing playing",
     settingsMusic: "Music",
     musicPlay: "Play",
@@ -433,6 +437,13 @@ export const translations = {
     aboutEnter: "Reveal",
     aboutClose: "Close",
 
+    // Lab (app/lab/catalog.ts holds each lab's own copy)
+    labTitle: "Lab",
+    labTitleHover: "Physics",
+    labOpen: "Open",
+    labWidgetAdd: "Add the Lab widget to Home",
+    labWidgetOn: "The Lab widget is on Home",
+
     // Prompts page
     promptsTitle: "System Prompts",
     promptsTitleHover: "Propositions",
@@ -505,6 +516,8 @@ export const translations = {
     widgetWeather: "天气",
     widgetPrompt: "提示词",
     widgetPromptNext: "下一条提示",
+    widgetLab: "实验室",
+    widgetLabNext: "下一间实验室",
     widgetMusic: "播放中",
     widgetMusicIdle: "音乐",
     widgetFeaturedTalks: "演讲",
@@ -528,6 +541,7 @@ export const translations = {
     theaterClosePlaylist: "关闭播放列表",
     widgetEditDone: "完成",
     widgetEditReset: "重置",
+    widgetEditWidgets: "小组件",
     musicNotPlaying: "暂无播放",
     settingsMusic: "音乐",
     musicPlay: "播放",
@@ -844,6 +858,12 @@ export const translations = {
     aboutClose: "关闭",
 
     // Prompts page
+    labTitle: "实验室",
+    labTitleHover: "格物而致知",
+    labOpen: "进入",
+    labWidgetAdd: "把实验室小组件放到主屏",
+    labWidgetOn: "实验室小组件已在主屏",
+
     promptsTitle: "系统提示词",
     promptsTitleHover: "闻道有先后",
     promptSubtitle: "塑造我思维的名言、原则和榜样。",
@@ -883,7 +903,7 @@ export function t(locale: Locale, key: TranslationKey): string {
 // =============================================================================
 
 /** Page identifiers that have title + hover translations */
-export type ScramblePage = "writing" | "works" | "prompts";
+export type ScramblePage = "writing" | "works" | "prompts" | "lab";
 
 /** Get the appropriate Chinese character set for a page */
 export function getScrambleCharacterSet(

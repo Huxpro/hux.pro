@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
       // The site's address before the package was named vitre.
       { source: "/bezel", destination: "/vitre", permanent: true },
       { source: "/bezel/:path*", destination: "/vitre/:path*", permanent: true },
+      // The labs' address before they were labs (app/lab/catalog.ts). The
+      // log editor is the Works Lab now; the theater chrome gallery is gone,
+      // so its address lands on the index. Specific rules first.
+      { source: "/editor", destination: "/lab/works", permanent: true },
+      { source: "/editor/theater-variants", destination: "/lab", permanent: true },
+      { source: "/editor/:path*", destination: "/lab/:path*", permanent: true },
       // Catch-all fallback: unmigrated posts → GitHub Pages archive
       // (huangxuan.me now 302s to hux.pro, which 404s these Jekyll paths)
       {

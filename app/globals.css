@@ -60,6 +60,11 @@
      quaternary labels): captions and watermarks, placeholders, dividers. */
   --color-tertiary-foreground: var(--tertiary-foreground);
   --color-quaternary-foreground: var(--quaternary-foreground);
+  /* The log's graph, on the ladder (see THE LADDER): `bg-graph-line`,
+     `stroke-graph-lit`, `ring-graph-node`… */
+  --color-graph-line: var(--graph-line);
+  --color-graph-node: var(--graph-node);
+  --color-graph-lit: var(--graph-lit);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -414,6 +419,19 @@ html[data-tint="wallpaper"] {
   --input: var(--border);
   --accent-wash: color-mix(in oklab, var(--ink) var(--wash-alpha-accent), transparent);
   --ring-wash: color-mix(in oklab, var(--ink) var(--ink-alpha-ring), transparent);
+
+  /* --- The graph (/works) ---
+     The log's lines and nodes are roles on the rungs, not alphas of their
+     own, so they follow the theme, a flipped zone, the wallpaper boost and
+     the lab's sheet like every other token (docs/system-legibility.md).
+     A line at rest carries nothing of its own: a hairline, the border rung.
+     A node (a ref's ring, a role's ring) is decoration on it: quaternary,
+     the hash's rung, a step above its line. Lit — a chapter's track, a
+     connector while its end is pointed at — it annotates the rows it joins:
+     tertiary, the rung of a date beside its title. */
+  --graph-line: var(--border);
+  --graph-node: var(--quaternary-foreground);
+  --graph-lit: var(--tertiary-foreground);
 
   /* --- Tint --- */
   --tint: oklch(var(--wp-tint-l) var(--wp-tint-c) var(--wp-tint-h));
@@ -1431,8 +1449,8 @@ main[data-variant="reader"] .reader-masthead {
   }
 }
 
-/* Tenure rail: when the role row is hovered/focused/expanded, brighten
-   every rail span in its cluster. Member hover instead activates only
+/* Tenure rail: when the role row is hovered/focused/expanded, light every
+   rail span in its cluster — on the graph's lit rung (`--graph-lit`). Member hover instead activates only
    that member's connector via JS state. */
 
 .group\/tenure:has(> [data-role-row]:hover) [data-rail-above],
@@ -1441,11 +1459,7 @@ main[data-variant="reader"] .reader-masthead {
 .group\/tenure:has(> [data-role-row]:focus-within) [data-rail-below],
 .group\/tenure:has(> [data-role-row]:has([data-expanded])) [data-rail-above],
 .group\/tenure:has(> [data-role-row]:has([data-expanded])) [data-rail-below] {
-  background-color: color-mix(
-    in oklch,
-    var(--color-muted-foreground) 30%,
-    transparent
-  );
+  background-color: var(--graph-lit);
 }
 
 /* =============================================================================

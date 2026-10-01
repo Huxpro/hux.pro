@@ -87,8 +87,10 @@ import {
   DRAGGABLE_DEFAULTS,
   PHONE_PALETTE_DEFAULT,
   HOME_WEATHER_DEFAULT,
+  WORKS_REF_DEFAULT,
   type HomeWeather,
   type PhonePalette,
+  type WorksRef,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
 import { useOptionalAbout } from "@/systems/about/provider";
@@ -152,6 +154,7 @@ import {
   RefreshCw,
   RotateCcw,
   Compass,
+  GitBranch,
   SlidersHorizontal,
   Sparkles,
   Sun,
@@ -191,6 +194,7 @@ import {
 const MODULE_ORDER = [
   "frontmatter",
   "reading",
+  "works",
   "wallpaper",
   "glass",
   "sky",
@@ -207,6 +211,7 @@ export function DevtoolModules() {
     <>
       <FrontmatterModule />
       <ReadingModule />
+      <WorksModule />
       <WallpaperModule />
       <GlassModule />
       <SkyModule />
@@ -1153,7 +1158,7 @@ function GlassModule() {
             painting, on the row that opens the lab where it is tuned — the
             same row the Wallpaper module uses for the current picture. */}
         <Link
-          href="/editor/legibility"
+          href="/lab/legibility"
           className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2 py-1.5 text-left transition-colors hover:bg-muted/40"
         >
           <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
@@ -2964,6 +2969,84 @@ function MusicModule() {
           </div>
         )}
       </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Works Module
+// How a chapter's ref sits on /works' graph, with its tag message — the
+// layouts on trial, switched on the real page. A saved setting (blue star).
+// =============================================================================
+
+function WorksModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const { worksRef, setWorksRef } = useDevtool();
+  const onWorks = usePathname() === "/works";
+  const options: { value: WorksRef; label: string; title: string }[] = [
+    {
+      value: "auto",
+      label: "Auto",
+      title: zh
+        ? "桌面用 Hash，手机用 Under（选定的）"
+        : "Hash on a desk, Under on a phone (the one chosen)",
+    },
+    {
+      value: "stub",
+      label: "Stub",
+      title: zh
+        ? "标记在列边缘，trunk 拐弯接过去；描述是一段正文"
+        : "Marker at the column's edge, the trunk turning out to it; the message a paragraph",
+    },
+    {
+      value: "ring",
+      label: "Ring",
+      title: zh
+        ? "像一行 commit：trunk 上一个节点，标记在标题位，描述在描述位"
+        : "Like a row: a node on the trunk, the marker where a title goes, the message where a description goes",
+    },
+    {
+      value: "row",
+      label: "Row",
+      title: zh ? "Ring，时间段在日期位（右侧）" : "Ring, with the span where a date goes",
+    },
+    {
+      value: "under",
+      label: "Under",
+      title: zh ? "标记就是 trunk 上的节点" : "The marker is the node, on the trunk",
+    },
+    {
+      value: "hash",
+      label: "Hash",
+      title: zh
+        ? "标记在 hash 位（git log --decorate）"
+        : "The marker where a hash goes (git log --decorate)",
+    },
+  ];
+
+  return (
+    <DebugSection
+      id="works"
+      title={zh ? "作品" : "Works"}
+      icon={<GitBranch className="h-4 w-4" />}
+      compact
+      relevant={onWorks}
+      star={worksRef !== WORKS_REF_DEFAULT ? "saved" : null}
+      action={
+        <span className="text-[10px] font-mono text-muted-foreground">{worksRef}</span>
+      }
+    >
+      <PanelRow
+        label={zh ? "章节标记" : "Chapter ref"}
+        star={
+          worksRef !== WORKS_REF_DEFAULT ? (
+            <PanelStar source="saved" onReset={() => setWorksRef(WORKS_REF_DEFAULT)} />
+          ) : undefined
+        }
+      >
+        <PanelSegmented value={worksRef} options={options} onChange={setWorksRef} />
+      </PanelRow>
     </DebugSection>
   );
 }

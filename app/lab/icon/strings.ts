@@ -1,0 +1,101 @@
+import type { LabTable } from "@/app/lab/i18n";
+
+const en = {
+  // Actions and toasts
+  save: "Save",
+  saving: "Saving…",
+  reset: "Reset",
+  saveFailed: "Save failed",
+  savedRaster: "Saved · SVG + home-screen PNGs regenerated",
+  savedSvgOnly: "Saved · SVG written (raster skipped — offline?)",
+  resetDone: "Reset to default config (not yet saved)",
+
+  // Stage
+  appTile: "App tile · 256",
+  sizes: "Sizes",
+  sizesNote: "The same icon at the sizes it ships: a home-screen tile down to a tab's favicon.",
+  masks: "Masks",
+  masksNote: "What an OS that applies its own mask will cut it to.",
+  round: "round",
+  square: "square",
+
+  // Panel
+  typography: "Typography",
+  wordmark: "Wordmark",
+  weight: "Weight",
+  size: "Size",
+  tracking: "Tracking",
+  nudgeY: "Nudge Y",
+  nudgeX: "Nudge X",
+  italic: "Italic",
+  wordmarkColor: "Wordmark colour",
+  background: "Background",
+  texture: "Texture",
+  textures: {
+    solid: "Solid",
+    dots: "Dots",
+    grid: "Grid",
+    lines: "Lines",
+    noise: "Noise",
+    gradient: "Grad",
+  },
+  baseColor: "Base colour",
+  gradientEnd: "Gradient end",
+  textureColor: "Texture colour",
+  textureOpacity: "Texture opacity",
+  density: "Density",
+  angle: "Angle",
+  shape: "Shape",
+  cornerRadius: "Corner radius",
+  cornerNote:
+    "Baked into the SVG. Leave at 0 for full-bleed — most OSes apply their own mask (previewed on the stage).",
+};
+
+const zh: typeof en = {
+  save: "保存",
+  saving: "保存中…",
+  reset: "重置",
+  saveFailed: "保存失败",
+  savedRaster: "已保存 · SVG 与主屏 PNG 已重新生成",
+  savedSvgOnly: "已保存 · 仅写入 SVG（跳过了栅格化——离线？）",
+  resetDone: "已重置为默认配置（尚未保存）",
+
+  appTile: "应用图块 · 256",
+  sizes: "尺寸",
+  sizesNote: "同一枚图标，按它出货的各个尺寸：从主屏图块一直到标签页的 favicon。",
+  masks: "遮罩",
+  masksNote: "自带遮罩的系统会把它裁成的样子。",
+  round: "圆形",
+  square: "方形",
+
+  typography: "字体",
+  wordmark: "字标",
+  weight: "字重",
+  size: "字号",
+  tracking: "字距",
+  nudgeY: "纵向微调",
+  nudgeX: "横向微调",
+  italic: "斜体",
+  wordmarkColor: "字标颜色",
+  background: "底色",
+  texture: "纹理",
+  textures: {
+    solid: "纯色",
+    dots: "圆点",
+    grid: "网格",
+    lines: "线条",
+    noise: "噪点",
+    gradient: "渐变",
+  },
+  baseColor: "底色",
+  gradientEnd: "渐变终点",
+  textureColor: "纹理颜色",
+  textureOpacity: "纹理不透明度",
+  density: "密度",
+  angle: "角度",
+  shape: "形状",
+  cornerRadius: "圆角",
+  cornerNote: "烘焙进 SVG。全出血请保持 0——多数系统会套上自己的遮罩（见舞台上的预览）。",
+};
+
+export const ICON_STRINGS: LabTable<typeof en> = { en, zh };
