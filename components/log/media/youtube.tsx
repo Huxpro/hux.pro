@@ -7,7 +7,7 @@
  * Supports thumbnail preview before loading the iframe.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { COVER_WASH_TINTED } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { ExternalImage } from "./external-image";
@@ -95,6 +95,78 @@ function getThumbnailUrl(videoId: string, customThumbnail?: string): string {
  */
 export function getEmbedUrl(videoId: string): string {
   return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&mute=1`;
+}
+
+/** Where the embed runs, for its `postMessage` traffic. */
+const EMBED_ORIGIN = "https://www.youtube-nocookie.com";
+
+/**
+ * The embed URL, made to say where it is: the IFrame API's message protocol
+ * (`enablejsapi`) without loading the API itself, started at `start`
+ * seconds. For a caller that hands playback to the stage and back (the
+ * feed's inline player) and needs the place to carry over.
+ */
+export function getTrackedEmbedUrl(videoId: string, start = 0): string {
+  const origin =
+    typeof window === "undefined"
+      ? ""
+      : `&origin=${encodeURIComponent(window.location.origin)}`;
+  const at = start >= 1 ? `&start=${Math.floor(start)}` : "";
+  return `${getEmbedUrl(videoId)}&enablejsapi=1${origin}${at}`;
+}
+
+/** What a tracked embed last said about itself. */
+export interface EmbedClock {
+  /** Seconds in. */
+  time: number;
+  /** Playing, rather than paused, buffering, ended or not started. */
+  playing: boolean;
+}
+
+/**
+ * Listen to a tracked embed (`getTrackedEmbedUrl`) while `active`. The embed
+ * only reports once it has been asked, and only hears the ask once it has
+ * loaded, so the ask goes on load as well as now. The clock is a ref: it
+ * changes a few times a second and nothing should re-render for it.
+ */
+export function useEmbedClock(
+  frameRef: RefObject<HTMLIFrameElement | null>,
+  active: boolean,
+): RefObject<EmbedClock> {
+  const clock = useRef<EmbedClock>({ time: 0, playing: false });
+  useEffect(() => {
+    clock.current = { time: 0, playing: false };
+    const frame = frameRef.current;
+    if (!active || !frame) return;
+    const ask = () =>
+      frame.contentWindow?.postMessage(
+        JSON.stringify({ event: "listening", id: 1, channel: "widget" }),
+        EMBED_ORIGIN,
+      );
+    frame.addEventListener("load", ask);
+    ask();
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== frame.contentWindow) return;
+      let data: unknown;
+      try {
+        data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      } catch {
+        return;
+      }
+      const info = (data as { info?: { currentTime?: unknown; playerState?: unknown } } | null)
+        ?.info;
+      if (!info || typeof info !== "object") return;
+      if (typeof info.currentTime === "number") clock.current.time = info.currentTime;
+      // YT.PlayerState.PLAYING; the API itself is never loaded here.
+      if (typeof info.playerState === "number") clock.current.playing = info.playerState === 1;
+    };
+    window.addEventListener("message", onMessage);
+    return () => {
+      frame.removeEventListener("load", ask);
+      window.removeEventListener("message", onMessage);
+    };
+  }, [active, frameRef]);
+  return clock;
 }
 
 // =============================================================================

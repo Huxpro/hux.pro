@@ -158,6 +158,15 @@ interface TheaterStageValue {
   close: () => void;
   openVideo: (input: OpenVideoInput) => void;
   openMedia: TheaterContextValue["openMedia"];
+  /**
+   * Start the next YouTube video the stage loads at this second, rather than
+   * at the top. For a hand-off from a player elsewhere on the page (the
+   * feed's inline player) that already got part of the way through: call
+   * it, then open the media.
+   */
+  startNextAt: (seconds: number) => void;
+  /** Where the stage's YouTube player is, read once (this context never ticks). */
+  getCurrentTime: () => number;
 }
 
 const TheaterStageContext = createContext<TheaterStageValue | undefined>(undefined);
@@ -276,6 +285,14 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const pendingVideoRef = useRef<string | null>(null);
   const loadedVideoRef = useRef<string | null>(null);
+  // Where the next load starts (`startNextAt`), consumed by that load.
+  const nextStartRef = useRef<number | null>(null);
+  const loadAt = useCallback((player: YTPlayerExt, videoId: string) => {
+    const startSeconds = nextStartRef.current;
+    nextStartRef.current = null;
+    if (startSeconds) player.loadVideoById({ videoId, startSeconds });
+    else player.loadVideoById(videoId);
+  }, []);
 
   const ensurePlayer = useCallback(() => {
     if (playerRef.current || !hostRef.current) return;
@@ -305,7 +322,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
               if (pending) {
                 pendingVideoRef.current = null;
                 loadedVideoRef.current = pending;
-                (player as YTPlayerExt).loadVideoById(pending);
+                loadAt(player as YTPlayerExt, pending);
               }
             },
             onStateChange: (e) => {
@@ -318,7 +335,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
         enableIframeFullscreen(host);
       })
       .catch(() => setPhase("error"));
-  }, []);
+  }, [loadAt]);
 
   // YouTube (and other embeds) inject their iframe after first paint. Keep
   // the fullscreen allow-list patched so iPad doesn't fall back to PiP.
@@ -359,7 +376,7 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
       }
       if (loadedVideoRef.current !== track.videoId) {
         loadedVideoRef.current = track.videoId;
-        playerRef.current.loadVideoById(track.videoId);
+        loadAt(playerRef.current, track.videoId);
       }
     } else {
       // Non-YouTube track plays in its own iframe (rendered by <Stage />).
@@ -693,9 +710,20 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [effectiveMode, close]);
 
+  const startNextAt = useCallback((seconds: number) => {
+    nextStartRef.current = seconds;
+  }, []);
+  const getCurrentTime = useCallback(() => {
+    try {
+      return playerRef.current?.getCurrentTime() ?? 0;
+    } catch {
+      return 0;
+    }
+  }, []);
+
   const stageValue = useMemo<TheaterStageValue>(
-    () => ({ track, mode, close, openVideo, openMedia }),
-    [track, mode, close, openVideo, openMedia],
+    () => ({ track, mode, close, openVideo, openMedia, startNextAt, getCurrentTime }),
+    [track, mode, close, openVideo, openMedia, startNextAt, getCurrentTime],
   );
 
   const value: TheaterContextValue = {
