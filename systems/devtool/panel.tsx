@@ -83,8 +83,6 @@ import {
 import {
   sectionFoldKey,
   useDevtool,
-  WORKS_SCALE_DEFAULT,
-  type WorksScale,
   DRAGGABLE_INSTANCES,
   DRAGGABLE_DEFAULTS,
   PHONE_PALETTE_DEFAULT,
@@ -2984,12 +2982,8 @@ function MusicModule() {
 function WorksModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { worksRef, setWorksRef, worksScale, setWorksScale } = useDevtool();
+  const { worksRef, setWorksRef } = useDevtool();
   const onWorks = usePathname() === "/works";
-  // The log's scale, a session trial (components/log/row-trial.ts): type,
-  // spacing and the covers' size move together, because a list whose text
-  // grows while its pictures stay is a list whose pictures just got bigger.
-  const scaleChanged = worksScale !== WORKS_SCALE_DEFAULT;
   const options: { value: WorksRef; label: string; title: string }[] = [
     {
       value: "auto",
@@ -3037,53 +3031,22 @@ function WorksModule() {
       title={zh ? "作品" : "Works"}
       icon={<GitBranch className="h-4 w-4" />}
       compact
-      relevant={onWorks || scaleChanged}
-      star={strongest(
-        scaleChanged ? "session" : null,
-        worksRef !== WORKS_REF_DEFAULT ? "saved" : null
-      )}
+      relevant={onWorks}
+      star={worksRef !== WORKS_REF_DEFAULT ? "saved" : null}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">{worksRef}</span>
       }
     >
-      <div className="space-y-3">
-        <PanelRow
-          label={zh ? "章节标记" : "Chapter ref"}
-          star={
-            worksRef !== WORKS_REF_DEFAULT ? (
-              <PanelStar source="saved" onReset={() => setWorksRef(WORKS_REF_DEFAULT)} />
-            ) : undefined
-          }
-        >
-          <PanelSegmented value={worksRef} options={options} onChange={setWorksRef} />
-        </PanelRow>
-        <PanelRow
-          label={zh ? "尺度" : "Scale"}
-          star={
-            scaleChanged ? (
-              <PanelStar
-                onReset={() => setWorksScale(WORKS_SCALE_DEFAULT)}
-                source="session"
-              />
-            ) : null
-          }
-        >
-          <PanelSegmented<WorksScale>
-            value={worksScale}
-            options={[
-              { value: "compact", label: zh ? "紧凑" : "Compact" },
-              { value: "mid", label: zh ? "中" : "Mid" },
-              { value: "desk", label: zh ? "桌面" : "Desk" },
-            ]}
-            onChange={setWorksScale}
-          />
-        </PanelRow>
-        <p className="text-[10px] font-mono text-tertiary-foreground leading-relaxed">
-          {zh
-            ? "中：标题 14 中黑，描述 13，其余不动。桌面：描述 14，封面 80px，行距与章距放开。元数据仍 12。"
-            : "Mid: title 14 medium, description 13, nothing else. Desk: description 14, covers 80px, more air per row and chapter. Metadata stays 12."}
-        </p>
-      </div>
+      <PanelRow
+        label={zh ? "章节标记" : "Chapter ref"}
+        star={
+          worksRef !== WORKS_REF_DEFAULT ? (
+            <PanelStar source="saved" onReset={() => setWorksRef(WORKS_REF_DEFAULT)} />
+          ) : undefined
+        }
+      >
+        <PanelSegmented value={worksRef} options={options} onChange={setWorksRef} />
+      </PanelRow>
     </DebugSection>
   );
 }

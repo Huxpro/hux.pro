@@ -11,7 +11,6 @@ import { IdentityHover } from "@/systems/identity";
 import type { Byline } from "../bylines";
 
 import { TYPE } from "@/lib/typography";
-import { useWorksScale } from "../row-trial";
 // =============================================================================
 // Description
 // =============================================================================
@@ -26,30 +25,27 @@ interface DescriptionProps {
 /**
  * A commit's description — what the work is.
  *
- * `TYPE.caption` at both lengths: 12px, muted. It sat on tertiary for a
- * long time, and the reason was the line between it and the title: the
- * venue, in tertiary mono. Brightening the paragraph under that line made a
- * sandwich — ink, then the lightest rung, then a middle one — so the
- * paragraph stayed as light as the line above it and the row had no
- * second tier. The venue now sits on the title line (TimelineCommit), so
- * nothing stands between a title and its sentence, and the sentence can
- * take the rung it needed all along. Still 12px: raised to `TYPE.body`
- * (14px) it competed with the title for the row rather than sitting under
- * it, and a column of twenty-five rows read louder than the log wants.
+ * `TYPE.message`: 13px, muted. It sat on 12px tertiary for a long time, and
+ * the reason was the line between it and the title: the venue, in tertiary
+ * mono. Brightening or enlarging the paragraph under that line made a
+ * sandwich — ink, the lightest rung, a middle one — so the paragraph stayed
+ * as light and as small as the line above it, and the row had no second
+ * tier. The venue now sits on the title line (TimelineCommit), nothing
+ * stands between a title and its sentence, and the title over a sentence
+ * takes medium (`TYPE.rowHeading`), so the sentence can take the rung and
+ * the size it needed all along — a half step under the heading, which is
+ * where a sentence under a heading sits. (At 14 it was the heading's size
+ * and the two competed for the row.)
  */
 export function Description({
   text,
   isExpanded = false,
   className,
 }: DescriptionProps) {
-  // The devtool's trial of the log's scale (components/log/row-trial.ts).
-  const scale = useWorksScale();
   return (
     <p
       className={cn(
-        TYPE.caption,
-        scale === "mid" && "text-[13px]",
-        scale === "desk" && "text-sm",
+        TYPE.message,
         // Two lines everywhere, and the measure does the rest: a phone's
         // ~40 characters a line, a desktop's ~90. A wider column is already
         // being handed more of the text, so spending a breakpoint to hand it
