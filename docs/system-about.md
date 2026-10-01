@@ -4,7 +4,7 @@ The surface a newcomer meets, and the inline badge that names a thing I made.
 
 ```
 systems/about/
-├── provider.tsx                 # AboutProvider, useAbout() — open / close / toggle, first visit, Escape
+├── provider.tsx                 # AboutProvider, useAbout(): open / close / toggle, first visit, Escape
 └── components/
     ├── about-surface.tsx        # the veil, the words, the glow (systems/glow), mounted once in the root layout
     └── about-copy.tsx           # server: content/about/<locale>.mdx → the words
@@ -26,47 +26,47 @@ app/about/                       # `/about`: the home screen with the About up
 
 A personal website usually says who it belongs to on a page you have to go
 and find. This one is an operating system, and an OS introduces itself the
-first time it boots. So the About is not a page: it is a surface that floats
-over whatever page a visitor landed on.
+first time it boots. So the About is a surface that floats over whatever
+page a visitor landed on, rather than a page of its own.
 
 | | |
 |---|---|
 | first visit | rises over the page 700ms after load, once there is something under it to blur. Dismissing it is what marks the visitor as met (`hux_about_seen` in localStorage); a reload before that shows it again. Not on `/lab*` and `/vitre`, which are tools. |
-| `/` `O` | the palette's slash command, from any page — the About's only shortcut. There is no bare `O`: a single letter taken over every page fires by accident, and the About is not needed that often. |
+| `/` `O` | the palette's slash command, from any page. It is the About's only shortcut. There is no bare `O`: a single letter taken over every page fires by accident, and the About is not needed that often. |
 | ⌘K | `About` in search. Geolocation moved from `O` to `C`. |
-| λhux | the home screen's mark, the long way in: hover until it says its name (*The λHUX OS*) and the name is a door — click it; on a phone, hold it until the name is whole and the About rises — a ring round the mark, outside the finger, closes as the hold goes on (`HoldRing`, the search button's devtool hold's own; `components/home/scramble-identifier.tsx`). |
+| λhux | the home screen's mark, the long way in. Hover until it says its name (*The λHUX OS*), then click the name. On a phone, hold the mark until the name is whole and the About rises; a ring round the mark, drawn outside the finger, closes as the hold goes on (`HoldRing`, shared with the search button's devtool hold; `components/home/scramble-identifier.tsx`). |
 | `/about` | the address to share: the home screen with the About already up. Putting it away swaps the address to `/` in place (no navigation, no remount). |
-| language | a chip in the top-right corner — the other language's name and the Languages glyph, the article header's own switch (`HeaderAction` in the meta row's mono) — so a visitor met in the language their browser guessed can turn to the one they read without leaving. |
-| leaving | Escape, `/` `O`, the button at the foot, a click well clear of the words (with a pointer: beyond 96px either side of the column and 64px above and below it — nearer, a click is a miss; on a touch screen, never — a tap on a blank stretch is a thumb resting, and the button is the way out), or anything in the copy opening something — a badge or a link hands over to what it opened. Not the attachment drawer: on a phone a badge opens it *over* the About (`OVER_ABOUT_Z`, 10025), the words still underneath; Escape puts the drawer away first. The About steps aside only when the drawer sends the thing somewhere below it — the stage, a window, another page, the lightbox (`onSend` on the attachments' context); a tab leaves it be. |
+| language | a chip in the top-right corner with the other language's name and the Languages glyph. It is the article header's own switch (`HeaderAction` in the meta row's mono). A visitor met in the language their browser guessed can switch to the one they read without leaving. |
+| leaving | Escape, `/` `O`, the button at the foot, a click well clear of the words, or anything in the copy opening something (a badge or a link hands over to what it opened). With a pointer, "well clear" means beyond 96px either side of the column and 64px above and below it; a nearer click is treated as a miss. On a touch screen a blank tap never dismisses: it is usually a thumb resting, and the button is the way out. Opening the attachment drawer does not count. On a phone a badge opens the drawer *over* the About (`OVER_ABOUT_Z`, 10025) with the words still underneath, and Escape puts the drawer away first. The About steps aside only when the drawer sends the thing somewhere below it: the stage, a window, another page, the lightbox (`onSend` on the attachments' context). A tab leaves it in place. |
 
 ### Three layers
 
-1. **The veil** — the page, blurred (`backdrop-blur-2xl`) and washed in the
+1. **The veil**: the page, blurred (`backdrop-blur-2xl`) and washed in the
    glass material (`bg-glass/70`), so Tinted / Clear and the wallpaper tint
    apply. The page stays visible: you can still see where you are.
-2. **The words** — one column, `33rem`, in the middle; brief. The greeting
-   is serif (somebody talking), the rest sans. Each block rises in turn with a
-   little blur resolving (`.about-copy` in `globals.css`), none of it under
-   reduced motion. The words scroll in their own container, fading at its
-   foot when they overflow, so however long the copy and however short the
-   screen, nothing pushes the way out off it.
-   **The foot** — always on screen: a glass button, centred (`GLASS_TRACK_FLAT`,
-   the theater's control glass — part of the veil, not a slab on it), reading
-   **Reveal** on a first visit (the veil lifts off the page the newcomer
-   landed on), breathing — the glow's `pulse`, only its halo
-   (`inside={false}`), blooming out from behind it: the one thing on the
-   screen asking to be pressed. After the first dismissal it is a plain
-   **Close**, still. Where there
-   is a keyboard it wears `esc` after the word. How to come back is the
-   copy's own last sentence (*you can find it again in the command menu*),
-   not a line under the button, to keep the foot to the one press. On a
-   phone the button is centred at the screen's foot; on a desk it hangs from
-   the words' left edge, as their last line — centred under a ragged
-   paragraph it would line up with nothing.
-   **Where** — on a desk the words and the foot are one group, centred on the
+2. **The words**: one column, `33rem`, in the middle, kept brief. The
+   greeting is serif (somebody talking), the rest sans. Each block rises in
+   turn as a small blur clears (`.about-copy` in `globals.css`); none of this
+   runs under reduced motion. The words scroll in their own container and
+   fade at its foot when they overflow, so no length of copy or height of
+   screen can push the way out off screen.
+   **The foot**: always on screen. It is a glass button, centred
+   (`GLASS_TRACK_FLAT`, the theater's control glass, so it belongs to the
+   veil instead of sitting on it as a slab). On a first visit it reads
+   **Reveal** (the veil lifts off the page the newcomer landed on) and
+   breathes: the glow's `pulse`, only its halo (`inside={false}`), blooms out
+   from behind it. It is the one thing on the screen asking to be pressed.
+   After the first dismissal it is a plain **Close** and stays still. Where
+   there is a keyboard it shows `esc` after the word. How to come back is the
+   copy's own last sentence (*you can find it again in the command menu*)
+   rather than a line under the button, which keeps the foot to one press. On
+   a phone the button is centred at the screen's foot. On a desk it hangs
+   from the words' left edge as their last line, because centred under a
+   ragged paragraph it would line up with nothing.
+   **Where**: on a desk the words and the foot are one group, centred on the
    screen (flexible space above and below). On a phone the words take every
    line the screen has and the foot sits at its bottom.
-3. **The glow** — the Siri ring, above everything, taking no pointer.
+3. **The glow**: the Siri ring, above everything, taking no pointer.
 
 Z-order: above the theater and windows (10000–10005), below the command
 palette (10050), which can still be summoned over it. The layers are one
@@ -76,15 +76,15 @@ copy opens over it, `DEVTOOL_OVER_ABOUT_Z` (10030) for the devtool. A
 surface that must come up over the About asks `useOverAboutZ()`.
 
 **Inside the bezel.** With the vitre bezel drawn (iOS), the page's screen is
-the box within its bands, rounded at its radius — and the About is a surface
-on that screen, not on the glass around it. Its z-order puts it above the
-bezel's mask (9999), so it cannot rely on the mask to trim it: both the
-surface and the glow take `BEZEL_INSET` and the screen's radius
-(`useWallpaper().screenRadius` — the bezel's radius, the very number
+the box within its bands, rounded at its radius. The About is a surface on
+that screen, not on the glass around it. Its z-order puts it above the
+bezel's mask (9999), so it cannot rely on the mask to trim it. Both the
+surface and the glow take `BEZEL_INSET` and the screen's radius, clip to it,
+and wear `VITRE_LAYER_ATTRIBUTE` so container scroll makes them absolute. The
+radius is `useWallpaper().screenRadius`: the bezel's radius, the same number
 `<Vitre>` is given, so a devtool drag moves the bezel, the veil and the ring
-together; the About mounts outside `<Vitre>`, where `useVitre()` would read
-the disabled default), clip to it, and
-wear `VITRE_LAYER_ATTRIBUTE` so container scroll makes them absolute. The
+together. (The About mounts outside `<Vitre>`, where `useVitre()` would read
+the disabled default.) The
 ring's shader runs around that same rounded box. Without a bezel the ring
 runs around the plain rectangle of the viewport.
 
@@ -94,15 +94,15 @@ outer few dozen pixels.
 
 ### The glow
 
-The ring is the site's one light — `<EdgeGlow>` from `systems/glow`, the
+The ring is the site's one light: `<EdgeGlow>` from `systems/glow`, the
 same shader and renderer every other glow uses (the palette listening, a
 window loading). How it is built, its knobs and its cost are in
-[system-glow.md](./system-glow.md). Here it frames the words: its `content`
+[system-glow.md](./system-glow.md). Here it frames the words. Its `content`
 is the article (as far as its scroll container shows it) and the way out
-under it, and its `depth` — where the light ends, as a share of the
-narrower gutter to them, alike off every edge — comes from the devtool's
+under it. Its `depth` is where the light ends, as a share of the narrower
+gutter to them, the same off every edge. The depth comes from the devtool's
 Glow module, one per layout (a desk's centred group, a phone's whole
-screen): 130% on a desk, the ring as it first shipped, and 140% on a phone. Its
+screen): 130% on a desk, as the ring first shipped, and 140% on a phone. Its
 corners are `screenRadius`: the bezel's inside a bezel, 0 without one (a
 browser window's page is a rectangle; a phone's rounded glass is the
 hardware's to clip).
@@ -120,29 +120,29 @@ the system's index) and the surface shows the reader's. What is available:
 
 | | |
 |---|---|
-| `<MagicLink>` | a word that summons something — a post, a work, a role, a page (below) |
+| `<MagicLink>` | a word that summons something: a post, a work, a role, a page (below) |
 | `<Badge>` | the same link dressed as a pill wearing the thing's icon: a company, a project |
-| `*…*` | italics, in the serif — the word the copy is about, *interface* (in Chinese, which has no italic, 界面 is the serif upright). Latin serif is set 1.0625em, the article's optical adjustment for Newsreader's smaller x-height — the same rule as the article's (`.about-copy em` beside `.prose-article em`, globals.css) |
+| `*…*` | italics, in the serif, for the word the copy is about, *interface* (in Chinese, which has no italic, 界面 is the serif upright). Latin serif is set 1.0625em, the article's optical adjustment for Newsreader's smaller x-height. It is the same rule as the article's (`.about-copy em` beside `.prose-article em`, globals.css) |
 | `<Fn n="1" />` | a note's mark: a superscript number that scrolls the note into view inside the About (the address is left alone) |
-| `<Footnotes>` / `<Footnote n="1">` | the notes, at the end, in the About's annotation type — the tiny mono line; a note's number scrolls back to its mark |
+| `<Footnotes>` / `<Footnote n="1">` | the notes, at the end, in the About's annotation type (the tiny mono line); a note's number scrolls back to its mark |
 | `<Kbd>`, plain links | a key; a link (internal ones use the router, external ones open a tab) |
 
 Every keyword is a magic link: companies and projects as badges (each wears
-its site's icon — `pnpm badges:snapshot`; `content/badges.json` names the
+its site's icon from `pnpm badges:snapshot`; `content/badges.json` names the
 site for a commit or an identity), everything else as the word alone.
 
 ## Magic links
 
-A magic link names a *summonable*, and summons it the way the site
-summons that thing everywhere else — one semantics, whatever it is dressed
-as:
+A magic link names a *summonable* and summons it the way the site summons
+that thing everywhere else. The behaviour is the same whatever the link is
+dressed as:
 
 | it names | with a pointer (hover) | on a phone (tap) | a press, with a pointer |
 |---|---|---|---|
 | `post="dreamer"` | the /writing row's peek (`PostPeekView`) | the drawer: that peek, and Read | the post |
-| `commit="lynx-framework"` — a commit, whole | the /works row's peek (`buildCommitPreview`: the stacked covers) | the attachment drawer, paging through all of its media | its row on /works |
-| `commit=… item={n}` — one media | the /works cover's peek (`mediaPeek`); a post on this site peeks as the post | a drawer of just it | its home: the stage, the in-app browser, the router |
-| `role="meta-engineer"` | the /works role row's peek: the identity's profile | the role drawer (the identity card): the profile, its count of signed commits heading the commits themselves — each opens its own attachment drawer over this one — and Visit, to the role's row | its row on /works |
+| `commit="lynx-framework"` (a commit, whole) | the /works row's peek (`buildCommitPreview`: the stacked covers) | the attachment drawer, paging through all of its media | its row on /works |
+| `commit=… item={n}` (one media) | the /works cover's peek (`mediaPeek`); a post on this site peeks as the post | a drawer of just it | its home: the stage, the in-app browser, the router |
+| `role="meta-engineer"` | the /works role row's peek: the identity's profile | the role drawer (the identity card): the profile, its count of signed commits heading the commits themselves (each opens its own attachment drawer over this one), and Visit, to the role's row | its row on /works |
 | `href="/works?type=talk"` | the section's card (its share image, a count) | the drawer: the card, Visit | the page |
 | `href="https://…"` | the page's card (`pnpm og:snapshot` crawls these; `content/badges.json` `previews` for a page with no card to crawl) | the drawer | the in-app browser, or a tab |
 | `app="…"` | — | a sheet | a window |
@@ -159,9 +159,9 @@ The peek follows the input (`magneticPreviewEnabled`), as every peek does;
 the drawer follows the viewport (the attachments' policy). Inside the About
 the peeks, the drawer and the identity card all come up over it
 (`MagicLinkHost layer`, `useOverAboutZ`), and the About steps aside only
-when something leaves for a home beneath it — told by the attachments
-(`onSend`), by a page change, or by a link that navigates or opens an app
-(`MagicLinkHost onLaunch`); a tab takes nothing from it. Two verbs put it
+when something leaves for a home beneath it. It learns this from the
+attachments (`onSend`), from a page change, or from a link that navigates or
+opens an app (`MagicLinkHost onLaunch`); a tab takes nothing from it. Two verbs put it
 away: `dismiss()` is the visitor's (the button, Escape, a click well clear
 of the words) and is the only one that swaps `/about` for `/`; `close()` is
 a hand-over and leaves the address to whatever is taking it, so the swap
@@ -171,8 +171,8 @@ nothing over it (a drawer, a card, the palette) has marked it handled.
 ## Badges
 
 `<Badge>` is a magic link for a thing I made, named inline in a sentence, wearing its icon, and
-one press from where it lives on the site. It works anywhere MDX renders —
-posts, docs, the About — and as `<MagicLink badge>` from code.
+one press from where it lives on the site. It works anywhere MDX renders
+(posts, docs, the About) and as `<MagicLink badge>` from code.
 
 ```mdx
 <Badge commit="lynx-framework">Lynx</Badge>       {/* a commit in content/log.json */}
@@ -189,17 +189,18 @@ posts, docs, the About — and as `<MagicLink badge>` from code.
 Through the attachment policy (`systems/attachments/lib/policy.ts`), so a
 badge never disagrees with a cover on `/works` about where a thing lives:
 
-A badge calls `open`, exactly as a `/works` cover does: on a phone the
-attachment drawer first — the thing, its title and its way in, a thumb's
-reach from where you are — and on a desk its native home straight away:
+A badge calls `open`, exactly as a `/works` cover does. On a phone the
+attachment drawer comes first, with the thing, its title and its way in
+within a thumb's reach. On a desk the thing opens in its native home
+straight away:
 
 | the thing | on a desk | on a phone |
 |---|---|---|
-| a page | the in-app browser, a window — a tab if it refuses to be framed | the drawer |
+| a page | the in-app browser, a window, or a tab if it refuses to be framed | the drawer |
 | a recording, a deck | the stage (the theater) | the drawer |
 | a post, an in-site path | the router | the drawer |
 | an image, a social post | the attachment surface | the drawer |
-| an app | a window, on its runtime (web or Lynx) — `openApp` | a sheet |
+| an app | a window, on its runtime (web or Lynx), via `openApp` | a sheet |
 
 It keeps a real `href`, so ⌘-click, middle-click and a page without
 JavaScript still work, and a page that will leave for a tab says so in its
@@ -213,19 +214,19 @@ selection lock (`useLockTextSelection`) would otherwise take them: the
 article is marked `data-text-document`, which the lock lets be.
 
 A surface that hosts magic links and should step aside when one opens
-something wraps them in `<MagicLinkHost onLaunch={…}>` — the About does. A
+something wraps them in `<MagicLinkHost onLaunch={…}>`, as the About does. A
 link that opens the drawer or the identity card does not call it: those float
 over their host, which raises them (`AdaptiveSurface`'s `zIndex`) and hears
 where the drawer sends things next (`useAttachments().onSend`).
 
 ### What it wears
 
-Its official icon, always — CI fails a badge without one.
+Its official icon, always. CI fails a badge without one.
 
 | the badge | its icon |
 |---|---|
 | `app=` | the app's home-screen icon (`content/app-icons.json`, `pnpm apps:snapshot`) |
-| `commit=`, `href=` elsewhere | the icon its **site** declares for a home screen — manifest → apple-touch-icon → favicon — snapshotted into `public/badge-icons/` and `content/badge-icons.json` by `pnpm badges:snapshot` |
+| `commit=`, `href=` elsewhere | the icon its **site** declares for a home screen (manifest → apple-touch-icon → favicon), snapshotted into `public/badge-icons/` and `content/badge-icons.json` by `pnpm badges:snapshot` |
 | `href=` a path on this site | this site's own icon (`/icons/icon.svg`) |
 | `href=` an image | the image itself |
 | `icon=` | that: a path, a URL, or an app id |
@@ -233,7 +234,7 @@ Its official icon, always — CI fails a badge without one.
 Which site stands for a badge is one rule, `lib/badge-site.ts`, shared by the
 component and the script: an `href`'s host (youtu.be is YouTube, twitter.com
 is X); a commit's first external attachment, unless `content/badges.json`
-names its site under `commits` — Ele.me's PWA is h5.ele.me, not the Medium
+names its site under `commits`: Ele.me's PWA is h5.ele.me, not the Medium
 post about it; Alitrip is Fliggy, which alitrip.com now serves; Hux Blog is
 huxpro.github.io.
 
@@ -250,8 +251,9 @@ filesystem-only half that CI runs (`.github/workflows/ci.yml`). A new badge
 pointing at a new site: run the snapshot and commit what it writes.
 
 An icon drawn for a home screen (manifest, apple-touch-icon, or any square
-≥160px) fills its tile; a favicon is a glyph and sits on a white plate, the
-way a home screen shows one — so a black mark (Lynx's cat) reads in the dark.
+≥160px) fills its tile. A favicon is a glyph and sits on a white plate, the
+way a home screen shows one, so a black mark (Lynx's cat) still reads in the
+dark.
 A badge nobody has snapshotted falls back to a monogram in the commit's era
 colour, or the glyph of what it is; that is what the check is for.
 

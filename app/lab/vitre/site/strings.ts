@@ -24,7 +24,7 @@ const en = {
   filesNote: "The package, and the files of this site that configure and host it.",
   try: "Try it here",
   tryNote:
-    "The devtool's Bezel section turns the bezel on for this visit — on any screen — and tunes its tint, band, radius and scroll live. Nothing on this page changes it for you.",
+    "The devtool's Bezel section turns the bezel on for this visit, on any screen, and tunes its tint, band, radius and scroll live. Nothing on this page changes it for you.",
   openDevtool: "Open the devtool",
 };
 
@@ -39,7 +39,7 @@ const zh: typeof en = {
   reasonOn: "开：一台 iPhone，壁纸是一张图。",
   reasonWash: "关：壁纸是一片色晕时，页面改为在边缘淡出。",
   rule: "规则",
-  ruleNote: "本站在 iPhone 上、壁纸是图片时画 bezel——图片配得上一个画框；色晕壁纸则在边缘淡出。启动脚本在 React 运行之前就按同一条规则画好第一帧。",
+  ruleNote: "本站在 iPhone 上、壁纸是图片时画 bezel，因为图片适合配一个画框；色晕壁纸则在边缘淡出。启动脚本在 React 运行之前就按同一条规则画好第一帧。",
   family: "壁纸",
   softEdge: "边缘淡出",
   yes: "是",
@@ -48,7 +48,7 @@ const zh: typeof en = {
   files: "代码在哪",
   filesNote: "包本身，以及本站里配置和承载它的文件。",
   try: "在这里试试",
-  tryNote: "开发者工具的 Bezel 一节可以为这次访问打开 bezel——任何屏幕都行——并实时调整配色、band、圆角和滚动方式。这一页本身不会替你改动它。",
+  tryNote: "开发者工具的 Bezel 一节可以为这次访问打开 bezel（任何屏幕都行），并实时调整配色、band、圆角和滚动方式。这一页本身不会替你改动它。",
   openDevtool: "打开开发者工具",
 };
 

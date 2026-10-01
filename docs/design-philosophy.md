@@ -2,7 +2,7 @@
 
 ## Overview
 
-Hux.Pro is a personal website that embodies an **"AI-Native OS" aesthetic**—the homepage feels like encountering a personal operating system that recognizes you, rather than a static web page. Drawing inspiration from developer tools, command palettes, and native OS interfaces rather than typical marketing-focused web design.
+Hux.Pro is a personal website with an **"AI-Native OS" aesthetic**. The homepage should feel like a personal operating system that recognizes you, rather than a static web page. It borrows from developer tools, command palettes and native OS interfaces rather than typical marketing-focused web design.
 
 ## Dual Aesthetic System
 
@@ -14,7 +14,7 @@ Hux.Pro is a personal website that embodies an **"AI-Native OS" aesthetic**—th
 ### Content-Oriented UI
 > "A well-printed essay on a modern screen"
 
-- Borderless design — no cards, no boxes
+- Borderless design: no cards, no boxes
 - Typography-first hierarchy
 - Generous whitespace; let content breathe
 - Invisible grids, not visible containers
@@ -30,22 +30,22 @@ Hux.Pro is a personal website that embodies an **"AI-Native OS" aesthetic**—th
 
 ## AI-Native Homepage
 
-The homepage is designed as a **personal OS surface**, not a traditional landing page. It embodies five key principles:
+The homepage is designed as a **personal OS surface** rather than a traditional landing page. Five principles shape it:
 
 ### 1. The Surface, Not the Desktop
-Instead of a desktop with objects on it, think of a surface that reflects your current state. It's not empty space waiting to be filled—it's a mirror of what's relevant now.
+Instead of a desktop with objects on it, the homepage is a surface that reflects your current state. It shows what's relevant now.
 
 ### 2. Ambient Over Explicit
-The OS knows things. Time of day. What you were last doing. What's changed. It doesn't wait for you to ask—it surfaces context gently.
+The OS knows the time of day, what you were last doing and what has changed. It shows that context without waiting to be asked.
 
 ### 3. Conversation as Navigation
-The command palette isn't a search box—it's a dialogue. "What brings you here?" not "Type a command." The whole homepage is a subtle invitation to converse.
+The command palette is framed as a dialogue. Its prompt asks "What brings you here?" instead of "Type a command." The whole homepage invites the visitor to talk to it.
 
 ### 4. Fluid Boundaries
-Sections don't have hard edges. Blog, Work, Talks—these aren't rooms, they're aspects. The homepage shows a blend via widgets, weighted by recency or relevance.
+Sections don't have hard edges. Blog, Work and Talks are aspects of one site rather than separate rooms. The homepage mixes them through widgets, weighted by recency or relevance.
 
 ### 5. Presence, Not Structure
-The homepage feels like encountering a person, not reading a directory. There's a sense of who's here before what's available.
+The homepage should feel like meeting a person rather than reading a directory. It shows who is here before it shows what is available.
 
 ## Homepage Layout
 
@@ -78,8 +78,8 @@ The homepage feels like encountering a person, not reading a directory. There's 
 
 ### Visual Hierarchy
 
-1. **System identifier** (`hux_`): Mono, small, muted—like a terminal prompt or OS watermark
-2. **Message to user**: Serif, large, warm—the voice of Hux addressing the visitor directly
+1. **System identifier** (`hux_`): Mono, small, muted, like a terminal prompt or OS watermark
+2. **Message to user**: Serif, large, warm. This is Hux addressing the visitor directly
 3. **Widget grid**: Glassmorphic cards with content discovery at a glance
 4. **Conversational prompt**: The input itself contains the invitation ("what brings you here?")
 

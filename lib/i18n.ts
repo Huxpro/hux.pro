@@ -58,7 +58,7 @@ export const translations = {
 
     // Homepage
     tagline:
-      "Prose, profession, programming, production, projects—each a facet of a complete person.",
+      "Prose, profession, programming, production, projects: each a facet of a complete person.",
     currently: "Currently",
     currentStatus:
       "Architect of Lynx at ByteDance. Making interfaces better for more users, more developers, and more machines, and exploring what app frameworks should look like in the age of AI.",
@@ -106,9 +106,9 @@ export const translations = {
     theaterSurfaceTheater: "Theater",
     theaterSurfacePip: "PiP",
     theaterSurfaceMini: "Audio",
-    theaterSurfaceMiniHint: "Minimize — audio keeps playing",
+    theaterSurfaceMiniHint: "Minimize and keep the audio playing",
     theaterSurfaceMinimize: "Minimize",
-    theaterSurfaceMinimizeHint: "Minimize — the deck stays open",
+    theaterSurfaceMinimizeHint: "Minimize and keep the deck open",
     theaterDeck: "slides",
     theaterSurfaceNow: "Now in {surface}",
     theaterSurfaceGo: "Switch to {surface}",
@@ -185,12 +185,12 @@ export const translations = {
     wallpaperWeatherGradientMeta: "css · gradient",
     wallpaperWeatherClassic: "Classic",
     wallpaperWeatherClassicMeta: "css · gradient",
-    wallpaperNoWebGL: "No WebGL2 here — Sky paints the Gradient instead.",
+    wallpaperNoWebGL: "This browser has no WebGL2, so Sky paints the Gradient instead.",
     wallpaperTilt: "Tilt",
-    wallpaperTiltNote: "Rain and snow fall along real gravity — lean the device and the sky leans with it.",
+    wallpaperTiltNote: "Rain and snow fall along real gravity. Lean the device and the sky leans with it.",
     wallpaperTiltAsk: "Turning it on asks this browser for motion access.",
     wallpaperTiltDenied: "Motion access was refused; allow it again in the browser's settings for this site.",
-    wallpaperTiltSilent: "Nothing here to tilt with — this device sends no motion readings.",
+    wallpaperTiltSilent: "This device sends no motion readings, so there is nothing to tilt with.",
     tiltPrimerTitle: "You found an easter egg!",
     tiltPrimerBody: "The rain and snow here follow real gravity. Turn on tilt, then lean your phone and watch the rain slant across the screen.",
     tiltPrimerAsk: "Your browser will ask for motion access. Just allow it.",
@@ -501,7 +501,7 @@ export const translations = {
     productions: "作品",
 
     // Homepage
-    tagline: "散文、职业、编程、生产、项目——一个完整人格的多重面向。",
+    tagline: "散文、职业、编程、生产、项目：一个完整人格的多重面向。",
     currently: "近况",
     currentStatus:
       "字节跳动 Lynx 架构师。让界面更好地服务更多用户、更多开发者、更多机器，并探索 AI 时代的应用框架。",
@@ -630,7 +630,7 @@ export const translations = {
     wallpaperWeatherClassicMeta: "CSS · 渐变",
     wallpaperNoWebGL: "此浏览器不支持 WebGL2，天空会退回渐变。",
     wallpaperTilt: "陀螺仪",
-    wallpaperTiltNote: "雨雪沿真实重力方向落下 —— 倾斜设备，天空随之倾斜。",
+    wallpaperTiltNote: "雨雪沿真实重力方向落下。倾斜设备，天空也随之倾斜。",
     wallpaperTiltAsk: "打开时会向浏览器申请动作权限。",
     wallpaperTiltDenied: "动作权限已被拒绝，请在浏览器的本站设置中重新允许。",
     wallpaperTiltSilent: "此设备没有动作数据，无从倾斜。",

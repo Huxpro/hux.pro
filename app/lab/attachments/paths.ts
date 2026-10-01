@@ -43,8 +43,8 @@ export const RENDER_PATHS: readonly RenderPath[] = [
     id: "strip",
     surface: "MediaStrip → AttachmentTile",
     context: {
-      en: "/works covers — one row per commit, under the description",
-      zh: "/works 封面——每条提交一行，位于描述下方",
+      en: "/works covers: one row per commit, under the description",
+      zh: "/works 封面：每条提交一行，位于描述下方",
     },
     click: {
       en: "open() → homeFor (sheet on a phone, native home elsewhere)",
@@ -56,8 +56,8 @@ export const RENDER_PATHS: readonly RenderPath[] = [
     id: "grid-desk",
     surface: "AttachmentGrid (desk)",
     context: {
-      en: "/works feed, sm and up — pair / lone card / lone playable",
-      zh: "/works 信息流，sm 及以上——成对／单张卡片／单个可播放项",
+      en: "/works feed, sm and up: pair / lone card / lone playable",
+      zh: "/works 信息流，sm 及以上：成对／单张卡片／单个可播放项",
     },
     click: {
       en: "act() → nativeHomeFor (stage, window, route, tab)",
@@ -69,8 +69,8 @@ export const RENDER_PATHS: readonly RenderPath[] = [
     id: "grid-phone",
     surface: "AttachmentGrid (phone)",
     context: {
-      en: "/works feed, < sm — edge-to-edge stack",
-      zh: "/works 信息流，< sm——通栏纵向堆叠",
+      en: "/works feed, < sm: edge-to-edge stack",
+      zh: "/works 信息流，< sm：通栏纵向堆叠",
     },
     click: {
       en: "act() on a card; a recording/deck plays in place",
@@ -95,8 +95,8 @@ export const RENDER_PATHS: readonly RenderPath[] = [
     id: "renderer",
     surface: "MediaRenderer",
     context: {
-      en: "MDX <Media />, and whatever the grid has no cover for — a live social widget. Nothing else on /works reaches it any more.",
-      zh: "MDX <Media />，以及网格没有封面可用的东西——实时的社交小组件。/works 上已没有别的路径会走到它。",
+      en: "MDX <Media />, and whatever the grid has no cover for: a live social widget. Nothing else on /works reaches it any more.",
+      zh: "MDX <Media />，以及网格没有封面可用的东西：实时的社交小组件。/works 上已没有别的路径会走到它。",
     },
     click: {
       en: "open() when a set is handed in; else inline / <a>",
@@ -122,8 +122,8 @@ export const RENDER_PATHS: readonly RenderPath[] = [
       zh: "折叠的侧栏图标 · 只有胶囊的提交 · MDX 胶囊",
     },
     click: {
-      en: "plain <a> — pills are not in the attachment set",
-      zh: "普通 <a>——胶囊不在附件集里",
+      en: "plain <a>: pills are not in the attachment set",
+      zh: "普通 <a>：胶囊不在附件集里",
     },
     file: "components/log/media/link.tsx",
   },
@@ -174,8 +174,8 @@ export const RENDER_PATHS: readonly RenderPath[] = [
     id: "mdx",
     surface: "Media",
     context: {
-      en: "MDX in /writing — URL in, kind detected",
-      zh: "/writing 里的 MDX——传入 URL，自动识别类型",
+      en: "MDX in /writing: URL in, kind detected",
+      zh: "/writing 里的 MDX：传入 URL，自动识别类型",
     },
     click: {
       en: "inline player / card link; no attachment set",
@@ -191,8 +191,8 @@ export const RENDER_PATHS: readonly RenderPath[] = [
       zh: "首页：与附件面板翻页所用的同一个吸附翻页器",
     },
     click: {
-      en: "useTheater().open — the stage, never the attachment set",
-      zh: "useTheater().open——去舞台，从不经过附件集",
+      en: "useTheater().open: the stage, never the attachment set",
+      zh: "useTheater().open：去舞台，从不经过附件集",
     },
     file: "components/home/featured-talks-widget.tsx",
   },

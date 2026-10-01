@@ -6,11 +6,11 @@ How `/works` renders the preview cards for non-native embeds (web.dev, Medium, �
 
 For each embed that renders as a card, the preview data is resolved highest-priority first:
 
-1. **Manual `preview`** in `content/log.json` — author-curated, authoritative.
-2. **Build-time snapshot** `content/og-snapshot.json` — crawled OG metadata.
-3. **Live crawl** (`GET /api/og?url=…`, called by `fetchOGData` in `lib/og.ts`) — runtime fallback for links not yet snapshotted. Development only unless `NEXT_PUBLIC_OG_RUNTIME=1`; see below.
+1. **Manual `preview`** in `content/log.json`: author-curated, authoritative.
+2. **Build-time snapshot** `content/og-snapshot.json`: crawled OG metadata.
+3. **Live crawl** (`GET /api/og?url=…`, called by `fetchOGData` in `lib/og.ts`): runtime fallback for links not yet snapshotted. Development only unless `NEXT_PUBLIC_OG_RUNTIME=1`; see below.
 
-`(1)` and `(2)` are baked into the data **server-side** (`enrichLogDataWithPreviews` in `app/works/page.tsx`), so cards paint immediately with no request-time crawl and no skeleton flash. `(3)` only runs for a brand-new embed you haven't snapshotted yet — so dev still "just works".
+`(1)` and `(2)` are baked into the data **server-side** (`enrichLogDataWithPreviews` in `app/works/page.tsx`), so cards paint immediately with no request-time crawl and no skeleton flash. `(3)` only runs for a brand-new embed you haven't snapshotted yet, so a new embed still gets its card in dev before the snapshot is updated.
 
 ## Links in prose
 
@@ -46,7 +46,7 @@ since the snapshot (`run pnpm og:snapshot`), so they cannot drift.
 
 ## Why a snapshot
 
-Crawling at request time depends on the third-party site being reachable **and** crawlable from the server's IP. Some sites (Medium) return `403` to server-side requests regardless of User-Agent, so the live crawl is unreliable. The snapshot moves the crawl to build time and commits the result, removing the runtime dependency (and advancing the "static-export compatible" goal — no per-request server action for previews).
+Crawling at request time depends on the third-party site being reachable **and** crawlable from the server's IP. Some sites (Medium) return `403` to server-side requests regardless of User-Agent, so the live crawl is unreliable. The snapshot moves the crawl to build time and commits the result, removing the runtime dependency (and advancing the "static-export compatible" goal: no per-request server action for previews).
 
 ## Workflow
 
@@ -57,7 +57,7 @@ pnpm og:check      # completeness, then re-crawl and fail on snapshot drift
 pnpm og:sizes      # record cover sizes only (no page crawl) → content/image-sizes.json
 ```
 
-Run `og:snapshot` whenever you add/change an embed, review the diff, and commit. The artifact is **deterministic** (sorted keys, no timestamps) so it only changes when content changes — no flaky churn. A failed crawl never overwrites a good prior entry. A crawl that returns a title but no image is treated as unusable — recover with a manual `preview.image`.
+Run `og:snapshot` whenever you add/change an embed, review the diff, and commit. The artifact is **deterministic** (sorted keys, no timestamps) so it only changes when content changes. A failed crawl never overwrites a good prior entry. A crawl that returns a title but no image is treated as unusable; recover with a manual `preview.image`.
 
 ### When a site can't be crawled
 
@@ -81,7 +81,7 @@ Manual previews are skipped by the crawler (you've taken ownership), so they nev
 
 The crawl also reads each page's `X-Frame-Options` and `Content-Security-
 Policy: frame-ancestors`, the headers the browser will honour when the window
-system puts the page in an iframe (the desktop's in-app browser — see
+system puts the page in an iframe (the desktop's in-app browser; see
 [system-attachments.md](./system-attachments.md)). A page that refuses is
 stored as `frame: "deny"` on its entry; a page that may be framed stores
 nothing, so the field reads as the exception it is. Only an explicit refusal
@@ -95,9 +95,9 @@ crawl cannot reach can be told by hand with `preview: { frame: "deny" }`.
 
 GitHub CI runs `pnpm og:complete`. It loads `log.json`, enriches it the same way `/works` does, and fails if any media attachment that paints a cover has no image at runtime:
 
-- **Link cards** — `preview.image` after snapshot + manual merge, including each locale URL in a `urls` map.
-- **Videos** — authored `thumbnail`, snapshot cover (Bilibili / Vimeo), or YouTube's derived poster.
-- **Slides / images** — authored `thumbnail` / `url`; a site-local `/img/…` path must exist under `public/`.
+- **Link cards**: `preview.image` after snapshot + manual merge, including each locale URL in a `urls` map.
+- **Videos**: authored `thumbnail`, snapshot cover (Bilibili / Vimeo), or YouTube's derived poster.
+- **Slides / images**: authored `thumbnail` / `url`; a site-local `/img/…` path must exist under `public/`.
 - **Social widgets** paint themselves and are skipped. Every link is a card, so every link needs an image.
 
 This check does not crawl. A missing cover is a content bug (add a manual `preview` / `thumbnail`, or regenerate the snapshot), not a flaky third-party outage.
@@ -105,7 +105,7 @@ This check does not crawl. A missing cover is a content bug (add a manual `previ
 ## Cover sizes
 
 A card's picture is shown whole by default (`fit: "natural"`), so its slot is
-as tall as the picture — and a picture's height is unknown to the browser until
+as tall as the picture. A picture's height is unknown to the browser until
 its bytes arrive. A peek or a drawer used to open at the caption's height and
 jump as the image loaded. Every cover is known at build time, so its size is
 too: `content/image-sizes.json` records `[width, height]` for every image the
@@ -117,8 +117,8 @@ entry.
 
 - `pnpm og:snapshot` records the sizes of the covers it just snapshotted, from
   each file's header (a remote image is read only as far as its header).
-- `pnpm og:sizes` records them without crawling any page — after adding a
-  manual `preview.image` or replacing a file under `public/`.
+- `pnpm og:sizes` records them without crawling any page. Run it after adding
+  a manual `preview.image` or replacing a file under `public/`.
 - `pnpm og:complete` fails when a cover has no recorded size, or a local
   file's size has changed since it was recorded.
 
@@ -128,8 +128,8 @@ probe never drops a size already recorded, so the entry stays.
 
 ## Drift / stale detection (stale-while-revalidate)
 
-- **CI (completeness):** `pnpm og:complete` — see above. Wired in `.github/workflows/ci.yml`.
-- **Optional live drift:** `pnpm og:check` re-crawls and fails if the committed snapshot differs from live — your signal to regenerate ("invalidate the cache"). Completeness runs first so a blank cover fails before the network work.
+- **CI (completeness):** `pnpm og:complete` (see above). Wired in `.github/workflows/ci.yml`.
+- **Optional live drift:** `pnpm og:check` re-crawls and fails if the committed snapshot differs from live, which is the signal to regenerate ("invalidate the cache"). Completeness runs first so a blank cover fails before the network work.
 - **Dev (opt-in):** set `NEXT_PUBLIC_OG_REVALIDATE=1` to have cards revalidate against the live crawl after painting and `console.warn` when the snapshot looks stale. Off by default to keep dev fast and non-flaky.
 
 ## The live crawl
@@ -151,14 +151,14 @@ in `pnpm dev`.
 
 ## Scope
 
-Only **non-native embeds** are snapshotted — every `link` media item, since the log presents a link only as a card. Native embeds (X, Instagram, TikTok) use their own widgets.
+Only **non-native embeds** are snapshotted: every `link` media item, since the log presents a link only as a card. Native embeds (X, Instagram, TikTok) use their own widgets.
 
 ## Files
 
 | File | Role |
 |------|------|
 | `lib/og-core.ts` | Framework-agnostic crawl + parse + classification. Shared by the action and the script. |
-| `lib/og.ts` | `fetchOGData`: the browser's call to `/api/og` — the live/fallback path. |
+| `lib/og.ts` | `fetchOGData`: the browser's call to `/api/og`, the live/fallback path. |
 | `app/api/og/route.ts` | The live crawl: our pages from `siteCardOf`, anyone else's through the guard. Cacheable GET. |
 | `lib/og-guard.ts` | `assertPublicUrl`: the live crawl requests only public web pages. |
 | `lib/og-snapshot.ts` | Loads the snapshot; `enrichLogDataWithPreviews` bakes previews into log data. |

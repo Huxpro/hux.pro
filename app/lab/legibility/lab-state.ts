@@ -84,7 +84,7 @@ export const POLICY_KNOBS: PolicyKnob[] = [
   { key: "glassAddMax", group: "desktop", affects: ["glassAdd"], label: "Glass add max", hint: "fill points at busy = 1", min: 0, max: 40, step: 1 },
   { key: "glassAddToneMax", group: "desktop", affects: ["glassAdd"], label: "Glass add · tone", hint: "fill points at full tone conflict", min: 0, max: 50, step: 1 },
   { key: "flipMargin", group: "desktop", affects: ["flip", "relief"], label: "Flip margin", hint: "how much better the inverse ink must be", min: 0, max: 0.5, step: 0.01 },
-  { key: "dropBias", group: "desktop", affects: ["flip", "relief"], label: "Drop bias", hint: "head start for the light ink, growing with busy — a halo only fails on texture", min: 0, max: 0.5, step: 0.01 },
+  { key: "dropBias", group: "desktop", affects: ["flip", "relief"], label: "Drop bias", hint: "head start for the light ink, growing with busy; a halo only fails on texture", min: 0, max: 0.5, step: 0.01 },
   { key: "veilBusy", group: "reading", affects: ["veil", "lift"], label: "Veil · busy", hint: "veil alpha added at busy = 1", min: 0, max: 0.5, step: 0.01 },
   { key: "veilConflict", group: "reading", affects: ["veil", "lift"], label: "Veil · tone", hint: "veil alpha added at full tone conflict", min: 0, max: 0.5, step: 0.01 },
   { key: "veilMax", group: "reading", affects: ["veil", "lift"], label: "Veil max", hint: "some picture must remain", min: 0.3, max: 1, step: 0.01 },
@@ -92,7 +92,7 @@ export const POLICY_KNOBS: PolicyKnob[] = [
   { key: "blurBusy", group: "reading", affects: ["blur"], label: "Blur · busy", hint: "px added at busy = 1", min: 0, max: 80, step: 1 },
   { key: "readingSecondaryContrast", group: "reading", affects: ["lift"], label: "Secondary target", hint: "WCAG contrast the secondary rung must reach on a reading route", min: 1, max: 7, step: 0.1 },
   { key: "readingTertiaryContrast", group: "reading", affects: ["lift"], label: "Tertiary target", hint: "WCAG contrast the tertiary rung must reach on a reading route", min: 1, max: 7, step: 0.1 },
-  { key: "readingSecondaryMax", group: "reading", affects: ["lift"], label: "Secondary ceiling", hint: "the most alpha the lift may take secondary to — past it the hierarchy goes", min: 0.5, max: 1, step: 0.01 },
+  { key: "readingSecondaryMax", group: "reading", affects: ["lift"], label: "Secondary ceiling", hint: "the most alpha the lift may take secondary to; past it, the hierarchy is lost", min: 0.5, max: 1, step: 0.01 },
   { key: "readingTertiaryMax", group: "reading", affects: ["lift"], label: "Tertiary ceiling", hint: "the most alpha the lift may take tertiary to", min: 0.3, max: 1, step: 0.01 },
   { key: "tintMinChroma", group: "desktop", affects: ["tint"], label: "Tint min chroma", hint: "greyer than this: no tint", min: 0, max: 0.1, step: 0.005 },
 ];

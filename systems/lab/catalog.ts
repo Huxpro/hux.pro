@@ -125,8 +125,8 @@ export const LABS: readonly LabEntry[] = [
       zh: "一条提交的媒体在哪里打开",
     },
     blurb: {
-      en: "The question “what happens when I press this?”, answered for every kind of thing a commit attaches, on every viewport — with the site's own surfaces doing the answering.",
-      zh: "「按下它会发生什么？」——对一条提交能附带的每一种东西、在每一种视口下作答，答题的是本站自己的界面。",
+      en: "What happens when I press this? Answered for every kind of thing a commit attaches, on every viewport, by the site's own surfaces.",
+      zh: "按下它会发生什么？对一条提交能附带的每一种东西，在每一种视口下，由本站自己的界面作答。",
     },
   },
   {
@@ -155,8 +155,8 @@ export const LABS: readonly LabEntry[] = [
       zh: "墨色、玻璃与壁纸",
     },
     blurb: {
-      en: "Can I read this? Every wallpaper, both materials, both tints, and one of every surface the site draws text on — with every number in the system a slider.",
-      zh: "这能读清吗？每一张壁纸、两种材质、两种着色，以及本站每一种承载文字的界面——系统里的每个数字都是一根滑杆。",
+      en: "Can I read this? Every wallpaper, both materials, both tints, and one of every surface the site draws text on. Every number in the system is a slider.",
+      zh: "这能读清吗？每一张壁纸、两种材质、两种着色，以及本站每一种承载文字的界面。系统里的每个数字都是一根滑杆。",
     },
   },
   {
@@ -170,8 +170,8 @@ export const LABS: readonly LabEntry[] = [
       zh: "同一束光，在每一种尺度",
     },
     blurb: {
-      en: "One light for the whole site — Siri's ring, as a shader on the edge of a rounded box. Every specimen is the production <Glow>, drawn by the one shared renderer. Try the microphone.",
-      zh: "全站只有一束光——Siri 的光环，作为圆角盒边缘上的着色器。每个样本都是线上的 <Glow>，由同一个渲染器绘制。试试麦克风。",
+      en: "One light for the whole site: Siri's ring, as a shader on the edge of a rounded box. Every specimen is the production <Glow>, drawn by the one shared renderer. Try the microphone.",
+      zh: "全站只有一束光：Siri 的光环，作为圆角盒边缘上的着色器。每个样本都是线上的 <Glow>，由同一个渲染器绘制。试试麦克风。",
     },
   },
   {
@@ -185,8 +185,8 @@ export const LABS: readonly LabEntry[] = [
       zh: "屏幕顶部，谁来共用",
     },
     blurb: {
-      en: "Live Activities, parked windows, a notice and a page's pinned bar all reach for one strip at the top. Compose how they share it — every choice an overflow strategy — on the real Dock and real bars, and hold it to four rules measured off the page.",
-      zh: "实时活动、停靠的窗口、提示和页面的吸顶工具栏，都要争顶部这一条。在真实的 Dock 和真实的工具栏上组合它们怎么共用——每个选择都是溢出策略——再用从页面上量出来的四条规则检查。",
+      en: "Live Activities, parked windows, a notice and a page's pinned bar all reach for one strip at the top. Compose how they share it on the real Dock and real bars (each choice is an overflow strategy), and hold it to four rules measured off the page.",
+      zh: "实时活动、停靠的窗口、提示和页面的吸顶工具栏，都要争顶部这一条。在真实的 Dock 和真实的工具栏上组合它们怎么共用（每个选择都是一种溢出策略），再用从页面上量出来的四条规则检查。",
     },
   },
   {

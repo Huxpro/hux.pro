@@ -8,10 +8,10 @@ import type { LabTable } from "@/systems/lab";
 
 const en = {
   ladder: {
-    primary: "primary — the ink",
-    secondary: "secondary — muted-foreground",
-    tertiary: "tertiary — captions, dates beside a title",
-    quaternary: "quaternary — hashes, separators, placeholders",
+    primary: "primary: the ink",
+    secondary: "secondary: muted-foreground",
+    tertiary: "tertiary: captions, dates beside a title",
+    quaternary: "quaternary: hashes, separators, placeholders",
   },
   apps: ["Writing", "Works", "Prompt", "Docs"],
   nowPlaying: "now playing",
@@ -19,7 +19,7 @@ const en = {
   paletteRows: ["Writing", "Wallpaper: Tahoe", "Glass: Clear", "Toggle theme"],
   minRead: "4 min read",
   articleLead:
-    "A fixed grey was a pre-computed alpha for a page that was only ever white or near-black. Under a picture it stops being any alpha at all — ",
+    "A fixed grey was a pre-computed alpha for a page that was only ever white or near-black. Under a picture it stops being any alpha at all: ",
   articleLink: "the same word",
   articleMid: " reads differently on every wallpaper, and ",
   articleTail: " stops meaning “secondary”.",
@@ -29,10 +29,10 @@ const en = {
 
 const zh: typeof en = {
   ladder: {
-    primary: "一阶 — 墨本身",
-    secondary: "二阶 — muted-foreground",
-    tertiary: "三阶 — 说明文字、标题旁的日期",
-    quaternary: "四阶 — 哈希、分隔符、占位符",
+    primary: "一阶：墨本身",
+    secondary: "二阶：muted-foreground",
+    tertiary: "三阶：说明文字、标题旁的日期",
+    quaternary: "四阶：哈希、分隔符、占位符",
   },
   apps: ["写作", "作品", "提示词", "文档"],
   nowPlaying: "正在播放",
@@ -40,7 +40,7 @@ const zh: typeof en = {
   paletteRows: ["写作", "壁纸：Tahoe", "玻璃：透明", "切换主题"],
   minRead: "4 分钟",
   articleLead:
-    "固定的灰色，其实是为一张只会是白色或近黑色的页面预先算好的透明度。一旦底下换成一张图，它就什么透明度都不是了——",
+    "固定的灰色，其实是为一张只会是白色或近黑色的页面预先算好的透明度。一旦底下换成一张图，它就什么透明度都不是了：",
   articleLink: "同一个词",
   articleMid: "在每一张壁纸上读起来都不一样，",
   articleTail: "也不再意味着「次要」。",

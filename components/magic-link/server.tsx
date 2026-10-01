@@ -93,8 +93,8 @@ function sectionCopy(path: string, query: URLSearchParams): SectionCopy | null {
     const type = query.get("type");
     if (type === "talk") {
       return {
-        en: { title: "Talks", description: `${count("talk")} talks I've given — recordings and decks, in the commit log.` },
-        zh: { title: "演讲", description: `${count("talk")} 场演讲——录像与幻灯片，收在提交记录里。` },
+        en: { title: "Talks", description: `Recordings and decks from ${count("talk")} talks I've given, in the commit log.` },
+        zh: { title: "演讲", description: `${count("talk")} 场演讲的录像与幻灯片，收在提交记录里。` },
       };
     }
     if (type === "project") {
@@ -104,8 +104,8 @@ function sectionCopy(path: string, query: URLSearchParams): SectionCopy | null {
       };
     }
     return {
-      en: { title: "Works", description: "Commit history — professional work as git log." },
-      zh: { title: "作品", description: "提交记录——把职业生涯写成 git log。" },
+      en: { title: "Works", description: "Commit history: professional work as git log." },
+      zh: { title: "作品", description: "提交记录：把职业生涯写成 git log。" },
     };
   }
   if (path === "/prompt") {

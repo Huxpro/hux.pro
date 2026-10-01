@@ -243,7 +243,7 @@ export function WorksToolbar({
                 transition={motionOf}
                 onClick={() => toChapterStart(chapter.id)}
                 title={t(locale, "logChapterStart")}
-                aria-label={`${chapter.label} — ${t(locale, "logChapterStart")}`}
+                aria-label={`${chapter.label}: ${t(locale, "logChapterStart")}`}
                 className={cn(
                   CHAPTER_PILL,
                   "pressable border-border transition-colors hover:border-foreground/30",

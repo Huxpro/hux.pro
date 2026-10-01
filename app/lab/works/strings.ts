@@ -122,15 +122,15 @@ const en = {
   pinToIdentity: "Pin to identity (byline)",
   noteEvent: "Events never join a rail.",
   noteDetached: "Force-detached (attachedTo: null).",
-  noteNoRole: "No role covers this date — nothing to attach to.",
-  sourceRole: "role — anchors this cluster",
+  noteNoRole: "No role covers this date, so there is nothing to attach to.",
+  sourceRole: "role (anchors this cluster)",
   sourceExplicit: "explicit identityId",
   sourceAttached: (roleId: string) => `attached → ${roleId}`,
   sourceTenureOf: (roleId: string) => `tenure → ${roleId}`,
   sourceTenure: "tenure",
   // The rail-hole warning reads: before · handle · middle · field · after.
   railHoleBefore: "Detached, but sits inside the ",
-  railHoleMiddle: " cluster — this breaks the continuous rail. Set ",
+  railHoleMiddle: " cluster. This breaks the continuous rail. Set ",
   railHoleAfter: " to Auto to reconnect it.",
 
   // Media
@@ -291,14 +291,14 @@ const zh: typeof en = {
   pinToIdentity: "固定到身份（署名）",
   noteEvent: "事件从不上轨道。",
   noteDetached: "已强制脱离（attachedTo: null）。",
-  noteNoRole: "没有职位覆盖这个日期——无处可挂。",
-  sourceRole: "role — 本簇的锚点",
+  noteNoRole: "没有职位覆盖这个日期，无处可挂。",
+  sourceRole: "role（本簇的锚点）",
   sourceExplicit: "显式 identityId",
   sourceAttached: (roleId: string) => `挂靠 → ${roleId}`,
   sourceTenureOf: (roleId: string) => `任期 → ${roleId}`,
   sourceTenure: "任期",
   railHoleBefore: "已脱离，但位于 ",
-  railHoleMiddle: " 簇之内——这会打断连续的轨道。把 ",
+  railHoleMiddle: " 簇之内，这会打断连续的轨道。把 ",
   railHoleAfter: " 设为「自动」即可重新接上。",
 
   // Media

@@ -7,7 +7,7 @@ const en = {
   reset: "Reset",
   saveFailed: "Save failed",
   savedRaster: "Saved · SVG + home-screen PNGs regenerated",
-  savedSvgOnly: "Saved · SVG written (raster skipped — offline?)",
+  savedSvgOnly: "Saved · SVG written (raster skipped, maybe offline)",
   resetDone: "Reset to default config (not yet saved)",
 
   // Stage
@@ -48,7 +48,7 @@ const en = {
   shape: "Shape",
   cornerRadius: "Corner radius",
   cornerNote:
-    "Baked into the SVG. Leave at 0 for full-bleed — most OSes apply their own mask (previewed on the stage).",
+    "Baked into the SVG. Leave at 0 for full-bleed: most OSes apply their own mask (previewed on the stage).",
 };
 
 const zh: typeof en = {
@@ -57,7 +57,7 @@ const zh: typeof en = {
   reset: "重置",
   saveFailed: "保存失败",
   savedRaster: "已保存 · SVG 与主屏 PNG 已重新生成",
-  savedSvgOnly: "已保存 · 仅写入 SVG（跳过了栅格化——离线？）",
+  savedSvgOnly: "已保存 · 仅写入 SVG（跳过了栅格化，可能离线）",
   resetDone: "已重置为默认配置（尚未保存）",
 
   appTile: "应用图块 · 256",
@@ -95,7 +95,7 @@ const zh: typeof en = {
   angle: "角度",
   shape: "形状",
   cornerRadius: "圆角",
-  cornerNote: "烘焙进 SVG。全出血请保持 0——多数系统会套上自己的遮罩（见舞台上的预览）。",
+  cornerNote: "烘焙进 SVG。全出血请保持 0：多数系统会套上自己的遮罩（见舞台上的预览）。",
 };
 
 export const ICON_STRINGS: LabTable<typeof en> = { en, zh };

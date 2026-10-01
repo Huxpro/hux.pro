@@ -232,7 +232,7 @@ export function PromptToolbar({
                 transition={motionOf}
                 onClick={() => toChapterStart(reading)}
                 title={t(locale, "logChapterStart")}
-                aria-label={`${tagOf(reading)} — ${t(locale, "logChapterStart")}`}
+                aria-label={`${tagOf(reading)}: ${t(locale, "logChapterStart")}`}
                 // One rung above the row, brackets and all: a tag is one
                 // word, and the row's tertiary is what `<system>` wore, so
                 // the element you are inside stands one step out of it —

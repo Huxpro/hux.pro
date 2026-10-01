@@ -1,12 +1,12 @@
 # Dock System
 
-The dock is the top-of-screen home for **Live Activities** — collapsed pills
+The dock is the top-of-screen home for **Live Activities**: collapsed pills
 that morph into expanded panels (the iOS Dynamic Island / Notification Center
 metaphor). It is the shared foundation for the "Global Player" UI: the music
 player and the ambient phase notification are both dock activities and therefore
 look and behave identically.
 
-It is also where the site's one-line **notices** appear — "Dark Mode ·
+It is also where the site's one-line **notices** appear: "Dark Mode ·
 Preference unchanged", "Reading in Chinese", "Sky window · swipe up to come
 back". See [Notices](#notices).
 
@@ -15,11 +15,11 @@ back". See [Notices](#notices).
 ```
 systems/dock/
 ├── provider.tsx                  # DockProvider + useDock (coordination only)
-├── notice.ts                     # showNotice / dismissNotice — the notice store
+├── notice.ts                     # showNotice / dismissNotice: the notice store
 ├── components/
-│   ├── dock.tsx                  # <Dock> — pill row layout
-│   ├── live-activity.tsx         # <LiveActivity> — the pill ⇄ panel drawer
-│   ├── dock-notice.tsx           # <DockNotice> — the notice, at the pills' anchor
+│   ├── dock.tsx                  # <Dock>: pill row layout
+│   ├── live-activity.tsx         # <LiveActivity>: the pill ⇄ panel drawer
+│   ├── dock-notice.tsx           # <DockNotice>: the notice, at the pills' anchor
 │   └── index.ts
 └── index.ts
 ```
@@ -40,7 +40,7 @@ Activities supply only content.
 
 ## The panel is a Base UI Drawer, travelling up
 
-The expanded panel is one `Drawer.Root` with `swipeDirection="up"` — the mirror
+The expanded panel is one `Drawer.Root` with `swipeDirection="up"`, the mirror
 of the phone sheet in `systems/surface`. The Dynamic Island metaphor is anchored
 at the top and puts itself away *upwards*; a sheet does the same thing from the
 bottom edge. They are the same library, the same data attributes, and the same
@@ -56,7 +56,7 @@ What it bought:
 | | |
 |---|---|
 | **Pull to expand** | `Drawer.SwipeArea` wraps the pill, so dragging *down* from it opens the panel and the panel follows the finger the whole way. Release short of half the panel's height and it snaps back. This is the iOS Notification Center gesture; before, a pill could only be tapped. |
-| **Stacking** | The panel registers in the shared surface stack (`systems/surface/stack.ts`) as `dock-activity`. It was the one overlay on the site that did not know about the others. Now a palette opened over it (from the keyboard — a press on the FAB is an outside press and dismisses instead) sends it back a step and makes it inert. A surface that merely shares the screen does not: the panel reports its band, and a sheet that stops at its bottom edge is tiled with it, not over it — see "Covering, not merely later" in [system-surface.md](./system-surface.md). |
+| **Stacking** | The panel registers in the shared surface stack (`systems/surface/stack.ts`) as `dock-activity`. It was the one overlay on the site that did not know about the others. Now a palette opened over it (from the keyboard; a press on the FAB is an outside press and dismisses instead) sends it back a step and makes it inert. A surface that merely shares the screen does not: the panel reports its band, and a sheet that stops at its bottom edge is tiled with it, not over it (see "Covering, not merely later" in [system-surface.md](./system-surface.md)). |
 | **Free layout** | The panel is portalled into the shared `SurfaceViewport`, so the old rule that the pill row must carry no transform (or the `fixed` panels inside it would anchor to the row) is gone. |
 
 Before changing any of it, read the "BEFORE CHANGING THIS FILE" block at the top
@@ -65,17 +65,16 @@ of `systems/dock/components/live-activity.tsx`, and the one it points at in
 
 ### How the panel arrives: a pop, not a slide
 
-A drawer's instinct is to travel — in from the edge it is anchored to. This one
-does not, because the pill it comes from is *right there*, a few pixels above
-the panel's own top edge: there is nothing to travel from. So the entrance is
-the pop the hand-written panel had before the drawer replaced it, kept to the
-frame:
+A drawer normally travels in from the edge it is anchored to. This one does
+not, because the pill it comes from sits a few pixels above the panel's own
+top edge, so there is nothing to travel from. The entrance is the pop the
+hand-written panel had before the drawer replaced it, kept to the frame:
 
 | | |
 |---|---|
-| The popup | `transform: scale(0.94)` on `data-starting-style` / `data-ending-style`, `transform-origin: top center`, over `--dock-pop-duration: 300ms` — the same scale and the same beat as the framer-motion pop it is matching. |
+| The popup | `transform: scale(0.94)` on `data-starting-style` / `data-ending-style`, `transform-origin: top center`, over `--dock-pop-duration: 300ms`: the same scale and duration as the framer-motion pop it matches. |
 | The shell | a `dock-pop-in` / `dock-pop-out` keyframe fade, one level down on the glass. |
-| A dismissed panel | `data-swipe-dismiss` swaps the scale for the travel (up past the top edge and past the inset, so it is gone rather than clipped at the status bar) and switches the fade off — a panel a finger has thrown is going somewhere, not dissolving. |
+| A dismissed panel | `data-swipe-dismiss` swaps the scale for the travel (up past the top edge and past the inset, so it is gone rather than clipped at the status bar) and switches the fade off, because a panel a finger has thrown should leave the screen rather than dissolve. |
 
 Two things about it are load-bearing, and both are also notes 4 and 5 in
 `live-activity.tsx`:
@@ -83,8 +82,9 @@ Two things about it are load-bearing, and both are also notes 4 and 5 in
 **The fade is a keyframe animation on the shell, not a transition on the popup.**
 An animation because the shell's `transition` shorthand already belongs to the
 surface recede and a second `transition` rule would replace it wholesale, and
-because `data-starting-style` lives for one frame — too short for a transition
-to key off, long enough to start an animation that then runs on its own. Base UI
+because `data-starting-style` lives for one frame. That is too short for a
+transition to key off, but long enough to start an animation that then runs on
+its own. Base UI
 reads the *popup's* animations to decide when an exit is over, not the subtree's,
 so the shell's fade never holds the unmount open.
 
@@ -95,8 +95,8 @@ popup's transform when a `Drawer.SwipeArea` drag starts (`resolveClosedOffset`,
 `min(height, |translateY|)`), and it reads it *before* it marks the popup as
 swiping, so it sees the closed rule. Ten pixels of offset told it the panel was
 ten pixels from open; a pull that should track the finger down a whole panel
-height tracked ten and overshot — measured `--drawer-swipe-movement-y` of +12px
-where −170 was due. A pure `scale()` leaves the transform's Y at zero and the
+height tracked ten and overshot (measured `--drawer-swipe-movement-y` of +12px
+where −170 was due). A pure `scale()` leaves the transform's Y at zero and the
 measurement falls through to the panel's height. The ten pixels cost nothing to
 look at: scaling a 170px panel by 0.94 from `top center` already lifts its
 bottom by about that much.
@@ -107,12 +107,12 @@ bottom by about that much.
 `opacity < 1` is its own backdrop root, so a `backdrop-filter` *inside* it
 samples that empty group instead of the page: the glass is not there at all for
 the length of the animation. On the element that carries the blur the same
-opacity is fine — its own backdrop resolves before its opacity applies.
+opacity is fine, because its own backdrop resolves before its opacity applies.
 
 A fade on the popup was tried and shipped, and it made the panel see-through on
 the way in, the page's text legible straight through it, unblurred. A/B'd at the
 same opacity on the same frame: on the shell the text behind it is blurred, on
-the popup it is sharp. That is the whole reason the popup carries the transform
+the popup it is sharp. That is why the popup carries the transform
 and the fades sit one level down, on the shell and on the pill, which are
 themselves the glass. The sheets above hold to the same rule.
 
@@ -122,7 +122,7 @@ anything *between* the shell and `<body>` is fading or filtering.
 ### One place it does not replicate the old dock
 
 The old scrim was a real `fixed inset-0` div, so with a panel open every press
-went to the scrim and nothing else. Keeping that — a pointer-taking viewport —
+went to the scrim and nothing else. Keeping that with a pointer-taking viewport
 was tried and measured: the command palette's FAB became unreachable while a
 Live Activity was open. The drawer's viewport is non-modal instead, so a press
 outside both dismisses the panel (Base UI's outside press) and lands where it
@@ -134,33 +134,33 @@ Two of the Drawer capabilities this was meant to evaluate (#175) do not survive
 contact with a top-anchored panel. Both were built, measured on an iPhone 13
 walkthrough, and reverted.
 
-**`snapPoints` — no.** Base UI sign-corrects `--drawer-snap-point-offset` for
+**`snapPoints`: no.** Base UI sign-corrects `--drawer-snap-point-offset` for
 `up` (`DrawerPopup.js`), but the geometry is still a bottom sheet's mirrored:
 the offset clips the popup's *top*. Measured with `snapPoints={[0.18, 1]}`, the
 compact detent put the panel at `translateY(-50.5px)` with its bounding box at
-`top: -42` — the header, the collapse chevron and the top corners off the screen,
-and the transport controls left showing. A top panel's content flows downward
-from its top edge, so the end that should be clipped is the bottom.
+`top: -42`: the header, the collapse chevron and the top corners were off the
+screen, and the transport controls were left showing. A top panel's content
+flows downward from its top edge, so the end that should be clipped is the bottom.
 
 The live drag is worse: the damped-movement branch in `DrawerPopup.js` and the
 progress maths in `DrawerViewport.js` are both written `swipeDirection ===
 'down'`, so on an up drawer there is no clamp at the fully-open edge. Measured
-transforms during one drag: `-50 → -26 → +5.5 → +37.5 → +69.5` — straight past
-the resting position, unbounded. Settling on release is correct; everything
+transforms during one drag: `-50 → -26 → +5.5 → +37.5 → +69.5`, straight past
+the resting position and unbounded. Settling on release is correct; everything
 before it is not.
 
 Two detents would also mean *different content* at each (a one-line NowPlaying
 vs. the full card), which is a render decision, not a drag geometry. Detents
 clip; they do not swap.
 
-**`Drawer.Indent` / `Drawer.IndentBackground` — no.** Two reasons, one fatal.
+**`Drawer.Indent` / `Drawer.IndentBackground`: no.** Two reasons, one fatal.
 `data-active` is set when *any* drawer inside the nearest `Drawer.Provider` is
 open, so it cannot tell the dock panel from the command palette: measured, both
 indented identically, and the palette indenting is exactly what we decided
 against for the sheets (the bezel already frames the page).
 
 The fatal one: `Drawer.Indent` works by transforming the box around the app's
-main UI, and under `vitre` this site's page *is* a stack of fixed layers —
+main UI, and under `vitre` this site's page *is* a stack of fixed layers:
 the wallpaper, the window layer, the body itself in container scroll. A
 transform on their ancestor makes it their containing block, and with the
 indent's `overflow: hidden` the box has no flow content to be as tall as.
@@ -185,7 +185,7 @@ restructuring its layer model.
   pill={<>{/* leading pill content: art, EQ, icon… */}</>}
   title={<>{/* panel header left side */}</>}
 >
-  {/* panel body — bring your own padding */}
+  {/* panel body: bring your own padding */}
 </LiveActivity>
 ```
 
@@ -214,38 +214,38 @@ These match the product spec for multiple simultaneous activities:
 Everything above competes for one strip at the top of the screen: Live
 Activities, parked windows, a notice, an open panel, and a page's pinned bar
 (/works's and /prompt's toolbars, a lab's own bar). How they share it is still
-being decided — on the real components. It is not one fixed strategy but a
-composition of independent choices, `BandConfig` in `systems/dock/band.ts`,
-read by the Dock, every `LiveActivity`, the parked windows and the page's
+being decided, on the real components. It is a composition of independent
+choices, `BandConfig` in `systems/dock/band.ts`, read by the Dock, every `LiveActivity`, the parked windows and the page's
 `PinnedSlot`:
 
 | Knob | What it chooses |
 |---|---|
 | `share` | whether a pinned bar shares the band at all; off is the old way (pills centred, the bar pinned under them) |
-| `group` | how the occupants stand beside the bar: `all` in a row after it, `tray` in a window of a fixed size, `count` folded into one ball with how many — tap it and the bar folds to a ball while they open out |
+| `group` | how the occupants stand beside the bar: `all` in a row after it, `tray` in a window of a fixed size, `count` folded into one ball with how many; tap it and the bar folds to a ball while they open out |
 | `form` / `openForm` | their shape beside the bar, and when a count is opened: `pill` or `ball` (a ball is the pill at 36px, its content clipped) |
 | `trayCap` | how many a tray shows whole on a phone (two more wider) |
 | `peek` | a window that holds more than it shows ends on half of the next |
 | `barScrolls` | (`all`) the bar rides in the scrolling strip, first, sliding away as the occupants come in |
 
-`PRESETS` names four sets of them — `stack`, `tray`, `scroll` (band scroll),
+`PRESETS` names four sets of them: `stack`, `tray`, `scroll` (band scroll),
 `swap` (either / or). What ships is `DEFAULT_CONFIG`, either / or: side by
 side while everything fits, balls when it does not quite, a count when it
 does not at all. Anything else is a session override set in **`/lab/band`**.
-Every pinned bar takes part — /works's and /prompt's toolbars, and every
+Every pinned bar takes part: /works's and /prompt's toolbars, and every
 lab's own bar (`LabBar`), which rides in a `PinnedSlot` at the band's height
 unless a lab sets it aside (`pin="static"`).
 
 Where everything stands is one function, `bandGeometry(band, vw)`, read by
 both the Dock and the slot, so they never disagree about a pixel. It returns
-the occupants' **window** — exactly where they may be seen, and where the Dock
-row clips, so nothing slides under the bar, the gutter or a ball — and the
-bar's **reserve**, the width it gives up at its end. Some rules it keeps:
+two things. The occupants' **window** is exactly where they may be seen and
+where the Dock row clips, so nothing slides under the bar, the gutter or a
+ball. The bar's **reserve** is the width it gives up at its end. Some rules it
+keeps:
 
 - Every knob is an **overflow** strategy. While the bar at its own width
   and every occupant as a pill fit the band side by side, they stand side by
-  side — left-aligned after the bar, a gap from its glass, running on into
-  the margin beside the column if they need to — whatever is configured; a
+  side, whatever is configured: left-aligned after the bar, a gap from its
+  glass, running on into the margin beside the column if they need to. A
   wide screen is never folded for a phone's sake. Past that,
   in order: the occupants become balls (if `form` says so), then the group
   takes over. A count never counts one occupant: it is already as small as
@@ -257,17 +257,18 @@ bar's **reserve**, the width it gives up at its end. Some rules it keeps:
 - On a phone (a gutter of 32px or less) the window runs on to the screen's
   edge: the next occupant is cut by the edge of the phone, and that cut is
   what says it scrolls. Wider, it stops at the column.
-- The bar never gets less than its minimum while an occupant would fit —
-  but an occupant is never pushed out of reach to save the bar: the window is
+- The bar never gets less than its minimum while an occupant would fit.
+  But an occupant is never pushed out of reach to save the bar: the window is
   at least one whole occupant.
 - An opened count scrolls edge to edge, however many there are.
 - Where the window ends in mid-air (against the bar, the folded ball, the
   column) its end is a capsule's: an occupant sliding out goes under a curve
   of its own radius, not a straight line. At the screen's edge it stays
   square. It is a `clip-path`, which keeps the pills' blur (a mask would not).
-  What a round end leaves of an occupant fades as it thins — gone under 6px,
-  whole from two thirds of a ball — as `filter: opacity()` on the glass
-  itself (an opacity on anything holding it would take the blur with it).
+  What a round end leaves of an occupant fades as it thins (gone under 6px,
+  whole from two thirds of a ball). The fade is `filter: opacity()` on the
+  glass itself (an opacity on anything holding it would take the blur with
+  it).
 
 An occupant takes part the same way: `useBandOccupant()` gives it its shape
 (pill or ball), whether a count hides it, and its own width as a pill
@@ -277,10 +278,10 @@ the Dock fades a sliver. Readers that need one fact about the band select it
 (`useBandSelect`), so a resize does not re-render every Live Activity.
 
 A bar takes part by declaration. Its slot (`PinnedSlot`) measures it and
-reports its box; the bar marks the part that gives way — `data-bar-give` on a
+reports its box. The bar marks the part that gives way: `data-bar-give` on a
 chip group that scrolls inside itself (minimum: the fixed parts and one whole
 chip), or `data-bar-keep` on the part of a wrapping bar that must stay whole
-(the lab bar's name; its tools wrap under it) — and narrows itself by
+(the lab bar's name; its tools wrap under it). It narrows itself by
 `--band-reserve`, which the slot sets. The slot also folds the bar to a ball
 when a count is opened. `LabShell` puts its bar in the band with
 `pin="band"`.
@@ -288,15 +289,15 @@ when a count is opened. `LabShell` puts its bar in the band with
 **The Band Lab** is the site itself: the knobs set the override, the
 occupants are the Dock's own (up to six sample activities drawn by the real
 `LiveActivity`, the mock music player, a parked window, a notice), and the bar
-that meets them is chosen on the page — the lab's own two-row bar, or the
-real /prompt or /works toolbar with sample facets — on the page's real
-scroll. Four rules are measured off the page as it is (`app/lab/band/model.ts`):
+that meets them is chosen on the page: the lab's own two-row bar, or the
+real /prompt or /works toolbar with sample facets. They meet on the page's
+real scroll. Four rules are measured off the page as it is (`app/lab/band/model.ts`):
 one band, a bar that can still do its job, nothing overlapping with the gap
 held, every occupant reachable.
 
 Each part of the harness has one place, and the top is the subject's: the
 lab's own bar, whose second row picks which bar meets the band. At the
-bottom, beside the FAB, the remote — the four rules as dots (tap them for
+bottom, beside the FAB, is the remote: the four rules as dots (tap them for
 what they measured, in a sheet that is not modal, so the band stays live
 under it), how many occupants, the presets. The fine knobs are a panel: in
 the page on a phone, beside it and pinned on a wide screen.
@@ -322,16 +323,16 @@ showNotice({
 
 A notice is the system telling you something happened, once, in a line: the
 sun switched the theme, the page is in the other language now, the sky window
-opened, a link went to a new tab. It is callable from anywhere — providers,
-effects, a clock — because it is a module store (`notice.ts`), not a context;
-most callers sit beside the Dock in the tree, not under it.
+opened, a link went to a new tab. It is callable from anywhere (providers,
+effects, a clock) because it is a module store (`notice.ts`) rather than a
+context. Most callers sit beside the Dock in the tree, not under it.
 
 **Why here, and not a bottom toast.** The site used to show these through Sonner
 at the bottom centre. Measured on a 390px phone, the toast row sat 16px from the
 bottom and 46px tall, over the command bar at 24–72px: for the three seconds
 it was up, a tap on ⌘K landed on the toast. The two-button language card was
-worse — 136px tall, over ⌘K until answered — and at `z-index: 999999999` it
-drew over every sheet and over the About veil. The fix is a rule about which
+worse: 136px tall, it covered ⌘K until answered, and at `z-index: 999999999`
+it drew over every sheet and over the About veil. The fix is a rule about which
 edge means what:
 
 | Edge | Direction | What lives there |
@@ -356,14 +357,14 @@ Rules it keeps:
   the notice goes (`components/ui/use-notice-yield.ts`). Only when it is
   actually under the notice: pinned below Live Activity pills it already
   clears it, and resting under the title it is nowhere near.
-- **A press takes it down early.** It is not a button — a screen reader hears
-  it through the `role="status"` region — so its time is what dismisses it for
+- **A press takes it down early.** It is not a button (a screen reader hears
+  it through the `role="status"` region), so its time is what dismisses it for
   everyone else.
 - **Opacity on the glass.** The notice's fade is on the capsule, which carries
   the blur; see "The glass is the constraint on the motion" above.
 
-A notice has no choices in it. Anything that asks — like a link shared in the
-other language than the reader's — is a surface: a bigger toast rather than a
+A notice has no choices in it. Anything that asks, like a link shared in the
+other language than the reader's, is a surface: a bigger toast rather than a
 dialog. `components/post/language-sheet.tsx` is a form sheet rising from the
 bottom at every width, capped at 400px on a desk (`sheetMaxWidth`), and not
 modal: no scrim, the page stays live behind it.
@@ -372,10 +373,11 @@ modal: no scrim, the page stays live behind it.
 
 The shape says what a thing is, not which edge it came from:
 
-- **Capsule** (`GLASS_CAPSULE`, `lib/glass.ts`) — one line to glance at: a Live
-  Activity pill, a notice, the pinned /works and /prompt bars, the command bar.
-- **Rounded rectangle** — something to read or act on: the Live Activity panel
-  (16px), a sheet (24px), a window.
+- **Capsule** (`GLASS_CAPSULE`, `lib/glass.ts`) is for one line to glance at:
+  a Live Activity pill, a notice, the pinned /works and /prompt bars, the
+  command bar.
+- **Rounded rectangle** is for something to read or act on: the Live
+  Activity panel (16px), a sheet (24px), a window.
 
 A capsule with two buttons in it, or a card pretending to be a toast, is the
 thing to avoid.
@@ -387,7 +389,7 @@ thing to avoid.
 | Music | `systems/music/components/music-activity.tsx` | album art + EQ | `<NowPlaying />` |
 | Ambient phase | `systems/ambient/components/phase-activity.tsx` | sun icon + time | `<WeatherNow />` |
 | Theater audio | `systems/theater/components/theater-activity.tsx` | thumbnail + EQ | transport + `<SurfaceSwitch />` |
-| Minimized windows | `systems/windows/components/minimized-dock.tsx` | app icon + title | — (restores the window) |
+| Minimized windows | `systems/windows/components/minimized-dock.tsx` | app icon + title | none (restores the window) |
 
 Notices: the sun switching the theme (`systems/ambient/components/solar-theme.tsx`),
 the sky window (`wallpaper-background.tsx`), a link that refused to be framed

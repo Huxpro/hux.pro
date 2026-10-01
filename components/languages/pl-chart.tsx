@@ -374,7 +374,7 @@ function Dot({
           onBlur={() => onPreview(false)}
           aria-haspopup="dialog"
           aria-expanded={selected}
-          aria-label={`${nameOf(language, locale)} — ${AXES.x.name[locale]} ${language.i13s}, ${AXES.y.name[locale]} ${language.exp}, ${AXES.abs.name[locale]} ${tier.level ?? ""} (${tier.label[locale]})`}
+          aria-label={`${nameOf(language, locale)}: ${AXES.x.name[locale]} ${language.i13s}, ${AXES.y.name[locale]} ${language.exp}, ${AXES.abs.name[locale]} ${tier.level ?? ""} (${tier.label[locale]})`}
           className={cn(
             "group/dot pressable relative grid size-8 cursor-pointer place-items-center rounded-full outline-none",
             "focus-visible:ring-2 focus-visible:ring-ring/50",

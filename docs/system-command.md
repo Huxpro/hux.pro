@@ -10,8 +10,8 @@ dual-purpose: a universal search **and** an **app launcher**.
 systems/command/
 ├── provider.tsx       # CommandProvider with keyboard shortcuts
 ├── palette.tsx        # Picks the shell for the viewport: sheet or popover
-├── popover.tsx        # The desktop shell — a Spotlight card, draggable
-├── sheet.tsx          # The phone shell — a bottom sheet with detents
+├── popover.tsx        # The desktop shell: a draggable Spotlight card
+├── sheet.tsx          # The phone shell: a bottom sheet with detents
 ├── actions.tsx        # The one command list; CommandKind; shell context
 ├── results.tsx        # cmdk results and the slash list, shared by both shells
 ├── apps-launcher.tsx  # Spotlight-style horizontal Apps strip
@@ -27,8 +27,8 @@ surface decides it (`useSurfaceMode`, see [Surfaces](./system-surface.md)):
 
 | Viewport | Shell | Where |
 |----------|-------|-------|
-| Phone (below `sm`) | **Sheet** — `SurfaceSheet` with detents `[0.7, 1]` | `sheet.tsx` |
-| From `sm` up | **Popover** — the centred Spotlight card, draggable | `popover.tsx` |
+| Phone (below `sm`) | **Sheet**: `SurfaceSheet` with detents `[0.7, 1]` | `sheet.tsx` |
+| From `sm` up | **Popover**: the centred Spotlight card, draggable | `popover.tsx` |
 
 `palette.tsx` declares `{ base: "sheet", sm: "popover" }` against the surface
 system's breakpoints (`useBreakpointValue`), so the palette and the secondary
@@ -50,7 +50,7 @@ A launcher is not a secondary surface, so the sheet is modal: the page stops
 answering while it is up, and a tap on the page dismisses it, as a click on the
 page dismisses the popover.
 
-**Keyboard hints** — the letters beside rows, `esc`, the footer's arrows —
+**Keyboard hints.** The letters beside rows, `esc` and the footer's arrows
 follow the input device, not the shell: `useShowKeyboardHints()` reads
 `hasFineHoverPointer` from `services/input-capability`. A desktop shows them;
 so does an iPad with a trackpad (and so a keyboard), live, the moment one is
@@ -58,7 +58,7 @@ attached; a phone and a bare iPad do not, in either shell. The popover's own
 Safari accommodations are keyed to the *phone* (`/iPhone|iPod/`), not to iOS:
 iPad Safari has the room to be treated like a desktop.
 
-**Stacking.** A command that opens a secondary surface — the wallpaper picker —
+**Stacking.** A command that opens a secondary surface (the wallpaper picker)
 does not close the palette on a phone. The palette stays and steps back while
 the picker rises over it (the surface stack does that; from a sub-mode sheet
 the palette steps back two), and closing the picker brings it forward again:
@@ -69,8 +69,8 @@ keyboard goes. On the desktop the popover closes, as before.
 exclusive (`isSlashCommandsMode` / `isLoadBundleMode` in `provider.tsx`): the
 slash list and the load-bundle form. Each is a task inside the palette that
 returns to the palette when it is done, so on a phone each is a second sheet
-stacked on the palette, the way iOS presents a sheet from a sheet — never a
-body swapped in underneath, which is what the popover does and what the sheet
+stacked on the palette, the way iOS presents a sheet from a sheet. It is never
+a body swapped in underneath, which is what the popover does and what the sheet
 used to do for load bundle.
 
 | Sub-mode | Sheet | Height | Reached by | Leaves by |
@@ -81,11 +81,11 @@ used to do for load bundle.
 Both headers are the same shape: an icon, the title, and one way out one level
 down.
 
-Both behave the same way in the stack, and that is the point: the palette stays
-open and steps back (the surface stack does that), the sub-mode rises over it,
-and a drag down — the palette coming forward under the finger — its close
-button or a tap on the receded palette brings the palette forward again, one
-level at a time as on iOS: the palette's own close stays on the palette.
+Both behave the same way in the stack. The palette stays open and steps back
+(the surface stack does that), and the sub-mode rises over it. A drag down (the
+palette coming forward under the finger), the sub-mode's close button or a tap
+on the receded palette brings the palette forward again, one level at a time as
+on iOS; the palette's own close stays on the palette.
 Neither returns focus on close (`restoreFocus={false}`): focus handed back to
 the search field is a focused field with no keyboard, and iOS opens the
 keyboard on the next touch anywhere. Neither has detents of its own: Base UI
@@ -100,8 +100,8 @@ The slash list stands level with the palette's detent
 (`detentHeight(detent)` + `level={detent}`, read once on the way in), with the
 palette's top edge peeking above: a list picks up where the palette's list left
 off. The bundle form takes the height of a hint, a field and a button and no
-more (`fitContent` on `SurfaceSheet`) — a sheet up to the palette's detent to
-hold one field would be mostly empty — and grows a line when the invalid-URL
+more (`fitContent` on `SurfaceSheet`), since a sheet up to the palette's detent
+would be mostly empty around one field. It grows a line when the invalid-URL
 message appears. It is the one sub-mode with a field of its own, so the keyboard
 comes back for it: the sheet rests on top of the keyboard rather than behind it
 (`--drawer-keyboard-inset`, handled once in `SurfaceSheet` by Base UI's
@@ -120,20 +120,21 @@ still gets the slash letters.
 
 ### The popover
 
-The palette as it was: a centred card a fifth of the way down, morphing between
-its three modes in place — the sub-modes replace its body rather than stacking
-on it, because a popover has no stack — draggable through the shared hook,
-closed by a click on the page. It keeps its iOS Safari accommodations (scroll position pinned while up,
-no autofocus so the keyboard does not jump the layout) because the devtool can
-still ask for it on a phone — the Command module's **Phone palette** row, a
-saved setting, switches Sheet ↔ Popover. That is one presentation map, not a
-second code path: the popover never stopped working at phone width.
+The palette as it was: a centred card a fifth of the way down, draggable
+through the shared hook and closed by a click on the page. It morphs between
+its three modes in place; the sub-modes replace its body rather than stacking
+on it, because a popover has no stack. It keeps its iOS Safari accommodations
+(scroll position pinned while up, no autofocus so the keyboard does not jump
+the layout) because the devtool can still ask for it on a phone: the Command
+module's **Phone palette** row, a saved setting, switches Sheet ↔ Popover. The
+switch is one entry in the presentation map, with no second code path; the
+popover never stopped working at phone width.
 
 The popover search list grows with the viewport (`43dvh`, capped at `40rem`)
-instead of a fixed `360px` — Geolocation is the last full row on a 16" laptop.
-Slash commands skip that cap so the card grows taller as it morphs, the way
-it used to. It also sits a little lower (`22vh`, capped at `13.5rem`). The
-sheet does not use this: it fills whichever detent it is on.
+instead of a fixed `360px`; at that size Geolocation is the last full row on a
+16" laptop. Slash commands skip that cap so the card grows taller as it morphs,
+the way it used to. It also sits a little lower (`22vh`, capped at `13.5rem`).
+The sheet does not use this: it fills whichever detent it is on.
 
 ### Commands
 
@@ -164,7 +165,7 @@ When the Window system is mounted, ⌘K also launches apps from
 `content/apps.json` via a headerless **horizontal icon strip**
 (`systems/command/apps-launcher.tsx`):
 
-- Same presentation for browse and search — cmdk filters icons in place
+- Same presentation for browse and search: cmdk filters icons in place
 - Strip scrolls horizontally when the catalog overflows
 - Group hides entirely when no app matches the query
 - Real snapshot tiles via shared `AppTile` (`md` / 48px). Below Tailwind `md`
@@ -199,7 +200,7 @@ are one step quieter still: no label, so no row at all.
 | `U` | Go to Writing |
 | `X` | Go to Works |
 | `I` | Go to Docs (internal) |
-| `E` | Go to `/lab`, the index of labs (`e` for experiments — `L` is Language). Not in the slash list: Labs is *search-only* (below). Each lab is a card on the index and an entry in the dropdown on every lab's sticky bar; `log.json` is the Works Lab (`/lab/works`). See `systems/lab/catalog.ts`. |
+| `E` | Go to `/lab`, the index of labs (`e` for experiments; `L` is Language). Not in the slash list: Labs is *search-only* (below). Each lab is a card on the index and an entry in the dropdown on every lab's sticky bar; `log.json` is the Works Lab (`/lab/works`). See `systems/lab/catalog.ts`. |
 | `A` | Cycle Appearance: Follow the Sun → the theme the sun isn't showing → the one it is → Follow the System |
 | `L` | Toggle language |
 | `G` | Toggle geolocation |
