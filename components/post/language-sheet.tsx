@@ -8,9 +8,9 @@ import { AdaptiveSurface } from "@/systems/surface";
 import { Languages } from "lucide-react";
 
 // ---------------------------------------------------------------------------
-// LanguageSharedSheet — a link shared in the other language than yours.
+// LanguageSharedSheet: a link shared in the other language than yours.
 //
-// A choice, so a surface — but a small one: a bigger toast, not a dialog. It
+// A choice, so a surface, but a small one: a bigger toast, not a dialog. It
 // rises from the bottom at every width, a form sheet as tall as what it holds
 // and no wider than 400px on a desk, and it is not modal: no scrim, the page
 // stays live and scrollable behind it, and it waits there until answered. A
@@ -29,14 +29,14 @@ import { Languages } from "lucide-react";
 // put away, onto the page it is asking about.
 // ---------------------------------------------------------------------------
 
-/** A language named in the words of `text` — "Chinese" in English, 英文 in Chinese. */
+/** A language named in the words of `text`: "Chinese" in English, 英文 in Chinese. */
 export function languageName(text: Locale, lang: Locale) {
   return t(text, lang === "en" ? "languageNameEn" : "languageNameZh");
 }
 
 /**
  * Tall and full-width under a thumb; on a desk, a compact row at the foot of
- * the card, the way a banner's actions sit — nothing there needs a whole line.
+ * the card, the way a banner's actions sit. Nothing there needs a whole line.
  */
 const BUTTON = cn(
   "w-full rounded-2xl px-4 py-3 text-[15px] font-medium transition-colors",
@@ -51,18 +51,18 @@ export function LanguageSharedSheet({
   onChoose,
 }: {
   open: boolean;
-  /** The language the link was shared in — the page as it stands. */
+  /** The language the link was shared in: the page as it stands. */
   shared: Locale;
   /** The reader's own, as far as the site knows; the sheet speaks it. */
   preferred: Locale;
   onChoose: (lang: Locale) => void;
 }) {
-  // Which language says what. The sheet's own words — the title, the body —
+  // Which language says what. The sheet's own words (the title, the body)
   // are chrome, so they speak the reader's language, like the rest of the
   // site's system text. The two choices do not: each is written in the
   // language it leads to, the way an OS lists languages by their own names.
   // "The reader's language" is the site's guess (a stored choice, or the
-  // browser's), and a guess can be wrong — an English browser in a Chinese
+  // browser's), and a guess can be wrong: an English browser in a Chinese
   // reader's hands. Written in their own languages, each option is legible to
   // exactly the person who wants it, whichever way the guess went.
   const inPreferred = (key: Parameters<typeof t>[1]) =>

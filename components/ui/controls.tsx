@@ -4,17 +4,17 @@ import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 // =============================================================================
-// Controls — the two settings widgets the site keeps re-drawing.
+// Controls: the two settings widgets the site keeps re-drawing.
 //
 // A segmented picker and an on/off switch existed three times over: in the
 // devtool panel, in the wallpaper picker's compact rows, and now wherever a
 // reader changes something. They are one widget each; what differs is the
 // voice of the surface they sit on, so that is the only thing parameterised.
-// All three call this file — if a fourth copy appears, fold it in rather than
+// All three call this file. If a fourth copy appears, fold it in rather than
 // letting this comment become a claim about the past.
 //
 //   system  the devtool's voice: mono, uppercase, a hairline box, and green
-//           for on — a machine readout, and the green says "live".
+//           for on. A machine readout, and the green says "live".
 //   reader  the article's voice: sans, sentence case, an inset track with a
 //           raised thumb, grayscale. iOS's controls, in the site's ink.
 //   bare    the log toolbar's voice: no track at all, just glyphs on the
@@ -22,8 +22,8 @@ import type { ReactNode } from "react";
 //           other controls rather than on its own, so a box around it would
 //           be a second frame in a bar that has none.
 //
-// Anything that is genuinely per-use — what the options say, whether the
-// labels carry their own typeface — stays with the caller.
+// Anything that is per-use (what the options say, whether the labels carry
+// their own typeface) stays with the caller.
 // =============================================================================
 
 export type ControlTone = "system" | "reader" | "bare";
@@ -164,12 +164,12 @@ export function Switch({
 }
 
 // =============================================================================
-// HeaderAction — the chips a page puts under its big title.
+// HeaderAction: the chips a page puts under its big title.
 //
 // /writing and /docs already had these: the language filter's two segments.
 // They are the site's word for "something you can do to this page", and they
 // are mono because they belong to the machine layer, not to the prose. An
-// article's header has its own — switch language, open reading settings — and
+// article's header has its own (switch language, open reading settings), and
 // until now they were each drawn differently and one of them floated off to
 // the right margin, where the ruler lives.
 //

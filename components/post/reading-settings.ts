@@ -5,15 +5,15 @@ import { useEffect } from "react";
 import { makeStore } from "./persisted-setting";
 
 /**
- * Reading-surface settings — small persisted, global dev-time channels
+ * Reading-surface settings: small persisted, global dev-time channels
  * adjustable from the devtool "Reading" panel (all built on the shared
  * {@link makeStore} factory):
  *
- *   · bleed   — let wide landscape media break out of the reading column
- *   · font    — reading typeface (body, headings, title): sans (default) or serif
- *   · size    — type size: small / default / large
- *   · measure — reading column width: narrow / default / wide
- *   · focus   — dim every block but the one at the reading line
+ *   · bleed:    let wide landscape media break out of the reading column
+ *   · font:     reading typeface (body, headings, title): sans (default) or serif
+ *   · size:     type size: small / default / large
+ *   · measure:  reading column width: narrow / default / wide
+ *   · focus:    dim every block but the one at the reading line
  *
  * {@link ReadingRootSync} reflects each onto an attribute on <html> (consumed
  * by app/globals.css) and drives the focus dimming. Mount it once at the app
@@ -24,7 +24,7 @@ export type ReadingFont = "sans" | "serif";
 export type ReadingSize = "small" | "default" | "large";
 export type ReadingMeasure = "narrow" | "default" | "wide";
 
-// Bleed defaults ON — absence of a stored value means "bleed active", so only
+// Bleed defaults ON: absence of a stored value means "bleed active", so only
 // an explicit "off" disables it. That polarity is deliberate (see the
 // data-bleed-off note in ReadingRootSync).
 const bleedStore = makeStore<"on" | "off">(
@@ -83,7 +83,7 @@ export const getReadingFocus = () => focusStore.get() === "on";
 export const useReadingFocus = (): boolean => focusStore.use() === "on";
 
 // -----------------------------------------------------------------------------
-// Root sync — reflects settings onto <html> and drives focus dimming
+// Root sync: reflects settings onto <html> and drives focus dimming
 // -----------------------------------------------------------------------------
 
 /**
@@ -101,14 +101,14 @@ export function ReadingRootSync() {
 
   // Bleed defaults on, so the attribute is the *kill switch*: present only when
   // disabled. (Font/measure/focus default to neutral, so absence = default for
-  // them — opposite polarity, matching opposite defaults.)
+  // them: opposite polarity, matching opposite defaults.)
   useEffect(() => {
     const root = document.documentElement;
     if (bleed) root.removeAttribute("data-bleed-off");
     else root.setAttribute("data-bleed-off", "");
   }, [bleed]);
 
-  // Font: sans is the default (no attribute) — only mark serif.
+  // Font: sans is the default (no attribute), so only mark serif.
   useEffect(() => {
     const root = document.documentElement;
     if (font === "serif") root.setAttribute("data-reading-font", "serif");
@@ -130,7 +130,7 @@ export function ReadingRootSync() {
   }, [measure]);
 
   // Focus: dim every prose block except the one crossing the reading line
-  // (viewport 40% — the same index line the ruler reads from).
+  // (viewport 40%, the same index line the ruler reads from).
   useEffect(() => {
     const root = document.documentElement;
     if (!focus) {

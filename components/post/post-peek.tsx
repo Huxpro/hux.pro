@@ -8,7 +8,7 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
-// PostPeekView — a post, summoned.
+// PostPeekView: a post, summoned.
 //
 // The /writing row's peek, and every other place a post is summoned the same
 // way: a magic link in prose peeks with it under the pointer, and on a phone
@@ -33,7 +33,7 @@ const LANGUAGE_LABEL: Record<PostLanguage, string> = {
 /**
  * Strip markdown link syntax `[text](url)` to plain `text`. Origin strings are
  * authored as markdown (so the post body can render them with live links) but
- * the peek is a non-interactive surface — flattening keeps the provenance
+ * the peek is a non-interactive surface. Flattening keeps the provenance
  * legible without exposing dead anchor text.
  */
 function flattenMarkdownLinks(md: string): string {
@@ -41,23 +41,23 @@ function flattenMarkdownLinks(md: string): string {
 }
 
 /**
- * Peek preview — the disclosure layer for a post row.
+ * Peek preview: the disclosure layer for a post row.
  *
  * Designed as a card-shaped surface roughly half the width of the prose page:
  * cover image flush at top (when present), then a content well with the
  * post's hidden artifacts laid out as an editorial composition. Sections in
  * order:
- *   1. cover image  — visual vibe, the first image the article opens with
- *   2. top meta     — caption (LANG · READING TIME) + provenance (italic),
- *                     stacked. The caption itself signals BILINGUAL when the
- *                     post has both languages, so no separate alt-lang line.
- *   3. description  — curated frontmatter summary, serif italic (editorial dek)
- *   4. excerpt      — the first paragraph, whole (sans, prose recipe)
+ *   1. cover image:  the first image the article opens with
+ *   2. top meta:     caption (LANG · READING TIME) + provenance (italic),
+ *                    stacked. The caption itself signals BILINGUAL when the
+ *                    post has both languages, so no separate alt-lang line.
+ *   3. description:  curated frontmatter summary, serif italic (editorial dek)
+ *   4. excerpt:      the first paragraph, whole (sans, prose recipe)
  *   5. hairline rule
- *   6. tags         — plain text, middle-dot separated
+ *   6. tags:         plain text, middle-dot separated
  *
  * Title and date are deliberately omitted (both already on the hovered row).
- * No chips, no icons, no colored accents — keeps the surface inside the
+ * No chips, no icons, no colored accents. That keeps the surface inside the
  * project's content UI calm even though the panel chrome itself is system
  * Liquid Glass.
  */
@@ -80,7 +80,7 @@ export function PostPeekView({
   return (
     <div className={cn(className ?? PEEK_W, "max-w-full")}>
       {meta.cover && (
-        // Shared cover slot — `fit`/`aspect` come from the post's frontmatter
+        // Shared cover slot. `fit`/`aspect` come from the post's frontmatter
         // (`coverFit` / `coverAspect`). Default is a fixed cropped rectangle;
         // `coverFit: natural` shows the whole cover at its own aspect (e.g. a
         // tall portrait screenshot) instead of slicing it into a band.
@@ -92,7 +92,7 @@ export function PostPeekView({
       )}
 
       <div className="p-4 space-y-3">
-        {/* Caption strip — matches the article inner page's meta line
+        {/* Caption strip. Matches the article inner page's meta line
             (`date · min read · origin` mono uppercase, middle-dot separated).
             Origin appends with the same separator instead of starting a new
             italic line, so the peek's header reads as the page's header. */}
@@ -114,8 +114,8 @@ export function PostPeekView({
           )}
         </div>
 
-        {/* Description acts as a subtitle / dek — serif italic for the
-            editorial vibe, distinct register from the sans excerpt below.
+        {/* Description acts as a subtitle / dek: serif italic for an
+            editorial register, distinct from the sans excerpt below.
             A peek field only: the post's page doesn't print it. */}
         {description && (
           <p
@@ -137,7 +137,7 @@ export function PostPeekView({
         {hasTags && (
           // Same recipe as the top caption (mono uppercase tracking-wider)
           // so the card frames its content with a matched pair of meta
-          // strips — top: language/reading; bottom: tags.
+          // strips (top: language/reading; bottom: tags).
           <div className={cn("pt-3 border-t border-border/30 leading-relaxed", TYPE.labelSm)}>
             {meta.tags!.join("  ·  ")}
           </div>

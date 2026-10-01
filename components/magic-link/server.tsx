@@ -14,7 +14,7 @@ import type { ComponentPropsWithoutRef } from "react";
 import { MagicLink, type MagicLinkProps } from "./magic-link";
 
 // =============================================================================
-// Magic links, resolved on the server — what only the server can read.
+// Magic links, resolved on the server: what only the server can read.
 //
 // A post's peek is made of its body (the excerpt, the cover), which lives on
 // disk; a section of this site is summarised by counting what is in it. So an
@@ -42,7 +42,7 @@ function postSlugOf(href: string | undefined): string | null {
   return m ? m[1] : null;
 }
 
-/** A post as a writing link carrying its peek — see InternalLinkMeta. */
+/** A post as a writing link carrying its peek. See InternalLinkMeta. */
 function postMedia(slug: string): LinkMedia | null {
   const full = readPost(slug);
   if (!full) return null;
@@ -171,7 +171,7 @@ export function ServerBadge(props: Omit<ServerMagicLinkProps, "badge">) {
 }
 
 // =============================================================================
-// ServerProseLink — an ordinary link in prose, as a magic link when it can be.
+// ServerProseLink: an ordinary link in prose, as a magic link when it can be.
 //
 // MDX's `a`, in a post, a doc and the About. A link needs no markup to peek
 // when it points at something of this site's own; it then behaves as that

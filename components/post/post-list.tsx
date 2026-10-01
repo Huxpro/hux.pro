@@ -75,7 +75,7 @@ export function PostList<T extends Post>({
 
   // Devtool hook: when the panel is enabled, hovering a row publishes that
   // post's frontmatter to the shared inspector (same channel the article page
-  // uses). No-op — and zero cost — for normal visitors; the data is already in
+  // uses). No-op, at zero cost, for normal visitors; the data is already in
   // the list payload, so this adds no network. `useOptionalDevtool` keeps the
   // component usable outside the provider (never throws).
   const devtool = useOptionalDevtool();
@@ -103,8 +103,8 @@ export function PostList<T extends Post>({
           // The row's peek (components/post/post-peek.tsx): the post's
           // "inner page" bits, for this locale, falling back to the other.
           const peek = postPeekOf(post as PostPeekSource, locale);
-          // Decorator tags (译 / 知乎) double as a visible row annotation —
-          // the calm replacement for the old hardcoded 「译」 title prefix.
+          // Decorator tags (译 / 知乎) double as a visible row annotation.
+          // They replace the old hardcoded 「译」 title prefix.
           // The peek's tags are already locale-filtered, so only decorators
           // visible in this locale surface here.
           //

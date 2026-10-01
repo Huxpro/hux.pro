@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 // =============================================================================
 // useRangeDrag
 //
-// Press anywhere on a slider, then drag — and keep dragging wherever the
+// Press anywhere on a slider, then drag, and keep dragging wherever the
 // pointer goes until it lets go. The platform's range input does not do this
 // on a phone: iOS Safari moves the value only from a touch that lands on the
 // thumb, and the devtool's playhead has a 3px thumb. So the input keeps

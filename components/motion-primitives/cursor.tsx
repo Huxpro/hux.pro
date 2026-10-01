@@ -54,7 +54,7 @@ export function Cursor({
     typeof window !== "undefined" ? window.innerHeight / 2 : 0
   );
   // Horizontal offset stays fixed so the panel always sits in the same side
-  // gutter and never covers the reading column — with one exception: a panel
+  // gutter and never covers the reading column, with one exception: a panel
   // that would leave the screen on the right flips to the pointer's left
   // instead. A mark at the trailing edge of the column (a `<handle>` under
   // the date) would otherwise peek into the void. The vertical offset is
@@ -160,7 +160,7 @@ export function Cursor({
 
   // The panel exists only while it peeks. A fixed, transformed element is a
   // compositing layer, and one per row of /works was fifty layers on a desk
-  // before anyone hovered; idle, this is a hidden span — enough for the
+  // before anyone hovered. Idle, this is a hidden span, enough for the
   // parent-attach effect above to find the parent. `present` outlives
   // `isVisible` by the exit animation, so the panel can leave the way it
   // came. (React's "adjusting state during render" pattern, so the panel

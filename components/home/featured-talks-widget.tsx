@@ -16,7 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
-// FeaturedTalksWidget — the combined "Featured Talks" home card.
+// FeaturedTalksWidget: the combined "Featured Talks" home card.
 //
 // Replaces the three separate React / Lynx / Personal talk widgets with one
 // album-switching card: pick an album (segmented control), scroll its videos

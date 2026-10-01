@@ -187,7 +187,7 @@ const sharedComponents: MDXComponents = {
   // - MediaRenderer: Orchestrates multiple media items
   // ---------------------------------------------------------------------------
   // ---------------------------------------------------------------------------
-  // The PL chart (content/blog/pl-chart.*.mdx) — the chart and its notes, over
+  // The PL chart (content/blog/pl-chart.*.mdx): the chart and its notes, over
   // content/languages.json. `locale` is the post's language, not the site's.
   // ---------------------------------------------------------------------------
   PLChart: withNotProse(PLChart),
@@ -202,8 +202,8 @@ const sharedComponents: MDXComponents = {
   MediaRenderer: withNotProse(MediaRenderer),
 
   // ---------------------------------------------------------------------------
-  // MagicLink / Badge — a word that summons something: a post, a work, a
-  // role, a page, an app. Peeks under the pointer as the thing does on
+  // MagicLink / Badge: a word that summons something (a post, a work, a
+  // role, a page, an app). Peeks under the pointer as the thing does on
   // /writing and /works; opens the drawer on a phone. A Badge is the same
   // link dressed as a pill with the thing's icon. Inline, so not wrapped in
   // `.not-prose` here; they carry the class themselves.
@@ -227,7 +227,7 @@ const sharedComponents: MDXComponents = {
   // ---------------------------------------------------------------------------
   // Docs: live code + preview playground
   // ---------------------------------------------------------------------------
-  // NOTE: Do NOT wrap with `.not-prose` — we want prose code styles (Shiki vars)
+  // NOTE: Do NOT wrap with `.not-prose`. We want prose code styles (Shiki vars)
   // to apply to the source pane.
   Playground,
 };

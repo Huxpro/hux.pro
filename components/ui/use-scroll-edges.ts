@@ -5,7 +5,7 @@ import { useEffect, useState, type RefObject } from "react";
 /**
  * Whether a horizontal scroller has more to show past either edge. For
  * fading the edge it is cut at, so a row cut mid-item reads as "there is
- * more this way" rather than as a mistake — and only while it is cut: a
+ * more this way" rather than as a mistake. Only while it is cut, though: a
  * row that fits wears nothing.
  */
 export function useScrollEdges(ref: RefObject<HTMLElement | null>): {

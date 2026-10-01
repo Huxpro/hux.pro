@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 
 // =============================================================================
-// HoldRing — the charge of a hidden long-press, drawn where a finger isn't.
+// HoldRing: the charge of a hidden long-press, drawn where a finger isn't.
 //
 // A finger on a button hides the button, so the feedback for holding it
 // lives outside: a ring that appears a little way out and closes onto the
@@ -13,7 +13,7 @@ import { motion } from "motion/react";
 // search button's devtool hold (systems/command/fab.tsx) and the λhux mark's
 // way into the About (components/home/scramble-identifier.tsx).
 //
-// It appears late on purpose — a tap never sees it, a deliberate hold does,
+// It appears late on purpose. A tap never sees it; a deliberate hold does,
 // in time to let go. Render it inside <AnimatePresence> while the hold is in
 // its second half; take it away when the hold completes or is abandoned.
 // =============================================================================

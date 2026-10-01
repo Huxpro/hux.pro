@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * PromptToolbar — the one line under the /prompt title.
+ * PromptToolbar: the one line under the /prompt title.
  *
  *   λ system │ ◆ Convictions 20  ◇ Influences 5 │ architecture 3  craft 3 … ⨯
  *   └ ref      └──────────── kind ─────────────┘   └────────── topics ──────┘
@@ -12,36 +12,36 @@
  * again on the other. What differs is what the two axes are. /works filters
  * by the type of a commit and picks a density; here the page carries no
  * density (an entry is a sentence, and it either prints or it doesn't), so
- * the second group is the other axis the data actually has — the topic each
- * entry sits `on`.
+ * the second group is the other axis the data has: the topic each entry
+ * sits `on`.
  *
  * The ref slot holds `<system>`, because that is the element this whole
  * page is the body of, and because the slot is what makes the row read as a
  * header rather than as a widget. And like the ref slot on /works, it says
  * where you are. The page is a system prompt, and its chapters are its
- * elements in reading order — 天行, 修身, 行事, and then the people behind
- * them — so once the entries start passing under the bar, the slot wears
- * the element you are inside:
+ * elements in reading order (天行, 修身, 行事, and then the people behind
+ * them). Once the entries start passing under the bar, the slot wears the
+ * element you are inside:
  *
  *    at the title   <system>     │ ◆ 13  ◇ 8 │ 天行 4  修身 4  行事 5
  *    reading on   ╭ <修身>       │ ◆ 13  ◇ 8 │ 天行 4  修身 4  行事 5 ╮
  *
  * "Inside" is the entry in the middle of the view, where the spotlight is
  * (`useReadingChapter`), so the bar and the one lit sentence always agree.
- * The name is the topic's own — the English id, which is also what the
+ * The name is the topic's own: the English id, which is also what the
  * data calls it, and the Chinese label on the Chinese page, where an
  * element may be called 修身 as well as anything else. Tapping it goes back
  * to where that chapter starts, as the /works pill does.
  *
  * Rest state is quiet, the way it is on /works: nothing selected is
  * "everything", drawn as plain text rather than a row of filled chips. The
- * first tap flips the bar into filtering — selected chips fill, unselected
+ * first tap flips the bar into filtering: selected chips fill, unselected
  * ones drop to the quaternary rung, and a clear button appears. Tapping the
  * last one off returns to rest.
  *
  * Pinned (PageLayout `pinnedActions`), the row rides up with the page until
  * it meets the top and stays, and a capsule of glass grows in behind it over
- * the first 32px of lift — the Live Activity material, same as /works, for
+ * the first 32px of lift. It is the Live Activity material, as on /works, for
  * the same reason: off its rest the row travels over the text and needs a
  * ground to stay legible.
  */
@@ -92,7 +92,7 @@ interface PromptToolbarProps {
   onClear: () => void;
 }
 
-/** The ground the pinned row stands on — the /works capsule, unchanged. */
+/** The ground the pinned row stands on: the /works capsule, unchanged. */
 const PANEL = cn(
   GLASS_CAPSULE,
   // `--pin-outset` (globals.css): PageLayout pins the bar by its glass.
@@ -102,7 +102,7 @@ const PANEL = cn(
 /** How much scroll it takes the capsule to grow in. */
 const LIFT_PX = 32;
 
-/** One element handing over to the next — the /works ref's spring, so the
+/** One element handing over to the next. Uses the /works ref's spring, so the
  *  two bars settle the same way. */
 const SETTLE = { type: "spring", duration: 0.4, bounce: 0.12 } as const;
 
@@ -115,8 +115,8 @@ const ORDER: readonly (PromptChapter | null)[] = [
 
 /**
  * A conviction is filled, an influence is hollow: the same mark at two
- * weights, because the two are the same kind of thing seen from either end
- * — what I hold, and who handed it to me.
+ * weights, because the two are the same kind of thing seen from either end:
+ * what I hold, and who handed it to me.
  */
 const KIND_MARK: Record<PromptKind, string> = {
   conviction: "fill-current",
@@ -235,7 +235,7 @@ export function PromptToolbar({
                 aria-label={`${tagOf(reading)}: ${t(locale, "logChapterStart")}`}
                 // One rung above the row, brackets and all: a tag is one
                 // word, and the row's tertiary is what `<system>` wore, so
-                // the element you are inside stands one step out of it —
+                // the element you are inside stands one step out of it:
                 // secondary, the rung mono metadata takes when it stands
                 // alone (`lib/typography`). Full ink is the pointer's.
                 className="pressable select-none whitespace-pre text-muted-foreground transition-colors duration-200 hover:text-foreground"
@@ -302,8 +302,8 @@ export function PromptToolbar({
 
           <Divider />
 
-          {/* Topics. Wordmarks rather than icons — six shelves would need six
-            glyphs nobody has learned, and the words are the point. */}
+          {/* Topics. Wordmarks rather than icons: six shelves would need six
+            glyphs nobody has learned, and the words are what matter. */}
           <div
             ref={topicsRef}
             data-bar-give
@@ -370,7 +370,7 @@ const HANDOVER = {
   leave: (dir: 1 | -1) => ({ opacity: 0, y: -8 * dir }),
 };
 
-/** Hairline between control groups — quaternary, because it carries nothing. */
+/** Hairline between control groups. Quaternary, because it carries nothing. */
 function Divider() {
   return <span aria-hidden className="h-3 w-px shrink-0 bg-border" />;
 }

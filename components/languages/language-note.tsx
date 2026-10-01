@@ -19,7 +19,7 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
-// LanguageNote — what I have to say about one language.
+// LanguageNote: what I have to say about one language.
 //
 // One view wherever a language is asked about: the card a dot on the chart
 // opens (a popover under a pointer, the sheet on a phone), and a row of the
@@ -273,7 +273,7 @@ export function LanguageNote({
  * The hover peek: a taste, and the way in. The dot's position already says
  * how interesting and how familiar the language is, so the peek does not
  * repeat it in meters; it names the language, its tier, and quotes the start
- * of the note — then says in so many words that a click opens the rest,
+ * of the note. Then it says in so many words that a click opens the rest,
  * because a peek that already shows a lot reads as all there is.
  */
 export function LanguagePeek({

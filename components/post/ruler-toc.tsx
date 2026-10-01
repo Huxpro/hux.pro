@@ -25,15 +25,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRulerSide, type RulerSide } from "./ruler-settings";
 
 /**
- * RulerToc — a scroll-driven "ruler" table of contents for article pages.
+ * RulerToc: a scroll-driven "ruler" table of contents for article pages.
  *
  * The ruler is a vertical measuring tape docked to a screen edge (left or
- * right, devtool-switchable), strictly centered on the viewport — screen
+ * right, devtool-switchable), strictly centered on the viewport. It is screen
  * furniture, like a semantic scrollbar. Section headings are major ticks;
  * the tape slides with scroll so the active section always rests at the
  * optical center. Distance from that reading line drives opacity, a slight
- * inward drift, tick length and type scale — a flat-but-dimensional dial,
- * like a physical ruler read at its index line.
+ * inward drift, tick length and type scale, like a physical ruler read at
+ * its index line.
  *
  * Interaction adapts to pointer capability, not viewport width:
  *
@@ -43,7 +43,7 @@ import { useRulerSide, type RulerSide } from "./ruler-settings";
  * reveals the labels over a soft backdrop-blur veil that fades toward the
  * content, so titles can run long without fighting the text behind them.
  *
- * Touch (mobile): bare ticks, directly manipulable — press and drag to
+ * Touch (mobile): bare ticks, directly manipulable. Press and drag to
  * scrub (labels cascade in over a frosted scrim while the tape follows
  * the finger), release to snap to the nearest section; tap to expand.
  *
@@ -63,7 +63,7 @@ type RulerItem =
 /** Mutable flag shared between scroll-tracking and programmatic motion. */
 type LockRef = { current: boolean };
 
-/** Bell curve around 0 — the "reading line" falloff. */
+/** Bell curve around 0: the "reading line" falloff. */
 function bell(d: number, spread: number) {
   return Math.exp(-(d * d) / spread);
 }
@@ -102,8 +102,8 @@ function useSections(): Section[] {
         : [];
       const next = els.map((el) => ({
         el,
-        // HeadingWithLink wraps text in a span next to the copy button —
-        // read the span so the copied "✓" never leaks into labels.
+        // HeadingWithLink wraps text in a span next to the copy button.
+        // Read the span so the copied "✓" never leaks into labels.
         label: (
           el.querySelector(":scope > span")?.textContent ??
           el.textContent ??
@@ -235,12 +235,12 @@ function useReadingProgress(
 }
 
 // =============================================================================
-// Geometry — everything below is parametrized on the docked side
+// Geometry: everything below is parametrized on the docked side
 // =============================================================================
 
 /** Distance from the screen edge to the tick spine, px. */
 const EDGE_INSET = {
-  // Desktop right docks next to the browser scrollbar — leave it a lane.
+  // Desktop right docks next to the browser scrollbar; leave it a lane.
   desktop: { right: 16, left: 10 },
   mobile: { right: 4, left: 4 },
 } as const;
@@ -286,7 +286,7 @@ const DESKTOP: TapeVariant = {
   minorWidth: 8,
   labelMaxWidth: 300,
   activeScale: 1.09,
-  // Finer than the mobile takeover — desktop labels are read at arm's
+  // Finer than the mobile takeover: desktop labels are read at arm's
   // length next to 16px prose.
   labelText: "text-[11px]",
   labels: "persistent",
@@ -332,7 +332,7 @@ function indexFromPointerY(rect: DOMRect, clientY: number, count: number) {
 }
 
 // =============================================================================
-// Tape row — one tick (with optional label), mirrored by side
+// Tape row: one tick (with optional label), mirrored by side
 // =============================================================================
 
 function TapeRow({
@@ -351,7 +351,7 @@ function TapeRow({
   side: RulerSide;
   label?: string;
   p: MotionValue<number>;
-  /** 0..1 — hover (desktop) or expanded/scrubbing (mobile). */
+  /** 0..1: hover (desktop) or expanded/scrubbing (mobile). */
   reveal: MotionValue<number>;
   interactive: boolean;
   reduced: boolean;
@@ -428,8 +428,8 @@ function TapeRow({
         className={cn(
           "touch-none font-mono text-foreground focus:outline-none",
           variant.labelText,
-          // Takeover labels own the screen — let long titles wrap to two
-          // lines instead of ellipsizing (the point is reading them).
+          // Takeover labels own the screen, so let long titles wrap to two
+          // lines instead of ellipsizing (they are there to be read).
           // Persistent gutter labels stay single-line.
           overlay ? "line-clamp-2 leading-4" : "truncate",
           side === "right" ? "text-right" : "text-left",
@@ -515,7 +515,7 @@ function Tape({
 }
 
 // =============================================================================
-// Desktop — edge-docked ruler for hover pointers
+// Desktop: edge-docked ruler for hover pointers
 // =============================================================================
 
 function DesktopRuler({
@@ -532,7 +532,7 @@ function DesktopRuler({
   sections: Section[];
   items: RulerItem[];
   side: RulerSide;
-  /** Raw progress value — the hover scrub writes straight into it. */
+  /** Raw progress value. The hover scrub writes straight into it. */
   progress: MotionValue<number>;
   /** Spring-smoothed progress that drives the tape. */
   smooth: MotionValue<number>;
@@ -572,7 +572,7 @@ function DesktopRuler({
 
   // Persistent labels are a luxury of genuinely wide screens; laptops
   // default to bare ticks and reveal on hover. The float amplitude also
-  // breathes with the gutter — generous on ultrawides, space-saving on
+  // scales with the gutter: generous on ultrawides, space-saving on
   // laptop widths.
   const persistent = (labelRoom ?? 0) >= 420;
   const variant = useMemo<TapeVariant>(() => {
@@ -634,7 +634,7 @@ function DesktopRuler({
     return () => {
       window.removeEventListener("mousemove", onMove);
       cancelAnimationFrame(raf);
-      // Hand progress back to the scroll position — unless a committed
+      // Hand progress back to the scroll position, unless a committed
       // jump is mid-flight and will resync on its own.
       if (!jumpingRef.current) {
         lockRef.current = false;
@@ -708,7 +708,7 @@ function DesktopRuler({
           reduced={reduced}
           onJump={onJump}
         />
-        {/* Hover strip over the ticks — the collapsed ruler's hit area.
+        {/* Hover strip over the ticks: the collapsed ruler's hit area.
             Clicking it commits the dial's current selection. */}
         <div
           aria-hidden
@@ -722,7 +722,7 @@ function DesktopRuler({
 }
 
 // =============================================================================
-// Mobile — scrubbable tick strip on the docked edge
+// Mobile: scrubbable tick strip on the docked edge
 // =============================================================================
 
 function MobileRuler({
@@ -738,7 +738,7 @@ function MobileRuler({
   sections: Section[];
   items: RulerItem[];
   side: RulerSide;
-  /** Raw progress value — the scrub gesture writes straight into it. */
+  /** Raw progress value. The scrub gesture writes straight into it. */
   progress: MotionValue<number>;
   /** Spring-smoothed progress that drives the tape. */
   smooth: MotionValue<number>;
@@ -772,7 +772,7 @@ function MobileRuler({
 
   const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
     if (!e.isPrimary || scrub.current) return;
-    // No pointer capture yet — a plain tap must keep its natural target so
+    // No pointer capture yet. A plain tap must keep its natural target so
     // label buttons still receive their click.
     scrub.current = { id: e.pointerId, startY: e.clientY, active: false, index: 0 };
   };
@@ -782,7 +782,7 @@ function MobileRuler({
     if (!s || e.pointerId !== s.id) return;
     if (!s.active) {
       if (Math.abs(e.clientY - s.startY) < 6) return;
-      // Drag detected — take over progress and surface the labels. Capturing
+      // Drag detected: take over progress and surface the labels. Capturing
       // here (not on pointerdown) retargets the rest of the gesture to the
       // container, which also keeps the drag from ending in a stray click.
       s.active = true;
@@ -791,7 +791,7 @@ function MobileRuler({
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch {
-        // Pointer already gone (or synthetic) — the gesture still works.
+        // Pointer already gone (or synthetic); the gesture still works.
       }
     }
     s.index = indexFromY(e.clientY);
@@ -800,7 +800,7 @@ function MobileRuler({
 
   /**
    * End a gesture: a drag snaps to the nearest section; a tap acts on what
-   * was pressed — the strip toggles, the scrim dismisses, labels are left
+   * was pressed: the strip toggles, the scrim dismisses, labels are left
    * to their own click handler.
    */
   const endScrub = (e: React.PointerEvent<HTMLElement>) => {
@@ -811,7 +811,7 @@ function MobileRuler({
     if (s.active) {
       setOpen(false);
       if (e.type === "pointercancel") {
-        // Gesture stolen by the system — resync with the real scroll.
+        // Gesture stolen by the system. Resync with the real scroll.
         lockRef.current = false;
         emitPageScroll();
       } else {
@@ -890,7 +890,7 @@ function MobileRuler({
             onJump(i);
           }}
         />
-        {/* Scrub strip over the ticks — drag to seek, tap to expand.
+        {/* Scrub strip over the ticks: drag to seek, tap to expand.
             touch-none hands the whole gesture to the pointer handlers. */}
         <button
           type="button"

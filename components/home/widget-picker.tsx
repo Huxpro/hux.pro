@@ -9,8 +9,8 @@ import { t, useLocale } from "@/services";
 import { resetWidgetPrefs, setWidgetEnabled, useWidgetPrefs } from "./widgets";
 
 /**
- * `Widgets` — beside Done while the home grid is in edit mode: every widget
- * the grid can show here, ticked when it is on. A widget off by default (the
+ * `Widgets` sits beside Done while the home grid is in edit mode. Every widget
+ * the grid can show is here, ticked when it is on. A widget off by default (the
  * Lab) is added from here; any other can be taken away. The grid's Reset puts
  * these back too, so it is registered as one of the masonry's sections.
  *

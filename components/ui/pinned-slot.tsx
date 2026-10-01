@@ -18,35 +18,35 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { onPageScroll } from "vitre";
 
 // =============================================================================
-// PinnedSlot — where a pinned bar rides, and that bar's half of the top band
+// PinnedSlot: where a pinned bar rides, and that bar's half of the top band
 // (systems/dock/band.ts). Any bar can ride in one: /works and /prompt's
 // toolbars (PageLayout `pinnedActions`), a lab's own bar.
 //
 // A bar composes with the band by declaration, not by the slot knowing it:
 //
 //   `data-bar-give`   the part of the bar that gives way when it is
-//                     squeezed — a chip group that scrolls inside itself, a
+//                     squeezed: a chip group that scrolls inside itself, a
 //                     name that truncates. The bar's minimum is its fixed
 //                     parts and one whole choice of that part (or 64px of
 //                     text): less than one choice is no longer a filter.
 //   `data-bar-keep`   for a bar whose rows wrap (a lab's bar: its name, then
-//                     its tools under it when they do not fit beside it) —
+//                     its tools under it when they do not fit beside it),
 //                     the part that must stay whole on its row. The bar's
 //                     minimum is that, and the bar's own padding.
 //   `data-bar-min`    a minimum stated outright, when neither says it.
 //   `--band-reserve`  set here, read by the bar: the width it gives up at
 //                     its end for the Dock. A one-row toolbar narrows as a
 //                     whole; a bar of several rows narrows the ones it
-//                     chooses — the rows are the bar's business.
+//                     chooses. The rows are the bar's business.
 //
 // What the slot does:
 //
 //   Pins in the band when a configuration shares it (level with the Dock),
 //   and under the Dock's pills otherwise, as it always has.
 //
-//   Says when the bar has met the band — a little early, so the occupants
-//   are already making room as it arrives; with hysteresis, so a scroll
-//   resting on the line does not flicker them between forms.
+//   Says when the bar has met the band. It says so a little early, so the
+//   occupants are already making room as it arrives, and with hysteresis, so
+//   a scroll resting on the line does not flicker them between forms.
 //
 //   Reports the bar's box and widths, and follows the strip it rides in when
 //   the bar scrolls with the occupants (`--band-scroll-x`).
@@ -132,8 +132,8 @@ export function PinnedSlot({
     const measure = () => {
       const box = slot.getBoundingClientRect();
       const cs = getComputedStyle(slot);
-      // The slot's content box, less the reserve it is currently giving —
-      // the reserve is padding-free (a variable), so this is the column.
+      // The slot's content box, less the reserve it is currently giving.
+      // The reserve is padding-free (a variable), so this is the column.
       const left = box.left + parseFloat(cs.paddingLeft);
       const right = box.right - parseFloat(cs.paddingRight);
       const give = bar.querySelector<HTMLElement>("[data-bar-give]");
@@ -153,8 +153,8 @@ export function PinnedSlot({
         min = stated > 0 ? stated : keep!.scrollWidth + chrome;
         // Its width on one line, measured off a hidden copy laid out at
         // max-content without wrapping: a part that scrolls inside itself
-        // hides its width from its parent, but not from max-content — and
-        // the bar itself is never touched, so nothing it is easing jumps.
+        // hides its width from its parent, but not from max-content. The
+        // bar itself is never touched, so nothing it is easing jumps.
         if (line === null) {
           const ghost = bar.cloneNode(true) as HTMLElement;
           ghost.setAttribute("aria-hidden", "true");
@@ -179,8 +179,8 @@ export function PinnedSlot({
     ro.observe(bar);
     const give = bar.querySelector("[data-bar-give]");
     if (give) ro.observe(give);
-    // What the bar holds changing — a chip turning on, a label swapping, its
-    // kept part resizing as a font arrives — is a new one-line width.
+    // A change in what the bar holds (a chip turning on, a label swapping,
+    // its kept part resizing as a font arrives) is a new one-line width.
     const stale = () => {
       line = null;
       measure();

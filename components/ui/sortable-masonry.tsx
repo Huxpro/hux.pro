@@ -57,7 +57,7 @@ import { landsOnOwnAction } from "./widget-surface";
 //     the length of the hold (iOS's "about to lift" tell) and pops up once
 //     the drag activates.
 // A press only counts as a pickup when it lands on the widget's *own*
-// surface — the part whose tap is the whole-widget action (title, padding,
+// surface: the part whose tap is the whole-widget action (title, padding,
 // static text). Rows, links, buttons and inputs carry their own tap, so a
 // press-and-hold on them is theirs (scroll the list, open the link preview,
 // press the button) and never lifts the card. In edit mode, like an iOS
@@ -79,7 +79,7 @@ import { landsOnOwnAction } from "./widget-surface";
 //     `DragOverlay` clone in a portal that simply tracks the cursor (so it can
 //     never "jump"), while the cards in the grid carry dnd-kit's own sort
 //     transforms to slide out of the way and to settle on drop. We deliberately
-//     do NOT layer Framer Motion `layout` on top — its FLIP projection mutates
+//     do NOT layer Framer Motion `layout` on top. Its FLIP projection mutates
 //     the DOM and, combined with live reordering inside CSS multicol, throws
 //     `removeChild` reconciliation errors.
 // =============================================================================
@@ -97,7 +97,7 @@ export interface SortableWidget {
 // Widgets with their *own* inner drag surface (the app shelf's icon grid) need
 // to cooperate with the masonry's single edit mode: an inner drag should enter
 // the same jiggle state (which also makes the item wrapper swallow the click
-// that fires after a drop — otherwise dropping an icon would navigate its
+// that fires after a drop; otherwise dropping an icon would navigate its
 // link), and the shared "Reset" control should restore inner layouts too.
 // =============================================================================
 
@@ -119,14 +119,14 @@ interface MasonryEditContextValue {
 
 const MasonryEditContext = createContext<MasonryEditContextValue | null>(null);
 
-/** Null outside a SortableMasonry — callers degrade to standalone behavior. */
+/** Null outside a SortableMasonry; callers degrade to standalone behavior. */
 export function useMasonryEdit(): MasonryEditContextValue | null {
   return useContext(MasonryEditContext);
 }
 
 /**
  * What the DragOverlay clone sees: it is being "held", so editing-styled
- * affordances render, but registration is a no-op — the clone is a visual
+ * affordances render, but registration is a no-op. The clone is a visual
  * copy and must never own (or, on unmount, tear down) a section slot.
  */
 const CLONE_EDIT_CONTEXT: MasonryEditContextValue = {
@@ -139,7 +139,7 @@ const CLONE_EDIT_CONTEXT: MasonryEditContextValue = {
 // Responsive scale
 //
 // Column count and container width move together so the widgets themselves
-// never stretch or shrink with the screen — only how many fit per row changes.
+// never stretch or shrink with the screen. Only how many fit per row changes.
 //
 //   <sm    1 column   @ 680px     phone
 //   sm     2 columns  @ 680px     tablet / small laptop   (~332px per column)
@@ -150,13 +150,13 @@ const CLONE_EDIT_CONTEXT: MasonryEditContextValue = {
 // The fourth column only unlocks once there are enough widgets to fill it:
 // CSS multicol balances by height, so with a handful of cards a fourth column
 // takes a single widget and leaves a lopsided, half-empty grid. Below that
-// threshold an ultrawide screen instead gets three slightly roomier columns —
-// still far narrower than the ~630px a widget already renders at on a phone in
-// landscape, so nothing has to be re-tuned.
+// threshold an ultrawide screen instead gets three slightly roomier columns.
+// They are still far narrower than the ~630px a widget already renders at on
+// a phone in landscape, so nothing has to be re-tuned.
 //
 // The last step is gated on `roomy:` (wide *and* tall, see globals.css), not
 // width alone: it exists to spend space the screen actually has spare, so a
-// short ultrawide — already scrolling — keeps the familiar desktop board.
+// short ultrawide, which is already scrolling, keeps the familiar desktop board.
 // =============================================================================
 
 const MIN_ITEMS_FOR_FOUR_COLUMNS = 8;
@@ -224,7 +224,7 @@ function SortableMasonryItem({
       // A long-press (or right-click) on a widget should be a drag handle, not
       // an OS context menu / Android link popup.
       onContextMenu={(e) => e.preventDefault()}
-      // Widgets are tactile objects, not prose — never let a drag turn into a
+      // Widgets are things to drag, not prose. Never let a drag turn into a
       // text selection.
       className="mb-4 break-inside-avoid system-voice"
       style={{
@@ -290,7 +290,7 @@ export function SortableMasonry({
       setSections((prev) => new Map(prev).set(id, section));
       return () => {
         setSections((prev) => {
-          // Only the registration that owns the slot may clear it — a stale
+          // Only the registration that owns the slot may clear it. A stale
           // cleanup (e.g. from a re-render race) must not clobber a newer one.
           if (prev.get(id) !== section) return prev;
           const next = new Map(prev);
@@ -396,7 +396,7 @@ export function SortableMasonry({
   const grid = (
     <DndContext
       // Stable id so dnd-kit's generated accessibility ids (DndDescribedBy-*)
-      // are deterministic across SSR and client — otherwise its internal
+      // are deterministic across SSR and client. Otherwise its internal
       // counter mismatches and React reports an unpatchable hydration error.
       id="hux-widget-grid"
       sensors={sensors}
@@ -419,7 +419,7 @@ export function SortableMasonry({
       </SortableContext>
 
       {/* The lifted card: a portal clone that tracks the cursor. The clone is
-          purely visual, so it gets the inert CLONE_EDIT_CONTEXT — it must not
+          purely visual, so it gets the inert CLONE_EDIT_CONTEXT. It must not
           register sections (otherwise a dragged app shelf would register a
           second "app-shelf" and, on drop, its unmount would tear down the
           real shelf's registration), but it should *look* held, so

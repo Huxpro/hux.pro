@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 /**
  * A tiny persisted client setting: a `localStorage` value broadcast on a custom
  * event, exposed as `get` / `set` plus a `use` hook. Shared by the reading
- * settings (bleed, typeface, measure, focus) and the ruler dock side — each is
+ * settings (bleed, typeface, measure, focus) and the ruler dock side. Each is
  * the same "value + change event + useSyncExternalStore" shape.
  *
  * The setting applies whether or not the devtool is enabled; the panel is just
@@ -36,7 +36,7 @@ export function makeStore<T extends string>(
     try {
       localStorage.setItem(key, value);
     } catch {
-      // Storage unavailable — the event still updates this session.
+      // Storage unavailable. The event still updates this session.
     }
     window.dispatchEvent(new Event(event));
   };

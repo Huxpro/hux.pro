@@ -17,21 +17,21 @@ import { TYPE } from "@/lib/typography";
 /**
  * WidgetShell - The outer container with consistent card styling.
  *
- * Tappable surface: pass `href` (a page to open) or `onOpen` (an action —
+ * Tappable surface: pass `href` (a page to open) or `onOpen` (an action:
  * refresh the weather, open the playlist) and the whole card becomes the tap
  * target, not just the header arrow. Interactive descendants keep their own
  * taps (see `landsOnOwnAction`); the masonry's edit mode swallows clicks
  * before they reach here, so rearranging never opens anything. Hover and
- * press chrome on those descendants must use their own named group —
- * the shell is `group/widget`, so a nested `group-active:` cannot follow
+ * press chrome on those descendants must use their own named group.
+ * The shell is `group/widget`, so a nested `group-active:` cannot follow
  * a thumbnail press that bubbles `:active` up to the card. Keyboard users
- * still reach the page through the visible `WidgetLink` — the shell itself
+ * still reach the page through the visible `WidgetLink`; the shell itself
  * deliberately adds no tab stop.
  *
  * In "widget" placement each card renders a crossfading overlay of whatever the
  * active wallpaper is (the shared <GradientStack />) bound to the provider's
- * layer stack — a weather gradient or a image wallpaper alike. All transition
- * logic is centralized — zero per-widget state machines.
+ * layer stack, a weather gradient or a image wallpaper alike. All transition
+ * logic is centralized; there are no per-widget state machines.
  *
  * Background positioning uses one of two mutually-exclusive strategies:
  *   - Desktop: CSS `background-attachment: fixed` (zero JS overhead)
@@ -215,7 +215,7 @@ export function WidgetBody({
  * `snap-start` and the `-mx-2 px-2` bleed themselves.
  *
  * **The port only scrolls under a pointer.** A nested vertical scroller inside
- * the page's own vertical scroll is free with a wheel — it goes to whatever is
+ * the page's own vertical scroll is free with a wheel: it goes to whatever is
  * under the cursor, and hover makes the port discoverable at all. Under a
  * finger it is a fight the widget always wins: on a phone the card is most of
  * the screen, `snap-mandatory` holds the list wherever the gesture leaves it,
@@ -223,8 +223,8 @@ export function WidgetBody({
  * the page is simply spent. Measured on an iPhone 13 viewport, a swipe from
  * the middle of the projects widget moved the page 0px and the list 204px.
  *
- * So the default is a plain stack: the widget prints a fixed set of rows —
- * curated, or capped with `pointer-coarse:hidden` — and the body is exactly
+ * So the default is a plain stack: the widget prints a fixed set of rows
+ * (curated, or capped with `pointer-coarse:hidden`), and the body is exactly
  * as tall as they are. No port, no mask, nothing cut off, with the card's own
  * tap for the rest. Which is what a widget is everywhere else: Apple's widgets
  * have no scroll gesture at all, and answer "more than fits" with a bigger
@@ -234,7 +234,7 @@ export function WidgetBody({
  * one prop because the height, the scroll, the fade and the room the fade
  * needs are one decision, not four: a body with no port must not wear a mask
  * over its last row or reserve 28px under it. One media query rather than a
- * hook — the same markup serves both, so there is no hydration branch and
+ * hook: the same markup serves both, so there is no hydration branch and
  * nothing to measure.
  *
  * The stack ends on `pb-3` rather than the card's `pb-5`, because a row
@@ -247,7 +247,7 @@ export function WidgetScrollBody({
   children,
 }: {
   /**
-   * Scroll this list under a pointer, at this height — `pointer-fine:h-64`
+   * Scroll this list under a pointer, at this height: `pointer-fine:h-64`
    * for a fixed port, `pointer-fine:max-h-64` for one that only appears once
    * the list outgrows it. Omitted, the body is a stack and prints whole on
    * every device.
@@ -278,7 +278,7 @@ export function WidgetScrollBody({
 /**
  * Hit area for a 12px glyph in a widget header. The glyph stays 12px; the
  * control is 28px (`size-7`) and bleeds into the header padding (`-m-2`) so
- * the title row does not grow. Hover and press wash the well — colour-only
+ * the title row does not grow. Hover and press wash the well: colour-only
  * `hover:` never reaches a finger, and a 12px icon is not a target.
  *
  * Shared by the header arrow (`WidgetLink`) and in-header actions
@@ -288,7 +288,7 @@ export const WIDGET_ICON_HIT = cn(
   "pressable -m-2 inline-flex size-7 shrink-0 items-center justify-center rounded-md outline-none",
   "text-muted-foreground transition-colors duration-200",
   // `--muted` is already a 4–6% ink wash, so `bg-muted/20` is invisible.
-  // Same foreground alphas as `GLASS_BTN` — a finger can see the well.
+  // Same foreground alphas as `GLASS_BTN`, so a finger can see the well.
   "hover:bg-foreground/[0.06] hover:text-foreground",
   "focus-visible:bg-foreground/[0.08] focus-visible:text-foreground",
   "active:bg-foreground/[0.10] active:text-foreground",
@@ -302,8 +302,8 @@ export const WIDGET_ICON_HIT = cn(
  * their own: the whole card is the tap target (`WidgetShell`) and the peek of
  * the next cover is what says a strip scrolls. At rest they are a second way
  * of saying it, seven times over on the home grid. So they wait for a pointer
- * over the card or focus inside it, and under a finger — where the card's tap
- * and the swipe are the whole interaction — they are never drawn. Still in
+ * over the card or focus inside it. Under a finger, where the card's tap and
+ * the swipe are the whole interaction, they are never drawn. Still in
  * the tree either way: a keyboard reaches the arrow and a screen reader reads
  * it, and focusing either one shows it.
  */
@@ -341,7 +341,7 @@ export function WidgetLink({
 }
 
 /**
- * An icon action in a widget header — refresh, etc. Same hit and press as
+ * An icon action in a widget header (refresh, etc.). Same hit and press as
  * `WidgetLink`. `type="button"` so it never submits; the shell already
  * treats `button` as its own action (`landsOnOwnAction`).
  */

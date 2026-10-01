@@ -9,7 +9,7 @@ import { AppBadgeFor } from "@/systems/windows";
 
 import { TYPE } from "@/lib/typography";
 // =============================================================================
-// AppTile — shared home-screen icon visual
+// AppTile: shared home-screen icon visual
 //
 // One tile art path for the App Folder, ⌘K Apps launcher, and any future
 // surface that needs the OS-style icon (+ optional runtime badge + label).

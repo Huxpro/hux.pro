@@ -42,13 +42,13 @@ const fadeVariants = {
 };
 
 /**
- * LabWidget — one lab at a time, live.
+ * LabWidget: one lab at a time, live.
  *
  * The other widgets read out something alive elsewhere (the weather, the
  * music, the current commit). This one shows the site reading itself: each
- * lab's surface (systems/lab/surfaces) is that lab at a glance — the head
+ * lab's surface (systems/lab/surfaces) is that lab at a glance: the head
  * of the log, the icon down its sizes, the ink ladder over the wallpaper
- * that is painting, the one light — and the card opens the lab it shows.
+ * that is painting, the one light. The card opens the lab it shows.
  * The header arrow is the index of labs; the refresh turns to the next one.
  *
  * Rotation is manual only (as the first Lab widget had it): a surface is
