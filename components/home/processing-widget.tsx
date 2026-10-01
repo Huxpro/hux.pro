@@ -110,13 +110,12 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
   const shown = commits.flatMap((c, i) =>
     c.type === "role" && c.hideRow === true ? [] : [i],
   );
-  // Same tenures as /works: pointing at a row in one lights its role's
-  // ring, and pointing at the role lights the tenure's rail. A tenure is
-  // an identity's rows on the rail (`segmentId`).
+  // Same tenures as /works: pointing at any row in one lights its rail and
+  // its role's ring. A tenure is an identity's rows on the rail
+  // (`segmentId`).
   const [engaged, setEngaged] = useState<number | null>(null);
   const sid = engaged === null ? null : railInfo[engaged].segmentId;
   const inTenure = (i: number) => !!sid && railInfo[i].segmentId === sid;
-  const railLit = engaged !== null && commits[engaged].type === "role";
 
   if (commits.length === 0) return null;
 
@@ -138,7 +137,7 @@ export function ProcessingWidget({ log, commits }: ProcessingWidgetProps) {
             isRole={commits[i].type === "role"}
             byline={bylines[i]}
             hideDate={hideDateFor(commits[i])}
-            railLit={railLit && inTenure(i)}
+            railLit={inTenure(i)}
             ringLit={inTenure(i)}
             onEngage={(on) =>
               setEngaged((current) => (on ? i : current === i ? null : current))

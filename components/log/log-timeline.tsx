@@ -313,7 +313,9 @@ function TagBlock({
   // The tenure an engaged row belongs to: its identity's rows on the rail
   // (`segmentId`), first to last as item positions — a bracket other rows
   // can sit inside, the way RIT's runs from WasmCert to the M.S. around the
-  // Meta internships — and whether its role is the row engaged.
+  // Meta internships. Any of its rows lights it, not only its role: most
+  // roles print no row (`hideRow`), and a tenure without one would
+  // otherwise never light at all.
   const tenure = useMemo(() => {
     const i = engaged
       ? commits.findIndex((c) => computeCommitHash(c.id) === engaged)
@@ -323,16 +325,11 @@ function TagBlock({
     const at = graph.items.flatMap((it, p) =>
       it.kind === "row" && railInfo[it.i].segmentId === sid ? [p] : [],
     );
-    return {
-      sid,
-      from: at[0],
-      to: at[at.length - 1],
-      byRole: commits[i].type === "role",
-    };
+    return { sid, from: at[0], to: at[at.length - 1] };
   }, [engaged, commits, graph, railInfo]);
 
-  // The lines lit right now: a held or pointed-at chapter's whole track; a
-  // tenure, from its role; and the connectors between a commit and the
+  // The lines lit right now: a held or pointed-at chapter's whole track; an
+  // engaged row's tenure; and the connectors between a commit and the
   // role it hangs from — all drawn along the graph's own lines rather than
   // straight down the icon column (see `litPath`).
   const lit = useMemo(() => {
@@ -340,7 +337,7 @@ function TagBlock({
     for (const lane of new Set([trackHover, trackPin])) {
       if (lane !== null) litTrack(graph, lane, lit);
     }
-    if (tenure?.byRole && tenure.from < tenure.to) {
+    if (tenure && tenure.from < tenure.to) {
       litPath(graph, tenure.from, tenure.to, lit);
     }
     if (!activeBeam) return lit;

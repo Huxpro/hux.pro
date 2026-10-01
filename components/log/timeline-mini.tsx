@@ -41,7 +41,7 @@ interface TimelineMiniProps {
   /** Pre-localized author byline (see `computeBylines`). */
   byline?: Byline | null;
   hideDate?: boolean;
-  /** The row's tenure is lit from its role: its rail runs on the lit rung. */
+  /** A row in the row's tenure is engaged: its rail runs on the lit rung. */
   railLit?: boolean;
   /** A row in the row's tenure is engaged: a role's ring lights. */
   ringLit?: boolean;
