@@ -20,7 +20,13 @@ import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
 import { ProjectMark } from "./project-mark";
 import { QuietLine } from "./quiet-line";
-import { GraphInCell, HASH_NUDGE, LANE, type RowGraph } from "./timeline-lane";
+import {
+  GraphInCell,
+  HASH_NUDGE,
+  LANE,
+  type RowGraph,
+  type RowLit,
+} from "./timeline-lane";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { Description, Commentary, AuthorFields } from "./embeds/shared";
 import { Paperclip } from "lucide-react";
@@ -41,8 +47,15 @@ import { TYPE } from "@/lib/typography";
  *   hash 3.5rem + gap 0.5rem + icon 1.25rem + gap 0.5rem = 5.75rem
  *
  * plus the row's own 0.75rem of padding, which is what `-mx-3` already
- * subtracts on the right. Below `lg` the page has no margin to hang it in
- * and the gutter stays inside the column as it always did.
+ * subtracts on the right.
+ *
+ * The hash exists only where it can hang. Below `lg` the page has no margin
+ * wide enough (the gutter wants ~120px of it: a 680px column needs a ~872px
+ * viewport), and a hash kept inside the column would push every title in
+ * from the page's left edge — off the line the page title sits on, and out
+ * of the width the reading needs. So there the row is a phone's: the icon on
+ * the column's edge, no hash. A tablet reads as a desk held landscape, and
+ * as a phone held portrait.
  */
 export const HASH_CELL = "lg:w-14 lg:text-right";
 export const GUTTER_PULL = "lg:-ml-[6.5rem]";
@@ -72,6 +85,11 @@ interface TimelineCommitProps {
    *  line through the icon column in place of the tenure rail, which then
    *  only lights it. */
   graph?: RowGraph;
+  /** Which of those lines a lit connector runs along. */
+  graphLit?: RowLit;
+  /** The row speaks in an aside's quiet voice until the reader opens it,
+   *  whatever it is (the timeline's step down under a held track). */
+  quiet?: boolean;
   /** True when this row IS the role that owns its segment. */
   isRole?: boolean;
   /** The role id that owns this row's rail segment. */
@@ -135,6 +153,8 @@ export function TimelineCommit({
   hideDate = false,
   rail,
   graph,
+  graphLit,
+  quiet = false,
   isRole = false,
   beamSpec = null,
   onBeamSet,
@@ -260,7 +280,7 @@ export function TimelineCommit({
   // The strip is the folded form's own: while the row is open the feed's
   // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
-  const isQuiet = isEvent || (isAside && !textOpen);
+  const isQuiet = isEvent || ((isAside || quiet) && !textOpen);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
   const showStrip =
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
@@ -376,12 +396,13 @@ export function TimelineCommit({
   const iconGapPx = isQuiet ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
   // A node moved onto the side lane pushes the hash left, the way a
   // `git log --graph` row makes room for its graph (see timeline-lane.tsx).
-  const hashNudge = graph?.side === "node"
+  const onSide = graph?.side === "node";
+  const hashNudge = onSide
     ? { transform: `translateX(-${HASH_NUDGE}px)` }
     : undefined;
 
   const rowContent = (
-    <div className="grid grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
+    <div className="grid grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2 items-start">
       {/*
         The hash is the commit's address, and now says so: clicking it puts
         `#<hash>` in the URL bar and travels the page to this row. It looked
@@ -404,7 +425,7 @@ export function TimelineCommit({
       {isQuiet || !onSelectHash ? (
         <span
           className={cn(
-            "hidden @sm:inline-block select-all",
+            "hidden lg:inline-block select-all",
             HASH_CELL,
             TYPE.hash,
             isQuiet ? "text-transparent leading-4" : "leading-5",
@@ -424,7 +445,7 @@ export function TimelineCommit({
           }}
           aria-label={`Link to commit ${data.hash}`}
           className={cn(
-            "hidden @sm:inline-block leading-5",
+            "hidden lg:inline-block leading-5",
             HASH_CELL,
             TYPE.hash,
             "transition-colors hover:text-muted-foreground",
@@ -436,8 +457,9 @@ export function TimelineCommit({
       )}
 
       <span
-        // data-rail-icon lets cross-row attachment lines measure this
-        // span's center to anchor their geometry (see TimelineConnector).
+        // data-rail-icon marks the row's cell on the graph: the rail, the
+        // chapter lanes and their lit paths are all drawn inside it
+        // (see timeline-lane.tsx).
         data-rail-icon
         className={cn(
           "relative inline-flex items-center justify-center w-5",
@@ -451,33 +473,18 @@ export function TimelineCommit({
           isQuiet ? "h-4" : "h-5",
         )}
       >
-        {!graph && hasRailAbove && (
-          <span
-            aria-hidden
-            data-rail-above
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
-            style={{ top: "-1000px", bottom: `calc(50% + ${iconGapPx}px)` }}
-          />
-        )}
-        {graph && (
-          <GraphInCell
-            graph={graph}
-            gap={iconGapPx}
-            cluster={{ above: hasRailAbove, below: hasRailBelow }}
-          />
-        )}
-        {!graph && hasRailBelow && (
-          <span
-            aria-hidden
-            data-rail-below
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-px transition-colors duration-200 bg-muted-foreground/10"
-            style={{ top: `calc(50% + ${iconGapPx}px)`, bottom: "-1000px" }}
-          />
-        )}
+        {/* Without a chapter graph (a log outside /works), the tenure
+            rail is the row's whole graph: a trunk where it runs. */}
+        <GraphInCell
+          graph={graph ?? { trunkAbove: hasRailAbove, trunkBelow: hasRailBelow }}
+          gap={iconGapPx}
+          cluster={{ above: hasRailAbove, below: hasRailBelow }}
+          lit={graphLit}
+        />
         {/* The node: on the trunk, or moved onto the side lane. */}
         <span
           className="inline-flex items-center justify-center"
-          style={graph?.side === "node" ? { transform: `translateX(-${LANE}px)` } : undefined}
+          style={onSide ? { transform: `translateX(-${LANE}px)` } : undefined}
         >
         {isQuiet ? (
           // A row in the quiet voice gets a tiny CSS dot, quieter than any
@@ -493,7 +500,7 @@ export function TimelineCommit({
           // once `isQuiet` is false, which is the height the icon wants.
           <span
             aria-hidden
-            className="block w-[3px] h-[3px] rounded-full bg-muted-foreground/30"
+            className="block w-[3px] h-[3px] rounded-full bg-graph-node"
           />
         ) : (
           // All icons live in the same-size invisible wrapper (w-5 h-5)
@@ -507,10 +514,12 @@ export function TimelineCommit({
               "inline-flex items-center justify-center w-5 h-5 rounded-full transition-[box-shadow] duration-200",
               isRoleAnchor && [
                 "ring-1 ring-inset",
-                "ring-muted-foreground/15",
-                "group-hover/tenure:ring-muted-foreground/40",
-                "group-focus-within/tenure:ring-muted-foreground/40",
-                "group-has-[[data-expanded]]/tenure:ring-muted-foreground/40",
+                // A node on the graph, and lit with its tenure (globals.css,
+                // "The graph").
+                "ring-graph-node",
+                "group-hover/tenure:ring-graph-lit",
+                "group-focus-within/tenure:ring-graph-lit",
+                "group-has-[[data-expanded]]/tenure:ring-graph-lit",
               ],
             )}
           >
@@ -609,7 +618,7 @@ export function TimelineCommit({
         on-screen while you read.
       */}
       {!isQuiet && (data.meta || byline) && (
-        <div className={cn("col-start-2 @sm:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
+        <div className={cn("col-start-2 lg:col-start-3 mt-1 flex items-baseline justify-between gap-2", TYPE.rowMeta)}>
           <span className="min-w-0 truncate">
             {data.meta ? (
               data.metaUrl ? (
@@ -668,7 +677,7 @@ export function TimelineCommit({
           expanded, so toggling never remounts them. */}
       {!isQuiet && pinnedMedia.length > 0 && (
         <div
-          className="col-start-2 @sm:col-start-3 mt-2"
+          className="col-start-2 lg:col-start-3 mt-2"
           onClick={(e) => e.stopPropagation()}
         >
           <MediaRenderer
@@ -694,7 +703,7 @@ export function TimelineCommit({
           text is what the row's own control acts on, so it has to stay part
           of the trigger at both densities. */}
       {!isQuiet && rowForm.description !== "none" && !!data.description && (
-        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
           <Description
             text={data.description}
             isExpanded={rowForm.description === "full"}
@@ -712,7 +721,7 @@ export function TimelineCommit({
           on stays the row's; the empty stretch beside a single cover presses
           the row like any other part of it. */}
       {!isQuiet && rowForm.media === "covers" && data.stripItems.length > 0 && (
-        <div className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0">
+        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
           {/* The covers get a line of their own, always. One cover used to
               tuck up beside the text and two or more dropped below it, so a
               row changed shape with its cargo — and a column of twenty-five
@@ -747,7 +756,7 @@ export function TimelineCommit({
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
-          className="col-start-2 @sm:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
+          className="col-start-2 lg:col-start-3 mt-2 min-w-0 space-y-4 cursor-default"
         >
           <AttachmentGrid
             items={data.stripItems}
@@ -785,7 +794,7 @@ export function TimelineCommit({
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
-          className="col-start-2 @sm:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
+          className="col-start-2 lg:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
         >
           {data.commentary && <Commentary text={data.commentary} />}
 
@@ -801,7 +810,7 @@ export function TimelineCommit({
           {showAuthorBlock && (
             <AuthorFields
               byline={byline}
-              // Below `@sm` the gutter hash column is hidden, so the row has
+              // Below `lg` the gutter hash column is hidden, so the row has
               // no permalink down there; above it the gutter already is one.
               // `onSelect` rather than an href: this page is already /works,
               // so the field makes the row the address in place.
@@ -810,7 +819,7 @@ export function TimelineCommit({
                   ? {
                       hash: data.hash,
                       onSelect: onSelectHash,
-                      className: "@sm:hidden",
+                      className: "lg:hidden",
                     }
                   : undefined
               }

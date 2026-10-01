@@ -1423,8 +1423,9 @@ export function computeInferredBeams(
 
 /**
  * Compute explicit attachment links: commits with `attachedTo: "<id>"`
- * pointing at another commit in the same tag. Rendered as a persistent
- * connector line in the icon column (see TimelineConnector).
+ * pointing at another commit in the same tag. Hovering either end lights
+ * the path between them along the chapter graph (see `litPath` in
+ * components/log/log-timeline.tsx).
  *
  * Targets can be roles (an artifact attached to a tenure context) or
  * events (an artifact attached to an ambient period like a sabbatical).
@@ -1604,8 +1605,9 @@ export function resolveIdentity(
 
 
 /**
- * Build the timeline data structure from raw LogData.
- * Single source of truth for /works rendering and editor preview.
+ * Build the timeline data structure from raw LogData: one chapter per tag.
+ * `buildEraTimeline` (lib/log-eras.ts) joins the overlapping ones for /works
+ * and the editor preview.
  *
  * When `locale` is provided, commits are filtered by per-locale visibility
  * (`listedIn`). Omit the locale to include every listed commit (useful for

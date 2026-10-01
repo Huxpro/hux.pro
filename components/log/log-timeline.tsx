@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import {
+  type SetStateAction,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { pageScrollTop, scrollPageTo } from "vitre";
 import type { Locale } from "@/lib/i18n";
 import {
   type Commit as CommitData,
@@ -11,6 +19,7 @@ import {
   type FilterableCommitType,
   formatTagDateRange,
   getLocalizedTagTitle,
+  localizeOptional,
   type Identity,
   isRowVisible,
   type Tag,
@@ -22,10 +31,16 @@ import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
 import { computeBylines } from "./bylines";
 import { Commit } from "./commit-embed";
-import { TimelineConnector } from "./timeline-connector";
 import { type BeamSpec, GUTTER_PULL, HASH_CELL } from "./timeline-commit";
-import { RefInCell, type RowGraph } from "./timeline-lane";
+import {
+  RefInCell,
+  type RefLook,
+  type RefLit,
+  type RowGraph,
+  type RowLit,
+} from "./timeline-lane";
 import { useTimelineEdit } from "./timeline-edit-context";
+import type { WorksRef } from "@/systems/devtool";
 
 /** Stable "no filter" default — a fresh `[]` per render would bust the
  *  per-tag memo below on every render for callers that never filter
@@ -91,6 +106,9 @@ interface LogTimelineProps {
    * two sticky layers at the top of a phone would be one too many.
    */
   pinnedChapters?: boolean;
+  /** How a chapter's ref sits on the graph (see `RefLabel`). The default
+   *  is the plain marker the editor and every other log use. */
+  refLook?: RefLayout;
 }
 
 /**
@@ -105,7 +123,29 @@ export function LogTimeline({
   activeTypes = NO_TYPES,
   onSelectHash,
   pinnedChapters = false,
+  refLook = "stub",
 }: LogTimelineProps) {
+  // The chapter whose track is held (its marker has focus) — page-wide, so
+  // every commit outside it steps back, in its own block or another.
+  const [held, setHeld] = useState<Held | null>(null);
+  // Holding a chapter folds every commit outside it, and letting go
+  // unfolds them: the page above the marker grows or shrinks at once. The
+  // marker that was pressed stays where it was under the pointer.
+  const anchor = useRef<{ el: HTMLElement; top: number } | null>(null);
+  const hold = useCallback(
+    (next: SetStateAction<Held | null>, marker: HTMLElement) => {
+      anchor.current = { el: marker, top: marker.getBoundingClientRect().top };
+      setHeld(next);
+    },
+    [],
+  );
+  useLayoutEffect(() => {
+    const a = anchor.current;
+    anchor.current = null;
+    if (!a || !a.el.isConnected) return;
+    const drift = a.el.getBoundingClientRect().top - a.top;
+    if (Math.abs(drift) > 1) scrollPageTo(pageScrollTop() + drift);
+  }, [held]);
   return (
     <div className="space-y-0">
       {data.map(({ tag, commits, members, laneOf }, tagIndex) => (
@@ -122,13 +162,24 @@ export function LogTimeline({
           activeTypes={activeTypes}
           onSelectHash={onSelectHash}
           pinned={pinnedChapters}
+          refLook={refLook}
+          held={held}
+          onHold={hold}
         />
       ))}
     </div>
   );
 }
 
+/** A held track: the block it is drawn in, and its lane there. */
+interface Held {
+  block: string;
+  lane: number;
+}
+
 interface TagBlockProps {
+  held: Held | null;
+  onHold: (next: SetStateAction<Held | null>, marker: HTMLElement) => void;
   tag: Tag;
   commits: CommitData[];
   members?: Tag[];
@@ -140,9 +191,12 @@ interface TagBlockProps {
   activeTypes: FilterableCommitType[];
   onSelectHash?: (hash: string) => void;
   pinned: boolean;
+  refLook: RefLayout;
 }
 
 function TagBlock({
+  held,
+  onHold,
   tag,
   commits,
   members,
@@ -154,12 +208,17 @@ function TagBlock({
   activeTypes,
   onSelectHash,
   pinned,
+  refLook,
 }: TagBlockProps) {
   const edit = useTimelineEdit();
   const inspecting = edit?.mode === "inspect";
-  const isTagSelected = edit?.editingTagId === tag.id;
   const tagLabel = chapterLabel(tag, tagIndex, locale);
   const [activeBeam, setActiveBeam] = useState<BeamSpec | null>(null);
+  // A chapter's whole track, lit from its marker: while the marker is under
+  // a pointer (`trackHover`), and held while it has focus (`trackPin`) — a
+  // click or a tap focuses it, and clicking anywhere else, or Escape, lets go.
+  const [trackHover, setTrackHover] = useState<number | null>(null);
+  const trackPin = held?.block === tag.id ? held.lane : null;
   const handleBeamSet = useCallback(
     (spec: BeamSpec) => setActiveBeam(spec),
     [],
@@ -182,18 +241,14 @@ function TagBlock({
 
   // Compute beam specs for explicit `attachedTo` attachments. Both
   // endpoints (source + target) carry the same spec so hovering/
-  // focusing/expanding EITHER end brightens the connector line.
-  // Per-endpoint gap is derived from the commit so the line meets each
-  // endpoint at the right radius (role ring vs icon vs event/aside dot).
-  const gapFor = (c: CommitData) =>
-    c.type === "role" ? 10 : c.type === "event" || c.present === "aside" ? 3 : 7;
+  // focusing/expanding EITHER end lights the connector's path.
 
   const {
     railInfo,
     beamSpecs,
     attachments,
     bylines,
-    isHidden,
+    graph,
     hasVisible,
   } = useMemo(() => {
     const bylinesArr = computeBylines(commits, identities, locale);
@@ -216,12 +271,6 @@ function TagBlock({
         inferred: true,
       })),
     ];
-
-    const attachmentsWithGaps = allBeams.map((b) => ({
-      ...b,
-      fromGap: gapFor(commits[b.fromIdx]),
-      toGap: gapFor(commits[b.toIdx]),
-    }));
 
     // Each beam endpoint stashes a BeamSpec so hover/focus/expand
     // fires `activeBeam`. Source specs carry their own fromHash for
@@ -246,74 +295,131 @@ function TagBlock({
     return {
       railInfo: rail,
       beamSpecs: specs,
-      attachments: attachmentsWithGaps,
+      attachments: allBeams,
       bylines: bylinesArr,
-      isHidden: hidden,
+      graph: chapterGraph(commits, hidden, laneOf),
       hasVisible: commits.some((c) => !hidden(c)),
     };
-  }, [commits, identities, locale, activeTypes]);
+  }, [commits, identities, locale, activeTypes, laneOf]);
+
+  // The lines lit right now: a held or pointed-at chapter's whole track,
+  // and the connectors between a commit and the role it hangs from — drawn
+  // along the graph's own lines rather than straight down the icon column
+  // (see `litPath`).
+  const lit = useMemo(() => {
+    const lit: Lit = { rows: new Map(), refs: new Map() };
+    for (const lane of new Set([trackHover, trackPin])) {
+      if (lane !== null) litTrack(graph, lane, lit);
+    }
+    if (!activeBeam) return lit;
+    for (const a of attachments) {
+      const active =
+        activeBeam.toHash === a.toHash &&
+        (activeBeam.fromHash === a.fromHash ||
+          (activeBeam.fromHash === null && !a.inferred));
+      const from = graph.posOf.get(a.fromIdx);
+      const to = graph.posOf.get(a.toIdx);
+      if (active && from !== undefined && to !== undefined) {
+        litPath(graph, from, to, lit);
+      }
+    }
+    return lit;
+  }, [graph, attachments, trackHover, trackPin, activeBeam]);
 
   // A chapter with nothing left in it prints nothing — no ref marker hanging
   // over an empty stretch of page. The era headers are the timeline's spine,
   // but a spine with no vertebrae is just a line.
   if (!hasVisible) return null;
 
-  const { items, graphs } = chapterGraph(commits, isHidden, laneOf);
+  const { items, graphs } = graph;
+  /** Whether a lane's things step back: another chapter's track is held,
+   *  here or in another block. */
+  const stepsBack = (lanes: number[]) =>
+    held !== null && !(held.block === tag.id && lanes.includes(held.lane));
+  /** A commit outside the held track steps down one form: covers and the
+   *  feed to the index's one line (the index view's own row), the index to
+   *  an aside's quiet line. */
+  const stepDown = (back: boolean): { form: LogForm; quiet?: boolean } =>
+    !back ? { form } : form === "index" ? { form, quiet: true } : { form: "index" };
+  /** A marker's hold on its chapter's track (see `trackHover`). */
+  const trackFor = (lane: number): TrackControl => ({
+    lit: trackHover === lane || trackPin === lane,
+    pinned: trackPin === lane,
+    bind: {
+      onPointerEnter: (e) => {
+        if (e.pointerType !== "touch") setTrackHover(lane);
+      },
+      onPointerLeave: () => setTrackHover((h) => (h === lane ? null : h)),
+      onFocus: (e) => onHold({ block: tag.id, lane }, e.currentTarget),
+      onBlur: (e) =>
+        onHold(
+          (h) => (h?.block === tag.id && h.lane === lane ? null : h),
+          e.currentTarget,
+        ),
+      onKeyDown: (e) => {
+        if (e.key === "Escape") e.currentTarget.blur();
+      },
+      // Safari does not focus a button it is clicking.
+      onClick: (e) => e.currentTarget.focus(),
+    },
+  });
+  /** In the editor's inspect mode a chapter's marker selects the chapter,
+   *  and adds an entry to it. */
+  const inspectControls = (t: Tag, label: string) =>
+    inspecting &&
+    edit && (
+      <>
+        <button
+          type="button"
+          onClick={() => edit.onSelectTag(t.id)}
+          className={cn(
+            CHAPTER_PILL,
+            "relative transition-colors",
+            edit.editingTagId === t.id
+              ? "border-sky-500/70 ring-1 ring-inset ring-sky-500/35 bg-sky-500/[0.05]"
+              : "border-border hover:border-sky-500/50",
+          )}
+          title="Inspect chapter"
+        >
+          {label}
+        </button>
+        {!t.hideDate && <TagDate tag={t} locale={locale} />}
+        <button
+          type="button"
+          onClick={() => edit.onAddCommit(t.id)}
+          className="inline-flex items-center justify-center text-tertiary-foreground hover:text-foreground transition-colors"
+          title="Add entry"
+          aria-label="Add entry"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </>
+    );
 
   return (
     <div>
       {/* Tag ref marker — like `git log --decorate` ref annotations */}
-      <div
+      <RefRow
         className={cn(
-          "flex items-center gap-3 py-2",
-          pinned ? "relative" : "sticky top-4 z-20",
-          tagIndex > 0 && "mt-6 pt-6 border-t border-border/30",
+          "pb-2",
+          !pinned && "sticky top-4 z-20",
+          tagIndex > 0 ? "mt-6 pt-6 border-t border-border/30" : "pt-2",
         )}
+        // The marker's centre: below the rule once there is a chapter
+        // above, and the marker's own half-height.
+        y={(tagIndex > 0 ? 25 : 8) + 11}
+        first
+        tag={tag}
+        label={tagLabel}
+        locale={locale}
+        pinned={pinned}
+        look={inspecting ? "stub" : refLook}
+        lit={lit.refs.get(0)}
+        track={trackFor(0)}
+        dimmed={stepsBack([0])}
       >
-        {/* The chapter's trunk starts at its ref. */}
-        <RefGraphLayer y={(tagIndex > 0 ? 24 : 0) + 19} first />
-        {inspecting && edit ? (
-          <button
-            type="button"
-            onClick={() => edit.onSelectTag(tag.id)}
-            className={cn(
-              CHAPTER_PILL,
-              "relative transition-colors",
-              isTagSelected
-                ? "border-sky-500/70 ring-1 ring-inset ring-sky-500/35 bg-sky-500/[0.05]"
-                : "border-border hover:border-sky-500/50",
-            )}
-            title="Inspect chapter"
-          >
-            {tagLabel}
-          </button>
-        ) : (
-          // `data-chapter` is what the pinned bar watches: the moment this
-          // pill reaches the bar's ref slot, the slot wears it.
-          <span
-            data-chapter={pinned ? tag.id : undefined}
-            className={cn(CHAPTER_PILL, "relative border-border")}
-          >
-            {tagLabel}
-          </span>
-        )}
-        {!tag.hideDate && (
-          <span className="font-mono text-xs text-tertiary-foreground">
-            {formatTagDateRange(tag, locale)}
-          </span>
-        )}
-        {inspecting && edit && (
-          <button
-            type="button"
-            onClick={() => edit.onAddCommit(tag.id)}
-            className="inline-flex items-center justify-center text-tertiary-foreground hover:text-foreground transition-colors"
-            title="Add entry"
-            aria-label="Add entry"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
+        {inspectControls(tag, tagLabel)}
+      </RefRow>
 
       {/* Commits — relative so the beam measures against this box.
        *  Consecutive commits sharing a tenure segmentId are wrapped in
@@ -354,14 +460,24 @@ function TagBlock({
             const rows = run.items.map((item) => {
               if (item.kind === "ref") {
                 const ref = members![item.lane];
+                const label = chapterLabel(ref, -1, locale);
                 return (
                   <RefRow
                     key={`ref-${ref.id}`}
+                    className="pt-8 pb-2"
+                    y={32 + 11}
                     tag={ref}
+                    label={label}
                     locale={locale}
-                    stepAside={item.stepAside}
+                    mode={item.mode}
                     pinned={pinned}
-                  />
+                    look={inspecting ? "stub" : refLook}
+                    lit={lit.refs.get(item.lane)}
+                    track={trackFor(item.lane)}
+                    dimmed={stepsBack([item.lane])}
+                  >
+                    {inspectControls(ref, label)}
+                  </RefRow>
                 );
               }
               const i = item.i;
@@ -374,6 +490,8 @@ function TagBlock({
                   hideDate={tag.hideDate || commits[i].hideDate}
                   rail={railInfo[i].rail}
                   graph={graphs[i]}
+                  graphLit={lit.rows.get(i)}
+                  {...stepDown(stepsBack(laneOf?.get(commits[i].id) ?? [0]))}
                   segmentId={railInfo[i].segmentId}
                   isSegmentActive={
                     railInfo[i].segmentId !== null &&
@@ -383,7 +501,6 @@ function TagBlock({
                   onBeamSet={handleBeamSet}
                   onBeamClear={handleBeamClear}
                   byline={bylines[i]}
-                  form={form}
                   onSelectHash={onSelectHash}
                 />
               );
@@ -401,34 +518,6 @@ function TagBlock({
             );
           });
         })()}
-        {/* Persistent back-point connectors — one per explicit
-         *  attachedTo. They run through the icon column (same visual
-         *  vocabulary as the tenure rail), dimmed by default and
-         *  brightened when EITHER endpoint is the activeBeam. */}
-        {attachments.map((a) => (
-          <TimelineConnector
-            key={`${a.fromHash}->${a.toHash}`}
-            fromHash={a.fromHash}
-            toHash={a.toHash}
-            fromGap={a.fromGap}
-            toGap={a.toGap}
-            // The trunk already runs through the icon column, so at rest
-            // every connector is it — a second translucent line laid over
-            // it would read as a darker stretch. They only light.
-            hideWhenIdle
-            isActive={
-              !!activeBeam &&
-              activeBeam.toHash === a.toHash &&
-              // Exact source match always activates. Target hover
-              // (fromHash null) activates ONLY explicit attachedTo
-              // connectors — for inferred beams the role-hover
-              // brightens the rail directly via CSS so we don't
-              // paint a long overlapping line through icons.
-              (activeBeam.fromHash === a.fromHash ||
-                (activeBeam.fromHash === null && !a.inferred))
-            }
-          />
-        ))}
       </div>
     </div>
   );
@@ -438,17 +527,24 @@ function TagBlock({
 // The chapter graph (see timeline-lane.tsx)
 // =============================================================================
 
+type RefMode = "plain" | "take" | "fork";
+
 type Item =
   | { kind: "row"; i: number }
-  | { kind: "ref"; lane: number; stepAside: boolean };
+  | { kind: "ref"; lane: number; mode: RefMode };
 
 /**
  * The block's printed items in order — each later chapter's ref goes in
  * above its first commit — and what each row draws of the graph.
  *
  * The block's chapter holds the trunk from its header. At a later chapter's
- * ref, that chapter takes the trunk; if the one holding it has commits
- * further down, it steps aside into the side lane and runs to its last one.
+ * ref, if the one on the trunk has nothing further down, the newcomer just
+ * takes the trunk over (`plain`). If both go on, whichever has more of the
+ * rest to itself keeps the trunk: the newcomer takes it and the running one
+ * steps aside (`take`), or the newcomer forks off into the side lane
+ * (`fork`). When the trunk's chapter ends while the side lane is still
+ * running, the side lane turns back into the trunk.
+ *
  * A commit sits on the trunk if it belongs to the trunk's chapter, else on
  * the side lane. One side lane at a time: a ref landing while one is
  * running takes the trunk, and whoever held it simply stops there.
@@ -457,7 +553,7 @@ function chapterGraph(
   commits: CommitData[],
   isHidden: (c: CommitData) => boolean,
   laneOf: ReadonlyMap<string, number[]> | undefined,
-): { items: Item[]; graphs: (RowGraph | undefined)[] } {
+): ChapterGraph {
   const lanesOf = (c: CommitData) => laneOf?.get(c.id) ?? [0];
   const items: Item[] = [];
   const started = new Set<number>([0]);
@@ -466,70 +562,181 @@ function chapterGraph(
     for (const l of lanesOf(commits[i])) {
       if (started.has(l)) continue;
       started.add(l);
-      items.push({ kind: "ref", lane: l, stepAside: false });
+      items.push({ kind: "ref", lane: l, mode: "plain" });
     }
     items.push({ kind: "row", i });
   }
 
+  const on = (p: number) => {
+    const it = items[p];
+    return it.kind === "row" ? lanesOf(commits[it.i]) : [];
+  };
   const last = new Map<number, number>();
+  const posOf = new Map<number, number>();
   items.forEach((it, p) => {
-    if (it.kind === "row") for (const l of lanesOf(commits[it.i])) last.set(l, p);
+    if (it.kind === "row") posOf.set(it.i, p);
+    for (const l of on(p)) last.set(l, p);
   });
-  const lastRow = items.reduce((m, it, p) => (it.kind === "row" ? p : m), -1);
+  const lastOf = (l: number) => last.get(l) ?? -1;
+  /** Rows after `p` that are `a`'s and not `b`'s. */
+  const own = (a: number, b: number, p: number) => {
+    let n = 0;
+    for (let q = p + 1; q < items.length; q++) {
+      const l = on(q);
+      if (l.includes(a) && !l.includes(b)) n++;
+    }
+    return n;
+  };
 
   const graphs: (RowGraph | undefined)[] = commits.map(() => undefined);
+  const holders: Holders[] = [];
   let trunk = 0;
   let side: number | null = null;
   items.forEach((it, p) => {
     if (it.kind === "ref") {
-      const running = (last.get(trunk) ?? -1) > p;
-      if (running && side === null) {
-        it.stepAside = true;
-        side = trunk;
+      const before = { trunk, side };
+      if (lastOf(trunk) > p && side === null) {
+        it.mode =
+          own(trunk, it.lane, p) > own(it.lane, trunk, p) ? "fork" : "take";
+        side = it.mode === "fork" ? it.lane : trunk;
       }
-      trunk = it.lane;
+      if (it.mode !== "fork") trunk = it.lane;
+      holders[p] = { ...before, afterTrunk: trunk };
       return;
     }
-    const on = lanesOf(commits[it.i]);
-    const onSide = side !== null && on.includes(side);
-    const onTrunk = on.includes(trunk) || !onSide;
-    // The trunk runs to the block's last row: a chapter that stops short
-    // of it hands the trunk on (to its ref's successor, or to the side
-    // lane returning), and the line goes on.
-    const g: RowGraph = {
-      trunkAbove: true,
-      trunkBelow: p < lastRow,
-    };
+    // The trunk's chapter is over and the side lane runs on: it turns back
+    // into the trunk at this row.
+    let enter = false;
+    if (side !== null && lastOf(trunk) < p) {
+      trunk = side;
+      side = null;
+      enter = true;
+    }
+    const here = on(p);
+    const onSide = side !== null && here.includes(side);
+    const onTrunk = here.includes(trunk) || !onSide;
+    holders[p] = { trunk, side };
+    const g: RowGraph = { trunkAbove: !enter, trunkBelow: false, enter };
     if (side !== null) {
-      const end = last.get(side)!;
-      g.side = onTrunk
-        ? onSide
-          ? p === end
-            ? "join"
-            : "touch"
-          : "pass"
-        : "node";
-      if (g.side === "node") {
-        g.sideAbove = true;
+      const end = lastOf(side);
+      if (!onTrunk) {
+        g.side = "node";
         g.sideBelow = p < end;
-      }
+      } else if (onSide) g.side = p === end ? "join" : "touch";
+      else g.side = "pass";
       if (p >= end) side = null;
     }
     graphs[it.i] = g;
   });
-  return { items, graphs };
+
+  // The trunk runs on to whatever comes next — a row, or a ref that picks
+  // it up — unless the next row is the side lane turning back into it.
+  items.forEach((it, p) => {
+    if (it.kind !== "row") return;
+    const next = items[p + 1];
+    graphs[it.i]!.trunkBelow =
+      !!next && !(next.kind === "row" && graphs[next.i]?.enter);
+  });
+  return { items, graphs, holders, on, lastOf, posOf };
+}
+
+/** Who held the trunk and the side lane at an item — for a ref, before it,
+ *  and who holds the trunk after it. */
+interface Holders {
+  trunk: number;
+  side: number | null;
+  afterTrunk?: number;
+}
+
+interface ChapterGraph {
+  items: Item[];
+  graphs: (RowGraph | undefined)[];
+  holders: Holders[];
+  /** The chapters (lane indices) an item's commit is on. */
+  on: (p: number) => number[];
+  /** A chapter's last item's position (-1 if it has none). */
+  lastOf: (lane: number) => number;
+  /** A commit's position among the items, by its index. */
+  posOf: ReadonlyMap<number, number>;
+}
+
+/** What is lit: rows by commit index, refs by their chapter's lane (the
+ *  block's header is lane 0's). */
+interface Lit {
+  rows: Map<number, RowLit>;
+  refs: Map<number, RefLit>;
+}
+
+const lightRow = (lit: Lit, i: number, row: RowLit) =>
+  lit.rows.set(i, { ...lit.rows.get(i), ...row });
+
+/**
+ * The lines a connector lights, row by row: from one end's node to the
+ * other's, along the chapter both ends are on — wherever that chapter runs
+ * in between. It holds the trunk, or has stepped aside at a ref, or comes
+ * back in at an `enter`; the lit lines are the ones it is drawn on.
+ */
+function litPath(graph: ChapterGraph, fromPos: number, toPos: number, lit: Lit) {
+  const [a, b] = fromPos < toPos ? [fromPos, toPos] : [toPos, fromPos];
+  const shared = graph.on(a).filter((l) => graph.on(b).includes(l));
+  const c = shared[0] ?? graph.on(b)[0] ?? 0;
+
+  for (let p = a; p <= b; p++) {
+    const it = graph.items[p];
+    const h = graph.holders[p];
+    if (!h) continue;
+    if (it.kind === "ref") {
+      if (it.mode === "take" && h.trunk === c) lit.refs.set(it.lane, "aside");
+      else if (h.afterTrunk === c || h.trunk === c) {
+        lit.refs.set(it.lane, "through");
+      }
+      continue;
+    }
+    const add = (row: RowLit) => lightRow(lit, it.i, row);
+    const g = graph.graphs[it.i]!;
+    const top = p === a;
+    const bottom = p === b;
+    // Where the chapter runs at this row: on the trunk, or the side lane.
+    const onTrunk = h.trunk === c;
+    const onSide = h.side === c;
+    if (!onTrunk && !onSide) {
+      // Not drawn here at all (a hole in the data): fall back on the trunk.
+      add({ trunkAbove: !top, trunkBelow: !bottom });
+      continue;
+    }
+    if (onTrunk) {
+      add({
+        // Came in from the side lane at this very node.
+        ...(g.enter ? { sideAbove: !top } : { trunkAbove: !top }),
+        trunkBelow: !bottom,
+      });
+      continue;
+    }
+    // On the side lane: the node is on the trunk (the commit is on both,
+    // and the lane reaches in to it) or on the side lane itself.
+    const node = g.side === "node";
+    add({
+      sideAbove: !top,
+      sideBelow: !bottom,
+      reach: !node && (top || bottom),
+    });
+  }
 }
 
 /** Where a ref's line sits: the same grid as a row, laid over the marker, so
  *  its icon cell is exactly on the trunk. */
 function RefGraphLayer({
   y,
-  stepAside,
+  mode,
   first,
+  look,
+  lit,
 }: {
   y: number;
-  stepAside?: boolean;
+  mode?: RefMode;
   first?: boolean;
+  look?: RefLook | "auto";
+  lit?: RefLit;
 }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -539,19 +746,23 @@ function RefGraphLayer({
           GUTTER_PULL,
         )}
       >
-        <div className="grid h-full grid-cols-[auto_1fr] @sm:grid-cols-[auto_auto_1fr] gap-x-2">
-          <span
-            className={cn(
-              "hidden @sm:inline-block select-none",
-              HASH_CELL,
-              TYPE.hash,
-              "text-transparent",
-            )}
-          >
-            0000000
-          </span>
+        <div className="grid h-full grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr] gap-x-2">
+          <BlankHash />
           <span className="relative w-5">
-            <RefInCell y={y} stepAside={stepAside} first={first} />
+            {look === "auto" ? (
+              <>
+                {/* The marker over the trunk on a phone, a ring on it where
+                    the marker has moved to the hash slot. */}
+                <span className="contents lg:hidden">
+                  <RefInCell y={y} mode={mode} first={first} look="under" lit={lit} />
+                </span>
+                <span className="hidden lg:contents">
+                  <RefInCell y={y} mode={mode} first={first} look="ring" lit={lit} />
+                </span>
+              </>
+            ) : (
+              <RefInCell y={y} mode={mode} first={first} look={look} lit={lit} />
+            )}
           </span>
         </div>
       </div>
@@ -560,35 +771,382 @@ function RefGraphLayer({
 }
 
 /**
- * A chapter that starts inside an overlap: its ref, drawn as every chapter
- * marker is — the same pill in the same place — without the rule above it,
- * since the chapter before it has not ended.
+ * A chapter's ref: the block's header (`first`), or a chapter that starts
+ * inside an overlap, drawn as every chapter marker is — the same pill in the
+ * same place — without the rule above it, since the chapter before it has
+ * not ended. `children` stands in for the marker (the editor's inspect
+ * controls).
+ *
+ * The tag's message: an annotated tag carries one, and `git show` prints it
+ * before the commits it marks — the chapter, as its author tells it. Only
+ * the page that pins its chapters (/works) prints it.
  */
 function RefRow({
+  className,
+  y,
+  first,
   tag,
+  label,
   locale,
-  stepAside,
+  mode,
   pinned,
+  look,
+  lit,
+  track,
+  dimmed,
+  children,
 }: {
+  className: string;
+  /** The marker's centre from the row's top, px. */
+  y: number;
+  first?: boolean;
   tag: Tag;
+  label: string;
   locale: Locale;
-  stepAside: boolean;
+  mode?: RefMode;
   pinned: boolean;
+  look: RefLayout;
+  lit?: RefLit;
+  track: TrackControl;
+  dimmed: boolean;
+  children?: React.ReactNode;
 }) {
+  const message = pinned ? localizeOptional(tag.narrative, locale) : undefined;
   return (
-    <div className="relative flex items-center gap-3 pt-8 pb-2">
-      <RefGraphLayer y={32 + 11} stepAside={stepAside} />
-      <span
-        data-chapter={pinned ? tag.id : undefined}
-        className={cn(CHAPTER_PILL, "relative border-border")}
+    <div className={cn("relative", className)}>
+      <RefGraphLayer y={y} mode={mode} first={first} look={lookOf(look)} lit={lit} />
+      <div
+        className={cn(
+          "flex items-center gap-3 transition-opacity duration-300",
+          dimmed && "opacity-40",
+        )}
       >
-        {chapterLabel(tag, -1, locale)}
-      </span>
-      {!tag.hideDate && (
-        <span className="font-mono text-xs text-tertiary-foreground">
-          {formatTagDateRange(tag, locale)}
-        </span>
+        {children || (
+          <RefLabel
+            look={look}
+            tag={tag}
+            label={label}
+            locale={locale}
+            pinned={pinned}
+            message={message}
+            track={track}
+          />
+        )}
+      </div>
+      {look === "stub" && message && (
+        <StubMessage text={message} dimmed={dimmed} open={track.pinned} />
       )}
     </div>
   );
+}
+
+/** A chapter's span of years. */
+function TagDate({ tag, locale }: { tag: Tag; locale: Locale }) {
+  return (
+    <span className="font-mono text-xs text-tertiary-foreground">
+      {formatTagDateRange(tag, locale)}
+    </span>
+  );
+}
+
+/** The hash slot held open, empty, so a ref's cells line up with a row's. */
+function BlankHash() {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "hidden lg:inline-block select-none",
+        HASH_CELL,
+        TYPE.hash,
+        "text-transparent",
+      )}
+    >
+      0000000
+    </span>
+  );
+}
+
+/** `stub`'s message: a paragraph under the marker, from the page column's
+ *  edge, on a measure (the reading #326 tried). */
+function StubMessage({
+  text,
+  dimmed,
+  open,
+}: {
+  text: string;
+  dimmed?: boolean;
+  open: boolean;
+}) {
+  return (
+    <Unfold open={open} className="relative">
+      <p
+        className={cn(
+          "pt-2 max-w-prose transition-opacity duration-300",
+          TYPE.body,
+          dimmed && "opacity-40",
+        )}
+      >
+        {text}
+      </p>
+    </Unfold>
+  );
+}
+
+/**
+ * A chapter's tag message opens only while its marker is held: the log at
+ * rest is its rows, and a chapter says what it was when it is asked. The
+ * height eases open and shut (a grid row from 0fr to 1fr), under the
+ * marker, so nothing above it moves.
+ */
+function Unfold({
+  open,
+  className,
+  children,
+}: {
+  open: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      aria-hidden={!open}
+      className={cn(
+        "grid transition-[grid-template-rows,opacity] duration-300 ease-out",
+        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+        className,
+      )}
+    >
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
+  );
+}
+
+/** Where a ref's marker goes — on trial, switched from the DevTool's Works
+ *  module (see `WorksRef` in systems/devtool). */
+type RefLayout = WorksRef;
+
+/** The line a layout draws: a marker in the hash slot leaves a ring on
+ *  the trunk, as a marker in the title slot does. */
+function lookOf(layout: RefLayout): RefLook | "auto" {
+  return layout === "hash" || layout === "row" ? "ring" : layout;
+}
+
+/**
+ * A ref's marker and its span, placed for its look. `stub` keeps the
+ * marker at the page column's edge; the others lay the ref out on the same
+ * grid as a commit row, so it lines up with the rows under it:
+ *
+ *   ring    ·  ○  (DESIGN) 2004 – 2016     the marker where a title goes
+ *   row     ·  ○  (DESIGN) ······ 2004 – 2016   …and the span where a date goes
+ *   under   ·  (DESIGN) 2004 – 2016        the marker on the trunk
+ *   hash    (DESIGN) ○  2004 – 2016        the marker where a hash goes
+ */
+function RefLabel({
+  look,
+  tag,
+  label,
+  locale,
+  pinned,
+  message,
+  track,
+}: {
+  look: RefLayout;
+  tag: Tag;
+  label: string;
+  locale: Locale;
+  pinned: boolean;
+  /** The tag's message. The grid looks print it where a commit's
+   *  description goes, in its type, open while the marker is held; `stub`
+   *  leaves it to the caller. */
+  message?: string;
+  track: TrackControl;
+}) {
+  const pill = (
+    <TrackPill
+      tag={tag}
+      label={label}
+      pinned={pinned}
+      track={track}
+      className="shrink-0"
+    />
+  );
+  const date = tag.hideDate ? null : <TagDate tag={tag} locale={locale} />;
+  if (look === "stub") {
+    return (
+      <>
+        {pill}
+        {date}
+      </>
+    );
+  }
+  return (
+    <div className={cn("flex-1 min-w-0 -mx-3 px-3 @container", GUTTER_PULL)}>
+      <div
+        className={cn(
+          "grid gap-x-2 items-center",
+          // The icon column held open at its width, so the message under
+          // a marker that spans it still starts where titles do.
+          look === "hash"
+            ? "grid-cols-[auto_1fr] lg:grid-cols-[auto_auto_1fr]"
+            : look === "auto"
+              ? // The hash slot at the gutter's width (HASH_CELL).
+                "grid-cols-[1.25rem_1fr] lg:grid-cols-[3.5rem_1.25rem_1fr]"
+              : "grid-cols-[1.25rem_1fr] lg:grid-cols-[auto_1.25rem_1fr]",
+        )}
+      >
+        {look === "auto" ? (
+          // `under` where there is no hash slot, `hash` where there is: one
+          // marker, placed twice. On a phone the marker and its span sit
+          // together over the icon column; from `lg` the wrapper dissolves
+          // and each takes its own cell — the marker the hash's, overflowing
+          // it leftward, the span the title's.
+          <span className="col-span-2 flex items-center gap-3 min-w-0 lg:contents">
+            <span className="flex lg:col-start-1 lg:row-start-1 lg:justify-self-end">
+              {pill}
+            </span>
+            <span className="flex items-center min-w-0 lg:col-start-3 lg:row-start-1">
+              {date}
+            </span>
+          </span>
+        ) : look === "hash" ? (
+          <>
+            {/* The hash slot is a hash wide; the marker overflows it to
+                the left, so the trunk stays where it is. Below `lg` there
+                is no hash slot, and the marker sits on the trunk. */}
+            <span className="flex justify-end lg:w-14 font-mono text-xs">
+              {pill}
+            </span>
+            <span aria-hidden className="hidden lg:inline-block w-5" />
+            <span className="flex items-center min-w-0">{date}</span>
+          </>
+        ) : look === "ring" || look === "row" ? (
+          <>
+            <BlankHash />
+            <span aria-hidden className="w-5" />
+            {/* `row`: the span where a commit's date goes, on the right. */}
+            <span className="flex items-center gap-3 min-w-0">
+              {pill}
+              {look === "row" ? (
+                <span className={cn("ml-auto shrink-0", TYPE.rowMeta)}>
+                  {date}
+                </span>
+              ) : (
+                date
+              )}
+            </span>
+          </>
+        ) : (
+          <>
+            <BlankHash />
+            <span className="col-span-2 flex items-center gap-3 min-w-0">
+              {pill}
+              {date}
+            </span>
+          </>
+        )}
+        {message && (
+          <Unfold open={track.pinned} className="col-start-2 lg:col-start-3 min-w-0">
+            <p className={cn("pt-1.5", TYPE.caption)}>{message}</p>
+          </Unfold>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** A marker's hold on its chapter's track: whether it is lit, whether it is
+ *  held, and the handlers that light and hold it. */
+interface TrackControl {
+  lit: boolean;
+  pinned: boolean;
+  bind: {
+    onPointerEnter: React.PointerEventHandler<HTMLElement>;
+    onPointerLeave: React.PointerEventHandler<HTMLElement>;
+    onFocus: React.FocusEventHandler<HTMLElement>;
+    onBlur: React.FocusEventHandler<HTMLElement>;
+    onKeyDown: React.KeyboardEventHandler<HTMLElement>;
+    onClick: React.MouseEventHandler<HTMLElement>;
+  };
+}
+
+/**
+ * A chapter's marker. Pointing at it lights the chapter's whole track —
+ * where it holds the trunk, where it steps aside, every commit it reaches;
+ * clicking it (or tapping, or tabbing to it) holds the light until focus
+ * moves on.
+ *
+ * `data-chapter` is what the pinned bar watches: the moment this pill
+ * reaches the bar's ref slot, the slot wears it. One per ref.
+ */
+function TrackPill({
+  tag,
+  label,
+  pinned,
+  track,
+  className,
+}: {
+  tag: Tag;
+  label: string;
+  pinned: boolean;
+  track: TrackControl;
+  className?: string;
+}) {
+  // On the ladder: the chapter's name is the information where it stands
+  // (secondary) until its track is lit, when it is the thing being read —
+  // ink, and a border on the graph's lit rung, the track's own.
+  return (
+    <button
+      type="button"
+      data-chapter={pinned ? tag.id : undefined}
+      aria-pressed={track.pinned}
+      title={label}
+      className={cn(
+        CHAPTER_PILL,
+        "relative cursor-pointer outline-none transition-colors duration-200",
+        track.lit
+          ? "text-foreground border-graph-lit"
+          : "text-muted-foreground border-border",
+        className,
+      )}
+      {...track.bind}
+    >
+      {label}
+    </button>
+  );
+}
+
+/**
+ * Everything a chapter draws on the graph, lit: its trunk from its ref to its
+ * last commit, the step aside where a newer chapter takes the trunk, its side
+ * lane and every reach into a commit it shares, and the turn back in.
+ */
+function litTrack(graph: ChapterGraph, c: number, lit: Lit) {
+  const last = graph.lastOf(c);
+  // The block's own chapter starts at the block's header.
+  if (c === 0) lit.refs.set(0, "start");
+  graph.items.forEach((it, p) => {
+    const h = graph.holders[p];
+    if (!h || p > last) return;
+    if (it.kind === "ref") {
+      if (it.lane === c) lit.refs.set(c, it.mode === "fork" ? "fork" : "start");
+      else if (it.mode === "take" && h.trunk === c) lit.refs.set(it.lane, "aside");
+      else if (h.trunk === c && h.afterTrunk === c) {
+        lit.refs.set(it.lane, "through");
+      }
+      return;
+    }
+    const g = graph.graphs[it.i]!;
+    if (h.trunk === c) {
+      lightRow(lit, it.i, {
+        ...(g.enter ? { sideAbove: true } : { trunkAbove: true }),
+        trunkBelow: p < last,
+      });
+    } else if (h.side === c) {
+      lightRow(lit, it.i, {
+        sideAbove: true,
+        sideBelow: p < last,
+        reach: graph.on(p).includes(c) && g.side !== "node",
+      });
+    }
+  });
 }
