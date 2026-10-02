@@ -293,6 +293,14 @@ export async function fetchOG(
 }
 
 /**
+ * A `content` attribute's value, up to its own closing quote. The value
+ * used to be `[^"']+`, which stopped at either quote, so a double-quoted
+ * description with an apostrophe in it ("The world's largest event…")
+ * was cut to "The world". The quote that opens it is the one that closes it.
+ */
+const CONTENT = `content=(?<q>["'])(?<v>(?:(?!\\k<q>)[\\s\\S])+)\\k<q>`;
+
+/**
  * Parse OG/Twitter-card metadata out of an HTML string.
  * Lightweight regex extraction; no external HTML parser needed.
  */
@@ -300,15 +308,15 @@ export function parseOG(html: string, url: string): OGData {
   const getMetaContent = (property: string): string | undefined => {
     const patterns = [
       // og:property (property before content, and content before property)
-      `<meta[^>]*property=["']og:${property}["'][^>]*content=["']([^"']+)["']`,
-      `<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:${property}["']`,
+      `<meta[^>]*property=["']og:${property}["'][^>]*${CONTENT}`,
+      `<meta[^>]*${CONTENT}[^>]*property=["']og:${property}["']`,
       // twitter:property (both attribute orders)
-      `<meta[^>]*name=["']twitter:${property}["'][^>]*content=["']([^"']+)["']`,
-      `<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:${property}["']`,
+      `<meta[^>]*name=["']twitter:${property}["'][^>]*${CONTENT}`,
+      `<meta[^>]*${CONTENT}[^>]*name=["']twitter:${property}["']`,
     ];
     for (const p of patterns) {
       const m = html.match(new RegExp(p, "i"));
-      if (m) return decodeHTMLEntities(m[1]);
+      if (m?.groups) return decodeHTMLEntities(m.groups.v);
     }
     return undefined;
   };
@@ -324,9 +332,9 @@ export function parseOG(html: string, url: string): OGData {
   let description = getMetaContent("description");
   if (!description) {
     const descMatch = html.match(
-      /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i,
+      new RegExp(`<meta[^>]*name=["']description["'][^>]*${CONTENT}`, "i"),
     );
-    if (descMatch) description = decodeHTMLEntities(descMatch[1]);
+    if (descMatch?.groups) description = decodeHTMLEntities(descMatch.groups.v);
   }
 
   const image = getMetaContent("image");
