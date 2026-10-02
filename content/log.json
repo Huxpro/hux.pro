@@ -245,8 +245,8 @@
             "zh": "架构师"
           },
           "description": {
-            "en": "Architect of Lynx at ByteDance. Making interfaces better for more users, more developers, and more machines.",
-            "zh": "字节跳动 Lynx 架构师。让界面更好地服务更多用户、更多开发者、更多机器。"
+            "en": "Architect of Lynx at ByteDance: leading its direction and quality, partnering with about ten managers on priorities and practices, and growing it into an open-source ecosystem with external partners. Making interfaces better for more users, more developers, and more machines.",
+            "zh": "字节跳动 Lynx 架构师：把握 Lynx 的方向与质量，与约十位经理一起推动优先级与工程实践，并把它发展成有外部伙伴参与的开源生态。让界面更好地服务更多用户、更多开发者、更多机器。"
           },
           "date": "2023-02",
           "hideRow": true,
@@ -277,8 +277,8 @@
             "zh": "Software Engineer"
           },
           "description": {
-            "en": "On Meta's React Technologies team: first Hermes, the JavaScript engine for React Native, then React Forget, the compiler I was founding engineer and tech lead of.",
-            "zh": "On Meta's React Technologies team: first Hermes, the JavaScript engine for React Native, then React Forget, the compiler I was founding engineer and tech lead of."
+            "en": "On Meta's React Technologies and PL&R teams: founding engineer and tech lead of React Forget, the auto-memoizing compiler on the React core team, and owner of modern JavaScript features, async semantics and open-source stewardship for Hermes.",
+            "zh": "On Meta's React Technologies and PL&R teams: founding engineer and tech lead of React Forget, the auto-memoizing compiler on the React core team, and owner of modern JavaScript features, async semantics and open-source stewardship for Hermes."
           },
           "date": "2020-03",
           "endDate": "2022-10",
@@ -381,12 +381,12 @@
         {
           "id": "eleme-visiting",
           "title": {
-            "en": "Visiting Tech Lead, PWA",
-            "zh": "顾问专家，PWA"
+            "en": "Front-End Expert",
+            "zh": "前端专家"
           },
           "description": {
-            "zh": "三个月的 PWA 顾问合作，做出了国内第一个有影响力的 PWA。",
-            "en": "A three-month PWA consulting engagement that produced the first influential PWA in China."
+            "zh": "三个月里带领饿了么 PWA，做出了国内第一个有影响力的 PWA。",
+            "en": "Three months leading the Ele.me PWA, the first influential PWA in China."
           },
           "date": "2017-02",
           "endDate": "2017-05",
@@ -417,8 +417,8 @@
             "zh": "Web 基础架构团队主管"
           },
           "description": {
-            "zh": "微票儿的创始工程师；组建并带领前端基础架构团队，主导全公司技术栈迁往 React。",
-            "en": "Founding engineer of WePiao's ticketing app; founded and led the front-end infrastructure team, and moved the whole company onto React."
+            "zh": "组建并带领 5 人的前端基础架构团队，支撑 5 条产品线的 30 多位工程师；主导全公司迁往 React，直接向技术 VP 汇报。此前创建并上线了娱票儿。",
+            "en": "Founded and led a front-end infrastructure team of five, empowering 30+ engineers across five product teams; led the company-wide migration to React, reporting to the VP of Engineering. Before that, founded and launched Yupiaoer."
           },
           "date": "2015-05",
           "endDate": "2016-06",
@@ -1063,8 +1063,8 @@
         "zh": "Lynx"
       },
       "description": {
-        "en": "I'm the architect of [Lynx](https://lynxjs.org/), the cross-platform UI framework behind TikTok and CapCut, which we [open-sourced](https://github.com/lynx-family/lynx) in March 2025. It lets web skills, React and CSS, drive truly native UI on a dual-threaded runtime, and surfaces moved from web to Lynx often launch two to four times faster.",
-        "zh": "I'm the architect of [Lynx](https://lynxjs.org/), the cross-platform UI framework behind TikTok and CapCut, which we [open-sourced](https://github.com/lynx-family/lynx) in March 2025. It lets web skills, React and CSS, drive truly native UI on a dual-threaded runtime, and surfaces moved from web to Lynx often launch two to four times faster."
+        "en": "I lead the direction and quality of [Lynx](https://lynxjs.org/), ByteDance's cross-platform app stack behind TikTok and CapCut: its runtime, APIs, tooling and docs, and its emerging work in AI and programming languages. We [open-sourced](https://github.com/lynx-family/lynx) it in March 2025 and grew it into an open-source ecosystem; surfaces moved from web to Lynx often launch two to four times faster.",
+        "zh": "I lead the direction and quality of [Lynx](https://lynxjs.org/), ByteDance's cross-platform app stack behind TikTok and CapCut: its runtime, APIs, tooling and docs, and its emerging work in AI and programming languages. We [open-sourced](https://github.com/lynx-family/lynx) it in March 2025 and grew it into an open-source ecosystem; surfaces moved from web to Lynx often launch two to four times faster."
       },
       "date": "2023-02",
       "endDate": "present",
@@ -1259,12 +1259,12 @@
         "zh": "Hermes"
       },
       "description": {
-        "en": "I worked on [Hermes](https://github.com/facebook/hermes), Meta's JavaScript engine for React Native: language features from Proxy to microtasks, releases 0.6 to 0.9, and Meta's side of bringing it to iOS in React Native 0.64 with Callstack and Microsoft ([we talked about it](https://www.callstack.com/podcasts/react-native-0-64-with-hermes-for-ios-ep-5)). I wrote the roadmap, Toward Hermes being the Default; within a year it was.",
-        "zh": "I worked on [Hermes](https://github.com/facebook/hermes), Meta's JavaScript engine for React Native: language features from Proxy to microtasks, releases 0.6 to 0.9, and Meta's side of bringing it to iOS in React Native 0.64 with Callstack and Microsoft ([we talked about it](https://www.callstack.com/podcasts/react-native-0-64-with-hermes-for-ios-ep-5)). I wrote the roadmap, Toward Hermes being the Default; within a year it was."
+        "en": "I owned modern JavaScript features, async execution semantics and the open-source stewardship of [Hermes](https://github.com/facebook/hermes), Meta's JavaScript engine for React Native, and pushed it to become React Native's default engine. I wrote the roadmap, Toward Hermes being the Default; within a year it was.",
+        "zh": "I owned modern JavaScript features, async execution semantics and the open-source stewardship of [Hermes](https://github.com/facebook/hermes), Meta's JavaScript engine for React Native, and pushed it to become React Native's default engine. I wrote the roadmap, Toward Hermes being the Default; within a year it was."
       },
       "details": {
-        "en": "Hermes is an open-source JavaScript engine optimized for running React Native, built around ahead-of-time compilation to compact bytecode. It shipped opt-in on iOS in [React Native 0.64](https://reactnative.dev/blog/2021/03/12/version-0.64) (March 2021) and became the default engine in [React Native 0.70](https://reactnative.dev/blog/2022/09/05/version-070) (September 2022). The roadmap post reported time-to-interactive cut by nearly half, p99.9 GC pauses 34 times shorter with Hades on 64-bit, and a 30% smaller heap.",
-        "zh": "Hermes is an open-source JavaScript engine optimized for running React Native, built around ahead-of-time compilation to compact bytecode. It shipped opt-in on iOS in [React Native 0.64](https://reactnative.dev/blog/2021/03/12/version-0.64) (March 2021) and became the default engine in [React Native 0.70](https://reactnative.dev/blog/2022/09/05/version-070) (September 2022). The roadmap post reported time-to-interactive cut by nearly half, p99.9 GC pauses 34 times shorter with Hades on 64-bit, and a 30% smaller heap."
+        "en": "Hermes is an open-source JavaScript engine optimized for running React Native, built around ahead-of-time compilation to compact bytecode. It shipped opt-in on iOS in [React Native 0.64](https://reactnative.dev/blog/2021/03/12/version-0.64) (March 2021), which Callstack led with Microsoft and us at Meta ([we talked about it](https://www.callstack.com/podcasts/react-native-0-64-with-hermes-for-ios-ep-5)), and became the default engine in [React Native 0.70](https://reactnative.dev/blog/2022/09/05/version-070) (September 2022). The roadmap post reported time-to-interactive cut by nearly half, p99.9 GC pauses 34 times shorter with Hades on 64-bit, and a 30% smaller heap.",
+        "zh": "Hermes is an open-source JavaScript engine optimized for running React Native, built around ahead-of-time compilation to compact bytecode. It shipped opt-in on iOS in [React Native 0.64](https://reactnative.dev/blog/2021/03/12/version-0.64) (March 2021), which Callstack led with Microsoft and us at Meta ([we talked about it](https://www.callstack.com/podcasts/react-native-0-64-with-hermes-for-ios-ep-5)), and became the default engine in [React Native 0.70](https://reactnative.dev/blog/2022/09/05/version-070) (September 2022). The roadmap post reported time-to-interactive cut by nearly half, p99.9 GC pauses 34 times shorter with Hades on 64-bit, and a 30% smaller heap."
       },
       "date": "2020-03",
       "endDate": "2021-10",
@@ -1361,8 +1361,8 @@
         "zh": "WasmCert"
       },
       "description": {
-        "en": "My master's capstone at RIT, with [Prof. Matthew Fluet](https://www.cs.rit.edu/~mtf/): the W3C WebAssembly 1.0 spec mechanized in Coq, with an (almost) complete proof that it is sound. Following the standard itself turned up bugs I [fixed upstream](https://github.com/WebAssembly/spec/pull/1093), and the name lives on: Cambridge and Imperial's [WasmCert-Coq](https://github.com/WasmCert/WasmCert-Coq) carries it, with permission.",
-        "zh": "My master's capstone at RIT, with [Prof. Matthew Fluet](https://www.cs.rit.edu/~mtf/): the W3C WebAssembly 1.0 spec mechanized in Coq, with an (almost) complete proof that it is sound. Following the standard itself turned up bugs I [fixed upstream](https://github.com/WebAssembly/spec/pull/1093), and the name lives on: Cambridge and Imperial's [WasmCert-Coq](https://github.com/WasmCert/WasmCert-Coq) carries it, with permission."
+        "en": "My master's thesis at RIT, with [Prof. Matthew Fluet](https://www.cs.rit.edu/~mtf/): the W3C WebAssembly 1.0 spec mechanized in Coq, with an (almost) complete proof that it is sound. Following the standard itself turned up bugs I [fixed upstream](https://github.com/WebAssembly/spec/pull/1093), and the name lives on: Cambridge and Imperial's [WasmCert-Coq](https://github.com/WasmCert/WasmCert-Coq) carries it, with permission.",
+        "zh": "My master's thesis at RIT, with [Prof. Matthew Fluet](https://www.cs.rit.edu/~mtf/): the W3C WebAssembly 1.0 spec mechanized in Coq, with an (almost) complete proof that it is sound. Following the standard itself turned up bugs I [fixed upstream](https://github.com/WebAssembly/spec/pull/1093), and the name lives on: Cambridge and Imperial's [WasmCert-Coq](https://github.com/WasmCert/WasmCert-Coq) carries it, with permission."
       },
       "date": "2019-08",
       "endDate": "2019-12",
@@ -1543,8 +1543,8 @@
         "zh": "饿了么 PWA"
       },
       "description": {
-        "en": "I joined Ele.me as a PWA consultant for three months in 2017 to prove that a multi-page Vue app could be a Progressive Web App too. It became the first influential PWA in China: a skeleton painted at 400ms, interactive in about two seconds. I [wrote it up](https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509), and drew its architecture for Addy Osmani's Google I/O 2017 talk.",
-        "zh": "2017 年以 PWA 顾问的身份加入饿了么三个月，想证明一个基于 Vue 的多页应用也能成为 PWA。它成了国内第一个有影响力的 PWA：骨架屏 400ms 首绘，两秒左右可交互。我把它[写成了文章](/writing/upgrading-eleme-to-pwa/zh)，也为 Addy Osmani 在 Google I/O 2017 的演讲画了它的架构图。"
+        "en": "I led the Ele.me PWA as a front-end expert for three months in 2017, pioneering PWA techniques on a multi-page app backed by microservices. It became the first influential PWA in China, a skeleton painted at 400ms and interactive in about two seconds, and was featured as a web.dev case study and highlighted at Google I/O 2017. I [wrote it up](https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509).",
+        "zh": "2017 年以前端专家的身份带领饿了么 PWA 三个月，率先把 PWA 技术用在背靠微服务的多页应用上。它成了国内第一个有影响力的 PWA：骨架屏 400ms 首绘，两秒左右可交互，被 web.dev 收作案例，也在 Google I/O 2017 上亮相。我把它[写成了文章](/writing/upgrading-eleme-to-pwa/zh)。"
       },
       "details": {
         "en": "From web.dev: \"Ele.me is the biggest food ordering and delivery company in mainland China. It serves 260 million registered users from over 200 cities all around China, and has over 1.3 million restaurant listings. With 99% of its users ordering food on mobile, Ele.me set out to improve its mobile web experience, making it faster and more reliable in flaky connections, all while relying on the core technical model of a multi-page app to accommodate their operational needs.\" Loading time fell 11.6% across pre-cached pages and 6.35% on average; time-to-consistently-interactive dropped to 4.93 seconds on 3G on first load.",
@@ -1628,12 +1628,12 @@
         "zh": "娱票儿"
       },
       "description": {
-        "en": "At WePiao I was a founding engineer of its movie-ticketing app (then 微票儿, later 娱票儿), and founded and led the company's front-end infrastructure team, which moved the whole company onto React.",
-        "zh": "在微影时代，我是微票儿（后更名娱票儿）的创始工程师，组建并带领公司的前端基础架构团队，把全公司的技术栈迁到了 React。"
+        "en": "At WePiao I founded and launched Yupiaoer, a hybrid app built with React, later [shortlisted](https://www.ticketingbusinessforum.com/awards-2017-shortlists-revealed/) for two 2017 Ticketing Technology Awards. Then I founded the front-end infrastructure team, five engineers empowering 30+ across five product teams, and led the company-wide move to React, reporting to the VP of Engineering.",
+        "zh": "在微影时代，我创建并上线了娱票儿，一个用 React 写的 Hybrid 应用，后来[入围](https://www.ticketingbusinessforum.com/awards-2017-shortlists-revealed/)了 2017 年票务科技奖的两个奖项。之后我组建了前端基础架构团队：5 个人支撑 5 条产品线的 30 多位工程师，主导全公司迁往 React，直接向技术 VP 汇报。"
       },
       "details": {
-        "en": "My speaker bio at QCon Shanghai 2016: \"former lead of WePiao's front-end infrastructure team\". Beijing Weiying (WePiao) was later acquired by Maoyan.",
-        "zh": "QCon 上海 2016 的讲师介绍：「前微票儿·前端基础工程团队负责人」。微影时代后被猫眼收购。"
+        "en": "My speaker bio at QCon Shanghai 2016: \"former lead of WePiao's front-end infrastructure team\". Beijing Weiying (WePiao), a Tencent-funded ticketing unicorn, later merged with Maoyan.",
+        "zh": "QCon 上海 2016 的讲师介绍：「前微票儿·前端基础工程团队负责人」。微影时代是腾讯投资的票务独角兽，后与猫眼合并。"
       },
       "date": "2015-05",
       "endDate": "2016-06",
