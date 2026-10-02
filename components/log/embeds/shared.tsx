@@ -5,6 +5,7 @@
  * Used by TimelineCommit and CommitCompact.
  */
 
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { IdentityHover } from "@/systems/identity";
 import type { Byline } from "../bylines";
@@ -15,7 +16,8 @@ import { TYPE } from "@/lib/typography";
 // =============================================================================
 
 interface DescriptionProps {
-  text: string;
+  /** The words, or the words with their inline links (`InlineText`). */
+  text: ReactNode;
   className?: string;
 }
 
@@ -55,7 +57,7 @@ export function Description({ text, className }: DescriptionProps) {
  * keeps the muted rung: it is running text, and a paragraph on tertiary is
  * a contrast bug, not a hierarchy.
  */
-export function Details({ text, className }: { text: string; className?: string }) {
+export function Details({ text, className }: { text: ReactNode; className?: string }) {
   return <p className={cn(TYPE.caption, className)}>{text}</p>;
 }
 
@@ -64,7 +66,7 @@ export function Details({ text, className }: { text: string; className?: string 
 // =============================================================================
 
 interface CommentaryProps {
-  text: string;
+  text: ReactNode;
   className?: string;
 }
 

@@ -36,6 +36,7 @@
 import fs from "fs";
 import path from "path";
 import { detectMediaKind } from "../lib/media-kind.ts";
+import { inlineHrefs } from "../lib/inline-links.ts";
 import { collectMagicLinkTags } from "./magic-link-tags.ts";
 import {
   fetchOG,
@@ -149,9 +150,10 @@ function collectTargets(): Target[] {
     }
   }
   // A magic link's page peeks as its card (components/magic-link): the
-  // ones prose names, and a /works venue's page (a talk's conference),
-  // which the timeline renders as one.
-  for (const url of [...magicLinkHrefs(), ...venueHrefs(log.commits ?? [])]) {
+  // ones prose names, a /works venue's page (a talk's conference), and the
+  // pages a commit's own text links inline, which the timeline renders as
+  // magic links too.
+  for (const url of [...magicLinkHrefs(), ...logHrefs(log.commits ?? [])]) {
     upsert({
       url,
       kind: "card",
@@ -162,13 +164,22 @@ function collectTargets(): Target[] {
   return [...byUrl.values()];
 }
 
-/** Every venue page /works renders as a magic link (TimelineCommit's
- *  `venueLink`): a talk's conference. */
-function venueHrefs(commits: RawLogData["commits"]): string[] {
+/** Every page /works renders as a magic link from a commit itself: a talk's
+ *  conference (TimelineCommit's `venueLink`), and every page its
+ *  description, commentary or details link inline (lib/inline-links.ts), in
+ *  either locale. */
+function logHrefs(commits: RawLogData["commits"]): string[] {
   const urls = new Set<string>();
-  for (const c of commits ?? []) {
-    const url = c.type === "talk" ? c.conference.url : undefined;
+  const add = (url: string | undefined) => {
     if (url && /^https?:/.test(url) && detectMediaKind(url) === "link") urls.add(url);
+  };
+  for (const c of commits ?? []) {
+    if (c.type === "talk") add(c.conference.url);
+    for (const text of [c.description, c.commentary, c.details]) {
+      for (const locale of ["en", "zh"] as const) {
+        for (const url of inlineHrefs(text?.[locale])) add(url);
+      }
+    }
   }
   return [...urls];
 }

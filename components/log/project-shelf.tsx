@@ -45,6 +45,7 @@ import {
   localize,
   type Commit,
 } from "@/lib/log";
+import { plainInline } from "@/lib/inline-links";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useInputCapability } from "@/services";
@@ -113,7 +114,7 @@ export function ProjectShelf({
         id: commit.id,
         hash: computeCommitHash(commit.id),
         title: localize(commit.title, locale),
-        description: localize(commit.description, locale),
+        description: plainInline(localize(commit.description, locale)),
         mark: commitMark(commit, locale),
         peek: magneticPreviewEnabled ? buildCommitPreview(commit, locale) : null,
       })),

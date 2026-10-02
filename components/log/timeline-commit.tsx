@@ -36,6 +36,7 @@ import {
 } from "./timeline-lane";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
 import { MagicLink } from "@/components/magic-link/magic-link";
+import { InlineText } from "./inline-text";
 import {
   Description,
   Commentary,
@@ -842,8 +843,10 @@ export function TimelineCommit({
           row's own control acts on it, so it stays part of the trigger. */}
       {printsText && (
         <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0 space-y-1.5">
-          <Description text={data.description} />
-          {data.commentary && <Commentary text={data.commentary} />}
+          <Description text={<InlineText text={data.inline.description} />} />
+          {data.inline.commentary && (
+            <Commentary text={<InlineText text={data.inline.commentary} />} />
+          )}
         </div>
       )}
 
@@ -928,7 +931,9 @@ export function TimelineCommit({
           onClick={(e) => e.stopPropagation()}
           className="col-start-2 lg:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
         >
-          {rowForm.notes && data.details && <Details text={data.details} />}
+          {rowForm.notes && data.inline.details && (
+            <Details text={<InlineText text={data.inline.details} />} />
+          )}
 
           {/* The labels hold their column at every width. A field stack
               whose keys vanish on a phone is just unlabelled lines, not

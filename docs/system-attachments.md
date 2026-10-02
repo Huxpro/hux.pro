@@ -258,6 +258,15 @@ whole, an archive note). A description that needs a clamp to fit has
 `details` in it; a fact the reader needs to judge the work does not go in
 `details`.
 
+**Names link in place.** The three fields may link what they name,
+`[words](target)` (lib/inline-links.ts): a URL or a site path, a commit
+(`commit:lynx-framework`), one of its media (`commit:wasmcert#1`), or a role
+(`role:meta-engineer`). The row renders each as a magic link (`InlineText`),
+so a page a sentence names peeks its card and opens where a cover's page
+does, and a cover that only stood for that page can leave the strip. Every
+other surface that prints a commit (a peek, the shelf, a widget, a compact
+row) gets the plain words. The snapshot crawls the pages linked this way.
+
 **Decoration never gates a press.** The `--pretty=fuller` fields are
 provenance: the chapter names the era and the title line the team. When
 they were part of the notes every row was pressable for them, and most
