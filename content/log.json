@@ -644,7 +644,7 @@
       "conference": {
         "name": "WeAreDevelopers World Congress",
         "city": "Berlin, Germany",
-        "url": "https://www.wearedevelopers.com/events/world-congress-2026-europe/sessions/1237-vibe-cross-platform"
+        "url": "https://www.wearedevelopers.com/world-congress/"
       },
       "media": [
         {
@@ -677,6 +677,10 @@
         "zh": "Why AI Agents Deserve a Better App Framework"
       },
       "description": {
+        "en": "Why an agent shouldn't have to write every app once per platform: Lynx, and three principles for AI native app infrastructure (AI Ergonomic, AI Efficient, AI Expressive), with vue-lynx, vibe coded in two weeks, as the demo.",
+        "zh": "Agent 不该为每个平台各写一遍应用：介绍 Lynx，以及 AI 原生应用基建的三条原则——对 AI 友好、对 token 经济、对意图表达，并以两周 vibe code 出的 vue-lynx 作为演示。"
+      },
+      "details": {
         "en": "AI is transforming how apps are built, but not what they are built on. Without a cross platform framework, agents must generate, verify, and maintain separate code for every platform. This talk introduces Lynx and three principles for AI native app infrastructure (AI Ergonomic, AI Efficient, AI Expressive), with vue-lynx vibe coded in two weeks as the demo.",
         "zh": "AI 正在改变应用如何被构建，却还没改变它们构建在什么之上。没有跨平台框架，Agent 就得为每个平台分别生成、验证和维护代码。这次演讲介绍 Lynx，以及 AI 原生应用基建的三条原则：对 AI 友好、对 token 经济、对意图表达，并以两周 vibe code 出的 vue-lynx 作为演示。"
       },
@@ -684,7 +688,7 @@
       "conference": {
         "name": "GOSIM Paris 2026",
         "city": "Paris, France",
-        "url": "https://paris2026.gosim.org/schedule/vibe-native-for-more-why-ai-agents-deserve-a-better-app-framework/"
+        "url": "https://paris2026.gosim.org"
       },
       "media": [
         {
@@ -761,7 +765,7 @@
       "conference": {
         "name": "WeAreDevelopers World Congress",
         "city": "Berlin, Germany",
-        "url": "https://www.wearedevelopers.com/videos/1445-lynx-native-for-more"
+        "url": "https://www.wearedevelopers.com/world-congress/"
       },
       "media": [
         {
@@ -793,6 +797,10 @@
         "zh": "Lynx：让字节跨端跳动"
       },
       "description": {
+        "en": "Why ByteDance open sourced Lynx, the cross platform framework it grew in house for years, just as cross platform approaches were converging: what is inside it, and where cross platform goes next.",
+        "zh": "在跨端思路趋同、格局固化之时，字节为何把孕育多年的跨端框架 Lynx 开源：它的内部，以及跨端的下一步。"
+      },
+      "details": {
         "en": "As client products mature and fragment, cross platform has become the default choice for many developers and companies. At the same time, UI framework innovation is converging, the approaches look more and more alike, and the market is settling into a fixed shape. Against that backdrop, why did Lynx, the cross platform technology ByteDance nurtured for years, decide to go open source? This talk lifts the veil on Lynx and looks at the insights and the future of cross platform together.",
         "zh": "伴随终端业务的成熟和碎片化，跨端已成为众多开发者和企业的首选。但同时，UI 框架的创新在收敛，跨端思路大同小异，市场格局趋于固化。在这个背景下，字节孕育多年的跨端技术 —— Lynx，为何决定走向开源？本演讲将揭开 Lynx 的“神秘面纱”，与你一同探寻跨端的洞见与未来。"
       },
@@ -824,6 +832,10 @@
         "zh": "Lynx: Unlock Native for More"
       },
       "description": {
+        "en": "Lynx, just open sourced: truly native UIs on mobile and web from one codebase, written with React and CSS. What makes it familiar, what sets it apart, and how its dual-threaded design gives instant launch and smooth interaction.",
+        "zh": "刚刚开源的 Lynx：用 React 与 CSS，从同一套代码交付移动端与 Web 的真正原生 UI。它为何熟悉、又有何不同，以及双线程架构如何带来瞬时启动与丝滑交互。"
+      },
+      "details": {
         "en": "Lynx, a new cross-platform stack adopted by the TikTok app that empowers teams to ship truly native UIs to mobile and web from a single codebase using their existing web skills like CSS and React, has recently been open sourced. In this talk, we'll explore what makes Lynx familiar and what sets it apart from other cross-platform technologies; we'll take a closer look at its dual-threaded design, and how that enables Lynx's instant launches and silky-smooth interactions, plus a sneak peek at what's next for Lynx.",
         "zh": "Lynx 是 TikTok 应用采用的全新跨平台技术栈，让团队用 CSS、React 等既有的 Web 技能，从同一套代码交付面向移动端与 Web 的真正原生 UI，并已于近期开源。本次演讲将探讨 Lynx 为何既熟悉又与众不同，深入其双线程架构，看它如何带来瞬时启动与丝滑交互，并预告 Lynx 的下一步。"
       },
@@ -831,7 +843,7 @@
       "conference": {
         "name": "React Summit",
         "city": "Amsterdam, Netherlands",
-        "url": "https://gitnation.com/contents/lynx-unlock-native-for-more"
+        "url": "https://reactsummit.com/"
       },
       "media": [
         {
@@ -862,6 +874,10 @@
         "zh": "React for Two Threads"
       },
       "description": {
+        "en": "What if React had been designed for two threads from day one? What it would unlock, what it would cost, and the abstractions that would emerge. Not a thought experiment: it is how Lynx runs React today.",
+        "zh": "如果 React 从第一天起就为双线程而设计？它会解锁什么、代价是什么、会涌现哪些抽象。这并非思想实验：Lynx 今天就是这样运行 React 的。"
+      },
+      "details": {
         "en": "For over a decade, we've lived in a universe where programming UIs with React on the client-side, from event handling to rendering, has been ruled by a single JavaScript thread. But what if React had been born differently? What if, from day one, it had been designed to fully embrace two threads? What benefits would that unlock? What challenges would we face? And what new features, abstractions, and patterns might emerge? What if this isn't just imagination... but something that exists today?",
         "zh": "十多年来，我们身处这样一个宇宙：在客户端用 React 编写 UI，从事件处理到渲染，始终由单一 JavaScript 线程主宰。但如果 React 生来不同呢？如果从第一天起，它就被设计为彻底拥抱两个线程呢？这会解锁哪些收益？我们又会面临什么挑战？会涌现出哪些新特性、抽象与范式？而这一切如果不只是想象，而是今天已然存在的现实呢？"
       },
@@ -895,8 +911,8 @@
         "zh": "Beyond React Native: Lynx's Native CSS & Two-Thread Model"
       },
       "description": {
-        "en": "An interview with Callstack at React Universe Conf on Lynx beyond React Native: native CSS ported straight from the web, the two-thread model (BTS/MTS) that keeps native UI and React views in step with interactivity on the main thread, React as a specification, the community bringing Vue and Svelte to Lynx, and the mini app ecosystem Lynx powers at ByteDance.",
-        "zh": "在 React Universe 大会接受 Callstack 的访谈，聊 React Native 之外的 Lynx：可以直接从 Web 搬过来的原生 CSS；让原生 UI 与 React 视图保持同步、并能在主线程上交互的双线程模型（BTS/MTS）；作为一种规范的 React；社区把 Vue 和 Svelte 带到 Lynx 上；以及 Lynx 在字节支撑的小程序生态。"
+        "en": "Callstack's interview at React Universe Conf: Lynx beyond React Native. Native CSS straight from the web, the two-thread model (BTS/MTS), React as a specification, Vue and Svelte from the community, and the mini apps Lynx powers at ByteDance.",
+        "zh": "React Universe 大会上 Callstack 的访谈：React Native 之外的 Lynx。直接取自 Web 的原生 CSS、双线程模型（BTS/MTS）、作为规范的 React、社区带来的 Vue 与 Svelte，以及 Lynx 在字节支撑的小程序生态。"
       },
       "date": "2025-09",
       "conference": {
@@ -927,6 +943,10 @@
         "zh": "lynx-ui: Best Lynx in Components"
       },
       "description": {
+        "en": "Introducing lynx-ui, the newest member of the Lynx family: ready-to-use components built on the dual-threaded architecture for native-grade interactivity. How we built it, and how it lets Lynx scale across products.",
+        "zh": "介绍 Lynx 家族的最新成员 lynx-ui：基于双线程架构、带来原生级交互的开箱即用组件。我们如何构建它，以及它如何让 Lynx 扩展到海量产品。"
+      },
+      "details": {
         "en": "Ready-to-use components are vital to delivering user interfaces with velocity and scale. Introducing lynx-ui, the newest member of the Lynx family of cross-platform technologies behind TikTok. By taking advantage of Lynx's dual-threaded architecture, it offers high performance and native-graded interactivity. Join us to learn how we built it, and how it unlocks Lynx to scale across a massive range of products, even faster.",
         "zh": "开箱即用的组件对于高速、规模化地交付用户界面至关重要。让我们隆重介绍 lynx-ui —— TikTok 背后 Lynx 跨平台技术家族的最新成员。借助 Lynx 的双线程架构，它带来高性能与原生级的交互体验。一起来了解我们如何构建它，以及它如何让 Lynx 更快地扩展到海量产品之中。"
       },
@@ -993,12 +1013,16 @@
         "zh": "前端已死，前端永生"
       },
       "description": {
-        "en": "In 2023 the hottest thing about frontend was not a framework. It was the line \"frontend is dead.\" Looking back and ahead, in this constantly shifting digital world frontend has \"died\" before, and it will \"die\" again. Every leap, from PC to Web to mobile, and now as we stand at the edge of AI and the metaverse, the form may change, but frontend as the bond between humans and machines is eternal. This talk reviews the inflection points in that evolution, and looks ahead at what comes next.",
-        "zh": "2023 年聊起前端，最火的并不是哪个框架，而是那句「前端已死」。放眼过去和未来，在这个不断变化的数字世界里，前端不但「死」过，而且还一定会再「死」。每一次跃迁 —— 从 PC 到 Web 到移动时代，再到现在我们正站在 AI 的风口浪尖和元宇宙的边缘 —— 或许形式会不同，但前端作为人与机器纽带的本质是永恒的。本演讲将回顾大前端技术演化中的拐点，并对下一个世代的前端趋势做一些展望和猜想。"
+        "en": "Frontend has \"died\" at every leap, from PC to web to mobile, and will again at the edge of AI and the metaverse. The inflection points in its evolution, and a guess at what comes next.",
+        "zh": "从 PC 到 Web 到移动，前端每次跃迁都「死」过一次，站在 AI 与元宇宙的边缘还会再「死」。回顾大前端演化中的拐点，猜想下一个世代。"
       },
       "commentary": {
         "en": "Frontend as a job title may fade. Frontend as the bond between humans and machines will not.",
         "zh": "作为岗位的前端或许会消亡，但作为人机交互纽带的前端不会。"
+      },
+      "details": {
+        "en": "In 2023 the hottest thing about frontend was not a framework. It was the line \"frontend is dead.\" Looking back and ahead, in this constantly shifting digital world frontend has \"died\" before, and it will \"die\" again. Every leap, from PC to Web to mobile, and now as we stand at the edge of AI and the metaverse, the form may change, but frontend as the bond between humans and machines is eternal. This talk reviews the inflection points in that evolution, and looks ahead at what comes next.",
+        "zh": "2023 年聊起前端，最火的并不是哪个框架，而是那句「前端已死」。放眼过去和未来，在这个不断变化的数字世界里，前端不但「死」过，而且还一定会再「死」。每一次跃迁 —— 从 PC 到 Web 到移动时代，再到现在我们正站在 AI 的风口浪尖和元宇宙的边缘 —— 或许形式会不同，但前端作为人与机器纽带的本质是永恒的。本演讲将回顾大前端技术演化中的拐点，并对下一个世代的前端趋势做一些展望和猜想。"
       },
       "date": "2024-01",
       "conference": {
@@ -1028,6 +1052,10 @@
         "zh": "我的大前端世界观"
       },
       "description": {
+        "en": "What do we mean by frontend, and what do it and its engineers become with AI and AVXR? The inflection points in its evolution, after Qi Lu's talk on large models.",
+        "zh": "我们说的前端究竟是什么？在 AI、AVXR 的下个世代，前端与前端工程师会变成什么？受陆奇博士大模型演讲启发，回看大前端演化的拐点。"
+      },
+      "details": {
         "en": "Is frontend dead, or is it the future? And when we say frontend, what are we actually talking about? Inspired by Qi Lu's talk on large models, a look at the inflection points in frontend's evolution, and a guess at what frontend (and frontend engineers) become in the next generation: AI, AVXR, and beyond.",
         "zh": "前端已死，又或是前端未来？当我们在说前端时，我们又在说什么？受陆奇博士的大模型演讲启发，不妨我们也来探讨一些大前端技术演化中的拐点，对下个世代（ AI、AVXR …）的前端（工程师）做一点猜想。"
       },
@@ -1184,6 +1212,10 @@
         "zh": "React 国情咨文"
       },
       "description": {
+        "en": "React's state of the union in 2022: what had happened and what was about to, across core, web, cross platform, libraries, frameworks, docs and tools.",
+        "zh": "2022 年的 React 国情咨文：React 核心、Web、跨平台、库、框架、文档、工具，整个生态已经发生和即将发生的变化。"
+      },
+      "details": {
         "en": "A look back and a look ahead at what has happened, and what is about to happen, across the React ecosystem. React core, web, cross platform, libraries, frameworks, docs, tools: the whole picture. Hoping it helps you see React's big picture.",
         "zh": "跟大家一起回顾以及展望一下 React 整个生态这一段时期以来已经发生和将要发生的一些变化，力求涵盖 React 核心、Web、跨平台、库、框架、文档、工具等整个 React 生态的方方面面，希望能对大家理解 React 的整个 big picture 有帮助！"
       },
@@ -1255,7 +1287,7 @@
       "conference": {
         "name": "React Conf 2021",
         "city": "Online",
-        "url": "https://react.dev/blog/2021/12/17/react-conf-2021-recap"
+        "url": "https://conf.reactjs.org/"
       },
       "media": [
         {
@@ -1401,8 +1433,8 @@
         "zh": "WasmCert"
       },
       "description": {
-        "en": "Master's capstone and thesis, \"A Mechanized Formalization of the WebAssembly Specification in Coq\", advised by Prof. Matthew Fluet. A mechanization of the W3C WebAssembly Core Specification 1.0 in the Coq proof assistant, with a (nearly complete) machine-checked proof that the language is sound, implying both type safety and memory safety. Unlike prior work it follows the standard itself, which exposed issues in the spec and led to fixes.",
-        "zh": "硕士毕业设计与论文《A Mechanized Formalization of the WebAssembly Specification in Coq》，导师 Matthew Fluet 教授。在 Coq 证明助手中机械化 W3C WebAssembly Core Specification 1.0，并（基本）完成了语言可靠性（soundness）的机器验证证明，由此得出类型安全与内存安全。与先前工作不同，它紧贴标准本身，因此发现了规范中的问题并提出了修正。"
+        "en": "Master's capstone and thesis: the W3C WebAssembly Core Specification 1.0 mechanized in Coq, with a nearly complete machine-checked proof that the language is sound. Following the standard itself, unlike prior work, it exposed issues in the spec that led to fixes.",
+        "zh": "硕士毕业设计与论文：在 Coq 中机械化 W3C WebAssembly Core Specification 1.0，并基本完成了语言可靠性的机器验证证明。与先前工作不同，它紧贴标准本身，因而发现了规范中的问题并促成修正。"
       },
       "date": "2019-08",
       "endDate": "2019-12",
@@ -1454,6 +1486,10 @@
       "commentary": {
         "en": "144 pages of W3C spec, about 5,000 lines of Coq. Applying formal verification, we show WebAssembly is safe.",
         "zh": "144 页 W3C 规范，约 5000 行 Coq。用形式化验证，证明 WebAssembly 是安全的。"
+      },
+      "details": {
+        "en": "Thesis: \"A Mechanized Formalization of the WebAssembly Specification in Coq\", advised by Prof. Matthew Fluet. Soundness implies both type safety and memory safety.",
+        "zh": "论文：《A Mechanized Formalization of the WebAssembly Specification in Coq》，导师 Matthew Fluet 教授。可靠性由此得出类型安全与内存安全。"
       }
     },
     {
@@ -1472,8 +1508,12 @@
         "zh": "XROS"
       },
       "description": {
-        "en": "Summer 2019 internship. My manager framed it as: \"As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.\"",
-        "zh": "2019 年暑期实习。我的主管这样描述这个项目：「作为 Reality Labs Research（原 Oculus Research）的一部分，我带领研究团队，为全天可穿戴、低功耗设备构建一门新的编程语言和应用框架。」"
+        "en": "Summer 2019 internship at Reality Labs Research (formerly Oculus Research): a new programming language and application framework for all-day wearable, low power devices.",
+        "zh": "2019 年暑期实习，Reality Labs Research（原 Oculus Research）：为全天可穿戴、低功耗设备构建一门新的编程语言与应用框架。"
+      },
+      "details": {
+        "en": "My manager framed it as: \"As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.\"",
+        "zh": "我的主管这样描述这个项目：「作为 Reality Labs Research（原 Oculus Research）的一部分，我带领研究团队，为全天可穿戴、低功耗设备构建一门新的编程语言和应用框架。」"
       },
       "date": "2019-05",
       "endDate": "2019-08",
@@ -1562,8 +1602,12 @@
         "zh": "Upgrading to Progressive Web Apps"
       },
       "description": {
-        "en": "A practical guide to upgrading existing web applications to Progressive Web Apps. The YouTube recording is no longer available; the slides are still playable here, and the conference page remains reachable via the Wayback Machine.",
-        "zh": "将现有网页应用升级为渐进式 Web 应用的实用指南。YouTube 上的演讲录像已下线；幻灯片仍可在此直接播放，会议官网则可通过 Wayback Machine 访问。"
+        "en": "A practical guide to upgrading existing web applications to Progressive Web Apps.",
+        "zh": "将现有网页应用升级为渐进式 Web 应用的实用指南。"
+      },
+      "details": {
+        "en": "The YouTube recording is no longer available; the slides are still playable here, and the conference page remains reachable via the Wayback Machine.",
+        "zh": "YouTube 上的演讲录像已下线；幻灯片仍可在此直接播放，会议官网则可通过 Wayback Machine 访问。"
       },
       "date": "2017-07",
       "conference": {
@@ -1923,7 +1967,11 @@
         "zh": "Progressive Web App, 复兴序章"
       },
       "description": {
-        "en": "Introducing Progressive Web Apps to the Chinese developer community.",
+        "en": "Introducing Progressive Web Apps to the Chinese developer community: in the long war between native and web, the web's answer, from Chrome together with Edge, Firefox and Opera.",
+        "zh": "向中国开发者社区介绍 Progressive Web App：在 Native 与 Web 旷日持久的纷争里，Chrome 联合 Edge、Firefox、Opera 等浏览器厂商给出的、来自 Web 阵营的回应。"
+      },
+      "details": {
+        "en": "The war between native and web has not let up since the day the web was born, and in the mobile era it has only grown fiercer, fought over a few square inches. Some stand firmly with native; others keep the open web as their faith. As convergence and borrowing became the mainstream, hybrid, dynamic and web-paradigm cross platform solutions flourished, and the Google Chrome team, together with Microsoft Edge, Mozilla Firefox, Opera and other browser vendors, gave the web's answer: Progressive Web Apps, sounding the counterattack against native…",
         "zh": "关于 Native 与 Web 的纷争，从 Web 诞生之日起到现在就从未消停过。眼看这场战火在移动时代的方寸之间愈演愈烈，有的人坚定地站在了 Native 阵营，有的人则选择 Open Web 作为自己的信仰。近年来，随着融合与相互借鉴的声音成为主流，Hybrid、动态化与基于 Web 开发范式的跨平台解决方案百花齐放，而 Google Chrome 团队，也联合 Microsoft Edge、Mozilla Firefox、Opera 等一众浏览器厂商，给出了来自 Web 阵营的回应——Progressive Web App，向 Native 阵营吹响了反击的号角……"
       },
       "date": "2016-10",
