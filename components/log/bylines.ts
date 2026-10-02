@@ -10,6 +10,7 @@
  */
 
 import type { Locale } from "@/lib/i18n";
+import { plainInline } from "@/lib/inline-links";
 import {
   type Commit,
   type Identity,
@@ -86,7 +87,7 @@ export function computeBylines(
       ? localize(role.companyOverride, locale)
       : localize(identity.company, locale);
     const title = role ? localize(role.title, locale) : "";
-    const desc = role ? localize(role.description, locale) : "";
+    const desc = role ? plainInline(localize(role.description, locale)) : "";
 
     // Effective team subtitle: project override wins, otherwise inherits
     // the role's team default. Sparse: blank the chip when it repeats the
