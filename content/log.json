@@ -274,11 +274,11 @@
           "sortBy": "date",
           "title": {
             "en": "Software Engineer",
-            "zh": "软件工程师"
+            "zh": "Software Engineer"
           },
           "description": {
-            "en": "React Technologies team — Hermes JS engine, React Forget compiler (founding eng + tech lead).",
-            "zh": "React Technologies 团队 —— Hermes JS 引擎、React Forget 编译器（联合创始工程师 + 技术负责人）。"
+            "en": "On Meta's React Technologies team: first Hermes, the JavaScript engine for React Native, then React Forget, the compiler I was founding engineer and tech lead of.",
+            "zh": "On Meta's React Technologies team: first Hermes, the JavaScript engine for React Native, then React Forget, the compiler I was founding engineer and tech lead of."
           },
           "date": "2020-03",
           "endDate": "2022-10",
@@ -294,11 +294,11 @@
           "id": "meta-intern-xros",
           "title": {
             "en": "Software Engineer Intern, XROS",
-            "zh": "软件工程实习生 · XROS"
+            "zh": "Software Engineer Intern, XROS"
           },
           "description": {
-            "en": "Summer internship at Meta Reality Labs Research, working on XROS — an experimental operating system for XR.",
-            "zh": "Meta Reality Labs Research 暑期实习，参与面向 XR 的实验性操作系统 XROS。"
+            "en": "A summer internship at Facebook Reality Labs, on a programming language and application framework for XROS, Meta's operating system for AR and VR.",
+            "zh": "A summer internship at Facebook Reality Labs, on a programming language and application framework for XROS, Meta's operating system for AR and VR."
           },
           "date": "2019-05",
           "endDate": "2019-08",
@@ -318,11 +318,11 @@
           "id": "meta-intern-reasonml",
           "title": {
             "en": "Software Engineer Intern, ReasonML",
-            "zh": "软件工程实习生 · ReasonML"
+            "zh": "Software Engineer Intern, ReasonML"
           },
           "description": {
-            "en": "Summer internship at Meta on the ReasonML / ReScript team, working on Messenger Web.",
-            "zh": "Meta ReasonML / ReScript 团队暑期实习，参与 Messenger Web 的开发。"
+            "en": "A summer internship with the ReasonML team, working on Messenger Web.",
+            "zh": "A summer internship with the ReasonML team, working on Messenger Web."
           },
           "date": "2018-05",
           "endDate": "2018-08",
@@ -354,11 +354,11 @@
           "icon": "graduation-cap",
           "title": {
             "en": "M.S. Computer Science",
-            "zh": "计算机科学 硕士"
+            "zh": "M.S. Computer Science"
           },
           "description": {
-            "en": "Master's in Computer Science at Rochester Institute of Technology, focusing on programming languages under Prof. Matthew Fluet.",
-            "zh": "在罗切斯特理工学院攻读计算机科学硕士，师从 Matthew Fluet 教授，专注编程语言方向。"
+            "en": "Two years at RIT studying programming languages with [Prof. Matthew Fluet](https://www.cs.rit.edu/~mtf/), from type theory to [WasmCert](commit:wasmcert), between two summers at Facebook.",
+            "zh": "Two years at RIT studying programming languages with [Prof. Matthew Fluet](https://www.cs.rit.edu/~mtf/), from type theory to [WasmCert](commit:wasmcert), between two summers at Facebook."
           },
           "date": "2017-08",
           "endDate": "2019-12",
@@ -385,8 +385,8 @@
             "zh": "顾问专家，PWA"
           },
           "description": {
-            "en": "Short consulting engagement that produced China's first widely cited Progressive Web App.",
-            "zh": "短期顾问合作，做出中国首个被广泛引用的 Progressive Web App。"
+            "zh": "三个月的 PWA 顾问合作，做出了国内第一个有影响力的 PWA。",
+            "en": "A three-month PWA consulting engagement that produced the first influential PWA in China."
           },
           "date": "2017-02",
           "endDate": "2017-05",
@@ -417,8 +417,8 @@
             "zh": "Web 基础架构团队主管"
           },
           "description": {
-            "en": "Founding engineer of Yupiaoer. Founded the Web Infra team. Led the company-wide tech stack migration to React.",
-            "zh": "娱票儿创始工程师。组建 Web 基础架构团队。主导全公司技术栈向 React 的迁移。"
+            "zh": "微票儿的创始工程师；组建并带领前端基础架构团队，主导全公司技术栈迁往 React。",
+            "en": "Founding engineer of WePiao's ticketing app; founded and led the front-end infrastructure team, and moved the whole company onto React."
           },
           "date": "2015-05",
           "endDate": "2016-06",
@@ -444,8 +444,8 @@
             "zh": "前端工程师"
           },
           "description": {
-            "en": "Front-end engineer on the Alitrip mobile web team, working across Taobao / Alitrip hybrid app patterns.",
-            "zh": "阿里旅行移动端 Web 前端工程师，参与淘宝 / 阿里旅行 Hybrid App 架构。"
+            "zh": "阿里旅行移动 Web 前端工程师，花名鬼栈，参与淘宝与阿里旅行的 Hybrid 架构。",
+            "en": "Front-end engineer on Alitrip's mobile web, known inside as 鬼栈, working on Taobao and Alitrip's hybrid apps."
           },
           "date": "2014-08",
           "endDate": "2015-05",
@@ -475,8 +475,8 @@
             "zh": "数字媒体艺术 学士"
           },
           "description": {
-            "en": "Bachelor's in Digital Media Art at Communication University of China.",
-            "zh": "在中国传媒大学攻读数字媒体艺术本科学位。"
+            "zh": "在中国传媒大学读数字媒体艺术的网络新媒体方向，大二起在阿里写前端，毕业设计是[演说.io](commit:yanshuo-io)。",
+            "en": "Digital Media Arts at Communication University of China, on the new-media track; writing front-end at Alibaba from my sophomore year, with [Yanshuo.io](commit:yanshuo-io) as my graduation project."
           },
           "date": "2012-09",
           "endDate": "2016-06",
@@ -508,8 +508,8 @@
             "zh": "独立 Flash 开发者与设计师"
           },
           "description": {
-            "en": "Flash games and animations, made alone from the age of ten. A national and a provincial animation award and a national interactive multimedia award in high school; a national game and motion graphic award in college.",
-            "zh": "十岁起独自做 Flash 游戏和动画。高中获全国与省级动画奖、全国交互多媒体奖；大学获全国游戏与动态图形奖。"
+            "zh": "十岁起用数位板在 Flash 里画逐帧动画，后来发现它还有一门叫 ActionScript 的编程语言能做游戏，从此一发不可收拾。高中拿过全国与省级动画奖、全国交互多媒体奖，大学拿过全国游戏与动态图形奖。",
+            "en": "From the age of ten I drew frame-by-frame animation in Flash with a pen tablet, then found it had a programming language, ActionScript, that could make games, and never stopped. In high school I won a national and a provincial animation award and a national interactive multimedia award; in college, a national game and motion graphic award."
           },
           "date": "2004-06",
           "endDate": "2014-06",
@@ -553,8 +553,8 @@
             "zh": "动态图形设计师（实习）"
           },
           "description": {
-            "en": "A summer at LxU, one of China's first studios for motion graphics and information visualization — the first few bucks I earned on motion graphics.",
-            "zh": "在以乘 LxU 的一个夏天。它是国内最早专注动态图形与信息可视化的工作室之一——我靠动态图形赚到的第一笔钱。"
+            "zh": "在以乘 LxU 的一个夏天，一家做动态图形与信息设计的北京工作室：我靠动态图形赚到的第一笔钱。",
+            "en": "A summer at LxU, a Beijing studio for motion graphics and information design: the first few bucks I earned on motion graphics."
           },
           "date": "2013-05",
           "endDate": "2013-08",
