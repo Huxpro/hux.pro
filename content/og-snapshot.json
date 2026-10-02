@@ -35,6 +35,12 @@
     "image": "/img/post-bg-taobao-hybrid.jpg",
     "siteName": "Hux.Pro"
   },
+  "https://conf.reactjs.org/": {
+    "title": " React Conf 2021",
+    "description": "React Conf 2021",
+    "image": "https://conf.reactjs.org/twitter-card.png",
+    "siteName": "conf.reactjs.org"
+  },
   "https://developer.apple.com/design/human-interface-guidelines": {
     "title": "Human Interface Guidelines | Apple Developer Documentation",
     "description": "The HIG contains guidance and best practices that can help you design a great experience for any Apple platform.",
@@ -118,11 +124,24 @@
   "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509": {
     "frame": "deny"
   },
+  "https://mp.weixin.qq.com/s/icNHRRm6u1Dh9gx-9nIS6Q": {
+    "title": "SEE Conf 2025：开启体验科技的新十年",
+    "description": "11 月 22 日，相约 SEE Conf 2025！",
+    "image": "https://mmbiz.qpic.cn/mmbiz_jpg/M7OtEw9eDKFAFPdTFoqq29DkodS3adKSaL1WDyrjrY6smNdnIhql6FavaO0X1B3joicROqO3AnRibeicwZf4tic8Tg/0?wx_fmt=jpeg",
+    "siteName": "Weixin Official Accounts Platform",
+    "frame": "deny"
+  },
   "https://os.ryo.lu": {
     "title": "ryOS",
     "description": "An AI OS experience, made with Cursor",
     "image": "https://os.ryo.lu/icons/mac-512.png",
     "siteName": "ryOS"
+  },
+  "https://paris2026.gosim.org": {
+    "title": "GOSIM Paris 2026",
+    "description": "GOSIM Paris 2026 — The Agentic AI Convergence. May 4-6, 2026 at STATION F, Paris.",
+    "image": "https://paris2026.gosim.org/images/thumbnail.jpg",
+    "siteName": "GOSIM Paris 2026"
   },
   "https://react.dev": {
     "title": "React",
@@ -148,9 +167,23 @@
     "image": "https://react.dev/images/og/learn-react-compiler.png",
     "siteName": "react.dev"
   },
+  "https://reactadvanced.com/": {
+    "title": "React Conference In London, October 23 & 26, 2026",
+    "description": "The main React Conference in the UK, running every year in London. Focused on Advanced React topics from the React Core team, framework authors and case studies from top engineers.",
+    "image": "https://reactadvanced.com/img/ogImage.png?v=2",
+    "siteName": "reactadvanced.com",
+    "frame": "deny"
+  },
   "https://reactnative.dev/blog/2021/10/26/toward-hermes-being-the-default": {
     "title": "Toward Hermes being the Default · React Native",
     "siteName": "reactnative.dev"
+  },
+  "https://reactsummit.com/": {
+    "title": "React Summit – The Biggest React Conference Worldwide",
+    "description": "React Summit is an in-person and remote first (hybrid) conference of all things React, gathering OSS authors, top trainers and speakers, as well as web engineers across the globe to meet in Amsterdam and online.",
+    "image": "https://reactsummit.com/img/ogImage.png?v=2",
+    "siteName": "reactsummit.com",
+    "frame": "deny"
   },
   "https://reasonml.github.io/": {
     "title": "Reason · Reason lets you write simple, fast and quality type safe code while leveraging both the JavaScript & OCaml ecosystems.",
@@ -229,6 +262,13 @@
     "frame": "deny"
   },
   "https://www.wearedevelopers.com/videos/1445-lynx-native-for-more": {
+    "frame": "deny"
+  },
+  "https://www.wearedevelopers.com/world-congress/": {
+    "title": "WeAreDevelopers World Congress · 14-16 July · Berlin ·  Europe",
+    "description": "The world",
+    "image": "https://imagedelivery.net/p2Gwf4g3bNtyXUmnEu9Kdw/main-stage/main-stage-panorama/og?format=auto",
+    "siteName": "wearedevelopers.com",
     "frame": "deny"
   }
 }
