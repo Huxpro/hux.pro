@@ -27,7 +27,9 @@ same peek and phone drawer it has everywhere else:
 
 Someone else's page is not upgraded on its own card: a link out stays one
 press from where it goes. An author who wants one summoned writes
-`<MagicLink href>`, whose card the snapshot records.
+`<MagicLink href>`, whose card the snapshot records. It records a /works
+venue's page (a talk's `conference.url`), which the timeline renders as a
+magic link.
 
 ## Our own pages
 
