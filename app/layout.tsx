@@ -1,6 +1,7 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
 import { bezelBootResolver } from "@/systems/ambient/lib/bezel";
 import { vitreBootScript } from "vitre";
+import { THEME_BOOT_SCRIPT } from "@/services/theme-boot";
 import { Providers } from "@/shared/providers";
 import {
   AmbientPhaseActivity,
@@ -129,6 +130,7 @@ export default function RootLayout({
         <head>
           {/* Before first paint: Safari picks its chrome colour at load, from
               the root background (iOS 26) or theme-color (iOS 18). */}
+          <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
           <script dangerouslySetInnerHTML={{ __html: BEZEL_BOOT }} />
         </head>
         <body
