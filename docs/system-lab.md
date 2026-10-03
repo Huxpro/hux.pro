@@ -1,29 +1,38 @@
 # Lab
 
-The site studied from the inside, and the libraries it publishes.
+The site studied from the inside, the libraries it publishes, and the short pieces it keeps.
 
 ```
 systems/lab/
-├── catalog.ts            # every lab: id, name, kind (study | library), words
+├── catalog.ts            # every lab: id, name, kind (study | library | experience), words
 ├── i18n.ts               # LabTable, useLabStrings, the frame's own words
 ├── components/
 │   ├── shell.tsx         # LabShell, LabBar, LabPanel, LabSection, buttons
 │   ├── nav.tsx           # LabNav: the name in the bar, and the switcher
 │   ├── controls.tsx      # the panel's knobs: Field, Segmented, Slider, …
-│   └── library.tsx       # the library template: LibraryShell, ApiReference, …
+│   ├── library.tsx       # the library template: LibraryShell, ApiReference, …
+│   └── experience.tsx    # ExperienceStage: the piece, phone-shaped
 └── surfaces/             # each lab at a glance: the /lab cards, the home widget
 
 app/lab/                  # the routes: the index, and one folder per lab
 app/lab/vitre/            # the first library: guide, api/, site/
+public/experiences/       # an experience's own page, chromeless, iframed
 components/home/lab-widget.tsx  # the home widget (off by default)
 ```
 
-## Two kinds of lab
+## Three kinds of lab
 
 A **study** lays one of this site's systems open: the real components, the
 real policy, the real state, with the knobs that tune them (Works, Attachments,
 Icon, Legibility, Glow). It is for this site; it never pretends to be anything
 else.
+
+An **experience** is a short piece: one or two gestures, a few seconds, a
+feeling. The piece is a page in `public/experiences/<id>`. The lab frames
+that page (`ExperienceStage`). The home screen lists it as a web app
+(`content/apps.json`), and the window iframes the same page with no site
+chrome around it. The home Lab widget does not rotate experiences; they are
+not specimens of the site.
 
 A **library** is a system that left as a package. Its lab is the package's
 home; there is no other docs site. Every library's home has the same shape,
@@ -62,7 +71,7 @@ at `/vitre`; anything else is sent to the lab.
 
 ## One frame
 
-Every lab, of either kind, opens on its work under one sticky bar: the way
+Every lab opens on its work under one sticky bar: the way
 home, the lab's name (which is also the switcher, `LabNav`), an info button
 with the catalog's blurb, then the lab's tools, a live readout and its
 actions. Three bodies under it: `document` (one column), `workbench` (a stage
@@ -76,20 +85,26 @@ a row of their own, and on a phone they take the second row.
 
 ## Adding one
 
-1. An entry in `catalog.ts`: `kind: "study"`, or `kind: "library"` with its
-   `library` read from the package.
-2. A route under `app/lab/<id>`, in `LabShell` (a study) or `LibraryShell`
-   (a library, with `api/` and `site/` beside it).
-3. A surface in `systems/lab/surfaces`, for the index and the home widget.
+1. An entry in `catalog.ts`: `kind: "study"`, `kind: "library"` with its
+   `library` read from the package, or `kind: "experience"` with `play`
+   pointing at the page in `public/experiences/<id>`. An experience is also
+   an app in `content/apps.json` (portrait, a manual icon) so it sits on
+   the home screen.
+2. A route under `app/lab/<id>`, in `LabShell` (a study), `LibraryShell`
+   (a library, with `api/` and `site/` beside it), or `ExperienceStage`
+   inside `LabShell` (an experience).
+3. A surface in `systems/lab/surfaces`, for the index and, except
+   experiences, the home widget.
 4. Its words in both languages: a `strings.ts` beside it, read with
    `useLabStrings`. Code names stay as written.
 
 ## The index
 
-`/lab` has two sections, libraries first: a library is a lab that shipped, a
-different promise to a different reader, so it leads as a wide card with the
-package's facts (`LibraryFacts`) and its blurb, where a study is a card in the
-grid with its one line. The switcher on every bar groups the same way.
+`/lab` leads with libraries: a library is a lab that shipped, a different
+promise to a different reader, so it leads as a wide card with the package's
+facts (`LibraryFacts`) and its blurb, where a study is a card in the grid
+with its one line. Experiences follow the studies, the same card, a piece
+rather than a system. The switcher on every bar groups the same way.
 
 ## Quiet by design
 

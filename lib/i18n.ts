@@ -460,6 +460,8 @@ export const translations = {
     labLibrariesNote: "Systems of this site, published as packages",
     labStudies: "Studies",
     labStudiesNote: "This site's systems, laid open",
+    labExperiences: "Experiences",
+    labExperiencesNote: "A feeling, held for a few seconds",
     labWidgetAdd: "Add the Lab widget to Home",
     labWidgetOn: "The Lab widget is on Home",
 
@@ -894,6 +896,8 @@ export const translations = {
     labLibrariesNote: "本站的系统，发布成了包",
     labStudies: "研究",
     labStudiesNote: "本站的系统，摊开来看",
+    labExperiences: "体验",
+    labExperiencesNote: "一种情绪，只停几秒",
     labWidgetAdd: "把实验室小组件放到主屏",
     labWidgetOn: "实验室小组件已在主屏",
 
