@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="robots" content="noindex" />
+  <title>The Door</title>
+  <!--
+    The Door. A nightmare, about eight seconds long.
+
+    You are on the pillow. The wardrobe opens on its own. A very tall,
+    very thin man in black, with a round hat far too big, steps out and
+    stands at the head of the bed. He only looks. Blink and he is closer.
+    Blink again and you are awake. The door is still opening.
+
+    One gesture: a blink (tap, click, or space). It also plays itself.
+    ?lang=zh|en picks the line. ?still=look holds a frame.
+  -->
+  <style>
+    :root {
+      --void: #070605;
+      --wall: #2c251f;
+      --wall-awake: #352e27;
+      --floor: #100e0c;
+      --inside: #0a0908;
+      --door: #1a1613;
+      --door-edge: #4a3e34;
+      --ink: rgba(226, 210, 192, 0.86);
+      --window: #16141c;
+      --window-awake: #221e28;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--void);
+      color: var(--ink);
+    }
+
+    body {
+      font-family: "Iowan Old Style", Palatino, "Palatino Linotype", "Songti SC", "Noto Serif SC", "Source Han Serif SC", "Songti TC", serif;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .stage {
+      position: fixed;
+      inset: 0;
+      background: var(--void);
+      cursor: default;
+      outline: none;
+      touch-action: none;
+    }
+
+    .stage:focus-visible {
+      outline: 1px solid rgba(255, 255, 255, 0.22);
+      outline-offset: -6px;
+    }
+
+    .room {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: min(100%, 58dvh);
+      transform: translateX(-50%);
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, #1a1614 0%, var(--wall) 42%, #1a1613 78%, var(--floor) 100%);
+      transition: background 0.7s ease;
+    }
+
+    .stage[data-phase="awake"] .room {
+      background:
+        linear-gradient(180deg, #221c18 0%, var(--wall-awake) 46%, #241e1a 78%, #161310 100%);
+    }
+
+    .window {
+      position: absolute;
+      top: 13%;
+      right: 9%;
+      width: 16%;
+      height: 20%;
+      background:
+        linear-gradient(180deg, var(--window), #100e14);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      opacity: 0.85;
+      transition: opacity 0.8s ease, background 0.8s ease;
+    }
+
+    .window::before,
+    .window::after {
+      content: "";
+      position: absolute;
+      background: rgba(0, 0, 0, 0.45);
+    }
+
+    .window::before { left: 50%; top: 0; bottom: 0; width: 1px; }
+    .window::after { top: 42%; left: 0; right: 0; height: 1px; }
+
+    .stage[data-phase="awake"] .window {
+      opacity: 1;
+      background: linear-gradient(180deg, var(--window-awake), #16141c);
+    }
+
+    .baseboard {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 27%;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .wardrobe {
+      position: absolute;
+      left: 16%;
+      top: 12%;
+      width: 44%;
+      height: 54%;
+      background: #120f0d;
+      box-shadow:
+        0 18px 30px rgba(0, 0, 0, 0.35),
+        inset 0 0 0 7px #0c0a09;
+      perspective: 900px;
+    }
+
+    .inside {
+      position: absolute;
+      inset: 7px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, #0c0b0a 0%, var(--inside) 100%);
+    }
+
+    .rail {
+      position: absolute;
+      top: 14%;
+      left: 12%;
+      right: 12%;
+      height: 2px;
+      background: #1c1814;
+    }
+
+    .hang {
+      position: absolute;
+      top: 14%;
+      width: 18%;
+      bottom: 8%;
+      background: linear-gradient(180deg, #161311, #0c0b0a 70%);
+    }
+
+    .hang.a { left: 22%; }
+    .hang.b { left: 52%; width: 14%; }
+
+    .door {
+      position: absolute;
+      inset: 7px;
+      background:
+        linear-gradient(90deg, #161310 0%, #221c18 38%, #1b1714 100%);
+      transform-origin: left center;
+      transform: rotateY(0deg);
+      transition: transform 1.65s cubic-bezier(0.45, 0.03, 0.15, 1);
+      z-index: 3;
+    }
+
+    .door::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 2px;
+      background: linear-gradient(var(--door-edge), #2a231c);
+    }
+
+    .door .seam {
+      position: absolute;
+      top: 8%;
+      bottom: 8%;
+      left: 18%;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .stage[data-phase="crack"] .door { transform: rotateY(-8deg); }
+
+    .stage[data-phase="open"] .door,
+    .stage[data-phase="out"] .door,
+    .stage[data-phase="look"] .door,
+    .stage[data-phase="near"] .door { transform: rotateY(-60deg); }
+
+    .stage[data-phase="awake"] .door {
+      transform: rotateY(-76deg);
+      transition-duration: 2.6s;
+      transition-timing-function: cubic-bezier(0.16, 0.4, 0.2, 1);
+    }
+
+    .figure {
+      position: absolute;
+      left: 14%;
+      top: 1%;
+      width: 46%;
+      height: 86%;
+      z-index: 2;
+      opacity: 0;
+      transform: translate3d(0, 10%, 0) scale(0.78);
+      transform-origin: 50% 12%;
+      transition:
+        transform 1.55s cubic-bezier(0.4, 0.02, 0.18, 1),
+        opacity 0.7s ease;
+      pointer-events: none;
+    }
+
+    .figure svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+    .stage[data-phase="crack"] .figure {
+      opacity: 1;
+      transform: translate3d(0, 8%, 0) scale(0.8);
+    }
+
+    .stage[data-phase="open"] .figure {
+      opacity: 1;
+      transform: translate3d(4%, 4%, 0) scale(0.88);
+    }
+
+    .stage[data-phase="out"] .figure {
+      opacity: 1;
+      z-index: 4;
+      transform: translate3d(22%, 0, 0) scale(0.98);
+    }
+
+    .stage[data-phase="look"] .figure {
+      opacity: 1;
+      z-index: 4;
+      transform: translate3d(34%, -4%, 0) scale(1.16);
+    }
+
+    .stage[data-phase="near"] .figure {
+      opacity: 1;
+      z-index: 5;
+      transform: translate3d(18%, -20%, 0) scale(1.78);
+    }
+
+    .stage[data-phase="awake"] .figure {
+      opacity: 0;
+      z-index: 2;
+      transition: opacity 0.01s linear;
+    }
+
+    .blanket {
+      position: absolute;
+      left: -20%;
+      right: -20%;
+      bottom: -12%;
+      height: 34%;
+      z-index: 6;
+      pointer-events: none;
+      background: radial-gradient(130% 100% at 50% 120%, #0c0a09 0%, #100e0c 42%, rgba(16, 14, 12, 0) 72%);
+    }
+
+    .vignette {
+      position: absolute;
+      inset: 0;
+      z-index: 6;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 50% 42%, transparent 36%, rgba(0, 0, 0, 0.55) 100%);
+      transition: background 0.8s ease;
+    }
+
+    .stage[data-phase="awake"] .vignette {
+      background: radial-gradient(ellipse at 50% 42%, transparent 48%, rgba(0, 0, 0, 0.38) 100%);
+    }
+
+    .line {
+      position: absolute;
+      left: 11%;
+      right: 14%;
+      bottom: 16%;
+      z-index: 7;
+      margin: 0;
+      font-size: clamp(15px, 2.5vh, 18px);
+      line-height: 1.45;
+      color: var(--ink);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 1.3s ease 0.45s, transform 1.3s ease 0.45s;
+    }
+
+    .stage[data-lang="zh"] .line { letter-spacing: 0.16em; }
+    .stage[data-lang="en"] .line { letter-spacing: 0.01em; }
+
+    .stage[data-phase="awake"] .line {
+      opacity: 1;
+      transform: none;
+    }
+
+    .grain {
+      position: absolute;
+      inset: -10%;
+      z-index: 7;
+      pointer-events: none;
+      opacity: 0.16;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    }
+
+    .eyelid {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 52%;
+      background: #050403;
+      z-index: 9;
+      pointer-events: none;
+    }
+
+    .eyelid.top { top: 0; transform: translateY(-101%); }
+    .eyelid.bot { bottom: 0; transform: translateY(101%); }
+
+    .stage.blinking .eyelid.top { animation: lid-top 340ms ease-in-out; }
+    .stage.blinking .eyelid.bot { animation: lid-bot 340ms ease-in-out; }
+
+    @keyframes lid-top {
+      0% { transform: translateY(-101%); }
+      32% { transform: translateY(0); }
+      58% { transform: translateY(0); }
+      100% { transform: translateY(-101%); }
+    }
+
+    @keyframes lid-bot {
+      0% { transform: translateY(101%); }
+      32% { transform: translateY(0); }
+      58% { transform: translateY(0); }
+      100% { transform: translateY(101%); }
+    }
+
+    .live {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .door, .figure, .room, .line, .window, .vignette {
+        transition: none !important;
+      }
+      .stage.blinking .eyelid.top,
+      .stage.blinking .eyelid.bot {
+        animation: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage" data-phase="still" data-lang="en" tabindex="0">
+    <div class="room">
+      <div class="window"></div>
+      <div class="baseboard"></div>
+      <div class="wardrobe">
+        <div class="inside">
+          <div class="rail"></div>
+          <div class="hang a"></div>
+          <div class="hang b"></div>
+        </div>
+        <div class="door"><div class="seam"></div></div>
+      </div>
+      <div class="figure" aria-hidden="true">
+        <svg viewBox="0 0 240 560" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="crown" cx="36%" cy="32%" r="72%">
+              <stop offset="0%" stop-color="#3a322b"/>
+              <stop offset="48%" stop-color="#161311"/>
+              <stop offset="100%" stop-color="#0a0908"/>
+            </radialGradient>
+          </defs>
+          <!-- A round hat, far too big for how thin he is. No face. -->
+          <ellipse cx="120" cy="84" rx="74" ry="70" fill="url(#crown)"/>
+          <ellipse cx="120" cy="146" rx="98" ry="12" fill="#100e0c"/>
+          <ellipse cx="120" cy="156" rx="22" ry="6" fill="#000" opacity="0.8"/>
+          <path d="M111 158 L102 250 L94 548 L146 548 L138 250 L129 158 Z" fill="#070605"/>
+          <path d="M112 230 C90 290 86 370 92 450" stroke="#070605" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <path d="M128 230 C150 290 154 370 148 450" stroke="#070605" stroke-width="7" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="blanket"></div>
+      <div class="vignette"></div>
+      <p class="line" id="line" aria-hidden="true"></p>
+      <div class="grain"></div>
+    </div>
+    <div class="eyelid top"></div>
+    <div class="eyelid bot"></div>
+    <div class="live" id="live" aria-live="polite"></div>
+  </div>
+  <script>
+    (function () {
+      var ORDER = ["still", "crack", "open", "out", "look", "near", "awake"];
+      var COPY = {
+        en: {
+          title: "The Door",
+          line: "The door was opening.",
+          live: {
+            still: "A dark bedroom. The wardrobe is shut.",
+            crack: "The wardrobe door moves.",
+            open: "The door opens. Someone is inside.",
+            out: "He steps out. Very tall, very thin, dressed in black, a round hat far too big.",
+            look: "He stands at the head of the bed and looks at you.",
+            near: "You blink. He is closer.",
+            awake: "You are awake. The wardrobe door is still opening."
+          }
+        },
+        zh: {
+          title: "柜门",
+          line: "柜门正在打开。",
+          live: {
+            still: "黑暗的卧室。柜门关着。",
+            crack: "柜门动了。",
+            open: "柜门开了。里面有人。",
+            out: "他走出来。很高，很瘦，一身黑，头上是一顶太大的圆帽子。",
+            look: "他站在床头，看着你。",
+            near: "你眨了眼。他更近了。",
+            awake: "你醒了。柜门还在打开。"
+          }
+        }
+      };
+
+      var params = new URLSearchParams(location.search);
+      var lang = (function () {
+        var q = params.get("lang");
+        if (q === "zh" || q === "en") return q;
+        try {
+          var stored = localStorage.getItem("locale");
+          if (stored === "zh" || stored === "en") return stored;
+        } catch (e) {}
+        return (navigator.language || "").toLowerCase().indexOf("zh") === 0 ? "zh" : "en";
+      })();
+
+      var reduced = false;
+      try {
+        reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      } catch (e) {}
+
+      var WAIT = reduced
+        ? { still: 500, crack: 400, open: 400, out: 400, look: 900, near: 900 }
+        : { still: 1000, crack: 720, open: 1600, out: 1300, look: 1650, near: 1650 };
+
+      var stage = document.getElementById("stage");
+      var line = document.getElementById("line");
+      var live = document.getElementById("live");
+      var copy = COPY[lang];
+      var phase = "still";
+      var timer = 0;
+      var busy = false;
+      var awakeAt = 0;
+      var held = params.get("still");
+
+      document.documentElement.lang = lang === "zh" ? "zh-Hans" : "en";
+      document.title = copy.title;
+      stage.dataset.lang = lang;
+      line.textContent = copy.line;
+
+      function schedule() {
+        window.clearTimeout(timer);
+        if (held) return;
+        if (!WAIT[phase]) return;
+        timer = window.setTimeout(function () { advance(true); }, WAIT[phase]);
+      }
+
+      function setPhase(next) {
+        phase = next;
+        stage.dataset.phase = next;
+        live.textContent = copy.live[next] || "";
+        if (next === "awake") awakeAt = performance.now();
+        schedule();
+      }
+
+      function blinkThen(done) {
+        if (reduced) {
+          done();
+          return;
+        }
+        busy = true;
+        stage.classList.remove("blinking");
+        void stage.offsetWidth;
+        stage.classList.add("blinking");
+        window.setTimeout(done, 150);
+        window.setTimeout(function () {
+          stage.classList.remove("blinking");
+          busy = false;
+        }, 360);
+      }
+
+      function advance(auto) {
+        if (busy) {
+          if (auto) window.setTimeout(function () { advance(true); }, 90);
+          return;
+        }
+        if (phase === "awake") {
+          if (auto) return;
+          if (performance.now() - awakeAt < 800) return;
+          held = null;
+          setPhase("still");
+          return;
+        }
+        var early = phase !== "look" && phase !== "near";
+        if (!auto && early) {
+          blinkThen(function () {});
+          return;
+        }
+        var next = ORDER[ORDER.indexOf(phase) + 1];
+        if (!next) return;
+        if (next === "near" || next === "awake") blinkThen(function () { setPhase(next); });
+        else setPhase(next);
+      }
+
+      stage.addEventListener("pointerdown", function (e) {
+        if (e.button != null && e.button !== 0) return;
+        stage.focus({ preventScroll: true });
+        advance(false);
+      });
+
+      window.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        e.preventDefault();
+        advance(false);
+      });
+
+      if (held && ORDER.indexOf(held) !== -1) setPhase(held);
+      else setPhase("still");
+
+      window.requestAnimationFrame(function () {
+        stage.focus({ preventScroll: true });
+      });
+    })();
+  </script>
+</body>
+</html>

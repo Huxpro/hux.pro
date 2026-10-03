@@ -26,24 +26,36 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the grid's edit mode, or the switch on the index). The dropdown on each
  * lab's sticky bar (`LabNav`) is how you move between the labs.
  *
- * A lab is one of two kinds:
+ * A lab is one of three kinds:
  *
- *   study     one of this site's systems laid open (all but one, today)
- *   library   a system that left as a package. Vitre is the first. Its lab
- *             is the library's home, in the library template
- *             (components/library.tsx): its docs, its API reference and how
- *             this site uses it, under one header. Its content stays in the
- *             package, where the type check holds it to the API.
+ *   study       one of this site's systems laid open (all but one, today)
+ *   library     a system that left as a package. Vitre is the first. Its lab
+ *               is the library's home, in the library template
+ *               (components/library.tsx): its docs, its API reference and how
+ *               this site uses it, under one header. Its content stays in the
+ *               package, where the type check holds it to the API.
+ *   experience  a short piece: a few seconds, one or two gestures, a feeling.
+ *               The page in `public/experiences/<id>` is the piece. This lab
+ *               frames it; the home screen's app (content/apps.json) opens
+ *               the same page in a window, with no site chrome around it.
  *
  * Adding a lab: an entry here, a route under `app/lab/<id>`, a surface in
  * `systems/lab/surfaces`, the `LabShell` (or, for a library, the
- * `LibraryShell`) around the page, and its words in both languages: a
- * `strings.ts` beside it, read with `useLabStrings` (systems/lab/i18n.ts).
- * Every lab is bilingual; code names stay as written. docs/system-lab.md has
- * the rest.
+ * `LibraryShell`, or, for an experience, `ExperienceStage`) around the page,
+ * and its words in both languages: a `strings.ts` beside it, read with
+ * `useLabStrings` (systems/lab/i18n.ts). Every lab is bilingual; code names
+ * stay as written. docs/system-lab.md has the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre";
+export type LabId =
+  | "works"
+  | "attachments"
+  | "icon"
+  | "legibility"
+  | "glow"
+  | "band"
+  | "vitre"
+  | "door";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -72,7 +84,16 @@ export interface LibraryLab extends LabBase {
   library: LibraryInfo;
 }
 
-export type LabEntry = StudyLab | LibraryLab;
+/**
+ * A short piece. `play` is the chromeless page (under /public) that this
+ * lab frames and the home-screen app iframes.
+ */
+export interface ExperienceLab extends LabBase {
+  kind: "experience";
+  play: string;
+}
+
+export type LabEntry = StudyLab | LibraryLab | ExperienceLab;
 
 /** What a library's header says about the package, read from it, not retyped. */
 export interface LibraryInfo {
@@ -213,12 +234,29 @@ export const LABS: readonly LabEntry[] = [
       zh: "出自本站的一个 React 包：在 iOS 26 上实时给 Safari 的工具栏和状态栏着色，给页面画一圈边框，并让页面在容器里滚动、边缘稳住。这里是它的文档，旁边一台模拟的 iPhone 跑着演示；在手机上，就是演示本身。",
     },
   },
+  {
+    id: "door",
+    href: "/lab/door",
+    kind: "experience",
+    name: { en: "The Door", zh: "柜门" },
+    mark: "door",
+    play: "/experiences/door/index.html",
+    hint: {
+      en: "You wake. The wardrobe is still opening.",
+      zh: "你醒了。柜门还在开。",
+    },
+    blurb: {
+      en: "A nightmare from childhood. He waited in the wardrobe, then stood at the head of the bed and only looked. You wake, and the door is still opening. The same piece is an app on the home screen.",
+      zh: "小时候的一个噩梦。他在衣柜里等着，然后站到床头，只是看着。你醒了，柜门还在打开。主屏上的应用是同一件。",
+    },
+  },
 ];
 
 /** The two kinds, in the order the index and the switcher show them, with their headings (lib/i18n). */
 export const LAB_GROUPS = [
   { kind: "library", title: "labLibraries", note: "labLibrariesNote" },
   { kind: "study", title: "labStudies", note: "labStudiesNote" },
+  { kind: "experience", title: "labExperiences", note: "labExperiencesNote" },
 ] as const;
 
 export function labById(id: LabId): LabEntry {

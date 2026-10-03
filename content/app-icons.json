@@ -13,6 +13,13 @@
     "width": 512,
     "height": 512
   },
+  "door": {
+    "url": "/experiences/door/index.html",
+    "file": "/app-icons/door.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
   "lynx": {
     "url": "https://lynxjs.org",
     "file": "/app-icons/lynx.png",
