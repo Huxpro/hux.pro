@@ -39,7 +39,7 @@
 // iOS-style stacking (stack.ts).
 // =============================================================================
 
-export { AdaptiveSurface, useSurfaceContext } from "./adaptive-surface";
+export { AdaptiveSurface, SurfacePanel, useSurfaceContext } from "./adaptive-surface";
 export type { AdaptiveSurfaceProps } from "./adaptive-surface";
 export { useSheetAxisLock } from "./axis-lock";
 export { SurfaceBody } from "./chrome";

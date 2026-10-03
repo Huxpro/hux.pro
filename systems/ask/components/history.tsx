@@ -24,10 +24,12 @@ function when(at: number, locale: string): string {
 export interface AskHistoryProps {
   /** A conversation was picked (after it became current). */
   onOpen?: (id: string) => void;
+  /** A sidebar's rows: the title alone, its time left to the full list. */
+  dense?: boolean;
   className?: string;
 }
 
-export function AskHistory({ onOpen, className }: AskHistoryProps) {
+export function AskHistory({ onOpen, dense = false, className }: AskHistoryProps) {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { conversations, deleteConversation } = useAskHistory();
@@ -35,7 +37,14 @@ export function AskHistory({ onOpen, className }: AskHistoryProps) {
 
   if (!conversations.length) {
     return (
-      <p className={cn("px-4 py-6 text-center text-sm text-muted-foreground", className)}>{s.noHistory}</p>
+      <p
+        className={cn(
+          dense ? "px-5 py-2 text-xs text-tertiary-foreground" : "px-4 py-6 text-center text-sm text-muted-foreground",
+          className,
+        )}
+      >
+        {s.noHistory}
+      </p>
     );
   }
 
@@ -53,11 +62,14 @@ export function AskHistory({ onOpen, className }: AskHistoryProps) {
             className={cn(
               "flex w-full items-center gap-3 rounded-lg px-3 py-2 pr-9 text-left text-sm transition-colors",
               "hover:bg-accent/40 aria-[current]:bg-accent/50",
+              // Beside the conversation it names, the current row has to
+              // read as the selection, not as a hover that stayed.
+              dense && "aria-[current]:bg-accent aria-[current]:font-medium",
             )}
           >
             <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
             <span className="min-w-0 flex-1 truncate">{c.title}</span>
-            <span className="shrink-0 text-xs text-tertiary-foreground">{when(c.updatedAt, locale)}</span>
+            {!dense && <span className="shrink-0 text-xs text-tertiary-foreground">{when(c.updatedAt, locale)}</span>}
           </button>
           <button
             type="button"

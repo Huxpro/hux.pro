@@ -231,13 +231,22 @@ function SurfacePopoverShape({
   );
 }
 
-/** Panel mode: the same drawer as the sheet, entering from the trailing edge. */
-function SurfacePanel({
+/**
+ * Panel mode: the same drawer as the sheet, entering from the trailing edge.
+ *
+ * Exported as a primitive beside `SurfaceSheet`, for a surface that is a panel
+ * by its own choice and brings its own chrome: Ask, which stays docked beside
+ * the page while it is read.
+ */
+export function SurfacePanel({
   open,
   onOpenChange,
   zIndex,
   children,
-}: Pick<AdaptiveSurfaceProps, "open" | "onOpenChange" | "zIndex" | "children">) {
+}: Pick<AdaptiveSurfaceProps, "open" | "zIndex" | "children"> & {
+  /** With Base UI's details, so a caller can tell an Escape from a swipe. */
+  onOpenChange: (open: boolean, details: Drawer.Root.ChangeEventDetails) => void;
+}) {
   return (
     <Drawer.Root
       open={open}

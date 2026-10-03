@@ -133,7 +133,7 @@ function AskRow({ query }: { query: string }) {
   const showHints = useShowKeyboardHints();
   const s = askStrings(locale);
   return (
-    <Command.Item value={ASK_VALUE} onSelect={() => openAsk(query)} className={ROW}>
+    <Command.Item value={ASK_VALUE} onSelect={() => openAsk(query, "search")} className={ROW}>
       <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate text-left">
         <span className="text-muted-foreground">{s.askRow}: </span>
