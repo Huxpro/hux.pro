@@ -68,7 +68,8 @@ let answeredCall = 0;
 function plain(markdown: string): string {
   return markdown
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/[*_`#>~|]/g, "")
+    .replace(/^\s*(?:#+|>|[-*+]|\d+\.)\s+/gm, "")
+    .replace(/(\*\*|__|`)/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -147,8 +148,7 @@ export default function AskActivity() {
   const [opening, setOpening] = useState(false);
   useEffect(() => {
     if (!askCall || askCall.n <= answeredCall) return;
-    answeredCall = askCall.n;
-    if (askCall.toggle && expanded) close();
+    answeredCall = askCall.n;    if (askCall.toggle && expanded) close();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- answering an outside call, once
     else setOpening(true);
   }, [askCall, expanded, close]);
@@ -259,7 +259,7 @@ export default function AskActivity() {
             }}
           />
         )}
-        <div className="shrink-0 px-3 pt-1">
+        <div className="shrink-0 px-3 pt-1 pb-1.5">
           {/* Focused to write in: always with a mouse, and on a touch screen
               only when there is nothing yet to read, so a tap on the pill
               to see an answer does not raise the keyboard over it. */}
