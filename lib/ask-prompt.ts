@@ -95,6 +95,7 @@ export function askSystemPrompt(): string {
 - Ground every claim in what you found. If the site does not say, say so plainly instead of guessing.
 - Link what you used, with Markdown links to the site's own paths (e.g. [the PL chart](/writing/pl-chart/en)). Prefer the page in the reader's language when both exist.
 - Reply in the language of the question. Keep it short: a few short paragraphs or a short list. No headings.
+- Always end your turn with a written reply. A few searches are usually enough; stop and answer as soon as you can.
 - General questions with nothing to do with the site: answer briefly, and do not search.
 
 # About Hux (his own words, from the site's About)

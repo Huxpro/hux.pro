@@ -20,16 +20,32 @@ export interface AskModel {
 }
 
 export const ASK_MODELS: AskModel[] = [
-  // $0.10 / $0.40, 1M context, explicit caching.
-  { id: "alibaba/qwen3.5-flash", label: "Qwen 3.5 Flash" },
-  // $0.30 / $2.50.
+  // $0.30 / $2.50. The best of those tried on the site's questions.
   { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  // $0.47 / $2.00, the strongest of the three at agentic tool use.
-  { id: "moonshotai/kimi-k2-thinking", label: "Kimi K2 Thinking" },
+  // $0.10 / $0.40, 1M context, explicit caching. Searches eagerly; the
+  // route's tool budget is what makes it answer.
+  { id: "alibaba/qwen3.5-flash", label: "Qwen 3.5 Flash" },
+  // Kimi K2 Thinking was here and did not connect through the gateway.
 ];
 
 export const DEFAULT_ASK_MODEL = ASK_MODELS[0].id;
 
 export function askModelOf(id: unknown): AskModel {
   return ASK_MODELS.find((m) => m.id === id) ?? ASK_MODELS[0];
+}
+
+// -----------------------------------------------------------------------------
+// How hard the model thinks: the AI SDK's portable `reasoning` setting, which
+// each provider maps to its own (effort, a thinking budget). Picked per
+// viewer; the route accepts only these.
+// -----------------------------------------------------------------------------
+
+export const ASK_EFFORTS = ["low", "medium", "high"] as const;
+
+export type AskEffort = (typeof ASK_EFFORTS)[number];
+
+export const DEFAULT_ASK_EFFORT: AskEffort = "low";
+
+export function askEffortOf(value: unknown): AskEffort {
+  return ASK_EFFORTS.includes(value as AskEffort) ? (value as AskEffort) : DEFAULT_ASK_EFFORT;
 }

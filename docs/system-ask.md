@@ -10,10 +10,16 @@ systems/ask/
 │   ├── tokenize.ts    # words in both languages (Intl.Segmenter), the same at build time and in the browser
 │   ├── search.ts      # the index in the browser: fetched once, BM25 (MiniSearch), search + read
 │   ├── tools.ts       # the agent's tools (search_site, read): declared once, run in the page
-│   ├── chat.ts        # the conversation and the agent loop (AI SDK Chat), one per page load
+│   ├── chat.ts        # the session: current conversation, model + effort, the agent loop (AI SDK Chat)
+│   ├── history.ts     # past conversations, in localStorage
+│   ├── use-ask.ts     # the hooks surfaces are built from: useAskSession / useAskHistory / useAskPrefs / useAskRequest
 │   ├── models.ts      # the models the picker offers and the route accepts
 │   └── intent.ts      # is this a question or a search?
-├── components/chat.tsx  # the conversation, from AI Elements; lazy-loaded
+├── components/
+│   ├── messages.tsx   # AskMessages: the conversation, steps, sources, copy / regenerate
+│   ├── composer.tsx   # AskComposer: field, model, thinking level, voice, send / stop
+│   ├── history.tsx    # AskHistory: past conversations
+│   └── chat.tsx       # AskChat: those three, as the palette shows them (lazy-loaded)
 └── strings.ts           # en / zh
 
 lib/ask-corpus.ts      # reads the site into the index (Node, build time)
@@ -44,6 +50,25 @@ palette, like the slash sheet. Escape (or ←) goes back to search and keeps the
 conversation; the ✎ button starts a new one. A link in an answer to a page of
 this site navigates there and the palette leaves, as a command would.
 
+## A chat, not a box
+
+- **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere and closes it again;
+  `/` `J` from the slash list; Tab or the Ask row from search.
+- **History.** Every finished turn is saved (`lib/history.ts`): the newest 30
+  conversations, in this browser only, read results trimmed. The header's
+  clock lists them; picking one makes it current. ✎ starts a new one.
+- **Thinking level.** Quick / Balanced / Deep in the composer, the AI SDK's
+  portable `reasoning` (low / medium / high), remembered per viewer like the
+  model. The route accepts only those three.
+- **Message actions.** Copy on every message (the Markdown of an answer),
+  Regenerate on the last answer.
+- **Errors say what failed.** The route passes the provider's message through
+  (`describe`), shown under "Something went wrong."
+
+The session is module state (`lib/chat.ts`), so any surface (the palette, a
+panel, a page) shows the same conversation, and building a new surface is
+arranging `AskMessages`, `AskComposer` and `AskHistory`.
+
 ## The agent
 
 ```
@@ -65,7 +90,13 @@ run them against public/ask/index.json
 - **The tools run in the page.** They are declared in `tools.ts` without an
   `execute`, so a call comes back to the browser, where `chat.ts` runs it
   against the loaded index and resubmits (AI SDK `onToolCall` +
-  `sendAutomaticallyWhen`). At most 8 tool calls per turn.
+  `sendAutomaticallyWhen`).
+- **It always answers.** After 6 tool calls in a turn the route runs the
+  next step with `toolChoice: "none"` and an instruction to answer from what
+  it has (`TOOL_BUDGET`); the page stops resubmitting at 10. A step that ends
+  with neither text nor a tool call (a model that only reasoned) is sent back
+  once with `finalize: true`, which does the same. Qwen 3.5 Flash, which
+  kept searching and never replied, is why.
 - **The map, then the text.** The system prompt carries a map of the site
   (every post, conviction, era, project and language by title, link and doc
   id: a few thousand tokens, byte-identical across requests, so a provider's
@@ -86,12 +117,12 @@ prompts.
 
 | model | $ / M tokens (in / out) | |
 |---|---|---|
-| Qwen 3.5 Flash (`alibaba/qwen3.5-flash`) | 0.10 / 0.40 | default; 1M context |
-| Gemini 2.5 Flash (`google/gemini-2.5-flash`) | 0.30 / 2.50 | |
-| Kimi K2 Thinking (`moonshotai/kimi-k2-thinking`) | 0.47 / 2.00 | best at agentic tool use of the three |
+| Gemini 2.5 Flash (`google/gemini-2.5-flash`) | 0.30 / 2.50 | default; the best of those tried |
+| Qwen 3.5 Flash (`alibaba/qwen3.5-flash`) | 0.10 / 0.40 | searches eagerly; the tool budget makes it answer |
 
-A question costs about a tenth of a cent on the default (≈10k tokens in,
-≈600 out). Claude, GPT and Gemini 3 are not on the free tier; they need
+Kimi K2 Thinking was tried and did not connect through the gateway.
+
+A question costs well under a cent on either (≈10k tokens in, ≈600 out). Claude, GPT and Gemini 3 are not on the free tier; they need
 purchased gateway credits, and go in the list then. The free `$0` models were
 left out: the ones that are free are served with no promise against training
 on what visitors ask. Set a budget on the project in the gateway's dashboard

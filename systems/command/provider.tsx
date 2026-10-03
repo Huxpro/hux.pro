@@ -148,6 +148,14 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // ⌘J: straight into Ask (systems/ask), from anywhere; again to leave.
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        if (isOpen && isAskMode) close();
+        else openAsk();
+        return;
+      }
+
       // "/" to open command palette in slash commands mode
       if (e.key === "/" && !isInputField && !isOpen) {
         e.preventDefault();
@@ -180,7 +188,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isLoadBundleMode, isAskMode, toggle, close, open]);
+  }, [isOpen, isLoadBundleMode, isAskMode, toggle, close, open, openAsk]);
 
   return (
     <CommandContext.Provider

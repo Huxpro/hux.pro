@@ -1,5 +1,5 @@
 import { askSystemPrompt } from "@/lib/ask-prompt";
-import { askModelOf, type AskModel } from "@/systems/ask/lib/models";
+import { askEffortOf, askModelOf, type AskModel } from "@/systems/ask/lib/models";
 import { askTools, type AskUIMessage } from "@/systems/ask/lib/tools";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
@@ -18,8 +18,8 @@ import {
 // streams the answer back as AI SDK UI messages.
 //
 // Thin on purpose. The system prompt, the tools, the model list and the
-// output cap are fixed here; a request only carries the conversation and a
-// model id from the list. The tools have no `execute`: the page runs them
+// output cap are fixed here; a request only carries the conversation, a
+// model id and an effort from their lists, and whether to answer now. The tools have no `execute`: the page runs them
 // (systems/ask), so this route never touches the index.
 //
 // Which provider runs a model, first match wins:
@@ -38,6 +38,17 @@ export const maxDuration = 60;
 const MAX_MESSAGES = 24;
 const MAX_USER_CHARS = 4000;
 const MAX_OUTPUT_TOKENS = 4000;
+
+/**
+ * Tool calls in one turn before the model must answer. Past it, the next
+ * step runs with tools off and an instruction to answer from what it has: a
+ * model that keeps searching (Qwen did) otherwise ends the turn with a page
+ * of steps and no reply. The page caps its own loop a little higher.
+ */
+const TOOL_BUDGET = 6;
+
+const ANSWER_NOW =
+  "You have searched enough. Answer the question now, from what the tools returned, in the reader's language, with links. If it is not on the site, say so.";
 
 function resolveModel(model: AskModel): LanguageModel | null {
   // On a Vercel deployment (VERCEL=1) the gateway provider finds the OIDC
@@ -70,8 +81,20 @@ function sanitize(messages: unknown): AskUIMessage[] | null {
   return kept[0]?.role === "user" ? kept : kept.slice(kept.findIndex((m) => m.role === "user"));
 }
 
+function toolCallsInTurn(messages: AskUIMessage[]): number {
+  const last = messages[messages.length - 1];
+  if (last?.role !== "assistant") return 0;
+  return last.parts.filter((p) => p.type.startsWith("tool-")).length;
+}
+
+/** What failed, short enough to show: the provider's message, not a stack. */
+function describe(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return `The model could not answer just now (${message.slice(0, 160)}).`;
+}
+
 export async function POST(req: Request) {
-  let body: { messages?: unknown; model?: unknown };
+  let body: { messages?: unknown; model?: unknown; effort?: unknown; finalize?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -84,19 +107,29 @@ export async function POST(req: Request) {
   const languageModel = resolveModel(model);
   if (!languageModel) return standIn(messages);
 
+  // Answer now: the turn has spent its tool budget, or the page saw a step
+  // end with neither text nor a tool call and asked for the reply.
+  const answerNow = body.finalize === true || toolCallsInTurn(messages) >= TOOL_BUDGET;
+
   const result = streamText({
     model: languageModel,
-    instructions: {
-      role: "system",
-      content: askSystemPrompt(),
-      // The prompt is the same bytes on every request (the map of the site
-      // is most of it): a cache breakpoint lets Anthropic serve it from
-      // cache. Other providers cache prefixes on their own or ignore this.
-      providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
-    },
+    instructions: [
+      {
+        role: "system",
+        content: askSystemPrompt(),
+        // The prompt is the same bytes on every request (the map of the site
+        // is most of it): a cache breakpoint lets Anthropic serve it from
+        // cache. Other providers cache prefixes on their own or ignore this.
+        providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
+      },
+      ...(answerNow ? [{ role: "system" as const, content: ANSWER_NOW }] : []),
+    ],
     messages: await convertToModelMessages(messages, { tools: askTools }),
+    // The tools stay declared (the history has calls to them); answering
+    // now only takes away the choice to call one.
     tools: askTools,
-    reasoning: "low",
+    toolChoice: answerNow ? "none" : "auto",
+    reasoning: askEffortOf(body.effort),
     maxOutputTokens: MAX_OUTPUT_TOKENS,
   });
 
@@ -108,7 +141,7 @@ export async function POST(req: Request) {
       originalMessages: messages,
       onError: (error) => {
         console.error("[ask]", error);
-        return "The model could not answer just now.";
+        return describe(error);
       },
     }),
   });
