@@ -283,7 +283,8 @@ export function useCommandActions(): CommandAction[] {
     {
       // Ask (systems/ask), with nothing typed yet: the slash list's way in,
       // and ⌘J's (systems/command/provider.tsx). From search, the Ask row
-      // already carries the query, so this one is slash-only.
+      // already carries the query, so this one is slash-only. Ask opens in
+      // the Dock, and `openAsk` puts the palette away itself.
       id: "ask",
       key: "j",
       kind: "stay" as const,

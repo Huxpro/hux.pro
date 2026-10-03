@@ -1,15 +1,11 @@
 // =============================================================================
-// Ask: the command palette as a conversation with an agent that reads the
-// site. See docs/system-ask.md.
+// Ask: a conversation with an agent that reads the site, kept in the Dock as
+// a Live Activity. See docs/system-ask.md.
 // =============================================================================
 
-import dynamic from "next/dynamic";
+/** The Live Activity, for the Dock (app/layout.tsx). Loads lazily. */
+export { AskActivity } from "./dock";
 
-/** The chat, loaded the first time Ask opens (AI Elements, streamdown, the
- *  AI SDK client are none of the page's business until then). */
-export const AskChat = dynamic(() => import("./components/chat"), { ssr: false });
-
-export type { AskChatProps } from "./components/chat";
 export { isQuestionLike } from "./lib/intent";
 
 // The pieces, for a surface of its own. Importing these is importing AI
@@ -17,4 +13,5 @@ export { isQuestionLike } from "./lib/intent";
 // - ./components/messages   AskMessages: the conversation
 // - ./components/composer   AskComposer: field, model, effort, voice, send
 // - ./components/history    AskHistory: past conversations
+// - ./components/activity   the Dock's activity, built from those three
 // - ./lib/use-ask           useAskSession / useAskHistory / useAskPrefs / useAskRequest
