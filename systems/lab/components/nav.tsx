@@ -67,7 +67,7 @@ export function LabNav({
               hint={F.everyLab}
               active={!current}
             />
-            {/* The index's two sections, in its order: libraries, then studies. */}
+            {/* The index's sections, in its order: experiences, libraries, studies. */}
             {LAB_GROUPS.map(({ kind, title }) => (
               <Menu.Group key={kind}>
                 <div className="mx-2 my-1 h-px bg-border/60" />
