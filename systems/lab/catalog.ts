@@ -48,7 +48,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe" | "look-up";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -225,6 +225,25 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "A tall thin man in black, under a round hat far too big for him, stood in my wardrobe, then at my bed. I woke, and the wardrobe door really was opening. Hold to close your eyes; each time you open them, he is closer.",
       zh: "一个穿黑衣服、又高又瘦、戴着一顶大得出奇的圆帽子的男人，先站在我的衣柜里，后来站在我的床头。我醒了，衣柜门真的正在打开。按住闭上眼睛；每次睁开，他都更近一些。",
+    },
+  },
+  {
+    id: "look-up",
+    href: "/lab/look-up",
+    name: { en: "Look Up", zh: "抬头" },
+    mark: "dream",
+    kind: "experience",
+    experience: {
+      src: "/dreams/look-up/index.html",
+      app: "dream-look-up",
+    },
+    hint: {
+      en: "The same dream, from the pillow",
+      zh: "同一个梦，从枕头上看",
+    },
+    blurb: {
+      en: "He stood at my bed. I was small, and he was very tall. Drag up to raise your eyes along him: the higher you look, the heavier it gets, and let go and they sink back down. At the top, under the brim, he is looking at you.",
+      zh: "他站在我的床头。我很小，他很高。向上拖动，顺着他抬起眼睛：越往上越沉，一松手，目光就又落回去。到了顶上，帽檐底下，他正看着你。",
     },
   },
   {
