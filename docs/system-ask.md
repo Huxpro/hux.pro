@@ -19,7 +19,11 @@ systems/ask/
 │   ├── messages.tsx   # AskMessages: the conversation, steps, sources, copy / regenerate
 │   ├── composer.tsx   # AskComposer: field, model, thinking level, voice, send / stop
 │   ├── history.tsx    # AskHistory: past conversations
-│   └── chat.tsx       # AskChat: those three, as the palette shows them (lazy-loaded)
+│   ├── chat.tsx       # the center place: the palette, widened into two panes (lazy-loaded)
+│   ├── panel.tsx      # the side place: a panel beside the page
+│   ├── activity.tsx   # the top place and the pill: a Live Activity in the Dock
+│   └── placement.tsx  # the placement buttons, the drag handle, the drag's overlay
+├── surfaces.tsx         # AskSide, AskDock, AskDragging: mounted once in the root layout
 └── strings.ts           # en / zh
 
 lib/ask-corpus.ts      # reads the site into the index (Node, build time)
@@ -50,10 +54,47 @@ palette, like the slash sheet. Escape (or ←) goes back to search and keeps the
 conversation; the ✎ button starts a new one. A link in an answer to a page of
 this site navigates there and the palette leaves, as a command would.
 
+## Where Ask sits
+
+One conversation, three places, and a pill. Where it is is the command
+provider's `askPlacement`; the conversation is the session's, so moving Ask
+moves nothing else.
+
+| place | what it is | from |
+|---|---|---|
+| **center** | the ⌘K card, widened to 960px: history rail on the left, conversation on the right | the palette's Ask mode (`chat.tsx`) |
+| **side** | a 440px panel docked at the trailing edge; the page beside it stays live, and from 1280px the page makes room (`data-ask-docked`) | `panel.tsx`, `SurfacePanel` |
+| **top** | the Dock's panel, hanging from the top | `activity.tsx`, `LiveActivity` |
+| **pill** | minimized: a pill in the Dock saying what the agent is doing, then the answer's first words, with the site's glow while it works | the same activity, collapsed |
+
+- **Which place.** Asking from search (the Ask row, Tab) lands in the center,
+  unless Ask is already open at the side or the top, which then takes the
+  question. ⌘J, `/` `J` and the Ask button open it where the visitor last
+  put it (`hux_ask_placement`), and close it again.
+- **Moving.** Every surface's header has the placement buttons (center, side,
+  top) and minimize. On a screen with room for the side panel, the header is
+  also a handle: drag it and the three places light up where they would put
+  it (`AskDragOverlay`); let go over one and Ask moves there. The surface
+  being carried fades (`data-ask-dragging`).
+- **The pill.** Minimize (or the Dock's chevron at the top, or a route change
+  while it is there) leaves the pill; tapping it opens the top place. Closing
+  Ask while a reply is still being written leaves the pill too. ✕ closes it
+  for good.
+- **Links.** In the center, a link navigates and the palette leaves; at the
+  side it navigates under the panel, which stays; at the top it navigates and
+  collapses to the pill.
+- **Phones.** No room for a side panel: side is the center's full-height
+  sheet. The top and the pill work as on a desk. No dragging (a drag there is
+  a scroll); the buttons stay.
+- **Entries.** The Ask button sits beside the search prompt on the home, and
+  beside the ⌘K pill on every other page (`fab.tsx`), lit while Ask is open;
+  away from the home it steps aside for the side panel.
+
 ## A chat, not a box
 
-- **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere and closes it again;
-  `/` `J` from the slash list; Tab or the Ask row from search.
+- **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere, where it was last put,
+  and closes it again; `/` `J` from the slash list; Tab or the Ask row from
+  search.
 - **History.** Every finished turn is saved (`lib/history.ts`): the newest 30
   conversations, in this browser only, read results trimmed. The header's
   clock lists them; picking one makes it current. ✎ starts a new one.

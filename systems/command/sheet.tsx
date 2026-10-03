@@ -236,7 +236,7 @@ function SheetBody({
               // Tab (a hardware keyboard): ask what was typed (systems/ask).
               if (e.key === "Tab" && !e.shiftKey && field.value.trim()) {
                 e.preventDefault();
-                openAsk(field.value);
+                openAsk(field.value, "search");
                 return;
               }
               spaceToTalk.onKeyDown(e);

@@ -1,11 +1,37 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 // =============================================================================
 // Command System Provider
 // Controls the command palette open/close state and mode
+//
+// It also holds where Ask (systems/ask) is. Ask is one conversation that can
+// sit in three places (`AskPlacement`), and be put away into the Dock:
+//
+//   center  the palette, widened into a chat (the palette's Ask mode)
+//   side    a panel docked at the trailing edge, beside the page
+//   top     the Dock's panel, hanging from the top of the screen
+//   pill    not a place: the conversation minimized to a pill in the Dock
+//
+// Asking from search (the Ask row, Tab) lands in the center, unless Ask is
+// already open somewhere else, which then takes the question. A call with
+// nothing typed (⌘J, `/` `J`) opens Ask where the visitor last put it. A
+// phone has no room for a side panel; there, side is the center's sheet.
 // =============================================================================
+
+export type AskPlacement = "center" | "side" | "top";
+
+const ASK_PLACEMENT_KEY = "hux_ask_placement";
+
+function isAskPlacement(value: unknown): value is AskPlacement {
+  return value === "center" || value === "side" || value === "top";
+}
+
+/** Room for a panel beside the page: the surfaces' `sm`. */
+function hasRoomBeside(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
+}
 
 interface CommandContextType {
   isOpen: boolean;
@@ -25,8 +51,24 @@ interface CommandContextType {
   setSlashCommandsMode: (mode: boolean) => void;
   openLoadBundle: () => void;
   setLoadBundleMode: (mode: boolean) => void;
-  /** Into Ask, sending `text` if there is any; out of it with setAskMode(false). */
-  openAsk: (text?: string) => void;
+  /** Where Ask is open, or null when it is closed or only a pill. */
+  askPlacement: AskPlacement | null;
+  /** Ask has been called at least once: its surfaces may load. */
+  askStarted: boolean;
+  /** The conversation is minimized to a pill in the Dock. */
+  askPill: boolean;
+  /**
+   * Open Ask, sending `text` if there is any. `from: "search"` (the palette's
+   * Ask row, Tab) lands in the center; a call opens where Ask was last.
+   */
+  openAsk: (text?: string, from?: "search" | "call") => void;
+  /** Move Ask to another place, the conversation with it. */
+  moveAsk: (placement: AskPlacement) => void;
+  /** Close Ask wherever it is (a reply still being written leaves a pill). */
+  closeAsk: () => void;
+  /** Put Ask away into the Dock as a pill. */
+  minimizeAsk: () => void;
+  /** The palette's Ask mode on and off; off is back to search. */
   setAskMode: (mode: boolean) => void;
   /**
    * Ask the palette's field to start listening (systems/voice). A counter,
@@ -54,6 +96,12 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [isLoadBundleMode, setIsLoadBundleMode] = useState(false);
   const [isAskMode, setIsAskMode] = useState(false);
   const [askRequest, setAskRequest] = useState<{ text: string; n: number } | null>(null);
+  const [askSurface, setAskSurface] = useState<"side" | "top" | null>(null);
+  const [askPill, setAskPill] = useState(false);
+  const [askStarted, setAskStarted] = useState(false);
+  // Where the visitor last put Ask: a per-viewer convenience, read on the
+  // first call.
+  const preferredPlacement = useRef<AskPlacement | null>(null);
   const [voiceRequest, setVoiceRequest] = useState(0);
   const [voiceHoldKey, setVoiceHoldKey] = useState<string | null>(null);
 
@@ -106,14 +154,75 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const openAsk = useCallback((text?: string) => {
-    setIsOpen(true);
+  const askPlacement: AskPlacement | null = isOpen && isAskMode ? "center" : askSurface;
+
+  const moveAsk = useCallback((placement: AskPlacement) => {
+    const target = placement === "side" && !hasRoomBeside() ? "center" : placement;
+    setAskStarted(true);
+    setAskPill(false);
     setIsSlashCommandsMode(false);
     setIsLoadBundleMode(false);
-    setIsAskMode(true);
-    const question = text?.trim();
-    if (question) setAskRequest((prev) => ({ text: question, n: (prev?.n ?? 0) + 1 }));
+    if (target === "center") {
+      setAskSurface(null);
+      setIsOpen(true);
+      setIsAskMode(true);
+    } else {
+      setIsOpen(false);
+      setIsAskMode(false);
+      setAskSurface(target);
+    }
+    // Remembered only when it is where the visitor chose: a phone's sheet is
+    // not a vote against the side panel on the desk.
+    if (target === placement) {
+      preferredPlacement.current = target;
+      try {
+        localStorage.setItem(ASK_PLACEMENT_KEY, target);
+      } catch {
+        // Storage unavailable: the choice lasts the page.
+      }
+    }
   }, []);
+
+  const openAsk = useCallback(
+    (text?: string, from: "search" | "call" = "call") => {
+      const question = text?.trim();
+      if (question) setAskRequest((prev) => ({ text: question, n: (prev?.n ?? 0) + 1 }));
+      if (askSurface) {
+        // Already open beside the page or at the top: it takes the question.
+        moveAsk(askSurface);
+        return;
+      }
+      if (from === "search") {
+        moveAsk("center");
+        return;
+      }
+      if (preferredPlacement.current === null) {
+        let saved: string | null = null;
+        try {
+          saved = localStorage.getItem(ASK_PLACEMENT_KEY);
+        } catch {
+          // Storage unavailable: the center.
+        }
+        preferredPlacement.current = isAskPlacement(saved) ? saved : "center";
+      }
+      moveAsk(preferredPlacement.current);
+    },
+    [askSurface, moveAsk]
+  );
+
+  const closeAsk = useCallback(() => {
+    setAskSurface(null);
+    setAskPill(false);
+    if (isAskMode) {
+      setIsOpen(false);
+      setIsAskMode(false);
+    }
+  }, [isAskMode]);
+
+  const minimizeAsk = useCallback(() => {
+    closeAsk();
+    setAskPill(true);
+  }, [closeAsk]);
 
   // Voice: back to search (the field is where the words go) and listen.
   const requestVoice = useCallback((holdKey?: string) => {
@@ -148,10 +257,11 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // ⌘J: straight into Ask (systems/ask), from anywhere; again to leave.
+      // ⌘J: straight into Ask (systems/ask), from anywhere, where it was
+      // last put; again to close it.
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "j") {
         e.preventDefault();
-        if (isOpen && isAskMode) close();
+        if (askPlacement) closeAsk();
         else openAsk();
         return;
       }
@@ -188,7 +298,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isLoadBundleMode, isAskMode, toggle, close, open, openAsk]);
+  }, [isOpen, isLoadBundleMode, isAskMode, askPlacement, toggle, close, open, openAsk, closeAsk]);
 
   return (
     <CommandContext.Provider
@@ -198,6 +308,9 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         isLoadBundleMode,
         isAskMode,
         askRequest,
+        askPlacement,
+        askStarted,
+        askPill,
         open,
         close,
         toggle,
@@ -205,6 +318,9 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         openLoadBundle,
         setLoadBundleMode,
         openAsk,
+        moveAsk,
+        closeAsk,
+        minimizeAsk,
         setAskMode,
         voiceRequest,
         voiceHoldKey,
