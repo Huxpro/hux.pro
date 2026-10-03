@@ -79,7 +79,7 @@ export function AskComposer({ autoFocus = true, placeholder, className }: AskCom
             value={model}
             onValueChange={(value) => typeof value === "string" && setModel(value)}
           >
-            <PromptInputSelectTrigger aria-label={s.model} className="h-8 text-xs">
+            <PromptInputSelectTrigger aria-label={s.model}>
               <PromptInputSelectValue>
                 {(value: string) => ASK_MODELS.find((m) => m.id === value)?.label ?? value}
               </PromptInputSelectValue>
@@ -96,7 +96,7 @@ export function AskComposer({ autoFocus = true, placeholder, className }: AskCom
             value={effort}
             onValueChange={(value) => typeof value === "string" && setEffort(value)}
           >
-            <PromptInputSelectTrigger aria-label={s.effort} className="h-8 gap-1.5 text-xs">
+            <PromptInputSelectTrigger aria-label={s.effort}>
               <Brain className="size-3.5 text-muted-foreground" />
               <PromptInputSelectValue>
                 {(value: AskEffort) => s.efforts[value] ?? value}
@@ -110,7 +110,8 @@ export function AskComposer({ autoFocus = true, placeholder, className }: AskCom
               ))}
             </PromptInputSelectContent>
           </PromptInputSelect>
-          <VoiceButton voice={voice} />
+          {/* The toolbar's size and shape, not the search field's. */}
+          <VoiceButton voice={voice} className="size-8 rounded-4xl" />
         </PromptInputTools>
         <PromptInputSubmit status={status} onStop={() => void stop()} disabled={!busy && !input.trim()} />
       </PromptInputFooter>
