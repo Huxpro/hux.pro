@@ -29,6 +29,13 @@
     "width": 512,
     "height": 512
   },
+  "nightmare": {
+    "url": "/lab/nightmare?embedded=1",
+    "file": "/app-icons/nightmare.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
   "react": {
     "url": "https://react.dev",
     "file": "/app-icons/react.png",

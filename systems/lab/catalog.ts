@@ -43,7 +43,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "nightmare" | "vitre";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -187,6 +187,21 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "Live Activities, parked windows, a notice and a page's pinned bar all reach for one strip at the top. Compose how they share it on the real Dock and real bars (each choice is an overflow strategy), and hold it to four rules measured off the page.",
       zh: "实时活动、停靠的窗口、提示和页面的吸顶工具栏，都要争顶部这一条。在真实的 Dock 和真实的工具栏上组合它们怎么共用（每个选择都是一种溢出策略），再用从页面上量出来的四条规则检查。",
+    },
+  },
+  {
+    id: "nightmare",
+    href: "/lab/nightmare",
+    kind: "study",
+    name: { en: "Nightmare Lab", zh: "噩梦实验室" },
+    mark: "nightmare",
+    hint: {
+      en: "A childhood recurring sleep terror, interactive",
+      zh: "童年反复出现的梦魇交互再现",
+    },
+    blurb: {
+      en: "An interactive capture of a recurring childhood sleep terror: a towering black-clad figure emerges from the wardrobe, watching over the bed. The terror reaches its peak upon waking, as the real wardrobe door slowly opens.",
+      zh: "童年反复出现的真实梦魇互动重构：一个头戴宽大圆帽、极瘦极高的黑衣男人走出衣柜直视床头。梦醒之后，卧室里的衣柜门却在现实中悄然洞开。",
     },
   },
   {

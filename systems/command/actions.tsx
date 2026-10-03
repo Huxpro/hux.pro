@@ -307,6 +307,8 @@ export function useCommandActions(): CommandAction[] {
         "under the hood",
         "design system",
         "internals",
+        "nightmare",
+        "噩梦",
         "实验室",
         "实验",
         "实现",

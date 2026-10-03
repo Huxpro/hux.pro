@@ -15,6 +15,9 @@ const en = {
   // Glow
   hey: "Hey.",
   listening: "listening…",
+  // Nightmare
+  nightmareGaze: "The Gaze",
+  nightmareAwake: "The door is opening…",
 };
 
 const zh: typeof en = {
@@ -28,6 +31,8 @@ const zh: typeof en = {
   relief: "浮雕",
   hey: "嘿。",
   listening: "聆听中…",
+  nightmareGaze: "床头凝视",
+  nightmareAwake: "柜门正在打开…",
 };
 
 /** The surfaces' words: each lab at a glance, in the reader's language. */

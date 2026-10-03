@@ -5,6 +5,7 @@ import { appTitle } from "@/lib/app-icon-core";
 import { useLocale } from "@/services";
 import { LynxFrame } from "./lynx-frame";
 import { WebFrame } from "./web-frame";
+import { NightmareLabView } from "@/app/lab/nightmare/view";
 
 // =============================================================================
 // AppFrame: picks the right runtime host for an app
@@ -22,11 +23,15 @@ import { WebFrame } from "./web-frame";
  * shapes ask here rather than each keeping their own copy of the rule.
  */
 export function appGround(app: AppLink): string {
+  if (app.id === "nightmare") return "bg-black";
   return (app.runtime ?? "web") === "lynx" ? "bg-black" : "bg-background";
 }
 
 export function AppFrame({ app }: { app: AppLink }) {
   const { locale } = useLocale();
+  if (app.id === "nightmare") {
+    return <NightmareLabView embedded />;
+  }
   if ((app.runtime ?? "web") === "lynx") {
     return <LynxFrame url={app.bundleUrl ?? app.url} />;
   }
