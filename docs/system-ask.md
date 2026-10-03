@@ -45,8 +45,11 @@ still stripped to a query ("open the writing" → "writing"), questions are not.
 
 Ask is the palette's fourth mode, beside search, slash and load-bundle
 (`isAskMode` in the command provider). On the desktop it replaces the results
-inside the same card; on a phone it is a full-height sheet stacked on the
-palette, like the slash sheet. Escape (or ←) goes back to search and keeps the
+inside the same card, and the card widens (960px) and rises to hold two
+panes: past conversations on the left, with New chat on top and the current
+one selected, and the conversation on the right (AskChat's `rail`). On a
+phone it is a full-height sheet stacked on the palette, like the slash
+sheet, with history behind the header's clock. Escape (or ←) goes back to search and keeps the
 conversation; the ✎ button starts a new one. A link in an answer to a page of
 this site navigates there and the palette leaves, as a command would.
 
@@ -54,9 +57,14 @@ this site navigates there and the palette leaves, as a command would.
 
 - **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere and closes it again;
   `/` `J` from the slash list; Tab or the Ask row from search.
+- **Ways in that show.** On the home, an Ask capsule (✦, `⌘J`) beside the
+  search prompt; elsewhere a pause on the ⌘K pill names ⌘J; the palette's
+  footer lists ⌘J beside its other keys (`systems/command/fab.tsx`,
+  `popover.tsx`).
 - **History.** Every finished turn is saved (`lib/history.ts`): the newest 30
-  conversations, in this browser only, read results trimmed. The header's
-  clock lists them; picking one makes it current. ✎ starts a new one.
+  conversations, in this browser only, read results trimmed. The desktop
+  card's rail lists them (the phone sheet's clock does); picking one makes
+  it current. New chat (✎) starts a new one.
 - **Thinking level.** Quick / Balanced / Deep in the composer, the AI SDK's
   portable `reasoning` (low / medium / high), remembered per viewer like the
   model. The route accepts only those three.
