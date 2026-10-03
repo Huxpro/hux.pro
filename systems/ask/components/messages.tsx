@@ -96,6 +96,14 @@ function sourcesOf(message: AskUIMessage): { href: string; title: string }[] {
   return [...seen].map(([href, title]) => ({ href, title }));
 }
 
+/**
+ * Answer links as plain anchors. Streamdown's default turns every link into
+ * a button that asks before opening a new tab, which is wrong for links to
+ * this site's own pages: those navigate here (`onNavigate`, below), and the
+ * anchor is what the click handler and a middle-click both need.
+ */
+const LINKS_AS_LINKS = { enabled: false };
+
 function ToolSteps({ parts, live }: { parts: ToolPart[]; live: boolean }) {
   const { locale } = useLocale();
   const s = askStrings(locale);
@@ -196,7 +204,13 @@ function AssistantMessage({
     <Message from="assistant">
       <MessageContent className="w-full">
         {blocksOf(message, live).map((block) => {
-          if (block.kind === "text") return <MessageResponse key={block.key}>{block.text}</MessageResponse>;
+          if (block.kind === "text") {
+            return (
+              <MessageResponse key={block.key} linkSafety={LINKS_AS_LINKS}>
+                {block.text}
+              </MessageResponse>
+            );
+          }
           if (block.kind === "reasoning") {
             return (
               <Reasoning key={block.key} isStreaming={block.streaming}>

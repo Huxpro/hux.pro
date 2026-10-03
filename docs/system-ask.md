@@ -1,7 +1,7 @@
 # Ask
 
-The command palette, asked a question instead of a search: an agent that
-reads the site and answers with links to where it says so.
+A page of its own, `/ask`: an agent that reads the site and answers with
+links to where it says so. The command palette hands it questions.
 
 ```
 systems/ask/
@@ -19,8 +19,10 @@ systems/ask/
 │   ├── messages.tsx   # AskMessages: the conversation, steps, sources, copy / regenerate
 │   ├── composer.tsx   # AskComposer: field, model, thinking level, voice, send / stop
 │   ├── history.tsx    # AskHistory: past conversations
-│   └── chat.tsx       # AskChat: those three, as the palette shows them (lazy-loaded)
+│   └── page.tsx       # AskPage: those three, as /ask lays them out (lazy-loaded)
 └── strings.ts           # en / zh
+
+app/ask/               # the route: metadata, card, and the view that reads `?q=`
 
 lib/ask-corpus.ts      # reads the site into the index (Node, build time)
 lib/ask-prompt.ts      # the system prompt: who, how to answer, a map of the site
@@ -43,20 +45,47 @@ whenever the field has text:
 question whole (`toFieldText` in `systems/command/voice.tsx`): commands are
 still stripped to a query ("open the writing" → "writing"), questions are not.
 
-Ask is the palette's fourth mode, beside search, slash and load-bundle
-(`isAskMode` in the command provider). On the desktop it replaces the results
-inside the same card; on a phone it is a full-height sheet stacked on the
-palette, like the slash sheet. Escape (or ←) goes back to search and keeps the
-conversation; the ✎ button starts a new one. A link in an answer to a page of
-this site navigates there and the palette leaves, as a command would.
+Asking leaves the palette for the page: `openAsk(text)` in the command
+provider navigates to `/ask?q=<text>` and closes the palette. The page sends
+the question once (`useAskRequest`, numbered so a remount never sends it
+twice) and takes it off the address with `history.replaceState`, so a reload
+does not ask again. A link with `?q=` in it asks the same way.
+
+## The page
+
+```
+desktop                                          phone
+┌────────────┬─────────────────────────────┐     ┌──────────────────┐
+│ λhux       │                             │     │ λhux   ask   ◷ ✎ │
+│ ✎ New chat │     the conversation,       │     │                  │
+│ history    │     in the 680px column     │     │ the conversation │
+│ ▸ current  │                             │     │                  │
+│   older    │   ┌─────────────────────┐   │     │ ┌──────────────┐ │
+│            │   │ composer            │   │     │ │ composer     │ │
+└────────────┴───┴─────────────────────┴───┘     └─┴──────────────┴─┘
+```
+
+- **Desktop.** History in a glass sidebar (New chat on top, the current
+  conversation highlighted), the conversation in the site's reading column,
+  the composer pinned under it. Empty, the column says
+  *what would you like to know?* in the serif, with suggestions under it.
+- **Phone.** One column. The header's clock opens history in a
+  `SurfaceSheet` at the site's detents; picking a conversation closes it.
+- **Links** in an answer navigate as any link would: there is no palette to
+  close.
+- The command FAB is not drawn on `/ask`: the composer has the bottom of the
+  screen, and ⌘K still opens the palette.
 
 ## A chat, not a box
 
-- **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere and closes it again;
-  `/` `J` from the slash list; Tab or the Ask row from search.
+- **Ways in.** ⌘J (Ctrl+J) goes to `/ask` from anywhere; on the page it
+  focuses the field. `/` `J`, or Ask in the palette's Navigation; the Ask
+  button beside the home's search bar; Tab or the Ask row from search, which
+  carry the question.
 - **History.** Every finished turn is saved (`lib/history.ts`): the newest 30
-  conversations, in this browser only, read results trimmed. The header's
-  clock lists them; picking one makes it current. ✎ starts a new one.
+  conversations, in this browser only, read results trimmed. The sidebar
+  (the header's clock on a phone) lists them; picking one makes it current.
+  New chat starts another.
 - **Thinking level.** Quick / Balanced / Deep in the composer, the AI SDK's
   portable `reasoning` (low / medium / high), remembered per viewer like the
   model. The route accepts only those three.
@@ -65,9 +94,9 @@ this site navigates there and the palette leaves, as a command would.
 - **Errors say what failed.** The route passes the provider's message through
   (`describe`), shown under "Something went wrong."
 
-The session is module state (`lib/chat.ts`), so any surface (the palette, a
-panel, a page) shows the same conversation, and building a new surface is
-arranging `AskMessages`, `AskComposer` and `AskHistory`.
+The session is module state (`lib/chat.ts`), so any surface (the page, a
+panel, a palette view) shows the same conversation, and building a new
+surface is arranging `AskMessages`, `AskComposer` and `AskHistory`.
 
 ## The agent
 

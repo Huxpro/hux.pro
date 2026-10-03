@@ -1,15 +1,15 @@
 // =============================================================================
-// Ask: the command palette as a conversation with an agent that reads the
+// Ask: a page of its own (/ask), a conversation with an agent that reads the
 // site. See docs/system-ask.md.
 // =============================================================================
 
 import dynamic from "next/dynamic";
 
-/** The chat, loaded the first time Ask opens (AI Elements, streamdown, the
- *  AI SDK client are none of the page's business until then). */
-export const AskChat = dynamic(() => import("./components/chat"), { ssr: false });
+/** The page's app, loaded when /ask opens (AI Elements, streamdown, the AI
+ *  SDK client are no other page's business). */
+export const AskPage = dynamic(() => import("./components/page"), { ssr: false });
 
-export type { AskChatProps } from "./components/chat";
+export type { AskPageProps } from "./components/page";
 export { isQuestionLike } from "./lib/intent";
 
 // The pieces, for a surface of its own. Importing these is importing AI
