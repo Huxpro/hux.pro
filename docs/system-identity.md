@@ -36,15 +36,17 @@ GitHub profile page sized to a card, with nothing to press.
   the handle are not restated: the mark that opened the card printed them,
   and the sheet is titled by the handle.
 - **The other roles** under the same identity, latest first, as quiet rows
-  with their tenure on the right.
+  with their tenure on the right, under `Also at <company>`.
 - **Contributions** as figures: how many commits were signed with this
   handle, then each type, most numerous first (`5 commits · 4 projects ·
   1 talk`). With a single type the total would only repeat it, so the type
-  stands alone. In the peek the figures are a readout. In the sheet they are
-  the tabs (the shared `Segmented`, reader tone) of the signed commits listed
-  under them as an inset group, so the count heads the list it counts
-  rather than sitting beside a second copy of it. A tab opens on All each
-  time the card does.
+  stands alone. In the peek the figures are a readout, a row of tiles. In
+  the sheet they are a segmented control one line high (the shared
+  `Segmented`, reader tone), the tabs of the signed commits listed under them
+  as an inset group, so the count heads the list it counts rather than
+  sitting beside a second copy of it. The list's box eases to its new height
+  when a tab changes how many rows it holds, and the sheet, sized to its
+  content, follows it. A tab opens on All each time the card does.
 
 Everything is derived from the committed log by `buildIdentityProfile`, and
 the same `resolveIdentity` the bylines use decides what was signed as whom.

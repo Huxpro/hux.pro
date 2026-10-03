@@ -21,9 +21,11 @@ import type { IdentityProfile, ProfileRole } from "../lib/profile";
 // them, and the sheet is titled by the handle.
 //
 // In the peek the figures are a readout and there is nothing to press: the
-// peek answers "who was I then?" and nothing more. In the sheet the same row
-// is the tabs of the list under it (identity-card.tsx), so the count heads
-// the commits it counts instead of sitting beside a second copy of them.
+// peek answers "who was I then?" and nothing more. In the sheet the same
+// figures are a segmented control, one line high, over the list it filters
+// (identity-card.tsx), so the count heads the commits it counts instead of
+// sitting beside a second copy of them. Tiles there would stand a third of
+// a phone's sheet tall for three numbers.
 // =============================================================================
 
 /** What the figures filter by: everything, or one type. */
@@ -96,6 +98,16 @@ function Figure({ count, label }: { count: number; label: string }) {
   );
 }
 
+/** A figure as a tab: one line, the number on the ink and the noun beside it. */
+function FigureTab({ count, label }: { count: number; label: string }) {
+  return (
+    <>
+      <span className="font-medium tabular-nums text-foreground">{count}</span>{" "}
+      <span className="lowercase">{label}</span>
+    </>
+  );
+}
+
 /**
  * The figures: everything signed, then each type, most numerous first. With
  * one type the total would only repeat it, so the type stands alone.
@@ -156,7 +168,9 @@ export function IdentityProfileView({
           full-time years. */}
       {profile.otherRoles.length > 0 && (
         <div className="space-y-1.5">
-          <div className={TYPE.labelSm}>{t(locale, "identityOtherRoles")}</div>
+          <div className={TYPE.labelSm}>
+            {t(locale, "identityOtherRoles").replace("{company}", profile.company)}
+          </div>
           {profile.otherRoles.map((r) => (
             <OtherRole key={r.id} role={r} />
           ))}
@@ -175,7 +189,7 @@ export function IdentityProfileView({
               onChange={onFilter}
               options={figures.map((f) => ({
                 value: f.value,
-                label: <Figure count={f.count} label={f.label} />,
+                label: <FigureTab count={f.count} label={f.label} />,
                 ariaLabel: `${f.count} ${f.label}`,
               }))}
             />

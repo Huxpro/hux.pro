@@ -9,10 +9,10 @@ import { useOverAboutZ } from "@/systems/about/provider";
 import { useOptionalAttachments } from "@/systems/attachments/provider";
 import { Actions } from "@/systems/attachments/components/attachment-page";
 import { attachmentSetFor } from "@/systems/attachments/lib/set";
-import { ANCHORED_PRESENTATION, AdaptiveSurface } from "@/systems/surface";
+import { ANCHORED_PRESENTATION, AdaptiveSurface, SURFACE_EASING } from "@/systems/surface";
 import { CornerDownRight } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useIdentityCard } from "../provider";
 import type { IdentityProfile, ProfileCommit } from "../lib/profile";
 import { IdentityProfileView, type ProfileFilter } from "./identity-profile";
@@ -63,6 +63,40 @@ function CommitRow({
 }
 
 /**
+ * A box whose height follows its content's on a curve. A tab changes how many
+ * rows the list holds, and the sheet is as tall as what it holds
+ * (`fitContent`), so without this the sheet jumped to its new height in one
+ * frame. Animating the list's own box is enough: the sheet's height is
+ * `auto`, so it follows the box frame by frame, growing and shrinking from
+ * its top edge as a floating sheet does, and nothing in the sheet itself is
+ * touched. The content changes at once; the box catches up, clipping it.
+ */
+function EasedHeight({ className, children }: { className?: string; children: React.ReactNode }) {
+  const innerRef = useRef<HTMLDivElement>(null);
+  // `undefined` until measured: the first height is the content's own, with
+  // nothing to ease from.
+  const [height, setHeight] = useState<number>();
+  useLayoutEffect(() => {
+    const inner = innerRef.current;
+    if (!inner) return;
+    const observer = new ResizeObserver(() => setHeight(inner.offsetHeight));
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div
+      className={cn(
+        "overflow-hidden transition-[height] duration-300 motion-reduce:transition-none",
+        className,
+      )}
+      style={{ height, transitionTimingFunction: SURFACE_EASING }}
+    >
+      <div ref={innerRef}>{children}</div>
+    </div>
+  );
+}
+
+/**
  * The profile with its list. Keyed by the identity and role it shows, so a
  * card opened on another handle starts back on All.
  */
@@ -82,11 +116,13 @@ function IdentityCardBody({
       filter={filter}
       onFilter={setFilter}
       contributions={
-        <div className="divide-y divide-border/40 overflow-hidden rounded-lg bg-muted/50">
-          {commits.map((c) => (
-            <CommitRow key={c.id} commit={c} onOpen={onOpen} />
-          ))}
-        </div>
+        <EasedHeight className="rounded-lg bg-muted/50">
+          <div className="divide-y divide-border/40">
+            {commits.map((c) => (
+              <CommitRow key={c.id} commit={c} onOpen={onOpen} />
+            ))}
+          </div>
+        </EasedHeight>
       }
     />
   );
