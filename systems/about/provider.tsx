@@ -49,8 +49,11 @@ const SEEN_KEY = "hux_about_seen";
 /** How long a newcomer's first page shows before the About rises over it. */
 const FIRST_VISIT_DELAY_MS = 700;
 
-/** Paths that are tools rather than the site. No introduction there. */
-const QUIET_PREFIXES = ["/lab", "/vitre"];
+/**
+ * Paths that are tools rather than the site, and the dreams, which are a
+ * screen of their own. No introduction there.
+ */
+const QUIET_PREFIXES = ["/lab", "/vitre", "/dream"];
 
 function readSeen(): boolean {
   try {
