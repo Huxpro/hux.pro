@@ -926,7 +926,15 @@ export const PromptInput = ({
         ref={formRef}
         {...props}
       >
-        <InputGroup className="overflow-hidden">{children}</InputGroup>
+        <InputGroup
+          className={cn(
+            "overflow-hidden",
+            // A border that answers focus, without base-maia's 3px ring.
+            "has-[[data-slot=input-group-control]:focus-visible]:ring-0"
+          )}
+        >
+          {children}
+        </InputGroup>
       </form>
     </>
   );
@@ -1060,7 +1068,14 @@ export const PromptInputTextarea = ({
 
   return (
     <InputGroupTextarea
-      className={cn("field-sizing-content max-h-48 min-h-16", className)}
+      className={cn(
+        // The composer's one inset, 14px from the rounded edge (it has an
+        // 18px radius), on the text here and on the footer's labels below
+        // (PromptInputFooter + PromptInputSelectTrigger make up the rest).
+        "field-sizing-content max-h-48 min-h-16 px-3.5 pt-3.5 pb-1",
+        "placeholder:text-tertiary-foreground",
+        className
+      )}
       name="message"
       onCompositionEnd={handleCompositionEnd}
       onCompositionStart={handleCompositionStart}
@@ -1100,7 +1115,10 @@ export const PromptInputFooter = ({
 }: PromptInputFooterProps) => (
   <InputGroupAddon
     align="block-end"
-    className={cn("justify-between gap-1", className)}
+    // 8px around the controls; a control's own 6px of padding brings its
+    // label to the textarea's 14px inset, and the send button sits 8px from
+    // the corner on both sides.
+    className={cn("justify-between gap-1 px-2 pt-1 pb-2", className)}
     {...props}
   />
 );
@@ -1278,9 +1296,13 @@ export const PromptInputSelectTrigger = ({
   ...props
 }: PromptInputSelectTriggerProps) => (
   <SelectTrigger
+    size="sm"
     className={cn(
       "border-none bg-transparent font-medium text-muted-foreground shadow-none transition-colors",
       "hover:bg-accent hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground",
+      // A toolbar control, not a form field: 6px in from its hover pill, a
+      // smaller and quieter chevron.
+      "gap-1 px-1.5 text-xs [&>svg:last-child]:size-3.5 [&>svg:last-child]:opacity-60",
       className
     )}
     {...props}
