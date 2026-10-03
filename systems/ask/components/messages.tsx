@@ -43,15 +43,6 @@ import { askStrings } from "../strings";
 // answer, and links that stay on the site (`onNavigate`).
 // =============================================================================
 
-/**
- * Streamdown draws every link as a button behind an "open this link?" dialog
- * unless told not to. An answer's links are mostly this site's own pages, and
- * a button has no `href` for `onNavigate` to follow, so a link in an answer
- * did nothing a reader could see. As plain links, this site's open in place
- * (below) and anything else opens in a new tab, as Streamdown's links do.
- */
-const LINKS_AS_LINKS = { enabled: false };
-
 type Part = AskUIMessage["parts"][number];
 type ToolPart = Extract<Part, { type: "tool-search_site" | "tool-read" }>;
 
@@ -207,7 +198,11 @@ function AssistantMessage({
         {blocksOf(message, live).map((block) => {
           if (block.kind === "text") {
             return (
-              <MessageResponse key={block.key} linkSafety={LINKS_AS_LINKS}>
+              // Links are links: Streamdown's link safety turns each into a
+              // button that confirms, then opens a new tab, so a link to a
+              // page of this site never navigated. The answers link to this
+              // site (onNavigate) and to sources the model found there.
+              <MessageResponse key={block.key} linkSafety={{ enabled: false }}>
                 {block.text}
               </MessageResponse>
             );
@@ -254,7 +249,9 @@ function AssistantMessage({
 
 function UserMessage({ message }: { message: AskUIMessage }) {
   return (
-    <Message from="user">
+    // Copy sits beside the bubble, not under it: a row under every question
+    // that only shows on hover left a gap the height of a button.
+    <Message from="user" className="flex-row-reverse items-center">
       <MessageContent>
         {message.parts.map((p, j) =>
           p.type === "text" ? (
@@ -264,7 +261,7 @@ function UserMessage({ message }: { message: AskUIMessage }) {
           ) : null,
         )}
       </MessageContent>
-      <MessageActions className="justify-end opacity-0 transition-opacity group-hover:opacity-100">
+      <MessageActions className="opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
         <CopyAction text={textOf(message)} />
       </MessageActions>
     </Message>
