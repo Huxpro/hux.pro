@@ -11,8 +11,12 @@ interface CommandContextType {
   isOpen: boolean;
   isSlashCommandsMode: boolean;
   isLoadBundleMode: boolean;
-  /** The palette is a conversation (systems/ask) rather than a search. */
-  isAskMode: boolean;
+  /**
+   * Ask's panel (systems/ask) is open. It is not a mode of the palette: it
+   * stays docked beside the page while the palette comes and goes, and while
+   * the page navigates under it.
+   */
+  isAskOpen: boolean;
   /**
    * The question Ask was opened with, waiting to be sent. A counter with it,
    * as with `voiceRequest`: the chat sends each one once, so asking the same
@@ -25,9 +29,13 @@ interface CommandContextType {
   setSlashCommandsMode: (mode: boolean) => void;
   openLoadBundle: () => void;
   setLoadBundleMode: (mode: boolean) => void;
-  /** Into Ask, sending `text` if there is any; out of it with setAskMode(false). */
+  /**
+   * Open Ask's panel, sending `text` if there is any. The palette hands off:
+   * it closes, and the question it was holding goes along.
+   */
   openAsk: (text?: string) => void;
-  setAskMode: (mode: boolean) => void;
+  closeAsk: () => void;
+  toggleAsk: () => void;
   /**
    * Ask the palette's field to start listening (systems/voice). A counter,
    * not a flag: the field starts a session each time it changes, so asking
@@ -52,7 +60,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSlashCommandsMode, setIsSlashCommandsMode] = useState(false);
   const [isLoadBundleMode, setIsLoadBundleMode] = useState(false);
-  const [isAskMode, setIsAskMode] = useState(false);
+  const [isAskOpen, setIsAskOpen] = useState(false);
   const [askRequest, setAskRequest] = useState<{ text: string; n: number } | null>(null);
   const [voiceRequest, setVoiceRequest] = useState(0);
   const [voiceHoldKey, setVoiceHoldKey] = useState<string | null>(null);
@@ -61,14 +69,12 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     setIsOpen(true);
     setIsSlashCommandsMode(slashCommandsMode);
     setIsLoadBundleMode(false);
-    setIsAskMode(false);
   }, []);
 
   const close = useCallback(() => {
     setIsOpen(false);
     setIsSlashCommandsMode(false);
     setIsLoadBundleMode(false);
-    setIsAskMode(false);
   }, []);
 
   const toggle = useCallback(() => {
@@ -76,7 +82,6 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       if (prev) {
         setIsSlashCommandsMode(false);
         setIsLoadBundleMode(false);
-        setIsAskMode(false);
       }
       return !prev;
     });
@@ -84,36 +89,27 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
 
   const setSlashCommandsMode = useCallback((mode: boolean) => {
     setIsSlashCommandsMode(mode);
-    if (mode) {
-      setIsLoadBundleMode(false);
-      setIsAskMode(false);
-    }
+    if (mode) setIsLoadBundleMode(false);
   }, []);
 
   const setLoadBundleMode = useCallback((mode: boolean) => {
     setIsLoadBundleMode(mode);
-    if (mode) {
-      setIsSlashCommandsMode(false);
-      setIsAskMode(false);
-    }
-  }, []);
-
-  const setAskMode = useCallback((mode: boolean) => {
-    setIsAskMode(mode);
-    if (mode) {
-      setIsSlashCommandsMode(false);
-      setIsLoadBundleMode(false);
-    }
+    if (mode) setIsSlashCommandsMode(false);
   }, []);
 
   const openAsk = useCallback((text?: string) => {
-    setIsOpen(true);
-    setIsSlashCommandsMode(false);
-    setIsLoadBundleMode(false);
-    setIsAskMode(true);
+    close();
+    setIsAskOpen(true);
     const question = text?.trim();
     if (question) setAskRequest((prev) => ({ text: question, n: (prev?.n ?? 0) + 1 }));
-  }, []);
+  }, [close]);
+
+  const closeAsk = useCallback(() => setIsAskOpen(false), []);
+
+  const toggleAsk = useCallback(() => {
+    if (isAskOpen) setIsAskOpen(false);
+    else openAsk();
+  }, [isAskOpen, openAsk]);
 
   // Voice: back to search (the field is where the words go) and listen.
   const requestVoice = useCallback((holdKey?: string) => {
@@ -121,7 +117,6 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     setIsOpen(true);
     setIsSlashCommandsMode(false);
     setIsLoadBundleMode(false);
-    setIsAskMode(false);
     setVoiceRequest((n) => n + 1);
   }, []);
 
@@ -129,7 +124,6 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     setIsOpen(true);
     setIsSlashCommandsMode(false);
     setIsLoadBundleMode(true);
-    setIsAskMode(false);
   }, []);
 
   // Global Keyboard Shortcuts
@@ -148,11 +142,10 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // ⌘J: straight into Ask (systems/ask), from anywhere; again to leave.
+      // ⌘J: Ask's panel (systems/ask), from anywhere; again to put it away.
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "j") {
         e.preventDefault();
-        if (isOpen && isAskMode) close();
-        else openAsk();
+        toggleAsk();
         return;
       }
 
@@ -163,7 +156,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Escape: load-bundle or Ask → back to search; otherwise close.
+      // Escape: load-bundle → back to search; otherwise close.
       // The branch is the desktop popover's: there the panel replaces the
       // card's body in place, so there is no dialog to pop and the field's own
       // Escape handler only fires while the field has focus. On a phone
@@ -172,11 +165,6 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         if (isLoadBundleMode) {
           e.preventDefault();
           setIsLoadBundleMode(false);
-          return;
-        }
-        if (isAskMode) {
-          e.preventDefault();
-          setIsAskMode(false);
           return;
         }
         // Handled: a surface under the palette (the About) leaves this one.
@@ -188,7 +176,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isLoadBundleMode, isAskMode, toggle, close, open, openAsk]);
+  }, [isOpen, isLoadBundleMode, toggle, close, open, toggleAsk]);
 
   return (
     <CommandContext.Provider
@@ -196,7 +184,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         isOpen,
         isSlashCommandsMode,
         isLoadBundleMode,
-        isAskMode,
+        isAskOpen,
         askRequest,
         open,
         close,
@@ -205,7 +193,8 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         openLoadBundle,
         setLoadBundleMode,
         openAsk,
-        setAskMode,
+        closeAsk,
+        toggleAsk,
         voiceRequest,
         voiceHoldKey,
         requestVoice,

@@ -281,12 +281,13 @@ export function useCommandActions(): CommandAction[] {
         ]
       : []),
     {
-      // Ask (systems/ask), with nothing typed yet: the slash list's way in,
-      // and ⌘J's (systems/command/provider.tsx). From search, the Ask row
-      // already carries the query, so this one is slash-only.
+      // Ask's panel (systems/ask), with nothing typed yet: the slash list's
+      // way in, and ⌘J's (systems/command/provider.tsx). From search, the
+      // Ask row already carries the query, so this one is slash-only. The
+      // palette is finished once the panel has it, as after a navigation.
       id: "ask",
       key: "j",
-      kind: "stay" as const,
+      kind: "navigate" as const,
       section: "actions" as const,
       slashOnly: true,
       label: askStrings(locale).shortcut,

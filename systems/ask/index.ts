@@ -1,15 +1,12 @@
 // =============================================================================
-// Ask: the command palette as a conversation with an agent that reads the
-// site. See docs/system-ask.md.
+// Ask: a conversation with an agent that reads the site, in a panel that
+// stays beside the page. See docs/system-ask.md.
 // =============================================================================
 
-import dynamic from "next/dynamic";
+/** The panel (a sheet on a phone), mounted once in the root layout. Its
+ *  contents load the first time it opens. */
+export { AskSurface } from "./surface";
 
-/** The chat, loaded the first time Ask opens (AI Elements, streamdown, the
- *  AI SDK client are none of the page's business until then). */
-export const AskChat = dynamic(() => import("./components/chat"), { ssr: false });
-
-export type { AskChatProps } from "./components/chat";
 export { isQuestionLike } from "./lib/intent";
 
 // The pieces, for a surface of its own. Importing these is importing AI
@@ -17,4 +14,5 @@ export { isQuestionLike } from "./lib/intent";
 // - ./components/messages   AskMessages: the conversation
 // - ./components/composer   AskComposer: field, model, effort, voice, send
 // - ./components/history    AskHistory: past conversations
+// - ./components/panel      AskPanel: those three, as the panel shows them
 // - ./lib/use-ask           useAskSession / useAskHistory / useAskPrefs / useAskRequest
