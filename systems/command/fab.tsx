@@ -255,9 +255,14 @@ export function FloatingActionButton() {
         isHomepage ? "justify-center" : "justify-end"
       )}
     >
-      {/* The bar's box, so the home's Ask chip can hang off its right edge
-          and the bar itself stays centred. */}
-      <div className={cn("relative flex", isHomepage && "md:w-full md:max-w-md")}>
+      {/* The bar and, on the home, the Ask capsule beside it: centred as a
+          pair, so the bottom of the home stays balanced. */}
+      <div
+        className={cn(
+          "flex gap-2",
+          isHomepage && "justify-center md:w-full md:max-w-xl"
+        )}
+      >
         {/* Away from the home the pill is ⌘K alone; a pause on it names the
             other way in, ⌘J for Ask. A hover, so never on a phone. */}
         <Tooltip disabled={isHomepage || isOpen}>
@@ -289,8 +294,7 @@ export function FloatingActionButton() {
               exit={{ opacity: 0, x: -10, transition: { duration: 0.2 } }}
               className={cn(
                 "pressable pointer-events-auto select-none",
-                "absolute left-full top-0 ml-2",
-                "flex h-12 w-12 items-center justify-center gap-2 sm:w-auto sm:px-4",
+                "flex h-12 w-12 shrink-0 items-center justify-center gap-2 sm:w-auto sm:px-4",
                 "rounded-[24px] bg-glass backdrop-blur-xl",
                 "border border-border/50 shadow-raised",
                 "text-muted-foreground",

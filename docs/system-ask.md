@@ -58,7 +58,7 @@ this site navigates there and the palette leaves, as a command would.
 - **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere and closes it again;
   `/` `J` from the slash list; Tab or the Ask row from search.
 - **Ways in that show.** On the home, an Ask capsule (✦, `⌘J`) beside the
-  search prompt; elsewhere a pause on the ⌘K pill names ⌘J; the palette's
+  search prompt, the two centred as a pair; elsewhere a pause on the ⌘K pill names ⌘J; the palette's
   footer lists ⌘J beside its other keys (`systems/command/fab.tsx`,
   `popover.tsx`).
 - **History.** Every finished turn is saved (`lib/history.ts`): the newest 30
