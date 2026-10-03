@@ -238,6 +238,19 @@ export function useCommandActions(): CommandAction[] {
       run: () => router.push("/prompt"),
     },
     {
+      // Ask (systems/ask) is a page, /ask: a place to go like the others.
+      // `/` `J` and ⌘J (systems/command/provider.tsx) go there too; the Ask
+      // row in search carries the query with it.
+      id: "ask",
+      key: "j",
+      kind: "navigate",
+      section: "navigation",
+      label: askStrings(locale).ask,
+      icon: <Sparkles className={ROW_ICON} />,
+      keywords: ["ask", "ai", "chat", "question", "conversation", "问", "问答", "聊天", "提问", "对话"],
+      run: () => openAsk(),
+    },
+    {
       // The About: who made this and what it is. `/` `O` is its only
       // shortcut; there is no bare `O` on the page (systems/about).
       id: "about",
@@ -280,20 +293,6 @@ export function useCommandActions(): CommandAction[] {
           },
         ]
       : []),
-    {
-      // Ask (systems/ask), with nothing typed yet: the slash list's way in,
-      // and ⌘J's (systems/command/provider.tsx). From search, the Ask row
-      // already carries the query, so this one is slash-only.
-      id: "ask",
-      key: "j",
-      kind: "stay" as const,
-      section: "actions" as const,
-      slashOnly: true,
-      label: askStrings(locale).shortcut,
-      icon: <Sparkles className={ROW_ICON} />,
-      keywords: ["ask", "ai", "chat", "question", "问", "聊天", "提问"],
-      run: () => openAsk(),
-    },
     // Keyboard-only: reachable by letter from the slash list, never listed.
     {
       id: "docs",

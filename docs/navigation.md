@@ -87,8 +87,8 @@ When navigating away from the homepage, the prompt morphs into a compact FAB (mo
 ### Two Modes
 
 The command palette has two distinct modes that morph smoothly between each other
-(and two more, load-bundle and Ask; Ask, the palette as a conversation, is in
-[system-ask.md](./system-ask.md)):
+(and a third, load-bundle; Ask, a question handed from the palette to its own
+page `/ask`, is in [system-ask.md](./system-ask.md)):
 
 #### Search Mode (Default)
 - Full-text search across pages, posts, and talks
@@ -133,6 +133,7 @@ microphone) is `slashOnly`: it appears in this list, never as a search result.
 | `U` | Go to Writing |
 | `X` | Go to Works |
 | `P` | Go to Prompts |
+| `J` | Go to Ask (`/ask`; ⌘J from anywhere) |
 | `I` | Go to Docs (internal) |
 | `E` | Go to Editor |
 | `A` | Cycle Appearance: Follow the Sun → the theme the sun isn't showing → the one it is → Follow the System |

@@ -4,13 +4,15 @@ import { useLocale, t } from "@/services";
 import { useCommand } from "./provider";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { Command, Search } from "lucide-react";
+import { Command, Search, Sparkles } from "lucide-react";
+import { Link } from "next-view-transitions";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
 import { useDevtool } from "@/systems/devtool";
 import { HoldRing } from "@/components/ui/hold-ring";
 import { HANDOFF, useHomeEditing } from "@/components/ui/home-edit-store";
+import { askStrings } from "@/systems/ask/strings";
 import { useCompactViewport } from "./use-compact-viewport";
 
 /**
@@ -113,7 +115,9 @@ export function FloatingActionButton() {
   const isDraggable = drag.isEnabled && !isHomepage;
   const yielding = isHomepage && homeEditing && compact;
 
-  if (!mounted) return null;
+  // /ask is a page with a field of its own along the bottom; ⌘K still opens
+  // the palette there.
+  if (!mounted || pathname === "/ask") return null;
 
   const fab = (
     <div
@@ -249,6 +253,47 @@ export function FloatingActionButton() {
           )}
         </AnimatePresence>
       </motion.button>
+
+      {/* The home's conversational prompt has a second half: straight to
+          Ask (/ask), the page for talking to the site. ⌘J says the same. */}
+      <AnimatePresence>
+        {isHomepage && (
+          <motion.div
+            key="ask"
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: yielding ? 0 : 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
+            transition={{
+              layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
+              opacity: yielding
+                ? { duration: HANDOFF.out }
+                : { duration: HANDOFF.in, delay: HANDOFF.delay },
+            }}
+            className={cn("ml-2 shrink-0", yielding ? "pointer-events-none" : "pointer-events-auto")}
+          >
+            <Link
+              href="/ask"
+              aria-label={askStrings(locale).ask}
+              className={cn(
+                "pressable flex h-12 min-w-12 items-center justify-center gap-2 rounded-[24px] px-3.5 md:px-4",
+                "bg-glass backdrop-blur-xl border border-border/50 shadow-raised",
+                "text-sm text-muted-foreground",
+                "transition-[background-color,border-color,color] duration-200",
+                "hover:bg-glass-hover hover:border-border hover:text-foreground",
+                "active:bg-glass-strong-hover active:border-border active:text-foreground"
+              )}
+            >
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden md:inline">{askStrings(locale).ask}</span>
+              <kbd className="hidden items-center gap-0.5 rounded bg-muted/50 px-2 py-1 font-mono text-xs text-muted-foreground md:flex">
+                <span>⌘</span>
+                <span>J</span>
+              </kbd>
+            </Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 
