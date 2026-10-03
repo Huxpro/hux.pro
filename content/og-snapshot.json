@@ -61,6 +61,13 @@
     "siteName": "GitHub",
     "frame": "deny"
   },
+  "https://github.com/Huxpro/vue-lynx": {
+    "title": "GitHub - Huxpro/vue-lynx: Vue on Lynx",
+    "description": "Vue on Lynx. Contribute to Huxpro/vue-lynx development by creating an account on GitHub.",
+    "image": "https://opengraph.githubassets.com/6cffc35ab7682721465f9b09b3f67ac41ec5c9d90e897e1b04e2251ddab8319e/Huxpro/vue-lynx",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
   "https://github.com/facebook/hermes": {
     "title": "GitHub - facebook/hermes",
     "image": "https://opengraph.githubassets.com/1/facebook/hermes",
@@ -169,6 +176,18 @@
     "image": "https://segmentfault.com/img/bVc5sFd?spec=cover",
     "siteName": "segmentfault.com"
   },
+  "https://vue.lynxjs.org/blog/announcing-vue-lynx": {
+    "title": "How I Built Vue Lynx with AI in Two Weeks - Vue Lynx",
+    "description": "Vue Lynx went from a weekend architecture experiment to a production-shaped, dual-thread Vue framework in two weeks. Here is the architecture, testing harness, agentic verification loop, and the bill.",
+    "image": "https://vue.lynxjs.org/og-image.png",
+    "siteName": "vue.lynxjs.org"
+  },
+  "https://vue.lynxjs.org/zh/blog/announcing-vue-lynx": {
+    "title": "我如何在两周内用 AI 做出 Vue Lynx - Vue Lynx",
+    "description": "Vue Lynx 从一个周末的架构实验，到初具生产级形态的双线程 Vue 框架，只用了两周。这篇文章讲讲它的架构、测试 Harness、Agent E2E 验证闭环，以及账单。",
+    "image": "https://vue.lynxjs.org/og-image.png",
+    "siteName": "vue.lynxjs.org"
+  },
   "https://web.archive.org/web/20170724044527/http://2017.jsconf.cn/en/": {
     "title": "JavaScript Conference China 2017",
     "description": "JSConf China is a developer-driven conference where both the Chinese and International JS community share and discuss the latest tools and techniques for the JavaScript language. Talks in either English or Mandarin are welcome.",
@@ -183,6 +202,9 @@
   },
   "https://www.bilibili.com/video/BV1A1XxYXERk": {
     "image": "https://i1.hdslb.com/bfs/archive/a83de40a3936f6ec3adad3a7f99502d76f0f78b2.jpg"
+  },
+  "https://www.bilibili.com/video/BV1E13u6XEBW/": {
+    "image": "https://i0.hdslb.com/bfs/archive/4b7112293220b1a4cd8d24b59e2a98268106fdb8.jpg"
   },
   "https://www.bilibili.com/video/BV1LY411Q7hC/": {
     "image": "https://i2.hdslb.com/bfs/archive/4c3f37e14fa699846fa526c129298f30d60f901f.jpg"

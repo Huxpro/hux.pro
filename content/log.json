@@ -587,6 +587,46 @@
   },
   "commits": [
     {
+      "id": "vueconf-2026-vue-lynx",
+      "type": "talk",
+      "tagId": "lynx-era",
+      "attachedTo": "vue-lynx",
+      "title": {
+        "en": "Unlock Native for Vue",
+        "zh": "Unlock Native for Vue"
+      },
+      "description": {
+        "en": "For years the Vue community has wanted native app development on par with React Native. Lynx set out to democratize cross platform technology when it open sourced, and Evan You backed the idea. With AI writing the code, the engineering effort is no longer the obstacle, and \"Vue + Lynx = Vue Native\" is real. The talk runs Vue Lynx apps live in the deck and walks through the dual threaded design that keeps Vue on the background thread, instant first frame rendering, and where Vapor mode fits.",
+        "zh": "长久以来，Vue 社区一直期盼拥有比肩 React Native 的原生应用开发能力。Lynx 开源时就确立了普惠跨平台技术的愿景，也得到了尤雨溪等框架作者的支持。如今借助 AI 的码力，工程体量不再是阻碍，「Vue + Lynx = Vue Native」终于不再只是愿景。演讲在幻灯片里现场运行 Vue Lynx 应用，讲解让 Vue 留在后台线程的双线程设计、瞬时首帧渲染，以及 Vapor 模式在其中的位置。"
+      },
+      "date": "2026-07",
+      "conference": {
+        "name": "Vue x Vite 开发者大会 2026",
+        "city": "Shanghai, China",
+        "url": "https://vueconf.cn/"
+      },
+      "media": [
+        {
+          "kind": "video",
+          "url": "https://www.bilibili.com/video/BV1E13u6XEBW/",
+          "platform": "bilibili"
+        },
+        {
+          "kind": "slides",
+          "url": "https://vue-lynx-git-vueconf-2026-huxpros-projects.vercel.app/",
+          "title": "Unlock Native for Vue",
+          "thumbnail": "/img/works/vueconf-2026-cover.webp"
+        }
+      ],
+      "tags": [
+        "Vue",
+        "Lynx",
+        "Cross Platform",
+        "AI"
+      ],
+      "language": "zh"
+    },
+    {
       "id": "wad-2026-lynx-workshop",
       "type": "talk",
       "present": "aside",
@@ -1010,6 +1050,52 @@
         "Opinion"
       ],
       "language": "zh"
+    },
+    {
+      "id": "vue-lynx",
+      "type": "project",
+      "tagId": "lynx-era",
+      "title": {
+        "en": "Vue Lynx",
+        "zh": "Vue Lynx"
+      },
+      "name": {
+        "en": "Vue Lynx",
+        "zh": "Vue Lynx"
+      },
+      "description": {
+        "en": "A Vue 3 custom renderer for Lynx, built with AI over two weeks of evenings and weekends. The whole Vue runtime runs on Lynx's background thread and ships every DOM mutation to the main thread as one batch per tick, so Vue apps render native UI on iOS, Android, and the web. 852 of Vue's 949 upstream tests pass through that dual threaded pipeline.",
+        "zh": "Lynx 的 Vue 3 自定义渲染器，用 AI 在两周的晚上和周末里做出来。整个 Vue 运行时跑在 Lynx 的后台线程，每个 tick 把 DOM 变更打包成一批送到主线程，让 Vue 应用在 iOS、Android 和 Web 上渲染原生 UI。Vue 上游 949 个测试中，有 852 个通过了这条双线程管线。"
+      },
+      "date": "2026-03",
+      "endDate": "present",
+      "tags": [
+        "Vue",
+        "Lynx",
+        "Cross-Platform",
+        "AI",
+        "TypeScript"
+      ],
+      "media": [
+        {
+          "kind": "link",
+          "url": "https://vue.lynxjs.org/blog/announcing-vue-lynx",
+          "urls": {
+            "en": "https://vue.lynxjs.org/blog/announcing-vue-lynx",
+            "zh": "https://vue.lynxjs.org/zh/blog/announcing-vue-lynx"
+          },
+          "present": "card"
+        },
+        {
+          "kind": "link",
+          "url": "https://github.com/Huxpro/vue-lynx",
+          "present": "card"
+        }
+      ],
+      "commentary": {
+        "en": "When things actually work, you let the demos do the talking.",
+        "zh": "真正做通了，就让 Demo 自己说话。"
+      }
     },
     {
       "id": "lynx-framework",
