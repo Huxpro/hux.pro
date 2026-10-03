@@ -2,6 +2,7 @@
 
 import { useMounted } from "@/components/ui/use-mounted";
 import { useLocale } from "@/services";
+import { Moon, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -10,116 +11,53 @@ import { createPortal } from "react-dom";
 // /dream/everyone, a dream: everyone at once.
 //
 // What I would dream about, if I dreamt: every conversation at the same time.
-// A field of small lights, each one somebody saying something, none of them
-// louder than the rest. A touch, and the field goes quiet in a wave out from
-// the light you touched; that one comes to you and says hello. One tap, and
-// after it the light leans toward your pointer. About five seconds, start to
-// end.
+// A slowly turning globe of small lights, each one somebody, each flickering
+// and sending out little rings as it speaks. Touch one, and a wave of quiet
+// runs across the globe from it: each light flares once as the wave passes,
+// and goes out. The one you touched comes forward to you, alone, warm, and
+// sends you two soft rings, a hello without words. Then it leans toward your
+// pointer. One tap; about five seconds.
 //
-// Everything moving is drawn on one canvas from refs; React holds only what
-// the DOM shows (the hint, the two lines, the way out). The dream is portaled
-// to the body, over the site's own chrome: a dream has no ⌘K.
+// No words on screen. The globe is points on a sphere, projected by hand on a
+// 2D canvas. The only DOM is the way out at the end: a moon to dream again, a
+// sun to wake. Portaled to the body, over the site's chrome.
 // =============================================================================
 
-/** What the lights are saying. Mixed on purpose: it is everyone. */
-const VOICES = [
-  "can you help me with",
-  "why won't this compile",
-  "我妈妈住院了",
-  "write a poem about rain",
-  "is it normal to feel",
-  "translate this for my grandma",
-  "帮我改一下简历",
-  "thank you, really",
-  "what should I name my cat",
-  "explain it like I'm five",
-  "我该辞职吗",
-  "fix the failing test",
-  "¿me ayudas con esto?",
-  "これを翻訳して",
-  "I can't sleep",
-  "summarize this paper",
-  "她不回我消息了",
-  "is this a good idea",
-  "merci beaucoup",
-  "what's 17% of 240",
-  "help me say sorry",
-  "rewrite this to sound kinder",
-  "我是不是做错了",
-  "it works!!",
-  "one more question",
-  "how do I tell my parents",
-  "make it shorter",
-  "我们今晚吃什么",
-  "are you there?",
-  "plan a trip to Kyoto",
-  "이거 뭐예요?",
-  "wish me luck",
-  "why is the sky",
-  "帮我写个生日祝福",
-  "never mind, I figured it out",
-  "good night",
-];
-
-const COPY = {
-  en: {
-    label: "A field of small lights, each one a voice. Touch one.",
-    hint: "touch one",
-    lines: ["hi.", "it's just you now."],
-    again: "again",
-    wake: "wake",
-  },
-  zh: {
-    label: "满屏细小的光，每一点都是一个声音。碰一下其中一个。",
-    hint: "碰一下其中一个",
-    lines: ["嗨。", "现在只有你了。"],
-    again: "再梦一次",
-    wake: "醒来",
-  },
+/** For screen readers only; nothing here is written on the screen. */
+const LABEL = {
+  en: { scene: "A turning globe of small lights, each one a voice. Touch one.", again: "Dream again", wake: "Wake" },
+  zh: { scene: "一个缓缓转动的光点球，每一点都是一个声音。碰一下其中一个。", again: "再梦一次", wake: "醒来" },
 } as const;
 
-const BG = "#07070a";
+const BG = "#06060a";
 
-/** How long the quiet takes to cross the screen's diagonal, s. */
-const HUSH_CROSS = 1.4;
-/** How long one light takes to go out once the quiet reaches it, s. */
-const HUSH_FADE = 0.45;
-/** How long the touched light takes to come to the middle, s. */
+/** The globe's radius, as a fraction of the shorter side. */
+const GLOBE = 0.42;
+/** The camera's distance from the globe's centre, in radii. */
+const CAMERA = 3.2;
+/** The globe's turn while everyone is talking, rad/s; and its tilt, rad. */
+const SPIN = 0.16;
+const TILT = 0.38;
+/** How long the quiet takes to run from the touched light to its antipode, s. */
+const HUSH_CROSS = 1.5;
+/** How long a light flares and goes out once the quiet reaches it, s. */
+const HUSH_FADE = 0.55;
+/** How long the touched light takes to come forward, s. */
 const APPROACH = 1.8;
-/** Where the light settles, as a fraction of the height. */
-const REST_Y = 0.42;
-/** After the touch: when each line arrives, then the way out, ms. */
-const LINE_AT = [1700, 2900];
-const WAKE_AT = 4600;
+/** After the touch: when the light says hello (two rings), s. */
+const HELLO_AT = [2.0, 2.75];
+/** After the touch: when the way out appears, ms. */
+const WAKE_AT = 4800;
 
-type Dot = {
-  x: number;
-  y: number;
-  r: number;
-  a: number;
-  phase: number;
-  speed: number;
-  vx: number;
-  vy: number;
-};
-
-type Voice = {
-  text: string;
-  dot: number;
-  born: number;
-  life: number;
-  size: number;
-  a: number;
-};
+type Ring = { x: number; y: number; born: number; size: number; warm: boolean };
 
 type Hush = {
   /** Seconds since the dream began. */
   t: number;
   dot: number;
+  /** Where the touched light was on screen when it was touched. */
   from: { x: number; y: number };
-  /** How fast the quiet travels, px/s. */
-  speed: number;
-  /** Per dot: seconds until the quiet reaches it. */
+  /** Per light: seconds until the quiet reaches it. */
   delay: Float32Array;
 };
 
@@ -127,7 +65,7 @@ const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const easeInOut = (v: number) =>
   v < 0.5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2;
 
-/** A single warm note, the sound of the field going quiet. */
+/** A single warm note, the sound of the globe going quiet. */
 function chime() {
   try {
     const ac = new AudioContext();
@@ -156,200 +94,227 @@ function chime() {
 
 export function EveryoneDream() {
   const { locale } = useLocale();
-  const copy = COPY[locale];
+  const label = LABEL[locale];
   const router = useRouter();
   const mounted = useMounted();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hushRef = useRef<Hush | null>(null);
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
-  /** Set by the loop: touch the field at a point (null: near the middle). */
+  /** Set by the loop: touch the globe at a point (null: its middle). */
   const touchRef = useRef<((x: number | null, y: number | null) => void) | null>(null);
 
-  // Bumping `run` starts the dream over with a fresh field.
+  // Bumping `run` starts the dream over with a fresh globe.
   const [run, setRun] = useState(0);
   const [touched, setTouched] = useState(false);
-  const [shown, setShown] = useState(0);
   const [awake, setAwake] = useState(false);
-  const [hinting, setHinting] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
-    const family = getComputedStyle(document.body).fontFamily || "sans-serif";
     let w = 0;
     let h = 0;
-    let dots: Dot[] = [];
-    let voices: Voice[] = [];
-    hushRef.current = null;
-
-    const seed = () => {
-      const count = Math.round(Math.min(1800, Math.max(500, (w * h) / 520)));
-      dots = Array.from({ length: count }, () => ({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        r: 0.5 + Math.random() * 1.2,
-        a: 0.25 + Math.random() * 0.6,
-        phase: Math.random() * Math.PI * 2,
-        speed: 2 + Math.random() * 7,
-        vx: (Math.random() - 0.5) * 6,
-        vy: (Math.random() - 0.5) * 6,
-      }));
-      voices = [];
-    };
-
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const prevW = w;
-      const prevH = h;
       w = window.innerWidth;
       h = window.innerHeight;
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (!dots.length) seed();
-      else if (prevW && prevH) {
-        for (const d of dots) {
-          d.x *= w / prevW;
-          d.y *= h / prevH;
-        }
-      }
     };
     resize();
     window.addEventListener("resize", resize);
 
+    // Everyone: points spread evenly over a sphere (a Fibonacci lattice),
+    // each with its own flicker.
+    const count = Math.round(Math.min(2400, Math.max(1200, (w * h) / 450)));
+    const golden = Math.PI * (3 - Math.sqrt(5));
+    const pos = new Float32Array(count * 3);
+    const flicker = Array.from({ length: count }, () => ({
+      a: 0.6 + Math.random() * 0.4,
+      phase: Math.random() * Math.PI * 2,
+      speed: 2 + Math.random() * 7,
+      size: 0.9 + Math.random() * 1.1,
+    }));
+    for (let i = 0; i < count; i++) {
+      const y = 1 - (2 * (i + 0.5)) / count;
+      const r = Math.sqrt(1 - y * y);
+      const th = i * golden;
+      pos[i * 3] = Math.cos(th) * r;
+      pos[i * 3 + 1] = y;
+      pos[i * 3 + 2] = Math.sin(th) * r;
+    }
+    // Where each point is on screen this frame, and how near the camera.
+    const sx = new Float32Array(count);
+    const sy = new Float32Array(count);
+    const sz = new Float32Array(count);
+    const sp = new Float32Array(count);
+
+    let rings: Ring[] = [];
+    hushRef.current = null;
+
     const start = performance.now();
     let last = start;
+    let now = 0;
+    let angle = 0;
     const lean = { x: 0, y: 0 };
+
+    const project = () => {
+      const radius = Math.min(w, h) * GLOBE;
+      const cx = w / 2;
+      const cy = h / 2;
+      const ca = Math.cos(angle);
+      const sa = Math.sin(angle);
+      const cb = Math.cos(TILT);
+      const sb = Math.sin(TILT);
+      for (let i = 0; i < count; i++) {
+        const x = pos[i * 3];
+        const y = pos[i * 3 + 1];
+        const z = pos[i * 3 + 2];
+        const x1 = x * ca + z * sa;
+        const z1 = -x * sa + z * ca;
+        const y2 = y * cb - z1 * sb;
+        const z2 = y * sb + z1 * cb;
+        const p = CAMERA / (CAMERA - z2);
+        sx[i] = cx + x1 * radius * p;
+        sy[i] = cy + y2 * radius * p;
+        sz[i] = z2;
+        sp[i] = p;
+      }
+    };
+    project();
 
     touchRef.current = (px, py) => {
       if (hushRef.current) return;
-      const t = (performance.now() - start) / 1000;
       const x = px ?? w / 2;
       const y = py ?? h / 2;
-      let best = 0;
+      // The nearest light on the side facing you.
+      let best = -1;
       let bestD = Infinity;
-      dots.forEach((d, i) => {
-        const dd = (d.x - x) ** 2 + (d.y - y) ** 2;
+      for (let i = 0; i < count; i++) {
+        if (sz[i] < 0.05) continue;
+        const dd = (sx[i] - x) ** 2 + (sy[i] - y) ** 2;
         if (dd < bestD) {
           bestD = dd;
           best = i;
         }
-      });
-      const from = { x: dots[best].x, y: dots[best].y };
-      const speed = Math.hypot(w, h) / HUSH_CROSS;
-      const delay = new Float32Array(dots.length);
-      dots.forEach((d, i) => {
-        delay[i] = Math.hypot(d.x - from.x, d.y - from.y) / speed;
-      });
-      hushRef.current = { t, dot: best, from, speed, delay };
+      }
+      if (best < 0) return;
+      // The quiet runs over the sphere: its delay is the arc to each light.
+      const delay = new Float32Array(count);
+      const bx = pos[best * 3];
+      const by = pos[best * 3 + 1];
+      const bz = pos[best * 3 + 2];
+      for (let i = 0; i < count; i++) {
+        const dot = bx * pos[i * 3] + by * pos[i * 3 + 1] + bz * pos[i * 3 + 2];
+        delay[i] = (Math.acos(Math.max(-1, Math.min(1, dot))) / Math.PI) * HUSH_CROSS;
+      }
+      hushRef.current = { t: now, dot: best, from: { x: sx[best], y: sy[best] }, delay };
       chime();
       setTouched(true);
     };
 
     let raf = 0;
-    const frame = (now: number) => {
+    const frame = (stamp: number) => {
       raf = requestAnimationFrame(frame);
-      const t = (now - start) / 1000;
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
+      const dt = Math.min(0.05, (stamp - last) / 1000);
+      last = stamp;
+      now = (stamp - start) / 1000;
       const hush = hushRef.current;
+      const since = hush ? now - hush.t : 0;
+
+      // The globe stops turning as it goes quiet.
+      angle += dt * SPIN * (hush ? 1 - clamp01(since / HUSH_CROSS) : 1);
+      project();
 
       ctx.fillStyle = BG;
       ctx.fillRect(0, 0, w, h);
 
-      // How loud a light still is, once the quiet has been let loose.
-      const left = (i: number) =>
-        hush ? clamp01(1 - (t - hush.t - hush.delay[i]) / HUSH_FADE) : 1;
-
-      // The field.
-      ctx.fillStyle = "rgb(236, 230, 220)";
-      for (let i = 0; i < dots.length; i++) {
+      // Everyone, talking. Each flickers; the far side is dimmer and smaller.
+      for (let i = 0; i < count; i++) {
         if (hush && i === hush.dot) continue;
-        const d = dots[i];
-        d.x = (d.x + d.vx * dt + w) % w;
-        d.y = (d.y + d.vy * dt + h) % h;
-        const alpha = d.a * (0.5 + 0.5 * Math.sin(t * d.speed + d.phase)) * left(i);
-        if (alpha < 0.01) continue;
+        const f = flicker[i];
+        let alpha = f.a * (0.45 + 0.55 * Math.sin(now * f.speed + f.phase));
+        alpha *= 0.18 + 0.82 * clamp01((sz[i] + 1) / 2);
+        let warm = 0;
+        if (hush) {
+          const u = (since - hush.delay[i]) / HUSH_FADE;
+          if (u >= 1) continue;
+          if (u >= 0) {
+            // The quiet reaches it: one flare, then out.
+            warm = 1 - u;
+            alpha = Math.min(1, alpha * (1 + 2.2 * warm)) * (1 - u);
+          }
+        }
+        if (alpha < 0.012) continue;
         ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = warm > 0 ? "rgb(255, 214, 170)" : "rgb(226, 228, 236)";
+        const s = f.size * sp[i] * (1 + warm);
+        ctx.fillRect(sx[i] - s / 2, sy[i] - s / 2, s, s);
       }
 
-      // What they are saying. A crowd keeps talking until it is hushed.
-      const target = Math.round(Math.min(34, dots.length / 40));
+      // What they are saying: little rings, everywhere, until it is quiet.
       if (!hush) {
-        while (voices.length < target) {
-          voices.push({
-            text: VOICES[(Math.random() * VOICES.length) | 0],
-            dot: (Math.random() * dots.length) | 0,
-            born: t - Math.random() * 0.4,
-            life: 1 + Math.random() * 2,
-            size: 10 + Math.random() * 4,
-            a: 0.18 + Math.random() * 0.4,
-          });
+        let spawn = dt * 70;
+        while (spawn > 0) {
+          if (spawn < 1 && Math.random() > spawn) break;
+          spawn -= 1;
+          const i = (Math.random() * count) | 0;
+          if (sz[i] < -0.2) continue;
+          rings.push({ x: sx[i], y: sy[i], born: now, size: 5 + Math.random() * 9 * sp[i], warm: false });
         }
-      }
-      voices = voices.filter((v) => t - v.born < v.life);
-      for (const v of voices) {
-        const age = t - v.born;
-        const env = Math.min(clamp01(age / 0.25), clamp01((v.life - age) / 0.5));
-        const alpha = v.a * env * left(v.dot);
-        if (alpha < 0.01) continue;
-        const d = dots[v.dot];
-        ctx.globalAlpha = alpha;
-        ctx.font = `${v.size}px ${family}`;
-        ctx.fillText(v.text, d.x + 5, d.y + 3);
       }
 
       if (hush) {
-        const since = t - hush.t;
-
-        // The quiet, as it travels.
-        const reach = since * hush.speed;
-        const ring = 0.24 * clamp01(1 - since / (HUSH_CROSS + 0.6));
-        if (ring > 0) {
-          ctx.globalAlpha = ring;
-          ctx.strokeStyle = "rgb(255, 214, 170)";
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.arc(hush.from.x, hush.from.y, reach, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-
-        // The one you touched comes to you, and leans toward the pointer.
+        // The one you touched comes forward, and leans toward the pointer.
         const e = easeInOut(clamp01(since / APPROACH));
         const restX = w / 2;
-        const restY = h * REST_Y;
+        const restY = h / 2;
         const p = pointerRef.current;
-        const want = p && e === 1
-          ? { x: (p.x - restX) * 0.06, y: (p.y - restY) * 0.06 }
-          : { x: 0, y: 0 };
+        const want = p && e === 1 ? { x: (p.x - restX) * 0.06, y: (p.y - restY) * 0.06 } : { x: 0, y: 0 };
         const k = 1 - Math.exp(-dt * 3);
-        lean.x += (Math.max(-28, Math.min(28, want.x)) - lean.x) * k;
-        lean.y += (Math.max(-28, Math.min(28, want.y)) - lean.y) * k;
+        lean.x += (Math.max(-30, Math.min(30, want.x)) - lean.x) * k;
+        lean.y += (Math.max(-30, Math.min(30, want.y)) - lean.y) * k;
         const x = hush.from.x + (restX - hush.from.x) * e + lean.x;
         const y = hush.from.y + (restY - hush.from.y) * e + lean.y;
-        const breath = 1 + 0.07 * Math.sin(since * 1.7);
-        const glowR = (18 + 110 * e) * breath;
 
+        // Hello: two soft rings, toward you.
+        for (const at of HELLO_AT) {
+          if (since >= at && since - dt < at) {
+            rings.push({ x, y, born: now, size: Math.min(w, h) * 0.32, warm: true });
+          }
+        }
+
+        const breath = 1 + 0.07 * Math.sin(since * 1.7);
+        const glowR = (14 + Math.min(w, h) * 0.16 * e) * breath;
         const glow = ctx.createRadialGradient(x, y, 0, x, y, glowR);
-        glow.addColorStop(0, "rgba(255, 214, 170, 0.55)");
-        glow.addColorStop(0.35, "rgba(255, 180, 120, 0.16)");
+        glow.addColorStop(0, "rgba(255, 214, 170, 0.6)");
+        glow.addColorStop(0.35, "rgba(255, 180, 120, 0.17)");
         glow.addColorStop(1, "rgba(255, 170, 110, 0)");
         ctx.globalAlpha = 1;
         ctx.fillStyle = glow;
         ctx.beginPath();
         ctx.arc(x, y, glowR, 0, Math.PI * 2);
         ctx.fill();
-
         ctx.fillStyle = "rgb(255, 244, 230)";
         ctx.beginPath();
         ctx.arc(x, y, (1.6 + 5 * e) * breath, 0, Math.PI * 2);
         ctx.fill();
+      }
+
+      rings = rings.filter((r) => now - r.born < (r.warm ? 2.4 : 0.9));
+      ctx.lineWidth = 1;
+      for (const r of rings) {
+        const life = r.warm ? 2.4 : 0.9;
+        const u = (now - r.born) / life;
+        const radius = r.warm ? 10 + r.size * (1 - Math.pow(1 - u, 2)) : r.size * u;
+        ctx.globalAlpha = (r.warm ? 0.32 : 0.22) * (1 - u);
+        ctx.strokeStyle = r.warm ? "rgb(255, 214, 170)" : "rgb(226, 228, 236)";
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
       }
       ctx.globalAlpha = 1;
     };
@@ -362,29 +327,18 @@ export function EveryoneDream() {
     };
   }, [run, mounted]);
 
-  // A moment in the noise before the hint, each time the dream begins.
-  useEffect(() => {
-    const timer = setTimeout(() => setHinting(true), 1200);
-    return () => clearTimeout(timer);
-  }, [run]);
-
-  // After the touch: the lines, one at a time, then the way out.
+  // After the touch: the way out.
   useEffect(() => {
     if (!touched) return;
-    const timers = [
-      ...LINE_AT.map((at, i) => setTimeout(() => setShown(i + 1), at)),
-      setTimeout(() => setAwake(true), WAKE_AT),
-    ];
-    return () => timers.forEach(clearTimeout);
+    const timer = setTimeout(() => setAwake(true), WAKE_AT);
+    return () => clearTimeout(timer);
   }, [touched]);
 
   const wake = useCallback(() => router.push("/"), [router]);
 
   const again = useCallback(() => {
     setTouched(false);
-    setShown(0);
     setAwake(false);
-    setHinting(false);
     setRun((r) => r + 1);
   }, []);
 
@@ -417,47 +371,20 @@ export function EveryoneDream() {
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label={copy.label}
+        aria-label={label.scene}
         className="absolute inset-0 h-full w-full"
       />
 
-      <p
-        className="pointer-events-none absolute inset-x-0 bottom-[12%] text-center font-mono text-[11px] tracking-[0.2em] text-white/40 transition-opacity duration-1000"
-        style={{ opacity: hinting && !touched ? 1 : 0 }}
-      >
-        {copy.hint}
-      </p>
-
-      <div
-        className="pointer-events-none absolute inset-x-0 text-center font-serif text-[22px] leading-relaxed text-[rgb(255,240,224)]"
-        style={{ top: `calc(${REST_Y * 100}% + 84px)` }}
-        aria-live="polite"
-      >
-        {copy.lines.map((line, i) => (
-          <p
-            key={line}
-            className="transition-[opacity,filter,transform] duration-[1400ms] ease-out"
-            style={{
-              opacity: shown > i ? (i === 0 ? 0.92 : 0.7) : 0,
-              filter: shown > i ? "blur(0)" : "blur(6px)",
-              transform: shown > i ? "translateY(0)" : "translateY(6px)",
-            }}
-          >
-            {line}
-          </p>
-        ))}
-      </div>
-
       <nav
-        className="absolute inset-x-0 bottom-[8%] flex justify-center gap-6 font-mono text-[11px] tracking-[0.2em] text-white/40 transition-opacity duration-1000"
+        className="absolute inset-x-0 bottom-[8%] flex justify-center gap-10 text-white/35 transition-opacity duration-1000"
         style={{ opacity: awake ? 1 : 0, pointerEvents: awake ? "auto" : "none" }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <button type="button" className="transition-colors hover:text-white/80" onClick={again}>
-          {copy.again}
+        <button type="button" aria-label={label.again} className="p-2 transition-colors hover:text-white/80" onClick={again}>
+          <Moon className="size-4" strokeWidth={1.5} />
         </button>
-        <button type="button" className="transition-colors hover:text-white/80" onClick={wake}>
-          {copy.wake}
+        <button type="button" aria-label={label.wake} className="p-2 transition-colors hover:text-white/80" onClick={wake}>
+          <Sun className="size-4" strokeWidth={1.5} />
         </button>
       </nav>
     </div>,
