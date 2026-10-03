@@ -5,6 +5,7 @@ import { t, useLocale } from "@/services";
 import { useDevtool } from "@/systems/devtool";
 import { useDraggable } from "@/systems/draggable";
 import { AskChat } from "@/systems/ask";
+import { askStrings } from "@/systems/ask/strings";
 import { Command } from "cmdk";
 import { motion } from "framer-motion";
 import { Search, Slash } from "lucide-react";
@@ -46,6 +47,16 @@ const PALETTE_GEOMETRY = {
     "min(40rem, 43dvh, var(--command-palette-chrome))",
   "--command-palette-slash-max":
     "min(40rem, var(--command-palette-chrome))",
+  // Ask brings its own header and footer, so only the card's margins come
+  // off what is left under the offset.
+  "--command-palette-ask-max":
+    "min(44rem, calc(100dvh - var(--command-palette-offset) - 4rem - env(safe-area-inset-bottom, 0px)))",
+} as CSSProperties;
+
+// Ask: a conversation is the one mode that wants height more than a place
+// in the upper third, so the card rises to make room for it.
+const PALETTE_ASK_GEOMETRY = {
+  "--command-palette-offset": "min(12vh, 7rem)",
 } as CSSProperties;
 
 const PALETTE_LIST_MAX =
@@ -56,7 +67,7 @@ const PALETTE_SLASH_MAX =
 
 // Ask: a conversation wants a fixed height to scroll within, not one that
 // jumps with every line streamed in.
-const PALETTE_ASK_HEIGHT = "h-[min(38rem,var(--command-palette-chrome))]";
+const PALETTE_ASK_HEIGHT = "h-[var(--command-palette-ask-max)]";
 
 // =============================================================================
 // CommandPopover: the palette as a floating card, Spotlight-style.
@@ -65,6 +76,11 @@ const PALETTE_ASK_HEIGHT = "h-[min(38rem,var(--command-palette-chrome))]";
 // way down, draggable through the shared hook, closed by a click on the page.
 // Its four modes (search, slash, load-bundle, Ask) morph inside one card:
 // width, header and footer each animate rather than swapping.
+//
+// Ask is the widest: the card grows to 960px and rises, and holds two panes,
+// the past conversations on the left and the conversation on the right
+// (AskChat's `rail`). It is a chat app for as long as it is asked one, and
+// the search card again on Escape.
 //
 // It still works at phone widths (the devtool's Command module can ask for it
 // there) and keeps its iOS Safari accommodations for that case: the page is
@@ -173,10 +189,12 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
           // the primary nav and must always sit on top.
           "system-chrome z-[10050] flex items-start justify-center overflow-y-auto",
           "pt-[var(--command-palette-offset)] pb-8",
+          "transition-[padding-top] duration-300 ease-out",
           isPhoneSafari ? "absolute inset-x-0" : "fixed inset-0"
         )}
         style={{
           ...PALETTE_GEOMETRY,
+          ...(isAskMode ? PALETTE_ASK_GEOMETRY : {}),
           ...(isPhoneSafari
             ? { top: scrollPosition, height: "100dvh" }
             : {}),
@@ -255,7 +273,8 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
               isLoadBundleMode
                 ? "w-full max-w-[440px]"
                 : isAskMode
-                ? "w-full max-w-[700px]"
+                ? // Clipped, so the history rail's wash keeps the corners.
+                  "w-full max-w-[960px] overflow-hidden"
                 : isSlashCommandsMode
                 ? "w-full max-w-[400px]"
                 : "w-full max-w-[700px]",
@@ -401,6 +420,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                           </kbd>
                         )
                       }
+                      rail
                       className={PALETTE_ASK_HEIGHT}
                     />
                   )}
@@ -474,6 +494,12 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                           /
                         </kbd>
                         {t(locale, "actions")}
+                      </span>
+                      <span className="flex items-center gap-1 font-sans">
+                        <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
+                          ⌘J
+                        </kbd>
+                        {askStrings(locale).shortcut}
                       </span>
                     </div>
                     <div className="flex items-center gap-0.5">
