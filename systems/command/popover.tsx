@@ -4,9 +4,11 @@ import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useDevtool } from "@/systems/devtool";
 import { useDraggable } from "@/systems/draggable";
+import { AskChat } from "@/systems/ask";
 import { Command } from "cmdk";
 import { motion } from "framer-motion";
 import { Search, Slash } from "lucide-react";
+import { useTransitionRouter } from "next-view-transitions";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   CommandShellProvider,
@@ -24,6 +26,8 @@ import {
   CommandSlashList,
   GROUP_HEADINGS,
   SlashEntry,
+  usePaletteFilter,
+  usePaletteSelection,
 } from "./results";
 
 // Adaptive geometry for the popover only. The phone sheet fills its detents
@@ -50,13 +54,17 @@ const PALETTE_LIST_MAX =
 const PALETTE_SLASH_MAX =
   "max-h-[var(--command-palette-slash-max)] overflow-y-auto overscroll-contain";
 
+// Ask: a conversation wants a fixed height to scroll within, not one that
+// jumps with every line streamed in.
+const PALETTE_ASK_HEIGHT = "h-[min(38rem,var(--command-palette-chrome))]";
+
 // =============================================================================
 // CommandPopover: the palette as a floating card, Spotlight-style.
 //
 // The shell for anything wider than a phone: a centred card a fifth of the
 // way down, draggable through the shared hook, closed by a click on the page.
-// Its three modes (search, slash, load-bundle) morph inside one card: width,
-// header and footer each animate rather than swapping.
+// Its four modes (search, slash, load-bundle, Ask) morph inside one card:
+// width, header and footer each animate rather than swapping.
 //
 // It still works at phone widths (the devtool's Command module can ask for it
 // there) and keeps its iOS Safari accommodations for that case: the page is
@@ -106,11 +114,22 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
     onDragEnd,
     preventClickAfterDrag,
   } = drag;
-  const { isSlashCommandsMode, isLoadBundleMode, close, setLoadBundleMode } =
-    useCommand();
+  const {
+    isSlashCommandsMode,
+    isLoadBundleMode,
+    isAskMode,
+    askRequest,
+    close,
+    setLoadBundleMode,
+    setAskMode,
+    openAsk,
+  } = useCommand();
   const { locale } = useLocale();
+  const router = useTransitionRouter();
   const actions = useCommandActions();
   const field = useCommandField();
+  const filter = usePaletteFilter(field.value);
+  const selection = usePaletteSelection(field.value);
   const voice = useCommandVoice(field.onChange);
   const spaceToTalk = useSpaceToTalk(voice, field.value === "");
 
@@ -136,15 +155,16 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
   // Focus the field on open and on the way back from slash mode, but not on a
   // phone, where the keyboard would jump the layout. The slash list has no
   // field, so on the way in the keyboard goes with it.
+  // Ask brings its own field and focuses it.
   useEffect(() => {
     if (isSlashCommandsMode) {
       inputRef.current?.blur();
       return;
     }
-    if (isPhoneSafari) return;
+    if (isPhoneSafari || isAskMode) return;
     const timer = setTimeout(() => inputRef.current?.focus(), 50);
     return () => clearTimeout(timer);
-  }, [isSlashCommandsMode, isPhoneSafari]);
+  }, [isSlashCommandsMode, isAskMode, isPhoneSafari]);
 
   return (
       <div
@@ -234,6 +254,8 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
               "animate-in fade-in-0 zoom-in-95 duration-200",
               isLoadBundleMode
                 ? "w-full max-w-[440px]"
+                : isAskMode
+                ? "w-full max-w-[700px]"
                 : isSlashCommandsMode
                 ? "w-full max-w-[400px]"
                 : "w-full max-w-[700px]",
@@ -241,13 +263,15 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
             )}
             loop
             shouldFilter={!isSlashCommandsMode && !isLoadBundleMode}
+            filter={filter}
+            {...selection}
           >
             <SlashShortcuts actions={actions} />
-            {/* Search / slash header, collapsed in load-bundle mode (panel owns chrome). */}
+            {/* Search / slash header, collapsed in load-bundle and Ask (each owns its chrome). */}
             <div
               className={cn(
                 "relative border-b border-border/50",
-                isLoadBundleMode && "hidden"
+                (isLoadBundleMode || isAskMode) && "hidden"
               )}
               data-drag-handle
               style={isDraggable ? { touchAction: "none" } : undefined}
@@ -273,6 +297,15 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         onValueChange={field.onChange}
                         placeholder={t(locale, "searchPlaceholder")}
                         {...spaceToTalk}
+                        onKeyDown={(e) => {
+                          // Tab: ask what was typed (systems/ask).
+                          if (e.key === "Tab" && !e.shiftKey && field.value.trim()) {
+                            e.preventDefault();
+                            openAsk(field.value);
+                            return;
+                          }
+                          spaceToTalk.onKeyDown(e);
+                        }}
                         className={cn(
                           "w-full py-4 bg-transparent font-sans text-[16px] sm:text-sm",
                           "placeholder:text-tertiary-foreground",
@@ -343,10 +376,41 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                 </div>
               </div>
 
+              {/* Ask: the conversation, in place of the results. */}
               <div
                 className={cn(
                   "grid transition-all duration-300 ease-out",
-                  isSlashCommandsMode || isLoadBundleMode
+                  isAskMode
+                    ? "grid-rows-[1fr] opacity-100"
+                    : "grid-rows-[0fr] opacity-0 pointer-events-none"
+                )}
+              >
+                <div className="overflow-hidden min-h-0">
+                  {isAskMode && (
+                    <AskChat
+                      request={askRequest}
+                      onBack={() => setAskMode(false)}
+                      onNavigate={(href) => {
+                        router.push(href);
+                        close();
+                      }}
+                      trailing={
+                        showHints && (
+                          <kbd className="mr-2 px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded">
+                            esc
+                          </kbd>
+                        )
+                      }
+                      className={PALETTE_ASK_HEIGHT}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div
+                className={cn(
+                  "grid transition-all duration-300 ease-out",
+                  isSlashCommandsMode || isLoadBundleMode || isAskMode
                     ? "grid-rows-[0fr] opacity-0 pointer-events-none"
                     : "grid-rows-[1fr] opacity-100"
                 )}
@@ -375,7 +439,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
 
             {/* Footer: keyboard hints, so only where there is a keyboard;
                 the load-bundle row keeps its note either way. */}
-            {(showHints || isLoadBundleMode) && (
+            {(showHints || isLoadBundleMode) && !isAskMode && (
             <div className="border-t border-border/50 text-xs text-muted-foreground">
               {showHints && (
               <div

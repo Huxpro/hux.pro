@@ -9,11 +9,14 @@ import { blogPosts } from "@/lib/data";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { isQuestionLike } from "@/systems/ask/lib/intent";
+import { loadAskSearch, type AskSearch } from "@/systems/ask/lib/search";
+import { askStrings } from "@/systems/ask/strings";
 import { useOptionalWindows } from "@/systems/windows";
-import { Command, useCommandState } from "cmdk";
-import { Hash } from "lucide-react";
+import { Command, defaultFilter, useCommandState } from "cmdk";
+import { Hash, Sparkles } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
-import { Fragment } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { CommandAppsStrip } from "./apps-launcher";
 import {
   useCommandShell,
@@ -47,6 +50,99 @@ const SECTION_HEADING = {
   actions: "sectionActions",
   settings: "settings",
 } as const;
+
+// -----------------------------------------------------------------------------
+// Ask in the search list, and the list's filter.
+//
+// Whatever is typed can also be asked. The Ask row is always there while the
+// field has text; where depends on the query. One that reads as a question
+// (systems/ask/lib/intent) puts Ask first, so cmdk selects it and ↵ asks;
+// anything else puts it under the results, where ↓ or Tab reaches it and ↵
+// still opens the best match. The list places it, not the filter: cmdk
+// (1.1.1) sorts items within a group but never moves the groups themselves.
+//
+// The same filter finds posts by their text, not only their titles: once the
+// site's index is loaded (systems/ask/lib/search, fetched the first time the
+// field has two characters), a post whose body matches the query and whose
+// title did not still shows, ranked low.
+// -----------------------------------------------------------------------------
+
+export const ASK_VALUE = "ask-ai";
+
+/** A full-text hit on a post that the title match missed scores this. */
+const FULL_TEXT_SCORE = 0.05;
+
+export function usePaletteFilter(query: string) {
+  const [index, setIndex] = useState<AskSearch | null>(null);
+  const wanted = query.trim().length >= 2;
+  useEffect(() => {
+    if (!wanted || index) return;
+    let live = true;
+    loadAskSearch()
+      .then((loaded) => live && setIndex(loaded))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [wanted, index]);
+
+  // Posts matching the current search, by slug; one search per keystroke,
+  // not one per row.
+  const hits = useRef<{ search: string; slugs: Set<string> }>({ search: "", slugs: new Set() });
+
+  return useCallback(
+    (value: string, search: string, keywords?: string[]) => {
+      if (value === ASK_VALUE) return search.trim() ? 1 : 0;
+      const score = defaultFilter(value, search, keywords);
+      if (score > 0 || !index || !value.startsWith("blog-")) return score;
+      if (hits.current.search !== search) {
+        const slugs = new Set(
+          index
+            .search({ query: search, limit: 10 })
+            .filter((h) => h.kind === "post")
+            .map((h) => h.doc.split(":")[1]),
+        );
+        hits.current = { search, slugs };
+      }
+      return hits.current.slugs.has(value.slice("blog-".length)) ? FULL_TEXT_SCORE : 0;
+    },
+    [index],
+  );
+}
+
+/**
+ * The list's selection, held by the shell (spread on <Command>): cmdk picks
+ * the first row as the query changes, but a row that has just mounted (the
+ * Ask row, moving to the top for a question) is not in the list until a
+ * render later, after the pick. So a question selects Ask itself, a frame on.
+ */
+export function usePaletteSelection(query: string) {
+  const [value, setValue] = useState("");
+  useEffect(() => {
+    if (!isQuestionLike(query)) return;
+    const frame = requestAnimationFrame(() => setValue(ASK_VALUE));
+    return () => cancelAnimationFrame(frame);
+  }, [query]);
+  return { value, onValueChange: setValue };
+}
+
+/** Ask what was typed. */
+function AskRow({ query }: { query: string }) {
+  const { locale } = useLocale();
+  const { openAsk } = useCommand();
+  const showHints = useShowKeyboardHints();
+  const s = askStrings(locale);
+  return (
+    <Command.Item value={ASK_VALUE} onSelect={() => openAsk(query)} className={ROW}>
+      <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1 truncate text-left">
+        <span className="text-muted-foreground">{s.askRow}: </span>
+        {query}
+      </span>
+      {showHints && <kbd className={cn("shrink-0", TYPE.kbd)}>Tab</kbd>}
+    </Command.Item>
+  );
+}
 
 /** The slash letter beside a row. Only where a keyboard can press it. */
 function Letter({ letter }: { letter?: string }) {
@@ -126,7 +222,14 @@ export function CommandResults({
 
   // What the palette opens on leaves out what is only found (searchOnly);
   // a query brings it in.
-  const searching = useCommandState((state) => state.search.trim().length > 0);
+  const search = useCommandState((state) => state.search);
+  const searching = search.trim().length > 0;
+  const askFirst = isQuestionLike(search);
+  const askGroup = (
+    <Command.Group value="ask">
+      <AskRow query={search.trim()} />
+    </Command.Group>
+  );
   const listed = actions.filter(
     (a) => a.label && !a.slashOnly && (searching || !a.searchOnly),
   );
@@ -136,6 +239,8 @@ export function CommandResults({
       <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
         {t(locale, "noResults")}
       </Command.Empty>
+
+      {searching && askFirst && askGroup}
 
       {/* Dual-purpose Spotlight: horizontal Apps strip (same UI for
           browse + search; cmdk hides the group when nothing matches). */}
@@ -184,6 +289,8 @@ export function CommandResults({
           </Command.Item>
         ))}
       </Command.Group>
+
+      {searching && !askFirst && askGroup}
     </Command.List>
   );
 }
