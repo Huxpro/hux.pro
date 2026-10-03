@@ -48,7 +48,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe" | "torch";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -225,6 +225,25 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "A tall thin man in black, under a round hat far too big for him, stood in my wardrobe, then at my bed. I woke, and the wardrobe door really was opening. Hold to close your eyes; each time you open them, he is closer.",
       zh: "一个穿黑衣服、又高又瘦、戴着一顶大得出奇的圆帽子的男人，先站在我的衣柜里，后来站在我的床头。我醒了，衣柜门真的正在打开。按住闭上眼睛；每次睁开，他都更近一些。",
+    },
+  },
+  {
+    id: "torch",
+    href: "/lab/torch",
+    name: { en: "Torch", zh: "手电" },
+    mark: "dream",
+    kind: "experience",
+    experience: {
+      src: "/dreams/torch/index.html",
+      app: "dream-torch",
+    },
+    hint: {
+      en: "The same dream, under the blanket",
+      zh: "同一个梦，躲在被子里",
+    },
+    blurb: {
+      en: "Under the blanket with a torch, as a child does. Wherever you shine, he is not there: his eyes are always in the dark just outside the beam, and whenever the light leaves the wardrobe its door opens a little more. Then the torch begins to fail.",
+      zh: "像小时候那样，躲在被子里打着手电。照到哪里，他都不在那里：他的眼睛总在光圈外的黑暗里；光一离开衣柜，柜门就又开了一点。然后，手电开始没电了。",
     },
   },
   {

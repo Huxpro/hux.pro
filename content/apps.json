@@ -37,6 +37,17 @@
       "keywords": ["dream", "nightmare", "wardrobe", "man in black", "梦", "噩梦", "衣柜", "黑衣人"]
     },
     {
+      "id": "dream-torch",
+      "title": "Torch",
+      "titleZh": "手电",
+      "runtime": "web",
+      "url": "/dreams/torch/index.html",
+      "size": "portrait",
+      "icon": "/app-icons/dream-torch.png",
+      "keywords": ["dream", "nightmare", "torch", "flashlight", "man in black", "梦", "噩梦", "手电", "黑衣人"],
+      "featured": false
+    },
+    {
       "id": "cat-toy",
       "title": "Cat Wand",
       "titleZh": "逗猫棒",

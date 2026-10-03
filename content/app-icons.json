@@ -13,6 +13,13 @@
     "width": 512,
     "height": 512
   },
+  "dream-torch": {
+    "url": "/dreams/torch/index.html",
+    "file": "/app-icons/dream-torch.png",
+    "source": "manual",
+    "width": 512,
+    "height": 512
+  },
   "dream-wardrobe": {
     "url": "/dreams/wardrobe/index.html",
     "file": "/app-icons/dream-wardrobe.png",
