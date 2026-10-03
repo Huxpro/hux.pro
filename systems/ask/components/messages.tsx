@@ -196,7 +196,17 @@ function AssistantMessage({
     <Message from="assistant">
       <MessageContent className="w-full">
         {blocksOf(message, live).map((block) => {
-          if (block.kind === "text") return <MessageResponse key={block.key}>{block.text}</MessageResponse>;
+          if (block.kind === "text") {
+            return (
+              // Links are links: Streamdown's link safety turns each into a
+              // button that confirms, then opens a new tab, so a link to a
+              // page of this site never navigated. The answers link to this
+              // site (onNavigate) and to sources the model found there.
+              <MessageResponse key={block.key} linkSafety={{ enabled: false }}>
+                {block.text}
+              </MessageResponse>
+            );
+          }
           if (block.kind === "reasoning") {
             return (
               <Reasoning key={block.key} isStreaming={block.streaming}>
@@ -239,7 +249,9 @@ function AssistantMessage({
 
 function UserMessage({ message }: { message: AskUIMessage }) {
   return (
-    <Message from="user">
+    // Copy sits beside the bubble, not under it: a row under every question
+    // that only shows on hover left a gap the height of a button.
+    <Message from="user" className="flex-row-reverse items-center">
       <MessageContent>
         {message.parts.map((p, j) =>
           p.type === "text" ? (
@@ -249,7 +261,7 @@ function UserMessage({ message }: { message: AskUIMessage }) {
           ) : null,
         )}
       </MessageContent>
-      <MessageActions className="justify-end opacity-0 transition-opacity group-hover:opacity-100">
+      <MessageActions className="opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
         <CopyAction text={textOf(message)} />
       </MessageActions>
     </Message>
