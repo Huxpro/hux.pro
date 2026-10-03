@@ -5,6 +5,7 @@ import { BandSurface } from "./band";
 import { GlowSurface } from "./glow";
 import { IconSurface } from "./icon";
 import { LegibilitySurface } from "./legibility";
+import { NightmareSurface } from "./nightmare";
 import { VitreSurface } from "./vitre";
 import { WorksSurface } from "./works";
 
@@ -19,6 +20,7 @@ export const LAB_SURFACES: Record<LabId, ComponentType> = {
   legibility: LegibilitySurface,
   glow: GlowSurface,
   band: BandSurface,
+  nightmare: NightmareSurface,
   vitre: VitreSurface,
 };
 
