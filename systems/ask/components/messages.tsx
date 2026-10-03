@@ -43,6 +43,15 @@ import { askStrings } from "../strings";
 // answer, and links that stay on the site (`onNavigate`).
 // =============================================================================
 
+/**
+ * Streamdown draws every link as a button behind an "open this link?" dialog
+ * unless told not to. An answer's links are mostly this site's own pages, and
+ * a button has no `href` for `onNavigate` to follow, so a link in an answer
+ * did nothing a reader could see. As plain links, this site's open in place
+ * (below) and anything else opens in a new tab, as Streamdown's links do.
+ */
+const LINKS_AS_LINKS = { enabled: false };
+
 type Part = AskUIMessage["parts"][number];
 type ToolPart = Extract<Part, { type: "tool-search_site" | "tool-read" }>;
 
@@ -196,7 +205,13 @@ function AssistantMessage({
     <Message from="assistant">
       <MessageContent className="w-full">
         {blocksOf(message, live).map((block) => {
-          if (block.kind === "text") return <MessageResponse key={block.key}>{block.text}</MessageResponse>;
+          if (block.kind === "text") {
+            return (
+              <MessageResponse key={block.key} linkSafety={LINKS_AS_LINKS}>
+                {block.text}
+              </MessageResponse>
+            );
+          }
           if (block.kind === "reasoning") {
             return (
               <Reasoning key={block.key} isStreaming={block.streaming}>
