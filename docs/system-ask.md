@@ -1,7 +1,8 @@
 # Ask
 
 The command palette, asked a question instead of a search: an agent that
-reads the site and answers with links to where it says so.
+reads the site and answers with links to where it says so, in a Live Activity
+at the top of the screen while the page stays yours.
 
 ```
 systems/ask/
@@ -19,7 +20,8 @@ systems/ask/
 │   ├── messages.tsx   # AskMessages: the conversation, steps, sources, copy / regenerate
 │   ├── composer.tsx   # AskComposer: field, model, thinking level, voice, send / stop
 │   ├── history.tsx    # AskHistory: past conversations
-│   └── chat.tsx       # AskChat: those three, as the palette shows them (lazy-loaded)
+│   └── activity.tsx   # those three, as a Live Activity in the Dock (lazy-loaded)
+├── dock.tsx           # AskActivity: loads the activity the first time Ask is called
 └── strings.ts           # en / zh
 
 lib/ask-corpus.ts      # reads the site into the index (Node, build time)
@@ -43,17 +45,45 @@ whenever the field has text:
 question whole (`toFieldText` in `systems/command/voice.tsx`): commands are
 still stripped to a query ("open the writing" → "writing"), questions are not.
 
-Ask is the palette's fourth mode, beside search, slash and load-bundle
-(`isAskMode` in the command provider). On the desktop it replaces the results
-inside the same card; on a phone it is a full-height sheet stacked on the
-palette, like the slash sheet. Escape (or ←) goes back to search and keeps the
-conversation; the ✎ button starts a new one. A link in an answer to a page of
-this site navigates there and the palette leaves, as a command would.
+Asking puts the palette away: the conversation lives in the **Dock**, as a
+Live Activity ([system-dock.md](./system-dock.md)), at every width.
+
+## In the Dock
+
+The palette is for going somewhere; an answer takes a while, and the visitor
+should be able to keep reading while it comes. So Ask is the site's Dynamic
+Island: it hands the question to the Dock and gets out of the way.
+
+| | |
+|---|---|
+| **Pill** | A sparkle and one line saying what the agent is doing: "Thinking…", "Searching “PWA”…", "Reading …", then the answer's first words. While it works, the site's glow travels the pill's edge (`working` on `LiveActivity`, the glow's `processing` beam). It is there while a conversation exists. |
+| **Panel** | Tapping the pill, or pulling it down, opens the panel: the header (history, ✎ new chat, collapse), `AskMessages` or `AskHistory`, `AskComposer`. 440px wide on a desk, the Dock's 92vw on a phone. |
+| **Collapsed** | The conversation keeps going; the pill keeps saying where it is. |
+| **Links** | A link in an answer to a page of this site navigates there and the panel goes back to the pill. |
+| **Dismissal** | The Dock's: Escape, a press outside, a swipe up on the header or the grabber, the chevron, a route change. The conversation scrolls on its own (`data-base-ui-swipe-ignore`), so a drag in it is never the panel leaving. |
+
+The command provider says *when* (`askCall`, a counter like `voiceRequest`;
+`openAsk(text)` closes the palette, calls Ask and queues the question in
+`askRequest`), and the activity says *what*: it opens the panel through the
+Dock (`useDock().open("ask")`), so the Dock's one-panel-at-a-time rule holds.
+Nothing of Ask loads until the first call (`dock.tsx`).
+
+**The keyboard.** The panel hangs from the top, so its composer sits at its
+bottom edge. The conversation's height is capped by the visual viewport's
+(`--ask-viewport`), which a phone's keyboard shortens: the panel ends above the
+keyboard rather than behind it. The field is focused on open with a mouse, and
+on a touch screen only when the conversation is empty, so a tap on the pill to
+read an answer does not raise the keyboard over it.
+
+**Beside music.** The Dock shows every activity's pill side by side and one
+panel at a time, so the Ask pill sits next to the music pill and opening one
+puts the other away. There is no priority between them to decide.
 
 ## A chat, not a box
 
-- **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere and closes it again;
-  `/` `J` from the slash list; Tab or the Ask row from search.
+- **Shortcuts.** ⌘J (Ctrl+J) opens Ask's panel from anywhere and puts it away
+  again (from an open palette it always opens); `/` `J` from the slash list;
+  Tab or the Ask row from search, which also send what was typed.
 - **History.** Every finished turn is saved (`lib/history.ts`): the newest 30
   conversations, in this browser only, read results trimmed. The header's
   clock lists them; picking one makes it current. ✎ starts a new one.
@@ -65,7 +95,7 @@ this site navigates there and the palette leaves, as a command would.
 - **Errors say what failed.** The route passes the provider's message through
   (`describe`), shown under "Something went wrong."
 
-The session is module state (`lib/chat.ts`), so any surface (the palette, a
+The session is module state (`lib/chat.ts`), so any surface (the Dock, a
 panel, a page) shows the same conversation, and building a new surface is
 arranging `AskMessages`, `AskComposer` and `AskHistory`.
 

@@ -189,6 +189,14 @@ restructuring its layer model.
 </LiveActivity>
 ```
 
+Three optional props, for an activity that is more than a card:
+
+| prop | |
+|---|---|
+| `actions` | header buttons of its own, between the title and the collapse chevron (Ask's history and new chat) |
+| `panelWidth` | a CSS length for the panel, set on the popup (default `min(92vw, 360px)`; Ask's is 440px) |
+| `working` | the activity is at work on something asked of it: the site's glow travels the pill's edge as the `processing` beam, off while the pill is hidden. A sibling of the glass with an 8px halo, which the row's shadow room and gap leave space for. |
+
 ## Layout & coexistence rules
 
 These match the product spec for multiple simultaneous activities:
@@ -389,6 +397,7 @@ thing to avoid.
 | Music | `systems/music/components/music-activity.tsx` | album art + EQ | `<NowPlaying />` |
 | Ambient phase | `systems/ambient/components/phase-activity.tsx` | sun icon + time | `<WeatherNow />` |
 | Theater audio | `systems/theater/components/theater-activity.tsx` | thumbnail + EQ | transport + `<SurfaceSwitch />` |
+| Ask | `systems/ask/components/activity.tsx` | sparkle + what the agent is doing, glow while it works | the conversation, history, composer (see [system-ask.md](./system-ask.md#in-the-dock)) |
 | Minimized windows | `systems/windows/components/minimized-dock.tsx` | app icon + title | none (restores the window) |
 
 Notices: the sun switching the theme (`systems/ambient/components/solar-theme.tsx`),

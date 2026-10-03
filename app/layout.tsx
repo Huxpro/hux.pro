@@ -16,6 +16,7 @@ import {
 } from "@/systems/ambient";
 import { AboutSurface } from "@/systems/about";
 import { AboutCopy } from "@/systems/about/components/about-copy";
+import { AskActivity } from "@/systems/ask";
 import { AttachmentSurface, ImageLightbox } from "@/systems/attachments";
 import { IdentityCard } from "@/systems/identity";
 import { InstallSheet } from "@/systems/install";
@@ -142,6 +143,7 @@ export default function RootLayout({
             <WindowLayer />
             <Dock>
               <AmbientPhaseActivity />
+              <AskActivity />
               <MusicActivity />
               <TheaterActivity />
               <SampleActivities />

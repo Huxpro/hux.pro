@@ -2,8 +2,6 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { AskChat } from "@/systems/ask";
-import { askStrings } from "@/systems/ask/strings";
 import {
   detentHeight,
   HEADER_BUTTON,
@@ -12,7 +10,6 @@ import {
 } from "@/systems/surface";
 import { Command } from "cmdk";
 import { Link2, Search, Slash, X, type LucideIcon } from "lucide-react";
-import { useTransitionRouter } from "next-view-transitions";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CommandShellProvider,
@@ -53,19 +50,18 @@ import {
 // does the stepping. Closing the picker brings the palette forward again:
 // on a phone a sheet presented from a sheet returns to it, as on iOS.
 //
-// The palette's three sub-modes (slash commands, load bundle and Ask) are each
-// a second sheet stacked on this one on a phone, the way iOS presents a sheet
+// The palette's two sub-modes (slash commands and load bundle) are each a
+// second sheet stacked on this one on a phone, the way iOS presents a sheet
 // from a sheet. The palette stays open and steps back, and the sub-mode rises
 // over it. A drag down (the palette following the finger forward), its close
 // button or a tap on the receded palette brings the palette forward again,
 // one level at a time, as on iOS. The palette's own close is on the palette.
 // They are a true stack (each sheet is a React child of the palette's, so Base
-// UI treats it as nested, and the shared stack recedes the parent). They are
+// UI treats it as nested, and the shared stack recedes the parent). The two are
 // mutually exclusive, so only ever one is up.
 //
-// Ask is a conversation, so it takes the full height: a reply needs the room,
-// and its field rests on the keyboard (SurfaceSheet handles that for every
-// sheet). Reached from the Ask row, or Return on a question.
+// Ask is not a sub-mode: the Ask row, Tab and `/` `J` close the palette and
+// open the conversation in the Dock (systems/ask), at the other edge.
 //
 // Each takes the height its content asks for, which is not the same height.
 // Slash mode is a list, so it stands level with the palette's detent, its own
@@ -172,16 +168,12 @@ function SheetBody({
   const {
     isSlashCommandsMode,
     isLoadBundleMode,
-    isAskMode,
-    askRequest,
     close,
     setSlashCommandsMode,
     setLoadBundleMode,
-    setAskMode,
     openAsk,
   } = useCommand();
   const { locale } = useLocale();
-  const router = useTransitionRouter();
   const actions = useCommandActions();
   const field = useCommandField();
   const filter = usePaletteFilter(field.value);
@@ -203,11 +195,11 @@ function SheetBody({
   // no field at all, and the bundle form brings its own, which the palette's
   // must not compete with for the keyboard.
   useEffect(() => {
-    if (!isSlashCommandsMode && !isLoadBundleMode && !isAskMode) return;
+    if (!isSlashCommandsMode && !isLoadBundleMode) return;
     inputRef.current?.blur();
     if (isSlashCommandsMode) setSlashDetent(detentOf(snap));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `snap` is read on open only
-  }, [isSlashCommandsMode, isLoadBundleMode, isAskMode, inputRef]);
+  }, [isSlashCommandsMode, isLoadBundleMode, inputRef]);
 
   return (
     <>
@@ -270,7 +262,7 @@ function SheetBody({
       </Command>
 
       {/* The sub-mode sheets, stacked on the palette. Mutually exclusive, so
-          never two up. Outside the cmdk root, so a key pressed in here is not
+          never both up. Outside the cmdk root, so a key pressed in here is not
           also a key pressed in the search list. */}
       <SurfaceSheet
         id="command-slash"
@@ -296,35 +288,6 @@ function SheetBody({
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
           <CommandSlashList actions={actions} />
         </div>
-      </SurfaceSheet>
-
-      <SurfaceSheet
-        id="command-ask"
-        nestedIn="command"
-        open={isAskMode}
-        onOpenChange={(open) => {
-          if (!open) setAskMode(false);
-        }}
-        modal
-        height={detentHeight(SNAP_TOP)}
-        level={SNAP_TOP}
-        // As for the slash sheet: focus must not come back to the palette's
-        // field, or iOS raises a keyboard on the next touch.
-        restoreFocus={false}
-        label={askStrings(locale).ask}
-        className="system-chrome"
-      >
-        {isAskMode && (
-          <AskChat
-            request={askRequest}
-            onBack={() => setAskMode(false)}
-            onNavigate={(href) => {
-              router.push(href);
-              close();
-            }}
-            className="min-h-0 flex-1"
-          />
-        )}
       </SurfaceSheet>
 
       <SurfaceSheet
