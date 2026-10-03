@@ -2,7 +2,7 @@ import type { LabId } from "../catalog";
 import type { ComponentType } from "react";
 import { AttachmentsSurface } from "./attachments";
 import { BandSurface } from "./band";
-import { WardrobeSurface } from "./experience";
+import { TorchSurface, WardrobeSurface } from "./experience";
 import { GlowSurface } from "./glow";
 import { IconSurface } from "./icon";
 import { LegibilitySurface } from "./legibility";
@@ -22,6 +22,7 @@ export const LAB_SURFACES: Record<LabId, ComponentType> = {
   band: BandSurface,
   vitre: VitreSurface,
   wardrobe: WardrobeSurface,
+  torch: TorchSurface,
 };
 
 export { SurfaceFrame } from "./frame";

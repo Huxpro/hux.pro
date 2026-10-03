@@ -31,3 +31,7 @@ export function ExperienceSurface({ id }: { id: LabId }) {
 export function WardrobeSurface() {
   return <ExperienceSurface id="wardrobe" />;
 }
+
+export function TorchSurface() {
+  return <ExperienceSurface id="torch" />;
+}

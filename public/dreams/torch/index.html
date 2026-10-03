@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#020306">
+<meta name="robots" content="noindex">
+<title>手电 · Torch</title>
+<!--
+  Torch: the same dream, under the blanket.
+
+  A tall thin man in black, under a round hat far too big for him, came to
+  look at me every few nights. He stood in my wardrobe; he stood at my bed.
+
+  Drag to shine the torch. Wherever you shine, he is not there: his eyes are
+  always in the dark, just outside the beam. And whenever the light leaves
+  the wardrobe, its door opens a little more. Then the torch begins to fail,
+  and in the dark he is at the bed. Then you wake (waking.js): still night,
+  only your room, a clock, your breath slowing. Then the door.
+
+  One document, no dependencies, like every experience (systems/lab/catalog.ts):
+  the home folder opens it as an app, its lab (/lab/torch) frames it.
+  `?lang=en|zh`, `?stage=0|1|2` (the beam, the dark, awake; `&t=` seconds in) and
+  `?quiet` (no controls; the lab's surface) as in the others.
+-->
+<style>
+  :root { --night: #020306; --ink: #e6e9f2; }
+  html, body { margin: 0; height: 100%; background: var(--night); overflow: hidden; overscroll-behavior: none; }
+  body {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent; touch-action: none; cursor: crosshair;
+    font-family: "Songti SC", "Noto Serif SC", "Source Han Serif SC", "Newsreader", Georgia, serif;
+    color: var(--ink);
+  }
+  body.done { cursor: default; }
+  #stage { position: fixed; inset: 0; overflow: hidden; background: var(--night); }
+  svg.layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  /* The dream: it never holds still. The room sways, the colour leans
+     violet, the edges of sight are smeared. */
+  #night { filter: saturate(0.85) hue-rotate(14deg) brightness(1.08); }
+  #dreamroom { transform-box: view-box; transform-origin: 195px 470px; animation: swim 9s ease-in-out infinite; }
+  @keyframes swim {
+    0%, 100% { transform: none; }
+    33% { transform: rotate(0.5deg) skewX(0.7deg); }
+    66% { transform: rotate(-0.45deg) skewX(-0.5deg) scale(1.012); }
+  }
+  #haze {
+    position: absolute; inset: 0; pointer-events: none;
+    -webkit-backdrop-filter: blur(6px) saturate(1.25); backdrop-filter: blur(6px) saturate(1.25);
+    -webkit-mask-image: radial-gradient(78% 62% at 50% 48%, transparent 38%, #000 100%);
+    mask-image: radial-gradient(78% 62% at 50% 48%, transparent 38%, #000 100%);
+    background: radial-gradient(78% 62% at 50% 48%, transparent 45%, rgba(84, 58, 140, 0.22) 100%);
+  }
+
+  #grain {
+    position: absolute; inset: -50%; pointer-events: none; opacity: 0.07; mix-blend-mode: screen;
+    animation: grain 0.5s steps(5) infinite;
+  }
+  @keyframes grain {
+    0% { transform: translate(0, 0); } 20% { transform: translate(-7%, 4%); }
+    40% { transform: translate(5%, -6%); } 60% { transform: translate(-3%, -9%); }
+    80% { transform: translate(8%, 6%); } 100% { transform: translate(0, 0); }
+  }
+  #vignette {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(120% 90% at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.7) 100%);
+  }
+  .line {
+    position: absolute; left: 0; right: 0; text-align: center; pointer-events: none;
+    opacity: 0; transition: opacity 1.2s ease; letter-spacing: 0.08em;
+  }
+  #hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 9%); font-size: 13px; color: rgba(230, 233, 242, 0.55); }
+  #hint.show { opacity: 1; }
+
+  #sound {
+    position: absolute; top: calc(env(safe-area-inset-top, 0px) + 14px); right: 14px; width: 34px; height: 34px;
+    border: 0; border-radius: 50%; background: transparent; color: rgba(230, 233, 242, 0.32);
+    padding: 7px; cursor: pointer; z-index: 5;
+  }
+  #sound:hover { color: rgba(230, 233, 242, 0.6); }
+  #sound svg { width: 100%; height: 100%; display: block; }
+  #sound .off { display: none; }
+  body.muted #sound .on { display: none; }
+  body.muted #sound .off { display: block; }
+  body.quiet #sound { display: none; }
+
+  #eyes { transition: opacity 0.35s ease; }
+  #glimpse.go { transition: opacity 0.45s ease-in; }
+  #near { opacity: 0; transition: opacity 1.8s ease; }
+  body.near #near { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) { #grain, #dreamroom { animation: none; } }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="night" class="layer" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#2a3044"/><stop offset="0.75" stop-color="#363d55"/><stop offset="1" stop-color="#2a3044"/>
+      </linearGradient>
+      <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#2a2620"/><stop offset="1" stop-color="#16140f"/>
+      </linearGradient>
+      <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#5a4632"/><stop offset="1" stop-color="#3e3022"/>
+      </linearGradient>
+      <linearGradient id="doorFace" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#5e4a35"/><stop offset="1" stop-color="#47372a"/>
+      </linearGradient>
+      <linearGradient id="blanket" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#5a6a8c"/><stop offset="0.4" stop-color="#3c4866"/><stop offset="1" stop-color="#1c2232"/>
+      </linearGradient>
+      <!-- The beam: warm, hot in the middle, soft at the edge. -->
+      <radialGradient id="beamGrad" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#fff"/>
+        <stop offset="0.45" stop-color="#fff" stop-opacity="0.85"/>
+        <stop offset="0.8" stop-color="#fff" stop-opacity="0.25"/>
+        <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="warm" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#ffd9a0" stop-opacity="0.22"/>
+        <stop offset="1" stop-color="#ffd9a0" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#4a5c8c" stop-opacity="0.28"/>
+        <stop offset="1" stop-color="#2a3456" stop-opacity="0"/>
+      </radialGradient>
+      <mask id="torch" maskUnits="userSpaceOnUse" x="-400" y="-400" width="1200" height="1700">
+        <rect x="-400" y="-400" width="1200" height="1700" fill="#000"/>
+        <ellipse id="beam" cx="195" cy="700" rx="105" ry="105" fill="url(#beamGrad)"/>
+      </mask>
+
+      <!-- Him, standing, feet at the origin (the same man as The Wardrobe's). -->
+      <g id="man">
+        <path d="M -27 -381 C -29 -404 -17 -419 0 -419 C 17 -419 29 -404 27 -381 Z"/>
+        <ellipse cx="0" cy="-379" rx="76" ry="8.5"/>
+        <ellipse cx="0" cy="-362" rx="12" ry="17"/>
+        <rect x="-5" y="-350" width="10" height="16"/>
+        <path d="M -24 -338 Q -28 -300 -19 -240 Q -16 -200 -21 -150 L -29 0 L 29 0 L 21 -150 Q 16 -200 19 -240 Q 28 -300 24 -338 Q 0 -344 -24 -338 Z"/>
+        <path d="M -24 -338 Q -34 -332 -33 -300 L -32 -178 L -24 -178 L -25 -300 Q -25 -322 -20 -334 Z"/>
+        <path d="M 24 -338 Q 34 -332 33 -300 L 32 -178 L 24 -178 L 25 -300 Q 25 -322 20 -334 Z"/>
+      </g>
+
+      <!-- The room, lit. Drawn once; the torch shows it a circle at a time. -->
+      <g id="room">
+        <rect x="-300" y="-300" width="990" height="940" fill="url(#wall)"/>
+        <rect x="-300" y="640" width="990" height="500" fill="url(#floor)"/>
+        <rect x="-300" y="636" width="990" height="6" fill="#4a4334"/>
+        <!-- Wallpaper: small faded flowers -->
+        <g fill="#454d68" opacity="0.6">
+          <circle cx="30" cy="80" r="3"/><circle cx="110" cy="130" r="3"/><circle cx="190" cy="70" r="3"/><circle cx="270" cy="120" r="3"/><circle cx="350" cy="70" r="3"/>
+          <circle cx="60" cy="460" r="3"/><circle cx="140" cy="520" r="3"/><circle cx="20" cy="580" r="3"/><circle cx="170" cy="420" r="3"/><circle cx="110" cy="600" r="3"/>
+        </g>
+        <!-- The window, curtains drawn -->
+        <rect x="34" y="166" width="124" height="225" fill="#1c2233"/>
+        <path d="M 30 160 C 50 230 36 330 54 400 L 100 400 C 92 320 104 230 96 160 Z" fill="#6b3f3f"/>
+        <path d="M 96 160 C 104 230 92 320 100 400 L 160 400 C 142 330 154 230 162 160 Z" fill="#5e3636"/>
+        <rect x="22" y="152" width="148" height="10" rx="3" fill="#3a2e22"/>
+        <!-- A small picture on the wall -->
+        <rect x="70" y="470" width="58" height="72" fill="#3a2e22"/>
+        <rect x="76" y="476" width="46" height="60" fill="#8a9ab0"/>
+        <path d="M 76 536 L 92 506 L 104 520 L 112 510 L 122 536 Z" fill="#5d7a5a"/>
+        <circle cx="111" cy="490" r="5" fill="#e8d9a8"/>
+        <!-- The wardrobe -->
+        <rect x="200" y="200" width="172" height="14" fill="#4a3826"/>
+        <rect x="205" y="212" width="161" height="430" fill="url(#wood)"/>
+        <rect x="213" y="222" width="145" height="418" fill="#0a0806"/>
+        <rect x="213" y="222" width="73" height="418" fill="url(#doorFace)"/>
+        <rect x="221" y="236" width="57" height="180" fill="none" stroke="#3a2c1e" stroke-width="2"/>
+        <rect x="221" y="432" width="57" height="190" fill="none" stroke="#3a2c1e" stroke-width="2"/>
+        <rect x="279" y="410" width="3" height="26" rx="1.5" fill="#c9a96a"/>
+        <path id="door" fill="url(#doorFace)" stroke="#1e160f" stroke-width="1"/>
+        <path id="doorPanels" fill="none" stroke="#3a2c1e" stroke-width="2"/>
+        <path id="doorHandle" fill="#c9a96a"/>
+        <!-- My things on the floor -->
+        <rect x="30" y="680" width="40" height="30" fill="#7a5a3a"/>
+        <circle cx="140" cy="690" r="14" fill="#a85a4a"/>
+        <!-- The blanket I am under -->
+        <path d="M -40 760 C 40 724 120 742 170 716 C 214 694 250 690 286 704 C 330 722 360 708 430 716 L 430 900 L -40 900 Z" fill="url(#blanket)"/>
+      </g>
+    </defs>
+
+    <g id="dreamroom">
+    <!-- What the eyes can make out without the torch: almost nothing. -->
+    <use href="#room" opacity="0.06"/>
+    <!-- What the torch shows -->
+    <g mask="url(#torch)">
+      <use href="#room" id="lit"/>
+      <!-- Caught in the light for a moment, as he goes -->
+      <g id="glimpse" style="opacity: 0"><use href="#man" fill="#050608"/></g>
+      <ellipse id="warmth" cx="195" cy="700" rx="140" ry="140" fill="url(#warm)"/>
+    </g>
+
+    <!-- His eyes, in the dark. Never where the light is. -->
+    <g id="eyes" opacity="0">
+      <circle id="eyeL" r="1.7" fill="#d9e1f5"/>
+      <circle id="eyeR" r="1.7" fill="#d9e1f5"/>
+    </g>
+
+    <!-- After the torch dies: at the bed, bent over me. Only just there. -->
+    <g id="near">
+      <ellipse cx="195" cy="230" rx="320" ry="300" fill="url(#halo)"/>
+      <g transform="translate(195 1172) rotate(-3) scale(2.6)">
+        <use href="#man" fill="#3b4b7c" opacity="0.5" transform="translate(-0.9 0)"/>
+        <use href="#man" fill="#000"/>
+        <circle cx="-4.6" cy="-361" r="0.95" fill="#d9e1f5"/>
+        <circle cx="4.4" cy="-361.4" r="0.95" fill="#d9e1f5"/>
+      </g>
+    </g>
+    </g>
+  </svg>
+
+
+  <div id="haze"></div>
+  <div id="grain"></div>
+  <div id="vignette"></div>
+  <div id="hint" class="line"></div>
+  <button id="sound" type="button" aria-label="Sound">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 9h4l5-4v14l-5-4H4z"/>
+      <path class="on" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>
+      <path class="off" d="M17 9l5 6M22 9l-5 6"/>
+    </svg>
+  </button>
+</div>
+
+<script src="../waking.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const params = new URLSearchParams(location.search);
+  let lang = params.get("lang");
+  if (lang !== "en" && lang !== "zh") {
+    try { lang = localStorage.getItem("locale"); } catch { lang = null; }
+  }
+  if (lang !== "en" && lang !== "zh") lang = /^zh/i.test(navigator.language) ? "zh" : "en";
+  document.documentElement.lang = lang;
+
+  const WORDS = {
+    zh: { hint: "按住拖动，用手电照", epilogue: "小时候，他隔三差五就来看我。", replay: "轻触 · 再梦一次", sound: "声音" },
+    en: { hint: "Drag to shine the torch", epilogue: "When I was little, he came to watch me every few nights.", replay: "Tap · dream it again", sound: "Sound" },
+  }[lang];
+
+  const $ = (id) => document.getElementById(id);
+  const body = document.body;
+  const night = $("night");
+  const beam = $("beam"), warmth = $("warmth");
+  const eyes = $("eyes"), eyeL = $("eyeL"), eyeR = $("eyeR");
+  const hint = $("hint");
+  const soundButton = $("sound");
+  soundButton.setAttribute("aria-label", WORDS.sound);
+  const quiet = params.has("quiet");
+  if (quiet) body.classList.add("quiet");
+
+  function fit() {
+    const wide = innerWidth / innerHeight > 0.62;
+    for (const svg of [night]) svg.setAttribute("preserveAspectRatio", wide ? "xMidYMid meet" : "xMidYMid slice");
+  }
+  addEventListener("resize", fit);
+  fit();
+
+  (() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 160;
+    const g = c.getContext("2d");
+    const img = g.createImageData(160, 160);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = Math.random() * 255;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    $("grain").style.background = `url(${c.toDataURL()})`;
+  })();
+
+  // ---------------------------------------------------------------------------
+  // Sound, made here, after the first touch.
+  // ---------------------------------------------------------------------------
+  let ctx = null, master = null, room = null, pad = null, muted = false;
+  try { muted = sessionStorage.getItem("dream-muted") === "1"; } catch {}
+  body.classList.toggle("muted", muted);
+
+  function audio() {
+    if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain();
+    master.gain.value = muted ? 0 : 0.9;
+    master.connect(ctx.destination);
+    const len = ctx.sampleRate * 4;
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.2; }
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = 260;
+    room = ctx.createGain();
+    room.gain.value = 0;
+    room.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 2);
+    src.connect(lp).connect(room).connect(master);
+    src.start();
+    // The dream's own sound: a low chord, a little out of tune, breathing.
+    pad = ctx.createGain();
+    pad.gain.value = 0;
+    const padLp = ctx.createBiquadFilter();
+    padLp.type = "lowpass"; padLp.frequency.value = 420;
+    const lfo = ctx.createOscillator(), lfoGain = ctx.createGain();
+    lfo.frequency.value = 0.13; lfoGain.gain.value = 160;
+    lfo.connect(lfoGain).connect(padLp.frequency);
+    lfo.start();
+    [55, 82.6, 110.9, 164.2].forEach((f, i) => {
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.type = i % 2 ? "triangle" : "sine"; o.frequency.value = f;
+      og.gain.value = [0.5, 0.25, 0.22, 0.08][i];
+      o.connect(og).connect(padLp);
+      o.start();
+    });
+    padLp.connect(pad).connect(master);
+    pad.gain.linearRampToValueAtTime(0.14, ctx.currentTime + 2.5);
+  }
+
+  // Everything the dream was making, stopped dead.
+  function hush() {
+    if (!ctx) return;
+    for (const g of [room, pad]) { g.gain.cancelScheduledValues(ctx.currentTime); g.gain.setValueAtTime(0, ctx.currentTime); }
+  }
+
+  function thump(t, strength) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(70, t);
+    o.frequency.exponentialRampToValueAtTime(38, t + 0.16);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(strength, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+    o.connect(g).connect(master);
+    o.start(t); o.stop(t + 0.3);
+  }
+
+  // The torch's switch: a small plastic click.
+  function click(strength = 0.5) {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const b = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.012), ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+    const s = ctx.createBufferSource(), hp = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = b; hp.type = "highpass"; hp.frequency.value = 1800; g.gain.value = strength;
+    s.connect(hp).connect(g).connect(master); s.start(t);
+  }
+
+  // A hinge, a little at a time: stick and slip through a resonant body.
+  function creak(duration, level = 1) {
+    if (!ctx) return;
+    const t0 = ctx.currentTime + 0.02;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass"; bp.Q.value = 9;
+    const f0 = 520 + Math.random() * 120;
+    bp.frequency.setValueAtTime(f0, t0);
+    bp.frequency.linearRampToValueAtTime(f0 + 180, t0 + duration);
+    const g = ctx.createGain();
+    g.gain.value = 1.4 * level;
+    bp.connect(g).connect(master);
+    const c = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.004), ctx.sampleRate);
+    const cd = c.getChannelData(0);
+    for (let i = 0; i < cd.length; i++) cd[i] = (Math.random() * 2 - 1) * (1 - i / cd.length);
+    let t = t0;
+    while (t < t0 + duration) {
+      const u = (t - t0) / duration;
+      const s = ctx.createBufferSource(), sg = ctx.createGain();
+      s.buffer = c;
+      sg.gain.value = 0.25 + 0.75 * Math.sin(Math.PI * Math.min(1, u * 1.2));
+      s.connect(sg).connect(bp); s.start(t);
+      t += 0.007 + 0.016 * u + Math.random() * 0.012 + (Math.random() < 0.05 ? 0.09 : 0);
+    }
+  }
+
+  function dread() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.34, t + 0.8);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 4.4);
+    g.connect(master);
+    [41, 41.7, 66].forEach((f, i) => {
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.type = i === 2 ? "triangle" : "sine"; o.frequency.value = f;
+      og.gain.value = i === 2 ? 0.25 : 0.6;
+      o.connect(og).connect(g); o.start(t); o.stop(t + 4.6);
+    });
+  }
+
+  soundButton.addEventListener("pointerdown", (e) => e.stopPropagation());
+  soundButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    muted = !muted;
+    body.classList.toggle("muted", muted);
+    try { sessionStorage.setItem("dream-muted", muted ? "1" : "0"); } catch {}
+    if (master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.1);
+  });
+
+  // ---------------------------------------------------------------------------
+  // The wardrobe's right door (the same hinge as The Wardrobe's).
+  // ---------------------------------------------------------------------------
+  const poly = (q) => "M" + q.map((r) => r[0].toFixed(2) + " " + r[1].toFixed(2)).join(" L") + " Z";
+  function drawDoor(face, panels, handle, open) {
+    const HINGE = 358, W = 72, TOP = 222, BOTTOM = 640, CX = 195, CY = 470;
+    const a = open * 1.95;
+    const fx = HINGE - W * Math.cos(a), fz = W * Math.sin(a);
+    const p = (u, y) => {
+      const s = 1 / (1 - fz * u * 0.0026);
+      return [CX + (HINGE + (fx - HINGE) * u - CX) * s, CY + (y - CY) * s];
+    };
+    face.setAttribute("d", poly([p(0, TOP), p(1, TOP), p(1, BOTTOM), p(0, BOTTOM)]));
+    panels.setAttribute("d",
+      poly([p(0.11, 236), p(0.89, 236), p(0.89, 416), p(0.11, 416)]) + " " +
+      poly([p(0.11, 432), p(0.89, 432), p(0.89, 622), p(0.11, 622)]));
+    if (handle) handle.setAttribute("d", poly([p(0.9, 410), p(0.94, 410), p(0.94, 436), p(0.9, 436)]));
+    face.style.filter = `brightness(${(0.72 + 0.36 * Math.cos(a)).toFixed(3)})`;
+  }
+  const door = [$("door"), $("doorPanels"), $("doorHandle")];
+
+  // ---------------------------------------------------------------------------
+  // Where he can be: a few places in the dark, each with his eyes' height and
+  // spacing (nearer is wider apart). He is never where the torch is.
+  // ---------------------------------------------------------------------------
+  const SPOTS = [
+    { x: 290, y: 277, gap: 9 },   // in the gap of the wardrobe
+    { x: 64, y: 250, gap: 9 },    // between the curtains
+    { x: 168, y: 330, gap: 10 },  // by the wall, in the middle of the room
+    { x: 330, y: 470, gap: 16 },  // at the foot of the bed
+    { x: 44, y: 560, gap: 15 },   // beside the bed, low, crouching
+    { x: 230, y: 160, gap: 13 },  // high up, by the ceiling
+  ];
+  let spot = 0;
+  // Where the light comes near, for a moment, the whole of him: then gone.
+  const glimpseEl = $("glimpse");
+  function glimpse(s) {
+    const k = s.gap / 9;
+    glimpseEl.setAttribute("transform", `translate(${s.x} ${s.y + 362 * k}) scale(${k})`);
+    glimpseEl.classList.remove("go");
+    glimpseEl.style.opacity = "1";
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      glimpseEl.classList.add("go");
+      glimpseEl.style.opacity = "0";
+    }));
+  }
+  function placeEyes(s) {
+    eyeL.setAttribute("cx", s.x - s.gap / 2); eyeL.setAttribute("cy", s.y);
+    eyeR.setAttribute("cx", s.x + s.gap / 2); eyeR.setAttribute("cy", s.y - 0.6);
+    const r = 1.1 + s.gap * 0.07;
+    eyeL.setAttribute("r", r); eyeR.setAttribute("r", r);
+  }
+
+  // ---------------------------------------------------------------------------
+  // The night, in phases:
+  //
+  //   dark      the torch rests on my blanket; his eyes are in the gap
+  //   search    I shine it about. He moves when the light comes near; the
+  //             door opens a little whenever the light is off it
+  //   failing   after he has moved three times, the torch flickers
+  //   out       dark. Then, close, at the bed: him.
+  //   awake     cut to black: waking.js takes it from there
+  // ---------------------------------------------------------------------------
+  let phase = "dark", phaseAt = performance.now();
+  let bx = 195, by = 700, tx = 195, ty = 700; // beam, and where the finger wants it
+  let power = 1;
+  let doorOpen = 0.02;
+  let moves = 0, movedAt = 0, hidden = false;
+  let heartAt = 0;
+  let pressing = false;
+  let hintTimer = 0;
+
+  function setPhase(p) {
+    phase = p;
+    phaseAt = performance.now();
+    body.classList.toggle("near", p === "out");
+    body.classList.toggle("done", p === "out" || p === "awake");
+  }
+
+  function toSvg(e) {
+    const pt = night.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const m = night.getScreenCTM();
+    if (!m) return [195, 600];
+    const q = pt.matrixTransform(m.inverse());
+    return [q.x, q.y];
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    const since = () => (now - phaseAt) / 1000;
+
+    // The beam follows the finger, a little behind, as a hand does.
+    bx += (tx - bx) * Math.min(1, dt * 10);
+    by += (ty - by) * Math.min(1, dt * 10);
+
+    if (phase === "search" || phase === "failing") {
+      // He is never where the light is.
+      const s = SPOTS[spot];
+      const near = Math.hypot(bx - s.x, by - s.y) < 125 * Math.max(0.6, power);
+      if (near && !hidden && now - movedAt > 500) {
+        hidden = true;
+        eyes.setAttribute("opacity", "0");
+        glimpse(s);
+        movedAt = now;
+        moves++;
+        setTimeout(() => {
+          // Somewhere far from the light.
+          let best = spot, bestD = -1;
+          SPOTS.forEach((c, i) => {
+            if (i === spot) return;
+            const d = Math.hypot(bx - c.x, by - c.y) + Math.random() * 80;
+            if (d > bestD) { bestD = d; best = i; }
+          });
+          spot = best;
+          placeEyes(SPOTS[spot]);
+          hidden = false;
+          if (phase === "search" || phase === "failing") eyes.setAttribute("opacity", "1");
+        }, 700 + Math.random() * 500);
+        if (moves >= 3 && phase === "search") setPhase("failing");
+      }
+      // Whenever the light is off the wardrobe, its door gives a little.
+      const onWardrobe = bx > 190 && bx < 390 && by > 190 && by < 660;
+      if (!onWardrobe && doorOpen < 0.5) {
+        const before = doorOpen;
+        doorOpen += dt * 0.05;
+        if (Math.floor(before * 40) !== Math.floor(doorOpen * 40)) creak(0.35 + Math.random() * 0.3, 0.7);
+      }
+    }
+
+    // The battery.
+    if (phase === "failing") {
+      const t = since();
+      const base = Math.max(0, 1 - t / 2.6);
+      power = Math.random() < 0.18 + 0.5 * (1 - base) ? base * Math.random() * 0.5 : base;
+      if (Math.random() < 0.05) click(0.15);
+      if (t > 2.8) {
+        power = 0;
+        click(0.5);
+        setPhase("out");
+        eyes.setAttribute("opacity", "0");
+        heartAt = Infinity;
+        dread();
+        if (room) room.gain.setTargetAtTime(0.05, ctx.currentTime, 0.3);
+      }
+    } else if (phase === "search") {
+      power = 1;
+    } else if (phase === "dark") {
+      power = 0.55;
+    }
+    // At the worst of it: black, and the dream stops dead. Then you wake.
+    if (phase === "out" && since() > 4.6) {
+      setPhase("awake");
+      hush();
+      waking.start();
+    }
+
+    const r = 105 * (0.75 + 0.25 * power);
+    beam.setAttribute("cx", bx.toFixed(1)); beam.setAttribute("cy", by.toFixed(1));
+    beam.setAttribute("rx", r.toFixed(1)); beam.setAttribute("ry", (r * 1.04).toFixed(1));
+    beam.setAttribute("opacity", power.toFixed(3));
+    warmth.setAttribute("cx", bx.toFixed(1)); warmth.setAttribute("cy", by.toFixed(1));
+    warmth.setAttribute("opacity", power.toFixed(3));
+    drawDoor(...door, doorOpen);
+
+    // The heart: quicker with every time he moves.
+    if (ctx && (phase === "search" || phase === "failing") && now > heartAt) {
+      const strength = 0.4 + 0.12 * moves;
+      thump(ctx.currentTime + 0.01, strength);
+      thump(ctx.currentTime + 0.17, strength * 0.6);
+      if (navigator.vibrate && moves > 0) navigator.vibrate([18, 140, 10]);
+      heartAt = now + 60000 / (78 + 22 * moves);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function showHint(delay) {
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => { hint.textContent = WORDS.hint; hint.classList.add("show"); }, delay);
+  }
+
+  const waking = DreamWaking.mount($("stage"), {
+    words: { epilogue: WORDS.epilogue, replay: WORDS.replay },
+    sound: () => ctx && { ctx, master },
+    onReplay: restart,
+  });
+
+  function restart() {
+    moves = 0; spot = 0; doorOpen = 0.02; hidden = false;
+    tx = bx = 195; ty = by = 700;
+    placeEyes(SPOTS[0]);
+    setPhase("dark");
+    if (ctx) {
+      room.gain.setTargetAtTime(0.22, ctx.currentTime, 0.8);
+      pad.gain.setTargetAtTime(0.14, ctx.currentTime, 0.8);
+    }
+    setTimeout(() => eyes.setAttribute("opacity", "1"), 1500);
+    showHint(1800);
+  }
+
+  addEventListener("pointerdown", (e) => {
+    if (e.button > 0) return;
+    audio();
+    if (phase === "out" || phase === "awake") return;
+    pressing = true;
+    [tx, ty] = toSvg(e);
+    if (phase === "dark") {
+      click(0.6);
+      setPhase("search");
+      clearTimeout(hintTimer);
+      hint.classList.remove("show");
+    }
+  });
+  addEventListener("pointermove", (e) => {
+    // A mouse aims without a press; a finger aims while it is down.
+    if (phase !== "search" && phase !== "failing") return;
+    if (e.pointerType !== "mouse" && !pressing) return;
+    [tx, ty] = toSvg(e);
+  });
+  const release = () => { pressing = false; };
+  addEventListener("pointerup", release);
+  addEventListener("pointercancel", release);
+  addEventListener("keydown", (e) => {
+    if ((e.key === " " || e.key === "Enter") && phase === "awake" && waking.done) { waking.reset(); restart(); }
+  });
+  addEventListener("contextmenu", (e) => e.preventDefault());
+
+  placeEyes(SPOTS[0]);
+  const still = params.get("stage");
+  if (quiet) {
+    // The card: the torch on the wardrobe, his eyes in the gap beside it.
+    tx = bx = 222; ty = by = 420; power = 0.9;
+    night.setAttribute("viewBox", "150 200 240 260");
+    phase = "still";
+    eyes.setAttribute("opacity", "1");
+    doorOpen = 0.1;
+  } else if (still === "1") {
+    setPhase("out");
+    power = 0;
+    phaseAt = Infinity;
+  } else if (still === "2") {
+    setPhase("awake");
+    waking.still(Number(params.get("t") || 17));
+  } else if (still === "0") {
+    tx = bx = 120; ty = by = 520; phase = "still"; power = 1;
+    eyes.setAttribute("opacity", "1"); doorOpen = 0.12;
+  } else {
+    setTimeout(() => { if (phase === "dark") eyes.setAttribute("opacity", "1"); }, 1500);
+    showHint(1800);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
