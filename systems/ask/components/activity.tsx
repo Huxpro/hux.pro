@@ -182,6 +182,8 @@ export default function AskActivity() {
       collapseLabel={s.collapse}
       panelWidth={PANEL_WIDTH}
       working={busy}
+      // The composer focuses its own field, when it should (below).
+      moveFocus={false}
       pill={
         <>
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">

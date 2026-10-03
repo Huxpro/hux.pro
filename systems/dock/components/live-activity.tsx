@@ -145,6 +145,13 @@ interface LiveActivityProps {
    * Leave it out for an activity that never works.
    */
   working?: boolean;
+  /**
+   * Whether opening moves focus into the panel (Base UI's `initialFocus`:
+   * its first tabbable element, or the popup). False leaves it to the body,
+   * for a panel whose content focuses what it wants itself (a composer's
+   * field), which the drawer's own focus would otherwise land on top of.
+   */
+  moveFocus?: boolean;
 }
 
 export function LiveActivity({
@@ -159,6 +166,7 @@ export function LiveActivity({
   panelClassName,
   panelWidth = PANEL_WIDTH,
   working,
+  moveFocus = true,
 }: LiveActivityProps) {
   const { isOpen, isAnyOpen, noticeUp, open, close, registerActivity } =
     useDock();
@@ -289,6 +297,7 @@ export function LiveActivity({
         <SurfaceViewport modal={false} layer={rank}>
           <Drawer.Popup
             data-dock-panel=""
+            initialFocus={moveFocus}
             // The dock's expanded shape (see the note in dock.tsx). On the
             // popup rather than the shell: the shell carries the surface
             // stack's recede transform, so its box shrinks when something

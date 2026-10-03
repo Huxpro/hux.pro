@@ -189,13 +189,14 @@ restructuring its layer model.
 </LiveActivity>
 ```
 
-Three optional props, for an activity that is more than a card:
+Four optional props, for an activity that is more than a card:
 
 | prop | |
 |---|---|
 | `actions` | header buttons of its own, between the title and the collapse chevron (Ask's history and new chat) |
 | `panelWidth` | a CSS length for the panel, set on the popup (default `min(92vw, 360px)`; Ask's is 440px) |
 | `working` | the activity is at work on something asked of it: the site's glow travels the pill's edge as the `processing` beam, off while the pill is hidden. A sibling of the glass with an 8px halo, which the row's shadow room and gap leave space for. |
+| `moveFocus` | `false` leaves focus alone on open (Base UI's `initialFocus`), for content that focuses its own field; otherwise the drawer's focus lands on top of it |
 
 ## Layout & coexistence rules
 
