@@ -15,7 +15,9 @@
   every few nights.
 
   Hold to close your eyes. Every time you open them, he is closer. The third
-  time, you wake.
+  time, you wake: a beat of black, the eyes snap open, you gasp and pant, and
+  the room is only the room, at night, with a clock in it. You calm down. Then
+  the wardrobe door opens.
 
   One document, no dependencies: the home folder opens it in a window
   (content/apps.json), the Dream Lab frames it (/lab/wardrobe). It reads the
@@ -68,7 +70,39 @@
     0%, 100% { transform: scale(1); }
     45% { transform: scale(1.012) translateY(-1px); }
   }
-  body[data-stage="3"] svg#room { filter: brightness(1.55) saturate(0.55) contrast(0.92); }
+  /* Awake, the breath is mine and the script's: it moves the room itself. */
+  body[data-stage="3"] #breath { animation: none; }
+
+  /* The dream: it never quite holds still. The room sways a little, there
+     is a second one a few pixels off the first, the colour has gone
+     violet, and the edges of sight are smeared. Waking takes all of it. */
+  body.dream svg#room { filter: saturate(0.8) hue-rotate(14deg) brightness(1.06); }
+  #scene { transform-box: view-box; transform-origin: 195px 470px; }
+  body.dream #scene { animation: swim 9s ease-in-out infinite; }
+  @keyframes swim {
+    0%, 100% { transform: none; }
+    33% { transform: rotate(0.5deg) skewX(0.7deg); }
+    66% { transform: rotate(-0.45deg) skewX(-0.5deg) scale(1.012); }
+  }
+  #ghost { opacity: 0; mix-blend-mode: screen; transform-box: view-box; transform-origin: 195px 470px; }
+  body.dream #ghost { opacity: 0.36; animation: ghost 6.5s ease-in-out infinite; }
+  @keyframes ghost {
+    0%, 100% { transform: translate(8px, -3px) scale(1.016); }
+    50% { transform: translate(-7px, 5px) scale(1.026); }
+  }
+  #haze {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    -webkit-backdrop-filter: blur(7px) saturate(1.25);
+    backdrop-filter: blur(7px) saturate(1.25);
+    -webkit-mask-image: radial-gradient(78% 62% at 50% 48%, transparent 38%, #000 100%);
+    mask-image: radial-gradient(78% 62% at 50% 48%, transparent 38%, #000 100%);
+    background: radial-gradient(78% 62% at 50% 48%, transparent 45%, rgba(84, 58, 140, 0.28) 100%);
+  }
+  body.dream #haze { opacity: 1; }
+  body.dream #grain { opacity: 0.1; }
 
   /* Film grain: one noise tile, jumped about. Cheap on a phone. */
   #grain {
@@ -123,8 +157,20 @@
   body.opening .lid { transition-duration: 0.7s; transition-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1); }
 
   /* Eyes just opened: out of focus, then in. */
-  body.waking svg#room { filter: blur(5px) brightness(0.8); transition: none; }
-  body[data-stage="3"].waking svg#room { filter: blur(6px) brightness(1.2) saturate(0.55); }
+  body.waking svg#room { filter: blur(5px) brightness(0.8) hue-rotate(14deg); transition: none; }
+
+  /* Waking for real: the lids snap, the head comes off the pillow, and the
+     room swims into focus, slower than a blink in a dream. */
+  body.snap .lid { transition-duration: 0.13s; transition-timing-function: cubic-bezier(0.3, 0, 0.2, 1); }
+  body.blink .lid { transition-duration: 0.09s; }
+  body.wakeblur svg#room { filter: blur(9px) brightness(0.45); transition: none; }
+  body.snapped svg#room { transition: filter 2.2s cubic-bezier(0.2, 0.6, 0.3, 1); }
+  body.jolt #stage { animation: jolt 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  @keyframes jolt {
+    0% { transform: translateY(22px) scale(1.07); }
+    35% { transform: translateY(-6px) scale(1.01); }
+    100% { transform: none; }
+  }
 
   .line {
     position: absolute;
@@ -208,9 +254,11 @@
   body[data-stage="0"]:not(.closed) #eye0,
   body[data-stage="2"]:not(.closed):not(.waking) .glint.close { opacity: 1; }
   body[data-stage="0"]:not(.closed) #eye0 { transition-delay: 2.6s; }
+  /* Awake, it is the same eye in the same gap. */
+  body.peek #eye0 { opacity: 1; transition: opacity 2.6s ease; }
 
   @media (prefers-reduced-motion: reduce) {
-    #breath, #grain, #hint::before { animation: none; }
+    #breath, #grain, #hint::before, #scene, #ghost, #stage { animation: none !important; }
   }
 </style>
 </head>
@@ -284,6 +332,7 @@
     </defs>
 
     <g id="breath">
+     <g id="scene">
       <!-- The room -->
       <rect x="-200" y="-200" width="790" height="840" fill="url(#wall)"/>
       <rect x="-200" y="640" width="790" height="400" fill="url(#floor)"/>
@@ -336,9 +385,12 @@
       <path d="M -40 760 C 40 724 120 742 170 716 C 214 694 250 690 286 704 C 330 722 360 708 430 716 L 430 900 L -40 900 Z" fill="url(#blanket)"/>
       <path d="M -40 760 C 40 724 120 742 170 716 C 214 694 250 690 286 704 C 330 722 360 708 430 716" fill="none" stroke="#2c3962" stroke-width="1.4" opacity="0.7"/>
       <path d="M 60 790 C 120 770 180 790 230 770" fill="none" stroke="#0a0f1b" stroke-width="3" opacity="0.8"/>
-
+     </g>
+     <!-- In the dream, a second room a few pixels off the first -->
+     <use id="ghost" href="#scene"/>
     </g>
   </svg>
+  <div id="haze"></div>
 
   <div id="grain"></div>
   <div id="vignette"></div>
@@ -397,6 +449,7 @@
   const manInside = $("manInside");
   const close = $("close");
   const closeBody = $("closeBody");
+  const breathEl = $("breath");
   const soundButton = $("sound");
   soundButton.setAttribute("aria-label", WORDS.sound);
 
@@ -465,7 +518,7 @@
   // ---------------------------------------------------------------------------
   // Sound: made here, nothing to download. Only after the first touch.
   // ---------------------------------------------------------------------------
-  let ctx = null, master = null, room = null, muted = false;
+  let ctx = null, master = null, room = null, pad = null, noise = null, muted = false;
   try { muted = sessionStorage.getItem("dream-muted") === "1"; } catch {}
   body.classList.toggle("muted", muted);
 
@@ -497,6 +550,85 @@
     room.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 2);
     src.connect(lp).connect(room).connect(master);
     src.start();
+    // The dream's own sound: a low chord, a little out of tune, breathing.
+    noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const nd = noise.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    pad = ctx.createGain();
+    pad.gain.value = 0;
+    const padLp = ctx.createBiquadFilter();
+    padLp.type = "lowpass";
+    padLp.frequency.value = 420;
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.value = 0.13;
+    lfoGain.gain.value = 160;
+    lfo.connect(lfoGain).connect(padLp.frequency);
+    lfo.start();
+    [55, 82.6, 110.9, 164.2].forEach((f, i) => {
+      const o = ctx.createOscillator();
+      const og = ctx.createGain();
+      o.type = i % 2 ? "triangle" : "sine";
+      o.frequency.value = f;
+      og.gain.value = [0.5, 0.25, 0.22, 0.08][i];
+      o.connect(og).connect(padLp);
+      o.start();
+    });
+    padLp.connect(pad).connect(master);
+    if (body.classList.contains("dream")) pad.gain.linearRampToValueAtTime(0.16, ctx.currentTime + 2.5);
+  }
+
+  // Filtered noise with an envelope: a breath, a gasp.
+  function air(t, { type = "bandpass", f0, f1, q = 0.8, peak, attack, dur }) {
+    const s = ctx.createBufferSource();
+    s.buffer = noise;
+    s.playbackRate.value = 0.8 + Math.random() * 0.4;
+    const f = ctx.createBiquadFilter();
+    f.type = type;
+    f.Q.value = q;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.linearRampToValueAtTime(f1, t + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(peak, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f).connect(g).connect(master);
+    s.start(t, Math.random());
+    s.stop(t + dur + 0.05);
+  }
+  function gasp() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    air(t, { f0: 700, f1: 2300, q: 1.1, peak: 0.55, attack: 0.07, dur: 0.5 });
+    air(t + 0.02, { type: "lowpass", f0: 500, f1: 900, peak: 0.25, attack: 0.05, dur: 0.4 });
+    thump(t + 0.05, 0.9);
+  }
+  function breathe(inhale, amp) {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    if (inhale) air(t, { f0: 900, f1: 1500, q: 0.9, peak: 0.16 * amp + 0.02, attack: 0.18, dur: 0.42 });
+    else air(t, { type: "lowpass", f0: 1100, f1: 450, peak: 0.2 * amp + 0.025, attack: 0.05, dur: 0.6 + 0.4 * (1 - amp) });
+  }
+  // A clock somewhere in the house: what a real night sounds like.
+  let tock = false;
+  function tick(level) {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    tock = !tock;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "square";
+    o.frequency.value = tock ? 2350 : 2650;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = tock ? 2400 : 2800;
+    bp.Q.value = 6;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.09 * level, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+    o.connect(bp).connect(g).connect(master);
+    o.start(t);
+    o.stop(t + 0.04);
   }
 
   function thump(t, strength) {
@@ -563,7 +695,7 @@
 
   // A hinge: stick and slip. Clicks through a resonant body, irregular,
   // slowing, the pitch sliding as the door goes.
-  function creak(duration) {
+  function creak(duration, level = 1) {
     if (!ctx) return;
     const t0 = ctx.currentTime + 0.05;
     const bp = ctx.createBiquadFilter();
@@ -573,7 +705,7 @@
     bp.frequency.linearRampToValueAtTime(760, t0 + duration * 0.55);
     bp.frequency.linearRampToValueAtTime(610, t0 + duration);
     const g = ctx.createGain();
-    g.gain.value = 1.4;
+    g.gain.value = 1.4 * level;
     bp.connect(g).connect(master);
     const click = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.004), ctx.sampleRate);
     const cd = click.getChannelData(0);
@@ -606,16 +738,28 @@
   //   0  the door ajar; something tall in the gap
   //   1  the door open; he is standing in the wardrobe, looking at me
   //   2  he is at my bed, bent over me
-  //   3  awake. Grey morning light. The room is empty. And the door opens.
+  //   3  awake. Still night, the same room, but only the room: sharp, still,
+  //      empty, a clock ticking. The breathing calms. And the door opens.
   //
   // Leave your eyes open and it still comes on, slowly: the door gives a
   // little, his head turns, the brim lowers.
+  //
+  // Waking (stage 3) runs on its own clock, in seconds since the last release:
+  //
+  //   0     the lids stay shut. The dream's sound stops dead. Silence.
+  //   1.0   the eyes snap open: a gasp, the head off the pillow, the room
+  //         out of focus and coming in. Panting, slowing, each breath
+  //         lifting the view
+  //   3.6   a blink; the clock is heard from 4.5; another blink at 7.4
+  //   9.5   the breath catches. The right door begins to open, slowly
+  //   16    in the gap, the eye
+  //   18.5  the line
   // ---------------------------------------------------------------------------
   let stage = 0;
   let closed = false;
   let closedAt = 0;
   let stageAt = performance.now();
-  let ended = false;
+  let W = null; // the waking's own state
   let busy = false; // between a release and the eyes being open again
   let hintTimer = 0;
 
@@ -634,7 +778,11 @@
     stageAt = performance.now();
     body.dataset.stage = String(n);
     body.style.setProperty("--breath", ["4.2s", "3.1s", "2.2s", "5s"][n]);
-    manInside.style.display = n <= 1 ? "" : "none";
+    // Awake, he is back where he started: behind the doors.
+    manInside.style.display = n === 2 ? "none" : "";
+    body.classList.toggle("dream", n < 3);
+    body.classList.remove("peek");
+    if (n === 3) W = { snapped: false, blinks: 0, breath: 0, held: false, door: false, nextTick: 0, nextBeat: 0, beats: 0, peek: false, done: false };
     close.setAttribute("opacity", n === 2 ? "1" : "0");
   }
 
@@ -643,6 +791,91 @@
     const s = 1.9 + 0.1 * ease(t / 7);
     const lean = -2.5 - 1.5 * ease(t / 7);
     closeBody.setAttribute("transform", `translate(236 872) rotate(${lean.toFixed(3)}) scale(${s.toFixed(4)})`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Waking. Returns how far the right door stands open.
+  // ---------------------------------------------------------------------------
+  let lastNow = performance.now();
+  function wake(now, t) {
+    const dt = Math.min(0.05, (now - lastNow) / 1000);
+    if (!W.snapped && t > 1.0) {
+      W.snapped = true;
+      body.classList.add("wakeblur", "snap", "jolt", "snapped");
+      body.classList.remove("closed", "opening");
+      gasp();
+      if (navigator.vibrate) navigator.vibrate(60);
+      if (room) room.gain.setTargetAtTime(0.1, ctx.currentTime, 0.8);
+      requestAnimationFrame(() => requestAnimationFrame(() => body.classList.remove("wakeblur")));
+      setTimeout(() => body.classList.remove("snap", "jolt"), 900);
+    }
+    // Two ordinary blinks: these are my eyes now.
+    if (W.blinks === 0 && t > 3.6) { W.blinks = 1; blink(); }
+    if (W.blinks === 1 && t > 7.4) { W.blinks = 2; blink(); }
+
+    // The breath: fast and shallow-deep at first, slower and smaller as it
+    // settles. Until the door moves; then it stops.
+    let h = 0;
+    const u = ease((t - 1) / 8);
+    const amp = 1 - 0.78 * u;
+    if (W.snapped && !W.held) {
+      const period = 0.62 + (3.0 - 0.62) * u;
+      const before = W.breath;
+      W.breath += dt / period;
+      if (Math.floor(before) !== Math.floor(W.breath)) breathe(true, amp);
+      const ph = W.breath % 1;
+      if (before % 1 < 0.42 && ph >= 0.42) breathe(false, amp);
+      h = ph < 0.42 ? ease(ph / 0.42) : 1 - ease((ph - 0.42) / 0.58);
+      W.h = h * amp;
+    } else if (W.held) {
+      // Held, at the top of a breath.
+      W.h = (W.h || 0) + (0.5 - (W.h || 0)) * Math.min(1, dt * 3);
+    }
+    const lift = W.h || 0;
+    breathEl.style.transform = `translateY(${(-5 * lift).toFixed(2)}px) scale(${(1 + 0.016 * lift).toFixed(4)})`;
+
+    // The heart, loud at first, gone by the time the clock is heard.
+    if (ctx && W.snapped && t < 5 && now > W.nextBeat) {
+      const k = 1 - (t - 1) / 4;
+      thump(ctx.currentTime + 0.01, 0.6 * k + 0.05);
+      thump(ctx.currentTime + 0.17, 0.35 * k + 0.03);
+      W.nextBeat = now + 480 + 400 * (1 - k);
+    }
+    // The clock.
+    if (ctx && t > 4.5 && now > W.nextTick) {
+      tick(Math.min(1, (t - 4.5) / 2.5));
+      W.nextTick = now + 1000;
+    }
+    // The breath catches. The door.
+    let open = 0;
+    if (t > 9.5) {
+      if (!W.door) {
+        W.door = true;
+        W.held = true;
+        creak(6.5, 0.6);
+      }
+      open = 0.36 * ease((t - 9.5) / 6.5);
+      // And the heart comes back, slow, then not.
+      if (ctx && now > W.nextBeat) {
+        const k = ease((t - 10.5) / 6);
+        thump(ctx.currentTime + 0.01, 0.12 + 0.5 * k);
+        thump(ctx.currentTime + 0.17, 0.08 + 0.3 * k);
+        W.nextBeat = now + 1000 - 420 * k;
+      }
+    }
+    if (!W.peek && t > 16) { W.peek = true; body.classList.add("peek"); }
+    if (!W.done && t > 18.5) {
+      W.done = true;
+      fade.classList.add("show");
+      epilogue.classList.add("show");
+    }
+    return open;
+  }
+
+  function blink() {
+    body.classList.add("blink", "closed");
+    setTimeout(() => body.classList.remove("closed"), 110);
+    setTimeout(() => body.classList.remove("blink"), 300);
   }
 
   function frame(now) {
@@ -659,17 +892,10 @@
       manInside.removeAttribute("transform");
     }
     if (stage === 2) placeClose(t);
-    if (stage === 3) {
-      // A breath of morning, then the door.
-      R = 0.42 * ease((t - 1.6) / 3.2);
-      if (!ended && t > 1.6) {
-        ended = true;
-        creak(3.2);
-        setTimeout(() => { fade.classList.add("show"); epilogue.classList.add("show"); }, 4600);
-      }
-    }
+    if (stage === 3) R = wake(now, t);
     drawDoor(DOORS.L, L);
     drawDoor(DOORS.R, R);
+    lastNow = now;
     requestAnimationFrame(frame);
   }
 
@@ -704,17 +930,28 @@
     // However short the blink, the lids stay down long enough to have been a blink.
     const held = performance.now() - closedAt;
     const wait = Math.max(0, 520 - held);
+    if (stage === 2) {
+      // The last one. The eyes stay shut; the dream stops; you wake.
+      setTimeout(() => {
+        heartbeat(false);
+        if (pad) { pad.gain.cancelScheduledValues(ctx.currentTime); pad.gain.setValueAtTime(0, ctx.currentTime); }
+        if (room) { room.gain.cancelScheduledValues(ctx.currentTime); room.gain.setValueAtTime(0, ctx.currentTime); }
+        setStage(3);
+        busy = false;
+      }, wait);
+      return;
+    }
     setTimeout(() => {
       heartbeat(false);
       setStage(stage + 1);
       body.classList.add("waking", "opening");
       body.classList.remove("closed");
-      if (room) room.gain.setTargetAtTime(stage === 3 ? 0.12 : 0.24, ctx.currentTime, 0.4);
+      if (room) room.gain.setTargetAtTime(0.24, ctx.currentTime, 0.4);
       requestAnimationFrame(() => requestAnimationFrame(() => body.classList.remove("waking")));
-      if (stage < 3) dread(stage);
+      dread(stage);
       setTimeout(() => {
         busy = false;
-        if (stage < 3) showHint(WORDS.again, 3200);
+        showHint(WORDS.again, 3200);
       }, 700);
     }, wait);
   }
@@ -724,8 +961,11 @@
     fade.classList.remove("show");
     body.classList.add("closed");
     setTimeout(() => {
-      ended = false;
+      breathEl.style.transform = "";
+      body.classList.remove("snapped");
       setStage(0);
+      if (pad) pad.gain.setTargetAtTime(0.16, ctx.currentTime, 0.8);
+      if (room) room.gain.setTargetAtTime(0.22, ctx.currentTime, 0.8);
       body.classList.add("opening");
       body.classList.remove("closed");
       showHint(WORDS.hint, 1600);
@@ -761,7 +1001,11 @@
   const still = params.get("stage");
   if (still !== null && /^[0-3]$/.test(still)) {
     setStage(Number(still));
-    if (still === "3") { ended = true; stageAt = performance.now() - 6000; }
+    if (still === "3") {
+      // Awake, calm, the door begun: ?t= picks the second (default 17).
+      stageAt = performance.now() - 1000 * Number(params.get("t") || 17);
+      Object.assign(W, { snapped: true, blinks: 2, door: true, held: true, peek: false, done: true, nextTick: Infinity, nextBeat: Infinity });
+    }
     if (params.has("epilogue")) { fade.classList.add("show"); epilogue.classList.add("show"); }
   } else {
     setStage(0);
