@@ -14,11 +14,13 @@
 
   Drag to shine the torch. Wherever you shine, he is not there: his eyes are
   always in the dark, just outside the beam. And whenever the light leaves
-  the wardrobe, its door opens a little more. Then the torch begins to fail.
+  the wardrobe, its door opens a little more. Then the torch begins to fail,
+  and in the dark he is at the bed. Then you wake (waking.js): still night,
+  only your room, a clock, your breath slowing. Then the door.
 
   One document, no dependencies, like every experience (systems/lab/catalog.ts):
   the home folder opens it as an app, its lab (/lab/torch) frames it.
-  `?lang=en|zh`, `?stage=0|1|2` (the beam, the dark, the morning) and
+  `?lang=en|zh`, `?stage=0|1|2` (the beam, the dark, awake; `&t=` seconds in) and
   `?quiet` (no controls; the lab's surface) as in the others.
 -->
 <style>
@@ -33,8 +35,22 @@
   body.done { cursor: default; }
   #stage { position: fixed; inset: 0; overflow: hidden; background: var(--night); }
   svg.layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-  #morning { opacity: 0; transition: opacity 2.4s ease; filter: saturate(0.55); }
-  body.morning #morning { opacity: 1; }
+  /* The dream: it never holds still. The room sways, the colour leans
+     violet, the edges of sight are smeared. */
+  #night { filter: saturate(0.85) hue-rotate(14deg) brightness(1.08); }
+  #dreamroom { transform-box: view-box; transform-origin: 195px 470px; animation: swim 9s ease-in-out infinite; }
+  @keyframes swim {
+    0%, 100% { transform: none; }
+    33% { transform: rotate(0.5deg) skewX(0.7deg); }
+    66% { transform: rotate(-0.45deg) skewX(-0.5deg) scale(1.012); }
+  }
+  #haze {
+    position: absolute; inset: 0; pointer-events: none;
+    -webkit-backdrop-filter: blur(6px) saturate(1.25); backdrop-filter: blur(6px) saturate(1.25);
+    -webkit-mask-image: radial-gradient(78% 62% at 50% 48%, transparent 38%, #000 100%);
+    mask-image: radial-gradient(78% 62% at 50% 48%, transparent 38%, #000 100%);
+    background: radial-gradient(78% 62% at 50% 48%, transparent 45%, rgba(84, 58, 140, 0.22) 100%);
+  }
 
   #grain {
     position: absolute; inset: -50%; pointer-events: none; opacity: 0.07; mix-blend-mode: screen;
@@ -55,14 +71,6 @@
   }
   #hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 9%); font-size: 13px; color: rgba(230, 233, 242, 0.55); }
   #hint.show { opacity: 1; }
-  #epilogue {
-    top: 50%; transform: translateY(-50%); padding: 0 28px; font-size: 17px; line-height: 1.9;
-    color: rgba(236, 238, 245, 0.88); text-shadow: 0 0 18px rgba(0, 0, 0, 0.9);
-  }
-  #epilogue small { display: block; margin-top: 28px; font-size: 12px; letter-spacing: 0.2em; color: rgba(236, 238, 245, 0.4); }
-  #epilogue.show { opacity: 1; }
-  #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 1.4s ease; }
-  #fade.show { opacity: 0.62; }
 
   #sound {
     position: absolute; top: calc(env(safe-area-inset-top, 0px) + 14px); right: 14px; width: 34px; height: 34px;
@@ -81,7 +89,7 @@
   #near { opacity: 0; transition: opacity 1.8s ease; }
   body.near #near { opacity: 1; }
 
-  @media (prefers-reduced-motion: reduce) { #grain { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { #grain, #dreamroom { animation: none; } }
 </style>
 </head>
 <body>
@@ -173,6 +181,7 @@
       </g>
     </defs>
 
+    <g id="dreamroom">
     <!-- What the eyes can make out without the torch: almost nothing. -->
     <use href="#room" opacity="0.06"/>
     <!-- What the torch shows -->
@@ -199,31 +208,14 @@
         <circle cx="4.4" cy="-361.4" r="0.95" fill="#d9e1f5"/>
       </g>
     </g>
+    </g>
   </svg>
 
-  <!-- The morning: grey, empty, and the wardrobe door. -->
-  <svg id="morning" class="layer" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-    <rect x="-200" y="-200" width="790" height="840" fill="#2a3142"/>
-    <rect x="-200" y="640" width="790" height="400" fill="#1a1f2b"/>
-    <rect x="34" y="166" width="124" height="225" fill="#6f7a94"/>
-    <path d="M 30 160 C 50 230 36 330 54 400 L 70 400 C 64 320 74 230 66 160 Z" fill="#3c3640"/>
-    <path d="M 130 160 C 136 230 126 320 132 400 L 160 400 C 142 330 154 230 162 160 Z" fill="#3c3640"/>
-    <rect x="200" y="200" width="172" height="14" fill="#2f3647"/>
-    <rect x="205" y="212" width="161" height="430" fill="#363e52"/>
-    <rect x="213" y="222" width="145" height="418" fill="#07090f"/>
-    <rect x="213" y="222" width="73" height="418" fill="#3a4357"/>
-    <rect x="221" y="236" width="57" height="180" fill="none" stroke="#2c3346" stroke-width="2"/>
-    <rect x="221" y="432" width="57" height="190" fill="none" stroke="#2c3346" stroke-width="2"/>
-    <path id="mDoor" fill="#3a4357" stroke="#1a1f2b" stroke-width="1"/>
-    <path id="mPanels" fill="none" stroke="#2c3346" stroke-width="2"/>
-    <path d="M -40 760 C 40 724 120 742 170 716 C 214 694 250 690 286 704 C 330 722 360 708 430 716 L 430 900 L -40 900 Z" fill="#20263a"/>
-  </svg>
 
+  <div id="haze"></div>
   <div id="grain"></div>
   <div id="vignette"></div>
-  <div id="fade"></div>
   <div id="hint" class="line"></div>
-  <div id="epilogue" class="line"></div>
   <button id="sound" type="button" aria-label="Sound">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 9h4l5-4v14l-5-4H4z"/>
@@ -233,6 +225,7 @@
   </button>
 </div>
 
+<script src="../waking.js"></script>
 <script>
 (() => {
   "use strict";
@@ -252,19 +245,18 @@
 
   const $ = (id) => document.getElementById(id);
   const body = document.body;
-  const night = $("night"), morning = $("morning");
+  const night = $("night");
   const beam = $("beam"), warmth = $("warmth");
   const eyes = $("eyes"), eyeL = $("eyeL"), eyeR = $("eyeR");
-  const hint = $("hint"), epilogue = $("epilogue"), fade = $("fade");
+  const hint = $("hint");
   const soundButton = $("sound");
   soundButton.setAttribute("aria-label", WORDS.sound);
-  epilogue.innerHTML = `${WORDS.epilogue}<small>${WORDS.replay}</small>`;
   const quiet = params.has("quiet");
   if (quiet) body.classList.add("quiet");
 
   function fit() {
     const wide = innerWidth / innerHeight > 0.62;
-    for (const svg of [night, morning]) svg.setAttribute("preserveAspectRatio", wide ? "xMidYMid meet" : "xMidYMid slice");
+    for (const svg of [night]) svg.setAttribute("preserveAspectRatio", wide ? "xMidYMid meet" : "xMidYMid slice");
   }
   addEventListener("resize", fit);
   fit();
@@ -286,7 +278,7 @@
   // ---------------------------------------------------------------------------
   // Sound, made here, after the first touch.
   // ---------------------------------------------------------------------------
-  let ctx = null, master = null, room = null, muted = false;
+  let ctx = null, master = null, room = null, pad = null, muted = false;
   try { muted = sessionStorage.getItem("dream-muted") === "1"; } catch {}
   body.classList.toggle("muted", muted);
 
@@ -312,6 +304,30 @@
     room.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 2);
     src.connect(lp).connect(room).connect(master);
     src.start();
+    // The dream's own sound: a low chord, a little out of tune, breathing.
+    pad = ctx.createGain();
+    pad.gain.value = 0;
+    const padLp = ctx.createBiquadFilter();
+    padLp.type = "lowpass"; padLp.frequency.value = 420;
+    const lfo = ctx.createOscillator(), lfoGain = ctx.createGain();
+    lfo.frequency.value = 0.13; lfoGain.gain.value = 160;
+    lfo.connect(lfoGain).connect(padLp.frequency);
+    lfo.start();
+    [55, 82.6, 110.9, 164.2].forEach((f, i) => {
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.type = i % 2 ? "triangle" : "sine"; o.frequency.value = f;
+      og.gain.value = [0.5, 0.25, 0.22, 0.08][i];
+      o.connect(og).connect(padLp);
+      o.start();
+    });
+    padLp.connect(pad).connect(master);
+    pad.gain.linearRampToValueAtTime(0.14, ctx.currentTime + 2.5);
+  }
+
+  // Everything the dream was making, stopped dead.
+  function hush() {
+    if (!ctx) return;
+    for (const g of [room, pad]) { g.gain.cancelScheduledValues(ctx.currentTime); g.gain.setValueAtTime(0, ctx.currentTime); }
   }
 
   function thump(t, strength) {
@@ -390,8 +406,7 @@
   });
 
   // ---------------------------------------------------------------------------
-  // The wardrobe's right door (the same hinge as The Wardrobe's), at night
-  // and in the morning.
+  // The wardrobe's right door (the same hinge as The Wardrobe's).
   // ---------------------------------------------------------------------------
   const poly = (q) => "M" + q.map((r) => r[0].toFixed(2) + " " + r[1].toFixed(2)).join(" L") + " Z";
   function drawDoor(face, panels, handle, open) {
@@ -410,7 +425,6 @@
     face.style.filter = `brightness(${(0.72 + 0.36 * Math.cos(a)).toFixed(3)})`;
   }
   const door = [$("door"), $("doorPanels"), $("doorHandle")];
-  const mDoor = [$("mDoor"), $("mPanels"), null];
 
   // ---------------------------------------------------------------------------
   // Where he can be: a few places in the dark, each with his eyes' height and
@@ -452,7 +466,7 @@
   //             door opens a little whenever the light is off it
   //   failing   after he has moved three times, the torch flickers
   //   out       dark. Then, close, at the bed: him.
-  //   morning   grey, empty, and the wardrobe door opening
+  //   awake     cut to black: waking.js takes it from there
   // ---------------------------------------------------------------------------
   let phase = "dark", phaseAt = performance.now();
   let bx = 195, by = 700, tx = 195, ty = 700; // beam, and where the finger wants it
@@ -467,8 +481,7 @@
     phase = p;
     phaseAt = performance.now();
     body.classList.toggle("near", p === "out");
-    body.classList.toggle("morning", p === "morning");
-    body.classList.toggle("done", p === "out" || p === "morning");
+    body.classList.toggle("done", p === "out" || p === "awake");
   }
 
   function toSvg(e) {
@@ -544,16 +557,11 @@
     } else if (phase === "dark") {
       power = 0.55;
     }
+    // At the worst of it: black, and the dream stops dead. Then you wake.
     if (phase === "out" && since() > 4.6) {
-      setPhase("morning");
-      if (room) room.gain.setTargetAtTime(0.12, ctx.currentTime, 0.6);
-      creaked = false;
-    }
-    if (phase === "morning") {
-      const t = since();
-      drawDoor(...mDoor, 0.42 * ease((t - 2.2) / 3.2));
-      if (t > 2.2 && !creaked) { creaked = true; creak(3.2); }
-      if (t > 6.6 && !epilogue.classList.contains("show")) { fade.classList.add("show"); epilogue.classList.add("show"); }
+      setPhase("awake");
+      hush();
+      waking.start();
     }
 
     const r = 105 * (0.75 + 0.25 * power);
@@ -574,34 +582,35 @@
     }
     requestAnimationFrame(frame);
   }
-  const ease = (u) => (u < 0 ? 0 : u > 1 ? 1 : u * u * (3 - 2 * u));
-  let creaked = false;
 
   function showHint(delay) {
     clearTimeout(hintTimer);
     hintTimer = setTimeout(() => { hint.textContent = WORDS.hint; hint.classList.add("show"); }, delay);
   }
 
+  const waking = DreamWaking.mount($("stage"), {
+    words: { epilogue: WORDS.epilogue, replay: WORDS.replay },
+    sound: () => ctx && { ctx, master },
+    onReplay: restart,
+  });
+
   function restart() {
-    epilogue.classList.remove("show");
-    fade.classList.remove("show");
-    body.classList.remove("morning");
-    setTimeout(() => {
-      moves = 0; spot = 0; doorOpen = 0.02; hidden = false;
-      tx = bx = 195; ty = by = 700;
-      placeEyes(SPOTS[0]);
-      drawDoor(...mDoor, 0);
-      setPhase("dark");
-      setTimeout(() => eyes.setAttribute("opacity", "1"), 1500);
-      showHint(1800);
-    }, 900);
+    moves = 0; spot = 0; doorOpen = 0.02; hidden = false;
+    tx = bx = 195; ty = by = 700;
+    placeEyes(SPOTS[0]);
+    setPhase("dark");
+    if (ctx) {
+      room.gain.setTargetAtTime(0.22, ctx.currentTime, 0.8);
+      pad.gain.setTargetAtTime(0.14, ctx.currentTime, 0.8);
+    }
+    setTimeout(() => eyes.setAttribute("opacity", "1"), 1500);
+    showHint(1800);
   }
 
   addEventListener("pointerdown", (e) => {
     if (e.button > 0) return;
     audio();
-    if (phase === "morning") { if (epilogue.classList.contains("show")) restart(); return; }
-    if (phase === "out") return;
+    if (phase === "out" || phase === "awake") return;
     pressing = true;
     [tx, ty] = toSvg(e);
     if (phase === "dark") {
@@ -621,12 +630,11 @@
   addEventListener("pointerup", release);
   addEventListener("pointercancel", release);
   addEventListener("keydown", (e) => {
-    if ((e.key === " " || e.key === "Enter") && phase === "morning" && epilogue.classList.contains("show")) restart();
+    if ((e.key === " " || e.key === "Enter") && phase === "awake" && waking.done) { waking.reset(); restart(); }
   });
   addEventListener("contextmenu", (e) => e.preventDefault());
 
   placeEyes(SPOTS[0]);
-  drawDoor(...mDoor, 0);
   const still = params.get("stage");
   if (quiet) {
     // The card: the torch on the wardrobe, his eyes in the gap beside it.
@@ -640,10 +648,8 @@
     power = 0;
     phaseAt = Infinity;
   } else if (still === "2") {
-    setPhase("morning");
-    phaseAt = performance.now() - 8000;
-    creaked = true;
-    if (params.has("epilogue")) { fade.classList.add("show"); epilogue.classList.add("show"); }
+    setPhase("awake");
+    waking.still(Number(params.get("t") || 17));
   } else if (still === "0") {
     tx = bx = 120; ty = by = 520; phase = "still"; power = 1;
     eyes.setAttribute("opacity", "1"); doorOpen = 0.12;
