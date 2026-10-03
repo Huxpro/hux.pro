@@ -37,6 +37,17 @@
       "keywords": ["dream", "nightmare", "wardrobe", "man in black", "梦", "噩梦", "衣柜", "黑衣人"]
     },
     {
+      "id": "dream-look-up",
+      "title": "Look Up",
+      "titleZh": "抬头",
+      "runtime": "web",
+      "url": "/dreams/look-up/index.html",
+      "size": "portrait",
+      "icon": "/app-icons/dream-look-up.png",
+      "keywords": ["dream", "nightmare", "look up", "man in black", "梦", "噩梦", "抬头", "黑衣人"],
+      "featured": false
+    },
+    {
       "id": "cat-toy",
       "title": "Cat Wand",
       "titleZh": "逗猫棒",

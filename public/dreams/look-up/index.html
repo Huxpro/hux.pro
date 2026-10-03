@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#05070d">
+<meta name="robots" content="noindex">
+<title>抬头 · Look Up</title>
+<!--
+  Look Up: the same dream, from the pillow.
+
+  He stood at my bed, looking at me. I was small, and he was very tall and
+  very thin, all in black, and the hat on his head was round and far too big.
+
+  Drag up to raise your eyes. He goes on and on; the higher you look, the
+  heavier it gets, and let go and your eyes sink back down. At the top, under
+  the brim, he is looking at you. Then he bends.
+
+  One document, no dependencies, like every experience (systems/lab/catalog.ts):
+  the home folder opens it as an app, its lab (/lab/look-up) frames it.
+  `?lang=en|zh`, `?stage=0|1|2` (the floor, the hat, the morning) and
+  `?quiet` (no controls; the lab's surface) as in the others.
+-->
+<style>
+  :root { --night: #05070d; --ink: #e6e9f2; }
+  html, body { margin: 0; height: 100%; background: var(--night); overflow: hidden; overscroll-behavior: none; }
+  body {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent; touch-action: none; cursor: ns-resize;
+    font-family: "Songti SC", "Noto Serif SC", "Source Han Serif SC", "Newsreader", Georgia, serif;
+    color: var(--ink);
+  }
+  body.done { cursor: default; }
+  #stage { position: fixed; inset: 0; overflow: hidden; background: var(--night); }
+  svg.layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #morning { opacity: 0; transition: opacity 2.4s ease; filter: saturate(0.55); }
+  body.morning #morning { opacity: 1; }
+
+  #grain {
+    position: absolute; inset: -50%; pointer-events: none; opacity: 0.075; mix-blend-mode: screen;
+    animation: grain 0.5s steps(5) infinite;
+  }
+  @keyframes grain {
+    0% { transform: translate(0, 0); } 20% { transform: translate(-7%, 4%); }
+    40% { transform: translate(5%, -6%); } 60% { transform: translate(-3%, -9%); }
+    80% { transform: translate(8%, 6%); } 100% { transform: translate(0, 0); }
+  }
+  #vignette {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(120% 90% at 50% 50%, transparent 45%, rgba(0, 0, 0, 0.78) 100%);
+  }
+  /* The edge of sight: the higher you look, the closer it comes in. */
+  #tunnel {
+    position: absolute; inset: 0; pointer-events: none; opacity: var(--tunnel, 0);
+    background: radial-gradient(70% 55% at 50% 50%, transparent 40%, #000 100%);
+  }
+  body.morning #tunnel { opacity: 0; transition: opacity 1s; }
+
+  .line {
+    position: absolute; left: 0; right: 0; text-align: center; pointer-events: none;
+    opacity: 0; transition: opacity 1.2s ease; letter-spacing: 0.08em;
+  }
+  #hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 9%); font-size: 13px; color: rgba(230, 233, 242, 0.55); }
+  #hint::before {
+    content: ""; display: block; width: 9px; height: 9px; margin: 0 auto 14px;
+    border-left: 1.5px solid currentColor; border-top: 1.5px solid currentColor;
+    transform: rotate(45deg); animation: rise 1.8s ease-in-out infinite;
+  }
+  @keyframes rise {
+    0%, 100% { transform: translateY(4px) rotate(45deg); opacity: 0.3; }
+    50% { transform: translateY(-4px) rotate(45deg); opacity: 0.9; }
+  }
+  #hint.show { opacity: 1; }
+  #epilogue {
+    top: 50%; transform: translateY(-50%); padding: 0 28px; font-size: 17px; line-height: 1.9;
+    color: rgba(236, 238, 245, 0.88); text-shadow: 0 0 18px rgba(0, 0, 0, 0.9);
+  }
+  #epilogue small { display: block; margin-top: 28px; font-size: 12px; letter-spacing: 0.2em; color: rgba(236, 238, 245, 0.4); }
+  #epilogue.show { opacity: 1; }
+  #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 1.4s ease; }
+  #fade.show { opacity: 0.62; }
+
+  #sound {
+    position: absolute; top: calc(env(safe-area-inset-top, 0px) + 14px); right: 14px; width: 34px; height: 34px;
+    border: 0; border-radius: 50%; background: transparent; color: rgba(230, 233, 242, 0.32);
+    padding: 7px; cursor: pointer; z-index: 5;
+  }
+  #sound:hover { color: rgba(230, 233, 242, 0.6); }
+  #sound svg { width: 100%; height: 100%; display: block; }
+  #sound .off { display: none; }
+  body.muted #sound .on { display: none; }
+  body.muted #sound .off { display: block; }
+  body.quiet #sound { display: none; }
+
+  .glint { opacity: 0; transition: opacity 1.6s ease 0.4s; }
+  body.seen .glint { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) { #grain, #hint::before { animation: none; } }
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- The night: a world far taller than the screen, and a camera that is my eyes. -->
+  <svg id="night" class="layer" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#010204"/>
+        <stop offset="0.45" stop-color="#05070f"/>
+        <stop offset="0.8" stop-color="#0d1326"/>
+        <stop offset="1" stop-color="#0a0f1d"/>
+      </linearGradient>
+      <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#3c4e78"/><stop offset="1" stop-color="#1b2642"/>
+      </linearGradient>
+      <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8ea2d6" stop-opacity="0.14"/><stop offset="1" stop-color="#8ea2d6" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="blanket" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#1b2440"/><stop offset="0.35" stop-color="#111829"/><stop offset="1" stop-color="#070a12"/>
+      </linearGradient>
+      <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#6a7cad" stop-opacity="0.3"/>
+        <stop offset="0.55" stop-color="#3a4a78" stop-opacity="0.12"/>
+        <stop offset="1" stop-color="#3a4a78" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>
+
+      <!-- Him, in world coordinates: shoes at 2760, the crown of the hat at 260. -->
+      <g id="him">
+        <ellipse cx="183" cy="2758" rx="17" ry="7"/>
+        <ellipse cx="219" cy="2758" rx="17" ry="7"/>
+        <rect x="181" y="2700" width="10" height="56"/>
+        <rect x="209" y="2700" width="10" height="56"/>
+        <path d="M 158 500 C 150 520 147 560 149 640 L 136 2722 Q 200 2734 264 2722 L 251 640 C 253 560 250 520 242 500 Q 200 490 158 500 Z"/>
+        <path d="M 158 502 C 146 512 141 540 141 600 L 127 1520 L 141 1520 L 153 600 C 154 560 158 530 164 512 Z"/>
+        <path d="M 242 502 C 254 512 259 540 259 600 L 273 1520 L 259 1520 L 247 600 C 246 560 242 530 236 512 Z"/>
+        <path d="M 126 1516 L 120 1660 L 123 1660 L 131 1540 L 130 1676 L 134 1676 L 136 1540 L 139 1668 L 143 1668 L 141 1536 L 147 1640 L 150 1638 L 142 1516 Z"/>
+        <path d="M 274 1516 L 280 1660 L 277 1660 L 269 1540 L 270 1676 L 266 1676 L 264 1540 L 261 1668 L 257 1668 L 259 1536 L 253 1640 L 250 1638 L 258 1516 Z"/>
+        <rect x="191" y="460" width="18" height="46"/>
+        <ellipse cx="200" cy="436" rx="27" ry="35"/>
+        <g id="hat">
+          <path d="M 136 402 C 132 300 160 258 200 258 C 240 258 268 300 264 402 Z"/>
+          <ellipse cx="200" cy="400" rx="262" ry="34"/>
+        </g>
+      </g>
+    </defs>
+
+    <g id="world">
+      <!-- The room, further off than him: it moves slower. -->
+      <g id="far">
+        <rect x="-300" y="-400" width="990" height="3600" fill="url(#wall)"/>
+        <rect x="-300" y="2710" width="990" height="400" fill="#070a14"/>
+        <rect x="-300" y="2706" width="990" height="5" fill="#141b30"/>
+        <!-- Floorboards -->
+        <g stroke="#0c1120" stroke-width="2">
+          <line x1="-300" y1="2760" x2="690" y2="2760"/><line x1="-300" y1="2830" x2="690" y2="2830"/><line x1="-300" y1="2920" x2="690" y2="2920"/>
+        </g>
+        <!-- The window, and the moon through it -->
+        <rect x="-40" y="1980" width="120" height="230" fill="url(#glass)"/>
+        <circle cx="40" cy="2026" r="14" fill="#b9c5e6" opacity="0.5" filter="url(#soft)"/>
+        <rect x="18" y="1980" width="4" height="230" fill="#0b1020"/>
+        <rect x="-40" y="2090" width="120" height="4" fill="#0b1020"/>
+        <path d="M -40 2210 L 80 2210 L 300 2720 L 60 2720 Z" fill="url(#beam)" filter="url(#soft)"/>
+        <!-- The wardrobe he came out of, doors open, empty -->
+        <rect x="318" y="1880" width="150" height="836" fill="#121a2e"/>
+        <rect x="326" y="1892" width="140" height="820" fill="#04060c"/>
+        <path d="M 326 1892 L 300 1850 L 300 2760 L 326 2712 Z" fill="#0f1628"/>
+      </g>
+
+      <g id="near">
+        <!-- Something pale up there, behind him, so the hat has an edge -->
+        <ellipse cx="200" cy="330" rx="330" ry="260" fill="url(#halo)"/>
+        <!-- Moonlight on his left edge first, then him -->
+        <use href="#him" fill="#4a5c94" opacity="0.55" transform="translate(-2 0)"/>
+        <use id="himSolid" href="#him" fill="#000"/>
+        <!-- Buttons down the coat, catching a little light -->
+        <g fill="#0c1222" stroke="#27345a" stroke-width="1">
+          <circle cx="200" cy="700" r="4"/><circle cx="200" cy="900" r="4"/><circle cx="200" cy="1100" r="4"/>
+          <circle cx="200" cy="1300" r="4"/><circle cx="200" cy="1500" r="4"/><circle cx="200" cy="1700" r="4"/>
+          <circle cx="200" cy="1900" r="4"/><circle cx="200" cy="2100" r="4"/><circle cx="200" cy="2300" r="4"/>
+        </g>
+        <path d="M 200 520 L 200 2724" stroke="#0a0f1c" stroke-width="1.5"/>
+        <circle class="glint" cx="189" cy="440" r="1.8" fill="#d3dcf2"/>
+        <circle class="glint" cx="211" cy="439" r="1.8" fill="#d3dcf2"/>
+        <!-- The bed: my blanket, at the bottom of everything -->
+        <path d="M -40 2930 C 40 2894 120 2912 170 2886 C 214 2864 250 2860 286 2874 C 330 2892 360 2878 430 2886 L 430 3200 L -40 3200 Z" fill="url(#blanket)"/>
+        <path d="M -40 2930 C 40 2894 120 2912 170 2886 C 214 2864 250 2860 286 2874 C 330 2892 360 2878 430 2886" fill="none" stroke="#2c3962" stroke-width="1.4" opacity="0.7"/>
+      </g>
+
+      <!-- When he bends: the hat, coming down over everything -->
+      <g id="bend" opacity="0">
+        <use href="#hat" fill="#000"/>
+      </g>
+    </g>
+  </svg>
+
+  <!-- The morning: the room from the pillow, grey and empty. -->
+  <svg id="morning" class="layer" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect x="-200" y="-200" width="790" height="840" fill="#2a3142"/>
+    <rect x="-200" y="640" width="790" height="400" fill="#1a1f2b"/>
+    <rect x="40" y="172" width="112" height="214" fill="#6f7a94"/>
+    <rect x="94" y="172" width="4" height="214" fill="#262c3b"/>
+    <rect x="40" y="276" width="112" height="4" fill="#262c3b"/>
+    <path d="M 40 386 L 152 386 L 330 700 L 120 700 Z" fill="#c2cbe0" opacity="0.06"/>
+    <rect x="200" y="200" width="172" height="14" fill="#2f3647"/>
+    <rect x="205" y="212" width="161" height="430" fill="#363e52"/>
+    <rect x="213" y="222" width="145" height="418" fill="#07090f"/>
+    <rect x="213" y="222" width="73" height="418" fill="#3a4357"/>
+    <rect x="221" y="236" width="57" height="180" fill="none" stroke="#2c3346" stroke-width="2"/>
+    <rect x="221" y="432" width="57" height="190" fill="none" stroke="#2c3346" stroke-width="2"/>
+    <path id="mDoor" fill="#3a4357" stroke="#1a1f2b" stroke-width="1"/>
+    <path id="mPanels" fill="none" stroke="#2c3346" stroke-width="2"/>
+    <path d="M -40 760 C 40 724 120 742 170 716 C 214 694 250 690 286 704 C 330 722 360 708 430 716 L 430 900 L -40 900 Z" fill="#20263a"/>
+  </svg>
+
+  <div id="grain"></div>
+  <div id="tunnel"></div>
+  <div id="vignette"></div>
+  <div id="fade"></div>
+  <div id="hint" class="line"></div>
+  <div id="epilogue" class="line"></div>
+  <button id="sound" type="button" aria-label="Sound">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 9h4l5-4v14l-5-4H4z"/>
+      <path class="on" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>
+      <path class="off" d="M17 9l5 6M22 9l-5 6"/>
+    </svg>
+  </button>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const params = new URLSearchParams(location.search);
+  let lang = params.get("lang");
+  if (lang !== "en" && lang !== "zh") {
+    try { lang = localStorage.getItem("locale"); } catch { lang = null; }
+  }
+  if (lang !== "en" && lang !== "zh") lang = /^zh/i.test(navigator.language) ? "zh" : "en";
+  document.documentElement.lang = lang;
+
+  const WORDS = {
+    zh: { hint: "向上拖动，抬头看他", epilogue: "小时候，他隔三差五就来看我。", replay: "轻触 · 再梦一次", sound: "声音" },
+    en: { hint: "Drag up to look at him", epilogue: "When I was little, he came to watch me every few nights.", replay: "Tap · dream it again", sound: "Sound" },
+  }[lang];
+
+  const $ = (id) => document.getElementById(id);
+  const body = document.body;
+  const night = $("night"), morning = $("morning");
+  const far = $("far"), near = $("near"), bend = $("bend");
+  const hint = $("hint"), epilogue = $("epilogue"), fade = $("fade");
+  const soundButton = $("sound");
+  soundButton.setAttribute("aria-label", WORDS.sound);
+  epilogue.innerHTML = `${WORDS.epilogue}<small>${WORDS.replay}</small>`;
+  const quiet = params.has("quiet");
+  if (quiet) body.classList.add("quiet");
+
+  function fit() {
+    const wide = innerWidth / innerHeight > 0.62;
+    for (const svg of [night, morning]) svg.setAttribute("preserveAspectRatio", wide ? "xMidYMid meet" : "xMidYMid slice");
+  }
+  addEventListener("resize", fit);
+  fit();
+
+  (() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 160;
+    const g = c.getContext("2d");
+    const img = g.createImageData(160, 160);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = Math.random() * 255;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    $("grain").style.background = `url(${c.toDataURL()})`;
+  })();
+
+  // ---------------------------------------------------------------------------
+  // Sound, made here, after the first touch: room tone, a heart that keeps
+  // time with how high you look, a swell when he is seen, and a hinge.
+  // ---------------------------------------------------------------------------
+  let ctx = null, master = null, room = null, muted = false;
+  try { muted = sessionStorage.getItem("dream-muted") === "1"; } catch {}
+  body.classList.toggle("muted", muted);
+
+  function audio() {
+    if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain();
+    master.gain.value = muted ? 0 : 0.9;
+    master.connect(ctx.destination);
+    const len = ctx.sampleRate * 4;
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.2; }
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = 260;
+    room = ctx.createGain();
+    room.gain.value = 0;
+    room.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 2);
+    src.connect(lp).connect(room).connect(master);
+    src.start();
+  }
+
+  function thump(t, strength) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(70, t);
+    o.frequency.exponentialRampToValueAtTime(38, t + 0.16);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(strength, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+    o.connect(g).connect(master);
+    o.start(t); o.stop(t + 0.3);
+  }
+
+  // The heart runs from 70 to 150 as the eyes go up; it stops when he is seen.
+  let nextBeat = 0, heartOn = false;
+  function heart(now) {
+    if (!ctx || !heartOn || now < nextBeat) return;
+    const strength = 0.35 + 0.6 * progress;
+    const t = ctx.currentTime + 0.01;
+    thump(t, strength);
+    thump(t + 0.16, strength * 0.6);
+    if (navigator.vibrate && progress > 0.5) navigator.vibrate([18, 130, 10]);
+    nextBeat = now + 60000 / (70 + 80 * progress);
+  }
+
+  function dread() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.34, t + 0.6);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 4.2);
+    g.connect(master);
+    [41, 41.7, 66].forEach((f, i) => {
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.type = i === 2 ? "triangle" : "sine"; o.frequency.value = f;
+      og.gain.value = i === 2 ? 0.25 : 0.6;
+      o.connect(og).connect(g); o.start(t); o.stop(t + 4.4);
+    });
+    const o = ctx.createOscillator(), og = ctx.createGain();
+    o.frequency.setValueAtTime(1760, t);
+    o.frequency.linearRampToValueAtTime(1820, t + 3);
+    og.gain.setValueAtTime(0.0001, t);
+    og.gain.exponentialRampToValueAtTime(0.012, t + 1.2);
+    og.gain.exponentialRampToValueAtTime(0.0001, t + 3.6);
+    o.connect(og).connect(master); o.start(t); o.stop(t + 3.7);
+  }
+
+  function creak(duration) {
+    if (!ctx) return;
+    const t0 = ctx.currentTime + 0.05;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass"; bp.Q.value = 9;
+    bp.frequency.setValueAtTime(520, t0);
+    bp.frequency.linearRampToValueAtTime(760, t0 + duration * 0.55);
+    bp.frequency.linearRampToValueAtTime(610, t0 + duration);
+    const g = ctx.createGain();
+    g.gain.value = 1.4;
+    bp.connect(g).connect(master);
+    const click = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.004), ctx.sampleRate);
+    const cd = click.getChannelData(0);
+    for (let i = 0; i < cd.length; i++) cd[i] = (Math.random() * 2 - 1) * (1 - i / cd.length);
+    let t = t0;
+    while (t < t0 + duration) {
+      const u = (t - t0) / duration;
+      const s = ctx.createBufferSource(), sg = ctx.createGain();
+      s.buffer = click;
+      sg.gain.value = 0.25 + 0.75 * Math.sin(Math.PI * Math.min(1, u * 1.2));
+      s.connect(sg).connect(bp); s.start(t);
+      t += 0.007 + 0.016 * u + Math.random() * 0.012 + (Math.random() < 0.05 ? 0.09 : 0);
+    }
+  }
+
+  soundButton.addEventListener("pointerdown", (e) => e.stopPropagation());
+  soundButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    muted = !muted;
+    body.classList.toggle("muted", muted);
+    try { sessionStorage.setItem("dream-muted", muted ? "1" : "0"); } catch {}
+    if (master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.1);
+  });
+
+  // ---------------------------------------------------------------------------
+  // The morning's wardrobe door, hinged at its right edge (as in The Wardrobe).
+  // ---------------------------------------------------------------------------
+  const mDoor = $("mDoor"), mPanels = $("mPanels");
+  const poly = (q) => "M" + q.map((r) => r[0].toFixed(2) + " " + r[1].toFixed(2)).join(" L") + " Z";
+  function drawMorningDoor(open) {
+    const HINGE = 358, W = 72, TOP = 222, BOTTOM = 640, CX = 195, CY = 470;
+    const a = open * 1.95;
+    const fx = HINGE - W * Math.cos(a), fz = W * Math.sin(a);
+    const p = (u, y) => {
+      const s = 1 / (1 - fz * u * 0.0026);
+      return [CX + (HINGE + (fx - HINGE) * u - CX) * s, CY + (y - CY) * s];
+    };
+    mDoor.setAttribute("d", poly([p(0, TOP), p(1, TOP), p(1, BOTTOM), p(0, BOTTOM)]));
+    mPanels.setAttribute("d",
+      poly([p(0.11, 236), p(0.89, 236), p(0.89, 416), p(0.11, 416)]) + " " +
+      poly([p(0.11, 432), p(0.89, 432), p(0.89, 622), p(0.11, 622)]));
+    mDoor.style.filter = `brightness(${(0.72 + 0.36 * Math.cos(a)).toFixed(3)})`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // The eyes. `cam` is the world y at the top of the screen: 2156 is the
+  // floor by the bed, 120 is the hat. Dragging up raises it, heavier the
+  // higher it is; let go and it sinks, because you would rather not look.
+  //
+  //   rest      looking at the floor, at his shoes
+  //   rising    dragging the eyes up him
+  //   seen      at the top: the brim, the glints under it. Silence.
+  //   bend      he bends down to you; the hat comes over everything
+  //   morning   grey light, an empty room, the wardrobe door opening
+  // ---------------------------------------------------------------------------
+  const BOTTOM = 2156, TOP = 120;
+  let cam = BOTTOM;
+  let progress = 0;
+  let phase = "rest";
+  let phaseAt = performance.now();
+  let dragging = false, lastY = 0, idleAt = performance.now();
+  let hintTimer = 0;
+
+  const ease = (u) => (u < 0 ? 0 : u > 1 ? 1 : u * u * (3 - 2 * u));
+  const easeIn = (u) => (u < 0 ? 0 : u > 1 ? 1 : u * u * u);
+
+  function setPhase(p) {
+    phase = p;
+    phaseAt = performance.now();
+    body.classList.toggle("seen", p === "seen" || p === "bend");
+    body.classList.toggle("morning", p === "morning");
+    body.classList.toggle("done", p !== "rest" && p !== "rising");
+  }
+
+  function showHint(delay) {
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => { hint.textContent = WORDS.hint; hint.classList.add("show"); }, delay);
+  }
+  function hideHint() { clearTimeout(hintTimer); hint.classList.remove("show"); }
+
+  function look(dy) {
+    if (phase !== "rest" && phase !== "rising") return;
+    if (phase === "rest") setPhase("rising");
+    // Heavier the higher you look.
+    const gain = 1.3 - 0.85 * progress;
+    cam = Math.max(TOP, Math.min(BOTTOM, cam - dy * gain));
+    idleAt = performance.now();
+    hideHint();
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    // Read fresh after every change of phase: each one starts its own clock.
+    const since = () => (now - phaseAt) / 1000;
+
+    if (phase === "rising" && !dragging && now - idleAt > 350) {
+      // The eyes sink back down.
+      cam = Math.min(BOTTOM, cam + (40 + 160 * progress) * dt);
+      if (cam >= BOTTOM - 1 && now - idleAt > 2500) showHint(0);
+    }
+    if (phase === "rising" && cam <= TOP + 30) {
+      setPhase("seen");
+      heartOn = false;
+      dread();
+      if (room) room.gain.setTargetAtTime(0.04, ctx.currentTime, 0.3);
+    }
+    if (phase === "seen") {
+      cam += (TOP - cam) * Math.min(1, dt * 4);
+      if (since() > 2.4) setPhase("bend");
+    }
+    let bendU = 0;
+    if (phase === "bend") {
+      bendU = easeIn(since() / 0.9);
+      if (since() > 2.4) {
+        setPhase("morning");
+        if (room) room.gain.setTargetAtTime(0.12, ctx.currentTime, 0.6);
+      }
+    }
+    if (phase === "morning") {
+      const t = since();
+      drawMorningDoor(0.42 * ease((t - 2.2) / 3.2));
+      if (t > 2.2 && !creaked) { creaked = true; creak(3.2); }
+      if (t > 6.6 && !epilogue.classList.contains("show")) { fade.classList.add("show"); epilogue.classList.add("show"); }
+    }
+
+    progress = (BOTTOM - cam) / (BOTTOM - TOP);
+    document.documentElement.style.setProperty("--tunnel", (0.15 + 0.7 * progress).toFixed(3));
+    near.setAttribute("transform", `translate(0 ${(-cam).toFixed(1)})`);
+    far.setAttribute("transform", `translate(0 ${(-(cam * 0.82 + BOTTOM * 0.18)).toFixed(1)})`);
+    // He bends: the hat leaves him and comes down over the eyes, too big to see the edges of.
+    if (bendU > 0) {
+      const s = 1 + 15 * bendU;
+      const y = 400 + (cam + 560 - 400) * bendU;
+      bend.setAttribute("opacity", "1");
+      bend.setAttribute("transform", `translate(0 ${(-cam).toFixed(1)}) translate(200 ${y.toFixed(1)}) scale(${s.toFixed(3)}) translate(-200 -400)`);
+    } else if (phase !== "morning") {
+      bend.setAttribute("opacity", "0");
+    }
+    heart(now);
+    requestAnimationFrame(frame);
+  }
+  let creaked = false;
+
+  function restart() {
+    epilogue.classList.remove("show");
+    fade.classList.remove("show");
+    body.classList.remove("morning");
+    setTimeout(() => {
+      cam = BOTTOM;
+      creaked = false;
+      drawMorningDoor(0);
+      setPhase("rest");
+      showHint(1200);
+    }, 900);
+  }
+
+  addEventListener("pointerdown", (e) => {
+    if (e.button > 0) return;
+    audio();
+    if (phase === "morning") { if (epilogue.classList.contains("show")) restart(); return; }
+    dragging = true;
+    lastY = e.clientY;
+    if (phase === "rest" || phase === "rising") heartOn = true;
+  });
+  addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    // Screen pixels to world units: the world is drawn 844 tall.
+    const k = 844 / innerHeight;
+    look((lastY - e.clientY) * k);
+    lastY = e.clientY;
+  });
+  const release = () => { dragging = false; idleAt = performance.now(); };
+  addEventListener("pointerup", release);
+  addEventListener("pointercancel", release);
+  addEventListener("wheel", (e) => {
+    audio();
+    heartOn = phase === "rest" || phase === "rising";
+    look(-e.deltaY * 0.5);
+  }, { passive: true });
+  addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp") { audio(); heartOn = true; look(60); }
+    if ((e.key === " " || e.key === "Enter") && phase === "morning" && epilogue.classList.contains("show")) restart();
+  });
+  addEventListener("contextmenu", (e) => e.preventDefault());
+
+  drawMorningDoor(0);
+  const still = params.get("stage");
+  if (still === "1") { cam = TOP; setPhase("seen"); phaseAt = Infinity; }
+  else if (still === "2") { setPhase("morning"); phaseAt = performance.now() - 8000; creaked = true; }
+  else if (still === "0") { cam = BOTTOM - 260; }
+  if (params.has("epilogue")) { fade.classList.add("show"); epilogue.classList.add("show"); }
+  if (quiet) {
+    night.setAttribute("viewBox", "10 110 370 240");
+    cam = TOP + 40;
+    body.classList.add("seen");
+    phaseAt = Infinity;
+    phase = "seen";
+  }
+  if (still === null && !quiet) showHint(1200);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
