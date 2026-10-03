@@ -163,7 +163,7 @@ export default function AskPage({ question, onQuestionTaken, onNavigate }: AskPa
         {/* Phone: the way home, what this conversation is, and its history. */}
         <header className="flex h-14 shrink-0 items-center gap-1 px-[var(--page-gutter)] md:hidden">
           <SystemNav href="/" path="λhux" />
-          <span className={cn(TYPE.label, "min-w-0 flex-1 truncate px-2 text-center")}>
+          <span className="min-w-0 flex-1 truncate px-2 text-center text-sm text-muted-foreground">
             {messages.length ? (title ?? s.ask) : s.ask}
           </span>
           <button
@@ -192,14 +192,14 @@ export default function AskPage({ question, onQuestionTaken, onNavigate }: AskPa
         ) : (
           <AskMessages
             onNavigate={onNavigate}
-            contentClassName="mx-auto w-full max-w-[var(--page-col)] gap-8 px-[var(--page-gutter)] pt-4 pb-8 md:pt-12"
+            contentClassName="mx-auto w-full max-w-[var(--page-col)] px-[var(--page-gutter)] pt-4 pb-8 md:pt-12"
           />
         )}
 
         <div className="mx-auto w-full max-w-[var(--page-col)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-[var(--page-gutter)] md:pb-6">
           {/* Glass under the field's own border, so the page shows through
               the composer the way it does through the palette. */}
-          <div className="rounded-xl bg-glass-popover shadow-raised backdrop-blur-xl">
+          <div className="rounded-2xl bg-glass-popover shadow-raised backdrop-blur-xl">
             <AskComposer autoFocus={hasFineHoverPointer} />
           </div>
         </div>
