@@ -27,6 +27,16 @@
       "icon": "/app-icons/vue-lynx.png"
     },
     {
+      "id": "dream-wardrobe",
+      "title": "The Wardrobe",
+      "titleZh": "衣柜",
+      "runtime": "web",
+      "url": "/dreams/wardrobe/index.html",
+      "size": "portrait",
+      "icon": "/app-icons/dream-wardrobe.png",
+      "keywords": ["dream", "nightmare", "wardrobe", "man in black", "梦", "噩梦", "衣柜", "黑衣人"]
+    },
+    {
       "id": "cat-toy",
       "title": "Cat Wand",
       "titleZh": "逗猫棒",

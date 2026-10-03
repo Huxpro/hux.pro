@@ -9,4 +9,5 @@ export * from "./components/shell";
 export * from "./components/nav";
 export * from "./components/controls";
 export * from "./components/library";
+export * from "./components/experience";
 export { LAB_SURFACES } from "./surfaces";

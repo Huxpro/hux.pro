@@ -26,14 +26,19 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the grid's edit mode, or the switch on the index). The dropdown on each
  * lab's sticky bar (`LabNav`) is how you move between the labs.
  *
- * A lab is one of two kinds:
+ * A lab is one of three kinds:
  *
- *   study     one of this site's systems laid open (all but one, today)
- *   library   a system that left as a package. Vitre is the first. Its lab
- *             is the library's home, in the library template
- *             (components/library.tsx): its docs, its API reference and how
- *             this site uses it, under one header. Its content stays in the
- *             package, where the type check holds it to the API.
+ *   study       one of this site's systems laid open (most of them)
+ *   library     a system that left as a package. Vitre is the first. Its lab
+ *               is the library's home, in the library template
+ *               (components/library.tsx): its docs, its API reference and
+ *               how this site uses it, under one header. Its content stays
+ *               in the package, where the type check holds it to the API.
+ *   experience  a feeling, in a few seconds and a few touches: one
+ *               self-contained document in `public/`, which the home
+ *               folder opens as an app (content/apps.json) and its lab
+ *               frames beside the story it came from
+ *               (components/experience.tsx). The Wardrobe is the first.
  *
  * Adding a lab: an entry here, a route under `app/lab/<id>`, a surface in
  * `systems/lab/surfaces`, the `LabShell` (or, for a library, the
@@ -43,7 +48,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -72,7 +77,21 @@ export interface LibraryLab extends LabBase {
   library: LibraryInfo;
 }
 
-export type LabEntry = StudyLab | LibraryLab;
+/** A feeling, a few seconds long: one document, framed beside its story. */
+export interface ExperienceLab extends LabBase {
+  kind: "experience";
+  experience: ExperienceInfo;
+}
+
+export type LabEntry = StudyLab | LibraryLab | ExperienceLab;
+
+/** Where an experience's document is, and what opens it elsewhere. */
+export interface ExperienceInfo {
+  /** The document itself, under public/: what the lab frames and the app opens. */
+  src: string;
+  /** Its entry in content/apps.json: the icon on the home screen. */
+  app: string;
+}
 
 /** What a library's header says about the package, read from it, not retyped. */
 export interface LibraryInfo {
@@ -190,6 +209,25 @@ export const LABS: readonly LabEntry[] = [
     },
   },
   {
+    id: "wardrobe",
+    href: "/lab/wardrobe",
+    name: { en: "The Wardrobe", zh: "衣柜" },
+    mark: "dream",
+    kind: "experience",
+    experience: {
+      src: "/dreams/wardrobe/index.html",
+      app: "dream-wardrobe",
+    },
+    hint: {
+      en: "A childhood nightmare, in three blinks",
+      zh: "童年的一个噩梦，三次闭眼",
+    },
+    blurb: {
+      en: "A tall thin man in black, under a round hat far too big for him, stood in my wardrobe, then at my bed. I woke, and the wardrobe door really was opening. Hold to close your eyes; each time you open them, he is closer.",
+      zh: "一个穿黑衣服、又高又瘦、戴着一顶大得出奇的圆帽子的男人，先站在我的衣柜里，后来站在我的床头。我醒了，衣柜门真的正在打开。按住闭上眼睛；每次睁开，他都更近一些。",
+    },
+  },
+  {
     id: "vitre",
     href: "/lab/vitre",
     name: { en: "Vitre", zh: "Vitre 窗玻璃" },
@@ -215,8 +253,13 @@ export const LABS: readonly LabEntry[] = [
   },
 ];
 
-/** The two kinds, in the order the index and the switcher show them, with their headings (lib/i18n). */
+/**
+ * The three kinds, in the order the index and the switcher show them, with
+ * their headings (lib/i18n). Experiences lead: they are the one kind made for
+ * whoever wanders in, not for someone reading the site's insides.
+ */
 export const LAB_GROUPS = [
+  { kind: "experience", title: "labExperiences", note: "labExperiencesNote" },
   { kind: "library", title: "labLibraries", note: "labLibrariesNote" },
   { kind: "study", title: "labStudies", note: "labStudiesNote" },
 ] as const;
@@ -229,6 +272,13 @@ export function labById(id: LabId): LabEntry {
 export function libraryById(id: LabId): LibraryLab {
   const lab = labById(id);
   if (lab.kind !== "library") throw new Error(`${id} is a study, not a library`);
+  return lab;
+}
+
+/** An experience lab by id. Any other kind is a mistake, caught here. */
+export function experienceById(id: LabId): ExperienceLab {
+  const lab = labById(id);
+  if (lab.kind !== "experience") throw new Error(`${id} is a ${lab.kind}, not an experience`);
   return lab;
 }
 
