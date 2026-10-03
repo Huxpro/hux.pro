@@ -1,23 +1,31 @@
 // =============================================================================
 // The models Ask may run on: the list the picker shows and the only ids the
-// chat route accepts. One vendor-neutral id per model (Vercel AI Gateway's
-// `provider/model`); `direct` is the same model's id at its own provider, for
-// running on that provider's key when there is no gateway key.
+// chat route accepts (anything else falls back to the first). Vercel AI
+// Gateway ids, `provider/model`.
+//
+// Chosen to cost little and to run on the gateway's free tier: every one is
+// `availableToFreeTier` in the gateway's catalog, takes tools, reasons, reads
+// Chinese and English, and is served without training on prompts. Claude,
+// GPT and Gemini 3 need purchased gateway credits; add them here when there
+// are some (an entry with `direct` also runs on that provider's own key).
+// Prices per million tokens, input / output, as listed 2026-10.
 // =============================================================================
 
 export interface AskModel {
   id: string;
   label: string;
-  /** Provider-native id, for `@ai-sdk/<provider>` without the gateway. */
-  direct: string;
+  /** Provider-native id, for `@ai-sdk/anthropic` / `@ai-sdk/openai` without
+   *  the gateway. Only those two providers are wired directly. */
+  direct?: string;
 }
 
 export const ASK_MODELS: AskModel[] = [
-  { id: "anthropic/claude-opus-5.5", label: "Claude Opus 5.5", direct: "claude-opus-5-5" },
-  { id: "anthropic/claude-sonnet-5.5", label: "Claude Sonnet 5.5", direct: "claude-sonnet-5-5" },
-  { id: "anthropic/claude-haiku-4.5", label: "Claude Haiku 4.5", direct: "claude-haiku-4-5" },
-  { id: "openai/gpt-6.1-sol", label: "GPT-6.1 Sol", direct: "gpt-6.1-sol" },
-  { id: "google/gemini-3.8-flash", label: "Gemini 3.8 Flash", direct: "gemini-3.8-flash" },
+  // $0.10 / $0.40, 1M context, explicit caching.
+  { id: "alibaba/qwen3.5-flash", label: "Qwen 3.5 Flash" },
+  // $0.30 / $2.50.
+  { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+  // $0.47 / $2.00, the strongest of the three at agentic tool use.
+  { id: "moonshotai/kimi-k2-thinking", label: "Kimi K2 Thinking" },
 ];
 
 export const DEFAULT_ASK_MODEL = ASK_MODELS[0].id;

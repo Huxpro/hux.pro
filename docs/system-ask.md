@@ -73,8 +73,29 @@ run them against public/ask/index.json
   `search_site` / `read`. The whole site in every request would be a few
   hundred thousand tokens; the map and a few reads are a small fraction.
 - **Vendor-neutral.** AI SDK throughout. Model ids are Vercel AI Gateway's
-  (`anthropic/claude-opus-5.5`, `openai/…`, `google/…`); each also has its
-  provider-native id for running on that provider's own key.
+  (`provider/model`); changing models is changing `models.ts`.
+
+### Which models
+
+`systems/ask/lib/models.ts` is the whole list: the picker shows it, the
+route accepts nothing else (an unknown id falls back to the first, the
+default). It is chosen to run on the gateway's **free tier** and to cost
+little: every entry is `availableToFreeTier` in the gateway's catalog, takes
+tools, reasons, reads both languages, and is served without training on
+prompts.
+
+| model | $ / M tokens (in / out) | |
+|---|---|---|
+| Qwen 3.5 Flash (`alibaba/qwen3.5-flash`) | 0.10 / 0.40 | default; 1M context |
+| Gemini 2.5 Flash (`google/gemini-2.5-flash`) | 0.30 / 2.50 | |
+| Kimi K2 Thinking (`moonshotai/kimi-k2-thinking`) | 0.47 / 2.00 | best at agentic tool use of the three |
+
+A question costs about a tenth of a cent on the default (≈10k tokens in,
+≈600 out). Claude, GPT and Gemini 3 are not on the free tier; they need
+purchased gateway credits, and go in the list then. The free `$0` models were
+left out: the ones that are free are served with no promise against training
+on what visitors ask. Set a budget on the project in the gateway's dashboard
+either way.
 
 ### Which provider runs it
 
@@ -82,8 +103,8 @@ First match wins (`resolveModel` in the route):
 
 | set in the environment | runs |
 |---|---|
-| `AI_GATEWAY_API_KEY` (or Vercel's OIDC token on a deployment with the gateway enabled) | any model in the list, via the gateway |
-| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | that provider's models, directly |
+| a Vercel deployment (`VERCEL=1`), `AI_GATEWAY_API_KEY`, or a pulled `VERCEL_OIDC_TOKEN` | any model in the list, via the gateway. A deployment needs no key: the gateway provider authenticates with the project's OIDC token per request. A key is for running it elsewhere (local, CI, this repo's cloud sessions). |
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | that provider's models directly, for an entry with a `direct` id |
 | neither | **the stand-in**: a scripted turn that asks the page to search for the question, then lists what it found. The whole loop (route → tool call → browser search → resubmit → answer) works with no key, for development and previews. |
 
 ## The index

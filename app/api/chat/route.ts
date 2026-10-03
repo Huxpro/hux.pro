@@ -23,10 +23,13 @@ import {
 // (systems/ask), so this route never touches the index.
 //
 // Which provider runs a model, first match wins:
-//   AI_GATEWAY_API_KEY (or Vercel's OIDC token)  any model, via the gateway
-//   ANTHROPIC_API_KEY / OPENAI_API_KEY           that provider's models
-//   neither                                      a scripted stand-in that
-//                                                exercises the tool loop
+//   on Vercel, or AI_GATEWAY_API_KEY set     any model, via the gateway (a
+//                                            deployment authenticates with
+//                                            its OIDC token, no key needed)
+//   ANTHROPIC_API_KEY / OPENAI_API_KEY       that provider's models, for an
+//                                            entry with a `direct` id
+//   neither                                  a scripted stand-in that
+//                                            exercises the tool loop
 // =============================================================================
 
 export const maxDuration = 60;
@@ -37,14 +40,17 @@ const MAX_USER_CHARS = 4000;
 const MAX_OUTPUT_TOKENS = 4000;
 
 function resolveModel(model: AskModel): LanguageModel | null {
-  if (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN) {
+  // On a Vercel deployment (VERCEL=1) the gateway provider finds the OIDC
+  // token itself, per request; VERCEL_OIDC_TOKEN in the environment is the
+  // local copy `vercel env pull` writes.
+  if (process.env.VERCEL || process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN) {
     return gateway(model.id);
   }
   const provider = model.id.split("/")[0];
-  if (provider === "anthropic" && process.env.ANTHROPIC_API_KEY) {
+  if (model.direct && provider === "anthropic" && process.env.ANTHROPIC_API_KEY) {
     return createAnthropic()(model.direct);
   }
-  if (provider === "openai" && process.env.OPENAI_API_KEY) {
+  if (model.direct && provider === "openai" && process.env.OPENAI_API_KEY) {
     return createOpenAI()(model.direct);
   }
   return null;
@@ -154,7 +160,7 @@ function standIn(messages: AskUIMessage[]) {
           const lines = pages.length
             ? pages.map(([href, title]) => `- [${title}](${href})`).join("\n")
             : "Nothing on the site matched.";
-          const text = `No model is configured (set \`AI_GATEWAY_API_KEY\` or \`ANTHROPIC_API_KEY\`), so this is the stand-in. The search ran in your browser and found:\n\n${lines}`;
+          const text = `No model is configured (deploy on Vercel, or set \`AI_GATEWAY_API_KEY\`), so this is the stand-in. The search ran in your browser and found:\n\n${lines}`;
           writer.write({ type: "text-start", id: "t" });
           writer.write({ type: "text-delta", id: "t", delta: text });
           writer.write({ type: "text-end", id: "t" });
