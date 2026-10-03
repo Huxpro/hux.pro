@@ -4,13 +4,14 @@ import { useLocale, t } from "@/services";
 import { useCommand } from "./provider";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { Command, Search } from "lucide-react";
+import { Command, Search, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@/systems/draggable";
 import { useDevtool } from "@/systems/devtool";
 import { HoldRing } from "@/components/ui/hold-ring";
 import { HANDOFF, useHomeEditing } from "@/components/ui/home-edit-store";
+import { askStrings } from "@/systems/ask/strings";
 import { useCompactViewport } from "./use-compact-viewport";
 
 /**
@@ -36,7 +37,7 @@ const HOLD_SLOP_PX = 10;
 const FAB_RADIUS = 24;
 
 export function FloatingActionButton() {
-  const { toggle } = useCommand();
+  const { toggle, isAskOpen, toggleAsk } = useCommand();
   const { summon: summonDevtool } = useDevtool();
   const pathname = usePathname();
   const { locale } = useLocale();
@@ -121,8 +122,12 @@ export function FloatingActionButton() {
       data-sky-exits=""
       className={cn(
         "system-chrome fixed bottom-6 left-0 right-0 z-50 px-6",
-        "flex pointer-events-none",
-        isHomepage ? "justify-center" : "justify-end"
+        "flex gap-2 pointer-events-none",
+        isHomepage ? "justify-center" : "justify-end",
+        // Ask's panel takes the trailing edge from `sm` up (its width and
+        // the edge gap, systems/surface): the buttons move over beside it
+        // rather than under it.
+        isAskOpen && "sm:pr-[calc(min(94vw,440px)+2.25rem)]"
       )}
     >
       <motion.button
@@ -248,6 +253,40 @@ export function FloatingActionButton() {
             </motion.div>
           )}
         </AnimatePresence>
+      </motion.button>
+
+      {/* Ask (systems/ask): the panel that stays while you read, one press
+          from every page, beside the way into everything else. Lit while
+          the panel is open, and a second press puts it away, as ⌘J does. */}
+      <motion.button
+        layout
+        type="button"
+        onClick={toggleAsk}
+        aria-pressed={isAskOpen}
+        aria-label={askStrings(locale).shortcut}
+        title={`${askStrings(locale).shortcut} (⌘J)`}
+        className={cn(
+          "pressable pointer-events-auto select-none shrink-0",
+          "transition-[background-color,border-color,color,transform] duration-200",
+          yielding && "pointer-events-none",
+          "flex h-12 w-12 items-center justify-center",
+          "bg-glass backdrop-blur-xl border border-border/50 shadow-raised",
+          "text-muted-foreground",
+          "hover:bg-glass-hover hover:border-border hover:text-foreground",
+          "active:bg-glass-strong-hover active:border-border active:text-foreground",
+          "aria-pressed:bg-glass-strong aria-pressed:text-foreground",
+          !isHomepage && "active:scale-95"
+        )}
+        style={{ borderRadius: FAB_RADIUS }}
+        animate={{ opacity: yielding ? 0 : 1 }}
+        transition={{
+          layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
+          opacity: yielding
+            ? { duration: HANDOFF.out }
+            : { duration: HANDOFF.in, delay: HANDOFF.delay },
+        }}
+      >
+        <Sparkles className="h-4 w-4" />
       </motion.button>
     </div>
   );

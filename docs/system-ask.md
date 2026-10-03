@@ -19,7 +19,8 @@ systems/ask/
 │   ├── messages.tsx   # AskMessages: the conversation, steps, sources, copy / regenerate
 │   ├── composer.tsx   # AskComposer: field, model, thinking level, voice, send / stop
 │   ├── history.tsx    # AskHistory: past conversations
-│   └── chat.tsx       # AskChat: those three, as the palette shows them (lazy-loaded)
+│   └── panel.tsx      # AskPanel: those three, as the panel shows them (lazy-loaded)
+├── surface.tsx        # AskSurface: the panel (a sheet on a phone), mounted once in the root layout
 └── strings.ts           # en / zh
 
 lib/ask-corpus.ts      # reads the site into the index (Node, build time)
@@ -43,17 +44,35 @@ whenever the field has text:
 question whole (`toFieldText` in `systems/command/voice.tsx`): commands are
 still stripped to a query ("open the writing" → "writing"), questions are not.
 
-Ask is the palette's fourth mode, beside search, slash and load-bundle
-(`isAskMode` in the command provider). On the desktop it replaces the results
-inside the same card; on a phone it is a full-height sheet stacked on the
-palette, like the slash sheet. Escape (or ←) goes back to search and keeps the
-conversation; the ✎ button starts a new one. A link in an answer to a page of
-this site navigates there and the palette leaves, as a command would.
+## A panel that stays while you read
+
+Ask is not a mode of the palette. The palette hands the question over and
+closes, and Ask opens in a panel of its own (`AskSurface`, `surface.tsx`),
+mounted once in the root layout beside the palette, so it outlives every page
+it is opened on. Its open state is the command provider's (`isAskOpen`,
+`openAsk(text?)`, `closeAsk`, `toggleAsk`), so every way in agrees.
+
+| viewport | shape | a link in an answer |
+|---|---|---|
+| `sm` and up | `SurfacePanel`: docked to the trailing edge, full height, 440px, no scrim; the page beside it stays live | navigates the page; the panel and the conversation stay |
+| phone | `SurfaceSheet`, full height | navigates, and the sheet goes, to show the page it opened |
+
+From 1280px wide the page makes room: `data-ask-docked` on `<html>` pads
+vitre's `#vitre-scroll` by the panel's width (globals.css, "Ask panel"), so a
+column of prose sits beside the conversation rather than under it. The home's
+widget grid is not a column to read, and keeps its width.
+
+The header is the surface system's (`SurfaceBody`): history (a list in place
+of the conversation), ✎ new chat, close. Escape closes the panel only when it
+has the keyboard; pressed on the page or in the palette over it, it is theirs.
 
 ## A chat, not a box
 
-- **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere and closes it again;
-  `/` `J` from the slash list; Tab or the Ask row from search.
+- **Shortcuts.** ⌘J (Ctrl+J) opens the panel from anywhere and closes it
+  again; `/` `J` from the slash list; Tab or the Ask row from search (which
+  take what was typed along). On every page, a sparkle button beside the
+  palette's own (`systems/command/fab.tsx`) does what ⌘J does, and stays lit
+  while the panel is open.
 - **History.** Every finished turn is saved (`lib/history.ts`): the newest 30
   conversations, in this browser only, read results trimmed. The header's
   clock lists them; picking one makes it current. ✎ starts a new one.
@@ -65,8 +84,8 @@ this site navigates there and the palette leaves, as a command would.
 - **Errors say what failed.** The route passes the provider's message through
   (`describe`), shown under "Something went wrong."
 
-The session is module state (`lib/chat.ts`), so any surface (the palette, a
-panel, a page) shows the same conversation, and building a new surface is
+The session is module state (`lib/chat.ts`), so any surface (the panel, a
+page, a window) shows the same conversation, and building a new surface is
 arranging `AskMessages`, `AskComposer` and `AskHistory`.
 
 ## The agent

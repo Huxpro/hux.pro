@@ -15,6 +15,7 @@ import {
   WallpaperSheet,
 } from "@/systems/ambient";
 import { AboutSurface } from "@/systems/about";
+import { AskSurface } from "@/systems/ask";
 import { AboutCopy } from "@/systems/about/components/about-copy";
 import { AttachmentSurface, ImageLightbox } from "@/systems/attachments";
 import { IdentityCard } from "@/systems/identity";
@@ -166,6 +167,7 @@ export default function RootLayout({
               en={<AboutCopy locale="en" />}
               zh={<AboutCopy locale="zh" />}
             />
+            <AskSurface />
             <CommandPalette />
             <FloatingActionButton />
           </Providers>
