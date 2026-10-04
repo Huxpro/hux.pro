@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n";
+import { plainInline } from "@/lib/inline-links";
 import {
   computeCommitHash,
   formatCommitDate,
@@ -85,7 +86,9 @@ export interface IdentityProfile {
 }
 
 function toProfileRole(role: RoleCommit, locale: Locale): ProfileRole {
-  const description = localize(role.description, locale);
+  // A role's prose may link names inline (lib/inline-links.ts); the card
+  // prints the words.
+  const description = plainInline(localize(role.description, locale));
   return {
     id: role.id,
     title: localize(role.title, locale),

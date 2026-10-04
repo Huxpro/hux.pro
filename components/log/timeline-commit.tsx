@@ -3,9 +3,11 @@
 /**
  * TimelineCommit: dense git-log style commit row for /works timeline.
  *
- * Summary: hash · icon · title ··· [📎 n in the index] venue date
- *          + description (clamped) and the strip of covers (`covers`)
- * Expanded: description whole, media, commentary, author fields
+ * Covers:  hash · icon · title ··· [📎 n in the index] venue date
+ *          + the text (description and commentary, whole) and the
+ *          strip of covers under it
+ * Opened:  + the notes under the covers: the details. A row with none
+ *          has no press. (The author fields are the feed's alone.)
  *
  * Every fact on the row has one place, in every form and every state: the
  * title line is the same line folded and open, and opening a row only adds
@@ -33,7 +35,14 @@ import {
   type RowLit,
 } from "./timeline-lane";
 import { MagneticPreview } from "@/components/motion-primitives/magnetic-preview";
-import { Description, Commentary, AuthorFields } from "./embeds/shared";
+import { MagicLink } from "@/components/magic-link/magic-link";
+import { InlineText } from "./inline-text";
+import {
+  Description,
+  Commentary,
+  Details,
+  AuthorFields,
+} from "./embeds/shared";
 import { Paperclip } from "lucide-react";
 import { MediaRenderer } from "./media";
 import { AttachmentGrid } from "./media/attachment-grid";
@@ -188,24 +197,40 @@ export function TimelineCommit({
   // dot, no hash. Opening one reveals the real title and media; the
   // type is unchanged, so filters still find it.
 
-  // Topics and stats are authored but not printed (see the expanded body),
-  // so they can no longer be the reason a row is openable. A commit whose
-  // only extra was a tag list would otherwise unfold onto nothing.
-  const hasExpandableContent = !!(
-    data.description ||
-    data.commentary ||
-    data.expandedMedia.length > 0 ||
-    data.pinnedMedia.length > 0 ||
-    byline
-  );
+  // The `--pretty=fuller` header. Roles and events are excluded for the same
+  // reason they always were: a role IS its own provenance, an event has none.
+  const showAuthorBlock = data.type !== "role" && data.type !== "event";
 
-  // The row's own state is one bit, and it is about the prose only: has the
-  // reader pressed this row's text? The form printed a density
-  // (`rowFormFor`), and this flips it: relieved where the form clamped,
-  // clamped back where the form had already printed it whole. The picture
-  // stays the form's, except in the index, which prints none: there an
-  // open row brings its covers too (see `rowFormFor`).
-  const [textRelieved, setTextRelieved] = useState(defaultExpanded);
+  // Whether a press would print anything this row has: the row is pressable
+  // only then. Read off the two presets rather than listed by hand, so it
+  // cannot disagree with what a press does. Decoration (the author fields,
+  // the hash) is in neither, so it is never the reason: when it was, every
+  // row in `covers` was pressable and most presses brought only that, which
+  // taught the reader that pressing was not worth it. Topics and stats are
+  // authored but not printed, so they are not a reason either.
+  //
+  // A folded aside (or a row under a held track) is the exception: its press
+  // brings the row back from its quiet line, whatever the form prints.
+  // An event never opens. It is a dateline, and its press used to toggle
+  // state that drew nothing.
+  const atRest = rowFormFor(form, false);
+  const onPress = rowFormFor(form, true);
+  const hasText = !!(data.description || data.commentary);
+  const hasMedia = data.expandedMedia.length > 0;
+  const hasExpandableContent =
+    !isEvent &&
+    (((isAside || quiet) && (hasText || hasMedia)) ||
+      (onPress.notes !== atRest.notes && !!data.details) ||
+      (onPress.description !== atRest.description && hasText) ||
+      (onPress.media !== atRest.media && hasMedia));
+
+  // The row's own state is one bit: has the reader pressed this row? The
+  // form printed a preset (`rowFormFor`), and this flips its notes (the
+  // long form under the covers): printed where the form left them out,
+  // folded where the form had printed them. The text, the picture and the
+  // author fields stay the form's, except in the index, which prints no
+  // text or picture: there an open row brings both (see `rowFormFor`).
+  const [pressed, setPressed] = useState(defaultExpanded);
 
   // A form change is a new default, so the deviation is spent. Reconciled
   // during render rather than in an effect (React's "adjusting state when a
@@ -219,12 +244,12 @@ export function TimelineCommit({
   const [lastForm, setLastForm] = useState(form);
   if (form !== lastForm) {
     setLastForm(form);
-    if (followsForm) setTextRelieved(false);
+    if (followsForm) setPressed(false);
   }
 
   // Inspect selects; it does not invent a layout. A selected row shows its
-  // prose whole so the fields being edited are on screen.
-  const textOpen = inspecting ? isSelected : textRelieved;
+  // notes so the fields being edited are on screen.
+  const rowOpen = inspecting ? isSelected : pressed;
 
   // Pinned items render once in a stable spot beneath the row (visible
   // folded *and* expanded), so toggling never remounts them. The expanded
@@ -235,7 +260,7 @@ export function TimelineCommit({
 
   const handleToggleExpanded = useCallback(() => {
     if (!hasExpandableContent) return;
-    setTextRelieved((prev) => !prev);
+    setPressed((prev) => !prev);
   }, [hasExpandableContent]);
 
   // A role row is nothing but its identity, so with a pointer its hover peek
@@ -260,7 +285,7 @@ export function TimelineCommit({
   // because "the feed is already every row open". Folding one commit among
   // a column of open ones was the same click as opening a caption, and
   // nothing painted the difference. Now they are different clicks: this one
-  // changes the prose, the cover's opens the attachment.
+  // changes the notes, the cover's opens the attachment.
   const rowOnClick = inspecting
     ? onInspectCommit
     : rowOpensIdentity
@@ -269,18 +294,16 @@ export function TimelineCommit({
         ? handleToggleExpanded
         : undefined;
 
-  // The row's form: the page's, unless the reader opened this row, in which
-  // case it is the feed for itself (`rowFormFor`, lib/log-view.ts: a form
-  // is a preset of the row's atoms, and an open row is the same preset at
-  // row scale). Everything below reads those atoms and nothing reads the
-  // form's name, or `isExpanded` again: the feed's atoms already say
-  // "no strip, no clamp, no peek".
-  const rowForm = rowFormFor(form, textOpen);
+  // The row's form: the page's, with its notes flipped if the reader pressed
+  // this row (`rowFormFor`, lib/log-view.ts: a form is a preset of the
+  // row's atoms). Everything below reads those atoms and nothing reads the
+  // form's name: the feed's atoms already say "no strip, no peek".
+  const rowForm = rowFormFor(form, rowOpen);
 
-  // What the folded form adds under the title line: the description at two
-  // lines, and the strip of covers. Both or either: a commit with no media
-  // still gets its description, so a form is "title, what, and what it
-  // looks like" rather than "title, and covers if any".
+  // What `covers` adds under the title line: the text, whole, and the strip
+  // of covers. Both or either: a commit with no media still gets its
+  // description, so a form is "title, what, and what it looks like" rather
+  // than "title, and covers if any".
   //
   // Events and folded asides are out. Events are datelines between
   // commits, not works; asides borrow that voice until opened. Giving
@@ -290,29 +313,68 @@ export function TimelineCommit({
   // The strip is the folded form's own: while the row is open the feed's
   // grid shows the real thing, and a row of miniatures of what is directly
   // below it is noise.
-  const isQuiet = isEvent || ((isAside || quiet) && !textOpen);
+  const isQuiet = isEvent || ((isAside || quiet) && !rowOpen);
   const displayTitle = isQuiet && data.foldedTitle ? data.foldedTitle : data.title;
   const showStrip =
     !isQuiet && rowForm.media === "covers" && data.stripItems.length > 0;
-  const showStatDescription =
-    !isQuiet && rowForm.description === "clamp" && !!data.description;
-  // Whether the form prints a sentence under the title (clamped or whole).
-  // This decides the title's weight (see the note above). The
-  // form's, not the row's: an index row opened onto its sentence keeps the
-  // one-liner's weight, so the press only ever adds below the title line.
+  const printsText =
+    !isQuiet && rowForm.description !== "none" && !!data.description;
+  // Whether the form prints a sentence under the title, which is what
+  // decides the title's weight (see the note above). The form's, not the
+  // row's: an index row opened onto its sentence keeps the one-liner's
+  // weight, so the press only ever adds below the title line.
   const printsMessage =
     !isQuiet &&
     rowFormFor(form, false).description !== "none" &&
     !!data.description;
-  // Where the handle signs: the foot of the strip, when a single cover
-  // leaves it the room, on any viewport. Two covers may already be the
-  // width of a phone and the strip then scrolls under the edge, so a row
-  // with more prints no handle while folded. The chapter names the company,
-  // the handle is sparse by rule (cluster heads only), and an open row's
-  // author fields name it in full. There is no meta line for it to fall
-  // back to any more. The venue sits on the title line, so nothing stands
-  // between a title and its sentence.
-  const signsOnMediaLine = showStrip && data.stripItems.length === 1;
+  // ── The signature ──────────────────────────────────────────────────
+  // Who made it, as `git log --pretty=fuller` writes it: `commit`, `Author:`,
+  // `Role:`, the same three fields on every row and every viewport, and
+  // never at rest. They are provenance, not content (the chapter names the
+  // company, the title line the team), so they neither print nor gate the
+  // row's press; they come when asked for.
+  //
+  //  - On a desk the hash already hangs in the margin, and the other two
+  //    fade in under it while the row is hovered or focused (`MarginFields`)
+  //    in the margin, so nothing in the column moves.
+  //  - Anywhere, a tap on the row's mark in the gutter toggles the stack:
+  //    below `lg`, where there is no margin, it opens under the row as the
+  //    labelled field stack; on a desk it pins the margin's. An easter egg:
+  //    the mark wears no affordance and the row does not look pressable for
+  //    it. The row's own press stays the notes'.
+  //
+  // It replaces the `@handle` that signed the foot of a single cover: one
+  // mark at rest on some rows, standing for a stack nobody could reach.
+  // The feed prints the fields outright (`rowForm.author`), so it has no egg.
+  const signs = !isQuiet && showAuthorBlock && !rowForm.author;
+  const [signed, setSigned] = useState(false);
+  const toggleSignature = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    setSigned((v) => !v);
+  };
+  // Where a finger goes looking for it: the mark in the gutter; the team
+  // (`Lynx @ ByteDance`, `M.S. Capstone @ RIT`), plain text that reads like
+  // it should open something and the place a reader asking "as what?" would
+  // tap; and the date, the other half of the metadata line and the commit's
+  // own timestamp. A venue that is a link keeps its link (a conference
+  // page); one that is not becomes this. All of them look exactly as they
+  // did, with no underline and no pointer of their own. An egg, not a
+  // control. While the signature is out the whole line stays lit
+  // (`sig-team`), the line it came from.
+  const sigTap = (text: string, className?: string) => (
+    <button
+      type="button"
+      onClick={toggleSignature}
+      aria-expanded={signed}
+      aria-label={`${text}: who signed this`}
+      className={cn(
+        "sig-team cursor-[inherit] text-left outline-none focus-visible:text-foreground",
+        className,
+      )}
+    >
+      {text}
+    </button>
+  );
 
   // The venue on the title line: where a talk was given, where a piece of
   // press ran, where a project was built (the byline's team, printed
@@ -325,41 +387,40 @@ export function TimelineCommit({
   // becomes an eyebrow: the same three, one mono line *over* the title, the
   // way an editorial kicker sits over a headline. Nothing is cut to fit a
   // column, and the title and its sentence still sit together.
+  //
+  // A venue with a page (a conference) is a magic link to it, not a way out:
+  // it peeks the page's card under a pointer, and a press goes where a
+  // /works cover's page goes (the drawer on a phone, the in-app browser on
+  // a desk), through the same attachments policy. It used to leave for a
+  // new tab with a `↗`, the one door the title line had of its own, a
+  // 12px target beside the date. Its click stops at the venue: opening a
+  // conference is not pressing the row.
   const besideText = data.meta ?? byline?.subtitle;
+  const venueLink = (text: string, className?: string) => (
+    <span className={cn("min-w-0", className)} onClick={(e) => e.stopPropagation()}>
+      <MagicLink href={data.metaUrl} title={text} className="venue-link">
+        {text}
+      </MagicLink>
+    </span>
+  );
   const beside =
     !isQuiet && besideText ? (
       data.meta && data.metaUrl ? (
-        <a
-          href={data.metaUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex max-w-full items-center gap-1 transition-colors hover:text-foreground"
-        >
-          <span className="truncate">{besideText}</span>
-          <span aria-hidden className="text-[0.7rem]">↗</span>
-        </a>
+        venueLink(besideText, "text-right")
+      ) : signs ? (
+        sigTap(besideText, "truncate")
       ) : (
         <span className="truncate">{besideText}</span>
       )
     ) : null;
   // The same venue as running text, for the eyebrow. No truncation (the
-  // line wraps if it must), and the arrow is glued to the last word.
+  // line wraps if it must).
   const venueInline =
     !isQuiet && besideText ? (
       data.meta && data.metaUrl ? (
-        <a
-          href={data.metaUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="transition-colors hover:text-foreground"
-        >
-          {besideText}
-          <span aria-hidden className="whitespace-nowrap text-[0.7rem]">
-            {" "}↗
-          </span>
-        </a>
+        venueLink(besideText)
+      ) : signs ? (
+        sigTap(besideText)
       ) : (
         <>{besideText}</>
       )
@@ -377,7 +438,7 @@ export function TimelineCommit({
   // gets in the way of reading them. The one-liner peeks; an open row's
   // handle still does (IdentityHover).
   const showCursorPreview =
-    !!cursorPreview && rowForm.peek && !showStrip && !showStatDescription;
+    !!cursorPreview && rowForm.peek && !showStrip && !printsText;
   // The feed's covers are the row's own strip items; what has no cover (a
   // live widget) stacks under the grid. Inspect mode keeps this layout.
   // The handle lives on the tile (InspectableMedia), not on a different
@@ -391,9 +452,6 @@ export function TimelineCommit({
   const attachmentCount =
     !isQuiet && rowForm.media === "none" ? expandedMedia.length : 0;
 
-  // The `--pretty=fuller` header. Roles and events are excluded for the same
-  // reason they always were: a role IS its own provenance, an event has none.
-  const showAuthorBlock = data.type !== "role" && data.type !== "event";
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -435,14 +493,14 @@ export function TimelineCommit({
 
   useEffect(() => {
     if (!participatesInSegment || !beamSpec) return;
-    if (isHovered || textOpen) {
+    if (isHovered || rowOpen) {
       onBeamSet?.(beamSpec);
     } else {
       // Pass our own spec so the parent can guard against a stale clear
       // (a sibling's later effect overwriting a fresh set on another row).
       onBeamClear?.(beamSpec);
     }
-  }, [participatesInSegment, beamSpec, isHovered, textOpen, onBeamSet, onBeamClear]);
+  }, [participatesInSegment, beamSpec, isHovered, rowOpen, onBeamSet, onBeamClear]);
 
   // Git-graph rail drawn THROUGH the icon column as two separate
   // absolutely-positioned segments, one above the icon and one below.
@@ -515,7 +573,7 @@ export function TimelineCommit({
                 {attachmentCount}
               </span>
             )}
-            {dateText && <span>{dateText}</span>}
+            {dateText && (signs ? sigTap(dateText) : <span>{dateText}</span>)}
           </span>
         </p>
       )}
@@ -544,6 +602,7 @@ export function TimelineCommit({
             "hidden lg:inline-block select-all",
             HASH_CELL,
             TYPE.hash,
+            signs && "sig-hash",
             isQuiet ? "text-transparent leading-4" : "leading-5",
           )}
           style={hashNudge}
@@ -565,6 +624,7 @@ export function TimelineCommit({
             HASH_CELL,
             TYPE.hash,
             "transition-colors hover:text-muted-foreground",
+            signs && "sig-hash",
           )}
           style={hashNudge}
         >
@@ -597,10 +657,13 @@ export function TimelineCommit({
           cluster={{ above: hasRailAbove, below: hasRailBelow }}
           lit={graphLit}
         />
-        {/* The node: on the trunk, or moved onto the side lane. */}
+        {/* The node: on the trunk, or moved onto the side lane. Also the
+            signature's easter egg (see "The signature"): a tap toggles it,
+            and the only sign is the mark giving under the finger. */}
         <span
           className="inline-flex items-center justify-center"
           style={onSide ? { transform: `translateX(-${LANE}px)` } : undefined}
+          onClick={signs ? toggleSignature : undefined}
         >
         {isQuiet ? (
           // A row in the quiet voice gets a tiny CSS dot, quieter than any
@@ -628,6 +691,8 @@ export function TimelineCommit({
           <span
             className={cn(
               "inline-flex items-center justify-center w-5 h-5 rounded-full transition-[box-shadow] duration-200",
+              // The signature's nod (globals.css): the mark hands it over.
+              signs && "sig-mark",
               isRoleAnchor && [
                 "ring-1 ring-inset",
                 // A node on the graph, and lit with its tenure (globals.css,
@@ -727,19 +792,22 @@ export function TimelineCommit({
             </span>
           )}
 
-          {dateText && (
-            <span
-              className={cn(
-                "font-mono text-xs shrink-0",
-                // The date stays, since the year is the meaning for life
-                // events (`moved to US, 2017`), but a tier quieter than
-                // siblings so the row reads as background context.
-                "text-tertiary-foreground",
-              )}
-            >
-              {dateText}
-            </span>
-          )}
+          {dateText &&
+            (signs ? (
+              sigTap(dateText, "font-mono text-xs shrink-0 text-tertiary-foreground")
+            ) : (
+              <span
+                className={cn(
+                  "font-mono text-xs shrink-0",
+                  // The date stays, because the year is the meaning for life
+                  // events (`moved to US, 2017`), but a tier quieter than
+                  // siblings so the row reads as background context.
+                  "text-tertiary-foreground",
+                )}
+              >
+                {dateText}
+              </span>
+            ))}
         </span>
       </div>
 
@@ -762,22 +830,23 @@ export function TimelineCommit({
         </div>
       )}
 
-      {/* ── The message ────────────────────────────────────────────────
-          The prose, at whatever density this row is at: the form's, or its
-          opposite once the reader pressed it. One element either way. It
-          used to be printed twice, clamped in the folded block and whole in
-          the expanded body, which is why pressing the text had to swap
-          layouts and take the picture with it.
+      {/* ── The text ───────────────────────────────────────────────────
+          Everything a reader should know about the commit, above its
+          covers and whole: the description, and my line on it. It used to
+          be two lines with the rest behind a press, which made the page a
+          thing to open row by row rather than to read by scrolling, and
+          put the one sentence in my own voice behind the same press as the
+          author fields. What a press brings now is only the long form,
+          under the picture (the notes).
 
           Deliberately NOT `data-row-body`: this is the press target. The
-          text is what the row's own control acts on, so it has to stay part
-          of the trigger at both densities. */}
-      {!isQuiet && rowForm.description !== "none" && !!data.description && (
-        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0">
-          <Description
-            text={data.description}
-            isExpanded={rowForm.description === "full"}
-          />
+          row's own control acts on it, so it stays part of the trigger. */}
+      {printsText && (
+        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0 space-y-1.5">
+          <Description text={<InlineText text={data.inline.description} />} />
+          {data.inline.commentary && (
+            <Commentary text={<InlineText text={data.inline.commentary} />} />
+          )}
         </div>
       )}
 
@@ -796,25 +865,15 @@ export function TimelineCommit({
               tuck up beside the text and two or more dropped below it, so a
               row changed shape with its cargo, and a column of twenty-five
               of them changed shape twenty-five times. */}
-          <div className="flex items-end justify-between gap-4">
-            <MediaStrip
-              items={data.stripItems}
-              set={attachmentSet}
-              peek={rowForm.peek && magneticPreviewEnabled}
-              className="min-w-0"
-              inspecting={inspecting}
-              onInspect={onInspectMedia}
-              selectedMedia={selectedMedia}
-            />
-
-            {/* The room the covers leave takes the letterhead. That is where
-                a letterhead goes, and a better use of the space than nothing.
-                The meta line gives it up while this line exists, so the
-                handle is still printed exactly once (`signsOnMediaLine`). */}
-            {signsOnMediaLine && (
-              <Handle byline={byline} className={TYPE.rowMeta} />
-            )}
-          </div>
+          <MediaStrip
+            items={data.stripItems}
+            set={attachmentSet}
+            peek={rowForm.peek && magneticPreviewEnabled}
+            className="min-w-0"
+            inspecting={inspecting}
+            onInspect={onInspectMedia}
+            selectedMedia={selectedMedia}
+          />
         </div>
       )}
 
@@ -850,9 +909,13 @@ export function TimelineCommit({
       )}
 
       {/* ── The notes ──────────────────────────────────────────────────
-          Notes on the prose, so they ride with it: the same press that
-          relieves the description prints these, and clamping it takes them
-          away again. They come after the thing they are notes on.
+          The long form, which a reader asks for row by row: the details (a
+          programme abstract, a thesis's particulars). Under the picture,
+          because nothing here is needed to know what the work is: the text
+          above the covers already said it.
+
+          Then the author fields, which no press brings: decoration, printed
+          by the feed because the feed prints everything (`rowForm.author`).
 
           No enter animation. It used to `fade-in slide-in-from-top-1`,
           which put a 4px transform and an opacity ramp on a block whose
@@ -860,45 +923,59 @@ export function TimelineCommit({
           text, so the field stack shimmered and settled by a pixel every
           time. The row's box snaps to its new height regardless. If this
           ever wants motion, it is the height that should animate. */}
-      {!isQuiet && rowForm.notes && (data.commentary || showAuthorBlock) && (
+      {!isQuiet &&
+        ((rowForm.notes && !!data.details) ||
+          (rowForm.author && showAuthorBlock)) && (
         <div
           data-row-body
           onClick={(e) => e.stopPropagation()}
           className="col-start-2 lg:col-start-3 mt-1.5 min-w-0 space-y-1.5 cursor-default"
         >
-          {data.commentary && <Commentary text={data.commentary} />}
+          {rowForm.notes && data.inline.details && (
+            <Details text={<InlineText text={data.inline.details} />} />
+          )}
 
-          {/* The author fields, as `git log --pretty=fuller` writes them.
-              They sit at the foot because the folded row already carries
-              this horizontally (the handle on the meta line, under the
-              date), and the press transposes that one compact mark into the
-              vertical stack.
-
-              The labels hold their column at every width. A field stack
-              whose keys vanish on a phone is just three unlabelled lines,
-              not `--pretty=fuller`. */}
-          {showAuthorBlock && (
-            <AuthorFields
-              byline={byline}
-              // Below `lg` the gutter hash column is hidden, so the row has
-              // no permalink down there; above it the gutter already is one.
-              // `onSelect` rather than an href: this page is already /works,
-              // so the field makes the row the address in place.
-              commit={
-                onSelectHash
-                  ? {
-                      hash: data.hash,
-                      onSelect: onSelectHash,
-                      className: "lg:hidden",
-                    }
-                  : undefined
-              }
-              className="mt-3"
-            />
+          {/* The labels hold their column at every width. A field stack
+              whose keys vanish on a phone is just unlabelled lines, not
+              `--pretty=fuller`. */}
+          {rowForm.author && showAuthorBlock && (
+            <AuthorFields byline={byline} className="mt-3" />
           )}
         </div>
       )}
 
+      {/* The signature below `lg`, when the mark or the team was tapped:
+          the labelled stack, with the hash as its `commit` field (there is
+          no gutter hash down here. On a desk too where the row prints no
+          text (an index line), which is too short to hold the margin's.
+
+          Always mounted, folded to no height, so opening is motion rather
+          than a jump: the row opens to the stack's height (`sig-fold`) while
+          the lines print in after it (`print`). The spacing above it lives
+          inside the fold, so a closed one takes nothing; `inert` keeps its
+          link and its card out of the tab order while it is closed.
+          `data-row-body`: reading it is not pressing the row. */}
+      {signs && (
+        <div
+          data-row-body
+          onClick={(e) => e.stopPropagation()}
+          inert={!signed}
+          className={cn(
+            "sig-fold col-start-2 lg:col-start-3 min-w-0 cursor-default",
+            printsText && "lg:hidden",
+          )}
+        >
+          <div>
+            <AuthorFields
+              byline={byline}
+              commit={{ hash: data.hash, onSelect: onSelectHash }}
+              print
+              withRole={false}
+              className="pt-3"
+            />
+          </div>
+        </div>
+      )}
 
     </div>
   );
@@ -929,12 +1006,16 @@ export function TimelineCommit({
           // `data-expanded` lets the tenure wrapper's group-has variant
           // brighten the rail while the row is open. It works on mobile and
           // survives losing focus after a tap-to-expand.
-          data-expanded={textOpen ? "" : undefined}
+          data-expanded={rowOpen ? "" : undefined}
           // The row's painted box: the one that carries the hover wash, a
           // gutter wider than the row's layout box on each side. The commit
           // permalink's arrival mark paints here too, so "found" and
           // "hovered" are the same shape (see globals.css).
           data-row-trigger
+          // The signature's state, for its CSS (globals.css): a host whose
+          // margin shows on hover, and open when its egg was found.
+          data-sig-host={signs ? "" : undefined}
+          data-sig-open={signs && signed ? "" : undefined}
           // Clip the rail segments vertically so they can't leak past the
           // tenure cluster's last row, but only on the block axis. The
           // inline axis stays open so the covers can bleed past the row: the
@@ -973,6 +1054,9 @@ export function TimelineCommit({
               "bg-sky-500/[0.06] ring-1 ring-inset ring-sky-500/70 hover:ring-sky-500/70",
           )}
         >
+          {signs && printsText && (
+            <MarginFields byline={byline} style={hashNudge} />
+          )}
           {rowContent}
         </div>
       </MagneticPreview>
@@ -981,38 +1065,66 @@ export function TimelineCommit({
 }
 
 /**
- * The `<handle>` mark, wherever the row is signing.
+ * The signature on a desk: the author under the hash, in the page's margin.
+ * The hash is the stack's `commit` field already, so the two read as one
+ * block hanging from it, right-aligned to its edge; nothing in the column
+ * moves. No role: the author opens the identity card, which carries it,
+ * and a role repeated on every row of a tenure restated the company the
+ * handle and the team already name.
  *
- * Sparse by rule: at rest only the head of an author's run wears it, and
- * the repeats inside a run appear on hover. A column of twenty-five rows
- * each restating the same employer is noise, and the rail already draws the
- * tenure. A slot that is not signing right now mounts nothing (the meta
- * line keeps its height with a spacer), so one handle exists per row.
+ *        171252e     hash: lights to tertiary with it
+ *   <jsx@fb.com>     the who: 12px, muted
  *
- * The mark is the identity card's trigger (systems/identity): hover peeks
- * the profile, a tap where there is no pointer opens it as a sheet.
+ * `top-8` (the row's 10px padding + the title's 20px line + 2px) puts it
+ * 6px under the hash's own 16px text box. Its right edge meets the hash's
+ * exactly, measured at 1024 / 1280 / 1600.
+ *
+ * Motion is CSS (globals.css, "The signature"): it drops in from the hash
+ * on hover, after a beat of intent, or at once when the egg pinned it
+ * (`data-sig-open` on the row). `data-sig-margin` keeps it out of the
+ * pointer's way until it shows. It prints only where the form prints the
+ * text: an index line is shorter than the block, and the row's clip-path
+ * would cut it (the call site opens the labelled stack instead).
  */
-function Handle({
+function MarginFields({
   byline,
-  className,
+  style,
 }: {
   byline?: Byline | null;
-  className?: string;
+  style?: React.CSSProperties;
 }) {
-  if (!byline) return null;
+  const author = (
+    <span className="sig-drop block font-mono text-xs leading-4 text-muted-foreground">
+      &lt;{byline?.handle ?? "hux"}&gt;
+    </span>
+  );
   return (
-    <IdentityHover
-      identityId={byline.identityId}
-      roleId={byline.roleId}
-      wrapperClassName={cn(
-        "shrink-0 transition-opacity duration-200",
-        byline.isClusterHead
-          ? "opacity-100"
-          : "opacity-0 group-hover:opacity-100",
-      )}
-      className={className}
+    <div
+      data-sig-margin
+      style={style}
+      className="absolute right-[calc(100%-4.25rem)] top-8 hidden w-32 text-right lg:block xl:w-44 2xl:w-52"
     >
-      {byline.handle}
-    </IdentityHover>
+      {byline ? (
+        <IdentityHover
+          identityId={byline.identityId}
+          roleId={byline.roleId}
+          block
+          // The trigger hugs the handle, pushed to the right edge: its
+          // highlight bleeds 8px past the text each side (`-mx-2 px-2`), so
+          // sized to the text it washes the handle and a hair around it,
+          // and the negative margin lets the text itself end on the hash's
+          // edge. Spanning the margin's width, the wash ran a column of
+          // empty margin to the handle's left.
+          wrapperClassName="flex justify-end"
+          className="text-right"
+        >
+          {author}
+        </IdentityHover>
+      ) : (
+        // A personal work, signed by no identity: the same fallback the
+        // field stack prints.
+        author
+      )}
+    </div>
   );
 }
