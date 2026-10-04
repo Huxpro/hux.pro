@@ -1,5 +1,6 @@
 "use client";
 
+import type { AskEffort } from "./models";
 import type { AskUIMessage } from "./tools";
 
 // =============================================================================
@@ -15,7 +16,13 @@ import type { AskUIMessage } from "./tools";
 // conversation needs it. The newest MAX_CONVERSATIONS are kept.
 // =============================================================================
 
-export interface AskConversation {
+/** What a conversation runs on: its own, kept with it. */
+export interface AskSettings {
+  model: string;
+  effort: AskEffort;
+}
+
+export interface AskConversation extends Partial<AskSettings> {
   id: string;
   title: string;
   updatedAt: number;
@@ -70,14 +77,18 @@ function trimmed(messages: AskUIMessage[]): AskUIMessage[] {
   }));
 }
 
-export function saveConversation(id: string, messages: AskUIMessage[]) {
+/** Save a conversation; without `settings`, it keeps the ones it had. */
+export function saveConversation(id: string, messages: AskUIMessage[], settings?: AskSettings) {
   if (!messages.some((m) => m.role === "user")) return;
+  const previous = load().find((c) => c.id === id);
   const rest = load().filter((c) => c.id !== id);
   const entry: AskConversation = {
     id,
     title: titleOf(messages),
     updatedAt: Date.now(),
     messages: trimmed(messages),
+    model: settings?.model ?? previous?.model,
+    effort: settings?.effort ?? previous?.effort,
   };
   commit([entry, ...rest].slice(0, MAX_CONVERSATIONS));
 }

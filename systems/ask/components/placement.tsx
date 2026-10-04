@@ -65,7 +65,7 @@ export function AskPlacementControls({
         <button
           key={placement}
           type="button"
-          onClick={() => placement !== current && moveAsk(placement)}
+          onClick={() => placement !== current && moveAsk(placement, "direct", true)}
           aria-pressed={placement === current}
           aria-label={s.placements[placement]}
           title={s.placements[placement]}
@@ -187,7 +187,7 @@ export function useAskDragHandle(from: AskPlacement) {
         setDrag(null);
         if (!dragging || !drop) return;
         const target = free ? edgeAt(ev.clientX, ev.clientY) : placementAt(ev.clientX, ev.clientY);
-        if (target && target !== from) moveAsk(target);
+        if (target && target !== from) moveAsk(target, "direct", true);
       };
       const onUp = (ev: PointerEvent) => finish(ev, true);
       const onCancel = (ev: PointerEvent) => finish(ev, false);

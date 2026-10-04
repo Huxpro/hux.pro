@@ -2,7 +2,7 @@
 
 import { askConfigNow } from "@/systems/ask/lib/config";
 import { usePathname } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 // =============================================================================
 // Command System Provider
@@ -52,6 +52,40 @@ function isAskPlacement(value: unknown): value is AskPlacement {
   return value === "center" || value === "side" || value === "top";
 }
 
+/**
+ * Where the visitor has put Ask, by hand (a place button, a drop), for each
+ * kind of page: pages to read and the rest. Each kind has its own default
+ * (beside a page to read, the settings' elsewhere); a choice made by hand is
+ * the only thing that overrides it, and only for that kind of page. Opening
+ * beside a post is a default, not a choice, so the home keeps its own.
+ */
+type PageKind = "reading" | "other";
+type Chosen = Partial<Record<PageKind, AskPlacement>>;
+
+function readChosen(): Chosen {
+  try {
+    const raw = localStorage.getItem(ASK_PLACEMENT_KEY);
+    if (!raw) return {};
+    // The old single choice, from before there were two kinds of page.
+    if (isAskPlacement(raw)) return { other: raw };
+    const v = JSON.parse(raw) as Record<string, unknown>;
+    return {
+      ...(isAskPlacement(v.reading) ? { reading: v.reading } : {}),
+      ...(isAskPlacement(v.other) ? { other: v.other } : {}),
+    };
+  } catch {
+    return {};
+  }
+}
+
+function writeChosen(kind: PageKind, placement: AskPlacement) {
+  try {
+    localStorage.setItem(ASK_PLACEMENT_KEY, JSON.stringify({ ...readChosen(), [kind]: placement }));
+  } catch {
+    // Storage unavailable: the choice lasts the page.
+  }
+}
+
 /** Room for a panel beside the page: the surfaces' `sm`. */
 function hasRoomBeside(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
@@ -88,8 +122,12 @@ interface CommandContextType {
    * goes; the first two count as reached from the palette.
    */
   openAsk: (text?: string, from?: "search" | "palette" | "call") => void;
-  /** Move Ask to another place, the conversation with it. */
-  moveAsk: (placement: AskPlacement, entry?: AskEntry) => void;
+  /**
+   * Move Ask to another place, the conversation with it. `chosen`: the
+   * visitor put it there by hand (a place button, a drop), which makes it
+   * the default for this kind of page.
+   */
+  moveAsk: (placement: AskPlacement, entry?: AskEntry, chosen?: boolean) => void;
   /** How Ask was reached (see `AskEntry`). */
   askEntry: AskEntry;
   /** Close Ask wherever it is (a reply still being written leaves a pill). */
@@ -129,9 +167,6 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [askStarted, setAskStarted] = useState(false);
   const [askEntry, setAskEntry] = useState<AskEntry>("direct");
   const pathname = usePathname();
-  // Where the visitor last put Ask: a per-viewer convenience, read on the
-  // first call.
-  const preferredPlacement = useRef<AskPlacement | null>(null);
   const [voiceRequest, setVoiceRequest] = useState(0);
   const [voiceHoldKey, setVoiceHoldKey] = useState<string | null>(null);
 
@@ -187,7 +222,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const askPlacement: AskPlacement | null =
     isOpen && isAskMode ? "center" : askSurface === "sheet" ? "center" : askSurface;
 
-  const moveAsk = useCallback((placement: AskPlacement, entry: AskEntry = "direct") => {
+  const moveAsk = useCallback((placement: AskPlacement, entry: AskEntry = "direct", chosen = false) => {
     const roomy = hasRoomBeside();
     setAskEntry(entry);
     const target = placement === "side" && !roomy ? "center" : placement;
@@ -208,17 +243,10 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       setIsAskMode(false);
       setAskSurface(target);
     }
-    // Remembered only when it is where the visitor chose: a phone's sheet is
-    // not a vote against the side panel on the desk.
-    if (target === placement) {
-      preferredPlacement.current = target;
-      try {
-        localStorage.setItem(ASK_PLACEMENT_KEY, target);
-      } catch {
-        // Storage unavailable: the choice lasts the page.
-      }
-    }
-  }, []);
+    // Remembered only when the visitor put it there, and it went there: a
+    // phone's sheet is not a vote against the side panel on the desk.
+    if (chosen && target === placement) writeChosen(isReadingPage(pathname) ? "reading" : "other", target);
+  }, [pathname]);
 
   const openAsk = useCallback(
     (text?: string, from: "search" | "palette" | "call" = "call") => {
@@ -232,29 +260,20 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       const config = askConfigNow();
-      // A page to read stays in view: Ask opens beside it.
-      if (config.onReadingPage === "side" && isReadingPage(pathname)) {
-        moveAsk("side", entry);
-        return;
-      }
-      if (from === "search") {
-        moveAsk(config.fromSearch, entry);
-        return;
-      }
-      if (config.fromCall !== "last") {
-        moveAsk(config.fromCall, entry);
-        return;
-      }
-      if (preferredPlacement.current === null) {
-        let saved: string | null = null;
-        try {
-          saved = localStorage.getItem(ASK_PLACEMENT_KEY);
-        } catch {
-          // Storage unavailable: the center.
-        }
-        preferredPlacement.current = isAskPlacement(saved) ? saved : "center";
-      }
-      moveAsk(preferredPlacement.current, entry);
+      const reading = isReadingPage(pathname);
+      const chosen = readChosen()[reading ? "reading" : "other"];
+      // A page to read stays in view: Ask opens beside it, unless the visitor
+      // put it elsewhere on such a page. Elsewhere, asking from search lands
+      // in the search's own place; a call where Ask was last put by hand.
+      const target: AskPlacement =
+        reading && config.onReadingPage === "side"
+          ? (chosen ?? "side")
+          : from === "search"
+            ? config.fromSearch
+            : config.fromCall === "last"
+              ? (chosen ?? "center")
+              : config.fromCall;
+      moveAsk(target, entry);
     },
     [askSurface, moveAsk, pathname]
   );
