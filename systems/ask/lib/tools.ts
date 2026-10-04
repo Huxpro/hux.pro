@@ -86,6 +86,12 @@ export const askTools = {
   }),
 };
 
-export type AskToolName = keyof typeof askTools;
-
 export type AskUIMessage = UIMessage<unknown, UIDataTypes, InferUITools<typeof askTools>>;
+
+/** What a message says, as Markdown: what Copy copies. */
+export function textOf(message: AskUIMessage): string {
+  return message.parts
+    .map((p) => (p.type === "text" ? p.text.trim() : ""))
+    .filter(Boolean)
+    .join("\n\n");
+}

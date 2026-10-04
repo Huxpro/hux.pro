@@ -33,7 +33,8 @@ import {
 /** The current conversation, its status, and what can be done to it. */
 export function useAskSession() {
   const chat = useSyncExternalStore(subscribeAskChat, getAskChat, getAskChat);
-  const helpers = useChat({ chat });
+  // A render per streamed chunk is more than a reader can see.
+  const helpers = useChat({ chat, throttle: 50 });
   const busy = helpers.status === "submitted" || helpers.status === "streaming";
 
   const send = useCallback(
@@ -103,10 +104,9 @@ let consumedRequest = 0;
  * thing twice asks twice.
  */
 export function useAskRequest(request: { text: string; n: number } | null) {
-  const { sendMessage } = useAskSession();
   useEffect(() => {
     if (!request || request.n <= consumedRequest) return;
     consumedRequest = request.n;
-    void sendMessage({ text: request.text });
-  }, [request, sendMessage]);
+    void getAskChat().sendMessage({ text: request.text });
+  }, [request]);
 }

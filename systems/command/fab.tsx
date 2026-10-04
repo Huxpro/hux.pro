@@ -267,7 +267,7 @@ export function FloatingActionButton() {
         // Ask at the side covers the trailing edge: away from the home the
         // buttons step aside to stand beside it (the bar's layout animation
         // carries it there, the ball follows).
-        !isHomepage && askPlacement === "side" && "sm:pr-[calc(440px+1.5rem)]"
+        !isHomepage && askPlacement === "side" && "sm:pr-[calc(var(--surface-panel-w,440px)+1.5rem)]"
       )}
     >
       {bar}
@@ -402,7 +402,9 @@ function AskBall({
     // The bar as laid out (offsets ignore its morph's transforms) and as
     // drawn (its box on screen, transforms and all).
     const laid = { left: bar.offsetLeft, top: bar.offsetTop, width: bar.offsetWidth, height: bar.offsetHeight };
-    const still = getComputedStyle(bar).transform === "none";
+    // Framer writes its projection inline (the press is the separate `scale`
+    // property), so the inline transform says whether the bar is moving.
+    const still = !bar.style.transform || bar.style.transform === "none";
     let box = laid;
     if (!still) {
       const parent = bar.offsetParent as HTMLElement | null;
@@ -468,7 +470,6 @@ function AskBall({
     // frame, as when the bar's label finishes leaving) the running follow
     // places it after framer has drawn the bar, never beside a layout
     // framer has not projected yet.
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- the first placement is read from layout, which exists only after commit
     if (moved) follow(!running.current);
   });
   useEffect(() => {

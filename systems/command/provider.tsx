@@ -1,7 +1,7 @@
 "use client";
 
-import { askConfigNow } from "@/systems/ask/lib/config";
-import { usePathname } from "next/navigation";
+import { askConfigNow, askPlatformNow } from "@/systems/ask/lib/config";
+import { readJSON, writeJSON } from "@/systems/ask/lib/storage";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 // =============================================================================
@@ -28,7 +28,9 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 // alone: no pill, and minimize is close.
 // =============================================================================
 
-export type AskPlacement = "center" | "side" | "top";
+/** Ask's places (see the note at the top). */
+export const ASK_PLACEMENTS = ["center", "side", "top"] as const;
+export type AskPlacement = (typeof ASK_PLACEMENTS)[number];
 
 /**
  * How Ask was reached: from inside the palette (its Ask row, Tab, `/` `J`),
@@ -48,8 +50,8 @@ export function isReadingPage(pathname: string): boolean {
 
 const ASK_PLACEMENT_KEY = "hux_ask_placement";
 
-function isAskPlacement(value: unknown): value is AskPlacement {
-  return value === "center" || value === "side" || value === "top";
+export function isAskPlacement(value: unknown): value is AskPlacement {
+  return (ASK_PLACEMENTS as readonly unknown[]).includes(value);
 }
 
 /**
@@ -63,32 +65,29 @@ type PageKind = "reading" | "other";
 type Chosen = Partial<Record<PageKind, AskPlacement>>;
 
 function readChosen(): Chosen {
-  try {
-    const raw = localStorage.getItem(ASK_PLACEMENT_KEY);
-    if (!raw) return {};
-    // The old single choice, from before there were two kinds of page.
-    if (isAskPlacement(raw)) return { other: raw };
-    const v = JSON.parse(raw) as Record<string, unknown>;
-    return {
-      ...(isAskPlacement(v.reading) ? { reading: v.reading } : {}),
-      ...(isAskPlacement(v.other) ? { other: v.other } : {}),
-    };
-  } catch {
-    return {};
-  }
+  const raw = readJSON(ASK_PLACEMENT_KEY);
+  // The old single choice, from before there were two kinds of page.
+  if (isAskPlacement(raw)) return { other: raw };
+  const v = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ...(isAskPlacement(v.reading) ? { reading: v.reading } : {}),
+    ...(isAskPlacement(v.other) ? { other: v.other } : {}),
+  };
 }
 
 function writeChosen(kind: PageKind, placement: AskPlacement) {
-  try {
-    localStorage.setItem(ASK_PLACEMENT_KEY, JSON.stringify({ ...readChosen(), [kind]: placement }));
-  } catch {
-    // Storage unavailable: the choice lasts the page.
-  }
+  writeJSON(ASK_PLACEMENT_KEY, { ...readChosen(), [kind]: placement });
 }
 
-/** Room for a panel beside the page: the surfaces' `sm`. */
+/** The kind of the page now, read when Ask is called (not a render input,
+ *  so a navigation re-renders nothing here). */
+function pageKindNow(): PageKind {
+  return isReadingPage(window.location.pathname) ? "reading" : "other";
+}
+
+/** Room for a panel beside the page: a desk, as Ask's settings count it. */
 function hasRoomBeside(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
+  return typeof window !== "undefined" && askPlatformNow() === "desk";
 }
 
 interface CommandContextType {
@@ -166,7 +165,6 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [askPill, setAskPill] = useState(false);
   const [askStarted, setAskStarted] = useState(false);
   const [askEntry, setAskEntry] = useState<AskEntry>("direct");
-  const pathname = usePathname();
   const [voiceRequest, setVoiceRequest] = useState(0);
   const [voiceHoldKey, setVoiceHoldKey] = useState<string | null>(null);
 
@@ -245,8 +243,8 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     }
     // Remembered only when the visitor put it there, and it went there: a
     // phone's sheet is not a vote against the side panel on the desk.
-    if (chosen && target === placement) writeChosen(isReadingPage(pathname) ? "reading" : "other", target);
-  }, [pathname]);
+    if (chosen && target === placement) writeChosen(pageKindNow(), target);
+  }, []);
 
   const openAsk = useCallback(
     (text?: string, from: "search" | "palette" | "call" = "call") => {
@@ -260,7 +258,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       const config = askConfigNow();
-      const reading = isReadingPage(pathname);
+      const reading = pageKindNow() === "reading";
       const chosen = readChosen()[reading ? "reading" : "other"];
       // A page to read stays in view: Ask opens beside it, unless the visitor
       // put it elsewhere on such a page. Elsewhere, asking from search lands
@@ -275,7 +273,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
               : config.fromCall;
       moveAsk(target, entry);
     },
-    [askSurface, moveAsk, pathname]
+    [askSurface, moveAsk]
   );
 
   const closeAsk = useCallback(() => {

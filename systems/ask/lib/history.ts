@@ -1,7 +1,7 @@
 "use client";
 
 import type { AskEffort } from "./models";
-import type { AskUIMessage } from "./tools";
+import { textOf, type AskUIMessage } from "./tools";
 
 // =============================================================================
 // Past conversations, kept in this browser.
@@ -61,7 +61,7 @@ function commit(next: AskConversation[]) {
 /** The first thing asked, on one line: what the conversation is called. */
 function titleOf(messages: AskUIMessage[]): string {
   const first = messages.find((m) => m.role === "user");
-  const text = first?.parts.map((p) => (p.type === "text" ? p.text : "")).join(" ") ?? "";
+  const text = first ? textOf(first) : "";
   return text.replace(/\s+/g, " ").trim().slice(0, 80) || "…";
 }
 
@@ -99,10 +99,6 @@ export function getConversation(id: string): AskConversation | undefined {
 
 export function deleteConversation(id: string) {
   commit(load().filter((c) => c.id !== id));
-}
-
-export function clearConversations() {
-  commit([]);
 }
 
 // For useSyncExternalStore: newest first, the same array until it changes.

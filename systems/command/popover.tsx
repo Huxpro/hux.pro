@@ -204,10 +204,14 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
         style={{
           ...PALETTE_GEOMETRY,
           ...(isAskMode && askRail ? PALETTE_ASK_APP_GEOMETRY : {}),
+          // The card's width in this mode; the card and its wrapper both read it.
+          "--command-card-w": `${
+            isLoadBundleMode ? 440 : isAskMode ? (askRail ? 960 : 700) : isSlashCommandsMode ? 400 : 700
+          }px`,
           ...(isPhoneSafari
             ? { top: scrollPosition, height: "100dvh" }
             : {}),
-        }}
+        } as CSSProperties}
       >
         <div
           className="absolute inset-0 bg-transparent"
@@ -275,9 +279,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
           className="w-full flex justify-center transition-[max-width] duration-300 ease-out"
           style={{
             ...(isDraggable ? motionStyle : {}),
-            maxWidth: `calc(${
-              isLoadBundleMode ? 440 : isAskMode ? (askRail ? 960 : 700) : isSlashCommandsMode ? 400 : 700
-            }px + 2rem)`,
+            maxWidth: "calc(var(--command-card-w) + 2rem)",
           }}
         >
           <Command
@@ -288,14 +290,9 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
               "shadow-overlay",
               "outline-none",
               "animate-in fade-in-0 zoom-in-95 duration-200",
-              isLoadBundleMode
-                ? "w-full max-w-[440px]"
-                : isAskMode
-                ? // Clipped, so the history rail's wash keeps the corners.
-                  cn("w-full overflow-hidden", askRail ? "max-w-[960px]" : "max-w-[700px]")
-                : isSlashCommandsMode
-                ? "w-full max-w-[400px]"
-                : "w-full max-w-[700px]",
+              "w-full max-w-(--command-card-w)",
+              // Clipped, so the history rail's wash keeps the corners.
+              isAskMode && "overflow-hidden",
               GROUP_HEADINGS
             )}
             loop
@@ -518,7 +515,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
                           ⌘J
                         </kbd>
-                        {askStrings(locale).shortcut}
+                        {askStrings(locale).askRow}
                       </span>
                     </div>
                     <div className="flex items-center gap-0.5">

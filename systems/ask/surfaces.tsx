@@ -1,12 +1,13 @@
 "use client";
 
 import { useCommand, type AskPlacement } from "@/systems/command";
-import { detentHeight, SurfacePanel, SurfaceSheet, useBreakpointValue } from "@/systems/surface";
+import { detentHeight, SurfacePanel, SurfaceSheet } from "@/systems/surface";
 import type { Drawer } from "@base-ui/react/drawer";
 import { useTransitionRouter } from "next-view-transitions";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect } from "react";
+import { useAskPlatform } from "./lib/config";
 
 // =============================================================================
 // Ask's places outside the palette, mounted once in the root layout.
@@ -48,13 +49,12 @@ const DOCKED_ATTRIBUTE = "data-ask-docked";
 /** On the wrapper around the panel's contents: where a key press came from. */
 const CONTENT_ATTRIBUTE = "data-ask-panel";
 
-type AskShape = "sheet" | "panel";
 
 export function AskSide() {
   const { askPlacement, askStarted, closeAsk, minimizeAsk, askRequest } = useCommand();
   const router = useTransitionRouter();
   const pathname = usePathname();
-  const shape = useBreakpointValue<AskShape>({ base: "sheet", sm: "panel" });
+  const shape = useAskPlatform() === "desk" ? "panel" : "sheet";
   // The place this surface is: the side on a desk, the center on a phone
   // (where the palette never holds Ask).
   const placement: AskPlacement = shape === "panel" ? "side" : "center";

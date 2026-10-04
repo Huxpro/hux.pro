@@ -8,7 +8,6 @@ import { ASK_SUGGESTIONS } from "./prompts";
 const en = {
   ask: "Ask",
   askRow: "Ask AI",
-  askHint: "Ask me a question",
   placeholder: "Ask me anything…",
   backToSearch: "Back to search",
   newChat: "New chat",
@@ -38,7 +37,6 @@ const en = {
   rewindConfirm: "Drop what follows?",
   effort: "Thinking",
   efforts: { low: "Quick", medium: "Balanced", high: "Deep" },
-  shortcut: "Ask AI",
   close: "Close Ask",
   openAsk: "Open the conversation",
   collapse: "Collapse",
@@ -56,7 +54,6 @@ type AskStrings = typeof en;
 const zh: AskStrings = {
   ask: "问答",
   askRow: "问 AI",
-  askHint: "问我一个问题",
   placeholder: "问我点什么…",
   backToSearch: "返回搜索",
   newChat: "新对话",
@@ -86,7 +83,6 @@ const zh: AskStrings = {
   rewindConfirm: "删掉之后的对话？",
   effort: "思考",
   efforts: { low: "快速", medium: "均衡", high: "深入" },
-  shortcut: "问 AI",
   close: "关闭问答",
   openAsk: "打开对话",
   collapse: "收起",

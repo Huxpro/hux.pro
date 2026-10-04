@@ -93,9 +93,9 @@ import {
   type WorksRef,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
-import { useCommand } from "@/systems/command";
+import { ASK_PLACEMENTS, useCommand } from "@/systems/command";
 import {
-  ASK_PRESETS,
+  askConfigOf,
   resetAskConfig,
   setAskConfig,
   useAskOverrides,
@@ -105,13 +105,7 @@ import {
   type AskPlatform,
 } from "@/systems/ask/lib/config";
 import { ASK_EFFORTS, ASK_MODELS, DEFAULT_ASK_EFFORT, DEFAULT_ASK_MODEL } from "@/systems/ask/lib/models";
-import {
-  getAskEffort,
-  getAskModel,
-  setAskEffort,
-  setAskModel,
-  subscribeAskPrefs,
-} from "@/systems/ask/lib/prefs";
+import { askEffortPref, askModelPref } from "@/systems/ask/lib/prefs";
 import { askStrings } from "@/systems/ask/strings";
 import { useOptionalAbout } from "@/systems/about/provider";
 import {
@@ -196,7 +190,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
 
 // =============================================================================
@@ -3156,12 +3149,6 @@ function CommandModule() {
 // thinking, with their defaults. All saved (blue star).
 // =============================================================================
 
-const ASK_PLACES = [
-  { value: "center", label: "Center" },
-  { value: "side", label: "Side" },
-  { value: "top", label: "Top" },
-] as const;
-
 function AskModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
@@ -3171,9 +3158,10 @@ function AskModule() {
   const platform = picked ?? here;
   const overrides = useAskOverrides();
   const mine = overrides[platform];
-  const config: AskConfig = { ...ASK_PRESETS[platform], ...mine };
-  const model = useSyncExternalStore(subscribeAskPrefs, getAskModel, () => DEFAULT_ASK_MODEL);
-  const effort = useSyncExternalStore(subscribeAskPrefs, getAskEffort, () => DEFAULT_ASK_EFFORT);
+  const config: AskConfig = askConfigOf(platform);
+  const model = askModelPref.use();
+  const effort = askEffortPref.use();
+  const places = ASK_PLACEMENTS.map((value) => ({ value, label: askStrings(locale).placements[value] }));
 
   const changed =
     Object.keys(overrides.desk).length + Object.keys(overrides.phone).length > 0 ||
@@ -3196,8 +3184,8 @@ function AskModule() {
       star={changed ? "saved" : null}
       onReset={() => {
         resetAskConfig();
-        setAskModel(null);
-        setAskEffort(null);
+        askModelPref.set(DEFAULT_ASK_MODEL);
+        askEffortPref.set(DEFAULT_ASK_EFFORT);
       }}
       // The platform this viewport is; the preset row can show the other.
       action={<span className="text-[10px] font-mono text-muted-foreground">{here}</span>}
@@ -3226,7 +3214,7 @@ function AskModule() {
           <PanelSegmented
             value={config.fromSearch}
             label={zh ? "从搜索打开" : "From search"}
-            options={[...ASK_PLACES]}
+            options={places}
             onChange={set("fromSearch")}
           />
         </PanelRow>
@@ -3236,7 +3224,7 @@ function AskModule() {
             label={zh ? "按钮 / ⌘J 打开" : "From a call"}
             options={[
               { value: "last", label: "Last", title: zh ? "上次放的位置" : "Where it was last put" },
-              ...ASK_PLACES,
+              ...places,
             ]}
             onChange={set("fromCall")}
           />
@@ -3310,7 +3298,7 @@ function AskModule() {
           label={zh ? "模型" : "Model"}
           star={
             model !== DEFAULT_ASK_MODEL ? (
-              <PanelStar source="saved" onReset={() => setAskModel(null)} />
+              <PanelStar source="saved" onReset={() => askModelPref.set(DEFAULT_ASK_MODEL)} />
             ) : undefined
           }
         >
@@ -3318,14 +3306,14 @@ function AskModule() {
             value={model}
             label={zh ? "模型" : "Model"}
             options={ASK_MODELS.map((m) => ({ value: m.id, label: m.label.split(" ")[0], title: m.label }))}
-            onChange={setAskModel}
+            onChange={askModelPref.set}
           />
         </PanelRow>
         <PanelRow
           label={zh ? "思考" : "Thinking"}
           star={
             effort !== DEFAULT_ASK_EFFORT ? (
-              <PanelStar source="saved" onReset={() => setAskEffort(null)} />
+              <PanelStar source="saved" onReset={() => askEffortPref.set(DEFAULT_ASK_EFFORT)} />
             ) : undefined
           }
         >
@@ -3333,7 +3321,7 @@ function AskModule() {
             value={effort}
             label={zh ? "思考" : "Thinking"}
             options={ASK_EFFORTS.map((e) => ({ value: e, label: askStrings(locale).efforts[e] }))}
-            onChange={setAskEffort}
+            onChange={askEffortPref.set}
           />
         </PanelRow>
       </div>

@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { BookOpen, Check, Copy, FileText, Pencil, RefreshCw, Search, Undo2 } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import type { AskUIMessage } from "../lib/tools";
+import { textOf, type AskUIMessage } from "../lib/tools";
 import { useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
 
@@ -78,14 +78,6 @@ function blocksOf(message: AskUIMessage, live: boolean): Block[] {
     }
   });
   return blocks;
-}
-
-/** What a message says, as Markdown: what Copy copies. */
-export function textOf(message: AskUIMessage): string {
-  return message.parts
-    .map((p) => (p.type === "text" ? p.text.trim() : ""))
-    .filter(Boolean)
-    .join("\n\n");
 }
 
 /** The pages a turn read, and the ones its answer links to. */
@@ -444,10 +436,9 @@ export interface AskMessagesProps {
   /** A link to a page on this site was followed. */
   onNavigate: (href: string) => void;
   className?: string;
-  contentClassName?: string;
 }
 
-export function AskMessages({ onNavigate, className, contentClassName }: AskMessagesProps) {
+export function AskMessages({ onNavigate, className }: AskMessagesProps) {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { messages, status, error, busy, send, regenerate, rewind, edit } = useAskSession();
@@ -473,7 +464,7 @@ export function AskMessages({ onNavigate, className, contentClassName }: AskMess
       // animation fought the finger. New words still arrive smoothly.
       initial="instant"
     >
-      <ConversationContent className={cn("gap-6 px-4 py-4", contentClassName)}>
+      <ConversationContent className="gap-6 px-4 py-4">
         {messages.length === 0 ? (
           <ConversationEmptyState className="gap-4 p-4">
             <div className="space-y-1">

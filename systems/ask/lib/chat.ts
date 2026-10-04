@@ -4,7 +4,7 @@ import { Chat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { getConversation, saveConversation, type AskSettings } from "./history";
 import { askEffortOf, askModelOf, DEFAULT_ASK_EFFORT, DEFAULT_ASK_MODEL } from "./models";
-import { getAskEffort, getAskModel, setAskEffort, setAskModel } from "./prefs";
+import { askEffortPref, askModelPref } from "./prefs";
 import { loadAskSearch } from "./search";
 import type { AskUIMessage } from "./tools";
 
@@ -69,7 +69,7 @@ let finalizeNext = false;
 const settings = new Map<string, AskSettings>();
 
 function settingsOf(id: string): AskSettings {
-  return settings.get(id) ?? { model: getAskModel(), effort: getAskEffort() };
+  return settings.get(id) ?? { model: askModelPref.get(), effort: askEffortPref.get() };
 }
 
 /** Save a conversation with what it runs on. */
@@ -104,8 +104,8 @@ function createChat(id?: string, messages?: AskUIMessage[], own?: Partial<AskSet
       }
       return false;
     },
+    // Also after an error or a stop, with what had come in by then.
     onFinish: () => save(chat),
-    onError: () => save(chat),
     async onToolCall({ toolCall }) {
       if (toolCall.dynamic) return;
       try {
@@ -134,8 +134,8 @@ function createChat(id?: string, messages?: AskUIMessage[], own?: Partial<AskSet
     },
   });
   settings.set(chat.id, {
-    model: own?.model ? askModelOf(own.model).id : getAskModel(),
-    effort: own?.effort ? askEffortOf(own.effort) : getAskEffort(),
+    model: own?.model ? askModelOf(own.model).id : askModelPref.get(),
+    effort: own?.effort ? askEffortOf(own.effort) : askEffortPref.get(),
   });
   track(chat);
   return chat;
@@ -231,13 +231,7 @@ const DEFAULT_SETTINGS: AskSettings = { model: DEFAULT_ASK_MODEL, effort: DEFAUL
 /** The current conversation's model and thinking level (the same object
  *  until they change). */
 export function getAskSettings(): AskSettings {
-  if (typeof window === "undefined") return DEFAULT_SETTINGS;
-  const chat = getAskChat();
-  const own = settings.get(chat.id);
-  if (own) return own;
-  const fresh = settingsOf(chat.id);
-  settings.set(chat.id, fresh);
-  return fresh;
+  return typeof window === "undefined" ? DEFAULT_SETTINGS : settingsOf(getAskChat().id);
 }
 
 export function getAskServerSettings(): AskSettings {
@@ -248,13 +242,14 @@ export function getAskServerSettings(): AskSettings {
  *  one starts on. */
 export function setAskSettings(change: Partial<AskSettings>) {
   const chat = getAskChat();
+  const own = settingsOf(chat.id);
   const next: AskSettings = {
-    model: change.model ? askModelOf(change.model).id : settingsOf(chat.id).model,
-    effort: change.effort ? askEffortOf(change.effort) : settingsOf(chat.id).effort,
+    model: change.model ? askModelOf(change.model).id : own.model,
+    effort: change.effort ? askEffortOf(change.effort) : own.effort,
   };
   settings.set(chat.id, next);
-  if (change.model) setAskModel(next.model);
-  if (change.effort) setAskEffort(next.effort);
+  if (change.model) askModelPref.set(next.model);
+  if (change.effort) askEffortPref.set(next.effort);
   if (chat.messages.length) save(chat);
   listeners.forEach((l) => l());
 }

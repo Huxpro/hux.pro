@@ -11,10 +11,11 @@ systems/ask/
 │   ├── search.ts      # the index in the browser: fetched once, BM25 (MiniSearch), search + read
 │   ├── tools.ts       # the agent's tools (search_site, read): declared once, run in the page
 │   ├── chat.ts        # the session: current conversation, the agent loop (AI SDK Chat)
-│   ├── prefs.ts       # the visitor's model and thinking level (no AI SDK, so the devtool can read it)
+│   ├── prefs.ts       # the last model and thinking level picked, what a new conversation starts on (no AI SDK, so the devtool can read it)
+│   ├── storage.ts     # JSON in localStorage, where storage allows
 │   ├── config.ts      # how Ask behaves: every setting, a preset per platform (desk / phone)
 │   ├── history.ts     # past conversations, in localStorage
-│   ├── use-ask.ts     # the hooks surfaces are built from: useAskSession / useAskHistory / useAskPrefs / useAskRequest
+│   ├── use-ask.ts     # the hooks surfaces are built from: useAskSession / useAskHistory / useAskPrefs / useAskRunning / useAskRequest
 │   ├── models.ts      # the models the picker offers and the route accepts
 │   └── intent.ts      # is this a question or a search?
 ├── components/

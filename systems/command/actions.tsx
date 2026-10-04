@@ -289,7 +289,7 @@ export function useCommandActions(): CommandAction[] {
       kind: "stay" as const,
       section: "actions" as const,
       slashOnly: true,
-      label: askStrings(locale).shortcut,
+      label: askStrings(locale).askRow,
       icon: <Sparkles className={ROW_ICON} />,
       keywords: ["ask", "ai", "chat", "question", "问", "聊天", "提问"],
       run: () => openAsk(undefined, "palette"),
