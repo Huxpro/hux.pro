@@ -715,11 +715,6 @@ html.dragging * {
   }
 }
 
-/* Words Ask pointed at on the page (lib/highlight-quote.ts). */
-::highlight(quote) {
-  background-color: var(--accent-wash);
-}
-
 /* The signature: /works (TimelineCommit, "The signature"). A row's
    `commit` / `Author:` / `Role:`, never at rest: on a desk it unspools from
    the hash down into the margin while the row is hovered; anywhere, a tap on

@@ -2,8 +2,9 @@
 
 /**
  * Find words on the page and point at them: scroll the passage into view
- * and highlight the words (the CSS Custom Highlight API, `::highlight(quote)`
- * in globals.css; a wash on the paragraph where it is missing). For Ask's
+ * and highlight the words (the CSS Custom Highlight API, `::highlight(quote)`,
+ * a rule added here because the build's CSS parser does not know the
+ * pseudo-element; a wash on the paragraph where the API is missing). For Ask's
  * open_page, which lands on a passage of a post rather than its heading.
  *
  * The words are matched with their whitespace folded, in the page's content
@@ -18,6 +19,15 @@ const HOLD_MS = 6000;
  *  travel) goes first: the passage is pointed at after it, from the section
  *  to the words, rather than the two scrolls fighting. */
 const AFTER_LANDING_MS = 560;
+
+/** The highlight's look, added to the page once. */
+function ensureStyle() {
+  if (document.getElementById("quote-highlight")) return;
+  const style = document.createElement("style");
+  style.id = "quote-highlight";
+  style.textContent = `::highlight(${HIGHLIGHT}) { background-color: var(--accent-wash); }`;
+  document.head.appendChild(style);
+}
 
 function fold(text: string): string {
   return text.replace(/\s+/g, " ");
@@ -84,6 +94,7 @@ export function highlightQuote(quote: string, timeoutMs = 4000): Promise<boolean
       const registry = (CSS as unknown as { highlights?: Map<string, unknown> }).highlights;
       const HighlightCtor = (window as unknown as { Highlight?: new (...r: Range[]) => unknown }).Highlight;
       if (registry && HighlightCtor) {
+        ensureStyle();
         registry.set(HIGHLIGHT, new HighlightCtor(range));
         window.setTimeout(() => registry.delete(HIGHLIGHT), HOLD_MS);
       } else if (block) {
