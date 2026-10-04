@@ -1338,6 +1338,32 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* -----------------------------------------------------------------------------
+   The Ask ball (systems/command/fab.tsx, AskBall) - Shared Element
+   -----------------------------------------------------------------------------
+   The ball beside the search bar changes place with the page (right of the
+   home's prompt, left of the corner's button). As a shared element it slides
+   straight there in the same transition as the page's crossfade, the way the
+   identifier moves; it looks the same at both ends, so the slide is all
+   there is: no crossfade of its own. */
+
+[data-ask-ball] {
+  view-transition-name: ask-ball;
+}
+
+::view-transition-group(ask-ball) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::view-transition-old(ask-ball) {
+  display: none;
+}
+
+::view-transition-new(ask-ball) {
+  animation: none;
+}
+
+/* -----------------------------------------------------------------------------
    Reduced Motion
    ----------------------------------------------------------------------------- */
 

@@ -65,7 +65,7 @@ conversation is the session's, so moving Ask moves nothing else.
 
 | place | what it is | from |
 |---|---|---|
-| **center** | the ⌘K card, widened to 960px: history rail on the left, conversation on the right; on a phone, a bottom drawer the screen's height, of its own | the palette's Ask mode (`chat.tsx`); `panel.tsx` in `SurfaceSheet` on a phone |
+| **center** | the ⌘K card turned into a chat: the search card's width and place, a little taller; its sidebar button opens the history beside the conversation and grows the card to 960px, a chat app. A window: it drags anywhere. On a phone, a bottom drawer the screen's height, of its own | the palette's Ask mode (`chat.tsx`); `panel.tsx` in `SurfaceSheet` on a phone |
 | **side** | a 440px panel docked at the trailing edge; the page beside it stays live, and from 1280px the page makes room (`data-ask-docked`) | `panel.tsx`, `SurfacePanel` |
 | **top** | the Dock's panel, hanging from the top | `activity.tsx`, `LiveActivity` |
 | **pill** | minimized: a pill in the Dock saying what the agent is doing, then the answer's first words, with the site's glow while it works | the same activity, collapsed |
@@ -75,12 +75,23 @@ What follows is the desk's preset; every line of it is a setting (below).
 - **Which place.** Asking from search (the Ask row, Tab) lands in the center,
   unless Ask is already open at the side or the top, which then takes the
   question. ⌘J, `/` `J` and the Ask button open it where the visitor last
-  put it (`hux_ask_placement`), and close it again.
+  put it (`hux_ask_placement`), and close it again. On a page to read
+  (/writing, /works, /prompt, /about, /docs) both open it at the side, so the
+  page stays in view (`onReadingPage`).
+- **The way back.** Leaving the center goes back to search only when search
+  was the way in (the Ask row, Tab, `/` `J`): there is a back button, and
+  Escape returns to the field. Reached directly (⌘J, the Ask button, a move
+  from another place) it has no search behind it: no back button, and Escape
+  closes it (`askEntry` in the command provider).
 - **Moving.** Every surface's header has the placement buttons (center, side,
   top) and minimize. On a screen with room for the side panel, the header is
-  also a handle: drag it and the three places light up where they would put
-  it (`AskDragOverlay`); let go over one and Ask moves there. The surface
-  being carried fades (`data-ask-dragging`).
+  also a handle. The center is a window: its header drags the card anywhere
+  (the palette's own drag), and only the edges are places: within 96px of the
+  trailing edge the side lights up, within 64px of the top the Dock; let go
+  there and Ask moves, anywhere else the window stays where it was put. The
+  side panel and the Dock's panel are fixed, so their header carries a
+  stand-in, with the three places drawn to aim at (`AskDragOverlay`). The
+  surface being carried fades (`data-ask-dragging`).
 - **The pill.** Minimize (or the Dock's chevron at the top, or a route change
   while it is there) leaves the pill; tapping it opens the top place. Closing
   Ask while a reply is still being written leaves the pill too. ✕ closes it
@@ -98,9 +109,13 @@ What follows is the desk's preset; every line of it is a setting (below).
 - **Entries.** The Ask button is a ball beside the search bar on every page
   (`fab.tsx`, `AskBall`), lit while Ask is open: right of the prompt on the
   home, left of the ⌘K button in a desk's corner, above it on a phone. It is
-  outside the bar's flow and placed from the bar's layout box, so the bar
-  morphs exactly as it does alone; a route change only slides the ball, on
-  the bar's curve. Away from the home both step aside for the side panel.
+  outside the bar's flow, so the bar lays out and morphs exactly as it does
+  alone, and it has no animation of its own: a navigation's View Transition
+  slides it straight to its new place as a shared element (`ask-ball`, as
+  λhux moves), and for every frame of the bar's own settle it stands beside
+  the bar as drawn (read in framer's postRender, and on every write to the
+  bar's style, before the paint). Away from the home both step aside for the
+  side panel.
 
 ### Settings, and a preset per platform
 
@@ -117,6 +132,7 @@ defaults.
 |---|---|---|---|
 | `fromSearch` | where asking from search opens Ask | center | center (the drawer) |
 | `fromCall` | where ⌘J / the Ask button opens it: where it was last, or one place | last | center |
+| `onReadingPage` | on /writing, /works, /prompt, /about, /docs: open at the side, or follow the two above | side | same |
 | `placeButtons` | center / side / top in the header (side never on a phone: no room) | on | off |
 | `drag` | the header drags between places (a mouse) | on | off |
 | `minimize` | `dock`: into the Dock as a pill; `off`: no minimize button, and the Dock's collapse closes | dock | off |

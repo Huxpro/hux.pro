@@ -3241,6 +3241,17 @@ function AskModule() {
             onChange={set("fromCall")}
           />
         </PanelRow>
+        <PanelRow label={zh ? "阅读页" : "On reading pages"} star={star("onReadingPage")}>
+          <PanelSegmented
+            value={config.onReadingPage}
+            label={zh ? "阅读页" : "On reading pages"}
+            options={[
+              { value: "side", label: "Side", title: zh ? "文章等页面上默认在侧边打开" : "Open beside /writing, /works, /prompt, /about" },
+              { value: "same", label: zh ? "同上" : "Same", title: zh ? "按上面两条规则" : "Follow the two rules above" },
+            ]}
+            onChange={set("onReadingPage")}
+          />
+        </PanelRow>
         <PanelRow label={zh ? "位置按钮" : "Place buttons"} star={star("placeButtons")}>
           <PanelToggle
             on={config.placeButtons}

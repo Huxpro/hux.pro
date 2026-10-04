@@ -1,6 +1,7 @@
 "use client";
 
 import { askConfigNow } from "@/systems/ask/lib/config";
+import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 // =============================================================================
@@ -28,6 +29,22 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 // =============================================================================
 
 export type AskPlacement = "center" | "side" | "top";
+
+/**
+ * How Ask was reached: from inside the palette (its Ask row, Tab, `/` `J`),
+ * or directly (⌘J, the Ask ball, a move from another place). It decides what
+ * leaving the center does: back to search when the palette was the way in,
+ * closed altogether when it was not, since there is no search to go back to.
+ */
+export type AskEntry = "command" | "direct";
+
+/**
+ * Pages read rather than used: Ask opens beside them on a desk (the
+ * `onReadingPage` setting), so the page stays in view while you ask about it.
+ */
+export function isReadingPage(pathname: string): boolean {
+  return /^\/(writing|works|prompt|about|docs)(\/|$)/.test(pathname);
+}
 
 const ASK_PLACEMENT_KEY = "hux_ask_placement";
 
@@ -66,11 +83,15 @@ interface CommandContextType {
   askPill: boolean;
   /**
    * Open Ask, sending `text` if there is any. `from: "search"` (the palette's
-   * Ask row, Tab) lands in the center; a call opens where Ask was last.
+   * Ask row, Tab) lands where asking from search goes; `"palette"` (a command
+   * in the palette, `/` `J`) and `"call"` (⌘J, the Ask ball) where a call
+   * goes; the first two count as reached from the palette.
    */
-  openAsk: (text?: string, from?: "search" | "call") => void;
+  openAsk: (text?: string, from?: "search" | "palette" | "call") => void;
   /** Move Ask to another place, the conversation with it. */
-  moveAsk: (placement: AskPlacement) => void;
+  moveAsk: (placement: AskPlacement, entry?: AskEntry) => void;
+  /** How Ask was reached (see `AskEntry`). */
+  askEntry: AskEntry;
   /** Close Ask wherever it is (a reply still being written leaves a pill). */
   closeAsk: () => void;
   /** Put Ask away into the Dock as a pill (where minimize is on; else close). */
@@ -106,6 +127,8 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [askSurface, setAskSurface] = useState<"side" | "top" | "sheet" | null>(null);
   const [askPill, setAskPill] = useState(false);
   const [askStarted, setAskStarted] = useState(false);
+  const [askEntry, setAskEntry] = useState<AskEntry>("direct");
+  const pathname = usePathname();
   // Where the visitor last put Ask: a per-viewer convenience, read on the
   // first call.
   const preferredPlacement = useRef<AskPlacement | null>(null);
@@ -164,8 +187,9 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const askPlacement: AskPlacement | null =
     isOpen && isAskMode ? "center" : askSurface === "sheet" ? "center" : askSurface;
 
-  const moveAsk = useCallback((placement: AskPlacement) => {
+  const moveAsk = useCallback((placement: AskPlacement, entry: AskEntry = "direct") => {
     const roomy = hasRoomBeside();
+    setAskEntry(entry);
     const target = placement === "side" && !roomy ? "center" : placement;
     setAskStarted(true);
     setAskPill(false);
@@ -197,22 +221,28 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const openAsk = useCallback(
-    (text?: string, from: "search" | "call" = "call") => {
+    (text?: string, from: "search" | "palette" | "call" = "call") => {
       const question = text?.trim();
       if (question) setAskRequest((prev) => ({ text: question, n: (prev?.n ?? 0) + 1 }));
+      const entry: AskEntry = from === "call" ? "direct" : "command";
       if (askSurface) {
         // Already open beside the page, at the top or as a phone's sheet: it
         // takes the question.
-        moveAsk(askSurface === "sheet" ? "center" : askSurface);
+        moveAsk(askSurface === "sheet" ? "center" : askSurface, entry);
         return;
       }
       const config = askConfigNow();
+      // A page to read stays in view: Ask opens beside it.
+      if (config.onReadingPage === "side" && isReadingPage(pathname)) {
+        moveAsk("side", entry);
+        return;
+      }
       if (from === "search") {
-        moveAsk(config.fromSearch);
+        moveAsk(config.fromSearch, entry);
         return;
       }
       if (config.fromCall !== "last") {
-        moveAsk(config.fromCall);
+        moveAsk(config.fromCall, entry);
         return;
       }
       if (preferredPlacement.current === null) {
@@ -224,9 +254,9 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         }
         preferredPlacement.current = isAskPlacement(saved) ? saved : "center";
       }
-      moveAsk(preferredPlacement.current);
+      moveAsk(preferredPlacement.current, entry);
     },
-    [askSurface, moveAsk]
+    [askSurface, moveAsk, pathname]
   );
 
   const closeAsk = useCallback(() => {
@@ -307,7 +337,9 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         }
         if (isAskMode) {
           e.preventDefault();
-          setIsAskMode(false);
+          // Back to search only if search was the way in.
+          if (askEntry === "command") setIsAskMode(false);
+          else close();
           return;
         }
         // Handled: a surface under the palette (the About) leaves this one.
@@ -319,7 +351,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isLoadBundleMode, isAskMode, askPlacement, toggle, close, open, openAsk, closeAsk]);
+  }, [isOpen, isLoadBundleMode, isAskMode, askEntry, askPlacement, toggle, close, open, openAsk, closeAsk]);
 
   return (
     <CommandContext.Provider
@@ -340,6 +372,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         setLoadBundleMode,
         openAsk,
         moveAsk,
+        askEntry,
         closeAsk,
         minimizeAsk,
         setAskMode,
