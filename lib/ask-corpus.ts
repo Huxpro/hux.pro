@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { headingId } from "@/lib/heading-id";
+import { computeCommitHash } from "@/lib/log";
 import { getBlogPostBySlug, getBlogSlugs } from "@/lib/mdx";
 import type {
   AskChunk,
@@ -91,21 +93,30 @@ function pack(text: string): string[] {
   return out;
 }
 
-/** A markdown body cut at its headings, then packed. */
-function sections(markdown: string): { heading?: string; text: string }[] {
-  const out: { heading?: string; text: string }[] = [];
+type Part = { heading?: string; anchor?: string; text: string };
+
+/** A markdown body cut at its headings, then packed. Each passage knows the
+ *  heading it sits under and the nearest one the page links (h1 to h3 take
+ *  ids, components/heading-link.tsx; an h4 does not). */
+function sections(markdown: string): Part[] {
+  const out: Part[] = [];
   let heading: string | undefined;
+  let anchor: string | undefined;
   let buffer: string[] = [];
   const flush = () => {
     const text = toPlainText(buffer.join("\n"));
-    for (const piece of pack(text)) out.push({ heading, text: piece });
+    for (const piece of pack(text)) out.push({ heading, anchor, text: piece });
     buffer = [];
   };
+  let fenced = false;
   for (const line of markdown.split("\n")) {
-    const m = /^#{1,4}\s+(.+?)\s*#*\s*$/.exec(line);
+    // A `#` inside a code block is a comment, not a heading.
+    if (/^\s*```/.test(line)) fenced = !fenced;
+    const m = fenced ? null : /^(#{1,4})\s+(.+?)\s*#*\s*$/.exec(line);
     if (m) {
       flush();
-      heading = toPlainText(m[1]);
+      heading = toPlainText(m[2]);
+      if (m[1].length <= 3) anchor = headingId(heading) || undefined;
     } else {
       buffer.push(line);
     }
@@ -118,7 +129,7 @@ class Builder {
   docs: AskDoc[] = [];
   chunks: AskChunk[] = [];
 
-  add(doc: AskDoc, parts: { heading?: string; text: string }[]) {
+  add(doc: AskDoc, parts: Part[]) {
     const kept = parts.filter((p) => p.text.trim());
     if (!kept.length) return;
     this.docs.push(doc);
@@ -127,6 +138,7 @@ class Builder {
         id: `${doc.id}#${i}`,
         doc: doc.id,
         ...(p.heading ? { heading: p.heading } : {}),
+        ...(p.anchor ? { anchor: p.anchor } : {}),
         text: p.text,
       });
     });
@@ -253,7 +265,9 @@ function addWorks(b: Builder) {
           kind: "work",
           lang,
           title: loc(c.title as Localized, lang),
-          href: c.type === "talk" ? "/works?type=talk" : "/works",
+          // The commit's permalink: /works travels to its row
+          // (components/log/use-commit-anchor.ts).
+          href: `/works#${computeCommitHash(c.id)}`,
           summary: [c.type, conference].filter(Boolean).join(" · ") || undefined,
           date: c.date,
         },
@@ -274,7 +288,9 @@ function addLanguages(b: Builder) {
           kind: "language",
           lang,
           title: name,
-          href: `/writing/pl-chart/${lang}`,
+          // The chart opens the language's row it is linked to
+          // (components/languages/language-index.tsx).
+          href: `/writing/pl-chart/${lang}#${l.id}`,
           summary: `interesting ${l.i13s}/10, used ${l.exp}/10`,
         },
         pack(toPlainText([name, ...notes].join("\n\n"))).map((text) => ({ text })),

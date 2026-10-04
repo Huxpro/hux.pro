@@ -55,6 +55,12 @@ function snippetOf(text: string, terms: string[]): string {
   return `${start > 0 ? "…" : ""}${flat.slice(start, start + SNIPPET)}…`;
 }
 
+/** Where a passage lives: its doc, at the heading it sits under when the
+ *  page links its headings. */
+function hrefOf(doc: AskDoc, chunk?: AskChunk): string {
+  return chunk?.anchor ? `${doc.href}#${chunk.anchor}` : doc.href;
+}
+
 function build(index: AskIndex): AskSearch {
   const docs = new Map(index.docs.map((d) => [d.id, d]));
   const chunks = new Map(index.chunks.map((c) => [c.id, c]));
@@ -110,7 +116,7 @@ function build(index: AskIndex): AskSearch {
         lang: doc.lang,
         title: doc.title,
         ...(chunk.heading ? { heading: chunk.heading } : {}),
-        href: doc.href,
+        href: hrefOf(doc, chunk),
         snippet: snippetOf(chunk.text, terms),
       });
       if (hits.length >= n) break;
@@ -129,7 +135,7 @@ function build(index: AskIndex): AskSearch {
     return {
       id,
       title: doc.title,
-      href: doc.href,
+      href: hrefOf(doc, chunk),
       lang: doc.lang,
       ...(doc.summary ? { summary: doc.summary } : {}),
       ...(doc.date ? { date: doc.date } : {}),

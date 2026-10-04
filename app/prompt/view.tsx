@@ -36,6 +36,12 @@ import { AnimatePresence, motion } from "motion/react";
 import { Presentation } from "lucide-react";
 import { useOptionalTheater } from "@/systems/theater";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useHashLanding } from "@/lib/use-hash-landing";
+
+/** Marks the entry a link landed on (globals.css washes it). */
+const LANDED_ATTR = "data-hash-target";
+/** Where it comes to rest: the entries' own `scroll-mt-24`. */
+const LANDED_HEADROOM = 96;
 
 /**
  * Every in-page reference (an attribution anchor, a back-link, an item's own
@@ -73,11 +79,15 @@ function goToId(id: string) {
 interface Navigation {
   goTo: (id: string) => void;
   anchorFor: (id: string) => string;
+  /** The entry a link landed on (`n` counts landings, so the same one twice
+   *  is two): it opens. */
+  landed: { id: string; n: number } | null;
 }
 
 const GoToContext = createContext<Navigation>({
   goTo: goToId,
   anchorFor: (id) => id,
+  landed: null,
 });
 
 function useNav() {
@@ -627,6 +637,13 @@ function PromptItem({
   detail?: React.ReactNode;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  // A link to this entry opens it: what it points at is the entry, not its
+  // headline.
+  const { landed } = useNav();
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a landing is an event from outside, delivered as a value
+    if (expandable && landed?.id === anchorId) setIsExpanded(true);
+  }, [landed, anchorId, expandable]);
   // Pointer and keyboard both open the tag, so it is state rather than
   // `group-hover`: the morph below needs to know, and a tab stop should get
   // the same row a mouse does.
@@ -1159,27 +1176,6 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
     [view, searchParams, router, pathname],
   );
 
-  // A shared link lands mid-page before the wallpaper and fonts settle, so
-  // re-seat the target once after mount rather than trusting the browser's
-  // initial jump.
-  useEffect(() => {
-    const raw = window.location.hash.slice(1);
-    if (!raw) return;
-    const id = anchorFor(decodeURIComponent(raw));
-    const frame = requestAnimationFrame(() => {
-      const element = document.getElementById(id);
-      if (!element) return;
-      // Arrived under the other language's name: say so in the address bar
-      // rather than leaving a link that only half works.
-      if (id !== decodeURIComponent(raw))
-        history.replaceState(null, "", `#${id}`);
-      element.scrollIntoView({ block: "start" });
-    });
-    return () => cancelAnimationFrame(frame);
-    // Once, on mount. A later locale switch must not yank the page around.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Counts are of the UNFILTERED page, so a chip's number never moves as you
   // select: it answers "how much of this is there?", which is the question a
   // chip is asked, not "how much survived?", which the entries answer.
@@ -1241,18 +1237,51 @@ export function PromptView({ dataEn, dataZh }: PromptViewProps) {
     [commit, anchorFor],
   );
 
+  // Arrival on `#anchor`, and every link into the page while it is open
+  // (Ask's sources, lib/follow-href.ts, or the address bar): the page
+  // travels to the entry, which opens. Under the other language's name, the
+  // address bar is put right; hidden by the filter, the filter is lifted
+  // first (`pendingId`, below).
+  const [landed, setLanded] = useState<Navigation["landed"]>(null);
+  const pendingLanding = useRef(false);
+  const landOn = useCallback(
+    (raw: string) => {
+      const id = anchorFor(raw);
+      const element = document.getElementById(id);
+      if (!element) {
+        pendingId.current = id;
+        pendingLanding.current = true;
+        commit({ kinds: [], topics: [] }, id);
+        return null;
+      }
+      if (id !== raw) history.replaceState(null, "", `#${id}`);
+      return element;
+    },
+    [anchorFor, commit],
+  );
+  const travelTo = useHashLanding({
+    resolve: landOn,
+    markAttr: LANDED_ATTR,
+    headroom: LANDED_HEADROOM,
+    onLand: (el) => setLanded((last) => ({ id: el.id, n: (last?.n ?? 0) + 1 })),
+  });
+
   const nav = useMemo<Navigation>(
-    () => ({ goTo, anchorFor }),
-    [goTo, anchorFor],
+    () => ({ goTo, anchorFor, landed }),
+    [goTo, anchorFor, landed],
   );
 
   useEffect(() => {
     const id = pendingId.current;
     if (!id) return;
     pendingId.current = null;
-    // The URL was written by `commit`; this only travels.
-    scrollToId(id);
-  }, [view]);
+    const element = document.getElementById(id);
+    // The URL was written by `commit`; this only travels. A landing (not a
+    // reference followed in the page) opens the entry, too.
+    if (element && pendingLanding.current) travelTo(element);
+    else scrollToId(id);
+    pendingLanding.current = false;
+  }, [view, travelTo]);
 
   // What an instance's pointer is called, from either collection.
   const labelOf = useCallback(

@@ -1,5 +1,6 @@
 "use client";
 
+import { followHref } from "@/lib/follow-href";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useDevtool } from "@/systems/devtool";
@@ -425,7 +426,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                       request={askRequest}
                       onBack={askEntry === "command" ? () => setAskMode(false) : undefined}
                       onNavigate={(href) => {
-                        router.push(href);
+                        followHref(href, (to) => router.push(to));
                         close();
                       }}
                       trailing={

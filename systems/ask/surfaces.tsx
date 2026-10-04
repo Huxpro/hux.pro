@@ -1,5 +1,6 @@
 "use client";
 
+import { followHref } from "@/lib/follow-href";
 import { useCommand, type AskPlacement } from "@/systems/command";
 import { detentHeight, SurfacePanel, SurfaceSheet } from "@/systems/surface";
 import type { Drawer } from "@base-ui/react/drawer";
@@ -83,7 +84,7 @@ export function AskSide() {
 
   const onNavigate = useCallback(
     (href: string) => {
-      router.push(href);
+      followHref(href, (to) => router.push(to));
       // A drawer the screen's height covers the page it just opened: away
       // (into the Dock, where minimize goes there; closed, on a phone).
       if (shape === "sheet") minimizeAsk();

@@ -1,4 +1,5 @@
 import { MDXRenderer } from "@/components/mdx-renderer";
+import { HeadingLanding } from "@/components/post/heading-landing";
 import { getBlogPostBySlug, getBlogSlugs } from "@/lib/mdx";
 import { defaultLocale, locales, type Locale } from "@/lib/i18n";
 import { postCardOf } from "@/lib/content";
@@ -129,6 +130,7 @@ export default async function BlogPostLangPage({
       >
         <MDXRenderer source={content} />
       </BlogPostContent>
+      <HeadingLanding />
     </>
   );
 }

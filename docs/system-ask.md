@@ -278,10 +278,28 @@ committed; `predev` and `build` run it):
 
 | doc kind | from | href |
 |---|---|---|
-| `post` | `content/blog/*.mdx`, one doc per language, cut at headings | `/writing/<slug>/<lang>` |
+| `post` | `content/blog/*.mdx`, one doc per language, cut at headings | `/writing/<slug>/<lang>`, a passage's `#<heading id>` |
 | `conviction`, `influence` | `content/prompts.json` | `/prompt#<anchor>` |
-| `era`, `work` | `content/log.json` | `/works` |
-| `language` | `content/languages.json` | `/writing/pl-chart/<lang>` |
+| `era` | `content/log.json` | `/works` |
+| `work` | `content/log.json` | `/works#<commit hash>` |
+| `language` | `content/languages.json` | `/writing/pl-chart/<lang>#<id>` |
+
+### Links that land
+
+Every link Ask gives goes to the exact spot: a passage's link is its post at
+the heading it sits under (the nearest h1 to h3, whose id the page and the
+index both take from `lib/heading-id.ts`), a talk's or a project's is its
+commit's permalink on /works, a conviction's is its entry on /prompt. The
+system prompt's map carries the same permalinks, and tells the model to keep
+the `#` part.
+
+The pages travel there on arrival and on every `hashchange`
+(`lib/use-hash-landing.ts`): the commit row, the post heading and the PL
+chart's row are scrolled to and washed; a /prompt entry also opens, with the
+filter lifted if it hid the entry. A link to the page already open is no
+route change, so Ask follows its links with `lib/follow-href.ts`, which
+writes the hash and fires `hashchange` itself: a source at the side of
+/works goes to its row.
 
 Chunks are at most ~1200 characters. About 230 docs and 760 chunks today:
 ~560 KB, ~230 KB gzipped (much of it Chinese, which compresses less). One file with the text in it: the browser fetches it
