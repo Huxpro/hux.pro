@@ -3,6 +3,7 @@
 // =============================================================================
 
 export { CommandProvider, useCommand } from "./provider";
+export type { AskPlacement } from "./provider";
 export { CommandPalette } from "./palette";
 export { FloatingActionButton } from "./fab";
 export {

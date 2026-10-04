@@ -305,7 +305,16 @@ The footer (`Press D to toggle` and `Disable Devtool`) is the surface's
    palette is on a phone) / Popover (the desktop card at phone width, the palette as it was).
    A saved setting, so a blue `*` marks it and resets it. Lets the two be
    compared on the same device; the popover code path is kept whole for it.
-5. **Windows**: the open app windows, front-most first, with focused / minimized,
+5. **Ask**: how Ask behaves (`systems/ask/lib/config.ts`). A **Preset** row
+   picks the platform shown, Desk or Phone, starting on the one this viewport
+   is (named in the header); under it every setting for that platform: where
+   Ask opens from search and from a call, the place buttons, dragging,
+   minimize (into the Dock, or off), the pill while a reply is written, and
+   the voice glow's two waits. Then the visitor's model and thinking level.
+   Each row's blue `*` resets it to its preset (or default); the title's
+   resets the lot. Open by default once Ask has been called on the page.
+   See `docs/system-ask.md` → Settings, and a preset per platform.
+6. **Windows**: the open app windows, front-most first, with focused / minimized,
    runtime and flavor, source (web / built-in / online), size preset, reload
    count, rect, and the bundle or page URL. Inspection only: apps launch, and
    bundles load by URL, from ⌘K. The header shows how many are open.

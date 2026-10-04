@@ -2,6 +2,7 @@ import languagesData from "@/content/languages.json";
 import logData from "@/content/log.json";
 import promptsData from "@/content/prompts.json";
 import { blogPosts } from "@/lib/data";
+import { ASK_INSTRUCTIONS, ASK_MAP_SECTIONS } from "@/systems/ask/prompts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -15,6 +16,8 @@ import { join } from "node:path";
 // the tools (systems/ask/lib/tools.ts). The whole site in every request would
 // cost hundreds of thousands of tokens; the map and a few reads cost a small
 // fraction of that.
+//
+// The words are systems/ask/prompts.ts; this file only fills them in.
 //
 // Server only. Built once per server instance and kept byte-identical, so a
 // provider's prompt cache can hold it.
@@ -65,22 +68,22 @@ function siteMap(): string {
   const languages = languagesData.languages.map((l) => both(l.name as Localized)).join(", ");
 
   return [
-    "## Posts (/writing)",
+    ASK_MAP_SECTIONS.posts,
     ...posts,
     "",
-    "## Convictions (/prompt, how Hux prompts himself)",
+    ASK_MAP_SECTIONS.convictions,
     ...convictions,
     "",
-    "## Influences (/prompt)",
+    ASK_MAP_SECTIONS.influences,
     ...influences,
     "",
-    "## Career eras (/works)",
+    ASK_MAP_SECTIONS.eras,
     ...eras,
     "",
-    "## Talks and projects (/works)",
+    ASK_MAP_SECTIONS.works,
     ...works,
     "",
-    "## Programming languages on the PL chart (/writing/pl-chart/en)",
+    ASK_MAP_SECTIONS.languages,
     languages,
   ].join("\n");
 }
@@ -88,21 +91,6 @@ function siteMap(): string {
 let cached: string | null = null;
 
 export function askSystemPrompt(): string {
-  cached ??= `You are Ask, the assistant built into hux.pro, the personal site of Hux. You are not Hux: speak about him in the third person, and from what the site says.
-
-# How to answer
-- Questions about Hux, his work, his writing or his views: search the site first (search_site), and read a doc when a snippet is not enough. Search in both English and Chinese when the topic could be in either.
-- Ground every claim in what you found. If the site does not say, say so plainly instead of guessing.
-- Link what you used, with Markdown links to the site's own paths (e.g. [the PL chart](/writing/pl-chart/en)). Prefer the page in the reader's language when both exist.
-- Reply in the language of the question. Keep it short: a few short paragraphs or a short list. No headings.
-- Always end your turn with a written reply. A few searches are usually enough; stop and answer as soon as you can.
-- General questions with nothing to do with the site: answer briefly, and do not search.
-
-# About Hux (his own words, from the site's About)
-${about()}
-
-# Map of the site
-Every entry is searchable and readable with the tools; the doc id is what read takes.
-${siteMap()}`;
+  cached ??= ASK_INSTRUCTIONS({ about: about(), map: siteMap() });
   return cached;
 }

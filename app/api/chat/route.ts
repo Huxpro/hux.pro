@@ -1,6 +1,7 @@
 import { askSystemPrompt } from "@/lib/ask-prompt";
 import { askEffortOf, askModelOf, type AskModel } from "@/systems/ask/lib/models";
 import { askTools, type AskUIMessage } from "@/systems/ask/lib/tools";
+import { ASK_ANSWER_NOW } from "@/systems/ask/prompts";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
@@ -47,8 +48,6 @@ const MAX_OUTPUT_TOKENS = 4000;
  */
 const TOOL_BUDGET = 6;
 
-const ANSWER_NOW =
-  "You have searched enough. Answer the question now, from what the tools returned, in the reader's language, with links. If it is not on the site, say so.";
 
 function resolveModel(model: AskModel): LanguageModel | null {
   // On a Vercel deployment (VERCEL=1) the gateway provider finds the OIDC
@@ -122,7 +121,7 @@ export async function POST(req: Request) {
         // cache. Other providers cache prefixes on their own or ignore this.
         providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
       },
-      ...(answerNow ? [{ role: "system" as const, content: ANSWER_NOW }] : []),
+      ...(answerNow ? [{ role: "system" as const, content: ASK_ANSWER_NOW }] : []),
     ],
     messages: await convertToModelMessages(messages, { tools: askTools }),
     // The tools stay declared (the history has calls to them); answering

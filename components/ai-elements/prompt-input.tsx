@@ -929,8 +929,13 @@ export const PromptInput = ({
         <InputGroup
           className={cn(
             "overflow-hidden",
-            // A border that answers focus, without base-maia's 3px ring.
-            "has-[[data-slot=input-group-control]:focus-visible]:ring-0"
+            // A border that answers focus, without base-maia's 3px ring, and
+            // at half the ring's ink: the field is the panel's, not a form's.
+            "has-[[data-slot=input-group-control]:focus-visible]:ring-0",
+            "has-[[data-slot=input-group-control]:focus-visible]:border-ring/50",
+            // Its own fill: over a translucent panel (the Dock's glass) the
+            // page would otherwise read through what is being typed.
+            "bg-background/70 dark:bg-background/60"
           )}
         >
           {children}

@@ -1,18 +1,21 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import {
+  dropAskConversation,
   getAskChat,
-  getAskEffort,
-  getAskModel,
+  getAskRunning,
+  getAskServerSettings,
+  getAskSettings,
   newAskChat,
   openAskConversation,
-  setAskEffort,
-  setAskModel,
+  setAskSettings,
   subscribeAskChat,
+  subscribeAskRunning,
 } from "./chat";
 import {
+  type AskSettings,
   deleteConversation,
   getConversationsServerSnapshot,
   getConversationsSnapshot,
@@ -58,22 +61,30 @@ export function useAskHistory() {
     getConversationsSnapshot,
     getConversationsServerSnapshot,
   );
-  return { conversations, deleteConversation };
+  return {
+    conversations,
+    deleteConversation: (id: string) => {
+      dropAskConversation(id);
+      deleteConversation(id);
+    },
+  };
 }
 
-/** The viewer's model and effort, remembered in this browser. */
+/** The current conversation's model and thinking level; changing them
+ *  changes that conversation (and what the next new one starts on). */
 export function useAskPrefs() {
-  const [model, setModelState] = useState(getAskModel);
-  const [effort, setEffortState] = useState(getAskEffort);
-  const setModel = useCallback((id: string) => {
-    setAskModel(id);
-    setModelState(getAskModel());
-  }, []);
-  const setEffort = useCallback((value: string) => {
-    setAskEffort(value);
-    setEffortState(getAskEffort());
-  }, []);
-  return { model, setModel, effort, setEffort };
+  const { model, effort } = useSyncExternalStore(subscribeAskChat, getAskSettings, getAskServerSettings);
+  return {
+    model,
+    setModel: (value: string) => setAskSettings({ model: value }),
+    effort,
+    setEffort: (value: string) => setAskSettings({ effort: value as AskSettings["effort"] }),
+  };
+}
+
+/** The ids of the conversations being answered now, for the history. */
+export function useAskRunning(): ReadonlySet<string> {
+  return useSyncExternalStore(subscribeAskRunning, getAskRunning, getAskRunning);
 }
 
 /** The last request sent, so a remount (or a second surface) never sends

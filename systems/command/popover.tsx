@@ -5,6 +5,7 @@ import { t, useLocale } from "@/services";
 import { useDevtool } from "@/systems/devtool";
 import { useDraggable } from "@/systems/draggable";
 import { AskChat } from "@/systems/ask";
+import { askStrings } from "@/systems/ask/strings";
 import { Command } from "cmdk";
 import { motion } from "framer-motion";
 import { Search, Slash } from "lucide-react";
@@ -46,6 +47,19 @@ const PALETTE_GEOMETRY = {
     "min(40rem, 43dvh, var(--command-palette-chrome))",
   "--command-palette-slash-max":
     "min(40rem, var(--command-palette-chrome))",
+  // Ask brings its own header and footer, so only the card's margins come
+  // off what is left under the offset. As it opens, about the palette's own
+  // height: the command card, turned into a chat.
+  "--command-palette-ask-max":
+    "min(36rem, calc(100dvh - var(--command-palette-offset) - 4rem - env(safe-area-inset-bottom, 0px)))",
+} as CSSProperties;
+
+// Ask with its history open: a chat app, which wants height more than a
+// place in the upper third, so the card rises and grows to make room.
+const PALETTE_ASK_APP_GEOMETRY = {
+  "--command-palette-offset": "min(12vh, 7rem)",
+  "--command-palette-ask-max":
+    "min(44rem, calc(100dvh - var(--command-palette-offset) - 4rem - env(safe-area-inset-bottom, 0px)))",
 } as CSSProperties;
 
 const PALETTE_LIST_MAX =
@@ -56,7 +70,7 @@ const PALETTE_SLASH_MAX =
 
 // Ask: a conversation wants a fixed height to scroll within, not one that
 // jumps with every line streamed in.
-const PALETTE_ASK_HEIGHT = "h-[min(38rem,var(--command-palette-chrome))]";
+const PALETTE_ASK_HEIGHT = "h-[var(--command-palette-ask-max)]";
 
 // =============================================================================
 // CommandPopover: the palette as a floating card, Spotlight-style.
@@ -65,6 +79,13 @@ const PALETTE_ASK_HEIGHT = "h-[min(38rem,var(--command-palette-chrome))]";
 // way down, draggable through the shared hook, closed by a click on the page.
 // Its four modes (search, slash, load-bundle, Ask) morph inside one card:
 // width, header and footer each animate rather than swapping.
+//
+// Ask opens as the search card turned into a chat: the same width and place,
+// a little taller. Its sidebar button opens the past conversations beside
+// the conversation (AskChat's rail), and the card grows to 960px and rises
+// for them: a chat app. Escape goes back to search when search was the way
+// in, and closes the palette when Ask was reached directly (⌘J, the Ask
+// ball), which has no search behind it.
 //
 // It still works at phone widths (the devtool's Command module can ask for it
 // there) and keeps its iOS Safari accommodations for that case: the page is
@@ -123,7 +144,11 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
     setLoadBundleMode,
     setAskMode,
     openAsk,
+    askEntry,
   } = useCommand();
+  // The history sidebar, for this opening of the palette: each one starts as
+  // the command card.
+  const [askRail, setAskRail] = useState(false);
   const { locale } = useLocale();
   const router = useTransitionRouter();
   const actions = useCommandActions();
@@ -173,10 +198,12 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
           // the primary nav and must always sit on top.
           "system-chrome z-[10050] flex items-start justify-center overflow-y-auto",
           "pt-[var(--command-palette-offset)] pb-8",
+          "transition-[padding-top] duration-300 ease-out",
           isPhoneSafari ? "absolute inset-x-0" : "fixed inset-0"
         )}
         style={{
           ...PALETTE_GEOMETRY,
+          ...(isAskMode && askRail ? PALETTE_ASK_APP_GEOMETRY : {}),
           ...(isPhoneSafari
             ? { top: scrollPosition, height: "100dvh" }
             : {}),
@@ -196,7 +223,6 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
           dragMomentum={false}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
-          style={isDraggable ? motionStyle : undefined}
           onPointerDown={
             isDraggable
               ? (e: React.PointerEvent) => {
@@ -242,7 +268,17 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
           onClickCapture={
             isDraggable ? preventClickAfterDrag : undefined
           }
-          className="w-full flex justify-center"
+          // The card's own width (and its margins), not the page's: what is
+          // dragged is kept on screen when let go, and a full-width wrapper
+          // had no room to move sideways at all. Eased with the card's own
+          // width as it changes mode.
+          className="w-full flex justify-center transition-[max-width] duration-300 ease-out"
+          style={{
+            ...(isDraggable ? motionStyle : {}),
+            maxWidth: `calc(${
+              isLoadBundleMode ? 440 : isAskMode ? (askRail ? 960 : 700) : isSlashCommandsMode ? 400 : 700
+            }px + 2rem)`,
+          }}
         >
           <Command
             className={cn(
@@ -255,7 +291,8 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
               isLoadBundleMode
                 ? "w-full max-w-[440px]"
                 : isAskMode
-                ? "w-full max-w-[700px]"
+                ? // Clipped, so the history rail's wash keeps the corners.
+                  cn("w-full overflow-hidden", askRail ? "max-w-[960px]" : "max-w-[700px]")
                 : isSlashCommandsMode
                 ? "w-full max-w-[400px]"
                 : "w-full max-w-[700px]",
@@ -301,7 +338,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                           // Tab: ask what was typed (systems/ask).
                           if (e.key === "Tab" && !e.shiftKey && field.value.trim()) {
                             e.preventDefault();
-                            openAsk(field.value);
+                            openAsk(field.value, "search");
                             return;
                           }
                           spaceToTalk.onKeyDown(e);
@@ -389,7 +426,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                   {isAskMode && (
                     <AskChat
                       request={askRequest}
-                      onBack={() => setAskMode(false)}
+                      onBack={askEntry === "command" ? () => setAskMode(false) : undefined}
                       onNavigate={(href) => {
                         router.push(href);
                         close();
@@ -401,7 +438,9 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                           </kbd>
                         )
                       }
-                      className={PALETTE_ASK_HEIGHT}
+                      railOpen={askRail}
+                      onToggleRail={() => setAskRail((v) => !v)}
+                      className={cn(PALETTE_ASK_HEIGHT, "transition-[height] duration-300 ease-out")}
                     />
                   )}
                 </div>
@@ -474,6 +513,12 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                           /
                         </kbd>
                         {t(locale, "actions")}
+                      </span>
+                      <span className="flex items-center gap-1 font-sans">
+                        <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
+                          ⌘J
+                        </kbd>
+                        {askStrings(locale).shortcut}
                       </span>
                     </div>
                     <div className="flex items-center gap-0.5">

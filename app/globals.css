@@ -1495,6 +1495,41 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* -----------------------------------------------------------------------------
+   The Ask ball (systems/command/fab.tsx, AskBall) - Shared Element
+   -----------------------------------------------------------------------------
+   The ball beside the search bar changes place with the page (right of the
+   home's prompt, left of the corner's button). As a shared element it slides
+   straight there in the same transition as the page's crossfade, the way the
+   identifier moves; it looks the same at both ends, so the slide is all
+   there is: no crossfade of its own.
+
+   Named only while a transition runs: a view-transition-name makes the
+   element a backdrop root, and the frost inside it (a blurred backdrop, as
+   on the search bar) would see nothing behind the ball but the ball itself,
+   leaving bare tint. While it slides, its group blurs the page's snapshots
+   under it instead, so it is the same glass there too. */
+
+:root:active-view-transition [data-ask-ball] {
+  view-transition-name: ask-ball;
+}
+
+::view-transition-group(ask-ball) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 9999px;
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+
+::view-transition-old(ask-ball) {
+  display: none;
+}
+
+::view-transition-new(ask-ball) {
+  animation: none;
+}
+
+/* -----------------------------------------------------------------------------
    Reduced Motion
    ----------------------------------------------------------------------------- */
 
@@ -2073,6 +2108,47 @@ main[data-variant="reader"] .reader-masthead {
   [data-surface-shell] {
     transition: none;
   }
+}
+
+/* =============================================================================
+   Ask panel: the page makes room
+   While Ask sits at the side (systems/ask/surfaces.tsx sets `data-ask-docked`
+   on <html>), the page gives up the panel's width and the edge gap at its
+   trailing edge, so a column of prose is read beside the conversation rather
+   than under it. Only where the 680px column still fits beside a 440px
+   panel; on a narrower screen the panel floats over the page's edge, as every
+   other panel does, and so it does over the home's widget grid, which is not
+   a column to read. Padding on the page's own box (vitre's `#vitre-scroll`),
+   so fixed layers and the wallpaper keep the whole screen.
+   ============================================================================= */
+
+@media (min-width: 1280px) {
+  #vitre-scroll {
+    transition: padding-right 500ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  html[data-ask-docked] #vitre-scroll {
+    padding-right: calc(440px + 0.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #vitre-scroll {
+    transition: none;
+  }
+}
+
+/* =============================================================================
+   Ask: a drag between places
+   While a surface's header is dragged toward another place
+   (systems/ask/components/placement.tsx sets `data-ask-dragging` on <html>),
+   the surface it came from fades, so the stand-in and the lit target are
+   what the eye follows.
+   ============================================================================= */
+
+html[data-ask-dragging] :is([data-ask-center], [data-ask-panel] > *, [data-dock-panel]:has([data-ask-top])) {
+  opacity: 0.35;
+  transition: opacity 150ms ease-out;
 }
 
 /* =============================================================================

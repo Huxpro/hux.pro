@@ -2,6 +2,7 @@
 
 import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
+import { Glow } from "@/systems/glow";
 import {
   SurfaceViewport,
   surfaceMotionVars,
@@ -11,6 +12,7 @@ import {
 import { Drawer } from "@base-ui/react/drawer";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
+import { CAPSULE } from "../band";
 import { OCCUPANT_TRANSITION, useBandOccupant } from "./use-band-occupant";
 import { useDock } from "../provider";
 
@@ -22,6 +24,7 @@ import { useDock } from "../provider";
 // the *content*:
 //   • `pill`:   leading content of the collapsed pill (icon, art, EQ bars…)
 //   • `title`:  left side of the expanded panel header
+//   • `actions`: the activity's own header buttons, before the collapse chevron
 //   • children: the expanded panel body
 //
 // The panel is a Base UI Drawer travelling UP, the mirror of the phone sheet in
@@ -105,6 +108,9 @@ import { useDock } from "../provider";
 /** Where the panel's top edge sits: the status bar, or the dock row's own gap. */
 const TOP_INSET = "max(env(safe-area-inset-top), 0.5rem)";
 
+/** The panel's width when the activity does not ask for another. */
+const PANEL_WIDTH = "min(92vw, 360px)";
+
 interface LiveActivityProps {
   /** Stable id; the Dock allows only one activity open at a time. */
   id: string;
@@ -112,6 +118,9 @@ interface LiveActivityProps {
   pill: React.ReactNode;
   /** Panel header content (left side, before the collapse chevron). */
   title: React.ReactNode;
+  /** Header buttons of the activity's own, between the title and the
+   *  collapse chevron (a conversation's history and new chat). */
+  actions?: React.ReactNode;
   /** Panel body. */
   children: React.ReactNode;
   /** aria-label for the collapsed pill button. */
@@ -122,17 +131,42 @@ interface LiveActivityProps {
   pillClassName?: string;
   /** Extra classes for the expanded panel (e.g. widget-matched radius). */
   panelClassName?: string;
+  /**
+   * The panel's width, as a CSS length. A player card is small; a
+   * conversation needs room for a paragraph and a composer. Set on the popup,
+   * so the drag and the recede see the same box at every width.
+   */
+  panelWidth?: string;
+  /**
+   * The activity is at work on something the visitor asked for (an answer
+   * being written). The site's one light (systems/glow) travels the pill's
+   * edge as the glow's `processing` beam, the same light a field shows while
+   * it transcribes, so a collapsed pill still says something is happening.
+   * Leave it out for an activity that never works.
+   */
+  working?: boolean;
+  /**
+   * Whether opening moves focus into the panel (Base UI's `initialFocus`:
+   * its first tabbable element, or the popup). False leaves it to the body,
+   * for a panel whose content focuses what it wants itself (a composer's
+   * field), which the drawer's own focus would otherwise land on top of.
+   */
+  moveFocus?: boolean;
 }
 
 export function LiveActivity({
   id,
   pill,
   title,
+  actions,
   children,
   openLabel,
   collapseLabel,
   pillClassName,
   panelClassName,
+  panelWidth = PANEL_WIDTH,
+  working,
+  moveFocus = true,
 }: LiveActivityProps) {
   const { isOpen, isAnyOpen, noticeUp, open, close, registerActivity } =
     useDock();
@@ -141,6 +175,7 @@ export function LiveActivity({
   // it), and a count keeps it out of sight until it is opened.
   const { glassRef, contentRef, natural, ball, counted, width } = useBandOccupant();
   const expanded = isOpen(id);
+  const pillHidden = isAnyOpen || noticeUp || counted;
 
   // If this activity unmounts while expanded (e.g. its time window passes),
   // collapse the dock so the pill-hiding doesn't get stuck.
@@ -199,10 +234,10 @@ export function LiveActivity({
         // it is not.
         aria-hidden={false}
         data-dock-pill=""
-        data-hidden={isAnyOpen || noticeUp || counted ? "" : undefined}
+        data-hidden={pillHidden ? "" : undefined}
         // Its width as a pill, for the Dock to lay the band out by.
         data-natural={natural ?? undefined}
-        className="shrink-0"
+        className="relative shrink-0"
       >
         <Drawer.Trigger
           ref={glassRef}
@@ -231,6 +266,22 @@ export function LiveActivity({
             />
           </span>
         </Drawer.Trigger>
+        {/* At work: the light on the pill's edge. A sibling of the glass,
+            not inside it, because the glass clips and the halo has to reach
+            past the capsule (the row leaves room for it above and below).
+            The radius is given rather than read: its host is this wrapper,
+            which has no corners of its own. Off while the pill is hidden, so
+            a pill behind an open panel spends no frames on it. */}
+        {working !== undefined && (
+          <Glow
+            active={working && !pillHidden}
+            processing
+            shape="ring"
+            reach={3}
+            bleed={8}
+            radius={CAPSULE / 2}
+          />
+        )}
       </Drawer.SwipeArea>
 
       <Drawer.Portal>
@@ -246,16 +297,17 @@ export function LiveActivity({
         <SurfaceViewport modal={false} layer={rank}>
           <Drawer.Popup
             data-dock-panel=""
+            initialFocus={moveFocus}
             // The dock's expanded shape (see the note in dock.tsx). On the
             // popup rather than the shell: the shell carries the surface
             // stack's recede transform, so its box shrinks when something
             // rises over it; the popup's is where the panel actually stands.
-            style={{ ...surfaceMotionVars(TOP_INSET), top: TOP_INSET }}
+            style={{ ...surfaceMotionVars(TOP_INSET), top: TOP_INSET, width: panelWidth }}
             // A positioning box only, centred without a transform so the drag
             // has the axis to itself. Nothing paints here; the shell inside does.
             className={cn(
               "pointer-events-auto absolute inset-x-0 z-[61] mx-auto",
-              "w-[min(92vw,360px)] bg-transparent outline-none"
+              "bg-transparent outline-none"
             )}
           >
             <div
@@ -288,6 +340,9 @@ export function LiveActivity({
                   >
                     {title}
                   </Drawer.Title>
+                  {actions && (
+                    <div className="ml-auto flex items-center">{actions}</div>
+                  )}
                   <Drawer.Close
                     className="-mr-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground active:scale-95"
                     aria-label={collapseLabel}

@@ -1,7 +1,9 @@
 import type { Locale } from "@/lib/i18n";
+import { ASK_SUGGESTIONS } from "./prompts";
 
 // Ask's words, in both languages. Kept with the system, as the labs keep
-// theirs, rather than in the site-wide table.
+// theirs, rather than in the site-wide table. The suggested questions are
+// ./prompts.ts, with the rest of what is written for the model.
 
 const en = {
   ask: "Ask",
@@ -23,6 +25,7 @@ const en = {
   error: "Something went wrong.",
   retry: "Try again",
   history: "History",
+  sidebar: "Sidebar",
   noHistory: "Past conversations show up here. They stay in this browser.",
   deleteChat: "Delete conversation",
   copy: "Copy",
@@ -31,12 +34,16 @@ const en = {
   effort: "Thinking",
   efforts: { low: "Quick", medium: "Balanced", high: "Deep" },
   shortcut: "Ask AI",
-  suggestions: [
-    "What is Lynx, and why did Hux build it?",
-    "How does Hux think about PWAs?",
-    "Which programming languages does Hux find most interesting?",
-    "What does Hux believe about open source?",
-  ],
+  close: "Close Ask",
+  openAsk: "Open the conversation",
+  collapse: "Collapse",
+  minimize: "Minimize to the Dock",
+  searching: (q: string) => `Searching “${q}”…`,
+  reading: (title: string) => `Reading ${title}…`,
+  placement: "Where Ask sits",
+  placements: { center: "Center", side: "Side", top: "Top" },
+  dragHint: "Drop to dock Ask here",
+  suggestions: ASK_SUGGESTIONS.en,
 };
 
 type AskStrings = typeof en;
@@ -61,6 +68,7 @@ const zh: AskStrings = {
   error: "出了点问题。",
   retry: "重试",
   history: "历史",
+  sidebar: "侧边栏",
   noHistory: "过往的对话会出现在这里，只保存在这个浏览器中。",
   deleteChat: "删除对话",
   copy: "复制",
@@ -69,12 +77,16 @@ const zh: AskStrings = {
   effort: "思考",
   efforts: { low: "快速", medium: "均衡", high: "深入" },
   shortcut: "问 AI",
-  suggestions: [
-    "Lynx 是什么？黄玄为什么要做它？",
-    "黄玄怎么看 PWA？",
-    "黄玄觉得哪些编程语言最有意思？",
-    "黄玄对开源有什么信念？",
-  ],
+  close: "关闭问答",
+  openAsk: "打开对话",
+  collapse: "收起",
+  minimize: "收进 Dock",
+  searching: (q) => `正在搜索「${q}」…`,
+  reading: (title) => `正在阅读《${title}》…`,
+  placement: "问答的位置",
+  placements: { center: "居中", side: "侧边", top: "顶部" },
+  dragHint: "松手，问答停在这里",
+  suggestions: ASK_SUGGESTIONS.zh,
 };
 
 export function askStrings(locale: Locale): AskStrings {
