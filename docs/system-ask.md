@@ -172,6 +172,17 @@ run them against public/ask/index.json
           ◀──────── streamed answer, with links
 ```
 
+- **It speaks as Hux.** First person, so a visitor feels they are talking
+  with him: logical (verdict first, then the model behind it), opinionated
+  (takes a side, owns the bias), entertaining (self-deprecating, a punchline,
+  "lol" at most once). The persona comes from his own writing: the About and
+  /prompt, the posts he wrote in each language (most English posts are
+  machine-translated from Chinese, so not his phrasing), and his posts on X,
+  a few of which are in the prompt verbatim (`ASK_VOICE`). Facts about him
+  come from the site and are never invented; takes may go past it, said as
+  takes. It says it is an AI as soon as someone asks or relies on it, makes no
+  promises in his name, and keeps employers' internals and private people out.
+  All of it is `prompts.ts`.
 - **The route is thin.** It holds the key and pins everything the model is
   given: system prompt, tool definitions, the model list, the output cap. A
   request carries only the conversation and a model id from the list. It

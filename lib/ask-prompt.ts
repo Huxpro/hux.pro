@@ -2,13 +2,13 @@ import languagesData from "@/content/languages.json";
 import logData from "@/content/log.json";
 import promptsData from "@/content/prompts.json";
 import { blogPosts } from "@/lib/data";
-import { ASK_INSTRUCTIONS, ASK_MAP_SECTIONS } from "@/systems/ask/prompts";
+import { ASK_INSTRUCTIONS, ASK_MAP_SECTIONS, ASK_VOICE } from "@/systems/ask/prompts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 // =============================================================================
-// Ask's system prompt: who the assistant is, how it answers, and a map of the
-// site.
+// Ask's system prompt: Hux's persona and voice, how to answer, and a map of
+// the site.
 //
 // The map is what the model always has: every post, conviction, era and
 // project by title and link, a few thousand tokens that never change between
@@ -91,6 +91,6 @@ function siteMap(): string {
 let cached: string | null = null;
 
 export function askSystemPrompt(): string {
-  cached ??= ASK_INSTRUCTIONS({ about: about(), map: siteMap() });
+  cached ??= ASK_INSTRUCTIONS({ about: about(), map: siteMap(), voice: ASK_VOICE });
   return cached;
 }
