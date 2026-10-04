@@ -27,15 +27,24 @@ import { Source, Sources, SourcesContent, SourcesTrigger } from "@/components/ai
 import { Suggestion } from "@/components/ai-elements/suggestion";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { BookOpen, Check, Copy, FileText, RefreshCw, Search } from "lucide-react";
-import { useState, type MouseEvent } from "react";
+import { BookOpen, Check, Copy, FileText, Pencil, RefreshCw, Search, Undo2 } from "lucide-react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type { AskUIMessage } from "../lib/tools";
 import { useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
 
 // =============================================================================
 // The conversation: messages, the agent's steps, sources, and what can be done
-// to a message (copy, regenerate). One piece of every surface that shows Ask.
+// to a message. One piece of every surface that shows Ask.
+//
+//   a question   copy; edit (ask it again, changed: what came after it goes)
+//   an answer    copy; regenerate (the last one); rewind to here (an earlier
+//                one: what came after it goes, after a second press to confirm)
+//
+// Edit and rewind are the AI SDK's own moves (`sendMessage` with the id of
+// the message it replaces; the message list cut short), ../lib/chat.ts. They
+// wait while a reply is being written. The actions show on hover with a
+// mouse, and always on a touch screen, which has no hover.
 //
 // Built from AI Elements, as the registry ships them, restyled only through
 // the site's tokens. What is ours is the arrangement: each run of tool calls
@@ -178,16 +187,49 @@ function CopyAction({ text }: { text: string }) {
   );
 }
 
+/** Rewind to here, in two presses: the first asks (for a few seconds), the
+ *  second drops. */
+function RewindAction({ onRewind }: { onRewind: () => void }) {
+  const { locale } = useLocale();
+  const s = askStrings(locale);
+  const [asking, setAsking] = useState(false);
+  useEffect(() => {
+    if (!asking) return;
+    const timer = setTimeout(() => setAsking(false), 4000);
+    return () => clearTimeout(timer);
+  }, [asking]);
+  return asking ? (
+    <MessageAction
+      size="sm"
+      label={s.rewind}
+      onClick={onRewind}
+      className="h-7 gap-1.5 px-2 text-xs text-foreground"
+    >
+      <Undo2 className="size-3.5" />
+      {s.rewindConfirm}
+    </MessageAction>
+  ) : (
+    <MessageAction tooltip={s.rewind} onClick={() => setAsking(true)}>
+      <Undo2 className="size-3.5" />
+    </MessageAction>
+  );
+}
+
 function AssistantMessage({
   message,
   live,
   last,
+  busy,
   onRegenerate,
+  onRewind,
 }: {
   message: AskUIMessage;
   live: boolean;
   last: boolean;
+  /** A reply is being written (this one or a later one). */
+  busy: boolean;
   onRegenerate: () => void;
+  onRewind: () => void;
 }) {
   const { locale } = useLocale();
   const s = askStrings(locale);
@@ -241,16 +283,91 @@ function AssistantMessage({
               <RefreshCw className="size-3.5" />
             </MessageAction>
           )}
+          {!last && !busy && <RewindAction onRewind={onRewind} />}
         </MessageActions>
       )}
     </Message>
   );
 }
 
-function UserMessage({ message }: { message: AskUIMessage }) {
+/** A touch screen has no hover: the actions stay in sight there. */
+const ON_HOVER = "opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100";
+
+function UserMessage({
+  message,
+  busy,
+  onEdit,
+}: {
+  message: AskUIMessage;
+  busy: boolean;
+  onEdit: (text: string) => void;
+}) {
+  const { locale } = useLocale();
+  const s = askStrings(locale);
+  const text = textOf(message);
+  const [draft, setDraft] = useState<string | null>(null);
+  const field = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (draft === null) return;
+    const el = field.current;
+    if (!el || document.activeElement === el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [draft]);
+
+  if (draft !== null) {
+    const send = () => {
+      if (!draft.trim()) return;
+      onEdit(draft);
+      setDraft(null);
+    };
+    return (
+      <Message from="user" className="max-w-full">
+        <div className="w-full rounded-xl border border-border/60 bg-background/60 focus-within:border-ring/50">
+          <textarea
+            ref={field}
+            value={draft}
+            onChange={(e) => setDraft(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                setDraft(null);
+              } else if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            aria-label={s.edit}
+            rows={Math.min(6, Math.max(2, draft.split("\n").length))}
+            className="block w-full resize-none bg-transparent px-3.5 pt-3 pb-1 font-sans text-[16px] outline-none sm:text-sm"
+          />
+          <div className="flex justify-end gap-1.5 px-2 pb-2">
+            <button
+              type="button"
+              onClick={() => setDraft(null)}
+              className="pressable h-7 rounded-md px-2.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              {s.editCancel}
+            </button>
+            <button
+              type="button"
+              onClick={send}
+              disabled={!draft.trim() || draft.trim() === text}
+              className="pressable h-7 rounded-md bg-foreground px-2.5 text-xs text-background transition-opacity disabled:opacity-40"
+            >
+              {s.editSend}
+            </button>
+          </div>
+        </div>
+      </Message>
+    );
+  }
+
   return (
-    // Copy sits beside the bubble, not under it: a row under every question
-    // that only shows on hover left a gap the height of a button.
+    // The actions sit beside the bubble, not under it: a row under every
+    // question that only shows on hover left a gap the height of a button.
     <Message from="user" className="flex-row-reverse items-center">
       <MessageContent>
         {message.parts.map((p, j) =>
@@ -261,8 +378,13 @@ function UserMessage({ message }: { message: AskUIMessage }) {
           ) : null,
         )}
       </MessageContent>
-      <MessageActions className="opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-        <CopyAction text={textOf(message)} />
+      <MessageActions className={ON_HOVER}>
+        <CopyAction text={text} />
+        {!busy && (
+          <MessageAction tooltip={s.edit} onClick={() => setDraft(text)}>
+            <Pencil className="size-3.5" />
+          </MessageAction>
+        )}
       </MessageActions>
     </Message>
   );
@@ -278,7 +400,7 @@ export interface AskMessagesProps {
 export function AskMessages({ onNavigate, className, contentClassName }: AskMessagesProps) {
   const { locale } = useLocale();
   const s = askStrings(locale);
-  const { messages, status, error, busy, send, regenerate } = useAskSession();
+  const { messages, status, error, busy, send, regenerate, rewind, edit } = useAskSession();
 
   // Links in answers and sources: this site's pages open here, in the page
   // under the surface; anything else keeps its own behaviour.
@@ -314,14 +436,16 @@ export function AskMessages({ onNavigate, className, contentClassName }: AskMess
         ) : (
           messages.map((m, i) =>
             m.role === "user" ? (
-              <UserMessage key={m.id} message={m} />
+              <UserMessage key={m.id} message={m} busy={busy} onEdit={(text) => void edit(m.id, text)} />
             ) : (
               <AssistantMessage
                 key={m.id}
                 message={m}
                 live={busy && i === messages.length - 1}
                 last={i === messages.length - 1}
+                busy={busy}
                 onRegenerate={() => void regenerate()}
+                onRewind={() => void rewind(m.id)}
               />
             ),
           )

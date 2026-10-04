@@ -66,9 +66,12 @@ export function AskSide() {
       // Escape is the panel's only while it has the keyboard. Pressed on the
       // page, or in the palette over it, it belongs there: a panel that left
       // with every Escape could not stay while you read.
+      // An Escape already handled inside (the message editor, cancelling)
+      // is not the panel's either.
       if (
         details?.reason === "escape-key" &&
-        !(details.event.target as Element | null)?.closest?.(`[${CONTENT_ATTRIBUTE}]`)
+        (details.event.defaultPrevented ||
+          !(details.event.target as Element | null)?.closest?.(`[${CONTENT_ATTRIBUTE}]`))
       ) {
         details.cancel();
         return;

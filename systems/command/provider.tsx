@@ -299,7 +299,10 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       // card's body in place, so there is no dialog to pop and the field's own
       // Escape handler only fires while the field has focus. On a phone
       // load-bundle is a nested sheet and Base UI's dialog pops it itself.
-      if (e.key === "Escape" && isOpen) {
+      // An Escape something inside already handled (Ask's message editor,
+      // cancelling) is not the palette's: React's listener is on the
+      // document too, so stopping propagation does not hold this one back.
+      if (e.key === "Escape" && isOpen && !e.defaultPrevented) {
         if (isLoadBundleMode) {
           e.preventDefault();
           setIsLoadBundleMode(false);

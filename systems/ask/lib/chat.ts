@@ -152,3 +152,34 @@ export function subscribeAskChat(listener: () => void) {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
+
+// ---- Going back ---------------------------------------------------------------
+
+/**
+ * Rewind the conversation to just after a message: everything later is
+ * dropped, and the history saved that way. A reply still being written is
+ * stopped first.
+ */
+export async function rewindAskChat(messageId: string) {
+  const chat = getAskChat();
+  if (!chat.messages.some((m) => m.id === messageId)) return;
+  await chat.stop();
+  // Found again after the stop: its last chunk may have changed the list.
+  const i = chat.messages.findIndex((m) => m.id === messageId);
+  chat.messages = chat.messages.slice(0, i + 1);
+  chat.clearError();
+  saveConversation(chat.id, chat.messages);
+}
+
+/**
+ * Ask a question again, changed: the AI SDK replaces the user message with
+ * this id, drops everything after it, and asks for a new reply.
+ */
+export async function editAskMessage(messageId: string, text: string) {
+  const question = text.trim();
+  const chat = getAskChat();
+  if (!question || !chat.messages.some((m) => m.id === messageId)) return;
+  await chat.stop();
+  chat.clearError();
+  await chat.sendMessage({ text: question, messageId });
+}
