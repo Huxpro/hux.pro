@@ -86,7 +86,9 @@ When navigating away from the homepage, the prompt morphs into a compact FAB (mo
 
 ### Two Modes
 
-The command palette has two distinct modes that morph smoothly between each other:
+The command palette has two distinct modes that morph smoothly between each other
+(and two more, load-bundle and Ask; Ask, the palette as a conversation, is in
+[system-ask.md](./system-ask.md)):
 
 #### Search Mode (Default)
 - Full-text search across pages, posts, and talks

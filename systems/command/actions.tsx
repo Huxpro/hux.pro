@@ -12,6 +12,7 @@ import {
   type ThemePreference,
 } from "@/services";
 import { useAbout } from "@/systems/about";
+import { askStrings } from "@/systems/ask/strings";
 import { useLocation, useWallpaper } from "@/systems/ambient";
 import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
@@ -149,7 +150,7 @@ export function useCommandActions(): CommandAction[] {
   } = useMusic();
   const { open: openAbout } = useAbout();
   const AppearanceIcon = APPEARANCE_ICON[preference];
-  const { requestVoice } = useCommand();
+  const { requestVoice, openAsk } = useCommand();
   const { guide: installGuide, open: openInstall } = useInstall();
   const router = useTransitionRouter();
 
@@ -279,6 +280,20 @@ export function useCommandActions(): CommandAction[] {
           },
         ]
       : []),
+    {
+      // Ask (systems/ask), with nothing typed yet: the slash list's way in,
+      // and ⌘J's (systems/command/provider.tsx). From search, the Ask row
+      // already carries the query, so this one is slash-only.
+      id: "ask",
+      key: "j",
+      kind: "stay" as const,
+      section: "actions" as const,
+      slashOnly: true,
+      label: askStrings(locale).shortcut,
+      icon: <Sparkles className={ROW_ICON} />,
+      keywords: ["ask", "ai", "chat", "question", "问", "聊天", "提问"],
+      run: () => openAsk(),
+    },
     // Keyboard-only: reachable by letter from the slash list, never listed.
     {
       id: "docs",

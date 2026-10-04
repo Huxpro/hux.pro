@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Streamdown (Ask's answers, systems/ask) styles its markdown with utility
+   classes in its own bundle; Tailwind only generates what it can see. */
+@source "../node_modules/streamdown/dist/*.js";
+@source "../node_modules/@streamdown/code/dist/*.js";
+@source "../node_modules/@streamdown/cjk/dist/*.js";
+
 @custom-variant dark (&:is(.dark *));
 
 /* `roomy:` matches a screen that is both wide AND tall enough to have space to

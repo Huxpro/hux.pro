@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { isQuestionLike } from "@/systems/ask/lib/intent";
 import { Glow } from "@/systems/glow";
 import { useVoiceInput, type VoiceInput } from "@/systems/voice";
 import { Mic } from "lucide-react";
@@ -53,6 +54,15 @@ export function toQuery(said: string): string {
   return stripped || text;
 }
 
+/**
+ * What goes in the field: a command as a query, a question as it was said.
+ * Spoken questions are long and full of the words `toQuery` strips; they go
+ * to Ask (systems/ask), which wants the whole sentence, question mark and all.
+ */
+export function toFieldText(said: string): string {
+  return isQuestionLike(said) ? said.trim() : toQuery(said);
+}
+
 /** How long a press must last to be a hold (push-to-talk), ms. */
 export const HOLD_MS = 300;
 
@@ -65,8 +75,8 @@ export function useCommandVoice(setValue: (text: string) => void): VoiceInput {
   const { voiceRequest, voiceHoldKey } = useCommand();
   const voice = useVoiceInput({
     lang: LANG[locale],
-    onInterim: (said) => setValue(toQuery(said)),
-    onFinal: (said) => setValue(toQuery(said)),
+    onInterim: (said) => setValue(toFieldText(said)),
+    onFinal: (said) => setValue(toFieldText(said)),
   });
 
   // `/` `V`: each request starts one session, whether it opened the palette
