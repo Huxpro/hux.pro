@@ -3,7 +3,7 @@
 import { useLocale, t } from "@/services";
 import { useCommand } from "./provider";
 import { cn } from "@/lib/utils";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, cancelFrame, frame, motion } from "framer-motion";
 import { Command, Search, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
@@ -35,10 +35,6 @@ const HOLD_SLOP_PX = 10;
 
 /** Both shapes of this button (the bar and the round FAB) are this round. */
 const FAB_RADIUS = 24;
-
-/** The bar's morph between the home's prompt and the corner's button (its
- *  `layout` transition); the Ask ball moves on the same curve. */
-const MORPH = { duration: 0.4, ease: [0.32, 0.72, 0, 1] } as const;
 
 /** The Ask ball: one size everywhere, so it only ever moves. */
 const ASK_SIZE = 48;
@@ -336,15 +332,31 @@ export function FloatingActionButton() {
  * button, lit while Ask is open.
  *
  * It stands beside the bar without touching it: outside the bar's flow
- * (absolute in the same fixed row), placed from the bar's layout box, whose
- * offsets ignore the transforms of the bar's morph, so this is where the bar
- * is going rather than where it is drawn. Right of the prompt on the home,
- * left of the button in a desk's corner, above it on a phone. Its own
- * component with its own state, so measuring it never re-renders the bar
- * mid-morph: the bar lays out and animates exactly as it does alone. A route
- * change only moves the ball (a translate on the bar's curve and time); it
- * never changes shape.
+ * (absolute in the same fixed row), so the bar lays out and morphs exactly
+ * as it does alone. Right of the prompt on the home, left of the button in a
+ * desk's corner, above it on a phone.
+ *
+ * It has no timeline of its own; it rides the two the bar already has:
+ *   - A navigation is a View Transition (next-view-transitions): the page,
+ *     the bar with it, crossfades. The ball is a shared element of that
+ *     transition (`view-transition-name: ask-ball`, globals.css), so the
+ *     browser slides it straight from its old place to its new one, in the
+ *     same window as the crossfade, the way λhux moves.
+ *   - The bar's own layout animation (its settle into place after the
+ *     crossfade, or a breakpoint, or the side panel): for every frame of it
+ *     the ball stands beside the bar as drawn, so it moves exactly as the bar
+ *     moves, in the same frame (read and written in framer's postRender,
+ *     after the bar is drawn and before the paint). Moving it re-renders
+ *     nothing.
+ * It never changes shape.
  */
+type Box = { left: number; top: number; width: number; height: number };
+
+/** Longest a follow can run, in case the bar's morph never settles. */
+const FOLLOW_MAX_MS = 2000;
+/** The bar counts as still after this long without a transform. */
+const STILL_MS = 300;
+
 function AskBall({
   barRef,
   isHomepage,
@@ -359,49 +371,135 @@ function AskBall({
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { openAsk, closeAsk, askPlacement } = useCommand();
-  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  // The ball's place is written straight to its style, in the same frame the
+  // bar is drawn (a motion value would only be applied on framer's next
+  // render, a frame behind the bar).
+  const ball = useRef<HTMLButtonElement>(null);
+  const [placed, setPlaced] = useState(false);
+  // The bar's layout box when the ball last came to rest, and the follow
+  // running now (a framer frame-loop callback), if any.
+  const rest = useRef<Box | null>(null);
+  const running = useRef<(() => void) | null>(null);
 
-  const place = useCallback(() => {
+  /** Where the ball stands beside a bar with this box. */
+  const beside = useCallback((b: Box) => ({
+    x: isHomepage
+      ? b.left + b.width + ASK_GAP
+      : stacked
+        ? b.left + b.width - ASK_SIZE
+        : b.left - ASK_GAP - ASK_SIZE,
+    y: stacked ? b.top - ASK_GAP - ASK_SIZE : b.top + (b.height - ASK_SIZE) / 2,
+  }), [isHomepage, stacked]);
+
+  /** Stand beside the bar as it is drawn right now. */
+  const stand = useCallback((): { still: boolean; laid: Box } | null => {
+    const bar = barRef.current;
+    if (!bar) return null;
+    // The bar as laid out (offsets ignore its morph's transforms) and as
+    // drawn (its box on screen, transforms and all).
+    const laid = { left: bar.offsetLeft, top: bar.offsetTop, width: bar.offsetWidth, height: bar.offsetHeight };
+    const still = getComputedStyle(bar).transform === "none";
+    let box = laid;
+    if (!still) {
+      const parent = bar.offsetParent as HTMLElement | null;
+      const r = bar.getBoundingClientRect();
+      const o = parent?.getBoundingClientRect() ?? { left: 0, top: 0 };
+      box = { left: r.left - o.left, top: r.top - o.top, width: r.width, height: r.height };
+    }
+    const at = beside(box);
+    if (ball.current) ball.current.style.transform = `translate3d(${at.x}px, ${at.y}px, 0)`;
+    return { still, laid };
+  }, [barRef, beside]);
+
+  /**
+   * Follow the bar until it is still. `now`: also place the ball at once.
+   * Yes for a window resize, and for the bar's box changing size (the
+   * ResizeObserver, which runs after layout and just before the paint, so
+   * the bar as read is the bar as painted, even in the one frame its label's
+   * exit lays it out before framer projects it). Not for a commit in the
+   * middle of the bar's morph, which comes before framer's frame: there the
+   * running follow places the ball after framer has drawn the bar.
+   */
+  const follow = useCallback((now = true) => {
+    if (running.current) cancelFrame(running.current);
     const b = barRef.current;
     if (!b) return;
-    const x = isHomepage
-      ? b.offsetLeft + b.offsetWidth + ASK_GAP
-      : stacked
-        ? b.offsetLeft + b.offsetWidth - ASK_SIZE
-        : b.offsetLeft - ASK_GAP - ASK_SIZE;
-    const y = stacked ? b.offsetTop - ASK_GAP - ASK_SIZE : b.offsetTop;
-    setAt((prev) => (prev && prev.x === x && prev.y === y ? prev : { x, y }));
-  }, [barRef, isHomepage, stacked]);
+    const first = now
+      ? stand()
+      : { still: false, laid: { left: b.offsetLeft, top: b.offsetTop, width: b.offsetWidth, height: b.offsetHeight } };
+    if (!first) return;
+    if (!rest.current) {
+      rest.current = first.laid;
+      setPlaced(true);
+    }
+    // Then in framer's own frame loop, after it has drawn the bar's morph
+    // for the frame (postRender), until the bar has been still a while.
+    const t0 = performance.now();
+    let stillSince = first.still ? t0 : null;
+    const step = () => {
+      const now = performance.now();
+      const at = stand();
+      if (!at) return;
+      stillSince = at.still ? (stillSince ?? now) : null;
+      if ((stillSince !== null && now - stillSince >= STILL_MS) || now - t0 > FOLLOW_MAX_MS) {
+        cancelFrame(step);
+        running.current = null;
+        rest.current = at.laid;
+      }
+    };
+    running.current = step;
+    frame.postRender(step, true);
+  }, [barRef, stand]);
 
   // After every render of the row (a route, a breakpoint, the side panel),
-  // and whenever the bar's own box or the window changes size.
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- placed from the bar's layout, which exists only after commit
-  useLayoutEffect(() => place());
+  // and whenever the bar's own box or the window changes size: if the bar's
+  // layout moved, follow it there.
+  useLayoutEffect(() => {
+    const b = barRef.current;
+    if (!b) return;
+    const last = rest.current;
+    const moved =
+      !last || last.left !== b.offsetLeft || last.top !== b.offsetTop || last.width !== b.offsetWidth;
+    // At once if the bar was at rest; mid-morph (a commit inside framer's
+    // frame, as when the bar's label finishes leaving) the running follow
+    // places it after framer has drawn the bar, never beside a layout
+    // framer has not projected yet.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the first placement is read from layout, which exists only after commit
+    if (moved) follow(!running.current);
+  });
   useEffect(() => {
     const b = barRef.current;
     if (!b) return;
-    const observer = new ResizeObserver(() => place());
+    const observer = new ResizeObserver(() => follow());
     observer.observe(b);
-    window.addEventListener("resize", place);
+    // Every write to the bar's style (framer's projection, from its own frame
+    // or from a React commit outside it, as when its label finishes leaving)
+    // is answered before the paint: a mutation's callback is a microtask, so
+    // the ball moves in the frame the bar does, whichever phase moved it.
+    const writes = new MutationObserver(() => (running.current ? stand() : follow()));
+    writes.observe(b, { attributes: true, attributeFilter: ["style"], childList: true });
+    const onResize = () => follow();
+    window.addEventListener("resize", onResize);
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", place);
+      writes.disconnect();
+      window.removeEventListener("resize", onResize);
+      if (running.current) cancelFrame(running.current);
     };
-  }, [barRef, place]);
+  }, [barRef, follow, stand]);
 
-  if (!at) return null;
   return (
     <motion.button
+      ref={ball}
       type="button"
       onClick={() => (askPlacement ? closeAsk() : openAsk())}
       aria-label={s.askRow}
       aria-pressed={askPlacement !== null}
       title={`${s.askRow} (⌘J)`}
-      initial={{ opacity: 0, x: at.x, y: at.y }}
-      animate={{ opacity: yielding ? 0 : 1, x: at.x, y: at.y }}
+      data-ask-ball=""
+      initial={{ opacity: 0 }}
+      animate={{ opacity: !placed || yielding ? 0 : 1 }}
       transition={{
-        x: MORPH,
-        y: MORPH,
         opacity: yielding
           ? { duration: HANDOFF.out }
           : { duration: HANDOFF.in, delay: HANDOFF.delay },
@@ -417,7 +515,7 @@ function AskBall({
         "hover:bg-glass-hover hover:border-border hover:text-foreground",
         "active:bg-glass-strong-hover active:border-border active:text-foreground",
         "aria-pressed:border-border aria-pressed:bg-glass-strong aria-pressed:text-foreground",
-        yielding && "pointer-events-none"
+        (yielding || !placed) && "pointer-events-none"
       )}
     >
       <Sparkles className="h-4 w-4" />
