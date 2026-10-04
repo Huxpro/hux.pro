@@ -26,7 +26,7 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Suggestion } from "@/components/ai-elements/suggestion";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { Check, Copy, FileText, Pencil, RefreshCw, Search, Undo2 } from "lucide-react";
+import { Check, Copy, FileText, Navigation, Pencil, Play, RefreshCw, Search, Undo2 } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { AskDoc } from "../lib/corpus";
@@ -60,7 +60,7 @@ import { askStrings } from "../strings";
 // =============================================================================
 
 type Part = AskUIMessage["parts"][number];
-type ToolPart = Extract<Part, { type: "tool-search_site" | "tool-read" }>;
+type ToolPart = Extract<Part, { type: "tool-search_site" | "tool-read" | "tool-open_page" | "tool-play" }>;
 
 /** A message's parts, with each run of tool calls gathered into one block. */
 type Block =
@@ -79,7 +79,12 @@ function blocksOf(message: AskUIMessage, live: boolean): Block[] {
       if (part.text.trim()) {
         blocks.push({ kind: "reasoning", key, text: part.text, streaming: live && part.state === "streaming" });
       }
-    } else if (part.type === "tool-search_site" || part.type === "tool-read") {
+    } else if (
+      part.type === "tool-search_site" ||
+      part.type === "tool-read" ||
+      part.type === "tool-open_page" ||
+      part.type === "tool-play"
+    ) {
       const last = blocks.at(-1);
       if (last?.kind === "tools") last.parts.push(part);
       else blocks.push({ kind: "tools", key, parts: [part] });
@@ -171,6 +176,23 @@ function ToolSteps({ parts, live }: { parts: ToolPart[]; live: boolean }) {
                   </ChainOfThoughtSearchResults>
                 )}
               </ChainOfThoughtStep>
+            );
+          }
+          if (part.type === "tool-open_page" || part.type === "tool-play") {
+            const out = part.state === "output-available" ? part.output : null;
+            const failed = part.state === "output-error" ? part.errorText : out && "error" in out ? out.error : undefined;
+            const label =
+              part.type === "tool-open_page"
+                ? s.opened(part.input?.href ?? "…")
+                : s.played(out && "playing" in out ? out.playing : (part.input?.id ?? "…"));
+            return (
+              <ChainOfThoughtStep
+                key={part.toolCallId}
+                icon={part.type === "tool-open_page" ? Navigation : Play}
+                label={label}
+                description={failed ?? (part.type === "tool-open_page" && out && "highlighted" in out && out.highlighted ? s.highlighted : undefined)}
+                status={status}
+              />
             );
           }
           const out = part.state === "output-available" ? part.output : null;

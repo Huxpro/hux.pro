@@ -4,6 +4,7 @@ import { Chat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { getConversation, saveConversation, type AskSettings } from "./history";
 import { askEffortOf, askModelOf, DEFAULT_ASK_EFFORT, DEFAULT_ASK_MODEL } from "./models";
+import { getAskActions } from "./actions";
 import { askEffortPref, askModelPref } from "./prefs";
 import { loadAskSearch } from "./search";
 import { contextsOf, type AskUIMessage } from "./tools";
@@ -122,6 +123,29 @@ function createChat(id?: string, messages?: AskUIMessage[], own?: Partial<AskSet
             toolCallId: toolCall.toolCallId,
             output: site.read(toolCall.input),
           });
+        } else if (toolCall.toolName === "open_page" || toolCall.toolName === "play") {
+          // Acting on the page is for the conversation on screen: one
+          // answering in the background must not move the reader around.
+          const actions = getAskActions();
+          const refused =
+            chat !== current
+              ? "The reader has moved to another conversation; give the link instead."
+              : !actions
+                ? "Can't act on the page right now; give the link instead."
+                : null;
+          if (toolCall.toolName === "open_page") {
+            void chat.addToolOutput({
+              tool: "open_page",
+              toolCallId: toolCall.toolCallId,
+              output: refused || !actions ? { error: refused ?? "" } : await actions.open(toolCall.input),
+            });
+          } else {
+            void chat.addToolOutput({
+              tool: "play",
+              toolCallId: toolCall.toolCallId,
+              output: refused || !actions ? { error: refused ?? "" } : actions.play(toolCall.input),
+            });
+          }
         } else if (toolCall.toolName === "present") {
           // The cards are drawn from the call itself (components/cards.tsx);
           // the answer tells the model which ids were real.

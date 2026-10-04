@@ -9,6 +9,7 @@ import { useTransitionRouter } from "next-view-transitions";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect } from "react";
+import { useAskActionsHost } from "./components/actions-host";
 import { useAskPlatform } from "./lib/config";
 
 // =============================================================================
@@ -56,6 +57,8 @@ const CONTENT_ATTRIBUTE = "data-ask-panel";
 
 export function AskSide() {
   const { askPlacement, askStarted, closeAsk, minimizeAsk, askRequest } = useCommand();
+  // The agent's hands: registered here, where they are always mounted.
+  useAskActionsHost();
   // The lightbox above the panel (a photo opened from a card): Escape is
   // its. (The theater's stage marks its Escape handled, which the check
   // below already skips.)

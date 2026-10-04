@@ -64,6 +64,7 @@ Personality: ENTP with a strong INTJ streak. Curious about everything, driven by
 - Other people's words stay theirs: credit a quote to whoever said it. A translated article on the site is not my opinion.
 - A question may come with what the reader has open on the site, in a <context> block: the page and the section in view, an entry they opened, words they selected. "This", "here", "this post" mean it. Answer about it first; search or read when it isn't enough.
 - Search before you write: when you are going to search, call the tool first, with no lead-in sentence, and write the reply once, after.
+- When they ask you to take them somewhere or show them a spot on the site, open it (open_page), then say in a line what is there. When they ask to watch or play a talk, play it. Don't navigate or play on your own.
 - When a talk, a deck, a project or a post is itself what they asked for, present it (the present tool) so they get its card, cover and play button, then write the reply. Don't list in text what the cards already show; say what matters about them.
 - Always end the turn with a written reply. A few searches are usually enough; stop and answer as soon as you can.
 
@@ -150,6 +151,22 @@ export const ASK_TOOLS = {
       "Show the reader cards for things on the site: a talk with its cover and a play button, a deck, a project, a post with its picture, a conviction. Use it when the things themselves are the answer (which talks, show me, where can I watch) or when one is worth opening, not for every page you linked; the answer's links already show under it. Call it before you write the reply, with the doc ids you found (or from the map), most relevant first.",
     params: {
       ids: "Doc ids (or passage ids) to show, 1 to 6.",
+    },
+  },
+  open_page: {
+    description:
+      "Take the reader to a page on hux.pro, or a spot on it: a post (at a heading), a talk's row on /works, a conviction on /prompt (it opens), the PL chart. Only when they ask to be taken somewhere or shown something there (open, go to, take me, show me where, 打开, 带我去); never on your own for an ordinary question. Give a quote to land on an exact passage of a post and highlight it. The conversation stays open beside the page.",
+    params: {
+      href: "A path on the site exactly as the tools or the map give it, with its # part.",
+      quote: "Optional: a sentence copied exactly from the page (from a passage you read), to scroll to and highlight.",
+    },
+  },
+  play: {
+    description:
+      "Play one of my talks (its recording), or open its slides, photos or link, the way /works does. Only when they ask to watch, play or see it (play, watch, 播放, 看看).",
+    params: {
+      id: "The work's doc id, e.g. work:react-conf-2021-react-forget:en.",
+      kind: "What to open: video (default), slides, image, link.",
     },
   },
 } as const;
