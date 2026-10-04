@@ -25,11 +25,12 @@ systems/ask/
 │   ├── panel.tsx      # the side place: a panel beside the page
 │   ├── activity.tsx   # the top place and the pill: a Live Activity in the Dock
 │   └── placement.tsx  # the placement buttons, the drag handle, the drag's overlay
+├── prompts.ts           # every word the model reads (system prompt, answer-now, tool descriptions) and the suggested questions
 ├── surfaces.tsx         # AskSide, AskDock, AskDragging: mounted once in the root layout
 └── strings.ts           # en / zh
 
 lib/ask-corpus.ts      # reads the site into the index (Node, build time)
-lib/ask-prompt.ts      # the system prompt: who, how to answer, a map of the site
+lib/ask-prompt.ts      # fills in the system prompt: the About and a map of the site
 scripts/ask-index.ts   # writes public/ask/index.json (`pnpm ask:index`; predev and build run it)
 app/api/chat/route.ts  # the one server route: key, prompt, tools, stream
 components/ai-elements/  # AI Elements, as the registry ships them (see below)

@@ -1,8 +1,10 @@
 import { jsonSchema, tool, type InferUITools, type UIDataTypes, type UIMessage } from "ai";
+import { ASK_TOOLS } from "../prompts";
 import type { AskDoc } from "./corpus";
 
 // =============================================================================
-// The agent's tools: declared here, run in the browser.
+// The agent's tools: declared here, run in the browser. What the model reads
+// about them (descriptions, parameters) is ../prompts.ts.
 //
 // The chat route (app/api/chat) hands these to the model without an
 // `execute`, so a call the model makes comes back to the page, which runs it
@@ -52,18 +54,17 @@ export type ReadOutput =
 
 export const askTools = {
   search_site: tool({
-    description:
-      "Full-text search over everything on hux.pro: posts, the convictions and influences on /prompt, talks and projects on /works, the programming-languages chart. Returns passages with their doc id, title, heading, link and a snippet. Search in both languages when a topic may be written about in either (e.g. 'PWA' and '渐进式').",
+    description: ASK_TOOLS.search_site.description,
     inputSchema: jsonSchema<SearchInput>({
       type: "object",
       properties: {
-        query: { type: "string", description: "Keywords, not a sentence." },
+        query: { type: "string", description: ASK_TOOLS.search_site.params.query },
         lang: {
           type: "string",
           enum: ["en", "zh", "any"],
-          description: "Only passages in this language. Default any.",
+          description: ASK_TOOLS.search_site.params.lang,
         },
-        limit: { type: "number", description: "Passages to return, 1 to 10. Default 6." },
+        limit: { type: "number", description: ASK_TOOLS.search_site.params.limit },
       },
       required: ["query"],
       additionalProperties: false,
@@ -72,12 +73,11 @@ export const askTools = {
     outputSchema: jsonSchema<SearchHit[]>({ type: "array" }),
   }),
   read: tool({
-    description:
-      "Read a doc in full (a doc id such as `post:pl-chart:en`) or one passage (a passage id such as `post:pl-chart:en#3`). Use after search_site when a snippet is not enough to answer.",
+    description: ASK_TOOLS.read.description,
     inputSchema: jsonSchema<ReadInput>({
       type: "object",
       properties: {
-        id: { type: "string", description: "A doc id or passage id from search_site." },
+        id: { type: "string", description: ASK_TOOLS.read.params.id },
       },
       required: ["id"],
       additionalProperties: false,

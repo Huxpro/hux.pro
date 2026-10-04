@@ -1,7 +1,9 @@
 import type { Locale } from "@/lib/i18n";
+import { ASK_SUGGESTIONS } from "./prompts";
 
 // Ask's words, in both languages. Kept with the system, as the labs keep
-// theirs, rather than in the site-wide table.
+// theirs, rather than in the site-wide table. The suggested questions are
+// ./prompts.ts, with the rest of what is written for the model.
 
 const en = {
   ask: "Ask",
@@ -40,12 +42,7 @@ const en = {
   placement: "Where Ask sits",
   placements: { center: "Center", side: "Side", top: "Top" },
   dragHint: "Drop to dock Ask here",
-  suggestions: [
-    "What is Lynx, and why did Hux build it?",
-    "How does Hux think about PWAs?",
-    "Which programming languages does Hux find most interesting?",
-    "What does Hux believe about open source?",
-  ],
+  suggestions: ASK_SUGGESTIONS.en,
 };
 
 type AskStrings = typeof en;
@@ -87,12 +84,7 @@ const zh: AskStrings = {
   placement: "问答的位置",
   placements: { center: "居中", side: "侧边", top: "顶部" },
   dragHint: "松手，问答停在这里",
-  suggestions: [
-    "Lynx 是什么？黄玄为什么要做它？",
-    "黄玄怎么看 PWA？",
-    "黄玄觉得哪些编程语言最有意思？",
-    "黄玄对开源有什么信念？",
-  ],
+  suggestions: ASK_SUGGESTIONS.zh,
 };
 
 export function askStrings(locale: Locale): AskStrings {
