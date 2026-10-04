@@ -143,46 +143,52 @@ export default function AskActivity() {
   // The question is this place's to send only while Ask is here.
   useAskRequest(placed ? askRequest : null);
 
-  // Placed at the top: open the panel. Opening takes two steps: the activity
-  // is mounted collapsed first and opened a frame later. A Live Activity that
-  // unmounts while open closes the Dock (`registerActivity`), and React's
-  // development double-mount unmounts a new one once on arrival, after every
-  // effect of that commit has run; opened in the same commit, the panel was
-  // closed again before it was ever seen.
-  useEffect(() => {
-    if (!placed || expanded) return;
-    const frame = requestAnimationFrame(() => open(ASK_ID));
-    return () => cancelAnimationFrame(frame);
-  }, [placed, expanded, open]);
-
-  // Afterwards, each side follows the other, told apart by which one moved:
-  //   - the provider moved Ask (`placed` changed): away from the top puts
-  //     the panel away (opening is the effect above);
+  // The provider and the Dock follow each other, told apart by which one
+  // moved since the last render:
+  //   - the provider moved Ask (`placed` changed): to the top opens the
+  //     panel, away from it puts the panel away;
   //   - the Dock moved (`expanded` changed, `placed` did not): a collapse
   //     (its chevron, a swipe, a route change) is a minimize, and the pill
   //     tapped open is Ask placed at the top.
-  // Compared with the last pair seen rather than reacted to one at a time:
-  // the pill's tap opens the Dock a render before the provider hears of it,
-  // and "not placed, but open" in that render is the visitor, not a cue to
-  // close.
-  const [last, setLast] = useState({ placed, expanded });
+  // Reacting to the pair as it stands instead ("placed but closed: open")
+  // fought the visitor: a swipe that collapses the panel leaves exactly that
+  // pair for a render, before the minimize lands, and the panel came back.
+  // The first render counts as a move of the provider's, so an activity
+  // mounted with Ask already at the top opens.
+  const [last, setLast] = useState({ placed: false, expanded });
+  const [opening, setOpening] = useState(false);
   useEffect(() => {
     if (last.placed === placed && last.expanded === expanded) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- tracking what changed since the last render
     setLast({ placed, expanded });
     if (!expanded) setShowHistory(false);
     if (placed !== last.placed) {
-      if (!placed && expanded) close();
+      if (placed && !expanded) setOpening(true);
+      else if (!placed && expanded) close();
       return;
     }
     if (expanded && !placed) moveAsk("top");
     else if (!expanded && placed) minimizeAsk();
   }, [placed, expanded, last, close, moveAsk, minimizeAsk]);
 
+  // Opening takes a frame: the activity may have just mounted, and a Live
+  // Activity that unmounts while open closes the Dock (`registerActivity`);
+  // React's development double-mount unmounts a new one once on arrival,
+  // after every effect of that commit, so a panel opened in the same commit
+  // was closed again before it was ever seen.
+  useEffect(() => {
+    if (!opening) return;
+    const frame = requestAnimationFrame(() => {
+      setOpening(false);
+      open(ASK_ID);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [opening, open]);
+
   // Nothing to show unless Ask is here, minimized here, or still writing a
   // reply after it was closed.
   const pill = askPill || (busy && askPlacement === null && messages.length > 0);
-  if (!placed && !expanded && !pill) return null;
+  if (!placed && !expanded && !pill && !opening) return null;
 
   const line = lineOf(messages, status, s);
 
@@ -211,10 +217,10 @@ export default function AskActivity() {
         </>
       }
       title={
-        // The handle for a drag to the center or the side; the Dock's own
-        // swipe leaves it alone.
+        // The handle for a mouse's drag to the center or the side (which
+        // stops the press from reaching the drawer); to a finger it is the
+        // header, and swiping it up puts the panel back to the pill.
         <span
-          data-base-ui-swipe-ignore=""
           onPointerDown={handle.onPointerDown}
           className={cn("flex min-w-0 flex-1 items-center gap-1.5", handle.className)}
         >

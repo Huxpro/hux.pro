@@ -24,8 +24,11 @@ import { askStrings } from "../strings";
 //     a different kind of thing (a cmdk card, a drawer, the Dock's own
 //     drawer, which has its own swipe), and what moves is the conversation.
 //
-// Dragging is for a pointer on a screen with room for the side panel; a
-// phone keeps the buttons that make sense there.
+// Dragging is for a pointer on a screen with room for the side panel. A
+// phone has two states rather than three places: the window (a full-height
+// sheet) and the Dock (the pill, which opens at the top, Siri-like).
+// Minimize moves between them, and the Dock's panel swipes back to the pill
+// as any drawer does.
 // =============================================================================
 
 const PLACES: { placement: AskPlacement; icon: LucideIcon }[] = [
@@ -61,8 +64,11 @@ export function AskPlacementControls({
           aria-pressed={placement === current}
           aria-label={s.placements[placement]}
           title={s.placements[placement]}
-          // No room for a panel beside the page on a phone.
-          className={cn(BUTTON, placement === "side" && "max-sm:hidden")}
+          // A phone has two states, not three places: the window (the
+          // center's sheet) and the Dock (the pill, opening at the top).
+          // Minimize is the way from one to the other; the only place button
+          // a phone keeps is the way back, the window, shown in the Dock.
+          className={cn(BUTTON, !(placement === "center" && current === "top") && "max-sm:hidden")}
         >
           <Icon className="h-3.5 w-3.5" />
         </button>
@@ -122,6 +128,9 @@ export function useAskDragHandle(from: AskPlacement) {
       if (e.button !== 0 || e.pointerType === "touch") return;
       if ((e.target as HTMLElement).closest("button, a, input, textarea, select, [role='combobox']")) return;
       if (!window.matchMedia("(min-width: 640px)").matches) return;
+      // A mouse press on the handle is ours: not the start of a drawer's
+      // swipe (the Dock's panel, which a finger still swipes away).
+      e.stopPropagation();
       const startX = e.clientX;
       const startY = e.clientY;
       let dragging = false;

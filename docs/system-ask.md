@@ -62,7 +62,7 @@ moves nothing else.
 
 | place | what it is | from |
 |---|---|---|
-| **center** | the ⌘K card, widened to 960px: history rail on the left, conversation on the right | the palette's Ask mode (`chat.tsx`) |
+| **center** | the ⌘K card, widened to 960px: history rail on the left, conversation on the right; on a phone, a full-height sheet of its own | the palette's Ask mode (`chat.tsx`); `panel.tsx` in `SurfaceSheet` on a phone |
 | **side** | a 440px panel docked at the trailing edge; the page beside it stays live, and from 1280px the page makes room (`data-ask-docked`) | `panel.tsx`, `SurfacePanel` |
 | **top** | the Dock's panel, hanging from the top | `activity.tsx`, `LiveActivity` |
 | **pill** | minimized: a pill in the Dock saying what the agent is doing, then the answer's first words, with the site's glow while it works | the same activity, collapsed |
@@ -83,9 +83,15 @@ moves nothing else.
 - **Links.** In the center, a link navigates and the palette leaves; at the
   side it navigates under the panel, which stays; at the top it navigates and
   collapses to the pill.
-- **Phones.** No room for a side panel: side is the center's full-height
-  sheet. The top and the pill work as on a desk. No dragging (a drag there is
-  a scroll); the buttons stay.
+- **Phones.** Two states, not three places: the **window**, a full-height
+  sheet of Ask's own (no palette under it; asking from search puts the
+  palette away), and the **Dock**, the pill, which opens at the top,
+  Siri-like. Minimize goes from the window to the Dock; the Dock's panel has
+  one place button, the way back to the window. Both are drawers to the
+  finger: the window swipes down to close, the Dock's panel swipes up to the
+  pill (from its header or the grabber; the conversation itself scrolls). A
+  link followed in the window minimizes it, so the page shows and the answer
+  is a tap away. No dragging between places (a drag there is a scroll).
 - **Entries.** The Ask button sits beside the search prompt on the home, and
   beside the ⌘K pill on every other page (`fab.tsx`), lit while Ask is open;
   away from the home it steps aside for the side panel.

@@ -16,8 +16,11 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 //
 // Asking from search (the Ask row, Tab) lands in the center, unless Ask is
 // already open somewhere else, which then takes the question. A call with
-// nothing typed (⌘J, `/` `J`) opens Ask where the visitor last put it. A
-// phone has no room for a side panel; there, side is the center's sheet.
+// nothing typed (⌘J, `/` `J`) opens Ask where the visitor last put it.
+//
+// A phone has no room for a side panel, and no use for a palette under a
+// conversation: there the center is a full-height sheet of Ask's own (the
+// `sheet` surface), and side is the same sheet.
 // =============================================================================
 
 export type AskPlacement = "center" | "side" | "top";
@@ -96,7 +99,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [isLoadBundleMode, setIsLoadBundleMode] = useState(false);
   const [isAskMode, setIsAskMode] = useState(false);
   const [askRequest, setAskRequest] = useState<{ text: string; n: number } | null>(null);
-  const [askSurface, setAskSurface] = useState<"side" | "top" | null>(null);
+  const [askSurface, setAskSurface] = useState<"side" | "top" | "sheet" | null>(null);
   const [askPill, setAskPill] = useState(false);
   const [askStarted, setAskStarted] = useState(false);
   // Where the visitor last put Ask: a per-viewer convenience, read on the
@@ -154,18 +157,24 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const askPlacement: AskPlacement | null = isOpen && isAskMode ? "center" : askSurface;
+  const askPlacement: AskPlacement | null =
+    isOpen && isAskMode ? "center" : askSurface === "sheet" ? "center" : askSurface;
 
   const moveAsk = useCallback((placement: AskPlacement) => {
-    const target = placement === "side" && !hasRoomBeside() ? "center" : placement;
+    const roomy = hasRoomBeside();
+    const target = placement === "side" && !roomy ? "center" : placement;
     setAskStarted(true);
     setAskPill(false);
     setIsSlashCommandsMode(false);
     setIsLoadBundleMode(false);
-    if (target === "center") {
+    if (target === "center" && roomy) {
       setAskSurface(null);
       setIsOpen(true);
       setIsAskMode(true);
+    } else if (target === "center") {
+      setIsOpen(false);
+      setIsAskMode(false);
+      setAskSurface("sheet");
     } else {
       setIsOpen(false);
       setIsAskMode(false);
@@ -188,8 +197,9 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       const question = text?.trim();
       if (question) setAskRequest((prev) => ({ text: question, n: (prev?.n ?? 0) + 1 }));
       if (askSurface) {
-        // Already open beside the page or at the top: it takes the question.
-        moveAsk(askSurface);
+        // Already open beside the page, at the top or as a phone's sheet: it
+        // takes the question.
+        moveAsk(askSurface === "sheet" ? "center" : askSurface);
         return;
       }
       if (from === "search") {

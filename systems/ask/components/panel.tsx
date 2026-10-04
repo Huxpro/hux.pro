@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { HEADER_BUTTON, SurfaceBody } from "@/systems/surface";
+import type { AskPlacement } from "@/systems/command";
 import { Drawer } from "@base-ui/react/drawer";
 import { History, Sparkles, SquarePen } from "lucide-react";
 import { useState } from "react";
@@ -21,13 +22,16 @@ import { AskPlacementControls, useAskDragHandle } from "./placement";
 // wallpaper picker. The state is the session's (../lib/chat), so closing the
 // panel and opening it again, or navigating under it, keeps the conversation.
 //
-// This is Ask's side place. Its title is the handle that drags it to the
-// center or the top, beside the placement buttons (./placement).
+// This is Ask's side place on a desk, and its center place as a phone's
+// sheet. Its title is the handle that drags it to another place, beside the
+// placement buttons (./placement).
 //
 // The shell (../surfaces.tsx) loads this lazily, the first time Ask opens.
 // =============================================================================
 
 export interface AskPanelProps {
+  /** Which place this panel is: the side on a desk, the center as a phone's sheet. */
+  placement: AskPlacement;
   /** A question to send on arrival, from the palette's field. */
   request: { text: string; n: number } | null;
   onClose: () => void;
@@ -38,13 +42,13 @@ export interface AskPanelProps {
 /** A header button that stays lit while the view it opens is showing. */
 const TOGGLE = "aria-pressed:bg-accent/60 aria-pressed:text-foreground";
 
-export default function AskPanel({ request, onClose, onNavigate }: AskPanelProps) {
+export default function AskPanel({ placement, request, onClose, onNavigate }: AskPanelProps) {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { messages, newChat } = useAskSession();
   const [showHistory, setShowHistory] = useState(false);
   useAskRequest(request);
-  const handle = useAskDragHandle("side");
+  const handle = useAskDragHandle(placement);
 
   // A question handed over while the history is up is a question to watch
   // being answered: back to the conversation.
@@ -68,7 +72,7 @@ export default function AskPanel({ request, onClose, onNavigate }: AskPanelProps
       titleAs={Drawer.Title}
       actions={
         <>
-          <AskPlacementControls current="side" className="mr-1" />
+          <AskPlacementControls current={placement} className="mr-1" />
           <button
             type="button"
             onClick={() => setShowHistory((v) => !v)}

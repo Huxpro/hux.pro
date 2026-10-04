@@ -1,7 +1,7 @@
 "use client";
 
-import { useCommand } from "@/systems/command";
-import { SurfacePanel } from "@/systems/surface";
+import { useCommand, type AskPlacement } from "@/systems/command";
+import { detentHeight, SurfacePanel, SurfaceSheet, useBreakpointValue } from "@/systems/surface";
 import type { Drawer } from "@base-ui/react/drawer";
 import { useTransitionRouter } from "next-view-transitions";
 import dynamic from "next/dynamic";
@@ -13,13 +13,16 @@ import { useCallback, useEffect } from "react";
 //
 //   AskSide      the side place: a panel docked at the trailing edge, beside
 //                the page, which stays live; a link in an answer navigates
-//                the page while the panel stays.
+//                the page while the panel stays. On a phone, the center
+//                place instead: a full-height sheet of Ask's own (no palette
+//                under it), and a link followed there minimizes Ask to the
+//                Dock's pill, so the page shows and the answer is a tap away.
 //   AskDock      the top place and the pill: Ask as a Live Activity in the
 //                Dock (components/activity.tsx). Mounted inside <Dock>.
 //   AskDragging  the overlay a drag between places draws (components/
 //                placement.tsx).
 //
-// The center place is the palette's own (systems/command, AskChat). Which
+// The center place on a desk is the palette's own (systems/command, AskChat). Which
 // one is showing is the command provider's `askPlacement`; moving between
 // them moves nothing but that, because the conversation is the session's
 // (lib/chat.ts). None of it loads until Ask is first called (`askStarted`).
@@ -42,11 +45,17 @@ const DOCKED_ATTRIBUTE = "data-ask-docked";
 /** On the wrapper around the panel's contents: where a key press came from. */
 const CONTENT_ATTRIBUTE = "data-ask-panel";
 
+type AskShape = "sheet" | "panel";
+
 export function AskSide() {
-  const { askPlacement, askStarted, closeAsk, askRequest } = useCommand();
+  const { askPlacement, askStarted, closeAsk, minimizeAsk, askRequest } = useCommand();
   const router = useTransitionRouter();
   const pathname = usePathname();
-  const open = askPlacement === "side";
+  const shape = useBreakpointValue<AskShape>({ base: "sheet", sm: "panel" });
+  // The place this surface is: the side on a desk, the center on a phone
+  // (where the palette never holds Ask).
+  const placement: AskPlacement = shape === "panel" ? "side" : "center";
+  const open = askPlacement === placement;
 
   const onOpenChange = useCallback(
     (next: boolean, details?: Drawer.Root.ChangeEventDetails) => {
@@ -66,9 +75,19 @@ export function AskSide() {
     [closeAsk],
   );
 
+  const onNavigate = useCallback(
+    (href: string) => {
+      router.push(href);
+      // A full-height sheet covers the page it just opened: away into the
+      // Dock, where the conversation waits.
+      if (shape === "sheet") minimizeAsk();
+    },
+    [router, shape, minimizeAsk],
+  );
+
   // The home is a springboard, not a column to read beside: its grid keeps
   // its width and the panel stands over its trailing edge.
-  const docked = open && pathname !== "/";
+  const docked = open && shape === "panel" && pathname !== "/";
   useEffect(() => {
     const root = document.documentElement;
     root.toggleAttribute(DOCKED_ATTRIBUTE, docked);
@@ -77,19 +96,36 @@ export function AskSide() {
 
   if (!askStarted) return null;
 
-  return (
+  const body = (
+    // `contents`: the panel's title bar, conversation and composer stay the
+    // shell's own flex column.
+    <div {...{ [CONTENT_ATTRIBUTE]: "" }} className="contents">
+      <AskPanel
+        placement={placement}
+        // The question is this place's to send only while Ask is here.
+        request={open ? askRequest : null}
+        onClose={closeAsk}
+        onNavigate={onNavigate}
+      />
+    </div>
+  );
+
+  return shape === "panel" ? (
     <SurfacePanel open={open} onOpenChange={onOpenChange}>
-      {/* `contents`: the panel's title bar, conversation and composer stay
-          the shell's own flex column. */}
-      <div {...{ [CONTENT_ATTRIBUTE]: "" }} className="contents">
-        <AskPanel
-          // The question is this place's to send only while Ask is here.
-          request={open ? askRequest : null}
-          onClose={closeAsk}
-          onNavigate={(href) => router.push(href)}
-        />
-      </div>
+      {body}
     </SurfacePanel>
+  ) : (
+    <SurfaceSheet
+      id="ask"
+      open={open}
+      onOpenChange={onOpenChange}
+      height={detentHeight(1)}
+      // Focus handed back to a field on a phone raises its keyboard on the
+      // next touch, wherever it lands (sheet.tsx, item 5).
+      restoreFocus={false}
+    >
+      {body}
+    </SurfaceSheet>
   );
 }
 
