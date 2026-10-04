@@ -2,9 +2,20 @@
 
 import { useChat } from "@ai-sdk/react";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
-import { getAskChat, newAskChat, openAskConversation, subscribeAskChat } from "./chat";
-import { getAskEffort, getAskModel, setAskEffort, setAskModel, subscribeAskPrefs } from "./prefs";
 import {
+  dropAskConversation,
+  getAskChat,
+  getAskRunning,
+  getAskServerSettings,
+  getAskSettings,
+  newAskChat,
+  openAskConversation,
+  setAskSettings,
+  subscribeAskChat,
+  subscribeAskRunning,
+} from "./chat";
+import {
+  type AskSettings,
   deleteConversation,
   getConversationsServerSnapshot,
   getConversationsSnapshot,
@@ -50,15 +61,30 @@ export function useAskHistory() {
     getConversationsSnapshot,
     getConversationsServerSnapshot,
   );
-  return { conversations, deleteConversation };
+  return {
+    conversations,
+    deleteConversation: (id: string) => {
+      dropAskConversation(id);
+      deleteConversation(id);
+    },
+  };
 }
 
-/** The viewer's model and effort, remembered in this browser. */
+/** The current conversation's model and thinking level; changing them
+ *  changes that conversation (and what the next new one starts on). */
 export function useAskPrefs() {
-  // One store, so the composer and the devtool show the same pick.
-  const model = useSyncExternalStore(subscribeAskPrefs, getAskModel, getAskModel);
-  const effort = useSyncExternalStore(subscribeAskPrefs, getAskEffort, getAskEffort);
-  return { model, setModel: setAskModel, effort, setEffort: setAskEffort };
+  const { model, effort } = useSyncExternalStore(subscribeAskChat, getAskSettings, getAskServerSettings);
+  return {
+    model,
+    setModel: (value: string) => setAskSettings({ model: value }),
+    effort,
+    setEffort: (value: string) => setAskSettings({ effort: value as AskSettings["effort"] }),
+  };
+}
+
+/** The ids of the conversations being answered now, for the history. */
+export function useAskRunning(): ReadonlySet<string> {
+  return useSyncExternalStore(subscribeAskRunning, getAskRunning, getAskRunning);
 }
 
 /** The last request sent, so a remount (or a second surface) never sends

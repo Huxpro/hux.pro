@@ -74,10 +74,13 @@ What follows is the desk's preset; every line of it is a setting (below).
 
 - **Which place.** Asking from search (the Ask row, Tab) lands in the center,
   unless Ask is already open at the side or the top, which then takes the
-  question. ⌘J, `/` `J` and the Ask button open it where the visitor last
-  put it (`hux_ask_placement`), and close it again. On a page to read
-  (/writing, /works, /prompt, /about, /docs) both open it at the side, so the
-  page stays in view (`onReadingPage`).
+  question. ⌘J, `/` `J` and the Ask button open it at the default, and
+  close it again. Each kind of page has its default: beside a page to read
+  (/writing, /works, /prompt, /about, /docs; `onReadingPage`), so the page
+  stays in view; elsewhere the center. Only a place chosen by hand (a place
+  button, a drop) overrides a default, and only for that kind of page
+  (`hux_ask_placement`, `{ reading, other }`): opening beside a post is not a
+  choice, so the home keeps its center.
 - **The way back.** Leaving the center goes back to search only when search
   was the way in (the Ask row, Tab, `/` `J`): there is a back button, and
   Escape returns to the field. Reached directly (⌘J, the Ask button, a move
@@ -147,12 +150,21 @@ A platform is the surfaces' `sm`: under 640px, a phone.
 - **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere, where it was last put,
   and closes it again; `/` `J` from the slash list; Tab or the Ask row from
   search.
-- **History.** Every finished turn is saved (`lib/history.ts`): the newest 30
-  conversations, in this browser only, read results trimmed. The header's
-  clock lists them; picking one makes it current. ✎ starts a new one.
-- **Thinking level.** Quick / Balanced / Deep in the composer, the AI SDK's
-  portable `reasoning` (low / medium / high), remembered per viewer like the
-  model. The route accepts only those three.
+- **History.** Every conversation is saved from its first question
+  (`lib/history.ts`): the newest 30, in this browser only, read results
+  trimmed. The sidebar (the clock on a narrow screen) lists them; picking one
+  makes it current. ✎ starts a new one.
+- **Side by side.** Moving to another conversation does not stop the one
+  being answered: it goes on in the background, tools and all, and saves
+  itself when it ends; its row in the history spins until then. Every
+  conversation opened this visit stays live, so going back to a running one
+  shows it running (`live` in `lib/chat.ts`).
+- **Model and thinking level, per conversation.** Each conversation runs on
+  its own model and Quick / Balanced / Deep (the AI SDK's portable
+  `reasoning`, low / medium / high), kept with it in the history: going back
+  to one puts its pickers back, and changing them changes that conversation.
+  A new conversation starts on the last ones picked (`lib/prefs.ts`). The
+  route accepts only the listed models and those three levels.
 - **Message actions.** Copy on every message (the Markdown of an answer),
   Regenerate on the last answer.
 - **Voice.** The microphone sits beside send, at the trailing end, as Claude
