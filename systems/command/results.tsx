@@ -10,7 +10,7 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { isQuestionLike } from "@/systems/ask/lib/intent";
-import { loadAskSearch, type AskSearch } from "@/systems/ask/lib/search";
+import type { AskSearch } from "@/systems/ask/lib/search";
 import { askStrings } from "@/systems/ask/strings";
 import { useOptionalWindows } from "@/systems/windows";
 import { Command, defaultFilter, useCommandState } from "cmdk";
@@ -78,7 +78,9 @@ export function usePaletteFilter(query: string) {
   useEffect(() => {
     if (!wanted || index) return;
     let live = true;
-    loadAskSearch()
+    // Loaded with the index, the first time a search is long enough.
+    import("@/systems/ask/lib/search")
+      .then((m) => m.loadAskSearch())
       .then((loaded) => live && setIndex(loaded))
       .catch(() => {});
     return () => {

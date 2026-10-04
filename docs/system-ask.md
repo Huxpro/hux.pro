@@ -11,10 +11,11 @@ systems/ask/
 │   ├── search.ts      # the index in the browser: fetched once, BM25 (MiniSearch), search + read
 │   ├── tools.ts       # the agent's tools (search_site, read): declared once, run in the page
 │   ├── chat.ts        # the session: current conversation, the agent loop (AI SDK Chat)
-│   ├── prefs.ts       # the visitor's model and thinking level (no AI SDK, so the devtool can read it)
+│   ├── prefs.ts       # the last model and thinking level picked, what a new conversation starts on (no AI SDK, so the devtool can read it)
+│   ├── storage.ts     # JSON in localStorage, where storage allows
 │   ├── config.ts      # how Ask behaves: every setting, a preset per platform (desk / phone)
 │   ├── history.ts     # past conversations, in localStorage
-│   ├── use-ask.ts     # the hooks surfaces are built from: useAskSession / useAskHistory / useAskPrefs / useAskRequest
+│   ├── use-ask.ts     # the hooks surfaces are built from: useAskSession / useAskHistory / useAskPrefs / useAskRunning / useAskRequest
 │   ├── models.ts      # the models the picker offers and the route accepts
 │   └── intent.ts      # is this a question or a search?
 ├── components/
@@ -204,6 +205,17 @@ run them against public/ask/index.json
           ◀──────── streamed answer, with links
 ```
 
+- **It speaks as Hux.** First person, so a visitor feels they are talking
+  with him: logical (verdict first, then the model behind it), opinionated
+  (takes a side, owns the bias), entertaining (self-deprecating, a punchline,
+  "lol" at most once). The persona comes from his own writing: the About and
+  /prompt, the posts he wrote in each language (most English posts are
+  machine-translated from Chinese, so not his phrasing), and his posts on X,
+  a few of which are in the prompt verbatim (`ASK_VOICE`). Facts about him
+  come from the site and are never invented; takes may go past it, said as
+  takes. It says it is an AI as soon as someone asks or relies on it, makes no
+  promises in his name, and keeps employers' internals and private people out.
+  All of it is `prompts.ts`.
 - **The route is thin.** It holds the key and pins everything the model is
   given: system prompt, tool definitions, the model list, the output cap. A
   request carries only the conversation and a model id from the list. It

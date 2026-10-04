@@ -13,10 +13,9 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { VoiceButton, VoiceGlow } from "@/systems/command/voice";
-import { useVoiceInput } from "@/systems/voice";
+import { useVoiceInput, VOICE_LANG } from "@/systems/voice";
 import { Brain } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ASK_EFFORTS, ASK_MODELS, type AskEffort } from "../lib/models";
@@ -41,20 +40,7 @@ import { askStrings } from "../strings";
 /** How soon after sending a keyboard's late commit can arrive, ms. */
 const LATE_COMMIT_MS = 600;
 
-const LANG = { en: "en-US", zh: "zh-CN" } as const;
-
-export interface AskComposerProps {
-  /**
-   * Focus the field when it mounts: always with a mouse, and on a touch
-   * screen only when there is nothing yet to read, so opening Ask to read an
-   * answer does not raise the keyboard over it.
-   */
-  autoFocus?: boolean;
-  placeholder?: string;
-  className?: string;
-}
-
-export function AskComposer({ autoFocus = true, placeholder, className }: AskComposerProps) {
+export function AskComposer() {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { status, stop, busy, send, messages } = useAskSession();
@@ -64,15 +50,17 @@ export function AskComposer({ autoFocus = true, placeholder, className }: AskCom
   const sent = useRef<{ text: string; at: number } | null>(null);
 
   const voice = useVoiceInput({
-    lang: LANG[locale],
+    lang: VOICE_LANG[locale],
     onInterim: (said) => setInput(said),
     onFinal: (said) => setInput(said.trim()),
   });
 
-  // Decided once, on mount: the conversation growing later is no reason to
-  // take focus.
+  // The field takes focus when it mounts: always with a mouse, and on a
+  // touch screen only when there is nothing yet to read, so opening Ask to
+  // read an answer does not raise the keyboard over it. Decided once: the
+  // conversation growing later is no reason to take focus.
   const [focusOnMount] = useState(
-    () => autoFocus && (messages.length === 0 || window.matchMedia("(pointer: fine)").matches),
+    () => messages.length === 0 || window.matchMedia("(pointer: fine)").matches,
   );
   useEffect(() => {
     if (!focusOnMount) return;
@@ -89,7 +77,7 @@ export function AskComposer({ autoFocus = true, placeholder, className }: AskCom
         sent.current = { text, at: performance.now() };
         setInput("");
       }}
-      className={cn("relative rounded-xl bg-transparent", className)}
+      className="relative rounded-xl bg-transparent"
     >
       <PromptInputBody>
         <PromptInputTextarea
@@ -102,7 +90,7 @@ export function AskComposer({ autoFocus = true, placeholder, className }: AskCom
               last && performance.now() - last.at < LATE_COMMIT_MS && value.trim() && last.text.endsWith(value.trim());
             setInput(late ? "" : value);
           }}
-          placeholder={placeholder ?? s.placeholder}
+          placeholder={s.placeholder}
           className="min-h-12 font-sans text-[16px] sm:text-sm"
         />
       </PromptInputBody>

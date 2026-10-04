@@ -2128,7 +2128,7 @@ main[data-variant="reader"] .reader-masthead {
   }
 
   html[data-ask-docked] #vitre-scroll {
-    padding-right: calc(440px + 0.75rem);
+    padding-right: calc(var(--surface-panel-w, 440px) + 0.75rem);
   }
 }
 

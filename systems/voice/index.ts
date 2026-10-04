@@ -15,3 +15,6 @@ export { isVoiceSupported, useVoiceInput } from "./use-voice-input";
 export type { VoiceInput, VoiceInputOptions } from "./use-voice-input";
 export { createMeter, primeAudio } from "./lib/meter";
 export type { VoiceMeter } from "./lib/meter";
+
+/** The speech language for each of the site's locales. */
+export const VOICE_LANG = { en: "en-US", zh: "zh-CN" } as const;

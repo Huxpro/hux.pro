@@ -1,8 +1,9 @@
-import type { AskPlacement } from "@/systems/command/provider";
+import { isAskPlacement, type AskPlacement } from "@/systems/command/provider";
 // Deep import on purpose: presentation.ts depends on nothing but React, and
 // the command provider reads this file.
-import { useBreakpointValue } from "@/systems/surface/presentation";
+import { SURFACE_BREAKPOINTS, useBreakpointValue } from "@/systems/surface/presentation";
 import { useSyncExternalStore } from "react";
+import { readJSON, writeJSON } from "./storage";
 
 // =============================================================================
 // How Ask behaves: every choice the surfaces make, in one place, with a
@@ -88,15 +89,14 @@ export type AskConfigKey = keyof AskConfig;
 export type AskOverrides = Record<AskPlatform, Partial<AskConfig>>;
 
 const STORAGE_KEY = "hux_ask_config";
-const PLACES = ["center", "side", "top"];
 
 /** Whether a saved value is one the key can take; anything else is dropped. */
 function valid<K extends AskConfigKey>(key: K, value: unknown): value is AskConfig[K] {
   switch (key) {
     case "fromSearch":
-      return PLACES.includes(value as string);
+      return isAskPlacement(value);
     case "fromCall":
-      return value === "last" || PLACES.includes(value as string);
+      return value === "last" || isAskPlacement(value);
     case "minimize":
       return value === "dock" || value === "off";
     case "onReadingPage":
@@ -117,17 +117,13 @@ function read(): AskOverrides {
   if (overrides) return overrides;
   if (typeof window === "undefined") return EMPTY;
   const next: AskOverrides = { desk: {}, phone: {} };
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
-    for (const platform of ["desk", "phone"] as const) {
-      for (const [key, value] of Object.entries(raw?.[platform] ?? {})) {
-        if (key in ASK_PRESETS[platform] && valid(key as AskConfigKey, value)) {
-          (next[platform] as Record<string, unknown>)[key] = value;
-        }
+  const raw = readJSON(STORAGE_KEY) as Partial<Record<AskPlatform, Record<string, unknown>>> | undefined;
+  for (const platform of ["desk", "phone"] as const) {
+    for (const [key, value] of Object.entries(raw?.[platform] ?? {})) {
+      if (key in ASK_PRESETS[platform] && valid(key as AskConfigKey, value)) {
+        (next[platform] as Record<string, unknown>)[key] = value;
       }
     }
-  } catch {
-    // Unreadable or unavailable: the presets.
   }
   overrides = next;
   return next;
@@ -135,11 +131,7 @@ function read(): AskOverrides {
 
 function write(next: AskOverrides) {
   overrides = next;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    // Storage unavailable: the change lasts the page.
-  }
+  writeJSON(STORAGE_KEY, next);
   listeners.forEach((l) => l());
 }
 
@@ -148,11 +140,6 @@ export function subscribeAskConfig(listener: () => void) {
   return () => {
     listeners.delete(listener);
   };
-}
-
-/** The saved overrides, both platforms. */
-export function getAskOverrides(): AskOverrides {
-  return read();
 }
 
 /** Change one setting for one platform. The preset's own value clears the
@@ -193,7 +180,7 @@ export function askConfigOf(platform: AskPlatform): AskConfig {
 
 /** The platform this viewport is, now: for event handlers. */
 export function askPlatformNow(): AskPlatform {
-  return typeof window !== "undefined" && !window.matchMedia("(min-width: 640px)").matches
+  return typeof window !== "undefined" && window.innerWidth < SURFACE_BREAKPOINTS.sm
     ? "phone"
     : "desk";
 }

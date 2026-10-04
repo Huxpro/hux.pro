@@ -18,7 +18,7 @@ import { AskPlacementControls, useAskDragHandle } from "./placement";
 // uses (./messages, ./composer, ./history); the state is the session's
 // (../lib/chat), so the conversation is the same one any other surface shows.
 //
-// The shells (systems/command/popover.tsx, sheet.tsx) load this lazily, the
+// The palette (systems/command/popover.tsx) loads this lazily, the
 // first time Ask opens.
 //
 // It opens the size of the palette it came from, the command card turned
@@ -45,9 +45,9 @@ export interface AskChatProps {
   /** The shell's own controls at the end of the header (a close button). */
   trailing?: ReactNode;
   /** The history sidebar is open (from `sm` up). */
-  railOpen?: boolean;
-  /** Open or close the history sidebar; without it there is none. */
-  onToggleRail?: () => void;
+  railOpen: boolean;
+  /** Open or close the history sidebar. */
+  onToggleRail: () => void;
   className?: string;
 }
 
@@ -63,7 +63,7 @@ export default function AskChat({
   onBack,
   onNavigate,
   trailing,
-  railOpen = false,
+  railOpen: rail,
   onToggleRail,
   className,
 }: AskChatProps) {
@@ -78,16 +78,15 @@ export default function AskChat({
   // Beside the rail the header names the conversation, as a chat app's
   // title bar does; the rail already says it is Ask.
   const title = conversations.find((c) => c.id === chat.id)?.title;
-  const rail = railOpen && !!onToggleRail;
   // What the rail takes over from `sm` up: back, the clock, ✎.
   const railed = rail && "sm:hidden";
   // The sidebar button, from `sm` up; the clock stands in for it below.
-  const sidebar = onToggleRail && (
+  const sidebar = (
     <button
       type="button"
       onClick={onToggleRail}
       aria-label={s.sidebar}
-      aria-pressed={railOpen}
+      aria-pressed={rail}
       title={s.sidebar}
       className={cn(HEADER_BUTTON, "hidden sm:flex")}
     >
@@ -157,7 +156,7 @@ export default function AskChat({
             aria-label={s.history}
             aria-pressed={showHistory}
             title={s.history}
-            className={cn(HEADER_BUTTON, railed, onToggleRail && "sm:hidden")}
+            className={cn(HEADER_BUTTON, "sm:hidden")}
           >
             <History className="h-4 w-4" />
           </button>

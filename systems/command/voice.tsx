@@ -5,7 +5,7 @@ import { t, useLocale } from "@/services";
 import { useAskConfig } from "@/systems/ask/lib/config";
 import { isQuestionLike } from "@/systems/ask/lib/intent";
 import { Glow } from "@/systems/glow";
-import { useVoiceInput, type VoiceInput } from "@/systems/voice";
+import { useVoiceInput, VOICE_LANG, type VoiceInput } from "@/systems/voice";
 import { Mic } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { useCommand } from "./provider";
@@ -45,8 +45,6 @@ import { useCommand } from "./provider";
 // settings (systems/ask/lib/config.ts: `glowDelay`, `keyboardDelay`).
 // =============================================================================
 
-const LANG = { en: "en-US", zh: "zh-CN" } as const;
-
 /**
  * What was said, as a query: the field hears intent, not a sentence. "Go to
  * the writing", "open works", "show me the wallpaper", "打开写作" arrive as
@@ -82,7 +80,7 @@ export function useCommandVoice(setValue: (text: string) => void): VoiceInput {
   const { locale } = useLocale();
   const { voiceRequest, voiceHoldKey } = useCommand();
   const voice = useVoiceInput({
-    lang: LANG[locale],
+    lang: VOICE_LANG[locale],
     onInterim: (said) => setValue(toFieldText(said)),
     onFinal: (said) => setValue(toFieldText(said)),
   });

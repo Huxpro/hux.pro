@@ -116,11 +116,12 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-/** The place a pointer at (x, y) would put Ask: the top band, the trailing
- *  quarter, or the middle. */
+/** The place a pointer at (x, y) would put Ask: the top band, the side
+ *  panel's own box (as drawn, TARGET_BOX), or the middle. */
 function placementAt(x: number, y: number): AskPlacement {
   if (y < window.innerHeight * 0.18) return "top";
-  if (x > window.innerWidth * 0.72) return "side";
+  const panel = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--surface-panel-w")) || 440;
+  if (x > window.innerWidth - panel - 12) return "side";
   return "center";
 }
 
@@ -166,7 +167,6 @@ export function useAskDragHandle(from: AskPlacement) {
         if (free) e.stopPropagation();
         return;
       }
-      if (!window.matchMedia("(min-width: 640px)").matches) return;
       // The center lets the press through to the card's drag; elsewhere a
       // mouse press on the handle is ours, not the start of a drawer's swipe
       // (the Dock's panel, which a finger still swipes away).
@@ -206,7 +206,7 @@ export function useAskDragHandle(from: AskPlacement) {
 // surfaces: enough to aim at, not a preview of their contents.
 const TARGET_BOX: Record<AskPlacement, string> = {
   center: "left-1/2 top-[min(12vh,7rem)] h-[min(44rem,70vh)] w-[min(960px,calc(100vw-2rem))] -translate-x-1/2",
-  side: "right-3 top-3 bottom-3 w-[440px]",
+  side: "right-3 top-3 bottom-3 w-[var(--surface-panel-w,440px)]",
   top: "left-1/2 top-2 h-[min(36rem,60vh)] w-[min(440px,92vw)] -translate-x-1/2",
 };
 

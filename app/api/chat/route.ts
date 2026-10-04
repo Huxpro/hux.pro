@@ -1,6 +1,6 @@
 import { askSystemPrompt } from "@/lib/ask-prompt";
 import { askEffortOf, askModelOf, type AskModel } from "@/systems/ask/lib/models";
-import { askTools, type AskUIMessage } from "@/systems/ask/lib/tools";
+import { askTools, textOf, type AskUIMessage } from "@/systems/ask/lib/tools";
 import { ASK_ANSWER_NOW } from "@/systems/ask/prompts";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
@@ -166,10 +166,7 @@ function standIn(messages: AskUIMessage[]) {
         writer.write({ type: "start" });
         writer.write({ type: "start-step" });
         if (!toolPart) {
-          const asked = last.parts
-            .map((p) => (p.type === "text" ? p.text : ""))
-            .join(" ")
-            .trim();
+          const asked = textOf(last);
           writer.write({ type: "reasoning-start", id: "r" });
           writer.write({
             type: "reasoning-delta",

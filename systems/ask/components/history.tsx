@@ -25,7 +25,7 @@ function when(at: number, locale: string): string {
 
 export interface AskHistoryProps {
   /** A conversation was picked (after it became current). */
-  onOpen?: (id: string) => void;
+  onOpen?: () => void;
   /** A sidebar's rows: the title alone, its time left to the full list. */
   dense?: boolean;
   className?: string;
@@ -59,7 +59,7 @@ export function AskHistory({ onOpen, dense = false, className }: AskHistoryProps
             type="button"
             onClick={() => {
               openConversation(c.id);
-              onOpen?.(c.id);
+              onOpen?.();
             }}
             aria-current={c.id === chat.id || undefined}
             className={cn(
