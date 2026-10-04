@@ -3,14 +3,13 @@
 import { useLocale, t } from "@/services";
 import { useCommand } from "./provider";
 import { cn } from "@/lib/utils";
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Command, Search, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useDraggable } from "@/systems/draggable";
 import { useDevtool } from "@/systems/devtool";
 import { HoldRing } from "@/components/ui/hold-ring";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { askStrings } from "@/systems/ask/strings";
 import { HANDOFF, useHomeEditing } from "@/components/ui/home-edit-store";
 import { useCompactViewport } from "./use-compact-viewport";
@@ -37,14 +36,17 @@ const HOLD_SLOP_PX = 10;
 /** Both shapes of this button (the bar and the round FAB) are this round. */
 const FAB_RADIUS = 24;
 
-/**
- * The morph between the home's prompt and the corner's buttons: both buttons
- * move and reshape with this, so they arrive together.
- */
+/** The bar's morph between the home's prompt and the corner's button (its
+ *  `layout` transition); the Ask ball moves on the same curve. */
 const MORPH = { duration: 0.4, ease: [0.32, 0.72, 0, 1] } as const;
 
+/** The Ask ball: one size everywhere, so it only ever moves. */
+const ASK_SIZE = 48;
+/** Between the ball and the bar. */
+const ASK_GAP = 8;
+
 export function FloatingActionButton() {
-  const { isOpen, toggle, openAsk, closeAsk, askPlacement } = useCommand();
+  const { toggle, askPlacement } = useCommand();
   const { summon: summonDevtool } = useDevtool();
   const pathname = usePathname();
   const { locale } = useLocale();
@@ -59,7 +61,6 @@ export function FloatingActionButton() {
   // Below `md` the bar and the grid's edit controls share the bottom of the
   // screen; above it the controls float over the bar.
   const compact = useCompactViewport();
-  const s = askStrings(locale);
 
   // The hold that opens the devtool. Timers and the press live in refs,
   // because a state update mid-press would only interfere with the drag below.
@@ -171,7 +172,7 @@ export function FloatingActionButton() {
       style={{ borderRadius: FAB_RADIUS }}
       animate={{ opacity: yielding ? 0 : 1 }}
       transition={{
-        layout: MORPH,
+        layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
         borderRadius: { duration: 0.4 },
         opacity: yielding
           ? { duration: HANDOFF.out }
@@ -264,102 +265,14 @@ export function FloatingActionButton() {
         "flex pointer-events-none",
         isHomepage ? "justify-center" : "justify-end",
         // Ask at the side covers the trailing edge: away from the home the
-        // buttons step aside to stand beside it.
-        "transition-[padding] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        // buttons step aside to stand beside it (the bar's layout animation
+        // carries it there, the ball follows).
         !isHomepage && askPlacement === "side" && "sm:pr-[calc(440px+1.5rem)]"
       )}
     >
-      {/* The bar and the Ask button: centred as a pair on the home, so the
-          bottom of it stays balanced; in the corner elsewhere, side by side
-          on a desk and stacked on a phone. Both are layout-animated in one
-          group, so a route change morphs them together rather than one
-          moving while the other jumps. */}
-      <LayoutGroup id="command-fab">
-      <div
-        className={cn(
-          "flex gap-2",
-          isHomepage && "justify-center md:w-full md:max-w-xl",
-          stacked && "flex-col-reverse items-end"
-        )}
-      >
-        {/* Away from the home the pill is ⌘K alone; a pause on it names the
-            other way in, ⌘J for Ask. A hover, so never on a phone. */}
-        <Tooltip disabled={isHomepage || isOpen}>
-          <TooltipTrigger render={bar} />
-          <TooltipContent side="top" align="end" sideOffset={8}>
-            {s.askRow}
-            <kbd className="font-mono">⌘J</kbd>
-          </TooltipContent>
-        </Tooltip>
+      {bar}
 
-        {/* The second way in, on every page: straight to Ask, where it was
-            last put (⌘J does the same), and again to close it. On the home a
-            capsule beside the prompt that opens search, its own glass so the
-            prompt still reads as one field; elsewhere a round button beside
-            the pill. Lit while Ask is open. */}
-        <AnimatePresence>
-          {(
-            <motion.button
-              key="ask-chip"
-              type="button"
-              layout
-              onClick={() => (askPlacement ? closeAsk() : openAsk())}
-              aria-label={s.askRow}
-              aria-pressed={askPlacement !== null}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{
-                opacity: yielding ? 0 : 1,
-                x: 0,
-                transition: yielding
-                  ? { duration: HANDOFF.out }
-                  : { duration: HANDOFF.in, delay: HANDOFF.delay },
-              }}
-              exit={{ opacity: 0, x: -10, transition: { duration: 0.2 } }}
-              // Moves and reshapes (capsule ↔ circle) with the bar; the
-              // radius as a style so the morph keeps it round.
-              transition={{ layout: MORPH }}
-              style={{ borderRadius: FAB_RADIUS }}
-              className={cn(
-                "pressable pointer-events-auto select-none",
-                "flex h-12 min-w-12 shrink-0 items-center justify-center gap-2 overflow-hidden",
-                isHomepage && "sm:px-4",
-                "bg-glass backdrop-blur-xl",
-                "border border-border/50 shadow-raised",
-                "text-muted-foreground",
-                "transition-[background-color,border-color,color] duration-200",
-                "hover:bg-glass-hover hover:border-border hover:text-foreground",
-                "active:bg-glass-strong-hover active:border-border active:text-foreground",
-                "aria-pressed:border-border aria-pressed:bg-glass-strong aria-pressed:text-foreground",
-                yielding && "pointer-events-none"
-              )}
-            >
-              <motion.span layout className="flex shrink-0 items-center justify-center">
-                <Sparkles className="h-4 w-4" />
-              </motion.span>
-              {/* The label and ⌘J come and go the way the bar's prompt does:
-                  faded, not cut, while the capsule shrinks to a circle. */}
-              <AnimatePresence mode="popLayout">
-                {isHomepage && (
-                  <motion.span
-                    key="ask-label"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0, transition: { duration: 0.3, delay: 0.1 } }}
-                    exit={{ opacity: 0, x: -10, transition: { duration: 0.2 } }}
-                    className="hidden items-center gap-2 whitespace-nowrap sm:flex"
-                  >
-                    <span className="text-sm">{s.ask}</span>
-                    <kbd className="flex items-center gap-0.5 rounded bg-muted/50 px-2 py-1 font-mono text-xs text-muted-foreground">
-                      <span>⌘</span>
-                      <span>J</span>
-                    </kbd>
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
-          )}
-        </AnimatePresence>
-      </div>
-      </LayoutGroup>
+      <AskBall barRef={buttonRef} isHomepage={isHomepage} stacked={stacked} yielding={yielding} />
     </div>
   );
 
@@ -414,5 +327,100 @@ export function FloatingActionButton() {
     </motion.div>
     {ring}
     </>
+  );
+}
+
+/**
+ * The second way in, on every page: straight to Ask, where it was last put
+ * (⌘J does the same), and again to close it. A ball the size of the corner's
+ * button, lit while Ask is open.
+ *
+ * It stands beside the bar without touching it: outside the bar's flow
+ * (absolute in the same fixed row), placed from the bar's layout box, whose
+ * offsets ignore the transforms of the bar's morph, so this is where the bar
+ * is going rather than where it is drawn. Right of the prompt on the home,
+ * left of the button in a desk's corner, above it on a phone. Its own
+ * component with its own state, so measuring it never re-renders the bar
+ * mid-morph: the bar lays out and animates exactly as it does alone. A route
+ * change only moves the ball (a translate on the bar's curve and time); it
+ * never changes shape.
+ */
+function AskBall({
+  barRef,
+  isHomepage,
+  stacked,
+  yielding,
+}: {
+  barRef: RefObject<HTMLButtonElement | null>;
+  isHomepage: boolean;
+  stacked: boolean;
+  yielding: boolean;
+}) {
+  const { locale } = useLocale();
+  const s = askStrings(locale);
+  const { openAsk, closeAsk, askPlacement } = useCommand();
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+
+  const place = useCallback(() => {
+    const b = barRef.current;
+    if (!b) return;
+    const x = isHomepage
+      ? b.offsetLeft + b.offsetWidth + ASK_GAP
+      : stacked
+        ? b.offsetLeft + b.offsetWidth - ASK_SIZE
+        : b.offsetLeft - ASK_GAP - ASK_SIZE;
+    const y = stacked ? b.offsetTop - ASK_GAP - ASK_SIZE : b.offsetTop;
+    setAt((prev) => (prev && prev.x === x && prev.y === y ? prev : { x, y }));
+  }, [barRef, isHomepage, stacked]);
+
+  // After every render of the row (a route, a breakpoint, the side panel),
+  // and whenever the bar's own box or the window changes size.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- placed from the bar's layout, which exists only after commit
+  useLayoutEffect(() => place());
+  useEffect(() => {
+    const b = barRef.current;
+    if (!b) return;
+    const observer = new ResizeObserver(() => place());
+    observer.observe(b);
+    window.addEventListener("resize", place);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", place);
+    };
+  }, [barRef, place]);
+
+  if (!at) return null;
+  return (
+    <motion.button
+      type="button"
+      onClick={() => (askPlacement ? closeAsk() : openAsk())}
+      aria-label={s.askRow}
+      aria-pressed={askPlacement !== null}
+      title={`${s.askRow} (⌘J)`}
+      initial={{ opacity: 0, x: at.x, y: at.y }}
+      animate={{ opacity: yielding ? 0 : 1, x: at.x, y: at.y }}
+      transition={{
+        x: MORPH,
+        y: MORPH,
+        opacity: yielding
+          ? { duration: HANDOFF.out }
+          : { duration: HANDOFF.in, delay: HANDOFF.delay },
+      }}
+      style={{ width: ASK_SIZE, height: ASK_SIZE, borderRadius: FAB_RADIUS }}
+      className={cn(
+        "pressable pointer-events-auto absolute left-0 top-0 select-none",
+        "flex items-center justify-center",
+        "bg-glass backdrop-blur-xl",
+        "border border-border/50 shadow-raised",
+        "text-muted-foreground",
+        "transition-[background-color,border-color,color] duration-200",
+        "hover:bg-glass-hover hover:border-border hover:text-foreground",
+        "active:bg-glass-strong-hover active:border-border active:text-foreground",
+        "aria-pressed:border-border aria-pressed:bg-glass-strong aria-pressed:text-foreground",
+        yielding && "pointer-events-none"
+      )}
+    >
+      <Sparkles className="h-4 w-4" />
+    </motion.button>
   );
 }
