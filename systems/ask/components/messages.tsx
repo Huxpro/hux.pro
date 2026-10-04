@@ -292,7 +292,15 @@ export function AskMessages({ onNavigate, className, contentClassName }: AskMess
   };
 
   return (
-    <Conversation className={cn("min-h-0 flex-1", className)} onClickCapture={onClickCapture}>
+    <Conversation
+      className={cn("min-h-0 flex-1", className)}
+      onClickCapture={onClickCapture}
+      // Opened at the latest message, not scrolled there from the top: on a
+      // phone the list starting at the top let the drawer take the first drag
+      // (a sheet swipes when its scroller is at the top), and the scroll
+      // animation fought the finger. New words still arrive smoothly.
+      initial="instant"
+    >
       <ConversationContent className={cn("gap-6 px-4 py-4", contentClassName)}>
         {messages.length === 0 ? (
           <ConversationEmptyState className="gap-4 p-4">
