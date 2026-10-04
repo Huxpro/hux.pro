@@ -3006,7 +3006,8 @@ function MusicModule() {
 function WorksModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { worksRef, setWorksRef, worksShelf, setWorksShelf } = useDevtool();
+  const { worksRef, setWorksRef, worksShelf, setWorksShelf, worksFeed, setWorksFeed } =
+    useDevtool();
   const onWorks = usePathname() === "/works";
   const options: { value: WorksRef; label: string; title: string }[] = [
     {
@@ -3056,7 +3057,7 @@ function WorksModule() {
       icon={<GitBranch className="h-4 w-4" />}
       compact
       relevant={onWorks}
-      star={worksRef !== WORKS_REF_DEFAULT || worksShelf ? "saved" : null}
+      star={worksRef !== WORKS_REF_DEFAULT || worksShelf || worksFeed ? "saved" : null}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">{worksRef}</span>
       }
@@ -3086,6 +3087,23 @@ function WorksModule() {
           on={worksShelf}
           onClick={() => setWorksShelf(!worksShelf)}
           label={zh ? "项目架" : "Projects shelf"}
+        />
+      </PanelRow>
+      {/* The feed form (lib/log-view.ts): the grid with its captions written
+          out. On its way out; off, its stop leaves the form control and a
+          `?view=feed` link reads as covers. */}
+      <PanelRow
+        label={zh ? "信息流" : "Feed view"}
+        star={
+          worksFeed ? (
+            <PanelStar source="saved" onReset={() => setWorksFeed(false)} />
+          ) : undefined
+        }
+      >
+        <PanelToggle
+          on={worksFeed}
+          onClick={() => setWorksFeed(!worksFeed)}
+          label={zh ? "信息流" : "Feed view"}
         />
       </PanelRow>
     </DebugSection>

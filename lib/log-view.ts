@@ -24,30 +24,43 @@ import {
 // Form: how much of each commit is printed, as a composition.
 //
 // A row is made of a few independent parts: the title line (always), the
-// description, the attachment object, the notes under it, and whether it
-// peeks on hover. Each part has its own small set of states (`RowForm`), and
-// a *form* is one preset of all of them. So the three readings of the page
-// are compositions of the same atoms, and switching form is resetting every
-// row to a preset rather than four hand-made layouts. A row the reader opens
-// by hand is the same thing at a smaller scale: it takes the `feed` preset
-// for itself (see TimelineCommit).
+// text (the description and my line under it), the attachment object, the
+// notes under it, the author fields, and whether it peeks on hover. Each part has its own small
+// set of states (`RowForm`), and a *form* is one preset of all of them. So
+// the three readings of the page are compositions of the same atoms, and
+// switching form is resetting every row to a preset rather than four
+// hand-made layouts.
 //
 //  - `index`: the title line only. The overview: one row per commit, the
 //    whole career in two screens. Rich media is reachable but not shown
 //    (hover peek on a pointer device, or open the row).
-//  - `covers`: the default: the title, two lines, and the covers at a size
-//    you can recognise a slide or a screenshot at. Still one row per commit,
-//    so the overview survives, but the work is on screen rather than behind
-//    a hover a phone cannot perform.
+//  - `covers`: the default. the title, the text whole, and the covers at
+//    a size you can recognise a slide or a screenshot at. Everything a
+//    reader should know about a commit is above its covers and none of it
+//    waits on a press: the page is read by scrolling. What a press adds is
+//    the long form under the covers (the notes), and a row with none is
+//    not pressable at all.
 //  - `feed`: the grid, at half a column, with its captions written out,
-//    and the prose and notes printed whole to match. All the information is
-//    right there, so nothing in it peeks or opens a sheet: a video plays
-//    where it is, a card goes to its page.
+//    and the notes and the author fields printed too. All the information is right there, so
+//    nothing in it peeks or opens a sheet: a video plays where it is, a
+//    card goes to its page.
 //
-// A form sets all four atoms, but it only *owns* two of them: the picture
-// is the page's (`media`, `peek`), the prose is each row's (`description`,
-// `notes`; see `rowFormFor`). Pressing a row's text relieves or clamps it
-// against whatever the form printed; the picture holds still.
+// What is read and what is asked for is decided once, for every commit,
+// by where it lives in the data: `description` and `commentary` are the
+// text (what someone scrolling should know, short enough to print whole),
+// and `details` (a programme abstract, a thesis's particulars) are the
+// notes. A description that needed a clamp to fit had notes in it.
+//
+// The author fields (`git log --pretty=fuller`: the handle, the role, once
+// the hash too) are neither. They are provenance: the chapter names the
+// company, the title line the team, the handle at the head of a run opens
+// the identity card, the hash is the permalink. So they are decoration
+// on every form but the one that prints everything, and they never gate a
+// press. When they were part of the notes every row was pressable for
+// them, and a press that brought only decoration was most of the presses.
+//
+// A form sets every atom, but the row's press owns one of them, the notes
+// (see `rowFormFor`); the rest are the page's.
 //
 // The page borrowed git's vocabulary for these once (`--oneline`, `--stat`,
 // `-p`); those names still parse, as aliases, so old links keep working.
@@ -61,60 +74,60 @@ export const DEFAULT_FORM: LogForm = "covers";
 
 /** The atoms a row composes. Every form is one setting of each. */
 export interface RowForm {
-  /** What of the description prints: nothing, two lines, or all of it. */
-  description: "none" | "clamp" | "full";
+  /**
+   * The text: the description and the commentary under it. Nothing, or
+   * all of it. There is no clamp: a description is written to be read
+   * whole, and what only elaborates it is `details`, in the notes.
+   */
+  description: "none" | "full";
   /**
    * The attachment object: nothing, the strip of covers, or the grid (the
    * feed's half-column tiles with their captions written out).
    */
   media: "none" | "covers" | "grid";
-  /** The notes under the message: commentary and the author fields. */
+  /** The notes under the picture: the details, the long form. */
   notes: boolean;
+  /** The author fields. Decoration, printed only where everything is (the
+   *  feed), and never brought by a press. */
+  author: boolean;
   /** Whether the row, or its covers, peek on hover. The feed does not: it
    *  has already printed everything a peek would show. */
   peek: boolean;
 }
 
 export const ROW_FORM: Record<LogForm, RowForm> = {
-  index: { description: "none", media: "none", notes: false, peek: true },
-  covers: { description: "clamp", media: "covers", notes: false, peek: true },
-  feed: { description: "full", media: "grid", notes: true, peek: false },
+  index: { description: "none", media: "none", notes: false, author: false, peek: true },
+  covers: { description: "full", media: "covers", notes: false, author: false, peek: true },
+  feed: { description: "full", media: "grid", notes: true, author: true, peek: false },
 };
 
 /**
  * Which atoms the form owns, and which the row's own press owns.
  *
- * The form owns the **picture**: `media` and the `peek` that stands in for
- * it, with one exception (see the end). That is the expensive atom. It
- * decides the page's scroll length and what every frame costs (see "What
- * the page costs to scroll" in docs/system-attachments.md), and it is the
- * one a reader wants to set once for the whole page rather than row by row.
+ * The form owns the **text** and the **picture**. The picture is the
+ * expensive atom: it decides the page's scroll length and what every frame
+ * costs (see "What the page costs to scroll" in docs/system-attachments.md)
+ * And the text is what the page is for: in `covers` it is the thing a
+ * reader scrolls to read, so it is never behind a press.
  *
- * A row's press owns the **prose**: `description`, and the `notes` that are
- * notes on it. That is the cheap atom, and the one whose right answer
- * differs per row: "this description is clamped and I want the rest" is a
- * different want from "show me the work bigger", and until now they were
- * the same gesture.
+ * A row's press owns the **notes**: the long form a reader asks for row by
+ * row: this abstract, that thesis. A press prints them, or folds them away where the form had
+ * already printed them (the feed). The text and the picture hold still,
+ * which is also what lets a row keep its press inside the feed: folding a
+ * commit's notes and opening a caption are different clicks: one changes
+ * the notes, the other opens the attachment.
  *
- * So a press relieves the text, or clamps it back where the form had
- * already printed it whole. The picture does not move. That is also what
- * lets a row keep its press inside the feed: folding a commit and opening
- * a caption used to be the same click with nothing showing the
- * difference. Now they are two different clicks: one changes the prose,
- * the other opens the attachment.
- *
- * The exception is the index, the one form that prints no picture at all.
- * There the title line only counts the attachments (`📎 3`), and the count
- * is a promise the row has to keep: opening an index row brings its covers
- * with its prose, so an open row is the whole commit whatever the form. The
- * other forms already print the picture, so their press still owns the
- * prose alone.
+ * The exception is the index, the one form that prints no text and no
+ * picture. There the title line only counts the attachments (`📎 3`), and
+ * the count is a promise the row has to keep: opening an index row brings
+ * its text and its covers with the notes, so an open row is the whole
+ * commit whatever the form.
  */
-export function rowFormFor(form: LogForm, textRelieved: boolean): RowForm {
+export function rowFormFor(form: LogForm, open: boolean): RowForm {
   const base = ROW_FORM[form];
-  if (!textRelieved) return base;
-  return base.description === "full"
-    ? { ...base, description: "clamp", notes: false }
+  if (!open) return base;
+  return base.notes
+    ? { ...base, notes: false }
     : {
         ...base,
         description: "full",

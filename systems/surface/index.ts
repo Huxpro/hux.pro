@@ -58,6 +58,7 @@ export {
 export { SurfaceWindow, WINDOW_SPRING } from "./window";
 export type { SurfaceWindowProps } from "./window";
 export {
+  SURFACE_EASING,
   SURFACE_TRANSITION_MS,
   useMeasuredBand,
   useSurfaceBandOf,

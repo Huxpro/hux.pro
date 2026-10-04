@@ -79,6 +79,14 @@
     "width": 100,
     "height": 100
   },
+  "vue.lynxjs.org": {
+    "url": "https://vue.lynxjs.org",
+    "file": "/badge-icons/vue.lynxjs.org.png",
+    "source": "manifest",
+    "iconUrl": "https://vue.lynxjs.org/icon-512.png",
+    "width": 512,
+    "height": 512
+  },
   "webassembly.org": {
     "url": "https://webassembly.org",
     "file": "/badge-icons/webassembly.org.ico",

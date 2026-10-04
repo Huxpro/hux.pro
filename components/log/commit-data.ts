@@ -7,6 +7,7 @@
  */
 
 import type { Locale } from "@/lib/i18n";
+import { plainInline } from "@/lib/inline-links";
 import type { Commit, CommitType, Media, StripItem } from "@/lib/log";
 import { commitMark, type BadgeIcon } from "@/components/magic-link/resolve";
 import {
@@ -72,8 +73,20 @@ export interface NormalizedCommit {
    */
   dateSlotOverride?: string;
 
-  // Expandable content
+  // What the description is read with
   commentary?: string;
+
+  // Expandable content
+  /** The long form behind the press (`BaseCommit.details`). */
+  details?: string;
+
+  /**
+   * The same three as authored, inline links and all (lib/inline-links.ts),
+   * for the one surface that renders them: the /works row. The fields above
+   * are the plain words, for everything else that prints a commit (a peek,
+   * a widget, a compact row).
+   */
+  inline: { description: string; commentary?: string; details?: string };
 
   // Media
   /** Rich media (cards / widgets / players / images) shown when expanded. */
@@ -153,8 +166,14 @@ export function normalizeCommit(
 
   const title = localize(commit.title, locale);
   const name = localizeOptional(commit.name, locale);
-  const description = localize(commit.description, locale);
-  const commentary = localizeOptional(commit.commentary, locale);
+  const inline = {
+    description: localize(commit.description, locale),
+    commentary: localizeOptional(commit.commentary, locale),
+    details: localizeOptional(commit.details, locale),
+  };
+  const description = plainInline(inline.description);
+  const commentary = plainInline(inline.commentary);
+  const details = plainInline(inline.details);
   const date = formatCommitDate(commit, locale);
   const hash = computeCommitHash(commit.id);
   const thumbnail = deriveThumbnail(media);
@@ -201,6 +220,8 @@ export function normalizeCommit(
     present: commit.present,
     foldedTitle,
     name,
+    details,
+    inline,
   };
 
   // Type-specific extraction
