@@ -339,6 +339,7 @@ export function CommitEditor({
       title: commit.title,
       description: commit.description,
       commentary: commit.commentary,
+      details: commit.details,
       tags: commit.tags,
       listed: commit.listed,
       present: commit.present,
@@ -660,6 +661,32 @@ function FormFields({
           onUpdate({
             commentary: v || commit.commentary?.en
               ? { en: commit.commentary?.en ?? "", zh: v }
+              : undefined,
+          })
+        }
+        multiline
+      />
+
+      <SectionLabel>{S.details}</SectionLabel>
+      <Field
+        label="EN"
+        value={commit.details?.en ?? ""}
+        onChange={(v) =>
+          onUpdate({
+            details: v || commit.details?.zh
+              ? { en: v, zh: commit.details?.zh ?? "" }
+              : undefined,
+          })
+        }
+        multiline
+      />
+      <Field
+        label="ZH"
+        value={commit.details?.zh ?? ""}
+        onChange={(v) =>
+          onUpdate({
+            details: v || commit.details?.en
+              ? { en: commit.details?.en ?? "", zh: v }
               : undefined,
           })
         }

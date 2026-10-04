@@ -231,19 +231,84 @@ where it opens.
 
 How much of a commit the page prints is one of three *forms*, and a form
 is a preset of a few independent atoms rather than a layout of its own
-(`ROW_FORM`, `lib/log-view.ts`): what of the description prints (`none` ·
-`clamp` · `full`), which attachment object (`none` · `covers` · `grid`),
-whether the notes print (commentary, the author fields, the link labels),
-and whether anything peeks on hover. The toolbar's control resets every
-row to a preset; a row the reader opens by hand takes the `feed` preset
-for itself. Old links with git's names (`oneline`, `stat`, `patch`) still
-parse, as aliases.
+(`ROW_FORM`, `lib/log-view.ts`): whether the text prints (the description
+and the commentary, `none` · `full`; there is no clamp), which attachment
+object (`none` · `covers` · `grid`), whether the notes print (the
+`details`), whether the author fields print, and whether anything peeks on
+hover. The toolbar's control resets every row to a preset; a row's own
+press flips its notes (and in the index, where there is no text or picture
+to keep still, brings those too). A row a press would add nothing to has
+no press: no wash, no pointer, no `role="button"`. Old links with git's
+names (`oneline`, `stat`, `patch`) still parse, as aliases.
 
-| form | description | media | notes | peek | the reading |
-|---|---|---|---|---|---|
-| `index` | none | none | — | ✓ | the overview: one line per commit, the career in two screens |
-| `covers` (default) | two lines | `covers`: 112px tiles, glyph chip | — | ✓ | the work on screen, still one row per commit |
-| `feed` | all of it | `grid`: half-column tiles, captions written | ✓ | — | everything, with nothing behind a hover or a sheet. Rows do not fold; leave via the toolbar. |
+| form | text | media | notes | author | peek | the reading |
+|---|---|---|---|---|---|---|
+| `index` | none | none | — | — | ✓ | the overview: one line per commit, the career in two screens |
+| `covers` (default) | all of it | `covers`: 112px tiles, glyph chip | press | — | ✓ | the work on screen, read by scrolling: nothing a reader should know waits on a press |
+| `feed` | all of it | `grid`: half-column tiles, captions written | ✓ | ✓ | — | everything, with nothing behind a hover or a sheet. A press folds a row's notes. |
+
+**What is read, and what is asked for.** The split is made once, in the
+data, for every commit. Above the covers is what someone scrolling should
+know: the `description` (what the work is, my part in it, why it matters,
+complete in itself and short enough to print whole) and the `commentary`,
+my own line on it, under it in the aside's serif. Under the covers, behind
+the row's press, is the long form: `details` (a talk's programme abstract
+as the conference published it, a thesis's particulars, a source quoted
+whole, an archive note). A description that needs a clamp to fit has
+`details` in it; a fact the reader needs to judge the work does not go in
+`details`.
+
+**Names link in place.** The three fields may link what they name,
+`[words](target)` (lib/inline-links.ts): a URL or a site path, a commit
+(`commit:lynx-framework`), one of its media (`commit:wasmcert#1`), or a role
+(`role:meta-engineer`). The row renders each as a magic link (`InlineText`),
+so a page a sentence names peeks its card and opens where a cover's page
+does, and a cover that only stood for that page can leave the strip. Every
+other surface that prints a commit (a peek, the shelf, a widget, a compact
+row) gets the plain words. The snapshot crawls the pages linked this way.
+
+**Decoration never gates a press.** The `--pretty=fuller` fields are
+provenance: the chapter names the era and the title line the team. When
+they were part of the notes every row was pressable for them, and most
+presses brought nothing else. Now nothing of them prints at rest (not even
+the `@handle` that used to sign a single cover), and they come when asked
+for as **the signature** (TimelineCommit): `commit` and `Author:`, the same
+two everywhere. There is no `Role:`. `Author:` opens the identity card,
+which carries the role, its tenure, team and place, and a role line on
+every row read `Architect @ ByteDance` eleven times down the Lynx years,
+restating the company the handle and the team already name.
+
+- **On a desk** the hash already hangs in the margin. Hovering or focusing
+  a row (after a 140ms beat of intent, so a pointer sweeping down the page
+  does not set every margin flickering) lights the hash a rung and drops
+  `<author>` from it (`MarginFields`), 12px on the muted rung, right-aligned
+  to the hash's edge, 6px under it. Nothing in the column moves. It is the
+  identity card's trigger.
+- **Anywhere, a tap** toggles it. It is an easter egg, so nothing announces
+  it: a tap on the row's **mark** in the gutter, its **team** (`Lynx @
+  ByteDance`, `M.S. Capstone @ RIT`, the plain-text venue a finger goes
+  for; a venue that is a link keeps its link), or its **date**, the
+  commit's own timestamp. None of them changes how it looks, and the row
+  does not look pressable for it. Below `lg`, where there is no margin, the
+  row opens to the labelled stack, the hash as its `commit` field; on a
+  desk the tap pins the margin's. An index line is too short for the
+  margin, so there the tap opens the labelled stack too.
+- **Motion** (globals.css, "The signature"): every line is revealed by a
+  clip sweeping its own box, never a transform (a transformed layer
+  re-rasterizes 12px mono and it shimmers). On a desk the author drops from
+  the hash. On a phone the row opens to the stack's height (grid rows `0fr`
+  → `1fr`), the mark nods, and the fields print left to right, 70ms apart,
+  each value a beat after its label, the way `git log` prints them. The
+  metadata line it came from stays lit while the signature is out. Leaving
+  is one quick fade. Reduced motion keeps the fades only.
+
+The feed prints the fields outright, so it has no egg. The row's address
+is the hash, and only the hash: the gutter's on a desk, the stack's
+`commit` field on a phone. The date was the phone's permalink for a while,
+when the stack had lost its `commit` field; a date that scrolled the page
+when tapped surprised more than it served, and it is plain text again.
+Asides are the other half of the same rule at row scale: a whole commit
+that is secondary, folded to its quiet line until pressed.
 
 ### The title line
 
@@ -251,10 +316,23 @@ Every fact on a row has one place, in every form and every state, and
 opening a row only adds below the title line. Nothing above the
 description moves. The line is `hash · mark · title [· 中文] ··· [📎 n]
 venue date`: the venue (a talk's conference, a piece of press's platform, a
-project's team, printed sparsely) sits on the title line in a column
-before the date, and the right of the line is packed to the edge, so when
-an open row's covers replace the count the venue and the date stay where
-they were. Below `@md` the line has no room for a column, so the same
+project's team) sits on the title line in a column before the date, and
+the right of the line is packed to the edge, so when an open row's covers
+replace the count the venue and the date stay where they were. A team is
+printed sparsely, and its `@ Company` once per run of one company's
+projects: `React Core team @ Meta`, then `PLR`.
+
+A venue with a page of its own (a talk's conference) is a **magic link**
+to it, never a bare way out. Under a pointer it peeks the page's card, and
+a press goes where a cover's page goes: the drawer on a phone, the in-app
+browser on a desk, a tab only for a page that refuses to be framed. It used
+to leave for a new tab with a `↗`, the one door the title line had of its
+own. Even a conference's front page is worth keeping, but behind its card
+rather than a jump. Its card is in the snapshot (`venueHrefs`,
+scripts/og-snapshot.ts); a page that cannot be crawled has no peek and
+keeps its drawer.
+
+Below `@md` the line has no room for a column, so the same
 three become an *eyebrow*: one mono line over the title, a step (6px) off
 it, the way a kicker sits over a headline. The venue is on the left, and
 `📎 n` and the date are packed to the right edge. Nothing is cut to fit, and
@@ -266,10 +344,9 @@ form's too (`rowHeading` where the form prints a message, `rowTitle` in the
 index), never the press's: a title that thickened as its row opened was the
 one thing on the line that moved. There is no meta line: with nothing between
 a title and its sentence, the description sits one rung up (`TYPE.caption`,
-muted) and reads as the row's second tier. The `@handle` signs the foot of
-a single cover; a row with more, or none, prints no handle while folded:
-the chapter names the company, and the author fields name it in full once
-the row is open.
+muted) and reads as the row's second tier. Nothing signs the row at rest:
+the handle is the signature's (above), asked for by hover or by a tap on
+the mark, the team or the date.
 
 ### The attachment object
 
@@ -289,8 +366,7 @@ viewport's), so a cover is only ever cut by the screen: on a phone the
 strip reaches the gutter's edge and scrolls; on a desk it runs into the
 margin, where three covers simply fit. A row cut mid-page reads as a
 mistake, the same row running under the edge reads as a rail there is
-more of. The handle signs the strip's line only when a single cover
-leaves it the room on any viewport; otherwise it stays on the meta line.
+more of. The strip's line is the covers' alone; nothing signs it.
 
 **The grid** (`AttachmentGrid`, `feed`) takes the row's own strip items:
 the timeline hands it `stripItems` directly, and what has no cover (a live
@@ -390,9 +466,8 @@ And the rest, each small: covers decode off the main thread
 (`decoding="async"`); the sticky era pill's frosted blur is `sm:` and up;
 nothing that only sends something to the stage subscribes to the ticking
 theater context (`useOptionalTheaterStage`); no peek tree is built where
-no pointer can hover (the row's, the strip's, the handle's); one handle
-per row rather than a second, invisible one; a connector observes its
-container alone. The trace in the PR shows where the rest goes: the
+no pointer can hover (the row's, the strip's, the signature's); a connector
+observes its container alone. The trace in the PR shows where the rest goes: the
 wallpaper's canvas, which every page pays alike.
 
 ## The lab

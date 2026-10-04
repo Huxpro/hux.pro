@@ -83,7 +83,7 @@ a mark needs nothing else:
 
 | Where | The mark |
 |---|---|
-| `/works` row (`TimelineCommit`) | the `<handle>` on the meta line or at the foot of the contact strip; **the row itself, for a role**: its row peek is the identity (`buildCommitPreview`), and a tap opens the sheet |
+| `/works` row (`TimelineCommit`) | the signature: `<handle>` under the hash on hover (desk), or the `commit` / `Author:` stack a tap on the row's mark, team or date opens (phone), with no `Role:` (the card carries it); **the row itself, for a role**: its row peek is the identity (`buildCommitPreview`), and a tap opens the sheet |
 | The author block (`AuthorFields`, shared by `/works` and the home status widget) | the `Author:` and `Role:` lines **together**, as one region (`IdentityHover`'s `block`): they stand for one identity, so the whole block lights on hover and under the finger that opens the sheet, rather than one line of it |
 
 Outside the provider the marks print as plain text, as they did.
