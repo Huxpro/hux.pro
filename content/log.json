@@ -1176,10 +1176,6 @@
           "present": "card"
         }
       ],
-      "commentary": {
-        "en": "When things actually work, you let the demos do the talking.",
-        "zh": "真正做通了，就让 Demo 自己说话。"
-      },
       "details": {
         "en": "A Vue 3 custom renderer for Lynx, built with AI over two weeks of evenings and weekends. The whole Vue runtime runs on Lynx's background thread and ships every DOM mutation to the main thread as one batch per tick, so Vue apps render native UI on iOS, Android, and the web. 852 of Vue's 949 upstream tests pass through that dual threaded pipeline.",
         "zh": "Lynx 的 Vue 3 自定义渲染器，用 AI 在两周的晚上和周末里做出来。整个 Vue 运行时跑在 Lynx 的后台线程，每个 tick 把 DOM 变更打包成一批送到主线程，让 Vue 应用在 iOS、Android 和 Web 上渲染原生 UI。Vue 上游 949 个测试中，有 852 个通过了这条双线程管线。"
