@@ -4,12 +4,14 @@ import { useChat } from "@ai-sdk/react";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import {
   dropAskConversation,
+  editAskMessage,
   getAskChat,
   getAskRunning,
   getAskServerSettings,
   getAskSettings,
   newAskChat,
   openAskConversation,
+  rewindAskChat,
   setAskSettings,
   subscribeAskChat,
   subscribeAskRunning,
@@ -51,6 +53,10 @@ export function useAskSession() {
     send,
     newChat: newAskChat,
     openConversation: openAskConversation,
+    /** Drop everything after this message. */
+    rewind: rewindAskChat,
+    /** Replace this question and ask again; what came after it goes. */
+    edit: editAskMessage,
   };
 }
 

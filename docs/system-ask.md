@@ -165,8 +165,15 @@ A platform is the surfaces' `sm`: under 640px, a phone.
   to one puts its pickers back, and changing them changes that conversation.
   A new conversation starts on the last ones picked (`lib/prefs.ts`). The
   route accepts only the listed models and those three levels.
-- **Message actions.** Copy on every message (the Markdown of an answer),
-  Regenerate on the last answer.
+- **Message actions.** On a question: Copy, and Edit (ask it again,
+  changed: the AI SDK's `sendMessage` with the replaced message's id drops
+  everything after it). On an answer: Copy (its Markdown), Regenerate on the
+  last one, and Rewind to here on an earlier one (two presses: the first asks
+  "Drop what follows?"). Edit and rewind wait while a reply is written, and a
+  rewound conversation is saved as it now is. A question's actions sit right
+  beside its bubble and show on demand: a hover with a mouse, a tap or a long
+  press on a touch screen (a tap elsewhere puts them away). Escape cancels an edit without
+  leaving Ask (the palette and the panel skip an Escape already handled).
 - **Voice.** The microphone sits beside send, at the trailing end, as Claude
   and ChatGPT have it; the pickers lead. On a touch screen it lets the field
   go, so the keyboard slides down while it listens. The glow comes up a beat

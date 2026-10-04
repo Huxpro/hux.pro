@@ -28,7 +28,7 @@ import {
 } from "react";
 import { Streamdown } from "streamdown";
 
-export type MessageProps = HTMLAttributes<HTMLDivElement> & {
+export type MessageProps = ComponentProps<"div"> & {
   from: UIMessage["role"];
 };
 
