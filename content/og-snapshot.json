@@ -35,6 +35,12 @@
     "image": "/img/post-bg-taobao-hybrid.jpg",
     "siteName": "Hux.Pro"
   },
+  "https://conf.reactjs.org/": {
+    "title": " React Conf 2021",
+    "description": "React Conf 2021",
+    "image": "https://conf.reactjs.org/twitter-card.png",
+    "siteName": "conf.reactjs.org"
+  },
   "https://developer.apple.com/design/human-interface-guidelines": {
     "title": "Human Interface Guidelines | Apple Developer Documentation",
     "description": "The HIG contains guidance and best practices that can help you design a great experience for any Apple platform.",
@@ -61,10 +67,38 @@
     "siteName": "GitHub",
     "frame": "deny"
   },
+  "https://github.com/Huxpro/js-module-7day": {
+    "title": "GitHub - Huxpro/js-module-7day: Slides: JavaScript Modularization Journey",
+    "description": "Slides: JavaScript Modularization Journey. Contribute to Huxpro/js-module-7day development by creating an account on GitHub.",
+    "image": "https://opengraph.githubassets.com/eba86befc428e2e82a3f6f141d8d4a4e94023e4a7e97e18d6f4dbb80e4fb648d/Huxpro/js-module-7day",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
   "https://github.com/Huxpro/vue-lynx": {
     "title": "GitHub - Huxpro/vue-lynx: Vue on Lynx",
     "description": "Vue on Lynx. Contribute to Huxpro/vue-lynx development by creating an account on GitHub.",
     "image": "https://opengraph.githubassets.com/6cffc35ab7682721465f9b09b3f67ac41ec5c9d90e897e1b04e2251ddab8319e/Huxpro/vue-lynx",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
+  "https://github.com/WasmCert/WasmCert-Coq": {
+    "title": "GitHub - WasmCert/WasmCert-Coq: A mechanisation of Wasm in Rocq",
+    "description": "A mechanisation of Wasm in Rocq. Contribute to WasmCert/WasmCert-Coq development by creating an account on GitHub.",
+    "image": "https://opengraph.githubassets.com/c8332bf244e532796d22d29c193163184462ded5534625223f69022190fcb174/WasmCert/WasmCert-Coq",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
+  "https://github.com/WebAssembly/spec/pull/1093": {
+    "title": "[spec] fix valid tableinst and meminst premises by Huxpro · Pull Request #1093 · WebAssembly/spec",
+    "description": "Background: see WebAssembly/multi-value#29\nThis is the (1): the minimal and  straightforward fix",
+    "image": "https://opengraph.githubassets.com/71899ba82baf09980fb20d82c029842bb3e5fecf3650075870deb778121425ee/WebAssembly/spec/pull/1093",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
+  "https://github.com/d2forum/19th": {
+    "title": "GitHub - d2forum/19th: 第19届D2终端技术大会「热·AI」",
+    "description": "第19届D2终端技术大会「热·AI」. Contribute to d2forum/19th development by creating an account on GitHub.",
+    "image": "https://opengraph.githubassets.com/6915baddcfb57a058f9ec21c52aff7d2c1a2d8b80aa1a8b659cc7bc44ded0756/d2forum/19th",
     "siteName": "GitHub",
     "frame": "deny"
   },
@@ -74,15 +108,16 @@
     "siteName": "GitHub",
     "frame": "deny"
   },
-  "https://github.com/facebook/react": {
-    "title": "GitHub - facebook/react",
-    "image": "https://opengraph.githubassets.com/1/facebook/react",
-    "siteName": "GitHub",
-    "frame": "deny"
-  },
   "https://github.com/lynx-family/lynx": {
     "title": "GitHub - lynx-family/lynx",
     "image": "https://opengraph.githubassets.com/1/lynx-family/lynx",
+    "siteName": "GitHub",
+    "frame": "deny"
+  },
+  "https://github.com/lynx-family/lynx-ui": {
+    "title": "GitHub - lynx-family/lynx-ui: Out-of-the-box Lynx Component Library",
+    "description": "Out-of-the-box Lynx Component Library. Contribute to lynx-family/lynx-ui development by creating an account on GitHub.",
+    "image": "https://opengraph.githubassets.com/27afedf4676170dfdae04f6a3d1b51aa8ddbdf3093350b2edd1fb984d096f7f0/lynx-family/lynx-ui",
     "siteName": "GitHub",
     "frame": "deny"
   },
@@ -104,7 +139,25 @@
     "image": "https://gn-portal-og-images.vercel.app/panel-discussion-3239?v3-1765261277756",
     "siteName": "gitnation.com"
   },
+  "https://huxpro.github.io/2015/07/09/js-module-7day/": {
+    "title": "JavaScript 模块化七日谈 - 黄玄的博客 | Hux Blog",
+    "description": "这里是 @Hux黄玄 的个人博客，与你一起发现更大的世界 | 要做一个有 swag 的程序员",
+    "image": "https://huxpro.github.iohttps://github.com/Huxpro.png",
+    "siteName": "黄玄的博客 | Hux Blog"
+  },
+  "https://huxpro.github.io/2015/12/28/css-sucks-2015/": {
+    "title": "都 2015 年了，CSS 怎么还是这么糟糕 - 黄玄的博客 | Hux Blog",
+    "description": "这里是 @Hux黄玄 的个人博客，与你一起发现更大的世界 | 要做一个有 swag 的程序员",
+    "image": "https://huxpro.github.iohttps://github.com/Huxpro.png",
+    "siteName": "黄玄的博客 | Hux Blog"
+  },
   "https://lynxjs.org": {
+    "title": "Lynx",
+    "description": "Lynx Fundamentals",
+    "image": "https://lynxjs.org/og/covers/en/guide.png",
+    "siteName": "Lynx"
+  },
+  "https://lynxjs.org/": {
     "title": "Lynx",
     "description": "Lynx Fundamentals",
     "image": "https://lynxjs.org/og/covers/en/guide.png",
@@ -112,7 +165,7 @@
   },
   "https://lynxjs.org/next/blog/lynx-unlock-native-for-more": {
     "title": "Lynx: Unlock Native for More - Lynx",
-    "description": "Today, we",
+    "description": "Today, we're excited to introduce Lynx, a family of technologies empowering developers to use their existing web skills to create truly native UIs for both mobile and web from a single codebase...",
     "image": "https://lynxjs.org/next/og/blog/en/lynx-unlock-native-for-more.png",
     "siteName": "Lynx"
   },
@@ -122,7 +175,20 @@
     "image": "https://lynxjs.org/next/og/blog/zh/lynx-unlock-native-for-more.png",
     "siteName": "Lynx"
   },
+  "https://lynxjs.org/react/": {
+    "title": "Lynx",
+    "description": "React to Lynx",
+    "image": "https://lynxjs.org/og/covers/en/react.png",
+    "siteName": "Lynx"
+  },
   "https://medium.com/elemefe/upgrading-ele-me-to-progressive-web-app-2a446832e509": {
+    "frame": "deny"
+  },
+  "https://mp.weixin.qq.com/s/icNHRRm6u1Dh9gx-9nIS6Q": {
+    "title": "SEE Conf 2025：开启体验科技的新十年",
+    "description": "11 月 22 日，相约 SEE Conf 2025！",
+    "image": "https://mmbiz.qpic.cn/mmbiz_jpg/M7OtEw9eDKFAFPdTFoqq29DkodS3adKSaL1WDyrjrY6smNdnIhql6FavaO0X1B3joicROqO3AnRibeicwZf4tic8Tg/0?wx_fmt=jpeg",
+    "siteName": "Weixin Official Accounts Platform",
     "frame": "deny"
   },
   "https://os.ryo.lu": {
@@ -130,6 +196,12 @@
     "description": "An AI OS experience, made with Cursor",
     "image": "https://os.ryo.lu/icons/mac-512.png",
     "siteName": "ryOS"
+  },
+  "https://paris2026.gosim.org": {
+    "title": "GOSIM Paris 2026",
+    "description": "GOSIM Paris 2026 — The Agentic AI Convergence. May 4-6, 2026 at STATION F, Paris.",
+    "image": "https://paris2026.gosim.org/images/thumbnail.jpg",
+    "siteName": "GOSIM Paris 2026"
   },
   "https://react.dev": {
     "title": "React",
@@ -149,15 +221,35 @@
     "image": "https://react.dev/images/og/blog-2022-06-15-react-labs-what-we-have-been-working-on-june-2022.png",
     "siteName": "react.dev"
   },
+  "https://react.dev/blog/2025/10/07/react-compiler-1": {
+    "title": "React Compiler v1.0 – React",
+    "description": "The library for web and native user interfaces",
+    "image": "https://react.dev/images/og/blog-2025-10-07-react-compiler-1.png",
+    "siteName": "react.dev"
+  },
   "https://react.dev/learn/react-compiler": {
     "title": "React Compiler – React",
     "description": "The library for web and native user interfaces",
     "image": "https://react.dev/images/og/learn-react-compiler.png",
     "siteName": "react.dev"
   },
+  "https://reactadvanced.com/": {
+    "title": "React Conference In London, October 23 & 26, 2026",
+    "description": "The main React Conference in the UK, running every year in London. Focused on Advanced React topics from the React Core team, framework authors and case studies from top engineers.",
+    "image": "https://reactadvanced.com/img/ogImage.png?v=2",
+    "siteName": "reactadvanced.com",
+    "frame": "deny"
+  },
   "https://reactnative.dev/blog/2021/10/26/toward-hermes-being-the-default": {
     "title": "Toward Hermes being the Default · React Native",
     "siteName": "reactnative.dev"
+  },
+  "https://reactsummit.com/": {
+    "title": "React Summit – The Biggest React Conference Worldwide",
+    "description": "React Summit is an in-person and remote first (hybrid) conference of all things React, gathering OSS authors, top trainers and speakers, as well as web engineers across the globe to meet in Amsterdam and online.",
+    "image": "https://reactsummit.com/img/ogImage.png?v=2",
+    "siteName": "reactsummit.com",
+    "frame": "deny"
   },
   "https://reasonml.github.io/": {
     "title": "Reason · Reason lets you write simple, fast and quality type safe code while leveraging both the JavaScript & OCaml ecosystems.",
@@ -251,6 +343,13 @@
     "frame": "deny"
   },
   "https://www.wearedevelopers.com/videos/1445-lynx-native-for-more": {
+    "frame": "deny"
+  },
+  "https://www.wearedevelopers.com/world-congress/": {
+    "title": "WeAreDevelopers World Congress · 14-16 July · Berlin ·  Europe",
+    "description": "The world's largest event for developers, AI builders, and tech leaders. Join 15,000 attendees and 500+ speakers to learn what it takes to build great software in the age of AI.",
+    "image": "https://imagedelivery.net/p2Gwf4g3bNtyXUmnEu9Kdw/main-stage/main-stage-panorama/og?format=auto",
+    "siteName": "wearedevelopers.com",
     "frame": "deny"
   }
 }
