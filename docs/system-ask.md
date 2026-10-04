@@ -95,9 +95,12 @@ What follows is the desk's preset; every line of it is a setting (below).
   the Ask button brings the same conversation back. Asking from search puts
   the palette away and opens the drawer. A link followed in it closes it, so
   the page shows.
-- **Entries.** The Ask button sits beside the search prompt on the home, and
-  beside the ⌘K pill on every other page (`fab.tsx`), lit while Ask is open;
-  away from the home it steps aside for the side panel.
+- **Entries.** The Ask button is a ball beside the search bar on every page
+  (`fab.tsx`, `AskBall`), lit while Ask is open: right of the prompt on the
+  home, left of the ⌘K button in a desk's corner, above it on a phone. It is
+  outside the bar's flow and placed from the bar's layout box, so the bar
+  morphs exactly as it does alone; a route change only slides the ball, on
+  the bar's curve. Away from the home both step aside for the side panel.
 
 ### Settings, and a preset per platform
 
