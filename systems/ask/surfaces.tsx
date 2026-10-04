@@ -1,6 +1,7 @@
 "use client";
 
 import { followHref } from "@/lib/follow-href";
+import { useOptionalAttachments } from "@/systems/attachments";
 import { useCommand, type AskPlacement } from "@/systems/command";
 import { detentHeight, SurfacePanel, SurfaceSheet } from "@/systems/surface";
 import type { Drawer } from "@base-ui/react/drawer";
@@ -53,6 +54,10 @@ const CONTENT_ATTRIBUTE = "data-ask-panel";
 
 export function AskSide() {
   const { askPlacement, askStarted, closeAsk, minimizeAsk, askRequest } = useCommand();
+  // The lightbox above the panel (a photo opened from a card): Escape is
+  // its. (The theater's stage marks its Escape handled, which the check
+  // below already skips.)
+  const lightbox = useOptionalAttachments()?.lightboxOpen ?? false;
   const router = useTransitionRouter();
   const pathname = usePathname();
   const shape = useAskPlatform() === "desk" ? "panel" : "sheet";
@@ -68,10 +73,12 @@ export function AskSide() {
       // page, or in the palette over it, it belongs there: a panel that left
       // with every Escape could not stay while you read.
       // An Escape already handled inside (the message editor, cancelling)
-      // is not the panel's either.
+      // is not the panel's either (the theater's stage closing), nor one
+      // while the lightbox is up over it.
       if (
         details?.reason === "escape-key" &&
         (details.event.defaultPrevented ||
+          lightbox ||
           !(details.event.target as Element | null)?.closest?.(`[${CONTENT_ATTRIBUTE}]`))
       ) {
         details.cancel();
@@ -79,7 +86,7 @@ export function AskSide() {
       }
       closeAsk();
     },
-    [closeAsk],
+    [closeAsk, lightbox],
   );
 
   const onNavigate = useCallback(

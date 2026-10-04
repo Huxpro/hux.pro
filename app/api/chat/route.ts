@@ -150,7 +150,8 @@ export async function POST(req: Request) {
 // The stand-in: no key configured (a fresh checkout, a preview without
 // secrets). It plays one round of the real loop, so the page can be built and
 // tested without a model: the first turn asks the page to search for what was
-// typed; once the result is back, it answers with the titles it found.
+// typed; once the result is back, it shows what it found as cards, then
+// answers with the titles.
 // -----------------------------------------------------------------------------
 
 function standIn(messages: AskUIMessage[]) {
@@ -158,6 +159,7 @@ function standIn(messages: AskUIMessage[]) {
   const toolPart = last.role === "assistant"
     ? last.parts.findLast((p) => p.type === "tool-search_site")
     : undefined;
+  const presented = last.role === "assistant" && last.parts.some((p) => p.type === "tool-present");
 
   return createUIMessageStreamResponse({
     stream: createUIMessageStream<AskUIMessage>({
@@ -179,6 +181,14 @@ function standIn(messages: AskUIMessage[]) {
             toolCallId: `stand-in-${Date.now()}`,
             toolName: "search_site",
             input: { query: asked, limit: 5 },
+          });
+        } else if (!presented && toolPart.state === "output-available" && toolPart.output.length) {
+          // Then shows the docs it found as cards, as a model would.
+          writer.write({
+            type: "tool-input-available",
+            toolCallId: `stand-in-present-${Date.now()}`,
+            toolName: "present",
+            input: { ids: [...new Set(toolPart.output.map((h) => h.doc))].slice(0, 3) },
           });
         } else {
           const output =

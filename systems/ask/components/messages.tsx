@@ -23,13 +23,15 @@ import {
 } from "@/components/ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { Source, Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
 import { Suggestion } from "@/components/ai-elements/suggestion";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { BookOpen, Check, Copy, FileText, Pencil, RefreshCw, Search, Undo2 } from "lucide-react";
+import { Check, Copy, FileText, Pencil, RefreshCw, Search, Undo2 } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
+import type { Locale } from "@/lib/i18n";
+import type { AskDoc } from "../lib/corpus";
 import { textOf, type AskUIMessage } from "../lib/tools";
+import { AskCards, docForHref, useAskDocs } from "./cards";
 import { useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
 
@@ -48,8 +50,9 @@ import { askStrings } from "../strings";
 //
 // Built from AI Elements, as the registry ships them, restyled only through
 // the site's tokens. What is ours is the arrangement: each run of tool calls
-// as one chain of thought, the pages a turn used as sources under its
-// answer, and links that stay on the site (`onNavigate`).
+// as one chain of thought, what the agent presents as cards where it
+// presented them, the pages its answer used as cards under it (./cards.tsx),
+// and links that stay on the site (`onNavigate`).
 // =============================================================================
 
 type Part = AskUIMessage["parts"][number];
@@ -59,7 +62,8 @@ type ToolPart = Extract<Part, { type: "tool-search_site" | "tool-read" }>;
 type Block =
   | { kind: "text"; key: string; text: string }
   | { kind: "reasoning"; key: string; text: string; streaming: boolean }
-  | { kind: "tools"; key: string; parts: ToolPart[] };
+  | { kind: "tools"; key: string; parts: ToolPart[] }
+  | { kind: "cards"; key: string; ids: readonly string[] };
 
 function blocksOf(message: AskUIMessage, live: boolean): Block[] {
   const blocks: Block[] = [];
@@ -75,26 +79,54 @@ function blocksOf(message: AskUIMessage, live: boolean): Block[] {
       const last = blocks.at(-1);
       if (last?.kind === "tools") last.parts.push(part);
       else blocks.push({ kind: "tools", key, parts: [part] });
+    } else if (part.type === "tool-present" && part.input?.ids?.length) {
+      // Drawn as soon as the ids are in; once the page has checked them,
+      // only the ones that exist.
+      const out = part.state === "output-available" ? part.output : null;
+      if (out && "error" in out) return;
+      blocks.push({
+        kind: "cards",
+        key,
+        ids: (out ? out.shown : part.input.ids).filter((id): id is string => typeof id === "string"),
+      });
     }
   });
   return blocks;
 }
 
-/** The pages a turn read, and the ones its answer links to. */
-function sourcesOf(message: AskUIMessage): { href: string; title: string }[] {
-  const answer = textOf(message);
-  const seen = new Map<string, string>();
+/** The docs for these ids (a passage id stands for its doc), once each. */
+function docsFor(docs: Map<string, AskDoc>, ids: readonly string[]): AskDoc[] {
+  const out = new Map<string, AskDoc>();
+  for (const id of ids) {
+    const doc = docs.get(id.split("#")[0]);
+    if (doc) out.set(doc.id, doc);
+  }
+  return [...out.values()];
+}
+
+/** A doc id without its language: the post or talk itself. */
+function thingOf(id: string) {
+  return id.replace(/:(en|zh)$/, "");
+}
+
+/** What a turn used, as docs: the ones its answer links to, then the ones
+ *  it read, less what it already presented. */
+function sourcesOf(message: AskUIMessage, docs: Map<string, AskDoc>, locale: Locale): AskDoc[] {
+  const out = new Map<string, AskDoc>();
+  const presented = new Set<string>();
+  for (const m of textOf(message).matchAll(/\]\((\/[^)\s]*)\)/g)) {
+    const doc = docForHref(docs, m[1], locale);
+    if (doc) out.set(doc.id, doc);
+  }
   for (const part of message.parts) {
-    if (part.type === "tool-read" && part.state === "output-available") {
-      const out = part.output;
-      if ("href" in out) seen.set(out.href, out.title);
-    } else if (part.type === "tool-search_site" && part.state === "output-available") {
-      for (const hit of part.output) {
-        if (answer.includes(`](${hit.href}`)) seen.set(hit.href, hit.title);
-      }
+    if (part.type === "tool-read" && part.state === "output-available" && "doc" in part.output) {
+      const doc = docs.get(part.output.doc);
+      if (doc && !out.has(doc.id)) out.set(doc.id, doc);
+    } else if (part.type === "tool-present" && part.state === "output-available" && "shown" in part.output) {
+      part.output.shown.forEach((id) => presented.add(thingOf(id)));
     }
   }
-  return [...seen].map(([href, title]) => ({ href, title }));
+  return [...out.values()].filter((d) => !presented.has(thingOf(d.id)));
 }
 
 function ToolSteps({ parts, live }: { parts: ToolPart[]; live: boolean }) {
@@ -233,7 +265,8 @@ function AssistantMessage({
 }) {
   const { locale } = useLocale();
   const s = askStrings(locale);
-  const sources = live ? [] : sourcesOf(message);
+  const docs = useAskDocs();
+  const sources = live || !docs ? [] : sourcesOf(message, docs, locale);
   return (
     <Message from="assistant">
       <MessageContent className="w-full">
@@ -257,23 +290,12 @@ function AssistantMessage({
               </Reasoning>
             );
           }
+          if (block.kind === "cards") {
+            return docs ? <AskCards key={block.key} docs={docsFor(docs, block.ids)} /> : null;
+          }
           return <ToolSteps key={block.key} parts={block.parts} live={live} />;
         })}
-        {sources.length > 0 && (
-          <Sources>
-            <SourcesTrigger count={sources.length}>
-              <span className="text-xs text-muted-foreground">{s.sources(sources.length)}</span>
-            </SourcesTrigger>
-            <SourcesContent>
-              {sources.map((src) => (
-                <Source key={src.href} href={src.href} title={src.title} target="_self" rel={undefined}>
-                  <BookOpen className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{src.title}</span>
-                </Source>
-              ))}
-            </SourcesContent>
-          </Sources>
-        )}
+        {sources.length > 0 && <AskCards docs={sources} />}
       </MessageContent>
       {!live && (
         <MessageActions className="-ml-1.5 opacity-60 transition-opacity group-hover:opacity-100">

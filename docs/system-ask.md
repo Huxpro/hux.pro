@@ -19,7 +19,8 @@ systems/ask/
 │   ├── models.ts      # the models the picker offers and the route accepts
 │   └── intent.ts      # is this a question or a search?
 ├── components/
-│   ├── messages.tsx   # AskMessages: the conversation, steps, sources, copy / regenerate
+│   ├── messages.tsx   # AskMessages: the conversation, steps, copy / regenerate
+│   ├── cards.tsx      # AskCards: what the agent found or presented, as the things they are
 │   ├── composer.tsx   # AskComposer: field, model, thinking level, voice, send / stop
 │   ├── history.tsx    # AskHistory: past conversations
 │   ├── chat.tsx       # the center place: the palette, widened into two panes (lazy-loaded)
@@ -197,7 +198,7 @@ arranging `AskMessages`, `AskComposer` and `AskHistory`.
 browser                                         /api/chat (Vercel function)
 ───────                                         ──────────
 question ──────────────────────────────────────▶ system prompt + map of the site
-                                                 tools: search_site, read (no execute)
+                                                 tools: search_site, read, present (no execute)
                                                  model (gateway / provider / stand-in)
           ◀──────── streamed turn ends in tool calls
 run them against public/ask/index.json
@@ -236,6 +237,19 @@ run them against public/ask/index.json
   prompt cache can hold it). The text behind an entry the model fetches with
   `search_site` / `read`. The whole site in every request would be a few
   hundred thousand tokens; the map and a few reads are a small fraction.
+- **What it found, as cards.** A talk is more than its title: under an
+  answer, the docs it links to (and the ones it read) come back as cards
+  (`components/cards.tsx`), and the `present` tool lets the model put cards
+  where they belong in the reply when the things themselves are the answer
+  ("which talks…", "where can I watch…"). A work's card is its commit from
+  /works (`lib/log-client`): the cover the contact strip shows, venue and
+  year, and a button per kind of attachment (watch, slides, photos, link)
+  that opens it through systems/attachments, as /works does. A post's card
+  has its first picture (the index's `cover`); a conviction's, its line. The
+  card is a link to the exact spot. One card per thing: a doc per language
+  collapses to the reader's. Opening a talk from the center moves Ask to the
+  side first (the palette sits above the stage), and the stage takes Escape
+  before the panel does.
 - **Vendor-neutral.** AI SDK throughout. Model ids are Vercel AI Gateway's
   (`provider/model`); changing models is changing `models.ts`.
 

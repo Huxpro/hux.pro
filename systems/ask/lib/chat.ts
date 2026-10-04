@@ -122,6 +122,15 @@ function createChat(id?: string, messages?: AskUIMessage[], own?: Partial<AskSet
             toolCallId: toolCall.toolCallId,
             output: site.read(toolCall.input),
           });
+        } else if (toolCall.toolName === "present") {
+          // The cards are drawn from the call itself (components/cards.tsx);
+          // the answer tells the model which ids were real.
+          const shown = site.docsOf(toolCall.input.ids ?? []).map((d) => d.id);
+          void chat.addToolOutput({
+            tool: "present",
+            toolCallId: toolCall.toolCallId,
+            output: shown.length ? { shown } : { error: "None of these ids is on the site. Use ids from search_site or the map." },
+          });
         }
       } catch (error) {
         void chat.addToolOutput({
