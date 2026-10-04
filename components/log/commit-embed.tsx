@@ -14,6 +14,7 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Commit as CommitData, Media, PeekItem } from "@/lib/log";
 import { getCommitPeekItems, localize } from "@/lib/log";
+import { plainInline } from "@/lib/inline-links";
 import { DEFAULT_FORM, type LogForm } from "@/lib/log-view";
 import { cn } from "@/lib/utils";
 import { attachmentSetFor, leavesSite } from "@/systems/attachments";
@@ -313,7 +314,7 @@ export function buildCommitPreview(
   // topics under it, echoing the /writing peek; the topics are no longer
   // printed anywhere on the page (see the expanded body in TimelineCommit),
   // and a peek is not the place to reintroduce them.
-  const description = localize(commit.description, locale);
+  const description = plainInline(localize(commit.description, locale));
   if (!description) return null;
 
   return {

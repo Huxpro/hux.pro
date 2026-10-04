@@ -17,6 +17,8 @@ import {
   type LogData,
 } from "@/lib/log";
 import {
+  DEFAULT_FORM,
+  LOG_FORMS,
   parseViewState,
   serializeViewState,
   toggleType,
@@ -75,6 +77,15 @@ export function WorksView({ logData }: WorksViewProps) {
   const refLook = devtool?.worksRef ?? WORKS_REF_DEFAULT;
   // The projects shelf, on trial: a saved DevTool setting, off by default.
   const shelf = devtool?.worksShelf ?? false;
+  // The feed, on its way out: offered only while the DevTool switches it on.
+  // Off, its stop leaves the control, and a `?view=feed` link (or one left
+  // in the URL from before) reads as the default form, the URL untouched.
+  const feed = devtool?.worksFeed ?? false;
+  const forms = useMemo<readonly LogForm[]>(
+    () => (feed ? LOG_FORMS : LOG_FORMS.filter((f) => f !== "feed")),
+    [feed],
+  );
+  const form: LogForm = forms.includes(view.form) ? view.form : DEFAULT_FORM;
   // The shelf's projects: every project row the log prints, in the log's
   // own order (newest first across the chapters). It stands only while
   // the reading includes projects: a page filtered to talks opens on
@@ -184,7 +195,8 @@ export function WorksView({ logData }: WorksViewProps) {
             commit({ types: toggleType(view.types, type) })
           }
           onClearTypes={() => commit({ types: [] })}
-          form={view.form}
+          form={form}
+          forms={forms}
           onFormChange={(form) => commit({ form })}
           chapters={chapters}
         />
@@ -204,7 +216,7 @@ export function WorksView({ logData }: WorksViewProps) {
         data={data}
         locale={locale}
         identities={logData.identities}
-        form={view.form}
+        form={form}
         activeTypes={view.types}
         onSelectHash={selectHash}
         pinnedChapters
