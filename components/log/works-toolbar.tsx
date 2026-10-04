@@ -106,6 +106,9 @@ interface WorksToolbarProps {
   onToggleType: (type: FilterableCommitType) => void;
   onClearTypes: () => void;
   form: LogForm;
+  /** The forms on offer, in order. A form can be held back (the feed, behind
+   *  a DevTool switch); the control only offers these. */
+  forms?: readonly LogForm[];
   onFormChange: (form: LogForm) => void;
   /** The chapters on the page, in order, with the marker each wears. */
   chapters: readonly { id: string; label: string }[];
@@ -158,6 +161,7 @@ export function WorksToolbar({
   onToggleType,
   onClearTypes,
   form,
+  forms = LOG_FORMS,
   onFormChange,
   chapters,
 }: WorksToolbarProps) {
@@ -359,7 +363,7 @@ export function WorksToolbar({
             label={t(locale, "logFormLabel")}
             value={form}
             onChange={onFormChange}
-            options={LOG_FORMS.map((f) => {
+            options={forms.map((f) => {
               const { icon: Icon, labelKey } = FORM_CHIP[f];
               const name = t(locale, labelKey);
               return {

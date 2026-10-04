@@ -241,6 +241,11 @@ to keep still, brings those too). A row a press would add nothing to has
 no press: no wash, no pointer, no `role="button"`. Old links with git's
 names (`oneline`, `stat`, `patch`) still parse, as aliases.
 
+The feed is on its way out. The control offers it only while the DevTool's
+Works module switches it on (`worksFeed`, a saved setting, off by default);
+off, a `?view=feed` link reads as the default form and the URL is left as it
+came.
+
 | form | text | media | notes | author | peek | the reading |
 |---|---|---|---|---|---|---|
 | `index` | none | none | — | — | ✓ | the overview: one line per commit, the career in two screens |
