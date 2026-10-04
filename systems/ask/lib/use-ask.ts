@@ -23,6 +23,8 @@ import {
   getConversationsSnapshot,
   subscribeConversations,
 } from "./history";
+import { contextsNow } from "./page-context";
+import type { AskContext } from "./tools";
 
 // =============================================================================
 // Ask for React: the hooks every surface that shows Ask is built from. The
@@ -37,11 +39,17 @@ export function useAskSession() {
   const helpers = useChat({ chat, throttle: 50 });
   const busy = helpers.status === "submitted" || helpers.status === "streaming";
 
+  /** Ask, with what the reader has open (../lib/page-context.ts), if any. */
   const send = useCallback(
-    (text: string) => {
+    (text: string, contexts: readonly AskContext[] = []) => {
       const question = text.trim();
       if (!question || busy) return false;
-      void helpers.sendMessage({ text: question });
+      void helpers.sendMessage({
+        parts: [
+          { type: "text", text: question },
+          ...contexts.map((data) => ({ type: "data-context" as const, data })),
+        ],
+      });
       return true;
     },
     [busy, helpers],
@@ -107,6 +115,12 @@ export function useAskRequest(request: { text: string; n: number } | null) {
   useEffect(() => {
     if (!request || request.n <= consumedRequest) return;
     consumedRequest = request.n;
-    void getAskChat().sendMessage({ text: request.text });
+    const chat = getAskChat();
+    void chat.sendMessage({
+      parts: [
+        { type: "text", text: request.text },
+        ...contextsNow(chat.messages).map((data) => ({ type: "data-context" as const, data })),
+      ],
+    });
   }, [request]);
 }

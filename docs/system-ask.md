@@ -15,12 +15,14 @@ systems/ask/
 │   ├── storage.ts     # JSON in localStorage, where storage allows
 │   ├── config.ts      # how Ask behaves: every setting, a preset per platform (desk / phone)
 │   ├── history.ts     # past conversations, in localStorage
+│   ├── page-context.ts # what the reader has open: the post and section, the entry, the commit
 │   ├── use-ask.ts     # the hooks surfaces are built from: useAskSession / useAskHistory / useAskPrefs / useAskRunning / useAskRequest
 │   ├── models.ts      # the models the picker offers and the route accepts
 │   └── intent.ts      # is this a question or a search?
 ├── components/
 │   ├── messages.tsx   # AskMessages: the conversation, steps, copy / regenerate
 │   ├── cards.tsx      # AskCards: what the agent found or presented, as the things they are
+│   ├── context-tag.tsx # what a question is about, as a tag
 │   ├── composer.tsx   # AskComposer: field, model, thinking level, voice, send / stop
 │   ├── history.tsx    # AskHistory: past conversations
 │   ├── chat.tsx       # the center place: the palette, widened into two panes (lazy-loaded)
@@ -250,6 +252,20 @@ run them against public/ask/index.json
   collapses to the reader's. Opening a talk from the center moves Ask to the
   side first (the palette sits above the stage), and the stage takes Escape
   before the panel does.
+- **It knows what you are reading.** A question goes with what the reader
+  has open (`lib/page-context.ts`): on a post, the post at the section in
+  view (the last heading above the reading line); on /prompt, the entry
+  open; on /works, the commit open or the one the address points at; on the
+  PL chart, the language open. It shows as a tag over the composer, × to
+  leave it out (for that page), and on the sent question as a link back. It
+  travels as a `data-context` part of the user's message, with that
+  section's text from the index (cut at 4000 characters); the route checks
+  and caps it and hands it to the model as a `<context>` block before the
+  question (`ASK_CONTEXT`), and the instructions say "this" means it. A
+  second question about the same spot does not send it again. A question
+  handed over from the palette takes the page's context too. On a page with
+  something to ask about, an empty conversation offers questions about it
+  first ("Sum this up in three lines"). Editing a question keeps its context.
 - **Vendor-neutral.** AI SDK throughout. Model ids are Vercel AI Gateway's
   (`provider/model`); changing models is changing `models.ts`.
 

@@ -63,6 +63,8 @@ const en = {
   slides: "Slides",
   photos: "Photos",
   link: "Link",
+  contextRemove: "Don't send this with the question",
+  contextSent: "Sent with the question",
 };
 
 type AskStrings = typeof en;
@@ -124,6 +126,8 @@ const zh: AskStrings = {
   slides: "幻灯片",
   photos: "照片",
   link: "链接",
+  contextRemove: "不随问题发送",
+  contextSent: "随问题发送",
 };
 
 export function askStrings(locale: Locale): AskStrings {

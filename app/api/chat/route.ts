@@ -1,7 +1,7 @@
 import { askSystemPrompt } from "@/lib/ask-prompt";
 import { askEffortOf, askModelOf, type AskModel } from "@/systems/ask/lib/models";
-import { askTools, textOf, type AskUIMessage } from "@/systems/ask/lib/tools";
-import { ASK_ANSWER_NOW } from "@/systems/ask/prompts";
+import { askTools, contextsOf, textOf, type AskContext, type AskUIMessage } from "@/systems/ask/lib/tools";
+import { ASK_ANSWER_NOW, ASK_CONTEXT } from "@/systems/ask/prompts";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
@@ -38,6 +38,10 @@ export const maxDuration = 60;
 /** Turns kept from the conversation, and characters per user turn. */
 const MAX_MESSAGES = 24;
 const MAX_USER_CHARS = 4000;
+/** What a question may bring along (systems/ask/lib/page-context.ts): a
+ *  few contexts, each a section's worth of text. */
+const MAX_CONTEXTS = 3;
+const MAX_CONTEXT_CHARS = 4500;
 const MAX_OUTPUT_TOKENS = 4000;
 
 /**
@@ -76,6 +80,27 @@ function sanitize(messages: unknown): AskUIMessage[] | null {
     if (m.role !== "user") continue;
     const chars = m.parts.reduce((n, p) => n + (p.type === "text" ? p.text.length : 0), 0);
     if (chars > MAX_USER_CHARS) return null;
+    // Contexts: only their fields, strings, cut to size; past the count,
+    // dropped.
+    let contexts = 0;
+    m.parts = m.parts.flatMap((p) => {
+      if (!p.type.startsWith("data-")) return [p];
+      if (p.type !== "data-context" || ++contexts > MAX_CONTEXTS) return [];
+      const c = p.data as unknown as Partial<Record<string, unknown>>;
+      const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : undefined);
+      const kind = c.kind === "quote" || c.kind === "item" ? c.kind : "page";
+      return [{
+        type: "data-context" as const,
+        data: {
+          kind,
+          doc: str(c.doc, 200),
+          title: str(c.title, 300) ?? "",
+          href: str(c.href, 500) ?? "",
+          heading: str(c.heading, 300),
+          text: str(c.text, MAX_CONTEXT_CHARS),
+        },
+      }];
+    });
   }
   return kept[0]?.role === "user" ? kept : kept.slice(kept.findIndex((m) => m.role === "user"));
 }
@@ -123,7 +148,12 @@ export async function POST(req: Request) {
       },
       ...(answerNow ? [{ role: "system" as const, content: ASK_ANSWER_NOW }] : []),
     ],
-    messages: await convertToModelMessages(messages, { tools: askTools }),
+    messages: await convertToModelMessages(messages, {
+      tools: askTools,
+      // What the reader had open, as text just before their question.
+      convertDataPart: (part) =>
+        part.type === "data-context" ? { type: "text", text: ASK_CONTEXT(part.data as AskContext) } : undefined,
+    }),
     // The tools stay declared (the history has calls to them); answering
     // now only takes away the choice to call one.
     tools: askTools,
@@ -173,7 +203,9 @@ function standIn(messages: AskUIMessage[]) {
           writer.write({
             type: "reasoning-delta",
             id: "r",
-            delta: "No model is configured, so this is the stand-in. Searching the site for the question as typed.",
+            delta: `No model is configured, so this is the stand-in. Searching the site for the question as typed.${contextsOf(last)
+              .map((c) => ` The reader has "${c.title}"${c.heading ? ` (${c.heading})` : ""} open.`)
+              .join("")}`,
           });
           writer.write({ type: "reasoning-end", id: "r" });
           writer.write({

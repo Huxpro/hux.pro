@@ -20,6 +20,9 @@ export interface AskSearch {
   /** The docs among these ids that exist (a passage id counts as its doc),
    *  once each, in order. */
   docsOf: (ids: readonly string[]) => AskDoc[];
+  /** A doc's text, the passages under one heading when an anchor is given
+   *  (all of it otherwise), cut at `max` characters. */
+  textOf: (doc: string, anchor?: string, max?: number) => string;
   docs: Map<string, AskDoc>;
   search: (input: SearchInput) => SearchHit[];
   read: (input: ReadInput) => ReadOutput;
@@ -31,6 +34,13 @@ const SNIPPET = 220;
 
 let pending: Promise<AskSearch> | null = null;
 
+let loaded: AskSearch | null = null;
+
+/** The index, if it has been loaded: for what must not wait (a send). */
+export function loadedAskSearch(): AskSearch | null {
+  return loaded;
+}
+
 export function loadAskSearch(): Promise<AskSearch> {
   pending ??= fetch(ASK_INDEX_URL)
     .then((r) => {
@@ -38,6 +48,7 @@ export function loadAskSearch(): Promise<AskSearch> {
       return r.json() as Promise<AskIndex>;
     })
     .then(build)
+    .then((site) => (loaded = site))
     .catch((error) => {
       pending = null;
       throw error;
@@ -157,5 +168,14 @@ function build(index: AskIndex): AskSearch {
     return [...out.values()];
   }
 
-  return { docs, search, read, docsOf };
+  function textOf(doc: string, anchor?: string, max = MAX_READ): string {
+    const all = byDoc.get(doc) ?? [];
+    const under = anchor ? all.filter((c) => c.anchor === anchor) : [];
+    return (under.length ? under : all)
+      .map((c) => (c.heading ? `## ${c.heading}\n${c.text}` : c.text))
+      .join("\n\n")
+      .slice(0, max);
+  }
+
+  return { docs, search, read, docsOf, textOf };
 }

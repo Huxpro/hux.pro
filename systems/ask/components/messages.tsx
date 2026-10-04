@@ -30,8 +30,12 @@ import { Check, Copy, FileText, Pencil, RefreshCw, Search, Undo2 } from "lucide-
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { AskDoc } from "../lib/corpus";
-import { textOf, type AskUIMessage } from "../lib/tools";
+import { contextsOf, textOf, type AskUIMessage } from "../lib/tools";
+import { usePageContext, contextText } from "../lib/page-context";
+import { ASK_CONTEXT_SUGGESTIONS } from "../prompts";
+import { loadedAskSearch } from "../lib/search";
 import { AskCards, docForHref, useAskDocs } from "./cards";
+import { ContextTag } from "./context-tag";
 import { useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
 
@@ -413,7 +417,8 @@ function UserMessage({
     if (press.current) window.clearTimeout(press.current.timer);
   };
 
-  return (
+  const contexts = contextsOf(message);
+  const bubble = (
     // The actions sit beside the bubble, not under it: a row under every
     // question that only shows on demand left a gap the height of a button.
     // Packed to the trailing edge (`justify-start`, reversed), the bubble
@@ -460,6 +465,18 @@ function UserMessage({
       </MessageActions>
     </Message>
   );
+  if (!contexts.length) return bubble;
+  return (
+    // What it was asked about, over the question.
+    <div className="flex flex-col items-end gap-1.5">
+      <div className="flex max-w-[80%] flex-wrap justify-end gap-1">
+        {contexts.map((c, i) => (
+          <ContextTag key={i} context={c} />
+        ))}
+      </div>
+      {bubble}
+    </div>
+  );
 }
 
 export interface AskMessagesProps {
@@ -472,6 +489,14 @@ export function AskMessages({ onNavigate, className }: AskMessagesProps) {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { messages, status, error, busy, send, regenerate, rewind, edit } = useAskSession();
+  const page = usePageContext(useAskDocs());
+  const site = loadedAskSearch();
+  const kind = page?.doc.kind;
+  const about = page
+    ? ASK_CONTEXT_SUGGESTIONS[locale][
+        kind === "post" ? "post" : kind === "conviction" || kind === "influence" ? "conviction" : kind === "work" ? "work" : "other"
+      ]
+    : [];
 
   // Links in answers and sources: this site's pages open here, in the page
   // under the surface; anything else keeps its own behaviour.
@@ -502,7 +527,18 @@ export function AskMessages({ onNavigate, className }: AskMessagesProps) {
               <p className="text-sm text-muted-foreground">{s.emptyHint}</p>
             </div>
             <div className="flex w-full max-w-sm flex-col items-stretch gap-2 pt-2">
-              {s.suggestions.map((q) => (
+              {/* On a page with something to ask about, about it first (sent
+                  with it, whatever the composer's tag says: the question is
+                  about "this"). */}
+              {about.map((q) => (
+                <Suggestion
+                  key={q}
+                  suggestion={q}
+                  onClick={(text) => send(text, page && site ? [contextText(page, site)] : [])}
+                  className="h-auto justify-start whitespace-normal py-2 text-left"
+                />
+              ))}
+              {s.suggestions.slice(0, about.length ? 2 : undefined).map((q) => (
                 <Suggestion
                   key={q}
                   suggestion={q}

@@ -250,7 +250,7 @@ export function AskCards({ docs: all, className }: { docs: readonly AskDoc[]; cl
       data-ask-cards=""
       className={cn(
         // Bleeds to the conversation's edges so a card can scroll past them.
-        "-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]",
+        "-mx-4 flex snap-x scroll-px-4 items-start gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]",
         className,
       )}
     >

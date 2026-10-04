@@ -52,6 +52,8 @@ export function HeadingWithLink({
     <HeadingTag
       ref={headingRef}
       id={id || undefined}
+      // What Ask reads to know the section in view (systems/ask/lib/page-context.ts).
+      data-heading-link=""
       {...props}
       className={cn(
         "group cursor-pointer flex items-center gap-2",
