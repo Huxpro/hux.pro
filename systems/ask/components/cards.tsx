@@ -19,8 +19,8 @@ import { askStrings } from "../strings";
 //
 // A conversation used to end in a list of page titles. A talk is more than
 // its title: it has a cover, a recording, a deck. So the docs a turn
-// presents (the `present` tool) and the ones its answer links to come back
-// as cards, a strip under the answer:
+// presents (the `present` tool) come back as cards, a strip where it
+// presented them, and the ones its answer links to as compact rows under it:
 //
 //   work       its commit from /works (lib/log-client, the same records the
 //              theater's albums read): the cover the contact strip shows, the
@@ -116,7 +116,7 @@ function yearOf(date?: string) {
   return date?.slice(0, 4);
 }
 
-function DocCard({ doc }: { doc: AskDoc }) {
+function DocCard({ doc, compact }: { doc: AskDoc; compact: boolean }) {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const attachments = useOptionalAttachments();
@@ -160,6 +160,53 @@ function DocCard({ doc }: { doc: AskDoc }) {
     .filter(Boolean)
     .join(" · ");
   const line = commit ? undefined : doc.summary;
+
+  if (compact) {
+    return (
+      <div
+        data-ask-card={doc.kind}
+        className={cn(
+          "group/card relative flex items-center gap-3 rounded-lg p-1.5 pr-2",
+          "border border-border/40 bg-muted/20 transition-colors hover:bg-muted/50",
+        )}
+      >
+        {cover && (
+          <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+            {/* eslint-disable-next-line @next/next/no-img-element -- covers come from anywhere (the site, YouTube, OG images) */}
+            <img src={cover} alt="" loading="lazy" onError={() => setBroken(true)} className="size-full object-cover" />
+          </div>
+        )}
+        <div className={cn("flex min-w-0 flex-1 flex-col", !cover && "pl-1.5")}>
+          <span className="truncate font-mono text-[10px] text-muted-foreground">{eyebrow}</span>
+          <a
+            href={doc.href}
+            className="truncate text-sm font-medium leading-snug text-foreground after:absolute after:inset-0"
+          >
+            {doc.title}
+          </a>
+        </div>
+        {actions.length > 0 && (
+          <div className="relative z-10 flex shrink-0 gap-0.5">
+            {actions.map(({ index, icon: Icon, label }) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => open(index)}
+                aria-label={`${label}: ${doc.title}`}
+                title={label}
+                className={cn(
+                  "pressable flex size-7 items-center justify-center rounded-md",
+                  "text-muted-foreground transition-colors hover:bg-background hover:text-foreground",
+                )}
+              >
+                <Icon className="size-3.5" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -240,11 +287,32 @@ function distinct(docs: readonly AskDoc[], locale: Locale): AskDoc[] {
   return [...out.values()];
 }
 
-/** A strip of cards for these docs, in order. */
-export function AskCards({ docs: all, className }: { docs: readonly AskDoc[]; className?: string }) {
+/**
+ * Cards for these docs, in order: a strip of big ones for what the agent
+ * presented (covers to the fore), a list of compact rows for what an answer
+ * used (a strip of mixed heights left holes under the short ones).
+ */
+export function AskCards({
+  docs: all,
+  compact = false,
+  className,
+}: {
+  docs: readonly AskDoc[];
+  compact?: boolean;
+  className?: string;
+}) {
   const { locale } = useLocale();
   const docs = distinct(all, locale);
   if (!docs.length) return null;
+  if (compact) {
+    return (
+      <div data-ask-cards="compact" className={cn("flex flex-col gap-1.5", className)}>
+        {docs.map((doc) => (
+          <DocCard key={doc.id} doc={doc} compact />
+        ))}
+      </div>
+    );
+  }
   return (
     <div
       data-ask-cards=""
@@ -255,7 +323,7 @@ export function AskCards({ docs: all, className }: { docs: readonly AskDoc[]; cl
       )}
     >
       {docs.map((doc) => (
-        <DocCard key={doc.id} doc={doc} />
+        <DocCard key={doc.id} doc={doc} compact={false} />
       ))}
     </div>
   );

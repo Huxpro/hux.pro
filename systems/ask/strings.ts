@@ -65,6 +65,8 @@ const en = {
   link: "Link",
   contextRemove: "Don't send this with the question",
   contextSent: "Sent with the question",
+  dropHint: "Drop to ask about it",
+  askSelection: "Ask about this",
 };
 
 type AskStrings = typeof en;
@@ -128,6 +130,8 @@ const zh: AskStrings = {
   link: "链接",
   contextRemove: "不随问题发送",
   contextSent: "随问题发送",
+  dropHint: "放下，问问它",
+  askSelection: "问问这段",
 };
 
 export function askStrings(locale: Locale): AskStrings {

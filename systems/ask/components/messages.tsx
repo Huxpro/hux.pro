@@ -299,7 +299,7 @@ function AssistantMessage({
           }
           return <ToolSteps key={block.key} parts={block.parts} live={live} />;
         })}
-        {sources.length > 0 && <AskCards docs={sources} />}
+        {sources.length > 0 && <AskCards docs={sources} compact />}
       </MessageContent>
       {!live && (
         <MessageActions className="-ml-1.5 opacity-60 transition-opacity group-hover:opacity-100">

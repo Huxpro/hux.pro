@@ -16,13 +16,16 @@ systems/ask/
 │   ├── config.ts      # how Ask behaves: every setting, a preset per platform (desk / phone)
 │   ├── history.ts     # past conversations, in localStorage
 │   ├── page-context.ts # what the reader has open: the post and section, the entry, the commit
+│   ├── pending-context.ts # what they pointed at for the next question (a selection, a drop)
+│   ├── pointed.ts     # a selection or a drop, as a context
 │   ├── use-ask.ts     # the hooks surfaces are built from: useAskSession / useAskHistory / useAskPrefs / useAskRunning / useAskRequest
 │   ├── models.ts      # the models the picker offers and the route accepts
 │   └── intent.ts      # is this a question or a search?
 ├── components/
 │   ├── messages.tsx   # AskMessages: the conversation, steps, copy / regenerate
-│   ├── cards.tsx      # AskCards: what the agent found or presented, as the things they are
+│   ├── cards.tsx      # AskCards: what the agent presented (a strip) and what an answer used (rows)
 │   ├── context-tag.tsx # what a question is about, as a tag
+│   ├── selection.tsx  # "Ask about this" over words selected on the page
 │   ├── composer.tsx   # AskComposer: field, model, thinking level, voice, send / stop
 │   ├── history.tsx    # AskHistory: past conversations
 │   ├── chat.tsx       # the center place: the palette, widened into two panes (lazy-loaded)
@@ -266,6 +269,18 @@ run them against public/ask/index.json
   handed over from the palette takes the page's context too. On a page with
   something to ask about, an empty conversation offers questions about it
   first ("Sum this up in three lines"). Editing a question keeps its context.
+- **Ask about this.** Words selected on the page (in its content, not in a
+  field or Ask itself) get an "Ask about this" button under them
+  (`components/selection.tsx`, mounted once in the root layout): the words,
+  with the page and section they are in, go on the next question
+  (`lib/pending-context.ts`) and Ask opens where it would. Anything from the
+  page dropped on the composer is something to ask about, never text in the
+  field (`lib/pointed.ts`): a link to something on the site (a commit's hash
+  on /works, an entry's id on /prompt, which now drags as its link, a post, a
+  card) brings that thing with its text; a picture brings the commit or post
+  it belongs to; plain words are a quote. Each shows as a tag until sent, ×
+  to drop it; a quote from the page open stands in for the page's own tag.
+  The model reads them as `<context>` blocks too (`kind` quote and item).
 - **Vendor-neutral.** AI SDK throughout. Model ids are Vercel AI Gateway's
   (`provider/model`); changing models is changing `models.ts`.
 

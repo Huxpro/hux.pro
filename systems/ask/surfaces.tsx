@@ -27,6 +27,8 @@ import { useAskPlatform } from "./lib/config";
 //                (a desk's preset). Mounted inside <Dock>.
 //   AskDragging  the overlay a drag between places draws (components/
 //                placement.tsx).
+//   AskSelection "Ask about this" over words selected on the page
+//                (components/selection.tsx).
 //
 // The center place on a desk is the palette's own (systems/command, AskChat). Which
 // one is showing is the command provider's `askPlacement`; moving between
@@ -152,3 +154,5 @@ export function AskDragging() {
   const { askStarted } = useCommand();
   return askStarted ? <DragOverlay /> : null;
 }
+
+export { AskSelection } from "./components/selection";
