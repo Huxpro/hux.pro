@@ -44,7 +44,11 @@ const LATE_COMMIT_MS = 600;
 const LANG = { en: "en-US", zh: "zh-CN" } as const;
 
 export interface AskComposerProps {
-  /** Focus the field when it mounts. */
+  /**
+   * Focus the field when it mounts: always with a mouse, and on a touch
+   * screen only when there is nothing yet to read, so opening Ask to read an
+   * answer does not raise the keyboard over it.
+   */
   autoFocus?: boolean;
   placeholder?: string;
   className?: string;
@@ -53,7 +57,7 @@ export interface AskComposerProps {
 export function AskComposer({ autoFocus = true, placeholder, className }: AskComposerProps) {
   const { locale } = useLocale();
   const s = askStrings(locale);
-  const { status, stop, busy, send } = useAskSession();
+  const { status, stop, busy, send, messages } = useAskSession();
   const { model, setModel, effort, setEffort } = useAskPrefs();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -65,11 +69,16 @@ export function AskComposer({ autoFocus = true, placeholder, className }: AskCom
     onFinal: (said) => setInput(said.trim()),
   });
 
+  // Decided once, on mount: the conversation growing later is no reason to
+  // take focus.
+  const [focusOnMount] = useState(
+    () => autoFocus && (messages.length === 0 || window.matchMedia("(pointer: fine)").matches),
+  );
   useEffect(() => {
-    if (!autoFocus) return;
+    if (!focusOnMount) return;
     const timer = setTimeout(() => textareaRef.current?.focus(), 50);
     return () => clearTimeout(timer);
-  }, [autoFocus]);
+  }, [focusOnMount]);
 
   return (
     <PromptInput

@@ -123,10 +123,6 @@ function viewportHeight() {
   return window.visualViewport?.height ?? window.innerHeight;
 }
 
-/** A mouse or a trackpad: focusing the field costs nothing there. */
-function finePointer() {
-  return window.matchMedia("(pointer: fine)").matches;
-}
 
 // ---- The activity -------------------------------------------------------------
 
@@ -294,10 +290,9 @@ export default function AskActivity() {
           />
         )}
         <div className="shrink-0 px-3 pt-1 pb-1.5">
-          {/* Focused to write in: always with a mouse, and on a touch screen
-              only when there is nothing yet to read, so a tap on the pill
-              to see an answer does not raise the keyboard over it. */}
-          <AskComposer autoFocus={!messages.length || finePointer()} />
+          {/* Focused to write in, unless on a touch screen there is an
+              answer to read (the composer's own rule). */}
+          <AskComposer />
         </div>
       </div>
     </LiveActivity>
