@@ -2,13 +2,15 @@
 
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { MessageSquare, X } from "lucide-react";
-import { useAskHistory, useAskSession } from "../lib/use-ask";
+import { LoaderCircle, MessageSquare, X } from "lucide-react";
+import { useAskHistory, useAskRunning, useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
 
 // =============================================================================
 // Past conversations (kept in this browser, ./lib/history.ts): pick one to
-// make it current, or delete it. One piece of every surface that shows Ask;
+// make it current, or delete it. A conversation still being answered (in the
+// background, see ../lib/chat.ts) turns its icon into a spinner. One piece of
+// every surface that shows Ask;
 // where it sits (a view in place of the messages, a sidebar, a menu) is the
 // surface's call.
 // =============================================================================
@@ -34,6 +36,7 @@ export function AskHistory({ onOpen, dense = false, className }: AskHistoryProps
   const s = askStrings(locale);
   const { conversations, deleteConversation } = useAskHistory();
   const { chat, openConversation } = useAskSession();
+  const running = useAskRunning();
 
   if (!conversations.length) {
     return (
@@ -67,7 +70,11 @@ export function AskHistory({ onOpen, dense = false, className }: AskHistoryProps
               dense && "aria-[current]:bg-accent aria-[current]:font-medium",
             )}
           >
-            <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
+            {running.has(c.id) ? (
+              <LoaderCircle aria-label={s.thinking} className="size-4 shrink-0 animate-spin text-muted-foreground" />
+            ) : (
+              <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
+            )}
             <span className="min-w-0 flex-1 truncate">{c.title}</span>
             {!dense && <span className="shrink-0 text-xs text-tertiary-foreground">{when(c.updatedAt, locale)}</span>}
           </button>

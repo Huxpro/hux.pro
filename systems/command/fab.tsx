@@ -145,7 +145,11 @@ export function FloatingActionButton() {
       onPointerLeave={cancelHold}
       className={cn(
         "pressable pointer-events-auto select-none",
-        "transition-[background-color,border-color,color,transform] duration-200",
+        // `scale`, not `transform`: the press (`active:scale-95`) is the
+        // `scale` property, and `transform` is framer's morph, which a CSS
+        // transition would smooth 200ms behind the corner radius framer
+        // corrects for it: the capsule went through ovals on the way.
+        "transition-[background-color,border-color,color,scale] duration-200",
         yielding && "pointer-events-none",
         "flex items-center gap-2",
         "bg-glass backdrop-blur-xl",
@@ -506,19 +510,34 @@ function AskBall({
       }}
       style={{ width: ASK_SIZE, height: ASK_SIZE, borderRadius: FAB_RADIUS }}
       className={cn(
-        "pressable pointer-events-auto absolute left-0 top-0 select-none",
+        "group/ask pressable pointer-events-auto absolute left-0 top-0 select-none",
         "flex items-center justify-center",
-        "bg-glass backdrop-blur-xl",
-        "border border-border/50 shadow-raised",
-        "text-muted-foreground",
-        "transition-[background-color,border-color,color] duration-200",
-        "hover:bg-glass-hover hover:border-border hover:text-foreground",
-        "active:bg-glass-strong-hover active:border-border active:text-foreground",
-        "aria-pressed:border-border aria-pressed:bg-glass-strong aria-pressed:text-foreground",
+        "shadow-raised",
+        "text-muted-foreground transition-colors duration-200",
+        "hover:text-foreground active:text-foreground aria-pressed:text-foreground",
         (yielding || !placed) && "pointer-events-none"
       )}
     >
-      <Sparkles className="h-4 w-4" />
+      {/* The frost, on a layer of its own clipped to the circle: WebKit drops
+          a blurred backdrop's rounded corners while the element carrying it
+          is transformed (the ball moves every frame of the morph), and the
+          ball showed a square of glass. A clip-path holds under transforms;
+          the shadow stays on the button, outside the clip. */}
+      <span
+        aria-hidden
+        style={{ clipPath: `inset(0 round ${FAB_RADIUS}px)` }}
+        className={cn(
+          "absolute inset-0 rounded-[inherit] bg-glass backdrop-blur-xl",
+          "border border-border/50",
+          "transition-[background-color,border-color] duration-200",
+          "group-hover/ask:bg-glass-hover group-hover/ask:border-border",
+          // The press lands on the touch's frame, as `.pressable` makes it
+          // for the button itself.
+          "group-active/ask:bg-glass-strong-hover group-active/ask:border-border group-active/ask:duration-0",
+          "group-aria-pressed/ask:border-border group-aria-pressed/ask:bg-glass-strong"
+        )}
+      />
+      <Sparkles className="relative h-4 w-4" />
     </motion.button>
   );
 }
