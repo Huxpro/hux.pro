@@ -25,6 +25,7 @@ import {
   type LogForm,
 } from "@/lib/log-view";
 import { buildEraTimeline } from "@/lib/log-eras";
+import { arrangeTalks, WORKS_TALKS_DEFAULT } from "@/lib/works-talks";
 
 interface WorksViewProps {
   logData: LogData;
@@ -36,9 +37,12 @@ export function WorksView({ logData }: WorksViewProps) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // How a project carries its talks, on trial in the DevTool's Works module
+  // (lib/works-talks.ts). Read before the data, since it rearranges the rows.
+  const talksLook = useOptionalDevtool()?.worksTalks ?? WORKS_TALKS_DEFAULT;
   const data = useMemo(
-    () => buildEraTimeline(logData, locale),
-    [logData, locale],
+    () => arrangeTalks(buildEraTimeline(logData, locale), talksLook, locale),
+    [logData, locale, talksLook],
   );
 
   // View state lives in the URL, the way /writing's language filter does:
