@@ -638,8 +638,8 @@
         "zh": "Unlock Native for Vue"
       },
       "description": {
-        "en": "For years the Vue community has wanted native app development on par with React Native. Lynx set out to democratize cross platform technology when it open sourced, and Evan You backed the idea. With AI writing the code, the engineering effort is no longer the obstacle, and \"Vue + Lynx = Vue Native\" is real. The talk runs Vue Lynx apps live in the deck and walks through the dual threaded design that keeps Vue on the background thread, instant first frame rendering, and where Vapor mode fits.",
-        "zh": "长久以来，Vue 社区一直期盼拥有比肩 React Native 的原生应用开发能力。Lynx 开源时就确立了普惠跨平台技术的愿景，也得到了尤雨溪等框架作者的支持。如今借助 AI 的码力，工程体量不再是阻碍，「Vue + Lynx = Vue Native」终于不再只是愿景。演讲在幻灯片里现场运行 Vue Lynx 应用，讲解让 Vue 留在后台线程的双线程设计、瞬时首帧渲染，以及 Vapor 模式在其中的位置。"
+        "en": "Four months after [Vue Lynx](commit:vue-lynx) went out, I brought it to the Vue community's own conference in Shanghai, with the demos running live inside the deck: why \"Vue + Lynx = Vue Native\" is finally real, and the dual-threaded design that keeps Vue on the background thread.",
+        "zh": "[Vue Lynx](commit:vue-lynx) 发布四个月后，我把它带到了 Vue 社区自己的大会上，Demo 直接在幻灯片里跑：为什么「Vue + Lynx = Vue Native」终于成真，以及让 Vue 留在后台线程的双线程设计。"
       },
       "date": "2026-07",
       "conference": {
@@ -666,7 +666,11 @@
         "Cross Platform",
         "AI"
       ],
-      "language": "zh"
+      "language": "zh",
+      "details": {
+        "en": "For years the Vue community has wanted native app development on par with React Native. Lynx set out to democratize cross platform technology when it open sourced, and Evan You backed the idea. With AI writing the code, the engineering effort is no longer the obstacle, and \"Vue + Lynx = Vue Native\" is real. The talk runs Vue Lynx apps live in the deck and walks through the dual threaded design that keeps Vue on the background thread, instant first frame rendering, and where Vapor mode fits. (AI translated)",
+        "zh": "长久以来，Vue 社区一直期盼拥有比肩 React Native 的原生应用开发能力。Lynx 开源时就确立了普惠跨平台技术的愿景，也得到了尤雨溪等框架作者的支持。如今借助 AI 的码力，工程体量不再是阻碍，「Vue + Lynx = Vue Native」终于不再只是愿景。演讲在幻灯片里现场运行 Vue Lynx 应用，讲解让 Vue 留在后台线程的双线程设计、瞬时首帧渲染，以及 Vapor 模式在其中的位置。"
+      }
     },
     {
       "id": "wad-2026-lynx-workshop",
@@ -680,11 +684,11 @@
       },
       "description": {
         "en": "A year after my first time at WeAreDevelopers, I came back to Berlin to run something hands-on: a two-hour hackathon in a 40-seat room, vibe coding one app onto web, mobile and desktop with Lynx. The three principles from [GOSIM](commit:gosim-2026-vibe-native), taken off the slides and put in people's hands.",
-        "zh": "A year after my first time at WeAreDevelopers, I came back to Berlin to run something hands-on: a two-hour hackathon in a 40-seat room, vibe coding one app onto web, mobile and desktop with Lynx. The three principles from [GOSIM](commit:gosim-2026-vibe-native), taken off the slides and put in people's hands."
+        "zh": "第一次去 WeAreDevelopers 的一年后，我回到柏林，这次做点动手的：在一间 40 个座位的教室里办了两小时的黑客松，用 Lynx 把一个 vibe code 出来的应用同时带到 Web、移动端和桌面端。把 [GOSIM](commit:gosim-2026-vibe-native) 上的三条原则从幻灯片上拿下来，交到大家手里。"
       },
       "details": {
         "en": "\"AI is changing how apps are built, but most apps are still built one platform at a time. In this small hands-on workshop and hackathon, you will explore Lynx, the cross-platform framework behind TikTok and CapCut. With Lynx, you can vibe code once and bring the same app experience to web, mobile, and desktop from a single codebase. Along the way, we'll also deep dive into how app infra such as Lynx is designed to be AI-native: AI-Ergonomic (harness-able), AI-Efficient (token-economical), and AI-Expressive (agent-generative UI).\"",
-        "zh": "\"AI is changing how apps are built, but most apps are still built one platform at a time. In this small hands-on workshop and hackathon, you will explore Lynx, the cross-platform framework behind TikTok and CapCut. With Lynx, you can vibe code once and bring the same app experience to web, mobile, and desktop from a single codebase. Along the way, we'll also deep dive into how app infra such as Lynx is designed to be AI-native: AI-Ergonomic (harness-able), AI-Efficient (token-economical), and AI-Expressive (agent-generative UI).\""
+        "zh": "「AI 正在改变应用的构建方式，但大多数应用仍然是一个平台一个平台地做。在这个小型的动手工作坊与黑客松里，你将上手 Lynx，这个支撑 TikTok 与 CapCut 的跨平台框架。用 Lynx，你可以 vibe code 一次，就从同一份代码把同样的应用体验带到 Web、移动端和桌面端。过程中我们也会深入探讨 Lynx 这样的应用基础设施如何被设计成 AI 原生的：AI-Ergonomic（可驾驭）、AI-Efficient（省 Token）与 AI-Expressive（Agent 生成式 UI）。」（AI 翻译）"
       },
       "date": "2026-07",
       "conference": {
@@ -723,12 +727,12 @@
         "zh": "Vibe Native for More: Why AI Agents Deserve a Better App Framework"
       },
       "description": {
-        "en": "When we open-sourced Lynx, I [told Evan You](https://x.com/Huxpro/status/1898837980292493721) we'd had Vue on Lynx in mind. A year later I [vibe coded it in two weeks](https://x.com/Huxpro/status/2036993665965416601), and [vue-lynx](https://github.com/Huxpro/vue-lynx) became my proof at GOSIM Paris: AI is changing how apps are built, but not what they're built on. Here I laid out, for the first time, three principles for AI-native app infrastructure: AI-Ergonomic, AI-Efficient and AI-Expressive.",
-        "zh": "When we open-sourced Lynx, I [told Evan You](https://x.com/Huxpro/status/1898837980292493721) we'd had Vue on Lynx in mind. A year later I [vibe coded it in two weeks](https://x.com/Huxpro/status/2036993665965416601), and [vue-lynx](https://github.com/Huxpro/vue-lynx) became my proof at GOSIM Paris: AI is changing how apps are built, but not what they're built on. Here I laid out, for the first time, three principles for AI-native app infrastructure: AI-Ergonomic, AI-Efficient and AI-Expressive."
+        "en": "Five months after a [panel](commit:react-advanced-2025-panel) where I said that whatever is more ergonomic for humans turns out better for AI, I came to GOSIM Paris to make the full argument: AI is changing how apps are built, but not what they're built on, and without a cross-platform framework an agent has to write, verify and maintain every app once per platform. Here I laid out, for the first time, three principles for AI-native app infrastructure: AI-Ergonomic, AI-Efficient and AI-Expressive.",
+        "zh": "五个月前在一场[圆桌](commit:react-advanced-2025-panel)上，我说过「对人更友好的东西，对 AI 也更好」。这次在巴黎的 GOSIM，我把完整的论证讲了出来：AI 正在改变应用的构建方式，却没有改变它们所基于的框架；没有跨平台框架，Agent 就得为每个平台各写、各验证、各维护一遍。我第一次提出了 AI 原生应用基础设施的三条原则：AI-Ergonomic、AI-Efficient 与 AI-Expressive。"
       },
       "details": {
-        "en": "\"AI is transforming how apps are built, but not what they're built on. Without a cross-platform framework, agents must generate, verify, and maintain separate code for every platform. This talk introduces Lynx, the open-source cross-platform framework powering TikTok and CapCut at billion-user scale, and our three principles for AI-native app infrastructure: AI-Ergonomic (harness-able), AI-Efficient (token-economical), and AI-Expressive (intent-driven UI). We demonstrate how vue-lynx — a full Vue 3 renderer for Lynx — was vibe-coded in two weeks as proof of this principle.\"",
-        "zh": "\"AI is transforming how apps are built, but not what they're built on. Without a cross-platform framework, agents must generate, verify, and maintain separate code for every platform. This talk introduces Lynx, the open-source cross-platform framework powering TikTok and CapCut at billion-user scale, and our three principles for AI-native app infrastructure: AI-Ergonomic (harness-able), AI-Efficient (token-economical), and AI-Expressive (intent-driven UI). We demonstrate how vue-lynx — a full Vue 3 renderer for Lynx — was vibe-coded in two weeks as proof of this principle.\""
+        "en": "\"AI is transforming how apps are built, but not what they're built on. Without a cross-platform framework, agents must generate, verify, and maintain separate code for every platform. This talk introduces Lynx, the open-source cross-platform framework powering TikTok and CapCut at billion-user scale, and our three principles for AI-native app infrastructure: AI-Ergonomic (harness-able), AI-Efficient (token-economical), and AI-Expressive (intent-driven UI). …\"",
+        "zh": "「AI正在改变应用程序的构建方式，但并没有改变它们所基于的底层框架。如果没有跨平台框架，Agent必须为每个平台生成、验证和维护不同的代码。本次演讲介绍Lynx——一个驱动TikTok和CapCut十亿级用户规模的开源跨平台框架，以及我们关于AI原生应用基础设施的三个原则：AI友好（可驾驭）、AI高效（Token经济）和AI表达力强（意图驱动的UI）。……」"
       },
       "date": "2026-05",
       "conference": {
@@ -745,7 +749,7 @@
           "icon": "globe",
           "preview": {
             "title": "Why AI Agents Deserve a Better App Framework",
-            "description": "GOSIM Paris 2026. Lynx and three principles for AI native app infrastructure, with vue-lynx as the demo.",
+            "description": "GOSIM Paris 2026. Lynx and three principles for AI native app infrastructure.",
             "image": "https://paris2026.gosim.org/images/thumbnail.jpg"
           }
         }
@@ -753,8 +757,7 @@
       "tags": [
         "Lynx",
         "AI",
-        "Cross Platform",
-        "Vue"
+        "Cross Platform"
       ],
       "language": "en"
     },
@@ -773,7 +776,7 @@
         "zh": "蚂蚁邀请我们去 SEE Conf，于是我们把在波兰用英文讲过的 [React for Two Threads](commit:react-universe-2025-two-threads) 刷新了一遍，用中文再讲一次。还是甄子琦、王浩阳和我三个人。"
       },
       "details": {
-        "en": "From the official recording: \"For ten years we've been used to a world of single-threaded React. What if it hadn't been that way from the start? If React had been born dual-threaded, what would we unlock? What challenges would we meet? Would new features, abstractions and patterns emerge? Let's imagine it together; maybe it isn't just a fantasy.\"",
+        "en": "From the official recording: \"For ten years we've been used to a world of single-threaded React. What if it hadn't been that way from the start? If React had been born dual-threaded, what would we unlock? What challenges would we meet? Would new features, abstractions and patterns emerge? Let's imagine it together; maybe it isn't just a fantasy.\" (AI translated)",
         "zh": "「十年来，我们都习惯了「单线程 React」的世界，可如果它一开始就不是这样呢？假如 React 生来就是「双线程」，我们会解锁什么好处？又将遭遇哪些挑战？会有什么全新的特性、抽象和模式涌现出来吗？让我们一同想象一下，或许，这并非空想。」"
       },
       "date": "2025-11",
@@ -809,11 +812,11 @@
       },
       "description": {
         "en": "WeAreDevelopers invited us together with TikTok, so I gave [Unlock Native for More](commit:react-summit-2025-unlock-native) another round in Berlin, while TikTok ran a two-hour Lynx workshop the same day.",
-        "zh": "WeAreDevelopers invited us together with TikTok, so I gave [Unlock Native for More](commit:react-summit-2025-unlock-native) another round in Berlin, while TikTok ran a two-hour Lynx workshop the same day."
+        "zh": "WeAreDevelopers 邀请我们和 TikTok 一起去柏林，于是我把 [Unlock Native for More](commit:react-summit-2025-unlock-native) 又讲了一轮；同一天，TikTok 办了一场两小时的 Lynx 工作坊。"
       },
       "details": {
         "en": "\"TikTok's production-ready UI framework, Lynx, eliminates single-thread bottlenecks. Write standard JavaScript and CSS to render buttery-smooth, truly native mobile primitives without the sluggishness of web-view wrappers.\"",
-        "zh": "\"TikTok's production-ready UI framework, Lynx, eliminates single-thread bottlenecks. Write standard JavaScript and CSS to render buttery-smooth, truly native mobile primitives without the sluggishness of web-view wrappers.\""
+        "zh": "「TikTok 用于生产环境的 UI 框架 Lynx 消除了单线程瓶颈。用标准的 JavaScript 与 CSS，渲染丝滑流畅、真正原生的移动端基础组件，而没有 WebView 套壳的迟滞。」（AI 翻译）"
       },
       "date": "2025-07",
       "conference": {
@@ -855,7 +858,7 @@
         "zh": "[Lynx](commit:lynx-framework) 的开源首演。我写的开源博文发出三天后，我在第十九届 D2 的跨端专场讲：在跨端思路趋同、格局固化之时，字节为什么把孕育多年的 Lynx 开源，它又和别人有什么不一样。录像在 B 站有两万多播放。"
       },
       "details": {
-        "en": "\"As client products mature and fragment, cross-platform has become the default choice for many developers and companies. At the same time, UI framework innovation is converging, the approaches look more and more alike, and the market is settling into a fixed shape. Against that backdrop, why did Lynx, the cross-platform technology ByteDance nurtured for years, decide to go open source? This talk lifts the veil on Lynx and looks at the insights and the future of cross-platform together.\"",
+        "en": "\"As client products mature and fragment, cross-platform has become the default choice for many developers and companies. At the same time, UI framework innovation is converging, the approaches look more and more alike, and the market is settling into a fixed shape. Against that backdrop, why did Lynx, the cross-platform technology ByteDance nurtured for years, decide to go open source? This talk lifts the veil on Lynx and looks at the insights and the future of cross-platform together.\" (AI translated)",
         "zh": "「伴随终端业务的成熟和碎片化，跨端已成为众多开发者和企业的首选。但同时，UI 框架的创新在收敛，跨端思路大同小异，市场格局趋于固化。在这个背景下，字节孕育多年的跨端技术 —— Lynx，为何决定走向开源？本演讲将揭开 Lynx 的“神秘面纱”，与你一同探寻跨端的洞见与未来。」"
       },
       "date": "2025-03",
@@ -887,11 +890,11 @@
       },
       "description": {
         "en": "My first English talk at an in-person conference, in Amsterdam, three months after we open-sourced [Lynx](commit:lynx-framework). The launch had gone viral, Fireship covered it the very next day, and now I got to walk React Summit through it myself: what feels familiar to React developers, what sets Lynx apart, and how its two threads make launches instant. I introduced myself as the guy from the [React Forget talk](commit:reactconf-2021-memo).",
-        "zh": "My first English talk at an in-person conference, in Amsterdam, three months after we open-sourced [Lynx](commit:lynx-framework). The launch had gone viral, Fireship covered it the very next day, and now I got to walk React Summit through it myself: what feels familiar to React developers, what sets Lynx apart, and how its two threads make launches instant. I introduced myself as the guy from the [React Forget talk](commit:reactconf-2021-memo)."
+        "zh": "我第一次在线下大会上用英文演讲，在阿姆斯特丹，距离我们开源 [Lynx](commit:lynx-framework) 三个月。开源那会儿已经火了一把，Fireship 第二天就做了视频；这次我终于能亲自带 React Summit 的观众走一遍：Lynx 哪里让 React 开发者感到熟悉，哪里与众不同，双线程又是怎么让启动瞬间完成的。开场介绍自己时我说：React Conf 2021 上[讲 React Forget 的那个人](commit:reactconf-2021-memo)，就是我。"
       },
       "details": {
         "en": "\"Lynx, a new cross-platform stack adopted by the TikTok app that empowers teams to ship truly native UIs to mobile and web from a single codebase using their existing web skills like CSS and React, has recently been open sourced. In this talk, we'll explore what makes Lynx familiar and what sets it apart from other cross-platform technologies; we'll take a closer look at its dual-threaded design, and how that enables Lynx's instant launches and silky-smooth interactions, plus a sneak peak at what's next for Lynx.\" ([GitNation](https://gitnation.com/contents/lynx-unlock-native-for-more))",
-        "zh": "\"Lynx, a new cross-platform stack adopted by the TikTok app that empowers teams to ship truly native UIs to mobile and web from a single codebase using their existing web skills like CSS and React, has recently been open sourced. In this talk, we'll explore what makes Lynx familiar and what sets it apart from other cross-platform technologies; we'll take a closer look at its dual-threaded design, and how that enables Lynx's instant launches and silky-smooth interactions, plus a sneak peak at what's next for Lynx.\" ([GitNation](https://gitnation.com/contents/lynx-unlock-native-for-more))"
+        "zh": "「Lynx 是一套新的跨平台技术栈，已被 TikTok 采用，让团队能用 CSS、React 这些现有的 Web 技能，从一份代码向移动端和 Web 交付真正原生的界面，最近刚刚开源。这场演讲里，我们会看看 Lynx 哪里让人熟悉、又和其他跨平台技术有何不同；深入它的双线程设计，看它如何带来瞬间启动与丝滑交互，并抢先一窥 Lynx 的下一步。」（AI 翻译）（[GitNation](https://gitnation.com/contents/lynx-unlock-native-for-more)）"
       },
       "date": "2025-06",
       "conference": {
@@ -924,11 +927,11 @@
       },
       "description": {
         "en": "After the intro talks, the deep dive, in Wrocław. For a decade React has lived on one JavaScript thread; with Ziqi Zhen and Haoyang Wang from the Lynx team, I asked what React looks like when it's born for two: what it unlocks, what it costs, which abstractions emerge. Not a thought experiment: it's how [ReactLynx](https://lynxjs.org/react/) runs today.",
-        "zh": "After the intro talks, the deep dive, in Wrocław. For a decade React has lived on one JavaScript thread; with Ziqi Zhen and Haoyang Wang from the Lynx team, I asked what React looks like when it's born for two: what it unlocks, what it costs, which abstractions emerge. Not a thought experiment: it's how [ReactLynx](https://lynxjs.org/react/) runs today."
+        "zh": "入门介绍讲完之后，弗罗茨瓦夫的这一场是深入。十年来 React 一直活在一条 JavaScript 线程上；我和 Lynx 团队的甄子琦、王浩阳一起追问：如果 React 生来就是双线程的，会解锁什么、代价是什么、会涌现哪些抽象？这不是思想实验，[ReactLynx](https://lynxjs.org/react/) 今天就是这么跑的。"
       },
       "details": {
         "en": "\"For over a decade, we've lived in a universe where programming UIs with React on the client-side, from event handling to rendering, has been ruled by a single JavaScript thread. But what if React had been born differently? What if, from day one, it had been designed to fully embrace two threads? What benefits would that unlock? What challenges would we face? And what new features, abstractions, and patterns might emerge? What if this isn't just imagination... but something that exists today?\"",
-        "zh": "\"For over a decade, we've lived in a universe where programming UIs with React on the client-side, from event handling to rendering, has been ruled by a single JavaScript thread. But what if React had been born differently? What if, from day one, it had been designed to fully embrace two threads? What benefits would that unlock? What challenges would we face? And what new features, abstractions, and patterns might emerge? What if this isn't just imagination... but something that exists today?\""
+        "zh": "「十多年来，我们一直生活在这样一个宇宙里：在客户端用 React 编写 UI，从事件处理到渲染，都由一条 JavaScript 线程统治。可如果 React 生来就不一样呢？如果它从第一天起就被设计成完全拥抱两条线程呢？那会解锁哪些好处？我们会面对哪些挑战？又会涌现出哪些新的特性、抽象和模式？如果这不只是想象……而是今天就已经存在的东西呢？」（AI 翻译）"
       },
       "date": "2025-09",
       "conference": {
@@ -961,7 +964,7 @@
       },
       "description": {
         "en": "Callstack, who led bringing [Hermes](commit:hermes-engine) to iOS with us at Meta back in 2021, sat me down at React Universe Conf to talk about Lynx beyond React Native: native CSS straight from the web, the two-thread model, React as a specification, Vue and Svelte from the community, and the mini apps Lynx powers at ByteDance.",
-        "zh": "Callstack, who led bringing [Hermes](commit:hermes-engine) to iOS with us at Meta back in 2021, sat me down at React Universe Conf to talk about Lynx beyond React Native: native CSS straight from the web, the two-thread model, React as a specification, Vue and Svelte from the community, and the mini apps Lynx powers at ByteDance."
+        "zh": "2021 年牵头、和我们 Meta 一起把 [Hermes](commit:hermes-engine) 带上 iOS 的 Callstack，在 React Universe Conf 上请我坐下来聊 React Native 之外的 Lynx：直接来自 Web 的原生 CSS、双线程模型、把 React 当作一份规范、社区带来的 Vue 和 Svelte，以及 Lynx 在字节支撑的小程序。"
       },
       "date": "2025-09",
       "conference": {
@@ -993,11 +996,11 @@
       },
       "description": {
         "en": "My first time in the UK. With Zhou Fang, one of its creators, I gave the first look at [lynx-ui](https://github.com/lynx-family/lynx-ui): components built on Lynx's two threads for native-grade interactivity. We also announced Motion running on Lynx, which we had just started sponsoring, and LUNA, our Lynx UI Neo-Aesthetics theme.",
-        "zh": "My first time in the UK. With Zhou Fang, one of its creators, I gave the first look at [lynx-ui](https://github.com/lynx-family/lynx-ui): components built on Lynx's two threads for native-grade interactivity. We also announced Motion running on Lynx, which we had just started sponsoring, and LUNA, our Lynx UI Neo-Aesthetics theme."
+        "zh": "第一次去英国。我和 lynx-ui 的作者之一 Zhou Fang 一起首次公开了 [lynx-ui](https://github.com/lynx-family/lynx-ui)：基于 Lynx 双线程打造、交互达到原生水准的组件库。我们还宣布了 Motion 在 Lynx 上跑通、Lynx 刚刚开始赞助它，以及 Lynx UI 的新主题 LUNA（Lynx UI Neo-Aesthetics）。"
       },
       "details": {
         "en": "\"Ready-to-use components are vital to delivering user interfaces with velocity and scale. Introducing lynx-ui, the newest member of the Lynx family of cross-platform technologies behind TikTok. By taking advantage of Lynx's dual-threaded architecture, it offers high performance and native-graded interactivity. Join us to learn how we built it, and how it unlocks Lynx to scale across a massive range of products, even faster.\"",
-        "zh": "\"Ready-to-use components are vital to delivering user interfaces with velocity and scale. Introducing lynx-ui, the newest member of the Lynx family of cross-platform technologies behind TikTok. By taking advantage of Lynx's dual-threaded architecture, it offers high performance and native-graded interactivity. Join us to learn how we built it, and how it unlocks Lynx to scale across a massive range of products, even faster.\""
+        "zh": "「开箱即用的组件，是快速、规模化交付用户界面的关键。隆重介绍 lynx-ui，支撑 TikTok 的 Lynx 跨平台技术家族的最新成员。借助 Lynx 的双线程架构，它带来高性能与原生级的交互。来听听我们是怎么做出它的，以及它如何让 Lynx 更快地扩展到海量产品中。」（AI 翻译）"
       },
       "date": "2025-11",
       "conference": {
@@ -1030,11 +1033,11 @@
       },
       "description": {
         "en": "The same afternoon, a panel on write once, render anywhere, which happens to be Lynx's tagline, with Nicola Corti from React Native and Jorge Cohen from React at Meta, moderated by Taz Singh. I joked that we just want to steal React Native's ecosystem, pitched one standard for native modules across JavaScript stacks, and said that whatever is more ergonomic for humans turns out better for AI: the seed of what I'd argue at [GOSIM](commit:gosim-2026-vibe-native).",
-        "zh": "The same afternoon, a panel on write once, render anywhere, which happens to be Lynx's tagline, with Nicola Corti from React Native and Jorge Cohen from React at Meta, moderated by Taz Singh. I joked that we just want to steal React Native's ecosystem, pitched one standard for native modules across JavaScript stacks, and said that whatever is more ergonomic for humans turns out better for AI: the seed of what I'd argue at [GOSIM](commit:gosim-2026-vibe-native)."
+        "zh": "同一天下午的圆桌，主题「一次编写，处处渲染」，恰好也是 Lynx 的口号。同台的有 React Native 的 Nicola Corti、Meta React 团队的 Jorge Cohen，由 Taz Singh 主持。我开玩笑说我们就是想偷 React Native 的生态，然后提议各家 JavaScript 跨平台技术共用一套原生模块标准，还说了句「对人更友好的东西，对 AI 也更好」：这就是后来我在 [GOSIM](commit:gosim-2026-vibe-native) 上论证的种子。"
       },
       "details": {
         "en": "From the transcript: \"whatever that is more ergonomic to human are actually better for AI… React and nowadays components become even more important foundation for AI… cross-platform is the same. It reduces the entropy.\"",
-        "zh": "From the transcript: \"whatever that is more ergonomic to human are actually better for AI… React and nowadays components become even more important foundation for AI… cross-platform is the same. It reduces the entropy.\""
+        "zh": "现场实录：「对人更顺手的东西，其实对 AI 也更好……React，以及如今的组件，正在成为 AI 更重要的基础……跨平台也一样，它降低了熵。」（AI 翻译）"
       },
       "date": "2025-11",
       "conference": {
@@ -1074,7 +1077,7 @@
         "zh": "作为岗位的前端或许会消亡，但作为人机交互纽带的前端不会。"
       },
       "details": {
-        "en": "In 2023 the hottest thing about frontend was not a framework. It was the line \"frontend is dead.\" Looking back and ahead, in this constantly shifting digital world frontend has \"died\" before, and it will \"die\" again. Every leap, from PC to Web to mobile, and now as we stand at the edge of AI and the metaverse, the form may change, but frontend as the bond between humans and machines is eternal. This talk reviews the inflection points in that evolution, and looks ahead at what comes next.",
+        "en": "In 2023 the hottest thing about frontend was not a framework. It was the line \"frontend is dead.\" Looking back and ahead, in this constantly shifting digital world frontend has \"died\" before, and it will \"die\" again. Every leap, from PC to Web to mobile, and now as we stand at the edge of AI and the metaverse, the form may change, but frontend as the bond between humans and machines is eternal. This talk reviews the inflection points in that evolution, and looks ahead at what comes next. (AI translated)",
         "zh": "2023 年聊起前端，最火的并不是哪个框架，而是那句「前端已死」。放眼过去和未来，在这个不断变化的数字世界里，前端不但「死」过，而且还一定会再「死」。每一次跃迁 —— 从 PC 到 Web 到移动时代，再到现在我们正站在 AI 的风口浪尖和元宇宙的边缘 —— 或许形式会不同，但前端作为人与机器纽带的本质是永恒的。本演讲将回顾大前端技术演化中的拐点，并对下一个世代的前端趋势做一些展望和猜想。"
       },
       "date": "2024-01",
@@ -1109,7 +1112,7 @@
         "zh": "第六届 FEDAY，我的场次紧挨在尤雨溪的闭幕演讲之前；八年前，他在微博上转发过我的[模块化七日谈](commit:js-module-7day)。那年人人都在说「前端已死」，受陆奇博士大模型演讲的启发，我试着回答「我们说的前端到底是什么」，并猜想 AI、AVXR 时代的前端与前端工程师。两个月后，它长成了掘金的[主题演讲](commit:juejin-talk-2023)。"
       },
       "details": {
-        "en": "Is frontend dead, or is it the future? And when we say frontend, what are we actually talking about? Inspired by Qi Lu's talk on large models, a look at the inflection points in frontend's evolution, and a guess at what frontend (and frontend engineers) become in the next generation: AI, AVXR, and beyond.",
+        "en": "Is frontend dead, or is it the future? And when we say frontend, what are we actually talking about? Inspired by Qi Lu's talk on large models, a look at the inflection points in frontend's evolution, and a guess at what frontend (and frontend engineers) become in the next generation: AI, AVXR, and beyond. (AI translated)",
         "zh": "前端已死，又或是前端未来？当我们在说前端时，我们又在说什么？受陆奇博士的大模型演讲启发，不妨我们也来探讨一些大前端技术演化中的拐点，对下个世代（ AI、AVXR …）的前端（工程师）做一点猜想。"
       },
       "date": "2023-11",
@@ -1145,8 +1148,8 @@
         "zh": "Vue Lynx"
       },
       "description": {
-        "en": "A Vue 3 custom renderer for Lynx, built with AI over two weeks of evenings and weekends. The whole Vue runtime runs on Lynx's background thread and ships every DOM mutation to the main thread as one batch per tick, so Vue apps render native UI on iOS, Android, and the web. 852 of Vue's 949 upstream tests pass through that dual threaded pipeline.",
-        "zh": "Lynx 的 Vue 3 自定义渲染器，用 AI 在两周的晚上和周末里做出来。整个 Vue 运行时跑在 Lynx 的后台线程，每个 tick 把 DOM 变更打包成一批送到主线程，让 Vue 应用在 iOS、Android 和 Web 上渲染原生 UI。Vue 上游 949 个测试中，有 852 个通过了这条双线程管线。"
+        "en": "Vue developers had wanted native for years; Vue support was the most-upvoted request Lynx ever had, and when we open-sourced Lynx I [told Evan You](https://x.com/Huxpro/status/1898837980292493721) we'd had Vue on Lynx in mind. What we lacked was bandwidth, until solo engineers with AI started shipping what used to take a team. One weekend hackathon got me a working TodoMVC; two more weeks of evenings and weekends, 160+ commits across about 180 AI sessions, made it real.",
+        "zh": "Vue 开发者想要原生能力已经很多年了，Vue 集成是 Lynx 有史以来呼声最高的需求；Lynx 开源时，我就[跟尤雨溪说过](https://x.com/Huxpro/status/1898837980292493721)，我们心里一直想着 Vue on Lynx。缺的始终是人手，直到一个工程师加上 AI 也能交付过去要一个团队才能做的东西。一个周末的 Hackathon，周一早上 TodoMVC 就跑起来了；接下来两周的晚上和周末，160 多个 commit、约 180 个 AI session，把它做成了真的。"
       },
       "date": "2026-03",
       "endDate": "present",
@@ -1176,6 +1179,10 @@
       "commentary": {
         "en": "When things actually work, you let the demos do the talking.",
         "zh": "真正做通了，就让 Demo 自己说话。"
+      },
+      "details": {
+        "en": "A Vue 3 custom renderer for Lynx, built with AI over two weeks of evenings and weekends. The whole Vue runtime runs on Lynx's background thread and ships every DOM mutation to the main thread as one batch per tick, so Vue apps render native UI on iOS, Android, and the web. 852 of Vue's 949 upstream tests pass through that dual threaded pipeline.",
+        "zh": "Lynx 的 Vue 3 自定义渲染器，用 AI 在两周的晚上和周末里做出来。整个 Vue 运行时跑在 Lynx 的后台线程，每个 tick 把 DOM 变更打包成一批送到主线程，让 Vue 应用在 iOS、Android 和 Web 上渲染原生 UI。Vue 上游 949 个测试中，有 852 个通过了这条双线程管线。"
       }
     },
     {
@@ -1217,10 +1224,6 @@
       "stats": {
         "users": "1B+"
       },
-      "commentary": {
-        "en": "Not a better React Native. The bet is that web skills plus a two-thread runtime can unlock native — for more platforms, more products, more people.",
-        "zh": "不是一个更好的 React Native。我们赌的是：Web 技能加上双线程运行时，能为更多平台、更多产品、更多人解锁原生。"
-      },
       "details": {
         "en": "From the launch post I wrote: \"Today, we're excited to introduce Lynx, a family of technologies empowering developers to use their existing web skills to create truly native UIs for both mobile and web from a single codebase. Designed for diverse use cases and rich interactivity, Lynx delivers vibrant and engaging UIs for large-scale apps like TikTok, featuring a speedy, versatile rendering engine, performance-driven dual-threaded UI programming, modern Rust-based tooling, and more!\" The family: a dual-threaded runtime on PrimJS, ReactLynx, the Rspack-based Rspeedy toolchain, and Lynx for Web. Apache 2.0.",
         "zh": "我写的开源博文：「今天，我们很高兴向大家介绍 Lynx 全家桶——一套帮助 Web 开发者复用现有经验，通过一份代码同时构建移动端原生界面与 Web 端界面的技术方案。Lynx 专为多样化、富交互的场景打造，得以在 TikTok 这样量级的应用中支撑那些生动且吸引人的界面。它有着高性能、多功能的渲染引擎、性能优先的双线程 UI 编程范式、以及基于 Rust 的现代工具链等诸多特性。」全家桶包括基于 PrimJS 的双线程运行时、ReactLynx、基于 Rspack 的 Rspeedy 工具链，以及 Lynx for Web。Apache 2.0 协议。"
@@ -1243,7 +1246,7 @@
         "zh": "SegmentFault 思否与开源社把我评为「2022 中国开源先锋 33 人」之一，理由是把顶级开源团队的声音带给国内开发者，无失真地在国内传播 React 的思想。名单公布时，我正处在离开 Meta、加入字节之间的空档，算是给 React 那几年，以及 [COSCon](commit:coscon-2022) 这样的分享，画了个句号。"
       },
       "details": {
-        "en": "The citation: \"Xuan Huang, software engineer at Meta on React, an open-source team the internet loves. Why: he brought the voice of a top open-source team to developers in China and helped spread React's ideas here without distortion. Hard-core technically, and good at making deep things simple; the community loves him.\" Chosen over a month from 72 nominations by SegmentFault, KAIYUANSHE and past pioneers.",
+        "en": "The citation: \"Xuan Huang, software engineer at Meta on React, an open-source team the internet loves. Why: he brought the voice of a top open-source team to developers in China and helped spread React's ideas here without distortion. Hard-core technically, and good at making deep things simple; the community loves him.\" (AI translated) Chosen over a month from 72 nominations by SegmentFault, KAIYUANSHE and past pioneers.",
         "zh": "「黄玄丨Facebook Meta 签约软件工程师，就职于开源技术网红团队 React。推荐理由：给国内开发者带来了来自顶级开源团队的声音，为在国内无失真地传播 React 相关思想贡献力量。技术硬核而又擅长深入浅出，深受社区小伙伴的喜爱。」评选历时一月有余，共收到 72 份有效报名，由 SegmentFault 思否与开源社的主编团和往届中国开源先锋组成的评审团共同评出。"
       },
       "date": "2022-12",
@@ -1276,7 +1279,7 @@
         "zh": "在 Meta 的最后一个月，我在第七届中国开源年会上以 React 团队一员的视角，给中文社区讲了一遍 React 18 之后的全景：核心、Web、跨平台、库、框架、文档与工具，以及作为中国开发者如何参与。"
       },
       "details": {
-        "en": "From the video's description: \"A talk at the 7th China Open Source Conference: from my own understanding, a look back and ahead, from a global perspective, at what has happened and is about to happen across the React ecosystem, covering React core, web, cross-platform, libraries, frameworks, docs and tools, to help you see React's big picture.\" The submitted outline: 1. Where React stands (React 18). 2. Where React is heading and what it is solving (after React 18). 3. How Chinese developers can take part.",
+        "en": "From the video's description: \"A talk at the 7th China Open Source Conference: from my own understanding, a look back and ahead, from a global perspective, at what has happened and is about to happen across the React ecosystem, covering React core, web, cross-platform, libraries, frameworks, docs and tools, to help you see React's big picture.\" (AI translated) The submitted outline: 1. Where React stands (React 18). 2. Where React is heading and what it is solving (after React 18). 3. How Chinese developers can take part. (AI translated)",
         "zh": "视频简介：「今年年底时在「第七届中国开源年会」上的分享：从我个人的理解，尝试以一种比较「全局性的视角」跟大家一起回顾以及展望一下 React 整个生态这一段时期以来已经发生和将要发生的一些变化，力求涵盖 React 核心、Web、跨平台、库、框架、文档、工具等整个 React 生态的方方面面，希望能对大家理解 React 的整个 big picture 有帮助！」提交的大纲：1. React 现状回顾（React 18 相关）2. React 发展方向和在解决的问题（React 18 之后）3. 作为中国开发者如何参与。"
       },
       "date": "2022-10",
@@ -1312,7 +1315,7 @@
         "zh": "Gitee「封面人物」请我做了一期专访，最后聊成了一期反思色彩很浓的采访：一个画 Flash 动画的小孩怎么进了艺术院校，为什么在阿里从交互转做前端，为什么要去 RIT「去风暴中心看一看」，带 React Forget 是什么体验，以及我怎么在工作之外保有生活。"
       },
       "details": {
-        "en": "\"React's Xuan Huang: a B-Boy who doesn't get art is no programmer with swag.\" \"A slash youth who knows a little computer science and a little art; now a software engineer at Meta on the open-source React Core Team, and tech lead of the React Forget compiler project.\"",
+        "en": "\"React's Xuan Huang: a B-Boy who doesn't get art is no programmer with swag.\" \"A slash youth who knows a little computer science and a little art; now a software engineer at Meta on the open-source React Core Team, and tech lead of the React Forget compiler project.\" (AI translated)",
         "zh": "「React 黄玄：不懂艺术的 B-Boy 不是 Swag 的程序员」。「一个略懂计算机科学与艺术的斜杆不动青年，现 Meta 软件工程师，目前就职于开源技术团队 React Core Team，还是 React Forget 编译器项目 Tech Lead。」"
       },
       "date": "2022-10",
@@ -1345,11 +1348,11 @@
       },
       "description": {
         "en": "React Forget's first public appearance. React Conf was online that year, with over 50,000 people registered, and in about ten minutes I demoed an auto-memoizing compiler prototype from React Labs, so you could write React without memo, useMemo and useCallback. Four years later, React Compiler 1.0 [credited it](https://react.dev/blog/2025/10/07/react-compiler-1) as the first iteration of the compiler that shipped.",
-        "zh": "React Forget's first public appearance. React Conf was online that year, with over 50,000 people registered, and in about ten minutes I demoed an auto-memoizing compiler prototype from React Labs, so you could write React without memo, useMemo and useCallback. Four years later, React Compiler 1.0 [credited it](https://react.dev/blog/2025/10/07/react-compiler-1) as the first iteration of the compiler that shipped."
+        "zh": "React Forget 第一次公开亮相。那年 React Conf 在线上举办，五万多人报名；我用大约十分钟演示了 React Labs 的一个自动记忆化编译器原型，让你写 React 时不再需要 memo、useMemo 和 useCallback。四年后，React Compiler 1.0 的发布文章[把它称为](https://react.dev/blog/2025/10/07/react-compiler-1)最终发布的那个编译器的第一版。"
       },
       "details": {
         "en": "From the [conference recap](https://react.dev/blog/2021/12/17/react-conf-2021-recap): \"Looking further into the future, Xuan Huang (黄玄) shared an update from our React Labs research into an auto-memoizing compiler. Check out this talk for more information and a demo of the compiler prototype.\" React Conf 2021 was the first held online, on December 8, 2021, with over 50,000 people registered.",
-        "zh": "From the [conference recap](https://react.dev/blog/2021/12/17/react-conf-2021-recap): \"Looking further into the future, Xuan Huang (黄玄) shared an update from our React Labs research into an auto-memoizing compiler. Check out this talk for more information and a demo of the compiler prototype.\" React Conf 2021 was the first held online, on December 8, 2021, with over 50,000 people registered."
+        "zh": "[大会回顾](https://react.dev/blog/2021/12/17/react-conf-2021-recap)：「展望更远的未来，黄玄分享了 React Labs 在自动记忆化编译器方面的研究进展。想了解更多、看编译器原型的演示，请看这场演讲。」（AI 翻译）React Conf 2021 是第一次在线上举办，时间是 2021 年 12 月 8 日，五万多人报名。"
       },
       "date": "2021-12",
       "conference": {
@@ -1466,13 +1469,9 @@
       "stats": {
         "stars": 220000
       },
-      "commentary": {
-        "en": "The authoring model should stay clean. If memoization is load-bearing, a compiler should do it — so React can be fast by default. We called it Forget; it shipped as React Compiler.",
-        "zh": "编写模型应当保持干净。如果记忆化是承重墙，那就该交给编译器，让 React 默认就快。我们叫它 Forget，它以 React Compiler 的名字发布。"
-      },
       "details": {
         "en": "From the React docs: React Compiler \"automatically optimizes your React application by handling memoization for you, eliminating the need for manual useMemo, useCallback, and React.memo.\" From React Labs, June 2022, which I co-authored: \"We gave an early preview of React Forget at React Conf 2021. It's a compiler that automatically generates the equivalent of useMemo and useCallback calls to minimize the cost of re-rendering, while retaining React's programming model.\" From the React Compiler 1.0 post: \"In 2021, Xuan Huang demoed the first iteration of a new take on React Compiler.\"",
-        "zh": "React 文档：React Compiler “automatically optimizes your React application by handling memoization for you, eliminating the need for manual useMemo, useCallback, and React.memo.” 我参与撰写的 React Labs 2022 年 6 月文章：“We gave an early preview of React Forget at React Conf 2021. It's a compiler that automatically generates the equivalent of useMemo and useCallback calls to minimize the cost of re-rendering, while retaining React's programming model.” React Compiler 1.0 的发布文章：“In 2021, Xuan Huang demoed the first iteration of a new take on React Compiler.”"
+        "zh": "React 文档：React Compiler「通过替你处理记忆化来自动优化你的 React 应用，无需再手写 useMemo、useCallback 和 React.memo」（AI 翻译）。我参与撰写的 React Labs 2022 年 6 月文章：「我们在 React Conf 2021 上抢先展示了 React Forget。它是一个编译器，会自动生成相当于 useMemo 与 useCallback 的调用，在保留 React 编程模型的同时，把重新渲染的开销降到最低。」（AI 翻译）React Compiler 1.0 的发布文章：「2021 年，黄玄演示了以全新思路实现 React Compiler 的第一版。」（AI 翻译）"
       }
     },
     {
@@ -1523,13 +1522,9 @@
           }
         }
       ],
-      "commentary": {
-        "en": "144 pages of W3C spec, about 5,000 lines of Coq. Applying formal verification, we show WebAssembly is safe.",
-        "zh": "144 页的 W3C 规范，约 5000 行 Coq。用形式化验证，证明 WebAssembly 是安全的。"
-      },
       "details": {
         "en": "\"A Mechanized Formalization of the WebAssembly Specification in Coq\", capstone report, RIT Computer Science, Fall 2019. Abstract: \"We developed a mechanized formalization of W3C WebAssembly Core Specification 1.0 in the Coq proof assistant, and (almost) completed a mechanized proof that this semantics is sound, implying both its type safety and memory safety. Wasm has been designed and standardized with formal semantics. In contrast to prior work, our mechanized formalization closely follows the standard, exposed issues and provided bug fixes. Our work serves as a foundation for certified software development in the Coq community.\" Code: [Huxpro/WasmCert](https://github.com/Huxpro/WasmCert). The FM 2021 paper Two Mechanisations of WebAssembly 1.0: \"Xuan presents a partial Coq-mechanisation of Wasm in his M.Sc project, independently named WasmCert. We have been given permission to use the WasmCert name.\"",
-        "zh": "《A Mechanized Formalization of the WebAssembly Specification in Coq》，RIT 计算机系硕士项目报告，2019 年秋。摘要：\"We developed a mechanized formalization of W3C WebAssembly Core Specification 1.0 in the Coq proof assistant, and (almost) completed a mechanized proof that this semantics is sound, implying both its type safety and memory safety. Wasm has been designed and standardized with formal semantics. In contrast to prior work, our mechanized formalization closely follows the standard, exposed issues and provided bug fixes. Our work serves as a foundation for certified software development in the Coq community.\" 代码：[Huxpro/WasmCert](https://github.com/Huxpro/WasmCert)。FM 2021 论文《Two Mechanisations of WebAssembly 1.0》：\"Xuan presents a partial Coq-mechanisation of Wasm in his M.Sc project, independently named WasmCert. We have been given permission to use the WasmCert name.\""
+        "zh": "《A Mechanized Formalization of the WebAssembly Specification in Coq》，RIT 计算机系硕士项目报告，2019 年秋。摘要：「我们在 Coq 证明助手中对 W3C WebAssembly 核心规范 1.0 做了机械化形式化，并（几乎）完成了该语义可靠性的机械化证明，由此可得它的类型安全与内存安全。Wasm 在设计和标准化时就带有形式语义。与此前的工作不同，我们的机械化形式化紧贴标准本身，暴露了其中的问题并提供了修复。我们的工作可作为 Coq 社区认证软件开发的基础。」（AI 翻译）代码：[Huxpro/WasmCert](https://github.com/Huxpro/WasmCert)。FM 2021 论文《Two Mechanisations of WebAssembly 1.0》：「Xuan 在他的硕士项目中给出了 Wasm 的部分 Coq 机械化，并独立将其命名为 WasmCert。我们已获准使用 WasmCert 这个名字。」（AI 翻译）"
       }
     },
     {
@@ -1553,7 +1548,7 @@
       },
       "details": {
         "en": "How my manager framed it: \"As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.\" XROS was Meta's effort to build its own OS for its AR and VR devices; The Verge reported in 2022 that the roughly 300-person team had been broken up and embedded into the product lines.",
-        "zh": "我经理的说法：“As part of Reality Labs Research (formerly Oculus Research), I led a research team building a new programming language and application framework specifically targeting all-day wearable, low power devices.” XROS 是 Meta 为自家 AR/VR 设备自研操作系统的尝试；据 The Verge 2022 年报道，这个约 300 人的团队被拆散，并入了各条产品线。"
+        "zh": "我经理的说法：「作为 Reality Labs Research（前身为 Oculus Research）的一员，我带领一支研究团队，专为全天佩戴的低功耗设备打造一门新的编程语言与应用框架。」（AI 翻译）XROS 是 Meta 为自家 AR/VR 设备自研操作系统的尝试；据 The Verge 2022 年报道，这个约 300 人的团队被拆散，并入了各条产品线。"
       },
       "date": "2019-05",
       "endDate": "2019-08",
@@ -1596,7 +1591,7 @@
       },
       "details": {
         "en": "From its homepage: \"Reason lets you write simple, fast and quality type safe code while leveraging both the JavaScript & OCaml ecosystems.\" Messenger.com was half Reason by 2017, with ten bugs in a year. In 2020 BuckleScript, Reason's JavaScript compiler, took its own syntax and was rebranded ReScript; Reason continues on its own.",
-        "zh": "官网：“Reason lets you write simple, fast and quality type safe code while leveraging both the JavaScript & OCaml ecosystems.” 到 2017 年，Messenger.com 已有一半代码是 Reason，一整年只出了 10 个 bug。2020 年，Reason 的 JavaScript 编译器 BuckleScript 有了自己的语法并更名为 ReScript；Reason 本身继续独立发展。"
+        "zh": "官网：「Reason 让你在同时利用 JavaScript 与 OCaml 生态的前提下，写出简洁、快速、高质量的类型安全代码。」（AI 翻译）到 2017 年，Messenger.com 已有一半代码是 Reason，一整年只出了 10 个 bug。2020 年，Reason 的 JavaScript 编译器 BuckleScript 有了自己的语法并更名为 ReScript；Reason 本身继续独立发展。"
       },
       "date": "2018-05",
       "endDate": "2018-08",
@@ -1676,7 +1671,7 @@
       },
       "details": {
         "en": "From web.dev: \"Ele.me is the biggest food ordering and delivery company in mainland China. It serves 260 million registered users from over 200 cities all around China, and has over 1.3 million restaurant listings. With 99% of its users ordering food on mobile, Ele.me set out to improve its mobile web experience, making it faster and more reliable in flaky connections, all while relying on the core technical model of a multi-page app to accommodate their operational needs.\" Loading time fell 11.6% across pre-cached pages and 6.35% on average; time-to-consistently-interactive dropped to 4.93 seconds on 3G on first load.",
-        "zh": "web.dev 案例：“Ele.me is the biggest food ordering and delivery company in mainland China. It serves 260 million registered users from over 200 cities all around China, and has over 1.3 million restaurant listings. With 99% of its users ordering food on mobile, Ele.me set out to improve its mobile web experience, making it faster and more reliable in flaky connections, all while relying on the core technical model of a multi-page app to accommodate their operational needs.” 预缓存页面的加载时间缩短 11.6%，整体平均缩短 6.35%；3G 首次加载下，持续可交互时间降到 4.93 秒。"
+        "zh": "web.dev 案例：「饿了么是中国大陆最大的外卖订餐平台，服务全国 200 多个城市的 2.6 亿注册用户，拥有超过 130 万家餐厅。由于 99% 的用户在手机上下单，饿了么着手改进移动 Web 体验，让它在网络不稳定时也更快、更可靠，同时继续沿用多页应用这一核心技术模型，以满足运营需求。」（AI 翻译）预缓存页面的加载时间缩短 11.6%，整体平均缩短 6.35%；3G 首次加载下，持续可交互时间降到 4.93 秒。"
       },
       "date": "2017-02",
       "endDate": "2017-05",
@@ -1714,7 +1709,7 @@
         "zh": "本科毕业设计，最后一个学期一边在微影上班一边做完：一个所见即所得的在线演示工具，像 Google Slides，做可链接、可分享、跨平台的 Web 幻灯片，押注的是 Web 本身，而不是 PowerPoint 与 Keynote。后来我的 PWA 演讲，从 [QCon 2016](commit:qcon-shanghai-2016) 到 [JSConf 2017](commit:jsconf-china-2017)，都是用它做的，它到现在还在线上。"
       },
       "details": {
-        "en": "Its tagline: \"Create truly cross-platform HTML5 presentations, and take what you share to any corner of the world.\" In my own words at the time: \"a online software helping you create, store and share web slides.\"",
+        "en": "Its tagline: \"Create truly cross-platform HTML5 presentations, and take what you share to any corner of the world.\" (AI translated) In my own words at the time: \"a online software helping you create, store and share web slides.\"",
         "zh": "「创作真正跨平台的 HTML5 展示文稿，让你的分享到达世界的任何一个角落。」"
       },
       "date": "2016-06",
@@ -1792,7 +1787,7 @@
         "zh": "我在阿里成为了一名工程师。第一位 mentor 把我从一个连 git 都用不熟的新人，带成了能独立战斗的工程师；我重构过酒店详情和团购详情，做过个人中心红包，也参与了阿里旅行离线包与 Hybrid 容器的共建，后来写成了[本地 H5 与虚拟域](/writing/taobao-hybrid-app/zh)。在航旅的 270 天里，还从内部经历了阿里上市、新品牌发布和一次双十一。"
       },
       "details": {
-        "en": "\"I joined Alibaba as an intern in my sophomore summer on an interaction-designer offer, but found the work too boring, messaged Bachi (a well-known Alibaba front-end engineer) inside the company, switched to front-end, and stayed for my whole junior year.\" (Gitee cover story, 2022)",
+        "en": "\"I joined Alibaba as an intern in my sophomore summer on an interaction-designer offer, but found the work too boring, messaged Bachi (a well-known Alibaba front-end engineer) inside the company, switched to front-end, and stayed for my whole junior year.\" (AI translated) (Gitee cover story, 2022)",
         "zh": "「大二暑假还是拿着交互设计师的 offer 进阿里实习的，但是后来觉得工作内容太无聊了，直接在公司内私信了拔赤老师（阿里巴巴知名前端开发工程师）转成了前端，并且一呆就是整个大三。」（Gitee 封面人物，2022）"
       },
       "date": "2014-08",
@@ -1853,13 +1848,9 @@
       "stats": {
         "stars": 7600
       },
-      "commentary": {
-        "en": "要做一个有 swag 的程序员. The theme was the first thing a lot of people knew me for — before compilers, before Lynx.",
-        "zh": "要做一个有 swag 的程序员。在编译器、在 Lynx 之前，很多人是先从这套主题认识我的。"
-      },
       "details": {
         "en": "\"The original Jekyll blog and theme, preserved at huxpro.github.io. For Hux's current website, visit hux.pro.\" PWA and Service Worker support since V1.7.",
-        "zh": "\"The original Jekyll blog and theme, preserved at huxpro.github.io. For Hux's current website, visit hux.pro.\" V1.7 起支持 PWA / Service Worker。"
+        "zh": "「最初的 Jekyll 博客与主题，保存在 huxpro.github.io。Hux 现在的网站请访问 hux.pro。」（AI 翻译）V1.7 起支持 PWA / Service Worker。"
       }
     },
     {
@@ -1875,7 +1866,7 @@
         "zh": "刚进微票儿两个月时的一次内部分享，结果走出了公司：用七天讲完 JavaScript 模块化，从设计模式、script loader、CommonJS、AMD/CMD、Browserify/Webpack 一路到 ES6 Module。发到微博后被尤雨溪等近 200 人转发、阅读 10 万，[仓库](https://github.com/Huxpro/js-module-7day)至今 600 多星。"
       },
       "details": {
-        "en": "Day 1, Module? (it starts with design patterns). Day 2, Script Loader (encapsulation isn't enough, we need loading). Day 3, Module Loader (the industrial revolution of modular architecture). Day 4, CommonJS (conquering the world starts outside the browser). Day 5, AMD/CMD (modules for the browser). Day 6, Browserify/Webpack (the way things are going: drop the wrapper!). Day 7, ES6 Module (the last battle). [Write-up, in Chinese](https://huxpro.github.io/2015/07/09/js-module-7day/).",
+        "en": "Day 1, Module? (it starts with design patterns). Day 2, Script Loader (encapsulation isn't enough, we need loading). Day 3, Module Loader (the industrial revolution of modular architecture). Day 4, CommonJS (conquering the world starts outside the browser). Day 5, AMD/CMD (modules for the browser). Day 6, Browserify/Webpack (the way things are going: drop the wrapper!). Day 7, ES6 Module (the last battle). (AI translated) [Write-up, in Chinese](https://huxpro.github.io/2015/07/09/js-module-7day/).",
         "zh": "第一日 上古时期 Module?（从设计模式说起）；第二日 石器时代 Script Loader（只有封装性可不够，我们还需要加载）；第三日 蒸汽朋克 Module Loader（模块化架构的工业革命）；第四日 号角吹响 CommonJS（征服世界的第一步是跳出浏览器）；第五日 双塔奇兵 AMD/CMD（浏览器环境模块化方案）；第六日 精灵宝钻 Browserify/Webpack（大势所趋，去掉这层包裹！）；第七日 王者归来 ES6 Module（最后的战役）。[文字版](https://huxpro.github.io/2015/07/09/js-module-7day/)。"
       },
       "date": "2015-07",
@@ -1914,7 +1905,7 @@
       },
       "details": {
         "en": "\"POCss: Page Override Components CSS. 1. Scoping Components: CSS Blocks should only be used inside a component of the same name. 2. Components can be Overrode by Pages.\" \"It's technology-agnostic… Solving problems, and easy… Leverage the power of cascading properly… Scoping components but allow reasonable overriding… It's pragmatic, flexible and hitting the sweet spot.\"",
-        "zh": "\"POCss: Page Override Components CSS. 1. Scoping Components: CSS Blocks should only be used inside a component of the same name. 2. Components can be Overrode by Pages.\" \"It's technology-agnostic… Solving problems, and easy… Leverage the power of cascading properly… Scoping components but allow reasonable overriding… It's pragmatic, flexible and hitting the sweet spot.\""
+        "zh": "「POCss：页面覆盖组件的 CSS（Page Override Components CSS）。1. 组件隔离：CSS Block 只能在同名组件内使用。2. 组件可以被页面覆盖。」「它与技术无关……解决问题，而且简单……恰当地利用层叠的威力……隔离组件，但允许合理覆盖……务实、灵活，恰到好处。」（AI 翻译）"
       },
       "date": "2015-08",
       "conference": {
@@ -1983,7 +1974,7 @@
         "zh": "QCon 上海 2016 的前端技术实践专场，同场还有尤雨溪的 Vue 2.0。我把 PWA 介绍给国内开发者：来自 Web 阵营、对 Native 的一次反击。后来我半开玩笑地自称「国内 PWA 布道第一人」，就是从这几场开始的。"
       },
       "details": {
-        "en": "Official title, \"Progressive Web App: the counterattack begins\". The abstract: \"The war between native and web has not let up since the day the web was born, and in the mobile era it has only grown fiercer, fought over a few square inches. Some stand firmly with native; others keep the open web as their faith. As convergence became the mainstream, hybrid, dynamic and web-paradigm cross-platform solutions flourished, and the Google Chrome team, together with Microsoft Edge, Mozilla Firefox, Opera and other browser vendors, gave the web's answer: Progressive Web Apps, sounding the counterattack against native… This talk covers everything you need to know about PWA :)\"",
+        "en": "Official title, \"Progressive Web App: the counterattack begins\". The abstract: \"The war between native and web has not let up since the day the web was born, and in the mobile era it has only grown fiercer, fought over a few square inches. Some stand firmly with native; others keep the open web as their faith. As convergence became the mainstream, hybrid, dynamic and web-paradigm cross-platform solutions flourished, and the Google Chrome team, together with Microsoft Edge, Mozilla Firefox, Opera and other browser vendors, gave the web's answer: Progressive Web Apps, sounding the counterattack against native… This talk covers everything you need to know about PWA :)\" (AI translated)",
         "zh": "官方题目「Progressive Web App：反击序章」。摘要：「关于 Native 与 Web 的纷争，从 Web 诞生之日起到现在就从未消停过。眼看这场战火在移动时代的方寸之间愈演愈烈，有的人坚定地站在了 Native 阵营，有的人则选择 Open Web 作为自己的信仰。近年来，随着融合与相互借鉴的声音成为主流，Hybrid、动态化与基于 Web 开发范式的跨平台解决方案百花齐放，而 Google Chrome 团队，也联合 Microsoft Edge、Mozilla Firefox、Opera 等一众浏览器厂商，给出了来自 Web 阵营的回应——Progressive Web App，向 Native 阵营吹响了反击的号角……本次分享将涵盖：关于 PWA 你需要知道的一切 ：）」"
       },
       "date": "2016-10",
@@ -2020,7 +2011,7 @@
         "zh": "离开 Meta、加入字节之前的空档，我这个「年更博主」在 B 站夜聊了一次：近况，也聊了些很个人的人生命题。"
       },
       "details": {
-        "en": "From the video's description: \"Your once-a-year blogger is back from the dead! Besides the updates you've been asking about, a late-night chat about some very personal questions and lessons in life. Maybe it will spark something for you too.\"",
+        "en": "From the video's description: \"Your once-a-year blogger is back from the dead! Besides the updates you've been asking about, a late-night chat about some very personal questions and lessons in life. Maybe it will spark something for you too.\" (AI translated)",
         "zh": "视频简介：「你们的年更博主终于原地复活了！除了一些你们关心的近况更新外，也跟大家夜聊夜聊一些非常个人的人生命题与感悟，说不定对你也会有启发呢？」"
       },
       "date": "2023-01-19",
