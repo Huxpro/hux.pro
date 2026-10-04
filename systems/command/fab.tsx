@@ -3,7 +3,7 @@
 import { useLocale, t } from "@/services";
 import { useCommand } from "./provider";
 import { cn } from "@/lib/utils";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { Command, Search, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -36,6 +36,12 @@ const HOLD_SLOP_PX = 10;
 
 /** Both shapes of this button (the bar and the round FAB) are this round. */
 const FAB_RADIUS = 24;
+
+/**
+ * The morph between the home's prompt and the corner's buttons: both buttons
+ * move and reshape with this, so they arrive together.
+ */
+const MORPH = { duration: 0.4, ease: [0.32, 0.72, 0, 1] } as const;
 
 export function FloatingActionButton() {
   const { isOpen, toggle, openAsk, closeAsk, askPlacement } = useCommand();
@@ -115,6 +121,10 @@ export function FloatingActionButton() {
   const isHomepage = pathname === "/";
   const isDraggable = drag.isEnabled && !isHomepage;
   const yielding = isHomepage && homeEditing && compact;
+  // Away from the home on a phone the two round buttons stand in a column at
+  // the trailing edge, Ask above search, the way a phone stacks its floating
+  // buttons; a desk has the width to keep them side by side.
+  const stacked = !isHomepage && compact;
 
   if (!mounted) return null;
 
@@ -161,7 +171,7 @@ export function FloatingActionButton() {
       style={{ borderRadius: FAB_RADIUS }}
       animate={{ opacity: yielding ? 0 : 1 }}
       transition={{
-        layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
+        layout: MORPH,
         borderRadius: { duration: 0.4 },
         opacity: yielding
           ? { duration: HANDOFF.out }
@@ -259,12 +269,17 @@ export function FloatingActionButton() {
         !isHomepage && askPlacement === "side" && "sm:pr-[calc(440px+1.5rem)]"
       )}
     >
-      {/* The bar and, on the home, the Ask capsule beside it: centred as a
-          pair, so the bottom of the home stays balanced. */}
+      {/* The bar and the Ask button: centred as a pair on the home, so the
+          bottom of it stays balanced; in the corner elsewhere, side by side
+          on a desk and stacked on a phone. Both are layout-animated in one
+          group, so a route change morphs them together rather than one
+          moving while the other jumps. */}
+      <LayoutGroup id="command-fab">
       <div
         className={cn(
           "flex gap-2",
-          isHomepage && "justify-center md:w-full md:max-w-xl"
+          isHomepage && "justify-center md:w-full md:max-w-xl",
+          stacked && "flex-col-reverse items-end"
         )}
       >
         {/* Away from the home the pill is ⌘K alone; a pause on it names the
@@ -287,6 +302,7 @@ export function FloatingActionButton() {
             <motion.button
               key="ask-chip"
               type="button"
+              layout
               onClick={() => (askPlacement ? closeAsk() : openAsk())}
               aria-label={s.askRow}
               aria-pressed={askPlacement !== null}
@@ -299,11 +315,15 @@ export function FloatingActionButton() {
                   : { duration: HANDOFF.in, delay: HANDOFF.delay },
               }}
               exit={{ opacity: 0, x: -10, transition: { duration: 0.2 } }}
+              // Moves and reshapes (capsule ↔ circle) with the bar; the
+              // radius as a style so the morph keeps it round.
+              transition={{ layout: MORPH }}
+              style={{ borderRadius: FAB_RADIUS }}
               className={cn(
                 "pressable pointer-events-auto select-none",
-                "flex h-12 w-12 shrink-0 items-center justify-center gap-2",
-                isHomepage && "sm:w-auto sm:px-4",
-                "rounded-[24px] bg-glass backdrop-blur-xl",
+                "flex h-12 min-w-12 shrink-0 items-center justify-center gap-2 overflow-hidden",
+                isHomepage && "sm:px-4",
+                "bg-glass backdrop-blur-xl",
                 "border border-border/50 shadow-raised",
                 "text-muted-foreground",
                 "transition-[background-color,border-color,color] duration-200",
@@ -313,18 +333,33 @@ export function FloatingActionButton() {
                 yielding && "pointer-events-none"
               )}
             >
-              <Sparkles className="h-4 w-4 shrink-0" />
-              <span className={cn("hidden text-sm whitespace-nowrap", isHomepage && "sm:inline")}>
-                {s.ask}
-              </span>
-              <kbd className={cn("hidden items-center gap-0.5 px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded", isHomepage && "sm:flex")}>
-                <span>⌘</span>
-                <span>J</span>
-              </kbd>
+              <motion.span layout className="flex shrink-0 items-center justify-center">
+                <Sparkles className="h-4 w-4" />
+              </motion.span>
+              {/* The label and ⌘J come and go the way the bar's prompt does:
+                  faded, not cut, while the capsule shrinks to a circle. */}
+              <AnimatePresence mode="popLayout">
+                {isHomepage && (
+                  <motion.span
+                    key="ask-label"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0, transition: { duration: 0.3, delay: 0.1 } }}
+                    exit={{ opacity: 0, x: -10, transition: { duration: 0.2 } }}
+                    className="hidden items-center gap-2 whitespace-nowrap sm:flex"
+                  >
+                    <span className="text-sm">{s.ask}</span>
+                    <kbd className="flex items-center gap-0.5 rounded bg-muted/50 px-2 py-1 font-mono text-xs text-muted-foreground">
+                      <span>⌘</span>
+                      <span>J</span>
+                    </kbd>
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </motion.button>
           )}
         </AnimatePresence>
       </div>
+      </LayoutGroup>
     </div>
   );
 
