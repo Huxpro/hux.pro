@@ -16,7 +16,8 @@ import { useSyncExternalStore } from "react";
 // between a desk and a phone is only the preset:
 //
 //   desk   three places (center, side, top) and the Dock's pill: a call
-//          opens where Ask was last, the header has the place buttons and
+//          opens where Ask was last (beside the page on a page to read),
+//          the header has the place buttons and
 //          drags between them, minimize puts it away into the Dock, and a
 //          reply still being written after Ask closes shows there.
 //   phone  one bottom drawer. Ask is big and stays a while, which is a
@@ -37,6 +38,9 @@ export interface AskConfig {
   /** Where a call with nothing typed (the Ask button, ⌘J, `/` `J`) opens
    *  Ask: where it was last put, or always one place. */
   fromCall: "last" | AskPlacement;
+  /** On a page to read (/writing, /works, /prompt, /about, /docs), open Ask
+   *  beside it whichever way it was called, or follow the two rules above. */
+  onReadingPage: "side" | "same";
   /** The place buttons in Ask's header. */
   placeButtons: boolean;
   /** Ask's header as a handle, to drag it between places (a mouse). */
@@ -59,6 +63,7 @@ export const ASK_PRESETS: Record<AskPlatform, AskConfig> = {
   desk: {
     fromSearch: "center",
     fromCall: "last",
+    onReadingPage: "side",
     placeButtons: true,
     drag: true,
     minimize: "dock",
@@ -69,6 +74,7 @@ export const ASK_PRESETS: Record<AskPlatform, AskConfig> = {
   phone: {
     fromSearch: "center",
     fromCall: "center",
+    onReadingPage: "same",
     placeButtons: false,
     drag: false,
     minimize: "off",
@@ -93,6 +99,8 @@ function valid<K extends AskConfigKey>(key: K, value: unknown): value is AskConf
       return value === "last" || PLACES.includes(value as string);
     case "minimize":
       return value === "dock" || value === "off";
+    case "onReadingPage":
+      return value === "side" || value === "same";
     case "glowDelay":
     case "keyboardDelay":
       return typeof value === "number" && value >= 0 && value <= 2000;

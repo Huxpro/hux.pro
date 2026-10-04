@@ -25,8 +25,9 @@ import { askStrings } from "../strings";
 //     a different kind of thing (a cmdk card, a drawer, the Dock's own
 //     drawer, which has its own swipe), and what moves is the conversation.
 //
-// Whether each is there is a setting (../lib/config.ts: `placeButtons`,
-// `drag`, `minimize`). The desk's preset has them all; a phone's has none of
+// The center is a window and drags freely; only its edges are places (see
+// useAskDragHandle). Whether each is there is a setting (../lib/config.ts:
+// `placeButtons`, `drag`, `minimize`). The desk's preset has them all; a phone's has none of
 // them, because there Ask is a bottom drawer and nothing else. Wherever they
 // are on, the side is left out on a screen with no room beside the page, and
 // dragging takes a mouse.
@@ -89,6 +90,12 @@ interface DragState {
   from: AskPlacement;
   x: number;
   y: number;
+  /**
+   * The center's drag: the window itself moves (the palette's own drag), and
+   * only an edge is a place. Off the edges nothing is drawn, and letting go
+   * leaves the window where it is.
+   */
+  free?: boolean;
 }
 
 let drag: DragState | null = null;
@@ -97,8 +104,10 @@ const listeners = new Set<() => void>();
 function setDrag(next: DragState | null) {
   drag = next;
   // The surface being carried fades while its stand-in moves (globals.css,
-  // "Ask: a drag between places").
-  document.documentElement.toggleAttribute("data-ask-dragging", next !== null);
+  // "Ask: a drag between places"); a window dragged freely fades only over
+  // an edge, where letting go would put it somewhere else.
+  const fading = next !== null && (!next.free || edgeAt(next.x, next.y) !== null);
+  document.documentElement.toggleAttribute("data-ask-dragging", fading);
   listeners.forEach((l) => l());
 }
 
@@ -115,32 +124,61 @@ function placementAt(x: number, y: number): AskPlacement {
   return "center";
 }
 
+/** Within this of the trailing edge, a dragged window is going to the side. */
+const EDGE_SIDE_PX = 96;
+/** Within this of the top, to the Dock. */
+const EDGE_TOP_PX = 64;
+
+/** The place an edge would put a freely dragged window, or none. */
+function edgeAt(x: number, y: number): AskPlacement | null {
+  if (y < EDGE_TOP_PX) return "top";
+  if (x > window.innerWidth - EDGE_SIDE_PX) return "side";
+  return null;
+}
+
 /** Past this, a press on the handle is a drag, not a click. */
 const DRAG_THRESHOLD = 6;
+
+const CONTROL = "button, a, input, textarea, select, [role='combobox']";
 
 /**
  * Props for the element that is a surface's handle (its header). A press on
  * a control inside it (a button, a field, a picker) is left alone.
+ *
+ * The center is a window: its header drags the window itself, anywhere
+ * (`data-drag-handle`, which the palette's own drag starts from), and only
+ * the edges are places: the trailing edge for the side, the top for the
+ * Dock. They light up as the pointer reaches them, and letting go there
+ * moves Ask; anywhere else the window stays where it was put. The side
+ * panel and the Dock's panel are fixed in place, so their header carries a
+ * stand-in instead, with the three places drawn to aim at.
  */
 export function useAskDragHandle(from: AskPlacement) {
   const { moveAsk } = useCommand();
   const { drag: enabled } = useAskConfig();
+  const free = from === "center";
   return {
     onPointerDown: (e: ReactPointerEvent<HTMLElement>) => {
       if (!enabled || e.button !== 0 || e.pointerType === "touch") return;
-      if ((e.target as HTMLElement).closest("button, a, input, textarea, select, [role='combobox']")) return;
+      if ((e.target as HTMLElement).closest(CONTROL)) {
+        // A control is pressed, not the window: the card's drag must not
+        // start from it either.
+        if (free) e.stopPropagation();
+        return;
+      }
       if (!window.matchMedia("(min-width: 640px)").matches) return;
-      // A mouse press on the handle is ours: not the start of a drawer's
-      // swipe (the Dock's panel, which a finger still swipes away).
-      e.stopPropagation();
+      // The center lets the press through to the card's drag; elsewhere a
+      // mouse press on the handle is ours, not the start of a drawer's swipe
+      // (the Dock's panel, which a finger still swipes away).
+      if (!free) e.stopPropagation();
       const startX = e.clientX;
       const startY = e.clientY;
       let dragging = false;
       const onMove = (ev: PointerEvent) => {
         if (!dragging && Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_THRESHOLD) return;
         dragging = true;
-        ev.preventDefault();
-        setDrag({ from, x: ev.clientX, y: ev.clientY });
+        if (!free) ev.preventDefault();
+        setDrag({ from, x: ev.clientX, y: ev.clientY, free });
       };
       const finish = (ev: PointerEvent, drop: boolean) => {
         window.removeEventListener("pointermove", onMove);
@@ -148,8 +186,8 @@ export function useAskDragHandle(from: AskPlacement) {
         window.removeEventListener("pointercancel", onCancel);
         setDrag(null);
         if (!dragging || !drop) return;
-        const target = placementAt(ev.clientX, ev.clientY);
-        if (target !== from) moveAsk(target);
+        const target = free ? edgeAt(ev.clientX, ev.clientY) : placementAt(ev.clientX, ev.clientY);
+        if (target && target !== from) moveAsk(target);
       };
       const onUp = (ev: PointerEvent) => finish(ev, true);
       const onCancel = (ev: PointerEvent) => finish(ev, false);
@@ -157,6 +195,8 @@ export function useAskDragHandle(from: AskPlacement) {
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onCancel);
     },
+    /** On the handle element: the palette's drag starts from it (center). */
+    dataAttrs: free && enabled ? { "data-drag-handle": "" } : {},
     // A handle, to the eye and to the hand.
     className: cn(enabled && "sm:cursor-grab sm:active:cursor-grabbing", "select-none"),
   };
@@ -181,6 +221,32 @@ export function AskDragOverlay() {
   // Client-only (loaded with `ssr: false`), so the portal has its body.
   const state = useSyncExternalStore(subscribe, () => drag, () => null);
   if (!state) return null;
+
+  // A window dragged freely: nothing until an edge, then that place alone.
+  if (state.free) {
+    const edge = edgeAt(state.x, state.y);
+    if (!edge) return null;
+    const Icon = PLACES.find((p) => p.placement === edge)!.icon;
+    return createPortal(
+      <div className="system-chrome pointer-events-none fixed inset-0 z-[10070]">
+        <div
+          className={cn(
+            "absolute flex items-center justify-center rounded-2xl border-2 border-dashed",
+            "border-foreground/40 bg-glass-popover shadow-overlay backdrop-blur-xl",
+            "animate-in fade-in-0 zoom-in-95 duration-150",
+            TARGET_BOX[edge],
+          )}
+        >
+          <span className="flex items-center gap-2 rounded-full bg-background/70 px-3 py-1.5 text-sm text-foreground">
+            <Icon className="h-4 w-4" />
+            {s.dragHint}
+          </span>
+        </div>
+      </div>,
+      document.body,
+    );
+  }
+
   const target = placementAt(state.x, state.y);
 
   return createPortal(

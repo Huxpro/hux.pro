@@ -3,7 +3,7 @@
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { ChevronLeft, History, SquarePen } from "lucide-react";
+import { ChevronLeft, History, PanelLeft, SquarePen } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAskHistory, useAskRequest, useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
@@ -21,26 +21,33 @@ import { AskPlacementControls, useAskDragHandle } from "./placement";
 // The shells (systems/command/popover.tsx, sheet.tsx) load this lazily, the
 // first time Ask opens.
 //
-// With `rail`, from `sm` up, the past conversations stand beside the
-// conversation as a sidebar instead of taking turns with it behind the
-// clock: the desktop card, which widens for it, becomes a chat app with its
-// history in view. Below `sm` (the popover at a phone's width) the clock
-// comes back, as the phone sheet always has it.
+// It opens the size of the palette it came from, the command card turned
+// into a chat. The sidebar button (from `sm` up) opens the past
+// conversations beside it, and the shell widens the card for them: a chat
+// app with its history in view (`railOpen`, the shell's state). Below `sm`
+// (the popover at a phone's width) the clock shows the history in turn, as
+// the phone sheet always has it.
 //
-// This is Ask's center place. Its headers are the handle that drags it to
-// the side or the top, and carry the placement buttons (./placement).
+// Back to search is there only when search was the way in (`onBack`); Ask
+// reached directly has no search behind it.
+//
+// This is Ask's center place. Its headers drag the window, and carry the
+// placement buttons (./placement).
 // =============================================================================
 
 export interface AskChatProps {
   /** A question to send on arrival, from the palette's field. */
   request: { text: string; n: number } | null;
-  onBack: () => void;
+  /** Back to search; absent when Ask was not reached from it. */
+  onBack?: () => void;
   /** A link to a page on this site was followed. */
   onNavigate: (href: string) => void;
   /** The shell's own controls at the end of the header (a close button). */
   trailing?: ReactNode;
-  /** History as a sidebar from `sm` up, rather than behind the clock. */
-  rail?: boolean;
+  /** The history sidebar is open (from `sm` up). */
+  railOpen?: boolean;
+  /** Open or close the history sidebar; without it there is none. */
+  onToggleRail?: () => void;
   className?: string;
 }
 
@@ -51,7 +58,15 @@ const HEADER_BUTTON =
 // so they meet in a single line across the card.
 const HEADER_ROW = "relative flex h-11 shrink-0 items-center gap-1 border-b border-border/50 px-2";
 
-export default function AskChat({ request, onBack, onNavigate, trailing, rail = false, className }: AskChatProps) {
+export default function AskChat({
+  request,
+  onBack,
+  onNavigate,
+  trailing,
+  railOpen = false,
+  onToggleRail,
+  className,
+}: AskChatProps) {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { messages, chat, newChat } = useAskSession();
@@ -63,8 +78,27 @@ export default function AskChat({ request, onBack, onNavigate, trailing, rail = 
   // Beside the rail the header names the conversation, as a chat app's
   // title bar does; the rail already says it is Ask.
   const title = conversations.find((c) => c.id === chat.id)?.title;
+  const rail = railOpen && !!onToggleRail;
   // What the rail takes over from `sm` up: back, the clock, ✎.
   const railed = rail && "sm:hidden";
+  // The sidebar button, from `sm` up; the clock stands in for it below.
+  const sidebar = onToggleRail && (
+    <button
+      type="button"
+      onClick={onToggleRail}
+      aria-label={s.sidebar}
+      aria-pressed={railOpen}
+      title={s.sidebar}
+      className={cn(HEADER_BUTTON, "hidden sm:flex")}
+    >
+      <PanelLeft className="h-4 w-4" />
+    </button>
+  );
+  const back = onBack && (
+    <button type="button" onClick={onBack} aria-label={s.backToSearch} title={s.backToSearch} className={HEADER_BUTTON}>
+      <ChevronLeft className="h-4 w-4" />
+    </button>
+  );
 
   return (
     // The chat sits inside the palette's cmdk root, which takes ↑ ↓ ↵ Home
@@ -79,16 +113,9 @@ export default function AskChat({ request, onBack, onNavigate, trailing, rail = 
     >
       {rail && (
         <aside className="hidden w-60 shrink-0 flex-col border-r border-border/50 bg-muted sm:flex">
-          <div onPointerDown={handle.onPointerDown} className={cn(HEADER_ROW, handle.className)}>
-            <button
-              type="button"
-              onClick={onBack}
-              aria-label={s.backToSearch}
-              title={s.backToSearch}
-              className={HEADER_BUTTON}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
+          <div {...handle.dataAttrs} onPointerDown={handle.onPointerDown} className={cn(HEADER_ROW, handle.className)}>
+            {sidebar}
+            {back}
             <span className="flex-1 px-1 font-sans text-sm font-medium text-muted-foreground">{s.ask}</span>
           </div>
           <div className="shrink-0 px-2 pt-2">
@@ -113,16 +140,9 @@ export default function AskChat({ request, onBack, onNavigate, trailing, rail = 
       )}
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div onPointerDown={handle.onPointerDown} className={cn(HEADER_ROW, handle.className)}>
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label={s.backToSearch}
-            title={s.backToSearch}
-            className={cn(HEADER_BUTTON, railed)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
+        <div {...handle.dataAttrs} onPointerDown={handle.onPointerDown} className={cn(HEADER_ROW, handle.className)}>
+          {!rail && sidebar}
+          {back && <span className={cn("contents", railed)}>{back}</span>}
           <span className={cn("flex-1 px-1 font-sans text-sm font-medium text-muted-foreground", railed)}>
             {showHistory ? s.history : s.ask}
           </span>
@@ -137,7 +157,7 @@ export default function AskChat({ request, onBack, onNavigate, trailing, rail = 
             aria-label={s.history}
             aria-pressed={showHistory}
             title={s.history}
-            className={cn(HEADER_BUTTON, railed)}
+            className={cn(HEADER_BUTTON, railed, onToggleRail && "sm:hidden")}
           >
             <History className="h-4 w-4" />
           </button>

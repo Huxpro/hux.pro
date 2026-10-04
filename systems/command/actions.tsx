@@ -292,7 +292,7 @@ export function useCommandActions(): CommandAction[] {
       label: askStrings(locale).shortcut,
       icon: <Sparkles className={ROW_ICON} />,
       keywords: ["ask", "ai", "chat", "question", "问", "聊天", "提问"],
-      run: () => openAsk(),
+      run: () => openAsk(undefined, "palette"),
     },
     // Keyboard-only: reachable by letter from the slash list, never listed.
     {
