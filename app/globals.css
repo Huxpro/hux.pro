@@ -1344,15 +1344,24 @@ main[data-variant="reader"] .reader-masthead {
    home's prompt, left of the corner's button). As a shared element it slides
    straight there in the same transition as the page's crossfade, the way the
    identifier moves; it looks the same at both ends, so the slide is all
-   there is: no crossfade of its own. */
+   there is: no crossfade of its own.
 
-[data-ask-ball] {
+   Named only while a transition runs: a view-transition-name makes the
+   element a backdrop root, and the frost inside it (a blurred backdrop, as
+   on the search bar) would see nothing behind the ball but the ball itself,
+   leaving bare tint. While it slides, its group blurs the page's snapshots
+   under it instead, so it is the same glass there too. */
+
+:root:active-view-transition [data-ask-ball] {
   view-transition-name: ask-ball;
 }
 
 ::view-transition-group(ask-ball) {
   animation-duration: 300ms;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 9999px;
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
 }
 
 ::view-transition-old(ask-ball) {
