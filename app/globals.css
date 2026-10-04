@@ -702,6 +702,152 @@ html.dragging * {
   }
 }
 
+/* The signature: /works (TimelineCommit, "The signature"). A row's
+   `commit` / `Author:` / `Role:`, never at rest: on a desk it unspools from
+   the hash down into the margin while the row is hovered; anywhere, a tap on
+   the row's mark or its team prints it (`data-sig-open` on the row).
+
+   Every line is revealed by a clip sweeping its own box, never a transform:
+   a transformed layer re-rasterizes 12px mono, which shimmers and settles a
+   pixel late. Lines go in one after another (`--sig-i`, 70ms apart), the
+   way `git log` prints them, and a value a beat after its label
+   (`--sig-o`). Leaving is one quick fade for all of them, and the clip
+   closes only once they are invisible. The curve is the site's
+   (docs/motion.md). */
+[data-sig-host] {
+  --sig-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Phone: printed left to right. Desk: dropped from the hash, top down. */
+.sig-print,
+.sig-drop {
+  opacity: 0;
+  transition:
+    opacity 160ms ease-out,
+    clip-path 0s linear 160ms;
+}
+.sig-print {
+  clip-path: inset(0 100% 0 0);
+}
+.sig-drop {
+  clip-path: inset(0 0 100% 0);
+}
+[data-sig-open] .sig-print,
+[data-sig-open] > [data-sig-margin] .sig-drop {
+  opacity: 1;
+  clip-path: inset(0);
+  transition:
+    opacity 240ms ease-out
+      calc(var(--sig-delay, 0ms) + var(--sig-i, 0) * 70ms + var(--sig-o, 0ms)),
+    clip-path 420ms var(--sig-ease)
+      calc(var(--sig-delay, 0ms) + var(--sig-i, 0) * 70ms + var(--sig-o, 0ms));
+}
+
+/* The margin's block takes no pointer until it shows. An invisible card
+   trigger in an empty margin would peek at nothing. On hover it waits a
+   beat (`--sig-delay`) so a pointer sweeping down the page does not set
+   every margin it crosses flickering. */
+[data-sig-margin] {
+  pointer-events: none;
+}
+[data-sig-open] > [data-sig-margin] {
+  pointer-events: auto;
+}
+@media (hover: hover) {
+  [data-sig-host]:is(:hover, :focus-within) > [data-sig-margin] {
+    --sig-delay: 140ms;
+    pointer-events: auto;
+  }
+  [data-sig-host]:is(:hover, :focus-within) > [data-sig-margin] .sig-drop {
+    opacity: 1;
+    clip-path: inset(0);
+    transition:
+      opacity 240ms ease-out
+        calc(var(--sig-delay) + var(--sig-i, 0) * 70ms),
+      clip-path 420ms var(--sig-ease)
+        calc(var(--sig-delay) + var(--sig-i, 0) * 70ms);
+  }
+}
+
+/* The hash is the stack's `commit` field, so it lights with the rest: one
+   rung up from decoration while its author and role are out. */
+[data-sig-host] .sig-hash {
+  transition: color 200ms ease-out;
+}
+[data-sig-open] .sig-hash {
+  color: var(--tertiary-foreground);
+}
+@media (hover: hover) {
+  [data-sig-host]:is(:hover, :focus-within) .sig-hash {
+    color: var(--tertiary-foreground);
+  }
+  /* The hash's own hover (it is the permalink) still wins. */
+  [data-sig-host] .sig-hash:hover {
+    color: var(--muted-foreground);
+  }
+}
+
+/* The team that was tapped stays lit while its signature is out. */
+[data-sig-host] .sig-team {
+  transition: color 200ms ease-out;
+}
+[data-sig-open] .sig-team {
+  color: var(--muted-foreground);
+}
+
+/* Phone: the row opens to the stack's height rather than snapping to it
+   (grid rows 0fr → 1fr, which animates to an unknown height). */
+.sig-fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 360ms var(--sig-ease);
+}
+.sig-fold > * {
+  min-height: 0;
+  overflow: hidden;
+}
+[data-sig-open] .sig-fold {
+  grid-template-rows: 1fr;
+}
+
+/* The mark nods when it hands the signature over, from a tap on it or on
+   the team. The node's inner glyph, never the outer span: that one carries
+   the side lane's inline translate. */
+[data-sig-open] .sig-mark {
+  animation: sig-nod 420ms var(--sig-ease);
+}
+@keyframes sig-nod {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.72);
+  }
+  70% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sig-print,
+  .sig-drop,
+  [data-sig-open] .sig-print,
+  [data-sig-open] > [data-sig-margin] .sig-drop,
+  [data-sig-host]:is(:hover, :focus-within) > [data-sig-margin] .sig-drop {
+    clip-path: none;
+    transition: opacity 150ms ease-out;
+  }
+  .sig-fold {
+    transition: none;
+  }
+  [data-sig-open] .sig-mark {
+    animation: none;
+  }
+}
+
 /* Theater stage. The YouTube IFrame API injects an <iframe> sized by the
    width/height player options; force it to fill the morphing stage so the
    video stays responsive as the stage animates between theater and PiP. */
@@ -829,6 +975,17 @@ html.dragging * {
    quieter ink. */
 .about-notes .prose-link {
   color: var(--muted-foreground);
+}
+/* A /works venue (TimelineCommit): a magic link in the metadata line,
+   keeping the line's own rung. The underline says it summons something;
+   the colour stays the date's neighbour's. */
+.prose-link.venue-link {
+  color: inherit;
+}
+@media (hover: hover) {
+  .prose-link.venue-link:hover {
+    color: var(--foreground);
+  }
 }
 @media (hover: hover) {
   .prose-article a:not(:where(.not-prose, .not-prose *)):hover,
