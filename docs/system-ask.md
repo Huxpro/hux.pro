@@ -139,8 +139,9 @@ A platform is the surfaces' `sm`: under 640px, a phone.
   everything after it). On an answer: Copy (its Markdown), Regenerate on the
   last one, and Rewind to here on an earlier one (two presses: the first asks
   "Drop what follows?"). Edit and rewind wait while a reply is written, and a
-  rewound conversation is saved as it now is. The actions show on hover with
-  a mouse and always on a touch screen. Escape cancels an edit without
+  rewound conversation is saved as it now is. A question's actions sit right
+  beside its bubble and show on demand: a hover with a mouse, a tap or a long
+  press on a touch screen (a tap elsewhere puts them away). Escape cancels an edit without
   leaving Ask (the palette and the panel skip an Escape already handled).
 - **Voice.** The microphone sits beside send, at the trailing end, as Claude
   and ChatGPT have it; the pickers lead. On a touch screen it lets the field

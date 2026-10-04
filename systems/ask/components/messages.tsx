@@ -43,8 +43,8 @@ import { askStrings } from "../strings";
 //
 // Edit and rewind are the AI SDK's own moves (`sendMessage` with the id of
 // the message it replaces; the message list cut short), ../lib/chat.ts. They
-// wait while a reply is being written. The actions show on hover with a
-// mouse, and always on a touch screen, which has no hover.
+// wait while a reply is being written. A question's actions show on hover
+// with a mouse, and on a tap or a long press on a touch screen.
 //
 // Built from AI Elements, as the registry ships them, restyled only through
 // the site's tokens. What is ours is the arrangement: each run of tool calls
@@ -290,8 +290,17 @@ function AssistantMessage({
   );
 }
 
-/** A touch screen has no hover: the actions stay in sight there. */
-const ON_HOVER = "opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100";
+/**
+ * A question's actions, out of sight until asked for: a hover with a mouse
+ * (Tailwind's `hover:` only applies where there is hover), a tap or a long
+ * press on a touch screen (`data-revealed`), keyboard focus anywhere.
+ * Hidden, they take no taps.
+ */
+const REVEAL =
+  "pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100 data-[revealed]:pointer-events-auto data-[revealed]:opacity-100";
+
+/** A press this long on a question is a long press, ms. */
+const LONG_PRESS_MS = 450;
 
 function UserMessage({
   message,
@@ -307,6 +316,19 @@ function UserMessage({
   const text = textOf(message);
   const [draft, setDraft] = useState<string | null>(null);
   const field = useRef<HTMLTextAreaElement>(null);
+  const [revealed, setRevealed] = useState(false);
+  const row = useRef<HTMLDivElement>(null);
+  const press = useRef<{ timer: number; type: string; long: boolean } | null>(null);
+
+  // Revealed by a touch, put away by a touch anywhere else.
+  useEffect(() => {
+    if (!revealed) return;
+    const onDown = (e: PointerEvent) => {
+      if (!row.current?.contains(e.target as Node)) setRevealed(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [revealed]);
 
   useEffect(() => {
     if (draft === null) return;
@@ -365,11 +387,39 @@ function UserMessage({
     );
   }
 
+  const endPress = () => {
+    if (press.current) window.clearTimeout(press.current.timer);
+  };
+
   return (
     // The actions sit beside the bubble, not under it: a row under every
-    // question that only shows on hover left a gap the height of a button.
-    <Message from="user" className="flex-row-reverse items-center">
-      <MessageContent>
+    // question that only shows on demand left a gap the height of a button.
+    // Packed to the trailing edge (`justify-start`, reversed), the bubble
+    // without its own `ml-auto`, which pushed the actions to the far side.
+    <Message ref={row} from="user" className="flex-row-reverse items-center justify-start">
+      <MessageContent
+        className="group-[.is-user]:ml-0"
+        // A tap shows or hides the actions; a long press shows them (and
+        // leaves the system's text selection be). A mouse has hover.
+        onPointerDown={(e) => {
+          endPress();
+          if (e.pointerType === "mouse") return;
+          const p = { type: e.pointerType, long: false, timer: 0 };
+          p.timer = window.setTimeout(() => {
+            p.long = true;
+            setRevealed(true);
+          }, LONG_PRESS_MS);
+          press.current = p;
+        }}
+        onPointerUp={endPress}
+        onPointerCancel={endPress}
+        onPointerLeave={endPress}
+        onClick={() => {
+          const p = press.current;
+          // The click a long press ends with is not a tap.
+          if (p && p.type !== "mouse" && !p.long) setRevealed((v) => !v);
+        }}
+      >
         {message.parts.map((p, j) =>
           p.type === "text" ? (
             <p key={j} className="whitespace-pre-wrap">
@@ -378,7 +428,7 @@ function UserMessage({
           ) : null,
         )}
       </MessageContent>
-      <MessageActions className={ON_HOVER}>
+      <MessageActions className={REVEAL} data-revealed={revealed || undefined}>
         <CopyAction text={text} />
         {!busy && (
           <MessageAction tooltip={s.edit} onClick={() => setDraft(text)}>
