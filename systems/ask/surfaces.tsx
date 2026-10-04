@@ -14,11 +14,14 @@ import { useCallback, useEffect } from "react";
 //   AskSide      the side place: a panel docked at the trailing edge, beside
 //                the page, which stays live; a link in an answer navigates
 //                the page while the panel stays. On a phone, the center
-//                place instead: a full-height sheet of Ask's own (no palette
-//                under it), and a link followed there minimizes Ask to the
-//                Dock's pill, so the page shows and the answer is a tap away.
+//                place instead: a bottom drawer of Ask's own, the screen's
+//                height (no palette under it). A link followed there puts
+//                Ask away so the page shows: minimized, which on a phone's
+//                preset is closed (lib/config.ts); the Ask button brings the
+//                conversation back.
 //   AskDock      the top place and the pill: Ask as a Live Activity in the
-//                Dock (components/activity.tsx). Mounted inside <Dock>.
+//                Dock (components/activity.tsx), where the settings use them
+//                (a desk's preset). Mounted inside <Dock>.
 //   AskDragging  the overlay a drag between places draws (components/
 //                placement.tsx).
 //
@@ -78,8 +81,8 @@ export function AskSide() {
   const onNavigate = useCallback(
     (href: string) => {
       router.push(href);
-      // A full-height sheet covers the page it just opened: away into the
-      // Dock, where the conversation waits.
+      // A drawer the screen's height covers the page it just opened: away
+      // (into the Dock, where minimize goes there; closed, on a phone).
       if (shape === "sheet") minimizeAsk();
     },
     [router, shape, minimizeAsk],

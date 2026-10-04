@@ -3,19 +3,13 @@
 import { Chat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { getConversation, saveConversation } from "./history";
-import {
-  askEffortOf,
-  askModelOf,
-  DEFAULT_ASK_EFFORT,
-  DEFAULT_ASK_MODEL,
-  type AskEffort,
-} from "./models";
+import { getAskEffort, getAskModel } from "./prefs";
 import { loadAskSearch } from "./search";
 import type { AskUIMessage } from "./tools";
 
 // =============================================================================
-// The session: which conversation is open, the viewer's model and effort, and
-// the agent loop that runs in the page.
+// The session: which conversation is open, and the agent loop that runs in
+// the page. The viewer's model and effort are ./prefs.ts.
 //
 // One conversation is current at a time, kept here rather than in a
 // component, so any surface that shows Ask (the palette, a panel, a page)
@@ -34,51 +28,7 @@ import type { AskUIMessage } from "./tools";
 //     answer now.
 // =============================================================================
 
-const MODEL_KEY = "hux_ask_model";
-const EFFORT_KEY = "hux_ask_effort";
 const MAX_TOOL_CALLS = 10;
-
-// ---- Preferences ------------------------------------------------------------
-
-function readPref(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function writePref(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // Storage unavailable (private window, blocked): the pick lasts the page.
-  }
-}
-
-let model: string | null = null;
-let effort: AskEffort | null = null;
-
-/** The picked model: a per-viewer convenience, remembered where it can be. */
-export function getAskModel(): string {
-  model ??= askModelOf(readPref(MODEL_KEY) ?? DEFAULT_ASK_MODEL).id;
-  return model;
-}
-
-export function setAskModel(id: string) {
-  model = askModelOf(id).id;
-  writePref(MODEL_KEY, model);
-}
-
-export function getAskEffort(): AskEffort {
-  effort ??= askEffortOf(readPref(EFFORT_KEY) ?? DEFAULT_ASK_EFFORT);
-  return effort;
-}
-
-export function setAskEffort(value: string) {
-  effort = askEffortOf(value);
-  writePref(EFFORT_KEY, effort);
-}
 
 // ---- The loop ---------------------------------------------------------------
 

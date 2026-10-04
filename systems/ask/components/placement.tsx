@@ -6,6 +6,7 @@ import { useCommand, type AskPlacement } from "@/systems/command";
 import { AppWindow, Minus, PanelRight, PanelTop, type LucideIcon } from "lucide-react";
 import { useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
+import { useAskConfig } from "../lib/config";
 import { askStrings } from "../strings";
 
 // =============================================================================
@@ -24,11 +25,11 @@ import { askStrings } from "../strings";
 //     a different kind of thing (a cmdk card, a drawer, the Dock's own
 //     drawer, which has its own swipe), and what moves is the conversation.
 //
-// Dragging is for a pointer on a screen with room for the side panel. A
-// phone has two states rather than three places: the window (a full-height
-// sheet) and the Dock (the pill, which opens at the top, Siri-like).
-// Minimize moves between them, and the Dock's panel swipes back to the pill
-// as any drawer does.
+// Whether each is there is a setting (../lib/config.ts: `placeButtons`,
+// `drag`, `minimize`). The desk's preset has them all; a phone's has none of
+// them, because there Ask is a bottom drawer and nothing else. Wherever they
+// are on, the side is left out on a screen with no room beside the page, and
+// dragging takes a mouse.
 // =============================================================================
 
 const PLACES: { placement: AskPlacement; icon: LucideIcon }[] = [
@@ -54,9 +55,12 @@ export function AskPlacementControls({
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { moveAsk, minimizeAsk } = useCommand();
+  const config = useAskConfig();
+  const minimizes = minimize && config.minimize === "dock";
+  if (!config.placeButtons && !minimizes) return null;
   return (
     <div role="group" aria-label={s.placement} className={cn("flex items-center gap-0.5", className)}>
-      {PLACES.map(({ placement, icon: Icon }) => (
+      {config.placeButtons && PLACES.map(({ placement, icon: Icon }) => (
         <button
           key={placement}
           type="button"
@@ -64,16 +68,13 @@ export function AskPlacementControls({
           aria-pressed={placement === current}
           aria-label={s.placements[placement]}
           title={s.placements[placement]}
-          // A phone has two states, not three places: the window (the
-          // center's sheet) and the Dock (the pill, opening at the top).
-          // Minimize is the way from one to the other; the only place button
-          // a phone keeps is the way back, the window, shown in the Dock.
-          className={cn(BUTTON, !(placement === "center" && current === "top") && "max-sm:hidden")}
+          // No room beside the page on a phone: no side.
+          className={cn(BUTTON, placement === "side" && "max-sm:hidden")}
         >
           <Icon className="h-3.5 w-3.5" />
         </button>
       ))}
-      {minimize && (
+      {minimizes && (
         <button type="button" onClick={minimizeAsk} aria-label={s.minimize} title={s.minimize} className={BUTTON}>
           <Minus className="h-3.5 w-3.5" />
         </button>
@@ -123,9 +124,10 @@ const DRAG_THRESHOLD = 6;
  */
 export function useAskDragHandle(from: AskPlacement) {
   const { moveAsk } = useCommand();
+  const { drag: enabled } = useAskConfig();
   return {
     onPointerDown: (e: ReactPointerEvent<HTMLElement>) => {
-      if (e.button !== 0 || e.pointerType === "touch") return;
+      if (!enabled || e.button !== 0 || e.pointerType === "touch") return;
       if ((e.target as HTMLElement).closest("button, a, input, textarea, select, [role='combobox']")) return;
       if (!window.matchMedia("(min-width: 640px)").matches) return;
       // A mouse press on the handle is ours: not the start of a drawer's
@@ -156,7 +158,7 @@ export function useAskDragHandle(from: AskPlacement) {
       window.addEventListener("pointercancel", onCancel);
     },
     // A handle, to the eye and to the hand.
-    className: "sm:cursor-grab sm:active:cursor-grabbing select-none",
+    className: cn(enabled && "sm:cursor-grab sm:active:cursor-grabbing", "select-none"),
   };
 }
 

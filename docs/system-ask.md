@@ -10,7 +10,9 @@ systems/ask/
 │   ├── tokenize.ts    # words in both languages (Intl.Segmenter), the same at build time and in the browser
 │   ├── search.ts      # the index in the browser: fetched once, BM25 (MiniSearch), search + read
 │   ├── tools.ts       # the agent's tools (search_site, read): declared once, run in the page
-│   ├── chat.ts        # the session: current conversation, model + effort, the agent loop (AI SDK Chat)
+│   ├── chat.ts        # the session: current conversation, the agent loop (AI SDK Chat)
+│   ├── prefs.ts       # the visitor's model and thinking level (no AI SDK, so the devtool can read it)
+│   ├── config.ts      # how Ask behaves: every setting, a preset per platform (desk / phone)
 │   ├── history.ts     # past conversations, in localStorage
 │   ├── use-ask.ts     # the hooks surfaces are built from: useAskSession / useAskHistory / useAskPrefs / useAskRequest
 │   ├── models.ts      # the models the picker offers and the route accepts
@@ -49,23 +51,25 @@ still stripped to a query ("open the writing" → "writing"), questions are not.
 
 Ask is the palette's fourth mode, beside search, slash and load-bundle
 (`isAskMode` in the command provider). On the desktop it replaces the results
-inside the same card; on a phone it is a full-height sheet stacked on the
-palette, like the slash sheet. Escape (or ←) goes back to search and keeps the
+inside the same card; on a phone, asking puts the palette away and opens
+Ask's own bottom drawer. Escape (or ←) goes back to search and keeps the
 conversation; the ✎ button starts a new one. A link in an answer to a page of
 this site navigates there and the palette leaves, as a command would.
 
 ## Where Ask sits
 
-One conversation, three places, and a pill. Where it is is the command
-provider's `askPlacement`; the conversation is the session's, so moving Ask
-moves nothing else.
+On a desk: one conversation, three places, and a pill. On a phone: one bottom
+drawer. Where it is is the command provider's `askPlacement`; the
+conversation is the session's, so moving Ask moves nothing else.
 
 | place | what it is | from |
 |---|---|---|
-| **center** | the ⌘K card, widened to 960px: history rail on the left, conversation on the right; on a phone, a full-height sheet of its own | the palette's Ask mode (`chat.tsx`); `panel.tsx` in `SurfaceSheet` on a phone |
+| **center** | the ⌘K card, widened to 960px: history rail on the left, conversation on the right; on a phone, a bottom drawer the screen's height, of its own | the palette's Ask mode (`chat.tsx`); `panel.tsx` in `SurfaceSheet` on a phone |
 | **side** | a 440px panel docked at the trailing edge; the page beside it stays live, and from 1280px the page makes room (`data-ask-docked`) | `panel.tsx`, `SurfacePanel` |
 | **top** | the Dock's panel, hanging from the top | `activity.tsx`, `LiveActivity` |
 | **pill** | minimized: a pill in the Dock saying what the agent is doing, then the answer's first words, with the site's glow while it works | the same activity, collapsed |
+
+What follows is the desk's preset; every line of it is a setting (below).
 
 - **Which place.** Asking from search (the Ask row, Tab) lands in the center,
   unless Ask is already open at the side or the top, which then takes the
@@ -83,18 +87,40 @@ moves nothing else.
 - **Links.** In the center, a link navigates and the palette leaves; at the
   side it navigates under the panel, which stays; at the top it navigates and
   collapses to the pill.
-- **Phones.** Two states, not three places: the **window**, a full-height
-  sheet of Ask's own (no palette under it; asking from search puts the
-  palette away), and the **Dock**, the pill, which opens at the top,
-  Siri-like. Minimize goes from the window to the Dock; the Dock's panel has
-  one place button, the way back to the window. Both are drawers to the
-  finger: the window swipes down to close, the Dock's panel swipes up to the
-  pill (from its header or the grabber; the conversation itself scrolls). A
-  link followed in the window minimizes it, so the page shows and the answer
-  is a tap away. No dragging between places (a drag there is a scroll).
+- **Phones.** A bottom drawer, and nothing else. Ask is big and stays a while,
+  which is a drawer's job; the Dock's Live Activity is for small things in
+  passing. So the phone's preset has no place buttons, no minimize and no
+  pill: the drawer's header is history, ✎ and ✕, it swipes down to close, and
+  the Ask button brings the same conversation back. Asking from search puts
+  the palette away and opens the drawer. A link followed in it closes it, so
+  the page shows.
 - **Entries.** The Ask button sits beside the search prompt on the home, and
   beside the ⌘K pill on every other page (`fab.tsx`), lit while Ask is open;
   away from the home it steps aside for the side panel.
+
+### Settings, and a preset per platform
+
+Every choice above is a setting in `lib/config.ts`, read where the choice is
+made (the provider's `openAsk` / `minimizeAsk`, the header's controls, the
+drag handle, the activity's pill, the voice glow). Everything is configurable
+on every platform; a desk and a phone differ only in their preset. The
+devtool's **Ask** section shows the presets and changes any setting, for
+either platform (`hux_ask_config`, saved per platform, only where it differs
+from the preset), along with the visitor's model and thinking level and their
+defaults.
+
+| setting | what it decides | desk | phone |
+|---|---|---|---|
+| `fromSearch` | where asking from search opens Ask | center | center (the drawer) |
+| `fromCall` | where ⌘J / the Ask button opens it: where it was last, or one place | last | center |
+| `placeButtons` | center / side / top in the header (side never on a phone: no room) | on | off |
+| `drag` | the header drags between places (a mouse) | on | off |
+| `minimize` | `dock`: into the Dock as a pill; `off`: no minimize button, and the Dock's collapse closes | dock | off |
+| `backgroundPill` | a reply still being written after Ask closed shows as a pill | on | off |
+| `glowDelay` | ms the field listens before the voice glow comes up | 180 | 180 |
+| `keyboardDelay` | ms more when the microphone just sent a keyboard down | 0 | 320 |
+
+A platform is the surfaces' `sm`: under 640px, a phone.
 
 ## A chat, not a box
 
@@ -109,6 +135,15 @@ moves nothing else.
   model. The route accepts only those three.
 - **Message actions.** Copy on every message (the Markdown of an answer),
   Regenerate on the last answer.
+- **Voice.** The microphone sits beside send, at the trailing end, as Claude
+  and ChatGPT have it; the pickers lead. On a touch screen it lets the field
+  go, so the keyboard slides down while it listens. The glow comes up a beat
+  after listening starts (`glowDelay`), and later still while a keyboard is
+  going down (`keyboardDelay`): the slide and the glow's first frames together
+  drop frames on a phone. Both waits apply to the palette's field too.
+- **A sent question stays gone.** Sending aborts the microphone (its last
+  phrase can settle after ↵), and a phone keyboard's late commit of the sent
+  words (pinyin, a suggestion) is dropped, so the field is never refilled.
 - **Errors say what failed.** The route passes the provider's message through
   (`describe`), shown under "Something went wrong."
 

@@ -9,6 +9,7 @@ import type { ChatStatus } from "ai";
 import { History, Sparkles, SquarePen, X } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { useAskConfig } from "../lib/config";
 import type { AskUIMessage } from "../lib/tools";
 import { useAskRequest, useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
@@ -37,7 +38,8 @@ import { AskPlacementControls, useAskDragHandle } from "./placement";
 //     change) is Ask minimized to the pill; the pill tapped open is Ask
 //     placed at the top.
 // The pill shows while Ask is minimized, and while a reply is still being
-// written after Ask was closed. Beside other activities (the music player)
+// written after Ask was closed (where the settings have either: the desk's
+// preset does, a phone's has neither, ../lib/config.ts). Beside other activities (the music player)
 // it is one more pill in the row, and opening one puts the other away, the
 // Dock's rule for every activity.
 //
@@ -138,6 +140,7 @@ export default function AskActivity() {
   const [showHistory, setShowHistory] = useState(false);
   const viewport = useSyncExternalStore(subscribeViewport, viewportHeight, () => 0);
   const handle = useAskDragHandle("top");
+  const config = useAskConfig();
   const expanded = openId === ASK_ID;
   const placed = askPlacement === "top";
   // The question is this place's to send only while Ask is here.
@@ -187,7 +190,7 @@ export default function AskActivity() {
 
   // Nothing to show unless Ask is here, minimized here, or still writing a
   // reply after it was closed.
-  const pill = askPill || (busy && askPlacement === null && messages.length > 0);
+  const pill = askPill || (config.backgroundPill && busy && askPlacement === null && messages.length > 0);
   if (!placed && !expanded && !pill && !opening) return null;
 
   const line = lineOf(messages, status, s);

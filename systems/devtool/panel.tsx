@@ -93,6 +93,26 @@ import {
   type WorksRef,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
+import { useCommand } from "@/systems/command";
+import {
+  ASK_PRESETS,
+  resetAskConfig,
+  setAskConfig,
+  useAskOverrides,
+  useAskPlatform,
+  type AskConfig,
+  type AskConfigKey,
+  type AskPlatform,
+} from "@/systems/ask/lib/config";
+import { ASK_EFFORTS, ASK_MODELS, DEFAULT_ASK_EFFORT, DEFAULT_ASK_MODEL } from "@/systems/ask/lib/models";
+import {
+  getAskEffort,
+  getAskModel,
+  setAskEffort,
+  setAskModel,
+  subscribeAskPrefs,
+} from "@/systems/ask/lib/prefs";
+import { askStrings } from "@/systems/ask/strings";
 import { useOptionalAbout } from "@/systems/about/provider";
 import {
   GLOW_BASELINE,
@@ -133,6 +153,7 @@ import { cn } from "@/lib/utils";
 import {
   AppWindow,
   BookOpen,
+  Bot,
   Braces,
   Brain,
   Bug,
@@ -175,6 +196,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 // =============================================================================
@@ -200,6 +222,7 @@ const MODULE_ORDER = [
   "sky",
   "music",
   "command",
+  "ask",
   "glow",
   "draggable",
   "windows",
@@ -217,6 +240,7 @@ export function DevtoolModules() {
       <SkyModule />
       <MusicModule />
       <CommandModule />
+      <AskModule />
       <GlowModule />
       <DraggableModule />
       <WindowsModule />
@@ -3118,6 +3142,190 @@ function CommandModule() {
       >
         <PanelSegmented value={phonePalette} options={options} onChange={setPhonePalette} />
       </PanelRow>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Ask Module
+// How Ask behaves (systems/ask/lib/config.ts): every setting, for either
+// platform, starting from that platform's preset. A desk has three places and
+// the Dock's pill; a phone has one bottom drawer. The platform shown first is
+// the one this viewport is; the other can be set from here too, for when the
+// window is resized across `sm`. Then the visitor's own picks, model and
+// thinking, with their defaults. All saved (blue star).
+// =============================================================================
+
+const ASK_PLACES = [
+  { value: "center", label: "Center" },
+  { value: "side", label: "Side" },
+  { value: "top", label: "Top" },
+] as const;
+
+function AskModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const { askStarted } = useCommand();
+  const here = useAskPlatform();
+  const [picked, setPicked] = useState<AskPlatform | null>(null);
+  const platform = picked ?? here;
+  const overrides = useAskOverrides();
+  const mine = overrides[platform];
+  const config: AskConfig = { ...ASK_PRESETS[platform], ...mine };
+  const model = useSyncExternalStore(subscribeAskPrefs, getAskModel, () => DEFAULT_ASK_MODEL);
+  const effort = useSyncExternalStore(subscribeAskPrefs, getAskEffort, () => DEFAULT_ASK_EFFORT);
+
+  const changed =
+    Object.keys(overrides.desk).length + Object.keys(overrides.phone).length > 0 ||
+    model !== DEFAULT_ASK_MODEL ||
+    effort !== DEFAULT_ASK_EFFORT;
+
+  const set = <K extends AskConfigKey>(key: K) => (value: AskConfig[K]) => setAskConfig(platform, key, value);
+  const star = (key: AskConfigKey) =>
+    key in mine ? (
+      <PanelStar source="saved" onReset={() => resetAskConfig(platform, key)} />
+    ) : undefined;
+
+  return (
+    <DebugSection
+      id="ask"
+      title={zh ? "问 AI" : "Ask"}
+      icon={<Bot className="h-4 w-4" />}
+      compact
+      relevant={askStarted}
+      star={changed ? "saved" : null}
+      onReset={() => {
+        resetAskConfig();
+        setAskModel(null);
+        setAskEffort(null);
+      }}
+      // The platform this viewport is; the preset row can show the other.
+      action={<span className="text-[10px] font-mono text-muted-foreground">{here}</span>}
+    >
+      <div className="space-y-2">
+        <PanelRow label={zh ? "预设" : "Preset"}>
+          <PanelSegmented<AskPlatform>
+            value={platform}
+            label={zh ? "预设" : "Preset"}
+            options={[
+              {
+                value: "desk",
+                label: zh ? "桌面" : "Desk",
+                title: zh ? "三个位置和 Dock 胶囊" : "Three places and the Dock's pill",
+              },
+              {
+                value: "phone",
+                label: zh ? "手机" : "Phone",
+                title: zh ? "一个底部抽屉" : "One bottom drawer",
+              },
+            ]}
+            onChange={(value) => setPicked(value === here ? null : value)}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "从搜索打开" : "From search"} star={star("fromSearch")}>
+          <PanelSegmented
+            value={config.fromSearch}
+            label={zh ? "从搜索打开" : "From search"}
+            options={[...ASK_PLACES]}
+            onChange={set("fromSearch")}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "按钮 / ⌘J 打开" : "From a call"} star={star("fromCall")}>
+          <PanelSegmented
+            value={config.fromCall}
+            label={zh ? "按钮 / ⌘J 打开" : "From a call"}
+            options={[
+              { value: "last", label: "Last", title: zh ? "上次放的位置" : "Where it was last put" },
+              ...ASK_PLACES,
+            ]}
+            onChange={set("fromCall")}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "位置按钮" : "Place buttons"} star={star("placeButtons")}>
+          <PanelToggle
+            on={config.placeButtons}
+            onClick={() => set("placeButtons")(!config.placeButtons)}
+            label={zh ? "位置按钮" : "Place buttons"}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "拖拽换位" : "Drag between places"} star={star("drag")}>
+          <PanelToggle
+            on={config.drag}
+            onClick={() => set("drag")(!config.drag)}
+            label={zh ? "拖拽换位" : "Drag between places"}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "最小化" : "Minimize"} star={star("minimize")}>
+          <PanelSegmented
+            value={config.minimize}
+            label={zh ? "最小化" : "Minimize"}
+            options={[
+              { value: "dock", label: "Dock", title: zh ? "收进 Dock，成为胶囊" : "Into the Dock, as a pill" },
+              { value: "off", label: zh ? "关" : "Off", title: zh ? "没有最小化：收起即关闭" : "No minimize: putting away closes" },
+            ]}
+            onChange={set("minimize")}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "后台胶囊" : "Pill while writing"} star={star("backgroundPill")}>
+          <PanelToggle
+            on={config.backgroundPill}
+            onClick={() => set("backgroundPill")(!config.backgroundPill)}
+            label={zh ? "后台胶囊" : "Pill while writing"}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "光晕延迟" : "Glow delay"} star={star("glowDelay")}>
+          <PanelRange
+            value={config.glowDelay}
+            min={0}
+            max={600}
+            step={20}
+            onChange={set("glowDelay")}
+            label={zh ? "光晕延迟" : "Glow delay"}
+            format={(v) => `${v}`}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "收键盘再等" : "Keyboard wait"} star={star("keyboardDelay")}>
+          <PanelRange
+            value={config.keyboardDelay}
+            min={0}
+            max={800}
+            step={20}
+            onChange={set("keyboardDelay")}
+            label={zh ? "收键盘再等" : "Keyboard wait"}
+            format={(v) => `${v}`}
+          />
+        </PanelRow>
+        <PanelRow
+          label={zh ? "模型" : "Model"}
+          star={
+            model !== DEFAULT_ASK_MODEL ? (
+              <PanelStar source="saved" onReset={() => setAskModel(null)} />
+            ) : undefined
+          }
+        >
+          <PanelSegmented
+            value={model}
+            label={zh ? "模型" : "Model"}
+            options={ASK_MODELS.map((m) => ({ value: m.id, label: m.label.split(" ")[0], title: m.label }))}
+            onChange={setAskModel}
+          />
+        </PanelRow>
+        <PanelRow
+          label={zh ? "思考" : "Thinking"}
+          star={
+            effort !== DEFAULT_ASK_EFFORT ? (
+              <PanelStar source="saved" onReset={() => setAskEffort(null)} />
+            ) : undefined
+          }
+        >
+          <PanelSegmented
+            value={effort}
+            label={zh ? "思考" : "Thinking"}
+            options={ASK_EFFORTS.map((e) => ({ value: e, label: askStrings(locale).efforts[e] }))}
+            onChange={setAskEffort}
+          />
+        </PanelRow>
+      </div>
     </DebugSection>
   );
 }

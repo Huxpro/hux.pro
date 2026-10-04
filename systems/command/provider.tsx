@@ -1,5 +1,6 @@
 "use client";
 
+import { askConfigNow } from "@/systems/ask/lib/config";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 // =============================================================================
@@ -17,10 +18,13 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 // Asking from search (the Ask row, Tab) lands in the center, unless Ask is
 // already open somewhere else, which then takes the question. A call with
 // nothing typed (⌘J, `/` `J`) opens Ask where the visitor last put it.
+// Those are the desk's preset; where each opens, and what minimize does, are
+// settings (systems/ask/lib/config.ts), read as each call is made.
 //
 // A phone has no room for a side panel, and no use for a palette under a
-// conversation: there the center is a full-height sheet of Ask's own (the
-// `sheet` surface), and side is the same sheet.
+// conversation: there the center is a bottom drawer of Ask's own (the
+// `sheet` surface), and side is the same drawer. Its preset is the drawer
+// alone: no pill, and minimize is close.
 // =============================================================================
 
 export type AskPlacement = "center" | "side" | "top";
@@ -69,7 +73,7 @@ interface CommandContextType {
   moveAsk: (placement: AskPlacement) => void;
   /** Close Ask wherever it is (a reply still being written leaves a pill). */
   closeAsk: () => void;
-  /** Put Ask away into the Dock as a pill. */
+  /** Put Ask away into the Dock as a pill (where minimize is on; else close). */
   minimizeAsk: () => void;
   /** The palette's Ask mode on and off; off is back to search. */
   setAskMode: (mode: boolean) => void;
@@ -202,8 +206,13 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         moveAsk(askSurface === "sheet" ? "center" : askSurface);
         return;
       }
+      const config = askConfigNow();
       if (from === "search") {
-        moveAsk("center");
+        moveAsk(config.fromSearch);
+        return;
+      }
+      if (config.fromCall !== "last") {
+        moveAsk(config.fromCall);
         return;
       }
       if (preferredPlacement.current === null) {
@@ -231,7 +240,9 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
 
   const minimizeAsk = useCallback(() => {
     closeAsk();
-    setAskPill(true);
+    // Where nothing is put away into the Dock, minimize is close: the
+    // conversation stays the session's either way.
+    if (askConfigNow().minimize === "dock") setAskPill(true);
   }, [closeAsk]);
 
   // Voice: back to search (the field is where the words go) and listen.

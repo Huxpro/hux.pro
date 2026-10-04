@@ -2,11 +2,12 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { useAskConfig } from "@/systems/ask/lib/config";
 import { isQuestionLike } from "@/systems/ask/lib/intent";
 import { Glow } from "@/systems/glow";
 import { useVoiceInput, type VoiceInput } from "@/systems/voice";
 import { Mic } from "lucide-react";
-import { useEffect, useRef, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { useCommand } from "./provider";
 
 // =============================================================================
@@ -29,12 +30,19 @@ import { useCommand } from "./provider";
 //   Space in an empty field hold (a tap does nothing; a leading space
 //                           means nothing to a search)
 //
-// While it listens, the field shows the site's glow along its bottom edge:
+// While it listens, the field shows the site's glow along its bottom edge,
+// a beat after it starts (a glow on the first instant reads as a flash):
 // the `line` shape of the same light the About rings the screen with
 // (systems/glow). It rises and spreads with the voice and ripples with its
 // bands. When the speaker pauses and the words are being settled, it gathers
 // into one beam travelling the edge (the glow's `processing`) and fades once
 // the final phrase is in.
+//
+// On a touch screen, the microphone pressed while a field holds the keyboard
+// up lets the keyboard go: listening wants the screen, and the words arrive
+// in the field anyway. The glow then waits longer, for the keyboard's slide
+// to finish: the two together drop frames on a phone. Both waits are Ask's
+// settings (systems/ask/lib/config.ts: `glowDelay`, `keyboardDelay`).
 // =============================================================================
 
 const LANG = { en: "en-US", zh: "zh-CN" } as const;
@@ -154,6 +162,20 @@ export function useSpaceToTalk(voice: VoiceInput, empty: boolean) {
   return { onKeyDown, onKeyUp, onBlur };
 }
 
+/** When the microphone last sent a keyboard down, `performance.now()`. */
+let keyboardDismissedAt = -Infinity;
+
+/** A keyboard sent down this recently is still sliding, ms. */
+const KEYBOARD_SLIDE_MS = 800;
+
+/** On a touch screen, let go of the field that holds the keyboard up. */
+function dismissKeyboard() {
+  const field = document.activeElement as HTMLElement | null;
+  if (!field || !(field.tagName === "INPUT" || field.tagName === "TEXTAREA" || field.isContentEditable)) return;
+  field.blur();
+  keyboardDismissedAt = performance.now();
+}
+
 /** The microphone button. Renders nothing where speech is not recognised. */
 export function VoiceButton({ voice, className }: { voice: VoiceInput; className?: string }) {
   const { locale } = useLocale();
@@ -177,6 +199,7 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
           press.current = null;
           return;
         }
+        if (e.pointerType !== "mouse") dismissKeyboard();
         voice.start();
         press.current = performance.now();
       }}
@@ -208,9 +231,24 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
  * which must be `relative`; it reads the header's radius.
  */
 export function VoiceGlow({ voice }: { voice: VoiceInput }) {
+  const { glowDelay, keyboardDelay } = useAskConfig();
+  const [lit, setLit] = useState(false);
+  const { listening } = voice;
+  useEffect(() => {
+    if (!listening) return;
+    const sliding = performance.now() - keyboardDismissedAt < KEYBOARD_SLIDE_MS;
+    const timer = window.setTimeout(() => setLit(true), glowDelay + (sliding ? keyboardDelay : 0));
+    return () => {
+      window.clearTimeout(timer);
+      setLit(false);
+    };
+    // The wait is fixed when listening starts; a setting changed mid-session
+    // applies to the next one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listening]);
   return (
     <Glow
-      active={voice.listening}
+      active={listening && lit}
       shape="line"
       level={voice.level}
       bands={voice.bands}

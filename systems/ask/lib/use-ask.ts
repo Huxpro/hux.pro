@@ -1,17 +1,9 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import {
-  getAskChat,
-  getAskEffort,
-  getAskModel,
-  newAskChat,
-  openAskConversation,
-  setAskEffort,
-  setAskModel,
-  subscribeAskChat,
-} from "./chat";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { getAskChat, newAskChat, openAskConversation, subscribeAskChat } from "./chat";
+import { getAskEffort, getAskModel, setAskEffort, setAskModel, subscribeAskPrefs } from "./prefs";
 import {
   deleteConversation,
   getConversationsServerSnapshot,
@@ -63,17 +55,10 @@ export function useAskHistory() {
 
 /** The viewer's model and effort, remembered in this browser. */
 export function useAskPrefs() {
-  const [model, setModelState] = useState(getAskModel);
-  const [effort, setEffortState] = useState(getAskEffort);
-  const setModel = useCallback((id: string) => {
-    setAskModel(id);
-    setModelState(getAskModel());
-  }, []);
-  const setEffort = useCallback((value: string) => {
-    setAskEffort(value);
-    setEffortState(getAskEffort());
-  }, []);
-  return { model, setModel, effort, setEffort };
+  // One store, so the composer and the devtool show the same pick.
+  const model = useSyncExternalStore(subscribeAskPrefs, getAskModel, getAskModel);
+  const effort = useSyncExternalStore(subscribeAskPrefs, getAskEffort, getAskEffort);
+  return { model, setModel: setAskModel, effort, setEffort: setAskEffort };
 }
 
 /** The last request sent, so a remount (or a second surface) never sends

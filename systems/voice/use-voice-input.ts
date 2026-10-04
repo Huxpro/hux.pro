@@ -90,6 +90,9 @@ export interface VoiceInput {
   /** Start (from a press: the microphone is only granted in a gesture). */
   start: () => void;
   stop: () => void;
+  /** Stop and drop what is still to come: words heard after this are not
+   *  delivered (a field that has just been sent wants nothing more). */
+  abort: () => void;
   toggle: () => void;
   /** Loudness 0–1 for the glow, read every frame. */
   level: () => number;
@@ -125,6 +128,13 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
 
   const stop = useCallback(() => {
     recognition.current?.stop();
+  }, []);
+
+  const abort = useCallback(() => {
+    const r = recognition.current;
+    if (!r) return;
+    r.onresult = null;
+    r.abort();
   }, []);
 
   const start = useCallback(() => {
@@ -238,6 +248,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
     listening: state === "listening" || state === "processing",
     start,
     stop,
+    abort,
     toggle,
     level,
     bands,
