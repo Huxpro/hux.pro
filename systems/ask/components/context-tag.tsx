@@ -41,7 +41,14 @@ export function ContextTag({
 }) {
   const { locale } = useLocale();
   const s = askStrings(locale);
-  const label = context.kind === "quote" && context.text ? `“${quoteLabel(context.text)}”` : (
+  const excerpt = context.kind === "quote" && context.text ? quoteLabel(context.text) : null;
+  const split = excerpt?.indexOf(" … ") ?? -1;
+  const label = excerpt ? (split < 0 ? `“${excerpt}”` : (
+    <span className="flex min-w-0">
+      <span className="min-w-0 truncate">“{excerpt.slice(0, split)}</span>
+      <span className="shrink-0">{excerpt.slice(split)}”</span>
+    </span>
+  )) : (
     <>
       {context.title}
       {context.heading && <span className="text-tertiary-foreground"> · {context.heading}</span>}
