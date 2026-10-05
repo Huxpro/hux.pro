@@ -11,7 +11,7 @@ import { useAskConfig } from "../lib/config";
 import { askStrings } from "../strings";
 import { FadeSlot } from "./lazy-view";
 import { AskPlacementControls, useAskDragHandle } from "./placement";
-import { AskSkeleton } from "./skeleton";
+import { AskLoadError, AskSkeleton } from "./skeleton";
 
 // =============================================================================
 // Ask in the Dock: the conversation as a Live Activity, the way iOS keeps a
@@ -84,6 +84,9 @@ function loadBody() {
   bodyPending ??= import("./activity-body").then((mod) => {
     bodyModule = mod;
     return mod;
+  }).catch((error: unknown) => {
+    bodyPending = null;
+    throw error;
   });
   return bodyPending;
 }
@@ -106,6 +109,7 @@ export function AskActivity() {
   const [showHistory, setShowHistory] = useState(false);
   const [session, setSession] = useState<AskActivitySession | null>(null);
   const [body, setBody] = useState<BodyModule | null>(() => bodyModule);
+  const [bodyFailed, setBodyFailed] = useState(false);
   const viewport = useSyncExternalStore(subscribeViewport, viewportHeight, () => 0);
   const handle = useAskDragHandle("top");
   const config = useAskConfig();
@@ -128,6 +132,8 @@ export function AskActivity() {
     let live = true;
     loadBody().then((mod) => {
       if (live) setBody(mod);
+    }).catch(() => {
+      if (live) setBodyFailed(true);
     });
     return () => {
       live = false;
@@ -275,7 +281,7 @@ export function AskActivity() {
               } as React.CSSProperties
             }
           >
-            <FadeSlot ready={View !== undefined} fallback={<AskSkeleton kind="dock" />}>
+            <FadeSlot ready={View !== undefined} fallback={bodyFailed ? <AskLoadError /> : <AskSkeleton kind="dock" />}>
               {View && <View showHistory={showHistory} onCloseHistory={() => setShowHistory(false)} />}
             </FadeSlot>
           </div>

@@ -116,3 +116,17 @@ export function AskSkeleton({
     </div>
   );
 }
+
+/** A failed code chunk cannot recover in place after a deployment. */
+export function AskLoadError() {
+  const { locale } = useLocale();
+  const s = askStrings(locale);
+  return (
+    <div role="alert" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground">
+      <p>{s.error}</p>
+      <button type="button" onClick={() => window.location.reload()} className="pressable rounded-full bg-muted px-4 py-2 text-foreground">
+        {s.retry}
+      </button>
+    </div>
+  );
+}

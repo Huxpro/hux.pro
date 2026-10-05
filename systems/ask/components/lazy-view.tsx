@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { AskLoadError } from "./skeleton";
 
 // =============================================================================
 // A piece of Ask that arrives after the surface it sits in.
@@ -98,18 +99,24 @@ export function askLazy<P extends object>(
     pending ??= load().then((mod) => {
       cached = mod.default;
       return mod.default;
+    }).catch((error: unknown) => {
+      pending = null;
+      throw error;
     });
     return pending;
   };
 
   return function AskLazy(props: P) {
     const [Comp, setComp] = useState<ComponentType<P> | null>(() => cached);
+    const [failed, setFailed] = useState(false);
 
     useEffect(() => {
       if (Comp) return;
       let live = true;
       loadOnce().then((Loaded) => {
         if (live) setComp(() => Loaded);
+      }).catch(() => {
+        if (live) setFailed(true);
       });
       return () => {
         live = false;
@@ -117,7 +124,7 @@ export function askLazy<P extends object>(
     }, [Comp]);
 
     return (
-      <FadeSlot ready={Comp !== null} fallback={fallback(props)}>
+      <FadeSlot ready={Comp !== null} fallback={failed ? <AskLoadError /> : fallback(props)}>
         {Comp && <Comp {...props} />}
       </FadeSlot>
     );
