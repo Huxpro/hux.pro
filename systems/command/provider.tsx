@@ -446,20 +446,18 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     };
   }, [isOpen, isLoadBundleMode, isAskMode, askEntry, askPlacement, toggle, close, open, openAsk, closeAsk, moveAsk]);
 
-  // Arriving on a page to read with the center chat up: it becomes the side
+  // Navigating to a page to read with the center chat up: it becomes the side
   // panel, so the page is read beside the conversation. Opening from the
-  // palette on a page already being read stays the morph (the path did not
+  // palette on the page already open stays the morph (the path did not
   // change). Leaving a reading page leaves Ask where it is. Adjusted while
   // rendering, the same way a state is derived from a changed prop.
   const [seenPath, setSeenPath] = useState(pathname);
   if (seenPath !== pathname) {
-    const prev = seenPath;
     setSeenPath(pathname);
     if (
       askPlacement === "center" &&
       askPlatformNow() === "desk" &&
-      isReadingPage(pathname) &&
-      !isReadingPage(prev)
+      isReadingPage(pathname)
     ) {
       moveAsk("side", askEntry, false);
     }
