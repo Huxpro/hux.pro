@@ -1,5 +1,6 @@
 "use client";
 
+import { followHref } from "@/lib/follow-href";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
@@ -282,7 +283,7 @@ export default function AskActivity() {
         ) : (
           <AskMessages
             onNavigate={(href) => {
-              router.push(href);
+              followHref(href, (to) => router.push(to));
               // A link to the page already open (an anchor on it) is no
               // route change, so the Dock would not collapse by itself.
               close();

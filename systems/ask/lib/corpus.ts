@@ -40,6 +40,9 @@ export interface AskChunk {
   doc: string;
   /** The heading the passage sits under, if any. */
   heading?: string;
+  /** The id of the nearest heading the page links (a post's h1 to h3):
+   *  `<doc href>#<anchor>` lands on it. */
+  anchor?: string;
   text: string;
 }
 

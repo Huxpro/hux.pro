@@ -1,21 +1,10 @@
 "use client";
 
+import { headingId } from "@/lib/heading-id";
 import { cn } from "@/lib/utils";
 import { Link as LinkIcon } from "lucide-react";
 import type { ComponentPropsWithoutRef } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-
-/**
- * Generate a URL-friendly ID from heading text
- */
-function generateHeadingId(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s\u4e00-\u9fff-]/g, "") // Keep Chinese characters, alphanumeric, spaces, hyphens
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/-+/g, "-") // Replace multiple hyphens with single
-    .trim();
-}
 
 /**
  * Heading component with hash link on hover
@@ -38,7 +27,7 @@ export function HeadingWithLink({
     if (headingRef.current) {
       const textContent = headingRef.current.textContent || "";
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setId(generateHeadingId(textContent));
+      setId(headingId(textContent));
     }
   }, [children]);
 

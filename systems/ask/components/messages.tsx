@@ -148,7 +148,15 @@ function ToolSteps({ parts, live }: { parts: ToolPart[]; live: boolean }) {
                 part.state === "output-error" ? part.errorText : out && "error" in out ? out.error : undefined
               }
               status={status}
-            />
+            >
+              {out && "href" in out && (
+                <ChainOfThoughtSearchResults>
+                  <ChainOfThoughtSearchResult>
+                    <a href={out.href}>{out.title}</a>
+                  </ChainOfThoughtSearchResult>
+                </ChainOfThoughtSearchResults>
+              )}
+            </ChainOfThoughtStep>
           );
         })}
       </ChainOfThoughtContent>

@@ -2,6 +2,7 @@ import languagesData from "@/content/languages.json";
 import logData from "@/content/log.json";
 import promptsData from "@/content/prompts.json";
 import { blogPosts } from "@/lib/data";
+import { computeCommitHash } from "@/lib/log";
 import { ASK_INSTRUCTIONS, ASK_MAP_SECTIONS, ASK_VOICE } from "@/systems/ask/prompts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -32,6 +33,13 @@ function both(value: Localized): string {
   return en && zh && en !== zh ? `${en} / ${zh}` : en || zh || "";
 }
 
+/** The English, the Chinese when that is all there is: an anchor /prompt
+ *  answers to in either language. */
+function enOf(value: Localized): string {
+  if (value == null) return "";
+  return typeof value === "string" ? value : value.en || value.zh || "";
+}
+
 /** The About, as prose: who Hux is, in his own words. */
 function about(): string {
   const raw = readFileSync(join(process.cwd(), "content/about/en.mdx"), "utf8");
@@ -54,7 +62,8 @@ function siteMap(): string {
     return `- ${p.date} ${title}${tags}: ${links} (doc ids: ${langs.map((l) => `post:${p.slug}:${l}`).join(", ")})`;
   });
   const convictions = promptsData.convictions.map(
-    (c) => `- ${both(c.anchor)}: ${both(c.statements[0]?.text)} (doc id: conviction:${c.id}:en|zh)`,
+    (c) =>
+      `- ${both(c.anchor)}: ${both(c.statements[0]?.text)}: /prompt#${encodeURIComponent(enOf(c.anchor))} (doc id: conviction:${c.id}:en|zh)`,
   );
   const influences = promptsData.influences.map(
     (i) => `- ${both(i.name as Localized)} (${both(i.context as Localized)}) (doc id: influence:${i.id}:en|zh)`,
@@ -63,7 +72,7 @@ function siteMap(): string {
     (t) => `- ${t.startDate} ${both(t.title)}${t.company ? `, ${both(t.company as Localized)}` : ""} (doc id: era:${t.id}:en|zh)`,
   );
   const works = logData.commits.map(
-    (c) => `- ${c.date} [${c.type}] ${both(c.title as Localized)} (doc id: work:${c.id}:en|zh)`,
+    (c) => `- ${c.date} [${c.type}] ${both(c.title as Localized)}: /works#${computeCommitHash(c.id)} (doc id: work:${c.id}:en|zh)`,
   );
   const languages = languagesData.languages.map((l) => both(l.name as Localized)).join(", ");
 

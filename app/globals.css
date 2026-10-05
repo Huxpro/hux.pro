@@ -702,6 +702,19 @@ html.dragging * {
   }
 }
 
+/* A heading travelled to (components/post/heading-landing.tsx), an entry on
+   /prompt (app/prompt/view.tsx): the same wash as a commit row's. */
+[data-hash-target] {
+  border-radius: 6px;
+  animation: commit-target-wash 2s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-hash-target] {
+    animation-duration: 0.01ms;
+  }
+}
+
 /* The signature: /works (TimelineCommit, "The signature"). A row's
    `commit` / `Author:` / `Role:`, never at rest: on a desk it unspools from
    the hash down into the margin while the row is hovered; anywhere, a tap on
