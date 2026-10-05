@@ -3,11 +3,10 @@
 // site. See docs/system-ask.md.
 // =============================================================================
 
-import dynamic from "next/dynamic";
-
 /** The chat, loaded the first time Ask opens (AI Elements, streamdown, the
- *  AI SDK client are none of the page's business until then). */
-export const AskChat = dynamic(() => import("./components/chat"), { ssr: false });
+ *  AI SDK client are none of the page's business until then). The command
+ *  card is already up by then; the chat fades in over a skeleton. */
+export { AskChat } from "./components/entry";
 
 // The pieces, for a surface of its own. Importing these is importing AI
 // Elements and the AI SDK client: do it from a lazily loaded module.

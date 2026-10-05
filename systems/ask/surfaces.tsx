@@ -9,7 +9,9 @@ import { useTransitionRouter } from "next-view-transitions";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect } from "react";
+import { AskActivity } from "./components/activity";
 import { useAskActionsHost } from "./components/actions-host";
+import { AskPanel } from "./components/entry";
 import { useAskPlatform } from "./lib/config";
 
 // =============================================================================
@@ -34,11 +36,15 @@ import { useAskPlatform } from "./lib/config";
 // The center place on a desk is the palette's own (systems/command, AskChat). Which
 // one is showing is the command provider's `askPlacement`; moving between
 // them moves nothing but that, because the conversation is the session's
-// (lib/chat.ts). None of it loads until Ask is first called (`askStarted`).
+// (lib/chat.ts).
+//
+// The shells are the page's: a panel, a drawer, the Dock's panel. They open
+// the moment Ask is called (`askStarted`), with a skeleton where the
+// conversation will be. The conversation itself (AI Elements, streamdown,
+// the AI SDK client) loads then and fades in over that skeleton
+// (components/entry.tsx, components/activity.tsx).
 // =============================================================================
 
-const AskPanel = dynamic(() => import("./components/panel"), { ssr: false });
-const Activity = dynamic(() => import("./components/activity"), { ssr: false });
 const DragOverlay = dynamic(
   () => import("./components/placement").then((m) => m.AskDragOverlay),
   { ssr: false },
@@ -116,9 +122,9 @@ export function AskSide() {
   if (!askStarted) return null;
 
   const body = (
-    // `contents`: the panel's title bar, conversation and composer stay the
-    // shell's own flex column.
-    <div {...{ [CONTENT_ATTRIBUTE]: "" }} className="contents">
+    // A column the shell's height, so the skeleton (and then the panel) fills
+    // the drawer that is already open rather than waiting to give it a size.
+    <div {...{ [CONTENT_ATTRIBUTE]: "" }} className="flex min-h-0 flex-1 flex-col">
       <AskPanel
         placement={placement}
         // The question is this place's to send only while Ask is here.
@@ -150,7 +156,7 @@ export function AskSide() {
 
 export function AskDock() {
   const { askStarted } = useCommand();
-  return askStarted ? <Activity /> : null;
+  return askStarted ? <AskActivity /> : null;
 }
 
 export function AskDragging() {

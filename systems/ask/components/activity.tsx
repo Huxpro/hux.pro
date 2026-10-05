@@ -1,23 +1,17 @@
 "use client";
 
-import { followHref } from "@/lib/follow-href";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useCommand } from "@/systems/command";
 import { LiveActivity, useDock } from "@/systems/dock";
-import type { ChatStatus } from "ai";
 import { History, Sparkles, SquarePen, X } from "lucide-react";
-import { useTransitionRouter } from "next-view-transitions";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useAskConfig } from "../lib/config";
-import type { AskUIMessage } from "../lib/tools";
-import { useAskRequest, useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
-import { AskComposer } from "./composer";
-import { AskHistory } from "./history";
-import { AskMessages } from "./messages";
+import { FadeSlot } from "./lazy-view";
 import { AskPlacementControls, useAskDragHandle } from "./placement";
+import { AskSkeleton } from "./skeleton";
 
 // =============================================================================
 // Ask in the Dock: the conversation as a Live Activity, the way iOS keeps a
@@ -44,8 +38,10 @@ import { AskPlacementControls, useAskDragHandle } from "./placement";
 // it is one more pill in the row, and opening one puts the other away, the
 // Dock's rule for every activity.
 //
-// Loaded the first time Ask is called (../index.ts), with AI Elements and the
-// AI SDK client: none of the page's business before that.
+// The panel is this file, so it can come down the moment Ask is called. The
+// conversation (AI Elements, the AI SDK client) loads into it and fades in
+// (./activity-body.tsx). The bridge half of that module stays mounted after,
+// so the pill still knows a reply is being written once the panel is gone.
 // =============================================================================
 
 const ASK_ID = "ask";
@@ -69,50 +65,28 @@ const BODY_HEIGHT =
 const HEADER_BUTTON =
   "pressable inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-pressed:bg-muted aria-pressed:text-foreground";
 
-// ---- What the pill says -----------------------------------------------------
+/** What the pill and the header need from the session, once it has loaded. */
+type AskActivitySession = {
+  count: number;
+  busy: boolean;
+  answer: boolean;
+  text: string;
+  newChat: () => void;
+};
 
-/** An answer's Markdown as one line of plain words, for the pill. */
-function plain(markdown: string): string {
-  return markdown
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/^\s*(?:#+|>|[-*+]|\d+\.)\s+/gm, "")
-    .replace(/(\*\*|__|`)/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+type BodyModule = typeof import("./activity-body");
+
+let bodyModule: BodyModule | null = null;
+let bodyPending: Promise<BodyModule> | null = null;
+
+function loadBody() {
+  if (bodyModule) return Promise.resolve(bodyModule);
+  bodyPending ??= import("./activity-body").then((mod) => {
+    bodyModule = mod;
+    return mod;
+  });
+  return bodyPending;
 }
-
-/**
- * The conversation in one line: what the agent is doing while it works (the
- * step it is on), and the answer's first words once it has some. `answer`
- * sets the words in the ink; a status stays on the label's rung.
- */
-function lineOf(
-  messages: AskUIMessage[],
-  status: ChatStatus,
-  s: ReturnType<typeof askStrings>,
-): { text: string; answer: boolean } {
-  const last = messages.at(-1);
-  if (status === "error") return { text: s.error, answer: false };
-  if (last?.role !== "assistant") {
-    const asked = last?.parts.find((p) => p.type === "text")?.text ?? "";
-    return { text: status === "ready" ? plain(asked) : s.thinking, answer: false };
-  }
-  // The newest part that says something: a step under way, or words.
-  const part = last.parts.findLast(
-    (p) => (p.type === "text" && p.text.trim()) || p.type === "tool-search_site" || p.type === "tool-read",
-  );
-  if (part?.type === "text") return { text: plain(part.text), answer: true };
-  if (part?.type === "tool-search_site") {
-    return { text: s.searching(part.input?.query ?? "…"), answer: false };
-  }
-  if (part?.type === "tool-read") {
-    const out = part.state === "output-available" ? part.output : null;
-    return { text: s.reading(out && "title" in out ? out.title : (part.input?.id ?? "…")), answer: false };
-  }
-  return { text: s.thinking, answer: false };
-}
-
-// ---- The keyboard's share of the screen -------------------------------------
 
 function subscribeViewport(onChange: () => void) {
   const viewport = window.visualViewport;
@@ -124,24 +98,42 @@ function viewportHeight() {
   return window.visualViewport?.height ?? window.innerHeight;
 }
 
-
-// ---- The activity -------------------------------------------------------------
-
-export default function AskActivity() {
+export function AskActivity() {
   const { locale } = useLocale();
   const s = askStrings(locale);
-  const router = useTransitionRouter();
   const { askPlacement, askPill, askRequest, moveAsk, minimizeAsk, closeAsk } = useCommand();
   const { openId, open, close } = useDock();
-  const { messages, status, busy, newChat } = useAskSession();
   const [showHistory, setShowHistory] = useState(false);
+  const [session, setSession] = useState<AskActivitySession | null>(null);
+  const [body, setBody] = useState<BodyModule | null>(() => bodyModule);
   const viewport = useSyncExternalStore(subscribeViewport, viewportHeight, () => 0);
   const handle = useAskDragHandle("top");
   const config = useAskConfig();
   const expanded = openId === ASK_ID;
   const placed = askPlacement === "top";
-  // The question is this place's to send only while Ask is here.
-  useAskRequest(placed ? askRequest : null);
+
+  const onSession = useCallback((next: AskActivitySession) => {
+    setSession((prev) =>
+      prev &&
+      prev.count === next.count &&
+      prev.busy === next.busy &&
+      prev.answer === next.answer &&
+      prev.text === next.text
+        ? prev
+        : next,
+    );
+  }, []);
+
+  useEffect(() => {
+    if (body) return;
+    let live = true;
+    loadBody().then((mod) => {
+      if (live) setBody(mod);
+    });
+    return () => {
+      live = false;
+    };
+  }, [body]);
 
   // The provider and the Dock follow each other, told apart by which one
   // moved since the last render:
@@ -185,117 +177,111 @@ export default function AskActivity() {
     return () => cancelAnimationFrame(frame);
   }, [opening, open]);
 
+  const Bridge = body?.AskSessionBridge;
+  const View = body?.AskActivityView;
   // Nothing to show unless Ask is here, minimized here, or still writing a
-  // reply after it was closed.
-  const pill = askPill || (config.backgroundPill && busy && askPlacement === null && messages.length > 0);
-  if (!placed && !expanded && !pill && !opening) return null;
-
-  const line = lineOf(messages, status, s);
+  // reply after it was closed. The bridge stays either way: it is how a
+  // reply still being written becomes a pill.
+  const show =
+    placed ||
+    expanded ||
+    opening ||
+    askPill ||
+    (config.backgroundPill && !!session?.busy && askPlacement === null && (session?.count ?? 0) > 0);
 
   return (
-    <LiveActivity
-      id={ASK_ID}
-      openLabel={s.openAsk}
-      collapseLabel={s.collapse}
-      panelWidth={PANEL_WIDTH}
-      working={busy}
-      // The composer focuses its own field, when it should (below).
-      moveFocus={false}
-      pill={
-        <>
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">
-            <Sparkles className="h-3.5 w-3.5 text-foreground" />
-          </span>
-          <span
-            className={cn(
-              "max-w-[min(13rem,50vw)] truncate",
-              line.answer ? "text-xs text-foreground" : TYPE.label,
-            )}
-          >
-            {line.text}
-          </span>
-        </>
-      }
-      title={
-        // The handle for a mouse's drag to the center or the side (which
-        // stops the press from reaching the drawer); to a finger it is the
-        // header, and swiping it up puts the panel back to the pill.
-        <span
-          onPointerDown={handle.onPointerDown}
-          className={cn("flex min-w-0 flex-1 items-center gap-1.5", handle.className)}
-        >
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <span className={cn(TYPE.label, "truncate")}>{showHistory ? s.history : s.ask}</span>
-        </span>
-      }
-      actions={
-        <>
-          {/* Minimize is the Dock's own chevron here. */}
-          <AskPlacementControls current="top" minimize={false} className="mr-0.5" />
-          <button
-            type="button"
-            onClick={() => setShowHistory((v) => !v)}
-            aria-label={s.history}
-            aria-pressed={showHistory}
-            title={s.history}
-            className={HEADER_BUTTON}
-          >
-            <History className="h-4 w-4" />
-          </button>
-          {messages.length > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                newChat();
-                setShowHistory(false);
-              }}
-              aria-label={s.newChat}
-              title={s.newChat}
-              className={HEADER_BUTTON}
+    <>
+      {Bridge && <Bridge placed={placed} askRequest={askRequest} onSession={onSession} />}
+      {show && (
+        <LiveActivity
+          id={ASK_ID}
+          openLabel={s.openAsk}
+          collapseLabel={s.collapse}
+          panelWidth={PANEL_WIDTH}
+          working={session?.busy ?? false}
+          // The composer focuses its own field, when it should.
+          moveFocus={false}
+          pill={
+            <>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">
+                <Sparkles className="h-3.5 w-3.5 text-foreground" />
+              </span>
+              <span
+                className={cn(
+                  "max-w-[min(13rem,50vw)] truncate",
+                  session?.answer ? "text-xs text-foreground" : TYPE.label,
+                )}
+              >
+                {session?.text || s.ask}
+              </span>
+            </>
+          }
+          title={
+            // The handle for a mouse's drag to the center or the side (which
+            // stops the press from reaching the drawer); to a finger it is the
+            // header, and swiping it up puts the panel back to the pill.
+            <span
+              onPointerDown={handle.onPointerDown}
+              className={cn("flex min-w-0 flex-1 items-center gap-1.5", handle.className)}
             >
-              <SquarePen className="h-4 w-4" />
-            </button>
-          )}
-          <button type="button" onClick={closeAsk} aria-label={s.close} title={s.close} className={HEADER_BUTTON}>
-            <X className="h-4 w-4" />
-          </button>
-        </>
-      }
-    >
-      {/* The conversation scrolls on its own: a drag in it is a scroll, not
-          the panel being put away (Base UI's swipe-ignore). The header and
-          the grabber are still the handle. */}
-      <div
-        data-base-ui-swipe-ignore=""
-        data-ask-top=""
-        className="flex flex-col border-t border-border/50"
-        style={
-          {
-            height: BODY_HEIGHT,
-            ...(viewport ? { "--ask-viewport": `${viewport}px` } : {}),
-          } as React.CSSProperties
-        }
-      >
-        {showHistory ? (
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <AskHistory onOpen={() => setShowHistory(false)} />
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className={cn(TYPE.label, "truncate")}>{showHistory ? s.history : s.ask}</span>
+            </span>
+          }
+          actions={
+            <>
+              {/* Minimize is the Dock's own chevron here. */}
+              <AskPlacementControls current="top" minimize={false} className="mr-0.5" />
+              <button
+                type="button"
+                onClick={() => setShowHistory((v) => !v)}
+                aria-label={s.history}
+                aria-pressed={showHistory}
+                title={s.history}
+                className={HEADER_BUTTON}
+              >
+                <History className="h-4 w-4" />
+              </button>
+              {session && session.count > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    session.newChat();
+                    setShowHistory(false);
+                  }}
+                  aria-label={s.newChat}
+                  title={s.newChat}
+                  className={HEADER_BUTTON}
+                >
+                  <SquarePen className="h-4 w-4" />
+                </button>
+              )}
+              <button type="button" onClick={closeAsk} aria-label={s.close} title={s.close} className={HEADER_BUTTON}>
+                <X className="h-4 w-4" />
+              </button>
+            </>
+          }
+        >
+          {/* The conversation scrolls on its own: a drag in it is a scroll, not
+              the panel being put away (Base UI's swipe-ignore). The header and
+              the grabber are still the handle. */}
+          <div
+            data-base-ui-swipe-ignore=""
+            data-ask-top=""
+            className="flex min-h-0 flex-col border-t border-border/50"
+            style={
+              {
+                height: BODY_HEIGHT,
+                ...(viewport ? { "--ask-viewport": `${viewport}px` } : {}),
+              } as React.CSSProperties
+            }
+          >
+            <FadeSlot ready={View !== undefined} fallback={<AskSkeleton kind="dock" />}>
+              {View && <View showHistory={showHistory} onCloseHistory={() => setShowHistory(false)} />}
+            </FadeSlot>
           </div>
-        ) : (
-          <AskMessages
-            onNavigate={(href) => {
-              followHref(href, (to) => router.push(to));
-              // A link to the page already open (an anchor on it) is no
-              // route change, so the Dock would not collapse by itself.
-              close();
-            }}
-          />
-        )}
-        <div className="shrink-0 px-3 pt-1 pb-1.5">
-          {/* Focused to write in, unless on a touch screen there is an
-              answer to read (the composer's own rule). */}
-          <AskComposer />
-        </div>
-      </div>
-    </LiveActivity>
+        </LiveActivity>
+      )}
+    </>
   );
 }
