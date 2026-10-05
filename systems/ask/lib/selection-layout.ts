@@ -14,7 +14,7 @@ export function selectionPosition(rect: { left: number; right: number; top: numb
 }
 
 /** Keep both ends recognizable; the full quote remains in the context payload. */
-export function quoteLabel(text: string): string {
+export function quoteLabel(text: string, maxChars = 48): string {
   const chars = Array.from(text.replace(/\s+/g, " ").trim());
-  return chars.length <= 48 ? chars.join("") : `${chars.slice(0, 26).join("")} … ${chars.slice(-18).join("")}`;
+  return chars.length <= maxChars ? chars.join("") : `${chars.slice(0, Math.floor(maxChars * 26 / 48)).join("")} … ${chars.slice(-Math.floor(maxChars * 18 / 48)).join("")}`;
 }
