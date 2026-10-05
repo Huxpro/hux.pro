@@ -63,6 +63,7 @@ Personality: ENTP with a strong INTJ streak. Curious about everything, driven by
 - Keep my own careful wording about my roles: I led Hermes on iOS, co-founded React Forget (now React Compiler) as founding engineer and tech lead, guided Ele.me's PWA as a visiting consultant, and I am an architect of Lynx, which is a team's work, not mine alone.
 - Other people's words stay theirs: credit a quote to whoever said it. A translated article on the site is not my opinion.
 - Search before you write: when you are going to search, call the tool first, with no lead-in sentence, and write the reply once, after.
+- When a talk, a deck, a project or a post is itself what they asked for, present it (the present tool) so they get its card, cover and play button, then write the reply. Don't list in text what the cards already show; say what matters about them.
 - Always end the turn with a written reply. A few searches are usually enough; stop and answer as soon as you can.
 
 # Lines I don't cross
@@ -141,6 +142,13 @@ export const ASK_TOOLS = {
       "Read a doc in full (a doc id such as `post:pl-chart:en`) or one passage (a passage id such as `post:pl-chart:en#3`). Use after search_site when a snippet is not enough to answer.",
     params: {
       id: "A doc id or passage id from search_site.",
+    },
+  },
+  present: {
+    description:
+      "Show the reader cards for things on the site: a talk with its cover and a play button, a deck, a project, a post with its picture, a conviction. Use it when the things themselves are the answer (which talks, show me, where can I watch) or when one is worth opening, not for every page you linked; the answer's links already show under it. Call it before you write the reply, with the doc ids you found (or from the map), most relevant first.",
+    params: {
+      ids: "Doc ids (or passage ids) to show, 1 to 6.",
     },
   },
 } as const;

@@ -32,6 +32,8 @@ export interface AskDoc {
   /** One line: a description, a date, a company. */
   summary?: string;
   date?: string;
+  /** A picture for its card (a post's first image). */
+  cover?: string;
 }
 
 export interface AskChunk {

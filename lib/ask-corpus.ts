@@ -145,6 +145,11 @@ class Builder {
   }
 }
 
+/** A cover the card can show: a path on this site, or an absolute URL. */
+function cover(src: string | undefined): { cover?: string } {
+  return src && /^(\/|https:\/\/)/.test(src) ? { cover: src } : {};
+}
+
 function addPosts(b: Builder) {
   for (const slug of getBlogSlugs()) {
     const post = getBlogPostBySlug(slug);
@@ -167,6 +172,7 @@ function addPosts(b: Builder) {
           href: `/writing/${slug}/${lang}`,
           summary,
           date: post.date,
+          ...(cover(lang === "zh" ? (post.coverZh ?? post.cover) : post.cover)),
         },
         sections(body),
       );

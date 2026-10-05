@@ -41,6 +41,8 @@ export interface SearchHit {
 export type ReadOutput =
   | {
       id: string;
+      /** The doc it is, or is a passage of. */
+      doc: string;
       title: string;
       href: string;
       lang: AskDoc["lang"];
@@ -51,6 +53,14 @@ export type ReadOutput =
       truncated?: boolean;
     }
   | { error: string };
+
+export interface PresentInput {
+  /** Doc ids (a passage id stands for its doc). */
+  ids: string[];
+}
+
+/** What `present` returns: the docs now shown as cards, or why none. */
+export type PresentOutput = { shown: string[] } | { error: string };
 
 export const askTools = {
   search_site: tool({
@@ -83,6 +93,24 @@ export const askTools = {
       additionalProperties: false,
     }),
     outputSchema: jsonSchema<ReadOutput>({ type: "object" }),
+  }),
+  present: tool({
+    description: ASK_TOOLS.present.description,
+    inputSchema: jsonSchema<PresentInput>({
+      type: "object",
+      properties: {
+        ids: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 1,
+          maxItems: 6,
+          description: ASK_TOOLS.present.params.ids,
+        },
+      },
+      required: ["ids"],
+      additionalProperties: false,
+    }),
+    outputSchema: jsonSchema<PresentOutput>({ type: "object" }),
   }),
 };
 

@@ -17,6 +17,9 @@ import { normalizeTerm, tokenize } from "./tokenize";
 export type { ReadOutput, SearchHit };
 
 export interface AskSearch {
+  /** The docs among these ids that exist (a passage id counts as its doc),
+   *  once each, in order. */
+  docsOf: (ids: readonly string[]) => AskDoc[];
   docs: Map<string, AskDoc>;
   search: (input: SearchInput) => SearchHit[];
   read: (input: ReadInput) => ReadOutput;
@@ -134,6 +137,7 @@ function build(index: AskIndex): AskSearch {
       .join("\n\n");
     return {
       id,
+      doc: doc.id,
       title: doc.title,
       href: hrefOf(doc, chunk),
       lang: doc.lang,
@@ -144,5 +148,14 @@ function build(index: AskIndex): AskSearch {
     };
   }
 
-  return { docs, search, read };
+  function docsOf(ids: readonly string[]): AskDoc[] {
+    const out = new Map<string, AskDoc>();
+    for (const id of ids) {
+      const doc = docs.get(chunks.get(id)?.doc ?? id);
+      if (doc) out.set(doc.id, doc);
+    }
+    return [...out.values()];
+  }
+
+  return { docs, search, read, docsOf };
 }
