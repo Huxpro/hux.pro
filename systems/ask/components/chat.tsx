@@ -31,8 +31,9 @@ import { AskPlacementControls, useAskDragHandle } from "./placement";
 // Back to search is there only when search was the way in (`onBack`); Ask
 // reached directly has no search behind it.
 //
-// This is Ask's center place. Its headers drag the window, and carry the
-// placement buttons (./placement).
+// This is Ask's center place. Its headers drag the window: let go in the
+// middle and it stays, up in the top band and it docks, in the trailing
+// column and it becomes the side panel (./placement).
 // =============================================================================
 
 export interface AskChatProps {

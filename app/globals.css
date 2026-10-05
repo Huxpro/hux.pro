@@ -2153,15 +2153,34 @@ main[data-variant="reader"] .reader-masthead {
 
 /* =============================================================================
    Ask: a drag between places
-   While a surface's header is dragged toward another place
-   (systems/ask/components/placement.tsx sets `data-ask-dragging` on <html>),
-   the surface it came from fades, so the stand-in and the lit target are
-   what the eye follows.
+   The side panel and the dock follow the pointer (placement.tsx). The center
+   window is the palette's own drag; it fades only once letting go would put
+   it somewhere else (`data-ask-dragging`).
    ============================================================================= */
 
 html[data-ask-dragging] :is([data-ask-center], [data-ask-panel] > *, [data-dock-panel]:has([data-ask-top])) {
   opacity: 0.35;
   transition: opacity 150ms ease-out;
+}
+
+/* The side panel and the dock follow the pointer while their header is
+   dragged (placement.tsx sets `data-ask-drag-from` and the offset). `translate`
+   composes with the drawer's own `transform`, so the entrance and the swipe
+   are left alone. The place being left is hidden for the handoff
+   (`data-ask-drag-commit` names it), or the panel would snap home for a frame
+   before the new one mounts. */
+html[data-ask-drag-from="side"] [data-ask-drag-host="side"],
+html[data-ask-drag-from="top"] [data-dock-panel]:has([data-ask-top]) {
+  translate: var(--ask-drag-x, 0px) var(--ask-drag-y, 0px);
+  z-index: 80;
+  cursor: grabbing;
+}
+
+html[data-ask-drag-commit="side"] [data-ask-drag-host="side"],
+html[data-ask-drag-commit="center"] [data-ask-center],
+html[data-ask-drag-commit="top"] [data-dock-panel]:has([data-ask-top]) {
+  opacity: 0;
+  transition: none;
 }
 
 /* =============================================================================

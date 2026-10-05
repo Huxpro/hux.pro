@@ -14,23 +14,23 @@ import { askStrings } from "../strings";
 //
 // Ask is one conversation in one of three places (the command provider's
 // `AskPlacement`): the center (the palette, widened), the side (a panel
-// beside the page), the top (the Dock's panel). Every surface's header
-// carries the same two ways to move it:
+// beside the page), the top (the Dock's panel). Where it opens follows the
+// moment (the provider's `askOpenTarget`). Moving it by hand is a drag:
 //
-//   - the placement buttons (AskPlacementControls), and minimize, which puts
-//     it away into the Dock as a pill;
-//   - its header as a handle (useAskDragHandle): drag it, and the three
-//     places light up where they would put it; let go over one and Ask moves
-//     there. A drag shows a stand-in, not the surface itself: each surface is
-//     a different kind of thing (a cmdk card, a drawer, the Dock's own
-//     drawer, which has its own swipe), and what moves is the conversation.
+//   - the header is a handle (useAskDragHandle). The side panel and the
+//     dock panel follow the pointer, the way the center window does. Let go
+//     over the middle and Ask is the center chat; let go up in the top band
+//     and it is the dock; let go in the trailing column and it is the side.
+//     A drag does not stick: the next open follows the moment again.
+//   - the place buttons (AskPlacementControls) are off on the desk's preset.
+//     Minimize, which puts Ask away into the Dock as a pill, stays.
 //
-// The center is a window and drags freely; only its edges are places (see
-// useAskDragHandle). Whether each is there is a setting (../lib/config.ts:
-// `placeButtons`, `drag`, `minimize`). The desk's preset has them all; a phone's has none of
-// them, because there Ask is a bottom drawer and nothing else. Wherever they
-// are on, the side is left out on a screen with no room beside the page, and
-// dragging takes a mouse.
+// The center window is the palette's own drag; only leaving the middle
+// changes its place. Whether each is there is a setting (../lib/config.ts:
+// `placeButtons`, `drag`, `minimize`). The desk's preset drags and minimizes,
+// with no place buttons. A phone's has none of them, because there Ask is a
+// bottom drawer and nothing else. Wherever they are on, the side is left out
+// on a screen with no room beside the page, and dragging takes a mouse.
 // =============================================================================
 
 const PLACES: { placement: AskPlacement; icon: LucideIcon }[] = [
@@ -60,7 +60,11 @@ export function AskPlacementControls({
   const minimizes = minimize && config.minimize === "dock";
   if (!config.placeButtons && !minimizes) return null;
   return (
-    <div role="group" aria-label={s.placement} className={cn("flex items-center gap-0.5", className)}>
+    <div
+      role="group"
+      aria-label={config.placeButtons ? s.placement : undefined}
+      className={cn("flex items-center gap-0.5", className)}
+    >
       {config.placeButtons && PLACES.map(({ placement, icon: Icon }) => (
         <button
           key={placement}
@@ -90,10 +94,13 @@ interface DragState {
   from: AskPlacement;
   x: number;
   y: number;
+  /** Where the press started, so a carried panel follows by the same delta. */
+  originX: number;
+  originY: number;
   /**
-   * The center's drag: the window itself moves (the palette's own drag), and
-   * only an edge is a place. Off the edges nothing is drawn, and letting go
-   * leaves the window where it is.
+   * The center's drag: the window itself moves (the palette's own drag).
+   * Letting go in the middle leaves it where it is; the top band and the
+   * trailing column are the other places.
    */
   free?: boolean;
 }
@@ -103,11 +110,21 @@ const listeners = new Set<() => void>();
 
 function setDrag(next: DragState | null) {
   drag = next;
-  // The surface being carried fades while its stand-in moves (globals.css,
-  // "Ask: a drag between places"); a window dragged freely fades only over
-  // an edge, where letting go would put it somewhere else.
-  const fading = next !== null && (!next.free || edgeAt(next.x, next.y) !== null);
-  document.documentElement.toggleAttribute("data-ask-dragging", fading);
+  const root = document.documentElement;
+  // The center window fades only once letting go would put it somewhere
+  // else (globals.css). A carried panel does not: it is what follows the
+  // pointer, offset by the press (`--ask-drag-x/y`).
+  const fading = next !== null && !!next.free && placementAt(next.x, next.y) !== next.from;
+  root.toggleAttribute("data-ask-dragging", fading);
+  if (next && !next.free) {
+    root.dataset.askDragFrom = next.from;
+    root.style.setProperty("--ask-drag-x", `${next.x - next.originX}px`);
+    root.style.setProperty("--ask-drag-y", `${next.y - next.originY}px`);
+  } else {
+    delete root.dataset.askDragFrom;
+    root.style.removeProperty("--ask-drag-x");
+    root.style.removeProperty("--ask-drag-y");
+  }
   listeners.forEach((l) => l());
 }
 
@@ -116,25 +133,22 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-/** The place a pointer at (x, y) would put Ask: the top band, the side
- *  panel's own box (as drawn, TARGET_BOX), or the middle. */
+/**
+ * How far down from the top letting go docks Ask. Above the palette's card
+ * (it rests near a fifth of the way down), and not so tall that the side
+ * panel's own header — which is checked as the side first — would count.
+ */
+const DOCK_BAND_PX = 112;
+
+/** The place a pointer at (x, y) would put Ask. The trailing column is the
+ *  side, wherever it is vertically (its header sits in the top band, and
+ *  dragging it sideways is a drag toward the center, not up into the dock).
+ *  The top band everywhere else is the dock. The rest is the center. */
 function placementAt(x: number, y: number): AskPlacement {
-  if (y < window.innerHeight * 0.18) return "top";
   const panel = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--surface-panel-w")) || 440;
   if (x > window.innerWidth - panel - 12) return "side";
+  if (y < DOCK_BAND_PX) return "top";
   return "center";
-}
-
-/** Within this of the trailing edge, a dragged window is going to the side. */
-const EDGE_SIDE_PX = 96;
-/** Within this of the top, to the Dock. */
-const EDGE_TOP_PX = 64;
-
-/** The place an edge would put a freely dragged window, or none. */
-function edgeAt(x: number, y: number): AskPlacement | null {
-  if (y < EDGE_TOP_PX) return "top";
-  if (x > window.innerWidth - EDGE_SIDE_PX) return "side";
-  return null;
 }
 
 /** Past this, a press on the handle is a drag, not a click. */
@@ -147,12 +161,12 @@ const CONTROL = "button, a, input, textarea, select, [role='combobox']";
  * a control inside it (a button, a field, a picker) is left alone.
  *
  * The center is a window: its header drags the window itself, anywhere
- * (`data-drag-handle`, which the palette's own drag starts from), and only
- * the edges are places: the trailing edge for the side, the top for the
- * Dock. They light up as the pointer reaches them, and letting go there
- * moves Ask; anywhere else the window stays where it was put. The side
- * panel and the Dock's panel are fixed in place, so their header carries a
- * stand-in instead, with the three places drawn to aim at.
+ * (`data-drag-handle`, which the palette's own drag starts from). Letting
+ * go in the middle leaves the window where it was put. The side panel and
+ * the dock follow the pointer by the same delta. Letting go in the middle
+ * makes Ask the center chat; further up, in the top band, the dock; in the
+ * trailing column, the side. The place it would land is drawn while the
+ * pointer is over a different one.
  */
 export function useAskDragHandle(from: AskPlacement) {
   const { moveAsk } = useCommand();
@@ -178,16 +192,26 @@ export function useAskDragHandle(from: AskPlacement) {
         if (!dragging && Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_THRESHOLD) return;
         dragging = true;
         if (!free) ev.preventDefault();
-        setDrag({ from, x: ev.clientX, y: ev.clientY, free });
+        setDrag({ from, x: ev.clientX, y: ev.clientY, originX: startX, originY: startY, free });
       };
       const finish = (ev: PointerEvent, drop: boolean) => {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onCancel);
+        const target = dragging && drop ? placementAt(ev.clientX, ev.clientY) : null;
+        const moving = target !== null && target !== from;
+        // The carried panel would snap home for a frame before the new
+        // place mounts. Hide the one being left; the attribute names it, so
+        // the place it lands in is not hidden with it.
+        if (moving) {
+          const root = document.documentElement;
+          root.dataset.askDragCommit = from;
+          window.setTimeout(() => {
+            if (root.dataset.askDragCommit === from) delete root.dataset.askDragCommit;
+          }, 500);
+        }
         setDrag(null);
-        if (!dragging || !drop) return;
-        const target = free ? edgeAt(ev.clientX, ev.clientY) : placementAt(ev.clientX, ev.clientY);
-        if (target && target !== from) moveAsk(target, "direct", true);
+        if (moving && target) moveAsk(target, "direct", false);
       };
       const onUp = (ev: PointerEvent) => finish(ev, true);
       const onCancel = (ev: PointerEvent) => finish(ev, false);
@@ -211,9 +235,10 @@ const TARGET_BOX: Record<AskPlacement, string> = {
 };
 
 /**
- * The drag's overlay: the three places, the one under the pointer lit, and
- * a stand-in following the pointer. Mounted once (../surfaces.tsx); draws
- * nothing until a drag starts.
+ * The drag's overlay: the place letting go would land, and only when it is
+ * a different one. The surface itself is what moves (the center window, or
+ * the side and dock panels, translated). Mounted once (../surfaces.tsx);
+ * draws nothing until a drag is over another place.
  */
 export function AskDragOverlay() {
   const { locale } = useLocale();
@@ -222,65 +247,24 @@ export function AskDragOverlay() {
   const state = useSyncExternalStore(subscribe, () => drag, () => null);
   if (!state) return null;
 
-  // A window dragged freely: nothing until an edge, then that place alone.
-  if (state.free) {
-    const edge = edgeAt(state.x, state.y);
-    if (!edge) return null;
-    const Icon = PLACES.find((p) => p.placement === edge)!.icon;
-    return createPortal(
-      <div className="system-chrome pointer-events-none fixed inset-0 z-[10070]">
-        <div
-          className={cn(
-            "absolute flex items-center justify-center rounded-2xl border-2 border-dashed",
-            "border-foreground/40 bg-glass-popover shadow-overlay backdrop-blur-xl",
-            "animate-in fade-in-0 zoom-in-95 duration-150",
-            TARGET_BOX[edge],
-          )}
-        >
-          <span className="flex items-center gap-2 rounded-full bg-background/70 px-3 py-1.5 text-sm text-foreground">
-            <Icon className="h-4 w-4" />
-            {s.dragHint}
-          </span>
-        </div>
-      </div>,
-      document.body,
-    );
-  }
-
   const target = placementAt(state.x, state.y);
+  if (target === state.from) return null;
+  const Icon = PLACES.find((p) => p.placement === target)!.icon;
 
   return createPortal(
-    <div className="system-chrome pointer-events-none fixed inset-0 z-[10070] cursor-grabbing">
-      {PLACES.map(({ placement, icon: Icon }) => {
-        const lit = placement === target;
-        return (
-          <div
-            key={placement}
-            className={cn(
-              "absolute flex items-center justify-center rounded-2xl border-2 border-dashed transition-all duration-200",
-              TARGET_BOX[placement],
-              lit
-                ? "border-foreground/40 bg-glass-popover backdrop-blur-xl shadow-overlay"
-                : "border-foreground/15 bg-foreground/[0.03]",
-            )}
-          >
-            <span
-              className={cn(
-                "flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition-opacity",
-                lit ? "bg-background/70 text-foreground opacity-100" : "text-muted-foreground opacity-70",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {lit ? s.dragHint : s.placements[placement]}
-            </span>
-          </div>
-        );
-      })}
+    <div className="system-chrome pointer-events-none fixed inset-0 z-[10070]">
       <div
-        className="absolute flex items-center gap-2 rounded-full border border-border/60 bg-glass-popover px-3 py-1.5 text-sm shadow-overlay backdrop-blur-xl"
-        style={{ left: state.x + 12, top: state.y + 12 }}
+        className={cn(
+          "absolute flex items-center justify-center rounded-2xl border-2 border-dashed",
+          "border-foreground/40 bg-glass-popover shadow-overlay backdrop-blur-xl",
+          "animate-in fade-in-0 zoom-in-95 duration-150",
+          TARGET_BOX[target],
+        )}
       >
-        {s.ask} · {s.placements[target]}
+        <span className="flex items-center gap-2 rounded-full bg-background/70 px-3 py-1.5 text-sm text-foreground">
+          <Icon className="h-4 w-4" />
+          {s.dragHint}
+        </span>
       </div>
     </div>,
     document.body,

@@ -6,6 +6,7 @@ import { t, useLocale } from "@/services";
 import { useDevtool } from "@/systems/devtool";
 import { useDraggable } from "@/systems/draggable";
 import { AskChat } from "@/systems/ask";
+import { askPlatformNow } from "@/systems/ask/lib/config";
 import { askStrings } from "@/systems/ask/strings";
 import { Command } from "cmdk";
 import { motion } from "framer-motion";
@@ -88,6 +89,11 @@ const PALETTE_ASK_HEIGHT = "h-[var(--command-palette-ask-max)]";
 // in, and closes the palette when Ask was reached directly (⌘J, the Ask
 // ball), which has no search behind it.
 //
+// With Ask parked on the side, the card centers in the room that is left
+// and its click-away stops at the panel, so the chat and the command are
+// both usable. The panel is the lower layer; the card's box does not take
+// the pointer over it.
+//
 // It still works at phone widths (the devtool's Command module can ask for it
 // there) and keeps its iOS Safari accommodations for that case: the page is
 // pinned at its scroll position while the card is up, and the field is not
@@ -141,12 +147,18 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
     isLoadBundleMode,
     isAskMode,
     askRequest,
+    askPlacement,
     close,
     setLoadBundleMode,
     setAskMode,
     openAsk,
+    moveAsk,
     askEntry,
   } = useCommand();
+  // Ask on the side shares the screen with this card. The reserve matches
+  // the panel (SurfacePanel) plus its edge gap.
+  const beside = askPlacement === "side";
+  const aside = "calc(var(--surface-panel-w, 440px) + 0.75rem)";
   // The history sidebar, for this opening of the palette: each one starts as
   // the command card.
   const [askRail, setAskRail] = useState(false);
@@ -199,11 +211,13 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
           // the primary nav and must always sit on top.
           "system-chrome z-[10050] flex items-start justify-center overflow-y-auto",
           "pt-[var(--command-palette-offset)] pb-8",
-          "transition-[padding-top] duration-300 ease-out",
+          "transition-[padding-top,padding-right] duration-300 ease-out",
+          beside && "pointer-events-none",
           isPhoneSafari ? "absolute inset-x-0" : "fixed inset-0"
         )}
         style={{
           ...PALETTE_GEOMETRY,
+          ...(beside ? { paddingRight: aside } : {}),
           ...(isAskMode && askRail ? PALETTE_ASK_APP_GEOMETRY : {}),
           // The card's width in this mode; the card and its wrapper both read it.
           "--command-card-w": `${
@@ -215,7 +229,8 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
         } as CSSProperties}
       >
         <div
-          className="absolute inset-0 bg-transparent"
+          className={cn("absolute inset-0 bg-transparent", beside && "pointer-events-auto")}
+          style={beside ? { right: aside } : undefined}
           onClick={!isPhoneSafari ? close : undefined}
           onPointerDown={isPhoneSafari ? close : undefined}
         />
@@ -277,7 +292,10 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
           // dragged is kept on screen when let go, and a full-width wrapper
           // had no room to move sideways at all. Eased with the card's own
           // width as it changes mode.
-          className="w-full flex justify-center transition-[max-width] duration-300 ease-out"
+          className={cn(
+            "w-full flex justify-center transition-[max-width] duration-300 ease-out",
+            beside && "pointer-events-auto",
+          )}
           style={{
             ...(isDraggable ? motionStyle : {}),
             maxWidth: "calc(var(--command-card-w) + 2rem)",
@@ -437,7 +455,10 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                       onBack={askEntry === "command" ? () => setAskMode(false) : undefined}
                       onNavigate={(href) => {
                         followHref(href, (to) => router.push(to));
-                        close();
+                        // The page it opened is read beside the conversation.
+                        // On a phone the drawer covers it, so the palette leaves.
+                        if (askPlatformNow() === "desk") moveAsk("side", askEntry, false);
+                        else close();
                       }}
                       trailing={
                         showHints && (

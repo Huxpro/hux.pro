@@ -1,8 +1,9 @@
 "use client";
 
 import { prepareAskChat } from "@/systems/ask/lib/chat";
-import { askConfigNow, askPlatformNow } from "@/systems/ask/lib/config";
+import { askConfigNow, askPlatformNow, type AskConfig } from "@/systems/ask/lib/config";
 import { readJSON, writeJSON } from "@/systems/ask/lib/storage";
+import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 // =============================================================================
@@ -17,11 +18,19 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 //   top     the Dock's panel, hanging from the top of the screen
 //   pill    not a place: the conversation minimized to a pill in the Dock
 //
-// Asking from search (the Ask row, Tab) lands in the center, unless Ask is
-// already open somewhere else, which then takes the question. A call with
-// nothing typed (⌘J, `/` `J`) opens Ask where the visitor last put it.
-// Those are the desk's preset; where each opens, and what minimize does, are
-// settings (systems/ask/lib/config.ts), read as each call is made.
+// Where it opens is the moment. Asking from the palette (the Ask row, Tab,
+// `/` `J`) morphs the card into the center chat, unless Ask is already open
+// somewhere else, which then takes the question. A call with nothing typed
+// (⌘J, the Ask button) opens beside a page being read, and in the center
+// elsewhere. Dragging the header moves it for this visit; it is not a choice
+// that sticks. Those are the desk's preset; where each opens, and what
+// minimize does, are settings (systems/ask/lib/config.ts), read as each call
+// is made.
+//
+// The center and, on a desk, the dock sit where the palette sits. ⌘K, or `/`
+// pressed outside a field, parks Ask out of the way (the side on a desk, the
+// dock on a phone) and opens the palette, so the chat and the command are
+// both up. The side panel already shares the screen with the card.
 //
 // A phone has no room for a side panel, and no use for a palette under a
 // conversation: there the center is a bottom drawer of Ask's own (the
@@ -47,6 +56,50 @@ export type AskEntry = "command" | "direct";
  */
 export function isReadingPage(pathname: string): boolean {
   return /^\/(writing|works|prompt|about|docs)(\/|$)/.test(pathname);
+}
+
+/**
+ * Where a fresh open lands. From the palette, the card morphs into the
+ * center chat, even on a page being read. A call on a page to read is the
+ * side, so the page stays in view; a saved place does not override that. A
+ * call elsewhere follows `fromCall`.
+ */
+export function askOpenTarget({
+  from,
+  reading,
+  config,
+  chosen,
+}: {
+  from: "search" | "palette" | "call";
+  reading: boolean;
+  config: Pick<AskConfig, "fromSearch" | "fromCall" | "onReadingPage">;
+  chosen?: AskPlacement;
+}): AskPlacement {
+  if (from !== "call") return config.fromSearch;
+  if (reading && config.onReadingPage === "side") return "side";
+  if (config.fromCall === "last") return chosen ?? "center";
+  return config.fromCall;
+}
+
+/**
+ * Where Ask steps aside so the palette can take the middle. A desk has the
+ * side panel, which shares the screen with the card. A phone has no side:
+ * the dock, above the sheet.
+ */
+export function askParkPlacement(platform: "desk" | "phone"): AskPlacement {
+  return platform === "desk" ? "side" : "top";
+}
+
+/**
+ * True when Ask is standing where the palette needs to be: the center, and
+ * on a desk the dock (it hangs over the card). The side panel does not.
+ */
+export function askBlocksCommand(
+  placement: AskPlacement | null,
+  platform: "desk" | "phone",
+): boolean {
+  if (placement === "center") return true;
+  return placement === "top" && platform === "desk";
 }
 
 const ASK_PLACEMENT_KEY = "hux_ask_placement";
@@ -124,8 +177,9 @@ interface CommandContextType {
   openAsk: (text?: string, from?: "search" | "palette" | "call") => void;
   /**
    * Move Ask to another place, the conversation with it. `chosen`: the
-   * visitor put it there by hand (a place button, a drop), which makes it
-   * the default for this kind of page.
+   * visitor put it there with a place button (when those are on), which is
+   * remembered for a call on a page that is not being read. A drag is not
+   * one: the next open follows the moment again.
    */
   moveAsk: (placement: AskPlacement, entry?: AskEntry, chosen?: boolean) => void;
   /** How Ask was reached (see `AskEntry`). */
@@ -157,6 +211,7 @@ export function useCommand() {
 }
 
 export function CommandProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isSlashCommandsMode, setIsSlashCommandsMode] = useState(false);
   const [isLoadBundleMode, setIsLoadBundleMode] = useState(false);
@@ -264,17 +319,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       const config = askConfigNow();
       const reading = pageKindNow() === "reading";
       const chosen = readChosen()[reading ? "reading" : "other"];
-      // A page to read stays in view: Ask opens beside it, unless the visitor
-      // put it elsewhere on such a page. Elsewhere, asking from search lands
-      // in the search's own place; a call where Ask was last put by hand.
-      const target: AskPlacement =
-        reading && config.onReadingPage === "side"
-          ? (chosen ?? "side")
-          : from === "search"
-            ? config.fromSearch
-            : config.fromCall === "last"
-              ? (chosen ?? "center")
-              : config.fromCall;
+      const target = askOpenTarget({ from, reading, config, chosen });
       moveAsk(target, entry);
     },
     [askSurface, moveAsk]
@@ -315,36 +360,60 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
 
   // Global Keyboard Shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const isInputField =
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable;
+    const isField = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+    };
 
-      // ⌘K to toggle command palette
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        toggle();
-        return;
-      }
-
-      // ⌘J: straight into Ask (systems/ask), from anywhere, where it was
-      // last put; again to close it.
+    // Capture: the center chat stops every key but Escape on its way up
+    // (chat.tsx), and ⌘K / `/` still have to park it. ⌘J too, so it works
+    // from the composer.
+    const onCapture = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "j") {
         e.preventDefault();
+        e.stopPropagation();
         if (askPlacement) closeAsk();
         else openAsk();
         return;
       }
 
-      // "/" to open command palette in slash commands mode
-      if (e.key === "/" && !isInputField && !isOpen) {
+      // ⌘K toggles the palette. When Ask is standing where the card goes, it
+      // steps aside first (the side on a desk, the dock on a phone) and the
+      // palette opens in front of it: the chat and the command, both up.
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        open(true);
+        e.stopPropagation();
+        const platform = askPlatformNow();
+        if (askBlocksCommand(askPlacement, platform)) {
+          moveAsk(askParkPlacement(platform), askEntry, false);
+          open(false);
+          return;
+        }
+        toggle();
         return;
       }
 
+      // "/" outside a field opens the slash list. The same yield as ⌘K when
+      // Ask is in the palette's place, so the list and the chat both show.
+      // In a field (the composer, the palette's own) it is a character.
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !isField(e.target)) {
+        const platform = askPlatformNow();
+        if (askBlocksCommand(askPlacement, platform)) {
+          e.preventDefault();
+          e.stopPropagation();
+          moveAsk(askParkPlacement(platform), askEntry, false);
+          open(true);
+          return;
+        }
+        if (!isOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          open(true);
+        }
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
       // Escape: load-bundle or Ask → back to search; otherwise close.
       // The branch is the desktop popover's: there the panel replaces the
       // card's body in place, so there is no dialog to pop and the field's own
@@ -373,9 +442,30 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    document.addEventListener("keydown", onCapture, true);
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isLoadBundleMode, isAskMode, askEntry, askPlacement, toggle, close, open, openAsk, closeAsk]);
+    return () => {
+      document.removeEventListener("keydown", onCapture, true);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, isLoadBundleMode, isAskMode, askEntry, askPlacement, toggle, close, open, openAsk, closeAsk, moveAsk]);
+
+  // Navigating to a page to read with the center chat up: it becomes the side
+  // panel, so the page is read beside the conversation. Opening from the
+  // palette on the page already open stays the morph (the path did not
+  // change). Leaving a reading page leaves Ask where it is. Adjusted while
+  // rendering, the same way a state is derived from a changed prop.
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (seenPath !== pathname) {
+    setSeenPath(pathname);
+    if (
+      askPlacement === "center" &&
+      askPlatformNow() === "desk" &&
+      isReadingPage(pathname)
+    ) {
+      moveAsk("side", askEntry, false);
+    }
+  }
 
   return (
     <CommandContext.Provider

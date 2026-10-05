@@ -16,11 +16,12 @@ import { readJSON, writeJSON } from "./storage";
 // devtool, "Ask"). Everything is configurable on every platform; what differs
 // between a desk and a phone is only the preset:
 //
-//   desk   three places (center, side, top) and the Dock's pill: a call
-//          opens where Ask was last (beside the page on a page to read),
-//          the header has the place buttons and
-//          drags between them, minimize puts it away into the Dock, and a
-//          reply still being written after Ask closes shows there.
+//   desk   three places (center, side, top) and the Dock's pill. Which one
+//          opens is the moment, not a button: asking from the palette morphs
+//          the card into the center chat; a call on a page to read opens the
+//          side. The header drags between them (no place buttons), minimize
+//          puts it away into the Dock, and a reply still being written after
+//          Ask closes shows there.
 //   phone  one bottom drawer. Ask is big and stays a while, which is a
 //          drawer's job; the Dock's Live Activity is for small things in
 //          passing. No place buttons, no minimize (a swipe down closes it,
@@ -36,13 +37,16 @@ export type AskPlatform = "desk" | "phone";
 export interface AskConfig {
   /** Where asking from search (the palette's Ask row, Tab) opens Ask. */
   fromSearch: AskPlacement;
-  /** Where a call with nothing typed (the Ask button, ⌘J, `/` `J`) opens
-   *  Ask: where it was last put, or always one place. */
+  /** Where a call with nothing typed (the Ask button, ⌘J) opens Ask, on a
+   *  page that is not being read: where it was last put by the place buttons
+   *  (when those are on), or always one place. A page being read is the side
+   *  (`onReadingPage`), and asking from the palette is the center. */
   fromCall: "last" | AskPlacement;
-  /** On a page to read (/writing, /works, /prompt, /about, /docs), open Ask
-   *  beside it whichever way it was called, or follow the two rules above. */
+  /** On a page to read (/writing, /works, /prompt, /about, /docs), a call
+   *  opens Ask beside it. Asking from the palette still morphs the card. */
   onReadingPage: "side" | "same";
-  /** The place buttons in Ask's header. */
+  /** The place buttons in Ask's header. Off: dragging the header is how Ask
+   *  moves, and where it opens follows the moment rather than a saved choice. */
   placeButtons: boolean;
   /** Ask's header as a handle, to drag it between places (a mouse). */
   drag: boolean;
@@ -63,9 +67,9 @@ export interface AskConfig {
 export const ASK_PRESETS: Record<AskPlatform, AskConfig> = {
   desk: {
     fromSearch: "center",
-    fromCall: "last",
+    fromCall: "center",
     onReadingPage: "side",
-    placeButtons: true,
+    placeButtons: false,
     drag: true,
     minimize: "dock",
     backgroundPill: true,

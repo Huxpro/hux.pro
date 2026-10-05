@@ -62,7 +62,7 @@ const CONTENT_ATTRIBUTE = "data-ask-panel";
 
 
 export function AskSide() {
-  const { askPlacement, askStarted, closeAsk, minimizeAsk, askRequest } = useCommand();
+  const { askPlacement, askStarted, closeAsk, minimizeAsk, askRequest, isOpen, isAskMode } = useCommand();
   // The agent's hands: registered here, where they are always mounted.
   useAskActionsHost();
   // The lightbox above the panel (a photo opened from a card): Escape is
@@ -92,7 +92,10 @@ export function AskSide() {
           lightbox ||
           !(details.event.target as Element | null)?.closest?.(`[${CONTENT_ATTRIBUTE}]`))
       ) {
+        // The drawer would swallow the key on the way up. Let it continue,
+        // so a palette open beside the chat (or the page) can take it.
         details.cancel();
+        details.allowPropagation();
         return;
       }
       closeAsk();
@@ -137,7 +140,13 @@ export function AskSide() {
   );
 
   return shape === "panel" ? (
-    <SurfacePanel open={open} onOpenChange={onOpenChange}>
+    <SurfacePanel
+      open={open}
+      onOpenChange={onOpenChange}
+      dragHost="side"
+      // Parked beside the palette: the palette keeps the keyboard.
+      initialFocus={isOpen && !isAskMode ? false : undefined}
+    >
       {body}
     </SurfacePanel>
   ) : (
