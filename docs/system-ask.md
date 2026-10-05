@@ -108,8 +108,10 @@ What follows is the desk's preset; every line of it is a setting (below).
   or (on a desk) the dock, parks it — the side on a desk, the dock on a
   phone — and opens the palette. The side panel and the card share the
   screen: the card centers in the room that is left, and clicks on the panel
-  stay the panel's. Ask already on the side is left there. `/` in the
-  composer is a character.
+  stay the panel's. The parked chat does not take the keyboard. Escape
+  closes the palette and leaves the chat; Escape typed in the chat closes
+  the chat. Ask already on the side is left there. `/` in the composer is a
+  character.
 - **The pill.** Minimize (or the Dock's chevron at the top, or a route change
   while it is there) leaves the pill; tapping it opens the top place. Closing
   Ask while a reply is still being written leaves the pill too. ✕ closes it

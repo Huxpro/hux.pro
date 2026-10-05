@@ -6,6 +6,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  type ComponentProps,
 } from "react";
 import { Drawer } from "@base-ui/react/drawer";
 import { Popover } from "@base-ui/react/popover";
@@ -243,6 +244,7 @@ export function SurfacePanel({
   onOpenChange,
   zIndex,
   dragHost,
+  initialFocus,
   children,
 }: Pick<AdaptiveSurfaceProps, "open" | "zIndex" | "children"> & {
   /** With Base UI's details, so a caller can tell an Escape from a swipe. */
@@ -252,6 +254,11 @@ export function SurfacePanel({
    * follows the pointer while its header is dragged (globals.css).
    */
   dragHost?: string;
+  /**
+   * Where focus goes as the panel opens. `false` leaves it where it is: Ask
+   * parked beside an open palette must not take the keyboard from it.
+   */
+  initialFocus?: ComponentProps<typeof Drawer.Popup>["initialFocus"];
 }) {
   return (
     <Drawer.Root
@@ -268,6 +275,7 @@ export function SurfacePanel({
           <Drawer.Popup
             data-surface-popup=""
             data-ask-drag-host={dragHost}
+            initialFocus={initialFocus}
             style={surfaceMotionVars(EDGE_GAP)}
             className={cn(
               SHELL,
