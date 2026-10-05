@@ -35,7 +35,7 @@ function CompactLabel({ text, quoted = false, maxChars = 48 }: { text: string; q
     <span className="flex min-w-0">
       <span className="min-w-0 truncate">{quoted && "“"}{excerpt.slice(0, split)}</span>
       <span className="shrink-0"> … </span>
-      <span className="flex max-w-[45%] shrink-0 justify-end overflow-hidden">
+      <span className="flex max-w-[18ch] shrink-0 justify-end overflow-hidden">
         <span className="whitespace-nowrap">{excerpt.slice(split + 3)}{quoted && "”"}</span>
       </span>
     </span>
@@ -63,7 +63,7 @@ export function ContextTag({
     <span className="flex min-w-0 items-baseline gap-1">
       <span className="min-w-0"><CompactLabel text={context.heading} maxChars={32} /></span>
       <span className="shrink-0 text-tertiary-foreground">·</span>
-      <span className="min-w-0 max-w-[35%] shrink-[2] truncate text-tertiary-foreground">{context.title}</span>
+      <span className="min-w-0 max-w-[18ch] shrink-[2] truncate text-tertiary-foreground">{context.title}</span>
     </span>
   ) : <CompactLabel text={context.title} />;
   const description = context.kind === "quote"
