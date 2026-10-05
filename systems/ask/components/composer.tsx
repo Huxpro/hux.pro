@@ -163,9 +163,9 @@ export function AskComposer() {
         )}
         {choosing && (
           <div className="mx-3 mt-2 space-y-1 rounded-lg border border-border/60 p-2">
-            <input aria-label={s.contextSearch} placeholder={s.contextSearch} value={query} onChange={(e) => setQuery(e.target.value)} className="w-full bg-transparent p-1 text-sm outline-none" />
+            <input aria-label={s.contextSearch} placeholder={s.contextSearch} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} className="w-full bg-transparent p-1 text-sm outline-none" />
             <p className="px-1 text-xs text-muted-foreground">{s.contextHelp}</p>
-            {[...(docs?.values() ?? [])].filter((doc) => doc.lang === locale && `${doc.title} ${doc.summary ?? ""}`.toLowerCase().includes(query.toLowerCase())).slice(0, 6).map((doc) => (
+            {[...(docs?.values() ?? [])].filter((doc) => (doc.lang === locale || !docs?.has(doc.id.replace(/:(en|zh)$/, `:${locale}`))) && `${doc.title} ${doc.summary ?? ""}`.toLowerCase().includes(query.toLowerCase())).slice(0, 6).map((doc) => (
               <button key={doc.id} type="button" disabled={pointed.length >= MAX_CONTEXTS} className="block w-full truncate rounded p-1 text-left text-xs hover:bg-muted disabled:opacity-50" onClick={() => {
                 const site = loadedAskSearch();
                 if (site && addAskContext({ ...contextText({ doc }, site), kind: "item" })) { setChoosing(false); setQuery(""); setNotice(""); }
