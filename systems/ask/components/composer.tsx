@@ -17,9 +17,12 @@ import { useLocale } from "@/services";
 import { VoiceButton, VoiceGlow } from "@/systems/command/voice";
 import { useVoiceInput, VOICE_LANG } from "@/systems/voice";
 import { Brain } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { ASK_EFFORTS, ASK_MODELS, type AskEffort } from "../lib/models";
 import { contextsToSend, usePageContext } from "../lib/page-context";
+import { addAskContext, removeAskContext, takeAskContexts, usePendingAskContexts } from "../lib/pending-context";
+import { droppedContext } from "../lib/pointed";
+import { loadedAskSearch } from "../lib/search";
 import { useAskPrefs, useAskSession } from "../lib/use-ask";
 import { useAskDocs } from "./cards";
 import { ContextTag } from "./context-tag";
@@ -56,7 +59,7 @@ export function AskComposer() {
   // they leave it out (× , for this page, until they move to another).
   const page = usePageContext(useAskDocs());
   const [left, setLeft] = useState<string | null>(null);
-  const context = page && page.doc.id !== left ? page : null;
+  const pageContext = page && page.doc.id !== left ? page : null;
 
   const voice = useVoiceInput({
     lang: VOICE_LANG[locale],
@@ -77,91 +80,137 @@ export function AskComposer() {
     return () => clearTimeout(timer);
   }, [focusOnMount]);
 
+  // Words selected on the page, a thing dragged in: tags until sent.
+  const pointed = usePendingAskContexts();
+  // A quote from this page already says which page and section.
+  const context = pageContext && !pointed.some((c) => c.doc === pageContext.doc.id) ? pageContext : null;
+  const [dropping, setDropping] = useState(false);
+  const droppable = (e: DragEvent) =>
+    !e.dataTransfer.types.includes("Files") &&
+    ["text/uri-list", "text/plain", "text/html"].some((t) => e.dataTransfer.types.includes(t));
+
   return (
-    <PromptInput
-      onSubmit={() => {
-        const text = input.trim();
-        if (!send(text, contextsToSend(context, messages))) return;
-        voice.abort();
-        sent.current = { text, at: performance.now() };
-        setInput("");
+    // Something from the page dropped here is something to ask about,
+    // never text pasted into the field.
+    <div
+      className="relative"
+      data-ask-drop={dropping || undefined}
+      onDragOver={(e) => {
+        if (!droppable(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        setDropping(true);
       }}
-      className="relative rounded-xl bg-transparent"
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropping(false);
+      }}
+      onDropCapture={(e) => {
+        setDropping(false);
+        if (!droppable(e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const site = loadedAskSearch();
+        const dropped = site && droppedContext(e.dataTransfer, site, locale);
+        if (dropped) addAskContext(dropped);
+        textareaRef.current?.focus();
+      }}
     >
-      {context && (
-        <div className="flex w-full px-3 pt-2.5">
-          <ContextTag
-            context={{
-              kind: "page",
-              doc: context.doc.id,
-              title: context.doc.title,
-              href: context.doc.href,
-              heading: context.heading,
+      <PromptInput
+        onSubmit={() => {
+          const text = input.trim();
+          if (!send(text, [...pointed, ...contextsToSend(context, messages)])) return;
+          takeAskContexts();
+          voice.abort();
+          sent.current = { text, at: performance.now() };
+          setInput("");
+        }}
+        className="relative rounded-xl bg-transparent"
+      >
+        {(context || pointed.length > 0) && (
+          <div className="flex w-full flex-wrap gap-1 px-3 pt-2.5">
+            {pointed.map((c, i) => (
+              <ContextTag key={i} context={c} onRemove={() => removeAskContext(c)} />
+            ))}
+            {context && (
+              <ContextTag
+                context={{
+                  kind: "page",
+                  doc: context.doc.id,
+                  title: context.doc.title,
+                  href: context.doc.href,
+                  heading: context.heading,
+                }}
+                onRemove={() => setLeft(context.doc.id)}
+              />
+            )}
+          </div>
+        )}
+        <PromptInputBody>
+          <PromptInputTextarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => {
+              const value = e.currentTarget.value;
+              const last = sent.current;
+              const late =
+                last && performance.now() - last.at < LATE_COMMIT_MS && value.trim() && last.text.endsWith(value.trim());
+              setInput(late ? "" : value);
             }}
-            onRemove={() => setLeft(context.doc.id)}
+            placeholder={s.placeholder}
+            className="min-h-12 font-sans text-[16px] sm:text-sm"
           />
+        </PromptInputBody>
+        <PromptInputFooter>
+          <PromptInputTools>
+            <PromptInputSelect
+              value={model}
+              onValueChange={(value) => typeof value === "string" && setModel(value)}
+            >
+              <PromptInputSelectTrigger aria-label={s.model}>
+                <PromptInputSelectValue>
+                  {(value: string) => ASK_MODELS.find((m) => m.id === value)?.label ?? value}
+                </PromptInputSelectValue>
+              </PromptInputSelectTrigger>
+              <PromptInputSelectContent>
+                {ASK_MODELS.map((m) => (
+                  <PromptInputSelectItem key={m.id} value={m.id}>
+                    {m.label}
+                  </PromptInputSelectItem>
+                ))}
+              </PromptInputSelectContent>
+            </PromptInputSelect>
+            <PromptInputSelect
+              value={effort}
+              onValueChange={(value) => typeof value === "string" && setEffort(value)}
+            >
+              <PromptInputSelectTrigger aria-label={s.effort}>
+                <Brain className="size-3.5 text-muted-foreground" />
+                <PromptInputSelectValue>
+                  {(value: AskEffort) => s.efforts[value] ?? value}
+                </PromptInputSelectValue>
+              </PromptInputSelectTrigger>
+              <PromptInputSelectContent>
+                {ASK_EFFORTS.map((e) => (
+                  <PromptInputSelectItem key={e} value={e}>
+                    {s.efforts[e]}
+                  </PromptInputSelectItem>
+                ))}
+              </PromptInputSelectContent>
+            </PromptInputSelect>
+          </PromptInputTools>
+          <div className="flex shrink-0 items-center gap-1">
+            {/* The toolbar's size and shape, not the search field's. */}
+            <VoiceButton voice={voice} className="size-8 rounded-4xl" />
+            <PromptInputSubmit status={status} onStop={() => void stop()} disabled={!busy && !input.trim()} />
+          </div>
+        </PromptInputFooter>
+        <VoiceGlow voice={voice} />
+      </PromptInput>
+      {dropping && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl border-2 border-dashed border-ring/60 bg-background/80 text-sm text-muted-foreground">
+          {s.dropHint}
         </div>
       )}
-      <PromptInputBody>
-        <PromptInputTextarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => {
-            const value = e.currentTarget.value;
-            const last = sent.current;
-            const late =
-              last && performance.now() - last.at < LATE_COMMIT_MS && value.trim() && last.text.endsWith(value.trim());
-            setInput(late ? "" : value);
-          }}
-          placeholder={s.placeholder}
-          className="min-h-12 font-sans text-[16px] sm:text-sm"
-        />
-      </PromptInputBody>
-      <PromptInputFooter>
-        <PromptInputTools>
-          <PromptInputSelect
-            value={model}
-            onValueChange={(value) => typeof value === "string" && setModel(value)}
-          >
-            <PromptInputSelectTrigger aria-label={s.model}>
-              <PromptInputSelectValue>
-                {(value: string) => ASK_MODELS.find((m) => m.id === value)?.label ?? value}
-              </PromptInputSelectValue>
-            </PromptInputSelectTrigger>
-            <PromptInputSelectContent>
-              {ASK_MODELS.map((m) => (
-                <PromptInputSelectItem key={m.id} value={m.id}>
-                  {m.label}
-                </PromptInputSelectItem>
-              ))}
-            </PromptInputSelectContent>
-          </PromptInputSelect>
-          <PromptInputSelect
-            value={effort}
-            onValueChange={(value) => typeof value === "string" && setEffort(value)}
-          >
-            <PromptInputSelectTrigger aria-label={s.effort}>
-              <Brain className="size-3.5 text-muted-foreground" />
-              <PromptInputSelectValue>
-                {(value: AskEffort) => s.efforts[value] ?? value}
-              </PromptInputSelectValue>
-            </PromptInputSelectTrigger>
-            <PromptInputSelectContent>
-              {ASK_EFFORTS.map((e) => (
-                <PromptInputSelectItem key={e} value={e}>
-                  {s.efforts[e]}
-                </PromptInputSelectItem>
-              ))}
-            </PromptInputSelectContent>
-          </PromptInputSelect>
-        </PromptInputTools>
-        <div className="flex shrink-0 items-center gap-1">
-          {/* The toolbar's size and shape, not the search field's. */}
-          <VoiceButton voice={voice} className="size-8 rounded-4xl" />
-          <PromptInputSubmit status={status} onStop={() => void stop()} disabled={!busy && !input.trim()} />
-        </div>
-      </PromptInputFooter>
-      <VoiceGlow voice={voice} />
-    </PromptInput>
+    </div>
   );
 }

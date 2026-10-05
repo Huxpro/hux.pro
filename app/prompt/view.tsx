@@ -575,6 +575,15 @@ function EntryTag({
         onClick={onIdClick}
         aria-label={`Link to ${anchor}`}
         tabIndex={open ? 0 : -1}
+        // Dragged, it is the entry's link, as a commit's hash is on /works:
+        // dropped on Ask, the entry is what the next question is about.
+        draggable
+        onDragStart={(e) => {
+          const url = `${window.location.origin}/prompt#${encodeURIComponent(anchor)}`;
+          e.dataTransfer.setData("text/uri-list", url);
+          e.dataTransfer.setData("text/plain", url);
+          e.dataTransfer.effectAllowed = "copyLink";
+        }}
         className={cn(
           "group/id underline underline-offset-2 decoration-ink-line",
           "transition-colors duration-200 hover:text-foreground hover:decoration-foreground",
