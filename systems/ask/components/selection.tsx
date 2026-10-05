@@ -5,7 +5,10 @@ import { useLocale } from "@/services";
 import { useCommand } from "@/systems/command";
 import { Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { prepareAskChat } from "../lib/chat";
 import { addAskContext } from "../lib/pending-context";
+import { selectionPosition } from "../lib/selection-layout";
+import { showNotice } from "@/systems/dock";
 import { askStrings } from "../strings";
 
 // =============================================================================
@@ -23,13 +26,11 @@ import { askStrings } from "../strings";
 
 const MIN_CHARS = 2;
 const MAX_CHARS = 5000;
-/** Below the selection's last line. */
-const GAP = 8;
 
 /** Where words selected can be asked about: the page's own content. */
 const OUTSIDE = "[data-ask-panel], [cmdk-root], [data-ask-center], [data-dock], input, textarea, [contenteditable=true]";
 
-function selected(): { text: string; rect: DOMRect } | null {
+function selected(): { text: string; rect: DOMRect; source: Element } | null {
   const selection = window.getSelection();
   if (!selection || selection.isCollapsed || selection.rangeCount === 0) return null;
   const text = selection.toString().trim();
@@ -38,16 +39,16 @@ function selected(): { text: string; rect: DOMRect } | null {
   const node = range.commonAncestorContainer;
   const el = node instanceof Element ? node : node.parentElement;
   if (!el?.closest("main, article") || el.closest(OUTSIDE)) return null;
-  const rects = range.getClientRects();
-  const rect = rects[rects.length - 1] ?? range.getBoundingClientRect();
-  return { text, rect };
+  const rect = range.getBoundingClientRect();
+  const start = range.startContainer;
+  return { text, rect, source: start instanceof Element ? start : start.parentElement! };
 }
 
 export function AskSelection() {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { openAsk } = useCommand();
-  const [at, setAt] = useState<{ text: string; x: number; y: number } | null>(null);
+  const [at, setAt] = useState<{ text: string; x: number; y: number; source: Element } | null>(null);
   const button = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -58,11 +59,11 @@ export function AskSelection() {
         const sel = selected();
         if (!sel) return setAt(null);
         const width = button.current?.offsetWidth ?? 140;
-        const x = Math.min(Math.max(8, sel.rect.left + sel.rect.width / 2 - width / 2), window.innerWidth - width - 8);
-        const below = sel.rect.bottom + GAP;
-        // Off the bottom: above the selection instead.
-        const y = below + 36 > window.innerHeight ? Math.max(8, sel.rect.top - GAP - 32) : below;
-        setAt({ text: sel.text, x, y });
+        const view = window.visualViewport;
+        const viewport = { left: view?.offsetLeft ?? 0, top: view?.offsetTop ?? 0, width: view?.width ?? window.innerWidth, height: view?.height ?? window.innerHeight };
+        if (sel.rect.bottom < viewport.top || sel.rect.top > viewport.top + viewport.height) return setAt(null);
+        const position = selectionPosition(sel.rect, viewport, width, button.current?.offsetHeight ?? 32, window.matchMedia("(pointer: coarse)").matches);
+        setAt({ text: sel.text, source: sel.source, ...position });
       });
     };
     // A selection being made with a mouse waits for the button's release.
@@ -85,6 +86,21 @@ export function AskSelection() {
     document.addEventListener("selectionchange", onChange);
     document.addEventListener("scroll", onChange, { passive: true, capture: true });
     window.addEventListener("resize", onChange);
+    window.visualViewport?.addEventListener("resize", onChange);
+    window.visualViewport?.addEventListener("scroll", onChange);
+    // Preserve the selection's identity even when its text happens to be a
+    // URL, or when the reader drops after scrolling to another section.
+    const onDrag = (e: DragEvent) => {
+      const sel = selected();
+      if (!sel || !e.dataTransfer || !(e.target instanceof Node) || !window.getSelection()?.containsNode(e.target, true)) return;
+      const heading = [...document.querySelectorAll("[data-heading-link][id]")].filter((h) => h.contains(sel.source) || !!(h.compareDocumentPosition(sel.source) & Node.DOCUMENT_POSITION_FOLLOWING)).at(-1);
+      const entry = sel.source.closest("[data-rail-row][id], .prompt-item[id]");
+      const anchor = entry?.id ?? heading?.id;
+      e.dataTransfer.setData("application/x-ask-quote", JSON.stringify({ text: sel.text, title: document.title, href: `${location.pathname}${anchor ? `#${encodeURIComponent(anchor)}` : ""}` }));
+      e.dataTransfer.setData("text/plain", sel.text);
+      e.dataTransfer.effectAllowed = "copy";
+    };
+    document.addEventListener("dragstart", onDrag);
     return () => {
       cancelAnimationFrame(frame);
       document.removeEventListener("pointerdown", onDown, true);
@@ -92,12 +108,15 @@ export function AskSelection() {
       document.removeEventListener("selectionchange", onChange);
       document.removeEventListener("scroll", onChange, { capture: true });
       window.removeEventListener("resize", onChange);
+      window.visualViewport?.removeEventListener("resize", onChange);
+      window.visualViewport?.removeEventListener("scroll", onChange);
+      document.removeEventListener("dragstart", onDrag);
     };
   }, []);
 
   const ask = async () => {
     if (!at) return;
-    const text = at.text;
+    const { text, source } = at;
     setAt(null);
     const [{ loadAskSearch }, { quoteContext }] = await Promise.all([
       import("../lib/search"),
@@ -105,7 +124,10 @@ export function AskSelection() {
     ]);
     const site = await loadAskSearch().catch(() => null);
     if (!site) return;
-    addAskContext(quoteContext(text, site));
+    // A paragraph of a different post is still that post: a new chat, then
+    // the words go on it (../lib/chat-continuity.ts).
+    prepareAskChat();
+    if (!addAskContext(quoteContext(text, site, source))) showNotice({ id: "ask-context-full", icon: Sparkles, title: s.contextFull });
     window.getSelection()?.removeAllRanges();
     openAsk();
   };

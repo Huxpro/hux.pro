@@ -4,10 +4,13 @@ import { Chat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { getConversation, saveConversation, type AskSettings } from "./history";
 import { askEffortOf, askModelOf, DEFAULT_ASK_EFFORT, DEFAULT_ASK_MODEL } from "./models";
+import { requestedAction } from "./action-policy";
+import { askPlatformNow } from "./config";
 import { getAskActions } from "./actions";
 import { askEffortPref, askModelPref } from "./prefs";
 import { loadAskSearch } from "./search";
-import { contextsOf, type AskUIMessage } from "./tools";
+import { postSubjectFromPath, shouldStartNewChat, type KeptChat } from "./chat-continuity";
+import { textOf, contextsOf, type AskUIMessage } from "./tools";
 
 // =============================================================================
 // The session: which conversation is open, the conversations still running,
@@ -15,7 +18,9 @@ import { contextsOf, type AskUIMessage } from "./tools";
 //
 // One conversation is current at a time, kept here rather than in a
 // component, so any surface that shows Ask (the palette, a panel, a page)
-// shows the same one, and closing a surface does not lose it. Every
+// shows the same one, and closing a surface does not lose it. Another blog
+// post is a new context, so opening Ask there starts a new chat
+// (./chat-continuity.ts). Every
 // finished turn is saved to the history (./history.ts); opening an old
 // conversation makes it current again.
 //
@@ -64,8 +69,6 @@ function endedWithoutAnswer(message: AskUIMessage | undefined): boolean {
 /** Messages already sent back once for an answer, so a model that still
  *  says nothing is not asked forever. */
 const nudged = new Set<string>();
-let finalizeNext = false;
-
 /** Each conversation's model and thinking level, by its id. */
 const settings = new Map<string, AskSettings>();
 
@@ -79,6 +82,7 @@ function save(chat: Chat<AskUIMessage>) {
 }
 
 function createChat(id?: string, messages?: AskUIMessage[], own?: Partial<AskSettings>): Chat<AskUIMessage> {
+  let finalizeNext = false;
   const chat: Chat<AskUIMessage> = new Chat<AskUIMessage>({
     ...(id ? { id } : {}),
     ...(messages ? { messages } : {}),
@@ -127,17 +131,25 @@ function createChat(id?: string, messages?: AskUIMessage[], own?: Partial<AskSet
           // Acting on the page is for the conversation on screen: one
           // answering in the background must not move the reader around.
           const actions = getAskActions();
+          const question = chat.messages.findLast((m) => m.role === "user");
+          const allowed = question && requestedAction(textOf(question), toolCall.toolName);
           const refused =
-            chat !== current
+            !allowed
+              ? "The reader did not explicitly request this action. Give a link or present a card instead."
+              : chat !== current
               ? "The reader has moved to another conversation; give the link instead."
-              : !actions
+              : !actions?.visible
                 ? "Can't act on the page right now; give the link instead."
                 : null;
           if (toolCall.toolName === "open_page") {
             void chat.addToolOutput({
               tool: "open_page",
               toolCallId: toolCall.toolCallId,
-              output: refused || !actions ? { error: refused ?? "" } : await actions.open(toolCall.input),
+              output: refused || !actions ? { error: refused ?? "" } : await actions.open(toolCall.input, () =>
+                chat === current && chat.messages.findLast((m) => m.role === "user")?.id === question?.id &&
+                (chat.status === "streaming" || chat.status === "submitted") &&
+                (askPlatformNow() === "phone" || !!getAskActions()?.visible),
+              ),
             });
           } else {
             void chat.addToolOutput({
@@ -214,6 +226,9 @@ export function subscribeAskRunning(listener: () => void) {
 
 let current: Chat<AskUIMessage> | null = null;
 const listeners = new Set<() => void>();
+/** A conversation the reader picked, and the post that was open then. It
+ *  stays current on that post; another post is a new context again. */
+let kept: KeptChat | null = null;
 
 function setCurrent(chat: Chat<AskUIMessage>) {
   // The one left goes on (if it is answering) and is in the history now.
@@ -229,21 +244,41 @@ export function getAskChat(): Chat<AskUIMessage> {
 
 /** A fresh conversation; the one it replaces is in the history. */
 export function newAskChat(): Chat<AskUIMessage> {
+  kept = null;
   const chat = createChat();
   setCurrent(chat);
   return chat;
 }
 
+/**
+ * The chat a question or an opening should use. Another blog post is a new
+ * context (./chat-continuity.ts), so it starts a new chat; the same post,
+ * a paragraph of it included, keeps this one. The chat left behind keeps
+ * answering if it was, and is in the history.
+ */
+export function prepareAskChat(): Chat<AskUIMessage> {
+  const chat = getAskChat();
+  if (typeof window === "undefined") return chat;
+  const page = postSubjectFromPath(window.location.pathname);
+  if (!shouldStartNewChat(chat.messages, chat.id, page, kept)) return chat;
+  return newAskChat();
+}
+
 /** Make a past conversation current again: live if it is still running
  *  (or was opened this visit), else from the history. */
 export function openAskConversation(id: string): Chat<AskUIMessage> | null {
-  if (current?.id === id) return current;
-  let chat = live.get(id) ?? null;
+  let chat = current?.id === id ? current : live.get(id) ?? null;
   if (!chat) {
     const saved = getConversation(id);
     if (!saved) return null;
     chat = createChat(saved.id, saved.messages, saved);
   }
+  // Before the switch, so a listener that asks which chat to use sees the
+  // choice. The post open now is where this conversation stays.
+  kept = {
+    chatId: chat.id,
+    subject: typeof window === "undefined" ? null : postSubjectFromPath(window.location.pathname),
+  };
   setCurrent(chat);
   return chat;
 }

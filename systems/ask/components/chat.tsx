@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { ChevronLeft, History, PanelLeft, SquarePen } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { useAskHistory, useAskRequest, useAskSession } from "../lib/use-ask";
+import { useAskContinuity, useAskHistory, useAskRequest, useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
 import { AskComposer } from "./composer";
 import { AskHistory } from "./history";
@@ -73,6 +73,7 @@ export default function AskChat({
   const { messages, chat, newChat } = useAskSession();
   const { conversations } = useAskHistory();
   const [showHistory, setShowHistory] = useState(false);
+  useAskContinuity(true);
   useAskRequest(request);
   const handle = useAskDragHandle("center");
 

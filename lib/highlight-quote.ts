@@ -35,7 +35,8 @@ function fold(text: string): string {
 
 /** The range of these words on the page now, or null. */
 export function findQuote(quote: string): Range | null {
-  const wanted = fold(quote.trim()).slice(0, PROBE).toLowerCase();
+  const full = fold(quote.trim()).toLowerCase();
+  const wanted = full.slice(0, PROBE);
   if (wanted.length < 4) return null;
   const root = document.querySelector("article") ?? document.querySelector("main");
   if (!root) return null;
@@ -43,7 +44,10 @@ export function findQuote(quote: string): Range | null {
   // character came from.
   const nodes: Text[] = [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  for (let n = walker.nextNode(); n; n = walker.nextNode()) nodes.push(n as Text);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    const parent = n.parentElement;
+    if (parent && !parent.closest("script, style, [hidden], [aria-hidden=true], [data-ask-panel], [data-ask-center]") && parent.getClientRects().length) nodes.push(n as Text);
+  }
   let flat = "";
   const from: { node: Text; offset: number }[] = [];
   let space = false;
@@ -57,10 +61,11 @@ export function findQuote(quote: string): Range | null {
       from.push({ node, offset: i });
     }
   }
-  const at = flat.indexOf(wanted);
+  const fullAt = flat.indexOf(full);
+  const at = fullAt >= 0 ? fullAt : flat.indexOf(wanted);
   if (at < 0) return null;
   const start = from[at];
-  const end = from[at + wanted.length - 1];
+  const end = from[at + (fullAt >= 0 ? full.length : wanted.length) - 1];
   const range = document.createRange();
   range.setStart(start.node, start.offset);
   range.setEnd(end.node, end.offset + 1);
@@ -71,37 +76,52 @@ export function findQuote(quote: string): Range | null {
  * Wait (a route may still be rendering) for the words, then point at them.
  * Resolves whether they were found.
  */
-export function highlightQuote(quote: string, timeoutMs = 4000): Promise<boolean> {
+export async function highlightQuote(quote: string, {
+  href,
+  canContinue,
+  timeoutMs = 12000,
+}: { href: string; canContinue: () => boolean; timeoutMs?: number }): Promise<boolean> {
+  const target = new URL(href, window.location.href);
   const started = performance.now();
-  return new Promise((resolve) => {
-    const attempt = () => {
+  let cancelled = false;
+  const cancel = () => { cancelled = true; };
+  // A reader taking over the page outranks a delayed agent scroll.
+  window.addEventListener("wheel", cancel, { passive: true });
+  window.addEventListener("touchstart", cancel, { passive: true });
+  window.addEventListener("pointerdown", cancel, { passive: true });
+  const active = () => !cancelled && canContinue() && performance.now() - started < timeoutMs;
+  const onTarget = () => location.pathname === target.pathname && location.search === target.search && location.hash === target.hash;
+  const pause = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+  try {
+    while (active()) {
+      if (!onTarget() || !findQuote(quote)) { await pause(150); continue; }
+      // Font loading is bounded too; a stalled font must not hang the tool.
+      await Promise.race([document.fonts?.ready ?? Promise.resolve(), pause(1000)]);
+      await pause(AFTER_LANDING_MS);
+      if (!active() || !onTarget()) return false;
+      // Re-read after landing instead of using a range from a previous route.
       const range = findQuote(quote);
-      if (!range) {
-        if (performance.now() - started > timeoutMs) resolve(false);
-        else window.setTimeout(attempt, 150);
-        return;
-      }
-      const block = (range.startContainer.parentElement?.closest("p, li, blockquote, h1, h2, h3, h4, pre") ??
-        range.startContainer.parentElement) as HTMLElement | null;
-      void (document.fonts?.ready ?? Promise.resolve()).then(() =>
-        requestAnimationFrame(() => window.setTimeout(() => point(range, block), AFTER_LANDING_MS)),
-      );
-      resolve(true);
-    };
-    const point = (range: Range, block: HTMLElement | null) => {
+      if (!range || !range.startContainer.isConnected) continue;
+      const block = range.startContainer.parentElement?.closest("p, li, blockquote, h1, h2, h3, h4, pre") ?? range.startContainer.parentElement;
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       block?.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
       const registry = (CSS as unknown as { highlights?: Map<string, unknown> }).highlights;
       const HighlightCtor = (window as unknown as { Highlight?: new (...r: Range[]) => unknown }).Highlight;
       if (registry && HighlightCtor) {
         ensureStyle();
-        registry.set(HIGHLIGHT, new HighlightCtor(range));
-        window.setTimeout(() => registry.delete(HIGHLIGHT), HOLD_MS);
+        const mark = new HighlightCtor(range);
+        registry.set(HIGHLIGHT, mark);
+        window.setTimeout(() => { if (registry.get(HIGHLIGHT) === mark) registry.delete(HIGHLIGHT); }, HOLD_MS);
       } else if (block) {
         block.setAttribute("data-hash-target", "");
         block.addEventListener("animationend", () => block.removeAttribute("data-hash-target"), { once: true });
       }
-    };
-    attempt();
-  });
+      return true;
+    }
+    return false;
+  } finally {
+    window.removeEventListener("wheel", cancel);
+    window.removeEventListener("touchstart", cancel);
+    window.removeEventListener("pointerdown", cancel);
+  }
 }

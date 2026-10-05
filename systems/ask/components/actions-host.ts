@@ -8,6 +8,7 @@ import { attachmentSetFor, useOptionalAttachments } from "@/systems/attachments"
 import { useCommand } from "@/systems/command";
 import { useTransitionRouter } from "next-view-transitions";
 import { useEffect } from "react";
+import { siteActionHref } from "../lib/action-policy";
 import { setAskActions } from "../lib/actions";
 import { askPlatformNow } from "../lib/config";
 
@@ -22,6 +23,8 @@ import { askPlatformNow } from "../lib/config";
 //              so the page shows.
 //   play       opens a work's recording (or its slides, photos, link) the way
 //              /works does, through systems/attachments, Ask at the side.
+//              A recording on a phone skips that sheet: the stage is already
+//              a PiP there, so the tool opens it directly.
 // =============================================================================
 
 export function useAskActionsHost() {
@@ -35,28 +38,38 @@ export function useAskActionsHost() {
       if (askPlacement === "center" && askPlatformNow() === "desk") moveAsk("side");
     };
     setAskActions({
-      async open({ href, quote }) {
-        if (!href.startsWith("/") || href.startsWith("//")) {
+      visible: askPlacement === "center" || askPlacement === "side" || askPlacement === "top",
+      async open({ href: inputHref, quote }, canContinue) {
+        const href = siteActionHref(inputHref, window.location.origin);
+        if (!href) {
           return { error: "Only pages on this site, as a path (/writing/…, /works#…, /prompt#…)." };
         }
         aside();
         followHref(href, (to) => router.push(to));
         if (askPlatformNow() === "phone") minimizeAsk();
         if (!quote) return { opened: href };
-        return { opened: href, highlighted: await highlightQuote(quote) };
+        return { opened: href, highlighted: await highlightQuote(quote, { href, canContinue }) };
       },
       play({ id, kind }) {
-        const commit = LOG.commits.find((c) => c.id === id.split(":")[1]);
+        const commit = /^work:[^:]+:(en|zh)$/.test(id) ? LOG.commits.find((c) => c.id === id.split(":")[1]) : undefined;
         const set = commit && attachmentSetFor(commit, locale);
         if (!set || !attachments) return { error: `Nothing to play for "${id}". Use a work's doc id.` };
         const order = kind ? [kind] : ["video", "slides", "image", "link"];
         const index = order.map((k) => set.items.findIndex((m) => m.kind === k)).find((i) => i >= 0) ?? -1;
         if (index < 0) return { error: `"${set.title}" has no ${kind ?? "recording or slides"} to open.` };
+        const item = set.items[index];
         aside();
         // The stage has the keyboard now (Escape closes it, not Ask).
         (document.activeElement as HTMLElement | null)?.blur();
-        attachments.open(set, index);
-        return { playing: set.title, kind: set.items[index].kind };
+        const phone = askPlatformNow() === "phone";
+        if (phone) minimizeAsk();
+        // A phone opens every attachment in the sheet, and the sheet's button
+        // is what reaches the stage. A recording asked for by the play tool
+        // skips that step: `act` is the native home, and on a phone the stage
+        // is PiP. Slides, photos and links still come up in the sheet.
+        if (phone && item.kind === "video") attachments.act(set, index);
+        else attachments.open(set, index);
+        return { playing: set.title, kind: item.kind };
       },
     });
     return () => setAskActions(null);

@@ -619,6 +619,7 @@ export function TimelineCommit({
             onSelectHash(data.hash);
           }}
           aria-label={`Link to commit ${data.hash}`}
+          title="Open commit, or drag to Ask"
           className={cn(
             "hidden lg:inline-block leading-5",
             HASH_CELL,

@@ -174,6 +174,15 @@ A platform is the surfaces' `sm`: under 640px, a phone.
   (`lib/history.ts`): the newest 30, in this browser only, read results
   trimmed. The sidebar (the clock on a narrow screen) lists them; picking one
   makes it current. ✎ starts a new one.
+- **A new post, a new chat.** The conversation continues on the same post,
+  and a paragraph of that post is still that post. Another post is a new
+  context (`lib/chat-continuity.ts`), and that is the hint for a new chat:
+  closing Ask (a phone does, when a link in it is followed) and opening it
+  on the next post starts a fresh one, and so does asking about a paragraph
+  there. The other language of a post is its own page, because the text it
+  carries is the other one. The previous chat stays in the history. Picking
+  one from the history keeps it on the post that is open, until the post
+  changes again.
 - **Side by side.** Moving to another conversation does not stop the one
   being answered: it goes on in the background, tools and all, and saves
   itself when it ends; its row in the history spins until then. Every
@@ -414,3 +423,13 @@ to what Base UI and this repo require:
   filtering /works or /prompt by a facet, opening a row on /works in place.
 - Rate limiting on the route beyond its input caps, and a spend cap.
 - An eval set, to choose the default model and the map's detail.
+
+### Context controls
+
+The composer can restore a dismissed page, pin the section currently being read, and add other indexed sources with **+**. Up to three visible sources are sent; an automatic page yields its slot to explicit attachments. Extra attachments are refused with a message rather than evicting an existing source. Pending sources and dismissed pages belong to each conversation and survive moving Ask between surfaces. Suggestions and command-palette questions use the same draft, and each question includes its current sources even when earlier messages have left the server history window.
+
+Quote tags show the opening and closing words; their tooltip and sent context retain the passage. On touch screens the selection action uses the opposite half-screen placement to the native menu, clamped to the visual viewport. Native text drags preserve the original source; heading links, prompt ids and commit hashes describe their drag affordance. Unsupported drops show feedback, and **+** provides a keyboard/touch alternative to dragging.
+
+### Action lifetime
+
+Navigation and playback require an explicit English or Chinese action request in the latest question; quoted commands and negative requests do not grant it. Closed, minimized and background conversations cannot start an action. A pending quote highlight rechecks its originating conversation and destination, waits for the destination content, and cancels when the reader takes over scrolling. It reports success after placing the highlight, not before a delayed callback. Full sentences are highlighted when available, with a short prefix fallback. On phones both card media and agent playback put Ask away before opening the attachment surface.
