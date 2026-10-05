@@ -4,10 +4,12 @@ import { Chat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { getConversation, saveConversation, type AskSettings } from "./history";
 import { askEffortOf, askModelOf, DEFAULT_ASK_EFFORT, DEFAULT_ASK_MODEL } from "./models";
+import { requestedAction } from "./action-policy";
+import { askPlatformNow } from "./config";
 import { getAskActions } from "./actions";
 import { askEffortPref, askModelPref } from "./prefs";
 import { loadAskSearch } from "./search";
-import { contextsOf, type AskUIMessage } from "./tools";
+import { textOf, contextsOf, type AskUIMessage } from "./tools";
 
 // =============================================================================
 // The session: which conversation is open, the conversations still running,
@@ -64,8 +66,6 @@ function endedWithoutAnswer(message: AskUIMessage | undefined): boolean {
 /** Messages already sent back once for an answer, so a model that still
  *  says nothing is not asked forever. */
 const nudged = new Set<string>();
-let finalizeNext = false;
-
 /** Each conversation's model and thinking level, by its id. */
 const settings = new Map<string, AskSettings>();
 
@@ -79,6 +79,7 @@ function save(chat: Chat<AskUIMessage>) {
 }
 
 function createChat(id?: string, messages?: AskUIMessage[], own?: Partial<AskSettings>): Chat<AskUIMessage> {
+  let finalizeNext = false;
   const chat: Chat<AskUIMessage> = new Chat<AskUIMessage>({
     ...(id ? { id } : {}),
     ...(messages ? { messages } : {}),
@@ -127,17 +128,25 @@ function createChat(id?: string, messages?: AskUIMessage[], own?: Partial<AskSet
           // Acting on the page is for the conversation on screen: one
           // answering in the background must not move the reader around.
           const actions = getAskActions();
+          const question = chat.messages.findLast((m) => m.role === "user");
+          const allowed = question && requestedAction(textOf(question), toolCall.toolName);
           const refused =
-            chat !== current
+            !allowed
+              ? "The reader did not explicitly request this action. Give a link or present a card instead."
+              : chat !== current
               ? "The reader has moved to another conversation; give the link instead."
-              : !actions
+              : !actions?.visible
                 ? "Can't act on the page right now; give the link instead."
                 : null;
           if (toolCall.toolName === "open_page") {
             void chat.addToolOutput({
               tool: "open_page",
               toolCallId: toolCall.toolCallId,
-              output: refused || !actions ? { error: refused ?? "" } : await actions.open(toolCall.input),
+              output: refused || !actions ? { error: refused ?? "" } : await actions.open(toolCall.input, () =>
+                chat === current && chat.messages.findLast((m) => m.role === "user")?.id === question?.id &&
+                (chat.status === "streaming" || chat.status === "submitted") &&
+                (askPlatformNow() === "phone" || !!getAskActions()?.visible),
+              ),
             });
           } else {
             void chat.addToolOutput({

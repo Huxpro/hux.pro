@@ -91,7 +91,7 @@ function DocCard({ doc, compact }: { doc: AskDoc; compact: boolean }) {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const attachments = useOptionalAttachments();
-  const { askPlacement, moveAsk } = useCommand();
+  const { askPlacement, moveAsk, minimizeAsk } = useCommand();
 
   const commit = commitOf(doc);
   const set: AttachmentSet | null = commit ? attachmentSetFor(commit, locale) : null;
@@ -120,6 +120,7 @@ function DocCard({ doc, compact }: { doc: AskDoc; compact: boolean }) {
     // The keyboard goes with the eye: left on this button, Escape would be
     // the panel's (it closes Ask) rather than the stage's.
     (document.activeElement as HTMLElement | null)?.blur();
+    if (askPlatformNow() === "phone") minimizeAsk();
     attachments.open(set, index);
   };
 
