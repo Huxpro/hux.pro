@@ -8,6 +8,7 @@ import { ASK_SUGGESTIONS } from "./prompts";
 const en = {
   ask: "Ask",
   askRow: "Ask AI",
+  loading: "Loading the conversation…",
   placeholder: "Ask me anything…",
   backToSearch: "Back to search",
   newChat: "New chat",
@@ -84,6 +85,7 @@ type AskStrings = typeof en;
 const zh: AskStrings = {
   ask: "问答",
   askRow: "问 AI",
+  loading: "正在加载对话…",
   placeholder: "问我点什么…",
   backToSearch: "返回搜索",
   newChat: "新对话",

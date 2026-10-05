@@ -429,7 +429,11 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                 </div>
               </div>
 
-              {/* Ask: the conversation, in place of the results. */}
+              {/* Ask: the conversation, in place of the results. The height
+                  lives on the slot, not on the chat: the chat's module loads
+                  the first time Ask opens, and the card has to jump to its
+                  size before that arrives. A skeleton fills the slot until
+                  the chat fades in over it. */}
               <div
                 className={cn(
                   "grid transition-all duration-300 ease-out",
@@ -438,7 +442,13 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                     : "grid-rows-[0fr] opacity-0 pointer-events-none"
                 )}
               >
-                <div className="overflow-hidden min-h-0">
+                <div
+                  className={cn(
+                    "flex min-h-0 flex-col overflow-hidden",
+                    isAskMode && PALETTE_ASK_HEIGHT,
+                    "transition-[height] duration-300 ease-out",
+                  )}
+                >
                   {isAskMode && (
                     <AskChat
                       request={askRequest}
@@ -459,7 +469,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                       }
                       railOpen={askRail}
                       onToggleRail={() => setAskRail((v) => !v)}
-                      className={cn(PALETTE_ASK_HEIGHT, "transition-[height] duration-300 ease-out")}
+                      className="min-h-0 flex-1"
                     />
                   )}
                 </div>
