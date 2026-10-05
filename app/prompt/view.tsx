@@ -574,6 +574,7 @@ function EntryTag({
         type="button"
         onClick={onIdClick}
         aria-label={`Link to ${anchor}`}
+        title="Copy link, or drag to Ask"
         tabIndex={open ? 0 : -1}
         // Dragged, it is the entry's link, as a commit's hash is on /works:
         // dropped on Ask, the entry is what the next question is about.

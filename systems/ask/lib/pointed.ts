@@ -3,7 +3,7 @@
 import { getAttachmentImage } from "@/lib/log";
 import { LOG } from "@/lib/log-client";
 import type { Locale } from "@/lib/i18n";
-import { docForHref } from "../components/cards";
+import { docForHref } from "./doc-href";
 import type { AskDoc } from "./corpus";
 import { readPageContext } from "./page-context";
 import type { AskSearch } from "./search";
@@ -26,8 +26,16 @@ const MAX_QUOTE = 2000;
 const MAX_ITEM_TEXT = 4000;
 
 /** Words from the page, under the page and section they came from. */
-export function quoteContext(text: string, site: AskSearch): AskContext {
-  const page = readPageContext(window.location.pathname, site.docs);
+export function quoteContext(text: string, site: AskSearch, source?: Element | null): AskContext {
+  let page = readPageContext(window.location.pathname, site.docs);
+  const entry = source?.closest("[data-rail-row][id], .prompt-item[id]");
+  if (entry) {
+    const doc = docForHref(site.docs, `${window.location.pathname}#${encodeURIComponent(entry.id)}`, document.documentElement.lang === "zh" ? "zh" : "en");
+    if (doc) page = { doc };
+  } else if (source && page?.doc.kind === "post") {
+    const heading = [...document.querySelectorAll("[data-heading-link][id]")].filter((el) => el.contains(source) || !!(el.compareDocumentPosition(source) & Node.DOCUMENT_POSITION_FOLLOWING)).at(-1);
+    page = { doc: page.doc, ...(heading ? { anchor: heading.id, heading: heading.textContent?.trim() } : {}) };
+  }
   const title = page?.doc.title ?? document.title.split(/\s[|·–-]\s/)[0];
   const href = page
     ? page.anchor
@@ -56,7 +64,8 @@ function itemContext(doc: AskDoc, site: AskSearch, anchor?: string): AskContext 
 
 /** The commit a picture belongs to (a cover, a still), or the post. */
 function docForImage(src: string, site: AskSearch, locale: Locale): AskDoc | null {
-  const path = new URL(src, window.location.href);
+  let path = new URL(src, window.location.href);
+  if (path.pathname === "/_next/image" && path.searchParams.get("url")) path = new URL(path.searchParams.get("url")!, window.location.href);
   const same = (url?: string | null) => {
     if (!url) return false;
     const u = new URL(url, window.location.href);
@@ -76,12 +85,23 @@ function docForImage(src: string, site: AskSearch, locale: Locale): AskDoc | nul
 
 /** What was dropped on Ask, or null if it is nothing Ask can take. */
 export function droppedContext(data: DataTransfer, site: AskSearch, locale: Locale): AskContext | null {
+  const selected = data.getData("application/x-ask-quote");
+  if (selected) {
+    try {
+      const { text, href, title } = JSON.parse(selected);
+      const url = new URL(href, window.location.href);
+      if (typeof text === "string" && url.origin === window.location.origin) {
+        const doc = docForHref(site.docs, `${url.pathname}${url.hash}`, locale);
+        return { kind: "quote", title: doc?.title ?? String(title).slice(0, 300), href: `${url.pathname}${url.hash}`, ...(doc ? { doc: doc.id } : {}), text: text.slice(0, MAX_QUOTE) };
+      }
+    } catch { /* Invalid custom data falls through to the native formats. */ }
+  }
   const uri = data
     .getData("text/uri-list")
     .split(/\r?\n/)
     .find((line) => line && !line.startsWith("#"));
   const plain = data.getData("text/plain").trim();
-  const link = uri || (/^https?:\/\/\S+$/.test(plain) ? plain : "");
+  const link = uri || (/^(?:https?:\/\/|\/|#)\S+$/.test(plain) ? plain : "");
   if (link) {
     let url: URL;
     try {
@@ -100,11 +120,15 @@ export function droppedContext(data: DataTransfer, site: AskSearch, locale: Loca
       const doc = docForHref(site.docs, href, locale);
       if (doc) {
         // A post's heading: that section.
-        const anchor = doc.kind === "post" && url.hash ? decodeURIComponent(url.hash.slice(1)) : undefined;
+        const anchor = doc.kind === "post" && url.hash ? safeDecode(url.hash.slice(1)) : undefined;
         return itemContext(doc, site, anchor);
       }
     }
     return null;
   }
   return plain ? quoteContext(plain, site) : null;
+}
+
+function safeDecode(value: string) {
+  try { return decodeURIComponent(value); } catch { return value; }
 }
