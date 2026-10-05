@@ -8,6 +8,7 @@ import { attachmentSetFor, useOptionalAttachments } from "@/systems/attachments"
 import { useCommand } from "@/systems/command";
 import { useTransitionRouter } from "next-view-transitions";
 import { useEffect } from "react";
+import { siteActionHref } from "../lib/action-policy";
 import { setAskActions } from "../lib/actions";
 import { askPlatformNow } from "../lib/config";
 
@@ -35,18 +36,20 @@ export function useAskActionsHost() {
       if (askPlacement === "center" && askPlatformNow() === "desk") moveAsk("side");
     };
     setAskActions({
-      async open({ href, quote }) {
-        if (!href.startsWith("/") || href.startsWith("//")) {
+      visible: askPlacement === "center" || askPlacement === "side" || askPlacement === "top",
+      async open({ href: inputHref, quote }, canContinue) {
+        const href = siteActionHref(inputHref, window.location.origin);
+        if (!href) {
           return { error: "Only pages on this site, as a path (/writing/…, /works#…, /prompt#…)." };
         }
         aside();
         followHref(href, (to) => router.push(to));
         if (askPlatformNow() === "phone") minimizeAsk();
         if (!quote) return { opened: href };
-        return { opened: href, highlighted: await highlightQuote(quote) };
+        return { opened: href, highlighted: await highlightQuote(quote, { href, canContinue }) };
       },
       play({ id, kind }) {
-        const commit = LOG.commits.find((c) => c.id === id.split(":")[1]);
+        const commit = /^work:[^:]+:(en|zh)$/.test(id) ? LOG.commits.find((c) => c.id === id.split(":")[1]) : undefined;
         const set = commit && attachmentSetFor(commit, locale);
         if (!set || !attachments) return { error: `Nothing to play for "${id}". Use a work's doc id.` };
         const order = kind ? [kind] : ["video", "slides", "image", "link"];
@@ -55,6 +58,7 @@ export function useAskActionsHost() {
         aside();
         // The stage has the keyboard now (Escape closes it, not Ask).
         (document.activeElement as HTMLElement | null)?.blur();
+        if (askPlatformNow() === "phone") minimizeAsk();
         attachments.open(set, index);
         return { playing: set.title, kind: set.items[index].kind };
       },

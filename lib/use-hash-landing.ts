@@ -95,7 +95,7 @@ export function useHashLanding({ resolve, markAttr, headroom, onLand }: HashLand
       };
 
       // Measured a frame after `onLand`, which may have unfolded it.
-      requestAnimationFrame(() => {
+      const frame = requestAnimationFrame(() => {
         const to = Math.max(0, pageOffsetOf(el) - headroom);
         const from = pageScrollTop();
         if (reduced || Math.abs(to - from) < 2) {
@@ -104,13 +104,13 @@ export function useHashLanding({ resolve, markAttr, headroom, onLand }: HashLand
           return;
         }
         let done = false;
-        const finish = () => {
+        const finish = (arrived = true) => {
           if (done) return;
           done = true;
           window.removeEventListener("wheel", cancel);
           window.removeEventListener("touchmove", cancel);
           stopRef.current = () => {};
-          land();
+          if (arrived) land();
         };
         const controls = animate(from, to, {
           duration: TRAVEL_MS / 1000,
@@ -121,13 +121,14 @@ export function useHashLanding({ resolve, markAttr, headroom, onLand }: HashLand
         // reader took over rather than dragging them the rest of the way.
         const cancel = () => {
           controls.stop();
-          finish();
+          finish(false);
         };
         stopRef.current = cancel;
         window.addEventListener("wheel", cancel, { passive: true });
         window.addEventListener("touchmove", cancel, { passive: true });
-        controls.then(finish, finish);
+        controls.then(() => finish(), () => finish(false));
       });
+      stopRef.current = () => cancelAnimationFrame(frame);
     },
     [reduced],
   );

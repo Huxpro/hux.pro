@@ -1,3 +1,4 @@
+import { requestedAction } from "@/systems/ask/lib/action-policy";
 import { MAX_CONTEXTS } from "@/systems/ask/lib/context-policy";
 import { askSystemPrompt } from "@/lib/ask-prompt";
 import { askEffortOf, askModelOf, type AskModel } from "@/systems/ask/lib/models";
@@ -195,8 +196,8 @@ function standIn(messages: AskUIMessage[]) {
   const acted = last.role === "assistant" && last.parts.some((p) => p.type === "tool-open_page" || p.type === "tool-play");
   // The question, for the stand-in's acting: "open …", "play …".
   const asked = textOf(messages.findLast((m) => m.role === "user") ?? last);
-  const wantsOpen = /^(open|go to|take me|show me where|打开|带我去)/i.test(asked);
-  const wantsPlay = /^(play|watch|播放)/i.test(asked);
+  const wantsOpen = requestedAction(asked, "open_page");
+  const wantsPlay = requestedAction(asked, "play");
 
   return createUIMessageStreamResponse({
     stream: createUIMessageStream<AskUIMessage>({
@@ -226,7 +227,7 @@ function standIn(messages: AskUIMessage[]) {
           const work = hits.find((h) => h.kind === "work");
           if (wantsPlay && work) {
             writer.write({ type: "tool-input-available", toolCallId: `stand-in-play-${Date.now()}`, toolName: "play", input: { id: work.doc } });
-          } else {
+          } else if (wantsOpen) {
             const hit = hits[0];
             const quote = hit.kind === "post" ? hit.snippet.replace(/^…/, "").split(/(?<=[.!?。！？])\s/)[0]?.slice(0, 80) : undefined;
             writer.write({
@@ -235,6 +236,10 @@ function standIn(messages: AskUIMessage[]) {
               toolName: "open_page",
               input: { href: hit.href, ...(quote ? { quote } : {}) },
             });
+          } else {
+            writer.write({ type: "text-start", id: "t" });
+            writer.write({ type: "text-delta", id: "t", delta: "No playable work matched. Try a talk title." });
+            writer.write({ type: "text-end", id: "t" });
           }
         } else if (!presented && !acted && toolPart.state === "output-available" && toolPart.output.length) {
           // Then shows the docs it found as cards, as a model would.

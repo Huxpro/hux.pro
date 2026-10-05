@@ -9,7 +9,8 @@ import type { OpenPageInput, OpenPageOutput, PlayInput, PlayOutput } from "./too
 // =============================================================================
 
 export interface AskActions {
-  open: (input: OpenPageInput) => Promise<OpenPageOutput>;
+  visible: boolean;
+  open: (input: OpenPageInput, canContinue: () => boolean) => Promise<OpenPageOutput>;
   play: (input: PlayInput) => PlayOutput;
 }
 
