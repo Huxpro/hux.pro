@@ -407,3 +407,5 @@ to what Base UI and this repo require:
 ### Context controls
 
 The composer can restore a dismissed page, pin the section currently being read, and add other indexed sources with **+**. Up to three visible sources are sent; an automatic page yields its slot to explicit attachments. Extra attachments are refused with a message rather than evicting an existing source. Pending sources and dismissed pages belong to each conversation and survive moving Ask between surfaces. Suggestions and command-palette questions use the same draft, and each question includes its current sources even when earlier messages have left the server history window.
+
+Quote tags show the opening and closing words; their tooltip and sent context retain the passage. On touch screens the selection action uses the opposite half-screen placement to the native menu, clamped to the visual viewport. Native text drags preserve the original source; heading links, prompt ids and commit hashes describe their drag affordance. Unsupported drops show feedback, and **+** provides a keyboard/touch alternative to dragging.

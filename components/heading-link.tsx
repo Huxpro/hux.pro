@@ -71,6 +71,14 @@ export function HeadingWithLink({
             "focus:opacity-100 focus:outline-none"
           )}
           aria-label="Copy link to heading"
+          title="Copy link, or drag to Ask"
+          draggable
+          onDragStart={(e) => {
+            const url = `${window.location.origin}${window.location.pathname}#${encodeURIComponent(id)}`;
+            e.dataTransfer.setData("text/uri-list", url);
+            e.dataTransfer.setData("text/plain", url);
+            e.dataTransfer.effectAllowed = "copyLink";
+          }}
         >
           {isCopied ? (
             <span className="text-xs text-green-500">✓</span>

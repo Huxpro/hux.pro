@@ -1,5 +1,6 @@
 "use client";
 
+import { quoteLabel } from "../lib/selection-layout";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { Briefcase, Code2, FileText, Paperclip, Quote, TextQuote, Plus, X } from "lucide-react";
@@ -31,7 +32,7 @@ export function ContextTag({
   onAdd,
   className,
 }: {
-  context: Pick<AskContext, "kind" | "doc" | "title" | "href" | "heading">;
+  context: Pick<AskContext, "kind" | "doc" | "title" | "href" | "heading" | "text">;
   /** Leave it out of the question (the composer's tag). */
   onRemove?: () => void;
   /** An available context: the same badge, empty until added. */
@@ -40,7 +41,7 @@ export function ContextTag({
 }) {
   const { locale } = useLocale();
   const s = askStrings(locale);
-  const label = (
+  const label = context.kind === "quote" && context.text ? `“${quoteLabel(context.text)}”` : (
     <>
       {context.title}
       {context.heading && <span className="text-tertiary-foreground"> · {context.heading}</span>}
@@ -65,7 +66,7 @@ export function ContextTag({
   return (
     <span
       data-ask-context={context.kind}
-      title={onRemove ? undefined : s.contextSent}
+      title={context.kind === "quote" ? `${context.title}\n${context.text ?? ""}` : (onRemove ? undefined : s.contextSent)}
       className={cn(
         TAG_SHAPE,
         "border-border/60 bg-muted/50 text-muted-foreground",
