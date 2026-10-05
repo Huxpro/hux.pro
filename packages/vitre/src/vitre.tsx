@@ -154,6 +154,32 @@ export function Vitre({
     }
   }, [chrome, boot, chromeMorph]);
 
+  // iOS re-samples the page when a Home Screen web app is closed and opened,
+  // and when Safari goes to the background or comes back. It samples the
+  // current background, which is not the chrome colour, so show it that
+  // colour again. The same colour would not morph on its own. `pagehide` /
+  // `pageshow` cover a web view that skips `visibilitychange`. One turn's
+  // events share a single morph.
+  useEffect(() => {
+    if (chrome === null || !chromeMorph) return undefined;
+    let timer = 0;
+    const repaint = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        syncChrome(chrome, { ...shape.current, morph: true });
+      }, 0);
+    };
+    document.addEventListener("visibilitychange", repaint);
+    window.addEventListener("pagehide", repaint);
+    window.addEventListener("pageshow", repaint);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", repaint);
+      window.removeEventListener("pagehide", repaint);
+      window.removeEventListener("pageshow", repaint);
+    };
+  }, [chrome, chromeMorph]);
+
   const state = useMemo<VitreState>(
     () => ({
       enabled: target?.enabled ?? false,
