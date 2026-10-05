@@ -178,9 +178,9 @@ When the Window system is mounted, ⌘K also launches apps from
 
 | Key | Action |
 |-----|--------|
-| `⌘K` | Toggle command palette |
-| `/` | Open in slash commands mode |
-| `Esc` | Close palette |
+| `⌘K` | Toggle command palette. If Ask is the center chat, or the dock on a desk, it parks aside first (the side panel on a desk, the dock on a phone) so both are up. The palette keeps the keyboard |
+| `/` | Open in slash commands mode, with the same park when Ask is in the palette's place. In a field it is a character |
+| `Esc` | Close the palette. A chat parked beside it stays; Escape while typing in that chat closes the chat |
 | `Backspace` | Exit slash commands mode |
 
 ### Found, never offered (`searchOnly`)

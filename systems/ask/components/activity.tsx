@@ -219,9 +219,10 @@ export default function AskActivity() {
         </>
       }
       title={
-        // The handle for a mouse's drag to the center or the side (which
-        // stops the press from reaching the drawer); to a finger it is the
-        // header, and swiping it up puts the panel back to the pill.
+        // The handle for a mouse's drag. The panel follows; letting go in the
+        // middle makes it the center chat, in the trailing column the side
+        // (which stops the press from reaching the drawer). To a finger it
+        // is the header, and swiping it up puts the panel back to the pill.
         <span
           onPointerDown={handle.onPointerDown}
           className={cn("flex min-w-0 flex-1 items-center gap-1.5", handle.className)}

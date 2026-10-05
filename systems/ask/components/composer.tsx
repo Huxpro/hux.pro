@@ -14,6 +14,7 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { useLocale } from "@/services";
+import { useCommand } from "@/systems/command/provider";
 import { VoiceButton, VoiceGlow } from "@/systems/command/voice";
 import { useVoiceInput, VOICE_LANG } from "@/systems/voice";
 import { Brain, Plus } from "lucide-react";
@@ -72,12 +73,17 @@ export function AskComposer() {
     onFinal: (said) => setInput(said.trim()),
   });
 
+  const { isOpen, isAskMode } = useCommand();
   // The field takes focus when it mounts: always with a mouse, and on a
   // touch screen only when there is nothing yet to read, so opening Ask to
-  // read an answer does not raise the keyboard over it. Decided once: the
-  // conversation growing later is no reason to take focus.
+  // read an answer does not raise the keyboard over it. Not when the
+  // palette is up in front of this chat (⌘K or `/` parked it): the palette
+  // keeps the keyboard. Decided once: the conversation growing later, or
+  // the palette closing, is no reason to take focus.
   const [focusOnMount] = useState(
-    () => messages.length === 0 || window.matchMedia("(pointer: fine)").matches,
+    () =>
+      (messages.length === 0 || window.matchMedia("(pointer: fine)").matches) &&
+      !(isOpen && !isAskMode),
   );
   useEffect(() => {
     if (!focusOnMount) return;
