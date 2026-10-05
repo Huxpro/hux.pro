@@ -210,6 +210,25 @@ grows glass on demand stops being bare with it: the folder drops
 `.ink-bare-mid` while editing, and `.ink-bare-rest` un-flips it under the hover
 glass on a hover-capable pointer.
 
+#### Paper lift (reading routes)
+
+The relief above is for an icon label on a busy desktop, and on a reading
+route it is off: under a column of prose a drop reads as type stamped into
+the page. Reading text gets the page's own colour round each glyph instead,
+in two layers (after #98's hero lift, which tried four halos before this
+one):
+
+| Layer | Shadow | Job |
+|---|---|---|
+| edge | `0 0 2px`, page at 0.7 | separates the glyph's edge from the pixel of picture behind it; too tight to pool into a box |
+| bloom | `0 0 16px`, page at 0.4 | merges between glyphs and lines into a ground shaped like the text: a local veil where there is text and none where there is not |
+
+The page colour makes it a white halo under the light theme and a
+near-black one under the dark, from one rule. It applies on reading routes
+with any wallpaper behind the page (`data-wallpaper-kind` not `none`), to
+text on the page only — glass keeps its own. The two alphas are lab sheet
+inputs (`--paper-edge-a`, `--paper-bloom-a`).
+
 ### 5. Typography roles (`lib/typography.ts`)
 
 The ladder gives every text a rung; the roles give every *kind* of text its
