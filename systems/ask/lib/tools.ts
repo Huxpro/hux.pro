@@ -62,6 +62,25 @@ export interface PresentInput {
 /** What `present` returns: the docs now shown as cards, or why none. */
 export type PresentOutput = { shown: string[] } | { error: string };
 
+export interface OpenPageInput {
+  /** A path on this site, `#` part included (from the tools or the map). */
+  href: string;
+  /** Words from the page to scroll to and highlight (a sentence from a
+   *  passage it read). */
+  quote?: string;
+}
+
+export type OpenPageOutput = { opened: string; highlighted?: boolean } | { error: string };
+
+export interface PlayInput {
+  /** A work's doc id (a talk, a project). */
+  id: string;
+  /** What to open of it; the recording first when unsaid. */
+  kind?: "video" | "slides" | "image" | "link";
+}
+
+export type PlayOutput = { playing: string; kind: string } | { error: string };
+
 export const askTools = {
   search_site: tool({
     description: ASK_TOOLS.search_site.description,
@@ -111,6 +130,36 @@ export const askTools = {
       additionalProperties: false,
     }),
     outputSchema: jsonSchema<PresentOutput>({ type: "object" }),
+  }),
+  open_page: tool({
+    description: ASK_TOOLS.open_page.description,
+    inputSchema: jsonSchema<OpenPageInput>({
+      type: "object",
+      properties: {
+        href: { type: "string", description: ASK_TOOLS.open_page.params.href },
+        quote: { type: "string", description: ASK_TOOLS.open_page.params.quote },
+      },
+      required: ["href"],
+      additionalProperties: false,
+    }),
+    outputSchema: jsonSchema<OpenPageOutput>({ type: "object" }),
+  }),
+  play: tool({
+    description: ASK_TOOLS.play.description,
+    inputSchema: jsonSchema<PlayInput>({
+      type: "object",
+      properties: {
+        id: { type: "string", description: ASK_TOOLS.play.params.id },
+        kind: {
+          type: "string",
+          enum: ["video", "slides", "image", "link"],
+          description: ASK_TOOLS.play.params.kind,
+        },
+      },
+      required: ["id"],
+      additionalProperties: false,
+    }),
+    outputSchema: jsonSchema<PlayOutput>({ type: "object" }),
   }),
 };
 

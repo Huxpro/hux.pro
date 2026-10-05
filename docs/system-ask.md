@@ -19,6 +19,7 @@ systems/ask/
 │   ├── pending-context.ts # what they pointed at for the next question (a selection, a drop)
 │   ├── pointed.ts     # a selection or a drop, as a context
 │   ├── use-ask.ts     # the hooks surfaces are built from: useAskSession / useAskHistory / useAskPrefs / useAskRunning / useAskRequest
+│   ├── actions.ts     # what the agent can do on the site (open_page, play), registered by actions-host
 │   ├── models.ts      # the models the picker offers and the route accepts
 │   └── intent.ts      # is this a question or a search?
 ├── components/
@@ -26,6 +27,7 @@ systems/ask/
 │   ├── cards.tsx      # AskCards: what the agent presented (a strip) and what an answer used (rows)
 │   ├── context-tag.tsx # what a question is about, as a tag
 │   ├── selection.tsx  # "Ask about this" over words selected on the page
+│   ├── actions-host.ts # the agent's hands: open a page at a spot, play a talk
 │   ├── composer.tsx   # AskComposer: field, model, thinking level, voice, send / stop
 │   ├── history.tsx    # AskHistory: past conversations
 │   ├── chat.tsx       # the center place: the palette, widened into two panes (lazy-loaded)
@@ -203,7 +205,8 @@ arranging `AskMessages`, `AskComposer` and `AskHistory`.
 browser                                         /api/chat (Vercel function)
 ───────                                         ──────────
 question ──────────────────────────────────────▶ system prompt + map of the site
-                                                 tools: search_site, read, present (no execute)
+                                                 tools: search_site, read, present,
+                                                 open_page, play (no execute)
                                                  model (gateway / provider / stand-in)
           ◀──────── streamed turn ends in tool calls
 run them against public/ask/index.json
@@ -281,6 +284,20 @@ run them against public/ask/index.json
   it belongs to; plain words are a quote. Each shows as a tag until sent, ×
   to drop it; a quote from the page open stands in for the page's own tag.
   The model reads them as `<context>` blocks too (`kind` quote and item).
+- **It can act on the site.** Two tools do, in the page like the others,
+  through hands a component registers (`lib/actions.ts`,
+  `components/actions-host.ts`, from AskSide, which is always mounted):
+  `open_page` takes the reader to a page or a spot on it (`lib/follow-href.ts`,
+  landing as every link does: a /prompt entry opens), and
+  with a quote scrolls to the passage and highlights it once the link's own
+  landing is done (`lib/highlight-quote.ts`, the CSS Custom Highlight API);
+  `play` opens a talk's recording, slides, photos or link through
+  systems/attachments. The conversation stays in view: from the center Ask
+  moves to the side; on a phone the drawer goes down so the page shows.
+  Only when the reader asks (the instructions say so), and only for the
+  conversation on screen: one answering in the background is refused, so it
+  never moves the reader around. The stand-in opens or plays when a question
+  starts with "open" or "play", so the loop runs without a model.
 - **Vendor-neutral.** AI SDK throughout. Model ids are Vercel AI Gateway's
   (`provider/model`); changing models is changing `models.ts`.
 
@@ -382,7 +399,7 @@ to what Base UI and this repo require:
 
 ## Not yet
 
-- Tools that act on the site (`navigate`, open a post, play music): the
-  palette's commands are the obvious set.
+- More hands: the palette's commands (theme, language, the music player),
+  filtering /works or /prompt by a facet, opening a row on /works in place.
 - Rate limiting on the route beyond its input caps, and a spend cap.
 - An eval set, to choose the default model and the map's detail.

@@ -190,6 +190,11 @@ function standIn(messages: AskUIMessage[]) {
     ? last.parts.findLast((p) => p.type === "tool-search_site")
     : undefined;
   const presented = last.role === "assistant" && last.parts.some((p) => p.type === "tool-present");
+  const acted = last.role === "assistant" && last.parts.some((p) => p.type === "tool-open_page" || p.type === "tool-play");
+  // The question, for the stand-in's acting: "open …", "play …".
+  const asked = textOf(messages.findLast((m) => m.role === "user") ?? last);
+  const wantsOpen = /^(open|go to|take me|show me where|打开|带我去)/i.test(asked);
+  const wantsPlay = /^(play|watch|播放)/i.test(asked);
 
   return createUIMessageStreamResponse({
     stream: createUIMessageStream<AskUIMessage>({
@@ -198,7 +203,6 @@ function standIn(messages: AskUIMessage[]) {
         writer.write({ type: "start" });
         writer.write({ type: "start-step" });
         if (!toolPart) {
-          const asked = textOf(last);
           writer.write({ type: "reasoning-start", id: "r" });
           writer.write({
             type: "reasoning-delta",
@@ -214,7 +218,23 @@ function standIn(messages: AskUIMessage[]) {
             toolName: "search_site",
             input: { query: asked, limit: 5 },
           });
-        } else if (!presented && toolPart.state === "output-available" && toolPart.output.length) {
+        } else if (!acted && (wantsOpen || wantsPlay) && toolPart.state === "output-available" && toolPart.output.length) {
+          // Asked to open or play: does it, with the first thing it found.
+          const hits = toolPart.output;
+          const work = hits.find((h) => h.kind === "work");
+          if (wantsPlay && work) {
+            writer.write({ type: "tool-input-available", toolCallId: `stand-in-play-${Date.now()}`, toolName: "play", input: { id: work.doc } });
+          } else {
+            const hit = hits[0];
+            const quote = hit.kind === "post" ? hit.snippet.replace(/^…/, "").split(/(?<=[.!?。！？])\s/)[0]?.slice(0, 80) : undefined;
+            writer.write({
+              type: "tool-input-available",
+              toolCallId: `stand-in-open-${Date.now()}`,
+              toolName: "open_page",
+              input: { href: hit.href, ...(quote ? { quote } : {}) },
+            });
+          }
+        } else if (!presented && !acted && toolPart.state === "output-available" && toolPart.output.length) {
           // Then shows the docs it found as cards, as a model would.
           writer.write({
             type: "tool-input-available",
