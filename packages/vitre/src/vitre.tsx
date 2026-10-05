@@ -158,25 +158,37 @@ export function Vitre({
   // and when Safari goes to the background or comes back. It samples the
   // current background, which is not the chrome colour, so show it that
   // colour again. The same colour would not morph on its own. `pagehide` /
-  // `pageshow` cover a web view that skips `visibilitychange`. One turn's
-  // events share a single morph.
+  // `pageshow` cover a web view that skips `visibilitychange`. Paint before
+  // the page is suspended; timers scheduled on pagehide may never run.
+  // Events on return share a single morph.
   useEffect(() => {
     if (chrome === null || !chromeMorph) return undefined;
     let timer = 0;
-    const repaint = () => {
+    let suspended = false;
+    const repaint = () => syncChrome(chrome, { ...shape.current, morph: true });
+    const repaintBeforeSuspend = () => {
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        syncChrome(chrome, { ...shape.current, morph: true });
-      }, 0);
+      if (suspended) return;
+      suspended = true;
+      repaint();
     };
-    document.addEventListener("visibilitychange", repaint);
-    window.addEventListener("pagehide", repaint);
-    window.addEventListener("pageshow", repaint);
+    const repaintOnReturn = () => {
+      suspended = false;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(repaint, 0);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") repaintBeforeSuspend();
+      else repaintOnReturn();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", repaintBeforeSuspend);
+    window.addEventListener("pageshow", repaintOnReturn);
     return () => {
       window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", repaint);
-      window.removeEventListener("pagehide", repaint);
-      window.removeEventListener("pageshow", repaint);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", repaintBeforeSuspend);
+      window.removeEventListener("pageshow", repaintOnReturn);
     };
   }, [chrome, chromeMorph]);
 
