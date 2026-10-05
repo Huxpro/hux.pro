@@ -163,6 +163,15 @@ A platform is the surfaces' `sm`: under 640px, a phone.
   (`lib/history.ts`): the newest 30, in this browser only, read results
   trimmed. The sidebar (the clock on a narrow screen) lists them; picking one
   makes it current. ✎ starts a new one.
+- **A new post, a new chat.** The conversation continues on the same post,
+  and a paragraph of that post is still that post. Another post is a new
+  context (`lib/chat-continuity.ts`), and that is the hint for a new chat:
+  closing Ask (a phone does, when a link in it is followed) and opening it
+  on the next post starts a fresh one, and so does asking about a paragraph
+  there. The other language of a post is its own page, because the text it
+  carries is the other one. The previous chat stays in the history. Picking
+  one from the history keeps it on the post that is open, until the post
+  changes again.
 - **Side by side.** Moving to another conversation does not stop the one
   being answered: it goes on in the background, tools and all, and saves
   itself when it ends; its row in the history spins until then. Every

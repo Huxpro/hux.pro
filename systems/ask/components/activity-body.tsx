@@ -6,7 +6,7 @@ import { useDock } from "@/systems/dock";
 import type { ChatStatus } from "ai";
 import { useTransitionRouter } from "next-view-transitions";
 import { useEffect } from "react";
-import { useAskRequest, useAskSession } from "../lib/use-ask";
+import { useAskContinuity, useAskRequest, useAskSession } from "../lib/use-ask";
 import type { AskUIMessage } from "../lib/tools";
 import { askStrings } from "../strings";
 import { AskComposer } from "./composer";
@@ -72,16 +72,20 @@ function lineOf(
 
 export function AskSessionBridge({
   placed,
+  expanded,
   askRequest,
   onSession,
 }: {
   placed: boolean;
+  expanded: boolean;
   askRequest: { text: string; n: number } | null;
   onSession: (session: AskActivitySession) => void;
 }) {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { messages, status, busy, newChat } = useAskSession();
+  // Opening the panel on another post starts a new chat. The pill does not.
+  useAskContinuity(placed && expanded);
   // The question is this place's to send only while Ask is here.
   useAskRequest(placed ? askRequest : null);
   const line = lineOf(messages, status, s);

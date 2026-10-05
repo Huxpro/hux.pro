@@ -127,6 +127,7 @@ export function AskSide() {
     <div {...{ [CONTENT_ATTRIBUTE]: "" }} className="flex min-h-0 flex-1 flex-col">
       <AskPanel
         placement={placement}
+        active={open}
         // The question is this place's to send only while Ask is here.
         request={open ? askRequest : null}
         onClose={closeAsk}

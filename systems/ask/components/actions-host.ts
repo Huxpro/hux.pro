@@ -23,6 +23,8 @@ import { askPlatformNow } from "../lib/config";
 //              so the page shows.
 //   play       opens a work's recording (or its slides, photos, link) the way
 //              /works does, through systems/attachments, Ask at the side.
+//              A recording on a phone skips that sheet: the stage is already
+//              a PiP there, so the tool opens it directly.
 // =============================================================================
 
 export function useAskActionsHost() {
@@ -55,12 +57,19 @@ export function useAskActionsHost() {
         const order = kind ? [kind] : ["video", "slides", "image", "link"];
         const index = order.map((k) => set.items.findIndex((m) => m.kind === k)).find((i) => i >= 0) ?? -1;
         if (index < 0) return { error: `"${set.title}" has no ${kind ?? "recording or slides"} to open.` };
+        const item = set.items[index];
         aside();
         // The stage has the keyboard now (Escape closes it, not Ask).
         (document.activeElement as HTMLElement | null)?.blur();
-        if (askPlatformNow() === "phone") minimizeAsk();
-        attachments.open(set, index);
-        return { playing: set.title, kind: set.items[index].kind };
+        const phone = askPlatformNow() === "phone";
+        if (phone) minimizeAsk();
+        // A phone opens every attachment in the sheet, and the sheet's button
+        // is what reaches the stage. A recording asked for by the play tool
+        // skips that step: `act` is the native home, and on a phone the stage
+        // is PiP. Slides, photos and links still come up in the sheet.
+        if (phone && item.kind === "video") attachments.act(set, index);
+        else attachments.open(set, index);
+        return { playing: set.title, kind: item.kind };
       },
     });
     return () => setAskActions(null);

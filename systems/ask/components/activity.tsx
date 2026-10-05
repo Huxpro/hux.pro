@@ -111,7 +111,6 @@ export function AskActivity() {
   const config = useAskConfig();
   const expanded = openId === ASK_ID;
   const placed = askPlacement === "top";
-
   const onSession = useCallback((next: AskActivitySession) => {
     setSession((prev) =>
       prev &&
@@ -191,7 +190,7 @@ export function AskActivity() {
 
   return (
     <>
-      {Bridge && <Bridge placed={placed} askRequest={askRequest} onSession={onSession} />}
+      {Bridge && <Bridge placed={placed} expanded={expanded} askRequest={askRequest} onSession={onSession} />}
       {show && (
         <LiveActivity
           id={ASK_ID}

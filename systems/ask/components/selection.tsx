@@ -5,6 +5,7 @@ import { useLocale } from "@/services";
 import { useCommand } from "@/systems/command";
 import { Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { prepareAskChat } from "../lib/chat";
 import { addAskContext } from "../lib/pending-context";
 import { selectionPosition } from "../lib/selection-layout";
 import { showNotice } from "@/systems/dock";
@@ -123,6 +124,9 @@ export function AskSelection() {
     ]);
     const site = await loadAskSearch().catch(() => null);
     if (!site) return;
+    // A paragraph of a different post is still that post: a new chat, then
+    // the words go on it (../lib/chat-continuity.ts).
+    prepareAskChat();
     if (!addAskContext(quoteContext(text, site, source))) showNotice({ id: "ask-context-full", icon: Sparkles, title: s.contextFull });
     window.getSelection()?.removeAllRanges();
     openAsk();
