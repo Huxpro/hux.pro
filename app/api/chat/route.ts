@@ -1,3 +1,4 @@
+import { MAX_CONTEXTS } from "@/systems/ask/lib/context-policy";
 import { askSystemPrompt } from "@/lib/ask-prompt";
 import { askEffortOf, askModelOf, type AskModel } from "@/systems/ask/lib/models";
 import { askTools, contextsOf, textOf, type AskContext, type AskUIMessage } from "@/systems/ask/lib/tools";
@@ -40,7 +41,7 @@ const MAX_MESSAGES = 24;
 const MAX_USER_CHARS = 4000;
 /** What a question may bring along (systems/ask/lib/page-context.ts): a
  *  few contexts, each a section's worth of text. */
-const MAX_CONTEXTS = 3;
+
 const MAX_CONTEXT_CHARS = 4500;
 const MAX_OUTPUT_TOKENS = 4000;
 
@@ -86,6 +87,7 @@ function sanitize(messages: unknown): AskUIMessage[] | null {
     m.parts = m.parts.flatMap((p) => {
       if (!p.type.startsWith("data-")) return [p];
       if (p.type !== "data-context" || ++contexts > MAX_CONTEXTS) return [];
+      if (!p.data || typeof p.data !== "object") return [];
       const c = p.data as unknown as Partial<Record<string, unknown>>;
       const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : undefined);
       const kind = c.kind === "quote" || c.kind === "item" ? c.kind : "page";

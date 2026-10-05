@@ -31,9 +31,9 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { AskDoc } from "../lib/corpus";
 import { contextsOf, textOf, type AskUIMessage } from "../lib/tools";
-import { usePageContext, contextText } from "../lib/page-context";
+import { usePageContext } from "../lib/page-context";
 import { ASK_CONTEXT_SUGGESTIONS } from "../prompts";
-import { loadedAskSearch } from "../lib/search";
+import { useContextDraft } from "../lib/pending-context";
 import { AskCards, docForHref, useAskDocs } from "./cards";
 import { ContextTag } from "./context-tag";
 import { useAskSession } from "../lib/use-ask";
@@ -511,8 +511,9 @@ export function AskMessages({ onNavigate, className }: AskMessagesProps) {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { messages, status, error, busy, send, regenerate, rewind, edit } = useAskSession();
-  const page = usePageContext(useAskDocs());
-  const site = loadedAskSearch();
+  const currentPage = usePageContext(useAskDocs());
+  const draft = useContextDraft();
+  const page = currentPage && !draft.dismissed.includes(currentPage.doc.id) ? currentPage : null;
   const kind = page?.doc.kind;
   const about = page
     ? ASK_CONTEXT_SUGGESTIONS[locale][
@@ -556,7 +557,7 @@ export function AskMessages({ onNavigate, className }: AskMessagesProps) {
                 <Suggestion
                   key={q}
                   suggestion={q}
-                  onClick={(text) => send(text, page && site ? [contextText(page, site)] : [])}
+                  onClick={(text) => send(text)}
                   className="h-auto justify-start whitespace-normal py-2 text-left"
                 />
               ))}

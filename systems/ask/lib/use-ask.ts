@@ -23,7 +23,9 @@ import {
   getConversationsSnapshot,
   subscribeConversations,
 } from "./history";
+import { loadAskSearch } from "./search";
 import { contextsNow } from "./page-context";
+import { takeAskContexts } from "./pending-context";
 import type { AskContext } from "./tools";
 
 // =============================================================================
@@ -41,7 +43,7 @@ export function useAskSession() {
 
   /** Ask, with what the reader has open (../lib/page-context.ts), if any. */
   const send = useCallback(
-    (text: string, contexts: readonly AskContext[] = []) => {
+    (text: string, contexts: readonly AskContext[] = contextsNow()) => {
       const question = text.trim();
       if (!question || busy) return false;
       void helpers.sendMessage({
@@ -50,6 +52,7 @@ export function useAskSession() {
           ...contexts.map((data) => ({ type: "data-context" as const, data })),
         ],
       });
+      takeAskContexts();
       return true;
     },
     [busy, helpers],
@@ -116,11 +119,15 @@ export function useAskRequest(request: { text: string; n: number } | null) {
     if (!request || request.n <= consumedRequest) return;
     consumedRequest = request.n;
     const chat = getAskChat();
-    void chat.sendMessage({
-      parts: [
-        { type: "text", text: request.text },
-        ...contextsNow(chat.messages).map((data) => ({ type: "data-context" as const, data })),
-      ],
+    void loadAskSearch().catch(() => null).then(() => {
+      if (chat !== getAskChat()) return;
+      void chat.sendMessage({
+        parts: [
+          { type: "text", text: request.text },
+          ...contextsNow().map((data) => ({ type: "data-context" as const, data })),
+        ],
+      });
+      takeAskContexts();
     });
   }, [request]);
 }
