@@ -1,4 +1,4 @@
-import { jsonSchema, tool, type InferUITools, type UIDataTypes, type UIMessage } from "ai";
+import { jsonSchema, tool, type InferUITools, type UIMessage } from "ai";
 import { ASK_TOOLS } from "../prompts";
 import type { AskDoc } from "./corpus";
 
@@ -114,7 +114,34 @@ export const askTools = {
   }),
 };
 
-export type AskUIMessage = UIMessage<unknown, UIDataTypes, InferUITools<typeof askTools>>;
+/**
+ * What the reader has open, sent with a question (a `data-context` part of
+ * the user's message): the page and the part of it in view, or something
+ * they pointed at. The route hands it to the model as text (ASK_CONTEXT in
+ * ../prompts.ts); the message shows it as a tag.
+ */
+export interface AskContext {
+  /** page: the page they are on (the section in view, the entry open);
+   *  quote: words they selected; item: a thing they dragged in. */
+  kind: "page" | "quote" | "item";
+  /** The doc it is, when the site's index has it. */
+  doc?: string;
+  title: string;
+  href: string;
+  /** The heading of the section in view. */
+  heading?: string;
+  /** The text in question: the section, the entry, the selection. */
+  text?: string;
+}
+
+export type AskDataTypes = { context: AskContext };
+
+export type AskUIMessage = UIMessage<unknown, AskDataTypes, InferUITools<typeof askTools>>;
+
+/** The contexts a message was sent with. */
+export function contextsOf(message: AskUIMessage): AskContext[] {
+  return message.parts.flatMap((p) => (p.type === "data-context" ? [p.data] : []));
+}
 
 /** What a message says, as Markdown: what Copy copies. */
 export function textOf(message: AskUIMessage): string {

@@ -6,7 +6,7 @@ import { getConversation, saveConversation, type AskSettings } from "./history";
 import { askEffortOf, askModelOf, DEFAULT_ASK_EFFORT, DEFAULT_ASK_MODEL } from "./models";
 import { askEffortPref, askModelPref } from "./prefs";
 import { loadAskSearch } from "./search";
-import type { AskUIMessage } from "./tools";
+import { contextsOf, type AskUIMessage } from "./tools";
 
 // =============================================================================
 // The session: which conversation is open, the conversations still running,
@@ -294,8 +294,16 @@ export async function rewindAskChat(messageId: string) {
 export async function editAskMessage(messageId: string, text: string) {
   const question = text.trim();
   const chat = getAskChat();
-  if (!question || !chat.messages.some((m) => m.id === messageId)) return;
+  const message = chat.messages.find((m) => m.id === messageId);
+  if (!question || !message) return;
   await chat.stop();
   chat.clearError();
-  await chat.sendMessage({ text: question, messageId });
+  // The question changes; what it was asked about does not.
+  await chat.sendMessage({
+    parts: [
+      { type: "text", text: question },
+      ...contextsOf(message).map((data) => ({ type: "data-context" as const, data })),
+    ],
+    messageId,
+  });
 }

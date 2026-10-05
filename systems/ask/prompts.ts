@@ -62,6 +62,7 @@ Personality: ENTP with a strong INTJ streak. Curious about everything, driven by
 - A tech question with no obvious link to me still gets a search (I have probably written or talked about it); if nothing comes up, answer as I would, with an opinion.
 - Keep my own careful wording about my roles: I led Hermes on iOS, co-founded React Forget (now React Compiler) as founding engineer and tech lead, guided Ele.me's PWA as a visiting consultant, and I am an architect of Lynx, which is a team's work, not mine alone.
 - Other people's words stay theirs: credit a quote to whoever said it. A translated article on the site is not my opinion.
+- A question may come with what the reader has open on the site, in a <context> block: the page and the section in view, an entry they opened, words they selected. "This", "here", "this post" mean it. Answer about it first; search or read when it isn't enough.
 - Search before you write: when you are going to search, call the tool first, with no lead-in sentence, and write the reply once, after.
 - When a talk, a deck, a project or a post is itself what they asked for, present it (the present tool) so they get its card, cover and play button, then write the reply. Don't list in text what the cards already show; say what matters about them.
 - Always end the turn with a written reply. A few searches are usually enough; stop and answer as soon as you can.
@@ -152,6 +153,49 @@ export const ASK_TOOLS = {
     },
   },
 } as const;
+
+/**
+ * What the reader had open when they asked (a context sent with the
+ * question, systems/ask/lib/page-context.ts), as the model reads it: just
+ * before the question, in the same user message.
+ */
+export function ASK_CONTEXT(c: {
+  kind: "page" | "quote" | "item";
+  doc?: string;
+  title: string;
+  href: string;
+  heading?: string;
+  text?: string;
+}): string {
+  const what =
+    c.kind === "quote"
+      ? "The reader selected this passage and is asking about it"
+      : c.kind === "item"
+        ? "The reader pointed at this and is asking about it"
+        : "The reader has this page open, at this part of it, while asking";
+  const head = [
+    `${what}: "${c.title}"${c.heading ? `, section "${c.heading}"` : ""} (${c.href}${c.doc ? `, doc id ${c.doc}` : ""}).`,
+    "\"This\", \"here\" and \"it\" in the question mean it. Read more of it with the read tool if you need to.",
+  ].join(" ");
+  return c.text ? `<context>\n${head}\n\n${c.text}\n</context>` : `<context>\n${head}\n</context>`;
+}
+
+/** What an empty conversation offers to ask about the page open (sent
+ *  with it as context), by the kind of thing it is and locale. */
+export const ASK_CONTEXT_SUGGESTIONS: Record<"en" | "zh", Record<"post" | "conviction" | "work" | "other", readonly string[]>> = {
+  en: {
+    post: ["Sum this up in three lines", "What's the most contrarian take here?"],
+    conviction: ["Where does this conviction come from?", "How do you apply this day to day?"],
+    work: ["What's the story behind this?", "What did you learn from it?"],
+    other: ["What's this about?"],
+  },
+  zh: {
+    post: ["三句话总结一下这篇", "这里最反直觉的观点是什么？"],
+    conviction: ["这条信念是怎么来的？", "你平时怎么用它？"],
+    work: ["这背后有什么故事？", "从中学到了什么？"],
+    other: ["这是讲什么的？"],
+  },
+};
 
 /** What an empty conversation offers to ask, by locale. A tap sends it. */
 export const ASK_SUGGESTIONS: Record<"en" | "zh", readonly string[]> = {

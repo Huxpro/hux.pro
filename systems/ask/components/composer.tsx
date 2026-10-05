@@ -19,7 +19,10 @@ import { useVoiceInput, VOICE_LANG } from "@/systems/voice";
 import { Brain } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ASK_EFFORTS, ASK_MODELS, type AskEffort } from "../lib/models";
+import { contextsToSend, usePageContext } from "../lib/page-context";
 import { useAskPrefs, useAskSession } from "../lib/use-ask";
+import { useAskDocs } from "./cards";
+import { ContextTag } from "./context-tag";
 import { askStrings } from "../strings";
 
 // =============================================================================
@@ -49,6 +52,12 @@ export function AskComposer() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sent = useRef<{ text: string; at: number } | null>(null);
 
+  // What the reader has open goes with the question, shown as a tag until
+  // they leave it out (× , for this page, until they move to another).
+  const page = usePageContext(useAskDocs());
+  const [left, setLeft] = useState<string | null>(null);
+  const context = page && page.doc.id !== left ? page : null;
+
   const voice = useVoiceInput({
     lang: VOICE_LANG[locale],
     onInterim: (said) => setInput(said),
@@ -72,13 +81,27 @@ export function AskComposer() {
     <PromptInput
       onSubmit={() => {
         const text = input.trim();
-        if (!send(text)) return;
+        if (!send(text, contextsToSend(context, messages))) return;
         voice.abort();
         sent.current = { text, at: performance.now() };
         setInput("");
       }}
       className="relative rounded-xl bg-transparent"
     >
+      {context && (
+        <div className="flex w-full px-3 pt-2.5">
+          <ContextTag
+            context={{
+              kind: "page",
+              doc: context.doc.id,
+              title: context.doc.title,
+              href: context.doc.href,
+              heading: context.heading,
+            }}
+            onRemove={() => setLeft(context.doc.id)}
+          />
+        </div>
+      )}
       <PromptInputBody>
         <PromptInputTextarea
           ref={textareaRef}
