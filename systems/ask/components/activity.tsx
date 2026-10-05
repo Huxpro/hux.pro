@@ -12,7 +12,7 @@ import { useTransitionRouter } from "next-view-transitions";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useAskConfig } from "../lib/config";
 import type { AskUIMessage } from "../lib/tools";
-import { useAskRequest, useAskSession } from "../lib/use-ask";
+import { useAskContinuity, useAskRequest, useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
 import { AskComposer } from "./composer";
 import { AskHistory } from "./history";
@@ -140,6 +140,8 @@ export default function AskActivity() {
   const config = useAskConfig();
   const expanded = openId === ASK_ID;
   const placed = askPlacement === "top";
+  // Opening the panel on another post starts a new chat. The pill does not.
+  useAskContinuity(placed && expanded);
   // The question is this place's to send only while Ask is here.
   useAskRequest(placed ? askRequest : null);
 

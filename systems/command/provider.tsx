@@ -1,5 +1,6 @@
 "use client";
 
+import { prepareAskChat } from "@/systems/ask/lib/chat";
 import { askConfigNow, askPlatformNow } from "@/systems/ask/lib/config";
 import { readJSON, writeJSON } from "@/systems/ask/lib/storage";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
@@ -248,6 +249,9 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
 
   const openAsk = useCallback(
     (text?: string, from: "search" | "palette" | "call" = "call") => {
+      // Another post is a new context, and so a new chat, before the surface
+      // shows the previous one (systems/ask/lib/chat-continuity.ts).
+      prepareAskChat();
       const question = text?.trim();
       if (question) setAskRequest((prev) => ({ text: question, n: (prev?.n ?? 0) + 1 }));
       const entry: AskEntry = from === "call" ? "direct" : "command";

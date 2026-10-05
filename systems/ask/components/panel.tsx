@@ -7,7 +7,7 @@ import type { AskPlacement } from "@/systems/command";
 import { Drawer } from "@base-ui/react/drawer";
 import { History, Sparkles, SquarePen } from "lucide-react";
 import { useState } from "react";
-import { useAskRequest, useAskSession } from "../lib/use-ask";
+import { useAskContinuity, useAskRequest, useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
 import { AskComposer } from "./composer";
 import { AskHistory } from "./history";
@@ -20,7 +20,8 @@ import { AskPlacementControls, useAskDragHandle } from "./placement";
 // (./messages, ./composer, ./history) inside the surface system's own chrome
 // (SurfaceBody), so the panel reads as the same object as the playlist or the
 // wallpaper picker. The state is the session's (../lib/chat), so closing the
-// panel and opening it again, or navigating under it, keeps the conversation.
+// panel and opening it again keeps the conversation while the post is the
+// same one. Another post starts a new chat (../lib/chat-continuity.ts).
 //
 // This is Ask's side place on a desk, and its center place as a phone's
 // sheet. Its title is the handle that drags it to another place, beside the
@@ -32,6 +33,8 @@ import { AskPlacementControls, useAskDragHandle } from "./placement";
 export interface AskPanelProps {
   /** Which place this panel is: the side on a desk, the center as a phone's sheet. */
   placement: AskPlacement;
+  /** The surface is showing. Opening it on another post starts a new chat. */
+  active: boolean;
   /** A question to send on arrival, from the palette's field. */
   request: { text: string; n: number } | null;
   onClose: () => void;
@@ -42,11 +45,12 @@ export interface AskPanelProps {
 /** A header button that stays lit while the view it opens is showing. */
 const TOGGLE = "aria-pressed:bg-accent/60 aria-pressed:text-foreground";
 
-export default function AskPanel({ placement, request, onClose, onNavigate }: AskPanelProps) {
+export default function AskPanel({ placement, active, request, onClose, onNavigate }: AskPanelProps) {
   const { locale } = useLocale();
   const s = askStrings(locale);
   const { messages, newChat } = useAskSession();
   const [showHistory, setShowHistory] = useState(false);
+  useAskContinuity(active);
   useAskRequest(request);
   const handle = useAskDragHandle(placement);
 

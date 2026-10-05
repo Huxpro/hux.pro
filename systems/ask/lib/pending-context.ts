@@ -38,6 +38,14 @@ export function takeAskContexts(): readonly AskContext[] {
   if (draft.pending.length) set({ ...draft, pending: [] });
   return draft.pending;
 }
+
+/** Drop what a conversation had waiting, once a new chat has taken the question. */
+export function discardContextDraft(chatId: string) {
+  const draft = drafts.get(chatId);
+  if (!draft?.pending.length) return;
+  drafts.set(chatId, { ...draft, pending: [] });
+  listeners.forEach((l) => l());
+}
 export function useContextDraft(): Draft {
   return useSyncExternalStore(
     (l) => {
