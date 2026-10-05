@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { Briefcase, Code2, FileText, Paperclip, Quote, TextQuote, X } from "lucide-react";
+import { Briefcase, Code2, FileText, Paperclip, Quote, TextQuote, Plus, X } from "lucide-react";
 import type { AskContext } from "../lib/tools";
 import { askStrings } from "../strings";
 
@@ -11,6 +11,8 @@ import { askStrings } from "../strings";
 // about (the page open, ../lib/page-context.ts), with × to leave it out; on
 // a sent question, what it was asked about, as a link back to it.
 // =============================================================================
+
+const TAG_SHAPE = "inline-flex h-6 max-w-full items-center gap-1 rounded-md border pl-1.5 text-xs";
 
 function IconOf({ context }: { context: Pick<AskContext, "kind" | "doc"> }) {
   const className = "size-3 shrink-0";
@@ -26,11 +28,14 @@ function IconOf({ context }: { context: Pick<AskContext, "kind" | "doc"> }) {
 export function ContextTag({
   context,
   onRemove,
+  onAdd,
   className,
 }: {
   context: Pick<AskContext, "kind" | "doc" | "title" | "href" | "heading">;
   /** Leave it out of the question (the composer's tag). */
   onRemove?: () => void;
+  /** An available context: the same badge, empty until added. */
+  onAdd?: () => void;
   className?: string;
 }) {
   const { locale } = useLocale();
@@ -41,12 +46,29 @@ export function ContextTag({
       {context.heading && <span className="text-tertiary-foreground"> · {context.heading}</span>}
     </>
   );
+  if (onAdd) {
+    return (
+      <button
+        type="button"
+        data-ask-context-empty={context.kind}
+        onClick={onAdd}
+        aria-label={`${s.contextRestore}: ${context.title}${context.heading ? ` · ${context.heading}` : ""}`}
+        title={s.contextRestore}
+        className={cn(TAG_SHAPE, "pressable border-dashed border-border/60 bg-transparent pr-1.5 text-tertiary-foreground hover:border-border hover:text-muted-foreground", className)}
+      >
+        <IconOf context={context} />
+        <span className="min-w-0 truncate">{label}</span>
+        <Plus className="size-3 shrink-0" />
+      </button>
+    );
+  }
   return (
     <span
       data-ask-context={context.kind}
       title={onRemove ? undefined : s.contextSent}
       className={cn(
-        "inline-flex h-6 max-w-full items-center gap-1 rounded-md border border-border/60 bg-muted/50 pl-1.5 text-xs text-muted-foreground",
+        TAG_SHAPE,
+        "border-border/60 bg-muted/50 text-muted-foreground",
         onRemove ? "pr-0.5" : "pr-2",
         className,
       )}

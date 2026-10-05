@@ -133,7 +133,7 @@ export function AskComposer() {
         }}
         className="relative rounded-xl bg-transparent"
       >
-        {(context || pointed.length > 0) && (
+        {(context || pointed.length > 0 || (page && !pageContext)) && (
           <div className="flex w-full flex-wrap gap-1 px-3 pt-2.5">
             {pointed.map((c, i) => (
               <ContextTag key={i} context={c} onRemove={() => removeAskContext(c)} />
@@ -156,10 +156,23 @@ export function AskComposer() {
               }}><Pin className="size-3" /></button>
               </span>
             )}
+            {page && !pageContext && (
+              <ContextTag
+                context={{
+                  kind: "page",
+                  doc: page.doc.id,
+                  title: page.doc.title,
+                  href: page.anchor ? `${page.doc.href}#${page.anchor}` : page.doc.href,
+                  heading: page.heading,
+                }}
+                onAdd={() => {
+                  if (pointed.length >= MAX_CONTEXTS) { setNotice(s.contextFull); return; }
+                  dismissAskPage(page.doc.id, false);
+                  setNotice("");
+                }}
+              />
+            )}
           </div>
-        )}
-        {page && !pageContext && (
-          <button type="button" className="mx-3 mt-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => dismissAskPage(page.doc.id, false)}>{s.contextRestore}</button>
         )}
         {choosing && (
           <div className="mx-3 mt-2 space-y-1 rounded-lg border border-border/60 p-2">
