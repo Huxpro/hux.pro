@@ -1,7 +1,8 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   dropAskConversation,
   editAskMessage,
@@ -11,6 +12,7 @@ import {
   getAskSettings,
   newAskChat,
   openAskConversation,
+  prepareAskChat,
   rewindAskChat,
   setAskSettings,
   subscribeAskChat,
@@ -25,7 +27,7 @@ import {
 } from "./history";
 import { loadAskSearch } from "./search";
 import { contextsNow } from "./page-context";
-import { takeAskContexts } from "./pending-context";
+import { discardContextDraft, takeAskContexts } from "./pending-context";
 import type { AskContext } from "./tools";
 
 // =============================================================================
@@ -41,21 +43,26 @@ export function useAskSession() {
   const helpers = useChat({ chat, throttle: 50 });
   const busy = helpers.status === "submitted" || helpers.status === "streaming";
 
-  /** Ask, with what the reader has open (../lib/page-context.ts), if any. */
+  /** Ask, with what the reader has open (../lib/page-context.ts), if any.
+   *  A different post starts a new chat first (./chat-continuity.ts). */
   const send = useCallback(
     (text: string, contexts: readonly AskContext[] = contextsNow()) => {
       const question = text.trim();
-      if (!question || busy) return false;
-      void helpers.sendMessage({
+      if (!question) return false;
+      const before = getAskChat();
+      const target = prepareAskChat();
+      if (target === before && busy) return false;
+      void target.sendMessage({
         parts: [
           { type: "text", text: question },
           ...contexts.map((data) => ({ type: "data-context" as const, data })),
         ],
       });
-      takeAskContexts();
+      if (target === before) takeAskContexts();
+      else discardContextDraft(before.id);
       return true;
     },
-    [busy, helpers],
+    [busy],
   );
 
   return {
@@ -100,6 +107,21 @@ export function useAskPrefs() {
   };
 }
 
+/**
+ * Opening Ask on another post starts a new chat. Moving between places, or
+ * a route change while it stays open, does not: the next question does
+ * (`prepareAskChat` in send).
+ */
+export function useAskContinuity(active: boolean) {
+  const pathname = usePathname();
+  const wasActive = useRef(false);
+  useEffect(() => {
+    const opened = active && !wasActive.current;
+    wasActive.current = active;
+    if (opened) prepareAskChat();
+  }, [active, pathname]);
+}
+
 /** The ids of the conversations being answered now, for the history. */
 export function useAskRunning(): ReadonlySet<string> {
   return useSyncExternalStore(subscribeAskRunning, getAskRunning, getAskRunning);
@@ -118,7 +140,8 @@ export function useAskRequest(request: { text: string; n: number } | null) {
   useEffect(() => {
     if (!request || request.n <= consumedRequest) return;
     consumedRequest = request.n;
-    const chat = getAskChat();
+    const before = getAskChat();
+    const chat = prepareAskChat();
     void loadAskSearch().catch(() => null).then(() => {
       if (chat !== getAskChat()) return;
       void chat.sendMessage({
@@ -127,7 +150,8 @@ export function useAskRequest(request: { text: string; n: number } | null) {
           ...contextsNow().map((data) => ({ type: "data-context" as const, data })),
         ],
       });
-      takeAskContexts();
+      if (chat === before) takeAskContexts();
+      else discardContextDraft(before.id);
     });
   }, [request]);
 }
