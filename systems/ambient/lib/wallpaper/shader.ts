@@ -153,6 +153,10 @@ uniform vec2  uMoonAxis;      // the moon frame's +x on screen: toward the sun
 // rising before the window opens (lib/sky-pull.ts). Only the gradient reads
 // it: the sun, the moon, the clouds and the stars' places hold still.
 uniform float uLift;
+// The tilt's parallax: the gravity's x while the tilt is followed, eased. The
+// decks slide by their depth — the near one furthest, the sun, moon and stars
+// (at infinity) not at all. The stage only; the window has a camera of its own.
+uniform float uTilt;
 
 /**
  * Square. Worth a name because the alternative, a pow() of two, is both
@@ -448,6 +452,18 @@ vec3 moon(vec2 p, vec2 moonP, float visible) {
 // Clouds
 // ---------------------------------------------------------------------------
 
+// How wide the soft edge of a broken deck is, in noise: narrower than it was
+// (0.38, which an overcast keeps), so a broken sky has cores the eye reads as
+// solid and edges it reads as soft, rather than a translucent film all over.
+const float CLOUD_EDGE = 0.26;
+// How far each deck slides at a full sideways tilt, screen heights.
+const float TILT_FAR = 0.05;
+const float TILT_NEAR = 0.14;
+// How far the self-shadow takes a base toward the shade colour.
+const float CLOUD_SHADOW = 0.55;
+// How much of the low sun's glow reaches the underside of the deck.
+const float CLOUD_UNDERLIGHT = 0.7;
+
 struct CloudSample {
   float cov;
   float thick;
@@ -459,12 +475,39 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
   // sampling further right is what walks a deck left.
   vec2 drift = vec2(-uCloudDrift * speed, 0.0);
   vec2 q = vec2(p.x, p.y * parallaxY) * scale + drift + uSeed * 7.0;
-  // Base billows plus a finer detail octave so partial cover thresholds into
-  // ragged cumulus rather than round fbm peaks.
-  float n = fbm5(q) * 0.82 + fbm3(q * 3.7 + 5.0) * 0.25;
   float cover = clamp(uCloudCover + coverBias, 0.0, 1.0);
   float th = mix(0.96, 0.2, cover);
-  float cov = smoothstep(th, th + 0.38, n);
+
+  // Base billows plus a finer detail octave so partial cover thresholds into
+  // ragged cumulus rather than round fbm peaks. The base is fbm5, octave by
+  // octave, stopping as soon as the octaves still to come could not lift this
+  // point over the threshold: each adds at most its amplitude (so all of them,
+  // less than twice the next one's), and the detail term at most 0.875 × 0.25.
+  // Below that bound the deck is certainly absent here — the cov <= 0.0 case
+  // below — so on a clear or broken sky most pixels stop after two octaves of
+  // eight. Where it does not stop, v is fbm5 to the last operation, so no pixel
+  // carrying any cloud changes. (The Atmosphere engine rejects its raymarch
+  // samples on the same bound.)
+  CloudSample s;
+  float v = 0.0;
+  float a = 0.5;
+  vec2 r = q;
+  for (int i = 0; i < 5; i++) {
+    v += a * vnoise(r);
+    r = ROT * r * 2.03 + 11.7;
+    a *= 0.5;
+    if ((v + 2.0 * a) * 0.82 + 0.21875 <= th) {
+      s.cov = 0.0;
+      s.thick = 0.0;
+      s.col = vec3(0.0);
+      return s;
+    }
+  }
+  float n = v * 0.82 + fbm3(q * 3.7 + 5.0) * 0.25;
+  // Firm only where the sky is broken: an overcast's soft masses are its
+  // structure, and a narrow edge there cuts them into ragged islands.
+  float edge = mix(CLOUD_EDGE, 0.38, smoothstep(0.6, 0.9, cover));
+  float cov = smoothstep(th, th + edge, n);
 
   // Where this deck is absent, stop: nothing computed below can be seen. The
   // caller weights this sample's colour by cov and takes cloudMask as its max,
@@ -478,7 +521,6 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
   // against main: twelve real scenes captured off the page, day and night, each
   // at three clock times and each also with a strike over it, plus a real fog
   // wipe and a real gust -- fifty states, not one channel different.
-  CloudSample s;
   if (cov <= 0.0) {
     s.cov = 0.0;
     s.thick = 0.0;
@@ -487,14 +529,41 @@ CloudSample cloudLayer(vec2 p, vec2 sunDir, float scale, float speed, float para
   }
   float thick = cov * cov;
 
-  // Fake lighting: compare with a sample nudged toward the sun.
-  float nl = fbm5(q + sunDir * 0.09) * 0.82 + fbm3((q + sunDir * 0.09) * 3.7 + 5.0) * 0.25;
+  // Lighting from a sample nudged toward the sun: where the deck thins toward
+  // it, a lit rim; where there is more cloud between this point and the sun, a
+  // shadow. The shadow is what the Atmosphere engine's raymarch has and a flat
+  // deck lacked — the bases away from the sun darken, the tops toward it stay
+  // lit, and a broken sky reads as cloud with a body rather than a wash. It
+  // measures the deck against its own threshold, never below the middle of
+  // the noise, so an overcast keeps its thin and heavy parts instead of going
+  // one shade all over.
+  float nlBase = fbm5(q + sunDir * 0.09);
+  float nl = nlBase * 0.82 + fbm3((q + sunDir * 0.09) * 3.7 + 5.0) * 0.25;
   float rim = clamp((n - nl) * 4.5, 0.0, 1.0);
+  // The shadow reads the broad billows only (the detail term at its mean,
+  // 0.4375 × 0.25): a ray integrated toward the sun through a deck sees their
+  // mass, not their fray, and the fray would cut the shading into ragged
+  // islands. Its edge widens by as much as its threshold was raised, for the
+  // same reason under an overcast.
+  float shadowTh = max(th, 0.5);
+  float light = exp(-smoothstep(shadowTh, shadowTh + 0.3 + (shadowTh - th), nlBase * 0.82 + 0.109) * 1.7);
 
-  vec3 base = mix(uCloudLit, uCloudShade, thick * (0.35 + 0.65 * uCloudDarkness));
+  // A low sun lights the deck from underneath in its own colour: sunset cloud
+  // glows, its bases deep and warm rather than a smoke-grey silhouette lost in
+  // the glow behind it, which is the colour it would otherwise share.
+  float lowSun = (1.0 - smoothstep(-8.0, 14.0, uSunElevation)) * smoothstep(-6.0, -1.0, uSunElevation);
+  vec3 litCol = mix(uCloudLit, uGlow, lowSun * 0.55 * uGlowStrength);
+  vec3 shade = mix(uCloudShade, uGlow * 0.6, lowSun * 0.6 * uGlowStrength);
+
+  // With the sun under the deck the light comes from below, not across it:
+  // neither the thickness nor the cloud toward the sun darkens a base then.
+  float fromBelow = 1.0 - 0.6 * lowSun;
+  vec3 base = mix(litCol, shade, thick * (0.35 + 0.65 * uCloudDarkness) * fromBelow);
+  base = mix(base, shade, (1.0 - light) * CLOUD_SHADOW * fromBelow);
   base += uGlow * uGlowStrength * rim * 0.45 * (1.0 - thick * 0.6);
   // Silver lining toward the sun.
   base += uGlow * uGlowStrength * (1.0 - thick) * 0.12;
+  base += uGlow * uGlowStrength * lowSun * CLOUD_UNDERLIGHT * (0.5 + 0.5 * light) * (1.0 - 0.3 * thick);
 
   s.cov = cov * clamp(uCloudDensity + 0.1, 0.0, 1.0);
   s.thick = thick;
@@ -1473,8 +1542,8 @@ void main() {
   // so they converge on the horizon, and as the phone turns the near deck
   // slides past the far one. The plane's x is the stage's (west in the north,
   // east in the south), so the drift the wind has banked carries on along it.
-  vec2 farP = p;
-  vec2 nearP = p + vec2(3.1, 1.7);
+  vec2 farP = p + vec2(uTilt * TILT_FAR, 0.0);
+  vec2 nearP = p + vec2(3.1 + uTilt * TILT_NEAR, 1.7);
   float farSquash = 0.75;
   float toAverage = 0.0;
   float deckFade = 1.0;
