@@ -81,36 +81,43 @@ conversation is the session's, so moving Ask moves nothing else.
 
 What follows is the desk's preset; every line of it is a setting (below).
 
-- **Which place.** Asking from search (the Ask row, Tab) lands in the center,
-  unless Ask is already open at the side or the top, which then takes the
-  question. ⌘J, `/` `J` and the Ask button open it at the default, and
-  close it again. Each kind of page has its default: beside a page to read
-  (/writing, /works, /prompt, /about, /docs; `onReadingPage`), so the page
-  stays in view; elsewhere the center. Only a place chosen by hand (a place
-  button, a drop) overrides a default, and only for that kind of page
-  (`hux_ask_placement`, `{ reading, other }`): opening beside a post is not a
-  choice, so the home keeps its center.
+- **Which place.** Asking from the palette (the Ask row, Tab, `/` `J`) morphs
+  the card into the center chat, unless Ask is already open at the side or
+  the top, which then takes the question. ⌘J and the Ask button open it
+  beside a page to read (/writing, /works, /prompt, /about, /docs;
+  `onReadingPage`), so the page stays in view, and in the center elsewhere.
+  Arriving on a reading page with the center chat already up moves it to the
+  side. A drag does not stick, and neither does parking it to make room for
+  ⌘K: the next open follows the moment again. The place buttons, when turned
+  on, still remember a choice for a call that is not on a reading page
+  (`hux_ask_placement`).
 - **The way back.** Leaving the center goes back to search only when search
   was the way in (the Ask row, Tab, `/` `J`): there is a back button, and
   Escape returns to the field. Reached directly (⌘J, the Ask button, a move
   from another place) it has no search behind it: no back button, and Escape
   closes it (`askEntry` in the command provider).
-- **Moving.** Every surface's header has the placement buttons (center, side,
-  top) and minimize. On a screen with room for the side panel, the header is
-  also a handle. The center is a window: its header drags the card anywhere
-  (the palette's own drag), and only the edges are places: within 96px of the
-  trailing edge the side lights up, within 64px of the top the Dock; let go
-  there and Ask moves, anywhere else the window stays where it was put. The
-  side panel and the Dock's panel are fixed, so their header carries a
-  stand-in, with the three places drawn to aim at (`AskDragOverlay`). The
-  surface being carried fades (`data-ask-dragging`).
+- **Moving.** Minimize stays in the header. The place buttons are off: the
+  header is the handle. The center is a window and drags anywhere (the
+  palette's own drag). The side panel and the dock follow the pointer too.
+  Letting go in the trailing column (the panel's own width) is the side, in
+  the top band (112px, and not in that column — the side's header lives
+  there) the dock, and anywhere else the center. The place it would land is
+  drawn while the pointer is over a different one (`AskDragOverlay`). The
+  center fades only then (`data-ask-dragging`).
+- **Both at once.** ⌘K, or `/` outside a field, while Ask is the center chat
+  or (on a desk) the dock, parks it — the side on a desk, the dock on a
+  phone — and opens the palette. The side panel and the card share the
+  screen: the card centers in the room that is left, and clicks on the panel
+  stay the panel's. Ask already on the side is left there. `/` in the
+  composer is a character.
 - **The pill.** Minimize (or the Dock's chevron at the top, or a route change
   while it is there) leaves the pill; tapping it opens the top place. Closing
   Ask while a reply is still being written leaves the pill too. ✕ closes it
   for good.
-- **Links.** In the center, a link navigates and the palette leaves; at the
-  side it navigates under the panel, which stays; at the top it navigates and
-  collapses to the pill.
+- **Links.** In the center, a link navigates and Ask becomes the side panel,
+  so the page is read beside the conversation; on a phone the palette leaves.
+  At the side a link navigates under the panel, which stays; at the top it
+  navigates and collapses to the pill.
 - **Phones.** A bottom drawer, and nothing else. Ask is big and stays a while,
   which is a drawer's job; the Dock's Live Activity is for small things in
   passing. So the phone's preset has no place buttons, no minimize and no
@@ -143,9 +150,9 @@ defaults.
 | setting | what it decides | desk | phone |
 |---|---|---|---|
 | `fromSearch` | where asking from search opens Ask | center | center (the drawer) |
-| `fromCall` | where ⌘J / the Ask button opens it: where it was last, or one place | last | center |
-| `onReadingPage` | on /writing, /works, /prompt, /about, /docs: open at the side, or follow the two above | side | same |
-| `placeButtons` | center / side / top in the header (side never on a phone: no room) | on | off |
+| `fromCall` | where ⌘J / the Ask button opens it, off a reading page: where the place buttons last put it, or one place | center | center |
+| `onReadingPage` | on /writing, /works, /prompt, /about, /docs, a call opens at the side (asking from the palette still morphs the card) | side | same |
+| `placeButtons` | center / side / top in the header (side never on a phone: no room). Off: drag, and the moment, move Ask | off | off |
 | `drag` | the header drags between places (a mouse) | on | off |
 | `minimize` | `dock`: into the Dock as a pill; `off`: no minimize button, and the Dock's collapse closes | dock | off |
 | `backgroundPill` | a reply still being written after Ask closed shows as a pill | on | off |
@@ -156,9 +163,11 @@ A platform is the surfaces' `sm`: under 640px, a phone.
 
 ## A chat, not a box
 
-- **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere, where it was last put,
-  and closes it again; `/` `J` from the slash list; Tab or the Ask row from
-  search.
+- **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere — beside a page being
+  read, in the center elsewhere — and closes it again. `/` `J` from the slash
+  list and Tab or the Ask row from search morph the card into the chat. ⌘K,
+  or `/` outside a field, parks a center chat (or the dock, on a desk) aside
+  and opens the palette in front of it.
 - **History.** Every conversation is saved from its first question
   (`lib/history.ts`): the newest 30, in this browser only, read results
   trimmed. The sidebar (the clock on a narrow screen) lists them; picking one

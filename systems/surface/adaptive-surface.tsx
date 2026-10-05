@@ -242,10 +242,16 @@ export function SurfacePanel({
   open,
   onOpenChange,
   zIndex,
+  dragHost,
   children,
 }: Pick<AdaptiveSurfaceProps, "open" | "zIndex" | "children"> & {
   /** With Base UI's details, so a caller can tell an Escape from a swipe. */
   onOpenChange: (open: boolean, details: Drawer.Root.ChangeEventDetails) => void;
+  /**
+   * Marks the popup as a drag host (`data-ask-drag-host`). Ask's side panel
+   * follows the pointer while its header is dragged (globals.css).
+   */
+  dragHost?: string;
 }) {
   return (
     <Drawer.Root
@@ -261,6 +267,7 @@ export function SurfacePanel({
         <SurfaceViewport modal={false} zBase={zIndex}>
           <Drawer.Popup
             data-surface-popup=""
+            data-ask-drag-host={dragHost}
             style={surfaceMotionVars(EDGE_GAP)}
             className={cn(
               SHELL,

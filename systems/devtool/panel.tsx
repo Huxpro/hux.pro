@@ -3252,7 +3252,7 @@ function AskModule() {
             value={config.onReadingPage}
             label={zh ? "阅读页" : "On reading pages"}
             options={[
-              { value: "side", label: "Side", title: zh ? "文章等页面上默认在侧边打开" : "Open beside /writing, /works, /prompt, /about" },
+              { value: "side", label: "Side", title: zh ? "⌘J 在文章页打开到侧边；从命令面板进来仍居中" : "A call opens beside a page being read; the palette still morphs" },
               { value: "same", label: zh ? "同上" : "Same", title: zh ? "按上面两条规则" : "Follow the two rules above" },
             ]}
             onChange={set("onReadingPage")}

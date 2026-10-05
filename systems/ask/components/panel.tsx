@@ -23,8 +23,8 @@ import { AskPlacementControls, useAskDragHandle } from "./placement";
 // panel and opening it again, or navigating under it, keeps the conversation.
 //
 // This is Ask's side place on a desk, and its center place as a phone's
-// sheet. Its title is the handle that drags it to another place, beside the
-// placement buttons (./placement).
+// sheet. Its title is the handle: drag the panel, and letting go in the
+// middle makes it the center chat, up in the top band the dock (./placement).
 //
 // The shell (../surfaces.tsx) loads this lazily, the first time Ask opens.
 // =============================================================================

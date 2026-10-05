@@ -130,7 +130,7 @@ export function AskSide() {
   );
 
   return shape === "panel" ? (
-    <SurfacePanel open={open} onOpenChange={onOpenChange}>
+    <SurfacePanel open={open} onOpenChange={onOpenChange} dragHost="side">
       {body}
     </SurfacePanel>
   ) : (
