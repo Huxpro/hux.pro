@@ -31,8 +31,8 @@ import {
 //
 // The highlight is one absolutely-positioned ball. It animates x/width when
 // `current` changes. It does NOT use layoutId: a shared-element projection
-// would also tween when the parent PiP window is dragged, so the ball would
-// trail the finger. A transform on a child stays glued to the track.
+// would also tween whenever a parent moves (it once sat in the draggable PiP
+// bar), so the ball would trail the finger. A transform on a child stays glued to the track.
 // ---------------------------------------------------------------------------
 
 export type TheaterSurface = "theater" | "pip" | "mini";
