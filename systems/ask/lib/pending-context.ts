@@ -1,53 +1,51 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { getAskChat, subscribeAskChat } from "./chat";
 import type { AskContext } from "./tools";
+import { MAX_CONTEXTS } from "./context-policy";
 
-// =============================================================================
-// What the reader has pointed at for the next question: words they
-// selected ("Ask" over a selection, components/selection.tsx), a thing they
-// dragged in (a commit, an entry, a picture, a link; the composer's drop).
-// Kept here, not in the composer, because the composer may not be mounted
-// yet: the selection's button opens Ask after putting the quote here.
-// Sent with the next question and cleared; each shows as a tag until then.
-// =============================================================================
-
-const MAX_PENDING = 3;
-
-let pending: readonly AskContext[] = [];
+// Draft attachments and dismissed pages belong to a conversation, across
+// placement changes. Switching chats never carries another draft's sources.
+interface Draft { pending: readonly AskContext[]; dismissed: readonly string[] }
+const EMPTY: Draft = { pending: [], dismissed: [] };
+const drafts = new Map<string, Draft>();
 const listeners = new Set<() => void>();
-
-function set(next: readonly AskContext[]) {
-  pending = next;
+export function getContextDraft(): Draft { return drafts.get(getAskChat().id) ?? EMPTY; }
+function set(next: Draft) {
+  drafts.set(getAskChat().id, next);
   listeners.forEach((l) => l());
 }
 
-/** Point at something for the next question (the same one twice is once). */
-export function addAskContext(context: AskContext) {
-  const others = pending.filter((c) => !(c.href === context.href && c.text === context.text));
-  set([...others, context].slice(-MAX_PENDING));
+/** Refuse overflow visibly; never silently discard an earlier attachment. */
+export function addAskContext(context: AskContext): boolean {
+  const draft = getContextDraft();
+  if (draft.pending.some((c) => c.href === context.href && c.text === context.text)) return true;
+  if (draft.pending.length >= MAX_CONTEXTS) return false;
+  set({ ...draft, pending: [...draft.pending, context] });
+  return true;
 }
-
 export function removeAskContext(context: AskContext) {
-  set(pending.filter((c) => c !== context));
+  const draft = getContextDraft();
+  set({ ...draft, pending: draft.pending.filter((c) => c !== context) });
 }
-
-/** Everything pointed at, for a question being sent; none left after. */
+export function dismissAskPage(id: string, dismissed: boolean) {
+  const draft = getContextDraft();
+  set({ ...draft, dismissed: [...draft.dismissed.filter((d) => d !== id), ...(dismissed ? [id] : [])] });
+}
 export function takeAskContexts(): readonly AskContext[] {
-  const taken = pending;
-  if (taken.length) set([]);
-  return taken;
+  const draft = getContextDraft();
+  if (draft.pending.length) set({ ...draft, pending: [] });
+  return draft.pending;
 }
-
-const EMPTY: readonly AskContext[] = [];
-
-export function usePendingAskContexts(): readonly AskContext[] {
+export function useContextDraft(): Draft {
   return useSyncExternalStore(
     (l) => {
       listeners.add(l);
-      return () => listeners.delete(l);
+      const off = subscribeAskChat(l);
+      return () => { listeners.delete(l); off(); };
     },
-    () => pending,
+    getContextDraft,
     () => EMPTY,
   );
 }

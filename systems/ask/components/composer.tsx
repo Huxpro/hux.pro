@@ -16,11 +16,12 @@ import {
 import { useLocale } from "@/services";
 import { VoiceButton, VoiceGlow } from "@/systems/command/voice";
 import { useVoiceInput, VOICE_LANG } from "@/systems/voice";
-import { Brain } from "lucide-react";
+import { Brain, Plus } from "lucide-react";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { ASK_EFFORTS, ASK_MODELS, type AskEffort } from "../lib/models";
-import { contextsToSend, usePageContext } from "../lib/page-context";
-import { addAskContext, removeAskContext, takeAskContexts, usePendingAskContexts } from "../lib/pending-context";
+import { contextText, usePageContext } from "../lib/page-context";
+import { addAskContext, removeAskContext, dismissAskPage, useContextDraft } from "../lib/pending-context";
+import { combineContexts, MAX_CONTEXTS } from "../lib/context-policy";
 import { droppedContext } from "../lib/pointed";
 import { loadedAskSearch } from "../lib/search";
 import { useAskPrefs, useAskSession } from "../lib/use-ask";
@@ -57,9 +58,13 @@ export function AskComposer() {
 
   // What the reader has open goes with the question, shown as a tag until
   // they leave it out (× , for this page, until they move to another).
-  const page = usePageContext(useAskDocs());
-  const [left, setLeft] = useState<string | null>(null);
-  const pageContext = page && page.doc.id !== left ? page : null;
+  const docs = useAskDocs();
+  const page = usePageContext(docs);
+  const draft = useContextDraft();
+  const pageContext = page && !draft.dismissed.includes(page.doc.id) ? page : null;
+  const [choosing, setChoosing] = useState(false);
+  const [query, setQuery] = useState("");
+  const [notice, setNotice] = useState("");
 
   const voice = useVoiceInput({
     lang: VOICE_LANG[locale],
@@ -81,9 +86,9 @@ export function AskComposer() {
   }, [focusOnMount]);
 
   // Words selected on the page, a thing dragged in: tags until sent.
-  const pointed = usePendingAskContexts();
+  const pointed = draft.pending;
   // A quote from this page already says which page and section.
-  const context = pageContext && !pointed.some((c) => c.doc === pageContext.doc.id) ? pageContext : null;
+  const context = pageContext && pointed.length < MAX_CONTEXTS && !pointed.some((c) => c.href === (pageContext.anchor ? `${pageContext.doc.href}#${pageContext.anchor}` : pageContext.doc.href)) ? pageContext : null;
   const [dropping, setDropping] = useState(false);
   const droppable = (e: DragEvent) =>
     !e.dataTransfer.types.includes("Files") &&
@@ -111,40 +116,78 @@ export function AskComposer() {
         e.stopPropagation();
         const site = loadedAskSearch();
         const dropped = site && droppedContext(e.dataTransfer, site, locale);
-        if (dropped) addAskContext(dropped);
+        if (dropped) setNotice(addAskContext(dropped) ? "" : s.contextFull);
+        else setNotice(s.dropUnsupported);
         textareaRef.current?.focus();
       }}
     >
       <PromptInput
         onSubmit={() => {
           const text = input.trim();
-          if (!send(text, [...pointed, ...contextsToSend(context, messages)])) return;
-          takeAskContexts();
+          const site = loadedAskSearch();
+          if (!send(text, combineContexts(pointed, context && site ? contextText(context, site) : null))) return;
+          setNotice("");
           voice.abort();
           sent.current = { text, at: performance.now() };
           setInput("");
         }}
         className="relative rounded-xl bg-transparent"
       >
-        {(context || pointed.length > 0) && (
+        {(context || pointed.length > 0 || (page && !pageContext)) && (
           <div className="flex w-full flex-wrap gap-1 px-3 pt-2.5">
             {pointed.map((c, i) => (
               <ContextTag key={i} context={c} onRemove={() => removeAskContext(c)} />
             ))}
             {context && (
+              <span className="inline-flex min-w-0 max-w-full items-center gap-0.5">
               <ContextTag
                 context={{
                   kind: "page",
                   doc: context.doc.id,
                   title: context.doc.title,
-                  href: context.doc.href,
+                  href: context.anchor ? `${context.doc.href}#${context.anchor}` : context.doc.href,
                   heading: context.heading,
                 }}
-                onRemove={() => setLeft(context.doc.id)}
+                onRemove={() => dismissAskPage(context.doc.id, true)}
+              />
+              <button type="button" aria-label={s.contextPin} title={s.contextPin} className="pressable flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed border-border/60 bg-transparent text-tertiary-foreground hover:border-border hover:text-muted-foreground" onClick={() => {
+                const site = loadedAskSearch();
+                if (site) setNotice(addAskContext({ ...contextText(context, site), kind: "item" }) ? "" : s.contextFull);
+              }}><Plus className="size-3" /></button>
+              </span>
+            )}
+            {page && !pageContext && (
+              <ContextTag
+                context={{
+                  kind: "page",
+                  doc: page.doc.id,
+                  title: page.doc.title,
+                  href: page.anchor ? `${page.doc.href}#${page.anchor}` : page.doc.href,
+                  heading: page.heading,
+                }}
+                onAdd={() => {
+                  if (pointed.length >= MAX_CONTEXTS) { setNotice(s.contextFull); return; }
+                  dismissAskPage(page.doc.id, false);
+                  setNotice("");
+                }}
               />
             )}
           </div>
         )}
+        {choosing && (
+          <div className="mx-3 mt-2 space-y-1 rounded-lg border border-border/60 p-2">
+            <input aria-label={s.contextSearch} placeholder={s.contextSearch} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} className="w-full bg-transparent p-1 text-sm outline-none" />
+            <p className="px-1 text-xs text-muted-foreground">{s.contextHelp}</p>
+            {[...(docs?.values() ?? [])].filter((doc) => (doc.lang === locale || !docs?.has(doc.id.replace(/:(en|zh)$/, `:${locale}`))) && `${doc.title} ${doc.summary ?? ""}`.toLowerCase().includes(query.toLowerCase())).slice(0, 6).map((doc) => (
+              <button key={doc.id} type="button" disabled={pointed.length >= MAX_CONTEXTS} className="block w-full truncate rounded p-1 text-left text-xs hover:bg-muted disabled:opacity-50" onClick={() => {
+                const site = loadedAskSearch();
+                if (site && addAskContext({ ...contextText({ doc }, site), kind: "item" })) { setChoosing(false); setQuery(""); setNotice(""); }
+                else setNotice(s.contextFull);
+              }}>{doc.title}</button>
+            ))}
+          </div>
+        )}
+        {notice && <p role="status" className="px-3 pt-2 text-xs text-muted-foreground">{notice}</p>}
         <PromptInputBody>
           <PromptInputTextarea
             ref={textareaRef}
@@ -162,6 +205,7 @@ export function AskComposer() {
         </PromptInputBody>
         <PromptInputFooter>
           <PromptInputTools>
+            <button type="button" aria-label={s.contextAdd} title={s.contextAdd} aria-expanded={choosing} onClick={() => setChoosing((v) => !v)} className="pressable flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><Plus className="size-4" /></button>
             <PromptInputSelect
               value={model}
               onValueChange={(value) => typeof value === "string" && setModel(value)}

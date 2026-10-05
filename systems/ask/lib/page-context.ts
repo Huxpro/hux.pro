@@ -4,7 +4,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { AskDoc } from "./corpus";
 import { loadedAskSearch, type AskSearch } from "./search";
-import { contextsOf, type AskContext, type AskUIMessage } from "./tools";
+import type { AskContext } from "./tools";
+import { combineContexts } from "./context-policy";
+import { getContextDraft } from "./pending-context";
 
 // =============================================================================
 // What the reader has open: the page under Ask, read the way they are
@@ -126,26 +128,13 @@ export function contextText(context: PageContext, site: AskSearch): AskContext {
   };
 }
 
-/**
- * What goes with a question: the page's context, unless the conversation
- * was last asked about this same spot (the model has it already).
- */
-export function contextsToSend(page: PageContext | null, messages: readonly AskUIMessage[]): AskContext[] {
-  const site = loadedAskSearch();
-  if (!page || !site) return [];
-  const next = contextText(page, site);
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const sent = messages[i].role === "user" ? contextsOf(messages[i]).find((c) => c.kind === "page") : undefined;
-    if (sent) return sent.href === next.href ? [] : [next];
-  }
-  return [next];
-}
-
 /** The same, read off the page now: for a question handed over from
  *  elsewhere (the palette's field), with no tag to show first. */
-export function contextsNow(messages: readonly AskUIMessage[]): AskContext[] {
+export function contextsNow(): AskContext[] {
   const site = loadedAskSearch();
-  return site ? contextsToSend(readPageContext(window.location.pathname, site.docs), messages) : [];
+  const draft = getContextDraft();
+  const page = site && readPageContext(window.location.pathname, site.docs);
+  return combineContexts(draft.pending, page && site && !draft.dismissed.includes(page.doc.id) ? contextText(page, site) : null);
 }
 
 /**
