@@ -16,7 +16,7 @@ import {
 import { useLocale } from "@/services";
 import { VoiceButton, VoiceGlow } from "@/systems/command/voice";
 import { useVoiceInput, VOICE_LANG } from "@/systems/voice";
-import { Brain, Plus, Pin } from "lucide-react";
+import { Brain, Plus } from "lucide-react";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { ASK_EFFORTS, ASK_MODELS, type AskEffort } from "../lib/models";
 import { contextText, usePageContext } from "../lib/page-context";
@@ -150,10 +150,10 @@ export function AskComposer() {
                 }}
                 onRemove={() => dismissAskPage(context.doc.id, true)}
               />
-              <button type="button" aria-label={s.contextPin} title={s.contextPin} className="pressable p-1 text-muted-foreground hover:text-foreground" onClick={() => {
+              <button type="button" aria-label={s.contextPin} title={s.contextPin} className="pressable flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed border-border/60 bg-transparent text-tertiary-foreground hover:border-border hover:text-muted-foreground" onClick={() => {
                 const site = loadedAskSearch();
                 if (site) setNotice(addAskContext({ ...contextText(context, site), kind: "item" }) ? "" : s.contextFull);
-              }}><Pin className="size-3" /></button>
+              }}><Plus className="size-3" /></button>
               </span>
             )}
             {page && !pageContext && (
