@@ -377,18 +377,11 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         <VoiceVisual voice={voice} inline />
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <VoiceButton voice={voice} />
+                    <div className="flex shrink-0 items-center gap-0">
+                      <VoiceButton voice={voice} className="[&>.lucide-mic]:-translate-y-px" />
                       {showHints && <AskTabHint query={field.value} />}
-                      {/* One slot, two readings: a hint where there is a
-                          keyboard, the way into slash mode where there is not. */}
-                      {showHints ? (
-                        <kbd className="rounded bg-muted/50 px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
-                          esc
-                        </kbd>
-                      ) : (
-                        field.value === "" && <SlashEntry />
-                      )}
+                      {/* A touch-only field needs a visible way into slash mode. */}
+                      {!showHints && field.value === "" && <SlashEntry />}
                     </div>
                   </div>
                 </div>
@@ -565,13 +558,18 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         {askStrings(locale).askRow}
                       </span>
                     </div>
-                    <div className="flex items-center gap-0.5">
-                      <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
-                        ⌘
+                    <div className="flex items-center gap-2">
+                      <kbd className="rounded bg-muted/50 px-1.5 py-0.5 font-mono">
+                        esc
                       </kbd>
-                      <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
-                        K
-                      </kbd>
+                      <div className="flex items-center gap-0.5">
+                        <kbd className="rounded bg-muted/50 px-1.5 py-0.5 font-mono">
+                          ⌘
+                        </kbd>
+                        <kbd className="rounded bg-muted/50 px-1.5 py-0.5 font-mono">
+                          K
+                        </kbd>
+                      </div>
                     </div>
                   </div>
                 </div>
