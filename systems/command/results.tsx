@@ -13,7 +13,7 @@ import { isQuestionLike } from "@/systems/ask/lib/intent";
 import type { AskSearch } from "@/systems/ask/lib/search";
 import { askStrings } from "@/systems/ask/strings";
 import { useOptionalWindows } from "@/systems/windows";
-import { Command, defaultFilter, useCommandState } from "cmdk";
+import { Command, useCommandState } from "cmdk";
 import { Hash, Sparkles } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
@@ -25,6 +25,11 @@ import {
   type CommandAction,
 } from "./actions";
 import { useCommand } from "./provider";
+import {
+  detailKeywords,
+  exactKeywords,
+  scorePaletteItem,
+} from "./search-filter";
 
 // =============================================================================
 // Search results and the slash list: the palette's two bodies, shared by the
@@ -97,7 +102,7 @@ export function usePaletteFilter(query: string) {
   return useCallback(
     (value: string, search: string, keywords?: string[]) => {
       if (value === ASK_VALUE) return search.trim() ? 1 : 0;
-      const score = defaultFilter(value, search, keywords);
+      const score = scorePaletteItem(value, search, keywords);
       if (score > 0 || !index || !value.startsWith("blog-")) return score;
       if (hits.current.search !== search) {
         const slugs = new Set(
@@ -235,7 +240,7 @@ function ResultRow({ action }: { action: CommandAction }) {
   return (
     <Command.Item
       value={action.id}
-      keywords={action.keywords}
+      keywords={detailKeywords(action.keywords)}
       onSelect={() => void run(action, "search")}
       className={ROW}
     >
@@ -301,14 +306,21 @@ export function CommandResults({
             keywords={[
               post.title,
               post.titleZh || "",
-              post.description,
-              post.descriptionZh || "",
-              ...(post.tags || []),
-              "prose",
-              "blog",
-              "post",
-              "article",
-              "文章",
+              ...detailKeywords([
+                post.description,
+                post.descriptionZh || "",
+                ...(post.tags || []),
+              ]),
+              ...exactKeywords([
+                "prose",
+                "blog",
+                "blogs",
+                "post",
+                "posts",
+                "article",
+                "articles",
+                "文章",
+              ]),
             ].filter(Boolean)}
             onSelect={() => {
               router.push(getPostHref(post, locale, "/writing"));
