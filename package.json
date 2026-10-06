@@ -30,7 +30,8 @@
     "vitre:site": "vite --config packages/vitre/site/vite.config.ts --host 0.0.0.0",
     "vitre:site:build": "vite build --config packages/vitre/site/vite.config.ts",
     "ask:benchmark": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/ask-tools-benchmark.mjs",
-    "ask:test": "node --experimental-strip-types --import ./scripts/register-ts.mjs --test scripts/tests/ask-commands.test.mjs"
+    "ask:test": "node --experimental-strip-types --import ./scripts/register-ts.mjs --test scripts/tests/ask-commands.test.mjs",
+    "command:test": "node --experimental-strip-types --import ./scripts/register-ts.mjs --test scripts/tests/command-filter.test.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.71",
