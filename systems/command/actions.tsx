@@ -14,13 +14,14 @@ import {
 import { useAbout } from "@/systems/about";
 import { askStrings } from "@/systems/ask/strings";
 import { useLocation, useWallpaper } from "@/systems/ambient";
-import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
+import { getWallpaperPlayName, getWeatherWallpaperName, type WeatherStyle } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
 import { installTarget, useInstall } from "@/systems/install";
 import { useMusic } from "@/systems/music";
 import { isVoiceSupported } from "@/systems/voice";
 import {
   Bug,
+  Compass,
   FileText,
   FlaskConical,
   GitCommit,
@@ -49,6 +50,7 @@ import {
   useState,
 } from "react";
 import { useCommand } from "./provider";
+import { commandDefinition, type CommandId } from "./catalog";
 
 // =============================================================================
 // Command actions: the one list behind search results, the slash list and
@@ -75,7 +77,7 @@ export type CommandKind = "navigate" | "surface" | "toggle" | "stay";
 
 export interface CommandAction {
   /** cmdk value and React key. */
-  id: string;
+  id: CommandId;
   /** Slash letter, when it has one. */
   key?: string;
   kind: CommandKind;
@@ -100,7 +102,7 @@ export interface CommandAction {
   keywords: string[];
   /** `key`: the slash letter that ran it, when a key did. A command that
    *  can be held (voice) reads it to follow the key's release. */
-  run: (ctx?: { key?: string }) => void | Promise<void>;
+  run: (ctx?: { key?: string; value?: string }) => void | Promise<void>;
 }
 
 const ROW_ICON = "h-4 w-4";
@@ -119,7 +121,7 @@ const APPEARANCE_ICON: Record<ThemePreference, typeof Sun> = {
 };
 
 export function useCommandActions(): CommandAction[] {
-  const { preference, cycleThemePreference } = useTheme();
+  const { preference, cycleThemePreference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const {
     usingGps: locationAccurate,
@@ -134,10 +136,13 @@ export function useCommandActions(): CommandAction[] {
     play: wallpaperPlay,
     playAlbum: wallpaperPlayAlbum,
     openPicker: openWallpaperPicker,
+    selectWeather,
+    openSkyOffer,
   } = useWallpaper();
   const {
     material: glassMaterial,
     toggle: toggleGlass,
+    setMaterial: setGlassMaterial,
     tint: glassTint,
     setTint: setGlassTint,
   } = useGlass();
@@ -277,7 +282,7 @@ export function useCommandActions(): CommandAction[] {
             keywords: ["voice", "speak", "dictate", "microphone", "mic", "语音", "说话", "麦克风"],
             // Tap `/` `V` to start; hold it to talk, and let go to send.
             run: (ctx?: { key?: string }) => requestVoice(ctx?.key),
-          },
+          } satisfies CommandAction,
         ]
       : []),
     {
@@ -357,7 +362,7 @@ export function useCommandActions(): CommandAction[] {
         "太阳",
         "自动切换",
       ],
-      run: cycleThemePreference,
+      run: (ctx) => ctx?.value ? setThemePreference(ctx.value as ThemePreference) : cycleThemePreference(),
     },
     {
       id: "language",
@@ -367,7 +372,7 @@ export function useCommandActions(): CommandAction[] {
       label: `${t(locale, "languageLabel")}: ${localeNames[locale]}`,
       icon: <Languages className={ROW_ICON} />,
       keywords: ["language", "english", "chinese", "语言", "中文", "英文"],
-      run: () => setLocale(locale === "en" ? "zh" : "en"),
+      run: (ctx) => setLocale(ctx?.value === "en" || ctx?.value === "zh" ? ctx.value : locale === "en" ? "zh" : "en"),
     },
     {
       id: "location",
@@ -391,8 +396,8 @@ export function useCommandActions(): CommandAction[] {
         "位置",
         "精确",
       ],
-      run: async () => {
-        if (!locationAccurate) {
+      run: async (ctx) => {
+        if (ctx?.value === "gps" || (!ctx?.value && !locationAccurate)) {
           // Choosing Accurate here is the explanation, so the prompt comes
           // straight away. A refusal would otherwise leave the row silently
           // back on IP: the primer says why, and where to undo it.
@@ -427,7 +432,20 @@ export function useCommandActions(): CommandAction[] {
         "随机",
         "循环",
       ],
-      run: () => openWallpaperPicker(),
+      run: (ctx) => ctx?.value && ctx.value !== "picker" ? selectWeather(ctx.value as WeatherStyle) : openWallpaperPicker(),
+    },
+    {
+      id: "sky-window",
+      kind: "surface",
+      section: "actions",
+      searchOnly: true,
+      label: commandDefinition("sky-window").title[locale],
+      icon: <Compass className={ROW_ICON} />,
+      keywords: ["sky window", "open sky", "sun", "moon", "look around", "天空之窗", "太阳", "月亮", "陀螺仪"],
+      run: () => {
+        selectWeather("sky");
+        openSkyOffer();
+      },
     },
     {
       id: "glass",
@@ -448,7 +466,7 @@ export function useCommandActions(): CommandAction[] {
         "透明",
         "色调",
       ],
-      run: () => toggleGlass(),
+      run: (ctx) => ctx?.value === "clear" || ctx?.value === "tinted" ? setGlassMaterial(ctx.value) : toggleGlass(),
     },
     {
       id: "tint",
@@ -473,8 +491,8 @@ export function useCommandActions(): CommandAction[] {
         "强调色",
         "中性",
       ],
-      run: () =>
-        setGlassTint(glassTint === "wallpaper" ? "neutral" : "wallpaper"),
+      run: (ctx) =>
+        setGlassTint(ctx?.value === "wallpaper" || ctx?.value === "neutral" ? ctx.value : glassTint === "wallpaper" ? "neutral" : "wallpaper"),
     },
     {
       id: "music",
@@ -497,8 +515,8 @@ export function useCommandActions(): CommandAction[] {
         "歌曲",
         "播放",
       ],
-      run: () => {
-        if (musicPlayerState === "playing") {
+      run: (ctx) => {
+        if (ctx?.value === "pause" || (!ctx?.value && musicPlayerState === "playing")) {
           musicPause();
         } else {
           musicPlay();

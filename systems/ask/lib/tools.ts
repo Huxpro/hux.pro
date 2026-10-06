@@ -1,17 +1,19 @@
 import { jsonSchema, tool, type InferUITools, type UIMessage } from "ai";
 import { ASK_TOOLS } from "../prompts";
 import type { AskDoc } from "./corpus";
+import { commandTools, listCommandsTool } from "./command-tools";
 
 // =============================================================================
 // The agent's tools: declared here, run in the browser. What the model reads
-// about them (descriptions, parameters) is ../prompts.ts.
+// about content tools is ../prompts.ts; commands are ../lib/command-tools.ts
+// over systems/command/catalog.ts.
 //
 // The chat route (app/api/chat) hands these to the model without an
 // `execute`, so a call the model makes comes back to the page, which runs it
 // against the index it has loaded (./search.ts) and answers with the result.
 // The route decides which tools exist and what they take; the page only
-// decides how they run. Tools that act on the site (navigate, open a post)
-// will join them here.
+// decides how they run. Command tools only offer UI; a user tap runs the
+// shared palette action through components/actions-host.ts.
 // =============================================================================
 
 export interface SearchInput {
@@ -82,6 +84,8 @@ export interface PlayInput {
 export type PlayOutput = { playing: string; kind: string } | { error: string };
 
 export const askTools = {
+  ...commandTools,
+  list_commands: listCommandsTool,
   search_site: tool({
     description: ASK_TOOLS.search_site.description,
     inputSchema: jsonSchema<SearchInput>({

@@ -1,4 +1,6 @@
 import type { OpenPageInput, OpenPageOutput, PlayInput, PlayOutput } from "./tools";
+import type { CommandAction } from "@/systems/command/actions";
+import type { CommandId } from "@/systems/command/catalog";
 
 // =============================================================================
 // What the agent can do on the site (the open_page and play tools), run in
@@ -11,6 +13,8 @@ import type { OpenPageInput, OpenPageOutput, PlayInput, PlayOutput } from "./too
 export interface AskActions {
   visible: boolean;
   open: (input: OpenPageInput, canContinue: () => boolean) => Promise<OpenPageOutput>;
+  commands: CommandAction[];
+  runCommand: (id: CommandId, value?: string) => Promise<void>;
   play: (input: PlayInput) => PlayOutput;
 }
 

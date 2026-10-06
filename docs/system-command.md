@@ -12,7 +12,8 @@ systems/command/
 ├── palette.tsx        # Picks the shell for the viewport: sheet or popover
 ├── popover.tsx        # The desktop shell: a draggable Spotlight card
 ├── sheet.tsx          # The phone shell: a bottom sheet with detents
-├── actions.tsx        # The one command list; CommandKind; shell context
+├── actions.tsx        # The one command implementation list; CommandKind; shell context
+├── catalog.ts         # Shared descriptions, bilingual titles and target values for Ask tools
 ├── results.tsx        # cmdk results and the slash list, shared by both shells
 ├── apps-launcher.tsx  # Spotlight-style horizontal Apps strip
 ├── load-bundle-panel.tsx  # System UI OTA Lynx bundle form
@@ -279,3 +280,21 @@ primitive: where a palette wants to sit is a palette's business.
 The popover keeps its own accommodations for when the devtool puts it on a
 phone: scroll position pinned while it is up, no autofocus so the keyboard does
 not jump the layout, and a backdrop that dismisses on touch.
+
+## Commands in Ask
+
+Every command id is typed against `catalog.ts`, which supplies its tool
+description, allowed targets and execution policy. Ask generates one tool
+per id and `list_commands({ ids })` for a compact selection. Capability
+questions get 1–2 model-selected examples; a full menu requires an explicit
+request. Presentation never executes anything.
+
+On explicit requests, reversible settings with exact targets and opening
+pages/explanations can execute directly. Voice, accurate GPS, starting music
+and the developer toggle require a tap. Missing targets offer choices rather
+than cycling. Ask's runtime enforces the catalog policy and only applies
+commands in the current visible conversation. Explicit targets use setters;
+palette rows keep their cycle/toggle behavior. Sky Window is search-only in
+the palette, discoverable through Ask, and opens the existing explanation
+before sensor consent. See [Ask](./system-ask.md#command-tools) for the policy
+matrix and benchmark.
