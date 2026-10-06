@@ -8,6 +8,7 @@ import { useOptionalDevtool, WORKS_REF_DEFAULT } from "@/systems/devtool";
 import { ProjectShelf } from "@/components/log/project-shelf";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
+import { YearRail } from "@/components/log/year-rail";
 import { t, useLocale } from "@/services";
 import {
   FILTERABLE_COMMIT_TYPES,
@@ -210,6 +211,11 @@ export function WorksView({ logData }: WorksViewProps) {
           onSelectHash={selectHash}
         />
       )}
+
+      {/* The years, in the margin of a desk wide enough for one. Before the
+          log in the tab order, the way a table of contents comes before
+          what it lists: the filter, then the years, then the rows. */}
+      <YearRail data={data} types={view.types} locale={locale} />
 
       {/* Git Log Timeline */}
       <LogTimeline

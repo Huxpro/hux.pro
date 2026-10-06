@@ -441,6 +441,31 @@ every other page's prose. Below `lg` there is no margin to hang it in and
 the gutter stays inside the column; below the row's `@sm` the hash hides,
 as it always did.
 
+### The years
+
+From `xl` up the other margin carries the log's years (`YearRail`,
+`components/log/year-rail.tsx`): newest at the top, a scrollbar with a
+scale. The years of the row at the reading line are lit — a talk its one,
+a project its span — and pressing a year travels to the first row of it on
+the page. It is mostly ticks, on purpose: a note in the margin, not a
+second column. Every year written out at the row's metadata size was a
+list beside the list, as loud at the page's edge as the dates every row
+already prints. So only four years are written — the rail's top and
+bottom, which give the scale its ends, and the from and to of the span in
+view, which say where you are — and the rest come up under the pointer or
+the focus; the type is 10px mono at the quaternary rung, with the lit span
+the one thing in full ink. It reads the same rows the timeline prints
+(`isRowVisible` under the `?type=` filter), so a filtered page's rail has
+only its own years to press; a year left with nothing keeps its place on
+the scale with no tick and is not a button. The reading line is
+`useCommitAnchor`'s headroom, so a `#hash` landing and a pressed year
+light what they land on. Below `xl` it renders nothing — not a hidden
+rail, no rail — so the page there is the page it was. It sits under the
+page's layer: the one strip of covers long enough to run under the bleed
+that far passes over it. A held chapter track folds the commits outside it
+and the rail follows the rows it leaves; pressing a year lets the track
+go, as a press anywhere else does.
+
 ## What the page costs to scroll
 
 The wallpaper is a canvas animating under the whole page, so every frame
