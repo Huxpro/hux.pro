@@ -23,7 +23,7 @@ import {
 } from "./actions";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
-import { useCommandVoice, useSpaceToTalk, VoiceButton, VoiceGlow } from "./voice";
+import { useCommandVoice, useSpaceToTalk, VoiceButton, VoiceGlow, VoiceStatus } from "./voice";
 import {
   CommandResults,
   CommandSlashList,
@@ -344,12 +344,14 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                     )}
                   >
                     <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <div className="flex-1">
+                    <div className="relative min-w-0 flex-1">
                       <Command.Input
                         ref={inputRef}
                         value={field.value}
                         onValueChange={field.onChange}
                         placeholder={t(locale, voice.mode === "gateway" && voice.state === "listening" ? "voiceRecording" : "searchPlaceholder")}
+                        readOnly={voice.mode === "gateway" && voice.listening}
+                        tabIndex={voice.mode === "gateway" && voice.listening ? -1 : undefined}
                         {...spaceToTalk}
                         onKeyDown={(e) => {
                           // Tab: ask what was typed (systems/ask).
@@ -364,9 +366,11 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                           "w-full py-4 bg-transparent font-sans text-[16px] sm:text-sm",
                           "placeholder:text-tertiary-foreground",
                           "outline-none",
+                          voice.mode === "gateway" && voice.listening && "pointer-events-none opacity-0",
                           isDraggable && "cursor-default focus:cursor-text"
                         )}
                       />
+                      <VoiceStatus voice={voice} className="pointer-events-none absolute inset-0 flex items-center" />
                     </div>
                     <VoiceButton voice={voice} className="-mx-1" />
                     {/* One slot, two readings: a hint where there is a

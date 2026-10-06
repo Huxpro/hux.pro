@@ -309,13 +309,14 @@ feeds the same microphone meter to the glow:
 
 - **AI Gateway**: when Gateway credentials are available on the server and
   the browser supports `MediaRecorder`, tap to start and tap stop, or hold
-  to record and release inside the input field to send. Sliding outside
-  the field before release cancels the held recording
-  the clip through `/api/voice`. The DevTool's Voice module chooses
+  to record and release inside the input field to finish. Sliding outside
+  the field before release cancels the held recording. The completed clip
+  goes through `/api/voice`. The DevTool's Voice module chooses
   `openai/whisper-1` (the default, $0.36/hour) or `spacexai/grok-stt`
   ($0.10/hour). Whisper stays the default until Grok has been tried on real
-  English and Chinese dictation. Only the completed transcript fills the
-  field. The API key stays on the server. Recording stops after 60 seconds
+  English and Chinese dictation. In Ask, a held release sends the completed
+  transcript as a message, while a tap and stop fills the field for editing.
+  The API key stays on the server. Recording stops after 60 seconds
   and clips are limited to 5 MiB. Set `VOICE_TRANSCRIPTION_MODEL=off` to
   disable Gateway transcription.
 - **browser fallback**: the Web Speech API (`SpeechRecognition`,
@@ -342,12 +343,11 @@ syllable and settles between words. Three bands (80–300 Hz, 300–2000,
 A microphone in the field's trailing cluster, in both shells (the desktop
 popover, the phone sheet). While it listens the field wears the `line` glow
 on its bottom edge, rising and rippling with the voice. Gateway recording
-also changes the button to a stop icon with a recording dot, changes an empty
-field's placeholder to “Recording…”, and draws small bars at the glow's edge.
-The bars use the same meter and palette; louder speech makes them taller.
-During a hold, a hint says “Release to send · slide out to cancel” and changes
-to “Release to cancel” once the pointer leaves the field. Supported browsers
-give short vibration feedback on start, stop, and cancel.
+also changes the button to a stop icon with a recording dot. The input field
+shows recording, release and cancel copy inline; the glow remains the default
+visual feedback. In Ask the composer folds the textarea and model controls
+into a single recording line, then unfolds after transcription. Supported
+browsers give short vibration feedback on start, stop, and cancel.
 When recording ends or browser speech pauses, it gathers into the travelling
 beam until the phrase lands. What is
 said is read as a query, not a sentence: "go to the writing", "open works",

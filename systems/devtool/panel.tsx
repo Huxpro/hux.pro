@@ -3406,7 +3406,7 @@ function VoiceModule() {
             ? zh ? "浏览器识别：点按开始。" : "Browser recognition: tap to start."
             : gatewayReady === false
               ? zh ? "此环境无法使用 Gateway，将使用浏览器识别。" : "Gateway unavailable here; using browser recognition."
-              : zh ? "按住录音，松开识别。" : "Hold to record, release to transcribe."}
+              : zh ? "轻点录音并停止以编辑，按住松开后在 Ask 中直接发送。" : "Tap and stop to edit; hold and release to send in Ask."}
           {" "}Whisper $0.36/hr · Grok STT $0.10/hr
         </p>
       </div>

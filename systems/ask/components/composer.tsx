@@ -13,12 +13,13 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useCommand } from "@/systems/command/provider";
-import { VoiceButton, VoiceGlow } from "@/systems/command/voice";
+import { VoiceButton, VoiceGlow, VoiceStatus } from "@/systems/command/voice";
 import { useVoiceInput, VOICE_LANG } from "@/systems/voice";
 import { Brain, Plus } from "lucide-react";
-import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import { ASK_EFFORTS, ASK_MODELS, type AskEffort } from "../lib/models";
 import { contextText, usePageContext } from "../lib/page-context";
 import { addAskContext, removeAskContext, dismissAskPage, useContextDraft } from "../lib/pending-context";
@@ -56,6 +57,10 @@ export function AskComposer() {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sent = useRef<{ text: string; at: number } | null>(null);
+  const markSent = useCallback((text: string) => {
+    sent.current = { text, at: performance.now() };
+    setInput("");
+  }, []);
 
   // What the reader has open goes with the question, shown as a tag until
   // they leave it out (× , for this page, until they move to another).
@@ -70,8 +75,20 @@ export function AskComposer() {
   const voice = useVoiceInput({
     lang: VOICE_LANG[locale],
     onInterim: (said) => setInput(said),
-    onFinal: (said) => setInput(said.trim()),
+    onFinal: (said, autoSend) => {
+      const text = said.trim();
+      if (autoSend) {
+        const site = loadedAskSearch();
+        if (send(text, combineContexts(pointed, context && site ? contextText(context, site) : null))) {
+          setNotice("");
+          markSent(text);
+          return;
+        }
+      }
+      setInput(text);
+    },
   });
+  const voiceActive = voice.mode === "gateway" && voice.listening;
 
   const { isOpen, isAskMode } = useCommand();
   // The field takes focus when it mounts: always with a mouse, and on a
@@ -135,124 +152,129 @@ export function AskComposer() {
           if (!send(text, combineContexts(pointed, context && site ? contextText(context, site) : null))) return;
           setNotice("");
           voice.abort();
-          sent.current = { text, at: performance.now() };
-          setInput("");
+          markSent(text);
         }}
         className="relative rounded-xl bg-transparent"
       >
-        {(context || pointed.length > 0 || (page && !pageContext)) && (
-          <div className="flex w-full flex-wrap gap-1 px-3 pt-2.5">
-            {pointed.map((c, i) => (
-              <ContextTag key={i} context={c} onRemove={() => removeAskContext(c)} />
-            ))}
-            {context && (
-              <span className="inline-flex min-w-0 max-w-full items-center gap-0.5">
-              <ContextTag
-                context={{
-                  kind: "page",
-                  doc: context.doc.id,
-                  title: context.doc.title,
-                  href: context.anchor ? `${context.doc.href}#${context.anchor}` : context.doc.href,
-                  heading: context.heading,
-                }}
-                onRemove={() => dismissAskPage(context.doc.id, true)}
-              />
-              <button type="button" aria-label={s.contextPin} title={s.contextPin} className="pressable flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed border-border/60 bg-transparent text-tertiary-foreground hover:border-border hover:text-muted-foreground" onClick={() => {
-                const site = loadedAskSearch();
-                if (site) setNotice(addAskContext({ ...contextText(context, site), kind: "item" }) ? "" : s.contextFull);
-              }}><Plus className="size-3" /></button>
-              </span>
+        <div className={cn("grid w-full transition-[grid-template-rows,opacity] duration-300 ease-in-out", voiceActive ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100")}>
+          <div className="min-h-0 overflow-hidden" inert={voiceActive} aria-hidden={voiceActive}>
+            {(context || pointed.length > 0 || (page && !pageContext)) && (
+              <div className="flex w-full flex-wrap gap-1 px-3 pt-2.5">
+                {pointed.map((c, i) => (
+                  <ContextTag key={i} context={c} onRemove={() => removeAskContext(c)} />
+                ))}
+                {context && (
+                  <span className="inline-flex min-w-0 max-w-full items-center gap-0.5">
+                  <ContextTag
+                    context={{
+                      kind: "page",
+                      doc: context.doc.id,
+                      title: context.doc.title,
+                      href: context.anchor ? `${context.doc.href}#${context.anchor}` : context.doc.href,
+                      heading: context.heading,
+                    }}
+                    onRemove={() => dismissAskPage(context.doc.id, true)}
+                  />
+                  <button type="button" aria-label={s.contextPin} title={s.contextPin} className="pressable flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed border-border/60 bg-transparent text-tertiary-foreground hover:border-border hover:text-muted-foreground" onClick={() => {
+                    const site = loadedAskSearch();
+                    if (site) setNotice(addAskContext({ ...contextText(context, site), kind: "item" }) ? "" : s.contextFull);
+                  }}><Plus className="size-3" /></button>
+                  </span>
+                )}
+                {page && !pageContext && (
+                  <ContextTag
+                    context={{
+                      kind: "page",
+                      doc: page.doc.id,
+                      title: page.doc.title,
+                      href: page.anchor ? `${page.doc.href}#${page.anchor}` : page.doc.href,
+                      heading: page.heading,
+                    }}
+                    onAdd={() => {
+                      if (pointed.length >= MAX_CONTEXTS) { setNotice(s.contextFull); return; }
+                      dismissAskPage(page.doc.id, false);
+                      setNotice("");
+                    }}
+                  />
+                )}
+              </div>
             )}
-            {page && !pageContext && (
-              <ContextTag
-                context={{
-                  kind: "page",
-                  doc: page.doc.id,
-                  title: page.doc.title,
-                  href: page.anchor ? `${page.doc.href}#${page.anchor}` : page.doc.href,
-                  heading: page.heading,
-                }}
-                onAdd={() => {
-                  if (pointed.length >= MAX_CONTEXTS) { setNotice(s.contextFull); return; }
-                  dismissAskPage(page.doc.id, false);
-                  setNotice("");
-                }}
-              />
+            {choosing && (
+              <div className="mx-3 mt-2 space-y-1 rounded-lg border border-border/60 p-2">
+                <input aria-label={s.contextSearch} placeholder={s.contextSearch} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} className="w-full bg-transparent p-1 text-sm outline-none" />
+                <p className="px-1 text-xs text-muted-foreground">{s.contextHelp}</p>
+                {[...(docs?.values() ?? [])].filter((doc) => (doc.lang === locale || !docs?.has(doc.id.replace(/:(en|zh)$/, `:${locale}`))) && `${doc.title} ${doc.summary ?? ""}`.toLowerCase().includes(query.toLowerCase())).slice(0, 6).map((doc) => (
+                  <button key={doc.id} type="button" disabled={pointed.length >= MAX_CONTEXTS} className="block w-full truncate rounded p-1 text-left text-xs hover:bg-muted disabled:opacity-50" onClick={() => {
+                    const site = loadedAskSearch();
+                    if (site && addAskContext({ ...contextText({ doc }, site), kind: "item" })) { setChoosing(false); setQuery(""); setNotice(""); }
+                    else setNotice(s.contextFull);
+                  }}>{doc.title}</button>
+                ))}
+              </div>
             )}
+            {notice && <p role="status" className="px-3 pt-2 text-xs text-muted-foreground">{notice}</p>}
+            <PromptInputBody>
+              <PromptInputTextarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => {
+                  const value = e.currentTarget.value;
+                  const last = sent.current;
+                  const late =
+                    last && performance.now() - last.at < LATE_COMMIT_MS && value.trim() && last.text.endsWith(value.trim());
+                  setInput(late ? "" : value);
+                }}
+                placeholder={voice.mode === "gateway" && voice.state === "listening" ? t(locale, "voiceRecording") : s.placeholder}
+                className="min-h-12 font-sans text-[16px] sm:text-sm"
+              />
+            </PromptInputBody>
           </div>
-        )}
-        {choosing && (
-          <div className="mx-3 mt-2 space-y-1 rounded-lg border border-border/60 p-2">
-            <input aria-label={s.contextSearch} placeholder={s.contextSearch} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} className="w-full bg-transparent p-1 text-sm outline-none" />
-            <p className="px-1 text-xs text-muted-foreground">{s.contextHelp}</p>
-            {[...(docs?.values() ?? [])].filter((doc) => (doc.lang === locale || !docs?.has(doc.id.replace(/:(en|zh)$/, `:${locale}`))) && `${doc.title} ${doc.summary ?? ""}`.toLowerCase().includes(query.toLowerCase())).slice(0, 6).map((doc) => (
-              <button key={doc.id} type="button" disabled={pointed.length >= MAX_CONTEXTS} className="block w-full truncate rounded p-1 text-left text-xs hover:bg-muted disabled:opacity-50" onClick={() => {
-                const site = loadedAskSearch();
-                if (site && addAskContext({ ...contextText({ doc }, site), kind: "item" })) { setChoosing(false); setQuery(""); setNotice(""); }
-                else setNotice(s.contextFull);
-              }}>{doc.title}</button>
-            ))}
-          </div>
-        )}
-        {notice && <p role="status" className="px-3 pt-2 text-xs text-muted-foreground">{notice}</p>}
-        <PromptInputBody>
-          <PromptInputTextarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => {
-              const value = e.currentTarget.value;
-              const last = sent.current;
-              const late =
-                last && performance.now() - last.at < LATE_COMMIT_MS && value.trim() && last.text.endsWith(value.trim());
-              setInput(late ? "" : value);
-            }}
-            placeholder={voice.mode === "gateway" && voice.state === "listening" ? t(locale, "voiceRecording") : s.placeholder}
-            className="min-h-12 font-sans text-[16px] sm:text-sm"
-          />
-        </PromptInputBody>
+        </div>
         <PromptInputFooter>
           <PromptInputTools>
-            <button type="button" aria-label={s.contextAdd} title={s.contextAdd} aria-expanded={choosing} onClick={() => setChoosing((v) => !v)} className="pressable flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><Plus className="size-4" /></button>
-            <PromptInputSelect
-              value={model}
-              onValueChange={(value) => typeof value === "string" && setModel(value)}
-            >
-              <PromptInputSelectTrigger aria-label={s.model}>
-                <PromptInputSelectValue>
-                  {(value: string) => ASK_MODELS.find((m) => m.id === value)?.label ?? value}
-                </PromptInputSelectValue>
-              </PromptInputSelectTrigger>
-              <PromptInputSelectContent>
-                {ASK_MODELS.map((m) => (
-                  <PromptInputSelectItem key={m.id} value={m.id}>
-                    {m.label}
-                  </PromptInputSelectItem>
-                ))}
-              </PromptInputSelectContent>
-            </PromptInputSelect>
-            <PromptInputSelect
-              value={effort}
-              onValueChange={(value) => typeof value === "string" && setEffort(value)}
-            >
-              <PromptInputSelectTrigger aria-label={s.effort}>
-                <Brain className="size-3.5 text-muted-foreground" />
-                <PromptInputSelectValue>
-                  {(value: AskEffort) => s.efforts[value] ?? value}
-                </PromptInputSelectValue>
-              </PromptInputSelectTrigger>
-              <PromptInputSelectContent>
-                {ASK_EFFORTS.map((e) => (
-                  <PromptInputSelectItem key={e} value={e}>
-                    {s.efforts[e]}
-                  </PromptInputSelectItem>
-                ))}
-              </PromptInputSelectContent>
-            </PromptInputSelect>
+            {voiceActive ? <VoiceStatus voice={voice} sendOnHold className="pl-1" /> : <>
+              <button type="button" aria-label={s.contextAdd} title={s.contextAdd} aria-expanded={choosing} onClick={() => setChoosing((v) => !v)} className="pressable flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><Plus className="size-4" /></button>
+              <PromptInputSelect
+                value={model}
+                onValueChange={(value) => typeof value === "string" && setModel(value)}
+              >
+                <PromptInputSelectTrigger aria-label={s.model}>
+                  <PromptInputSelectValue>
+                    {(value: string) => ASK_MODELS.find((m) => m.id === value)?.label ?? value}
+                  </PromptInputSelectValue>
+                </PromptInputSelectTrigger>
+                <PromptInputSelectContent>
+                  {ASK_MODELS.map((m) => (
+                    <PromptInputSelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </PromptInputSelectItem>
+                  ))}
+                </PromptInputSelectContent>
+              </PromptInputSelect>
+              <PromptInputSelect
+                value={effort}
+                onValueChange={(value) => typeof value === "string" && setEffort(value)}
+              >
+                <PromptInputSelectTrigger aria-label={s.effort}>
+                  <Brain className="size-3.5 text-muted-foreground" />
+                  <PromptInputSelectValue>
+                    {(value: AskEffort) => s.efforts[value] ?? value}
+                  </PromptInputSelectValue>
+                </PromptInputSelectTrigger>
+                <PromptInputSelectContent>
+                  {ASK_EFFORTS.map((e) => (
+                    <PromptInputSelectItem key={e} value={e}>
+                      {s.efforts[e]}
+                    </PromptInputSelectItem>
+                  ))}
+                </PromptInputSelectContent>
+              </PromptInputSelect>
+            </>}
           </PromptInputTools>
           <div className="flex shrink-0 items-center gap-1">
             {/* The toolbar's size and shape, not the search field's. */}
             <VoiceButton voice={voice} className="size-8 rounded-4xl" />
-            <PromptInputSubmit status={status} onStop={() => void stop()} disabled={!busy && !input.trim()} />
+            {!voiceActive && <PromptInputSubmit status={status} onStop={() => void stop()} disabled={!busy && !input.trim()} />}
           </div>
         </PromptInputFooter>
         <VoiceGlow voice={voice} />
