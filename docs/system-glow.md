@@ -16,10 +16,10 @@ systems/glow/
 
 systems/voice/
 ├── lib/meter.ts        # microphone → level + three bands (gate, knee, envelope)
-├── waveform.tsx        # small sound-level bars beside the glow
+├── waveform.tsx        # full-width sound-level bars, an alternative to Glow
 └── use-voice-input.ts  # Gateway recording or Web Speech API + the meter
 
-systems/command/voice.tsx   # the palette's microphone, field glow, `/` `V`
+systems/command/voice.tsx   # the palette's microphone, selected visual, `/` `V`
 app/api/voice/route.ts       # Gateway availability and transcription
 systems/voice/models.ts      # allowed transcription models and default
 systems/voice/prefs.ts       # saved DevTool model choice
@@ -348,6 +348,11 @@ shows recording, release and cancel copy inline; the glow remains the default
 visual feedback. In Ask the composer folds the textarea and model controls
 into a single recording line, then unfolds after transcription. Supported
 browsers give short vibration feedback on start, stop, and cancel.
+The DevTool's Voice module can switch the visual style to **Waveform**:
+coloured audio bars run across the field's full width and grow with the same
+meter's volume and frequency bands. A travelling bar pattern marks
+transcription. The two styles are mutually exclusive; the saved default is
+Glow.
 When recording ends or browser speech pauses, it gathers into the travelling
 beam until the phrase lands. What is
 said is read as a query, not a sentence: "go to the writing", "open works",
