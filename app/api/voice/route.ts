@@ -1,8 +1,8 @@
 import { experimental_transcribe as transcribe, gateway } from "ai";
+import { DEFAULT_VOICE_MODEL, VOICE_MODELS, gatewayVoiceModelOf } from "@/systems/voice/models";
 
 export const maxDuration = 30;
 
-const MODEL = "openai/whisper-1";
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 
 function available() {
@@ -11,13 +11,17 @@ function available() {
 }
 
 export function GET() {
-  return Response.json({ enabled: available(), model: available() ? MODEL : null }, {
+  return Response.json({ enabled: available(), defaultModel: available() ? DEFAULT_VOICE_MODEL : null }, {
     headers: { "Cache-Control": "no-store" },
   });
 }
 
 export async function POST(request: Request) {
   if (!available()) return Response.json({ error: "Voice transcription is unavailable" }, { status: 503 });
+  const selectedModel = request.headers.get("x-voice-model");
+  if (selectedModel && !VOICE_MODELS.some((model) => model.id === selectedModel)) {
+    return Response.json({ error: "Unknown voice model" }, { status: 400 });
+  }
 
   const type = request.headers.get("content-type")?.split(";")[0];
   if (!type || !["audio/webm", "audio/mp4", "audio/ogg"].includes(type)) {
@@ -31,8 +35,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    const model = gatewayVoiceModelOf(selectedModel);
     const result = await transcribe({
-      model: gateway.transcriptionModel(MODEL),
+      model: gateway.transcriptionModel(model),
       audio,
       abortSignal: AbortSignal.timeout(25_000),
     });

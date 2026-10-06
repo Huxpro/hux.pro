@@ -16,12 +16,12 @@ import { useCommand } from "./provider";
 //
 // The microphone sits in the field's trailing cluster (both shells). Pressed,
 // the field listens (systems/voice): the words fill it as they are heard, the
-// results filter as they would for typing in browser mode. With Whisper,
+// results filter as they would for typing in browser mode. With a Gateway model,
 // the completed recording fills the field after release. `/` `V` also starts
 // voice input from the slash list.
 //
-// Without Whisper, a tap starts browser recognition until the speaker's
-// pause, and a hold of HOLD_MS or more stops on release. With Whisper, the
+// Without a Gateway model, a tap starts browser recognition until the speaker's
+// pause, and a hold of HOLD_MS or more stops on release. With a Gateway model, the
 // microphone and V key record while held, then transcribe on release. Three
 // ways in, all inside the palette, so none can
 // collide with a system-wide dictation key (Fn / Globe, Win+H, ⌥Space, which
@@ -112,7 +112,7 @@ export function useCommandVoice(setValue: (text: string) => void): VoiceInput {
     const onUp = (e: globalThis.KeyboardEvent) => {
       if (e.key.toLowerCase() !== key) return;
       e.preventDefault();
-      if (mode === "whisper" || performance.now() - t0 >= HOLD_MS) stop();
+      if (mode === "gateway" || performance.now() - t0 >= HOLD_MS) stop();
       done();
     };
     window.addEventListener("keydown", onDown, true);
@@ -192,16 +192,16 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
   const label = voice.state === "processing"
     ? t(locale, "voiceProcessing")
     : voice.state === "listening"
-      ? voice.mode === "whisper" ? t(locale, "voiceRelease") : t(locale, "voiceStop")
+      ? voice.mode === "gateway" ? t(locale, "voiceRelease") : t(locale, "voiceStop")
     : voice.state === "denied"
       ? t(locale, "voiceDenied")
       : voice.state === "error"
         ? t(locale, "voiceError")
-        : voice.mode === "whisper" ? t(locale, "voiceHold") : t(locale, "voiceListen");
+        : voice.mode === "gateway" ? t(locale, "voiceHold") : t(locale, "voiceListen");
   return (
     <button
       type="button"
-      // Whisper records only while pressed; browser recognition retains its
+      // Gateway models record only while pressed; browser recognition retains its
       // tap-to-toggle gesture. Capture the pointer so release lands here.
       onPointerDown={(e: PointerEvent<HTMLButtonElement>) => {
         if (e.button !== 0 || voice.state === "processing") return;
@@ -216,20 +216,20 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
         press.current = performance.now();
       }}
       onPointerUp={() => {
-        if (press.current !== null && (voice.mode === "whisper" || performance.now() - press.current >= HOLD_MS)) voice.stop();
+        if (press.current !== null && (voice.mode === "gateway" || performance.now() - press.current >= HOLD_MS)) voice.stop();
         press.current = null;
       }}
       onPointerCancel={() => {
-        if (press.current !== null && voice.mode === "whisper") voice.abort();
+        if (press.current !== null && voice.mode === "gateway") voice.abort();
         press.current = null;
       }}
       onKeyDown={(e) => {
-        if (voice.mode !== "whisper" || (e.key !== " " && e.key !== "Enter")) return;
+        if (voice.mode !== "gateway" || (e.key !== " " && e.key !== "Enter")) return;
         e.preventDefault();
         if (!e.repeat && voice.state !== "processing") voice.start();
       }}
       onKeyUp={(e) => {
-        if (voice.mode !== "whisper" || (e.key !== " " && e.key !== "Enter")) return;
+        if (voice.mode !== "gateway" || (e.key !== " " && e.key !== "Enter")) return;
         e.preventDefault();
         voice.stop();
       }}

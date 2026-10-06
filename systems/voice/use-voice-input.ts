@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createMeter, primeAudio, type VoiceMeter } from "./lib/meter";
+import type { VoiceModelChoice } from "./models";
+import { voiceModelPref } from "./prefs";
 
 // =============================================================================
 // useVoiceInput: speak instead of type.
@@ -13,8 +15,8 @@ import { createMeter, primeAudio, type VoiceMeter } from "./lib/meter";
 //           phrase when the speaker pauses. The browser does the recognition,
 //           on-device or via its vendor's service; nothing goes through this
 //           site.
-//   whisper  MediaRecorder captures while held; release sends the completed
-//           clip through this site's server to Vercel AI Gateway/Whisper.
+//   gateway  MediaRecorder captures while held; release sends the completed
+//           clip through this site's server to the selected Gateway model.
 //   glow    a microphone stream through the voice meter (lib/meter.ts), for
 //           the glow to follow: how loud, which bands. Where a second capture
 //           is refused (some Android browsers hold the microphone for the
@@ -23,11 +25,11 @@ import { createMeter, primeAudio, type VoiceMeter } from "./lib/meter";
 //
 // States: idle → listening → processing → idle. `denied` and `error` say why
 //          a start or transcription failed. `supported` is true if either
-//          the server-enabled Whisper path or browser recogniser is available.
+//          a server-enabled Gateway model or browser recogniser is available.
 // =============================================================================
 
 type RecognitionState = "idle" | "listening" | "processing" | "denied" | "error";
-type VoiceMode = "browser" | "whisper";
+type VoiceMode = "browser" | "gateway";
 
 function recordingType(): string | null {
   if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) return null;
@@ -112,6 +114,9 @@ export interface VoiceInput {
 export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): VoiceInput {
   const [supported, setSupported] = useState(false);
   const [mode, setMode] = useState<VoiceMode>("browser");
+  const [gatewayEnabled, setGatewayEnabled] = useState(false);
+  const [failedModel, setFailedModel] = useState<VoiceModelChoice | null>(null);
+  const selectedModel = voiceModelPref.use();
   const [state, setState] = useState<RecognitionState>("idle");
   const recognition = useRef<Recognition | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
@@ -131,19 +136,24 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
 
   useEffect(() => {
     let alive = true;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe browser capability
-    setSupported(recognitionCtor() !== null);
     if (!recordingType()) return;
     fetch("/api/voice", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((config) => {
-        if (!alive || !config?.enabled || activeMode.current) return;
-        setMode("whisper");
-        setSupported(true);
+        if (!alive || !config?.enabled) return;
+        setGatewayEnabled(true);
       })
       .catch(() => {});
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => {
+    if (activeMode.current) return;
+    const gatewayReady = gatewayEnabled && selectedModel !== "browser" && selectedModel !== failedModel;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe browser capability
+    setMode(gatewayReady ? "gateway" : "browser");
+    setSupported(recognitionCtor() !== null || gatewayReady);
+  }, [gatewayEnabled, failedModel, selectedModel, state]);
 
   const release = useCallback(() => {
     meter.current?.release();
@@ -154,7 +164,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
   }, []);
 
   const stop = useCallback(() => {
-    if (activeMode.current === "whisper") {
+    if (activeMode.current === "gateway") {
       if (!recorder.current) {
         if (!awaitingMicrophone.current) return;
         // A quick release can precede the microphone permission response.
@@ -195,11 +205,11 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
   }, [release]);
 
   const start = useCallback(() => {
-    if (mode === "whisper") {
+    if (mode === "gateway") {
       const type = recordingType();
       if (!type || activeMode.current) return;
       const id = ++session.current;
-      activeMode.current = "whisper";
+      activeMode.current = "gateway";
       awaitingMicrophone.current = true;
       primeAudio();
       setState("listening");
@@ -226,7 +236,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
           recorder.current = null;
           release();
           setState("error");
-          if (recognitionCtor()) setMode("browser");
+          if (voiceModelPref.get() === selectedModel) setFailedModel(selectedModel);
         };
         r.onstop = () => {
           if (session.current !== id) return;
@@ -249,7 +259,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
           upload.current = controller;
           fetch("/api/voice", {
             method: "POST",
-            headers: { "Content-Type": audio.type },
+            headers: { "Content-Type": audio.type, "X-Voice-Model": selectedModel },
             body: audio,
             signal: controller.signal,
           }).then(async (response) => {
@@ -257,13 +267,17 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
             return response.json() as Promise<{ text: string }>;
           }).then(({ text }) => {
             if (session.current === id && text) callbacks.current.onFinal?.(text);
-            if (session.current === id) setState("idle");
+            if (session.current === id) {
+              setFailedModel(null);
+              activeMode.current = null;
+              setState("idle");
+            }
           }).catch(() => {
             if (session.current !== id) return;
+            activeMode.current = null;
             setState("error");
-            if (recognitionCtor()) setMode("browser");
+            if (voiceModelPref.get() === selectedModel) setFailedModel(selectedModel);
           }).finally(() => {
-            if (session.current === id) activeMode.current = null;
             if (upload.current === controller) upload.current = null;
           });
         };
@@ -276,7 +290,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
         activeMode.current = null;
         awaitingMicrophone.current = false;
         setState(error.name === "NotAllowedError" ? "denied" : "error");
-        if (error.name !== "NotAllowedError" && recognitionCtor()) setMode("browser");
+        if (error.name !== "NotAllowedError" && voiceModelPref.get() === selectedModel) setFailedModel(selectedModel);
       });
       return;
     }
@@ -352,7 +366,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
           /* synthesised level instead */
         });
     }
-  }, [lang, mode, release, stop]);
+  }, [lang, mode, release, selectedModel, stop]);
 
   const toggle = useCallback(() => {
     if (activeMode.current) stop();
