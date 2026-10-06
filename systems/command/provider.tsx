@@ -39,9 +39,9 @@ export {
 //   pill    not a place: the conversation minimized to a pill in the Dock
 //
 // Where it opens is the moment. Asking from the palette (the Ask row, Tab,
-// `/` `J`) morphs the card into the center chat, unless Ask is already open
+// `/` `K`) morphs the card into the center chat, unless Ask is already open
 // somewhere else, which then takes the question. A call with nothing typed
-// (⌘J, the Ask button) opens beside a page being read, and in the center
+// (K, the Ask button) opens beside a page being read, and in the center
 // elsewhere. Dragging the header or using its placement menu makes a manual
 // choice for this page context; automatic moves yield to it until navigation
 // starts a new context. Those are the desk's preset; where each opens, and
@@ -181,7 +181,7 @@ interface CommandContextType {
   /**
    * Open Ask, sending `text` if there is any. `from: "search"` (the palette's
    * Ask row, Tab) lands where asking from search goes; `"palette"` (a command
-   * in the palette, `/` `J`) and `"call"` (⌘J, the Ask ball) where a call
+   * in the palette, `/` `K`) and `"call"` (K, the Ask ball) where a call
    * goes; the first two count as reached from the palette.
    */
   openAsk: (text?: string, from?: "search" | "palette" | "call") => void;
@@ -377,10 +377,19 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Capture: the center chat stops every key but Escape on its way up
-    // (chat.tsx), and ⌘K / `/` still have to park it. ⌘J too, so it works
-    // from the composer.
+    // (chat.tsx), and ⌘K / `/` still have to park it.
     const onCapture = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "j") {
+      // K is the one-key Ask call, but never steals a letter from a field or
+      // from the command palette. The latter leaves `/ K` to SlashShortcuts.
+      if (
+        e.key.toLowerCase() === "k" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.shiftKey &&
+        !e.altKey &&
+        !isField(e.target) &&
+        (!isOpen || isAskMode)
+      ) {
         e.preventDefault();
         e.stopPropagation();
         if (askPlacement) closeAsk();

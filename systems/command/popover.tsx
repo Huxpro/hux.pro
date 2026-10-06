@@ -25,6 +25,7 @@ import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 import { useCommandVoice, useSpaceToTalk, VoiceButton, VoiceVisual, VoiceStatus } from "./voice";
 import {
+  AskTabHint,
   CommandResults,
   CommandSlashList,
   GROUP_HEADINGS,
@@ -86,7 +87,7 @@ const PALETTE_ASK_HEIGHT = "h-[var(--command-palette-ask-max)]";
 // a little taller. Its sidebar button opens the past conversations beside
 // the conversation (AskChat's rail), and the card grows to 960px and rises
 // for them: a chat app. Escape goes back to search when search was the way
-// in, and closes the palette when Ask was reached directly (⌘J, the Ask
+// in, and closes the palette when Ask was reached directly (K, the Ask
 // ball), which has no search behind it.
 //
 // With Ask parked on the side, the card centers in the room that is left
@@ -355,10 +356,10 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         tabIndex={voice.mode === "gateway" && voice.listening ? -1 : undefined}
                         {...spaceToTalk}
                         onKeyDown={(e) => {
-                          // Tab: ask what was typed (systems/ask).
-                          if (e.key === "Tab" && !e.shiftKey && field.value.trim()) {
+                          // Tab: enter Ask, carrying along anything typed.
+                          if (e.key === "Tab" && !e.shiftKey) {
                             e.preventDefault();
-                            openAsk(field.value, "search");
+                            openAsk(field.value || undefined, "search");
                             return;
                           }
                           spaceToTalk.onKeyDown(e);
@@ -376,6 +377,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         <VoiceVisual voice={voice} inline />
                       </div>
                     </div>
+                    {showHints && field.value === "" && <AskTabHint />}
                     <VoiceButton voice={voice} className="-mx-1" />
                     {/* One slot, two readings: a hint where there is a
                         keyboard, the way into slash mode where there is not. */}
@@ -556,7 +558,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                       </span>
                       <span className="flex items-center gap-1 font-sans">
                         <kbd className="px-1.5 py-0.5 font-mono bg-muted/50 rounded">
-                          ⌘J
+                          K
                         </kbd>
                         {askStrings(locale).askRow}
                       </span>

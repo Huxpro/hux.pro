@@ -58,7 +58,9 @@ const SECTION_HEADING = {
 // field has text; where depends on the query. One that reads as a question
 // (systems/ask/lib/intent) puts Ask first, so cmdk selects it and ↵ asks;
 // anything else puts it under the results, where ↓ or Tab reaches it and ↵
-// still opens the best match. The list places it, not the filter: cmdk
+// still opens the best match. With nothing typed, the field's trailing Tab
+// hint enters an empty conversation instead. The list places the row, not
+// the filter: cmdk
 // (1.1.1) sorts items within a group but never moves the groups themselves.
 //
 // The same filter finds posts by their text, not only their titles: once the
@@ -143,6 +145,34 @@ function AskRow({ query }: { query: string }) {
       </span>
       {showHints && <kbd className={cn("shrink-0", TYPE.kbd)}>Tab</kbd>}
     </Command.Item>
+  );
+}
+
+/**
+ * The empty field's quiet hand-off into Ask. Once there is a query the Ask
+ * row carries the same Tab hint, so the path stays visible without taking a
+ * second line in the palette.
+ */
+export function AskTabHint({ className }: { className?: string }) {
+  const { locale } = useLocale();
+  const { openAsk } = useCommand();
+  const s = askStrings(locale);
+
+  return (
+    <button
+      type="button"
+      onClick={() => openAsk(undefined, "search")}
+      aria-label={s.askRow}
+      className={cn(
+        "pressable flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1",
+        "text-xs text-tertiary-foreground transition-colors",
+        "hover:bg-accent/25 hover:text-muted-foreground active:bg-accent/40",
+        className,
+      )}
+    >
+      <kbd className={TYPE.kbd}>Tab</kbd>
+      <span>{s.askRow}</span>
+    </button>
   );
 }
 

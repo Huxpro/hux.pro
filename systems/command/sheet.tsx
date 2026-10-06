@@ -23,6 +23,7 @@ import { useCommandVoice, useSpaceToTalk, VoiceButton, VoiceVisual, VoiceStatus 
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 import {
+  AskTabHint,
   CommandResults,
   CommandSlashList,
   GROUP_HEADINGS,
@@ -229,10 +230,10 @@ function SheetBody({
             tabIndex={voice.mode === "gateway" && voice.listening ? -1 : undefined}
             {...spaceToTalk}
             onKeyDown={(e) => {
-              // Tab (a hardware keyboard): ask what was typed (systems/ask).
-              if (e.key === "Tab" && !e.shiftKey && field.value.trim()) {
+              // Tab (a hardware keyboard): enter Ask, carrying along anything typed.
+              if (e.key === "Tab" && !e.shiftKey) {
                 e.preventDefault();
-                openAsk(field.value, "search");
+                openAsk(field.value || undefined, "search");
                 return;
               }
               spaceToTalk.onKeyDown(e);
@@ -250,6 +251,7 @@ function SheetBody({
             <VoiceVisual voice={voice} inline />
           </div>
           </div>
+          {showHints && field.value === "" && <AskTabHint />}
           {/* No keyboard to type "/" on: the field's trailing accessory
               opens the slash sheet, while the field is empty. Tucked in
               against the close button so the two read as one cluster. */}

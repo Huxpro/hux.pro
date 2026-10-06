@@ -287,10 +287,10 @@ export function useCommandActions(): CommandAction[] {
       : []),
     {
       // Ask (systems/ask), with nothing typed yet: the slash list's way in,
-      // and ⌘J's (systems/command/provider.tsx). From search, the Ask row
-      // already carries the query, so this one is slash-only.
+      // and the global K's (systems/command/provider.tsx). From search, the
+      // Ask row already carries the query, so this one is slash-only.
       id: "ask",
-      key: "j",
+      key: "k",
       kind: "stay" as const,
       section: "actions" as const,
       slashOnly: true,
