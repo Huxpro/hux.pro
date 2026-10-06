@@ -44,7 +44,7 @@
  * be a drawer opening on what is already on screen.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PictureInPicture2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TYPE } from "@/lib/typography";
@@ -62,6 +62,7 @@ import { AttachmentTile, resolveTile, type TileSlot } from "./attachment-tile";
 import { InspectableMedia } from "./inspectable";
 import { MediaMark, newTabMark, SURFACE_CHIP } from "./media-mark";
 import { videoEmbedUrl } from "./video";
+import { extractYouTubeId, getTrackedEmbedUrl, useEmbedClock } from "./youtube";
 
 export interface AttachmentGridProps {
   /** Tiles, in authored order: the row's own strip items. */
@@ -332,6 +333,11 @@ export function AttachmentGrid({
   );
 }
 
+/** How little of a playing recording may show before it moves to the stage. */
+const HANDOFF_BELOW = 0.35;
+/** How much of its place must show again before it comes back. */
+const RETURN_ABOVE = 0.6;
+
 /**
  * A recording or a deck in the phone's feed: a 16:9 cover that plays in
  * place when pressed (the platform's player, or the deck itself) and a
@@ -346,6 +352,16 @@ export function AttachmentGrid({
  * the PiP mark over the cover, the way a music app marks the track that is
  * playing elsewhere. Pressing it brings playback back: the stage
  * closes and the player mounts here again.
+ *
+ * A YouTube recording also hands itself over without being asked. Most of
+ * the time nobody wants "picture in picture"; they want to keep reading and
+ * not have the talk stop. So when it is playing here and is scrolled most of
+ * the way out of view, it moves to the stage at the second it got to; when
+ * its place is scrolled back into view, it comes back here at the second the
+ * stage got to. A hand-off pressed by hand (`PiP`) is the reader's choice
+ * and is not undone by a scroll. The place carries both ways for YouTube
+ * only, because only its embed can say where it is (`useEmbedClock`); a
+ * Bilibili or Vimeo player would restart, so those wait to be asked.
  */
 function InlinePlayable({
   slot,
@@ -360,11 +376,17 @@ function InlinePlayable({
 }) {
   const { media, caption, index } = slot;
   const [playing, setPlaying] = useState(false);
-  const embed = isVideoMedia(media)
-    ? videoEmbedUrl(media.url, media.platform)
-    : isSlidesMedia(media)
-      ? resolveSlidesEmbedUrl(media.url)
-      : null;
+  // The second the inline player starts at: 0, or where the stage got to.
+  const [startAt, setStartAt] = useState(0);
+  const youtubeId =
+    isVideoMedia(media) && media.platform === "youtube" ? extractYouTubeId(media.url) : null;
+  const embed = youtubeId
+    ? getTrackedEmbedUrl(youtubeId, startAt)
+    : isVideoMedia(media)
+      ? videoEmbedUrl(media.url, media.platform)
+      : isSlidesMedia(media)
+        ? resolveSlidesEmbedUrl(media.url)
+        : null;
   // Is this item the one on the stage? Asked of the track the theater would
   // build for it, so the grid never learns how a track's URL is made.
   const stage = useOptionalTheaterStage();
@@ -373,19 +395,71 @@ function InlinePlayable({
     stage.mode !== "closed" &&
     !!stage.track &&
     stage.track.url === mediaToTrack(media, { id: media.url, title: caption.label })?.url;
+  const inline = playing && !!embed && !onStage;
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const clock = useEmbedClock(frameRef, inline && !!youtubeId);
+
   const toStage =
-    index >= 0 && set && attachments
+    index >= 0 && set && attachments && stage
       ? () => {
+          // The stage picks up where this got to.
+          if (inline && youtubeId) stage.startNextAt(clock.current.time);
           setPlaying(false);
           attachments.act(set, index);
         }
       : undefined;
 
+  /** Bring playback back from the stage, at the second it got to. */
+  const fromStage = () => {
+    if (!stage) return;
+    setStartAt(youtubeId ? stage.getCurrentTime() : 0);
+    stage.close();
+    setPlaying(true);
+  };
+
+  // --- The scroll hand-off (YouTube only; see above) -----------------------
+  const coverRef = useRef<HTMLDivElement>(null);
+  // This item went to the stage by being scrolled away, so scrolling back
+  // brings it home. A hand-off by hand leaves this false.
+  const scrolledAway = useRef(false);
+  // Off the stage by any route (closed there, another video put on it), the
+  // scroll has nothing to bring back.
+  useEffect(() => {
+    if (!onStage) scrolledAway.current = false;
+  }, [onStage]);
+  // The observer is made per state (playing here, or on the stage) and reads
+  // the moves from a ref, so a re-render does not make it again.
+  const moves = useRef({ toStage, fromStage });
+  useEffect(() => {
+    moves.current = { toStage, fromStage };
+  });
+  const canHandOff = !!youtubeId && !!toStage;
+  useEffect(() => {
+    const cover = coverRef.current;
+    if (!cover || !canHandOff || (!inline && !onStage)) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const seen = entry.intersectionRatio;
+        if (inline && seen < HANDOFF_BELOW && clock.current.playing) {
+          moves.current.toStage?.();
+          scrolledAway.current = true;
+        } else if (onStage && scrolledAway.current && seen > RETURN_ABOVE) {
+          scrolledAway.current = false;
+          moves.current.fromStage();
+        }
+      },
+      { threshold: [0, HANDOFF_BELOW, RETURN_ABOVE, 1] },
+    );
+    observer.observe(cover);
+    return () => observer.disconnect();
+  }, [canHandOff, inline, onStage, clock]);
+
   let cover: ReactNode;
-  if (playing && embed && !onStage) {
+  if (inline) {
     cover = (
       <div className="relative aspect-video bg-black">
         <iframe
+          ref={frameRef}
           src={embed}
           title={caption.label}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -414,15 +488,15 @@ function InlinePlayable({
 
   return (
     <div className="min-w-0">
-      <div className={cn(PHONE_BLEED, "relative")}>
+      <div ref={coverRef} className={cn(PHONE_BLEED, "relative")}>
         {cover}
         {onStage && (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              stage.close();
-              setPlaying(true);
+              scrolledAway.current = false;
+              fromStage();
             }}
             aria-label={t(locale, "theaterReturnPip")}
             className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/55 text-white/90"

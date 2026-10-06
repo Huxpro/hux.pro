@@ -421,6 +421,21 @@ hands playback to the stage, so that line is a label, not a second door.
   `useOptionalTheaterStage`, which carries the stage's occupant and its
   doors without the ticking clock of the full theater context. A
   card goes to its native home.
+- A YouTube recording also hands itself over without being asked, because
+  what a reader scrolling on usually wants is not "picture in picture" but
+  for the talk not to stop. Playing in place and scrolled until less than
+  35% of it shows, it moves to the stage; once 60% of its place shows
+  again, it comes back. The second carries both ways. The inline embed
+  says where it is through the IFrame API's message protocol
+  (`getTrackedEmbedUrl`, `useEmbedClock` in `youtube.tsx`) without loading
+  the API, and the stage is told where to start (`startNextAt`) and asked
+  where it got to (`getCurrentTime`), both on the non-ticking stage
+  context. `PiP` pressed by hand carries the second too, and is the
+  reader's choice: a scroll does not undo it. A paused video stays where
+  it is. Bilibili and Vimeo cannot say where they are, so they would
+  restart; they wait to be asked. The inline embed starts muted (its
+  `mute=1`, which lets it autoplay), and comes back from the stage muted
+  for the same reason.
 
 Before this, one card was full width and natural aspect, a video was full
 width and 16:9, two of anything was a scroll rail at half width with the
