@@ -29,7 +29,8 @@ import { askStrings } from "../strings";
 //     dock panel follow the pointer, the way the center window does. Let go
 //     over the middle and Ask is the center chat; let go up in the top band
 //     and it is the dock; let go in the trailing column and it is the side.
-//     A drag does not stick: the next open follows the moment again.
+//     A drag is a manual choice for the current page context; navigation lets
+//     the next page decide again.
 //   - the place buttons (AskPlacementControls) are off on the desk's preset.
 //     Minimize, which puts Ask away into the Dock as a pill, stays.
 //
@@ -94,7 +95,10 @@ export function AskPlacementControls({
         <button
           key={placement}
           type="button"
-          onClick={() => placement !== current && moveAsk(placement, "direct", true)}
+          onClick={() => placement !== current && moveAsk(placement, "direct", {
+            provenance: "user",
+            remember: true,
+          })}
           aria-pressed={placement === current}
           aria-label={s.placements[placement]}
           title={s.placements[placement]}
@@ -127,7 +131,9 @@ export function AskPlacementControls({
               value={current}
               onValueChange={(value) => {
                 if (value !== current && PLACES.some((place) => place.placement === value)) {
-                  moveAsk(value as AskPlacement, "direct", true);
+                  moveAsk(value as AskPlacement, "direct", {
+                    provenance: "user",
+                  });
                 }
               }}
             >
@@ -319,7 +325,7 @@ export function useAskDragHandle(from: AskPlacement) {
           }, 500);
         }
         setDrag(null);
-        if (moving && landed) moveAsk(landed, "direct", false);
+        if (moving && landed) moveAsk(landed, "direct", { provenance: "user" });
       };
       const cleanup = () => {
         window.removeEventListener("pointermove", onMove, true);

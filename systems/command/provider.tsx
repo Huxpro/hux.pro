@@ -14,6 +14,7 @@ import {
   type AskEntry,
   type AskParkTarget,
   type AskPlacement,
+  type AskPlacementProvenance,
 } from "./ask-state";
 
 export {
@@ -22,6 +23,7 @@ export {
   isAskPlacement,
   type AskEntry,
   type AskPlacement,
+  type AskPlacementProvenance,
 } from "./ask-state";
 
 // =============================================================================
@@ -40,10 +42,11 @@ export {
 // `/` `J`) morphs the card into the center chat, unless Ask is already open
 // somewhere else, which then takes the question. A call with nothing typed
 // (⌘J, the Ask button) opens beside a page being read, and in the center
-// elsewhere. Dragging the header moves it for this visit; it is not a choice
-// that sticks. Those are the desk's preset; where each opens, and what
-// minimize does, are settings (systems/ask/lib/config.ts), read as each call
-// is made.
+// elsewhere. Dragging the header or using its placement menu makes a manual
+// choice for this page context; automatic moves yield to it until navigation
+// starts a new context. Those are the desk's preset; where each opens, and
+// what minimize does, are settings (systems/ask/lib/config.ts), read as each
+// call is made.
 //
 // The center and, on a desk, the dock sit where the palette sits. ⌘K, or `/`
 // pressed outside a field, parks Ask out of the way (the side when it fits,
@@ -183,12 +186,15 @@ interface CommandContextType {
    */
   openAsk: (text?: string, from?: "search" | "palette" | "call") => void;
   /**
-   * Move Ask to another place, the conversation with it. `chosen`: the
-   * visitor put it there with a place button (when those are on), which is
-   * remembered for a call on a page that is not being read. A drag is not
-   * one: the next open follows the moment again.
+   * Move Ask to another place, the conversation with it. A user-origin move
+   * wins over automatic placement for this page; `remember` additionally
+   * keeps a menu choice as the configured default for later visits.
    */
-  moveAsk: (placement: AskPlacement, entry?: AskEntry, chosen?: boolean) => void;
+  moveAsk: (
+    placement: AskPlacement,
+    entry?: AskEntry,
+    options?: { provenance?: AskPlacementProvenance; remember?: boolean },
+  ) => void;
   /** How Ask was reached (see `AskEntry`). */
   askEntry: AskEntry;
   /** Close Ask wherever it is (a reply still being written leaves a pill). */
@@ -277,18 +283,26 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     dispatchShell({ type: "SET_PALETTE_MODE", mode: mode ? "ask" : "search" });
   }, []);
 
-  const moveAsk = useCallback((placement: AskPlacement, entry: AskEntry = "direct", chosen = false) => {
+  const moveAsk = useCallback((
+    placement: AskPlacement,
+    entry: AskEntry = "direct",
+    options: { provenance?: AskPlacementProvenance; remember?: boolean } = {},
+  ) => {
     const roomy = hasRoomBeside();
     const target = placement === "side" && !roomy ? "center" : placement;
+    const provenance = target === placement
+      ? (options.provenance ?? "automatic")
+      : "capacity";
     dispatchShell({
       type: "SHOW_ASK",
       placement: target,
       platform: askPlatformNow(),
       entry,
+      provenance,
     });
     // Remembered only when the visitor put it there, and it went there: a
     // phone's sheet is not a vote against the side panel on the desk.
-    if (chosen && target === placement) writeChosen(pageKindNow(), target);
+    if (options.remember && target === placement) writeChosen(pageKindNow(), target);
   }, []);
 
   const signalHandoff = useCallback((placement: AskPlacement) => {
@@ -311,17 +325,24 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
         // Already open beside the page, at the top or as a phone's sheet: it
         // takes the question.
         const target = shell.askSurface === "sheet" ? "center" : shell.askSurface;
-        moveAsk(target, entry);
+        moveAsk(target, entry, {
+          // A Command parking spot becomes an ordinary automatic handoff;
+          // an actual user placement keeps being one.
+          provenance: shell.askProvenance === "command-park"
+            ? "automatic"
+            : shell.askProvenance,
+        });
         if (from !== "call") requestAnimationFrame(() => signalHandoff(target));
         return;
       }
       const config = askConfigNow();
       const reading = pageKindNow() === "reading";
       const chosen = readChosen()[reading ? "reading" : "other"];
-      const target = askOpenTarget({ from, reading, config, chosen });
-      moveAsk(target, entry);
+      const contextual = from === "call" ? shell.manualPlacement ?? undefined : undefined;
+      const target = contextual ?? askOpenTarget({ from, reading, config, chosen });
+      moveAsk(target, entry, { provenance: contextual ? "user" : "automatic" });
     },
-    [shell.askSurface, moveAsk, signalHandoff]
+    [shell.askSurface, shell.askProvenance, shell.manualPlacement, moveAsk, signalHandoff]
   );
 
   const closeAsk = useCallback(() => {

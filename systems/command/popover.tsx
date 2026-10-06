@@ -458,7 +458,9 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         followHref(href, (to) => router.push(to));
                         // The page it opened is read beside the conversation.
                         // On a phone the drawer covers it, so the palette leaves.
-                        if (askPlatformNow() === "desk") moveAsk("side", askEntry, false);
+                        if (askPlatformNow() === "desk") {
+                          moveAsk("side", askEntry, { provenance: "navigation" });
+                        }
                         else close();
                       }}
                       trailing={

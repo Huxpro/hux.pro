@@ -164,7 +164,7 @@ export function AskActivity() {
       else if (!placed && expanded) close();
       return;
     }
-    if (expanded && !placed) moveAsk("top");
+    if (expanded && !placed) moveAsk("top", "direct", { provenance: "user" });
     else if (!expanded && placed) minimizeAsk();
   }, [placed, expanded, last, close, moveAsk, minimizeAsk]);
 

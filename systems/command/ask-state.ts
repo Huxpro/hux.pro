@@ -8,6 +8,12 @@ export type AskEntry = "command" | "direct";
 export type AskPlatform = "desk" | "phone";
 export type PaletteMode = "closed" | "search" | "slash" | "bundle" | "ask";
 export type AskSurface = "side" | "top" | "sheet" | null;
+export type AskPlacementProvenance =
+  | "automatic"
+  | "user"
+  | "command-park"
+  | "capacity"
+  | "navigation";
 
 /**
  * The side panel is 440px, the ordinary command card is up to 700px, and the
@@ -29,6 +35,9 @@ export interface AskParking {
   /** Where Ask stood before a transient command moved it out of the way. */
   returnTo: AskPlacement;
   entry: AskEntry;
+  provenance: AskPlacementProvenance;
+  /** Command displaced Ask, or capacity displaced a Side already sharing it. */
+  reason: "command" | "capacity";
 }
 
 export interface CommandAskState {
@@ -37,6 +46,10 @@ export interface CommandAskState {
   askPill: boolean;
   askStarted: boolean;
   askEntry: AskEntry;
+  /** Why the effective placement currently looks the way it does. */
+  askProvenance: AskPlacementProvenance;
+  /** A user choice scoped to the current page, even during a capacity fallback. */
+  manualPlacement: AskPlacement | null;
   parking: AskParking | null;
 }
 
@@ -46,6 +59,8 @@ export const INITIAL_COMMAND_ASK_STATE: CommandAskState = {
   askPill: false,
   askStarted: false,
   askEntry: "direct",
+  askProvenance: "automatic",
+  manualPlacement: null,
   parking: null,
 };
 
@@ -61,6 +76,8 @@ function showAsk(
   placement: AskPlacement,
   platform: AskPlatform,
   entry: AskEntry,
+  provenance: AskPlacementProvenance,
+  manualPlacement = state.manualPlacement,
 ): CommandAskState {
   if (placement === "center" && platform === "desk") {
     return {
@@ -70,6 +87,8 @@ function showAsk(
       askPill: false,
       askStarted: true,
       askEntry: entry,
+      askProvenance: provenance,
+      manualPlacement,
       parking: null,
     };
   }
@@ -81,6 +100,8 @@ function showAsk(
       askPill: false,
       askStarted: true,
       askEntry: entry,
+      askProvenance: provenance,
+      manualPlacement,
       parking: null,
     };
   }
@@ -91,6 +112,8 @@ function showAsk(
     askPill: false,
     askStarted: true,
     askEntry: entry,
+    askProvenance: provenance,
+    manualPlacement,
     parking: null,
   };
 }
@@ -101,7 +124,13 @@ export type CommandAskAction =
   | { type: "OPEN_PALETTE"; mode: Exclude<PaletteMode, "closed" | "ask"> }
   | { type: "CLOSE_PALETTE"; platform: AskPlatform; canSide: boolean }
   | { type: "SET_PALETTE_MODE"; mode: PaletteMode }
-  | { type: "SHOW_ASK"; placement: AskPlacement; platform: AskPlatform; entry: AskEntry }
+  | {
+      type: "SHOW_ASK";
+      placement: AskPlacement;
+      platform: AskPlatform;
+      entry: AskEntry;
+      provenance: AskPlacementProvenance;
+    }
   | {
       type: "PARK_AND_OPEN";
       mode: "search" | "slash" | "bundle";
@@ -123,14 +152,18 @@ export function reduceCommandAsk(
       return { ...state, palette: action.mode };
 
     case "CLOSE_PALETTE": {
-      if (!state.parking) return { ...state, palette: "closed" };
-      const requested = state.parking.returnTo;
+      const parking = state.parking;
+      if (!parking) return { ...state, palette: "closed" };
+      const requested = parking.returnTo;
       const target = requested === "side" && !action.canSide ? "center" : requested;
       return showAsk(
         { ...state, parking: null },
         target,
         action.platform,
-        state.parking.entry,
+        parking.entry,
+        target === requested
+          ? parking.provenance
+          : "capacity",
       );
     }
 
@@ -149,7 +182,14 @@ export function reduceCommandAsk(
       };
 
     case "SHOW_ASK":
-      return showAsk(state, action.placement, action.platform, action.entry);
+      return showAsk(
+        state,
+        action.placement,
+        action.platform,
+        action.entry,
+        action.provenance,
+        action.provenance === "user" ? action.placement : state.manualPlacement,
+      );
 
     case "PARK_AND_OPEN":
       return {
@@ -159,7 +199,13 @@ export function reduceCommandAsk(
         askPill: action.target === "pill",
         askStarted: true,
         askEntry: action.entry,
-        parking: { returnTo: action.returnTo, entry: action.entry },
+        askProvenance: "command-park",
+        parking: {
+          returnTo: action.returnTo,
+          entry: action.entry,
+          provenance: state.askProvenance,
+          reason: "command",
+        },
       };
 
     case "CLOSE_ASK":
@@ -185,19 +231,58 @@ export function reduceCommandAsk(
       // must not teleport Ask back over the new page. A center conversation
       // arriving on a reading page moves beside it only when the viewport can
       // genuinely hold both columns.
-      const next = { ...state, parking: null };
+      const next = {
+        ...state,
+        parking: null,
+        manualPlacement: null,
+        askProvenance: "navigation" as const,
+      };
       if (
         action.reading &&
         action.platform === "desk" &&
         action.canSide &&
         visibleAskPlacement(state) === "center"
       ) {
-        return showAsk(next, "side", action.platform, state.askEntry);
+        return showAsk(next, "side", action.platform, state.askEntry, "navigation", null);
       }
       return next;
     }
 
     case "VIEWPORT": {
+      // Capacity may temporarily displace a manually chosen Side. When the
+      // room returns, restore the choice unless the user selected somewhere
+      // else in the meantime.
+      if (action.canSide && state.askProvenance === "capacity") {
+        if (state.palette !== "closed" && state.palette !== "ask") {
+          // A Side that was already sharing Command returns as soon as it fits.
+          // A real Command park remains reversible to its earlier place.
+          if (state.parking) {
+            return {
+              ...state,
+              askSurface: "side",
+              askPill: false,
+              askProvenance: state.parking.reason === "command"
+                ? "command-park"
+                : state.parking.provenance,
+              parking: state.parking.reason === "command" ? state.parking : null,
+            };
+          }
+          if (state.manualPlacement !== "side") return state;
+          return {
+            ...state,
+            askSurface: "side",
+            askPill: false,
+            askProvenance: "user",
+          };
+        }
+        if (
+          state.manualPlacement === "side" &&
+          visibleAskPlacement(state) !== null
+        ) {
+          return showAsk(state, "side", action.platform, state.askEntry, "user");
+        }
+        return state;
+      }
       if (visibleAskPlacement(state) !== "side" || action.canSide) return state;
       // A command already owns the middle: collapse Ask to its pill until the
       // command closes. Otherwise move the conversation into the center shell.
@@ -206,12 +291,16 @@ export function reduceCommandAsk(
           ...state,
           askSurface: null,
           askPill: true,
-          parking: state.parking
-            ? { ...state.parking, returnTo: "center" }
-            : { returnTo: "center", entry: state.askEntry },
+          askProvenance: "capacity",
+          parking: state.parking ?? {
+            returnTo: "side",
+            entry: state.askEntry,
+            provenance: state.askProvenance,
+            reason: "capacity",
+          },
         };
       }
-      return showAsk(state, "center", action.platform, state.askEntry);
+      return showAsk(state, "center", action.platform, state.askEntry, "capacity");
     }
   }
 }

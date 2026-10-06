@@ -88,10 +88,12 @@ What follows is the desk's preset; every line of it is a setting (below).
   `onReadingPage`) when the 440px panel and the reading column genuinely fit
   (1280px and up), so the page stays in view, and in the center elsewhere.
   Arriving on a reading page with the center chat already up moves it to the
-  side. A drag does not stick, and neither does parking it to make room for
-  ⌘K: the next open follows the moment again. The place buttons, when turned
-  on, still remember a choice for a call that is not on a reading page
-  (`hux_ask_placement`).
+  side. A drag or placement-menu choice is a manual override for the current
+  page context: closing and reopening Ask still honors it, while navigation
+  clears it and lets the new page decide again. Command parking is explicitly
+  temporary and never becomes a preference. The separate place buttons, when
+  enabled instead of the menu, additionally remember a default for a later
+  call of the same page kind (`hux_ask_placement`).
 - **The way back.** Leaving the center goes back to search only when search
   was the way in (the Ask row, Tab, `/` `J`): there is a back button, and
   Escape returns to the field. Reached directly (⌘J, the Ask button, a move
@@ -107,7 +109,11 @@ What follows is the desk's preset; every line of it is a setting (below).
   would land is drawn while the pointer is over a different one
   (`AskDragOverlay`). The placement menu is the keyboard and assistive
   technology path to the same three commands; Side is disabled when it cannot
-  coexist with the page.
+  coexist with the page. If a manually chosen Side temporarily stops fitting,
+  Ask falls back to Center (or a pill while Command owns Center) but keeps the
+  intent and returns to Side when room comes back. Every effective placement
+  records whether it came from automation, the user, Command parking,
+  capacity, or navigation (`askProvenance` in the command state machine).
 - **Both at once.** ⌘K, or `/` outside a field, while Ask is the center chat
   or (on a desk) the dock, parks it — at the side when both panes fit, as a
   Dock pill on a narrower desk, and at the top on a phone — and opens the
