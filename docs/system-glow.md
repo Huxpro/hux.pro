@@ -16,9 +16,10 @@ systems/glow/
 
 systems/voice/
 ├── lib/meter.ts        # microphone → level + three bands (gate, knee, envelope)
-└── use-voice-input.ts  # Web Speech API words + the meter, one press
+└── use-voice-input.ts  # Whisper recording or Web Speech API + the meter
 
 systems/command/voice.tsx   # the palette's microphone, field glow, `/` `V`
+app/api/voice/route.ts       # Gateway availability and Whisper transcription
 app/lab/glow/               # the lab: every scale, one set of controls
 systems/glow/lib/tuning.ts  # the devtool's knobs: strength, the About's strength and depth
 ```
@@ -300,18 +301,25 @@ some instance is live (arriving, on, or leaving) and the tab is visible:
 
 ## Voice
 
-`useVoiceInput({ lang, onInterim, onFinal })` does two things from one press:
+`useVoiceInput({ lang, onInterim, onFinal })` chooses a recognition path and
+feeds the same microphone meter to the glow:
 
-- **words**: the Web Speech API (`SpeechRecognition`, `webkitSpeechRecognition`).
-  The browser does the recognition; nothing goes through this site. Interim
-  words as they are heard, the final phrase when the speaker pauses. Not in
-  Firefox: `supported` is false there and the microphone is hidden.
+- **Whisper**: when AI Gateway credentials are available on the server and
+  the browser supports `MediaRecorder`, hold to record and release to send
+  the clip to `openai/whisper-1` through `/api/voice`. Only the completed
+  transcript fills the field. The API key stays on the server. Recording
+  stops after 60 seconds and clips are limited to 5 MiB. Set
+  `VOICE_TRANSCRIPTION_MODEL=off` to use browser recognition instead.
+- **browser fallback**: the Web Speech API (`SpeechRecognition`,
+  `webkitSpeechRecognition`) supplies interim words and the final phrase
+  when the speaker pauses. The browser does recognition; nothing goes
+  through this site. Where neither path is available, the mic is hidden.
 - **the voice itself**: a microphone stream through `lib/meter.ts`, for the
   glow. Where a second capture is refused, the level is synthesised from the
   recogniser's own sound / speech / result events, so the glow still answers.
 
-States: `idle → listening → processing` (the speaker paused; the final words
-are on their way) `→ idle`, or `denied` / `error`.
+States: `idle → listening → processing` (the browser settles words or Whisper
+transcribes the released clip) `→ idle`, or `denied` / `error`.
 
 The meter shapes the raw signal the way voice-glow does: gain (a laptop mic
 reads 0.03–0.2 RMS), a noise gate, a soft knee so a shout rounds off, and an
@@ -334,7 +342,7 @@ section (`actions`: do one thing, now) beside Music and Add to Home Screen.
 It is `slashOnly`: in the slash list as `V`, never a search result, since its
 control is already in the field.
 
-**Tap or hold, three ways in.** Dictation tools answer a tap and a hold:
+**Hold to record with Whisper; tap or hold in browser mode.** Dictation tools answer a tap and a hold:
 Wispr Flow's held Fn (push-to-talk), macOS's Globe pressed twice, Windows'
 Win+H, Superwhisper's ⌥Space. The best of those keys are taken system-wide
 or invisible to a page (a browser never sees Fn / Globe; Win+H is the OS's;
@@ -342,14 +350,14 @@ or invisible to a page (a browser never sees Fn / Globe; Win+H is the OS's;
 palette takes none of them and gives the same two gestures inside its own
 space:
 
-| way in | tap | hold (≥ 300 ms, `HOLD_MS`) |
+| way in | Whisper | Browser recognition |
 |---|---|---|
-| the microphone | start (or stop, while listening) | talk; let go to send |
-| `/` `V` | start | talk; let go to send |
-| Space in the empty field | nothing (a leading space means nothing to a search) | talk; let go to send |
+| the microphone | hold, speak, release to transcribe | tap to toggle, or hold ≥ 300 ms and release to stop |
+| `/` `V` | hold V, speak, release to transcribe | tap to start, or hold ≥ 300 ms and release to stop |
+| Space in the empty field | hold ≥ 300 ms, speak, release to transcribe | hold ≥ 300 ms, speak, release to stop |
 
-A tap's session ends when the speaker pauses; a hold's when the key or
-pointer is released. `/` `V` knows it was a key because a command's `run`
+A browser tap's session ends when the speaker pauses; a hold's when the key or
+pointer is released. A Whisper press under 300 ms is discarded. `/` `V` knows it was a key because a command's `run`
 receives the letter that ran it; a click on its slash row carries none, so a
 "v" typed later can never end a session. The held key's repeats are
 swallowed, so a hold never types into the field.

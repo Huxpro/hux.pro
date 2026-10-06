@@ -447,6 +447,10 @@ export const translations = {
     voiceListen: "Search by voice",
     voiceStop: "Stop listening",
     voiceDenied: "Microphone blocked",
+    voiceHold: "Hold to record",
+    voiceRelease: "Release to transcribe",
+    voiceProcessing: "Transcribing…",
+    voiceError: "Could not transcribe. Try again",
     // About (see systems/about)
     aboutTitle: "About",
     aboutEnter: "Reveal",
@@ -881,6 +885,10 @@ export const translations = {
     voiceListen: "语音搜索",
     voiceStop: "停止聆听",
     voiceDenied: "麦克风被禁用",
+    voiceHold: "按住录音",
+    voiceRelease: "松开后识别",
+    voiceProcessing: "正在识别…",
+    voiceError: "识别失败，请重试",
     // About (see systems/about)
     aboutTitle: "关于",
     aboutEnter: "进入",

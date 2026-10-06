@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useAskConfig } from "@/systems/ask/lib/config";
 import { isQuestionLike } from "@/systems/ask/lib/intent";
+import { showNotice } from "@/systems/dock";
 import { Glow } from "@/systems/glow";
 import { useVoiceInput, VOICE_LANG, type VoiceInput } from "@/systems/voice";
 import { Mic } from "lucide-react";
@@ -15,13 +16,14 @@ import { useCommand } from "./provider";
 //
 // The microphone sits in the field's trailing cluster (both shells). Pressed,
 // the field listens (systems/voice): the words fill it as they are heard, the
-// results filter as they would for typing, and the final phrase stays for
-// ↵ / a tap. `/` `V` does the same from the slash list.
+// results filter as they would for typing in browser mode. With Whisper,
+// the completed recording fills the field after release. `/` `V` also starts
+// voice input from the slash list.
 //
-// Every way in answers a tap and a hold, the way dictation tools do (Wispr
-// Flow's held Fn, macOS's Globe): a tap starts listening and the speaker's
-// pause ends it; a hold of HOLD_MS or more is push-to-talk, and letting go
-// sends what was said. Three ways in, all inside the palette, so none can
+// Without Whisper, a tap starts browser recognition until the speaker's
+// pause, and a hold of HOLD_MS or more stops on release. With Whisper, the
+// microphone and V key record while held, then transcribe on release. Three
+// ways in, all inside the palette, so none can
 // collide with a system-wide dictation key (Fn / Globe, Win+H, ⌥Space, which
 // a page cannot see or should not take):
 //
@@ -91,7 +93,7 @@ export function useCommandVoice(setValue: (text: string) => void): VoiceInput {
   // A request made by a key follows that key: its repeats are swallowed (they
   // would type into the field, which takes focus), and letting go after a
   // hold sends what was said. Letting go of a tap changes nothing.
-  const { start, stop } = voice;
+  const { start, stop, mode } = voice;
   useEffect(() => {
     if (voiceRequest <= consumedRequest) return;
     consumedRequest = voiceRequest;
@@ -110,14 +112,14 @@ export function useCommandVoice(setValue: (text: string) => void): VoiceInput {
     const onUp = (e: globalThis.KeyboardEvent) => {
       if (e.key.toLowerCase() !== key) return;
       e.preventDefault();
-      if (performance.now() - t0 >= HOLD_MS) stop();
+      if (mode === "whisper" || performance.now() - t0 >= HOLD_MS) stop();
       done();
     };
     window.addEventListener("keydown", onDown, true);
     window.addEventListener("keyup", onUp, true);
     window.addEventListener("blur", done);
     return done;
-  }, [voiceRequest, voiceHoldKey, start, stop]);
+  }, [voiceRequest, voiceHoldKey, start, stop, mode]);
 
   return voice;
 }
@@ -174,25 +176,37 @@ function dismissKeyboard() {
   keyboardDismissedAt = performance.now();
 }
 
-/** The microphone button. Renders nothing where speech is not recognised. */
+/** The microphone button. Renders nothing when neither voice path is available. */
 export function VoiceButton({ voice, className }: { voice: VoiceInput; className?: string }) {
   const { locale } = useLocale();
   const press = useRef<number | null>(null);
+  useEffect(() => {
+    if (voice.state !== "error" && voice.state !== "denied") return;
+    showNotice({
+      id: "voice-input-error",
+      icon: Mic,
+      title: t(locale, voice.state === "denied" ? "voiceDenied" : "voiceError"),
+    });
+  }, [voice.state, locale]);
   if (!voice.supported) return null;
-  const label = voice.listening
-    ? t(locale, "voiceStop")
+  const label = voice.state === "processing"
+    ? t(locale, "voiceProcessing")
+    : voice.state === "listening"
+      ? voice.mode === "whisper" ? t(locale, "voiceRelease") : t(locale, "voiceStop")
     : voice.state === "denied"
       ? t(locale, "voiceDenied")
-      : t(locale, "voiceListen");
+      : voice.state === "error"
+        ? t(locale, "voiceError")
+        : voice.mode === "whisper" ? t(locale, "voiceHold") : t(locale, "voiceListen");
   return (
     <button
       type="button"
-      // Press to start (or to stop, while listening); hold to talk and let go
-      // to send. The pointer is captured so the release lands here.
+      // Whisper records only while pressed; browser recognition retains its
+      // tap-to-toggle gesture. Capture the pointer so release lands here.
       onPointerDown={(e: PointerEvent<HTMLButtonElement>) => {
-        if (e.button !== 0) return;
+        if (e.button !== 0 || voice.state === "processing") return;
         e.currentTarget.setPointerCapture(e.pointerId);
-        if (voice.listening) {
+        if (voice.state === "listening") {
           voice.stop();
           press.current = null;
           return;
@@ -202,14 +216,27 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
         press.current = performance.now();
       }}
       onPointerUp={() => {
-        if (press.current !== null && performance.now() - press.current >= HOLD_MS) voice.stop();
+        if (press.current !== null && (voice.mode === "whisper" || performance.now() - press.current >= HOLD_MS)) voice.stop();
         press.current = null;
       }}
-      onPointerCancel={() => (press.current = null)}
+      onPointerCancel={() => {
+        if (press.current !== null && voice.mode === "whisper") voice.abort();
+        press.current = null;
+      }}
+      onKeyDown={(e) => {
+        if (voice.mode !== "whisper" || (e.key !== " " && e.key !== "Enter")) return;
+        e.preventDefault();
+        if (!e.repeat && voice.state !== "processing") voice.start();
+      }}
+      onKeyUp={(e) => {
+        if (voice.mode !== "whisper" || (e.key !== " " && e.key !== "Enter")) return;
+        e.preventDefault();
+        voice.stop();
+      }}
       // The keyboard's Enter / Space arrive as a click with no pointer.
-      onClick={(e) => e.detail === 0 && voice.toggle()}
+      onClick={(e) => e.detail === 0 && voice.mode === "browser" && voice.toggle()}
       aria-label={label}
-      aria-pressed={voice.listening}
+      aria-pressed={voice.state === "listening"}
       title={label}
       className={cn(
         "pressable flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
@@ -219,7 +246,7 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
         className,
       )}
     >
-      <Mic className={cn("h-4 w-4", voice.listening && "voice-mic-live")} />
+      <Mic className={cn("h-4 w-4", voice.state === "listening" && "voice-mic-live")} />
     </button>
   );
 }

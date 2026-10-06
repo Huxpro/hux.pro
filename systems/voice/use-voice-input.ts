@@ -6,26 +6,34 @@ import { createMeter, primeAudio, type VoiceMeter } from "./lib/meter";
 // =============================================================================
 // useVoiceInput: speak instead of type.
 //
-// Two things run while it listens, from one press:
+// Two recognition paths share one microphone glow:
 //
-//   words   the Web Speech API (`SpeechRecognition`, `webkitSpeechRecognition`
+//   browser  the Web Speech API (`SpeechRecognition`, `webkitSpeechRecognition`
 //           in Safari and Chrome): interim words as they are heard, the final
 //           phrase when the speaker pauses. The browser does the recognition,
 //           on-device or via its vendor's service; nothing goes through this
 //           site.
-//   voice   a microphone stream through the voice meter (lib/meter.ts), for
+//   whisper  MediaRecorder captures while held; release sends the completed
+//           clip through this site's server to Vercel AI Gateway/Whisper.
+//   glow    a microphone stream through the voice meter (lib/meter.ts), for
 //           the glow to follow: how loud, which bands. Where a second capture
 //           is refused (some Android browsers hold the microphone for the
 //           recogniser alone), the level is synthesised from the recogniser's
 //           own sound / speech events, so the glow still answers the voice.
 //
-// States:  idle → listening → processing (the speaker has paused; the final
-//          words are on their way) → idle. `denied` and `error` say why a
-//          start failed; `supported` is false where there is no recogniser
-//          (Firefox), and callers hide the microphone there.
+// States: idle → listening → processing → idle. `denied` and `error` say why
+//          a start or transcription failed. `supported` is true if either
+//          the server-enabled Whisper path or browser recogniser is available.
 // =============================================================================
 
 type RecognitionState = "idle" | "listening" | "processing" | "denied" | "error";
+type VoiceMode = "browser" | "whisper";
+
+function recordingType(): string | null {
+  if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) return null;
+  return ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"]
+    .find((type) => MediaRecorder.isTypeSupported(type)) ?? null;
+}
 
 interface SpeechAlternative {
   transcript: string;
@@ -85,6 +93,7 @@ export interface VoiceInputOptions {
 
 export interface VoiceInput {
   supported: boolean;
+  mode: VoiceMode;
   state: RecognitionState;
   listening: boolean;
   /** Start (from a press: the microphone is only granted in a gesture). */
@@ -102,8 +111,15 @@ export interface VoiceInput {
 
 export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): VoiceInput {
   const [supported, setSupported] = useState(false);
+  const [mode, setMode] = useState<VoiceMode>("browser");
   const [state, setState] = useState<RecognitionState>("idle");
   const recognition = useRef<Recognition | null>(null);
+  const recorder = useRef<MediaRecorder | null>(null);
+  const awaitingMicrophone = useRef(false);
+  const activeMode = useRef<VoiceMode | null>(null);
+  const session = useRef(0);
+  const upload = useRef<AbortController | null>(null);
+  const recordingTimer = useRef<number | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const meter = useRef<VoiceMeter | null>(null);
   // The synthetic level, for when no meter could be had.
@@ -114,8 +130,19 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
   });
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe: a browser capability
+    let alive = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe browser capability
     setSupported(recognitionCtor() !== null);
+    if (!recordingType()) return;
+    fetch("/api/voice", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((config) => {
+        if (!alive || !config?.enabled || activeMode.current) return;
+        setMode("whisper");
+        setSupported(true);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
   }, []);
 
   const release = useCallback(() => {
@@ -127,19 +154,135 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
   }, []);
 
   const stop = useCallback(() => {
+    if (activeMode.current === "whisper") {
+      if (!recorder.current) {
+        if (!awaitingMicrophone.current) return;
+        // A quick release can precede the microphone permission response.
+        session.current++;
+        awaitingMicrophone.current = false;
+        activeMode.current = null;
+        setState("idle");
+        return;
+      }
+      if (recorder.current.state === "recording") {
+        setState("processing");
+        recorder.current.stop();
+      }
+      return;
+    }
     recognition.current?.stop();
   }, []);
 
   const abort = useCallback(() => {
+    session.current++;
+    upload.current?.abort();
+    upload.current = null;
+    if (recordingTimer.current !== null) window.clearTimeout(recordingTimer.current);
+    recordingTimer.current = null;
+    if (recorder.current) {
+      recorder.current.onstop = null;
+      if (recorder.current.state === "recording") recorder.current.stop();
+      recorder.current = null;
+    }
+    activeMode.current = null;
+    awaitingMicrophone.current = false;
+    release();
+    setState("idle");
     const r = recognition.current;
     if (!r) return;
     r.onresult = null;
     r.abort();
-  }, []);
+  }, [release]);
 
   const start = useCallback(() => {
+    if (mode === "whisper") {
+      const type = recordingType();
+      if (!type || activeMode.current) return;
+      const id = ++session.current;
+      activeMode.current = "whisper";
+      awaitingMicrophone.current = true;
+      primeAudio();
+      setState("listening");
+      navigator.mediaDevices.getUserMedia({ audio: true }).then((s) => {
+        if (session.current !== id) {
+          s.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        awaitingMicrophone.current = false;
+        stream.current = s;
+        meter.current = createMeter(s);
+        const r = new MediaRecorder(s, { mimeType: type });
+        recorder.current = r;
+        let startedAt = 0;
+        const chunks: Blob[] = [];
+        r.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
+        r.onerror = () => {
+          if (session.current !== id) return;
+          session.current++;
+          if (recordingTimer.current !== null) window.clearTimeout(recordingTimer.current);
+          recordingTimer.current = null;
+          activeMode.current = null;
+          awaitingMicrophone.current = false;
+          recorder.current = null;
+          release();
+          setState("error");
+          if (recognitionCtor()) setMode("browser");
+        };
+        r.onstop = () => {
+          if (session.current !== id) return;
+          recorder.current = null;
+          if (recordingTimer.current !== null) window.clearTimeout(recordingTimer.current);
+          recordingTimer.current = null;
+          release();
+          if (performance.now() - startedAt < 300) {
+            activeMode.current = null;
+            setState("idle");
+            return;
+          }
+          const audio = new Blob(chunks, { type: r.mimeType });
+          if (!audio.size) {
+            activeMode.current = null;
+            setState("idle");
+            return;
+          }
+          const controller = new AbortController();
+          upload.current = controller;
+          fetch("/api/voice", {
+            method: "POST",
+            headers: { "Content-Type": audio.type },
+            body: audio,
+            signal: controller.signal,
+          }).then(async (response) => {
+            if (!response.ok) throw new Error("Transcription failed");
+            return response.json() as Promise<{ text: string }>;
+          }).then(({ text }) => {
+            if (session.current === id && text) callbacks.current.onFinal?.(text);
+            if (session.current === id) setState("idle");
+          }).catch(() => {
+            if (session.current !== id) return;
+            setState("error");
+            if (recognitionCtor()) setMode("browser");
+          }).finally(() => {
+            if (session.current === id) activeMode.current = null;
+            if (upload.current === controller) upload.current = null;
+          });
+        };
+        r.start();
+        startedAt = performance.now();
+        recordingTimer.current = window.setTimeout(() => stop(), 60_000);
+      }).catch((error: DOMException) => {
+        if (session.current !== id) return;
+        release();
+        activeMode.current = null;
+        awaitingMicrophone.current = false;
+        setState(error.name === "NotAllowedError" ? "denied" : "error");
+        if (error.name !== "NotAllowedError" && recognitionCtor()) setMode("browser");
+      });
+      return;
+    }
     const Ctor = recognitionCtor();
     if (!Ctor || recognition.current) return;
+    activeMode.current = "browser";
     primeAudio();
     const r = new Ctor();
     r.lang = lang;
@@ -176,6 +319,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
     };
     r.onend = () => {
       recognition.current = null;
+      activeMode.current = null;
       release();
       setState((s) => (s === "denied" || s === "error" ? s : "idle"));
     };
@@ -185,6 +329,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
       setState("listening");
     } catch {
       recognition.current = null;
+      activeMode.current = null;
       setState("error");
       return;
     }
@@ -207,10 +352,10 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
           /* synthesised level instead */
         });
     }
-  }, [lang, release]);
+  }, [lang, mode, release, stop]);
 
   const toggle = useCallback(() => {
-    if (recognition.current) stop();
+    if (activeMode.current) stop();
     else start();
   }, [start, stop]);
 
@@ -219,6 +364,11 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
     () => () => {
       recognition.current?.abort();
       recognition.current = null;
+      session.current++;
+      awaitingMicrophone.current = false;
+      upload.current?.abort();
+      if (recordingTimer.current !== null) window.clearTimeout(recordingTimer.current);
+      if (recorder.current?.state === "recording") recorder.current.stop();
       release();
     },
     [release],
@@ -244,6 +394,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
 
   return {
     supported,
+    mode,
     state,
     listening: state === "listening" || state === "processing",
     start,
