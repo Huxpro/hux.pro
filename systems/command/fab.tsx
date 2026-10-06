@@ -332,7 +332,7 @@ export function FloatingActionButton() {
 
 /**
  * The second way in, on every page: straight to Ask, where it was last put
- * (⌘J does the same), and again to close it. A ball the size of the corner's
+ * (K does the same), and again to close it. A ball the size of the corner's
  * button, lit while Ask is open.
  *
  * It stands beside the bar without touching it: outside the bar's flow
@@ -500,7 +500,7 @@ function AskBall({
       onClick={() => (askPlacement ? closeAsk() : openAsk())}
       aria-label={s.askRow}
       aria-pressed={askPlacement !== null}
-      title={`${s.askRow} (⌘J)`}
+      title={`${s.askRow} (K)`}
       data-ask-ball=""
       initial={{ opacity: 0 }}
       animate={{ opacity: !placed || yielding ? 0 : 1 }}

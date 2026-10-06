@@ -58,9 +58,13 @@ whenever the field has text:
 | reads as a question (`intent.ts`: a `?`, a question word up front, ≥ 5 words, ≥ 10 Han characters) | first, selected | asks |
 | anything else | last | opens the best match; ↓ or **Tab** reaches Ask |
 
-**Tab** asks what is typed from anywhere in search mode. Voice keeps a spoken
-question whole (`toFieldText` in `systems/command/voice.tsx`): commands are
-still stripped to a query ("open the writing" → "writing"), questions are not.
+**Tab** enters Ask from anywhere in search mode, and asks what is typed when
+there is a query. Its `tab Ask AI` hint stays at the field's trailing edge while
+typing (`tab AI` on a narrower keyboard viewport), after the microphone: voice
+is another way to fill the field; Ask is where the field goes. Touch-only
+devices get neither keyboard hint. Voice keeps a spoken question whole
+(`toFieldText` in `systems/command/voice.tsx`): commands are still stripped to
+a query ("open the writing" → "writing"), questions are not.
 
 Ask is the palette's fourth mode, beside search, slash and load-bundle
 (`isAskMode` in the command provider). On the desktop it replaces the results
@@ -91,9 +95,9 @@ conversation is the session's, so moving Ask moves nothing else.
 
 What follows is the desk's preset; every line of it is a setting (below).
 
-- **Which place.** Asking from the palette (the Ask row, Tab, `/` `J`) morphs
+- **Which place.** Asking from the palette (the Ask row, Tab, `/` `K`) morphs
   the card into the center chat, unless Ask is already open at the side or
-  the top, which then takes the question. ⌘J and the Ask button open it
+  the top, which then takes the question. K and the Ask button open it
   beside a page to read (/writing, /works, /prompt, /about, /docs;
   `onReadingPage`) when the 440px panel and the reading column genuinely fit
   (1280px and up), so the page stays in view, and in the center elsewhere.
@@ -105,8 +109,8 @@ What follows is the desk's preset; every line of it is a setting (below).
   enabled instead of the menu, additionally remember a default for a later
   call of the same page kind (`hux_ask_placement`).
 - **The way back.** Leaving the center goes back to search only when search
-  was the way in (the Ask row, Tab, `/` `J`): there is a back button, and
-  Escape returns to the field. Reached directly (⌘J, the Ask button, a move
+  was the way in (the Ask row, Tab, `/` `K`): there is a back button, and
+  Escape returns to the field. Reached directly (K, the Ask button, a move
   from another place) it has no search behind it: no back button, and Escape
   closes it (`askEntry` in the command provider).
 - **Moving.** Minimize and one placement menu stay in the header; the three
@@ -173,7 +177,7 @@ defaults.
 | setting | what it decides | desk | phone |
 |---|---|---|---|
 | `fromSearch` | where asking from search opens Ask | center | center (the drawer) |
-| `fromCall` | where ⌘J / the Ask button opens it, off a reading page: where the place buttons last put it, or one place | center | center |
+| `fromCall` | where K / the Ask button opens it, off a reading page: where the place buttons last put it, or one place | center | center |
 | `onReadingPage` | on /writing, /works, /prompt, /about, /docs, a call opens at the side (asking from the palette still morphs the card) | side | same |
 | `placeButtons` | center / side / top as separate header buttons. Off where drag is available: one keyboard-accessible placement menu remains, while drag and the moment move Ask | off | off |
 | `drag` | the whole title bar drags between places immediately with a mouse, after a long press with touch | on | off |
@@ -188,9 +192,9 @@ the panel's width.
 
 ## A chat, not a box
 
-- **Shortcuts.** ⌘J (Ctrl+J) opens Ask from anywhere — beside a page being
-  read, in the center elsewhere — and closes it again. `/` `J` from the slash
-  list and Tab or the Ask row from search morph the card into the chat. ⌘K,
+- **Shortcuts.** K opens Ask from anywhere outside a text field — beside a page
+  being read, in the center elsewhere — and closes it again. `/` `K` from the
+  slash list and Tab or the Ask row from search morph the card into the chat. ⌘K,
   or `/` outside a field, parks a center chat (or the dock, on a desk) aside
   and opens the palette in front of it.
 - **History.** Every conversation is saved from its first question

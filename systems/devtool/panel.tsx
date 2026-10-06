@@ -3240,10 +3240,10 @@ function AskModule() {
             onChange={set("fromSearch")}
           />
         </PanelRow>
-        <PanelRow label={zh ? "按钮 / ⌘J 打开" : "From a call"} star={star("fromCall")}>
+        <PanelRow label={zh ? "按钮 / K 打开" : "From a call"} star={star("fromCall")}>
           <PanelSegmented
             value={config.fromCall}
-            label={zh ? "按钮 / ⌘J 打开" : "From a call"}
+            label={zh ? "按钮 / K 打开" : "From a call"}
             options={[
               { value: "last", label: "Last", title: zh ? "上次放的位置" : "Where it was last put" },
               ...places,
@@ -3256,7 +3256,7 @@ function AskModule() {
             value={config.onReadingPage}
             label={zh ? "阅读页" : "On reading pages"}
             options={[
-              { value: "side", label: "Side", title: zh ? "⌘J 在文章页打开到侧边；从命令面板进来仍居中" : "A call opens beside a page being read; the palette still morphs" },
+              { value: "side", label: "Side", title: zh ? "K 在文章页打开到侧边；从命令面板进来仍居中" : "A call opens beside a page being read; the palette still morphs" },
               { value: "same", label: zh ? "同上" : "Same", title: zh ? "按上面两条规则" : "Follow the two rules above" },
             ]}
             onChange={set("onReadingPage")}

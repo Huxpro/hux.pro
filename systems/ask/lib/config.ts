@@ -37,7 +37,7 @@ export type AskPlatform = "desk" | "phone";
 export interface AskConfig {
   /** Where asking from search (the palette's Ask row, Tab) opens Ask. */
   fromSearch: AskPlacement;
-  /** Where a call with nothing typed (the Ask button, ⌘J) opens Ask, on a
+  /** Where a call with nothing typed (the Ask button, K) opens Ask, on a
    *  page that is not being read: where it was last put by the place buttons
    *  (when those are on), or always one place. A page being read is the side
    *  (`onReadingPage`), and asking from the palette is the center. */
