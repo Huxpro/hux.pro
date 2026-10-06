@@ -6,7 +6,7 @@
 //   <Glow active={voice.listening} shape="line" level={voice.level}
 //         bands={voice.bands} processing={voice.state === "processing"} />
 //
-// With AI Gateway credentials, a held recording goes to the selected model
+// With AI Gateway credentials, a tap records until stop, while a hold sends
 // on release (Whisper by default; Grok STT is a cheaper DevTool option).
 // Otherwise the words come from the browser's Web Speech API. The glow follows
 // the microphone meter (lib/meter.ts). See

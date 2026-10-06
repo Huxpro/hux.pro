@@ -2834,12 +2834,19 @@ html[data-sky-armed] .sky-pull-cue-go {
 .voice-mic-live {
   animation: voice-mic-breathe 1.6s ease-in-out infinite;
 }
+.voice-recording-dot {
+  animation: voice-recording-breathe 1.4s ease-in-out infinite;
+}
+@keyframes voice-recording-breathe {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--destructive); }
+  50% { opacity: 0.65; box-shadow: 0 0 0 3px transparent; }
+}
 @keyframes voice-mic-breathe {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.55; transform: scale(0.9); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .voice-mic-live { animation: none; }
+  .voice-mic-live, .voice-recording-dot { animation: none; }
 }
 
 /* =============================================================================

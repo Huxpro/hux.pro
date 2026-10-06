@@ -16,6 +16,7 @@ systems/glow/
 
 systems/voice/
 ├── lib/meter.ts        # microphone → level + three bands (gate, knee, envelope)
+├── waveform.tsx        # small sound-level bars beside the glow
 └── use-voice-input.ts  # Gateway recording or Web Speech API + the meter
 
 systems/command/voice.tsx   # the palette's microphone, field glow, `/` `V`
@@ -307,7 +308,9 @@ some instance is live (arriving, on, or leaving) and the tab is visible:
 feeds the same microphone meter to the glow:
 
 - **AI Gateway**: when Gateway credentials are available on the server and
-  the browser supports `MediaRecorder`, hold to record and release to send
+  the browser supports `MediaRecorder`, tap to start and tap stop, or hold
+  to record and release inside the input field to send. Sliding outside
+  the field before release cancels the held recording
   the clip through `/api/voice`. The DevTool's Voice module chooses
   `openai/whisper-1` (the default, $0.36/hour) or `spacexai/grok-stt`
   ($0.10/hour). Whisper stays the default until Grok has been tried on real
@@ -338,8 +341,15 @@ syllable and settles between words. Three bands (80–300 Hz, 300–2000,
 
 A microphone in the field's trailing cluster, in both shells (the desktop
 popover, the phone sheet). While it listens the field wears the `line` glow
-on its bottom edge, rising and rippling with the voice; when the speaker
-pauses it gathers into the travelling beam until the phrase lands. What is
+on its bottom edge, rising and rippling with the voice. Gateway recording
+also changes the button to a stop icon with a recording dot, changes an empty
+field's placeholder to “Recording…”, and draws small bars at the glow's edge.
+The bars use the same meter and palette; louder speech makes them taller.
+During a hold, a hint says “Release to send · slide out to cancel” and changes
+to “Release to cancel” once the pointer leaves the field. Supported browsers
+give short vibration feedback on start, stop, and cancel.
+When recording ends or browser speech pauses, it gathers into the travelling
+beam until the phrase lands. What is
 said is read as a query, not a sentence: "go to the writing", "open works",
 "show me the wallpaper", "打开写作" arrive as `writing`, `works`,
 `wallpaper`, `写作` (`toQuery`).
@@ -349,7 +359,7 @@ section (`actions`: do one thing, now) beside Music and Add to Home Screen.
 It is `slashOnly`: in the slash list as `V`, never a search result, since its
 control is already in the field.
 
-**Hold to record with a Gateway model; tap or hold in browser mode.** Dictation tools answer a tap and a hold:
+**Tap or hold to record with a Gateway model; browser mode keeps its original gesture.** Dictation tools answer a tap and a hold:
 Wispr Flow's held Fn (push-to-talk), macOS's Globe pressed twice, Windows'
 Win+H, Superwhisper's ⌥Space. The best of those keys are taken system-wide
 or invisible to a page (a browser never sees Fn / Globe; Win+H is the OS's;
@@ -359,12 +369,12 @@ space:
 
 | way in | Gateway model | Browser recognition |
 |---|---|---|
-| the microphone | hold, speak, release to transcribe | tap to toggle, or hold ≥ 300 ms and release to stop |
-| `/` `V` | hold V, speak, release to transcribe | tap to start, or hold ≥ 300 ms and release to stop |
+| the microphone | tap to start, tap stop to transcribe; or hold, speak, release inside the field to transcribe, outside to cancel | tap to toggle, or hold ≥ 300 ms and release to stop |
+| `/` `V` | tap to start and use the stop button; or hold V, speak, release to transcribe | tap to start, or hold ≥ 300 ms and release to stop |
 | Space in the empty field | hold ≥ 300 ms, speak, release to transcribe | hold ≥ 300 ms, speak, release to stop |
 
 A browser tap's session ends when the speaker pauses; a hold's when the key or
-pointer is released. A Gateway press under 300 ms is discarded. `/` `V` knows it was a key because a command's `run`
+pointer is released. A Gateway clip under 300 ms is discarded. `/` `V` knows it was a key because a command's `run`
 receives the letter that ran it; a click on its slash row carries none, so a
 "v" typed later can never end a session. The held key's repeats are
 swallowed, so a hold never types into the field.

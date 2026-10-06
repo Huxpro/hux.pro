@@ -15,8 +15,8 @@ import { voiceModelPref } from "./prefs";
 //           phrase when the speaker pauses. The browser does the recognition,
 //           on-device or via its vendor's service; nothing goes through this
 //           site.
-//   gateway  MediaRecorder captures while held; release sends the completed
-//           clip through this site's server to the selected Gateway model.
+//   gateway  MediaRecorder captures after a tap or during a hold; stopping
+//           sends the clip through this site's server to the selected model.
 //   glow    a microphone stream through the voice meter (lib/meter.ts), for
 //           the glow to follow: how loud, which bands. Where a second capture
 //           is refused (some Android browsers hold the microphone for the
@@ -30,6 +30,7 @@ import { voiceModelPref } from "./prefs";
 
 type RecognitionState = "idle" | "listening" | "processing" | "denied" | "error";
 type VoiceMode = "browser" | "gateway";
+type VoiceGesture = "idle" | "hold" | "cancel";
 
 function recordingType(): string | null {
   if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) return null;
@@ -98,6 +99,8 @@ export interface VoiceInput {
   mode: VoiceMode;
   state: RecognitionState;
   listening: boolean;
+  gesture: VoiceGesture;
+  setGesture: (gesture: VoiceGesture) => void;
   /** Start (from a press: the microphone is only granted in a gesture). */
   start: () => void;
   stop: () => void;
@@ -118,6 +121,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
   const [failedModel, setFailedModel] = useState<VoiceModelChoice | null>(null);
   const selectedModel = voiceModelPref.use();
   const [state, setState] = useState<RecognitionState>("idle");
+  const [gesture, setGesture] = useState<VoiceGesture>("idle");
   const recognition = useRef<Recognition | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const awaitingMicrophone = useRef(false);
@@ -164,6 +168,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
   }, []);
 
   const stop = useCallback(() => {
+    setGesture("idle");
     if (activeMode.current === "gateway") {
       if (!recorder.current) {
         if (!awaitingMicrophone.current) return;
@@ -184,6 +189,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
   }, []);
 
   const abort = useCallback(() => {
+    setGesture("idle");
     session.current++;
     upload.current?.abort();
     upload.current = null;
@@ -411,6 +417,8 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
     mode,
     state,
     listening: state === "listening" || state === "processing",
+    gesture,
+    setGesture,
     start,
     stop,
     abort,

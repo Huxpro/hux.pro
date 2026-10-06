@@ -327,6 +327,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                 (isLoadBundleMode || isAskMode) && "hidden"
               )}
               data-drag-handle
+              data-voice-recording-area
               style={isDraggable ? { touchAction: "none" } : undefined}
             >
               <div
@@ -348,7 +349,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         ref={inputRef}
                         value={field.value}
                         onValueChange={field.onChange}
-                        placeholder={t(locale, "searchPlaceholder")}
+                        placeholder={t(locale, voice.mode === "gateway" && voice.state === "listening" ? "voiceRecording" : "searchPlaceholder")}
                         {...spaceToTalk}
                         onKeyDown={(e) => {
                           // Tab: ask what was typed (systems/ask).

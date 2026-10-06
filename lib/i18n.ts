@@ -449,6 +449,11 @@ export const translations = {
     voiceDenied: "Microphone blocked",
     voiceHold: "Hold to record",
     voiceRelease: "Release to transcribe",
+    voiceStart: "Tap to record or hold to talk",
+    voiceRecording: "Recording…",
+    voiceFinish: "Stop recording and transcribe",
+    voiceHoldHint: "Release to send · slide out to cancel",
+    voiceCancelHint: "Release to cancel",
     voiceProcessing: "Transcribing…",
     voiceError: "Could not transcribe. Try again",
     // About (see systems/about)
@@ -887,6 +892,11 @@ export const translations = {
     voiceDenied: "麦克风被禁用",
     voiceHold: "按住录音",
     voiceRelease: "松开后识别",
+    voiceStart: "轻点开始录音，或按住说话",
+    voiceRecording: "正在录音…",
+    voiceFinish: "停止录音并识别",
+    voiceHoldHint: "松开发送 · 滑出取消",
+    voiceCancelHint: "松开取消",
     voiceProcessing: "正在识别…",
     voiceError: "识别失败，请重试",
     // About (see systems/about)

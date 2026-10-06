@@ -214,7 +214,7 @@ function SheetBody({
 
         {/* Header: the search field. It stays through both sub-modes: they
             are sheets stacked on this one, not a body swapped underneath. */}
-        <div className="relative flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
+        <div data-voice-recording-area className="relative flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
           {/* Listening: the site's glow along the field's bottom edge. */}
           <VoiceGlow voice={voice} />
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -223,7 +223,7 @@ function SheetBody({
             value={field.value}
             onValueChange={field.onChange}
             onClick={onFieldTap}
-            placeholder={t(locale, "searchPlaceholder")}
+            placeholder={t(locale, voice.mode === "gateway" && voice.state === "listening" ? "voiceRecording" : "searchPlaceholder")}
             {...spaceToTalk}
             onKeyDown={(e) => {
               // Tab (a hardware keyboard): ask what was typed (systems/ask).
