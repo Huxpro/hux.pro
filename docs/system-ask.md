@@ -59,11 +59,12 @@ whenever the field has text:
 | anything else | last | opens the best match; ↓ or **Tab** reaches Ask |
 
 **Tab** enters Ask from anywhere in search mode, and asks what is typed when
-there is a query. With an empty field, its `Tab Ask AI` hint sits at the field's
-trailing edge; once typing begins, the Ask row carries the hint instead. Voice
-keeps a spoken question whole (`toFieldText` in `systems/command/voice.tsx`):
-commands are still stripped to a query ("open the writing" → "writing"),
-questions are not.
+there is a query. Its `Tab Ask AI` hint stays at the field's trailing edge while
+typing (`Tab AI` on a narrower keyboard viewport), after the microphone: voice
+is another way to fill the field; Ask is where the field goes. Touch-only
+devices get neither keyboard hint. Voice keeps a spoken question whole
+(`toFieldText` in `systems/command/voice.tsx`): commands are still stripped to
+a query ("open the writing" → "writing"), questions are not.
 
 Ask is the palette's fourth mode, beside search, slash and load-bundle
 (`isAskMode` in the command provider). On the desktop it replaces the results

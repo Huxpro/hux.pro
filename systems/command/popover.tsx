@@ -377,8 +377,8 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         <VoiceVisual voice={voice} inline />
                       </div>
                     </div>
-                    {showHints && field.value === "" && <AskTabHint />}
                     <VoiceButton voice={voice} className="-mx-1" />
+                    {showHints && <AskTabHint query={field.value} />}
                     {/* One slot, two readings: a hint where there is a
                         keyboard, the way into slash mode where there is not. */}
                     {showHints ? (

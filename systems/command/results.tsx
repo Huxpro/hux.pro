@@ -134,7 +134,6 @@ export function usePaletteSelection(query: string) {
 function AskRow({ query }: { query: string }) {
   const { locale } = useLocale();
   const { openAsk } = useCommand();
-  const showHints = useShowKeyboardHints();
   const s = askStrings(locale);
   return (
     <Command.Item value={ASK_VALUE} onSelect={() => openAsk(query, "search")} className={ROW}>
@@ -143,17 +142,22 @@ function AskRow({ query }: { query: string }) {
         <span className="text-muted-foreground">{s.askRow}: </span>
         {query}
       </span>
-      {showHints && <kbd className={cn("shrink-0", TYPE.kbd)}>Tab</kbd>}
     </Command.Item>
   );
 }
 
 /**
- * The empty field's quiet hand-off into Ask. Once there is a query the Ask
- * row carries the same Tab hint, so the path stays visible without taking a
- * second line in the palette.
+ * The field's quiet hand-off into Ask. It keeps its place as the visitor
+ * types, and carries the query into the conversation. On a narrower keyboard
+ * viewport the label contracts to AI; the key is the part that teaches.
  */
-export function AskTabHint({ className }: { className?: string }) {
+export function AskTabHint({
+  query,
+  className,
+}: {
+  query: string;
+  className?: string;
+}) {
   const { locale } = useLocale();
   const { openAsk } = useCommand();
   const s = askStrings(locale);
@@ -161,7 +165,7 @@ export function AskTabHint({ className }: { className?: string }) {
   return (
     <button
       type="button"
-      onClick={() => openAsk(undefined, "search")}
+      onClick={() => openAsk(query || undefined, "search")}
       aria-label={s.askRow}
       className={cn(
         "pressable flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1",
@@ -171,7 +175,8 @@ export function AskTabHint({ className }: { className?: string }) {
       )}
     >
       <kbd className={TYPE.kbd}>Tab</kbd>
-      <span>{s.askRow}</span>
+      <span className="hidden md:inline">{s.askRow}</span>
+      <span className="md:hidden">AI</span>
     </button>
   );
 }

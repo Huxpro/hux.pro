@@ -251,11 +251,11 @@ function SheetBody({
             <VoiceVisual voice={voice} inline />
           </div>
           </div>
-          {showHints && field.value === "" && <AskTabHint />}
           {/* No keyboard to type "/" on: the field's trailing accessory
               opens the slash sheet, while the field is empty. Tucked in
               against the close button so the two read as one cluster. */}
           <VoiceButton voice={voice} className="-mr-1" />
+          {showHints && <AskTabHint query={field.value} />}
           {!showHints && field.value === "" && <SlashEntry className="-mr-2" />}
           <button
             type="button"
