@@ -39,7 +39,8 @@ import { askStrings } from "../strings";
 // with no place buttons. A phone's has none of them, because there Ask is a
 // bottom drawer and nothing else. Wherever they are on, the side is left out
 // on a screen with no room beside the page. Touch starts after a deliberate
-// long press, so ordinary scrolling and Dock swipes remain ordinary gestures.
+// long press; controls remain taps, while the rest of the title bar belongs
+// to placement rather than the browser's pan gesture.
 // =============================================================================
 
 const PLACES: { placement: AskPlacement; icon: LucideIcon }[] = [
@@ -341,8 +342,13 @@ export function useAskDragHandle(from: AskPlacement) {
           ...(free ? { "data-drag-handle": "" } : {}),
         }
       : {},
-    // A handle, to the eye and to the hand.
-    className: cn(enabled && "sm:cursor-grab sm:active:cursor-grabbing", "select-none"),
+    // `preventDefault` on a PointerEvent cannot stop the browser from claiming
+    // a later touch move. The gesture must declare its ownership up front or
+    // Chromium/Safari sends pointercancel just after the long press.
+    className: cn(
+      enabled && "touch-none sm:cursor-grab sm:active:cursor-grabbing",
+      "select-none",
+    ),
   };
 }
 

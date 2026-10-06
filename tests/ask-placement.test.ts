@@ -49,6 +49,31 @@ test("Command parks a centered Ask at the side and closing it restores center", 
   assert.equal(restored.parking, null);
 });
 
+test("temporary parking also restores a Top conversation", () => {
+  const top = reduceCommandAsk(INITIAL_COMMAND_ASK_STATE, {
+    type: "SHOW_ASK",
+    placement: "top",
+    platform: "desk",
+    entry: "direct",
+  });
+  const parked = reduceCommandAsk(top, {
+    type: "PARK_AND_OPEN",
+    mode: "search",
+    target: "side",
+    returnTo: "top",
+    entry: "direct",
+  });
+  assert.equal(visibleAskPlacement(parked), "side");
+
+  const restored = reduceCommandAsk(parked, {
+    type: "CLOSE_PALETTE",
+    platform: "desk",
+    canSide: true,
+  });
+  assert.equal(visibleAskPlacement(restored), "top");
+  assert.equal(restored.palette, "closed");
+});
+
 test("a narrow desk parks Ask as a pill instead of forcing two wide panels", () => {
   const parked = reduceCommandAsk(showCenter(), {
     type: "PARK_AND_OPEN",
