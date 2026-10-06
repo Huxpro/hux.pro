@@ -222,18 +222,20 @@ export function AskActivity() {
             </>
           }
           title={
-            // The handle for a mouse's drag. The panel follows; letting go in the
-            // middle makes it the center chat, in the trailing column the side
-            // (which stops the press from reaching the drawer). To a finger it
-            // is the header, and swiping it up puts the panel back to the pill.
             <span
-              onPointerDown={handle.onPointerDown}
-              className={cn("flex min-w-0 flex-1 items-center gap-1.5", handle.className)}
+              className="flex min-w-0 flex-1 items-center gap-1.5"
             >
               <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <span className={cn(TYPE.label, "truncate")}>{showHistory ? s.history : s.ask}</span>
             </span>
           }
+          headerHandle={{
+            // The whole title bar is the handle, not only the icon and words.
+            // useAskDragHandle excludes its buttons, so history, new chat,
+            // close and the Dock's chevron keep their click behavior.
+            onPointerDown: handle.onPointerDown,
+            className: handle.className,
+          }}
           actions={
             <>
               {/* Minimize is the Dock's own chevron here. */}

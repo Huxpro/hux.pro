@@ -85,7 +85,8 @@ What follows is the desk's preset; every line of it is a setting (below).
   the card into the center chat, unless Ask is already open at the side or
   the top, which then takes the question. ⌘J and the Ask button open it
   beside a page to read (/writing, /works, /prompt, /about, /docs;
-  `onReadingPage`), so the page stays in view, and in the center elsewhere.
+  `onReadingPage`) when the 440px panel and the reading column genuinely fit
+  (1280px and up), so the page stays in view, and in the center elsewhere.
   Arriving on a reading page with the center chat already up moves it to the
   side. A drag does not stick, and neither does parking it to make room for
   ⌘K: the next open follows the moment again. The place buttons, when turned
@@ -96,22 +97,26 @@ What follows is the desk's preset; every line of it is a setting (below).
   Escape returns to the field. Reached directly (⌘J, the Ask button, a move
   from another place) it has no search behind it: no back button, and Escape
   closes it (`askEntry` in the command provider).
-- **Moving.** Minimize stays in the header. The place buttons are off: the
-  header is the handle. The center is a window and drags anywhere (the
-  palette's own drag). The side panel and the dock follow the pointer too.
-  Letting go in the trailing column (the panel's own width) is the side, in
-  the top band (112px, and not in that column — the side's header lives
-  there) the dock, and anywhere else the center. The place it would land is
-  drawn while the pointer is over a different one (`AskDragOverlay`). The
-  center fades only then (`data-ask-dragging`).
+- **Moving.** Minimize and one placement menu stay in the header; the three
+  always-visible place buttons are off. The whole title bar is the handle.
+  With a mouse it drags immediately; with touch, a 360ms hold arms the drag.
+  The center is a free window, and the side panel and Dock panel follow the
+  pointer too. A narrow trailing-edge lane admits the side and a narrow top
+  band admits the Dock; once admitted, wider leave bands keep the target
+  stable, so a diagonal drag does not flicker between places. The place it
+  would land is drawn while the pointer is over a different one
+  (`AskDragOverlay`). The placement menu is the keyboard and assistive
+  technology path to the same three commands; Side is disabled when it cannot
+  coexist with the page.
 - **Both at once.** ⌘K, or `/` outside a field, while Ask is the center chat
-  or (on a desk) the dock, parks it — the side on a desk, the dock on a
-  phone — and opens the palette. The side panel and the card share the
-  screen: the card centers in the room that is left, and clicks on the panel
-  stay the panel's. The parked chat does not take the keyboard. Escape
-  closes the palette and leaves the chat; Escape typed in the chat closes
-  the chat. Ask already on the side is left there. `/` in the composer is a
-  character.
+  or (on a desk) the dock, parks it — at the side when both panes fit, as a
+  Dock pill on a narrower desk, and at the top on a phone — and opens the
+  palette. The side panel and the card share the screen: the card centers in
+  the room that is left, and clicks on the panel stay the panel's. The parked
+  chat does not take the keyboard. Closing the palette restores the place Ask
+  had before this temporary move; navigation commits the parked place instead
+  of teleporting it over the new page. Ask already on the side is left there.
+  `/` in the composer is a character.
 - **The pill.** Minimize (or the Dock's chevron at the top, or a route change
   while it is there) leaves the pill; tapping it opens the top place. Closing
   Ask while a reply is still being written leaves the pill too. ✕ closes it
@@ -154,14 +159,16 @@ defaults.
 | `fromSearch` | where asking from search opens Ask | center | center (the drawer) |
 | `fromCall` | where ⌘J / the Ask button opens it, off a reading page: where the place buttons last put it, or one place | center | center |
 | `onReadingPage` | on /writing, /works, /prompt, /about, /docs, a call opens at the side (asking from the palette still morphs the card) | side | same |
-| `placeButtons` | center / side / top in the header (side never on a phone: no room). Off: drag, and the moment, move Ask | off | off |
-| `drag` | the header drags between places (a mouse) | on | off |
+| `placeButtons` | center / side / top as separate header buttons. Off where drag is available: one keyboard-accessible placement menu remains, while drag and the moment move Ask | off | off |
+| `drag` | the whole title bar drags between places immediately with a mouse, after a long press with touch | on | off |
 | `minimize` | `dock`: into the Dock as a pill; `off`: no minimize button, and the Dock's collapse closes | dock | off |
 | `backgroundPill` | a reply still being written after Ask closed shows as a pill | on | off |
 | `glowDelay` | ms the field listens before the voice glow comes up | 180 | 180 |
 | `keyboardDelay` | ms more when the microphone just sent a keyboard down | 0 | 320 |
 
-A platform is the surfaces' `sm`: under 640px, a phone.
+A platform is the surfaces' `sm`: under 640px, a phone. Side capacity is a
+separate spatial decision: it begins at 1280px, where the page already reserves
+the panel's width.
 
 ## A chat, not a box
 

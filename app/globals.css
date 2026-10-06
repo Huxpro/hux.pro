@@ -2176,11 +2176,51 @@ html[data-ask-drag-from="top"] [data-dock-panel]:has([data-ask-top]) {
   cursor: grabbing;
 }
 
+/* Framer Motion owns the center card's mouse drag. A touch drag begins only
+   after Ask's long press, so it carries the same card with the independent
+   `translate` property instead. */
+html[data-ask-drag-touch][data-ask-drag-from="center"] [data-ask-center-host] {
+  translate: var(--ask-drag-x, 0px) var(--ask-drag-y, 0px);
+  cursor: grabbing;
+}
+
+html[data-ask-drag-touch][data-ask-drag-from="center"] [data-ask-center-host],
+html[data-ask-drag-touch][data-ask-drag-from="side"] [data-ask-drag-host="side"],
+html[data-ask-drag-touch][data-ask-drag-from="top"] [data-dock-panel]:has([data-ask-top]) [data-surface-shell] {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 html[data-ask-drag-commit="side"] [data-ask-drag-host="side"],
 html[data-ask-drag-commit="center"] [data-ask-center],
 html[data-ask-drag-commit="top"] [data-dock-panel]:has([data-ask-top]) {
   opacity: 0;
   transition: none;
+}
+
+/* A question handed from Command to an Ask surface that was already open
+   should not appear to vanish with the palette. The receiving pane answers
+   with one restrained focus pulse; it neither moves nor steals the keyboard. */
+html[data-ask-handoff="side"] [data-ask-drag-host="side"],
+html[data-ask-handoff="top"] [data-dock-panel]:has([data-ask-top]) [data-surface-shell],
+html[data-ask-handoff="center"] [data-surface-shell]:has([data-ask-panel]) {
+  animation: ask-handoff 650ms ease-out;
+}
+
+@keyframes ask-handoff {
+  0% { outline: 0 solid var(--ring); outline-offset: 0; }
+  35% { outline: 3px solid var(--ring); outline-offset: 3px; }
+  100% { outline: 0 solid transparent; outline-offset: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ask-handoff] [data-ask-drag-host="side"],
+  html[data-ask-handoff] [data-dock-panel]:has([data-ask-top]) [data-surface-shell],
+  html[data-ask-handoff] [data-surface-shell]:has([data-ask-panel]) {
+    animation: none;
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
 }
 
 /* =============================================================================

@@ -933,9 +933,10 @@ export const PromptInput = ({
             // at half the ring's ink: the field is the panel's, not a form's.
             "has-[[data-slot=input-group-control]:focus-visible]:ring-0",
             "has-[[data-slot=input-group-control]:focus-visible]:border-ring/50",
-            // Its own fill: over a translucent panel (the Dock's glass) the
-            // page would otherwise read through what is being typed.
-            "bg-background/70 dark:bg-background/60"
+            // Keep InputGroup's ordinary ink wash. The Ask shell owns the
+            // glass material; another page-colour fill here compounded with
+            // that glass into an almost-solid white card in light mode and
+            // ignored the Tinted / Clear setting.
           )}
         >
           {children}

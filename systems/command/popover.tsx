@@ -302,6 +302,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
           }}
         >
           <Command
+            data-ask-center-host={isAskMode ? "" : undefined}
             className={cn(
               "relative mx-4 transition-all duration-300 ease-out",
               "bg-glass-popover backdrop-blur-xl",
