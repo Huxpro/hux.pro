@@ -12,8 +12,7 @@ const COLORS = Array.from({ length: BAR_COUNT }, (_, i) => {
   return `rgb(${a.map((channel, index) => Math.round((channel * (1 - mix) + b[index] * mix) * 255)).join(" ")})`;
 });
 
-/** Full-width recording meter. It shares the microphone analyser with Glow,
- * but is rendered only when this alternative visual style is selected. */
+/** Recording meter that fills the space between the status and stop button. */
 export function VoiceWaveform({
   active,
   processing,
@@ -60,7 +59,7 @@ export function VoiceWaveform({
 
   if (!active) return null;
   return (
-    <span aria-hidden className="pointer-events-none absolute inset-x-3 bottom-0 z-10 flex h-4 items-center overflow-hidden opacity-90">
+    <span aria-hidden className="pointer-events-none relative flex h-6 min-w-8 flex-1 items-center overflow-hidden opacity-90">
       <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-foreground/25" />
       <span ref={root} className="relative flex h-full w-full items-center justify-between gap-px">
         {Array.from({ length: BAR_COUNT }, (_, i) => (

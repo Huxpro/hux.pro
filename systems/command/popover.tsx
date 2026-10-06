@@ -370,7 +370,10 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                           isDraggable && "cursor-default focus:cursor-text"
                         )}
                       />
-                      <VoiceStatus voice={voice} className="pointer-events-none absolute inset-0 flex items-center" />
+                      <div className="pointer-events-none absolute inset-0 flex items-center gap-3">
+                        <VoiceStatus voice={voice} />
+                        <VoiceVisual voice={voice} inline />
+                      </div>
                     </div>
                     <VoiceButton voice={voice} className="-mx-1" />
                     {/* One slot, two readings: a hint where there is a
@@ -410,7 +413,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                   </div>
                 </div>
               </div>
-              {/* Listening: the site's glow along the field's bottom edge. */}
+              {/* Glow stays on the field edge; the waveform sits beside the status. */}
               <VoiceVisual voice={voice} />
             </div>
 

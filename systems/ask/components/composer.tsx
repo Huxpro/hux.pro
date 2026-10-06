@@ -231,8 +231,11 @@ export function AskComposer() {
           </div>
         </div>
         <PromptInputFooter className={cn("transition-[min-height] duration-300", voiceActive && "min-h-14")}>
-          <PromptInputTools>
-            {voiceActive ? <VoiceStatus voice={voice} sendOnHold className="pl-1" /> : <>
+          <PromptInputTools className={voiceActive ? "flex-1" : undefined}>
+            {voiceActive ? <>
+              <VoiceStatus voice={voice} sendOnHold className="pl-1" />
+              <VoiceVisual voice={voice} inline />
+            </> : <>
               <button type="button" aria-label={s.contextAdd} title={s.contextAdd} aria-expanded={choosing} onClick={() => setChoosing((v) => !v)} className="pressable flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><Plus className="size-4" /></button>
               <PromptInputSelect
                 value={model}

@@ -215,7 +215,7 @@ function SheetBody({
         {/* Header: the search field. It stays through both sub-modes: they
             are sheets stacked on this one, not a body swapped underneath. */}
         <div data-voice-recording-area className="relative flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
-          {/* Listening: the site's glow along the field's bottom edge. */}
+          {/* Glow stays on the field edge; the waveform sits beside the status. */}
           <VoiceVisual voice={voice} />
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <div className="relative min-w-0 flex-1">
@@ -245,7 +245,10 @@ function SheetBody({
               "placeholder:text-tertiary-foreground"
             )}
           />
-          <VoiceStatus voice={voice} className="pointer-events-none absolute inset-0 flex items-center" />
+          <div className="pointer-events-none absolute inset-0 flex items-center gap-3">
+            <VoiceStatus voice={voice} />
+            <VoiceVisual voice={voice} inline />
+          </div>
           </div>
           {/* No keyboard to type "/" on: the field's trailing accessory
               opens the slash sheet, while the field is empty. Tucked in
