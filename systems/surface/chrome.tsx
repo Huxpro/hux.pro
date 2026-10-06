@@ -24,6 +24,11 @@ export interface SurfaceBodyProps {
   title: React.ReactNode;
   /** Extra controls in the header, between the title and close. */
   actions?: React.ReactNode;
+  /** A feature-owned handle for a panel that moves between placements. */
+  headerHandle?: {
+    onPointerDown: React.PointerEventHandler<HTMLDivElement>;
+    className?: string;
+  };
   closeLabel: string;
   onClose: () => void;
   /**
@@ -51,11 +56,12 @@ export interface SurfaceBodyProps {
 function SurfaceHeader({
   title,
   actions,
+  headerHandle,
   closeLabel,
   onClose,
   draggable,
   titleAs: TitleAs = "div",
-}: Pick<SurfaceBodyProps, "title" | "actions" | "closeLabel" | "onClose"> & {
+}: Pick<SurfaceBodyProps, "title" | "actions" | "headerHandle" | "closeLabel" | "onClose"> & {
   draggable: boolean;
   titleAs?: React.ElementType;
 }) {
@@ -63,8 +69,11 @@ function SurfaceHeader({
     <div
       className={cn(
         "flex shrink-0 items-center justify-between gap-2 px-5 pb-2 pt-3",
-        draggable && "cursor-grab active:cursor-grabbing"
+        draggable && "cursor-grab active:cursor-grabbing",
+        headerHandle?.className,
       )}
+      onPointerDown={headerHandle?.onPointerDown}
+      data-ask-placement-handle={headerHandle ? "" : undefined}
       data-drag-handle={draggable ? "" : undefined}
     >
       <TitleAs className="min-w-0 flex-1 truncate text-xs font-mono text-muted-foreground">
@@ -87,6 +96,7 @@ function SurfaceHeader({
 export function SurfaceBody({
   title,
   actions,
+  headerHandle,
   closeLabel,
   onClose,
   titleAs,
@@ -103,6 +113,7 @@ export function SurfaceBody({
       <SurfaceHeader
         title={title}
         actions={actions}
+        headerHandle={headerHandle}
         closeLabel={closeLabel}
         onClose={onClose}
         draggable={draggable}

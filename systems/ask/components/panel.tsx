@@ -66,14 +66,17 @@ export default function AskPanel({ placement, active, request, onClose, onNaviga
     <SurfaceBody
       title={
         <span
-          onPointerDown={handle.onPointerDown}
-          className={cn("flex items-center gap-1.5", handle.className)}
+          className="flex items-center gap-1.5"
         >
           <Sparkles className="size-3.5 shrink-0" />
           {showHistory ? s.history : s.ask}
         </span>
       }
       titleAs={Drawer.Title}
+      headerHandle={{
+        onPointerDown: handle.onPointerDown,
+        className: handle.className,
+      }}
       actions={
         <>
           <AskPlacementControls current={placement} className="mr-1" />

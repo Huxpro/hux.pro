@@ -4,7 +4,27 @@ import { prepareAskChat } from "@/systems/ask/lib/chat";
 import { askConfigNow, askPlatformNow, type AskConfig } from "@/systems/ask/lib/config";
 import { readJSON, writeJSON } from "@/systems/ask/lib/storage";
 import { usePathname } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from "react";
+import {
+  canUseAskSide,
+  INITIAL_COMMAND_ASK_STATE,
+  isAskPlacement,
+  reduceCommandAsk,
+  visibleAskPlacement,
+  type AskEntry,
+  type AskParkTarget,
+  type AskPlacement,
+  type AskPlacementProvenance,
+} from "./ask-state";
+
+export {
+  ASK_PLACEMENTS,
+  canUseAskSide,
+  isAskPlacement,
+  type AskEntry,
+  type AskPlacement,
+  type AskPlacementProvenance,
+} from "./ask-state";
 
 // =============================================================================
 // Command System Provider
@@ -22,33 +42,23 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 // `/` `J`) morphs the card into the center chat, unless Ask is already open
 // somewhere else, which then takes the question. A call with nothing typed
 // (⌘J, the Ask button) opens beside a page being read, and in the center
-// elsewhere. Dragging the header moves it for this visit; it is not a choice
-// that sticks. Those are the desk's preset; where each opens, and what
-// minimize does, are settings (systems/ask/lib/config.ts), read as each call
-// is made.
+// elsewhere. Dragging the header or using its placement menu makes a manual
+// choice for this page context; automatic moves yield to it until navigation
+// starts a new context. Those are the desk's preset; where each opens, and
+// what minimize does, are settings (systems/ask/lib/config.ts), read as each
+// call is made.
 //
 // The center and, on a desk, the dock sit where the palette sits. ⌘K, or `/`
-// pressed outside a field, parks Ask out of the way (the side on a desk, the
-// dock on a phone) and opens the palette, so the chat and the command are
-// both up. The side panel already shares the screen with the card.
+// pressed outside a field, parks Ask out of the way (the side when it fits,
+// a pill on a narrower desk, the dock on a phone) and opens the palette, so
+// the chat and the command are both available. The side panel already shares
+// the screen with the card.
 //
 // A phone has no room for a side panel, and no use for a palette under a
 // conversation: there the center is a bottom drawer of Ask's own (the
 // `sheet` surface), and side is the same drawer. Its preset is the drawer
 // alone: no pill, and minimize is close.
 // =============================================================================
-
-/** Ask's places (see the note at the top). */
-export const ASK_PLACEMENTS = ["center", "side", "top"] as const;
-export type AskPlacement = (typeof ASK_PLACEMENTS)[number];
-
-/**
- * How Ask was reached: from inside the palette (its Ask row, Tab, `/` `J`),
- * or directly (⌘J, the Ask ball, a move from another place). It decides what
- * leaving the center does: back to search when the palette was the way in,
- * closed altogether when it was not, since there is no search to go back to.
- */
-export type AskEntry = "command" | "direct";
 
 /**
  * Pages read rather than used: Ask opens beside them on a desk (the
@@ -82,12 +92,16 @@ export function askOpenTarget({
 }
 
 /**
- * Where Ask steps aside so the palette can take the middle. A desk has the
- * side panel, which shares the screen with the card. A phone has no side:
- * the dock, above the sheet.
+ * Where Ask steps aside so the palette can take the middle. A roomy desk has
+ * the side panel, a narrower desk uses the pill rather than crowding two wide
+ * panes, and a phone has no side: the dock sits above the sheet.
  */
-export function askParkPlacement(platform: "desk" | "phone"): AskPlacement {
-  return platform === "desk" ? "side" : "top";
+export function askParkPlacement(
+  platform: "desk" | "phone",
+  canSide = typeof window !== "undefined" && canUseAskSide(window.innerWidth),
+): AskParkTarget {
+  if (platform === "phone") return "top";
+  return canSide ? "side" : "pill";
 }
 
 /**
@@ -103,10 +117,6 @@ export function askBlocksCommand(
 }
 
 const ASK_PLACEMENT_KEY = "hux_ask_placement";
-
-export function isAskPlacement(value: unknown): value is AskPlacement {
-  return (ASK_PLACEMENTS as readonly unknown[]).includes(value);
-}
 
 /**
  * Where the visitor has put Ask, by hand (a place button, a drop), for each
@@ -141,7 +151,7 @@ function pageKindNow(): PageKind {
 
 /** Room for a panel beside the page: a desk, as Ask's settings count it. */
 function hasRoomBeside(): boolean {
-  return typeof window !== "undefined" && askPlatformNow() === "desk";
+  return typeof window !== "undefined" && canUseAskSide(window.innerWidth);
 }
 
 interface CommandContextType {
@@ -176,12 +186,15 @@ interface CommandContextType {
    */
   openAsk: (text?: string, from?: "search" | "palette" | "call") => void;
   /**
-   * Move Ask to another place, the conversation with it. `chosen`: the
-   * visitor put it there with a place button (when those are on), which is
-   * remembered for a call on a page that is not being read. A drag is not
-   * one: the next open follows the moment again.
+   * Move Ask to another place, the conversation with it. A user-origin move
+   * wins over automatic placement for this page; `remember` additionally
+   * keeps a menu choice as the configured default for later visits.
    */
-  moveAsk: (placement: AskPlacement, entry?: AskEntry, chosen?: boolean) => void;
+  moveAsk: (
+    placement: AskPlacement,
+    entry?: AskEntry,
+    options?: { provenance?: AskPlacementProvenance; remember?: boolean },
+  ) => void;
   /** How Ask was reached (see `AskEntry`). */
   askEntry: AskEntry;
   /** Close Ask wherever it is (a reply still being written leaves a pill). */
@@ -212,94 +225,92 @@ export function useCommand() {
 
 export function CommandProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isSlashCommandsMode, setIsSlashCommandsMode] = useState(false);
-  const [isLoadBundleMode, setIsLoadBundleMode] = useState(false);
-  const [isAskMode, setIsAskMode] = useState(false);
+  const [shell, dispatchShell] = useReducer(reduceCommandAsk, INITIAL_COMMAND_ASK_STATE);
   const [askRequest, setAskRequest] = useState<{ text: string; n: number } | null>(null);
-  const [askSurface, setAskSurface] = useState<"side" | "top" | "sheet" | null>(null);
-  const [askPill, setAskPill] = useState(false);
-  const [askStarted, setAskStarted] = useState(false);
-  const [askEntry, setAskEntry] = useState<AskEntry>("direct");
   const [voiceRequest, setVoiceRequest] = useState(0);
   const [voiceHoldKey, setVoiceHoldKey] = useState<string | null>(null);
 
-  const open = useCallback((slashCommandsMode = false) => {
-    setIsOpen(true);
-    setIsSlashCommandsMode(slashCommandsMode);
-    setIsLoadBundleMode(false);
-    setIsAskMode(false);
-  }, []);
+  const isOpen = shell.palette !== "closed";
+  const isSlashCommandsMode = shell.palette === "slash";
+  const isLoadBundleMode = shell.palette === "bundle";
+  const isAskMode = shell.palette === "ask";
+  const askPlacement = visibleAskPlacement(shell);
+  const { askPill, askStarted, askEntry } = shell;
 
   const close = useCallback(() => {
-    setIsOpen(false);
-    setIsSlashCommandsMode(false);
-    setIsLoadBundleMode(false);
-    setIsAskMode(false);
-  }, []);
-
-  const toggle = useCallback(() => {
-    setIsOpen((prev) => {
-      if (prev) {
-        setIsSlashCommandsMode(false);
-        setIsLoadBundleMode(false);
-        setIsAskMode(false);
-      }
-      return !prev;
+    dispatchShell({
+      type: "CLOSE_PALETTE",
+      platform: askPlatformNow(),
+      canSide: hasRoomBeside(),
     });
   }, []);
 
-  const setSlashCommandsMode = useCallback((mode: boolean) => {
-    setIsSlashCommandsMode(mode);
-    if (mode) {
-      setIsLoadBundleMode(false);
-      setIsAskMode(false);
+  const parkAndOpen = useCallback((mode: "search" | "slash" | "bundle") => {
+    const placement = visibleAskPlacement(shell);
+    const platform = askPlatformNow();
+    if (askBlocksCommand(placement, platform)) {
+      dispatchShell({
+        type: "PARK_AND_OPEN",
+        mode,
+        target: askParkPlacement(platform, hasRoomBeside()),
+        returnTo: placement!,
+        entry: shell.askEntry,
+      });
+      return;
     }
+    dispatchShell({ type: "OPEN_PALETTE", mode });
+  }, [shell]);
+
+  const open = useCallback((slashCommandsMode = false) => {
+    parkAndOpen(slashCommandsMode ? "slash" : "search");
+  }, [parkAndOpen]);
+
+  const toggle = useCallback(() => {
+    if (shell.palette === "ask") parkAndOpen("search");
+    else if (shell.palette !== "closed") close();
+    else open(false);
+  }, [shell.palette, parkAndOpen, close, open]);
+
+  const setSlashCommandsMode = useCallback((mode: boolean) => {
+    dispatchShell({ type: "SET_PALETTE_MODE", mode: mode ? "slash" : "search" });
   }, []);
 
   const setLoadBundleMode = useCallback((mode: boolean) => {
-    setIsLoadBundleMode(mode);
-    if (mode) {
-      setIsSlashCommandsMode(false);
-      setIsAskMode(false);
-    }
+    dispatchShell({ type: "SET_PALETTE_MODE", mode: mode ? "bundle" : "search" });
   }, []);
 
   const setAskMode = useCallback((mode: boolean) => {
-    setIsAskMode(mode);
-    if (mode) {
-      setIsSlashCommandsMode(false);
-      setIsLoadBundleMode(false);
-    }
+    dispatchShell({ type: "SET_PALETTE_MODE", mode: mode ? "ask" : "search" });
   }, []);
 
-  const askPlacement: AskPlacement | null =
-    isOpen && isAskMode ? "center" : askSurface === "sheet" ? "center" : askSurface;
-
-  const moveAsk = useCallback((placement: AskPlacement, entry: AskEntry = "direct", chosen = false) => {
+  const moveAsk = useCallback((
+    placement: AskPlacement,
+    entry: AskEntry = "direct",
+    options: { provenance?: AskPlacementProvenance; remember?: boolean } = {},
+  ) => {
     const roomy = hasRoomBeside();
-    setAskEntry(entry);
     const target = placement === "side" && !roomy ? "center" : placement;
-    setAskStarted(true);
-    setAskPill(false);
-    setIsSlashCommandsMode(false);
-    setIsLoadBundleMode(false);
-    if (target === "center" && roomy) {
-      setAskSurface(null);
-      setIsOpen(true);
-      setIsAskMode(true);
-    } else if (target === "center") {
-      setIsOpen(false);
-      setIsAskMode(false);
-      setAskSurface("sheet");
-    } else {
-      setIsOpen(false);
-      setIsAskMode(false);
-      setAskSurface(target);
-    }
+    const provenance = target === placement
+      ? (options.provenance ?? "automatic")
+      : "capacity";
+    dispatchShell({
+      type: "SHOW_ASK",
+      placement: target,
+      platform: askPlatformNow(),
+      entry,
+      provenance,
+    });
     // Remembered only when the visitor put it there, and it went there: a
     // phone's sheet is not a vote against the side panel on the desk.
-    if (chosen && target === placement) writeChosen(pageKindNow(), target);
+    if (options.remember && target === placement) writeChosen(pageKindNow(), target);
+  }, []);
+
+  const signalHandoff = useCallback((placement: AskPlacement) => {
+    const root = document.documentElement;
+    root.dataset.askHandoff = placement;
+    window.setTimeout(() => {
+      if (root.dataset.askHandoff === placement) delete root.dataset.askHandoff;
+    }, 700);
   }, []);
 
   const openAsk = useCallback(
@@ -310,53 +321,53 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       const question = text?.trim();
       if (question) setAskRequest((prev) => ({ text: question, n: (prev?.n ?? 0) + 1 }));
       const entry: AskEntry = from === "call" ? "direct" : "command";
-      if (askSurface) {
+      if (shell.askSurface) {
         // Already open beside the page, at the top or as a phone's sheet: it
         // takes the question.
-        moveAsk(askSurface === "sheet" ? "center" : askSurface, entry);
+        const target = shell.askSurface === "sheet" ? "center" : shell.askSurface;
+        moveAsk(target, entry, {
+          // A Command parking spot becomes an ordinary automatic handoff;
+          // an actual user placement keeps being one.
+          provenance: shell.askProvenance === "command-park"
+            ? "automatic"
+            : shell.askProvenance,
+        });
+        if (from !== "call") requestAnimationFrame(() => signalHandoff(target));
         return;
       }
       const config = askConfigNow();
       const reading = pageKindNow() === "reading";
       const chosen = readChosen()[reading ? "reading" : "other"];
-      const target = askOpenTarget({ from, reading, config, chosen });
-      moveAsk(target, entry);
+      const contextual = from === "call" ? shell.manualPlacement ?? undefined : undefined;
+      const target = contextual ?? askOpenTarget({ from, reading, config, chosen });
+      moveAsk(target, entry, { provenance: contextual ? "user" : "automatic" });
     },
-    [askSurface, moveAsk]
+    [shell.askSurface, shell.askProvenance, shell.manualPlacement, moveAsk, signalHandoff]
   );
 
   const closeAsk = useCallback(() => {
-    setAskSurface(null);
-    setAskPill(false);
-    if (isAskMode) {
-      setIsOpen(false);
-      setIsAskMode(false);
-    }
-  }, [isAskMode]);
+    dispatchShell({ type: "CLOSE_ASK" });
+  }, []);
 
   const minimizeAsk = useCallback(() => {
-    closeAsk();
     // Where nothing is put away into the Dock, minimize is close: the
     // conversation stays the session's either way.
-    if (askConfigNow().minimize === "dock") setAskPill(true);
-  }, [closeAsk]);
+    dispatchShell({
+      type: "MINIMIZE_ASK",
+      pill: askConfigNow().minimize === "dock",
+    });
+  }, []);
 
   // Voice: back to search (the field is where the words go) and listen.
   const requestVoice = useCallback((holdKey?: string) => {
     setVoiceHoldKey(holdKey ?? null);
-    setIsOpen(true);
-    setIsSlashCommandsMode(false);
-    setIsLoadBundleMode(false);
-    setIsAskMode(false);
+    parkAndOpen("search");
     setVoiceRequest((n) => n + 1);
-  }, []);
+  }, [parkAndOpen]);
 
   const openLoadBundle = useCallback(() => {
-    setIsOpen(true);
-    setIsSlashCommandsMode(false);
-    setIsLoadBundleMode(true);
-    setIsAskMode(false);
-  }, []);
+    parkAndOpen("bundle");
+  }, [parkAndOpen]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
@@ -383,12 +394,6 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         e.stopPropagation();
-        const platform = askPlatformNow();
-        if (askBlocksCommand(askPlacement, platform)) {
-          moveAsk(askParkPlacement(platform), askEntry, false);
-          open(false);
-          return;
-        }
         toggle();
         return;
       }
@@ -397,15 +402,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       // Ask is in the palette's place, so the list and the chat both show.
       // In a field (the composer, the palette's own) it is a character.
       if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !isField(e.target)) {
-        const platform = askPlatformNow();
-        if (askBlocksCommand(askPlacement, platform)) {
-          e.preventDefault();
-          e.stopPropagation();
-          moveAsk(askParkPlacement(platform), askEntry, false);
-          open(true);
-          return;
-        }
-        if (!isOpen) {
+        if (!isOpen || askBlocksCommand(askPlacement, askPlatformNow())) {
           e.preventDefault();
           e.stopPropagation();
           open(true);
@@ -425,13 +422,13 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       if (e.key === "Escape" && isOpen && !e.defaultPrevented) {
         if (isLoadBundleMode) {
           e.preventDefault();
-          setIsLoadBundleMode(false);
+          setLoadBundleMode(false);
           return;
         }
         if (isAskMode) {
           e.preventDefault();
           // Back to search only if search was the way in.
-          if (askEntry === "command") setIsAskMode(false);
+          if (askEntry === "command") setAskMode(false);
           else close();
           return;
         }
@@ -448,24 +445,35 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       document.removeEventListener("keydown", onCapture, true);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen, isLoadBundleMode, isAskMode, askEntry, askPlacement, toggle, close, open, openAsk, closeAsk, moveAsk]);
+  }, [isOpen, isLoadBundleMode, isAskMode, askEntry, askPlacement, toggle, close, open, openAsk, closeAsk, moveAsk, setLoadBundleMode, setAskMode]);
 
-  // Navigating to a page to read with the center chat up: it becomes the side
-  // panel, so the page is read beside the conversation. Opening from the
-  // palette on the page already open stays the morph (the path did not
-  // change). Leaving a reading page leaves Ask where it is. Adjusted while
-  // rendering, the same way a state is derived from a changed prop.
-  const [seenPath, setSeenPath] = useState(pathname);
-  if (seenPath !== pathname) {
-    setSeenPath(pathname);
-    if (
-      askPlacement === "center" &&
-      askPlatformNow() === "desk" &&
-      isReadingPage(pathname)
-    ) {
-      moveAsk("side", askEntry, false);
-    }
-  }
+  // A route change is an event in the shell state machine, not a state update
+  // during render. It also commits a temporary Command parking decision: the
+  // chat must not jump back over a different page when the palette closes.
+  const seenPath = useRef(pathname);
+  useEffect(() => {
+    if (seenPath.current === pathname) return;
+    seenPath.current = pathname;
+    dispatchShell({
+      type: "NAVIGATE",
+      reading: isReadingPage(pathname),
+      platform: askPlatformNow(),
+      canSide: hasRoomBeside(),
+    });
+  }, [pathname]);
+
+  // Capacity, not the phone breakpoint, decides whether the 440px panel can
+  // coexist with a reading column or command card. A resized split view moves
+  // an open side chat to the center (or its pill while Command owns center).
+  useEffect(() => {
+    const onResize = () => dispatchShell({
+      type: "VIEWPORT",
+      platform: askPlatformNow(),
+      canSide: hasRoomBeside(),
+    });
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   return (
     <CommandContext.Provider

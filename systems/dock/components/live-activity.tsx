@@ -121,6 +121,16 @@ interface LiveActivityProps {
   /** Header buttons of the activity's own, between the title and the
    *  collapse chevron (a conversation's history and new chat). */
   actions?: React.ReactNode;
+  /**
+   * Makes the title bar a feature-owned drag handle. The handler sees the
+   * original target, so a feature can leave buttons and other controls alone.
+   * This is separate from the Drawer's touch swipe: Ask uses it to carry the
+   * expanded activity between its top, center and side places with a pointer.
+   */
+  headerHandle?: {
+    onPointerDown: React.PointerEventHandler<HTMLDivElement>;
+    className?: string;
+  };
   /** Panel body. */
   children: React.ReactNode;
   /** aria-label for the collapsed pill button. */
@@ -159,6 +169,7 @@ export function LiveActivity({
   pill,
   title,
   actions,
+  headerHandle,
   children,
   openLabel,
   collapseLabel,
@@ -334,7 +345,14 @@ export function LiveActivity({
                   takes the pointer on press and the click never reaches what
                   was pressed. A touch drag still works anywhere. */}
               <Drawer.Content>
-                <div className="flex items-center justify-between px-5 pt-4 pb-3">
+                <div
+                  onPointerDown={headerHandle?.onPointerDown}
+                  data-ask-placement-handle={headerHandle ? "" : undefined}
+                  className={cn(
+                    "flex items-center justify-between px-5 pt-4 pb-3",
+                    headerHandle?.className,
+                  )}
+                >
                   <Drawer.Title
                     render={<div className="flex items-center gap-2 min-w-0" />}
                   >

@@ -1,4 +1,4 @@
-import { isAskPlacement, type AskPlacement } from "@/systems/command/provider";
+import { isAskPlacement, type AskPlacement } from "@/systems/command/ask-state";
 // Deep import on purpose: presentation.ts depends on nothing but React, and
 // the command provider reads this file.
 import { SURFACE_BREAKPOINTS, useBreakpointValue } from "@/systems/surface/presentation";

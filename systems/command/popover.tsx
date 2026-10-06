@@ -302,6 +302,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
           }}
         >
           <Command
+            data-ask-center-host={isAskMode ? "" : undefined}
             className={cn(
               "relative mx-4 transition-all duration-300 ease-out",
               "bg-glass-popover backdrop-blur-xl",
@@ -457,7 +458,9 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         followHref(href, (to) => router.push(to));
                         // The page it opened is read beside the conversation.
                         // On a phone the drawer covers it, so the palette leaves.
-                        if (askPlatformNow() === "desk") moveAsk("side", askEntry, false);
+                        if (askPlatformNow() === "desk") {
+                          moveAsk("side", askEntry, { provenance: "navigation" });
+                        }
                         else close();
                       }}
                       trailing={
