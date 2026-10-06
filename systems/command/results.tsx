@@ -168,13 +168,13 @@ export function AskTabHint({
       onClick={() => openAsk(query || undefined, "search")}
       aria-label={s.askRow}
       className={cn(
-        "pressable flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1",
+        "pressable flex h-7 shrink-0 items-center gap-1.5 rounded-md px-1.5",
         "text-xs text-tertiary-foreground transition-colors",
         "hover:bg-accent/25 hover:text-muted-foreground active:bg-accent/40",
         className,
       )}
     >
-      <kbd className={TYPE.kbd}>Tab</kbd>
+      <kbd className={TYPE.kbd}>tab</kbd>
       <span className="hidden md:inline">{s.askRow}</span>
       <span className="md:hidden">AI</span>
     </button>

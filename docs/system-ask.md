@@ -59,8 +59,8 @@ whenever the field has text:
 | anything else | last | opens the best match; ↓ or **Tab** reaches Ask |
 
 **Tab** enters Ask from anywhere in search mode, and asks what is typed when
-there is a query. Its `Tab Ask AI` hint stays at the field's trailing edge while
-typing (`Tab AI` on a narrower keyboard viewport), after the microphone: voice
+there is a query. Its `tab Ask AI` hint stays at the field's trailing edge while
+typing (`tab AI` on a narrower keyboard viewport), after the microphone: voice
 is another way to fill the field; Ask is where the field goes. Touch-only
 devices get neither keyboard hint. Voice keeps a spoken question whole
 (`toFieldText` in `systems/command/voice.tsx`): commands are still stripped to

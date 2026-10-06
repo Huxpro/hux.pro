@@ -377,17 +377,19 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                         <VoiceVisual voice={voice} inline />
                       </div>
                     </div>
-                    <VoiceButton voice={voice} className="-mx-1" />
-                    {showHints && <AskTabHint query={field.value} />}
-                    {/* One slot, two readings: a hint where there is a
-                        keyboard, the way into slash mode where there is not. */}
-                    {showHints ? (
-                      <kbd className="flex items-center gap-1 px-2 py-1 text-xs font-mono text-muted-foreground bg-muted/50 rounded">
-                        esc
-                      </kbd>
-                    ) : (
-                      field.value === "" && <SlashEntry />
-                    )}
+                    <div className="flex shrink-0 items-center gap-1">
+                      <VoiceButton voice={voice} />
+                      {showHints && <AskTabHint query={field.value} />}
+                      {/* One slot, two readings: a hint where there is a
+                          keyboard, the way into slash mode where there is not. */}
+                      {showHints ? (
+                        <kbd className="rounded bg-muted/50 px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                          esc
+                        </kbd>
+                      ) : (
+                        field.value === "" && <SlashEntry />
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
