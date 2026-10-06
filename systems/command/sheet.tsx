@@ -251,10 +251,10 @@ function SheetBody({
             <VoiceVisual voice={voice} inline />
           </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {/* No keyboard to type "/" on: the field.s trailing accessory
+          <div className="flex shrink-0 items-center gap-0">
+            {/* No keyboard to type "/" on: the field's trailing accessory
                 opens the slash sheet, while the field is empty. */}
-            <VoiceButton voice={voice} />
+            <VoiceButton voice={voice} className="[&>.lucide-mic]:-translate-y-px" />
             {showHints && <AskTabHint query={field.value} />}
             {!showHints && field.value === "" && <SlashEntry />}
             <button

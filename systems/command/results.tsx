@@ -149,7 +149,8 @@ function AskRow({ query }: { query: string }) {
 /**
  * The field's quiet hand-off into Ask. It keeps its place as the visitor
  * types, and carries the query into the conversation. On a narrower keyboard
- * viewport the label contracts to AI; the key is the part that teaches.
+ * viewport the label contracts to AI; the trailing key is the part that
+ * teaches.
  */
 export function AskTabHint({
   query,
@@ -168,15 +169,15 @@ export function AskTabHint({
       onClick={() => openAsk(query || undefined, "search")}
       aria-label={s.askRow}
       className={cn(
-        "pressable flex h-7 shrink-0 items-center gap-1.5 rounded-md px-1.5",
+        "pressable flex h-7 shrink-0 items-center gap-1 rounded-md pl-1 pr-1.5",
         "text-xs text-tertiary-foreground transition-colors",
         "hover:bg-accent/25 hover:text-muted-foreground active:bg-accent/40",
         className,
       )}
     >
-      <kbd className={TYPE.kbd}>tab</kbd>
       <span className="hidden md:inline">{s.askRow}</span>
       <span className="md:hidden">AI</span>
+      <kbd className={TYPE.kbd}>tab</kbd>
     </button>
   );
 }

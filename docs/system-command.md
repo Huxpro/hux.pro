@@ -51,8 +51,8 @@ A launcher is not a secondary surface, so the sheet is modal: the page stops
 answering while it is up, and a tap on the page dismisses it, as a click on the
 page dismisses the popover.
 
-**Keyboard hints.** The letters beside rows, `esc` and the footer's arrows
-follow the input device, not the shell: `useShowKeyboardHints()` reads
+**Keyboard hints.** The letters beside rows and the footer's arrows, `esc` and
+other shortcuts follow the input device, not the shell: `useShowKeyboardHints()` reads
 `hasFineHoverPointer` from `services/input-capability`. A desktop shows them;
 so does an iPad with a trackpad (and so a keyboard), live, the moment one is
 attached; a phone and a bare iPad do not, in either shell. The popover's own
@@ -115,9 +115,10 @@ The slash chip is the hint made pressable: the same kbd vocabulary with a rim
 and a touch-sized hit area, inside the field where iOS keeps a search field's
 accessory (and so apart from the close button outside it), shown only while the
 field is empty, which is exactly when typing `/` would have worked. In the
-popover the same slot shows `esc` with a keyboard and the chip without one. The
-field gives up the keyboard as either sub-mode comes in; a hardware keyboard
-still gets the slash letters.
+popover a keyboard moves `esc` down into the footer and leaves the field's
+trailing edge for `Ask AI` followed by its `tab` key; without a keyboard the
+slash chip uses that edge instead. The field gives up the keyboard as either
+sub-mode comes in; a hardware keyboard still gets the slash letters.
 
 ### The popover
 
