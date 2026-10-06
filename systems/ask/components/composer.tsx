@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
 import { useCommand } from "@/systems/command/provider";
-import { VoiceButton, VoiceGlow, VoiceStatus } from "@/systems/command/voice";
+import { VoiceButton, VoiceVisual, VoiceStatus } from "@/systems/command/voice";
 import { useVoiceInput, VOICE_LANG } from "@/systems/voice";
 import { Brain, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
@@ -230,9 +230,12 @@ export function AskComposer() {
             </PromptInputBody>
           </div>
         </div>
-        <PromptInputFooter>
-          <PromptInputTools>
-            {voiceActive ? <VoiceStatus voice={voice} sendOnHold className="pl-1" /> : <>
+        <PromptInputFooter className={cn("transition-[min-height] duration-300", voiceActive && "min-h-14")}>
+          <PromptInputTools className={voiceActive ? "flex-1" : undefined}>
+            {voiceActive ? <>
+              <VoiceStatus voice={voice} sendOnHold className="pl-1" />
+              <VoiceVisual voice={voice} inline />
+            </> : <>
               <button type="button" aria-label={s.contextAdd} title={s.contextAdd} aria-expanded={choosing} onClick={() => setChoosing((v) => !v)} className="pressable flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><Plus className="size-4" /></button>
               <PromptInputSelect
                 value={model}
@@ -277,7 +280,7 @@ export function AskComposer() {
             {!voiceActive && <PromptInputSubmit status={status} onStop={() => void stop()} disabled={!busy && !input.trim()} />}
           </div>
         </PromptInputFooter>
-        <VoiceGlow voice={voice} />
+        <VoiceVisual voice={voice} />
       </PromptInput>
       {dropping && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl border-2 border-dashed border-ring/60 bg-background/80 text-sm text-muted-foreground">

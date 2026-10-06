@@ -107,7 +107,7 @@ import { ASK_EFFORTS, ASK_MODELS, DEFAULT_ASK_EFFORT, DEFAULT_ASK_MODEL } from "
 import { askEffortPref, askModelPref } from "@/systems/ask/lib/prefs";
 import { askStrings } from "@/systems/ask/strings";
 import { DEFAULT_VOICE_MODEL, VOICE_MODELS, type VoiceModelChoice } from "@/systems/voice/models";
-import { voiceModelPref } from "@/systems/voice/prefs";
+import { DEFAULT_VOICE_VISUAL, voiceModelPref, voiceVisualPref, type VoiceVisualStyle } from "@/systems/voice/prefs";
 import { useOptionalAbout } from "@/systems/about/provider";
 import {
   GLOW_BASELINE,
@@ -3361,7 +3361,10 @@ function VoiceModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
   const model = voiceModelPref.use();
-  const changed = model !== DEFAULT_VOICE_MODEL;
+  const visual = voiceVisualPref.use();
+  const modelChanged = model !== DEFAULT_VOICE_MODEL;
+  const visualChanged = visual !== DEFAULT_VOICE_VISUAL;
+  const changed = modelChanged || visualChanged;
   const [gatewayReady, setGatewayReady] = useState<boolean | null>(null);
   useEffect(() => {
     let alive = true;
@@ -3388,16 +3391,28 @@ function VoiceModule() {
       compact
       relevant
       star={changed ? "saved" : null}
-      onReset={() => voiceModelPref.set(DEFAULT_VOICE_MODEL)}
-      action={<span className="text-[10px] font-mono text-muted-foreground">{model === "browser" ? "Browser" : VOICE_MODELS.find((choice) => choice.id === model)?.label}</span>}
+      onReset={() => { voiceModelPref.set(DEFAULT_VOICE_MODEL); voiceVisualPref.set(DEFAULT_VOICE_VISUAL); }}
+      action={<span className="text-[10px] font-mono text-muted-foreground">{model === "browser" ? "Browser" : VOICE_MODELS.find((choice) => choice.id === model)?.label} · {visual === "glow" ? "Glow" : "Waveform"}</span>}
     >
       <div className="space-y-2">
-        <PanelRow label={zh ? "转写模型" : "Transcription model"} stacked star={changed ? <PanelStar source="saved" onReset={() => voiceModelPref.set(DEFAULT_VOICE_MODEL)} /> : undefined}>
+        <PanelRow label={zh ? "转写模型" : "Transcription model"} stacked star={modelChanged ? <PanelStar source="saved" onReset={() => voiceModelPref.set(DEFAULT_VOICE_MODEL)} /> : undefined}>
           <PanelSegmented<VoiceModelChoice>
             value={model}
             label={zh ? "语音转写模型" : "Voice transcription model"}
             options={options}
             onChange={voiceModelPref.set}
+            fill
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "音量视觉" : "Audio visual"} stacked star={visualChanged ? <PanelStar source="saved" onReset={() => voiceVisualPref.set(DEFAULT_VOICE_VISUAL)} /> : undefined}>
+          <PanelSegmented<VoiceVisualStyle>
+            value={visual}
+            label={zh ? "录音音量视觉样式" : "Recording audio visual style"}
+            options={[
+              { value: "glow", label: "Glow", title: zh ? "默认：随音量变化的边缘光" : "Default: voice-reactive edge light" },
+              { value: "waveform", label: zh ? "波形" : "Waveform", title: zh ? "横跨输入框的彩色音量线" : "Full-width colored audio bars" },
+            ]}
+            onChange={voiceVisualPref.set}
             fill
           />
         </PanelRow>

@@ -7,6 +7,8 @@ import { isQuestionLike } from "@/systems/ask/lib/intent";
 import { showNotice } from "@/systems/dock";
 import { Glow } from "@/systems/glow";
 import { useVoiceInput, VOICE_LANG, type VoiceInput } from "@/systems/voice";
+import { voiceVisualPref } from "@/systems/voice/prefs";
+import { VoiceWaveform } from "@/systems/voice/waveform";
 import { LoaderCircle, Mic, Square } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { useCommand } from "./provider";
@@ -336,16 +338,15 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
   );
 }
 
-/**
- * The field's glow while it listens. Place it inside the field's header,
- * which must be `relative`; it reads the header's radius.
- */
-export function VoiceGlow({ voice }: { voice: VoiceInput }) {
+/** Glow sits on the field edge; the alternative meter fills the recording row. */
+export function VoiceVisual({ voice, inline = false }: { voice: VoiceInput; inline?: boolean }) {
   const { glowDelay, keyboardDelay } = useAskConfig();
   const [lit, setLit] = useState(false);
+  const visual = voiceVisualPref.use();
   const { listening } = voice;
+  const selected = inline ? visual === "waveform" : visual === "glow";
   useEffect(() => {
-    if (!listening) return;
+    if (!listening || !selected) return;
     const sliding = performance.now() - keyboardDismissedAt < KEYBOARD_SLIDE_MS;
     const timer = window.setTimeout(() => setLit(true), glowDelay + (sliding ? keyboardDelay : 0));
     return () => {
@@ -355,19 +356,12 @@ export function VoiceGlow({ voice }: { voice: VoiceInput }) {
     // The wait is fixed when listening starts; a setting changed mid-session
     // applies to the next one.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listening]);
-  return (
-    <>
-      <Glow
-        active={listening && lit}
-        shape="line"
-        level={voice.level}
-        bands={voice.bands}
-        processing={voice.state === "processing"}
-        strength={0.95}
-      />
-    </>
-  );
+  }, [listening, selected]);
+  if (!selected) return null;
+  if (inline) {
+    return <VoiceWaveform active={listening && lit} processing={voice.state === "processing"} level={voice.level} bands={voice.bands} />;
+  }
+  return <Glow active={listening && lit} shape="line" level={voice.level} bands={voice.bands} processing={voice.state === "processing"} strength={0.95} />;
 }
 
 /** Inline copy for the field's recording state, without a floating badge. */
