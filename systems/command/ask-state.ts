@@ -154,9 +154,21 @@ export function reduceCommandAsk(
     case "CLOSE_PALETTE": {
       const parking = state.parking;
       if (!parking) return { ...state, palette: "closed" };
+      // A capacity fallback uses the center palette as Ask's temporary shell.
+      // Closing that shell closes Ask; it must not immediately reopen at the
+      // side merely because the resize that displaced it is remembered.
+      if (parking.reason === "capacity" && state.palette === "ask") {
+        return {
+          ...state,
+          palette: "closed",
+          askSurface: null,
+          askPill: false,
+          parking: null,
+        };
+      }
       const requested = parking.returnTo;
       const target = requested === "side" && !action.canSide ? "center" : requested;
-      return showAsk(
+      const restored = showAsk(
         { ...state, parking: null },
         target,
         action.platform,
@@ -165,6 +177,9 @@ export function reduceCommandAsk(
           ? parking.provenance
           : "capacity",
       );
+      return parking.reason === "capacity" && target !== requested
+        ? { ...restored, parking }
+        : restored;
     }
 
     case "SET_PALETTE_MODE":
@@ -249,9 +264,8 @@ export function reduceCommandAsk(
     }
 
     case "VIEWPORT": {
-      // Capacity may temporarily displace a manually chosen Side. When the
-      // room returns, restore the choice unless the user selected somewhere
-      // else in the meantime.
+      // Capacity temporarily displaces Side. Keep its origin in `parking` so
+      // both automatic and manual placement return when the room does.
       if (action.canSide && state.askProvenance === "capacity") {
         if (state.palette !== "closed" && state.palette !== "ask") {
           // A Side that was already sharing Command returns as soon as it fits.
@@ -267,19 +281,19 @@ export function reduceCommandAsk(
               parking: state.parking.reason === "command" ? state.parking : null,
             };
           }
-          if (state.manualPlacement !== "side") return state;
-          return {
-            ...state,
-            askSurface: "side",
-            askPill: false,
-            askProvenance: "user",
-          };
+          return state;
         }
         if (
-          state.manualPlacement === "side" &&
+          state.parking?.reason === "capacity" &&
           visibleAskPlacement(state) !== null
         ) {
-          return showAsk(state, "side", action.platform, state.askEntry, "user");
+          return showAsk(
+            state,
+            state.parking.returnTo,
+            action.platform,
+            state.parking.entry,
+            state.parking.provenance,
+          );
         }
         return state;
       }
@@ -300,7 +314,15 @@ export function reduceCommandAsk(
           },
         };
       }
-      return showAsk(state, "center", action.platform, state.askEntry, "capacity");
+      return {
+        ...showAsk(state, "center", action.platform, state.askEntry, "capacity"),
+        parking: {
+          returnTo: "side",
+          entry: state.askEntry,
+          provenance: state.askProvenance,
+          reason: "capacity",
+        },
+      };
     }
   }
 }

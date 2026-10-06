@@ -109,11 +109,11 @@ What follows is the desk's preset; every line of it is a setting (below).
   would land is drawn while the pointer is over a different one
   (`AskDragOverlay`). The placement menu is the keyboard and assistive
   technology path to the same three commands; Side is disabled when it cannot
-  coexist with the page. If a manually chosen Side temporarily stops fitting,
-  Ask falls back to Center (or a pill while Command owns Center) but keeps the
-  intent and returns to Side when room comes back. Every effective placement
-  records whether it came from automation, the user, Command parking,
-  capacity, or navigation (`askProvenance` in the command state machine).
+  coexist with the page. If Side temporarily stops fitting, Ask falls back to
+  Center (or a pill while Command owns Center) but keeps its automatic or
+  manual origin and returns to Side when room comes back. Every effective
+  placement records whether it came from automation, the user, Command
+  parking, capacity, or navigation (`askProvenance` in the command state machine).
 - **Both at once.** ⌘K, or `/` outside a field, while Ask is the center chat
   or (on a desk) the dock, parks it — at the side when both panes fit, as a
   Dock pill on a narrower desk, and at the top on a phone — and opens the

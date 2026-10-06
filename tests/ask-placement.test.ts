@@ -164,6 +164,32 @@ test("capacity temporarily displaces and then restores a manual Side", () => {
   assert.equal(wide.manualPlacement, "side");
 });
 
+test("capacity also restores an automatically placed Side", () => {
+  const automatic = reduceCommandAsk(INITIAL_COMMAND_ASK_STATE, {
+    type: "SHOW_ASK",
+    placement: "side",
+    platform: "desk",
+    entry: "direct",
+    provenance: "automatic",
+  });
+  const narrow = reduceCommandAsk(automatic, {
+    type: "VIEWPORT",
+    platform: "desk",
+    canSide: false,
+  });
+  assert.equal(visibleAskPlacement(narrow), "center");
+  assert.equal(narrow.parking?.reason, "capacity");
+
+  const wide = reduceCommandAsk(narrow, {
+    type: "VIEWPORT",
+    platform: "desk",
+    canSide: true,
+  });
+  assert.equal(visibleAskPlacement(wide), "side");
+  assert.equal(wide.askProvenance, "automatic");
+  assert.equal(wide.parking, null);
+});
+
 test("closing a capacity-fallback Center closes Ask instead of reopening it", () => {
   const manualSide = reduceCommandAsk(INITIAL_COMMAND_ASK_STATE, {
     type: "SHOW_ASK",
@@ -318,6 +344,14 @@ test("losing side capacity rehomes Ask without creating two foreground panes", (
     canSide: false,
   });
   assert.equal(visibleAskPlacement(commandClosed), "center");
+
+  const wideAfterCommand = reduceCommandAsk(commandClosed, {
+    type: "VIEWPORT",
+    platform: "desk",
+    canSide: true,
+  });
+  assert.equal(visibleAskPlacement(wideAfterCommand), "side");
+  assert.equal(wideAfterCommand.askProvenance, "automatic");
 
   const roomyAgain = reduceCommandAsk(sharing, {
     type: "VIEWPORT",
