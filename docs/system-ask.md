@@ -66,6 +66,13 @@ Ask's own bottom drawer. Escape (or ←) goes back to search and keeps the
 conversation; the ✎ button starts a new one. A link in an answer to a page of
 this site navigates there and the palette leaves, as a command would.
 
+With a Gateway voice model, Ask's composer folds into one line while recording
+or transcribing. It shows the current action where the text field was, with
+the microphone button still available. A short tap followed by Stop leaves
+the transcript in the editor. Holding and releasing inside the composer sends
+the transcript as soon as transcription completes; sliding outside cancels.
+The browser recognizer retains its earlier tap-to-listen flow.
+
 ## Where Ask sits
 
 On a desk: one conversation, three places, and a pill. On a phone: one bottom

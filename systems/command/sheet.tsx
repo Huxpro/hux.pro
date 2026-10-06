@@ -19,7 +19,7 @@ import {
   useShowKeyboardHints,
   type CommandShell,
 } from "./actions";
-import { useCommandVoice, useSpaceToTalk, VoiceButton, VoiceGlow } from "./voice";
+import { useCommandVoice, useSpaceToTalk, VoiceButton, VoiceGlow, VoiceStatus } from "./voice";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 import {
@@ -218,12 +218,15 @@ function SheetBody({
           {/* Listening: the site's glow along the field's bottom edge. */}
           <VoiceGlow voice={voice} />
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <div className="relative min-w-0 flex-1">
           <Command.Input
             ref={inputRef}
             value={field.value}
             onValueChange={field.onChange}
             onClick={onFieldTap}
             placeholder={t(locale, voice.mode === "gateway" && voice.state === "listening" ? "voiceRecording" : "searchPlaceholder")}
+            readOnly={voice.mode === "gateway" && voice.listening}
+            tabIndex={voice.mode === "gateway" && voice.listening ? -1 : undefined}
             {...spaceToTalk}
             onKeyDown={(e) => {
               // Tab (a hardware keyboard): ask what was typed (systems/ask).
@@ -237,10 +240,13 @@ function SheetBody({
             enterKeyHint="go"
             className={cn(
               // 16px: below that iOS Safari zooms the page on focus.
-              "min-w-0 flex-1 bg-transparent py-3 font-sans text-[16px] outline-none",
+              "w-full bg-transparent py-3 font-sans text-[16px] outline-none",
+              voice.mode === "gateway" && voice.listening && "pointer-events-none opacity-0",
               "placeholder:text-tertiary-foreground"
             )}
           />
+          <VoiceStatus voice={voice} className="pointer-events-none absolute inset-0 flex items-center" />
+          </div>
           {/* No keyboard to type "/" on: the field's trailing accessory
               opens the slash sheet, while the field is empty. Tucked in
               against the close button so the two read as one cluster. */}

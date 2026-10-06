@@ -7,8 +7,7 @@ import { isQuestionLike } from "@/systems/ask/lib/intent";
 import { showNotice } from "@/systems/dock";
 import { Glow } from "@/systems/glow";
 import { useVoiceInput, VOICE_LANG, type VoiceInput } from "@/systems/voice";
-import { VoiceWaveform } from "@/systems/voice/waveform";
-import { Mic, Square } from "lucide-react";
+import { LoaderCircle, Mic, Square } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { useCommand } from "./provider";
 
@@ -261,7 +260,7 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
               voice.abort();
               haptic([8, 30, 8]);
             } else {
-              voice.stop();
+              voice.stop(voice.mode === "gateway");
               if (voice.mode === "gateway") haptic(12);
             }
           } else if (voice.mode === "gateway") voice.setGesture("idle");
@@ -302,7 +301,7 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
         if (p) {
           window.clearTimeout(p.timer);
           if (performance.now() - p.at >= HOLD_MS) {
-            voice.stop();
+            voice.stop(true);
             haptic(12);
           } else voice.setGesture("idle");
         }
@@ -323,7 +322,9 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
         className,
       )}
     >
-      {voice.mode === "gateway" && voice.state === "listening" ? (
+      {voice.mode === "gateway" && voice.state === "processing" ? (
+        <LoaderCircle className="h-4 w-4 motion-safe:animate-spin" />
+      ) : voice.mode === "gateway" && voice.state === "listening" ? (
         <>
           <Square className="h-3.5 w-3.5 fill-current" />
           <span aria-hidden className="voice-recording-dot absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-destructive" />
@@ -342,7 +343,6 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
 export function VoiceGlow({ voice }: { voice: VoiceInput }) {
   const { glowDelay, keyboardDelay } = useAskConfig();
   const [lit, setLit] = useState(false);
-  const { locale } = useLocale();
   const { listening } = voice;
   useEffect(() => {
     if (!listening) return;
@@ -366,17 +366,20 @@ export function VoiceGlow({ voice }: { voice: VoiceInput }) {
         processing={voice.state === "processing"}
         strength={0.95}
       />
-      <VoiceWaveform active={voice.mode === "gateway" && voice.state === "listening"} level={voice.level} bands={voice.bands} />
-      {voice.mode === "gateway" && voice.state === "listening" && voice.gesture !== "idle" && (
-        <span className="pointer-events-none absolute inset-y-0 left-10 right-24 z-20 flex items-center justify-center">
-          <span className={cn(
-            "max-w-full truncate rounded-full border border-border/50 bg-background/90 px-2.5 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur-sm",
-            voice.gesture === "cancel" && "border-destructive/40 text-destructive",
-          )}>
-            {t(locale, voice.gesture === "cancel" ? "voiceCancelHint" : "voiceHoldHint")}
-          </span>
-        </span>
-      )}
     </>
   );
+}
+
+/** Inline copy for the field's recording state, without a floating badge. */
+export function VoiceStatus({ voice, sendOnHold = false, className }: { voice: VoiceInput; sendOnHold?: boolean; className?: string }) {
+  const { locale } = useLocale();
+  if (voice.mode !== "gateway" || !voice.listening) return null;
+  const key = voice.state === "processing"
+    ? "voiceProcessing"
+    : voice.gesture === "cancel"
+      ? "voiceCancelHint"
+      : voice.gesture === "hold"
+        ? sendOnHold ? "voiceHoldHint" : "voiceHoldTranscribeHint"
+        : "voiceRecording";
+  return <span role="status" className={cn("min-w-0 truncate text-sm text-muted-foreground", voice.gesture === "cancel" && "text-destructive", className)}>{t(locale, key)}</span>;
 }

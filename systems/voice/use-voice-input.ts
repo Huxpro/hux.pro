@@ -91,7 +91,8 @@ export interface VoiceInputOptions {
   /** The words so far, as they are heard. */
   onInterim?: (text: string) => void;
   /** The phrase, once the speaker pauses. */
-  onFinal?: (text: string) => void;
+  /** `send` is true only for a Gateway hold released inside the field. */
+  onFinal?: (text: string, send?: boolean) => void;
 }
 
 export interface VoiceInput {
@@ -103,7 +104,8 @@ export interface VoiceInput {
   setGesture: (gesture: VoiceGesture) => void;
   /** Start (from a press: the microphone is only granted in a gesture). */
   start: () => void;
-  stop: () => void;
+  /** Finish recording. `send` asks the consumer to submit the transcript. */
+  stop: (send?: boolean) => void;
   /** Stop and drop what is still to come: words heard after this are not
    *  delivered (a field that has just been sent wants nothing more). */
   abort: () => void;
@@ -128,6 +130,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
   const activeMode = useRef<VoiceMode | null>(null);
   const session = useRef(0);
   const upload = useRef<AbortController | null>(null);
+  const sendOnFinal = useRef(false);
   const recordingTimer = useRef<number | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const meter = useRef<VoiceMeter | null>(null);
@@ -167,7 +170,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
     synth.current = { sound: false, speech: false, pulse: 0, t0: 0 };
   }, []);
 
-  const stop = useCallback(() => {
+  const stop = useCallback((send = false) => {
     setGesture("idle");
     if (activeMode.current === "gateway") {
       if (!recorder.current) {
@@ -180,6 +183,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
         return;
       }
       if (recorder.current.state === "recording") {
+        sendOnFinal.current = send;
         setState("processing");
         recorder.current.stop();
       }
@@ -190,6 +194,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
 
   const abort = useCallback(() => {
     setGesture("idle");
+    sendOnFinal.current = false;
     session.current++;
     upload.current?.abort();
     upload.current = null;
@@ -215,6 +220,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
       const type = recordingType();
       if (!type || activeMode.current) return;
       const id = ++session.current;
+      sendOnFinal.current = false;
       activeMode.current = "gateway";
       awaitingMicrophone.current = true;
       primeAudio();
@@ -240,6 +246,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
           activeMode.current = null;
           awaitingMicrophone.current = false;
           recorder.current = null;
+          sendOnFinal.current = false;
           release();
           setState("error");
           if (voiceModelPref.get() === selectedModel) setFailedModel(selectedModel);
@@ -251,12 +258,14 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
           recordingTimer.current = null;
           release();
           if (performance.now() - startedAt < 300) {
+            sendOnFinal.current = false;
             activeMode.current = null;
             setState("idle");
             return;
           }
           const audio = new Blob(chunks, { type: r.mimeType });
           if (!audio.size) {
+            sendOnFinal.current = false;
             activeMode.current = null;
             setState("idle");
             return;
@@ -272,7 +281,11 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
             if (!response.ok) throw new Error("Transcription failed");
             return response.json() as Promise<{ text: string }>;
           }).then(({ text }) => {
-            if (session.current === id && text) callbacks.current.onFinal?.(text);
+            if (session.current === id && text) {
+              const shouldSend = sendOnFinal.current;
+              sendOnFinal.current = false;
+              callbacks.current.onFinal?.(text, shouldSend);
+            }
             if (session.current === id) {
               setFailedModel(null);
               activeMode.current = null;
@@ -280,6 +293,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
             }
           }).catch(() => {
             if (session.current !== id) return;
+            sendOnFinal.current = false;
             activeMode.current = null;
             setState("error");
             if (voiceModelPref.get() === selectedModel) setFailedModel(selectedModel);
