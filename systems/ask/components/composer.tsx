@@ -13,7 +13,7 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { useLocale } from "@/services";
+import { t, useLocale } from "@/services";
 import { useCommand } from "@/systems/command/provider";
 import { VoiceButton, VoiceGlow } from "@/systems/command/voice";
 import { useVoiceInput, VOICE_LANG } from "@/systems/voice";
@@ -128,6 +128,7 @@ export function AskComposer() {
       }}
     >
       <PromptInput
+        data-voice-recording-area
         onSubmit={() => {
           const text = input.trim();
           const site = loadedAskSearch();
@@ -205,7 +206,7 @@ export function AskComposer() {
                 last && performance.now() - last.at < LATE_COMMIT_MS && value.trim() && last.text.endsWith(value.trim());
               setInput(late ? "" : value);
             }}
-            placeholder={s.placeholder}
+            placeholder={voice.mode === "gateway" && voice.state === "listening" ? t(locale, "voiceRecording") : s.placeholder}
             className="min-h-12 font-sans text-[16px] sm:text-sm"
           />
         </PromptInputBody>

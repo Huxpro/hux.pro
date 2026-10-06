@@ -66,7 +66,6 @@ import {
   minutesOfDay,
   type MoonPhaseName,
 } from "@/systems/ambient/lib/solar";
-import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
 import {
   getWallpaperPlayName,
   getWeatherWallpaperName,
@@ -107,6 +106,8 @@ import {
 import { ASK_EFFORTS, ASK_MODELS, DEFAULT_ASK_EFFORT, DEFAULT_ASK_MODEL } from "@/systems/ask/lib/models";
 import { askEffortPref, askModelPref } from "@/systems/ask/lib/prefs";
 import { askStrings } from "@/systems/ask/strings";
+import { DEFAULT_VOICE_MODEL, VOICE_MODELS, type VoiceModelChoice } from "@/systems/voice/models";
+import { voiceModelPref } from "@/systems/voice/prefs";
 import { useOptionalAbout } from "@/systems/about/provider";
 import {
   GLOW_BASELINE,
@@ -162,6 +163,7 @@ import {
   GripVertical,
   Image as ImageIcon,
   Layers2,
+  Mic,
   Moon,
   Music,
   Pause,
@@ -216,6 +218,7 @@ const MODULE_ORDER = [
   "music",
   "command",
   "ask",
+  "voice",
   "glow",
   "draggable",
   "windows",
@@ -234,6 +237,7 @@ export function DevtoolModules() {
       <MusicModule />
       <CommandModule />
       <AskModule />
+      <VoiceModule />
       <GlowModule />
       <DraggableModule />
       <WindowsModule />
@@ -3342,6 +3346,69 @@ function AskModule() {
             onChange={askEffortPref.set}
           />
         </PanelRow>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Voice Module
+// One saved choice for both the command palette and Ask. Browser recognition
+// is included so quality and interaction can be compared without an API call.
+// =============================================================================
+
+function VoiceModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const model = voiceModelPref.use();
+  const changed = model !== DEFAULT_VOICE_MODEL;
+  const [gatewayReady, setGatewayReady] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/voice", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((config) => { if (alive) setGatewayReady(!!config?.enabled); })
+      .catch(() => { if (alive) setGatewayReady(false); });
+    return () => { alive = false; };
+  }, []);
+  const options: { value: VoiceModelChoice; label: string; title: string }[] = [
+    { value: "browser", label: zh ? "浏览器" : "Browser", title: zh ? "浏览器语音识别，点按开始" : "Browser speech recognition, tap to start" },
+    ...VOICE_MODELS.map((choice) => ({
+      value: choice.id,
+      label: choice.label === "Grok STT" ? "Grok" : choice.label,
+      title: `${choice.label} · ${choice.pricePerHour}`,
+    })),
+  ];
+
+  return (
+    <DebugSection
+      id="voice"
+      title={zh ? "语音" : "Voice"}
+      icon={<Mic className="h-4 w-4" />}
+      compact
+      relevant
+      star={changed ? "saved" : null}
+      onReset={() => voiceModelPref.set(DEFAULT_VOICE_MODEL)}
+      action={<span className="text-[10px] font-mono text-muted-foreground">{model === "browser" ? "Browser" : VOICE_MODELS.find((choice) => choice.id === model)?.label}</span>}
+    >
+      <div className="space-y-2">
+        <PanelRow label={zh ? "转写模型" : "Transcription model"} stacked star={changed ? <PanelStar source="saved" onReset={() => voiceModelPref.set(DEFAULT_VOICE_MODEL)} /> : undefined}>
+          <PanelSegmented<VoiceModelChoice>
+            value={model}
+            label={zh ? "语音转写模型" : "Voice transcription model"}
+            options={options}
+            onChange={voiceModelPref.set}
+            fill
+          />
+        </PanelRow>
+        <p className="text-[10px] text-muted-foreground">
+          {model === "browser"
+            ? zh ? "浏览器识别：点按开始。" : "Browser recognition: tap to start."
+            : gatewayReady === false
+              ? zh ? "此环境无法使用 Gateway，将使用浏览器识别。" : "Gateway unavailable here; using browser recognition."
+              : zh ? "按住录音，松开识别。" : "Hold to record, release to transcribe."}
+          {" "}Whisper $0.36/hr · Grok STT $0.10/hr
+        </p>
       </div>
     </DebugSection>
   );

@@ -138,7 +138,7 @@ microphone) is `slashOnly`: it appears in this list, never as a search result.
 | `A` | Cycle Appearance: Follow the Sun → the theme the sun isn't showing → the one it is → Follow the System |
 | `L` | Toggle Language |
 | `O` | Open the About (its only shortcut; see [system-about.md](./system-about.md)) |
-| `V` | Voice: tap to listen, hold to talk and let go to send ([system-glow.md](./system-glow.md)) |
+| `V` | Voice: hold and release to transcribe with a Gateway model; browser fallback supports tap to listen ([system-glow.md](./system-glow.md)) |
 | `C` | Toggle geolocation, by Coordinates (IP ↔ accurate) |
 | `W` | Open the Wallpaper picker |
 | `G` | Toggle Glass material (Tinted ↔ Clear) |

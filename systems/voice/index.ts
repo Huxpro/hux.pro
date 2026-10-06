@@ -2,12 +2,14 @@
 // Voice System: speak to the site.
 //
 //   const voice = useVoiceInput({ lang: "en-US", onInterim, onFinal });
-//   <button onClick={voice.toggle}>…</button>
+//   <VoiceButton voice={voice} />
 //   <Glow active={voice.listening} shape="line" level={voice.level}
 //         bands={voice.bands} processing={voice.state === "processing"} />
 //
-// The words come from the browser's Web Speech API; the level the glow
-// follows comes from a microphone meter (lib/meter.ts). See
+// With AI Gateway credentials, a tap records until stop, while a hold sends
+// on release (Whisper by default; Grok STT is a cheaper DevTool option).
+// Otherwise the words come from the browser's Web Speech API. The glow follows
+// the microphone meter (lib/meter.ts). See
 // docs/system-glow.md.
 // =============================================================================
 
