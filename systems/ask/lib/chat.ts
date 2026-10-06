@@ -11,6 +11,10 @@ import { askEffortPref, askModelPref } from "./prefs";
 import { loadAskSearch } from "./search";
 import { postSubjectFromPath, shouldStartNewChat, type KeptChat } from "./chat-continuity";
 import { textOf, contextsOf, type AskUIMessage } from "./tools";
+import { commandIdOf } from "@/systems/command/catalog";
+import { recordCommandExecution } from "./command-state";
+import { commandsToPresent, type CommandInput } from "./command-tools";
+import { executeAskCommand } from "./execute-command";
 
 // =============================================================================
 // The session: which conversation is open, the conversations still running,
@@ -81,6 +85,11 @@ function save(chat: Chat<AskUIMessage>) {
   saveConversation(chat.id, chat.messages, settingsOf(chat.id));
 }
 
+export function completeAskCommand(chat: Chat<AskUIMessage>, callId: string, id: Parameters<typeof recordCommandExecution>[2], value?: string) {
+  chat.messages = recordCommandExecution(chat.messages, callId, id, value);
+  save(chat);
+}
+
 function createChat(id?: string, messages?: AskUIMessage[], own?: Partial<AskSettings>): Chat<AskUIMessage> {
   let finalizeNext = false;
   const chat: Chat<AskUIMessage> = new Chat<AskUIMessage>({
@@ -94,7 +103,7 @@ function createChat(id?: string, messages?: AskUIMessage[], own?: Partial<AskSet
       body: () => {
         const finalize = finalizeNext;
         finalizeNext = false;
-        return { ...settingsOf(chat.id), finalize };
+        return { ...settingsOf(chat.id), finalize, commands: getAskActions()?.commands.map((c) => c.id) ?? [] };
       },
     }),
     sendAutomaticallyWhen: (options) => {
@@ -114,6 +123,17 @@ function createChat(id?: string, messages?: AskUIMessage[], own?: Partial<AskSet
     async onToolCall({ toolCall }) {
       if (toolCall.dynamic) return;
       try {
+        if (toolCall.toolName === "list_commands") {
+          void chat.addToolOutput({ tool: "list_commands", toolCallId: toolCall.toolCallId,
+            output: { commands: commandsToPresent(getAskActions()?.commands.map((c) => c.id) ?? [], toolCall.input) } });
+          return;
+        }
+        const commandId = commandIdOf(toolCall.toolName);
+        if (commandId) {
+          void chat.addToolOutput({ tool: toolCall.toolName, toolCallId: toolCall.toolCallId,
+            output: await executeAskCommand(commandId, toolCall.input as CommandInput, getAskActions(), chat === current) });
+          return;
+        }
         const site = await loadAskSearch();
         if (toolCall.toolName === "search_site") {
           void chat.addToolOutput({

@@ -19,11 +19,14 @@ systems/ask/
 │   ├── pending-context.ts # what they pointed at for the next question (a selection, a drop)
 │   ├── pointed.ts     # a selection or a drop, as a context
 │   ├── use-ask.ts     # the hooks surfaces are built from: useAskSession / useAskHistory / useAskPrefs / useAskRunning / useAskRequest
-│   ├── actions.ts     # what the agent can do on the site (open_page, play), registered by actions-host
+│   ├── actions.ts     # the browser host for navigation, media and command clicks
+│   ├── command-tools.ts # offer-only tools generated from systems/command/catalog.ts
+│   ├── command-state.ts # successful taps recorded in tool outputs and history
 │   ├── models.ts      # the models the picker offers and the route accepts
 │   └── intent.ts      # is this a question or a search?
 ├── components/
 │   ├── messages.tsx   # AskMessages: the conversation, steps, copy / regenerate
+│   ├── command-card.tsx # compact command actions and the expandable discovery menu
 │   ├── cards.tsx      # AskCards: what the agent presented (a strip) and what an answer used (rows)
 │   ├── context-tag.tsx # what a question is about, as a tag
 │   ├── selection.tsx  # "Ask about this" over words selected on the page
@@ -246,7 +249,8 @@ browser                                         /api/chat (Vercel function)
 ───────                                         ──────────
 question ──────────────────────────────────────▶ system prompt + map of the site
                                                  tools: search_site, read, present,
-                                                 open_page, play (no execute)
+                                                 open_page, play, list_commands,
+                                                 command_* (no execute)
                                                  model (gateway / provider / stand-in)
           ◀──────── streamed turn ends in tool calls
 run them against public/ask/index.json
@@ -267,11 +271,12 @@ run them against public/ask/index.json
   All of it is `prompts.ts`.
 - **The route is thin.** It holds the key and pins everything the model is
   given: system prompt, tool definitions, the model list, the output cap. A
-  request carries only the conversation and a model id from the list. It
+  request carries the conversation, listed model/effort, available command ids
+  and an optional finalize flag. It
   never reads the index.
 - **The tools run in the page.** They are declared in `tools.ts` without an
   `execute`, so a call comes back to the browser, where `chat.ts` runs it
-  against the loaded index and resubmits (AI SDK `onToolCall` +
+  against the loaded index (or returns a command offer) and resubmits (AI SDK `onToolCall` +
   `sendAutomaticallyWhen`).
 - **It always answers.** After 6 tool calls in a turn the route runs the
   next step with `toolChoice: "none"` and an instruction to answer from what
@@ -437,10 +442,111 @@ to what Base UI and this repo require:
 - The code block reads shiki 1 (the site's), and keeps its async result in
   state rather than a ref read during render.
 
+## Command tools
+
+`systems/command/catalog.ts` gives every command a model-facing description,
+bilingual title and finite target values. `CommandAction.id` is a catalog id,
+so adding a command without a description fails type checking. Ask generates
+one `command_<id>` tool per command; their implementations stay in
+`useCommandActions`, shared with the palette. There are 19 commands (including
+the search-only Sky Window), five content/navigation tools and `list_commands`:
+25 declarations in total. Voice is only active where recognition is supported;
+Install is only active before installation. The client sends those available
+ids on every request; the route filters them against the catalog and uses
+`activeTools`, retaining all definitions to interpret history.
+
+Each command has a required `policy.execution`: `on-request` or
+`user-gesture`, with stricter target overrides for `location=gps` and
+`music=play`. The schema and descriptions are generated from that policy.
+`execution=offer` is the default. The model uses `execution=apply` only when
+the reader explicitly asks to act. `executeAskCommand` checks availability,
+allowed targets, policy and whether the conversation is current and visible
+before calling the browser host. The model interprets intent; the runtime
+owns the execution boundary. Missing targets never trigger a cycle/toggle.
+
+| Policy | Actions |
+| --- | --- |
+| Automatic read/presentation | `search_site`, `read`, `present`, `list_commands` |
+| On explicit request | Theme, language, glass, tint, wallpaper styles/picker, approximate IP location, pause music, navigation, About, Ask, install guide, Sky Window explanation; existing `open_page` and `play` open pages/attachments |
+| User tap | Voice microphone, accurate GPS, start background music, developer panel toggle; sensor consent and actual installation remain inside their existing UI |
+
+A checked offer becomes a compact card; exact targets such as `language=zh`
+or `theme=dark` are one button, and an unspecified target offers the choices.
+The same setter implementations serve direct execution and taps, shared with
+the palette. Wallpaper targets use the existing image/shuffle/loop picker or
+real weather styles, not a fabricated forecast. Sky Window selects the sky
+background and opens its explanation; opening that explanation does not
+request motion/location permission. The install command opens a guide; it
+does not install the app. A failed action returns an error and is never
+reported as completed. Successful direct executions return `executed` and
+render as completed cards, saved with the conversation.
+
+`list_commands({ ids: [...] })` always only presents the model's selection,
+in its chosen order. Capability questions get 1–2 relevant examples, with no
+setting changes; a full menu requires an explicit request. Specific requests
+use one or two `command_*` calls. Background or hidden conversations may
+offer controls but cannot apply them. The host rechecks availability/targets,
+keeps gesture actions in the card click's task, and moves Ask aside for
+navigation or a new surface. Applying a weather style stays in Ask.
+
+Successful taps update the existing tool output with `executed`, saved to
+history without making a new model request. Placement changes and reloads
+keep completion state; the next question tells the model what actually ran.
+A discovery menu remains reusable. The keyless stand-in exercises these
+paths with scripted requests and two fixed discovery examples (theme and
+Sky Window). It verifies wiring and UI, not model intelligence, and is not
+used when a model is configured.
+
+### Tool-count benchmark
+
+`pnpm ask:benchmark` is offline: it compares experimental lexical shortlists of
+12 and 18 tools against all 25 on 34 bilingual cases. It measures schema bytes
+and whether the expected tool survives selection, **not model accuracy**. The
+shortlister never sees the expected answer. All six non-command tools are kept.
+The current offline run retains 31/34 cases at 12 tools, 33/34 at 18 and 34/34
+at 25; the indirect phone/sun/moon request loses Sky Window in both shortlists,
+and the smaller list also loses a Chinese theme request and one of the commands
+in a dual-change request. Full schemas are
+about 14.6 KB. Production therefore keeps all available commands pending live
+measurements; the experimental pruning is confined to the benchmark.
+
+With `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` in the environment:
+
+```sh
+pnpm ask:benchmark --run --models=all --repeats=3
+# A smaller smoke run:
+pnpm ask:benchmark --run --cases=dark-en,language-zh,sky-indirect,discover-zh,hello
+```
+
+The live benchmark uses the production system prompt, the exact tool schemas,
+low reasoning and real configured Gemini/Qwen models. It executes no tools.
+It records first-call correctness (tool names, every explicit target, effective
+apply/offer outcome under the catalog policy, and extra calls),
+including two requested changes, limiting capability suggestions to 1–2 actions,
+and allowing the full list only for an explicit full-list request. Boundary
+cases include a dark-mode preview, a how-to question and starting music. It also records
+how many actions would be shown,
+provider errors, latency and input/output token usage, rotating variant order
+across repetitions. JSON reports land in ignored `shots/`; `--output=path`
+changes the destination. It does not measure browser execution or final-answer
+quality. No live accuracy numbers are available from the current credential-free
+checkout.
+
+Google's [function-calling guidance](https://ai.google.dev/gemini-api/docs/function-calling#best-practices)
+suggests an active set of 10–20 tools. That is a useful experiment range, not a
+measured cutoff for this site's Gemini 2.5 Flash or Qwen 3.5 Flash. Enable pruning
+only after repeated live trials demonstrate a benefit without losing indirect
+requests, bilingual settings or capability discovery.
+
+Regression checks for the click boundary and persisted tool results:
+
+```sh
+pnpm ask:test
+```
+
 ## Not yet
 
-- More hands: the palette's commands (theme, language, the music player),
-  filtering /works or /prompt by a facet, opening a row on /works in place.
+- Filtering /works or /prompt by a facet, opening a row on /works in place.
 - Rate limiting on the route beyond its input caps, and a spend cap.
 - An eval set, to choose the default model and the map's detail.
 

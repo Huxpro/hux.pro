@@ -6,6 +6,8 @@ import { LOG } from "@/lib/log-client";
 import { useLocale } from "@/services";
 import { attachmentSetFor, useOptionalAttachments } from "@/systems/attachments";
 import { useCommand } from "@/systems/command";
+import { useCommandActions } from "@/systems/command/actions";
+import { validCommandValue } from "@/systems/command/catalog";
 import { useTransitionRouter } from "next-view-transitions";
 import { useEffect } from "react";
 import { siteActionHref } from "../lib/action-policy";
@@ -32,12 +34,27 @@ export function useAskActionsHost() {
   const { locale } = useLocale();
   const { askPlacement, moveAsk, minimizeAsk } = useCommand();
   const attachments = useOptionalAttachments();
+  const commands = useCommandActions();
 
   useEffect(() => {
     const aside = () => {
       if (askPlacement === "center" && askPlatformNow() === "desk") moveAsk("side");
     };
     setAskActions({
+      commands,
+      async runCommand(id, value) {
+        const command = commands.find((c) => c.id === id);
+        if (!command || !validCommandValue(id, value)) throw new Error("This command is unavailable.");
+        const opensSurface = command.kind === "surface" && !(id === "wallpaper" && value && value !== "picker");
+        if (command.kind === "navigate" || opensSurface) {
+          aside();
+          if (askPlatformNow() === "phone") minimizeAsk();
+          (document.activeElement as HTMLElement | null)?.blur();
+        }
+        // Gesture-only actions come from the card click itself, preserving
+        // user activation. Ask's automatic path checks the catalog policy.
+        await command.run({ value });
+      },
       visible: askPlacement === "center" || askPlacement === "side" || askPlacement === "top",
       async open({ href: inputHref, quote }, canContinue) {
         const href = siteActionHref(inputHref, window.location.origin);
@@ -73,5 +90,5 @@ export function useAskActionsHost() {
       },
     });
     return () => setAskActions(null);
-  }, [router, locale, askPlacement, moveAsk, minimizeAsk, attachments]);
+  }, [router, locale, askPlacement, moveAsk, minimizeAsk, attachments, commands]);
 }

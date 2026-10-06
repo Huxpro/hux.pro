@@ -38,6 +38,9 @@ import { AskCards, docForHref, useAskDocs } from "./cards";
 import { ContextTag } from "./context-tag";
 import { useAskSession } from "../lib/use-ask";
 import { askStrings } from "../strings";
+import { commandIdOf, COMMAND_IDS, type CommandId } from "@/systems/command/catalog";
+import { AskCommandCards } from "./command-card";
+import type { CommandOutput, CommandExecutions } from "../lib/command-tools";
 
 // =============================================================================
 // The conversation: messages, the agent's steps, sources, and what can be done
@@ -67,7 +70,8 @@ type Block =
   | { kind: "text"; key: string; text: string }
   | { kind: "reasoning"; key: string; text: string; streaming: boolean }
   | { kind: "tools"; key: string; parts: ToolPart[] }
-  | { kind: "cards"; key: string; ids: readonly string[] };
+  | { kind: "cards"; key: string; ids: readonly string[] }
+  | { kind: "commands"; key: string; ids: CommandId[]; value?: string; menu?: boolean; callId: string; executed?: CommandExecutions };
 
 function blocksOf(message: AskUIMessage, live: boolean): Block[] {
   const blocks: Block[] = [];
@@ -88,6 +92,13 @@ function blocksOf(message: AskUIMessage, live: boolean): Block[] {
       const last = blocks.at(-1);
       if (last?.kind === "tools") last.parts.push(part);
       else blocks.push({ kind: "tools", key, parts: [part] });
+    } else if (part.type === "tool-list_commands" && part.state === "output-available") {
+      blocks.push({ kind: "commands", key, ids: part.output.commands.filter((id) => COMMAND_IDS.includes(id)), menu: true, callId: part.toolCallId, executed: part.output.executed });
+    } else if ("toolCallId" in part && commandIdOf(part.type.slice(5)) && part.state === "output-available") {
+      const out = part.output as CommandOutput;
+      if ("offered" in out && COMMAND_IDS.includes(out.offered)) {
+        blocks.push({ kind: "commands", key, ids: [out.offered], value: out.value, callId: part.toolCallId, executed: out.executed ? { [out.offered]: out.executed } : undefined });
+      }
     } else if (part.type === "tool-present" && part.input?.ids?.length) {
       // Drawn as soon as the ids are in; once the page has checked them,
       // only the ones that exist.
@@ -318,6 +329,9 @@ function AssistantMessage({
           }
           if (block.kind === "cards") {
             return docs ? <AskCards key={block.key} docs={docsFor(docs, block.ids)} /> : null;
+          }
+          if (block.kind === "commands") {
+            return <AskCommandCards key={block.key} ids={block.ids} value={block.value} menu={block.menu} callId={block.callId} executed={block.executed} />;
           }
           return <ToolSteps key={block.key} parts={block.parts} live={live} />;
         })}

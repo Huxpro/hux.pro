@@ -4,6 +4,8 @@ import { askSystemPrompt } from "@/lib/ask-prompt";
 import { askEffortOf, askModelOf, type AskModel } from "@/systems/ask/lib/models";
 import { askTools, contextsOf, textOf, type AskContext, type AskUIMessage } from "@/systems/ask/lib/tools";
 import { ASK_ANSWER_NOW, ASK_CONTEXT } from "@/systems/ask/prompts";
+import { COMMAND_IDS, commandIdOf } from "@/systems/command/catalog";
+import { standInCommand } from "@/systems/ask/lib/stand-in-command";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
@@ -121,7 +123,7 @@ function describe(error: unknown): string {
 }
 
 export async function POST(req: Request) {
-  let body: { messages?: unknown; model?: unknown; effort?: unknown; finalize?: unknown };
+  let body: { messages?: unknown; model?: unknown; effort?: unknown; finalize?: unknown; commands?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -133,6 +135,11 @@ export async function POST(req: Request) {
   const model = askModelOf(body.model);
   const languageModel = resolveModel(model);
   if (!languageModel) return standIn(messages);
+  const available = new Set(Array.isArray(body.commands) ? body.commands.filter((id) => COMMAND_IDS.includes(id)) : COMMAND_IDS);
+  const activeTools = (Object.keys(askTools) as (keyof typeof askTools)[]).filter((name) => {
+    const id = commandIdOf(name);
+    return !id || available.has(id);
+  });
 
   // Answer now: the turn has spent its tool budget, or the page saw a step
   // end with neither text nor a tool call and asked for the reply.
@@ -160,6 +167,7 @@ export async function POST(req: Request) {
     // The tools stay declared (the history has calls to them); answering
     // now only takes away the choice to call one.
     tools: askTools,
+    activeTools,
     toolChoice: answerNow ? "none" : "auto",
     reasoning: askEffortOf(body.effort),
     maxOutputTokens: MAX_OUTPUT_TOKENS,
@@ -198,6 +206,8 @@ function standIn(messages: AskUIMessage[]) {
   const asked = textOf(messages.findLast((m) => m.role === "user") ?? last);
   const wantsOpen = requestedAction(asked, "open_page");
   const wantsPlay = requestedAction(asked, "play");
+  const command = standInCommand(asked);
+  const commandPart = last.role === "assistant" ? last.parts.find((p) => p.type === "tool-list_commands" || commandIdOf(p.type.slice(5))) : undefined;
 
   return createUIMessageStreamResponse({
     stream: createUIMessageStream<AskUIMessage>({
@@ -205,7 +215,18 @@ function standIn(messages: AskUIMessage[]) {
       execute({ writer }) {
         writer.write({ type: "start" });
         writer.write({ type: "start-step" });
-        if (!toolPart) {
+        if (command) {
+          if (!commandPart) {
+            writer.write({ type: "tool-input-available", toolCallId: `stand-in-command-${Date.now()}`, ...command });
+          } else {
+            writer.write({ type: "text-start", id: "t" });
+            const output = "state" in commandPart && commandPart.state === "output-available" && "output" in commandPart ? commandPart.output : null;
+            const completed = output && typeof output === "object" && "executed" in output;
+            const failed = output && typeof output === "object" && "error" in output;
+            writer.write({ type: "text-delta", id: "t", delta: `No model is configured, so this is the stand-in. ${completed ? "The requested action completed." : failed ? "The action could not be completed." : "Tap an action above to try it; nothing has been applied."}` });
+            writer.write({ type: "text-end", id: "t" });
+          }
+        } else if (!toolPart) {
           writer.write({ type: "reasoning-start", id: "r" });
           writer.write({
             type: "reasoning-delta",
