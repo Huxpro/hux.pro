@@ -245,7 +245,7 @@ function SheetBody({
               "placeholder:text-tertiary-foreground"
             )}
           />
-          <VoiceStatus voice={voice} className="pointer-events-none absolute inset-0 flex items-start pt-2" />
+          <VoiceStatus voice={voice} className="pointer-events-none absolute inset-0 flex items-center" />
           </div>
           {/* No keyboard to type "/" on: the field's trailing accessory
               opens the slash sheet, while the field is empty. Tucked in

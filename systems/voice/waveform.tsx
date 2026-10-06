@@ -60,12 +60,13 @@ export function VoiceWaveform({
 
   if (!active) return null;
   return (
-    <span aria-hidden className="pointer-events-none absolute inset-x-3 bottom-0 z-10 flex h-5 items-end overflow-hidden opacity-90">
-      <span ref={root} className="flex h-full w-full items-end justify-between gap-px">
+    <span aria-hidden className="pointer-events-none absolute inset-x-3 bottom-0 z-10 flex h-4 items-center overflow-hidden opacity-90">
+      <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-foreground/25" />
+      <span ref={root} className="relative flex h-full w-full items-center justify-between gap-px">
         {Array.from({ length: BAR_COUNT }, (_, i) => (
           <span
             key={i}
-            className="h-full min-w-px max-w-[5px] flex-1 origin-bottom rounded-full"
+            className="h-full min-w-px max-w-[5px] flex-1 origin-center rounded-full"
             style={{
               backgroundColor: COLORS[i],
               boxShadow: `0 0 5px ${COLORS[i]}`,

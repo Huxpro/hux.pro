@@ -370,7 +370,7 @@ function PopoverCard({ drag }: { drag: ReturnType<typeof useDraggable> }) {
                           isDraggable && "cursor-default focus:cursor-text"
                         )}
                       />
-                      <VoiceStatus voice={voice} className="pointer-events-none absolute inset-0 flex items-start pt-2" />
+                      <VoiceStatus voice={voice} className="pointer-events-none absolute inset-0 flex items-center" />
                     </div>
                     <VoiceButton voice={voice} className="-mx-1" />
                     {/* One slot, two readings: a hint where there is a
