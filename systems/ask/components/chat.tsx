@@ -189,7 +189,7 @@ export default function AskChat({
         )}
         <AskMessages onNavigate={onNavigate} className={cn(showHistory && "hidden", showHistory && rail && "sm:block")} />
 
-        <div className="shrink-0 p-2 pt-0 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 p-2 pt-0">
           <AskComposer />
         </div>
       </div>

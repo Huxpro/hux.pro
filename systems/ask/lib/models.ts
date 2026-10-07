@@ -4,9 +4,8 @@
 // Gateway ids, `provider/model`.
 //
 // Chosen to cost little and to run on the gateway's free tier: every one is
-// meant to be `availableToFreeTier` in the gateway's catalog (Qwen 3.8 and
-// DeepSeek still to be confirmed there), takes tools, reasons, reads
-// Chinese and English, and is served without training on prompts. Claude,
+// `availableToFreeTier` in the gateway's catalog, takes tools, reasons,
+// reads Chinese and English, and is served without training on prompts. Claude,
 // GPT and Gemini 3 need purchased gateway credits; add them here when there
 // are some (an entry with `direct` also runs on that provider's own key).
 // Prices per million tokens, input / output, as listed 2026-10.
@@ -25,14 +24,11 @@ export const ASK_MODELS: AskModel[] = [
   // Gemini's price, and it searches eagerly; the route's tool budget is what
   // makes it answer.
   { id: "alibaba/qwen3.5-flash", label: "Qwen 3.5 Flash" },
-  // $0.15 / $0.47, 1M context, cache reads at $0.016. Two versions on from
-  // 3.5; on trial against it.
-  { id: "alibaba/qwen3.8-flash", label: "Qwen 3.8 Flash" },
   // $0.30 / $2.50. Searches less, answers well on the site's questions.
   { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  // $0.30 / $1.20, 1M context. The `-fast` build: served (by DeepInfra)
-  // without training on prompts, where plain V4.1 Flash is only partly.
-  { id: "deepseek/deepseek-v4.1-flash-fast", label: "DeepSeek V4.1 Flash" },
+  // Qwen 3.8 Flash ($0.15 / $0.47) and DeepSeek V4.1 Flash Fast ($0.30 /
+  // $1.20, the build served without training on prompts) were here: neither
+  // is on the free tier. Back in when there are gateway credits.
   // Kimi K2 Thinking was here and did not connect through the gateway.
 ];
 

@@ -101,7 +101,7 @@ export function AskSkeleton({
         </span>
       </div>
 
-      <div className={cn("shrink-0", dock ? "px-3 pt-1 pb-1.5" : "p-2 pt-0 pb-[max(0.5rem,env(safe-area-inset-bottom))]")}>
+      <div className={cn("shrink-0", dock ? "px-3 pt-1 pb-1.5" : "p-2 pt-0")}>
         <div aria-hidden className="rounded-xl border border-border/50 px-3 py-3">
           <span className={cn(BAR, "h-4 w-2/3 bg-muted/70")} />
           <span className="mt-3 flex items-center gap-2">
