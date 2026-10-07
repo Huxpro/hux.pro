@@ -381,7 +381,7 @@ small and grey on some engines.
 
 ## Adding things
 
-- **A wallpaper:** commit it as before (`docs/system-ambient.md`), then
+- **A wallpaper:** commit it as before (`docs/wallpapers.md`), then
   `pnpm wallpapers:profile`. Done.
 - **A surface:** paint with a glass token and the ink tokens. It will follow
   the material, the tint, the boost and the relief without knowing any exist.

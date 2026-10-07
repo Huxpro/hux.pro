@@ -269,7 +269,7 @@ The footer (`Press D to toggle` and `Disable Devtool`) is the surface's
    a forced scene and wears the blue star to say so.
 
    The Gyro row is the tilt that makes the Sky's rain and snow fall along real
-   gravity (`docs/system-ambient.md` → Gyroscope Tilt), with the live angle as
+   gravity (`docs/ambient-sky.md` → Gyroscope tilt), with the live angle as
    its readout. On iOS it is also the second place besides the wallpaper
    picker where motion access can be granted, since that needs a tap to ask.
 
@@ -299,7 +299,7 @@ The footer (`Press D to toggle` and `Disable Devtool`) is the surface's
      weather half of the rule, though: a chip that also went dark at noon would
      be answering the timeline's question badly, so it does not.
 
-   See `docs/system-ambient.md` → The Shooting Star for the two terms and why
+   See `docs/ambient-easter-eggs.md` → The shooting star for the two terms and why
    twelve degrees.
 4. **Command**: the **Phone palette** switch, Sheet (the bottom sheet the
    palette is on a phone) / Popover (the desktop card at phone width, the palette as it was).

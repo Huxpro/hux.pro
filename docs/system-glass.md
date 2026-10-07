@@ -107,4 +107,4 @@ is a taste call and the only way to settle one is to look at it. The weather
 gradient opts out entirely, since it has no detail to compete with.
 
 Neither the bezel nor soft edging is part of this treatment. Both belong to the
-edge of the page, not the picture (see [Placement](./system-ambient.md#placement)).
+edge of the page, not the picture (see [Placement](./wallpapers.md#placement)).
