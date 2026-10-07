@@ -11,6 +11,7 @@
 | **Design Philosophy** | [docs/design-philosophy.md](./docs/design-philosophy.md) (Core principles) |
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
+| **Content System** | [docs/content-system.md](./docs/content-system.md) (Posts in `content/blog/` at /writing and docs in `docs/` at /docs: the language is in the file name, one page per language, frontmatter, `lib/mdx.ts` → `MDXRenderer`, `MdxImage` bleed, the MDX that fails a build; the checklist is the skill `.claude/skills/writing-content`) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
 | **Typing on a phone** | [docs/keyboard-input.md](./docs/keyboard-input.md) (how a field rests on the software keyboard while its sheet shrinks; constraints, free choices, every field on the site; the checklist is the skill `.claude/skills/keyboard-input`) |
 | **Dock / Live Activities / Notices** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel; `showNotice` for a one-line notice; there is no bottom toast) |
@@ -36,8 +37,9 @@
 `.claude/skills/` pairs the docs above with short skills: when each applies,
 the rules that are easy to break, the commands to run, and the doc to read.
 `keyboard-input`, `surfaces`, `base-ui-drawer`, `ui-tokens`, `vitre`,
-`ask-commands`, `content-snapshots`, `wallpapers`. A skill states what the
-code won't tell you and points at its doc; keep it short.
+`ask-commands`, `content-snapshots`, `wallpapers`, `writing-content`. A
+skill states what the code won't tell you and points at its doc; keep it
+short.
 
 ## 2. Quick Start Context
 
@@ -97,8 +99,12 @@ duration-300 (morphing transitions)
 ## 3. Common Tasks
 
 ### Adding Content
-- Blog posts go in `content/blog/` (displayed at /writing).
-- Must include frontmatter (title, date, description, language).
+- Blog posts go in `content/blog/` (displayed at /writing), named
+  `<slug>.en.mdx` / `<slug>.zh.mdx`: the language comes from the file name,
+  not frontmatter. Frontmatter: `title`, `date`, `description`, `tags`.
+- Docs go in `docs/` (displayed at /docs), one file per slug. Images for
+  either live under `public/` with absolute paths. See the skill
+  `.claude/skills/writing-content`.
 
 ### Modifying Design
 - Use `app/globals.css` for global variables.
