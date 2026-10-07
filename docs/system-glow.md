@@ -328,6 +328,10 @@ feeds the same microphone meter to the glow:
 - **the voice itself**: a microphone stream through `lib/meter.ts`, for the
   glow. Where a second capture is refused, the level is synthesised from the
   recogniser's own sound / speech / result events, so the glow still answers.
+- **idle**: from the press, the level never drops below a slow breath
+  (0.17 ± 0.06), so the glow and the waveform move at once, before the
+  microphone opens and between words, rather than waking at the first
+  syllable (the meter's gate reads silence as 0).
 
 States: `idle → listening → processing` (the browser settles words or Gateway
 transcribes the released clip) `→ idle`, or `denied` / `error`.

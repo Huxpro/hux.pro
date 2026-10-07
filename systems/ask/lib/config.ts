@@ -56,8 +56,9 @@ export interface AskConfig {
   /** A reply still being written after Ask was closed shows a pill in the
    *  Dock, so the answer is a tap away. */
   backgroundPill: boolean;
-  /** How long the field listens before the glow comes up, ms: a glow on
-   *  the first instant reads as a flash, and a beat later as an answer. */
+  /** How long the field listens before the glow comes up, ms. 0: the
+   *  glow's own reveal (a sweep out from the centre) is the arrival, and a
+   *  press wants an answer at once. */
   glowDelay: number;
   /** How much longer when a keyboard is going down, ms: the system's slide
    *  and the glow's first frames together drop frames on a phone. */
@@ -73,7 +74,7 @@ export const ASK_PRESETS: Record<AskPlatform, AskConfig> = {
     drag: true,
     minimize: "dock",
     backgroundPill: true,
-    glowDelay: 180,
+    glowDelay: 0,
     keyboardDelay: 0,
   },
   phone: {
@@ -84,7 +85,7 @@ export const ASK_PRESETS: Record<AskPlatform, AskConfig> = {
     drag: false,
     minimize: "off",
     backgroundPill: false,
-    glowDelay: 180,
+    glowDelay: 0,
     keyboardDelay: 320,
   },
 };

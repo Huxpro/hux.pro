@@ -22,6 +22,9 @@ import { voiceModelPref } from "./prefs";
 //           is refused (some Android browsers hold the microphone for the
 //           recogniser alone), the level is synthesised from the recogniser's
 //           own sound / speech events, so the glow still answers the voice.
+//   idle    from the press, a slow breath under the level (IDLE): the glow
+//           and the waveform move at once, before the microphone is open
+//           and between words, instead of waking at the first syllable.
 //
 // States: idle → listening → processing → idle. `denied` and `error` say why
 //          a start or transcription failed. `supported` is true if either
@@ -116,6 +119,9 @@ export interface VoiceInput {
   bands: () => readonly [number, number, number];
 }
 
+/** The breath under a listening level: its floor, its swing, its rate. */
+const IDLE = { floor: 0.17, swing: 0.06, rate: 2.4 } as const;
+
 export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): VoiceInput {
   const [supported, setSupported] = useState(false);
   const [mode, setMode] = useState<VoiceMode>("browser");
@@ -134,8 +140,10 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
   const recordingTimer = useRef<number | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const meter = useRef<VoiceMeter | null>(null);
-  // The synthetic level, for when no meter could be had.
+  // The synthetic level, for when no meter could be had. `t0` is when
+  // listening began (0 when not listening): the idle breath's clock.
   const synth = useRef({ sound: false, speech: false, pulse: 0, t0: 0 });
+  const floored = useRef<[number, number, number]>([0, 0, 0]);
   const callbacks = useRef({ onInterim, onFinal });
   useEffect(() => {
     callbacks.current = { onInterim, onFinal };
@@ -179,6 +187,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
         session.current++;
         awaitingMicrophone.current = false;
         activeMode.current = null;
+        release();
         setState("idle");
         return;
       }
@@ -190,7 +199,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
       return;
     }
     recognition.current?.stop();
-  }, []);
+  }, [release]);
 
   const abort = useCallback(() => {
     setGesture("idle");
@@ -224,6 +233,7 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
       activeMode.current = "gateway";
       awaitingMicrophone.current = true;
       primeAudio();
+      synth.current.t0 = performance.now();
       setState("listening");
       navigator.mediaDevices.getUserMedia({ audio: true }).then((s) => {
         if (session.current !== id) {
@@ -408,23 +418,41 @@ export function useVoiceInput({ lang, onInterim, onFinal }: VoiceInputOptions): 
     [release],
   );
 
+  // Listening and silent (or not yet heard): the breath, never nothing.
+  const idle = useCallback(() => {
+    const t0 = synth.current.t0;
+    if (!t0) return 0;
+    const t = (performance.now() - t0) / 1000;
+    return IDLE.floor + IDLE.swing * Math.sin(t * IDLE.rate);
+  }, []);
+
   const level = useCallback(() => {
-    if (meter.current) return meter.current.level();
+    if (meter.current) return Math.max(meter.current.level(), idle());
     const s = synth.current;
     if (!s.t0) return 0;
     const t = (performance.now() - s.t0) / 1000;
     // Words arriving are the surest sign of a voice: each result is a beat.
     const beat = Math.exp(-(performance.now() - s.pulse) / 260);
+    // Before the recogniser hears anything, only the breath: a Gateway clip
+    // never reports sound or speech, and has no meter until the
+    // microphone opens.
+    if (!s.sound && !s.speech && !s.pulse) return idle();
     const base = s.speech ? 0.5 : s.sound ? 0.3 : 0.12;
-    return Math.min(1, base + 0.35 * beat + 0.08 * Math.sin(t * 7.3));
-  }, []);
+    return Math.min(1, Math.max(idle(), base + 0.35 * beat + 0.08 * Math.sin(t * 7.3)));
+  }, [idle]);
 
   const bands = useCallback((): readonly [number, number, number] => {
-    if (meter.current) return meter.current.bands();
+    if (meter.current) {
+      const b = meter.current.bands();
+      const floor = idle();
+      const out = floored.current;
+      for (let i = 0; i < 3; i++) out[i] = Math.max(b[i], floor);
+      return out;
+    }
     const l = level();
     const t = performance.now() / 1000;
     return [l, l * (0.72 + 0.28 * Math.sin(t * 9.1)), l * (0.6 + 0.4 * Math.sin(t * 13.7 + 2))];
-  }, [level]);
+  }, [idle, level]);
 
   return {
     supported,

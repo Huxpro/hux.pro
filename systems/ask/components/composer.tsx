@@ -157,7 +157,7 @@ export function AskComposer() {
         }}
         className="relative rounded-xl bg-transparent"
       >
-        <div className={cn("grid w-full transition-[grid-template-rows,opacity] duration-300 ease-in-out", voiceActive ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100")}>
+        <div className={cn("grid w-full transition-[grid-template-rows,opacity] duration-300 ease-out", voiceActive ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100")}>
           <div className="min-h-0 overflow-hidden" inert={voiceActive} aria-hidden={voiceActive}>
             {(context || pointed.length > 0 || (page && !pageContext)) && (
               <div className="flex w-full flex-wrap gap-1 px-3 pt-2.5">
