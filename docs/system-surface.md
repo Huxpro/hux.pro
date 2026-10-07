@@ -360,7 +360,8 @@ the keyboard on the next touch anywhere, whatever it was aimed at.
 **Keyboard.** `Drawer.VirtualKeyboardProvider` wraps every sheet and publishes
 `--drawer-keyboard-inset`; the shell takes it as a bottom margin, so a sheet
 with a field in it rests on the keyboard rather than behind it. A sheet with no
-fields never notices.
+fields never notices. What a field inside a sheet must and may do is in
+[keyboard-input.md](./keyboard-input.md).
 
 ## Working with Base UI
 

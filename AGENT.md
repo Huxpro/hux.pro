@@ -12,6 +12,7 @@
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
+| **Typing on a phone** | [docs/keyboard-input.md](./docs/keyboard-input.md) (how a field rests on the software keyboard while its sheet shrinks; constraints, free choices, every field on the site; the checklist is the skill `.claude/skills/keyboard-input`) |
 | **Dock / Live Activities / Notices** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel; `showNotice` for a one-line notice; there is no bottom toast) |
 | **Glass** | [docs/system-glass.md](./docs/system-glass.md) (Clear / Tinted material, reading surfaces) |
 | **Legibility** | [docs/system-legibility.md](./docs/system-legibility.md) (Ink-at-alpha tokens, wallpaper profiles, relief, tint, the `/lab/legibility` lab) |
