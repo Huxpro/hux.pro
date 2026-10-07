@@ -123,7 +123,7 @@ sheet everywhere, and moving a surface between shapes is a one-word change:
 ```ts
 ADAPTIVE_PRESENTATION  // { base: "sheet", sm: "panel", lg: "window" }
 ANCHORED_PRESENTATION  // { base: "sheet", sm: "popover" }, owned by a button
-DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" }, never floats free
+DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" }, never floats free (proposed; not in presentation.ts yet)
 ```
 
 A surface on `ANCHORED_PRESENTATION` passes `popover={{ anchor }}` whatever the

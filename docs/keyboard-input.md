@@ -21,9 +21,20 @@ Ask on a phone (`systems/ask/surfaces.tsx`, the `ask` sheet):
 - The composer is held off the glass by one padding on every side (8px):
   the home indicator is the shell's business, not the field's.
 
+<div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+  <img src="/img/docs/keyboard-input/ask-keyboard-down.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="Ask on a phone with the keyboard down: the sheet stands full height, the composer at its bottom." />
+  <img src="/img/docs/keyboard-input/ask-keyboard-up.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="The same sheet on an iPhone with the keyboard up: the top edge, grabber and title bar have not moved; the glass ends just above Safari's accessory bar, and the composer rests there." />
+</div>
+
+Keyboard down (headless, 393pt wide) and up (an iPhone in Safari). The top
+edge has not moved; the glass got shorter, and the suggestions gave up the
+height.
+
 ## How it works
 
 Five pieces, each in one place.
+
+![The popup stays one height; the shell inside it takes the keyboard's height as a bottom margin and shrinks from the bottom, the content giving up the room and the field resting on the keyboard.](/img/docs/keyboard-input/layers.svg)
 
 1. **The measurement.** Every `SurfaceSheet` (`systems/surface/sheet.tsx`)
    is wrapped in Base UI's `Drawer.VirtualKeyboardProvider`. It watches

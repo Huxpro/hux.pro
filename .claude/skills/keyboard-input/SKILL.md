@@ -41,23 +41,13 @@ For a new field, or one being changed:
    `restoreFocus={false}`.
 7. **Update the inventory** table in `docs/keyboard-input.md`.
 
-## Auditing
+## Auditing and verifying
 
-1. Find every typing site:
-   `rg -n "<input|<textarea|contentEditable|Command\.Input|PromptInputTextarea" app components systems lib`
-   Skip `type` checkbox, radio, range, color, file, hidden.
-2. For each one: is it reachable on a phone (<640px)? Trace its host up to a
-   `SurfaceSheet`, page flow, or something else.
-3. Check it against steps 1–6 above. Fix what fails; small fixes (font size,
-   a stray safe-area padding, a missing `min-h-0`) go straight in.
-4. Diff the result against the inventory table and update it.
+Find every typing site (`rg -n "<input|<textarea|Command\.Input|PromptInputTextarea"`,
+skipping checkbox, radio, range, color, file), trace each to its phone host,
+check it against the steps above, fix, and update the inventory table.
 
-## Verifying
-
-Lint and `tsc --noEmit` catch none of this, and Playwright cannot raise an
-iOS keyboard. Say so, and ask for a check on a device:
-
-- Tap the field: the top edge stays, and the gap above the keyboard matches
-  the sides.
-- Type, scroll the content, drag the sheet, dismiss the keyboard.
-- Open and close a sheet stacked on it: no keyboard comes back on its own.
+Lint, `tsc` and Playwright can't raise an iOS keyboard. Say so, and ask for
+a check on a device: tap the field (top edge stays, the gap above the
+keyboard matches the sides), type, scroll, drag, dismiss, and close a sheet
+stacked on it (no keyboard comes back on its own).
