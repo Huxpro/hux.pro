@@ -3327,7 +3327,7 @@ function AskModule() {
           <PanelSegmented
             value={model}
             label={zh ? "模型" : "Model"}
-            options={ASK_MODELS.map((m) => ({ value: m.id, label: m.label.split(" ")[0], title: m.label }))}
+            options={ASK_MODELS.map((m) => ({ value: m.id, label: m.label.replace(/ Flash$/, ""), title: m.label }))}
             onChange={askModelPref.set}
           />
         </PanelRow>
