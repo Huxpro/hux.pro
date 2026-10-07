@@ -46,7 +46,9 @@ next-env.d.ts
 .vscode/
 *.swp
 *.swo
-.claude/
+# Local Claude Code state; the project's skills are shared.
+.claude/*
+!.claude/skills/
 .obsidian/
 .cursor/
 

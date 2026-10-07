@@ -12,6 +12,7 @@
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
+| **Typing on a phone** | [docs/keyboard-input.md](./docs/keyboard-input.md) (how a field rests on the software keyboard while its sheet shrinks; constraints, free choices, every field on the site; the checklist is the skill `.claude/skills/keyboard-input`) |
 | **Dock / Live Activities / Notices** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel; `showNotice` for a one-line notice; there is no bottom toast) |
 | **Glass** | [docs/system-glass.md](./docs/system-glass.md) (Clear / Tinted material, reading surfaces) |
 | **Legibility** | [docs/system-legibility.md](./docs/system-legibility.md) (Ink-at-alpha tokens, wallpaper profiles, relief, tint, the `/lab/legibility` lab) |
@@ -29,6 +30,14 @@
 | **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (Siri's ring as a shared WebGL shader, the site's one light: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/lab/glow` lab) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (The profile card behind `<handle>` and `Role:`, showing who signed a commit) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (Why a widget's list body scrolls under a pointer and holds still under a finger) |
+
+### Skills
+
+`.claude/skills/` pairs the docs above with short skills: when each applies,
+the rules that are easy to break, the commands to run, and the doc to read.
+`keyboard-input`, `surfaces`, `base-ui-drawer`, `ui-tokens`, `vitre`,
+`ask-commands`, `content-snapshots`, `wallpapers`. A skill states what the
+code won't tell you and points at its doc; keep it short.
 
 ## 2. Quick Start Context
 
@@ -82,7 +91,7 @@ duration-300 (morphing transitions)
     top of each file and Base UI's Drawer docs. The library's data attributes
     and CSS variables are a contract with meanings its types do not carry;
     every one of the listed items was a shipped bug. The Live Activity panel is
-    the same drawer travelling `up`. Three things differ in that direction;
+    the same drawer travelling `up`. Five things differ in that direction;
     they are listed in `live-activity.tsx`.
 
 ## 3. Common Tasks
@@ -116,9 +125,9 @@ iOS Safari findings behind it are in `packages/vitre/vitre.d.ts` and
 `packages/vitre/README.md`; read those before changing anything about the edge
 of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
 
-- **Bezel on/off** follows the wallpaper kind (`WALLPAPER_KIND_EDGES`): weather
-  off with soft edge, image on without. A devtool override lasts until the kind
-  switches. On iOS only.
+- **Bezel on/off** follows the wallpaper family (`WALLPAPER_FAMILY_EDGES`):
+  a `picture` (the Sky, an image) on without soft edge, a `wash` off with it.
+  A devtool override lasts until the family switches. On iOS only.
 - **Tint, band, radius** are saved settings (`bezelTint`, `bezelBand`,
   `bezelRadius` in `hux_ambient_settings`), the same for every kind. Defaults:
   black, 0px, 16px. Tints: `black`, `dark`, `theme` (the page ground in the

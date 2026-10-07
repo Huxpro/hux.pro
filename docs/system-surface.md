@@ -123,7 +123,7 @@ sheet everywhere, and moving a surface between shapes is a one-word change:
 ```ts
 ADAPTIVE_PRESENTATION  // { base: "sheet", sm: "panel", lg: "window" }
 ANCHORED_PRESENTATION  // { base: "sheet", sm: "popover" }, owned by a button
-DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" }, never floats free
+DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" }, never floats free (proposed; not in presentation.ts yet)
 ```
 
 A surface on `ANCHORED_PRESENTATION` passes `popover={{ anchor }}` whatever the
@@ -360,7 +360,8 @@ the keyboard on the next touch anywhere, whatever it was aimed at.
 **Keyboard.** `Drawer.VirtualKeyboardProvider` wraps every sheet and publishes
 `--drawer-keyboard-inset`; the shell takes it as a bottom margin, so a sheet
 with a field in it rests on the keyboard rather than behind it. A sheet with no
-fields never notices.
+fields never notices. What a field inside a sheet must and may do is in
+[keyboard-input.md](./keyboard-input.md).
 
 ## Working with Base UI
 
