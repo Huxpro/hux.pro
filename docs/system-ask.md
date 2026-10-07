@@ -32,6 +32,7 @@ systems/ask/
 │   ├── selection.tsx  # "Ask about this" over words selected on the page
 │   ├── actions-host.ts # the agent's hands: open a page at a spot, play a talk
 │   ├── composer.tsx   # AskComposer: field, model, thinking level, voice, send / stop
+│   ├── model-icon.tsx # each model maker's mark, for the picker
 │   ├── history.tsx    # AskHistory: past conversations
 │   ├── chat.tsx       # the center place: the palette, widened into two panes (lazy-loaded)
 │   ├── panel.tsx      # the side place: a panel beside the page
@@ -355,18 +356,22 @@ run them against public/ask/index.json
 `systems/ask/lib/models.ts` is the whole list: the picker shows it, the
 route accepts nothing else (an unknown id falls back to the first, the
 default). It is chosen to run on the gateway's **free tier** and to cost
-little: every entry is `availableToFreeTier` in the gateway's catalog, takes
-tools, reasons, reads both languages, and is served without training on
-prompts.
+little: every entry is meant to be `availableToFreeTier` in the gateway's
+catalog (Qwen 3.8 and DeepSeek are yet to be confirmed there), takes tools,
+reasons, reads both languages, and is served without training on prompts.
+The picker shows each maker's mark (`components/model-icon.tsx`, from Lobe
+Icons), keyed by the id's provider.
 
 | model | $ / M tokens (in / out) | |
 |---|---|---|
-| Gemini 2.5 Flash (`google/gemini-2.5-flash`) | 0.30 / 2.50 | default; the best of those tried |
-| Qwen 3.5 Flash (`alibaba/qwen3.5-flash`) | 0.10 / 0.40 | searches eagerly; the tool budget makes it answer |
+| Qwen 3.5 Flash (`alibaba/qwen3.5-flash`) | 0.10 / 0.40 | default; searches eagerly, the tool budget makes it answer |
+| Qwen 3.8 Flash (`alibaba/qwen3.8-flash`) | 0.15 / 0.47 | on trial against 3.5 |
+| Gemini 2.5 Flash (`google/gemini-2.5-flash`) | 0.30 / 2.50 | searches less; answers well |
+| DeepSeek V4.1 Flash (`deepseek/deepseek-v4.1-flash-fast`) | 0.30 / 1.20 | on trial; the `-fast` build is the one served without training |
 
 Kimi K2 Thinking was tried and did not connect through the gateway.
 
-A question costs well under a cent on either (≈10k tokens in, ≈600 out). Claude, GPT and Gemini 3 are not on the free tier; they need
+A question costs well under a cent on any of them (≈10k tokens in, ≈600 out). Claude, GPT and Gemini 3 are not on the free tier; they need
 purchased gateway credits, and go in the list then. The free `$0` models were
 left out: the ones that are free are served with no promise against training
 on what visitors ask. Set a budget on the project in the gateway's dashboard

@@ -29,6 +29,7 @@ import { loadedAskSearch } from "../lib/search";
 import { useAskPrefs, useAskSession } from "../lib/use-ask";
 import { useAskDocs } from "./cards";
 import { ContextTag } from "./context-tag";
+import { ModelIcon } from "./model-icon";
 import { askStrings } from "../strings";
 
 // =============================================================================
@@ -243,12 +244,17 @@ export function AskComposer() {
               >
                 <PromptInputSelectTrigger aria-label={s.model}>
                   <PromptInputSelectValue>
-                    {(value: string) => ASK_MODELS.find((m) => m.id === value)?.label ?? value}
+                    {(value: string) => <>
+                      <ModelIcon id={value} />
+                      {ASK_MODELS.find((m) => m.id === value)?.label ?? value}
+                    </>}
                   </PromptInputSelectValue>
                 </PromptInputSelectTrigger>
-                <PromptInputSelectContent>
+                {/* As wide as the longest name, not the trigger's width. */}
+                <PromptInputSelectContent className="w-auto min-w-(--anchor-width)">
                   {ASK_MODELS.map((m) => (
                     <PromptInputSelectItem key={m.id} value={m.id}>
+                      <ModelIcon id={m.id} className="self-center" />
                       {m.label}
                     </PromptInputSelectItem>
                   ))}
