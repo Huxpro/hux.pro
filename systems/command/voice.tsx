@@ -35,19 +35,19 @@ import { useCommand } from "./provider";
 //   Space in an empty field hold (a tap does nothing; a leading space
 //                           means nothing to a search)
 //
-// While it listens, the field shows the site's glow along its bottom edge,
-// a beat after it starts (a glow on the first instant reads as a flash):
-// the `line` shape of the same light the About rings the screen with
-// (systems/glow). It rises and spreads with the voice and ripples with its
-// bands. When the speaker pauses and the words are being settled, it gathers
+// While it listens, the field shows the site's glow along its bottom edge
+// from the press: the `line` shape of the same light the About rings the
+// screen with (systems/glow), sweeping out from the centre as it arrives.
+// It breathes while the speaker is silent (systems/voice's idle level), and
+// rises, spreads and ripples with the voice and its bands. When the speaker pauses and the words are being settled, it gathers
 // into one beam travelling the edge (the glow's `processing`) and fades once
 // the final phrase is in.
 //
 // On a touch screen, the microphone pressed while a field holds the keyboard
 // up lets the keyboard go: listening wants the screen, and the words arrive
-// in the field anyway. The glow then waits longer, for the keyboard's slide
-// to finish: the two together drop frames on a phone. Both waits are Ask's
-// settings (systems/ask/lib/config.ts: `glowDelay`, `keyboardDelay`).
+// in the field anyway. The glow then waits, for the keyboard's slide to
+// finish: the two together drop frames on a phone. Both waits are Ask's
+// settings (systems/ask/lib/config.ts: `glowDelay`, 0, and `keyboardDelay`).
 // =============================================================================
 
 /**

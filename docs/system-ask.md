@@ -183,7 +183,7 @@ defaults.
 | `drag` | the whole title bar drags between places immediately with a mouse, after a long press with touch | on | off |
 | `minimize` | `dock`: into the Dock as a pill; `off`: no minimize button, and the Dock's collapse closes | dock | off |
 | `backgroundPill` | a reply still being written after Ask closed shows as a pill | on | off |
-| `glowDelay` | ms the field listens before the voice glow comes up | 180 | 180 |
+| `glowDelay` | ms the field listens before the voice glow comes up | 0 | 0 |
 | `keyboardDelay` | ms more when the microphone just sent a keyboard down | 0 | 320 |
 
 A platform is the surfaces' `sm`: under 640px, a phone. Side capacity is a
@@ -232,10 +232,12 @@ the panel's width.
   leaving Ask (the palette and the panel skip an Escape already handled).
 - **Voice.** The microphone sits beside send, at the trailing end, as Claude
   and ChatGPT have it; the pickers lead. On a touch screen it lets the field
-  go, so the keyboard slides down while it listens. The glow comes up a beat
-  after listening starts (`glowDelay`), and later still while a keyboard is
-  going down (`keyboardDelay`): the slide and the glow's first frames together
-  drop frames on a phone. Both waits apply to the palette's field too.
+  go, so the keyboard slides down while it listens. A press answers at once:
+  the field gives way to the recording row and the glow sweeps in
+  (`glowDelay`, 0), breathing until the voice drives it. Only while a keyboard
+  is going down does it wait (`keyboardDelay`): the slide and the glow's first
+  frames together drop frames on a phone. Both waits apply to the palette's
+  field too.
 - **A sent question stays gone.** Sending aborts the microphone (its last
   phrase can settle after ↵), and a phone keyboard's late commit of the sent
   words (pinyin, a suggestion) is dropped, so the field is never refilled.
