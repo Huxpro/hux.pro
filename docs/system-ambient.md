@@ -93,6 +93,8 @@ events: the Dock's activity above, the theme under Follow the Sun below. Note
 where each changes: the phase at the windows' edges, the theme at the event
 itself, in the middle of the window.
 
+The boundaries (`deriveAmbientPhase`, `lib/phase.ts`), on the effective clock:
+
 | Phase | From | To |
 |---|---|---|
 | `sunrise` | sunrise − 45 min | sunrise + 45 min |
@@ -100,11 +102,13 @@ itself, in the middle of the window.
 | `afternoon` | 12:00 | sunset − 45 min |
 | `sunset` | sunset − 45 min | sunset + 45 min |
 | `evening` | sunset + 45 min | 3 hours later |
-| `night` | otherwise | |
+| `night` | the end of evening | the start of the next sunrise window |
 
-The window is `DEFAULT_SUN_EVENT_WINDOW_MINUTES` (45) in `lib/sun.ts`. Without
-sun times there are no event phases and `getTimeOfDay()` (`lib/greeting.ts`)
-splits the local clock at 05, 12, 17 and 21. There is no phase override: the
+The window is `DEFAULT_SUN_EVENT_WINDOW_MINUTES` (45) in `lib/sun.ts`; where the
+two windows overlap (extreme latitudes) the nearer event wins. Until the
+forecast has brought sun times there are no event phases, only fixed hours
+(`getTimeOfDay()`, `lib/greeting.ts`): morning 5–12, afternoon 12–17, evening
+17–21, night otherwise. There is no phase override: the
 phase is always derived from `nowMs`, so the devtool changes it by moving the
 clock.
 
@@ -294,12 +298,18 @@ new; otherwise it picks its kinds, writes its policy and renders a
 
 ### Location, the cache and freshness
 
-The query cache is persisted to `localStorage` (`hux_query_cache`, through
-`queryPersister` in `lib/query.ts`, 24 h `gcTime`), so a reload paints the last
-place and weather before any network. The weather key is
-`["weather", "v4", lat.toFixed(2), lon.toFixed(2)]`; bump the version segment
-when the payload's meaning changes, so a persisted entry is never served as
-complete. The provider lives as long as the tab, so a stale time alone
+**The cache.** The query client and its persister live in `lib/query.ts`
+(localStorage key `hux_query_cache`, 24 h `gcTime`), mounted around everything
+by `PersistQueryClientProvider` in `shared/providers.tsx`, so a returning
+visitor gets the last location and weather before any request. The weather key
+carries a version segment (`queryKeys.weather`:
+`["weather", "v4", lat.toFixed(2), lon.toFixed(2)]`): bump it whenever the
+payload changes shape, or a persisted entry from before is served as if it were
+complete. Both queries keep the previous answer on screen while a new key loads
+(`placeholderData`), so switching IP to Accurate, or a fix in a new city, leaves
+the old card and sky up until the new ones land.
+
+**Freshness.** The provider lives as long as the tab, so a stale time alone
 refreshes nothing; something has to ask:
 
 | Data | Stale after | Asked again when |
