@@ -361,8 +361,8 @@ prompts.
 
 | model | $ / M tokens (in / out) | |
 |---|---|---|
-| Gemini 2.5 Flash (`google/gemini-2.5-flash`) | 0.30 / 2.50 | default; the best of those tried |
-| Qwen 3.5 Flash (`alibaba/qwen3.5-flash`) | 0.10 / 0.40 | searches eagerly; the tool budget makes it answer |
+| Qwen 3.5 Flash (`alibaba/qwen3.5-flash`) | 0.10 / 0.40 | default; searches eagerly, the tool budget makes it answer |
+| Gemini 2.5 Flash (`google/gemini-2.5-flash`) | 0.30 / 2.50 | searches less; answers well |
 
 Kimi K2 Thinking was tried and did not connect through the gateway.
 

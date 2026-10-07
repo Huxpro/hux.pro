@@ -20,11 +20,12 @@ export interface AskModel {
 }
 
 export const ASK_MODELS: AskModel[] = [
-  // $0.30 / $2.50. The best of those tried on the site's questions.
-  { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  // $0.10 / $0.40, 1M context, explicit caching. Searches eagerly; the
-  // route's tool budget is what makes it answer.
+  // $0.10 / $0.40, 1M context, explicit caching. The default: a third of
+  // Gemini's price, and it searches eagerly; the route's tool budget is what
+  // makes it answer.
   { id: "alibaba/qwen3.5-flash", label: "Qwen 3.5 Flash" },
+  // $0.30 / $2.50. Searches less, answers well on the site's questions.
+  { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
   // Kimi K2 Thinking was here and did not connect through the gateway.
 ];
 
