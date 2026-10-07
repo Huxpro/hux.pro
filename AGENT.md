@@ -27,7 +27,7 @@
 | **Home widgets** | [components/home/widgets.ts](./components/home/widgets.ts) (Every widget the home grid can show and whether it is on by default (`defaultEnabled`); a visitor's choices are overrides in `hux_widget_prefs`. Edit mode's `Widgets` pill lists them; a feature can offer its own switch with `useHomeWidget`, as `/lab` does.) |
 | **About / Badges** | [docs/system-about.md](./docs/system-about.md) (The surface a newcomer meets: veil, copy from `content/about/*.mdx`, the screen-edge glow, `/` `O` from anywhere; `<Badge>` opens a thing I made where it lives) |
 | **Ask** | [docs/system-ask.md](./docs/system-ask.md) (⌘K as a conversation: on a desk it sits in three places (the palette's center, a side panel, the Dock's top panel) or is minimized to a Dock pill, moved by buttons or by dragging its header; on a phone it is one bottom drawer; every such choice a setting with a preset per platform (`systems/ask/lib/config.ts`, the devtool's Ask section); the Ask row / Tab, K, an agent whose tools (`search_site`, `read`) run in the browser over `public/ask/index.json` (`pnpm ask:index`), one route `app/api/chat` holding the key (AI SDK; AI Gateway, a provider key, or a keyless stand-in), AI Elements on Base UI in `components/ai-elements/`) |
-| **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (Siri's ring as a shared WebGL shader, the site's one light: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/lab/glow` lab) |
+| **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (Siri's ring as a shared WebGL shader, the site's one light: `ring` / `line`, voice `level`, `processing`; voice input in ⌘K and Ask via Gateway recording or the Web Speech API; the `/lab/glow` lab; the checklist is the skill `.claude/skills/glow`) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (The profile card behind `<handle>` and `Role:`, showing who signed a commit) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (Why a widget's list body scrolls under a pointer and holds still under a finger) |
 
@@ -36,7 +36,7 @@
 `.claude/skills/` pairs the docs above with short skills: when each applies,
 the rules that are easy to break, the commands to run, and the doc to read.
 `keyboard-input`, `surfaces`, `base-ui-drawer`, `ui-tokens`, `vitre`,
-`ask-commands`, `content-snapshots`, `wallpapers`. A skill states what the
+`ask-commands`, `content-snapshots`, `wallpapers`, `glow`. A skill states what the
 code won't tell you and points at its doc; keep it short.
 
 ## 2. Quick Start Context

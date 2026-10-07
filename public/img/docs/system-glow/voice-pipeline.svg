@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1010 630" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328">
+  <rect x="0" y="0" width="1010" height="630" fill="#ffffff"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#57606a"/>
+    </marker>
+  </defs>
+
+  <!-- Column headers -->
+  <text x="20" y="28" font-weight="600" font-size="13">1 · Recognition</text>
+  <text x="20" y="44" fill="#57606a" font-size="11">systems/voice/use-voice-input.ts</text>
+  <text x="360" y="28" font-weight="600" font-size="13">2 · Meter</text>
+  <text x="360" y="44" fill="#57606a" font-size="11">systems/voice/lib/meter.ts</text>
+  <text x="680" y="28" font-weight="600" font-size="13">3 · Glow</text>
+  <text x="680" y="44" fill="#57606a" font-size="11">command/voice.tsx → glow.tsx → shader.ts</text>
+
+  <!-- 1. Recognition -->
+  <rect x="20" y="60" width="300" height="50" rx="8" fill="#f6f8fa" stroke="#8c959f"/>
+  <text x="32" y="80" font-weight="600">a press</text>
+  <text x="32" y="98" font-size="11.5">mic button · / V · hold Space → start()</text>
+
+  <path d="M170 110 V136" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+
+  <rect x="20" y="140" width="300" height="150" rx="8" fill="#eef4ff" stroke="#4d7cfe"/>
+  <text x="32" y="160" font-weight="600">gateway</text>
+  <text x="96" y="160" fill="#57606a" font-size="11">mode === "gateway"</text>
+  <text x="32" y="180" font-size="11.5">GET /api/voice → enabled, MediaRecorder,</text>
+  <text x="32" y="196" font-size="11.5">and a model chosen (not "browser")</text>
+  <text x="32" y="218" font-size="11.5">getUserMedia → MediaRecorder, ≤ 60 s</text>
+  <text x="32" y="236" font-size="11.5">stop → POST /api/voice (≤ 5 MiB)</text>
+  <text x="32" y="254" font-size="11.5">→ onFinal(text, send)</text>
+  <text x="32" y="276" fill="#57606a" font-size="11">a clip under 300 ms is dropped</text>
+
+  <rect x="20" y="306" width="300" height="144" rx="8" fill="#f5f0ff" stroke="#9b6bff"/>
+  <text x="32" y="326" font-weight="600">browser</text>
+  <text x="92" y="326" fill="#57606a" font-size="11">mode === "browser"</text>
+  <text x="32" y="346" font-size="11.5">SpeechRecognition / webkitSpeechRecognition</text>
+  <text x="32" y="364" font-size="11.5">interim → onInterim · pause → onFinal</text>
+  <text x="32" y="386" font-size="11.5">a second getUserMedia, for the meter only</text>
+  <text x="32" y="408" fill="#57606a" font-size="11">refused: the level is synthesised from the</text>
+  <text x="32" y="424" fill="#57606a" font-size="11">recogniser's sound / speech / result events,</text>
+  <text x="32" y="440" fill="#57606a" font-size="11">under the same breath</text>
+
+  <!-- streams into the meter -->
+  <path d="M320 215 H340 V78 H356" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+  <path d="M320 386 H340 V215" stroke="#57606a" stroke-width="1.3" fill="none"/>
+  <text x="326" y="128" font-size="11" fill="#57606a" transform="rotate(-90 336 128)">MediaStream</text>
+
+  <!-- 2. Meter -->
+  <rect x="360" y="60" width="280" height="36" rx="8" fill="#f6f8fa" stroke="#8c959f"/>
+  <text x="500" y="83" text-anchor="middle">AnalyserNode, fftSize 1024</text>
+
+  <path d="M428 96 V112" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+  <path d="M572 96 V112" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+
+  <g font-size="11">
+    <rect x="360" y="116" width="136" height="32" rx="6" fill="#ffffff" stroke="#8c959f"/>
+    <text x="428" y="136" text-anchor="middle">RMS × GAIN 5</text>
+    <rect x="360" y="162" width="136" height="32" rx="6" fill="#ffffff" stroke="#8c959f"/>
+    <text x="428" y="182" text-anchor="middle">gate: ≤ 0.02 reads 0</text>
+    <rect x="360" y="208" width="136" height="32" rx="6" fill="#ffffff" stroke="#8c959f"/>
+    <text x="428" y="228" text-anchor="middle">soft knee</text>
+    <rect x="360" y="254" width="136" height="32" rx="6" fill="#ffffff" stroke="#8c959f"/>
+    <text x="428" y="274" text-anchor="middle">envelope ↑120 ↓550 ms</text>
+
+    <rect x="504" y="116" width="136" height="32" rx="6" fill="#ffffff" stroke="#8c959f"/>
+    <text x="572" y="136" text-anchor="middle">3 bands, 80 Hz – 6 kHz</text>
+    <rect x="504" y="162" width="136" height="32" rx="6" fill="#ffffff" stroke="#8c959f"/>
+    <text x="572" y="182" text-anchor="middle">× BAND_GAIN 1.7</text>
+    <rect x="504" y="208" width="136" height="32" rx="6" fill="#ffffff" stroke="#8c959f"/>
+    <text x="572" y="228" text-anchor="middle">gate 0.012 · soft knee</text>
+    <rect x="504" y="254" width="136" height="32" rx="6" fill="#ffffff" stroke="#8c959f"/>
+    <text x="572" y="274" text-anchor="middle">an envelope per band</text>
+  </g>
+  <g stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)">
+    <path d="M428 148 V158"/><path d="M428 194 V204"/><path d="M428 240 V250"/><path d="M428 286 V300"/>
+    <path d="M572 148 V158"/><path d="M572 194 V204"/><path d="M572 240 V250"/><path d="M572 286 V300"/>
+  </g>
+
+  <rect x="360" y="304" width="136" height="28" rx="14" fill="#fff4e5" stroke="#d4a017"/>
+  <text x="428" y="322" text-anchor="middle" font-weight="600">level</text>
+  <rect x="504" y="304" width="136" height="28" rx="14" fill="#fff4e5" stroke="#d4a017"/>
+  <text x="572" y="322" text-anchor="middle" font-weight="600">bands</text>
+
+  <!-- meter → floor -->
+  <path d="M428 332 V352 H676" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+  <path d="M640 318 H676" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+
+  <!-- the alternative visual -->
+  <rect x="360" y="400" width="280" height="50" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-dasharray="4 3"/>
+  <text x="372" y="420" font-weight="600">VoiceWaveform</text>
+  <text x="472" y="420" fill="#57606a" font-size="11">DevTool · Voice · Waveform</text>
+  <text x="372" y="438" font-size="11.5">64 bars on the same two getters</text>
+  <path d="M680 366 H660 V425 H644" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)" stroke-dasharray="4 3"/>
+
+  <!-- 3. Glow: states -->
+  <rect x="680" y="60" width="300" height="200" rx="8" fill="#f6f8fa" stroke="#8c959f"/>
+  <text x="692" y="80" font-weight="600">state</text>
+  <text x="730" y="80" fill="#57606a" font-size="11">listening = listening or processing</text>
+
+  <rect x="692" y="120" width="60" height="26" rx="13" fill="#ffffff" stroke="#8c959f"/>
+  <text x="722" y="137" text-anchor="middle">idle</text>
+  <rect x="786" y="120" width="80" height="26" rx="13" fill="#eef4ff" stroke="#4d7cfe"/>
+  <text x="826" y="137" text-anchor="middle">listening</text>
+  <rect x="894" y="120" width="80" height="26" rx="13" fill="#f5f0ff" stroke="#9b6bff"/>
+  <text x="934" y="137" text-anchor="middle">processing</text>
+
+  <path d="M752 133 H782" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+  <text x="767" y="112" text-anchor="middle" font-size="11" fill="#57606a">start()</text>
+  <path d="M866 133 H890" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+  <text x="880" y="112" text-anchor="middle" font-size="11" fill="#57606a">stop()</text>
+  <path d="M934 146 V172 H722 V150" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+  <text x="828" y="190" text-anchor="middle" font-size="11" fill="#57606a">text delivered · recogniser ends</text>
+
+  <text x="692" y="220" font-size="11.5">denied / error: a notice, then a fresh start</text>
+  <text x="692" y="240" fill="#57606a" font-size="11">browser: the speaker's pause also ends listening</text>
+
+  <!-- 3. Glow: floor -->
+  <rect x="680" y="290" width="300" height="90" rx="8" fill="#fff4e5" stroke="#d4a017"/>
+  <text x="692" y="310" font-weight="600">level() · bands()</text>
+  <text x="692" y="330" font-size="11.5">max(meter, the idle breath), from the press</text>
+  <text x="692" y="348" font-size="11.5">IDLE: 0.17 + 0.06 · sin(2.4 t)</text>
+  <text x="692" y="368" fill="#57606a" font-size="11">no meter yet: the breath alone</text>
+
+  <path d="M830 380 V396" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+  <!-- state → Glow -->
+  <path d="M980 160 H996 V425 H984" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+
+  <rect x="680" y="400" width="300" height="50" rx="8" fill="#ffffff" stroke="#1f2328" stroke-width="1.3"/>
+  <text x="692" y="420" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">&lt;Glow shape="line" level bands</text>
+  <text x="692" y="438" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">  active processing strength={0.95} /&gt;</text>
+
+  <path d="M830 450 V466" stroke="#57606a" stroke-width="1.3" fill="none" marker-end="url(#a)"/>
+
+  <!-- 3. Glow: uniforms -->
+  <rect x="680" y="470" width="300" height="146" rx="8" fill="#f6f8fa" stroke="#8c959f"/>
+  <text x="692" y="490" font-weight="600">uniforms, every frame</text>
+  <text x="692" y="510" font-size="11.5">uLevel → reach × (0.6 + 0.9 · level)</text>
+  <text x="692" y="528" font-size="11.5">uBands → beam 1 low · 2–3 mid · 4 high</text>
+  <text x="692" y="546" font-size="11.5">uFocus 0.085 + 0.07 · level: the arc spreads</text>
+  <text x="692" y="568" font-size="11.5">processing: uFocus → 0.045, uFocusAt</text>
+  <text x="692" y="586" font-size="11.5">sweeps 0.25 ± 0.085, 1.1 s a pass</text>
+  <text x="692" y="604" fill="#57606a" font-size="11">level held ≥ 0.55 while gathered</text>
+</svg>
