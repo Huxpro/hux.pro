@@ -223,38 +223,18 @@ the hover glass on a hover-capable pointer.
 
 ### 5. Typography roles (`lib/typography.ts`)
 
-The ladder gives every text a rung; the roles give every *kind* of text its
-whole recipe (size, family, tracking, rung) as one class string that
-production components and the lab's specimens both import:
+Roles are the recurring recipes in `lib/typography.ts`: each `TYPE.*` is one
+class string (size, family, tracking) pinned to a rung of the ladder, which
+production components and the lab's specimens both import. The full role →
+rung map lives in [design-system.md → Roles](./design-system.md#roles); the
+rules that decide which rung a role sits on are below.
 
-| Role | String | Where |
-|---|---|---|
-| `identifier` | mono xs tracking-wider secondary | λhux |
-| `label` | mono xs secondary, set as written | widget titles, the weather condition, a talk's venue, palette headings |
-| `labelSm` | mono 10px tertiary, set as written | caption strips in peeks, tag rows |
-| `rowTitle` | sm ink | a post, a commit, a track in a list |
-| `rowHeading` | sm medium ink | a /works commit title when a message is printed under it |
-| `mediaTitle` | sm medium leading-snug ink | what is playing |
-| `rowMeta` | mono xs tertiary | the date beside a row title, a topic line |
-| `meta` | mono xs secondary | an article's header line, the artist, sun times |
-| `hash` | mono xs quaternary | the hash column; the one mono role on the quaternary rung |
-| `caption` / `captionQuiet` | xs secondary / tertiary, relaxed | a description under a title / an embed's blurb |
-| `message` | 13px secondary relaxed | a commit's message under a `rowHeading` |
-| `aside` | xs italic serif tertiary | commentary, a life event |
-| `voice` | serif sm (15px in Latin) reading relaxed | a voice under a /prompt statement |
-| `dek` | serif italic (upright in Chinese) ink at 80 % | the line under a post's title |
-| `body` | sm secondary relaxed | a widget's description, an empty state |
-| `reading` | sm reading relaxed | a /prompt entry's reasoning |
-| `appLabel` | 11px leading-tight secondary | the label under an app icon |
-| `nav` | mono xs tracking-wide secondary → ink on hover | the back link, `retry` |
-| `kbd` | mono xs secondary on `bg-muted/50` | keyboard hints |
-
-That is the alignment guarantee the lab rests on: the specimen's date and the
-writing widget's date are `TYPE.rowMeta`, one string, so the two cannot
+The shared string is the alignment guarantee the lab rests on: the specimen's
+date and the writing widget's date are `TYPE.rowMeta`, one string, so the two cannot
 diverge, however either is componentised. The lab deliberately mounts no
 production component; a second rendering of the site would be a second thing
 to keep in step. Anything a role does not cover is written inline at the call
-site and, when it recurs, promoted here.
+site and, when it recurs, promoted into `lib/typography.ts`.
 
 #### The rungs, by rule
 
