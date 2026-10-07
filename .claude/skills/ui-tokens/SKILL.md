@@ -15,9 +15,10 @@ and tint. A fixed grey, or an opacity on a token, breaks that.
   `text-muted-foreground/NN`: pick the rung.
 - **Underlines**: `decoration-ink-line`, never `decoration-<token>/NN`
   (Safari draws no `color-mix()` there: invisible on iPhone).
-- **Floating surfaces** paint with glass: `bg-glass`, `-strong`, `-overlay`,
-  `-sheet`, `-popover`, or `GLASS_PANEL` / `GLASS_CAPSULE` (`lib/glass.ts`).
-  `bg-card/…` and `bg-popover/…` are a lint error outside `lib/glass.ts`.
+- **Floating surfaces** paint with glass: `bg-glass`, `-strong` (each with a
+  `-hover`), `-overlay`, `-sheet`, `-popover`, or `GLASS_PANEL` /
+  `GLASS_CAPSULE` (`lib/glass.ts`). `bg-card/…` and `bg-popover/…` are a lint
+  error outside `lib/glass.ts` (`no-restricted-syntax`, `eslint.config.mjs`).
 - **Roles**: recurring recipes are in `lib/typography.ts` (`TYPE.label`,
   `TYPE.rowMeta`, `TYPE.kbd`, …). Use one where it fits.
 - **On the wallpaper**: text sitting directly on it goes in an `.ink-bare`
