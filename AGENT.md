@@ -8,7 +8,7 @@
 
 | Topic | Source of Truth |
 |-------|-----------------|
-| **Design Philosophy** | [docs/design-philosophy.md](./docs/design-philosophy.md) (Core principles) |
+| **Design Philosophy** | [docs/design-philosophy.md](./docs/design-philosophy.md) (Why it is an OS: the principles to weigh when the rules in `design-system.md` don't decide) |
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
