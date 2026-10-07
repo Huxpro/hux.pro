@@ -5,6 +5,7 @@ import { BandSurface } from "./band";
 import { GlowSurface } from "./glow";
 import { IconSurface } from "./icon";
 import { LegibilitySurface } from "./legibility";
+import { PromptsSurface } from "./prompts";
 import { VitreSurface } from "./vitre";
 import { WorksSurface } from "./works";
 
@@ -14,6 +15,7 @@ import { WorksSurface } from "./works";
  */
 export const LAB_SURFACES: Record<LabId, ComponentType> = {
   works: WorksSurface,
+  prompts: PromptsSurface,
   attachments: AttachmentsSurface,
   icon: IconSurface,
   legibility: LegibilitySurface,
