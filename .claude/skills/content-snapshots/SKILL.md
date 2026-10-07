@@ -14,7 +14,7 @@ its command, review the diff, commit both.
 | An embed or link in `content/log.json`, or a post a card points at | `pnpm og:snapshot` | `content/og-snapshot.json` |
 | A manual `preview.image`, or a file in `public/` a card shows | `pnpm og:sizes` | `content/image-sizes.json` |
 | A Chinese title with new glyphs | `pnpm og:fonts` | `lib/og-fonts/` |
-| A `<Badge>` to a new site | `pnpm badges:snapshot` | `content/badge-icons.json`, `public/badge-icons/` |
+| A `<Badge>` or listed project in `content/log.json` to a new site, or the last one on a site removed | `pnpm badges:snapshot` | `content/badge-icons.json`, `public/badge-icons/` |
 | `content/apps.json` | `pnpm apps:snapshot` | `public/app-icons/`, `content/app-icons.json` |
 | `content/icon.json` | `pnpm icon:generate` | `public/icons/*` |
 
