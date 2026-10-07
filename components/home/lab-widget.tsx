@@ -58,7 +58,11 @@ const fadeVariants = {
  */
 export function LabWidget() {
   const { locale } = useLocale();
-  const [order, setOrder] = useState(() => LABS.map((lab) => lab.id));
+  // Experiences are pieces, played from their own app and their own lab.
+  // The widget rotates the studies and the libraries: the site reading itself.
+  const specimens = LABS.filter((lab) => lab.kind !== "experience");
+  const source = specimens.length > 0 ? specimens : LABS;
+  const [order, setOrder] = useState(() => source.map((lab) => lab.id));
   const [index, setIndex] = useState(0);
   const [spinKey, setSpinKey] = useState(0);
 

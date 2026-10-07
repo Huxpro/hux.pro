@@ -49,6 +49,16 @@
       "size": "portrait",
       "icon": "/app-icons/busy-week.png",
       "featured": false
+    },
+    {
+      "id": "door",
+      "title": "The Door",
+      "titleZh": "柜门",
+      "runtime": "web",
+      "url": "/experiences/door/index.html",
+      "size": "portrait",
+      "icon": "/app-icons/door.png",
+      "keywords": ["dream", "nightmare", "wardrobe", "closet", "bedside", "lab", "梦", "噩梦", "衣柜", "柜门", "床头"]
     }
   ]
 }

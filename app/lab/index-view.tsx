@@ -18,10 +18,11 @@ import type { ReactNode } from "react";
  * view of the lab the home screen's Lab widget rotates through. A card is
  * one link; the surface inside it takes no taps of its own.
  *
- * Two sections, libraries first. A library is a lab that shipped. It makes a
- * different promise (you can use it) to a different reader (a developer),
- * so it is not one more card with a tag. It leads, as a wide card with the
- * package's facts. The studies follow, the site laid open.
+ * Libraries first. A library is a lab that shipped. It makes a different
+ * promise (you can use it) to a different reader (a developer), so it is not
+ * one more card with a tag. It leads, as a wide card with the package's
+ * facts. The studies follow, the site laid open. Experiences are last:
+ * a short piece, not a system.
  *
  * No paragraph first: the cards say what the labs are. What sits under the
  * title is the page's one control, the way /writing hangs its language
@@ -34,7 +35,7 @@ export function LabIndexView() {
       <div className="space-y-10">
         {LAB_GROUPS.map(({ kind, title, note }) => (
           <LabGroup key={kind} title={t(locale, title)} note={t(locale, note)}>
-            <ul className={cn("grid gap-4", kind === "study" && "sm:grid-cols-2")}>
+            <ul className={cn("grid gap-4", kind !== "library" && "sm:grid-cols-2")}>
               {LABS.filter((lab) => lab.kind === kind).map((lab) => (
                 <li key={lab.id} className="min-w-0">
                   <LabCard lab={lab} />
