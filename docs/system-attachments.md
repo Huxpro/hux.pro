@@ -1,94 +1,112 @@
 # Attachments System
 
-One door for everything a commit attaches.
+> The checklist form of this page is the skill `.claude/skills/attachments`.
 
-```
-systems/attachments/
-├── provider.tsx                      # AttachmentProvider, useAttachments(): open / act / session
-├── lib/
-│   ├── types.ts                      # AttachmentSet, AttachmentHome
-│   ├── policy.ts                     # homeFor / nativeHomeFor: where a piece of media opens
-│   └── set.ts                        # attachmentSetFor(commit, locale)
-└── components/
-    ├── attachment-surface.tsx        # the paged sheet / panel / window (AdaptiveSurface)
-    ├── attachment-page.tsx           # one attachment, large, with its native action
-    └── image-lightbox.tsx            # an image, letterboxed, zoomable (the `lightbox` home)
-```
+One door for everything a commit attaches. A commit on `/works` carries
+media (link cards, videos, slide decks, images, social widgets), and every
+cover, card and player on its row calls the same `open(set, index)`. One
+policy (`systems/attachments/lib/policy.ts`) decides where the item goes:
+on a phone, a sheet that pages through the commit's attachments; on a
+wider screen, straight to the place the site already has for that kind of
+thing (the theater's stage, an in-app browser window, the router).
 
-## The problem
+## What it looks like done well
 
-A commit on `/works` carries media (link cards, videos, slide decks, images,
-social widgets), and each kind used to open its own way. A video went to the
-theater. A deck went to a lightbox of its own (`SlideModal`), which on a phone
-gave up and opened a tab. A card was a plain `<a target="_blank">`. A cover
-in the contact strip was a link; the same cover in the expanded body was a
-player. And the whole thing was pointer-shaped: on a phone, tapping a
-thumbnail either left the site or dropped a Picture-in-Picture the size of a
-thumb onto the page.
+On a phone, a tap on any cover brings up the attachment sheet at that item.
+Its button sends the item on. A page opens in the in-app browser, which is
+a sheet there, stacked on the attachment sheet: a drag down on the page
+lands back on the commit's attachments, the way a link in a mobile app
+opens in its own browser and returns to the screen it came from.
 
-The site already has places for these things. It has a **theater** with a
-persistent stage, a **window manager** that opens apps in draggable windows,
-and a **router** for its own pages. It just had no rule for sending an
-attachment to the right one, and no shape for a phone, where none of those
-places is usable.
+<div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+  <img src="/img/docs/system-attachments/phone-sheet.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="The attachment sheet on a phone over the React Compiler row: the react.dev card large, its title and description, a react.dev button with an arrow, and 1 / 2 under it." />
+  <img src="/img/docs/system-attachments/phone-browser.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="The same phone after the react.dev button: the react.dev page in the in-app browser, a taller sheet stacked over the attachment sheet." />
+</div>
 
-## The policy
+Left: a real tap (`hasTouch`) on the react.dev cover of the React Compiler
+row opens the sheet at that card, `1 / 2` because the commit attaches two.
+Right: its button stacks the in-app browser over it. Both sheets are open
+(two dialogs); the attachment sheet is under the taller one.
 
-`lib/policy.ts` is the rule, and it is two functions:
+On a desk the same click skips the sheet. A link card opens straight in an
+in-app browser window over the page; a video or a deck goes to the
+theater; an image to the lightbox.
 
-| | phone (`< sm`): a tap | phone: the sheet's button | tablet / desktop |
+![A desktop /works page with the react.dev page open in an in-app browser window centred over it.](/img/docs/system-attachments/desk-window.png)
+
+The react.dev cover clicked at 1280px: no sheet, the page in a window. (The
+theater is not shown: headless Chromium cannot play the embeds.)
+
+Before it is pressed, a cover says what it is with one chip, and a page
+that will leave for a tab says so (the chip, below).
+
+## How it works
+
+### The policy
+
+![Flow: open(set, index) calls homeFor(media, ctx), which asks ctx.compact. On a phone the answer is the surface, a sheet whose page's button calls act and nativeHomeFor; elsewhere homeFor sends each kind to its home directly. A table lists, per kind, the home from the sheet's button and from a desktop click: video and slides to theater, image to lightbox, a link to this site to route, a link that cannot be framed to tab, any other link to window, a social widget to tab on a phone and the surface on a desk.](/img/docs/system-attachments/routing.svg#bleed)
+
+The policy is two functions, and the diagram is both of them. `homeFor(media,
+ctx)` says where a click lands. `nativeHomeFor(media, ctx)` is the same
+question with the surface taken out of the picture: what the item does
+natively, which is what the sheet's primary button performs (the provider's
+`act`). `ctx` is two facts: `compact` (below `sm`, 640px) and `windows` (a
+window manager is mounted). Each home is an `AttachmentHome`
+(`lib/types.ts`); `send` in `provider.tsx` is one case per home.
+
+| | phone (`< sm`): a tap | phone: the sheet's button | `sm` and up |
 |---|---|---|---|
 | video | attachment sheet | theater (a PiP there) | theater |
 | slides | attachment sheet | theater (a PiP there, like a recording) | theater (a `slides` track; see below) |
 | link card, external | attachment sheet | **the in-app browser, as a sheet stacked on this one**; a tab if the page refuses to be framed | in-app browser window, or a tab if the page refuses to be framed |
-| link card, `/writing/…` | attachment sheet | the router | the router |
+| link card, this site (`/writing/…`) | attachment sheet | the router | the router |
 | image | attachment sheet | the lightbox | the lightbox |
-| social widget | attachment sheet | a tab | attachment surface, in its desktop shape |
+| social widget | attachment sheet | a tab | attachment surface: a panel from `sm`, a window from `lg` |
 
-`homeFor(media, ctx)` says where a click lands. `nativeHomeFor(media, ctx)` is
-the same question with the surface taken out of the picture: what the item
-does natively, which is what a page's primary button in the sheet performs.
-On a phone the sheet opens for everything and its `Watch` / `Slides` / `Read`
-/ `Visit` button is the native action: a video and a deck go to the stage,
-which is a PiP there, and a page opens in the in-app browser. The stage is
-the stage whatever shape it takes; a deck is no different from a recording in
-this, and nothing sends it to a tab any more.
+On a phone the sheet opens for everything, and its button is the native
+action: a video and a deck go to the stage, which is a PiP there, and a page
+opens in the in-app browser. The stage is the stage whatever shape it
+takes; a deck is no different from a recording in this, and nothing sends
+it to a tab.
 
-The in-app browser is the same on every viewport: `useWindows().openUrl`. A
-window on a phone is a sheet ([Window System](./system-windows.md), "A phone
-window is a sheet"), so on a phone `Visit` stacks the browser over the
-attachment sheet: the attachment sheet steps back, the page rises over it,
-and a drag down on the page lands back on the commit's attachments, the way a
-link in a mobile app opens in its own in-app browser and returns to the
-screen it came from. The provider keeps the attachment sheet open for this
-(`send`, the `window` case); on a desktop the window is its own thing and the
-surface closes. The only `Visit` that leaves the site is a page that refuses
-to be framed, and the button says so before it is pressed: its glyph is the
-arrow out there, a globe for the in-app browser, a play mark for a
-recording, the deck glyph for a deck, a book for a post. The page's cover
-wears no chip (see below); the button is the only sign.
+### The in-app browser
 
-Whether a page refuses framing is read at snapshot time: `pnpm og:snapshot`
-now records `X-Frame-Options` / `frame-ancestors` as `frame: "deny"` on the
-entry (see [og-previews.md](./og-previews.md)), and enrichment carries it to
-`preview.frame`. A refusal is only stored when explicit; a bot wall that
-says nothing about framing is not read as permission. Pages the crawl cannot
-reach at all can be told by hand (`preview: { frame: "deny" }`, as The Verge is).
+The in-app browser is the same on every viewport: `useWindows().openUrl(url,
+{ title })` opens the page in an app window (`systems/windows`): the same
+edge-to-edge frame, chrome pill and menu an app gets, keyed by URL so the
+same page focuses its window rather than opening a second. `Open in browser`
+in the window menu is the way out. See [system-windows.md](./system-windows.md).
 
-A **PDF** (a link whose path ends `.pdf`, `isPdfLink`) leaves for a tab the
-same way, whatever its headers say: the in-app browser is a sandboxed iframe,
-and neither engine reads a PDF there. WebKit paints the first page as a
-still image that will not scroll, and Chrome will not run its viewer in a
-sandboxed frame. The system's own viewer, in a tab, is its only good home.
+A window on a phone is a sheet ([Window System](./system-windows.md), "A
+phone window is a sheet"), so there the button stacks the browser over the
+attachment sheet: the attachment sheet steps back, the page rises over it.
+The provider keeps the attachment sheet open for this (`send`, the `window`
+case, `if (!compact) setIsOpen(false)`); on a desk the window is its own
+thing and the surface closes.
 
-A card that will leave for a tab says so **before** the click. Its cover
-wears the `New tab` chip on the expanded card, on the strip cover and in the
-hover peek (the one chip vocabulary, below). The cover's tooltip carries it,
-and the sheet's button wears the arrow out. When the tab does open on a
-desktop, a one-line system toast names the site that would not be framed
-(`components/ui/system-toast.tsx`). Gitee, Medium, web.dev, The Verge and
-Meta are the ones in the log today; the rest open in a window on every
-viewport.
+### Pages that leave for a tab
+
+The only press on a page that leaves the site is one the in-app browser
+cannot show (`leavesSite`, `unframeable` in `policy.ts`):
+
+- **A page that refuses to be framed** (`preview.frame === "deny"`). The
+  snapshot reads `X-Frame-Options` / `frame-ancestors`; how, and how to
+  mark a page by hand, is [og-previews.md](./og-previews.md), "Framing
+  policy".
+- **A PDF** (a link whose path ends `.pdf`, `isPdfLink`), whatever its
+  headers say: the in-app browser is a sandboxed iframe, and neither engine
+  reads a PDF there. WebKit paints the first page as a still image that will
+  not scroll, and Chrome will not run its viewer in a sandboxed frame. The
+  system's own viewer, in a tab, is its only good home.
+
+On a desk such a card says so **before** the click: its cover wears the
+`New tab` chip on the strip, on the expanded card and in the hover peek, and
+its tooltip adds "Opens in a new tab". When the tab opens, a Dock notice
+(`showNotice`, `systems/dock/notice.ts`, 4s) names the host that would not
+be framed. On a phone there is no notice under a tab that has just covered
+the screen. Today the attachments that leave are on GitHub, Gitee, Meta,
+web.dev, WeAreDevelopers and Behance, plus one PDF; every other page opens
+in a window on every viewport.
 
 ### The lightbox
 
@@ -104,7 +122,7 @@ light cover as `thumbnail` (the tiles, the inline figure and the sheet paint
 the cover). On a phone the sheet's `View` button opens it, and the sheet
 steps aside rather than holding focus against a second modal.
 
-## The set
+### The set
 
 Every affordance on a row opens the same thing: the commit's attachments as
 one set, built once per row by `attachmentSetFor(commit, locale)` and handed
@@ -112,10 +130,9 @@ down as `attachmentSet`:
 
 ```ts
 interface AttachmentSet {
-  id: string;          // the commit id
+  id: string;          // the commit id, the surface's session key
   title: string;       // localized commit title
-  subtitle?: string;   // conference / publication / platform / company
-  hash?: string;       // its 7-char address
+  subtitle?: string;   // conference / publication / platform / company / team
   href?: string;       // /works#<hash>
   items: readonly Media[];  // every media item, in authored order
 }
@@ -127,15 +144,11 @@ dropped from the strip on its way to the grid and the sheet's `2 / 3` cannot
 count a page the row never showed. That is a build-time invariant:
 `pnpm og:complete` fails when an attachment cannot resolve a runtime image,
 and CI runs it (`.github/workflows/ci.yml`). A deck has no OG tags of its
-own, so its cover is authored (`thumbnail`); a card's comes from the snapshot.
-
-One thing the crawl must not do is take a cover back. A site that
-redesigns and stops advertising `og:image` still answers 200 with a
-title, which `entryUsable` reads as success. The entry would then be
-rewritten without its image, the tile would vanish, and `og:complete`
-would fail over a picture that is still live. A recorded image is
-therefore kept until a crawl offers another one, and the run says so
-("kept the cover we already had").
+own, so its cover is authored (`thumbnail`); a card's comes from the
+snapshot. The snapshot keeps a recorded image until a crawl offers another
+("kept the cover we already had", `scripts/og-snapshot.ts`), so a site that
+stops advertising `og:image` cannot fail `og:complete` over a picture that
+is still live.
 
 A cover in the contact strip (`MediaStrip`) and a player or card in the
 expanded body (`MediaRenderer`) each find their own item by reference
@@ -149,12 +162,17 @@ Outside the provider (an MDX `<Media />`, or the editor's inspect mode, which
 passes no set), everything behaves as it did: players play inline, cards are
 links, a deck opens the theater if one is mounted.
 
-## The surface
+### The surface
 
-`AttachmentSurface` is mounted once in the root layout. Its shape is the
-viewport's (`ADAPTIVE_PRESENTATION`): a bottom sheet on a phone, which is the
-case it exists for; a panel on a tablet and a window on a desktop for the
-kinds with no native home there.
+`AttachmentSurface` (`id="surface-attachments"`) is mounted once in the root
+layout. Its shape is the viewport's (`ADAPTIVE_PRESENTATION`): a bottom sheet
+on a phone, which is the case it exists for; from `sm` a panel, and from
+`lg` a window, `min(92vw, 560px)` wide, for the one kind with no native home
+there (a social widget). The window is not draggable by default:
+`surface-attachments` is listed in `DRAGGABLE_INSTANCES`, so the DevTool can
+turn dragging on, but it has no entry in `DRAGGABLE_DEFAULTS`
+(`systems/devtool/provider.tsx`), where the wallpaper and playlist windows
+have one.
 
 Inside is the widgets' strip: `useSnapPager` and `PagerDots` from
 `components/ui/snap-pager.tsx`, the same primitive the Featured Talks and
@@ -165,23 +183,54 @@ moves between them without going back to the row. The surface lands on the
 page that was tapped before its first paint.
 
 Each page (`attachment-page.tsx`) shows the attachment large: a 16:9 cover
-with the theater's glass play mark, the whole link card, the image, or the
-live social widget. Under it sit the commit's title and venue, and an action
-cluster in the theater's chrome (`GLASS_CLUSTER`, `GLASS_ACTION`, the primary
-on the glass pill) holding the native action and the way out to the source as
-a real link.
+for a video or a deck, the whole link card, the image, or the live social
+widget. Under it sits an action cluster in the theater's chrome
+(`GLASS_CLUSTER`, `GLASS_ACTION`, the primary on the glass pill,
+`systems/theater/lib/chrome.ts`):
+
+| the page | the primary | beside it |
+|---|---|---|
+| video, deck | `Watch` / `Slides`, play mark or deck glyph, on the pill | the source's domain ↗ |
+| image | `View` (zoom glyph) | the file's domain, or `Open original` for a file this site serves |
+| link to this site | `Read` (book) for a post, `Visit` for another section, on the pill | none |
+| link elsewhere, social widget | the domain ↗, a real link, the row's only one | none |
+
+A page elsewhere is dressed as a way out whether it opens in the in-app
+browser or a tab: its address and the arrow. The page's cover wears no chip
+(below). The video and deck pages also print the commit's title and venue.
 
 The surface sizes to its content (`fitContent`); the track is a flex row, so
 every page is as tall as the tallest and the sheet holds still while swiping.
-Pages off screen are `inert`.
+Pages off screen are `inert`, counted from the page the track settled on.
+
+### Slides in the theater
+
+A deck is the other thing a talk leaves behind, and it belongs on the same
+stage as the recording. `Track` is `VideoTrack | SlidesTrack`
+(`systems/theater/lib/types.ts`): a `slides` track frames the deck URL in the
+stage's iframe, keeps the theater's title bar, prev / next and playlist rail,
+and has no transport (reveal.js takes the arrow keys inside the frame). It
+minimizes to the Live Activity like anything else on the stage. The pill is
+a place to keep a deck open as well as a place to listen, and it knows the
+difference: for a deck the third view is `Minimize`, icon and word, in the
+theater bar, the PiP bar and the pill alike (`SurfaceSwitch` reads the
+track off the theater itself),
+never `Audio`, and the pill reads `slides` under the deck glyph rather than
+`watching` behind an equalizer.
+
+The stage keeps **two libraries** and never shows them together. A recording
+is browsed among recordings: the talk albums (React / Lynx / Personal) the
+`TheaterRegistrar` registers, with an ad-hoc album for a video none of them
+holds. A deck is browsed among decks: `buildSlidesAlbum(locale)` is every deck
+in the log, in date order, registered as the Slides library, and opening any
+deck lands in it at that deck with every other deck a card away.
+`useTheater().openMedia(media, meta)` picks the library from the media's
+kind; the attachment system and the standalone `<Slides />` cover both go
+through it.
 
 ## The chip a cover wears
 
-Every cover on the site says what it is before it is pressed, and it used to
-say so in three vocabularies at once: a play disc stamped on anything that
-played, a caption chip over the disc on a deck, and a line of prose under a
-card that would leave for a tab. Each was drawn in place by whichever
-component was holding the cover. `MediaMark`
+Every cover on the site says what it is before it is pressed. `MediaMark`
 (`components/log/media/media-mark.tsx`) is the one vocabulary and the only
 thing that draws it: **a chip at the cover's bottom-left corner, with a glyph
 and a word**. It is the same chip a wallpaper tile wears for Live / Preset
@@ -194,7 +243,13 @@ wherever the picture is.
 | a recording that lives on a page (a GitNation talk) | `▶ GitNation`: the same chip, with the host's name |
 | a deck | `Slides` |
 | a page that refuses to be framed, whatever its kind | `↗ New tab` |
-| a page, a post, an image, a social widget (in the hover peek only) | `Web`, `Writing`, `Image`, the platform |
+| a page, a post, an image, a social widget (in the hover peek only) | `Web`, `Writing`, `Image`, the platform. Another section of this site (`/works`) wears none: its card prints its own name, and `Web` would say it leaves |
+
+![Three covers from the Attachments Lab in the hover-peek tier: the WeAreDevelopers page wearing New tab, the GOSIM Paris page wearing Web, and a post wearing Writing.](/img/docs/system-attachments/lab-chips.png)
+
+The lab's vocabulary in the peek's tier, where every kind is marked and the
+chip is raised: a page that refuses framing says `New tab`, a page `Web`,
+a post `Writing`.
 
 Who wears one is the surface's call, in three tiers:
 
@@ -202,30 +257,31 @@ Who wears one is the surface's call, in three tiers:
 |---|---|
 | `/works` (the strip, the expanded card, the inline players, the deck cover) | a recording, a deck, and a page that will leave. A card is its own hint (domain, title), and a chip on every card would be noise |
 | the hover peek | **every kind** (`markFor`'s `all`): a peek is a glance, and the chip is its caption |
-| the attachment sheet's page, the home widgets' covers, the theater's rail | **none**: each already says what the thing is beside the cover (a labelled button whose glyph is the arrow out when it leaves, the widget's line, the rail's title), and a chip would repeat it |
+| the attachment sheet's page, the home widgets' covers, the theater's rail | **none**: each already says what the thing is beside the cover (a labelled button, the widget's line, the rail's title), and a chip would repeat it |
 
 The chip says what the thing *is*, never where it opens. That is how a
 GitNation recording wears a play chip and opens in the in-app browser
 rather than on the stage: it is a recording, and the policy above decides
 the rest. `markFor(media, locale, { all, leaves })` reads the chip off an
-item; `mediaKindOf` still reads the kind, for the sheet's button glyph and
+item; `leaves` comes from `homeOf(set, i) === "tab"`, so it is only ever
+true where the click itself opens the tab (on a desk; a phone's tap opens
+the sheet). `mediaKindOf` reads the kind, for the sheet's button glyph and
 the lab.
 
 Two weights. On a cover in the page the chip is light (`ARTWORK_CHIP_REST`):
 a row of covers should not be a row of stamps. The cover's hover raises it
-to the full chip. The chip reads the hover off the anchor or button it
-sits in, so no cover has to be a `group`. A cover in a peek, which is
-the after-hover state, is raised from the start (`raised`).
+to the full chip, and so does its press, which a finger never hovers. The
+chip reads both off the anchor, button or `[data-cover]` it sits in, so no
+cover has to be a `group`. A cover in a peek, which is the after-hover
+state, is raised from the start (`raised`).
 
 Three sizes: `mini` for the contact strip's tiles, where the chip keeps
 its glyph and drops its word (the wallpaper tile's small badge); `compact`
 for the grid's tiles, rail thumbs and dense cards; `default` for a full
 cover. The tiles, the link card, the inline video facades, the deck cover
 and the hover peek's poster all take the chip from here, and nothing else
-on a cover says what it is. The peek's poster has no caption but a deck's
-or an image's name; a card with no cover to wear it on carries the chip in
-its caption line. The chip says what the thing is; the policy above says
-where it opens.
+on a cover says what it is. A card with no cover to wear it on carries the
+chip in its caption line (`inline`).
 
 ## The three forms of /works
 
@@ -333,7 +389,7 @@ a press goes where a cover's page goes: the drawer on a phone, the in-app
 browser on a desk, a tab only for a page that refuses to be framed. It used
 to leave for a new tab with a `↗`, the one door the title line had of its
 own. Even a conference's front page is worth keeping, but behind its card
-rather than a jump. Its card is in the snapshot (`venueHrefs`,
+rather than a jump. Its card is in the snapshot (`logHrefs`,
 scripts/og-snapshot.ts); a page that cannot be crawled has no peek and
 keeps its drawer.
 
@@ -475,23 +531,6 @@ no pointer can hover (the row's, the strip's, the signature's); a connector
 observes its container alone. The trace in the PR shows where the rest goes: the
 wallpaper's canvas, which every page pays alike.
 
-## The lab
-
-**`/lab/attachments`**, the Attachments Lab (`noindex`), is the devtool for this system, the
-way `/lab/legibility` is for reading surfaces. The lab prints every render
-path (`app/lab/attachments/paths.ts`) next to live specimens: the chips at
-every size on the log's own covers, in the `/works` tier and the peek's, the
-GitNation case among them; the policy as a table, read live from `homeFor` /
-`nativeHomeFor` for a context you can pin (phone or not, a window manager);
-and the production surfaces themselves. Those are the strip, the desk grid,
-the phone feed (`InlinePlayable`), `MediaRenderer` (single and rail), peeks,
-inline players, the MDX `<Media />`, the home featured stack, `MediaThumbnail`,
-the theater rail thumb, and the attachment page. There are also buttons that
-go through the real providers, with a readout of the surface stack and the
-open windows as they stand. `/lab/attachment` (and the old `/editor/attachments`) redirect here. On a phone it is where to
-watch `Visit` stack the browser over the attachment sheet. The title
-is the labs' dropdown (`systems/lab/catalog.ts`).
-
 ## Hovering a cover
 
 The row's magnetic peek (the cursor-following panel that shows what a folded
@@ -502,48 +541,99 @@ Each cover peeks instead, in the same vocabulary
 the contact strip and a link card peeks as the mini OG card (domain, title,
 description), a video or a deck or an image as its poster, each wearing
 its chip, raised, and nothing else: no caption, no note. `PeekThumb` and
-`PeekCard` moved there from `commit-embed.tsx`; the row's stacked deck in
-the `index` form is built from the same two and wears the same chips
-(`PeekItem` carries its `media` for that), so the two forms peek alike.
+`PeekCard` live there; the row's stacked deck in the `index` form is built
+from the same two and wears the same chips (`PeekItem` carries its `media`
+for that), so the two forms peek alike. How a peek's picture is sized
+(`PeekCover`) is [og-previews.md](./og-previews.md), "Cover sizes".
 
-## Slides in the theater
+## The lab
 
-A deck is the other thing a talk leaves behind, and it belongs on the same
-stage as the recording. `Track` is `VideoTrack | SlidesTrack`
-(`systems/theater/lib/types.ts`): a `slides` track frames the deck URL in the
-stage's iframe, keeps the theater's title bar, prev / next and playlist rail,
-and has no transport (reveal.js takes the arrow keys inside the frame). It
-minimizes to the Live Activity like anything else on the stage. The pill is
-a place to keep a deck open as well as a place to listen, and it knows the
-difference: for a deck the third view is `Minimize`, icon and word, in the
-theater bar, the PiP bar and the pill alike (`SurfaceSwitch` reads the
-track off the theater itself),
-never `Audio`, and the pill reads `slides` under the deck glyph rather than
-`watching` behind an equalizer.
+**`/lab/attachments`**, the Attachments Lab (`noindex`), is the devtool for
+this system, the way `/lab/legibility` is for reading surfaces. Nothing on
+it is a mock:
 
-The stage keeps **two libraries** and never shows them together. A recording
-is browsed among recordings: the talk albums (React / Lynx / Personal) the
-`TheaterRegistrar` registers, with an ad-hoc album for a video none of them
-holds. A deck is browsed among decks: `buildSlidesAlbum(locale)` is every deck
-in the log, in date order, registered as the Slides library, and opening any
-deck lands in it at that deck with every other deck a card away.
-`useTheater().openMedia(media, meta)` picks the library from the media's
-kind; the attachment system and the standalone `<Slides />` cover both go
-through it. `SlideModal` and `SlidesPlayerProvider` are gone.
+- **Vocabulary**: the chips at every size on the log's own covers, in the
+  `/works` tier and the peek's, the GitNation case among them.
+- **Render paths**: every place a commit's media is drawn, where a press
+  sends it, and the file (`RENDER_PATHS`, `app/lab/attachments/paths.ts`):
+  the strip, the desk grid, the phone grid and `InlinePlayable`,
+  `MediaRenderer` (single, rail, pills), the peeks, the attachment page,
+  the theater's rail thumb, the MDX `<Media />` and the home Featured
+  Talks widget.
+- **Homes**: the policy as a table, read live from `homeFor` /
+  `nativeHomeFor` for a context you can pin (phone or not, a window
+  manager).
+- **Specimens**: those surfaces rendered by the production components.
+- **Try it**: buttons that go through the real providers, with a readout of
+  the surface stack and the open windows as they stand. On a phone it is
+  where to watch the button stack the browser over the attachment sheet.
 
-## The in-app browser
+![The lab's Homes table with the viewport pinned to phone: every row's tap is sheet; the button sends video and slides to theater, the GitNation recording and a page to window · sheet, the page that refuses framing to tab, a post to route, an image to lightbox.](/img/docs/system-attachments/lab-homes.png)
 
-`useWindows().openUrl(url, { title })` opens a page in an app window
-(`systems/windows`): the same edge-to-edge frame, chrome pill and menu an app
-gets, keyed by URL so the same page focuses its window rather than opening a
-second. `Open in browser` in the window menu is the way out. See
-[system-windows.md](./system-windows.md).
+The Homes table pinned to a phone. Every tap is `sheet`; the button column
+is `nativeHomeFor`, and `window · sheet` is the in-app browser as a stacked
+sheet. Unpinned at 1280px the tap column turns into the button column.
+
+`/lab/attachment` (and the old `/editor/attachments`) redirect here. The
+title is the labs' dropdown (`systems/lab/catalog.ts`).
 
 ## Adding a kind
 
-1. Say where it opens in `lib/policy.ts`, in both functions.
-2. Say what its cover wears in `media-mark.tsx`, in `mediaKindOf` and `markFor`.
-3. Give it a page in `attachment-page.tsx`.
-4. If it can play on the stage, give it a `Track` kind and teach `mediaToTrack`
+1. Add it to the `Media` union and give it an `is…Media` guard
+   (`lib/log.ts`).
+2. Say where it opens in `lib/policy.ts`, in both functions.
+3. If its home is the theater or the lightbox, let it through the kind guard
+   in that case of `send` (`provider.tsx`).
+4. Say what its cover wears in `media-mark.tsx`, in `mediaKindOf` and `markFor`.
+5. Give it a page in `attachment-page.tsx`; without one the sheet shows
+   nothing for it.
+6. If it can play on the stage, give it a `Track` kind and teach `mediaToTrack`
    (`systems/theater/lib/albums.ts`) to build one.
-5. Check it in `/lab/attachments`: the table, the specimens, the buttons.
+7. Give it a row in `RENDER_PATHS` and a specimen in the lab, then check it
+   there: the table (pinned to phone and not), the specimens, the buttons.
+8. If it paints a cover, `pnpm og:complete` must still pass.
+
+## Reference
+
+```
+systems/attachments/
+├── index.ts                          # the public surface
+├── provider.tsx                      # AttachmentProvider, useAttachments(): open / act / homeOf / send
+├── lib/
+│   ├── types.ts                      # AttachmentSet, AttachmentHome
+│   ├── policy.ts                     # homeFor / nativeHomeFor, leavesSite, isPdfLink, linkTarget
+│   └── set.ts                        # attachmentSetFor(commit, locale)
+└── components/
+    ├── attachment-surface.tsx        # the paged sheet / panel / window (AdaptiveSurface)
+    ├── attachment-page.tsx           # one attachment, large, with its native action
+    └── image-lightbox.tsx            # an image, letterboxed, zoomable (the `lightbox` home)
+
+components/log/media/
+├── media-mark.tsx                    # MediaMark, markFor, mediaKindOf: the chip
+├── attachment-tile.tsx               # AttachmentTile, TileSlot, resolveTile: one cover
+├── media-strip.tsx                   # MediaStrip: the `covers` form's strip
+├── attachment-grid.tsx               # AttachmentGrid, InlinePlayable: the feed's grid
+├── media-renderer.tsx                # MediaRenderer: players and cards in a body or MDX
+└── media-peek.tsx                    # PeekCard, PeekThumb: the hover peek
+
+app/lab/attachments/                  # the lab; paths.ts is RENDER_PATHS
+```
+
+`<AttachmentProvider>` mounts inside the theater and window providers;
+`<AttachmentSurface />` and `<ImageLightbox />` mount once in
+`app/layout.tsx`.
+
+### History
+
+Each kind used to open its own way. A video went to the theater. A deck went
+to a lightbox of its own (`SlideModal`), which on a phone gave up and opened
+a tab. A card was a plain `<a target="_blank">`. A cover in the contact strip
+was a link; the same cover in the expanded body was a player. On a phone,
+tapping a thumbnail either left the site or dropped a Picture-in-Picture the
+size of a thumb onto the page. The site already had a theater, a window
+manager and a router; it had no rule for sending an attachment to the right
+one, and no shape for a phone. `SlideModal` and `SlidesPlayerProvider` are
+gone. The chip replaced three vocabularies drawn in place by whichever
+component held the cover: a play disc on anything that played, a caption
+chip over the disc on a deck, and a line of prose under a card that would
+leave for a tab.
