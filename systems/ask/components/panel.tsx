@@ -112,7 +112,10 @@ export default function AskPanel({ placement, active, request, onClose, onNaviga
       // streams in), so the body is a column, not a scroll area.
       contentClassName="flex min-h-0 flex-col overflow-hidden"
       footer={
-        <div className="p-2 pt-0 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        // The shell floats clear of the home indicator already (a sheet rests
+        // above it, the side panel 12px in), so the composer is held the
+        // same 8px off the glass on every side.
+        <div className="p-2 pt-0">
           <AskComposer />
         </div>
       }
