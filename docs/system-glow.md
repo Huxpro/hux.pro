@@ -1,6 +1,8 @@
-# Glow & Voice
+---
+skills: [glow]
+---
 
-> The checklist form of this page is the skill `.claude/skills/glow`.
+# Glow & Voice
 
 One light for the whole site, and the voice it can answer. Every glow is one
 WebGL shader on the edge of a rounded box (`systems/glow`), drawn by one
@@ -342,8 +344,8 @@ at the press, before the microphone is open.
   release inside the input field to finish. Sliding outside the field before
   release cancels the held recording. The completed clip goes through
   `/api/voice`. The DevTool's Voice module chooses `openai/whisper-1` (the
-  default, $0.36/hour, `DEFAULT_VOICE_MODEL` in `systems/voice/models.ts`)
-  or `spacexai/grok-stt` ($0.10/hour). Whisper stays the default until Grok
+  default, `$0.36/hour`, `DEFAULT_VOICE_MODEL` in `systems/voice/models.ts`)
+  or `spacexai/grok-stt` (`$0.10/hour`). Whisper stays the default until Grok
   has been tried on real English and Chinese dictation. In Ask, a held
   release sends the completed transcript as a message, while a tap and stop
   fills the field for editing; the palette always fills. The API key stays
