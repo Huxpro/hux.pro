@@ -1,6 +1,8 @@
-# About & Badges
+---
+skills: [content-snapshots]
+---
 
-> The badge icons' refresh command is a row in the skill `.claude/skills/content-snapshots` (`pnpm badges:snapshot`; CI runs `pnpm badges:check`).
+# About & Badges
 
 The surface a newcomer meets, and the inline badge that names a thing I made.
 
