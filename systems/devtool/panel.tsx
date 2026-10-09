@@ -182,6 +182,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Segmented, Switch } from "@/components/ui/controls";
+import { WORKS_TALKS, WORKS_TALKS_DEFAULT, type WorksTalks } from "@/lib/works-talks";
 import { Slider } from "@/components/ui/slider";
 import { useRangeDrag } from "@/components/ui/use-range-drag";
 import {
@@ -3000,11 +3001,28 @@ function MusicModule() {
 // layouts on trial, switched on the real page. A saved setting (blue star).
 // =============================================================================
 
+const TALKS_TITLE: Record<WorksTalks, [string, string]> = {
+  beam: ["Its own row; hovering lights the connector", "独立一行；悬停点亮连线"],
+  cover: ["The recording joins the project's covers", "录像加入项目的封面"],
+  absorb: ["The cover, and the talk row leaves the log", "封面，且演讲行离开日志"],
+  trailer: ["A git trailer per talk under the project's text", "项目文字下的 git trailer"],
+  decorate: ["Refs on the project's title line, like git log --decorate", "项目标题行上的 ref，像 git log --decorate"],
+  nest: ["The talk hangs under its project, folded", "演讲折叠挂在项目下方"],
+};
+
 function WorksModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { worksRef, setWorksRef, worksShelf, setWorksShelf, worksFeed, setWorksFeed } =
-    useDevtool();
+  const {
+    worksRef,
+    setWorksRef,
+    worksShelf,
+    setWorksShelf,
+    worksFeed,
+    setWorksFeed,
+    worksTalks,
+    setWorksTalks,
+  } = useDevtool();
   const onWorks = usePathname() === "/works";
   const options: { value: WorksRef; label: string; title: string }[] = [
     {
@@ -3054,7 +3072,11 @@ function WorksModule() {
       icon={<GitBranch className="h-4 w-4" />}
       compact
       relevant={onWorks}
-      star={worksRef !== WORKS_REF_DEFAULT || worksShelf || worksFeed ? "saved" : null}
+      star={
+        worksRef !== WORKS_REF_DEFAULT || worksShelf || worksFeed || worksTalks !== WORKS_TALKS_DEFAULT
+          ? "saved"
+          : null
+      }
       action={
         <span className="text-[10px] font-mono text-muted-foreground">{worksRef}</span>
       }
@@ -3084,6 +3106,26 @@ function WorksModule() {
           on={worksShelf}
           onClick={() => setWorksShelf(!worksShelf)}
           label={zh ? "项目架" : "Projects shelf"}
+        />
+      </PanelRow>
+      {/* How a project carries the talks that present it (lib/works-talks.ts).
+          On trial. */}
+      <PanelRow
+        label={zh ? "演讲" : "Talks"}
+        star={
+          worksTalks !== WORKS_TALKS_DEFAULT ? (
+            <PanelStar source="saved" onReset={() => setWorksTalks(WORKS_TALKS_DEFAULT)} />
+          ) : undefined
+        }
+      >
+        <PanelSegmented
+          value={worksTalks}
+          options={WORKS_TALKS.map((value) => ({
+            value,
+            label: value[0].toUpperCase() + value.slice(1),
+            title: TALKS_TITLE[value][zh ? 1 : 0],
+          }))}
+          onChange={setWorksTalks}
         />
       </PanelRow>
       {/* The feed form (lib/log-view.ts): the grid with its captions written

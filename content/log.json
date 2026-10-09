@@ -849,6 +849,7 @@
       "id": "d2-2025-lynx",
       "type": "talk",
       "tagId": "lynx-era",
+      "attachedTo": "lynx-framework",
       "title": {
         "en": "Lynx: Making ByteDance Beat Across Platforms",
         "zh": "Lynx：让字节跨端跳动"
@@ -884,6 +885,7 @@
       "id": "react-summit-2025-unlock-native",
       "type": "talk",
       "tagId": "lynx-era",
+      "attachedTo": "lynx-framework",
       "title": {
         "en": "Lynx: Unlock Native for More",
         "zh": "Lynx: Unlock Native for More"
@@ -921,6 +923,7 @@
       "id": "react-universe-2025-two-threads",
       "type": "talk",
       "tagId": "lynx-era",
+      "attachedTo": "lynx-framework",
       "title": {
         "en": "React for Two Threads",
         "zh": "React for Two Threads"

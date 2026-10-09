@@ -26,7 +26,7 @@ import { MoonGlyph, SunEventGlyph, SunGlyph } from "./body-glyph";
 //
 // Except the sun through a sunrise or a sunset: then its hint is the event's
 // glyph and points at `sun.light`, which is the sun, or the horizon under it
-// once it has set. See "The Sky Window" in docs/system-ambient.md.
+// once it has set. See "The sky window" in docs/ambient-easter-eggs.md.
 //
 // Sixty frames a second from the renderer (lib/sky-bodies.ts) and no React
 // render per frame: each hint's element is moved and faded by hand.
