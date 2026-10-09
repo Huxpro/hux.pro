@@ -10,13 +10,15 @@
 |-------|-----------------|
 | **Design Philosophy** | [docs/design-philosophy.md](./docs/design-philosophy.md) (Core principles) |
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
-| **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
+| **Navigation** | [docs/navigation.md](./docs/navigation.md) (How a visitor moves between pages: routes and redirects, the back link, `PageLayout`, View Transitions, the article's "Aa" reading settings. The palette and the floating button are [docs/system-command.md](./docs/system-command.md)) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
 | **Typing on a phone** | [docs/keyboard-input.md](./docs/keyboard-input.md) (how a field rests on the software keyboard while its sheet shrinks; constraints, free choices, every field on the site; the checklist is the skill `.claude/skills/keyboard-input`) |
 | **Dock / Live Activities / Notices** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel; `showNotice` for a one-line notice; there is no bottom toast) |
 | **Glass** | [docs/system-glass.md](./docs/system-glass.md) (Clear / Tinted material, reading surfaces) |
 | **Legibility** | [docs/system-legibility.md](./docs/system-legibility.md) (Ink-at-alpha tokens, wallpaper profiles, relief, tint, the `/lab/legibility` lab) |
-| **Ambient / Wallpaper** | [docs/system-ambient.md](./docs/system-ambient.md) (Weather + Apple wallpaper pairs, `pnpm wallpapers:encode` / `pnpm wallpapers:check` / `pnpm wallpapers:profile`) |
+| **Ambient** | [docs/system-ambient.md](./docs/system-ambient.md) (Location → Open-Meteo → phase → scene → legibility; the phase model, Follow the Sun, permissions, the cache). The sky itself: [docs/ambient-sky.md](./docs/ambient-sky.md) (engines, sun and moon, wind and gravity, gyroscope tilt, the theme's key). Its eggs: [docs/ambient-easter-eggs.md](./docs/ambient-easter-eggs.md) (strike, shooting star, gust, fog wipe, sky window) |
+| **Wallpapers** | [docs/wallpapers.md](./docs/wallpapers.md) (Weather styles + Apple / Nature pictures, light/dark pairs, placement and the bezel, `pnpm wallpapers:encode` / `pnpm wallpapers:check` / `pnpm wallpapers:profile`; the checklist is the skill `.claude/skills/wallpapers`) |
+| **Devtool** | [docs/system-devtool.md](./docs/system-devtool.md) (The debug panel: off by default everywhere, summoned by `D`, ⌘K or holding the search button; a docked sheet or a floating pill ⇄ window; its modules, and session overrides vs saved settings) |
 | **Architecture** | [docs/architecture.md](./docs/architecture.md) (Implementation details) |
 | **OG Images (ours)** | [docs/og-images.md](./docs/og-images.md) (Social cards we publish for our pages) |
 | **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards; `pnpm og:complete` in GitHub CI) |

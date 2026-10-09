@@ -487,6 +487,19 @@ Every tile is drawn from a `TileSlot` (`resolveTile`): its place in the
 set, where its click lands, its chip and its caption, resolved once per
 item by the strip or the grid rather than once per tile per render.
 
+**A project's talks** (`lib/works-talks.ts`). A talk presents the project
+it is `attachedTo`. Filtered to projects alone, the talk rows are out of the
+reading, so the project wears their recordings (or decks) at the end of its
+strip, each captioned in mono with its venue: the one strip cover with a
+caption, because a recording among a project's covers needs to say which
+stage it was. The cover opens in the project's set, so it plays where its
+own row's would. Every other reading leaves the talks as their own rows,
+with the connector to their project. The DevTool's Works module keeps five
+other arrangements on trial (`worksTalks`): the cover with the talk row kept
+or absorbed, a git trailer (`Presented-at:`) under the project's text, refs
+on its title line (`git log --decorate`), and the talk folded under its
+project.
+
 ### The gutter
 
 From `lg` up the hash and the rail hang in the page's left margin
