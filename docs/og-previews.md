@@ -1,8 +1,8 @@
-# Link Previews (Open Graph) System
+---
+skills: [content-snapshots]
+---
 
-> The skill `.claude/skills/content-snapshots` is the checklist form of this
-> page's commands (its `og:*` rows), alongside the other snapshots the site
-> commits.
+# Link Previews (Open Graph) System
 
 How `/works` paints the card of a page it links to (web.dev, a conference's
 session page, one of our own posts): crawled ahead of time, committed, and
