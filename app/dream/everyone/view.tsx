@@ -437,18 +437,18 @@ export function EveryoneDream() {
       </p>
 
       <nav
-        className="absolute inset-x-0 flex justify-center gap-10 text-white/35 transition-opacity duration-1000"
+        className="absolute inset-x-0 flex justify-center gap-4 text-white/35 transition-opacity duration-1000"
         style={{
-          bottom: "calc(env(safe-area-inset-bottom) + 16px)",
+          bottom: "calc(env(safe-area-inset-bottom) + 6px)",
           opacity: awake ? 1 : 0,
           pointerEvents: awake ? "auto" : "none",
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <button type="button" aria-label={copy.again} className="p-2 transition-colors hover:text-white/80" onClick={again}>
+        <button type="button" aria-label={copy.again} className="p-3.5 transition-colors hover:text-white/80" onClick={again}>
           <Moon className="size-4" strokeWidth={1.5} />
         </button>
-        <button type="button" aria-label={copy.wake} className="p-2 transition-colors hover:text-white/80" onClick={wake}>
+        <button type="button" aria-label={copy.wake} className="p-3.5 transition-colors hover:text-white/80" onClick={wake}>
           <Sun className="size-4" strokeWidth={1.5} />
         </button>
       </nav>
