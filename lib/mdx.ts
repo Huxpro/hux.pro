@@ -561,91 +561,58 @@ export function getAllDocs(): Doc[] {
  * Supports both legacy [slug].md and bilingual [slug].[lang].md patterns
  */
 export function getDocBySlug(slug: string): DocWithContent | null {
-  // Check for bilingual files first (prefer .mdx over .md)
-  const enMdxPath = path.join(docsDirectory, `${slug}.en.mdx`);
-  const zhMdxPath = path.join(docsDirectory, `${slug}.zh.mdx`);
-  const enMdPath = path.join(docsDirectory, `${slug}.en.md`);
-  const zhMdPath = path.join(docsDirectory, `${slug}.zh.md`);
-  const legacyFilePath = path.join(docsDirectory, `${slug}.md`);
+  // English is `slug.en.mdx`, `slug.en.md` or a plain `slug.md`; Chinese is
+  // `slug.zh.mdx` or `slug.zh.md` (.mdx preferred). A plain `slug.md` stays the
+  // English page when a Chinese one is added beside it, so a doc's path does
+  // not change for the code, skills and docs that point at it.
+  const pick = (...names: string[]) =>
+    names.map((n) => path.join(docsDirectory, n)).find((p) => fs.existsSync(p));
+  const enFilePath = pick(`${slug}.en.mdx`, `${slug}.en.md`, `${slug}.md`);
+  const zhFilePath = pick(`${slug}.zh.mdx`, `${slug}.zh.md`);
 
-  // Prefer .mdx files over .md files
-  const enFilePath = fs.existsSync(enMdxPath) ? enMdxPath : enMdPath;
-  const zhFilePath = fs.existsSync(zhMdxPath) ? zhMdxPath : zhMdPath;
-
-  const hasEn = fs.existsSync(enFilePath);
-  const hasZh = fs.existsSync(zhFilePath);
-  const hasLegacy = fs.existsSync(legacyFilePath);
-
-  // Must have at least one version
-  if (!hasEn && !hasZh && !hasLegacy) {
+  if (!enFilePath && !zhFilePath) {
     return null;
   }
 
-  // Legacy file (no language suffix) - treat as English only
-  if (hasLegacy && !hasEn && !hasZh) {
-    const fileContents = fs.readFileSync(legacyFilePath, "utf8");
-    const { content } = matter(fileContents);
-    const title = extractTitleFromMarkdown(content);
-    const description = extractDescriptionFromMarkdown(content);
-
+  const read = (filePath: string | undefined, lang: "en" | "zh") => {
+    if (!filePath) return undefined;
+    const { content, data } = matter(fs.readFileSync(filePath, "utf8"));
     return {
-      slug,
-      language: "en",
-      title,
-      description,
       content,
-      readingTime: readingTimeText(content, "en"),
+      data,
+      title: extractTitleFromMarkdown(content),
+      description: extractDescriptionFromMarkdown(content),
+      readingTime: readingTimeText(content, lang),
     };
-  }
+  };
+  const en = read(enFilePath, "en");
+  const zh = read(zhFilePath, "zh");
+  const primary = (en ?? zh)!;
 
-  // Bilingual or single-language with suffix
-  const language: PostLanguage = hasEn && hasZh ? "both" : hasEn ? "en" : "zh";
-
-  // Read English content
-  let content = "";
-  let title = "";
-  let description = "";
-  let readingTimeEn = "";
-  if (hasEn) {
-    const enContents = fs.readFileSync(enFilePath, "utf8");
-    const parsed = matter(enContents);
-    content = parsed.content;
-    title = extractTitleFromMarkdown(content);
-    description = extractDescriptionFromMarkdown(content);
-    readingTimeEn = readingTimeText(content, "en");
-  }
-
-  // Read Chinese content
-  let contentZh: string | undefined;
-  let titleZh: string | undefined;
-  let descriptionZh: string | undefined;
-  let readingTimeZh: string | undefined;
-  if (hasZh) {
-    const zhContents = fs.readFileSync(zhFilePath, "utf8");
-    const parsed = matter(zhContents);
-    contentZh = parsed.content;
-    titleZh = extractTitleFromMarkdown(contentZh);
-    descriptionZh = extractDescriptionFromMarkdown(contentZh);
-    readingTimeZh = readingTimeText(contentZh, "zh");
-  }
-
-  // For Chinese-only docs, use Chinese as primary
-  if (!hasEn && hasZh) {
-    title = titleZh || "";
-    description = descriptionZh || "";
-    content = contentZh || "";
-  }
+  const language: PostLanguage = en && zh ? "both" : en ? "en" : "zh";
+  const skills = asStringList(en?.data.skills ?? zh?.data.skills);
+  const tags = asStringList(en?.data.tags ?? zh?.data.tags);
+  if (skills.length && !tags.includes("skill")) tags.push("skill");
 
   return {
     slug,
     language,
-    title,
-    titleZh,
-    description,
-    descriptionZh,
-    content,
-    contentZh,
-    readingTime: readingTimeEn || readingTimeZh || "",
-    readingTimeZh,
+    title: primary.title,
+    titleZh: zh?.title,
+    description: primary.description,
+    descriptionZh: zh?.description,
+    content: primary.content,
+    contentZh: zh?.content,
+    readingTime: primary.readingTime,
+    readingTimeZh: zh?.readingTime,
+    tags: tags.length ? tags : undefined,
+    skills: skills.length ? skills : undefined,
+    origin: (en?.data.origin as string | undefined) ?? undefined,
+    originZh: (zh?.data.origin as string | undefined) ?? undefined,
   };
+}
+
+function asStringList(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 }
