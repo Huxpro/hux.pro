@@ -462,18 +462,18 @@ export function BlueDream() {
       </div>
 
       <nav
-        className="absolute inset-x-0 flex justify-center gap-10 text-white/40 transition-opacity duration-1000 delay-[1800ms]"
+        className="absolute inset-x-0 flex justify-center gap-4 text-white/40 transition-opacity duration-1000 delay-[1800ms]"
         style={{
-          bottom: "calc(env(safe-area-inset-bottom) + 16px)",
+          bottom: "calc(env(safe-area-inset-bottom) + 6px)",
           opacity: done ? 1 : 0,
           pointerEvents: done ? "auto" : "none",
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <button type="button" aria-label={copy.again} className="p-2 transition-colors hover:text-white/80" onClick={again}>
+        <button type="button" aria-label={copy.again} className="p-3.5 transition-colors hover:text-white/80" onClick={again}>
           <Moon className="size-4" strokeWidth={1.5} />
         </button>
-        <button type="button" aria-label={copy.wake} className="p-2 transition-colors hover:text-white/80" onClick={wake}>
+        <button type="button" aria-label={copy.wake} className="p-3.5 transition-colors hover:text-white/80" onClick={wake}>
           <Sun className="size-4" strokeWidth={1.5} />
         </button>
       </nav>
