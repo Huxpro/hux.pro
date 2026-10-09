@@ -505,9 +505,9 @@ export function ForgetDream() {
       </div>
 
       <nav
-        className="absolute inset-x-0 flex justify-center gap-10 transition-opacity duration-1000"
+        className="absolute inset-x-0 flex justify-center gap-4 transition-opacity duration-1000"
         style={{
-          bottom: "calc(env(safe-area-inset-bottom) + 16px)",
+          bottom: "calc(env(safe-area-inset-bottom) + 6px)",
           opacity: over ? 1 : 0,
           pointerEvents: over ? "auto" : "none",
           color: `rgba(${INK}, 0.4)`,
@@ -515,10 +515,10 @@ export function ForgetDream() {
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <button type="button" aria-label={copy.again} className="p-2 transition-opacity hover:opacity-60" onClick={again}>
+        <button type="button" aria-label={copy.again} className="p-3.5 transition-opacity hover:opacity-60" onClick={again}>
           <Moon className="size-4" strokeWidth={1.5} />
         </button>
-        <button type="button" aria-label={copy.wake} className="p-2 transition-opacity hover:opacity-60" onClick={wake}>
+        <button type="button" aria-label={copy.wake} className="p-3.5 transition-opacity hover:opacity-60" onClick={wake}>
           <Sun className="size-4" strokeWidth={1.5} />
         </button>
       </nav>
