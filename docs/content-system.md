@@ -183,6 +183,12 @@ same-page link (`#anchor`) on it points at the *translated* heading's id.
 else, Chinese punctuation included, spaces turned into hyphens. `## 原理`
 is `#原理`.
 
+**A link to another doc** is `./other.md` or `./other.md#anchor`, which
+works on GitHub; the page points it at `/docs/other/<lang>`
+(`lib/doc-links.ts`). From a Chinese page it stays in Chinese unless the
+other doc has no Chinese version or the anchor is a heading only the English
+page has, so a translation can keep the English heading's id.
+
 Docs are listed under `/docs` sorted by title, and render in the same
 `PostContent` as a post (`app/docs/[...slug]/content.tsx`).
 

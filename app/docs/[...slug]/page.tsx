@@ -2,6 +2,7 @@ import { MDXRenderer } from "@/components/mdx-renderer";
 import { getDocBySlug, getDocSlugs } from "@/lib/mdx";
 import { defaultLocale, locales, type Locale } from "@/lib/i18n";
 import { getLocalizedDescription, getLocalizedTitle } from "@/lib/content";
+import { headingIds, linkDocs } from "@/lib/doc-links";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { DocContent } from "./content";
@@ -115,7 +116,11 @@ export default async function DocPage({
   const rawContent =
     locale === "zh" && doc.contentZh ? doc.contentZh : doc.content;
   // Frontmatter leaves a blank line before the title: allow for it.
-  const content = rawContent.replace(/^\s*#\s+.+\n/, "");
+  const content = linkDocs(rawContent.replace(/^\s*#\s+.+\n/, ""), locale, (other, lang) => {
+    const target = getDocBySlug(other);
+    const markdown = lang === "zh" ? target?.contentZh : target?.content;
+    return markdown ? headingIds(markdown) : undefined;
+  });
 
   return (
     <DocContent
