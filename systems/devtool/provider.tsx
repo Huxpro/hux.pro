@@ -167,6 +167,8 @@ interface DevtoolSettings {
   worksRef: WorksRef;
   /** The projects shelf above /works' log. On trial, off by default. */
   worksShelf: boolean;
+  /** /works' feed form. On its way out: hidden unless switched on here. */
+  worksFeed: boolean;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
 }
@@ -179,6 +181,7 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   homeWeather: HOME_WEATHER_DEFAULT,
   worksRef: WORKS_REF_DEFAULT,
   worksShelf: false,
+  worksFeed: false,
   detached: false,
 };
 
@@ -235,6 +238,7 @@ function getDevtoolSettings(): DevtoolSettings {
           ? parsed.worksRef
           : WORKS_REF_DEFAULT,
         worksShelf: parsed.worksShelf === true,
+        worksFeed: parsed.worksFeed === true,
         detached: parsed.detached === true,
       };
     }
@@ -343,6 +347,10 @@ interface DevtoolContextType {
    *  by default. */
   worksShelf: boolean;
   setWorksShelf: (value: boolean) => void;
+  /** Whether /works offers its feed form. A saved setting, off by default:
+   *  the feed is on its way out, kept reachable here until it goes. */
+  worksFeed: boolean;
+  setWorksFeed: (value: boolean) => void;
   /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
@@ -416,6 +424,7 @@ export function DevtoolProvider({
     useState<HomeWeather>(HOME_WEATHER_DEFAULT);
   const [worksRef, setWorksRefState] = useState<WorksRef>(WORKS_REF_DEFAULT);
   const [worksShelf, setWorksShelfState] = useState(false);
+  const [worksFeed, setWorksFeedState] = useState(false);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -435,6 +444,7 @@ export function DevtoolProvider({
     setHomeWeatherState(settings.homeWeather);
     setWorksRefState(settings.worksRef);
     setWorksShelfState(settings.worksShelf);
+    setWorksFeedState(settings.worksFeed);
     setIsDetached(settings.detached);
   }, []);
 
@@ -607,6 +617,11 @@ export function DevtoolProvider({
     setDevtoolSettings({ worksShelf: value });
   }, []);
 
+  const setWorksFeed = useCallback((value: boolean) => {
+    setWorksFeedState(value);
+    setDevtoolSettings({ worksFeed: value });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -668,6 +683,8 @@ export function DevtoolProvider({
         setWorksRef,
         worksShelf,
         setWorksShelf,
+        worksFeed,
+        setWorksFeed,
         heroExitOverride,
         setHeroExitOverride,
       }}

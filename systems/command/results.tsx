@@ -9,11 +9,14 @@ import { blogPosts } from "@/lib/data";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { isQuestionLike } from "@/systems/ask/lib/intent";
+import type { AskSearch } from "@/systems/ask/lib/search";
+import { askStrings } from "@/systems/ask/strings";
 import { useOptionalWindows } from "@/systems/windows";
 import { Command, useCommandState } from "cmdk";
-import { Hash } from "lucide-react";
+import { Hash, Sparkles } from "lucide-react";
 import { useTransitionRouter } from "next-view-transitions";
-import { Fragment } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { CommandAppsStrip } from "./apps-launcher";
 import {
   useCommandShell,
@@ -22,6 +25,11 @@ import {
   type CommandAction,
 } from "./actions";
 import { useCommand } from "./provider";
+import {
+  detailKeywords,
+  exactKeywords,
+  scorePaletteItem,
+} from "./search-filter";
 
 // =============================================================================
 // Search results and the slash list: the palette's two bodies, shared by the
@@ -47,6 +55,137 @@ const SECTION_HEADING = {
   actions: "sectionActions",
   settings: "settings",
 } as const;
+
+// -----------------------------------------------------------------------------
+// Ask in the search list, and the list's filter.
+//
+// Whatever is typed can also be asked. The Ask row is always there while the
+// field has text; where depends on the query. One that reads as a question
+// (systems/ask/lib/intent) puts Ask first, so cmdk selects it and ↵ asks;
+// anything else puts it under the results, where ↓ or Tab reaches it and ↵
+// still opens the best match. With nothing typed, the field's trailing Tab
+// hint enters an empty conversation instead. The list places the row, not
+// the filter: cmdk
+// (1.1.1) sorts items within a group but never moves the groups themselves.
+//
+// The same filter finds posts by their text, not only their titles: once the
+// site's index is loaded (systems/ask/lib/search, fetched the first time the
+// field has two characters), a post whose body matches the query and whose
+// title did not still shows, ranked low.
+// -----------------------------------------------------------------------------
+
+export const ASK_VALUE = "ask-ai";
+
+/** A full-text hit on a post that the title match missed scores this. */
+const FULL_TEXT_SCORE = 0.05;
+
+export function usePaletteFilter(query: string) {
+  const [index, setIndex] = useState<AskSearch | null>(null);
+  const wanted = query.trim().length >= 2;
+  useEffect(() => {
+    if (!wanted || index) return;
+    let live = true;
+    // Loaded with the index, the first time a search is long enough.
+    import("@/systems/ask/lib/search")
+      .then((m) => m.loadAskSearch())
+      .then((loaded) => live && setIndex(loaded))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [wanted, index]);
+
+  // Posts matching the current search, by slug; one search per keystroke,
+  // not one per row.
+  const hits = useRef<{ search: string; slugs: Set<string> }>({ search: "", slugs: new Set() });
+
+  return useCallback(
+    (value: string, search: string, keywords?: string[]) => {
+      if (value === ASK_VALUE) return search.trim() ? 1 : 0;
+      const score = scorePaletteItem(value, search, keywords);
+      if (score > 0 || !index || !value.startsWith("blog-")) return score;
+      if (hits.current.search !== search) {
+        const slugs = new Set(
+          index
+            .search({ query: search, limit: 10 })
+            .filter((h) => h.kind === "post")
+            .map((h) => h.doc.split(":")[1]),
+        );
+        hits.current = { search, slugs };
+      }
+      return hits.current.slugs.has(value.slice("blog-".length)) ? FULL_TEXT_SCORE : 0;
+    },
+    [index],
+  );
+}
+
+/**
+ * The list's selection, held by the shell (spread on <Command>): cmdk picks
+ * the first row as the query changes, but a row that has just mounted (the
+ * Ask row, moving to the top for a question) is not in the list until a
+ * render later, after the pick. So a question selects Ask itself, a frame on.
+ */
+export function usePaletteSelection(query: string) {
+  const [value, setValue] = useState("");
+  useEffect(() => {
+    if (!isQuestionLike(query)) return;
+    const frame = requestAnimationFrame(() => setValue(ASK_VALUE));
+    return () => cancelAnimationFrame(frame);
+  }, [query]);
+  return { value, onValueChange: setValue };
+}
+
+/** Ask what was typed. */
+function AskRow({ query }: { query: string }) {
+  const { locale } = useLocale();
+  const { openAsk } = useCommand();
+  const s = askStrings(locale);
+  return (
+    <Command.Item value={ASK_VALUE} onSelect={() => openAsk(query, "search")} className={ROW}>
+      <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1 truncate text-left">
+        <span className="text-muted-foreground">{s.askRow}: </span>
+        {query}
+      </span>
+    </Command.Item>
+  );
+}
+
+/**
+ * The field's quiet hand-off into Ask. It keeps its place as the visitor
+ * types, and carries the query into the conversation. On a narrower keyboard
+ * viewport the label contracts to AI; the trailing key is the part that
+ * teaches.
+ */
+export function AskTabHint({
+  query,
+  className,
+}: {
+  query: string;
+  className?: string;
+}) {
+  const { locale } = useLocale();
+  const { openAsk } = useCommand();
+  const s = askStrings(locale);
+
+  return (
+    <button
+      type="button"
+      onClick={() => openAsk(query || undefined, "search")}
+      aria-label={s.askRow}
+      className={cn(
+        "pressable flex h-7 shrink-0 items-center gap-1 rounded-md pl-1 pr-1.5",
+        "text-xs text-tertiary-foreground transition-colors",
+        "hover:bg-accent/25 hover:text-muted-foreground active:bg-accent/40",
+        className,
+      )}
+    >
+      <span className="hidden md:inline">{s.askRow}</span>
+      <span className="md:hidden">AI</span>
+      <kbd className={TYPE.kbd}>tab</kbd>
+    </button>
+  );
+}
 
 /** The slash letter beside a row. Only where a keyboard can press it. */
 function Letter({ letter }: { letter?: string }) {
@@ -102,7 +241,7 @@ function ResultRow({ action }: { action: CommandAction }) {
   return (
     <Command.Item
       value={action.id}
-      keywords={action.keywords}
+      keywords={detailKeywords(action.keywords)}
       onSelect={() => void run(action, "search")}
       className={ROW}
     >
@@ -126,7 +265,14 @@ export function CommandResults({
 
   // What the palette opens on leaves out what is only found (searchOnly);
   // a query brings it in.
-  const searching = useCommandState((state) => state.search.trim().length > 0);
+  const search = useCommandState((state) => state.search);
+  const searching = search.trim().length > 0;
+  const askFirst = isQuestionLike(search);
+  const askGroup = (
+    <Command.Group value="ask">
+      <AskRow query={search.trim()} />
+    </Command.Group>
+  );
   const listed = actions.filter(
     (a) => a.label && !a.slashOnly && (searching || !a.searchOnly),
   );
@@ -136,6 +282,8 @@ export function CommandResults({
       <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
         {t(locale, "noResults")}
       </Command.Empty>
+
+      {searching && askFirst && askGroup}
 
       {/* Dual-purpose Spotlight: horizontal Apps strip (same UI for
           browse + search; cmdk hides the group when nothing matches). */}
@@ -159,14 +307,21 @@ export function CommandResults({
             keywords={[
               post.title,
               post.titleZh || "",
-              post.description,
-              post.descriptionZh || "",
-              ...(post.tags || []),
-              "prose",
-              "blog",
-              "post",
-              "article",
-              "文章",
+              ...detailKeywords([
+                post.description,
+                post.descriptionZh || "",
+                ...(post.tags || []),
+              ]),
+              ...exactKeywords([
+                "prose",
+                "blog",
+                "blogs",
+                "post",
+                "posts",
+                "article",
+                "articles",
+                "文章",
+              ]),
             ].filter(Boolean)}
             onSelect={() => {
               router.push(getPostHref(post, locale, "/writing"));
@@ -184,6 +339,8 @@ export function CommandResults({
           </Command.Item>
         ))}
       </Command.Group>
+
+      {searching && !askFirst && askGroup}
     </Command.List>
   );
 }

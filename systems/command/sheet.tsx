@@ -19,14 +19,17 @@ import {
   useShowKeyboardHints,
   type CommandShell,
 } from "./actions";
-import { useCommandVoice, useSpaceToTalk, VoiceButton, VoiceGlow } from "./voice";
+import { useCommandVoice, useSpaceToTalk, VoiceButton, VoiceVisual, VoiceStatus } from "./voice";
 import { LoadBundlePanel } from "./load-bundle-panel";
 import { useCommand } from "./provider";
 import {
+  AskTabHint,
   CommandResults,
   CommandSlashList,
   GROUP_HEADINGS,
   SlashEntry,
+  usePaletteFilter,
+  usePaletteSelection,
 } from "./results";
 
 // =============================================================================
@@ -55,8 +58,12 @@ import {
 // button or a tap on the receded palette brings the palette forward again,
 // one level at a time, as on iOS. The palette's own close is on the palette.
 // They are a true stack (each sheet is a React child of the palette's, so Base
-// UI treats it as nested, and the shared stack recedes the parent). The two are
+// UI treats it as nested, and the shared stack recedes the parent). They are
 // mutually exclusive, so only ever one is up.
+//
+// Ask is not one of them: on a phone it is a sheet of its own
+// (systems/ask/surfaces.tsx), so asking from here puts the palette away
+// rather than stacking a conversation on a search.
 //
 // Each takes the height its content asks for, which is not the same height.
 // Slash mode is a list, so it stands level with the palette's detent, its own
@@ -166,10 +173,13 @@ function SheetBody({
     close,
     setSlashCommandsMode,
     setLoadBundleMode,
+    openAsk,
   } = useCommand();
   const { locale } = useLocale();
   const actions = useCommandActions();
   const field = useCommandField();
+  const filter = usePaletteFilter(field.value);
+  const selection = usePaletteSelection(field.value);
   const voice = useCommandVoice(field.onChange);
   const spaceToTalk = useSpaceToTalk(voice, field.value === "");
   const showHints = useShowKeyboardHints();
@@ -197,43 +207,65 @@ function SheetBody({
     <>
       <Command
         loop
+        filter={filter}
+        {...selection}
         className={cn("flex min-h-0 flex-1 flex-col outline-none", GROUP_HEADINGS)}
       >
         <SlashShortcuts actions={actions} />
 
         {/* Header: the search field. It stays through both sub-modes: they
             are sheets stacked on this one, not a body swapped underneath. */}
-        <div className="relative flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
-          {/* Listening: the site's glow along the field's bottom edge. */}
-          <VoiceGlow voice={voice} />
+        <div data-voice-recording-area className="relative flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
+          {/* Glow stays on the field edge; the waveform sits beside the status. */}
+          <VoiceVisual voice={voice} />
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <div className="relative min-w-0 flex-1">
           <Command.Input
             ref={inputRef}
             value={field.value}
             onValueChange={field.onChange}
             onClick={onFieldTap}
-            placeholder={t(locale, "searchPlaceholder")}
+            placeholder={t(locale, voice.mode === "gateway" && voice.state === "listening" ? "voiceRecording" : "searchPlaceholder")}
+            readOnly={voice.mode === "gateway" && voice.listening}
+            tabIndex={voice.mode === "gateway" && voice.listening ? -1 : undefined}
             {...spaceToTalk}
+            onKeyDown={(e) => {
+              // Tab (a hardware keyboard): enter Ask, carrying along anything typed.
+              if (e.key === "Tab" && !e.shiftKey) {
+                e.preventDefault();
+                openAsk(field.value || undefined, "search");
+                return;
+              }
+              spaceToTalk.onKeyDown(e);
+            }}
             enterKeyHint="go"
             className={cn(
               // 16px: below that iOS Safari zooms the page on focus.
-              "min-w-0 flex-1 bg-transparent py-3 font-sans text-[16px] outline-none",
+              "w-full bg-transparent py-3 font-sans text-[16px] outline-none",
+              voice.mode === "gateway" && voice.listening && "pointer-events-none opacity-0",
               "placeholder:text-tertiary-foreground"
             )}
           />
-          {/* No keyboard to type "/" on: the field's trailing accessory
-              opens the slash sheet, while the field is empty. Tucked in
-              against the close button so the two read as one cluster. */}
-          <VoiceButton voice={voice} className="-mr-1" />
-          {!showHints && field.value === "" && <SlashEntry className="-mr-2" />}
-          <button
-            type="button"
-            onClick={close}
-            aria-label={t(locale, "commandClose")}
-            className={cn(HEADER_BUTTON, "-mr-2")}
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="pointer-events-none absolute inset-0 flex items-center gap-3">
+            <VoiceStatus voice={voice} />
+            <VoiceVisual voice={voice} inline />
+          </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-0">
+            {/* No keyboard to type "/" on: the field's trailing accessory
+                opens the slash sheet, while the field is empty. */}
+            <VoiceButton voice={voice} className="[&>.lucide-mic]:-translate-y-px" />
+            {showHints && <AskTabHint query={field.value} />}
+            {!showHints && field.value === "" && <SlashEntry />}
+            <button
+              type="button"
+              onClick={close}
+              aria-label={t(locale, "commandClose")}
+              className={cn(HEADER_BUTTON, "-mr-2")}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <CommandResults
@@ -243,7 +275,7 @@ function SheetBody({
       </Command>
 
       {/* The sub-mode sheets, stacked on the palette. Mutually exclusive, so
-          never both up. Outside the cmdk root, so a key pressed in here is not
+          never two up. Outside the cmdk root, so a key pressed in here is not
           also a key pressed in the search list. */}
       <SurfaceSheet
         id="command-slash"

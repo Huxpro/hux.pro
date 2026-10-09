@@ -10,6 +10,7 @@
  */
 
 import type { Locale } from "@/lib/i18n";
+import { plainInline } from "@/lib/inline-links";
 import {
   type Commit,
   type Identity,
@@ -57,6 +58,7 @@ export function computeBylines(
 ): (Byline | null)[] {
   const result: (Byline | null)[] = commits.map(() => null);
   let prevIdentityId: string | null = null;
+  let prevProjectOrg: string | null = null;
   let prevProjectTeam: string | null = null;
 
   for (let i = 0; i < commits.length; i++) {
@@ -85,7 +87,7 @@ export function computeBylines(
       ? localize(role.companyOverride, locale)
       : localize(identity.company, locale);
     const title = role ? localize(role.title, locale) : "";
-    const desc = role ? localize(role.description, locale) : "";
+    const desc = role ? plainInline(localize(role.description, locale)) : "";
 
     // Effective team subtitle: project override wins, otherwise inherits
     // the role's team default. Sparse: blank the chip when it repeats the
@@ -93,15 +95,25 @@ export function computeBylines(
     // inheriting `Lynx @ ByteDance` prints the chip once at the top and
     // stays quiet after.
     let subtitle: string | undefined;
+    //
+    // And the company inside it, by the same rule one level up: a team is
+    // `Team @ Company`, and down a run of one company's projects the company
+    // is said once. `React Core team @ Meta` then `PLR`, not `PLR @ Meta`;
+    // a team that is only the company (`Meta`), right after that company
+    // was named, prints nothing. Seen down the Meta years it was `@ Meta`
+    // on four rows in a row, and the handle says it again.
     if (c.type === "project") {
       const teamRaw = c.team ?? role?.team;
       const teamStr = teamRaw ? localize(teamRaw, locale) : undefined;
       if (teamStr && teamStr !== prevProjectTeam) {
-        subtitle = teamStr;
+        const { team, org } = splitTeam(teamStr);
+        subtitle = org === prevProjectOrg ? team : teamStr;
         prevProjectTeam = teamStr;
+        prevProjectOrg = org;
       } else if (teamStr) {
         // Same team as previous project: blank, but keep tracker.
         prevProjectTeam = teamStr;
+        prevProjectOrg = splitTeam(teamStr).org;
       }
       // (If teamStr is undefined we leave prevProjectTeam untouched so a
       //  project with no team doesn't reset the streak.)
@@ -123,4 +135,13 @@ export function computeBylines(
   }
 
   return result;
+}
+
+/**
+ * `React Core team @ Meta` → the team and the company it is at. A team
+ * string with no ` @ ` is the company alone (`Meta`, `Alibaba`).
+ */
+function splitTeam(s: string): { team?: string; org: string } {
+  const at = s.lastIndexOf(" @ ");
+  return at < 0 ? { org: s } : { team: s.slice(0, at), org: s.slice(at + 3) };
 }

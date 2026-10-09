@@ -126,7 +126,8 @@ export function LoadBundlePanel({
           aria-invalid={showError}
           className={cn(
             "min-w-0 flex-1 bg-transparent py-2",
-            "font-mono text-[13px] text-foreground",
+            // 16px on a phone: below that iOS zooms the page on focus.
+            "font-mono text-[16px] text-foreground sm:text-[13px]",
             "placeholder:font-sans placeholder:text-tertiary-foreground",
             "outline-none",
           )}

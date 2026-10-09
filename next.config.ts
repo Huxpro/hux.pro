@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   // resvg is a native module used only by the icon generator (the dev save
   // route imports it dynamically). Keep it out of the bundle.
   serverExternalPackages: ["@resvg/resvg-js"],
+  // Ask's system prompt reads the About off disk at request time
+  // (lib/ask-prompt.ts); ship it with the function.
+  outputFileTracingIncludes: {
+    "/api/chat": ["./content/about/**"],
+  },
   // The vitre demo, built by Vite into public/vitre at build time (see the
   // "build" script; `pnpm dev` builds it when stale). Only its entry needs a
   // rewrite; its assets are plain public files.
