@@ -113,8 +113,19 @@ export function toBlogPostSummaries(posts: BlogPost[]): BlogPostSummary[] {
   );
 }
 
-// Docs don't have extra fields beyond Post
-export type Doc = Post;
+/**
+ * A page of developer documentation (`docs/`). Frontmatter is optional:
+ *   skills   the `.claude/skills/<name>` this page is the long form of; the
+ *            page closes with a footnote linking each, and is tagged `skill`
+ *   origin   provenance, as on a post: a translated version says so
+ *            ("AI-translated from the original")
+ */
+export interface Doc extends Post {
+  tags?: string[];
+  skills?: string[];
+  origin?: string;
+  originZh?: string;
+}
 
 export interface Note extends Post {
   date: string;
@@ -208,9 +219,11 @@ export function getVisibleTags(tags: string[], locale: Locale): string[] {
 // without being a decorator (e.g. an en-only topic tag), and a decorator is
 // still subject to the visibility table (a decorator hidden in this locale
 // won't render). 译 / 知乎 happen to be both, but each is configured on its own.
+// `skill` marks a doc that also exists as a Claude Code skill (lib/mdx.ts
+// derives it from the doc's `skills` frontmatter).
 // =============================================================================
 
-export const decoratorTags: ReadonlySet<string> = new Set(["译", "知乎"]);
+export const decoratorTags: ReadonlySet<string> = new Set(["译", "知乎", "skill"]);
 
 /** Whether a tag renders as a row-level decorator badge (vs. a plain tag). */
 export function isDecoratorTag(tag: string): boolean {

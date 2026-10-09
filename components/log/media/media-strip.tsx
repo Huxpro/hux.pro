@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useOptionalAttachments, type AttachmentSet } from "@/systems/attachments";
 import type { Media, StripItem } from "@/lib/log";
+import type { MediaWithTalk } from "@/lib/works-talks";
 import { AttachmentTile, resolveTile } from "./attachment-tile";
 import { InspectableMedia } from "./inspectable";
 import { mediaPeek } from "./media-peek";
@@ -135,6 +136,15 @@ export function MediaStrip({
                 locale={locale}
                 set={set}
                 attachments={attachments}
+                // A cover that stands for a talk says where it was given:
+                // on trial (lib/works-talks.ts).
+                footer={
+                  (slot.media as MediaWithTalk).talk ? (
+                    <span className="mt-1 block font-mono text-[11px] leading-4 text-tertiary-foreground">
+                      {(slot.media as MediaWithTalk).talk!.venue}
+                    </span>
+                  ) : undefined
+                }
               />
             </InspectableMedia>
           </MagneticPreview>
