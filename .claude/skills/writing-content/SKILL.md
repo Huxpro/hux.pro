@@ -8,15 +8,24 @@ description: Adding or editing a blog post (content/blog/*.mdx, at /writing) or 
 **Names carry the language.** A post is `content/blog/<slug>.en.mdx` and/or
 `<slug>.zh.mdx`, same slug (or `<slug>/index.<lang>.mdx`). There is no
 `language` frontmatter field. Any other name is skipped without an error.
-A doc is one file per slug per language: `docs/<slug>.md`, or
-`<slug>.en.md(x)` / `<slug>.zh.md(x)`. An unsuffixed `.mdx` is never read;
-`.mdx` beats `.md` for the same language.
+A doc is `docs/<slug>.md` in English; its Chinese version is
+`docs/<slug>.zh.md` beside it (keep the plain `.md`, don't rename it
+`.en.md`). An unsuffixed `.mdx` is never read.
 
 **Post frontmatter:** `title`, `date` (`"YYYY-MM-DD"`), `description`,
-`tags`; optional `origin`, `featured: true`, `coverFit`, `coverAspect`. The
-cover is the first image in the body; the excerpt is the first paragraph.
-**Docs** have no frontmatter: the title is the first `# ` line, and the next
-line is the description on `/docs`, so write it as one unwrapped sentence.
+`tags`; optional `origin` (provenance), `featured: true`, `coverFit`,
+`coverAspect`. The cover is the first image in the body; the excerpt is the
+first paragraph.
+
+**Docs:** the title is the first `# ` line; the `/docs` description is the
+first prose paragraph after it (blockquotes, images, JSX are skipped), so
+make it say what the page is. Optional frontmatter: `skills: [name]` closes
+the page with a footnote linking each skill and tags the `/docs` row
+`skill` (don't write `tags`, and don't point at the skill under the H1);
+`origin` is provenance. A `.zh.md` carries
+`origin: "AI-translated from the original"` and no `skills`. Its same-page
+links (`#…`) use the translated heading's id, as `lib/heading-id.ts` makes
+it (`## 原理` is `#原理`).
 
 **Images** go in `public/` with absolute paths: `/img/in-post/<slug>/…` for
 posts, `/img/docs/<slug>/…` for docs. Markdown images bleed on their own

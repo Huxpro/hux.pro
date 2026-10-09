@@ -1,9 +1,10 @@
+---
+skills: [writing-content]
+---
+
 # Content System
 
 How a post in `content/blog/` and a page in `docs/` become static pages at `/writing` and `/docs`: file names, languages, frontmatter, the MDX pipeline and what reads the files at build time.
-
-> The checklist form of this page is the skill `.claude/skills/writing-content`.
-> The generated files a post can touch are the skill `.claude/skills/content-snapshots`.
 
 ## What it looks like done well
 
@@ -13,8 +14,11 @@ How a post in `content/blog/` and a page in `docs/` become static pages at `/wri
 - Each language is its own static page, `/writing/<slug>/<lang>`, with
   `hreflang` alternates when both exist. A bare `/writing/<slug>` is
   redirected to a language.
-- A doc is one file per slug per language. Its title is its first `#`
-  heading and its listing description is the line after it.
+- A doc is `docs/<slug>.md`, in English, and a Chinese version is
+  `docs/<slug>.zh.md` beside it. Its title is its first `#` heading and its
+  listing description is the first prose paragraph after it.
+- A doc that has a skill names it in frontmatter: the page closes with a
+  link to the skill and the `/docs` row is tagged `skill`.
 - The body compiles as MDX, in a doc as much as in a post. Its images live
   under `public/` and are referenced by absolute path, so they load at
   `/docs/<slug>/en` and in a post alike.
@@ -31,8 +35,9 @@ with its own output, and the ones on the left skip `lib/mdx.ts`.
 
 1. **Files.** Posts: `content/blog/<slug>.<lang>.mdx`, or a folder
    `content/blog/<slug>/index.<lang>.mdx` (only `upgrading-eleme-to-pwa`
-   uses it). `<lang>` is `en` or `zh`. Docs: `docs/<slug>.md`, or
-   `docs/<slug>.<lang>.md` / `.mdx` per language.
+   uses it). `<lang>` is `en` or `zh`. Docs: `docs/<slug>.md` (English),
+   `docs/<slug>.zh.md` (Chinese); `.en.md`, `.en.mdx` and `.zh.mdx` are read
+   too.
 2. **`lib/mdx.ts`** lists and reads them. `getBlogSlugs()` matches
    `/^(.+)\.(en|zh)\.mdx$/` and folders holding an index file;
    `getBlogPostBySlug()` reads both language files with `gray-matter` and
@@ -47,8 +52,9 @@ with its own output, and the ones on the left skip `lib/mdx.ts`.
    `zh` and `content` otherwise, and sets `generateMetadata` (canonical,
    `hreflang` alternates for a bilingual post, Open Graph from
    `postCardOf`). `app/docs/[...slug]/page.tsx` reads the locale from the
-   last segment, strips the first `# ` line (the header prints the title)
-   and allows params it did not generate (`dynamicParams = true`).
+   last segment, strips the `# ` title line (the header prints the title),
+   closes the page with its colophon (see [Docs](#docs)) and allows params
+   it did not generate (`dynamicParams = true`).
 4. **`MDXRenderer`** (`components/mdx-renderer.tsx`) is `<MDXRemote>` from
    `next-mdx-remote/rsc` with `options={mdxOptions}` and
    `components={mdxComponents}`. Compilation happens on the server, during
@@ -131,24 +137,51 @@ goes to the devtool inspector.
 
 ### Docs
 
-Docs carry no frontmatter that is read. `getDocBySlug` takes the title
-from the first `# ` heading and the description (the `/docs` list, the
-page's meta description) from the first non-empty line after it that is not
-a heading, cut at 200 characters. It is one *line*, not a paragraph, so the
-line after the H1 is written unwrapped.
+`getDocBySlug` takes the title from the first `# ` heading and the
+description (the `/docs` list, the page's meta description) from the first
+prose paragraph after it, all of its lines (PR #492). A heading, a
+blockquote, an image, a JSX block or a code fence is passed over; the text
+is cut at 200 characters. So the paragraph under the H1 says what the page
+is.
+
+Frontmatter is optional:
+
+| Field | Use | Read from |
+|---|---|---|
+| `skills` | `[name, …]`, the `.claude/skills/<name>` this page is the long form of. The page closes with a footnote linking each skill's `SKILL.md`, and the `/docs` row is tagged `skill` | the English file, else the Chinese |
+| `origin` | Provenance, as on a post. A Chinese version's is `"AI-translated from the original"` | each file (`origin` / `originZh`) |
+
+The `skill` tag is derived from `skills`; don't write it in `tags`. It is a
+row decorator like `译` / `知乎` (`decoratorTags` in `lib/content.ts`), shown
+in both languages. The footnote is the colophon a post's `origin` closes
+with (`colophon` in `app/docs/[...slug]/page.tsx`): the origin, then "The
+checklist form of this page is the Claude Code skill …" (in Chinese on the
+Chinese page), joined by a dot. A doc doesn't point at its skill under the
+H1.
 
 Which file a slug reads:
 
-| On disk | Read |
+| Language | First found wins |
 |---|---|
-| `slug.en.mdx` and `slug.en.md` | `slug.en.mdx` (per language, `.mdx` wins) |
-| `slug.en.md(x)` and `slug.md` | the suffixed file; `slug.md` is read only when no suffixed file exists |
-| `slug.md` and `slug.mdx` | `slug.md`. An unsuffixed `.mdx` is never read |
-| `slug.mdx` alone | nothing: listed by `getDocSlugs`, but `getDocBySlug` returns `null` and `/docs/slug/en` is a 404 |
+| English | `slug.en.mdx`, `slug.en.md`, `slug.md` |
+| Chinese | `slug.zh.mdx`, `slug.zh.md` |
 
-So: one file per slug per language. `docs/navigation.md` and
-`docs/navigation.mdx` both mapped to `navigation` and the `.mdx` never
-rendered (PR #472).
+With both, `language` is `"both"`: `/docs/slug/en` and `/docs/slug/zh`,
+with `hreflang` alternates. A plain `slug.md` stays the English page when a
+`slug.zh.md` is added beside it, so a doc's path does not change for the
+code, skills and docs that point at it. An unsuffixed `.mdx` is never read:
+`getDocSlugs` lists it, but alone it is a 404, and beside `slug.md` it
+never renders (`docs/navigation.mdx`, PR #472).
+
+**A Chinese version** is `docs/<slug>.zh.md` with the frontmatter
+`origin: "AI-translated from the original"` (that English string, as on a
+translated post) and no `skills`, which are read from the English file. A
+same-page link (`#anchor`) on it points at the *translated* heading's id.
+`HeadingWithLink` makes each id from the heading's rendered text with
+`headingId` (`lib/heading-id.ts`): lowercased, keeping letters, digits,
+`_`, `-` and Chinese characters (U+4E00 to U+9FFF), dropping everything
+else, Chinese punctuation included, spaces turned into hyphens. `## 原理`
+is `#原理`.
 
 Docs are listed under `/docs` sorted by title, and render in the same
 `PostContent` as a post (`app/docs/[...slug]/content.tsx`).
@@ -198,8 +231,10 @@ the components then get `undefined`. All MDX here is first-party.
 | Rule | Why | What breaks |
 |---|---|---|
 | A post's file is `<slug>.en.mdx` / `<slug>.zh.mdx` (or `<slug>/index.<lang>.mdx`), the same slug for both languages | The language and the pairing come from the name | Any other name is silently skipped: no page, no error. `validateBlogContent()` would catch it but nothing calls it |
-| A doc is one file per slug per language; an unsuffixed doc is `.md` | `getDocBySlug` reads only `<slug>.md` unsuffixed, and `.mdx` over `.md` per language | The other file never renders (`navigation.mdx`), or the doc 404s |
-| The line after a doc's `#` title is one unwrapped sentence that says what the page is | It is the doc's description on `/docs` and in its meta tags | A description cut mid-sentence, or one that reads "> The checklist…" |
+| A doc is `<slug>.md` in English and `<slug>.zh.md` in Chinese; never an unsuffixed `.mdx` | `getDocBySlug` reads only these (and `.en.md(x)` / `.zh.mdx`), `.mdx` before `.md` per language | The other file never renders (`navigation.mdx`), or the doc 404s |
+| The first paragraph after a doc's `#` title is prose that says what the page is | It is the doc's description on `/docs` and in its meta tags | The listing shows a pointer, or whichever paragraph happens to come first |
+| A doc's skill is frontmatter `skills: [name]`, not a line under the title | The footnote and the `skill` tag come from it | No link to the skill and no tag |
+| A same-page link on a Chinese page uses the translated heading's id (`lib/heading-id.ts`) | The id is made from the heading's text | The link goes nowhere |
 | No bare `<` before a letter or `/`, no bare `{`, in prose; put them in backticks or a code fence | MDX reads `<x` as a tag and `{` as a JS expression | `Expected a closing tag`, `Could not parse expression with acorn`: the page fails to build. `a < b` with spaces is fine |
 | `<https://…>` autolinks and `<!-- -->` comments are not MDX | Same parser | Compile error. Write `[text](url)` and `{/* note */}` |
 | A pair of `$` in a paragraph is math | `remark-math` | "costs $5 and $10" renders `5 and ` as code |
@@ -227,25 +262,28 @@ has an image, `pnpm og:fonts` if a Chinese title or description brings new
 glyphs, `pnpm badges:snapshot` for a `<Badge>` to a new site. Open
 `/writing/<slug>/<lang>` for each language.
 
-**A new doc.** Write `docs/<slug>.md`: `# Title`, then the one-line
-description, then the page. Images in `public/img/docs/<slug>/`,
-referenced as `/img/docs/<slug>/<name>.png`. Add it to the index in
-`AGENT.md`. Open `/docs/<slug>/en`, or compile it alone with `@mdx-js/mdx`
-`compile` and `remark-gfm` + `remark-math`.
+**A new doc.** Write `docs/<slug>.md`: frontmatter `skills: [name]` if a
+skill is its checklist, `# Title`, then a paragraph that says what the page
+is, then the page. Images in `public/img/docs/<slug>/`, referenced as
+`/img/docs/<slug>/<name>.png`. Add it to the index in `AGENT.md`. Open
+`/docs/<slug>/en`, or compile it alone with `@mdx-js/mdx` `compile` and
+`remark-gfm` + `remark-math`. A Chinese version is `docs/<slug>.zh.md`
+([above](#docs)).
 
 ## Key files
 
 | File | Purpose |
 |---|---|
 | `lib/mdx.ts` | Slugs, language pairs, frontmatter, derived fields, docs |
-| `lib/content.ts` | `BlogPost` / `Doc` types, `getPostHref`, `shouldShowPost`, `postCardOf` |
+| `lib/content.ts` | `BlogPost` / `Doc` types, `getPostHref`, `shouldShowPost`, `postCardOf`, `decoratorTags` |
+| `lib/heading-id.ts` | A heading's id, for same-page links |
 | `lib/mdx-processor.ts` | `mdxOptions`: plugins, Shiki, `blockJS: false` |
 | `components/mdx-renderer.tsx` | `MDXRenderer`, the one place posts and docs compile |
 | `components/mdx-components.tsx` | `mdxComponents` |
 | `components/mdx-image.tsx`, `lib/image-meta.ts` | `MdxImage`, the bleed heuristic and fragments |
 | `app/writing/[slug]/[lang]/page.tsx` | Per-language post pages, metadata |
 | `app/writing/[slug]/page.tsx` | Bare post URL fallback redirect |
-| `app/docs/[...slug]/page.tsx` | Doc pages, locale from the last segment |
+| `app/docs/[...slug]/page.tsx` | Doc pages, locale from the last segment, the colophon |
 | `middleware.ts` | Bare URL → `/{locale cookie}` (307) |
 | `components/post/use-post-language.tsx`, `language-sheet.tsx` | The language switch notice and the shared-link sheet |
 

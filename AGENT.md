@@ -104,8 +104,9 @@ duration-300 (morphing transitions)
 - Blog posts go in `content/blog/` (displayed at /writing), named
   `<slug>.en.mdx` / `<slug>.zh.mdx`: the language comes from the file name,
   not frontmatter. Frontmatter: `title`, `date`, `description`, `tags`.
-- Docs go in `docs/` (displayed at /docs), one file per slug. Images for
-  either live under `public/` with absolute paths. See the skill
+- Docs go in `docs/` (displayed at /docs) as `<slug>.md`, with a Chinese
+  version as `<slug>.zh.md` beside it. Images for either live under
+  `public/` with absolute paths. See the skill
   `.claude/skills/writing-content`.
 
 ### Modifying Design
