@@ -1,24 +1,27 @@
 # Lab
 
-The site studied from the inside, and the libraries it publishes.
+The site studied from the inside, the libraries it publishes, and a few
+feelings, a few seconds long.
 
 ```
 systems/lab/
-├── catalog.ts            # every lab: id, name, kind (study | library), words
+├── catalog.ts            # every lab: id, name, kind (study | library | experience), words
 ├── i18n.ts               # LabTable, useLabStrings, the frame's own words
 ├── components/
 │   ├── shell.tsx         # LabShell, LabBar, LabPanel, LabSection, buttons
 │   ├── nav.tsx           # LabNav: the name in the bar, and the switcher
 │   ├── controls.tsx      # the panel's knobs: Field, Segmented, Slider, …
-│   └── library.tsx       # the library template: LibraryShell, ApiReference, …
+│   ├── library.tsx       # the library template: LibraryShell, ApiReference, …
+│   └── experience.tsx    # the experience template: ExperienceShell
 └── surfaces/             # each lab at a glance: the /lab cards, the home widget
 
 app/lab/                  # the routes: the index, and one folder per lab
 app/lab/vitre/            # the first library: guide, api/, site/
+app/lab/wardrobe/         # the first experience; its document is public/dreams/wardrobe
 components/home/lab-widget.tsx  # the home widget (off by default)
 ```
 
-## Two kinds of lab
+## Three kinds of lab
 
 A **study** lays one of this site's systems open: the real components, the
 real policy, the real state, with the knobs that tune them (Works, Attachments,
@@ -40,6 +43,21 @@ with `LibraryHeader` (name, version, peer requirements, npm or "not on npm
 yet", source, demo), read from the package's own `package.json` through the
 catalog's `library`, so it cannot drift from what ships. Publishing to npm is
 flipping `private` there; the header follows.
+
+An **experience** is a feeling, a few seconds and a few touches long (The
+Wardrobe, a childhood nightmare in three blinks). It is one self-contained
+document in `public/` (no framework, no download beyond itself), because it
+has two hosts that both want a whole page:
+
+| host | how |
+|---|---|
+| the home screen | an app in `content/apps.json`, a tile in the folder, opened in a window (an iframe) |
+| its lab, `/lab/<id>` | `ExperienceShell` (`components/experience.tsx`): the document in a phone-shaped frame, beside the story it came from, with Replay and a full-screen link |
+
+The catalog's `experience` names both: `src` (the document) and `app` (its
+apps.json id). The document reads the site's `locale` from the same origin
+(`?lang=` overrides it) and takes a `?stage=` to hold one frame still, which
+is what its surface on the index shows.
 
 ## Content stays with the package
 
@@ -86,9 +104,10 @@ a row of their own, and on a phone they take the second row.
 
 ## The index
 
-`/lab` has two sections, libraries first: a library is a lab that shipped, a
-different promise to a different reader, so it leads as a wide card with the
-package's facts (`LibraryFacts`) and its blurb, where a study is a card in the
+`/lab` has three sections. Experiences lead: they are made for whoever
+wandered in, and each card wears the experience itself, small. Then the
+libraries: a library is a lab that shipped, a different promise to a
+different reader, so it is a wide card with the package's facts (`LibraryFacts`) and its blurb, where a study is a card in the
 grid with its one line. The switcher on every bar groups the same way.
 
 ## Quiet by design
