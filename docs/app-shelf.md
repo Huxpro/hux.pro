@@ -1,8 +1,8 @@
-# App Folder: the home-screen folder for external projects
+---
+skills: [content-snapshots]
+---
 
-> The checklist for its data (edit `content/apps.json`, run
-> `pnpm apps:snapshot`, commit the icons) is the apps row of the skill
-> `.claude/skills/content-snapshots`.
+# App Folder: the home-screen folder for external projects
 
 The homepage widget grid includes an **app folder**: an iPad-style springboard
 of icons for apps (React, Lynx, Flappy Bird, Vue Lynx). Each icon is the
