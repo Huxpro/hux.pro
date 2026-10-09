@@ -16,7 +16,7 @@ its command, review the diff, commit both.
 | A Chinese title with new glyphs | `pnpm og:fonts` | `lib/og-fonts/` |
 | A `<Badge>` to a new site | `pnpm badges:snapshot` | `content/badge-icons.json`, `public/badge-icons/` |
 | `content/apps.json` | `pnpm apps:snapshot` | `public/app-icons/`, `content/app-icons.json` |
-| `content/icon.json` | `pnpm icon:generate` | `public/icons/*` |
+| `content/icon.json` | `pnpm icon:generate` | `public/icons/*`, `app/favicon.ico` |
 
 - A site that can't be crawled gets a manual `preview` on its media item.
   Our own posts never do: their cards are computed; edit the post.
