@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 800" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <pattern id="pad" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#fff4e6"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#f08c00" stroke-width="2"/>
+    </pattern>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#495057"/>
+    </marker>
+      </defs>
+  <rect width="1080" height="800" fill="#ffffff"/>
+
+  <!-- ===================== Frame A: top detent ===================== -->
+  <text x="40" y="34" font-size="15" font-weight="600" fill="#212529">At the top detent (snap point 1)</text>
+  <text x="40" y="54" fill="#495057" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">--drawer-snap-point-offset: 0</text>
+  <!-- screen -->
+  <rect x="40" y="80" width="200" height="420" rx="22" fill="#e7f0fb" stroke="#212529" stroke-width="2"/>
+  <!-- popup padding -->
+  <rect x="52" y="488" width="176" height="12" fill="url(#pad)"/>
+  <!-- shell -->
+  <rect x="52" y="92" width="176" height="396" rx="16" fill="#ffffff" stroke="#868e96" stroke-width="1.5"/>
+  <rect x="122" y="99" width="36" height="4" rx="2" fill="#adb5bd"/>
+  <!-- popup outline -->
+  <rect x="50" y="92" width="180" height="408" fill="none" stroke="#d9480f" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="140" y="290" text-anchor="middle" fill="#212529">glass shell</text>
+  <text x="140" y="308" text-anchor="middle" fill="#495057" font-size="12">[data-surface-shell]</text>
+  <!-- label padding -->
+  <line x1="232" y1="494" x2="262" y2="494" stroke="#495057" marker-start="url(#arr)"/>
+  <text x="266" y="490" fill="#495057" font-size="12">padding-bottom:</text>
+  <text x="266" y="506" fill="#495057" font-size="12">BOTTOM_INSET only</text>
+
+  <!-- ===================== Frame B: 0.7 detent ===================== -->
+  <text x="400" y="34" font-size="15" font-weight="600" fill="#212529">At the 0.7 detent</text>
+  <text x="400" y="54" fill="#495057" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">offset = popup height − 70dvh</text>
+  <rect x="400" y="80" width="200" height="420" rx="22" fill="#e7f0fb" stroke="#212529" stroke-width="2"/>
+  <!-- popup padding (on and below screen) -->
+  <rect x="412" y="488" width="176" height="126" fill="url(#pad)"/>
+  <!-- shell -->
+  <rect x="412" y="206" width="176" height="282" rx="16" fill="#ffffff" stroke="#868e96" stroke-width="1.5"/>
+  <rect x="482" y="213" width="36" height="4" rx="2" fill="#adb5bd"/>
+  <!-- popup outline: translated down by the offset -->
+  <rect x="410" y="206" width="180" height="408" fill="none" stroke="#d9480f" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <!-- where the popup was -->
+  <line x1="410" y1="92" x2="590" y2="92" stroke="#d9480f" stroke-width="1" stroke-dasharray="2 3"/>
+  <line x1="392" y1="94" x2="392" y2="204" stroke="#495057" marker-end="url(#arr)"/>
+  <text x="386" y="140" text-anchor="end" fill="#495057" font-size="12">translateY(</text>
+  <text x="386" y="156" text-anchor="end" fill="#495057" font-size="12">offset +</text>
+  <text x="386" y="172" text-anchor="end" fill="#495057" font-size="12">swipe-y)</text>
+  <text x="500" y="340" text-anchor="middle" fill="#212529">same shell,</text>
+  <text x="500" y="358" text-anchor="middle" fill="#212529">shorter from the top</text>
+  <!-- screen bottom marker -->
+  <line x1="396" y1="500" x2="604" y2="500" stroke="#212529" stroke-width="1" stroke-dasharray="1 3"/>
+  <text x="616" y="596" fill="#868e96" font-size="12">below the screen</text>
+  <!-- padding bracket -->
+  <path d="M600,488 h10 v126 h-10" fill="none" stroke="#495057"/>
+  <text x="616" y="530" fill="#495057" font-size="12">padding-bottom:</text>
+  <text x="616" y="546" fill="#495057" font-size="12">offset + BOTTOM_INSET</text>
+  <text x="616" y="566" fill="#868e96" font-size="12">bottom edge stays put</text>
+
+  <!-- ===================== Frame C: past the floor ===================== -->
+  <text x="760" y="34" font-size="15" font-weight="600" fill="#212529">Dragged below the lowest detent</text>
+  <text x="760" y="54" fill="#495057" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">offset + swipe-y &gt; --surface-detent-floor</text>
+  <rect x="760" y="80" width="200" height="420" rx="22" fill="#e7f0fb" stroke="#212529" stroke-width="2"/>
+  <!-- padding: clamped at the floor -->
+  <rect x="772" y="568" width="176" height="126" fill="url(#pad)"/>
+  <!-- shell: same height as at 0.7, moved down whole -->
+  <rect x="772" y="286" width="176" height="282" rx="16" fill="#ffffff" stroke="#868e96" stroke-width="1.5"/>
+  <rect x="842" y="293" width="36" height="4" rx="2" fill="#adb5bd"/>
+  <rect x="770" y="286" width="180" height="408" fill="none" stroke="#d9480f" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="756" y1="500" x2="964" y2="500" stroke="#212529" stroke-width="1" stroke-dasharray="1 3"/>
+  <text x="860" y="410" text-anchor="middle" fill="#212529">padding stops growing:</text>
+  <text x="860" y="428" text-anchor="middle" fill="#212529">the sheet leaves whole</text>
+  <path d="M960,568 h10 v126 h-10" fill="none" stroke="#495057"/>
+  <text x="976" y="626" fill="#495057" font-size="12">clamped at</text>
+  <text x="976" y="642" fill="#495057" font-size="12">the floor</text>
+
+  <!-- ===================== Legend ===================== -->
+  <g transform="translate(40,712)">
+    <rect x="0" y="0" width="28" height="18" fill="none" stroke="#d9480f" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="38" y="14" fill="#212529">Drawer.Popup [data-surface-popup]: transparent, bottom: 0, height calc(100dvh − TOP_INSET). Base UI moves this box.</text>
+    <rect x="0" y="28" width="28" height="18" fill="url(#pad)"/>
+    <text x="38" y="42" fill="#212529">its padding-bottom: clamp(0, offset + swipe-y, --surface-detent-floor) + BOTTOM_INSET   (globals.css, "Secondary surface motion")</text>
+    <rect x="0" y="56" width="28" height="18" rx="5" fill="#ffffff" stroke="#868e96" stroke-width="1.5"/>
+    <text x="38" y="70" fill="#212529">the glass shell, flex-1 inside the popup: what the padding leaves is its height</text>
+  </g>
+</svg>

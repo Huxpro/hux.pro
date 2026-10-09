@@ -754,6 +754,23 @@ export function TimelineCommit({
                 {data.languageBadge}
               </span>
             )}
+            {/* `git log --decorate`: the talks that present this project,
+                as refs on its title line. On trial (lib/works-talks.ts). */}
+            {data.decorations && data.decorations.length > 0 && (
+              <span
+                className="ml-2 align-baseline font-mono text-xs text-tertiary-foreground"
+                onClick={(e) => e.stopPropagation()}
+              >
+                (<span className="text-quaternary-foreground">talks:</span>{" "}
+                {data.decorations.map((d, i) => (
+                  <span key={i}>
+                    {i > 0 && ", "}
+                    <InlineText text={d} />
+                  </span>
+                ))}
+                )
+              </span>
+            )}
           </span>
         )}
 
@@ -848,6 +865,21 @@ export function TimelineCommit({
           {data.inline.commentary && (
             <Commentary text={<InlineText text={data.inline.commentary} />} />
           )}
+        </div>
+      )}
+
+      {/* Git trailers, one per talk that presents this project: on trial
+          (lib/works-talks.ts). The tail of a commit message, in its voice. */}
+      {!isQuiet && data.trailers && data.trailers.length > 0 && (
+        <div className="col-start-2 lg:col-start-3 mt-1.5 min-w-0 space-y-0.5 font-mono text-xs leading-4 text-tertiary-foreground">
+          {data.trailers.map((t, i) => (
+            <p key={i}>
+              <span className="text-quaternary-foreground">{t.key}:</span>{" "}
+              <span onClick={(e) => e.stopPropagation()}>
+                <InlineText text={t.value} />
+              </span>
+            </p>
+          ))}
         </div>
       )}
 
