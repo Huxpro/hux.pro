@@ -1,6 +1,8 @@
-# Command System
+---
+skills: [ask-commands]
+---
 
-> The checklist form of this page's catalog and policy rules (adding a command, what Ask may run) is the skill `.claude/skills/ask-commands`.
+# Command System
 
 ⌘K: the site's palette, inspired by Spotlight, Raycast and VS Code. One
 list of commands reached four ways (a search row, the slash list, a single
