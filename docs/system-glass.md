@@ -1,6 +1,8 @@
-# Glass
+---
+skills: [ui-tokens]
+---
 
-> The checklist form of this page is the glass bullet of the skill `.claude/skills/ui-tokens`.
+# Glass
 
 The material every floating System UI surface is made of, and the one setting
 that changes all of them at once. Also here: how the wallpaper recedes behind
