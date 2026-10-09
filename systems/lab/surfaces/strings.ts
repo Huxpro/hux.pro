@@ -3,6 +3,9 @@ import type { LabTable } from "../i18n";
 const en = {
   // Works
   logSummary: (commits: number, tags: number) => `log.json · ${commits} commits · ${tags} tags`,
+  // Prompts
+  promptsSummary: (convictions: number, instances: number) =>
+    `prompts.json · ${convictions} convictions · ${instances} instances`,
   // Attachments
   kinds: { recording: "recording", deck: "deck", page: "page" },
   // Legibility
@@ -19,6 +22,7 @@ const en = {
 
 const zh: typeof en = {
   logSummary: (commits, tags) => `log.json · ${commits} 条提交 · ${tags} 个标签`,
+  promptsSummary: (convictions, instances) => `prompts.json · ${convictions} 条原则 · ${instances} 个 instances`,
   kinds: { recording: "录像", deck: "幻灯片", page: "网页" },
   rungs: { ink: "主墨", muted: "次墨", tertiary: "三阶", quaternary: "四阶" },
   flip: "反色",

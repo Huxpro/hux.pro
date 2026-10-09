@@ -13,6 +13,8 @@ import vitrePackage from "@/packages/vitre/package.json";
  *     widget rotates through, for a visitor who adds it.
  *   - `/lab/works` is the one that still writes: log.json, edited over the
  *     /works timeline as it prints (on a wide screen, in `next dev`).
+ *   - `/lab/prompts` reads prompts.json as a structure: its refs, its
+ *     voices, its sentences, its rules (lib/prompts-lab.ts).
  *   - The others are readouts of a system (attachments, icon, legibility,
  *     glow), each with a panel of knobs.
  *
@@ -43,7 +45,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre";
+export type LabId = "works" | "prompts" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -112,6 +114,21 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "content/log.json rendered by the production timeline, in each of its forms. On a wide screen, Inspect edits the log in place and Save writes it back (in next dev).",
       zh: "由线上时间线渲染的 content/log.json，三种形态皆可切换。宽屏下「检查」可就地编辑，「保存」写回文件（仅 next dev）。",
+    },
+  },
+  {
+    id: "prompts",
+    href: "/lab/prompts",
+    kind: "study",
+    name: { en: "Prompts Lab", zh: "提示词实验室" },
+    mark: "prompts.json",
+    hint: {
+      en: "The system prompt, as a structure",
+      zh: "系统提示词，作为一个结构",
+    },
+    blurb: {
+      en: "content/prompts.json read as something to keep rather than something to read: the graph its refs make, everyone it quotes, every sentence in one searchable list, and the file held to its own rules (the same checks as pnpm prompts:check).",
+      zh: "把 content/prompts.json 当作要维护的东西来读，而不是当作文章：它的 ref 连成的图、它引用过的每一个人、拍平成一张可搜索表的每一句话，以及文件自己的规矩（和 pnpm prompts:check 同一套检查）。",
     },
   },
   {

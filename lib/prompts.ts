@@ -9,7 +9,7 @@ import type { PromptTopic } from "@/lib/prompt-view";
  * `*italic*` for a work's title, as in `*The Gay Science* §270`. The Chinese
  * half never needs the second one, because it already has 《》.
  */
-type BilingualText = {
+export type BilingualText = {
   en: string;
   zh: string;
 };
@@ -18,7 +18,7 @@ type BilingualText = {
  * A name is usually locale-neutral ("Dan Abramov"), but sometimes it is a
  * phrase that needs translating ("Lynx team culture"). Accept both.
  */
-type NameText = string | BilingualText;
+export type NameText = string | BilingualText;
 
 type PromptLink = { label: string; url: string };
 
@@ -27,7 +27,7 @@ type PromptLink = { label: string; url: string };
  * people and experiences shaped a belief without earning an entry of their
  * own, and those render as plain text instead of an anchor.
  */
-interface RawAttribution {
+export interface RawAttribution {
   name: NameText;
   /** id of an entry in `influences` */
   ref?: string;
@@ -53,7 +53,7 @@ interface RawAttribution {
  * able to carry its own attribution and to point at whatever entry on the
  * page it is also an instance of.
  */
-interface RawInstance {
+export interface RawInstance {
   /** A small heading: the name this face of the belief goes by. */
   title?: BilingualText;
   text: BilingualText;
@@ -86,7 +86,7 @@ type InfluenceKind = "person" | "team" | "book" | "paper" | "field";
  * prints a voice with quotation marks and an attribution, or without
  * either.
  */
-interface RawStatement {
+export interface RawStatement {
   /**
    * What this sentence answers for: correctness, behaviour, abstraction.
    * Authored, not printed: it is the editorial test for whether a voice
@@ -98,7 +98,7 @@ interface RawStatement {
   quotedFrom?: RawAttribution;
 }
 
-interface RawConviction {
+export interface RawConviction {
   /**
    * The canonical key: what `ref` points at, and the same in every locale.
    * If a belief cannot be named in one word, it has not been reduced yet,
@@ -143,6 +143,9 @@ interface RawConviction {
    * answer a different `facet`, or come from a different tradition. A
    * chorus that agrees with itself is an instance list that has climbed
    * onto the front page.
+   *
+   * `pnpm prompts:check` (and the Prompts Lab) hold the file to this:
+   * lib/prompts-lab.ts.
    */
   statements: RawStatement[];
   /**
@@ -183,7 +186,7 @@ interface RawPromptMedia {
  * the topics belong to what I hold, and the influences are read through
  * them.
  */
-interface RawInfluence {
+export interface RawInfluence {
   id: string;
   /** @see RawConviction.anchor */
   anchor?: BilingualText;
@@ -195,7 +198,7 @@ interface RawInfluence {
   links?: PromptLink[];
 }
 
-interface RawPromptsData {
+export interface RawPromptsData {
   convictions: RawConviction[];
   influences: RawInfluence[];
   meta: { model: string };

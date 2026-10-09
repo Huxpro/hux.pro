@@ -21,8 +21,8 @@ components/home/lab-widget.tsx  # the home widget (off by default)
 ## Two kinds of lab
 
 A **study** lays one of this site's systems open: the real components, the
-real policy, the real state, with the knobs that tune them (Works, Attachments,
-Icon, Legibility, Glow). It is for this site; it never pretends to be anything
+real policy, the real state, with the knobs that tune them (Works, Prompts,
+Attachments, Icon, Legibility, Glow). It is for this site; it never pretends to be anything
 else.
 
 A **library** is a system that left as a package. Its lab is the package's
@@ -73,6 +73,17 @@ API and On hux.pro pages are documents.
 `scrollTools` is for tools longer than the bar (a guide's section tabs): they
 scroll between the name and the actions instead of wrapping the actions onto
 a row of their own, and on a phone they take the second row.
+
+## Content labs
+
+Two studies lay open a content file rather than a system. The Works Lab
+edits `content/log.json` in place. The Prompts Lab (`/lab/prompts`) reads
+`content/prompts.json` as a structure: a map of the refs between entries and
+influences with each entry measured, everyone quoted grouped across entries,
+every sentence in one bilingual search, and the file's own rules. The model
+and the rules are `lib/prompts-lab.ts`, which `pnpm prompts:check` runs too,
+failing on an error, so the page and the script agree. It is read-only: the
+file is edited by hand, and this is where you look before and after.
 
 ## Adding one
 
