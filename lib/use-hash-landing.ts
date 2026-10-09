@@ -11,7 +11,7 @@
  *
  * Scrolling goes through `vitre`, never `window.scrollY`. With the
  * bezel on an iPhone the page scrolls inside a container, so the window knows
- * nothing about it (see docs/system-ambient.md). The travel is the same
+ * nothing about it (see docs/wallpapers.md, "Placement"). The travel is the same
  * shape as the table of contents' (`ruler-toc.tsx`): `animate` from motion
  * driving `scrollPageTo`, on iOS's curve, cancelled the moment the reader
  * touches the page, and `emitPageScroll()` on arrival so the subscribers

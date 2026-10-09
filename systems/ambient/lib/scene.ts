@@ -125,7 +125,7 @@ export interface WeatherScene {
    * sky above the fog really does have a moon and stars in it, and clearing
    * the mist is supposed to show you them. So the scene hands over the
    * unhidden version too, and the shader reaches for it inside the swath.
-   * See "The Fog Wipe" in docs/system-ambient.md.
+   * See "The fog wipe" in docs/ambient-easter-eggs.md.
    */
   behind: { stars: number; moon: number };
   /**
