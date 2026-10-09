@@ -10,7 +10,7 @@
 |-------|-----------------|
 | **Design Philosophy** | [docs/design-philosophy.md](./docs/design-philosophy.md) (Core principles) |
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
-| **Navigation** | [docs/navigation.md](./docs/navigation.md) (Command palette) |
+| **Navigation** | [docs/navigation.md](./docs/navigation.md) (How a visitor moves between pages: routes and redirects, the back link, `PageLayout`, View Transitions, the article's "Aa" reading settings. The palette and the floating button are [docs/system-command.md](./docs/system-command.md)) |
 | **Secondary Surfaces** | [docs/system-surface.md](./docs/system-surface.md) (sheet / panel / window, per viewport) |
 | **Typing on a phone** | [docs/keyboard-input.md](./docs/keyboard-input.md) (how a field rests on the software keyboard while its sheet shrinks; constraints, free choices, every field on the site; the checklist is the skill `.claude/skills/keyboard-input`) |
 | **Dock / Live Activities / Notices** | [docs/system-dock.md](./docs/system-dock.md) (top-anchored drawer, pill ⇄ panel; `showNotice` for a one-line notice; there is no bottom toast) |
