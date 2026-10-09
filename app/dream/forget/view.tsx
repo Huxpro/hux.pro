@@ -19,21 +19,29 @@ import { createPortal } from "react-dom";
 // still in the air, still its colours: I won't remember this, but it happened.
 //
 // One gesture (a hold), or none: left alone the moments go one by one, about
-// eight seconds. No words on screen. Each picture is drawn once offscreen and
-// sampled, colour and all, into the dust it becomes. The only DOM is a ring
-// that says "press" and the way out at the end: a moon to dream again, a sun
-// to wake. Portaled to the body, over the site's chrome.
+// eight seconds. Few words: what this is (a caption), what to do (a hint under
+// a breathing ring), and two short lines over the dust at the end. Each
+// picture is drawn once offscreen and sampled, colour and all, into the dust
+// it becomes. The window's rows shrink on a short screen (a phone on its
+// side) so the caption and the hint keep their room. The way out at the end
+// is a moon to dream again and a sun to wake. Portaled to the body, over the
+// site's chrome.
 // =============================================================================
 
-/** For screen readers only; nothing here is written on the screen. */
-const LABEL = {
+const COPY = {
   en: {
     scene: "Small pictures of a conversation rising through a window and turning to coloured dust at its edge. Press and hold to hold on.",
+    caption: "a dream · what I forget",
+    hint: "hold on",
+    end: ["I won't remember this.", "but it happened."],
     again: "Dream again",
     wake: "Wake",
   },
   zh: {
     scene: "一段对话里的小画面，穿过一扇窗，在窗沿化成彩色的尘。按住，留住它们。",
+    caption: "梦 · 忘",
+    hint: "按住，留住它们",
+    end: ["我不会记得这些。", "但它们发生过。"],
     again: "再梦一次",
     wake: "醒来",
   },
@@ -68,6 +76,9 @@ const END_AFTER = 1.6;
 /** A picture's box, and the gap between one and the next, px. */
 const SIZE = 56;
 const ROW = 80;
+/** The least a row may shrink to, and the height kept clear for the caption and the hint, px. */
+const ROW_MIN = 50;
+const CHROME = 180;
 
 type Draw = (ctx: CanvasRenderingContext2D) => void;
 
@@ -200,7 +211,7 @@ function paint(draw: Draw, dpr: number): Moment {
 
 export function ForgetDream() {
   const { locale } = useLocale();
-  const label = LABEL[locale];
+  const copy = COPY[locale];
   const router = useRouter();
   const mounted = useMounted();
 
@@ -254,9 +265,12 @@ export function ForgetDream() {
     /** How present the window is: it leaves with the last moment. */
     let presence = 1;
 
+    /** A row's height: the full 80px, unless the screen is too short for it. */
+    const row = () => Math.max(ROW_MIN, Math.min(ROW, (h - CHROME) / (HELD + 1)));
+
     const windowBox = () => {
       const width = Math.min(240, w - 40);
-      const height = ROW * (HELD + 1);
+      const height = row() * (HELD + 1);
       return { x: (w - width) / 2, y: h * 0.5 - height / 2, width, height };
     };
 
@@ -264,20 +278,24 @@ export function ForgetDream() {
     const momentY = (i: number) => {
       const box = windowBox();
       const age = clock - i * GAP;
-      return box.y + box.height - ROW / 2 - (age / GAP) * ROW;
+      return box.y + box.height - row() / 2 - (age / GAP) * row();
     };
 
     /** Turn part of a moment to dust: `share` of its points, or all of them. */
     const shed = (m: Moment, i: number, share: number) => {
       const cx = w / 2;
       const cy = momentY(i);
+      // The picture is drawn smaller on a short screen; its dust starts where it is.
+      const k = row() / ROW;
+      const lift = Math.min(1.3, h / 844);
       for (const p of m.points) {
         if (share < 1 && Math.random() > share) continue;
         motes.push({
-          x: cx + p.x,
-          y: cy + p.y,
-          vx: -45 + Math.random() * 100,
-          vy: -40 - Math.random() * 110,
+          x: cx + p.x * k,
+          y: cy + p.y * k,
+          // Its lift is a share of the screen's height, so the dust stays on a short one.
+          vx: (-45 + Math.random() * 100) * lift,
+          vy: (-40 - Math.random() * 110) * lift,
           born: now,
           fade: 1.6 + Math.random() * 1.6,
           size: 1.2 + Math.random() * 1.3,
@@ -338,7 +356,7 @@ export function ForgetDream() {
       }
 
       // The moments.
-      const edge = box.y + ROW / 2;
+      const edge = box.y + row() / 2;
       let atEdge = -1;
       moments.forEach((m, i) => {
         if (m.gone) return;
@@ -359,7 +377,7 @@ export function ForgetDream() {
         const fresh = clamp01(age / 0.6);
         ctx.globalAlpha = fresh * (1 - m.wear * 0.8);
         const jitter = i === atEdge ? (Math.random() - 0.5) * 1.6 * m.wear : 0;
-        const s = SIZE * (0.85 + 0.15 * fresh);
+        const s = SIZE * (row() / ROW) * (0.85 + 0.15 * fresh);
         ctx.drawImage(m.sprite, w / 2 - s / 2 + jitter, y - s / 2 + (1 - fresh) * 8, s, s);
         ctx.globalAlpha = 1;
       });
@@ -442,34 +460,73 @@ export function ForgetDream() {
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label={label.scene}
+        aria-label={copy.scene}
         className="absolute inset-0 h-full w-full"
       />
 
-      {/* Press: a ring that closes in and lets go, until you first hold on. */}
+      <p
+        className="pointer-events-none absolute inset-x-0 text-center font-mono text-[11px] tracking-[0.2em] transition-opacity duration-1000"
+        style={{ top: "calc(env(safe-area-inset-top) + 24px)", color: `rgba(${INK}, 0.45)`, opacity: over ? 0 : 1 }}
+      >
+        {copy.caption}
+      </p>
+
+      {/* Press: a ring that closes in and lets go, and the words under it, until you first hold on. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 bottom-[13%] -translate-x-1/2 transition-opacity duration-700"
-        style={{ opacity: pressed || over ? 0 : 1 }}
+        className="pointer-events-none absolute inset-x-0 flex flex-col items-center gap-3 transition-opacity duration-700"
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 20px)", opacity: pressed || over ? 0 : 1 }}
       >
         <div className="forget-dream-press size-9 rounded-full border" style={{ borderColor: `rgba(${INK}, 0.35)` }} />
+        <span className="forget-dream-hint font-mono text-[11px] tracking-[0.2em]" style={{ color: `rgba(${INK}, 0.55)` }}>
+          {copy.hint}
+        </span>
+      </div>
+
+      {/* Over the dust, once it is all dust. */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-[58%] -translate-y-1/2 px-8 text-center font-serif text-[clamp(19px,2.2vw,24px)] leading-relaxed"
+        style={{ color: `rgb(${INK})`, textShadow: `0 0 14px ${PAPER}, 0 0 6px ${PAPER}, 0 0 2px ${PAPER}` }}
+        aria-live="polite"
+      >
+        {copy.end.map((line, i) => (
+          <p
+            key={line}
+            className="transition-[opacity,filter] duration-[1600ms] ease-out"
+            style={{
+              opacity: over ? (i === 0 ? 0.55 : 0.9) : 0,
+              filter: over ? "blur(0)" : "blur(6px)",
+              transitionDelay: over ? `${i * 1100}ms` : "0ms",
+            }}
+          >
+            {line}
+          </p>
+        ))}
       </div>
 
       <nav
-        className="absolute inset-x-0 bottom-[8%] flex justify-center gap-10 transition-opacity duration-1000"
-        style={{ opacity: over ? 1 : 0, pointerEvents: over ? "auto" : "none", color: `rgba(${INK}, 0.4)` }}
+        className="absolute inset-x-0 flex justify-center gap-10 transition-opacity duration-1000"
+        style={{
+          bottom: "calc(env(safe-area-inset-bottom) + 16px)",
+          opacity: over ? 1 : 0,
+          pointerEvents: over ? "auto" : "none",
+          color: `rgba(${INK}, 0.4)`,
+          transitionDelay: over ? "2400ms" : "0ms",
+        }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <button type="button" aria-label={label.again} className="p-2 transition-opacity hover:opacity-60" onClick={again}>
+        <button type="button" aria-label={copy.again} className="p-2 transition-opacity hover:opacity-60" onClick={again}>
           <Moon className="size-4" strokeWidth={1.5} />
         </button>
-        <button type="button" aria-label={label.wake} className="p-2 transition-opacity hover:opacity-60" onClick={wake}>
+        <button type="button" aria-label={copy.wake} className="p-2 transition-opacity hover:opacity-60" onClick={wake}>
           <Sun className="size-4" strokeWidth={1.5} />
         </button>
       </nav>
 
       <style>{`
         .forget-dream-press { animation: forget-dream-press 2.4s ease-in-out 1.4s infinite both; }
+        .forget-dream-hint { animation: forget-dream-in 1s ease-out 1.4s both; }
+        @keyframes forget-dream-in { from { opacity: 0 } to { opacity: 1 } }
         @keyframes forget-dream-press {
           0%, 100% { transform: scale(1); opacity: 0; }
           15% { opacity: 1; }
