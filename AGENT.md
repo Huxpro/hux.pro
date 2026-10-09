@@ -8,7 +8,7 @@
 
 | Topic | Source of Truth |
 |-------|-----------------|
-| **Design Philosophy** | [docs/design-philosophy.md](./docs/design-philosophy.md) (Core principles) |
+| **Design Philosophy** | [docs/design-philosophy.md](./docs/design-philosophy.md) (Why it is an OS: the principles to weigh when the rules in `design-system.md` don't decide) |
 | **Design System** | [docs/design-system.md](./docs/design-system.md) (Typography, colors) |
 | **Navigation** | [docs/navigation.md](./docs/navigation.md) (How a visitor moves between pages: routes and redirects, the back link, `PageLayout`, View Transitions, the article's "Aa" reading settings. The palette and the floating button are [docs/system-command.md](./docs/system-command.md)) |
 | **Content System** | [docs/content-system.md](./docs/content-system.md) (Posts in `content/blog/` at /writing and docs in `docs/` at /docs: the language is in the file name, one page per language, frontmatter, `lib/mdx.ts` → `MDXRenderer`, `MdxImage` bleed, the MDX that fails a build; the checklist is the skill `.claude/skills/writing-content`) |
@@ -26,11 +26,11 @@
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + the `/lab/icon` lab) |
 | **App Folder** | [docs/app-shelf.md](./docs/app-shelf.md) (Home-screen snap-paged app folder) |
 | **Attachments** | [docs/system-attachments.md](./docs/system-attachments.md) (Where a commit's media opens: sheet on a phone, with the in-app browser stacked on it; theater / in-app window / router elsewhere; the chip every cover wears; the `/lab/attachments` lab, which covers every render path) |
-| **Labs** | [systems/lab](./systems/lab); see [docs/system-lab.md](./docs/system-lab.md) (`/lab`: the site studied from the inside, and the libraries it publishes. Each lab in the catalog (`systems/lab/catalog.ts`) is a `study` (Works (log.json) / Attachments / Icon / Legibility / Glow) or a `library`: Vitre, whose lab is the package's home in the library template (`LibraryShell`: Docs `/lab/vitre` with a simulated iPhone running the demo, API `/lab/vitre/api`, On hux.pro `/lab/vitre/site`); `/vitre` is only the demo. One frame for all of them (`LabShell`), bilingual throughout (a `strings.ts` per lab, `systems/lab/i18n.ts`), a surface each (`systems/lab/surfaces`) worn on the index and rotated by the home Lab widget, which is off by default. Routes stay in `app/lab/<id>`. In the palette Labs is search-only; `/` `E` opens the index; the old `/editor/*` addresses redirect.) |
+| **Labs** | [systems/lab](./systems/lab); see [docs/system-lab.md](./docs/system-lab.md) (`/lab`: the site studied from the inside, and the libraries it publishes. Each lab in the catalog (`systems/lab/catalog.ts`) is a `study` (Works (log.json) / Attachments / Icon / Legibility / Glow / Band) or a `library`: Vitre, whose lab is the package's home in the library template (`LibraryShell`: Docs `/lab/vitre` with a simulated iPhone running the demo, API `/lab/vitre/api`, On hux.pro `/lab/vitre/site`); `/vitre` is only the demo. One frame for all of them (`LabShell`), bilingual throughout (a `strings.ts` per lab, `systems/lab/i18n.ts`), a surface each (`systems/lab/surfaces`) worn on the index and rotated by the home Lab widget, which is off by default. Routes stay in `app/lab/<id>`. In the palette Labs is search-only; `/` `E` opens the index; the old `/editor/*` addresses redirect.) |
 | **Home widgets** | [components/home/widgets.ts](./components/home/widgets.ts) (Every widget the home grid can show and whether it is on by default (`defaultEnabled`); a visitor's choices are overrides in `hux_widget_prefs`. Edit mode's `Widgets` pill lists them; a feature can offer its own switch with `useHomeWidget`, as `/lab` does.) |
 | **About / Badges** | [docs/system-about.md](./docs/system-about.md) (The surface a newcomer meets: veil, copy from `content/about/*.mdx`, the screen-edge glow, `/` `O` from anywhere; `<Badge>` opens a thing I made where it lives) |
 | **Ask** | [docs/system-ask.md](./docs/system-ask.md) (⌘K as a conversation: on a desk it sits in three places (the palette's center, a side panel, the Dock's top panel) or is minimized to a Dock pill, moved by buttons or by dragging its header; on a phone it is one bottom drawer; every such choice a setting with a preset per platform (`systems/ask/lib/config.ts`, the devtool's Ask section); the Ask row / Tab, K, an agent whose tools (`search_site`, `read`) run in the browser over `public/ask/index.json` (`pnpm ask:index`), one route `app/api/chat` holding the key (AI SDK; AI Gateway, a provider key, or a keyless stand-in), AI Elements on Base UI in `components/ai-elements/`) |
-| **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (Siri's ring as a shared WebGL shader, the site's one light: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/lab/glow` lab) |
+| **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (Siri's ring as a shared WebGL shader, the site's one light: `ring` / `line`, voice `level`, `processing`; voice input in ⌘K and Ask via Gateway recording or the Web Speech API; the `/lab/glow` lab; the checklist is the skill `.claude/skills/glow`) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (The profile card behind `<handle>` and `Role:`, showing who signed a commit) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (Why a widget's list body scrolls under a pointer and holds still under a finger) |
 
@@ -40,8 +40,8 @@
 the rules that are easy to break, the commands to run, and the doc to read.
 `keyboard-input`, `surfaces`, `base-ui-drawer`, `ui-tokens`, `vitre`,
 `ask-commands`, `content-snapshots`, `wallpapers`, `attachments`,
-`react-conventions`, `writing-content`. A skill states what the code won't
-tell you and points at its doc; keep it short.
+`react-conventions`, `glow`, `writing-content`. A skill states what the code
+won't tell you and points at its doc; keep it short.
 
 ## 2. Quick Start Context
 

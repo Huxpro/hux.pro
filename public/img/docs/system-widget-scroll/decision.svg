@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" fill="#1f2328">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#57606a"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="900" height="640" fill="#ffffff"/>
+
+  <!-- Entry -->
+  <rect x="250" y="20" width="400" height="54" rx="10" fill="#f6f8fa" stroke="#8c959f"/>
+  <text x="450" y="43" text-anchor="middle" font-weight="600">A wheel or a swipe lands on a widget's list body</text>
+  <text x="450" y="62" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#57606a">WidgetScrollBody · components/ui/widget.tsx</text>
+
+  <line x1="450" y1="74" x2="450" y2="104" stroke="#57606a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Q1: port? -->
+  <rect x="290" y="106" width="320" height="62" rx="10" fill="#fff8e5" stroke="#bf8700" stroke-dasharray="5 3"/>
+  <text x="450" y="127" text-anchor="middle" font-weight="600">Did the widget pass <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace">port</tspan>?</text>
+  <text x="450" y="145" text-anchor="middle" font-size="12" fill="#57606a">writing: only when rows.length &gt; PORT_ROWS (6)</text>
+  <text x="450" y="160" text-anchor="middle" font-size="12" fill="#57606a">projects: never</text>
+
+  <!-- no -> plain stack -->
+  <path d="M290,137 L150,137 L150,204" fill="none" stroke="#57606a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="220" y="129" text-anchor="middle" font-size="12" fill="#57606a">no</text>
+  <rect x="20" y="206" width="260" height="110" rx="10" fill="#f6f8fa" stroke="#8c959f"/>
+  <text x="150" y="229" text-anchor="middle" font-weight="600">Plain stack, every device</text>
+  <text x="150" y="250" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">overflow-hidden · pb-3</text>
+  <text x="150" y="268" text-anchor="middle" font-size="12" fill="#57606a">no mask, no snap, nothing cut off</text>
+  <text x="150" y="290" text-anchor="middle" font-size="12" fill="#57606a">Today: both widgets</text>
+  <text x="150" y="306" text-anchor="middle" font-size="12" fill="#57606a">(5 rows each, 238px card)</text>
+
+  <!-- yes -> Q2 -->
+  <line x1="450" y1="168" x2="450" y2="204" stroke="#57606a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="462" y="191" font-size="12" fill="#57606a">yes</text>
+  <rect x="320" y="206" width="260" height="62" rx="10" fill="#fff8e5" stroke="#bf8700" stroke-dasharray="5 3"/>
+  <text x="450" y="227" text-anchor="middle" font-weight="600">@media (pointer: fine)?</text>
+  <text x="450" y="245" text-anchor="middle" font-size="12" fill="#57606a">is the primary instrument a cursor?</text>
+  <text x="450" y="260" text-anchor="middle" font-size="11" fill="#57606a">CSS only: no hook, no hydration branch</text>
+
+  <!-- fine -> port -->
+  <path d="M580,237 L760,237 L760,294" fill="none" stroke="#57606a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="670" y="229" text-anchor="middle" font-size="12" fill="#57606a">fine: mouse, trackpad</text>
+  <rect x="630" y="296" width="250" height="118" rx="10" fill="#eef6ff" stroke="#0969da"/>
+  <text x="755" y="319" text-anchor="middle" font-weight="600">The port</text>
+  <text x="755" y="340" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">overflow-y-auto</text>
+  <text x="755" y="357" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">snap-y snap-mandatory</text>
+  <text x="755" y="374" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">max-h-64 (the port prop)</text>
+  <text x="755" y="391" text-anchor="middle" font-size="12" fill="#57606a">28px mask fade · pb-7</text>
+  <text x="755" y="406" text-anchor="middle" font-size="12" fill="#57606a">no-scrollbar: the fade is the tell</text>
+
+  <!-- coarse -> capped stack -->
+  <line x1="450" y1="268" x2="450" y2="294" stroke="#57606a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="462" y="286" font-size="12" fill="#57606a">coarse: a finger</text>
+  <rect x="320" y="296" width="260" height="118" rx="10" fill="#f6f8fa" stroke="#8c959f"/>
+  <text x="450" y="319" text-anchor="middle" font-weight="600">Stack, capped by count</text>
+  <text x="450" y="340" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">overflow-hidden · pb-3</text>
+  <text x="450" y="361" text-anchor="middle" font-size="12" fill="#57606a">rows at index ≥ TOUCH_ROWS (5)</text>
+  <text x="450" y="378" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">pointer-coarse:hidden</text>
+  <text x="450" y="399" text-anchor="middle" font-size="12" fill="#57606a">the card's tap opens the rest</text>
+
+  <!-- outcomes -->
+  <line x1="150" y1="316" x2="150" y2="454" stroke="#57606a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="450" y1="414" x2="450" y2="454" stroke="#57606a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="20" y="456" width="560" height="56" rx="10" fill="#dafbe1" stroke="#1a7f37"/>
+  <text x="300" y="480" text-anchor="middle" font-weight="600">The page owns the gesture</text>
+  <text x="300" y="499" text-anchor="middle" font-size="12" fill="#1f2328">the swipe moves <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace">#vitre-scroll</tspan> (phone) or the document; the list never moves</text>
+
+  <line x1="755" y1="414" x2="755" y2="454" stroke="#57606a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="630" y="456" width="250" height="56" rx="10" fill="#ddf4ff" stroke="#0969da"/>
+  <text x="755" y="480" text-anchor="middle" font-weight="600">The list owns the wheel</text>
+  <text x="755" y="499" text-anchor="middle" font-size="12">under the cursor; at its end, the page</text>
+
+  <!-- held still lane -->
+  <rect x="20" y="532" width="860" height="94" rx="10" fill="#ffffff" stroke="#8c959f" stroke-dasharray="4 3"/>
+  <text x="36" y="554" font-weight="600">A finger held still instead</text>
+  <text x="222" y="554" font-size="12" fill="#57606a">SortableMasonryItem · TOUCH_ACTIVATION = { delay: 400, tolerance: 10 }</text>
+  <text x="36" y="580" font-size="12">On the card's own surface:</text>
+  <text x="36" y="597" font-size="12" fill="#57606a">the card grows (press-hold),</text>
+  <text x="36" y="613" font-size="12" fill="#57606a">then lifts for reordering at 400ms</text>
+  <text x="320" y="580" font-size="12">On a row (an <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace">a</tspan>, so landsOnOwnAction):</text>
+  <text x="320" y="597" font-size="12" fill="#57606a">the press is the row's (link preview);</text>
+  <text x="320" y="613" font-size="12" fill="#57606a">the card never lifts</text>
+  <text x="612" y="580" font-size="12">Drifts more than 10px, or a scroll:</text>
+  <text x="612" y="597" font-size="12" fill="#57606a">the hold is cancelled; it was a swipe,</text>
+  <text x="612" y="613" font-size="12" fill="#57606a">and the page takes it as above</text>
+</svg>
