@@ -16,9 +16,13 @@ systems/glow/
 
 systems/voice/
 ├── lib/meter.ts        # microphone → level + three bands (gate, knee, envelope)
-└── use-voice-input.ts  # Web Speech API words + the meter, one press
+├── waveform.tsx        # full-width sound-level bars, an alternative to Glow
+└── use-voice-input.ts  # Gateway recording or Web Speech API + the meter
 
-systems/command/voice.tsx   # the palette's microphone, field glow, `/` `V`
+systems/command/voice.tsx   # the palette's microphone, selected visual, `/` `V`
+app/api/voice/route.ts       # Gateway availability and transcription
+systems/voice/models.ts      # allowed transcription models and default
+systems/voice/prefs.ts       # saved DevTool model choice
 app/lab/glow/               # the lab: every scale, one set of controls
 systems/glow/lib/tuning.ts  # the devtool's knobs: strength, the About's strength and depth
 ```
@@ -300,18 +304,37 @@ some instance is live (arriving, on, or leaving) and the tab is visible:
 
 ## Voice
 
-`useVoiceInput({ lang, onInterim, onFinal })` does two things from one press:
+`useVoiceInput({ lang, onInterim, onFinal })` chooses a recognition path and
+feeds the same microphone meter to the glow:
 
-- **words**: the Web Speech API (`SpeechRecognition`, `webkitSpeechRecognition`).
-  The browser does the recognition; nothing goes through this site. Interim
-  words as they are heard, the final phrase when the speaker pauses. Not in
-  Firefox: `supported` is false there and the microphone is hidden.
+- **AI Gateway**: when Gateway credentials are available on the server and
+  the browser supports `MediaRecorder`, tap to start and tap stop, or hold
+  to record and release inside the input field to finish. Sliding outside
+  the field before release cancels the held recording. The completed clip
+  goes through `/api/voice`. The DevTool's Voice module chooses
+  `openai/whisper-1` (the default, $0.36/hour) or `spacexai/grok-stt`
+  ($0.10/hour). Whisper stays the default until Grok has been tried on real
+  English and Chinese dictation. In Ask, a held release sends the completed
+  transcript as a message, while a tap and stop fills the field for editing.
+  The API key stays on the server. Recording stops after 60 seconds
+  and clips are limited to 5 MiB. Set `VOICE_TRANSCRIPTION_MODEL=off` to
+  disable Gateway transcription.
+- **browser fallback**: the Web Speech API (`SpeechRecognition`,
+  `webkitSpeechRecognition`) supplies interim words and the final phrase
+  when the speaker pauses. The browser does recognition; nothing goes
+  through this site. Where neither path is available, the mic is hidden.
+  The DevTool can choose Browser explicitly to compare it with the Gateway
+  models; this uses the browser's original tap-to-listen interaction.
 - **the voice itself**: a microphone stream through `lib/meter.ts`, for the
   glow. Where a second capture is refused, the level is synthesised from the
   recogniser's own sound / speech / result events, so the glow still answers.
+- **idle**: from the press, the level never drops below a slow breath
+  (0.17 ± 0.06), so the glow and the waveform move at once, before the
+  microphone opens and between words, rather than waking at the first
+  syllable (the meter's gate reads silence as 0).
 
-States: `idle → listening → processing` (the speaker paused; the final words
-are on their way) `→ idle`, or `denied` / `error`.
+States: `idle → listening → processing` (the browser settles words or Gateway
+transcribes the released clip) `→ idle`, or `denied` / `error`.
 
 The meter shapes the raw signal the way voice-glow does: gain (a laptop mic
 reads 0.03–0.2 RMS), a noise gate, a soft knee so a shout rounds off, and an
@@ -323,8 +346,19 @@ syllable and settles between words. Three bands (80–300 Hz, 300–2000,
 
 A microphone in the field's trailing cluster, in both shells (the desktop
 popover, the phone sheet). While it listens the field wears the `line` glow
-on its bottom edge, rising and rippling with the voice; when the speaker
-pauses it gathers into the travelling beam until the phrase lands. What is
+on its bottom edge, rising and rippling with the voice. Gateway recording
+also changes the button to a stop icon with a recording dot. The input field
+shows recording, release and cancel copy inline; the glow remains the default
+visual feedback. In Ask the composer folds the textarea and model controls
+into a single recording line, then unfolds after transcription. Supported
+browsers give short vibration feedback on start, stop, and cancel.
+The DevTool's Voice module can switch the visual style to **Waveform**:
+coloured audio bars run across the field's full width and grow with the same
+meter's volume and frequency bands. A travelling bar pattern marks
+transcription. The two styles are mutually exclusive; the saved default is
+Glow.
+When recording ends or browser speech pauses, it gathers into the travelling
+beam until the phrase lands. What is
 said is read as a query, not a sentence: "go to the writing", "open works",
 "show me the wallpaper", "打开写作" arrive as `writing`, `works`,
 `wallpaper`, `写作` (`toQuery`).
@@ -334,7 +368,7 @@ section (`actions`: do one thing, now) beside Music and Add to Home Screen.
 It is `slashOnly`: in the slash list as `V`, never a search result, since its
 control is already in the field.
 
-**Tap or hold, three ways in.** Dictation tools answer a tap and a hold:
+**Tap or hold to record with a Gateway model; browser mode keeps its original gesture.** Dictation tools answer a tap and a hold:
 Wispr Flow's held Fn (push-to-talk), macOS's Globe pressed twice, Windows'
 Win+H, Superwhisper's ⌥Space. The best of those keys are taken system-wide
 or invisible to a page (a browser never sees Fn / Globe; Win+H is the OS's;
@@ -342,14 +376,14 @@ or invisible to a page (a browser never sees Fn / Globe; Win+H is the OS's;
 palette takes none of them and gives the same two gestures inside its own
 space:
 
-| way in | tap | hold (≥ 300 ms, `HOLD_MS`) |
+| way in | Gateway model | Browser recognition |
 |---|---|---|
-| the microphone | start (or stop, while listening) | talk; let go to send |
-| `/` `V` | start | talk; let go to send |
-| Space in the empty field | nothing (a leading space means nothing to a search) | talk; let go to send |
+| the microphone | tap to start, tap stop to transcribe; or hold, speak, release inside the field to transcribe, outside to cancel | tap to toggle, or hold ≥ 300 ms and release to stop |
+| `/` `V` | tap to start and use the stop button; or hold V, speak, release to transcribe | tap to start, or hold ≥ 300 ms and release to stop |
+| Space in the empty field | hold ≥ 300 ms, speak, release to transcribe | hold ≥ 300 ms, speak, release to stop |
 
-A tap's session ends when the speaker pauses; a hold's when the key or
-pointer is released. `/` `V` knows it was a key because a command's `run`
+A browser tap's session ends when the speaker pauses; a hold's when the key or
+pointer is released. A Gateway clip under 300 ms is discarded. `/` `V` knows it was a key because a command's `run`
 receives the letter that ran it; a click on its slash row carries none, so a
 "v" typed later can never end a session. The held key's repeats are
 swallowed, so a hold never types into the field.

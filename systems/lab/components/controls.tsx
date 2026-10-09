@@ -112,7 +112,7 @@ export function TextField({
       value={value}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-md border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-tertiary-foreground focus:border-foreground/40"
+      className="w-full rounded-md border border-border/60 bg-transparent px-3 py-2 text-[16px] text-foreground outline-none transition-colors sm:text-sm placeholder:text-tertiary-foreground focus:border-foreground/40"
     />
   );
 }
@@ -180,7 +180,7 @@ export function ColorField({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-24 rounded-md border border-border/60 bg-transparent px-2 py-1 font-mono text-xs text-foreground outline-none focus:border-foreground/40"
+        className="w-24 rounded-md border border-border/60 bg-transparent px-2 py-1 font-mono text-[16px] text-foreground outline-none focus:border-foreground/40 sm:text-xs"
       />
       <div className="flex flex-wrap gap-1">
         {SWATCHES.map((c) => (

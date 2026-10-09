@@ -684,13 +684,22 @@ export function TheaterProvider({ children }: { children: React.ReactNode }) {
   // Escape closes the player (a standard modal affordance). Track/album
   // navigation via keyboard and scroll is intentionally omitted on desktop.
   // Clicking the album tabs / playlist rail / arrows is the single path.
+  // On the stage it is the top layer, so it hears Escape first (capture):
+  // a surface under it with the keyboard (Ask's panel, whose card opened
+  // the talk) would otherwise take the key and never pass it on. In PiP it
+  // is a corner of the page, and the page's own layers come first.
   useEffect(() => {
     if (effectiveMode === "closed") return;
+    const capture = effectiveMode === "theater";
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key !== "Escape") return;
+      // Handled: the layers under it that skip a handled Escape (Ask's
+      // panel) stay put.
+      e.preventDefault();
+      close();
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, capture);
+    return () => document.removeEventListener("keydown", onKey, capture);
   }, [effectiveMode, close]);
 
   const stageValue = useMemo<TheaterStageValue>(

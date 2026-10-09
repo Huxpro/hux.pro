@@ -46,7 +46,9 @@ next-env.d.ts
 .vscode/
 *.swp
 *.swo
-.claude/
+# Local Claude Code state; the project's skills are shared.
+.claude/*
+!.claude/skills/
 .obsidian/
 .cursor/
 
@@ -64,3 +66,6 @@ packages/vitre/node_modules/
 # Lynx example bundles, built elsewhere and dropped in here for the windows
 # to load. Binary output, 4MB of it, and nothing in this repo builds it.
 public/lynx-examples/
+
+# Ask's search index (scripts/ask-index.ts; predev and build write it)
+public/ask/

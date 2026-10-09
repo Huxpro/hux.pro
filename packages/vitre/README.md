@@ -87,6 +87,7 @@ Every prop of `<Vitre>` is live:
 | `radius` | The corners re-render. |
 | `scroll` | `data-vitre-scroll="container"` on `<html>`. The scroll position moves between the window and the container, and page scroll listeners fire. On iOS, a status-bar tap reaches the container while the page is away from the top. |
 | `ground` | The chrome is resynced while the bezel is off. |
+| Page hidden or shown | `visibilitychange`, `pagehide` and `pageshow` show the chrome its colour again. Leaving and returning (a Home Screen web app closed and reopened, Safari backgrounded) makes iOS sample the page background. |
 | Something strips `<html>` | A mutation observer puts the state back before the next paint. |
 
 ## Using it

@@ -1,21 +1,10 @@
 "use client";
 
+import { headingId } from "@/lib/heading-id";
 import { cn } from "@/lib/utils";
 import { Link as LinkIcon } from "lucide-react";
 import type { ComponentPropsWithoutRef } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-
-/**
- * Generate a URL-friendly ID from heading text
- */
-function generateHeadingId(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s\u4e00-\u9fff-]/g, "") // Keep Chinese characters, alphanumeric, spaces, hyphens
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/-+/g, "-") // Replace multiple hyphens with single
-    .trim();
-}
 
 /**
  * Heading component with hash link on hover
@@ -38,7 +27,7 @@ export function HeadingWithLink({
     if (headingRef.current) {
       const textContent = headingRef.current.textContent || "";
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setId(generateHeadingId(textContent));
+      setId(headingId(textContent));
     }
   }, [children]);
 
@@ -63,6 +52,8 @@ export function HeadingWithLink({
     <HeadingTag
       ref={headingRef}
       id={id || undefined}
+      // What Ask reads to know the section in view (systems/ask/lib/page-context.ts).
+      data-heading-link=""
       {...props}
       className={cn(
         "group cursor-pointer flex items-center gap-2",
@@ -80,6 +71,14 @@ export function HeadingWithLink({
             "focus:opacity-100 focus:outline-none"
           )}
           aria-label="Copy link to heading"
+          title="Copy link, or drag to Ask"
+          draggable
+          onDragStart={(e) => {
+            const url = `${window.location.origin}${window.location.pathname}#${encodeURIComponent(id)}`;
+            e.dataTransfer.setData("text/uri-list", url);
+            e.dataTransfer.setData("text/plain", url);
+            e.dataTransfer.effectAllowed = "copyLink";
+          }}
         >
           {isCopied ? (
             <span className="text-xs text-green-500">✓</span>
