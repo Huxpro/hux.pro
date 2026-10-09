@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 // Deep import on purpose: the surface barrel reaches back here through
 // `systems/draggable`, and presentation.ts depends on nothing but React.
 import { useBreakpointValue } from "@/systems/surface/presentation";
+import { WORKS_TALKS, WORKS_TALKS_DEFAULT, type WorksTalks } from "@/lib/works-talks";
 
 // =============================================================================
 // Devtool System Provider
@@ -169,6 +170,8 @@ interface DevtoolSettings {
   worksShelf: boolean;
   /** /works' feed form. On its way out: hidden unless switched on here. */
   worksFeed: boolean;
+  /** How a project carries the talks that present it. On trial. */
+  worksTalks: WorksTalks;
   /** Pulled off the edge into a floating pill, and kept that way. */
   detached: boolean;
 }
@@ -182,6 +185,7 @@ const SETTINGS_DEFAULTS: DevtoolSettings = {
   worksRef: WORKS_REF_DEFAULT,
   worksShelf: false,
   worksFeed: false,
+  worksTalks: WORKS_TALKS_DEFAULT,
   detached: false,
 };
 
@@ -239,6 +243,9 @@ function getDevtoolSettings(): DevtoolSettings {
           : WORKS_REF_DEFAULT,
         worksShelf: parsed.worksShelf === true,
         worksFeed: parsed.worksFeed === true,
+        worksTalks: (WORKS_TALKS as readonly string[]).includes(parsed.worksTalks)
+          ? parsed.worksTalks
+          : WORKS_TALKS_DEFAULT,
         detached: parsed.detached === true,
       };
     }
@@ -351,6 +358,9 @@ interface DevtoolContextType {
    *  the feed is on its way out, kept reachable here until it goes. */
   worksFeed: boolean;
   setWorksFeed: (value: boolean) => void;
+  /** How a project carries its talks (lib/works-talks.ts). On trial. */
+  worksTalks: WorksTalks;
+  setWorksTalks: (value: WorksTalks) => void;
   /**
    * Pin how the hero leaves as the page scrolls, for this session.
    * `undefined` is the platform default (`defaultHeroExit`).
@@ -425,6 +435,7 @@ export function DevtoolProvider({
   const [worksRef, setWorksRefState] = useState<WorksRef>(WORKS_REF_DEFAULT);
   const [worksShelf, setWorksShelfState] = useState(false);
   const [worksFeed, setWorksFeedState] = useState(false);
+  const [worksTalks, setWorksTalksState] = useState<WorksTalks>(WORKS_TALKS_DEFAULT);
   const [heroExitOverride, setHeroExitOverride] = useState<HeroExit | undefined>(
     undefined
   );
@@ -445,6 +456,7 @@ export function DevtoolProvider({
     setWorksRefState(settings.worksRef);
     setWorksShelfState(settings.worksShelf);
     setWorksFeedState(settings.worksFeed);
+    setWorksTalksState(settings.worksTalks);
     setIsDetached(settings.detached);
   }, []);
 
@@ -622,6 +634,11 @@ export function DevtoolProvider({
     setDevtoolSettings({ worksFeed: value });
   }, []);
 
+  const setWorksTalks = useCallback((value: WorksTalks) => {
+    setWorksTalksState(value);
+    setDevtoolSettings({ worksTalks: value });
+  }, []);
+
   // Keyboard shortcut: 'D' to toggle panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -685,6 +702,8 @@ export function DevtoolProvider({
         setWorksShelf,
         worksFeed,
         setWorksFeed,
+        worksTalks,
+        setWorksTalks,
         heroExitOverride,
         setHeroExitOverride,
       }}

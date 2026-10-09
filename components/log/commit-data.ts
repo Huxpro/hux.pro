@@ -9,6 +9,7 @@
 import type { Locale } from "@/lib/i18n";
 import { plainInline } from "@/lib/inline-links";
 import type { Commit, CommitType, Media, StripItem } from "@/lib/log";
+import type { CommitWithTrailers, Trailer } from "@/lib/works-talks";
 import { commitMark, type BadgeIcon } from "@/components/magic-link/resolve";
 import {
   localize,
@@ -87,6 +88,12 @@ export interface NormalizedCommit {
    * a widget, a compact row).
    */
   inline: { description: string; commentary?: string; details?: string };
+
+  /** Git trailers under the text, one per talk that presents a project.
+   *  On trial (lib/works-talks.ts). */
+  trailers?: Trailer[];
+  /** Refs on the title line, `(talks: …)`, inline-link markup. On trial. */
+  decorations?: string[];
 
   // Media
   /** Rich media (cards / widgets / players / images) shown when expanded. */
@@ -222,6 +229,8 @@ export function normalizeCommit(
     name,
     details,
     inline,
+    trailers: (commit as CommitWithTrailers).trailers,
+    decorations: (commit as CommitWithTrailers).decorations,
   };
 
   // Type-specific extraction
