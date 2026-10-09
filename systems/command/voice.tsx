@@ -2,10 +2,15 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { useAskConfig } from "@/systems/ask/lib/config";
+import { isQuestionLike } from "@/systems/ask/lib/intent";
+import { showNotice } from "@/systems/dock";
 import { Glow } from "@/systems/glow";
-import { useVoiceInput, type VoiceInput } from "@/systems/voice";
-import { Mic } from "lucide-react";
-import { useEffect, useRef, type KeyboardEvent, type PointerEvent } from "react";
+import { useVoiceInput, VOICE_LANG, type VoiceInput } from "@/systems/voice";
+import { voiceVisualPref } from "@/systems/voice/prefs";
+import { VoiceWaveform } from "@/systems/voice/waveform";
+import { LoaderCircle, Mic, Square } from "lucide-react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { useCommand } from "./provider";
 
 // =============================================================================
@@ -13,13 +18,15 @@ import { useCommand } from "./provider";
 //
 // The microphone sits in the field's trailing cluster (both shells). Pressed,
 // the field listens (systems/voice): the words fill it as they are heard, the
-// results filter as they would for typing, and the final phrase stays for
-// ↵ / a tap. `/` `V` does the same from the slash list.
+// results filter as they would for typing in browser mode. With a Gateway model,
+// the completed recording fills the field after release. `/` `V` also starts
+// voice input from the slash list.
 //
-// Every way in answers a tap and a hold, the way dictation tools do (Wispr
-// Flow's held Fn, macOS's Globe): a tap starts listening and the speaker's
-// pause ends it; a hold of HOLD_MS or more is push-to-talk, and letting go
-// sends what was said. Three ways in, all inside the palette, so none can
+// Without a Gateway model, a tap starts browser recognition until the speaker's
+// pause, and a hold of HOLD_MS or more stops on release. With a Gateway model, a
+// tap keeps recording until the stop button is pressed; a hold ends on release.
+// The microphone and V key share this gesture. Three
+// ways in, all inside the palette, so none can
 // collide with a system-wide dictation key (Fn / Globe, Win+H, ⌥Space, which
 // a page cannot see or should not take):
 //
@@ -28,15 +35,20 @@ import { useCommand } from "./provider";
 //   Space in an empty field hold (a tap does nothing; a leading space
 //                           means nothing to a search)
 //
-// While it listens, the field shows the site's glow along its bottom edge:
-// the `line` shape of the same light the About rings the screen with
-// (systems/glow). It rises and spreads with the voice and ripples with its
-// bands. When the speaker pauses and the words are being settled, it gathers
+// While it listens, the field shows the site's glow along its bottom edge
+// from the press: the `line` shape of the same light the About rings the
+// screen with (systems/glow), sweeping out from the centre as it arrives.
+// It breathes while the speaker is silent (systems/voice's idle level), and
+// rises, spreads and ripples with the voice and its bands. When the speaker pauses and the words are being settled, it gathers
 // into one beam travelling the edge (the glow's `processing`) and fades once
 // the final phrase is in.
+//
+// On a touch screen, the microphone pressed while a field holds the keyboard
+// up lets the keyboard go: listening wants the screen, and the words arrive
+// in the field anyway. The glow then waits, for the keyboard's slide to
+// finish: the two together drop frames on a phone. Both waits are Ask's
+// settings (systems/ask/lib/config.ts: `glowDelay`, 0, and `keyboardDelay`).
 // =============================================================================
-
-const LANG = { en: "en-US", zh: "zh-CN" } as const;
 
 /**
  * What was said, as a query: the field hears intent, not a sentence. "Go to
@@ -53,6 +65,15 @@ export function toQuery(said: string): string {
   return stripped || text;
 }
 
+/**
+ * What goes in the field: a command as a query, a question as it was said.
+ * Spoken questions are long and full of the words `toQuery` strips; they go
+ * to Ask (systems/ask), which wants the whole sentence, question mark and all.
+ */
+export function toFieldText(said: string): string {
+  return isQuestionLike(said) ? said.trim() : toQuery(said);
+}
+
 /** How long a press must last to be a hold (push-to-talk), ms. */
 export const HOLD_MS = 300;
 
@@ -64,9 +85,9 @@ export function useCommandVoice(setValue: (text: string) => void): VoiceInput {
   const { locale } = useLocale();
   const { voiceRequest, voiceHoldKey } = useCommand();
   const voice = useVoiceInput({
-    lang: LANG[locale],
-    onInterim: (said) => setValue(toQuery(said)),
-    onFinal: (said) => setValue(toQuery(said)),
+    lang: VOICE_LANG[locale],
+    onInterim: (said) => setValue(toFieldText(said)),
+    onFinal: (said) => setValue(toFieldText(said)),
   });
 
   // `/` `V`: each request starts one session, whether it opened the palette
@@ -144,68 +165,215 @@ export function useSpaceToTalk(voice: VoiceInput, empty: boolean) {
   return { onKeyDown, onKeyUp, onBlur };
 }
 
-/** The microphone button. Renders nothing where speech is not recognised. */
+/** When the microphone last sent a keyboard down, `performance.now()`. */
+let keyboardDismissedAt = -Infinity;
+
+/** A keyboard sent down this recently is still sliding, ms. */
+const KEYBOARD_SLIDE_MS = 800;
+
+/** On a touch screen, let go of the field that holds the keyboard up. */
+function dismissKeyboard() {
+  const field = document.activeElement as HTMLElement | null;
+  if (!field || !(field.tagName === "INPUT" || field.tagName === "TEXTAREA" || field.isContentEditable)) return;
+  field.blur();
+  keyboardDismissedAt = performance.now();
+}
+
+function haptic(pattern: number | number[]) {
+  if (typeof navigator !== "undefined") navigator.vibrate?.(pattern);
+}
+
+function inside(area: HTMLElement, x: number, y: number) {
+  const box = area.getBoundingClientRect();
+  return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+}
+
+type VoicePress = { at: number; area: HTMLElement; timer: number; outside: boolean };
+
+/** The microphone button. Renders nothing when neither voice path is available. */
 export function VoiceButton({ voice, className }: { voice: VoiceInput; className?: string }) {
   const { locale } = useLocale();
-  const press = useRef<number | null>(null);
+  const press = useRef<VoicePress | null>(null);
+  const keyPress = useRef<{ at: number; timer: number } | null>(null);
+  useEffect(() => () => {
+    if (press.current) window.clearTimeout(press.current.timer);
+    if (keyPress.current) window.clearTimeout(keyPress.current.timer);
+  }, []);
+  useEffect(() => {
+    if (voice.state !== "error" && voice.state !== "denied") return;
+    showNotice({
+      id: "voice-input-error",
+      icon: Mic,
+      title: t(locale, voice.state === "denied" ? "voiceDenied" : "voiceError"),
+    });
+  }, [voice.state, locale]);
   if (!voice.supported) return null;
-  const label = voice.listening
-    ? t(locale, "voiceStop")
+  const label = voice.state === "processing"
+    ? t(locale, "voiceProcessing")
+    : voice.state === "listening"
+      ? voice.mode === "gateway" ? t(locale, "voiceFinish") : t(locale, "voiceStop")
     : voice.state === "denied"
       ? t(locale, "voiceDenied")
-      : t(locale, "voiceListen");
+      : voice.state === "error"
+        ? t(locale, "voiceError")
+        : voice.mode === "gateway" ? t(locale, "voiceStart") : t(locale, "voiceListen");
   return (
     <button
       type="button"
-      // Press to start (or to stop, while listening); hold to talk and let go
-      // to send. The pointer is captured so the release lands here.
+      // A short press latches Gateway recording; a hold ends on release.
+      // Browser recognition retains its original tap-to-toggle gesture.
       onPointerDown={(e: PointerEvent<HTMLButtonElement>) => {
-        if (e.button !== 0) return;
+        // The palette header is draggable; this gesture belongs to recording.
+        e.stopPropagation();
+        if (e.button !== 0 || voice.state === "processing") return;
         e.currentTarget.setPointerCapture(e.pointerId);
-        if (voice.listening) {
+        if (voice.state === "listening") {
           voice.stop();
+          if (voice.mode === "gateway") haptic(12);
           press.current = null;
           return;
         }
+        if (e.pointerType !== "mouse") dismissKeyboard();
         voice.start();
-        press.current = performance.now();
+        if (voice.mode === "gateway") haptic(8);
+        const area = e.currentTarget.closest<HTMLElement>("[data-voice-recording-area]") ?? e.currentTarget;
+        const p: VoicePress = { at: performance.now(), area, timer: 0, outside: false };
+        if (voice.mode === "gateway") {
+          p.timer = window.setTimeout(() => {
+            if (press.current === p) voice.setGesture(p.outside ? "cancel" : "hold");
+          }, HOLD_MS);
+        }
+        press.current = p;
       }}
-      onPointerUp={() => {
-        if (press.current !== null && performance.now() - press.current >= HOLD_MS) voice.stop();
+      onPointerMove={(e) => {
+        const p = press.current;
+        if (!p || voice.mode !== "gateway") return;
+        const outside = !inside(p.area, e.clientX, e.clientY);
+        if (outside === p.outside) return;
+        p.outside = outside;
+        if (performance.now() - p.at >= HOLD_MS) voice.setGesture(outside ? "cancel" : "hold");
+      }}
+      onPointerUp={(e) => {
+        const p = press.current;
+        if (p) {
+          window.clearTimeout(p.timer);
+          if (performance.now() - p.at >= HOLD_MS) {
+            if (voice.mode === "gateway" && !inside(p.area, e.clientX, e.clientY)) {
+              voice.abort();
+              haptic([8, 30, 8]);
+            } else {
+              voice.stop(voice.mode === "gateway");
+              if (voice.mode === "gateway") haptic(12);
+            }
+          } else if (voice.mode === "gateway") voice.setGesture("idle");
+        }
         press.current = null;
       }}
-      onPointerCancel={() => (press.current = null)}
+      onPointerCancel={() => {
+        if (press.current) window.clearTimeout(press.current.timer);
+        if (press.current !== null && voice.mode === "gateway") {
+          voice.abort();
+          haptic([8, 30, 8]);
+        }
+        press.current = null;
+      }}
+      onKeyDown={(e) => {
+        if (voice.mode !== "gateway" || (e.key !== " " && e.key !== "Enter")) return;
+        e.preventDefault();
+        if (e.repeat || voice.state === "processing") return;
+        if (voice.state === "listening") {
+          voice.stop();
+          haptic(12);
+          if (keyPress.current) window.clearTimeout(keyPress.current.timer);
+          keyPress.current = null;
+        } else {
+          voice.start();
+          haptic(8);
+          const p = { at: performance.now(), timer: 0 };
+          p.timer = window.setTimeout(() => {
+            if (keyPress.current === p) voice.setGesture("hold");
+          }, HOLD_MS);
+          keyPress.current = p;
+        }
+      }}
+      onKeyUp={(e) => {
+        if (voice.mode !== "gateway" || (e.key !== " " && e.key !== "Enter")) return;
+        e.preventDefault();
+        const p = keyPress.current;
+        if (p) {
+          window.clearTimeout(p.timer);
+          if (performance.now() - p.at >= HOLD_MS) {
+            voice.stop(true);
+            haptic(12);
+          } else voice.setGesture("idle");
+        }
+        keyPress.current = null;
+      }}
       // The keyboard's Enter / Space arrive as a click with no pointer.
-      onClick={(e) => e.detail === 0 && voice.toggle()}
+      onClick={(e) => e.detail === 0 && voice.mode === "browser" && voice.toggle()}
       aria-label={label}
-      aria-pressed={voice.listening}
+      aria-pressed={voice.state === "listening"}
       title={label}
       className={cn(
-        "pressable flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+        "pressable relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+        voice.mode === "gateway" && "touch-none",
         "text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-accent",
         voice.listening && "text-foreground",
+        voice.mode === "gateway" && voice.state === "listening" && "bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive",
         voice.state === "denied" && "text-tertiary-foreground",
         className,
       )}
     >
-      <Mic className={cn("h-4 w-4", voice.listening && "voice-mic-live")} />
+      {voice.mode === "gateway" && voice.state === "processing" ? (
+        <LoaderCircle className="h-4 w-4 motion-safe:animate-spin" />
+      ) : voice.mode === "gateway" && voice.state === "listening" ? (
+        <>
+          <Square className="h-3.5 w-3.5 fill-current" />
+          <span aria-hidden className="voice-recording-dot absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-destructive" />
+        </>
+      ) : (
+        <Mic className={cn("h-4 w-4", voice.state === "listening" && "voice-mic-live")} />
+      )}
     </button>
   );
 }
 
-/**
- * The field's glow while it listens. Place it inside the field's header,
- * which must be `relative`; it reads the header's radius.
- */
-export function VoiceGlow({ voice }: { voice: VoiceInput }) {
-  return (
-    <Glow
-      active={voice.listening}
-      shape="line"
-      level={voice.level}
-      bands={voice.bands}
-      processing={voice.state === "processing"}
-      strength={0.95}
-    />
-  );
+/** Glow sits on the field edge; the alternative meter fills the recording row. */
+export function VoiceVisual({ voice, inline = false }: { voice: VoiceInput; inline?: boolean }) {
+  const { glowDelay, keyboardDelay } = useAskConfig();
+  const [lit, setLit] = useState(false);
+  const visual = voiceVisualPref.use();
+  const { listening } = voice;
+  const selected = inline ? visual === "waveform" : visual === "glow";
+  useEffect(() => {
+    if (!listening || !selected) return;
+    const sliding = performance.now() - keyboardDismissedAt < KEYBOARD_SLIDE_MS;
+    const timer = window.setTimeout(() => setLit(true), glowDelay + (sliding ? keyboardDelay : 0));
+    return () => {
+      window.clearTimeout(timer);
+      setLit(false);
+    };
+    // The wait is fixed when listening starts; a setting changed mid-session
+    // applies to the next one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listening, selected]);
+  if (!selected) return null;
+  if (inline) {
+    return <VoiceWaveform active={listening && lit} processing={voice.state === "processing"} level={voice.level} bands={voice.bands} />;
+  }
+  return <Glow active={listening && lit} shape="line" level={voice.level} bands={voice.bands} processing={voice.state === "processing"} strength={0.95} />;
+}
+
+/** Inline copy for the field's recording state, without a floating badge. */
+export function VoiceStatus({ voice, sendOnHold = false, className }: { voice: VoiceInput; sendOnHold?: boolean; className?: string }) {
+  const { locale } = useLocale();
+  if (voice.mode !== "gateway" || !voice.listening) return null;
+  const key = voice.state === "processing"
+    ? "voiceProcessing"
+    : voice.gesture === "cancel"
+      ? "voiceCancelHint"
+      : voice.gesture === "hold"
+        ? sendOnHold ? "voiceHoldHint" : "voiceHoldTranscribeHint"
+        : "voiceRecording";
+  return <span role="status" className={cn("min-w-0 truncate text-sm text-muted-foreground", voice.gesture === "cancel" && "text-destructive", className)}>{t(locale, key)}</span>;
 }

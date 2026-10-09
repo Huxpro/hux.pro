@@ -66,7 +66,6 @@ import {
   minutesOfDay,
   type MoonPhaseName,
 } from "@/systems/ambient/lib/solar";
-import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
 import {
   getWallpaperPlayName,
   getWeatherWallpaperName,
@@ -93,6 +92,22 @@ import {
   type WorksRef,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
+import { ASK_PLACEMENTS, useCommand } from "@/systems/command";
+import {
+  askConfigOf,
+  resetAskConfig,
+  setAskConfig,
+  useAskOverrides,
+  useAskPlatform,
+  type AskConfig,
+  type AskConfigKey,
+  type AskPlatform,
+} from "@/systems/ask/lib/config";
+import { ASK_EFFORTS, ASK_MODELS, DEFAULT_ASK_EFFORT, DEFAULT_ASK_MODEL } from "@/systems/ask/lib/models";
+import { askEffortPref, askModelPref } from "@/systems/ask/lib/prefs";
+import { askStrings } from "@/systems/ask/strings";
+import { DEFAULT_VOICE_MODEL, VOICE_MODELS, type VoiceModelChoice } from "@/systems/voice/models";
+import { DEFAULT_VOICE_VISUAL, voiceModelPref, voiceVisualPref, type VoiceVisualStyle } from "@/systems/voice/prefs";
 import { useOptionalAbout } from "@/systems/about/provider";
 import {
   GLOW_BASELINE,
@@ -133,6 +148,7 @@ import { cn } from "@/lib/utils";
 import {
   AppWindow,
   BookOpen,
+  Bot,
   Braces,
   Brain,
   Bug,
@@ -147,6 +163,7 @@ import {
   GripVertical,
   Image as ImageIcon,
   Layers2,
+  Mic,
   Moon,
   Music,
   Pause,
@@ -200,6 +217,8 @@ const MODULE_ORDER = [
   "sky",
   "music",
   "command",
+  "ask",
+  "voice",
   "glow",
   "draggable",
   "windows",
@@ -217,6 +236,8 @@ export function DevtoolModules() {
       <SkyModule />
       <MusicModule />
       <CommandModule />
+      <AskModule />
+      <VoiceModule />
       <GlowModule />
       <DraggableModule />
       <WindowsModule />
@@ -2982,7 +3003,8 @@ function MusicModule() {
 function WorksModule() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const { worksRef, setWorksRef, worksShelf, setWorksShelf } = useDevtool();
+  const { worksRef, setWorksRef, worksShelf, setWorksShelf, worksFeed, setWorksFeed } =
+    useDevtool();
   const onWorks = usePathname() === "/works";
   const options: { value: WorksRef; label: string; title: string }[] = [
     {
@@ -3032,7 +3054,7 @@ function WorksModule() {
       icon={<GitBranch className="h-4 w-4" />}
       compact
       relevant={onWorks}
-      star={worksRef !== WORKS_REF_DEFAULT || worksShelf ? "saved" : null}
+      star={worksRef !== WORKS_REF_DEFAULT || worksShelf || worksFeed ? "saved" : null}
       action={
         <span className="text-[10px] font-mono text-muted-foreground">{worksRef}</span>
       }
@@ -3062,6 +3084,23 @@ function WorksModule() {
           on={worksShelf}
           onClick={() => setWorksShelf(!worksShelf)}
           label={zh ? "项目架" : "Projects shelf"}
+        />
+      </PanelRow>
+      {/* The feed form (lib/log-view.ts): the grid with its captions written
+          out. On its way out; off, its stop leaves the form control and a
+          `?view=feed` link reads as covers. */}
+      <PanelRow
+        label={zh ? "信息流" : "Feed view"}
+        star={
+          worksFeed ? (
+            <PanelStar source="saved" onReset={() => setWorksFeed(false)} />
+          ) : undefined
+        }
+      >
+        <PanelToggle
+          on={worksFeed}
+          onClick={() => setWorksFeed(!worksFeed)}
+          label={zh ? "信息流" : "Feed view"}
         />
       </PanelRow>
     </DebugSection>
@@ -3118,6 +3157,274 @@ function CommandModule() {
       >
         <PanelSegmented value={phonePalette} options={options} onChange={setPhonePalette} />
       </PanelRow>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Ask Module
+// How Ask behaves (systems/ask/lib/config.ts): every setting, for either
+// platform, starting from that platform's preset. A desk has three places and
+// the Dock's pill; a phone has one bottom drawer. The platform shown first is
+// the one this viewport is; the other can be set from here too, for when the
+// window is resized across `sm`. Then the visitor's own picks, model and
+// thinking, with their defaults. All saved (blue star).
+// =============================================================================
+
+function AskModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const { askStarted } = useCommand();
+  const here = useAskPlatform();
+  const [picked, setPicked] = useState<AskPlatform | null>(null);
+  const platform = picked ?? here;
+  const overrides = useAskOverrides();
+  const mine = overrides[platform];
+  const config: AskConfig = askConfigOf(platform);
+  const model = askModelPref.use();
+  const effort = askEffortPref.use();
+  const places = ASK_PLACEMENTS.map((value) => ({ value, label: askStrings(locale).placements[value] }));
+
+  const changed =
+    Object.keys(overrides.desk).length + Object.keys(overrides.phone).length > 0 ||
+    model !== DEFAULT_ASK_MODEL ||
+    effort !== DEFAULT_ASK_EFFORT;
+
+  const set = <K extends AskConfigKey>(key: K) => (value: AskConfig[K]) => setAskConfig(platform, key, value);
+  const star = (key: AskConfigKey) =>
+    key in mine ? (
+      <PanelStar source="saved" onReset={() => resetAskConfig(platform, key)} />
+    ) : undefined;
+
+  return (
+    <DebugSection
+      id="ask"
+      title={zh ? "问 AI" : "Ask"}
+      icon={<Bot className="h-4 w-4" />}
+      compact
+      relevant={askStarted}
+      star={changed ? "saved" : null}
+      onReset={() => {
+        resetAskConfig();
+        askModelPref.set(DEFAULT_ASK_MODEL);
+        askEffortPref.set(DEFAULT_ASK_EFFORT);
+      }}
+      // The platform this viewport is; the preset row can show the other.
+      action={<span className="text-[10px] font-mono text-muted-foreground">{here}</span>}
+    >
+      <div className="space-y-2">
+        <PanelRow label={zh ? "预设" : "Preset"}>
+          <PanelSegmented<AskPlatform>
+            value={platform}
+            label={zh ? "预设" : "Preset"}
+            options={[
+              {
+                value: "desk",
+                label: zh ? "桌面" : "Desk",
+                title: zh ? "三个位置和 Dock 胶囊" : "Three places and the Dock's pill",
+              },
+              {
+                value: "phone",
+                label: zh ? "手机" : "Phone",
+                title: zh ? "一个底部抽屉" : "One bottom drawer",
+              },
+            ]}
+            onChange={(value) => setPicked(value === here ? null : value)}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "从搜索打开" : "From search"} star={star("fromSearch")}>
+          <PanelSegmented
+            value={config.fromSearch}
+            label={zh ? "从搜索打开" : "From search"}
+            options={places}
+            onChange={set("fromSearch")}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "按钮 / K 打开" : "From a call"} star={star("fromCall")}>
+          <PanelSegmented
+            value={config.fromCall}
+            label={zh ? "按钮 / K 打开" : "From a call"}
+            options={[
+              { value: "last", label: "Last", title: zh ? "上次放的位置" : "Where it was last put" },
+              ...places,
+            ]}
+            onChange={set("fromCall")}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "阅读页" : "On reading pages"} star={star("onReadingPage")}>
+          <PanelSegmented
+            value={config.onReadingPage}
+            label={zh ? "阅读页" : "On reading pages"}
+            options={[
+              { value: "side", label: "Side", title: zh ? "K 在文章页打开到侧边；从命令面板进来仍居中" : "A call opens beside a page being read; the palette still morphs" },
+              { value: "same", label: zh ? "同上" : "Same", title: zh ? "按上面两条规则" : "Follow the two rules above" },
+            ]}
+            onChange={set("onReadingPage")}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "位置按钮" : "Place buttons"} star={star("placeButtons")}>
+          <PanelToggle
+            on={config.placeButtons}
+            onClick={() => set("placeButtons")(!config.placeButtons)}
+            label={zh ? "位置按钮" : "Place buttons"}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "拖拽换位" : "Drag between places"} star={star("drag")}>
+          <PanelToggle
+            on={config.drag}
+            onClick={() => set("drag")(!config.drag)}
+            label={zh ? "拖拽换位" : "Drag between places"}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "最小化" : "Minimize"} star={star("minimize")}>
+          <PanelSegmented
+            value={config.minimize}
+            label={zh ? "最小化" : "Minimize"}
+            options={[
+              { value: "dock", label: "Dock", title: zh ? "收进 Dock，成为胶囊" : "Into the Dock, as a pill" },
+              { value: "off", label: zh ? "关" : "Off", title: zh ? "没有最小化：收起即关闭" : "No minimize: putting away closes" },
+            ]}
+            onChange={set("minimize")}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "后台胶囊" : "Pill while writing"} star={star("backgroundPill")}>
+          <PanelToggle
+            on={config.backgroundPill}
+            onClick={() => set("backgroundPill")(!config.backgroundPill)}
+            label={zh ? "后台胶囊" : "Pill while writing"}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "光晕延迟" : "Glow delay"} star={star("glowDelay")}>
+          <PanelRange
+            value={config.glowDelay}
+            min={0}
+            max={600}
+            step={20}
+            onChange={set("glowDelay")}
+            label={zh ? "光晕延迟" : "Glow delay"}
+            format={(v) => `${v}`}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "收键盘再等" : "Keyboard wait"} star={star("keyboardDelay")}>
+          <PanelRange
+            value={config.keyboardDelay}
+            min={0}
+            max={800}
+            step={20}
+            onChange={set("keyboardDelay")}
+            label={zh ? "收键盘再等" : "Keyboard wait"}
+            format={(v) => `${v}`}
+          />
+        </PanelRow>
+        <PanelRow
+          label={zh ? "模型" : "Model"}
+          star={
+            model !== DEFAULT_ASK_MODEL ? (
+              <PanelStar source="saved" onReset={() => askModelPref.set(DEFAULT_ASK_MODEL)} />
+            ) : undefined
+          }
+        >
+          <PanelSegmented
+            value={model}
+            label={zh ? "模型" : "Model"}
+            options={ASK_MODELS.map((m) => ({ value: m.id, label: m.label.replace(/ Flash$/, ""), title: m.label }))}
+            onChange={askModelPref.set}
+          />
+        </PanelRow>
+        <PanelRow
+          label={zh ? "思考" : "Thinking"}
+          star={
+            effort !== DEFAULT_ASK_EFFORT ? (
+              <PanelStar source="saved" onReset={() => askEffortPref.set(DEFAULT_ASK_EFFORT)} />
+            ) : undefined
+          }
+        >
+          <PanelSegmented
+            value={effort}
+            label={zh ? "思考" : "Thinking"}
+            options={ASK_EFFORTS.map((e) => ({ value: e, label: askStrings(locale).efforts[e] }))}
+            onChange={askEffortPref.set}
+          />
+        </PanelRow>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Voice Module
+// One saved choice for both the command palette and Ask. Browser recognition
+// is included so quality and interaction can be compared without an API call.
+// =============================================================================
+
+function VoiceModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const model = voiceModelPref.use();
+  const visual = voiceVisualPref.use();
+  const modelChanged = model !== DEFAULT_VOICE_MODEL;
+  const visualChanged = visual !== DEFAULT_VOICE_VISUAL;
+  const changed = modelChanged || visualChanged;
+  const [gatewayReady, setGatewayReady] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/voice", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((config) => { if (alive) setGatewayReady(!!config?.enabled); })
+      .catch(() => { if (alive) setGatewayReady(false); });
+    return () => { alive = false; };
+  }, []);
+  const options: { value: VoiceModelChoice; label: string; title: string }[] = [
+    { value: "browser", label: zh ? "浏览器" : "Browser", title: zh ? "浏览器语音识别，点按开始" : "Browser speech recognition, tap to start" },
+    ...VOICE_MODELS.map((choice) => ({
+      value: choice.id,
+      label: choice.label === "Grok STT" ? "Grok" : choice.label,
+      title: `${choice.label} · ${choice.pricePerHour}`,
+    })),
+  ];
+
+  return (
+    <DebugSection
+      id="voice"
+      title={zh ? "语音" : "Voice"}
+      icon={<Mic className="h-4 w-4" />}
+      compact
+      relevant
+      star={changed ? "saved" : null}
+      onReset={() => { voiceModelPref.set(DEFAULT_VOICE_MODEL); voiceVisualPref.set(DEFAULT_VOICE_VISUAL); }}
+      action={<span className="text-[10px] font-mono text-muted-foreground">{model === "browser" ? "Browser" : VOICE_MODELS.find((choice) => choice.id === model)?.label} · {visual === "glow" ? "Glow" : "Waveform"}</span>}
+    >
+      <div className="space-y-2">
+        <PanelRow label={zh ? "转写模型" : "Transcription model"} stacked star={modelChanged ? <PanelStar source="saved" onReset={() => voiceModelPref.set(DEFAULT_VOICE_MODEL)} /> : undefined}>
+          <PanelSegmented<VoiceModelChoice>
+            value={model}
+            label={zh ? "语音转写模型" : "Voice transcription model"}
+            options={options}
+            onChange={voiceModelPref.set}
+            fill
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "音量视觉" : "Audio visual"} stacked star={visualChanged ? <PanelStar source="saved" onReset={() => voiceVisualPref.set(DEFAULT_VOICE_VISUAL)} /> : undefined}>
+          <PanelSegmented<VoiceVisualStyle>
+            value={visual}
+            label={zh ? "录音音量视觉样式" : "Recording audio visual style"}
+            options={[
+              { value: "glow", label: "Glow", title: zh ? "默认：随音量变化的边缘光" : "Default: voice-reactive edge light" },
+              { value: "waveform", label: zh ? "波形" : "Waveform", title: zh ? "横跨输入框的彩色音量线" : "Full-width colored audio bars" },
+            ]}
+            onChange={voiceVisualPref.set}
+            fill
+          />
+        </PanelRow>
+        <p className="text-[10px] text-muted-foreground">
+          {model === "browser"
+            ? zh ? "浏览器识别：点按开始。" : "Browser recognition: tap to start."
+            : gatewayReady === false
+              ? zh ? "此环境无法使用 Gateway，将使用浏览器识别。" : "Gateway unavailable here; using browser recognition."
+              : zh ? "轻点录音并停止以编辑，按住松开后在 Ask 中直接发送。" : "Tap and stop to edit; hold and release to send in Ask."}
+          {" "}Whisper $0.36/hr · Grok STT $0.10/hr
+        </p>
+      </div>
     </DebugSection>
   );
 }

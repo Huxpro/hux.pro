@@ -123,7 +123,7 @@ sheet everywhere, and moving a surface between shapes is a one-word change:
 ```ts
 ADAPTIVE_PRESENTATION  // { base: "sheet", sm: "panel", lg: "window" }
 ANCHORED_PRESENTATION  // { base: "sheet", sm: "popover" }, owned by a button
-DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" }, never floats free
+DRAWER_PRESENTATION    // { base: "sheet", sm: "panel" }, never floats free (proposed; not in presentation.ts yet)
 ```
 
 A surface on `ANCHORED_PRESENTATION` passes `popover={{ anchor }}` whatever the
@@ -360,7 +360,8 @@ the keyboard on the next touch anywhere, whatever it was aimed at.
 **Keyboard.** `Drawer.VirtualKeyboardProvider` wraps every sheet and publishes
 `--drawer-keyboard-inset`; the shell takes it as a bottom margin, so a sheet
 with a field in it rests on the keyboard rather than behind it. A sheet with no
-fields never notices.
+fields never notices. What a field inside a sheet must and may do is in
+[keyboard-input.md](./keyboard-input.md).
 
 ## Working with Base UI
 
@@ -488,5 +489,6 @@ That keeps one owner per edge, and the two of them cannot disagree.
 | Identity card | `ANCHORED_PRESENTATION` | Who signed a commit: a profile card, for a finger. With a pointer the same profile is a magnetic hover peek and this never opens. `fitContent`; the popover hangs off whichever `<handle>` or `Role:` was tapped, the anchor kept in a ref by its provider. See [Identity System](./system-identity.md) |
 | Command palette | `{ base: "sheet", sm: "popover" }` via `useBreakpointValue` | `SurfaceSheet` directly, detents `[0.7, 1]`, modal; its wide shape is its own Spotlight card, anchored to nothing, not the `popover` shape above |
 | Devtool panel | primitives, not `AdaptiveSurface` | `SurfaceSheet` docked / `SurfaceWindow` floating, and which one is the developer's call, not the viewport's: it is pulled off the edge by hand. `onPullPastTop`, `placement="top-right"`, a `toolbar` for its module rail and a `footer` for its status line. See [Devtool System](./system-devtool.md) |
+| Ask | `{ base: "sheet", sm: "panel" }` via `useBreakpointValue` | `SurfacePanel` / `SurfaceSheet` directly, holding `SurfaceBody` with the composer as its `footer`; the conversation scrolls itself. Docked rather than floating: it is read beside the page, which makes room for it from 1280px. See [Ask](./system-ask.md) |
 
 Adding a second is: register a draggable id, pick a presentation, pass content.

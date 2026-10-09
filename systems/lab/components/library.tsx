@@ -305,7 +305,7 @@ export function ApiFilter({ value, onChange }: { value: string; onChange: (value
         onChange={(e) => onChange(e.target.value)}
         placeholder={L.filter}
         aria-label={L.filter}
-        className="w-32 bg-transparent font-mono text-xs text-foreground outline-none placeholder:text-tertiary-foreground sm:w-44"
+        className="w-32 bg-transparent font-mono text-[16px] text-foreground outline-none placeholder:text-tertiary-foreground sm:w-44 sm:text-xs"
       />
     </label>
   );

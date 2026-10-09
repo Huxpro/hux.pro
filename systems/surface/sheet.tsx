@@ -150,19 +150,34 @@ const TOP_INSET = `max(env(safe-area-inset-top), ${EDGE_GAP})`;
 /** Room below a sheet without detents: the home indicator, or the gap. */
 const BOTTOM_INSET = `max(env(safe-area-inset-bottom), ${EDGE_GAP})`;
 
+/**
+ * How tall the glass is at the top detent. The detent sheet's popup is the
+ * screen less the top inset, and its padding holds the glass `BOTTOM_INSET`
+ * off the bottom, so the glass itself is the screen less both. A sheet
+ * without detents that wants to stand there uses this same length.
+ */
+const TOP_SHELL_HEIGHT = `calc(100dvh - ${TOP_INSET} - ${BOTTOM_INSET})`;
+
 /** A detent as a CSS length: a fraction of the viewport, or pixels. */
 const detentLength = (point: number) =>
   point <= 1 ? `${point * 100}dvh` : `${point}px`;
 
 /**
  * The height a sheet without detents needs to stand where a sheet with them
- * stands at `point`, so a sheet stacked on one lands level with it. The top
- * detent leaves the top inset; any other leaves the edge gap under the shell.
+ * stands at `point`, so a sheet stacked on one lands level with it.
+ *
+ * A detent sheet's glass rests `BOTTOM_INSET` above the screen at every
+ * detent: the home indicator, or the edge gap when there is none. A sheet
+ * without detents is placed at that same bottom, so its height subtracts
+ * that inset too. Subtracting only the edge gap left the sheet taller by
+ * however much the indicator exceeds the gap. That is an iOS app added to
+ * the Home Screen, where the indicator is real: the top climbed into the
+ * status bar, above where a drag to the top detent stops.
  */
 export function detentHeight(point: number): string {
   return point >= 1
-    ? `calc(100dvh - ${TOP_INSET} - ${EDGE_GAP})`
-    : `calc(${detentLength(point)} - ${EDGE_GAP})`;
+    ? TOP_SHELL_HEIGHT
+    : `calc(${detentLength(point)} - ${BOTTOM_INSET})`;
 }
 
 /**
@@ -700,10 +715,10 @@ export function SurfaceSheet({
                       bottom: BOTTOM_INSET,
                       ...(fitContent
                         ? {
-                            // Never taller than the screen: past that the shell
-                            // shrinks and the content's scroll area takes over.
+                            // Never taller than the top detent: past that the
+                            // shell shrinks and the content's scroll area takes over.
                             height: "auto",
-                            maxHeight: `calc(100dvh - ${TOP_INSET} - ${BOTTOM_INSET})`,
+                            maxHeight: TOP_SHELL_HEIGHT,
                           }
                         : { height: height ?? "80dvh" }),
                     }),

@@ -16,6 +16,7 @@ import {
 } from "@/systems/ambient";
 import { AboutSurface } from "@/systems/about";
 import { AboutCopy } from "@/systems/about/components/about-copy";
+import { AskDock, AskDragging, AskSelection, AskSide } from "@/systems/ask/surfaces";
 import { AttachmentSurface, ImageLightbox } from "@/systems/attachments";
 import { IdentityCard } from "@/systems/identity";
 import { InstallSheet } from "@/systems/install";
@@ -142,6 +143,7 @@ export default function RootLayout({
             <WindowLayer />
             <Dock>
               <AmbientPhaseActivity />
+              <AskDock />
               <MusicActivity />
               <TheaterActivity />
               <SampleActivities />
@@ -166,8 +168,11 @@ export default function RootLayout({
               en={<AboutCopy locale="en" />}
               zh={<AboutCopy locale="zh" />}
             />
+            <AskSide />
             <CommandPalette />
             <FloatingActionButton />
+            <AskDragging />
+            <AskSelection />
           </Providers>
         </body>
       </html>

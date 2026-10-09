@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Streamdown (Ask's answers, systems/ask) styles its markdown with utility
+   classes in its own bundle; Tailwind only generates what it can see. */
+@source "../node_modules/streamdown/dist/*.js";
+@source "../node_modules/@streamdown/code/dist/*.js";
+@source "../node_modules/@streamdown/cjk/dist/*.js";
+
 @custom-variant dark (&:is(.dark *));
 
 /* `roomy:` matches a screen that is both wide AND tall enough to have space to
@@ -696,6 +702,165 @@ html.dragging * {
   }
 }
 
+/* A heading travelled to (components/post/heading-landing.tsx), an entry on
+   /prompt (app/prompt/view.tsx): the same wash as a commit row's. */
+[data-hash-target] {
+  border-radius: 6px;
+  animation: commit-target-wash 2s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-hash-target] {
+    animation-duration: 0.01ms;
+  }
+}
+
+/* The signature: /works (TimelineCommit, "The signature"). A row's
+   `commit` / `Author:` / `Role:`, never at rest: on a desk it unspools from
+   the hash down into the margin while the row is hovered; anywhere, a tap on
+   the row's mark or its team prints it (`data-sig-open` on the row).
+
+   Every line is revealed by a clip sweeping its own box, never a transform:
+   a transformed layer re-rasterizes 12px mono, which shimmers and settles a
+   pixel late. Lines go in one after another (`--sig-i`, 70ms apart), the
+   way `git log` prints them, and a value a beat after its label
+   (`--sig-o`). Leaving is one quick fade for all of them, and the clip
+   closes only once they are invisible. The curve is the site's
+   (docs/motion.md). */
+[data-sig-host] {
+  --sig-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Phone: printed left to right. Desk: dropped from the hash, top down. */
+.sig-print,
+.sig-drop {
+  opacity: 0;
+  transition:
+    opacity 160ms ease-out,
+    clip-path 0s linear 160ms;
+}
+.sig-print {
+  clip-path: inset(0 100% 0 0);
+}
+.sig-drop {
+  clip-path: inset(0 0 100% 0);
+}
+[data-sig-open] .sig-print,
+[data-sig-open] > [data-sig-margin] .sig-drop {
+  opacity: 1;
+  clip-path: inset(0);
+  transition:
+    opacity 240ms ease-out
+      calc(var(--sig-delay, 0ms) + var(--sig-i, 0) * 70ms + var(--sig-o, 0ms)),
+    clip-path 420ms var(--sig-ease)
+      calc(var(--sig-delay, 0ms) + var(--sig-i, 0) * 70ms + var(--sig-o, 0ms));
+}
+
+/* The margin's block takes no pointer until it shows. An invisible card
+   trigger in an empty margin would peek at nothing. On hover it waits a
+   beat (`--sig-delay`) so a pointer sweeping down the page does not set
+   every margin it crosses flickering. */
+[data-sig-margin] {
+  pointer-events: none;
+}
+[data-sig-open] > [data-sig-margin] {
+  pointer-events: auto;
+}
+@media (hover: hover) {
+  [data-sig-host]:is(:hover, :focus-within) > [data-sig-margin] {
+    --sig-delay: 140ms;
+    pointer-events: auto;
+  }
+  [data-sig-host]:is(:hover, :focus-within) > [data-sig-margin] .sig-drop {
+    opacity: 1;
+    clip-path: inset(0);
+    transition:
+      opacity 240ms ease-out
+        calc(var(--sig-delay) + var(--sig-i, 0) * 70ms),
+      clip-path 420ms var(--sig-ease)
+        calc(var(--sig-delay) + var(--sig-i, 0) * 70ms);
+  }
+}
+
+/* The hash is the stack's `commit` field, so it lights with the rest: one
+   rung up from decoration while its author and role are out. */
+[data-sig-host] .sig-hash {
+  transition: color 200ms ease-out;
+}
+[data-sig-open] .sig-hash {
+  color: var(--tertiary-foreground);
+}
+@media (hover: hover) {
+  [data-sig-host]:is(:hover, :focus-within) .sig-hash {
+    color: var(--tertiary-foreground);
+  }
+  /* The hash's own hover (it is the permalink) still wins. */
+  [data-sig-host] .sig-hash:hover {
+    color: var(--muted-foreground);
+  }
+}
+
+/* The team that was tapped stays lit while its signature is out. */
+[data-sig-host] .sig-team {
+  transition: color 200ms ease-out;
+}
+[data-sig-open] .sig-team {
+  color: var(--muted-foreground);
+}
+
+/* Phone: the row opens to the stack's height rather than snapping to it
+   (grid rows 0fr → 1fr, which animates to an unknown height). */
+.sig-fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 360ms var(--sig-ease);
+}
+.sig-fold > * {
+  min-height: 0;
+  overflow: hidden;
+}
+[data-sig-open] .sig-fold {
+  grid-template-rows: 1fr;
+}
+
+/* The mark nods when it hands the signature over, from a tap on it or on
+   the team. The node's inner glyph, never the outer span: that one carries
+   the side lane's inline translate. */
+[data-sig-open] .sig-mark {
+  animation: sig-nod 420ms var(--sig-ease);
+}
+@keyframes sig-nod {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.72);
+  }
+  70% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sig-print,
+  .sig-drop,
+  [data-sig-open] .sig-print,
+  [data-sig-open] > [data-sig-margin] .sig-drop,
+  [data-sig-host]:is(:hover, :focus-within) > [data-sig-margin] .sig-drop {
+    clip-path: none;
+    transition: opacity 150ms ease-out;
+  }
+  .sig-fold {
+    transition: none;
+  }
+  [data-sig-open] .sig-mark {
+    animation: none;
+  }
+}
+
 /* Theater stage. The YouTube IFrame API injects an <iframe> sized by the
    width/height player options; force it to fill the morphing stage so the
    video stays responsive as the stage animates between theater and PiP. */
@@ -823,6 +988,17 @@ html.dragging * {
    quieter ink. */
 .about-notes .prose-link {
   color: var(--muted-foreground);
+}
+/* A /works venue (TimelineCommit): a magic link in the metadata line,
+   keeping the line's own rung. The underline says it summons something;
+   the colour stays the date's neighbour's. */
+.prose-link.venue-link {
+  color: inherit;
+}
+@media (hover: hover) {
+  .prose-link.venue-link:hover {
+    color: var(--foreground);
+  }
 }
 @media (hover: hover) {
   .prose-article a:not(:where(.not-prose, .not-prose *)):hover,
@@ -1329,6 +1505,41 @@ main[data-variant="reader"] .reader-masthead {
   animation-timing-function: ease-out;
   /* Prevent the element from being part of root transition */
   mix-blend-mode: normal;
+}
+
+/* -----------------------------------------------------------------------------
+   The Ask ball (systems/command/fab.tsx, AskBall) - Shared Element
+   -----------------------------------------------------------------------------
+   The ball beside the search bar changes place with the page (right of the
+   home's prompt, left of the corner's button). As a shared element it slides
+   straight there in the same transition as the page's crossfade, the way the
+   identifier moves; it looks the same at both ends, so the slide is all
+   there is: no crossfade of its own.
+
+   Named only while a transition runs: a view-transition-name makes the
+   element a backdrop root, and the frost inside it (a blurred backdrop, as
+   on the search bar) would see nothing behind the ball but the ball itself,
+   leaving bare tint. While it slides, its group blurs the page's snapshots
+   under it instead, so it is the same glass there too. */
+
+:root:active-view-transition [data-ask-ball] {
+  view-transition-name: ask-ball;
+}
+
+::view-transition-group(ask-ball) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 9999px;
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+
+::view-transition-old(ask-ball) {
+  display: none;
+}
+
+::view-transition-new(ask-ball) {
+  animation: none;
 }
 
 /* -----------------------------------------------------------------------------
@@ -1909,6 +2120,106 @@ main[data-variant="reader"] .reader-masthead {
   [data-surface-popup],
   [data-surface-shell] {
     transition: none;
+  }
+}
+
+/* =============================================================================
+   Ask panel: the page makes room
+   While Ask sits at the side (systems/ask/surfaces.tsx sets `data-ask-docked`
+   on <html>), the page gives up the panel's width and the edge gap at its
+   trailing edge, so a column of prose is read beside the conversation rather
+   than under it. Only where the 680px column still fits beside a 440px
+   panel; on a narrower screen the panel floats over the page's edge, as every
+   other panel does, and so it does over the home's widget grid, which is not
+   a column to read. Padding on the page's own box (vitre's `#vitre-scroll`),
+   so fixed layers and the wallpaper keep the whole screen.
+   ============================================================================= */
+
+@media (min-width: 1280px) {
+  #vitre-scroll {
+    transition: padding-right 500ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  html[data-ask-docked] #vitre-scroll {
+    padding-right: calc(var(--surface-panel-w, 440px) + 0.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #vitre-scroll {
+    transition: none;
+  }
+}
+
+/* =============================================================================
+   Ask: a drag between places
+   The side panel and the dock follow the pointer (placement.tsx). The center
+   window is the palette's own drag; it fades only once letting go would put
+   it somewhere else (`data-ask-dragging`).
+   ============================================================================= */
+
+html[data-ask-dragging] :is([data-ask-center], [data-ask-panel] > *, [data-dock-panel]:has([data-ask-top])) {
+  opacity: 0.35;
+  transition: opacity 150ms ease-out;
+}
+
+/* The side panel and the dock follow the pointer while their header is
+   dragged (placement.tsx sets `data-ask-drag-from` and the offset). `translate`
+   composes with the drawer's own `transform`, so the entrance and the swipe
+   are left alone. The place being left is hidden for the handoff
+   (`data-ask-drag-commit` names it), or the panel would snap home for a frame
+   before the new one mounts. */
+html[data-ask-drag-from="side"] [data-ask-drag-host="side"],
+html[data-ask-drag-from="top"] [data-dock-panel]:has([data-ask-top]) {
+  translate: var(--ask-drag-x, 0px) var(--ask-drag-y, 0px);
+  z-index: 80;
+  cursor: grabbing;
+}
+
+/* Framer Motion owns the center card's mouse drag. A touch drag begins only
+   after Ask's long press, so it carries the same card with the independent
+   `translate` property instead. */
+html[data-ask-drag-touch][data-ask-drag-from="center"] [data-ask-center-host] {
+  translate: var(--ask-drag-x, 0px) var(--ask-drag-y, 0px);
+  cursor: grabbing;
+}
+
+html[data-ask-drag-touch][data-ask-drag-from="center"] [data-ask-center-host],
+html[data-ask-drag-touch][data-ask-drag-from="side"] [data-ask-drag-host="side"],
+html[data-ask-drag-touch][data-ask-drag-from="top"] [data-dock-panel]:has([data-ask-top]) [data-surface-shell] {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+html[data-ask-drag-commit="side"] [data-ask-drag-host="side"],
+html[data-ask-drag-commit="center"] [data-ask-center],
+html[data-ask-drag-commit="top"] [data-dock-panel]:has([data-ask-top]) {
+  opacity: 0;
+  transition: none;
+}
+
+/* A question handed from Command to an Ask surface that was already open
+   should not appear to vanish with the palette. The receiving pane answers
+   with one restrained focus pulse; it neither moves nor steals the keyboard. */
+html[data-ask-handoff="side"] [data-ask-drag-host="side"],
+html[data-ask-handoff="top"] [data-dock-panel]:has([data-ask-top]) [data-surface-shell],
+html[data-ask-handoff="center"] [data-surface-shell]:has([data-ask-panel]) {
+  animation: ask-handoff 650ms ease-out;
+}
+
+@keyframes ask-handoff {
+  0% { outline: 0 solid var(--ring); outline-offset: 0; }
+  35% { outline: 3px solid var(--ring); outline-offset: 3px; }
+  100% { outline: 0 solid transparent; outline-offset: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ask-handoff] [data-ask-drag-host="side"],
+  html[data-ask-handoff] [data-dock-panel]:has([data-ask-top]) [data-surface-shell],
+  html[data-ask-handoff] [data-surface-shell]:has([data-ask-panel]) {
+    animation: none;
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
   }
 }
 
@@ -2563,12 +2874,19 @@ html[data-sky-armed] .sky-pull-cue-go {
 .voice-mic-live {
   animation: voice-mic-breathe 1.6s ease-in-out infinite;
 }
+.voice-recording-dot {
+  animation: voice-recording-breathe 1.4s ease-in-out infinite;
+}
+@keyframes voice-recording-breathe {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--destructive); }
+  50% { opacity: 0.65; box-shadow: 0 0 0 3px transparent; }
+}
 @keyframes voice-mic-breathe {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.55; transform: scale(0.9); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .voice-mic-live { animation: none; }
+  .voice-mic-live, .voice-recording-dot { animation: none; }
 }
 
 /* =============================================================================
