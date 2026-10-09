@@ -1,8 +1,8 @@
-# Surface System
+---
+skills: [surfaces, base-ui-drawer]
+---
 
-> The checklist form of this page is two skills: `.claude/skills/surfaces`
-> for adding or choosing a surface, `.claude/skills/base-ui-drawer` for
-> editing the sheet primitive itself.
+# Surface System
 
 One secondary surface, four shapes. The site keeps growing things that open
 over the page (the music playlist, the wallpaper picker, whatever comes next),
