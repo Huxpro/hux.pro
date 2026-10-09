@@ -1,10 +1,13 @@
+---
+skills: [react-conventions]
+---
+
 # React Conventions
 
 The React rules this codebase holds itself to, beyond React's own: which
 lint rules are on and their sanctioned escapes, how a browser-only value is
 read without a hydration mismatch, where a persisted preference lives, how
-server state is cached, and the order of the providers. The skill
-`.claude/skills/react-conventions` is the checklist form of this page.
+server state is cached, and the order of the providers.
 
 ## What it looks like done well
 
