@@ -206,6 +206,10 @@ the button share a 24px radius, so one ring fits both. See
 |-----|--------|
 | `D` | Toggle devtool panel (when the devtool is enabled) |
 
+It is ignored while focus is in an input, a textarea or anything
+contenteditable, while the command palette is open, and with ⌘, Ctrl or Alt
+held (`DevtoolProvider`'s keydown listener).
+
 ## Components
 
 ### DevtoolFAB
@@ -267,6 +271,15 @@ The footer (`Press D to toggle` and `Disable Devtool`) is the surface's
    the real sky's inputs, fetched again; Weather refetches both). **Now**
    resets everything except the Gyro row, which is a saved setting rather than
    a forced scene and wears the blue star to say so.
+
+   Play is two buttons, ▶ **Day** (the day in a minute) and ▶ **2×** (in half
+   of one). Either runs the playhead from where it stands, through midnight
+   and round again; pressing the lit one pauses, pressing the other changes
+   speed without starting over. The live condition's chip wears a green dot,
+   and every chip shows its night face while the sun is down at the clock.
+   Tune's sliders are cloud, precipitation, wind speed, wind direction and
+   veil, with the raw forecast under them (WMO code, cover, mm/h, wind, the
+   sun's elevation · azimuth, and the API's own day / night).
 
    The Gyro row is the tilt that makes the Sky's rain and snow fall along real
    gravity (`docs/system-ambient.md` → Gyroscope Tilt), with the live angle as
@@ -455,7 +468,9 @@ to trace a wrong-looking background to a file.
 
 ## Persistence
 
-- **FAB enabled state**: Persisted to localStorage
+- **FAB enabled state**: Persisted to localStorage under `hux_devtool`, with
+  the docking, folds and the module settings. Off by default in every
+  environment, development included.
 - **Override states**: Ephemeral (reset on page refresh)
 - **Route preferences**: Persisted to localStorage
 
