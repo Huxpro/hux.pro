@@ -25,7 +25,8 @@ the page with a footnote linking each skill and tags the `/docs` row
 `origin` is provenance. A `.zh.md` carries
 `origin: "AI-translated from the original"` and no `skills`. Its same-page
 links (`#…`) use the translated heading's id, as `lib/heading-id.ts` makes
-it (`## 原理` is `#原理`).
+it (`## 原理` is `#原理`). A link to another doc is `./other.md#anchor`
+(it works on GitHub; `lib/doc-links.ts` points it at `/docs/other/<lang>`).
 
 **Images** go in `public/` with absolute paths: `/img/in-post/<slug>/…` for
 posts, `/img/docs/<slug>/…` for docs. Markdown images bleed on their own

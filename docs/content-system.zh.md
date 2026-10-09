@@ -84,6 +84,8 @@ frontmatter 是可选的：
 
 **中文版**是 `docs/<slug>.zh.md`，frontmatter 为 `origin: "AI-translated from the original"`（就是这串英文，和翻译的文章一样），不写 `skills`，它们从英文文件读取。中文页上的页内链接（`#anchor`）指向*翻译后*标题的 id。`HeadingWithLink` 用 `headingId`（`lib/heading-id.ts`）从标题渲染出的文字生成 id：转小写，保留字母、数字、`_`、`-` 和中文字符（U+4E00 到 U+9FFF），其余一律去掉，包括中文标点，空格变成连字符。`## 原理` 的 id 是 `#原理`。
 
+**指向另一篇文档的链接**写成 `./other.md` 或 `./other.md#anchor`，这样在 GitHub 上也能用；页面会把它指向 `/docs/other/<lang>`（`lib/doc-links.ts`）。从中文页出发的链接留在中文，除非那篇文档没有中文版，或者锚点是只有英文页才有的标题，所以译文可以沿用英文标题的 id。
+
 文档在 `/docs` 下按标题排序列出，和文章用同一个 `PostContent` 渲染（`app/docs/[...slug]/content.tsx`）。
 
 ### MDX 组件与图片
