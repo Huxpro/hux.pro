@@ -1,6 +1,8 @@
-# Legibility
+---
+skills: [ui-tokens]
+---
 
-> The checklist form of this page is the skill `.claude/skills/ui-tokens`.
+# Legibility
 
 How text stays readable on any wallpaper under either glass material, and the
 lab that turns every number involved into a slider.
