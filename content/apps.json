@@ -27,6 +27,17 @@
       "icon": "/app-icons/vue-lynx.png"
     },
     {
+      "id": "nightmare",
+      "title": "Nightmare",
+      "titleZh": "噩梦",
+      "runtime": "web",
+      "url": "/lab/nightmare?embedded=1",
+      "size": "portrait",
+      "icon": "/app-icons/nightmare.png",
+      "keywords": ["nightmare", "dream", "tall man", "wardrobe", "horror", "噩梦", "梦", "黑衣人", "衣柜"],
+      "featured": true
+    },
+    {
       "id": "cat-toy",
       "title": "Cat Wand",
       "titleZh": "逗猫棒",
