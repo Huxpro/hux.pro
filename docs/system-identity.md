@@ -52,23 +52,30 @@ Everything is derived from the committed log by `buildIdentityProfile`, and
 the same `resolveIdentity` the bylines use decides what was signed as whom.
 The card cannot say anything the timeline does not.
 
-## Two ways in, chosen by the input
+## A glance, then a press
 
 `/works` has one hover system: the magnetic peek that follows the cursor off
 a folded row (`components/motion-primitives/magnetic-preview.tsx`). A name
 that stands for more than it prints is the same kind of thing as a row that
-holds more than it shows, so on a desktop the card **is a peek**: rest the
-pointer on a handle and the profile arrives with it and leaves with it. No
-click, no header, no close. `IdentityHover` wraps the mark; `IdentityPeek`
-derives the profile only while hovered (`useIdentityProfile`), so nothing is
-computed for the rows nobody is looking at.
+holds more than it shows, so on a desktop the card first arrives **as a
+peek**: rest the pointer on a handle and the profile comes with it and
+leaves with it. `IdentityHover` wraps the mark; `IdentityPeek` derives the
+profile only while hovered (`useIdentityProfile`), so nothing is computed for
+the rows nobody is looking at.
 
-Where there is no pointer (a phone, a touch tablet), the same mark is a
-button and a tap opens the identity card as a surface
-(`ANCHORED_PRESENTATION`: a sheet on a phone, a popover off the mark on a
-tablet), titled by the handle. `useInputCapability().magneticPreviewEnabled`
-is the one switch between the two, so it follows the input rather than the
-viewport: an iPad with a trackpad hovers, a touch laptop taps.
+A peek rides the cursor, so the pointer can never reach it: it is a glance,
+not a place. The rest of the card (the figures as tabs, the signed commits,
+Visit) is one press away, with any input. The mark is a button everywhere,
+and a press opens the identity card as a surface (`ANCHORED_PRESENTATION`: a
+sheet on a phone, a popover off the mark from `sm` up), titled by the handle.
+The peek says so in its last line (`click to open the card`, `IdentityPeek`'s
+`openHint`, passed only by `IdentityHover`) and stands down while the card is
+open, so the profile is never printed twice.
+
+Two other hosts reuse the peek and keep their own press: a role row's
+unfolds the row, and a magic link's goes to the role's row on `/works`
+(with a pointer; under a finger both open the card). Their peeks carry no
+hint, since it would promise what the click does not do.
 
 ## Triggers
 

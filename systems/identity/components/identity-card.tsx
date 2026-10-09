@@ -18,12 +18,12 @@ import type { IdentityProfile, ProfileCommit } from "../lib/profile";
 import { IdentityProfileView, type ProfileFilter } from "./identity-profile";
 
 // =============================================================================
-// IdentityCard: a role, as a surface, for a finger.
+// IdentityCard: a role, as a surface, for a press.
 //
-// On a desktop the profile is a hover peek off the handle (identity-hover.tsx)
-// and this never opens. On a phone the same mark is tapped and the role comes
-// up as a sheet; on a touch tablet, as a popover hanging off the mark
-// (`ANCHORED_PRESENTATION`). The header names the handle and nothing more,
+// A press on the mark opens it, whatever the input: on a phone the role
+// comes up as a sheet; from `sm` up, as a popover hanging off the mark
+// (`ANCHORED_PRESENTATION`). On a desktop the hover peek (identity-hover.tsx)
+// comes first, as a glance, and points here for the rest. The header names the handle and nothing more,
 // since a profile's name is its title.
 //
 // Where the peek only answers "who was I then?", the drawer is somewhere to
