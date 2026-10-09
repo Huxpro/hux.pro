@@ -18,15 +18,20 @@ window. Code that assumes window scroll breaks there and only there.
 - **Scroll-driven CSS**: `animation-timeline: --page-scroll`
   (`PAGE_SCROLL_TIMELINE`) or `scroll(nearest)`; `scroll(root)` is silent in
   container scroll.
-- **Full-screen layers**: in container scroll `body > .fixed` turns absolute;
-  any other full-screen layer carries `VITRE_LAYER_ATTRIBUTE`.
+- **Full-screen layers**: in container scroll `body > .fixed` (and a `<body>`
+  child with an inline `position: fixed`) turns absolute; any other
+  full-screen layer carries `VITRE_LAYER_ATTRIBUTE`, or it tints the chrome.
 - **Chrome colour**: iOS 26 Safari ignores later `theme-color` changes and
   never re-reads the root background; vitre's `syncChrome` morphs the bezel
   bands to show a change (iOS only).
 - **Libraries** that lock scroll by sizing `<body>` collapse the layout in
   container scroll. Check before adopting one.
-- **This site's settings** live in `systems/ambient/lib/bezel.ts` only (bezel
-  on/off per wallpaper family: `WALLPAPER_FAMILY_EDGES`).
+- **This site's decisions** live in `systems/ambient/lib/bezel.ts` only (bezel
+  on/off per wallpaper family: `WALLPAPER_FAMILY_EDGES`; tints; the boot
+  resolver). Never write `data-bezel`, the bezel colour or the scroll mode
+  anywhere else.
 
-Demo: `pnpm vitre:site` (`pnpm dev` rebuilds it only when stale). More:
-`packages/vitre/README.md` (the measured Safari findings), `docs/system-lab.md`.
+Demo: `pnpm vitre:site` (`pnpm dev` rebuilds it only when stale; otherwise
+`pnpm vitre:site:build`). Check: `pnpm vitre:typecheck`. More:
+`packages/vitre/README.md` (the measured Safari findings, the scroll-modes
+diagram), the lab's guide `/lab/vitre`, `docs/system-lab.md`.

@@ -38,8 +38,9 @@
 `.claude/skills/` pairs the docs above with short skills: when each applies,
 the rules that are easy to break, the commands to run, and the doc to read.
 `keyboard-input`, `surfaces`, `base-ui-drawer`, `ui-tokens`, `vitre`,
-`ask-commands`, `content-snapshots`, `wallpapers`, `glow`. A skill states what the
-code won't tell you and points at its doc; keep it short.
+`ask-commands`, `content-snapshots`, `wallpapers`, `attachments`,
+`react-conventions`, `glow`. A skill states what the code won't tell you and
+points at its doc; keep it short.
 
 ## 2. Quick Start Context
 
@@ -126,6 +127,7 @@ The bezel is its own package, `packages/vitre` (`vitre`). Its API and the
 iOS Safari findings behind it are in `packages/vitre/vitre.d.ts` and
 `packages/vitre/README.md`; read those before changing anything about the edge
 of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
+The checklist form is the skill `.claude/skills/vitre`.
 
 - **Bezel on/off** follows the wallpaper family (`WALLPAPER_FAMILY_EDGES`):
   a `picture` (the Sky, an image) on without soft edge, a `wash` off with it.
@@ -134,7 +136,7 @@ of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
   `bezelRadius` in `hux_ambient_settings`), the same for every kind. Defaults:
   black, 0px, 16px. Tints: `black`, `dark`, `theme` (the page ground in the
   current theme) or `#rrggbb`.
-- **Scroll** is container on an iPhone with the bezel on, window otherwise; the
+- **Scroll** is container on iOS with the bezel on, window otherwise; the
   devtool's Scroll row overrides it for the session. Scroll-driven CSS must
   not use `scroll(root)`; bind to `--page-scroll` (published by the package
   on whichever element actually scrolls) or to `scroll(nearest)`.
@@ -144,9 +146,9 @@ of the page. This site's configuration of it is `systems/ambient/lib/bezel.ts`.
   the DevTool's Hero exit row pins either for the session.
 - **Everything is live.** Safari does not re-read the root background for its
   chrome after load; `syncChrome` in the package shows it each change by
-  morphing a fixed bezel to 8px and back. That morph is iOS-only. The surface
-  passes `chromeMorph`; everywhere else the colour is set on `theme-color`
-  with nothing drawn. Do not write the bezel colour, `data-bezel` or the scroll
+  morphing a fixed bezel to 8px and back. That morph is iOS-only: the surface
+  (`systems/ambient/components/surface.tsx`) passes `chromeMorph` on iOS, and
+  everywhere else the colour is set on `theme-color` with nothing drawn. Do not write the bezel colour, `data-bezel` or the scroll
   mode anywhere else.
 - **Page scroll** goes through the package (`pageScrollTop`, `onPageScroll`,
   `scrollPageTo`, `usePageScroll`, …), never `window.scrollY`: with the bezel on
