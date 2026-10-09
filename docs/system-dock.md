@@ -1,9 +1,8 @@
-# Dock System
+---
+skills: [surfaces, base-ui-drawer]
+---
 
-> The checklist form of this page is two skills: `.claude/skills/surfaces`
-> for notices (`showNotice`, and why there is no bottom toast), and
-> `.claude/skills/base-ui-drawer` for the Live Activity panel, the drawer
-> travelling up.
+# Dock System
 
 The dock is the top-of-screen home for **Live Activities**: collapsed pills
 that morph into expanded panels (the iOS Dynamic Island / Notification Center
