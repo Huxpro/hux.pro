@@ -1,2440 +1,486 @@
 # Ambient System
 
-The ambient system makes the **interface respond** to real-world context: weather, location, and time of day. Its centrepiece is the **weather wallpaper**, an iOS-lock-screen-style animated sky (sun, moon, clouds, rain, snow, fog, lightning, stars) that tracks the visitor's actual weather and the real positions of the sun and moon. Its rain and snow fall along the device's own gravity. It comes in three styles: Sky, Gradient and Classic. On a thunder day it answers a click with [a bolt](#the-strike-thunder-day-easter-egg) and on a clear night with [a shooting star](#the-shooting-star-clear-night-easter-egg); while it is raining or snowing a drag across the background [stirs up a gust](#stirring-the-wind-rain-and-snow-easter-egg), and on a foggy one a drag [wipes the mist clear](#the-fog-wipe-foggy-day-easter-egg). In any weather, pulling the home screen down opens [the sky window](#the-sky-window-any-weather-easter-egg): the phone's compass and tilt aim a camera into the real sky, with the sun and moon where they really are.
+The ambient system makes the interface answer to the real world: where the
+visitor is, the weather there, and the time of day. It owns the page
+background (the **wallpaper**), whose centrepiece is a live sky that tracks the
+actual weather and the real positions of the sun and moon; it names the time of
+day in the greeting and announces sunrise and sunset in the Dock; and it moves
+the theme with the sun. Code: `systems/ambient/`.
 
-It also owns the page background, the **wallpaper**. Weather is one of the
-wallpapers, the only one that changes on its own. See
-[Wallpaper](#wallpaper) below.
+This page is the entry point: the model, the data flow, the phase, the cache.
+The rest is in four focused pages:
 
-## Overview
+| Page | What it covers |
+|---|---|
+| [The Sky](./ambient-sky.md) | How the weather wallpaper is drawn: the two engines, sun and moon, wind and gravity, the gyroscope tilt, the theme's key and the twilight look |
+| [Ambient easter eggs](./ambient-easter-eggs.md) | The strike, the shooting star, the gust, the fog wipe, the sky window and its pull |
+| [Wallpapers](./wallpapers.md) | Weather styles and pictures, light/dark pairs, placement and the bezel, the catalog and its files, the picker (skill: `.claude/skills/wallpapers`) |
+| [Legibility](./system-legibility.md) | What the wallpaper does to the text and glass on it |
 
-```
-systems/ambient/
-├── provider.tsx                  # AmbientProvider (Location + Weather + Time contexts)
-├── components/
-│   ├── greeting.tsx              # Time-based greeting component
-│   ├── surface.tsx               # Page container + full-page wallpaper mount
-│   ├── wallpaper-background.tsx  # Full-page wallpaper renderer (image / CG / gradient)
-│   ├── wallpaper.tsx             # <WeatherWallpaper />: the CG sky's WebGL canvas shell
-│   ├── wallpaper-sheet.tsx       # Wallpaper picker (an <AdaptiveSurface>)
-│   ├── gradient-stack.tsx        # Shared CSS crossfade renderer (full-page + widgets)
-│   ├── weather-icon.tsx          # Weather condition icons
-│   ├── weather-widget.tsx        # iOS-style weather widget (header + WeatherNow)
-│   ├── weather-now.tsx           # Shared weather body + useDisplayWeather()
-│   ├── phase-activity.tsx        # Sun-event notification (plugs into the Dock)
-│   ├── permission-sheet.tsx      # The shape the three offers below share: phases, sheet, outcome
-│   ├── location-primer-sheet.tsx # The offer before the browser's location prompt
-│   ├── tilt-primer-sheet.tsx     # The tilt's offer before WebKit's motion prompt (rain and snow)
-│   ├── sky-window-sheet.tsx      # The sky window's offer: motion, and the place with it
-│   ├── use-permissions.ts        # Where each permission stands, and one press that asks, in order
-│   ├── sky-pull-cue.tsx          # The body of light at the top while the home is pulled down
-│   ├── sky-body-hints.tsx        # Edge hints toward an off-screen sun or moon in the window
-│   ├── body-glyph.tsx            # Solid sun and moon-phase glyphs (devtool, hints, cue)
-│   ├── settle-spinner.tsx        # The tiny top-right ring while the sky settles
-│   └── index.ts                  # Component exports
-├── lib/
-│   ├── weather.ts                # Open-Meteo integration + condition model
-│   ├── gyroscope.ts              # Screen-space gravity from `deviceorientation` + motion access
-│   ├── sky-window.ts             # The phone as a window: view from the compass, projection, stars
-│   ├── settle.ts                 # Named reasons the sky is between two states (the spinner)
-│   ├── sky-bodies.ts             # Per-frame channel: where the sun and moon are in the window
-│   ├── solar.ts                  # Sun elevation/azimuth, lunar ephemeris, moon phase
-│   ├── magnetic.ts               # WMM2025 magnetic declination: the compass's north → true north
-│   ├── scene.ts                  # weather × sun × moon × theme → WeatherScene
-│   ├── gradient.ts               # WeatherScene → CSS gradient + crossfade types
-│   ├── wallpaper/
-│   │   ├── shader.ts             # GLSL: the full-screen procedural sky (CG)
-│   │   ├── renderer.ts           # WallpaperRenderer: uniform easing, adaptive quality
-│   │   ├── stir.ts               # Drag the background to stir up a gust of wind
-│   │   └── support.ts            # WebGL2 / reduced-motion / quality-profile detection
-│   ├── poke.ts                   # The two tapped eggs: which weather, when it is
-│   │                             #   dark enough, and "is this the sky?", for all of them
-│   ├── wipe.ts                   # The foggy-day wipe: the stroke, the hand, the gesture
-│   ├── permissions.ts            # Motion and location as one vocabulary: ready / askable / refused / unsupported
-│   ├── tilt-primer.ts            # The press-and-hold that offers the gyroscope
-│   ├── sky-pull.ts               # Pull the home down to look up: the window, or its offer first
-│   ├── greeting.ts               # Time-of-day helpers
-│   ├── location.ts               # IP/GPS location resolution
-│   ├── notification.ts           # Upcoming sun-event detection (lead-up + window)
-│   ├── phase.ts                  # Ambient phase derivation
-│   ├── queries.ts                # React Query hooks
-│   ├── route-config.ts           # Form-factor types
-│   ├── settings.ts               # User preference persistence
-│   ├── wallpaper.ts              # Wallpaper kinds, weather styles + built-in catalog
-│   ├── wallpaper-play.ts         # Shuffle / Loop over Apple and Nature
-│   ├── wallpaper-profile.ts      # Profile types + keys (shared with the profiler script)
-│   ├── wallpaper-profiles.json   # The measured table: `pnpm wallpapers:profile`
-│   ├── legibility.ts             # Profile → CSS variables (docs/system-legibility.md)
-│   ├── sun.ts                    # Sunrise/sunset window detection
-│   └── index.ts                  # Lib exports
-└── index.ts                      # System barrel exports
-```
+## What it looks like done well
 
-## Key Concepts
+<div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+  <img src="/img/docs/system-ambient/home-sunset.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="The phone home screen at 18:40 in San Francisco: a dusk gradient from blue-grey to peach, the greeting 'Sun Is Setting', and a Dock pill at the top reading 18:42 with a sunset glyph." />
+  <img src="/img/docs/system-ambient/home-night.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="The same screen at 22:30: a deep navy sky with stars, the greeting 'Good Night', and the page in the dark theme." />
+</div>
 
-### Ambient Phase
+One clear day, two phases (San Francisco, sunrise 07:11, sunset 18:42;
+headless phone, forecast mocked). At 18:40 the phase is `sunset`: the greeting
+says so, the Dock carries the sunset time, and the sky is at the horizon's
+colours because the sun is there, not because a phase picked a palette. By
+22:30 the phase is `night`, the sun is far below, the stars are out, and under
+Follow the Sun the theme has gone dark.
 
-The system derives the current "ambient phase" from:
-1. **Sun events**: Sunrise/sunset windows (±45 min)
-2. **Time of day**: Morning, afternoon, evening, night
+- Nothing asks the visitor for anything on load. The place is guessed from the
+  network, marked as a guess, and improved only from a tap that says why.
+- The sky follows the minute; the words and the Dock follow the phase; the
+  theme follows the sun's own crossing. Three clocks, never fighting.
+- A reload shows the last weather at once (the cache), and a stale answer is
+  refreshed when the world changes (the tab returns, the network returns, the
+  forecast's next interval lands, midnight).
+
+## How it works
+
+![Location (IP, or a precise fix when allowed) gives lat and lon to the Open-Meteo forecast and to the sun-and-moon ephemeris; the forecast's sun times and the clock give the phase; weather, sun and moon give the WeatherScene; the scene drives the Sky's uniforms, the Gradient and Classic, and the legibility profile that sets the CSS variables on html.](/img/docs/system-ambient/data-flow.svg)
+
+The data flow, with the real names. Read it top to bottom:
+
+1. **Location** (`useLocationQuery`, `lib/queries.ts` + `lib/location.ts`).
+   An IP lookup (ipapi.co, then ipwho.is), or, in Accurate mode and only when
+   `canTakeFix` allows, a coarse `navigator.geolocation` fix, reverse-geocoded
+   through Nominatim. Out comes a `ResolvedLocation` with `lat`, `lon`, city and
+   `source` (`"ip"` or `"geolocation"`).
+2. **Weather** (`useWeatherQuery` → `fetchCurrentWeather`, `lib/weather.ts`).
+   Open-Meteo's `current` block plus `daily=sunrise,sunset`, normalised into a
+   `NormalizedWeather` ([below](#the-weather-model)).
+3. **The clock** (`useAmbientTime().nowMs`): the wall clock, re-read at every
+   minute boundary and on `visibilitychange` / `pageshow`, or the devtool's
+   time travel.
+4. **Sun and moon** (`lib/solar.ts`): elevation and azimuth at `nowMs` for
+   `lat, lon`, and the moon's position and phase.
+5. **The phase** (`deriveAmbientPhase`, `lib/phase.ts`): `nowMs` against the
+   forecast's sunrise and sunset. A label, read by the greeting, the Dock and
+   the Classic palette ([below](#the-phase)).
+6. **The scene** (`deriveWeatherScene`, `lib/scene.ts`): weather × sun × moon ×
+   `wallpaperTheme` → one `WeatherScene` ([below](#the-scene)).
+7. **What paints**: the Sky's `WallpaperRenderer.setScene()` eases the scene
+   into shader uniforms; `sceneToCssGradient` and `getClassicGradient(scene,
+   phase)` push CSS layers. See [The Sky](./ambient-sky.md) and
+   [Wallpapers](./wallpapers.md).
+8. **Legibility**: the profile of what is painting (`profileFromScene` for the
+   Sky and the Gradient; the measured `wallpaper-profiles.json` for Classic and
+   pictures) goes through `resolveLegibility`, and `applyLegibility` sets the
+   CSS variables on `<html>` that the ink and glass read. See
+   [Legibility](./system-legibility.md).
+
+Beside that, the sun's answer for the theme (`solarThemeAt`) goes to
+`<SolarThemeSync />` and the theme service ([below](#the-theme-follows-the-sun)).
+
+One provider, `AmbientProvider` (`provider.tsx`), holds all of it and exposes
+five hooks: `useLocation`, `useWeather`, `useAmbientTime`, `useSolarTheme`,
+`useWallpaper` ([reference](#reference)).
+
+### The phase
 
 ```typescript
 type AmbientPhase = "sunrise" | "morning" | "afternoon" | "evening" | "sunset" | "night";
 ```
 
+![A day bar for San Francisco on 7 October: night until 06:26, sunrise 06:26–07:56, morning to 12:00, afternoon to 17:57, sunset 17:57–19:27, evening to 22:27, then night. Above it, the Dock activity spans 90 minutes of lead plus each window. Below it, the Follow the Sun theme switches at 07:11 and 18:42 exactly.](/img/docs/system-ambient/phase-timeline.svg)
+
+The six phases over one day, with the two things timed off the same sun
+events: the Dock's activity above, the theme under Follow the Sun below. Note
+where each changes: the phase at the windows' edges, the theme at the event
+itself, in the middle of the window.
+
 The boundaries (`deriveAmbientPhase`, `lib/phase.ts`), on the effective clock:
 
-| Phase | From | Until |
+| Phase | From | To |
 |---|---|---|
-| `sunrise` | 45 min before sunrise | 45 min after |
-| `morning` | the end of the sunrise window | 12:00 local |
-| `afternoon` | 12:00 | the start of the sunset window |
-| `sunset` | 45 min before sunset | 45 min after |
-| `evening` | the end of the sunset window | 3 h later |
+| `sunrise` | sunrise − 45 min | sunrise + 45 min |
+| `morning` | sunrise + 45 min | 12:00 local |
+| `afternoon` | 12:00 | sunset − 45 min |
+| `sunset` | sunset − 45 min | sunset + 45 min |
+| `evening` | sunset + 45 min | 3 hours later |
 | `night` | the end of evening | the start of the next sunrise window |
 
-The window is `DEFAULT_SUN_EVENT_WINDOW_MINUTES` in `lib/sun.ts`; where the two
-windows overlap (extreme latitudes) the nearer event wins. Until the forecast
-has brought sun times there are no sun-event phases, only fixed hours
-(`getTimeOfDay`, `lib/greeting.ts`): morning 5–12, afternoon 12–17, evening
-17–21, night otherwise.
+The window is `DEFAULT_SUN_EVENT_WINDOW_MINUTES` (45) in `lib/sun.ts`; where the
+two windows overlap (extreme latitudes) the nearer event wins. Until the
+forecast has brought sun times there are no event phases, only fixed hours
+(`getTimeOfDay()`, `lib/greeting.ts`): morning 5–12, afternoon 12–17, evening
+17–21, night otherwise. There is no phase override: the
+phase is always derived from `nowMs`, so the devtool changes it by moving the
+clock.
 
-### Weather Model
+Who reads the phase: `<AmbientGreeting />` (`getAmbientGreetingKeyFromPhase`),
+`<AmbientPhaseActivity />`, and the Classic style's palette and profile. The
+Sky and the Gradient do **not**: they follow the sun's elevation to the
+minute.
 
-Open-Meteo's `current` block is normalised into a condition plus the
-measurements the wallpaper actually renders:
+### Phase notification
+
+A heads-up that a sunrise or sunset is coming, as a **Dock Live Activity**
+(`<AmbientPhaseActivity />`, mounted in the root layout; see
+[Dock](./system-dock.md)):
+
+- **Pill**: a sun-event glyph and the event's exact time (`18:42` in the
+  screenshot above).
+- **Panel**: unfolds into the shared `<WeatherNow />` body, the readout the
+  home weather widget uses.
+
+It shows from 90 minutes before the window (`DEFAULT_NOTIFICATION_LEAD_MINUTES`
+in `lib/notification.ts`) to the window's end, then hands off to the greeting.
+It reads the effective clock, so to see it, move the devtool's Sky clock into
+the lead-up (drag the playhead, or click **Sunrise** / **Sunset** under the
+timeline). It renders from the clock alone, so it shows under a picture
+wallpaper too.
+
+### The weather model
+
+Open-Meteo's `current` block is normalised into a coarse condition plus the
+measurements the sky renders:
 
 ```typescript
 type WeatherCondition = "clear" | "cloudy" | "fog" | "rain" | "snow" | "thunder";
 
 type NormalizedWeather = {
   temperatureC: number;
-  condition: WeatherCondition;
+  condition: WeatherCondition;      // normalizeWeatherCode(weather_code)
   isDay?: boolean;
-  cloudCover?: number;              // 0..1
-  cloudCoverLow?: number;           // 0..1 by layer (also Mid, High)
+  cloudCover?: number;              // 0..1, also cloudCoverLow / Mid / High
   visibilityM?: number;
   dewPointC?: number;
   capeJkg?: number;
-  precipitationIntensity?: number;  // 0..1, derived from mm/h (or cm/h snow) + WMO code
-  precipitationType?: "none" | "rain" | "snow";  // from the measurements when any fall
+  precipitationIntensity?: number;  // 0..1, from mm/h (or cm/h snow) + WMO code
+  precipitationType?: "none" | "rain" | "snow";
   windSpeedKmh?: number;
+  windGustsKmh?: number;
   windDirectionDeg?: number;
   humidity?: number;
   sunriseMs?: number;
   sunsetMs?: number;
+  observedAtMs?: number;            // current.time; with intervalS, times the next poll
   // …
 };
 ```
 
 The six conditions stay coarse on purpose (they name the mood for icons and
-labels); the finer WMO distinctions survive as measurements. So a 40 %-cover
-"cloudy" and a 95 % overcast look different, drizzle is not a downpour, and the
-wind actually leans the rain.
+labels); the finer WMO distinctions survive as measurements, so 40 % cover and
+95 % overcast look different, drizzle is not a downpour, and the wind leans the
+rain.
 
 **Measurements first, profile second.** Each condition has a hand-tuned
-profile in `scene.ts` (`PROFILES`). It is now the *fallback*: every
-measurement the forecast carries replaces the profile value for what it
-describes, and a condition on its own (the devtool, the legibility gallery,
-the profiler) still paints exactly the profile: the scenes are byte-identical.
+profile in `scene.ts` (`PROFILES`). It is the fallback: every measurement the
+forecast carries replaces the profile value for what it describes, and a
+condition on its own (the devtool, the legibility gallery, the profiler) paints
+exactly the profile.
 
 | Scene value | From the forecast | Without it |
 |---|---|---|
-| precipitation type | `rain + showers` vs `snowfall` (7 cm snow ≈ 10 mm water), ≥ 0.1 mm/h; only a *cloudy* code is upgraded by a measurement (fog's drizzle is the fog; clear + rain is the model disagreeing with itself) | the condition |
-| cloud cover | measured cover; floor only when something falls (0.4 + 0.45 × intensity), fog keeps its profile floor | profile |
-| cloud density | cover by layer (low 0.95, mid 0.7, high 0.3) plus precipitation and instability. 80 % cirrus is a thin veil, 80 % stratus a lid | profile |
-| cloud darkness | low and mid cover, precipitation, instability; halved for snow (bright-based), mostly lifted in fog | profile + precip |
-| fog | visibility on a log scale (10 km → 0, 200 m → 1), a fog code keeps ≥ 0.5, dew point within ~2 °C adds haze; held under `WIPE_MIN_FOG` while anything falls, so the wipe and the gust never co-arm | profile + humidity + precip |
-| lightning | 0.55–1: hail codes (96/99) at 1, otherwise CAPE (a thunder code counts as at least half-convective) | 1 |
+| precipitation type | `rain + showers` vs `snowfall` (7 cm snow ≈ 10 mm water), from 0.1 mm/h; only a *cloudy* code is upgraded by a measurement | the condition |
+| cloud cover | measured cover; floored only when something falls (0.4 + 0.45 × intensity); fog keeps its profile floor | profile |
+| cloud density | cover by layer (low 0.95, mid 0.7, high 0.3) plus precipitation and instability: 80 % cirrus is a veil, 80 % stratus a lid | profile |
+| cloud darkness | low and mid cover, precipitation, instability; halved for snow, mostly lifted in fog | profile + precipitation |
+| fog | visibility on a log scale (10 km → 0, 200 m → 1), a fog code keeps at least 0.5, dew point within ~2 °C adds haze; held under `WIPE_MIN_FOG` while anything falls, so the fog wipe and the gust never co-arm | profile + humidity + precipitation |
+| lightning | 0.55–1: hail codes (96/99) at 1, otherwise CAPE | 1 |
 | wind | mean + ⅓ of the way to the gusts | mean |
 
-`current` also carries `cloud_cover_low/mid/high`, `visibility`,
-`dew_point_2m` and `cape` for this (all verified available globally).
+**Sun times are epoch seconds.** The forecast is requested with
+`timeformat=unixtime`. Open-Meteo's default ISO strings are the *location's*
+wall clock with no offset, which `new Date()` reads in the *browser's* zone, so
+a location one zone off moved sunrise by an hour.
 
-### Solar & Lunar Geometry
+### The scene
 
-`lib/solar.ts` computes the sun's **elevation and azimuth** for the visitor's
-coordinates (NOAA algorithm). This is what makes the wallpaper time-sensitive
-at minute resolution rather than in six steps: dawn brightens gradually, the
-sun glow tracks east → south → west across the viewport, the horizon warms
-through civil twilight, and stars fade in as the sun drops below −6°. Without
-coordinates it falls back to an arc estimated from sunrise/sunset (or the local
-clock), so a first paint still reads right.
-
-The **moon** uses a low-precision lunar ephemeris (Schlyter, ~1°): topocentric
-elevation/azimuth plus the phase from the sun–moon elongation. So the moon
-rises, crosses and sets when it really does, a young crescent follows the sun
-down in the west while a full moon climbs in the east at dusk, and the phase
-matches the calendar (`getMoonPhaseName()` gives the eight-way name). Moonlight
-is modelled too: a bright, high moon lifts the night sky and cloud tops and
-washes out the fainter stars; cloud cover and fog occlude it. In the southern
-hemisphere the crescent is mirrored.
-
-Without coordinates there is no ephemeris, but the phase needs none. The
-phase *is* where the moon stands relative to the sun: it runs behind the sun by
-its phase's share of a day. So the fallback moon is the sun's own estimated arc,
-that far behind: new, it crosses with the sun; first quarter, highest at dusk;
-full, rising at sunset; last quarter, rising at midnight. (It used to ride a
-fixed night arc whatever the phase: a crescent high at midnight, and a moon
-that did not move when the devtool changed the date.)
-
-**Staging the moon.** Where the moon *is* comes from the ephemeris and is never
-bent. Where it is *drawn* is a composition decision (`stageMoon` in
-`lib/scene.ts`), made on purpose:
-
-- The vertical mapping is a stage, not a protractor. A moon a few degrees up is
-  already drawn in the strip above the page content, and it climbs from there
-  to just under the top edge. Mapping elevation linearly put most of a night's
-  moon behind the widget grid.
-- Horizontally it crosses east → west with its azimuth (mirrored in the south),
-  kept off the extreme edges so a rising or setting moon is never half a moon.
-- The daytime moon is intentional and quiet. A first-quarter moon really is up
-  all afternoon; here it shows only when well up and far enough from the sun
-  to be seen in daylight (elongation over ~40°, so a crescent near the sun
-  stays invisible by day, as in the sky), and then as a pale disc at under a
-  fifth of its night strength.
-- It is drawn up to 30 % larger near the horizon (the moon illusion).
-
-**Drawing the moon.** The disc is the same size as the sun's. Both are half a
-degree across in the real sky, which is why an eclipse fits. What makes the
-sun read as the sun is the glow around it, not a bigger disc (`DISC_R` in
-the shader is the one radius, times the moon illusion above).
-
-It is shaded as a sphere rather than masked as a disc. The phase becomes a
-light direction (the phase angle, from the same elongation the ephemeris
-gives), and the surface is lit with Lommel-Seeliger,
-the backscatter that keeps the real full moon bright right out to its limb,
-plus a little Lambert and limb darkening for roundness. The terminator is
-therefore a gradient of grazing light, not a cut edge.
-
-The texture is laid out over the visible hemisphere by arc angle from the
-centre of the disc, so it foreshortens toward the limb the way a sphere's
-does: broad maria (smooth, being flooded basalt), a mottle of highlands, and a
-sparse field of craters whose relief is a height field tilting the sphere's
-normal into the same light. Detail fades with the size of a pixel's footprint
-on the surface (near the limb, and on a small disc), so nothing shimmers.
-Like everything else in the Sky engine it is procedural: no texture is loaded.
-
-### WeatherScene
-
-`deriveWeatherScene()` (`lib/scene.ts`) is the single pure function that turns
-`weather × sun × theme` into a renderer-agnostic description:
+`deriveWeatherScene()` is the single pure function between the data and every
+renderer:
 
 | Field | What it carries |
 |-------|-----------------|
-| `sun` | elevation, azimuth, screen position, daylight factor |
+| `sun` | elevation, azimuth, screen position, daylight factor, `isDay` |
 | `moon` | elevation, azimuth, phase, illumination, visibility, screen position, moonlight |
-| `sky` | zenith / horizon colours, sun-glow colour + strength (keyframed on elevation, tinted by condition) |
-| `clouds` | cover, density, storminess, lit/shade colours, drift speed |
+| `sky` | zenith / horizon colours, sun-glow colour and strength (keyframed on elevation, tinted by condition) |
+| `clouds` | cover, density, storminess, lit / shade colours, drift speed |
 | `precipitation` | type + intensity |
 | `wind` | screen-space direction × strength |
-| `windWorld`, `celestial` | the same wind as east/north components, and latitude + local sidereal time, for [the sky window](#the-sky-window-any-weather-easter-egg), which turns |
-| `fog`, `lightning`, `stars` | 0..1 amounts |
-| `veil`, `exposure`, `flat` | theme blend toward the page background (light: white, dark: `#1a1a1a`) and brightness (both drawn to one shared look through the sun's crossing), and what the painters that never took the exposure paint with ([The twilight look](#the-twilight-look)) |
+| `windWorld`, `celestial` | the same wind as east / north components; latitude, local sidereal time and magnetic declination, for the sky window |
+| `fog`, `lightning`, `stars`, `clarity` | 0..1 amounts; `clarity` is cover and fog alone (the meteor's question) |
+| `behind` | the stars and moon with no fog or fog deck in front (the fog wipe's uncovering) |
+| `veil`, `exposure`, `flat` | the theme's blend toward the page, the brightness, and what the painters that never took the exposure paint with |
 
-Every sky colour above has already been put in the theme's key (see
-[The theme's key](#the-themes-key)), so a day under the dark theme is a deep
-sky rather than a veiled bright one.
+Every colour in it is already in the theme's key, so a day under the dark
+theme is a deep sky rather than a veiled bright one
+([The Sky](./ambient-sky.md#the-sky-and-the-theme)).
 
-Both renderers consume the same scene, so switching engines changes the
-fidelity and never the mood. (The devtool condition thumbnails deliberately keep
-the older hand-tuned per-condition palettes so conditions stay distinguishable
-at 40 px.)
+### The theme follows the sun
 
-### Two Engines
+**Follow the Sun is an Appearance** (`services/theme.tsx`), and the default.
+The four are Follow the Sun, Light, Dark and Follow the System; the palette's
+`A` cycles them starting from what the sun shows, so the first press out of
+Follow the Sun always changes the page. Under it the app is Light while the sun
+is up and Dark once it is down; the other three are what they say. The
+devtool's Sky module has a Follow the Sun toggle beside its timeline.
 
-| Engine | Where | How |
-|--------|-------|-----|
-| **Sky** (`wallpaper/`) | The `sky` weather style, full-page, when WebGL2 is available | One full-screen fragment pass: sky gradient + sun glow/disc, twinkling stars, a phased moon shaded as a lit sphere, two parallax fbm cloud decks lit toward the sun, drifting fog, stochastic lightning flashes, wind-sheared rain streaks, five depth layers of slow fluttering snow, theme veil, dither. |
-| **Gradient** (`gradient.ts` + `gradient-stack.tsx`) | The `gradient` and `classic` weather styles; widget cards under every style; the Sky's fallback when WebGL2 is missing (or the devtool pretends it is) | Sun-glow radial + cloud wash + zenith→horizon linear gradient built from the scene palette, crossfaded via the layer stack. (`gradient.ts` also keeps the original hand-tuned per-condition palettes for the devtool thumbnails.) |
+**The switch is at the sun's own crossing**, the middle of the ±45-minute
+window, where the sky moves fastest: a cut lands softest inside motion.
+`solarThemeAt()` (`lib/solar-theme.ts`) is the plain rule: light between
+sunrise and sunset, dark outside, null when the sun times are unknown (and then
+nothing switches).
 
-The Sky engine (`WallpaperRenderer`):
-- treats every scene as a **target**: each uniform eases in with its own time
-  constant (sky ≈ 1.8 s, clouds/precipitation ≈ 2.5 s), so a refetch never snaps;
-- eases *where a body is drawn* far faster (≈0.25 s for the sun and moon): a
-  live clock moves them a thousandth of a screen a minute, so that easing is
-  only ever felt when a hand drives the clock (the devtool's date and time
-  sliders), and there the disc should feel attached to the slider. A real jump,
-  of the clock or of the place, **glides**, measured between one **target**
-  and the next (a large gap between the target and where the disc has eased to
-  is only lag, and gliding on that would restart the disc mid-drag). See
-  [Gliding across a jump](#gliding-across-a-jump);
-- accumulates cloud/snow **drift in JS** from the smoothed wind, so a wind change
-  glides instead of teleporting the sky, and the snow takes that wind *slowly*
-  (see [Stirring the wind](#stirring-the-wind-rain-and-snow-easter-egg));
-- lets a hand dragged across the page add to the wind, same section;
-- renders at a **pixel budget** (≈1.1 M px desktop, ≈0.5 M px phones) and backs
-  off further when frames run long, recovering when they are cheap. The scene
-  is soft, so CSS upscaling is invisible. Pixels are the only lever here: the
-  **frame cap can only ever deliver a whole divisor of the refresh rate**,
-  because the loop can skip an animation frame but cannot invent one between
-  two, so a cap of 45 on a 60 Hz panel silently delivers 30. It is 60 on both
-  profiles for that reason. And because the cap holds `dt` at the budget
-  whatever a frame actually cost, "cheap enough for more pixels" has to mean
-  *meeting* the cap rather than beating it. Measured against a fraction of the
-  budget it was unreachable, and a canvas scaled down once never came back;
-- **leaves each cloud deck the moment its coverage is zero.** The deck's own
-  eight-octave noise decides that. Everything past it (a second eight-octave
-  sample for the sun-facing rim, the lighting, the silver lining) is then
-  multiplied by that zero by the caller. The test is `cov <= 0.0` and not a
-  threshold, so no pixel carrying any cloud is touched and the frame is
-  bit-identical; verified that way against the version without it, over fifty
-  states built from twelve real scenes captured off the page. It is
-  the single largest saving in the shader, because the rim sample is the most
-  expensive thing in the frame and a clear night asks for it on nearly every
-  pixel;
-- pauses when the tab is hidden, renders a single still frame under
-  `prefers-reduced-motion`, and survives context loss;
-- fades the canvas in only after the first frame is painted (no black flash).
-
-### Gyroscope Tilt (Sky engine)
-
-Rain and snow fall along **gravity**, not along the bottom of the viewport:
-lean the phone and the streaks lean with it, turn it on its side and the snow
-crosses the page sideways. A raindrop re-aims in a moment, a flake over
-seconds, because a flake has a body and a raindrop barely does. Only the Sky
-has drops to lean, so this is a Sky feature; the Gradient and Classic styles
-ignore it.
-
-**It is the same vector the wind leans.** See [Wind does not shear the
-weather; it tilts the way it falls](#wind-does-not-shear-the-weather-it-tilts-the-way-it-falls),
-which is where the four uniforms, the ease and the spring all live. A tilt
-moves gravity, a wind adds a term across it, and the weather only ever sees the
-sum:
+**The handover** puts the cut in the middle of a short animation too
+(`SOLAR_HANDOVER`):
 
 ```
-fall = g + perp(g) · lean
+0           the sky starts moving to the new theme: the wallpaper stack
+            crossfades over skyMs (3000) instead of its usual 0.7 s, and the
+            Sky's shader is put on the same clock by setThemeEase.
+chromeAtMs  (1500) the chrome changes: one commit inside a view transition,
+            so the page crossfades as one composited image.
+skyMs       the sky settles, and the notice lands.
 ```
 
-**The gyroscope is a second gravity, not a camera.** This sky is a world held
-inside the page: its zenith is the top of the viewport, its horizon the bottom,
-the sun and moon cross it where the ephemeris puts them, and the wind blows
-across it. Tilting the device does not turn any of that. It tells that world
-which way is down, and only the things that FALL answer.
+`wallpaperTheme` is what makes the lead possible: the scene, the wash's weight,
+a picture's half and the profile read it, while the chrome (page ground, bezel,
+ink) reads `chromeTheme`. Through twilight the scene is identical under either
+theme ([the twilight look](./ambient-sky.md#the-sky-and-the-theme)), so the
+sky's half of the handover crosses nothing. Where view transitions are missing
+(Firefox, reduced motion) the chrome simply changes.
 
-The other reading, where the device is a window and the view counter-rotates,
-is a different feature, and it now exists as one: [the sky
-window](#the-sky-window-any-weather-easter-egg). There the view turns, so the
-sky gradient, the sun, the moon, the stars, the clouds and the fog all turn
-with it, and it is no longer about rain and snow at all. The two are kept apart
-on purpose: the stage stays a composition with a gravity in it, and the window
-is a place.
+`<SolarThemeSync />` (root layout) hands the sun's answer to the theme service
+(`setSunTheme` via `useSunThemeSlot`) under every Appearance, so choosing
+Follow the Sun lands on it at once. Under Follow the Sun it moves the page two
+ways:
 
-`lib/gyroscope.ts` turns a `deviceorientation` reading into one unit vector:
-where *down* is in the page's frame.
+1. **The first answer of a visit, quietly.** Until a forecast lands, Follow the
+   Sun trusts the system (the bezel's boot script does the same for the first
+   frame). If the sun then disagrees, the page crossfades once, with no notice.
+   Nothing about the sun's answer is saved.
+2. **A crossing watched live, staged**: the handover, then a one-line notice
+   naming the mode. Picking another Appearance while the sky is moving calls
+   the whole handover off; so does the clock turning back across the line.
 
-```
-g_device = (cos β · sin γ, −sin β, −cos β · cos γ)     // Earth-down, in device axes
-```
+Devtool time travel crosses it for real: playing the day in the Sky module
+changes the theme at sunrise and sunset exactly as the real clock would.
 
-Alpha (the compass heading) drops out, which is right: which way you face
-cannot change which way things fall. The first two components are the part
-lying in the screen plane, turned by `screen.orientation.angle` so a rotated
-layout still gets gravity down its own page, and blended back to upright when
-the screen is too flat to have a direction (a phone on a table).
-
-- **Not React state.** Readings arrive ~60×/s and nothing renders from them, so
-  they go from the sensor to `WallpaperRenderer.setGravity()`. There is one
-  shared `deviceorientation` listener, however many surfaces are drawing.
-
-#### Asking for it, on a rainy day
-
-WebKit puts `deviceorientation` behind
-`DeviceOrientationEvent.requestPermission()`, which needs a user gesture, so
-on an iPhone the whole feature above waits for one tap. Until this, the only
-place to make it was the wallpaper picker's Weather tab: three taps from the
-page, offering a switch for something the visitor has never seen.
-
-So on a rainy or snowy sky, **resting a finger on the background brings up what
-the tilt does, and a button under it asks.** Two presses to reach the browser's
-dialog, and the first is why the second gets a yes. A permission prompt that
-arrives with no idea what it is for gets refused, and a refusal is final
-everywhere: there is no second prompt, only the site settings nobody opens.
-The first press buys the explanation; the second spends the one chance.
-
-The picture does the explaining. A phone tilts one way and the rain inside it
-tilts the other: the relationship the shader draws at full size, small enough
-to fit above a paragraph. The words "the rain leans" are the part nobody reads.
-
-**Where the camera stands decides whether it reads at all**, and the first
-version got that wrong. Drawn in the WORLD's frame (rain fixed, phone turning),
-the rain never changes on screen, so the one thing the viewer is meant to
-notice is the one thing that never moves. But nobody watches their phone from
-the world's frame: it is in your hand, so the screen is what holds still and
-the rain is what swings.
-
-So the camera follows the device part of the way. With a device tilt of θ the
-phone is drawn at `c·θ` and the rain at `(c − 1)·θ`, with c = 0.45 and θ = 24°:
-
-| | drawn at | what it does |
-|---|---|---|
-| the phone | c·θ = ±10.8° | tilts, so the cause is on screen |
-| the rain | (c − 1)·θ = ∓13.2° | tilts the other way, so the effect is too |
-| between them | θ = **24°** | the device's own angle, exactly, at every instant |
-
-Nothing is exaggerated to get that: the two are simply both moving, where at
-c = 1 only one of them was. The rain's group is nested in the phone's, so its
-own rotation stays −θ whatever the camera does and only the phone's amplitude
-carries c. That also means the refusal pose (both still, rain straight down
-the screen) now differs from the rocking one in two ways rather than one.
-
-Two more things make the picture hold up, and both are the kind of bug that
-only shows at an angle:
-
-- **The rain field is sized by the screen's half-diagonal, not by the screen.**
-  It turns under the phone, so a field only as wide as the screen swings out
-  from under its own corners, and what you then see cutting the shower off is
-  the field's edge rather than the phone. 79.2 units about the rock's centre covers
-  every corner at every angle, so θ can change without touching it. (The
-  viewBox has the same problem from the other side and does *not* get that for
-  free: it has to hold the phone at the angle the phone is **drawn** at, c·θ
-  (107 × 164), or the SVG viewport cuts a straight line through the corner.)
-- **It is CSS, not a JS animator.** The rain is level only for as long as the
-  phone's rotation and the rain's counter-rotation stay exactly opposite, and
-  two declarative animations of one duration cannot drift where a dozen
-  independently started JS springs can, over a live WebGL sky, on a main
-  thread that is already busy. Three animations drive the whole thing whatever
-  the drop count, because the rain is a seamless tile stamped three times and
-  slid by exactly one tile, rather than an animation per drop. Under
-  `prefers-reduced-motion` they are simply paused at 0%, which is a tilted
-  phone with level rain. The still frame is the animation itself, so there is
-  no second drawing to keep in step.
-
-And it is drawn as **a diagram**: eleven strokes evenly spaced, one length and
-one weight, about five on screen. It has one thing to say, and every drop past
-the few it takes to read as rain competes with it. The spacing is even for the
-same reason: scattered drops read as a simulation, and a
-window showing only two fifths of the field turns scatter into clumps as the
-field rotates through it. The fall is slow, because the rocking is the thing to
-watch.
-
-**And it stays up to say how it went.** The sheet is the only thing on screen
-that can. A refusal especially: the sky simply goes on falling straight down,
-and without a word here the only explanation lives three taps away in the
-picker's Weather tab, which is the problem this sheet exists to fix. So
-it says it once, with where to undo it, and lets itself out. A grant gets a
-word too, shorter, because the phone in your hand is about to do the thing and
-the sheet is in front of it.
-
-| outcome | the sheet says | the picture | gone after |
-|---|---|---|---|
-| granted | tilt is on, lean the device | keeps rocking; it is real now | 1.4 s |
-| refused | motion access was refused, and where to allow it again | **upright, rain straight down**, which is what a refusal leaves you with | 3.0 s |
-| neither | nothing; the offer is still standing | keeps rocking | — |
-
-"Neither" is WebKit's gate declining to even consider the request (no user
-gesture): no dialog was shown and nothing was answered, so the buttons simply
-come back.
-
-That the outcome is reportable at all is why `setGyroEnabled` **hands the
-access back** rather than only storing it. A toggle can afford to ignore how it
-went; a sheet that has to speak cannot.
-
-**It is offered once.** `weatherGyroPrimed` is written the moment the sheet is
-answered, either way, and nothing clears it, not even a close or a swipe,
-which mean the same thing as *Not now*. It is written **before** the asking,
-not after: a prompt that is refused, and no browser asks twice, must not leave
-the offer armed for the next rainy day, and neither must a visitor who walks
-away with the dialog still up. An introduction repeated is a nag, and
-this one interrupts a page the visitor came to for something else. It is also
-armed by the *absence* of things, so every one of them is a reason to stay
-quiet (`shouldOfferTilt` in `lib/tilt-primer.ts`): the offer is spent, or there
-is no permission to ask for (everywhere but WebKit the sky is already tilting,
-and a refusal already counts as answered), or the visitor went to the picker
-and turned tilt off, or nothing is falling, or the Sky is not what paints.
-
-**And it has to sit on iOS's own press first.** A finger resting on the page
-starts a ~500 ms clock in WebKit; when that fires, WebKit's gesture recognizer
-takes the touch, stops sending pointer events and fires `pointercancel`. That
-lands right on top of a 400 ms hold and kills it before it can fire. The fog
-wipe has suppressed `-webkit-touch-callout` on `pointerdown` since it shipped,
-which is why its hold works on a phone; the primer did not, which is why its
-did not. Both now go through `holdCallout()` in `lib/poke.ts`, along with
-`TOUCH_HOLD_MS` / `TOUCH_HOLD_SLOP_PX`: one hold with one definition, instead of
-two copies of 400/10 and three comments promising they agreed.
-
-The suppression covers the **whole press**, not just the hold: handing it back
-the moment the sheet opens would let iOS's own clock run out underneath and put
-the callout up over it. It is saved and restored rather than cleared, because
-the page sets the property for its own reasons (`.system-surface` does).
-
-> Not verifiable in Chromium, and worth knowing before trusting a test here:
-> `-webkit-touch-callout` is WebKit-only and Chromium's CSSOM **drops it
-> silently**: `CSS.supports` is false and `setProperty` is a no-op. A harness
-> that reads the property back always sees nothing, whatever the code did. What
-> can be checked headlessly is that the calls happen at the right moments, by
-> spying on `setProperty` / `removeProperty`.
-
-**And only on the system surface.** Those five are about the scene; this last
-one is about where the finger landed, so it lives in the recognizer instead:
-the press must be inside `.system-surface`, the page that has declared itself
-one OS composition rather than a document (see "System chrome / System surface"
-in `docs/design-system.md`). The wallpaper is full-page on *every* route, so
-without this an article is fair game too, and `isBackgroundPress` cannot tell
-the difference, because it asks whether anything **paints** over the wallpaper
-and a paragraph paints nothing. On an article the whole column answers
-"background", so a finger resting in the margin, or on the prose itself, would
-put a permission sheet over what somebody is reading. A long press on a
-document belongs to the reader. Keying off the class rather than a list of
-routes also means any surface that later opts into being system UI gets this
-for free, and no route knowledge lives in the ambient system.
-
-**Not a fourth easter egg**, whatever the sheet's own copy says. The eggs are
-rewards for poking at a sky that owes you nothing; this is a feature explaining
-itself, and it stops existing once it has been. (The copy greets it as a find
-because that is honestly how it arrives for the visitor. The distinction is
-about lifecycle, not about how it feels to meet.) But it shares a background with [the gust](#stirring-the-wind-rain-and-snow-easter-egg),
-which on a rainy day is armed on that same background. They cannot
-collide, because **a gust is travel and this is stillness**:
-
-| the hand | what it is |
-|---|---|
-| rests 400 ms, going nowhere | the offer |
-| moves at all before that | the gust's, or the scroller's; this stands down for the rest of the press |
-| lifts early | nothing |
-
-A hold that has gone nowhere has reported no speed to `attachWindStir`, so
-there is no gust to take away. And like the gust, this recognizer never calls
-`preventDefault` and never touches a style: a press that turns out to be a
-scroll scrolls, on the browser's own fast path. The 400 ms is
-`TOUCH_ACTIVATION`'s, the same beat as the widget grid and the fog wipe, so a
-visitor who has learned one hold has learned all of them.
-
-The sheet opens from a `setTimeout`, which is *not* a user gesture. That
-is fine, because the gesture WebKit wants is the button inside it, which
-reaches `requestPermission()` in the same task as the press.
-
-#### Across gravity, not across the page
-
-A storm's wind is horizontal **in the world**, and horizontal means
-perpendicular to the way things fall. That is why the lean is laid along
-`perp(g)` and not along the page's own x. Turn the phone on its side and a real
-snowfall does not stop being laid over: the whole storm turns with you, every
-flake keeping its angle to gravity. Measured, that angle is invariant to
-**0.00°** across tilts of 0°, ±30°, 60°, 90° and −45°, for both fields and both
-signs of wind.
-
-Holding the wind along the page instead is the other reading, and it is the
-wrong one: at ninety degrees the wind would blow straight *down* the fall,
-speeding the rain up rather than leaning it (the measured lean collapses from
-14.7° to 0.0° as the phone turns), and nothing like that happens outdoors.
-(An earlier draft did hold it across the page, of necessity rather than choice:
-while the wind was still a positional offset added to a flake's cell, a term
-that turned with gravity would have slid the whole field across the page as the
-snow came round. Once the wind became part of the travel that reason dissolved,
-and only the choice was left.)
-
-#### Each field re-aims at its own weight
-
-Against a 54° flick of the wrist, held:
-
-| | at 0.12 s | at 0.84 s | at 2 s | at 5 s |
-|---|---|---|---|---|
-| rain: ease, `RAIN_FALL_TAU` 0.08 s | **97 %** | 100 % | 100 % | 100 % |
-| snow: spring, `SNOW_FALL_OMEGA` 0.9 rad/s | 3 % | 21 % | 56 % | **94 %** |
-
-…and no overshoot anywhere: both arrive at 54° and stop.
-
-A raindrop at terminal velocity really does re-aim in a moment. It is small,
-fast and already all the way down, so only the fastest flick shows its lag at
-all. The snow's is not a slower ease but a **critically damped spring**, and
-the difference is what each does at the *start*: an ease leaves at full speed
-and decelerates, which reads as drag, while a spring leaves at rest and has to
-be accelerated, which reads as mass. Critical damping means no overshoot, and
-the integration is implicit, so no length of stalled frame can make it ring.
-
-**One ease and one spring, for the tilt and the wind alike.** A flake's body
-cannot know which of the two moved, and a sky where the same flakes came round
-at two rates depending on the cause would be a sky with two physics in it. The
-constants are the ones the snow's shipped answer to a *change of wind* was
-already worth, so a tilt costs the same seconds. That is slower than a tilt-only
-draft of this wanted, and right for the same reason.
-
-**The sensor's own noise is filtered at the sensor.** `SENSOR_TAU` (0.12 s) in
-`lib/gyroscope.ts` smooths the reading against the clock, not against a frame
-count, because events arrive at whatever rate the device feels like. That lag
-belongs to an accelerometer (one at rest on a table still wanders a degree or
-so) and not to a raindrop, which is why it is no longer folded into the rain's
-own easing.
-
-**The snow keeps its travel instead of a clock.** `uSnowFall` accumulates in
-the renderer, which lets the direction come round slowly without dragging the
-flakes that have already fallen along with it: each one carries on the way it
-was going and curves into the new down. (Max-blended frame stacks of a turn
-draw exactly that: paths vertical where the flake started, bending over as
-gravity takes hold.) The direction is **not** normalised before it is
-accumulated. A leaning fall really is a longer one (gravity plus wind is the
-hypotenuse), so the vector's length is the speed, and `uRainFall` carries the
-same for the rain. The vector wraps at an hour for the reason the shader clock
-does: past that, float32 has no fraction left to place a flake inside its cell
-with.
-
-The rain needs none of that: its streaks are sampled in a frame aligned to
-`uRainDown` (`fallSpace()`, the one rotation in the shader, because a streak is
-a drop's motion blur and has to lie along its travel), and a drop lives a few
-tenths of a second and leaves no path behind it.
-
-**A flake's place never depends on where down is.** Only the travel and each
-flake's own flutter follow gravity; the cells, the rows and the long waft stay
-with the page, because anything positional that turned with gravity would slide
-the whole field about as the snow came round, which is the one thing a tilt
-must not look like. (The wind is no longer in that list. It left when it
-stopped being an offset and became part of the travel.) Upright, every one of
-those lines is the line it replaced: the rendered frame is **bit-for-bit** the
-sky without a gyroscope, at every wind and intensity tested.
-
-- **Off under `prefers-reduced-motion`.** That sky is one still frame, so both
-  downs snap to the reading rather than animating toward it, and the snow's
-  travel is the clock the still frame always read, aimed where it is pulled.
-
-**Access.** Every browser with a sensor fires the event freely except WebKit,
-which gates it behind `DeviceOrientationEvent.requestPermission()` *and* a user
-gesture. So:
-
-| | Behaviour |
-|---|---|
-| Chrome / Firefox / Android | The saved wish (`weatherGyro`, **on** by default) is honoured on load; the sky tilts by itself. |
-| iOS / iPadOS | The wish waits for one tap: the **Tilt** row in the picker's Weather tab, or the devtool's Sky → Gyro row. The sky window's own offer asks too ([Asking for the window](#asking-for-the-window)). Turning it on *is* the gesture that asks. |
-| Granted before | `weatherGyroGranted` records it, and access is re-taken silently on the next load. That record is the only reason `requestPermission()` is ever called without a gesture, so a visitor who has never answered is never prompted out of nowhere. |
-| No sensor (desktop) | `DeviceOrientationEvent` exists in every desktop browser and fires in none, so "on" is not "working": the provider watches for a first reading and the Tilt row says *no motion readings* rather than pretending. |
-
-### The Sky Window (any-weather easter egg)
-
-Pull the home screen down, in any weather, and the stage becomes a **window**: the phone's compass heading says which way you face, its pitch how
-far up you look, its roll which way is level. The sun and the moon are where the
-ephemeris puts them: turn round and they are behind you, look up and the zenith
-is overhead, tip the phone down and there is a horizon with ground under it.
-Swipe up and it goes back to being a wallpaper. On WebKit the first pull brings
-up [its offer](#asking-for-the-window) instead, because motion is behind a permission.
-See [The pull](#the-pull) for the gesture.
-
-It is the other reading of the gyroscope that [Gyroscope
-Tilt](#gyroscope-tilt-sky-engine) deliberately is not, and it lives in its own
-module, `lib/sky-window.ts`.
-
-**Frames.** The world is East-North-Up (the frame `deviceorientation` is
-defined in), and azimuths are clockwise from north, as `lib/solar.ts` gives
-them. A view is three unit vectors in it: the screen's right, its top, and where
-it looks (out of the back of the phone). The W3C angles are intrinsic Z-X'-Y'',
-`R = Rz(α)·Rx(β)·Ry(γ)`; the screen's axes are the device's turned by
-`screen.orientation.angle`, the same turn `gyroscope.ts` applies to gravity. The
-two agree numerically: gravity read off the window's view matches
-`gravityFromOrientation` to 1e-16 over twenty thousand random poses in all four
-screen rotations, so the window's horizon and the rain's fall can never
-disagree about which way is down.
-
-**The compass is not where you would expect it.** Alpha is only a heading
-where the browser says so:
-
-| browser | where north comes from |
-|---|---|
-| Chrome / Android | a separate `deviceorientationabsolute` event; while it is streaming, the relative one is ignored |
-| Firefox | `deviceorientation` with `absolute: true` |
-| Safari / iOS | alpha is relative to wherever the phone was when listening started; `webkitCompassHeading` rides beside it. The offset between the two is estimated, but only while the phone's top edge lies level enough to point anywhere (the compass heading is a heading of the top edge, which a phone held straight up does not have), and slowly after the first measurement. Simulated against a known offset, the recovered heading is within 0.1° held upright, tilted back past vertical and rolled. |
-| no compass at all | the first reading is anchored onto the stage's own heading (south; north in the south), so the window opens onto the sky it left. The devtool readout marks the heading with `~`. |
-
-**True north, not magnetic.** Every compass a browser hands over is magnetic:
-Chrome's `deviceorientationabsolute` and Firefox's `absolute: true` are
-Android's rotation vector, and WebKit's `webkitCompassHeading` is CoreLocation's
-`magneticHeading` (`WebCoreMotionManager.mm`). The sun and moon are placed
-against true north. The gap between them, the magnetic declination, is more
-than "a few degrees": about +13° in San Francisco and Sydney, −12.5° in New York, +15° in
-Seattle, −7.6° in Beijing, and it moves every year. So every magnetic heading
-is turned by the declination at the observer's place and time, from the World
-Magnetic Model (`lib/magnetic.ts`: WMM2025, the NOAA/BGS coefficients embedded
-verbatim, valid 2025–2030 and held at the nearest end outside that). It rides
-on the scene as `celestial.declination`, from the same coordinates and the
-same (devtool-able) clock as the sun and moon, and is 0 without coordinates, since
-a guessed place is no better than none for a field that varies by 30° across a
-continent. For Chrome's absolute alpha the correction is `alpha − D`; for
-WebKit it goes into the measured offset (`heading + D`), and a change of place
-moves the existing offset by the difference rather than waiting for a level
-phone to re-measure it. Checked against all 100 of the model's published test
-values (to their printed 0.01°), and against an independent implementation at
-5,000 random points. No global model removes the local field (a steel desk, a
-car, a phone case magnet); that is the compass's own error.
-
-**The renderer does the geometry, the shader the pixels.** `uWindow` eases
-0 → 1 over `WINDOW_TAU` and back, and every line of the shader that reads the
-window's uniforms sits behind a test of it. Checked strictly: the new
-shader and the previous one compiled side by side, fed the same randomized
-uniforms (rain, snow, fog, strikes, meteors, wipes) with `uWindow = 0`, render
-**bit-identical** frames, so the stage did not move by a single 8-bit step.
-
-Through the window:
-
-- **The sky is coloured by elevation, not by height on the page.** Each pixel is
-  a ray; the gradient reads `HORIZON_Y + 0.9·sin(elevation)`, the same mapping
-  the stage uses to place the sun, so a colour at some height on the stage is
-  the colour at that elevation in the window. The star fade and the fog's
-  low-down thickening read the same value.
-- **The sun and moon are projected, not staged.** The renderer projects their
-  directions (a pinhole, `WINDOW_FOV_DEG` = 80° along the longer side of the
-  screen) and hands the shader a screen position, so every line that draws a
-  disc, a glow or a halo works in screen space unchanged. A body behind you is
-  parked off screen in the direction it lies, so its glow falls away
-  continuously as it swings round.
-- **They fly there, and that is the first hint.** The bodies do not ride the
-  sky's own ease: they hold where the stage had them while the window opens,
-  and after a beat (`BODY_FLY_DELAY`, 0.25 s) fly to where they really are over
-  `BODY_FLY_SEC` (1.2 s), ease-in-out, on a slight upward arc. A moon that is
-  really behind you flies off the edge you would have to turn toward. Closing
-  flies them back the same way.
-- **An edge hint for a body off the glass** (`<SkyBodyHints />`). Once the
-  bodies have landed, one that is up but not on screen (to a side, overhead,
-  behind you) gets its solid glyph and a small chevron at the edge of the
-  screen, on the line from the centre toward it; turn that way and it comes
-  into the window and the hint lets go. Faint (60 %), no label, clear of the
-  settle spinner's corner. The moon counts as up only when the sky would show
-  it with nothing in front of it (so not a daytime moon lost in the light), and
-  a clouded body on screen gets no hint. The renderer publishes the bodies
-  every frame (`lib/sky-bodies.ts`); the hints move their own elements, with no
-  React render per frame. The glyphs are the devtool's: `MoonGlyph` at the
-  real phase and a `SunGlyph` of the same family, now shared in
-  `components/body-glyph.tsx`. The sun has rays and the moon never does: a
-  plain lit disc is a full moon, and the two must never be taken for each
-  other. Every one of them reads `scene.moon.phase`, which follows the
-  effective clock, so the devtool's date and time move them all together with
-  the sky.
-- **Through a sunrise or a sunset the sun's hint is the event.** For most of
-  the ±45-minute phase windows (`lib/phase.ts`) the disc is under the horizon,
-  so a hint for the body alone went out the moment it set (−1°). At dusk,
-  before the moon is up, the window then had nothing to point at, at the best
-  moment of the day to be looking. So in those windows the sun's hint is drawn as a
-  `SunEventGlyph` (half a sun on a horizon, an arrow up or down; the same
-  solid family) and points at the sun's **light**: the sun while it is up, the
-  horizon under it once it is down (`sun.light` on `WindowBodies`). Facing the
-  glow, the glow is its own hint and the edge lets go, as for any body on the
-  glass. The moon's hint is unchanged: a moon rising at dusk is still worth
-  finding.
-- **The crescent faces the sun.** The stage can say "waxing is lit on the
-  right"; a sky you can turn around in cannot. The lit limb is turned toward the
-  sun along the great circle between them, whatever the phone's roll.
-- **The decks are planes overhead**, the near one lower, so they converge on the
-  horizon and slide past each other as you turn. A plane at a grazing angle has
-  more detail per pixel than noise can hold, so toward the horizon each deck
-  gives way to what it averages to (its cover, in its overall colour). That is
-  what a real overcast does there anyway, and it skips the noise where only the
-  average shows. The plane's x is the stage's, so the drift the wind has banked
-  carries on along it.
-- **The stars sit on a sphere that turns with the sidereal clock**
-  (`celestial` on the scene: latitude and local sidereal time), so they rise in
-  the east and the pole stands at the latitude's height. A 3D lattice, one
-  candidate per cell; a star smaller than a pixel would pop as the view moves
-  across the pixel grid, so each is drawn at least a pixel wide and dimmed by
-  the area it gained.
-- **Below the horizon is ground**: nothing drawn on it, a shade of the
-  horizon's own colour, darker toward your feet.
-- **The rain leans by the wind across your line of sight** (`windWorld` on the
-  scene, against the level direction square to where you look). Face into the
-  wind and it comes straight down at you; turn side on and it lays over. It
-  still falls along real gravity: the window follows the gravity whatever the
-  tilt's own switch says, because a window has a world in it.
-
-What stays in screen space: the rain and snow fields themselves, lightning,
-the strike, the meteor and the fog wipe. They are things in front of the glass
-or answers to a finger on it.
-
-**Session-only.** An easter egg you found is not a setting you made; nobody
-should come back tomorrow to a sky that follows their hand without knowing why.
-It pauses (eases back to the stage) away from the home, where the page sits on
-the wallpaper as its ground and a ground that swung with the hand would be the
-opposite of that, and it is off under `prefers-reduced-motion`. The picker's Sky tile
-never follows it.
-
-**Asking for the place in the same breath.** A window that turns true to north
-onto the sky over the wrong city has failed at its one job, and the IP guess
-is often a city off. So while the place in use is only that guess (and
-the browser has not refused better), a pull that would open the window goes
-through the sheet first, which says it will ask for the location too. "In use"
-is read from the location itself (`locationStatus` is `askable` unless a fix is
-actually the place in use), not from whether precise location is *meant* to be
-on. A remembered Safari Allow whose fix timed out, a "granted" whose fix failed, or a permission
-the browser won't report all mean GPS in intent while the sky still sits over
-the IP's city, and each of those used to open the window there without asking.
-
-One tap then asks for both, through `usePermissions` (see "Permissions" below),
-which owns the order. Where motion already flows, the sheet is only there for
-the place: it says so, and its second button opens the window without it. The
-location offer is made once a session (`skyLocationOffered`, the window's own
-policy), and only an opening that actually made it spends it; after that a
-pull is just the window. The pull and the sheet decide "does this ask for the place?"
-with the one function, `skyAsksPlace`, so a sheet can never come up saying
-something the pull did not mean. The outcome line says which it got: the sky
-over where you are, or still on the network's guess.
-
-### Permissions (motion, location → the offers)
+### Permissions
 
 Three offers stand in front of a browser prompt: the tilt (rain and snow), the
-sky window, and the location. They share one pipeline, so each layer is
-written once and a new offer is mostly copy:
+sky window, and the location. They share one pipeline:
 
 ```
-provider facts            gyro access · geolocation permission · the place in use
+provider facts            gyro state · geolocation permission · the place in use
   → lib/permissions.ts    status per kind: ready | askable | refused | unsupported
   → usePermissions(kinds) { status, askable, request() }; request asks in order
   → the feature's policy  shouldOfferTilt · skyOpenAction · skyAsksPlace · once-flags
   → PermissionSheet       usePermissionOffer (offer → asking → outcome) + the sheet
 ```
 
-- **Facts** live in the provider and nowhere derives from them but
-  `lib/permissions.ts`. They disagree with each other on purpose-built edges:
-  Safari reads `prompt` after an Allow; a `granted` location can still be on
-  the IP because the fix failed; WebKit's motion gate has no query at all.
-- **Status** is read from what is *in effect*. Motion is `ready` when readings
-  can flow; the location is `ready` only when a fix is the place in use. This
-  is the rule every drift so far broke: a window opened over the IP's city
-  because "GPS is on" was read as "GPS is in use".
-- **`request()`** asks for the kinds given (the askable ones by default) in the
-  only order that works: motion first and synchronously, because WebKit opens
-  its gate only inside the tap's own task; then the location, which needs no
-  gesture and so waits for motion's answer rather than stacking a second dialog.
-  Call it straight from the press, with nothing awaited before it.
-- **Policy** is each feature's: whether to offer at all, and how often (the
-  tilt's once-ever `weatherGyroPrimed`, set by `setTiltPrimed` around the ask;
-  the window's once-a-session `skyLocationOffered`). Permissions never decide
-  those, and the policies never re-derive a status.
-- **The sheet** (`PermissionSheet`, `usePermissionOffer`) knows nothing about
-  which permission it fronts: `ask(fn)` runs whatever `request()` call the
-  feature makes and lands on the outcome it maps to.
-
-A new permission-backed feature adds a kind to `PermissionKind` (with its
-status function and its branch in `request()`) only if the browser guards
-something new; otherwise it picks its kinds, writes its policy, and renders a
-`PermissionSheet`. The devtool's tilt readout and the picker's tilt note read
-`motionStatus` too.
-
-**Devtool.** Sky → Window toggles it (on a desktop too) and reads out heading ·
-pitch. While it is on, Heading and Pitch sliders drive the view by hand; the
-sensor is ignored until the row's star hands it back. The **Motion** fold under
-it shows what the sensor is actually saying: where north came from (`absolute`,
-`flagged`, `webkit`, `anchored`, `simulated`), the event rate, raw α β γ, the
-screen angle, WebKit's compass heading and accuracy, the offset applied to
-reach north, the magnetic declination turning it to true north, whether a
-correction is in flight, the view's heading, pitch and
-roll, the gravity tilt, and which settle reasons stand.
-
-#### Asking for the window
-
-WebKit puts `deviceorientation` behind
-`DeviceOrientationEvent.requestPermission()`, which needs a user gesture, so
-on an iPhone both the tilt and [the sky
-window](#the-sky-window-any-weather-easter-egg) wait for one tap. The picker's
-Weather tab has a switch for it, three taps from the page, offering something
-the visitor has never seen.
-
-So **pulling the home down, in any weather, brings up what the window does,
-and a button under it asks**, while the gate still stands (see [The
-pull](#the-pull)). Two gestures to reach the browser's dialog, and the first is
-why the second gets a yes. A permission prompt that arrives with no idea what
-it is for gets refused, and a refusal is final everywhere: there is no second
-prompt, only the site settings nobody opens. The pull buys the explanation; the
-tap spends the one chance. Once the gate is passed (or where there never was
-one), the pull simply opens the window.
-
-It is the window's own sheet (`SkyWindowSheet`), not the tilt's: [the tilt
-primer](#asking-for-it-on-a-rainy-day) is the rain-and-snow egg's long press,
-offered once, for the weather that falls; this one is the pull's, in any
-weather, for the window. It is made every time the gate still stands,
-because a pull past the point of no return is deliberate enough that answering
-it is not a nag. A yes here also turns the tilt on, which answers the tilt
-primer's question, so a rainy day has nothing left to offer after it.
-
-The picture does the explaining: a phone pans across a faint sky, and inside
-the phone the same sky is drawn in full, holding still while the phone moves
-over it. The sun comes into the window and goes out of it again. It is drawn
-from the world's frame. The tilt's old picture (a phone rocking, the rain
-inside it swinging the other way) had to avoid that frame, because there the
-thing to notice was the rain moving, and from the world's frame the rain never moved.
-Here the thing to notice is that something holds still. The world inside the
-phone is nested in the phone and undoes its travel, and it is CSS for the same
-reasons the rain's counter-rotation was: two declarative animations of one
-duration cannot drift apart, and this plays over a live WebGL sky. Under
-`prefers-reduced-motion` both are paused at 0%, which is the phone framing the
-sun.
-
-**And it stays up to say how it went.** The sheet is the only thing on screen
-that can. A refusal especially: the sky simply stays a wallpaper, and without a
-word here there is no explanation anywhere. So it says it once, with where to
-undo it, and lets itself out. A grant gets a word too, shorter, because the
-window is already opening behind the sheet.
-
-| outcome | the sheet says | the picture | gone after |
-|---|---|---|---|
-| granted | hold the phone up and turn around; the window opens | keeps panning | 1.4 s |
-| refused | motion access was refused, and where to allow it again | **parked between the sun and the moon**, a window that cannot turn | 3.0 s |
-| neither | nothing; the offer is still standing | keeps panning | — |
-
-"Neither" is WebKit's gate declining to even consider the request (no user
-gesture): no dialog was shown and nothing was answered, so the buttons simply
-come back. A hold after an earlier refusal opens straight onto the refusal,
-because it is the only thing still true.
-
-That the outcome is reportable at all is why `setGyroEnabled` **hands the
-access back** rather than only storing it. A toggle can afford to ignore how it
-went; a sheet that has to speak cannot. A grant also turns the tilt's saved
-wish on: the window lets things fall along gravity anyway, and a yes that left
-the tilt off on the next rainy day would be a yes only half taken.
-
-#### The pull
-
-The home composition sits on the ground: identifier, greeting and widgets all
-in the lower part of the screen, with the sky above them. **Pull it down from the top
-and it sinks: the eyes lift.** Past a point, letting go opens the window and the
-home keeps going the way it was already going, out of the bottom of the frame
-(with the search button under it). **Swipe up** in the window and it rises back
-into place, looking down again. `lib/sky-pull.ts`.
-
-Why a pull, and not the press-and-hold it replaced:
-
-- It is the gesture's own metaphor: down on the page is up with the eyes.
-- It is found the way an egg should be. Everybody pulls the top of a page down
-  out of habit (pull-to-refresh), and on the home screen that habit is now met.
-- It shares nothing with the sky's other eggs, which are all hands *on* the
-  wallpaper: a tap for the strike and the meteor, a drag for the gust, a hold
-  for the fog wipe or, on a rainy or snowy day, for the tilt's offer (the two
-  holds are never armed on the same sky). This is the page itself moving.
-- Detecting it needs no permission; the ask comes after the visitor has shown
-  they want in.
-
-**Something is up there.** A pull with no answer stops halfway. So as the page
-comes down, something comes down from above the top edge (`<SkyPullCue />`):
-whichever of the sun and the moon is above the horizon (the moon at its real
-phase). It is drawn as **light**, not ink: a white body with a soft bloom round
-it that descends, grows and brightens with the pull, over "keep pulling to look
-up". Through a sunrise or a sunset it is the event's glyph instead, since the
-window will be about the sunset rather than a disc. At the point of no return
-only the words change, to "let go to look up", with a tick where the platform
-has one (`navigator.vibrate`): the light is one continuous function of the
-pull, so it never jumps, crossing the line or letting go on either side of it. (The first version drew progress as a stroked
-ring round an outline icon, and read as a control; a second put an ink glyph in
-a glass bubble, and read as a button. Progress is brightness now.)
-
-The sky's gradient lifts under it too (`uLift`, up to 0.16 of a screen height),
-so the zenith's colour reaches further down and the stars come lower, as if the
-eyes were rising with the page. **Only the gradient**: the sun and the moon hold
-still under a pull, and so do the clouds and the stars' places, so nothing is
-already on its way before the window has opened. Let go short and it eases
-back.
-
-**No React per frame.** The recognizer writes three CSS variables and three
-attributes on `<html>` and calls the renderer's `previewWindow`; the page, the
-cue and the search button are moved by CSS ("The sky pull" in `globals.css`).
-`--sky-pull` is how far the page has followed, `--sky-pull-progress` how far to
-the line, and `--sky-pull-reveal` how much of the hint shows. The cue and the
-sky's lift both read the reveal, so they arrive as one thing:
-
-- **Nothing for the first ~8 mm** (`REVEAL_FROM_PX`, 46 px of page ≈ 52 of
-  finger), well past where the platform itself calls a touch a drag (Android's
-  touch slop is 8 dp, iOS's pan about 10 pt). A page nudged at its top just
-  moves; the hint starts only once the pull is plainly a pull. It is in px, not
-  a fraction of the line, so moving the line does not move it.
-- **Then a smoothstep that runs all the way to the line** (`REVEAL_TO_PX` is the
-  line itself). Zero slope at the start, so it grows out of nothing with no
-  visible switch-on. And no plateau before the line: an earlier version was
-  full some way short of it, and a stretch where nothing changes is one the
-  hand does not feel, and both halves of the pull read as shorter than they were.
-  Growing until the line keeps the whole second half moving, and the caption
-  turning to "let go" is the one thing that happens at the line.
-- **The line has hysteresis**: armed at `PULL_ARM_PX` (104 px of page, ~141 of
-  finger), disarmed only below `PULL_DISARM_PX` (96). A finger resting on the
-  line trembles a pixel or two; with one threshold the two captions (and the
-  tick) flickered with every tremor. Letting go anywhere while armed opens
-  the window: what the cue says is what happens.
-
-| state | what the home does |
-|---|---|
-| `[data-sky-pulling]` | follows the finger exactly (`--sky-pull`, with rubber-band resistance), fading a little |
-| `[data-sky-armed]` | far enough (`PULL_ARM_PX`): the cue says "let go" |
-| `[data-sky-window]` | accelerates away out of the bottom and becomes untouchable |
-| `[data-sky-returning]` | eases back to rest after a short pull, or when the window closes |
-
-At rest there is no transform at all: one on `<main>` would make it the
-containing block of anything fixed inside it and a stacking context of its own,
-a cost paid on every visit for a gesture most never make.
-
-**It claims the touch on its first move**, because a browser that has begun
-scrolling will not let a `touchmove` be cancelled afterwards, and cancelling is
-the only way to keep iOS's rubber band and Chrome's pull-to-refresh from running
-underneath. So the claim is narrow: at the top of the page, moving down more
-than sideways, on the system surface, and within `CLAIM_BEFORE_MS` of the finger
-landing (measured on the events' own timestamps, not when a busy main thread
-got round to them), because a finger that rested first is picking up a widget
-(`TOUCH_ACTIVATION`'s hold). A move up, a move sideways (the app folder's pages),
-or a page already scrolled is left entirely alone.
-
-**Only on the system surface**, and only on the home: the press must land inside
-`.system-surface`, the page that has declared itself one OS composition rather
-than a document (see "System chrome / System surface" in
-`docs/design-system.md`). A pull at the top of an article is the reader's, and
-the browser's. Away from the home the window pauses and the stage comes
-back, until the home does.
-
-**In the window**, every move over the sky is cancelled (the page underneath is
-out of the frame and must not scroll), and a swipe up of `RETURN_SWIPE_PX`
-closes it. Only over the sky: a sheet or the dock over it keeps its own touches.
-Taps on the sky still reach the strike and the meteor.
-
-### Gliding across a jump
-
-Easing is for drift: the clock moving the sun a thousandth of a screen, a hand on
-a slider. A **jump** (a location fix a city away, a refetch after hours asleep,
-a preset on the devtool's clock) used to snap, because easing a screen position
-flies the disc across the glass in a straight line, a way the sun has never
-moved. Now it glides (`GLIDE_SEC`, 0.9 s, ease-in-out): what is interpolated is
-the body's **direction in the world**, the short way round the sphere, and every
-frame is staged the way the stage stages a real position (`stageSun` /
-`stageMoon`, exported from `lib/scene.ts`) or projected through the window. The
-disc arcs over instead of sliding under.
-
-The window's camera does the same when the view it is handed jumps by more than
-`VIEW_JUMP_DEG` (20°) in one update (the first reading after the window opens,
-a compass arriving late, the devtool's slider let go somewhere else). It turns
-the shortest rotation (a quaternion slerp, `slerpView`) over `VIEW_GLIDE_SEC`
-(0.6 s) toward a target that may still be moving. After the sensor's own
-smoothing no hand turns 20° between two readings, so this never lags one. The
-star sphere eases its latitude and sidereal angle (the latter the short way
-round 360°), so a new place tips and turns the sky rather than cutting it. A
-stopped renderer lands every glide where it was going; reduced motion never
-starts one.
-
-### Settling (the spinner)
-
-Some of what the ambient system does is routine and must stay silent: the sun
-drifting, a poll that returns the same city, a compass wandering a degree. Some
-of it is not, and the sky then spends a second or two getting from one state to
-another. For that second a very small ring stands in the top-right corner
-(`<SettleSpinner />`), fed by `lib/settle.ts`: each source holds a named reason,
-or stands one for a known easing, and the ring shows while any stands.
-
-| reason | stands while |
-|---|---|
-| `sky` | the full-page renderer has a glide running (sun, moon or camera) |
-| `compass` | the window waits for its first reading (up to 1.5 s), or WebKit's compass offset is correcting by more than 6° (until it is within 2°) |
-| `location` | a location fix asked for is in flight; and for 2.6 s after the place moves more than `SETTLE_MOVE_KM` (30 km) |
-| `weather` | the forecast for a relocated place is being fetched, then 2.6 s while the scene rolls in; and 2.6 s after a forecast that changes the condition, or the cloud cover by more than 30 points |
-
-It waits 150 ms before appearing, so a change that settles at once never flashes
-it, and holds 700 ms once up, so two reasons back to back read as one wait. It
-never takes a pointer, sits on the wallpaper as `--ink`, and is still (not
-spinning) under reduced motion.
-
-### Gradient Crossfade (Gradient engine)
-
-When the scene changes, the CSS gradient must morph rather than snap. The
-provider keeps a **layer stack** (`gradientLayers`): each change pushes a new
-layer, and the shared `<GradientStack />` fades the newest layer in over the
-settled one beneath it, then the provider prunes back to the latest.
-
-One renderer (`gradient-stack.tsx`) serves both the full-page fallback and the
-per-widget overlays, so they transition identically. The iOS `fixedBgTracker`
-(background-attachment polyfill + viewport-relative edge mask) is applied per
-layer, so soft-edging keeps working mid-crossfade.
-
-`lib/poke.ts` owns the part with no engine in it: which condition is armed
-(`armedPoke`), how long each answer lives, how often one may fire, and the one
-question the interaction turns on: **did that click land on the sky, or on
-something?** It is not a guess: the handler walks from the clicked element up to
-`<body>` and the click counts as background only when nothing on the way paints
-anything (no background colour, no background image, no backdrop filter) and
-nothing on the way is interactive. That is the same question the visitor already
-answered with their eyes (the pixel under the pointer was wallpaper), so the
-two cannot disagree. A widget card, a link, the dock, an open sheet: all of them
-are something. Mark any transparent layer that should still swallow pokes with
-`data-no-poke`.
-
-The listener lives in `wallpaper-background.tsx`, on the document, because the
-wallpaper layer is `pointer-events-none` and must stay that way, since it is
-behind the whole page. It listens for `click`, not `pointerdown`, which is what makes
-it survive a phone: a click is a press and a release on the same spot, so
-scrolling the page with a thumb on the sky never lights it up.
-
-**The Sky is the only engine that answers.** `uPokeKind == 1` drives `strike()`
-in the shader: a forked channel drawn top-down out of the cloud base over
-~70 ms, landing exactly on the point clicked, flickering through two return
-strokes and gone inside 1.2 s. The flash it throws lights the cloud decks the
-same way the weather's own `lightning()` does. `WallpaperRenderer.poke("strike",
-x, y)` is the entry point.
-
-Under the Gradient and Classic styles the egg **does not exist**, and that is
-the decision rather than an omission. A wash has no geometry to draw a channel
-on, so the most those styles could offer is the flash without the bolt: a
-different and lesser find, dressed as the same one. An easter egg is worth
-having only at full strength; where it cannot be that, it should be absent.
-The rule generalises: every ambient easter egg belongs to the Sky, and the
-wash keeps its one job, which is to be the quiet fallback.
-
-Three things it will not do, all of them deliberate:
-
-- **Not under `prefers-reduced-motion`.** A flash is precisely the motion that
-  setting is asking about. The renderer refuses one too, so nothing can route
-  around the check.
-- **Never a strobe.** One strike per 500 ms, so clicking as fast as you can is
-  two flashes a second (WCAG allows three).
-- **Only where the sky is.** The weather kind, painting full-page, with the
-  shader the engine in use. An image wallpaper has no sky to strike, and a
-  wash has no channel to draw. A Sky that fell back to the Gradient for want
-  of WebGL2 is disarmed with it.
-
-To see it without waiting for a storm: force **Thunder** in the devtool's Sky
-module and click the page background.
-
-### The Shooting Star (clear-night easter egg)
-
-**On a clear night, clicking the star field sends a meteor in off the edge of
-the screen and through the point you clicked.** It works like the strike (a
-tap, a point, a second, no state), in the opposite tone on purpose: the
-thunder day answers a click with violence, the clear night with a wish. The
-second discovery should feel like a different joke rather than the same one
-told again.
-
-#### The window, in the two terms the real answer has
-
-`meteorPossible()` asks two questions, and they are independent because the
-things they are about are:
-
-| | | |
-|---|---|---|
-| **Dark enough?** | the sun more than **12°** below the horizon | the clock's business |
-| **Anything in the way?** | `clarity` over 0.35 (cover and fog, nothing else) | the weather's business |
-
-Twelve degrees is the end of **nautical twilight**, where meteor observing
-conventionally begins and the first line at which a streak has any contrast to
-work with. It is not a number picked for feel; the two neighbouring definitions
-were measured and rejected:
-
-| line | | London | Stockholm | Reykjavik |
-|---|---|---|---|---|
-| −6° | civil twilight ends | 0 nights lost | 0 | 65 |
-| −12° | **nautical** (this one) | **0** | 76 | 110 |
-| −18° | astronomical, full dark | **59** | 118 | 145 |
-
-Civil twilight puts meteors over a sky still bright enough to read by.
-Astronomical twilight is the purist's answer and deletes two months of London's
-summer, and a threshold that takes the egg away for a season is a bug even
-when it comes with a citation. At −12° London never loses a night (its shortest window
-is 3.3 hours, its median 9.3), and the far-northern white nights that do lose it
-genuinely have no meteors to see.
-
-**The moon is deliberately not in the rule.** A bright moon washes out the faint
-end of a shower, which cuts the *rate* you see but not the possibility, and a
-fireball is still a fireball under a full moon.
-
-This used to gate on `scene.stars`, which is `behind.stars × clarity`: how dark
-the night is, times whether anything is in the way, times how much the moon has
-washed out, all multiplied into one number. That conflation cost two things. The
-window opened at an arbitrary **−7.99°** rather than at any named line, because
-that is simply where `night` crosses 0.35. And the moon was documented here as
-able to close the gate when it never could: moonlight can take `stars` no lower
-than ×0.45, against a threshold of 0.35, and across 365 nights there was not one
-where it closed. Splitting `clarity` out of `stars` is what lets each question
-be asked without dragging in the other.
-
-Never gated on `condition === "clear"`, which would wrongly exclude a
-clear-enough cloudy night, and that case is real. `cloudy` has a cover
-floor of 0.2 and `cover = max(floor, measured)`, so a real broken-cloud night
-reports low cover, `clarity` comes out at 0.92, and **it is armed**. Thirty
-nights sampled, thirty armed. The devtool's Cloudy button hides this, because
-forcing a condition uses the profile's default cover of 0.7, where `clarity` is
-exactly 0: to see it, force Cloudy and then pull the cloud slider in **Tune**
-down to 20%.
-
-`meteor()` in the shader (`uPokeKind == 3`) draws it:
-
-- **It passes through the click** rather than launching from it. A meteor was
-  always already falling; the click only says where you happened to catch sight
-  of one. So the path is backed up from the point until it leaves the frame
-  (that is the entry, just outside whichever edge it meets) and carried on past
-  the point until it burns out or an edge arrives, but never by less than 60% of
-  the lead-in. That last ratio is really about *time*: it puts the crossing at
-  0.62 of the flight at the latest, so the head is still inside its light curve
-  when it gets there rather than past it.
-- **Everything about the path is re-rolled per click**: which side it comes from
-  and how steeply it falls (20°–70° off the horizon, so never horizontal and
-  never vertical), which way it bows, and what *grade* of meteor it is. The
-  angle is what decides where on the edge it appears, so randomising it
-  randomises the entry point for free. Nothing is held for the session. A real
-  shower does share one radiant, and an earlier cut modelled that, but an egg
-  you will click a dozen times wants to be unpredictable more than it wants to
-  be right. With a fixed radiant every trail pointed back at the same spot.
-- **The grade is the reason to click again.** One roll, `pow(hash, 1.8)`, sets
-  how bright it is, how big the coma, how far it runs, how slowly it falls, how
-  long the train lasts, and whether it flares at all. The skew is the payload:
-  the median grade is 0.29 and one in eight is above 0.8, so most clicks give
-  something modest and now and then you get a fireball that comes apart.
-  Measured over 24 rolls, total light output spans 11× (median 94, top 754),
-  and four of the 24 show a flare as a convexity in their light curve where the
-  smooth ones are flat. A real sky is mostly faint quick ones too.
-- **Fragmentation flares** (`meteorBurst`) are what a fireball does that a faint
-  streak never does: one or two bursts partway down, each brightening and
-  swelling the head. They multiply into the light curve, so the train remembers
-  a flare as a knot where it happened. Only the top grades get them.
-- **A slight bow.** A meteor's track is dead straight in space and projects
-  straight onto a narrow field. This is a wide field, though, and a wide field
-  bends a great circle, so a little curvature is honest as well as prettier. The
-  sagitta is 2.5–6% of the run. It is carried as a *circular arc*, which is what
-  makes a bowed path cost no more than a straight one: the distance from a pixel
-  to an arc and its position along it are both an angle, where for a parabola
-  they would be a cubic. The radius is deliberately bounded away from infinity:
-  a nearly-straight arc is a huge radius, and float32 cannot subtract those
-  accurately.
-- **It always bends so the path steepens as it falls**, and that is a choice
-  rather than a roll. The real track is straight, so its projected bow could go
-  either way and the sign is free, but one of the two reads as wrong.
-  Steepening is what diving into thicker air looks like; the other sign flattens
-  the far end and reads as a meteor *pulling up*, which nothing falling does. On
-  screen it still varies, because which way is "steeper" depends on which side
-  it came from.
-- **And the bow is clipped to the room the pitch has.** The arc turns
-  `8 × bow` radians end to end (up to 27°), which is enough to lift a 20° pitch
-  above the horizon at one end, or push a 70° one past vertical at the other. So
-  the bow is bounded at both ends by `METEOR_PITCH_FLOOR` / `_CEIL`. That fault
-  was found by sweeping the parameter space rather than by rendering samples:
-  0.4% of combinations climbed, by up to 7.4°, and another 0.4% curled past
-  vertical. That is rare enough that 48 rendered cases all passed it, and
-  common enough to be seen by anyone clicking a few dozen times. With the clip the same sweep
-  reports zero of either.
-- **One pace, not one duration.** The head moves at a fixed speed, so a long
-  sweep across the frame takes about a second and a short chord near a corner
-  is over quickly. It is bounded at both ends (`METEOR_MIN_FLIGHT` /
-  `METEOR_MAX_FLIGHT`) so the shortest is never a blink and the longest still
-  fits the poke's lifetime on a very wide screen.
-- **The head crosses the clicked point 0.06–0.73 s in** (median 0.23 s),
-  depending on how far away its entry edge was, and the streak itself is on
-  screen from ~0.03 s. Something appearing promptly is part of what "fires every
-  time" means (an egg that answers late reads as broken, just as one that
-  answers one click in five does), and so is brightness, which is why the head
-  is never under about a third of its peak where you pointed.
-- **The pace is constant.** A meteor does not slow down; it stops giving off
-  light, and those two look nothing alike: an eased path reads as a thrown
-  object losing steam, or worse, as an animation curve, and the eye knows that
-  signature. The first cut of this eased out over its flight and measured a
-  1.5× slowdown (34 px/frame down to 22), which was the single loudest tell
-  that it was drawn rather than falling.
-- **One light curve, asymmetric, peaking somewhere past the middle**
-  (`meteorGlow`, re-rolled per click). It climbs as it digs into thicker air and
-  is spent faster than it climbed; nothing switches on or off. That curve also
-  sets the head's size, so a brightening reads as a swelling coma, and only the
-  tip of the peak clips to white: a dozen pixels for a fifth of a second, where
-  a flat-topped envelope clipped the whole first half of the flight.
-- **The head is kept small**, which is most of what separates a meteor from a
-  comet: what a meteor is long in is its streak, not its head. On a 13" laptop
-  it measures about 2 px of white core and 9 px to the edge of its glow, across
-  the streak. An earlier cut was a 20 px bright ball inside an 84 px glow
-  (nine percent of the screen's height), because the halo carried 0.42 of the
-  core over a 3.3× exponential, and an exponential that wide takes a very long
-  way to reach nothing.
-- **Colour is keyed to the age of the air, not to the wake and train
-  amplitudes** (`meteorTint`). An earlier pass gave
-  the wake one colour and the train another, and it was invisible: the warm wake
-  outweighed the cool train everywhere the train could still be seen, so two
-  colours in the source came out as one on screen (measured at saturation
-  0.05–0.12 from head to tail, with the blue never appearing at all). Keyed to
-  age, the gradient cannot be cancelled by a weighting. Three stages, each
-  something different emitting: the head, hot and near white; the metal it has
-  just shed, burning sodium-orange a few hundredths of a second later; then the
-  air itself, green (the forbidden oxygen line at 557.7 nm, which is the green
-  in photographs of real meteors). The stages have to fit inside the first tenth
-  of a second of air, because that is all of the streak that is still bright; a
-  first attempt spread them over 0.15 s and the green arrived at rgb(7,7,5),
-  where there was no light left to colour.
-- **Every roll has its own hue**, from a draw of its own, deliberately not the
-  grade's, so a faint one can be the blue one and a fireball can be the orange
-  one, and two independent draws make many more distinct meteors than one. It
-  maps the real thing: sodium and iron burn orange and yellow, magnesium and
-  shock-excited air burn blue-white. The oxygen green at the end is atmospheric
-  rather than compositional, so every meteor shares it as a signature rather
-  than a variable. Measured, the streak now runs at saturation 0.37–0.66 through
-  the metal stage and lands green (G clearly over R and B) in the train, in both
-  themes.
-- **Shape**: a bright head, a short wake right behind it, and a faint, wider
-  train beyond that. The wake and the train are the same air at
-  two ages, so they come from one walk down the streak (see below). Gone inside
-  1.7 s (`POKE_MS.meteor`, which the shader's `METEOR_LIFE` must match).
-- **The tail is short, and its two time constants are really lengths.** At
-  `METEOR_SPEED`, a tau of 0.1 s is 0.28 of the screen's height, so the decay
-  clocks decide how much of the screen the thing covers. An earlier cut ran the
-  train at 0.3 s and drew a streak 833 px long on a 945 px-tall laptop (88% of
-  the height, still carrying 34/255 halfway down), which reads as a light beam.
-  What the eye sees of a real meteor is a bright dash and a ghost behind it; the
-  full path only appears in a photograph, which integrates the whole flight. So
-  the wake is a short bright dash (`METEOR_WAKE_TAU`) and the train is a faint
-  ghost (`METEOR_TRAIN_GAIN`) whose greater length never adds up to a band. It
-  now measures under 300 px at its longest, a third of the height, with the
-  bright part inside the first 55 (of an ordinary grade; a fireball is
-  brighter and thicker, which is the point of it).
-- **The wake also has a floor that is about displays, not meteors.** The dash is
-  `tau × speed` long and the head moves `speed/fps` between frames, so what
-  decides whether consecutive frames *overlap* is `tau × fps`. The speed
-  cancels, and slowing a strobing meteor down does not stop it strobing. A cut
-  of this moved the head 44 px a frame behind a 25 px dash, which drew a row of
-  separate dashes: broken, and in motion faintly bent, while every still frame
-  of it looked right. The wake is therefore never shorter than about two frames
-  of travel, taken from `uFrameSec` (the renderer's own measured frame time,
-  the same number `adaptQuality` steers resolution by), so a machine that drops
-  to 20 fps gets a longer dash instead of a strobe, capped so that the
-  adaptation cannot run away and draw the beam back at a few frames a second.
-  With that floor in hand the
-  pace could come down to something watchable: 25 px a frame, 39 frames of
-  flight, against 44 px and 22 frames before.
-- **Every point of the train decays on its own clock.** Constant pace is what
-  makes that cheap: where a bit of the streak sits says *when* the head made it,
-  and so both how old it is now and how bright the head was that made it. Hence
-  a train with a bright middle, an old end that goes first, and a thread that
-  widens and dims as the air diffuses. The decay is deliberately steeper than an
-  exponential (`METEOR_TRAIN_FALL`), because under a plain `exp(-t/tau)` every
-  point ages at the same rate once emission has stopped, so the whole profile
-  scales by one factor per frame and the thing reads as a rigid stick on a
-  dimmer. Measured, the first and last point both lost exactly half between
-  0.45 s and 0.60 s. Raised to a power, the visible extent collapses from 500 px
-  to 200 px over the same interval instead.
-- **Costed by one test, not by the shape it draws.** Everything the meteor puts
-  on screen (head, wake and train) lies on the circle its arc is cut from, so
-  the distance from a pixel to that circle is a lower bound on its distance to
-  all three. One `abs(length(p - centre) - radius) > METEOR_REACH` therefore
-  stands in for the three hundred operations behind it, and what it keeps is one
-  thin annulus. `METEOR_REACH` is a bound on the light and not a look: at that
-  distance the three widest profiles come to 2e-4, 0 and about 1e-9 of a level
-  out of 255. It reads as free and measures as free: over 560 frames swept
-  across seeds, ages, click points and two viewport shapes, 535 are bit-identical
-  to the version without it and 25 differ by one level on one or two channels
-  out of 273600, which is a rounding boundary rather than light.
-- **Drawn over the star field and under the cloud decks**, the opposite of the
-  strike's channel: a meteor behind a cloud should be hidden, so a drifting deck
-  occludes a lingering trail.
-- **Brightness scales with `scene.stars`**, for the same reason the stars' does:
-  on a washed-out night the meteor is faint too.
-
-**Sky only, on purpose.** The CSS wash draws no stars at all
-(`gradient.ts` builds a sun-glow radial, a cloud wash and a zenith→horizon
-linear, and nothing else), so there is no field for a meteor to belong to, and a
-streak over a flat night gradient would read as a scratch on the screen. Unlike
-the strike, this egg has no honest CSS answer, so it does not have one: on
-Gradient and Classic a clear night does nothing. The wash is documented as the
-low-fidelity engine and the Sky is the default; inventing a fake for the sake of
-parity would be worse than the gap.
-
-To see it without waiting for nightfall: force **Clear** in the devtool's Sky
-module, run the clock into the night with the time slider, and click the page
-background.
-
-### Stirring the wind (rain-and-snow easter egg)
-
-**While it is raining or snowing, drag a hand across the page's background and
-you stir up a breeze.** Stop, or let go, and it dies away and the sky settles
-back.
-
-That is the whole of it: **a hand adds a term to the wind**. Everything the sky
-does with wind it already knew how to do, so there is no second physics to keep
-honest and nothing to hand back when a gesture ends.
-
-The feel comes from air having mass:
-
-| | |
-|---|---|
-| A hand that stops moving stops making wind | its stir goes stale within a breath, so resting a finger on the page does nothing |
-| A flick raises a puff, a long sweep raises a gust | the wind chases the stir over ~0.13 s, so a short gesture never quite reaches full strength |
-| Letting go needs no announcement | the stir simply stops arriving, and the wind passes over ~1.6 s |
-
-**It arrives all at once and then passes.** Rise and fall differ by a factor
-of twelve. Getting up and dying away at the same
-rate is what makes a gust read as a twitch. Measured: a 0.15 s **flick** peaks
-at **0.68** within 0.2 s and is still **0.44** a second later and **0.23** at
-two; a 0.45 s **swipe** reaches **0.96**; a long sweep saturates at **1.0** and,
-from the moment the hand lifts, passes through 0.67 at one second, 0.35 at two
-and is gone by six.
-
-The choice of constant is made on *rising or falling*, not on stirring-or-not:
-the gust takes the fast one whenever it is asked for more wind than it has
-(including a hand that reverses and whips it the other way), and the slow one
-whenever it is asked for less, whether because the hand eased off or because it
-let go.
-
-`GUST.max` is 1.1, above the top of the forecast's own range (50 km/h ⇒ 1.0),
-on purpose: a gust is a moment rather than a weather, and may be briefly harder
-than any weather the sky is showing.
-
-#### Wind does not shear the weather; it tilts the way it falls
-
-This section is the core of the model.
-
-A drop at terminal velocity is a balance: gravity pulling down, drag pushing
-back along its travel. Put a crosswind on it and it settles into a new balance
-almost at once and falls along the **sum** of the two: the same speed through
-the air, aimed somewhere else. So a wind changes **which way down is** for the
-things that fall, rather than distorting falling weather, and every visible
-consequence follows from that one vector.
-
-[The gyroscope](#gyroscope-tilt-sky-engine) uses the same model, on purpose.
-**The two are one expression**, and the weather only ever sees the sum:
-
-```
-fall = g + perp(g) · lean
-```
-
-`g` is the unit gravity in page space (`(0, −1)` for a screen lying flat or
-held upright, the sensor's reading otherwise), and `perp(g)` is gravity turned
-a quarter turn, which is screen-right when `g` is screen-down. A tilt moves
-`g`; a wind sets `lean`; both arrive through the same four uniforms:
-
-| Uniform | What it is |
-|---|---|
-| `uRainDown` | The direction the rain travels. A streak *is* a drop's motion blur, so it has to lie along the travel: the rain is sampled in a frame aligned to this, the one rotation in the shader. |
-| `uRainFall` | How far the rain has fallen, in seconds of its own travel. A tilted fall is a longer one, so a gust quickens the rain as well as leaning it. |
-| `uSnowDown` | The same direction for the snow, which is a far flatter angle at the same wind. The flutter is measured across it, so a flake's wobble stands up the way it is going. |
-| `uSnowFall` | How far the snow has travelled and along what, as a vector of seconds. It is also the wind's whole sideways effect on the snow, because a flake blown sideways and a flake falling are the same flake. |
-
-**It rotates rather than shears.** A shear stretches a drop as it leans it, so
-past a breeze the streaks stop reading as rain and start reading as
-brushwork, and the harder the gust, the worse the smear. That is what made a
-hard gust read as a whip-crack rather than as air, and no choice of pivot fixes
-it; a rotation leans a drop without ever touching its shape.
-
-**Keeping the travel rather than multiplying a clock by a direction** is what
-lets the snow's direction come round slowly without dragging the flakes that
-have already fallen along with it: each one carries on the way it was going and
-curves into the new one. A page that slides sideways is exactly what a gust must
-not look like.
-
-Each field answers at its own speed, which gives the rest of the feel:
-
-| | How it is re-aimed | Why |
-|---|---|---|
-| **Rain** | an **ease**, 0.08 s (`RAIN_FALL_TAU`) | A drop is small, fast and already all the way down, so it really is at the new angle within a blink. What is left for the ease to do is keep a slammed gust from cracking: the curtain's far corner sweeps under a screen height a second, against the 1.5–2.5 the rain is falling at. |
-| **Snow** | a critically damped **spring**, ω = 0.9 rad/s (`SNOW_FALL_OMEGA`) | Not just a slower ease. An ease leaves at full speed and decelerates, which reads as drag; a spring leaves at **rest** and has to be accelerated, which reads as **mass**. At critical damping there is no overshoot, so the snow never swings past the new direction and back. |
-| **Clouds** | never, from a hand | You cannot stir a cloud deck by waving at it. They answer the forecast only. |
-
-Measured against one 0.5 s swipe into a calm sky: the gust peaks at **0.57** at
-0.48 s, the rain's lean peaks **with it** at 22° off vertical, and the snow's
-goes on rising to 29° at **2.6 s**, long after the air has fallen to a quarter
-of its peak, then comes home with no overshoot, still leaning at 6 s and gone
-by twelve. That gap is what reads as weight.
-
-One consequence worth naming: **the snow's lean is now the same at every depth
-for free.** Both halves of a layer's travel are that layer's own fall speed
-times the same vector, so the angle cannot depend on the layer. Before, it took
-two depth ramps, hand-tuned to span the same 3×, to arrange that.
-
-Three pieces, one per layer:
-
-| Piece | Job |
-|-------|-----|
-| `lib/wallpaper/stir.ts` | Recognises the gesture and reports the hand's horizontal speed in CSS px/s. |
-| `WallpaperRenderer` ("Stirring up a gust", "Where the weather falls") | The air: how a stir goes stale, how the gust rises and falls, and how each field's fall is re-aimed by it. |
-| `shader.ts` | Draws it. Every wind reaches the weather through the four uniforms above and through nothing else. |
-
-What it deliberately does **not** do:
-
-- **Nothing is `preventDefault`ed and no style is touched.** Every listener is
-  passive, so scrolling, tapping, long-pressing and selecting text behave
-  exactly as they would without it.
-- **Only the horizontal component counts.** Wind here is horizontal, and a hand
-  swiped straight down does not make a sideways breeze. That also means an
-  ordinary vertical scroll leaves the weather alone.
-- **It does not invent a second idea of "the sky".** What counts as background
-  is [`isBackgroundClick`](#the-easter-eggs) from `lib/poke.ts`, the same
-  question the tapped eggs ask, so no two of them can disagree, and
-  `data-no-poke` keeps all of them off.
-- **It uses touch events, not pointer events.** A touch drag that turns into a
-  scroll fires `pointercancel` and stops sending `pointermove`, which would cut
-  the gesture off exactly where it is most fun.
-- **It is off** under `prefers-reduced-motion`, off for the Gradient/Classic
-  styles (no particles to blow), off in the wallpaper picker's preview tile, and
-  off whenever the sky is dry.
-
-### The wind's sign
-
-Every horizontal quantity in the Sky is screen-space, and **positive goes
-right**: `wind.x`, the gust a hand stirs up, and the accumulated `uCloudDrift`
-and `uSnowFall` travels. `scene.ts` maps the met wind onto that, and the shader
-follows it: a westerly (from 270°) blows toward the geographic east, which is
-screen-*left* in the northern hemisphere and mirrors in the south.
-
-It was not always so. Until the gust landed, the shader read `uWind.x` with the
-**opposite** sign in all three places that consume it: the rain's slant, the
-snow's drift and the cloud advection. They agreed with each other, so the sky
-was self-consistent and nothing ever looked broken. The measured wind simply
-blew the whole sky backwards with respect to the compass, which no one can see
-without a compass. Adding a gust, whose direction the visitor's own hand
-supplies, is what made it visible.
-
-One thing to keep in mind when reading the shader: the travels are
-**subtracted** where they are used, because sampling a procedural field further
-right is what walks it left. That negation is the convention being honoured, not
-broken.
-
-#### A constant is not a wind
-
-The snow's sideways travel used to carry a constant, `snowWind * 0.6 + 0.03`, meant as a
-little travel so flakes never fell dead straight in still air. But a
-constant added to a wind is a wind that always blows one way: it adds to a wind
-going with it and eats one going against. The flakes leant **2.3× further right
-than left** at the same wind strength, and under about 2.5 km/h of crosswind the
-constant won outright and the snow leant *the opposite way to the rain in the
-same sky*. It is gone; the flakes have their own wander (the waft and the slow
-beat in `snow()`), and wind → drift is now odd-symmetric to three decimal places
-at every strength.
-
-The snow's wind also **starts at the scene's**, not at zero. Easing up from
-nothing would mean the first ten seconds of a page had snow falling as if it
-were calm while the rain beside it already leant into the forecast.
-
-#### Speed is only half of a wind
-
-The devtool's Sky module has **two** wind rows, `Wind` and `From`, and it needs
-both. `wind.x` works out to `speed × sin(from) × hemisphere`: the screen looks
-south, so a wind along that axis has no horizontal component at all and **no
-amount of it leans the rain or drifts the snow**. At a due-southerly forecast
-the speed slider moves `wind.x` from 0.000 to 0.000 at every setting, and only
-the clouds change pace. A speed you can set and a direction you cannot is a
-control that can look broken while working exactly as written, so
-`SceneOverrides.windDirectionDeg` exists too.
-
-**The `From` track runs 270° → 450°**, west through north to east, rather than
-0° → 359°. A full turn is not monotonic in anything you can see: it goes calm,
-right, calm, left, calm, so the direction you drag bears no relation to the
-direction the rain leans. Over this half it is monotonic the whole way: drag
-left and the rain leans left, drag right and it leans right, and the middle is
-the one bearing with no crosswind in it. The readout carries the arrow, so the
-answer is on the row: `270° W ←` … `0° N ·` … `90° E →`.
-
-Nothing is lost by covering half the compass. The sky only ever shows a wind's
-east–west component, and `sin(180° − d) === sin(d)`, so every southerly bearing
-paints exactly what its northerly mirror does. That is also how a forecast
-bearing outside the track is placed on it: by folding onto the one that blows
-the same way.
-
-### The Fog Wipe (foggy-day easter egg)
-
-**On a foggy day, dragging across the wallpaper wipes the mist clear along the
-path, and the fog closes back over it in a few seconds.** Fog is the one
-condition where the medium is literally between you and the view (uniform, in
-front, obscuring), so it is the one with an obvious gesture already attached.
-
-- **Tap** → one soft mark of cleared air, about 5.6% of the viewport height
-  across at half strength (a fingertip on a misted window, not a fist), with no
-  edge to it, thinning away into the mist around it.
-- **Drag** → the swath follows the hand along the whole path.
-- **Write** → a short word, and then the hand has had enough. See **The hand
-  tires** below; that is the size the egg is really for, and the reason is the
-  hand rather than an array bound.
-- **Close** → every point starts giving back the instant it is made, on an
-  exponential with a long tail (`WIPE_DECAY`), and is gone inside
-  `WIPE_LIFE_MS`. There is no hold, deliberately: a stroke that sits at full
-  strength for a while and then fades is a drawing with a timer on it: you
-  watch a finished mark, and then you watch it go. Mist never lets you see a
-  finished mark. So the visible life is mostly tail, and the start of a long
-  stroke is already dissolving while the hand is still moving.
-
-**A path, not a point.** A fragment shader has no memory, so
-`WallpaperRenderer.wipe(x, y)` keeps a bounded ring of the path's recent
-*corners* and `fogWipe()` sweeps the swath along the polyline they describe. There
-is no FBO, no second pass and no texture unit; the renderer stays the single
-full-screen pass with no textures that it has always been. Corners rather than a row
-of discs is what makes the trail long enough to write with: one entry buys a
-whole segment rather than one dot. Five things make that hold up:
-
-- **The whole path goes in.** A `pointermove` carries more than one position: the browser
-  coalesces everything the digitiser reported since the last one into it, and a
-  pen or a trackpad reports several times a frame. Keeping only the newest hands
-  the renderer a frame-rate polygon to draw, so a fast curve comes out as the
-  chords between wherever the hand happened to be on each frame. Every coalesced
-  sample goes through, in order; delivery is still once a frame, because that is
-  how often anything can be drawn.
-- **Corners are committed by shape, not by distance or by frame.** How far the
-  hand has travelled since the last corner, against how far it has actually got:
-  equal on a straight run, drifting apart the more the path bows. Past
-  `WIPE_SLACK` of drift the straight line the shader would draw has stopped
-  being the path, and a corner lands. A straight run never trips it and spends
-  one corner per `WIPE_MAX_GAP`, so the trail stays long; a letter spends as
-  many as its curves ask for, which is what keeps it off the polygon it would
-  otherwise be. On the worst case (a circle, where every chord shows)
-  the deepest facet left is two or three per cent of the stroke's own width, and
-  it does not change when the input rate quadruples.
-- **Strokes are separate.** Each corner carries whether it continues the one
-  before it, so lifting between two letters does not join them with a line
-  across the gap. A move longer than `WIPE_JUMP` is a pointer that went
-  somewhere else, not a stroke, and starts a new one.
-- **Healing fades as well as shrinks**, per corner and interpolated along each
-  segment. Shrinking alone pulls a swath apart into beads.
-- **The loop is skipped where the stroke is not.** The live corners' bounding
-  box goes to the shader as `uWipeBox`; outside it, a scribble costs one box
-  test instead of sixty-three segment distances. Whole tiles fall on the same
-  side of that test, which is the one early-out a GPU actually likes.
-
-**What the wipe uncovers.** The point of the gesture is that there is a real sky
-up there: on a clear night, a moon and stars. `deriveWeatherScene` has already
-thrown both away by the time the shader runs:
-
-```
-clarity     = (1 − smoothstep(0.15, 0.65, cover)) × (1 − fog)
-stars       = night × (1 − 0.55 × moonLight) × clarity
-moonVisible = … × (1 − smoothstep(0.45, 0.9, cover)) × (1 − 0.8 × fog)
-```
-
-(`clarity` is the murk's whole contribution, named because the meteor's window
-needs it without the rest; see The Shooting Star above.)
-
-On a fog day `cover` is 0.75, which saturates the star term on its own (stars
-are exactly **0**), and together with `fog` at 0.9 it leaves the moon at 0.07.
-So clearing the fog uncovers nothing, and the whole promise of the gesture goes
-with it: you wipe, and there is no sky behind.
-
-The scene therefore hands over the unhidden version too, as `scene.behind`: the
-same stars and moon with neither the fog nor the deck a fog day puts in front of
-them. The shader works the wipe out first, before anything is composited, since
-stars and the moon are drawn at the very back of the frame. It then lerps
-toward `behind` by how much of the murk that fragment has lost. Three things yield
-together, all of them gated on `uFog` so no other sky can be touched:
-
-- **The fog**, which is the wipe proper.
-- **The deck**, because on a fog day the deck *is* the murk: the profile
-  carries three quarters cover with a white lit colour precisely because fog
-  reads as overcast. Leave it standing and there is nothing to see: by day the
-  mist and the cloud above it are the same white, and by night the deck is what
-  buries the stars.
-- **The night sky** (`uStarsBehind` and `uMoonBehind`), so a swath drawn across
-  a foggy night opens a band of stars, and one drawn across where the moon
-  really is uncovers the moon. They arrive at the brightness a clear sky would
-  have given them, which is the test: a stroke across a foggy night lights the
-  same pixels, as brightly, as the unfogged sky does.
-
-**Nothing about it is a circle**, because a circle in fog reads as a lens. The
-field is looked up through a domain warp made of the same drifting noise the fog
-itself is made of; the width is pushed around by two more scales on top of that
-(big lobes, then a fine tear), and a third leaves streaks of mist standing
-inside the swath. It is wiped, not deleted, and it keeps moving with the mist
-rather than sitting on top of it.
-
-**And it drifts, resolved the same way as the rain and the snow.** A
-cleared patch is a hole in something that is moving, so it goes downwind and
-settles as it ages: the old end of a stroke has travelled further than the new
-end, and the stroke shears rather than sitting still. The displacement is
-resolved in `aimWipe`, against gravity exactly as a fall is (see **Wind does not
-shear the weather** above): the wind **across** gravity, the settle **along**
-it, and the gust in the sum because it is wind. So a tilted phone leans the
-drift as it leans the weather (measured, the displacement turns rigidly with
-gravity and keeps its length), and an upright calm sky is the plain downward
-settle it was before there was a gyroscope to ask.
-
-**The hand tires.** Wipe a misted window for real and you do not get to keep
-wiping: the hand cools, the finger picks up what it took off the glass, and the
-same stroke stops coming up clear. Rest a moment and it works again.
-
-That is what separates a wallpaper that answers you from a drawing board. A
-board's ink is the same on the hundredth stroke as on the first, and no amount
-of prettiness in the swath changes that; only running out does.
-
-`lib/wipe.ts` owns it, and both engines use the same hand on the same terms:
-
-- **Spent by the distance rubbed** (`WIPE_DRAIN`, an e-fold rate per screen unit
-  of path), with a floor (`WIPE_SPENT`): a hand that has had enough still
-  smears a little, and wiping while almost nothing happens is the effect rather
-  than a failure of it. Half a screen leaves about half; one sweep across leaves
-  a quarter; two screen-heights of path is the floor. The budget is deliberately
-  tight enough to be felt **inside the first stroke**, because a hand that tires
-  is only worth having if you can watch it tire.
-- **Recovered by time off the glass** (`WIPE_RECOVER`), where "off the glass"
-  means a gap longer than `WIPE_REST_S`. So a slow, careful stroke tires it
-  exactly as much as a fast one (the rubbing does it, not the clock), and
-  holding still mid-stroke gives nothing back.
-- **It belongs to the hand, not to a stroke.** Lifting between two letters does
-  not refill it; only waiting does.
-
-Each corner keeps whatever the hand had when it was made, so the falling-off
-runs *along* the path rather than dimming the whole of it at once: the far end
-of a long stroke comes up markedly less clear than the near end did. It is
-strength and not width: a tired hand covers the same ground, it just stops
-bringing anything up. The charge rides in the sign-and-magnitude of `uWipe[i].w`,
-whose sign was already carrying the new-stroke flag, so it costs no bandwidth at
-all.
-
-**And nothing about it has an edge.** The swath is a Gaussian falling off from
-the path, and one field drives the whole effect: the fog, the deck, the stars,
-the moon, the scattering. That is the difference between mist and a mark:
-anything with a shoulder draws an outline, and an outlined stroke is the most
-pen-like thing there is. A disc with a soft edge has one. A core term unioned
-with a wider halo term has two. Mist made to bead along the boundary (true of a
-real misted window, and in here for a while) paints the outline
-in the brightest thing on screen. A Gaussian has no shoulder at any width, and
-no boundary anywhere to put an outline on: it is a density, falling off forever,
-which is what mist around a wiped patch actually is.
-
-**The Sky is the only engine that answers**, on the rule the strike sets out
-above: a wash has no fog layer to thin and no sky behind it to uncover, so the
-most it could offer is a smudge dressed as the same find. The fog term's `fa`
-yields along the stroke, the deck goes with it, and the night sky the murk was
-hiding comes back. So does the one mark a hand leaves on a misted window that
-survives having no edge: clear air scatters less, so the swath sits a shade
-darker than the mist around it.
-
-What it will not do:
-
-- **Not under `prefers-reduced-motion`.** A judgement call, written down rather
-  than inherited: a slow fog clear is not the hazard a flash is, but
-  the setting is about motion generally, and under it the renderer draws one
-  still frame and has no loop for a wipe to live in anyway.
-- **Not fight the page.** On a mouse the wipe waits for the slop, which is what
-  keeps a click, a double-click and a word-select on the sky working as they
-  did. On touch it waits for a hold (see below). Once it is a wipe, selection is
-  suppressed for the duration: a hand dragged across the sky should not leave a
-  blue smear of whatever text it crossed. It never starts on a widget, so
-  dnd-kit's sorting is untouched; dragging *over* one keeps wiping, because the
-  mist does not care what is in front of it. It stands down entirely while the
-  home grid is in jiggle edit mode, where a tap on the background means Done.
-- **Not persist.** Nothing survives a reload or a route change. It heals, and
-  then it is gone.
-
-#### Touch, where scroll has first claim
-
-A finger on the sky is ambiguous, since it could be a scroll, and **the ambiguity
-cannot be resolved by watching which way it goes.** `preventDefault` on a
-pointer event does not stop scrolling; only a non-passive `touchmove` does, and
-only before the scroll has started, which on iOS means before the finger has
-moved at all. By the time a direction is readable it is too late. (An earlier
-version gated on horizontal movement, which leaked scrolls and, since a
-letter is mostly vertical strokes, made the thing unwritable on a phone.)
-
-So the question is settled while the finger is still still, exactly the way this
-site already settles it for the widget grid: **a long press arms it**
-(`TOUCH_ACTIVATION` in `components/ui/sortable-order.ts`; the wipe uses the same
-400 ms, so both hands-on gestures here wait the same beat).
-
-- Nothing is bound and nothing is blocked until the hold is good. Until then the
-  page scrolls on the browser's own fast path. The non-passive `touchmove`
-  listener is attached when a stroke arms and removed when it ends, never while
-  one is merely possible, because a listener sitting on the document makes the
-  browser wait for JS on every scroll frame.
-- The finger drifting past `WIPE_ARM_SLOP_PX` before the hold is good means it
-  was the scroller's all along. Nothing was taken, so nothing has to be handed
-  back.
-- Arming opens the mist under the finger. That is the only "ready" tell there
-  is, and the only one worth having: it is the effect itself.
-- **Writing is letters**, and holding before every stroke of every letter is not
-  writing. So for `WIPE_RESUME_MS` after a stroke ends, a touch landing within
-  `WIPE_RESUME_NEAR` of where it ended arms at once. Proximity is what buys back
-  most of what the open window gives away: the next stroke of a word starts
-  about where the last one finished, a flick meant for the scroller usually does
-  not.
-- A second finger is a pinch, or a scroll starting over. Either way it is not
-  one hand drawing, so the gesture is given back rather than fought for.
-
-Verified end to end against the real page under touch emulation:
-
-| gesture | page scrolled | stroke |
-|---|---|---|
-| plain swipe up | 245 px | none |
-| swipe starting after 250 ms (under the arm) | 245 px | none |
-| hold 520 ms, then draw straight **down** | **0 px** | drawn |
-| straight into another stroke, no hold | **0 px** | drawn |
-| plain swipe up, after the window | 245 px | none |
-
-To see it without waiting for the weather: force **Fog** in the devtool's Sky
-module and drag across the page background (on a phone, press and hold there
-first).
-
-### Phase Notification
-
-A heads-up that the ambient phase is about to change to sunrise/sunset. It is a
-**Dock Live Activity** (see `docs/system-dock.md`), not a bespoke widget:
-
-- **Pill**: a sun-event icon + the exact event time (e.g. `🌅 05:46`).
-- **Panel**: unfolds into the shared `<WeatherNow />` body, the same readout the
-  homepage weather widget uses.
-
-Visibility (`lib/notification.ts`): from ~90 min before the event through the end
-of its ±45 min window, then it hands off to the gradient + greeting. A forced
-sunrise/sunset phase from the devtool also surfaces it for testing.
-
-### The theme follows the sun
-
-**Follow the Sun is an Appearance** (`services/theme.tsx`), and the default
-one. Appearance has four answers: Follow the Sun, Light, Dark, Follow the
-System. The palette's `A` cycles them starting from what the sun shows: Follow
-the Sun → the theme it is not showing → the one it is → Follow the System, so
-the first press out of Follow the Sun always changes the page. No memory of
-where the cycle began is kept: the sun's answer is current under every
-Appearance, so the order is read off it on each press. The devtool's Sky module
-carries a Follow the Sun toggle beside its timeline (off is Follow the System).
-Under it the app is Light while the sun is up and Dark once it is down. Light,
-Dark and Follow the System are what they say: the sun never touches them.
-
-It was once a switch of its own (`themeFollowsSun` in the ambient settings, on
-unless turned off) that acted only on a crossing watched live, as a session
-override on top of the Appearance. A saved Follow the System from then was
-almost always the default plus that switch, so it was migrated to Follow the
-Sun once, unless the switch had been turned off (`getStoredPreference` in
-`services/theme.tsx`).
-
-**At the sun's own crossing: the middle of the long animation, not its end.**
-Sunrise and sunset are ±45 min windows here and the sky spends all of both
-moving; the moment it moves fastest is the middle. A theme change is a cut
-however gently it is painted, and a cut lands softest inside motion: at the end
-of the window the sky has settled again, and the same cut stands out against
-it.
-
-```
-dark ─────┬──── sunrise ────┬───── light ─────┬──── sunset ────┬───── dark
-      rise-45      ▲     rise+45          set-45      ▲     set+45
-                   └ here                             └ here
-```
-
-`solarThemeAt()` (`lib/solar-theme.ts`) is therefore the plain rule: light
-between sunrise and sunset, dark outside, null when the sun times are unknown
-(and then nothing switches). Everything about *how* it changes hands is in
-`SOLAR_HANDOVER`.
-
-**The handover puts the cut in the middle of a short animation too**, so it has
-motion on both sides of it. The timeline is `SOLAR_HANDOVER` in
-`lib/solar-theme.ts` and the numbers live only there:
-
-```
-0           the sky starts moving to the new theme: the wallpaper stack
-            crossfades over `skyMs` instead of its usual 0.7s, and the Sky's
-            shader is put on the same clock by `setThemeEase`.
-chromeAtMs  halfway through, the chrome changes: one commit, inside a view
-            transition, so the page crossfades as a single composited image
-            over the same 200ms a route change uses.
-skyMs       the sky settles, and the notice lands.
-```
-
-`wallpaperTheme` is what makes the lead possible: the scene, the wash's weight,
-a picture's half and the profile of what is painting all read it, while
-everything that belongs to the chrome (the page ground, the bezel, the ink
-ladder) reads `chromeTheme`, which is what the provider calls the theme the
-app is actually in. The lead runs for exactly the sky's animation and outlives
-the switch in its middle; a theme the user picks while it is running calls the
-whole thing off, sky included: theirs wins.
-
-The greeting is not part of this. It follows the phase, which changes at the
-window's *ends*, three quarters of an hour either side of the switch, far
-enough that the two never read as one event that failed to line up.
-
-The chrome's half is deliberately **not** a transition per element. That was an
-earlier cut of this, and it cost ~1.2s of style recalculation for a 1s dissolve.
-A page this size has ~1000 elements and their colours are `color-mix()` over
-custom properties, so every frame re-ran the document's style. The composited
-crossfade is ~60ms of capture for the same effect, and where it is unavailable
-(Firefox, `prefers-reduced-motion`) the chrome simply changes, which is what the
-rest of the app does when the user picks a theme.
-
-The theme service paints the sun's answer; `<SolarThemeSync />` is what hands
-it in (`setSunTheme`). It keeps the answer current under every Appearance, so
-choosing Follow the Sun lands on it at once, and under Follow the Sun it moves
-the page in one of two ways:
-
-1. **The first answer of a visit, quietly.** The sun's answer takes a
-   forecast, so until one lands Follow the Sun trusts the system. The bezel's
-   boot script does the same for the first frame. If the sun then disagrees,
-   the page crossfades to it once, with no notice: that is the page arriving,
-   not an event. Nothing about the sun's answer is saved; a page opened after
-   dark opens dark.
-2. **A crossing watched live, staged.** The sun rises or sets with the page
-   open: the handover above, then a notice. Once it has settled, the small pill
-   in the bottom-center toast slot (the one the language switch uses) names
-   the mode and the Appearance it is following. By then the change has already
-   dissolved in over two seconds, so there is nothing to confirm and nothing to
-   undo in a hurry. Picking another Appearance while the sky is moving calls
-   the whole handover off, sky included; so does the sun turning back before
-   it lands (the devtool's clock, scrubbed back across the line).
-
-Because the rule reads the ambient clock, **devtool time travel crosses it
-too**: playing the day in the Sky module crosses sunrise and sunset for real,
-and the theme changes there exactly as it would on the real clock. Under any
-other Appearance it does not.
-
-### The theme's key
-
-The sun decides what is in the sky: its colour, the sun or the moon, the
-stars. The theme decides how light it is. By day under Light and by night
-under Dark those agree, and the veil is all either needs. The other two
-pairings are where a veil fails: it mixes toward the page colour, so a noon
-sky under Dark became a grey-blue midtone the dark chrome sat on like a
-sticker, and a night under Light became slate.
-
-So `deriveWeatherScene()` **re-keys** the sky instead, the way the Apple
-light/dark wallpaper pairs work: the same place, with only the key different. Each
-sky and cloud colour's OKLab lightness is moved into the theme's range with its
-hue kept (`THEME_KEY` in `lib/scene.ts`):
-
-| | What it becomes |
-|---|---|
-| Dark theme, day | the noon sky pressed into the dark range: deep blue, clouds still lighter than the sky, the sun's disc left bright and its glow only half keyed, so it still reads as the sun. Blue hour, held all afternoon. |
-| Light theme, night | the night lifted into the light range: pale moonlit lavender, the brighter stars still showing, and the moon dimmed to a day moon so its surface shows instead of a white ball that reads as the sun. |
-
-The veil is eased where the key has done its work, so it no longer greys
-what the key coloured.
-
-The amount runs on the sun's elevation and is **zero through twilight on both
-sides**: from the horizon to 14° for Dark, from −2° to −10° for Light. Dawn and
-dusk already read well under either theme, and more importantly the key is
-zero on both sides of the sun's own crossing, which is where the theme changes
-hands when it follows the sun. The handover never has a key to fight.
-
-Because the key is applied to the scene's colours, everything downstream reads
-the re-keyed sky without knowing: the shader, the Gradient, widget cards, the
-legibility profile (`profileFromScene`) and the devtool's day strip. Classic
-never had the problem and is not keyed: its table is hand-tuned per condition
-for all four of day/night × light/dark, so its dark day is already a deep blue
-and its light night already a pale one.
-
-On a change of theme the Sky's keyed colours (sky, glow, clouds, the moon's
-strength; `keyed` in `wallpaper/renderer.ts`) ease on the theme's clock
-instead of their own 1.8s, so the re-keyed sky lands with the veil rather than
-seconds behind the chrome.
-
-### The twilight look
-
-With the key at zero on both sides of the crossing, what was left of the theme
-at sunset was the veil and the exposure: Light brightened and washed 30% toward
-white, Dark dimmed and washed toward the page. That was the whole of the
-handover's cut: a bright, milky sunset with a blown-out sun became a dim one
-in three seconds, the sun's glow first.
-
-So **twilight belongs to neither theme**. Toward the sun's crossing both looks
-are drawn to one (no veil, the sky at 0.8 exposure), and through the crossing
-they are the same look (`TWILIGHT_LOOK` in `lib/scene.ts`). A theme that
-changes hands there has nothing left to change in the sky: the scene the shader
-and the Gradient receive is identical under either theme, and the handover's
-crossfade crosses nothing.
-
-```
-           light's own   ←──── meet ────→   dark's own
-  light  ──────┬────────────┬────┬───┬───────────────────────
-             +12°          0°  −1.5 −4
-  dark   ──────────────┬────┬────┬──────────────┬────────────
-                      +4    0°  −1.5           −8°
-```
-
-- **Following the sun**, Light's sun dims through the last hour of the
-  afternoon toward the meet, and Dark's brightens through the dawn out of it.
-- **The plateau** (−1.5° to 0°) covers where the handover really lands:
-  sunrise and sunset as the forecast has them, −0.83° on the ephemeris and 0°
-  on the estimated arc. It ends where the dark theme's key begins, so
-  through all of it the scene is the same under either theme, to the bit.
-- **Past the crossing**, where only a hand-picked theme goes, each theme
-  takes its own look back within a few degrees. The key is about to take over
-  there, and a meet that lingered would put the chrome on the wrong side of
-  its sky before the key arrives.
-- **Where it meets** is a legibility decision: about the frame lightness at
-  which the light card's tone conflict and the dark card's are equal
-  (`toneSafe` in `lib/legibility.ts`: Light wants the picture above 0.62, Dark
-  below 0.45). A clear sunset lands at ~0.53, both leaning on the policy's fill
-  by the same ~5 points while the sky changes hands.
-
-The two looks are mixed as what they paint (`gain·col + offset`), so every
-frame in between is the plain mix of the two frames. The Gradient never took
-the exposure and adds its own lift to the veil (`CSS_VEIL_BOOST`); through
-twilight it trades that lift for the shared exposure on the same weight, so
-both engines meet the same look. The legibility profile (`profileFromScene`)
-measures with the same exposure, so the policy sees a sunset as dark as the
-Sky draws it. Both read it off the scene (`flat`: the exposure to paint with
-and how much lift to keep), so neither has to know twilight exists; away from
-twilight it is exactly 1 and 1, and every gradient and profile is what it was.
-Classic keeps its hand-tuned table.
-
-## Wallpaper
-
-The background is **one layer stack fed by exactly one source**:
-
-```typescript
-type WallpaperKind = "weather" | "image";
-```
-
-- `weather`: the live sky, in one of three **styles** (`weatherStyle`):
-
-  | Style | Name | Subtitle | What it is |
-  |---|---|---|---|
-  | `sky` | **Sky** | shader · webgl | The WebGL shader (`lib/wallpaper/`): the whole scene, animated, at full strength. Needs WebGL2. |
-  | `gradient` | **Gradient** | css · gradient | The same scene as a CSS gradient (`sceneToCssGradient`): the sky's colour at the real sun position, live to the minute. The Sky's automatic fallback. |
-  | `classic` | **Classic** | css · gradient | The original: six hand-tuned condition palettes by day and night plus the sunrise / sunset event gradients (`getClassicGradient`). Steps at phase and weather changes rather than following the clock. Chosen by hand only. |
-
-- `image`: a picture from the built-in catalog (`lib/wallpaper.ts`), either
-  pinned to one still or playing Shuffle / Loop over Apple or Nature.
-
-Style and engine are one-to-one: Sky is the canvas, the other two are the CSS
-stack. The only resolution is the fallback: `resolveWeatherStyle` turns a Sky
-without WebGL2 (or with the devtool pretending there is none) into the
-Gradient, and `useWallpaper().effectiveStyle` / `.renderer` say what won.
-Widget cards always paint the CSS stack: the Classic palette under Classic,
-the scene gradient under the other two.
-
-Because there is a single stack and a single kind, the two are **mutually
-exclusive by construction**: there is no state in which both paint, and nothing
-has to arbitrate between them. Switching kind pushes a new layer, so
-weather → image dissolves through the same crossfade as a weather change.
-
-The sun-event Live Activity is unaffected: it renders in the Dock from the
-clock and never reads the background, so sunrise and sunset still announce
-themselves under an image wallpaper.
-
-### Built-ins
-
-Three categories, switched in the picker with the same capsule the Featured
-Talks widget uses for albums (`WALLPAPER_CATEGORIES` in `lib/wallpaper.ts`).
-
-- **Weather**: first, and the live one. Three tiles: **Sky**, previewed by
-  a small live canvas running the shader at a tile-sized pixel budget (the one
-  wallpaper that moves should move in its tile); **Gradient**, previewed with
-  the very gradient the page would paint; and **Classic**, previewed with the
-  palette for this condition and hour. Every tile wears a chip: Live on the two
-  realtime styles, Preset on Classic. Where WebGL2 is missing the Sky tile shows the Gradient with a note,
-  which is also what choosing it would paint.
-- **Apple**: the default macOS, iPadOS and iOS wallpapers as light/dark pairs,
-  the artwork each release is recognised by. Seventeen pairs: macOS Golden
-  Gate, Tahoe, Sequoia, Sonoma, Ventura, Monterey, Big Sur, Catalina and
-  Mojave; iPadOS 26 and iPadOS 18 in its four colourways (Violet, Indigo,
-  Blue, Teal); iOS 15, 14 and 13. Every pair ships a @1x cover beside the
-  full @2x (or native) file when the source is larger than 1×. The grid
-  opens with **Shuffle** (after iOS Photo Shuffle: a fanned collage, random
-  order) and **Loop** (after macOS Change Picture without Randomly: a tidy
-  stack, catalog order). They sit as their own pair above the stills, and while
-  either is selected a Frequency row sits directly under them: On Visit
-  (iOS On Lock, once per tab session), Hourly, and Daily. Tapping a specific
-  pair pins it and turns play off.
-- **Nature**: the 19 Mac OS X Nature desktop pictures (Aurora, Zebra, Zen
-  Garden, …), taken from ryOS. One photograph each, so both theme halves are
-  the same file (`isSingleImage()`), and the picker shows it unsplit. Clown
-  Fish and Ladybug are omitted. Shuffle and Loop sit at the front of this
-  album too, walking only Nature.
-
-The iPadOS colourways are named for the colour rather than the release, and
-their caption is the year alone: the tile would otherwise read "iPadOS 18
-Violet — iPadOS · 2024", which both stutters and overflows.
-
-The **iOS** pairs are phone artwork, so the picker caption marks them with a
-phone glyph, since the tiles are all the same 16:10 card and could not otherwise
-show it. `isPhoneWallpaper()` derives it from the platform rather than storing
-a flag. Apple ships these stills on a square canvas and lets the device crop
-(iOS 14 is 3072², iOS 15 2916², iOS 13 3208² at source); nothing here was cropped.
-
-#### Resolution
-
-Every wallpaper paints `cover`, so the rule is about the stretch on a real
-screen, not megapixels: **a full-size file is the smallest cover of a 2560×1600
-viewport at 2× (5120×3200 device pixels), never upscaled past the source.** A
-matching `@1x` cover (`.1x.webp`) ships beside it whenever that is smaller, so a
-1× display does not download the retina file. Sources that cannot cover 2×
-(most Nature stills are 2560×1600 at source) keep a single file. Each tile
-prints the committed full file's pixels under its name.
-
-| | Full file | @1x | Stretch at 1× |
-|---|---|---|---|
-| macOS Golden Gate | 4480×3088 | 2560×1765 | 1.00× |
-| macOS Tahoe … Big Sur, Catalina | 5120×5120 | 2560×2560 | 1.00× |
-| macOS Mojave, Earth & Moon | 5120×2880 | 2844×1600 | 1.00× |
-| iPadOS 26 landscape | 2752×2064 | 2560×1920 | 1.00× |
-| iPadOS 18 | 3840×2668 | 2560×1779 | 1.00× |
-| iOS 15 / 14 / 13 | 2916² / 3072² / 3208² | 2560×2560 | 1.00× |
-| Mt. Fuji | 3200×2000 | 2560×1600 | 1.00× |
-| Nature (the rest) | 2560×1600 | (same file) | 1.00× |
-| iOS 17 | 2048×2048 | | 1.25×, removed |
-| iOS 18 / 27, portrait iPadOS 26 | too tall/narrow | | omitted |
-
-The landscape Nature photographs still stretch about 1.64× on a 3× portrait
-phone; the source is 1600px tall and we never upscale.
-
-ryOS serves each photograph as one original JPEG (Aurora is 1.3MB, Snowy Hills
-2.3MB) plus a picker thumb, and paints a 24px blur-up while the JPEG decodes.
-We encode `@1x` / `@2x` covers so a 1× display does not download a 5K file, at
-WebP q95 with 4:4:4 chroma (q90 only when a file would exceed ~1.8MB per
-2560×1600 megapixel, as with Zen Garden's raked sand). `pickWallpaperSrc()` chooses
-the smallest rendition that covers the current viewport × DPR. The desktop
-paints the 480px picker thumb immediately and fades the chosen file in over it
-once it has decoded: the same blur-up, using a thumb we already ship.
-
-Release pairs are WebP q80. Photographs (Nature, and the Catalina / Mojave
-pairs) use the photo pipeline. The byte budgets differ by kind: a graphic pair
-past 2MB at 2× means something went wrong (Big Sur dark is a grainy illustration
-around 1.2MB), while a photograph of raked sand is
-detail all the way down, so photographs get 8MB at 2×. Provenance for every
-file lives in `public/wallpapers/sources.json`.
-
-High-resolution originals were collected from wallpapers.poutanen.dev (macOS 6K
-graphics Tahoe–Big Sur, iOS 13 3208², iOS 14 3072²), 4kwallpapers.com (Golden
-Gate native 4480×3088, Catalina 6016×6016, Mojave 5120×2880, iOS 15 2916×2916;
-the 6016×4147 "6K" Golden Gate files are a uniform upscale of that pair and are
-not used),
-static.applewalls.com (iPadOS 26 landscape), LAYTAT/macOS-Wallpapers and
-Deeeee-macOS-Wallpapers (`/System/Desktop Pictures` dumps), with 512pixels.net
-6K files skipped as hand-upscales. Portrait iPhone lock-screens never cover
-2560×1600.
-
-```bash
-pnpm wallpapers:encode              # fetch sources.json and rebuild WebP @1x/@2x
-pnpm wallpapers:encode golden-gate  # rebuild one release pair marked `"encode"` in sources.json
-pnpm wallpapers:check   # every file present, sharp enough, sized as declared, within budget
-pnpm wallpapers:profile # measure every wallpaper for the legibility system (commit the table)
-```
-
-Every wallpaper, the weather gradients included, also has a static
-**profile** (`lib/wallpaper-profiles.json`): its lightness by band, how busy
-it is, its dominant colour. The legibility policy reads that at runtime
-instead of the pixels; see [docs/system-legibility.md](./system-legibility.md).
-
-**Apple retains rights to this artwork.** It is committed for a personal site,
-not licensed onward; the archives the frames were pulled from do not license
-Apple's images either, and their repository licenses are not asserted to do so.
-
-### Light/dark pairs
-
-Every Apple wallpaper ships as a pair, and which half shows **always follows the
-app theme**, as macOS Dynamic Desktop does. It is deliberately not a
-setting. Pinning a half only ever produced light artwork under light text, and
-the damping needed to rescue that made the wallpaper a ghost; the tiles keep a
-sun / moon on each half as an indicator, not a control.
-
-Opacity is resolved once, in the provider, and read by both the full-page layer
-and the widget overlay as `useWallpaper().opacity`:
-
-| | Light theme | Dark theme |
-|---|---|---|
-| Weather · Sky | 1.00 | 1.00 |
-| Weather · Gradient | 0.70 | 0.85 |
-| Weather · Classic | 0.70 | 0.85 |
-| Image wallpaper | 1.00 | 1.00 |
-
-Keyed by the family of what is *painting*, not what was asked for: a Sky that
-fell back to the Gradient is a wash. The Sky paints at 1 because
-its theme veil is mixed inside the shader; the restraint happens in the scene.
-
-An image wallpaper paints at **full strength**: it is a picture someone chose,
-and the home screen is a desktop. Reading pages recede it with a veil and a
-defocus instead of dimming the layer (see
-[Reading surfaces](./system-glass.md#reading-surfaces)). How *solid* the surfaces
-on top of it are is a separate setting again; see
-[docs/system-glass.md](./system-glass.md).
-
-### Placement
-
-Where the active wallpaper paints is `wallpaperPlacement`:
-
-| Mode | Effect |
-|------|--------|
-| `full` | Behind the whole page |
-| `widget` | Only inside widget cards (each a viewport-aligned window onto it) |
-| `off` | Nowhere: the global background kill switch |
-
-**Each wallpaper family says what it wants at the edge.** A look (`getWallpaperLook`
-in `lib/wallpaper.ts`) belongs to a family via `WALLPAPER_LOOK_FAMILY`, either
-`picture` (an image, the Sky) or `wash` (the CSS styles), and the family keys both
-the opacity and the edge table (`WALLPAPER_FAMILY_EDGES` in `lib/bezel.ts`).
-On an iOS phone the provider resolves every page from that, live, as the look
-changes:
-
-| Look | Bezel | Soft edge |
-|---|---|---|
-| Weather · Sky | on | off |
-| Weather · Gradient | off | on |
-| Weather · Classic | off | on |
-| Image | on | off |
-
-A CSS weather wash is the page's own colour pushed outward, so it fades back
-into the ground. A photograph is a picture on the page, so it ends on a line
-inside a bezel. The Sky is a picture too (a rendered one) and gets exactly
-the image configuration, so the two framed looks start from one place (and
-the boot script keys on the saved style, not on WebGL support, so a Sky that
-falls back to the Gradient keeps its frame rather than flickering). A desktop
-window gets none of it unless overridden. Session edge overrides are stamped with the family they were set under, so a
-change of family (a kind switch, or Sky ↔ a CSS style) ends them.
-
-**The bezel** is `vitre` (`packages/vitre`), after ryOS (os.ryo.lu): one
-flat colour around the page, black by default, with the page rounded off inside
-it and, on iOS, scrolling in a container while the document holds still. A
-devtool override turns it on or off for the session and ends when the kind
-switches. Tint, band and radius are saved settings shared by both kinds (black,
-0px, 16px by default). Everything is live, including the browser chrome. See
-the package README for what Safari does and why.
-
-**Soft edging** (the top/bottom fade) applies only while the bezel is off.
-An image wallpaper is just another layer in the stack, so when it is on it
-gets the same mask the weather gradient gets (`EDGE_FADE_MASK`, or the wider
-`EDGE_FADE_MASK_HIGH_CONTRAST` for dark-mode sunrise/sunset). The devtool
-switch overrides it either way.
-
-### Triggers
-
-| Surface | How |
-|---------|-----|
-| Command palette | `Wallpaper: <name>` / `Wallpaper: Weather · Sky` (⌘K), or `/` then `W` |
-| Devtool panel | Wallpaper module: the whole background system in one place |
-| Anywhere in code | `useWallpaper().openPicker()` |
-
-The picker itself is a secondary window (`wallpaper-sheet.tsx`) built on
-`<AdaptiveSurface>` (see [Surface System](./system-surface.md)), mounted once in
-the root layout and shaped like the music playlist sheet: a bottom action sheet
-on narrow viewports, a right-edge floating panel on wide ones.
-
-Its tiles are **macOS Settings pair cards**: a 16:10 split of the light and dark
-originals, a sun / moon marking each half, a check when selected, and `Name` +
-`macOS · 2020` underneath. Apple and Nature each lead with Shuffle and Loop
-tiles in that same frame (a three-photo collage, fanned for Shuffle and
-stacked for Loop), matching iOS Photo Shuffle and macOS Change Picture. The
-two modes are a pair above the stills, not mixed into the catalog grid, so
-Frequency can sit directly under them (On Visit / Hourly / Daily) instead of
-after the last picture. The Weather category's three tiles are the **same
-frame at the same size**. The sky is one of the wallpapers, only the one that
-moves, and the picker opens on that tab whenever the sky is what is in use. Where
-the wallpaper paints sits above the grid as one compact row: a modifier, not the
-thing you came here for.
-
-## Components
-
-### AmbientSurface
-
-Wraps page content with the wallpaper background:
-
-```tsx
-<AmbientSurface>{children}</AmbientSurface>
-```
-
-- Renders `<WallpaperBackground />` when placement is `full`
-- Falls back to the solid themed background otherwise
-
-### AmbientGreeting
-
-Time-based greeting that speaks to the user:
-
-```tsx
-<AmbientGreeting />
-// "good morning." / "the sun is rising." / etc.
-```
-
-### WeatherWidget
-
-iOS-style weather widget with:
-- City name from location
-- Temperature
-- Weather condition icon
-- Loading/error states
-
-## Contexts
-
-### useLocation
-
-```typescript
-const {
-  locationMode,        // "ip" | "accurate" (the visitor's wish)
-  location,            // ResolvedLocation | null: what we have (source: "ip" | "geolocation")
-  permission,          // "granted" | "prompt" | "denied" | "unknown" | null (not answered yet), live
-  isLoading,
-  isFetching,
-  error,
-  setLocationMode,
-  requestAccurateLocation, // () => Promise<"granted" | "denied" | "unavailable">; may raise the prompt
-  refresh,
-  isLocationPrimerOpen,
-  openLocationPrimer,
-  closeLocationPrimer,
-} = useLocation();
-```
-
-### useWeather
-
-```typescript
-const {
-  weather,             // NormalizedWeather | null
-  scene,               // WeatherScene: what both engines render (lib/scene.ts)
-  sceneWeather,        // The scene's weather input, for deriving other times
-  isLoading,
-  isFetching,
-  error,
-  debugOverride,       // { condition } | null (devtool, condition only)
-  setDebugOverride,
-  sceneOverrides,      // devtool tweaks: cloud / precip / wind / veil
-  setSceneOverrides,
-  refresh,
-} = useWeather();
-```
-
-Weather data, and nothing else. The background stack used to live here too,
-when weather was the only thing that could paint one. That meant
-`WallpaperBackground` read two contexts to draw one wallpaper and every reader
-had to hold "weather = wallpaper" in their head. It moved.
-
-### useWallpaper
-
-```typescript
-const {
-  kind,                   // "weather" | "image"
-  setKind,
-  weatherStyle,           // "sky" | "gradient" | "classic" (the persisted choice)
-  selectWeather,          // Selects a style AND switches kind to "weather"
-  effectiveStyle,         // The style painting: Sky becomes Gradient without WebGL2
-  renderer,               // "shader" | "css" (the engine behind it)
-  shaderSupported,        // WebGL2 probe result
-  reportShaderFallback,   // <WeatherWallpaper /> → provider on a WebGL failure
-  statsRef,               // Live renderer stats for the devtool
-  gyro,                   // { enabled, access, active, readings, gated, denied, supported }
-  setGyroEnabled,         // The wish and, from a tap, WebKit's motion grant
-  wallpaper,              // The selected pair (the frame showing, even while playing)
-  wallpapers,             // The whole catalog
-  selectWallpaper,        // Pins a still AND switches kind to "image"; play turns off
-  selectPlay,             // Shuffle / Loop over Apple or Nature
-  play, playAlbum, playEvery, setPlayEvery,
-  variant,                // Which half the app theme lands on right now
-  placement,              // "full" | "widget" | "off"
-  setPlacement,
-  fullEnabled,            // Resolved from placement, or a devtool override
-  widgetEnabled,
-  softEdgeEnabled,
-  layers,                 // The shared crossfade stack (either kind)
-  edgeMask,               // CSS mask-image, or null
-  devtoolOverrides,       // Ephemeral, devtool only
-  setDevtoolOverrides,
-  opacity,                // Resolved for what is painting (look) and theme
-  veil,                   // The flat veil alpha over an image (reading pages)
-  blurred,                // Whether this route defocuses the wallpaper
-  bezel,                  // Whether the bezel is drawn (kind, or a session override)
-  bezelTint, bezelBand, bezelRadius,  // Saved settings, and their setters
-  readingBlur,            // The two reading-treatment switches
-
-  setReadingBlur,
-  readingDim,
-  setReadingDim,
-  src,                    // The file currently painting, for the devtool
-  isPickerOpen,
-  openPicker,
-  closePicker,
-} = useWallpaper();
-```
-
-### useAmbientTime
-
-```typescript
-const {
-  nowMs,               // The effective clock: real, or time-travelled
-  realNowMs,           // The wall clock, untouched
-  phase,               // Always derived from nowMs; there is no phase override
-  sunriseMs,           // For the effective day
-  sunsetMs,
-  timeScrubMinutes,    // Devtool: minutes past midnight, or null
-  setTimeScrubMinutes,
-  dayOffset,           // Devtool: whole days (moves the moon)
-  setDayOffset,
-  isTimeTravelActive,
-  resetTimeTravel,
-} = useAmbientTime();
-```
-
-### useSolarTheme
-
-```typescript
-const {
-  sunTheme,            // "light" | "dark" at the effective clock, or null when unknown
-  beginThemeHandover,  // Stage the next theme change (slow sky, then chrome)
-} = useSolarTheme();
-```
-
-The provider only says what the sun implies; `<SolarThemeSync />` (mounted in
-the root layout) hands it to the theme service (`useSunThemeSlot`) and stages
-it when it changes with the page open.
-
-## Data Flow
-
-```
-                                     wallpaperKind
-                                          │
-        ┌─────────────────────────────────┴──────────────────┐
-        │ "weather"                                  "image" │
-        ▼                                                    ▼
-IP Location API → useLocationQuery                  BUILT_IN_WALLPAPERS
-        ↓                                                    ↓
-Open-Meteo API → useWeatherQuery                        app theme
-        ↓                                                    ↓
-the clock (nowMs) + lat/lon → sun & moon                    ↓
-        ↓                                                    ↓
-deriveWeatherScene → scene                     getWallpaperBackground
-        ├── sky:      <WeatherWallpaper /> (WebGL)           │
-        ├── gradient: sceneToCssGradient ─────┐              │
-        └── classic:  getClassicGradient ─────┼──────────────┘
-                                      ▼
-                    wallpaper.layers (one stack, crossfaded)
-                                      ▼
-              WallpaperBackground (full) / WidgetShell (widget)
-```
-
-Both branches feed the same stack, which is what makes "one background at a
-time" a structural property rather than a rule. The Sky's canvas is the one
-exception to "everything is a layer": it paints the full-page slot directly
-from the scene, while widget cards keep painting the gradient of that same
-scene.
-
-The sun-event phase runs alongside this and never touches the background:
-
-```
-phase    → AmbientPhaseActivity → Dock Live Activity
-sunTheme → SolarThemeSync       → the theme under Follow the Sun + notice
-```
-
-## Freshness
-
-The cache is persisted to localStorage and the provider lives as long as the
-tab, so a stale time on its own refreshes nothing; something has to ask.
-What asks is the world changing:
+- **Status is read from what is in effect.** Motion is `ready` when readings
+  can flow (`motionStatus`, from `gyro.reachable`); the location is `ready`
+  only when a fix is the place in use (`locationStatus`). The raw facts
+  disagree on edges: Safari reads `prompt` after an Allow, a `granted`
+  location can still be on the IP because the fix failed, and WebKit's motion
+  gate has no query at all.
+- **`request()` asks in the only order that works**: motion first and
+  synchronously, because WebKit opens its gate only inside the tap's own task;
+  then the location, which waits for motion's answer rather than stacking a
+  second dialog. Call it straight from the press, nothing awaited before it.
+- **Policy is each feature's**: whether to offer and how often (the tilt's
+  once-ever `weatherGyroPrimed`, the window's once-a-session
+  `skyLocationOffered`). Permissions never decide those.
+- **The sheet** (`PermissionSheet`) knows nothing about which permission it
+  fronts: `ask(fn)` runs the feature's `request()` call and lands on the
+  outcome it maps to.
+
+A new feature adds a `PermissionKind` only if the browser guards something
+new; otherwise it picks its kinds, writes its policy and renders a
+`PermissionSheet`.
+
+### Location, the cache and freshness
+
+**The cache.** The query client and its persister live in `lib/query.ts`
+(localStorage key `hux_query_cache`, 24 h `gcTime`), mounted around everything
+by `PersistQueryClientProvider` in `shared/providers.tsx`, so a returning
+visitor gets the last location and weather before any request. The weather key
+carries a version segment (`queryKeys.weather`:
+`["weather", "v4", lat.toFixed(2), lon.toFixed(2)]`): bump it whenever the
+payload changes shape, or a persisted entry from before is served as if it were
+complete. Both queries keep the previous answer on screen while a new key loads
+(`placeholderData`), so switching IP to Accurate, or a fix in a new city, leaves
+the old card and sky up until the new ones land.
+
+**Freshness.** The provider lives as long as the tab, so a stale time alone
+refreshes nothing; something has to ask:
 
 | Data | Stale after | Asked again when |
 |------|-------------|------------------|
 | IP location | 30 min | mount, the tab coming back (`visibilitychange`), the network coming back, a back/forward-cache restore |
-| GPS location | 30 min | mount, and the tab coming back, only while the permission is already granted, so a refetch never raises the prompt |
-| Weather | 15 min | all of the above, plus a poll timed to Open-Meteo's next model interval (`current.time + interval` + 2 min, clamped 5–60 min; visible tabs only), plus local midnight |
-| The clock | — | every minute boundary, and at once on `visibilitychange` / `pageshow` (timers do not run in a locked phone) |
+| GPS location | 30 min | mount and the tab coming back, only while a fix may be taken, so a refetch never raises the prompt |
+| Weather | 15 min | all of the above; a poll timed to Open-Meteo's next interval (`current.time + interval` + 2 min, clamped 5–60 min, visible tabs only; `nextWeatherPollMs`); local midnight (one forecast day, so yesterday's sun times would stale everything) |
+| The clock | n/a | every minute boundary, and at once on `visibilitychange` / `pageshow` (timers do not run in a locked phone) |
 
-**The cache.** The query client and its persister live in `lib/query.ts`
-(localStorage key `hux_query_cache`), mounted around everything by
-`PersistQueryClientProvider` in `shared/providers.tsx`, so a returning visitor
-gets the last location and weather before any request. The weather key carries
-a version segment (`queryKeys.weather`, now `v4`): bump it whenever the payload
-changes shape, or a persisted entry from before is served as if it were
-complete. Both queries keep the previous answer on screen while a new key
-loads (`placeholderData`), so switching IP to Accurate, or a fix in a new
-city, leaves the old card and sky up until the new ones land.
+**A misplaced IP.** IP databases misplace whole carriers (a phone in San Jose
+can come back as Dallas, as can Private Relay or a VPN). The browser's time
+zone is a free second opinion: a provider that puts the address in a different
+UTC offset is doubted and the next one asked; if all disagree, the first
+answer is kept with `timezoneMismatch: true`. The devtool's Sky section shows
+who located you, how long ago, and `tz≠` when flagged.
 
-**A misplaced IP.** IP databases misplace whole carriers: a phone on cellular
-in San Jose can come back as Dallas, and so can Private Relay or a VPN. The
-browser's clock is a free second opinion: a provider that puts the address in
-a different UTC offset is doubted and the next one asked; if all of them
-disagree, the first answer is kept with `timezoneMismatch: true`. The devtool's
-Sky section shows who located you, how long ago, and `tz≠` when flagged.
+**Asking for the real location.** Nothing raises the browser's prompt by itself
+(not a load, a focus or a refetch):
 
-**Asking for the real location.** Nothing raises the browser's location
-prompt by itself (not a load, not a focus, not a refetch):
-
-- `useLocationQuery` reads the Permissions API first. In Accurate mode it takes
-  a fix only when the permission is already `granted` (or the browser cannot
-  say); asked-but-not-granted *is* the IP query (same key, same cache), so a
-  permission Safari reset overnight degrades to the network's guess instead of a
-  prompt on load or no weather at all. A fix that fails falls back to IP too.
-- The fix is coarse (`enableHighAccuracy: false`, `maximumAge` 10 min):
-  weather is a city-sized question, a network fix is fast indoors, and it works
-  with iOS's Precise Location off.
+- In Accurate mode a fix is taken only when `canTakeFix` allows: the
+  permission reads `granted` (or the browser cannot say), or a fix from the
+  primer or palette was recorded in the last day (`locationGrantedAt`,
+  `GRANT_MEMORY_MS`), because iOS Safari keeps reading `prompt` after an Allow.
+  Otherwise the query *is* the IP one (same key, same cache), so a permission
+  Safari reset overnight degrades to the network's guess, not a prompt on load.
+  A failed fix falls back to the IP; a refusal clears the record.
+- The fix is coarse (`enableHighAccuracy: false`, `maximumAge` 10 min): weather
+  is a city-sized question, and it works with iOS's Precise Location off.
 - The prompt is raised only by a tap on something that says why: the
-  **location primer** (`LocationPrimerSheet`, the tilt primer's pattern: a
-  sheet on a phone, a small window from `sm`), or the command palette's
-  Geolocation row (a refusal there opens the primer to say where to undo it).
-- **An IP location is always marked as a guess, in the weather card.** The
-  city carries an `ip` tag where a GPS fix shows its arrow, and the city and
-  tag are one button to the primer, so a visitor who sees the wrong city finds
-  the fix exactly where they are looking. When the guess is also flagged
-  `timezoneMismatch` the city reads "Dallas?". There is no unprompted notice:
-  the timezone check cannot see most misplacements (a San Jose Wi-Fi placed in
-  Los Angeles passes it), and a toast on every guessed visit would be louder
-  than the problem.
-- **iOS Safari never reports the grant.** Under its default "Ask" site
-  setting the Permissions API keeps reading `prompt` after an Allow, so a
-  gate on `granted` alone left the switch to Accurate running on the IP. A
-  fix from the primer or the palette is therefore recorded
-  (`locationGrantedAt`) and counts as a grant for a day (`canTakeFix` in
-  `lib/queries.ts`); a refusal clears it, so a "Don't Allow" is not asked
-  again. Setting Safari's site setting to Allow reads `granted` and needs none
-  of this.
-- The permission is followed live (`PermissionStatus` `change`). A grant made
-  during the visit (in the site settings, say) switches to Accurate; one the
-  page loads with does not, since IP was then chosen on purpose.
-- A grant from the primer seeds the Accurate query with the fix just taken, so
-  switching costs no second fix or reverse-geocode.
+  **location primer** (`LocationPrimerSheet`), the command palette's
+  Geolocation row (`/` then `C`; a refusal there opens the primer to say where
+  to undo it), or [the sky window's offer](./ambient-easter-eggs.md#asking-for-the-window).
+- **An IP location is always marked as a guess** in the weather card: the city
+  carries an `ip` tag (both screenshots above) where a fix shows its arrow, and
+  city and tag are one button to the primer. With `timezoneMismatch` the city
+  reads "Dallas?". There is no unprompted notice: the time-zone check misses
+  most misplacements, and a toast on every guessed visit would be louder than
+  the problem.
+- The permission is followed live (`PermissionStatus` `change`): a grant made
+  during the visit switches to Accurate; one the page loads with does not,
+  since IP was then chosen on purpose. A grant from the primer seeds the
+  Accurate query with the fix just taken.
 
-**Sun times are epoch seconds.** The forecast is requested with
-`timeformat=unixtime`. Open-Meteo's default ISO strings are the *location's*
-wall clock with no offset, which `new Date()` reads in the *browser's* zone,
-so a location one timezone off moved sunrise by an hour.
+## Constraints
+
+| Constraint | Why | What breaks |
+|---|---|---|
+| Nothing raises a browser prompt except a tap on something that explains it | A refusal is final everywhere; a prompt with no reason gets refused | Geolocation or motion lost for good on the first visit |
+| `request()` is called synchronously from the press, motion before location | WebKit opens its motion gate only inside the tap's task | Motion is never granted on iOS, or two dialogs stack |
+| A permission's status is read from what is in effect, never from the wish or the permission string | The facts disagree (Safari's `prompt` after Allow; `granted` with a failed fix) | A sky window opens over the IP's city without asking |
+| Sun times are requested as `unixtime` | ISO strings carry the location's wall clock with no offset | Sunrise off by an hour for a location in another zone |
+| Bump the weather key's version when the payload's meaning changes | The cache is persisted for a day | Old entries served as if complete |
+| The phase is derived from `nowMs`, never set | One clock for the sky, the words and the Dock | A devtool phase that disagrees with the sky (this used to exist) |
+| The sky reads the sun's elevation, not the phase | Minute resolution | Six visible steps a day |
+
+## Reference
+
+### Files
+
+```
+systems/ambient/
+├── provider.tsx                  # AmbientProvider: location, weather, time, solar theme, wallpaper
+├── components/
+│   ├── surface.tsx               # AmbientSurface: the bezel (vitre) + the full-page wallpaper mount
+│   ├── wallpaper-background.tsx  # Full-page wallpaper (image / Sky / CSS), the egg listeners
+│   ├── wallpaper.tsx             # <WeatherWallpaper />: the Sky's WebGL canvas shell
+│   ├── wallpaper-sheet.tsx       # The wallpaper picker (an AdaptiveSurface)
+│   ├── gradient-stack.tsx        # CSS crossfade renderer (full-page + widgets)
+│   ├── greeting.tsx              # AmbientGreeting
+│   ├── weather-widget.tsx        # The home weather card (header + WeatherNow)
+│   ├── weather-now.tsx           # Shared weather body + useDisplayWeather()
+│   ├── weather-line.tsx          # One-line weather, lock-screen style
+│   ├── weather-icon.tsx          # Condition icons
+│   ├── phase-activity.tsx        # AmbientPhaseActivity (Dock Live Activity)
+│   ├── solar-theme.tsx           # SolarThemeSync
+│   ├── permission-sheet.tsx      # PermissionSheet + usePermissionOffer
+│   ├── use-permissions.ts        # usePermissions: status, and one press that asks in order
+│   ├── location-primer-sheet.tsx # The offer before the location prompt
+│   ├── tilt-primer-sheet.tsx     # The tilt's offer (rain and snow)
+│   ├── sky-window-sheet.tsx      # The sky window's offer: motion, and the place with it
+│   ├── sky-pull-cue.tsx          # The light at the top while the home is pulled down
+│   ├── sky-body-hints.tsx        # Edge hints toward an off-screen sun or moon
+│   ├── body-glyph.tsx            # Solid sun and moon-phase glyphs
+│   └── settle-spinner.tsx        # The top-right ring while the sky settles
+└── lib/
+    ├── location.ts               # IP providers, geolocation, reverse geocode, tz check
+    ├── weather.ts                # Open-Meteo fetch + condition model
+    ├── queries.ts                # useLocationQuery, useWeatherQuery, canTakeFix, poll timing
+    ├── sun.ts · phase.ts         # Sun-event windows; deriveAmbientPhase
+    ├── greeting.ts               # Time-of-day fallback, greeting keys
+    ├── notification.ts           # Upcoming sun event (lead + window)
+    ├── solar.ts                  # Sun and moon ephemerides, moon phase
+    ├── magnetic.ts               # WMM2025 declination (the sky window's true north)
+    ├── solar-theme.ts            # solarThemeAt, SOLAR_HANDOVER
+    ├── scene.ts                  # deriveWeatherScene, staging, THEME_KEY, TWILIGHT_LOOK
+    ├── gradient.ts               # sceneToCssGradient, getClassicGradient
+    ├── color.ts · format.ts      # Colour maths; display formatting
+    ├── wallpaper/                # The Sky: shader.ts, renderer.ts, stir.ts, support.ts
+    ├── gyroscope.ts              # deviceorientation → gravity; motion access
+    ├── sky-window.ts             # The phone as a window: view, projection, compass
+    ├── sky-pull.ts               # The pull gesture; skyOpenAction, skyAsksPlace
+    ├── sky-bodies.ts             # Per-frame channel: where the bodies are in the window
+    ├── settle.ts                 # Named settle reasons (the spinner)
+    ├── poke.ts                   # Tapped eggs: arming, cooldown, isBackgroundClick, holdCallout
+    ├── wipe.ts                   # The fog wipe's stroke and hand
+    ├── tilt-primer.ts            # The tilt primer's press and shouldOfferTilt
+    ├── permissions.ts            # motionStatus, locationStatus
+    ├── wallpaper.ts              # Kinds, styles, catalog, families, opacity
+    ├── wallpaper-play.ts         # Shuffle / Loop
+    ├── wallpaper-profile(s).ts   # Profile types; lookups into wallpaper-profiles.json
+    ├── legibility.ts             # Profile → CSS variables (docs/system-legibility.md)
+    ├── reading-surface.ts        # Which routes are reading pages
+    ├── bezel.ts · platform.ts    # Bezel settings and family edges; edge masks, platform checks
+    ├── fixed-bg-tracker.ts       # iOS background-attachment polyfill
+    ├── settings.ts               # Persisted preferences (hux_ambient_settings)
+    └── route-config.ts           # Form-factor types
+```
+
+### Hooks
+
+The full shapes are the `*ContextType` interfaces in `provider.tsx`.
+
+```typescript
+const {
+  locationMode,            // "ip" | "accurate" (the wish)
+  location,                // ResolvedLocation | null (source: "ip" | "geolocation")
+  permission,              // "granted" | "prompt" | "denied" | "unknown" | null, live
+  usingGps,                // Accurate is in effect (false while a wish runs on the IP)
+  isLoading, isFetching, error,
+  setLocationMode,
+  requestAccurateLocation, // may raise the prompt: call from a tap
+  refresh,
+  isLocationPrimerOpen, openLocationPrimer, closeLocationPrimer,
+} = useLocation();
+
+const {
+  weather,                 // NormalizedWeather | null
+  scene,                   // WeatherScene
+  sceneWeather,            // the scene's weather input, for deriving other times
+  isLoading, isFetching, error,
+  debugOverride, setDebugOverride,     // devtool: { condition } | null
+  sceneOverrides, setSceneOverrides,   // devtool Tune: cloud / precip / wind / veil
+  refresh,
+} = useWeather();
+
+const {
+  nowMs,                   // the effective clock: real, or time-travelled
+  realNowMs,               // the wall clock
+  phase,                   // always derived from nowMs
+  sunriseMs, sunsetMs,     // for the effective day
+  timeScrubMinutes, setTimeScrubMinutes, // devtool: minutes past midnight, or null
+  dayOffset, setDayOffset, // devtool: whole days (moves the moon)
+  isTimeTravelActive, resetTimeTravel,
+} = useAmbientTime();
+
+const {
+  sunTheme,                // "light" | "dark" at the effective clock, or null
+  beginThemeHandover,      // stage the next theme change (sky, then chrome)
+} = useSolarTheme();
+```
+
+`useWallpaper()` is summarised in [Wallpapers](./wallpapers.md#usewallpaper).
+The devtool overrides (condition, time, tune) are honoured only while the
+devtool is enabled.
+
+### Components
+
+- `<AmbientSurface>` wraps page content: the bezel (`vitre`) around it, and
+  `<WallpaperBackground />` behind it when the full-page placement is on.
+- `<AmbientGreeting />` says the phase ("Good Morning", "Sun Is Setting";
+  `greeting*` keys in `lib/i18n.ts`).
+- `<WeatherWidget />` is the home card: city (with the `ip` tag or the fix
+  arrow), temperature, condition, sun times. `<WeatherLine />` is the one-line
+  form the home can show over the greeting instead.

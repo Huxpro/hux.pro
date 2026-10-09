@@ -123,7 +123,7 @@ html.dark.glass-clear { --glass-dark-add: 6%; }
 
 `systems/ambient/lib/reading-surface.ts` 负责判断（`isReadingSurface`）。`wallpaper-background.tsx` 绘制遮罩，也就是按策略给出的 alpha 铺一层 `bg-background`，对所有类型的壁纸都生效（Sky 和 Gradient 也会退后）。模糊只用于图片，这是唯一一种有细节可虚化的类型：它画在每一层的内部元素上（`gradient-stack.tsx`，半径 `--wp-blur`），这样层上的软边遮罩保持清晰、不被缩放。这两部分都是 devtool 开关（`Reading dim`、`Reading blur`），因为这是品味问题，而解决品味问题的唯一办法就是亲眼去看。
 
-bezel 和软边都不属于这套处理。两者属于页面的边缘，而不是图片（见 [Placement](./system-ambient.md#placement)）。
+bezel 和软边都不属于这套处理。两者属于页面的边缘，而不是图片（见 [Placement](./wallpapers.md#placement)）。
 
 ## 历史
 

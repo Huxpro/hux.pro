@@ -176,7 +176,7 @@ stays crisp and unscaled. Both parts are devtool switches (`Reading dim`,
 to look at it.
 
 Neither the bezel nor soft edging is part of this treatment. Both belong to the
-edge of the page, not the picture (see [Placement](./system-ambient.md#placement)).
+edge of the page, not the picture (see [Placement](./wallpapers.md#placement)).
 
 ## History
 
