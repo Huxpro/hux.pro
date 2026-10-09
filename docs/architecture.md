@@ -1,10 +1,13 @@
+---
+skills: [repo-layout]
+---
+
 # Architecture
 
 The map of the repo: what each top-level folder holds, how a system is
 shaped, what may import what, where state lives, and which doc owns each
 system. Read it to know where a change goes; read the system's own doc
-before changing the system. The skill `.claude/skills/repo-layout` is the
-checklist form of the rules below.
+before changing the system.
 
 ## What it looks like done well
 
@@ -183,7 +186,7 @@ Snapshot commands and what each commits: the skill `content-snapshots`.
 | System | What it is | Doc |
 |--------|-----------|-----|
 | `about` | The surface a newcomer meets; `<Badge>` | [About & Badges](./system-about.md) |
-| `ambient` | Weather, sun, wallpapers, the bezel's settings | [Ambient](./system-ambient.md) |
+| `ambient` | Weather, sun, wallpapers, the bezel's settings | [Ambient](./system-ambient.md) (location, weather, phase, cache); the live sky in [The Sky](./ambient-sky.md), its eggs in [Ambient easter eggs](./ambient-easter-eggs.md); styles, pictures and the bezel in [Wallpapers](./wallpapers.md) |
 | `ask` | ⌘K as a conversation; `app/api/chat` | [Ask](./system-ask.md) |
 | `attachments` | Where a commit's media opens | [Attachments](./system-attachments.md) |
 | `command` | The ⌘K palette and the floating button | [Command](./system-command.md); moving between pages: [Navigation](./navigation.md) |
