@@ -20,7 +20,7 @@
 | **Ambient** | [docs/system-ambient.md](./docs/system-ambient.md) (Location → Open-Meteo → phase → scene → legibility; the phase model, Follow the Sun, permissions, the cache). The sky itself: [docs/ambient-sky.md](./docs/ambient-sky.md) (engines, sun and moon, wind and gravity, gyroscope tilt, the theme's key). Its eggs: [docs/ambient-easter-eggs.md](./docs/ambient-easter-eggs.md) (strike, shooting star, gust, fog wipe, sky window) |
 | **Wallpapers** | [docs/wallpapers.md](./docs/wallpapers.md) (Weather styles + Apple / Nature pictures, light/dark pairs, placement and the bezel, `pnpm wallpapers:encode` / `pnpm wallpapers:check` / `pnpm wallpapers:profile`; the checklist is the skill `.claude/skills/wallpapers`) |
 | **Devtool** | [docs/system-devtool.md](./docs/system-devtool.md) (The debug panel: off by default everywhere, summoned by `D`, ⌘K or holding the search button; a docked sheet or a floating pill ⇄ window; its modules, and session overrides vs saved settings) |
-| **Architecture** | [docs/architecture.md](./docs/architecture.md) (Implementation details) |
+| **Architecture** | [docs/architecture.md](./docs/architecture.md) (The repo map: top-level folders, how a system is shaped, what may import what, where state lives, the two production API routes, and which doc owns each system; the rules are the skill `.claude/skills/repo-layout`) |
 | **OG Images (ours)** | [docs/og-images.md](./docs/og-images.md) (Social cards we publish for our pages) |
 | **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards; `pnpm og:complete` in GitHub CI) |
 | **App Icon** | [docs/app-icon.md](./docs/app-icon.md) (Generative favicon + the `/lab/icon` lab) |
@@ -40,8 +40,8 @@
 the rules that are easy to break, the commands to run, and the doc to read.
 `keyboard-input`, `surfaces`, `base-ui-drawer`, `ui-tokens`, `vitre`,
 `ask-commands`, `content-snapshots`, `wallpapers`, `attachments`,
-`react-conventions`, `glow`, `writing-content`. A skill states what the code
-won't tell you and points at its doc; keep it short.
+`react-conventions`, `glow`, `writing-content`, `repo-layout`. A skill states
+what the code won't tell you and points at its doc; keep it short.
 
 ## 2. Quick Start Context
 
@@ -51,9 +51,10 @@ won't tell you and points at its doc; keep it short.
 - **Framework**: Next.js 16 (App Router)
 - **Styling**: Tailwind CSS v4 (OKLCH colors)
 - **Navigation**: Command Palette (`⌘K`) is the primary nav; no visible navbar.
-- **Portability**: Pages are static; no server actions. The one API route
-  in production is `app/api/chat` (Ask), which holds the model key; the
-  other `app/api/*` routes are dev-only tools.
+- **Portability**: Pages are static; no server actions. The API routes
+  in production are `app/api/chat` (Ask), which holds the model key, and
+  `app/api/voice` (speech to text through the AI Gateway); the other
+  `app/api/*` routes are dev-only tools.
 
 ### File Locations
 
@@ -64,7 +65,7 @@ won't tell you and points at its doc; keep it short.
 | Ask (AI in ⌘K) | `systems/ask/`, `app/api/chat/route.ts`, `components/ai-elements/` |
 | shadcn primitives | `components/ui/` (Base UI flavour, `components.json` style `base-maia`) |
 | Add to Home Screen | `systems/install/` (per-browser directions sheet; Chromium's `beforeinstallprompt` when it offers one) |
-| Global state | `components/providers.tsx` |
+| Global state | `shared/providers.tsx` (the provider tree; `services/` for state with no UI) |
 | Translations | `lib/i18n.ts` |
 | Blog posts | `content/blog/*.mdx` (at /writing) |
 | PL chart | A post, `content/blog/pl-chart.{en,zh}.mdx`, around `<PLChart>` / `<LanguageNotes>` (`components/languages/`, registered in `components/mdx-components.tsx`) over `content/languages.json` (`lib/languages.ts`); standalone twin: github.com/Huxpro/PL-chart |
