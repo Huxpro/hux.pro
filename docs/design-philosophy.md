@@ -1,141 +1,91 @@
 # Design Philosophy
 
-## Overview
+Why hux.pro looks and behaves like a personal operating system, in a few
+principles to weigh when a change meets a choice the rules don't cover. The
+rules themselves (the two voices, Prose and System; type, colour, glass,
+touch) are [Design System](./design-system.md). These are judgments, not
+checks a change can pass or fail.
 
-Hux.Pro is a personal website with an **"AI-Native OS" aesthetic**. The homepage should feel like a personal operating system that recognizes you, rather than a static web page. It borrows from developer tools, command palettes and native OS interfaces rather than typical marketing-focused web design.
+The home screen should feel like an OS that recognises you, not a page that
+markets someone. The site borrows from Apple's systems (the springboard,
+Spotlight, Live Activities, Liquid Glass, Siri's light), from command
+launchers, and from quiet personal sites for its prose, and from marketing
+sites nothing.
 
-## Dual Aesthetic System
+## Principles
 
-| Context | Vibe | Where Applied |
-|---------|------|---------------|
-| **Content UI** | Minimal, breathable, editorial | Blog posts, talks, career content |
-| **System UI** | Liquid Glass, dimensional, tactile | Command palette, widgets, modals, buttons |
+### 1. Presence before structure
 
-### Content-Oriented UI
-> "A well-printed essay on a modern screen"
+Meeting the site should feel like meeting a person, not reading a
+directory: it says who is here before it lists what is available, and it
+knows what it can know without being asked.
 
-- Borderless design: no cards, no boxes
-- Typography-first hierarchy
-- Generous whitespace; let content breathe
-- Invisible grids, not visible containers
+- The greeting follows the sky, not only the clock: sunrise and sunset get
+  their own line (`getAmbientGreetingKeyFromPhase`,
+  `systems/ambient/lib/greeting.ts`), and the wallpaper is the local weather
+  (`systems/ambient`).
+- A returning visitor is acknowledged under it: "Last Read *title*.", or
+  "Welcome Back", or "It's Been A While" after more than seven days
+  (`systems/ambient/components/greeting.tsx`). Brief, warm, never demanding
+  a reply.
+- A newcomer is met by the About, the one surface that opens without being
+  asked, once (`systems/about/provider.tsx`).
 
-### System/App UI
-> "Linear-like productivity surface inside a calm editorial space"
+### 2. Conversation as navigation
 
-- Frosted glass: `backdrop-blur: blur()`, 0.7–0.9 opacity
-- Layered shadows: ambient + directional
-- Subtle gradients suggesting light source
-- Micro-animations that feel physical
-- Hover states: responsive, weighty
+The palette is the way around, and it can be asked as well as searched.
 
-## AI-Native Homepage
+- ⌘K searches everything; a question becomes Ask, whose tools read the site
+  and offer the palette's own commands (`systems/ask/lib/command-tools.ts`,
+  generated from `systems/command/catalog.ts`). See [Ask](./system-ask.md).
+- A new feature is a command first. A control on a page is a shortcut to it,
+  not the only way in.
 
-The homepage is designed as a **personal OS surface** rather than a traditional landing page. Five principles shape it:
+### 3. Keyboard first, thumb equal
 
-### 1. The Surface, Not the Desktop
-Instead of a desktop with objects on it, the homepage is a surface that reflects your current state. It shows what's relevant now.
+On a desk the site is driven like Raycast or Spotlight; on a phone, like
+iOS. Neither is a degraded copy of the other.
 
-### 2. Ambient Over Explicit
-The OS knows the time of day, what you were last doing and what has changed. It shows that context without waiting to be asked.
+- ⌘K opens the palette and `/` opens its slash list from anywhere
+  (`systems/command/provider.tsx`); a slash letter then acts (`/` `O` the
+  About, `/` `E` the labs; `systems/command/actions.tsx`).
+- Where there is no keyboard, the same `/` is a chip in the field
+  (`SlashEntry`, `systems/command/results.tsx`), and the home grid's edit
+  controls move to the bottom of the screen, where the thumb is.
 
-### 3. Conversation as Navigation
-The command palette is framed as a dialogue. Its prompt asks "What brings you here?" instead of "Type a command." The whole homepage invites the visitor to talk to it.
+### 4. Fluid boundaries
 
-### 4. Fluid Boundaries
-Sections don't have hard edges. Blog, Work and Talks are aspects of one site rather than separate rooms. The homepage mixes them through widgets, weighted by recency or relevance.
+Writing, talks, projects and music are aspects of one person, not separate
+rooms.
 
-### 5. Presence, Not Structure
-The homepage should feel like meeting a person rather than reading a directory. It shows who is here before it shows what is available.
+- The home grid mixes them, one widget each, ordered by the visitor
+  (`app/home-view.tsx`).
+- One question covers all of them: Ask's index holds posts, works, eras and
+  prompts side by side (`AskDocKind`, `systems/ask/lib/corpus.ts`).
 
-## Homepage Layout
+### 5. Bilingual by design
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                                                             │
-│                         hux_                                │  ← mono, small, muted
-│                                                             │     (system identifier)
-│                                                             │
-│              good evening.                                  │  ← serif, large, hero
-│              last time you were reading                     │     (Hux speaking to you)
-│              On Design Systems.                             │  ← italic emphasis
-│                                                             │
-│                                                             │
-│   ┌─────────────────────────────┐  ┌─────────────┐          │
-│   │  On Design Systems          │  │  Currently  │          │  ← Widget Grid
-│   │  The Future of Cross...     │  │  @ ByteD... │          │
-│   │  On Developer Experience    │  ├─────────────┤          │
-│   │                      Blog →│  │  Latest     │          │
-│   └─────────────────────────────┘  │  Talk       │          │
-│                                    └─────────────┘          │
-│                                                             │
-│              ┌───────────────────────────────┐              │
-│              │ what brings you here? _   ⌘K │              │  ← conversational
-│              └───────────────────────────────┘              │     prompt (input)
-│                                                             │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+English and Chinese are equals, not a source and a translation.
 
-### Visual Hierarchy
+- First visit takes the browser's language; the choice is kept after that
+  (`services/locale.tsx`).
+- A post is in English, Chinese or both (`content/blog/<slug>.<en|zh>.mdx`),
+  and `/writing` shows the visitor's language first, with "All" one chip
+  away (`LanguageFilter`, `components/post/post-list.tsx`).
+- Every visible string has both (`lib/i18n.ts`), and a widget, a lab or a
+  command that ships in one language is unfinished.
 
-1. **System identifier** (`hux_`): Mono, small, muted, like a terminal prompt or OS watermark
-2. **Message to user**: Serif, large, warm. This is Hux addressing the visitor directly
-3. **Widget grid**: Glassmorphic cards with content discovery at a glance
-4. **Conversational prompt**: The input itself contains the invitation ("what brings you here?")
+### 6. Progressive disclosure
 
-### Hux as OS Voice
+Show what a thing is; reveal more on attention.
 
-Hux speaks directly to the user, creating presence through address:
+- A `/writing` row is a title and a date; pointing at it peeks the post's
+  description, excerpt and cover (`components/post/post-peek.tsx`).
+- Settings live where they act, not on a settings page: site-wide ones
+  (theme, glass, tint) are palette commands, an article's typeface, size
+  and measure are its `Aa` (`components/post/reading-sheet.tsx`).
 
-| Scenario | Hux Says |
-|----------|----------|
-| First visit, morning | "good morning." |
-| First visit, evening | "good evening." |
-| Returning, same day | "welcome back." |
-| Returning, read something | "last time you were reading *[title]*." |
-| Returning, long gap (>7 days) | "it's been a while." |
-
-The voice is:
-- Lowercase (calm, unhurried)
-- Brief (not chatty)
-- Warm but not effusive
-- Acknowledges without demanding
-
-## Core Principles
-
-### 1. Quiet Confidence
-
-The design prioritizes content over chrome. Rather than flashy animations or attention-grabbing elements, the interface recedes to let writing and work speak for itself.
-
-- **Muted color palette**: Grayscale with subtle contrast differences
-- **Minimal ornamentation**: No decorative elements that don't serve a function
-- **Understated interactions**: Hover effects are subtle reveals, not dramatic transformations
-
-### 2. Keyboard-First Navigation
-
-The site treats keyboard navigation as a first-class citizen, inspired by tools like Raycast, Alfred, and VS Code's command palette.
-
-- **Command palette** (`⌘K`): Central navigation hub
-- **Action mode** (`/`): Quick single-letter shortcuts for power users
-- **Global shortcuts**: Work anywhere on the site
-
-### 3. Bilingual by Design
-
-English and Chinese are treated as equal citizens, not as primary/translated content:
-
-- **Auto-detection**: First visit detects browser language
-- **Persistent preference**: Stored in localStorage for subsequent visits
-- **Per-content language**: Posts can be in EN, ZH, or both
-
-### 4. Progressive Disclosure
-
-Information is revealed on demand rather than overwhelming upfront:
-
-- **Blog list**: Shows only title and date; hover reveals excerpt
-- **Command palette**: Search mode for browsing, slash commands for quick access
-- **Settings**: Integrated into command palette, not cluttering the main UI
-
-### 5. Less, but Better
+### 7. Less, but better
 
 Design is how it works, so the test for a mark is what it *does*, not how it
 looks. Before adding a label, a badge, an arrow or an icon, ask whether the
@@ -143,38 +93,30 @@ surface already says it. If it does, the mark is a second way of saying the
 same thing, and it goes, or it waits until someone is paying attention.
 
 - **One voice per layer.** The machine layer is lowercase mono (`jul 2020`,
-  `retry`, `cd ~`). Labels are set as written; capitals and letter-spacing
-  would be a second machine voice over the first.
+  `retry`, `cd ~`). Capitals and letter-spacing would be a second machine
+  voice over the first ([Design System](./design-system.md)).
 - **Signifiers wait for attention.** A widget is its own tap target and a
   peeking cover says its strip scrolls. The header arrow and pager dots show
-  when a pointer or focus is on the card, and never under a finger.
+  when a pointer or focus is on the card, and never under a finger
+  (`WIDGET_REVEAL`, `components/ui/widget.tsx`).
 - **A preview previews.** A home card says what a thing is, in full, and its
   row opens the full entry. Outbound links and attachments live on the page
   the card leads to, not on the card at the title's expense.
 - **Curation acts, it doesn't annotate.** `featured` decides what the home
   card surfaces. The archive is already complete and in date order, so it
-  shows no badge.
+  shows no badge (`components/post/post-list.tsx`).
 
 Nothing here removes an experience: the wallpaper, the scramble, the peeks,
 the theater, music, the apps and the palette all stay. What goes is the chrome
 that repeated them.
 
-## Inspirations
+## What it avoids
 
-- **Raycast**: Command palette UX, slash commands concept
-- **Linear**: Clean, monospace-accented typography
-- **Vercel**: Understated dark mode, attention to spacing
-- **iA Writer**: Prose-focused reading experience
-- **macOS System Preferences**: Native UI patterns
-
-## Anti-Patterns
-
-What this design explicitly avoids:
-
-- ❌ Hero images/illustrations
-- ❌ Gradient backgrounds
-- ❌ Animated blob shapes
-- ❌ Social proof/testimonials
-- ❌ Cookie banners and popups
-- ❌ Fixed navigation bars taking up vertical space
-- ❌ "AI slop" aesthetics (purple gradients, Inter font, generic layouts)
+- Marketing furniture: hero banners, social proof, testimonials, newsletter
+  and cookie popups.
+- A brand or accent colour. The content brings the colour (a wallpaper, a
+  cover); the UI is greyscale ([Design System](./design-system.md)).
+- A navbar across the top. Navigation is a keystroke or the floating command
+  bar.
+- Anything that opens unasked, except the About, once.
+- Motion that explains nothing ([Motion](./motion.md)).
