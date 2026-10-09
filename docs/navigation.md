@@ -1,261 +1,135 @@
-# Navigation System
+# Navigation
 
-## Command Trigger
+How a visitor moves between pages. There is no nav bar. The floating
+button and ⌘K reach every section from anywhere. The back link at the top
+of a content page goes up one level. Content links go everywhere else. Every
+move between pages is a View Transition: the page crossfades and the `λhux`
+mark slides to its new place. The palette and the floating button are
+[Command System](./system-command.md); this page is everything around them.
 
-The **Command Trigger** is a unified floating component that provides consistent access to the command palette across all pages. It morphs between three states based on context and screen size:
+## What it looks like done well
 
-```
-Mobile (non-home)     Desktop (non-home)      Homepage (any)
-+---------+           +-------------+         +---------------------------+
-|   ⌘     |  <--->    |  ⌘K         |  <--->  | 🔍  Search...     [⌘K]   |
-+---------+           +-------------+         +---------------------------+
-   FAB                   Pill                   Conversational Prompt
-```
+<div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+  <img src="/img/docs/navigation/home-desk.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="The home page on a desk: the small λhux mark centred above the greeting, the widget grid, the search bar at the bottom centre with the Ask ball to its right." />
+  <img src="/img/docs/navigation/writing-desk.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="The Writing page on a desk: the λhux mark at the top left of the column above the Writing title, the post list, and the round Ask ball and the ⌘ K pill in the bottom right corner." />
+</div>
 
-### State Determination
+1280×860, home and `/writing`. The same `λhux` sits centred on the home and
+at the top left of the column on a content page. It is the one element that
+moves between them; everything else crossfades. On the content page it is
+also the way back (`cd ..` on hover). The search bar becomes the ⌘ K pill in
+the corner, and the Ask ball slides from its right side to its left.
 
-| Screen | Page | Variant | Position |
-|--------|------|---------|----------|
-| Mobile | Homepage | Prompt (compact) | Bottom center |
-| Mobile | Other | FAB (circle) | Bottom right |
-| Desktop | Homepage | Prompt (full) | Bottom center |
-| Desktop | Other | Pill | Bottom right |
+## How it works
 
-### Design Decisions
+### Routes
 
-#### Unified Component
-Previously, the FAB and Conversational Prompt were separate components with different styles and positions. The new unified approach:
-- Uses a single `FloatingActionButton` component
-- Shares the same glass styling across all states
-- Animates smoothly between states during navigation
+| Route | Page | Shell | Back link |
+|-------|------|-------|-----------|
+| `/` | Home: greeting, widget grid | `HomeView` | none |
+| `/about` | The home with the About up ([system-about.md](./system-about.md)) | `HomeView` + `AboutRoute` | none |
+| `/writing` | Post list | `PageLayout page="writing"` | `λhux` → `/` |
+| `/writing/<slug>/<lang>` | Article | `PostContent` (`PageLayout variant="reader"`) | `/writing` |
+| `/works` | The log; `?type=talk` and the others are filters, each with its own Open Graph card | `PageLayout page="works"` | `λhux` |
+| `/prompt` | Prompts | `PageLayout page="prompts"` | `λhux` |
+| `/docs`, `/docs/<slug>/<lang>` | Docs list, a doc | `PageLayout title=…`, `PostContent` | `λhux`, `/docs` |
+| `/lab`, `/lab/<id>` | Labs index, a lab | `PageLayout page="lab"`, `LabShell` ([system-lab.md](./system-lab.md)) | `λhux`, the lab's own |
 
-#### Glass Styling
-All variants share the "frosted glass" aesthetic:
+Addresses that move, all in `next.config.ts` unless noted:
 
-```tsx
-"bg-card/50 backdrop-blur-xl",
-"border border-border/50",
-"shadow-lg shadow-black/5"
-```
+- `/writing/<slug>` and `/docs/<slug>` get a 307 to `/<slug>/<lang>`, the
+  language read from the `locale` cookie (default `en`). This is in
+  `middleware.ts`.
+- `/works/<type>` redirects to `/works?type=<type>`. A rewrite serves the
+  query form from that page, so a crawler reads that filter's card.
+- `/editor/*` redirects to `/lab/*`, and `/bezel/*` to `/vitre/*`. `/vitre`
+  sends a desk to `/lab/vitre`.
+- Old Jekyll addresses (`/YYYY/MM/DD/slug`) are handled by
+  `lib/jekyll-redirects` and a catch-all to the GitHub Pages archive.
 
-#### Animation Strategy
-The morph uses Framer Motion's `layout` prop with staggered content transitions:
+### Ways to move
 
-1. **Exit Phase**: Text content fades out first (opacity + x-translation)
-2. **Reshape Phase**: Container morphs size/position (layout animation)
-3. **Enter Phase**: New content fades in after reshape completes
+1. **The palette.** Every section has a row and a slash letter (Docs has
+   only the letter). It opens from the floating button on every page, from
+   ⌘K, or from `/` outside a field. The rows, letters and button are in
+   [Command System](./system-command.md).
+2. **The back link** (`SystemNav`, `components/ui/system-nav.tsx`), at the
+   top left of every `PageLayout` page. It goes to the parent, not back in
+   history: article → its list → home. It shows where it goes (`λhux`,
+   `/writing`, `/docs`) and scrambles to `cd ..` on hover. Its hit area is at
+   least 44px, padded out with negative margins so the text stays in place.
+3. **Content.** Post rows, widget surfaces and links in the page. A widget
+   with an `href` pushes it with the transition router; ⌘/Ctrl-click or a
+   middle click on its blank surface opens a new tab instead
+   (`components/ui/widget.tsx`). On the home, the `λhux` mark itself opens
+   `/about` once its name has been revealed: by hovering on a desk, by
+   holding on touch (`components/home/scramble-identifier.tsx`).
+4. **Browser back and forward.** Plain history. `ViewTransitions` listens
+   for `popstate`, so they animate too.
 
-This "stagger and reshape" approach ensures:
-- Smooth contour continuity (no border-radius clipping)
-- Content doesn't overflow during transition
-- Stable animation origin point
+### The content page: `PageLayout`
 
-#### Consistent Height
-All states maintain `h-12` (48px) height to eliminate vertical jitter during transitions.
+`components/ui/page-layout.tsx`, used by every list page and, through
+`PostContent`, by every article and doc. A centred column
+(`max-w-[var(--page-col)]`, 680px, `px-[var(--page-gutter)]`) with
+`pt-16 sm:pt-24 pb-32 sm:pb-40`. Two variants:
 
-#### Responsive Text
+- **`poetic`** (lists): a `HeaderZone` of fixed height (`h-44 sm:h-48`) so
+  the content always starts at the same place. It holds the back link, then
+  the title, scrambled on hover when `page` is given (`TextScramble`, i18n
+  keys `${page}Title` / `${page}TitleHover`). It leaves as the page scrolls
+  by the hero exit (`components/ui/hero-exit.ts`): `fade` by default, sticky
+  and fading under the content; `scroll` rides up in flow. The DevTool can
+  pin either for the session. `headerActions` hang under the title (the
+  language filter). `pinnedActions` is a toolbar that pins at the top
+  instead of fading with the hero (`/works`, `/prompt`).
+- **`reader`** (articles, docs): no hero zone. A `reader-masthead` holds the
+  back link, the title and `headerActions`, and its sizes follow the reading
+  size (below).
 
-| State | Mobile | Desktop |
-|-------|--------|---------|
-| Homepage | "Search" | "Search or / for commands" |
-| Other | ⌘ icon only | ⌘K |
+### Page transitions
 
-### Interaction States
+`app/layout.tsx` wraps the app in `next-view-transitions`'
+`<ViewTransitions>`. Its `Link` and `useTransitionRouter().push` start the
+navigation inside `document.startViewTransition()`. Where the browser has no
+`startViewTransition`, the library navigates without a transition. The
+styles are in `app/globals.css` under "View Transition API Styles":
 
-- **Homepage (Prompt)**: Focus ring (`focus:ring-2`), like an input field
-- **Other pages (FAB/Pill)**: Scale (`active:scale-95`), like a button
+| Name | Set by | Animation |
+|------|--------|-----------|
+| `root` | the browser | Old page fades out, new page fades in, 200ms ease-out |
+| `site-identifier` | `data-view-transition="site-identifier"` on the home's `ScrambleIdentifier` and on `SystemNav` | The group morphs position and size, 300ms `cubic-bezier(0.4, 0, 0.2, 1)`; the snapshots crossfade in 200ms |
+| `ask-ball` | `[data-ask-ball]` (`systems/command/fab.tsx`), only under `:root:active-view-transition` | Slides 300ms with the same curve; no crossfade (the old snapshot is hidden); the group blurs what is under it (`backdrop-filter: blur(24px)`) |
 
-## Command Palette
-
-The command palette is the central navigation hub, inspired by Raycast, Spotlight, and VS Code. It is dual-purpose: universal search **and** an app launcher (a horizontal icon strip; see [Command System](./system-command)).
-
-### Opening Methods
-
-| Method | Where | Action |
-|--------|-------|--------|
-| `⌘K` / `Ctrl+K` | Anywhere | Open in **Search Mode** |
-| `/` (anywhere) | Anywhere | Open in **Slash Commands** |
-| Conversational prompt | Homepage | Open in Search Mode |
-| FAB button | Non-homepage pages | Open in Search Mode |
-
-### Homepage Entry Point
-
-On the homepage, the Command Trigger expands into a **conversational prompt**: a wide button styled as a search input with the placeholder "Search" (mobile) or "Search or / for commands" (desktop). The dialogue-like entry point fits the AI-native OS aesthetic.
-
-When navigating away from the homepage, the prompt morphs into a compact FAB (mobile) or pill (desktop) positioned in the bottom-right corner.
-
-### Two Modes
-
-The command palette has two distinct modes that morph smoothly between each other
-(and two more, load-bundle and Ask; Ask, the palette as a conversation, is in
-[system-ask.md](./system-ask.md)):
-
-#### Search Mode (Default)
-- Full-text search across pages, posts, and talks
-- Arrow keys to navigate, Enter to select
-- Shows all content with descriptions
-- Width: 600px
-
-#### Slash Commands
-- Single-letter shortcuts for immediate actions
-- No search input: press a letter
-- Minimal UI showing only available actions
-- Width: 400px
-
-### Keyboard Shortcuts
-
-#### In Search Mode
-
-When the search input is empty or unfocused:
-
-| Key | Action |
-|-----|--------|
-| `H` | Go to Home |
-| `U` | Go to Writing |
-| `X` | Go to Works |
-| `P` | Go to Prompts |
-| `I` | Go to Docs (internal) |
-| `D` | Toggle Dark/Light mode |
-| `L` | Toggle Language |
-| `/` | Switch to Slash Commands |
-| `Esc` | Close palette |
-
-#### In Slash Commands
-
-Three sections, in order: **Navigation** (go somewhere), **Actions** (do one
-thing now: voice, music, add to home screen) and **Settings** (a value that
-stays). An action whose control is already on screen (voice: the field's
-microphone) is `slashOnly`: it appears in this list, never as a search result.
-
-| Key | Action |
-|-----|--------|
-| `H` | Go to Home |
-| `U` | Go to Writing |
-| `X` | Go to Works |
-| `P` | Go to Prompts |
-| `I` | Go to Docs (internal) |
-| `E` | Go to Editor |
-| `A` | Cycle Appearance: Follow the Sun → the theme the sun isn't showing → the one it is → Follow the System |
-| `L` | Toggle Language |
-| `O` | Open the About (its only shortcut; see [system-about.md](./system-about.md)) |
-| `V` | Voice: hold and release to transcribe with a Gateway model; browser fallback supports tap to listen ([system-glow.md](./system-glow.md)) |
-| `C` | Toggle geolocation, by Coordinates (IP ↔ accurate) |
-| `W` | Open the Wallpaper picker |
-| `G` | Toggle Glass material (Tinted ↔ Clear) |
-| `T` | Toggle glass Tint (Wallpaper ↔ Neutral) |
-| `M` | Play / pause Music |
-| `Q` | Open the playlist browser |
-| `D` | Toggle the Devtool panel |
-| `⌫` (Backspace) | Back to Search Mode |
-| `Esc` | Close palette |
-
-### Design Decisions
-
-#### Why Two Modes?
-
-1. **Avoid browser conflicts**: `⌘D`, `⌘L`, `⌘H` conflict with browser shortcuts
-2. **Separation of concerns**: Search is for discovery; actions are for execution
-3. **Progressive disclosure**: Beginners use search; power users use actions
-
-#### Why `/` for Slash Commands?
-
-- Familiar from Vim, Slack, Discord
-- Single non-modifier key for quick access
-- Doesn't conflict with search (handled as first character)
-
-#### Morphing Transition
-
-Instead of opening/closing between modes, the palette **morphs**:
-- Width animates (600px ↔ 400px)
-- Content crossfades with opacity
-- Height animates using CSS Grid (`grid-template-rows: 0fr/1fr`)
-
-#### Adaptive height (popover)
-
-The popover list is viewport-relative rather than a fixed `360px`. The phone
-sheet does not use this; it fills its detents with `flex-1`.
-- **Offset**: `22vh`, capped at `13.5rem`, so the card sits a little lower than Spotlight's `20vh`
-- **Search list**: `43dvh` (Geolocation as the last full row on a 16" MacBook), capped at `40rem`
-- **Slash list**: no `43dvh` cap: the card grows for every lettered command (the original taller morph) and only scrolls against remaining viewport chrome
-- Short screens shrink and scroll; tall screens show more results without becoming a full-height panel
-
-### Footer Hints
-
-**Search Mode:**
-```
-↑↓ navigate   ↵ select   / commands         ⌘K
-```
-
-**Slash Commands:**
-```
-⌫ back                                       /
-```
-
-## Page Structure
-
-Each page follows a consistent pattern:
-
-1. **Back link** (top-left): Returns to parent page
-2. **Header**: Title + subtitle
-3. **Content area**: Main page content
-4. **No fixed navigation**: Command palette replaces traditional nav
-
-### PageLayout Component
-
-Content pages (prose, log, prompt, docs) share a common layout structure via the `PageLayout` component. PageLayout is used at the **app router level** (in page views), not within reusable components.
-
-```tsx
-// app/writing/blog-list.tsx (app router level)
-<PageLayout page="writing">
-  <PostList posts={posts} basePath="/writing" />
-</PageLayout>
-```
-
-**Structure:**
-```
-┌─────────────────────────────────────────┐
-│  max-w-[680px] px-6 pt-24 pb-32         │
-│                                         │
-│  ┌─────────────────────────────────────┐│
-│  │ SystemNav (mb-16)                   ││
-│  │ "λhux" → "cd .." on hover           ││
-│  └─────────────────────────────────────┘│
-│                                         │
-│  ┌─────────────────────────────────────┐│
-│  │ <header> (mb-20)                    ││
-│  │ <h1> serif text-3xl/4xl             ││
-│  └─────────────────────────────────────┘│
-│                                         │
-│  {children}                             │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-**Props:**
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `title` | `string` | required | Page title displayed in h1 |
-| `backHref` | `string` | `"/"` | Back navigation destination |
-| `backLabel` | `string` | `"λhux"` | Back navigation label |
-| `className` | `string` | - | Additional classes for main |
-| `children` | `ReactNode` | required | Page content |
+Under `prefers-reduced-motion: reduce` every `::view-transition-*` animation
+is off and the navigation is instant.
 
 ### Reading settings ("Aa")
 
-An article page (anything `PostContent` renders with the ruler on) puts an
-`Aa` button in `PageLayout`'s `headerActions`, beside the meta row, where the
-list pages keep their language filter. It opens the settings that until now
-only the devtool could reach (`components/post/reading-settings.ts` and
-`ruler-settings.ts`): typeface, size, column, wide media, focus mode, ruler.
+An article page (anything `PostContent` renders with `toc`, today the
+writing articles) ends its meta row with an `Aa` chip, after the language
+switch. It opens the settings that until then only the devtool could reach
+(`components/post/reading-settings.ts` and `ruler-settings.ts`): typeface,
+size, column, wide media, focus mode, ruler. The chip and its surface are
+`ReadingSettings` in `components/post/reading-sheet.tsx`.
 
 It is the equivalent of Books' "Aa" menu and takes the surface system's
-anchored presentation: a content-height sheet on a phone, a popover hanging off
-the button above that (`ANCHORED_PRESENTATION`,
-[Secondary Surfaces](./system-surface.md)). Neither is modal: the article stays
-live behind it, so a change lands where you can watch it.
+anchored presentation: a content-height sheet on a phone, a popover hanging
+from the chip's leading edge from `sm` up (`ANCHORED_PRESENTATION`,
+[Secondary Surfaces](./system-surface.md)). Neither is modal: the article
+stays live behind it, so a change lands where you can watch it.
 
-All five settings are here, in reader's words rather than the devtool's mono,
-and each appears only where it does something:
+<div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+  <img src="/img/docs/navigation/reading-phone.png" style={{ width: "calc(40% - 0.5rem)", margin: 0 }} alt="An article on a phone with the reading sheet up: Typeface, Size, Focus mode and Ruler; the article visible above it." />
+  <img src="/img/docs/navigation/reading-desk.png" style={{ width: "calc(60% - 0.5rem)", margin: 0 }} alt="The same article on a desk with the popover hanging under the Aa chip: Typeface, Size, Column, Wide media, Focus mode and Ruler." />
+</div>
+
+Left, iPhone 15 Pro viewport: four rows, because Column and Wide media would
+switch nothing at that width. Right, 1280×860: all six. Both leave the
+article live behind them.
+
+The settings use the reader's words rather than the devtool's mono, and each
+appears only where it does something:
 
 **Size** has the widest effect: `--reading-size` is the number every `em`
 inside an article resolves against, so changing it scales the whole
@@ -264,12 +138,13 @@ relation to the paragraph they annotate. That is why the article's type scale
 is relative rather than absolute; a body that grew while its headings stood
 still would collapse the hierarchy at one step.
 
-All but one are offered at every width. **Wide media** is the exception,
-for a technical reason: the rule it switches lives entirely inside the `bleed`
-breakpoint (`--breakpoint-bleed`, `app/globals.css`), so below that width the
-control would be wired to nothing. The row hides itself with the `bleed:`
-variant of that same token, so the control and the rule it drives read one
-number and cannot drift apart.
+All but two are offered at every width. **Column** and **Wide media** are
+the exceptions, for a technical reason: the rule each switches lives entirely
+inside its own breakpoint (`--breakpoint-measure`, 760px, and
+`--breakpoint-bleed`, 900px, in `app/globals.css`), so below that width the
+control would be wired to nothing. Each row hides itself with the `measure:`
+or `bleed:` variant of that same token, so the control and the rule it drives
+read one number and cannot drift apart.
 
 Nothing else is hidden narrow, even where it is less useful. These are single,
 global, persisted settings: hiding focus mode on a phone would leave a reader
@@ -279,99 +154,47 @@ is not a door a reader opens.
 The devtool keeps its Reading module. Both surfaces write the same persisted
 store, so the panel and the reader's menu always agree.
 
-### View Transitions
+## Rules
 
-The site uses the browser's View Transitions API via the `next-view-transitions` library for smooth page-to-page animations.
+| Rule | Why | What breaks |
+|------|-----|-------------|
+| Moves between pages use `Link` or `useTransitionRouter` from `next-view-transitions` | Only those start a view transition | The page swaps with no crossfade and `λhux` jumps |
+| Updates to a page's own query (`?type=`, the language filter) use `next/navigation`'s router (`app/works/view.tsx`, `app/prompt/view.tsx`, `app/writing/blog-list.tsx`) | A filter is not a new page | A filter click crossfades the whole page |
+| One `site-identifier` per page | A `view-transition-name` must be unique in the document | The browser skips the transition |
+| `ask-ball` is named only under `:root:active-view-transition` | A named element is a backdrop root, so the ball's own frost would see only itself | A bare tinted ball at rest |
+| The `root` rules stay global | `systems/ambient/components/solar-theme.tsx` also commits the theme through `startViewTransition` | A change to the page crossfade also changes the theme change |
+| A reading setting that only works above a width hides with that width's variant | The control and its rule read one token | A control that switches nothing |
+| The back link goes to the parent, not `router.back()` | It names where it goes; history may lead off-site | A link labelled `/writing` that goes somewhere else |
 
-**Shared Element Mapping:**
+## What is free to choose
 
-```
-Home                          Content Pages (using PageLayout)
-┌─────────────────┐          ┌─────────────────┐
-│  λhux ◄─────────────────────► λhux           │  ← shared element (morphs position)
-│  (centered)     │          │  (left-aligned) │
-│                 │          │                 │
-│  [greeting]     │          │  [page title]   │  ← crossfade
-│                 │          │                 │
-│  [widgets]      │          │  [content]      │  ← crossfade
-└─────────────────┘          └─────────────────┘
-```
+- A page's `backHref` / `backLabel`, its `variant`, and whether its title
+  scrambles (`page`) or is static (`title`).
+- The default hero exit: change only `defaultHeroExit` in
+  `components/ui/hero-exit.ts`.
+- Transition durations and curves, together with the reduced-motion rule.
+- Which reading settings exist, as long as each hides only where it does
+  nothing.
 
-**Implementation:**
+## Adding a section
 
-1. **Library Setup** (`next-view-transitions`):
-   ```tsx
-   // app/layout.tsx
-   import { ViewTransitions } from "next-view-transitions";
-   
-   export default function RootLayout({ children }) {
-     return (
-       <ViewTransitions>
-         <html>...</html>
-       </ViewTransitions>
-     );
-   }
-   ```
+1. `app/<route>/page.tsx` and a view that renders `PageLayout` (`page=` with
+   `<page>Title` / `<page>TitleHover` keys in `lib/i18n`, or `title=`).
+2. A palette command for it (`navigate`, section `navigation`, a free
+   letter): [Command System, "Adding a command"](./system-command.md).
+3. Links to it use `next-view-transitions`. A home widget gets `href`.
+4. Add a row to the routes table above.
 
-2. **Link Components** - Use library's Link for navigation:
-   ```tsx
-   import { Link } from "next-view-transitions";
-   
-   <Link href="/writing">Blog</Link>
-   ```
+## Reference: `PageLayout` props
 
-3. **Programmatic Navigation** - Use `useTransitionRouter`:
-   ```tsx
-   import { useTransitionRouter } from "next-view-transitions";
-   
-   const router = useTransitionRouter();
-   router.push("/path"); // Triggers view transition
-   ```
-
-4. **Shared Elements** - Use `data-view-transition` attribute:
-   ```tsx
-   // Home page (centered)
-   <span data-view-transition="site-identifier">λhux</span>
-   
-   // Content pages (left-aligned, in SystemNav)
-   <span data-view-transition="site-identifier">λhux</span>
-   ```
-
-5. **CSS Animations** (`globals.css`):
-   ```css
-   /* Page content crossfades */
-   ::view-transition-old(root) {
-     animation: fade-out 200ms ease-out both;
-   }
-   ::view-transition-new(root) {
-     animation: fade-in 200ms ease-out both;
-   }
-   
-   /* Site identifier morphs position */
-   [data-view-transition="site-identifier"] {
-     view-transition-name: site-identifier;
-   }
-   ::view-transition-group(site-identifier) {
-     animation-duration: 300ms;
-     animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-   }
-   ```
-
-**How it works:**
-- `next-view-transitions` wraps navigation in `document.startViewTransition()`
-- Elements with `view-transition-name` become shared elements that morph position/size
-- Root content crossfades during transition
-- Falls back gracefully in unsupported browsers (instant navigation)
-
-**Browser Support:**
-- Chrome 111+, Edge 111+ (full support)
-- Safari, Firefox (graceful fallback to instant navigation)
-
-## Mobile Considerations
-
-- **Unified Command Trigger**: Same component morphs between prompt (homepage) and FAB (other pages)
-- **Compact prompt on mobile**: Shows only "Search" text instead of the full desktop message
-- **FAB position**: Bottom-right corner with consistent `bottom-6 right-6` positioning
-- Command palette is a bottom sheet on phones (detents at 70% and the top, tap outside to dismiss); the desktop popover from `sm` up. See [Command System](./system-command.md)
-- Touch-friendly tap targets (`h-12` minimum)
-- Widget grid stacks vertically on mobile
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `page` | `ScramblePage` | - | Scrambling title from `${page}Title` / `${page}TitleHover`. Instead of `title` |
+| `title` | `string` | - | Static title. Instead of `page` |
+| `backHref` | `string` | `"/"` | Where the back link goes |
+| `backLabel` | `string` | `"λhux"` | What it shows |
+| `headerActions` | `ReactNode` | - | Under the title: meta row, filter |
+| `pinnedActions` | `ReactNode` | - | A toolbar that pins at the top; `poetic` only, instead of `headerActions` |
+| `variant` | `"poetic" \| "reader"` | `"poetic"` | Hero zone, or reading masthead |
+| `className` | `string` | - | Added to `main` |
+| `children` | `ReactNode` | required | The page |
