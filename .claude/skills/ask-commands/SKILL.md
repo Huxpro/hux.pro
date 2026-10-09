@@ -16,7 +16,13 @@ description: Ask (⌘K's AI) and the command catalog it acts through. Use when a
   `execute`; `systems/ask/lib/chat.ts` runs them against `public/ask/index.json`. The
   route (`app/api/chat/route.ts`) holds the key, pins prompt, tools and
   models, and never reads the index.
-- **Every word the model reads** is in `systems/ask/prompts.ts`.
+  The route's `TOOL_BUDGET` (6) forces an answer; the page's
+  `MAX_TOOL_CALLS` (10) must stay above it.
+- **Every word the model reads** is in `systems/ask/prompts.ts`; the system
+  prompt stays byte-identical (prompt cache), per-request facts go in
+  `data-context` parts.
+- **Behaviour choices are settings** in `systems/ask/lib/config.ts`, one
+  preset per platform (desk / phone), shown in the devtool's Ask section.
 - **Models** are `systems/ask/lib/models.ts` only, all on the gateway's free
   tier; the first is the default.
 - **Index**: `pnpm ask:index` (run by `predev` and `build`); heading anchors

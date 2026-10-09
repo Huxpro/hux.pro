@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 660" width="1040" height="660">
+<defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f9e57"/></marker></defs>
+<rect x="0" y="0" width="1040" height="660" fill="#ffffff"/>
+<text x="20" y="34" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" font-weight="600" fill="#222" text-anchor="start">scroll=&quot;window&quot;</text>
+<text x="20" y="54" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#555" text-anchor="start">the document scrolls; Safari&#x27;s toolbar collapses with it</text>
+<rect x="20" y="70" width="490" height="540" rx="12" fill="#e6f5ea" stroke="#2f9e57" stroke-width="2"/>
+<text x="36" y="94" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#222" text-anchor="start">&lt;html&gt;</text>
+<text x="36" y="111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">Scrolls the page. Carries the --page-scroll timeline.</text>
+<rect x="36" y="124" width="446" height="46" rx="8" fill="#fff3dc" stroke="#c98a12" stroke-width="1.5"/>
+<text x="48" y="143" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#222" text-anchor="start">syncChrome bands (div, position: fixed)</text>
+<text x="48" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">Children of &lt;html&gt;, so fixed in both modes: Safari samples them.</text>
+<rect x="36" y="184" width="446" height="410" rx="10" fill="#ffffff" stroke="#555555" stroke-width="1.5"/>
+<text x="48" y="206" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#222" text-anchor="start">&lt;body&gt;</text>
+<text x="102" y="206" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#444" text-anchor="start">in flow</text>
+<rect x="52" y="220" width="414" height="46" rx="8" fill="#e8f0fe" stroke="#3b6fd8" stroke-width="1.5"/>
+<text x="64" y="239" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#222" text-anchor="start">Vitre&#x27;s bezel  [data-vitre-layer]</text>
+<text x="64" y="256" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">Bands and corners, drawn above the page.</text>
+<text x="454" y="239" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#3b6fd8" text-anchor="end">fixed</text>
+<rect x="52" y="274" width="414" height="46" rx="8" fill="#e8f0fe" stroke="#3b6fd8" stroke-width="1.5"/>
+<text x="64" y="293" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#222" text-anchor="start">backdrop  [data-vitre-layer]</text>
+<text x="64" y="310" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">Wallpaper, ground. VITRE_LAYER_ATTRIBUTE, BEZEL_INSET.</text>
+<text x="454" y="293" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#3b6fd8" text-anchor="end">fixed</text>
+<rect x="52" y="328" width="414" height="46" rx="8" fill="#e8f0fe" stroke="#3b6fd8" stroke-width="1.5"/>
+<text x="64" y="347" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#222" text-anchor="start">body &gt; .fixed</text>
+<text x="64" y="364" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">Overlays: Tailwind&#x27;s .fixed, or inline position: fixed.</text>
+<text x="454" y="347" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#3b6fd8" text-anchor="end">fixed</text>
+<rect x="52" y="382" width="414" height="196" rx="8" fill="#ffffff" stroke="#555555" stroke-width="1.5"/>
+<text x="64" y="401" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#222" text-anchor="start">#vitre-scroll  (style={BEZEL_INSET})</text>
+<text x="64" y="418" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">In flow. Not a scroller: the page scrolls the window.</text>
+<text x="64" y="434" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#444" text-anchor="start">getScrollContainer() returns null.</text>
+<rect x="68" y="448" width="350" height="118" rx="6" fill="#ffffff" stroke="#b5b5b5" stroke-width="1"/>
+<rect x="82" y="464" width="322" height="7" rx="3" fill="#dcdcdc"/>
+<rect x="82" y="482" width="262" height="7" rx="3" fill="#dcdcdc"/>
+<rect x="82" y="500" width="322" height="7" rx="3" fill="#dcdcdc"/>
+<rect x="82" y="518" width="262" height="7" rx="3" fill="#dcdcdc"/>
+<text x="243.0" y="562" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#666" text-anchor="middle">{children}: the page</text>
+<line x1="496" y1="140" x2="496" y2="580" stroke="#2f9e57" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="530" y="34" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" font-weight="600" fill="#222" text-anchor="start">scroll=&quot;container&quot;</text>
+<text x="530" y="54" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#555" text-anchor="start">&lt;html&gt; and &lt;body&gt; hold still; the page scrolls inside the bezel</text>
+<rect x="530" y="70" width="490" height="540" rx="12" fill="#ffffff" stroke="#555555" stroke-width="2"/>
+<text x="546" y="94" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#222" text-anchor="start">&lt;html data-vitre-scroll=&quot;container&quot;&gt;</text>
+<text x="546" y="111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">overflow: hidden; height: 100%. Does not scroll.</text>
+<rect x="546" y="124" width="446" height="46" rx="8" fill="#fff3dc" stroke="#c98a12" stroke-width="1.5"/>
+<text x="558" y="143" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#222" text-anchor="start">syncChrome bands (div, position: fixed)</text>
+<text x="558" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">Children of &lt;html&gt;, so fixed in both modes: Safari samples them.</text>
+<rect x="546" y="184" width="446" height="410" rx="10" fill="#ffffff" stroke="#555555" stroke-width="1.5"/>
+<text x="558" y="206" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" font-weight="600" fill="#222" text-anchor="start">&lt;body&gt;</text>
+<text x="612" y="206" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#444" text-anchor="start">position: fixed; inset: 0; overflow: clip</text>
+<rect x="562" y="220" width="414" height="46" rx="8" fill="#f3f3f3" stroke="#9a9a9a" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="574" y="239" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#222" text-anchor="start">Vitre&#x27;s bezel  [data-vitre-layer]</text>
+<text x="574" y="256" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">Bands and corners, drawn above the page.</text>
+<text x="964" y="239" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#9a9a9a" text-anchor="end">absolute</text>
+<rect x="562" y="274" width="414" height="46" rx="8" fill="#f3f3f3" stroke="#9a9a9a" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="574" y="293" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#222" text-anchor="start">backdrop  [data-vitre-layer]</text>
+<text x="574" y="310" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">Wallpaper, ground. VITRE_LAYER_ATTRIBUTE, BEZEL_INSET.</text>
+<text x="964" y="293" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#9a9a9a" text-anchor="end">absolute</text>
+<rect x="562" y="328" width="414" height="46" rx="8" fill="#f3f3f3" stroke="#9a9a9a" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="574" y="347" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#222" text-anchor="start">body &gt; .fixed</text>
+<text x="574" y="364" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">Overlays: Tailwind&#x27;s .fixed, or inline position: fixed.</text>
+<text x="964" y="347" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#9a9a9a" text-anchor="end">absolute</text>
+<rect x="562" y="382" width="414" height="196" rx="8" fill="#e6f5ea" stroke="#2f9e57" stroke-width="1.5"/>
+<text x="574" y="401" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#222" text-anchor="start">#vitre-scroll  (style={BEZEL_INSET})</text>
+<text x="574" y="418" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#444" text-anchor="start">position: absolute; overflow-y: auto</text>
+<text x="574" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#444" text-anchor="start">Scrolls the page. Carries the --page-scroll timeline.</text>
+<text x="964" y="401" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#2f9e57" text-anchor="end">scrolls</text>
+<rect x="578" y="448" width="350" height="118" rx="6" fill="#ffffff" stroke="#b5b5b5" stroke-width="1"/>
+<rect x="592" y="464" width="322" height="7" rx="3" fill="#dcdcdc"/>
+<rect x="592" y="482" width="262" height="7" rx="3" fill="#dcdcdc"/>
+<rect x="592" y="500" width="322" height="7" rx="3" fill="#dcdcdc"/>
+<rect x="592" y="518" width="262" height="7" rx="3" fill="#dcdcdc"/>
+<text x="753.0" y="562" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#666" text-anchor="middle">{children}: the page</text>
+<line x1="950" y1="458" x2="950" y2="556" stroke="#2f9e57" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<rect x="20" y="629" width="22" height="14" rx="3" fill="#e8f0fe" stroke="#3b6fd8" stroke-width="1.5"/>
+<text x="50" y="640" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#333" text-anchor="start">position: fixed: at the viewport edge, Safari tints its chrome from it</text>
+<rect x="503.0" y="629" width="22" height="14" rx="3" fill="#f3f3f3" stroke="#9a9a9a" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="533.0" y="640" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#333" text-anchor="start">position: absolute: Safari does not sample it</text>
+<rect x="833.5" y="629" width="22" height="14" rx="3" fill="#e6f5ea" stroke="#2f9e57" stroke-width="1.5"/>
+<text x="863.5" y="640" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#333" text-anchor="start">the page&#x27;s scroller</text>
+</svg>
