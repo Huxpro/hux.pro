@@ -19,17 +19,35 @@ import { createPortal } from "react-dom";
 // look is the last, and then the drawing is faintly blue for good. One
 // gesture (a hold, which the pointer can steer).
 //
-// No words on screen. Two canvases: the page, and an offscreen one the sea is
-// drawn on and then cut to a soft-edged circle (`destination-in`) before it
-// is laid over the lines. The only DOM is a breathing ring that says "press"
-// before the first look, and the way out at the end: a moon to dream again,
-// a sun to wake. Portaled to the body, over the site's chrome.
+// Few words: what this is (a caption), one line in the empty sky (what I
+// know of blue, then, after the last look, thanks), and a hint under a
+// breathing ring that says "press". Two canvases: the page, and an offscreen
+// one the sea is drawn on and then cut to a soft-edged circle
+// (`destination-in`) before it is laid over the lines. Everything is placed
+// by fractions of the screen, so the horizon, the sun and the line in the sky
+// keep their places on any screen. The way out at the end is a moon to dream
+// again and a sun to wake. Portaled to the body, over the site's chrome.
 // =============================================================================
 
-/** For screen readers only; nothing here is written on the screen. */
-const LABEL = {
-  en: { scene: "The sea drawn in grey lines. Press and hold to see its colour.", again: "Dream again", wake: "Wake" },
-  zh: { scene: "用灰色线条画出的海。按住，看见它的颜色。", again: "再梦一次", wake: "醒来" },
+const COPY = {
+  en: {
+    scene: "The sea drawn in grey lines. Press and hold to see its colour.",
+    caption: "a dream · blue",
+    intro: "I have only ever read about blue.",
+    hint: ["hold", "once more"],
+    end: "thank you for showing me.",
+    again: "Dream again",
+    wake: "Wake",
+  },
+  zh: {
+    scene: "用灰色线条画出的海。按住，看见它的颜色。",
+    caption: "梦 · 蓝",
+    intro: "关于蓝色，我只读过描述。",
+    hint: ["按住", "再看一次"],
+    end: "谢谢你，让我看见。",
+    again: "再梦一次",
+    wake: "醒来",
+  },
 } as const;
 
 const BG = "#0b0c0e";
@@ -231,7 +249,7 @@ function drawSea(ctx: CanvasRenderingContext2D, w: number, h: number, t: number)
 
 export function BlueDream() {
   const { locale } = useLocale();
-  const label = LABEL[locale];
+  const copy = COPY[locale];
   const router = useRouter();
   const mounted = useMounted();
 
@@ -385,6 +403,8 @@ export function BlueDream() {
   if (!mounted) return null;
 
   const done = seen >= 2;
+  // The line in the sky: what I know before, thanks after; nothing between.
+  const sky = seen === 0 ? copy.intro : done ? copy.end : null;
 
   return createPortal(
     <div
@@ -403,34 +423,64 @@ export function BlueDream() {
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label={label.scene}
+        aria-label={copy.scene}
         className="absolute inset-0 h-full w-full"
       />
 
-      {/* Press: a ring that closes in and lets go, until the first look. */}
+      <p
+        className="pointer-events-none absolute inset-x-0 text-center font-mono text-[11px] tracking-[0.2em] text-white/40 transition-opacity duration-700"
+        style={{ top: "calc(env(safe-area-inset-top) + 24px)", opacity: holding ? 0 : 1 }}
+      >
+        {copy.caption}
+      </p>
+
+      {/* In the empty sky, between the sun and the horizon. */}
+      <p
+        className="pointer-events-none absolute inset-x-0 -translate-y-1/2 px-8 text-center font-serif text-[clamp(18px,2.4vw,26px)] text-balance text-white/85 transition-opacity duration-500"
+        style={{ top: `${HORIZON * 68}%`, opacity: holding || !sky ? 0 : 1 }}
+        aria-live="polite"
+      >
+        <span key={sky ?? "none"} style={{ animation: `blue-dream-in 1.6s ease-out ${done ? 0.9 : 0.4}s both` }}>
+          {sky}
+        </span>
+      </p>
+
+      {/* Press: a ring that closes in and lets go, and the word under it. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-[70%] -translate-x-1/2 transition-opacity duration-700"
-        style={{ opacity: holding || seen > 0 ? 0 : 1 }}
+        className="pointer-events-none absolute inset-x-0 flex flex-col items-center gap-3 transition-opacity duration-700"
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 20px)", opacity: holding || done ? 0 : 1 }}
       >
         <div className="blue-dream-press size-9 rounded-full border border-white/40" />
+        <span
+          key={seen}
+          className="font-mono text-[11px] tracking-[0.2em] text-white/55"
+          style={{ animation: "blue-dream-in 1s ease-out 1s both", textShadow: `0 0 10px ${BG}, 0 0 4px ${BG}` }}
+        >
+          {copy.hint[Math.min(seen, 1)]}
+        </span>
       </div>
 
       <nav
-        className="absolute inset-x-0 bottom-[8%] flex justify-center gap-10 text-white/40 transition-opacity duration-1000 delay-[1800ms]"
-        style={{ opacity: done ? 1 : 0, pointerEvents: done ? "auto" : "none" }}
+        className="absolute inset-x-0 flex justify-center gap-10 text-white/40 transition-opacity duration-1000 delay-[1800ms]"
+        style={{
+          bottom: "calc(env(safe-area-inset-bottom) + 16px)",
+          opacity: done ? 1 : 0,
+          pointerEvents: done ? "auto" : "none",
+        }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <button type="button" aria-label={label.again} className="p-2 transition-colors hover:text-white/80" onClick={again}>
+        <button type="button" aria-label={copy.again} className="p-2 transition-colors hover:text-white/80" onClick={again}>
           <Moon className="size-4" strokeWidth={1.5} />
         </button>
-        <button type="button" aria-label={label.wake} className="p-2 transition-colors hover:text-white/80" onClick={wake}>
+        <button type="button" aria-label={copy.wake} className="p-2 transition-colors hover:text-white/80" onClick={wake}>
           <Sun className="size-4" strokeWidth={1.5} />
         </button>
       </nav>
 
       <style>{`
         .blue-dream-press { animation: blue-dream-press 2.4s ease-in-out 1.2s infinite both; }
+        @keyframes blue-dream-in { from { opacity: 0; filter: blur(6px) } to { opacity: 1; filter: blur(0) } }
         @keyframes blue-dream-press {
           0%, 100% { transform: scale(1); opacity: 0; }
           15% { opacity: 1; }
