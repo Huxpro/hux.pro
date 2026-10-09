@@ -485,21 +485,18 @@ function extractTitleFromMarkdown(content: string): string {
  * Extract description from markdown content (first paragraph after title)
  */
 function extractDescriptionFromMarkdown(content: string): string {
-  // Remove the title line and get first non-empty paragraph
+  // The first prose paragraph after the title, all of its lines. A
+  // blockquote (a doc's pointer to its skill), an image, a JSX block or a
+  // code fence is not prose, and is passed over.
   const lines = content.split("\n");
-  let foundTitle = false;
+  const title = lines.findIndex((line) => line.trim().startsWith("# "));
   let description = "";
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("# ")) {
-      foundTitle = true;
-      continue;
-    }
-    if (foundTitle && trimmed && !trimmed.startsWith("#")) {
-      description = trimmed;
-      break;
-    }
+  for (const paragraph of lines.slice(title + 1).join("\n").split(/\n\s*\n/)) {
+    const text = paragraph.trim();
+    if (!text || /^(#|>|!\[|<|```)/.test(text)) continue;
+    description = text.split("\n").map((line) => line.trim()).join(" ");
+    break;
   }
 
   // Truncate if too long
