@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 656" width="800" height="656" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12">
+  <rect width="800" height="656" fill="#ffffff"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#475569"/>
+    </marker>
+    <marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#d97706"/>
+    </marker>
+    <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#dc2626"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="30" font-size="15" font-weight="600" fill="#0f172a">One window per id: what each call in provider.tsx does to it</text>
+
+  <!-- Open -->
+  <rect x="16" y="56" width="232" height="150" rx="10" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="32" y="82" font-size="13" font-weight="600" fill="#0f172a">Open</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#334155">
+    <text x="32" y="106">openApp(app)</text>
+    <text x="32" y="126">openUrl(url)  → url:…</text>
+    <text x="32" y="146">openBundleUrl → ota:…</text>
+  </g>
+  <text x="32" y="172" fill="#475569">Open again: focus and un-</text>
+  <text x="32" y="190" fill="#475569">minimize, never a second window</text>
+
+  <!-- Normal -->
+  <rect x="284" y="56" width="232" height="150" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="300" y="84" font-size="13" font-weight="600" fill="#1e3a8a" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">mode: "normal"</text>
+  <text x="300" y="108" fill="#334155">z = nextZ() on open, focus</text>
+  <text x="300" y="128" fill="#334155">and restore</text>
+  <text x="300" y="148" fill="#334155">focusedId: highest z on screen</text>
+  <text x="300" y="168" fill="#334155">AppFrame mounted, running</text>
+
+  <!-- Reload -->
+  <rect x="552" y="56" width="232" height="150" rx="10" fill="#fffbeb" stroke="#d97706"/>
+  <text x="568" y="84" font-size="13" font-weight="600" fill="#78350f" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">reload(id)</text>
+  <text x="568" y="108" fill="#334155">generation + 1</text>
+  <text x="568" y="128" fill="#334155">AppFrame is keyed by it, so</text>
+  <text x="568" y="148" fill="#334155">it remounts: the app restarts</text>
+  <text x="568" y="168" fill="#334155">and its state is gone</text>
+
+  <!-- Minimized -->
+  <rect x="284" y="350" width="232" height="130" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="300" y="378" font-size="13" font-weight="600" fill="#14532d" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">mode: "minimized"</text>
+  <text x="300" y="402" fill="#334155">a capsule in the Dock</text>
+  <text x="300" y="422" fill="#334155">(MinimizedWindows)</text>
+  <text x="300" y="442" fill="#334155">AppFrame still mounted,</text>
+  <text x="300" y="462" fill="#334155">the app keeps running</text>
+
+  <!-- Close -->
+  <rect x="552" y="350" width="232" height="130" rx="10" fill="#fef2f2" stroke="#dc2626"/>
+  <text x="568" y="378" font-size="13" font-weight="600" fill="#7f1d1d" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">close(id)</text>
+  <text x="568" y="402" fill="#334155">removed from windows:</text>
+  <text x="568" y="422" fill="#334155">unmounted, the only exit</text>
+  <text x="568" y="442" fill="#334155">AnimatePresence plays</text>
+  <text x="568" y="462" fill="#334155">red dot · Close · Esc (desk)</text>
+
+  <!-- Open -> normal -->
+  <line x1="248" y1="131" x2="280" y2="131" stroke="#475569" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- normal <-> reload -->
+  <text x="534" y="102" font-size="11" text-anchor="middle" fill="#475569">menu</text>
+  <line x1="516" y1="114" x2="548" y2="114" stroke="#d97706" stroke-width="1.5" marker-end="url(#o)"/>
+  <line x1="552" y1="146" x2="520" y2="146" stroke="#d97706" stroke-width="1.5" marker-end="url(#o)"/>
+
+  <!-- normal -> minimized -->
+  <line x1="330" y1="206" x2="330" y2="346" stroke="#475569" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="320" y="252" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#0f172a">minimize(id)</text>
+  <text x="320" y="270" text-anchor="end" fill="#475569">amber dot · menu</text>
+  <text x="320" y="288" text-anchor="end" fill="#475569">phone: drag down, or Esc</text>
+
+  <!-- minimized -> normal -->
+  <line x1="372" y1="350" x2="372" y2="210" stroke="#475569" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="382" y="252" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#0f172a">restore(id)</text>
+  <text x="382" y="270" fill="#475569">its Dock capsule,</text>
+  <text x="382" y="288" fill="#475569">or openApp from</text>
+  <text x="382" y="306" fill="#475569">the folder or ⌘K</text>
+
+  <!-- -> close -->
+  <path d="M516 190 C 556 230, 590 290, 612 346" fill="none" stroke="#dc2626" stroke-width="1.5" marker-end="url(#r)"/>
+  <line x1="516" y1="415" x2="548" y2="415" stroke="#dc2626" stroke-width="1.5" marker-end="url(#r)"/>
+
+  <!-- How minimized stays mounted -->
+  <text x="16" y="522" font-size="13" font-weight="600" fill="#0f172a">Minimized is not unmounted: the iframe or &lt;lynx-view&gt; keeps its document.</text>
+
+  <rect x="16" y="538" width="376" height="104" rx="10" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="32" y="562" font-size="13" font-weight="600" fill="#0f172a">≥ 640px · DesktopWindow</text>
+  <text x="32" y="584" fill="#334155">WindowLayer renders every window, minimized</text>
+  <text x="32" y="602" fill="#334155">included: opacity 0, scale 0.08, toward the Dock;</text>
+  <text x="32" y="620" fill="#334155">inert, aria-hidden, no pointer events.</text>
+
+  <rect x="408" y="538" width="376" height="104" rx="10" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="424" y="562" font-size="13" font-weight="600" fill="#0f172a">&lt; 640px · WindowSheet</text>
+  <text x="424" y="584" fill="#334155">SurfaceSheet open={false} with keepMounted:</text>
+  <text x="424" y="602" fill="#334155">Base UI hides the popup instead of unmounting.</text>
+  <text x="424" y="620" fill="#334155">soloOnPhone minimizes the rest: one app at a time.</text>
+</svg>

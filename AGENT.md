@@ -38,8 +38,9 @@
 `.claude/skills/` pairs the docs above with short skills: when each applies,
 the rules that are easy to break, the commands to run, and the doc to read.
 `keyboard-input`, `surfaces`, `base-ui-drawer`, `ui-tokens`, `vitre`,
-`ask-commands`, `content-snapshots`, `wallpapers`, `repo-layout`. A skill
-states what the code won't tell you and points at its doc; keep it short.
+`ask-commands`, `content-snapshots`, `wallpapers`, `attachments`,
+`repo-layout`. A skill states what the code won't tell you and points at its
+doc; keep it short.
 
 ## 2. Quick Start Context
 
