@@ -1,6 +1,8 @@
-# Attachments System
+---
+skills: [attachments]
+---
 
-> The checklist form of this page is the skill `.claude/skills/attachments`.
+# Attachments System
 
 One door for everything a commit attaches. A commit on `/works` carries
 media (link cards, videos, slide decks, images, social widgets), and every
