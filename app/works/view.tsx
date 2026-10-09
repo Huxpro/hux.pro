@@ -25,6 +25,7 @@ import {
   type LogForm,
 } from "@/lib/log-view";
 import { buildEraTimeline } from "@/lib/log-eras";
+import { arrangeTalks, WORKS_TALKS_DEFAULT } from "@/lib/works-talks";
 
 interface WorksViewProps {
   logData: LogData;
@@ -35,11 +36,6 @@ export function WorksView({ logData }: WorksViewProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-
-  const data = useMemo(
-    () => buildEraTimeline(logData, locale),
-    [logData, locale],
-  );
 
   // View state lives in the URL, the way /writing's language filter does:
   // a reading of this page ("just the talks, with the media showing") is a
@@ -74,6 +70,20 @@ export function WorksView({ logData }: WorksViewProps) {
   // How a chapter's ref sits on the graph. On trial, as a saved setting in
   // the DevTool's Works module.
   const devtool = useOptionalDevtool();
+
+  // How a project carries the talks that present it (lib/works-talks.ts).
+  // Filtered to projects alone, a project wears its talks' recordings among
+  // its covers: the talk rows are out of the reading, and a project's talks
+  // are part of what it is. Otherwise the DevTool's Works module picks the
+  // arrangement, on trial; its default leaves the rows as they are.
+  const projectsOnly = view.types.length === 1 && view.types[0] === "project";
+  const talksLook = projectsOnly
+    ? "cover"
+    : (devtool?.worksTalks ?? WORKS_TALKS_DEFAULT);
+  const data = useMemo(
+    () => arrangeTalks(buildEraTimeline(logData, locale), talksLook, locale),
+    [logData, locale, talksLook],
+  );
   const refLook = devtool?.worksRef ?? WORKS_REF_DEFAULT;
   // The projects shelf, on trial: a saved DevTool setting, off by default.
   const shelf = devtool?.worksShelf ?? false;
