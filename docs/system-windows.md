@@ -1,8 +1,8 @@
-# Window System: chrome windows for apps
+---
+skills: [base-ui-drawer]
+---
 
-> The contract the phone shape leans on (the sheet, its grip, the rule
-> "hold no state the end of a gesture must clear") is the skill
-> `.claude/skills/base-ui-drawer`.
+# Window System: chrome windows for apps
 
 Tapping an app (the home-screen **app folder** or the ⌘K Apps strip) opens it
 in a draggable, resizable window. The metaphor is macOS/iPadOS "open an app",
