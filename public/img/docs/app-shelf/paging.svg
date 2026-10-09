@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" fill="#1f2328">
+  <rect width="900" height="330" fill="#ffffff"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#57606a"/>
+    </marker>
+  </defs>
+
+  <text x="40" y="28" font-weight="600">11 featured apps, layout 4 × 2, axis "x" → chunkAppPages → 2 pages (8 + 3)</text>
+
+  <!-- page 2 (off screen) -->
+  <g opacity="0.45">
+    <rect x="400" y="60" width="340" height="150" rx="6" fill="#f6f8fa" stroke="#8c959f" stroke-dasharray="4 3"/>
+    <rect x="418" y="76" width="56" height="56" rx="13" fill="#8250df"/>
+    <rect x="502" y="76" width="56" height="56" rx="13" fill="#8250df"/>
+    <rect x="586" y="76" width="56" height="56" rx="13" fill="#8250df"/>
+    <text x="570" y="190" text-anchor="middle" fill="#57606a">page 2: last page may be short, left-aligned</text>
+  </g>
+
+  <!-- page 1 -->
+  <rect x="60" y="60" width="340" height="150" rx="6" fill="#f6f8fa" stroke="#8c959f"/>
+  <g fill="#0969da">
+    <rect x="78" y="76" width="56" height="56" rx="13"/>
+    <rect x="162" y="76" width="56" height="56" rx="13"/>
+    <rect x="246" y="76" width="56" height="56" rx="13"/>
+    <rect x="330" y="76" width="56" height="56" rx="13"/>
+    <rect x="78" y="144" width="56" height="56" rx="13"/>
+    <rect x="162" y="144" width="56" height="56" rx="13"/>
+    <rect x="246" y="144" width="56" height="56" rx="13"/>
+    <rect x="330" y="144" width="56" height="56" rx="13"/>
+  </g>
+
+  <!-- scroller viewport -->
+  <rect x="54" y="54" width="352" height="162" rx="10" fill="none" stroke="#cf222e" stroke-width="2"/>
+  <text x="54" y="48" fill="#cf222e" font-size="12">scroller: flex snap-x snap-mandatory overflow-x-auto</text>
+
+  <!-- dots -->
+  <circle cx="224" cy="236" r="4" fill="#1f2328" opacity="0.7"/>
+  <circle cx="240" cy="236" r="4" fill="#1f2328" opacity="0.25"/>
+  <text x="260" y="240" font-size="12" fill="#57606a">PageDots (buttons, pt-2)</text>
+
+  <!-- width annotations -->
+  <line x1="60" y1="262" x2="400" y2="262" stroke="#57606a" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text x="230" y="280" text-anchor="middle" font-size="12" fill="#57606a">each page: w-full shrink-0 snap-start snap-always = clientWidth</text>
+  <line x1="60" y1="298" x2="400" y2="298" stroke="#cf222e" marker-end="url(#a)"/>
+  <text x="60" y="320" font-size="12" fill="#cf222e">scrollLeft = 1 × clientWidth → page 2</text>
+
+  <!-- rules -->
+  <text x="490" y="236" font-size="12" font-weight="600">pageIndex = round(scrollLeft / clientWidth)</text>
+  <text x="490" y="256" font-size="12" fill="#57606a">dot click: scrollTo({ left: i × clientWidth, smooth })</text>
+  <text x="490" y="276" font-size="12" fill="#57606a">multi-page grid rows locked: repeat(rows, auto)</text>
+  <text x="490" y="296" font-size="12" fill="#57606a">one page: plain grid, no snap, no dots</text>
+  <text x="490" y="316" font-size="12" fill="#57606a">axis "y": snap-y, maxHeight rows × 5.5rem, dots at right</text>
+</svg>
