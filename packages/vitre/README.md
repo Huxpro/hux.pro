@@ -7,6 +7,8 @@
 
 # Vitre
 
+[中文](./README.zh.md)
+
 Safari `theme-color` for iOS 26, and safe page edges. Vitre draws a bezel around
 the page, tints Safari's glass toolbar and status bar live, and scrolls the page
 in a container so the edges hold still. For React.
