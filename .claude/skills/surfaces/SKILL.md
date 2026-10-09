@@ -8,8 +8,10 @@ description: How to add a sheet, panel, window or popover on hux.pro, or tell th
 - **Declare, don't branch on the viewport.** `<AdaptiveSurface presentation=…>`
   picks the shape per breakpoint: `ADAPTIVE_PRESENTATION` (sheet → panel →
   window), `ANCHORED_PRESENTATION` (sheet → popover; pass
-  `popover={{ anchor }}`), both in `systems/surface/presentation.ts`. Register the
-  `id` in `DRAGGABLE_INSTANCES`. `useSurfaceContext()` answers container
+  `popover={{ anchor }}`), both in `systems/surface/presentation.ts`; any other
+  map is written inline. A surface that can be a window registers its `id` in
+  `DRAGGABLE_DEFAULTS` (or it never drags) and `DRAGGABLE_INSTANCES`, both in
+  `systems/devtool/provider.tsx`. `useSurfaceContext()` answers container
   questions (columns, density), never "is this a phone".
 - **Sheet heights.** `snapPoints={SHEET_DETENTS}` for a list,
   `height={detentHeight(1)}` for a full fixed sheet, `fitContent` for one
