@@ -1,6 +1,8 @@
-# Design System
+---
+skills: [ui-tokens]
+---
 
-> The checklist form of this page, and of [Legibility](./system-legibility.md) and [Glass](./system-glass.md), is the skill `.claude/skills/ui-tokens`.
+# Design System
 
 The site's visual language: two voices (Prose and System), three type
 families and the roles built from them, a greyscale palette, the page
