@@ -1,11 +1,14 @@
-# Ask
+---
+skills: [ask-commands]
+---
 
-> The checklist form of this page is the skill `.claude/skills/ask-commands` (with [system-command.md](./system-command.md) for the palette side).
+# Ask
 
 The command palette, asked a question instead of a search: an agent that
 reads the site and answers with links to where it says so. The model is on
 the server; its tools run in the page, over an index of the site the browser
 fetches once. With no key configured, a scripted stand-in runs the same loop.
+The palette side is [system-command.md](./system-command.md).
 
 ## What it looks like done well
 
