@@ -3,8 +3,8 @@
 Why hux.pro looks and behaves like a personal operating system, in a few
 principles to weigh when a change meets a choice the rules don't cover. The
 rules themselves (the two voices, Prose and System; type, colour, glass,
-touch) are [Design System](./design-system.md). No skill pairs with this
-page: these are judgments, not checks a change can pass or fail.
+touch) are [Design System](./design-system.md). These are judgments, not
+checks a change can pass or fail.
 
 The home screen should feel like an OS that recognises you, not a page that
 markets someone. The site borrows from Apple's systems (the springboard,
