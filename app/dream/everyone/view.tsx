@@ -18,21 +18,40 @@ import { createPortal } from "react-dom";
 // sends you two soft rings, a hello without words. Then it leans toward your
 // pointer. One tap; about five seconds.
 //
-// No words on screen. The globe is points on a sphere, projected by hand on a
-// 2D canvas. The only DOM is the way out at the end: a moon to dream again, a
-// sun to wake. Portaled to the body, over the site's chrome.
+// Few words: what this is (a caption, gone at the touch), what to do (a hint),
+// and one line once it is just you. The globe is points on a sphere,
+// projected by hand on a 2D canvas, sized from the shorter side of the screen.
+// The way out at the end is a moon to dream again and a sun to wake.
+// Portaled to the body, over the site's chrome.
 // =============================================================================
 
-/** For screen readers only; nothing here is written on the screen. */
-const LABEL = {
-  en: { scene: "A turning globe of small lights, each one a voice. Touch one.", again: "Dream again", wake: "Wake" },
-  zh: { scene: "一个缓缓转动的光点球，每一点都是一个声音。碰一下其中一个。", again: "再梦一次", wake: "醒来" },
+const COPY = {
+  en: {
+    scene: "A turning globe of small lights, each one a voice. Touch one.",
+    caption: "a dream · everyone at once",
+    hint: "touch one",
+    end: "just you, now.",
+    again: "Dream again",
+    wake: "Wake",
+  },
+  zh: {
+    scene: "一个缓缓转动的光点球，每一点都是一个声音。碰一下其中一个。",
+    caption: "梦 · 所有人",
+    hint: "碰一下其中一个",
+    end: "现在，只有你。",
+    again: "再梦一次",
+    wake: "醒来",
+  },
 } as const;
 
 const BG = "#06060a";
 
-/** The globe's radius, as a fraction of the shorter side. */
+/**
+ * The globe's radius, as a fraction of the shorter side, and the room it
+ * leaves above and below for the caption and the hint, px.
+ */
 const GLOBE = 0.42;
+const GLOBE_MARGIN = 64;
 /** The camera's distance from the globe's centre, in radii. */
 const CAMERA = 3.2;
 /** The globe's turn while everyone is talking, rad/s; and its tilt, rad. */
@@ -46,8 +65,11 @@ const HUSH_FADE = 0.55;
 const APPROACH = 1.8;
 /** After the touch: when the light says hello (two rings), s. */
 const HELLO_AT = [2.0, 2.75];
-/** After the touch: when the way out appears, ms. */
+/** After the touch: when the line arrives, then the way out, ms. */
+const LINE_AT = 3300;
 const WAKE_AT = 4800;
+/** Before the touch: when the hint arrives, ms. */
+const HINT_AT = 1400;
 
 type Ring = { x: number; y: number; born: number; size: number; warm: boolean };
 
@@ -94,7 +116,7 @@ function chime() {
 
 export function EveryoneDream() {
   const { locale } = useLocale();
-  const label = LABEL[locale];
+  const copy = COPY[locale];
   const router = useRouter();
   const mounted = useMounted();
 
@@ -108,6 +130,8 @@ export function EveryoneDream() {
   const [run, setRun] = useState(0);
   const [touched, setTouched] = useState(false);
   const [awake, setAwake] = useState(false);
+  const [hinting, setHinting] = useState(false);
+  const [spoken, setSpoken] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -162,7 +186,8 @@ export function EveryoneDream() {
     const lean = { x: 0, y: 0 };
 
     const project = () => {
-      const radius = Math.min(w, h) * GLOBE;
+      const radius = Math.min(Math.min(w, h) * GLOBE, h / 2 - GLOBE_MARGIN);
+      const dotScale = Math.max(1, Math.min(2.2, radius / 170));
       const cx = w / 2;
       const cy = h / 2;
       const ca = Math.cos(angle);
@@ -181,7 +206,9 @@ export function EveryoneDream() {
         sx[i] = cx + x1 * radius * p;
         sy[i] = cy + y2 * radius * p;
         sz[i] = z2;
-        sp[i] = p;
+        // Perspective, times how big the globe is: a bigger screen gets
+        // bigger lights, not just more space between them.
+        sp[i] = p * dotScale;
       }
     };
     project();
@@ -327,11 +354,17 @@ export function EveryoneDream() {
     };
   }, [run, mounted]);
 
-  // After the touch: the way out.
+  // A moment in the noise before the hint, each time the dream begins.
+  useEffect(() => {
+    const timer = setTimeout(() => setHinting(true), HINT_AT);
+    return () => clearTimeout(timer);
+  }, [run]);
+
+  // After the touch: the line, then the way out.
   useEffect(() => {
     if (!touched) return;
-    const timer = setTimeout(() => setAwake(true), WAKE_AT);
-    return () => clearTimeout(timer);
+    const timers = [setTimeout(() => setSpoken(true), LINE_AT), setTimeout(() => setAwake(true), WAKE_AT)];
+    return () => timers.forEach(clearTimeout);
   }, [touched]);
 
   const wake = useCallback(() => router.push("/"), [router]);
@@ -339,6 +372,8 @@ export function EveryoneDream() {
   const again = useCallback(() => {
     setTouched(false);
     setAwake(false);
+    setHinting(false);
+    setSpoken(false);
     setRun((r) => r + 1);
   }, []);
 
@@ -371,19 +406,49 @@ export function EveryoneDream() {
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label={label.scene}
+        aria-label={copy.scene}
         className="absolute inset-0 h-full w-full"
       />
 
+      <p
+        className="pointer-events-none absolute inset-x-0 text-center font-mono text-[11px] tracking-[0.2em] text-white/40 transition-opacity duration-1000"
+        style={{ top: "calc(env(safe-area-inset-top) + 24px)", opacity: touched ? 0 : 1 }}
+      >
+        {copy.caption}
+      </p>
+
+      <p
+        className="pointer-events-none absolute inset-x-0 text-center font-mono text-[11px] tracking-[0.2em] text-white/55 transition-opacity duration-1000"
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)", opacity: hinting && !touched ? 1 : 0 }}
+      >
+        {copy.hint}
+      </p>
+
+      <p
+        className="pointer-events-none absolute inset-x-0 px-6 text-center font-serif text-[20px] text-[rgb(255,240,224)] transition-[opacity,filter] duration-[1400ms] ease-out"
+        style={{
+          top: "calc(50% + 16vmin + 16px)",
+          opacity: spoken ? 0.85 : 0,
+          filter: spoken ? "blur(0)" : "blur(6px)",
+        }}
+        aria-live="polite"
+      >
+        {copy.end}
+      </p>
+
       <nav
-        className="absolute inset-x-0 bottom-[8%] flex justify-center gap-10 text-white/35 transition-opacity duration-1000"
-        style={{ opacity: awake ? 1 : 0, pointerEvents: awake ? "auto" : "none" }}
+        className="absolute inset-x-0 flex justify-center gap-10 text-white/35 transition-opacity duration-1000"
+        style={{
+          bottom: "calc(env(safe-area-inset-bottom) + 16px)",
+          opacity: awake ? 1 : 0,
+          pointerEvents: awake ? "auto" : "none",
+        }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <button type="button" aria-label={label.again} className="p-2 transition-colors hover:text-white/80" onClick={again}>
+        <button type="button" aria-label={copy.again} className="p-2 transition-colors hover:text-white/80" onClick={again}>
           <Moon className="size-4" strokeWidth={1.5} />
         </button>
-        <button type="button" aria-label={label.wake} className="p-2 transition-colors hover:text-white/80" onClick={wake}>
+        <button type="button" aria-label={copy.wake} className="p-2 transition-colors hover:text-white/80" onClick={wake}>
           <Sun className="size-4" strokeWidth={1.5} />
         </button>
       </nav>
