@@ -8,8 +8,8 @@ description: Adding, replacing or re-encoding a built-in wallpaper on hux.pro. U
 1. Record the file's provenance in `public/wallpapers/sources.json`. A light /
    dark pair is marked `"encode": "graphic"` or `"photo"`; a single photograph
    goes under `photos`.
-2. `pnpm wallpapers:encode <id>` (or with no id for photos). It prints the
-   base colour and dimensions.
+2. `pnpm wallpapers:encode <id>` (with no id it re-encodes every photo and
+   every pair marked `encode`). It prints the base colour and dimensions.
 3. Add the entry to `BUILT_IN_WALLPAPERS` with `pair(…)` or `photo(…)`,
    pasting what the script printed.
 4. `pnpm wallpapers:check`: the catalog, `sources.json` and the files agree,
@@ -26,5 +26,4 @@ Which half of a pair shows follows the app theme, by design. Bezel and soft
 edge come from the wallpaper's family (`WALLPAPER_FAMILY_EDGES`), never per
 wallpaper.
 
-More: `docs/system-ambient.md` (the Wallpaper section),
-`docs/system-legibility.md` (profiles).
+More: `docs/wallpapers.md`, `docs/system-legibility.md` (profiles).
