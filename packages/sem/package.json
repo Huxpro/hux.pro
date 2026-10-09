@@ -1,0 +1,18 @@
+{
+  "name": "sem",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A semantic layer over whatever draws the page (DOM, SVG, Canvas, WebGL; retained or immediate): what each thing is, why, where it is now, and the rules it keeps. It never draws.",
+  "type": "module",
+  "sideEffects": false,
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  }
+}

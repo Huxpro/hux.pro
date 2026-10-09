@@ -27,6 +27,8 @@
     "badges:snapshot": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/badge-icon-snapshot.ts",
     "badges:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/badge-icon-snapshot.ts --check",
     "vitre:typecheck": "tsc -p packages/vitre",
+    "sem:typecheck": "tsc -p packages/sem",
+    "sem:test": "node --experimental-strip-types --import ./scripts/register-ts.mjs --test scripts/tests/sem.test.mjs",
     "vitre:site": "vite --config packages/vitre/site/vite.config.ts --host 0.0.0.0",
     "vitre:site:build": "vite build --config packages/vitre/site/vite.config.ts",
     "ask:benchmark": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/ask-tools-benchmark.mjs",

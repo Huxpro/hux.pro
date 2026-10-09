@@ -6,6 +6,7 @@ import { Moon, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { gapBelow, overlaps, sem, useSemDevtools, useSemElement, useSemNode, within, type Snapshot } from "sem";
 
 // =============================================================================
 // /dream/everyone, a dream: everyone at once.
@@ -70,6 +71,68 @@ const LINE_AT = 3300;
 const WAKE_AT = 4800;
 /** Before the touch: when the hint arrives, ms. */
 const HINT_AT = 1400;
+/** How far the globe's outline reaches past its radius, seen from the camera. */
+const SILHOUETTE = CAMERA / Math.sqrt(CAMERA * CAMERA - 1);
+/** The least a finger should have to hit, px. */
+const TOUCH_TARGET = 44;
+
+const SOURCE = "app/dream/everyone/view.tsx";
+
+/** A node's shape in a snapshot, if it is on screen and seen. */
+const seen = (s: Snapshot, id: string) => (s.nodes[id]?.visible ? s.nodes[id].shape : null);
+
+/**
+ * The rules the dream keeps, checked against a snapshot (`?inspect`, or
+ * `window.__sem.check()` with `?sem`). They replace looking at screenshots.
+ */
+const RULES = [
+  {
+    id: "caption-clear",
+    text: "the caption keeps clear of the globe",
+    check: (s: Snapshot) => {
+      const [a, b] = [seen(s, "everyone/caption"), seen(s, "everyone/globe")];
+      return !a || !b || !overlaps(a, b) || "the caption overlaps the globe";
+    },
+  },
+  {
+    id: "hint-clear",
+    text: "the hint keeps clear of the globe",
+    check: (s: Snapshot) => {
+      const [a, b] = [seen(s, "everyone/hint"), seen(s, "everyone/globe")];
+      return !a || !b || !overlaps(a, b) || "the hint overlaps the globe";
+    },
+  },
+  {
+    id: "line-below-light",
+    text: "the closing line sits below the light, clear of its glow",
+    check: (s: Snapshot) => {
+      const [light, line] = [seen(s, "everyone/light"), seen(s, "everyone/line")];
+      if (!light || !line) return true;
+      const gap = gapBelow(light, line);
+      return gap >= 0 || `the line is ${Math.round(-gap)}px into the glow`;
+    },
+  },
+  {
+    id: "on-screen",
+    text: "everything seen stays on the screen",
+    check: (s: Snapshot) => {
+      const screen = { rect: [0, 0, s.viewport.w, s.viewport.h] as [number, number, number, number] };
+      const off = s.order.filter((id) => id !== "everyone/scene" && seen(s, id) && !within(seen(s, id)!, screen));
+      return off.length === 0 || `off the screen: ${off.join(", ")}`;
+    },
+  },
+  {
+    id: "touch-targets",
+    text: `the way out is at least ${TOUCH_TARGET}px to a finger`,
+    check: (s: Snapshot) => {
+      const small = ["everyone/again", "everyone/wake"].filter((id) => {
+        const b = s.nodes[id]?.visible ? s.nodes[id].bounds : null;
+        return b && (b.w < TOUCH_TARGET || b.h < TOUCH_TARGET);
+      });
+      return small.length === 0 || `too small: ${small.join(", ")}`;
+    },
+  },
+];
 
 type Ring = { x: number; y: number; born: number; size: number; warm: boolean };
 
@@ -133,6 +196,62 @@ export function EveryoneDream() {
   const [hinting, setHinting] = useState(false);
   const [spoken, setSpoken] = useState(false);
 
+  // What is on the screen, for the inspector and for whoever changes it next.
+  useSemDevtools();
+  useSemNode({
+    id: "everyone/scene",
+    kind: "scene",
+    names: ["everyone at once", "所有人", "the dream"],
+    intent: "Every conversation at once, then only you: overwhelm turning into intimacy, in about five seconds.",
+    backend: "none",
+    measure: () => ({ rect: [0, 0, window.innerWidth, window.innerHeight] }),
+    state: () => ({ touched, spoken, awake, run }),
+    source: { file: SOURCE, symbols: ["EveryoneDream"] },
+    invariants: RULES,
+  });
+  const captionRef = useSemElement<HTMLSpanElement>({
+    id: "everyone/caption",
+    parent: "everyone/scene",
+    kind: "text",
+    names: ["caption", "title", "顶部小字"],
+    intent: "Says what this is before anything happens; gone at the touch.",
+    source: { file: SOURCE, symbols: ["COPY.caption"] },
+  });
+  const hintRef = useSemElement<HTMLSpanElement>({
+    id: "everyone/hint",
+    parent: "everyone/scene",
+    kind: "text",
+    names: ["hint", "提示"],
+    intent: "Says what to do, once the noise has had a moment.",
+    params: { HINT_AT: { value: HINT_AT, unit: "ms", note: "when it arrives" } },
+    source: { file: SOURCE, symbols: ["COPY.hint", "HINT_AT"] },
+  });
+  const lineRef = useSemElement<HTMLSpanElement>({
+    id: "everyone/line",
+    parent: "everyone/scene",
+    kind: "text",
+    names: ["closing line", "结束语", "just you, now"],
+    intent: "The one thing said aloud, once it is just you.",
+    params: { LINE_AT: { value: LINE_AT, unit: "ms", note: "after the touch" } },
+    source: { file: SOURCE, symbols: ["COPY.end", "LINE_AT"] },
+  });
+  const againRef = useSemElement<HTMLButtonElement>({
+    id: "everyone/again",
+    parent: "everyone/scene",
+    kind: "control",
+    names: ["again", "moon", "再梦一次"],
+    intent: "Dream it again from a fresh globe.",
+    source: { file: SOURCE, symbols: ["again"] },
+  });
+  const wakeRef = useSemElement<HTMLButtonElement>({
+    id: "everyone/wake",
+    parent: "everyone/scene",
+    kind: "control",
+    names: ["wake", "sun", "醒来"],
+    intent: "Leave the dream for the home screen.",
+    source: { file: SOURCE, symbols: ["wake"] },
+  });
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
@@ -184,9 +303,15 @@ export function EveryoneDream() {
     let now = 0;
     let angle = 0;
     const lean = { x: 0, y: 0 };
+    /** The touched light as last drawn, for the semantic layer. */
+    const light = { x: 0, y: 0, r: 0 };
+    const globeRadius = () => Math.min(Math.min(w, h) * GLOBE, h / 2 - GLOBE_MARGIN);
+    const sinceHush = () => (hushRef.current ? now - hushRef.current.t : 0);
+    /** Gone: the quiet has passed every light. */
+    const quiet = () => hushRef.current !== null && sinceHush() > HUSH_CROSS + HUSH_FADE;
 
     const project = () => {
-      const radius = Math.min(Math.min(w, h) * GLOBE, h / 2 - GLOBE_MARGIN);
+      const radius = globeRadius();
       const dotScale = Math.max(1, Math.min(2.2, radius / 170));
       const cx = w / 2;
       const cy = h / 2;
@@ -316,6 +441,9 @@ export function EveryoneDream() {
 
         const breath = 1 + 0.07 * Math.sin(since * 1.7);
         const glowR = (14 + Math.min(w, h) * 0.16 * e) * breath;
+        light.x = x;
+        light.y = y;
+        light.r = glowR;
         const glow = ctx.createRadialGradient(x, y, 0, x, y, glowR);
         glow.addColorStop(0, "rgba(255, 214, 170, 0.6)");
         glow.addColorStop(0.35, "rgba(255, 180, 120, 0.17)");
@@ -347,10 +475,94 @@ export function EveryoneDream() {
     };
     raf = requestAnimationFrame(frame);
 
+    // The canvas's things, measured from the loop's own state when asked.
+    const nodes = [
+      sem.node({
+        id: "everyone/globe",
+        parent: "everyone/scene",
+        kind: "field",
+        names: ["globe", "everyone", "the lights", "光点球"],
+        intent: "Everyone at once: a turning globe of lights, each one somebody talking.",
+        backend: "canvas2d",
+        measure: () => (quiet() ? null : { circle: [w / 2, h / 2, globeRadius() * SILHOUETTE] }),
+        count: () => count,
+        item: (i) => {
+          const hush = hushRef.current;
+          if (hush && (i === hush.dot || sinceHush() - hush.delay[i] > HUSH_FADE)) return null;
+          return { circle: [sx[i], sy[i], Math.max(2, flicker[i].size * sp[i])] };
+        },
+        state: () => ({ turning: !hushRef.current, angle }),
+        params: {
+          GLOBE: { value: GLOBE, note: "radius, a share of the shorter side" },
+          GLOBE_MARGIN: { value: GLOBE_MARGIN, unit: "px", note: "kept above and below on a short screen" },
+          CAMERA: { value: CAMERA, note: "distance, in radii" },
+          SPIN: { value: SPIN, unit: "rad/s" },
+          TILT: { value: TILT, unit: "rad" },
+        },
+        source: { file: SOURCE, symbols: ["project", "frame", "GLOBE", "CAMERA"] },
+      }),
+      sem.node({
+        id: "everyone/voices",
+        parent: "everyone/globe",
+        kind: "field",
+        names: ["voices", "rings", "talking"],
+        intent: "What they are saying: small rings rising off the lights until it is quiet.",
+        backend: "canvas2d",
+        measure: () => (hushRef.current ? null : { circle: [w / 2, h / 2, globeRadius() * SILHOUETTE] }),
+        count: () => rings.filter((r) => !r.warm).length,
+        item: (i) => {
+          const r = rings.filter((ring) => !ring.warm)[i];
+          return r ? { circle: [r.x, r.y, Math.max(1, (r.size * (now - r.born)) / 0.9)] } : null;
+        },
+        source: { file: SOURCE, symbols: ["frame"] },
+      }),
+      sem.node({
+        id: "everyone/hush",
+        parent: "everyone/scene",
+        kind: "effect",
+        names: ["the quiet", "hush", "安静"],
+        intent: "The touch's answer: quiet runs over the globe from the touched light; each light flares once and goes out.",
+        backend: "canvas2d",
+        measure: () =>
+          hushRef.current && !quiet() ? { circle: [w / 2, h / 2, globeRadius() * SILHOUETTE] } : null,
+        state: () => ({ progress: Math.min(1, sinceHush() / (HUSH_CROSS + HUSH_FADE)) }),
+        params: {
+          HUSH_CROSS: { value: HUSH_CROSS, unit: "s", note: "to the far side of the globe" },
+          HUSH_FADE: { value: HUSH_FADE, unit: "s", note: "one light's flare and fade" },
+        },
+        links: [{ rel: "drives", to: "everyone/globe" }],
+        source: { file: SOURCE, symbols: ["touchRef", "HUSH_CROSS", "HUSH_FADE"] },
+      }),
+      sem.node({
+        id: "everyone/light",
+        parent: "everyone/scene",
+        kind: "agent",
+        names: ["the light", "the one you touched", "那一点", "orb"],
+        intent: "The one picked out of everyone: it comes forward, glows, says hello in two rings, and leans toward you.",
+        backend: "canvas2d",
+        z: 1,
+        measure: () => (hushRef.current && light.r > 0 ? { circle: [light.x, light.y, light.r] } : null),
+        state: () => {
+          const t = sinceHush();
+          return {
+            phase: !hushRef.current ? "unchosen" : t < APPROACH ? "coming" : t < HELLO_AT[1] + 1 ? "hello" : "here",
+            lean: [Math.round(lean.x), Math.round(lean.y)],
+          };
+        },
+        params: {
+          APPROACH: { value: APPROACH, unit: "s", range: [0.8, 3], note: "how long it takes to come to you" },
+          HELLO_AT: { value: HELLO_AT.join(", "), unit: "s", note: "its two rings" },
+        },
+        links: [{ rel: "drives", to: "everyone/line" }],
+        source: { file: SOURCE, symbols: ["frame", "APPROACH", "HELLO_AT"] },
+      }),
+    ];
+
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       touchRef.current = null;
+      nodes.forEach((dispose) => dispose());
     };
   }, [run, mounted]);
 
@@ -414,14 +626,14 @@ export function EveryoneDream() {
         className="pointer-events-none absolute inset-x-0 text-center font-mono text-[11px] tracking-[0.2em] text-white/40 transition-opacity duration-1000"
         style={{ top: "calc(env(safe-area-inset-top) + 24px)", opacity: touched ? 0 : 1 }}
       >
-        {copy.caption}
+        <span ref={captionRef}>{copy.caption}</span>
       </p>
 
       <p
         className="pointer-events-none absolute inset-x-0 text-center font-mono text-[11px] tracking-[0.2em] text-white/55 transition-opacity duration-1000"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)", opacity: hinting && !touched ? 1 : 0 }}
       >
-        {copy.hint}
+        <span ref={hintRef}>{copy.hint}</span>
       </p>
 
       <p
@@ -433,22 +645,22 @@ export function EveryoneDream() {
         }}
         aria-live="polite"
       >
-        {copy.end}
+        <span ref={lineRef}>{copy.end}</span>
       </p>
 
       <nav
-        className="absolute inset-x-0 flex justify-center gap-10 text-white/35 transition-opacity duration-1000"
+        className="absolute inset-x-0 flex justify-center gap-4 text-white/35 transition-opacity duration-1000"
         style={{
-          bottom: "calc(env(safe-area-inset-bottom) + 16px)",
+          bottom: "calc(env(safe-area-inset-bottom) + 6px)",
           opacity: awake ? 1 : 0,
           pointerEvents: awake ? "auto" : "none",
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <button type="button" aria-label={copy.again} className="p-2 transition-colors hover:text-white/80" onClick={again}>
+        <button ref={againRef} type="button" aria-label={copy.again} className="p-3.5 transition-colors hover:text-white/80" onClick={again}>
           <Moon className="size-4" strokeWidth={1.5} />
         </button>
-        <button type="button" aria-label={copy.wake} className="p-2 transition-colors hover:text-white/80" onClick={wake}>
+        <button ref={wakeRef} type="button" aria-label={copy.wake} className="p-3.5 transition-colors hover:text-white/80" onClick={wake}>
           <Sun className="size-4" strokeWidth={1.5} />
         </button>
       </nav>

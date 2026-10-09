@@ -30,6 +30,7 @@
 | **Glow / Voice** | [docs/system-glow.md](./docs/system-glow.md) (Siri's ring as a shared WebGL shader, the site's one light: `ring` / `line`, voice `level`, `processing`; voice search in ⌘K via the Web Speech API; the `/lab/glow` lab) |
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (The profile card behind `<handle>` and `Role:`, showing who signed a commit) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (Why a widget's list body scrolls under a pointer and holds still under a finger) |
+| **Sem** | [packages/sem/README.md](./packages/sem/README.md) (A semantic layer over whatever draws the page, DOM / SVG / Canvas / WebGL: each node's intent, live shape, knobs, source and rules, read on demand. `?inspect` draws it; `?sem` exposes `window.__sem`; `pnpm sem:test`. Tried on `/dream/everyone`.) |
 
 ### Skills
 
