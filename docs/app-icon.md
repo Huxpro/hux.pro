@@ -1,6 +1,8 @@
-# App Icon System
+---
+skills: [content-snapshots]
+---
 
-> The icon row of the skill `.claude/skills/content-snapshots` is the checklist form of this page.
+# App Icon System
 
 A **generative** app icon: the favicon and home-screen tile are a pure
 function of a small config, not a hand-drawn one-off. Edit the levers in
