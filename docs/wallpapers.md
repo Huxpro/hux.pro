@@ -1,7 +1,8 @@
-# Wallpapers
+---
+skills: [wallpapers]
+---
 
-> The checklist form of this page (adding, replacing or re-encoding a
-> built-in) is the skill `.claude/skills/wallpapers`.
+# Wallpapers
 
 What paints behind the page: the live sky or a picture from the built-in
 catalog, which half of a light/dark pair shows, where it paints, and how the
