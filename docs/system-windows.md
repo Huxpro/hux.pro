@@ -402,12 +402,11 @@ fields that drive the window system (see `AppLink` in `lib/app-icon-core.ts`):
 
 - `runtime`: `"web"` (default, an iframe) or `"lynx"` (the Lynx Player).
 - `flavor`: for Lynx apps, `"react"` or `"vue"`. Cosmetic: it tints the badge.
-- `bundleUrl`: the Lynx `.web.bundle`, falling back to `url`. Two sources,
-  one field:
+- `bundleUrl`: the Lynx `.web.bundle`, falling back to `url`. The player
+  passes remote URLs through untouched and origin-resolves local paths. Two
+  sources, one field:
   - an `http(s)://…` URL → **online**, fetched at open time;
   - a local `/…` path → **built-in** (offline), served from `public/`.
-  The player passes remote URLs through untouched and origin-resolves local
-  paths.
 - `size`: preferred preset; defaults to `portrait` for Lynx, `landscape` for
   web.
 - `url`: the page a web app's window frames, and every app's "open

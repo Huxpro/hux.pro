@@ -114,7 +114,7 @@ in a window on every viewport.
 
 An image is usually attached to be read (a poster, a figure), and a sheet's
 width makes it a thumbnail. Its home is the lightbox
-(`components/image-lightbox.tsx`, mounted once in the root layout beside the
+(`systems/attachments/components/image-lightbox.tsx`, mounted once in the root layout beside the
 surface): Base UI's Dialog for the modal (focus, Escape, scroll lock) under
 the theater's veil, the image fitted to the viewport with a margin all round,
 and `react-zoom-pan-pinch` for wheel / trackpad / pinch zoom, double-click to

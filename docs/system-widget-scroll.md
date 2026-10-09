@@ -189,7 +189,7 @@ fixed few rows, and the tap opens the real list.
 
 All of these worked. All of them passed the swipe through to the page. They
 were dropped because each bought that with a cost the row count doesn't
-have, and because six switchable behaviours is not a design.
+have, and because a set of switchable behaviours is not a design.
 
 | Rejected | Why |
 |---|---|

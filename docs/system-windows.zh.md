@@ -198,10 +198,9 @@ App 写在 `content/apps.json` 里，也就是**内置注册表**。驱动窗口
 
 - `runtime`：`"web"`（默认，一个 iframe）或 `"lynx"`（Lynx Player）。
 - `flavor`：Lynx App 用，`"react"` 或 `"vue"`。只是外观上的：它给角标着色。
-- `bundleUrl`：Lynx 的 `.web.bundle`，没有时退回 `url`。两种来源，一个字段：
+- `bundleUrl`：Lynx 的 `.web.bundle`，没有时退回 `url`。player 对远端网址原样透传，对本地路径按源站解析。两种来源，一个字段：
   - `http(s)://…` 网址 → **在线**，打开时获取；
   - 本地 `/…` 路径 → **内置**（离线），从 `public/` 提供。
-  player 对远端网址原样透传，对本地路径按源站解析。
 - `size`：偏好的预设；Lynx 默认 `portrait`，Web 默认 `landscape`。
 - `url`：Web App 窗口里嵌入的页面，也是每个 App"在外部打开"的目标（文件夹图标真正的 `href`；Web App 菜单里的 "Open in browser"）。
 - `featured: false` 让 App 不出现在主屏文件夹里，但仍在 ⌘K 栏里。

@@ -144,7 +144,7 @@ Ask 是命令面板的第四种模式，与搜索、斜杠和 load-bundle 并列
 |---|---|
 | Vercel 部署（`VERCEL=1`）、`AI_GATEWAY_API_KEY`，或拉取下来的 `VERCEL_OIDC_TOKEN` | 列表里的任意模型，经由网关。部署环境不需要 key：网关 provider 每次请求都用项目的 OIDC token 认证。key 是给在别处运行用的（本地、CI、这个仓库的云端会话）。 |
 | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | 直接调用该 provider 的模型，适用于带 `direct` id 的条目 |
-| 都没有 | **替身**（见 [How it works](#how-it-works)）：不需要 key 就能跑通整个循环（路由 → 工具调用 → 浏览器搜索 → 重新提交 → 卡片 → 回答），用于开发和预览。 |
+| 都没有 | **替身**（见 [原理](#原理)）：不需要 key 就能跑通整个循环（路由 → 工具调用 → 浏览器搜索 → 重新提交 → 卡片 → 回答），用于开发和预览。 |
 
 ## 索引
 

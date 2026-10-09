@@ -11,7 +11,7 @@ build time. A small **runtime badge** (web, or Lynx tinted by flavour) hangs
 off the corner on hover, focus and in edit mode.
 
 Tapping a tile opens the app in a **chrome window** (see the
-[Window System](./system-windows)): web apps in an iframe, Lynx apps in a
+[Window System](./system-windows.md)): web apps in an iframe, Lynx apps in a
 Lynx Player. ⌘/Ctrl/Shift/Alt-click and middle-click still open the app's
 `url` in a new tab: the tile is a real anchor.
 
@@ -50,7 +50,7 @@ does not run it.
 
 ### Authoring
 
-Apps live in [`content/apps.json`](../content/apps.json). The type is
+Apps live in `content/apps.json`. The type is
 `AppLink` in `lib/app-icon-core.ts`.
 
 ```json
@@ -72,7 +72,7 @@ Apps live in [`content/apps.json`](../content/apps.json). The type is
   tile art from).
 - `runtime` *(optional)*: `"web"` (default) or `"lynx"`; picks the window
   body. `flavor` (`"react"` / `"vue"`, the badge tint) and `bundleUrl`
-  extend this for Lynx apps (see the [Window System](./system-windows)).
+  extend this for Lynx apps (see the [Window System](./system-windows.md)).
 - `size` *(optional)*: the window preset it opens at, `"portrait"`,
   `"landscape"` or `"max"`. Defaults to portrait for Lynx, landscape for web
   (`defaultPreset` in `systems/windows/lib/geometry.ts`).
@@ -145,7 +145,7 @@ mount: removed apps drop out, added ones join at the end.
   registers itself as a masonry *section* under id `"app-shelf"`.
 - The platter: at rest the folder is `border-transparent` with
   `ink-bare-mid ink-bare-rest` (its labels are a bare zone that may flip ink
-  on the wallpaper's middle band; see [Legibility](./system-legibility)).
+  on the wallpaper's middle band; see [Legibility](./system-legibility.md)).
   Hover adds `bg-glass` and a faint border; edit mode, and the lifted clone
   when the whole folder is dragged, use `bg-glass-strong shadow-raised
   backdrop-blur-sm`.
@@ -219,7 +219,7 @@ The same catalog in the palette (`CommandAppsStrip`,
 `systems/command/apps-launcher.tsx`): every app, including the
 `featured: false` ones (Cat Wand with its green Lynx badge, BusyWeek clipped
 at the edge), at `md` (48px), badges always on, one horizontal row that
-scrolls. It is documented in [Command System](./system-command).
+scrolls. It is documented in [Command System](./system-command.md).
 
 ## Reference
 
