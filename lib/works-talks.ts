@@ -1,6 +1,9 @@
 /**
- * How a project carries the talks that present it. On trial: the DevTool's
- * Works module picks one, and /works rearranges its rows before it draws them.
+ * How a project carries the talks that present it: a talk presents the
+ * project it is `attachedTo`. /works rearranges its rows before it draws them.
+ * Filtered to projects alone, the page uses `cover` (and with the talk rows
+ * filtered out, that reads as `absorb`). Otherwise the DevTool's Works module
+ * picks one, on trial, and its default is `beam`, the rows as they are.
  *
  *  - `beam`:    today. The talk is its own row; `attachedTo` lights a
  *               connector on the graph while either end is hovered.
@@ -27,16 +30,6 @@ import type { Locale } from "@/lib/i18n";
 export const WORKS_TALKS = ["beam", "cover", "absorb", "trailer", "decorate", "nest"] as const;
 export type WorksTalks = (typeof WORKS_TALKS)[number];
 export const WORKS_TALKS_DEFAULT: WorksTalks = "beam";
-
-/**
- * Talks that present a project but are not (yet) `attachedTo` it in the log.
- * Exploration only: enough rows to see how each arrangement scales past one.
- */
-const ALSO_PRESENTS: Record<string, string> = {
-  "d2-2025-lynx": "lynx-framework",
-  "react-summit-2025-unlock-native": "lynx-framework",
-  "react-universe-2025-two-threads": "lynx-framework",
-};
 
 /** A talk's venue as a short label: `VueConf 2026`, `React Summit 2025`. */
 function venueLabel(talk: Commit): string {
@@ -79,8 +72,7 @@ export function arrangeTalks<T extends TimelineData>(
   // Which project each talk presents.
   const presents = (c: Commit): string | null => {
     if (c.type !== "talk") return null;
-    if (typeof c.attachedTo === "string") return c.attachedTo;
-    return ALSO_PRESENTS[c.id] ?? null;
+    return typeof c.attachedTo === "string" ? c.attachedTo : null;
   };
 
   const all = data.flatMap((d) => d.commits);
@@ -104,11 +96,7 @@ export function arrangeTalks<T extends TimelineData>(
     let rows: Commit[] = commits
       .filter((c) => !absorbed.has(c.id))
       .map((c) => {
-        // Every talk that presents a project points at it, so `beam` can
-        // draw the connector for the added ones too.
-        const p = presents(c);
-        const row: CommitWithTrailers =
-          p && c.attachedTo !== p ? { ...c, attachedTo: p } : { ...c };
+        const row: CommitWithTrailers = { ...c };
         const talks = c.type === "project" ? talksOf.get(c.id) : undefined;
         if (!talks) return row;
 
