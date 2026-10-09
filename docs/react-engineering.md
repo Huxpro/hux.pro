@@ -163,7 +163,7 @@ The client and persister are in `lib/query.ts`:
   (`placeholderData: (previousData) => previousData`).
 
 Freshness, polling and permissions are in
-[Ambient System, Freshness](./system-ambient.md#freshness).
+[Ambient System, Freshness](./system-ambient.md#location-the-cache-and-freshness).
 
 ## The provider tree
 

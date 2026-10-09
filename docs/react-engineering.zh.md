@@ -99,7 +99,7 @@ export const useRulerSide = store.use; // also store.get, store.set
 - 键来自 `queryKeys`。**当持久化数据的结构变化时，要升级它键里的版本段**（`["weather", "v4", lat, lon]`），否则旧条目会被当作完整数据从存储里取出来；
 - 两个查询在新键加载期间都保留上一次的结果（`placeholderData: (previousData) => previousData`）。
 
-新鲜度、轮询和权限见 [Ambient System，Freshness](./system-ambient.md#freshness)。
+新鲜度、轮询和权限见 [Ambient System，Freshness](./system-ambient.md#location-the-cache-and-freshness)。
 
 ## Provider 树
 
