@@ -333,6 +333,10 @@ export function ForgetDream() {
       now = (stamp - start) / 1000;
       const held = heldRef.current !== null;
       clock += dt * (held ? HOLD_RATE : 1);
+      // Held on, time goes no further than the oldest moment reaching the
+      // edge: it waits there and wears away, and nothing rises past it.
+      const oldest = moments.findIndex((m) => !m.gone);
+      if (held && oldest !== -1) clock = Math.min(clock, (oldest + HELD) * GAP);
 
       ctx.fillStyle = PAPER;
       ctx.fillRect(0, 0, w, h);
@@ -369,7 +373,9 @@ export function ForgetDream() {
         }
         if (tideHere) return dissolve(m, i);
         const y = momentY(i);
-        if (y <= edge) {
+        // Half a pixel of slack: held, the clock stops at the edge, and in
+        // floating point "at" can land a hair short of it.
+        if (y <= edge + 0.5) {
           if (!held) return dissolve(m, i);
           // Held at the edge: it stays, but it wears away anyway.
           if (atEdge === -1) atEdge = i;
