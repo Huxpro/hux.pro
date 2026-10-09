@@ -1,10 +1,13 @@
+---
+skills: [keyboard-input]
+---
+
 # Typing on a phone
 
 How a field on this site meets the software keyboard: what makes Ask's
 composer rest on the keyboard while its glass shrinks to fit, which parts of
 that are load-bearing, which are choices, and where every field on the site
-stands. The skill `.claude/skills/keyboard-input` is the checklist form of
-this page.
+stands.
 
 ## What it looks like done well
 
