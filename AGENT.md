@@ -17,6 +17,7 @@
 | **Glass** | [docs/system-glass.md](./docs/system-glass.md) (Clear / Tinted material, reading surfaces) |
 | **Legibility** | [docs/system-legibility.md](./docs/system-legibility.md) (Ink-at-alpha tokens, wallpaper profiles, relief, tint, the `/lab/legibility` lab) |
 | **Ambient / Wallpaper** | [docs/system-ambient.md](./docs/system-ambient.md) (Weather + Apple wallpaper pairs, `pnpm wallpapers:encode` / `pnpm wallpapers:check` / `pnpm wallpapers:profile`) |
+| **Devtool** | [docs/system-devtool.md](./docs/system-devtool.md) (The debug panel: off by default everywhere, summoned by `D`, ⌘K or holding the search button; a docked sheet or a floating pill ⇄ window; its modules, and session overrides vs saved settings) |
 | **Architecture** | [docs/architecture.md](./docs/architecture.md) (Implementation details) |
 | **OG Images (ours)** | [docs/og-images.md](./docs/og-images.md) (Social cards we publish for our pages) |
 | **Link Previews (OG)** | [docs/og-previews.md](./docs/og-previews.md) (Crawling *others'* OG for /works cards; `pnpm og:complete` in GitHub CI) |

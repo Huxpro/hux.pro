@@ -82,6 +82,23 @@ The system derives the current "ambient phase" from:
 type AmbientPhase = "sunrise" | "morning" | "afternoon" | "evening" | "sunset" | "night";
 ```
 
+The boundaries (`deriveAmbientPhase`, `lib/phase.ts`), on the effective clock:
+
+| Phase | From | Until |
+|---|---|---|
+| `sunrise` | 45 min before sunrise | 45 min after |
+| `morning` | the end of the sunrise window | 12:00 local |
+| `afternoon` | 12:00 | the start of the sunset window |
+| `sunset` | 45 min before sunset | 45 min after |
+| `evening` | the end of the sunset window | 3 h later |
+| `night` | the end of evening | the start of the next sunrise window |
+
+The window is `DEFAULT_SUN_EVENT_WINDOW_MINUTES` in `lib/sun.ts`; where the two
+windows overlap (extreme latitudes) the nearer event wins. Until the forecast
+has brought sun times there are no sun-event phases, only fixed hours
+(`getTimeOfDay`, `lib/greeting.ts`): morning 5–12, afternoon 12–17, evening
+17–21, night otherwise.
+
 ### Weather Model
 
 Open-Meteo's `current` block is normalised into a condition plus the
@@ -2362,6 +2379,16 @@ What asks is the world changing:
 | GPS location | 30 min | mount, and the tab coming back, only while the permission is already granted, so a refetch never raises the prompt |
 | Weather | 15 min | all of the above, plus a poll timed to Open-Meteo's next model interval (`current.time + interval` + 2 min, clamped 5–60 min; visible tabs only), plus local midnight |
 | The clock | — | every minute boundary, and at once on `visibilitychange` / `pageshow` (timers do not run in a locked phone) |
+
+**The cache.** The query client and its persister live in `lib/query.ts`
+(localStorage key `hux_query_cache`), mounted around everything by
+`PersistQueryClientProvider` in `shared/providers.tsx`, so a returning visitor
+gets the last location and weather before any request. The weather key carries
+a version segment (`queryKeys.weather`, now `v4`): bump it whenever the payload
+changes shape, or a persisted entry from before is served as if it were
+complete. Both queries keep the previous answer on screen while a new key
+loads (`placeholderData`), so switching IP to Accurate, or a fix in a new
+city, leaves the old card and sky up until the new ones land.
 
 **A misplaced IP.** IP databases misplace whole carriers: a phone on cellular
 in San Jose can come back as Dallas, and so can Private Relay or a VPN. The
