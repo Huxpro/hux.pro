@@ -6,7 +6,7 @@
 // (`outline`, `at`, `select`, `check`) reads a snapshot. So a scene that
 // nobody inspects pays for a Map of declarations and nothing per frame.
 
-import { bounds, contains, formatShape, translate } from "./geometry";
+import { bounds, contains, expand, formatShape, translate } from "./geometry";
 import type { CheckResult, NodeSnapshot, Selection, SemNode, Shape, Snapshot } from "./types";
 
 export interface Layer {
@@ -17,8 +17,11 @@ export interface Layer {
   snapshot(opts?: { root?: string }): Snapshot;
   /** The scene as a short text tree: one line per node, then the rules. */
   outline(snap?: Snapshot): string;
-  /** What is under a point, topmost first. A population's member is `id#i`. */
-  at(x: number, y: number, snap?: Snapshot): string[];
+  /**
+   * What is under a point, topmost first. A population's member is `id#i`.
+   * `slop` lets a finger find a member within that many px; the nearest wins.
+   */
+  at(x: number, y: number, snap?: Snapshot, options?: { slop?: number }): string[];
   /** Everything needed to regenerate one node. Finds it by an old id too. */
   select(id: string, snap?: Snapshot): Selection | null;
   /** Run every node's rules against a snapshot. */
@@ -170,7 +173,7 @@ export function createLayer(options: LayerOptions = {}): Layer {
       return lines.join("\n");
     },
 
-    at(x, y, snap = layer.snapshot()) {
+    at(x, y, snap = layer.snapshot(), { slop = 0 } = {}) {
       const hits: { id: string; z: number; member: boolean; depth: number; index: number }[] = [];
       const depthOf = (id: string): number => {
         const parent = snap.nodes[id]?.parent;
@@ -185,13 +188,22 @@ export function createLayer(options: LayerOptions = {}): Layer {
         // A population is hit by its members, not by its outline.
         if (decl?.item && node.count !== undefined && node.count <= AT_ITEM_LIMIT) {
           const [dx, dy] = origin(decl);
+          let best = -1;
+          let bestD = Infinity;
           for (let i = node.count - 1; i >= 0; i--) {
             const item = call(() => decl.item!(i), null);
-            if (item && contains(translate(item, dx, dy), x, y)) {
-              hits.push({ id: `${id}#${i}`, z, member: true, depth: depth + 1, index });
-              break;
+            if (!item) continue;
+            const placed = translate(item, dx, dy);
+            if (!contains(expand(placed, slop), x, y)) continue;
+            const b = bounds(placed);
+            const d = Math.hypot(b.x + b.w / 2 - x, b.y + b.h / 2 - y);
+            if (d < bestD) {
+              bestD = d;
+              best = i;
             }
+            if (slop === 0) break;
           }
+          if (best !== -1) hits.push({ id: `${id}#${best}`, z, member: true, depth: depth + 1, index });
         }
         if (contains(node.shape, x, y)) hits.push({ id, z, member: false, depth, index });
       });
@@ -202,9 +214,19 @@ export function createLayer(options: LayerOptions = {}): Layer {
     },
 
     select(id, snap = layer.snapshot()) {
-      const key = resolve(id.split("#")[0]);
+      const [base, which] = id.split("#");
+      const key = resolve(base);
       const node = key ? snap.nodes[key] : undefined;
       if (!key || !node) return null;
+      const decl = nodes.get(key)!;
+      let member: Selection["member"];
+      if (which !== undefined && decl.item) {
+        const index = Number(which);
+        const local = call(() => decl.item!(index), null);
+        const [dx, dy] = local ? origin(decl) : [0, 0];
+        const name = call(() => decl.itemName?.(index), undefined);
+        member = { index, ...(name ? { name } : {}), shape: local ? translate(local, dx, dy) : null };
+      }
       const ancestors: NodeSnapshot[] = [];
       for (let p = node.parent; p && snap.nodes[p]; p = snap.nodes[p].parent) ancestors.push(snap.nodes[p]);
       const children = snap.order.filter((other) => snap.nodes[other].parent === key);
@@ -219,7 +241,7 @@ export function createLayer(options: LayerOptions = {}): Layer {
       }
       const owners = new Set([key, ...ancestors.map((a) => a.id)]);
       const checks = layer.check(snap).filter((r) => owners.has(r.node));
-      return { node, ancestors, children, linked, checks };
+      return { node, ...(member ? { member } : {}), ancestors, children, linked, checks };
     },
 
     check(snap = layer.snapshot()) {

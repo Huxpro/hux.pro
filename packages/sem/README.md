@@ -52,7 +52,7 @@ numbers are local to an element (a canvas off the origin) names it as `space`.
 | --- | --- |
 | `snapshot()` | Every node's shape, bounds, visibility and state, as JSON. |
 | `outline()` | The scene as a short text tree, one line a node, then the rules. Cheaper than a screenshot and exact. |
-| `at(x, y)` | What is under a point, topmost first; a population's member is `id#i` and outranks outlines. |
+| `at(x, y, snap?, { slop })` | What is under a point, topmost first; a population's member is `id#i` and outranks outlines; with `slop`, the nearest member within reach. |
 | `select(id)` | What it takes to regenerate one node: the node, its ancestors and children, links both ways, and the rules over it. |
 | `check()` | Every node's `invariants`, run against a snapshot. |
 
@@ -77,11 +77,25 @@ as `check()` at each size instead.
 ## Devtools
 
 `useSemDevtools()` reads the address: `?sem` puts the layer on
-`window.__sem` (for the console or a Playwright script), `?inspect` also draws
-the inspector: every node's shape in its backend's colour (DOM blue, SVG
-purple, Canvas amber, WebGL green; dashed when hidden), the outline and the
-rules beside it. Hover to see; shift-click to pick a node, which the page never
-hears.
+`window.__sem` (for the console or a Playwright script); `?inspect` also draws
+the inspector (`window.__semInspector`): every node's shape in its backend's
+colour (DOM blue, SVG purple, Canvas amber, WebGL green; dashed when hidden),
+and a panel with the picked node, the rules and the outline.
+
+The inspector has two modes, switched by the button in the corner or the
+<kbd>`</kbd> key:
+
+- **inspect** (the default): the page is under glass. A sheet over the whole
+  screen takes every touch, click and key, so nothing reaches the page. A tap
+  picks the topmost node under the finger, a population's nearest member
+  within 12px of it (3px for a mouse); tapping the same spot again goes one
+  deeper (a light, its field, the scene), even while things move. Esc goes
+  back to live. `?inspect=live` starts in live.
+- **live**: the page works as usual and the shapes stay drawn. On a desk,
+  shift-click still picks, and the page never hears that click.
+
+A population can name its members (`itemName(i)`), so `forget/moments#0`
+reads as "your cat"; `select()` returns the member's own shape and name.
 
 ## Checks
 

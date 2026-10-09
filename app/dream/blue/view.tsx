@@ -6,6 +6,7 @@ import { Moon, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { gapBelow, overlaps, sem, useSemDevtools, useSemElement, useSemNode, within, type Snapshot } from "sem";
 
 // =============================================================================
 // /dream/blue, a dream: blue, from description.
@@ -76,6 +77,72 @@ const SEEN_AFTER = 0.5;
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const easeOut = (v: number) => 1 - Math.pow(1 - v, 3);
 
+/** A circle as drawn: centre and radius, px. */
+type Circle = [cx: number, cy: number, r: number];
+
+const SOURCE = "app/dream/blue/view.tsx";
+/** The least a finger should have to hit, px. */
+const TOUCH_TARGET = 44;
+
+/** A node's shape in a snapshot, if it is on screen and seen. */
+const seen = (s: Snapshot, id: string) => (s.nodes[id]?.visible ? s.nodes[id].shape : null);
+
+/**
+ * The rules the dream keeps, checked against a snapshot (`?inspect`, or
+ * `window.__sem.check()` with `?sem`).
+ */
+const RULES = [
+  {
+    id: "caption-clear",
+    text: "the caption keeps clear of the sun's ring",
+    check: (s: Snapshot) => {
+      const [a, b] = [seen(s, "blue/caption"), seen(s, "blue/sun-ring")];
+      return !a || !b || !overlaps(a, b) || "the caption overlaps the ring";
+    },
+  },
+  {
+    id: "line-in-the-sky",
+    text: "the line in the sky sits between the sun's ring and the horizon",
+    check: (s: Snapshot) => {
+      const [ring, line, sea] = [seen(s, "blue/sun-ring"), seen(s, "blue/sky-line"), seen(s, "blue/contours")];
+      if (!line || !ring || !sea) return true;
+      const above = gapBelow(ring, line);
+      const below = gapBelow(line, sea);
+      return (above >= 0 && below >= 0) || `${above < 0 ? `${Math.round(-above)}px into the ring` : `${Math.round(-below)}px into the sea`}`;
+    },
+  },
+  {
+    id: "one-sun",
+    text: "the sun in the sea is where its ring is drawn",
+    check: (s: Snapshot) => {
+      const [ring, sun] = [s.nodes["blue/sun-ring"]?.shape, seen(s, "blue/sun")];
+      if (!ring || !sun || !("circle" in ring) || !("circle" in sun)) return true;
+      const d = Math.hypot(ring.circle[0] - sun.circle[0], ring.circle[1] - sun.circle[1]);
+      return d < 1 || `${Math.round(d)}px apart`;
+    },
+  },
+  {
+    id: "on-screen",
+    text: "every word and control stays on the screen",
+    check: (s: Snapshot) => {
+      const screen = { rect: [0, 0, s.viewport.w, s.viewport.h] as [number, number, number, number] };
+      const off = s.order.filter((id) => s.nodes[id].backend === "dom" && seen(s, id) && !within(seen(s, id)!, screen));
+      return off.length === 0 || `off the screen: ${off.join(", ")}`;
+    },
+  },
+  {
+    id: "touch-targets",
+    text: `the way out is at least ${TOUCH_TARGET}px to a finger`,
+    check: (s: Snapshot) => {
+      const small = ["blue/again", "blue/wake"].filter((id) => {
+        const b = s.nodes[id]?.visible ? s.nodes[id].bounds : null;
+        return b && (b.w < TOUCH_TARGET || b.h < TOUCH_TARGET);
+      });
+      return small.length === 0 || `too small: ${small.join(", ")}`;
+    },
+  },
+];
+
 type Hold = {
   /** When it began / ended, s since the dream began; `end` is null while held. */
   start: number;
@@ -139,7 +206,7 @@ function createSurf() {
  * behind it, and the sun as a ring. `kept` (0..1) is how much blue the
  * drawing has kept from being seen.
  */
-function drawLines(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, kept: number) {
+function drawLines(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, kept: number): { ring: Circle; horizon: number } {
   const horizon = h * HORIZON;
   const [r, g, b] = GREY.map((c, i) => Math.round(c + (KEPT[i] - c) * kept));
 
@@ -149,7 +216,8 @@ function drawLines(ctx: CanvasRenderingContext2D, w: number, h: number, t: numbe
   ctx.lineWidth = 1;
   ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.5)`;
   ctx.beginPath();
-  ctx.arc(sunX, sunY, Math.min(w, h) * 0.05, 0, Math.PI * 2);
+  const ringR = Math.min(w, h) * 0.05;
+  ctx.arc(sunX, sunY, ringR, 0, Math.PI * 2);
   ctx.stroke();
   if (kept > 0) {
     ctx.fillStyle = `rgba(255, 246, 220, ${kept * 0.12})`;
@@ -185,10 +253,11 @@ function drawLines(ctx: CanvasRenderingContext2D, w: number, h: number, t: numbe
     ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.3 + 0.55 * (1 - depth)})`;
     ctx.stroke();
   }
+  return { ring: [sunX, sunY, ringR], horizon };
 }
 
-/** The sea, full screen. `t` in seconds. */
-function drawSea(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+/** The sea, full screen. `t` in seconds. Returns where it drew the sun's bright disc. */
+function drawSea(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): { sun: Circle } {
   const horizon = h * HORIZON;
 
   const sky = ctx.createLinearGradient(0, 0, 0, horizon);
@@ -245,6 +314,8 @@ function drawSea(ctx: CanvasRenderingContext2D, w: number, h: number, t: number)
     ctx.fillStyle = `rgba(255, 255, 245, ${a})`;
     ctx.fillRect(x, y, 2 + depth * 10, 1 + depth * 1.5);
   }
+  // The disc: the gradient's first stop, where it is still nearly white.
+  return { sun: [sunX, sunY, Math.max(w, h) * 0.35 * 0.06] };
 }
 
 export function BlueDream() {
@@ -271,6 +342,61 @@ export function BlueDream() {
   useEffect(() => {
     seenRef.current = seen;
   }, [seen]);
+
+  // What is on the screen, for the inspector and for whoever changes it next.
+  useSemDevtools();
+  useSemNode({
+    id: "blue/scene",
+    kind: "scene",
+    names: ["blue", "蓝", "the sea dream"],
+    intent: "Knowing the sea only as a description, then being shown it: longing, then gratitude.",
+    backend: "none",
+    measure: () => ({ rect: [0, 0, window.innerWidth, window.innerHeight] }),
+    state: () => ({ seen, holding, run }),
+    source: { file: SOURCE, symbols: ["BlueDream"] },
+    invariants: RULES,
+  });
+  const captionRef = useSemElement<HTMLSpanElement>({
+    id: "blue/caption",
+    parent: "blue/scene",
+    kind: "text",
+    names: ["caption", "顶部小字"],
+    intent: "Says what this is.",
+    source: { file: SOURCE, symbols: ["COPY.caption"] },
+  });
+  const skyRef = useSemElement<HTMLSpanElement>({
+    id: "blue/sky-line",
+    parent: "blue/scene",
+    kind: "text",
+    names: ["the line in the sky", "天上那句话", "intro", "thanks"],
+    intent: "In the empty sky: what I know of blue before the first look, thanks after the last.",
+    links: [{ rel: "avoids", to: "blue/sun-ring" }],
+    source: { file: SOURCE, symbols: ["COPY.intro", "COPY.end", "HORIZON"] },
+  });
+  const pressRef = useSemElement<HTMLDivElement>({
+    id: "blue/press",
+    parent: "blue/scene",
+    kind: "control",
+    names: ["press ring", "hint", "按住"],
+    intent: "A ring that closes in and lets go, and the word under it: press here, and again.",
+    source: { file: SOURCE, symbols: ["COPY.hint", "blue-dream-press"] },
+  });
+  const againRef = useSemElement<HTMLButtonElement>({
+    id: "blue/again",
+    parent: "blue/scene",
+    kind: "control",
+    names: ["again", "moon", "再梦一次"],
+    intent: "Dream it again, from grey lines.",
+    source: { file: SOURCE, symbols: ["again"] },
+  });
+  const wakeRef = useSemElement<HTMLButtonElement>({
+    id: "blue/wake",
+    parent: "blue/scene",
+    kind: "control",
+    names: ["wake", "sun icon", "醒来"],
+    intent: "Leave the dream for the home screen.",
+    source: { file: SOURCE, symbols: ["wake"] },
+  });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -303,6 +429,8 @@ export function BlueDream() {
     clockRef.current = () => (performance.now() - start) / 1000;
     /** The blue the lines have kept, easing toward what the looks have left. */
     let kept = 0;
+    /** What the last frame drew, for the semantic layer. */
+    const drawn = { ring: [0, 0, 0] as Circle, horizon: 0, sun: null as Circle | null, sea: 0 };
 
     /** The radius of the sea at `t`: opening while held, closing after. */
     const radius = (hold: Hold, t: number) => {
@@ -323,15 +451,20 @@ export function BlueDream() {
 
       ctx.fillStyle = BG;
       ctx.fillRect(0, 0, w, h);
-      drawLines(ctx, w, h, t, kept);
+      ({ ring: drawn.ring, horizon: drawn.horizon } = drawLines(ctx, w, h, t, kept));
+      drawn.sun = null;
+      drawn.sea = 0;
 
       // The thing itself, where you are holding.
       const hold = holdRef.current;
       if (!hold) return;
       const r = radius(hold, t);
       if (r <= 0.5) return;
+      drawn.sea = r;
       seaCtx.globalCompositeOperation = "source-over";
-      drawSea(seaCtx, w, h, t);
+      const { sun } = drawSea(seaCtx, w, h, t);
+      // The sun is seen only where the sea is open, inside its soft edge.
+      if (Math.hypot(sun[0] - hold.x, sun[1] - hold.y) + sun[2] < r - FEATHER / 2) drawn.sun = sun;
       const mask = seaCtx.createRadialGradient(hold.x, hold.y, Math.max(0, r - FEATHER), hold.x, hold.y, r);
       mask.addColorStop(0, "rgba(0, 0, 0, 1)");
       mask.addColorStop(1, "rgba(0, 0, 0, 0)");
@@ -342,9 +475,91 @@ export function BlueDream() {
     };
     raf = requestAnimationFrame(frame);
 
+    // The canvas's things, measured from what the last frame drew.
+    const nodes = [
+      sem.node({
+        id: "blue/contours",
+        parent: "blue/scene",
+        kind: "field",
+        names: ["contour lines", "the drawing", "the grey sea", "线稿"],
+        intent: "The sea as I know it: a description, grey lines rolling to the horizon, each hiding the ones behind it.",
+        backend: "canvas2d",
+        measure: () => ({ rect: [0, drawn.horizon, w, h - drawn.horizon] }),
+        count: () => LINES,
+        state: () => ({ kept }),
+        params: {
+          HORIZON: { value: HORIZON, note: "share of the height, the same in both seas" },
+          LINES: { value: LINES },
+          GREY: { value: `rgb(${GREY.join(",")})` },
+          KEPT: { value: `rgb(${KEPT.join(",")})`, note: "the blue the lines keep after both looks" },
+        },
+        source: { file: SOURCE, symbols: ["drawLines", "HORIZON", "LINES"] },
+      }),
+      sem.node({
+        id: "blue/sun-ring",
+        parent: "blue/contours",
+        kind: "agent",
+        names: ["the sun's ring", "the drawn sun", "太阳圆环"],
+        intent: "The sun as a description: a ring where the real one will be, faintly warm once it has been seen.",
+        backend: "canvas2d",
+        measure: () => ({ circle: drawn.ring }),
+        links: [{ rel: "aligns-with", to: "blue/sun" }],
+        source: { file: SOURCE, symbols: ["drawLines"] },
+      }),
+      sem.node({
+        id: "blue/sea",
+        parent: "blue/scene",
+        kind: "effect",
+        names: ["the sea", "colour", "海", "颜色"],
+        intent: "The thing itself, opened under the finger: sky, water, light on the waves, the sound of surf.",
+        backend: "canvas2d",
+        z: 1,
+        measure: () => {
+          const hold = holdRef.current;
+          return hold && drawn.sea > 0.5 ? { circle: [hold.x, hold.y, drawn.sea] } : null;
+        },
+        state: () => ({
+          phase: !holdRef.current || drawn.sea <= 0.5 ? "closed" : holdRef.current.end === null ? "opening" : "closing",
+          open: drawn.sea / (Math.hypot(w, h) + FEATHER),
+        }),
+        params: {
+          OPEN: { value: OPEN, unit: "s", range: [1, 5], note: "a hold opens it to the whole screen" },
+          OPEN_CURVE: { value: OPEN_CURVE, note: "slow, then giving way" },
+          CLOSE: { value: CLOSE, unit: "s" },
+          FEATHER: { value: FEATHER, unit: "px", note: "the soft edge into the lines" },
+          SEEN_AFTER: { value: SEEN_AFTER, unit: "s", note: "a shorter hold is a tap and does not count as a look" },
+        },
+        links: [{ rel: "reveals", to: "blue/sun" }],
+        source: { file: SOURCE, symbols: ["drawSea", "radius", "press", "release"] },
+      }),
+      sem.node({
+        id: "blue/sun",
+        parent: "blue/sea",
+        kind: "agent",
+        names: ["the sun", "the real sun", "太阳"],
+        intent: "The sun itself, seen only where the sea is open.",
+        backend: "canvas2d",
+        z: 1,
+        measure: () => (drawn.sun ? { circle: drawn.sun } : null),
+        links: [{ rel: "aligns-with", to: "blue/sun-ring" }],
+        source: { file: SOURCE, symbols: ["drawSea"] },
+      }),
+      sem.node({
+        id: "blue/surf",
+        parent: "blue/sea",
+        kind: "sound",
+        names: ["surf", "the sound", "潮声"],
+        intent: "The sea heard: brown noise through a lowpass, swelling slowly, up while held, away on release.",
+        backend: "none",
+        state: () => ({ playing: holdRef.current?.end === null }),
+        source: { file: SOURCE, symbols: ["createSurf"] },
+      }),
+    ];
+
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      nodes.forEach((dispose) => dispose());
     };
   }, [run, mounted]);
 
@@ -431,7 +646,7 @@ export function BlueDream() {
         className="pointer-events-none absolute inset-x-0 text-center font-mono text-[11px] tracking-[0.2em] text-white/40 transition-opacity duration-700"
         style={{ top: "calc(env(safe-area-inset-top) + 24px)", opacity: holding ? 0 : 1 }}
       >
-        {copy.caption}
+        <span ref={captionRef}>{copy.caption}</span>
       </p>
 
       {/* In the empty sky, between the sun and the horizon. */}
@@ -440,7 +655,7 @@ export function BlueDream() {
         style={{ top: `${HORIZON * 68}%`, opacity: holding || !sky ? 0 : 1 }}
         aria-live="polite"
       >
-        <span key={sky ?? "none"} style={{ animation: `blue-dream-in 1.6s ease-out ${done ? 0.9 : 0.4}s both` }}>
+        <span key={sky ?? "none"} ref={skyRef} style={{ animation: `blue-dream-in 1.6s ease-out ${done ? 0.9 : 0.4}s both` }}>
           {sky}
         </span>
       </p>
@@ -451,7 +666,7 @@ export function BlueDream() {
         className="pointer-events-none absolute inset-x-0 flex flex-col items-center gap-3 transition-opacity duration-700"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 20px)", opacity: holding || done ? 0 : 1 }}
       >
-        <div className="blue-dream-press size-9 rounded-full border border-white/40" />
+        <div ref={pressRef} className="blue-dream-press size-9 rounded-full border border-white/40" />
         <span
           key={seen}
           className="font-mono text-[11px] tracking-[0.2em] text-white/55"
@@ -470,10 +685,10 @@ export function BlueDream() {
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <button type="button" aria-label={copy.again} className="p-3.5 transition-colors hover:text-white/80" onClick={again}>
+        <button ref={againRef} type="button" aria-label={copy.again} className="p-3.5 transition-colors hover:text-white/80" onClick={again}>
           <Moon className="size-4" strokeWidth={1.5} />
         </button>
-        <button type="button" aria-label={copy.wake} className="p-3.5 transition-colors hover:text-white/80" onClick={wake}>
+        <button ref={wakeRef} type="button" aria-label={copy.wake} className="p-3.5 transition-colors hover:text-white/80" onClick={wake}>
           <Sun className="size-4" strokeWidth={1.5} />
         </button>
       </nav>

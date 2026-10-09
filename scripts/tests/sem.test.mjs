@@ -110,6 +110,16 @@ test("at: a member outranks an outline nested deeper than its population", () =>
   assert.deepEqual(layer.at(250, 400), ["s/globe#2", "s/rings", "s/globe", "s"]);
 });
 
+test("at: with slop, the nearest member near a finger; select names the member", () => {
+  const { layer } = scene();
+  // (178, 400) misses every member exactly; 30px of slop reaches #0 (28px off) and #1 (22px off): #1 is nearer.
+  assert.deepEqual(layer.at(178, 400)[0], "s/globe");
+  assert.equal(layer.at(178, 400, undefined, { slop: 30 })[0], "s/globe#1");
+  layer.get("s/globe").itemName = (i) => ["left", "middle", "right"][i];
+  const picked = layer.select("s/globe#1");
+  assert.deepEqual(picked.member, { index: 1, name: "middle", shape: { circle: [200, 400, 4] } });
+});
+
 test("check runs the rules; a failing one says why", () => {
   const { layer, moveCaption } = scene();
   assert.ok(layer.check().every((r) => r.ok));

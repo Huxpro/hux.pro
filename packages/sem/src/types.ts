@@ -77,6 +77,8 @@ export interface SemNode {
   /** A population: how many, and where the i-th one is. */
   count?: () => number;
   item?: (i: number) => Shape | null;
+  /** What the i-th member is called, when members are told apart ("your cat"). */
+  itemName?: (i: number) => string | undefined;
 
   params?: Record<string, Param>;
   source?: Source;
@@ -126,6 +128,8 @@ export interface CheckResult {
 /** Everything needed to regenerate one node without breaking what it touches. */
 export interface Selection {
   node: NodeSnapshot;
+  /** When a population's member was picked (`id#i`): which, what it is called, where it is. */
+  member?: { index: number; name?: string; shape: Shape | null };
   ancestors: NodeSnapshot[];
   children: string[];
   /** Nodes it links to, and nodes that link to it. */

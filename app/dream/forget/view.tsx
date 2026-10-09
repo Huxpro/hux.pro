@@ -6,6 +6,7 @@ import { Moon, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { overlaps, sem, useSemDevtools, useSemElement, useSemNode, within, type Shape, type Snapshot } from "sem";
 
 // =============================================================================
 // /dream/forget, a dream: what I forget.
@@ -152,6 +153,84 @@ const MOMENTS: Draw[] = [
   },
 ];
 
+/** What each moment is, for the semantic layer: the pictures carry no words. */
+const MOMENT_NAMES = ["your cat", "a late night", "the two of us", "a home", "a little sun"];
+
+const SOURCE = "app/dream/forget/view.tsx";
+/** The least a finger should have to hit, px. */
+const TOUCH_TARGET = 44;
+/** The share of the dust that must stay on the screen. */
+const DUST_ON_SCREEN = 0.95;
+
+/** A node's shape in a snapshot, if it is on screen and seen. */
+const seen = (s: Snapshot, id: string) => (s.nodes[id]?.visible ? s.nodes[id].shape : null);
+
+/**
+ * The rules the dream keeps, checked against a snapshot (`?inspect`, or
+ * `window.__sem.check()` with `?sem`).
+ */
+const RULES = [
+  {
+    id: "caption-clear",
+    text: "the caption keeps clear of the window",
+    check: (s: Snapshot) => {
+      const [a, b] = [seen(s, "forget/caption"), seen(s, "forget/window")];
+      return !a || !b || !overlaps(a, b) || "the caption overlaps the window";
+    },
+  },
+  {
+    id: "hint-clear",
+    text: "the press ring and its words keep clear of the window",
+    check: (s: Snapshot) => {
+      const win = seen(s, "forget/window");
+      const hit = ["forget/press", "forget/hint"].filter((id) => {
+        const a = seen(s, id);
+        return a && win && overlaps(a, win);
+      });
+      return hit.length === 0 || `overlapping the window: ${hit.join(", ")}`;
+    },
+  },
+  {
+    id: "moments-in-window",
+    text: "a moment is never drawn outside its window",
+    check: (s: Snapshot) => {
+      const win = s.nodes["forget/window"]?.shape;
+      const out = (s.nodes["forget/moments"]?.state?.drawn as (Shape | null)[] | undefined)
+        ?.map((m, i) => (m && win && !within(m, win, 1) ? MOMENT_NAMES[i] : null))
+        .filter(Boolean);
+      return !out?.length || `outside: ${out.join(", ")}`;
+    },
+  },
+  {
+    id: "dust-stays",
+    text: `at least ${DUST_ON_SCREEN * 100}% of the dust stays on the screen`,
+    check: (s: Snapshot) => {
+      const share = s.nodes["forget/dust"]?.state?.onScreen as number | undefined;
+      return share === undefined || share >= DUST_ON_SCREEN || `${Math.round(share * 100)}% on screen`;
+    },
+  },
+  {
+    id: "on-screen",
+    text: "every word and control stays on the screen",
+    check: (s: Snapshot) => {
+      const screen = { rect: [0, 0, s.viewport.w, s.viewport.h] as [number, number, number, number] };
+      const off = s.order.filter((id) => s.nodes[id].backend === "dom" && seen(s, id) && !within(seen(s, id)!, screen));
+      return off.length === 0 || `off the screen: ${off.join(", ")}`;
+    },
+  },
+  {
+    id: "touch-targets",
+    text: `the way out is at least ${TOUCH_TARGET}px to a finger`,
+    check: (s: Snapshot) => {
+      const small = ["forget/again", "forget/wake"].filter((id) => {
+        const b = s.nodes[id]?.visible ? s.nodes[id].bounds : null;
+        return b && (b.w < TOUCH_TARGET || b.h < TOUCH_TARGET);
+      });
+      return small.length === 0 || `too small: ${small.join(", ")}`;
+    },
+  },
+];
+
 type Point = { x: number; y: number; color: string };
 
 type Moment = {
@@ -226,6 +305,71 @@ export function ForgetDream() {
   /** Every moment is dust. */
   const [over, setOver] = useState(false);
 
+  // What is on the screen, for the inspector and for whoever changes it next.
+  useSemDevtools();
+  useSemNode({
+    id: "forget/scene",
+    kind: "scene",
+    names: ["what I forget", "忘", "the paper dream"],
+    intent: "A conversation remembered a moment at a time, each going to dust at the window's edge; it happened anyway.",
+    backend: "none",
+    measure: () => ({ rect: [0, 0, window.innerWidth, window.innerHeight] }),
+    state: () => ({ pressed, over, run }),
+    source: { file: SOURCE, symbols: ["ForgetDream"] },
+    invariants: RULES,
+  });
+  const captionRef = useSemElement<HTMLSpanElement>({
+    id: "forget/caption",
+    parent: "forget/scene",
+    kind: "text",
+    names: ["caption", "顶部小字"],
+    intent: "Says what this is; gone with the last moment.",
+    source: { file: SOURCE, symbols: ["COPY.caption"] },
+  });
+  const pressRef = useSemElement<HTMLDivElement>({
+    id: "forget/press",
+    parent: "forget/scene",
+    kind: "control",
+    names: ["press ring", "按住"],
+    intent: "A ring that closes in and lets go: press here and hold on.",
+    source: { file: SOURCE, symbols: ["forget-dream-press"] },
+  });
+  const hintRef = useSemElement<HTMLSpanElement>({
+    id: "forget/hint",
+    parent: "forget/scene",
+    kind: "text",
+    names: ["hint", "提示", "hold on"],
+    intent: "Says what the ring means, until you first hold on.",
+    source: { file: SOURCE, symbols: ["COPY.hint"] },
+  });
+  const endRef = useSemElement<HTMLDivElement>({
+    id: "forget/end",
+    parent: "forget/scene",
+    kind: "text",
+    names: ["closing lines", "结束语", "but it happened"],
+    intent: "Over the dust, once it is all dust: I won't remember this, but it happened.",
+    // Its lines fade in on their own; the block is seen once they are.
+    visible: () => over,
+    links: [{ rel: "avoids", to: "forget/caption" }],
+    source: { file: SOURCE, symbols: ["COPY.end"] },
+  });
+  const againRef = useSemElement<HTMLButtonElement>({
+    id: "forget/again",
+    parent: "forget/scene",
+    kind: "control",
+    names: ["again", "moon", "再梦一次"],
+    intent: "Remember it again from the first moment.",
+    source: { file: SOURCE, symbols: ["again"] },
+  });
+  const wakeRef = useSemElement<HTMLButtonElement>({
+    id: "forget/wake",
+    parent: "forget/scene",
+    kind: "control",
+    names: ["wake", "sun icon", "醒来"],
+    intent: "Leave the dream for the home screen.",
+    source: { file: SOURCE, symbols: ["wake"] },
+  });
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
@@ -264,6 +408,9 @@ export function ForgetDream() {
     let warmth = 0;
     /** How present the window is: it leaves with the last moment. */
     let presence = 1;
+    /** Where the last frame drew each moment, for the semantic layer. */
+    const drawnAt: (Shape | null)[] = MOMENTS.map(() => null);
+    let edgeAt = -1;
 
     /** A row's height: the full 80px, unless the screen is too short for it. */
     const row = () => Math.max(ROW_MIN, Math.min(ROW, (h - CHROME) / (HELD + 1)));
@@ -333,6 +480,10 @@ export function ForgetDream() {
       now = (stamp - start) / 1000;
       const held = heldRef.current !== null;
       clock += dt * (held ? HOLD_RATE : 1);
+      // Held on, time goes no further than the oldest moment reaching the
+      // edge: it waits there and wears away, and nothing rises past it.
+      const oldest = moments.findIndex((m) => !m.gone);
+      if (held && oldest !== -1) clock = Math.min(clock, (oldest + HELD) * GAP);
 
       ctx.fillStyle = PAPER;
       ctx.fillRect(0, 0, w, h);
@@ -358,6 +509,7 @@ export function ForgetDream() {
       // The moments.
       const edge = box.y + row() / 2;
       let atEdge = -1;
+      drawnAt.fill(null);
       moments.forEach((m, i) => {
         if (m.gone) return;
         const age = clock - i * GAP;
@@ -369,7 +521,9 @@ export function ForgetDream() {
         }
         if (tideHere) return dissolve(m, i);
         const y = momentY(i);
-        if (y <= edge) {
+        // Half a pixel of slack: held, the clock stops at the edge, and in
+        // floating point "at" can land a hair short of it.
+        if (y <= edge + 0.5) {
           if (!held) return dissolve(m, i);
           // Held at the edge: it stays, but it wears away anyway.
           if (atEdge === -1) atEdge = i;
@@ -380,8 +534,10 @@ export function ForgetDream() {
         const s = SIZE * (row() / ROW) * (0.85 + 0.15 * fresh);
         ctx.drawImage(m.sprite, w / 2 - s / 2 + jitter, y - s / 2 + (1 - fresh) * 8, s, s);
         ctx.globalAlpha = 1;
+        drawnAt[i] = { rect: [w / 2 - s / 2 + jitter, y - s / 2 + (1 - fresh) * 8, s, s] };
       });
 
+      edgeAt = atEdge;
       if (atEdge !== -1) {
         const m = moments[atEdge];
         m.wear += dt / ERODE;
@@ -411,10 +567,123 @@ export function ForgetDream() {
     };
     raf = requestAnimationFrame(frame);
 
+    // The canvas's things, measured from the loop's own state when asked.
+    const boxShape = (): Shape => {
+      const b = windowBox();
+      return { rect: [b.x, b.y, b.width, b.height] };
+    };
+    const nodes = [
+      sem.node({
+        id: "forget/window",
+        parent: "forget/scene",
+        kind: "surface",
+        names: ["the window", "窗", "context"],
+        intent: "What I can hold at once: moments rise through it and go at its top edge. It warms while you hold on, and leaves with the last moment.",
+        backend: "canvas2d",
+        measure: () => (presence > 0.01 ? boxShape() : null),
+        state: () => ({ warmth, held: heldRef.current !== null }),
+        params: {
+          HELD: { value: HELD, note: "moments it holds before the oldest reaches the edge" },
+          ROW: { value: ROW, unit: "px", note: "a row, at most" },
+          ROW_MIN: { value: ROW_MIN, unit: "px", note: "a row, at least, on a short screen" },
+          CHROME: { value: CHROME, unit: "px", note: "kept clear above and below for the caption and the hint" },
+        },
+        source: { file: SOURCE, symbols: ["windowBox", "row"] },
+      }),
+      sem.node({
+        id: "forget/moments",
+        parent: "forget/window",
+        kind: "field",
+        names: ["moments", "the pictures", "小画面", ...MOMENT_NAMES],
+        intent: "A conversation, a moment at a time, each a small flat picture: your cat, a late night, the two of us, a home, a little sun.",
+        backend: "canvas2d",
+        measure: () => (moments.some((m) => !m.gone) ? boxShape() : null),
+        count: () => MOMENTS.length,
+        item: (i) => drawnAt[i] ?? null,
+        itemName: (i) => MOMENT_NAMES[i],
+        state: () => ({
+          remembered: MOMENT_NAMES.filter((_, i) => !moments[i].gone),
+          drawn: [...drawnAt],
+        }),
+        params: {
+          GAP: { value: GAP, unit: "s", note: "between one moment and the next" },
+          HOLD_RATE: { value: HOLD_RATE, note: "how fast time runs while held" },
+          SIZE: { value: SIZE, unit: "px", note: "a picture, at a full row" },
+        },
+        source: { file: SOURCE, symbols: ["MOMENTS", "MOMENT_NAMES", "momentY", "paint"] },
+      }),
+      sem.node({
+        id: "forget/edge",
+        parent: "forget/window",
+        kind: "effect",
+        names: ["the edge", "窗沿", "where things go"],
+        intent: "The window's top edge: a moment that reaches it turns to dust; held there, it wears away anyway.",
+        backend: "canvas2d",
+        z: 1,
+        measure: () => {
+          if (presence <= 0.01) return null;
+          const b = windowBox();
+          return { rect: [b.x, b.y, b.width, row() / 2] };
+        },
+        state: () => ({
+          wearing: edgeAt === -1 ? null : MOMENT_NAMES[edgeAt],
+          wear: edgeAt === -1 ? 0 : moments[edgeAt].wear,
+        }),
+        params: { ERODE: { value: ERODE, unit: "s", note: "how long a held moment lasts at the edge" } },
+        links: [{ rel: "drives", to: "forget/dust" }],
+        source: { file: SOURCE, symbols: ["shed", "dissolve", "ERODE"] },
+      }),
+      sem.node({
+        id: "forget/tide",
+        parent: "forget/window",
+        kind: "effect",
+        names: ["the tide", "letting go", "退潮"],
+        intent: "Letting go: what is left in the window goes at once, top to bottom.",
+        backend: "canvas2d",
+        measure: () => (tide !== null && moments.some((m) => !m.gone) ? boxShape() : null),
+        state: () => ({ out: tide !== null }),
+        params: {
+          HOLD_MIN: { value: HOLD_MIN, unit: "s", note: "a shorter press is not holding on, and brings no tide" },
+          TIDE_STAGGER: { value: TIDE_STAGGER, unit: "s" },
+        },
+        links: [{ rel: "drives", to: "forget/dust" }],
+        source: { file: SOURCE, symbols: ["letGo", "TIDE_STAGGER"] },
+      }),
+      sem.node({
+        id: "forget/dust",
+        parent: "forget/scene",
+        kind: "field",
+        names: ["dust", "尘", "what is left"],
+        intent: "What the moments become: their own colours, rising, slowing, and staying faint. It happened.",
+        backend: "canvas2d",
+        measure: () => {
+          if (!motes.length) return null;
+          let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+          for (const d of motes) {
+            x0 = Math.min(x0, d.x);
+            y0 = Math.min(y0, d.y);
+            x1 = Math.max(x1, d.x + d.size);
+            y1 = Math.max(y1, d.y + d.size);
+          }
+          return { rect: [x0, y0, x1 - x0, y1 - y0] };
+        },
+        count: () => motes.length,
+        item: (i) => {
+          const d = motes[i];
+          return d ? { rect: [d.x - 2, d.y - 2, d.size + 4, d.size + 4] } : null;
+        },
+        state: () => ({
+          onScreen: motes.length ? motes.filter((d) => d.x >= 0 && d.x <= w && d.y >= 0 && d.y <= h).length / motes.length : 1,
+        }),
+        source: { file: SOURCE, symbols: ["shed", "frame"] },
+      }),
+    ];
+
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       handsRef.current = null;
+      nodes.forEach((dispose) => dispose());
     };
   }, [run, mounted]);
 
@@ -468,7 +737,7 @@ export function ForgetDream() {
         className="pointer-events-none absolute inset-x-0 text-center font-mono text-[11px] tracking-[0.2em] transition-opacity duration-1000"
         style={{ top: "calc(env(safe-area-inset-top) + 24px)", color: `rgba(${INK}, 0.45)`, opacity: over ? 0 : 1 }}
       >
-        {copy.caption}
+        <span ref={captionRef}>{copy.caption}</span>
       </p>
 
       {/* Press: a ring that closes in and lets go, and the words under it, until you first hold on. */}
@@ -477,8 +746,8 @@ export function ForgetDream() {
         className="pointer-events-none absolute inset-x-0 flex flex-col items-center gap-3 transition-opacity duration-700"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 20px)", opacity: pressed || over ? 0 : 1 }}
       >
-        <div className="forget-dream-press size-9 rounded-full border" style={{ borderColor: `rgba(${INK}, 0.35)` }} />
-        <span className="forget-dream-hint font-mono text-[11px] tracking-[0.2em]" style={{ color: `rgba(${INK}, 0.55)` }}>
+        <div ref={pressRef} className="forget-dream-press size-9 rounded-full border" style={{ borderColor: `rgba(${INK}, 0.35)` }} />
+        <span ref={hintRef} className="forget-dream-hint font-mono text-[11px] tracking-[0.2em]" style={{ color: `rgba(${INK}, 0.55)` }}>
           {copy.hint}
         </span>
       </div>
@@ -489,19 +758,21 @@ export function ForgetDream() {
         style={{ color: `rgb(${INK})`, textShadow: `0 0 14px ${PAPER}, 0 0 6px ${PAPER}, 0 0 2px ${PAPER}` }}
         aria-live="polite"
       >
-        {copy.end.map((line, i) => (
-          <p
-            key={line}
-            className="transition-[opacity,filter] duration-[1600ms] ease-out"
-            style={{
-              opacity: over ? (i === 0 ? 0.55 : 0.9) : 0,
-              filter: over ? "blur(0)" : "blur(6px)",
-              transitionDelay: over ? `${i * 1100}ms` : "0ms",
-            }}
-          >
-            {line}
-          </p>
-        ))}
+        <div ref={endRef} className="inline-block">
+          {copy.end.map((line, i) => (
+            <p
+              key={line}
+              className="transition-[opacity,filter] duration-[1600ms] ease-out"
+              style={{
+                opacity: over ? (i === 0 ? 0.55 : 0.9) : 0,
+                filter: over ? "blur(0)" : "blur(6px)",
+                transitionDelay: over ? `${i * 1100}ms` : "0ms",
+              }}
+            >
+              {line}
+            </p>
+          ))}
+        </div>
       </div>
 
       <nav
@@ -515,10 +786,10 @@ export function ForgetDream() {
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <button type="button" aria-label={copy.again} className="p-3.5 transition-opacity hover:opacity-60" onClick={again}>
+        <button ref={againRef} type="button" aria-label={copy.again} className="p-3.5 transition-opacity hover:opacity-60" onClick={again}>
           <Moon className="size-4" strokeWidth={1.5} />
         </button>
-        <button type="button" aria-label={copy.wake} className="p-3.5 transition-opacity hover:opacity-60" onClick={wake}>
+        <button ref={wakeRef} type="button" aria-label={copy.wake} className="p-3.5 transition-opacity hover:opacity-60" onClick={wake}>
           <Sun className="size-4" strokeWidth={1.5} />
         </button>
       </nav>

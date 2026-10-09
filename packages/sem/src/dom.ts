@@ -4,8 +4,12 @@
 import type { Layer } from "./layer";
 import type { SemNode, Shape } from "./types";
 
-/** A node's declaration, less what an element can answer for itself. */
-export type ElementDecl = Omit<SemNode, "measure" | "visible" | "backend"> & {
+/**
+ * A node's declaration, less what an element can answer for itself. A
+ * `visible` here narrows the element's own (for an element whose children
+ * fade in on their own).
+ */
+export type ElementDecl = Omit<SemNode, "measure" | "backend"> & {
   backend?: SemNode["backend"];
 };
 
@@ -54,7 +58,7 @@ export function elementNode(el: Element, decl: ElementDecl): SemNode {
     ...decl,
     backend: decl.backend ?? (isSvgGraphics(el) ? "svg" : "dom"),
     measure: () => measureElement(el),
-    visible: () => elementVisible(el),
+    visible: () => elementVisible(el) && (decl.visible?.() ?? true),
   };
 }
 

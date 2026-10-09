@@ -17,8 +17,8 @@ export type {
   Source,
 } from "./types";
 export { createLayer, sem, type Layer, type LayerOptions } from "./layer";
-export { bounds, contains, formatShape, gapBelow, overlaps, translate, within } from "./geometry";
+export { bounds, contains, expand, formatShape, gapBelow, overlaps, translate, within } from "./geometry";
 export { elementNode, elementVisible, measureElement, scan, type ElementDecl } from "./dom";
 export { projectBox, projectPoint, projectSphere, type Vec3 } from "./webgl";
-export { mountInspector } from "./inspector";
+export { mountInspector, type Inspector, type InspectorMode } from "./inspector";
 export { useSemDevtools, useSemElement, useSemNode } from "./react";

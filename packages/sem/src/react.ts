@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { elementVisible, measureElement, type ElementDecl } from "./dom";
-import { mountInspector } from "./inspector";
+import { mountInspector, type Inspector } from "./inspector";
 import { sem, type Layer } from "./layer";
 import type { SemNode } from "./types";
 
@@ -42,7 +42,12 @@ export function useSemElement<T extends Element>(decl: ElementDecl | null, layer
         get current() {
           const d = latest.current;
           return d
-            ? { ...d, backend: d.backend ?? (el instanceof SVGElement ? "svg" : "dom"), measure: () => measureElement(el), visible: () => elementVisible(el) }
+            ? {
+                ...d,
+                backend: d.backend ?? (el instanceof SVGElement ? "svg" : "dom"),
+                measure: () => measureElement(el),
+                visible: () => elementVisible(el) && (d.visible?.() ?? true),
+              }
             : null;
         },
       };
@@ -54,18 +59,24 @@ export function useSemElement<T extends Element>(decl: ElementDecl | null, layer
 
 /**
  * `?sem` puts the layer on `window.__sem` (for a script or the console);
- * `?inspect` does that and draws the inspector over the page.
+ * `?inspect` does that and draws the inspector over the page, in inspect mode
+ * (touches pick nodes; `?inspect=live` starts with the page live), and puts
+ * the inspector on `window.__semInspector`.
  */
 export function useSemDevtools(layer: Layer = sem): void {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.has("sem") && !params.has("inspect")) return;
-    const g = globalThis as { __sem?: Layer };
+    const g = globalThis as { __sem?: Layer; __semInspector?: Inspector };
     g.__sem = layer;
-    const unmount = params.has("inspect") ? mountInspector(layer) : undefined;
+    const inspector = params.has("inspect")
+      ? mountInspector(layer, { mode: params.get("inspect") === "live" ? "live" : "inspect" })
+      : undefined;
+    if (inspector) g.__semInspector = inspector;
     return () => {
-      unmount?.();
+      inspector?.unmount();
       if (g.__sem === layer) delete g.__sem;
+      if (g.__semInspector === inspector) delete g.__semInspector;
     };
   }, [layer]);
 }

@@ -61,6 +61,17 @@ export function contains(shape: Shape, x: number, y: number): boolean {
   return inside;
 }
 
+/** A shape grown by `by` px on every side (a polygon, by its bounds). */
+export function expand(shape: Shape, by: number): Shape {
+  if (by === 0) return shape;
+  if ("circle" in shape) {
+    const [cx, cy, r] = shape.circle;
+    return { circle: [cx, cy, r + by] };
+  }
+  const b = bounds(shape);
+  return { rect: [b.x - by, b.y - by, b.w + 2 * by, b.h + 2 * by] };
+}
+
 const rectsOverlap = (a: Rect, b: Rect) =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
