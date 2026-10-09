@@ -1,177 +1,176 @@
-# Motion & Animation
+# Motion
 
-## Philosophy
+The site's motion language: three curves, a few durations, what moves and
+what only fades, and what reduced motion turns each into. The mechanisms
+themselves (sheets, the Dock panel, page transitions, the palette) live in
+their own docs; the table at the end points to each. This page is what they
+share, and what a new animation should match.
 
-Motion in Hux.Pro follows the **"System UI"** aesthetic: functional, physical, and restrained. It is never expressive for expression's sake.
+Motion is functional, not expressive: it says where something came from,
+where it went, or that a state changed. If motion doesn't explain something,
+remove it.
 
-> "If motion doesn't explain something, remove it."
+## What it looks like done well
 
-### Core Principles
+- A sheet leaves at speed and settles long, with no overshoot. Two thirds of
+  the way there in the first fifth of its time, it reads as answering the
+  tap rather than performing.
+- A sheet stepping back behind a new one starts gently, so it never
+  flinches before the new sheet arrives.
+- Content that changes inside a surface that stays (a primer's steps, the
+  palette's modes, the floating button's label) crossfades while the box
+  eases to its new size. Nothing cuts; nothing slides in from nowhere.
+- A page change crossfades the page; only `λhux` and the Ask ball travel,
+  because they are the same thing on both pages.
+- Hover and press are colour, short. A press lands on the touch-down frame
+  and eases out on release.
+- Under reduced motion every state still changes, at once.
 
-1.  **Functional**: Motion is used to indicate focus, transition, or state change.
-2.  **Subtle**: Prefer `opacity`, `transform`, `blur`, and `scale` over large movements.
-3.  **Physical**: Micro-animations should feel tactile and "weighty", like a physical switch or button.
-4.  **Quiet**: Animations should be fast and recede, allowing the content to take center stage.
+## The curves
 
-## Command Trigger Morph
+![A plot of distance covered over time for three curves. Travel, blue, rises steeply and is at 66% by a fifth of the time; Fade, green, is at 50%; Standard, orange, starts flat and is at 13%. A legend below gives each curve's value, the constant or class that carries it, and what it is for.](/img/docs/motion/curves.svg)
 
-The Command Trigger (the floating button that opens the command palette) morphs between three states: FAB, Pill, and Conversational Prompt. The animation follows a **"stagger and reshape"** pattern:
+The dashed line is the first 100ms of a 500ms sheet. Travel has covered two
+thirds of the distance by then, which is why a surface feels immediate on
+it; Standard has barely started, which is why the recede uses it: the step
+back trails the arriving sheet by a frame, and on Standard that frame is
+invisible.
 
-### Animation Sequence
+- **Travel**, `cubic-bezier(0.32, 0.72, 0, 1)`: iOS's fast start and long
+  settle, for something that goes somewhere or changes size. Sheets
+  arriving, leaving and changing detent; the Dock panel and its pills; the
+  floating button's morph; `SurfaceMorph`'s height; a window minimising; the
+  signature's clip on `/works`; the hash-landing scroll; Vitre's chrome
+  morph. Spelled `SURFACE_EASING` (`systems/surface/stack.ts`, exported from
+  `@/systems/surface`), `--surface-easing` on a surface's popup,
+  `ease-[cubic-bezier(0.32,0.72,0,1)]` in a class, `ease: [0.32, 0.72, 0, 1]`
+  in Motion.
+- **Standard**, `cubic-bezier(0.4, 0, 0.2, 1)`: for answering a pointer
+  (colour, opacity, press release) and for motion behind another (the sheet
+  recede, the `site-identifier` and `ask-ball` view-transition groups).
+  Spelled `SURFACE_RECEDE_EASING` / `--surface-recede-easing`; it is also
+  Tailwind's default for any `transition-*` without an `ease-*` class, and
+  its `ease-in-out`, so `transition-colors duration-200` is already on it.
+- **Fade**, `ease-out`: for opacity alone (the page crossfade, the
+  signature's lines). Tailwind's `ease-out` is `cubic-bezier(0, 0, 0.2, 1)`;
+  the CSS keyword is
+  `cubic-bezier(0, 0, 0.58, 1)`. The palette popover also runs its
+  mode changes, size included, on it (`duration-300 ease-out`).
+- **Spring**: a desktop window arriving (`WINDOW_SPRING` in
+  `systems/surface/window.tsx`: stiffness 520, damping 34, mass 0.7), and
+  anything a hand let go of settling inside the viewport (`useDraggable`,
+  500 / 30).
 
-```
-[Homepage Prompt]  ─────────────────────>  [FAB/Pill]
+The travel curve has no single CSS token outside a surface: each site
+spells it in full (`--sig-ease`, `MOVE` in `systems/dock/components/dock.tsx`,
+the class string in `systems/dock/components/use-band-occupant.ts`). Spell it
+exactly; a near miss is a second curve. From TypeScript, import
+`SURFACE_EASING` where a string will do.
 
-1. FADE OUT       Content opacity → 0, x → -10px (150ms)
-2. RESHAPE        Width/position morphs via layout animation (400ms)
-3. FADE IN        New content opacity → 1, x → 0 (300ms, delayed 100ms)
-```
+A handful of local curves exist for one gesture each (the press-and-hold
+grow and the widget lift in `globals.css`, a window's snap, the tilt primer).
+They belong to their mechanism and are not a palette to pick from.
 
-### Implementation
+## Durations
 
-```tsx
-<motion.button layout transition={{ layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }}>
-  <AnimatePresence mode="popLayout">
-    {isHomepage && (
-      <motion.span
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0, transition: { delay: 0.1 } }}
-        exit={{ opacity: 0, x: -10 }}
-      >
-        {/* Prompt text */}
-      </motion.span>
-    )}
-  </AnimatePresence>
-</motion.button>
-```
+Longer for farther, and nothing a visitor waits on past 500ms.
 
-### Key Techniques
+| Duration | For | On the site |
+|----------|-----|-------------|
+| 100–150ms | Small things appearing at a pointer | Menus, tooltips, hover cards, selects (`components/ui`, `duration-100`); Ask's placement target while it is dragged (`duration-150`); a window closing (0.15s) |
+| 200ms, `duration-200` | Colour, opacity, a small transform answering a pointer | `transition-colors duration-200` on rows and chrome; the page crossfade; the palette card's `zoom-in-95` arrival |
+| 300ms, `duration-300` | A change of layout in place: width, height, grid rows, padding | The palette popover's modes; a band occupant's width; `PinnedSlot`; the `λhux` and Ask-ball travel; the Dock panel's pop (`--dock-pop-duration`) and its pills (`MOVE`, 0.32s) |
+| 400–500ms | Travel across the screen | `SURFACE_TRANSITION_MS` (500): every sheet's arrival, exit, detent change and recede; the floating button's morph (0.4s); `SurfaceMorph`'s height (420ms); a window minimising (0.42s) |
+| 500–700ms | Ambient change nobody is waiting on | Wallpaper and theme fades (`duration-500`, `duration-700`) |
 
-1. **`mode="popLayout"`**: Removes exiting elements from document flow immediately, allowing the container to resize without being held open by old content.
+`SURFACE_TRANSITION_MS` is also a clock: code that has to wait for a sheet to
+finish (`window-menu.tsx` running an action after the sheet closes,
+`window-sheet.tsx` unmounting, `stack.ts` re-reading a band) waits that long.
+Change it in `stack.ts` and the surface CSS (through `--surface-duration`)
+and the waits follow, except one copy: the page making room for Ask at the
+side (`#vitre-scroll`, a literal `500ms` in `globals.css`). The Dock panel's
+pop is deliberately shorter and has its own `--dock-pop-duration`.
 
-2. **Consistent height (`h-12`)**: Prevents vertical jitter during horizontal morph.
+## What moves, what fades
 
-3. **`overflow-hidden`**: Clips content to rounded corners, preventing visual overflow during transition.
+- **Moves** (a transform along a path) when it has a place it comes from and
+  a place it goes: a sheet from its edge, `λhux` and the Ask ball between
+  pages, the Dock's pills reflowing, a window from its shelf icon.
+- **Fades** when the box stays and what is in it changes: the page body,
+  the palette's modes, `SurfaceMorph`'s steps, the floating button's label.
+  Leaving is quicker than arriving, and the new content comes in a beat
+  after the old has gone (`SurfaceMorph`: out 180ms, in 280ms after 90ms).
+- **Scales** when there is nothing to travel from: the Dock panel pops from
+  0.94 because its pill sits just above it; menus and the palette card
+  `zoom-in-95`. A receding sheet steps 8px up and 5% smaller per sheet in
+  front of it.
+- **Height to `auto`** is either `grid-template-rows` between `0fr` and `1fr`
+  (the palette popover) or a measured height eased on the travel curve
+  (`SurfaceMorph`). Neither runs on the compositor: keep the content light.
+- **A finger beats the curve.** While a sheet, the Dock panel or a window is
+  dragged, it follows the pointer with no easing (`transition-duration: 0ms`
+  on a drawer, never `transition: none`; the base-ui-drawer skill says why);
+  the curve resumes on release, and a harder flick leaves faster
+  (`--drawer-swipe-strength`).
+- **Not on blur.** A transform on a `backdrop-filter` surface makes the
+  compositor re-blur every frame, so the home's search bar presses with a
+  colour wash and no scale (`systems/command/fab.tsx`). Chrome buttons that
+  are not glass press with `active:scale-95`; media covers dim instead
+  (`COVER_WASH`, [Design System](./design-system.md#touch)).
+- **Not on small mono text.** A transformed layer re-rasterises 12px mono, so
+  it shimmers and settles a pixel late. The signature on `/works` reveals
+  each line with a `clip-path`, never a transform.
 
-4. **Staggered timing**: Content fades out (200ms) before layout animates (400ms), and new content fades in after a 100ms delay.
+## Reduced motion
 
-## Command Palette
+Every motion carries its reduced path next to it, and under
+`prefers-reduced-motion: reduce` the state still changes; only the travel
+goes. Nothing on the site does this globally:
 
-The Command Palette (`⌘K`) is the centerpiece of the site's interaction model. It features a distinct "morphing" animation when switching between **Search Mode** and **Slash Commands**.
+- **CSS**: a `@media (prefers-reduced-motion: reduce)` block right after the
+  rule, with `transition: none` or `animation: none` (the surface, Dock and
+  view-transition blocks in `globals.css` are the models).
+- **Tailwind**: `motion-reduce:` on the class (`motion-reduce:!transition-none`
+  and `motion-reduce:animate-none` in `systems/surface/morph.tsx`,
+  `motion-reduce:active:scale-100` for a press scale). `tw-animate-css`'s
+  `animate-in` does not check the setting itself.
+- **Motion** (`motion/react`): `useReducedMotion()`, then a zero duration or
+  no animation (`lib/use-hash-landing.ts`, `components/ui/use-notice-yield.ts`).
+  There is no `MotionConfig` at the root, so a `motion.*` element animates
+  regardless unless its component asks.
 
-### The "Grid Rows" Trick
+What to turn it into:
 
-To achieve the smooth height transition between the different modes without using heavy JavaScript libraries, we use the **CSS Grid Rows Animation** technique.
+- **Instant**, by default.
+- **`0.01ms`, not `none`**, for an animation something waits on: the
+  heading and commit washes (`[data-hash-target]`, `[data-commit-target]`)
+  are removed on `animationend`, and `animation: none` never fires it.
+- **A static cue** when the motion carried the meaning: Ask's handoff pulse
+  becomes a steady `--ring` outline.
+- **Paused**, for a looping demonstration (the tilt and sky primers): its
+  first frame still explains.
 
-#### The Problem
-CSS cannot natively transition `height` from `auto` to a fixed value (or vice-versa).
+## Adding motion
 
-#### The Solution
-We use a CSS Grid container and transition the `grid-template-rows` property from `0fr` (collapsed) to `1fr` (expanded).
+1. Say what it explains. If nothing, leave it out.
+2. Pick the curve by what is moving (travel, standard, fade) and the
+   duration by how far, from the sections above.
+3. Spell the curve exactly, from `SURFACE_EASING` where you can.
+4. Write the reduced path in the same place, and decide which of the four
+   it is.
+5. If a finger can drag it, switch the transition off while it does.
+6. No transforms on glass or on small mono text.
+7. If it is a sheet, the Dock panel or a page transition, it is already
+   written: change it in its own block (below), not beside it.
 
-```tsx
-<div
-  className="grid transition-all duration-300 ease-out"
-  style={{ gridTemplateRows: isSlashCommandsMode ? "0fr" : "1fr" }}
->
-  <div className="overflow-hidden">
-    {/* Content goes here */}
-  </div>
-</div>
-```
+## Where each mechanism lives
 
-#### Why we chose this over Framer Motion
-While libraries like Framer Motion offer powerful physics-based springs, we opted for this pure CSS approach for specific reasons:
-
-1.  **Performance**: It runs entirely on the browser's compositor thread. Zero layout thrashing.
-2.  **Bundle Size**: **0kb** overhead. Framer Motion would add ~30-50kb to the bundle.
-3.  **Simplicity**: It solves the specific "height morph" problem without requiring a complex animation orchestration system.
-
-### Morphing Logic
-
-The palette uses a single container that morphs its dimensions and content:
-
-1.  **Width**: Transitions between `max-w-[600px]` (Search) and `max-w-[400px]` (Slash Commands).
-2.  **Height**: The content areas (Search Results vs. Slash Commands list) use the Grid Trick to cross-fade and resize simultaneously.
-3.  **Opacity**: Content fades in/out (`opacity-0` ↔ `opacity-100`) in sync with the grid transition.
-
-## Standard Patterns
-
-### Hover States
-Hover effects are designed to be "weighty" but responsive.
-- **Buttons** in the chrome (orbs, FAB, window pills): slight scale down on press to mimic physical resistance.
-- **Media covers**: a dark wash over the art (`COVER_WASH`), like the iOS Photos / Home Screen dim. The card never scales.
-- **Links**: Opacity changes or subtle underlines.
-
-### Page Transitions
-
-We use the **View Transitions API** via `next-view-transitions` for smooth page-to-page navigation.
-
-#### Setup
-
-```tsx
-// app/layout.tsx
-import { ViewTransitions } from "next-view-transitions";
-
-<ViewTransitions>
-  <html>...</html>
-</ViewTransitions>
-```
-
-#### Link Navigation
-
-```tsx
-// Use library's Link component
-import { Link } from "next-view-transitions";
-
-<Link href="/writing">Blog</Link>
-```
-
-#### Programmatic Navigation
-
-```tsx
-import { useTransitionRouter } from "next-view-transitions";
-
-const router = useTransitionRouter();
-router.push("/path"); // Triggers view transition
-```
-
-#### Transition Styles
-
-```css
-/* Root content crossfades (200ms) */
-::view-transition-old(root) {
-  animation: fade-out 200ms ease-out both;
-}
-::view-transition-new(root) {
-  animation: fade-in 200ms ease-out both;
-}
-
-/* Shared elements morph position */
-[data-view-transition="site-identifier"] {
-  view-transition-name: site-identifier;
-}
-::view-transition-group(site-identifier) {
-  animation-duration: 300ms;
-}
-```
-
-#### Shared Elements
-
-Elements with matching `view-transition-name` morph between pages:
-
-```tsx
-// Add data attribute to matching elements
-<span data-view-transition="site-identifier">λhux</span>
-```
-
-The `λhux` identifier morphs from center (homepage) to left (content pages).
-
-### Component Animations
-
-Individual components (like the Command Palette or Modals) use `animate-in` and `fade-in` utility classes (powered by `tw-animate-css` and Tailwind) to enter the stage smoothly.
-
-```css
-/* Example utility usage */
-animate-in fade-in zoom-in-95 duration-200
-```
+| Mechanism | Doc | Code |
+|-----------|-----|------|
+| Page transitions: the `root` crossfade, `site-identifier`, `ask-ball`, and their reduced motion | [Navigation](./navigation.md#page-transitions) | `app/globals.css`, "View Transition API Styles" |
+| Sheets: arriving, leaving, detents, drag, the stack's recede, `SurfaceMorph` | [Surface System](./system-surface.md); skill `.claude/skills/base-ui-drawer` | `app/globals.css`, "Secondary surface motion"; `systems/surface/sheet.tsx`, `stack.ts`, `morph.tsx` |
+| The Dock panel's pop and the pills | [Dock System](./system-dock.md) | `app/globals.css`, "Dock panel motion"; `systems/dock/components/live-activity.tsx`, `dock.tsx` |
+| The palette's modes and the floating button's morph | [Command System](./system-command.md) | `systems/command/popover.tsx`, `fab.tsx` |
+| Desktop windows | [Window System](./system-windows.md) | `systems/windows/components/window.tsx`, `systems/surface/window.tsx` |
+| Press, cover wash, press-and-hold | [Design System](./design-system.md#touch) | `.pressable`, `.press-hold`, `COVER_WASH` |
+| The iOS chrome morph and the status-bar tap | skill `.claude/skills/vitre` | `packages/vitre/src/chrome.ts`, `status-tap.ts` |
