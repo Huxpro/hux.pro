@@ -1,6 +1,8 @@
-# OG Images System
+---
+skills: [content-snapshots]
+---
 
-> The checklist form of this page's font baking is the `pnpm og:fonts` row of the skill `.claude/skills/content-snapshots`.
+# OG Images System
 
 Generates the site's **own** Open Graph / social cards: the 1200×630 image
 that previews a page when shared to X, LinkedIn, iMessage, Slack, etc.
