@@ -45,9 +45,12 @@ catalog's `library`, so it cannot drift from what ships. Publishing to npm is
 flipping `private` there; the header follows.
 
 An **experience** is a feeling, a few seconds and a few touches long (The
-Wardrobe, a childhood nightmare in three blinks). It is one self-contained
-document in `public/` (no framework, no download beyond itself), because it
-has two hosts that both want a whole page:
+Wardrobe, a childhood nightmare in three blinks). It is one page with two
+hosts that both want a whole page. The Wardrobe is built on `packages/scene`
+(docs/system-scene.md) from `experiences/wardrobe`, by Vite, into
+`public/dreams/wardrobe/` (gitignored; `pnpm build` builds it, `pnpm dev`
+builds it when stale); an experience can also be a single hand-written
+document in `public/dreams/`. Its two hosts:
 
 | host | how |
 |---|---|
@@ -58,6 +61,11 @@ The catalog's `experience` names both: `src` (the document) and `app` (its
 apps.json id). The document reads the site's `locale` from the same origin
 (`?lang=` overrides it) and takes a `?stage=` to hold one frame still, which
 is what its surface on the index shows.
+
+An experience built on the scene layer, given its language layer (the words
+it came from and what they meant, `experiences/<name>/semantics.ts`), can be
+inspected in its lab: the bar's Inspect switch lays the running scene open
+beside the frame, with boxes over it, its params as sliders, and the verifier.
 
 ## Content stays with the package
 

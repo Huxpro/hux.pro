@@ -21,7 +21,8 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "vitre": ["./packages/vitre/src/index.ts"]
+      "vitre": ["./packages/vitre/src/index.ts"],
+      "scene": ["./packages/scene/src/index.ts"]
     }
   },
   "include": [
