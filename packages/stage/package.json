@@ -1,0 +1,18 @@
+{
+  "name": "stage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "React on top, the original drawing underneath: a scene is placed kinds, phases and rules written as data; a kind is init / step / frame / draw / measure; the host runs the frame and tells sem what it drew.",
+  "type": "module",
+  "sideEffects": false,
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  }
+}

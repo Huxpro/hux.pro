@@ -34,10 +34,36 @@ const GLASS_TOKENS_ONLY = {
   },
 };
 
+/**
+ * A stage kind (packages/stage) is the only place a scene's logic lives, and
+ * it must be reproducible: the same seed, props and time give the same frame.
+ * So it takes time and randomness from its context (`ctx.t`, `ctx.rng`), never
+ * from the clock or Math.random, and it schedules nothing: the stage's loop
+ * and machine keep time.
+ */
+const STAGE_KINDS = {
+  files: ["app/**/kinds/**/*.ts"],
+  rules: {
+    "no-restricted-globals": [
+      "error",
+      { name: "Date", message: "Take time from ctx.t: a kind's frame must be reproducible." },
+      { name: "performance", message: "Take time from ctx.t: a kind's frame must be reproducible." },
+      { name: "setTimeout", message: "Let the scene's machine keep time (an `after`), or ctx.t." },
+      { name: "setInterval", message: "Let the scene's machine keep time (an `after`), or ctx.t." },
+      { name: "requestAnimationFrame", message: "The stage runs the frame; a kind only steps, frames and draws." },
+    ],
+    "no-restricted-properties": [
+      "error",
+      { object: "Math", property: "random", message: "Use ctx.rng: seeded, so a run can be replayed." },
+    ],
+  },
+};
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   GLASS_TOKENS_ONLY,
+  STAGE_KINDS,
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // vitre site build output, generated into public at build time.
