@@ -2,8 +2,9 @@
 // Sound: made here, nothing to download, and only after the first touch.
 //
 // The dream has a low chord a little out of tune; waking has a room with a
-// clock in it. In between: a heart, a gasp, breath, a hinge. Carried over from
-// the hand-written page as it was; the director decides when.
+// clock in it. In between: a heart, a gasp, breath, a hinge, a torch's switch.
+// Carried over from the hand-written pages as they were; shared by the
+// dreams (experiences/common); each scene's director decides when.
 // =============================================================================
 
 export class Sound {
@@ -263,5 +264,24 @@ export class Sound {
     o.connect(bp).connect(g).connect(this.master);
     o.start(t);
     o.stop(t + 0.04);
+  }
+
+  /** A torch's switch: a small plastic click. */
+  click(strength = 0.5): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.master) return;
+    const t = ctx.currentTime;
+    const b = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.012), ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+    const s = ctx.createBufferSource();
+    const hp = ctx.createBiquadFilter();
+    const g = ctx.createGain();
+    s.buffer = b;
+    hp.type = "highpass";
+    hp.frequency.value = 1800;
+    g.gain.value = strength;
+    s.connect(hp).connect(g).connect(this.master);
+    s.start(t);
   }
 }

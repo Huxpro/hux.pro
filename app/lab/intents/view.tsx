@@ -8,7 +8,7 @@ import { LabButton, LabChip, LabSection, LabShell, useLabStrings } from "@/syste
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
-import { Bed, BedroomDefs, Man, Room, Wardrobe as WardrobeBox, Window } from "@/experiences/wardrobe/entities";
+import { Bed, BedroomDefs, Man, Room, Wardrobe as WardrobeBox, Window } from "@/experiences/common/bedroom";
 import { frameDecision, realize, values as computeValues, type Value } from "./compute";
 import { LATENCY, infer, observe } from "./model";
 import { recognize, type Event, type Reading } from "./recognize";

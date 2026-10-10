@@ -13,17 +13,21 @@
 //
 //   timeline.ts   the beats, phases and inputs (declared), and everything that
 //                 moves, as a function of (state, t, timeline)
-//   entities.tsx  the things, each declared where it is drawn
+//   semantics.ts  the dream as it was told, and what it meant
 //   Wardrobe.tsx  the scene, the overlays, and the director (sound, input)
-//   sound.ts      the sound, made in the page
+//
+// Shared with the other dreams (experiences/common): the bedroom and him
+// (bedroom.tsx), the waking (waking.ts), the sound, the overlays.
 // =============================================================================
 
 import { useEffect, useReducer, useRef, useState, type Dispatch } from "react";
 import { Atmosphere, Stage, useFlag, useFrame, useNow, useTime, useTimeline, type Still } from "scene";
-import { Bed, BedroomDefs, Man, Room, Viewer, Wardrobe as WardrobeBox, Window } from "./entities";
+import { Bed, BedroomDefs, Man, Room, Viewer, Wardrobe as WardrobeBox, Window } from "../common/bedroom";
+import { DreamAir, Epilogue, Hint, Lids, SoundButton } from "../common/overlays";
+import { Sound } from "../common/sound";
+import { wakingSound } from "../common/waking";
 import { LANGUAGE } from "./semantics";
-import { Sound } from "./sound";
-import { PHASES, STILLS, TIMELINE, breathAmp, breathPhase, initial, reduce, view, type Action, type State } from "./timeline";
+import { PHASES, STILLS, TIMELINE, initial, reduce, view, type Action, type State } from "./timeline";
 import { WORDS, type Words } from "./words";
 
 const params = new URLSearchParams(location.search);
@@ -129,44 +133,13 @@ function Scene({ state }: { state: State }) {
 function Overlays({ state, sound, words }: { state: State; sound: Sound; words: Words }) {
   const t = useTime();
   const v = view(state, t, useTimeline(TIMELINE));
-  const [muted, setMuted] = useState(sound.muted);
-  const lid = { transitionDuration: `${v.lids.speed}s` };
   return (
     <>
-      <div className="haze" style={{ opacity: v.dream ? 1 : 0 }} />
-      <div className="grain" style={{ opacity: v.dream ? 0.1 : 0.06 }} />
-      <div className="vignette" />
-      <div className={`fade${v.line ? " show" : ""}`} />
-      {!QUIET && (
-        <>
-          <div className={`line hint${v.hint ? " show" : ""}`}>{v.hint ? words[v.hint] : words.hint}</div>
-          <div className={`line epilogue${v.line ? " show" : ""}`}>
-            {words.epilogue}
-            <small>{words.replay}</small>
-          </div>
-        </>
-      )}
-      <div className={`lid top${v.lids.closed ? " closed" : ""}`} style={lid} />
-      <div className={`lid bottom${v.lids.closed ? " closed" : ""}`} style={lid} />
-      {!QUIET && (
-        <button
-          type="button"
-          className="sound"
-          aria-label={words.sound}
-          aria-pressed={!muted}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            sound.setMuted(!muted);
-            setMuted(!muted);
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 9h4l5-4v14l-5-4H4z" />
-            {muted ? <path d="M17 9l5 6M22 9l-5 6" /> : <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />}
-          </svg>
-        </button>
-      )}
+      <DreamAir dream={v.dream} />
+      {!QUIET && <Hint text={v.hint ? words[v.hint] : words.hint} show={!!v.hint} />}
+      {!QUIET && <Epilogue show={v.line} text={words.epilogue} replay={words.replay} />}
+      <Lids {...v.lids} />
+      {!QUIET && <SoundButton sound={sound} label={words.sound} />}
     </>
   );
 }
@@ -237,7 +210,6 @@ function Director({ state, dispatch, sound }: { state: State; dispatch: Dispatch
   // Every frame: let a held blink mature, and play what the moment implies.
   useFrame((t) => {
     const { state: s, tl } = live.current;
-    const b = tl.beat;
     if (s.pending) dispatch({ type: "tick", t, minBlink: tl.input.hold.minBlink });
     const p = prev.current;
     const u = Math.max(0, t - s.at);
@@ -262,30 +234,7 @@ function Director({ state, dispatch, sound }: { state: State; dispatch: Dispatch
       }
     }
 
-    if (s.stage === 3 && s.via !== "still" && p.state.stage === 3 && s.at === p.state.at) {
-      const crossed = (beat: number) => p.u < beat && u >= beat;
-      if (crossed(b.snap.at)) {
-        sound.gasp();
-        sound.roomTo(0.1, 0.8);
-        if (navigator.vibrate) navigator.vibrate(60);
-      }
-      // The breath, until it catches.
-      const d = u - b.snap.at;
-      if (d > 0 && u < b.door.at) {
-        const before = breathPhase(p.u - b.snap.at);
-        const after = breathPhase(d);
-        if (Math.floor(after) > Math.floor(before)) sound.breathe(true, breathAmp(d));
-        if (before % 1 < 0.42 && after % 1 >= 0.42 && Math.floor(before) === Math.floor(after)) sound.breathe(false, breathAmp(d));
-      }
-      // The heart: loud at first, gone by the time the clock is heard; back when the door moves.
-      const since = u - b.door.at - 1;
-      const beatEvery = d < 4 ? 0.48 + 0.4 * (d / 4) : u > b.door.at ? 1 - 0.42 * Math.min(1, since / 6) : 0;
-      if (beatEvery && d > 0 && Math.floor(u / beatEvery) > Math.floor(p.u / beatEvery)) {
-        sound.thump(d < 4 ? 0.6 * (1 - d / 4) + 0.05 : 0.12 + 0.5 * Math.min(1, since / 6));
-      }
-      if (u > b.clock.at && Math.floor(u - b.clock.at) > Math.floor(p.u - b.clock.at)) sound.tick(Math.min(1, (u - b.clock.at) / 2.5));
-      if (crossed(b.door.at)) sound.creak(b.door.over, 0.6);
-    }
+    if (s.stage === 3 && s.via !== "still" && p.state.stage === 3 && s.at === p.state.at) wakingSound(sound, p.u, u, tl.beat);
     prev.current = { state: s, u };
   });
 

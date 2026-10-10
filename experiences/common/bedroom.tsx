@@ -1,9 +1,12 @@
 // =============================================================================
-// The things in the dream, each declared where it is drawn.
+// The bedroom of the dreams, and him: each thing declared where it is drawn.
 //
-// The declaration is what everything else reads: the inspector's panel, the
-// language index ("他", "柜门"), the verifier. The drawing is the hand-written
-// page's own SVG, moved in as it was: a boundary around it, not a rewrite.
+// Shared by every dream (experiences/common): the same man, the same
+// wardrobe, the same room by moonlight. The declaration is what everything
+// else reads: the inspector's panel, the language index ("他", "柜门"), the
+// verifier. The drawing is the hand-written page's own SVG, moved in as it
+// was. <BedroomDefs> holds the gradients and clips they paint with: draw it
+// once, first.
 // =============================================================================
 
 import { Atmosphere, Draw, Part, choice, num, semantic, type DrawFn } from "scene";
@@ -12,7 +15,7 @@ import { Atmosphere, Draw, Part, choice, num, semantic, type DrawFn } from "scen
 // Paints
 // -----------------------------------------------------------------------------
 
-/** The paints the bedroom uses (gradients, a blur, the wardrobe's inside as a clip). Draw it once, first. */
+/** The paints the bedroom uses (gradients, a blur, the wardrobe's inside as a clip). */
 export function BedroomDefs() {
   return (
     <defs>
