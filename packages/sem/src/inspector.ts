@@ -18,6 +18,9 @@ import type { Backend, Shape } from "./types";
 
 export type InspectorMode = "inspect" | "live";
 
+/** Writes one param of one node back to its source; resolves to what it did, rejects with why not. */
+export type Saver = (edit: { file: string; id: string; prop: string; value: unknown }) => Promise<string>;
+
 export interface Inspector {
   mode(): InspectorMode;
   setMode(mode: InspectorMode): void;
@@ -62,7 +65,7 @@ const chip = (id: string, on: boolean) =>
   `<span data-sem-pick="${escape(id)}" style="display:inline-block;margin:2px 4px 2px 0;padding:3px 7px;border-radius:6px;cursor:pointer;` +
   `background:${on ? "rgba(255,255,255,.22)" : "rgba(255,255,255,.08)"}">${escape(id)}</span>`;
 
-export function mountInspector(layer: Layer, options: { mode?: InspectorMode } = {}): Inspector {
+export function mountInspector(layer: Layer, options: { mode?: InspectorMode; save?: Saver } = {}): Inspector {
   let mode: InspectorMode = options.mode ?? "inspect";
   let picked: string | null = null;
   /** What was under the last tap, topmost first, and which of them is picked. */
@@ -98,6 +101,13 @@ export function mountInspector(layer: Layer, options: { mode?: InspectorMode } =
     "pointer-events:auto;overscroll-behavior:contain;background:rgba(12,12,16,.9);color:#e8e8ec;border:1px solid rgba(255,255,255,.14);" +
     "border-radius:10px;padding:8px 10px;white-space:pre-wrap;word-break:break-word;";
 
+  // The panel's text is rebuilt a few times a second; its controls only when the pick changes,
+  // so a slider is never pulled out from under a finger.
+  const headEl = document.createElement("div");
+  const controlsEl = document.createElement("div");
+  controlsEl.style.cssText = "white-space:normal;";
+  const bodyEl = document.createElement("div");
+  panel.append(headEl, controlsEl, bodyEl);
   root.append(svg, glass, panel, toggle);
   document.body.append(root);
 
@@ -164,6 +174,8 @@ export function mountInspector(layer: Layer, options: { mode?: InspectorMode } =
   };
   // Keys: ` switches modes anywhere; in inspect mode the page hears no key at all.
   const onKey = (e: KeyboardEvent) => {
+    // The panel's own controls keep their keys (a slider's arrows).
+    if (inside(e) && e.key !== "`") return;
     if (e.key === "`") {
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -192,6 +204,100 @@ export function mountInspector(layer: Layer, options: { mode?: InspectorMode } =
     else picked = target.dataset.semPick ?? null;
     lastText = 0;
   });
+
+  // --- the picked node's knobs ----------------------------------------------
+  let controlsFor: string | null = null;
+  const fmt = (v: number) => String(Math.round(v * 1000) / 1000);
+
+  function renderControls() {
+    controlsEl.replaceChildren();
+    const id = picked?.split("#")[0] ?? null;
+    controlsFor = id;
+    const decl = id ? layer.get(id) : undefined;
+    const node = id ? layer.select(id)?.node : undefined;
+    if (!decl?.set || !node?.params) return;
+    const numeric = Object.entries(node.params).filter(([, p]) => typeof p.value === "number");
+    if (!numeric.length) return;
+    const original: Record<string, number> = {};
+    const dirty: Record<string, number> = {};
+    const box = document.createElement("div");
+    box.style.cssText = "margin-top:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,.06);";
+    const status = document.createElement("div");
+    status.style.cssText = "opacity:.7;margin-top:6px;white-space:pre-wrap;";
+    const save = document.createElement("button");
+    const reset = document.createElement("button");
+    for (const b of [save, reset]) {
+      b.type = "button";
+      b.style.cssText =
+        "font:inherit;color:inherit;background:rgba(255,255,255,.12);border:0;border-radius:6px;padding:6px 10px;margin-right:6px;cursor:pointer;min-height:32px;";
+    }
+    save.textContent = decl.edit ? "save to source" : "no source to save to";
+    reset.textContent = "reset";
+    const paintButtons = () => {
+      const n = Object.keys(dirty).length;
+      save.disabled = !n || !decl.edit || !options.save;
+      reset.disabled = !n;
+      save.style.opacity = save.disabled ? ".4" : "1";
+      reset.style.opacity = reset.disabled ? ".4" : "1";
+    };
+    for (const [k, p] of numeric) {
+      const value = p.value as number;
+      original[k] = value;
+      const [min, max] = p.range ?? [0, Math.max(1, value * 2)];
+      const row = document.createElement("label");
+      row.style.cssText = "display:flex;align-items:center;gap:8px;margin:2px 0;";
+      const name = document.createElement("span");
+      name.textContent = p.live === false ? `${k} ↻` : k;
+      if (p.live === false) name.title = "applies when it starts again";
+      name.style.cssText = "min-width:72px;";
+      const input = document.createElement("input");
+      input.type = "range";
+      input.min = String(min);
+      input.max = String(max);
+      input.step = String((max - min) / 200);
+      input.value = String(value);
+      input.style.cssText = "flex:1;min-width:0;height:28px;";
+      const out = document.createElement("span");
+      out.style.cssText = "min-width:64px;text-align:right;";
+      out.textContent = `${fmt(value)}${p.unit ?? ""}`;
+      input.addEventListener("input", () => {
+        const v = Number(input.value);
+        decl.set!(k, v);
+        dirty[k] = v;
+        out.textContent = `${fmt(v)}${p.unit ?? ""}`;
+        status.textContent = "";
+        paintButtons();
+      });
+      row.append(name, input, out);
+      box.append(row);
+    }
+    save.addEventListener("click", async () => {
+      if (!decl.edit || !options.save) return;
+      const lines: string[] = [];
+      for (const [k, v] of Object.entries(dirty)) {
+        const value = Number(fmt(v));
+        try {
+          lines.push(`✓ ${await options.save({ file: decl.edit.file, id: decl.edit.id, prop: k, value })}`);
+          delete dirty[k];
+        } catch (error) {
+          // Not saved (a production build has no write route): the command that would.
+          lines.push(`✗ ${(error as Error).message}\n  pnpm scene:patch ${decl.edit.file} ${decl.edit.id} ${k} ${value}`);
+        }
+      }
+      status.textContent = lines.join("\n");
+      paintButtons();
+    });
+    reset.addEventListener("click", () => {
+      for (const k of Object.keys(dirty)) decl.set!(k, original[k]);
+      renderControls();
+    });
+    const buttons = document.createElement("div");
+    buttons.style.cssText = "margin-top:6px;";
+    buttons.append(save, reset);
+    box.append(buttons, status);
+    controlsEl.append(box);
+    paintButtons();
+  }
 
   let raf = 0;
   const frame = (t: number) => {
@@ -227,15 +333,16 @@ export function mountInspector(layer: Layer, options: { mode?: InspectorMode } =
     }
     svg.innerHTML = marks.join("");
 
+    if ((picked?.split("#")[0] ?? null) !== controlsFor) renderControls();
+
     // The text is for reading, not animating: a few times a second is plenty.
     if (t - lastText < 300) return;
     lastText = t;
     const hint = mode === "inspect" ? "tap to pick · tap again to go deeper" : "the page is live · shift-click picks";
     const head = `<span data-sem-toggle style="cursor:pointer">${collapsed ? "▸" : "▾"} sem</span>  <span style="opacity:.6">${hint}</span>`;
-    if (collapsed) {
-      panel.innerHTML = head;
-      return;
-    }
+    headEl.innerHTML = head;
+    controlsEl.style.display = bodyEl.style.display = collapsed ? "none" : "";
+    if (collapsed) return;
     let body = "";
     const selection = picked ? layer.select(picked, snap) : null;
     if (selection) {
@@ -261,7 +368,7 @@ export function mountInspector(layer: Layer, options: { mode?: InspectorMode } =
       if (stack.length > 1) body += `\n<span style="opacity:.6">under the tap</span> ${stack.map((id) => chip(id, id === picked)).join("")}`;
     }
     body += `\n\n${escape(layer.outline(snap))}`;
-    panel.innerHTML = head + body;
+    bodyEl.innerHTML = body;
   };
 
   function setMode(next: InspectorMode) {

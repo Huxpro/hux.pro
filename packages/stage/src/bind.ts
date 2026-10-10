@@ -14,12 +14,21 @@ export const isRef = (v: unknown): v is Ref => typeof v === "object" && v !== nu
 export type When = string | { phase: string; delay: number };
 export const after = (phase: string, delay: number): When => ({ phase, delay });
 
-/** Where a DOM node sits: from the top or bottom edge (clear of the notch), or under another node. */
-export type Anchor = { top: number } | { bottom: number } | { below: string; gap: number };
+/** Where a DOM node sits: from the top or bottom edge (clear of the notch), under another node, or midway between two. */
+export type Anchor =
+  | { top: number }
+  | { bottom: number }
+  | { middle: number }
+  | { below: string; gap: number }
+  | { between: [string, string] };
 export const at = {
   top: (px: number): Anchor => ({ top: px }),
   bottom: (px: number): Anchor => ({ bottom: px }),
+  /** `px` below the middle of the screen (above, when negative). */
+  middle: (px: number): Anchor => ({ middle: px }),
   below: (node: string, gap: number): Anchor => ({ below: node, gap }),
+  /** Centred in the gap from the bottom of `upper` to the top of `lower`. */
+  between: (upper: string, lower: string): Anchor => ({ between: [upper, lower] }),
 };
 
 /** Words in each language the site speaks. */
@@ -55,16 +64,52 @@ export const rule = {
         return gap >= 0 || `the ${lower} is ${Math.round(-gap)}px into the ${upper}`;
       },
     }),
-  /** Everything seen stays on the screen. */
+  /** Everything seen stays on the screen, but for the nodes named (a sea that opens past the edges). */
   onScreen:
-    (): Rule =>
+    (except: string[] = []): Rule =>
     (scope) => ({
       id: "on-screen",
-      text: "everything seen stays on the screen",
+      text: `everything seen stays on the screen${except.length ? ` (but ${except.join(", ")})` : ""}`,
       check: (s) => {
         const screen: Shape = { rect: [0, 0, s.viewport.w, s.viewport.h] };
-        const off = s.order.filter((id) => id.startsWith(`${scope}/`) && seen(s, id) && !within(seen(s, id)!, screen));
+        const skip = new Set(except.map((id) => `${scope}/${id}`));
+        const off = s.order.filter((id) => id.startsWith(`${scope}/`) && !skip.has(id) && seen(s, id) && !within(seen(s, id)!, screen));
         return off.length === 0 || `off the screen: ${off.join(", ")}`;
+      },
+    }),
+  /** `inner` lies within `outer` while both are seen. */
+  inside:
+    (inner: string, outer: string): Rule =>
+    (scope) => ({
+      id: `${inner}-inside-${outer}`,
+      text: `the ${inner} stay inside the ${outer}`,
+      check: (s) => {
+        const [a, b] = [seen(s, `${scope}/${inner}`), seen(s, `${scope}/${outer}`)];
+        return !a || !b || within(a, b, 1) || `the ${inner} reach outside the ${outer}`;
+      },
+    }),
+  /** Two circles share a centre (a drawn sun and its ring), within a pixel. */
+  aligned:
+    (a: string, b: string): Rule =>
+    (scope) => ({
+      id: `${a}-aligned-${b}`,
+      text: `the ${a} is where the ${b} is`,
+      check: (s) => {
+        const [x, y] = [seen(s, `${scope}/${a}`), s.nodes[`${scope}/${b}`]?.shape];
+        if (!x || !y || !("circle" in x) || !("circle" in y)) return true;
+        const d = Math.hypot(x.circle[0] - y.circle[0], x.circle[1] - y.circle[1]);
+        return d < 1 || `${Math.round(d)}px apart`;
+      },
+    }),
+  /** A number a node reports (its `inspect`) stays at least `min`. */
+  atLeast:
+    (node: string, key: string, min: number): Rule =>
+    (scope) => ({
+      id: `${node}-${key}`,
+      text: `the ${node}'s ${key} stays at least ${min}`,
+      check: (s) => {
+        const v = s.nodes[`${scope}/${node}`]?.state?.[key];
+        return typeof v !== "number" || v >= min || `${key} is ${Math.round(v * 100) / 100}`;
       },
     }),
   /** These are at least `px` to a finger while seen. */

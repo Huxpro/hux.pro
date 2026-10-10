@@ -12,7 +12,22 @@
 import ts from "typescript";
 
 /** What a prop may be besides a literal: data constructors from `stage`, nothing that computes. */
-export const BINDINGS = new Set(["ref", "after", "at.top", "at.bottom", "at.below", "rule.clear", "rule.below", "rule.onScreen", "rule.minTarget"]);
+export const BINDINGS = new Set([
+  "ref",
+  "after",
+  "at.top",
+  "at.bottom",
+  "at.middle",
+  "at.below",
+  "at.between",
+  "rule.clear",
+  "rule.below",
+  "rule.inside",
+  "rule.aligned",
+  "rule.atLeast",
+  "rule.onScreen",
+  "rule.minTarget",
+]);
 
 /** Elements that are not nodes, so take no `id`. */
 const NOT_NODES = new Set(["Stage", "WayOut"]);

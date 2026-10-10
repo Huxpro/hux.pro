@@ -5,8 +5,8 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { createLayer } from "../../packages/sem/src/layer.ts";
 import { createMachine } from "../../packages/stage/src/machine.ts";
-import { ref } from "../../packages/stage/src/bind.ts";
-import { Stage, isShown } from "../../packages/stage/src/store.ts";
+import { ref, rule } from "../../packages/stage/src/bind.ts";
+import { MAX_DT, Stage, isShown } from "../../packages/stage/src/store.ts";
 import { checkScene, patchScene } from "../../packages/stage/tools/scene.ts";
 
 test("machine: events, and `after` on the stage's own clock", () => {
@@ -33,8 +33,10 @@ test("isShown: phases, and phases after a delay", () => {
 
 const SCENE = readFileSync("app/dream/everyone/everyone.scene.tsx", "utf8");
 
-test("checkScene: the real scene is data", () => {
-  assert.deepEqual(checkScene(SCENE), []);
+test("checkScene: the real scenes are data", () => {
+  for (const dream of ["everyone", "blue", "forget"]) {
+    assert.deepEqual(checkScene(readFileSync(`app/dream/${dream}/${dream}.scene.tsx`, "utf8")), [], dream);
+  }
 });
 
 test("checkScene: logic, hooks, missing and repeated ids are each named", () => {
@@ -139,4 +141,48 @@ test("host: the same seed gives the same random sequence per node", () => {
     return seen;
   };
   assert.deepEqual(draws(), draws());
+});
+
+test("host: a slow frame counts in full; only a long gap (a hidden tab) is cut short", () => {
+  const { host, layer, canvas } = stage();
+  layer.node(host.sceneNode("a test", undefined, []));
+  host.tick(canvas.g, layout, 0.2, "#000"); // 5 fps
+  assert.equal(layer.snapshot().nodes.t.state.t, 0.2);
+  host.tick(canvas.g, layout, 30, "#000");
+  assert.equal(layer.snapshot().nodes.t.state.t, Math.round((0.2 + MAX_DT) * 100) / 100);
+});
+
+test("host: a press goes only to a node that is shown; a release reaches every node", () => {
+  const seen = [];
+  const layer = createLayer();
+  const host = new Stage({ id: "p", layer, machine: { a: { on: { go: "b" } }, b: {} } });
+  const Taker = (name) => ({
+    name,
+    kind: "x",
+    intent: "",
+    frame: () => null,
+    pointerDown: () => (seen.push(`down ${name}`), true),
+    pointerUp: () => seen.push(`up ${name}`),
+  });
+  host.add("hidden", Taker("hidden"), host.nextOrder(), () => ({ id: "hidden", shown: ["b"] }));
+  host.add("under", Taker("under"), host.nextOrder(), () => ({ id: "under" }));
+  host.tick(fakeCanvas().g, layout, 0.016, "#000");
+  host.pointerDown({ x: 0, y: 0 });
+  host.pointerUp();
+  assert.deepEqual(seen, ["down under", "up hidden", "up under"], "drawing nothing (a closed sea) still takes a press when shown");
+});
+
+test("rules: inside, aligned and atLeast read the snapshot", () => {
+  const node = (shape, state = {}) => ({ visible: true, shape, state });
+  const snap = (nodes) => ({ viewport: { w: 400, h: 800 }, order: Object.keys(nodes), nodes });
+  const box = { rect: [100, 100, 200, 300] };
+  const inside = rule.inside("moments", "window")("f");
+  assert.equal(inside.check(snap({ "f/window": node(box), "f/moments": node({ rect: [150, 120, 50, 50] }) })), true);
+  assert.match(String(inside.check(snap({ "f/window": node(box), "f/moments": node({ rect: [150, 80, 50, 50] }) }))), /outside/);
+  const aligned = rule.aligned("sun", "ring")("b");
+  assert.equal(aligned.check(snap({ "b/sun": node({ circle: [10, 10, 4] }), "b/ring": node({ circle: [10.5, 10, 9] }) })), true);
+  assert.match(String(aligned.check(snap({ "b/sun": node({ circle: [10, 10, 4] }), "b/ring": node({ circle: [20, 10, 9] }) }))), /10px apart/);
+  const most = rule.atLeast("dust", "onScreen", 0.95)("f");
+  assert.equal(most.check(snap({ "f/dust": node(box, { onScreen: 1 }) })), true);
+  assert.match(String(most.check(snap({ "f/dust": node(box, { onScreen: 0.5 }) }))), /onScreen is 0.5/);
 });

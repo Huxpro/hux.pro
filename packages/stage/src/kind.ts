@@ -30,7 +30,7 @@ export interface Layout {
 export interface Time {
   /** Seconds since this run of the stage began. */
   now: number;
-  /** Seconds since the last frame (at most 1/20). */
+  /** Seconds since the last frame (at most a quarter: a hidden tab is not caught up). */
   dt: number;
   phase: string;
   /** Seconds since `phase` was entered; -1 if it has not been. */
@@ -86,8 +86,10 @@ export interface KindDef<P, S, O> {
   inspect?(state: S, out: O, ctx: Ctx): Record<string, unknown>;
 
   /** A press on the stage, topmost node first; true when this node took it. */
-  pointerDown?(state: S, out: O, p: Point, ctx: Ctx): boolean;
-  pointerUp?(state: S, out: O, ctx: Ctx): void;
+  pointerDown?(state: S, out: O | null, p: Point, ctx: Ctx, props: P): boolean;
+  pointerUp?(state: S, out: O | null, ctx: Ctx, props: P): void;
   /** The scene entered a phase. */
   enter?(state: S, props: P, phase: string, ctx: Ctx): void;
+  /** It is leaving (the scene starts over, or goes): let go of what it holds (an audio context). */
+  dispose?(state: S): void;
 }

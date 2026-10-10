@@ -17,14 +17,22 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { useSemDevtools, useSemElement } from "sem";
+import { useSemDevtools, useSemElement, type Saver } from "sem";
 import type { Anchor, Ref, Rule, When, Words } from "./bind";
 import type { KindDef, Layout } from "./kind";
 import type { MachineConfig } from "./machine";
 import { Stage as Host, type NodeProps } from "./store";
 
 const HostContext = createContext<{ host: Host; again: () => void; ink: string } | null>(null);
-const EnvContext = createContext<{ locale: keyof Words; wake: () => void }>({ locale: "en", wake: () => {} });
+/** Writes an edit back through the dev server's /api/scene (a production build has none, and says so). */
+const postScene: Saver = async (edit) => {
+  const res = await fetch("/api/scene", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(edit) });
+  const body = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+  if (!res.ok) throw new Error(body.error ?? `the server said ${res.status}`);
+  return body.message ?? "saved";
+};
+
+const EnvContext = createContext<{ locale: keyof Words; wake: () => void; save: Saver }>({ locale: "en", wake: () => {}, save: postScene });
 
 const subscribeNever = () => () => {};
 const useMounted = () => useSyncExternalStore(subscribeNever, () => true, () => false);
@@ -35,9 +43,19 @@ function useHost() {
   return value;
 }
 
-/** What the app gives every stage: the language, and how to wake (leave). */
-export function StageProvider({ locale, onWake, children }: { locale: keyof Words; onWake: () => void; children: ReactNode }) {
-  return <EnvContext.Provider value={{ locale, wake: onWake }}>{children}</EnvContext.Provider>;
+/** What the app gives every stage: the language, how to wake (leave), and how an edit is saved. */
+export function StageProvider({
+  locale,
+  onWake,
+  onSave = postScene,
+  children,
+}: {
+  locale: keyof Words;
+  onWake: () => void;
+  onSave?: Saver;
+  children: ReactNode;
+}) {
+  return <EnvContext.Provider value={{ locale, wake: onWake, save: onSave }}>{children}</EnvContext.Provider>;
 }
 
 function usePhase(host: Host) {
@@ -56,6 +74,8 @@ export interface StageProps {
   /** The words' colour, as "r, g, b". */
   ink?: string;
   seed?: number;
+  /** This scene's file, from the repo root: where the inspector writes an edit back. */
+  source?: string;
   children: ReactNode;
 }
 
@@ -63,14 +83,14 @@ export interface StageProps {
  * The stage: a full-screen canvas over the site's chrome, the loop, the
  * input, the machine. Esc wakes; Enter and Space press the middle.
  */
-export function Stage({ id, intent, names, label, machine, rules = [], background, ink = "255, 255, 255", seed = 1, children }: StageProps) {
+export function Stage({ id, intent, names, label, machine, rules = [], background, ink = "255, 255, 255", seed = 1, source, children }: StageProps) {
   const env = useContext(EnvContext);
   const mounted = useMounted();
-  const [host] = useState(() => new Host({ id, machine, seed }));
+  const [host] = useState(() => new Host({ id, machine, seed, source }));
   const [run, setRun] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  useSemDevtools(host.layer);
+  useSemDevtools(host.layer, { save: env.save });
   // With ?sem or ?inspect, the host is on window.__stage: `__stage.set("light", "approach", 2.4)` is a live edit.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -198,9 +218,11 @@ function showing(shown: When[] | undefined, phase: string): { on: boolean; delay
 }
 
 const VARIANTS = {
-  caption: { font: "var(--font-mono)", size: 11, tracking: "0.2em", alpha: 0.4 },
-  hint: { font: "var(--font-mono)", size: 11, tracking: "0.2em", alpha: 0.55 },
-  line: { font: "var(--font-serif)", size: 20, tracking: "normal", alpha: 0.85 },
+  caption: { font: "var(--font-mono)", size: "11px", tracking: "0.2em", alpha: 0.4 },
+  hint: { font: "var(--font-mono)", size: "11px", tracking: "0.2em", alpha: 0.55 },
+  line: { font: "var(--font-serif)", size: "20px", tracking: "normal", alpha: 0.85 },
+  /** Larger, and growing a little with a wide screen. */
+  title: { font: "var(--font-serif)", size: "clamp(18px, 2.4vw, 26px)", tracking: "normal", alpha: 0.85 },
 } as const;
 
 /** Words on the stage: DOM text, placed by an anchor, in some phases. */
@@ -212,6 +234,8 @@ export function Text({
   shown,
   variant = "line",
   color,
+  alpha,
+  halo,
   children,
 }: {
   id: string;
@@ -222,6 +246,10 @@ export function Text({
   variant?: keyof typeof VARIANTS;
   /** "r, g, b"; the stage's ink when left out. */
   color?: string;
+  /** Overrides the variant's opacity. */
+  alpha?: number;
+  /** A soft halo in this colour, for words over a busy ground. */
+  halo?: string;
   children: Words;
 }) {
   const { host, ink } = useHost();
@@ -235,6 +263,7 @@ export function Text({
     names: names ?? [children.en, children.zh],
     intent: intent ?? "words on the stage",
     ...("below" in anchor ? { links: [{ rel: "below", to: `${host.id}/${anchor.below}` }] } : {}),
+    ...("between" in anchor ? { links: anchor.between.map((to) => ({ rel: "between", to: `${host.id}/${to}` })) } : {}),
   });
   const anchorKey = JSON.stringify(anchor);
   const placeRef = useCallback(
@@ -246,7 +275,9 @@ export function Text({
       ? { top: `calc(env(safe-area-inset-top) + ${anchor.top}px)` }
       : "bottom" in anchor
         ? { bottom: `calc(env(safe-area-inset-bottom) + ${anchor.bottom}px)` }
-        : { top: "50%" };
+        : "middle" in anchor
+          ? { top: `calc(50% + ${anchor.middle}px)`, transform: "translateY(-50%)" }
+          : { top: "50%", transform: "between" in anchor ? "translateY(-50%)" : undefined };
   return (
     <p
       ref={placeRef}
@@ -256,7 +287,9 @@ export function Text({
         fontFamily: v.font,
         fontSize: v.size,
         letterSpacing: v.tracking,
-        color: `rgba(${color ?? ink}, ${v.alpha})`,
+        color: `rgba(${color ?? ink}, ${alpha ?? v.alpha})`,
+        textShadow: halo ? `0 0 14px ${halo}, 0 0 6px ${halo}, 0 0 2px ${halo}` : undefined,
+        textWrap: "balance",
         opacity: on ? 1 : 0,
         filter: on || variant !== "line" ? "blur(0)" : "blur(6px)",
         transition: "opacity 1.2s ease-out, filter 1.4s ease-out",
@@ -307,5 +340,42 @@ export function WayOut({ shown, label }: { shown?: When[]; label: { again: Words
         <Sun className="size-4" strokeWidth={1.5} />
       </button>
     </nav>
+  );
+}
+
+/** The press affordance: a ring that closes in and lets go, over and over, while it is shown. */
+export function PressRing({ id, anchor, shown, intent }: { id: string; anchor: Anchor; shown?: When[]; intent?: string }) {
+  const { host, ink } = useHost();
+  const { on, delay } = showing(shown, usePhase(host));
+  const semRef = useSemElement<HTMLDivElement>({
+    id: `${host.id}/${id}`,
+    parent: host.id,
+    kind: "control",
+    names: ["press ring", "按住"],
+    intent: intent ?? "A ring that closes in and lets go: press here.",
+  });
+  const position: CSSProperties =
+    "top" in anchor
+      ? { top: `calc(env(safe-area-inset-top) + ${anchor.top}px)` }
+      : "bottom" in anchor
+        ? { bottom: `calc(env(safe-area-inset-bottom) + ${anchor.bottom}px)` }
+        : { top: "50%" };
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 flex justify-center"
+      style={{ ...position, opacity: on ? 1 : 0, transition: "opacity 0.7s", transitionDelay: on ? `${delay}s` : "0s" }}
+    >
+      <div ref={semRef} className="stage-press" style={{ width: 36, height: 36, borderRadius: 18, border: `1px solid rgba(${ink}, 0.4)` }} />
+      <style>{`
+        .stage-press { animation: stage-press 2.4s ease-in-out 1.2s infinite both; }
+        @keyframes stage-press {
+          0%, 100% { transform: scale(1); opacity: 0; }
+          15% { opacity: 1; }
+          45% { transform: scale(0.62); opacity: 1; background: rgba(${ink}, 0.1); }
+          70% { transform: scale(1.15); opacity: 0; }
+        }
+      `}</style>
+    </div>
   );
 }

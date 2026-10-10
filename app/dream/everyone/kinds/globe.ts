@@ -66,7 +66,7 @@ export const Globe = kind<GlobeProps, GlobeState, GlobeOut>({
   intent: "Everyone at once: a turning globe of lights, each one somebody talking. Touched, it goes quiet in a wave from that light.",
   source: "app/dream/everyone/kinds/globe.ts",
   params: {
-    density: { unit: "px²", note: "screen area per light" },
+    density: { unit: "px²", note: "screen area per light", live: false },
     size: { range: [0.2, 0.5], note: "radius, a share of the shorter side" },
     margin: { unit: "px", note: "kept above and below on a short screen" },
     camera: { note: "distance, in radii" },

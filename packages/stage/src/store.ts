@@ -31,11 +31,13 @@ interface NodeRec {
   out: unknown;
   rng: Rng;
   ready: boolean;
+  /** In a phase it is shown in, whether or not it has anything to draw. */
+  shown: boolean;
 }
 
 interface AnchorRec {
   el: HTMLElement;
-  anchor: Extract<Anchor, { below: string }>;
+  anchor: Extract<Anchor, { below: string } | { between: [string, string] }>;
 }
 
 export interface StageOptions {
@@ -43,7 +45,12 @@ export interface StageOptions {
   machine: MachineConfig;
   seed?: number;
   layer?: Layer;
+  /** The scene file, so an edit to a node's params can be written back to it. */
+  source?: string;
 }
+
+/** The longest step one frame takes, s. */
+export const MAX_DT = 0.25;
 
 /** A small, fast, seeded generator (mulberry32). */
 export function seeded(seed: number): Rng {
@@ -75,6 +82,7 @@ export class Stage {
   private machine: Machine;
   private config: MachineConfig;
   private seed: number;
+  private source?: string;
   private nodes = new Map<string, NodeRec>();
   private anchors = new Set<AnchorRec>();
   private refs: Record<string, unknown> = {};
@@ -87,8 +95,9 @@ export class Stage {
   /** Overrides set from the inspector or the console, by node id and prop: tier-one edits, live. */
   private overrides = new Map<string, Record<string, unknown>>();
 
-  constructor({ id, machine, seed = 1, layer = sem }: StageOptions) {
+  constructor({ id, machine, seed = 1, layer = sem, source }: StageOptions) {
     this.id = id;
+    this.source = source;
     this.layer = layer;
     this.config = machine;
     this.seed = seed;
@@ -113,17 +122,18 @@ export class Stage {
   since = (phase: string) => this.machine.since(phase, this.now);
 
   add(id: string, def: AnyKind, order: number, props: NodeRec["props"]): () => void {
-    const rec: NodeRec = { id, def, order, props, state: undefined, out: null, rng: seeded(this.seed ^ hash(id)), ready: false };
+    const rec: NodeRec = { id, def, order, props, state: undefined, out: null, rng: seeded(this.seed ^ hash(id)), ready: false, shown: false };
     this.nodes.set(id, rec);
     const disposeSem = this.layer.node(this.semNode(rec));
     return () => {
       if (this.nodes.get(id) === rec) this.nodes.delete(id);
+      if (rec.ready) rec.def.dispose?.(rec.state);
       disposeSem();
     };
   }
 
   anchor(el: HTMLElement, anchor: Anchor): () => void {
-    if (!("below" in anchor)) return () => {};
+    if (!("below" in anchor) && !("between" in anchor)) return () => {};
     const rec = { el, anchor };
     this.anchors.add(rec);
     return () => this.anchors.delete(rec);
@@ -135,6 +145,7 @@ export class Stage {
     this.now = 0;
     this.refs = {};
     for (const rec of this.nodes.values()) {
+      if (rec.ready) rec.def.dispose?.(rec.state);
       rec.ready = false;
       rec.out = null;
       rec.rng = seeded(this.seed ^ hash(rec.id));
@@ -146,18 +157,19 @@ export class Stage {
     this.pointer = p;
   }
 
-  /** A press: offered to the shown nodes, topmost (latest in the scene) first. */
+  /** A press: offered to the shown nodes, topmost (latest in the scene) first, drawing or not. */
   pointerDown(p: Point) {
     for (const rec of this.ordered().reverse()) {
-      if (!rec.ready || rec.out === null || !rec.def.pointerDown) continue;
-      if (rec.def.pointerDown(rec.state, rec.out, p, this.ctx(rec))) return true;
+      if (!rec.ready || !rec.shown || !rec.def.pointerDown) continue;
+      if (rec.def.pointerDown(rec.state, rec.out, p, this.ctx(rec), this.resolve(rec))) return true;
     }
     return false;
   }
 
+  /** A release reaches every node that has started, drawn this frame or not (a hold may have closed it). */
   pointerUp() {
     for (const rec of this.ordered()) {
-      if (rec.ready && rec.out !== null) rec.def.pointerUp?.(rec.state, rec.out, this.ctx(rec));
+      if (rec.ready) rec.def.pointerUp?.(rec.state, rec.out, this.ctx(rec), this.resolve(rec));
     }
   }
 
@@ -171,7 +183,9 @@ export class Stage {
   /** One frame: time passes, the machine moves, every shown node steps and frames, then draws. */
   tick(g: CanvasRenderingContext2D, layout: Layout, dt: number, background: string) {
     this.layoutNow = layout;
-    this.dt = Math.min(dt, 1 / 20);
+    // Stage time keeps to the wall clock on a slow device (a hold of a second
+    // is a second at 5 fps); only a long gap, a hidden tab, is not caught up.
+    this.dt = Math.min(dt, MAX_DT);
     this.now += this.dt;
     if (this.machine.tick(this.now)) this.onPhase();
 
@@ -183,13 +197,15 @@ export class Stage {
         rec.state = rec.def.init?.(props, ctx);
         rec.ready = true;
       }
-      if (!isShown(props.shown, this.machine.phase(), this.since)) {
+      rec.shown = isShown(props.shown, this.machine.phase(), this.since);
+      if (!rec.shown) {
         rec.out = null;
         continue;
       }
       rec.def.step?.(rec.state, props, ctx);
+      // A frame of null: nothing to draw or measure now (a sea that is closed), though it still steps.
       rec.out = rec.def.frame(rec.state, props, ctx);
-      live.push(rec);
+      if (rec.out !== null) live.push(rec);
     }
 
     g.fillStyle = background;
@@ -197,10 +213,19 @@ export class Stage {
     for (const rec of live) rec.def.draw?.(g, rec.out, this.resolve(rec), this.ctx(rec));
 
     // DOM nodes anchored to drawn ones follow them, without a React render.
-    for (const { el, anchor } of this.anchors) {
-      const target = this.nodes.get(anchor.below);
+    const place = (id: string) => {
+      const target = this.nodes.get(id);
       const shape = target?.out != null ? (target.def.anchor ?? target.def.measure)?.(target.out, target.state, this.ctx(target)) : null;
-      if (shape) el.style.top = `${Math.round(bounds(shape).y + bounds(shape).h + anchor.gap)}px`;
+      return shape ? bounds(shape) : null;
+    };
+    for (const { el, anchor } of this.anchors) {
+      if ("below" in anchor) {
+        const b = place(anchor.below);
+        if (b) el.style.top = `${Math.round(b.y + b.h + anchor.gap)}px`;
+      } else {
+        const [upper, lower] = anchor.between.map(place);
+        if (upper && lower) el.style.top = `${Math.round((upper.y + upper.h + lower.y) / 2)}px`;
+      }
     }
   }
 
@@ -263,6 +288,8 @@ export class Stage {
       ...(def.item ? { item: (i: number) => (rec.ready && rec.out !== null ? def.item!(rec.state, rec.out, i) : null) } : {}),
       ...(def.itemName ? { itemName: def.itemName } : {}),
       source: { file: def.source ?? "", symbols: [def.name] },
+      set: (param, value) => this.set(rec.id, param, value),
+      ...(this.source ? { edit: { file: this.source, id: rec.id } } : {}),
     };
     const stageId = this.id;
     // Fields read from the scene's latest props: they may change on a re-render.

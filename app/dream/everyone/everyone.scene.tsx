@@ -19,6 +19,7 @@ export default function Everyone() {
   return (
     <Stage
       id="everyone"
+      source="app/dream/everyone/everyone.scene.tsx"
       intent="Every conversation at once, then only you: overwhelm turning into intimacy, in about five seconds."
       names={["everyone at once", "所有人", "the dream"]}
       label={{
