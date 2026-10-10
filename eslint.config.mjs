@@ -42,6 +42,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // vitre site build output, generated into public at build time.
     "public/vitre/**",
+    // experiences build output, generated into public at build time.
+    "public/scenes/**",
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",

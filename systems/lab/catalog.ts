@@ -215,7 +215,7 @@ export const LABS: readonly LabEntry[] = [
     mark: "dream",
     kind: "experience",
     experience: {
-      src: "/dreams/wardrobe/index.html",
+      src: "/scenes/wardrobe/index.html",
       app: "dream-wardrobe",
     },
     hint: {

@@ -17,7 +17,7 @@ systems/lab/
 
 app/lab/                  # the routes: the index, and one folder per lab
 app/lab/vitre/            # the first library: guide, api/, site/
-app/lab/wardrobe/         # the first experience; its document is public/dreams/wardrobe
+app/lab/wardrobe/         # the first experience; its document is public/scenes/wardrobe
 components/home/lab-widget.tsx  # the home widget (off by default)
 ```
 
@@ -45,9 +45,12 @@ catalog's `library`, so it cannot drift from what ships. Publishing to npm is
 flipping `private` there; the header follows.
 
 An **experience** is a feeling, a few seconds and a few touches long (The
-Wardrobe, a childhood nightmare in three blinks). It is one self-contained
-document in `public/` (no framework, no download beyond itself), because it
-has two hosts that both want a whole page:
+Wardrobe, a childhood nightmare in three blinks). It is one page with two
+hosts that both want a whole page. The Wardrobe is built on `packages/scene`
+(docs/system-scene.md) from `experiences/wardrobe`, by Vite, into
+`public/scenes/wardrobe/` (gitignored; `pnpm build` builds it, `pnpm dev`
+builds it when stale; `pnpm scene:new <name>` starts another); an experience
+can also be a single hand-written document in `public/`. Its two hosts:
 
 | host | how |
 |---|---|
@@ -58,6 +61,12 @@ The catalog's `experience` names both: `src` (the document) and `app` (its
 apps.json id). The document reads the site's `locale` from the same origin
 (`?lang=` overrides it) and takes a `?stage=` to hold one frame still, which
 is what its surface on the index shows.
+
+An experience built on the scene layer can be inspected in its lab
+(`<ExperienceShell inspect>`): the bar's Inspect switch lays the running scene
+open beside the frame, with boxes over it, its params, state and timeline as
+sliders, its language layer (the words it came from, read from the scene),
+and the verifier. The lab imports nothing from the experience.
 
 ## Content stays with the package
 

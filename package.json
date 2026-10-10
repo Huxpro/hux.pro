@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm vitre:site:build && next build",
+    "build": "pnpm vitre:site:build && pnpm experiences:build && next build",
     "start": "next start",
     "lynx:shadow-css": "node scripts/lynx-shadow-css-bundle.mjs",
-    "predev": "node scripts/lynx-shadow-css-bundle.mjs && node scripts/vitre-demo.mjs",
+    "predev": "node scripts/lynx-shadow-css-bundle.mjs && node scripts/vitre-demo.mjs && node scripts/experiences.mjs",
     "prebuild": "node scripts/lynx-shadow-css-bundle.mjs",
     "lint": "eslint",
     "og:snapshot": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/og-snapshot.ts",
@@ -27,7 +27,12 @@
     "badges:check": "node --experimental-strip-types --import ./scripts/register-ts.mjs scripts/badge-icon-snapshot.ts --check",
     "vitre:typecheck": "tsc -p packages/vitre",
     "vitre:site": "vite --config packages/vitre/site/vite.config.ts --host 0.0.0.0",
-    "vitre:site:build": "vite build --config packages/vitre/site/vite.config.ts"
+    "vitre:site:build": "vite build --config packages/vitre/site/vite.config.ts",
+    "experiences": "vite --config experiences/vite.config.mts --host 0.0.0.0",
+    "experiences:build": "vite build --config experiences/vite.config.mts",
+    "scene:typecheck": "tsc -p packages/scene",
+    "scene:verify": "node scripts/scene-verify.mjs",
+    "scene:new": "node scripts/scene-new.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",

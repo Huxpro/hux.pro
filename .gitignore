@@ -60,6 +60,8 @@ content/.backups/
 /shots/
 # vitre site, built into public at build time
 public/vitre/
+# experiences (experiences/*), built into public at build time
+public/scenes/
 packages/vitre/node_modules/
 # Lynx example bundles, built elsewhere and dropped in here for the windows
 # to load. Binary output, 4MB of it, and nothing in this repo builds it.
