@@ -140,6 +140,7 @@ export function createLayer(options: LayerOptions = {}): Layer {
           ...(decl.params ? { params: decl.params } : {}),
           ...(decl.links ? { links: decl.links } : {}),
           ...(decl.source ? { source: decl.source } : {}),
+          ...(decl.edit ? { edit: decl.edit } : {}),
         };
       }
       return { t: now(), viewport: viewport(), nodes: out, order };

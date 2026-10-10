@@ -10,12 +10,17 @@ const nextConfig: NextConfig = {
     viewTransition: true,
   },
   // resvg is a native module used only by the icon generator (the dev save
-  // route imports it dynamically). Keep it out of the bundle.
-  serverExternalPackages: ["@resvg/resvg-js"],
+  // route imports it dynamically). Keep it out of the bundle. TypeScript's
+  // parser, likewise, only for /api/scene's dev-only write-back.
+  serverExternalPackages: ["@resvg/resvg-js", "typescript"],
   // Ask's system prompt reads the About off disk at request time
   // (lib/ask-prompt.ts); ship it with the function.
   outputFileTracingIncludes: {
     "/api/chat": ["./content/about/**"],
+  },
+  // /api/scene answers 403 in production before it would load the parser.
+  outputFileTracingExcludes: {
+    "/api/scene": ["./node_modules/typescript/**", "./node_modules/.pnpm/typescript@*/**"],
   },
   // The vitre demo, built by Vite into public/vitre at build time (see the
   // "build" script; `pnpm dev` builds it when stale). Only its entry needs a

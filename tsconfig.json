@@ -22,7 +22,8 @@
     "paths": {
       "@/*": ["./*"],
       "vitre": ["./packages/vitre/src/index.ts"],
-      "sem": ["./packages/sem/src/index.ts"]
+      "sem": ["./packages/sem/src/index.ts"],
+      "stage": ["./packages/stage/src/index.ts"]
     }
   },
   "include": [

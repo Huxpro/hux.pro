@@ -25,6 +25,8 @@ export type Param = {
   unit?: string;
   range?: [number, number];
   note?: string;
+  /** False when a change only shows once the thing is made again (it is read once, at the start). */
+  live?: boolean;
 };
 
 /**
@@ -86,6 +88,11 @@ export interface SemNode {
   invariants?: Invariant[];
   /** Ids this node has had before, so an old reference still finds it. */
   renamedFrom?: string[];
+
+  /** Takes a live edit of one of its params (a slider, "slower"). */
+  set?(param: string, value: unknown): void;
+  /** Where an edit is written back to source: a scene file, and this node's id in it. */
+  edit?: { file: string; id: string };
 }
 
 /** One node, as it was when the snapshot was taken. JSON throughout. */
@@ -105,6 +112,8 @@ export interface NodeSnapshot {
   params?: Record<string, Param>;
   links?: Link[];
   source?: Source;
+  /** Where an edit to its params is written back, when it can be. */
+  edit?: { file: string; id: string };
 }
 
 export interface Snapshot {

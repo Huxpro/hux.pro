@@ -31,6 +31,7 @@
 | **Identity card** | [docs/system-identity.md](./docs/system-identity.md) (The profile card behind `<handle>` and `Role:`, showing who signed a commit) |
 | **Widget Scroll** | [docs/system-widget-scroll.md](./docs/system-widget-scroll.md) (Why a widget's list body scrolls under a pointer and holds still under a finger) |
 | **Sem** | [packages/sem/README.md](./packages/sem/README.md) (A semantic layer over whatever draws the page, DOM / SVG / Canvas / WebGL: each node's intent, live shape, knobs, source and rules, read on demand. `?inspect` draws it and puts the page under glass (a touch picks a node, the page hears nothing; the corner button or ` goes live); `?sem` exposes `window.__sem`; `pnpm sem:test`. All three `/dream/*` declare their nodes and rules.) |
+| **Stage** | [packages/stage/README.md](./packages/stage/README.md) (React on top, the original drawing underneath: a `*.scene.tsx` is data (placed kinds, phases, rules; `pnpm scene:check`), a kind is init / step / frame / draw / measure (seeded, no clock; ESLint `STAGE_KINDS`), the host runs the frame and feeds sem. `pnpm scene:patch`, or a slider in `?inspect` and "save to source" (dev only, `/api/scene`), writes a value back without a model. All three `/dream/*` are scenes.) |
 
 ### Skills
 

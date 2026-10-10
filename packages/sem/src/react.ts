@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { elementVisible, measureElement, type ElementDecl } from "./dom";
-import { mountInspector, type Inspector } from "./inspector";
+import { mountInspector, type Inspector, type Saver } from "./inspector";
 import { sem, type Layer } from "./layer";
 import type { SemNode } from "./types";
 
@@ -63,14 +63,21 @@ export function useSemElement<T extends Element>(decl: ElementDecl | null, layer
  * (touches pick nodes; `?inspect=live` starts with the page live), and puts
  * the inspector on `window.__semInspector`.
  */
-export function useSemDevtools(layer: Layer = sem): void {
+export function useSemDevtools(layer: Layer = sem, options: { save?: Saver } = {}): void {
+  const saveRef = useRef(options.save);
+  useEffect(() => {
+    saveRef.current = options.save;
+  });
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.has("sem") && !params.has("inspect")) return;
     const g = globalThis as { __sem?: Layer; __semInspector?: Inspector };
     g.__sem = layer;
     const inspector = params.has("inspect")
-      ? mountInspector(layer, { mode: params.get("inspect") === "live" ? "live" : "inspect" })
+      ? mountInspector(layer, {
+          mode: params.get("inspect") === "live" ? "live" : "inspect",
+          save: (edit) => (saveRef.current ? saveRef.current(edit) : Promise.reject(new Error("nothing saves edits here"))),
+        })
       : undefined;
     if (inspector) g.__semInspector = inspector;
     return () => {

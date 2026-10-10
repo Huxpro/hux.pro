@@ -97,6 +97,12 @@ The inspector has two modes, switched by the button in the corner or the
 A population can name its members (`itemName(i)`), so `forget/moments#0`
 reads as "your cat"; `select()` returns the member's own shape and name.
 
+A node that can be changed while it runs (`set(param, value)`) gets a slider
+per numeric param in the panel. A node that says where it is written
+(`edit: { file, id }`) also gets "save to source", which hands the changed
+values to the `save` given to `useSemDevtools(layer, { save })`; without
+one, the panel shows the command that would do it.
+
 ## Checks
 
 ```bash
