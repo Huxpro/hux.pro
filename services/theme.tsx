@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { THEME_STORAGE_KEY } from "./theme-boot";
 
 // =============================================================================
 // Theme Service
@@ -69,7 +70,6 @@ export function useSunThemeSlot() {
   return context;
 }
 
-const THEME_STORAGE_KEY = "hux_theme";
 const DEFAULT_PREFERENCE: ThemePreference = "sun";
 
 // -----------------------------------------------------------------------------

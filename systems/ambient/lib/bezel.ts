@@ -4,6 +4,7 @@ import {
   DEFAULT_BEZEL_BAND,
 } from "vitre";
 import { WALLPAPER_LOOK_FAMILY, type WallpaperFamily } from "./wallpaper";
+import { THEME_STORAGE_KEY } from "@/services/theme-boot";
 
 // =============================================================================
 // The site's bezel: what vitre is configured with here.
@@ -95,7 +96,7 @@ var ios=/iP(hone|ad|od)/i.test(navigator.userAgent)||(navigator.platform==="MacI
 var F=${JSON.stringify(WALLPAPER_LOOK_FAMILY)},E=${JSON.stringify(WALLPAPER_FAMILY_EDGES)};
 var look=s.wallpaperKind==="image"?"image":(F[s.weatherStyle]?s.weatherStyle:"sky");
 var edges=E[F[look]];
-var t=localStorage.getItem("hux_theme");
+var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});
 var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
 var tint=s.bezelTint;
 if(!new RegExp(${JSON.stringify(tints)}).test(tint))tint=${JSON.stringify(DEFAULT_BEZEL_TINT)};
