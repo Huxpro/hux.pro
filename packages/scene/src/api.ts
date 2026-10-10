@@ -7,16 +7,20 @@
 // =============================================================================
 
 import type { Clock } from "./clock";
+import type { LanguageLayer } from "./language";
 import { measureGeometry, measureVisible, sceneToClient, type Box, type Pick } from "./measure";
 import { isNode, parsePath } from "./path";
 import type { Registry } from "./registry";
 import { DECLARATIONS, type Declaration } from "./spec";
+import { resolveTimeline, type TimelineSpec, type TimelineValues } from "./timeline";
 import { verify, type Report } from "./verify";
 
 export interface Still {
   name: string;
   /** What a person would call this moment. */
   label?: string;
+  /** The timeline phase it is in (the verifier checks the scene gets there). */
+  phase?: string;
   /** Paths that must be visible here (the verifier checks). */
   expect?: readonly string[];
 }
@@ -39,6 +43,10 @@ export interface Snapshot {
   t: number;
   frozen: boolean;
   still: string | null;
+  /** The timeline phase the scene says it is in. */
+  phase: string | null;
+  /** The timeline, as it is now: declared values with overrides over them. */
+  timeline: TimelineValues;
   frame: { x: number; y: number; width: number; height: number };
   /** Scene units → the stage's client pixels: [a, b, c, d, e, f]. */
   toClient: [number, number, number, number, number, number];
@@ -50,6 +58,8 @@ export interface Snapshot {
 export interface SceneApi {
   version: 1;
   manifest(): Declaration[];
+  timeline(): TimelineSpec;
+  language(): LanguageLayer | null;
   stills(): readonly Still[];
   goto(name: string): void;
   play(): void;
@@ -74,7 +84,10 @@ export interface ApiDeps {
   svg: () => SVGSVGElement | null;
   registry: Registry;
   clock: Clock;
+  timeline: () => TimelineSpec;
   stills: () => readonly Still[];
+  phase: () => string | null;
+  language: () => LanguageLayer | null;
   onStill: (name: string | null, t: number) => void;
 }
 
@@ -136,6 +149,8 @@ export function installApi(deps: ApiDeps): () => void {
       t: clock.now(),
       frozen: clock.isFrozen(),
       still,
+      phase: deps.phase(),
+      timeline: resolveTimeline(deps.timeline(), (k) => registry.overrides.get(k)),
       frame: { x: vb.x, y: vb.y, width: vb.width, height: vb.height },
       toClient: sceneToClient(svg),
       instances,
@@ -147,6 +162,8 @@ export function installApi(deps: ApiDeps): () => void {
   const api: SceneApi = {
     version: 1,
     manifest: () => [...DECLARATIONS.values()],
+    timeline: () => deps.timeline(),
+    language: () => deps.language(),
     stills: () => deps.stills(),
     goto,
     play,
@@ -164,7 +181,19 @@ export function installApi(deps: ApiDeps): () => void {
     overrides: () => Object.fromEntries(registry.overrides),
     setFlag: (name, on) => registry.setFlag(name, on),
     flags: () => [...registry.flags],
-    verify: () => verify({ svg: deps.svg, registry, clock, stills: deps.stills(), goto, play, isPlaying: () => still === null }),
+    verify: () =>
+      verify({
+        svg: deps.svg,
+        registry,
+        clock,
+        stills: deps.stills(),
+        timeline: deps.timeline(),
+        language: deps.language(),
+        phase: deps.phase,
+        goto,
+        play,
+        isPlaying: () => still === null,
+      }),
   };
   window.__scene = api;
   return () => {

@@ -5,6 +5,14 @@
 // (semantic(decl, Render)). Everything the editor, the language index and the
 // verifier know about a thing comes from here: its id, the words people use
 // for it, its parts, and its params with their ranges. One schema, four uses.
+//
+// Two kinds of number, kept apart:
+//
+//   params   what the thing is: a hat's size, how much dust. The code passes
+//            them once, or not at all; turning one is an edit ("帽子大一点").
+//   state    what the scene is doing to it: how far a door stands open, a
+//            glint in an eye. The code drives it every frame; an override
+//            pins it there, which is for looking, not for editing.
 // =============================================================================
 
 export interface NumberParam {
@@ -40,7 +48,7 @@ export type ParamValues<P extends Params> = {
   [K in keyof P]: P[K] extends NumberParam ? number : string;
 };
 
-export interface Declaration<P extends Params = Params> {
+export interface Declaration<P extends Params = Params, S extends Params = Params> {
   /** Stable, lower-case, the name code and people share: "man", "wardrobe". */
   id: string;
   /** character | prop | setting | camera | … */
@@ -51,7 +59,10 @@ export interface Declaration<P extends Params = Params> {
   depicts?: string;
   /** Its nameable parts. Dotted names nest: "door.left". */
   parts?: readonly string[];
+  /** What it is: turnable, and an edit when turned. */
   params?: P;
+  /** What the scene does to it, frame by frame: an override pins it. */
+  state?: S;
   /** Where it can appear, by instance name. */
   instances?: Readonly<Record<string, string>>;
   /** False for a thing with state but no picture (the viewer). */
@@ -76,7 +87,11 @@ export function defaults<P extends Params>(params: P | undefined): ParamValues<P
 // components they describe, so the manifest exists before anything mounts.
 export const DECLARATIONS = new Map<string, Declaration>();
 
+/** Path roots the timeline owns (timeline.ts): no thing may be called these. */
+export const RESERVED = new Set(["beat", "phase", "input"]);
+
 export function declare(decl: Declaration): void {
+  if (RESERVED.has(decl.id)) throw new Error(`scene: "${decl.id}" is reserved for the timeline; call the thing something else.`);
   // A second declaration of an id replaces the first: that is what hot reload
   // does. Two modules declaring the same id is caught by the verifier, which
   // compares the manifest against the declarations' sources.

@@ -1,8 +1,8 @@
 "use client";
 
 import { Check, Pause, Play, ShieldCheck, Sparkles, Undo2 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { parsePath, reaches, type Declaration, type InstanceView, type LanguageLayer, type Report, type SceneApi, type Snapshot } from "scene";
+import { Fragment, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { parsePath, reaches, type Declaration, type InstanceView, type LanguageLayer, type Param, type Report, type SceneApi, type Snapshot, type TimelineSpec } from "scene";
 import { Slider } from "@/components/ui/slider";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
@@ -19,11 +19,13 @@ import { LabButton, LabChip } from "./shell";
 // times a second), hit tests, stills, overrides and the verifier.
 //
 // Four layers, lined up: the words the scene came from (the experience's own
-// language layer), what they were taken to mean, the declared things they
-// resolve to, and the instances on stage now. Select anything in any layer,
-// or click the frame, and the same thing lights up in all four and is boxed
-// on screen. A selected thing's params are sliders; moving one is an override,
-// which lies over the code and survives the code being rewritten.
+// language layer, read from the scene), what they were taken to mean, the
+// declared things and timeline they resolve to, and the instances on stage
+// now. Select anything in any layer, or click the frame, and the same thing
+// lights up in all four and is boxed on screen. A selected thing's params and
+// state are sliders, and so are a selected beat's time and length; moving one
+// is an override, which lies over the code and survives the code being
+// rewritten (over a param or a beat, an edit; over state, a pin).
 // =============================================================================
 
 const en = {
@@ -41,11 +43,21 @@ const en = {
   concepts: "Meaning",
   conceptsNote: "What the words were taken as: things, parts, places, relations, events, a param.",
   manifest: "Declared",
-  manifestNote: "Every thing the code declares, next to where it is drawn: its words, parts and params.",
+  manifestNote: "Every thing the code declares, next to where it is drawn: its words, parts, params and state; and the timeline: phases, beats, inputs.",
   runtime: "On stage",
   runtimeNote: "This frame's instances. Boxes are in the scene's own units (390 × 844).",
   params: "Params",
-  paramsNote: (k: string) => `Overrides on ${k}. They sit over the code's values.`,
+  paramsNote: (k: string) => `Edits to ${k}. They sit over the code's values.`,
+  state: "State",
+  stateNote: "Driven by the scene every frame. Moving one pins it there.",
+  timing: "Timing",
+  timingNote: (k: string) => `When ${k} happens, and how long it takes.`,
+  inputNote: (k: string) => `What shapes ${k}.`,
+  timeline: "Timeline",
+  phases: "phases",
+  beats: "beats",
+  inputs: "inputs",
+  phase: "phase",
   thing: "Thing",
   visible: "Visible",
   geometry: "Shape",
@@ -54,7 +66,7 @@ const en = {
   hidden: "hidden",
   noBox: "no picture",
   ok: "All checks pass",
-  checked: (s: number, p: number, q: number) => `${s} stills · ${p} names · ${q} params turned`,
+  checked: (s: number, p: number, q: number, w: number) => `${s} stills · ${p} names · ${q} params turned · ${w} words resolved`,
   coverage: "claimed",
   unclaimed: "drawn by nothing declared",
   aka: "aka",
@@ -78,11 +90,21 @@ const zh: typeof en = {
   concepts: "理解",
   conceptsNote: "词被理解成了什么：东西、部位、位置、关系、事件，还有一个参数。",
   manifest: "声明",
-  manifestNote: "代码声明的每一样东西，就写在画它的地方旁边：别名、部位、参数。",
+  manifestNote: "代码声明的每一样东西，就写在画它的地方旁边：别名、部位、参数、状态；还有时间线：阶段、节拍、输入。",
   runtime: "台上",
   runtimeNote: "这一帧里实际存在的实例。框是场景自己的坐标（390 × 844）。",
   params: "参数",
-  paramsNote: (k: string) => `对 ${k} 的覆盖，叠在代码给的值之上。`,
+  paramsNote: (k: string) => `对 ${k} 的修改，叠在代码给的值之上。`,
+  state: "状态",
+  stateNote: "场景每一帧都在驱动它。拖动就是把它钉在那儿。",
+  timing: "时间",
+  timingNote: (k: string) => `${k} 什么时候发生，持续多久。`,
+  inputNote: (k: string) => `决定 ${k} 的数。`,
+  timeline: "时间线",
+  phases: "阶段",
+  beats: "节拍",
+  inputs: "输入",
+  phase: "阶段",
   thing: "对象",
   visible: "看得见的框",
   geometry: "形状范围",
@@ -91,7 +113,7 @@ const zh: typeof en = {
   hidden: "被挡住",
   noBox: "不在画面里",
   ok: "全部检查通过",
-  checked: (s: number, p: number, q: number) => `${s} 个静帧 · ${p} 个名字 · 转动了 ${q} 个参数`,
+  checked: (s: number, p: number, q: number, w: number) => `${s} 个静帧 · ${p} 个名字 · 转动了 ${q} 个参数 · ${w} 处词语已解析`,
   coverage: "已认领",
   unclaimed: "不属于任何声明",
   aka: "别名",
@@ -254,16 +276,81 @@ function Layer({ n, title, note, children }: { n: string; title: string; note: s
 
 const fmt = (b: InstanceView["visible"]) => (b ? `${b.x0.toFixed(0)},${b.y0.toFixed(0)} ${(b.x1 - b.x0).toFixed(0)}×${(b.y1 - b.y0).toFixed(0)}` : "");
 
-export function InspectorPanel({ inspection, language }: { inspection: Inspection & { setReport: (r: Report | null) => void }; language: LanguageLayer }) {
+interface Field {
+  name: string;
+  spec: Param;
+  value: unknown;
+  overridden: boolean;
+}
+
+interface EditGroup {
+  /** The override key the fields are set under. */
+  key: string;
+  title: string;
+  note: string;
+  fields: Field[];
+}
+
+/** What can be turned for a selection: a thing's params and state, a beat's timing, an input's params. */
+function editable(
+  sel: ReturnType<typeof parsePath>,
+  key: string,
+  manifest: Declaration[],
+  timeline: TimelineSpec | null,
+  snapshot: Snapshot | null,
+  overrides: Record<string, Record<string, unknown>>,
+  S: typeof en,
+): EditGroup[] {
+  const field = (k: string, name: string, spec: Param, live: unknown): Field => ({
+    name,
+    spec,
+    value: overrides[k]?.[name] ?? live ?? spec.default,
+    overridden: overrides[k]?.[name] !== undefined,
+  });
+  if (sel.entity === "beat" && sel.part && timeline) {
+    const name = sel.part.split(".")[0];
+    const b = timeline.beats[name];
+    const now = snapshot?.timeline.beat[name];
+    if (!b) return [];
+    const k = `beat.${name}`;
+    const fields = [field(k, "at", { kind: "number", default: b.at, min: 0, max: Math.max(10, Math.ceil(b.at * 2)), step: 0.1, unit: "s" }, now?.at)];
+    if (b.over !== undefined) fields.push(field(k, "over", { kind: "number", default: b.over, min: 0, max: Math.max(5, Math.ceil(b.over * 3)), step: 0.1, unit: "s" }, now?.over));
+    return [{ key: k, title: S.timing, note: S.timingNote(k), fields }];
+  }
+  if (sel.entity === "input" && sel.part && timeline) {
+    const name = sel.part.split(".")[0];
+    const params = Object.entries(timeline.inputs?.[name]?.params ?? {});
+    const k = `input.${name}`;
+    const now = (snapshot?.timeline.input as Record<string, Record<string, unknown>> | undefined)?.[name];
+    return params.length ? [{ key: k, title: S.params, note: S.inputNote(k), fields: params.map(([n, spec]) => field(k, n, spec, now?.[n])) }] : [];
+  }
+  const decl = manifest.find((d) => d.id === sel.entity);
+  if (!decl) return [];
+  const live = snapshot?.instances.find((i) => (sel.instance ? i.path === key : i.entity === sel.entity));
+  const groups: EditGroup[] = [];
+  const params = Object.entries(decl.params ?? {});
+  const state = Object.entries(decl.state ?? {});
+  if (params.length) groups.push({ key, title: S.params, note: S.paramsNote(key), fields: params.map(([n, spec]) => field(key, n, spec, live?.props[n])) });
+  if (state.length) groups.push({ key, title: S.state, note: S.stateNote, fields: state.map(([n, spec]) => field(key, n, spec, live?.props[n])) });
+  return groups;
+}
+
+export function InspectorPanel({ inspection }: { inspection: Inspection & { setReport: (r: Report | null) => void } }) {
   const { api, snapshot, selected, select, report, setReport } = inspection;
   const S = useLabStrings(STRINGS);
   const { locale } = useLocale();
   const [verifying, setVerifying] = useState(false);
   const [undeclared, setUndeclared] = useState(false);
   const [manifest, setManifest] = useState<Declaration[]>([]);
+  const [timeline, setTimeline] = useState<TimelineSpec | null>(null);
+  const [language, setLanguage] = useState<LanguageLayer | null>(null);
   useEffect(() => {
     if (!api) return;
-    const id = setTimeout(() => setManifest(api.manifest()), 0);
+    const id = setTimeout(() => {
+      setManifest(api.manifest());
+      setTimeline(api.timeline());
+      setLanguage(api.language());
+    }, 0);
     return () => clearTimeout(id);
   }, [api]);
 
@@ -284,11 +371,10 @@ export function InspectorPanel({ inspection, language }: { inspection: Inspectio
   );
 
   const sel = selected ? parsePath(selected) : null;
-  const decl = sel ? manifest.find((d) => d.id === sel.entity) : undefined;
   const key = sel ? (sel.instance ? `${sel.entity}[${sel.instance}]` : sel.entity) : "";
-  const live = snapshot?.instances.find((i) => (sel?.instance ? i.path === key : i.entity === sel?.entity));
   const overrides = api.overrides();
-  const params = Object.entries(decl?.params ?? {});
+  const groups = sel ? editable(sel, key, manifest, timeline, snapshot, overrides, S) : [];
+  const span = (b: { at: number; over?: number }) => `${b.at}${b.over !== undefined ? ` +${b.over}` : ""}s`;
 
   return (
     <div className="space-y-5">
@@ -340,14 +426,14 @@ export function InspectorPanel({ inspection, language }: { inspection: Inspectio
           <div className={report.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
             {report.ok ? <Check className="mr-1 inline h-3.5 w-3.5" /> : "✗ "}
             {report.ok ? S.ok : `${report.issues.length} × ${report.issues[0]?.check}`}
-            <span className="ml-2 text-muted-foreground">{S.checked(report.checked.stills, report.checked.paths, report.checked.params)}</span>
+            <span className="ml-2 text-muted-foreground">{S.checked(report.checked.stills, report.checked.paths, report.checked.params, report.checked.words)}</span>
           </div>
           {report.issues.map((i, k) => (
             <div key={k} className="text-red-600 dark:text-red-400">✗ [{i.check}] {i.message}</div>
           ))}
           {report.perturbations.map((p) => (
             <div key={`${p.still}:${p.path}:${p.param}`} className={p.ok ? "text-muted-foreground" : "text-red-600 dark:text-red-400"}>
-              {p.ok ? "✓" : "✗"} {p.path}.{p.param} {p.from.toFixed(2)}→{p.to.toFixed(2)} · {p.moved.length ? p.moved.join(", ") : "—"}
+              {p.ok ? "✓" : "✗"} {p.path}.{p.param}{p.kind === "state" ? ` (${S.state})` : ""} {p.from.toFixed(2)}→{p.to.toFixed(2)} · {p.moved.length ? p.moved.join(", ") : "—"}
             </div>
           ))}
           <div className="text-muted-foreground">
@@ -356,16 +442,15 @@ export function InspectorPanel({ inspection, language }: { inspection: Inspectio
         </div>
       )}
 
-      {decl && params.length > 0 && (
-        <div className="space-y-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-3">
-          <div>
-            <div className={TYPE.label}>{S.params}</div>
-            <p className={TYPE.caption}>{S.paramsNote(key)}</p>
-          </div>
-          {params.map(([name, spec]) => {
-            const value = overrides[key]?.[name] ?? live?.props[name] ?? spec.default;
-            const overridden = overrides[key]?.[name] !== undefined;
-            return (
+      {groups.map((g) => {
+        const k = g.key;
+        return (
+          <div key={g.title} className="space-y-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-3">
+            <div>
+              <div className={TYPE.label}>{g.title}</div>
+              <p className={TYPE.caption}>{g.note}</p>
+            </div>
+            {g.fields.map(({ name, spec, value, overridden }) => (
               <div key={name} className="flex items-center gap-3">
                 <span className={cn(TYPE.meta, "w-24 shrink-0")}>
                   {name}
@@ -378,36 +463,39 @@ export function InspectorPanel({ inspection, language }: { inspection: Inspectio
                       min={spec.min}
                       max={spec.max}
                       step={spec.step ?? (spec.max - spec.min) / 100}
-                      onChange={(v) => api.setOverride(key, name, v)}
+                      onChange={(v) => api.setOverride(k, name, v)}
                       aria-label={name}
                       className="flex-1"
                     />
-                    <span className={cn(TYPE.rowMeta, "w-10 tabular-nums")}>{Number(value).toFixed(2)}</span>
+                    <span className={cn(TYPE.rowMeta, "w-12 tabular-nums")}>
+                      {Number(value).toFixed(2)}
+                      {spec.unit ?? ""}
+                    </span>
                   </>
                 ) : (
                   <div className="flex flex-wrap gap-1">
                     {spec.options.map((o) => (
-                      <LabChip key={o} on={value === o} onClick={() => api.setOverride(key, name, o)}>
+                      <LabChip key={o} on={value === o} onClick={() => api.setOverride(k, name, o)}>
                         {o}
                       </LabChip>
                     ))}
                   </div>
                 )}
                 {overridden && (
-                  <button type="button" className={cn(TYPE.rowMeta, "hover:text-foreground")} onClick={() => api.setOverride(key, name, undefined)}>
+                  <button type="button" className={cn(TYPE.rowMeta, "hover:text-foreground")} onClick={() => api.setOverride(k, name, undefined)}>
                     {S.default}
                   </button>
                 )}
               </div>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        );
+      })}
 
       <div>
         <Layer n="01" title={S.prompt} note={S.promptNote}>
           <p lang="zh" className="font-serif text-base leading-loose text-reading-foreground">
-            {language.prompt.map((seg, i) =>
+            {language?.prompt.map((seg, i) =>
               typeof seg === "string" ? (
                 <span key={i}>{seg}</span>
               ) : (
@@ -426,7 +514,7 @@ export function InspectorPanel({ inspection, language }: { inspection: Inspectio
 
         <Layer n="02" title={S.concepts} note={S.conceptsNote}>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-2">
-            {language.concepts.map((c) => (
+            {language?.concepts.map((c) => (
               <button
                 key={c.words.en}
                 type="button"
@@ -462,15 +550,17 @@ export function InspectorPanel({ inspection, language }: { inspection: Inspectio
                       <dd>{d.parts.map((p) => chip(p, `${d.id}.${p}`))}</dd>
                     </>
                   )}
-                  {d.params && Object.keys(d.params).length > 0 && (
-                    <>
-                      <dt className={TYPE.rowMeta}>{S.params}</dt>
-                      <dd>
-                        {Object.entries(d.params).map(([k, p]) =>
-                          chip(`${k} ${p.kind === "number" ? `${p.min}–${p.max}` : p.options.join("|")}`, p.affects?.length ? `${d.id}.${p.affects[0]}` : d.id, `param:${k}`),
-                        )}
-                      </dd>
-                    </>
+                  {(["params", "state"] as const).map((group) =>
+                    d[group] && Object.keys(d[group]).length > 0 ? (
+                      <Fragment key={group}>
+                        <dt className={TYPE.rowMeta}>{group === "params" ? S.params : S.state}</dt>
+                        <dd>
+                          {Object.entries(d[group]).map(([k, p]) =>
+                            chip(`${k} ${p.kind === "number" ? `${p.min}–${p.max}` : p.options.join("|")}`, p.affects?.length ? `${d.id}.${p.affects[0]}` : d.id, `${group}:${k}`),
+                          )}
+                        </dd>
+                      </Fragment>
+                    ) : null,
                   )}
                   {d.instances && (
                     <>
@@ -481,6 +571,31 @@ export function InspectorPanel({ inspection, language }: { inspection: Inspectio
                 </dl>
               </div>
             ))}
+            {timeline && (
+              <div className={cn("rounded-lg border p-2.5", ["beat", "phase", "input"].includes(sel?.entity ?? "") ? "border-amber-500" : "border-border/60")}>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono text-sm text-foreground">{S.timeline}</span>
+                  {snapshot?.phase && <span className={TYPE.rowMeta}>{S.phase} · {snapshot.phase}</span>}
+                </div>
+                <dl className="mt-1 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-2 text-xs">
+                  <dt className={TYPE.rowMeta}>{S.phases}</dt>
+                  <dd>{Object.keys(timeline.phases).map((k) => chip(snapshot?.phase === k ? `● ${k}` : k, `phase.${k}`, `phase:${k}`))}</dd>
+                  <dt className={TYPE.rowMeta}>{S.beats}</dt>
+                  <dd>
+                    {Object.entries(timeline.beats).map(([k, b]) => {
+                      const now = snapshot?.timeline.beat[k];
+                      return chip(`${k} ${span({ at: now?.at ?? b.at, over: b.over === undefined ? undefined : (now?.over ?? b.over) })}`, `beat.${k}`, `beat:${k}`);
+                    })}
+                  </dd>
+                  {timeline.inputs && Object.keys(timeline.inputs).length > 0 && (
+                    <>
+                      <dt className={TYPE.rowMeta}>{S.inputs}</dt>
+                      <dd>{Object.keys(timeline.inputs).map((k) => chip(k, `input.${k}`, `input:${k}`))}</dd>
+                    </>
+                  )}
+                </dl>
+              </div>
+            )}
           </div>
         </Layer>
 
@@ -524,7 +639,7 @@ export function InspectorPanel({ inspection, language }: { inspection: Inspectio
           </div>
           {snapshot && (
             <p className={cn(TYPE.rowMeta, "mt-2")}>
-              t {snapshot.t.toFixed(2)} · {snapshot.still ?? "live"} · {S.coverage} {(snapshot.coverage * 100).toFixed(2)}%
+              t {snapshot.t.toFixed(2)} · {snapshot.still ?? "live"}{snapshot.phase ? ` · ${S.phase} ${snapshot.phase}` : ""} · {S.coverage} {(snapshot.coverage * 100).toFixed(2)}%
             </p>
           )}
         </Layer>

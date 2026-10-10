@@ -9,7 +9,8 @@
 //
 //   1. registers the instance (its path, its live props) with the stage;
 //   2. lays outside overrides over the props the code passed, so an edit made
-//      in the inspector or by a sentence survives the component being rewritten;
+//      in the inspector or by a sentence survives the component being rewritten
+//      (over a param, an edit; over state, a pin);
 //   3. wraps what it draws in a <g data-sem>, which is how it is measured;
 //   4. tells <Part>s inside whose they are.
 // =============================================================================
@@ -33,32 +34,32 @@ export function useOwner(): Owner | null {
 
 type Placement = Pick<SVGProps<SVGGElement>, "transform" | "clipPath" | "opacity" | "mask">;
 
-export type SemanticProps<P extends Params> = Partial<ParamValues<P>> &
+export type SemanticProps<P extends Params, S extends Params = Record<never, never>> = Partial<ParamValues<P> & ParamValues<S>> &
   Placement & {
     /** Which one, when the thing appears more than once: "wardrobe", "bedside". */
     instance?: string;
     children?: ReactNode;
   };
 
-export type SemanticComponent<P extends Params> = ((props: SemanticProps<P>) => ReactNode) & {
-  declaration: Declaration<P>;
+export type SemanticComponent<P extends Params, S extends Params = Record<never, never>> = ((props: SemanticProps<P, S>) => ReactNode) & {
+  declaration: Declaration<P, S>;
 };
 
-export function semantic<P extends Params = Params>(
-  decl: Declaration<P>,
-  Render: (props: ParamValues<P> & { children?: ReactNode }) => ReactNode,
-): SemanticComponent<P> {
-  declare(decl as Declaration);
-  const base = defaults(decl.params);
-  const keys = new Set(Object.keys(decl.params ?? {}));
+export function semantic<P extends Params = Record<never, never>, S extends Params = Record<never, never>>(
+  decl: Declaration<P, S>,
+  Render: (props: ParamValues<P> & ParamValues<S> & { children?: ReactNode }) => ReactNode,
+): SemanticComponent<P, S> {
+  declare(decl as unknown as Declaration);
+  const base = { ...defaults(decl.params), ...defaults(decl.state) };
+  const keys = new Set([...Object.keys(decl.params ?? {}), ...Object.keys(decl.state ?? {})]);
 
-  function Semantic({ instance, transform, clipPath, opacity, mask, children, ...rest }: SemanticProps<P>) {
+  function Semantic({ instance, transform, clipPath, opacity, mask, children, ...rest }: SemanticProps<P, S>) {
     const registry = useRegistry();
     useSyncExternalStore(registry.subscribe, registry.getVersion, registry.getVersion);
     const path = instancePath(decl.id, instance);
     const passed: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(rest)) if (keys.has(k) && v !== undefined) passed[k] = v;
-    const props = { ...base, ...passed, ...registry.overridesFor(decl.id, path) } as ParamValues<P>;
+    const props = { ...base, ...passed, ...registry.overridesFor(decl.id, path) } as ParamValues<P> & ParamValues<S>;
     const ref = useRef<SVGGElement>(null);
 
     useLayoutEffect(

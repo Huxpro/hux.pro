@@ -10,7 +10,8 @@
 // selection and the language index all speak them.
 // =============================================================================
 
-import { DECLARATIONS } from "./spec";
+import { DECLARATIONS, RESERVED } from "./spec";
+import { inTimeline } from "./timeline";
 
 export interface ParsedPath {
   entity: string;
@@ -41,11 +42,17 @@ export function prefixes(path: string): string[] {
   return out;
 }
 
-/** Is this path's entity declared, and its part one of the entity's parts (or a prefix of one)? */
+/**
+ * Is this path declared? Its entity, its instance (when the entity lists
+ * them), and its part (one of the parts, or a prefix of one). Timeline paths
+ * (beat.door, phase.awake, input.hold) answer from the timeline.
+ */
 export function isDeclared(path: string): boolean {
-  const { entity, part } = parsePath(path);
+  const { entity, instance, part } = parsePath(path);
+  if (RESERVED.has(entity)) return !instance && inTimeline(entity, part);
   const decl = DECLARATIONS.get(entity);
   if (!decl) return false;
+  if (instance && decl.instances && !(instance in decl.instances)) return false;
   if (!part) return true;
   return (decl.parts ?? []).some((p) => p === part || p.startsWith(part + "."));
 }

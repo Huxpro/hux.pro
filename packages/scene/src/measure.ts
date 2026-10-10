@@ -265,3 +265,57 @@ export async function measureVisible(svg: SVGSVGElement, registry: Registry, t: 
     },
   };
 }
+
+// -----------------------------------------------------------------------------
+// Atmosphere: how much of the frame each piece covers, and whether it stays
+// on the thing it belongs to. Atmosphere is left out of everything else, so
+// it is where an undeclared thing could hide; the verifier asks about any
+// that covers most of the frame on its own.
+// -----------------------------------------------------------------------------
+
+export interface AtmosphereBox {
+  name: string;
+  /** The semantic path it is drawn inside, if any. */
+  owner: string | null;
+  /** Of the frame (the viewBox), the part its box covers. */
+  ratio: number;
+  /** Its box stays within its owner's (a rim, a glint): decoration on a thing. */
+  attached: boolean;
+  /** Only copies of the scene (<use>): a second image, not a new drawing. */
+  copy: boolean;
+}
+
+export function measureAtmosphere(svg: SVGSVGElement): AtmosphereBox[] {
+  const m = svg.getScreenCTM();
+  if (!m) return [];
+  const inv = m.inverse();
+  const vb = svg.viewBox.baseVal;
+  const frame = vb.width * vb.height || 1;
+  const geometry = measureGeometry(svg);
+  const slack = 0.05 * Math.max(vb.width, vb.height);
+  const out: AtmosphereBox[] = [];
+  for (const el of svg.querySelectorAll<SVGGraphicsElement>("[data-sem-post]")) {
+    if (el.parentElement?.closest("[data-sem-post]")) continue;
+    // Shape by shape, as geometry is measured: a group's own box is looser under rotation.
+    const box = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    for (const shape of el.querySelectorAll<SVGGraphicsElement>(SHAPE_SELECTOR)) {
+      const r = shape.getBoundingClientRect();
+      if (!r.width && !r.height) continue;
+      const a = new DOMPoint(r.left, r.top).matrixTransform(inv);
+      const b = new DOMPoint(r.right, r.bottom).matrixTransform(inv);
+      box.x0 = Math.min(box.x0, a.x, b.x);
+      box.y0 = Math.min(box.y0, a.y, b.y);
+      box.x1 = Math.max(box.x1, a.x, b.x);
+      box.y1 = Math.max(box.y1, a.y, b.y);
+    }
+    if (box.x0 > box.x1) continue;
+    const w = Math.max(0, Math.min(box.x1, vb.x + vb.width) - Math.max(box.x0, vb.x));
+    const h = Math.max(0, Math.min(box.y1, vb.y + vb.height) - Math.max(box.y0, vb.y));
+    const owner = el.closest("[data-sem]")?.getAttribute("data-sem") ?? null;
+    const own = owner ? (prefixes(owner).reverse().map((k) => geometry.get(k)).find(Boolean) ?? null) : null;
+    const attached = !!own && box.x0 >= own.x0 - slack && box.y0 >= own.y0 - slack && box.x1 <= own.x1 + slack && box.y1 <= own.y1 + slack;
+    const shapes = el.querySelectorAll(SHAPE_SELECTOR).length;
+    out.push({ name: el.getAttribute("data-sem-post")!, owner, ratio: (w * h) / frame, attached, copy: shapes > 0 && shapes === el.querySelectorAll("use").length });
+  }
+  return out;
+}

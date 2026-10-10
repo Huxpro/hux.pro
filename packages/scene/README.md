@@ -6,8 +6,10 @@ person could name is declared next to where it is drawn, measured on screen
 and verifiable; what it draws stays free.
 
 - `semantic(decl, Render)`, `<Part>`, `<Atmosphere>`: the boundary
+- `timeline()`, `beat()`, `useTimeline()`: beats, phases and inputs, declared and overridable
 - `<Stage>`, `useTime()`, `useFrame()`, `<Draw>`: one clock, SVG and canvas
-- `window.__scene`: manifest, snapshot, hit test, stills, overrides, `verify()`
+- `window.__scene`: manifest, timeline, language, snapshot, hit test, stills, overrides, `verify()`
 
-The design, the five rules for writing a scene, and how the lab inspects one:
+The design, the rules for writing a scene (and the order to write one in),
+and how the lab inspects one:
 [docs/system-scene.md](../../docs/system-scene.md). Not on npm; it lives here.

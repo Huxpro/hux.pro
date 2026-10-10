@@ -48,6 +48,8 @@ export const Man = semantic(
     parts: ["hat", "head", "eyes", "body"],
     params: {
       hatScale: num(1, { min: 0.6, max: 2, step: 0.05, aka: ["帽子大小", "帽子", "hat size"], affects: ["hat"] }),
+    },
+    state: {
       eyes: num(0, { min: 0, max: 1, step: 0.05, aka: ["眼睛", "反光", "glint"], affects: ["eyes"], effect: "appearance" }),
     },
     instances: { wardrobe: "衣柜里 · in the wardrobe", bedside: "床头 · at the bed" },
@@ -112,7 +114,7 @@ export const Wardrobe = semantic(
     aka: ["衣柜", "柜子", "the wardrobe", "the closet"],
     depicts: "一个两开门的高衣柜，深蓝木色，门板有两格。A tall two-door wardrobe in dark blue wood.",
     parts: ["inside", "door.left", "door.right"],
-    params: {
+    state: {
       openLeft: num(0, { min: 0, max: 1, step: 0.01, aka: ["左门", "left door"], affects: ["door.left"] }),
       openRight: num(0, { min: 0, max: 1, step: 0.01, aka: ["柜门", "右门", "门", "the door"], affects: ["door.right"] }),
     },
@@ -198,7 +200,7 @@ export const Viewer = semantic(
     kind: "camera",
     aka: ["我", "我醒了", "眼睛闭上", "me", "my eyes"],
     visual: false,
-    params: {
+    state: {
       world: choice("dream", ["dream", "awake"], { aka: ["梦", "醒"] }),
       eyes: choice("open", ["open", "closed"], { aka: ["闭眼", "睁眼"] }),
     },

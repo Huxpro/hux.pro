@@ -29,9 +29,10 @@
     "vitre:site": "vite --config packages/vitre/site/vite.config.ts --host 0.0.0.0",
     "vitre:site:build": "vite build --config packages/vitre/site/vite.config.ts",
     "experiences": "vite --config experiences/vite.config.mts --host 0.0.0.0",
-    "experiences:build": "rm -rf public/dreams/_scene public/dreams/wardrobe && vite build --config experiences/vite.config.mts",
+    "experiences:build": "vite build --config experiences/vite.config.mts",
     "scene:typecheck": "tsc -p packages/scene",
-    "scene:verify": "node scripts/scene-verify.mjs"
+    "scene:verify": "node scripts/scene-verify.mjs",
+    "scene:new": "node scripts/scene-new.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",

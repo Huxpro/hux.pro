@@ -7,7 +7,7 @@
 // a Chromium (a local or a global install); it is not a site dependency.
 //
 //   pnpm scene:verify                 every experience
-//   pnpm scene:verify wardrobe        one
+//   pnpm scene:verify wardrobe        one (or several)
 // =============================================================================
 
 import { execSync } from "node:child_process";
@@ -15,8 +15,9 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { extname, join, normalize } from "node:path";
+import { scenes } from "../experiences/scenes.mjs";
 
-const EXPERIENCES = ["wardrobe"];
+const EXPERIENCES = scenes();
 const only = process.argv.slice(2);
 const names = only.length ? EXPERIENCES.filter((n) => only.includes(n)) : EXPERIENCES;
 
@@ -54,16 +55,19 @@ for (const name of names) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto(`http://localhost:${port}/dreams/${name}/index.html?lang=en`);
+  await page.goto(`http://localhost:${port}/scenes/${name}/index.html?lang=en`);
   await page.waitForFunction(() => !!window.__scene, null, { timeout: 15000 });
   const report = await page.evaluate(() => window.__scene.verify());
   const ok = report.ok && errors.length === 0;
   failed ||= !ok;
-  console.log(`\n${ok ? "✓" : "✗"} ${name}: ${report.checked.stills} stills · ${report.checked.paths} names · ${report.checked.params} params turned`);
+  console.log(`\n${ok ? "✓" : "✗"} ${name}: ${report.checked.stills} stills · ${report.checked.paths} names · ${report.checked.params} params turned · ${report.checked.words} words resolved`);
   for (const e of errors) console.log(`  ✗ [error] ${e}`);
   for (const i of report.issues) console.log(`  ✗ [${i.check}] ${i.message}`);
-  for (const p of report.perturbations) console.log(`  ${p.ok ? "✓" : "✗"} ${p.path}.${p.param} ${p.from.toFixed(2)}→${p.to.toFixed(2)} moved ${p.moved.join(", ") || "nothing"}`);
+  for (const p of report.perturbations) console.log(`  ${p.ok ? "✓" : "✗"} ${p.path}.${p.param}${p.kind === "state" ? " (state)" : ""} ${p.from.toFixed(2)}→${p.to.toFixed(2)} moved ${p.moved.join(", ") || "nothing"}`);
   console.log(`  coverage ${report.coverage.map((c) => `${c.still} ${(c.ratio * 100).toFixed(2)}%`).join(" · ")}`);
+  const atmos = new Map();
+  for (const a of report.atmosphere) atmos.set(a.name, Math.max(atmos.get(a.name) ?? 0, a.ratio));
+  if (atmos.size) console.log(`  atmosphere ${[...atmos].map(([n, r]) => `${n} ≤${Math.round(r * 100)}%`).join(" · ")}`);
   await page.close();
 }
 await browser.close();

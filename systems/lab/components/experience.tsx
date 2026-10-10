@@ -2,7 +2,6 @@
 
 import { ArrowUpRight, RotateCcw, ScanSearch } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
-import type { LanguageLayer } from "scene";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
@@ -25,9 +24,10 @@ import { LabButton, LabChip, LabShell, labButtonClass } from "./shell";
 // The document follows the reader's language through `?lang=`, and starts
 // over when it changes.
 //
-// An experience built on packages/scene, given its language layer, can also
-// be inspected: the bar's Inspect switch lays the running scene open beside
-// the frame (components/inspector.tsx) in place of the story.
+// An experience built on packages/scene can also be inspected (`inspect`):
+// the bar's Inspect switch lays the running scene open beside the frame
+// (components/inspector.tsx) in place of the story. Everything it shows, the
+// words included, comes from the running scene; nothing is imported here.
 // =============================================================================
 
 const en = {
@@ -53,14 +53,14 @@ export function experienceSrc(src: string, lang: string, extra?: Record<string, 
 export function ExperienceShell({
   lab: id,
   how,
-  language,
+  inspect,
   children,
 }: {
   lab: LabId;
   /** How it is played, one line under the story: what to press, how often. */
   how?: ReactNode;
-  /** The words it came from and what they meant: given, the scene can be inspected. */
-  language?: LanguageLayer;
+  /** Built on packages/scene: the scene can be laid open beside the frame. */
+  inspect?: boolean;
   /** The story, in the reader's language: a title and a few paragraphs. */
   children: ReactNode;
 }) {
@@ -71,7 +71,7 @@ export function ExperienceShell({
   const [inspecting, setInspecting] = useState(false);
   const src = experienceSrc(lab.experience.src, locale);
 
-  const tools = language ? (
+  const tools = inspect ? (
     <LabChip on={inspecting} onClick={() => setInspecting((v) => !v)}>
       <ScanSearch />
       {S.inspect}
@@ -94,7 +94,7 @@ export function ExperienceShell({
   return (
     <LabShell lab={id} layout="canvas" tools={tools} actions={actions}>
       {/* Keyed, so a replay or a new language is a fresh frame and a fresh inspection. */}
-      <Body key={`${locale}:${run}`} src={src} title={lab.name[locale]} inspecting={inspecting && !!language} language={language}>
+      <Body key={`${locale}:${run}`} src={src} title={lab.name[locale]} inspecting={inspecting && !!inspect}>
         <article lang={locale} className="ink-bare w-full max-w-md space-y-5 lg:pt-10">
           {children}
           {how && <p className={cn(TYPE.meta, "pt-3")}>{how}</p>}
@@ -104,7 +104,7 @@ export function ExperienceShell({
   );
 }
 
-function Body({ src, title, inspecting, language, children }: { src: string; title: string; inspecting: boolean; language?: LanguageLayer; children: ReactNode }) {
+function Body({ src, title, inspecting, children }: { src: string; title: string; inspecting: boolean; children: ReactNode }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const inspection = useInspection(frame);
   return (
@@ -119,9 +119,9 @@ function Body({ src, title, inspecting, language, children }: { src: string; tit
         <iframe ref={frame} src={src} title={title} className="absolute inset-0 h-full w-full border-0" allow="autoplay" />
         {inspecting && <InspectorOverlay inspection={inspection} />}
       </div>
-      {inspecting && language ? (
+      {inspecting ? (
         <div className="w-full min-w-0 max-w-2xl">
-          <InspectorPanel inspection={inspection} language={language} />
+          <InspectorPanel inspection={inspection} />
         </div>
       ) : (
         children

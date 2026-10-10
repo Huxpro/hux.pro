@@ -7,6 +7,9 @@
 //   canvas     <Draw>s, painted every frame over the svg (immediate).
 //   html       atmosphere and UI over both (lids, haze, words). Not measured.
 //
+//   timeline   the scene's beats, phases and inputs (timeline.ts), and phase,
+//              the one it is in now; language, the words it came from.
+//
 // It also opens the scene to the outside as window.__scene (api.ts): the
 // manifest, a snapshot with every thing's box, hit tests, stills, overrides
 // and the verifier. The lab's inspector drives a running scene through it.
@@ -17,6 +20,7 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -27,14 +31,19 @@ import {
 } from "react";
 import { installApi, type Still } from "./api";
 import { Clock } from "./clock";
+import type { LanguageLayer } from "./language";
 import { sceneToClient } from "./measure";
 import { Registry, type DrawFn } from "./registry";
 import { useOwner } from "./semantic";
+import { resolveTimeline, type TimelineSpec, type TimelineValues } from "./timeline";
 
 interface StageCtx {
   registry: Registry;
   clock: Clock;
+  timeline: TimelineSpec;
 }
+
+const EMPTY: TimelineSpec = { beats: {}, phases: {} };
 
 const StageContext = createContext<StageCtx | null>(null);
 
@@ -69,6 +78,22 @@ export function useNow(): () => number {
   return useStage().clock.now;
 }
 
+/**
+ * The stage's timeline, with overrides laid over it. Pass the declaration
+ * (the one given to <Stage timeline>) for its types.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- the argument carries the type
+export function useTimeline<T extends TimelineSpec>(spec?: T): TimelineValues<T> {
+  const { registry, timeline } = useStage();
+  const version = useSyncExternalStore(registry.subscribe, registry.getVersion, registry.getVersion);
+  return useMemo(
+    () => resolveTimeline(timeline, (k) => registry.overrides.get(k)) as unknown as TimelineValues<T>,
+    // The overrides are read through the registry; its version says when they change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [timeline, registry, version],
+  );
+}
+
 /** Is a switch on (one the inspector can flip)? */
 export function useFlag(name: string): boolean {
   const registry = useRegistry();
@@ -76,7 +101,7 @@ export function useFlag(name: string): boolean {
   return registry.flags.has(name);
 }
 
-export interface StageProps {
+export interface StageProps<T extends TimelineSpec = TimelineSpec> {
   /** The scene's own units: the frame it is designed in. */
   width: number;
   height: number;
@@ -84,12 +109,18 @@ export interface StageProps {
   viewBox?: string;
   /** Fill the screen and crop (slice), or show it all (meet). */
   fit?: "slice" | "meet";
+  /** Its beats, phases and inputs (timeline()). */
+  timeline?: T;
+  /** The phase it is in now: one of the timeline's. */
+  phase?: string;
+  /** The words it came from, and what they were taken to mean. */
+  language?: LanguageLayer;
   /** Named moments: what an inspector, a thumbnail or a sentence can go to. */
   stills?: readonly Still[];
   /** Move the scene's state to a still (name) or back to play (null). Time is held at t. */
-  onStill?: (name: string | null, t: number) => void;
+  onStill?: (name: string | null, t: number, timeline: TimelineValues<T>) => void;
   /** Attributes for the root svg; a function of time for what moves (a filter, a jolt). */
-  svg?: SvgAttrs | ((t: number) => SvgAttrs);
+  svg?: SvgAttrs | ((t: number, timeline: TimelineValues<T>) => SvgAttrs);
   /** <Draw>s that belong to no svg thing. A <Draw> can also sit inside its owner. */
   canvas?: ReactNode;
   html?: ReactNode;
@@ -102,33 +133,36 @@ type SvgAttrs = Omit<SVGProps<SVGSVGElement>, "viewBox" | "children" | "ref">;
 
 const FILL: CSSProperties = { position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" };
 
-export function Stage({ width, height, viewBox, fit = "slice", stills = [], onStill, svg, canvas, html, className, style, children }: StageProps) {
-  const [ctx] = useState<StageCtx>(() => ({ registry: new Registry(), clock: new Clock() }));
+export function Stage<T extends TimelineSpec = TimelineSpec>(props: StageProps<T>) {
+  const { width, height, viewBox, fit = "slice", stills = [], timeline = EMPTY as T, phase, language, onStill, svg, canvas, html, className, style, children } = props;
+  const [core] = useState(() => ({ registry: new Registry(), clock: new Clock() }));
+  const ctx = useMemo<StageCtx>(() => ({ ...core, timeline }), [core, timeline]);
   const svgRef = useRef<SVGSVGElement>(null);
-  const onStillRef = useRef(onStill);
-  const stillsRef = useRef(stills);
+  const live = useRef({ onStill, stills, phase, language, timeline });
   useLayoutEffect(() => {
-    onStillRef.current = onStill;
-    stillsRef.current = stills;
+    live.current = { onStill, stills, phase, language, timeline };
   });
 
-  useEffect(() => ctx.clock.start(), [ctx]);
+  useEffect(() => core.clock.start(), [core]);
   useEffect(
     () =>
       installApi({
         svg: () => svgRef.current,
-        registry: ctx.registry,
-        clock: ctx.clock,
-        stills: () => stillsRef.current,
-        onStill: (name, t) => onStillRef.current?.(name, t),
+        registry: core.registry,
+        clock: core.clock,
+        timeline: () => live.current.timeline,
+        stills: () => live.current.stills,
+        phase: () => live.current.phase ?? null,
+        language: () => live.current.language ?? null,
+        onStill: (name, t) => live.current.onStill?.(name, t, resolveTimeline(live.current.timeline, (k) => core.registry.overrides.get(k))),
       }),
-    [ctx],
+    [core],
   );
 
   return (
     <StageContext.Provider value={ctx}>
       <div className={className} style={{ position: "relative", overflow: "hidden", ...style }}>
-        <SvgRoot svgRef={svgRef} viewBox={viewBox ?? `0 0 ${width} ${height}`} fit={fit} svg={svg}>
+        <SvgRoot svgRef={svgRef} viewBox={viewBox ?? `0 0 ${width} ${height}`} fit={fit} svg={svg as StageProps["svg"]}>
           {children}
         </SvgRoot>
         <CanvasLayer svg={svgRef}>{canvas}</CanvasLayer>
@@ -148,7 +182,8 @@ function SvgRoot({ svgRef, viewBox, fit, svg, children }: {
   // Re-renders every frame for the root's own attributes; the children are
   // the same elements, so React leaves them to their own subscriptions.
   const t = useTime();
-  const attrs = typeof svg === "function" ? svg(t) : svg;
+  const tl = useTimeline();
+  const attrs = typeof svg === "function" ? svg(t, tl) : svg;
   return (
     <svg ref={svgRef} viewBox={viewBox} preserveAspectRatio={`xMidYMid ${fit}`} aria-hidden="true" {...attrs} style={{ ...FILL, ...attrs?.style }}>
       {children}

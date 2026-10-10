@@ -6,8 +6,16 @@
 //   expected       each still shows what it says it shows
 //   deterministic  the same moment, rendered twice, is the same pixels
 //   coverage       every pixel drawn belongs to some thing (atmosphere aside)
-//   local          turning a param moves only its own instance (or the parts
-//                  it declares it affects), and nothing else in the scene
+//   local          turning a param (or a piece of state) moves only its own
+//                  instance (or the parts it declares it affects), and
+//                  nothing else in the scene
+//   phase          every declared phase has a still, and each still gets the
+//                  scene into the phase it says
+//   language       every word the language layer resolves names something
+//                  declared
+//   atmosphere     no atmosphere covers most of the frame on its own (one
+//                  that stays on its thing, like a rim, or a copy of the
+//                  scene, is fine): what is drawn large is a thing
 //
 // Each failure says what to do about it: the report is read by whoever wrote
 // the scene, which is often a model.
@@ -15,24 +23,30 @@
 
 import type { Still } from "./api";
 import type { Clock } from "./clock";
-import { measureGeometry, measureVisible, type Box } from "./measure";
+import type { LanguageLayer } from "./language";
+import { measureAtmosphere, measureGeometry, measureVisible, type Box } from "./measure";
 import { isDeclared, parsePath } from "./path";
 import type { Registry } from "./registry";
-import { DECLARATIONS, type NumberParam } from "./spec";
+import { DECLARATIONS, type NumberParam, type Param } from "./spec";
+import type { TimelineSpec } from "./timeline";
+
+/** Atmosphere over more of the frame than this is asked about. */
+const ATMOSPHERE_MAX = 0.5;
 
 export interface Issue {
-  check: "declared" | "expected" | "deterministic" | "coverage" | "local";
+  check: "declared" | "expected" | "deterministic" | "coverage" | "local" | "phase" | "language" | "atmosphere";
   still?: string;
   message: string;
 }
 
 export interface Report {
   ok: boolean;
-  checked: { stills: number; paths: number; params: number };
+  checked: { stills: number; paths: number; params: number; words: number };
   issues: Issue[];
-  /** One line per param that was turned: what moved. */
-  perturbations: { still: string; path: string; param: string; from: number; to: number; moved: string[]; ok: boolean }[];
+  /** One line per param (or piece of state) that was turned: what moved. */
+  perturbations: { still: string; path: string; param: string; kind: "param" | "state"; from: number; to: number; moved: string[]; ok: boolean }[];
   coverage: { still: string; ratio: number }[];
+  atmosphere: { still: string; name: string; ratio: number }[];
 }
 
 interface Deps {
@@ -40,6 +54,9 @@ interface Deps {
   registry: Registry;
   clock: Clock;
   stills: readonly Still[];
+  timeline: TimelineSpec;
+  language: LanguageLayer | null;
+  phase: () => string | null;
   goto: (name: string) => void;
   play: () => void;
   isPlaying: () => boolean;
@@ -78,13 +95,63 @@ export async function verify(deps: Deps): Promise<Report> {
   const issues: Issue[] = [];
   const perturbations: Report["perturbations"] = [];
   const coverage: Report["coverage"] = [];
+  const atmosphere: Report["atmosphere"] = [];
   const seenPaths = new Set<string>();
   const turned = new Set<string>();
+  const flagged = new Set<string>();
+
+  // On screen at all: everything else is measured in scene units, and would pass unseen.
+  if (!svg.clientWidth || !svg.clientHeight) {
+    issues.push({
+      check: "expected",
+      message: `The stage is ${svg.clientWidth}×${svg.clientHeight} on screen. Give it a size: its className or style (position: fixed; inset: 0, for a page).`,
+    });
+  }
+
+  // Language: every span and concept resolves to something declared.
+  const refs = new Set<string>();
+  for (const seg of deps.language?.prompt ?? []) if (typeof seg !== "string") refs.add(seg[1]);
+  for (const c of deps.language?.concepts ?? []) refs.add(c.ref);
+  for (const ref of refs) {
+    if (!isDeclared(ref)) {
+      issues.push({
+        check: "language",
+        message: `The language layer points "${ref}" at nothing declared. Point it at a declared path (entity[instance].part, beat.<name>, phase.<name>, input.<name>), or declare what it names.`,
+      });
+    }
+  }
+
+  // Phases: each one declared has a still that goes there.
+  for (const name of Object.keys(deps.timeline.phases)) {
+    if (!deps.stills.some((s) => s.phase === name)) {
+      issues.push({ check: "phase", message: `Phase "${name}" has no still. Add one ({ name, phase: "${name}", expect }) so it can be seen, checked and pointed at.` });
+    }
+  }
 
   const stills = deps.stills.length ? deps.stills : [{ name: "now" } as Still];
   for (const still of stills) {
     if (deps.stills.length) deps.goto(still.name);
     await frames(3);
+
+    if (still.phase && deps.phase() !== still.phase) {
+      issues.push({
+        check: "phase",
+        still: still.name,
+        message: `Still "${still.name}" says it is in phase "${still.phase}", and the stage says "${deps.phase() ?? "none"}". Pass <Stage phase> from the scene's state, and make the still's state match.`,
+      });
+    }
+
+    for (const a of measureAtmosphere(svg)) {
+      atmosphere.push({ still: still.name, name: a.name, ratio: a.ratio });
+      if (!a.copy && !a.attached && a.ratio > ATMOSPHERE_MAX && !flagged.has(a.name)) {
+        flagged.add(a.name);
+        issues.push({
+          check: "atmosphere",
+          still: still.name,
+          message: `At "${still.name}", atmosphere "${a.name}"${a.owner ? ` (inside ${a.owner}, and reaching well past it)` : ""} covers ${Math.round(a.ratio * 100)}% of the frame. Atmosphere is what is not a thing (a glow, grain, a second image); if this is a thing (a beam, a shadow, a room), declare it as a semantic component or a <Part>.`,
+        });
+      }
+    }
 
     // Declared: every name used, in the svg and on the canvas.
     const used = [...svg.querySelectorAll("[data-sem]")].map((el) => el.getAttribute("data-sem")!);
@@ -135,10 +202,14 @@ export async function verify(deps: Deps): Promise<Report> {
       });
     }
 
-    // Local: turn each number param of each thing on stage, once.
+    // Local: turn each number param (and each piece of state) of each thing on stage, once.
     for (const rec of registry.instances.values()) {
       const decl = DECLARATIONS.get(rec.entity);
-      for (const [name, spec] of Object.entries(decl?.params ?? {})) {
+      const turnable: [string, Param, "param" | "state"][] = [
+        ...Object.entries(decl?.params ?? {}).map(([k, p]) => [k, p, "param"] as [string, Param, "param"]),
+        ...Object.entries(decl?.state ?? {}).map(([k, p]) => [k, p, "state"] as [string, Param, "state"]),
+      ];
+      for (const [name, spec, kind] of turnable) {
         if (spec.kind !== "number" || turned.has(`${rec.path}:${name}`)) continue;
         turned.add(`${rec.path}:${name}`);
         const p = spec as NumberParam;
@@ -162,7 +233,7 @@ export async function verify(deps: Deps): Promise<Report> {
         const changed = [...new Set([...before.keys(), ...after.keys()])].filter((k) => !same(before.get(k), after.get(k)));
         const stray = changed.filter((k) => !allowed(k));
         const ok = stray.length === 0;
-        perturbations.push({ still: still.name, path: rec.path, param: name, from, to, moved: changed, ok });
+        perturbations.push({ still: still.name, path: rec.path, param: name, kind, from, to, moved: changed, ok });
         if (ok && changed.length === 0 && (p.effect ?? "shape") === "shape") {
           issues.push({
             check: "local",
@@ -185,9 +256,10 @@ export async function verify(deps: Deps): Promise<Report> {
   else clock.freeze(t0);
   return {
     ok: issues.length === 0,
-    checked: { stills: stills.length, paths: seenPaths.size, params: turned.size },
+    checked: { stills: stills.length, paths: seenPaths.size, params: turned.size, words: refs.size },
     issues,
     perturbations,
     coverage,
+    atmosphere,
   };
 }

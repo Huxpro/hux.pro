@@ -11,17 +11,19 @@
 // the room is only the room, at night, with a clock in it. You calm down.
 // Then the wardrobe door opens.
 //
-//   timeline.ts   everything that moves, as a function of (state, t)
+//   timeline.ts   the beats, phases and inputs (declared), and everything that
+//                 moves, as a function of (state, t, timeline)
 //   entities.tsx  the things, each declared where it is drawn
 //   Wardrobe.tsx  the scene, the overlays, and the director (sound, input)
 //   sound.ts      the sound, made in the page
 // =============================================================================
 
 import { useEffect, useReducer, useRef, useState, type Dispatch } from "react";
-import { Atmosphere, Stage, useFlag, useFrame, useNow, useTime, type Still } from "scene";
+import { Atmosphere, Stage, useFlag, useFrame, useNow, useTime, useTimeline, type Still } from "scene";
 import { Bed, Man, Room, Viewer, Wardrobe as WardrobeBox, Window } from "./entities";
+import { LANGUAGE } from "./semantics";
 import { Sound } from "./sound";
-import { BEATS, STILLS, breathAmp, breathPhase, initial, reduce, view, type Action, type State } from "./timeline";
+import { PHASES, STILLS, TIMELINE, breathAmp, breathPhase, initial, reduce, view, type Action, type State } from "./timeline";
 import { WORDS, type Words } from "./words";
 
 const params = new URLSearchParams(location.search);
@@ -36,7 +38,7 @@ function stillFromUrl(): { name: string; u?: number } | null {
   return name ? { name, u: t !== null ? Number(t) : params.has("epilogue") ? 20 : undefined } : null;
 }
 
-const STAGE_STILLS: Still[] = STILLS.map((s) => ({ name: s.name, label: s.label, expect: s.expect }));
+const STAGE_STILLS: Still[] = STILLS.map((s) => ({ name: s.name, label: s.label, phase: s.phase, expect: s.expect }));
 
 export function Wardrobe() {
   const [state, dispatch] = useReducer(reduce, initial);
@@ -54,10 +56,16 @@ export function Wardrobe() {
       height={844}
       fit={QUIET ? "slice" : fit}
       viewBox={QUIET ? "199 205 180 160" : undefined}
+      timeline={TIMELINE}
+      phase={PHASES[state.stage]}
+      language={LANGUAGE}
       stills={STAGE_STILLS}
-      onStill={(name, t) => dispatch({ type: "still", name, t })}
-      svg={(t) => {
-        const v = view(state, t);
+      onStill={(name, t, tl) => {
+        const still = STILLS.find((s) => s.name === name);
+        if (still) dispatch({ type: "still", name, t, u: still.u(tl.beat) });
+      }}
+      svg={(t, tl) => {
+        const v = view(state, t, tl);
         return { style: { filter: v.filter, transform: v.jolt, background: "#05070d" } };
       }}
       html={<Overlays state={state} sound={sound} words={WORDS} />}
@@ -75,7 +83,7 @@ export function Wardrobe() {
 
 function Scene({ state }: { state: State }) {
   const t = useTime();
-  const v = view(state, t);
+  const v = view(state, t, useTimeline(TIMELINE));
   // The inspector's demonstration: something drawn outside every declaration.
   const undeclared = useFlag("undeclared");
   return (
@@ -172,7 +180,7 @@ function Defs() {
 
 function Overlays({ state, sound, words }: { state: State; sound: Sound; words: Words }) {
   const t = useTime();
-  const v = view(state, t);
+  const v = view(state, t, useTimeline(TIMELINE));
   const [muted, setMuted] = useState(sound.muted);
   const lid = { transitionDuration: `${v.lids.speed}s` };
   return (
@@ -221,6 +229,11 @@ function Overlays({ state, sound, words }: { state: State; sound: Sound; words: 
 
 function Director({ state, dispatch, sound }: { state: State; dispatch: Dispatch<Action>; sound: Sound }) {
   const now = useNow();
+  const tl = useTimeline(TIMELINE);
+  const live = useRef({ state, tl });
+  useEffect(() => {
+    live.current = { state, tl };
+  });
   const prev = useRef<{ state: State; u: number }>({ state, u: 0 });
   const stillApplied = useRef(false);
 
@@ -235,21 +248,17 @@ function Director({ state, dispatch, sound }: { state: State; dispatch: Dispatch
     }
   }, [dispatch, now]);
 
-  // Input: hold to close the eyes, let go to open them; after the words, tap to dream again.
-  const live = useRef(state);
-  useEffect(() => {
-    live.current = state;
-  });
+  // Input (TIMELINE.inputs): hold to close the eyes, let go to open them; after the words, tap to dream again.
   useEffect(() => {
     if (QUIET) return;
     const down = (e: PointerEvent | KeyboardEvent) => {
       if (e instanceof PointerEvent && e.button > 0) return;
       if (e instanceof KeyboardEvent && (e.repeat || (e.key !== " " && e.key !== "Enter"))) return;
       if (e instanceof KeyboardEvent) e.preventDefault();
-      const s = live.current;
+      const { state: s, tl } = live.current;
       sound.ensure(s.stage < 3);
       if (s.stage === 3) {
-        if (view(s, now()).line) dispatch({ type: "replay", t: now() });
+        if (view(s, now(), tl).line) dispatch({ type: "replay", t: now() });
         return;
       }
       dispatch({ type: "close", t: now() });
@@ -279,8 +288,9 @@ function Director({ state, dispatch, sound }: { state: State; dispatch: Dispatch
 
   // Every frame: let a held blink mature, and play what the moment implies.
   useFrame((t) => {
-    const s = live.current;
-    if (s.pending) dispatch({ type: "tick", t });
+    const { state: s, tl } = live.current;
+    const b = tl.beat;
+    if (s.pending) dispatch({ type: "tick", t, minBlink: tl.input.hold.minBlink });
     const p = prev.current;
     const u = Math.max(0, t - s.at);
 
@@ -306,25 +316,27 @@ function Director({ state, dispatch, sound }: { state: State; dispatch: Dispatch
 
     if (s.stage === 3 && s.via !== "still" && p.state.stage === 3 && s.at === p.state.at) {
       const crossed = (beat: number) => p.u < beat && u >= beat;
-      if (crossed(BEATS.snap)) {
+      if (crossed(b.snap.at)) {
         sound.gasp();
         sound.roomTo(0.1, 0.8);
         if (navigator.vibrate) navigator.vibrate(60);
       }
       // The breath, until it catches.
-      if (u > BEATS.snap && u < BEATS.catch) {
-        const a = breathPhase(p.u);
-        const b = breathPhase(u);
-        if (Math.floor(b) > Math.floor(a)) sound.breathe(true, breathAmp(u));
-        if (a % 1 < 0.42 && b % 1 >= 0.42 && Math.floor(a) === Math.floor(b)) sound.breathe(false, breathAmp(u));
+      const d = u - b.snap.at;
+      if (d > 0 && u < b.door.at) {
+        const before = breathPhase(p.u - b.snap.at);
+        const after = breathPhase(d);
+        if (Math.floor(after) > Math.floor(before)) sound.breathe(true, breathAmp(d));
+        if (before % 1 < 0.42 && after % 1 >= 0.42 && Math.floor(before) === Math.floor(after)) sound.breathe(false, breathAmp(d));
       }
       // The heart: loud at first, gone by the time the clock is heard; back when the door moves.
-      const beatEvery = u < 5 ? 0.48 + 0.4 * ((u - 1) / 4) : u > BEATS.catch ? 1 - 0.42 * Math.min(1, (u - BEATS.catch - 1) / 6) : 0;
-      if (beatEvery && u > BEATS.snap && Math.floor(u / beatEvery) > Math.floor(p.u / beatEvery)) {
-        sound.thump(u < 5 ? 0.6 * (1 - (u - 1) / 4) + 0.05 : 0.12 + 0.5 * Math.min(1, (u - BEATS.catch - 1) / 6));
+      const since = u - b.door.at - 1;
+      const beatEvery = d < 4 ? 0.48 + 0.4 * (d / 4) : u > b.door.at ? 1 - 0.42 * Math.min(1, since / 6) : 0;
+      if (beatEvery && d > 0 && Math.floor(u / beatEvery) > Math.floor(p.u / beatEvery)) {
+        sound.thump(d < 4 ? 0.6 * (1 - d / 4) + 0.05 : 0.12 + 0.5 * Math.min(1, since / 6));
       }
-      if (u > BEATS.clock && Math.floor(u - BEATS.clock) > Math.floor(p.u - BEATS.clock)) sound.tick(Math.min(1, (u - BEATS.clock) / 2.5));
-      if (crossed(BEATS.catch)) sound.creak(BEATS.doorFor, 0.6);
+      if (u > b.clock.at && Math.floor(u - b.clock.at) > Math.floor(p.u - b.clock.at)) sound.tick(Math.min(1, (u - b.clock.at) / 2.5));
+      if (crossed(b.door.at)) sound.creak(b.door.over, 0.6);
     }
     prev.current = { state: s, u };
   });
