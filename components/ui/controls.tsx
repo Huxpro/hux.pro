@@ -51,10 +51,11 @@ const SEGMENTED_TONE = {
   },
   bare: {
     group: "items-center gap-0.5",
+    // 28px drawn, 48px tall to a finger; side by side, so vertical only.
     segment:
-      "inline-flex items-center justify-center rounded p-1 duration-200",
+      "pressable hit-area-y inline-flex size-7 items-center justify-center rounded-md duration-200",
     selected: "bg-muted text-foreground",
-    idle: "text-tertiary-foreground hover:text-foreground",
+    idle: "text-tertiary-foreground hover:text-foreground active:bg-muted/60 active:text-foreground",
   },
 } as const;
 
