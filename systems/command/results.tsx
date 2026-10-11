@@ -187,11 +187,23 @@ export function AskTabHint({
   );
 }
 
-/** The slash letter beside a row. Only where a keyboard can press it. */
-function Letter({ letter }: { letter?: string }) {
+/**
+ * The slash letter beside a row. Only where a keyboard can press it. In the
+ * slash list the letter alone runs the command; from search a letter is just
+ * typed into the field, so there the hint spells out the whole way, `/` then
+ * the letter.
+ */
+function Letter({ letter, withSlash }: { letter?: string; withSlash?: boolean }) {
   const showHints = useShowKeyboardHints();
   if (!letter || !showHints) return null;
-  return <kbd className={cn("shrink-0", TYPE.kbd)}>{letter.toUpperCase()}</kbd>;
+  const key = <kbd className={cn("shrink-0", TYPE.kbd)}>{letter.toUpperCase()}</kbd>;
+  if (!withSlash) return key;
+  return (
+    <span className="flex shrink-0 items-center gap-0.5">
+      <kbd className={TYPE.kbd}>/</kbd>
+      {key}
+    </span>
+  );
 }
 
 /**
@@ -223,15 +235,18 @@ export function SlashEntry({ className }: { className?: string }) {
   );
 }
 
-/** Icon, label, letter: the same in a search row and a slash row. */
-function RowBody({ action }: { action: CommandAction }) {
+/**
+ * Icon, label, letter: the same in a search row and a slash row, but for
+ * the `/` a search row's letter needs (see Letter).
+ */
+function RowBody({ action, withSlash }: { action: CommandAction; withSlash?: boolean }) {
   return (
     <>
       {/* A flex box, not an inline span: an icon that sizes itself (the tint
           swatch) needs to be a flex item to have a size at all. */}
       <span className="flex shrink-0 text-muted-foreground">{action.icon}</span>
       <span className="flex-1 text-left">{action.label}</span>
-      <Letter letter={action.key} />
+      <Letter letter={action.key} withSlash={withSlash} />
     </>
   );
 }
@@ -245,7 +260,7 @@ function ResultRow({ action }: { action: CommandAction }) {
       onSelect={() => void run(action, "search")}
       className={ROW}
     >
-      <RowBody action={action} />
+      <RowBody action={action} withSlash />
     </Command.Item>
   );
 }
