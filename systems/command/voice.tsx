@@ -315,7 +315,7 @@ export function VoiceButton({ voice, className }: { voice: VoiceInput; className
       aria-pressed={voice.state === "listening"}
       title={label}
       className={cn(
-        "pressable relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+        "pressable hit-area-y relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
         voice.mode === "gateway" && "touch-none",
         "text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-accent",
         voice.listening && "text-foreground",

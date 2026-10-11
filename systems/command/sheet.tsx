@@ -9,7 +9,7 @@ import {
   SurfaceSheet,
 } from "@/systems/surface";
 import { Command } from "cmdk";
-import { Link2, Search, Slash, X, type LucideIcon } from "lucide-react";
+import { ChevronLeft, Link2, Search, Slash, X, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CommandShellProvider,
@@ -364,18 +364,20 @@ function SubModeHeader({
   const { locale } = useLocale();
   return (
     <div className="flex shrink-0 items-center gap-3 border-b border-border/50 px-4 pb-1 pt-1">
-      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <span className="flex-1 py-2 font-sans text-sm font-medium text-muted-foreground">
-        {title}
-      </span>
+      {/* Back, not close: it returns to the search, so it is drawn as the
+          way back and sits where back sits. */}
       <button
         type="button"
         onClick={onClose}
         aria-label={t(locale, "backToSearch")}
-        className={cn(HEADER_BUTTON, "-mr-2")}
+        className={cn(HEADER_BUTTON, "-ml-1.5")}
       >
-        <X className="h-4 w-4" />
+        <ChevronLeft className="h-4 w-4" />
       </button>
+      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <span className="flex-1 py-2 font-sans text-sm font-medium text-muted-foreground">
+        {title}
+      </span>
     </div>
   );
 }

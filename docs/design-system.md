@@ -255,6 +255,15 @@ carry the chrome policies; cover press lives with the artwork tokens
 (`COVER_WASH` in `lib/glass.ts`). Nothing is inferred from the pointer type
 at runtime.
 
+**Every target is 48px.** Anything a finger can press gets at least 48 x 48px
+of it: the size the Ask ball and the command bar already are, a step over
+Apple's 44pt floor so a thumb on a moving page still lands. The drawn control
+does not have to be that big. `hit-area` (`app/globals.css`, "Touch target")
+grows an invisible `::before` around the control's centre to 48px and leaves
+a bigger box alone; `hit-area-y` grows it vertically only, for controls packed
+side by side in a cluster. A visible press wash should be at least 28px tall,
+so the feedback shows around the fingertip covering it.
+
 <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
   <img src="/img/docs/design-system/row-rest.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="The Writing index on a phone at rest: a serif title, EN / All chips, and a list of post titles with mono dates, no row highlighted." />
   <img src="/img/docs/design-system/row-press.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="The same list with the third row pressed: a soft rounded wash behind 'React Is Not Vue, Obviously' and its date." />
@@ -268,6 +277,7 @@ touch-down frame, and the only feedback it gets.
 | Class | Where | What it does |
 |---|---|---|
 | `pressable` | Rows, links, buttons, tiles: anything with a `hover:` wash | Pair with an `active:` colour (or, on chrome buttons, a scale). The `:active` rule zeroes the transition so the highlight lands on the **touch-down frame**; release eases out through the element's own `transition-*`. Also drops the grey tap flash and the double-tap zoom delay |
+| `hit-area` / `hit-area-y` | Every control smaller than 48px: chips, icon buttons, dots, a sheet's close | An invisible `::before` centred on the control, at least `--hit-target` (48px) each way (`-y`: vertically only). Needs the element to be its own containing block (the utility sets `relative` unless it is `absolute` / `fixed` / `sticky`); not for an element that paints its own `::before` |
 | `COVER_WASH` | Media covers: talks thumbs, `/works` tiles, inline players (`lib/glass.ts`) | iOS Photos / Music / Home Screen: a dark wash over the **art** on touch-down, not a scale of the card. The control is `group/thumb pressable` so a press on a sibling cover or the commit row cannot dim every thumbnail |
 | `widget-surface` | A tappable widget's own surface (`WidgetShell`) | The iOS tap wash (the ink at 8 %) for presses on the card itself; a pressed descendant with its own action (link, button, tab, field) is excluded via `:has()`. Mirrors `OWN_ACTION_SELECTORS` in `components/ui/widget-surface.ts` |
 | `system-chrome` | Navigation, command bar, dock, palette, edit controls, a window's frame, every surface (`SHELL`) | OS chrome: no text selection, no long-press callout, no grey tap flash. Text fields inside keep their caret |
@@ -354,7 +364,8 @@ between uses is the voice of the surface, so that is the one parameter.
 
 - **`HeaderAction`**: the chip for "something you can do to this page" (the
   `/writing` language filter, an article header's language and `Aa`
-  actions). `pressable` mono `text-xs`, `rounded px-2 py-1`. Chosen:
+  actions). `pressable hit-area` mono `text-xs`, `h-7 rounded-md px-2` (28px drawn,
+  48px target), with an `active:` wash on both variants. Chosen:
   `bg-muted text-foreground`. A `segment` at rest is
   `text-tertiary-foreground hover:text-foreground`; an `action` keeps its
   row's ink and paints `hover:bg-muted/60`.
@@ -380,9 +391,11 @@ text-muted-foreground`, as in the palette's results.
 Every back link (to home, to the writing list, to docs) is
 `components/ui/system-nav.tsx`:
 
-- `TYPE.nav` (mono `text-xs tracking-wide`, secondary, `text-foreground` on
-  hover), plus `system-chrome pressable`, a 44px minimum touch target that
-  does not move the text, and `active:bg-foreground/5 active:scale-[0.98]`.
+- A glass capsule: `rounded-full border border-border/50 bg-glass
+  backdrop-blur-xl`, `h-9`, a `ChevronLeft` then the path in `TYPE.nav` (mono
+  `text-xs tracking-wide`, secondary, `text-foreground` on hover).
+  `system-chrome pressable hit-area` (36px drawn, 48px target),
+  `hover:bg-glass-hover active:bg-glass-strong active:scale-[0.97]`.
 - **Path first**: shows the destination (`λhux` for home, `/writing`,
   `/docs`), and on hover scrambles to `cd ..` (or `hoverText`). The click
   navigates at once; it never waits for the animation.
@@ -431,6 +444,7 @@ it.
 4. Family: serif only for emphasis and poetic titles; mono for the machine
    layer, `text-xs`, lowercase as written.
 5. Anything with a `hover:` wash also has `pressable` and an `active:`
-   state. Look at it in phone emulation.
+   state, and anything a finger presses has a 48px target (`hit-area`).
+   Look at it in phone emulation.
 6. No new colour; tint never on text.
 7. `pnpm lint`.

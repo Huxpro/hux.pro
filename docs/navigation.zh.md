@@ -40,7 +40,7 @@ origin: "AI-translated from the original"
 ### 移动的方式
 
 1. **命令面板。** 每个栏目都有一行和一个斜杠字母（Docs 只有字母）。它可以从每个页面的悬浮按钮打开，也可以用 ⌘K，或在输入框之外按 `/`。这些行、字母和按钮见 [Command System](./system-command.md)。
-2. **返回链接**（`SystemNav`，`components/ui/system-nav.tsx`），位于每个 `PageLayout` 页面的左上角。它去往上一级，而不是历史记录里的上一页：文章 → 它所在的列表 → 首页。它显示自己要去哪里（`λhux`、`/writing`、`/docs`），悬停时乱码变换成 `cd ..`。它的点击区域至少 44px，用负 margin 撑开，文字位置保持不动。
+2. **返回链接**（`SystemNav`，`components/ui/system-nav.tsx`），位于每个 `PageLayout` 页面的左上角。它去往上一级，而不是历史记录里的上一页：文章 → 它所在的列表 → 首页。它是一枚玻璃胶囊，一个向左的箭头加上要去的地方（`‹ λhux`、`‹ /writing`、`‹ /docs`），和命令栏、Ask 球同一种材质，所以读起来是按钮而不是标签；路径在悬停时乱码变换成 `cd ..`。画出来 36px，触控目标 48px（`hit-area`）。在文章或文档里，页头滚走之后，同一枚胶囊会钉在左上角，和 Dock 的胶囊平齐（`FloatingBack`，`components/ui/floating-back.tsx`），回上一级的路就不只剩下命令面板。
 3. **内容。** 文章行、小组件的表面和页面里的链接。带 `href` 的小组件用 transition router 推入；在它空白的表面上 ⌘/Ctrl 点击或中键点击则改为打开新标签页（`components/ui/widget.tsx`）。在首页上，`λhux` 标识本身在名字被揭示之后会打开 `/about`：桌面上靠悬停，触屏上靠长按（`components/home/scramble-identifier.tsx`）。
 4. **浏览器的后退和前进。** 就是普通的历史记录。`ViewTransitions` 监听 `popstate`，所以它们也有动画。
 

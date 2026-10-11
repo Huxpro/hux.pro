@@ -58,8 +58,10 @@ function ReturnHomeButton() {
           "bg-glass backdrop-blur-xl",
           "border border-border/50",
           "text-sm text-foreground",
-          "transition-all duration-300",
-          "hover:border-border hover:bg-glass-hover"
+          "transition-[background-color,border-color,scale] duration-300",
+          "hover:border-border hover:bg-glass-hover",
+          // A finger gets the press on touch-down, as the back capsule does.
+          "pressable active:border-border active:bg-glass-strong active:scale-[0.97]"
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}

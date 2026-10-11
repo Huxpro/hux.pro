@@ -45,16 +45,19 @@ const SEGMENTED_TONE = {
   },
   reader: {
     group: "gap-0.5 rounded-lg bg-muted p-0.5",
-    segment: "rounded-[0.4rem] px-3 py-1 text-xs leading-5",
+    // 28px with the track; `hit-area-y` makes each stop 48px tall to a
+    // finger (side by side, so never sideways).
+    segment: "pressable hit-area-y rounded-[0.4rem] px-3 py-1 text-xs leading-5",
     selected: "bg-background text-foreground shadow-sm",
-    idle: "text-muted-foreground hover:text-foreground",
+    idle: "text-muted-foreground hover:text-foreground active:bg-background/60 active:text-foreground",
   },
   bare: {
     group: "items-center gap-0.5",
+    // 28px drawn, 48px tall to a finger; side by side, so vertical only.
     segment:
-      "inline-flex items-center justify-center rounded p-1 duration-200",
+      "pressable hit-area-y inline-flex size-7 items-center justify-center rounded-md duration-200",
     selected: "bg-muted text-foreground",
-    idle: "text-tertiary-foreground hover:text-foreground",
+    idle: "text-tertiary-foreground hover:text-foreground active:bg-muted/60 active:text-foreground",
   },
 } as const;
 
@@ -148,7 +151,8 @@ export function Switch({
       aria-pressed={on}
       aria-label={label}
       className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
+        // 20px drawn, 48px to a finger.
+        "pressable hit-area relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
         on ? SWITCH_TONE[tone] : "bg-muted/40 border-border/60",
         disabled && "opacity-40 cursor-not-allowed"
       )}
@@ -237,7 +241,10 @@ export function HeaderAction({
         // `pressable` is the touch contract any chip with a hover wash gets
         // (docs/design-system.md, "Touch"): the wash lands on the touch-down
         // frame instead of easing in behind a tap that is already over.
-        "pressable inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 transition-colors duration-200",
+        //
+        // 28px drawn, so the press wash shows around a fingertip; `hit-area`
+        // makes the target 48px (docs/design-system.md, "Touch").
+        "pressable hit-area inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 transition-colors duration-200",
         // An `action` sits in a line of running text, so its padding must not
         // show up as space: the negative margin cancels it exactly, leaving
         // the row's own gap as the only distance between one item and the
@@ -249,11 +256,11 @@ export function HeaderAction({
         active
           ? "bg-muted text-foreground"
           : variant === "segment"
-            ? "text-tertiary-foreground hover:text-foreground"
+            ? "text-tertiary-foreground hover:text-foreground active:bg-muted/60 active:text-foreground"
             // No colour of its own: it inherits the row's, which is what
             // "keeps the ink of the row it sits in" has to mean if the claim
             // is to stay true when that row's ink changes.
-            : "hover:bg-muted/60 hover:text-foreground",
+            : "hover:bg-muted/60 hover:text-foreground active:bg-muted active:text-foreground",
         className
       )}
     >

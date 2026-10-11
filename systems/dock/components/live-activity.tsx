@@ -362,7 +362,7 @@ export function LiveActivity({
                     <div className="ml-auto flex items-center">{actions}</div>
                   )}
                   <Drawer.Close
-                    className="-mr-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground active:scale-95"
+                    className="pressable hit-area -mr-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-[color,background-color,scale] hover:bg-foreground/[0.06] hover:text-foreground active:scale-95 active:bg-foreground/[0.08] active:text-foreground"
                     aria-label={collapseLabel}
                   >
                     <ChevronUp className="h-4 w-4" />
