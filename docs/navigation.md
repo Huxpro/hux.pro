@@ -59,7 +59,10 @@ Addresses that move, all in `next.config.ts` unless noted:
    where it goes (`‹ λhux`, `‹ /writing`, `‹ /docs`), the same material as the
    command bar and the Ask ball, so it reads as a button rather than a label;
    the path scrambles to `cd ..` on hover. Drawn 36px, a 48px target
-   (`hit-area`).
+   (`hit-area`). On an article or a doc, once the masthead has scrolled away,
+   the same capsule pins at the top left, level with the Dock's pills
+   (`FloatingBack`, `components/ui/floating-back.tsx`), so the way up is
+   never only the palette.
 3. **Content.** Post rows, widget surfaces and links in the page. A widget
    with an `href` pushes it with the transition router; ⌘/Ctrl-click or a
    middle click on its blank surface opens a new tab instead

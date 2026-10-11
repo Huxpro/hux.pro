@@ -19,6 +19,8 @@ interface SystemNavProps {
    */
   identifier?: boolean;
   className?: string;
+  /** React 19 takes `ref` as a prop. */
+  ref?: React.Ref<HTMLAnchorElement>;
 }
 
 /**
@@ -41,6 +43,7 @@ export function SystemNav({
   hoverText = "cd ..",
   identifier = true,
   className,
+  ref,
 }: SystemNavProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -49,6 +52,7 @@ export function SystemNav({
 
   return (
     <Link
+      ref={ref}
       href={href}
       className={cn(
         TYPE.nav,
