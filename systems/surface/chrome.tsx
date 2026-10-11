@@ -79,7 +79,9 @@ function SurfaceHeader({
       <TitleAs className="min-w-0 flex-1 truncate text-xs font-mono text-muted-foreground">
         {title}
       </TitleAs>
-      <div className="flex shrink-0 items-center gap-1">
+      {/* gap-3: the discs are 36px with 48px targets, so 12px apart is the
+          closest two can sit before one steals the other's taps. */}
+      <div className="flex shrink-0 items-center gap-3">
         {actions}
         <button
           onClick={onClose}

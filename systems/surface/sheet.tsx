@@ -193,6 +193,10 @@ export function detentHeight(point: number): string {
  *                    It also sets `touch-action: manipulation`.
  *   `system-chrome`  a control, not text: no selection, no long-press callout.
  *
+ * A filled disc, as a sheet's close is on iOS: a glyph floating in the header
+ * with nothing around it read as decoration until a pointer found it. 36px
+ * drawn, 48px to a finger (`hit-area`).
+ *
  * The transition names `scale` explicitly. `transition-colors` does not cover
  * it, and Tailwind v4 compiles `scale-*` to the `scale` property rather than
  * `transform`. So the press used to snap back on the frame it was released
@@ -201,7 +205,7 @@ export function detentHeight(point: number): string {
  * back up.
  */
 export const HEADER_BUTTON =
-  "pressable system-chrome shrink-0 rounded-md p-2 text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/40 hover:text-foreground active:scale-[0.92] active:bg-accent/60";
+  "pressable system-chrome hit-area inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-[color,background-color,scale] duration-150 ease-out hover:bg-accent/60 hover:text-foreground active:scale-[0.92] active:bg-accent active:text-foreground";
 
 /**
  * The glass shell every shape shares. With `.system-chrome` it also carries the

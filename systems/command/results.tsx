@@ -212,7 +212,7 @@ export function SlashEntry({ className }: { className?: string }) {
       onClick={() => setSlashCommandsMode(true)}
       aria-label={t(locale, "slashCommands")}
       className={cn(
-        "pressable flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md px-2",
+        "pressable hit-area-y flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md px-2",
         "border border-border/50 bg-muted/50 font-mono text-xs text-muted-foreground",
         "transition-colors active:bg-accent active:text-foreground",
         className
