@@ -45,9 +45,11 @@ const SEGMENTED_TONE = {
   },
   reader: {
     group: "gap-0.5 rounded-lg bg-muted p-0.5",
-    segment: "rounded-[0.4rem] px-3 py-1 text-xs leading-5",
+    // 28px with the track; `hit-area-y` makes each stop 48px tall to a
+    // finger (side by side, so never sideways).
+    segment: "pressable hit-area-y rounded-[0.4rem] px-3 py-1 text-xs leading-5",
     selected: "bg-background text-foreground shadow-sm",
-    idle: "text-muted-foreground hover:text-foreground",
+    idle: "text-muted-foreground hover:text-foreground active:bg-background/60 active:text-foreground",
   },
   bare: {
     group: "items-center gap-0.5",
@@ -149,7 +151,8 @@ export function Switch({
       aria-pressed={on}
       aria-label={label}
       className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
+        // 20px drawn, 48px to a finger.
+        "pressable hit-area relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
         on ? SWITCH_TONE[tone] : "bg-muted/40 border-border/60",
         disabled && "opacity-40 cursor-not-allowed"
       )}
