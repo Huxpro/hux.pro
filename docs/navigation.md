@@ -55,9 +55,11 @@ Addresses that move, all in `next.config.ts` unless noted:
    [Command System](./system-command.md).
 2. **The back link** (`SystemNav`, `components/ui/system-nav.tsx`), at the
    top left of every `PageLayout` page. It goes to the parent, not back in
-   history: article → its list → home. It shows where it goes (`λhux`,
-   `/writing`, `/docs`) and scrambles to `cd ..` on hover. Its hit area is at
-   least 44px, padded out with negative margins so the text stays in place.
+   history: article → its list → home. A glass capsule with a chevron and
+   where it goes (`‹ λhux`, `‹ /writing`, `‹ /docs`), the same material as the
+   command bar and the Ask ball, so it reads as a button rather than a label;
+   the path scrambles to `cd ..` on hover. Drawn 36px, a 48px target
+   (`hit-area`).
 3. **Content.** Post rows, widget surfaces and links in the page. A widget
    with an `href` pushes it with the transition router; ⌘/Ctrl-click or a
    middle click on its blank surface opens a new tab instead

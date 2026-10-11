@@ -2,6 +2,7 @@
 
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { cn } from "@/lib/utils";
+import { ChevronLeft } from "lucide-react";
 import { Link } from "next-view-transitions";
 import { useState } from "react";
 
@@ -12,23 +13,33 @@ interface SystemNavProps {
   path: string;
   /** The hover state text, defaults to "cd .." */
   hoverText?: string;
+  /**
+   * Carry the `site-identifier` view-transition name. Only one element per
+   * page may; a second copy of the back button (the pinned one) passes false.
+   */
+  identifier?: boolean;
   className?: string;
 }
 
 /**
- * System UI Navigation Component
+ * The back button: a glass capsule, a chevron, and where it goes.
  *
- * Consistent navigation element following the System UI design language:
- * - Monospace font
- * - Shows destination path by default (e.g., "/docs", "λhux")
- * - Scrambles to "cd .." on hover
- * - Click navigates immediately (not blocked by animation)
- * - Mobile optimized: larger touch target (44px min), touch feedback
+ * It used to be the path alone, mono text with nothing around it, which read
+ * as a label until a pointer found it (and a finger never did). The capsule is
+ * the same glass every other floating control on the site wears (the command
+ * bar, the Ask ball, a Live Activity), so it reads as a thing to press without
+ * a new visual word; the chevron says which way.
+ *
+ * - Shows the destination (`λhux`, `/writing`, `/docs`) and scrambles to
+ *   `cd ..` on hover. The click navigates at once.
+ * - Drawn 36px tall; `hit-area` gives it the site's 48px touch target
+ *   (app/globals.css, "Touch target").
  */
 export function SystemNav({
   href,
   path,
   hoverText = "cd ..",
+  identifier = true,
   className,
 }: SystemNavProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -40,34 +51,31 @@ export function SystemNav({
     <Link
       href={href}
       className={cn(
-        // Visual styling (unchanged)
         TYPE.nav,
-        "text-muted-foreground hover:text-foreground",
+        "text-muted-foreground hover:text-foreground active:text-foreground",
         // Ensure pointer events work during animation
         "pointer-events-auto cursor-pointer",
         // OS chrome: no text selection / callout; press lands instantly.
-        "system-chrome pressable",
-        // Mobile touch optimization
-        // Larger touch target with negative margin to maintain visual position
-        "relative inline-flex items-center justify-start",
-        "min-h-[44px] min-w-[44px]", // Apple HIG minimum touch target
-        "-ml-3 pl-3 pr-3 -mt-2 pt-2 -mb-2 pb-2", // Expand touch area without moving visual
-        "rounded-lg", // Rounded for touch feedback area
-        // Touch feedback. The properties are named rather than `all`: the
-        // reader's type size drives this element's `margin-bottom` (the gap
-        // over the article title, app/globals.css), and `transition-all` put
-        // that margin in the transition set -- so changing the size snapped
-        // the type and then slid the whole page for another 150ms, one
-        // setting read as two events. `scale` is listed because Tailwind v4
-        // compiles `scale-*` to the `scale` property, not `transform`.
-        "active:bg-foreground/5 active:scale-[0.98]",
+        "system-chrome pressable hit-area",
+        // The capsule. Glass, so it follows Tinted / Clear with the rest of
+        // the floating chrome (docs/system-glass.md).
+        "inline-flex h-9 items-center gap-1 rounded-full pl-2 pr-3.5",
+        "border border-border/50 bg-glass backdrop-blur-xl",
+        "hover:bg-glass-hover active:bg-glass-strong active:scale-[0.97]",
+        // The properties are named rather than `all`: the reader's type size
+        // drives this element's `margin-bottom` (the gap over the article
+        // title, app/globals.css), and `transition-all` put that margin in the
+        // transition set -- so changing the size snapped the type and then
+        // slid the whole page for another 150ms. `scale` is listed because
+        // Tailwind v4 compiles `scale-*` to the `scale` property.
         "transition-[color,background-color,scale] duration-150",
         className
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <span data-view-transition="site-identifier">
+      <ChevronLeft aria-hidden className="size-4 shrink-0" strokeWidth={1.75} />
+      <span data-view-transition={identifier ? "site-identifier" : undefined}>
         <TextScramble
           trigger={true}
           duration={0.4}

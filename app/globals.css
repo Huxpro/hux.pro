@@ -1379,9 +1379,10 @@ main[data-variant="reader"] .reader-masthead h1 {
    ----------------------------------------------------------------------------- */
 
 main[data-variant="reader"] .reader-masthead > a {
-  /* The nav's box hangs 14px below its text -- the 44px touch target centring
-     a 16px line -- so the margin is that much less than the gap you see. */
-  margin-bottom: calc(var(--reading-size) * 4 - 14px);
+  /* The back capsule hangs 10px below its text -- 36px centring a 16px line
+     -- so the margin is that much less than the text-to-title gap. (Its 48px
+     touch target is a `::before`, outside layout.) */
+  margin-bottom: calc(var(--reading-size) * 4 - 10px);
 }
 
 main[data-variant="reader"] .reader-masthead {

@@ -218,7 +218,7 @@ text-muted-foreground`，和命令面板结果里的一样。
 
 每一个返回链接（回主屏幕、回文章列表、回文档）都是 `components/ui/system-nav.tsx`：
 
-- `TYPE.nav`（mono `text-xs tracking-wide`，secondary，悬停时 `text-foreground`），加上 `system-chrome pressable`、不移动文字的 44px 最小触控区域，以及 `active:bg-foreground/5 active:scale-[0.98]`。
+- 一枚玻璃胶囊：`rounded-full border border-border/50 bg-glass backdrop-blur-xl`，`h-9`，先是 `ChevronLeft`，再是 `TYPE.nav` 的路径（mono `text-xs tracking-wide`，secondary，悬停时 `text-foreground`）。`system-chrome pressable hit-area`（画出来 36px，触控目标 48px），`hover:bg-glass-hover active:bg-glass-strong active:scale-[0.97]`。
 - **路径优先**：显示目的地（主屏幕是 `λhux`，还有 `/writing`、`/docs`），悬停时乱码滚动成 `cd ..`（或 `hoverText`）。点击立即导航，从不等动画结束。
 
 ```tsx

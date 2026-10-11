@@ -390,9 +390,11 @@ text-muted-foreground`, as in the palette's results.
 Every back link (to home, to the writing list, to docs) is
 `components/ui/system-nav.tsx`:
 
-- `TYPE.nav` (mono `text-xs tracking-wide`, secondary, `text-foreground` on
-  hover), plus `system-chrome pressable`, a 44px minimum touch target that
-  does not move the text, and `active:bg-foreground/5 active:scale-[0.98]`.
+- A glass capsule: `rounded-full border border-border/50 bg-glass
+  backdrop-blur-xl`, `h-9`, a `ChevronLeft` then the path in `TYPE.nav` (mono
+  `text-xs tracking-wide`, secondary, `text-foreground` on hover).
+  `system-chrome pressable hit-area` (36px drawn, 48px target),
+  `hover:bg-glass-hover active:bg-glass-strong active:scale-[0.97]`.
 - **Path first**: shows the destination (`λhux` for home, `/writing`,
   `/docs`), and on hover scrambles to `cd ..` (or `hoverText`). The click
   navigates at once; it never waits for the animation.
