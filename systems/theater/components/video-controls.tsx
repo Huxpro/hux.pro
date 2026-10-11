@@ -68,7 +68,9 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
           </span>
           <div
             onClick={onScrub}
-            className="group/scrub relative h-2 flex-1 cursor-pointer"
+            // 8px drawn; the target grows to 32px (not the full 48: the
+            // cluster sits 6px under it and the stage right over it).
+            className="group/scrub relative h-2 flex-1 cursor-pointer before:absolute before:inset-x-0 before:-inset-y-3 before:content-['']"
           >
             <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-muted-foreground/25" />
             <div

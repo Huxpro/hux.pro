@@ -93,13 +93,11 @@ export const GLASS_PILL_FLAT = cn(
 
 /**
  * Touch hit extension for the small (28–32px) cluster controls: the visible
- * disc stays as drawn, the tappable area grows 6px above and below (never
- * sideways, where a neighbour sits 2px away). Brings a 28px button to ~40px
- * of finger room without loosening the cluster.
+ * disc stays as drawn, the tappable area grows to the site's 48px above and
+ * below (`hit-area-y`, app/globals.css; never sideways, where a neighbour
+ * sits 2px away), without loosening the cluster.
  */
-export const GLASS_HIT = cn(
-  "relative before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']",
-);
+export const GLASS_HIT = "hit-area-y";
 
 /**
  * Theme-aware icon button inside a cluster (or standalone orb).
