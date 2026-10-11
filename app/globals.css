@@ -1760,7 +1760,8 @@ main[data-variant="reader"] .reader-masthead {
    The pseudo is the element's own box, so it needs the element to be a
    containing block (the utility sets `position: relative`; an element already
    `absolute` / `fixed` keeps its own). Not for an element that paints its own
-   `::before`.
+   `::before`, nor one that is `overflow: hidden` (its own clip cuts the
+   pseudo; put the target on a wrapper that is not).
    ============================================================================= */
 
 :root {

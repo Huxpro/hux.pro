@@ -94,7 +94,7 @@ function ParkedPill({
         GLASS_CAPSULE,
         "h-9 pl-[5px] pr-3",
         OCCUPANT_TRANSITION,
-        "hover:border-border hover:bg-glass-hover active:scale-95",
+        "pressable hover:border-border hover:bg-glass-hover active:border-border active:bg-glass-hover active:scale-95",
       )}
       aria-label={`Restore ${appTitle(win.app, locale)}`}
       title={`Restore ${appTitle(win.app, locale)}`}
