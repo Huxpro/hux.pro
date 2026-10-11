@@ -201,7 +201,7 @@ active:bg-muted/60`：右图的底色就是手指在按下那一帧得到的反�
 
 `components/ui/controls.tsx` 存放站点的设置控件；不同用途之间的差别在于所处表面的声音，所以这就是唯一的参数。
 
-- **`HeaderAction`**：表示"可以对这个页面做的事"的选择块（`/writing` 的语言筛选、文章页头的语言和 `Aa` 操作）。`pressable` mono `text-xs`，`rounded px-2 py-1`。选中时：`bg-muted text-foreground`。`segment` 静止时是 `text-tertiary-foreground hover:text-foreground`；`action` 沿用所在行的墨色，并加上 `hover:bg-muted/60`。
+- **`HeaderAction`**：表示"可以对这个页面做的事"的选择块（`/writing` 的语言筛选、文章页头的语言和 `Aa` 操作）。`pressable hit-area` mono `text-xs`，`h-7 rounded-md px-2`（画出来 28px，触控目标 48px），两种变体都有 `active:` 底色。选中时：`bg-muted text-foreground`。`segment` 静止时是 `text-tertiary-foreground hover:text-foreground`；`action` 沿用所在行的墨色，并加上 `hover:bg-muted/60`。
 - **`Segmented`** / **`Switch`**，有三种色调：`system`（devtool：mono 大写 10px、细线框、开启时为绿色）、`reader`（sans、内凹的 `bg-muted` 轨道配上凸起的 `bg-background` 滑块，灰阶）和 `bare`（没有轨道，选中的字形放在 `bg-muted` 上；只用于选择器）。
 
 ### 键盘提示

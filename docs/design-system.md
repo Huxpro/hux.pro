@@ -364,7 +364,8 @@ between uses is the voice of the surface, so that is the one parameter.
 
 - **`HeaderAction`**: the chip for "something you can do to this page" (the
   `/writing` language filter, an article header's language and `Aa`
-  actions). `pressable` mono `text-xs`, `rounded px-2 py-1`. Chosen:
+  actions). `pressable hit-area` mono `text-xs`, `h-7 rounded-md px-2` (28px drawn,
+  48px target), with an `active:` wash on both variants. Chosen:
   `bg-muted text-foreground`. A `segment` at rest is
   `text-tertiary-foreground hover:text-foreground`; an `action` keeps its
   row's ink and paints `hover:bg-muted/60`.
