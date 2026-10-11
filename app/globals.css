@@ -1743,6 +1743,54 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
+   Touch target: `hit-area` / `hit-area-y`
+   Every control a finger can reach gets at least 48 x 48px of it -- the size
+   the Ask ball and the command bar already are (systems/command/fab.tsx), a
+   step over Apple's 44pt floor so a thumb on a moving page still lands. The
+   drawn chip stays the size the design wants; an invisible `::before` grows
+   the hit box around its centre to the target and never shrinks a box that is
+   already bigger (`min(0px, …)`). Percentages on `top` / `bottom` resolve
+   against the element's own height, on `left` / `right` its width, so one
+   rule centres on any shape.
+
+   `hit-area-y` grows vertically only: for controls packed side by side in a
+   cluster, where a sideways overlap would steal a neighbour's tap.
+
+   The pseudo is the element's own box, so it needs the element to be a
+   containing block (the utility sets `position: relative`; an element already
+   `absolute` / `fixed` keeps its own). Not for an element that paints its own
+   `::before`.
+   ============================================================================= */
+
+:root {
+  --hit-target: 48px;
+}
+
+@utility hit-area {
+  &:not(.absolute, .fixed, .sticky) {
+    position: relative;
+  }
+  &::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--hit-target)) / 2));
+    inset-inline: min(0px, calc((100% - var(--hit-target)) / 2));
+  }
+}
+
+@utility hit-area-y {
+  &:not(.absolute, .fixed, .sticky) {
+    position: relative;
+  }
+  &::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--hit-target)) / 2));
+    inset-inline: 0;
+  }
+}
+
+/* =============================================================================
    Widget surface: `.widget-surface`
    An iPadOS widget is one tappable object: its title, padding and static text
    open the widget, while rows, links, tabs and fields inside keep their own

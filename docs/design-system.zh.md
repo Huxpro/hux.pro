@@ -150,6 +150,8 @@ origin: "AI-translated from the original"
 
 触摸遵循 iOS 的约定，而不是鼠标的。Tailwind 的 `hover:` 受 `(hover: hover)` 限制，所以手指永远看不到悬停底色；如果没有 `active:` 状态，点一下列表行就完全没有反馈。`globals.css` 里的 class 承载 chrome 的各项策略；封面的按压效果和作品图的 token 放在一起（`lib/glass.ts` 里的 `COVER_WASH`）。运行时不根据指针类型做任何推断。
 
+**每个触控目标都是 48px。** 手指能按到的东西，至少要有 48 x 48px 的命中区域：这就是 Ask 球和命令栏本来的尺寸，比 Apple 的 44pt 下限大一档，让拇指在滚动中的页面上也能按准。画出来的控件不必这么大：`hit-area`（`app/globals.css`，"Touch target"）以控件中心向外长出一个看不见的 `::before`，补到 48px，已经更大的盒子不动；`hit-area-y` 只在垂直方向补，用于并排挤在一组里的控件。看得见的按下底色至少 28px 高，让反馈能从盖在上面的指尖四周露出来。
+
 <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
   <img src="/img/docs/design-system/row-rest.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="手机上静止状态的 Writing 索引页：serif 标题、EN / All 选择块，以及一列带 mono 日期的文章标题，没有行被高亮。" />
   <img src="/img/docs/design-system/row-press.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="同一个列表，第三行被按下：'React Is Not Vue, Obviously' 和它的日期后面出现一块柔和的圆角底色。" />
@@ -249,6 +251,6 @@ bg-glass backdrop-blur-xl hover:border-border hover:bg-glass-hover
 2. 文字：一个 `TYPE` 角色，或一档（`text-foreground`、`-reading-foreground`、`-muted-foreground`、`-tertiary-foreground`、`-quaternary-foreground`）。不用 `text-*/NN`，不用固定的灰色。
 3. 下划线：`decoration-ink-line`。
 4. 家族：serif 只用于强调和诗意标题；mono 用于机器层，`text-xs`，按原样小写。
-5. 任何带 `hover:` 底色的东西，也要有 `pressable` 和 `active:` 状态。在手机模拟里看一看。
+5. 任何带 `hover:` 底色的东西，也要有 `pressable` 和 `active:` 状态；手指会按的东西都要有 48px 的触控目标（`hit-area`）。在手机模拟里看一看。
 6. 不加新颜色；着色永远不落在文字上。
 7. `pnpm lint`。
