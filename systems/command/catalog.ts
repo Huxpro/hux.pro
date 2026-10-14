@@ -62,10 +62,11 @@ export const COMMAND_CATALOG = {
   },
   style: { policy: { execution: "on-request" },
     title: { en: "Style", zh: "风格" },
-    description: "Change the whole site's visual style (its design-token theme): default greyscale glass, cartoon (ink outlines, hard shadows), y2k (candy plastic, lilac grid), neon (glow-in-the-dark), or pixel (8-bit pocket pet). Independent of light/dark Appearance. A non-default style replaces the wallpaper with its own ground. Omit value to offer all five.",
+    description: "Change the whole site's visual style (its design-token theme): default greyscale glass, cartoon (ink outlines, hard shadows), darkroom (dark room, amber light on what is on stage; lamplit paper in light mode), y2k (candy plastic, lilac grid), neon (glow-in-the-dark), or pixel (8-bit pocket pet). Independent of light/dark Appearance. A non-default style replaces the wallpaper with its own ground. Omit value to offer all six.",
     options: [
       { value: "default", en: "Default", zh: "默认" },
       { value: "cartoon", en: "Cartoon", zh: "卡通" },
+      { value: "darkroom", en: "Darkroom", zh: "暗房" },
       { value: "y2k", en: "Y2K", zh: "Y2K" },
       { value: "neon", en: "Neon", zh: "夜光" },
       { value: "pixel", en: "Pixel", zh: "像素" },

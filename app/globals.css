@@ -445,7 +445,8 @@ html[data-tint="wallpaper"] {
    wallpaper (systems/ambient/provider.tsx), so the legibility inputs are the
    plain page's and nothing flips. Each Style has a light and a dark answer,
    picked by Appearance as before. The designs are the "Lantern × Softoy"
-   canvas: Cartoon is UU3 (扭蛋), Y2K is Y1, Neon is HH2 (Capsule × light),
+   canvas: Cartoon is UU3 (扭蛋), Darkroom is UU1 (暗房, with UU2's lamplit
+   paper for its light answer), Y2K is Y1, Neon is HH2 (Capsule × light),
    Pixel is EE3 / HH4 (the pocket pet).
    ============================================================================= */
 
@@ -485,6 +486,60 @@ html[data-style="cartoon"].dark {
   --surface-stroke: oklch(0.954 0.013 82.4);
   --elevation-raised: 3px 3px 0 oklch(0.823 0.112 229);
   --elevation-overlay: 6px 6px 0 oklch(0.823 0.112 229);
+}
+
+/* --- Darkroom (暗房): UU1. The room goes dark and the work is the only lit
+   thing. Amber is light, never decoration: it marks what is on stage now (the
+   accent wash, the focus ring), and a warm pool of it falls on the ground.
+   Surfaces are quiet panels with a hairline of warm light, lifted by a deep
+   black shadow. Lights on (light) is the same editor's daytime room, UU2's
+   lamplit paper: warm paper, a brass accent, a soft brown shadow. */
+html[data-style="darkroom"] {
+  --ink: oklch(0.281 0.014 67.2);
+  --ink-inverse: oklch(0.929 0.019 86.1);
+  --ink-line-theme: oklch(0.281 0.014 67.2 / 0.4);
+  --ink-line-inverse: oklch(0.929 0.019 86.1 / 0.4);
+  --ink-line: var(--ink-line-theme);
+  --background: oklch(0.918 0.016 82.8);
+  --card: oklch(0.98 0.009 84.6);
+  --popover: oklch(0.974 0.009 84.6);
+  --primary: oklch(0.624 0.097 63.9);
+  --primary-foreground: oklch(0.98 0.009 84.6);
+  --style-tint: oklch(0.624 0.097 63.9);
+  --tint-accent: 26%;
+  --tint-glass: 0%;
+  --radius: 0.5rem;
+  --surface-stroke: oklch(0.894 0.022 83.3);
+  --surface-stroke-width: 1px;
+  --elevation-raised: 0 2px 6px rgb(120 90 50 / 0.12);
+  --elevation-overlay: 0 8px 24px rgb(120 90 50 / 0.16), 0 2px 6px rgb(120 90 50 / 0.12);
+  --ground-pattern: radial-gradient(
+    circle at 100% 0%,
+    oklch(0.81 0.129 74.3 / 0.22),
+    transparent 45%
+  );
+  --ground-pattern-size: 100% 100vh;
+}
+html[data-style="darkroom"].dark {
+  --ink: oklch(0.929 0.019 86.1);
+  --ink-inverse: oklch(0.149 0.013 292.4);
+  --ink-line-theme: oklch(0.929 0.019 86.1 / 0.4);
+  --ink-line-inverse: oklch(0.149 0.013 292.4 / 0.4);
+  --background: oklch(0.149 0.013 292.4);
+  --card: oklch(0.203 0.02 293.7);
+  --popover: oklch(0.219 0.027 293.9);
+  --primary: oklch(0.829 0.154 76.7);
+  --primary-foreground: oklch(0.149 0.013 292.4);
+  --style-tint: oklch(0.829 0.154 76.7);
+  --tint-accent: 30%;
+  --surface-stroke: rgb(255 231 174 / 0.08);
+  --elevation-raised: 0 10px 30px rgb(0 0 0 / 0.45);
+  --elevation-overlay: 0 0 80px oklch(0.866 0.123 78.5 / 0.12), 0 30px 60px rgb(0 0 0 / 0.5);
+  --ground-pattern: radial-gradient(
+    circle at 50% 42%,
+    oklch(0.866 0.123 78.5 / 0.1),
+    transparent 40%
+  );
 }
 
 /* --- Y2K: candy plastic on a lilac graph-paper ground. Fat ink outlines,
@@ -658,6 +713,11 @@ html[data-style="neon"].dark {
 /* The faces each Style casts into the font roles. The faces are variables on
    <body> (app/layout.tsx), so the roles are re-declared there. */
 html[data-style="cartoon"] body {
+  --font-sans: var(--face-bricolage), var(--face-inter), system-ui, sans-serif;
+  --font-serif-latin: var(--face-fraunces);
+  --font-mono: var(--face-martian-mono), var(--face-jetbrains-mono), monospace;
+}
+html[data-style="darkroom"] body {
   --font-sans: var(--face-bricolage), var(--face-inter), system-ui, sans-serif;
   --font-serif-latin: var(--face-fraunces);
   --font-mono: var(--face-martian-mono), var(--face-jetbrains-mono), monospace;

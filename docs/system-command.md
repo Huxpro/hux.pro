@@ -378,7 +378,7 @@ including the unlisted ones.
 | `W` | Wallpaper picker | surface | settings |
 | `G` | Glass: tinted ↔ clear | toggle | settings |
 | `T` | Tint: wallpaper ↔ neutral | toggle | settings |
-| `S` | Style: default → cartoon → y2k → neon → pixel | toggle | settings |
+| `S` | Style: default → cartoon → darkroom → y2k → neon → pixel | toggle | settings |
 | `D` | Devtool | surface / toggle | settings |
 
 Install (actions, until installed) and Sky Window (actions, search-only)

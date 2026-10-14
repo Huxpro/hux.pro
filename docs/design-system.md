@@ -206,11 +206,12 @@ the border does most of the separating.
 
 ## Styles
 
-The look above is the **Default** Style. A visitor can pick four others
-(⌘K `S`, "Style"; the devtool's Glass section): **Cartoon**, **Y2K**,
-**Neon** and **Pixel**. They come from the "Lantern × Softoy" design canvas
-(Cartoon is UU3, the capsule-toy editor; Y2K is Y1; Neon is HH2, the capsule
-lit from inside; Pixel is EE3 / HH4, the pocket pet).
+The look above is the **Default** Style. A visitor can pick five others
+(⌘K `S`, "Style"; the devtool's Glass section): **Cartoon**, **Darkroom**,
+**Y2K**, **Neon** and **Pixel**. They come from the "Lantern × Softoy" design
+canvas (Cartoon is UU3, the capsule-toy editor; Darkroom is UU1, with the same
+editor's lamplit paper, UU2, as its light answer; Y2K is Y1; Neon is HH2, the
+capsule lit from inside; Pixel is EE3 / HH4, the pocket pet).
 
 A Style is **tokens only**. The choice is `data-style` on `<html>`
 (`services/style.tsx`, saved as `hux_style`, applied before first paint by an
@@ -225,6 +226,7 @@ hard-codes a grey or a shadow is the one that breaks under one.
 |---|---|---|---|---|---|
 | Default | the wallpaper | glass, 1px `border/50` | `--radius` 10px + steps | soft black | Inter / Newsreader / JetBrains Mono |
 | Cartoon | cool grey | solid, 2.5px ink outline | 12px + steps | hard 3px / 6px offset in ink (cyan in dark) | Bricolage Grotesque / Fraunces / Martian Mono |
+| Darkroom | near-black with a warm pool of light (light: lamplit paper) | quiet panels, a hairline of warm light (light: paper edge) | 8px + steps | deep black (light: soft brown); amber for what is on stage | Bricolage Grotesque / Fraunces / Martian Mono |
 | Y2K | lilac graph paper | solid white, 3px ink outline | 20px + steps | gloss line on top, lilac drop | Bricolage Grotesque / Bricolage / Silkscreen |
 | Neon | near-black (paper white in light) | glass with a lit edge (ink outline in light) | 16px + steps | lilac-to-blue glow; text glows in dark | Bricolage Grotesque / Newsreader / Martian Mono |
 | Pixel | device plastic with LCD dots (dark: backlit) | LCD green, 3px outline | square, every rung | one hard block down-right | Pixelify Sans / Silkscreen / Silkscreen |

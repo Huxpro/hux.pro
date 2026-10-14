@@ -114,7 +114,7 @@ duration-300 (morphing transitions)
 - Use `app/globals.css` for global variables.
 - Use Tailwind utility classes for component styling.
 - Avoid introducing new colors; stick to the grayscale system. The opt-in
-  Styles (cartoon / y2k / neon / pixel, ⌘K `S`) are the exception, and are
+  Styles (cartoon / darkroom / y2k / neon / pixel, ⌘K `S`) are the exception, and are
   token inputs only: the `STYLES` block in `app/globals.css`
   (`docs/design-system.md#styles`).
 - Text and washes are `--ink` at an alpha, never a fixed grey (see

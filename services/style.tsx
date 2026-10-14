@@ -8,6 +8,7 @@ import { isSiteStyle, SITE_STYLES, STORAGE_KEY, type SiteStyle } from "./style-c
 //
 //   default   the greyscale OS: glass over the wallpaper. No attribute.
 //   cartoon   卡通: ink outlines and hard offset shadows on solid surfaces.
+//   darkroom  暗房: the room goes dark and only what is on stage is lit, amber.
 //   y2k       Y2K: candy plastic on a lilac grid, fat outlines, a gloss edge.
 //   neon      夜光: surfaces that glow; in the dark, text that does too.
 //   pixel     像素: the pocket pet. Square corners, LCD surfaces, bitmap faces.
