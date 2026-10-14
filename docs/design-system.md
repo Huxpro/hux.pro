@@ -297,10 +297,12 @@ short of Inter's x-height: matching it outright makes it 22% wider. None of
 the files is preloaded, and a browser only fetches the ones a Style sets
 text in.
 
-The glow (docs/system-glow.md) harmonises with a Style the way it does with a
-wallpaper: `GlowPaletteBridge` reads the Style's own `--style-tint` off the
-root and hands it to the harmony rule, so the light under Neon is lilac and
-under Y2K pink, without a second copy of either colour.
+The glow (docs/system-glow.md) takes a Style as its colour source the way it
+takes a wallpaper: `GlowPaletteBridge` reads the Style's own `--style-tint`
+off the root and hands it to the harmony rule, without a second copy of the
+colour. The rule's default is Siri's fixed palette, under a Style as under a
+wallpaper, so this shows only once the devtool's Glow module sets a rule
+that follows the source (`auto`, `analogous`, …).
 
 A Style owns the ground. While one is on, the ambient system paints no
 wallpaper and keeps the iOS bezel off (`systems/ambient/provider.tsx`, and

@@ -36,8 +36,9 @@ function useStyleTint(): { h: number; c: number } | null {
  * wallpaper's dominant colour, from the ambient profile's `tint` (a
  * photograph's measured once, the Sky's read off the live scene), or under a
  * Style, which paints no wallpaper, the Style's own tint. Null for a grey
- * picture and the plain page. Mounted once, inside the ambient provider;
- * renders nothing.
+ * picture and the plain page. Only a rule that follows the source uses it;
+ * the default (`siri`) keeps the fixed palette either way. Mounted once,
+ * inside the ambient provider; renders nothing.
  */
 export function GlowPaletteBridge() {
   const { profile, fullEnabled } = useWallpaper();

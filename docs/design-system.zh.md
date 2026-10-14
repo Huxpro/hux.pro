@@ -162,7 +162,7 @@ origin: "AI-translated from the original"
 
 （x 高按 em 计；宽度是 “The quick brown fox jumps” 的 em 宽。）校正放在字体本身，而不是角色上的 `font-size-adjust`：后者会继承到嵌套的另一款字体上（sans 正文里的 serif `em`）。Pixelify 没有完全对齐 Inter 的 x 高：完全对齐会比 Inter 宽 22%。这些文件都不预加载，浏览器只下载风格实际用到的那几款。
 
-光晕（docs/system-glow.md）和风格的配合方式，与它和壁纸的配合一样：`GlowPaletteBridge` 从根元素读出风格自己的 `--style-tint`，交给配色规则，所以夜光下的光是淡紫，Y2K 下是粉色，不需要再存一份颜色。
+光晕（docs/system-glow.md）把风格当作颜色来源，和它对待壁纸一样：`GlowPaletteBridge` 从根元素读出风格自己的 `--style-tint`，交给配色规则，不需要再存一份颜色。配色规则默认是 Siri 的固定配色，风格下和壁纸下都一样，所以只有在 devtool 的 Glow 模块里选了跟随来源的规则（`auto`、`analogous` 等）时才看得出来。
 
 风格拥有页面的底。开启风格时，环境系统不画壁纸，iOS 边框保持关闭（`systems/ambient/provider.tsx`；首帧由边框的启动脚本 `systems/ambient/lib/bezel.ts` 负责），所以可读性输入是纯页面的那一套，风格的墨色也永远不会被翻转；浏览器 chrome 取风格的底色（`STYLE_GROUND`）。保存的壁纸不受影响，切回默认风格就回来了。
 
