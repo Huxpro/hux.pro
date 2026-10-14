@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocale, t } from "@/services";
+import { useLocale, useSiteStyle, t } from "@/services";
 import { useCommand } from "./provider";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, cancelFrame, frame, motion } from "framer-motion";
@@ -33,8 +33,30 @@ const DEVTOOL_HOLD_REVEAL_MS = 700;
 /** A press that slides this far is a drag or a scroll, not a hold. */
 const HOLD_SLOP_PX = 10;
 
-/** Both shapes of this button (the bar and the round FAB) are this round. */
+/** Both shapes of this button (the bar and the round FAB) are this round:
+ *  a capsule, half its 48px height. */
 const FAB_RADIUS = 24;
+
+/**
+ * The corner as a number, for the code that draws it in JS (framer's corner
+ * correction during the morph, the hold ring, a clip-path): the design
+ * system's `--capsule-radius`, capped at the capsule's own half-height. Round
+ * by default; a Style that squares its capsules (Pixel) squares this one.
+ * Read off the root a frame after the Style changes, as the glow does.
+ */
+function useCapsuleRadius(): number {
+  const style = useSiteStyle();
+  const [radius, setRadius] = useState(FAB_RADIUS);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const raw = getComputedStyle(document.documentElement).getPropertyValue("--capsule-radius");
+      const px = Number.parseFloat(raw);
+      setRadius(Number.isFinite(px) ? Math.min(FAB_RADIUS, px) : FAB_RADIUS);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [style]);
+  return radius;
+}
 
 /** The Ask ball: one size everywhere, so it only ever moves. */
 const ASK_SIZE = 48;
@@ -46,6 +68,7 @@ export function FloatingActionButton() {
   const { summon: summonDevtool } = useDevtool();
   const pathname = usePathname();
   const { locale } = useLocale();
+  const radius = useCapsuleRadius();
   const [mounted, setMounted] = useState(false);
   const drag = useDraggable("command-fab");
   // While the home grid is in jiggle edit mode, the bar fades out on phones
@@ -167,9 +190,9 @@ export function FloatingActionButton() {
           // surface, and a transform makes the compositor re-blur every
           // frame of the press. The colour wash above is the feedback.
           ? "rounded-2xl pl-4 pr-6 md:px-4 w-auto md:w-full md:max-w-md focus:outline-none focus:ring-2 focus:ring-ring/20"
-          : "rounded-[24px] w-12 md:w-auto md:px-4 justify-center active:scale-95"
+          : "w-12 md:w-auto md:px-4 justify-center active:scale-95"
       )}
-      style={{ borderRadius: FAB_RADIUS }}
+      style={{ borderRadius: radius }}
       animate={{ opacity: yielding ? 0 : 1 }}
       transition={{
         layout: { duration: 0.4, ease: [0.32, 0.72, 0, 1] },
@@ -283,8 +306,8 @@ export function FloatingActionButton() {
       {holdRing && (
         <HoldRing
           rect={holdRing}
-          // Both shapes of this button share FAB_RADIUS.
-          radius={FAB_RADIUS}
+          // Both shapes of this button share one corner.
+          radius={radius}
           durationMs={DEVTOOL_HOLD_MS - DEVTOOL_HOLD_REVEAL_MS}
         />
       )}
@@ -374,6 +397,7 @@ function AskBall({
 }) {
   const { locale } = useLocale();
   const s = askStrings(locale);
+  const radius = useCapsuleRadius();
   const { openAsk, closeAsk, askPlacement } = useCommand();
   // The ball's place is written straight to its style, in the same frame the
   // bar is drawn (a motion value would only be applied on framer's next
@@ -509,7 +533,7 @@ function AskBall({
           ? { duration: HANDOFF.out }
           : { duration: HANDOFF.in, delay: HANDOFF.delay },
       }}
-      style={{ width: ASK_SIZE, height: ASK_SIZE, borderRadius: FAB_RADIUS }}
+      style={{ width: ASK_SIZE, height: ASK_SIZE, borderRadius: radius }}
       className={cn(
         "group/ask pressable pointer-events-auto absolute left-0 top-0 select-none",
         "flex items-center justify-center",
@@ -526,7 +550,7 @@ function AskBall({
           the shadow stays on the button, outside the clip. */}
       <span
         aria-hidden
-        style={{ clipPath: `inset(0 round ${FAB_RADIUS}px)` }}
+        style={{ clipPath: `inset(0 round ${radius}px)` }}
         className={cn(
           "absolute inset-0 rounded-[inherit] bg-glass backdrop-blur-xl",
           "border border-border/50",

@@ -103,7 +103,7 @@ origin: "AI-translated from the original"
 
 ## 颜色
 
-调色板是灰阶，用 OKLCH 表示。颜色由内容带来：壁纸、封面、照片。没有强调色；不要引入强调色。现有的两种色相承载的是含义，而不是品牌：红色表示错误或破坏性操作（`--destructive`，见下文），绿色表示"正在进行"（devtool 的开关、`WidgetStatus` 的圆点）。
+调色板是灰阶，用 OKLCH 表示（默认风格下，见下文“风格”一节）。颜色由内容带来：壁纸、封面、照片。没有强调色；不要引入强调色。现有的两种色相承载的是含义，而不是品牌：红色表示错误或破坏性操作（`--destructive`，见下文），绿色表示"正在进行"（devtool 的开关、`WidgetStatus` 的圆点）。
 
 **文字和底色都是带透明度的墨色。** 每个主题一个 `--ink`（浅色 `oklch(0.145 0 0)`，深色 `oklch(0.93 0 0)`），每个文字和底色 token 都是它的一个百分比，所以同一个 token 叠在白底上、玻璃上、图片上都成立。文字从五档里选一档：`text-foreground`、`text-reading-foreground`（连续正文，85 %）、`text-muted-foreground`（54 / 60 %）、`text-tertiary-foreground`（32 / 36 %）和 `text-quaternary-foreground`（20 / 22 %，分隔符和其他装饰）。底色是 `bg-muted`（4 / 6 %）、`bg-accent`（7 / 10 %）和 `border-border`（9 / 10 %）。绝不用 `text-*/NN`（去选一档），也绝不用 `decoration-*/NN`（用 `decoration-ink-line`）。完整的阶梯、壁纸上的增强、浮雕、反转的 `.ink-bare` 区域，以及调校它们的 lab：[Legibility](./system-legibility.md)。
 
@@ -122,6 +122,51 @@ origin: "AI-translated from the original"
 不透明的 `bg-card` / `bg-popover`（不带修饰）用于不是浮层玻璃的东西：`components/ui` 里的菜单、按下的药丸按钮的实色状态。`--destructive`（`oklch(0.58 0.22 27)` / `oklch(0.704 0.191 22.216)`）是 token 里唯一的色相，用于错误或破坏性操作：失败的语音请求、错误的 bundle 网址、手机 sheet 菜单里的破坏性选项。`--primary`、`--chart-*` 和 `--sidebar-*` 是 shadcn 的原始值，供 `components/ui` 使用。
 
 层级只有两种阴影（`globals.css` 里的 `@theme`）：`shadow-raised` 用于静止的浮动控件和悬停预览，`shadow-overlay` 用于命令面板、展开的 Live Activity、devtool。两个主题里都是黑色；深色模式下，主要靠边框来区分层次。
+
+## 风格（Style）
+
+上面描述的是**默认**风格。访客还可以选另外五种（⌘K `S`，“风格”；或 devtool 的 Glass 一节）：**卡通**、**Y2K**、**软糖**、**夜光**、**像素**。它们来自 “Lantern × Softoy” 设计稿：卡通是 UU3（扭蛋编辑器），Y2K 是 Y1，软糖是 GG1 / GG2（四种口味，“柔和体积”那一档的缎面塑料），夜光是 HH2（从里面发光的胶囊），像素是 EE3 / HH4（口袋宠物机）。
+
+风格**只由 token 组成**。选择体现为 `<html>` 上的 `data-style`（`services/style.tsx`，存为 `hux_style`，由一段内联启动脚本在首帧之前设置），`app/globals.css` 在一个 `STYLES` 块里为它重新选定 token 的*输入*：墨色和页面底色、玻璃填充、圆角、投影、字体。THE LADDER 用这些输入推导出每一级文字、每种底色和玻璃角色，推导方式和默认风格完全一样。所以按 token 写的组件不用做任何事就支持所有风格；在某个风格下出问题的，一定是写死了灰色或阴影的组件。
+
+| | 底 | 浮层表面 | 圆角 | 投影 | 字体（sans / serif / mono） |
+|---|---|---|---|---|---|
+| 默认 | 壁纸 | 玻璃，1px `border/50` | `--radius` 10px + 每级步长 | 柔和的黑色 | Inter / Newsreader / JetBrains Mono |
+| 卡通 | 冷灰 | 实色，2.5px 墨线描边 | 12px + 步长 | 3px / 6px 墨色硬投影（暗色下为青色） | Bricolage Grotesque / Fraunces / Martian Mono |
+| Y2K | 淡紫方格纸 | 实白，3px 墨线描边 | 20px + 步长 | 顶边高光，淡紫投影 | Bricolage Grotesque / Bricolage / Silkscreen |
+| 软糖 | 浅灰，四个角各晕着一种口味色（暗色：墨蓝） | 实白缎面，没有描边 | 18px + 步长 | 柔和体积：底部一层冷色暗部，苏打蓝从里面反射上来，下方一圈柔和投影（暗色：一点辉光） | Bricolage Grotesque / Bricolage / Martian Mono |
+| 夜光 | 近黑（亮色下为纸白） | 带发光边的玻璃（亮色下为墨线描边） | 16px + 步长 | 淡紫到蓝的辉光；暗色下文字也发光 | Bricolage Grotesque / Newsreader / Martian Mono |
+| 像素 | 带 LCD 点阵的机身塑料（暗色：背光屏） | LCD 绿，3px 描边 | 全部直角 | 向右下一格的硬投影 | Pixelify Sans / Silkscreen / Silkscreen |
+
+每个风格都有亮色和暗色两版，仍由 Appearance 决定用哪一版。风格给设计系统新增的 token 都在 `STYLES` 里，默认值在 `:root`：
+
+- `--style-tint`：风格的标志色。它顶替壁纸的着色（`--tint`），所以只落在着色本来就落的地方（accent 底色、焦点环），从不落在墨色上，文字仍在阶梯上。
+- `--surface-stroke` / `--surface-stroke-width`：浮层表面的描边。在风格下，所有玻璃角色以及实色的 `bg-card` / `bg-popover` 都带上它，并配上对应层级的投影（小组件和胶囊用 `--elevation-raised`，sheet、popover、⌘K 面板用 `--elevation-overlay`）。
+- `--elevation-raised` / `--elevation-overlay` / `--elevation-control`：也就是 `shadow-raised`、`shadow-overlay` 和 `shadow-control`；默认值原样搬到这里。`shadow-control` 是第三档、最低的一层，用于控件在轨道里的那个可动部分（分段控件的滑块、开关的圆钮、音乐小组件里选中的胶囊），以前用的是 Tailwind 的 `shadow-sm`。不是玻璃的浮层（窗口的边框，它的底是里面的 app）通过 `style-frame` 这个名字拿到描边和 overlay 那一档投影。
+- `--radius-step`：圆角每一级在 `--radius` 上加多少（默认 1；像素风格为 0，所有圆角一样）。
+- `--capsule-radius`（`rounded-capsule`）：浮在页面上的单行胶囊的两端（`GLASS_CAPSULE`、/works 的章节胶囊、编辑模式的按钮）。默认是全圆；像素风格把它变成直角。
+- App icon：`--icon-radius`（`rounded-icon`，百分比；`rounded-icon-plate` 再圆三分之一，用于窗口菜单和 Dock 里 24px 的小图标）、`--icon-stroke` / `--icon-stroke-width`、`--icon-plate`（图标不铺满时垫在后面的底板）、`--icon-press`（按下时的压暗）和 `--elevation-icon`（`shadow-icon`）。默认值就是原来的样子（22.5%、1px black/8 或 white/12 细边、白底板、没有投影）；风格只改边缘，从不碰图标本身的画面。所有复制了这个圆角的地方都用它们：`AppTile`、⌘K 的“加载包”、`AppIconPlate`、`ProjectMark`、文章里徽章的图标。
+- `--ground-pattern`（及 `-size`）：铺在页面底色上的图案，落在 `.page-ground` 上。
+- `--style-text-glow`：夜光的发光，作用于页面文字，但不作用于文章正文。
+- `--font-code`：文章里的代码；默认等于 mono 角色，当风格的 mono 是展示字体时（像素、Y2K）保持 JetBrains Mono。
+
+字体文件是以字体命名的变量（`--face-inter`、`--face-bricolage`……）；角色（`--font-sans`、`--font-serif-latin`、`--font-mono`、`--font-code`）在 `globals.css` 里由它们指派，风格会重新指派。默认的四款来自 next/font；风格的五款自托管（`public/fonts/styles`，OFL），写成 `globals.css` 里的 `@font-face`（FACES），因为每款都带一个 `size-adjust`，把它校正到它所顶替的那款字体：全站的 px 字号和行高都是按 Inter 和 JetBrains Mono 定的，x 高更小的字体在同一个数字下会显小一号，更宽的等宽字体会把默认放得下的行截断。数值是实测的：
+
+| 字体 | x 高 | 宽度 | 顶替 | `size-adjust` |
+|---|---|---|---|---|
+| Bricolage Grotesque | 0.52 | 12.6 | Inter 0.55 / 12.8 | 106% |
+| Fraunces | 0.47 | 12.8 | Newsreader 0.45 | 96% |
+| Martian Mono | 0.60 | 17.5 | JetBrains Mono 0.55 / 15 | 90% |
+| Silkscreen | 0.63 | 17.5 | JetBrains Mono 0.55 / 15 | 87% |
+| Pixelify Sans | 0.45 | 12.8 | Inter 0.55 / 12.8 | 112% |
+
+（x 高按 em 计；宽度是 “The quick brown fox jumps” 的 em 宽。）校正放在字体本身，而不是角色上的 `font-size-adjust`：后者会继承到嵌套的另一款字体上（sans 正文里的 serif `em`）。Pixelify 没有完全对齐 Inter 的 x 高：完全对齐会比 Inter 宽 22%。这些文件都不预加载，浏览器只下载风格实际用到的那几款。
+
+光晕（docs/system-glow.md）把风格当作颜色来源，和它对待壁纸一样：`GlowPaletteBridge` 从根元素读出风格自己的 `--style-tint`，交给配色规则，不需要再存一份颜色。配色规则默认是 Siri 的固定配色，风格下和壁纸下都一样，所以只有在 devtool 的 Glow 模块里选了跟随来源的规则（`auto`、`analogous` 等）时才看得出来。
+
+风格拥有页面的底。开启风格时，环境系统不画壁纸，iOS 边框保持关闭（`systems/ambient/provider.tsx`；首帧由边框的启动脚本 `systems/ambient/lib/bezel.ts` 负责），所以可读性输入是纯页面的那一套，风格的墨色也永远不会被翻转；浏览器 chrome 取风格的底色（`STYLE_GROUND`）。保存的壁纸不受影响，切回默认风格就回来了。
+
+新增一个风格：在 `services/style-core.ts` 里加一个值（以及它的底色，和 `lib/i18n.ts` 里的两个标签），在 `style` 命令（`systems/command/catalog.ts`）里加一个选项，再在 `STYLES` 里为亮色和暗色各写一块输入。别的地方都不应该需要改；如果需要，说明那个组件还没有用上 token。
 
 ## 间距与布局
 
@@ -250,5 +295,5 @@ bg-glass backdrop-blur-xl hover:border-border hover:bg-glass-hover
 3. 下划线：`decoration-ink-line`。
 4. 家族：serif 只用于强调和诗意标题；mono 用于机器层，`text-xs`，按原样小写。
 5. 任何带 `hover:` 底色的东西，也要有 `pressable` 和 `active:` 状态。在手机模拟里看一看。
-6. 不加新颜色；着色永远不落在文字上。
+6. 不加新颜色；着色永远不落在文字上。风格的颜色只写在 `STYLES`（`app/globals.css`）里。
 7. `pnpm lint`。

@@ -710,7 +710,7 @@ export function TimelineCommit({
               // (see `mark`, commit-data.ts). 16px is the role ring's size,
               // so the two things that fill this column fill it alike. The
               // corner radius is a home-screen icon's at that size.
-              <ProjectMark icon={data.mark} className="size-4 rounded-[4px]" />
+              <ProjectMark icon={data.mark} className="size-4 rounded-icon" />
             ) : (
               <CommitIcon
                 type={data.type}

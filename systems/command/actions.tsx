@@ -2,7 +2,12 @@
 
 import {
   getGlassLabel,
+  getStyleLabel,
   getTintLabel,
+  isSiteStyle,
+  nextSiteStyle,
+  setSiteStyle,
+  useSiteStyle,
   localeNames,
   t,
   useGlass,
@@ -36,6 +41,7 @@ import {
   Moon,
   Music,
   Orbit,
+  Palette,
   Sparkles,
   SquarePlus,
   Sun,
@@ -123,6 +129,7 @@ const APPEARANCE_ICON: Record<ThemePreference, typeof Sun> = {
 export function useCommandActions(): CommandAction[] {
   const { preference, cycleThemePreference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
+  const siteStyle = useSiteStyle();
   const {
     usingGps: locationAccurate,
     setLocationMode,
@@ -493,6 +500,45 @@ export function useCommandActions(): CommandAction[] {
       ],
       run: (ctx) =>
         setGlassTint(ctx?.value === "wallpaper" || ctx?.value === "neutral" ? ctx.value : glassTint === "wallpaper" ? "neutral" : "wallpaper"),
+    },
+    {
+      id: "style",
+      key: "s",
+      kind: "toggle",
+      section: "settings",
+      label: `${t(locale, "settingsStyle")}: ${getStyleLabel(siteStyle, locale)}`,
+      icon: <Palette className={ROW_ICON} />,
+      keywords: [
+        "style",
+        "theme",
+        "skin",
+        "look",
+        "cartoon",
+        "toy",
+        "soft",
+        "satin",
+        "jelly",
+        "y2k",
+        "candy",
+        "neon",
+        "glow",
+        "pixel",
+        "8bit",
+        "8-bit",
+        "retro",
+        "game boy",
+        "风格",
+        "主题",
+        "皮肤",
+        "卡通",
+        "软糖",
+        "糖果",
+        "夜光",
+        "霓虹",
+        "像素",
+        "复古",
+      ],
+      run: (ctx) => setSiteStyle(isSiteStyle(ctx?.value) ? ctx.value : nextSiteStyle(siteStyle)),
     },
     {
       id: "music",

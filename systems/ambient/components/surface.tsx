@@ -70,7 +70,8 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
         }
         className={cn(
           "min-h-screen transition-colors duration-500",
-          fullEnabled || bezel ? "bg-transparent" : "bg-background"
+          // `page-ground`: where a Style's ground pattern lands (globals.css).
+          fullEnabled || bezel ? "bg-transparent" : "bg-background page-ground"
         )}
       >
         {children}

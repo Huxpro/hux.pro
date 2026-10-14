@@ -151,7 +151,7 @@ in prose opts out with `.not-prose`.
 
 ## Colour
 
-The palette is greyscale, in OKLCH. The content brings the colour: a
+The palette is greyscale, in OKLCH (under the Default [Style](#styles)). The content brings the colour: a
 wallpaper, a cover, a photograph. No accent colour; don't introduce one.
 The two hues that exist carry a meaning, not a brand: red for an error or a
 destructive action (`--destructive`, below) and green for "live" (the
@@ -203,6 +203,119 @@ Elevation is two shadows (`@theme` in `globals.css`): `shadow-raised` for
 resting floating controls and hover peeks, `shadow-overlay` for the palette,
 an expanded Live Activity, the devtool. Black in both themes; in dark mode
 the border does most of the separating.
+
+## Styles
+
+The look above is the **Default** Style. A visitor can pick five others
+(⌘K `S`, "Style"; the devtool's Glass section): **Cartoon**, **Y2K**,
+**Candy**, **Neon** and **Pixel**. They come from the "Lantern × Softoy" design
+canvas (Cartoon is UU3, the capsule-toy editor; Y2K is Y1; Candy is GG1 / GG2,
+the four flavours in satin plastic at "soft volume"; Neon is HH2, the capsule
+lit from inside; Pixel is EE3 / HH4, the pocket pet).
+
+A Style is **tokens only**. The choice is `data-style` on `<html>`
+(`services/style.tsx`, saved as `hux_style`, applied before first paint by an
+inline boot script), and `app/globals.css` re-chooses the token *inputs* under
+it, in one block, `STYLES`: the ink and the page, the glass fills, the radius,
+the elevation, the faces. THE LADDER derives every rung, wash and glass role
+from those inputs exactly as it does for the default, so a component written
+against the tokens needs nothing to support a Style, and a component that
+hard-codes a grey or a shadow is the one that breaks under one.
+
+| | Ground | Surfaces | Corners | Elevation | Faces (sans / serif / mono) |
+|---|---|---|---|---|---|
+| Default | the wallpaper | glass, 1px `border/50` | `--radius` 10px + steps | soft black | Inter / Newsreader / JetBrains Mono |
+| Cartoon | cool grey | solid, 2.5px ink outline | 12px + steps | hard 3px / 6px offset in ink (cyan in dark) | Bricolage Grotesque / Fraunces / Martian Mono |
+| Y2K | lilac graph paper | solid white, 3px ink outline | 20px + steps | gloss line on top, lilac drop | Bricolage Grotesque / Bricolage / Silkscreen |
+| Candy | pale grey with the four flavours pooled in the corners (dark: ink blue) | solid white satin, no outline | 18px + steps | soft volume: a cool core shadow and Soda blue bouncing up inside, a soft drop under (dark: a little glow) | Bricolage Grotesque / Bricolage / Martian Mono |
+| Neon | near-black (paper white in light) | glass with a lit edge (ink outline in light) | 16px + steps | lilac-to-blue glow; text glows in dark | Bricolage Grotesque / Newsreader / Martian Mono |
+| Pixel | device plastic with LCD dots (dark: backlit) | LCD green, 3px outline | square, every rung | one hard block down-right | Pixelify Sans / Silkscreen / Silkscreen |
+
+Each Style answers light and dark; Appearance still picks which. The tokens a
+Style adds to the system, all in `STYLES` with their defaults in `:root`:
+
+- `--style-tint`: the Style's signature colour. It stands in for the
+  wallpaper's tint (`--tint`), so it reaches what tint already reaches (the
+  accent wash, the focus ring) and never the ink. Text stays on the ladder.
+- `--surface-stroke` / `--surface-stroke-width`: a floating surface's
+  outline. Under a Style, every glass role and the solid `bg-card` /
+  `bg-popover` take it, with the elevation of their rung
+  (`--elevation-raised` for widgets and capsules, `--elevation-overlay` for
+  sheets, popovers, the palette).
+- `--elevation-raised` / `--elevation-overlay` / `--elevation-control`:
+  what `shadow-raised`, `shadow-overlay` and `shadow-control` are; the
+  default's values moved here unchanged. `shadow-control` is the third and
+  lowest height, a control's moving part inside its track (a segmented
+  control's thumb, a switch's knob, the music widget's selected pill), which
+  used to be Tailwind's `shadow-sm`. A floating surface that is not glass (a
+  window's frame, whose ground is its app) takes the outline and the overlay
+  height by name, `style-frame`.
+- `--radius-step`: how much each rung of the radius scale adds to `--radius`
+  (1 by default; Pixel's 0 makes every corner the same).
+- `--capsule-radius` (`rounded-capsule`): the ends of a floating one-line
+  pill (`GLASS_CAPSULE`, the /works chapter pill, the edit-mode pills).
+  Round by default; Pixel squares them.
+- The app icon: `--icon-radius` (`rounded-icon`, a percentage, and
+  `rounded-icon-plate` a third rounder for the 24px plates in a window's menu
+  and the Dock), `--icon-stroke` / `--icon-stroke-width`, `--icon-plate` (the
+  plate behind a glyph that does not fill its tile), `--icon-press` (the
+  touch-down wash) and `--elevation-icon` (`shadow-icon`). The defaults are
+  the tile as it was (22.5%, a 1px black/8 or white/12 hairline, a white
+  plate, no lift); a Style speaks only at the edge and never touches the art.
+  Every copy of the tile's corner uses them: `AppTile`, the ⌘K Load tile,
+  `AppIconPlate`, `ProjectMark`, an article badge's icon.
+- `--ground-pattern` (and `-size`): an image over the page's ground, on
+  `.page-ground`.
+- `--style-text-glow`: Neon's emitted light, on the page's text but not on an
+  article's running text.
+- `--font-code`: an article's code; the mono role, unless the Style's mono is
+  a display face (Pixel, Y2K), when it stays JetBrains Mono.
+
+The faces are variables named for the face (`--face-inter`,
+`--face-bricolage`, …); the roles (`--font-sans`, `--font-serif-latin`,
+`--font-mono`, `--font-code`) are cast from them in `globals.css`, and a
+Style re-casts them. The default's four come from next/font; the Styles'
+five are self-hosted (`public/fonts/styles`, OFL) as `@font-face` rules
+(FACES in `globals.css`), because each carries a `size-adjust` that matches
+it to the face whose role it takes: every px size and line-height on the
+site was set against Inter and JetBrains Mono, so a face with a smaller
+x-height read a size down at the same number and a wider mono truncated rows
+the default fits. Measured, not guessed:
+
+| Face | x-height | width | replaces | `size-adjust` |
+|---|---|---|---|---|
+| Bricolage Grotesque | 0.52 | 12.6 | Inter 0.55 / 12.8 | 106% |
+| Fraunces | 0.47 | 12.8 | Newsreader 0.45 | 96% |
+| Martian Mono | 0.60 | 17.5 | JetBrains Mono 0.55 / 15 | 90% |
+| Silkscreen | 0.63 | 17.5 | JetBrains Mono 0.55 / 15 | 87% |
+| Pixelify Sans | 0.45 | 12.8 | Inter 0.55 / 12.8 | 112% |
+
+(x-height and cap height per em; width of "The quick brown fox jumps" in em.)
+The adjustment is on the face, not a `font-size-adjust` on the role, which
+would inherit into a nested face (a serif `em` in sans prose). Pixelify stops
+short of Inter's x-height: matching it outright makes it 22% wider. None of
+the files is preloaded, and a browser only fetches the ones a Style sets
+text in.
+
+The glow (docs/system-glow.md) takes a Style as its colour source the way it
+takes a wallpaper: `GlowPaletteBridge` reads the Style's own `--style-tint`
+off the root and hands it to the harmony rule, without a second copy of the
+colour. The rule's default is Siri's fixed palette, under a Style as under a
+wallpaper, so this shows only once the devtool's Glow module sets a rule
+that follows the source (`auto`, `analogous`, …).
+
+A Style owns the ground. While one is on, the ambient system paints no
+wallpaper and keeps the iOS bezel off (`systems/ambient/provider.tsx`, and
+the bezel's boot script for the first frame, `systems/ambient/lib/bezel.ts`), so
+the legibility inputs are the plain page's and the Style's ink is never
+flipped; the browser chrome takes the Style's ground (`STYLE_GROUND`). The
+saved wallpaper is untouched and comes back with the Default.
+
+To add a Style: a value in `services/style-core.ts` (with its ground and two
+labels in `lib/i18n.ts`), an option in the `style` command
+(`systems/command/catalog.ts`), and one block per appearance in `STYLES`
+setting the inputs. Nothing else should need to change; if something does,
+that component is not on the tokens yet.
 
 ## Spacing and layout
 
@@ -432,5 +545,6 @@ it.
    layer, `text-xs`, lowercase as written.
 5. Anything with a `hover:` wash also has `pressable` and an `active:`
    state. Look at it in phone emulation.
-6. No new colour; tint never on text.
+6. No new colour; tint never on text. A Style's colours live in `STYLES`
+   (`app/globals.css`) and nowhere else.
 7. `pnpm lint`.

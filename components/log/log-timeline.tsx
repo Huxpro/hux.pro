@@ -60,13 +60,14 @@ export function chapterLabel(tag: Tag, tagIndex: number, locale: Locale): string
  * backdrop filter over an animating wallpaper and full-bleed covers is
  * re-sampled every scroll frame, which a phone cannot afford, so there the
  * fill is denser instead. The tint direction follows the theme: lighten
- * toward white in light mode (keeping the near-white chip it always was),
- * darken with black in dark mode (the "shade darker than the page" look).
+ * toward the page's ground in light mode (the near-white chip it always was,
+ * and a Style's own ground under one), darken with black in dark mode (the
+ * "shade darker than the page" look, which holds on any dark ground).
  * Compositing a tint at alpha α over backdrop B gives a uniform shift, so a
  * solid background reads the same as before while a gradient keeps its hue.
  */
 export const CHAPTER_PILL =
-  "inline-flex items-center bg-white/85 dark:bg-black/45 sm:bg-white/70 sm:dark:bg-black/25 sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-full";
+  "inline-flex items-center bg-background/85 dark:bg-black/45 sm:bg-background/70 sm:dark:bg-black/25 sm:backdrop-blur font-mono text-xs font-medium text-foreground px-2.5 py-0.5 border rounded-capsule";
 
 /** A block of the timeline: a chapter, or chapters that overlap (see
  *  `lib/log-eras.ts`). A plain `TimelineData[]` is still a timeline. */

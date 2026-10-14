@@ -74,7 +74,7 @@ what the code won't tell you and points at its doc; keep it short.
 
 ```css
 /* Fonts */
---font-sans: Inter
+--font-sans: Inter            (re-cast per Style)
 --font-serif: Newsreader
 --font-mono: JetBrains Mono
 
@@ -113,7 +113,10 @@ duration-300 (morphing transitions)
 ### Modifying Design
 - Use `app/globals.css` for global variables.
 - Use Tailwind utility classes for component styling.
-- Avoid introducing new colors; stick to the grayscale system.
+- Avoid introducing new colors; stick to the grayscale system. The opt-in
+  Styles (cartoon / y2k / candy / neon / pixel, ⌘K `S`) are the exception, and are
+  token inputs only: the `STYLES` block in `app/globals.css`
+  (`docs/design-system.md#styles`).
 - Text and washes are `--ink` at an alpha, never a fixed grey (see
   `docs/system-legibility.md`). Use `text-muted-foreground` /
   `text-tertiary-foreground` / `text-quaternary-foreground` / `bg-muted` /

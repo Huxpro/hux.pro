@@ -45,8 +45,8 @@ const SEGMENTED_TONE = {
   },
   reader: {
     group: "gap-0.5 rounded-lg bg-muted p-0.5",
-    segment: "rounded-[0.4rem] px-3 py-1 text-xs leading-5",
-    selected: "bg-background text-foreground shadow-sm",
+    segment: "rounded-sm px-3 py-1 text-xs leading-5",
+    selected: "bg-background text-foreground shadow-control",
     idle: "text-muted-foreground hover:text-foreground",
   },
   bare: {
@@ -155,7 +155,7 @@ export function Switch({
     >
       <span
         className={cn(
-          "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
+          "inline-block h-4 w-4 transform rounded-full bg-background shadow-control transition-transform",
           on ? "translate-x-4" : "translate-x-0.5"
         )}
       />

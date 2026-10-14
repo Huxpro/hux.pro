@@ -26,18 +26,18 @@ export const THEATER_BACKDROP = cn("bg-glass/80 backdrop-blur-xl");
 
 /** Theme-aware track (homepage widget + AlbumTabs). */
 export const GLASS_TRACK = cn(
-  "border border-border/50 bg-foreground/[0.06] dark:bg-white/[0.08]",
+  "border border-border/50 bg-foreground/[0.06] dark:bg-foreground/[0.08]",
   "backdrop-blur-xl",
 );
 
 /** Theme-aware selected / control pill. */
 export const GLASS_PILL = cn(
-  "bg-glass-sheet shadow-sm ring-1 ring-border/50 backdrop-blur-xl",
+  "bg-glass-sheet shadow-control ring-1 ring-border/50 backdrop-blur-xl",
 );
 
 /** Theme-aware clustered toolbar (PiP + Live Activity). Same capsule as theater. */
 export const GLASS_CLUSTER = cn(
-  "inline-flex w-fit items-center gap-0.5 rounded-full p-0.5",
+  "inline-flex w-fit items-center gap-0.5 rounded-capsule p-0.5",
   GLASS_TRACK,
 );
 
@@ -46,7 +46,7 @@ export const GLASS_CLUSTER = cn(
  *
  * Light: a hairline frame at rest, ink deepens on hover.
  * Dark: no visible border at rest (fill only); hover brings a whisper of
- * edge + wash, never brighter than raised `GLASS_TRACK` (`white/08`).
+ * edge + wash, never brighter than raised `GLASS_TRACK` (the ink at 8%).
  *
  * This control is its own named group (`group/glass`). It must not follow
  * the parent widget's hover/press. WidgetShell is `:active` whenever a
@@ -57,17 +57,17 @@ export const GLASS_CLUSTER = cn(
  */
 export const GLASS_TRACK_FLAT = cn(
   "group/glass pressable border border-border/30 bg-foreground/[0.03]",
-  "dark:border-transparent dark:bg-white/[0.02]",
+  "dark:border-transparent dark:bg-foreground/[0.02]",
   "backdrop-blur-xl",
   "transition-[background-color,border-color,box-shadow] duration-200",
   "hover:border-border/50 hover:bg-foreground/[0.08]",
   "active:border-border/50 active:bg-foreground/[0.08]",
-  "dark:hover:border-white/[0.06] dark:hover:bg-white/[0.05]",
-  "dark:active:border-white/[0.06] dark:active:bg-white/[0.05]",
+  "dark:hover:border-foreground/[0.06] dark:hover:bg-foreground/[0.05]",
+  "dark:active:border-foreground/[0.06] dark:active:bg-foreground/[0.05]",
 );
 
 export const GLASS_CLUSTER_FLAT = cn(
-  "inline-flex w-fit items-center gap-0.5 rounded-full p-0.5",
+  "inline-flex w-fit items-center gap-0.5 rounded-capsule p-0.5",
   GLASS_TRACK_FLAT,
 );
 
@@ -81,14 +81,14 @@ export const GLASS_PILL_FLAT = cn(
   "backdrop-blur-xl",
   "transition-[background-color,box-shadow,ring-color] duration-200",
   "group-active/glass:duration-0",
-  "hover:bg-card hover:shadow-sm hover:ring-border/50",
-  "group-hover/glass:bg-card group-hover/glass:shadow-sm group-hover/glass:ring-border/50",
-  "active:bg-card active:shadow-sm active:ring-border/50",
-  "group-active/glass:bg-card group-active/glass:shadow-sm group-active/glass:ring-border/50",
-  "dark:hover:bg-card dark:hover:ring-white/[0.06]",
-  "dark:group-hover/glass:bg-card dark:group-hover/glass:ring-white/[0.06]",
-  "dark:active:bg-card dark:active:ring-white/[0.06]",
-  "dark:group-active/glass:bg-card dark:group-active/glass:ring-white/[0.06]",
+  "hover:bg-card hover:shadow-control hover:ring-border/50",
+  "group-hover/glass:bg-card group-hover/glass:shadow-control group-hover/glass:ring-border/50",
+  "active:bg-card active:shadow-control active:ring-border/50",
+  "group-active/glass:bg-card group-active/glass:shadow-control group-active/glass:ring-border/50",
+  "dark:hover:bg-card dark:hover:ring-foreground/[0.06]",
+  "dark:group-hover/glass:bg-card dark:group-hover/glass:ring-foreground/[0.06]",
+  "dark:active:bg-card dark:active:ring-foreground/[0.06]",
+  "dark:group-active/glass:bg-card dark:group-active/glass:ring-foreground/[0.06]",
 );
 
 /**
@@ -140,7 +140,7 @@ export const GLASS_ORB = cn(
   GLASS_BTN,
   // No 75% glass token; the orb floats over video, so it takes the more
   // opaque neighbour (80) rather than the thinner one.
-  "bg-glass-strong-hover text-foreground shadow-sm ring-1 ring-border/40 backdrop-blur-xl",
+  "bg-glass-strong-hover text-foreground shadow-control ring-1 ring-border/40 backdrop-blur-xl",
 );
 
 /** Always-dark theater: clustered control capsule (iPadOS toolbar). */

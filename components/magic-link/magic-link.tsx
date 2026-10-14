@@ -165,9 +165,10 @@ const PLAIN =
   "not-prose prose-link " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-/** The pill. Sized in `em` so it sits in a sentence at whatever size. */
+/** The pill. Sized in `em` so it sits in a sentence at whatever size; its
+ *  corner too, scaled by the radius step so a square Style squares it. */
 const BADGE =
-  "not-prose badge-link group/badge inline whitespace-nowrap rounded-[0.4em] " +
+  "not-prose badge-link group/badge inline whitespace-nowrap rounded-[calc(0.4em*var(--radius-step))] " +
   "bg-muted px-[0.38em] py-[0.1em] box-decoration-clone " +
   "text-[0.94em] font-normal text-foreground no-underline " +
   "transition-[background-color,opacity] duration-200 hover:bg-accent " +
@@ -175,7 +176,7 @@ const BADGE =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 const ICON_BOX =
-  "mr-[0.34em] inline-block size-[1.08em] shrink-0 rounded-[0.26em] align-[-0.2em] select-none";
+  "mr-[0.34em] inline-block size-[1.08em] shrink-0 rounded-icon align-[-0.2em] select-none";
 
 function BadgeMark({ icon, kind }: { icon: BadgeIcon; kind: MagicLinkKind }) {
   if (icon.type === "image") {
@@ -190,7 +191,7 @@ function BadgeMark({ icon, kind }: { icon: BadgeIcon; kind: MagicLinkKind }) {
         draggable={false}
         className={cn(
           ICON_BOX,
-          icon.fill ? "object-cover" : "bg-white object-contain p-[0.1em]",
+          icon.fill ? "object-cover" : "bg-icon-plate object-contain p-[0.1em]",
         )}
       />
     );

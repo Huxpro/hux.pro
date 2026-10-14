@@ -90,7 +90,7 @@ const DOTS: {
   {
     label: "Close",
     action: "close",
-    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#ff5f57]",
+    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-window-close",
     glyph: (
       <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
         <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" stroke="currentColor" fill="none" strokeLinecap="round" />
@@ -100,7 +100,7 @@ const DOTS: {
   {
     label: "Minimize",
     action: "minimize",
-    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#febc2e]",
+    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-window-minimize",
     glyph: (
       <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
         <path d="M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
@@ -110,7 +110,7 @@ const DOTS: {
   {
     label: "Zoom",
     action: "zoom",
-    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-[#28c840]",
+    colorHover: "[@media(hover:hover)]:group-hover/chrome:bg-window-zoom",
     glyph: (
       <svg viewBox="0 0 10 10" className={stroke} aria-hidden>
         <path d="M5 2.2v5.6M2.2 5h5.6" stroke="currentColor" fill="none" strokeLinecap="round" />
@@ -184,18 +184,17 @@ export function PillTitle({ children }: { children: React.ReactNode }) {
  */
 export function pillShell(interacting: boolean, hoverLights = true) {
   return cn(
-    "group/chrome flex cursor-default items-center rounded-full px-2.5 py-1.5",
+    "group/chrome flex cursor-default items-center rounded-capsule px-2.5 py-1.5",
     "touch-none select-none transition-all duration-200",
+    // Glass at 80%, the capsule's fill over whatever the app draws: the white
+    // / black at 80 / 60 it was, on the design system's material.
     interacting
-      ? "border-black/10 bg-white/80 shadow-raised backdrop-blur-xl dark:border-white/14 dark:bg-black/60"
+      ? "border-border bg-glass-strong-hover shadow-raised backdrop-blur-xl"
       : cn(
           "border-transparent bg-transparent shadow-none",
           hoverLights &&
-            cn(
-              // `hover:` (not group-hover) since this element *is* the group.
-              "[@media(hover:hover)]:hover:border-black/10 [@media(hover:hover)]:hover:bg-white/80 [@media(hover:hover)]:hover:shadow-raised [@media(hover:hover)]:hover:backdrop-blur-xl",
-              "dark:[@media(hover:hover)]:hover:border-white/14 dark:[@media(hover:hover)]:hover:bg-black/60",
-            ),
+            // `hover:` (not group-hover) since this element *is* the group.
+            "[@media(hover:hover)]:hover:border-border [@media(hover:hover)]:hover:bg-glass-strong-hover [@media(hover:hover)]:hover:shadow-raised [@media(hover:hover)]:hover:backdrop-blur-xl",
         ),
   );
 }

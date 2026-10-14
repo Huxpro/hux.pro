@@ -195,8 +195,10 @@ export function WindowChrome({
                   onPointerDown={(e) => e.stopPropagation()}
                   className={cn(
                     "fixed z-[56] w-52 select-none p-1",
-                    "rounded-2xl border border-black/8 dark:border-white/12",
-                    "bg-white/90 shadow-overlay backdrop-blur-xl dark:bg-neutral-900/90",
+                    // A floating surface, so glass (docs/system-glass.md): the
+                    // popover role, the one ⌘K wears on a desk.
+                    "rounded-2xl border border-border/50",
+                    "bg-glass-popover shadow-overlay backdrop-blur-xl",
                   )}
                 >
                   <WindowMenuBody win={win} shape="popover" run={run} />

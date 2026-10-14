@@ -2,6 +2,8 @@ import { ReadingRootSync } from "@/components/post/reading-settings";
 import { bezelBootResolver } from "@/systems/ambient/lib/bezel";
 import { vitreBootScript } from "vitre";
 import { Providers } from "@/shared/providers";
+import { StyleRootSync } from "@/services/style";
+import { STYLE_BOOT } from "@/services/style-core";
 import {
   AmbientPhaseActivity,
   AmbientSurface,
@@ -45,21 +47,21 @@ import "./globals.css";
 // it (`*The Gay Science*`), and a slanted-by-the-browser Inter is a sheared
 // roman, not Inter Italic. Inter Italic is drawn, with its own `a` and `f`.
 const inter = Inter({
-  variable: "--font-sans",
+  variable: "--face-inter",
   subsets: ["latin"],
   style: ["normal", "italic"],
   display: "swap",
 });
 
 const newsreader = Newsreader({
-  variable: "--font-serif-latin",
+  variable: "--face-newsreader",
   subsets: ["latin"],
   style: ["normal", "italic"],
   display: "swap",
 });
 
 const notoSerifSC = Noto_Serif_SC({
-  variable: "--font-serif-cjk",
+  variable: "--face-noto-serif-sc",
   weight: ["400", "700"],
   subsets: ["latin"],
   display: "swap",
@@ -67,11 +69,21 @@ const notoSerifSC = Noto_Serif_SC({
 
 // Same reason as Inter: a work title keeps its italic in the machine row too.
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
+  variable: "--face-jetbrains-mono",
   subsets: ["latin"],
   style: ["normal", "italic"],
   display: "swap",
 });
+
+// Every face is a `--face-*` variable on <body>; app/globals.css casts them
+// into the font roles (`--font-sans`, `--font-serif-*`, `--font-mono`), and a
+// Style (services/style.tsx) re-casts them. The Styles' own faces are not
+// here: they are @font-face rules in app/globals.css (FACES), self-hosted
+// under public/fonts/styles, because each carries a `size-adjust` that
+// next/font/google cannot set.
+const FONT_FACES = [inter, newsreader, notoSerifSC, jetbrainsMono]
+  .map((font) => font.variable)
+  .join(" ");
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hux.pro"),
@@ -131,12 +143,16 @@ export default function RootLayout({
           {/* Before first paint: Safari picks its chrome colour at load, from
               the root background (iOS 26) or theme-color (iOS 18). */}
           <script dangerouslySetInnerHTML={{ __html: BEZEL_BOOT }} />
+          {/* The saved Style (services/style.tsx), so its ground is the first
+              one painted. */}
+          <script dangerouslySetInnerHTML={{ __html: STYLE_BOOT }} />
         </head>
         <body
-          className={`${inter.variable} ${newsreader.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+          className={`${FONT_FACES} font-sans antialiased`}
         >
           <Providers>
             <ReadingRootSync />
+            <StyleRootSync />
             <SolarThemeSync />
             <DevtoolFAB />
             <AmbientSurface>{children}</AmbientSurface>
