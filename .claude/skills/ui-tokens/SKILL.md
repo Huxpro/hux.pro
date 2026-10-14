@@ -32,7 +32,7 @@ scales the wallpaper boost down). `/NN` on a wash (`bg-muted/50`,
 - **Touch**: `hover:` only fires with a mouse. Anything with a hover wash
   also gets `pressable` and an `active:` colour.
 - Greyscale palette; don't introduce colours. The exception is a **Style**
-  (`data-style`: cartoon / darkroom / y2k / neon / pixel): its colours, outline,
+  (`data-style`: cartoon / y2k / candy / neon / pixel): its colours, outline,
   elevation and faces are token inputs in the `STYLES` block of
   `app/globals.css` and nowhere else. A component never checks the Style;
   if it looks wrong under one, it is hard-coding something a token covers

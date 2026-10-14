@@ -332,7 +332,7 @@ Tailwind `md` 以下，列间距大约是 5.3 个图块宽，所以 iPhone 上�
 | `W` | 壁纸选择器 | surface | settings |
 | `G` | Glass：tinted ↔ clear | toggle | settings |
 | `T` | Tint：wallpaper ↔ neutral | toggle | settings |
-| `S` | Style：default → cartoon → darkroom → y2k → neon → pixel | toggle | settings |
+| `S` | Style：default → cartoon → y2k → candy → neon → pixel | toggle | settings |
 | `D` | Devtool | surface / toggle | settings |
 
 Install（actions，直到安装为止）和 Sky Window（actions，只能搜到）没有字母。

@@ -3,13 +3,13 @@ import { t, type Locale } from "@/lib/i18n";
 // The Style's plain data (see ./style.tsx): no "use client", so the root
 // layout can inline the boot script.
 
-export type SiteStyle = "default" | "cartoon" | "darkroom" | "y2k" | "neon" | "pixel";
+export type SiteStyle = "default" | "cartoon" | "y2k" | "candy" | "neon" | "pixel";
 
 export const SITE_STYLES: readonly SiteStyle[] = [
   "default",
   "cartoon",
-  "darkroom",
   "y2k",
+  "candy",
   "neon",
   "pixel",
 ];
@@ -19,8 +19,8 @@ export const STORAGE_KEY = "hux_style";
 const STYLE_LABEL = {
   default: "styleDefault",
   cartoon: "styleCartoon",
-  darkroom: "styleDarkroom",
   y2k: "styleY2k",
+  candy: "styleCandy",
   neon: "styleNeon",
   pixel: "stylePixel",
 } as const satisfies Record<SiteStyle, string>;
@@ -41,8 +41,8 @@ export function isSiteStyle(value: unknown): value is SiteStyle {
 export const STYLE_GROUND: Record<SiteStyle, { light: string; dark: string } | null> = {
   default: null,
   cartoon: { light: "#e6e9f2", dark: "#15151a" },
-  darkroom: { light: "#e9e3d8", dark: "#0b0a10" },
   y2k: { light: "#eee9ff", dark: "#1e1a2e" },
+  candy: { light: "#f1f2f8", dark: "#13122a" },
   neon: { light: "#f1f2f8", dark: "#0f0e14" },
   pixel: { light: "#dcdfe8", dark: "#161b12" },
 };

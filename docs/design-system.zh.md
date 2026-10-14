@@ -125,7 +125,7 @@ origin: "AI-translated from the original"
 
 ## 风格（Style）
 
-上面描述的是**默认**风格。访客还可以选另外五种（⌘K `S`，“风格”；或 devtool 的 Glass 一节）：**卡通**、**暗房**、**Y2K**、**夜光**、**像素**。它们来自 “Lantern × Softoy” 设计稿：卡通是 UU3（扭蛋编辑器），暗房是 UU1（亮色版用同一编辑器的灯下纸 UU2），Y2K 是 Y1，夜光是 HH2（从里面发光的胶囊），像素是 EE3 / HH4（口袋宠物机）。
+上面描述的是**默认**风格。访客还可以选另外五种（⌘K `S`，“风格”；或 devtool 的 Glass 一节）：**卡通**、**Y2K**、**软糖**、**夜光**、**像素**。它们来自 “Lantern × Softoy” 设计稿：卡通是 UU3（扭蛋编辑器），Y2K 是 Y1，软糖是 GG1 / GG2（四种口味，“柔和体积”那一档的缎面塑料），夜光是 HH2（从里面发光的胶囊），像素是 EE3 / HH4（口袋宠物机）。
 
 风格**只由 token 组成**。选择体现为 `<html>` 上的 `data-style`（`services/style.tsx`，存为 `hux_style`，由一段内联启动脚本在首帧之前设置），`app/globals.css` 在一个 `STYLES` 块里为它重新选定 token 的*输入*：墨色和页面底色、玻璃填充、圆角、投影、字体。THE LADDER 用这些输入推导出每一级文字、每种底色和玻璃角色，推导方式和默认风格完全一样。所以按 token 写的组件不用做任何事就支持所有风格；在某个风格下出问题的，一定是写死了灰色或阴影的组件。
 
@@ -133,8 +133,8 @@ origin: "AI-translated from the original"
 |---|---|---|---|---|---|
 | 默认 | 壁纸 | 玻璃，1px `border/50` | `--radius` 10px + 每级步长 | 柔和的黑色 | Inter / Newsreader / JetBrains Mono |
 | 卡通 | 冷灰 | 实色，2.5px 墨线描边 | 12px + 步长 | 3px / 6px 墨色硬投影（暗色下为青色） | Bricolage Grotesque / Fraunces / Martian Mono |
-| 暗房 | 近黑，中间一圈暖光（亮色：灯下纸） | 安静的面板，一道暖光细边（亮色：纸边） | 8px + 步长 | 深黑投影（亮色：柔和的棕色）；琥珀色只标记“正在台上”的东西 | Bricolage Grotesque / Fraunces / Martian Mono |
 | Y2K | 淡紫方格纸 | 实白，3px 墨线描边 | 20px + 步长 | 顶边高光，淡紫投影 | Bricolage Grotesque / Bricolage / Silkscreen |
+| 软糖 | 浅灰，四个角各晕着一种口味色（暗色：墨蓝） | 实白缎面，没有描边 | 18px + 步长 | 柔和体积：底部一层冷色暗部，苏打蓝从里面反射上来，下方一圈柔和投影（暗色：一点辉光） | Bricolage Grotesque / Bricolage / Martian Mono |
 | 夜光 | 近黑（亮色下为纸白） | 带发光边的玻璃（亮色下为墨线描边） | 16px + 步长 | 淡紫到蓝的辉光；暗色下文字也发光 | Bricolage Grotesque / Newsreader / Martian Mono |
 | 像素 | 带 LCD 点阵的机身塑料（暗色：背光屏） | LCD 绿，3px 描边 | 全部直角 | 向右下一格的硬投影 | Pixelify Sans / Silkscreen / Silkscreen |
 
