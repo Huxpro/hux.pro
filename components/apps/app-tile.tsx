@@ -23,12 +23,6 @@ const TILE_PX: Record<AppTileSize, number> = {
   lg: 64,
 };
 
-const RADIUS: Record<AppTileSize, string> = {
-  sm: "rounded-[22.5%]",
-  md: "rounded-[22.5%]",
-  lg: "rounded-[22.5%]",
-};
-
 const PAD: Record<AppTileSize, string> = {
   sm: "p-1",
   md: "p-2",
@@ -84,18 +78,20 @@ export function AppTile({
           <span
             className={cn(
               "relative block overflow-hidden",
-              RADIUS[size],
-              "border border-black/8 dark:border-white/12",
-              // Padded glyphs need a white plate; full-bleed icons bring their
+              // Every part of the tile is an icon token (globals.css): the
+              // corner, the outline, the plate, the lift. A Style re-chooses
+              // them; the art is never touched.
+              "rounded-icon border-(length:--icon-stroke-width) border-icon-stroke shadow-icon",
+              // Padded glyphs need a plate; full-bleed icons bring their
               // own background (a plate would fringe the rounded clip).
-              !fills && "bg-white",
+              !fills && "bg-icon-plate",
               // Touch-down dim, iOS-style: a dark wash over the art the
               // instant the icon is pressed, easing off on release. Driven by
               // the enclosing `group/app` link's `:active` (which is
               // `pressable`, so the wash lands on the press frame).
               "after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit]",
-              "after:bg-black/0 after:transition-colors after:duration-200",
-              "group-active/app:after:bg-black/30 group-active/app:after:duration-0",
+              "after:bg-transparent after:transition-colors after:duration-200",
+              "group-active/app:after:bg-icon-press group-active/app:after:duration-0",
             )}
             style={{ width: px, height: px }}
           >
@@ -112,7 +108,7 @@ export function AppTile({
               />
             ) : (
               <span
-                className="flex h-full w-full items-center justify-center font-mono text-neutral-400"
+                className="flex h-full w-full items-center justify-center font-mono text-tertiary-foreground"
                 style={{ fontSize: Math.max(12, px * 0.35) }}
               >
                 {label.charAt(0)}

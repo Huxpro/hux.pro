@@ -166,7 +166,7 @@ export function ProjectShelf({
                   title={title}
                   className="pressable block rounded-[5px] transition-opacity hover:opacity-80"
                 >
-                  <ProjectMark icon={mark} className="size-5 rounded-[5px]" />
+                  <ProjectMark icon={mark} className="size-5 rounded-icon" />
                 </a>
               </MagneticPreview>
             ))}
@@ -232,7 +232,7 @@ export function ProjectShelf({
                         bigger than the row's), with the corner an app icon has. */}
                     <ProjectMark
                       icon={mark}
-                      className="mt-0.5 size-8 rounded-[22.5%] text-base"
+                      className="mt-0.5 size-8 rounded-icon text-base"
                     />
                     <span className="min-w-0 flex-1">
                       <span className={cn("block line-clamp-2", TYPE.rowTitle)}>

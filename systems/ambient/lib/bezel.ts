@@ -4,6 +4,7 @@ import {
   DEFAULT_BEZEL_BAND,
 } from "vitre";
 import { WALLPAPER_LOOK_FAMILY, type WallpaperFamily } from "./wallpaper";
+import { STORAGE_KEY as STYLE_STORAGE_KEY, STYLE_GROUND } from "@/services/style-core";
 
 // =============================================================================
 // The site's bezel: what vitre is configured with here.
@@ -85,7 +86,9 @@ export function resolveBezelTint(tint: BezelTint, theme: "light" | "dark"): stri
  * from what is knowable before React runs. It cannot import, so every constant
  * is interpolated and the two cannot drift. Follow the Sun is not knowable
  * yet (it takes a forecast), so it boots as Follow the System does, which is
- * also what the theme service shows until the forecast lands.
+ * also what the theme service shows until the forecast lands. A saved Style
+ * (services/style-core.ts) owns the ground and keeps the bezel off, as the
+ * provider does.
  */
 export function bezelBootResolver(): string {
   const tints = `^(black|dark|theme|${HEX_SOURCE.slice(1, -1)})$`;
@@ -99,10 +102,11 @@ var t=localStorage.getItem("hux_theme");
 var dark=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
 var tint=s.bezelTint;
 if(!new RegExp(${JSON.stringify(tints)}).test(tint))tint=${JSON.stringify(DEFAULT_BEZEL_TINT)};
-var ground=dark?${JSON.stringify(PAGE_GROUND.dark)}:${JSON.stringify(PAGE_GROUND.light)};
+var SG=${JSON.stringify(STYLE_GROUND)},sg=SG[localStorage.getItem(${JSON.stringify(STYLE_STORAGE_KEY)})];
+var ground=sg?sg[dark?"dark":"light"]:dark?${JSON.stringify(PAGE_GROUND.dark)}:${JSON.stringify(PAGE_GROUND.light)};
 var color=tint==="black"?${JSON.stringify(BLACK)}:tint==="dark"?${JSON.stringify(PAGE_GROUND.dark)}:tint==="theme"?ground:tint;
 var band=s.bezelBand;
 band=typeof band==="number"&&isFinite(band)?Math.min(${BEZEL_BAND_MAX},Math.max(${BEZEL_BAND_MIN},Math.round(band))):${DEFAULT_BEZEL_BAND};
-var on=ios&&edges.bezel;
+var on=ios&&edges.bezel&&!sg;
 return {enabled:on,color:color,band:band,scroll:on?"container":"window",ground:ground};`;
 }

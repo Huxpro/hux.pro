@@ -103,9 +103,9 @@ export function AppBadge({
       style={{ width: size, height: size }}
       className={cn(
         "flex items-center justify-center rounded-full",
-        // A white ring lifts the chip off the icon art beneath it, like the
-        // AR/Clip overlays on the iOS home screen.
-        "ring-2 ring-white shadow-sm dark:ring-[#1a1a1a]",
+        // A ring in the page's ground lifts the chip off the icon art beneath
+        // it, like the AR/Clip overlays on the iOS home screen.
+        "ring-2 ring-background shadow-sm",
         spec.bg,
         className,
       )}

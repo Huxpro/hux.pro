@@ -23,7 +23,7 @@ export function AppIconPlate({
   textClassName,
 }: {
   app: AppLink;
-  /** The size, and the corner: `h-6 w-6 rounded-[7px]` and so on. */
+  /** The size: `h-6 w-6` and so on. The corner is `rounded-icon-plate`. */
   className?: string;
   /** Size of the initial, for the app that has no icon. */
   textClassName?: string;
@@ -36,7 +36,7 @@ export function AppIconPlate({
     return (
       <span
         className={cn(
-          "flex items-center justify-center overflow-hidden rounded-[7px] bg-muted font-mono text-muted-foreground",
+          "flex items-center justify-center overflow-hidden rounded-icon-plate bg-muted font-mono text-muted-foreground",
           className,
           textClassName,
         )}
@@ -52,8 +52,8 @@ export function AppIconPlate({
       alt=""
       draggable={false}
       className={cn(
-        "overflow-hidden rounded-[7px]",
-        fills ? "object-cover" : "bg-white object-contain p-0.5",
+        "overflow-hidden rounded-icon-plate",
+        fills ? "object-cover" : "bg-icon-plate object-contain p-0.5",
         className,
       )}
     />

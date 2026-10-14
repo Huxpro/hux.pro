@@ -30,7 +30,7 @@ export const GLASS_PANEL =
  * a rounded rectangle, and a surface (a sheet or a panel, not a capsule).
  */
 export const GLASS_CAPSULE =
-  "rounded-full border border-border/50 bg-glass backdrop-blur-xl shadow-raised";
+  "rounded-capsule border border-border/50 bg-glass backdrop-blur-xl shadow-raised";
 
 /**
  * The chip a glyph gets when it sits on artwork rather than on a surface:

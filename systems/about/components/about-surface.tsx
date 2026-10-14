@@ -319,7 +319,7 @@ function AboutFoot({
         type="button"
         onClick={onDismiss}
         className={cn(
-          "relative inline-flex items-center gap-2.5 rounded-full py-2 text-[13px] font-medium text-foreground",
+          "relative inline-flex items-center gap-2.5 rounded-capsule py-2 text-[13px] font-medium text-foreground",
           keyboard ? "pr-4 pl-5" : "px-5",
           GLASS_TRACK_FLAT,
           "active:scale-[0.97] active:duration-0",

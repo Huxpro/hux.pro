@@ -1,0 +1,11 @@
+The Styles' typefaces (app/globals.css, FACES), latin subsets as served by
+Google Fonts, self-hosted so each @font-face can carry a size-adjust.
+
+All are licensed under the SIL Open Font License 1.1
+(https://openfontlicense.org):
+
+  bricolage-grotesque.woff2         Bricolage Grotesque, Mathieu Triay
+  fraunces-*.woff2                  Fraunces, Undercase Type
+  martian-mono.woff2                Martian Mono, Evil Martians
+  silkscreen-*.woff2                Silkscreen, Jason Kottke
+  pixelify-sans.woff2               Pixelify Sans, Stefie Justprince

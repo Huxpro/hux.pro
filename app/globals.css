@@ -7,6 +7,94 @@
 @source "../node_modules/@streamdown/code/dist/*.js";
 @source "../node_modules/@streamdown/cjk/dist/*.js";
 
+/* =============================================================================
+   FACES: the Styles' typefaces, self-hosted (public/fonts/styles, latin, OFL).
+
+   Each face is matched to the default face of the role it takes over, so a
+   Style changes the voice of the type and not its size. Every `text-xs`,
+   `text-[11px]` and line-height on the site was set against Inter and
+   JetBrains Mono; a face with a smaller x-height reads a size down at the
+   same number, and a wider one truncates a row the default fits. The match
+   is `size-adjust` on the face itself, measured (x-height, then width for the
+   monos), not a `font-size-adjust` on the roles: that one inherits, so a
+   serif `em` inside sans prose would be scaled to the sans.
+
+     face            x-height  width  replaces          size-adjust
+     Bricolage       0.52      12.6   Inter .55 / 12.8  106%
+     Fraunces        0.47      12.8   Newsreader .45    96%
+     Martian Mono    0.60      17.5   JetBrains .55/15  90%  (x .54, w 15.8)
+     Silkscreen      0.63      17.5   JetBrains .55/15  87%  (x .55, w 15.2)
+     Pixelify Sans   0.45      12.8   Inter .55 / 12.8  112% (x .50, w 14.3)
+
+   (width: "The quick brown fox jumps" at 1em, in em.) Pixelify stops short
+   of Inter's x-height: matching it outright makes it 22% wider than Inter
+   and every truncated row loses a word. Not preloaded and not referenced by
+   the default Style, so a browser only fetches the files a Style sets text in.
+   ============================================================================= */
+@font-face {
+  font-family: "Hux Bricolage";
+  src: url("/fonts/styles/bricolage-grotesque.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 106%;
+}
+@font-face {
+  font-family: "Hux Fraunces";
+  src: url("/fonts/styles/fraunces-normal-100-900.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 96%;
+}
+@font-face {
+  font-family: "Hux Fraunces";
+  src: url("/fonts/styles/fraunces-italic-100-900.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+  size-adjust: 96%;
+}
+@font-face {
+  font-family: "Hux Martian Mono";
+  src: url("/fonts/styles/martian-mono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 90%;
+}
+@font-face {
+  font-family: "Hux Silkscreen";
+  src: url("/fonts/styles/silkscreen-normal-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 87%;
+}
+@font-face {
+  font-family: "Hux Silkscreen";
+  src: url("/fonts/styles/silkscreen-normal-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 87%;
+}
+@font-face {
+  font-family: "Hux Pixelify";
+  src: url("/fonts/styles/pixelify-sans.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 112%;
+}
+:root {
+  --face-bricolage: "Hux Bricolage";
+  --face-fraunces: "Hux Fraunces";
+  --face-martian-mono: "Hux Martian Mono";
+  --face-silkscreen: "Hux Silkscreen";
+  --face-pixelify: "Hux Pixelify";
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /* `roomy:` matches a screen that is both wide AND tall enough to have space to
@@ -135,6 +223,33 @@
      both heights: a hard offset for Cartoon and Pixel, a glow for Neon. */
   --shadow-raised: var(--elevation-raised);
   --shadow-overlay: var(--elevation-overlay);
+  /* The third, lowest height: a control's moving part inside its track (a
+     segmented control's thumb, a switch's knob, a selected pill). */
+  --shadow-control: var(--elevation-control);
+
+  /* The app icon (components/apps/app-tile.tsx and every copy of its corner):
+     a tile is a shape, an outline, a plate behind art that does not fill it,
+     and an elevation. Inputs in :root, re-chosen by a Style. `rounded-icon` is
+     a percentage, so the same corner holds at 32, 48 and 64px; the small
+     plates in a window's menu and the Dock run a third rounder
+     (`rounded-icon-plate`, 7px at 24px), as iOS's small icons do. */
+  /* A capsule's ends (`rounded-capsule`): the floating one-line pills that
+     `GLASS_CAPSULE` and its kin draw. Fully round by default; a Style with
+     no curves (Pixel) squares them, and the shape still reads as a line. */
+  --radius-capsule: var(--capsule-radius);
+  --radius-icon: var(--icon-radius);
+  --radius-icon-plate: calc(var(--icon-radius) * 1.3);
+  --shadow-icon: var(--elevation-icon);
+  --color-icon-plate: var(--icon-plate);
+  --color-icon-stroke: var(--icon-stroke);
+  --color-icon-press: var(--icon-press);
+
+  /* A window's three controls (systems/windows/components/window-pill.tsx):
+     macOS's red, yellow and green, which a Style may recolour (Y2K: Y1's
+     candy dots). Their order and glyphs carry the meaning, not the hue. */
+  --color-window-close: var(--window-close);
+  --color-window-minimize: var(--window-minimize);
+  --color-window-zoom: var(--window-zoom);
 }
 
 /* =============================================================================
@@ -313,9 +428,21 @@
   --chart-5: oklch(0.424 0.199 265.638);
   --radius: 0.625rem;
   --radius-step: 1;
+  --capsule-radius: calc(infinity * 1px);
+  --window-close: #ff5f57;
+  --window-minimize: #febc2e;
+  --window-zoom: #28c840;
+  /* The app icon (see @theme): today's tile, exactly. */
+  --icon-radius: 22.5%;
+  --icon-stroke: rgb(0 0 0 / 0.08);
+  --icon-stroke-width: 1px;
+  --icon-plate: oklch(1 0 0);
+  --icon-press: rgb(0 0 0 / 0.3);
+  --elevation-icon: 0 0 #0000;
   /* Elevation (`shadow-raised` / `shadow-overlay`, see @theme). */
   --elevation-raised: 0 4px 6px -4px rgb(0 0 0 / 0.05), 0 10px 15px -3px rgb(0 0 0 / 0.05);
   --elevation-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.2);
+  --elevation-control: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -372,6 +499,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --icon-stroke: rgb(255 255 255 / 0.12);
 }
 
 /* -----------------------------------------------------------------------------
@@ -426,8 +554,8 @@ html[data-tint="wallpaper"] {
    component written against the tokens is already written for every Style.
    The default is the absence of the attribute: none of this applies to it.
 
-   Six inputs exist for Styles alone (the default's values are in :root, or
-   are "none" where nothing is painted):
+   These inputs exist for Styles alone (the default's values are in :root,
+   or are "none" where nothing is painted):
 
      --style-tint             the Style's signature colour. It takes the place
                               of the wallpaper's tint (`--tint`), so it reaches
@@ -439,7 +567,12 @@ html[data-tint="wallpaper"] {
                               Pixel's LCD dots). The ground is still
                               `--background`; the pattern sits on it.
      --style-text-glow        a text-shadow for text that emits light (Neon).
-     --radius-step / --elevation-* / --font-code, which the default has too.
+
+   And these, which the default has too, set to what it always drew:
+   --radius-step, --capsule-radius, --elevation-raised / -overlay / -control,
+   the app icon's (--icon-radius, -stroke, -stroke-width, -plate, -press,
+   --elevation-icon), a window's three control colours, --font-code. The
+   faces are in FACES at the top of this file.
 
    A Style owns the ground: while one is on, the ambient system paints no
    wallpaper (systems/ambient/provider.tsx), so the legibility inputs are the
@@ -720,6 +853,70 @@ html[data-style="neon"].dark {
   --glass-hover-step: 12%;
 }
 
+/* The app icon, per Style (see the icon inputs in :root). The icon is the
+   one surface the art fills, so a Style speaks only at its edge: the corner,
+   the outline, the plate behind a glyph, the lift. The art is never touched. */
+html[data-style="cartoon"] {
+  --elevation-control: 1.5px 1.5px 0 var(--surface-stroke);
+  --icon-radius: 28%;
+  --icon-stroke: var(--surface-stroke);
+  --icon-stroke-width: 2px;
+  --elevation-icon: 2px 2px 0 var(--surface-stroke);
+}
+html[data-style="cartoon"].dark {
+  --elevation-icon: 2px 2px 0 oklch(0.823 0.112 229);
+}
+html[data-style="y2k"] {
+  --window-close: oklch(0.807 0.139 344.7);
+  --window-minimize: oklch(0.9 0.16 98);
+  --window-zoom: oklch(0.91 0.18 125);
+  --elevation-control: inset 0 1.5px 0 rgb(255 255 255 / 0.9), 0 0 0 1.5px var(--surface-stroke);
+  --icon-radius: 32%;
+  --icon-stroke: var(--surface-stroke);
+  --icon-stroke-width: 2.5px;
+  --elevation-icon: 0 8px 14px -8px oklch(0.599 0.23 286.2 / 0.55);
+}
+html[data-style="y2k"].dark {
+  --elevation-icon: 0 8px 16px -8px oklch(0.807 0.139 344.7 / 0.45);
+}
+html[data-style="candy"] {
+  --elevation-control: inset 0 -4px 8px -4px oklch(0.823 0.112 229 / 0.3), 0 4px 10px -4px oklch(0.658 0.088 229.2 / 0.45);
+  --icon-radius: 30%;
+  --icon-stroke: transparent;
+  --icon-stroke-width: 0px;
+  --elevation-icon: 0 10px 18px -10px oklch(0.658 0.088 229.2 / 0.6);
+}
+html[data-style="candy"].dark {
+  --elevation-icon: 0 0 16px -4px oklch(0.823 0.112 229 / 0.4);
+}
+html[data-style="neon"] {
+  --elevation-control: 0 0 0 1px var(--surface-stroke), 0 0 10px -2px oklch(0.641 0.194 275.6 / 0.5);
+  --icon-radius: 26%;
+  --icon-stroke: var(--surface-stroke);
+  --icon-stroke-width: 1.5px;
+  --elevation-icon: 0 0 0 3px oklch(0.806 0.109 294 / 0.25), 0 8px 18px -8px oklch(0.641 0.194 275.6 / 0.5);
+}
+html[data-style="neon"].dark {
+  --icon-stroke-width: 1px;
+  --elevation-icon: 0 0 16px -2px oklch(0.641 0.194 275.6 / 0.55);
+}
+html[data-style="pixel"] {
+  --elevation-control: 2px 2px 0 oklch(0.206 0.052 284.2 / 0.35);
+  --capsule-radius: 0px;
+  --icon-radius: 0%;
+  --icon-stroke: var(--surface-stroke);
+  --icon-stroke-width: 2px;
+  --icon-plate: var(--popover);
+  --icon-press: oklch(0.206 0.052 284.2 / 0.35);
+  --elevation-icon: 3px 3px 0 oklch(0.206 0.052 284.2 / 0.35);
+}
+html[data-style="pixel"].dark {
+  /* The lit LCD: a glyph's plate is the bright green the screen draws with,
+     so a black mark (Lynx) keeps its contrast on the dark ground. */
+  --icon-plate: var(--ink);
+  --elevation-icon: 3px 3px 0 rgb(0 0 0 / 0.5);
+}
+
 /* The faces each Style casts into the font roles. The faces are variables on
    <body> (app/layout.tsx), so the roles are re-declared there. */
 html[data-style="cartoon"] body {
@@ -980,7 +1177,7 @@ html[data-style]
   border-color: var(--surface-stroke);
   box-shadow: var(--elevation-raised);
 }
-html[data-style] :is(.bg-glass-overlay, .bg-glass-sheet, .bg-glass-popover) {
+html[data-style] :is(.bg-glass-overlay, .bg-glass-sheet, .bg-glass-popover, .style-frame) {
   border-width: var(--surface-stroke-width);
   border-color: var(--surface-stroke);
   box-shadow: var(--elevation-overlay);
@@ -989,6 +1186,12 @@ html[data-style] :is(.bg-glass-overlay, .bg-glass-sheet, .bg-glass-popover) {
 html[data-style] .page-ground {
   background-image: var(--ground-pattern, none);
   background-size: var(--ground-pattern-size, auto);
+}
+/* Selected text: the Style's tint as a wash, the way the accent takes it, so
+   a selection in Y2K is pink and in Pixel blue instead of the browser's. The
+   default keeps the platform's own highlight. */
+html[data-style] ::selection {
+  background: color-mix(in oklab, var(--tint) 40%, transparent);
 }
 /* Light that text gives off. Declared where relief lands, so it replaces it. */
 html[data-style="neon"].dark :is(body, .ink-bare, .ink-bare-mid) {

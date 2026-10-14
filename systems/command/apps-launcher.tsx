@@ -112,7 +112,7 @@ export function CommandAppsStrip({ onLaunch }: { onLaunch: () => void }) {
             className={itemClass}
           >
             <span className="flex w-full flex-col items-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-[22.5%] border border-dashed border-border/70 bg-muted/30 text-muted-foreground">
+              <span className="flex h-12 w-12 items-center justify-center rounded-icon border border-dashed border-border/70 bg-muted/30 text-muted-foreground">
                 <Link2 className="h-5 w-5" />
               </span>
               <span className="mt-1.5 block max-w-16 truncate text-center text-[11px] leading-tight text-muted-foreground">

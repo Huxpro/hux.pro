@@ -36,15 +36,10 @@ import { MinimizedWindows, WindowLayer } from "@/systems/windows";
 import type { Metadata, Viewport } from "next";
 import { ViewTransitions } from "next-view-transitions";
 import {
-  Bricolage_Grotesque,
-  Fraunces,
   Inter,
   JetBrains_Mono,
-  Martian_Mono,
   Newsreader,
   Noto_Serif_SC,
-  Pixelify_Sans,
-  Silkscreen,
 } from "next/font/google";
 import "./globals.css";
 
@@ -82,58 +77,11 @@ const jetbrainsMono = JetBrains_Mono({
 
 // Every face is a `--face-*` variable on <body>; app/globals.css casts them
 // into the font roles (`--font-sans`, `--font-serif-*`, `--font-mono`), and a
-// Style (services/style.tsx) re-casts them. These five are the Styles' faces.
-// Not preloaded: the
-// @font-face rules ship with the page, but a file is only fetched once a
-// Style actually sets text in it, so the default Style pays nothing.
-const bricolage = Bricolage_Grotesque({
-  variable: "--face-bricolage",
-  subsets: ["latin"],
-  display: "swap",
-  preload: false,
-});
-
-const fraunces = Fraunces({
-  variable: "--face-fraunces",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  display: "swap",
-  preload: false,
-});
-
-const martianMono = Martian_Mono({
-  variable: "--face-martian-mono",
-  subsets: ["latin"],
-  display: "swap",
-  preload: false,
-});
-
-const silkscreen = Silkscreen({
-  variable: "--face-silkscreen",
-  weight: ["400", "700"],
-  subsets: ["latin"],
-  display: "swap",
-  preload: false,
-});
-
-const pixelify = Pixelify_Sans({
-  variable: "--face-pixelify",
-  subsets: ["latin"],
-  display: "swap",
-  preload: false,
-});
-
-const FONT_FACES = [
-  inter,
-  newsreader,
-  notoSerifSC,
-  jetbrainsMono,
-  bricolage,
-  fraunces,
-  martianMono,
-  silkscreen,
-  pixelify,
-]
+// Style (services/style.tsx) re-casts them. The Styles' own faces are not
+// here: they are @font-face rules in app/globals.css (FACES), self-hosted
+// under public/fonts/styles, because each carries a `size-adjust` that
+// next/font/google cannot set.
+const FONT_FACES = [inter, newsreader, notoSerifSC, jetbrainsMono]
   .map((font) => font.variable)
   .join(" ");
 

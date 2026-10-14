@@ -259,10 +259,12 @@ function DesktopWindow({ win }: { win: WindowInstance }) {
         // a separate document, so its own text stays selectable; a Lynx
         // app renders in this document and is an app, not a page of prose.
         "system-chrome overflow-hidden",
-        maximized ? "rounded-2xl" : "rounded-[22px]",
-        "border border-black/10 dark:border-white/14",
+        maximized ? "rounded-2xl" : "rounded-3xl",
+        // `style-frame`: a floating surface that is not glass (the app is
+        // its ground), so a Style's outline reaches it by name (globals.css).
+        "style-frame border border-border",
         appGround(win.app),
-        focused ? "shadow-overlay ring-1 ring-black/5 dark:ring-white/10" : "shadow-raised",
+        focused ? "shadow-overlay ring-1 ring-border/60" : "shadow-raised",
       )}
     >
       {/* Edge-to-edge content. Keyed by generation: the menu's Reload is a

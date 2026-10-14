@@ -130,7 +130,7 @@ export function TimelineMini({
           >
             {data.mark ? (
               // The same face the row wears on /works (TimelineCommit).
-              <ProjectMark icon={data.mark} className="size-4 rounded-[4px]" />
+              <ProjectMark icon={data.mark} className="size-4 rounded-icon" />
             ) : (
               <CommitIcon
                 type={data.type}

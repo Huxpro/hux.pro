@@ -39,7 +39,7 @@ export function WidgetPicker({
     <Menu.Root>
       {/* A pill, as Done is: the controls float over the grid, and bare
           text there reads against whatever card is under it. */}
-      <Menu.Trigger className="pressable rounded-full border border-border/60 bg-glass-strong-hover px-5 py-2.5 text-xs font-mono text-tertiary-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground data-[popup-open]:text-foreground md:px-4 md:py-1.5">
+      <Menu.Trigger className="pressable rounded-capsule border border-border/60 bg-glass-strong-hover px-5 py-2.5 text-xs font-mono text-tertiary-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground data-[popup-open]:text-foreground md:px-4 md:py-1.5">
         {t(locale, "widgetEditWidgets")}
       </Menu.Trigger>
       <Menu.Portal>

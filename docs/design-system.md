@@ -242,10 +242,28 @@ Style adds to the system, all in `STYLES` with their defaults in `:root`:
   `bg-popover` take it, with the elevation of their rung
   (`--elevation-raised` for widgets and capsules, `--elevation-overlay` for
   sheets, popovers, the palette).
-- `--elevation-raised` / `--elevation-overlay`: what `shadow-raised` and
-  `shadow-overlay` are; the default's values moved here unchanged.
+- `--elevation-raised` / `--elevation-overlay` / `--elevation-control`:
+  what `shadow-raised`, `shadow-overlay` and `shadow-control` are; the
+  default's values moved here unchanged. `shadow-control` is the third and
+  lowest height, a control's moving part inside its track (a segmented
+  control's thumb, a switch's knob, the music widget's selected pill), which
+  used to be Tailwind's `shadow-sm`. A floating surface that is not glass (a
+  window's frame, whose ground is its app) takes the outline and the overlay
+  height by name, `style-frame`.
 - `--radius-step`: how much each rung of the radius scale adds to `--radius`
   (1 by default; Pixel's 0 makes every corner the same).
+- `--capsule-radius` (`rounded-capsule`): the ends of a floating one-line
+  pill (`GLASS_CAPSULE`, the /works chapter pill, the edit-mode pills).
+  Round by default; Pixel squares them.
+- The app icon: `--icon-radius` (`rounded-icon`, a percentage, and
+  `rounded-icon-plate` a third rounder for the 24px plates in a window's menu
+  and the Dock), `--icon-stroke` / `--icon-stroke-width`, `--icon-plate` (the
+  plate behind a glyph that does not fill its tile), `--icon-press` (the
+  touch-down wash) and `--elevation-icon` (`shadow-icon`). The defaults are
+  the tile as it was (22.5%, a 1px black/8 or white/12 hairline, a white
+  plate, no lift); a Style speaks only at the edge and never touches the art.
+  Every copy of the tile's corner uses them: `AppTile`, the ⌘K Load tile,
+  `AppIconPlate`, `ProjectMark`, an article badge's icon.
 - `--ground-pattern` (and `-size`): an image over the page's ground, on
   `.page-ground`.
 - `--style-text-glow`: Neon's emitted light, on the page's text but not on an
@@ -253,14 +271,40 @@ Style adds to the system, all in `STYLES` with their defaults in `:root`:
 - `--font-code`: an article's code; the mono role, unless the Style's mono is
   a display face (Pixel, Y2K), when it stays JetBrains Mono.
 
-The faces are next/font variables named for the face (`--face-inter`,
-`--face-bricolage`, …) on `<body>`; the roles (`--font-sans`,
-`--font-serif-latin`, `--font-mono`, `--font-code`) are cast from them in
-`globals.css`, and a Style re-casts them. The Styles' faces are not
-preloaded: the default downloads none of them.
+The faces are variables named for the face (`--face-inter`,
+`--face-bricolage`, …); the roles (`--font-sans`, `--font-serif-latin`,
+`--font-mono`, `--font-code`) are cast from them in `globals.css`, and a
+Style re-casts them. The default's four come from next/font; the Styles'
+five are self-hosted (`public/fonts/styles`, OFL) as `@font-face` rules
+(FACES in `globals.css`), because each carries a `size-adjust` that matches
+it to the face whose role it takes: every px size and line-height on the
+site was set against Inter and JetBrains Mono, so a face with a smaller
+x-height read a size down at the same number and a wider mono truncated rows
+the default fits. Measured, not guessed:
+
+| Face | x-height | width | replaces | `size-adjust` |
+|---|---|---|---|---|
+| Bricolage Grotesque | 0.52 | 12.6 | Inter 0.55 / 12.8 | 106% |
+| Fraunces | 0.47 | 12.8 | Newsreader 0.45 | 96% |
+| Martian Mono | 0.60 | 17.5 | JetBrains Mono 0.55 / 15 | 90% |
+| Silkscreen | 0.63 | 17.5 | JetBrains Mono 0.55 / 15 | 87% |
+| Pixelify Sans | 0.45 | 12.8 | Inter 0.55 / 12.8 | 112% |
+
+(x-height and cap height per em; width of "The quick brown fox jumps" in em.)
+The adjustment is on the face, not a `font-size-adjust` on the role, which
+would inherit into a nested face (a serif `em` in sans prose). Pixelify stops
+short of Inter's x-height: matching it outright makes it 22% wider. None of
+the files is preloaded, and a browser only fetches the ones a Style sets
+text in.
+
+The glow (docs/system-glow.md) harmonises with a Style the way it does with a
+wallpaper: `GlowPaletteBridge` reads the Style's own `--style-tint` off the
+root and hands it to the harmony rule, so the light under Neon is lilac and
+under Y2K pink, without a second copy of either colour.
 
 A Style owns the ground. While one is on, the ambient system paints no
-wallpaper and keeps the iOS bezel off (`systems/ambient/provider.tsx`), so
+wallpaper and keeps the iOS bezel off (`systems/ambient/provider.tsx`, and
+the bezel's boot script for the first frame, `systems/ambient/lib/bezel.ts`), so
 the legibility inputs are the plain page's and the Style's ink is never
 flipped; the browser chrome takes the Style's ground (`STYLE_GROUND`). The
 saved wallpaper is untouched and comes back with the Default.
