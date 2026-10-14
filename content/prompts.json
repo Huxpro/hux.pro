@@ -484,8 +484,8 @@
       ],
       "shapedBy": ["scientific-method", "principles-dalio"],
       "body": {
-        "en": "This rung is my half of the shelf: everything that is mine to do. No model ever closes on the world, and reality keeps the right to refute whatever I hold — so the work is to guess well, check hard, and take the inch. The line is welded from two: 尽人事 is the old proverb's first half, and the rest is Hu Shih's.\nThe scientific, experimental, evolutionary mode is my top-level model of how anything gets better — a person, a framework, a species. Its two halves only work together: a conjecture nobody could refute is a wish, and a test with nothing bold to test is bookkeeping. Wishful thinking is the one bug this model cannot report about itself, which is why the boldness has to be paid for with a referee.\nBoth of Hu Shih's lines live on this shelf. He wrote the Science Society's anthem in 1929, Zhao Yuanren set it, and it was first sung at the society's fifteenth anniversary in 1930: “We sing that heaven's course is constant, we sing of reaching knowledge by exhausting principle. What is there to fear in an inexhaustible truth — every inch gained is an inch of joy.” The shelf is named 天行 after Xunzi, and Hu Shih had already sung it into the anthem of Chinese science; 致知穷理 is Zhu Xi's line, a few rows down.",
-        "zh": "这一级是天人之分里「人」的那一半：所有该我做的事。没有一个模型能把世界收完，现实随时保留推翻我的权利 —— 所以能做的就是猜得好一点、验得狠一点，然后把那一寸拿到手。这句话是焊起来的：「尽人事」是那句老话的前半，后半是胡适的。\n科学的、实验的、进化的思维方式，是我关于「一个东西如何变好」最顶层的模型 —— 无论那个东西是一个人、一个框架还是一个物种。它的两半只有合在一起才成立：一个没人能推翻的假设只是愿望，而一场没有大胆假设可检的求证只是记账。wishful thinking 是这个模型唯一不会自己报出来的 bug，所以大胆必须用一个裁判来偿付。\n胡适的两句话都在这一格里。社歌是 1929 年写的，赵元任谱曲，1930 年中国科学社十五周年年会首唱：「我们唱天行有常，我们唱致知穷理。不怕他真理无穷，进一寸有一寸的欢喜。」这一格叫「天行」是从荀子《天论》来的，而胡适早就把它唱进了中国科学社的社歌；「致知穷理」就是下面朱熹那条。（流传最广的版本把第一句写作「怕什么真理无穷」，这里用的是原词。）"
+        "en": "This rung is my half of the shelf: everything that is mine to do. No model ever closes on the world, and reality keeps the right to refute whatever I hold — so the work is to guess well, check hard, and take the inch. The line is welded from two: 尽人事 is the old proverb's first half, and the rest is Hu Shih's.\nThe scientific, experimental, evolutionary mode is my top-level model of how anything gets better — a person, a framework, a species. Its two halves only work together: a conjecture nobody could refute is a wish, and a test with nothing bold to test is bookkeeping. Wishful thinking is the one bug this model cannot report about itself, which is why the boldness has to be paid for with a referee.\nAll of it presupposes clarity, the quality I hold highest: it decides more than anything how far a person grows and how much actually gets done. Black-and-white and fog are two faces of one failure — the first flattens the grey into two colours, the second cannot find the two colours at all — and a judgment made from either is not even wrong. The right to judge is earned by seeing where the black is, where the white is, and how wide the grey runs.\nBoth of Hu Shih's lines live on this shelf. He wrote the Science Society's anthem in 1929, Zhao Yuanren set it, and it was first sung at the society's fifteenth anniversary in 1930: “We sing that heaven's course is constant, we sing of reaching knowledge by exhausting principle. What is there to fear in an inexhaustible truth — every inch gained is an inch of joy.” The shelf is named 天行 after Xunzi, and Hu Shih had already sung it into the anthem of Chinese science; 致知穷理 is Zhu Xi's line, a few rows down.",
+        "zh": "这一级是天人之分里「人」的那一半：所有该我做的事。没有一个模型能把世界收完，现实随时保留推翻我的权利 —— 所以能做的就是猜得好一点、验得狠一点，然后把那一寸拿到手。这句话是焊起来的：「尽人事」是那句老话的前半，后半是胡适的。\n科学的、实验的、进化的思维方式，是我关于「一个东西如何变好」最顶层的模型 —— 无论那个东西是一个人、一个框架还是一个物种。它的两半只有合在一起才成立：一个没人能推翻的假设只是愿望，而一场没有大胆假设可检的求证只是记账。wishful thinking 是这个模型唯一不会自己报出来的 bug，所以大胆必须用一个裁判来偿付。\n这一切的前提是清晰。清晰度是我最认的品质：一个人能长到多高、能做成多少事，最核心的就是它。非黑即白和一片迷雾是同一种失败的两面 —— 前者把灰压成了黑白，后者连黑白都分不出来 —— 从这两种状态里下的判断，连错都算不上。下判断的资格，是靠看清黑在哪里、白在哪里、灰有多宽挣来的。\n胡适的两句话都在这一格里。社歌是 1929 年写的，赵元任谱曲，1930 年中国科学社十五周年年会首唱：「我们唱天行有常，我们唱致知穷理。不怕他真理无穷，进一寸有一寸的欢喜。」这一格叫「天行」是从荀子《天论》来的，而胡适早就把它唱进了中国科学社的社歌；「致知穷理」就是下面朱熹那条。（流传最广的版本把第一句写作「怕什么真理无穷」，这里用的是原词。）"
       },
       "instances": [
         {
@@ -521,6 +521,66 @@
             "source": {
               "en": "*Geometry and Experience*, 1921",
               "zh": "《几何学与经验》，1921"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Say it clearly, or be silent",
+            "zh": "说清楚，或者沉默"
+          },
+          "text": {
+            "en": "“What can be said at all can be said clearly; and whereof one cannot speak, thereof one must be silent.” His own summary of the whole book. Fog is not a third option: what you cannot yet say clearly, you have not yet earned the right to judge.",
+            "zh": "「凡是能够说的，都能够说清楚；对于不能谈论的东西，必须保持沉默。」这是他在序言里给整本书的概括。迷雾不是第三个选项：还说不清楚的东西，就还没有资格下判断。"
+          },
+          "from": {
+            "name": {
+              "en": "Wittgenstein",
+              "zh": "维特根斯坦"
+            },
+            "source": {
+              "en": "*Tractatus Logico-Philosophicus*, preface, 1921",
+              "zh": "《逻辑哲学论》序言，1921"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Not even wrong",
+            "zh": "连错都算不上"
+          },
+          "text": {
+            "en": "“It is not even wrong.” Pauli's verdict on a paper too vague to be checked. A wrong claim can at least be refuted, and teaches you something on the way out; a foggy one cannot even do that. Popper's line up top says what a theory needs; this is what one looks like without it.",
+            "zh": "「它连错都算不上。」泡利对一篇含糊到无从检验的论文的评语。一个错的判断至少能被推翻，被推翻时还能教你点什么；一个雾里的判断连这个都做不到。上面波普尔那句说的是一个理论需要什么，这句是缺了它的样子。"
+          },
+          "from": {
+            "name": {
+              "en": "Wolfgang Pauli",
+              "zh": "泡利"
+            },
+            "source": {
+              "en": "as recalled by Rudolf Peierls, 1960",
+              "zh": "派尔斯的回忆，1960"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Great clarity",
+            "zh": "大清明"
+          },
+          "text": {
+            "en": "“The trouble with people is that they are blinded by one corner and in the dark about the larger order.” One corner is the black-and-white; the dark is the fog. His cure: empty, unified and still — “this is called great clarity.”",
+            "zh": "「凡人之患，蔽于一曲，而闇于大理。」蔽于一曲是非黑即白，闇于大理是一片迷雾。荀子开的方子：「虚壹而静，谓之大清明。」"
+          },
+          "from": {
+            "name": {
+              "en": "Xunzi",
+              "zh": "荀子"
+            },
+            "source": {
+              "en": "*Dispelling Obsession*",
+              "zh": "《荀子·解蔽》"
             }
           }
         },
@@ -736,8 +796,8 @@
         }
       ],
       "body": {
-        "en": "Act fully. Judge slowly. Then wait longer.\nThis rung is the other half: everything that was never mine. Do everything that is yours to do, then let the outcome be the outcome. It isn't fatalism, it's aim: spend the attention on what you can actually change, and stop paying rent on what you can't. And when the outcome does land, you still cannot tell a loss from a gift at the moment of impact — only later, and usually only backwards.\nThe ceiling is not a mood either. Gödel proved that a system strong enough to be interesting cannot close on itself from the inside, which turns an old proverb about fate into a theorem about knowledge.",
-        "zh": "事前尽人事，事后听天命，再往后，焉知非福。\n这一级是天人之分的另一半：所有从来就不归我的部分。把该你做的都做完，然后让结果就是结果。这不是宿命论，是瞄准：把注意力花在你真能改变的东西上，别再为你改变不了的付房租。而就算结果砸下来了，在它砸下来的那一刻，你也分不出那是损失还是礼物 —— 只能后来才知道，而且通常只能倒着看。\n那个上限也不是一种情绪。哥德尔证明了：一个强到有意思的系统，无法在自身内部兜住自己。于是一句关于命运的老话，变成了一条关于知识的定理。"
+        "en": "Act fully. Judge slowly. Then wait longer.\nThis rung is the other half: everything that was never mine. Do everything that is yours to do, then let the outcome be the outcome. It isn't fatalism, it's aim: spend the attention on what you can actually change, and stop paying rent on what you can't. And when the outcome does land, you still cannot tell a loss from a gift at the moment of impact — only later, and usually only backwards.\nThe ceiling is not a mood either. Gödel proved that a system strong enough to be interesting cannot close on itself from the inside, which turns an old proverb about fate into a theorem about knowledge.\nAnd after the seeing? Having seen the black, the white and the grey, and which of it was never mine, I still walk toward the white. That is the measure of romanticism I want: not the innocence of someone who hasn't looked, but a choice made by someone who has.",
+        "zh": "事前尽人事，事后听天命，再往后，焉知非福。\n这一级是天人之分的另一半：所有从来就不归我的部分。把该你做的都做完，然后让结果就是结果。这不是宿命论，是瞄准：把注意力花在你真能改变的东西上，别再为你改变不了的付房租。而就算结果砸下来了，在它砸下来的那一刻，你也分不出那是损失还是礼物 —— 只能后来才知道，而且通常只能倒着看。\n那个上限也不是一种情绪。哥德尔证明了：一个强到有意思的系统，无法在自身内部兜住自己。于是一句关于命运的老话，变成了一条关于知识的定理。\n看清之后呢？看清了黑白灰，也看清了哪些从来不归我 —— 然后仍然朝白的那一边走。这是我想要的那一点浪漫主义：不是没看清的天真，是看清之后的选择。"
       },
       "instances": [
         {
@@ -845,6 +905,26 @@
           "text": {
             "en": "It is a job description: give the recommendation, own the quality of what ships, and let the people who own the resourcing own it.",
             "zh": "这就是一份岗位说明：给出建议，管住发布的质量，把排期和资源留给拥有它们的人。"
+          }
+        },
+        {
+          "title": {
+            "en": "See it as it is, and love it",
+            "zh": "认清之后，依然热爱"
+          },
+          "text": {
+            "en": "“There is only one heroism in the world: to see the world as it is, and to love it.” Two thousand years earlier a gatekeeper at Shimen described Confucius the same way: the one who knows it cannot be done, and does it anyway.",
+            "zh": "「世界上只有一种真正的英雄主义，那就是在认清生活的真相之后依然热爱生活。」这是流传最广的中文版本；罗兰的原话更短：看清世界本来的样子，并且爱它。两千多年前，石门的一个守门人这样说孔子：「是知其不可而为之者与？」"
+          },
+          "from": {
+            "name": {
+              "en": "Romain Rolland",
+              "zh": "罗曼·罗兰"
+            },
+            "source": {
+              "en": "*Life of Michelangelo*, preface, 1906",
+              "zh": "《米开朗琪罗传》序，1906"
+            }
           }
         },
         {
@@ -2059,6 +2139,24 @@
             "name": {
               "en": "Mies van der Rohe",
               "zh": "密斯·凡德罗"
+            }
+          }
+        },
+        {
+          "title": {
+            "en": "Get your thinking clean",
+            "zh": "把想法弄干净"
+          },
+          "text": {
+            "en": "“Simple can be harder than complex: you have to work hard to get your thinking clean to make it simple. But it's worth it in the end, because once you get there, you can move mountains.” Clarity is not a style; it is what getting anything done is made of.",
+            "zh": "「简单可能比复杂更难：你得下很大功夫把想法弄干净，才能让它简单。但最终是值得的，因为一旦做到，你就能移山。」清晰不是一种风格，是做成事情的原料。"
+          },
+          "from": {
+            "name": "Steve Jobs",
+            "ref": "steve-jobs",
+            "source": {
+              "en": "*BusinessWeek*, 1998",
+              "zh": "《商业周刊》，1998"
             }
           }
         },
