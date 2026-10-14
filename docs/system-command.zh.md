@@ -273,7 +273,7 @@ Tailwind `md` 以下，列间距大约是 5.3 个图块宽，所以 iPhone 上�
 
 ## 可以自由选择的
 
-- 命令的字母（任何未被占用的；已占用：A C D E G H I K L M O P T U V W X）。
+- 命令的字母（任何未被占用的；已占用：A C D E G H I K L M O P S T U V W X）。
 - 它的 `section`、图标、label 的措辞和关键词（两种语言）。
 - 它是否 `searchOnly`、`slashOnly`，或者只能用键盘（没有 label）。
 - popover 的几何参数（`popover.tsx` 里的 `PALETTE_GEOMETRY`）和 sheet 选用的
@@ -332,6 +332,7 @@ Tailwind `md` 以下，列间距大约是 5.3 个图块宽，所以 iPhone 上�
 | `W` | 壁纸选择器 | surface | settings |
 | `G` | Glass：tinted ↔ clear | toggle | settings |
 | `T` | Tint：wallpaper ↔ neutral | toggle | settings |
+| `S` | Style：default → cartoon → y2k → neon → pixel | toggle | settings |
 | `D` | Devtool | surface / toggle | settings |
 
 Install（actions，直到安装为止）和 Sky Window（actions，只能搜到）没有字母。

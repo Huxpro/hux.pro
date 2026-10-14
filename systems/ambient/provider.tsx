@@ -97,6 +97,7 @@ import {
   settleFor,
 } from "./lib/settle";
 import { usePathname } from "next/navigation";
+import { STYLE_GROUND, useSiteStyle } from "@/services";
 import { isReadingSurface } from "./lib/reading-surface";
 import { sameProfile } from "./lib/wallpaper-profile";
 import {
@@ -833,10 +834,19 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const reading = isReadingSurface({ pathname });
   const isBlurred = reading && settings.wallpaperKind === "image" && settings.wallpaperReadingBlur;
 
-  const fullEnabled = overridden("full", settings.wallpaperPlacement === "full");
+  // A Style (services/style.tsx) owns the page's ground: under one, no
+  // wallpaper paints, so the legibility inputs are the plain page's and the
+  // Style's own ink is never flipped. The saved placement is kept for when the
+  // default Style comes back. A devtool override still wins, as everywhere.
+  const siteStyle = useSiteStyle();
+  const styleGround = STYLE_GROUND[siteStyle];
+  const fullEnabled = overridden(
+    "full",
+    !styleGround && settings.wallpaperPlacement === "full"
+  );
   const widgetEnabled = overridden(
     "widget",
-    settings.wallpaperPlacement === "widget"
+    !styleGround && settings.wallpaperPlacement === "widget"
   );
 
   /**
@@ -851,7 +861,9 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
    */
   const edges = WALLPAPER_FAMILY_EDGES[edgeFamily];
   const bezelState: boolean | null =
-    !settingsLoaded || isIOS === null ? null : overridden("bezel", isIOS && edges.bezel);
+    !settingsLoaded || isIOS === null
+      ? null
+      : overridden("bezel", isIOS && edges.bezel && !styleGround);
   const bezel = bezelState === true;
   // Container scroll on an iPhone with the bezel on: it is what lets a band
   // thinner than CHROME_SAMPLE_PX keep the chrome in the bezel colour, and
@@ -862,7 +874,7 @@ export function AmbientProvider({ children, theme: chromeTheme }: AmbientProvide
   const bezelColor = resolveBezelTint(settings.bezelTint, chromeTheme);
   const bezelBand = settings.bezelBand ?? DEFAULT_BEZEL_BAND;
   const bezelRadius = settings.bezelRadius ?? DEFAULT_BEZEL_RADIUS;
-  const ground = PAGE_GROUND[chromeTheme];
+  const ground = styleGround?.[chromeTheme] ?? PAGE_GROUND[chromeTheme];
 
   // Soft edging fades the background out at the top and bottom of the viewport.
   // It exists for phones: a full-bleed background running under the notch and

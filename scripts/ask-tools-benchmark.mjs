@@ -37,6 +37,7 @@ const cases = [
   ['location', 'Use accurate GPS for my local weather', 'command_location', 'gps'],
   ['glass', 'Make the glass clear', 'command_glass', 'clear'],
   ['tint', '让玻璃跟随壁纸着色', 'command_tint', 'wallpaper'],
+  ['style', '换成像素风格', 'command_style', 'pixel'],
   ['music', 'Pause the background music', 'command_music', 'pause'],
   ['install', 'How do I add this site to my home screen?', 'command_install'],
   ['about', 'Show me the About overlay', 'command_about'],

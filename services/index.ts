@@ -27,5 +27,14 @@ export {
   getTintLabel,
   type GlassTint,
 } from "./glass";
+export {
+  SITE_STYLES,
+  STYLE_BOOT,
+  STYLE_GROUND,
+  getStyleLabel,
+  isSiteStyle,
+  type SiteStyle,
+} from "./style-core";
+export { StyleRootSync, nextSiteStyle, setSiteStyle, useSiteStyle } from "./style";
 export { ThemeProvider, useSunThemeSlot, useTheme, type ThemePreference } from "./theme";
 export { VisitorProvider, useVisitor, type LastVisitedItem } from "./visitor";

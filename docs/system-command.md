@@ -315,7 +315,7 @@ is under the card in the first screenshot.
 
 ## What is free to choose
 
-- A command's letter (any unused one; taken: A C D E G H I K L M O P T U V W X).
+- A command's letter (any unused one; taken: A C D E G H I K L M O P S T U V W X).
 - Its `section`, icon, label wording and keywords (both languages).
 - Whether it is `searchOnly`, `slashOnly`, or keyboard-only (no label).
 - The popover's geometry (`PALETTE_GEOMETRY` in `popover.tsx`) and the
@@ -378,6 +378,7 @@ including the unlisted ones.
 | `W` | Wallpaper picker | surface | settings |
 | `G` | Glass: tinted ↔ clear | toggle | settings |
 | `T` | Tint: wallpaper ↔ neutral | toggle | settings |
+| `S` | Style: default → cartoon → y2k → neon → pixel | toggle | settings |
 | `D` | Devtool | surface / toggle | settings |
 
 Install (actions, until installed) and Sky Window (actions, search-only)

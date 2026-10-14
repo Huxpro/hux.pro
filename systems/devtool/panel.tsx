@@ -10,6 +10,10 @@ import {
   useTheme,
   GLASS_TINTS,
   getTintLabel,
+  SITE_STYLES,
+  getStyleLabel,
+  setSiteStyle,
+  useSiteStyle,
 } from "@/services";
 import {
   motionStatus,
@@ -1129,7 +1133,8 @@ function GlassModule() {
   const glass = useGlass();
   const { legibility, legibilityOverride, labPolicy } = useWallpaper();
   const isHome = useIsHome();
-  const star: Star = glass.tint !== "neutral" ? "saved" : null;
+  const siteStyle = useSiteStyle();
+  const star: Star = glass.tint !== "neutral" || siteStyle !== "default" ? "saved" : null;
 
   const options = GLASS_MATERIALS.map((value) => ({
     value,
@@ -1152,6 +1157,25 @@ function GlassModule() {
       }
     >
       <div className="space-y-2">
+        {/* The Style re-chooses every token input, the glass's among them:
+            under one, Material and Tint are kept but have nothing to say. */}
+        <PanelRow
+          label={t(locale, "settingsStyle")}
+          star={
+            siteStyle === "default" ? null : (
+              <PanelStar source="saved" onReset={() => setSiteStyle("default")} label="Back to default" />
+            )
+          }
+        >
+          <PanelSegmented
+            value={siteStyle}
+            options={SITE_STYLES.map((value) => ({
+              value,
+              label: getStyleLabel(value, locale),
+            }))}
+            onChange={setSiteStyle}
+          />
+        </PanelRow>
         <PanelRow label={zh ? "材质" : "Material"}>
           <PanelSegmented
             value={glass.material}

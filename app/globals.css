@@ -46,6 +46,9 @@
   --font-sans: var(--font-sans);
   --font-serif: var(--font-serif-latin), var(--font-serif-cjk), serif;
   --font-mono: var(--font-mono);
+  /* Code in an article: the mono role, unless a Style's mono is a display
+     face nobody should read a program in (Pixel's). */
+  --font-code: var(--font-code);
   --color-sidebar-ring: var(--sidebar-ring);
   /* System glass fills. Every floating System UI surface (widgets, the
      command palette, the devtool, Live Activities, adaptive surfaces) paints
@@ -102,13 +105,16 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  /* The radius scale is `--radius` plus a step per rung. `--radius-step` is
+     1 (these exact numbers) except under a Style that wants every corner the
+     same (Pixel: 0, so `rounded-sm` and `rounded-4xl` are both `--radius`). */
+  --radius-sm: max(0px, calc(var(--radius) - 4px * var(--radius-step)));
+  --radius-md: max(0px, calc(var(--radius) - 2px * var(--radius-step)));
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-xl: calc(var(--radius) + 4px * var(--radius-step));
+  --radius-2xl: calc(var(--radius) + 8px * var(--radius-step));
+  --radius-3xl: calc(var(--radius) + 12px * var(--radius-step));
+  --radius-4xl: calc(var(--radius) + 16px * var(--radius-step));
 
   /* Elevation: app-wide shadow spec (two levels, à la Material elevation).
      Use these instead of raw `shadow-lg/2xl + shadow-black/xx`, so every
@@ -123,9 +129,12 @@
 
      Colour stays black in both themes; in dark mode the border does most of
      the separating (a black shadow on a dark surface barely reads), matching
-     the existing FAB / Live Activity recipe. */
-  --shadow-raised: 0 4px 6px -4px rgb(0 0 0 / 0.05), 0 10px 15px -3px rgb(0 0 0 / 0.05);
-  --shadow-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.2);
+     the existing FAB / Live Activity recipe.
+
+     The values are inputs (`--elevation-*` in :root) so a Style can re-cut
+     both heights: a hard offset for Cartoon and Pixel, a glow for Neon. */
+  --shadow-raised: var(--elevation-raised);
+  --shadow-overlay: var(--elevation-overlay);
 }
 
 /* =============================================================================
@@ -303,6 +312,10 @@
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
   --radius: 0.625rem;
+  --radius-step: 1;
+  /* Elevation (`shadow-raised` / `shadow-overlay`, see @theme). */
+  --elevation-raised: 0 4px 6px -4px rgb(0 0 0 / 0.05), 0 10px 15px -3px rgb(0 0 0 / 0.05);
+  --elevation-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.2);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -404,6 +417,272 @@ html[data-tint="wallpaper"] {
 }
 
 /* =============================================================================
+   STYLES: the site's look, as a choice of inputs.
+
+   A Style (services/style.ts, `data-style` on <html>) is nothing but a block of
+   the INPUTS above, re-chosen: the ink and the page, the glass fills, the
+   radius, the elevation, the faces. THE LADDER below derives every text rung,
+   wash and glass role from them exactly as it does for the default, so a
+   component written against the tokens is already written for every Style.
+   The default is the absence of the attribute: none of this applies to it.
+
+   Six inputs exist for Styles alone (the default's values are in :root, or
+   are "none" where nothing is painted):
+
+     --style-tint             the Style's signature colour. It takes the place
+                              of the wallpaper's tint (`--tint`), so it reaches
+                              the accent wash and the focus ring the same way,
+                              and never the ink.
+     --surface-stroke         a floating surface's outline: colour and width.
+     --surface-stroke-width   (Cartoon's and Y2K's ink line, Neon's lit edge.)
+     --ground-pattern         an image over the page's ground (Y2K's grid,
+                              Pixel's LCD dots). The ground is still
+                              `--background`; the pattern sits on it.
+     --style-text-glow        a text-shadow for text that emits light (Neon).
+     --radius-step / --elevation-* / --font-code, which the default has too.
+
+   A Style owns the ground: while one is on, the ambient system paints no
+   wallpaper (systems/ambient/provider.tsx), so the legibility inputs are the
+   plain page's and nothing flips. Each Style has a light and a dark answer,
+   picked by Appearance as before. The designs are the "Lantern × Softoy"
+   canvas: Cartoon is UU3 (扭蛋), Y2K is Y1, Neon is HH2 (Capsule × light),
+   Pixel is EE3 / HH4 (the pocket pet).
+   ============================================================================= */
+
+/* --- Cartoon (卡通): the editor as a toy you can hold. Every surface has
+   an ink outline and a hard offset shadow; nothing is glossy or see-through. */
+html[data-style="cartoon"] {
+  --ink: oklch(0.22 0.01 285.6);
+  --ink-inverse: oklch(0.975 0.026 84.6);
+  --ink-line-theme: oklch(0.22 0.01 285.6 / 0.4);
+  --ink-line-inverse: oklch(0.975 0.026 84.6 / 0.4);
+  --ink-line: var(--ink-line-theme);
+  --background: oklch(0.934 0.013 271.3);
+  --card: oklch(1 0 0);
+  --popover: oklch(1 0 0);
+  --primary: var(--ink);
+  --primary-foreground: oklch(1 0 0);
+  --style-tint: oklch(0.829 0.154 76.7);
+  --tint-accent: 35%;
+  --tint-glass: 0%;
+  --radius: 0.75rem;
+  --surface-stroke: oklch(0.22 0.01 285.6);
+  --surface-stroke-width: 2.5px;
+  --elevation-raised: 3px 3px 0 oklch(0.22 0.01 285.6);
+  --elevation-overlay: 6px 6px 0 oklch(0.22 0.01 285.6);
+  --wash-alpha-border: 14%;
+}
+html[data-style="cartoon"].dark {
+  --ink: oklch(0.954 0.013 82.4);
+  --ink-inverse: oklch(0.22 0.01 285.6);
+  --ink-line-theme: oklch(0.954 0.013 82.4 / 0.4);
+  --ink-line-inverse: oklch(0.22 0.01 285.6 / 0.4);
+  --background: oklch(0.198 0.01 285.5);
+  --card: oklch(0.256 0.017 285.1);
+  --popover: oklch(0.276 0.015 285.4);
+  --primary-foreground: oklch(0.22 0.01 285.6);
+  --style-tint: oklch(0.823 0.112 229);
+  --surface-stroke: oklch(0.954 0.013 82.4);
+  --elevation-raised: 3px 3px 0 oklch(0.823 0.112 229);
+  --elevation-overlay: 6px 6px 0 oklch(0.823 0.112 229);
+}
+
+/* --- Y2K: candy plastic on a lilac graph-paper ground. Fat ink outlines,
+   jelly-bean corners, a gloss line along every top edge, pink for "this". */
+html[data-style="y2k"] {
+  --ink: oklch(0.269 0.039 306.8);
+  --ink-inverse: oklch(0.963 0.02 298.2);
+  --ink-line-theme: oklch(0.269 0.039 306.8 / 0.4);
+  --ink-line-inverse: oklch(0.963 0.02 298.2 / 0.4);
+  --ink-line: var(--ink-line-theme);
+  --background: oklch(0.944 0.03 296.2);
+  --card: oklch(1 0 0);
+  --popover: oklch(1 0 0);
+  --primary: oklch(0.7 0.229 350.8);
+  --primary-foreground: oklch(1 0 0);
+  --style-tint: oklch(0.7 0.229 350.8);
+  --tint-accent: 30%;
+  --tint-glass: 0%;
+  --radius: 1.25rem;
+  --surface-stroke: oklch(0.269 0.039 306.8);
+  --surface-stroke-width: 3px;
+  --elevation-raised:
+    inset 0 2px 0 rgb(255 255 255 / 0.9), 0 10px 22px -8px oklch(0.599 0.23 286.2 / 0.45);
+  --elevation-overlay:
+    inset 0 2px 0 rgb(255 255 255 / 0.9), 0 18px 36px -10px oklch(0.599 0.23 286.2 / 0.5);
+  --ground-pattern:
+    linear-gradient(oklch(0.599 0.23 286.2 / 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.599 0.23 286.2 / 0.12) 1px, transparent 1px);
+  --ground-pattern-size: 32px 32px;
+}
+html[data-style="y2k"].dark {
+  --ink: oklch(0.963 0.02 298.2);
+  --ink-inverse: oklch(0.269 0.039 306.8);
+  --ink-line-theme: oklch(0.963 0.02 298.2 / 0.4);
+  --ink-line-inverse: oklch(0.269 0.039 306.8 / 0.4);
+  --background: oklch(0.233 0.038 292.3);
+  --card: oklch(0.284 0.049 293.2);
+  --popover: oklch(0.312 0.055 293.3);
+  --primary: oklch(0.807 0.139 344.7);
+  --primary-foreground: oklch(0.269 0.039 306.8);
+  --style-tint: oklch(0.807 0.139 344.7);
+  --surface-stroke: oklch(0.775 0.126 293);
+  --elevation-raised:
+    inset 0 2px 0 rgb(255 255 255 / 0.18), 0 10px 22px -8px oklch(0.807 0.139 344.7 / 0.35);
+  --elevation-overlay:
+    inset 0 2px 0 rgb(255 255 255 / 0.18), 0 18px 36px -10px oklch(0.807 0.139 344.7 / 0.4);
+  --ground-pattern:
+    linear-gradient(oklch(0.775 0.126 293 / 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.775 0.126 293 / 0.1) 1px, transparent 1px);
+}
+
+/* --- Neon (夜光): glow-in-the-dark. In the dark the light lives inside: a
+   lilac-to-blue glow around every surface, a lit edge, text that emits. In
+   daylight the same glow falls as a coloured shadow under an ink outline. */
+html[data-style="neon"] {
+  --ink: oklch(0.22 0.01 285.6);
+  --ink-inverse: oklch(0.94 0.019 295.9);
+  --ink-line-theme: oklch(0.22 0.01 285.6 / 0.4);
+  --ink-line-inverse: oklch(0.94 0.019 295.9 / 0.4);
+  --ink-line: var(--ink-line-theme);
+  --background: oklch(0.962 0.008 278.6);
+  --card: oklch(1 0 0);
+  --popover: oklch(1 0 0);
+  --primary: oklch(0.641 0.194 275.6);
+  --primary-foreground: oklch(1 0 0);
+  --style-tint: oklch(0.641 0.194 275.6);
+  --tint-accent: 28%;
+  --tint-glass: 4%;
+  --radius: 1rem;
+  --surface-stroke: oklch(0.22 0.01 285.6);
+  --surface-stroke-width: 1.5px;
+  --elevation-raised:
+    0 0 0 4px oklch(0.806 0.109 294 / 0.25), 0 10px 28px -6px oklch(0.641 0.194 275.6 / 0.45);
+  --elevation-overlay:
+    0 0 0 6px oklch(0.806 0.109 294 / 0.25), 0 24px 60px -12px oklch(0.641 0.194 275.6 / 0.55);
+}
+html[data-style="neon"].dark {
+  --ink: oklch(0.94 0.019 295.9);
+  --ink-inverse: oklch(0.168 0.013 292.6);
+  --ink-line-theme: oklch(0.94 0.019 295.9 / 0.4);
+  --ink-line-inverse: oklch(0.168 0.013 292.6 / 0.4);
+  --background: oklch(0.168 0.013 292.6);
+  --card: oklch(0.203 0.02 293.7);
+  --popover: oklch(0.219 0.027 293.9);
+  --primary: oklch(0.806 0.109 294);
+  --primary-foreground: oklch(0.168 0.013 292.6);
+  --style-tint: oklch(0.806 0.109 294);
+  --tint-glass: 8%;
+  --surface-stroke: oklch(0.806 0.109 294 / 0.45);
+  --surface-stroke-width: 1px;
+  --elevation-raised:
+    0 0 18px -2px oklch(0.641 0.194 275.6 / 0.45), 0 0 48px -12px oklch(0.89 0.07 345 / 0.35);
+  --elevation-overlay:
+    0 0 28px -2px oklch(0.641 0.194 275.6 / 0.55), 0 0 90px -20px oklch(0.89 0.07 345 / 0.4);
+  --style-text-glow: 0 0 10px oklch(0.806 0.109 294 / 0.55);
+  --ground-pattern: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    oklch(0.641 0.194 275.6 / 0.18),
+    transparent 70%
+  );
+  --ground-pattern-size: 100% 100vh;
+}
+
+/* --- Pixel (像素): the pocket pet. The page is the device's plastic, every
+   surface is its LCD, every corner is square and every shadow is one block
+   down and right. Dark is the backlit screen: the Game Boy's four greens. */
+html[data-style="pixel"] {
+  --ink: oklch(0.31 0.025 130.8);
+  --ink-inverse: oklch(0.847 0.044 123.2);
+  --ink-line-theme: oklch(0.31 0.025 130.8 / 0.4);
+  --ink-line-inverse: oklch(0.847 0.044 123.2 / 0.4);
+  --ink-line: var(--ink-line-theme);
+  --background: oklch(0.904 0.013 271.3);
+  --card: oklch(0.807 0.049 124.5);
+  --popover: oklch(0.847 0.044 123.2);
+  --primary: oklch(0.517 0.27 269.2);
+  --primary-foreground: oklch(1 0 0);
+  --style-tint: oklch(0.517 0.27 269.2);
+  --tint-accent: 22%;
+  --tint-glass: 0%;
+  --radius: 0px;
+  --radius-step: 0;
+  --surface-stroke: oklch(0.206 0.052 284.2);
+  --surface-stroke-width: 3px;
+  --elevation-raised: 4px 4px 0 oklch(0.206 0.052 284.2 / 0.35);
+  --elevation-overlay: 8px 8px 0 oklch(0.206 0.052 284.2 / 0.35);
+  --ground-pattern: radial-gradient(oklch(0.206 0.052 284.2 / 0.08) 1px, transparent 1.5px);
+  --ground-pattern-size: 6px 6px;
+}
+html[data-style="pixel"].dark {
+  --ink: oklch(0.744 0.177 121.6);
+  --ink-inverse: oklch(0.301 0.082 143.2);
+  --ink-line-theme: oklch(0.744 0.177 121.6 / 0.4);
+  --ink-line-inverse: oklch(0.301 0.082 143.2 / 0.4);
+  --background: oklch(0.214 0.019 131.5);
+  --card: oklch(0.301 0.082 143.2);
+  --popover: oklch(0.326 0.086 143.3);
+  --primary: oklch(0.744 0.177 121.6);
+  --primary-foreground: oklch(0.301 0.082 143.2);
+  --style-tint: oklch(0.818 0.153 73);
+  --surface-stroke: oklch(0.695 0.166 122.5);
+  --elevation-raised: 4px 4px 0 rgb(0 0 0 / 0.5);
+  --elevation-overlay: 8px 8px 0 rgb(0 0 0 / 0.5);
+  --ground-pattern: radial-gradient(oklch(0.744 0.177 121.6 / 0.07) 1px, transparent 1.5px);
+}
+
+/* Every Style paints solid surfaces except Neon's dark, which keeps the glass:
+   the glow has to come through something. One block, since the numbers are
+   the same for all of them; the fills are the material's inputs as ever.
+   `.dark` is listed so the rule outranks `html.dark.glass-clear`: its 6
+   points on top of 100% would take the fill out of `color-mix()`'s range. */
+html[data-style],
+html[data-style].dark {
+  --glass-fill: 100%;
+  --glass-fill-raised: 100%;
+  --glass-fill-panel: 100%;
+  --glass-fill-popover: 100%;
+  --glass-fill-sheet: 100%;
+  --glass-hover-step: 0%;
+  --glass-dark-add: 0%;
+}
+html[data-style="neon"].dark {
+  --glass-fill: 62%;
+  --glass-fill-raised: 70%;
+  --glass-fill-panel: 80%;
+  --glass-fill-popover: 85%;
+  --glass-fill-sheet: 90%;
+  --glass-hover-step: 12%;
+}
+
+/* The faces each Style casts into the font roles. The faces are variables on
+   <body> (app/layout.tsx), so the roles are re-declared there. */
+html[data-style="cartoon"] body {
+  --font-sans: var(--face-bricolage), var(--face-inter), system-ui, sans-serif;
+  --font-serif-latin: var(--face-fraunces);
+  --font-mono: var(--face-martian-mono), var(--face-jetbrains-mono), monospace;
+}
+html[data-style="y2k"] body {
+  --font-sans: var(--face-bricolage), var(--face-inter), system-ui, sans-serif;
+  --font-serif-latin: var(--face-bricolage);
+  --font-mono: var(--face-silkscreen), var(--face-jetbrains-mono), monospace;
+  --font-code: var(--face-jetbrains-mono), monospace;
+}
+html[data-style="neon"] body {
+  --font-sans: var(--face-bricolage), var(--face-inter), system-ui, sans-serif;
+  --font-mono: var(--face-martian-mono), var(--face-jetbrains-mono), monospace;
+}
+html[data-style="pixel"] body {
+  --font-sans: var(--face-pixelify), var(--face-inter), system-ui, sans-serif;
+  --font-serif-latin: var(--face-silkscreen);
+  --font-mono: var(--face-silkscreen), var(--face-jetbrains-mono), monospace;
+  --font-code: var(--face-jetbrains-mono), monospace;
+  /* Bitmap faces are drawn on the pixel grid; smoothing only blurs them. */
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: auto;
+}
+
+/* =============================================================================
    THE LADDER: every derived token, declared once, on every element that can
    change an input: the root, a flipped bare zone, and a lab tile (`.ink-scope`)
    carrying its own `--wp-*`. A custom property is computed where it is
@@ -461,7 +740,7 @@ html[data-tint="wallpaper"] {
   --graph-lit: var(--tertiary-foreground);
 
   /* --- Tint --- */
-  --tint: oklch(var(--wp-tint-l) var(--wp-tint-c) var(--wp-tint-h));
+  --tint: var(--style-tint, oklch(var(--wp-tint-l) var(--wp-tint-c) var(--wp-tint-h)));
   --accent: color-mix(in oklab, var(--accent-wash), var(--tint) var(--tint-accent));
   --ring: color-mix(in oklab, var(--ring-wash), var(--tint) var(--tint-accent));
 
@@ -620,6 +899,36 @@ body,
   text-shadow: none;
 }
 
+/* Where a Style's own inputs land (see STYLES above). Only under a Style, so
+   the default never rasterises an outline, a pattern or a glow it does not
+   draw. A floating surface is anything painted with a glass role or the
+   solid card / popover: it takes the Style's outline, and the elevation that
+   goes with its rung, replacing whatever shadow its call site picked. */
+html[data-style]
+  :is(.bg-glass, .bg-glass-hover, .bg-glass-strong, .bg-glass-strong-hover, .bg-card, .bg-popover) {
+  border-width: var(--surface-stroke-width);
+  border-color: var(--surface-stroke);
+  box-shadow: var(--elevation-raised);
+}
+html[data-style] :is(.bg-glass-overlay, .bg-glass-sheet, .bg-glass-popover) {
+  border-width: var(--surface-stroke-width);
+  border-color: var(--surface-stroke);
+  box-shadow: var(--elevation-overlay);
+}
+/* The page's ground (the ambient surface, `.page-ground`). */
+html[data-style] .page-ground {
+  background-image: var(--ground-pattern, none);
+  background-size: var(--ground-pattern-size, auto);
+}
+/* Light that text gives off. Declared where relief lands, so it replaces it. */
+html[data-style="neon"].dark :is(body, .ink-bare, .ink-bare-mid) {
+  text-shadow: var(--style-text-glow);
+}
+/* …but not running text: a halo on every line of an article is a blur. */
+html[data-style="neon"].dark .prose-article {
+  text-shadow: none;
+}
+
 /* Vitre's stylesheet (html[data-bezel], container scroll, fixed layers
    made absolute) ships with vitre and is installed by its boot script. */
 
@@ -636,6 +945,13 @@ body,
   }
   body {
     @apply bg-background text-foreground;
+    /* The font roles, cast from the faces app/layout.tsx loads onto <body>.
+       A Style re-casts them (STYLES above). */
+    --font-sans: var(--face-inter);
+    --font-serif-latin: var(--face-newsreader);
+    --font-serif-cjk: var(--face-noto-serif-sc);
+    --font-mono: var(--face-jetbrains-mono);
+    --font-code: var(--font-mono);
   }
   /* Lock the viewport horizontally. Fixed overlays (ruler ToC, dock)
      must never let the page pan sideways. `clip` (unlike `hidden`)
@@ -1162,7 +1478,7 @@ html.dragging * {
 
 /* Inline code */
 .prose-article code:not(:where(.not-prose, .not-prose *)) {
-  @apply font-mono text-[0.875em] bg-muted px-1.5 py-0.5 rounded;
+  @apply font-code text-[0.875em] bg-muted px-1.5 py-0.5 rounded;
 }
 
 /* Code blocks with rehype-pretty-code styling */

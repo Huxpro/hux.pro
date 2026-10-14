@@ -22,7 +22,7 @@ export function IconSurface() {
     () =>
       SIZES.map((px) => ({
         px,
-        html: buildIconSvg(config, { size: 512, idPrefix: `lab-surface-${px}`, fontFamily: "var(--font-mono)" }),
+        html: buildIconSvg(config, { size: 512, idPrefix: `lab-surface-${px}`, fontFamily: "var(--face-jetbrains-mono)" }),
       })),
     [],
   );
