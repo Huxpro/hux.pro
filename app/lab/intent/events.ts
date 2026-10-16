@@ -9,10 +9,10 @@ import { admit, admitTree, keyOf, type Dir, type Entity, type Gesture, type Inte
 //   event ──▶ ① vocabulary ── a phrase or gesture the tree names ──────────────▶ decide
 //                 │ (no model: a person's resolve, matched as data)
 //                 ▼ not named
-//             ② weak model: select ── decide a kind / believe ─────────────────▶ action ──▶ learn ──▶ ①
-//                 │ (cheap, fast, may only choose within the tree)
-//                 ▼ "no kind fits, but a knob could"
-//             ③ strong model: add ── a new intent, with its vocabulary ─────────▶ add (+ decide)
+//             ② weak model: select ── sure (≥ 0.7) of a kind / a belief ──────────▶ action ──▶ learn ──▶ ①
+//                 │ (cheap, fast, may only choose within the tree, and only when sure)
+//                 ▼ not sure, or "no kind fits, but a knob could"
+//             ③ strong model: decide, believe, or add a new intent with its vocabulary ──▶ action
 //
 //   and, apart from events: the strong model authors the whole tree from the
 //   scene (re-author), and the tree replaces the one in force.
@@ -135,15 +135,21 @@ export interface Observation {
   prompts: string[];
 }
 
-/** ②: a weak model may only choose within the tree. */
+/** How sure a weak model must be for its choice to stand without the strong model. */
+export const SURE = 0.7;
+
+/** ②: a weak model may only choose within the tree, and says how sure it is. */
 export type Selection =
-  | { action: "decide"; key: string; kind: string; why: string }
-  | { action: "believe"; beliefs: { key: string; p: Record<string, number> }[]; why: string }
+  | { action: "decide"; key: string; kind: string; sure?: number; why: string }
+  | { action: "believe"; beliefs: { key: string; p: Record<string, number> }[]; sure?: number; why: string }
   /** `escalate`: no kind fits, but a knob on the stage could say it: a strong model should add an intent. */
   | { action: "none"; escalate?: boolean; why: string };
 
-/** ③: a strong model adds an intent (with the vocabulary for this event), or says why it cannot. */
-export type Addition = { action: "add"; node: unknown; kind?: string; why: string } | { action: "none"; why: string };
+/** ③: the strong model decides, believes, adds an intent (with the vocabulary for this event), or says why it cannot. */
+export type Addition =
+  | { action: "add"; node: unknown; kind?: string; why: string }
+  | Extract<Selection, { action: "decide" | "believe" }>
+  | { action: "none"; why: string };
 
 /** Authoring: a strong model writes the whole tree from the scene, and what it believes about it. */
 export type Authoring = { tree: unknown; beliefs?: { key: string; p: Record<string, number> }[]; why?: string };
@@ -158,24 +164,49 @@ export interface Outcome {
 
 const said = (s: string | undefined): Words => ({ en: s ?? "", zh: s ?? "" });
 
-/** ②'s answer, checked: a decision names a node and one of its kinds; a belief names kinds. */
-export function acceptSelection(answer: Selection, o: Observation): Outcome {
+/** A key as a model wrote it, read the way it can only have meant: exact, or a type with one intent ("dust" is dust|dust), or "type|of:x". */
+export function keyIn(tree: Tree, key: string): string | null {
+  const keys = tree.map(keyOf);
+  if (keys.includes(key)) return key;
+  const fixed = key.replace("|of:", "|");
+  if (keys.includes(fixed)) return fixed;
+  const ofType = tree.filter((n) => n.type === key);
+  return ofType.length === 1 ? keyOf(ofType[0]) : null;
+}
+
+/** A decision or a belief, checked: it names an intent and that intent's kinds. */
+function acceptChoice(answer: Extract<Selection, { action: "decide" | "believe" }>, o: Observation): Outcome {
   const byKey = new Map(o.tree.map((n) => [keyOf(n), n]));
   if (answer.action === "decide") {
-    const node = byKey.get(answer.key);
-    if (!node || !(answer.kind in node.kinds)) return { action: null, why: said(answer.why), problems: [`no kind "${answer.kind}" on "${answer.key}"`] };
-    return { action: { type: "decide", key: answer.key, kind: answer.kind, from: "prompted", screen: o.event.screen }, why: said(answer.why) };
+    const key = keyIn(o.tree, answer.key);
+    const node = key ? byKey.get(key) : undefined;
+    if (!key || !node || !(answer.kind in node.kinds)) return { action: null, why: said(answer.why), problems: [`no kind "${answer.kind}" on "${answer.key}"`] };
+    return { action: { type: "decide", key, kind: answer.kind, from: "prompted", screen: o.event.screen }, why: said(answer.why) };
   }
-  if (answer.action === "believe") {
-    const ok = (answer.beliefs ?? []).filter((b) => byKey.has(b.key) && Object.keys(b.p ?? {}).every((k) => k in byKey.get(b.key)!.kinds));
-    if (!ok.length) return { action: null, why: said(answer.why), problems: ["no belief names a node and its kinds"] };
-    return { action: { type: "believe", beliefs: ok }, why: said(answer.why) };
+  const ok = (answer.beliefs ?? [])
+    .map((b) => ({ ...b, key: keyIn(o.tree, b.key) ?? b.key }))
+    .filter((b) => byKey.has(b.key) && Object.keys(b.p ?? {}).every((k) => k in byKey.get(b.key)!.kinds));
+  if (!ok.length) return { action: null, why: said(answer.why), problems: ["no belief names a node and its kinds"] };
+  return { action: { type: "believe", beliefs: ok }, why: said(answer.why) };
+}
+
+/**
+ * ②'s answer, checked. A weak model's choice stands only when it is sure of
+ * it; otherwise, or when it says a knob could do what no kind does, the
+ * event goes to the strong model (`escalate`).
+ */
+export function acceptSelection(answer: Selection, o: Observation): Outcome {
+  if (answer.action === "decide" || answer.action === "believe") {
+    const sure = typeof answer.sure === "number" ? answer.sure : 0;
+    if (sure < SURE) return { action: null, why: said(`not sure (${sure}): ${answer.why}`), escalate: true };
+    return acceptChoice(answer, o);
   }
   return { action: null, why: said(answer.why ?? "nothing to do"), escalate: answer.action === "none" && !!answer.escalate };
 }
 
-/** ③'s answer, checked: a node `admit` lets in, its kind one of its own; it learns this event as it is added. */
+/** ③'s answer, checked: a choice like ②'s (the strong model needs no threshold), or a node `admit` lets in, which learns this event as it is added. */
 export function acceptAddition(answer: Addition, o: Observation, by: string): Outcome {
+  if (answer.action === "decide" || answer.action === "believe") return acceptChoice(answer, o);
   if (answer.action !== "add") return { action: null, why: said(answer.why) };
   const r = admit(answer.node, o.entities, { from: "model", by });
   if ("problems" in r) return { action: null, why: said(answer.why), problems: r.problems };
@@ -217,9 +248,9 @@ export function standInSelect(o: Observation): Selection {
     return { action: "none", escalate: false, why: "A drag that names nothing the tree can say." };
   }
   const t = e.text.toLowerCase();
-  if (/snow|fall|sink|雪|落|沉/.test(t)) return { action: "decide", key: "dust|dust", kind: "settles", why: "Falling like snow is the dust settling." };
+  if (/snow|fall|sink|雪|落|沉/.test(t)) return { action: "decide", key: "dust|dust", kind: "settles", sure: 0.9, why: "Falling like snow is the dust settling." };
   if (/never let|don't let|别让|不要让/.test(t) && e.entity?.startsWith("moments#"))
-    return { action: "decide", key: `keep|${e.entity}`, kind: "stays", why: "Never letting it go is keeping it." };
+    return { action: "decide", key: `keep|${e.entity}`, kind: "stays", sure: 0.9, why: "Never letting it go is keeping it." };
   if (/sad|melanchol|难过|伤感/.test(t))
     return {
       action: "believe",
@@ -228,6 +259,7 @@ export function standInSelect(o: Observation): Selection {
         { key: "letgo|tide", p: { tide: 0.3, oneByOne: 0.7 } },
         { key: "dust|dust", p: { rises: 0.25, settles: 0.75 } },
       ],
+      sure: 0.8,
       why: "A mood, not a choice: it moves what the model believes about several intents, and leaves whatever a person decided.",
     };
   if (/slow|linger|fast|quick|hurry|big|large|慢|快|大/.test(t))

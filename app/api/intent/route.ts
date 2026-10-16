@@ -59,17 +59,19 @@ An intent node: {"type":"<short camelCase>","of":"<entity id, or id#member>","wo
 const SYSTEM: Record<Mode, string> = {
   select: `${WORLD}
 
-You are the fast path. You may ONLY choose within the existing tree. Answer ONE JSON object, nothing else:
-- {"action":"decide","key":"<key, copied exactly>","kind":"<one of that intent's kinds>","why":"..."}  the event means that kind.
-- {"action":"believe","beliefs":[{"key":"<key>","p":{"<kind>":0.7,"<kind>":0.3}}],"why":"..."}  a mood or a general wish, over several intents.
+You are the fast path. You may ONLY choose within the existing tree, and you say how sure you are ("sure", 0 to 1, that this is what the person means; below 0.7 a stronger model decides instead, so do not overstate it). Answer ONE JSON object, nothing else:
+- {"action":"decide","key":"<key, copied exactly>","kind":"<one of that intent's kinds>","sure":0.9,"why":"..."}  the event plainly means that kind.
+- {"action":"believe","beliefs":[{"key":"<key>","p":{"<kind>":0.7,"<kind>":0.3}}],"sure":0.8,"why":"..."}  a mood or a general wish, over several intents (a mood is never a decision).
 - {"action":"none","escalate":true,"why":"..."}  no kind fits, but a knob listed on an entity could express it: a new intent is needed.
 - {"action":"none","escalate":false,"why":"..."}  no knob on the stage can express it.
 Keep "why" to one sentence.`,
   add: `${WORLD}
 
-A faster model found no kind that fits the event. Write ONE new intent node that does, using only knobs on the stage, with "say" or "gestures" that include this very event. Answer ONE JSON object, nothing else:
-- {"action":"add","node":{...the node...},"kind":"<the kind the event means, one of the node's own kinds>","why":"..."}
-- {"action":"none","why":"<what no knob can do, and what would be needed>"}`,
+A faster model was not sure what the event means, or found no kind that fits. Decide it. Answer ONE JSON object, nothing else:
+- {"action":"decide","key":"<key, copied exactly>","kind":"<one of its kinds>","why":"..."}  it does mean an existing kind.
+- {"action":"believe","beliefs":[{"key":"<key>","p":{"<kind>":0.7,"<kind>":0.3}}],"why":"..."}  a mood or a general wish (never a decision).
+- {"action":"add","node":{...a new intent node...},"kind":"<the kind the event means, one of the node's own kinds>","why":"..."}  no kind fits, but knobs on the stage can express it; include this very event in its "say" or "gestures".
+- {"action":"none","why":"<what no knob can do, and what would be needed>"}  nothing on the stage can express it (a drag that reorders things, when no knob orders them, is this).`,
   author: `${WORLD}
 
 Author the whole intent tree for this scene: the choices a person is most likely to mean that its knobs can express (at most 10 intents), about its things and, where a choice is per member, each member. Give each kind at most 4 phrases and at most 2 gestures. If a choice should depend on the screen's shape (tall vs wide), give it "index":{"by":"tallness","base":"<kind on tall screens>"}. Answer ONE JSON object, nothing else:

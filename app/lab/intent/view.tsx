@@ -28,7 +28,7 @@ import {
   type Selection,
 } from "./events";
 import { AUTHORED_BY, BELIEFS, LOOP, PRESET, SCREENS, SCRIPT, tallness, type Screen } from "./forget";
-import { useLab, useValue, type IntentView, type Lab } from "./model";
+import { useLab, useValue, type Action, type IntentView, type Lab } from "./model";
 import { INTENT_STRINGS, type IntentStrings } from "./strings";
 import type { Entity, Words } from "./tree";
 
@@ -589,39 +589,39 @@ export function IntentLabView() {
       put({ id, what, route: "select", by: "…", status: "pending" });
       const sel = await ask<Selection>("select", o, () => standInSelect(o));
       if (!sel.answer) return put({ id, what, route: "select", by: sel.by, status: "failed", problems: [sel.error ?? "no answer"], ms: ms() });
+      // What a model decided is learned: the next time this is said or done, it is ①.
+      const teach = (a: Action): string | undefined => {
+        if (a.type !== "decide") return undefined;
+        const node = o.tree.find((n) => `${n.type}|${n.of}` === a.key);
+        const gesture = e.kind === "drag" && node ? (gestureOf(e, node.of) ?? undefined) : undefined;
+        const phrase = e.kind === "prompt" ? e.text : undefined;
+        if (!phrase && !gesture) return undefined;
+        lab.dispatch({ type: "learn", key: a.key, kind: a.kind, phrase, gesture });
+        return `${node?.words[locale] ?? a.key} → ${node?.kinds[a.kind].words[locale] ?? a.kind}: ${phrase ? `“${phrase.trim().toLowerCase()}”` : describeGesture(gesture!)}`;
+      };
       const chosen = acceptSelection(sel.answer, o);
       if (chosen.action) {
         lab.dispatch(chosen.action);
-        // What a weak model chose is learned: the next time this is said or done, it is ①.
-        let learned: string | undefined;
-        if (chosen.action.type === "decide") {
-          const { key, kind } = chosen.action;
-          const node = o.tree.find((n) => `${n.type}|${n.of}` === key);
-          const gesture = e.kind === "drag" && node ? (gestureOf(e, node.of) ?? undefined) : undefined;
-          const phrase = e.kind === "prompt" ? e.text : undefined;
-          if (phrase || gesture) {
-            lab.dispatch({ type: "learn", key, kind, phrase, gesture });
-            learned = `${node?.words[locale] ?? key} → ${node?.kinds[kind].words[locale] ?? kind}: ${phrase ? `“${phrase.trim().toLowerCase()}”` : describeGesture(gesture!)}`;
-          }
-        }
-        return put({ id, what, route: "select", by: sel.by, status: "done", why: chosen.why, learned, ms: ms() });
+        return put({ id, what, route: "select", by: sel.by, status: "done", why: chosen.why, learned: teach(chosen.action), ms: ms() });
       }
       if (!chosen.escalate) {
         return put({ id, what, route: "select", by: sel.by, status: chosen.problems ? "rejected" : "none", why: chosen.why, problems: chosen.problems, ms: ms() });
       }
-      put({ id, what, route: "add", by: "…", status: "pending", why: { en: `${sel.by}: ${S.escalated}`, zh: `${sel.by}：${S.escalated}` } });
+      put({ id, what, route: "add", by: "…", status: "pending", why: { en: `${sel.by}: ${chosen.why.en} → ${S.escalated}`, zh: `${sel.by}：${chosen.why.zh} → ${S.escalated}` } });
       const add = await ask<Addition>("add", o, () => standInAdd(o));
       if (!add.answer) return put({ id, what, route: "add", by: add.by, status: "failed", problems: [add.error ?? "no answer"], ms: ms() });
       const added = acceptAddition(add.answer, o, add.by);
       if (added.action) lab.dispatch(added.action);
+      const learned = added.action && added.action.type === "decide" ? teach(added.action) : undefined;
       put({
         id,
         what,
         route: "add",
         by: `${sel.by} → ${add.by}`,
         status: added.action ? "done" : added.problems ? "rejected" : "none",
-        why: added.why,
+        why: { en: `${sel.by}: ${chosen.why.en} → ${added.why.en}`, zh: `${sel.by}：${chosen.why.zh} → ${added.why.zh}` },
         problems: added.problems,
+        learned,
         ms: ms(),
       });
     },

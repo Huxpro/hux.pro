@@ -218,3 +218,23 @@ test("re-authoring keeps what was learned, and the intents added for this person
   assert.deepEqual(Object.values(recognize(say("像雪一样慢慢落下"), lab.tree())).slice(0, 2), [KEY.dust, "settles"], "still a short path");
   assert.equal(lab.view("pace|moments", by.phone)().kind, "slower", "the added intent and its decision stay");
 });
+
+test("② a weak model's choice stands only when it is sure; otherwise the strong model decides", () => {
+  const lab = createLab();
+  const o = observe(lab, say("make it more hopeful"));
+  const unsure = acceptSelection({ action: "decide", key: KEY.holding, kind: "keeps", sure: 0.4, why: "maybe" }, o);
+  assert.equal(unsure.action, null);
+  assert.equal(unsure.escalate, true);
+  assert.equal(acceptSelection({ action: "decide", key: KEY.holding, kind: "keeps", why: "no sureness given" }, o).escalate, true, "a choice without a sureness is not sure");
+  const strong = acceptAddition({ action: "believe", beliefs: [{ key: KEY.holding, p: { wears: 0.3, keeps: 0.7 } }], why: "a mood" }, o, "strong");
+  assert.equal(strong.action.type, "believe", "the strong model may choose too, with no threshold");
+});
+
+test("a key a model wrote is read the only way it can have meant, and no other", () => {
+  const lab = createLab();
+  const o = observe(lab, say("x"));
+  const read = (key) => acceptSelection({ action: "decide", key, kind: "settles", sure: 0.9, why: "" }, o);
+  assert.equal(read("dust").action.key, KEY.dust, "a type with one intent");
+  assert.equal(read("dust|of:dust").action.key, KEY.dust);
+  assert.ok(read("keep").problems, "five keep intents: not guessed");
+});
