@@ -53,8 +53,10 @@ const MORE = ["大一点", "大些", "更大", "再大", "开大", "大点", "bi
 const LESS = ["小一点", "小些", "更小", "再小", "关小", "小点", "smaller", "less", "narrower"];
 
 /** The gesture an intent answers to, for a dragged path. */
-export function gestureFor(tree: Tree, path: string) {
-  for (const n of tree.nodes)
+export function gestureFor(tree: Tree, path: string, focus?: string | null) {
+  // The node in focus first (a dream's beat on screen): its gesture is the one a drag means.
+  const nodes = focus ? [...tree.nodes.filter((n) => n.id === focus), ...tree.nodes.filter((n) => n.id !== focus)] : tree.nodes;
+  for (const n of nodes)
     for (const [name, i] of Object.entries(n.intents))
       if (i.gesture && (path === i.gesture.path || path.startsWith(i.gesture.path + ".") || path.startsWith(i.gesture.path + "[")))
         return { node: n.id, intent: name, gesture: i.gesture, kinds: i.kinds };
@@ -62,8 +64,8 @@ export function gestureFor(tree: Tree, path: string) {
 }
 
 /** Where a drag leaves the dragged field: a point moved by the drag, or a number off the axis. */
-export function dragValue(tree: Tree, vals: Record<string, Value>, ev: { path: string; from: Pt; to: Pt }) {
-  const g = gestureFor(tree, ev.path);
+export function dragValue(tree: Tree, vals: Record<string, Value>, ev: { path: string; from: Pt; to: Pt }, focus?: string | null) {
+  const g = gestureFor(tree, ev.path, focus);
   if (!g) return null;
   const cur = g.kinds[vals[key(g.node, g.intent)]?.kind ?? Object.keys(g.kinds)[0]]?.realize ?? {};
   if (g.gesture.axis) {
@@ -74,7 +76,12 @@ export function dragValue(tree: Tree, vals: Record<string, Value>, ev: { path: s
   return { ...g, at: [at[0] + ev.to[0] - ev.from[0], at[1] + ev.to[1] - ev.from[1]] as Pt };
 }
 
-export function recognize(ev: Event, tree: Tree, vals: Record<string, Value>): Recognized {
+/**
+ * What an event means, against the tree. `focus` is the node the experience
+ * has on screen (a dream's beat): a drag means its gesture, and a sentence said
+ * of nothing in particular leans to it.
+ */
+export function recognize(ev: Event, tree: Tree, vals: Record<string, Value>, focus?: string | null): Recognized {
   if (ev.type === "lean") {
     return { path: "context", actions: [] };
   }
@@ -88,7 +95,7 @@ export function recognize(ev: Event, tree: Tree, vals: Record<string, Value>): R
   if (ev.type === "dream") return { path: "infer", need: { kind: "dream", text: ev.text } };
 
   if (ev.type === "drag") {
-    const d = dragValue(tree, vals, ev);
+    const d = dragValue(tree, vals, ev, focus);
     if (!d) return { path: "infer", need: { kind: "unknown", text: `drag ${ev.path}`, node: null } };
     let best: { kind: string; d: number } | null = null;
     for (const [kind, k] of Object.entries(d.kinds)) {
@@ -154,6 +161,11 @@ export function recognize(ev: Event, tree: Tree, vals: Record<string, Value>): R
       }
     }
   }
+  // A thing named in the sentence ("第一幕…") is what it is about; said of nothing in particular, what is on screen is.
+  const isNamed = (id: string) => !!tree.nodes.find((n) => n.id === id)?.aka.some((w) => text.includes(w.toLowerCase()));
+  const named = readings.filter((r) => isNamed(r.node));
+  if (named.length) readings.splice(0, readings.length, ...named);
+  else if (focus && !ev.node) for (const r of readings) if (r.node === focus) r.score += 1;
   readings.sort((a, b) => b.score - a.score);
   if (!readings.length) return { path: "infer", need: edge ?? { kind: "unknown", text: ev.text, node: ev.node } };
   const [top, second] = readings;

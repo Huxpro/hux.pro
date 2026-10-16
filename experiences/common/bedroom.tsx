@@ -112,7 +112,13 @@ export const Man = semantic(
     state: {
       eyes: num(0, { min: 0, max: 1, step: 0.05, aka: ["眼睛", "反光", "glint"], affects: ["eyes"], effect: "appearance" }),
     },
-    instances: { wardrobe: "衣柜里 · in the wardrobe", bedside: "床头 · at the bed" },
+    instances: {
+      wardrobe: "衣柜里 · in the wardrobe",
+      bedside: "床头 · at the bed",
+      foot: "床尾 · at the foot of the bed",
+      window: "窗边 · by the window",
+      room: "屋里 · in the room",
+    },
   },
   ({ hatScale, eyes }) => (
     <>

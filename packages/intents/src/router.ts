@@ -139,7 +139,9 @@ export function applyAnswer(tree: Tree, a: Answer, need: Need, by: By): { tree: 
     };
   }
   const then: Action[] = a.picks.map((p) => ({ type: "decide", node: p.node, intent: p.intent, kind: p.kind, from }));
-  const drawNeeded = next.nodes.filter((n) => !n.draws && !n.drawings?.length).map((n) => n.id);
+  // Things to draw: what the library cannot (a dream's beats are moments, not things).
+  const beats = new Set((next.phases ?? []).map((p) => p.node));
+  const drawNeeded = next.nodes.filter((n) => !n.draws && !n.drawings?.length && !beats.has(n.id)).map((n) => n.id);
   return { tree: next, then, drawNeeded };
 }
 
@@ -193,6 +195,12 @@ export interface Host {
   placeName?: (at: Pt) => Text;
   /** The server route; null: never call one. */
   endpoint?: string | null;
+  /**
+   * The experience's own conventions, laid over any tree a model writes for it
+   * (a dream's beats get their gestures and their words for "longer"): what the
+   * answer's shape has no room for, and the player needs.
+   */
+  shape?: (tree: Tree) => Tree;
 }
 
 export interface Inference {
@@ -251,6 +259,7 @@ export async function infer(state: State, need: Need, host: Host): Promise<Infer
     };
   }
   const applied = applyAnswer(state.tree, answer, need, by);
+  if (host.shape) applied.tree = host.shape(applied.tree);
   return { ...applied, note: { zh: answer.note_zh, en: answer.note_en }, by, tier, live: !!real, ms, observation, dream: need.kind === "dream" };
 }
 
@@ -320,7 +329,7 @@ function weakStandIn(state: State, need: Need, host: Host): Answer | null {
       realize[f] = typeof v === "number" && typeof w === "number" ? +Math.max(0, v + (v - w)).toFixed(3) : v;
     }
     const id = `${need.intent}${need.dir > 0 ? "+" : "-"}${ks.length}`;
-    const label = need.dir > 0 ? { zh: `比「${b.label.zh}」还过`, en: `beyond ${b.label.en}` } : { zh: `比「${b.label.zh}」还不及`, en: `short of ${b.label.en}` };
+    const label = need.dir > 0 ? { zh: `比「${b.label.zh}」更甚`, en: `more than ${b.label.en}` } : { zh: `比「${b.label.zh}」更轻`, en: `less than ${b.label.en}` };
     return {
       ...base,
       note_zh: `已经在这个尺度的尽头：往外再延一档（${label.zh}）`,

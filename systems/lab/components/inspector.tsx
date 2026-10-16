@@ -261,7 +261,7 @@ export function InspectorOverlay({ inspection }: { inspection: Inspection }) {
         const hit = api.hitTest(p[0], p[1]);
         if (!hit) return;
         // A thing an intent's gesture names is dragged through the loop; anything else is selected.
-        if (!intents.api || !intents.snap || !gestureFor(intents.snap.tree, hit)) return select(hit);
+        if (!intents.api || !intents.snap || !gestureFor(intents.snap.tree, hit, intents.snap.focus)) return select(hit);
         e.currentTarget.setPointerCapture(e.pointerId);
         const at = invert(m, p[0], p[1]);
         move({ path: hit, from: at, to: at, a: p, b: p, moved: false });

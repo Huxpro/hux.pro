@@ -10,10 +10,8 @@
 // a model's) are changes to this tree; the code reads it through reintent.
 // =============================================================================
 
-import type { Answer, Host, Node, Pt, Text, Tree } from "intents";
-import { fromRealize } from "intents";
-
-const L = (zh: string, en: string): Text => ({ zh, en });
+import type { Answer, Host, Tree } from "intents";
+import { EMPTY, L, kind, placeName, recordedDrawing, recordedThing, type Need } from "../common/things";
 
 export const TREE: Tree = {
   scene: "wardrobe",
@@ -114,90 +112,14 @@ Library things (draws): man (very tall, thin, in black, a huge round hat; feet a
 Realize fields: man.stand { at: [x, y] his feet, scale (1 at the wardrobe's floor y 640, about 1.9 at the bed's head y 872), lean (degrees) } · man.hat { hatScale } · man.gaze { eyes 0–1 } · wardrobe.door { open 0–0.9 } · wardrobe.pace { over: seconds }.
 A new thing has intents "place" { at: [x, y] its base, scale } and, if it gives light, "light" { on: true | false }. Its svg is drawn with its base at the origin, about 80 units wide and up to 120 tall at scale 1.`;
 
-const kind = (id: string, zh: string, en: string, aka: string[], realize: Record<string, unknown>, p: number) => ({
-  id,
-  label_zh: zh,
-  label_en: en,
-  aka,
-  realize: fromRealize(realize),
-  p,
-});
-
-const empty = { kinds: [], nodes: [], picks: [], phases: [], title_zh: "", title_en: "" };
-
-/** The strong model's answers, recorded: a lamp, a cat, "farther away". */
-function recorded(need: Parameters<NonNullable<Host["recorded"]>>[0]): Answer | null {
+/** The strong model's answers, recorded: a lamp, a cat (common/things.ts), "farther away". */
+function recorded(need: Need): Answer | null {
   const text = "text" in need ? need.text.toLowerCase() : "";
-  if (need.kind === "new-thing" && /灯|lamp|light/.test(text)) {
-    return {
-      ...empty,
-      note_zh: "树里没有灯：加一样新东西，带两个意图（放在哪、亮不亮）；它的样子要画，先用占位",
-      note_en: "No lamp in the tree: a new thing with two intents (where, on or off); its look must be drawn, a placeholder till then",
-      nodes: [
-        {
-          id: "lamp",
-          label_zh: "灯",
-          label_en: "the lamp",
-          aka: ["灯", "台灯", "lamp"],
-          prompt: need.text,
-          draws: null,
-          svg: null,
-          intents: [
-            {
-              name: "place",
-              label_zh: "放在哪",
-              label_en: "where it is",
-              aka: ["放", "挪"],
-              resolve: "switch",
-              ordered: false,
-              kinds: [kind("nightstand", "床头柜上", "on the nightstand", ["床头柜"], { at: [352, 738], scale: 1 }, 0.82), kind("floor", "地上", "on the floor", ["地上", "地板"], { at: [52, 772], scale: 1.25 }, 0.18)],
-            },
-            {
-              name: "light",
-              label_zh: "亮不亮",
-              label_en: "on or off",
-              aka: ["灯光"],
-              resolve: "switch",
-              ordered: false,
-              kinds: [kind("on", "亮着", "on", ["开灯", "亮着", "打开灯"], { on: true }, 0.86), kind("off", "关着", "off", ["关灯", "熄灯"], { on: false }, 0.14)],
-            },
-          ],
-        },
-      ],
-    };
-  }
-  if (need.kind === "new-thing" && /猫|cat/.test(text)) {
-    return {
-      ...empty,
-      note_zh: "树里没有猫：加一只，带一个意图（在哪）；它的样子要画，先用占位",
-      note_en: "No cat in the tree: one, with an intent (where it is); its look must be drawn, a placeholder till then",
-      nodes: [
-        {
-          id: "cat",
-          label_zh: "猫",
-          label_en: "the cat",
-          aka: ["猫", "cat"],
-          prompt: need.text,
-          draws: null,
-          svg: null,
-          intents: [
-            {
-              name: "place",
-              label_zh: "在哪",
-              label_en: "where it is",
-              aka: ["在", "放"],
-              resolve: "switch",
-              ordered: false,
-              kinds: [kind("bed", "床上", "on the bed", ["床上"], { at: [96, 722], scale: 1.1 }, 0.7), kind("floor", "地上", "on the floor", ["地上"], { at: [180, 680], scale: 0.9 }, 0.3)],
-            },
-          ],
-        },
-      ],
-    };
-  }
+  const thing = recordedThing(need);
+  if (thing) return thing;
   if ((need.kind === "unknown" || need.kind === "new-thing") && /远|退后|后面|深处|far|back/.test(text)) {
     return {
-      ...empty,
+      ...EMPTY,
       note_zh: "「远一点」不是他站过的任何一个位置：加一个更远、更小的",
       note_en: "\"Farther\" is none of the places he stands: a new one, farther and smaller",
       kinds: [{ node: "man", intent: "stand", kind: kind("far", "房间深处", "far back", ["远处", "深处"], { at: [250, 650], scale: 0.95, lean: 0 }, 0.85) }],
@@ -207,24 +129,10 @@ function recorded(need: Parameters<NonNullable<Host["recorded"]>>[0]): Answer | 
   return null;
 }
 
-/** The strong model's drawings, recorded. Base at the origin, night palette. */
-const DRAWINGS: Record<string, string> = {
-  lamp: `<rect x="-30" y="-6" width="60" height="10" fill="#141a2c"/><rect x="-15" y="-11" width="30" height="6" rx="2" fill="#1d2540"/><rect x="-2" y="-58" width="4" height="48" fill="#1d2540"/><path d="M -21 -56 L 21 -56 L 13 -86 L -13 -86 Z" fill="#2a3456"/>`,
-  cat: `<path d="M -26 0 C -30 -14 -24 -28 -8 -30 C -6 -38 -2 -44 2 -44 L 6 -36 L 12 -44 C 16 -42 17 -34 14 -28 C 24 -24 30 -12 28 0 Z" fill="#06080f"/><path d="M 26 -4 C 40 -6 42 -20 36 -26" fill="none" stroke="#06080f" stroke-width="4" stroke-linecap="round"/><circle cx="2" cy="-34" r="1.4" fill="#c9d48a"/><circle cx="9" cy="-34" r="1.4" fill="#c9d48a"/>`,
-};
-
-function placeName(at: Pt): Text {
-  const [x, y] = at;
-  if (y < 650) return L("房间深处", "far back");
-  if (x > 300 && y > 760) return L("床尾外", "past the foot of the bed");
-  if (x < 150) return L("窗下", "under the window");
-  return L("房间中间", "in the middle of the room");
-}
-
 export const HOST: Host = {
   scene: "wardrobe",
   grammar: GRAMMAR,
   recorded,
-  recordedDrawing: (node: Node) => DRAWINGS[node.id] ?? null,
+  recordedDrawing,
   placeName,
 };

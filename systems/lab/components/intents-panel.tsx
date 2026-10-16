@@ -33,6 +33,8 @@ const en = {
   dream: "Tell a dream",
   dreamNote: "A new dream is a new tree, not new code: the strong model writes the cast and the beats; this player plays them.",
   dreamPlaceholder: "我梦到他从窗外看着我，然后…",
+  dreams: ["我梦到他站在窗边看着我。然后他不见了，衣柜门大开着。最后他在我床尾，帽子大得离谱。", "一开始屋里没有人。后来衣柜门开了一条缝。他就站在我床头，低着头。"],
+  onScreen: (b: string) => `on screen: ${b} · what is said of nothing in particular is about it`,
   asks: "Asked",
   asksModel: "The model is not sure, and it changes what you see:",
   asksReadings: (t: string) => `"${t}" reads more than one way:`,
@@ -78,6 +80,8 @@ const zh: typeof en = {
   dream: "讲一个梦",
   dreamNote: "新的梦是一棵新的树，不是新的代码：强模型写出角色和每一幕，这个播放器把它演出来。",
   dreamPlaceholder: "我梦到他从窗外看着我，然后…",
+  dreams: en.dreams,
+  onScreen: (b) => `正在演：${b} · 没指明对象的话，说的就是这一幕`,
   asks: "要问你的",
   asksModel: "模型拿不准，而这会改变你看到的：",
   asksReadings: (t) => `「${t}」有不止一种读法：`,
@@ -167,12 +171,13 @@ export function IntentsPanel({ api, snap }: { api: IntentsApi; snap: IntentsSnap
   const [target, setTarget] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [link, setLink] = useState("");
+  const [leanOpen, setLeanOpen] = useState(false);
   const tree = snap.tree;
   const isDream = !!tree.phases?.length;
   const node = (id: string) => tree.nodes.find((n) => n.id === id);
   const label = (n: string, i: string, k: string) => node(n)?.intents[i]?.kinds[k]?.label[locale] ?? k;
   const tries = isDream
-    ? ["他再近一点", "第一幕他站在窗边", "灯亮着", "门开大一点"]
+    ? ["门开大一点", "别看我", "这一幕久一点", "站到床尾", "第一幕他站在床头", "帽子大一点", "床头放一盏灯"]
     : ["帽子大一点", "门慢一点", "门开大一点", "大一点", "别看我", "站到窗边", "让他站远一点", "床头放一盏灯", "关灯", "床上有一只猫"];
 
   return (
@@ -218,6 +223,7 @@ export function IntentsPanel({ api, snap }: { api: IntentsApi; snap: IntentsSnap
             {S.say}
           </LabButton>
         </form>
+        {snap.focus && <p className={cn(TYPE.rowMeta, "text-[11px]")}>{S.onScreen(node(snap.focus)?.label[locale] ?? snap.focus)}</p>}
         <div className="flex flex-wrap gap-1">
           {tries.map((t) => (
             <button
@@ -258,6 +264,19 @@ export function IntentsPanel({ api, snap }: { api: IntentsApi; snap: IntentsSnap
               {S.dream}
             </LabButton>
           </form>
+          <div className="flex flex-wrap gap-1">
+            {S.dreams.map((t) => (
+              <button
+                key={t}
+                type="button"
+                disabled={snap.pending}
+                onClick={() => void api.dispatch({ type: "dream", text: t })}
+                className="rounded-lg border border-border px-2 py-1 text-left text-[11px] leading-snug text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -331,6 +350,7 @@ export function IntentsPanel({ api, snap }: { api: IntentsApi; snap: IntentsSnap
                     )}
                   </span>
                 </div>
+                {(leanOpen || !!leaning) && (
                 <div className="flex flex-wrap items-center gap-1 pl-2">
                   <span className={cn(TYPE.rowMeta, "text-[10px]")}>{S.viewer}:</span>
                   {Object.keys(intent.kinds).map((k) => (
@@ -348,11 +368,17 @@ export function IntentsPanel({ api, snap }: { api: IntentsApi; snap: IntentsSnap
                     </button>
                   ))}
                 </div>
+                )}
               </div>
             );
           })}
         </div>
-        <p className={cn(TYPE.caption, "text-[11px]")}>{S.viewerNote}</p>
+        <div className="flex items-center gap-2">
+          <LabChip on={leanOpen} onClick={() => setLeanOpen((v) => !v)}>
+            {S.viewer}
+          </LabChip>
+          <span className={cn(TYPE.caption, "text-[11px]")}>{S.viewerNote}</span>
+        </div>
       </div>
 
       {/* Events: the newest first. */}

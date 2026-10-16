@@ -65,6 +65,8 @@ export interface Snapshot {
   saved: Saved | null;
   dirty: boolean;
   canUndo: boolean;
+  /** The node the experience has on screen (a dream's beat), if it says. */
+  focus: string | null;
 }
 
 export interface DragPreview {
@@ -99,7 +101,11 @@ declare global {
 
 const AUTHOR: Version = { id: "code", parent: null, by: "model" };
 
-export function useIntents(base: Tree, host: Host) {
+/**
+ * The loop over a tree. `focus`: the node on screen now (a dream's beat), which
+ * events lean to; or how to find it in whatever the tree is now.
+ */
+export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tree: Tree) => string | null) = null) {
   const initial: State = { tree: base, ctx: { prompts: [], viewer: {} }, version: AUTHOR };
   const [history, setHistory] = useState<State[]>([initial]);
   const state = history[history.length - 1];
@@ -110,15 +116,16 @@ export function useIntents(base: Tree, host: Host) {
   const [saved, setSaved] = useState<Saved | null>(null);
   const seq = useRef(0);
 
-  const live = useRef({ state, log, pending, question, saved, history });
+  const focus = typeof focusOf === "function" ? focusOf(state.tree) : focusOf;
+  const live = useRef({ state, log, pending, question, saved, history, focus });
   useEffect(() => {
-    live.current = { state, log, pending, question, saved, history };
+    live.current = { state, log, pending, question, saved, history, focus };
   });
   const listeners = useRef(new Set<() => void>());
   const cache = useRef<{ from: typeof live.current; snap: Snapshot } | null>(null);
   useEffect(() => {
     for (const l of listeners.current) l();
-  }, [state, log, pending, question, saved]);
+  }, [state, log, pending, question, saved, focus]);
 
   const { values, asks } = useMemo(() => computeValues(state), [state]);
 
@@ -183,11 +190,14 @@ export function useIntents(base: Tree, host: Host) {
       else delete viewer[ev.intent];
       pre.push({ type: "context", ctx: { viewer } });
     }
-    const r = recognize(ev, before.tree, vals);
+    const r = recognize(ev, before.tree, vals, live.current.focus);
+    // A drag's in-between ends when the tree has its answer: now, or when a model's comes back.
+    const settled = () => ev.type === "drag" && setPreview(null);
     if (r.path === "resolve" || r.path === "context") {
       const actions = [...pre, ...r.actions];
       const after = actions.reduce(reduce, before);
       push(actions);
+      settled();
       if (ev.type === "answer") setQuestion(null);
       const d = lineDiff(toXml(before), toXml(after));
       entry({ event: describe(ev), path: r.path, detail: r.path === "resolve" && r.reading ? `${r.reading.node}.${r.reading.intent} = ${r.reading.kind}` : "context", reading: r.path === "resolve" ? r.reading : undefined, ...d });
@@ -195,6 +205,7 @@ export function useIntents(base: Tree, host: Host) {
     }
     if (r.path === "ask") {
       push(pre);
+      settled();
       setQuestion({ text: r.text, readings: r.readings });
       entry({ event: describe(ev), path: "ask", detail: r.readings.map((x) => `${x.node}.${x.intent} = ${x.kind}`).join(" | "), added: [], removed: [] });
       return;
@@ -209,6 +220,7 @@ export function useIntents(base: Tree, host: Host) {
     const actions: Action[] = inf.tree ? [inf.dream ? { type: "load", tree: inf.tree } : { type: "replace", tree: inf.tree }, ...inf.then] : [];
     const after = actions.reduce(reduce, now);
     push(actions);
+    settled();
     setPending(false);
     patch(id, { pending: false, tier: inf.tier, live: inf.live, by: inf.by, ms: inf.ms, note: inf.note, observation: inf.observation, ...lineDiff(toXml(now), toXml(after)) });
     // A thing with no drawing yet: a lazy effect, written by a strong model; a placeholder till then.
@@ -277,7 +289,7 @@ export function useIntents(base: Tree, host: Host) {
   };
 
   function snapshotOf(): Snapshot {
-    const { state: s, log: l, pending: p, question: q, saved: sv, history: h } = live.current;
+    const { state: s, log: l, pending: p, question: q, saved: sv, history: h, focus: f } = live.current;
     const v = computeValues(s);
     return {
       scene: host.scene,
@@ -295,6 +307,7 @@ export function useIntents(base: Tree, host: Host) {
       saved: sv,
       dirty: JSON.stringify(sv?.tree ?? base) !== JSON.stringify(s.tree),
       canUndo: h.length > 1,
+      focus: f,
     };
   }
 
@@ -323,7 +336,7 @@ export function useIntents(base: Tree, host: Host) {
     };
   }, []);
 
-  return { state, values, asks: asks.map((c) => c.key), preview, pending };
+  return { state, values, asks: asks.map((c) => c.key), preview, pending, focus };
 }
 
 /** A kept tree over the code's: rebased by key when it is the same piece, whole when it is another (a dream). */

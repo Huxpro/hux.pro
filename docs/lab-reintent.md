@@ -24,16 +24,25 @@ model ──intent tree──▶ data ──▶ compute (reintent) ──▶ vie
 - **Context covers more than screen size.** Every prompt the person has said is context too.
   The model reads all of it at each inference.
 
-## Two labs
+## Where it lives
+
+The loop is now a package, `packages/intents` (docs/system-intents.md), and it
+runs inside the experiences themselves. It is laid open in **Inspect**, which is
+the mainline:
 
 | | What it shows | Files |
 |---|---|---|
-| `/lab/intents` The Intent Loop | The whole loop on the Wardrobe's own things. Drag him, drag the door, say a sentence, change the screen. Each event's path (resolve / ask / infer / context), the change to the tree, and what the model was shown | `app/lab/intents/`: `tree.ts` data · `compute.ts` compute · `view.tsx` view · `recognize.ts` event callbacks · `model.ts` ② infer |
+| `/lab/wardrobe` → Inspect | The Wardrobe reads its hat, gaze, where he stands, and the door's reach and pace through its tree. Drag on the frame, say a sentence, answer, lean as a viewer, save, share | `experiences/wardrobe/intents.ts` · `systems/lab/components/intents-panel.tsx` |
+| `/lab/dream` → Inspect | A player for dreams written as trees. Tell it a dream: a new tree, the same code | `experiences/dream/` |
 | `/lab/screens` One Dream, Any Screen | Resize as context, in depth. On 10 screens plus any size: framing as an indexed intent, crossing over by the screen's shape. "Keep" decisions, to ask or to set as a rule. One-flip alternatives | `app/lab/screens/`: `host.ts` types and solver · `capture.tsx` the scene measured |
 
-The model is a **local, recorded stand-in**. `observe()` produces exactly the observation a
-ReAct step would send: the tree as text, the context, the event. A real model only has to
-implement the same `infer(state, event)` signature; nothing else changes.
+The first prototype, the standalone `/lab/intents`, is folded into the
+package and removed.
+
+A real model answers through `app/api/intents/infer`: Claude Haiku 5.5 for the
+weak tier, Claude Opus 5.5 for the strong one. `observe()` is exactly what it is
+shown. Without credentials, the recorded stand-in answers instead, and the
+event log says so.
 
 ## Brainstorm: events → intents
 
@@ -46,13 +55,15 @@ implement the same `infer(state, event)` signature; nothing else changes.
 | Resize ✓ | Context only: reintent recomputes. An indexed intent crosses over by shape; a person's switch moves the crossover to that screen | (none) |
 | Reprompt an entity ✓ | The sentence's words hit an intent's or a kind's `aka` (帽子大一点 hat bigger · 关上门 close the door · 站到窗边 stand by the window) | Several readings → ask (reintent's ask). Past the end of an ordered intent's scale → the model adds a kind further along. An indefinite (一盏灯, "a lamp") brings in something new → the model adds a node with its own intents, and drawing it is a lazy effect |
 | A rule (scope: all) ✓ | "His face must always be in frame" → a preference over every subject of the type | |
+| Tell a whole dream ✓ | | The strong model writes a new tree (the cast, a node per beat), and the dream player plays it: new content, the same code |
 | A global prompt ("make it more oppressive") ○ | | It goes into context. The model's beliefs are a cache under that context: when the context changes they go stale and are re-inferred, and decisions the person made stay |
-| Timing ("门慢一点", the door slower) ○ | A scene's beats are ordered intents too (slow / as-is / fast) | Past the end → a learned beat length |
+| Timing ("门慢一点", the door slower) ✓ | A scene's beats are ordered intents too (the Wardrobe's door pace; a dream beat's hold) | Past the end → a learned beat length |
 | Inspector sliders ○ | An override is a person's decision; a continuous value snaps to a kind | Between kinds → a learned kind (the same as the door) |
 | Regenerate a thing (the model rewrites a drawing) ✓ partly | | A lazy effect cached `under` the Assignment it was written for: a stale one is kept, not shown. A person's picks survive `replace` by key (React's keys) |
 | Undo / forget ✓ | Undo is the reducer's history. Forgetting a decision hands it back to the model and code | |
 | Parked home-screen windows, the Band Lab's overflow strategies ○ | These are intents already: a few closed choices, decided by person > preference > code | A layout no preset covers → a new tree |
-| Several viewers ○ | Per-viewer preferences as a layer of `prefs` | |
+| Several viewers ✓ | Per-viewer preferences as a layer of `prefs`, in context: they never override an author's pick | |
+| Share and remix ✓ | A version as a `#v=` link; opening one and changing it makes a child version | |
 
 ## What building it taught (feedback for reintent)
 
@@ -79,11 +90,17 @@ implement the same `infer(state, event)` signature; nothing else changes.
    kind of event hits a preset the next time (the lamp: "关灯", lights off, resolves at once).
    The tree's vocabulary grows from use; this is how the intent model learns.
 
+7. **`resolve` is per type, not per subject.** A dream's beats share the intent `where`, so
+   whether one beat asks or switches is decided by the first beat's. Every beat's `where` asks,
+   and a confident beat never does: a confident model wins first.
+8. **What is on screen is context.** In a dream, "门开大一点" (the door, wider) is about the beat
+   being played. The runtime takes a `focus`, the node on screen, and a sentence that names no
+   node leans to it. A sentence that names one ("第一幕…", the first beat) is about that node only.
+
 ## Next
 
-- Plug a real model into `infer()`. Its prompt is `observe()`'s output. Its answer is a tree
-  validated against a schema: kinds are closed, `realize` fields are typed.
 - Make context prompts drive belief caching: when context changes, beliefs go stale and are
   re-inferred.
-- Fold the scene layer's overrides and beats into the same tree, so the Inspector's sliders and
-  the "Say it" box are events into one loop.
+- Fold the scene layer's overrides and beats into the same tree, so the Inspector's sliders are
+  events into the loop too.
+- Any surface (the screens lab's framing, in the experiences themselves), and intents as tests.

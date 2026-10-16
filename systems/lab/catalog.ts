@@ -48,7 +48,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe" | "screens" | "intents";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe" | "dream" | "screens";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -89,8 +89,8 @@ export type LabEntry = StudyLab | LibraryLab | ExperienceLab;
 export interface ExperienceInfo {
   /** The document itself, under public/: what the lab frames and the app opens. */
   src: string;
-  /** Its entry in content/apps.json: the icon on the home screen. */
-  app: string;
+  /** Its entry in content/apps.json: the icon on the home screen (none: only in the lab). */
+  app?: string;
 }
 
 /** What a library's header says about the package, read from it, not retyped. */
@@ -228,18 +228,21 @@ export const LABS: readonly LabEntry[] = [
     },
   },
   {
-    id: "intents",
-    href: "/lab/intents",
-    name: { en: "The Intent Loop", zh: "意图回路" },
-    mark: "reintent",
-    kind: "study",
+    id: "dream",
+    href: "/lab/dream",
+    name: { en: "A Dream, Told", zh: "讲一个梦" },
+    mark: "intents",
+    kind: "experience",
+    experience: {
+      src: "/scenes/dream/index.html",
+    },
     hint: {
-      en: "Edits and words as events on an intent tree",
-      zh: "拖拽和说话，都是意图树上的事件",
+      en: "A player for dreams written as intent trees",
+      zh: "梦写成意图树，播放器把它演出来",
     },
     blurb: {
-      en: "Reintent as a reactive, intent-oriented runtime, on the Wardrobe's own things. The intent tree is the one state; reintent computes each intent, which is projected to coordinates and drawn. Drag him, drag the door, change the screen, say something: each is an event whose callback either hits a preset intent and resolves into the tree with no model (Flux), or goes to a model that looks at the tree and writes a new one (ReAct), through the same reducer.",
-      zh: "把 Reintent 当作一个响应式、面向意图的运行时，放在《衣柜》自己的东西上。意图树是唯一的状态；reintent 算出每个意图，投影成坐标、画出来。拖他、拖柜门、换屏幕、说一句话：每一个都是事件，它的回调要么命中预设意图、不调用模型直接写进树（Flux），要么交给模型看着树写出一棵新树（ReAct），走同一个 reducer。",
+      en: "No dream of its own: a player. A dream is a tree the model writes from the words (the beats, and in each where he is, the door, his gaze, how long), and the player plays it over the Wardrobe's bedroom, a blink between beats. Inspect it to tell it another dream, answer where the model was unsure, drag him, keep a version or pass one on.",
+      zh: "它自己没有梦，只是一个播放器。梦是一棵树，由模型根据你讲的话写出来（分几幕，每一幕他在哪、柜门开多大、看不看你、多久），播放器在《衣柜》的卧室里把它演出来，幕与幕之间眨一下眼。打开检查：讲另一个梦，回答模型拿不准的地方，拖动他，存下一个版本或者传给别人。",
     },
   },
   {
