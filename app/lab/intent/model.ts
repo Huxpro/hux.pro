@@ -3,34 +3,55 @@
 import { useCallback, useState, useSyncExternalStore } from "react";
 import { batch, cells, computed, effect, intents, same, signal, untracked } from "reintent";
 import type { Params } from "stage";
-import { BELIEFS, INTENT_TYPES, KEY, TYPES, compile, settle, type IntentType, type Screen, type Value } from "./forget";
+import { BELIEFS, PRESET, settle, tallness, type Screen, type Value } from "./forget";
+import { compile, keyOf, typesOf, type IntentNode, type Tree } from "./tree";
 
 // =============================================================================
-// The Intent Lab's three layers, as in airtalk's reintent lab (v3):
+// The Intent Lab's state, one way round:
 //
-//   data      what people decided: one signal per cell, and per type for a
-//             preference. The only state that would be stored.
-//   compute   reintent on signals: an intent's value on a screen is a
-//             computed over the decision, the preference, the model's belief
-//             and the screen; a screen's props are a computed over its four.
+//   state     the intent tree (data), a person's decisions and preferences,
+//             a model's beliefs. Changed only by `dispatch(action)`.
+//   compute   reintent on signals: each node's kind on a screen is a
+//             computed over its decision, preference, belief and the screen;
+//             a screen's props are a computed over its nodes (compile).
 //   view      React reads computeds with `useValue`; a screen re-renders only
 //             when its own value changes.
+//
+// Actions are what any event comes to: a gesture a recognizer knows, a
+// prompt a model read, an answer, an undo. ./events.ts makes them.
 // =============================================================================
 
 export type Decision = { pick: unknown; from?: string };
 type Read<T> = () => T;
 
+/** How a person (or a model, on their behalf) came to a decision. */
+export type From = "switched" | "asked" | "dragged" | "prompted";
+
+export type Action =
+  /** A kind for one node, here (an indexed node moves its crossover to this screen). */
+  | { type: "decide"; key: string; kind: string; from: From; screen: Screen }
+  | { type: "forget"; key: string }
+  /** A model's distributions: weighed under any person's decision, never over it. */
+  | { type: "believe"; beliefs: { key: string; p: Record<string, number> }[] }
+  /** A node a model wrote (replacing one about the same thing), and optionally its kind here. */
+  | { type: "add"; node: IntentNode; kind?: string; from?: From; screen?: Screen }
+  /** A whole new tree. Decisions about nodes it keeps stay. */
+  | { type: "replace"; tree: Tree };
+
 /** Who has the say over a value on a screen. */
 export type Who = "person" | "pref" | "model" | "code";
 
 export interface IntentView {
-  type: IntentType;
+  key: string;
+  node: IntentNode;
   /** What reintent said: a kind, or a Defer for code. */
   raw: Value;
   /** The kind it comes to on this screen. */
   kind: string;
   who: Who;
-  /** A model said what, code said where (an indexed type on `auto`). */
+  /** How a person decided it, when one did. */
+  how?: string;
+  /** A model said what, code said where (an indexed node left on `auto`). */
   where?: "code" | "person";
   asks: boolean;
 }
@@ -75,15 +96,26 @@ function createStore() {
   };
 }
 
-const whoOf = (from: string | undefined, firm: string | undefined): Who =>
-  firm === "person" ? "person" : firm === "pref" ? "pref" : from === "inferred" ? "model" : "code";
+type Beliefs = Record<string, { p: Record<string, number> }>;
+type Snapshot = { tree: Tree; beliefs: Beliefs; decisions: Record<string, Decision> };
 
-export function createLab() {
+const indexOf = (_by: "tallness", ctx: unknown) => tallness(ctx as Screen);
+
+export function createLab(preset: Tree = PRESET, beliefsAtFirst: Beliefs = BELIEFS) {
   const store = createStore();
-  const cs = cells(TYPES, {});
-  const I = intents(TYPES, { cells: cs, source: store, beliefs: BELIEFS, key: (s: Screen) => s.id });
-  const history = signal([] as Record<string, Decision>[]);
-  const record = () => history.set([...(history.peek() as Record<string, Decision>[]), untracked(store.snapshot)]);
+  const tree = signal(preset);
+  const beliefs = signal(beliefsAtFirst);
+  const history = signal([] as Snapshot[]);
+
+  // reintent over the tree as it is now: rebuilt when the tree or a belief changes; the decisions are the store's.
+  const core = computed(() => {
+    const t = tree() as Tree;
+    const T = typesOf(t, indexOf);
+    const cs = cells(T, {});
+    const I = intents(T, { cells: cs, source: store, beliefs: beliefs() as Beliefs, key: (s: Screen) => s.id });
+    return { I, byKey: new Map(t.map((n) => [keyOf(n), n])) };
+  });
+  type Core = { I: ReturnType<typeof intents>; byKey: Map<string, IntentNode> };
 
   const memo = new Map<string, Read<unknown>>();
   const per = <T,>(name: string, s: Screen, make: () => Read<T>) => {
@@ -92,23 +124,30 @@ export function createLab() {
     return memo.get(id) as Read<T>;
   };
 
-  /** One intent on one screen: its value, who said it, whether to ask. */
-  const view = (type: IntentType, s: Screen): Read<IntentView> =>
-    per(`view:${type}`, s, () =>
+  /** One node on one screen: its kind, who said it, whether to ask. */
+  const view = (key: string, s: Screen): Read<IntentView | null> =>
+    per(`view:${key}`, s, () =>
       computed(
-        (): IntentView => {
-          const x = I.intent(KEY[type]);
+        (): IntentView | null => {
+          const { I, byKey } = core() as Core;
+          const node = byKey.get(key);
+          if (!node) return null;
+          const x = I.intent(key);
           const raw = x.at(s)() as Value;
           const firm = x.firm() as string | undefined;
           const d = x.decision() as Decision | undefined;
-          const from = fromOf(type, raw, d);
-          const pickAt = (d?.pick as { at?: unknown } | undefined)?.at;
+          const believed = !!(beliefs() as Beliefs)[key];
+          const named = typeof raw === "string" || !!(raw as { below?: string } | undefined)?.below;
+          const who: Who = firm === "person" ? "person" : firm === "pref" ? "pref" : believed && named ? "model" : "code";
+          const at = (d?.pick as { at?: unknown } | undefined)?.at;
           return {
-            type,
+            key,
+            node,
             raw,
-            kind: settle(type, raw, s),
-            who: whoOf(from, firm),
-            ...(type === "axis" ? { where: typeof pickAt === "number" ? "person" : "code" } : {}),
+            kind: settle(node, raw, s),
+            who,
+            ...(d ? { how: d.from } : {}),
+            ...(node.index ? { where: typeof at === "number" ? "person" : "code" } : {}),
             asks: x.asks(s)() as boolean,
           };
         },
@@ -116,55 +155,90 @@ export function createLab() {
       ),
     );
 
-  /** A screen's props: the scene's, with its four intents compiled over them. */
+  /** A screen's props: the scene's, with every node's kind compiled over them. */
   const params = (s: Screen): Read<Params> =>
     per("params", s, () =>
       computed(
-        () => compile(Object.fromEntries(INTENT_TYPES.map((t) => [t, view(t, s)().kind])) as Record<IntentType, string>),
+        () => {
+          const t = tree() as Tree;
+          const chosen: Record<string, string> = {};
+          for (const n of t) {
+            const v = view(keyOf(n), s)();
+            if (v) chosen[keyOf(n)] = v.kind;
+          }
+          return compile(t, chosen);
+        },
         { equals: same },
       ),
     );
 
+  const keys = computed(() => (tree() as Tree).map(keyOf), { equals: same }) as Read<string[]>;
+  const questions = (s: Screen) =>
+    per("questions", s, () => computed(() => keys().filter((k) => view(k, s)()?.asks), { equals: same })) as Read<string[]>;
+
+  const record = () =>
+    history.set([
+      ...(history.peek() as Snapshot[]),
+      { tree: tree.peek() as Tree, beliefs: beliefs.peek() as Beliefs, decisions: untracked(store.snapshot) },
+    ]);
+
+  /** The reducer: every change to the state is one of these. */
+  function dispatch(a: Action) {
+    record();
+    batch(() => {
+      if (a.type === "decide") {
+        (untracked(core) as Core).I.intent(a.key).resolve(a.kind, a.screen, { from: a.from });
+      } else if (a.type === "forget") store.forget(a.key);
+      else if (a.type === "believe") {
+        const next = { ...(beliefs.peek() as Beliefs) };
+        for (const b of a.beliefs) next[b.key] = { p: b.p };
+        beliefs.set(next);
+      } else if (a.type === "add") {
+        const key = keyOf(a.node);
+        tree.set([...(tree.peek() as Tree).filter((n) => keyOf(n) !== key), a.node]);
+        // A node rewritten: what was decided about the old one no longer names its kinds.
+        store.forget(key);
+      } else if (a.type === "replace") tree.set(a.tree);
+    });
+    // The new node's kind, decided against reintent as rebuilt for it.
+    if (a.type === "add" && a.kind && a.screen) {
+      (untracked(core) as Core).I.intent(keyOf(a.node)).resolve(a.kind, a.screen, { from: a.from ?? "prompted" });
+    }
+  }
+
   return {
     store,
-    history: history as Read<Record<string, Decision>[]>,
+    tree: tree as Read<Tree>,
+    keys,
     view,
     params,
-    questions: (s: Screen) => I.questions(s) as Read<{ key: string; type: IntentType }[]>,
-    /** A person chose `kind` for `type` on screen `s`. */
-    choose(type: IntentType, kind: string, s: Screen, from: "switched" | "asked" = "switched") {
-      record();
-      I.intent(KEY[type]).resolve(kind, s, { from });
-    },
-    forget(type: IntentType) {
-      record();
-      I.intent(KEY[type]).forget();
-    },
+    questions,
+    dispatch,
+    history: history as Read<Snapshot[]>,
     undo() {
-      const h = history.peek() as Record<string, Decision>[];
+      const h = history.peek() as Snapshot[];
       if (!h.length) return;
-      store.restore(h[h.length - 1]);
+      const last = h[h.length - 1];
+      batch(() => {
+        tree.set(last.tree);
+        beliefs.set(last.beliefs);
+        store.restore(last.decisions);
+      });
       history.set(h.slice(0, -1));
     },
     reset() {
       record();
-      store.restore({});
+      batch(() => {
+        tree.set(preset);
+        beliefs.set(beliefsAtFirst);
+        store.restore({});
+      });
     },
     /** What would be stored: a person's decisions, nothing else. */
     stored: computed(() => store.snapshot(), { equals: same }) as Read<Record<string, Decision>>,
+    /** The nodes a model wrote: stored too, beside the scene, until a person forgets them. */
+    written: computed(() => (tree() as Tree).filter((n) => n.from === "model"), { equals: same }) as Read<Tree>,
   };
-}
-
-/**
- * Who said a value, from the value itself and the decision: reintent's
- * `decide` names it (`resolved`, `inferred`, `code`, `unsure`); its `from` is
- * read the same way here without asking it twice.
- */
-function fromOf(type: IntentType, raw: Value, d: Decision | undefined): string {
-  if (d) return d.from ?? "resolved";
-  if (typeof raw === "string") return "inferred";
-  // A Defer: on an indexed type, a model's sure belief named the low end.
-  return type === "axis" && raw?.below ? "inferred" : "code";
 }
 
 export type Lab = ReturnType<typeof createLab>;
@@ -177,6 +251,6 @@ export function useValue<T>(read: Read<T>): T {
 
 /** One lab for the page's life. */
 export function useLab() {
-  const [lab] = useState(createLab);
+  const [lab] = useState(() => createLab());
   return lab;
 }

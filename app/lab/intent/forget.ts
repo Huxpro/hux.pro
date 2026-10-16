@@ -1,32 +1,21 @@
-import type { Cue, Params } from "stage";
-import { space } from "reintent";
+import type { Cue } from "stage";
+import { MOMENT_NAMES } from "@/app/dream/forget/kinds/pictures";
+import type { IntentNode, Tree, Words } from "./tree";
 
 // =============================================================================
-// /dream/forget's intents: what a person might mean that its props cannot say.
+// /dream/forget's preset intents: what a person might mean that its props
+// cannot say, written by hand as an intent tree (./tree.ts). A model may add
+// to it; a person decides over it.
 //
-// A prop says "the edge erodes a held moment in 2.6 s". An intent says what
-// that is for, as a closed choice: when you hold on, does the moment at the
-// edge still wear away, or does it wait? reintent decides each one per screen
-// (a person's decision > their preference > a model sure enough > code), and
-// `compile` turns the decisions into the scene's props. The scene file is
-// untouched: these are set over it, on whichever screen is showing.
-//
-//   axis      which way the moments go: up a tall window, or right to left
-//             through a wide one. Indexed by the screen's shape: up on tall
-//             screens, across below a crossover a person can move.
-//   holding   held at the edge, a moment still wears away, or it waits.
-//             The dream's meaning, so when the model is unsure it asks.
-//   letgo     letting go: the rest goes at once (a tide), or one by one.
-//   dust      what is left rises away, or settles near the window.
+//   axis       which way the moments go: up a tall window, or right to left
+//              through a wide one. Indexed by the screen's shape.
+//   holding    held at the edge, a moment still wears away, or it waits.
+//              The dream's meaning, so when the model is unsure it asks.
+//   letgo      letting go: the rest goes at once (a tide), or one by one.
+//   dust       what is left rises away, or settles near the window.
+//   keep       for each moment: it goes like the rest, or it is kept, set
+//              aside whole beside the window. Dragging one out keeps it.
 // =============================================================================
-
-export type Axis = "up" | "across";
-export type Holding = "wears" | "keeps";
-export type LetGo = "tide" | "oneByOne";
-export type DustKind = "rises" | "settles";
-
-export type IntentType = "axis" | "holding" | "letgo" | "dust";
-export const INTENT_TYPES: IntentType[] = ["axis", "holding", "letgo", "dust"];
 
 /** A screen the dream is seen on: its size in CSS px. */
 export interface Screen {
@@ -47,83 +36,95 @@ export const SCREENS: Screen[] = [
 /** How tall a screen is for its width: the index `axis` crosses over along. */
 export const tallness = (s: Screen) => s.h / s.w;
 
-/** The scene's nodes the intents are about (subjects are references into its world). */
-const WORLD = { window: { id: "window" }, edge: { id: "edge" }, tide: { id: "tide" }, dust: { id: "dust" } };
-type Node = { id: string };
+const MOMENTS_ZH = ["你的猫", "一个深夜", "我们俩", "一个家", "一个小太阳"];
 
-/** What each kind is, in words a model reads (the lab shows its own, in both languages). */
-const WORDS: Record<string, string> = {
-  up: "the moments rise up through a tall window and go at its top edge",
-  across: "the window lies on its side; the moments drift right to left and go at its left edge",
-  wears: "held at the edge, a moment still wears away: holding on slows forgetting, it does not stop it",
-  keeps: "held at the edge, a moment waits, whole, for as long as you hold on",
-  tide: "letting go, everything left goes at once, like a tide",
-  oneByOne: "letting go, the rest go one by one, as they would have",
-  rises: "the dust rises away and stays faint in the air",
-  settles: "the dust settles near where the window was",
-};
-
-const node = (n: Node) => n.id;
-const describe = (k: string) => WORDS[k];
-
-export const TYPES = space({
-  axis: {
-    kinds: () => ["up", "across"],
-    subjects: () => [WORLD.window],
-    id: node,
-    prior: () => ({ up: 0.6, across: 0.4 }),
-    describe,
-    resolve: "switch",
-    index: { of: tallness, base: () => "up" },
+const keep = (i: number): IntentNode => ({
+  type: "keep",
+  of: `moments#${i}`,
+  words: { en: `Keep ${MOMENT_NAMES[i]}`, zh: `留住${MOMENTS_ZH[i]}` },
+  kinds: {
+    goes: { words: { en: "It goes", zh: "让它走" }, patch: { moments: { kept: [] } } },
+    stays: { words: { en: "Kept", zh: "留住" }, patch: { moments: { kept: [i] } } },
   },
-  holding: {
-    kinds: () => ["wears", "keeps"],
-    subjects: () => [WORLD.edge],
-    id: node,
-    prior: () => ({ wears: 0.6, keeps: 0.4 }),
-    describe,
-    resolve: "ask",
-  },
-  letgo: {
-    kinds: () => ["tide", "oneByOne"],
-    subjects: () => [WORLD.tide],
-    id: node,
-    prior: () => ({ tide: 0.7, oneByOne: 0.3 }),
-    describe,
-    resolve: "switch",
-  },
-  dust: {
-    kinds: () => ["rises", "settles"],
-    subjects: () => [WORLD.dust],
-    id: node,
-    prior: () => ({ rises: 0.6, settles: 0.4 }),
-    describe,
-    resolve: "switch",
-  },
+  prior: { goes: 0.9, stays: 0.1 },
+  resolve: "switch",
+  from: "preset",
 });
 
-export const KINDS: Record<IntentType, string[]> = {
-  axis: ["up", "across"],
-  holding: ["wears", "keeps"],
-  letgo: ["tide", "oneByOne"],
-  dust: ["rises", "settles"],
-};
+export const PRESET: Tree = [
+  {
+    type: "axis",
+    of: "window",
+    words: { en: "Which way they go", zh: "往哪里走" },
+    kinds: {
+      up: { words: { en: "Up", zh: "向上" }, patch: { window: { axis: "up" } } },
+      across: { words: { en: "Across", zh: "横向" }, patch: { window: { axis: "across" } } },
+    },
+    prior: { up: 0.6, across: 0.4 },
+    resolve: "switch",
+    index: { by: "tallness", base: "up" },
+    from: "preset",
+  },
+  {
+    type: "holding",
+    of: "edge",
+    words: { en: "Holding on", zh: "按住时" },
+    kinds: {
+      wears: { words: { en: "Wears away", zh: "仍会磨损" }, patch: { edge: { erode: 2.6, shed: 0.9 } } },
+      keeps: { words: { en: "Waits", zh: "停住等你" }, patch: { edge: { erode: 600, shed: 0.06 } } },
+    },
+    prior: { wears: 0.6, keeps: 0.4 },
+    resolve: "ask",
+    question: {
+      en: "When you hold on, does the moment at the edge still wear away?",
+      zh: "按住的时候，窗沿上那个画面还会继续磨损吗？",
+    },
+    from: "preset",
+  },
+  {
+    type: "letgo",
+    of: "tide",
+    words: { en: "Letting go", zh: "松开时" },
+    kinds: {
+      tide: { words: { en: "A tide", zh: "像退潮" }, patch: { tide: { stagger: 0.12 } } },
+      oneByOne: { words: { en: "One by one", zh: "一个一个" }, patch: { tide: { stagger: 0.95 } } },
+    },
+    prior: { tide: 0.7, oneByOne: 0.3 },
+    resolve: "switch",
+    from: "preset",
+  },
+  {
+    type: "dust",
+    of: "dust",
+    words: { en: "What is left", zh: "留下的" },
+    kinds: {
+      rises: { words: { en: "Rises", zh: "升起" }, patch: { dust: { rise: 1.3, drag: 0.7 } } },
+      settles: { words: { en: "Settles", zh: "落下" }, patch: { dust: { rise: 0.45, drag: 1.8 } } },
+    },
+    prior: { rises: 0.6, settles: 0.4 },
+    resolve: "switch",
+    from: "preset",
+  },
+  ...MOMENT_NAMES.map((_, i) => keep(i)),
+];
 
-/** Each type's one cell: `type|subject`. */
-export const KEY: Record<IntentType, string> = {
+/** Each preset type's first cell, by type (the tests and the panel name them). */
+export const KEY = {
   axis: "axis|window",
   holding: "holding|edge",
   letgo: "letgo|tide",
   dust: "dust|dust",
+  keep: (i: number) => `keep|moments#${i}`,
 };
 
 /**
- * What a model said about each, given the scene's intent line and WORDS: its
- * distributions, a cache, never stored with the scene. Written in this
- * session by Claude reading the scene ("A conversation remembered a moment at
- * a time, each going to dust at the window's edge; it happened anyway").
+ * What a model said about the presets, given the scene's intent line and the
+ * kinds' words: its distributions, a cache, never stored with the scene.
+ * Written in this session by Claude reading the scene ("A conversation
+ * remembered a moment at a time, each going to dust at the window's edge; it
+ * happened anyway").
  */
-export const BELIEFS = {
+export const BELIEFS: Record<string, { p: Record<string, number> }> = {
   [KEY.axis]: { p: { up: 0.3, across: 0.7 } },
   [KEY.holding]: { p: { wears: 0.52, keeps: 0.48 } },
   [KEY.letgo]: { p: { tide: 0.82, oneByOne: 0.18 } },
@@ -138,28 +139,18 @@ export type Value = string | Defer | undefined;
 const CRAMPED_ROW = 64;
 
 /**
- * Code's choice where reintent defers: the dream as written, and for `axis`
- * where to cross over: upright while a row keeps 64 px, on its side below.
+ * Code's choice where reintent defers: the scene as written (a node's first
+ * kind), and for `axis` where to cross over: upright while a row keeps 64 px.
  */
-export function settle(type: IntentType, v: Value, s: Screen): string {
+export function settle(node: IntentNode, v: Value, s: Screen): string {
   if (typeof v === "string") return v;
-  const open = KINDS[type].filter((k) => !v?.not?.includes(k));
-  if (type === "axis") {
+  const open = Object.keys(node.kinds).filter((k) => !v?.not?.includes(k));
+  if (node.type === "axis") {
     if (!open.includes("up")) return v?.below ?? "across";
     const fits = (s.h - 180) / 4 >= CRAMPED_ROW;
     return fits ? (v?.base ?? "up") : (v?.below ?? "across");
   }
   return open[0];
-}
-
-/** The scene's props for one screen's settled intents. */
-export function compile(a: Record<IntentType, string>): Params {
-  return {
-    window: { axis: a.axis },
-    edge: a.holding === "keeps" ? { erode: 600, shed: 0.06 } : { erode: 2.6, shed: 0.9 },
-    tide: { stagger: a.letgo === "oneByOne" ? 0.95 : 0.12 },
-    dust: a.dust === "settles" ? { rise: 0.45, drag: 1.8 } : { rise: 1.3, drag: 0.7 },
-  };
 }
 
 /**
@@ -172,3 +163,5 @@ export const SCRIPT: Cue[] = [
   { at: 7.6, up: true },
 ];
 export const LOOP = 5.5;
+
+export type { Words };

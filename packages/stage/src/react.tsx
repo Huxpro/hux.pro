@@ -44,6 +44,8 @@ interface Env {
   params?: Params;
   script?: Cue[];
   loop?: number | null;
+  /** Hands the page its host (for a boxed stage the page reads: what is where, what the scene wrote). */
+  onHost?: (host: Host) => void;
 }
 
 const EnvContext = createContext<Env>({ locale: "en", wake: () => {}, save: postScene });
@@ -70,6 +72,7 @@ export function StageProvider({
   params,
   script,
   loop,
+  onHost,
   children,
 }: {
   locale: keyof Words;
@@ -79,10 +82,11 @@ export function StageProvider({
   params?: Params;
   script?: Cue[];
   loop?: number | null;
+  onHost?: (host: Host) => void;
   children: ReactNode;
 }) {
   return (
-    <EnvContext.Provider value={{ locale, wake: onWake, save: onSave, box, params, script, loop }}>{children}</EnvContext.Provider>
+    <EnvContext.Provider value={{ locale, wake: onWake, save: onSave, box, params, script, loop, onHost }}>{children}</EnvContext.Provider>
   );
 }
 
@@ -127,6 +131,8 @@ export function Stage({ id, intent, names, label, machine, rules = [], backgroun
       for (const [prop, value] of Object.entries(props)) host.set(node, prop, value);
     }
   }, [host, paramsKey]);
+  const onHost = env.onHost;
+  useEffect(() => onHost?.(host), [host, onHost]);
   const scriptKey = JSON.stringify(env.script ?? []);
   useEffect(() => host.play(JSON.parse(scriptKey), env.loop ?? null), [host, scriptKey, env.loop]);
 

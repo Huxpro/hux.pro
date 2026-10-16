@@ -200,8 +200,8 @@ export const LABS: readonly LabEntry[] = [
       zh: "一个梦的意图，在每一块屏幕上",
     },
     blurb: {
-      en: "/dream/forget's intents as closed choices, decided per screen by you, a model sure enough, or code (reintent, from airtalk). Switch one on a screen and the crossover moves; the one the model is unsure of, it asks. Every screen is the real dream, live.",
-      zh: "/dream/forget 的意图，是闭集里的选择，按屏幕由你、足够确定的模型或代码来定（reintent，来自 airtalk）。在一块屏幕上切换，交叉点随之移动；模型没把握的那个，它会问。每块屏幕都是真正的梦，实时运行。",
+      en: "/dream/forget's intent tree, decided per screen by you, a model sure enough, or code (reintent, from airtalk). Every change is an event: drag on the dream or say something, and a preset acts at once, or a model reads the event and writes a new intent. Every screen is the real dream, live.",
+      zh: "/dream/forget 的意图树，按屏幕由你、足够确定的模型或代码来定（reintent，来自 airtalk）。每次改动都是一个事件：在梦上拖一下或说一句，预设马上处理，或者交给模型读懂事件、写出新的意图。每块屏幕都是真正的梦，实时运行。",
     },
   },
   {

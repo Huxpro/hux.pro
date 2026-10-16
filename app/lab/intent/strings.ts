@@ -1,19 +1,35 @@
 import type { LabTable } from "@/systems/lab";
-import type { IntentType } from "./forget";
 import type { Who } from "./model";
 
 const en = {
-  meta: (screens: number, asks: number, decided: number) =>
-    `/dream/forget · ${screens} screens · ${asks ? `${asks} question` : "nothing to ask"} · ${decided} decided`,
+  meta: (screens: number, asks: number, decided: number, written: number) =>
+    `/dream/forget · ${screens} screens · ${asks ? `${asks} question` : "nothing to ask"} · ${decided} decided · ${written} written by a model`,
   undo: "Undo",
   reset: "Reset",
   // The stage
   focus: "On this screen",
   focusNote:
-    "The real /dream/forget, at this screen's size, performing the same hold and let-go on every screen. What it shows is its own scene with the four intents compiled over it.",
+    "The real /dream/forget, at this screen's size, performing the same hold and let-go on every screen. Its props are the intents' kinds, compiled over the scene.",
+  hands: "Edit by hand",
+  handsOn: "Editing by hand",
+  handsNote:
+    "Drag on the dream: a moment out of the window keeps it, back in lets it go; the window sideways lays it down, up stands it up; the dust down settles it. A tap picks what a prompt is about. Any other drag goes to the model.",
+  promptAbout: "About",
+  everything: "the whole dream",
+  promptPlaceholder: "Say what you mean: slower, like snow, sadder, 落下…",
+  send: "Send",
+  events: "Events",
+  eventsNote:
+    "Every drag and prompt is an event. ① A preset knows it: an action at once, no model. ② None does: the model observes the tree and the event and writes an action, checked before it is let in. Both go through the same reducer.",
+  noEvents: "Nothing yet. Drag on the dream, or say something.",
+  route: { resolve: "① preset", infer: "② model" } as Record<string, string>,
+  status: { pending: "thinking…", done: "applied", none: "nothing to do", rejected: "not let in" } as Record<string, string>,
+  drag: (from: string, to: string) => `drag ${from} → ${to}`,
+  prompt: (about: string, text: string) => `“${text}” about ${about}`,
+  paper: "the paper",
   shape: "Which way the moments go, by the screen's shape",
   shapeNote:
-    "Wide on the left, tall on the right. Up a tall window, or across one lying on its side. A switch on one screen moves where it crosses over: every screen past it follows; the rest keep theirs.",
+    "Wide on the left, tall on the right. A switch (or a drag of the window) on one screen moves where it crosses over: every screen past it follows; the rest keep theirs.",
   crossCode: "code decides where: upright while a row keeps 64 px",
   crossAt: (at: string) => `you moved it to ${at}`,
   wall: "Every screen",
@@ -30,53 +46,55 @@ const en = {
   short: { landscape: "Sideways" } as Record<string, string>,
   // The panel
   asking: "A question",
-  question: "When you hold on, does the moment at the edge still wear away?",
-  questionNote: "The model is not sure (52 : 48), and this one is what the dream means, so it asks rather than guess. One answer holds on every screen.",
+  questionNote: "The model is not sure, and this one is what the dream means, so it asks rather than guess. One answer holds on every screen.",
   intents: (screen: string) => `Intents · ${screen}`,
   intentsNote:
     "Each is a closed choice. A person's decision outranks their preference, which outranks a model sure enough (best beats second by 0.2), which outranks code.",
-  types: {
-    axis: "Which way they go",
-    holding: "Holding on",
-    letgo: "Letting go",
-    dust: "What is left",
-  } satisfies Record<IntentType, string>,
-  kinds: {
-    up: "Up",
-    across: "Across",
-    wears: "Wears away",
-    keeps: "Waits",
-    tide: "A tide",
-    oneByOne: "One by one",
-    rises: "Rises",
-    settles: "Settles",
-  } as Record<string, string>,
+  keepGroup: "Keep a moment",
+  byModel: "Written by a model",
+  byModelNote: "Intents a model added for an event no preset knew: data, checked against the stage's knobs, switchable like the rest.",
   who: {
     person: "you",
     pref: "your preference",
     model: "the model",
     code: "code",
   } satisfies Record<Who, string>,
+  how: { switched: "switched", asked: "answered", dragged: "dragged", prompted: "said" } as Record<string, string>,
   whoWhere: "the model says what · code says where",
   forget: "forget",
   stored: "Stored",
-  storedNote: "Only what a person decided is kept, beside the scene. The model's beliefs are a cache; what each screen gets is computed.",
+  storedNote: "Only what a person decided, and the intents a model wrote, are kept beside the scene. Beliefs are a cache; what each screen gets is computed.",
   nothingStored: "Nothing yet: every screen is the model's and code's.",
   props: "This screen's props",
-  propsNote: "What the four intents compile to, set over the scene's own on this screen only. The scene file does not change.",
+  propsNote: "What the intents compile to, set over the scene's own on this screen only. The scene file does not change.",
 };
 
 const zh: typeof en = {
-  meta: (screens, asks, decided) =>
-    `/dream/forget · ${screens} 块屏幕 · ${asks ? `${asks} 个问题` : "无需提问"} · ${decided} 个决定`,
+  meta: (screens, asks, decided, written) =>
+    `/dream/forget · ${screens} 块屏幕 · ${asks ? `${asks} 个问题` : "无需提问"} · ${decided} 个决定 · ${written} 个模型写的意图`,
   undo: "撤销",
   reset: "重置",
   focus: "这块屏幕",
-  focusNote:
-    "真正的 /dream/forget，按这块屏幕的尺寸运行，每块屏幕上演同一段「按住、松开」。它显示的是它自己的场景，四个意图编译后叠在上面。",
+  focusNote: "真正的 /dream/forget，按这块屏幕的尺寸运行，每块屏幕上演同一段「按住、松开」。它的 props 是各个意图选中的值，编译后叠在场景上。",
+  hands: "动手改",
+  handsOn: "正在动手改",
+  handsNote:
+    "在梦上拖：把画面拖出窗外就留住它，拖回窗里就让它走；把窗横着拖让它躺下，竖着拖让它立起；把尘往下拉让它落下。点一下选中提示词说的对象。其他拖法交给模型。",
+  promptAbout: "关于",
+  everything: "整个梦",
+  promptPlaceholder: "说你的意思：慢一些、像雪、更伤感、落下……",
+  send: "发送",
+  events: "事件",
+  eventsNote:
+    "每次拖动、每句提示都是一个事件。① 预设认得它：马上得到一个 action，不调用模型。② 都不认得：模型观察意图树和事件，写出一个 action，校验通过才放进来。两条路走同一个 reducer。",
+  noEvents: "还没有。在梦上拖一下，或者说一句。",
+  route: { resolve: "① 预设", infer: "② 模型" },
+  status: { pending: "思考中…", done: "已应用", none: "无事可做", rejected: "没放进来" },
+  drag: (from, to) => `拖动 ${from} → ${to}`,
+  prompt: (about, text) => `关于${about}：「${text}」`,
+  paper: "纸面",
   shape: "画面往哪里走，按屏幕的形状",
-  shapeNote:
-    "左边宽，右边高。竖着的窗往上走，或者窗躺倒、横着走。在一块屏幕上切换，会把交叉点挪到它的形状：越过它的屏幕都跟着变，其余的保持不变。",
+  shapeNote: "左边宽，右边高。在一块屏幕上切换（或拖动窗），会把交叉点挪到它的形状：越过它的屏幕都跟着变，其余的保持不变。",
   crossCode: "代码决定在哪里交叉：一行还有 64 px 就竖着",
   crossAt: (at) => `你把它挪到了 ${at}`,
   wall: "每一块屏幕",
@@ -91,39 +109,26 @@ const zh: typeof en = {
   },
   short: { landscape: "横放" },
   asking: "一个问题",
-  question: "按住的时候，窗沿上那个画面还会继续磨损吗？",
-  questionNote: "模型没有把握（52 : 48），而这正是这个梦的含义，所以问，而不是猜。答一次，所有屏幕都按这个来。",
+  questionNote: "模型没有把握，而这正是这个梦的含义，所以问，而不是猜。答一次，所有屏幕都按这个来。",
   intents: (screen) => `意图 · ${screen}`,
   intentsNote: "每一个都是闭集里的选择。人的决定 > 人的偏好 > 足够确定的模型（最高比第二高多 0.2）> 代码。",
-  types: {
-    axis: "往哪里走",
-    holding: "按住时",
-    letgo: "松开时",
-    dust: "留下的",
-  },
-  kinds: {
-    up: "向上",
-    across: "横向",
-    wears: "仍会磨损",
-    keeps: "停住等你",
-    tide: "像退潮",
-    oneByOne: "一个一个",
-    rises: "升起",
-    settles: "落下",
-  },
+  keepGroup: "留住一个画面",
+  byModel: "模型写的",
+  byModelNote: "预设都不认得的事件，由模型加上的意图：是数据，按舞台已有的旋钮校验过，和其他意图一样可以切换。",
   who: {
     person: "你",
     pref: "你的偏好",
     model: "模型",
     code: "代码",
   },
+  how: { switched: "切换", asked: "回答", dragged: "拖动", prompted: "说的" },
   whoWhere: "模型决定变成什么 · 代码决定在哪里变",
   forget: "忘掉",
   stored: "存下的",
-  storedNote: "只存人做的决定，放在场景旁边。模型的判断是缓存；每块屏幕得到什么是算出来的。",
+  storedNote: "只存人做的决定，以及模型写的意图，放在场景旁边。判断是缓存；每块屏幕得到什么是算出来的。",
   nothingStored: "还没有：每块屏幕都由模型和代码决定。",
   props: "这块屏幕的 props",
-  propsNote: "四个意图编译出的值，只在这块屏幕上叠在场景自己的值上面。场景文件不变。",
+  propsNote: "意图编译出的值，只在这块屏幕上叠在场景自己的值上面。场景文件不变。",
 };
 
 export const INTENT_STRINGS: LabTable<typeof en> = { en, zh };

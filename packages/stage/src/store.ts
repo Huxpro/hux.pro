@@ -190,6 +190,17 @@ export class Stage {
     this.overrides.set(nodeId, { ...this.overrides.get(nodeId), [prop]: value });
   }
 
+  /** A node's props as the scene wrote them (no overrides), and its kind: what a model may be told it can change. */
+  written(id: string): { props: Record<string, unknown>; def: AnyKind } | null {
+    const rec = this.nodes.get(id);
+    return rec ? { props: rec.props(), def: rec.def } : null;
+  }
+
+  /** Every node placed, in scene order. */
+  ids() {
+    return this.ordered().map((r) => r.id);
+  }
+
   /** A performance to give on the stage's own clock, and whether to start over at the end. */
   play(script: Cue[], loop: number | null = null) {
     this.script = [...script].sort((a, b) => a.at - b.at);
