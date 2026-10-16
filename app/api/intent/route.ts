@@ -41,12 +41,12 @@ Answer with ONE action as a single JSON object, nothing else:
 - {"action":"believe","beliefs":[{"key":"<type>|<of>","p":{"<kind>":0.7,"<kind>":0.3}}],"why":"..."}  a mood or a general wish: shift beliefs over several intents; decisions stay.
 - {"action":"none","why":"..."}  nothing in the tree or the knobs can express it (say what would be needed).
 
-Rules: only knobs listed on an entity; numbers within their range; every kind of a node sets the same knobs; names are short camelCase; keep "why" to one sentence.`;
+Rules: "key" is copied exactly from the list of intents you are given (type|of, e.g. keep|moments#2); "kind" is one of that intent's kinds, or for "add" one of the new node's own kind names, never its type; only knobs listed on an entity, reading each knob's note for which way it goes; numbers within their range; every kind of a node sets the same knobs; names are short camelCase; keep "why" to one sentence.`;
 
 export async function POST(request: NextRequest) {
   const text = await request.text();
   if (text.length > MAX_BODY) return NextResponse.json({ error: "too much to observe" }, { status: 413 });
-  let observation: { event?: { kind?: string; text?: string } };
+  let observation: { event?: { kind?: string; text?: string }; tree?: { type: string; of: string; kinds: Record<string, unknown> }[] };
   try {
     observation = JSON.parse(text);
   } catch {
@@ -61,7 +61,8 @@ export async function POST(request: NextRequest) {
     const { text: out } = await generateText({
       model: resolved.model,
       system: SYSTEM,
-      prompt: JSON.stringify(observation),
+      // The intents' keys and kinds spelled out, so a decision names them exactly.
+      prompt: `Intents (key: kinds): ${(observation.tree ?? []).map((n) => `${n.type}|${n.of}: ${Object.keys(n.kinds ?? {}).join(", ")}`).join("; ")}\n\n${JSON.stringify(observation)}`,
       maxOutputTokens: 1200,
     });
     const json = out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1);
