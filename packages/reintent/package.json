@@ -1,0 +1,8 @@
+{
+  "name": "reintent",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Intents as a probabilistic, context-indexed decision table. Vendored from Huxpro/airtalk#818.",
+  "type": "module",
+  "exports": "./src/reintent.js"
+}

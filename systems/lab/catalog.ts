@@ -48,7 +48,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe" | "screens" | "intents";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -225,6 +225,36 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "A tall thin man in black, under a round hat far too big for him, stood in my wardrobe, then at my bed. I woke, and the wardrobe door really was opening. Hold to close your eyes; each time you open them, he is closer.",
       zh: "一个穿黑衣服、又高又瘦、戴着一顶大得出奇的圆帽子的男人，先站在我的衣柜里，后来站在我的床头。我醒了，衣柜门真的正在打开。按住闭上眼睛；每次睁开，他都更近一些。",
+    },
+  },
+  {
+    id: "intents",
+    href: "/lab/intents",
+    name: { en: "The Intent Loop", zh: "意图回路" },
+    mark: "reintent",
+    kind: "study",
+    hint: {
+      en: "Edits and words as events on an intent tree",
+      zh: "拖拽和说话，都是意图树上的事件",
+    },
+    blurb: {
+      en: "Reintent as a reactive, intent-oriented runtime, on the Wardrobe's own things. The intent tree is the one state; reintent computes each intent, which is projected to coordinates and drawn. Drag him, drag the door, change the screen, say something: each is an event whose callback either hits a preset intent and resolves into the tree with no model (Flux), or goes to a model that looks at the tree and writes a new one (ReAct), through the same reducer.",
+      zh: "把 Reintent 当作一个响应式、面向意图的运行时，放在《衣柜》自己的东西上。意图树是唯一的状态；reintent 算出每个意图，投影成坐标、画出来。拖他、拖柜门、换屏幕、说一句话：每一个都是事件，它的回调要么命中预设意图、不调用模型直接写进树（Flux），要么交给模型看着树写出一棵新树（ReAct），走同一个 reducer。",
+    },
+  },
+  {
+    id: "screens",
+    href: "/lab/screens",
+    name: { en: "One Dream, Any Screen", zh: "一个梦，任意屏幕" },
+    mark: "reintent",
+    kind: "study",
+    hint: {
+      en: "A scene's framing, as a few decisions",
+      zh: "取景，是少数几个决定",
+    },
+    blurb: {
+      en: "The Wardrobe was composed once, for a phone. Everywhere else its framing is a few closed decisions (fill or whole; how much of him, of the door, must stay; what to centre on), made by Reintent's precedence: yours, then your rule, then a confident model, then code. A solver frames every screen from where the scene says its things are. The model asks only where it cannot tell; a switch on one screen moves the crossover for all.",
+      zh: "《衣柜》只为手机构图过一次。在其他屏幕上，取景是少数几个封闭的决定（铺满还是原样；他、那扇门至少要留多少；以谁为中心），按 Reintent 的先后来定：你的选择 > 你的规则 > 够确定的模型 > 代码。求解器按场景自己量出的位置为每块屏幕取景。模型只在拿不准时才问；在一块屏幕上切换，会挪动所有屏幕的交叉点。",
     },
   },
   {

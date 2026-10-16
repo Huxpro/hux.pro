@@ -9,6 +9,63 @@
 import { Atmosphere, Draw, Part, choice, num, semantic, type DrawFn } from "scene";
 
 // -----------------------------------------------------------------------------
+// Paints
+// -----------------------------------------------------------------------------
+
+/** The paints the bedroom uses (gradients, a blur, the wardrobe's inside as a clip). Draw it once, first. */
+export function BedroomDefs() {
+  return (
+    <defs>
+      <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#0a0e1b" />
+        <stop offset="0.75" stopColor="#0e1426" />
+        <stop offset="1" stopColor="#0a0e1b" />
+      </linearGradient>
+      <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#080b15" />
+        <stop offset="1" stopColor="#04060c" />
+      </linearGradient>
+      <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#3c4e78" />
+        <stop offset="1" stopColor="#1b2642" />
+      </linearGradient>
+      <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stopColor="#5a6d9c" stopOpacity="0.32" />
+        <stop offset="1" stopColor="#5a6d9c" stopOpacity="0" />
+      </radialGradient>
+      <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#8ea2d6" stopOpacity="0.12" />
+        <stop offset="1" stopColor="#8ea2d6" stopOpacity="0" />
+      </linearGradient>
+      <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stopColor="#1a2440" />
+        <stop offset="1" stopColor="#101729" />
+      </linearGradient>
+      <linearGradient id="doorFace" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stopColor="#18213a" />
+        <stop offset="1" stopColor="#0d1322" />
+      </linearGradient>
+      <linearGradient id="inside" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#0a1020" />
+        <stop offset="0.6" stopColor="#101830" />
+        <stop offset="1" stopColor="#0b1122" />
+      </linearGradient>
+      <linearGradient id="blanket" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#1b2440" />
+        <stop offset="0.35" stopColor="#111829" />
+        <stop offset="1" stopColor="#070a12" />
+      </linearGradient>
+      <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="6" />
+      </filter>
+      <clipPath id="wardrobeInside">
+        <rect x="213" y="222" width="145" height="418" />
+      </clipPath>
+    </defs>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Him. Very tall, very thin, all in black; arms hanging nearly to his knees;
 // and the hat, round, with a brim far wider than his shoulders. Feet at the
 // origin; his height is 419.

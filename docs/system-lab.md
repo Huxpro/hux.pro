@@ -18,6 +18,8 @@ systems/lab/
 app/lab/                  # the routes: the index, and one folder per lab
 app/lab/vitre/            # the first library: guide, api/, site/
 app/lab/wardrobe/         # the first experience; its document is public/scenes/wardrobe
+app/lab/screens/          # One Dream, Any Screen: reintent as the scenes' camera (docs/lab-reintent.md)
+app/lab/intents/          # The Intent Loop: drags, resizes and sentences as events on an intent tree
 components/home/lab-widget.tsx  # the home widget (off by default)
 ```
 
