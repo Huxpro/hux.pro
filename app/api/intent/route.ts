@@ -39,7 +39,7 @@ Answer with ONE action as a single JSON object, nothing else:
 - {"action":"decide","key":"<type>|<of>","kind":"<kind>","why":"..."}  the event means an existing intent's existing kind.
 - {"action":"add","node":{"type":"<short-name>","of":"<entity id or id#member>","words":{"en":"...","zh":"..."},"kinds":{"asWritten":{"words":{"en":"As written","zh":"原样"},"patch":{"<entity>":{"<knob>":<the value the scene wrote>}}},"<other>":{"words":{...},"patch":{"<entity>":{"<knob>":<value in range>}}}},"resolve":"switch"},"kind":"<the kind the person means>","why":"..."}  no intent covers it, but the existing knobs can express it: a new intent whose first kind is the scene as written.
 - {"action":"believe","beliefs":[{"key":"<type>|<of>","p":{"<kind>":0.7,"<kind>":0.3}}],"why":"..."}  a mood or a general wish: shift beliefs over several intents; decisions stay.
-- {"action":"none","why":"..."}  nothing in the tree or the knobs can express it (say what would be needed).
+- {"action":"none","why":"..."}  ONLY when no knob listed on any entity can express it (say what would be needed). If a knob can but no intent covers it, that is "add", not "none": write the new intent.
 
 Rules: "key" is copied exactly from the list of intents you are given (type|of, e.g. keep|moments#2); "kind" is one of that intent's kinds, or for "add" one of the new node's own kind names, never its type; only knobs listed on an entity, reading each knob's note for which way it goes; numbers within their range; every kind of a node sets the same knobs; names are short camelCase; keep "why" to one sentence.`;
 
