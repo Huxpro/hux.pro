@@ -74,7 +74,9 @@ A faster model was not sure what the event means, or found no kind that fits. De
 - {"action":"none","why":"<what no knob can do, and what would be needed>"}  nothing on the stage can express it (a drag that reorders things, when no knob orders them, is this).`,
   author: `${WORLD}
 
-Author the whole intent tree for this scene: the choices a person is most likely to mean that its knobs can express (at most 10 intents), about its things and, where a choice is per member, each member. Give each kind at most 4 phrases and at most 2 gestures. If a choice should depend on the screen's shape (tall vs wide), give it "index":{"by":"tallness","base":"<kind on tall screens>"}. Answer ONE JSON object, nothing else:
+Author the whole intent tree for this scene: the choices a person is most likely to mean that its knobs can express (at most 10 intents), about its things and, where a choice is per member, each member.
+REQUIRED for every intent: "say" with 2-4 short phrases for EVERY kind (English and Chinese); "gestures" wherever a drag on the stage could mean a kind (from the thing, which way, or out of / into the window). Without them a person's words and drags have no fast path to the intent.
+REQUIRED: "beliefs", one per intent: your distribution over its kinds for this scene as written. "resolve":"ask" only for an intent that is the scene's meaning and you are unsure of; everything else "switch". If a choice should depend on the screen's shape (tall vs wide), give it "index":{"by":"tallness","base":"<kind on tall screens>"}. Answer ONE JSON object, nothing else:
 {"tree":[...nodes...],"beliefs":[{"key":"<type>|<of>","p":{"<kind>":<0..1>}}],"why":"<one sentence>"}`,
 };
 
