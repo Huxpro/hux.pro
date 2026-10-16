@@ -1,5 +1,5 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { gateway, generateText, type LanguageModel } from "ai";
+import { gateway, generateText, Output, type LanguageModel } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 
 // =============================================================================
@@ -72,7 +72,7 @@ A faster model found no kind that fits the event. Write ONE new intent node that
 - {"action":"none","why":"<what no knob can do, and what would be needed>"}`,
   author: `${WORLD}
 
-Author the whole intent tree for this scene: every choice a person could mean that its knobs can express, about its things and (where a choice is per member) each member. Include each intent's vocabulary. If a choice should depend on the screen's shape (tall vs wide), give it "index":{"by":"tallness","base":"<kind on tall screens>"}. Answer ONE JSON object, nothing else:
+Author the whole intent tree for this scene: the choices a person is most likely to mean that its knobs can express (at most 10 intents), about its things and, where a choice is per member, each member. Give each kind at most 4 phrases and at most 2 gestures. If a choice should depend on the screen's shape (tall vs wide), give it "index":{"by":"tallness","base":"<kind on tall screens>"}. Answer ONE JSON object, nothing else:
 {"tree":[...nodes...],"beliefs":[{"key":"<type>|<of>","p":{"<kind>":<0..1>}}],"why":"<one sentence>"}`,
 };
 
@@ -92,14 +92,16 @@ export async function POST(request: NextRequest) {
   const resolved = resolveModel(mode);
   if (!resolved) return NextResponse.json({ error: "no model is configured" }, { status: 501 });
   try {
-    const { text: out } = await generateText({
+    const result = await generateText({
       model: resolved.model,
       system: SYSTEM[mode],
       // The intents' keys and kinds spelled out, so a decision names them exactly.
       prompt: `Intents (key: kinds): ${(body.tree ?? []).map((n) => `${n.type}|${n.of}: ${Object.keys(n.kinds ?? {}).join(", ")}`).join("; ") || "none yet"}\n\n${JSON.stringify(body)}`,
       maxOutputTokens: mode === "author" ? 8000 : 1500,
+      // JSON mode where the provider has one: a long tree written as free text breaks somewhere.
+      output: Output.json(),
     });
-    const answer = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
+    const answer = result.output ?? JSON.parse(result.text.slice(result.text.indexOf("{"), result.text.lastIndexOf("}") + 1));
     return NextResponse.json({ answer, model: resolved.id });
   } catch (error) {
     return NextResponse.json({ error: `the model's answer could not be read: ${(error as Error).message.slice(0, 200)}`, model: resolved.id }, { status: 502 });
