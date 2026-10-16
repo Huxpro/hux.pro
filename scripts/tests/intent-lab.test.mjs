@@ -274,3 +274,11 @@ test("a key a model wrote is read the only way it can have meant, and no other",
   assert.equal(read("dust|dust:settles").action.beliefs[0].key, KEY.dust, "a kind stuck on the end");
   assert.ok(read("keep").problems, "five keep intents: not guessed");
 });
+
+test("an authored tree loses an intent that fails, not the tree", () => {
+  const scene = { ...PRESET[0], type: "mood", of: "what I forget" };
+  const r = acceptAuthoring({ tree: [...PRESET, scene] }, ENTITIES, "strong");
+  assert.equal(r.action.tree.length, PRESET.length);
+  assert.deepEqual(r.dropped, [`left out #${PRESET.length}: "what I forget" is not on the stage`]);
+  assert.deepEqual(acceptAuthoring({ tree: [scene] }, ENTITIES, "strong").problems, [`#0: "what I forget" is not on the stage`], "with none let in, it is refused");
+});

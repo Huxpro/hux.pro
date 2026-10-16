@@ -251,7 +251,11 @@ export function admit(
   };
 }
 
-/** A whole tree a model authored: every node admitted, no two about the same thing, at least one. */
+/**
+ * A whole tree a model authored. Each intent is admitted or not on its own:
+ * one that fails is left out (and said, in `dropped`), not the tree, as long
+ * as any is let in. No two about the same thing.
+ */
 export function admitTree(raw: unknown, entities: Entity[], by?: string): { tree: Tree; dropped?: string[] } | { problems: string[] } {
   if (!Array.isArray(raw) || !raw.length) return { problems: ["no intents"] };
   const problems: string[] = [];
@@ -268,7 +272,9 @@ export function admitTree(raw: unknown, entities: Entity[], by?: string): { tree
       dropped.push(...(out.dropped ?? []).map((d) => `#${i}: ${d}`));
     }
   });
-  return problems.length ? { problems } : { tree, ...(dropped.length ? { dropped } : {}) };
+  if (!tree.length) return { problems };
+  dropped.unshift(...problems.map((p) => `left out ${p}`));
+  return { tree, ...(dropped.length ? { dropped } : {}) };
 }
 
 /** A node with one more phrase or gesture for a kind: what a short path learned from a model's answer. */
