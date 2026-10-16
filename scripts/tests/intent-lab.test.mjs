@@ -8,9 +8,11 @@ import {
   acceptAddition,
   acceptAuthoring,
   acceptSelection,
+  lessonOf,
   recognize,
   standInAdd,
   standInSelect,
+  weakReads,
 } from "../../app/lab/intent/events.ts";
 import { BELIEFS, KEY, PRESET, SCREENS } from "../../app/lab/intent/forget.ts";
 import { createLab } from "../../app/lab/intent/model.ts";
@@ -86,15 +88,34 @@ test("① a phrase the vocabulary names is decided; an ambiguous or unknown one 
   assert.equal(recognize(say("像雪一样慢慢落下"), tree), null, "not word for word: for the weak model");
 });
 
-test("② a weak model's choice is applied, and learned: the same words next time are ①", () => {
+test("② a weak model's reading is a belief: the model's, under any person's decision, and not learned", () => {
   const lab = createLab();
   const e = say("像雪一样慢慢落下", "dust");
   const o = observe(lab, e);
   const out = acceptSelection(standInSelect(o), o);
-  assert.deepEqual([out.action.type, out.action.key, out.action.kind], ["decide", KEY.dust, "settles"]);
+  assert.equal(out.action.type, "believe");
   lab.dispatch(out.action);
-  lab.dispatch({ type: "learn", key: KEY.dust, kind: "settles", phrase: e.text });
-  assert.deepEqual(Object.values(recognize(say("像雪一样慢慢落下"), lab.tree())).slice(0, 2), [KEY.dust, "settles"]);
+  const v = lab.view(KEY.dust, by.phone)();
+  assert.deepEqual([v.kind, v.who], ["settles", "model"]);
+  lab.dispatch({ type: "decide", key: KEY.dust, kind: "rises", from: "switched", screen: by.phone });
+  assert.equal(lab.view(KEY.dust, by.phone)().kind, "rises", "a person's decision is over it");
+  assert.equal(recognize(say("像雪一样慢慢落下"), lab.tree()), null, "nothing learned from a weak reading");
+  assert.equal(weakReads(drag({ x: 0, y: 0, id: "window" }, { x: 99, y: 0, id: null }, { from: [], to: [] })), false, "a drag never takes the weak path");
+});
+
+test("③ what the strong model decides is the person's, and is learned: the same words or drag next time are ①", () => {
+  const lab = createLab();
+  const e = say("let them linger a little longer", "moments");
+  const o = observe(lab, e);
+  const out = acceptAddition({ action: "decide", key: KEY.holding, kind: "keeps", why: "lingering is waiting" }, o, "strong");
+  lab.dispatch(out.action);
+  assert.equal(lab.view(KEY.holding, by.phone)().who, "person");
+  lab.dispatch(lessonOf(e, out.action, lab.tree()));
+  assert.deepEqual(Object.values(recognize(say("let them linger a little longer", "edge"), lab.tree())).slice(0, 2), [KEY.holding, "keeps"]);
+  // A drag the strong model read: its shape is learned as a gesture.
+  const d = drag({ x: 100, y: 300, id: "dust" }, { x: 300, y: 300, id: null }, { from: ["dust"], to: [] });
+  const lesson = lessonOf(d, { type: "decide", key: KEY.dust, kind: "settles", from: "dragged", screen: by.phone }, lab.tree());
+  assert.deepEqual(lesson.gesture, { from: "self", dir: "right" }, "the dust is what the intent is about: \"self\", and which way");
 });
 
 test("② a weak model may only choose: a new intent it is not allowed to write is escalated, not let in", () => {
@@ -234,7 +255,8 @@ test("a key a model wrote is read the only way it can have meant, and no other",
   const lab = createLab();
   const o = observe(lab, say("x"));
   const read = (key) => acceptSelection({ action: "decide", key, kind: "settles", sure: 0.9, why: "" }, o);
-  assert.equal(read("dust").action.key, KEY.dust, "a type with one intent");
-  assert.equal(read("dust|of:dust").action.key, KEY.dust);
+  assert.equal(read("dust").action.beliefs[0].key, KEY.dust, "a type with one intent");
+  assert.equal(read("dust|of:dust").action.beliefs[0].key, KEY.dust);
+  assert.equal(read("dust|dust:settles").action.beliefs[0].key, KEY.dust, "a kind stuck on the end");
   assert.ok(read("keep").problems, "five keep intents: not guessed");
 });

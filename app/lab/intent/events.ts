@@ -6,13 +6,13 @@ import { admit, admitTree, keyOf, type Dir, type Entity, type Gesture, type Inte
 // Events, and the paths they take. A strong model drives everything; every
 // other path is a short one through what it wrote.
 //
-//   event ──▶ ① vocabulary ── a phrase or gesture the tree names ──────────────▶ decide
+//   event ──▶ ① vocabulary ── a phrase or gesture the tree names ──────────────▶ decide (the person's)
 //                 │ (no model: a person's resolve, matched as data)
 //                 ▼ not named
-//             ② weak model: select ── sure (≥ 0.7) of a kind / a belief ──────────▶ action ──▶ learn ──▶ ①
-//                 │ (cheap, fast, may only choose within the tree, and only when sure)
-//                 ▼ not sure, or "no kind fits, but a knob could"
-//             ③ strong model: decide, believe, or add a new intent with its vocabulary ──▶ action
+//             ② weak model, words only: select ── sure (≥ 0.7) ──────────────────▶ believe (the model's)
+//                 │ (cheap, fast; its reading is a belief, under any person's decision, never learned)
+//                 ▼ not sure, "no kind fits", or a drag (a weak text model does not read gestures)
+//             ③ strong model: decide (on the person's behalf) ──▶ learn ──▶ ①, believe, or add an intent
 //
 //   and, apart from events: the strong model authors the whole tree from the
 //   scene (re-author), and the tree replaces the one in force.
@@ -168,8 +168,8 @@ const said = (s: string | undefined): Words => ({ en: s ?? "", zh: s ?? "" });
 export function keyIn(tree: Tree, key: string): string | null {
   const keys = tree.map(keyOf);
   if (keys.includes(key)) return key;
-  const fixed = key.replace("|of:", "|");
-  if (keys.includes(fixed)) return fixed;
+  // "type|of:x", or a kind stuck on the end ("dust|dust:settles").
+  for (const fixed of [key.replace("|of:", "|"), key.split(":")[0]]) if (keys.includes(fixed)) return fixed;
   const ofType = tree.filter((n) => n.type === key);
   return ofType.length === 1 ? keyOf(ofType[0]) : null;
 }
@@ -191,18 +191,39 @@ function acceptChoice(answer: Extract<Selection, { action: "decide" | "believe" 
 }
 
 /**
- * ②'s answer, checked. A weak model's choice stands only when it is sure of
- * it; otherwise, or when it says a knob could do what no kind does, the
- * event goes to the strong model (`escalate`).
+ * ②'s answer, checked. A weak model's reading is a belief: the model's, under
+ * any person's decision, never learned. It stands only when the model is
+ * sure of it; otherwise, or when it says a knob could do what no kind does,
+ * the event goes to the strong model (`escalate`). A drag never comes here.
  */
 export function acceptSelection(answer: Selection, o: Observation): Outcome {
   if (answer.action === "decide" || answer.action === "believe") {
     const sure = typeof answer.sure === "number" ? answer.sure : 0;
     if (sure < SURE) return { action: null, why: said(`not sure (${sure}): ${answer.why}`), escalate: true };
-    return acceptChoice(answer, o);
+    const out = acceptChoice(answer, o);
+    if (out.action?.type !== "decide") return out;
+    // "It means settles", read by a weak model: the model believes settles, as surely as it says.
+    const { key, kind } = out.action;
+    const node = o.tree.find((n) => keyOf(n) === key)!;
+    const kinds = Object.keys(node.kinds);
+    const p = Object.fromEntries(kinds.map((k) => [k, k === kind ? sure : (1 - sure) / (kinds.length - 1)]));
+    return { action: { type: "believe", beliefs: [{ key: keyOf(node), p }] }, why: out.why };
   }
   return { action: null, why: said(answer.why ?? "nothing to do"), escalate: answer.action === "none" && !!answer.escalate };
 }
+
+/** What a decision the strong model made teaches the vocabulary: these words, or this drag, mean that kind. */
+export function lessonOf(e: LabEvent, a: Action, tree: Tree): Extract<Action, { type: "learn" }> | null {
+  if (a.type !== "decide") return null;
+  const node = tree.find((n) => keyOf(n) === a.key);
+  if (!node) return null;
+  const gesture = e.kind === "drag" ? (gestureOf(e, node.of) ?? undefined) : undefined;
+  const phrase = e.kind === "prompt" ? e.text : undefined;
+  return phrase || gesture ? { type: "learn", key: a.key, kind: a.kind, phrase, gesture } : null;
+}
+
+/** Whether an event may take the weak path: words, yes; a drag, no (a weak text model does not read gestures). */
+export const weakReads = (e: LabEvent) => e.kind === "prompt";
 
 /** ③'s answer, checked: a choice like ②'s (the strong model needs no threshold), or a node `admit` lets in, which learns this event as it is added. */
 export function acceptAddition(answer: Addition, o: Observation, by: string): Outcome {

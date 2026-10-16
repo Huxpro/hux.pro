@@ -15,10 +15,11 @@ import {
   acceptSelection,
   ask,
   describeGesture,
-  gestureOf,
+  lessonOf,
   recognize,
   standInAdd,
   standInSelect,
+  weakReads,
   type Addition,
   type Authoring,
   type Hit,
@@ -586,23 +587,24 @@ export function IntentLabView() {
         event: e,
         prompts: prompts.current.slice(-5),
       };
-      put({ id, what, route: "select", by: "…", status: "pending" });
-      const sel = await ask<Selection>("select", o, () => standInSelect(o));
+      // A drag the vocabulary does not know goes straight to the strong model: a weak text model does not read gestures.
+      const sel = weakReads(e)
+        ? (put({ id, what, route: "select", by: "…", status: "pending" }), await ask<Selection>("select", o, () => standInSelect(o)))
+        : { answer: { action: "none", escalate: true, why: S.gestureToStrong } as Selection, by: "—" };
       if (!sel.answer) return put({ id, what, route: "select", by: sel.by, status: "failed", problems: [sel.error ?? "no answer"], ms: ms() });
       // What a model decided is learned: the next time this is said or done, it is ①.
       const teach = (a: Action): string | undefined => {
-        if (a.type !== "decide") return undefined;
-        const node = o.tree.find((n) => `${n.type}|${n.of}` === a.key);
-        const gesture = e.kind === "drag" && node ? (gestureOf(e, node.of) ?? undefined) : undefined;
-        const phrase = e.kind === "prompt" ? e.text : undefined;
-        if (!phrase && !gesture) return undefined;
-        lab.dispatch({ type: "learn", key: a.key, kind: a.kind, phrase, gesture });
-        return `${node?.words[locale] ?? a.key} → ${node?.kinds[a.kind].words[locale] ?? a.kind}: ${phrase ? `“${phrase.trim().toLowerCase()}”` : describeGesture(gesture!)}`;
+        const lesson = lessonOf(e, a, o.tree);
+        if (!lesson) return undefined;
+        lab.dispatch(lesson);
+        const node = o.tree.find((n) => `${n.type}|${n.of}` === lesson.key);
+        const how = lesson.phrase ? `“${lesson.phrase.trim().toLowerCase()}”` : describeGesture(lesson.gesture!);
+        return `${node?.words[locale] ?? lesson.key} → ${node?.kinds[lesson.kind].words[locale] ?? lesson.kind}: ${how}`;
       };
       const chosen = acceptSelection(sel.answer, o);
       if (chosen.action) {
         lab.dispatch(chosen.action);
-        return put({ id, what, route: "select", by: sel.by, status: "done", why: chosen.why, learned: teach(chosen.action), ms: ms() });
+        return put({ id, what, route: "select", by: sel.by, status: "done", why: chosen.why, ms: ms() });
       }
       if (!chosen.escalate) {
         return put({ id, what, route: "select", by: sel.by, status: chosen.problems ? "rejected" : "none", why: chosen.why, problems: chosen.problems, ms: ms() });

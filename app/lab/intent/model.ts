@@ -5,6 +5,7 @@ import { batch, cells, computed, effect, intents, same, signal, untracked } from
 import type { Params } from "stage";
 import { BELIEFS, PRESET, settle, tallness, type Screen, type Value } from "./forget";
 import { compile, keyOf, learn, typesOf, type Gesture, type IntentNode, type Tree } from "./tree";
+export type { Gesture };
 
 // =============================================================================
 // The Intent Lab's state, one way round:
