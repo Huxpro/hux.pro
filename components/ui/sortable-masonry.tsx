@@ -471,7 +471,7 @@ export function SortableMasonry({
               <button
                 type="button"
                 onClick={handleReset}
-                className="pressable text-xs font-mono text-tertiary-foreground transition-colors hover:text-muted-foreground active:text-foreground"
+                className="pressable hit-area -mx-3 rounded-full px-3 py-2 text-xs font-mono text-tertiary-foreground transition-colors hover:text-muted-foreground active:bg-muted/60 active:text-foreground"
               >
                 {t(locale, "widgetEditReset")}
               </button>
@@ -480,7 +480,7 @@ export function SortableMasonry({
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="pressable rounded-full border border-border/60 bg-glass-strong-hover px-5 py-2.5 md:px-4 md:py-1.5 text-xs font-mono text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground"
+              className="pressable hit-area rounded-full border border-border/60 bg-glass-strong-hover px-5 py-2.5 md:px-4 md:py-1.5 text-xs font-mono text-muted-foreground shadow-raised backdrop-blur-xl transition-colors hover:text-foreground active:bg-card active:text-foreground"
             >
               {t(locale, "widgetEditDone")}
             </button>

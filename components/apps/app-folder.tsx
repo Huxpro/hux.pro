@@ -204,12 +204,24 @@ function PageDots({
           aria-label={`Page ${i + 1}`}
           onClick={() => onSelect(i)}
           className={cn(
-            "pressable h-1.5 w-1.5 rounded-full transition-colors",
-            i === active
-              ? "bg-foreground/70"
-              : "bg-foreground/25 hover:bg-foreground/40 active:bg-foreground/55",
+            // A 6px dot was a 6px target. The well is 24px, as SnapPager's
+            // (components/ui/snap-pager.tsx), with `-m-[9px]` so the row
+            // still reads as 6px dots 6px apart; along a horizontal row the
+            // target is 48px tall (`hit-area-y`).
+            "group/dot pressable relative -m-[9px] inline-flex size-6 items-center justify-center rounded-full",
+            axis === "x" && "hit-area-y",
           )}
-        />
+        >
+          <span
+            aria-hidden
+            className={cn(
+              "h-1.5 w-1.5 rounded-full transition-colors",
+              i === active
+                ? "bg-foreground/70"
+                : "bg-foreground/25 group-hover/dot:bg-foreground/40 group-active/dot:bg-foreground/55",
+            )}
+          />
+        </button>
       ))}
     </div>
   );

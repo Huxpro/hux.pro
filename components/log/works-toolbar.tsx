@@ -250,7 +250,7 @@ export function WorksToolbar({
                 aria-label={`${chapter.label}: ${t(locale, "logChapterStart")}`}
                 className={cn(
                   CHAPTER_PILL,
-                  "pressable border-border transition-colors hover:border-foreground/30",
+                  "pressable hit-area-y border-border transition-colors hover:border-foreground/30 active:border-foreground/40 active:bg-muted/60",
                 )}
               >
                 {chapter.label}
@@ -289,7 +289,9 @@ export function WorksToolbar({
             role="group"
             aria-label={t(locale, "logFilterLabel")}
             className={cn(
-              "flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar",
+              // `-my-2.5 py-2.5`: an overflow box clips both axes, so the
+              // chips' 48px targets need the room inside it.
+              "flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar -my-2.5 py-2.5",
               // Squeezed (a long chapter in the ref slot, a narrow phone),
               // the chips scroll, and the edge they are cut at fades so a
               // chip cut in half reads as more this way, not as broken.
@@ -313,16 +315,18 @@ export function WorksToolbar({
                   aria-label={`${label} (${count})`}
                   title={label}
                   className={cn(
-                    "inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-1",
+                    // 28px drawn and 48px tall to a finger (`hit-area-y`: the chips sit
+                    // 2px apart, so the target grows up and down only).
+                    "pressable hit-area-y inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-1.5",
                     "transition-colors duration-200",
                     selected
                       ? "bg-muted text-foreground"
                       : filtering
                         ? // Filtering: unselected types recede hard, so the
                           // selection reads at a glance from across the row.
-                          "text-quaternary-foreground hover:text-muted-foreground"
+                          "text-quaternary-foreground hover:text-muted-foreground active:bg-muted/60 active:text-foreground"
                         : // Rest: every type legible, nothing filled.
-                          "text-tertiary-foreground hover:text-foreground",
+                          "text-tertiary-foreground hover:text-foreground active:bg-muted/60 active:text-foreground",
                   )}
                 >
                   {/* The same mark the rows wear, so a chip and the rows it
@@ -345,7 +349,7 @@ export function WorksToolbar({
                 onClick={onClearTypes}
                 aria-label={t(locale, "logFilterClear")}
                 title={t(locale, "logFilterClear")}
-                className="ml-0.5 inline-flex shrink-0 items-center justify-center rounded p-1 text-tertiary-foreground transition-colors duration-200 hover:text-foreground"
+                className="pressable hit-area-y ml-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md text-tertiary-foreground transition-colors duration-200 hover:text-foreground active:bg-muted/60 active:text-foreground"
               >
                 <X className="h-3 w-3" />
               </button>

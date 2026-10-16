@@ -37,7 +37,13 @@ export function LabNav({
           "focus-visible:ring-1 focus-visible:ring-foreground/20",
           page
             ? "font-serif text-2xl tracking-tight text-foreground sm:text-3xl"
-            : "text-sm font-medium text-foreground",
+            : [
+                "text-sm font-medium text-foreground",
+                // On the bar: a press wash and a 48px target, like the
+                // `λhux` beside it.
+                "pressable hit-area -mx-1.5 h-7 rounded-full px-1.5 transition-colors",
+                "hover:bg-muted/60 active:bg-muted data-[popup-open]:bg-muted/60",
+              ],
           className,
         )}
         aria-label={`${F.labs} · ${title}`}

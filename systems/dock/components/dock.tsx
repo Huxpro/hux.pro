@@ -305,6 +305,8 @@ function DockSurface({ children }: { children: React.ReactNode }) {
               GLASS_CAPSULE,
               "pointer-events-auto absolute top-0 flex h-9 w-9 items-center justify-center",
               "font-mono text-sm font-semibold text-foreground hover:bg-glass-hover",
+              // 36px drawn, 48px to a finger; the press lands on touch-down.
+              "pressable hit-area active:border-border active:bg-glass-hover active:scale-95",
             )}
             style={{ left: geometry.window.left, transformOrigin: "top center" }}
           >

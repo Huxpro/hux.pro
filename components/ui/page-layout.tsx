@@ -3,6 +3,7 @@
 import { HeaderZone } from "@/components/ui/header-zone";
 import { TITLE_POETIC, TITLE_READER } from "@/components/ui/header-zone";
 import { SystemNav } from "@/components/ui/system-nav";
+import { FloatingBack } from "@/components/ui/floating-back";
 import { PINNED_TOP, PinnedSlot } from "@/components/ui/pinned-slot";
 import { TextScramble } from "@/components/motion-primitives/text-scramble";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,7 @@ import {
   type TranslationKey,
 } from "@/lib/i18n";
 import { useLocale } from "@/services";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   heroContentClassName,
   heroZoneClassName,
@@ -86,6 +87,7 @@ export function PageLayout({
 }: PageLayoutProps) {
   const { locale } = useLocale();
   const [isHovered, setIsHovered] = useState(false);
+  const backRef = useRef<HTMLAnchorElement>(null);
   const heroExit = useHeroExit();
   const heroFadeStyle = useHeroFade(heroExit === "fade");
 
@@ -149,7 +151,8 @@ export function PageLayout({
               moves when the reader changes the type size -- not the body
               alone. The Tailwind sizes below stay as the fallback. */}
           <div className="reader-masthead mb-12 sm:mb-14">
-            <SystemNav href={backHref} path={backLabel} className="mb-8 sm:mb-12" />
+            <SystemNav ref={backRef} href={backHref} path={backLabel} className="mb-8 sm:mb-12" />
+            <FloatingBack anchor={backRef} href={backHref} path={backLabel} />
             {titleJsx}
             {headerActions && <div className="mt-4">{headerActions}</div>}
           </div>

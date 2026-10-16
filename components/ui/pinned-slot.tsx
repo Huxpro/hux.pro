@@ -239,6 +239,7 @@ export function PinnedSlot({
             className={cn(
               GLASS_CAPSULE,
               "absolute z-10 flex h-9 w-9 items-center justify-center text-foreground hover:bg-glass-hover",
+              "pressable hit-area active:border-border active:bg-glass-hover active:scale-95",
             )}
             style={{
               left: -outset,

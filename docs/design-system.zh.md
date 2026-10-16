@@ -150,6 +150,8 @@ origin: "AI-translated from the original"
 
 触摸遵循 iOS 的约定，而不是鼠标的。Tailwind 的 `hover:` 受 `(hover: hover)` 限制，所以手指永远看不到悬停底色；如果没有 `active:` 状态，点一下列表行就完全没有反馈。`globals.css` 里的 class 承载 chrome 的各项策略；封面的按压效果和作品图的 token 放在一起（`lib/glass.ts` 里的 `COVER_WASH`）。运行时不根据指针类型做任何推断。
 
+**每个触控目标都是 48px。** 手指能按到的东西，至少要有 48 x 48px 的命中区域：这就是 Ask 球和命令栏本来的尺寸，比 Apple 的 44pt 下限大一档，让拇指在滚动中的页面上也能按准。画出来的控件不必这么大：`hit-area`（`app/globals.css`，"Touch target"）以控件中心向外长出一个看不见的 `::before`，补到 48px，已经更大的盒子不动；`hit-area-y` 只在垂直方向补，用于并排挤在一组里的控件。看得见的按下底色至少 28px 高，让反馈能从盖在上面的指尖四周露出来。
+
 <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
   <img src="/img/docs/design-system/row-rest.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="手机上静止状态的 Writing 索引页：serif 标题、EN / All 选择块，以及一列带 mono 日期的文章标题，没有行被高亮。" />
   <img src="/img/docs/design-system/row-press.png" style={{ width: "calc(50% - 0.5rem)", margin: 0 }} alt="同一个列表，第三行被按下：'React Is Not Vue, Obviously' 和它的日期后面出现一块柔和的圆角底色。" />
@@ -199,7 +201,7 @@ active:bg-muted/60`：右图的底色就是手指在按下那一帧得到的反�
 
 `components/ui/controls.tsx` 存放站点的设置控件；不同用途之间的差别在于所处表面的声音，所以这就是唯一的参数。
 
-- **`HeaderAction`**：表示"可以对这个页面做的事"的选择块（`/writing` 的语言筛选、文章页头的语言和 `Aa` 操作）。`pressable` mono `text-xs`，`rounded px-2 py-1`。选中时：`bg-muted text-foreground`。`segment` 静止时是 `text-tertiary-foreground hover:text-foreground`；`action` 沿用所在行的墨色，并加上 `hover:bg-muted/60`。
+- **`HeaderAction`**：表示"可以对这个页面做的事"的选择块（`/writing` 的语言筛选、文章页头的语言和 `Aa` 操作）。`pressable hit-area` mono `text-xs`，`h-7 rounded-md px-2`（画出来 28px，触控目标 48px），两种变体都有 `active:` 底色。选中时：`bg-muted text-foreground`。`segment` 静止时是 `text-tertiary-foreground hover:text-foreground`；`action` 沿用所在行的墨色，并加上 `hover:bg-muted/60`。
 - **`Segmented`** / **`Switch`**，有三种色调：`system`（devtool：mono 大写 10px、细线框、开启时为绿色）、`reader`（sans、内凹的 `bg-muted` 轨道配上凸起的 `bg-background` 滑块，灰阶）和 `bare`（没有轨道，选中的字形放在 `bg-muted` 上；只用于选择器）。
 
 ### 键盘提示
@@ -216,7 +218,7 @@ text-muted-foreground`，和命令面板结果里的一样。
 
 每一个返回链接（回主屏幕、回文章列表、回文档）都是 `components/ui/system-nav.tsx`：
 
-- `TYPE.nav`（mono `text-xs tracking-wide`，secondary，悬停时 `text-foreground`），加上 `system-chrome pressable`、不移动文字的 44px 最小触控区域，以及 `active:bg-foreground/5 active:scale-[0.98]`。
+- 一枚玻璃胶囊：`rounded-full border border-border/50 bg-glass backdrop-blur-xl`，`h-9`，先是 `ChevronLeft`，再是 `TYPE.nav` 的路径（mono `text-xs tracking-wide`，secondary，悬停时 `text-foreground`）。`system-chrome pressable hit-area`（画出来 36px，触控目标 48px），`hover:bg-glass-hover active:bg-glass-strong active:scale-[0.97]`。
 - **路径优先**：显示目的地（主屏幕是 `λhux`，还有 `/writing`、`/docs`），悬停时乱码滚动成 `cd ..`（或 `hoverText`）。点击立即导航，从不等动画结束。
 
 ```tsx
@@ -249,6 +251,6 @@ bg-glass backdrop-blur-xl hover:border-border hover:bg-glass-hover
 2. 文字：一个 `TYPE` 角色，或一档（`text-foreground`、`-reading-foreground`、`-muted-foreground`、`-tertiary-foreground`、`-quaternary-foreground`）。不用 `text-*/NN`，不用固定的灰色。
 3. 下划线：`decoration-ink-line`。
 4. 家族：serif 只用于强调和诗意标题；mono 用于机器层，`text-xs`，按原样小写。
-5. 任何带 `hover:` 底色的东西，也要有 `pressable` 和 `active:` 状态。在手机模拟里看一看。
+5. 任何带 `hover:` 底色的东西，也要有 `pressable` 和 `active:` 状态；手指会按的东西都要有 48px 的触控目标（`hit-area`）。在手机模拟里看一看。
 6. 不加新颜色；着色永远不落在文字上。
 7. `pnpm lint`。

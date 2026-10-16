@@ -1,7 +1,7 @@
 "use client";
 
 import { Popover } from "@base-ui/react/popover";
-import { Info, SlidersHorizontal } from "lucide-react";
+import { ChevronLeft, Info, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { BAND_RESERVE, PinnedSlot } from "@/components/ui/pinned-slot";
 import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
@@ -180,10 +180,18 @@ export function LabBar({
       )}
     >
       <div data-bar-keep className="flex min-w-0 items-center gap-1.5">
+        {/* The way back up. Already on the bar's glass, so not a capsule of
+            its own (glass on glass): a chevron and a press wash, and the
+            site's 48px target (hit-area). */}
         <Link
           href="/"
-          className={cn(TYPE.identifier, "shrink-0 rounded-sm transition-colors hover:text-foreground")}
+          className={cn(
+            TYPE.identifier,
+            "pressable hit-area -ml-1.5 inline-flex h-7 shrink-0 items-center gap-0.5 rounded-full pl-1 pr-2",
+            "transition-colors hover:bg-muted/60 hover:text-foreground active:bg-muted active:text-foreground",
+          )}
         >
+          <ChevronLeft aria-hidden className="size-3.5" strokeWidth={1.75} />
           λhux
         </Link>
         <span className="text-quaternary-foreground">/</span>
