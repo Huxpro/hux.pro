@@ -222,15 +222,22 @@ export function admit(
       else dropped.push(`a gesture for "${kind}" names nothing on the stage, or no way to go`);
     }
   }
-  const whole: Record<string, KindNode> = {};
-  for (const [name, k] of kinds) {
+  const made: [string, KindNode][] = kinds.map(([name, k]) => {
     const patch: Params = {};
     for (const [node, props] of touched) {
       patch[node] = {};
       for (const prop of props) patch[node][prop] = k.patch?.[node]?.[prop] ?? byId.get(node)!.params[prop].value;
     }
-    whole[name] = { words: words(k.words)!, patch };
-  }
+    return [name, { words: words(k.words)!, patch }];
+  });
+  // The scene as written comes first, wherever the model put it: it is what code falls back to.
+  const asWritten = (k: KindNode) =>
+    Object.entries(k.patch).every(([node, props]) =>
+      Object.entries(props).every(([prop, v]) => JSON.stringify(v) === JSON.stringify(byId.get(node)!.params[prop].value)),
+    );
+  const first = made.findIndex(([, k]) => asWritten(k));
+  if (first > 0) made.unshift(...made.splice(first, 1));
+  const whole: Record<string, KindNode> = Object.fromEntries(made);
   const prior = n.prior && typeof n.prior === "object" ? Object.fromEntries(Object.entries(n.prior).filter(([k, v]) => k in whole && typeof v === "number" && v >= 0)) : undefined;
   return {
     node: {

@@ -282,3 +282,17 @@ test("an authored tree loses an intent that fails, not the tree", () => {
   assert.deepEqual(r.dropped, [`left out #${PRESET.length}: "what I forget" is not on the stage`]);
   assert.deepEqual(acceptAuthoring({ tree: [scene] }, ENTITIES, "strong").problems, [`#0: "what I forget" is not on the stage`], "with none let in, it is refused");
 });
+
+test("the kind that is the scene as written comes first, wherever a model put it", () => {
+  const r = admit(
+    {
+      type: "pace",
+      of: "moments",
+      words: { en: "Pace" },
+      kinds: { faster: { words: { en: "Faster" }, patch: { moments: { gap: 0.6 } } }, normal: { words: { en: "As written" }, patch: { moments: { gap: 0.95 } } } },
+      resolve: "switch",
+    },
+    ENTITIES,
+  );
+  assert.deepEqual(Object.keys(r.node.kinds), ["normal", "faster"]);
+});
