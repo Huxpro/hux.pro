@@ -1,5 +1,5 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { gateway, generateText, Output, type LanguageModel } from "ai";
+import { gateway, generateText, NoObjectGeneratedError, Output, type LanguageModel } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 
 // =============================================================================
@@ -99,13 +99,29 @@ export async function POST(request: NextRequest) {
       system: SYSTEM[mode],
       // The intents' keys and kinds spelled out, so a decision names them exactly.
       prompt: `Intents (key: kinds): ${(body.tree ?? []).map((n) => `${n.type}|${n.of}: ${Object.keys(n.kinds ?? {}).join(", ")}`).join("; ") || "none yet"}\n\n${JSON.stringify(body)}`,
-      maxOutputTokens: mode === "author" ? 8000 : 1500,
+      // Room for the answer after any thinking (Gemini 2.5 thinks by default, and its thinking counts here).
+      maxOutputTokens: mode === "author" ? 24000 : 8000,
+      providerOptions: { google: { thinkingConfig: { thinkingBudget: mode === "select" ? 0 : 1024 } } },
       // JSON mode where the provider has one: a long tree written as free text breaks somewhere.
       output: Output.json(),
     });
-    const answer = result.output ?? JSON.parse(result.text.slice(result.text.indexOf("{"), result.text.lastIndexOf("}") + 1));
-    return NextResponse.json({ answer, model: resolved.id });
+    return NextResponse.json({ answer: result.output ?? readJson(result.text), model: resolved.id });
   } catch (error) {
-    return NextResponse.json({ error: `the model's answer could not be read: ${(error as Error).message.slice(0, 200)}`, model: resolved.id }, { status: 502 });
+    // JSON mode refused what came back: read it as text (fenced, or with words around it), and say what it was if that fails too.
+    const text = NoObjectGeneratedError.isInstance(error) ? (error.text ?? "") : "";
+    try {
+      if (text) return NextResponse.json({ answer: readJson(text), model: resolved.id });
+    } catch {}
+    return NextResponse.json(
+      { error: `the model's answer could not be read: ${(error as Error).message.slice(0, 160)}${text ? ` (it began: ${text.slice(0, 120)})` : ""}`, model: resolved.id },
+      { status: 502 },
+    );
   }
+}
+
+/** The JSON object in a model's text: inside a ```json fence, or between the first { and the last }. */
+function readJson(text: string): unknown {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const body = fenced ? fenced[1] : text;
+  return JSON.parse(body.slice(body.indexOf("{"), body.lastIndexOf("}") + 1));
 }
