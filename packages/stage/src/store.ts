@@ -101,6 +101,9 @@ export class Stage {
   private layoutNow: Layout = { w: 0, h: 0, dpr: 1, center: { x: 0, y: 0 }, vmin: () => 0 };
   /** Overrides set from the inspector or the console, by node id and prop: tier-one edits, live. */
   private overrides = new Map<string, Record<string, unknown>>();
+  /** Numbers on their way to an override's value: from what, since when. */
+  private tweens = new Map<string, { from: number; at: number }>();
+  private morphing = 0;
   private script: Cue[] = [];
   private cued = 0;
   /** Start over once the last phase has lasted this long, s; never when null. */
@@ -153,6 +156,8 @@ export class Stage {
   /** Start over: the clock, the machine, every node's state. */
   reset() {
     this.machine = createMachine(this.config);
+    // A number on its way keeps going: its clock starts over with the stage's.
+    for (const t of this.tweens.values()) t.at -= this.now;
     this.now = 0;
     this.refs = {};
     this.cued = 0;
@@ -187,7 +192,18 @@ export class Stage {
 
   /** A live override of one prop: what a slider in the inspector, or "slower", does without a model. */
   set(nodeId: string, prop: string, value: unknown) {
+    // Magic move: a number that changes moves to its new value over `morphing` seconds, from where it is now.
+    const rec = this.nodes.get(nodeId);
+    const now = rec ? this.resolve(rec)[prop] : undefined;
+    if (this.morphing > 0 && typeof now === "number" && typeof value === "number" && now !== value) {
+      this.tweens.set(`${nodeId}\u0000${prop}`, { from: now, at: this.now });
+    }
     this.overrides.set(nodeId, { ...this.overrides.get(nodeId), [prop]: value });
+  }
+
+  /** How long a number set over the scene takes to move to its new value, s (0: it jumps). */
+  morph(seconds: number) {
+    this.morphing = Math.max(0, seconds);
   }
 
   /** A node's props as the scene wrote them (no overrides), and its kind: what a model may be told it can change. */
@@ -282,7 +298,20 @@ export class Stage {
     const raw = rec.props();
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(raw)) out[k] = isRef(v) ? this.refs[v.$ref] : v;
-    return Object.assign(out, this.overrides.get(rec.id)) as Record<string, unknown> & NodeProps;
+    const over = this.overrides.get(rec.id);
+    Object.assign(out, over);
+    for (const prop of Object.keys(over ?? {})) {
+      const tween = this.tweens.get(`${rec.id}\u0000${prop}`);
+      if (!tween) continue;
+      const v = Math.max(0, (this.now - tween.at) / this.morphing);
+      if (v >= 1 || this.morphing <= 0) this.tweens.delete(`${rec.id}\u0000${prop}`);
+      else {
+        // Ease in and out: it leaves gently and arrives gently.
+        const e = v < 0.5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2;
+        out[prop] = tween.from + ((out[prop] as number) - tween.from) * e;
+      }
+    }
+    return out as Record<string, unknown> & NodeProps;
   }
 
   private ctx(rec: NodeRec): Ctx {

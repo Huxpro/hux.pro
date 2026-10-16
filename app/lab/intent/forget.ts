@@ -20,24 +20,8 @@ import type { IntentNode, Tree, Words } from "./tree";
 //              aside whole beside the window. Dragging one out keeps it.
 // =============================================================================
 
-/** A screen the dream is seen on: its size in CSS px. */
-export interface Screen {
-  id: string;
-  w: number;
-  h: number;
-}
-
-export const SCREENS: Screen[] = [
-  { id: "phone", w: 390, h: 844 },
-  { id: "tablet", w: 820, h: 1180 },
-  { id: "square", w: 800, h: 800 },
-  { id: "laptop", w: 1440, h: 900 },
-  { id: "landscape", w: 844, h: 390 },
-  { id: "wide", w: 2560, h: 1080 },
-];
-
-/** How tall a screen is for its width: the index `axis` crosses over along. */
-export const tallness = (s: Screen) => s.h / s.w;
+export { SCREENS, tallness, type Screen } from "./screens";
+import type { Screen } from "./screens";
 
 const MOMENTS_ZH = ["你的猫", "一个深夜", "我们俩", "一个家", "一个小太阳"];
 

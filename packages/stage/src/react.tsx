@@ -46,6 +46,8 @@ interface Env {
   loop?: number | null;
   /** Hands the page its host (for a boxed stage the page reads: what is where, what the scene wrote). */
   onHost?: (host: Host) => void;
+  /** A number in `params` that changes moves to its new value over this many seconds (magic move), rather than jumping. */
+  morph?: number;
 }
 
 const EnvContext = createContext<Env>({ locale: "en", wake: () => {}, save: postScene });
@@ -73,6 +75,7 @@ export function StageProvider({
   script,
   loop,
   onHost,
+  morph,
   children,
 }: {
   locale: keyof Words;
@@ -83,10 +86,11 @@ export function StageProvider({
   script?: Cue[];
   loop?: number | null;
   onHost?: (host: Host) => void;
+  morph?: number;
   children: ReactNode;
 }) {
   return (
-    <EnvContext.Provider value={{ locale, wake: onWake, save: onSave, box, params, script, loop, onHost }}>{children}</EnvContext.Provider>
+    <EnvContext.Provider value={{ locale, wake: onWake, save: onSave, box, params, script, loop, onHost, morph }}>{children}</EnvContext.Provider>
   );
 }
 
@@ -125,6 +129,7 @@ export function Stage({ id, intent, names, label, machine, rules = [], backgroun
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => host.morph(env.morph ?? 0), [host, env.morph]);
   const paramsKey = JSON.stringify(env.params ?? {});
   useEffect(() => {
     for (const [node, props] of Object.entries(JSON.parse(paramsKey) as Params)) {

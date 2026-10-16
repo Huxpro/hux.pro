@@ -223,3 +223,31 @@ test("host: a script presses and releases on the stage's clock, at a share of it
   assert.equal(host.phase(), "b", "and performs again");
   assert.equal(seen.length, 2);
 });
+
+test("host: with morph on, a number set over the scene moves to its new value, eased; without, it jumps", () => {
+  const { host, layer, canvas } = stage();
+  host.tick(canvas.g, layout, 0.016, "#000");
+  host.morph(0.6);
+  host.set("dot", "approach", 1);
+  host.set("dot", "approach", 3);
+  const at = () => layer.snapshot().nodes["t/dot"].params.approach.value;
+  assert.equal(at(), 1, "the moment it is set, it is where it was");
+  for (let i = 0; i < 3; i++) host.tick(canvas.g, layout, 0.1, "#000");
+  assert.ok(at() > 1 && at() < 3, `on its way (${at()})`);
+  for (let i = 0; i < 4; i++) host.tick(canvas.g, layout, 0.1, "#000");
+  assert.equal(at(), 3, "and there");
+  host.morph(0);
+  host.set("dot", "approach", 1);
+  assert.equal(at(), 1, "no morph: it jumps");
+  // Started over mid-way (a preview that replays the performance): it keeps going from where it was, never past either end.
+  host.morph(0.6);
+  for (let i = 0; i < 20; i++) host.tick(canvas.g, layout, 0.1, "#000");
+  host.set("dot", "approach", 3);
+  host.tick(canvas.g, layout, 0.2, "#000");
+  const before = at();
+  host.reset();
+  const after = at();
+  assert.ok(after >= before && after < 3, `after a reset it is still on its way (${before} → ${after})`);
+  for (let i = 0; i < 5; i++) host.tick(canvas.g, layout, 0.1, "#000");
+  assert.equal(at(), 3, "and arrives");
+});

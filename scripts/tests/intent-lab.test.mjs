@@ -216,32 +216,68 @@ test("a screen's props are recomputed only when one of its intents changes", () 
   assert.notEqual(phone(), before);
 });
 
-test("the cached tree passes against the real stage: the kinds' declared knobs and the values the scene writes", async () => {
+/** A dream's stage as a model is told about it: its kinds' declared knobs, with the values its scene file writes. */
+async function stageOf(dream, kinds, members = {}) {
   const { readFileSync } = await import("node:fs");
-  const kinds = {
-    window: (await import("../../app/dream/forget/kinds/window.ts")).Window,
-    edge: (await import("../../app/dream/forget/kinds/edge.ts")).Edge,
-    tide: (await import("../../app/dream/forget/kinds/tide.ts")).Tide,
-    moments: (await import("../../app/dream/forget/kinds/moments.ts")).Moments,
-    dust: (await import("../../app/dream/forget/kinds/dust.ts")).Dust,
-  };
-  const scene = readFileSync("app/dream/forget/forget.scene.tsx", "utf8");
+  const scene = readFileSync(`app/dream/${dream}/${dream}.scene.tsx`, "utf8");
   const written = (id) => {
-    const line = scene.split("\n").find((l) => l.includes(`id="${id}"`));
+    const at = scene.indexOf(`id="${id}"`);
+    const element = scene.slice(scene.lastIndexOf("<", at), scene.indexOf("/>", at));
     const props = {};
-    for (const m of line.matchAll(/(\w+)=(?:\{([^}]*\]?)\}|"([^"]*)")/g)) props[m[1]] = m[3] !== undefined ? m[3] : JSON.parse(m[2]);
+    for (const m of element.matchAll(/(\w+)=(?:\{([^{}]*\]?)\}|"([^"]*)")/g)) {
+      try {
+        props[m[1]] = m[3] !== undefined ? m[3] : JSON.parse(m[2]);
+      } catch {
+        // a binding (ref, after): not a knob
+      }
+    }
     return props;
   };
-  const entities = Object.entries(kinds).map(([id, k]) => ({
+  return Object.entries(kinds).map(([id, k]) => ({
     id,
     kind: k.def.kind,
     intent: k.def.intent,
     names: k.def.names ?? [],
     params: Object.fromEntries(Object.entries(k.def.params ?? {}).map(([p, spec]) => [p, { value: written(id)[p], ...spec }])),
-    ...(id === "moments" ? { members: ["your cat", "a late night", "the two of us", "a home", "a little sun"] } : {}),
+    ...(members[id] ? { members: members[id] } : {}),
   }));
-  const r = acceptAuthoring({ tree: PRESET }, entities, "strong");
-  assert.equal(r.problems, undefined, JSON.stringify(r.problems));
+}
+
+test("every dream's cached tree passes against its real stage: the kinds' declared knobs and the values the scene writes", async () => {
+  const forget = await stageOf(
+    "forget",
+    {
+      window: (await import("../../app/dream/forget/kinds/window.ts")).Window,
+      edge: (await import("../../app/dream/forget/kinds/edge.ts")).Edge,
+      tide: (await import("../../app/dream/forget/kinds/tide.ts")).Tide,
+      moments: (await import("../../app/dream/forget/kinds/moments.ts")).Moments,
+      dust: (await import("../../app/dream/forget/kinds/dust.ts")).Dust,
+    },
+    { moments: ["your cat", "a late night", "the two of us", "a home", "a little sun"] },
+  );
+  const everyone = await stageOf("everyone", {
+    globe: (await import("../../app/dream/everyone/kinds/globe.ts")).Globe,
+    voices: (await import("../../app/dream/everyone/kinds/voices.ts")).Voices,
+    light: (await import("../../app/dream/everyone/kinds/light.ts")).Light,
+  });
+  const blue = await stageOf("blue", {
+    contours: (await import("../../app/dream/blue/kinds/contours.ts")).Contours,
+    "sun-ring": (await import("../../app/dream/blue/kinds/sun-ring.ts")).SunRing,
+    sea: (await import("../../app/dream/blue/kinds/sea.ts")).Sea,
+    surf: (await import("../../app/dream/blue/kinds/surf.ts")).SurfSound,
+  });
+  for (const [name, entities, tree] of [
+    ["forget", forget, PRESET],
+    ["everyone", everyone, (await import("../../app/lab/intent/everyone.ts")).PRESET],
+    ["blue", blue, (await import("../../app/lab/intent/blue.ts")).PRESET],
+  ]) {
+    const r = acceptAuthoring({ tree }, entities, "strong");
+    assert.equal(r.problems, undefined, `${name}: ${JSON.stringify(r.problems)}`);
+    assert.equal(r.dropped, undefined, `${name}: ${JSON.stringify(r.dropped)}`);
+    assert.equal(r.action.tree.length, tree.length, name);
+    // The scene as written comes first in every intent: what code falls back to is the dream as it is.
+    for (const n of r.action.tree) assert.equal(Object.keys(n.kinds)[0], Object.keys(tree.find((t) => t.type === n.type && t.of === n.of).kinds)[0], `${name} ${n.type}`);
+  }
 });
 
 test("re-authoring keeps what was learned, and the intents added for this person's events", () => {
@@ -310,4 +346,19 @@ test("directions: every kind a screen is not, likeliest first by what the model 
   assert.equal(preview(by.phone).window.axis, "up");
   assert.equal(lab.params(by.wide)().window.axis, "up", "and nothing changed");
   assert.deepEqual(lab.stored(), {});
+});
+
+test("on the other dreams: a drag that leaves a shape means the place, not the way; a drag inside it means the way", async () => {
+  const everyone = await import("../../app/lab/intent/everyone.ts");
+  const blue = await import("../../app/lab/intent/blue.ts");
+  // Out of the world, sideways: both "spins" (sideways from it) and "larger" (out of it) fit; leaving it says more.
+  const out = recognize(drag({ x: 600, y: 400, id: "globe" }, { x: 1400, y: 400, id: null }, { from: ["globe", "voices"], to: [] }), everyone.PRESET);
+  assert.deepEqual(Object.values(out).slice(0, 2), ["world|globe", "larger"]);
+  const spin = recognize(drag({ x: 500, y: 400, id: "globe" }, { x: 700, y: 400, id: "globe" }, { from: ["globe", "voices"], to: ["globe", "voices"] }), everyone.PRESET);
+  assert.deepEqual(Object.values(spin).slice(0, 2), ["turning|globe", "spins"]);
+  // The sun is small: a drag of it leaves it whichever way it goes, so its size is a way (up), not a place.
+  const left = recognize(drag({ x: 250, y: 350, id: "sun-ring" }, { x: 110, y: 352, id: null }, { from: ["sun-ring", "contours"], to: ["contours"] }), blue.PRESET);
+  assert.deepEqual(Object.values(left).slice(0, 2), ["sun|sun-ring", "left"]);
+  const up = recognize(drag({ x: 250, y: 350, id: "sun-ring" }, { x: 252, y: 220, id: null }, { from: ["sun-ring"], to: [] }), blue.PRESET);
+  assert.deepEqual(Object.values(up).slice(0, 2), ["sunSize|sun-ring", "larger"]);
 });

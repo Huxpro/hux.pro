@@ -114,7 +114,15 @@ export interface Direction {
   believed: boolean;
 }
 
-export function createLab(preset: Tree = PRESET, beliefsAtFirst: Beliefs = BELIEFS, decisionsAtFirst: Record<string, Decision> = {}) {
+/** Code's choice where reintent defers: a dream's own (forget's crosses its window over), or the scene as written. */
+export type Settle = (node: IntentNode, v: Value, s: Screen) => string;
+
+export function createLab(
+  preset: Tree = PRESET,
+  beliefsAtFirst: Beliefs = BELIEFS,
+  decisionsAtFirst: Record<string, Decision> = {},
+  settleWith: Settle = settle,
+) {
   const store = createStore();
   store.restore(decisionsAtFirst);
   const tree = signal(preset);
@@ -158,7 +166,7 @@ export function createLab(preset: Tree = PRESET, beliefsAtFirst: Beliefs = BELIE
             key,
             node,
             raw,
-            kind: settle(node, raw, s),
+            kind: settleWith(node, raw, s),
             who,
             ...(d ? { how: d.from } : {}),
             ...(node.index ? { where: typeof at === "number" ? "person" : "code" } : {}),
@@ -286,7 +294,7 @@ export function createLab(preset: Tree = PRESET, beliefsAtFirst: Beliefs = BELIE
      * applied to the fork, nothing committed. A preview reads it.
      */
     whatIf(a: Action): (s: Screen) => Params {
-      const fork = createLab(tree.peek() as Tree, beliefs.peek() as Beliefs, untracked(store.snapshot) as Record<string, Decision>);
+      const fork = createLab(tree.peek() as Tree, beliefs.peek() as Beliefs, untracked(store.snapshot) as Record<string, Decision>, settleWith);
       fork.dispatch(a);
       return (s: Screen) => fork.params(s)();
     },
@@ -325,8 +333,8 @@ export function useValue<T>(read: Read<T>): T {
   return useSyncExternalStore(subscribe, () => untracked(read) as T, () => untracked(read) as T);
 }
 
-/** One lab for the page's life. */
-export function useLab() {
-  const [lab] = useState(() => createLab());
+/** One lab for the page's life (the page keys it by dream). */
+export function useLab(preset?: Tree, beliefs?: Beliefs, settleWith?: Settle) {
+  const [lab] = useState(() => createLab(preset, beliefs, {}, settleWith));
   return lab;
 }

@@ -78,11 +78,13 @@ export interface Found {
  * decision; none, or more than one, is for a model.
  */
 export function recognize(e: LabEvent, tree: Tree): Found | null {
-  const hits: { node: IntentNode; kind: string; how: string }[] = [];
+  const hits: { node: IntentNode; kind: string; how: string; place?: boolean }[] = [];
   if (e.kind === "drag") {
     for (const node of tree)
       for (const [kind, gs] of Object.entries(node.gestures ?? {}))
-        for (const g of gs) if (matches(g, node.of, e)) hits.push({ node, kind, how: describeGesture(g) });
+        for (const g of gs) if (matches(g, node.of, e)) hits.push({ node, kind, how: describeGesture(g), place: !!(g.outOf || g.into) });
+    // Leaving a shape or entering one says more than which way the hand went: where both match, the place does.
+    if (hits.some((h) => h.place)) hits.splice(0, hits.length, ...hits.filter((h) => h.place));
   } else {
     const text = norm(e.text);
     if (!text) return null;

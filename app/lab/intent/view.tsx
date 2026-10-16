@@ -1,14 +1,12 @@
 "use client";
 
-import Forget from "@/app/dream/forget/forget.scene";
-import { MOMENT_NAMES } from "@/app/dream/forget/kinds/pictures";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { LabButton, LabChip, LabSection, LabShell, Section, Segmented, useLabStrings } from "@/systems/lab";
 import { Hand, RotateCcw, SendHorizontal, Sparkles, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { StageProvider, type Params, type StageHost } from "stage";
+import { StageProvider, type Cue, type Params, type StageHost } from "stage";
 import {
   acceptAddition,
   acceptAuthoring,
@@ -29,8 +27,9 @@ import {
   type Point,
   type Selection,
 } from "./events";
-import { AUTHORED_BY, BELIEFS, LOOP, PRESET, SCREENS, SCRIPT, tallness, type Screen } from "./forget";
+import { DREAM_IDS, DREAMS, type Dream, type DreamId } from "./dreams";
 import { useLab, useValue, type Action, type Direction, type IntentView, type Lab } from "./model";
+import { SCREENS, tallness, type Screen } from "./screens";
 import { INTENT_STRINGS, type IntentStrings } from "./strings";
 import type { Dir, Entity, Gesture, IntentNode, Tree, Words } from "./tree";
 
@@ -46,33 +45,29 @@ import type { Dir, Entity, Gesture, IntentNode, Tree, Words } from "./tree";
 // event and acts at once (①, Flux); an event none recognises goes to a model,
 // which observes the tree and the event and writes the action (②, ReAct).
 //
-// Everything drawn is the real /dream/forget scene, boxed at each screen's
-// size, giving the same scripted performance.
+// Everything drawn is a real dream's scene (./dreams.ts: /dream/forget,
+// /dream/everyone, /dream/blue), boxed at each screen's size, giving the same
+// scripted performance. Nothing here knows which: the drop zones, directions
+// and previews are all read off the dream's intent tree.
 // =============================================================================
 
-const BG = "#f2ede3";
-const SCOPE = "forget/";
-
-const ENTITY_WORDS: Record<string, Words> = {
-  window: { en: "the window", zh: "窗" },
-  edge: { en: "the edge", zh: "窗沿" },
-  tide: { en: "the tide", zh: "退潮" },
-  dust: { en: "the dust", zh: "尘" },
-  moments: { en: "the moments", zh: "画面" },
-};
-const MOMENTS_ZH = ["你的猫", "一个深夜", "我们俩", "一个家", "一个小太阳"];
+const scopeOf = (dream: Dream) => `${dream.id}/`;
 
 /** The dream at a screen's size, shown at `scale`, with that screen's props over its scene. */
 function DreamBox({
+  dream,
   lab,
   screen,
   scale,
   inert,
   onHost,
   override,
+  replay,
+  still,
   className,
   children,
 }: {
+  dream: Dream;
   lab: Lab;
   screen: Screen;
   scale: number;
@@ -81,6 +76,10 @@ function DreamBox({
   onHost?: (host: StageHost) => void;
   /** What it would be (a preview): shown instead, and moved to, not jumped to. */
   override?: Params;
+  /** A preview of a moment: perform it again, from the start, with this. */
+  replay?: Cue[];
+  /** Hands on it: it waits at its start, with its things where a hand can find them, rather than perform. */
+  still?: boolean;
   className?: string;
   /** Laid over it, at its shown size (the hand-editing overlay). */
   children?: ReactNode;
@@ -88,17 +87,34 @@ function DreamBox({
   const { locale } = useLocale();
   const live = useValue(lab.params(screen));
   const params = override ?? live;
+  // A moment previewed is performed again from the start; and so is the dream's own performance, after.
+  const [host, setHost] = useState<StageHost | null>(null);
+  const hosted = useCallback(
+    (h: StageHost) => {
+      setHost(h);
+      onHost?.(h);
+    },
+    [onHost],
+  );
+  const replayKey = replay ? JSON.stringify(replay) : still ? "still" : "";
+  const performed = useRef(replayKey);
+  useEffect(() => {
+    if (!host || performed.current === replayKey) return;
+    performed.current = replayKey;
+    host.reset();
+  }, [host, replayKey]);
   return (
     <div
       className={cn("relative overflow-hidden rounded-xl border border-border/60", className)}
-      style={{ width: screen.w * scale, height: screen.h * scale, background: BG }}
+      style={{ width: screen.w * scale, height: screen.h * scale, background: dream.background }}
     >
       <div
         className={cn("absolute left-0 top-0 origin-top-left", inert && "pointer-events-none")}
         style={{ width: screen.w, height: screen.h, transform: `scale(${scale})` }}
       >
-        <StageProvider locale={locale} onWake={() => {}} box params={params} script={SCRIPT} loop={LOOP} onHost={onHost}>
-          <Forget />
+        {/* A preview's numbers glide (the host's morph); its kinds' own discrete changes move themselves. */}
+        <StageProvider locale={locale} onWake={() => {}} box params={params} script={replay ?? (still ? [] : dream.script)} loop={dream.loop} morph={0.6} onHost={hosted}>
+          <dream.Scene />
         </StageProvider>
       </div>
       {children}
@@ -121,34 +137,38 @@ function useWidth<T extends HTMLElement>() {
   return [ref, w] as const;
 }
 
-/** What is under a point on a stage (its own px): a moment first, then the window (its edge and tide are its), then the dust. */
-function hitAt(host: StageHost, p: Point): Hit {
+/** What is under a point on a stage (its own px): the first of the dream's things in its order (a member of a population it names as that member; a part as what it is part of). */
+function hitAt(dream: Dream, host: StageHost, p: Point): Hit {
+  const scope = scopeOf(dream);
   const local = host.layer
     .at(p.x, p.y, undefined, { slop: 6 })
-    .filter((id) => id.startsWith(SCOPE))
-    .map((id) => id.slice(SCOPE.length));
-  const member = local.find((id) => id.startsWith("moments#"));
-  if (member) return { id: "moments", member: Number(member.split("#")[1]) };
-  if (local.some((id) => id === "window" || id === "edge" || id === "tide")) return { id: "window" };
-  if (local.includes("dust")) return { id: "dust" };
+    .filter((id) => id.startsWith(scope))
+    .map((id) => id.slice(scope.length));
+  for (const thing of dream.hitOrder) {
+    // A member only where the dream has intents per member (forget's moments; not the globe's lights).
+    const member = dream.members?.[thing] && local.find((id) => id.startsWith(`${thing}#`));
+    if (member) return { id: thing, member: Number(member.split("#")[1]) };
+    if (local.includes(thing)) return { id: dream.partOf?.[thing] ?? thing };
+  }
   return { id: null };
 }
 
 /** The things on the stage whose shapes hold a point (its own px). */
-function within(host: StageHost, p: Point): string[] {
+function within(dream: Dream, host: StageHost, p: Point): string[] {
+  const scope = scopeOf(dream);
   const snap = host.layer.snapshot();
   return snap.order
-    .filter((id) => id.startsWith(SCOPE) && snap.nodes[id].visible && snap.nodes[id].backend !== "dom")
+    .filter((id) => id.startsWith(scope) && snap.nodes[id].visible && snap.nodes[id].backend !== "dom")
     .filter((id) => {
       const b = snap.nodes[id].bounds;
       return !!b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
     })
-    .map((id) => id.slice(SCOPE.length))
-    .filter((id) => !id.includes("#") && id !== "forget");
+    .map((id) => id.slice(scope.length))
+    .filter((id) => !id.includes("#") && id !== dream.id);
 }
 
 /** The things on the stage, as a model is told about them: their knobs as the scene wrote them. */
-function entitiesOf(host: StageHost): Entity[] {
+function entitiesOf(dream: Dream, host: StageHost): Entity[] {
   return host.ids().flatMap((id) => {
     const w = host.written(id);
     if (!w?.def.params) return [];
@@ -162,15 +182,16 @@ function entitiesOf(host: StageHost): Entity[] {
         intent: (w.props.intent as string) ?? w.def.intent,
         names: (w.props.names as string[]) ?? w.def.names ?? [],
         params,
-        ...(id === "moments" ? { members: MOMENT_NAMES } : {}),
+        ...(dream.members?.[id] ? { members: dream.members[id].en } : {}),
       },
     ];
   });
 }
 
-function hitWords(h: Hit, locale: "en" | "zh", S: IntentStrings) {
-  if (h.id === "moments" && h.member !== undefined) return locale === "zh" ? MOMENTS_ZH[h.member] : MOMENT_NAMES[h.member];
-  return h.id ? (ENTITY_WORDS[h.id]?.[locale] ?? h.id) : S.paper;
+function hitWords(dream: Dream, h: Hit, locale: "en" | "zh") {
+  const members = h.id ? dream.members?.[h.id] : undefined;
+  if (members && h.member !== undefined) return members[locale][h.member];
+  return h.id ? (dream.things[h.id]?.[locale] ?? h.id) : dream.ground[locale];
 }
 
 type LogEntry = {
@@ -200,10 +221,19 @@ function Who({ v, S }: { v: IntentView; S: IntentStrings }) {
   );
 }
 
-/** Screens by shape, wide to tall, each marked with the way its moments go; and where it crosses over. */
-function ShapeRuler({ lab, focus, onFocus, S }: { lab: Lab; focus: Screen; onFocus: (s: Screen) => void; S: IntentStrings }) {
+/** The intent decided by the screen's shape, if the tree has one. */
+function indexedKey(tree: Tree): string | null {
+  const n = tree.find((x) => x.index);
+  return n ? `${n.type}|${n.of}` : null;
+}
+
+/** Which side of the crossing a screen is on: its tall kind, or the other. */
+const glyph = (v: IntentView | null) => (v ? (v.kind === v.node.index?.base ? "▯" : "▭") : "");
+
+/** Screens by shape, wide to tall, each marked with the kind it gets; and where it crosses over. */
+function ShapeRuler({ lab, k, focus, onFocus, S }: { lab: Lab; k: string; focus: Screen; onFocus: (s: Screen) => void; S: IntentStrings }) {
   const stored = useValue(lab.stored);
-  const at = (stored["axis|window"]?.pick as { at?: number } | undefined)?.at;
+  const at = (stored[k]?.pick as { at?: number } | undefined)?.at;
   // A log scale of tallness, from a little wider than the widest to a little taller than the tallest.
   const lo = Math.log(0.35);
   const hi = Math.log(2.6);
@@ -222,6 +252,7 @@ function ShapeRuler({ lab, focus, onFocus, S }: { lab: Lab; focus: Screen; onFoc
             <RulerDot
               key={s.id}
               lab={lab}
+              k={k}
               screen={s}
               left={x(tallness(s))}
               // Neighbours' names alternate above and below the line, so close shapes do not collide.
@@ -239,6 +270,7 @@ function ShapeRuler({ lab, focus, onFocus, S }: { lab: Lab; focus: Screen; onFoc
 
 function RulerDot({
   lab,
+  k,
   screen,
   left,
   above,
@@ -247,6 +279,7 @@ function RulerDot({
   S,
 }: {
   lab: Lab;
+  k: string;
   screen: Screen;
   left: string;
   above: boolean;
@@ -254,7 +287,7 @@ function RulerDot({
   onClick: () => void;
   S: IntentStrings;
 }) {
-  const v = useValue(lab.view("axis|window", screen));
+  const v = useValue(lab.view(k, screen));
   return (
     <button
       type="button"
@@ -268,7 +301,7 @@ function RulerDot({
       style={{ left }}
     >
       <span className="flex size-4 items-center justify-center rounded-full border border-current bg-background text-[11px] leading-none">
-        {v?.kind === "across" ? "←" : "↑"}
+        {glyph(v)}
       </span>
       <span className={cn("whitespace-nowrap", on && "underline underline-offset-2")}>{S.short[screen.id] ?? S.screens[screen.id]}</span>
     </button>
@@ -276,22 +309,29 @@ function RulerDot({
 }
 
 function Tile({
+  dream,
+  indexed,
   lab,
   screen,
   on,
   onClick,
   override,
+  replay,
   S,
 }: {
+  dream: Dream;
+  /** The intent the screen's shape decides, named under each tile. */
+  indexed: string | null;
   lab: Lab;
   screen: Screen;
   on: boolean;
   onClick: () => void;
   override?: Params;
+  replay?: Cue[];
   S: IntentStrings;
 }) {
   const { locale } = useLocale();
-  const axis = useValue(lab.view("axis|window", screen));
+  const axis = useValue(lab.view(indexed ?? "", screen));
   const live = useValue(lab.params(screen));
   // Under a preview, the screens it would change say so.
   const changes = !!override && JSON.stringify(override) !== JSON.stringify(live);
@@ -300,11 +340,13 @@ function Tile({
   return (
     <div className="group relative flex flex-col items-start gap-1.5 text-left">
       <DreamBox
+        dream={dream}
         lab={lab}
         screen={screen}
         scale={scale}
         inert
         override={override}
+        replay={changes ? replay : undefined}
         className={cn(
           "transition-shadow",
           on ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "group-hover:ring-1 group-hover:ring-border",
@@ -317,7 +359,8 @@ function Tile({
           {changes && <span className="ml-1.5 font-mono text-[10px] text-muted-foreground">· {S.changes}</span>}
         </span>
         <span className="font-mono text-[10px] text-muted-foreground">
-          {screen.w}×{screen.h} · {axis?.kind === "across" ? "←" : "↑"} {axis ? axis.node.kinds[axis.kind].words[locale] : ""}
+          {screen.w}×{screen.h}
+          {axis && ` · ${glyph(axis)} ${axis.node.kinds[axis.kind].words[locale]}`}
         </span>
       </span>
       <button type="button" onClick={onClick} aria-label={S.screens[screen.id]} aria-pressed={on} className="absolute inset-0 rounded-xl" />
@@ -441,7 +484,7 @@ function Code({ children }: { children: ReactNode }) {
 }
 
 /** A drop zone: one gesture in the vocabulary that a drag from here could be, and what it would mean. */
-type Zone = { key: string; kind: string; label: string; how: string; g: Gesture; rect: [number, number, number, number] | null };
+type Zone = { key: string; kind: string; label: string; kindWords: string; how: string; g: Gesture; rect: [number, number, number, number] | null };
 
 const ARROW: Record<Dir, [number, number][]> = {
   up: [[0, -1]],
@@ -453,17 +496,17 @@ const ARROW: Record<Dir, [number, number][]> = {
 };
 
 /** A thing's box on the stage now (its own px). */
-function boxOf(host: StageHost, id: string): [number, number, number, number] | null {
-  const b = host.layer.snapshot().nodes[`${SCOPE}${id}`]?.bounds;
+function boxOf(dream: Dream, host: StageHost, id: string): [number, number, number, number] | null {
+  const b = host.layer.snapshot().nodes[`${scopeOf(dream)}${id}`]?.bounds;
   return b ? [b.x, b.y, b.w, b.h] : null;
 }
 
 /** Every gesture in the tree's vocabulary that a drag from here could still be: the drop zones it has. */
-function zonesFrom(tree: Tree, start: Hit, inside: string[], host: StageHost, locale: "en" | "zh", S: IntentStrings): Zone[] {
+function zonesFrom(dream: Dream, tree: Tree, start: Hit, inside: string[], host: StageHost, locale: "en" | "zh", S: IntentStrings): Zone[] {
   const subject = start.id && start.member !== undefined ? `${start.id}#${start.member}` : start.id;
   const name = (x: string, node: IntentNode) => {
     const id = x === "self" ? node.of.split("#")[0] : x;
-    return ENTITY_WORDS[id]?.[locale] ?? id;
+    return dream.things[id]?.[locale] ?? id;
   };
   const out: Zone[] = [];
   for (const node of tree)
@@ -479,9 +522,10 @@ function zonesFrom(tree: Tree, start: Hit, inside: string[], host: StageHost, lo
           key: `${node.type}|${node.of}`,
           kind,
           label: `${node.words[locale]} → ${node.kinds[kind].words[locale]}`,
+          kindWords: node.kinds[kind].words[locale],
           how,
           g,
-          rect: where ? boxOf(host, where) : null,
+          rect: where ? boxOf(dream, host, where) : null,
         });
       }
   return out;
@@ -496,7 +540,9 @@ function zonesFrom(tree: Tree, start: Hit, inside: string[], host: StageHost, lo
  * are those over `scale`.
  */
 function Hands({
+  dream,
   host,
+  width,
   scale,
   tree,
   picked,
@@ -505,7 +551,10 @@ function Hands({
   onDrag,
   S,
 }: {
+  dream: Dream;
   host: StageHost | null;
+  /** The stage's own width, and the scale it is shown at. */
+  width: number;
   scale: number;
   tree: Tree;
   picked: Hit;
@@ -521,6 +570,7 @@ function Hands({
   const start = useRef<(Point & Hit) | null>(null);
   const startWithin = useRef<string[]>([]);
   const outline = useRef<HTMLDivElement>(null);
+  const shownW = width * scale;
   const local = (e: { clientX: number; clientY: number; currentTarget: HTMLElement }) => {
     const r = e.currentTarget.getBoundingClientRect();
     return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale };
@@ -543,7 +593,8 @@ function Hands({
         el.style.display = "none";
         return;
       }
-      const id = picked.member !== undefined ? `${SCOPE}${picked.id}#${picked.member}` : `${SCOPE}${picked.id}`;
+      const scope = scopeOf(dream);
+      const id = picked.member !== undefined ? `${scope}${picked.id}#${picked.member}` : `${scope}${picked.id}`;
       const sel = host.layer.select(id);
       const shape = sel?.member?.shape ?? sel?.node.shape;
       const b = !shape
@@ -558,7 +609,7 @@ function Hands({
     };
     tick();
     return () => cancelAnimationFrame(raf);
-  }, [host, picked, scale]);
+  }, [dream, host, picked, scale]);
   const far = line && Math.hypot(line.b.x - line.a.x, line.b.y - line.a.y) >= 30;
   return (
     <div
@@ -567,11 +618,11 @@ function Hands({
         if (!host) return;
         e.currentTarget.setPointerCapture(e.pointerId);
         const p = local(e);
-        const hit = hitAt(host, p);
+        const hit = hitAt(dream, host, p);
         start.current = { ...p, ...hit };
-        startWithin.current = within(host, p);
+        startWithin.current = within(dream, host, p);
         setLine({ a: p, b: p });
-        setZones(zonesFrom(tree, hit, startWithin.current, host, locale, S));
+        setZones(zonesFrom(dream, tree, hit, startWithin.current, host, locale, S));
       }}
       onPointerMove={(e) => {
         const a = start.current;
@@ -579,7 +630,7 @@ function Hands({
         const b = local(e);
         setLine({ a, b });
         // The one the drag would be if it ended here: lit, and previewed.
-        const found = recognize({ kind: "drag", screen: { id: "", w: 0, h: 0 }, from: a, to: { ...b, ...hitAt(host, b) }, within: { from: startWithin.current, to: within(host, b) } }, tree);
+        const found = recognize({ kind: "drag", screen: { id: "", w: 0, h: 0 }, from: a, to: { ...b, ...hitAt(dream, host, b) }, within: { from: startWithin.current, to: within(dream, host, b) } }, tree);
         if (found?.key !== aim?.key || found?.kind !== aim?.kind) {
           setAim(found);
           onAim(found);
@@ -592,22 +643,23 @@ function Hands({
         if (!from || !host) return;
         const p = local(e);
         if (Math.hypot(p.x - from.x, p.y - from.y) < 8) return onPick({ id: from.id, member: from.member });
-        onDrag(from, { ...p, ...hitAt(host, p) }, { from: firstWithin, to: within(host, p) });
+        onDrag(from, { ...p, ...hitAt(dream, host, p) }, { from: firstWithin, to: within(dream, host, p) });
       }}
       onPointerCancel={end}
     >
-      <div ref={outline} className="pointer-events-none absolute hidden rounded-md border-2 border-dashed border-foreground/70" />
+      <div ref={outline} className="pointer-events-none absolute hidden rounded-md border-2 border-dashed" style={{ borderColor: `rgba(${dream.ink}, 0.7)` }} />
       {line &&
         zones.map((z, i) => {
           const lit = aim?.key === z.key && aim?.kind === z.kind;
+          // A shape's zone is named in full; an arrow by the kind it leads to (the intent is in the pill when it is aimed at).
           const label = (
             <span
               className={cn(
-                "whitespace-nowrap rounded-full px-2 py-0.5 font-mono text-[10px] shadow-sm transition-colors",
+                "block max-w-[11rem] truncate whitespace-nowrap rounded-full px-2 py-0.5 font-mono text-[10px] shadow-sm transition-colors",
                 lit ? "bg-foreground text-background" : "bg-background/90 text-foreground",
               )}
             >
-              {z.how} · {z.label}
+              {z.rect ? `${z.how} · ${z.label}` : z.kindWords}
             </span>
           );
           if (z.rect) {
@@ -616,14 +668,15 @@ function Hands({
             return (
               <div
                 key={i}
-                className={cn("pointer-events-none absolute rounded-xl border-2 transition-all duration-200", lit ? "border-foreground" : "border-dashed border-foreground/40")}
+                className={cn("pointer-events-none absolute rounded-xl border-2 transition-all duration-200", !lit && "border-dashed")}
                 style={{
+                  borderColor: `rgba(${dream.ink}, ${lit ? 1 : 0.4})`,
                   left: x,
                   top: y,
                   width: w,
                   height: h,
-                  boxShadow: z.g.outOf ? `0 0 0 9999px rgba(40, 36, 32, ${lit ? 0.12 : 0.05})` : undefined,
-                  background: z.g.into ? `rgba(40, 36, 32, ${lit ? 0.12 : 0.05})` : undefined,
+                  boxShadow: z.g.outOf ? `0 0 0 9999px rgba(${dream.ink}, ${lit ? 0.12 : 0.05})` : undefined,
+                  background: z.g.into ? `rgba(${dream.ink}, ${lit ? 0.12 : 0.05})` : undefined,
                 }}
               >
                 <div className="absolute left-0" style={{ top: z.g.outOf ? -26 - 22 * (i % 2) : 6 + 22 * (i % 2), ...(z.g.into ? { left: 6 } : {}) }}>
@@ -634,15 +687,23 @@ function Hands({
           }
           // A way to go: an arrow from where the drag began, named at its tip.
           return ARROW[z.g.dir!].map(([dx, dy], j) => {
-            const L = 72;
+            const L = Math.min(72, shownW * 0.18);
             const [x0, y0] = [line.a.x * scale, line.a.y * scale];
             return (
-              <div key={`${i}-${j}`} className="pointer-events-none absolute" style={{ left: x0, top: y0 }}>
+              <div key={`${i}-${j}`} className="pointer-events-none absolute" style={{ left: x0, top: y0, color: `rgb(${dream.ink})` }}>
                 <svg className="absolute overflow-visible" width="1" height="1">
                   <line x1={0} y1={0} x2={dx * L} y2={dy * L} stroke="currentColor" strokeOpacity={lit ? 1 : 0.4} strokeWidth={lit ? 3 : 2} />
                   <circle cx={dx * L} cy={dy * L} r={lit ? 5 : 3.5} fill="currentColor" fillOpacity={lit ? 1 : 0.4} />
                 </svg>
-                <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: dx * (L + 34), top: dy * (L + 18) + (dy === 0 ? 0 : 0) }}>
+                {/* Named at its tip: above a sideways one, past an upright one; kept inside the dream. */}
+                <div
+                  className="absolute"
+                  style={{
+                    left: Math.min(Math.max(x0 + dx * L, 48), shownW - 48) - x0,
+                    top: dy ? dy * (L + 10) : -10,
+                    transform: `translate(-50%, ${dy > 0 ? "0" : "-100%"})`,
+                  }}
+                >
                   {label}
                 </div>
               </div>
@@ -650,14 +711,25 @@ function Hands({
           });
         })}
       {line && (
-        <svg className="pointer-events-none absolute inset-0 h-full w-full">
+        <svg className="pointer-events-none absolute inset-0 h-full w-full" style={{ color: `rgb(${dream.ink})` }}>
           <line x1={line.a.x * scale} y1={line.a.y * scale} x2={line.b.x * scale} y2={line.b.y * scale} stroke="currentColor" strokeWidth={2} strokeDasharray="4 3" />
           <circle cx={line.b.x * scale} cy={line.b.y * scale} r={5} fill="currentColor" />
         </svg>
       )}
       {line && far && (
-        <div className="pointer-events-none absolute" style={{ left: line.b.x * scale + 12, top: line.b.y * scale + 12 }}>
-          <span className={cn("whitespace-nowrap rounded-md px-2 py-1 font-mono text-[11px] shadow-overlay", aim ? "bg-foreground text-background" : "bg-background text-foreground")}>
+        // Beside the finger, on whichever side has room.
+        <div
+          className="pointer-events-none absolute"
+          style={{
+            left: line.b.x * scale + (line.b.x * scale > shownW / 2 ? -12 : 12),
+            top: line.b.y * scale + 12,
+            transform: line.b.x * scale > shownW / 2 ? "translateX(-100%)" : undefined,
+          }}
+        >
+          <span
+            className={cn("block max-w-[14rem] truncate whitespace-nowrap rounded-md px-2 py-1 font-mono text-[11px] shadow-overlay", aim ? "bg-foreground text-background" : "bg-background text-foreground")}
+            style={{ maxWidth: Math.max(96, Math.max(line.b.x * scale, shownW - line.b.x * scale) - 20) }}
+          >
             {aim ? S.release(zones.find((z) => z.key === aim.key && z.kind === aim.kind)?.label ?? `${aim.key} → ${aim.kind}`) : S.releaseModel}
           </span>
         </div>
@@ -763,11 +835,24 @@ function EventLog({ log, S }: { log: LogEntry[]; S: IntentStrings }) {
   );
 }
 
-export function IntentLabView() {
+/** The lab, on whichever dream `?dream=` names (forget by default); each dream gets a lab of its own. */
+export function IntentLabView({ initial }: { initial?: string }) {
+  const [id, setId] = useState<DreamId>(DREAM_IDS.find((d) => d === initial) ?? "forget");
+  const choose = (next: DreamId) => {
+    setId(next);
+    const url = new URL(window.location.href);
+    if (next === "forget") url.searchParams.delete("dream");
+    else url.searchParams.set("dream", next);
+    window.history.replaceState(null, "", url);
+  };
+  return <DreamLab key={id} dream={DREAMS[id]} onDream={choose} />;
+}
+
+function DreamLab({ dream, onDream }: { dream: Dream; onDream: (id: DreamId) => void }) {
   const S = useLabStrings(INTENT_STRINGS);
   const { locale } = useLocale();
-  const lab = useLab();
-  const [focusId, setFocusId] = useState("landscape");
+  const lab = useLab(dream.preset, dream.beliefs, dream.settle);
+  const [focusId, setFocusId] = useState(dream.focus);
   const focus = SCREENS.find((s) => s.id === focusId) ?? SCREENS[0];
   const [stageRef, stageW] = useWidth<HTMLDivElement>();
   const asks = useValue(lab.questions(focus)).length;
@@ -790,6 +875,8 @@ export function IntentLabView() {
   // A preview: a what-if every screen moves to (a direction hovered, a drop zone aimed at), committed by nothing.
   const [preview, setPreview] = useState<{ id: string; label: string; action: Action } | null>(null);
   const previewOf = useMemo(() => (preview ? lab.whatIf(preview.action) : null), [lab, preview]);
+  // A preview of a moment's intent performs that moment again.
+  const replay = preview && "key" in preview.action && dream.replay?.keys.includes(preview.action.key) ? dream.replay.script : undefined;
   const previewDirection = (d: Direction | null) =>
     setPreview(
       d
@@ -821,7 +908,7 @@ export function IntentLabView() {
         return;
       }
       const o: Observation = {
-        entities: host ? entitiesOf(host) : [],
+        entities: host ? entitiesOf(dream, host) : [],
         tree: lab.tree(),
         decisions: lab.stored(),
         event: e,
@@ -867,7 +954,7 @@ export function IntentLabView() {
         ms: ms(),
       });
     },
-    [lab, host, locale, S],
+    [dream, lab, host, locale, S],
   );
 
   /** The strong model writes the whole tree again, from the scene. */
@@ -875,17 +962,17 @@ export function IntentLabView() {
     if (!host) return;
     const id = ++seq.current;
     const t0 = performance.now();
-    const entities = entitiesOf(host);
-    const scene = host.layer.get("forget");
+    const entities = entitiesOf(dream, host);
+    const scene = host.layer.get(dream.id);
     put({ id, what: S.reauthorWhat, route: "author", by: "…", status: "pending" });
     const cached = (): Authoring => ({
-      tree: PRESET,
-      beliefs: Object.entries(BELIEFS).map(([key, b]) => ({ key, p: b.p })),
+      tree: dream.preset,
+      beliefs: Object.entries(dream.beliefs).map(([key, b]) => ({ key, p: b.p })),
       why: "The cached authoring: no model is reachable.",
     });
     const out = await ask<Authoring>("author", { entities, intent: scene?.intent, names: scene?.names }, cached);
     if (!out.answer) return put({ id, what: S.reauthorWhat, route: "author", by: out.by, status: "failed", problems: [out.error ?? "no answer"], ms: performance.now() - t0 });
-    const by = out.by === "stand-in" ? AUTHORED_BY : out.by;
+    const by = out.by === "stand-in" ? dream.authoredBy : out.by;
     const r = acceptAuthoring(out.answer, entities, by);
     if (r.action) lab.dispatch(r.action);
     put({
@@ -899,9 +986,10 @@ export function IntentLabView() {
       ms: performance.now() - t0,
     });
   };
-  const authoredBy = tree.find((n) => n.from === "preset")?.by ?? AUTHORED_BY;
+  const authoredBy = tree.find((n) => n.from === "preset")?.by ?? dream.authoredBy;
+  const indexed = indexedKey(tree);
 
-  const about = picked.id ? hitWords(picked, locale, S) : S.everything;
+  const about = picked.id ? hitWords(dream, picked, locale) : S.everything;
   const send = (ev: FormEvent) => {
     ev.preventDefault();
     const t = text.trim();
@@ -922,9 +1010,14 @@ export function IntentLabView() {
     <LabShell
       lab="intent"
       layout="workbench"
-      meta={S.meta(SCREENS.length, asks, Object.keys(stored).length, written.length)}
+      meta={S.meta(dream.path, SCREENS.length, asks, Object.keys(stored).length, written.length)}
       actions={
         <>
+          <Segmented<DreamId>
+            value={dream.id}
+            options={DREAM_IDS.map((d) => ({ value: d, label: DREAMS[d].path.replace("/dream/", "") }))}
+            onChange={onDream}
+          />
           <LabButton onClick={lab.undo} disabled={!history.length}>
             <Undo2 /> {S.undo}
           </LabButton>
@@ -971,7 +1064,7 @@ export function IntentLabView() {
     >
       <LabSection
         title={`${S.focus} · ${S.screens[focus.id]} · ${focus.w}×${focus.h}`}
-        note={hands ? S.handsNote : S.focusNote}
+        note={hands ? S.handsNote(dream.gestures[locale]) : S.focusNote(dream.path, dream.performs[locale])}
         aside={
           <LabChip on={hands} onClick={() => setHands((h) => !h)}>
             <Hand /> {hands ? S.handsOn : S.hands}
@@ -982,16 +1075,21 @@ export function IntentLabView() {
           {scale > 0 && (
             <DreamBox
               key={focus.id}
+              dream={dream}
               lab={lab}
               screen={focus}
               scale={scale}
               onHost={setHost}
               override={previewOf?.(focus)}
+              replay={replay}
+              still={hands}
               className={cn(preview && "ring-2 ring-foreground ring-offset-2 ring-offset-background")}
             >
               {hands && (
                 <Hands
+                  dream={dream}
                   host={host}
+                  width={focus.w}
                   scale={scale}
                   tree={tree}
                   picked={picked}
@@ -1009,14 +1107,14 @@ export function IntentLabView() {
                     );
                   }}
                   onDrag={(from, to, inside) =>
-                    void handle({ kind: "drag", screen: focus, from, to, within: inside }, S.drag(hitWords(from, locale, S), hitWords(to, locale, S)))
+                    void handle({ kind: "drag", screen: focus, from, to, within: inside }, S.drag(hitWords(dream, from, locale), hitWords(dream, to, locale)))
                   }
                   S={S}
                 />
               )}
               {preview && (
-                <div className="pointer-events-none absolute left-3 top-3">
-                  <span className="rounded-md bg-foreground px-2 py-1 font-mono text-[11px] text-background shadow-overlay">
+                <div className="pointer-events-none absolute inset-x-3 bottom-3 flex">
+                  <span className="truncate rounded-md bg-foreground px-2 py-1 font-mono text-[11px] text-background shadow-overlay">
                     {S.previewing(preview.label)}
                   </span>
                 </div>
@@ -1045,8 +1143,8 @@ export function IntentLabView() {
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={S.promptPlaceholder}
-            aria-label={S.promptPlaceholder}
+            placeholder={dream.placeholder[locale]}
+            aria-label={dream.placeholder[locale]}
             className="min-w-0 flex-1 rounded-md border border-border/60 bg-background/70 px-3 py-1.5 text-base outline-none focus:border-foreground/50 sm:text-sm"
           />
           <LabButton type="submit" tone="primary" disabled={!text.trim()}>
@@ -1057,13 +1155,15 @@ export function IntentLabView() {
       <LabSection title={S.events} note={S.eventsNote}>
         <EventLog log={log} S={S} />
       </LabSection>
-      <LabSection title={S.shape} note={S.shapeNote}>
-        <ShapeRuler lab={lab} focus={focus} onFocus={(s) => setFocusId(s.id)} S={S} />
-      </LabSection>
+      {indexed && (
+        <LabSection title={S.shape(tree.find((n) => `${n.type}|${n.of}` === indexed)!.words[locale])} note={S.shapeNote}>
+          <ShapeRuler lab={lab} k={indexed} focus={focus} onFocus={(s) => setFocusId(s.id)} S={S} />
+        </LabSection>
+      )}
       <LabSection title={S.wall} note={S.wallNote}>
         <div className="flex flex-wrap items-end gap-x-5 gap-y-6">
           {SCREENS.map((s) => (
-            <Tile key={s.id} lab={lab} screen={s} on={s.id === focus.id} onClick={() => setFocusId(s.id)} override={previewOf?.(s)} S={S} />
+            <Tile key={s.id} dream={dream} indexed={indexed} lab={lab} screen={s} on={s.id === focus.id} onClick={() => setFocusId(s.id)} override={previewOf?.(s)} replay={replay} S={S} />
           ))}
         </div>
       </LabSection>

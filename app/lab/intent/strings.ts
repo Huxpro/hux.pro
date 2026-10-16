@@ -2,21 +2,21 @@ import type { LabTable } from "@/systems/lab";
 import type { Who } from "./model";
 
 const en = {
-  meta: (screens: number, asks: number, decided: number, written: number) =>
-    `/dream/forget · ${screens} screens · ${asks ? `${asks} question` : "nothing to ask"} · ${decided} decided · ${written} written by a model`,
+  meta: (path: string, screens: number, asks: number, decided: number, written: number) =>
+    `${path} · ${screens} screens · ${asks ? `${asks} question` : "nothing to ask"} · ${decided} decided · ${written} written by a model`,
   undo: "Undo",
   reset: "Reset",
   // The stage
   focus: "On this screen",
-  focusNote:
-    "The real /dream/forget, at this screen's size, performing the same hold and let-go on every screen. Its props are the intents' kinds, compiled over the scene.",
+  dream: "Dream",
+  focusNote: (path: string, performs: string) =>
+    `The real ${path}, at this screen's size, ${performs} on every screen. Its props are the intents' kinds, compiled over the scene.`,
   hands: "Edit by hand",
   handsOn: "Editing by hand",
-  handsNote:
-    "Drag on the dream: a moment out of the window keeps it, back in lets it go; the window sideways lays it down, up stands it up; the dust down settles it. A tap picks what a prompt is about. Any other drag goes to the model.",
+  handsNote: (gestures: string) =>
+    `Drag on the dream: every drag the tree knows from where you press is drawn, named, and previewed as you aim. ${gestures} A tap picks what a prompt is about. Any other drag goes to the model.`,
   promptAbout: "About",
   everything: "the whole dream",
-  promptPlaceholder: "Say what you mean: slower, like snow, sadder, 落下…",
   send: "Send",
   events: "Events",
   eventsNote:
@@ -43,10 +43,9 @@ const en = {
   gestureToStrong: "a drag no vocabulary names: for the strong model",
   drag: (from: string, to: string) => `drag ${from} → ${to}`,
   prompt: (about: string, text: string) => `“${text}” about ${about}`,
-  paper: "the paper",
-  shape: "Which way the moments go, by the screen's shape",
+  shape: (what: string) => `${what}, by the screen's shape`,
   shapeNote:
-    "Wide on the left, tall on the right. A switch (or a drag of the window) on one screen moves where it crosses over: every screen past it follows; the rest keep theirs.",
+    "Wide on the left, tall on the right; ▯ is the kind tall screens get, ▭ the other. A switch (or a drag) on one screen moves where it crosses over: every screen past it follows; the rest keep theirs.",
   crossCode: "code decides where: upright while a row keeps 64 px",
   crossAt: (at: string) => `you moved it to ${at}`,
   wall: "Every screen",
@@ -93,19 +92,18 @@ const en = {
 };
 
 const zh: typeof en = {
-  meta: (screens, asks, decided, written) =>
-    `/dream/forget · ${screens} 块屏幕 · ${asks ? `${asks} 个问题` : "无需提问"} · ${decided} 个决定 · ${written} 个模型写的意图`,
+  meta: (path, screens, asks, decided, written) =>
+    `${path} · ${screens} 块屏幕 · ${asks ? `${asks} 个问题` : "无需提问"} · ${decided} 个决定 · ${written} 个模型写的意图`,
   undo: "撤销",
   reset: "重置",
   focus: "这块屏幕",
-  focusNote: "真正的 /dream/forget，按这块屏幕的尺寸运行，每块屏幕上演同一段「按住、松开」。它的 props 是各个意图选中的值，编译后叠在场景上。",
+  dream: "梦",
+  focusNote: (path, performs) => `真正的 ${path}，按这块屏幕的尺寸运行，每块屏幕上演同一段${performs}。它的 props 是各个意图选中的值，编译后叠在场景上。`,
   hands: "动手改",
   handsOn: "正在动手改",
-  handsNote:
-    "在梦上拖：把画面拖出窗外就留住它，拖回窗里就让它走；把窗横着拖让它躺下，竖着拖让它立起；把尘往下拉让它落下。点一下选中提示词说的对象。其他拖法交给模型。",
+  handsNote: (gestures) => `在梦上拖：从你按下的地方出发、意图树认得的拖法都会画出来、标上名字，瞄准时就预览。${gestures}点一下选中提示词说的对象。其他拖法交给模型。`,
   promptAbout: "关于",
   everything: "整个梦",
-  promptPlaceholder: "说你的意思：慢一些、像雪、更伤感、落下……",
   send: "发送",
   events: "事件",
   eventsNote:
@@ -130,9 +128,8 @@ const zh: typeof en = {
   gestureToStrong: "词汇表里没有的拖法：交给强模型",
   drag: (from, to) => `拖动 ${from} → ${to}`,
   prompt: (about, text) => `关于${about}：「${text}」`,
-  paper: "纸面",
-  shape: "画面往哪里走，按屏幕的形状",
-  shapeNote: "左边宽，右边高。在一块屏幕上切换（或拖动窗），会把交叉点挪到它的形状：越过它的屏幕都跟着变，其余的保持不变。",
+  shape: (what) => `${what}，按屏幕的形状`,
+  shapeNote: "左边宽，右边高；▯ 是高屏幕得到的选项，▭ 是另一个。在一块屏幕上切换（或拖动），会把交叉点挪到它的形状：越过它的屏幕都跟着变，其余的保持不变。",
   crossCode: "代码决定在哪里交叉：一行还有 64 px 就竖着",
   crossAt: (at) => `你把它挪到了 ${at}`,
   wall: "每一块屏幕",
