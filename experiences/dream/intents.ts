@@ -24,28 +24,30 @@ interface Option {
   en: string;
   aka: string[];
   realize: Record<string, unknown>;
+  /** How the words say it, written back when it is chosen (default: zh); its aka is found inside it. */
+  words?: string;
 }
 
 /** Where he can be: library places (and "not there"). */
 export const PLACES: Record<string, Option> = {
-  inside: { zh: "衣柜里", en: "in the wardrobe", aka: ["衣柜里", "柜子里", "衣柜", "柜子"], realize: { at: [285.5, 640], scale: 1, inside: true } },
+  inside: { zh: "衣柜里", en: "in the wardrobe", aka: ["衣柜里", "柜子里", "衣柜", "柜子", "里面"], realize: { at: [285.5, 640], scale: 1, inside: true } },
   window: { zh: "窗边", en: "by the window", aka: ["窗边", "窗前", "窗"], realize: { at: [118, 708], scale: 1.32, lean: 1.5 } },
   room: { zh: "屋子中间", en: "in the middle of the room", aka: ["屋子中间", "房间中间", "中间", "屋里"], realize: { at: [200, 712], scale: 1.4, lean: 0 } },
   foot: { zh: "床尾", en: "at the foot of the bed", aka: ["床尾", "脚边", "床脚"], realize: { at: [318, 858], scale: 1.72, lean: -2 } },
   bedside: { zh: "床头", en: "at the bed's head", aka: ["床头", "床边", "枕边", "旁边"], realize: { at: [236, 872], scale: 1.9, lean: -3.5 } },
-  gone: { zh: "不在", en: "not there", aka: ["不见", "消失", "不在", "没有人", "走了"], realize: { absent: true } },
+  gone: { zh: "不在", en: "not there", aka: ["不见", "消失", "不在", "没有人", "走了"], realize: { absent: true }, words: "不见了" },
 };
 
 export const DOORS: Record<string, Option> = {
   shut: { zh: "关着", en: "shut", aka: ["关着", "关上", "关"], realize: { open: 0 } },
-  ajar: { zh: "一条缝", en: "a crack", aka: ["一条缝", "缝"], realize: { open: 0.18 } },
-  half: { zh: "半开", en: "half open", aka: ["半开"], realize: { open: 0.36 } },
-  wide: { zh: "大开", en: "wide open", aka: ["大开", "全开", "敞开", "开着"], realize: { open: 0.66 } },
+  ajar: { zh: "一条缝", en: "a crack", aka: ["一条缝", "缝"], realize: { open: 0.18 }, words: "开着一条缝" },
+  half: { zh: "半开", en: "half open", aka: ["半开"], realize: { open: 0.36 }, words: "半开着" },
+  wide: { zh: "大开", en: "wide open", aka: ["大开", "全开", "敞开", "开着"], realize: { open: 0.66 }, words: "大开着" },
 };
 
 export const GAZES: Record<string, Option> = {
   me: { zh: "看着我", en: "at me", aka: ["看着我", "看我", "盯着"], realize: { eyes: 1 } },
-  away: { zh: "没在看", en: "not looking", aka: ["别看我", "不看我", "背对", "不看", "别看", "转过去", "低着头"], realize: { eyes: 0 } },
+  away: { zh: "没在看", en: "not looking", aka: ["别看我", "不看我", "背对", "不看", "别看", "转过去", "低着头"], realize: { eyes: 0 }, words: "背对着我" },
 };
 
 export const HOLDS: Record<string, Option> = {
@@ -81,10 +83,21 @@ export function shape(tree: Tree): Tree {
   return {
     ...tree,
     nodes: tree.nodes.map((n) => {
+      if (n.draws === "man" && n.intents.hat) return { ...n, intents: { ...n.intents, hat: { ...n.intents.hat, view: ["man.hat"] } } };
       if (!beats.has(n.id)) return n;
       const intents: Record<string, Intent> = { ...n.intents };
-      if (intents.where) intents.where = { ...intents.where, gesture: { path: "man", field: "at", depth: [600, 0.75, 880, 1.95] } };
-      if (intents.hold) intents.hold = { ...intents.hold, more: ["久一点", "长一点", "慢一点", "longer"], less: ["短一点", "快一点", "shorter"] };
+      // How each library kind is said, so a pick can be written back into the words.
+      for (const [name, spec] of Object.entries(INTENTS)) {
+        const i = intents[name];
+        if (!i) continue;
+        const options = spec.options as Record<string, Option>;
+        intents[name] = { ...i, kinds: Object.fromEntries(Object.entries(i.kinds).map(([k, kd]) => [k, options[k] ? { ...kd, words: options[k].words ?? options[k].zh } : kd])) };
+      }
+      // Tree → view: what each of a beat's intents moves in the picture (while it is the beat on screen).
+      if (intents.where) intents.where = { ...intents.where, gesture: { path: "man", field: "at", depth: [600, 0.75, 880, 1.95] }, view: ["man"] };
+      if (intents.door) intents.door = { ...intents.door, view: ["wardrobe.door.right", "wardrobe.door.left"] };
+      if (intents.gaze) intents.gaze = { ...intents.gaze, view: ["man.eyes"] };
+      if (intents.hold) intents.hold = { ...intents.hold, more: ["久一点", "长一点", "慢一点", "longer"], less: ["短一点", "快一点", "shorter"], view: ["phase.dream"] };
       return { ...n, intents };
     }),
   };
@@ -168,21 +181,35 @@ function castNode(hat: Record<string, number>): AnswerNode {
 // The first dream.
 // -----------------------------------------------------------------------------
 
-const FIRST_PROMPT = "我又梦到他了。一开始，衣柜门开着一条缝，他在里面看着我。然后他站到了窗边，背对着我。最后他站在我床头，弯下腰，帽子大得遮住了半个房间。";
+const FIRST_PROMPT = "我又梦到他了。一开始，衣柜门开着一条缝，他在里面看着我。然后他换了个地方，背对着我。最后他站在我床头，弯下腰，帽子大得遮住了半个房间。";
 
 const FIRST: Answer = {
   ...EMPTY,
-  note_zh: "三幕：门缝里、窗边、床头；第二幕他在哪我拿不准（窗边还是床尾），问你",
-  note_en: "Three beats: in the gap, by the window, at the bed; where he is in the second I am not sure of (the window or the foot of the bed), so I ask",
+  note_zh: "三幕：门缝里、换了个地方、床头；第二幕没说他换到了哪（窗边还是床尾），我拿不准，问你",
+  note_en: "Three beats: in the gap, somewhere else, at the bed; the second does not say where (the window or the foot of the bed?), so I ask",
   title_zh: "又一个梦",
   title_en: "Another Dream",
   nodes: [
     castNode({ absurd: 0.6, big: 0.36 }),
     beatNode(0, { line: "衣柜门开着一条缝，他在里面看着我", where: { inside: 0.9 }, door: { ajar: 0.8 }, gaze: { me: 0.9 }, hold: { long: 0.7 } }),
-    beatNode(1, { line: "然后他站到了窗边，背对着我", where: { window: 0.48, foot: 0.4 }, door: { half: 0.6 }, gaze: { away: 0.85 }, hold: { brief: 0.6 } }),
+    beatNode(1, { line: "然后他换了个地方，背对着我", where: { window: 0.48, foot: 0.4 }, door: { half: 0.6 }, gaze: { away: 0.85 }, hold: { brief: 0.6 } }),
     beatNode(2, { line: "最后他站在我床头，弯下腰", where: { bedside: 0.92 }, door: { wide: 0.7 }, gaze: { me: 0.95 }, hold: { long: 0.8 } }),
   ],
   phases: ["b1", "b2", "b3"],
+  // Words → tree. "换了个地方" names where he is in the second beat and says no place: that is what the model asks.
+  spans: [
+    { text: "他", node: "man", intent: "", kind: "" },
+    { text: "一开始", node: "b1", intent: "", kind: "" },
+    { text: "开着一条缝", node: "b1", intent: "door", kind: "ajar" },
+    { text: "里面", node: "b1", intent: "where", kind: "inside" },
+    { text: "看着我", node: "b1", intent: "gaze", kind: "me" },
+    { text: "然后", node: "b2", intent: "", kind: "" },
+    { text: "换了个地方", node: "b2", intent: "where", kind: "" },
+    { text: "背对着我", node: "b2", intent: "gaze", kind: "away" },
+    { text: "最后", node: "b3", intent: "", kind: "" },
+    { text: "床头", node: "b3", intent: "where", kind: "bedside" },
+    { text: "帽子大得遮住了半个房间", node: "man", intent: "hat", kind: "absurd" },
+  ],
 };
 
 // Into a tree the way any model's dream is (the router's applyAnswer), then the player's conventions.
@@ -199,10 +226,19 @@ export const TREE: Tree = shape(applyAnswer(BLANK, FIRST, { kind: "dream", text:
 
 const CLOSER = ["inside", "window", "room", "foot", "bedside"];
 
-function find(s: string, options: Record<string, Option>): string | null {
-  let best: { id: string; len: number } | null = null;
-  for (const [id, o] of Object.entries(options)) for (const w of o.aka) if (s.includes(w) && (!best || w.length > best.len)) best = { id, len: w.length };
-  return best?.id ?? null;
+/** The option the words say (its longest aka), and the words that say it: the option's own words, if they are there whole. */
+function found(s: string, options: Record<string, Option>): { id: string; word: string; at: number } | null {
+  let best: { id: string; word: string; at: number } | null = null;
+  for (const [id, o] of Object.entries(options))
+    for (const w of o.aka) {
+      const at = s.indexOf(w);
+      if (at >= 0 && (!best || w.length > best.word.length)) best = { id, word: w, at };
+    }
+  if (!best) return null;
+  const words = options[best.id].words;
+  const k = words ? words.indexOf(best.word) : -1;
+  if (words && k >= 0 && s.slice(best.at - k, best.at - k + words.length) === words) return { ...best, word: words, at: best.at - k };
+  return best;
 }
 
 export function compose(text: string): Answer {
@@ -214,13 +250,30 @@ export function compose(text: string): Answer {
   if (!lines.length) lines.push(text.trim() || "他在");
   const n = lines.length;
   let door = "shut";
+  // Words → tree, as the beats are read: where each says it (in the whole text), sorted into reading order at the end.
+  const bound: (Answer["spans"][number] & { at: number })[] = [];
+  let cursor = 0;
   const beats = lines.map((line, i): BeatSpec => {
-    // "不见了" before any place; "衣柜门" is the door, not him in the wardrobe.
-    const said = /不见|消失|不在|走了/.test(line) ? "gone" : find(line.replace(/衣?柜门/g, "门"), PLACES);
+    const id = `b${i + 1}`;
+    const lineAt = text.indexOf(line, cursor);
+    // The word that starts the beat ("然后"), just before it or at its start.
+    const gap = text.slice(cursor, lineAt + 3);
+    const cue = /一开始|然后|后来|接着|最后/.exec(gap);
+    if (cue) bound.push({ text: cue[0], node: id, intent: "", kind: "", at: cursor + cue.index });
+    cursor = lineAt + line.length;
+    // "衣柜门" is the door, not him in the wardrobe (masked, so the places do not see it).
+    const masked = line.replace(/衣?柜门/g, (m) => "＿".repeat(m.length));
+    const gone = /不见了?|消失了?|不在|走了/.exec(line);
+    const place = gone ? { id: "gone", word: gone[0], at: gone.index } : found(masked, PLACES);
+    const doorWords = found(line, DOORS);
+    const gazeWords = found(line, GAZES);
+    for (const [hit, intent] of [[place, "where"], [doorWords, "door"], [gazeWords, "gaze"]] as const)
+      if (hit) bound.push({ text: hit.word, node: id, intent, kind: hit.id, at: lineAt + hit.at });
+    const said = place?.id ?? null;
     const guess = n === 1 ? "bedside" : CLOSER[Math.round((i / (n - 1)) * (CLOSER.length - 1))];
     const where = said ? { [said]: 0.85 } : { [guess]: 0.5, [guess === "bedside" ? "foot" : "bedside"]: 0.35 };
-    door = find(line, DOORS) ?? (said === "inside" && door === "shut" ? "ajar" : door);
-    const gaze = find(line, GAZES);
+    door = doorWords?.id ?? (said === "inside" && door === "shut" ? "ajar" : door);
+    const gaze = gazeWords?.id ?? null;
     return {
       line,
       where,
@@ -230,6 +283,16 @@ export function compose(text: string): Answer {
     };
   });
   const hat: Record<string, number> = /帽子.*(离谱|巨大|夸张|遮住|大得)/.test(text) ? { absurd: 0.8 } : /帽子.*(正常|普通|小)/.test(text) ? { usual: 0.7 } : {};
+  const hatWords = /帽子[^，。,.]*/.exec(text);
+  if (hatWords) bound.push({ text: hatWords[0], node: "man", intent: "hat", kind: Object.keys(hat)[0] ?? "", at: hatWords.index });
+  // Overlaps (a word read twice) keep the first.
+  const spans: Answer["spans"] = [];
+  let end = -1;
+  for (const x of bound.sort((p, q) => p.at - q.at))
+    if (x.at >= end) {
+      spans.push({ text: x.text, node: x.node, intent: x.intent, kind: x.kind });
+      end = x.at + x.text.length;
+    }
   const asked = beats.filter((b) => Math.max(...Object.values(b.where)) < 0.6).length;
   return {
     ...EMPTY,
@@ -239,6 +302,7 @@ export function compose(text: string): Answer {
     title_en: `A dream in ${n} ${n === 1 ? "beat" : "beats"}`,
     nodes: [castNode(hat), ...beats.map((b, i) => beatNode(i, b))],
     phases: beats.map((_, i) => `b${i + 1}`),
+    spans,
   };
 }
 

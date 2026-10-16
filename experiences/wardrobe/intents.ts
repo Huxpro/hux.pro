@@ -10,14 +10,29 @@
 // a model's) are changes to this tree; the code reads it through reintent.
 // =============================================================================
 
-import type { Answer, Host, Tree } from "intents";
+import { bindWords, type Answer, type Host, type Tree } from "intents";
 import { EMPTY, L, kind, placeName, recordedDrawing, recordedThing, type Need } from "../common/things";
+
+const PROMPT =
+  "我梦到一个穿着黑色衣服，很瘦很高的男人站在我的床头看着我。他的头上戴着那种像犹太人一样圆圆的大的帽子，但是比犹太人的帽子大很多。他一开始站在我的衣柜里面，后来把衣柜门打开，走出来站在我的床头看着我。后来我醒了，醒了之后发现我卧室的柜门确实正在打开。";
 
 export const TREE: Tree = {
   scene: "wardrobe",
   title: L("衣柜", "The Wardrobe"),
-  prompt:
-    "我梦到一个穿着黑色衣服，很瘦很高的男人站在我的床头看着我。他的头上戴着那种像犹太人一样圆圆的大的帽子，但是比犹太人的帽子大很多。他一开始站在我的衣柜里面，后来把衣柜门打开，走出来站在我的床头看着我。后来我醒了，醒了之后发现我卧室的柜门确实正在打开。",
+  prompt: PROMPT,
+  // Words → tree: what the model took each stretch of the dream to be about, and what it says.
+  spans: bindWords(PROMPT, [
+    ["穿着黑色衣服，很瘦很高的男人", "man"],
+    ["床头", "man", "stand", "bedside"],
+    ["看着我", "man", "gaze", "me"],
+    ["圆圆的大的帽子", "man", "hat"],
+    ["大很多", "man", "hat", "big"],
+    ["衣柜", "wardrobe"],
+    ["床头", "man", "stand", "bedside"],
+    ["看着我", "man", "gaze", "me"],
+    ["柜门", "wardrobe", "door"],
+    ["正在打开", "wardrobe", "pace", "slow"],
+  ]),
   by: { who: "model:strong", event: "generated the experience" },
   nodes: [
     {
@@ -31,23 +46,25 @@ export const TREE: Tree = {
           label: L("帽子有多大", "how big the hat"),
           aka: ["帽子", "帽", "hat"],
           kinds: {
-            usual: { label: L("寻常", "usual"), aka: ["正常", "普通", "normal"], realize: { hatScale: 1 } },
+            usual: { label: L("寻常", "usual"), aka: ["正常", "普通", "差不多大", "normal"], realize: { hatScale: 1 }, words: "差不多大" },
             big: { label: L("大很多", "much bigger"), aka: ["大很多"], realize: { hatScale: 1.45 } },
             absurd: { label: L("大得离谱", "absurd"), aka: ["离谱", "夸张", "huge"], realize: { hatScale: 1.95 } },
           },
           p: { usual: 0.04, big: 0.52, absurd: 0.44 },
           ordered: true,
           resolve: "ask",
+          view: ["man.hat"],
         },
         gaze: {
           label: L("看着谁", "his gaze"),
           aka: ["看", "眼睛", "盯", "look", "eyes", "stare"],
           kinds: {
             me: { label: L("看着我", "at me"), aka: ["看着我", "看我", "盯着"], realize: { eyes: 1 } },
-            away: { label: L("没在看", "not looking"), aka: ["别看我", "别看", "移开", "闭眼", "away"], realize: { eyes: 0 } },
+            away: { label: L("没在看", "not looking"), aka: ["别看我", "别看", "没有看我", "移开", "闭眼", "away"], realize: { eyes: 0 }, words: "没有看我" },
           },
           p: { me: 0.93, away: 0.07 },
           resolve: "switch",
+          view: ["man.eyes"],
         },
         stand: {
           label: L("走到床边时站在哪", "where he stands at the bed"),
@@ -60,6 +77,7 @@ export const TREE: Tree = {
           p: { bedside: 0.46, foot: 0.42, window: 0.12 },
           resolve: "switch",
           gesture: { path: "man[bedside]", field: "at", depth: [600, 0.75, 880, 1.95] },
+          view: ["man[bedside]"],
         },
       },
     },
@@ -82,20 +100,22 @@ export const TREE: Tree = {
           ordered: true,
           resolve: "switch",
           gesture: { path: "wardrobe.door.right", field: "open", axis: { x0: 286, x1: 358, max: 0.8 } },
+          view: ["wardrobe.door.right"],
         },
         pace: {
           label: L("开得多慢", "how slowly it opens"),
           aka: ["速度", "pace"],
           kinds: {
-            sudden: { label: L("一下子", "all at once"), aka: ["一下子", "猛地"], realize: { over: 2.5 } },
-            slow: { label: L("慢慢地", "slowly"), aka: ["慢慢"], realize: { over: 6.5 } },
-            crawl: { label: L("极慢", "a crawl"), aka: ["极慢", "很慢很慢"], realize: { over: 12 } },
+            sudden: { label: L("一下子", "all at once"), aka: ["一下子", "猛地"], realize: { over: 2.5 }, words: "猛地打开" },
+            slow: { label: L("慢慢地", "slowly"), aka: ["慢慢", "正在打开"], realize: { over: 6.5 }, words: "正在慢慢打开" },
+            crawl: { label: L("极慢", "a crawl"), aka: ["极慢", "很慢很慢"], realize: { over: 12 }, words: "极慢地打开" },
           },
           p: { sudden: 0.08, slow: 0.7, crawl: 0.22 },
           ordered: true,
           more: ["慢一点", "更慢", "再慢", "慢些", "slower"],
           less: ["快一点", "更快", "再快", "快些", "faster"],
           resolve: "switch",
+          view: ["beat.door"],
         },
       },
     },

@@ -7,6 +7,7 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { useLabStrings, type LabTable } from "../i18n";
+import { BindingHeader, BindingWords, ViewChips, colorOf, type BindFocus, type Chain } from "./binding";
 import { LabButton, LabChip } from "./shell";
 
 // =============================================================================
@@ -163,7 +164,7 @@ function Badge({ tone, children }: { tone: "green" | "violet" | "amber" | "grey"
 const sourceTone = (s: Source) => (s === "person" ? "green" : s === "viewer" ? "violet" : s === "ask" ? "amber" : "grey");
 const pathTone = (p: LogEntry["path"]) => (p === "resolve" ? "green" : p === "infer" ? "violet" : p === "ask" ? "amber" : "grey");
 
-export function IntentsPanel({ api, snap }: { api: IntentsApi; snap: IntentsSnapshot }) {
+export function IntentsPanel({ api, snap, chain, setHover }: { api: IntentsApi; snap: IntentsSnapshot; chain: Chain; setHover: (f: BindFocus) => void }) {
   const S = useLabStrings(STRINGS);
   const { locale } = useLocale();
   const [text, setText] = useState("");
@@ -192,6 +193,123 @@ export function IntentsPanel({ api, snap }: { api: IntentsApi; snap: IntentsSnap
         </div>
         <p className={cn(TYPE.caption, "mt-1")}>{S.loopNote}</p>
       </div>
+
+      {/* Binding: the words, bound to the tree; the tree, bound to the picture (binding.tsx draws the lines). */}
+      <div className="space-y-3">
+        <BindingHeader />
+        {snap.tree.spans?.length ? <BindingWords api={api} snap={snap} chain={chain} setHover={setHover} /> : null}
+      </div>
+
+      {/* Now: each intent, its value, who decided it; a viewer can lean. */}
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <div className={TYPE.label}>{S.now}</div>
+          <div className="flex gap-1">
+            <LabButton disabled={!snap.canUndo || snap.pending} onClick={() => api.undo()}>
+              <Undo2 />
+              {S.undo}
+            </LabButton>
+            <LabButton disabled={snap.pending} onClick={() => api.reset()}>
+              <RotateCcw />
+              {S.reset}
+            </LabButton>
+          </div>
+        </div>
+        <p className={TYPE.caption}>{S.nowNote}</p>
+        <div className="grid gap-1.5">
+          {Object.values(snap.values).map((v) => {
+            const intent = node(v.node)?.intents[v.intent];
+            if (!intent) return null;
+            const leaning = snap.ctx.viewer[v.intent];
+            return (
+              <div
+                key={v.key}
+                data-bind-intent={v.key}
+                onMouseEnter={() => setHover({ intent: v.key })}
+                onMouseLeave={() => setHover(null)}
+                className="-mx-1.5 space-y-0.5 rounded-md border-l-2 px-1.5 py-0.5 transition-colors"
+                style={{ borderColor: colorOf(snap.tree, v.node), background: chain.intents.has(v.key) ? `${colorOf(snap.tree, v.node)}1a` : undefined }}
+              >
+                <div className="flex items-baseline justify-between gap-2 text-[12px]">
+                  <span className="text-muted-foreground">
+                    {node(v.node)?.label[locale]} · {intent.label[locale]}
+                    <span className="ml-1.5">
+                      <ViewChips tree={snap.tree} k={v.key} onScreen={snap.focus} />
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-foreground">{label(v.node, v.intent, v.kind)}</span>
+                    <Badge tone={sourceTone(v.source)}>{S.sources[v.source]}{v.from ? ` · ${v.from}` : ""}</Badge>
+                    {v.source === "person" && (
+                      <button type="button" onClick={() => api.forget(v.node, v.intent)} className={cn(TYPE.rowMeta, "text-[10px] hover:text-foreground")}>
+                        {S.forget}
+                      </button>
+                    )}
+                  </span>
+                </div>
+                {(leanOpen || !!leaning) && (
+                <div className="flex flex-wrap items-center gap-1 pl-2">
+                  <span className={cn(TYPE.rowMeta, "text-[10px]")}>{S.viewer}:</span>
+                  {Object.keys(intent.kinds).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => void api.dispatch({ type: "lean", intent: v.intent, kind: leaning === k ? null : k })}
+                      className={cn(
+                        "rounded border px-1 text-[10px] leading-4 transition-colors",
+                        leaning === k ? "border-violet-500 bg-violet-500/15 text-foreground" : "border-border/70 text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {label(v.node, v.intent, k)}
+                      {intent.kinds[k].learned ? "*" : ""}
+                    </button>
+                  ))}
+                </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2">
+          <LabChip on={leanOpen} onClick={() => setLeanOpen((v) => !v)}>
+            {S.viewer}
+          </LabChip>
+          <span className={cn(TYPE.caption, "text-[11px]")}>{S.viewerNote}</span>
+        </div>
+      </div>
+
+      {/* Asked: the model unsure where it matters, or a sentence with two readings. */}
+      {(snap.asks.length > 0 || snap.question) && (
+        <div className="space-y-3 rounded-xl border border-amber-500/40 bg-amber-500/[0.07] p-3">
+          <div className={TYPE.label}>{S.asks}</div>
+          {snap.question && (
+            <div className="space-y-2">
+              <p className="text-sm text-foreground">{S.asksReadings(snap.question.text)}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {snap.question.readings.map((r) => (
+                  <LabButton key={`${r.node}.${r.intent}.${r.kind}`} tone="primary" onClick={() => void api.dispatch({ type: "answer", node: r.node, intent: r.intent, kind: r.kind })}>
+                    {node(r.node)?.label[locale]} · {node(r.node)?.intents[r.intent]?.label[locale]} → {label(r.node, r.intent, r.kind)}
+                  </LabButton>
+                ))}
+              </div>
+            </div>
+          )}
+          {snap.asks.map((a) => (
+            <div key={a.key} className="space-y-2">
+              <p className="text-sm text-foreground">
+                {S.asksModel} <span className="font-medium">{node(a.node)?.label[locale]} · {node(a.node)?.intents[a.intent]?.label[locale]}</span>
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {a.kinds.map((k) => (
+                  <LabButton key={k} tone="primary" onClick={() => void api.dispatch({ type: "answer", node: a.node, intent: a.intent, kind: k })}>
+                    {label(a.node, a.intent, k)} · {Math.round((a.p[k] ?? 0) * 100)}%
+                  </LabButton>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Say: a sentence is an event, of a thing or of the scene. */}
       <div className="space-y-2">
@@ -279,107 +397,6 @@ export function IntentsPanel({ api, snap }: { api: IntentsApi; snap: IntentsSnap
           </div>
         </div>
       )}
-
-      {/* Asked: the model unsure where it matters, or a sentence with two readings. */}
-      {(snap.asks.length > 0 || snap.question) && (
-        <div className="space-y-3 rounded-xl border border-amber-500/40 bg-amber-500/[0.07] p-3">
-          <div className={TYPE.label}>{S.asks}</div>
-          {snap.question && (
-            <div className="space-y-2">
-              <p className="text-sm text-foreground">{S.asksReadings(snap.question.text)}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {snap.question.readings.map((r) => (
-                  <LabButton key={`${r.node}.${r.intent}.${r.kind}`} tone="primary" onClick={() => void api.dispatch({ type: "answer", node: r.node, intent: r.intent, kind: r.kind })}>
-                    {node(r.node)?.label[locale]} · {node(r.node)?.intents[r.intent]?.label[locale]} → {label(r.node, r.intent, r.kind)}
-                  </LabButton>
-                ))}
-              </div>
-            </div>
-          )}
-          {snap.asks.map((a) => (
-            <div key={a.key} className="space-y-2">
-              <p className="text-sm text-foreground">
-                {S.asksModel} <span className="font-medium">{node(a.node)?.label[locale]} · {node(a.node)?.intents[a.intent]?.label[locale]}</span>
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {a.kinds.map((k) => (
-                  <LabButton key={k} tone="primary" onClick={() => void api.dispatch({ type: "answer", node: a.node, intent: a.intent, kind: k })}>
-                    {label(a.node, a.intent, k)} · {Math.round((a.p[k] ?? 0) * 100)}%
-                  </LabButton>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Now: each intent, its value, who decided it; a viewer can lean. */}
-      <div className="space-y-2">
-        <div className="flex items-baseline justify-between">
-          <div className={TYPE.label}>{S.now}</div>
-          <div className="flex gap-1">
-            <LabButton disabled={!snap.canUndo || snap.pending} onClick={() => api.undo()}>
-              <Undo2 />
-              {S.undo}
-            </LabButton>
-            <LabButton disabled={snap.pending} onClick={() => api.reset()}>
-              <RotateCcw />
-              {S.reset}
-            </LabButton>
-          </div>
-        </div>
-        <p className={TYPE.caption}>{S.nowNote}</p>
-        <div className="grid gap-1.5">
-          {Object.values(snap.values).map((v) => {
-            const intent = node(v.node)?.intents[v.intent];
-            if (!intent) return null;
-            const leaning = snap.ctx.viewer[v.intent];
-            return (
-              <div key={v.key} className="space-y-0.5">
-                <div className="flex items-baseline justify-between gap-2 text-[12px]">
-                  <span className="text-muted-foreground">
-                    {node(v.node)?.label[locale]} · {intent.label[locale]}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="text-foreground">{label(v.node, v.intent, v.kind)}</span>
-                    <Badge tone={sourceTone(v.source)}>{S.sources[v.source]}{v.from ? ` · ${v.from}` : ""}</Badge>
-                    {v.source === "person" && (
-                      <button type="button" onClick={() => api.forget(v.node, v.intent)} className={cn(TYPE.rowMeta, "text-[10px] hover:text-foreground")}>
-                        {S.forget}
-                      </button>
-                    )}
-                  </span>
-                </div>
-                {(leanOpen || !!leaning) && (
-                <div className="flex flex-wrap items-center gap-1 pl-2">
-                  <span className={cn(TYPE.rowMeta, "text-[10px]")}>{S.viewer}:</span>
-                  {Object.keys(intent.kinds).map((k) => (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => void api.dispatch({ type: "lean", intent: v.intent, kind: leaning === k ? null : k })}
-                      className={cn(
-                        "rounded border px-1 text-[10px] leading-4 transition-colors",
-                        leaning === k ? "border-violet-500 bg-violet-500/15 text-foreground" : "border-border/70 text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {label(v.node, v.intent, k)}
-                      {intent.kinds[k].learned ? "*" : ""}
-                    </button>
-                  ))}
-                </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <div className="flex items-center gap-2">
-          <LabChip on={leanOpen} onClick={() => setLeanOpen((v) => !v)}>
-            {S.viewer}
-          </LabChip>
-          <span className={cn(TYPE.caption, "text-[11px]")}>{S.viewerNote}</span>
-        </div>
-      </div>
 
       {/* Events: the newest first. */}
       <div className="space-y-2">

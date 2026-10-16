@@ -18,12 +18,14 @@
 // =============================================================================
 
 import type { Need } from "./recognize";
+import { bindWords } from "./words";
 import { toXml, type Action, type By, type Drawing, type Intent, type Kind, type Node, type Pt, type State, type Text, type Tree } from "./tree";
 
 export type Tier = "weak" | "strong";
 
 export function tierOf(need: Need): Tier {
-  return need.kind === "learn-at" || need.kind === "learn-value" || need.kind === "extend" ? "weak" : "strong";
+  if (need.kind === "reword") return need.intent ? "weak" : "strong";
+  return need.kind === "learn-at" || need.kind === "learn-value" || need.kind === "extend" || need.kind === "unsay" ? "weak" : "strong";
 }
 
 // -----------------------------------------------------------------------------
@@ -77,6 +79,10 @@ export interface Answer {
   phases: string[];
   title_zh: string;
   title_en: string;
+  /** For a dream: which words of it are about what (in reading order; intent and kind "" when none). */
+  spans: { text: string; node: string; intent: string; kind: string }[];
+  /** Beliefs revised (the words they rested on were deleted): one row per kind. */
+  beliefs: { node: string; intent: string; kind: string; p: number }[];
 }
 
 export const toRealize = (fs: RealizeField[]): Record<string, unknown> =>
@@ -106,13 +112,14 @@ const normalize = (p: Record<string, number>) => {
 
 /** A model's answer, as the tree it means, and the person's picks on it. */
 export function applyAnswer(tree: Tree, a: Answer, need: Need, by: By): { tree: Tree; then: Action[]; drawNeeded: string[] } {
-  const from = need.kind === "learn-at" || need.kind === "learn-value" ? "dragged" : "said";
+  const from = need.kind === "learn-at" || need.kind === "learn-value" ? "dragged" : need.kind === "reword" ? "worded" : "said";
   let next: Tree;
   if (need.kind === "dream") {
     next = {
       scene: tree.scene,
       title: { zh: a.title_zh, en: a.title_en },
       prompt: need.text,
+      spans: bindWords(need.text, (a.spans ?? []).map((x) => [x.text, x.node, x.intent || undefined, x.kind || undefined] as const)),
       by,
       nodes: a.nodes.map((n) => toNode(n, by, false)),
       phases: a.phases.map((node) => ({ node })),
@@ -136,6 +143,16 @@ export function applyAnswer(tree: Tree, a: Answer, need: Need, by: By): { tree: 
         }),
         ...a.nodes.filter((n) => !tree.nodes.some((x) => x.id === n.id)).map((n) => toNode(n, by, true)),
       ],
+    };
+  }
+  // Beliefs revised: each intent named gets the kinds' new p (normalized; kinds not named keep theirs).
+  for (const [k, rows] of Object.entries(Object.groupBy(a.beliefs ?? [], (b) => `${b.node}|${b.intent}`))) {
+    const [node, intent] = k.split("|");
+    next = {
+      ...next,
+      nodes: next.nodes.map((n) =>
+        n.id !== node || !n.intents[intent] ? n : { ...n, intents: { ...n.intents, [intent]: { ...n.intents[intent], p: normalize({ ...n.intents[intent].p, ...Object.fromEntries((rows ?? []).map((r) => [r.kind, r.p])) }) } } },
+      ),
     };
   }
   const then: Action[] = a.picks.map((p) => ({ type: "decide", node: p.node, intent: p.intent, kind: p.kind, from }));
@@ -175,7 +192,11 @@ export function observe(state: State, need: Need): string {
             ? `<need kind="new-thing" noun="${need.noun}">${need.text}</need>`
             : need.kind === "dream"
               ? `<need kind="dream">${need.text}</need>`
-              : `<need kind="unknown" on="${need.node ?? "scene"}">${need.text}</need>`;
+              : need.kind === "reword"
+                ? `<need kind="reword" node="${need.node}"${need.intent ? ` intent="${need.intent}"` : ""} was="${need.old}">${need.text}</need> <!-- The person rewrote these words in the prompt; no kind reads them. ${need.intent ? "Add the kind they say to this intent; pick it." : "They reprompt this thing: change what it is, as little as it takes."} -->`
+                : need.kind === "unsay"
+                  ? `<need kind="unsay" node="${need.node}" intent="${need.intent}">${need.text}</need> <!-- The person deleted these words from the prompt: they were your evidence for this intent. Give your beliefs again, without them. -->`
+                  : `<need kind="unknown" on="${need.node ?? "scene"}">${need.text}</need>`;
   return `${toXml(state)}\n<context>\n${said}\n</context>\n${ask}\n<!-- No preset intent reads this. Change the tree as little as it takes; keep every person's pick. -->`;
 }
 
@@ -248,7 +269,9 @@ export async function infer(state: State, need: Need, host: Host): Promise<Infer
   if (!answer) {
     return {
       then: [],
-      note: { zh: "模型也读不懂：树不变", en: "The model cannot read it either: the tree stays" },
+      note: real
+        ? { zh: "模型也读不懂：树不变", en: "The model cannot read it either: the tree stays" }
+        : { zh: "替身答不了这个（要真实模型）：树不变", en: "The stand-in cannot answer this (it needs a real model): the tree stays" },
       by,
       tier,
       live: !!real,
@@ -281,7 +304,11 @@ const describe = (need: Need) =>
         ? `past the end of ${need.node}.${need.intent}`
         : need.kind === "new-thing" || need.kind === "dream" || need.kind === "unknown"
           ? need.text
-          : "";
+          : need.kind === "reword"
+            ? `「${need.old}」→「${need.text}」`
+            : need.kind === "unsay"
+              ? `「${need.text}」 deleted`
+              : "";
 
 // -----------------------------------------------------------------------------
 // The weak model's work, as rules (what a weak model is for: one kind more).
@@ -290,9 +317,9 @@ const describe = (need: Need) =>
 let seq = 0;
 
 function weakStandIn(state: State, need: Need, host: Host): Answer | null {
-  const base = { nodes: [], phases: [], title_zh: "", title_en: "" };
+  const base = { nodes: [], phases: [], title_zh: "", title_en: "", spans: [], beliefs: [] };
   const n = state.tree.nodes.find((x) => x.id === (need as { node?: string }).node);
-  const intent = n && "intent" in need ? n.intents[need.intent] : undefined;
+  const intent = n && "intent" in need && need.intent ? n.intents[need.intent] : undefined;
   if (!n || !intent) return null;
   if (need.kind === "learn-at") {
     const g = intent.gesture;
@@ -319,23 +346,44 @@ function weakStandIn(state: State, need: Need, host: Host): Answer | null {
       picks: [{ node: n.id, intent: need.intent, kind: id }],
     };
   }
-  if (need.kind === "extend") {
+  if (need.kind === "unsay") {
+    // Without its words, the belief falls back halfway to even: unsure where it was sure.
+    const ks = Object.keys(intent.kinds);
+    const flat = Object.fromEntries(ks.map((k) => [k, +(0.5 * (intent.p[k] ?? 0) + 0.5 / ks.length).toFixed(3)]));
+    return {
+      ...base,
+      kinds: [],
+      picks: [],
+      note_zh: `「${need.text}」删了：它是这个意图的依据，信念退回一半到平均`,
+      note_en: `"${need.text}" deleted: it was the evidence; the belief falls back halfway to even`,
+      beliefs: ks.map((k) => ({ node: n.id, intent: need.intent, kind: k, p: flat[k] })),
+    };
+  }
+  if (need.kind === "reword" && need.dir === 0) return null;
+  if (need.kind === "extend" || need.kind === "reword") {
+    const dir = need.dir || 1;
     // One step further along: every number in the last two kinds, extrapolated.
     const ks = Object.values(intent.kinds);
-    const [a, b] = need.dir > 0 ? [ks[ks.length - 2], ks[ks.length - 1]] : [ks[1], ks[0]];
+    const [a, b] = dir > 0 ? [ks[ks.length - 2], ks[ks.length - 1]] : [ks[1], ks[0]];
     const realize: Record<string, unknown> = {};
     for (const [f, v] of Object.entries(b.realize)) {
       const w = a?.realize[f];
       realize[f] = typeof v === "number" && typeof w === "number" ? +Math.max(0, v + (v - w)).toFixed(3) : v;
     }
-    const id = `${need.intent}${need.dir > 0 ? "+" : "-"}${ks.length}`;
-    const label = need.dir > 0 ? { zh: `比「${b.label.zh}」更甚`, en: `more than ${b.label.en}` } : { zh: `比「${b.label.zh}」更轻`, en: `less than ${b.label.en}` };
+    const id = `${need.intent}${dir > 0 ? "+" : "-"}${ks.length}`;
+    // Reworded: the new kind is called what the person wrote.
+    const label =
+      need.kind === "reword"
+        ? { zh: need.text, en: need.text }
+        : dir > 0
+          ? { zh: `比「${b.label.zh}」更甚`, en: `more than ${b.label.en}` }
+          : { zh: `比「${b.label.zh}」更轻`, en: `less than ${b.label.en}` };
     return {
       ...base,
       note_zh: `已经在这个尺度的尽头：往外再延一档（${label.zh}）`,
       note_en: `Already at the end of the scale: one more step out (${label.en})`,
-      kinds: [{ node: n.id, intent: need.intent, kind: { id, label_zh: label.zh, label_en: label.en, aka: [], realize: fromRealize(realize), p: 0.8 } }],
-      picks: [{ node: n.id, intent: need.intent, kind: id }],
+      kinds: [{ node: n.id, intent: need.intent!, kind: { id, label_zh: label.zh, label_en: label.en, aka: need.kind === "reword" ? [need.text] : [], realize: fromRealize(realize), p: 0.8 } }],
+      picks: [{ node: n.id, intent: need.intent!, kind: id }],
     };
   }
   return null;

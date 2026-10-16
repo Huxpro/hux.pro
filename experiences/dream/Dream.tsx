@@ -139,13 +139,14 @@ function Director({ state, dispatch, sound }: { state: State; dispatch: Dispatch
   });
 
   // A new dream (another tree's beats): from the top.
-  const dreamKey = `${rd.tree.prompt}|${rd.beats.map((b) => b.id).join(",")}`;
-  const lastKey = useRef(dreamKey);
+  // Another dream is another tree written (its `by`); words edited or a pick made are the same dream.
+  const written = rd.tree.by;
+  const lastWritten = useRef(written);
   useEffect(() => {
-    if (lastKey.current === dreamKey) return;
-    lastKey.current = dreamKey;
+    if (lastWritten.current === written) return;
+    lastWritten.current = written;
     dispatch({ type: "replay", t: now() });
-  }, [dreamKey, dispatch, now]);
+  }, [written, dispatch, now]);
 
   // A tap: the next beat; awake, once the words are up, the dream again.
   useEffect(() => {

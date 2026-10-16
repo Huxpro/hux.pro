@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { experienceById, type LabId } from "../catalog";
 import { useLabStrings, type LabTable } from "../i18n";
+import { BindingLines } from "./binding";
 import { InspectorOverlay, InspectorPanel, useInspection } from "./inspector";
 import { LabButton, LabChip, LabShell, labButtonClass } from "./shell";
 
@@ -120,9 +121,13 @@ export function ExperienceShell({
 
 function Body({ src, title, inspecting, children }: { src: string; title: string; inspecting: boolean; children: ReactNode }) {
   const frame = useRef<HTMLIFrameElement>(null);
+  const body = useRef<HTMLDivElement>(null);
   const inspection = useInspection(frame);
+  const tree = inspection.intents.snap?.tree ?? null;
   return (
-    <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:justify-center lg:gap-16">
+    <div ref={body} className="relative flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:justify-center lg:gap-16">
+      {/* Inspecting a tree: the bindings drawn across, words → tree → picture. */}
+      {inspecting && tree && <BindingLines container={body} frame={frame} tree={tree} scene={inspection.snapshot} chain={inspection.chain} onScreen={inspection.intents.snap?.focus ?? null} />}
       <div
         className={cn(
           "relative shrink-0 overflow-hidden rounded-[2.25rem] border border-border/60 bg-black shadow-overlay",

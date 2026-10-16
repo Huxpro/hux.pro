@@ -49,6 +49,39 @@ by key: a person's picks, learned kinds and nodes, and drawings carry over to
 the model's next tree wherever they still exist (React's keys). `load`
 replaces the tree whole, for a new dream.
 
+## The two bindings: words ⇄ tree ⇄ picture
+
+The tree sits in the middle, and it is the source of truth. The model writes
+two bindings along with it:
+
+| | written as | means |
+|---|---|---|
+| words → tree | `Tree.spans`: `{ from, to, node, intent?, kind? }` over `Tree.prompt` | these words are about this thing, this intent of it, and say this kind. They are the model's evidence for its belief |
+| tree → picture | `Intent.view` (and `Node.view`): semantic paths | this intent moves these things on stage (`man.hat`, `man[bedside]`, `wardrobe.door.right`, `beat.door`) |
+
+The scene's own language layer (words → paths) is these two bindings composed.
+
+A person can edit from any of the three, and every edit is an event on the
+tree (`words.ts`, `recognize.ts`):
+
+| where | event | what reads it |
+|---|---|---|
+| hover a span | a toolbar of the kinds the words could say, ranked by the model's belief (where it is unsure, that is its question) | `choose`: ① decide, and the span is rewritten to say the kind (`Kind.words`) |
+| rewrite a span | `words` (the whole prompt). `readEdit` finds the stretch that changed and the span it touched | its new words name a kind → ① resolve. Further along ("还要大") → the next kind, or a kind more past the end (weak). Neither → ② `reword` (weak; strong when the span names a thing, since that reprompts it) |
+| delete a span | `words` | ② `unsay`, weak: the evidence is gone, a pick it made goes, and the model gives its beliefs again (the stand-in moves them halfway to even) |
+| add words outside every span | `words` | read as a sentence said (`say`), then bound to what it landed on: a reading, a thing a model added, a kind it picked (`bind`) |
+| drag, answer, lean | as before | a span whose kind is no longer the value shows "differs"; `follow` rewrites its words to say the tree's kind |
+
+Span status: `names` (says no kind) · `agrees` · `differs` · `unread` (reworded,
+and nothing reads it yet). Every edit is reduced like any other action, so undo,
+save and share carry the words with the tree.
+
+In Inspect (`systems/lab/components/binding.tsx`), the words sit above the
+intent rows, and each row lists the paths it drives. Lines are drawn from the
+spans to the rows and from the rows to the boxes on the frame. Hover a span, a
+row or a thing on the frame, and the chain lights up through all three. In a
+dream, a beat binds to the picture only while it is the one on screen.
+
 ## The loop in an experience
 
 ```ts
@@ -117,7 +150,8 @@ a composer that cuts the words into beats.
 | `/lab/wardrobe` → Inspect | live editing of a written experience. Drag him or the door on the frame; say "帽子大一点 · 门慢一点 · 床头放一盏灯 · 关灯"; answer the model's question about the hat; see every value's source; undo, forget, save, share |
 | `/lab/dream` → Inspect | a player for dreams written as trees (`experiences/dream`). Tell it a dream: the strong model (or the composer) writes a new tree, and the same player plays it. Answer where the model was unsure; drag him in a held beat |
 | `systems/lab/components/intents-panel.tsx` | the panel: say, tell a dream, asked, now (values, sources, leanings), events, versions, the tree as XML |
-| `systems/lab/components/inspector.tsx` | the overlay: a drag on a thing an intent's `gesture` names is a loop event; a click selects |
+| `systems/lab/components/inspector.tsx` | the overlay: a drag on a thing an intent's `gesture` names is a loop event; a click selects; hovering a thing lights its chain |
+| `systems/lab/components/binding.tsx` | the bindings: the words (spans, toolbar, editing), view chips on each intent, the lines across |
 
 ## Files
 
@@ -127,6 +161,7 @@ packages/intents/src/
 ├── tree.ts        the tree, actions, reduce, rebase, toXml, changes
 ├── space.ts       the tree as reintent types; values() with each value's source
 ├── recognize.ts   events → resolve / ask / context / infer (a need); gestureFor, dragValue
+├── words.ts       words ⇄ tree: bindWords, readEdit, readWords, rewrite, spanStatus
 ├── router.ts      tiers, the Answer shape, applyAnswer, observe, infer, draw, the weak stand-in
 ├── runtime.ts     useIntents(): the loop as a hook, window.__intents
 ├── version.ts     saved and shared versions

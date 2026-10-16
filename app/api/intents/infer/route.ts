@@ -45,7 +45,7 @@ const NODE = {
 const ANSWER = {
   type: "object",
   additionalProperties: false,
-  required: ["note_zh", "note_en", "kinds", "nodes", "picks", "phases", "title_zh", "title_en"],
+  required: ["note_zh", "note_en", "kinds", "nodes", "picks", "phases", "title_zh", "title_en", "spans", "beliefs"],
   properties: {
     note_zh: str,
     note_en: str,
@@ -61,6 +61,14 @@ const ANSWER = {
     phases: strs,
     title_zh: str,
     title_en: str,
+    spans: {
+      type: "array",
+      items: { type: "object", additionalProperties: false, required: ["text", "node", "intent", "kind"], properties: { text: str, node: str, intent: str, kind: str } },
+    },
+    beliefs: {
+      type: "array",
+      items: { type: "object", additionalProperties: false, required: ["node", "intent", "kind", "p"], properties: { node: str, intent: str, kind: str, p: { type: "number" } } },
+    },
   },
 };
 const DRAWING = { type: "object", additionalProperties: false, required: ["svg"], properties: { svg: str } };
@@ -71,7 +79,8 @@ A person's event could not be read by any preset intent. You are shown the tree,
 - "kinds": kinds to add to intents the tree already has (learn-at, learn-value, extend). Give each a short id, labels in Chinese and English, words people would use (aka), realize fields of the same names the intent's other kinds use, and p (your belief in it, 0-1).
 - "nodes": things to add (new-thing), each with its own intents. A thing the library can draw names it in "draws"; otherwise "draws" is null and, if you can, "svg" is its drawing (see the grammar).
 - "picks": the person's part of the event: pick the kind you added for them.
-- For a new dream ("dream" need): "nodes" is the whole cast, with one node per beat (each with the intents the grammar lists for a beat) and "phases" the beats' ids in order; give a title.
+- For a new dream ("dream" need): "nodes" is the whole cast, with one node per beat (each with the intents the grammar lists for a beat) and "phases" the beats' ids in order; give a title. Bind the words: "spans" lists, in reading order, exact stretches of the dream's text and what each is about (a node; an intent of it; the kind it says; "" where none).
+- The tree's <words> shows the prompt with each bound stretch marked [words](node.intent=kind). A "reword" need: the person rewrote a stretch; add the kind the new words say (or, with no intent, change the thing) and pick it. An "unsay" need: the person deleted a stretch that was your evidence; give "beliefs" for that intent again (one row per kind), without it.
 - Leave arrays empty when not used; "note_zh" / "note_en" say in one line what you did.
 Never remove what a person picked. Keep realize values in the scene's units.`;
 

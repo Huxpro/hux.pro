@@ -176,7 +176,13 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
           ? `drag ${ev.path} → (${ev.to.map((v) => Math.round(v)).join(", ")})`
           : ev.type === "answer"
             ? `answer ${ev.node}.${ev.intent} = ${ev.kind}`
-            : `lean ${ev.intent} → ${ev.kind ?? "none"}`;
+            : ev.type === "lean"
+              ? `lean ${ev.intent} → ${ev.kind ?? "none"}`
+              : ev.type === "words"
+                ? `words ✎ ${wordDiff(live.current.state.tree.prompt, ev.prompt)}`
+                : ev.type === "choose"
+                  ? `words ⟶ ${ev.intent} = ${ev.kind}`
+                  : `words follow the tree (${ev.spans.length})`;
 
   const dispatch = async (ev: Event) => {
     const before = live.current.state;
@@ -191,10 +197,14 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
       pre.push({ type: "context", ctx: { viewer } });
     }
     const r = recognize(ev, before.tree, vals, live.current.focus);
+    // An edit to the words comes first: the prompt as it is now, its spans moved.
+    pre.push(...(r.pre ?? []));
+    // Words just edited, bound to what the event lands on: a reading, a thing a model added, a kind it picked.
+    const bind = (target: { node: string; intent?: string; kind?: string } | null): Action[] => (r.bind && target ? [{ type: "bind", ...r.bind, ...target }] : []);
     // A drag's in-between ends when the tree has its answer: now, or when a model's comes back.
     const settled = () => ev.type === "drag" && setPreview(null);
     if (r.path === "resolve" || r.path === "context") {
-      const actions = [...pre, ...r.actions];
+      const actions = [...pre, ...r.actions, ...bind(r.path === "resolve" && r.reading ? r.reading : null)];
       const after = actions.reduce(reduce, before);
       push(actions);
       settled();
@@ -218,6 +228,11 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
     const inf = await infer(withPre, r.need, host);
     const now = live.current.state;
     const actions: Action[] = inf.tree ? [inf.dream ? { type: "load", tree: inf.tree } : { type: "replace", tree: inf.tree }, ...inf.then] : [];
+    if (inf.tree && !inf.dream) {
+      const added = inf.tree.nodes.find((n) => !now.tree.nodes.some((o) => o.id === n.id));
+      const picked = inf.then.find((a) => a.type === "decide");
+      actions.push(...bind(added ? { node: added.id } : picked?.type === "decide" ? { node: picked.node, intent: picked.intent, kind: picked.kind } : null));
+    }
     const after = actions.reduce(reduce, now);
     push(actions);
     settled();
@@ -339,7 +354,20 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
   return { state, values, asks: asks.map((c) => c.key), preview, pending, focus };
 }
 
+/** An edit, in a few characters: what went, what came. */
+function wordDiff(a: string, b: string) {
+  let p = 0;
+  while (p < a.length && p < b.length && a[p] === b[p]) p++;
+  let s = 0;
+  while (s < a.length - p && s < b.length - p && a[a.length - 1 - s] === b[b.length - 1 - s]) s++;
+  const gone = a.slice(p, a.length - s);
+  const came = b.slice(p, b.length - s);
+  return gone && came ? `「${gone}」→「${came}」` : gone ? `−「${gone}」` : `+「${came}」`;
+}
+
 /** A kept tree over the code's: rebased by key when it is the same piece, whole when it is another (a dream). */
 export function overlay(base: Tree, kept: Tree): Tree {
-  return kept.prompt === base.prompt ? rebase(base, kept) : kept;
+  // The same piece (an experience with its own code for time): the code's tree, with what was kept laid over it,
+  // the words as they were left. Another dream: the kept tree, whole.
+  return !base.phases && !kept.phases ? { ...rebase(base, kept), prompt: kept.prompt, spans: kept.spans ?? base.spans } : kept;
 }

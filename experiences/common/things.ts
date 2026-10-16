@@ -23,7 +23,7 @@ export const kind = (id: string, zh: string, en: string, aka: string[], realize:
   p,
 });
 
-export const EMPTY = { kinds: [], nodes: [], picks: [], phases: [], title_zh: "", title_en: "" };
+export const EMPTY = { kinds: [], nodes: [], picks: [], phases: [], title_zh: "", title_en: "", spans: [], beliefs: [] };
 
 /** A lamp, a cat: new things with their own intents, to be drawn. */
 export function recordedThing(need: Need): Answer | null {

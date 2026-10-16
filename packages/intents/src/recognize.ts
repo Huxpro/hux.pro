@@ -13,14 +13,21 @@
 // =============================================================================
 
 import type { Value } from "./space";
-import { key, type Action, type Pt, type Tree } from "./tree";
+import { intentOf, key, nodeOf, type Action, type Pt, type Tree } from "./tree";
+import { readEdit, readWords, rewrite, wordsOf } from "./words";
 
 export type Event =
   | { type: "drag"; path: string; from: Pt; to: Pt }
   | { type: "say"; text: string; node: string | null }
   | { type: "dream"; text: string }
   | { type: "answer"; node: string; intent: string; kind: string }
-  | { type: "lean"; intent: string; kind: string | null };
+  | { type: "lean"; intent: string; kind: string | null }
+  /** The prompt, edited (words.ts reads which span it touched, and how). */
+  | { type: "words"; prompt: string }
+  /** A kind chosen from a span of the words: decided, and the span rewritten to say it. */
+  | { type: "choose"; span: string; intent: string; kind: string }
+  /** The words follow the tree: these spans rewritten to say the kinds the tree has now. */
+  | { type: "follow"; spans: string[] };
 
 export interface Reading {
   node: string;
@@ -36,13 +43,26 @@ export type Need =
   | { kind: "extend"; node: string; intent: string; dir: 1 | -1 }
   | { kind: "new-thing"; noun: string; text: string }
   | { kind: "unknown"; text: string; node: string | null }
-  | { kind: "dream"; text: string };
+  | { kind: "dream"; text: string }
+  /** A span's words rewritten, and no kind reads them (dir: further along, back, or neither). */
+  | { kind: "reword"; node: string; intent: string | null; text: string; old: string; dir: 1 | -1 | 0 }
+  /** A span's words deleted: the belief they were evidence for, again. */
+  | { kind: "unsay"; node: string; intent: string; text: string };
 
+/** Where words just edited are to be bound once the event has landed (a span, or a stretch of the prompt). */
+export interface Bind {
+  prompt: string;
+  span?: string;
+  from: number;
+  to: number;
+}
+
+type Common = { pre?: Action[]; bind?: Bind };
 export type Recognized =
-  | { path: "resolve"; actions: Action[]; reading?: Reading }
-  | { path: "ask"; readings: Reading[]; text: string }
-  | { path: "infer"; need: Need }
-  | { path: "context"; actions: Action[] };
+  | ({ path: "resolve"; actions: Action[]; reading?: Reading } & Common)
+  | ({ path: "ask"; readings: Reading[]; text: string } & Common)
+  | ({ path: "infer"; need: Need } & Common)
+  | ({ path: "context"; actions: Action[] } & Common);
 
 /** How close (scene units) a drop must be to a kind's anchor to be that kind. */
 export const DOCK = 70;
@@ -93,6 +113,7 @@ export function recognize(ev: Event, tree: Tree, vals: Record<string, Value>, fo
     };
   }
   if (ev.type === "dream") return { path: "infer", need: { kind: "dream", text: ev.text } };
+  if (ev.type === "words" || ev.type === "choose" || ev.type === "follow") return recognizeWords(ev, tree, vals, focus);
 
   if (ev.type === "drag") {
     const d = dragValue(tree, vals, ev, focus);
@@ -171,4 +192,88 @@ export function recognize(ev: Event, tree: Tree, vals: Record<string, Value>, fo
   const [top, second] = readings;
   if (second && top.score - second.score < 1) return { path: "ask", readings: readings.slice(0, 3), text: ev.text };
   return { path: "resolve", reading: top, actions: [{ type: "decide", node: top.node, intent: top.intent, kind: top.kind, from: "said" }] };
+}
+
+// -----------------------------------------------------------------------------
+// Events in the words (words.ts): an edit, a pick from a span, the words following.
+// -----------------------------------------------------------------------------
+
+function recognizeWords(ev: Extract<Event, { type: "words" | "choose" | "follow" }>, tree: Tree, vals: Record<string, Value>, focus?: string | null): Recognized {
+  if (ev.type === "choose") {
+    const s = tree.spans?.find((x) => x.id === ev.span);
+    const intent = s && intentOf(tree, s.node, ev.intent);
+    if (!s || !intent) return { path: "context", actions: [] };
+    const actions: Action[] = [{ type: "decide", node: s.node, intent: ev.intent, kind: ev.kind, from: "worded" }];
+    // A span that says a kind of this intent now says the chosen one; one that only names the thing or the intent
+    // ("换了个地方") stays as it is: the words were vague, the tree holds the choice.
+    if (s.intent === ev.intent && s.kind) actions.push({ type: "words", ...rewrite(tree, s.id, wordsOf(intent, ev.kind), { kind: ev.kind, unread: false }) });
+    return { path: "resolve", reading: { node: s.node, intent: ev.intent, kind: ev.kind, score: 1 }, actions };
+  }
+  if (ev.type === "follow") {
+    let t = tree;
+    for (const id of ev.spans) {
+      const s = t.spans?.find((x) => x.id === id);
+      const v = s?.intent ? vals[key(s.node, s.intent)] : undefined;
+      const intent = s?.intent ? intentOf(t, s.node, s.intent) : undefined;
+      if (!s || !v || !intent) continue;
+      t = { ...t, ...rewrite(t, id, wordsOf(intent, v.kind), { kind: v.kind, unread: false }) };
+    }
+    return { path: "context", actions: [{ type: "words", prompt: t.prompt, spans: t.spans ?? [] }] };
+  }
+
+  const { spans, edit } = readEdit(tree, ev.prompt);
+  const pre: Action[] = [{ type: "words", prompt: ev.prompt, spans }];
+  const now: Tree = { ...tree, prompt: ev.prompt, spans };
+  if (edit.kind === "none") return { path: "context", actions: [], pre };
+
+  if (edit.kind === "insert") {
+    // Words outside every span: a sentence said, read as one, and bound to what it lands on.
+    const r = recognize({ type: "say", text: edit.text, node: null }, now, vals, focus);
+    return { ...r, pre, bind: { prompt: ev.prompt, from: edit.from, to: edit.to } };
+  }
+
+  if (edit.kind === "unsay") {
+    const s = edit.span;
+    if (!s.intent) {
+      // A learned thing whose last words are gone goes with them; the author's things stay.
+      const n = nodeOf(tree, s.node);
+      if (n?.learned && !spans.some((x) => x.node === s.node)) return { path: "resolve", actions: [{ type: "remove", node: s.node }], pre };
+      return { path: "context", actions: [], pre };
+    }
+    // The words were the evidence: a pick they made goes, and the model believes again without them.
+    const i = intentOf(tree, s.node, s.intent);
+    if (i?.from === "worded") pre.push({ type: "forget", node: s.node, intent: s.intent });
+    return { path: "infer", need: { kind: "unsay", node: s.node, intent: s.intent, text: edit.old }, pre };
+  }
+
+  // Reworded.
+  const s = edit.span;
+  const bind: Bind = { prompt: ev.prompt, span: s.id, from: s.from, to: s.to };
+  const settle = (patch: Partial<typeof s>) => ({ type: "words" as const, prompt: ev.prompt, spans: spans.map((x) => (x.id === s.id ? { ...x, ...patch, unread: false } : x)) });
+  if (s.intent) {
+    const intent = intentOf(tree, s.node, s.intent);
+    if (!intent) return { path: "context", actions: [], pre };
+    const r = readWords(intent, edit.text);
+    const kinds = Object.keys(intent.kinds);
+    let kind: string | null = r && "kind" in r ? r.kind : null;
+    let dir: 1 | -1 | 0 = 0;
+    if (r && "dir" in r) {
+      const cur = vals[key(s.node, s.intent)]?.kind ?? kinds[0];
+      const i = kinds.indexOf(cur) + r.dir;
+      if (i >= 0 && i < kinds.length) kind = kinds[i];
+      else dir = r.dir;
+    }
+    if (kind)
+      return {
+        path: "resolve",
+        reading: { node: s.node, intent: s.intent, kind, score: 1 },
+        actions: [{ type: "decide", node: s.node, intent: s.intent, kind, from: "worded" }, settle({ kind })],
+        pre,
+      };
+    return { path: "infer", need: { kind: "reword", node: s.node, intent: s.intent, text: edit.text, old: edit.old, dir }, pre, bind };
+  }
+  // The words name a thing: said of it, do they say a kind of one of its intents?
+  const r = recognize({ type: "say", text: edit.text, node: s.node }, now, vals, focus);
+  if (r.path === "resolve") return { ...r, actions: [...r.actions, settle({})], pre };
+  return { path: "infer", need: { kind: "reword", node: s.node, intent: null, text: edit.text, old: edit.old, dir: 0 }, pre, bind };
 }

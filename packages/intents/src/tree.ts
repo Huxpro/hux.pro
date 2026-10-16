@@ -14,6 +14,18 @@
 //              routed to a weak or a strong one by what the event needs
 //
 // Provenance is kept on everything: who wrote a node, a kind, a drawing, a pick.
+//
+// The tree is the middle of two bindings, both written by the model with it:
+//
+//   words → tree   spans of the prompt, each bound to a thing, one of its
+//                  intents, and the kind those words say (`Tree.spans`)
+//   tree → view    the semantic paths each intent drives in the picture
+//                  (`Intent.view`, `Node.view`)
+//
+// So a person can edit in any of the three: the words (a span rewritten or
+// deleted, a sentence added: words.ts reads the edit into events), the tree
+// (a pick), or the picture (a drag). Each lands in the tree; the other two
+// follow from it, or say where they no longer agree.
 // =============================================================================
 
 export type Pt = readonly [number, number];
@@ -36,6 +48,8 @@ export interface Kind {
   realize: Record<string, unknown>;
   /** Learned after an event (not in the tree as first written), and from whom. */
   learned?: By;
+  /** How the prompt says it, when its words follow a pick ("大得离谱"); default: the label. */
+  words?: string;
 }
 
 /** How a gesture on the picture reaches an intent. */
@@ -65,9 +79,11 @@ export interface Intent {
   more?: readonly string[];
   less?: readonly string[];
   gesture?: Gesture;
+  /** The semantic paths it drives in the picture ("man.hat", "wardrobe.door.right", "beat.door"). */
+  view?: readonly string[];
   /** A person's pick, and how it was made. */
   pick?: string;
-  from?: "dragged" | "said" | "answered" | "switched";
+  from?: "dragged" | "said" | "answered" | "switched" | "worded";
 }
 
 /** A drawing a model wrote for a thing (a lazy effect), and the values it was written under. */
@@ -90,6 +106,28 @@ export interface Node {
   draws?: string;
   /** Its own drawings (a learned thing): newest first; none yet while one is being written. */
   drawings?: Drawing[];
+  /** The semantic path it is in the picture ("man", "lamp"); default: its id. */
+  view?: string;
+}
+
+/**
+ * A span of the prompt, bound to the tree: these words are about this thing,
+ * this intent of it, and say this kind. The words are the model's evidence for
+ * its belief; a person's edit to them is an event (words.ts).
+ */
+export interface Span {
+  id: string;
+  /** Offsets into Tree.prompt. */
+  from: number;
+  to: number;
+  node: string;
+  intent?: string;
+  /** The kind the words say; absent: they name the thing (or the intent), not a kind of it. */
+  kind?: string;
+  /** Who bound it: the model that wrote the tree, or a person's edit. */
+  by?: string;
+  /** Reworded, and no kind reads the new words yet. */
+  unread?: boolean;
 }
 
 /** One beat of a dream told as a tree (the dream player's): which node it is. */
@@ -101,8 +139,10 @@ export interface Tree {
   /** Stable: the experience it belongs to. */
   scene: string;
   title: Text;
-  /** The words it was made from. */
+  /** The words it was made from, as they stand now (a person may edit them). */
   prompt: string;
+  /** The words bound to the tree (in order, not overlapping). */
+  spans?: Span[];
   /** Who wrote it first. */
   by: By;
   nodes: Node[];
@@ -148,7 +188,15 @@ export type Action =
   /** A whole new tree (a new dream): nothing carried over. */
   | { type: "load"; tree: Tree; version?: Version }
   | { type: "draw"; node: string; drawing: Drawing }
-  | { type: "context"; ctx: Partial<Context> };
+  | { type: "context"; ctx: Partial<Context> }
+  /** The words, edited (or rewritten to follow the tree): the prompt and its spans. */
+  | { type: "words"; prompt: string; spans: Span[] }
+  /** A model's belief, revised (the words it rested on are gone). */
+  | { type: "believe"; node: string; intent: string; p: Record<string, number> }
+  /** A thing taken out (a learned one whose words were deleted). */
+  | { type: "remove"; node: string }
+  /** Words just edited, bound to what the event landed on (if the words are still as they were). */
+  | { type: "bind"; prompt: string; span?: string; from: number; to: number; node: string; intent?: string; kind?: string };
 
 const mapIntent = (tree: Tree, node: string, intent: string, f: (i: Intent) => Intent): Tree => ({
   ...tree,
@@ -172,6 +220,19 @@ export function reduce(s: State, a: Action): State {
       };
     case "context":
       return { ...s, ctx: { ...s.ctx, ...a.ctx } };
+    case "words":
+      return { ...s, tree: { ...s.tree, prompt: a.prompt, spans: a.spans } };
+    case "believe":
+      return { ...s, tree: mapIntent(s.tree, a.node, a.intent, (i) => ({ ...i, p: a.p })) };
+    case "bind": {
+      if (s.tree.prompt !== a.prompt) return s;
+      const spans = s.tree.spans ?? [];
+      const bound: Span = { id: a.span ?? `b${a.from}-${a.to}`, from: a.from, to: a.to, node: a.node, intent: a.intent, kind: a.kind, by: "person" };
+      const next = spans.some((x) => x.id === a.span) ? spans.map((x) => (x.id === a.span ? { ...x, ...bound, unread: false } : x)) : [...spans.filter((x) => x.to <= a.from || x.from >= a.to), bound].sort((x, y) => x.from - y.from);
+      return { ...s, tree: { ...s.tree, spans: next } };
+    }
+    case "remove":
+      return { ...s, tree: { ...s.tree, nodes: s.tree.nodes.filter((n) => n.id !== a.node), spans: s.tree.spans?.filter((x) => x.node !== a.node) } };
   }
 }
 
@@ -221,6 +282,16 @@ export function toXml(s: { tree: Tree; ctx?: Context }): string {
   const t = s.tree;
   const out = [`<scene of="${t.scene}" by="${t.by.who}"${s.ctx?.prompts.length ? ` said="${s.ctx.prompts.length}"` : ""}>`];
   if (t.phases?.length) out.push(`  <phases>${t.phases.map((p) => p.node).join(" → ")}</phases>`);
+  if (t.spans?.length) {
+    // The words, with what each bound span is about: the model's evidence, in place.
+    let at = 0;
+    let words = "";
+    for (const sp of t.spans) {
+      words += t.prompt.slice(at, sp.from) + `[${t.prompt.slice(sp.from, sp.to)}](${sp.node}${sp.intent ? `.${sp.intent}` : ""}${sp.kind ? `=${sp.kind}` : ""})`;
+      at = sp.to;
+    }
+    out.push(`  <words>${words + t.prompt.slice(at)}</words>`);
+  }
   for (const n of t.nodes) {
     const draw = n.drawings?.length ? ` drawn-by="${n.drawings[0].by.who}"` : n.learned && !n.draws ? ` drawing="pending"` : "";
     out.push(`  <${n.id}${n.learned ? ` learned-from="${n.learned.who}"` : ""}${n.draws ? ` draws="${n.draws}"` : ""}${draw} prompt="${n.prompt}">`);
