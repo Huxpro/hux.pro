@@ -655,7 +655,7 @@ export function IntentLabView() {
       by: out.by,
       status: r.action ? "done" : "rejected",
       why: { en: out.answer.why ?? "", zh: out.answer.why ?? "" },
-      problems: r.problems?.slice(0, 6),
+      problems: (r.problems ?? r.dropped?.map((d) => `dropped ${d}`))?.slice(0, 6),
       ms: performance.now() - t0,
     });
   };

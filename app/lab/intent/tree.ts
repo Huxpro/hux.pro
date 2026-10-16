@@ -31,9 +31,9 @@ export interface Gesture {
   /** What it starts on: an entity id, or "self" (what the node is about, a member included). */
   from: string;
   dir?: Dir;
-  /** It ends inside this entity's shape, having started outside it. */
+  /** It ends inside this entity's shape ("self": what the node is about), having started outside it. */
   into?: string;
-  /** It starts inside this entity's shape and ends outside it. */
+  /** It starts inside this entity's shape ("self": what the node is about) and ends outside it. */
   outOf?: string;
 }
 
@@ -143,14 +143,16 @@ const words = (w: unknown): Words | null =>
  * A node a model wrote, made whole (kinds that leave a prop out get the
  * value the scene wrote, so switching back undoes) and checked: what it is
  * about exists, its kinds are a closed set of two to four, every patch is a
- * knob that exists, in its range, and its vocabulary names its own kinds and
- * things on the stage. Returns the node, or why not.
+ * knob that exists, in its range. Returns the node, or why not. Its
+ * vocabulary is held to its own kinds and things on the stage too, but a
+ * phrase or gesture that fails is dropped (and said, in `dropped`), not the
+ * node: a wrong word costs a short path, a wrong patch would change the scene.
  */
 export function admit(
   raw: unknown,
   entities: Entity[],
   { from = "model", by }: { from?: IntentNode["from"]; by?: string } = {},
-): { node: IntentNode } | { problems: string[] } {
+): { node: IntentNode; dropped?: string[] } | { problems: string[] } {
   const problems: string[] = [];
   const n = raw as Partial<IntentNode> | null;
   if (!n || typeof n !== "object") return { problems: ["not an intent node"] };
@@ -191,33 +193,35 @@ export function admit(
   if (!words(n.words)) problems.push("it has no words for what it decides");
   const names = new Set(kinds.map(([k]) => k));
   if (n.index && !(n.index.by === "tallness" && names.has(n.index.base))) problems.push("its index is not tallness with one of its kinds as the base");
-  // The vocabulary: its own kinds, things on the stage.
+  if (problems.length) return { problems };
+  // The vocabulary: its own kinds, things on the stage. What fails is dropped, and said.
+  const dropped: string[] = [];
   const say: Record<string, string[]> = {};
   for (const [kind, phrases] of Object.entries(n.say ?? {})) {
-    if (!names.has(kind)) problems.push(`it says "${kind}", which is not one of its kinds`);
-    else if (!Array.isArray(phrases)) problems.push(`what it says for "${kind}" is not a list`);
+    if (!names.has(kind)) dropped.push(`it says "${kind}", which is not one of its kinds`);
+    else if (!Array.isArray(phrases)) dropped.push(`what it says for "${kind}" is not a list`);
     else say[kind] = phrases.filter((p) => typeof p === "string" && p.trim()).map((p) => p.trim().toLowerCase().slice(0, 60)).slice(0, MAX_SAY);
   }
+  const place = (x: unknown) => x === "self" || (typeof x === "string" && byId.has(x));
   const gestures: Record<string, Gesture[]> = {};
   for (const [kind, list] of Object.entries(n.gestures ?? {})) {
     if (!names.has(kind)) {
-      problems.push(`a gesture means "${kind}", which is not one of its kinds`);
+      dropped.push(`a gesture means "${kind}", which is not one of its kinds`);
       continue;
     }
     gestures[kind] = [];
     for (const g of Array.isArray(list) ? list : []) {
       const ok =
         g &&
-        (g.from === "self" || byId.has(g.from)) &&
+        place(g.from) &&
         (g.dir === undefined || DIRS.has(g.dir)) &&
-        (g.into === undefined || byId.has(g.into)) &&
-        (g.outOf === undefined || byId.has(g.outOf)) &&
+        (g.into === undefined || place(g.into)) &&
+        (g.outOf === undefined || place(g.outOf)) &&
         (g.dir || g.into || g.outOf);
       if (ok) gestures[kind].push({ from: g.from, ...(g.dir ? { dir: g.dir } : {}), ...(g.into ? { into: g.into } : {}), ...(g.outOf ? { outOf: g.outOf } : {}) });
-      else problems.push(`a gesture for "${kind}" names nothing on the stage, or no way to go`);
+      else dropped.push(`a gesture for "${kind}" names nothing on the stage, or no way to go`);
     }
   }
-  if (problems.length) return { problems };
   const whole: Record<string, KindNode> = {};
   for (const [name, k] of kinds) {
     const patch: Params = {};
@@ -243,13 +247,15 @@ export function admit(
       from,
       ...(by ? { by } : {}),
     },
+    ...(dropped.length ? { dropped } : {}),
   };
 }
 
 /** A whole tree a model authored: every node admitted, no two about the same thing, at least one. */
-export function admitTree(raw: unknown, entities: Entity[], by?: string): { tree: Tree } | { problems: string[] } {
+export function admitTree(raw: unknown, entities: Entity[], by?: string): { tree: Tree; dropped?: string[] } | { problems: string[] } {
   if (!Array.isArray(raw) || !raw.length) return { problems: ["no intents"] };
   const problems: string[] = [];
+  const dropped: string[] = [];
   const tree: Tree = [];
   const seen = new Set<string>();
   raw.forEach((r, i) => {
@@ -259,9 +265,10 @@ export function admitTree(raw: unknown, entities: Entity[], by?: string): { tree
     else {
       seen.add(keyOf(out.node));
       tree.push(out.node);
+      dropped.push(...(out.dropped ?? []).map((d) => `#${i}: ${d}`));
     }
   });
-  return problems.length ? { problems } : { tree };
+  return problems.length ? { problems } : { tree, ...(dropped.length ? { dropped } : {}) };
 }
 
 /** A node with one more phrase or gesture for a kind: what a short path learned from a model's answer. */

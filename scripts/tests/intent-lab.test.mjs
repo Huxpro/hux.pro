@@ -160,9 +160,23 @@ test("what a model writes that the stage cannot hold is not let in", () => {
     "moments.gap = 9 is outside 0.4–2",
     `moments has no knob "colour"`,
     "resolve is \"maybe\", not ask or switch",
-    `it says "b", which is not one of its kinds`,
-    `a gesture for "a" names nothing on the stage, or no way to go`,
   ]);
+  // A wrong word costs a short path, not the intent: dropped, and said.
+  const loose = admit(
+    {
+      type: "pace",
+      of: "moments",
+      words: { en: "Pace" },
+      kinds: { asWritten: { words: { en: "As written" }, patch: {} }, slow: { words: { en: "Slow" }, patch: { moments: { gap: 1.6 } } } },
+      resolve: "switch",
+      say: { b: ["x"], slow: ["slower"] },
+      gestures: { slow: [{ from: "sky", dir: "up" }, { from: "self", dir: "down", into: "self" }] },
+    },
+    ENTITIES,
+  );
+  assert.deepEqual(loose.dropped, [`it says "b", which is not one of its kinds`, `a gesture for "slow" names nothing on the stage, or no way to go`]);
+  assert.deepEqual(loose.node.say, { slow: ["slower"] });
+  assert.deepEqual(loose.node.gestures.slow, [{ from: "self", dir: "down", into: "self" }], "\"self\" is a place too");
   assert.deepEqual(
     admit({ type: "x", of: "edge", words: { en: "x" }, kinds: { a: { words: { en: "a" }, patch: { edge: { wears: "no" } } }, b: { words: { en: "b" }, patch: {} } }, resolve: "switch" }, ENTITIES).problems,
     ["edge.wears takes true or false"],

@@ -60,8 +60,9 @@ function matches(g: Gesture, of: string, e: Extract<LabEvent, { kind: "drag" }>)
     if (!d) return false;
     if (g.dir === "horizontal" ? d !== "left" && d !== "right" : g.dir === "vertical" ? d !== "up" && d !== "down" : d !== g.dir) return false;
   }
-  if (g.outOf && !(e.within.from.includes(g.outOf) && !e.within.to.includes(g.outOf))) return false;
-  if (g.into && !(e.within.to.includes(g.into) && !e.within.from.includes(g.into))) return false;
+  const place = (x: string) => (x === "self" ? of.split("#")[0] : x);
+  if (g.outOf && !(e.within.from.includes(place(g.outOf)) && !e.within.to.includes(place(g.outOf)))) return false;
+  if (g.into && !(e.within.to.includes(place(g.into)) && !e.within.from.includes(place(g.into)))) return false;
   return Math.hypot(e.to.x - e.from.x, e.to.y - e.from.y) >= 30;
 }
 
@@ -244,7 +245,7 @@ export function acceptAddition(answer: Addition, o: Observation, by: string): Ou
 }
 
 /** An authored tree, checked whole: every node admitted; beliefs only about its own nodes and kinds. */
-export function acceptAuthoring(answer: Authoring, entities: Entity[], by: string): { action: Action | null; problems?: string[] } {
+export function acceptAuthoring(answer: Authoring, entities: Entity[], by: string): { action: Action | null; problems?: string[]; dropped?: string[] } {
   const r = admitTree(answer.tree, entities, by);
   if ("problems" in r) return { action: null, problems: r.problems };
   const byKey = new Map(r.tree.map((n) => [keyOf(n), n]));
@@ -253,7 +254,7 @@ export function acceptAuthoring(answer: Authoring, entities: Entity[], by: strin
       .filter((b) => byKey.has(b.key) && Object.keys(b.p ?? {}).every((k) => k in byKey.get(b.key)!.kinds))
       .map((b) => [b.key, { p: b.p }]),
   );
-  return { action: { type: "replace", tree: r.tree, beliefs } };
+  return { action: { type: "replace", tree: r.tree, beliefs }, ...(r.dropped ? { dropped: r.dropped } : {}) };
 }
 
 // -----------------------------------------------------------------------------
