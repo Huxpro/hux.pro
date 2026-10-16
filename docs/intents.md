@@ -1,40 +1,56 @@
-# Reactive Intents：事件、意图树与两条路
+# Reactive Intents：模型驱动一切，其余都是捷径
 
-> reintent（来自 airtalk#818，`packages/reintent`）不只是"按屏幕自适应"的工具。把它当成一种 **Reactive Intents-Oriented Programming**：意图树是唯一的 state，任何事件（拖拽、resize、一句 prompt、一次编辑）都交给一个回调，回调要么直接 resolve 成一个 action（Flux），要么交给模型 infer（ReAct 式的 effect），结果走同一个 reducer，再单向地算出每个上下文里的样子。
+> reintent（来自 airtalk#818，`packages/reintent`）不只是"按屏幕自适应"的工具。把它当成一种 **Reactive Intents-Oriented Programming**：意图树是唯一的 state，任何事件（拖拽、resize、一句 prompt、一次编辑）都交给一个回调，结果走同一个 reducer，再单向地算出每个上下文里的样子。
+>
+> **模型驱动一切。** 意图树（有哪些意图、每个意图的选项、每个选项改哪些旋钮、什么话和什么手势表示哪个选项）是强模型写的数据。人的 resolve、代码的计算和 effect、弱模型的 infer，都只是走它写下的东西的 **short path**：更快、更便宜，但不比它多知道什么。
 >
 > 原型：`/lab/intent`（`app/lab/intent/`），对象是 `/dream/forget`。这份文档是 brainstorm 和原型的结论。
 
 ## 一张图
 
 ```
-           ┌──────────────── 意图树 + 决定 + 信念 = state（唯一的 source of truth）───────────────┐
-           │                                                                                    │
-           ▼                                                                                    │
-  计算层（reintent）── 每个上下文一份 Assignment ── compile ──▶ props ──▶ 视图（stage，含临时状态）│
-                                                                              │ 事件：拖拽 / prompt / 编辑 / resize
-                                                                              ▼
-                                                                        回调 handle(event)
-                                                                              │
-                                              ① 预设识别器认得 ── action ─────┤
-                                              ② 认不得 ── 模型 infer（异步）── admit 校验 ──┴─▶ dispatch(action)
-                                                                                                │
-                                                     reduce(state, action) ◀────────────────────┘
+                    强模型 author ──▶ 意图树（意图 · 选项 · 补丁 · 词汇表）= 数据
+                         │ 重新编写                   ▲ add（新意图 + 这次事件的词汇）
+                         ▼                            │
+  ┌──── state：意图树 + 人的决定 + 模型的信念 ────┐   │
+  │                                               │   │
+  ▼                                               │   │
+  reintent（code）── 每个上下文一份 Assignment ── compile ──▶ props ──▶ 视图
+                                                  │                         │ 事件：拖拽 / prompt / 切换 / 回答
+                                                  │                         ▼
+                                                  │   ① 词汇表匹配（人的 resolve，零模型，~1 ms）── 命中 ──▶ decide
+                                                  │         │ 没命中
+                                                  │         ▼
+                                                  │   ② 弱模型 select：只能在树里选（decide / believe）── learn ──▶ ①
+                                                  │         │ "没有合适的选项，但旋钮能表达"
+                                                  │         ▼
+                                                  │   ③ 强模型 add ─────────────────────────────────────┘
+                                                  │
+                                                  └──────────── reduce(state, action) ◀── 每个回答都先过 admit
 ```
+
+| 路 | 谁 | 做什么 | 代价 | 原型里 |
+| --- | --- | --- | --- | --- |
+| author | 强模型 | 从场景写出整棵意图树，连同词汇表；重新编写时人的决定、学到的词汇、为事件新加的意图都保留 | 一次，后台 | `ask("author")`、`acceptAuthoring`；缓存在 `forget.ts`（`PRESET`） |
+| ① | 人（零模型）| 事件在词汇表里：一句话、一个手势正好表示某个选项 | ~1 ms | `recognize`：通用匹配器，没有一行手写手势 |
+| code | 代码 | reintent 的优先级、交叉、compile、校验 | 微秒 | `typesOf`、`compile`、`admit` |
+| ② | 弱模型 | **只能选**：decide 一个已有选项、believe 一种情绪；选过的话和手势被学进词汇表，下次就是 ① | 一次便宜的调用 | `ask("select")`、`acceptSelection`、`learn` |
+| ③ | 强模型 | 弱模型说"没有合适的选项，但旋钮能表达"时，新加一个意图，词汇里带上这次事件 | 一次贵的调用 | `ask("add")`、`acceptAddition` |
 
 | 这里 | 对应 | 原型里 |
 | --- | --- | --- |
 | state | Redux store / React state | `tree`（意图树，数据）、`store`（人的决定、偏好）、`beliefs`（模型的分布，缓存）|
-| action | Flux action | `decide` / `forget` / `believe` / `add` / `replace`（`model.ts` 的 `Action`）|
+| action | Flux action | `decide` / `forget` / `believe` / `add` / `replace` / `learn`（`model.ts` 的 `Action`）|
 | reducer | reducer | `lab.dispatch(action)` |
 | selector / computed | `useMemo` / signals | `view(key, screen)`、`params(screen)`：reintent 的 computed，值不变就不往下传 |
 | event callback | `onClick` | `handle(event)`：同一个回调接住拖拽、prompt、切换、回答 |
-| effect | `useEffect` / thunk / ReAct 的 act | `infer(observation)`：模型观察（树、决定、事件、上下文）并写出一个 action |
+| effect | `useEffect` / thunk / ReAct 的 act | `ask(mode, observation)`：模型观察（树、决定、事件、上下文）并写出一个 action |
 | context | Context / 媒体查询 | 屏幕（`tallness` 是交叉的索引），以及之前的 prompts |
 | view | 组件 | 真正的 `/dream/forget` 场景，按每块屏幕的尺寸装进盒子里跑 |
 
 ## 三条规则，原型里才想清楚的
 
-1. **模型写的是数据，不是代码。** ② 的产出只能是那五种 action 之一；新意图是一个节点：闭集的 kinds，每个 kind 是一组 props 补丁。`admit` 拿舞台上实际有的旋钮（值、单位、范围）校验：不存在的实体、不存在的旋钮、越界的数、只有一个 kind、`resolve` 写错，都放不进来（`intent-lab.test.mjs` 里有一条把这五种错一次列全）。
+1. **模型写的是数据，不是代码。** 模型的产出只能是那几种 action 之一；新意图是一个节点：闭集的 kinds，每个 kind 是一组 props 补丁。`admit` 拿舞台上实际有的旋钮（值、单位、范围）校验：不存在的实体、不存在的旋钮、越界的数、只有一个 kind、`resolve` 写错，都放不进来（`intent-lab.test.mjs` 里有一条把这五种错一次列全）。
 2. **人的决定永远压过模型。** 一句"更伤感"不是一个选择，是一种情绪：它变成 `believe`，改的是模型对好几个意图的分布；人已经决定过的那个（尘"升起"）原样不动，模型因此变得够确定的那个（"按住时"0.8）从此不再问。这就是 reintent 的优先级（人 > 偏好 > 足够确定的模型 > 代码）在"reprompt"上的含义。
 3. **每个新意图的第一个 kind 是"原样"，而且每个 kind 都写同一组旋钮。** 缺的由 `admit` 用场景写的值补齐。所以切回去永远等于撤销，模型加的意图和预设的意图一样可以切换、可以忘掉。
 
@@ -42,7 +58,7 @@
 
 ## User cases
 
-图例：**①** 预设识别器就能 resolve，不调模型；**②** 要模型 infer；**✓** 原型里已经做了。"存什么"一栏只列会被持久化的东西（人的决定、模型写的意图），其他都是算出来的。
+图例：**①** 词汇表就能 resolve，不调模型；**②** 要模型（弱模型选，或强模型加）；**✓** 原型里已经做了。"存什么"一栏只列会被持久化的东西（人的决定、模型写的意图），其他都是算出来的。
 
 ### A. 直接操作：手势就是事件
 
@@ -126,13 +142,18 @@
 
 ## 原型里做了什么
 
-- `tree.ts`：意图树是纯数据（`IntentNode`：`type`、`of`、`kinds` 各带补丁、`prior`、`resolve`、`index`）；`typesOf` 把树变成 reintent 的类型；`compile` 合并补丁（列表取并集：所有留住的画面）；`admit` 校验并补齐模型写的节点。
-- `forget.ts`：预设树（`axis`、`holding`、`letgo`、`dust`，以及五个 `keep|moments#i`）。
-- `model.ts`：state 和唯一的 `dispatch`；reintent 在树或信念变化时重建，决定一直在 store 里。
-- `events.ts`：`recognize`（①：拖拽和 prompt 的预设）、`accept`（②：模型的回答变成 action，或者说明为什么放不进来）、`infer`（调 `/api/intent`；没有模型时用一个标明是替身的规则集）。
-- `app/api/intent/route.ts`：和 Ask 一样的模型选择（Vercel 上走 gateway）；只返回一个 JSON action。
-- `/dream/forget` 的画面可以被留住（`kept`）：到了窗沿不化成尘，原样放到窗旁；之后再放手，就在原地化成尘。
-- 验证：`scripts/tests/intent-lab.test.mjs` 9 条（① 的四种拖拽和 prompt、② 的新意图、坏意图、情绪不压过人、none、按屏幕的增量重算）；浏览器里拖、说、看日志。
+- `tree.ts`：意图树是纯数据（`IntentNode`：`type`、`of`、`kinds` 各带补丁、`prior`、`resolve`、`index`，以及词汇表 `say` / `gestures`）。`typesOf` 把树变成 reintent 的类型；`compile` 合并补丁（列表取并集：所有留住的画面）；`admit` / `admitTree` 校验并补齐模型写的节点和整棵树；`learn` 往词汇表里加一句话或一个手势。
+- `forget.ts`：**强模型编写的结果的缓存**（`PRESET`，标明 `by`），这样不调模型也能打开；它和模型写的树过同一套校验，测试里有一条拿真正的 kind 声明和场景写的值去校验它。
+- `model.ts`：state 和唯一的 `dispatch`。`replace`（重新编写）保留仍有意义的人的决定、学到的词汇、为事件新加的意图。
+- `events.ts`：
+  - `recognize`（①）：通用匹配器，拿事件去对词汇表。手势是数据：从哪里开始（`self` 或某个实体）、往哪个方向、离开或进入哪个实体的形状。
+  - `acceptSelection`（②）：弱模型只能 decide / believe / none；`none` 带 `escalate` 表示"旋钮能表达，但没有合适的选项"。
+  - `acceptAddition`（③）：强模型加的意图，词汇里自动带上这次事件。
+  - `acceptAuthoring`：强模型写的整棵树。
+  - `ask(mode, …)`：调 `/api/intent`；没有模型时用标明是替身的规则集；模型答坏了算失败，不会悄悄换成替身。
+- `app/api/intent/route.ts`：三种模式，两个模型。`select` 用弱模型，`add` / `author` 用强模型；`INTENT_WEAK_MODEL` / `INTENT_STRONG_MODEL` 可以换（默认 gateway 免费层的 Qwen 3.5 Flash / Gemini 2.5 Flash）。
+- `/dream/forget` 的画面可以被留住（`kept`）；窗沿是否磨损是一个真正的旋钮（`edge.wears`），不再是一个魔法数。
+- 验证：`scripts/tests/intent-lab.test.mjs` 13 条；浏览器里 ① 拖猫（1.6 ms）、② 弱模型选"落下"并学会（同一句话第二次 0.5 ms 走 ①）、③ "let them linger" 升级到强模型新增节奏意图（再说一次走 ①）、重新编写。
 
 ## 真模型上的 ②（Vercel 预览，Qwen 3.5 Flash，gateway 免费层）
 
@@ -155,7 +176,7 @@
 
 ## 还没回答的
 
-- **② 升格成 ①。** 同一个事件签名被模型推断成同一个 action 几次之后，能不能自动写成识别器？需要一个"事件签名"的定义（实体、方向、落点所在的区域），以及让人确认的地方。
-- **模型的 `replace` 怎么和人的决定合并。** 原型里只做了 `add`；整棵树换掉时，决定按 key 保留，但 key 被重命名的情况还没处理（sem 的 `renamedFrom` 可以借过来）。
+- **学到的东西什么时候可信。** 现在弱模型选一次就学进词汇表（日志里写明，一键撤销）。弱模型会选错，所以更稳的做法是：同一个签名得到同样的选择几次，或者由强模型确认，才写进词汇表。
+- **重新编写时 key 被重命名。** 决定、学到的词汇按 key 保留；强模型把 `dust|dust` 改叫别的，就丢了（sem 的 `renamedFrom` 可以借过来）。
 - **lazy effect 落到场景上。** B5、B6、C4 都需要"模型写的世界按 `under` 缓存"，reintent 的 `effect()` 已经有了，场景这边还没有一个能放 sprite 和文字的槽。
 - **代价。** ① 是亚毫秒到几毫秒；② 是一次模型调用（替身约 0.5 s，预览上的真模型 3–14 s）。多少事件该进 ②，取决于预设覆盖了多少。

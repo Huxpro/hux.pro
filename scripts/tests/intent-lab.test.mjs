@@ -1,9 +1,18 @@
-// The Intent Lab on /dream/forget: what each screen gets and who said it;
-// events, and what each comes to (① a preset's action, ② a model's, checked).
+// The Intent Lab on /dream/forget. A strong model drives everything; every
+// other path is a short one through what it wrote: ① the tree's vocabulary,
+// ② a weak model choosing within the tree (and what it chose is learned),
+// ③ the strong model adding an intent when no kind fits.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { accept, recognize, standIn } from "../../app/lab/intent/events.ts";
-import { KEY, SCREENS } from "../../app/lab/intent/forget.ts";
+import {
+  acceptAddition,
+  acceptAuthoring,
+  acceptSelection,
+  recognize,
+  standInAdd,
+  standInSelect,
+} from "../../app/lab/intent/events.ts";
+import { BELIEFS, KEY, PRESET, SCREENS } from "../../app/lab/intent/forget.ts";
 import { createLab } from "../../app/lab/intent/model.ts";
 import { admit } from "../../app/lab/intent/tree.ts";
 
@@ -12,8 +21,15 @@ const axisOf = (lab) => Object.fromEntries(SCREENS.map((s) => [s.id, lab.view(KE
 
 /** The stage's things as a model is told about them (what the page reads off the host). */
 const ENTITIES = [
-  { id: "window", kind: "surface", intent: "", names: [], params: { width: { value: 240, range: [160, 400] }, axis: { value: "up" } } },
-  { id: "edge", kind: "effect", intent: "", names: [], params: { erode: { value: 2.6, range: [0.5, 6] }, shed: { value: 0.9, range: [0, 3] } } },
+  { id: "window", kind: "surface", intent: "", names: [], params: { width: { value: 240, range: [160, 400] }, axis: { value: "up", note: "up or across" } } },
+  {
+    id: "edge",
+    kind: "effect",
+    intent: "",
+    names: [],
+    params: { wears: { value: true }, erode: { value: 2.6, range: [0.5, 6] }, shed: { value: 0.9, range: [0, 3] } },
+  },
+  { id: "tide", kind: "effect", intent: "", names: [], params: { stagger: { value: 0.12, range: [0, 1.2] } } },
   {
     id: "moments",
     kind: "field",
@@ -25,7 +41,8 @@ const ENTITIES = [
   { id: "dust", kind: "field", intent: "", names: [], params: { rise: { value: 1.3, range: [0.3, 2] }, drag: { value: 0.7, range: [0, 3] } } },
 ];
 const observe = (lab, event) => ({ entities: ENTITIES, tree: lab.tree(), decisions: lab.stored(), event, prompts: [] });
-const box = { x: 100, y: 100, w: 240, h: 320 };
+const drag = (from, to, within) => ({ kind: "drag", screen: by.phone, from, to, within });
+const say = (text, entity = null) => ({ kind: "prompt", screen: by.phone, entity, text });
 
 test("before anyone decides: the model says what, code says where, and the dream's meaning is asked", () => {
   const lab = createLab();
@@ -34,9 +51,8 @@ test("before anyone decides: the model says what, code says where, and the dream
   assert.equal(v.who, "model");
   assert.equal(v.where, "code");
   assert.deepEqual(lab.questions(by.phone)(), [KEY.holding]);
-  assert.equal(lab.view(KEY.letgo, by.phone)().who, "model");
   assert.equal(lab.view(KEY.keep(0), by.phone)().who, "code", "a prior is code's, not a model's");
-  assert.deepEqual(lab.params(by.landscape)().moments, { kept: [] });
+  assert.deepEqual(lab.params(by.landscape)().edge, { wears: true });
 });
 
 test("a switch on one screen moves the crossover: wider screens follow, taller ones keep theirs", () => {
@@ -44,53 +60,67 @@ test("a switch on one screen moves the crossover: wider screens follow, taller o
   lab.dispatch({ type: "decide", key: KEY.axis, kind: "across", from: "switched", screen: by.laptop });
   assert.deepEqual(axisOf(lab), { phone: "up", tablet: "up", square: "up", laptop: "across", landscape: "across", wide: "across" });
   lab.dispatch({ type: "decide", key: KEY.axis, kind: "up", from: "switched", screen: by.laptop });
-  assert.deepEqual(axisOf(lab), { phone: "up", tablet: "up", square: "up", laptop: "up", landscape: "across", wide: "across" });
   assert.deepEqual(lab.stored()[KEY.axis].pick, { base: "up", below: "across", at: 0.625 });
 });
 
-test("① a drag a preset knows: a moment out of the window is kept, back in it goes; the window sideways lies down; the dust down settles", () => {
+test("① a drag the vocabulary names is decided with no model: out of the window keeps, into it lets go, sideways lays down, down settles", () => {
+  const tree = PRESET;
+  const out = recognize(drag({ x: 200, y: 300, id: "moments", member: 2 }, { x: 200, y: 60, id: null }, { from: ["window", "moments"], to: [] }), tree);
+  assert.deepEqual([out.key, out.kind], [KEY.keep(2), "stays"]);
+  const back = recognize(drag({ x: 200, y: 60, id: "moments", member: 2 }, { x: 200, y: 300, id: "window" }, { from: [], to: ["window"] }), tree);
+  assert.deepEqual([back.key, back.kind], [KEY.keep(2), "goes"]);
+  const flat = recognize(drag({ x: 150, y: 300, id: "window" }, { x: 300, y: 310, id: "window" }, { from: ["window"], to: ["window"] }), tree);
+  assert.deepEqual([flat.key, flat.kind], [KEY.axis, "across"]);
+  const settle = recognize(drag({ x: 200, y: 50, id: "dust" }, { x: 205, y: 160, id: null }, { from: ["dust"], to: [] }), tree);
+  assert.deepEqual([settle.key, settle.kind], [KEY.dust, "settles"]);
+  const reorder = drag({ x: 200, y: 300, id: "moments", member: 1 }, { x: 200, y: 220, id: "moments", member: 0 }, { from: ["window"], to: ["window"] });
+  assert.equal(recognize(reorder, tree), null, "a reorder is not in the vocabulary");
+});
+
+test("① a phrase the vocabulary names is decided; an ambiguous or unknown one goes to a model", () => {
+  const tree = PRESET;
+  assert.deepEqual(Object.values(recognize(say("落下"), tree)).slice(0, 2), [KEY.dust, "settles"]);
+  assert.deepEqual(Object.values(recognize(say("All at once."), tree)).slice(0, 2), [KEY.letgo, "tide"]);
+  assert.equal(recognize(say("keep it"), tree), null, "five moments could be kept");
+  assert.deepEqual(Object.values(recognize(say("keep it", "moments#3"), tree)).slice(0, 2), [KEY.keep(3), "stays"]);
+  assert.equal(recognize(say("像雪一样慢慢落下"), tree), null, "not word for word: for the weak model");
+});
+
+test("② a weak model's choice is applied, and learned: the same words next time are ①", () => {
   const lab = createLab();
-  const drag = (from, to) => ({ kind: "drag", screen: by.phone, from, to, window: box });
-  const out = recognize(drag({ x: 200, y: 300, id: "moments", member: 2 }, { x: 30, y: 300, id: null }), lab.tree(), []);
-  assert.equal(out.action.key, KEY.keep(2));
-  assert.equal(out.action.kind, "stays");
+  const e = say("像雪一样慢慢落下", "dust");
+  const o = observe(lab, e);
+  const out = acceptSelection(standInSelect(o), o);
+  assert.deepEqual([out.action.type, out.action.key, out.action.kind], ["decide", KEY.dust, "settles"]);
   lab.dispatch(out.action);
-  assert.deepEqual(lab.params(by.wide)().moments.kept, [2], "kept on every screen");
-  const back = recognize(drag({ x: 30, y: 300, id: "moments", member: 2 }, { x: 200, y: 300, id: "window" }), lab.tree(), [2]);
-  assert.equal(back.action.kind, "goes");
-  const flat = recognize(drag({ x: 150, y: 200, id: "window" }, { x: 300, y: 210, id: "window" }), lab.tree(), []);
-  assert.deepEqual([flat.action.key, flat.action.kind], [KEY.axis, "across"]);
-  const settle = recognize(drag({ x: 200, y: 50, id: "dust" }, { x: 205, y: 160, id: null }), lab.tree(), []);
-  assert.deepEqual([settle.action.key, settle.action.kind], [KEY.dust, "settles"]);
-  assert.equal(recognize(drag({ x: 200, y: 300, id: "moments", member: 1 }, { x: 200, y: 200, id: "moments", member: 0 }), lab.tree(), []), null, "a reorder is no preset's");
+  lab.dispatch({ type: "learn", key: KEY.dust, kind: "settles", phrase: e.text });
+  assert.deepEqual(Object.values(recognize(say("像雪一样慢慢落下"), lab.tree())).slice(0, 2), [KEY.dust, "settles"]);
 });
 
-test("① a prompt that names one kind is that kind; anything else is for the model", () => {
+test("② a weak model may only choose: a new intent it is not allowed to write is escalated, not let in", () => {
   const lab = createLab();
-  const say = (text, entity = null) => recognize({ kind: "prompt", screen: by.phone, entity, text }, lab.tree(), []);
-  assert.deepEqual([say("落下").action.key, say("落下").action.kind], [KEY.dust, "settles"]);
-  assert.deepEqual([say("one by one").action.key, say("one by one").action.kind], [KEY.letgo, "oneByOne"]);
-  assert.equal(say("kept"), null, "five moments could be kept: ambiguous without one chosen");
-  assert.equal(say("kept", "moments#3").action.key, KEY.keep(3));
-  assert.equal(say("slower please"), null);
+  const o = observe(lab, say("slower", "moments"));
+  const sel = acceptSelection(standInSelect(o), o);
+  assert.equal(sel.action, null);
+  assert.equal(sel.escalate, true);
+  assert.deepEqual(acceptSelection({ action: "add", node: {}, why: "" }, o).action, null, "add is not a selection");
 });
 
-test("② a model's new intent is checked against the stage, made whole, and compiles like any other", () => {
+test("③ the strong model's new intent is checked, compiles, carries this event's words, and undoes", () => {
   const lab = createLab();
-  const o = observe(lab, { kind: "prompt", screen: by.phone, entity: "moments", text: "slower" });
-  const out = accept(standIn(o), o);
+  const o = observe(lab, say("let them linger", "moments"));
+  const out = acceptAddition(standInAdd(o), o, "strong");
   assert.equal(out.action.type, "add");
+  assert.ok(out.action.node.say.slower.includes("let them linger"), "the event itself is in its vocabulary");
   lab.dispatch(out.action);
   assert.equal(lab.params(by.phone)().moments.gap, 1.5);
-  assert.equal(lab.view("pace|moments", by.wide)().who, "person", "the person's prompt decided it");
-  lab.dispatch({ type: "decide", key: "pace|moments", kind: "asWritten", from: "switched", screen: by.phone });
-  assert.equal(lab.params(by.phone)().moments.gap, 0.95, "its first kind is the scene as written");
+  assert.equal(lab.view("pace|moments", by.wide)().who, "person");
+  assert.deepEqual(Object.values(recognize(say("let them linger", "moments"), lab.tree())).slice(0, 2), ["pace|moments", "slower"], "now a short path");
   lab.undo();
-  lab.undo();
-  assert.equal(lab.params(by.phone)().moments.gap, undefined, "undone: the node is gone");
+  assert.equal(lab.params(by.phone)().moments.gap, undefined, "undone: the intent is gone");
 });
 
-test("② what a model writes that the stage cannot hold is not let in", () => {
+test("what a model writes that the stage cannot hold is not let in", () => {
   const bad = admit(
     {
       type: "glow",
@@ -98,6 +128,8 @@ test("② what a model writes that the stage cannot hold is not let in", () => {
       words: { en: "Glow" },
       kinds: { a: { words: { en: "a" }, patch: { moments: { gap: 9, colour: "red" } } } },
       resolve: "maybe",
+      say: { b: ["x"] },
+      gestures: { a: [{ from: "sky", dir: "up" }] },
     },
     ENTITIES,
   );
@@ -107,36 +139,36 @@ test("② what a model writes that the stage cannot hold is not let in", () => {
     "moments.gap = 9 is outside 0.4–2",
     `moments has no knob "colour"`,
     "resolve is \"maybe\", not ask or switch",
+    `it says "b", which is not one of its kinds`,
+    `a gesture for "a" names nothing on the stage, or no way to go`,
   ]);
-  const lab = createLab();
-  const o = observe(lab, { kind: "prompt", screen: by.phone, entity: null, text: "x" });
-  assert.deepEqual(accept({ action: "decide", key: KEY.dust, kind: "floats", why: "" }, o).problems, [`no kind "floats" on "dust|dust"`]);
-  // Made whole: a kind that leaves a knob out gets the scene's value, so switching back undoes.
-  const ok = admit(
-    { type: "pace", of: "moments", words: { en: "Pace" }, kinds: { asWritten: { words: { en: "As written" }, patch: {} }, slow: { words: { en: "Slow" }, patch: { moments: { gap: 1.6 } } } }, resolve: "switch" },
-    ENTITIES,
+  assert.deepEqual(
+    admit({ type: "x", of: "edge", words: { en: "x" }, kinds: { a: { words: { en: "a" }, patch: { edge: { wears: "no" } } }, b: { words: { en: "b" }, patch: {} } }, resolve: "switch" }, ENTITIES).problems,
+    ["edge.wears takes true or false"],
   );
-  assert.deepEqual(ok.node.kinds.asWritten.patch, { moments: { gap: 0.95 } });
 });
 
-test("② a mood moves beliefs, never a person's decision", () => {
+test("authoring: the cached tree is what a strong model may write, and a re-authored tree keeps decisions that still mean something", () => {
+  const lab = createLab();
+  lab.dispatch({ type: "decide", key: KEY.holding, kind: "keeps", from: "asked", screen: by.phone });
+  lab.dispatch({ type: "decide", key: KEY.letgo, kind: "oneByOne", from: "switched", screen: by.phone });
+  const authored = { tree: PRESET.filter((n) => n.type !== "letgo"), beliefs: Object.entries(BELIEFS).map(([key, b]) => ({ key, p: b.p })) };
+  const r = acceptAuthoring(authored, ENTITIES, "strong");
+  assert.equal(r.problems, undefined, "the cached authoring passes every check a model's does");
+  lab.dispatch(r.action);
+  assert.equal(lab.view(KEY.holding, by.phone)().kind, "keeps", "a decision about an intent still there stays");
+  assert.equal(lab.stored()[KEY.letgo], undefined, "a decision about an intent gone goes with it");
+  assert.equal(lab.tree()[0].by, "strong");
+});
+
+test("a mood moves beliefs, never a person's decision", () => {
   const lab = createLab();
   lab.dispatch({ type: "decide", key: KEY.dust, kind: "rises", from: "switched", screen: by.phone });
-  const o = observe(lab, { kind: "prompt", screen: by.phone, entity: null, text: "sadder" });
-  const out = accept(standIn(o), o);
-  assert.equal(out.action.type, "believe");
-  lab.dispatch(out.action);
-  assert.equal(lab.view(KEY.letgo, by.phone)().kind, "oneByOne", "the model now believes one by one");
+  const o = observe(lab, say("sadder"));
+  lab.dispatch(acceptSelection(standInSelect(o), o).action);
+  assert.equal(lab.view(KEY.letgo, by.phone)().kind, "oneByOne");
   assert.equal(lab.view(KEY.dust, by.phone)().kind, "rises", "the person said rises; it stays");
   assert.equal(lab.view(KEY.holding, by.phone)().asks, false, "sure now (0.8): no longer asked");
-});
-
-test("② what no knob can express is answered with none, and says why", () => {
-  const lab = createLab();
-  const o = observe(lab, { kind: "drag", screen: by.phone, from: { x: 1, y: 1, id: "moments", member: 1 }, to: { x: 1, y: 60, id: "moments", member: 0 }, window: box });
-  const out = accept(standIn(o), o);
-  assert.equal(out.action, null);
-  assert.match(out.why.en, /regenerate/);
 });
 
 test("a screen's props are recomputed only when one of its intents changes", () => {
@@ -144,7 +176,45 @@ test("a screen's props are recomputed only when one of its intents changes", () 
   const phone = lab.params(by.phone);
   const before = phone();
   lab.dispatch({ type: "decide", key: KEY.axis, kind: "across", from: "switched", screen: by.laptop });
-  assert.equal(phone(), before, "the phone's axis did not change, so its props are the same object");
+  assert.equal(phone(), before);
   lab.dispatch({ type: "decide", key: KEY.dust, kind: "settles", from: "switched", screen: by.laptop });
   assert.notEqual(phone(), before);
+});
+
+test("the cached tree passes against the real stage: the kinds' declared knobs and the values the scene writes", async () => {
+  const { readFileSync } = await import("node:fs");
+  const kinds = {
+    window: (await import("../../app/dream/forget/kinds/window.ts")).Window,
+    edge: (await import("../../app/dream/forget/kinds/edge.ts")).Edge,
+    tide: (await import("../../app/dream/forget/kinds/tide.ts")).Tide,
+    moments: (await import("../../app/dream/forget/kinds/moments.ts")).Moments,
+    dust: (await import("../../app/dream/forget/kinds/dust.ts")).Dust,
+  };
+  const scene = readFileSync("app/dream/forget/forget.scene.tsx", "utf8");
+  const written = (id) => {
+    const line = scene.split("\n").find((l) => l.includes(`id="${id}"`));
+    const props = {};
+    for (const m of line.matchAll(/(\w+)=(?:\{([^}]*\]?)\}|"([^"]*)")/g)) props[m[1]] = m[3] !== undefined ? m[3] : JSON.parse(m[2]);
+    return props;
+  };
+  const entities = Object.entries(kinds).map(([id, k]) => ({
+    id,
+    kind: k.def.kind,
+    intent: k.def.intent,
+    names: k.def.names ?? [],
+    params: Object.fromEntries(Object.entries(k.def.params ?? {}).map(([p, spec]) => [p, { value: written(id)[p], ...spec }])),
+    ...(id === "moments" ? { members: ["your cat", "a late night", "the two of us", "a home", "a little sun"] } : {}),
+  }));
+  const r = acceptAuthoring({ tree: PRESET }, entities, "strong");
+  assert.equal(r.problems, undefined, JSON.stringify(r.problems));
+});
+
+test("re-authoring keeps what was learned, and the intents added for this person's events", () => {
+  const lab = createLab();
+  lab.dispatch({ type: "learn", key: KEY.dust, kind: "settles", phrase: "像雪一样慢慢落下" });
+  const o = observe(lab, say("let them linger", "moments"));
+  lab.dispatch(acceptAddition(standInAdd(o), o, "strong").action);
+  lab.dispatch(acceptAuthoring({ tree: PRESET }, ENTITIES, "strong").action);
+  assert.deepEqual(Object.values(recognize(say("像雪一样慢慢落下"), lab.tree())).slice(0, 2), [KEY.dust, "settles"], "still a short path");
+  assert.equal(lab.view("pace|moments", by.phone)().kind, "slower", "the added intent and its decision stay");
 });

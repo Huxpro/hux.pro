@@ -164,7 +164,7 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
     }
 
     // Held at the edge: it stays, but it wears away anyway (unless it is kept).
-    if (s.edgeAt !== -1 && !kept(s.edgeAt)) {
+    if (s.edgeAt !== -1 && !kept(s.edgeAt) && edge.wears) {
       const i = s.edgeAt;
       s.wear[i] += t.dt / edge.erode;
       shed(i, t.dt * edge.shed);

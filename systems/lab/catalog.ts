@@ -200,8 +200,8 @@ export const LABS: readonly LabEntry[] = [
       zh: "一个梦的意图，在每一块屏幕上",
     },
     blurb: {
-      en: "/dream/forget's intent tree, decided per screen by you, a model sure enough, or code (reintent, from airtalk). Every change is an event: drag on the dream or say something, and a preset acts at once, or a model reads the event and writes a new intent. Every screen is the real dream, live.",
-      zh: "/dream/forget 的意图树，按屏幕由你、足够确定的模型或代码来定（reintent，来自 airtalk）。每次改动都是一个事件：在梦上拖一下或说一句，预设马上处理，或者交给模型读懂事件、写出新的意图。每块屏幕都是真正的梦，实时运行。",
+      en: "/dream/forget's intent tree, written by a strong model and decided per screen (reintent, from airtalk). Drag on the dream or say something: the tree's own vocabulary answers at once, a weak model chooses within it, or the strong model adds an intent. Every screen is the real dream, live.",
+      zh: "/dream/forget 的意图树，由强模型编写，按屏幕决定（reintent，来自 airtalk）。在梦上拖一下或说一句：树自己的词汇表马上回答，弱模型在树里选，或者强模型新加一个意图。每块屏幕都是真正的梦，实时运行。",
     },
   },
   {

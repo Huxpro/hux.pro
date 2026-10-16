@@ -1,11 +1,14 @@
 // Lets plain Node run the repo's TypeScript scripts the way Next resolves the
 // modules they import: an extensionless "./scene" is "./scene.ts", "@/x" is
 // the repo root, and a package named in tsconfig's paths ("sem", "stage") is
-// its entry. Type stripping itself is Node's own (22.18+). Use as
-// `node --import ./scripts/register-ts.mjs scripts/<script>.ts`.
+// its entry. Type stripping itself is Node's own (22.18+); a .tsx file (a
+// component a test imports through a module it needs) is compiled with the
+// repo's TypeScript. Use as `node --import ./scripts/register-ts.mjs scripts/<script>.ts`.
 import { readFileSync } from "node:fs";
-import { register } from "node:module";
+import { createRequire, register } from "node:module";
 import { pathToFileURL } from "node:url";
+
+const TYPESCRIPT = pathToFileURL(createRequire(import.meta.url).resolve("typescript")).href;
 
 // The repo's own packages, by name: tsconfig's exact (wildcard-free) paths.
 const PACKAGES = Object.fromEntries(
@@ -31,6 +34,16 @@ register(
         }
       }
       return next(s, context);
+    }
+    export async function load(url, context, next) {
+      if (!url.startsWith("file:") || !url.endsWith(".tsx")) return next(url, context);
+      const { readFileSync } = await import("node:fs");
+      const ts = (await import(${JSON.stringify(TYPESCRIPT)})).default;
+      const out = ts.transpileModule(readFileSync(fileURLToPath(url), "utf8"), {
+        compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+        fileName: fileURLToPath(url),
+      });
+      return { format: "module", source: out.outputText, shortCircuit: true };
     }
   `)}`,
   pathToFileURL("./"),

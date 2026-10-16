@@ -10,6 +10,8 @@ type EdgeProps = {
   /** The window it is the edge of, and the moments it wears. */
   on: string;
   moments: string;
+  /** Held at the edge, a moment still wears away (or it waits, whole, while held). */
+  wears: boolean;
   /** How long a held moment lasts at the edge, s. */
   erode: number;
   /** The share of a held moment that goes to dust each second as it wears. */
@@ -23,6 +25,7 @@ export const Edge = kind<EdgeProps, null, EdgeOut | null>({
   intent: "The window's top edge: a moment that reaches it turns to dust; held there, it wears away anyway.",
   source: "app/dream/forget/kinds/edge.ts",
   params: {
+    wears: { note: "held at the edge, a moment still wears away; false: it waits, whole, while you hold on" },
     erode: { unit: "s", range: [0.5, 6], note: "how long a held moment lasts at the edge" },
     shed: { range: [0, 3], note: "how much of it goes to dust each second as it wears" },
   },
@@ -35,6 +38,7 @@ export const Edge = kind<EdgeProps, null, EdgeOut | null>({
     return {
       rect: up ? [box.x, box.y, box.width, row / 2] : [box.x, box.y, row / 2, box.height],
       at: (up ? box.y : box.x) + row / 2,
+      wears: p.wears !== false,
       erode: p.erode,
       shed: p.shed,
       presence: win.presence,

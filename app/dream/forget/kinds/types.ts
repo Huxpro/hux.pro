@@ -22,6 +22,7 @@ export type EdgeOut = {
   rect: [number, number, number, number];
   /** Where a moment goes to dust, px along the window's axis (from the top, or from the left). */
   at: number;
+  wears: boolean;
   erode: number;
   shed: number;
   presence: number;

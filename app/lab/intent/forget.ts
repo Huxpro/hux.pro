@@ -3,9 +3,12 @@ import { MOMENT_NAMES } from "@/app/dream/forget/kinds/pictures";
 import type { IntentNode, Tree, Words } from "./tree";
 
 // =============================================================================
-// /dream/forget's preset intents: what a person might mean that its props
-// cannot say, written by hand as an intent tree (./tree.ts). A model may add
-// to it; a person decides over it.
+// /dream/forget's intent tree, as a strong model authored it: what a person
+// might mean that its props cannot say, each intent with its vocabulary (what
+// a person says and does that means each kind). This is the cache of that
+// authoring, so the lab opens without a model; "re-author" asks the model to
+// write it again from the scene (./tree.ts, /api/intent). A person decides
+// over it; a weak model chooses within it; a strong model adds to it.
 //
 //   axis       which way the moments go: up a tall window, or right to left
 //              through a wide one. Indexed by the screen's shape.
@@ -38,6 +41,9 @@ export const tallness = (s: Screen) => s.h / s.w;
 
 const MOMENTS_ZH = ["你的猫", "一个深夜", "我们俩", "一个家", "一个小太阳"];
 
+/** Who wrote the cached tree. */
+export const AUTHORED_BY = "claude (this session, cached)";
+
 const keep = (i: number): IntentNode => ({
   type: "keep",
   of: `moments#${i}`,
@@ -48,7 +54,10 @@ const keep = (i: number): IntentNode => ({
   },
   prior: { goes: 0.9, stays: 0.1 },
   resolve: "switch",
+  say: { stays: ["keep", "keep it", "never let it go", "留住", "别走"], goes: ["let it go", "it goes", "让它走", "放手"] },
+  gestures: { stays: [{ from: "self", outOf: "window" }], goes: [{ from: "self", into: "window" }] },
   from: "preset",
+  by: AUTHORED_BY,
 });
 
 export const PRESET: Tree = [
@@ -63,15 +72,18 @@ export const PRESET: Tree = [
     prior: { up: 0.6, across: 0.4 },
     resolve: "switch",
     index: { by: "tallness", base: "up" },
+    say: { up: ["up", "upright", "stand it up", "向上", "竖着", "立起来"], across: ["across", "sideways", "lay it down", "横向", "横着", "躺下"] },
+    gestures: { across: [{ from: "window", dir: "horizontal" }], up: [{ from: "window", dir: "vertical" }] },
     from: "preset",
+    by: AUTHORED_BY,
   },
   {
     type: "holding",
     of: "edge",
     words: { en: "Holding on", zh: "按住时" },
     kinds: {
-      wears: { words: { en: "Wears away", zh: "仍会磨损" }, patch: { edge: { erode: 2.6, shed: 0.9 } } },
-      keeps: { words: { en: "Waits", zh: "停住等你" }, patch: { edge: { erode: 600, shed: 0.06 } } },
+      wears: { words: { en: "Wears away", zh: "仍会磨损" }, patch: { edge: { wears: true } } },
+      keeps: { words: { en: "Waits", zh: "停住等你" }, patch: { edge: { wears: false } } },
     },
     prior: { wears: 0.6, keeps: 0.4 },
     resolve: "ask",
@@ -79,7 +91,9 @@ export const PRESET: Tree = [
       en: "When you hold on, does the moment at the edge still wear away?",
       zh: "按住的时候，窗沿上那个画面还会继续磨损吗？",
     },
+    say: { wears: ["wears away", "it still wears away", "仍会磨损", "还是会磨损"], keeps: ["waits", "wait for me", "停住等你", "等我"] },
     from: "preset",
+    by: AUTHORED_BY,
   },
   {
     type: "letgo",
@@ -91,7 +105,9 @@ export const PRESET: Tree = [
     },
     prior: { tide: 0.7, oneByOne: 0.3 },
     resolve: "switch",
+    say: { tide: ["a tide", "all at once", "像退潮", "一下子"], oneByOne: ["one by one", "一个一个", "一个接一个"] },
     from: "preset",
+    by: AUTHORED_BY,
   },
   {
     type: "dust",
@@ -103,7 +119,10 @@ export const PRESET: Tree = [
     },
     prior: { rises: 0.6, settles: 0.4 },
     resolve: "switch",
+    say: { rises: ["rises", "rise", "float away", "升起", "飘走"], settles: ["settles", "settle", "fall", "like snow", "落下", "像雪"] },
+    gestures: { settles: [{ from: "dust", dir: "down" }], rises: [{ from: "dust", dir: "up" }] },
     from: "preset",
+    by: AUTHORED_BY,
   },
   ...MOMENT_NAMES.map((_, i) => keep(i)),
 ];

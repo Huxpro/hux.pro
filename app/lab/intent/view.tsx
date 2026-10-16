@@ -6,11 +6,28 @@ import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { LabButton, LabChip, LabSection, LabShell, Section, Segmented, useLabStrings } from "@/systems/lab";
-import { Hand, RotateCcw, SendHorizontal, Undo2 } from "lucide-react";
+import { Hand, RotateCcw, SendHorizontal, Sparkles, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { StageProvider, type StageHost } from "stage";
-import { accept, infer, recognize, type Hit, type LabEvent, type Observation, type Point } from "./events";
-import { LOOP, SCREENS, SCRIPT, tallness, type Screen } from "./forget";
+import {
+  acceptAddition,
+  acceptAuthoring,
+  acceptSelection,
+  ask,
+  describeGesture,
+  gestureOf,
+  recognize,
+  standInAdd,
+  standInSelect,
+  type Addition,
+  type Authoring,
+  type Hit,
+  type LabEvent,
+  type Observation,
+  type Point,
+  type Selection,
+} from "./events";
+import { AUTHORED_BY, BELIEFS, LOOP, PRESET, SCREENS, SCRIPT, tallness, type Screen } from "./forget";
 import { useLab, useValue, type IntentView, type Lab } from "./model";
 import { INTENT_STRINGS, type IntentStrings } from "./strings";
 import type { Entity, Words } from "./tree";
@@ -111,6 +128,19 @@ function hitAt(host: StageHost, p: Point): Hit {
   return { id: null };
 }
 
+/** The things on the stage whose shapes hold a point (its own px). */
+function within(host: StageHost, p: Point): string[] {
+  const snap = host.layer.snapshot();
+  return snap.order
+    .filter((id) => id.startsWith(SCOPE) && snap.nodes[id].visible && snap.nodes[id].backend !== "dom")
+    .filter((id) => {
+      const b = snap.nodes[id].bounds;
+      return !!b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
+    })
+    .map((id) => id.slice(SCOPE.length))
+    .filter((id) => !id.includes("#") && id !== "forget");
+}
+
 /** The things on the stage, as a model is told about them: their knobs as the scene wrote them. */
 function entitiesOf(host: StageHost): Entity[] {
   return host.ids().flatMap((id) => {
@@ -140,11 +170,12 @@ function hitWords(h: Hit, locale: "en" | "zh", S: IntentStrings) {
 type LogEntry = {
   id: number;
   what: string;
-  route: "resolve" | "infer";
+  route: "vocab" | "select" | "add" | "author";
   by: string;
-  status: "pending" | "done" | "none" | "rejected";
+  status: "pending" | "done" | "none" | "rejected" | "failed";
   why?: Words;
   problems?: string[];
+  learned?: string;
   ms?: number;
 };
 
@@ -289,8 +320,22 @@ function IntentRow({ lab, k, screen, S }: { lab: Lab; k: string; screen: Screen;
         options={Object.entries(v.node.kinds).map(([kind, kn]) => ({ value: kind, label: kn.words[locale] + (v.asks && kind === v.kind ? " ?" : "") }))}
         onChange={(kind) => kind !== v.kind && lab.dispatch({ type: "decide", key: k, kind, from: "switched", screen })}
       />
+      <Vocabulary node={v.node} locale={locale} S={S} />
     </div>
   );
+}
+
+/** What a person says and does that means each kind: the short path the model wrote. */
+function Vocabulary({ node, locale, S }: { node: IntentView["node"]; locale: "en" | "zh"; S: IntentStrings }) {
+  const lines = Object.keys(node.kinds)
+    .map((kind) => {
+      const said = (node.say?.[kind] ?? []).slice(0, 4).map((p) => `“${p}”`);
+      const done = (node.gestures?.[kind] ?? []).map(describeGesture);
+      return said.length || done.length ? `${node.kinds[kind].words[locale]} ${S.vocab}: ${[...said, ...done].join(" · ")}` : null;
+    })
+    .filter(Boolean);
+  if (!lines.length) return null;
+  return <p className="whitespace-pre-line font-mono text-[10px] leading-relaxed text-tertiary-foreground">{lines.join("\n")}</p>;
 }
 
 function Questions({ lab, screen, S }: { lab: Lab; screen: Screen; S: IntentStrings }) {
@@ -380,10 +425,11 @@ function Hands({
   scale: number;
   picked: Hit;
   onPick: (h: Hit) => void;
-  onDrag: (from: Point & Hit, to: Point & Hit, window: { x: number; y: number; w: number; h: number } | null) => void;
+  onDrag: (from: Point & Hit, to: Point & Hit, inside: { from: string[]; to: string[] }) => void;
 }) {
   const [line, setLine] = useState<{ a: Point; b: Point } | null>(null);
   const start = useRef<(Point & Hit) | null>(null);
+  const startWithin = useRef<string[]>([]);
   const outline = useRef<HTMLDivElement>(null);
   const local = (e: { clientX: number; clientY: number; currentTarget: HTMLElement }) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -424,6 +470,7 @@ function Hands({
         e.currentTarget.setPointerCapture(e.pointerId);
         const p = local(e);
         start.current = { ...p, ...hitAt(host, p) };
+        startWithin.current = within(host, p);
         setLine({ a: p, b: p });
       }}
       onPointerMove={(e) => {
@@ -437,9 +484,7 @@ function Hands({
         if (!from || !host) return;
         const p = local(e);
         if (Math.hypot(p.x - from.x, p.y - from.y) < 8) return onPick({ id: from.id, member: from.member });
-        const w = host.layer.snapshot().nodes[`${SCOPE}window`]?.shape;
-        const box = w && "rect" in w ? { x: w.rect[0], y: w.rect[1], w: w.rect[2], h: w.rect[3] } : null;
-        onDrag(from, { ...p, ...hitAt(host, p) }, box);
+        onDrag(from, { ...p, ...hitAt(host, p) }, { from: startWithin.current, to: within(host, p) });
       }}
       onPointerCancel={() => {
         start.current = null;
@@ -468,7 +513,7 @@ function EventLog({ log, S }: { log: LogEntry[]; S: IntentStrings }) {
             <span
               className={cn(
                 "rounded-full px-2 py-0.5 font-mono text-[10px]",
-                e.route === "resolve" ? "bg-foreground text-background" : "border border-foreground/60 text-foreground",
+                e.route === "vocab" ? "bg-foreground text-background" : e.route === "select" ? "border border-foreground/60 text-foreground" : "border-2 border-foreground text-foreground",
               )}
             >
               {S.route[e.route]}
@@ -480,8 +525,9 @@ function EventLog({ log, S }: { log: LogEntry[]; S: IntentStrings }) {
             </span>
           </div>
           {e.why && <p className={cn(TYPE.captionQuiet, "mt-1")}>{e.why[locale]}</p>}
-          {e.problems?.map((p) => (
-            <p key={p} className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+          {e.learned && <p className="mt-0.5 font-mono text-[10px] text-foreground">↺ {S.learned(e.learned)}</p>}
+          {e.problems?.map((p, i) => (
+            <p key={i} className="mt-0.5 font-mono text-[10px] text-muted-foreground">
               ✗ {p}
             </p>
           ))}
@@ -503,7 +549,6 @@ export function IntentLabView() {
   const written = useValue(lab.written);
   const history = useValue(lab.history);
   const keys = useValue(lab.keys);
-  const params = useValue(lab.params(focus));
   // As large as the column allows, and no taller than most of a laptop's screen.
   const scale = stageW ? Math.min(1, stageW / focus.w, 440 / focus.h) : 0;
 
@@ -517,19 +562,23 @@ export function IntentLabView() {
 
   const put = (entry: LogEntry) => setLog((l) => [...l.filter((x) => x.id !== entry.id), entry]);
 
-  /** The one callback every event goes through: ① a preset's action now, or ② a model's, later. */
+  /**
+   * The one callback every event goes through. ① The tree's vocabulary (no
+   * model); ② a weak model chooses within the tree, and its choice is learned;
+   * ③ when no kind fits, the strong model adds an intent. Each answer is
+   * checked before it is dispatched.
+   */
   const handle = useCallback(
     async (e: LabEvent, what: string) => {
       const id = ++seq.current;
       const t0 = performance.now();
-      const kept = (params.moments?.kept as number[] | undefined) ?? [];
-      const known = recognize(e, lab.tree(), kept);
-      if (known?.action) {
-        lab.dispatch(known.action);
-        put({ id, what, route: "resolve", by: "recognizer", status: "done", why: known.why, ms: performance.now() - t0 });
+      const ms = () => performance.now() - t0;
+      const found = recognize(e, lab.tree());
+      if (found) {
+        lab.dispatch({ type: "decide", key: found.key, kind: found.kind, from: e.kind === "drag" ? "dragged" : "prompted", screen: e.screen });
+        put({ id, what, route: "vocab", by: "—", status: "done", why: found.why, ms: ms() });
         return;
       }
-      put({ id, what, route: "infer", by: "…", status: "pending" });
       const o: Observation = {
         entities: host ? entitiesOf(host) : [],
         tree: lab.tree(),
@@ -537,22 +586,78 @@ export function IntentLabView() {
         event: e,
         prompts: prompts.current.slice(-5),
       };
-      const { answer, by } = await infer(o);
-      const out = accept(answer, o);
-      if (out.action) lab.dispatch(out.action);
+      put({ id, what, route: "select", by: "…", status: "pending" });
+      const sel = await ask<Selection>("select", o, () => standInSelect(o));
+      if (!sel.answer) return put({ id, what, route: "select", by: sel.by, status: "failed", problems: [sel.error ?? "no answer"], ms: ms() });
+      const chosen = acceptSelection(sel.answer, o);
+      if (chosen.action) {
+        lab.dispatch(chosen.action);
+        // What a weak model chose is learned: the next time this is said or done, it is ①.
+        let learned: string | undefined;
+        if (chosen.action.type === "decide") {
+          const { key, kind } = chosen.action;
+          const node = o.tree.find((n) => `${n.type}|${n.of}` === key);
+          const gesture = e.kind === "drag" && node ? (gestureOf(e, node.of) ?? undefined) : undefined;
+          const phrase = e.kind === "prompt" ? e.text : undefined;
+          if (phrase || gesture) {
+            lab.dispatch({ type: "learn", key, kind, phrase, gesture });
+            learned = `${node?.words[locale] ?? key} → ${node?.kinds[kind].words[locale] ?? kind}: ${phrase ? `“${phrase.trim().toLowerCase()}”` : describeGesture(gesture!)}`;
+          }
+        }
+        return put({ id, what, route: "select", by: sel.by, status: "done", why: chosen.why, learned, ms: ms() });
+      }
+      if (!chosen.escalate) {
+        return put({ id, what, route: "select", by: sel.by, status: chosen.problems ? "rejected" : "none", why: chosen.why, problems: chosen.problems, ms: ms() });
+      }
+      put({ id, what, route: "add", by: "…", status: "pending", why: { en: `${sel.by}: ${S.escalated}`, zh: `${sel.by}：${S.escalated}` } });
+      const add = await ask<Addition>("add", o, () => standInAdd(o));
+      if (!add.answer) return put({ id, what, route: "add", by: add.by, status: "failed", problems: [add.error ?? "no answer"], ms: ms() });
+      const added = acceptAddition(add.answer, o, add.by);
+      if (added.action) lab.dispatch(added.action);
       put({
         id,
         what,
-        route: "infer",
-        by,
-        status: out.action ? "done" : out.problems ? "rejected" : "none",
-        why: out.why,
-        problems: out.problems,
-        ms: performance.now() - t0,
+        route: "add",
+        by: `${sel.by} → ${add.by}`,
+        status: added.action ? "done" : added.problems ? "rejected" : "none",
+        why: added.why,
+        problems: added.problems,
+        ms: ms(),
       });
     },
-    [lab, host, params],
+    [lab, host, locale, S],
   );
+
+  /** The strong model writes the whole tree again, from the scene. */
+  const reauthor = async () => {
+    if (!host) return;
+    const id = ++seq.current;
+    const t0 = performance.now();
+    const entities = entitiesOf(host);
+    const scene = host.layer.get("forget");
+    put({ id, what: S.reauthorWhat, route: "author", by: "…", status: "pending" });
+    const cached = (): Authoring => ({
+      tree: PRESET,
+      beliefs: Object.entries(BELIEFS).map(([key, b]) => ({ key, p: b.p })),
+      why: "The cached authoring: no model is reachable.",
+    });
+    const out = await ask<Authoring>("author", { entities, intent: scene?.intent, names: scene?.names }, cached);
+    if (!out.answer) return put({ id, what: S.reauthorWhat, route: "author", by: out.by, status: "failed", problems: [out.error ?? "no answer"], ms: performance.now() - t0 });
+    const by = out.by === "stand-in" ? AUTHORED_BY : out.by;
+    const r = acceptAuthoring(out.answer, entities, by);
+    if (r.action) lab.dispatch(r.action);
+    put({
+      id,
+      what: S.reauthorWhat,
+      route: "author",
+      by: out.by,
+      status: r.action ? "done" : "rejected",
+      why: { en: out.answer.why ?? "", zh: out.answer.why ?? "" },
+      problems: r.problems?.slice(0, 6),
+      ms: performance.now() - t0,
+    });
+  };
+  const authoredBy = useValue(lab.tree).find((n) => n.from === "preset")?.by ?? AUTHORED_BY;
 
   const about = picked.id ? hitWords(picked, locale, S) : S.everything;
   const send = (ev: FormEvent) => {
@@ -595,6 +700,14 @@ export function IntentLabView() {
       panel={
         <>
           <Questions lab={lab} screen={focus} S={S} />
+          <Section title={S.tree}>
+            <p className={TYPE.captionQuiet}>{S.treeNote(authoredBy)}</p>
+            <div>
+              <LabButton tone="primary" onClick={() => void reauthor()} disabled={!host || log.some((l) => l.route === "author" && l.status === "pending")}>
+                <Sparkles /> {log.some((l) => l.route === "author" && l.status === "pending") ? S.authoring : S.reauthor}
+              </LabButton>
+            </div>
+          </Section>
           <Section title={S.intents(S.screens[focus.id])}>
             <p className={TYPE.captionQuiet}>{S.intentsNote}</p>
             {groups.map(([title, ks]) =>
@@ -632,8 +745,8 @@ export function IntentLabView() {
                   scale={scale}
                   picked={picked}
                   onPick={setPicked}
-                  onDrag={(from, to, window) =>
-                    void handle({ kind: "drag", screen: focus, from, to, window }, S.drag(hitWords(from, locale, S), hitWords(to, locale, S)))
+                  onDrag={(from, to, inside) =>
+                    void handle({ kind: "drag", screen: focus, from, to, within: inside }, S.drag(hitWords(from, locale, S), hitWords(to, locale, S)))
                   }
                 />
               )}

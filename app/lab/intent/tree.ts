@@ -2,16 +2,18 @@ import { space } from "reintent";
 import type { Params } from "stage";
 
 // =============================================================================
-// The intent tree: the state, and nothing but data.
+// The intent tree: the state, and nothing but data. A model writes it.
 //
 // Each node is one intent about one thing on the stage: a closed set of
-// kinds, each with the props it sets (its patch). A preset tree is written by
-// hand; a model may add a node, or write a whole new tree, in the same shape,
-// and it is checked before it is let in. reintent decides each node per
-// context (a person > their preference > a model sure enough > code); compile
-// merges the chosen kinds' patches into the scene's props.
+// kinds, each with the props it sets (its patch), and its vocabulary: what a
+// person says (`say`) and does (`gestures`) that means each kind. A strong
+// model authors the whole tree from the scene, and adds a node when an event
+// needs one no node has; everything faster than that is a short path through
+// what it wrote: a person's gesture matched against the vocabulary, a weak
+// model choosing among its kinds, code compiling the choice. Nothing the
+// model writes is let in unchecked (`admit`).
 //
-//   tree ──▶ typesOf ──▶ reintent ──▶ one kind per node, per screen ──▶ compile ──▶ props
+//   strong model ──▶ tree (kinds, patches, vocabulary) ──▶ reintent ──▶ one kind per node, per screen ──▶ compile ──▶ props
 // =============================================================================
 
 export type Words = { en: string; zh: string };
@@ -20,6 +22,19 @@ export interface KindNode {
   words: Words;
   /** The props this kind sets, by node id. Every kind of a node sets the same props, so switching always undoes. */
   patch: Params;
+}
+
+export type Dir = "up" | "down" | "left" | "right" | "horizontal" | "vertical";
+
+/** A drag that means a kind: where it starts, which way it goes, which shape it leaves or enters. */
+export interface Gesture {
+  /** What it starts on: an entity id, or "self" (what the node is about, a member included). */
+  from: string;
+  dir?: Dir;
+  /** It ends inside this entity's shape, having started outside it. */
+  into?: string;
+  /** It starts inside this entity's shape and ends outside it. */
+  outOf?: string;
 }
 
 export interface IntentNode {
@@ -38,8 +53,14 @@ export interface IntentNode {
   question?: Words;
   /** Its value crosses over along the context: `base` at the high end. */
   index?: { by: "tallness"; base: string };
-  /** Who wrote it. */
+  /** What a person says that means each kind (any language, lower case). */
+  say?: Record<string, string[]>;
+  /** What a person does that means each kind. */
+  gestures?: Record<string, Gesture[]>;
+  /** The tree's authoring (`preset`), or added for an event (`model`). */
   from: "preset" | "model";
+  /** Which model wrote it. */
+  by?: string;
 }
 
 export type Tree = IntentNode[];
@@ -110,14 +131,26 @@ export interface Entity {
 }
 
 const NAME = /^[a-zA-Z][a-zA-Z0-9-]{0,23}$/;
+const DIRS = new Set(["up", "down", "left", "right", "horizontal", "vertical"]);
+const MAX_SAY = 12;
+
+const words = (w: unknown): Words | null =>
+  w && typeof w === "object" && typeof (w as Words).en === "string"
+    ? { en: (w as Words).en.slice(0, 80), zh: typeof (w as Words).zh === "string" ? (w as Words).zh.slice(0, 80) : (w as Words).en.slice(0, 80) }
+    : null;
 
 /**
  * A node a model wrote, made whole (kinds that leave a prop out get the
  * value the scene wrote, so switching back undoes) and checked: what it is
  * about exists, its kinds are a closed set of two to four, every patch is a
- * knob that exists, in its range. Returns the node, or why not.
+ * knob that exists, in its range, and its vocabulary names its own kinds and
+ * things on the stage. Returns the node, or why not.
  */
-export function admit(raw: unknown, entities: Entity[]): { node: IntentNode } | { problems: string[] } {
+export function admit(
+  raw: unknown,
+  entities: Entity[],
+  { from = "model", by }: { from?: IntentNode["from"]; by?: string } = {},
+): { node: IntentNode } | { problems: string[] } {
   const problems: string[] = [];
   const n = raw as Partial<IntentNode> | null;
   if (!n || typeof n !== "object") return { problems: ["not an intent node"] };
@@ -127,10 +160,6 @@ export function admit(raw: unknown, entities: Entity[]): { node: IntentNode } | 
   const of = byId.get(ofId);
   if (!of) problems.push(`"${n.of}" is not on the stage`);
   else if (member !== undefined && !(of.members && Number(member) >= 0 && Number(member) < of.members.length)) problems.push(`"${n.of}" is not one of its members`);
-  const words = (w: unknown): Words | null =>
-    w && typeof w === "object" && typeof (w as Words).en === "string"
-      ? { en: (w as Words).en.slice(0, 80), zh: typeof (w as Words).zh === "string" ? (w as Words).zh.slice(0, 80) : (w as Words).en.slice(0, 80) }
-      : null;
   const kinds = Object.entries((n.kinds ?? {}) as Record<string, Partial<KindNode>>);
   if (kinds.length < 2 || kinds.length > 4) problems.push(`it has ${kinds.length} kinds; a choice has two to four`);
   // Every prop any kind sets, so each kind can set them all.
@@ -151,6 +180,7 @@ export function admit(raw: unknown, entities: Entity[]): { node: IntentNode } | 
         else if (typeof spec.value === "number" && spec.range && ((value as number) < spec.range[0] || (value as number) > spec.range[1]))
           problems.push(`${node}.${prop} = ${value} is outside ${spec.range[0]}–${spec.range[1]}`);
         else if (typeof spec.value === "string" && typeof value !== "string") problems.push(`${node}.${prop} takes words`);
+        else if (typeof spec.value === "boolean" && typeof value !== "boolean") problems.push(`${node}.${prop} takes true or false`);
         else if (Array.isArray(spec.value) && !Array.isArray(value)) problems.push(`${node}.${prop} takes a list`);
         touched.set(node, (touched.get(node) ?? new Set()).add(prop));
       }
@@ -159,6 +189,34 @@ export function admit(raw: unknown, entities: Entity[]): { node: IntentNode } | 
   if (!touched.size) problems.push("none of its kinds changes anything");
   if (n.resolve !== "ask" && n.resolve !== "switch") problems.push(`resolve is "${n.resolve}", not ask or switch`);
   if (!words(n.words)) problems.push("it has no words for what it decides");
+  const names = new Set(kinds.map(([k]) => k));
+  if (n.index && !(n.index.by === "tallness" && names.has(n.index.base))) problems.push("its index is not tallness with one of its kinds as the base");
+  // The vocabulary: its own kinds, things on the stage.
+  const say: Record<string, string[]> = {};
+  for (const [kind, phrases] of Object.entries(n.say ?? {})) {
+    if (!names.has(kind)) problems.push(`it says "${kind}", which is not one of its kinds`);
+    else if (!Array.isArray(phrases)) problems.push(`what it says for "${kind}" is not a list`);
+    else say[kind] = phrases.filter((p) => typeof p === "string" && p.trim()).map((p) => p.trim().toLowerCase().slice(0, 60)).slice(0, MAX_SAY);
+  }
+  const gestures: Record<string, Gesture[]> = {};
+  for (const [kind, list] of Object.entries(n.gestures ?? {})) {
+    if (!names.has(kind)) {
+      problems.push(`a gesture means "${kind}", which is not one of its kinds`);
+      continue;
+    }
+    gestures[kind] = [];
+    for (const g of Array.isArray(list) ? list : []) {
+      const ok =
+        g &&
+        (g.from === "self" || byId.has(g.from)) &&
+        (g.dir === undefined || DIRS.has(g.dir)) &&
+        (g.into === undefined || byId.has(g.into)) &&
+        (g.outOf === undefined || byId.has(g.outOf)) &&
+        (g.dir || g.into || g.outOf);
+      if (ok) gestures[kind].push({ from: g.from, ...(g.dir ? { dir: g.dir } : {}), ...(g.into ? { into: g.into } : {}), ...(g.outOf ? { outOf: g.outOf } : {}) });
+      else problems.push(`a gesture for "${kind}" names nothing on the stage, or no way to go`);
+    }
+  }
   if (problems.length) return { problems };
   const whole: Record<string, KindNode> = {};
   for (const [name, k] of kinds) {
@@ -179,7 +237,44 @@ export function admit(raw: unknown, entities: Entity[]): { node: IntentNode } | 
       ...(prior && Object.keys(prior).length ? { prior } : {}),
       resolve: n.resolve!,
       ...(n.question && words(n.question) ? { question: words(n.question)! } : {}),
-      from: "model",
+      ...(n.index ? { index: { by: "tallness" as const, base: n.index.base } } : {}),
+      ...(Object.keys(say).length ? { say } : {}),
+      ...(Object.values(gestures).some((g) => g.length) ? { gestures } : {}),
+      from,
+      ...(by ? { by } : {}),
     },
   };
+}
+
+/** A whole tree a model authored: every node admitted, no two about the same thing, at least one. */
+export function admitTree(raw: unknown, entities: Entity[], by?: string): { tree: Tree } | { problems: string[] } {
+  if (!Array.isArray(raw) || !raw.length) return { problems: ["no intents"] };
+  const problems: string[] = [];
+  const tree: Tree = [];
+  const seen = new Set<string>();
+  raw.forEach((r, i) => {
+    const out = admit(r, entities, { from: "preset", by });
+    if ("problems" in out) problems.push(...out.problems.map((p) => `#${i}: ${p}`));
+    else if (seen.has(keyOf(out.node))) problems.push(`#${i}: a second intent about ${keyOf(out.node)}`);
+    else {
+      seen.add(keyOf(out.node));
+      tree.push(out.node);
+    }
+  });
+  return problems.length ? { problems } : { tree };
+}
+
+/** A node with one more phrase or gesture for a kind: what a short path learned from a model's answer. */
+export function learn(node: IntentNode, kind: string, { phrase, gesture }: { phrase?: string; gesture?: Gesture }): IntentNode {
+  const next = { ...node };
+  if (phrase) {
+    const p = phrase.trim().toLowerCase().slice(0, 60);
+    const had = node.say?.[kind] ?? [];
+    if (!had.includes(p)) next.say = { ...node.say, [kind]: [...had, p].slice(-MAX_SAY) };
+  }
+  if (gesture) {
+    const had = node.gestures?.[kind] ?? [];
+    if (!had.some((g) => JSON.stringify(g) === JSON.stringify(gesture))) next.gestures = { ...node.gestures, [kind]: [...had, gesture] };
+  }
+  return next;
 }

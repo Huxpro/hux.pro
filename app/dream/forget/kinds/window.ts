@@ -36,6 +36,7 @@ export const Window = kind<WindowProps, WindowState, WindowOut>({
     rowMin: { unit: "px", range: [30, 80], note: "a row, at least, on a short screen" },
     chrome: { unit: "px", range: [100, 300], note: "kept clear above and below for the caption and the hint" },
     held: { range: [1, 5], note: "moments it holds before the oldest reaches the edge" },
+    axis: { note: '"up": moments rise through a tall window; "across": it lies on its side and they drift right to left' },
   },
 
   init: () => ({ warmth: 0, presence: 1 }),

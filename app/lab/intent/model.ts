@@ -4,7 +4,7 @@ import { useCallback, useState, useSyncExternalStore } from "react";
 import { batch, cells, computed, effect, intents, same, signal, untracked } from "reintent";
 import type { Params } from "stage";
 import { BELIEFS, PRESET, settle, tallness, type Screen, type Value } from "./forget";
-import { compile, keyOf, typesOf, type IntentNode, type Tree } from "./tree";
+import { compile, keyOf, learn, typesOf, type Gesture, type IntentNode, type Tree } from "./tree";
 
 // =============================================================================
 // The Intent Lab's state, one way round:
@@ -35,8 +35,10 @@ export type Action =
   | { type: "believe"; beliefs: { key: string; p: Record<string, number> }[] }
   /** A node a model wrote (replacing one about the same thing), and optionally its kind here. */
   | { type: "add"; node: IntentNode; kind?: string; from?: From; screen?: Screen }
-  /** A whole new tree. Decisions about nodes it keeps stay. */
-  | { type: "replace"; tree: Tree };
+  /** A whole new tree (a model re-authored it), and its beliefs. Decisions stay where their node and kind still exist. */
+  | { type: "replace"; tree: Tree; beliefs?: Record<string, { p: Record<string, number> }> }
+  /** A phrase or gesture that means a kind, learned from a model's answer: the next time, a short path. */
+  | { type: "learn"; key: string; kind: string; phrase?: string; gesture?: Gesture };
 
 /** Who has the say over a value on a screen. */
 export type Who = "person" | "pref" | "model" | "code";
@@ -198,7 +200,34 @@ export function createLab(preset: Tree = PRESET, beliefsAtFirst: Beliefs = BELIE
         tree.set([...(tree.peek() as Tree).filter((n) => keyOf(n) !== key), a.node]);
         // A node rewritten: what was decided about the old one no longer names its kinds.
         store.forget(key);
-      } else if (a.type === "replace") tree.set(a.tree);
+      } else if (a.type === "replace") {
+        // A re-authored tree keeps what was learned (the old vocabulary, for kinds it still has) and the
+        // intents added for this person's events, unless it covers the same thing itself.
+        const old = new Map((tree.peek() as Tree).map((n) => [keyOf(n), n]));
+        const keys = new Set(a.tree.map(keyOf));
+        const merged = a.tree.map((n) => {
+          const was = old.get(keyOf(n));
+          if (!was) return n;
+          let out = n;
+          for (const kind of Object.keys(n.kinds)) {
+            for (const phrase of was.say?.[kind] ?? []) out = learn(out, kind, { phrase });
+            for (const gesture of was.gestures?.[kind] ?? []) out = learn(out, kind, { gesture });
+          }
+          return out;
+        });
+        const next = [...merged, ...[...old.values()].filter((n) => n.from === "model" && !keys.has(keyOf(n)))];
+        tree.set(next);
+        if (a.beliefs) beliefs.set(a.beliefs);
+        const byKey = new Map(next.map((n) => [keyOf(n), n]));
+        for (const [key, d] of Object.entries(untracked(store.snapshot) as Record<string, Decision>)) {
+          const node = byKey.get(key);
+          const pick = d.pick as string | { base?: string; below?: string | null };
+          const kinds = typeof pick === "string" ? [pick] : [pick.base, pick.below].filter((k): k is string => !!k);
+          if (!node || kinds.some((k) => !(k in node.kinds))) store.forget(key);
+        }
+      } else if (a.type === "learn") {
+        tree.set((tree.peek() as Tree).map((n) => (keyOf(n) === a.key ? learn(n, a.kind, a) : n)));
+      }
     });
     // The new node's kind, decided against reintent as rebuilt for it.
     if (a.type === "add" && a.kind && a.screen) {
