@@ -1,4 +1,5 @@
 import { kind } from "stage";
+import { blend, ease, MORPH } from "./morph";
 import { MOMENT_NAMES, MOMENTS, paint, type Picture } from "./pictures";
 import type { EdgeOut, Speck, TideOut, WindowOut } from "./types";
 
@@ -48,6 +49,9 @@ type MomentsState = {
   goneSent: boolean;
   /** Set aside, kept: where each rests, if it does. */
   aside: (Drawn | null)[];
+  /** Magic move: where each was drawn when the window began to change, and when. */
+  morphAt: number | null;
+  from: (Drawn | null)[] | null;
 };
 
 export type MomentsOut = {
@@ -86,9 +90,13 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
     shed: [],
     goneSent: false,
     aside: MOMENTS.map(() => null),
+    morphAt: null,
+    from: null,
   }),
 
   step(s, p, { t, rng, out, emit }) {
+    // Where each was drawn last frame, in the window and set aside: where a magic move starts from.
+    const before = s.drawn.map((d, i) => d ?? s.aside[i]);
     s.shed = [];
     s.drawn = s.pics.map(() => null);
     s.edgeAt = -1;
@@ -191,6 +199,19 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
       }
       s.aside[i] = { ...at, size: small, alpha: 1 };
     });
+
+    // The window began to change: each picture moves from where it was to where it now belongs.
+    if (win.morphAt !== s.morphAt) {
+      s.morphAt = win.morphAt;
+      s.from = win.morphAt === null ? null : before;
+    }
+    if (s.from && s.morphAt !== null) {
+      const e = ease((t.now - s.morphAt) / MORPH);
+      const from = s.from;
+      const move = (d: Drawn | null, i: number) => (d && d.size && from[i]?.size ? blend(from[i]!, d, e) : d);
+      s.drawn = s.drawn.map(move);
+      s.aside = s.aside.map(move);
+    }
 
     if (!s.goneSent && s.gone.every(Boolean)) {
       s.goneSent = true;

@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { LabButton, LabChip, LabSection, LabShell, Section, Segmented, useLabStrings } from "@/systems/lab";
 import { Hand, RotateCcw, SendHorizontal, Sparkles, Undo2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { StageProvider, type StageHost } from "stage";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { StageProvider, type Params, type StageHost } from "stage";
 import {
   acceptAddition,
   acceptAuthoring,
@@ -22,6 +22,7 @@ import {
   weakReads,
   type Addition,
   type Authoring,
+  type Found,
   type Hit,
   type LabEvent,
   type Observation,
@@ -29,9 +30,9 @@ import {
   type Selection,
 } from "./events";
 import { AUTHORED_BY, BELIEFS, LOOP, PRESET, SCREENS, SCRIPT, tallness, type Screen } from "./forget";
-import { useLab, useValue, type Action, type IntentView, type Lab } from "./model";
+import { useLab, useValue, type Action, type Direction, type IntentView, type Lab } from "./model";
 import { INTENT_STRINGS, type IntentStrings } from "./strings";
-import type { Entity, Words } from "./tree";
+import type { Dir, Entity, Gesture, IntentNode, Tree, Words } from "./tree";
 
 // =============================================================================
 // The Intent Lab: a dream's intents, decided per screen, and changed by
@@ -68,6 +69,7 @@ function DreamBox({
   scale,
   inert,
   onHost,
+  override,
   className,
   children,
 }: {
@@ -77,12 +79,15 @@ function DreamBox({
   /** It only performs; a tap on it is its tile's. */
   inert?: boolean;
   onHost?: (host: StageHost) => void;
+  /** What it would be (a preview): shown instead, and moved to, not jumped to. */
+  override?: Params;
   className?: string;
   /** Laid over it, at its shown size (the hand-editing overlay). */
   children?: ReactNode;
 }) {
   const { locale } = useLocale();
-  const params = useValue(lab.params(screen));
+  const live = useValue(lab.params(screen));
+  const params = override ?? live;
   return (
     <div
       className={cn("relative overflow-hidden rounded-xl border border-border/60", className)}
@@ -270,9 +275,26 @@ function RulerDot({
   );
 }
 
-function Tile({ lab, screen, on, onClick, S }: { lab: Lab; screen: Screen; on: boolean; onClick: () => void; S: IntentStrings }) {
+function Tile({
+  lab,
+  screen,
+  on,
+  onClick,
+  override,
+  S,
+}: {
+  lab: Lab;
+  screen: Screen;
+  on: boolean;
+  onClick: () => void;
+  override?: Params;
+  S: IntentStrings;
+}) {
   const { locale } = useLocale();
   const axis = useValue(lab.view("axis|window", screen));
+  const live = useValue(lab.params(screen));
+  // Under a preview, the screens it would change say so.
+  const changes = !!override && JSON.stringify(override) !== JSON.stringify(live);
   const scale = 132 / screen.h;
   // The dream has buttons of its own (the way out), so the tile is a div and its button lies over it.
   return (
@@ -282,10 +304,18 @@ function Tile({ lab, screen, on, onClick, S }: { lab: Lab; screen: Screen; on: b
         screen={screen}
         scale={scale}
         inert
-        className={cn("transition-shadow", on ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "group-hover:ring-1 group-hover:ring-border")}
+        override={override}
+        className={cn(
+          "transition-shadow",
+          on ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "group-hover:ring-1 group-hover:ring-border",
+          changes && !on && "ring-2 ring-foreground/40 ring-offset-2 ring-offset-background",
+        )}
       />
       <span className="flex flex-col">
-        <span className="text-xs text-foreground">{S.screens[screen.id]}</span>
+        <span className="text-xs text-foreground">
+          {S.screens[screen.id]}
+          {changes && <span className="ml-1.5 font-mono text-[10px] text-muted-foreground">· {S.changes}</span>}
+        </span>
         <span className="font-mono text-[10px] text-muted-foreground">
           {screen.w}×{screen.h} · {axis?.kind === "across" ? "←" : "↑"} {axis ? axis.node.kinds[axis.kind].words[locale] : ""}
         </span>
@@ -410,31 +440,97 @@ function Code({ children }: { children: ReactNode }) {
   );
 }
 
+/** A drop zone: one gesture in the vocabulary that a drag from here could be, and what it would mean. */
+type Zone = { key: string; kind: string; label: string; how: string; g: Gesture; rect: [number, number, number, number] | null };
+
+const ARROW: Record<Dir, [number, number][]> = {
+  up: [[0, -1]],
+  down: [[0, 1]],
+  left: [[-1, 0]],
+  right: [[1, 0]],
+  horizontal: [[-1, 0], [1, 0]],
+  vertical: [[0, -1], [0, 1]],
+};
+
+/** A thing's box on the stage now (its own px). */
+function boxOf(host: StageHost, id: string): [number, number, number, number] | null {
+  const b = host.layer.snapshot().nodes[`${SCOPE}${id}`]?.bounds;
+  return b ? [b.x, b.y, b.w, b.h] : null;
+}
+
+/** Every gesture in the tree's vocabulary that a drag from here could still be: the drop zones it has. */
+function zonesFrom(tree: Tree, start: Hit, inside: string[], host: StageHost, locale: "en" | "zh", S: IntentStrings): Zone[] {
+  const subject = start.id && start.member !== undefined ? `${start.id}#${start.member}` : start.id;
+  const name = (x: string, node: IntentNode) => {
+    const id = x === "self" ? node.of.split("#")[0] : x;
+    return ENTITY_WORDS[id]?.[locale] ?? id;
+  };
+  const out: Zone[] = [];
+  for (const node of tree)
+    for (const [kind, gs] of Object.entries(node.gestures ?? {}))
+      for (const g of gs) {
+        if (g.from === "self" ? subject !== node.of : start.id !== g.from) continue;
+        const place = g.outOf ?? g.into;
+        const where = place === "self" ? node.of.split("#")[0] : place;
+        // Out of a shape it did not start in, or into one it already is in: not a way this drag can go.
+        if ((g.outOf && !inside.includes(where!)) || (g.into && inside.includes(where!))) continue;
+        const how = g.outOf ? S.outOf(name(g.outOf, node)) : g.into ? S.into(name(g.into, node)) : S.dirs[g.dir!];
+        out.push({
+          key: `${node.type}|${node.of}`,
+          kind,
+          label: `${node.words[locale]} → ${node.kinds[kind].words[locale]}`,
+          how,
+          g,
+          rect: where ? boxOf(host, where) : null,
+        });
+      }
+  return out;
+}
+
 /**
  * Hands on the dream: a drag is an event (from what, to where); a tap picks
- * what a prompt is about. Laid over the focused box, in its shown px; the
- * stage's own px are those over `scale`.
+ * what a prompt is about. While a drag is under way, every gesture the tree's
+ * vocabulary has from where it started is drawn as a drop zone with its
+ * name, the one it would be is lit, and what it would do is previewed
+ * (`onAim`). Laid over the focused box, in its shown px; the stage's own px
+ * are those over `scale`.
  */
 function Hands({
   host,
   scale,
+  tree,
   picked,
   onPick,
+  onAim,
   onDrag,
+  S,
 }: {
   host: StageHost | null;
   scale: number;
+  tree: Tree;
   picked: Hit;
   onPick: (h: Hit) => void;
+  onAim: (found: Found | null) => void;
   onDrag: (from: Point & Hit, to: Point & Hit, inside: { from: string[]; to: string[] }) => void;
+  S: IntentStrings;
 }) {
+  const { locale } = useLocale();
   const [line, setLine] = useState<{ a: Point; b: Point } | null>(null);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [aim, setAim] = useState<Found | null>(null);
   const start = useRef<(Point & Hit) | null>(null);
   const startWithin = useRef<string[]>([]);
   const outline = useRef<HTMLDivElement>(null);
   const local = (e: { clientX: number; clientY: number; currentTarget: HTMLElement }) => {
     const r = e.currentTarget.getBoundingClientRect();
     return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale };
+  };
+  const end = () => {
+    start.current = null;
+    setLine(null);
+    setZones([]);
+    setAim(null);
+    onAim(null);
   };
   // What a prompt is about, outlined where it is now (it moves).
   useEffect(() => {
@@ -463,6 +559,7 @@ function Hands({
     tick();
     return () => cancelAnimationFrame(raf);
   }, [host, picked, scale]);
+  const far = line && Math.hypot(line.b.x - line.a.x, line.b.y - line.a.y) >= 30;
   return (
     <div
       className="absolute inset-0 cursor-crosshair touch-none"
@@ -470,35 +567,163 @@ function Hands({
         if (!host) return;
         e.currentTarget.setPointerCapture(e.pointerId);
         const p = local(e);
-        start.current = { ...p, ...hitAt(host, p) };
+        const hit = hitAt(host, p);
+        start.current = { ...p, ...hit };
         startWithin.current = within(host, p);
         setLine({ a: p, b: p });
+        setZones(zonesFrom(tree, hit, startWithin.current, host, locale, S));
       }}
       onPointerMove={(e) => {
         const a = start.current;
-        if (a) setLine({ a, b: local(e) });
+        if (!a || !host) return;
+        const b = local(e);
+        setLine({ a, b });
+        // The one the drag would be if it ended here: lit, and previewed.
+        const found = recognize({ kind: "drag", screen: { id: "", w: 0, h: 0 }, from: a, to: { ...b, ...hitAt(host, b) }, within: { from: startWithin.current, to: within(host, b) } }, tree);
+        if (found?.key !== aim?.key || found?.kind !== aim?.kind) {
+          setAim(found);
+          onAim(found);
+        }
       }}
       onPointerUp={(e) => {
         const from = start.current;
-        start.current = null;
-        setLine(null);
+        const firstWithin = startWithin.current;
+        end();
         if (!from || !host) return;
         const p = local(e);
         if (Math.hypot(p.x - from.x, p.y - from.y) < 8) return onPick({ id: from.id, member: from.member });
-        onDrag(from, { ...p, ...hitAt(host, p) }, { from: startWithin.current, to: within(host, p) });
+        onDrag(from, { ...p, ...hitAt(host, p) }, { from: firstWithin, to: within(host, p) });
       }}
-      onPointerCancel={() => {
-        start.current = null;
-        setLine(null);
-      }}
+      onPointerCancel={end}
     >
       <div ref={outline} className="pointer-events-none absolute hidden rounded-md border-2 border-dashed border-foreground/70" />
+      {line &&
+        zones.map((z, i) => {
+          const lit = aim?.key === z.key && aim?.kind === z.kind;
+          const label = (
+            <span
+              className={cn(
+                "whitespace-nowrap rounded-full px-2 py-0.5 font-mono text-[10px] shadow-sm transition-colors",
+                lit ? "bg-foreground text-background" : "bg-background/90 text-foreground",
+              )}
+            >
+              {z.how} · {z.label}
+            </span>
+          );
+          if (z.rect) {
+            const [x, y, w, h] = z.rect.map((v) => v * scale);
+            // Out of a shape: everything around it is the zone; into it: the shape is.
+            return (
+              <div
+                key={i}
+                className={cn("pointer-events-none absolute rounded-xl border-2 transition-all duration-200", lit ? "border-foreground" : "border-dashed border-foreground/40")}
+                style={{
+                  left: x,
+                  top: y,
+                  width: w,
+                  height: h,
+                  boxShadow: z.g.outOf ? `0 0 0 9999px rgba(40, 36, 32, ${lit ? 0.12 : 0.05})` : undefined,
+                  background: z.g.into ? `rgba(40, 36, 32, ${lit ? 0.12 : 0.05})` : undefined,
+                }}
+              >
+                <div className="absolute left-0" style={{ top: z.g.outOf ? -26 - 22 * (i % 2) : 6 + 22 * (i % 2), ...(z.g.into ? { left: 6 } : {}) }}>
+                  {label}
+                </div>
+              </div>
+            );
+          }
+          // A way to go: an arrow from where the drag began, named at its tip.
+          return ARROW[z.g.dir!].map(([dx, dy], j) => {
+            const L = 72;
+            const [x0, y0] = [line.a.x * scale, line.a.y * scale];
+            return (
+              <div key={`${i}-${j}`} className="pointer-events-none absolute" style={{ left: x0, top: y0 }}>
+                <svg className="absolute overflow-visible" width="1" height="1">
+                  <line x1={0} y1={0} x2={dx * L} y2={dy * L} stroke="currentColor" strokeOpacity={lit ? 1 : 0.4} strokeWidth={lit ? 3 : 2} />
+                  <circle cx={dx * L} cy={dy * L} r={lit ? 5 : 3.5} fill="currentColor" fillOpacity={lit ? 1 : 0.4} />
+                </svg>
+                <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: dx * (L + 34), top: dy * (L + 18) + (dy === 0 ? 0 : 0) }}>
+                  {label}
+                </div>
+              </div>
+            );
+          });
+        })}
       {line && (
         <svg className="pointer-events-none absolute inset-0 h-full w-full">
           <line x1={line.a.x * scale} y1={line.a.y * scale} x2={line.b.x * scale} y2={line.b.y * scale} stroke="currentColor" strokeWidth={2} strokeDasharray="4 3" />
           <circle cx={line.b.x * scale} cy={line.b.y * scale} r={5} fill="currentColor" />
         </svg>
       )}
+      {line && far && (
+        <div className="pointer-events-none absolute" style={{ left: line.b.x * scale + 12, top: line.b.y * scale + 12 }}>
+          <span className={cn("whitespace-nowrap rounded-md px-2 py-1 font-mono text-[11px] shadow-overlay", aim ? "bg-foreground text-background" : "bg-background text-foreground")}>
+            {aim ? S.release(zones.find((z) => z.key === aim.key && z.kind === aim.kind)?.label ?? `${aim.key} → ${aim.kind}`) : S.releaseModel}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** What the model already sees, as one-flip directions: hover (or a first tap) previews on every screen; a click makes it yours. */
+function Directions({
+  lab,
+  screen,
+  preview,
+  onPreview,
+  onApply,
+  S,
+}: {
+  lab: Lab;
+  screen: Screen;
+  preview: string | null;
+  onPreview: (d: Direction | null) => void;
+  onApply: (d: Direction) => void;
+  S: IntentStrings;
+}) {
+  const { locale } = useLocale();
+  const all = useValue(lab.directions(screen));
+  const shown = all.slice(0, 8);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className={TYPE.label}>{S.directions}</h3>
+      </div>
+      <p className={TYPE.captionQuiet}>{S.directionsNote}</p>
+      <div className="flex flex-wrap gap-2" onPointerLeave={(e) => e.pointerType === "mouse" && onPreview(null)}>
+        {shown.map((d) => {
+          const id = `${d.key}=${d.kind}`;
+          const on = preview === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onPointerEnter={(e) => e.pointerType === "mouse" && onPreview(d)}
+              onClick={(e) => {
+                // A finger has no hover: its first tap previews, its second makes it yours.
+                if ((e.nativeEvent as PointerEvent).pointerType === "touch" && !on) return onPreview(d);
+                onApply(d);
+              }}
+              className={cn(
+                "group flex min-w-[9rem] flex-col items-start gap-1 rounded-xl border px-3 py-2 text-left transition-colors",
+                on ? "border-foreground bg-foreground text-background" : "border-border/70 bg-background/60 hover:border-foreground/50",
+              )}
+            >
+              <span className={cn("text-[11px]", on ? "text-background/70" : "text-muted-foreground")}>{d.node.words[locale]}</span>
+              <span className="text-sm">{d.node.kinds[d.kind].words[locale]}</span>
+              <span className="flex w-full items-center gap-2">
+                <span className={cn("h-1 flex-1 overflow-hidden rounded-full", on ? "bg-background/30" : "bg-foreground/10")}>
+                  <span className={cn("block h-full rounded-full", on ? "bg-background" : "bg-foreground/60")} style={{ width: `${Math.round(d.p * 100)}%` }} />
+                </span>
+                <span className={cn("font-mono text-[10px]", on ? "text-background/80" : "text-muted-foreground")}>
+                  {d.believed ? S.modelSays(d.p) : S.codeSays(d.p)}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -560,6 +785,21 @@ export function IntentLabView() {
   const [log, setLog] = useState<LogEntry[]>([]);
   const prompts = useRef<string[]>([]);
   const seq = useRef(0);
+  const tree = useValue(lab.tree);
+
+  // A preview: a what-if every screen moves to (a direction hovered, a drop zone aimed at), committed by nothing.
+  const [preview, setPreview] = useState<{ id: string; label: string; action: Action } | null>(null);
+  const previewOf = useMemo(() => (preview ? lab.whatIf(preview.action) : null), [lab, preview]);
+  const previewDirection = (d: Direction | null) =>
+    setPreview(
+      d
+        ? {
+            id: `${d.key}=${d.kind}`,
+            label: `${d.node.words[locale]} → ${d.node.kinds[d.kind].words[locale]}`,
+            action: { type: "decide", key: d.key, kind: d.kind, from: "switched", screen: focus },
+          }
+        : null,
+    );
 
   const put = (entry: LogEntry) => setLog((l) => [...l.filter((x) => x.id !== entry.id), entry]);
 
@@ -659,7 +899,7 @@ export function IntentLabView() {
       ms: performance.now() - t0,
     });
   };
-  const authoredBy = useValue(lab.tree).find((n) => n.from === "preset")?.by ?? AUTHORED_BY;
+  const authoredBy = tree.find((n) => n.from === "preset")?.by ?? AUTHORED_BY;
 
   const about = picked.id ? hitWords(picked, locale, S) : S.everything;
   const send = (ev: FormEvent) => {
@@ -740,21 +980,61 @@ export function IntentLabView() {
       >
         <div ref={stageRef} className="flex w-full justify-center">
           {scale > 0 && (
-            <DreamBox key={focus.id} lab={lab} screen={focus} scale={scale} onHost={setHost}>
+            <DreamBox
+              key={focus.id}
+              lab={lab}
+              screen={focus}
+              scale={scale}
+              onHost={setHost}
+              override={previewOf?.(focus)}
+              className={cn(preview && "ring-2 ring-foreground ring-offset-2 ring-offset-background")}
+            >
               {hands && (
                 <Hands
                   host={host}
                   scale={scale}
+                  tree={tree}
                   picked={picked}
                   onPick={setPicked}
+                  onAim={(found) => {
+                    const node = found && tree.find((n) => `${n.type}|${n.of}` === found.key);
+                    setPreview(
+                      found && node
+                        ? {
+                            id: `${found.key}=${found.kind}`,
+                            label: `${node.words[locale]} → ${node.kinds[found.kind].words[locale]}`,
+                            action: { type: "decide", key: found.key, kind: found.kind, from: "dragged", screen: focus },
+                          }
+                        : null,
+                    );
+                  }}
                   onDrag={(from, to, inside) =>
                     void handle({ kind: "drag", screen: focus, from, to, within: inside }, S.drag(hitWords(from, locale, S), hitWords(to, locale, S)))
                   }
+                  S={S}
                 />
+              )}
+              {preview && (
+                <div className="pointer-events-none absolute left-3 top-3">
+                  <span className="rounded-md bg-foreground px-2 py-1 font-mono text-[11px] text-background shadow-overlay">
+                    {S.previewing(preview.label)}
+                  </span>
+                </div>
               )}
             </DreamBox>
           )}
         </div>
+        <Directions
+          lab={lab}
+          screen={focus}
+          preview={preview?.id ?? null}
+          onPreview={previewDirection}
+          onApply={(d) => {
+            lab.dispatch({ type: "decide", key: d.key, kind: d.kind, from: "switched", screen: focus });
+            setPreview(null);
+          }}
+          S={S}
+        />
         <form onSubmit={send} className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-[11px] text-muted-foreground">
             {S.promptAbout}{" "}
@@ -783,7 +1063,7 @@ export function IntentLabView() {
       <LabSection title={S.wall} note={S.wallNote}>
         <div className="flex flex-wrap items-end gap-x-5 gap-y-6">
           {SCREENS.map((s) => (
-            <Tile key={s.id} lab={lab} screen={s} on={s.id === focus.id} onClick={() => setFocusId(s.id)} S={S} />
+            <Tile key={s.id} lab={lab} screen={s} on={s.id === focus.id} onClick={() => setFocusId(s.id)} override={previewOf?.(s)} S={S} />
           ))}
         </div>
       </LabSection>

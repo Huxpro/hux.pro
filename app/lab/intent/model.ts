@@ -104,8 +104,19 @@ type Snapshot = { tree: Tree; beliefs: Beliefs; decisions: Record<string, Decisi
 
 const indexOf = (_by: "tallness", ctx: unknown) => tallness(ctx as Screen);
 
-export function createLab(preset: Tree = PRESET, beliefsAtFirst: Beliefs = BELIEFS) {
+/** A direction the model already sees: one intent flipped to a kind it is not now, and how likely the model thinks it. */
+export interface Direction {
+  key: string;
+  node: IntentNode;
+  kind: string;
+  p: number;
+  /** The likelihood is a model's belief (else code's prior). */
+  believed: boolean;
+}
+
+export function createLab(preset: Tree = PRESET, beliefsAtFirst: Beliefs = BELIEFS, decisionsAtFirst: Record<string, Decision> = {}) {
   const store = createStore();
+  store.restore(decisionsAtFirst);
   const tree = signal(preset);
   const beliefs = signal(beliefsAtFirst);
   const history = signal([] as Snapshot[]);
@@ -176,6 +187,31 @@ export function createLab(preset: Tree = PRESET, beliefsAtFirst: Beliefs = BELIE
     );
 
   const keys = computed(() => (tree() as Tree).map(keyOf), { equals: same }) as Read<string[]>;
+
+  /**
+   * The directions the model already sees on a screen: every intent's kinds
+   * but the one it is now, by how likely the model holds each (its belief
+   * where it has one, code's prior where not), likeliest first. One flip
+   * each; everything else as it is.
+   */
+  const directions = (s: Screen) =>
+    per("directions", s, () =>
+      computed(
+        (): Direction[] => {
+          const { I } = core() as Core;
+          const out: Direction[] = [];
+          for (const key of keys()) {
+            const v = view(key, s)();
+            if (!v) continue;
+            const p = I.belief(key) as Record<string, number>;
+            const believed = !!(beliefs() as Beliefs)[key];
+            for (const kind of Object.keys(v.node.kinds)) if (kind !== v.kind) out.push({ key, node: v.node, kind, p: p[kind] ?? 0, believed });
+          }
+          return out.sort((a, b) => b.p - a.p || Number(b.believed) - Number(a.believed));
+        },
+        { equals: same },
+      ),
+    ) as Read<Direction[]>;
   const questions = (s: Screen) =>
     per("questions", s, () => computed(() => keys().filter((k) => view(k, s)()?.asks), { equals: same })) as Read<string[]>;
 
@@ -244,6 +280,16 @@ export function createLab(preset: Tree = PRESET, beliefsAtFirst: Beliefs = BELIE
     params,
     questions,
     dispatch,
+    directions,
+    /**
+     * What every screen would be if this happened: the state forked, the action
+     * applied to the fork, nothing committed. A preview reads it.
+     */
+    whatIf(a: Action): (s: Screen) => Params {
+      const fork = createLab(tree.peek() as Tree, beliefs.peek() as Beliefs, untracked(store.snapshot) as Record<string, Decision>);
+      fork.dispatch(a);
+      return (s: Screen) => fork.params(s)();
+    },
     history: history as Read<Snapshot[]>,
     undo() {
       const h = history.peek() as Snapshot[];

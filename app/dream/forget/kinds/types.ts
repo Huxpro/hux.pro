@@ -16,6 +16,8 @@ export type WindowOut = {
   warmth: number;
   presence: number;
   ink: string;
+  /** When the window began moving to a new shape, while it is moving: what is in it moves too. */
+  morphAt: number | null;
 };
 
 export type EdgeOut = {

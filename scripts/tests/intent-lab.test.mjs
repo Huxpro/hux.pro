@@ -296,3 +296,18 @@ test("the kind that is the scene as written comes first, wherever a model put it
   );
   assert.deepEqual(Object.keys(r.node.kinds), ["normal", "faster"]);
 });
+
+test("directions: every kind a screen is not, likeliest first by what the model believes; a what-if commits nothing", () => {
+  const lab = createLab();
+  const d = lab.directions(by.phone)();
+  assert.deepEqual(
+    d.slice(0, 4).map((x) => `${x.key}=${x.kind}`),
+    [`${KEY.axis}=across`, `${KEY.holding}=keeps`, `${KEY.dust}=settles`, `${KEY.letgo}=oneByOne`],
+  );
+  assert.ok(d[0].believed && !d.at(-1).believed, "a model's belief, then code's prior");
+  const preview = lab.whatIf({ type: "decide", key: KEY.axis, kind: "across", from: "switched", screen: by.laptop });
+  assert.equal(preview(by.wide).window.axis, "across", "the wide screen would follow the laptop");
+  assert.equal(preview(by.phone).window.axis, "up");
+  assert.equal(lab.params(by.wide)().window.axis, "up", "and nothing changed");
+  assert.deepEqual(lab.stored(), {});
+});
