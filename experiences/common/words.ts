@@ -5,12 +5,14 @@ const zh = {
   epilogue: "小时候，他隔三差五就来看我。",
   replay: "轻触 · 再梦一次",
   sound: "声音",
+  drawing: "正在画…",
 };
 
 const en: typeof zh = {
   epilogue: "When I was little, he came to watch me every few nights.",
   replay: "Tap · dream it again",
   sound: "Sound",
+  drawing: "drawing…",
 };
 
 export type CommonWords = typeof zh;

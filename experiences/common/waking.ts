@@ -84,7 +84,8 @@ export interface Waking {
   line: boolean;
 }
 
-export function waking(u: number, b: WakingBeats): Waking {
+/** u seconds into waking; the door opens to `doorEnd` (an intent: how far it opens) over beat.door. */
+export function waking(u: number, b: WakingBeats, doorEnd = 0.36): Waking {
   const lift = breathLift(u, b);
   const k = ease((u - b.snap.at) / 2.2);
   const blur = u < b.snap.at ? 9 : 9 * (1 - k);
@@ -104,7 +105,7 @@ export function waking(u: number, b: WakingBeats): Waking {
   }
 
   return {
-    door: 0.36 * ease((u - b.door.at) / b.door.over),
+    door: doorEnd * ease((u - b.door.at) / b.door.over),
     peek: ease((u - b.peek.at) / b.peek.over),
     room: `translate(195 776) scale(${(1 + 0.016 * lift).toFixed(4)}) translate(-195 -776) translate(0 ${(-5 * lift).toFixed(2)})`,
     filter: parts.join(" ") || "none",

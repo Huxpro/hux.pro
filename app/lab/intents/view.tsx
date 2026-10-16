@@ -3,7 +3,7 @@
 import { RotateCcw, Send, Undo2 } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Stage } from "scene";
-import * as R from "@/packages/reintent/src/reintent.js";
+import * as R from "reintent";
 import { LabButton, LabChip, LabSection, LabShell, useLabStrings } from "@/systems/lab";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";

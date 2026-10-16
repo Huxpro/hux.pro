@@ -10,8 +10,8 @@
 // how far the door. One direction: tree → values → coordinates → view.
 // =============================================================================
 
-import * as R from "@/packages/reintent/src/reintent.js";
-import type { Cell, Doc, TypeSpec } from "@/packages/reintent/src/reintent.js";
+import * as R from "reintent";
+import type { Cell, Doc, TypeSpec } from "reintent";
 import type { Context, Intent, Node, Realize, State } from "./tree";
 
 type Subject = { id: string; node?: Node };

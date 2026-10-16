@@ -26,7 +26,7 @@
 // a still of the scene on one screen: what it shows, read back the same way.
 // =============================================================================
 
-import * as R from "@/packages/reintent/src/reintent.js";
+import * as R from "reintent";
 
 export type Kind = string;
 export interface Box {

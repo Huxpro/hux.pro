@@ -56,6 +56,24 @@ export interface State {
 export const initial: State = { stage: 0, at: 0, closed: false, closedAt: 0, pending: false, via: "start" };
 
 // -----------------------------------------------------------------------------
+// What the intent tree says, as the picture needs it (intents.ts; read through
+// reintent in Wardrobe.tsx). The defaults are the composition as first drawn.
+// -----------------------------------------------------------------------------
+
+export interface Shape {
+  /** Where he stands when he comes to the bed: his feet, his size, his lean. */
+  stand: { at: readonly [number, number]; scale: number; lean: number };
+  /** How far the door opens when you wake. */
+  doorEnd: number;
+}
+
+export const SHAPE: Shape = { stand: { at: [236, 872], scale: 1.9, lean: -3.5 }, doorEnd: 0.36 };
+
+/** The timeline with the door's pace an intent says (beat.door.over). */
+export const paced = (tl: Timeline, over: number | undefined): Timeline =>
+  over === undefined ? tl : { ...tl, beat: { ...tl.beat, door: { ...tl.beat.door, over, end: tl.beat.door.at + over } } };
+
+// -----------------------------------------------------------------------------
 // The picture
 // -----------------------------------------------------------------------------
 
@@ -64,7 +82,7 @@ export interface View {
   dream: boolean;
   doors: { left: number; right: number };
   manInWardrobe: { tilt: number; eyes: number } | null;
-  manAtBed: { scale: number; lean: number; eyes: number } | null;
+  manAtBed: { at: readonly [number, number]; scale: number; lean: number; eyes: number } | null;
   /** The room: the dream's swim and breathing, or the waking breath. */
   room: string;
   double: string | null; // the dream's second image
@@ -75,12 +93,12 @@ export interface View {
   line: boolean;
 }
 
-export function view(s: State, t: number, { beat: b }: Timeline): View {
+export function view(s: State, t: number, { beat: b }: Timeline, shape: Shape = SHAPE): View {
   const u = Math.max(0, t - s.at);
 
   // Awake: the shared waking (common/waking.ts), in this room.
   if (s.stage === 3) {
-    const w = waking(u, b);
+    const w = waking(u, b, shape.doorEnd);
     return {
       u,
       dream: false,
@@ -108,7 +126,9 @@ export function view(s: State, t: number, { beat: b }: Timeline): View {
   const eyesOpen = !s.closed;
   const manInWardrobe =
     s.stage === 2 ? null : { tilt: s.stage === 1 ? -1.2 * ease((u - 1) / 3) : 0, eyes: s.stage === 0 && eyesOpen ? ease((u - 2.6) / 2.2) : 0 };
-  const manAtBed = s.stage === 2 ? { scale: 1.9 + 0.1 * ease(u / 7), lean: -2.5 - 1.5 * ease(u / 7), eyes: eyesOpen ? ease((u - 1.4) / 2.2) : 0 } : null;
+  const st = shape.stand;
+  const manAtBed =
+    s.stage === 2 ? { at: st.at, scale: st.scale + 0.1 * ease(u / 7), lean: st.lean + 1 - 1.5 * ease(u / 7), eyes: eyesOpen ? ease((u - 1.4) / 2.2) : 0 } : null;
 
   // The room breathes: slowly, faster as he nears, and it swims; a second
   // room a few pixels off the first.
