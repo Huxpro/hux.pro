@@ -186,3 +186,40 @@ test("rules: inside, aligned and atLeast read the snapshot", () => {
   assert.equal(most.check(snap({ "f/dust": node(box, { onScreen: 1 }) })), true);
   assert.match(String(most.check(snap({ "f/dust": node(box, { onScreen: 0.5 }) }))), /onScreen is 0.5/);
 });
+
+test("host: a script presses and releases on the stage's clock, at a share of its size; a loop starts over at the end", () => {
+  const layer = createLayer();
+  const host = new Stage({ id: "s", layer, machine: { a: { on: { touch: "b" } }, b: { on: { lift: "c" } }, c: {} } });
+  const seen = [];
+  host.add(
+    "pad",
+    {
+      name: "Pad",
+      kind: "x",
+      intent: "",
+      frame: () => true,
+      pointerDown: (_s, _o, p, ctx) => (seen.push([p.x, p.y]), ctx.emit("touch"), true),
+      pointerUp: (_s, _o, ctx) => ctx.emit("lift"),
+    },
+    0,
+    () => ({ id: "pad" }),
+  );
+  host.play([{ at: 0.5, down: [0.5, 0.25] }, { at: 1, up: true }], 2);
+  const g = fakeCanvas().g;
+  for (let i = 0; i < 10; i++) host.tick(g, layout, 0.1, "#000");
+  assert.equal(host.phase(), "b");
+  assert.deepEqual(seen, [[200, 200]]);
+  for (let i = 0; i < 10; i++) host.tick(g, layout, 0.1, "#000");
+  assert.equal(host.phase(), "c");
+  let ticks = 0;
+  while (host.phase() === "c" && ticks < 100) {
+    host.tick(g, layout, 0.1, "#000");
+    ticks++;
+  }
+  assert.equal(host.phase(), "a", "it starts over");
+  // It ended at 1.1 s and had lasted 0.9 s when counting began: about 1.1 s more.
+  assert.ok(ticks >= 10 && ticks <= 13, `two seconds after it ended (${ticks} more ticks)`);
+  for (let i = 0; i < 6; i++) host.tick(g, layout, 0.1, "#000");
+  assert.equal(host.phase(), "b", "and performs again");
+  assert.equal(seen.length, 2);
+});

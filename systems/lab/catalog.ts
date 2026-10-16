@@ -43,7 +43,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "intent" | "vitre";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -187,6 +187,21 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "Live Activities, parked windows, a notice and a page's pinned bar all reach for one strip at the top. Compose how they share it on the real Dock and real bars (each choice is an overflow strategy), and hold it to four rules measured off the page.",
       zh: "实时活动、停靠的窗口、提示和页面的吸顶工具栏，都要争顶部这一条。在真实的 Dock 和真实的工具栏上组合它们怎么共用（每个选择都是一种溢出策略），再用从页面上量出来的四条规则检查。",
+    },
+  },
+  {
+    id: "intent",
+    href: "/lab/intent",
+    kind: "study",
+    name: { en: "Intent Lab", zh: "意图实验室" },
+    mark: "reintent",
+    hint: {
+      en: "What a dream means, on every screen",
+      zh: "一个梦的意图，在每一块屏幕上",
+    },
+    blurb: {
+      en: "/dream/forget's intents as closed choices, decided per screen by you, a model sure enough, or code (reintent, from airtalk). Switch one on a screen and the crossover moves; the one the model is unsure of, it asks. Every screen is the real dream, live.",
+      zh: "/dream/forget 的意图，是闭集里的选择，按屏幕由你、足够确定的模型或代码来定（reintent，来自 airtalk）。在一块屏幕上切换，交叉点随之移动；模型没把握的那个，它会问。每块屏幕都是真正的梦，实时运行。",
     },
   },
   {

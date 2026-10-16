@@ -2,8 +2,9 @@ import { kind } from "stage";
 import { MOMENT_NAMES } from "./pictures";
 import type { EdgeOut, WindowOut } from "./types";
 
-// The window's top edge: a moment that reaches it turns to dust; held there,
-// it wears away anyway. It draws nothing; the moments read it.
+// The window's far edge (its top, or its left on its side): a moment that
+// reaches it turns to dust; held there, it wears away anyway. It draws
+// nothing; the moments read it.
 
 type EdgeProps = {
   /** The window it is the edge of, and the moments it wears. */
@@ -30,7 +31,15 @@ export const Edge = kind<EdgeProps, null, EdgeOut | null>({
     const win = out<WindowOut>(p.on);
     if (!win) return null;
     const { box, row } = win;
-    return { rect: [box.x, box.y, box.width, row / 2], y: box.y + row / 2, erode: p.erode, shed: p.shed, presence: win.presence, moments: p.moments };
+    const up = win.axis === "up";
+    return {
+      rect: up ? [box.x, box.y, box.width, row / 2] : [box.x, box.y, row / 2, box.height],
+      at: (up ? box.y : box.x) + row / 2,
+      erode: p.erode,
+      shed: p.shed,
+      presence: win.presence,
+      moments: p.moments,
+    };
   },
 
   measure: (o) => (o && o.presence > 0.01 ? { rect: o.rect } : null),

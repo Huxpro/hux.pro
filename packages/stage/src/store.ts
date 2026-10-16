@@ -49,6 +49,13 @@ export interface StageOptions {
   source?: string;
 }
 
+/**
+ * A press or a release at a moment of stage time, where a share of the stage
+ * is (`down: [0.5, 0.85]` is the middle, near the bottom): a performance a
+ * stage gives on its own, the same on every run and at every size.
+ */
+export type Cue = { at: number; down: [number, number] } | { at: number; up: true };
+
 /** The longest step one frame takes, s. */
 export const MAX_DT = 0.25;
 
@@ -94,6 +101,10 @@ export class Stage {
   private layoutNow: Layout = { w: 0, h: 0, dpr: 1, center: { x: 0, y: 0 }, vmin: () => 0 };
   /** Overrides set from the inspector or the console, by node id and prop: tier-one edits, live. */
   private overrides = new Map<string, Record<string, unknown>>();
+  private script: Cue[] = [];
+  private cued = 0;
+  /** Start over once the last phase has lasted this long, s; never when null. */
+  private loop: number | null = null;
 
   constructor({ id, machine, seed = 1, layer = sem, source }: StageOptions) {
     this.id = id;
@@ -144,6 +155,7 @@ export class Stage {
     this.machine = createMachine(this.config);
     this.now = 0;
     this.refs = {};
+    this.cued = 0;
     for (const rec of this.nodes.values()) {
       if (rec.ready) rec.def.dispose?.(rec.state);
       rec.ready = false;
@@ -178,6 +190,19 @@ export class Stage {
     this.overrides.set(nodeId, { ...this.overrides.get(nodeId), [prop]: value });
   }
 
+  /** A performance to give on the stage's own clock, and whether to start over at the end. */
+  play(script: Cue[], loop: number | null = null) {
+    this.script = [...script].sort((a, b) => a.at - b.at);
+    this.cued = this.script.filter((c) => c.at <= this.now).length;
+    this.loop = loop;
+  }
+
+  /** A phase nothing leaves: the end. */
+  private ended() {
+    const here = this.config[this.machine.phase()];
+    return !here?.after && !Object.keys(here?.on ?? {}).length;
+  }
+
   // --- the frame -----------------------------------------------------------
 
   /** One frame: time passes, the machine moves, every shown node steps and frames, then draws. */
@@ -186,8 +211,14 @@ export class Stage {
     // Stage time keeps to the wall clock on a slow device (a hold of a second
     // is a second at 5 fps); only a long gap, a hidden tab, is not caught up.
     this.dt = Math.min(dt, MAX_DT);
+    if (this.loop !== null && this.ended() && this.since(this.machine.phase()) >= this.loop) this.reset();
     this.now += this.dt;
     if (this.machine.tick(this.now)) this.onPhase();
+    while (this.cued < this.script.length && this.script[this.cued].at <= this.now) {
+      const cue = this.script[this.cued++];
+      if ("up" in cue) this.pointerUp();
+      else this.pointerDown({ x: cue.down[0] * layout.w, y: cue.down[1] * layout.h });
+    }
 
     const live: NodeRec[] = [];
     for (const rec of this.ordered()) {

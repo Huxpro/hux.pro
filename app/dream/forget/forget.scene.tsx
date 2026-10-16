@@ -46,7 +46,7 @@ export default function Forget() {
         rule.minTarget(44, ["again", "wake"]),
       ]}
     >
-      <Window id="window" width={240} row={80} rowMin={50} chrome={180} held={3} ink="40, 36, 32" />
+      <Window id="window" width={240} row={80} rowMin={50} chrome={180} held={3} axis="up" ink="40, 36, 32" />
       <Edge id="edge" parent="window" on="window" moments="moments" erode={2.6} shed={0.9} />
       <Tide id="tide" parent="window" on="window" stagger={0.12} />
       <Moments id="moments" parent="window" window="window" edge="edge" tide="tide" gap={0.95} holdRate={0.2} holdMin={0.35} size={56} />

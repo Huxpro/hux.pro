@@ -6,5 +6,5 @@
 export { after, at, isRef, ref, rule, type Anchor, type Ref, type Rule, type When, type Words } from "./bind";
 export type { Ctx, KindDef, Layout, ParamSpec, Point, Rng, Time } from "./kind";
 export { createMachine, type Machine, type MachineConfig } from "./machine";
-export { Stage as StageHost, isShown, seeded, type NodeProps } from "./store";
-export { kind, PressRing, Stage, StageProvider, Text, WayOut, type Bound, type StageProps } from "./react";
+export { Stage as StageHost, isShown, seeded, type Cue, type NodeProps } from "./store";
+export { kind, PressRing, Stage, StageProvider, Text, WayOut, type Bound, type Params, type StageProps } from "./react";

@@ -2,8 +2,12 @@
 
 export type Box = { x: number; y: number; width: number; height: number };
 
+/** Which way the moments go: up through a tall window, or right to left through a wide one. */
+export type Axis = "up" | "across";
+
 export type WindowOut = {
   box: Box;
+  axis: Axis;
   /** A row's height now, px, and that as a share of a full row. */
   row: number;
   scale: number;
@@ -16,8 +20,8 @@ export type WindowOut = {
 
 export type EdgeOut = {
   rect: [number, number, number, number];
-  /** Where a moment goes to dust, px from the top. */
-  y: number;
+  /** Where a moment goes to dust, px along the window's axis (from the top, or from the left). */
+  at: number;
   erode: number;
   shed: number;
   presence: number;

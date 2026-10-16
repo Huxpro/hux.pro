@@ -78,7 +78,7 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
     goneSent: false,
   }),
 
-  step(s, p, { t, layout, rng, out, emit }) {
+  step(s, p, { t, rng, out, emit }) {
     s.shed = [];
     s.drawn = s.pics.map(() => null);
     s.edgeAt = -1;
@@ -93,16 +93,19 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
     if (held && oldest !== -1) s.clock = Math.min(s.clock, (oldest + win.held) * p.gap);
 
     const { box, row, scale } = win;
-    const cx = layout.w / 2;
-    /** Where moment `i` is now: it enters at the bottom and rises. */
-    const y = (i: number) => box.y + box.height - row / 2 - ((s.clock - i * p.gap) / p.gap) * row;
+    const up = win.axis === "up";
+    /** Where moment `i` is along the window now: it enters at the far end (the bottom, or the right) and goes toward the edge. */
+    const along = (i: number) => (up ? box.y + box.height : box.x + box.width) - row / 2 - ((s.clock - i * p.gap) / p.gap) * row;
+    /** The middle of the window across its axis. */
+    const across = up ? box.x + box.width / 2 : box.y + box.height / 2;
+    const centre = (i: number) => (up ? { x: across, y: along(i) } : { x: along(i), y: across });
     /** Turn part of a moment to dust: `share` of its points, or all of them. */
     const shed = (i: number, share: number) => {
-      const cy = y(i);
+      const c = centre(i);
       for (const pt of s.pics[i].points) {
         if (share < 1 && rng() > share) continue;
         // The picture is drawn smaller on a short screen; its dust starts where it is.
-        s.shed.push({ x: cx + pt.x * scale, y: cy + pt.y * scale, color: pt.color });
+        s.shed.push({ x: c.x + pt.x * scale, y: c.y + pt.y * scale, color: pt.color });
       }
     };
     const dissolve = (i: number) => {
@@ -124,10 +127,9 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
         dissolve(i);
         continue;
       }
-      const my = y(i);
       // Half a pixel of slack: held, the clock stops at the edge, and in
       // floating point "at" can land a hair short of it.
-      if (my <= edge.y + 0.5) {
+      if (along(i) <= edge.at + 0.5) {
         if (!held) {
           dissolve(i);
           continue;
@@ -137,7 +139,15 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
       const fresh = clamp01(age / 0.6);
       const jitter = i === s.edgeAt ? (rng() - 0.5) * 1.6 * s.wear[i] : 0;
       const size = p.size * scale * (0.85 + 0.15 * fresh);
-      s.drawn[i] = { x: cx - size / 2 + jitter, y: my - size / 2 + (1 - fresh) * 8, size, alpha: fresh * (1 - s.wear[i] * 0.8) };
+      // A fresh one settles in from a little further back.
+      const c = centre(i);
+      const back = (1 - fresh) * 8;
+      s.drawn[i] = {
+        x: c.x - size / 2 + (up ? jitter : back),
+        y: c.y - size / 2 + (up ? back : jitter),
+        size,
+        alpha: fresh * (1 - s.wear[i] * 0.8),
+      };
     }
 
     // Held at the edge: it stays, but it wears away anyway.

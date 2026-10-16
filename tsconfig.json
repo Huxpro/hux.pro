@@ -23,7 +23,8 @@
       "@/*": ["./*"],
       "vitre": ["./packages/vitre/src/index.ts"],
       "sem": ["./packages/sem/src/index.ts"],
-      "stage": ["./packages/stage/src/index.ts"]
+      "stage": ["./packages/stage/src/index.ts"],
+      "reintent": ["./packages/reintent/src/index.js"]
     }
   },
   "include": [

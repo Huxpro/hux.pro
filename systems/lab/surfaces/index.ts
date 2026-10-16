@@ -4,6 +4,7 @@ import { AttachmentsSurface } from "./attachments";
 import { BandSurface } from "./band";
 import { GlowSurface } from "./glow";
 import { IconSurface } from "./icon";
+import { IntentSurface } from "./intent";
 import { LegibilitySurface } from "./legibility";
 import { VitreSurface } from "./vitre";
 import { WorksSurface } from "./works";
@@ -19,6 +20,7 @@ export const LAB_SURFACES: Record<LabId, ComponentType> = {
   legibility: LegibilitySurface,
   glow: GlowSurface,
   band: BandSurface,
+  intent: IntentSurface,
   vitre: VitreSurface,
 };
 

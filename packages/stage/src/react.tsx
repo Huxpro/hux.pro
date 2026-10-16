@@ -17,11 +17,11 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { useSemDevtools, useSemElement, type Saver } from "sem";
+import { createLayer, sem, useSemDevtools, useSemElement, type Saver } from "sem";
 import type { Anchor, Ref, Rule, When, Words } from "./bind";
 import type { KindDef, Layout } from "./kind";
 import type { MachineConfig } from "./machine";
-import { Stage as Host, type NodeProps } from "./store";
+import { Stage as Host, type Cue, type NodeProps } from "./store";
 
 const HostContext = createContext<{ host: Host; again: () => void; ink: string } | null>(null);
 /** Writes an edit back through the dev server's /api/scene (a production build has none, and says so). */
@@ -32,7 +32,21 @@ const postScene: Saver = async (edit) => {
   return body.message ?? "saved";
 };
 
-const EnvContext = createContext<{ locale: keyof Words; wake: () => void; save: Saver }>({ locale: "en", wake: () => {}, save: postScene });
+/** Props by node id and name, set over the scene's own: what an intent compiles to. */
+export type Params = Record<string, Record<string, unknown>>;
+
+interface Env {
+  locale: keyof Words;
+  wake: () => void;
+  save: Saver;
+  /** In a box on a page (the Intent Lab's wall), not over the whole screen: sized by the box, no keys, its own sem layer. */
+  box?: boolean;
+  params?: Params;
+  script?: Cue[];
+  loop?: number | null;
+}
+
+const EnvContext = createContext<Env>({ locale: "en", wake: () => {}, save: postScene });
 
 const subscribeNever = () => () => {};
 const useMounted = () => useSyncExternalStore(subscribeNever, () => true, () => false);
@@ -43,19 +57,33 @@ function useHost() {
   return value;
 }
 
-/** What the app gives every stage: the language, how to wake (leave), and how an edit is saved. */
+/**
+ * What the app gives every stage: the language, how to wake (leave), and how
+ * an edit is saved. A host page may also put it in a box, set props over the
+ * scene's (`params`), and have it perform on its own (`script`, `loop`).
+ */
 export function StageProvider({
   locale,
   onWake,
   onSave = postScene,
+  box,
+  params,
+  script,
+  loop,
   children,
 }: {
   locale: keyof Words;
   onWake: () => void;
   onSave?: Saver;
+  box?: boolean;
+  params?: Params;
+  script?: Cue[];
+  loop?: number | null;
   children: ReactNode;
 }) {
-  return <EnvContext.Provider value={{ locale, wake: onWake, save: onSave }}>{children}</EnvContext.Provider>;
+  return (
+    <EnvContext.Provider value={{ locale, wake: onWake, save: onSave, box, params, script, loop }}>{children}</EnvContext.Provider>
+  );
 }
 
 function usePhase(host: Host) {
@@ -86,21 +114,38 @@ export interface StageProps {
 export function Stage({ id, intent, names, label, machine, rules = [], background, ink = "255, 255, 255", seed = 1, source, children }: StageProps) {
   const env = useContext(EnvContext);
   const mounted = useMounted();
-  const [host] = useState(() => new Host({ id, machine, seed, source }));
+  const box = !!env.box;
+  // A boxed stage keeps its nodes to itself: several of one scene may be on a page.
+  const [host] = useState(() => new Host({ id, machine, seed, source, layer: box ? createLayer() : sem }));
   const [run, setRun] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const paramsKey = JSON.stringify(env.params ?? {});
+  useEffect(() => {
+    for (const [node, props] of Object.entries(JSON.parse(paramsKey) as Params)) {
+      for (const [prop, value] of Object.entries(props)) host.set(node, prop, value);
+    }
+  }, [host, paramsKey]);
+  const scriptKey = JSON.stringify(env.script ?? []);
+  useEffect(() => host.play(JSON.parse(scriptKey), env.loop ?? null), [host, scriptKey, env.loop]);
 
   useSemDevtools(host.layer, { save: env.save });
   // With ?sem or ?inspect, the host is on window.__stage: `__stage.set("light", "approach", 2.4)` is a live edit.
+  // Boxed ones (several on a page) are on window.__stages instead.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.has("sem") && !params.has("inspect")) return;
-    const g = globalThis as { __stage?: Host };
+    const g = globalThis as { __stage?: Host; __stages?: Set<Host> };
+    if (box) {
+      (g.__stages ??= new Set()).add(host);
+      return () => void g.__stages?.delete(host);
+    }
     g.__stage = host;
     return () => {
       if (g.__stage === host) delete g.__stage;
     };
-  }, [host]);
+  }, [host, box]);
   const intentRef = useRef({ intent, names, rules });
   useEffect(() => {
     const { intent, names, rules } = intentRef.current;
@@ -110,13 +155,16 @@ export function Stage({ id, intent, names, label, machine, rules = [], backgroun
   // The loop.
   useEffect(() => {
     const canvas = canvasRef.current;
+    const root = rootRef.current;
     const g = canvas?.getContext("2d");
-    if (!canvas || !g) return;
+    if (!canvas || !root || !g) return;
     let layout: Layout;
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const w = box ? root.offsetWidth : window.innerWidth;
+      const h = box ? root.offsetHeight : window.innerHeight;
+      // A box shown smaller than its size (a wall of screens) draws at the size it is shown.
+      const shown = box ? root.getBoundingClientRect().width / (w || 1) : 1;
+      const dpr = Math.max(0.25, Math.min(window.devicePixelRatio || 1, 2) * Math.min(1, shown));
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -124,6 +172,8 @@ export function Stage({ id, intent, names, label, machine, rules = [], backgroun
     };
     resize();
     window.addEventListener("resize", resize);
+    const observer = box ? new ResizeObserver(resize) : null;
+    observer?.observe(root);
     let last = performance.now();
     let raf = 0;
     const frame = (stamp: number) => {
@@ -135,8 +185,9 @@ export function Stage({ id, intent, names, label, machine, rules = [], backgroun
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      observer?.disconnect();
     };
-  }, [host, mounted, background]);
+  }, [host, mounted, background, box]);
 
   const again = useCallback(() => {
     host.reset();
@@ -144,6 +195,7 @@ export function Stage({ id, intent, names, label, machine, rules = [], backgroun
   }, [host]);
 
   useEffect(() => {
+    if (box) return;
     const middle = () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
     const onDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") env.wake();
@@ -158,19 +210,27 @@ export function Stage({ id, intent, names, label, machine, rules = [], backgroun
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
     };
-  }, [host, env]);
+  }, [host, env, box]);
+
+  /** Where a pointer is on the stage, in its own px (a box may be scaled on its page). */
+  const at = (e: { clientX: number; clientY: number; currentTarget: HTMLElement }) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const k = e.currentTarget.offsetWidth / (r.width || 1);
+    return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k };
+  };
 
   if (!mounted) return null;
-  return createPortal(
+  const stage = (
     <div
-      className="fixed inset-0 z-[9000] touch-none select-none overflow-hidden overscroll-none"
-      style={{ background, WebkitTouchCallout: "none" } as CSSProperties}
+      ref={rootRef}
+      className={`${box ? "absolute" : "fixed z-[9000]"} inset-0 touch-none select-none overflow-hidden overscroll-none`}
+      style={{ background, WebkitTouchCallout: "none", containerType: "size" } as CSSProperties}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
-        host.setPointer({ x: e.clientX, y: e.clientY });
-        host.pointerDown({ x: e.clientX, y: e.clientY });
+        host.setPointer(at(e));
+        host.pointerDown(at(e));
       }}
-      onPointerMove={(e) => host.setPointer({ x: e.clientX, y: e.clientY })}
+      onPointerMove={(e) => host.setPointer(at(e))}
       onPointerUp={() => host.pointerUp()}
       onPointerCancel={() => host.pointerUp()}
       onPointerLeave={() => host.setPointer(null)}
@@ -180,9 +240,9 @@ export function Stage({ id, intent, names, label, machine, rules = [], backgroun
       <HostContext.Provider value={{ host, again, ink }}>
         <Fragment key={run}>{children}</Fragment>
       </HostContext.Provider>
-    </div>,
-    document.body,
+    </div>
   );
+  return box ? stage : createPortal(stage, document.body);
 }
 
 /** A prop a scene may give as a literal, or as `ref(event)`. */
@@ -222,7 +282,7 @@ const VARIANTS = {
   hint: { font: "var(--font-mono)", size: "11px", tracking: "0.2em", alpha: 0.55 },
   line: { font: "var(--font-serif)", size: "20px", tracking: "normal", alpha: 0.85 },
   /** Larger, and growing a little with a wide screen. */
-  title: { font: "var(--font-serif)", size: "clamp(18px, 2.4vw, 26px)", tracking: "normal", alpha: 0.85 },
+  title: { font: "var(--font-serif)", size: "clamp(18px, 2.4cqw, 26px)", tracking: "normal", alpha: 0.85 },
 } as const;
 
 /** Words on the stage: DOM text, placed by an anchor, in some phases. */
@@ -264,7 +324,7 @@ export function Text({
     intent: intent ?? "words on the stage",
     ...("below" in anchor ? { links: [{ rel: "below", to: `${host.id}/${anchor.below}` }] } : {}),
     ...("between" in anchor ? { links: anchor.between.map((to) => ({ rel: "between", to: `${host.id}/${to}` })) } : {}),
-  });
+  }, host.layer);
   const anchorKey = JSON.stringify(anchor);
   const placeRef = useCallback(
     (el: HTMLParagraphElement | null) => (el ? host.anchor(el, JSON.parse(anchorKey)) : undefined),
@@ -312,14 +372,14 @@ export function WayOut({ shown, label }: { shown?: When[]; label: { again: Words
     kind: "control",
     names: ["again", "moon", label.again.zh],
     intent: "Dream it again, from the start.",
-  });
+  }, host.layer);
   const wakeRef = useSemElement<HTMLButtonElement>({
     id: `${host.id}/wake`,
     parent: host.id,
     kind: "control",
     names: ["wake", "sun", label.wake.zh],
     intent: "Leave the dream for the home screen.",
-  });
+  }, host.layer);
   const button: CSSProperties = { padding: 14, color: `rgba(${ink}, 0.35)` };
   return (
     <nav
@@ -353,7 +413,7 @@ export function PressRing({ id, anchor, shown, intent }: { id: string; anchor: A
     kind: "control",
     names: ["press ring", "按住"],
     intent: intent ?? "A ring that closes in and lets go: press here.",
-  });
+  }, host.layer);
   const position: CSSProperties =
     "top" in anchor
       ? { top: `calc(env(safe-area-inset-top) + ${anchor.top}px)` }

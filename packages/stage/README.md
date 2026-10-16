@@ -40,6 +40,18 @@ With `?sem` or `?inspect`, `window.__stage.set("light", "approach", 2.4)` is the
 A write is refused when the value there is not a literal, or when the scene
 would no longer pass `scene:check`.
 
+## On a page
+
+A stage is full screen by default. A host page can instead put it in a box
+(`<StageProvider box>`): sized by the box, drawn at the size it is shown, no
+keys, its own sem layer, so several of one scene can run side by side. The
+provider can also set props over the scene's (`params`, by node id; what an
+intent compiles to), and give it a performance on its own clock (`script`:
+presses and releases at a share of its size, `loop`: start over once the end
+has lasted so long). The stage is deterministic, so boxes given the same
+script differ only by their size and their params. `/lab/intent` is the one
+that does.
+
 ## Scenes
 
 | Scene | Kinds |

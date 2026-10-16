@@ -1,13 +1,14 @@
 import { kind } from "stage";
-import type { WindowOut } from "./types";
+import type { Axis, WindowOut } from "./types";
 
 // The window: what I can hold at once. Moments rise through it and go at its
 // top edge. It warms while you hold on, and leaves with the last moment. Its
 // rows shrink on a short screen (a phone on its side) so the caption and the
-// hint keep their room.
+// hint keep their room; or it lies on its side (`axis="across"`), and the
+// moments drift right to left and go at its left edge.
 
 type WindowProps = {
-  /** Its width, at most, px. */
+  /** Its breadth across the way the moments go, at most, px (its width, upright). */
   width: number;
   /** A row, at most and at least, px; and the height kept clear above and below for the words. */
   row: number;
@@ -15,6 +16,8 @@ type WindowProps = {
   chrome: number;
   /** How many moments it holds before the oldest reaches the edge. */
   held: number;
+  /** Which way the moments go. */
+  axis: Axis;
   /** Its line, as "r, g, b". */
   ink: string;
 };
@@ -44,11 +47,15 @@ export const Window = kind<WindowProps, WindowState, WindowOut>({
 
   frame(s, p, { layout }) {
     const held = Math.round(p.held);
-    const row = Math.max(p.rowMin, Math.min(p.row, (layout.h - p.chrome) / (held + 1)));
-    const width = Math.min(p.width, layout.w - 40);
-    const height = row * (held + 1);
+    const axis = p.axis === "across" ? "across" : "up";
+    // Rows run along the axis; `width` is the window's other side.
+    const room = axis === "up" ? layout.h - p.chrome : layout.w - 40;
+    const row = Math.max(p.rowMin, Math.min(p.row, room / (held + 1)));
+    const side = Math.min(p.width, axis === "up" ? layout.w - 40 : layout.h - p.chrome);
+    const [width, height] = axis === "up" ? [side, row * (held + 1)] : [row * (held + 1), side];
     return {
       box: { x: (layout.w - width) / 2, y: layout.h * 0.5 - height / 2, width, height },
+      axis,
       row,
       scale: row / p.row,
       held,
