@@ -13,11 +13,14 @@ export default defineConfig({
   root: here("."),
   base: "/scenes/",
   resolve: {
-    alias: {
-      scene: here("../packages/scene/src/index.ts"),
-      reintent: here("../packages/reintent/src/reintent.js"),
-      intents: here("../packages/intents/src/index.ts"),
-    },
+    alias: [
+      { find: /^scene$/, replacement: here("../packages/scene/src/index.ts") },
+      { find: /^reintent$/, replacement: here("../packages/reintent/src/reintent.js") },
+      { find: /^intents$/, replacement: here("../packages/intents/src/index.ts") },
+      // Reintent core, and its subpaths (the JSX runtime a program in TSX imports, the React binding).
+      { find: /^reintent-core$/, replacement: here("../packages/reintent-core/src/index.ts") },
+      { find: /^reintent-core\/(.*)$/, replacement: here("../packages/reintent-core/src/$1.ts") },
+    ],
   },
   build: {
     outDir: here("../public/scenes"),

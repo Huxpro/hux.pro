@@ -53,14 +53,20 @@ const STAGE_STILLS: Still[] = STILLS.map((s) => ({ name: s.name, label: s.label,
 // the dragged thing follows the pointer until the drag is an event.
 // -----------------------------------------------------------------------------
 
-interface Read {
+/**
+ * What the picture reads of the intents, from whichever loop holds them: this
+ * experience's own (packages/intents, below), or another host's (Reintent
+ * core's, experiences/reintent). `tree` and `values` are the intents loop's,
+ * for the things a model added; another host leaves them out.
+ */
+export interface Read {
   shape: Shape;
   hatScale: number;
   gaze: number;
   /** The door's pace (beat.door.over), when the tree says. */
   over: number | undefined;
-  tree: Tree;
-  values: Record<string, Value>;
+  tree?: Tree;
+  values?: Record<string, Value>;
 }
 
 function read(tree: Tree, values: Record<string, Value>, preview: DragPreview | null): Read {
@@ -98,9 +104,14 @@ const useRead = () => useContext(ReadContext)!;
 const viewOf = (state: State, t: number, tl: Timeline, rd: Read) => view(state, t, paced(tl, rd.over), rd.shape);
 
 export function Wardrobe() {
-  const [state, dispatch] = useReducer(reduce, initial);
   const intents = useIntents(TREE, HOST);
   const rd = useMemo(() => read(intents.state.tree, intents.values, intents.preview), [intents.state.tree, intents.values, intents.preview]);
+  return <WardrobeStage rd={rd} />;
+}
+
+/** The Wardrobe, reading its intents from `rd`. */
+export function WardrobeStage({ rd }: { rd: Read }) {
+  const [state, dispatch] = useReducer(reduce, initial);
   const [sound] = useState(() => new Sound());
   const [fit, setFit] = useState<"slice" | "meet">(() => (innerWidth / innerHeight > 0.62 ? "meet" : "slice"));
   useEffect(() => {
@@ -153,7 +164,7 @@ function Scene({ state }: { state: State }) {
   // The inspector's demonstration: something drawn outside every declaration.
   const undeclared = useFlag("undeclared");
   // Whatever the tree put in his hat's place (a model's replacement), riding with him.
-  const hat = rd.tree.nodes.some((n) => n.fills === "man.hat") ? <Fill tree={rd.tree} values={rd.values} slot="man.hat" drawingLabel={WORDS.drawing} /> : undefined;
+  const hat = rd.tree && rd.values && rd.tree.nodes.some((n) => n.fills === "man.hat") ? <Fill tree={rd.tree} values={rd.values} slot="man.hat" drawingLabel={WORDS.drawing} /> : undefined;
   return (
     <>
       <BedroomDefs />
@@ -179,7 +190,7 @@ function Scene({ state }: { state: State }) {
             </Man>
           )}
           <Bed />
-          <Learned tree={rd.tree} values={rd.values} drawingLabel={WORDS.drawing} />
+          {rd.tree && rd.values && <Learned tree={rd.tree} values={rd.values} drawingLabel={WORDS.drawing} />}
           <Viewer world={v.dream ? "dream" : "awake"} eyes={v.lids.closed ? "closed" : "open"} />
           {undeclared && (
             <g fill="#c9d3ee" opacity="0.5">

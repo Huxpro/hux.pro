@@ -48,7 +48,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe" | "dream" | "screens";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe" | "dream" | "screens" | "reintent";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -258,6 +258,21 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "The Wardrobe was composed once, for a phone. Everywhere else its framing is a few closed decisions (fill or whole; how much of him, of the door, must stay; what to centre on), made by Reintent's precedence: yours, then your rule, then a confident model, then code. A solver frames every screen from where the scene says its things are. The model asks only where it cannot tell; a switch on one screen moves the crossover for all.",
       zh: "《衣柜》只为手机构图过一次。在其他屏幕上，取景是少数几个封闭的决定（铺满还是原样；他、那扇门至少要留多少；以谁为中心），按 Reintent 的先后来定：你的选择 > 你的规则 > 够确定的模型 > 代码。求解器按场景自己量出的位置为每块屏幕取景。模型只在拿不准时才问；在一块屏幕上切换，会挪动所有屏幕的交叉点。",
+    },
+  },
+  {
+    id: "reintent",
+    href: "/lab/reintent",
+    name: { en: "Reintent Core", zh: "Reintent 内核" },
+    mark: "reintent-core",
+    kind: "study",
+    hint: {
+      en: "The Wardrobe, on a standalone intent core",
+      zh: "《衣柜》，跑在独立的意图内核上",
+    },
+    blurb: {
+      en: "packages/reintent-core: intents as a reactive, typed program. The Wardrobe's intents written as TSX, decided by one rule (you, your rule, the author, a relation, a viewer, a sure model, code), reconciled by path when the model rewrites the program. Say something, answer what it asks, switch the program to the model's rewrite and back.",
+      zh: "packages/reintent-core：把意图当作一个响应式、有类型的程序。《衣柜》的意图用 TSX 写成，按同一条规则决定（你 > 你的规则 > 作者 > 关系 > 观看者 > 有把握的模型 > 代码），模型改写程序时按路径对账。说一句话，回答它问的，把程序切到模型的改写版再切回来。",
     },
   },
   {

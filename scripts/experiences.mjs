@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { scenes } from "../experiences/scenes.mjs";
 
 const OUTS = scenes().map((name) => `public/scenes/${name}/index.html`);
-const SOURCES = ["experiences", "packages/scene/src", "packages/intents/src", "packages/reintent/src", "content/scenes"];
+const SOURCES = ["experiences", "packages/scene/src", "packages/intents/src", "packages/reintent/src", "packages/reintent-core/src", "content/scenes"];
 
 function newest(dir) {
   let latest = 0;

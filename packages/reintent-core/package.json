@@ -1,0 +1,23 @@
+{
+  "name": "reintent-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Intents as a reactive, typed program: a closed set of kinds per intent, decided by a person, a model and code in that order, written in TSX and reconciled by path when the program is rewritten.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./jsx-runtime": "./src/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./src/jsx-dev-runtime.ts",
+    "./words": "./src/words.ts",
+    "./observe": "./src/observe.ts",
+    "./devtools": "./src/devtools.ts",
+    "./react": "./src/react.ts"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true }
+  }
+}
