@@ -1,0 +1,14 @@
+{
+  "name": "reintent-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reintent in .tsx: intents as values, not signals. A host-neutral core (elements, contexts with axes, one intent's value from its writers, a render with its trace, whatIf, watch, stamped results), libraries on its public entry, after Huxpro/airtalk#845.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/core/index.ts",
+    "./jsx-runtime": "./src/core/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./src/core/jsx-dev-runtime.ts",
+    "./lib/*": "./src/lib/*.ts"
+  }
+}

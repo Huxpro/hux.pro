@@ -20,7 +20,7 @@
 // (bedroom.tsx), the waking (waking.ts), the sound, the overlays.
 // =============================================================================
 
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState, type ComponentType, type Dispatch, type ReactNode } from "react";
 import { dragValue, realized, useIntents, type DragPreview, type Tree, type Value } from "intents";
 import { Atmosphere, Stage, useFlag, useFrame, useNow, useTime, useTimeline, type Still } from "scene";
 import { Bed, BedroomDefs, Man, Room, Viewer, Wardrobe as WardrobeBox, Window } from "../common/bedroom";
@@ -53,14 +53,20 @@ const STAGE_STILLS: Still[] = STILLS.map((s) => ({ name: s.name, label: s.label,
 // the dragged thing follows the pointer until the drag is an event.
 // -----------------------------------------------------------------------------
 
-interface Read {
+/**
+ * What the picture reads of the intents, from whichever loop holds them: this
+ * experience's own (packages/intents, below), or another host's (Reintent
+ * core's, experiences/reintent). `tree` and `values` are the intents loop's,
+ * for the things a model added; another host leaves them out.
+ */
+export interface Read {
   shape: Shape;
   hatScale: number;
   gaze: number;
   /** The door's pace (beat.door.over), when the tree says. */
   over: number | undefined;
-  tree: Tree;
-  values: Record<string, Value>;
+  tree?: Tree;
+  values?: Record<string, Value>;
 }
 
 function read(tree: Tree, values: Record<string, Value>, preview: DragPreview | null): Read {
@@ -98,9 +104,66 @@ const useRead = () => useContext(ReadContext)!;
 const viewOf = (state: State, t: number, tl: Timeline, rd: Read) => view(state, t, paced(tl, rd.over), rd.shape);
 
 export function Wardrobe() {
-  const [state, dispatch] = useReducer(reduce, initial);
   const intents = useIntents(TREE, HOST);
   const rd = useMemo(() => read(intents.state.tree, intents.values, intents.preview), [intents.state.tree, intents.values, intents.preview]);
+  return <WardrobeStage rd={rd} />;
+}
+
+/**
+ * The man as the timeline poses him: in the wardrobe (no scale) or at the bed
+ * (where the shape put him). His own intents (the hat, the gaze, where he
+ * stands) are the drawing's to apply: a host that holds them draws him itself.
+ */
+export interface ManPose {
+  instance: "wardrobe" | "bedside";
+  eyes: number;
+  at: readonly [number, number];
+  scale: number;
+  lean: number;
+  children?: ReactNode;
+}
+
+/** The wardrobe as the timeline opens it; `waking`: the door is the one that opens when you wake. */
+export interface WardrobePose {
+  openLeft: number;
+  openRight: number;
+  waking: boolean;
+  children?: ReactNode;
+}
+
+/** How the stage draws him and the wardrobe: by default from `rd`, or by a host's own parts. */
+export interface Things {
+  Man: ComponentType<ManPose>;
+  Wardrobe: ComponentType<WardrobePose>;
+}
+
+export const transformOf = (p: { at: readonly [number, number]; scale: number; lean: number }) =>
+  `translate(${p.at[0].toFixed(1)} ${p.at[1].toFixed(1)}) rotate(${p.lean.toFixed(3)})${p.scale === 1 ? "" : ` scale(${p.scale.toFixed(4)})`}`;
+
+/** Draws him from `rd`: this experience's own way. */
+function ReadMan({ instance, eyes, children, ...pose }: ManPose) {
+  const rd = useRead();
+  return (
+    <Man instance={instance} hatScale={rd.hatScale} eyes={eyes * rd.gaze} transform={transformOf(pose)}>
+      {children}
+    </Man>
+  );
+}
+
+function ReadWardrobe({ openLeft, openRight, children }: WardrobePose) {
+  return (
+    <WardrobeBox openLeft={openLeft} openRight={openRight}>
+      {children}
+    </WardrobeBox>
+  );
+}
+
+const READ_THINGS: Things = { Man: ReadMan, Wardrobe: ReadWardrobe };
+const ThingsContext = createContext<Things>(READ_THINGS);
+
+/** The Wardrobe, reading its intents from `rd`, and drawing him and the wardrobe with `things`. */
+export function WardrobeStage({ rd, things = READ_THINGS }: { rd: Read; things?: Things }) {
+  const [state, dispatch] = useReducer(reduce, initial);
   const [sound] = useState(() => new Sound());
   const [fit, setFit] = useState<"slice" | "meet">(() => (innerWidth / innerHeight > 0.62 ? "meet" : "slice"));
   useEffect(() => {
@@ -135,7 +198,9 @@ export function Wardrobe() {
       className="stage"
     >
       <ReadContext.Provider value={rd}>
-        <Scene state={state} />
+        <ThingsContext.Provider value={things}>
+          <Scene state={state} />
+        </ThingsContext.Provider>
         <Director state={state} dispatch={dispatch} sound={sound} />
       </ReadContext.Provider>
     </Stage>
@@ -149,11 +214,12 @@ export function Wardrobe() {
 function Scene({ state }: { state: State }) {
   const t = useTime();
   const rd = useRead();
+  const { Man: HisMan, Wardrobe: TheWardrobe } = useContext(ThingsContext);
   const v = viewOf(state, t, useTimeline(TIMELINE), rd);
   // The inspector's demonstration: something drawn outside every declaration.
   const undeclared = useFlag("undeclared");
   // Whatever the tree put in his hat's place (a model's replacement), riding with him.
-  const hat = rd.tree.nodes.some((n) => n.fills === "man.hat") ? <Fill tree={rd.tree} values={rd.values} slot="man.hat" drawingLabel={WORDS.drawing} /> : undefined;
+  const hat = rd.tree && rd.values && rd.tree.nodes.some((n) => n.fills === "man.hat") ? <Fill tree={rd.tree} values={rd.values} slot="man.hat" drawingLabel={WORDS.drawing} /> : undefined;
   return (
     <>
       <BedroomDefs />
@@ -161,25 +227,20 @@ function Scene({ state }: { state: State }) {
         <g id="scene">
           <Room />
           <Window />
-          <WardrobeBox openLeft={v.doors.left} openRight={v.doors.right}>
+          <TheWardrobe openLeft={v.doors.left} openRight={v.doors.right} waking={state.stage === 3}>
             {v.manInWardrobe && (
-              <Man instance="wardrobe" hatScale={rd.hatScale} eyes={v.manInWardrobe.eyes * rd.gaze} transform={`translate(285.5 640) rotate(${v.manInWardrobe.tilt.toFixed(2)})`}>
+              <HisMan instance="wardrobe" eyes={v.manInWardrobe.eyes} at={[285.5, 640]} scale={1} lean={v.manInWardrobe.tilt}>
                 {hat}
-              </Man>
+              </HisMan>
             )}
-          </WardrobeBox>
+          </TheWardrobe>
           {v.manAtBed && (
-            <Man
-              instance="bedside"
-              hatScale={rd.hatScale}
-              eyes={v.manAtBed.eyes * rd.gaze}
-              transform={`translate(${v.manAtBed.at[0].toFixed(1)} ${v.manAtBed.at[1].toFixed(1)}) rotate(${v.manAtBed.lean.toFixed(3)}) scale(${v.manAtBed.scale.toFixed(4)})`}
-            >
+            <HisMan instance="bedside" eyes={v.manAtBed.eyes} at={v.manAtBed.at} scale={v.manAtBed.scale} lean={v.manAtBed.lean}>
               {hat}
-            </Man>
+            </HisMan>
           )}
           <Bed />
-          <Learned tree={rd.tree} values={rd.values} drawingLabel={WORDS.drawing} />
+          {rd.tree && rd.values && <Learned tree={rd.tree} values={rd.values} drawingLabel={WORDS.drawing} />}
           <Viewer world={v.dream ? "dream" : "awake"} eyes={v.lids.closed ? "closed" : "open"} />
           {undeclared && (
             <g fill="#c9d3ee" opacity="0.5">

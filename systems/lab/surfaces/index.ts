@@ -4,6 +4,7 @@ import { AttachmentsSurface } from "./attachments";
 import { BandSurface } from "./band";
 import { DreamSurface, WardrobeSurface } from "./experience";
 import { ScreensSurface } from "./screens";
+import { ReintentSurface } from "./reintent";
 import { GlowSurface } from "./glow";
 import { IconSurface } from "./icon";
 import { LegibilitySurface } from "./legibility";
@@ -25,6 +26,7 @@ export const LAB_SURFACES: Record<LabId, ComponentType> = {
   wardrobe: WardrobeSurface,
   dream: DreamSurface,
   screens: ScreensSurface,
+  reintent: ReintentSurface,
 };
 
 export { SurfaceFrame } from "./frame";
