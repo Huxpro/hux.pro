@@ -23,6 +23,7 @@ import {
   type Found,
   type Hit,
   type LabEvent,
+  type Need,
   type Observation,
   type Point,
   type Selection,
@@ -203,6 +204,8 @@ type LogEntry = {
   why?: Words;
   problems?: string[];
   learned?: string;
+  /** Knobs the strong model said the stage lacks for this. */
+  needs?: Need[];
   ms?: number;
 };
 
@@ -436,6 +439,29 @@ function Questions({ lab, screen, S }: { lab: Lab; screen: Screen; S: IntentStri
           </div>
         );
       })}
+    </Section>
+  );
+}
+
+/** What the strong model said the stage lacks: past the intent tree, work for the kinds' code. */
+function Needs({ log, S }: { log: LogEntry[]; S: IntentStrings }) {
+  const seen = new Map<string, { n: Need; asked: string[] }>();
+  for (const e of log)
+    for (const n of e.needs ?? []) {
+      const k = `${n.of}.${n.knob}`;
+      const had = seen.get(k);
+      if (had) had.asked.push(e.what);
+      else seen.set(k, { n, asked: [e.what] });
+    }
+  if (!seen.size) return null;
+  return (
+    <Section title={S.needsTitle}>
+      <p className={TYPE.captionQuiet}>{S.needsNote}</p>
+      <Code>
+        {[...seen.entries()]
+          .map(([k, { n, asked }]) => `${k}${n.note ? `  // ${n.note}` : ""}\n  ← ${asked.join(" · ")}`)
+          .join("\n")}
+      </Code>
     </Section>
   );
 }
@@ -824,6 +850,12 @@ function EventLog({ log, S }: { log: LogEntry[]; S: IntentStrings }) {
           </div>
           {e.why && <p className={cn(TYPE.captionQuiet, "mt-1")}>{e.why[locale]}</p>}
           {e.learned && <p className="mt-0.5 font-mono text-[10px] text-foreground">↺ {S.learned(e.learned)}</p>}
+          {e.needs?.map((n) => (
+            <p key={`${n.of}.${n.knob}`} className="mt-0.5 font-mono text-[10px] text-foreground">
+              ⚙ {S.needs(`${n.of}.${n.knob}`)}
+              {n.note ? ` · ${n.note}` : ""}
+            </p>
+          ))}
           {e.problems?.map((p, i) => (
             <p key={i} className="mt-0.5 font-mono text-[10px] text-muted-foreground">
               ✗ {p}
@@ -950,6 +982,7 @@ function DreamLab({ dream, onDream }: { dream: Dream; onDream: (id: DreamId) => 
         status: added.action ? "done" : added.problems ? "rejected" : "none",
         why: { en: `${sel.by}: ${chosen.why.en} → ${added.why.en}`, zh: `${sel.by}：${chosen.why.zh} → ${added.why.zh}` },
         problems: added.problems,
+        needs: added.needs,
         learned,
         ms: ms(),
       });
@@ -1057,6 +1090,7 @@ function DreamLab({ dream, onDream }: { dream: Dream; onDream: (id: DreamId) => 
               ) : null,
             )}
           </Section>
+          <Needs log={log} S={S} />
           <Stored lab={lab} S={S} />
           <Props lab={lab} screen={focus} S={S} />
         </>

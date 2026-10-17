@@ -362,3 +362,42 @@ test("on the other dreams: a drag that leaves a shape means the place, not the w
   const up = recognize(drag({ x: 250, y: 350, id: "sun-ring" }, { x: 252, y: 220, id: null }, { from: ["sun-ring"], to: [] }), blue.PRESET);
   assert.deepEqual(Object.values(up).slice(0, 2), ["sunSize|sun-ring", "larger"]);
 });
+
+test("“the sea is red”: with the colour a real knob, ③ adds an intent; a none names only knobs the stage truly lacks", async () => {
+  const blue = await stageOf("blue", {
+    contours: (await import("../../app/dream/blue/kinds/contours.ts")).Contours,
+    "sun-ring": (await import("../../app/dream/blue/kinds/sun-ring.ts")).SunRing,
+    sea: (await import("../../app/dream/blue/kinds/sea.ts")).Sea,
+    surf: (await import("../../app/dream/blue/kinds/surf.ts")).SurfSound,
+  });
+  const tree = (await import("../../app/lab/intent/blue.ts")).PRESET;
+  const o = { entities: blue, tree, decisions: {}, event: say("海水是红色"), prompts: [] };
+  assert.equal(blue.find((e) => e.id === "sea").params.hue.value, 0, "the scene writes its blue as hue 0");
+  // ② what the weak model really answered on the preview: sure enough, but about the sun, when the words name the sea. Not kept: the strong model decides.
+  const misread = acceptSelection({ action: "decide", key: "sunSize", kind: "larger", sure: 0.75, why: "a red sea is a sunset, with a larger sun" }, o);
+  assert.equal(misread.action, null);
+  assert.equal(misread.escalate, true, misread.why.en);
+  const fits = acceptSelection({ action: "decide", key: "opening", kind: "quickly", sure: 0.8, why: "" }, { ...o, event: say("the sea should open quickly") });
+  assert.equal(fits.action?.type, "believe", "a reading about what the words name stands");
+  const sun = acceptSelection({ action: "decide", key: "sunSize", kind: "larger", sure: 0.9, why: "" }, { ...o, event: say("make the sun a bit bigger") });
+  assert.equal(sun.action?.type, "believe", "the drawn sun is what people call the sun");
+  const added = acceptAddition(standInAdd(o), o, "stand-in");
+  assert.equal(added.action?.type, "add", JSON.stringify(added));
+  assert.equal(added.action.node.kinds.red.patch.sea.hue, 150);
+  assert.ok(added.action.node.say.red.includes("海水是红色"), "this event's words are its vocabulary");
+  // A none: a knob the thing already has is not a need, nor is one about nothing on the stage.
+  const none = acceptAddition(
+    {
+      action: "none",
+      why: "no knob",
+      needs: [
+        { of: "sea", knob: "sea.color", note: "its colour" },
+        { of: "sea", knob: "hue" },
+        { of: "the ocean", knob: "tint" },
+      ],
+    },
+    o,
+    "strong",
+  );
+  assert.deepEqual(none.needs, [{ of: "sea", knob: "color", note: "its colour" }]);
+});

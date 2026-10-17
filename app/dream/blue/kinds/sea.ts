@@ -8,6 +8,20 @@ import type { ContoursOut } from "./types";
 // soft-edged circle, laid over the lines.
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+/** A colour turned round the colour wheel by `deg` (CSS hue-rotate's matrix), as "rgba(…)". */
+function turn(hex: string, deg: number, a = 1) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  if (!deg) return `rgba(${r}, ${g}, ${b}, ${a})`;
+  const [c, s] = [Math.cos((deg * Math.PI) / 180), Math.sin((deg * Math.PI) / 180)];
+  const m = [
+    [0.213 + c * 0.787 - s * 0.213, 0.715 - c * 0.715 - s * 0.715, 0.072 - c * 0.072 + s * 0.928],
+    [0.213 - c * 0.213 + s * 0.143, 0.715 + c * 0.285 + s * 0.14, 0.072 - c * 0.072 - s * 0.283],
+    [0.213 - c * 0.213 - s * 0.787, 0.715 - c * 0.715 + s * 0.715, 0.072 + c * 0.928 + s * 0.072],
+  ];
+  const [R, G, B] = m.map((row) => Math.round(Math.min(255, Math.max(0, row[0] * r + row[1] * g + row[2] * b))));
+  return `rgba(${R}, ${G}, ${B}, ${a})`;
+}
 const easeOut = (v: number) => 1 - Math.pow(1 - v, 3);
 
 type Hold = { start: number; end: number | null; endR: number; x: number; y: number };
@@ -26,6 +40,8 @@ type SeaProps = {
   seenAfter: number;
   /** The phases a press opens it in. */
   pressIn: string[];
+  /** How far its colours are turned from the blue it is, degrees (about 150 is a red sea). */
+  hue: number;
 };
 
 type SeaState = { hold: Hold | null; canvas: HTMLCanvasElement; g: CanvasRenderingContext2D | null };
@@ -43,6 +59,7 @@ type SeaOut = {
   h: number;
   dpr: number;
   feather: number;
+  hue: number;
   /** Its own canvas, which `draw` paints the sea into before cutting it to the opening. */
   buffer: { canvas: HTMLCanvasElement; g: CanvasRenderingContext2D | null };
 };
@@ -53,11 +70,11 @@ const radius = (hold: Hold, now: number, full: number, p: SeaProps) =>
     : hold.endR * (1 - easeOut(clamp01((now - hold.end) / p.close)));
 
 /** The sea, full screen, on its own canvas. */
-function paintSea(g: CanvasRenderingContext2D, { w, h, t, horizon, sunAt: [sunX, sunY] }: SeaOut) {
+function paintSea(g: CanvasRenderingContext2D, { w, h, t, horizon, hue, sunAt: [sunX, sunY] }: SeaOut) {
   const sky = g.createLinearGradient(0, 0, 0, horizon);
-  sky.addColorStop(0, "#3d8fd9");
-  sky.addColorStop(0.7, "#8cc6f0");
-  sky.addColorStop(1, "#d9effc");
+  sky.addColorStop(0, turn("#3d8fd9", hue));
+  sky.addColorStop(0.7, turn("#8cc6f0", hue));
+  sky.addColorStop(1, turn("#d9effc", hue));
   g.fillStyle = sky;
   g.fillRect(0, 0, w, horizon);
 
@@ -71,20 +88,21 @@ function paintSea(g: CanvasRenderingContext2D, { w, h, t, horizon, sunAt: [sunX,
   g.fillRect(0, 0, w, horizon);
 
   const sea = g.createLinearGradient(0, horizon, 0, h);
-  sea.addColorStop(0, "#5aa7dc");
-  sea.addColorStop(0.25, "#1f6fb2");
-  sea.addColorStop(1, "#06244a");
+  sea.addColorStop(0, turn("#5aa7dc", hue));
+  sea.addColorStop(0.25, turn("#1f6fb2", hue));
+  sea.addColorStop(1, turn("#06244a", hue));
   g.fillStyle = sea;
   g.fillRect(0, horizon, w, h - horizon);
 
   // Swells, closer and larger as they come down the screen.
   g.lineWidth = 1;
+  const swell = turn("#dcf0ff", hue).slice(0, -2);
   for (let k = 1; k < 26; k++) {
     const depth = k / 26;
     const y = horizon + Math.pow(depth, 1.7) * (h - horizon);
     const amp = 0.6 + depth * 7;
     const len = 40 + depth * 260;
-    g.strokeStyle = `rgba(220, 240, 255, ${0.08 + 0.14 * (1 - depth)})`;
+    g.strokeStyle = `${swell}${0.08 + 0.14 * (1 - depth)})`;
     g.beginPath();
     for (let x = 0; x <= w; x += 8) {
       const yy = y + Math.sin((x / len) * Math.PI * 2 + t * (0.6 + depth) + k * 1.7) * amp;
@@ -120,6 +138,7 @@ export const Sea = kind<SeaProps, SeaState, SeaOut | null>({
     close: { unit: "s", range: [0.2, 2] },
     feather: { unit: "px", range: [0, 120], note: "the soft edge into the lines" },
     seenAfter: { unit: "s", range: [0.1, 1.5], note: "a shorter hold is a tap" },
+    hue: { unit: "deg", range: [-180, 180], note: "how far its colours turn from blue: 0 is the blue sea, about 150 a red one, -90 green" },
   },
 
   init: () => {
@@ -156,6 +175,7 @@ export const Sea = kind<SeaProps, SeaState, SeaOut | null>({
       h: layout.h,
       dpr: layout.dpr,
       feather: p.feather,
+      hue: p.hue,
       buffer: { canvas: s.canvas, g: s.g },
     };
   },

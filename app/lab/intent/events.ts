@@ -1,4 +1,4 @@
-import type { Screen } from "./forget";
+import type { Screen } from "./screens";
 import type { Action, Decision } from "./model";
 import { admit, admitTree, keyOf, type Dir, type Entity, type Gesture, type IntentNode, type Tree, type Words } from "./tree";
 
@@ -152,7 +152,10 @@ export type Selection =
 export type Addition =
   | { action: "add"; node: unknown; kind?: string; why: string }
   | Extract<Selection, { action: "decide" | "believe" }>
-  | { action: "none"; why: string };
+  | { action: "none"; why: string; needs?: Need[] };
+
+/** A knob the stage would need for what a person meant: beyond the tree, a change to a kind's code. */
+export type Need = { of: string; knob: string; note?: string };
 
 /** Authoring: a strong model writes the whole tree from the scene, and what it believes about it. */
 export type Authoring = { tree: unknown; beliefs?: { key: string; p: Record<string, number> }[]; why?: string };
@@ -163,6 +166,8 @@ export interface Outcome {
   why: Words;
   problems?: string[];
   escalate?: boolean;
+  /** What the stage would need: knobs no kind has (only from the strong model's "none"). */
+  needs?: Need[];
 }
 
 const said = (s: string | undefined): Words => ({ en: s ?? "", zh: s ?? "" });
@@ -193,6 +198,24 @@ function acceptChoice(answer: Extract<Selection, { action: "decide" | "believe" 
   return { action: { type: "believe", beliefs: ok }, why: said(answer.why) };
 }
 
+/** The things on the stage an event speaks of: the one it is about, and any whose name it says. */
+export function namedIn(e: LabEvent, entities: Entity[]): string[] {
+  if (e.kind !== "prompt") return [];
+  const text = e.text.toLowerCase();
+  const says = (name: string) => {
+    const n = name.toLowerCase().trim();
+    if (!n) return false;
+    // A word in a Latin script is a whole word; anything else (Chinese) is a run of characters.
+    return /^[\x00-\x7f]+$/.test(n) ? new RegExp(`\\b${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(text) : text.includes(n);
+  };
+  const named = entities.filter((x) => says(x.id) || x.names.some(says)).map((x) => x.id);
+  const about = e.entity?.split("#")[0];
+  return [...new Set([...(about ? [about] : []), ...named])];
+}
+
+/** The things an intent touches: what it is about, and what its kinds set. */
+const touches = (node: IntentNode) => new Set([node.of.split("#")[0], ...Object.values(node.kinds).flatMap((k) => Object.keys(k.patch))]);
+
 /**
  * ②'s answer, checked. A weak model's reading is a belief: the model's, under
  * any person's decision, never learned. It stands only when the model is
@@ -204,6 +227,16 @@ export function acceptSelection(answer: Selection, o: Observation): Outcome {
     const sure = typeof answer.sure === "number" ? answer.sure : 0;
     if (sure < SURE) return { action: null, why: said(`not sure (${sure}): ${answer.why}`), escalate: true };
     const out = acceptChoice(answer, o);
+    // Sure, but about something else than the words name ("the sea is red" read as a larger sun): not a reading to keep.
+    const named = namedIn(o.event, o.entities);
+    const chosen = out.action?.type === "decide" ? [out.action.key] : out.action?.type === "believe" ? out.action.beliefs.map((b) => b.key) : [];
+    const nodes = chosen.map((k) => o.tree.find((n) => keyOf(n) === k)).filter((n): n is IntentNode => !!n);
+    if (named.length && nodes.length && !nodes.some((n) => named.some((x) => touches(n).has(x))))
+      return {
+        action: null,
+        why: said(`it speaks of ${named.join(", ")}, but the reading is about ${[...new Set(nodes.map((n) => n.of))].join(", ")}: ${answer.why}`),
+        escalate: true,
+      };
     if (out.action?.type !== "decide") return out;
     // "It means settles", read by a weak model: the model believes settles, as surely as it says.
     const { key, kind } = out.action;
@@ -231,7 +264,18 @@ export const weakReads = (e: LabEvent) => e.kind === "prompt";
 /** ③'s answer, checked: a choice like ②'s (the strong model needs no threshold), or a node `admit` lets in, which learns this event as it is added. */
 export function acceptAddition(answer: Addition, o: Observation, by: string): Outcome {
   if (answer.action === "decide" || answer.action === "believe") return acceptChoice(answer, o);
-  if (answer.action !== "add") return { action: null, why: said(answer.why) };
+  if (answer.action !== "add") {
+    // A knob it names is a need only if it is about a thing on the stage, and not a knob that thing already has.
+    const needs = (Array.isArray(answer.needs) ? answer.needs : [])
+      .filter((n) => n && typeof n.knob === "string" && n.knob && typeof n.of === "string")
+      .map((n) => ({ ...n, of: n.of.split("#")[0], knob: n.knob.split(".").pop()! }))
+      .filter((n) => {
+        const thing = o.entities.find((x) => x.id === n.of);
+        return thing && !(n.knob in thing.params);
+      })
+      .slice(0, 3);
+    return { action: null, why: said(answer.why), ...(needs.length ? { needs } : {}) };
+  }
   const r = admit(answer.node, o.entities, { from: "model", by });
   if ("problems" in r) return { action: null, why: said(answer.why), problems: r.problems };
   let node = r.node;
@@ -316,6 +360,28 @@ export function standInAdd(o: Observation): Addition {
   });
   if (/slow|linger|慢/.test(t)) return pace("slower", { en: "Slower", zh: "慢一些" }, 1.5, ["slower", "slow down", "慢一些", "慢一点"]);
   if (/fast|quick|hurry|快/.test(t)) return pace("faster", { en: "Faster", zh: "快一些" }, 0.6, ["faster", "speed up", "快一些", "快一点"]);
+  const tinted = o.entities.find((x) => x.params.hue);
+  if (tinted && /red|green|colou?r|红|绿|颜色/.test(t)) {
+    const hue = (tinted.params.hue.value as number) ?? 0;
+    const red = /red|红/.test(t);
+    return {
+      action: "add",
+      node: {
+        type: "colour",
+        of: tinted.id,
+        words: { en: `The colour of ${tinted.id}`, zh: "它的颜色" },
+        kinds: {
+          asWritten: { words: { en: "As written", zh: "原样" }, patch: { [tinted.id]: { hue } } },
+          red: { words: { en: "Red", zh: "红色" }, patch: { [tinted.id]: { hue: 150 } } },
+          green: { words: { en: "Green", zh: "绿色" }, patch: { [tinted.id]: { hue: -90 } } },
+        },
+        resolve: "switch",
+        say: { asWritten: ["as written", "原样"], red: ["red", "红色"], green: ["green", "绿色"] },
+      },
+      kind: red ? "red" : "green",
+      why: `No intent says what colour ${tinted.id} is; its hue does, so a new intent with the scene as written as its first kind.`,
+    };
+  }
   if (/big|large|大/.test(t))
     return {
       action: "add",

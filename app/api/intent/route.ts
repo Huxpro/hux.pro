@@ -71,7 +71,7 @@ A faster model was not sure what the event means, or found no kind that fits. De
 - {"action":"decide","key":"<key, copied exactly>","kind":"<one of its kinds>","why":"..."}  it does mean an existing kind.
 - {"action":"believe","beliefs":[{"key":"<key>","p":{"<kind>":0.7,"<kind>":0.3}}],"why":"..."}  a mood or a general wish (never a decision).
 - {"action":"add","node":{...a new intent node...},"kind":"<the kind the event means, one of the node's own kinds>","why":"..."}  no kind fits, but knobs on the stage can express it; include this very event in its "say" or "gestures".
-- {"action":"none","why":"<what no knob can do, and what would be needed>"}  nothing on the stage can express it (a drag that reorders things, when no knob orders them, is this).`,
+- {"action":"none","why":"<what no knob can do>","needs":[{"of":"<entity id>","knob":"<camelCase name of the knob it lacks>","note":"<what that knob would do, with its values>"}]}  nothing on the stage can express it (a drag that reorders things, when no knob orders them, is this). Before answering none, read every entity's knobs and their notes: a knob that can express it, however it is named, means "add". "needs" names what code would have to add for it; leave it out when no knob could.`,
   author: `${WORLD}
 
 Author the whole intent tree for this scene: the choices a person is most likely to mean that its knobs can express (at most 10 intents), about its things and, where a choice is per member, each member.
