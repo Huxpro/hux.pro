@@ -3,6 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   EMPTY_DOC,
+  collect,
   createRoot,
   effect,
   intent,
@@ -149,28 +150,62 @@ test("a part rewritten: decisions kept by path, waiting when their kind is gone,
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
-test("a thing drawn twice is one thing: gone only when the last of it unmounts", async () => {
+test("a thing drawn twice is one thing: two holders; gone only when the last lets go", async () => {
   const root = setup();
-  root.keep("man");
-  root.keep("man");
-  root.drop("man");
+  const man = root.get().program.things.find((t) => t.id === "man")!;
+  root.hold("him in the wardrobe", man, man.intents);
+  root.hold("him at the bed", man, man.intents);
+  root.release("run:man");
+  root.release("him in the wardrobe");
   await tick();
   assert.ok(v(root, "man.hat"));
-  root.drop("man");
+  root.release("him at the bed");
   await tick();
   assert.equal(v(root, "man.hat"), undefined);
   assert.deepEqual(root.get().log[0].program?.removed, ["man.hat", "man.stand"]);
 });
 
-test("unmounted and mounted again in one commit (a version switched): nothing goes", async () => {
+test("released and held again before the flush (a version switched in one commit): nothing goes", async () => {
   const root = setup();
-  root.keep("wardrobe");
-  root.drop("wardrobe");
-  root.flush();
-  root.keep("wardrobe");
+  const w = root.get().program.things.find((t) => t.id === "wardrobe")!;
+  root.release("run:wardrobe");
+  root.hold("run:wardrobe", w, w.intents);
   await tick();
   assert.ok(v(root, "wardrobe.door"));
   assert.equal(root.get().log.filter((e) => e.program?.removed.length).length, 0);
+});
+
+test("a run is pure: collecting a part declares nothing; holding it does", async () => {
+  const root = createRoot();
+  const r = collect(root, man(), {});
+  assert.deepEqual(r.out, { hatScale: 1.45, x: 236 });
+  assert.deepEqual(r.decls.map((d) => d.name), ["hat", "stand"]);
+  assert.deepEqual(r.reads, ["man.hat", "man.stand"]);
+  await tick();
+  assert.equal(root.get().program.things.length, 0);
+  root.hold("h", r.thing, r.decls);
+  await tick();
+  assert.deepEqual(Object.keys(root.get().values), ["man.hat", "man.stand"]);
+});
+
+test("an unchanged cell keeps its identity across publishes; a changed one does not", () => {
+  const root = setup();
+  const hat = v(root, "man.hat");
+  const door = v(root, "wardrobe.door");
+  root.dispatch({ type: "narrow", key: "man.hat", pick: "absurd" });
+  assert.notEqual(v(root, "man.hat"), hat);
+  assert.equal(v(root, "wardrobe.door"), door);
+  // And evaluate gives the published object for a declaration as published.
+  const decl = root.get().program.things[1].intents.find((i) => i.name === "door")!;
+  assert.equal(root.evaluate({ id: "wardrobe" }, decl), door);
+});
+
+test("a scope: a subtree's own leaning, without touching anyone else's values", () => {
+  const root = setup();
+  const leaning = root.view({ lean: { hat: "absurd" } });
+  assert.deepEqual([leaning["man.hat"].kind, leaning["man.hat"].source], ["absurd", "viewer"]);
+  assert.equal(v(root, "man.hat").kind, "big");
+  assert.equal(root.view({ lean: { hat: "absurd" } }), leaning);
 });
 
 test("a hook outside a part, or a kind a type does not have, is an error", () => {

@@ -48,8 +48,11 @@ export interface Value<K extends string = string, D = unknown> {
   from?: string;
 }
 
-/** Every cell's value. A cell a part did not declare this run (an `if` around its hook) has none. */
-export function values(program: Program, doc: Doc, ctx: Context = {}): Record<Key, Value> {
+/**
+ * Every cell's value. A cell a part did not declare this run (an `if` around its hook) has none.
+ * `prev`: the values last time; each one that has not changed is returned as it was (the same object).
+ */
+export function values(program: Program, doc: Doc, ctx: Context = {}, prev?: Record<Key, Value>): Record<Key, Value> {
   const all = cells(program);
   const byKey = new Map(all.map((c) => [c.key, c]));
   const memo = new Map<Key, Value | null>();
@@ -108,9 +111,26 @@ export function values(program: Program, doc: Doc, ctx: Context = {}): Record<Ke
   const out: Record<Key, Value> = {};
   for (const c of all) {
     const v = get(c.key);
-    if (v) out[c.key] = v;
+    // An unchanged value is the same object as before: whoever reads one cell is told only when it changes.
+    if (v) out[c.key] = prev?.[c.key] && same(prev[c.key], v) ? prev[c.key] : v;
   }
   return out;
+}
+
+const sameList = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+
+function same(a: Value, b: Value): boolean {
+  return (
+    a.kind === b.kind &&
+    a.source === b.source &&
+    a.ask === b.ask &&
+    a.stale === b.stale &&
+    a.from === b.from &&
+    a.data === b.data &&
+    sameList(a.kinds, b.kinds) &&
+    sameList(a.not, b.not) &&
+    a.kinds.every((k) => a.p[k] === b.p[k])
+  );
 }
 
 /** The cells to ask a person about now. */

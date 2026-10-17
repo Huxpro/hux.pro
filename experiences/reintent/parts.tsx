@@ -4,11 +4,13 @@
 // (experiences/wardrobe) poses them over time; what they look like, and
 // where he stands at the bed, is theirs.
 //
-// The pace is the wardrobe's, but it is time, not a drawing: the stage's
-// director reads it sideways (main.tsx).
+// The pace is the wardrobe's too, but it is time, not a drawing: the stage's
+// director declares it where it uses it, with the React hook (usePace, under
+// <Thing id="wardrobe"> in main.tsx). One thing, two holders.
 // =============================================================================
 
 import { part, useIntent } from "reintent-core";
+import { useIntent as useHookIntent } from "reintent-core/react";
 import { Man as Figure, Wardrobe as Box } from "../common/bedroom";
 import { transformOf, type ManPose, type WardrobePose } from "../wardrobe/Wardrobe";
 import { SHAPE } from "../wardrobe/timeline";
@@ -34,7 +36,6 @@ export const Man = part("man", { label: "他 · the man", aka: ["他", "男人",
 
 export const Wardrobe = part("wardrobe", { label: "衣柜 · the wardrobe", aka: ["衣柜", "柜子", "柜门", "门", "wardrobe", "door"] }, ({ openLeft, openRight, waking, children }: WardrobePose) => {
   const door = useIntent("door", Open, { label: "柜门开多大 · how far the door opens", aka: ["柜门", "门", "door"], p: { ajar: 0.12, half: 0.58, wide: 0.3 } });
-  useIntent("pace", Pace, { label: "开得多慢 · how slowly", aka: ["速度", "pace"], p: { sudden: 0.08, slow: 0.7, crawl: 0.22 } });
 
   // Awake, the door opens as far as its intent says (the timeline's opening, scaled to it).
   return (
@@ -43,3 +44,8 @@ export const Wardrobe = part("wardrobe", { label: "衣柜 · the wardrobe", aka:
     </Box>
   );
 });
+
+/** The door's pace, for the director: a React hook (React's rules apply), on the wardrobe. */
+export function usePace() {
+  return useHookIntent("pace", Pace, { label: "开得多慢 · how slowly", aka: ["速度", "pace"], p: { sudden: 0.08, slow: 0.7, crawl: 0.22 } });
+}

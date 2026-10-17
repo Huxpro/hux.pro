@@ -11,15 +11,16 @@
 //   narrow / believe / learn   the writers of the doc
 //   reconcile         the program rewritten: decisions kept by path
 //   effect()          eager code, lazy model, cached under kinds
-//   createRoot()      the loop: the program the parts declare, actions in,
-//                     snapshots out, undo, preview
-//   render()          parts run with no host, until they settle
+//   createRoot()      the loop: evaluate (pure, for a render), hold / release
+//                     (for a commit), the program they make, actions in,
+//                     snapshots out, scoped views, undo, preview
+//   collect / runPart / render   a part run purely; run and held; headless until settled
 //
 // docs/system-reintent-core.md has the model, and how it maps to React.
 // =============================================================================
 
 export { intent, argmax, margin, normalize, type Dist, type Kind, type KindSpec, type IntentType, type KindOf, type DataOf } from "./intent";
-export { part, runPart, render, useIntent, useDerived, useCell, useLazy, type Part } from "./part";
+export { part, collect, runPart, render, useIntent, useDerived, useCell, useLazy, type Part, type Run } from "./part";
 export { check, cells, cellOf, nameOf, signature, type Program, type ThingDecl, type IntentDecl, type IntentOptions, type Cell, type Key, type Read } from "./program";
 export {
   EMPTY_DOC,
@@ -39,4 +40,4 @@ export {
 } from "./doc";
 export { values, questions, staleCells, TAU, LEAN_WEIGHT, type Value, type Source } from "./decide";
 export { effect, type Effect, type Written, type Under } from "./effect";
-export { createRoot, apply, type Root, type Action, type Snapshot, type State, type LogEntry, type ProgramChange, type Frame, type ThingInfo } from "./root";
+export { createRoot, apply, keyOf, type Root, type Action, type Snapshot, type State, type LogEntry, type ProgramChange, type ThingInfo, type Scope } from "./root";

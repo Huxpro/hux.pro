@@ -12,14 +12,29 @@
 //   narrow / learn     a person, or a model's answer to a person's event
 //   believe            a model, under the context it was asked in
 //   context            something said of the whole, a viewer's leaning, focus
-//   the program        a part declares otherwise (a model rewrote it, or an
-//                      `if` went the other way): on `flush`, the doc is
-//                      reconciled by path against it
+//   the program        a part declares otherwise (a model rewrote it, an `if`
+//                      went the other way, it unmounted): on the flush, the
+//                      doc is reconciled by path against it
 //
-// A part runs inside a `frame`: each `useIntent` registers its declaration
-// and reads its value. A cell another part has not declared yet reads as
-// nothing; the flush after the run publishes the program, and whoever read it
-// runs again (the second pass).
+// Reading and declaring are apart, as rendering and committing are:
+//
+//   evaluate(thing, decl, scope)   what a declaration's cell is now. Pure: a
+//                                  host renders with it, and may throw the
+//                                  render away
+//   hold(holder, thing, decls)     these are declared now (a mounted part, a
+//                                  hook): a host commits with it
+//   release(holder)                not any more
+//
+// Each mounted instance is its own holder: him in the wardrobe and him at the
+// bed are two holders of one thing. The program is everything held. A flush
+// (batched after holds and releases, or called) publishes it when its shape
+// changed. A cell read sideways before its part has run reads as nothing,
+// and the reader runs again after the flush.
+//
+// Values are computed per scope (a part of the context a subtree sees: a
+// focus, a viewer's leaning) and share structure from one publish to the
+// next: an unchanged cell is the same object, so a reader of one cell is told
+// only when it changes.
 //
 // Every state of the doc is kept, so undo is a step back (the program is code:
 // undo does not unwrite it), and `preview` computes a state without making it.
@@ -69,21 +84,14 @@ export interface Snapshot extends State {
   canUndo: boolean;
 }
 
-/** A part at run: where its hooks register and read. */
-export interface Frame {
-  intent<K extends string, D>(decl: IntentDecl<K, D>): Value<K, D>;
-  /** Another cell's value now (undefined: not declared yet). */
-  value(key: Key): Value | undefined;
-  values(): Record<Key, Value>;
-  /** The run is over: intents it did not declare this time are gone. */
-  end(): void;
-}
-
 export interface ThingInfo {
   id: string;
   label?: string;
   aka?: readonly string[];
 }
+
+/** The part of the context a subtree sees as its own (a focus, a viewer's leaning). */
+export type Scope = { focus?: Context["focus"]; lean?: Context["lean"] };
 
 export function apply(s: State, a: Action): State {
   switch (a.type) {
@@ -124,6 +132,7 @@ function diff(before: Record<Key, Value>, after: Record<Key, Value>): string[] {
 }
 
 export interface Root {
+  /** The published state, at the root's own context. */
   get(): Snapshot;
   subscribe(fn: () => void): () => void;
   dispatch(action: Action, note?: string): Snapshot;
@@ -133,62 +142,113 @@ export interface Root {
   watch<T>(select: (s: Snapshot) => T, fn: (value: T) => void): () => void;
   undo(): void;
   reset(): void;
-  // The parts' side.
-  frame(thing: ThingInfo): Frame;
-  /** After a run: a program that changed is reconciled, logged and published. */
+
+  // Reading: pure, for a render.
+  /** Every published cell's value under a scope. Stable until the next publish. */
+  view(scope?: Scope): Record<Key, Value>;
+  /**
+   * A declaration's value now, under a scope, whether or not it is held yet: the published
+   * program with it (and `pending`, declared before it in the same run) in its place.
+   */
+  evaluate<K extends string, D>(thing: ThingInfo, decl: IntentDecl<K, D>, scope?: Scope, pending?: readonly IntentDecl<string, unknown>[]): Value<K, D>;
+
+  // Declaring: for a commit.
+  /** `holder` declares exactly `decls` on `thing` now (it replaces what it held). */
+  hold(holder: string, thing: ThingInfo, decls: readonly IntentDecl<string, unknown>[]): void;
+  release(holder: string): void;
+  /** Publish the program if its shape changed: reconcile, log. Holds and releases schedule one. */
   flush(note?: string): void;
-  /** A part mounted (a host's binding): counted, so a thing drawn twice is one thing. */
-  keep(id: string): void;
-  /** A part unmounted: when the last of it is gone, its cells go once the commit is over, unless it ran or mounted again. */
-  drop(id: string): void;
 }
 
-interface Entry {
-  info: ThingInfo;
-  intents: Map<string, IntentDecl<string, unknown>>;
-  /** Each intent's declaration as text, to tell a rewrite from a re-run. */
-  sigs: Map<string, string>;
-}
-
+export const keyOf = (thing: string, name: string) => `${thing}.${name}`;
 const declSig = (d: IntentDecl<string, unknown>) => signature({ id: "", things: [{ id: "", aka: [], intents: [d] }] });
+
+interface Held {
+  thing: ThingInfo;
+  decls: readonly IntentDecl<string, unknown>[];
+  sigs: string;
+}
 
 export function createRoot(init: { id?: string; doc?: Doc; ctx?: Context } = {}): Root {
   const id = init.id ?? "program";
   const first: State = { doc: init.doc ?? EMPTY_DOC, ctx: init.ctx ?? {} };
   let history: State[] = [first];
   let log: LogEntry[] = [];
-  const things = new Map<string, Entry>();
-  const dropped = new Set<string>();
-  const mounts = new Map<string, number>();
-  let rev = 0;
-  let published = { sig: signature({ id, things: [] }), program: { id, things: [] } as Program };
   const subs = new Set<() => void>();
-
   const state = () => history[history.length - 1];
-  let programMemo = { rev: -1, program: published.program };
+
+  // ---------------------------------------------------------------------------
+  // The program: everything held, the latest holder of a cell winning.
+  // ---------------------------------------------------------------------------
+
+  const holders = new Map<string, Held>();
+  let rev = 0;
+  let built = { rev: -1, program: { id, things: [] } as Program };
   const program = (): Program => {
-    if (programMemo.rev !== rev)
-      programMemo = {
-        rev,
-        program: { id, things: [...things.values()].map((e) => ({ id: e.info.id, label: e.info.label, aka: e.info.aka ?? [], intents: [...e.intents.values()] })) },
-      };
-    return programMemo.program;
-  };
-  let liveMemo: { rev: number; state: State; values: Record<Key, Value> } | null = null;
-  const live = () => {
-    const s = state();
-    if (!liveMemo || liveMemo.rev !== rev || liveMemo.state !== s) liveMemo = { rev, state: s, values: values(program(), s.doc, s.ctx) };
-    return liveMemo.values;
+    if (built.rev === rev) return built.program;
+    const things = new Map<string, { info: ThingInfo; intents: Map<string, IntentDecl<string, unknown>> }>();
+    for (const h of holders.values()) {
+      const t = things.get(h.thing.id) ?? { info: h.thing, intents: new Map() };
+      things.set(h.thing.id, t);
+      for (const d of h.decls) t.intents.set(d.name, d);
+    }
+    built = {
+      rev,
+      program: { id, things: [...things.values()].map((t) => ({ id: t.info.id, label: t.info.label, aka: t.info.aka ?? [], intents: [...t.intents.values()] })) },
+    };
+    return built.program;
   };
 
-  const snapshotOf = (s: State, p: Program, canUndo: boolean): Snapshot => {
-    const vals = values(p, s.doc, s.ctx);
-    return { ...s, program: p, values: vals, asks: questions(vals), stale: staleCells(vals), log, canUndo };
+  // What is published: the program at the last flush, and the state at the last change.
+  let published: { program: Program; sig: string; state: State } = { program: built.program, sig: signature(built.program), state: first };
+  let views = new Map<string, Record<Key, Value>>();
+  let lastViews = new Map<string, Record<Key, Value>>();
+  const ctxOf = (scope?: Scope): Context => ({ ...published.state.ctx, ...scope, lean: { ...published.state.ctx.lean, ...scope?.lean } });
+  const scopeKey = (scope?: Scope) => (scope ? JSON.stringify([scope.focus ?? null, scope.lean ?? null]) : "");
+  const view = (scope?: Scope) => {
+    const k = scopeKey(scope);
+    let v = views.get(k);
+    if (!v) {
+      v = values(published.program, published.state.doc, ctxOf(scope), lastViews.get(k));
+      views.set(k, v);
+    }
+    return v;
   };
-  let snap = snapshotOf(first, published.program, false);
-  const publish = () => {
-    snap = snapshotOf(state(), program(), history.length > 1);
+
+  let snap: Snapshot;
+  const snapshotOf = (s: State, p: Program, vals: Record<Key, Value>, canUndo: boolean): Snapshot => ({
+    ...s,
+    program: p,
+    values: vals,
+    asks: questions(vals),
+    stale: staleCells(vals),
+    log,
+    canUndo,
+  });
+  /** The state and program now are what everyone sees; `entry` logs what that changed. */
+  const publish = (entry?: (vals: Record<Key, Value>) => LogEntry) => {
+    published = { ...published, state: state() };
+    lastViews = new Map([...lastViews, ...views]);
+    views = new Map();
+    const vals = view();
+    if (entry) log = [entry(vals), ...log];
+    snap = snapshotOf(state(), published.program, vals, history.length > 1);
     subs.forEach((fn) => fn());
+  };
+  snap = snapshotOf(first, published.program, view(), false);
+
+  // Evaluations of declarations not (or not yet) as published, kept per publish.
+  let evals = new Map<string, Value>();
+  let evalsFor = snap;
+
+  let scheduled = false;
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    queueMicrotask(() => {
+      scheduled = false;
+      root.flush();
+    });
   };
 
   const root: Root = {
@@ -200,13 +260,12 @@ export function createRoot(init: { id?: string; doc?: Doc; ctx?: Context } = {})
     dispatch(action, note) {
       const before = snap.values;
       history = [...history, apply(state(), action)];
-      const after = live();
-      log = [{ note: note ?? describe(action), actions: action.type === "batch" ? action.actions : [action], changes: diff(before, after) }, ...log];
-      publish();
+      publish((after) => ({ note: note ?? describe(action), actions: action.type === "batch" ? action.actions : [action], changes: diff(before, after) }));
       return snap;
     },
     preview(actions) {
-      return snapshotOf(actions.reduce(apply, state()), program(), true);
+      const s = actions.reduce(apply, state());
+      return snapshotOf(s, published.program, values(published.program, s.doc, s.ctx), true);
     },
     watch(select, fn) {
       let seen = JSON.stringify(select(snap));
@@ -221,9 +280,9 @@ export function createRoot(init: { id?: string; doc?: Doc; ctx?: Context } = {})
     },
     undo() {
       if (history.length < 2) return;
+      const before = snap.values;
       history = history.slice(0, -1);
-      log = [{ note: "undo", actions: [], changes: [] }, ...log];
-      publish();
+      publish((after) => ({ note: "undo", actions: [], changes: diff(before, after) }));
     },
     reset() {
       history = [first];
@@ -231,54 +290,70 @@ export function createRoot(init: { id?: string; doc?: Doc; ctx?: Context } = {})
       publish();
     },
 
-    frame(info) {
-      dropped.delete(info.id);
-      let e = things.get(info.id);
-      if (!e) {
-        e = { info, intents: new Map(), sigs: new Map() };
-        things.set(info.id, e);
-        rev++;
-      }
-      const entry = e;
-      const seen = new Set<string>();
-      return {
-        intent<K extends string, D>(decl: IntentDecl<K, D>) {
-          const d = decl as unknown as IntentDecl<string, unknown>;
-          const key = `${info.id}.${d.name}`;
-          if (seen.has(d.name)) throw new Error(`reintent: ${key} declared twice in one run`);
-          const problems = check(key, d);
-          if (problems.length) throw new Error(`reintent: ${problems.join("; ")}`);
-          seen.add(d.name);
-          const sig = declSig(d);
-          // A re-run brings a fresh closure every time: kept quietly. A rewrite is a new program.
-          if (entry.sigs.get(d.name) !== sig) {
-            entry.sigs.set(d.name, sig);
-            rev++;
-          }
-          entry.intents.set(d.name, d);
-          return live()[key] as Value<K, D>;
-        },
-        value: (key) => live()[key],
-        values: live,
-        end() {
-          for (const name of [...entry.intents.keys()])
-            if (!seen.has(name)) {
-              entry.intents.delete(name);
-              entry.sigs.delete(name);
-              rev++;
-            }
-        },
+    view,
+    evaluate<K extends string, D>(thing: ThingInfo, decl: IntentDecl<K, D>, scope?: Scope, pending: readonly IntentDecl<string, unknown>[] = []) {
+      const d = decl as unknown as IntentDecl<string, unknown>;
+      const key = keyOf(thing.id, d.name);
+      const problems = check(key, d);
+      if (problems.length) throw new Error(`reintent: ${problems.join("; ")}`);
+      const sig = declSig(d);
+      const own = published.program.things.find((t) => t.id === thing.id);
+      const asPublished = (x: IntentDecl<string, unknown>) => {
+        const was = own?.intents.find((i) => i.name === x.name);
+        return !!was && declSig(was) === declSig(x);
       };
+      // Declared as published, and so is everything in front of it in this run: the published value, the same object.
+      if (asPublished(d) && pending.every(asPublished)) {
+        const v = view(scope)[key];
+        if (v) return v as Value<K, D>;
+      }
+      if (evalsFor !== snap) {
+        evals = new Map();
+        evalsFor = snap;
+      }
+      const memo = `${scopeKey(scope)}|${key}|${sig}|${pending.map(declSig).join("|")}`;
+      const hit = evals.get(memo);
+      if (hit) return hit as Value<K, D>;
+      // The published program, with this run's declarations of the thing in place.
+      const mine = [...pending.filter((x) => x.name !== d.name), d];
+      const others = published.program.things.filter((t) => t.id !== thing.id);
+      const kept = own ? own.intents.filter((i) => !mine.some((m) => m.name === i.name)) : [];
+      const p: Program = { id, things: [...others, { id: thing.id, label: thing.label, aka: thing.aka ?? [], intents: [...kept, ...mine] }] };
+      const v = values(p, published.state.doc, ctxOf(scope))[key];
+      evals.set(memo, v);
+      return v as Value<K, D>;
     },
 
+    hold(holder, thing, decls) {
+      const sigs = JSON.stringify([thing.id, decls.map(declSig)]);
+      const was = holders.get(holder);
+      // A re-run brings fresh closures every time: kept quietly. Anything else is a new program.
+      if (was && was.sigs === sigs) {
+        holders.set(holder, { thing, decls, sigs });
+        return;
+      }
+      holders.delete(holder);
+      holders.set(holder, { thing, decls, sigs });
+      rev++;
+      schedule();
+    },
+    release(holder) {
+      if (!holders.delete(holder)) return;
+      rev++;
+      schedule();
+    },
     flush(note) {
       const p = program();
       const sig = signature(p);
-      if (sig === published.sig) return;
+      if (sig === published.sig) {
+        // Same shape: the closures may be new (a derive), and they are what evaluates.
+        published = { ...published, program: p };
+        return;
+      }
       const before = snap.values;
       const r = reconcile(state().doc, p);
-      if (r.doc !== state().doc && (r.suspended.length || r.restored.length)) history = [...history, { ...state(), doc: r.doc }];
-      const keysOf = (q: Program) => new Set(q.things.flatMap((t) => t.intents.map((i) => `${t.id}.${i.name}`)));
+      if (r.suspended.length || r.restored.length) history = [...history, { ...state(), doc: r.doc }];
+      const keysOf = (q: Program) => new Set(q.things.flatMap((t) => t.intents.map((i) => keyOf(t.id, i.name))));
       const was = keysOf(published.program);
       const now = keysOf(p);
       const change: ProgramChange = {
@@ -288,28 +363,8 @@ export function createRoot(init: { id?: string; doc?: Doc; ctx?: Context } = {})
         suspended: r.suspended,
         restored: r.restored,
       };
-      published = { sig, program: p };
-      log = [{ note: note ?? `program: ${now.size} cells`, actions: [], changes: diff(before, live()), program: change }, ...log];
-      publish();
-    },
-    // Mounts are counted: a thing drawn twice (him in the wardrobe, him at the bed) is one thing,
-    // gone only when the last of it is.
-    // A drop is swept after the commit it happened in, not at the next flush: in one commit a
-    // child's flush can run before its parent's remount (a version switched under both).
-    drop(tid) {
-      const n = (mounts.get(tid) ?? 1) - 1;
-      mounts.set(tid, n);
-      if (n > 0) return;
-      dropped.add(tid);
-      queueMicrotask(() => {
-        if (!dropped.delete(tid)) return;
-        if (things.delete(tid)) rev++;
-        root.flush();
-      });
-    },
-    keep(tid) {
-      mounts.set(tid, (mounts.get(tid) ?? 0) + 1);
-      dropped.delete(tid);
+      published = { ...published, program: p, sig };
+      publish((after) => ({ note: note ?? `program: ${now.size} cells`, actions: [], changes: diff(before, after), program: change }));
     },
   };
   return root;

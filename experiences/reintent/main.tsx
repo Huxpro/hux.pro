@@ -8,21 +8,20 @@
 //   parts.tsx        him and the wardrobe as the model wrote them: intents in, drawing out
 //   parts.v2.tsx     the same, as the model rewrote them
 //   model.ts         a stand-in model, in rules
-//   main.tsx         the root, the director's sideways read (the pace), and the devtools
+//   main.tsx         the root, the director (its pace, a React hook under <Thing>), and the devtools
 //                    the Lab's /lab/reintent drives it through
 // =============================================================================
 
 import { useMemo, useSyncExternalStore } from "react";
 import { createRoot as createReactRoot } from "react-dom/client";
 import { createRoot } from "reintent-core";
-import { ReintentRoot, reactPart, useCell } from "reintent-core/react";
+import { ReintentRoot, Thing, reactPart } from "reintent-core/react";
 import { readingAction, recognize } from "reintent-core/words";
 import { observe } from "reintent-core/observe";
 import { expose, type ProgramVersion, type Said } from "reintent-core/devtools";
 import { WardrobeStage, type Read, type Things } from "../wardrobe/Wardrobe";
 import { SHAPE } from "../wardrobe/timeline";
 import { LANG } from "../common/words";
-import { Pace } from "./kinds";
 import { extend, rebelieve, STAND_IN } from "./model";
 import * as V1 from "./parts";
 import * as V2 from "./parts.v2";
@@ -40,10 +39,10 @@ const VERSIONS: ProgramVersion[] = [
   },
 ];
 
-/** Each version's parts, as the stage's things. */
-const THINGS: Record<string, Things> = {
-  v1: { Man: reactPart(V1.Man), Wardrobe: reactPart(V1.Wardrobe) },
-  v2: { Man: reactPart(V2.Man), Wardrobe: reactPart(V2.Wardrobe) },
+/** Each version's parts, as the stage's things, and the director's own intent. */
+const VERSION: Record<string, { things: Things; usePace: () => { data: { over: number } } }> = {
+  v1: { things: { Man: reactPart(V1.Man), Wardrobe: reactPart(V1.Wardrobe) }, usePace: V1.usePace },
+  v2: { things: { Man: reactPart(V2.Man), Wardrobe: reactPart(V2.Wardrobe) }, usePace: V2.usePace },
 };
 
 const root = createRoot({ id: "wardrobe" });
@@ -89,7 +88,7 @@ expose({
   versions: VERSIONS,
   current: () => current,
   use(id) {
-    if (id === current || !THINGS[id]) return;
+    if (id === current || !VERSION[id]) return;
     current = id;
     versionSubs.forEach((fn) => fn());
   },
@@ -98,9 +97,9 @@ expose({
   observe: () => observe(root.get()),
 });
 
-/** The director's share of the intents: the pace is time, read sideways from the wardrobe. */
-function Stage({ things }: { things: Things }) {
-  const over = useCell("wardrobe.pace", Pace)?.data.over;
+/** The director's share of the intents: the pace is time, declared where it is used. */
+function Stage({ things, usePace }: (typeof VERSION)[string]) {
+  const over = usePace().data.over;
   const rd = useMemo<Read>(() => ({ shape: SHAPE, hatScale: 1, gaze: 1, over }), [over]);
   return <WardrobeStage rd={rd} things={things} />;
 }
@@ -109,7 +108,10 @@ function App() {
   const version = useSyncExternalStore(onVersion, () => current);
   return (
     <ReintentRoot root={root}>
-      <Stage things={THINGS[version]} />
+      <Thing id="wardrobe" label="衣柜 · the wardrobe" aka={["衣柜", "柜子", "柜门", "门", "wardrobe", "door"]}>
+        {/* Not keyed, so the dream runs on through a switch: each version's usePace calls the same React hooks in the same order. */}
+        <Stage {...VERSION[version]} />
+      </Thing>
     </ReintentRoot>
   );
 }

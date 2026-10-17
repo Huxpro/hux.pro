@@ -8,7 +8,7 @@ rewritten, values are reconciled by path.
 
 - `reintent-core`: the core. No dependencies; its hooks need a frame, not React.
 - `reintent-core/words`, `/observe`, `/devtools`: libraries on the core.
-- `reintent-core/react`: the React binding (`reactPart`, `useCell`).
+- `reintent-core/react`: the React binding. `useIntent` as a React hook under a `<Thing>`, `<Scope>`, `reactPart`, `useCell`. Render reads, commit declares, and each subscribes to the cells it read.
 
 See docs/system-reintent-core.md, and `/lab/reintent` for The Wardrobe running on it.
 `pnpm reintent:test` and `pnpm reintent:typecheck` check it.
